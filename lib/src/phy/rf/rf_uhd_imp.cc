@@ -358,14 +358,13 @@ static int set_time_to_gps_time(rf_uhd_handler_t* handler)
   }
 
   // Get actual sensor value
-  uhd::sensor_value_t sensor_value("w", "t", "f");
-  if (handler->uhd->get_sensor(sensor_name, sensor_value) != UHD_ERROR_NONE) {
+  double frac_secs = 0.0;
+  if (handler->uhd->get_sensor(sensor_name, frac_secs) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSLTE_ERROR;
   }
 
   // Get time and set
-  double frac_secs = sensor_value.to_real();
   printf("Setting USRP time to %fs\n", frac_secs);
   if (handler->uhd->set_time_unknown_pps(uhd::time_spec_t(frac_secs)) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
@@ -421,21 +420,19 @@ static int wait_sensor_locked(rf_uhd_handler_t*  handler,
 
   do {
     // Get actual sensor value
-    uhd::sensor_value_t sensor_value("", true, "True", "False");
     if (is_mboard) {
-      if (handler->uhd->get_sensor(sensor_name, sensor_value) != UHD_ERROR_NONE) {
+      if (handler->uhd->get_sensor(sensor_name, is_locked) != UHD_ERROR_NONE) {
         print_usrp_error(handler);
         return SRSLTE_ERROR;
       }
     } else {
-      if (handler->uhd->get_rx_sensor(sensor_name, sensor_value) != UHD_ERROR_NONE) {
+      if (handler->uhd->get_rx_sensor(sensor_name, is_locked) != UHD_ERROR_NONE) {
         print_usrp_error(handler);
         return SRSLTE_ERROR;
       }
     }
 
     // Read value and wait
-    is_locked = sensor_value.to_bool();
     usleep(1000); // 1ms
     timeout -= 1; // 1ms
   } while (not is_locked and timeout > 0);
@@ -600,6 +597,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   }
 
   // Logging level
+#ifdef UHD_LOG_INFO
   uhd::log::severity_level severity_level = uhd::log::severity_level::info;
   if (device_addr.has_key("log_level")) {
     std::string log_level = device_addr.pop("log_level");
@@ -621,6 +619,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     }
   }
   uhd::log::set_console_level(severity_level);
+#endif
 
 #if HAVE_ASYNC_THREAD
   bool start_async_thread = true;

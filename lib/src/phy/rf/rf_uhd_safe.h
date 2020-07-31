@@ -21,11 +21,20 @@
 #ifndef SRSLTE_RF_UHD_SAFE_H
 #define SRSLTE_RF_UHD_SAFE_H
 
+#include <set>
 #include <uhd/utils/log.hpp>
+
+#ifdef UHD_LOG_INFO
 #define Warning(message) UHD_LOG_WARNING("UHD RF", message)
 #define Info(message) UHD_LOG_INFO("UHD RF", message)
 #define Debug(message) UHD_LOG_DEBUG("UHD RF", message)
 #define Trace(message) UHD_LOG_TRACE("UHD RF", message)
+#else
+#define Warning(message) UHD_LOG << message
+#define Info(message) UHD_LOG << message
+#define Debug(message) UHD_LOG << message
+#define Trace(message) UHD_LOG << message
+#endif
 
 #ifdef ENABLE_UHD_X300_FW_RESET
 #include <uhd/transport/udp_simple.hpp>
@@ -115,8 +124,9 @@ public:
   virtual uhd_error get_mboard_name(std::string& mboard_name)                                        = 0;
   virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)                       = 0;
   virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)                           = 0;
-  virtual uhd_error get_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value)    = 0;
-  virtual uhd_error get_rx_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, double& sensor_value)                 = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value)                   = 0;
+  virtual uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value)                = 0;
   virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec)                           = 0;
   virtual uhd_error get_time_now(uhd::time_spec_t& timespec)                                         = 0;
   uhd_error         start_rx_stream(double delay)

@@ -226,13 +226,17 @@ public:
   {
     UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_rx_sensor_names();)
   }
-  uhd_error get_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) override
+  uhd_error get_sensor(const std::string& sensor_name, double& sensor_value) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name);)
+    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name).to_real();)
   }
-  uhd_error get_rx_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) override
+  uhd_error get_sensor(const std::string& sensor_name, bool& sensor_value) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_rx_sensor(sensor_name);)
+    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name).to_bool();)
+  }
+  uhd_error get_rx_sensor(const std::string& sensor_name, bool& sensor_value) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_rx_sensor(sensor_name).to_bool();)
   }
   uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) override
   {
