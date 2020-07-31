@@ -69,7 +69,7 @@ public:
   uint32_t get_cell_nof_ports()
   {
     // wait until cell is initialized
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(cell_mutex);
     while (!cell_initiated) {
       cell_init_cond.wait(lock);
     }
@@ -98,9 +98,8 @@ private:
 
   chest_feedback_itf* chest_loop = nullptr;
 
-  std::mutex mutex;
-
-  srslte_cell_t       cell       = {};
+  srslte_cell_t       cell = {};
+  std::mutex          cell_mutex;
   srslte_tdd_config_t tdd_config = {};
 
   std::condition_variable cell_init_cond;

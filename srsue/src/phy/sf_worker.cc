@@ -81,7 +81,6 @@ sf_worker::~sf_worker()
 
 void sf_worker::reset()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   rssi_read_cnt = 0;
   for (auto& cc_worker : cc_workers) {
     cc_worker->reset();
@@ -90,7 +89,7 @@ void sf_worker::reset()
 
 bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(cell_mutex);
 
   if (cc_idx < cc_workers.size()) {
     if (!cc_workers[cc_idx]->set_cell(cell_)) {
@@ -156,7 +155,6 @@ void sf_worker::set_cfo(const uint32_t& cc_idx, float cfo)
 
 void sf_worker::set_crnti(uint16_t rnti)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   for (auto& cc_worker : cc_workers) {
     cc_worker->set_crnti(rnti);
   }
@@ -164,7 +162,6 @@ void sf_worker::set_crnti(uint16_t rnti)
 
 void sf_worker::set_tdd_config(srslte_tdd_config_t config)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   for (auto& cc_worker : cc_workers) {
     cc_worker->set_tdd_config(config);
   }
@@ -173,7 +170,6 @@ void sf_worker::set_tdd_config(srslte_tdd_config_t config)
 
 void sf_worker::enable_pregen_signals(bool enabled)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   for (auto& cc_worker : cc_workers) {
     cc_worker->enable_pregen_signals(enabled);
   }
@@ -181,7 +177,6 @@ void sf_worker::enable_pregen_signals(bool enabled)
 
 void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (cc_idx < cc_workers.size()) {
     Info("Setting configuration for worker=%d, cc=%d\n", get_id(), cc_idx);
     cc_workers[cc_idx]->set_config(phy_cfg);
@@ -207,59 +202,55 @@ void sf_worker::work_imp()
   bool     tx_signal_ready = false;
   uint32_t nof_samples     = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
-  {
-    std::lock_guard<std::mutex> lock(mutex);
+  /***** Downlink Processing *******/
 
-    /***** Downlink Processing *******/
+  // Loop through all carriers. carrier_idx=0 is PCell
+  for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
 
-    // Loop through all carriers. carrier_idx=0 is PCell
-    for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
+    // Process all DL and special subframes
+    if (srslte_sfidx_tdd_type(tdd_config, tti % 10) != SRSLTE_TDD_SF_U || cell.frame_type == SRSLTE_FDD) {
+      srslte_mbsfn_cfg_t mbsfn_cfg;
+      ZERO_OBJECT(mbsfn_cfg);
 
-      // Process all DL and special subframes
-      if (srslte_sfidx_tdd_type(tdd_config, tti % 10) != SRSLTE_TDD_SF_U || cell.frame_type == SRSLTE_FDD) {
-        srslte_mbsfn_cfg_t mbsfn_cfg;
-        ZERO_OBJECT(mbsfn_cfg);
-
-        if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
-          cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
-        } else {
-          if ((carrier_idx == 0) || phy->scell_cfg[carrier_idx].enabled) {
-            rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
-          }
+      if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
+        cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
+      } else {
+        if ((carrier_idx == 0) || phy->scell_cfg[carrier_idx].enabled) {
+          rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
         }
       }
     }
+  }
 
-    /***** Uplink Generation + Transmission *******/
+  /***** Uplink Generation + Transmission *******/
 
-    /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
-    if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
-      // Generate Uplink signal if no PRACH pending
-      if (!prach_ptr) {
+  /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
+  if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
+    // Generate Uplink signal if no PRACH pending
+    if (!prach_ptr) {
 
-        // Common UCI data object for all carriers
-        srslte_uci_data_t uci_data;
-        reset_uci(&uci_data);
+      // Common UCI data object for all carriers
+      srslte_uci_data_t uci_data;
+      reset_uci(&uci_data);
 
-        uint32_t uci_cc_idx = phy->get_ul_uci_cc(TTI_TX(tti));
+      uint32_t uci_cc_idx = phy->get_ul_uci_cc(TTI_TX(tti));
 
-        // Fill periodic CQI data; In case of periodic CSI report collision, lower carrier index have preference, so
-        // stop as soon as either CQI data is enabled or RI is carried
-        for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers and not uci_data.cfg.cqi.data_enable and
-                                       uci_data.cfg.cqi.ri_len == 0;
-             carrier_idx++) {
-          if (carrier_idx == 0 or phy->scell_cfg[carrier_idx].configured) {
-            cc_workers[carrier_idx]->set_uci_periodic_cqi(&uci_data);
-          }
+      // Fill periodic CQI data; In case of periodic CSI report collision, lower carrier index have preference, so
+      // stop as soon as either CQI data is enabled or RI is carried
+      for (uint32_t carrier_idx = 0;
+           carrier_idx < phy->args->nof_carriers and not uci_data.cfg.cqi.data_enable and uci_data.cfg.cqi.ri_len == 0;
+           carrier_idx++) {
+        if (carrier_idx == 0 or phy->scell_cfg[carrier_idx].configured) {
+          cc_workers[carrier_idx]->set_uci_periodic_cqi(&uci_data);
         }
+      }
 
-        // Loop through all carriers
-        for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers; carrier_idx++) {
-          tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
+      // Loop through all carriers
+      for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers; carrier_idx++) {
+        tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
 
-          // Set signal pointer based on offset
-          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
-        }
+        // Set signal pointer based on offset
+        tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
       }
     }
   }

@@ -44,7 +44,7 @@ public:
 
   void  set_tti(uint32_t tti);
   void  set_cfo(float cfo);
-  float get_ref_cfo();
+  float get_ref_cfo() const;
 
   void set_tdd_config(srslte_tdd_config_t config);
   void set_config(srslte::phy_cfg_t& phy_cfg);
@@ -120,6 +120,9 @@ private:
   // Metrics
   dl_metrics_t dl_metrics = {};
   ul_metrics_t ul_metrics = {};
+
+  // Mutex, for protecting what matters most: ue_ul, ue_ul_cfg, ue_dl, ue_dl_cfg, cell, pmch_cfg
+  std::mutex mutex;
 };
 
 } // namespace srsue

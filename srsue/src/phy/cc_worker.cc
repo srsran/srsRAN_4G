@@ -127,6 +127,8 @@ void cc_worker::reset()
 
 bool cc_worker::set_cell(srslte_cell_t cell_)
 {
+  std::unique_lock<std::mutex> lock(mutex);
+
   if (cell.id != cell_.id || !cell_initiated) {
     cell = cell_;
 
@@ -178,29 +180,32 @@ void cc_worker::set_tti(uint32_t tti)
 
 void cc_worker::set_cfo(float cfo)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   ue_ul_cfg.cfo_value = cfo;
 }
 
-float cc_worker::get_ref_cfo()
+float cc_worker::get_ref_cfo() const
 {
   return ue_dl.chest_res.cfo;
 }
 
 void cc_worker::set_crnti(uint16_t rnti)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
 }
 
 void cc_worker::set_tdd_config(srslte_tdd_config_t config)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   sf_cfg_dl.tdd_config = config;
   sf_cfg_ul.tdd_config = config;
 }
 
 void cc_worker::enable_pregen_signals(bool enabled)
 {
-  this->pregen_enabled = enabled;
+  pregen_enabled = enabled;
 }
 
 /************
@@ -211,7 +216,8 @@ void cc_worker::enable_pregen_signals(bool enabled)
 
 bool cc_worker::work_dl_regular()
 {
-  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {};
+  std::unique_lock<std::mutex> lock(mutex);
+  bool                         dl_ack[SRSLTE_MAX_CODEWORDS] = {};
 
   mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
@@ -287,9 +293,17 @@ bool cc_worker::work_dl_regular()
     srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce, grant_cc_idx, dci_dl.tpc_pucch};
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mutex.unlock();
     phy->stack->new_grant_dl(cc_idx, mac_grant, &dl_action);
+    mutex.lock();
+
+    // Decode PDSCH
     decode_pdsch(ack_resource, &dl_action, dl_ack);
+
+    // Informs Stack about the decoding status
+    mutex.unlock();
     phy->stack->tb_decoded(cc_idx, mac_grant, dl_ack);
+    mutex.lock();
   }
 
   /* Decode PHICH */
@@ -300,6 +314,7 @@ bool cc_worker::work_dl_regular()
 
 bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
 {
+  std::unique_lock<std::mutex>          lock(mutex);
   mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   // Configure MBSFN settings
@@ -539,7 +554,8 @@ void cc_worker::decode_phich()
 
 void cc_worker::update_measurements()
 {
-  float snr_ema_coeff = phy->args->snr_ema_coeff;
+  std::unique_lock<std::mutex> lock(mutex);
+  float                        snr_ema_coeff = phy->args->snr_ema_coeff;
 
   // In TDD, ignore special subframes without PDSCH
   if (srslte_sfidx_tdd_type(sf_cfg_dl.tdd_config, CURRENT_SFIDX) == SRSLTE_TDD_SF_S &&
@@ -625,8 +641,8 @@ void cc_worker::update_measurements()
 
 bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 {
-
-  bool signal_ready;
+  std::unique_lock<std::mutex> lock(mutex);
+  bool                         signal_ready;
 
   srslte_dci_ul_t                       dci_ul       = {};
   mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant = {};
@@ -670,7 +686,9 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
       // Fill MAC dci
       ul_phy_to_mac_grant(&ue_ul_cfg.ul_cfg.pusch.grant, &dci_ul, pid, ul_grant_available, &ul_mac_grant);
 
+      mutex.unlock();
       phy->stack->new_grant_ul(cc_idx, ul_mac_grant, &ul_action);
+      mutex.lock();
 
       // Calculate PUSCH Hopping procedure
       ue_ul_cfg.ul_cfg.hopping.current_tx_nb = ul_action.current_tx_nb;
@@ -857,6 +875,7 @@ uint32_t cc_worker::get_wideband_cqi()
 
 void cc_worker::set_uci_periodic_cqi(srslte_uci_data_t* uci_data)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   srslte_ue_dl_gen_cqi_periodic(&ue_dl, &ue_dl_cfg, get_wideband_cqi(), CURRENT_TTI_TX, uci_data);
 }
 
@@ -910,6 +929,8 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
  */
 void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
 {
+  std::unique_lock<std::mutex> lock(mutex);
+
   // Save configuration
   ue_dl_cfg.cfg    = phy_cfg.dl_cfg;
   ue_ul_cfg.ul_cfg = phy_cfg.ul_cfg;
@@ -926,6 +947,7 @@ void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
 
 void cc_worker::upd_config_dci(srslte_dci_cfg_t& dci_cfg)
 {
+  std::unique_lock<std::mutex> lock(mutex);
   ue_dl_cfg.cfg.dci = dci_cfg;
 }
 
