@@ -43,7 +43,6 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_
   mac_msg_dl(20, ss_mac_log),
   pdus(128),
   logger_stdout(logger_stdout_),
-  logger_file(logger_file_),
   logger_ptr(&logger_file_),
   pool(byte_buffer_pool::get_instance()),
   ue(ue_),

@@ -226,7 +226,6 @@ private:
 
   // Logging stuff
   srslte::logger&         logger_stdout;
-  srslte::logger&         logger_file;
   std::unique_ptr<logger> test_case_logger;
   srslte::logger*         logger_ptr = nullptr;
   srslte::log_ref         log;
