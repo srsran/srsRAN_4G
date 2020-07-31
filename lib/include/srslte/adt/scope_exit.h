@@ -22,6 +22,7 @@
 #ifndef SRSLTE_SCOPE_EXIT_H
 #define SRSLTE_SCOPE_EXIT_H
 
+#include <type_traits>
 #include <utility>
 
 namespace srslte {
@@ -30,7 +31,9 @@ namespace detail {
 
 template <typename Callable>
 struct scope_exit {
-  explicit scope_exit(Callable&& f_) : exit_function(std::forward<Callable>(f_)) {}
+  template <typename C>
+  explicit scope_exit(C&& f_) : exit_function(std::forward<C>(f_))
+  {}
   scope_exit(scope_exit&& rhs) noexcept : exit_function(std::move(rhs.exit_function)), active(rhs.active)
   {
     rhs.release();
@@ -48,8 +51,8 @@ struct scope_exit {
   void release() { active = false; }
 
 private:
-  bool     active = true;
   Callable exit_function;
+  bool     active = true;
 };
 
 } // namespace detail
@@ -61,10 +64,11 @@ private:
  * @return object that has to be stored in a local variable
  */
 template <typename Callable>
-detail::scope_exit<Callable> make_scope_exit(Callable&& callable)
+detail::scope_exit<typename std::decay<Callable>::type> make_scope_exit(Callable&& callable)
 {
-  return detail::scope_exit<Callable>{std::forward<Callable>(callable)};
+  return detail::scope_exit<typename std::decay<Callable>::type>{std::forward<Callable>(callable)};
 }
+
 #define DEFER(FUNC) auto on_exit_call = make_scope_exit([&]() { FUNC })
 
 } // namespace srslte
