@@ -39,7 +39,7 @@ using namespace srslte;
 
 #define SRSLTE_MAX_RADIOS 3
 
-static std::array<std::string, SRSLTE_MAX_RADIOS> radios_args = {"auto", "auto", "auto"};
+static std::array<std::string, SRSLTE_MAX_RADIOS> radios_args = {};
 static char                                       radio_device[64];
 
 static log_filter  log_h;
@@ -331,7 +331,7 @@ int main(int argc, char** argv)
     rf_args_t radio_args    = {};
     radio_args.nof_antennas = nof_ports;
     radio_args.nof_carriers = 1;
-    radio_args.device_args  = radios_args[r];
+    radio_args.device_args  = radios_args[r].empty() ? "auto" : radios_args[r];
     radio_args.rx_gain      = agc_enable ? -1 : rf_gain;
     radio_args.device_name  = radio_device;
 

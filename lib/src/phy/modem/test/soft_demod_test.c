@@ -32,7 +32,7 @@
 
 static uint32_t     nof_frames = 10;
 static uint32_t     num_bits   = 1000;
-static srslte_mod_t modulation = 10;
+static srslte_mod_t modulation = SRSLTE_MOD_NITEMS;
 
 void usage(char* prog)
 {
@@ -85,7 +85,7 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
-  if (modulation == 10) {
+  if (modulation == SRSLTE_MOD_NITEMS) {
     usage(argv[0]);
     exit(-1);
   }

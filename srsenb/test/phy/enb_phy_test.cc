@@ -193,6 +193,10 @@ public:
   {
     int err = SRSLTE_SUCCESS;
 
+    if (not running) {
+      return true;
+    }
+
     // Get number of bytes to write
     uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * buffer.get_nof_samples();
 
@@ -213,6 +217,13 @@ public:
   bool rx_now(srslte::rf_buffer_interface& buffer, srslte::rf_timestamp_interface& rxd_time) override
   {
     int err = SRSLTE_SUCCESS;
+
+    if (not running) {
+      for (uint32_t i = 0; i < buffer.size(); i++) {
+        srslte_vec_cf_zero(buffer.get(i), buffer.get_nof_samples());
+      }
+      return true;
+    }
 
     log_h.info("rx_now %d\n", buffer.get_nof_samples());
 
@@ -1306,11 +1317,13 @@ public:
     ue_phy->reconfigure(phy_rrc_cfg);
   }
 
-  ~phy_test_bench()
+  void stop()
   {
     radio->stop();
     enb_phy->stop();
   }
+
+  ~phy_test_bench() = default;
 
   int run_tti()
   {
@@ -1466,6 +1479,8 @@ int main(int argc, char** argv)
   for (uint32_t i = 0; i < test_args.duration; i++) {
     TESTASSERT(test_bench->run_tti() >= SRSLTE_SUCCESS);
   }
+
+  test_bench->stop();
 
   std::cout << "Passed" << std::endl;
 
