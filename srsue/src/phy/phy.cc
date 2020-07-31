@@ -453,7 +453,7 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
 
     if (cc_idx == 0) {
       prach_cfg = config_.prach_cfg;
-    } else if (cell_info) {
+    } else if (cell_info != nullptr) {
       // Change frequency only if the earfcn was modified
       if (common.scell_cfg[cc_idx].earfcn != earfcn) {
         double dl_freq = srslte_band_fd(earfcn) * 1e6;
@@ -467,8 +467,6 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
       common.scell_cfg[cc_idx].pci        = cell_info->id;
       common.scell_cfg[cc_idx].configured = true;
       common.scell_cfg[cc_idx].enabled    = false;
-    } else {
-      Error("Configuring Scell index %d but cell_info not provided\n", cc_idx);
     }
 
   } else {
