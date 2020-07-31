@@ -72,12 +72,12 @@ int prach_worker::init(const srslte_cell_t&      cell_,
 
 void prach_worker::stop()
 {
-  srslte_prach_free(&prach);
-
   running      = false;
   sf_buffer* s = nullptr;
   pending_buffers.push(s);
   wait_thread_finish();
+
+  srslte_prach_free(&prach);
 }
 
 void prach_worker::set_max_prach_offset_us(float delay_us)
