@@ -192,6 +192,16 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
     }
   }
 
+  // Set resampler buffers to 5 ms
+  if (std::isnormal(fix_srate_hz)) {
+    for (auto& buf : rx_buffer) {
+      buf.resize(size_t(fix_srate_hz / 200));
+    }
+    for (auto& buf : tx_buffer) {
+      buf.resize(size_t(fix_srate_hz / 200));
+    }
+  }
+
   // Frequency offset
   freq_offset = args.freq_offset;
 
@@ -260,6 +270,7 @@ bool radio::start_agc(bool tx_gain_same_rx)
 
 bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time)
 {
+  std::unique_lock<std::mutex> lock(rx_mutex);
   bool        ret = true;
   rf_buffer_t buffer_rx;
   uint32_t    ratio = SRSLTE_MAX(1, decimators[0].ratio);
@@ -294,7 +305,9 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   // Perform decimation
   if (ratio > 1) {
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
-      srslte_resampler_fft_run(&decimators[ch], buffer_rx.get(ch), buffer.get(ch), buffer_rx.get_nof_samples());
+      if (buffer.get(ch) and buffer_rx.get(ch)) {
+        srslte_resampler_fft_run(&decimators[ch], buffer_rx.get(ch), buffer.get(ch), buffer_rx.get_nof_samples());
+      }
     }
   }
 
@@ -361,6 +374,7 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
 bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time)
 {
   bool ret = true;
+  std::unique_lock<std::mutex> lock(tx_mutex);
 
   // If the interpolator have been set, interpolate
   if (interpolators[0].ratio > 1) {
@@ -604,6 +618,8 @@ void radio::set_rx_gain_th(const float& gain)
 
 void radio::set_rx_srate(const double& srate)
 {
+  std::unique_lock<std::mutex> lock(rx_mutex);
+
   if (!is_initialized) {
     return;
   }
@@ -620,10 +636,6 @@ void radio::set_rx_srate(const double& srate)
     uint32_t ratio = (uint32_t)ceil(cur_rx_srate / srate);
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
       srslte_resampler_fft_init(&decimators[ch], SRSLTE_RESAMPLER_MODE_DECIMATE, ratio);
-
-      if (rx_buffer[ch].empty()) {
-        rx_buffer[ch].resize(SRSLTE_SF_LEN_MAX * 5);
-      }
     }
 
   } else {
@@ -845,6 +857,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
 
 void radio::set_tx_srate(const double& srate)
 {
+  std::unique_lock<std::mutex> lock(tx_mutex);
   if (!is_initialized) {
     return;
   }
@@ -862,10 +875,6 @@ void radio::set_tx_srate(const double& srate)
     uint32_t ratio = (uint32_t)ceil(cur_tx_srate / srate);
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
       srslte_resampler_fft_init(&interpolators[ch], SRSLTE_RESAMPLER_MODE_INTERPOLATE, ratio);
-
-      if (tx_buffer[ch].empty()) {
-        tx_buffer[ch].resize(5 * SRSLTE_SF_LEN_MAX);
-      }
     }
   } else {
     for (srslte_rf_t& rf_device : rf_devices) {

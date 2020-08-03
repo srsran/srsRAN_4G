@@ -105,6 +105,8 @@ private:
   phy_interface_radio*                                    phy         = nullptr;
   cf_t*                                                   zeros       = nullptr;
   std::array<cf_t*, SRSLTE_MAX_CHANNELS>                  dummy_buffers;
+  std::mutex                                              tx_mutex;
+  std::mutex                                              rx_mutex;
   std::array<std::vector<cf_t>, SRSLTE_MAX_CHANNELS>      tx_buffer;
   std::array<std::vector<cf_t>, SRSLTE_MAX_CHANNELS>      rx_buffer;
   std::array<srslte_resampler_fft_t, SRSLTE_MAX_CHANNELS> interpolators = {};
