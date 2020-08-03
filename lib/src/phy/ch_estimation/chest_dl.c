@@ -647,9 +647,9 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
 
   if (q->wiener_dl && ch_mode == SRSLTE_SF_NORM && cfg->estimator_alg == SRSLTE_ESTIMATOR_ALG_WIENER) {
     bool     ready   = q->wiener_dl->ready;
-    uint32_t nre   = q->cell.nof_prb * SRSLTE_NRE;
-    uint32_t nref  = q->cell.nof_prb * 2;
-    uint32_t shift = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
+    uint32_t nre     = q->cell.nof_prb * SRSLTE_NRE;
+    uint32_t nref    = q->cell.nof_prb * 2;
+    uint32_t shift   = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
     uint32_t nsymb   = srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
     float    snr_lin = +INFINITY;
 
@@ -727,6 +727,64 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
   }
 }
 
+static void
+chest_dl_estimate_correct_sync_error(srslte_chest_dl_t* q, srslte_dl_sf_cfg_t* sf, cf_t* input, uint32_t rxant_id)
+{
+  float pwr_sum  = 0.0f;
+  float sync_err = 0.0f;
+
+  // For each cell port...
+  for (uint32_t cell_port_id = 0; cell_port_id < q->cell.nof_ports; cell_port_id++) {
+
+    uint32_t npilots = srslte_refsignal_cs_nof_re(&q->csr_refs, sf, cell_port_id);
+    uint32_t nsymb   = srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, cell_port_id);
+
+    // Get references from the input signal
+    srslte_refsignal_cs_get_sf(&q->csr_refs, sf, cell_port_id, input, q->pilot_recv_signal);
+
+    // Use the known CSR signal to compute Least-squares estimates
+    srslte_vec_prod_conj_ccc(
+        q->pilot_recv_signal, q->csr_refs.pilots[cell_port_id / 2][sf->tti % 10], q->pilot_estimates, npilots);
+
+    // Estimate synchronization error from the phase shift
+    float k   = (float)srslte_symbol_sz(q->cell.nof_prb) / 6.0f;
+    float sum = 0.0f;
+    for (uint32_t i = 0; i < nsymb; i++) {
+      sum += srslte_vec_estimate_frequency(q->pilot_estimates + i * npilots / nsymb, npilots / nsymb) * k;
+    }
+    float pwr = srslte_vec_avg_power_cf(q->pilot_estimates, npilots);
+
+    // Average symbol sum
+    q->sync_err[rxant_id][cell_port_id] = sum / nsymb;
+
+    // Accumulate if the result is valid
+    if (!isinf(sum) && !isnan(sum) && !isinf(pwr) && !isnan(pwr)) {
+      sync_err += q->sync_err[rxant_id][cell_port_id] * pwr;
+      pwr_sum += pwr;
+    }
+  }
+
+  // Average the valid measurements
+  if (isnormal(pwr_sum)) {
+    sync_err /= pwr_sum;
+  }
+
+  // Correct time synchronization error if estimated is not NAN, not INF and greater than 0.05 samples
+  if (isnormal(sync_err) && fabsf(sync_err) > 0.05f) {
+    // Compute required frequency shift, convert from sample error to normalised sine
+    float    cfo   = sync_err / (float)srslte_symbol_sz(q->cell.nof_prb);
+    uint32_t nre   = SRSLTE_NRE * q->cell.nof_prb;
+    uint32_t nsymb = SRSLTE_CP_NSYMB(q->cell.cp) * SRSLTE_NOF_SLOTS_PER_SF;
+
+    // For each symbol...
+    for (uint32_t i = 0; i < nsymb; i++) {
+      // Do a frequency shift
+      cf_t* ptr = &input[i * nre];
+      srslte_vec_apply_cfo(ptr, cfo, ptr, nre);
+    }
+  }
+}
+
 static int estimate_port(srslte_chest_dl_t*     q,
                          srslte_dl_sf_cfg_t*    sf,
                          srslte_chest_dl_cfg_t* cfg,
@@ -743,38 +801,6 @@ static int estimate_port(srslte_chest_dl_t*     q,
   /* Use the known CSR signal to compute Least-squares estimates */
   srslte_vec_prod_conj_ccc(
       q->pilot_recv_signal, q->csr_refs.pilots[port_id / 2][sf->tti % 10], q->pilot_estimates, npilots);
-
-  // Estimate synchronization error
-  if (cfg->sync_error_enable) {
-    uint32_t nsymb = srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
-    float    k     = (float)srslte_symbol_sz(q->cell.nof_prb) / 6.0f;
-    float    sum   = 0.0f;
-    for (uint32_t i = 0; i < nsymb; i++) {
-      sum += srslte_vec_estimate_frequency(q->pilot_estimates + i * npilots / nsymb, npilots / nsymb) * k;
-    }
-    q->sync_err[rxant_id][port_id] = sum / nsymb;
-  } else {
-    q->sync_err[rxant_id][port_id] = NAN;
-  }
-
-  // Correct time synchronization error if estimated
-  if (isnormal(q->sync_err[rxant_id][port_id])) {
-    uint32_t nsymb = SRSLTE_CP_NSYMB(q->cell.cp) * SRSLTE_NOF_SLOTS_PER_SF;
-    float    cfo   = q->sync_err[rxant_id][port_id] / (float)srslte_symbol_sz(q->cell.nof_prb);
-    uint32_t nre   = SRSLTE_NRE * q->cell.nof_prb;
-
-    for (uint32_t i = 0; i < nsymb; i++) {
-      cf_t* ptr = &input[i * nre];
-      srslte_vec_apply_cfo(ptr, cfo, ptr, nre);
-    }
-
-    /* Get references from the input signal */
-    srslte_refsignal_cs_get_sf(&q->csr_refs, sf, port_id, input, q->pilot_recv_signal);
-
-    /* Use the known CSR signal to compute Least-squares estimates */
-    srslte_vec_prod_conj_ccc(
-        q->pilot_recv_signal, q->csr_refs.pilots[port_id / 2][sf->tti % 10], q->pilot_estimates, npilots);
-  }
 
   /* Compute RSRP for the channel estimates in this port */
   if (cfg->rsrp_neighbour) {
@@ -964,6 +990,11 @@ int srslte_chest_dl_estimate_cfg(srslte_chest_dl_t*     q,
 {
 
   for (uint32_t rxant_id = 0; rxant_id < q->nof_rx_antennas; rxant_id++) {
+    // Estimate and correct synchronization error if enabled
+    if (cfg->sync_error_enable) {
+      chest_dl_estimate_correct_sync_error(q, sf, input[rxant_id], rxant_id);
+    }
+
     for (uint32_t port_id = 0; port_id < q->cell.nof_ports; port_id++) {
       if (sf->sf_type == SRSLTE_SF_MBSFN) {
         if (estimate_port_mbsfn(q, sf, cfg, input[rxant_id], res->ce[port_id][rxant_id], port_id, rxant_id)) {
