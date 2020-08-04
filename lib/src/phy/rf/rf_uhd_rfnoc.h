@@ -39,6 +39,7 @@
 #include <uhd/rfnoc/radio_ctrl.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/utils/safe_main.hpp>
+#include <uhd/version.hpp>
 
 // Load custom RFNOC blocks if available
 #ifdef UHD_ENABLE_CUSTOM_RFNOC
@@ -197,7 +198,10 @@ private:
           UHD_LOG_DEBUG(radio_id[i], "Setting TX antenna: " << TX_ANTENNA_PORT);
           radio_ctrl[i]->set_tx_antenna(TX_ANTENNA_PORT, 0);
 
+#if UHD_VERSION >= 3150000
+          // API call introduced in UHD 3.15 (commit 67dbaa41)
           radio_ctrl[i]->enable_rx_timestamps(true, 0);
+#endif
 
           if (spp) {
             radio_ctrl[i]->set_arg("spp", spp);
