@@ -905,7 +905,7 @@ bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
           nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
           nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
         } else {
-          rrc_log->error("Fatal Error: Couldn't allocate PDU in handle_rrc_con_reconfig().\n");
+          rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
           return;
         }
       }
@@ -946,14 +946,18 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, rrc_conn_recfg_s* reconfig)
   previous_phy_cfg = current_phy_cfg;
   previous_mac_cfg = current_mac_cfg;
 
-  rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
-  if (reconfig_r8->mob_ctrl_info_present) {
-    con_reconfig_ho(reconfig);
-  } else {
-    if (!con_reconfig(reconfig)) {
-      con_reconfig_failed();
+  // Execute in next iteration to break RLC/PDCP call stack
+  rrc_conn_recfg_s reconfig_ = *reconfig;
+  task_sched.defer_task([this, reconfig_]() mutable {
+    rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig_.crit_exts.c1().rrc_conn_recfg_r8();
+    if (reconfig_r8->mob_ctrl_info_present) {
+      con_reconfig_ho(&reconfig_);
+    } else {
+      if (!con_reconfig(&reconfig_)) {
+        con_reconfig_failed();
+      }
     }
-  }
+  });
 }
 
 /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
@@ -2220,48 +2224,57 @@ void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
 
 void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 {
-  // Must enter CONNECT before stopping T300
-  state = RRC_STATE_CONNECTED;
-  t300.stop();
-  t302.stop();
-  rrc_log->console("RRC Connected\n");
+  // Execute in next iteration to break RLC/PDCP call stack
+  rrc_conn_setup_s setup_ = *setup;
+  task_sched.defer_task([this, setup_]() mutable {
+    // Must enter CONNECT before stopping T300
+    state = RRC_STATE_CONNECTED;
+    t300.stop();
+    t302.stop();
+    rrc_log->console("RRC Connected\n");
 
-  // Apply the Radio Resource configuration
-  apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
+    // Apply the Radio Resource configuration
+    apply_rr_config_dedicated(&setup_.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
 
-  nas->set_barring(srslte::barring_t::none);
+    nas->set_barring(srslte::barring_t::none);
 
-  if (dedicated_info_nas.get()) {
-    send_con_setup_complete(std::move(dedicated_info_nas));
-  } else {
-    rrc_log->error("Pending to transmit a ConnectionSetupComplete but no dedicatedInfoNAS was in queue\n");
-  }
+    if (dedicated_info_nas.get()) {
+      send_con_setup_complete(std::move(dedicated_info_nas));
+    } else {
+      rrc_log->error("Pending to transmit a ConnectionSetupComplete but no dedicatedInfoNAS was in queue\n");
+    }
+  });
 }
 
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
-void rrc::handle_con_reest(rrc_conn_reest_s* setup)
+void rrc::handle_con_reest(rrc_conn_reest_s* reest)
 {
-  t301.stop();
+  // Execute in next iteration to break RLC/PDCP call stack
+  rrc_conn_reest_s reest_ = *reest;
+  task_sched.defer_task([this, reest_]() mutable {
+    t301.stop();
 
-  // Reestablish PDCP and RLC for SRB1
-  pdcp->reestablish(1);
-  rlc->reestablish(1);
+    // Reestablish PDCP and RLC for SRB1
+    pdcp->reestablish(1);
+    rlc->reestablish(1);
 
-  // Update RRC Integrity keys
-  int ncc = setup->crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
-  usim->generate_as_keys_ho(meas_cells.serving_cell().get_pci(), meas_cells.serving_cell().get_earfcn(), ncc, &sec_cfg);
-  pdcp->config_security_all(sec_cfg);
+    // Update RRC Integrity keys
+    int ncc = reest_.crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
+    usim->generate_as_keys_ho(
+        meas_cells.serving_cell().get_pci(), meas_cells.serving_cell().get_earfcn(), ncc, &sec_cfg);
+    pdcp->config_security_all(sec_cfg);
 
-  // Apply the Radio Resource configuration
-  apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
+    // Apply the Radio Resource configuration
+    apply_rr_config_dedicated(&reest_.crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
 
-  // Resume SRB1
-  rlc->resume_bearer(1);
+    // Resume SRB1
+    rlc->resume_bearer(1);
 
-  // Send ConnectionSetupComplete message
-  send_con_restablish_complete();
+    // Send ConnectionSetupComplete message
+    send_con_restablish_complete();
 
-  reestablishment_successful = true;
+    reestablishment_successful = true;
+  });
 }
 
 void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
