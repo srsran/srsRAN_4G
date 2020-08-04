@@ -107,6 +107,8 @@ typedef struct SRSLTE_API {
   cf_t*                       cross;
   cf_t*                       corr_freq;
   srslte_prach_cancellation_t prach_cancel;
+  cf_t                        sub[839 * 2];
+  float                       phase[839];
 
 } srslte_prach_t;
 

@@ -48,7 +48,8 @@ float save_corr[4096];
 
 int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             N_ifft_ul,
-                           srslte_prach_cfg_t*  cfg);
+                           srslte_prach_cfg_t*  cfg,
+                           srslte_tdd_config_t* tdd_config);
 
 uint32_t srslte_prach_get_preamble_format(uint32_t config_idx)
 {
@@ -324,9 +325,7 @@ int srslte_prach_gen_seqs(srslte_prach_t* p)
 
 int srslte_prach_set_cfg(srslte_prach_t* p, srslte_prach_cfg_t* cfg, uint32_t nof_prb)
 {
-  return srslte_prach_set_cell_(p,
-                                srslte_symbol_sz(nof_prb),
-                                cfg);
+  return srslte_prach_set_cell_(p, srslte_symbol_sz(nof_prb), cfg, &cfg->tdd_config);
 }
 
 int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
@@ -392,7 +391,8 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
 
 int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             N_ifft_ul,
-                           srslte_prach_cfg_t*  cfg)
+                           srslte_prach_cfg_t*  cfg,
+                           srslte_tdd_config_t* tdd_config)
 {
   int ret = SRSLTE_ERROR;
   if (p != NULL && N_ifft_ul < 2049 && cfg->config_idx < 64 && cfg->root_seq_idx < MAX_ROOTS) {
@@ -415,8 +415,8 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
       p->successive_cancellation = false;
     }
     p->freq_domain_offset_calc = cfg->enable_freq_domain_offset_calc;
-    if (&cfg->tdd_config) {
-      p->tdd_config = cfg->tdd_config;
+    if (tdd_config) {
+      p->tdd_config = *tdd_config;
     }
 
     // Determine N_zc and N_cs
@@ -578,22 +578,23 @@ int srslte_prach_detect(srslte_prach_t* p,
 /// be detected more easily in the subsequent searches
 void srslte_prach_cancellation(srslte_prach_t* p)
 {
-  cf_t sub[p->N_zc * 2];
-  srslte_vec_cf_copy(sub, &p->dft_seqs[p->root_seqs_idx[p->prach_cancel.idx]][0], p->N_zc);
-  srslte_vec_prod_ccc(sub, p->prach_cancel.phase_array, sub, p->N_zc);
+  srslte_vec_cf_zero(p->sub, p->N_zc * 2);
+  srslte_vec_cf_copy(p->sub, &p->dft_seqs[p->root_seqs_idx[p->prach_cancel.idx]][0], p->N_zc);
+  srslte_vec_prod_ccc(p->sub, p->prach_cancel.phase_array, p->sub, p->N_zc);
 #ifdef PRACH_CANCELLATION_HARD
-  srslte_vec_prod_conj_ccc(p->prach_bins, sub, p->corr_spec, p->N_zc);
+  srslte_vec_prod_conj_ccc(p->prach_bins, p->sub, p->corr_spec, p->N_zc);
   srslte_dft_run(&p->zc_ifft, p->corr_spec, p->corr_spec);
   srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
   prach_cancel->factor = sqrt(p->corr[0] / (p->N_zc * p->N_zc));
 #endif
-  srslte_vec_sc_prod_cfc(sub, p->prach_cancel.factor, sub, p->N_zc);
-  srslte_vec_sub_ccc(p->prach_bins, sub, p->prach_bins, p->N_zc);
+  srslte_vec_sc_prod_cfc(p->sub, p->prach_cancel.factor, p->sub, p->N_zc);
+  srslte_vec_sub_ccc(p->prach_bins, p->sub, p->prach_bins, p->N_zc);
 }
 
 // this function checks if we have already detected and stored this particular PRACH index and if so, doesnt store it
 // again in the detected prachs array
-bool srslte_prach_have_stored(srslte_prach_t* p,int current_idx, uint32_t* indices, uint32_t n_indices) {
+bool srslte_prach_have_stored(int current_idx, uint32_t* indices, uint32_t n_indices)
+{
   for(int i = 0; i < n_indices; i++) {
     if (indices[i] == current_idx) {
       return true;
@@ -603,14 +604,7 @@ bool srslte_prach_have_stored(srslte_prach_t* p,int current_idx, uint32_t* indic
 }
 // set the offset based on the time domain time offset estimation
 float srslte_prach_set_offset(srslte_prach_t* p, int n_win) {
-  float corr = 1.0;
-  if (p->peak_offsets[n_win] > 30) {
-    corr = 1.9;
-  }
-  if (p->peak_offsets[n_win] > 250) {
-    corr = 1.91;
-  }
-  return corr * p->peak_offsets[n_win] / (DELTA_F_RA * p->N_zc);
+  return (float)p->peak_offsets[n_win] / (float)(DELTA_F_RA * p->N_zc);
 }
 
 // calculates the timing offset of the incoming PRACH by calculating the phase in frequency - alternative to time domain
@@ -626,10 +620,9 @@ int srslte_prach_calculate_time_offset(srslte_prach_t* p, cf_t* cross)
 // before it is subtracted from the input
 void srslte_prach_calculate_correction_array(srslte_prach_t* p, cf_t* corr_freq)
 {
-  float phase[p->N_zc];
-  srslte_vec_arg_deg_cf(corr_freq, 0, phase, p->N_zc);
+  srslte_vec_arg_deg_cf(corr_freq, 0, p->phase, p->N_zc);
   for (int i = 0; i < p->N_zc; i++) {
-    p->prach_cancel.phase_array[i] = cexpf(_Complex_I * (phase[i] / (180.0f / M_PI)));
+    p->prach_cancel.phase_array[i] = cexpf(_Complex_I * (p->phase[i] / (180.0f / M_PI)));
   }
 }
 
@@ -704,7 +697,7 @@ int srslte_prach_process(srslte_prach_t*             p,
                 p->prach_cancel.factor = (sqrt(max_peak / (p->N_zc * p->N_zc)));
                 srslte_prach_calculate_correction_array(p, p->corr_freq);
               }
-              if (srslte_prach_have_stored(p, ((i * n_wins) + j), indices, *n_indices)) {
+              if (srslte_prach_have_stored(((i * n_wins) + j), indices, *n_indices)) {
                 break;
               }
             }

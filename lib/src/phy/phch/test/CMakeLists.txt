@@ -582,6 +582,37 @@ add_test(prach_test_multi_n16 prach_test_multi -n 16)
 add_test(prach_test_multi_n8 prach_test_multi -n 8)
 add_test(prach_test_multi_n4 prach_test_multi -n 4)
 
+add_test(prach_test_multi_stagger_power prach_test_multi -s -S)
+add_test(prach_test_multi_stagger_power prach_test_multi -s -S -N 50)
+
+add_test(prach_test_multi_offset_test prach_test_multi -O)
+add_test(prach_test_multi_offset_test_50 prach_test_multi -O -N 50)
+
+add_test(prach_test_multi_freq_offset_test_n1_o100_prb6 prach_test_multi -n 1 -F -z 0 -o 100)
+add_test(prach_test_multi_freq_offset_test_n1_o500_prb6 prach_test_multi -n 1 -F -z 0 -o 500)
+add_test(prach_test_multi_freq_offset_test_n1_o800_prb6 prach_test_multi -n 1 -F -z 0 -o 800)
+
+add_test(prach_test_multi_freq_offset_test_n1_o100_prb50 prach_test_multi -n 1 -F -z 0 -o 100 -N 50)
+add_test(prach_test_multi_freq_offset_test_n1_o500_prb50 prach_test_multi -n 1 -F -z 0 -o 500 -N 50)
+add_test(prach_test_multi_freq_offset_test_n1_o800_prb50 prach_test_multi -n 1 -F -z 0 -o 800 -N 50)
+
+
+add_test(prach_test_multi_freq_offset_test_n2_o100_prb6 prach_test_multi -n 2 -F -z 0 -o 100)
+add_test(prach_test_multi_freq_offset_test_n2_o500_prb6 prach_test_multi -n 2 -F -z 0 -o 500)
+add_test(prach_test_multi_freq_offset_test_n2_o800_prb6 prach_test_multi -n 2 -F -z 0 -o 800)
+
+add_test(prach_test_multi_freq_offset_test_n2_o100_prb50 prach_test_multi -n 2 -F -z 0 -o 100 -N 50)
+add_test(prach_test_multi_freq_offset_test_n2_o500_prb50 prach_test_multi -n 2 -F -z 0 -o 500 -N 50)
+add_test(prach_test_multi_freq_offset_test_n2_o800_prb50 prach_test_multi -n 2 -F -z 0 -o 800 -N 50)
+
+add_test(prach_test_multi_freq_offset_test_n4_o100_prb6 prach_test_multi -n 4 -F -z 0 -o 100)
+add_test(prach_test_multi_freq_offset_test_n4_o500_prb6 prach_test_multi -n 4 -F -z 0 -o 500)
+add_test(prach_test_multi_freq_offset_test_n4_o800_prb6 prach_test_multi -n 4 -F -z 0 -o 800)
+
+add_test(prach_test_multi_freq_offset_test_n4_o100_prb50 prach_test_multi -n 4 -F -z 0 -o 100 -N 50)
+add_test(prach_test_multi_freq_offset_test_n4_o500_prb50 prach_test_multi -n 4 -F -z 0 -o 500 -N 50)
+add_test(prach_test_multi_freq_offset_test_n4_o800_prb50 prach_test_multi -n 4 -F -z 0 -o 800 -N 50)
+
 if(RF_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
   target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread)

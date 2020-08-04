@@ -59,12 +59,16 @@ void usage(char* prog)
   printf("\t-r Root sequence index [Default 0]\n");
   printf("\t-z Zero correlation zone config [Default 1]\n");
   printf("\t-n Number of sequences used for each test [Default 64]\n");
+  printf("\t-S stagger_prach_power_and_phase [Default false]\n");
+  printf("\t-s test_successive_cancellation  [Default false]\n");
+  printf("\t-O test_offset_calculation  [Default false]\n");
+  printf("\t-F freq_domain_offset_calc [Default false]\n");
 }
 
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "Nfrznio")) != -1) {
+  while ((opt = getopt(argc, argv, "NfrznioSsOF")) != -1) {
     switch (opt) {
       case 'N':
         nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -86,6 +90,18 @@ void parse_args(int argc, char** argv)
         break;
       case 'o':
         offset =  (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 's':
+        test_successive_cancellation = true;
+        break;
+      case 'O':
+        test_offset_calculation = true;
+        break;
+      case 'S':
+        stagger_prach_power_and_phase = true;
+        break;
+      case 'F':
+        freq_domain_offset_calc = true;
         break;
       default:
         usage(argv[0]);

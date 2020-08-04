@@ -149,7 +149,10 @@ int prach_worker::run_tti(sf_buffer* b)
                     max_prach_offset_us);
 
         if (prach_offsets[i] * 1e6 < max_prach_offset_us) {
-          stack->rach_detected(b->tti, cc_idx, prach_indices[i], (uint32_t)(prach_offsets[i] * 1e6));
+          // Convert time offset to Time Alignment command
+          uint32_t n_ta = (uint32_t)(prach_offsets[i] / (16 * SRSLTE_LTE_TS));
+
+          stack->rach_detected(b->tti, cc_idx, prach_indices[i], n_ta);
 
 #if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
           uint32_t nof_samples = SRSLTE_MIN(nof_sf * SRSLTE_SF_LEN_PRB(cell.nof_prb), 3 * SRSLTE_SF_LEN_MAX);
