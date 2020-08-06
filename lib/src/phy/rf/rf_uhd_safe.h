@@ -30,10 +30,10 @@
 #define Debug(message) UHD_LOG_DEBUG("UHD RF", message)
 #define Trace(message) UHD_LOG_TRACE("UHD RF", message)
 #else
-#define Warning(message) UHD_LOG << message
-#define Info(message) UHD_LOG << message
-#define Debug(message) UHD_LOG << message
-#define Trace(message) UHD_LOG << message
+#define Warning(message) UHD_LOG << message << std::endl
+#define Info(message) UHD_LOG << message << std::endl
+#define Debug(message) UHD_LOG << message << std::endl
+#define Trace(message) UHD_LOG << message << std::endl
 #endif
 
 #ifdef ENABLE_UHD_X300_FW_RESET
