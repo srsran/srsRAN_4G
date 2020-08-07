@@ -26,10 +26,10 @@
 
 int test_span_access()
 {
-  std::vector<int> values{1, 2, 3, 4, 5, 6, 7};
+  std::array<int, 7> values{1, 2, 3, 4, 5, 6, 7};
 
   {
-    srslte::span<int> view{values};
+    auto view = srslte::make_span(values);
 
     // access operators
     TESTASSERT(view.size() == 7);
@@ -58,7 +58,7 @@ int test_span_conversion()
 
   {
     // TEST: changing individual values
-    srslte::span<int> v{values}, v2{values2};
+    auto v = srslte::make_span(values), v2 = srslte::make_span(values2);
     TESTASSERT(v == v2);
 
     v[0] = 3;
@@ -70,7 +70,7 @@ int test_span_conversion()
 
   {
     // TEST: const context
-    const srslte::span<int> v{values}, v2{values2};
+    const auto v = srslte::make_span(values), v2 = srslte::make_span(values2);
     TESTASSERT(v != v2);
     TESTASSERT(v[0] == 3);
     TESTASSERT(v2[0] == 2);
@@ -80,8 +80,8 @@ int test_span_conversion()
 
   {
     // TEST: raw arrays
-    int               carray[] = {2, 3, 4, 5, 6, 7, 8};
-    srslte::span<int> v{values}, v2{carray};
+    int  carray[] = {2, 3, 4, 5, 6, 7, 8};
+    auto v = srslte::make_span(values), v2 = srslte::make_span(carray);
     TESTASSERT(v == v2);
     TESTASSERT(v2.size() == v.size());
   }
@@ -109,7 +109,7 @@ int test_byte_buffer_conversion()
   pdu.msg[4]  = 4;
 
   {
-    srslte::byte_span v{pdu};
+    auto v = srslte::make_span(pdu);
     TESTASSERT(v.size() == 5);
     TESTASSERT(v[0] == 0);
     TESTASSERT(v[2] == 2);
@@ -118,15 +118,15 @@ int test_byte_buffer_conversion()
 
   const srslte::byte_buffer_t& pdu2 = pdu;
   {
-    const srslte::byte_span v{pdu2};
+    const auto v = srslte::make_span(pdu2);
     TESTASSERT(v.size() == 5);
     TESTASSERT(v[0] == 0);
     TESTASSERT(v[2] == 2);
     TESTASSERT(v[4] == 4);
   }
 
-  TESTASSERT(foo(pdu));
-  TESTASSERT(cfoo(pdu));
+  TESTASSERT(foo(srslte::make_span(pdu)));
+  TESTASSERT(cfoo(srslte::make_span(pdu)));
 
   return SRSLTE_SUCCESS;
 }
