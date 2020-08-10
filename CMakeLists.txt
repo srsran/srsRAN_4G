@@ -471,6 +471,9 @@ if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
+# Increase inlining limit to allow gcc compilation on e.g. RPi2
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --param large-function-growth=1600")
+
 message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 
