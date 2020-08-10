@@ -21,8 +21,6 @@
 
 #include "srslte/adt/span.h"
 #include "srslte/common/test_common.h"
-#include <array>
-#include <vector>
 
 int test_span_access()
 {
@@ -84,13 +82,6 @@ int test_span_conversion()
     auto v = srslte::make_span(values), v2 = srslte::make_span(carray);
     TESTASSERT(v == v2);
     TESTASSERT(v2.size() == v.size());
-  }
-
-  {
-    // TEST: initializer lists
-    srslte::span<const int> v{{1, 2, 3, 4, 5, 6, 7}};
-    TESTASSERT(v.size() == 7);
-    TESTASSERT(v[0] == 1);
   }
 
   return SRSLTE_SUCCESS;
