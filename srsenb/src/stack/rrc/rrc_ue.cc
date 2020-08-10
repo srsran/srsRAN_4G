@@ -1264,7 +1264,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
       parent->rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Failed to pack DL-CCCH-Msg:\n");
       return;
     }
-    pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
+    pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
     char buf[32] = {};
     sprintf(buf, "SRB0 - rnti=0x%x", rnti);
@@ -1286,7 +1286,7 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte
       parent->rrc_log->error("Failed to encode DL-DCCH-Msg\n");
       return false;
     }
-    pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
+    pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
     // send on SRB2 if user is fully registered (after RRC reconfig complete)
     uint32_t lcid =
