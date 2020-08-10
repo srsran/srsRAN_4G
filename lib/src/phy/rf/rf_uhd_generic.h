@@ -111,6 +111,8 @@ private:
   }
 
 public:
+  rf_uhd_generic(){};
+  virtual ~rf_uhd_generic(){};
   uhd_error usrp_make(const uhd::device_addr_t& dev_addr_, uint32_t nof_channels) override
   {
     uhd::device_addr_t dev_addr = dev_addr_;
