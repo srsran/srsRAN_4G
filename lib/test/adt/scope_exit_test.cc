@@ -61,6 +61,14 @@ int test_scope_exit(int* value)
   }
   TESTASSERT(nof_calls == 1);
 
+  // TEST: lvalue callback is safe
+  {
+    nof_calls       = 0;
+    auto task       = [&nof_calls]() { nof_calls += 2; };
+    auto scope_exit = srslte::make_scope_exit(task);
+  }
+  TESTASSERT(nof_calls == 2);
+
   return SRSLTE_SUCCESS;
 }
 
