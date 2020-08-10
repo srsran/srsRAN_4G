@@ -430,13 +430,13 @@ int test_s1ap_mobility(mobility_test_params test_params)
                                     0x01, 0x48, 0x04, 0xbc, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x02, 0xa0, 0x07, 0xa0,
                                     0x10, 0x00, 0x01, 0x00, 0x05, 0x00, 0xa7, 0xd0, 0xc1, 0xf6, 0xaf, 0x3e, 0x12, 0xcc,
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
-  test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container);
+  test_helpers::copy_msg_to_buffer(pdu, srslte::make_span(ho_cmd_rrc_container));
   TESTASSERT(s1ap.last_enb_status.rnti != tester.rnti);
   tester.rrc.ho_preparation_complete(tester.rnti, true, std::move(pdu));
   TESTASSERT(s1ap.last_enb_status.status_present);
   TESTASSERT(tester.rrc_log->error_counter == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, tester.pdcp.last_sdu.sdu));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
   auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
 
@@ -493,7 +493,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.pdcp.last_sdu.rnti == tester.rnti);
   TESTASSERT(tester.pdcp.last_sdu.lcid == 1); // SRB1
   asn1::rrc::dl_dcch_msg_s ho_cmd;
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, tester.pdcp.last_sdu.sdu));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
   auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
@@ -543,7 +543,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
   TESTASSERT(not tester.s1ap.last_enb_status.status_present);
-  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, tester.pdcp.last_sdu.sdu));
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
   recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);

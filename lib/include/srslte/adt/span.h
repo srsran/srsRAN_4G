@@ -22,16 +22,20 @@
 #ifndef SRSLTE_SPAN_H
 #define SRSLTE_SPAN_H
 
-#include "srslte/common/common.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <iterator>
+#include <type_traits>
 #include <vector>
 
 namespace srslte {
 
 /// The class template span describes an object that can refer to a contiguous sequence of objects with the first
 /// element of the sequence at position zero.
+/// It is encouraged to use the make_span() helper functions for creating new spans instead of using the constructors
+/// directly. This way is more explicit in code and makes the developer think first to make sure the lifetime of the
+/// sequence outlasts the new created span.
 template <typename T>
 class span
 {
@@ -176,7 +180,7 @@ inline bool operator!=(span<T> lhs, span<T> rhs)
 }
 
 ///
-/// Helpers to construct span objects from different types of arrays.
+/// Helpers to construct span objects from different types of contiguous containers.
 ///
 
 template <typename T, std::size_t N>
@@ -207,28 +211,6 @@ template <typename T>
 inline span<const T> make_span(const std::vector<T>& v)
 {
   return span<const T>{v.data(), v.size()};
-}
-
-using byte_span = span<uint8_t>;
-
-inline byte_span make_span(byte_buffer_t& b)
-{
-  return byte_span{b.msg, b.N_bytes};
-}
-
-inline span<const uint8_t> make_span(const byte_buffer_t& b)
-{
-  return span<const uint8_t>{b.msg, b.N_bytes};
-}
-
-inline byte_span make_span(unique_byte_buffer_t& b)
-{
-  return byte_span{b->msg, b->N_bytes};
-}
-
-inline span<const uint8_t> make_span(const unique_byte_buffer_t& b)
-{
-  return span<const uint8_t>{b->msg, b->N_bytes};
 }
 
 } // namespace srslte
