@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/move_callback.h"
+#include "srslte/adt/move_callback.h"
 #include <functional>
 #include <list>
 #include <memory>

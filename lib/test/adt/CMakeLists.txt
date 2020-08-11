@@ -26,7 +26,14 @@ add_executable(scope_exit_test scope_exit_test.cc)
 target_link_libraries(scope_exit_test srslte_common)
 add_test(scope_exit_test scope_exit_test)
 
+add_executable(expected_test expected_test.cc)
+target_link_libraries(expected_test srslte_common)
+add_test(expected_test expected_test)
+
+add_executable(bounded_bitset_test bounded_bitset_test.cc)
+target_link_libraries(bounded_bitset_test srslte_common)
+add_test(bounded_bitset_test bounded_bitset_test)
+
 add_executable(span_test span_test.cc)
 target_link_libraries(span_test srslte_common)
 add_test(span_test span_test)
-

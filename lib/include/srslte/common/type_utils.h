@@ -22,7 +22,7 @@
 #ifndef SRSLTE_TYPE_UTILS_H
 #define SRSLTE_TYPE_UTILS_H
 
-#include "expected.h"
+#include "srslte/adt/expected.h"
 #include <cstring>
 #include <limits>
 #include <memory>

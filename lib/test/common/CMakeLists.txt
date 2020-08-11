@@ -90,10 +90,6 @@ add_executable(choice_type_test choice_type_test.cc)
 target_link_libraries(choice_type_test srslte_common)
 add_test(choice_type_test choice_type_test)
 
-add_executable(expected_test expected_test.cc)
-target_link_libraries(expected_test srslte_common)
-add_test(expected_test expected_test)
-
 add_executable(task_scheduler_test task_scheduler_test.cc)
 target_link_libraries(task_scheduler_test srslte_common)
 add_test(task_scheduler_test task_scheduler_test)

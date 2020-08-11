@@ -24,7 +24,7 @@
 
 #include "lib/include/srslte/interfaces/sched_interface.h"
 #include "scheduler_ue.h"
-#include "srslte/common/bounded_bitset.h"
+#include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/log.h"
 #include <deque>
 #include <vector>

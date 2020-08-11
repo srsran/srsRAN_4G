@@ -22,7 +22,7 @@
 #ifndef SRSENB_SCHEDULER_HARQ_H
 #define SRSENB_SCHEDULER_HARQ_H
 
-#include "srslte/common/bounded_bitset.h"
+#include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/log.h"
 #include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"

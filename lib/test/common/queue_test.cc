@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/move_callback.h"
+#include "srslte/adt/move_callback.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/thread_pool.h"
 #include <iostream>

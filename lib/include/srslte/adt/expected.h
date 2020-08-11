@@ -22,31 +22,19 @@
 #ifndef SRSLTE_EXPECTED_H
 #define SRSLTE_EXPECTED_H
 
+#include "adt_utils.h"
 #include <memory>
 #include <system_error>
 
 namespace srslte {
-
-#if defined(__cpp_exceptions) && (1 == __cpp_exceptions)
-class bad_type_access : public std::runtime_error
-{
-public:
-  explicit bad_type_access(const std::string& what_arg) : runtime_error(what_arg) {}
-  explicit bad_type_access(const char* what_arg) : runtime_error(what_arg) {}
-};
-
-#define THROW_BAD_ACCESS(msg) throw bad_type_access{msg};
-#else
-#define THROW_BAD_ACCESS(msg)                                                                                          \
-  fprintf(stderr, "ERROR: exception thrown with %s", msg);                                                             \
-  std::abort()
-#endif
 
 struct default_error_t {};
 
 template <typename T, typename E = default_error_t>
 class expected
 {
+  static_assert(not std::is_same<T, E>::value, "Expected and unexpected types cannot be of the same type");
+
 public:
   expected() : has_val(true), val(T{}) {}
   expected(T&& t) : has_val(true), val(std::forward<T>(t)) {}

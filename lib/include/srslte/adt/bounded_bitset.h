@@ -22,7 +22,7 @@
 #ifndef SRSLTE_DYN_BITSET_H
 #define SRSLTE_DYN_BITSET_H
 
-#include "srslte/common/logmap.h"
+#include "adt_utils.h"
 #include <cstdint>
 #include <inttypes.h>
 #include <string>
@@ -52,8 +52,9 @@ public:
   void resize(size_t new_size) noexcept
   {
     if (new_size > max_size()) {
-      srslte::logmap::get("COMM")->error("ERROR: bitset resize out of bounds: %zd>=%zd\n", max_size(), new_size);
-      return;
+      std::string msg =
+          "ERROR: new size=" + std::to_string(new_size) + " exceeds bitset capacity=" + std::to_string(max_size());
+      THROW_BAD_ACCESS(msg.c_str());
     } else if (new_size == cur_size) {
       return;
     }
@@ -66,10 +67,7 @@ public:
 
   void set(size_t pos, bool val) noexcept
   {
-    if (pos >= size()) {
-      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
-      return;
-    }
+    assert_within_bounds_(pos, true);
     if (val) {
       set_(pos);
     } else {
@@ -79,19 +77,13 @@ public:
 
   void set(size_t pos) noexcept
   {
-    if (pos >= size()) {
-      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
-      return;
-    }
+    assert_within_bounds_(pos, true);
     set_(pos);
   }
 
   void reset(size_t pos) noexcept
   {
-    if (pos >= size()) {
-      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
-      return;
-    }
+    assert_within_bounds_(pos, true);
     reset_(pos);
   }
 
@@ -104,10 +96,7 @@ public:
 
   bool test(size_t pos) const noexcept
   {
-    if (pos >= size()) {
-      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
-      return false;
-    }
+    assert_within_bounds_(pos, true);
     return test_(pos);
   }
 
@@ -122,11 +111,8 @@ public:
 
   bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true) noexcept
   {
-    if (endpos > size() or startpos > endpos) {
-      srslte::logmap::get("COMM")->error(
-          "ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", startpos, endpos, size());
-      return *this;
-    }
+    assert_within_bounds_(startpos, false);
+    assert_within_bounds_(endpos, false);
     // NOTE: can be optimized
     if (value) {
       for (size_t i = startpos; i < endpos; ++i) {
@@ -167,11 +153,8 @@ public:
 
   bool any(size_t start, size_t stop) const noexcept
   {
-    if (start > stop or stop > size()) {
-      srslte::logmap::get("COMM")->error(
-          "ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", start, stop, size());
-      return false;
-    }
+    assert_within_bounds_(start, false);
+    assert_within_bounds_(stop, false);
     // NOTE: can be optimized
     for (size_t i = start; i < stop; ++i) {
       if (test_(i)) {
@@ -214,9 +197,9 @@ public:
   bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other) noexcept
   {
     if (other.size() != size()) {
-      srslte::logmap::get("COMM")->error(
-          "ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
-      return *this;
+      std::string msg = "operator|= called for bitsets of different sizes (" + std::to_string(size()) +
+                        "!=" + std::to_string(other.size()) + ")";
+      THROW_BAD_ACCESS(msg.c_str());
     }
     for (size_t i = 0; i < nof_words_(); ++i) {
       buffer[i] |= other.buffer[i];
@@ -227,9 +210,9 @@ public:
   bounded_bitset<N, reversed>& operator&=(const bounded_bitset<N, reversed>& other) noexcept
   {
     if (other.size() != size()) {
-      srslte::logmap::get("COMM")->error(
-          "ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
-      return *this;
+      std::string msg = "operator&= called for bitsets of different sizes (" + std::to_string(size()) +
+                        "!=" + std::to_string(other.size()) + ")";
+      THROW_BAD_ACCESS(msg.c_str());
     }
     for (size_t i = 0; i < nof_words_(); ++i) {
       buffer[i] &= other.buffer[i];
@@ -267,8 +250,8 @@ public:
   uint64_t to_uint64() const noexcept
   {
     if (nof_words_() > 1) {
-      srslte::logmap::get("COMM")->error("ERROR: cannot convert bitset of size %zd bits to uint64_t\n", size());
-      return 0;
+      std::string msg = "ERROR: cannot convert bitset of size=" + std::to_string(size()) + " to uint64_t";
+      THROW_BAD_ACCESS(msg.c_str());
     }
     return get_word_(0);
   }
@@ -326,6 +309,15 @@ private:
   const word_t& get_word_(size_t pos) const { return buffer[pos / bits_per_word]; }
 
   size_t word_idx_(size_t pos) const { return pos / bits_per_word; }
+
+  void assert_within_bounds_(size_t pos, bool strict) const
+  {
+    if (pos > size() or (strict and pos == size())) {
+      std::string msg =
+          "ERROR: index=" + std::to_string(pos) + "is out of bounds for bitset of size=" + std::to_string(size());
+      THROW_BAD_ACCESS(msg.c_str());
+    }
+  }
 
   static word_t maskbit(size_t pos) { return (static_cast<word_t>(1)) << (pos % bits_per_word); }
 

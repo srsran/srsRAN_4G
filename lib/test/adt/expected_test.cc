@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/expected.h"
+#include "srslte/adt/expected.h"
 #include "srslte/common/test_common.h"
 
 int test_expected_trivial()

@@ -28,7 +28,7 @@
 #ifndef SRSLTE_MULTIQUEUE_H
 #define SRSLTE_MULTIQUEUE_H
 
-#include "move_callback.h"
+#include "srslte/adt/move_callback.h"
 #include <algorithm>
 #include <condition_variable>
 #include <functional>

@@ -29,7 +29,7 @@
 #ifndef SRSLTE_BLOCK_QUEUE_H
 #define SRSLTE_BLOCK_QUEUE_H
 
-#include "srslte/common/expected.h"
+#include "srslte/adt/expected.h"
 #include <memory>
 #include <pthread.h>
 #include <queue>
