@@ -31,55 +31,63 @@
 
 namespace srslte {
 
+template <typename T>
+class span;
+
+namespace detail {
+
+/// Helper traits used by SFINAE expressions in constructors.
+
+template <typename... Ts>
+struct make_void {
+  typedef void type;
+};
+
+template <typename... Ts>
+using void_t = typename make_void<Ts...>::type;
+
+template <typename U>
+struct is_span : std::false_type {};
+template <typename U>
+struct is_span<span<U> > : std::true_type {};
+
+template <typename U>
+struct is_std_array : std::false_type {};
+template <typename U, std::size_t N>
+struct is_std_array<std::array<U, N> > : std::true_type {};
+
+template <typename U>
+using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<U>::type>::type;
+
+template <class Container, class U, class = void>
+struct is_container_compatible : public std::false_type {};
+template <class Container, class U>
+struct is_container_compatible<
+    Container,
+    U,
+    void_t<
+        // Check if the container type has data and size members.
+        decltype(std::declval<Container>().data()),
+        decltype(std::declval<Container>().size()),
+        // Container should not be a span.
+        typename std::enable_if<!is_span<remove_cvref_t<Container> >::value, int>::type,
+        // Container should not be a std::array.
+        typename std::enable_if<!is_std_array<remove_cvref_t<Container> >::value, int>::type,
+        // Container should not be an array.
+        typename std::enable_if<!std::is_array<remove_cvref_t<Container> >::value, int>::type,
+        // Check type compatibility between the contained type and the span type.
+        typename std::enable_if<
+            std::is_convertible<typename std::remove_pointer<decltype(std::declval<Container>().data())>::type (*)[],
+                                U (*)[]>::value,
+            int>::type> > : public std::true_type {};
+
+} // namespace detail
+
 /// The class template span describes an object that can refer to a contiguous sequence of objects with the first
 /// element of the sequence at position zero.
 template <typename T>
 class span
 {
-  /// Helper traits used by SFINAE expressions in constructors.
-
-  template <typename... Ts>
-  struct make_void {
-    typedef void type;
-  };
-  template <typename... Ts>
-  using void_t = typename make_void<Ts...>::type;
-
-  template <typename U>
-  struct is_span : std::false_type {};
-  template <typename U>
-  struct is_span<span<U> > : std::true_type {};
-
-  template <typename U>
-  struct is_std_array : std::false_type {};
-  template <typename U, std::size_t N>
-  struct is_std_array<std::array<U, N> > : std::true_type {};
-
-  template <typename U>
-  using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<U>::type>::type;
-
-  template <class Container, class U, class = void>
-  struct is_container_compatible : public std::false_type {};
-  template <class Container, class U>
-  struct is_container_compatible<
-      Container,
-      U,
-      void_t<
-          // Check if the container type has data and size members.
-          decltype(std::declval<Container>().data()),
-          decltype(std::declval<Container>().size()),
-          // Container should not be a span.
-          typename std::enable_if<!is_span<remove_cvref_t<Container> >::value, int>::type,
-          // Container should not be a std::array.
-          typename std::enable_if<!is_std_array<remove_cvref_t<Container> >::value, int>::type,
-          // Container should not be an array.
-          typename std::enable_if<!std::is_array<remove_cvref_t<Container> >::value, int>::type,
-          // Check type compatibility between the contained type and the span type.
-          typename std::enable_if<
-              std::is_convertible<typename std::remove_pointer<decltype(std::declval<Container>().data())>::type (*)[],
-                                  U (*)[]>::value,
-              int>::type> > : public std::true_type {};
-
 public:
   /// Member types.
   using element_type     = T;
@@ -123,13 +131,14 @@ public:
 
   /// Constructs a span that is a view over the container c.
   template <typename Container,
-            typename std::enable_if<is_container_compatible<Container, element_type>::value, int>::type = 0>
+            typename std::enable_if<detail::is_container_compatible<Container, element_type>::value, int>::type = 0>
   constexpr span(Container& c) noexcept : ptr(c.data()), len(c.size())
   {}
 
   /// Constructs a span that is a view over the container c.
-  template <typename Container,
-            typename std::enable_if<is_container_compatible<const Container, element_type>::value, int>::type = 0>
+  template <
+      typename Container,
+      typename std::enable_if<detail::is_container_compatible<const Container, element_type>::value, int>::type = 0>
   constexpr span(const Container& c) noexcept : ptr(c.data()), len(c.size())
   {}
 
