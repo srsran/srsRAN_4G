@@ -118,19 +118,19 @@ private:
   void run_all_internal_tasks()
   {
     // Perform pending stack deferred tasks
-    // Note: Keep it indexed-based, bc a task may enqueue another task, which may cause vector reallocation,
-    //       and iterator invalidation
-    for (size_t i = 0; i < internal_tasks.size(); ++i) {
-      internal_tasks[i]();
+    // Note: Using a deque because tasks can enqueue new tasks, which would lead to
+    // reference invalidation in case of vector
+    while (not internal_tasks.empty()) {
+      internal_tasks.front()();
+      internal_tasks.pop_front();
     }
-    internal_tasks.clear();
   }
 
   srslte::task_thread_pool background_tasks;         ///< Thread pool used for long, low-priority tasks
   int                      background_queue_id = -1; ///< Queue for handling the outcomes of tasks run in the background
   srslte::task_multiqueue  external_tasks;
   srslte::timer_handler    timers;
-  std::vector<srslte::move_task_t> internal_tasks; ///< enqueues stack tasks from within main thread. Avoids locking
+  std::deque<srslte::move_task_t> internal_tasks; ///< enqueues stack tasks from within main thread. Avoids locking
 };
 
 //! Task scheduler handle given to classes/functions running within the main control thread

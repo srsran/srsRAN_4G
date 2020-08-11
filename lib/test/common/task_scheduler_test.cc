@@ -69,8 +69,6 @@ int test_task_scheduler_with_pool()
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
   TESTASSERT(state == task_result::null);
-  task_sched.run_pending_tasks();
-  TESTASSERT(state == task_result::null);
   task_sched.run_next_task(); // waits and runs notification
   TESTASSERT(state == task_result::external);
 
