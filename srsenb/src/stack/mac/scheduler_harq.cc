@@ -228,7 +228,7 @@ void dl_harq_proc::reset_pending_data()
  *                  UE::UL HARQ class                    *
  ******************************************************/
 
-ul_harq_proc::ul_alloc_t ul_harq_proc::get_alloc() const
+prb_interval ul_harq_proc::get_alloc() const
 {
   return allocation;
 }
@@ -243,7 +243,7 @@ bool ul_harq_proc::is_adaptive_retx() const
   return is_adaptive and has_pending_retx();
 }
 
-void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, ul_harq_proc::ul_alloc_t alloc, uint32_t max_retx_)
+void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_)
 {
   max_retx    = (uint32_t)max_retx_;
   is_adaptive = false;
@@ -253,9 +253,9 @@ void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, ul_harq_proc::ul_allo
   pending_ack  = NULL_ACK;
 }
 
-void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, ul_harq_proc::ul_alloc_t alloc)
+void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, prb_interval alloc)
 {
-  is_adaptive = alloc.L != allocation.L or alloc.RB_start != allocation.RB_start;
+  is_adaptive = alloc != allocation;
   allocation  = alloc;
   new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
 }

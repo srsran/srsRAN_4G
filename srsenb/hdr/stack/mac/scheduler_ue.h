@@ -172,12 +172,12 @@ public:
 
   uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
 
-  rbg_range_t                   get_required_dl_rbgs(uint32_t ue_cc_idx);
-  std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
-  uint32_t                      get_pending_dl_new_data();
-  uint32_t                      get_pending_ul_new_data(uint32_t tti);
-  uint32_t                      get_pending_ul_old_data(uint32_t cc_idx);
-  uint32_t                      get_pending_dl_new_data_total();
+  rbg_interval               get_required_dl_rbgs(uint32_t ue_cc_idx);
+  srslte::interval<uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
+  uint32_t                   get_pending_dl_new_data();
+  uint32_t                   get_pending_ul_new_data(uint32_t tti);
+  uint32_t                   get_pending_ul_old_data(uint32_t cc_idx);
+  uint32_t                   get_pending_dl_new_data_total();
 
   dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
   dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
@@ -205,7 +205,7 @@ public:
   int generate_format0(sched_interface::ul_sched_data_t* data,
                        uint32_t                          tti,
                        uint32_t                          cc_idx,
-                       ul_harq_proc::ul_alloc_t          alloc,
+                       prb_interval                      alloc,
                        bool                              needs_pdcch,
                        srslte_dci_location_t             cce_range,
                        int                               explicit_mcs = -1,

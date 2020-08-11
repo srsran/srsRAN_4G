@@ -131,10 +131,10 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   h = user->get_empty_dl_harq(tti_dl, cell_idx);
   if (h != nullptr) {
     // Allocate resources based on pending data
-    rbg_range_t req_rbgs = user->get_required_dl_rbgs(cell_idx);
-    if (req_rbgs.rbg_min > 0) {
+    rbg_interval req_rbgs = user->get_required_dl_rbgs(cell_idx);
+    if (req_rbgs.start > 0) {
       rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
-      if (find_allocation(req_rbgs.rbg_min, req_rbgs.rbg_max, &newtx_mask)) {
+      if (find_allocation(req_rbgs.start, req_rbgs.stop, &newtx_mask)) {
         // some empty spaces were found
         code = tti_alloc->alloc_dl_user(user, newtx_mask, h->get_id());
         if (code == alloc_outcome_t::SUCCESS) {
@@ -203,35 +203,34 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_
  * @param alloc Found allocation. It is guaranteed that 0 <= alloc->L <= L
  * @return true if the requested allocation of size L was strictly met
  */
-bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
+bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
 {
   const prbmask_t* used_rb = &tti_alloc->get_ul_mask();
-  bzero(alloc, sizeof(ul_harq_proc::ul_alloc_t));
-  for (uint32_t n = 0; n < used_rb->size() && alloc->L < L; n++) {
-    if (not used_rb->test(n) && alloc->L == 0) {
-      alloc->RB_start = n;
+  *alloc                   = {};
+  for (uint32_t n = 0; n < used_rb->size() && alloc->length() < L; n++) {
+    if (not used_rb->test(n) && alloc->length() == 0) {
+      alloc->shift_to(n);
     }
     if (not used_rb->test(n)) {
-      alloc->L++;
-    } else if (alloc->L > 0) {
+      alloc->stop++;
+    } else if (alloc->length() > 0) {
       // avoid edges
       if (n < 3) {
-        alloc->RB_start = 0;
-        alloc->L        = 0;
+        *alloc = {};
       } else {
         break;
       }
     }
   }
-  if (alloc->L == 0) {
+  if (alloc->length() == 0) {
     return false;
   }
 
   // Make sure L is allowed by SC-FDMA modulation
-  while (!srslte_dft_precoding_valid_prb(alloc->L)) {
-    alloc->L--;
+  while (!srslte_dft_precoding_valid_prb(alloc->length())) {
+    alloc->stop--;
   }
-  return alloc->L == L;
+  return alloc->length() == L;
 }
 
 ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
@@ -251,7 +250,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
 
   // if there are procedures and we have space
   if (h->has_pending_retx()) {
-    ul_harq_proc::ul_alloc_t alloc = h->get_alloc();
+    prb_interval alloc = h->get_alloc();
 
     // If can schedule the same mask, do it
     ret = tti_alloc->alloc_ul_user(user, alloc);
@@ -263,7 +262,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
       return nullptr;
     }
 
-    if (find_allocation(alloc.L, &alloc)) {
+    if (find_allocation(alloc.length(), &alloc)) {
       ret = tti_alloc->alloc_ul_user(user, alloc);
       if (ret == alloc_outcome_t::SUCCESS) {
         return h;
@@ -293,11 +292,11 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
 
   // find an empty PID
   if (h->is_empty(0) and pending_data > 0) {
-    uint32_t                 pending_rb = user->get_required_prb_ul(cell_idx, pending_data);
-    ul_harq_proc::ul_alloc_t alloc{};
+    uint32_t     pending_rb = user->get_required_prb_ul(cell_idx, pending_data);
+    prb_interval alloc{};
 
     find_allocation(pending_rb, &alloc);
-    if (alloc.L > 0) { // at least one PRB was scheduled
+    if (alloc.length() > 0) { // at least one PRB was scheduled
       alloc_outcome_t ret = tti_alloc->alloc_ul_user(user, alloc);
       if (ret == alloc_outcome_t::SUCCESS) {
         return h;

@@ -37,3 +37,7 @@ add_test(bounded_bitset_test bounded_bitset_test)
 add_executable(span_test span_test.cc)
 target_link_libraries(span_test srslte_common)
 add_test(span_test span_test)
+
+add_executable(interval_test interval_test.cc)
+target_link_libraries(interval_test srslte_common)
+add_test(interval_test interval_test)

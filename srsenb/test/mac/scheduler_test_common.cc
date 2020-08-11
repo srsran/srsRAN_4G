@@ -64,20 +64,16 @@ int output_sched_tester::test_pusch_collisions(const tti_params_t&              
   ul_allocs.resize(nof_prb);
   ul_allocs.reset();
 
-  auto try_ul_fill = [&](srsenb::ul_harq_proc::ul_alloc_t alloc, const char* ch_str, bool strict = true) {
-    CONDERROR((alloc.RB_start + alloc.L) > nof_prb,
-              "Allocated RBs (%d,%d) out-of-bounds\n",
-              alloc.RB_start,
-              alloc.RB_start + alloc.L);
-    CONDERROR(alloc.L == 0, "Allocations must have at least one PRB\n");
-    if (strict and ul_allocs.any(alloc.RB_start, alloc.RB_start + alloc.L)) {
-      TESTERROR("Collision Detected of %s alloc=(%d,%d) and cumulative_mask=0x%s\n",
+  auto try_ul_fill = [&](prb_interval alloc, const char* ch_str, bool strict = true) {
+    CONDERROR(alloc.stop > nof_prb, "Allocated RBs %s out-of-bounds\n", alloc.to_string().c_str());
+    CONDERROR(alloc.is_empty(), "Allocations must have at least one PRB\n");
+    if (strict and ul_allocs.any(alloc.start, alloc.stop)) {
+      TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s\n",
                 ch_str,
-                alloc.RB_start,
-                alloc.RB_start + alloc.L,
+                alloc.to_string().c_str(),
                 ul_allocs.to_hex().c_str());
     }
-    ul_allocs.fill(alloc.RB_start, alloc.RB_start + alloc.L, true);
+    ul_allocs.fill(alloc.start, alloc.stop, true);
     return SRSLTE_SUCCESS;
   };
 
@@ -85,21 +81,22 @@ int output_sched_tester::test_pusch_collisions(const tti_params_t&              
   bool is_prach_tti_tx_ul =
       srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, tti_params.tti_tx_ul, -1);
   if (is_prach_tti_tx_ul) {
-    try_ul_fill({cell_params.cfg.prach_freq_offset, 6}, "PRACH");
+    try_ul_fill({cell_params.cfg.prach_freq_offset, cell_params.cfg.prach_freq_offset + 6}, "PRACH");
   }
 
   /* TEST: check collisions in PUCCH */
   bool strict = nof_prb != 6 or (not is_prach_tti_tx_ul); // and not tti_data.ul_pending_msg3_present);
   try_ul_fill({0, (uint32_t)cell_params.cfg.nrb_pucch}, "PUCCH", strict);
-  try_ul_fill(
-      {cell_params.cfg.cell.nof_prb - cell_params.cfg.nrb_pucch, (uint32_t)cell_params.cfg.nrb_pucch}, "PUCCH", strict);
+  try_ul_fill({cell_params.cfg.cell.nof_prb - cell_params.cfg.nrb_pucch, (uint32_t)cell_params.cfg.cell.nof_prb},
+              "PUCCH",
+              strict);
 
   /* TEST: check collisions in the UL PUSCH */
   for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
     uint32_t L, RBstart;
     srslte_ra_type2_from_riv(ul_result.pusch[i].dci.type2_alloc.riv, &L, &RBstart, nof_prb, nof_prb);
     strict = ul_result.pusch[i].needs_pdcch or nof_prb != 6; // Msg3 may collide with PUCCH at PRB==6
-    try_ul_fill({RBstart, L}, "PUSCH", strict);
+    try_ul_fill({RBstart, RBstart + L}, "PUSCH", strict);
     //    ue_stats[ul_result.pusch[i].dci.rnti].nof_ul_rbs += L;
   }
 

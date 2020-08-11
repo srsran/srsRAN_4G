@@ -22,6 +22,7 @@
 #ifndef SRSLTE_SCHEDULER_COMMON_H
 #define SRSLTE_SCHEDULER_COMMON_H
 
+#include "srslte/adt/interval.h"
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/interfaces/sched_interface.h"
 
@@ -80,25 +81,18 @@ using rbgmask_t = srslte::bounded_bitset<25, true>;
 using prbmask_t = srslte::bounded_bitset<100, true>;
 
 //! Struct to express a {min,...,max} range of RBGs
-struct prb_range_t;
-struct rbg_range_t {
-  uint32_t rbg_min = 0, rbg_max = 0;
-  rbg_range_t() = default;
-  rbg_range_t(uint32_t s, uint32_t e) : rbg_min(s), rbg_max(e) {}
-  uint32_t nof_rbgs() const { return rbg_max - rbg_min; }
-
-  static rbg_range_t prbs_to_rbgs(const prb_range_t& prbs, uint32_t P);
+struct prb_interval;
+struct rbg_interval : public srslte::interval<uint32_t> {
+  using interval::interval;
+  static rbg_interval prbs_to_rbgs(const prb_interval& prbs, uint32_t P);
 };
 
 //! Struct to express a {min,...,max} range of PRBs
-struct prb_range_t {
-  uint32_t prb_min = 0, prb_max = 0;
-  prb_range_t() = default;
-  prb_range_t(uint32_t s, uint32_t e) : prb_min(s), prb_max(e) {}
-  uint32_t nof_prbs() { return prb_max - prb_min; }
+struct prb_interval : public srslte::interval<uint32_t> {
+  using interval::interval;
 
-  static prb_range_t rbgs_to_prbs(const rbg_range_t& rbgs, uint32_t P);
-  static prb_range_t riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
+  static prb_interval rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P);
+  static prb_interval riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
 };
 
 /***********************
