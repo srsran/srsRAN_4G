@@ -98,6 +98,18 @@ int test_bitset_bitwise_oper()
   TESTASSERT(mask != mask2);
   TESTASSERT(mask2.test(10) and not mask2.test(11));
 
+#if EXCEPTIONS_ENABLED
+  bool caught = false;
+  mask2.resize(24);
+  try {
+    mask2 |= mask;
+  } catch (srslte::bad_type_access& c) {
+    printf("Received exception \"%s\"\n", c.what());
+    caught = true;
+  }
+  TESTASSERT(caught);
+#endif
+
   return SRSLTE_SUCCESS;
 }
 

@@ -22,9 +22,14 @@
 #ifndef SRSLTE_ADT_UTILS_H
 #define SRSLTE_ADT_UTILS_H
 
+#ifdef __EXCEPTIONS
+
+#include <stdexcept>
+
+#define EXCEPTIONS_ENABLED 1
+
 namespace srslte {
 
-#if defined(__cpp_exceptions) && (1 == __cpp_exceptions)
 class bad_type_access : public std::runtime_error
 {
 public:
@@ -32,13 +37,25 @@ public:
   explicit bad_type_access(const char* what_arg) : runtime_error(what_arg) {}
 };
 
-#define THROW_BAD_ACCESS(msg) throw bad_type_access{msg};
-#else
-#define THROW_BAD_ACCESS(msg)                                                                                          \
-  fprintf(stderr, "ERROR: exception thrown with %s", msg);                                                             \
-  std::abort()
-#endif
+#define THROW_BAD_ACCESS(msg) throw bad_type_access(msg)
 
 } // namespace srslte
+
+#else
+
+#define EXCEPTIONS_ENABLED 0
+
+#include <cstdio>
+#include <cstdlib>
+
+namespace srslte {
+
+#define THROW_BAD_ACCESS(msg)                                                                                          \
+  std::fprintf(stderr, "ERROR: exception thrown with %s", msg);                                                        \
+  std::abort()
+
+} // namespace srslte
+
+#endif
 
 #endif // SRSLTE_ADT_UTILS_H

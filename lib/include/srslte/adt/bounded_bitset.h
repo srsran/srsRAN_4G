@@ -49,7 +49,7 @@ public:
 
   size_t size() const noexcept { return cur_size; }
 
-  void resize(size_t new_size) noexcept
+  void resize(size_t new_size)
   {
     if (new_size > max_size()) {
       std::string msg =
@@ -194,7 +194,7 @@ public:
 
   bool operator!=(const bounded_bitset<N, reversed>& other) const noexcept { return not(*this == other); }
 
-  bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other) noexcept
+  bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other)
   {
     if (other.size() != size()) {
       std::string msg = "operator|= called for bitsets of different sizes (" + std::to_string(size()) +
@@ -207,7 +207,7 @@ public:
     return *this;
   }
 
-  bounded_bitset<N, reversed>& operator&=(const bounded_bitset<N, reversed>& other) noexcept
+  bounded_bitset<N, reversed>& operator&=(const bounded_bitset<N, reversed>& other)
   {
     if (other.size() != size()) {
       std::string msg = "operator&= called for bitsets of different sizes (" + std::to_string(size()) +
@@ -247,7 +247,7 @@ public:
     return s;
   }
 
-  uint64_t to_uint64() const noexcept
+  uint64_t to_uint64() const
   {
     if (nof_words_() > 1) {
       std::string msg = "ERROR: cannot convert bitset of size=" + std::to_string(size()) + " to uint64_t";
