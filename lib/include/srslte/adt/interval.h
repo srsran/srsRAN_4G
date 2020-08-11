@@ -60,7 +60,7 @@ public:
 
   std::string to_string() const
   {
-    std::string s = "[" + std::to_string(start) + ", " + std::to_string(stop) + ")";
+    std::string s = "[" + std::to_string(start) + "," + std::to_string(stop) + ")";
     return s;
   }
 };
