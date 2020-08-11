@@ -27,7 +27,7 @@ int test_span_access()
   std::array<int, 7> values{1, 2, 3, 4, 5, 6, 7};
 
   {
-    auto view = srslte::make_span(values);
+    srslte::span<int> view = values;
 
     // access operators
     TESTASSERT(view.size() == 7);
@@ -56,7 +56,7 @@ int test_span_conversion()
 
   {
     // TEST: changing individual values
-    auto v = srslte::make_span(values), v2 = srslte::make_span(values2);
+    srslte::span<int> v = values, v2 = values2;
     TESTASSERT(v == v2);
 
     v[0] = 3;
@@ -68,7 +68,7 @@ int test_span_conversion()
 
   {
     // TEST: const context
-    const auto v = srslte::make_span(values), v2 = srslte::make_span(values2);
+    const srslte::span<int> v = values, v2 = values2;
     TESTASSERT(v != v2);
     TESTASSERT(v[0] == 3);
     TESTASSERT(v2[0] == 2);
@@ -78,8 +78,8 @@ int test_span_conversion()
 
   {
     // TEST: raw arrays
-    int  carray[] = {2, 3, 4, 5, 6, 7, 8};
-    auto v = srslte::make_span(values), v2 = srslte::make_span(carray);
+    int               carray[] = {2, 3, 4, 5, 6, 7, 8};
+    srslte::span<int> v = values, v2 = carray;
     TESTASSERT(v == v2);
     TESTASSERT(v2.size() == v.size());
   }

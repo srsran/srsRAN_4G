@@ -33,12 +33,53 @@ namespace srslte {
 
 /// The class template span describes an object that can refer to a contiguous sequence of objects with the first
 /// element of the sequence at position zero.
-/// It is encouraged to use the make_span() helper functions for creating new spans instead of using the constructors
-/// directly. This way is more explicit in code and makes the developer think first to make sure the lifetime of the
-/// sequence outlasts the new created span.
 template <typename T>
 class span
 {
+  /// Helper traits used by SFINAE expressions in constructors.
+
+  template <typename... Ts>
+  struct make_void {
+    typedef void type;
+  };
+  template <typename... Ts>
+  using void_t = typename make_void<Ts...>::type;
+
+  template <typename U>
+  struct is_span : std::false_type {};
+  template <typename U>
+  struct is_span<span<U> > : std::true_type {};
+
+  template <typename U>
+  struct is_std_array : std::false_type {};
+  template <typename U, std::size_t N>
+  struct is_std_array<std::array<U, N> > : std::true_type {};
+
+  template <typename U>
+  using remove_cvref_t = typename std::remove_cv<typename std::remove_reference<U>::type>::type;
+
+  template <class Container, class U, class = void>
+  struct is_container_compatible : public std::false_type {};
+  template <class Container, class U>
+  struct is_container_compatible<
+      Container,
+      U,
+      void_t<
+          // Check if the container type has data and size members.
+          decltype(std::declval<Container>().data()),
+          decltype(std::declval<Container>().size()),
+          // Container should not be a span.
+          typename std::enable_if<!is_span<remove_cvref_t<Container> >::value, int>::type,
+          // Container should not be a std::array.
+          typename std::enable_if<!is_std_array<remove_cvref_t<Container> >::value, int>::type,
+          // Container should not be an array.
+          typename std::enable_if<!std::is_array<remove_cvref_t<Container> >::value, int>::type,
+          // Check type compatibility between the contained type and the span type.
+          typename std::enable_if<
+              std::is_convertible<typename std::remove_pointer<decltype(std::declval<Container>().data())>::type (*)[],
+                                  U (*)[]>::value,
+              int>::type> > : public std::true_type {};
+
 public:
   /// Member types.
   using element_type     = T;
@@ -56,10 +97,10 @@ public:
   constexpr span() noexcept = default;
 
   /// Constructs a span that is a view over the range [ptr, ptr + len).
-  constexpr explicit span(pointer ptr, size_type len) noexcept : ptr(ptr), len(len) {}
+  constexpr span(pointer ptr, size_type len) noexcept : ptr(ptr), len(len) {}
 
   /// Constructs a span that is a view over the range [first, last).
-  constexpr explicit span(pointer first, pointer last) noexcept : ptr(first), len(last - first) {}
+  constexpr span(pointer first, pointer last) noexcept : ptr(first), len(last - first) {}
 
   /// Constructs a span that is a view over the array arr.
   template <std::size_t N>
@@ -78,6 +119,18 @@ public:
             std::size_t N,
             typename std::enable_if<std::is_convertible<const U (*)[], element_type (*)[]>::value, int>::type = 0>
   constexpr span(const std::array<U, N>& arr) noexcept : ptr(arr.data()), len(N)
+  {}
+
+  /// Constructs a span that is a view over the container c.
+  template <typename Container,
+            typename std::enable_if<is_container_compatible<Container, element_type>::value, int>::type = 0>
+  constexpr span(Container& c) noexcept : ptr(c.data()), len(c.size())
+  {}
+
+  /// Constructs a span that is a view over the container c.
+  template <typename Container,
+            typename std::enable_if<is_container_compatible<const Container, element_type>::value, int>::type = 0>
+  constexpr span(const Container& c) noexcept : ptr(c.data()), len(c.size())
   {}
 
   template <typename U, typename std::enable_if<std::is_convertible<U (*)[], element_type (*)[]>::value, int>::type = 0>
@@ -156,7 +209,7 @@ public:
   span<element_type> subspan(size_type offset, size_type count) const
   {
     assert(count <= size() - offset && "size out of bounds!");
-    return span{data() + offset, count};
+    return {data() + offset, count};
   }
 
   /// Returns true if the input span has the same elements as this.
@@ -177,40 +230,6 @@ template <typename T>
 inline bool operator!=(span<T> lhs, span<T> rhs)
 {
   return not lhs.equals(rhs);
-}
-
-///
-/// Helpers to construct span objects from different types of contiguous containers.
-///
-
-template <typename T, std::size_t N>
-inline span<T> make_span(T (&arr)[N])
-{
-  return span<T>{arr};
-}
-
-template <typename T, std::size_t N>
-inline span<T> make_span(std::array<T, N>& arr)
-{
-  return span<T>{arr};
-}
-
-template <typename T, std::size_t N>
-inline span<const T> make_span(const std::array<T, N>& arr)
-{
-  return span<const T>{arr};
-}
-
-template <typename T>
-inline span<T> make_span(std::vector<T>& v)
-{
-  return span<T>{v.data(), v.size()};
-}
-
-template <typename T>
-inline span<const T> make_span(const std::vector<T>& v)
-{
-  return span<const T>{v.data(), v.size()};
 }
 
 } // namespace srslte
