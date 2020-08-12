@@ -367,6 +367,20 @@ bool s1ap::user_exists(uint16_t rnti)
   return users.find_ue_rnti(rnti) != nullptr;
 }
 
+void s1ap::user_mod(uint16_t old_rnti, uint16_t new_rnti)
+{
+  s1ap_log->info("Modifying user context. Old rnti: 0x%x, new rnti: 0x%x\n", old_rnti, new_rnti);
+  if (not user_exists(old_rnti)) {
+    s1ap_log->error("Old rnti does not exist, aborting.\n");
+    return;
+  }
+  if (user_exists(new_rnti)) {
+    s1ap_log->error("New rnti already exists, aborting.\n");
+    return;
+  }
+  users.find_ue_rnti(old_rnti)->ctxt.rnti = new_rnti;
+}
+
 void s1ap::ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res)
 {
   ue* u = users.find_ue_rnti(rnti);

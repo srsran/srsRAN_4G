@@ -474,6 +474,7 @@ public:
 
   virtual void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)                              = 0;
   virtual bool user_exists(uint16_t rnti)                                                              = 0;
+  virtual void user_mod(uint16_t old_rnti, uint16_t new_rnti)                                          = 0;
   virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)              = 0;
   virtual void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) = 0;
   virtual void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)         = 0;

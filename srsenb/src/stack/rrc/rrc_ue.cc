@@ -346,8 +346,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
 
-      // Modify GTP-U tunnel
+      // Modify GTP-U tunnel and S1AP context
       parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
+      parent->s1ap->user_mod(old_rnti, rnti);
 
       // Get PDCP entity state (required when using RLC AM)
       for (const auto& erab_pair : parent->users[old_rnti]->bearer_list.get_erabs()) {

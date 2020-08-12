@@ -104,6 +104,7 @@ public:
       }
     }
   }
+  void user_mod(uint16_t old_rnti, uint16_t new_rnti) override {}
 };
 
 class pdcp_mobility_dummy : public pdcp_dummy
