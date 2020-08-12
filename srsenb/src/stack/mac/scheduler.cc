@@ -452,23 +452,22 @@ void sched_cell_params_t::regs_deleter::operator()(srslte_regs_t* p)
 
 rbg_interval rbg_interval::prbs_to_rbgs(const prb_interval& prbs, uint32_t P)
 {
-  return rbg_interval{srslte::ceil_div(prbs.start, P), srslte::ceil_div(prbs.start, P)};
+  return rbg_interval{srslte::ceil_div(prbs.start(), P), srslte::ceil_div(prbs.stop(), P)};
 }
 
 prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P)
 {
-  return prb_interval{rbgs.start * P, rbgs.stop * P};
+  return prb_interval{rbgs.start() * P, rbgs.stop() * P};
 }
 
 prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
 {
-  prb_interval p;
   if (nof_vrbs < 0) {
     nof_vrbs = nof_prbs;
   }
-  srslte_ra_type2_from_riv(riv, &p.stop, &p.start, nof_prbs, (uint32_t)nof_vrbs);
-  p.stop += p.start;
-  return p;
+  uint32_t rb_start, l_crb;
+  srslte_ra_type2_from_riv(riv, &l_crb, &rb_start, nof_prbs, (uint32_t)nof_vrbs);
+  return {rb_start, rb_start + l_crb};
 }
 
 namespace sched_utils {

@@ -132,9 +132,9 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   if (h != nullptr) {
     // Allocate resources based on pending data
     rbg_interval req_rbgs = user->get_required_dl_rbgs(cell_idx);
-    if (req_rbgs.start > 0) {
+    if (req_rbgs.stop() > 0) {
       rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
-      if (find_allocation(req_rbgs.start, req_rbgs.stop, &newtx_mask)) {
+      if (find_allocation(req_rbgs.start(), req_rbgs.stop(), &newtx_mask)) {
         // some empty spaces were found
         code = tti_alloc->alloc_dl_user(user, newtx_mask, h->get_id());
         if (code == alloc_outcome_t::SUCCESS) {
@@ -212,7 +212,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
       alloc->displace_to(n);
     }
     if (not used_rb->test(n)) {
-      alloc->stop++;
+      alloc->inc_length(1);
     } else if (alloc->length() > 0) {
       // avoid edges
       if (n < 3) {
@@ -228,7 +228,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
 
   // Make sure L is allowed by SC-FDMA modulation
   while (!srslte_dft_precoding_valid_prb(alloc->length())) {
-    alloc->stop--;
+    alloc->inc_length(-1);
   }
   return alloc->length() == L;
 }

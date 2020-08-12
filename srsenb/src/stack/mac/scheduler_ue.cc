@@ -539,7 +539,7 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   // Use a higher MCS for the Msg4 to fit in the 6 PRB case
   if (carriers[ue_cc_idx].fixed_mcs_dl < 0 or not carriers[ue_cc_idx].dl_cqi_rx) {
     // Dynamic MCS
-    tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.stop, &mcs);
+    tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.stop(), &mcs);
   } else {
     // Fixed MCS
     mcs       = carriers[ue_cc_idx].fixed_mcs_dl;
@@ -549,7 +549,7 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
 
   // If the number of prbs is not sufficient to fit minimum required bytes, increase the mcs
   // NOTE: this may happen during ConRes CE tx when DL-CQI is still not available
-  while (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start and mcs < 28) {
+  while (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start() and mcs < 28) {
     mcs++;
     tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
   }
@@ -722,7 +722,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     dci->rnti            = rnti;
     dci->format          = SRSLTE_DCI_FORMAT0;
     dci->ue_cc_idx       = cc_idx;
-    dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start, cell.nof_prb);
+    dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
     dci->tb.rv           = sched_utils::get_rvidx(h->nof_retx(0));
     if (!is_newtx && h->is_adaptive_retx()) {
       dci->tb.mcs_idx = 28 + dci->tb.rv;
@@ -801,17 +801,17 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx)
   }
   const auto* cellparams = carriers[ue_cc_idx].get_cell_cfg();
   int         pending_prbs =
-      carriers[ue_cc_idx].get_required_prb_dl(req_bytes.start, cellparams->sched_cfg->max_nof_ctrl_symbols);
+      carriers[ue_cc_idx].get_required_prb_dl(req_bytes.start(), cellparams->sched_cfg->max_nof_ctrl_symbols);
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
     log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
                  "Consider increasing initial CQI value.\n",
                  carriers[ue_cc_idx].dl_cqi,
-                 req_bytes.start);
+                 req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
   uint32_t min_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
-  pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.stop, cellparams->sched_cfg->max_nof_ctrl_symbols);
+  pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.stop(), cellparams->sched_cfg->max_nof_ctrl_symbols);
   pending_prbs = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
   uint32_t max_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};

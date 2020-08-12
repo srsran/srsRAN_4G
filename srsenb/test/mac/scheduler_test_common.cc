@@ -65,15 +65,15 @@ int output_sched_tester::test_pusch_collisions(const tti_params_t&              
   ul_allocs.reset();
 
   auto try_ul_fill = [&](prb_interval alloc, const char* ch_str, bool strict = true) {
-    CONDERROR(alloc.stop > nof_prb, "Allocated RBs %s out-of-bounds\n", alloc.to_string().c_str());
+    CONDERROR(alloc.stop() > nof_prb, "Allocated RBs %s out-of-bounds\n", alloc.to_string().c_str());
     CONDERROR(alloc.empty(), "Allocations must have at least one PRB\n");
-    if (strict and ul_allocs.any(alloc.start, alloc.stop)) {
+    if (strict and ul_allocs.any(alloc.start(), alloc.stop())) {
       TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s\n",
                 ch_str,
                 alloc.to_string().c_str(),
                 ul_allocs.to_hex().c_str());
     }
-    ul_allocs.fill(alloc.start, alloc.stop, true);
+    ul_allocs.fill(alloc.start(), alloc.stop(), true);
     return SRSLTE_SUCCESS;
   };
 

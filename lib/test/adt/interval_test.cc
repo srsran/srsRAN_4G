@@ -26,9 +26,9 @@ int test_interval_init()
 {
   srslte::interval<int> I{}, I2{12, 15}, I3{12, 12};
 
-  TESTASSERT(I.empty() and I.start == 0 and I.stop == 0);
-  TESTASSERT(not I2.empty() and I2.start == 12 and I2.stop == 15);
-  TESTASSERT(I3.empty() and I3.start == 12 and I3.stop == 12);
+  TESTASSERT(I.empty() and I.start() == 0 and I.stop() == 0);
+  TESTASSERT(not I2.empty() and I2.start() == 12 and I2.stop() == 15);
+  TESTASSERT(I3.empty() and I3.start() == 12 and I3.stop() == 12);
 
   return SRSLTE_SUCCESS;
 }

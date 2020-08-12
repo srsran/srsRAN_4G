@@ -444,9 +444,8 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, 
 //! Allocates CCEs and RBs for control allocs. It allocates RBs in a contiguous manner.
 sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_type_t alloc_type)
 {
-  rbg_interval range;
-  range.start = nof_rbgs - avail_rbg;
-  range.set_length((alloc_type == alloc_type_t::DL_RAR) ? rar_n_rbg : si_n_rbg);
+  rbg_interval range{nof_rbgs - avail_rbg,
+                     nof_rbgs - avail_rbg + ((alloc_type == alloc_type_t::DL_RAR) ? rar_n_rbg : si_n_rbg)};
 
   if (alloc_type != alloc_type_t::DL_RAR and alloc_type != alloc_type_t::DL_BC and
       alloc_type != alloc_type_t::DL_PCCH) {
@@ -454,13 +453,13 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_typ
     return {alloc_outcome_t::ERROR, range};
   }
   // Setup range starting from left
-  if (range.stop > nof_rbgs) {
+  if (range.stop() > nof_rbgs) {
     return {alloc_outcome_t::RB_COLLISION, range};
   }
 
   // allocate DCI and RBGs
   rbgmask_t new_mask(dl_mask.size());
-  new_mask.fill(range.start, range.stop);
+  new_mask.fill(range.start(), range.stop());
   return {alloc_dl(aggr_idx, alloc_type, new_mask), range};
 }
 
@@ -477,12 +476,12 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
 
 alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch)
 {
-  if (alloc.stop > ul_mask.size()) {
+  if (alloc.stop() > ul_mask.size()) {
     return alloc_outcome_t::ERROR;
   }
 
   prbmask_t newmask(ul_mask.size());
-  newmask.fill(alloc.start, alloc.stop);
+  newmask.fill(alloc.start(), alloc.stop());
   if ((ul_mask & newmask).any()) {
     return alloc_outcome_t::RB_COLLISION;
   }
@@ -539,12 +538,11 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
       alloc->displace_to(n);
     }
     if (not ul_mask.test(n)) {
-      alloc->stop++;
+      alloc->inc_length(1);
     } else if (alloc->length() > 0) {
       // avoid edges
       if (n < 3) {
-        alloc->start = 0;
-        alloc->stop  = 0;
+        *alloc = {};
       } else {
         break;
       }
@@ -556,7 +554,7 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
 
   // Make sure L is allowed by SC-FDMA modulation
   while (!srslte_dft_precoding_valid_prb(alloc->length())) {
-    alloc->stop--;
+    alloc->inc_length(-1);
   }
   return alloc->length() == L;
 }
@@ -758,7 +756,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   if (h.is_empty()) {
     // It is newTx
     rbg_interval r = user->get_required_dl_rbgs(ue_cc_idx);
-    if (r.start > user_mask.count()) {
+    if (r.start() > user_mask.count()) {
       log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
       return alloc_outcome_t::NOF_RB_INVALID;
     }
@@ -890,8 +888,8 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       if (tbs <= (int)bc_alloc.req_bytes) {
         log_h->warning("SCHED: Error SIB%d, rbgs=(%d,%d), dci=(%d,%d), len=%d\n",
                        bc_alloc.sib_idx + 1,
-                       bc_alloc.rbg_range.start,
-                       bc_alloc.rbg_range.stop,
+                       bc_alloc.rbg_range.start(),
+                       bc_alloc.rbg_range.stop(),
                        bc->dci.location.L,
                        bc->dci.location.ncce,
                        bc_alloc.req_bytes);
@@ -905,8 +903,8 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
 
       log_h->debug("SCHED: SIB%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d\n",
                    bc_alloc.sib_idx + 1,
-                   bc_alloc.rbg_range.start,
-                   bc_alloc.rbg_range.stop,
+                   bc_alloc.rbg_range.start(),
+                   bc_alloc.rbg_range.stop(),
                    bc->dci.location.L,
                    bc->dci.location.ncce,
                    bc_alloc.rv,
@@ -1164,10 +1162,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
 alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant)
 {
   // Derive PRBs from allocated RAR grants
-  prb_interval msg3_alloc = {};
-  uint32_t     L;
-  srslte_ra_type2_from_riv(rargrant.grant.rba, &L, &msg3_alloc.start, cc_cfg->nof_prb(), cc_cfg->nof_prb());
-  msg3_alloc.set_length(L);
+  prb_interval msg3_alloc = prb_interval::riv_to_prbs(rargrant.grant.rba, cc_cfg->nof_prb());
 
   alloc_outcome_t ret = alloc_ul(user, msg3_alloc, sf_sched::ul_alloc_t::MSG3, rargrant.grant.trunc_mcs);
   if (not ret) {
@@ -1246,7 +1241,7 @@ int sf_sched::generate_format1a(prb_interval     prb_range,
 
   dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
   dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
-  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(prb_range.length(), prb_range.start, cc_cfg->cfg.cell.nof_prb);
+  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(prb_range.length(), prb_range.start(), cc_cfg->cfg.cell.nof_prb);
   dci->pid              = 0;
   dci->tb[0].mcs_idx    = mcs;
   dci->tb[0].rv         = rv;

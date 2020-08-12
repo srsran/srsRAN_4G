@@ -22,6 +22,7 @@
 #ifndef SRSLTE_INTERVAL_H
 #define SRSLTE_INTERVAL_H
 
+#include <cassert>
 #include <string>
 #include <type_traits>
 
@@ -37,45 +38,71 @@ class interval
 #endif
 
 public:
-  T start;
-  T stop;
+  interval() : start_(T{}), stop_(T{}) {}
+  interval(T start_point, T stop_point) : start_(start_point), stop_(stop_point) { assert(start_ <= stop_); }
 
-  interval() : start(T{}), stop(T{}) {}
-  interval(T start_, T stop_) : start(start_), stop(stop_) {}
+  T start() const { return start_; }
+  T stop() const { return stop_; }
 
-  bool empty() const { return stop <= start; }
+  bool empty() const { return stop_ == start_; }
 
-  T length() const { return stop > start ? stop - start : 0; }
+  T length() const { return stop_ - start_; }
 
-  void set_length(T len) { stop = start + len; }
+  void inc_length(int n)
+  {
+    stop_ += n;
+    assert(stop_ >= start_);
+  }
+
+  void set_length(T len)
+  {
+    assert(len >= 0);
+    stop_ = start_ + len;
+  }
+
+  void set_start(T start_point)
+  {
+    assert(start_point <= stop_);
+    start_ = start_point;
+  }
+
+  void set_stop(T stop_point)
+  {
+    assert(start_ <= stop_point);
+    stop_ = stop_point;
+  }
 
   void displace_by(int offset)
   {
-    start += offset;
-    stop += offset;
+    start_ += offset;
+    stop_ += offset;
   }
 
   void displace_to(T start_point)
   {
-    stop  = start_point + length();
-    start = start_point;
+    stop_  = start_point + length();
+    start_ = start_point;
   }
 
-  bool overlaps(interval other) const { return start < other.stop and other.start < stop; }
+  bool overlaps(interval other) const { return start_ < other.stop_ and other.start_ < stop_; }
 
-  bool contains(T point) const { return start <= point and point < stop; }
+  bool contains(T point) const { return start_ <= point and point < stop_; }
 
   std::string to_string() const
   {
-    std::string s = "[" + std::to_string(start) + "," + std::to_string(stop) + ")";
+    std::string s = "[" + std::to_string(start_) + "," + std::to_string(stop_) + ")";
     return s;
   }
+
+private:
+  T start_;
+  T stop_;
 };
 
 template <typename T>
 bool operator==(const interval<T>& lhs, const interval<T>& rhs)
 {
-  return lhs.start == rhs.start and lhs.stop == rhs.stop;
+  return lhs.start() == rhs.start() and lhs.stop() == rhs.stop();
 }
 
 template <typename T>
@@ -87,7 +114,7 @@ bool operator!=(const interval<T>& lhs, const interval<T>& rhs)
 template <typename T>
 bool operator<(const interval<T>& lhs, const interval<T>& rhs)
 {
-  return lhs.start < rhs.start or (lhs.start == rhs.start and lhs.stop < rhs.stop);
+  return lhs.start() < rhs.start() or (lhs.start() == rhs.start() and lhs.stop() < rhs.stop());
 }
 
 //! Union of intervals
@@ -97,7 +124,7 @@ interval<T> operator|(const interval<T>& lhs, const interval<T>& rhs)
   if (not lhs.overlaps(rhs)) {
     return interval<T>{};
   }
-  return {std::min(lhs.start, rhs.start), std::max(lhs.stop, rhs.stop)};
+  return {std::min(lhs.start(), rhs.start()), std::max(lhs.stop(), rhs.stop())};
 }
 
 template <typename T>
@@ -113,7 +140,7 @@ interval<T> operator&(const interval<T>& lhs, const interval<T>& rhs)
   if (not lhs.overlaps(rhs)) {
     return interval<T>{};
   }
-  return interval<T>{std::max(lhs.start, rhs.start), std::min(lhs.stop, rhs.stop)};
+  return interval<T>{std::max(lhs.start(), rhs.start()), std::min(lhs.stop(), rhs.stop())};
 }
 
 template <typename T>
