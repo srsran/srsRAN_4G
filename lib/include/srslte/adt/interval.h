@@ -23,6 +23,7 @@
 #define SRSLTE_INTERVAL_H
 
 #include <string>
+#include <type_traits>
 
 namespace srslte {
 
