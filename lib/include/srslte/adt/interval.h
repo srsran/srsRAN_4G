@@ -31,7 +31,10 @@ namespace srslte {
 template <typename T>
 class interval
 {
-  static_assert(std::is_trivially_copyable<T>::value, "Template argument T should be trivially copyable.");
+  // TODO: older compilers may not have defined this C++11 trait.
+#if (defined(__clang__) && (__clang_major__ >= 5)) || (defined(__GNUG__) && (__GNUC__ >= 5))
+  static_assert(std::is_trivially_copyable<T>::value, "Expected to be trivially copyable");
+#endif
 
 public:
   T start;
