@@ -536,7 +536,7 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
   *alloc = {};
   for (uint32_t n = 0; n < ul_mask.size() && alloc->length() < L; n++) {
     if (not ul_mask.test(n) && alloc->length() == 0) {
-      alloc->shift_to(n);
+      alloc->displace_to(n);
     }
     if (not ul_mask.test(n)) {
       alloc->stop++;

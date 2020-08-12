@@ -209,7 +209,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
   *alloc                   = {};
   for (uint32_t n = 0; n < used_rb->size() && alloc->length() < L; n++) {
     if (not used_rb->test(n) && alloc->length() == 0) {
-      alloc->shift_to(n);
+      alloc->displace_to(n);
     }
     if (not used_rb->test(n)) {
       alloc->stop++;

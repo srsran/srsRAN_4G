@@ -26,37 +26,40 @@
 
 namespace srslte {
 
+/// Representation of an interval between two numeric-types in the math representation [start, stop)
 template <typename T>
 class interval
 {
+  static_assert(std::is_trivially_copyable<T>::value, "Template argument T should be trivially copyable.");
+
 public:
   T start;
   T stop;
 
   interval() : start(T{}), stop(T{}) {}
-  interval(const T& start_, const T& stop_) : start(start_), stop(stop_) {}
+  interval(T start_, T stop_) : start(start_), stop(stop_) {}
 
-  bool is_empty() const { return stop <= start; }
+  bool empty() const { return stop <= start; }
 
-  T length() const { return stop - start; }
+  T length() const { return stop > start ? stop - start : 0; }
 
-  void set_length(const T& len) { stop = start + len; }
+  void set_length(T len) { stop = start + len; }
 
-  void add_offset(int offset)
+  void displace_by(int offset)
   {
     start += offset;
     stop += offset;
   }
 
-  void shift_to(int new_start)
+  void displace_to(T start_point)
   {
-    stop  = new_start + length();
-    start = new_start;
+    stop  = start_point + length();
+    start = start_point;
   }
 
-  bool overlaps(const interval& other) const { return start < other.stop and other.start < stop; }
+  bool overlaps(interval other) const { return start < other.stop and other.start < stop; }
 
-  bool contains(const T& point) const { return start <= point and point < stop; }
+  bool contains(T point) const { return start <= point and point < stop; }
 
   std::string to_string() const
   {

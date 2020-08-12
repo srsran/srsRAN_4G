@@ -22,6 +22,17 @@
 #include "srslte/adt/interval.h"
 #include "srslte/common/test_common.h"
 
+int test_interval_init()
+{
+  srslte::interval<int> I{}, I2{12, 15}, I3{12, 12};
+
+  TESTASSERT(I.empty() and I.start == 0 and I.stop == 0);
+  TESTASSERT(not I2.empty() and I2.start == 12 and I2.stop == 15);
+  TESTASSERT(I3.empty() and I3.start == 12 and I3.stop == 12);
+
+  return SRSLTE_SUCCESS;
+}
+
 int test_interval_overlaps()
 {
   srslte::interval<int> I{10, 15}, I2{9, 11}, I3{11, 14}, I4{9, 16}, I5{14, 16}, I6{4, 10}, I7{15, 17};
@@ -57,14 +68,15 @@ int test_interval_intersect()
   TESTASSERT(srslte::make_intersection(I, I2) == (I & I2));
   TESTASSERT((I & I2) == srslte::interval<int>(5, 6));
   TESTASSERT((I & I3) == srslte::interval<int>(9, 10));
-  TESTASSERT(not(I & I3).is_empty());
-  TESTASSERT((I & I4).is_empty());
+  TESTASSERT(not(I & I3).empty());
+  TESTASSERT((I & I4).empty());
 
   return SRSLTE_SUCCESS;
 }
 
 int main()
 {
+  TESTASSERT(test_interval_init() == SRSLTE_SUCCESS);
   TESTASSERT(test_interval_overlaps() == SRSLTE_SUCCESS);
   TESTASSERT(test_interval_contains() == SRSLTE_SUCCESS);
   TESTASSERT(test_interval_intersect() == SRSLTE_SUCCESS);
