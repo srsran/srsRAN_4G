@@ -484,7 +484,9 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
     return SRSLTE_INVALID_RNTI;
   }
 
-  /* Allocate C-RNTI */
+  /* Create new User */
+
+  // Allocate C-RNTI in MAC
   sched_interface::ue_cfg_t ue_cfg = {};
   ue_cfg.supported_cc_list.resize(1);
   ue_cfg.supported_cc_list[0].active     = true;
@@ -496,6 +498,9 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
     rrc_ptr->rrc_log->error("Failed to allocate C-RNTI resources\n");
     return SRSLTE_INVALID_RNTI;
   }
+
+  // Register new user in RRC
+  rrc_ptr->add_user(rnti, ue_cfg);
 
   //  /* Setup e-RABs & DRBs / establish an UL/DL S1 bearer to the S-GW */
   //  if (not setup_ue_erabs(rnti, msg)) {

@@ -469,15 +469,6 @@ uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
     return SRSLTE_INVALID_RNTI;
   }
 
-  // Register new user in RRC
-  rrc_h->add_user(rnti, ue_cfg);
-
-  // Add temporal rnti to the PHY
-  if (phy_h->add_rnti(rnti, ue_cfg.supported_cc_list[0].enb_cc_idx) != SRSLTE_SUCCESS) {
-    Error("Registering c-rnti=0x%x to PHY\n", rnti);
-    return SRSLTE_INVALID_RNTI;
-  }
-
   // Allocate one new UE object in advance
   prealloc_ue(1);
   return rnti;
