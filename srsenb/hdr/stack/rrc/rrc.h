@@ -90,7 +90,8 @@ public:
   void     ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
   uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                       const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                                      srslte::byte_buffer_t& ho_cmd) override;
+                                      srslte::byte_buffer_t&                                            ho_cmd,
+                                      std::vector<asn1::fixed_octstring<4, true> >& admitted_erabs) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
@@ -98,7 +99,7 @@ public:
   uint32_t get_nof_users();
 
   // logging
-  typedef enum { Rx = 0, Tx, S1AP } direction_t;
+  typedef enum { Rx = 0, Tx, S1AP, fromS1AP } direction_t;
   template <class T>
   void log_rrc_message(const std::string&           source,
                        const direction_t            dir,
@@ -106,18 +107,23 @@ public:
                        const T&                     msg,
                        const std::string&           msg_type)
   {
+    log_rrc_message(source, dir, srslte::make_span(*pdu), msg, msg_type);
+  }
+  template <class T>
+  void log_rrc_message(const std::string&      source,
+                       const direction_t       dir,
+                       srslte::const_byte_span pdu,
+                       const T&                msg,
+                       const std::string&      msg_type)
+  {
+    static const char* dir_str[] = {"Rx", "Tx", "S1AP Tx", "S1AP Rx"};
     if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-      rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), dir == Tx ? "Tx" : "Rx", msg_type.c_str(), pdu->N_bytes);
+      rrc_log->info("%s - %s %s (%zd B)\n", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
     } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
       asn1::json_writer json_writer;
       msg.to_json(json_writer);
-      rrc_log->debug_hex(pdu->msg,
-                         pdu->N_bytes,
-                         "%s - %s %s (%d B)\n",
-                         source.c_str(),
-                         dir == Tx ? "Tx" : "Rx",
-                         msg_type.c_str(),
-                         pdu->N_bytes);
+      rrc_log->debug_hex(
+          pdu.data(), pdu.size(), "%s - %s %s (%zd B)\n", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
       rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
     }
   }

@@ -302,4 +302,11 @@ void rrc::ue::mac_controller::apply_scell_cfg_updates(uint32_t ue_cc_idx)
   pending_scells_cfg->erase(it);
 }
 
+void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep) {}
+
+void rrc::ue::mac_controller::handle_ho_prep_complete()
+{
+  apply_current_bearers_cfg();
+}
+
 } // namespace srsenb

@@ -468,7 +468,7 @@ SRSASN_CODE pack_constrained_whole_number(bit_ref& bref, IntType n, IntType lb, 
     } else {
       // TODO: Check if this is correct
       uint32_t n_bits_len = (uint32_t)ceilf(log2f(ceil_frac(n_bits, 8u)));
-      n_bits              = (uint32_t)floorf(log2f(toencode) + 1);
+      n_bits              = (uint32_t)floorf(log2f(SRSLTE_MAX(toencode, 1)) + 1);
       uint32_t n_octets   = (uint32_t)((n_bits + 7) / 8);
       HANDLE_CODE(bref.pack(n_octets - 1, n_bits_len));
       HANDLE_CODE(bref.align_bytes_zero());

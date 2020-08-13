@@ -464,9 +464,10 @@ void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique
 
 uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                          const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                                         srslte::byte_buffer_t&                                            ho_cmd)
+                                         srslte::byte_buffer_t&                                            ho_cmd,
+                                         std::vector<asn1::fixed_octstring<4, true> >& admitted_erabs)
 {
-  return enb_mobility_cfg->start_ho_ue_resource_alloc(msg, container, ho_cmd);
+  return enb_mobility_cfg->start_ho_ue_resource_alloc(msg, container, ho_cmd, admitted_erabs);
 }
 
 /*******************************************************************************

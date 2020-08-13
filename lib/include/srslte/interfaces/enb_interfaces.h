@@ -188,7 +188,6 @@ public:
 class phy_interface_mac_lte
 {
 public:
-
   /**
    * Removes an RNTI context from all the physical layer components, including secondary cells
    * @param rnti identifier of the user
@@ -438,7 +437,8 @@ public:
   virtual uint16_t
   start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                              const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                             srslte::byte_buffer_t&                                            ho_cmd) = 0;
+                             srslte::byte_buffer_t&                                            ho_cmd,
+                             std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs) = 0;
 };
 
 // GTPU interface for PDCP
@@ -508,6 +508,11 @@ public:
    * @return true if successful
    */
   virtual bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) = 0;
+
+  /**
+   * Notify MME that Handover is complete
+   */
+  virtual void send_ho_notify(uint16_t rnti, uint64_t target_eci) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

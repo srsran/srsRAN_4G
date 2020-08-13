@@ -105,6 +105,7 @@ public:
   {
     return true;
   }
+  void send_ho_notify(uint16_t rnti, uint64_t target_eci) override {}
 };
 
 class phy_dummy : public phy_interface_rrc_lte

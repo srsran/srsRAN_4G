@@ -88,7 +88,8 @@ public:
 
   uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                       const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                                      srslte::byte_buffer_t&                                            ho_cmd);
+                                      srslte::byte_buffer_t&                                            ho_cmd,
+                                      std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs);
 
 private:
   // args
@@ -114,7 +115,8 @@ public:
   // S1-Handover
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                        srslte::byte_buffer_t&                                            ho_cmd);
+                        srslte::byte_buffer_t&                                            ho_cmd,
+                        std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs);
 
 private:
   // Handover from source cell
@@ -146,7 +148,10 @@ private:
     const asn1::rrc::meas_obj_to_add_mod_s* meas_obj   = nullptr;
   };
   struct ho_req_rx_ev {
-    uint32_t target_cell_id;
+    asn1::rrc::rrc_conn_recfg_r8_ies_s                                ho_cmd;
+    const asn1::s1ap::ho_request_s*                                   ho_req_msg;
+    const asn1::rrc::ho_prep_info_r8_ies_s*                           ho_prep_r8;
+    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s* transparent_container;
   };
   using unsuccessful_outcome_ev = std::false_type;
   using recfg_complete_ev       = asn1::rrc::rrc_conn_recfg_complete_s;
@@ -161,7 +166,7 @@ private:
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
   struct s1_target_ho_st {
-    uint32_t target_cell_id;
+    void enter(rrc_mobility* f, const ho_req_rx_ev& ho_req);
   };
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     ho_meas_report_ev report;
@@ -199,6 +204,7 @@ private:
 
   // FSM transition handlers
   void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
+  void handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
   void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
 
 protected:
@@ -213,14 +219,17 @@ protected:
   using fsm = rrc_mobility;
   // clang-format off
   using transitions = transition_table<
-  //      Start        Target             Event                Action                      Guard
-  // +---------------+----------------+--------------------+---------------------------+-------------------------+
-  row< idle_st,        s1_source_ho_st, ho_meas_report_ev,  nullptr,                     &fsm::needs_s1_ho       >,
-  row< idle_st,        intraenb_ho_st,  ho_meas_report_ev,  nullptr,                     &fsm::needs_intraenb_ho >,
-  // +---------------+----------------+--------------------+---------------------------+-------------------------+
-  upd< intraenb_ho_st,                  user_crnti_upd_ev, &fsm::handle_crnti_ce                                 >,
-  row< intraenb_ho_st, idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >
-  // +---------------+----------------+--------------------+---------------------------+-------------------------+
+  //      Start         Target             Event                Action                      Guard
+  // +----------------+----------------+--------------------+---------------------------+-------------------------+
+  row< idle_st,         s1_source_ho_st, ho_meas_report_ev,  nullptr,                     &fsm::needs_s1_ho       >,
+  row< idle_st,         intraenb_ho_st,  ho_meas_report_ev,  nullptr,                     &fsm::needs_intraenb_ho >,
+  row< idle_st,         s1_target_ho_st, ho_req_rx_ev                                                             >,
+  // +----------------+----------------+--------------------+---------------------------+-------------------------+
+  upd< intraenb_ho_st,                   user_crnti_upd_ev, &fsm::handle_crnti_ce                                 >,
+  row< intraenb_ho_st,  idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >,
+  // +----------------+----------------+--------------------+---------------------------+-------------------------+
+  row< s1_target_ho_st, idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >
+  // +----------------+----------------+--------------------+---------------------------+-------------------------+
   >;
   // clang-format on
 };

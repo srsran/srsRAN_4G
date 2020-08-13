@@ -82,7 +82,11 @@ public:
                         srslte::unique_byte_buffer_t rrc_container) override;
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
   bool send_ho_failure(uint32_t mme_ue_s1ap_id);
-  bool send_ho_req_ack(const asn1::s1ap::ho_request_s& msg, uint16_t rnti, srslte::unique_byte_buffer_t ho_cmd);
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
+                       uint16_t                                      rnti,
+                       srslte::unique_byte_buffer_t                  ho_cmd,
+                       srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers);
+  void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
   // Stack interface

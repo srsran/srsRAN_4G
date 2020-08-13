@@ -46,6 +46,17 @@ using namespace asn1::s1ap;
 
 namespace srsenb {
 
+asn1::bounded_bitstring<1, 160, true, true> addr_to_asn1(const char* addr_str)
+{
+  asn1::bounded_bitstring<1, 160, true, true> transport_layer_addr(32);
+  uint8_t                                     addr[4];
+  inet_pton(AF_INET, addr_str, addr);
+  for (uint32_t j = 0; j < 4; ++j) {
+    transport_layer_addr.data()[j] = addr[3 - j];
+  }
+  return transport_layer_addr;
+}
+
 /*********************************************************
  * TS 36.413 - Section 8.4.1 - "Handover Preparation"
  *********************************************************/
@@ -837,13 +848,14 @@ bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
   }
 
   // Handle Handover Resource Allocation
-  srslte::unique_byte_buffer_t ho_cmd = srslte::allocate_unique_buffer(*pool);
-  uint16_t                     rnti   = rrc->start_ho_ue_resource_alloc(msg, container, *ho_cmd);
+  srslte::unique_byte_buffer_t                 ho_cmd = srslte::allocate_unique_buffer(*pool);
+  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
+  uint16_t rnti = rrc->start_ho_ue_resource_alloc(msg, container, *ho_cmd, admitted_erabs);
   if (rnti == SRSLTE_INVALID_RNTI) {
     return false;
   }
 
-  return send_ho_req_ack(msg, rnti, std::move(ho_cmd));
+  return send_ho_req_ack(msg, rnti, std::move(ho_cmd), admitted_erabs);
 }
 
 bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
@@ -859,7 +871,10 @@ bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
   return sctp_send_s1ap_pdu(tx_pdu, SRSLTE_INVALID_RNTI, "HandoverFailure");
 }
 
-bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s& msg, uint16_t rnti, srslte::unique_byte_buffer_t ho_cmd)
+bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
+                           uint16_t                                      rnti,
+                           srslte::unique_byte_buffer_t                  ho_cmd,
+                           srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers)
 {
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
@@ -872,14 +887,19 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s& msg, uint16_t rnti, s
   container.enb_ue_s1ap_id.value = ue_ptr->ctxt.enb_ue_s1ap_id;
 
   // TODO: Add admitted E-RABs
-  for (const auto& erab : msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
+  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_setup_list_ho_req.value.size(); ++i) {
+    const auto&                           erab      = msg.protocol_ies.erab_to_be_setup_list_ho_req.value[i];
     const erab_to_be_setup_item_ho_req_s& erabsetup = erab.value.erab_to_be_setup_item_ho_req();
     container.erab_admitted_list.value.push_back({});
     container.erab_admitted_list.value.back().load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
     auto& c                   = container.erab_admitted_list.value.back().value.erab_admitted_item();
     c.erab_id                 = erabsetup.erab_id;
-    c.gtp_teid                = erabsetup.gtp_teid;
-    c.transport_layer_address = erabsetup.transport_layer_address;
+    c.gtp_teid                = admitted_bearers[i];
+    c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
+    //    c.dl_transport_layer_address_present = true;
+    //    c.dl_transport_layer_address         = c.transport_layer_address;
+    //    c.ul_transport_layer_address_present = true;
+    //    c.ul_transport_layer_address         = c.transport_layer_address;
   }
   asn1::s1ap::targetenb_to_sourceenb_transparent_container_s transparent_container;
   transparent_container.rrc_container.resize(ho_cmd->N_bytes);
@@ -895,6 +915,28 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s& msg, uint16_t rnti, s
   memcpy(container.target_to_source_transparent_container.value.data(), pdu->msg, bref.distance_bytes());
 
   return sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverRequestAcknowledge");
+}
+
+void s1ap::send_ho_notify(uint16_t rnti, uint64_t target_eci)
+{
+  ue* user_ptr = users.find_ue_rnti(rnti);
+  if (user_ptr == nullptr) {
+    return;
+  }
+
+  s1ap_pdu_c tx_pdu;
+
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_NOTIF);
+  ho_notify_ies_container& container = tx_pdu.init_msg().value.ho_notify().protocol_ies;
+
+  container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id;
+  container.enb_ue_s1ap_id.value = user_ptr->ctxt.enb_ue_s1ap_id;
+
+  container.eutran_cgi.value = eutran_cgi;
+  container.eutran_cgi.value.cell_id.from_number(target_eci);
+  container.tai.value = tai;
+
+  sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverNotify");
 }
 
 /*******************************************************************************
@@ -1472,6 +1514,10 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
     asn1bearer.ul_coun_tvalue.pdcp_sn = item.pdcp_ul_sn;
     asn1bearer.ul_coun_tvalue.hfn     = item.ul_hfn;
     // TODO: asn1bearer.receiveStatusofULPDCPSDUs_present
+
+    //    asn1::json_writer jw;
+    //    asn1bearer.to_json(jw);
+    //    printf("Bearer to add %s\n", jw.to_string().c_str());
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "ENBStatusTransfer");

@@ -413,6 +413,9 @@ int test_s1ap_mobility(mobility_test_params test_params)
     ho_prep_info_r8_ies_s& hoprepr8 = hoprep.crit_exts.c1().ho_prep_info_r8();
     TESTASSERT(hoprepr8.as_cfg_present);
     // Check if RRC sends the current active bearers
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present);
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.srb_to_add_mod_list[0].srb_id == 1);
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.srb_to_add_mod_list[1].srb_id == 2);
     TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present);
     TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list[0].drb_id == 1);
   }

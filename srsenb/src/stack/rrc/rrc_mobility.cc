@@ -25,6 +25,7 @@
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
+#include "srslte/common/int_helpers.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
 #include <algorithm>
 #include <cstdio>
@@ -471,7 +472,8 @@ rrc::enb_mobility_handler::enb_mobility_handler(rrc* rrc_) : rrc_ptr(rrc_), cfg(
 uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
     const asn1::s1ap::ho_request_s&                                   msg,
     const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-    srslte::byte_buffer_t&                                            ho_cmd)
+    srslte::byte_buffer_t&                                            ho_cmd,
+    std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)
 {
   // TODO: Decision Making on whether the same QoS of the source eNB can be provided by target eNB
 
@@ -515,7 +517,7 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
     return SRSLTE_INVALID_RNTI;
   }
   ue* ue_ptr = it->second.get();
-  if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container, ho_cmd)) {
+  if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container, ho_cmd, admitted_erabs)) {
     return SRSLTE_INVALID_RNTI;
   }
   return rnti;
@@ -691,11 +693,9 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
       rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.phys_cfg_ded_present;
   hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded =
       rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.phys_cfg_ded;
-  // Add SRB2 to the message
-  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.srb_to_add_mod_list_present;
-  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.srb_to_add_mod_list;
+  // Add SRBs to the message
+  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
+  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list         = rrc_ue->bearer_list.get_established_srbs();
   //  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
   //  asn1::rrc::srb_to_add_mod_list_l& srb_list                 = hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list;
   //  srb_list.resize(1);
@@ -789,7 +789,8 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
 bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
     const asn1::s1ap::ho_request_s&                                   msg,
     const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-    srslte::byte_buffer_t&                                            ho_cmd_pdu)
+    srslte::byte_buffer_t&                                            ho_cmd_pdu,
+    std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)
 {
   const cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
@@ -806,6 +807,8 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
     return false;
   }
   const ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.c1().ho_prep_info_r8();
+  rrc_enb->log_rrc_message(
+      "HandoverPreparation", direction_t::fromS1AP, container.rrc_container, hoprep, "HandoverPreparation");
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
   dl_dcch_msg_s            dl_dcch_msg;
@@ -840,7 +843,14 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
   }
   ho_cmd_pdu.N_bytes = bref2.distance_bytes();
 
-  return true;
+  trigger(ho_req_rx_ev{recfg_r8, &msg, &hoprep_r8, &container});
+
+  for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
+    admitted_erabs.push_back({});
+    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erabs.back().data());
+  }
+
+  return is_in_state<s1_target_ho_st>();
 }
 
 bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
@@ -1074,6 +1084,69 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::status_transfer_st::enter(s1_source
   if (not f->parent_fsm()->start_enb_status_transfer()) {
     f->trigger(srslte::failure_ev{});
   }
+}
+
+/*************************************
+ *   s1_target_ho state methods
+ *************************************/
+
+void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req_rx_ev& ho_req)
+{
+  const cell_ctxt_dedicated*      target_cell     = f->rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const cell_cfg_t&               target_cell_cfg = target_cell->cell_common->cell_cfg;
+  const asn1::rrc::rr_cfg_ded_s&  src_rr_cfg      = ho_req.ho_prep_r8->as_cfg.source_rr_cfg;
+  const asn1::s1ap::ho_request_s& msg             = *ho_req.ho_req_msg;
+
+  // Establish SRBs
+  if (src_rr_cfg.srb_to_add_mod_list_present) {
+    for (auto& srb : src_rr_cfg.srb_to_add_mod_list) {
+      f->rrc_ue->bearer_list.add_srb(srb.srb_id);
+    }
+  }
+
+  // Establish ERABs/DRBs
+  for (const auto& erab_item : msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
+    auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
+    if (erab.ext) {
+      f->log_h->warning("Not handling E-RABToBeSetupList extensions\n");
+    }
+    if (erab.ie_exts_present) {
+      f->log_h->warning("Not handling E-RABToBeSetupList extensions\n");
+    }
+    if (erab.transport_layer_address.length() > 32) {
+      f->log_h->error("IPv6 addresses not currently supported\n");
+      f->trigger(srslte::failure_ev{});
+      return;
+    }
+
+    uint32_t teid_out;
+    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    f->rrc_ue->bearer_list.add_erab(
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr);
+    f->rrc_ue->bearer_list.add_gtpu_bearer(f->rrc_enb->gtpu, erab.erab_id);
+  }
+
+  // Update MAC
+  f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8);
+
+  // Update RLC + PDCP
+  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
+  f->rrc_ue->bearer_list.apply_pdcp_bearer_updates(f->rrc_enb->pdcp, f->rrc_ue->ue_security_cfg);
+  f->rrc_ue->bearer_list.apply_rlc_bearer_updates(f->rrc_enb->rlc);
+}
+
+void rrc::ue::rrc_mobility::handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev)
+{
+  cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  rrc_log->info("User rnti=0x%x successfully handovered to cell_id=0x%x\n",
+                rrc_ue->rnti,
+                target_cell->cell_common->cell_cfg.cell_id);
+  uint64_t target_eci = (rrc_enb->cfg.enb_id << 8u) + target_cell->cell_common->cell_cfg.cell_id;
+
+  // Activate bearers in MAC
+  rrc_ue->mac_ctrl->handle_ho_prep_complete();
+
+  rrc_enb->s1ap->send_ho_notify(rrc_ue->rnti, target_eci);
 }
 
 /*************************************************************************************************

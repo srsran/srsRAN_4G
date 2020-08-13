@@ -43,6 +43,9 @@ public:
   void handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
   void handle_con_reconf_complete();
 
+  void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
+  void handle_ho_prep_complete();
+
   const sched_interface::ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
 
 private:
