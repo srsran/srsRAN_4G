@@ -22,6 +22,7 @@
 #ifndef SRSLTE_INTERVAL_H
 #define SRSLTE_INTERVAL_H
 
+#include "adt_utils.h"
 #include <cassert>
 #include <string>
 #include <type_traits>
@@ -48,28 +49,24 @@ public:
 
   T length() const { return stop_ - start_; }
 
-  void inc_length(int n)
+  void set(T start_point, T stop_point)
   {
-    stop_ += n;
-    assert(stop_ >= start_);
-  }
-
-  void set_length(T len)
-  {
-    assert(len >= 0);
-    stop_ = start_ + len;
-  }
-
-  void set_start(T start_point)
-  {
-    assert(start_point <= stop_);
+    assert(stop_point >= start_point);
     start_ = start_point;
+    stop_  = stop_point;
   }
 
-  void set_stop(T stop_point)
+  void expand_by(T len)
   {
-    assert(start_ <= stop_point);
-    stop_ = stop_point;
+    // Detect length overflows
+    assert(std::is_unsigned<T>::value or (len >= 0 or length() >= -len));
+    stop_ += len;
+  }
+
+  void expand_to(T len)
+  {
+    assert(std::is_unsigned<T>::value or len >= 0);
+    stop_ = start_ + len;
   }
 
   void displace_by(int offset)

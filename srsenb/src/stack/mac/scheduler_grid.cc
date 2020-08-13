@@ -538,7 +538,7 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
       alloc->displace_to(n);
     }
     if (not ul_mask.test(n)) {
-      alloc->inc_length(1);
+      alloc->expand_by(1);
     } else if (alloc->length() > 0) {
       // avoid edges
       if (n < 3) {
@@ -554,7 +554,7 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
 
   // Make sure L is allowed by SC-FDMA modulation
   while (!srslte_dft_precoding_valid_prb(alloc->length())) {
-    alloc->inc_length(-1);
+    alloc->expand_by(-1);
   }
   return alloc->length() == L;
 }

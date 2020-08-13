@@ -74,11 +74,29 @@ int test_interval_intersect()
   return SRSLTE_SUCCESS;
 }
 
+int test_interval_expand()
+{
+  srslte::interval<uint32_t> I{};
+  srslte::interval<int>      I2{};
+
+  I.expand_by(5);
+  TESTASSERT(I.length() == 5);
+  I.expand_by(-5);
+  TESTASSERT(I.length() == 0);
+
+  I2.expand_by(3);
+  TESTASSERT(I2.length() == 3);
+  //  I2.expand_by(-4);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   TESTASSERT(test_interval_init() == SRSLTE_SUCCESS);
   TESTASSERT(test_interval_overlaps() == SRSLTE_SUCCESS);
   TESTASSERT(test_interval_contains() == SRSLTE_SUCCESS);
   TESTASSERT(test_interval_intersect() == SRSLTE_SUCCESS);
+  TESTASSERT(test_interval_expand() == SRSLTE_SUCCESS);
   return 0;
 }

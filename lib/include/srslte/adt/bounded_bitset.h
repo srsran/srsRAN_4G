@@ -55,7 +55,8 @@ public:
       std::string msg =
           "ERROR: new size=" + std::to_string(new_size) + " exceeds bitset capacity=" + std::to_string(max_size());
       THROW_BAD_ACCESS(msg.c_str());
-    } else if (new_size == cur_size) {
+    }
+    if (new_size == cur_size) {
       return;
     }
     cur_size = new_size;
@@ -65,7 +66,7 @@ public:
     }
   }
 
-  void set(size_t pos, bool val) noexcept
+  void set(size_t pos, bool val)
   {
     assert_within_bounds_(pos, true);
     if (val) {
@@ -75,13 +76,13 @@ public:
     }
   }
 
-  void set(size_t pos) noexcept
+  void set(size_t pos)
   {
     assert_within_bounds_(pos, true);
     set_(pos);
   }
 
-  void reset(size_t pos) noexcept
+  void reset(size_t pos)
   {
     assert_within_bounds_(pos, true);
     reset_(pos);
@@ -94,7 +95,7 @@ public:
     }
   }
 
-  bool test(size_t pos) const noexcept
+  bool test(size_t pos) const
   {
     assert_within_bounds_(pos, true);
     return test_(pos);
@@ -109,7 +110,7 @@ public:
     return *this;
   }
 
-  bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true) noexcept
+  bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true)
   {
     assert_within_bounds_(startpos, false);
     assert_within_bounds_(endpos, false);
@@ -151,7 +152,7 @@ public:
     return false;
   }
 
-  bool any(size_t start, size_t stop) const noexcept
+  bool any(size_t start, size_t stop) const
   {
     assert_within_bounds_(start, false);
     assert_within_bounds_(stop, false);
@@ -227,7 +228,7 @@ public:
     return ret;
   }
 
-  std::string to_string() const noexcept
+  std::string to_string() const
   {
     std::string s;
     s.assign(size(), '0');

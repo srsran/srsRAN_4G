@@ -212,7 +212,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
       alloc->displace_to(n);
     }
     if (not used_rb->test(n)) {
-      alloc->inc_length(1);
+      alloc->expand_by(1);
     } else if (alloc->length() > 0) {
       // avoid edges
       if (n < 3) {
@@ -228,7 +228,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
 
   // Make sure L is allowed by SC-FDMA modulation
   while (!srslte_dft_precoding_valid_prb(alloc->length())) {
-    alloc->inc_length(-1);
+    alloc->expand_by(-1);
   }
   return alloc->length() == L;
 }
