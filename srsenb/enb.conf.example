@@ -50,12 +50,13 @@ drb_config = drb.conf
 # Optional parameters:
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn (must be set if dl_freq is set)
-# device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
-# device_args:        Arguments for the device driver. Options are "auto" or any string. 
+# device_name:        Device driver family.
+#                     Supported options: "auto" (uses first found), "UHD", "bladeRF", "soapy" or "zmq".
+# device_args:        Arguments for the device driver. Options are "auto" or any string.
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
 #                     Default for bladeRF: ""
 # time_adv_nsamples:  Transmission time advance (in number of samples) to compensate for RF delay
-#                     from antenna to timestamp insertion. 
+#                     from antenna to timestamp insertion.
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 #####################################################################
 [rf]
