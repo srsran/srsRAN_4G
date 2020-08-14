@@ -56,14 +56,14 @@ public:
     stop_  = stop_point;
   }
 
-  void expand_by(T len)
+  void resize_by(T len)
   {
     // Detect length overflows
     assert(std::is_unsigned<T>::value or (len >= 0 or length() >= -len));
     stop_ += len;
   }
 
-  void expand_to(T len)
+  void resize_to(T len)
   {
     assert(std::is_unsigned<T>::value or len >= 0);
     stop_ = start_ + len;

@@ -79,12 +79,12 @@ int test_interval_expand()
   srslte::interval<uint32_t> I{};
   srslte::interval<int>      I2{};
 
-  I.expand_by(5);
+  I.resize_by(5);
   TESTASSERT(I.length() == 5);
-  I.expand_by(-5);
+  I.resize_by(-5);
   TESTASSERT(I.length() == 0);
 
-  I2.expand_by(3);
+  I2.resize_by(3);
   TESTASSERT(I2.length() == 3);
   //  I2.expand_by(-4);
 
