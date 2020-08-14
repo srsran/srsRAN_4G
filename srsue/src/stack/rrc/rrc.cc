@@ -828,9 +828,9 @@ void rrc::ho_ra_completed(bool ra_successful)
   cmd_q.push(std::move(msg));
 }
 
-bool rrc::con_reconfig_ho(rrc_conn_recfg_s* reconfig)
+bool rrc::con_reconfig_ho(const rrc_conn_recfg_s& reconfig)
 {
-  if (not ho_handler.launch(*reconfig)) {
+  if (not ho_handler.launch(reconfig)) {
     rrc_log->error("Unable to launch Handover Preparation procedure\n");
     return false;
   }
@@ -848,9 +848,9 @@ void rrc::start_go_idle()
 }
 
 // Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
-bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
+bool rrc::con_reconfig(const rrc_conn_recfg_s& reconfig)
 {
-  rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
+  const rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig.crit_exts.c1().rrc_conn_recfg_r8();
 
   // If first message after reestablishment, resume SRB2 and all DRB
   if (reestablishment_successful) {
@@ -941,23 +941,19 @@ void rrc::con_reconfig_failed()
   }
 }
 
-void rrc::handle_rrc_con_reconfig(uint32_t lcid, rrc_conn_recfg_s* reconfig)
+void rrc::handle_rrc_con_reconfig(uint32_t lcid, const rrc_conn_recfg_s& reconfig)
 {
   previous_phy_cfg = current_phy_cfg;
   previous_mac_cfg = current_mac_cfg;
 
-  // Execute in next iteration to break RLC/PDCP call stack
-  rrc_conn_recfg_s reconfig_ = *reconfig;
-  task_sched.defer_task([this, reconfig_]() mutable {
-    rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig_.crit_exts.c1().rrc_conn_recfg_r8();
-    if (reconfig_r8->mob_ctrl_info_present) {
-      con_reconfig_ho(&reconfig_);
-    } else {
-      if (!con_reconfig(&reconfig_)) {
-        con_reconfig_failed();
-      }
+  const rrc_conn_recfg_r8_ies_s& reconfig_r8 = reconfig.crit_exts.c1().rrc_conn_recfg_r8();
+  if (reconfig_r8.mob_ctrl_info_present) {
+    con_reconfig_ho(reconfig);
+  } else {
+    if (!con_reconfig(reconfig)) {
+      con_reconfig_failed();
     }
-  });
+  }
 }
 
 /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
@@ -1504,16 +1500,20 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
         start_go_idle();
       }
     } break;
-    case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup:
-      transaction_id = c1->rrc_conn_setup().rrc_transaction_id;
-      handle_con_setup(&c1->rrc_conn_setup());
+    case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup: {
+      transaction_id                   = c1->rrc_conn_setup().rrc_transaction_id;
+      rrc_conn_setup_s conn_setup_copy = c1->rrc_conn_setup();
+      task_sched.defer_task([this, conn_setup_copy]() { handle_con_setup(conn_setup_copy); });
       break;
-    case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest:
+    }
+    case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest: {
       rrc_log->console("Reestablishment OK\n");
-      transaction_id = c1->rrc_conn_reest().rrc_transaction_id;
-      handle_con_reest(&c1->rrc_conn_reest());
+      transaction_id                   = c1->rrc_conn_reest().rrc_transaction_id;
+      rrc_conn_reest_s conn_reest_copy = c1->rrc_conn_reest();
+      task_sched.defer_task([this, conn_reest_copy]() { handle_con_reest(conn_reest_copy); });
       break;
-      /* Reception of RRCConnectionReestablishmentReject 5.3.7.8 */
+    }
+    /* Reception of RRCConnectionReestablishmentReject 5.3.7.8 */
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_reject:
       rrc_log->console("Reestablishment Reject\n");
       start_go_idle();
@@ -1583,10 +1583,12 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       send_security_mode_complete();
       pdcp->enable_encryption(lcid, DIRECTION_TXRX);
       break;
-    case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg:
-      transaction_id = c1->rrc_conn_recfg().rrc_transaction_id;
-      handle_rrc_con_reconfig(lcid, &c1->rrc_conn_recfg());
+    case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg: {
+      transaction_id         = c1->rrc_conn_recfg().rrc_transaction_id;
+      rrc_conn_recfg_s recfg = c1->rrc_conn_recfg();
+      task_sched.defer_task([this, lcid, recfg]() { handle_rrc_con_reconfig(lcid, recfg); });
       break;
+    }
     case dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry:
       transaction_id = c1->ue_cap_enquiry().rrc_transaction_id;
       handle_ue_capability_enquiry(c1->ue_cap_enquiry());
@@ -2106,7 +2108,7 @@ void rrc::apply_mac_config_dedicated_default()
   log_mac_config_dedicated();
 }
 
-bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
+bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg)
 {
   if (cnfg->phys_cfg_ded_present) {
     apply_phy_config_dedicated(cnfg->phys_cfg_ded);
@@ -2150,14 +2152,14 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
   }
   for (uint32_t i = 0; i < cnfg->srb_to_add_mod_list.size(); i++) {
     // TODO: handle SRB modification
-    add_srb(&cnfg->srb_to_add_mod_list[i]);
+    add_srb(cnfg->srb_to_add_mod_list[i]);
   }
   for (uint32_t i = 0; i < cnfg->drb_to_release_list.size(); i++) {
     release_drb(cnfg->drb_to_release_list[i]);
   }
   for (uint32_t i = 0; i < cnfg->drb_to_add_mod_list.size(); i++) {
     // TODO: handle DRB modification
-    add_drb(&cnfg->drb_to_add_mod_list[i]);
+    add_drb(cnfg->drb_to_add_mod_list[i]);
   }
   return true;
 }
@@ -2222,74 +2224,65 @@ void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
   }
 }
 
-void rrc::handle_con_setup(rrc_conn_setup_s* setup)
+void rrc::handle_con_setup(const rrc_conn_setup_s& setup)
 {
-  // Execute in next iteration to break RLC/PDCP call stack
-  rrc_conn_setup_s setup_ = *setup;
-  task_sched.defer_task([this, setup_]() mutable {
-    // Must enter CONNECT before stopping T300
-    state = RRC_STATE_CONNECTED;
-    t300.stop();
-    t302.stop();
-    rrc_log->console("RRC Connected\n");
+  // Must enter CONNECT before stopping T300
+  state = RRC_STATE_CONNECTED;
+  t300.stop();
+  t302.stop();
+  rrc_log->console("RRC Connected\n");
 
-    // Apply the Radio Resource configuration
-    apply_rr_config_dedicated(&setup_.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
+  // Apply the Radio Resource configuration
+  apply_rr_config_dedicated(&setup.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
 
-    nas->set_barring(srslte::barring_t::none);
+  nas->set_barring(srslte::barring_t::none);
 
-    if (dedicated_info_nas.get()) {
-      send_con_setup_complete(std::move(dedicated_info_nas));
-    } else {
-      rrc_log->error("Pending to transmit a ConnectionSetupComplete but no dedicatedInfoNAS was in queue\n");
-    }
-  });
+  if (dedicated_info_nas.get()) {
+    send_con_setup_complete(std::move(dedicated_info_nas));
+  } else {
+    rrc_log->error("Pending to transmit a ConnectionSetupComplete but no dedicatedInfoNAS was in queue\n");
+  }
 }
 
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
-void rrc::handle_con_reest(rrc_conn_reest_s* reest)
+void rrc::handle_con_reest(const rrc_conn_reest_s& reest)
 {
-  // Execute in next iteration to break RLC/PDCP call stack
-  rrc_conn_reest_s reest_ = *reest;
-  task_sched.defer_task([this, reest_]() mutable {
-    t301.stop();
+  t301.stop();
 
-    // Reestablish PDCP and RLC for SRB1
-    pdcp->reestablish(1);
-    rlc->reestablish(1);
+  // Reestablish PDCP and RLC for SRB1
+  pdcp->reestablish(1);
+  rlc->reestablish(1);
 
-    // Update RRC Integrity keys
-    int ncc = reest_.crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
-    usim->generate_as_keys_ho(
-        meas_cells.serving_cell().get_pci(), meas_cells.serving_cell().get_earfcn(), ncc, &sec_cfg);
-    pdcp->config_security_all(sec_cfg);
+  // Update RRC Integrity keys
+  int ncc = reest.crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
+  usim->generate_as_keys_ho(meas_cells.serving_cell().get_pci(), meas_cells.serving_cell().get_earfcn(), ncc, &sec_cfg);
+  pdcp->config_security_all(sec_cfg);
 
-    // Apply the Radio Resource configuration
-    apply_rr_config_dedicated(&reest_.crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
+  // Apply the Radio Resource configuration
+  apply_rr_config_dedicated(&reest.crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
 
-    // Resume SRB1
-    rlc->resume_bearer(1);
+  // Resume SRB1
+  rlc->resume_bearer(1);
 
-    // Send ConnectionSetupComplete message
-    send_con_restablish_complete();
+  // Send ConnectionSetupComplete message
+  send_con_restablish_complete();
 
-    reestablishment_successful = true;
-  });
+  reestablishment_successful = true;
 }
 
-void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
+void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
 {
   // Setup PDCP
-  pdcp->add_bearer(srb_cnfg->srb_id, make_srb_pdcp_config_t(srb_cnfg->srb_id, true));
-  if (RB_ID_SRB2 == srb_cnfg->srb_id) {
-    pdcp->config_security(srb_cnfg->srb_id, sec_cfg);
-    pdcp->enable_integrity(srb_cnfg->srb_id, DIRECTION_TXRX);
-    pdcp->enable_encryption(srb_cnfg->srb_id, DIRECTION_TXRX);
+  pdcp->add_bearer(srb_cnfg.srb_id, make_srb_pdcp_config_t(srb_cnfg.srb_id, true));
+  if (RB_ID_SRB2 == srb_cnfg.srb_id) {
+    pdcp->config_security(srb_cnfg.srb_id, sec_cfg);
+    pdcp->enable_integrity(srb_cnfg.srb_id, DIRECTION_TXRX);
+    pdcp->enable_encryption(srb_cnfg.srb_id, DIRECTION_TXRX);
   }
 
   // Setup RLC
-  if (srb_cnfg->rlc_cfg_present) {
-    rlc->add_bearer(srb_cnfg->srb_id, make_rlc_config_t(*srb_cnfg));
+  if (srb_cnfg.rlc_cfg_present) {
+    rlc->add_bearer(srb_cnfg.srb_id, make_rlc_config_t(srb_cnfg));
   }
 
   // Setup MAC
@@ -2299,10 +2292,10 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
   int     bucket_size_duration = 0;
 
   // TODO: Move this configuration to mac_interface_rrc
-  if (srb_cnfg->lc_ch_cfg_present) {
-    if (srb_cnfg->lc_ch_cfg.type() == srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value) {
+  if (srb_cnfg.lc_ch_cfg_present) {
+    if (srb_cnfg.lc_ch_cfg.type() == srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value) {
       // Set default SRB values as defined in Table 9.2.1
-      switch (srb_cnfg->srb_id) {
+      switch (srb_cnfg.srb_id) {
         case RB_ID_SRB0:
           rrc_log->error("Setting SRB0: Should not be set by RRC\n");
           break;
@@ -2318,44 +2311,44 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
           break;
       }
     } else {
-      if (srb_cnfg->lc_ch_cfg.explicit_value().lc_ch_sr_mask_r9_present) {
+      if (srb_cnfg.lc_ch_cfg.explicit_value().lc_ch_sr_mask_r9_present) {
         // TODO
       }
-      if (srb_cnfg->lc_ch_cfg.explicit_value().ul_specific_params_present) {
-        if (srb_cnfg->lc_ch_cfg.explicit_value().ul_specific_params.lc_ch_group_present)
-          log_chan_group = srb_cnfg->lc_ch_cfg.explicit_value().ul_specific_params.lc_ch_group;
+      if (srb_cnfg.lc_ch_cfg.explicit_value().ul_specific_params_present) {
+        if (srb_cnfg.lc_ch_cfg.explicit_value().ul_specific_params.lc_ch_group_present)
+          log_chan_group = srb_cnfg.lc_ch_cfg.explicit_value().ul_specific_params.lc_ch_group;
 
-        priority             = srb_cnfg->lc_ch_cfg.explicit_value().ul_specific_params.prio;
-        prioritized_bit_rate = srb_cnfg->lc_ch_cfg.explicit_value().ul_specific_params.prioritised_bit_rate.to_number();
-        bucket_size_duration = srb_cnfg->lc_ch_cfg.explicit_value().ul_specific_params.bucket_size_dur.to_number();
+        priority             = srb_cnfg.lc_ch_cfg.explicit_value().ul_specific_params.prio;
+        prioritized_bit_rate = srb_cnfg.lc_ch_cfg.explicit_value().ul_specific_params.prioritised_bit_rate.to_number();
+        bucket_size_duration = srb_cnfg.lc_ch_cfg.explicit_value().ul_specific_params.bucket_size_dur.to_number();
       }
     }
-    mac->setup_lcid(srb_cnfg->srb_id, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
+    mac->setup_lcid(srb_cnfg.srb_id, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
   }
 
-  srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id).c_str());
+  srbs[srb_cnfg.srb_id] = srb_cnfg;
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg.srb_id).c_str());
 }
 
-void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
+void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
 {
-  if (!drb_cnfg->pdcp_cfg_present || !drb_cnfg->rlc_cfg_present || !drb_cnfg->lc_ch_cfg_present) {
+  if (!drb_cnfg.pdcp_cfg_present || !drb_cnfg.rlc_cfg_present || !drb_cnfg.lc_ch_cfg_present) {
     rrc_log->error("Cannot add DRB - incomplete configuration\n");
     return;
   }
   uint32_t lcid = 0;
-  if (drb_cnfg->lc_ch_id_present) {
-    lcid = drb_cnfg->lc_ch_id;
+  if (drb_cnfg.lc_ch_id_present) {
+    lcid = drb_cnfg.lc_ch_id;
   } else {
-    lcid = RB_ID_SRB2 + drb_cnfg->drb_id;
+    lcid = RB_ID_SRB2 + drb_cnfg.drb_id;
     rrc_log->warning("LCID not present, using %d\n", lcid);
   }
 
   // Setup RLC
-  rlc->add_bearer(lcid, make_rlc_config_t(drb_cnfg->rlc_cfg));
+  rlc->add_bearer(lcid, make_rlc_config_t(drb_cnfg.rlc_cfg));
 
   // Setup PDCP
-  pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cnfg->drb_id, true, drb_cnfg->pdcp_cfg);
+  pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cnfg.drb_id, true, drb_cnfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
   pdcp->config_security(lcid, sec_cfg);
   pdcp->enable_encryption(lcid);
@@ -2365,19 +2358,19 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   uint8_t priority             = 1;
   int     prioritized_bit_rate = -1;
   int     bucket_size_duration = -1;
-  if (drb_cnfg->lc_ch_cfg.ul_specific_params_present) {
-    if (drb_cnfg->lc_ch_cfg.ul_specific_params.lc_ch_group_present) {
-      log_chan_group = drb_cnfg->lc_ch_cfg.ul_specific_params.lc_ch_group;
+  if (drb_cnfg.lc_ch_cfg.ul_specific_params_present) {
+    if (drb_cnfg.lc_ch_cfg.ul_specific_params.lc_ch_group_present) {
+      log_chan_group = drb_cnfg.lc_ch_cfg.ul_specific_params.lc_ch_group;
     } else {
       rrc_log->warning("LCG not present, setting to 0\n");
     }
-    priority             = drb_cnfg->lc_ch_cfg.ul_specific_params.prio;
-    prioritized_bit_rate = drb_cnfg->lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
-    bucket_size_duration = drb_cnfg->lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
+    priority             = drb_cnfg.lc_ch_cfg.ul_specific_params.prio;
+    prioritized_bit_rate = drb_cnfg.lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
+    bucket_size_duration = drb_cnfg.lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
   }
   mac->setup_lcid(lcid, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
 
-  drbs[lcid] = *drb_cnfg;
+  drbs[lcid] = drb_cnfg;
   drb_up     = true;
   rrc_log->info("Added radio bearer %s (LCID=%d)\n", get_rb_name(lcid).c_str(), lcid);
 }

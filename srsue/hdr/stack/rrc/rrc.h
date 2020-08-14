@@ -346,9 +346,9 @@ private:
   void parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // Helpers
-  bool con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig);
+  bool con_reconfig(const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void con_reconfig_failed();
-  bool con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig);
+  bool con_reconfig_ho(const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void ho_failed();
   void start_go_idle();
   void rrc_connection_release(const std::string& cause);
@@ -362,7 +362,7 @@ private:
   void log_mac_config_dedicated();
 
   void apply_rr_config_common(asn1::rrc::rr_cfg_common_s* config, bool send_lower_layers);
-  bool apply_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* cnfg);
+  bool apply_rr_config_dedicated(const asn1::rrc::rr_cfg_ded_s* cnfg);
   void apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8);
   void apply_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phy_cnfg);
   void apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_config);
@@ -374,12 +374,12 @@ private:
   void handle_sib3();
   void handle_sib13();
 
-  void     handle_con_setup(asn1::rrc::rrc_conn_setup_s* setup);
-  void     handle_con_reest(asn1::rrc::rrc_conn_reest_s* setup);
-  void     handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig);
+  void     handle_con_setup(const asn1::rrc::rrc_conn_setup_s& setup);
+  void     handle_con_reest(const asn1::rrc::rrc_conn_reest_s& setup);
+  void     handle_rrc_con_reconfig(uint32_t lcid, const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void     handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
-  void     add_srb(asn1::rrc::srb_to_add_mod_s* srb_cnfg);
-  void     add_drb(asn1::rrc::drb_to_add_mod_s* drb_cnfg);
+  void     add_srb(const asn1::rrc::srb_to_add_mod_s& srb_cnfg);
+  void     add_drb(const asn1::rrc::drb_to_add_mod_s& drb_cnfg);
   void     release_drb(uint32_t drb_id);
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id);
   void     add_mrb(uint32_t lcid, uint32_t port);
