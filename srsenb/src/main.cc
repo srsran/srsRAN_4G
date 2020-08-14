@@ -424,27 +424,6 @@ static size_t fixup_log_file_maxsize(int x)
   return (x < 0) ? 0 : size_t(x) * 1024u;
 }
 
-void check_scaling_governor(const all_args_t& args)
-{
-  if (args.rf.device_name == "zmq") {
-    return;
-  }
-  std::ifstream file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
-  bool          found = false;
-  if (file.is_open()) {
-    std::string line;
-    while (getline(file, line)) {
-      if (line.find("performance") != std::string::npos) {
-        found = true;
-        break;
-      }
-    }
-  }
-  if (not found) {
-    cout << "WARNING: cpu scaling governor is not set to performance mode.";
-  }
-}
-
 int main(int argc, char* argv[])
 {
   srslte_register_signal_handler();
@@ -478,7 +457,7 @@ int main(int argc, char* argv[])
   srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
   log_args(argc, argv, "ENB");
 
-  check_scaling_governor(args);
+  check_scaling_governor(args.rf.device_name);
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb};

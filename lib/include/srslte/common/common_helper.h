@@ -28,12 +28,13 @@
 #define SRSLTE_COMMON_HELPER_H
 
 #include "srslte/common/logmap.h"
+#include <fstream>
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-void log_args(int argc, char* argv[], std::string service)
+inline void log_args(int argc, char* argv[], std::string service)
 {
   std::ostringstream s1;
   s1 << "Using binary " << argv[0] << " with arguments: ";
@@ -44,6 +45,27 @@ void log_args(int argc, char* argv[], std::string service)
 
   srslte::logmap::get(service)->set_level(srslte::LOG_LEVEL_INFO);
   srslte::logmap::get(service)->info("%s", s1.str().c_str());
+}
+
+inline void check_scaling_governor(const std::string& device_name)
+{
+  if (device_name == "zmq") {
+    return;
+  }
+  std::ifstream file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
+  bool          found = false;
+  if (file.is_open()) {
+    std::string line;
+    while (getline(file, line)) {
+      if (line.find("performance") != std::string::npos) {
+        found = true;
+        break;
+      }
+    }
+  }
+  if (not found) {
+    printf("WARNING: cpu scaling governor is not set to performance mode.\n");
+  }
 }
 
 #ifdef __cplusplus
