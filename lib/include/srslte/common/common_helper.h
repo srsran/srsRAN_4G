@@ -29,6 +29,7 @@
 
 #include "srslte/common/logmap.h"
 #include <fstream>
+#include <thread>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,19 +53,24 @@ inline void check_scaling_governor(const std::string& device_name)
   if (device_name == "zmq") {
     return;
   }
-  std::ifstream file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
-  bool          found = false;
-  if (file.is_open()) {
-    std::string line;
-    while (getline(file, line)) {
-      if (line.find("performance") != std::string::npos) {
-        found = true;
+  int nof_cpus = std::thread::hardware_concurrency();
+  for (int cpu = 0; cpu < nof_cpus; ++cpu) {
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", cpu);
+    std::ifstream file(buffer);
+    if (file.is_open()) {
+      std::stringstream ss;
+      ss << file.rdbuf();
+      if (ss.str().find("performance") == std::string::npos) {
+        printf(
+            "WARNING: cpu%d scaling governor is not set to performance mode. Realtime processing could be compromised. "
+            "Consider setting it to performance mode before running the application.\n",
+            cpu);
         break;
       }
+    } else {
+      printf("WARNING: Could not verify cpu%d scaling governor\n", cpu);
     }
-  }
-  if (not found) {
-    printf("WARNING: cpu scaling governor is not set to performance mode.\n");
   }
 }
 
