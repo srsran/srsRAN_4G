@@ -117,7 +117,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   // Makes sure it is possible to have the same number of RF channels in each RF device
   if (nof_channels % device_args_list.size() != 0) {
     log_h->console(
-        "Error: The number of required RF channels (%d) is not divisible between the number of RF devices (%ld).\n",
+        "Error: The number of required RF channels (%d) is not divisible between the number of RF devices (%zd).\n",
         nof_channels,
         device_args_list.size());
     return SRSLTE_ERROR;
