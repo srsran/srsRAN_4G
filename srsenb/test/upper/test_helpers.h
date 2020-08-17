@@ -115,12 +115,25 @@ public:
     uint32_t                     lcid;
     srslte::unique_byte_buffer_t sdu;
   } last_sdu;
+  struct last_bearer_state {
+    uint16_t                 rnti;
+    uint32_t                 lcid;
+    srslte::pdcp_lte_state_t state;
+  } last_state;
+  std::map<uint16_t, std::map<uint32_t, srslte::pdcp_lte_state_t> > drb_states;
 
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
   {
     last_sdu.rnti = rnti;
     last_sdu.lcid = lcid;
     last_sdu.sdu  = std::move(sdu);
+  }
+  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override
+  {
+    last_state.rnti  = rnti;
+    last_state.lcid  = lcid;
+    last_state.state = state;
+    return true;
   }
 };
 

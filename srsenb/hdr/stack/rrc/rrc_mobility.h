@@ -117,6 +117,7 @@ public:
                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
                         srslte::byte_buffer_t&                                            ho_cmd,
                         std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs);
+  void set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs);
 
 private:
   // Handover from source cell

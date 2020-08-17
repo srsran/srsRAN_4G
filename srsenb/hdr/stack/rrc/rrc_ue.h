@@ -78,7 +78,6 @@ public:
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
   bool release_erabs();
-  void set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_item_s& erab);
 
   // handover
   void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);

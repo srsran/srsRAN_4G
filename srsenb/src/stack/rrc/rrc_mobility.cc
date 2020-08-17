@@ -824,6 +824,36 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
   return false;
 }
 
+void rrc::ue::rrc_mobility::set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)
+{
+  for (const auto& erab : erabs) {
+    const auto& erab_item = erab.value.bearers_subject_to_status_transfer_item();
+    auto        erab_it   = rrc_ue->bearer_list.get_erabs().find(erab_item.erab_id);
+    if (erab_it == rrc_ue->bearer_list.get_erabs().end()) {
+      rrc_log->warning("The E-RAB Id=%d is not recognized\n", erab_item.erab_id);
+      continue;
+    }
+    const auto& drbs  = rrc_ue->bearer_list.get_pending_addmod_drbs();
+    uint8_t     drbid = erab_item.erab_id - 4;
+    auto        drb_it =
+        std::find_if(drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return drb.drb_id == drbid; });
+    if (drb_it == drbs.end()) {
+      rrc_log->warning("The DRB id=%d does not exist\n", erab_item.erab_id - 4);
+    }
+
+    srslte::pdcp_lte_state_t drb_state{};
+    drb_state.tx_hfn          = erab_item.dl_coun_tvalue.hfn;
+    drb_state.next_pdcp_tx_sn = erab_item.dl_coun_tvalue.pdcp_sn;
+    drb_state.rx_hfn          = erab_item.ul_coun_tvalue.hfn;
+    drb_state.next_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
+    rrc_log->info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}\n",
+                  drb_it->lc_ch_id,
+                  drb_state.next_pdcp_tx_sn,
+                  drb_state.next_pdcp_rx_sn);
+    rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
+  }
+}
+
 bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
                                                    uint32_t                     target_enb_cc_idx,
                                                    asn1::rrc::meas_cfg_s*       diff_meas_cfg)
@@ -1098,12 +1128,11 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
   }
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
-  dl_dcch_msg_s            dl_dcch_msg;
-  rrc_conn_recfg_r8_ies_s& recfg_r8 =
-      dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
+  dl_dcch_msg_s dl_dcch_msg;
 
   // Fill fields common to all types of handover
   f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common);
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Encode MeasConfig
   var_meas_cfg_t current_var_meas = var_meas_cfg_t::make(ho_req.ho_prep_r8->as_cfg.source_meas_cfg);
@@ -1117,10 +1146,9 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
   f->rrc_ue->bearer_list.apply_rlc_bearer_updates(f->rrc_enb->rlc);
   f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
   // Update MAC
-  f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8,
-                                      dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8());
+  f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8, recfg_r8);
   // Apply PHY updates
-  f->rrc_ue->apply_reconf_phy_config(dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8());
+  f->rrc_ue->apply_reconf_phy_config(recfg_r8);
 
   /* Prepare Handover Command to be sent via S1AP */
   ho_cmd_pdu = srslte::allocate_unique_buffer(*f->pool);

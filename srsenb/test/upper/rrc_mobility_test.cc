@@ -500,6 +500,22 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx == 15);
   TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx == 0);
 
+  // Receives MMEStatusTransfer
+  asn1::s1ap::bearers_subject_to_status_transfer_list_l bearers;
+  bearers.resize(1);
+  bearers[0].value.bearers_subject_to_status_transfer_item().erab_id                = 5;
+  bearers[0].value.bearers_subject_to_status_transfer_item().dl_coun_tvalue.pdcp_sn = 100;
+  bearers[0].value.bearers_subject_to_status_transfer_item().dl_coun_tvalue.hfn     = 3;
+  bearers[0].value.bearers_subject_to_status_transfer_item().ul_coun_tvalue.pdcp_sn = 120;
+  bearers[0].value.bearers_subject_to_status_transfer_item().ul_coun_tvalue.hfn     = 4;
+  tester.rrc.set_erab_status(0x46, bearers);
+  TESTASSERT(tester.pdcp.last_state.rnti == 0x46);
+  TESTASSERT(tester.pdcp.last_state.lcid == 3);
+  TESTASSERT(tester.pdcp.last_state.state.next_pdcp_tx_sn == 100);
+  TESTASSERT(tester.pdcp.last_state.state.tx_hfn == 3);
+  TESTASSERT(tester.pdcp.last_state.state.next_pdcp_rx_sn == 120);
+  TESTASSERT(tester.pdcp.last_state.state.rx_hfn == 4);
+
   // user PRACHs and sends C-RNTI CE
   sched_interface::ue_cfg_t ue_cfg{};
   ue_cfg.supported_cc_list.resize(1);

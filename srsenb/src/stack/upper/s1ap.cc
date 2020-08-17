@@ -929,11 +929,9 @@ bool s1ap::handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& m
     return false;
   }
 
-  for (const auto& bearer :
-       msg.protocol_ies.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list) {
-    const auto& bearer_item = bearer.value.bearers_subject_to_status_transfer_item();
-    rrc->set_erab_status(u->ctxt.rnti, bearer_item);
-  }
+  rrc->set_erab_status(
+      u->ctxt.rnti,
+      msg.protocol_ies.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list);
   return true;
 }
 

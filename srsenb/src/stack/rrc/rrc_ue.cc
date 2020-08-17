@@ -978,8 +978,6 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
   parent->s1ap->ue_erab_setup_complete(rnti, res);
 }
 
-void rrc::ue::set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_item_s& erab) {}
-
 //! Helper method to access Cell configuration based on UE Carrier Index
 cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
@@ -1224,7 +1222,8 @@ void rrc::ue::fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg
   phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
   phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
   phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, phy_cfg->ul_pwr_ctrl_ded.psrs_offset = 3;
+  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch          = 0;
+  phy_cfg->ul_pwr_ctrl_ded.psrs_offset          = 3;
 
   // PDSCH
   phy_cfg->pdsch_cfg_ded_present = true;
