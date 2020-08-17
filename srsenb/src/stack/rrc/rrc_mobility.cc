@@ -792,8 +792,6 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
     srslte::byte_buffer_t&                                            ho_cmd_pdu,
     std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)
 {
-  const cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-
   /* TS 36.331 10.2.2. - Decode HandoverPreparationInformation */
   asn1::cbit_ref            bref{container.rrc_container.data(), container.rrc_container.size()};
   asn1::rrc::ho_prep_info_s hoprep;
@@ -810,47 +808,20 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
   rrc_enb->log_rrc_message(
       "HandoverPreparation", direction_t::fromS1AP, container.rrc_container, hoprep, "HandoverPreparation");
 
-  /* Prepare Handover Request Acknowledgment - Handover Command */
-  dl_dcch_msg_s            dl_dcch_msg;
-  rrc_conn_recfg_r8_ies_s& recfg_r8 =
-      dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-
-  // Fill fields common to all types of handover
-  fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common);
-
-  // Encode MeasConfig
-  var_meas_cfg_t current_var_meas = var_meas_cfg_t::make(hoprep_r8.as_cfg.source_meas_cfg);
-  recfg_r8.meas_cfg_present =
-      update_ue_var_meas_cfg(current_var_meas, target_cell->cell_common->enb_cc_idx, &recfg_r8.meas_cfg);
-
-  /* Prepare Handover Command to be sent via S1AP */
-  asn1::bit_ref bref2{ho_cmd_pdu.msg, ho_cmd_pdu.get_tailroom()};
-  if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
-    rrc_enb->rrc_log->error("Failed to pack HandoverCommand\n");
-    return false;
-  }
-  ho_cmd_pdu.N_bytes = bref2.distance_bytes();
-  rrc_enb->log_rrc_message("RRC container", direction_t::S1AP, &ho_cmd_pdu, dl_dcch_msg, "HandoverCommand");
-
-  asn1::rrc::ho_cmd_s         ho_cmd;
-  asn1::rrc::ho_cmd_r8_ies_s& ho_cmd_r8 = ho_cmd.crit_exts.set_c1().set_ho_cmd_r8();
-  ho_cmd_r8.ho_cmd_msg.resize(bref2.distance_bytes());
-  memcpy(ho_cmd_r8.ho_cmd_msg.data(), ho_cmd_pdu.msg, bref2.distance_bytes());
-  bref2 = {ho_cmd_pdu.msg, ho_cmd_pdu.get_tailroom()};
-  if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
-    rrc_enb->rrc_log->error("Failed to pack HandoverCommand\n");
-    return false;
-  }
-  ho_cmd_pdu.N_bytes = bref2.distance_bytes();
-
-  trigger(ho_req_rx_ev{recfg_r8, &msg, &hoprep_r8, &container});
+  trigger(ho_req_rx_ev{&msg, &hoprep_r8, &container});
 
   for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
-    admitted_erabs.push_back({});
+    admitted_erabs.emplace_back();
     srslte::uint32_to_uint8(erab.second.teid_in, admitted_erabs.back().data());
   }
 
-  return is_in_state<s1_target_ho_st>();
+  if (is_in_state<s1_target_ho_st>()) {
+    srslte::unique_byte_buffer_t pdu = std::move(get_state<s1_target_ho_st>()->ho_cmd_pdu);
+    memcpy(ho_cmd_pdu.msg, pdu->msg, pdu->N_bytes);
+    ho_cmd_pdu.N_bytes = pdu->N_bytes;
+    return true;
+  }
+  return false;
 }
 
 bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
@@ -1126,13 +1097,53 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
     f->rrc_ue->bearer_list.add_gtpu_bearer(f->rrc_enb->gtpu, erab.erab_id);
   }
 
-  // Update MAC
-  f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8);
+  /* Prepare Handover Request Acknowledgment - Handover Command */
+  dl_dcch_msg_s            dl_dcch_msg;
+  rrc_conn_recfg_r8_ies_s& recfg_r8 =
+      dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
+
+  // Fill fields common to all types of handover
+  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common);
+
+  // Encode MeasConfig
+  var_meas_cfg_t current_var_meas = var_meas_cfg_t::make(ho_req.ho_prep_r8->as_cfg.source_meas_cfg);
+  recfg_r8.meas_cfg_present =
+      f->update_ue_var_meas_cfg(current_var_meas, target_cell->cell_common->enb_cc_idx, &recfg_r8.meas_cfg);
+
+  /* Configure layers based on Reconfig Message */
 
   // Update RLC + PDCP
-  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
   f->rrc_ue->bearer_list.apply_pdcp_bearer_updates(f->rrc_enb->pdcp, f->rrc_ue->ue_security_cfg);
   f->rrc_ue->bearer_list.apply_rlc_bearer_updates(f->rrc_enb->rlc);
+  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
+  // Update MAC
+  f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8,
+                                      dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8());
+  // Apply PHY updates
+  f->rrc_ue->apply_reconf_phy_config(dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8());
+
+  /* Prepare Handover Command to be sent via S1AP */
+  ho_cmd_pdu = srslte::allocate_unique_buffer(*f->pool);
+  asn1::bit_ref bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
+  if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
+    f->rrc_log->error("Failed to pack HandoverCommand\n");
+    f->trigger(srslte::failure_ev{});
+    return;
+  }
+  ho_cmd_pdu->N_bytes = bref2.distance_bytes();
+  f->rrc_enb->log_rrc_message("RRC container", direction_t::S1AP, ho_cmd_pdu.get(), dl_dcch_msg, "HandoverCommand");
+
+  asn1::rrc::ho_cmd_s         ho_cmd;
+  asn1::rrc::ho_cmd_r8_ies_s& ho_cmd_r8 = ho_cmd.crit_exts.set_c1().set_ho_cmd_r8();
+  ho_cmd_r8.ho_cmd_msg.resize(bref2.distance_bytes());
+  memcpy(ho_cmd_r8.ho_cmd_msg.data(), ho_cmd_pdu->msg, bref2.distance_bytes());
+  bref2 = {ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
+  if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
+    f->rrc_log->error("Failed to pack HandoverCommand\n");
+    f->trigger(srslte::failure_ev{});
+    return;
+  }
+  ho_cmd_pdu->N_bytes = bref2.distance_bytes();
 }
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev)
@@ -1142,9 +1153,6 @@ void rrc::ue::rrc_mobility::handle_recfg_complete(s1_target_ho_st& s, const recf
                 rrc_ue->rnti,
                 target_cell->cell_common->cell_cfg.cell_id);
   uint64_t target_eci = (rrc_enb->cfg.enb_id << 8u) + target_cell->cell_common->cell_cfg.cell_id;
-
-  // Activate bearers in MAC
-  rrc_ue->mac_ctrl->handle_ho_prep_complete();
 
   rrc_enb->s1ap->send_ho_notify(rrc_ue->rnti, target_eci);
 }

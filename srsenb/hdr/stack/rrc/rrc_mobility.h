@@ -148,7 +148,6 @@ private:
     const asn1::rrc::meas_obj_to_add_mod_s* meas_obj   = nullptr;
   };
   struct ho_req_rx_ev {
-    asn1::rrc::rrc_conn_recfg_r8_ies_s                                ho_cmd;
     const asn1::s1ap::ho_request_s*                                   ho_req_msg;
     const asn1::rrc::ho_prep_info_r8_ies_s*                           ho_prep_r8;
     const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s* transparent_container;
@@ -166,7 +165,8 @@ private:
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
   struct s1_target_ho_st {
-    void enter(rrc_mobility* f, const ho_req_rx_ev& ho_req);
+    srslte::unique_byte_buffer_t ho_cmd_pdu;
+    void                         enter(rrc_mobility* f, const ho_req_rx_ev& ho_req);
   };
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     ho_meas_report_ev report;

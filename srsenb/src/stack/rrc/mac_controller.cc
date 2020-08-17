@@ -302,11 +302,28 @@ void rrc::ue::mac_controller::apply_scell_cfg_updates(uint32_t ue_cc_idx)
   pending_scells_cfg->erase(it);
 }
 
-void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep) {}
-
-void rrc::ue::mac_controller::handle_ho_prep_complete()
+void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s&   ho_prep,
+                                             const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
 {
-  apply_current_bearers_cfg();
+  // TODO: Apply configuration in ho_prep
+
+  if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
+    apply_phy_cfg_updates_common(conn_recfg.rr_cfg_ded.phys_cfg_ded);
+  }
+
+  // Store Scells Configuration
+  if (conn_recfg.non_crit_ext_present and conn_recfg.non_crit_ext.non_crit_ext_present and
+      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present and
+      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present) {
+    pending_scells_cfg.reset(new asn1::rrc::scell_to_add_mod_list_r10_l{
+        conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10});
+  }
+
+  // Apply changes to MAC scheduler
+  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
+  mac->phy_config_enabled(rrc_ue->rnti, false);
 }
+
+void rrc::ue::mac_controller::handle_ho_prep_complete() {}
 
 } // namespace srsenb

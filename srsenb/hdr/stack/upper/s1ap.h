@@ -152,6 +152,7 @@ private:
   bool handle_hopreparationfailure(const asn1::s1ap::ho_prep_fail_s& msg);
   bool handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg);
   bool handle_ho_request(const asn1::s1ap::ho_request_s& msg);
+  bool handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& msg);
 
   // UE-specific data and procedures
   struct ue {

@@ -435,10 +435,11 @@ public:
    */
   virtual void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t container) = 0;
   virtual uint16_t
-  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                             srslte::byte_buffer_t&                                            ho_cmd,
-                             std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs) = 0;
+               start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                          const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                          srslte::byte_buffer_t&                                            ho_cmd,
+                                          std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)          = 0;
+  virtual void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_item_s& erab) = 0;
 };
 
 // GTPU interface for PDCP

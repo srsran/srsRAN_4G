@@ -470,6 +470,17 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   return enb_mobility_cfg->start_ho_ue_resource_alloc(msg, container, ho_cmd, admitted_erabs);
 }
 
+void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_item_s& erab)
+{
+  auto ue_it = users.find(rnti);
+  if (ue_it == users.end()) {
+    rrc_log->warning("rnti=0x%x does not exist\n", rnti);
+    return;
+  }
+
+  ue_it->second->set_erab_status(erab);
+}
+
 /*******************************************************************************
   Private functions
   All private functions are not mutexed and must be called from a mutexed environment

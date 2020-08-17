@@ -278,6 +278,13 @@ struct mobility_tester {
   int         run_preamble()
   {
     rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+    // add user
+    sched_interface::ue_cfg_t ue_cfg{};
+    ue_cfg.supported_cc_list.resize(1);
+    ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
+    ue_cfg.supported_cc_list[0].active     = true;
+    rrc.add_user(rnti, ue_cfg);
+
     // Do all the handshaking until the first RRC Connection Reconf
     test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
     rrc_log->set_level(srslte::LOG_LEVEL_INFO);
@@ -322,13 +329,6 @@ protected:
   int setup_rrc_common()
   {
     rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
-
-    // add user
-    sched_interface::ue_cfg_t ue_cfg;
-    ue_cfg.supported_cc_list.resize(1);
-    ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
-    ue_cfg.supported_cc_list[0].active     = true;
-    rrc.add_user(rnti, ue_cfg);
     return SRSLTE_SUCCESS;
   }
 };
@@ -442,6 +442,82 @@ int test_s1ap_mobility(mobility_test_params test_params)
   TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
   auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
+
+  return SRSLTE_SUCCESS;
+}
+
+int test_s1ap_tenb_mobility(mobility_test_params test_params)
+{
+  printf("\n===== TEST: test_s1ap_tenb_mobility() for event %s =====\n", test_params.to_string());
+  s1ap_mobility_tester         tester{test_params};
+  srslte::unique_byte_buffer_t pdu;
+
+  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
+  tester.cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19B01;
+  tester.cfg.enb_id                                  = 0x19C;
+  tester.cfg.cell.id                                 = 0x02;
+  tester.cfg.cell_list[0].cell_id                    = 0x02;
+  tester.cfg.cell_list[0].pci                        = 2;
+  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
+
+  /* Receive S1AP Handover Request */
+  asn1::s1ap::ho_request_s ho_req;
+  ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value.resize(1);
+  auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
+  erab.erab_id = 5;
+  erab.erab_level_qos_params.qci = 9;
+  asn1::s1ap::sourceenb_to_targetenb_transparent_container_s container;
+  container.target_cell_id.cell_id.from_number(0x19C02);
+  uint8_t ho_prep_container[] = {
+      0x0a, 0x10, 0x0b, 0x81, 0x80, 0x00, 0x01, 0x80, 0x00, 0xf3, 0x02, 0x08, 0x00, 0x00, 0x15, 0x80, 0x00, 0x14,
+      0x06, 0xa4, 0x02, 0xf0, 0x04, 0x04, 0xf0, 0x00, 0x14, 0x80, 0x4a, 0x00, 0x00, 0x00, 0x02, 0x12, 0x31, 0xb6,
+      0xf8, 0x3e, 0xa0, 0x6f, 0x05, 0xe4, 0x65, 0x14, 0x1d, 0x39, 0xd0, 0x54, 0x4c, 0x00, 0x02, 0x54, 0x00, 0x20,
+      0x04, 0x60, 0x00, 0x00, 0x00, 0x10, 0x01, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x02, 0x05, 0x00, 0x04, 0x14,
+      0x00, 0x67, 0x0d, 0xfb, 0xc4, 0x66, 0x06, 0x50, 0x0f, 0x00, 0x08, 0x00, 0x20, 0x80, 0x0c, 0x14, 0xca, 0x2d,
+      0x5c, 0xe1, 0x86, 0x35, 0x39, 0x80, 0x0e, 0x06, 0xa4, 0x40, 0x0f, 0x22, 0x78};
+  // 0a100b818000018000f3020800001580001406a402f00404f00014804a000000021231b6f83ea06f05e465141d39d0544c00025400200460000000100100c000000000020500041400670dfbc46606500f00080020800c14ca2d5ce1863539800e06a4400f2278
+  container.rrc_container.resize(sizeof(ho_prep_container));
+  memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
+  pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
+  tester.rrc.start_ho_ue_resource_alloc(ho_req, container, *pdu, admitted_erabs);
+  tester.tic();
+  TESTASSERT(tester.rrc.get_nof_users() == 1);
+  TESTASSERT(tester.mac.ue_db.count(0x46));
+  auto& mac_ue = tester.mac.ue_db[0x46];
+  TESTASSERT(mac_ue.supported_cc_list[0].active);
+  TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
+  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB0].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+
+  ho_cmd_s       ho_cmd;
+  asn1::cbit_ref bref{pdu->msg, pdu->N_bytes};
+  TESTASSERT(ho_cmd.unpack(bref) == asn1::SRSASN_SUCCESS);
+  bref = asn1::cbit_ref{ho_cmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.data(),
+                        ho_cmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size()};
+  dl_dcch_msg_s dl_dcch_msg;
+  TESTASSERT(dl_dcch_msg.unpack(bref) == asn1::SRSASN_SUCCESS);
+  auto& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx == 15);
+  TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx == 0);
+
+  // user PRACHs and sends C-RNTI CE
+  sched_interface::ue_cfg_t ue_cfg{};
+  ue_cfg.supported_cc_list.resize(1);
+  ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
+  ue_cfg.supported_cc_list[0].active     = true;
+  tester.rrc.add_user(0x47, ue_cfg);
+  tester.rrc.upd_user(0x47, 0x46);
+
+  uint8_t recfg_complete[] = {0x10, 0x00};
+  test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
+  tester.rrc.write_pdu(0x46, rb_id_t::RB_ID_SRB1, std::move(pdu));
+  tester.tic();
+  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB1].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB2].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_DRB1].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  TESTASSERT(mac_ue.pucch_cfg.I_sr == recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
+  TESTASSERT(mac_ue.pucch_cfg.n_pucch_sr ==
+             recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
 
   return SRSLTE_SUCCESS;
 }
@@ -573,6 +649,8 @@ int main(int argc, char** argv)
   TESTASSERT(test_s1ap_mobility(mobility_test_params{event::concurrent_ho}) == 0);
   TESTASSERT(test_s1ap_mobility(mobility_test_params{event::ho_prep_failure}) == 0);
   TESTASSERT(test_s1ap_mobility(mobility_test_params{event::success}) == 0);
+
+  TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover
   TESTASSERT(test_intraenb_mobility(mobility_test_params{event::wrong_measreport}) == 0);

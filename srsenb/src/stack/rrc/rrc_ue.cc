@@ -978,6 +978,8 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
   parent->s1ap->ue_erab_setup_complete(rnti, res);
 }
 
+void rrc::ue::set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_item_s& erab) {}
+
 //! Helper method to access Cell configuration based on UE Carrier Index
 cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {

@@ -577,6 +577,8 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       }
       return outcome;
     }
+    case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
+      return handle_mme_status_transfer(msg.value.mme_status_transfer());
     default:
       s1ap_log->error("Unhandled initiating message: %s\n", msg.value.type().to_string().c_str());
   }
@@ -915,6 +917,24 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
   memcpy(container.target_to_source_transparent_container.value.data(), pdu->msg, bref.distance_bytes());
 
   return sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverRequestAcknowledge");
+}
+
+bool s1ap::handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& msg)
+{
+  s1ap_log->info("Received S1 MMEStatusTransfer\n");
+  s1ap_log->console("Received S1 MMEStatusTransfer\n");
+
+  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (u == nullptr) {
+    return false;
+  }
+
+  for (const auto& bearer :
+       msg.protocol_ies.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list) {
+    const auto& bearer_item = bearer.value.bearers_subject_to_status_transfer_item();
+    rrc->set_erab_status(u->ctxt.rnti, bearer_item);
+  }
+  return true;
 }
 
 void s1ap::send_ho_notify(uint16_t rnti, uint64_t target_eci)
