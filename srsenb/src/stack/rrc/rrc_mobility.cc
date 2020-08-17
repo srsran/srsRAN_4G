@@ -106,7 +106,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                                 mac_key);
       break;
     default:
-      printf("Unsupported integrity algorithm.\n");
+      printf("Unsupported integrity algorithm %d.\n", integ_algo);
   }
 
   uint16_t short_mac_i = (((uint16_t)mac_key[2] << 8u) | (uint16_t)mac_key[3]);
@@ -1140,11 +1140,23 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
       f->update_ue_var_meas_cfg(current_var_meas, target_cell->cell_common->enb_cc_idx, &recfg_r8.meas_cfg);
 
   /* Configure layers based on Reconfig Message */
-
+  // UE Capabilities
+  for (const auto& cap : ho_req.ho_prep_r8->ue_radio_access_cap_info) {
+    if (cap.rat_type.value == rat_type_opts::eutra) {
+      asn1::cbit_ref bref(cap.ue_cap_rat_container.data(), cap.ue_cap_rat_container.size());
+      if (f->rrc_ue->eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
+        f->rrc_log->warning("Failed to unpack UE EUTRA Capability\n");
+        continue;
+      }
+      f->rrc_ue->eutra_capabilities_unpacked = true;
+    }
+  }
+  // Security Capabilities
+  f->rrc_ue->ue_security_cfg.set_security_capabilities(ho_req.ho_req_msg->protocol_ies.ue_security_cap.value);
   // Update RLC + PDCP
+  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
   f->rrc_ue->bearer_list.apply_pdcp_bearer_updates(f->rrc_enb->pdcp, f->rrc_ue->ue_security_cfg);
   f->rrc_ue->bearer_list.apply_rlc_bearer_updates(f->rrc_enb->rlc);
-  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
   // Update MAC
   f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8, recfg_r8);
   // Apply PHY updates
