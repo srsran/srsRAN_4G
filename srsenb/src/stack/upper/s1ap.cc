@@ -827,7 +827,7 @@ bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
 
   // Confirm the UE does not exist in TeNB
   if (users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value) != nullptr) {
-    s1ap_log->error("The provided MME_UE_S1AP_ID=%ld is already connected to the cell\n",
+    s1ap_log->error("The provided MME_UE_S1AP_ID=%" PRIu64 " is already connected to the cell\n",
                     msg.protocol_ies.mme_ue_s1ap_id.value.value);
     return false;
   }
