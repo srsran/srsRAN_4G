@@ -635,9 +635,9 @@ int main(int argc, char* argv[])
   srslog::init();
 
   srslte::logmap::set_default_logger(&log_wrapper);
-  log_args(argc, argv, "UE");
+  srslte::log_args(argc, argv, "UE");
 
-  check_scaling_governor(args.rf.device_name);
+  srslte::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance
   srsue::ue ue;

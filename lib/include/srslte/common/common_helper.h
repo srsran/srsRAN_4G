@@ -31,11 +31,9 @@
 #include <fstream>
 #include <thread>
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
+namespace srslte {
 
-inline void log_args(int argc, char* argv[], std::string service)
+inline void log_args(int argc, char* argv[], const std::string& service)
 {
   std::ostringstream s1;
   s1 << "Using binary " << argv[0] << " with arguments: ";
@@ -74,7 +72,6 @@ inline void check_scaling_governor(const std::string& device_name)
   }
 }
 
-#ifdef __cplusplus
-}
-#endif // __cplusplus
+} // namespace srslte
+
 #endif // SRSLTE_COMMON_HELPER_H

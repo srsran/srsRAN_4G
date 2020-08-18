@@ -410,7 +410,7 @@ int main(int argc, char* argv[])
   }
 
   srslte::logmap::set_default_logger(&log_wrapper);
-  log_args(argc, argv, "EPC");
+  srslte::log_args(argc, argv, "EPC");
 
   srslte::log_filter nas_log;
   nas_log.init("NAS ", &log_wrapper);

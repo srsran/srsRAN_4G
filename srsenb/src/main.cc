@@ -455,9 +455,9 @@ int main(int argc, char* argv[])
 
   srslte::logmap::set_default_logger(&log_wrapper);
   srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
-  log_args(argc, argv, "ENB");
+  srslte::log_args(argc, argv, "ENB");
 
-  check_scaling_governor(args.rf.device_name);
+  srslte::check_scaling_governor(args.rf.device_name);
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb};
