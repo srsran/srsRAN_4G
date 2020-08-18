@@ -115,12 +115,13 @@ public:
     uint32_t                     lcid;
     srslte::unique_byte_buffer_t sdu;
   } last_sdu;
-  struct last_bearer_state {
-    uint16_t                 rnti;
-    uint32_t                 lcid;
-    srslte::pdcp_lte_state_t state;
-  } last_state;
-  std::map<uint16_t, std::map<uint32_t, srslte::pdcp_lte_state_t> > drb_states;
+  struct lcid_cfg_t {
+    bool                         enable_integrity  = false;
+    bool                         enable_encryption = false;
+    srslte::pdcp_lte_state_t     state{};
+    srslte::as_security_config_t sec_cfg{};
+  };
+  std::map<uint16_t, std::map<uint32_t, lcid_cfg_t> > bearers;
 
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
   {
@@ -130,10 +131,14 @@ public:
   }
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override
   {
-    last_state.rnti  = rnti;
-    last_state.lcid  = lcid;
-    last_state.state = state;
+    bearers[rnti][lcid].state = state;
     return true;
+  }
+  void enable_integrity(uint16_t rnti, uint32_t lcid) override { bearers[rnti][lcid].enable_integrity = true; }
+  void enable_encryption(uint16_t rnti, uint32_t lcid) override { bearers[rnti][lcid].enable_encryption = true; }
+  void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg_) override
+  {
+    bearers[rnti][lcid].sec_cfg = sec_cfg_;
   }
 };
 

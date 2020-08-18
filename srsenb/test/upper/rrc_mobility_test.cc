@@ -459,8 +459,9 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   tester.cfg.cell_list[0].cell_id                    = 0x02;
   tester.cfg.cell_list[0].pci                        = 2;
   TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
+  security_cfg_handler sec_cfg{tester.cfg};
 
-  /* Receive S1AP Handover Request */
+  /* TeNB receives S1AP Handover Request */
   asn1::s1ap::ho_request_s ho_req;
   ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value.resize(1);
   auto& erab   = ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value[0].value.erab_to_be_setup_item_ho_req();
@@ -488,6 +489,21 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   TESTASSERT(mac_ue.supported_cc_list[0].active);
   TESTASSERT(mac_ue.supported_cc_list[0].enb_cc_idx == 0);
   TESTASSERT(mac_ue.ue_bearers[rb_id_t::RB_ID_SRB0].direction == sched_interface::ue_bearer_cfg_t::BOTH);
+  // Check Security Configuration
+  TESTASSERT(tester.pdcp.bearers.count(0x46));
+  TESTASSERT(tester.pdcp.bearers[0x46].count(rb_id_t::RB_ID_SRB1) and
+             tester.pdcp.bearers[0x46].count(rb_id_t::RB_ID_SRB2));
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].enable_encryption);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].enable_integrity);
+  sec_cfg.set_security_capabilities(ho_req.protocol_ies.ue_security_cap.value);
+  sec_cfg.set_security_key(ho_req.protocol_ies.security_context.value.next_hop_param);
+  sec_cfg.regenerate_keys_handover(tester.cfg.cell_list[0].pci, tester.cfg.cell_list[0].dl_earfcn);
+  srslte::as_security_config_t as_sec_cfg = sec_cfg.get_as_sec_cfg();
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_int == as_sec_cfg.k_rrc_int);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_rrc_enc == as_sec_cfg.k_rrc_enc);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.k_up_int == as_sec_cfg.k_up_int);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
+  TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
 
   ho_cmd_s       ho_cmd;
   asn1::cbit_ref bref{pdu->msg, pdu->N_bytes};
@@ -509,12 +525,12 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   bearers[0].value.bearers_subject_to_status_transfer_item().ul_coun_tvalue.pdcp_sn = 120;
   bearers[0].value.bearers_subject_to_status_transfer_item().ul_coun_tvalue.hfn     = 4;
   tester.rrc.set_erab_status(0x46, bearers);
-  TESTASSERT(tester.pdcp.last_state.rnti == 0x46);
-  TESTASSERT(tester.pdcp.last_state.lcid == 3);
-  TESTASSERT(tester.pdcp.last_state.state.next_pdcp_tx_sn == 100);
-  TESTASSERT(tester.pdcp.last_state.state.tx_hfn == 3);
-  TESTASSERT(tester.pdcp.last_state.state.next_pdcp_rx_sn == 120);
-  TESTASSERT(tester.pdcp.last_state.state.rx_hfn == 4);
+  TESTASSERT(tester.pdcp.bearers.count(0x46));
+  TESTASSERT(tester.pdcp.bearers[0x46].count(3));
+  TESTASSERT(tester.pdcp.bearers[0x46][3].state.next_pdcp_tx_sn == 100);
+  TESTASSERT(tester.pdcp.bearers[0x46][3].state.tx_hfn == 3);
+  TESTASSERT(tester.pdcp.bearers[0x46][3].state.next_pdcp_rx_sn == 120);
+  TESTASSERT(tester.pdcp.bearers[0x46][3].state.rx_hfn == 4);
 
   // user PRACHs and sends C-RNTI CE
   sched_interface::ue_cfg_t ue_cfg{};
