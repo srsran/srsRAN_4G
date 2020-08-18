@@ -83,7 +83,8 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.is_in_sync());
 
   // TEST: Correct initiation of Cell Search state
-  TESTASSERT(phy_ctrl.start_cell_search(srslte::event_callback<phy_controller::cell_srch_res>{&csearch_tester}));
+  TESTASSERT(phy_ctrl.start_cell_search());
+  phy_ctrl.cell_search_observers.subscribe(csearch_tester);
   TESTASSERT(not phy_ctrl.is_in_sync());
 
   // TEST: Cell Search only listens to a cell search result event
@@ -111,14 +112,15 @@ int test_phy_ctrl_fsm()
   phy_ctrl.out_sync();
 
   // TEST: Correct initiation of Cell Select state
-  phy_ctrl.start_cell_select(found_cell, srslte::event_callback<bool>{&csel_tester});
+  phy_ctrl.start_cell_select(found_cell);
+  phy_ctrl.cell_selection_observers.subscribe(csel_tester);
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
 
   // TEST: Cell Selection state ignores events other than the cell selection result, and callback is called
   phy_ctrl.in_sync();
   TESTASSERT(not phy_ctrl.is_in_sync());
-  TESTASSERT(phy_ctrl.cell_selection_completed(true));
+  phy_ctrl.cell_selection_completed(true);
   // Note: Still in cell selection, but now waiting for the first in_sync
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
   TESTASSERT(not phy_ctrl.is_in_sync());
@@ -133,7 +135,8 @@ int test_phy_ctrl_fsm()
 
   // TEST: Cell Selection with timeout being reached
   csel_tester.result = -1;
-  TESTASSERT(phy_ctrl.start_cell_select(found_cell, srslte::event_callback<bool>{&csel_tester}));
+  TESTASSERT(phy_ctrl.start_cell_select(found_cell));
+  phy_ctrl.cell_selection_observers.subscribe(csel_tester);
   TESTASSERT(not phy_ctrl.is_in_sync());
   phy_ctrl.cell_selection_completed(true);
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");

@@ -36,13 +36,22 @@ phy_controller::phy_controller(srsue::phy_interface_rrc_lte* phy_, srslte::task_
   task_sched(task_sched_)
 {}
 
+void phy_controller::in_sync()
+{
+  trigger(in_sync_ev{});
+}
+
 /**************************************
  *    PHY Cell Select Procedure
  *************************************/
 
-bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, const srslte::event_callback<bool>& on_complete)
+bool phy_controller::start_cell_select(const phy_cell_t& phy_cell)
 {
-  trigger(cell_sel_cmd{phy_cell, on_complete});
+  if (is_in_state<selecting_cell>()) {
+    log_h->warning("Failed to launch cell selection as it is already running\n");
+    return false;
+  }
+  trigger(cell_sel_cmd{phy_cell});
   if (not is_in_state<selecting_cell>()) {
     log_h->warning("Failed to launch cell selection. Current state: %s\n", current_state_name().c_str());
     return false;
@@ -50,14 +59,9 @@ bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, const srslte:
   return true;
 }
 
-bool phy_controller::cell_selection_completed(bool outcome)
+void phy_controller::cell_selection_completed(bool outcome)
 {
-  return trigger(cell_sel_res{outcome});
-}
-
-void phy_controller::in_sync()
-{
-  trigger(in_sync_ev{});
+  trigger(cell_sel_res{outcome});
 }
 
 phy_controller::selecting_cell::selecting_cell(phy_controller* parent_) : composite_fsm_t(parent_)
@@ -68,7 +72,6 @@ phy_controller::selecting_cell::selecting_cell(phy_controller* parent_) : compos
 void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd& ev)
 {
   target_cell     = ev.phy_cell;
-  csel_callback   = ev.callback;
   csel_res.result = false;
 
   fsmInfo("Starting for pci=%d, earfcn=%d\n", target_cell.pci, target_cell.earfcn);
@@ -91,7 +94,11 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
   }
 
   // Signal result back to FSM that called cell selection
-  f->task_sched.defer_task(srslte::make_move_task(csel_callback, csel_res.result));
+  bool result = csel_res.result;
+  f->task_sched.defer_task([f, result]() {
+    f->cell_selection_observers.dispatch(result);
+    f->cell_selection_observers.unsubscribe_all();
+  });
 }
 
 void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f, const cell_sel_res& ev)
@@ -105,9 +112,13 @@ void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f, cons
  *************************************/
 
 //! Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet
-bool phy_controller::start_cell_search(const srslte::event_callback<cell_srch_res>& on_complete)
+bool phy_controller::start_cell_search()
 {
-  trigger(cell_search_cmd{on_complete});
+  if (is_in_state<searching_cell>()) {
+    fsmInfo("Cell search already launched.\n");
+    return true;
+  }
+  trigger(cell_search_cmd{});
   if (not is_in_state<searching_cell>()) {
     fsmWarning("Failed to launch cell search\n");
     return false;
@@ -115,24 +126,14 @@ bool phy_controller::start_cell_search(const srslte::event_callback<cell_srch_re
   return true;
 }
 
-bool phy_controller::cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell)
+void phy_controller::cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell)
 {
-  cell_srch_res res{cs_ret, found_cell};
-  if (trigger(res)) {
-    // Signal callers the result of cell search
-    for (auto& f : csearch_callbacks) {
-      f(res);
-    }
-    csearch_callbacks.clear();
-    return true;
-  }
-  return false;
+  trigger(cell_srch_res{cs_ret, found_cell});
 }
 
-void phy_controller::searching_cell::enter(phy_controller* f, const cell_search_cmd& cmd)
+void phy_controller::searching_cell::enter(phy_controller* f)
 {
   otherfsmInfo(f, "Initiating Cell search\n");
-  f->csearch_callbacks.emplace_back(cmd.callback);
   f->task_sched.enqueue_background_task([f](uint32_t worker_id) {
     phy_interface_rrc_lte::phy_cell_t        found_cell;
     phy_interface_rrc_lte::cell_search_ret_t ret = f->phy->cell_search(&found_cell);
@@ -156,13 +157,11 @@ void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_r
   }
 
   // Signal result back to FSM that called cell search
-  task_sched.defer_task(srslte::make_move_task(std::move(csearch_callbacks), result));
-}
-
-void phy_controller::share_cell_search_res(searching_cell& s, const cell_search_cmd& cmd)
-{
-  log_h->info("Cell Search already running. Re-utilizing result.\n");
-  csearch_callbacks.emplace_back(cmd.callback);
+  auto copy = result;
+  task_sched.defer_task([this, copy]() {
+    cell_search_observers.dispatch(copy);
+    cell_search_observers.unsubscribe_all();
+  });
 }
 
 } // namespace srsue

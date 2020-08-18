@@ -81,6 +81,8 @@ public:
     return count;
   }
 
+  void unsubscribe_all() { observers.clear(); }
+
   //! Signal result to observers
   void dispatch(Args... args)
   {
