@@ -1127,6 +1127,11 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
     f->rrc_ue->bearer_list.add_gtpu_bearer(f->rrc_enb->gtpu, erab.erab_id);
   }
 
+  // Regenerate AS Keys
+  f->rrc_ue->ue_security_cfg.set_security_capabilities(ho_req.ho_req_msg->protocol_ies.ue_security_cap.value);
+  f->rrc_ue->ue_security_cfg.set_security_key(ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_param);
+  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
+
   /* Prepare Handover Request Acknowledgment - Handover Command */
   dl_dcch_msg_s dl_dcch_msg;
 
@@ -1138,6 +1143,15 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
   var_meas_cfg_t current_var_meas = var_meas_cfg_t::make(ho_req.ho_prep_r8->as_cfg.source_meas_cfg);
   recfg_r8.meas_cfg_present =
       f->update_ue_var_meas_cfg(current_var_meas, target_cell->cell_common->enb_cc_idx, &recfg_r8.meas_cfg);
+
+  recfg_r8.security_cfg_ho_present = true;
+  recfg_r8.security_cfg_ho.handov_type.set(security_cfg_ho_s::handov_type_c_::types_opts::intra_lte);
+  recfg_r8.security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg_present = true;
+  recfg_r8.security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg =
+      f->rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
+  recfg_r8.security_cfg_ho.handov_type.intra_lte().key_change_ind = false;
+  recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count =
+      ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_chaining_count;
 
   /* Configure layers based on Reconfig Message */
   // UE Capabilities
@@ -1151,10 +1165,8 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
       f->rrc_ue->eutra_capabilities_unpacked = true;
     }
   }
-  // Security Capabilities
-  f->rrc_ue->ue_security_cfg.set_security_capabilities(ho_req.ho_req_msg->protocol_ies.ue_security_cap.value);
+
   // Update RLC + PDCP
-  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
   f->rrc_ue->bearer_list.apply_pdcp_bearer_updates(f->rrc_enb->pdcp, f->rrc_ue->ue_security_cfg);
   f->rrc_ue->bearer_list.apply_rlc_bearer_updates(f->rrc_enb->rlc);
   // Update MAC
