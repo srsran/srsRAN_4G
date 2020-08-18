@@ -41,3 +41,7 @@ add_test(span_test span_test)
 add_executable(interval_test interval_test.cc)
 target_link_libraries(interval_test srslte_common)
 add_test(interval_test interval_test)
+
+add_executable(observer_test observer_test.cc)
+target_link_libraries(observer_test srslte_common)
+add_test(observer_test observer_test)
