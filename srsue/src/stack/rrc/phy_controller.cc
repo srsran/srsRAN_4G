@@ -60,7 +60,7 @@ void phy_controller::in_sync()
   trigger(in_sync_ev{});
 }
 
-phy_controller::selecting_cell::selecting_cell(phy_controller* parent_) : nested_fsm_t(parent_)
+phy_controller::selecting_cell::selecting_cell(phy_controller* parent_) : composite_fsm_t(parent_)
 {
   wait_in_sync_timer = parent_fsm()->task_sched.get_unique_timer();
 }

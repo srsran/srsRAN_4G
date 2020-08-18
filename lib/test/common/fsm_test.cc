@@ -30,7 +30,7 @@ struct ev2 {};
 
 std::vector<std::string> calls;
 template <typename State>
-void call_log_helper(State* state, srslte::log_ref& log_h, const char* type)
+void call_log_helper(State* state, srslte::log_ref log_h, const char* type)
 {
   std::string callname = srslte::get_type_name<State>() + "::" + type;
   log_h->info("%s custom called\n", callname.c_str());
@@ -64,22 +64,22 @@ public:
     struct state_inner {
       void enter(fsm2* f)
       {
-        call_log_helper(this, f->log_h, "enter");
+        call_log_helper(this, f->get_log(), "enter");
         f->parent_fsm()->inner_enter_counter++;
       }
     };
     struct state_inner2 {
-      void enter(fsm2* f) { call_log_helper(this, f->log_h, "enter"); }
-      void exit(fsm2* f) { call_log_helper(this, f->log_h, "exit"); }
+      void enter(fsm2* f) { call_log_helper(this, f->get_log(), "enter"); }
+      void exit(fsm2* f) { call_log_helper(this, f->get_log(), "exit"); }
     };
 
-    explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
+    explicit fsm2(fsm1* f_) : composite_fsm_t(f_) {}
     fsm2(fsm2&&)  = default;
     fsm2& operator=(fsm2&&) = default;
-    ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
+    ~fsm2() { get_log()->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
-    void enter(fsm1* f) { call_log_helper(this, f->log_h, "enter"); }
-    void exit(fsm1* f) { call_log_helper(this, f->log_h, "exit"); }
+    void enter(fsm1* f) { call_log_helper(this, get_log(), "enter"); }
+    void exit(fsm1* f) { call_log_helper(this, get_log(), "exit"); }
 
   private:
     void inner_action1(state_inner& s, const ev1& e);
@@ -147,17 +147,17 @@ void fsm1::state1::exit(fsm1* f)
 // FSM event handlers
 void fsm1::fsm2::inner_action1(state_inner& s, const ev1& e)
 {
-  call_log_helper(this, log_h, "inner_action1");
+  call_log_helper(this, get_log(), "inner_action1");
 }
 
 void fsm1::fsm2::inner_action2(state_inner& s, const ev2& e)
 {
-  call_log_helper(this, log_h, "inner_action2");
+  call_log_helper(this, get_log(), "inner_action2");
 }
 
 void fsm1::fsm2::inner_action3(state_inner2& s, const ev2& e)
 {
-  log_h->info("fsm2::state_inner2::react called\n");
+  get_log()->info("fsm2::state_inner2::react called\n");
 }
 
 void fsm1::action1(idle_st& s, const ev1& e)
@@ -181,8 +181,8 @@ void fsm1::action3(state1& s, const ev2& ev)
 namespace srslte {
 namespace fsm_details {
 
-static_assert(is_fsm<fsm1>(), "invalid metafunction\n");
-static_assert(is_subfsm<fsm1::fsm2>(), "invalid metafunction\n");
+static_assert(is_fsm<fsm1>::value, "invalid metafunction\n");
+static_assert(is_composite_fsm<fsm1::fsm2>::value, "invalid metafunction\n");
 static_assert(type_list_size(typename filter_transition_type<ev1, fsm1::idle_st, fsm_transitions<fsm1> >::type{}) > 0,
               "invalid filter metafunction\n");
 static_assert(
@@ -308,7 +308,7 @@ protected:
     row< idle_st,      procstate1,  launch_ev<int>                                                >,
     upd< procstate1,                procevent1,       &proc1::handle_success, &proc1::is_success  >,
     upd< procstate1,                procevent1,       &proc1::handle_failure, &proc1::is_failure  >,
-    from_any_state<    idle_st,     complete_ev                                                   >
+    to_state<          idle_st,     complete_ev                                                   >
     //  +------------+-------------+----------------+------------------------+--------------------+
   >;
   // clang-format on
@@ -462,7 +462,7 @@ protected:
     row< emm_ta_updating_initiated,  emm_registered,             tau_outcome_ev            >,
     row< emm_ta_updating_initiated,  emm_deregistered,           tau_reject_other_cause_ev >,
     row< emm_deregistered_initiated, emm_deregistered,           detach_accept_ev          >,
-    from_any_state<                  emm_deregistered,           power_off_ev              >
+    to_state<                        emm_deregistered,           power_off_ev              >
   //  +-----------------------------+-------------------------+-----------------------------+
   >;
   // clang-format on
@@ -541,18 +541,29 @@ struct fsm3 : public srslte::fsm_t<fsm3> {
   struct st1 {};
   struct st2 {
     int  counter = 0;
-    void enter(fsm3* fsm) { counter++; }
+    void enter(fsm3* fsm)
+    {
+      counter++;
+      fsm->events.push_back(fsm->current_state_name());
+    }
   };
 
   fsm3() : base_t(srslte::log_ref{"TEST"}) {}
 
+  std::vector<std::string> events;
+
 protected:
-  void handle_ev1(st1& s, const ev1& ev) { trigger(ev2{}); }
+  void handle_ev1(st1& s, const ev1& ev)
+  {
+    trigger(ev2{});
+    events.push_back(current_state_name() + "::action"); // still in st1
+  }
   void handle_ev2(st2& s, const ev2& ev)
   {
     if (s.counter < 2) {
       trigger(ev1{});
     }
+    events.push_back(current_state_name() + "::action"); // still in st2
   }
 
   state_list<st1, st2> states{this};
@@ -560,8 +571,8 @@ protected:
   using transitions = transition_table<
   //     Start                    Target                   Event               Action
   //  +------------------------+-------------------------+-------------------+--------------------+
-  row<  st1,                      st2,                     ev1,                &fsm3::handle_ev1>,
-  row<  st2,                      st1,                     ev2,                &fsm3::handle_ev2>
+  row<  st1,                      st2,                     ev1,                &fsm3::handle_ev1  >,
+  row<  st2,                      st1,                     ev2,                &fsm3::handle_ev2  >
   //  +------------------------+-------------------------+-------------------+--------------------+
   >;
   // clang-format on
@@ -570,10 +581,19 @@ protected:
 int test_fsm_self_trigger()
 {
   fsm3 fsm;
+  TESTASSERT(fsm.events.empty());
 
   TESTASSERT(fsm.is_in_state<fsm3::st1>());
   fsm.trigger(ev1{});
   TESTASSERT(fsm.is_in_state<fsm3::st1>());
+
+  TESTASSERT(fsm.events.size() == 6);
+  TESTASSERT(fsm.events[0] == "st1::action");
+  TESTASSERT(fsm.events[1] == "st2");
+  TESTASSERT(fsm.events[2] == "st2::action");
+  TESTASSERT(fsm.events[3] == "st1::action");
+  TESTASSERT(fsm.events[4] == "st2");
+  TESTASSERT(fsm.events[5] == "st2::action");
 
   return SRSLTE_SUCCESS;
 }

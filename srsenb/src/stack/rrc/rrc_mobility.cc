@@ -1017,8 +1017,8 @@ bool rrc::ue::rrc_mobility::needs_intraenb_ho(idle_st& s, const ho_meas_report_e
 
 void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
 {
-  f->log_h->console("Starting S1 Handover of rnti=0x%x to 0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
-  f->log_h->info("Starting S1 Handover of rnti=0x%x to 0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
+  f->get_log()->console("Starting S1 Handover of rnti=0x%x to 0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
+  f->get_log()->info("Starting S1 Handover of rnti=0x%x to 0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
   f->report = ev;
 
   bool success = f->parent_fsm()->start_ho_preparation(f->report.target_eci, f->report.meas_obj->meas_obj_id, false);
@@ -1035,14 +1035,14 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st&    
   {
     asn1::cbit_ref bref(container->msg, container->N_bytes);
     if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      log_h->warning("Unpacking of RRC HOCommand was unsuccessful\n");
-      log_h->warning_hex(container->msg, container->N_bytes, "Received container:\n");
+      get_log()->warning("Unpacking of RRC HOCommand was unsuccessful\n");
+      get_log()->warning_hex(container->msg, container->N_bytes, "Received container:\n");
       return false;
     }
   }
   if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
-    log_h->warning("Only handling r8 Handover Commands\n");
+    get_log()->warning("Only handling r8 Handover Commands\n");
     return false;
   }
 
@@ -1052,18 +1052,18 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st&    
     asn1::cbit_ref bref(&rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg[0],
                         rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size());
     if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      log_h->warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.\n");
+      get_log()->warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.\n");
       return false;
     }
   }
   if (dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1 or
       dl_dcch_msg.msg.c1().type().value != dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg) {
-    log_h->warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside\n");
+    get_log()->warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside\n");
     return false;
   }
   asn1::rrc::rrc_conn_recfg_s& reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
   if (not reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info_present) {
-    log_h->warning("HandoverCommand is expected to have mobility control subfield\n");
+    get_log()->warning("HandoverCommand is expected to have mobility control subfield\n");
     return false;
   }
 
@@ -1077,7 +1077,7 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st&    
 
 void rrc::ue::rrc_mobility::s1_source_ho_st::status_transfer_st::enter(s1_source_ho_st* f)
 {
-  f->log_h->info("HandoverCommand of rnti=0x%x handled successfully.\n", f->parent_fsm()->rrc_ue->rnti);
+  f->get_log()->info("HandoverCommand of rnti=0x%x handled successfully.\n", f->parent_fsm()->rrc_ue->rnti);
 
   // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
 

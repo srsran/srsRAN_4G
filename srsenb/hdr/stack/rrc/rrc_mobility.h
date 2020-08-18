@@ -189,12 +189,12 @@ private:
     state_list<wait_ho_req_ack_st, status_transfer_st> states{this};
     // clang-format off
     using transitions = transition_table<
-    //                 Start                 Target                   Event               Action    Guard
-    //            +-------------------+------------------+------------------------------+---------+---------------------+
-    from_any_state<                     idle_st,            srslte::failure_ev                                          >,
-               row< wait_ho_req_ack_st, status_transfer_st, srslte::unique_byte_buffer_t, nullptr, &fsm::send_ho_cmd    >,
-               row< wait_ho_req_ack_st, idle_st           , srslte::unique_byte_buffer_t                                >
-    //            +-------------------+------------------+------------------------------+---------+---------------------+
+    //           Start                 Target                   Event               Action    Guard
+    //      +-------------------+------------------+------------------------------+---------+---------------------+
+    to_state<                     idle_st,            srslte::failure_ev                                          >,
+         row< wait_ho_req_ack_st, status_transfer_st, srslte::unique_byte_buffer_t, nullptr, &fsm::send_ho_cmd    >,
+         row< wait_ho_req_ack_st, idle_st           , srslte::unique_byte_buffer_t                                >
+    //      +-------------------+------------------+------------------------------+---------+---------------------+
     >;
     // clang-format on
   };

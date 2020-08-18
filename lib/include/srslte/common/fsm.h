@@ -46,11 +46,25 @@ namespace srslte {
 
 //! Forward declarations
 template <typename Derived>
-class fsm_t;
+class base_fsm_t;
+template <typename Derived, typename ParentFSM>
+class composite_fsm_t;
+
+//! Check if type T is an FSM
+template <typename T>
+using is_fsm = std::is_base_of<base_fsm_t<T>, T>;
+
+//! Check if type T is a composite FSM
+template <typename T, typename TCheck = void>
+struct is_composite_fsm : public std::false_type {};
+template <typename T>
+struct is_composite_fsm<T, typename std::enable_if<is_fsm<T>::value>::type> {
+  const static bool value = T::is_nested;
+};
 
 namespace fsm_details {
 
-//! Meta-function to filter transition list <Rows...> by <Event, SrcState> types
+//! Meta-function to filter transition_list<Rows...> by <Event, SrcState> types
 template <class Event, class SrcState, class...>
 struct filter_transition_type;
 template <class Event, class SrcState, class... Rows>
@@ -75,34 +89,16 @@ struct state_name_visitor {
   std::string name = "invalid";
 };
 
-//! Enable/Disable meta-function if <State> is part of <FSM> state list
+//! Enable/Disable SFINAE meta-function to check if <State> is part of <FSM> state list
 template <typename FSM, typename State, typename T = void>
 using enable_if_fsm_state = typename std::enable_if<FSM::template can_hold_state<State>(), T>::type;
 template <typename FSM, typename State, typename T = void>
 using disable_if_fsm_state = typename std::enable_if<not FSM::template can_hold_state<State>(), T>::type;
 
 template <typename FSM>
-constexpr bool is_fsm()
-{
-  return std::is_base_of<fsm_t<FSM>, FSM>::value;
-}
-
+using enable_if_subfsm = typename std::enable_if<is_composite_fsm<FSM>::value>::type;
 template <typename FSM>
-constexpr typename std::enable_if<is_fsm<FSM>(), bool>::type is_subfsm()
-{
-  return FSM::is_nested;
-}
-
-template <typename FSM>
-constexpr typename std::enable_if<not is_fsm<FSM>(), bool>::type is_subfsm()
-{
-  return false;
-}
-
-template <typename FSM>
-using enable_if_subfsm = typename std::enable_if<is_subfsm<FSM>()>::type;
-template <typename FSM>
-using disable_if_subfsm = typename std::enable_if<not is_subfsm<FSM>()>::type;
+using disable_if_subfsm = typename std::enable_if<not is_composite_fsm<FSM>::value>::type;
 
 //! Metafunction to determine if FSM can hold given State type
 template <typename FSM>
@@ -163,7 +159,7 @@ template <typename FSM, typename State>
 struct state_traits {
   static_assert(FSM::template can_hold_state<State>(), "FSM type does not hold provided State\n");
   using state_t   = State;
-  using is_subfsm = std::integral_constant<bool, ::srslte::fsm_details::is_subfsm<State>()>;
+  using is_subfsm = std::integral_constant<bool, ::srslte::is_composite_fsm<State>::value>;
 
   //! enter new state. enter is called recursively for subFSMs
   template <typename Event>
@@ -279,7 +275,7 @@ struct trigger_visitor {
   enable_if_subfsm<CurrentState> operator()(CurrentState& s)
   {
     // Enter here for SubFSMs
-    result = s.trigger(std::forward<Event>(ev));
+    result = s.process_event(std::forward<Event>(ev));
     if (not result) {
       result = call_react(s);
     }
@@ -300,28 +296,23 @@ struct trigger_visitor {
 
 } // namespace fsm_details
 
-template <typename Derived, typename ParentFSM>
-class nested_fsm_t;
-
-//! CRTP Class for all non-nested FSMs
 template <typename Derived>
-class fsm_t
+class base_fsm_t
 {
-protected:
-  using base_t = fsm_t<Derived>;
-  template <typename SubFSM>
-  using subfsm_t = nested_fsm_t<SubFSM, Derived>;
-
 public:
+  using derived_t = Derived;
+
   //! get access to derived protected members from the base
   class derived_view : public Derived
   {
   public:
-    using derived_t = Derived;
     // propagate user fsm methods
     using Derived::states;
     using typename Derived::transitions;
   };
+
+  template <typename... Rows>
+  using transition_table = type_list<Rows...>;
 
   //! Params of a state transition
   template <typename SrcState,
@@ -358,7 +349,7 @@ public:
   using upd = row<SrcState, SrcState, Event, ReactFn, GuardFn>;
 
   template <typename DestState, typename Event, bool (Derived::*GuardFn)(const Event&) = nullptr>
-  struct from_any_state {
+  struct to_state {
     using dest_state_t                                       = DestState;
     using event_t                                            = Event;
     constexpr static bool (Derived::*guard_fn)(const Event&) = GuardFn;
@@ -376,11 +367,6 @@ public:
     using is_match = std::is_same<Event2, event_t>;
   };
 
-  template <typename... Rows>
-  using transition_table = type_list<Rows...>;
-
-  static const bool is_nested = false;
-
   //! Struct used to store FSM states
   template <typename... States>
   struct state_list : public std::tuple<States...> {
@@ -389,7 +375,7 @@ public:
     static_assert(not type_list_contains<Derived, States...>(), "An FSM cannot contain itself as state\n");
 
     template <typename... Args>
-    state_list(fsm_t<Derived>* f, Args&&... args) : tuple_base_t(std::forward<Args>(args)...)
+    state_list(base_fsm_t<Derived>* f, Args&&... args) : tuple_base_t(std::forward<Args>(args)...)
     {
       if (not Derived::is_nested) {
         // If Root FSM, call initial state enter method
@@ -440,26 +426,6 @@ public:
     size_t current_idx = 0;
   };
 
-  explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
-
-  // Push Events to FSM
-  template <typename Ev>
-  bool trigger(Ev&& e)
-  {
-    if (trigger_locked) {
-      scheduled_event(std::forward<Ev>(e), typename std::is_lvalue_reference<Ev>::type{});
-      return false;
-    }
-    trigger_locked = true;
-    bool ret       = process_event(std::forward<Ev>(e));
-    while (not pending_events.empty()) {
-      pending_events.front()();
-      pending_events.pop_front();
-    }
-    trigger_locked = false;
-    return ret;
-  }
-
   template <typename State>
   bool is_in_state() const
   {
@@ -495,7 +461,57 @@ public:
   template <typename State>
   constexpr static bool can_hold_state()
   {
-    return fsm_details::fsm_state_list_type<fsm_t<Derived> >::template can_hold_type<State>();
+    return fsm_details::fsm_state_list_type<base_fsm_t<Derived> >::template can_hold_type<State>();
+  }
+
+protected:
+  // Access to CRTP derived class
+  derived_view* derived() { return static_cast<derived_view*>(this); }
+
+  const derived_view* derived() const { return static_cast<const derived_view*>(this); }
+
+  template <typename Ev>
+  bool process_event(Ev&& e)
+  {
+    fsm_details::trigger_visitor<derived_view, Ev> visitor{derived(), std::forward<Ev>(e)};
+    srslte::visit(visitor, derived()->states);
+    return visitor.result;
+  }
+};
+
+template <typename Derived, typename ParentFSM>
+class composite_fsm_t;
+
+//! CRTP Class for all non-nested FSMs
+template <typename Derived>
+class fsm_t : public base_fsm_t<Derived>
+{
+protected:
+  using base_t = fsm_t<Derived>;
+  template <typename SubFSM>
+  using subfsm_t = composite_fsm_t<SubFSM, Derived>;
+
+public:
+  static const bool is_nested = false;
+
+  explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
+
+  // Push Events to FSM
+  template <typename Ev>
+  bool trigger(Ev&& e)
+  {
+    if (trigger_locked) {
+      scheduled_event(std::forward<Ev>(e), typename std::is_lvalue_reference<Ev>::type{});
+      return false;
+    }
+    trigger_locked = true;
+    bool ret       = process_event(std::forward<Ev>(e));
+    while (not pending_events.empty()) {
+      pending_events.front()();
+      pending_events.pop_front();
+    }
+    trigger_locked = false;
+    return ret;
   }
 
   void set_fsm_event_log_level(srslte::LOG_LEVEL_ENUM e) { fsm_event_log_level = e; }
@@ -527,52 +543,54 @@ public:
   }
 
 protected:
-  // Access to CRTP derived class
-  derived_view* derived() { return static_cast<derived_view*>(this); }
-
-  const derived_view* derived() const { return static_cast<const derived_view*>(this); }
+  using base_fsm_t<Derived>::derived;
+  using base_fsm_t<Derived>::process_event;
 
   template <typename Ev>
-  bool process_event(Ev&& e)
-  {
-    fsm_details::trigger_visitor<derived_view, Ev> visitor{derived(), std::forward<Ev>(e)};
-    srslte::visit(visitor, derived()->states);
-    return visitor.result;
-  }
-
-  template <typename Ev>
-  void scheduled_event(Ev&& e, std::true_type)
+  void scheduled_event(Ev&& e, std::true_type t)
   {
     pending_events.emplace_back([this, e]() { process_event(e); });
   }
   template <typename Ev>
-  void scheduled_event(Ev&& e, std::false_type)
+  void scheduled_event(Ev&& e, std::false_type t)
   {
     pending_events.emplace_back(std::bind([this](Ev& e) { process_event(std::move(e)); }, std::move(e)));
   }
 
-  srslte::log_ref                           log_h;
-  srslte::LOG_LEVEL_ENUM                    fsm_event_log_level = LOG_LEVEL_INFO;
-  bool                                      trigger_locked      = false;
-  std::list<srslte::move_callback<void()> > pending_events;
+  srslte::log_ref                            log_h;
+  srslte::LOG_LEVEL_ENUM                     fsm_event_log_level = LOG_LEVEL_INFO;
+  bool                                       trigger_locked      = false;
+  std::deque<srslte::move_callback<void()> > pending_events;
 };
 
 template <typename Derived, typename ParentFSM>
-class nested_fsm_t : public fsm_t<Derived>
+class composite_fsm_t : public base_fsm_t<Derived>
 {
 public:
-  using base_t                = nested_fsm_t<Derived, ParentFSM>;
+  using base_t                = composite_fsm_t<Derived, ParentFSM>;
   using parent_t              = ParentFSM;
   static const bool is_nested = true;
 
-  explicit nested_fsm_t(ParentFSM* parent_fsm_) : fsm_t<Derived>(parent_fsm_->get_log()), fsm_ptr(parent_fsm_) {}
-  nested_fsm_t(nested_fsm_t&&) = default;
-  nested_fsm_t& operator=(nested_fsm_t&&) = default;
+  explicit composite_fsm_t(ParentFSM* parent_fsm_) : fsm_ptr(parent_fsm_) {}
+  composite_fsm_t(composite_fsm_t&&) noexcept = default;
+  composite_fsm_t& operator=(composite_fsm_t&&) noexcept = default;
 
-  // Get pointer to outer FSM in case of HSM
+  // Get pointer to outer FSM in case of HFSM
   const parent_t* parent_fsm() const { return fsm_ptr; }
 
   parent_t* parent_fsm() { return fsm_ptr; }
+
+  srslte::log_ref get_log() const { return parent_fsm()->get_log(); }
+
+  // Push Events to root FSM
+  template <typename Ev>
+  bool trigger(Ev&& e)
+  {
+    return parent_fsm()->trigger(std::forward<Ev>(e));
+  }
+
+  // Push events to this subFSM
+  using base_fsm_t<Derived>::process_event;
 
 protected:
   using parent_fsm_t = ParentFSM;
