@@ -87,7 +87,7 @@ struct gui_args_t {
 };
 
 struct general_args_t {
-  int32_t     rrc_inactivity_timer;
+  uint32_t    rrc_inactivity_timer;
   float       metrics_period_secs;
   bool        metrics_csv_enable;
   std::string metrics_csv_filename;
@@ -143,8 +143,8 @@ private:
   std::unique_ptr<srslte::radio_base> radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
-  srslte::logger*       logger = nullptr;
-  srslte::log_ref       log; // Own logger for eNB
+  srslte::logger* logger = nullptr;
+  srslte::log_ref log; // Own logger for eNB
 
   srslte::log_filter pool_log;
 

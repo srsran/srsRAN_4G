@@ -431,7 +431,10 @@ bool cell_ctxt_dedicated_list::alloc_sr_resources(uint32_t period)
   sr_res.sr_sched_sf_idx  = j_min;
   sr_res_present          = true;
 
-  log_h->info("Allocated SR resources in time-freq slot (%d, %d)\n", sr_res.sr_sched_prb_idx, sr_res.sr_sched_sf_idx);
+  log_h->info("Allocated SR resources in time-freq slot (%d, %d), sf_cfg_idx=%d\n",
+              sr_res.sr_sched_sf_idx,
+              sr_res.sr_sched_prb_idx,
+              cfg.sr_cfg.sf_mapping[sr_res.sr_sched_sf_idx]);
 
   return true;
 }

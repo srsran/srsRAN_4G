@@ -954,13 +954,16 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     rrc_cfg_->sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 1;
   }
 
-  if (args_->general.rrc_inactivity_timer == -1) {
-    uint32_t t310                   = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.t310.to_number();
-    uint32_t t311                   = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.t311.to_number();
-    uint32_t n310                   = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.n310.to_number();
-    rrc_cfg_->inactivity_timeout_ms = t310 + t311 + n310 + 50;
-  } else {
-    rrc_cfg_->inactivity_timeout_ms = args_->general.rrc_inactivity_timer;
+  rrc_cfg_->inactivity_timeout_ms   = args_->general.rrc_inactivity_timer;
+  uint32_t t310                     = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.t310.to_number();
+  uint32_t t311                     = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.t311.to_number();
+  uint32_t n310                     = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.n310.to_number();
+  uint32_t min_rrc_inactivity_timer = t310 + t311 + n310 + 50;
+  if (args_->general.rrc_inactivity_timer < min_rrc_inactivity_timer) {
+    ERROR("rrc_inactivity_timer=%d is too low. Setting it to %d\n",
+          args_->general.rrc_inactivity_timer,
+          min_rrc_inactivity_timer);
+    rrc_cfg_->inactivity_timeout_ms = min_rrc_inactivity_timer;
   }
   rrc_cfg_->enable_mbsfn = args_->stack.embms.enable;
   rrc_cfg_->mbms_mcs     = args_->stack.embms.mcs;

@@ -515,9 +515,9 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
                         ho_cmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size()};
   dl_dcch_msg_s dl_dcch_msg;
   TESTASSERT(dl_dcch_msg.unpack(bref) == asn1::SRSASN_SUCCESS);
+  TESTASSERT(dl_dcch_msg.msg.type().value == dl_dcch_msg_type_c::types_opts::c1);
+  TESTASSERT(dl_dcch_msg.msg.c1().type().value == dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg);
   auto& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-  TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx == 15);
-  TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx == 0);
 
   // Receives MMEStatusTransfer
   asn1::s1ap::bearers_subject_to_status_transfer_list_l bearers;
