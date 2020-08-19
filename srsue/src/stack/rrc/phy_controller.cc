@@ -45,7 +45,7 @@ void phy_controller::in_sync()
  *    PHY Cell Select Procedure
  *************************************/
 
-bool phy_controller::start_cell_select(const phy_cell_t& phy_cell)
+bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer)
 {
   if (is_in_state<selecting_cell>()) {
     log_h->warning("Failed to launch cell selection as it is already running\n");
@@ -56,6 +56,7 @@ bool phy_controller::start_cell_select(const phy_cell_t& phy_cell)
     log_h->warning("Failed to launch cell selection. Current state: %s\n", current_state_name().c_str());
     return false;
   }
+  cell_selection_observer = std::move(observer);
   return true;
 }
 
@@ -96,12 +97,12 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
   // Signal result back to FSM that called cell selection
   bool result = csel_res.result;
   f->task_sched.defer_task([f, result]() {
-    f->cell_selection_observers.dispatch(result);
-    f->cell_selection_observers.unsubscribe_all();
+    f->cell_selection_observer(result);
+    f->cell_selection_observer.reset();
   });
 }
 
-void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f, const cell_sel_res& ev)
+void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)
 {
   f->wait_in_sync_timer.set(wait_sync_timeout_ms, [f](uint32_t tid) { f->parent_fsm()->trigger(timeout_ev{}); });
   f->wait_in_sync_timer.run();
@@ -112,7 +113,7 @@ void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f, cons
  *************************************/
 
 //! Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet
-bool phy_controller::start_cell_search()
+bool phy_controller::start_cell_search(srslte::event_observer<cell_srch_res> observer)
 {
   if (is_in_state<searching_cell>()) {
     fsmInfo("Cell search already launched.\n");
@@ -123,6 +124,7 @@ bool phy_controller::start_cell_search()
     fsmWarning("Failed to launch cell search\n");
     return false;
   }
+  cell_search_observers.subscribe(observer);
   return true;
 }
 

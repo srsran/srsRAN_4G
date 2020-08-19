@@ -22,6 +22,9 @@
 #include "srslte/adt/observer.h"
 #include "srslte/common/test_common.h"
 
+static_assert(srslte::is_observer<srslte::observer<int> >::value, "is_observer<> meta-function failed");
+static_assert(not srslte::is_observer<std::function<void(int)> >::value, "is_observer<> meta-function failed");
+
 struct M {
   M() = default;
   explicit M(int v) : val(v) {}

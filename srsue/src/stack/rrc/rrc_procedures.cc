@@ -46,11 +46,10 @@ proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...\n");
   state = state_t::phy_cell_search;
-  if (not rrc_ptr->phy_ctrl->start_cell_search()) {
+  if (not rrc_ptr->phy_ctrl->start_cell_search(rrc_ptr->cell_searcher)) {
     Warning("Failed to initiate Cell Search.\n");
     return proc_outcome_t::error;
   }
-  rrc_ptr->phy_ctrl->cell_search_observers.subscribe(rrc_ptr->cell_searcher);
   return proc_outcome_t::yield;
 }
 
@@ -98,11 +97,10 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
 
   // set new serving cell in PHY
   state = state_t::phy_cell_select;
-  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell)) {
+  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, rrc_ptr->cell_searcher)) {
     Error("Couldn't start phy cell selection\n");
     return proc_outcome_t::error;
   }
-  rrc_ptr->phy_ctrl->cell_selection_observers.subscribe(rrc_ptr->cell_searcher);
   return proc_outcome_t::yield;
 }
 
@@ -511,11 +509,10 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
   Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
   state = search_state_t::serv_cell_camp;
-  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell)) {
+  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, rrc_ptr->cell_selector)) {
     Error("Failed to launch PHY Cell Selection\n");
     return proc_outcome_t::error;
   }
-  rrc_ptr->phy_ctrl->cell_selection_observers.subscribe(rrc_ptr->cell_selector);
   serv_cell_select_attempted = true;
   return proc_outcome_t::yield;
 }
@@ -553,11 +550,11 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       Info("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
       state = search_state_t::cell_selection;
-      if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell)) {
+      if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
+                                                   rrc_ptr->cell_selector)) {
         Error("Failed to launch PHY Cell Selection\n");
         return proc_outcome_t::error;
       }
-      rrc_ptr->phy_ctrl->cell_selection_observers.subscribe(rrc_ptr->cell_selector);
       return proc_outcome_t::yield;
     }
   }
@@ -1492,11 +1489,10 @@ srslte::proc_outcome_t rrc::ho_proc::step()
 
     Info("Starting cell selection of target cell %s\n", target_cell->to_string().c_str());
 
-    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell->phy_cell)) {
+    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell->phy_cell, rrc_ptr->ho_handler)) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;
     }
-    rrc_ptr->phy_ctrl->cell_selection_observers.subscribe(rrc_ptr->ho_handler);
     state = wait_phy_cell_select_complete;
   }
   return proc_outcome_t::yield;

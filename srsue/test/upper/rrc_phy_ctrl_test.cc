@@ -83,8 +83,7 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.is_in_sync());
 
   // TEST: Correct initiation of Cell Search state
-  TESTASSERT(phy_ctrl.start_cell_search());
-  phy_ctrl.cell_search_observers.subscribe(csearch_tester);
+  TESTASSERT(phy_ctrl.start_cell_search(csearch_tester));
   TESTASSERT(not phy_ctrl.is_in_sync());
 
   // TEST: Cell Search only listens to a cell search result event
@@ -112,8 +111,7 @@ int test_phy_ctrl_fsm()
   phy_ctrl.out_sync();
 
   // TEST: Correct initiation of Cell Select state
-  phy_ctrl.start_cell_select(found_cell);
-  phy_ctrl.cell_selection_observers.subscribe(csel_tester);
+  phy_ctrl.start_cell_select(found_cell, csel_tester);
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
 
@@ -135,8 +133,7 @@ int test_phy_ctrl_fsm()
 
   // TEST: Cell Selection with timeout being reached
   csel_tester.result = -1;
-  TESTASSERT(phy_ctrl.start_cell_select(found_cell));
-  phy_ctrl.cell_selection_observers.subscribe(csel_tester);
+  TESTASSERT(phy_ctrl.start_cell_select(found_cell, csel_tester));
   TESTASSERT(not phy_ctrl.is_in_sync());
   phy_ctrl.cell_selection_completed(true);
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");

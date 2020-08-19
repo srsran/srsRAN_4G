@@ -33,33 +33,78 @@ using observer_id                = std::size_t;
 const size_t invalid_observer_id = std::numeric_limits<observer_id>::max();
 
 template <typename... Args>
-class base_observable
+class observer;
+template <typename T>
+struct is_observer : public std::false_type {};
+template <typename... Args2>
+struct is_observer<observer<Args2...> > : public std::true_type {};
+
+//! Type-erasure of Observer
+template <typename... Args>
+class observer
 {
 public:
   using callback_t = std::function<void(Args...)>;
+  template <typename Callable>
+  using enable_if_callback_t =
+      typename std::enable_if<std::is_convertible<Callable, callback_t>::value and
+                              not is_observer<typename std::decay<Callable>::type>::value>::type;
+
+  observer() = default;
 
   //! Subscribe Observer that is a callback
-  template <typename Callable>
-  typename std::enable_if<std::is_convertible<Callable, callback_t>::value, observer_id>::type
-  subscribe(Callable&& callable)
+  template <typename Callable, typename Check = enable_if_callback_t<Callable> >
+  observer(Callable&& callable) : callback(std::forward<Callable>(callable))
+  {}
+
+  template <typename Observer,
+            typename TCheck =
+                typename std::enable_if<not std::is_convertible<Observer, callback_t>::value, observer_id>::type>
+  observer(Observer& observer) : callback([&observer](Args... args) { observer.trigger(std::forward<Args>(args)...); })
+  {}
+
+  template <typename Observer>
+  observer(Observer& observer, void (Observer::*trigger_method)(Args...)) :
+    callback([&observer, trigger_method](Args... args) { (observer.*trigger_method)(std::forward<Args>(args)...); })
+  {}
+
+  void operator()(Args... args)
   {
-    return subscribe_common(callable);
+    if (callback) {
+      callback(std::forward<Args>(args)...);
+    }
   }
 
-  //! Subscribe Observer type with method Observer::trigger(Args...)
-  template <typename Observer>
-  typename std::enable_if<not std::is_convertible<Observer, callback_t>::value, observer_id>::type
-  subscribe(Observer& observer)
-  {
-    return subscribe_common([&observer](Args... args) { observer.trigger(std::forward<Args>(args)...); });
-  }
+  explicit operator bool() const { return static_cast<bool>(callback); }
 
-  //! Subscribe Observer type with custom trigger method
-  template <typename Observer>
-  observer_id subscribe(Observer& observer, void (Observer::*trigger_method)(Args...))
+  void reset() { callback = nullptr; }
+
+private:
+  callback_t callback;
+};
+
+template <typename... Args>
+class base_observable
+{
+public:
+  using this_observer_t = observer<Args...>;
+
+  //! Subscribe Observer that is a callback
+  template <typename... Args2>
+  observer_id subscribe(Args2&&... args)
   {
-    return subscribe_common(
-        [&observer, trigger_method](Args... args) { (observer.*trigger_method)(std::forward<Args>(args)...); });
+    size_t id = 0;
+    for (auto& slot : observers) {
+      if (not static_cast<bool>(slot)) {
+        // empty slot found
+        slot = this_observer_t{std::forward<Args2>(args)...};
+        return id;
+      }
+      id++;
+    }
+    // append to end of list
+    observers.emplace_back(std::forward<Args2>(args)...);
+    return observers.size() - 1;
   }
 
   //! Unsubscribe Observer
@@ -87,33 +132,14 @@ public:
   void dispatch(Args... args)
   {
     for (auto& obs_callback : observers) {
-      if (obs_callback) {
-        obs_callback(std::forward<Args>(args)...);
-      }
+      obs_callback(std::forward<Args>(args)...);
     }
   }
 
 protected:
-  using observer_list_t = std::deque<callback_t>;
+  using observer_list_t = std::deque<this_observer_t>;
 
   ~base_observable() = default;
-
-  template <typename Callable>
-  observer_id subscribe_common(Callable&& callable)
-  {
-    size_t id = 0;
-    for (auto& slot : observers) {
-      if (not static_cast<bool>(slot)) {
-        // empty slot found
-        slot = std::forward<Callable>(callable);
-        return id;
-      }
-      id++;
-    }
-    // append to end of list
-    observers.emplace_back(std::forward<Callable>(callable));
-    return observers.size() - 1;
-  }
 
   observer_list_t observers;
 };
@@ -121,6 +147,9 @@ protected:
 template <typename... Args>
 class observable : public base_observable<Args...>
 {};
+
+template <typename Event>
+using event_observer = observer<const Event&>;
 
 //! Special case of observable for event types
 template <typename Event>

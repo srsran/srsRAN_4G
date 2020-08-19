@@ -55,16 +55,12 @@ public:
   explicit phy_controller(phy_interface_rrc_lte* phy_, srslte::task_sched_handle task_sched_);
 
   // PHY procedures interfaces
-  bool start_cell_select(const phy_cell_t& phy_cell);
-  bool start_cell_search();
+  bool start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer);
+  bool start_cell_search(srslte::event_observer<cell_srch_res> observer);
   void cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell);
   void cell_selection_completed(bool outcome);
   void in_sync();
   void out_sync() { trigger(out_sync_ev{}); }
-
-  // Event Observers
-  srslte::event_dispatcher<cell_srch_res> cell_search_observers;
-  srslte::event_dispatcher<bool>          cell_selection_observers;
 
   // state getters
   bool cell_is_camping() { return phy->cell_is_camping(); }
@@ -79,7 +75,7 @@ public:
 
     struct wait_csel_res {};
     struct wait_in_sync {
-      void enter(selecting_cell* f, const cell_sel_res& ev);
+      void enter(selecting_cell* f);
     };
 
     explicit selecting_cell(phy_controller* parent_);
@@ -118,8 +114,10 @@ public:
   };
 
 private:
-  phy_interface_rrc_lte*    phy = nullptr;
-  srslte::task_sched_handle task_sched;
+  phy_interface_rrc_lte*                  phy = nullptr;
+  srslte::task_sched_handle               task_sched;
+  srslte::event_observer<bool>            cell_selection_observer;
+  srslte::event_dispatcher<cell_srch_res> cell_search_observers;
 
 protected:
   state_list<unknown_st, in_sync_st, out_sync_st, searching_cell, selecting_cell> states{this,
