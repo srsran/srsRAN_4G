@@ -34,12 +34,7 @@ namespace srslte {
 class rlc_tm final : public rlc_common
 {
 public:
-  rlc_tm(srslte::log_ref            log_,
-         uint32_t                   lcid_,
-         srsue::pdcp_interface_rlc* pdcp_,
-         srsue::rrc_interface_rlc*  rrc_,
-         srslte::timer_handler*     timers_,
-         uint32_t                   queue_len = 16);
+  rlc_tm(srslte::log_ref log_, uint32_t lcid_, srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_);
   ~rlc_tm() override;
   bool configure(const rlc_config_t& cnfg) override;
   void stop() override;

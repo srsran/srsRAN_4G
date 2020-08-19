@@ -393,7 +393,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     if (cnfg.rat == srslte_rat_t::lte) {
       switch (cnfg.rlc_mode) {
         case rlc_mode_t::tm:
-          rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
+          rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc);
           break;
         case rlc_mode_t::am:
           rlc_entity = new rlc_am_lte(rlc_log, lcid, pdcp, rrc, timers);
@@ -412,7 +412,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
     } else if (cnfg.rat == srslte_rat_t::nr) {
       switch (cnfg.rlc_mode) {
         case rlc_mode_t::tm:
-          rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
+          rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc);
           break;
         case rlc_mode_t::um:
           rlc_entity = new rlc_um_nr(rlc_log, lcid, pdcp, rrc, timers);

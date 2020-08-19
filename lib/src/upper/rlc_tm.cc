@@ -23,17 +23,8 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(srslte::log_ref            log_,
-               uint32_t                   lcid_,
-               srsue::pdcp_interface_rlc* pdcp_,
-               srsue::rrc_interface_rlc*  rrc_,
-               srslte::timer_handler*     timers_,
-               uint32_t                   queue_len_) :
-  ul_queue(queue_len_),
-  log(log_),
-  pdcp(pdcp_),
-  rrc(rrc_),
-  lcid(lcid_)
+rlc_tm::rlc_tm(srslte::log_ref log_, uint32_t lcid_, srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_) :
+  log(log_), pdcp(pdcp_), rrc(rrc_), lcid(lcid_)
 {
   pool = byte_buffer_pool::get_instance();
 }
