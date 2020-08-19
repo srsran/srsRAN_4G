@@ -531,7 +531,7 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
       if ((device_mapping.carrier_idx + 1) * nof_antennas <= nof_channels) {
         cur_rx_freqs[device_mapping.carrier_idx] = freq;
         for (uint32_t i = 0; i < nof_antennas; i++) {
-          channel_mapping::device_mapping_t dm = rx_channel_mapping.get_device_mapping(carrier_idx, 0);
+          channel_mapping::device_mapping_t dm = rx_channel_mapping.get_device_mapping(carrier_idx, i);
           srslte_rf_set_rx_freq(&rf_devices[dm.device_idx], dm.channel_idx, freq + freq_offset);
         }
       } else {
