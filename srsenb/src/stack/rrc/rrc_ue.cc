@@ -767,9 +767,13 @@ void rrc::ue::send_connection_release()
   rrc_conn_release_r8_ies_s& rel_ies = rrc_release.crit_exts.set_c1().set_rrc_conn_release_r8();
   rel_ies.release_cause              = release_cause_e::other;
   if (is_csfb) {
-    rel_ies.redirected_carrier_info_present = true;
-    rel_ies.redirected_carrier_info.set_geran();
-    rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
+    if (parent->sib7.carrier_freqs_info_list.size() > 0) {
+      rel_ies.redirected_carrier_info_present = true;
+      rel_ies.redirected_carrier_info.set_geran();
+      rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
+    } else {
+      rel_ies.redirected_carrier_info_present = false;
+    }
   }
 
   send_dl_dcch(&dl_dcch_msg);
