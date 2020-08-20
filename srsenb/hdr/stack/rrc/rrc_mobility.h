@@ -87,9 +87,7 @@ public:
   const rrc* get_rrc() const { return rrc_ptr; }
 
   uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                                      srslte::byte_buffer_t&                                            ho_cmd,
-                                      std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs);
+                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
 
 private:
   // args
@@ -114,9 +112,7 @@ public:
 
   // S1-Handover
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
-                        const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                        srslte::byte_buffer_t&                                            ho_cmd,
-                        std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs);
+                        const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
   void set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs);
 
 private:
@@ -132,6 +128,7 @@ private:
                               uint32_t               target_enb_cc_idx,
                               asn1::rrc::meas_cfg_s* diff_meas_cfg);
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg, const cell_info_common& target_cell);
+  bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
 
   rrc::ue*                   rrc_ue  = nullptr;
   rrc*                       rrc_enb = nullptr;
@@ -150,7 +147,6 @@ private:
   };
   struct ho_req_rx_ev {
     const asn1::s1ap::ho_request_s*                                   ho_req_msg;
-    const asn1::rrc::ho_prep_info_r8_ies_s*                           ho_prep_r8;
     const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s* transparent_container;
   };
   using unsuccessful_outcome_ev = std::false_type;
@@ -165,10 +161,7 @@ private:
 
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
-  struct s1_target_ho_st {
-    srslte::unique_byte_buffer_t ho_cmd_pdu;
-    void                         enter(rrc_mobility* f, const ho_req_rx_ev& ho_req);
-  };
+  struct s1_target_ho_st {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     ho_meas_report_ev report;
 
@@ -207,6 +200,7 @@ private:
   void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
   void handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
   void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
+  void handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req);
 
 protected:
   // states
@@ -224,7 +218,7 @@ protected:
   // +----------------+----------------+--------------------+---------------------------+-------------------------+
   row< idle_st,         s1_source_ho_st, ho_meas_report_ev,  nullptr,                     &fsm::needs_s1_ho       >,
   row< idle_st,         intraenb_ho_st,  ho_meas_report_ev,  nullptr,                     &fsm::needs_intraenb_ho >,
-  row< idle_st,         s1_target_ho_st, ho_req_rx_ev                                                             >,
+  row< idle_st,         s1_target_ho_st, ho_req_rx_ev,       &fsm::handle_ho_req                                  >,
   // +----------------+----------------+--------------------+---------------------------+-------------------------+
   upd< intraenb_ho_st,                   user_crnti_upd_ev, &fsm::handle_crnti_ce                                 >,
   row< intraenb_ho_st,  idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >,

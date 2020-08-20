@@ -82,6 +82,11 @@ public:
     std::vector<bearer_status_info> bearer_list;
   } last_enb_status = {};
   std::vector<uint8_t> added_erab_ids;
+  struct ho_req_ack {
+    uint16_t                                     rnti;
+    srslte::unique_byte_buffer_t                 ho_cmd_pdu;
+    std::vector<asn1::fixed_octstring<4, true> > admitted_bearers;
+  } last_ho_req_ack;
 
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
@@ -94,6 +99,16 @@ public:
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override
   {
     last_enb_status = {true, rnti, bearer_status_list};
+    return true;
+  }
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
+                       uint16_t                                      rnti,
+                       srslte::unique_byte_buffer_t                  ho_cmd,
+                       srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) override
+  {
+    last_ho_req_ack.rnti       = rnti;
+    last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);
+    last_ho_req_ack.admitted_bearers.assign(admitted_bearers.begin(), admitted_bearers.end());
     return true;
   }
   void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override

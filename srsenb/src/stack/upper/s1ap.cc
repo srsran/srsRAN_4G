@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/upper/s1ap.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srslte/adt/scope_exit.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/common/logmap.h"
@@ -571,11 +572,7 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request: {
-      bool outcome = handle_ho_request(msg.value.ho_request());
-      if (not outcome) {
-        send_ho_failure(msg.value.ho_request().protocol_ies.mme_ue_s1ap_id.value.value);
-      }
-      return outcome;
+      return handle_ho_request(msg.value.ho_request());
     }
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
@@ -819,6 +816,14 @@ bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
   s1ap_log->info("Received S1 HO Request\n");
   s1ap_log->console("Received S1 HO Request\n");
 
+  // If user is not allocated, send handover failure
+  uint16_t rnti          = SRSLTE_INVALID_RNTI;
+  auto     on_scope_exit = srslte::make_scope_exit([this, &rnti, msg]() {
+    if (rnti == SRSLTE_INVALID_RNTI) {
+      send_ho_failure(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    }
+  });
+
   if (msg.ext or msg.protocol_ies.ho_restrict_list_present or
       msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
     s1ap_log->error("Not handling S1AP non-intra LTE handovers and extensions\n");
@@ -850,14 +855,8 @@ bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
   }
 
   // Handle Handover Resource Allocation
-  srslte::unique_byte_buffer_t                 ho_cmd = srslte::allocate_unique_buffer(*pool);
-  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
-  uint16_t rnti = rrc->start_ho_ue_resource_alloc(msg, container, *ho_cmd, admitted_erabs);
-  if (rnti == SRSLTE_INVALID_RNTI) {
-    return false;
-  }
-
-  return send_ho_req_ack(msg, rnti, std::move(ho_cmd), admitted_erabs);
+  rnti = rrc->start_ho_ue_resource_alloc(msg, container);
+  return rnti != SRSLTE_INVALID_RNTI;
 }
 
 bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)

@@ -1269,11 +1269,10 @@ proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
           rrc_ptr->meas_cells.serving_cell().has_sib3()) {
         // All SIBs are available
         return cell_criteria();
-      } else {
-        // Required SIBs are not available
-        Error("Failed to configure serving cell. Couldn't acquire SIBs.\n");
-        return proc_outcome_t::error;
       }
+      // Required SIBs are not available
+      Error("Failed to configure serving cell. Couldn't acquire SIBs.\n");
+      return proc_outcome_t::error;
     } else {
       // Out-of-sync, relaunch reselection
       Info("Serving cell is out-of-sync, re-launching re-selection procedure\n");

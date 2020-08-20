@@ -105,6 +105,13 @@ public:
   {
     return true;
   }
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
+                       uint16_t                                      rnti,
+                       srslte::unique_byte_buffer_t                  ho_cmd,
+                       srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) override
+  {
+    return true;
+  }
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override {}
 };
 

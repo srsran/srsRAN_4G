@@ -436,9 +436,7 @@ public:
   virtual void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t container) = 0;
   virtual uint16_t
                start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                          const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                                          srslte::byte_buffer_t&                                            ho_cmd,
-                                          std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)           = 0;
+                                          const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) = 0;
   virtual void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) = 0;
 };
 
@@ -509,6 +507,13 @@ public:
    * @return true if successful
    */
   virtual bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) = 0;
+
+  /* Acknowledge Handover Request message back to MME.
+   * This message signals the completion of the HandoverPreparation from the TeNB point of view. */
+  virtual bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
+                               uint16_t                                      rnti,
+                               srslte::unique_byte_buffer_t                  ho_cmd,
+                               srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) = 0;
 
   /**
    * Notify MME that Handover is complete

@@ -479,9 +479,7 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   // 0a100b818000018000f3020800001580001406a402f00404f00014804a000000021231b6f83ea06f05e465141d39d0544c00025400200460000000100100c000000000020500041400670dfbc46606500f00080020800c14ca2d5ce1863539800e06a4400f2278
   container.rrc_container.resize(sizeof(ho_prep_container));
   memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
-  pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
-  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
-  tester.rrc.start_ho_ue_resource_alloc(ho_req, container, *pdu, admitted_erabs);
+  tester.rrc.start_ho_ue_resource_alloc(ho_req, container);
   tester.tic();
   TESTASSERT(tester.rrc.get_nof_users() == 1);
   TESTASSERT(tester.mac.ue_db.count(0x46));
@@ -505,8 +503,13 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.cipher_algo == as_sec_cfg.cipher_algo);
   TESTASSERT(tester.pdcp.bearers[0x46][rb_id_t::RB_ID_SRB1].sec_cfg.integ_algo == as_sec_cfg.integ_algo);
 
+  // Check if S1AP Handover Request ACK send is called
+  TESTASSERT(tester.s1ap.last_ho_req_ack.rnti == 0x46);
+  TESTASSERT(tester.s1ap.last_ho_req_ack.ho_cmd_pdu != nullptr);
+  TESTASSERT(tester.s1ap.last_ho_req_ack.admitted_bearers.size() ==
+             ho_req.protocol_ies.erab_to_be_setup_list_ho_req.value.size());
   ho_cmd_s       ho_cmd;
-  asn1::cbit_ref bref{pdu->msg, pdu->N_bytes};
+  asn1::cbit_ref bref{tester.s1ap.last_ho_req_ack.ho_cmd_pdu->msg, tester.s1ap.last_ho_req_ack.ho_cmd_pdu->N_bytes};
   TESTASSERT(ho_cmd.unpack(bref) == asn1::SRSASN_SUCCESS);
   bref = asn1::cbit_ref{ho_cmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.data(),
                         ho_cmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size()};

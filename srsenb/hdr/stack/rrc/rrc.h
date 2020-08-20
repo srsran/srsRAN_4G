@@ -80,19 +80,18 @@ public:
   void max_retx_attempted(uint16_t rnti) override;
 
   // rrc_interface_s1ap
-  void     write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu) override;
-  void     release_complete(uint16_t rnti) override;
-  bool     setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
-  bool     modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
-  bool     setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;
-  bool     release_erabs(uint32_t rnti) override;
-  void     add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
-  void     ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
-  uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-                                      srslte::byte_buffer_t&                                            ho_cmd,
-                                      std::vector<asn1::fixed_octstring<4, true> >& admitted_erabs) override;
-  void     set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override;
+  void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu) override;
+  void release_complete(uint16_t rnti) override;
+  bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
+  bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
+  bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;
+  bool release_erabs(uint32_t rnti) override;
+  void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
+  void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
+  uint16_t
+       start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                  const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override;
+  void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
@@ -100,7 +99,7 @@ public:
   uint32_t get_nof_users();
 
   // logging
-  typedef enum { Rx = 0, Tx, S1AP, fromS1AP } direction_t;
+  typedef enum { Rx = 0, Tx, toS1AP, fromS1AP } direction_t;
   template <class T>
   void log_rrc_message(const std::string&           source,
                        const direction_t            dir,

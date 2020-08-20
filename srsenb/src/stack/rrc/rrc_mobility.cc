@@ -469,11 +469,18 @@ rrc::enb_mobility_handler::enb_mobility_handler(rrc* rrc_) : rrc_ptr(rrc_), cfg(
   }
 }
 
+/**
+ * Description: Handover Request Handling
+ *             - Allocation of RNTI
+ *             - Apply HandoverPreparation container to created UE state
+ *             - Apply target cell config to UE state
+ *             - Preparation of HandoverCommand that goes inside the transparent container of HandoverRequestAck
+ *             - Response from TeNB on whether it was able to allocate resources for user doing handover
+ * @return rnti of created ue
+ */
 uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
     const asn1::s1ap::ho_request_s&                                   msg,
-    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-    srslte::byte_buffer_t&                                            ho_cmd,
-    std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)
+    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container)
 {
   // TODO: Decision Making on whether the same QoS of the source eNB can be provided by target eNB
 
@@ -515,10 +522,7 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
 
   // TODO: KeNB derivations
 
-  if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container, ho_cmd, admitted_erabs)) {
-    return SRSLTE_INVALID_RNTI;
-  }
-  return rnti;
+  return ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container) ? rnti : SRSLTE_INVALID_RNTI;
 }
 
 /*************************************************************************************************
@@ -747,49 +751,12 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
   trigger(std::move(container));
 }
 
-/**
- * Description: Handover Requested Acknowledgment (with success or failure)
- *             - TeNB --> MME
- *             - Response from TeNB on whether it was able to allocate resources for user doing handover
- *             - Preparation of HandoverCommand that goes inside the transparent container
- * @return rnti of created ue
- */
 bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
     const asn1::s1ap::ho_request_s&                                   msg,
-    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
-    srslte::byte_buffer_t&                                            ho_cmd_pdu,
-    std::vector<asn1::fixed_octstring<4, true> >&                     admitted_erabs)
+    const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container)
 {
-  /* TS 36.331 10.2.2. - Decode HandoverPreparationInformation */
-  asn1::cbit_ref            bref{container.rrc_container.data(), container.rrc_container.size()};
-  asn1::rrc::ho_prep_info_s hoprep;
-  if (hoprep.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    rrc_enb->rrc_log->error("Failed to decode HandoverPreparatiobinformation in S1AP SourceENBToTargetENBContainer\n");
-    return false;
-  }
-  if (hoprep.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
-      hoprep.crit_exts.c1().type().value != ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::ho_prep_info_r8) {
-    rrc_enb->rrc_log->error("Only release 8 supported\n");
-    return false;
-  }
-  const ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.c1().ho_prep_info_r8();
-  rrc_enb->log_rrc_message(
-      "HandoverPreparation", direction_t::fromS1AP, container.rrc_container, hoprep, "HandoverPreparation");
-
-  trigger(ho_req_rx_ev{&msg, &hoprep_r8, &container});
-
-  for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
-    admitted_erabs.emplace_back();
-    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erabs.back().data());
-  }
-
-  if (is_in_state<s1_target_ho_st>()) {
-    srslte::unique_byte_buffer_t pdu = std::move(get_state<s1_target_ho_st>()->ho_cmd_pdu);
-    memcpy(ho_cmd_pdu.msg, pdu->msg, pdu->N_bytes);
-    ho_cmd_pdu.N_bytes = pdu->N_bytes;
-    return true;
-  }
-  return false;
+  trigger(ho_req_rx_ev{&msg, &container});
+  return is_in_state<s1_target_ho_st>();
 }
 
 void rrc::ue::rrc_mobility::set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)
@@ -923,6 +890,9 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   auto& ant_info                                    = recfg_r8.rr_cfg_ded.phys_cfg_ded.ant_info.set_explicit_value();
   ant_info.tx_mode.value                            = ant_info_ded_s::tx_mode_e_::tm1;
   ant_info.ue_tx_ant_sel.set(setup_e::release);
+
+  // Add MeasConfig of target cell
+  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(*ue_var_meas, target_cell.enb_cc_idx, &recfg_r8.meas_cfg);
 }
 
 /**
@@ -1059,102 +1029,60 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::status_transfer_st::enter(s1_source
  *   s1_target_ho state methods
  *************************************/
 
-void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req_rx_ev& ho_req)
+void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req)
 {
-  const cell_ctxt_dedicated*      target_cell     = f->rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const cell_cfg_t&               target_cell_cfg = target_cell->cell_common->cell_cfg;
-  const asn1::rrc::rr_cfg_ded_s&  src_rr_cfg      = ho_req.ho_prep_r8->as_cfg.source_rr_cfg;
-  const asn1::s1ap::ho_request_s& msg             = *ho_req.ho_req_msg;
+  const auto& rrc_container = ho_req.transparent_container->rrc_container;
 
-  // Establish SRBs
-  if (src_rr_cfg.srb_to_add_mod_list_present) {
-    for (auto& srb : src_rr_cfg.srb_to_add_mod_list) {
-      f->rrc_ue->bearer_list.add_srb(srb.srb_id);
-    }
+  /* TS 36.331 10.2.2. - Decode HandoverPreparationInformation */
+  asn1::cbit_ref            bref{rrc_container.data(), rrc_container.size()};
+  asn1::rrc::ho_prep_info_s hoprep;
+  if (hoprep.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    rrc_enb->rrc_log->error("Failed to decode HandoverPreparationinformation in S1AP SourceENBToTargetENBContainer\n");
+    trigger(srslte::failure_ev{});
+    return;
   }
-
-  // Establish ERABs/DRBs
-  for (const auto& erab_item : msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
-    auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
-    if (erab.ext) {
-      f->log_h->warning("Not handling E-RABToBeSetupList extensions\n");
-    }
-    if (erab.transport_layer_address.length() > 32) {
-      f->log_h->error("IPv6 addresses not currently supported\n");
-      f->trigger(srslte::failure_ev{});
-      return;
-    }
-
-    if (not erab.ie_exts_present or not erab.ie_exts.data_forwarding_not_possible_present or
-        erab.ie_exts.data_forwarding_not_possible.ext.value !=
-            asn1::s1ap::data_forwarding_not_possible_opts::data_forwarding_not_possible) {
-      f->log_h->warning("Data Forwarding of E-RABs not supported\n");
-    }
-
-    uint32_t teid_out;
-    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    f->rrc_ue->bearer_list.add_erab(
-        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr);
-    f->rrc_ue->bearer_list.add_gtpu_bearer(f->rrc_enb->gtpu, erab.erab_id);
+  if (hoprep.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
+      hoprep.crit_exts.c1().type().value != ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::ho_prep_info_r8) {
+    rrc_enb->rrc_log->error("Only release 8 supported\n");
+    trigger(srslte::failure_ev{});
+    return;
   }
+  rrc_enb->log_rrc_message("HandoverPreparation", direction_t::fromS1AP, rrc_container, hoprep, "HandoverPreparation");
 
-  // Regenerate AS Keys
-  f->rrc_ue->ue_security_cfg.set_security_capabilities(ho_req.ho_req_msg->protocol_ies.ue_security_cap.value);
-  f->rrc_ue->ue_security_cfg.set_security_key(ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_param);
-  f->rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
+  /* Setup UE current state in TeNB based on HandoverPreparation message */
+  const ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.c1().ho_prep_info_r8();
+  if (not apply_ho_prep_cfg(hoprep_r8, *ho_req.ho_req_msg)) {
+    return;
+  }
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
-  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg_s              dl_dcch_msg;
+  const cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
-  // Fill fields common to all types of handover
-  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common);
+  // Fill fields common to all types of handover (e.g. new CQI/SR configuration, mobControlInfo)
+  fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  // Encode MeasConfig
-  var_meas_cfg_t current_var_meas = var_meas_cfg_t::make(ho_req.ho_prep_r8->as_cfg.source_meas_cfg);
-  recfg_r8.meas_cfg_present =
-      f->update_ue_var_meas_cfg(current_var_meas, target_cell->cell_common->enb_cc_idx, &recfg_r8.meas_cfg);
-
+  // Apply new Security Config based on HandoverRequest
   recfg_r8.security_cfg_ho_present = true;
   recfg_r8.security_cfg_ho.handov_type.set(security_cfg_ho_s::handov_type_c_::types_opts::intra_lte);
   recfg_r8.security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg_present = true;
   recfg_r8.security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg =
-      f->rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
+      rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   recfg_r8.security_cfg_ho.handov_type.intra_lte().key_change_ind = false;
   recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count =
       ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_chaining_count;
 
-  /* Configure layers based on Reconfig Message */
-  // UE Capabilities
-  for (const auto& cap : ho_req.ho_prep_r8->ue_radio_access_cap_info) {
-    if (cap.rat_type.value == rat_type_opts::eutra) {
-      asn1::cbit_ref bref(cap.ue_cap_rat_container.data(), cap.ue_cap_rat_container.size());
-      if (f->rrc_ue->eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
-        f->rrc_log->warning("Failed to unpack UE EUTRA Capability\n");
-        continue;
-      }
-      f->rrc_ue->eutra_capabilities_unpacked = true;
-    }
-  }
-
-  // Update RLC + PDCP
-  f->rrc_ue->bearer_list.apply_pdcp_bearer_updates(f->rrc_enb->pdcp, f->rrc_ue->ue_security_cfg);
-  f->rrc_ue->bearer_list.apply_rlc_bearer_updates(f->rrc_enb->rlc);
-  // Update MAC
-  f->rrc_ue->mac_ctrl->handle_ho_prep(*ho_req.ho_prep_r8, recfg_r8);
-  // Apply PHY updates
-  f->rrc_ue->apply_reconf_phy_config(recfg_r8);
-
   /* Prepare Handover Command to be sent via S1AP */
-  ho_cmd_pdu = srslte::allocate_unique_buffer(*f->pool);
-  asn1::bit_ref bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
+  srslte::unique_byte_buffer_t ho_cmd_pdu = srslte::allocate_unique_buffer(*pool);
+  asn1::bit_ref                bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
-    f->rrc_log->error("Failed to pack HandoverCommand\n");
-    f->trigger(srslte::failure_ev{});
+    rrc_log->error("Failed to pack HandoverCommand\n");
+    trigger(srslte::failure_ev{});
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
-  f->rrc_enb->log_rrc_message("RRC container", direction_t::S1AP, ho_cmd_pdu.get(), dl_dcch_msg, "HandoverCommand");
+  rrc_enb->log_rrc_message("RRC container", direction_t::toS1AP, ho_cmd_pdu.get(), dl_dcch_msg, "HandoverCommand");
 
   asn1::rrc::ho_cmd_s         ho_cmd;
   asn1::rrc::ho_cmd_r8_ies_s& ho_cmd_r8 = ho_cmd.crit_exts.set_c1().set_ho_cmd_r8();
@@ -1162,11 +1090,93 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
   memcpy(ho_cmd_r8.ho_cmd_msg.data(), ho_cmd_pdu->msg, bref2.distance_bytes());
   bref2 = {ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
-    f->rrc_log->error("Failed to pack HandoverCommand\n");
-    f->trigger(srslte::failure_ev{});
+    rrc_log->error("Failed to pack HandoverCommand\n");
+    trigger(srslte::failure_ev{});
     return;
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
+
+  /* Configure remaining layers based on pending changes */
+  // Update RLC + PDCP
+  rrc_ue->bearer_list.apply_pdcp_bearer_updates(rrc_enb->pdcp, rrc_ue->ue_security_cfg);
+  rrc_ue->bearer_list.apply_rlc_bearer_updates(rrc_enb->rlc);
+  // Update MAC
+  rrc_ue->mac_ctrl->handle_ho_prep(hoprep_r8, recfg_r8);
+  // Apply PHY updates
+  rrc_ue->apply_reconf_phy_config(recfg_r8);
+
+  /* send S1AP HandoverRequestAcknowledge */
+  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
+  for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
+    admitted_erabs.emplace_back();
+    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erabs.back().data());
+  }
+  if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg, rrc_ue->rnti, std::move(ho_cmd_pdu), admitted_erabs)) {
+    trigger(srslte::failure_ev{});
+    return;
+  }
+}
+
+bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho_prep,
+                                              const asn1::s1ap::ho_request_s& ho_req_msg)
+{
+  const cell_ctxt_dedicated*     target_cell     = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const cell_cfg_t&              target_cell_cfg = target_cell->cell_common->cell_cfg;
+  const asn1::rrc::rr_cfg_ded_s& src_rr_cfg      = ho_prep.as_cfg.source_rr_cfg;
+
+  // Establish SRBs
+  if (src_rr_cfg.srb_to_add_mod_list_present) {
+    for (auto& srb : src_rr_cfg.srb_to_add_mod_list) {
+      rrc_ue->bearer_list.add_srb(srb.srb_id);
+    }
+  }
+
+  // Establish ERABs/DRBs
+  for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
+    auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
+    if (erab.ext) {
+      get_log()->warning("Not handling E-RABToBeSetupList extensions\n");
+    }
+    if (erab.transport_layer_address.length() > 32) {
+      get_log()->error("IPv6 addresses not currently supported\n");
+      trigger(srslte::failure_ev{});
+      return false;
+    }
+
+    if (not erab.ie_exts_present or not erab.ie_exts.data_forwarding_not_possible_present or
+        erab.ie_exts.data_forwarding_not_possible.ext.value !=
+            asn1::s1ap::data_forwarding_not_possible_opts::data_forwarding_not_possible) {
+      get_log()->warning("Data Forwarding of E-RABs not supported\n");
+    }
+
+    uint32_t teid_out;
+    srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    rrc_ue->bearer_list.add_erab(
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr);
+    rrc_ue->bearer_list.add_gtpu_bearer(rrc_enb->gtpu, erab.erab_id);
+  }
+
+  // Regenerate AS Keys
+  rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg.protocol_ies.ue_security_cap.value);
+  rrc_ue->ue_security_cfg.set_security_key(ho_req_msg.protocol_ies.security_context.value.next_hop_param);
+  rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
+
+  // Save UE Capabilities
+  for (const auto& cap : ho_prep.ue_radio_access_cap_info) {
+    if (cap.rat_type.value == rat_type_opts::eutra) {
+      asn1::cbit_ref bref(cap.ue_cap_rat_container.data(), cap.ue_cap_rat_container.size());
+      if (rrc_ue->eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
+        rrc_log->warning("Failed to unpack UE EUTRA Capability\n");
+        continue;
+      }
+      rrc_ue->eutra_capabilities_unpacked = true;
+    }
+  }
+
+  // Save measConfig
+  ue_var_meas = std::make_shared<var_meas_cfg_t>(var_meas_cfg_t::make(ho_prep.as_cfg.source_meas_cfg));
+
+  return true;
 }
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev)
@@ -1224,11 +1234,6 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
   f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell);
-  auto& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-
-  // Add MeasConfig of target cell
-  auto prev_meas_var        = f->ue_var_meas;
-  recfg_r8.meas_cfg_present = f->update_ue_var_meas_cfg(*f->ue_var_meas, target_cell->enb_cc_idx, &recfg_r8.meas_cfg);
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
