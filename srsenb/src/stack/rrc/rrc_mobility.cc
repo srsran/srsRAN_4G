@@ -503,6 +503,10 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
 
   // Register new user in RRC
   rrc_ptr->add_user(rnti, ue_cfg);
+  auto it     = rrc_ptr->users.find(rnti);
+  ue*  ue_ptr = it->second.get();
+  // Reset activity timer (Response is not expected)
+  ue_ptr->set_activity_timeout(ue::UE_INACTIVITY_TIMEOUT);
 
   //  /* Setup e-RABs & DRBs / establish an UL/DL S1 bearer to the S-GW */
   //  if (not setup_ue_erabs(rnti, msg)) {
@@ -511,12 +515,6 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
 
   // TODO: KeNB derivations
 
-  auto it = rrc_ptr->users.find(rnti);
-  if (it == rrc_ptr->users.end()) {
-    rrc_ptr->rrc_log->error("Did not find rnti=0x%x in ue_db\n", rnti);
-    return SRSLTE_INVALID_RNTI;
-  }
-  ue* ue_ptr = it->second.get();
   if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container, ho_cmd, admitted_erabs)) {
     return SRSLTE_INVALID_RNTI;
   }
@@ -684,45 +682,15 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
   empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
   // - fill source RR Config
-  hoprep_r8.as_cfg.source_rr_cfg.sps_cfg_present = false; // TODO: CHECK
-  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg_present =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.mac_main_cfg_present;
-  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.mac_main_cfg;
-  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded_present =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.phys_cfg_ded_present;
-  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.phys_cfg_ded;
-  // Add SRBs to the message
+  rrc_ue->fill_rrc_setup_rr_config_dedicated(&hoprep_r8.as_cfg.source_rr_cfg);
+  // Add already established SRBs to the message
   hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
   hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list         = rrc_ue->bearer_list.get_established_srbs();
-  //  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
-  //  asn1::rrc::srb_to_add_mod_list_l& srb_list                 = hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list;
-  //  srb_list.resize(1);
-  //  srb_list[0].srb_id            = 2;
-  //  srb_list[0].lc_ch_cfg_present = true;
-  //  srb_list[0].lc_ch_cfg.set(asn1::rrc::srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value);
-  //  srb_list[0].rlc_cfg_present = true;
-  //  srb_list[0].rlc_cfg.set_explicit_value();
-  //  auto& am = srb_list[0].rlc_cfg.explicit_value().set_am(); // TODO: Which rlc cfg??? I took from a pcap for now
-  //  am.ul_am_rlc.t_poll_retx             = asn1::rrc::t_poll_retx_e::ms60;
-  //  am.ul_am_rlc.poll_pdu                = asn1::rrc::poll_pdu_e::p_infinity;
-  //  am.ul_am_rlc.poll_byte.value         = asn1::rrc::poll_byte_e::kbinfinity;
-  //  am.ul_am_rlc.max_retx_thres.value    = asn1::rrc::ul_am_rlc_s::max_retx_thres_e_::t32;
-  //  am.dl_am_rlc.t_reordering.value      = asn1::rrc::t_reordering_e::ms45;
-  //  am.dl_am_rlc.t_status_prohibit.value = asn1::rrc::t_status_prohibit_e::ms0;
-  // Get DRB1 configuration
+  // Get DRBs configuration
+  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list = rrc_ue->bearer_list.get_established_drbs();
   hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.drb_to_add_mod_list_present;
-  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list =
-      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.drb_to_add_mod_list;
-  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present = true;
-  //  asn1::rrc::drb_to_add_mod_list_l& drb_list                 = hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list;
-  //  drb_list.resize(1);
-  //  rrc_ue->get_drbid_config(&hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list[0], 1);
-  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list_present = true;
-  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list.resize(1);
-  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list[0] = 1;
+      hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list.size() > 0;
+  // Get security cfg
   hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);
   asn1::number_to_enum(hoprep_r8.as_cfg.source_mib.dl_bw, rrc_enb->cfg.cell.nof_prb);
@@ -1111,13 +1079,16 @@ void rrc::ue::rrc_mobility::s1_target_ho_st::enter(rrc_mobility* f, const ho_req
     if (erab.ext) {
       f->log_h->warning("Not handling E-RABToBeSetupList extensions\n");
     }
-    if (erab.ie_exts_present) {
-      f->log_h->warning("Not handling E-RABToBeSetupList extensions\n");
-    }
     if (erab.transport_layer_address.length() > 32) {
       f->log_h->error("IPv6 addresses not currently supported\n");
       f->trigger(srslte::failure_ev{});
       return;
+    }
+
+    if (not erab.ie_exts_present or not erab.ie_exts.data_forwarding_not_possible_present or
+        erab.ie_exts.data_forwarding_not_possible.ext.value !=
+            asn1::s1ap::data_forwarding_not_possible_opts::data_forwarding_not_possible) {
+      f->log_h->warning("Data Forwarding of E-RABs not supported\n");
     }
 
     uint32_t teid_out;
