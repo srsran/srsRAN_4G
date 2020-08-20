@@ -570,25 +570,25 @@ float sch_subh::get_phr()
   }
 }
 
-int sch_subh::get_bsr(uint32_t buff_size[4])
+int sch_subh::get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4])
 {
   if (payload) {
     uint32_t nonzero_lcg = 0;
     if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
-      buff_size[0] = (payload[0] & 0xFC) >> 2;
-      buff_size[1] = (payload[0] & 0x03) << 4 | (payload[1] & 0xF0) >> 4;
-      buff_size[2] = (payload[1] & 0x0F) << 4 | (payload[1] & 0xC0) >> 6;
-      buff_size[3] = (payload[2] & 0x3F);
+      buff_size_idx[0] = (payload[0] & 0xFC) >> 2;
+      buff_size_idx[1] = (payload[0] & 0x03) << 4 | (payload[1] & 0xF0) >> 4;
+      buff_size_idx[2] = (payload[1] & 0x0F) << 4 | (payload[1] & 0xC0) >> 6;
+      buff_size_idx[3] = (payload[2] & 0x3F);
     } else {
       nonzero_lcg                = (payload[0] & 0xc0) >> 6;
-      buff_size[nonzero_lcg % 4] = payload[0] & 0x3f;
+      buff_size_idx[nonzero_lcg % 4] = payload[0] & 0x3f;
     }
     for (int i = 0; i < 4; i++) {
-      if (buff_size[i]) {
-        if (buff_size[i] < 63) {
-          buff_size[i] = btable[1 + buff_size[i]];
+      if (buff_size_idx[i] > 0) {
+        if (buff_size_idx[i] < 63) {
+          buff_size_bytes[i] = btable[1 + buff_size_idx[i]];
         } else {
-          buff_size[i] = btable[63];
+          buff_size_bytes[i] = btable[63];
         }
       }
     }

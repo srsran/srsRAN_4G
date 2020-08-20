@@ -322,7 +322,7 @@ public:
   uint8_t  get_ta_cmd();
   uint8_t  get_activation_deactivation_cmd();
   float    get_phr();
-  int      get_bsr(uint32_t buff_size[4]);
+  int      get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4]);
 
   bool get_next_mch_sched_info(uint8_t* lcid, uint16_t* mtch_stop);
 

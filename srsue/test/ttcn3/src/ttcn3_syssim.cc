@@ -639,7 +639,8 @@ bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
 {
   uint16_t rnti = dl_rnti;
 
-  uint32_t buff_size[4] = {0, 0, 0, 0};
+  uint32_t buff_size_idx[4]   = {};
+  uint32_t buff_size_bytes[4] = {};
   float    phr          = 0;
   int32_t  idx          = 0;
   uint16_t old_rnti     = 0;
@@ -655,7 +656,7 @@ bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
       break;
     case srslte::ul_sch_lcid::TRUNC_BSR:
     case srslte::ul_sch_lcid::SHORT_BSR:
-      idx = subh->get_bsr(buff_size);
+      idx = subh->get_bsr(buff_size_idx, buff_size_bytes);
       if (idx == -1) {
         ss_mac_log->error("Invalid Index Passed to lc groups\n");
         break;
@@ -664,18 +665,18 @@ bool ttcn3_syssim::process_ce(srslte::sch_subh* subh)
                        subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
                        rnti,
                        idx,
-                       buff_size[idx]);
+                       buff_size_idx[idx]);
       is_bsr = true;
       break;
     case srslte::ul_sch_lcid::LONG_BSR:
-      subh->get_bsr(buff_size);
+      subh->get_bsr(buff_size_idx, buff_size_bytes);
       is_bsr = true;
       ss_mac_log->info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
                        rnti,
-                       buff_size[0],
-                       buff_size[1],
-                       buff_size[2],
-                       buff_size[3]);
+                       buff_size_idx[0],
+                       buff_size_idx[1],
+                       buff_size_idx[2],
+                       buff_size_idx[3]);
       break;
     case srslte::ul_sch_lcid::PADDING:
       ss_mac_log->debug("CE:    Received padding for rnti=0x%x\n", rnti);

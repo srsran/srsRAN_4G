@@ -332,7 +332,8 @@ void ue::push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len)
 
 bool ue::process_ce(srslte::sch_subh* subh)
 {
-  uint32_t buff_size[4] = {0, 0, 0, 0};
+  uint32_t buff_size_idx[4]   = {};
+  uint32_t buff_size_bytes[4] = {};
   float    phr          = 0;
   int32_t  idx          = 0;
   uint16_t old_rnti     = 0;
@@ -356,32 +357,33 @@ bool ue::process_ce(srslte::sch_subh* subh)
       break;
     case srslte::ul_sch_lcid::TRUNC_BSR:
     case srslte::ul_sch_lcid::SHORT_BSR:
-      idx = subh->get_bsr(buff_size);
+      idx = subh->get_bsr(buff_size_idx, buff_size_bytes);
       if (idx == -1) {
         Error("Invalid Index Passed to lc groups\n");
         break;
       }
       // Indicate BSR to scheduler
-      sched->ul_bsr(rnti, idx, buff_size[idx]);
-      Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
+      sched->ul_bsr(rnti, idx, buff_size_bytes[idx]);
+      Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d (%d B)\n",
            subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
            rnti,
            idx,
-           buff_size[idx]);
+           buff_size_idx[idx],
+           buff_size_bytes[idx]);
       is_bsr = true;
       break;
     case srslte::ul_sch_lcid::LONG_BSR:
-      subh->get_bsr(buff_size);
+      subh->get_bsr(buff_size_idx, buff_size_bytes);
       for (idx = 0; idx < sched_interface::MAX_LC_GROUP; ++idx) {
-        sched->ul_bsr(rnti, idx, buff_size[idx]);
+        sched->ul_bsr(rnti, idx, buff_size_bytes[idx]);
       }
       is_bsr = true;
       Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
            rnti,
-           buff_size[0],
-           buff_size[1],
-           buff_size[2],
-           buff_size[3]);
+           buff_size_idx[0],
+           buff_size_idx[1],
+           buff_size_idx[2],
+           buff_size_idx[3]);
       break;
     case srslte::ul_sch_lcid::PADDING:
       Debug("CE:    Received padding for rnti=0x%x\n", rnti);
