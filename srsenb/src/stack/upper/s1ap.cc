@@ -571,9 +571,8 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_erabsetuprequest(msg.value.erab_setup_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
-    case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request: {
+    case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request:
       return handle_ho_request(msg.value.ho_request());
-    }
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
     default:
@@ -589,6 +588,9 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
       return handle_s1setupresponse(msg.value.s1_setup_resp());
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cmd:
       return handle_s1hocommand(msg.value.ho_cmd());
+    case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cancel_ack:
+      s1ap_log->info("Received %s\n", msg.value.type().to_string().c_str());
+      return true;
     default:
       s1ap_log->error("Unhandled successful outcome message: %s\n", msg.value.type().to_string().c_str());
   }
@@ -813,12 +815,13 @@ bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
 
 bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
 {
+  uint16_t rnti = SRSLTE_INVALID_RNTI;
+
   s1ap_log->info("Received S1 HO Request\n");
   s1ap_log->console("Received S1 HO Request\n");
 
-  // If user is not allocated, send handover failure
-  uint16_t rnti          = SRSLTE_INVALID_RNTI;
-  auto     on_scope_exit = srslte::make_scope_exit([this, &rnti, msg]() {
+  auto on_scope_exit = srslte::make_scope_exit([this, &rnti, msg]() {
+    // If rnti is not allocated successfully, remove from s1ap and send handover failure
     if (rnti == SRSLTE_INVALID_RNTI) {
       send_ho_failure(msg.protocol_ies.mme_ue_s1ap_id.value.value);
     }
@@ -861,6 +864,12 @@ bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
 
 bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
 {
+  // Remove created s1ap user
+  ue* u = users.find_ue_mmeid(mme_ue_s1ap_id);
+  if (u != nullptr) {
+    users.erase(u);
+  }
+
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
   ho_fail_ies_container& container = tx_pdu.unsuccessful_outcome().value.ho_fail().protocol_ies;
@@ -954,6 +963,25 @@ void s1ap::send_ho_notify(uint16_t rnti, uint64_t target_eci)
   container.tai.value = tai;
 
   sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverNotify");
+}
+
+void s1ap::send_ho_cancel(uint16_t rnti)
+{
+  ue* user_ptr = users.find_ue_rnti(rnti);
+  if (user_ptr == nullptr) {
+    return;
+  }
+
+  s1ap_pdu_c tx_pdu;
+
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_CANCEL);
+  ho_cancel_ies_container& container = tx_pdu.init_msg().value.ho_cancel().protocol_ies;
+
+  container.mme_ue_s1ap_id.value                  = user_ptr->ctxt.mme_ue_s1ap_id;
+  container.enb_ue_s1ap_id.value                  = user_ptr->ctxt.enb_ue_s1ap_id;
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_cancelled;
+
+  sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverCancel");
 }
 
 /*******************************************************************************

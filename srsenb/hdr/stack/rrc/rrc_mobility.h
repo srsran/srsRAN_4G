@@ -103,6 +103,7 @@ public:
     uint16_t crnti;
     uint16_t temp_crnti;
   };
+  struct ho_cancel_ev {};
 
   explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
   bool fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
@@ -164,6 +165,7 @@ private:
   struct s1_target_ho_st {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     ho_meas_report_ev report;
+    using ho_cmd_msg = srslte::unique_byte_buffer_t;
 
     struct wait_ho_req_ack_st {
       void enter(s1_source_ho_st* f, const ho_meas_report_ev& ev);
@@ -175,19 +177,23 @@ private:
     explicit s1_source_ho_st(rrc_mobility* parent_) : base_t(parent_) {}
 
   private:
-    bool send_ho_cmd(wait_ho_req_ack_st& s, const srslte::unique_byte_buffer_t& container);
+    bool send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_msg& container);
+    void handle_ho_cancel(wait_ho_req_ack_st& s, const ho_cancel_ev& ev);
+    void handle_ho_cancel(status_transfer_st& s, const ho_cancel_ev& ev);
 
   protected:
     using fsm = s1_source_ho_st;
     state_list<wait_ho_req_ack_st, status_transfer_st> states{this};
     // clang-format off
     using transitions = transition_table<
-    //           Start                 Target                   Event               Action    Guard
-    //      +-------------------+------------------+------------------------------+---------+---------------------+
-    to_state<                     idle_st,            srslte::failure_ev                                          >,
-         row< wait_ho_req_ack_st, status_transfer_st, srslte::unique_byte_buffer_t, nullptr, &fsm::send_ho_cmd    >,
-         row< wait_ho_req_ack_st, idle_st           , srslte::unique_byte_buffer_t                                >
-    //      +-------------------+------------------+------------------------------+---------+---------------------+
+    //           Start                 Target                   Event       Action                 Guard
+    //      +-------------------+------------------+---------------------+-----------------------+---------------------+
+    to_state<                     idle_st,            srslte::failure_ev                                               >,
+         row< wait_ho_req_ack_st, status_transfer_st, ho_cmd_msg,          nullptr,               &fsm::send_ho_cmd    >,
+         row< wait_ho_req_ack_st, idle_st,            ho_cmd_msg                                                       >,
+         row< wait_ho_req_ack_st, idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >,
+         row< status_transfer_st, idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >
+    //      +-------------------+------------------+---------------------+-----------------------+---------------------+
     >;
     // clang-format on
   };

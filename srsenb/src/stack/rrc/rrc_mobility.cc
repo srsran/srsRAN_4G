@@ -522,7 +522,11 @@ uint16_t rrc::enb_mobility_handler::start_ho_ue_resource_alloc(
 
   // TODO: KeNB derivations
 
-  return ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container) ? rnti : SRSLTE_INVALID_RNTI;
+  if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container)) {
+    rrc_ptr->rem_user_thread(rnti);
+    return SRSLTE_INVALID_RNTI;
+  }
+  return rnti;
 }
 
 /*************************************************************************************************
@@ -1011,6 +1015,18 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st&    
   }
 
   return true;
+}
+
+//! Called in Source ENB during S1-Handover when there was a Reestablishment Request
+void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(wait_ho_req_ack_st& s, const ho_cancel_ev& ev)
+{
+  parent_fsm()->rrc_enb->s1ap->send_ho_cancel(parent_fsm()->rrc_ue->rnti);
+}
+
+//! Called in Source ENB during S1-Handover when there was a Reestablishment Request
+void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(status_transfer_st& s, const ho_cancel_ev& ev)
+{
+  parent_fsm()->rrc_enb->s1ap->send_ho_cancel(parent_fsm()->rrc_ue->rnti);
 }
 
 void rrc::ue::rrc_mobility::s1_source_ho_st::status_transfer_st::enter(s1_source_ho_st* f)

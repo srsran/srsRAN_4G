@@ -341,6 +341,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                             old_rnti);
       send_connection_reest();
 
+      // Cancel Handover in Target eNB if on-going
+      parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
+
       // Setup security
       const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
       ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;

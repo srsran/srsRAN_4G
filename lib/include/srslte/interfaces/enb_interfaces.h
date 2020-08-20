@@ -519,6 +519,12 @@ public:
    * Notify MME that Handover is complete
    */
   virtual void send_ho_notify(uint16_t rnti, uint64_t target_eci) = 0;
+
+  /**
+   * Cancel on-going S1 Handover. MME should release UE context in target eNB
+   * SeNB --> MME
+   */
+  virtual void send_ho_cancel(uint16_t rnti) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

@@ -87,6 +87,7 @@ public:
                        srslte::unique_byte_buffer_t                  ho_cmd,
                        srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) override;
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
+  void send_ho_cancel(uint16_t rnti) override;
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
   // Stack interface
