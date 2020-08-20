@@ -137,6 +137,23 @@ sib3 =
     }
 };
 
+#####################################################################
+# sib7 configuration options (See TS 36.331)
+# Contains GERAN neighbor information for CSFB and inter-rat handover.
+# Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
+#
+# t_resel_geran: Cell reselection timer (seconds)
+# carrier_freqs_info_list: A list of carrier frequency groups.
+#     cell_resel_prio: Absolute priority of the carrier frequency group
+#     ncc_permitted: 8-bit bitmap of NCC carriers permitted for monitoring
+#     q_rx_lev_min: Minimum receive level in gsm cell, ([field_val] * 2) - 115 = [level in dBm]
+#     thresh_x_high: Srclev threshold (dB) to select to a higher-priority RAT/Frequency
+#     thresh_x_low: Srclev threshold (dB) to select to a lower-priority RAT/Frequency
+#     start_arfcn: Initial search ARFCN value
+#     band_ind: One of "dcs1800" or "pcs1900" Disambiguates ARFCNs in these bands, has no meaning for other ARFCNs.
+#     explicit_list_of_arfcns: List of ARFCN numbers in the group
+#
+#####################################################################
 sib7 =
 {
     t_resel_geran = 1;
@@ -151,6 +168,9 @@ sib7 =
 
             start_arfcn = 871;
             band_ind = "dcs1800";
+            explicit_list_of_arfcns = (
+                871
+            );
         }
     );
 };
