@@ -1649,9 +1649,13 @@ void rrc::ue::send_connection_release()
   dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause = release_cause_e::other;
   if (is_csfb) {
     rrc_conn_release_r8_ies_s& rel_ies = dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8();
-    rel_ies.redirected_carrier_info_present = true;
-    rel_ies.redirected_carrier_info.set_geran();
-    rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
+    if (parent->sib7.carrier_freqs_info_list.size() > 0) {
+      rel_ies.redirected_carrier_info_present = true;
+      rel_ies.redirected_carrier_info.set_geran();
+      rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
+    } else {
+      rel_ies.redirected_carrier_info_present = false;
+    }
   }
 
   send_dl_dcch(&dl_dcch_msg);
