@@ -114,7 +114,6 @@ public:
   // S1-Handover
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
-  void set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs);
 
 private:
   // Handover from source cell
@@ -139,6 +138,7 @@ private:
 
   // vars
   std::shared_ptr<const var_meas_cfg_t> ue_var_meas;
+  asn1::rrc::rrc_conn_recfg_complete_s  pending_recfg_complete;
 
   // events
   struct ho_meas_report_ev {
@@ -152,6 +152,7 @@ private:
   };
   using unsuccessful_outcome_ev = std::false_type;
   using recfg_complete_ev       = asn1::rrc::rrc_conn_recfg_complete_s;
+  using status_transfer_ev      = asn1::s1ap::bearers_subject_to_status_transfer_list_l;
 
   // states
   struct idle_st {};
@@ -163,6 +164,7 @@ private:
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
   struct s1_target_ho_st {};
+  struct wait_recfg_comp {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     ho_meas_report_ev report;
     using ho_cmd_msg = srslte::unique_byte_buffer_t;
@@ -204,33 +206,38 @@ private:
 
   // FSM transition handlers
   void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
-  void handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
   void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
   void handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req);
+  void handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& ev);
+  void defer_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
+  void handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev);
 
 protected:
   // states
-  state_list<idle_st, intraenb_ho_st, s1_target_ho_st, s1_source_ho_st> states{this,
-                                                                               idle_st{},
-                                                                               intraenb_ho_st{},
-                                                                               s1_target_ho_st{},
-                                                                               s1_source_ho_st{this}};
+  state_list<idle_st, intraenb_ho_st, s1_target_ho_st, wait_recfg_comp, s1_source_ho_st> states{this,
+                                                                                                idle_st{},
+                                                                                                intraenb_ho_st{},
+                                                                                                s1_target_ho_st{},
+                                                                                                wait_recfg_comp{},
+                                                                                                s1_source_ho_st{this}};
 
   // transitions
   using fsm = rrc_mobility;
   // clang-format off
   using transitions = transition_table<
-  //      Start         Target             Event                Action                      Guard
-  // +----------------+----------------+--------------------+---------------------------+-------------------------+
-  row< idle_st,         s1_source_ho_st, ho_meas_report_ev,  nullptr,                     &fsm::needs_s1_ho       >,
-  row< idle_st,         intraenb_ho_st,  ho_meas_report_ev,  nullptr,                     &fsm::needs_intraenb_ho >,
-  row< idle_st,         s1_target_ho_st, ho_req_rx_ev,       &fsm::handle_ho_req                                  >,
-  // +----------------+----------------+--------------------+---------------------------+-------------------------+
-  upd< intraenb_ho_st,                   user_crnti_upd_ev, &fsm::handle_crnti_ce                                 >,
-  row< intraenb_ho_st,  idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >,
-  // +----------------+----------------+--------------------+---------------------------+-------------------------+
-  row< s1_target_ho_st, idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >
-  // +----------------+----------------+--------------------+---------------------------+-------------------------+
+  //      Start         Target              Event                Action                      Guard
+  // +----------------+-------------------+---------------------+----------------------------+-------------------------+
+  row< idle_st,         s1_source_ho_st,   ho_meas_report_ev,   nullptr,                      &fsm::needs_s1_ho        >,
+  row< idle_st,         intraenb_ho_st,    ho_meas_report_ev,   nullptr,                      &fsm::needs_intraenb_ho  >,
+  row< idle_st,         s1_target_ho_st,   ho_req_rx_ev,        &fsm::handle_ho_req                                    >,
+  // +----------------+-------------------+---------------------+----------------------------+-------------------------+
+  upd< intraenb_ho_st,                     user_crnti_upd_ev,   &fsm::handle_crnti_ce                                  >,
+  row< intraenb_ho_st,  idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >,
+  // +----------------+-------------------+---------------------+----------------------------+-------------------------+
+  row< s1_target_ho_st, wait_recfg_comp,   status_transfer_ev,  &fsm::handle_status_transfer                           >,
+  upd< s1_target_ho_st,                    recfg_complete_ev,   &fsm::defer_recfg_complete                             >,
+  row< wait_recfg_comp, idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >
+  // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   >;
   // clang-format on
 };

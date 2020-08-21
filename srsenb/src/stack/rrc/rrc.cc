@@ -475,7 +475,7 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
     rrc_log->warning("rnti=0x%x does not exist\n", rnti);
     return;
   }
-  ue_it->second->mobility_handler->set_erab_status(erabs);
+  ue_it->second->mobility_handler->trigger(erabs);
 }
 
 /*******************************************************************************

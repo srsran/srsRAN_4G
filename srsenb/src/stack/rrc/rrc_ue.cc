@@ -271,8 +271,9 @@ void rrc::ue::send_connection_setup()
   mac_ctrl->handle_con_setup(setup);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+  apply_pdcp_srb_updates();
+  apply_pdcp_drb_updates();
+  apply_rlc_rb_updates();
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
@@ -406,8 +407,9 @@ void rrc::ue::send_connection_reest()
   mac_ctrl->handle_con_reest(reest);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+  apply_pdcp_srb_updates();
+  apply_pdcp_drb_updates();
+  apply_rlc_rb_updates();
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
@@ -536,8 +538,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   apply_reconf_phy_config(*conn_reconf);
 
   // setup SRB2/DRBs in PDCP and RLC
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+  apply_pdcp_srb_updates();
+  apply_pdcp_drb_updates();
+  apply_rlc_rb_updates();
 
   // Add pending NAS info
   bearer_list.fill_pending_nas_info(conn_reconf);
@@ -642,8 +645,9 @@ void rrc::ue::send_connection_reconf_new_bearer()
   conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
 
   // Setup new bearer
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+  apply_pdcp_srb_updates();
+  apply_pdcp_drb_updates();
+  apply_rlc_rb_updates();
   // Add pending NAS info
   bearer_list.fill_pending_nas_info(conn_reconf);
 
@@ -1391,6 +1395,59 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
   // Send configuration to physical layer
   if (parent->phy != nullptr) {
     parent->phy->set_config(rnti, phy_rrc_dedicated_list);
+  }
+}
+
+void rrc::ue::apply_pdcp_srb_updates()
+{
+  for (const srb_to_add_mod_s& srb : bearer_list.get_pending_addmod_srbs()) {
+    parent->pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
+
+    // For SRB2, enable security/encryption/integrity
+    if (ue_security_cfg.is_as_sec_cfg_valid()) {
+      parent->pdcp->config_security(rnti, srb.srb_id, ue_security_cfg.get_as_sec_cfg());
+      parent->pdcp->enable_integrity(rnti, srb.srb_id);
+      parent->pdcp->enable_encryption(rnti, srb.srb_id);
+    }
+  }
+}
+
+void rrc::ue::apply_pdcp_drb_updates()
+{
+  for (uint8_t drb_id : bearer_list.get_pending_rem_drbs()) {
+    parent->pdcp->del_bearer(rnti, drb_id + 2);
+  }
+  for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
+    // Configure DRB1 in PDCP
+    if (drb.pdcp_cfg_present) {
+      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+      parent->pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
+    } else {
+      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false);
+      parent->pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
+    }
+
+    if (ue_security_cfg.is_as_sec_cfg_valid()) {
+      parent->pdcp->config_security(rnti, drb.lc_ch_id, ue_security_cfg.get_as_sec_cfg());
+      parent->pdcp->enable_integrity(rnti, drb.lc_ch_id);
+      parent->pdcp->enable_encryption(rnti, drb.lc_ch_id);
+    }
+  }
+}
+
+void rrc::ue::apply_rlc_rb_updates()
+{
+  for (const srb_to_add_mod_s& srb : bearer_list.get_pending_addmod_srbs()) {
+    parent->rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
+  }
+  if (bearer_list.get_pending_rem_drbs().size() > 0) {
+    parent->rrc_log->error("Removing DRBs not currently supported\n");
+  }
+  for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
+    if (not drb.rlc_cfg_present) {
+      parent->rrc_log->warning("Default RLC DRB config not supported\n");
+    }
+    parent->rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
   }
 }
 

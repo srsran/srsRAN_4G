@@ -339,56 +339,6 @@ bool bearer_cfg_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
   return msg.srb_to_add_mod_list_present or msg.drb_to_add_mod_list_present or msg.drb_to_release_list_present;
 }
 
-void bearer_cfg_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg)
-{
-  for (const srb_to_add_mod_s& srb : srbs_to_add) {
-    pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
-
-    // For SRB2, enable security/encryption/integrity
-    if (ue_sec_cfg.is_as_sec_cfg_valid()) {
-      pdcp->config_security(rnti, srb.srb_id, ue_sec_cfg.get_as_sec_cfg());
-      pdcp->enable_integrity(rnti, srb.srb_id);
-      pdcp->enable_encryption(rnti, srb.srb_id);
-    }
-  }
-
-  for (uint8_t drb_id : drbs_to_release) {
-    pdcp->del_bearer(rnti, drb_id + 2);
-  }
-  for (const drb_to_add_mod_s& drb : drbs_to_add) {
-    // Configure DRB1 in PDCP
-    if (drb.pdcp_cfg_present) {
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
-      pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
-    } else {
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false);
-      pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
-    }
-
-    if (ue_sec_cfg.is_as_sec_cfg_valid()) {
-      pdcp->config_security(rnti, drb.lc_ch_id, ue_sec_cfg.get_as_sec_cfg());
-      pdcp->enable_integrity(rnti, drb.lc_ch_id);
-      pdcp->enable_encryption(rnti, drb.lc_ch_id);
-    }
-  }
-}
-
-void bearer_cfg_handler::apply_rlc_bearer_updates(rlc_interface_rrc* rlc)
-{
-  for (const srb_to_add_mod_s& srb : srbs_to_add) {
-    rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
-  }
-  if (drbs_to_release.size() > 0) {
-    log_h->error("Removing DRBs not currently supported\n");
-  }
-  for (const drb_to_add_mod_s& drb : drbs_to_add) {
-    if (not drb.rlc_cfg_present) {
-      log_h->warning("Default RLC DRB config not supported\n");
-    }
-    rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
-  }
-}
-
 void bearer_cfg_handler::add_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);

@@ -763,36 +763,6 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
   return is_in_state<s1_target_ho_st>();
 }
 
-void rrc::ue::rrc_mobility::set_erab_status(const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)
-{
-  for (const auto& erab : erabs) {
-    const auto& erab_item = erab.value.bearers_subject_to_status_transfer_item();
-    auto        erab_it   = rrc_ue->bearer_list.get_erabs().find(erab_item.erab_id);
-    if (erab_it == rrc_ue->bearer_list.get_erabs().end()) {
-      rrc_log->warning("The E-RAB Id=%d is not recognized\n", erab_item.erab_id);
-      continue;
-    }
-    const auto& drbs  = rrc_ue->bearer_list.get_pending_addmod_drbs();
-    uint8_t     drbid = erab_item.erab_id - 4;
-    auto        drb_it =
-        std::find_if(drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return drb.drb_id == drbid; });
-    if (drb_it == drbs.end()) {
-      rrc_log->warning("The DRB id=%d does not exist\n", erab_item.erab_id - 4);
-    }
-
-    srslte::pdcp_lte_state_t drb_state{};
-    drb_state.tx_hfn          = erab_item.dl_coun_tvalue.hfn;
-    drb_state.next_pdcp_tx_sn = erab_item.dl_coun_tvalue.pdcp_sn;
-    drb_state.rx_hfn          = erab_item.ul_coun_tvalue.hfn;
-    drb_state.next_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
-    rrc_log->info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}\n",
-                  drb_it->lc_ch_id,
-                  drb_state.next_pdcp_tx_sn,
-                  drb_state.next_pdcp_rx_sn);
-    rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
-  }
-}
-
 bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
                                                    uint32_t                     target_enb_cc_idx,
                                                    asn1::rrc::meas_cfg_s*       diff_meas_cfg)
@@ -1113,9 +1083,9 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
 
   /* Configure remaining layers based on pending changes */
-  // Update RLC + PDCP
-  rrc_ue->bearer_list.apply_pdcp_bearer_updates(rrc_enb->pdcp, rrc_ue->ue_security_cfg);
-  rrc_ue->bearer_list.apply_rlc_bearer_updates(rrc_enb->rlc);
+  // Update RLC + PDCP SRBs (no DRBs until MME Status Transfer)
+  rrc_ue->apply_pdcp_srb_updates();
+  rrc_ue->apply_rlc_rb_updates();
   // Update MAC
   rrc_ue->mac_ctrl->handle_ho_prep(hoprep_r8, recfg_r8);
   // Apply PHY updates
@@ -1195,7 +1165,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   return true;
 }
 
-void rrc::ue::rrc_mobility::handle_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev)
+void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev)
 {
   cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   rrc_log->info("User rnti=0x%x successfully handovered to cell_id=0x%x\n",
@@ -1204,6 +1174,51 @@ void rrc::ue::rrc_mobility::handle_recfg_complete(s1_target_ho_st& s, const recf
   uint64_t target_eci = (rrc_enb->cfg.enb_id << 8u) + target_cell->cell_common->cell_cfg.cell_id;
 
   rrc_enb->s1ap->send_ho_notify(rrc_ue->rnti, target_eci);
+}
+
+void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& erabs)
+{
+  // Establish DRBs
+  rrc_ue->apply_pdcp_drb_updates();
+
+  // Set DRBs SNs
+  for (const auto& erab : erabs) {
+    const auto& erab_item = erab.value.bearers_subject_to_status_transfer_item();
+    auto        erab_it   = rrc_ue->bearer_list.get_erabs().find(erab_item.erab_id);
+    if (erab_it == rrc_ue->bearer_list.get_erabs().end()) {
+      rrc_log->warning("The E-RAB Id=%d is not recognized\n", erab_item.erab_id);
+      continue;
+    }
+    const auto& drbs  = rrc_ue->bearer_list.get_pending_addmod_drbs();
+    uint8_t     drbid = erab_item.erab_id - 4;
+    auto        drb_it =
+        std::find_if(drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return drb.drb_id == drbid; });
+    if (drb_it == drbs.end()) {
+      rrc_log->warning("The DRB id=%d does not exist\n", erab_item.erab_id - 4);
+    }
+
+    srslte::pdcp_lte_state_t drb_state{};
+    drb_state.tx_hfn          = erab_item.dl_coun_tvalue.hfn;
+    drb_state.next_pdcp_tx_sn = erab_item.dl_coun_tvalue.pdcp_sn;
+    drb_state.rx_hfn          = erab_item.ul_coun_tvalue.hfn;
+    drb_state.next_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
+    rrc_log->info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}\n",
+                  drb_it->lc_ch_id,
+                  drb_state.next_pdcp_tx_sn,
+                  drb_state.next_pdcp_rx_sn);
+    rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
+  }
+
+  // Check if there is any pending Reconfiguration Complete. If there is, self-trigger
+  if (pending_recfg_complete.crit_exts.type().value != rrc_conn_recfg_complete_s::crit_exts_c_::types_opts::nulltype) {
+    trigger(pending_recfg_complete);
+    pending_recfg_complete.crit_exts.set(rrc_conn_recfg_complete_s::crit_exts_c_::types_opts::nulltype);
+  }
+}
+
+void rrc::ue::rrc_mobility::defer_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev)
+{
+  pending_recfg_complete = ev;
 }
 
 /*************************************************************************************************
@@ -1277,7 +1292,8 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->bearer_list.reest_bearers();
-    rrc_ue->bearer_list.apply_pdcp_bearer_updates(rrc_enb->pdcp, rrc_ue->ue_security_cfg);
+    rrc_ue->apply_pdcp_srb_updates();
+    rrc_ue->apply_pdcp_drb_updates();
   } else {
     rrc_log->info("Received duplicate C-RNTI CE during rnti=0x%x handover.\n", rrc_ue->rnti);
   }
