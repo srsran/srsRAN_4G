@@ -96,10 +96,7 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
 
   // Signal result back to FSM that called cell selection
   bool result = csel_res.result;
-  f->task_sched.defer_task([f, result]() {
-    f->cell_selection_observer(result);
-    f->cell_selection_observer.reset();
-  });
+  f->task_sched.defer_task([f, result]() { f->cell_selection_observer(result); });
 }
 
 void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)

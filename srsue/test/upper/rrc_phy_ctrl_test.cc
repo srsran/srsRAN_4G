@@ -56,9 +56,17 @@ struct cell_select_result_test {
           "When caller is signalled with cell select result, cell select state cannot be active\n");
       exit(1);
     }
+
+    // start a new cell selection right away
+    if (counter++ < 1) {
+      phy_interface_rrc_lte::phy_cell_t new_cell;
+      new_cell.pci    = 3;
+      new_cell.earfcn = 3400;
+      phy_ctrl->start_cell_select(new_cell, *this);
+    }
   }
 
-  int             result   = -1;
+  int             result = -1, counter = 0;
   phy_controller* phy_ctrl = nullptr;
 };
 
@@ -115,7 +123,9 @@ int test_phy_ctrl_fsm()
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
 
-  // TEST: Cell Selection state ignores events other than the cell selection result, and callback is called
+  // TEST: Cell Selection state ignores events other than the cell selection result
+  //       Cell selection observer is called
+  //       New cell selection is started right away without affecting normal operation (e.g. observer should be called)
   phy_ctrl.in_sync();
   TESTASSERT(not phy_ctrl.is_in_sync());
   phy_ctrl.cell_selection_completed(true);
@@ -124,11 +134,18 @@ int test_phy_ctrl_fsm()
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(csel_tester.result < 0);
   phy_ctrl.in_sync();
+  task_sched.run_pending_tasks();
+  // observer is called that starts new cell selection
+  TESTASSERT(not phy_ctrl.is_in_sync());
+  TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
+  TESTASSERT(csel_tester.result == 1);
+  csel_tester.result = 0;
+  phy_ctrl.cell_selection_completed(true);
+  TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
+  phy_ctrl.in_sync();
+  task_sched.run_pending_tasks();
   TESTASSERT(phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() != "selecting_cell");
-
-  // TEST: Propagation of cell selection result to caller
-  task_sched.run_pending_tasks();
   TESTASSERT(csel_tester.result == 1);
 
   // TEST: Cell Selection with timeout being reached
