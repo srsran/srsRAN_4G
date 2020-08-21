@@ -72,7 +72,7 @@ const std::set<std::string> RH_UHD_IMP_FIX_MASTER_CLOCK_RATE_DEVICE_LIST = {"x30
 /**
  * List of devices that do NOT support stream stop/start after a time out
  */
-const std::set<std::string> RH_UHD_IMP_PROHIBITED_STOP_START = {DEVNAME_X300, DEVNAME_N300, DEVNAME_E3X0};
+const std::set<std::string> RH_UHD_IMP_PROHIBITED_STOP_START = {DEVNAME_X300, DEVNAME_N300, DEVNAME_E3X0, DEVNAME_B200};
 
 /**
  * Defines a delay used between the current USRP time and the start of the transmission. This value needs to be high
