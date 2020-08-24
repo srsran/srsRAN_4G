@@ -1388,6 +1388,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // Section 5.3.5.4
   rrc_ptr->t310.stop();
   rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
+  rrc_ptr->t304.run();
 
   state = launch_phy_cell_select;
   return proc_outcome_t::yield;
@@ -1530,7 +1531,9 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
   Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
-  if (rrc_ptr->t304.is_running()) {
+  if (result.is_success()) {
+    rrc_ptr->t304.stop();
+  } else if (rrc_ptr->t304.is_running()) {
     Info("Waiting for t304 to expire to start the Reestablishment procedure\n");
   }
 }
