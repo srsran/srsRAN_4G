@@ -277,7 +277,7 @@ pusch_max_mcs    = 16
 # metrics_csv_filename: File path to use for CSV metrics.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
-# rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds). With -1 the timeout is automatically derived.
+# rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).
 # max_prach_offset_us:  Maximum allowed RACH offset (in us)
 # eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
@@ -292,7 +292,7 @@ pusch_max_mcs    = 16
 #metrics_csv_filename = /tmp/enb_metrics.csv
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
-#rrc_inactivity_timer = -1
+#rrc_inactivity_timer = 30000
 #max_prach_offset_us  = 30
 #eea_pref_list = EEA0, EEA2, EEA1
 #eia_pref_list = EIA2, EIA1, EIA0
