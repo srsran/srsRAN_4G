@@ -960,10 +960,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   uint32_t n310                     = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.n310.to_number();
   uint32_t min_rrc_inactivity_timer = t310 + t311 + n310 + 50;
   if (args_->general.rrc_inactivity_timer < min_rrc_inactivity_timer) {
-    ERROR("rrc_inactivity_timer=%d is too low. Setting it to %d\n",
+    ERROR("rrc_inactivity_timer=%d is too low. Consider setting it to a value equal or above %d\n",
           args_->general.rrc_inactivity_timer,
           min_rrc_inactivity_timer);
-    rrc_cfg_->inactivity_timeout_ms = min_rrc_inactivity_timer;
   }
   rrc_cfg_->enable_mbsfn = args_->stack.embms.enable;
   rrc_cfg_->mbms_mcs     = args_->stack.embms.mcs;
