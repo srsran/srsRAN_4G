@@ -1358,6 +1358,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   if (mob_ctrl_info->target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
     rrc_ptr->rrc_log->console("Warning: Received HO command to own cell\n");
     Warning("Received HO command to own cell\n");
+    rrc_ptr->con_reconfig_failed();
     return proc_outcome_t::error;
   }
 
@@ -1374,6 +1375,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
     Error("Could not find target cell earfcn=%d, pci=%d\n",
           rrc_ptr->meas_cells.serving_cell().get_earfcn(),
           mob_ctrl_info->target_pci);
+    rrc_ptr->con_reconfig_failed();
     return proc_outcome_t::error;
   }
 
@@ -1527,10 +1529,9 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
-  rrc_ptr->t304.stop();
   Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
-  if (result.is_error()) {
-    rrc_ptr->start_con_restablishment(reest_cause_e::ho_fail);
+  if (rrc_ptr->t304.is_running()) {
+    Info("Waiting for t304 to expire to start the Reestablishment procedure\n");
   }
 }
 

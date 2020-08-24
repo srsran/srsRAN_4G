@@ -919,6 +919,7 @@ bool rrc::con_reconfig(const rrc_conn_recfg_s& reconfig)
 void rrc::ho_failed()
 {
   ho_handler.trigger(ho_proc::t304_expiry{});
+  start_con_restablishment(reest_cause_e::ho_fail);
 }
 
 // Reconfiguration failure or Section 5.3.5.5
