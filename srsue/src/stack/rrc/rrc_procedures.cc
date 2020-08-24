@@ -1513,7 +1513,6 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     return proc_outcome_t::yield;
   }
 
-  rrc_ptr->t304.stop();
   if (ev.success) {
     if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
       Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
@@ -1528,6 +1527,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
+  rrc_ptr->t304.stop();
   Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
   if (result.is_error()) {
     rrc_ptr->start_con_restablishment(reest_cause_e::ho_fail);
