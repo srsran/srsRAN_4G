@@ -1530,7 +1530,7 @@ void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
   Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
   if (result.is_error()) {
-    rrc_ptr->con_reconfig_failed();
+    rrc_ptr->start_con_restablishment(reest_cause_e::ho_fail);
   }
 }
 
