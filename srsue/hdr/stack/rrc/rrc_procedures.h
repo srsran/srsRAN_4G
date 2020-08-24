@@ -296,13 +296,14 @@ public:
   void                   then(const srslte::proc_state_t& result);
   static const char*     name() { return "Handover"; }
 
+  cell_t   ho_src_cell;
+  uint16_t ho_src_rnti = 0;
+
 private:
   rrc* rrc_ptr = nullptr;
 
   // args
   asn1::rrc::rrc_conn_recfg_r8_ies_s recfg_r8;
-  cell_t                             ho_src_cell;
-  uint16_t                           ho_src_rnti = 0;
 
   // state
   uint32_t target_earfcn;

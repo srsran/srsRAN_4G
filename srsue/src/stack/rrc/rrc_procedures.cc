@@ -1515,7 +1515,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 
   rrc_ptr->t304.stop();
   if (ev.success) {
-    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, rrc_ptr->ho_src_cell.get_earfcn())) {
+    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
       Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
     }
   }

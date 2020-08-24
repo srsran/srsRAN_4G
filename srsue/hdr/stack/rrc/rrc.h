@@ -199,8 +199,6 @@ private:
 
   uint32_t cell_clean_cnt = 0;
 
-  uint16_t          ho_src_rnti = 0;
-  cell_t            ho_src_cell = {};
   srslte::phy_cfg_t current_phy_cfg, previous_phy_cfg = {};
   srslte::mac_cfg_t current_mac_cfg, previous_mac_cfg = {};
   bool              current_scell_configured[SRSLTE_MAX_CARRIERS] = {};

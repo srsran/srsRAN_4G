@@ -674,9 +674,9 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
   reestablishment_successful = false;
 
   if (cause == reest_cause_e::ho_fail) {
-    crnti  = ho_src_rnti;
-    pci    = ho_src_cell.get_pci();
-    cellid = ho_src_cell.get_cell_id();
+    crnti  = ho_handler.get()->ho_src_rnti;
+    pci    = ho_handler.get()->ho_src_cell.get_pci();
+    cellid = ho_handler.get()->ho_src_cell.get_cell_id();
   } else if (cause == reest_cause_e::other_fail) {
     // use source PCI after RLF
     cellid = meas_cells.serving_cell().get_cell_id();
