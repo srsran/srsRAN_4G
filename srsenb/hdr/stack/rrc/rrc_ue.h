@@ -50,7 +50,7 @@ public:
   rrc_state_t get_state();
 
   void send_connection_setup();
-  void send_connection_reest();
+  void send_connection_reest(uint8_t ncc);
   void send_connection_reject();
   void send_connection_release();
   void send_connection_reest_rej();

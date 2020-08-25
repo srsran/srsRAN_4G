@@ -340,7 +340,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     if (parent->users.count(old_rnti)) {
       parent->rrc_log->info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment\n",
                             old_rnti);
-      send_connection_reest();
+      send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
 
       // Cancel Handover in Target eNB if on-going
       parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
@@ -386,7 +386,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   return;
 }
 
-void rrc::ue::send_connection_reest()
+void rrc::ue::send_connection_reest(uint8_t ncc)
 {
   // Re-Establish SRB1
   bearer_list.add_srb(1);
@@ -402,6 +402,9 @@ void rrc::ue::send_connection_reest()
   // Fill RR config dedicated
   fill_rrc_setup_rr_config_dedicated(rr_cfg);
   phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+
+  // Set NCC
+  reest.next_hop_chaining_count = ncc;
 
   // Apply ConnectionReest Configuration to MAC scheduler
   mac_ctrl->handle_con_reest(reest);

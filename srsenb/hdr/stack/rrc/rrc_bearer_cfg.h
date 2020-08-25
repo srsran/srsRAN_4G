@@ -36,9 +36,11 @@ public:
 
   bool set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
   void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
+  void set_ncc(uint8_t ncc_) { ncc = ncc_; }
 
   asn1::rrc::security_algorithm_cfg_s get_security_algorithm_cfg();
   const srslte::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
+  uint8_t                             get_ncc() const { return ncc; }
   bool                                is_as_sec_cfg_valid() const { return k_enb_present; }
 
   void regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn);
@@ -52,6 +54,7 @@ private:
   asn1::s1ap::ue_security_cap_s security_capabilities = {};
   uint8_t                       k_enb[32]             = {}; // Provided by MME
   srslte::as_security_config_t  sec_cfg               = {};
+  uint8_t                       ncc                   = 0;
 };
 
 class bearer_cfg_handler

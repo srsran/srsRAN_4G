@@ -1050,6 +1050,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply new Security Config based on HandoverRequest
+  // See TS 33.401, Sec. 7.2.8.4.3
   recfg_r8.security_cfg_ho_present = true;
   recfg_r8.security_cfg_ho.handov_type.set(security_cfg_ho_s::handov_type_c_::types_opts::intra_lte);
   recfg_r8.security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg_present = true;
@@ -1143,8 +1144,10 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   }
 
   // Regenerate AS Keys
+  // See TS 33.401, Sec. 7.2.8.4.3
   rrc_ue->ue_security_cfg.set_security_capabilities(ho_req_msg.protocol_ies.ue_security_cap.value);
   rrc_ue->ue_security_cfg.set_security_key(ho_req_msg.protocol_ies.security_context.value.next_hop_param);
+  rrc_ue->ue_security_cfg.set_ncc(ho_req_msg.protocol_ies.security_context.value.next_hop_chaining_count);
   rrc_ue->ue_security_cfg.regenerate_keys_handover(target_cell_cfg.pci, target_cell_cfg.dl_earfcn);
 
   // Save UE Capabilities
