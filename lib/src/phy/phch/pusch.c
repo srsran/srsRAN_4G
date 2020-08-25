@@ -340,6 +340,23 @@ static srslte_sequence_t* get_user_sequence(srslte_pusch_t* q, uint16_t rnti, ui
   }
 }
 
+int srslte_pusch_assert_grant(const srslte_pusch_grant_t* grant)
+{
+  if (!srslte_dft_precoding_valid_prb(grant->L_prb)) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (grant->tb.rv < 0 || grant->tb.rv > 3) {
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  }
+
+  if (grant->tb.tbs < 0) {
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 /** Converts the PUSCH data bits to symbols mapped to the slot ready for transmission
  */
 int srslte_pusch_encode(srslte_pusch_t*      q,
@@ -368,19 +385,9 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    if (!srslte_dft_precoding_valid_prb(cfg->grant.L_prb)) {
-      ERROR("Error encoding PUSCH: invalid L_prb=%d\n", cfg->grant.L_prb);
-      return -1;
-    }
-
-    if (cfg->grant.tb.rv < 0 || cfg->grant.tb.rv > 3) {
-      ERROR("Error encoding PUSCH: invalid rv=%d\n", cfg->grant.tb.rv);
-      return -1;
-    }
-
-    if (cfg->grant.tb.tbs < 0) {
-      ERROR("Error encoding PUSCH: invalid tbs=%d\n", cfg->grant.tb.tbs);
-      return -1;
+    int err = srslte_pusch_assert_grant(&cfg->grant);
+    if (err != SRSLTE_SUCCESS) {
+      return err;
     }
 
     INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",

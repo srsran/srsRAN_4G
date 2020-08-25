@@ -212,21 +212,21 @@ int srslte_ue_ul_dci_to_pusch_grant(srslte_ue_ul_t*       q,
                                     srslte_dci_ul_t*      dci,
                                     srslte_pusch_grant_t* grant)
 {
+  // Convert DCI to Grant
   if (srslte_ra_ul_dci_to_grant(&q->cell, sf, &cfg->ul_cfg.hopping, dci, grant)) {
-    char str[128];
-    srslte_dci_ul_info(dci, str, sizeof(str));
-    ERROR("Converting DCI to UL grant from %s\n", str);
     return SRSLTE_ERROR;
   }
 
   // Update shortened before computing grant
   srslte_refsignal_srs_pusch_shortened(&q->signals, sf, &cfg->ul_cfg.srs, &cfg->ul_cfg.pusch);
 
-  /* Update RE assuming if shortened is true */
+  // Update RE assuming if shortened is true
   if (sf->shortened) {
     srslte_ra_ul_compute_nof_re(grant, q->cell.cp, true);
   }
-  return SRSLTE_SUCCESS;
+
+  // Assert Grant is valid
+  return srslte_pusch_assert_grant(grant);
 }
 
 void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,

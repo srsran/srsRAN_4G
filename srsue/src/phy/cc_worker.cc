@@ -674,7 +674,11 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 
     // Generate PHY grant
     if (srslte_ue_ul_dci_to_pusch_grant(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &dci_ul, &ue_ul_cfg.ul_cfg.pusch.grant)) {
-      Error("Converting DCI message to UL dci\n");
+      if (log_h->get_level() >= srslte::LOG_LEVEL_ERROR) {
+        char str[128];
+        srslte_dci_ul_info(&dci_ul, str, sizeof(str));
+        Error("Converting DCI message to UL grant %s\n", str);
+      }
       ul_grant_available = false;
     } else if (ue_ul_cfg.ul_cfg.pusch.grant.tb.mod == SRSLTE_MOD_BPSK) {
       Error("UL retransmission without valid stored grant.\n");

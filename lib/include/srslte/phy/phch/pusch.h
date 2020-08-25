@@ -112,6 +112,13 @@ SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti);
 
 SRSLTE_API void srslte_pusch_free_rnti(srslte_pusch_t* q, uint16_t rnti);
 
+/**
+ * Asserts PUSCH grant attributes are in range
+ * @param grant Pointer to PUSCH grant
+ * @return it returns SRSLTE_SUCCESS if the grant is correct, otherwise it returns a SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_pusch_assert_grant(const srslte_pusch_grant_t* grant);
+
 /* These functions do not modify the state and run in real-time */
 SRSLTE_API int srslte_pusch_encode(srslte_pusch_t*      q,
                                    srslte_ul_sf_cfg_t*  sf,
