@@ -266,6 +266,16 @@ void cc_worker::work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
 
   // Generate signal and transmit
   srslte_enb_dl_gen_signal(&enb_dl);
+
+  // Scale if cell gain is set
+  float cell_gain_db = phy->get_cell_gain(cc_idx);
+  if (std::isnormal(cell_gain_db)) {
+    float    scale  = srslte_convert_dB_to_amplitude(cell_gain_db);
+    uint32_t sf_len = SRSLTE_SF_LEN_PRB(enb_dl.cell.nof_prb);
+    for (uint32_t i = 0; i < enb_dl.cell.nof_ports; i++) {
+      srslte_vec_sc_prod_cfc(signal_buffer_tx[i], scale, signal_buffer_tx[i], sf_len);
+    }
+  }
 }
 
 void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,

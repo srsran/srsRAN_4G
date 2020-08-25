@@ -44,17 +44,22 @@ public:
   ~vnf_phy_nr();
 
   int  init(const srsenb::phy_args_t& args, const nr_phy_cfg_t& cfg, srsenb::stack_interface_phy_nr* stack_);
-  void stop();
+  void stop() override;
 
-  std::string get_type() { return "vnf"; };
+  std::string get_type() override { return "vnf"; };
 
-  void start_plot();
+  void start_plot() override;
 
-  void get_metrics(srsenb::phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
+  void get_metrics(srsenb::phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) override;
 
   // MAC interface
-  int dl_config_request(const dl_config_request_t& request);
-  int tx_request(const tx_request_t& request);
+  int dl_config_request(const dl_config_request_t& request) override;
+  int tx_request(const tx_request_t& request) override;
+
+  void cmd_cell_gain(uint32_t cell_idx, float gain_db) override
+  {
+    // Do nothing
+  }
 
 private:
   srslte::logger* logger = nullptr;

@@ -36,6 +36,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <memory>
+#include <srslte/common/string_helpers.h>
 #include <string>
 
 #include "srsenb/hdr/enb.h"
@@ -150,7 +151,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.dl.awgn.enable",       bpo::value<bool>(&args->phy.dl_channel_args.awgn_enable)->default_value(false),          "Enable/Disable AWGN simulator")
     ("channel.dl.awgn.snr",          bpo::value<float>(&args->phy.dl_channel_args.awgn_snr_dB)->default_value(30.0f),         "Noise level in decibels full scale (dBfs)")
     ("channel.dl.fading.enable",     bpo::value<bool>(&args->phy.dl_channel_args.fading_enable)->default_value(false),        "Enable/Disable Fading model")
-    ("channel.dl.fading.model",      bpo::value<std::string>(&args->phy.dl_channel_args.fading_model)->default_value("none"), "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
+    ("channel.dl.fading.model",      bpo::value<string>(&args->phy.dl_channel_args.fading_model)->default_value("none"),      "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
     ("channel.dl.delay.enable",      bpo::value<bool>(&args->phy.dl_channel_args.delay_enable)->default_value(false),         "Enable/Disable Delay simulator")
     ("channel.dl.delay.period_s",    bpo::value<float>(&args->phy.dl_channel_args.delay_period_s)->default_value(3600),       "Delay period in seconds (integer)")
     ("channel.dl.delay.init_time_s", bpo::value<float>(&args->phy.dl_channel_args.delay_init_time_s)->default_value(0),       "Initial time in seconds")
@@ -170,7 +171,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.awgn.signal_power", bpo::value<float>(&args->phy.ul_channel_args.awgn_signal_power_dBfs)->default_value(30.0f), "Received signal power in decibels full scale (dBfs)")
     ("channel.ul.awgn.snr",          bpo::value<float>(&args->phy.ul_channel_args.awgn_snr_dB)->default_value(30.0f),            "Noise level in decibels full scale (dBfs)")
     ("channel.ul.fading.enable",     bpo::value<bool>(&args->phy.ul_channel_args.fading_enable)->default_value(false),           "Enable/Disable Fading model")
-    ("channel.ul.fading.model",      bpo::value<std::string>(&args->phy.ul_channel_args.fading_model)->default_value("none"),    "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
+    ("channel.ul.fading.model",      bpo::value<string>(&args->phy.ul_channel_args.fading_model)->default_value("none"),         "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
     ("channel.ul.delay.enable",      bpo::value<bool>(&args->phy.ul_channel_args.delay_enable)->default_value(false),            "Enable/Disable Delay simulator")
     ("channel.ul.delay.period_s",    bpo::value<float>(&args->phy.ul_channel_args.delay_period_s)->default_value(3600),          "Delay period in seconds (integer)")
     ("channel.ul.delay.init_time_s", bpo::value<float>(&args->phy.ul_channel_args.delay_init_time_s)->default_value(0),          "Initial time in seconds")
@@ -398,17 +399,18 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
 static bool do_metrics = false;
 
-void* input_loop(void* m)
+static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* control)
 {
-  metrics_stdout* metrics = (metrics_stdout*)m;
-  char            key;
+  string input_line;
   while (running) {
-    cin >> key;
+    getline(cin, input_line);
     if (cin.eof() || cin.bad()) {
       cout << "Closing stdin thread." << endl;
       break;
-    } else {
-      if ('t' == key) {
+    } else if (not input_line.empty()) {
+      vector<string> cmd;
+      srslte::string_parse_list(input_line, ' ', cmd);
+      if (cmd[0] == "t") {
         do_metrics = !do_metrics;
         if (do_metrics) {
           cout << "Enter t to stop trace." << endl;
@@ -416,8 +418,26 @@ void* input_loop(void* m)
           cout << "Enter t to restart trace." << endl;
         }
         metrics->toggle_print(do_metrics);
-      } else if ('q' == key) {
+      } else if (cmd[0] == "q") {
         raise(SIGTERM);
+      } else if (cmd[0] == "cell_gain") {
+        if (cmd.size() != 3) {
+          cout << "Usage: " << cmd[0] << " [cell index] [gain in dB]" << endl;
+          continue;
+        }
+
+        // Parse command arguments
+        uint32_t cell_idx = srslte::string_cast<uint32_t>(cmd[1]);
+        float    gain_db  = srslte::string_cast<float>(cmd[2]);
+
+        // Set cell gain
+        control->cmd_cell_gain(cell_idx, gain_db);
+      } else {
+        cout << "Available commands: " << endl;
+        cout << "          t: starts console trace" << endl;
+        cout << "          q: quit srsenb" << endl;
+        cout << "  cell_gain: set relative cell gain" << endl;
+        cout << endl;
       }
     }
   }
@@ -484,8 +504,7 @@ int main(int argc, char* argv[])
   }
 
   // create input thread
-  pthread_t input;
-  pthread_create(&input, nullptr, &input_loop, &metrics_screen);
+  thread input(&input_loop, &metrics_screen, (enb_command_interface*)enb.get());
 
   bool signals_pregenerated = false;
   if (running) {
@@ -504,8 +523,6 @@ int main(int argc, char* argv[])
     }
     usleep(10000);
   }
-  pthread_cancel(input);
-  pthread_join(input, NULL);
   metricshub.stop();
   enb->stop();
   cout << "---  exiting  ---" << endl;

@@ -137,6 +137,21 @@ public:
     return c;
   };
 
+  void set_cell_gain(uint32_t cc_idx, float gain_db)
+  {
+    if (cc_idx < cell_list.size()) {
+      cell_list.at(cc_idx).gain_db = gain_db;
+    }
+  }
+
+  float get_cell_gain(uint32_t cc_idx)
+  {
+    if (cc_idx < cell_list.size()) {
+      return cell_list.at(cc_idx).gain_db;
+    }
+    return 0.0f;
+  }
+
   // Common Physical Uplink DMRS configuration
   srslte_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg = {};
 

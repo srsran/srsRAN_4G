@@ -19,35 +19,22 @@
  *
  */
 
-/******************************************************************************
- * File:        enb_phy_base.h
- * Description: Base class for all eNB PHYs.
- *****************************************************************************/
+#ifndef SRSLTE_ENB_COMMAND_INTERFACE_H
+#define SRSLTE_ENB_COMMAND_INTERFACE_H
 
-#ifndef SRSENB_PHY_BASE_H
-#define SRSENB_PHY_BASE_H
-
-#include "srsenb/hdr/phy/phy_metrics.h"
+#include <cstdint>
 
 namespace srsenb {
-
-class enb_phy_base
+class enb_command_interface
 {
 public:
-  enb_phy_base(){};
-  virtual ~enb_phy_base(){};
-
-  virtual std::string get_type() = 0;
-
-  virtual void stop() = 0;
-
-  virtual void start_plot() = 0;
-
-  virtual void get_metrics(phy_metrics_t* m) = 0;
-
-  virtual void cmd_cell_gain(uint32_t cell_idx, float gain_db) = 0;
+  /**
+   * Sets the relative gain of a cell from it's index (following rr.conf) order.
+   * @param cell_idx Provides a cell index
+   * @param gain Relative gain
+   */
+  virtual void cmd_cell_gain(uint32_t cell_idx, float gain) = 0;
 };
-
 } // namespace srsenb
 
-#endif // SRSENB_PHY_BASE_H
+#endif // SRSLTE_ENB_COMMAND_INTERFACE_H

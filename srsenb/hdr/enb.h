@@ -47,6 +47,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/enb_command_interface.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -111,7 +112,7 @@ struct all_args_t {
   Main eNB class
 *******************************************************************************/
 
-class enb : public enb_metrics_interface
+class enb : public enb_metrics_interface, enb_command_interface
 {
 public:
   enb();
@@ -126,12 +127,11 @@ public:
 
   void print_pool();
 
-  static void rf_msg(srslte_rf_error_t error);
-
-  void handle_rf_msg(srslte_rf_error_t error);
-
   // eNodeB metrics interface
-  bool get_metrics(enb_metrics_t* m);
+  bool get_metrics(enb_metrics_t* m) override;
+
+  // eNodeB command interface
+  void cmd_cell_gain(uint32_t cell_idx, float gain) override;
 
 private:
   const static int ENB_POOL_SIZE = 1024 * 10;
