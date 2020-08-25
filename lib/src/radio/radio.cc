@@ -54,6 +54,12 @@ radio::~radio()
     zeros = nullptr;
   }
 
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    if (dummy_buffers[i]) {
+      free(dummy_buffers[i]);
+    }
+  }
+
   for (srslte_resampler_fft_t& q : interpolators) {
     srslte_resampler_fft_free(&q);
   }
