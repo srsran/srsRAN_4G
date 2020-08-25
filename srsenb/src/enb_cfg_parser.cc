@@ -359,6 +359,8 @@ int field_sf_mapping::parse(libconfig::Setting& root)
       sf_mapping[i] = root["subframe"][i];
     }
   } else {
+    // Note: By default we evenly distribute PUCCH resources between SR/CQI.
+    // The default SR resources will be {0, 2, 4, ...}, while the CQI will be {1, 3, 5, ...}.
     *nof_subframes = static_cast<uint32_t>(root["period"]) / 2;
     for (uint32_t i = 0; i < *nof_subframes; i++) {
       sf_mapping[i] = i * 2 + default_offset;
