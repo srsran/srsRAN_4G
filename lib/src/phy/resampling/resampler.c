@@ -50,7 +50,7 @@ int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  // Intinialising the resampler is unnecessary
+  // Initialising the resampler is unnecessary
   if (ratio == 1) {
     q->ratio = 1;
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
@@ -253,7 +253,6 @@ void srslte_resampler_fft_run(srslte_resampler_fft_t* q, const cf_t* input, cf_t
   }
 
   switch (q->mode) {
-
     case SRSLTE_RESAMPLER_MODE_INTERPOLATE:
       resampler_fft_interpolate(q, input, output, nsamples);
       break;
