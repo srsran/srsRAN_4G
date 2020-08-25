@@ -115,7 +115,7 @@ int test_scell_activation(test_scell_activation_params params)
   sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].active                                = true;
   sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].enb_cc_idx                            = cc_idxs[0];
   sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.periodic_configured = true;
-  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.pmi_idx             = 0;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.pmi_idx             = 37;
 
   /* Simulation Objects Setup */
   sched_sim_event_generator generator;
@@ -225,10 +225,15 @@ int test_scell_activation(test_scell_activation_params params)
   }
   generate_data(10, 1.0, 1.0, 1.0);
   tester.test_next_ttis(generator.tti_events);
+  uint64_t tot_dl_sched_data = 0;
+  uint64_t tot_ul_sched_data = 0;
   for (const auto& c : cc_idxs) {
-    TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[c] > 0);
-    TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[c] > 0);
+    tot_dl_sched_data += tester.sched_stats->users[rnti1].tot_dl_sched_data[c];
+    tot_ul_sched_data += tester.sched_stats->users[rnti1].tot_ul_sched_data[c];
   }
+
+  TESTASSERT(tot_dl_sched_data > 0);
+  TESTASSERT(tot_ul_sched_data > 0);
 
   log_global->info("[TESTER] Sim1 finished successfully\n");
   return SRSLTE_SUCCESS;

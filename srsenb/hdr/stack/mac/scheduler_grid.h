@@ -257,7 +257,7 @@ public:
     type_t       type;
     sched_ue*    user_ptr;
     prb_interval alloc;
-    uint32_t     mcs = 0;
+    int          msg3_mcs = -1;
     bool         is_retx() const { return type == NOADAPT_RETX or type == ADAPT_RETX; }
     bool         is_msg3() const { return type == MSG3; }
     bool         needs_pdcch() const { return type == NEWTX or type == ADAPT_RETX; }
@@ -290,7 +290,7 @@ public:
 
   // UL alloc methods
   alloc_outcome_t alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant);
-  alloc_outcome_t alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, uint32_t mcs = 0);
+  alloc_outcome_t alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs = -1);
   bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
   bool alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result);
 

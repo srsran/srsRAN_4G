@@ -796,7 +796,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   return alloc_outcome_t::SUCCESS;
 }
 
-alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, uint32_t mcs)
+alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs)
 {
   // Check whether user was already allocated
   if (is_ul_alloc(user)) {
@@ -816,7 +816,7 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
   ul_alloc.dci_idx    = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
   ul_alloc.user_ptr   = user;
   ul_alloc.alloc      = alloc;
-  ul_alloc.mcs        = mcs;
+  ul_alloc.msg3_mcs   = msg3_mcs;
   ul_data_allocs.push_back(ul_alloc);
 
   return alloc_outcome_t::SUCCESS;
@@ -1031,19 +1031,21 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
 }
 
 //! Finds eNB CC Idex that currently holds UCI
-int get_enb_cc_idx_with_uci(const sf_sched*        sf_sched,
+uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
                             const sf_sched_result& other_cc_results,
                             const sched_ue*        user,
                             uint32_t               current_enb_cc_idx)
 {
+  uci_pusch_t uci_alloc = UCI_PUSCH_NONE;
+
   if (not user->get_cell_index(current_enb_cc_idx).first) {
-    return -1;
+    return UCI_PUSCH_NONE;
   }
 
   // Check if UCI needs to be allocated
-  bool                             needs_uci = false;
   const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
-  for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size() and not needs_uci; ++enbccidx) {
+  for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size() and uci_alloc != UCI_PUSCH_ACK_CQI;
+       ++enbccidx) {
     auto p = user->get_cell_index(enbccidx);
     if (not p.first) {
       continue;
@@ -1052,26 +1054,38 @@ int get_enb_cc_idx_with_uci(const sf_sched*        sf_sched,
 
     // Check if CQI is pending for this CC
     const srslte_cqi_report_cfg_t& cqi_report = ue_cfg.supported_cc_list[ueccidx].dl_cfg.cqi_report;
-    needs_uci = srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul(), SRSLTE_FDD);
-    if (needs_uci) {
-      break;
+    if (srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul(), SRSLTE_FDD)) {
+      if (uci_alloc == UCI_PUSCH_ACK) {
+        uci_alloc = UCI_PUSCH_ACK_CQI;
+      } else {
+        uci_alloc = UCI_PUSCH_CQI;
+      }
     }
 
     // Check if DL alloc is pending
+    bool needs_ack_uci = false;
     if (enbccidx == current_enb_cc_idx) {
-      needs_uci = sf_sched->is_dl_alloc(user);
+      needs_ack_uci = sf_sched->is_dl_alloc(user);
     } else {
       auto& dl_result = other_cc_results.enb_cc_list[enbccidx].dl_sched_result;
       for (uint32_t j = 0; j < dl_result.nof_data_elems; ++j) {
         if (dl_result.data[j].dci.rnti == user->get_rnti()) {
-          needs_uci = true;
+          needs_ack_uci = true;
           break;
         }
       }
     }
+    if (needs_ack_uci) {
+      if (uci_alloc == UCI_PUSCH_CQI) {
+        // Once we include ACK and CQI, stop the search
+        uci_alloc = UCI_PUSCH_ACK_CQI;
+      } else {
+        uci_alloc = UCI_PUSCH_ACK;
+      }
+    }
   }
-  if (not needs_uci) {
-    return -1;
+  if (uci_alloc == UCI_PUSCH_NONE) {
+    return uci_alloc;
   }
 
   // If UL grant allocated in current carrier
@@ -1095,7 +1109,11 @@ int get_enb_cc_idx_with_uci(const sf_sched*        sf_sched,
       }
     }
   }
-  return sel_enb_cc_idx;
+  if (sel_enb_cc_idx == (int)current_enb_cc_idx) {
+    return uci_alloc;
+  } else {
+    return UCI_PUSCH_NONE;
+  }
 }
 
 void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
@@ -1113,20 +1131,23 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       cce_range = dci_result[ul_alloc.dci_idx]->dci_pos;
     }
 
-    // Set fixed mcs if specified
-    int fixed_mcs = (ul_alloc.type == ul_alloc_t::MSG3) ? ul_alloc.mcs : -1;
-
     // If UCI is encoded in the current carrier
-    int  uci_enb_cc_idx = get_enb_cc_idx_with_uci(this, *cc_results, user, cc_cfg->enb_cc_idx);
-    bool carries_uci    = uci_enb_cc_idx == (int)cc_cfg->enb_cc_idx;
+    uci_pusch_t uci_type = is_uci_included(this, *cc_results, user, cc_cfg->enb_cc_idx);
 
     /* Generate DCI Format1A */
     uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul());
-    int      tbs                 = user->generate_format0(
-        pusch, get_tti_tx_ul(), cell_index, ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs, carries_uci);
+    int      tbs                 = user->generate_format0(pusch,
+                                     get_tti_tx_ul(),
+                                     cell_index,
+                                     ul_alloc.alloc,
+                                     ul_alloc.needs_pdcch(),
+                                     cce_range,
+                                     ul_alloc.msg3_mcs,
+                                     uci_type);
 
     ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
-    if (tbs <= 0) {
+    // Allow TBS=0 in case of UCI-only PUSCH
+    if (tbs < 0 || (tbs == 0 && pusch->dci.tb.mcs_idx != 29)) {
       log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=%s, bsr=%d\n",
                      ul_alloc.type == ul_alloc_t::MSG3 ? "Msg3" : "UL",
                      ul_alloc.is_retx() ? "retx" : "tx",

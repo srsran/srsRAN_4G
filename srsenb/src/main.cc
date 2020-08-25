@@ -139,7 +139,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_aggr_level", bpo::value<int>(&args->stack.mac.sched.max_aggr_level)->default_value(-1), "Optional maximum aggregation level index (l=log2(L)) ")
     ("scheduler.max_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.max_nof_ctrl_symbols)->default_value(3), "Number of control symbols")
     ("scheduler.min_nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.min_nof_ctrl_symbols)->default_value(1), "Minimum number of control symbols")
-    ("scheduler.mcs_uci_dec", bpo::value<int>(&args->stack.mac.sched.uci_mcs_dec)->default_value(3), "Decrement of MCS in case UL grant carries UCI.")
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable",            bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false),               "Enable/Disable internal Downlink channel emulator")

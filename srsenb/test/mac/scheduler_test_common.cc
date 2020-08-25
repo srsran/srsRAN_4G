@@ -247,7 +247,7 @@ int output_sched_tester::test_dci_values_consistency(const sched_interface::dl_s
 {
   for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
     const auto& pusch = ul_result.pusch[i];
-    CONDERROR(pusch.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", pusch.tbs);
+    CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d\n", pusch.tbs);
     //    CONDERROR(ue_db.count(pusch.dci.rnti) == 0, "The allocated rnti=0x%x does not exist\n", pusch.dci.rnti);
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
@@ -643,7 +643,9 @@ int ue_ctxt_test::test_harqs(cc_result result)
         // non-adaptive retx
         CONDERROR(pusch.dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv\n");
       }
-      CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch.dci.tb.rv, "Invalid rv index for retx\n");
+      if (pusch.tbs > 0) {
+        CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch.dci.tb.rv, "Invalid rv index for retx\n");
+      }
       CONDERROR(h.ndi != pusch.dci.tb.ndi, "Invalid ndi for retx\n");
       CONDERROR(not h.active, "retx for inactive UL harq pid=%d\n", h.pid);
       CONDERROR(h.tti_tx > current_tti_rx, "UL harq pid=%d was reused too soon\n", h.pid);

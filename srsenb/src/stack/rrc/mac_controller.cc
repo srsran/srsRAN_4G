@@ -107,6 +107,11 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
   current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
   current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
 
+  // PUSCH UCI configuration
+  current_sched_ue_cfg.uci_offset.I_offset_cqi = rrc_cfg->pusch_cfg.beta_offset_cqi_idx;
+  current_sched_ue_cfg.uci_offset.I_offset_ack = rrc_cfg->pusch_cfg.beta_offset_ack_idx;
+  current_sched_ue_cfg.uci_offset.I_offset_ri  = rrc_cfg->pusch_cfg.beta_offset_ri_idx;
+
   // Configure MAC
   // In case of RRC Connection Setup/Reest message (Msg4), we need to resolve the contention by sending a ConRes CE
   mac->phy_config_enabled(rrc_ue->rnti, false);
@@ -144,6 +149,8 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
     // Handover Command
     handle_con_reconf_with_mobility();
   }
+
+  // Assume rest of parameters in current_sched_ue_cfg do not change in a Reconfig
 
   // Apply changes to MAC scheduler
   mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);

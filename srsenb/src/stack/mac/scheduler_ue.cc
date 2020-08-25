@@ -670,7 +670,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
                                bool                              needs_pdcch,
                                srslte_dci_location_t             dci_pos,
                                int                               explicit_mcs,
-                               bool                              carries_uci)
+                               uci_pusch_t                       uci_type)
 {
   ul_harq_proc*    h   = get_ul_harq(tti, cc_idx);
   srslte_dci_ul_t* dci = &data->dci;
@@ -697,43 +697,81 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       // dynamic mcs
       uint32_t req_bytes = get_pending_ul_new_data_unlocked(tti);
       uint32_t N_srs     = 0;
-      uint32_t nof_re    = (2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs) * alloc.length() * SRSLTE_NRE;
+      uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
+      uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
       tbs                = carriers[cc_idx].alloc_tbs_ul(alloc.length(), nof_re, req_bytes, &mcs);
 
-      if (carries_uci) {
-        // Reduce MCS to fit UCI
-        mcs -= std::min(main_cc_params->sched_cfg->uci_mcs_dec, mcs);
-        tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
+      // Reduce MCS to fit UCI if transmitted in this grant
+      if (uci_type != UCI_PUSCH_NONE) {
+        // Calculate an approximation of the number of RE used by UCI
+        uint32_t nof_uci_re = 0;
+        // Add the RE for ACK
+        if (uci_type == UCI_PUSCH_ACK || uci_type == UCI_PUSCH_ACK_CQI) {
+          float beta = srslte_sch_beta_ack(cfg.uci_offset.I_offset_ack);
+          nof_uci_re += srslte_qprime_ack_ext(alloc.length(), nof_symb, 8 * tbs, carriers.size(), beta);
+        }
+        // Add the RE for CQI report (RI reports are transmitted on CQI slots. We do a conservative estimate here)
+        if (uci_type == UCI_PUSCH_CQI || uci_type == UCI_PUSCH_ACK_CQI || cqi_request) {
+          float beta = srslte_sch_beta_cqi(cfg.uci_offset.I_offset_cqi);
+          nof_uci_re += srslte_qprime_cqi_ext(alloc.length(), nof_symb, 8 * tbs, beta);
+        }
+        // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
+        if (nof_re >= nof_uci_re) {
+          tbs = carriers[cc_idx].alloc_tbs_ul(alloc.length(), nof_re - nof_uci_re, req_bytes, &mcs);
+        } else {
+          tbs = 0;
+        }
       }
     }
     h->new_tx(tti, mcs, tbs, alloc, nof_retx);
-
-    // Un-trigger SR
-    unset_sr();
+    // Un-trigger the SR if data is allocated
+    if (tbs > 0) {
+      unset_sr();
+    }
   } else {
     // retx
     h->new_retx(0, tti, &mcs, nullptr, alloc);
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
   }
 
-  data->tbs = tbs;
-
-  if (tbs > 0) {
-    dci->rnti            = rnti;
-    dci->format          = SRSLTE_DCI_FORMAT0;
-    dci->ue_cc_idx       = cc_idx;
-    dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
-    dci->tb.rv           = sched_utils::get_rvidx(h->nof_retx(0));
-    if (!is_newtx && h->is_adaptive_retx()) {
-      dci->tb.mcs_idx = 28 + dci->tb.rv;
-    } else {
-      dci->tb.mcs_idx = mcs;
-    }
+  if (tbs >= 0) {
+    data->tbs        = tbs;
+    dci->rnti        = rnti;
+    dci->format      = SRSLTE_DCI_FORMAT0;
+    dci->ue_cc_idx   = cc_idx;
     dci->tb.ndi      = h->get_ndi(0);
     dci->cqi_request = cqi_request;
     dci->freq_hop_fl = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
     dci->tpc_pusch   = next_tpc_pusch;
     next_tpc_pusch   = 1;
+
+    dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
+
+    // If there are no RE available for ULSCH but there is UCI to transmit, allocate PUSCH becuase
+    // resources have been reserved already and in CA it will be used to ACK other carriers
+    if (tbs == 0 && (cqi_request || uci_type != UCI_PUSCH_NONE)) {
+      // 8.6.1 and 8.6.2 36.213 second paragraph
+      dci->cqi_request = true;
+      dci->tb.mcs_idx  = 29;
+      dci->tb.rv       = 0; // No data is being transmitted
+
+      // Empty TBS PUSCH only accepts a maximum of 4 PRB. Resize the grant. This doesn't affect the MCS selection
+      // because there is no TB in this grant
+      if (alloc.length() > 4) {
+        alloc.set(alloc.start(), alloc.start() + 4);
+      }
+    } else if (tbs > 0) {
+      dci->tb.rv = sched_utils::get_rvidx(h->nof_retx(0));
+      if (!is_newtx && h->is_adaptive_retx()) {
+        dci->tb.mcs_idx = 28 + dci->tb.rv;
+      } else {
+        dci->tb.mcs_idx = mcs;
+      }
+    } else if (tbs == 0) {
+      log_h->warning("SCHED: No space for ULSCH while allocating format0. Discarding grant.\n");
+    } else {
+      log_h->error("SCHED: Unkown error while allocating format0\n");
+    }
   }
 
   return tbs;
@@ -1096,21 +1134,19 @@ cc_sched_ue* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
   return &carriers[p.second];
 }
 
-int sched_ue::cqi_to_tbs(uint32_t  cqi,
-                         uint32_t  nof_prb,
-                         uint32_t  nof_re,
-                         uint32_t  max_mcs,
-                         uint32_t  max_Qm,
-                         bool      use_tbs_index_alt,
-                         bool      is_ul,
-                         uint32_t* mcs)
+int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs)
 {
-  float    max_coderate = srslte_cqi_to_coderate(cqi);
+
+  uint32_t cqi     = is_ul ? ul_cqi : dl_cqi;
+  uint32_t max_mcs = is_ul ? max_mcs_ul : (cfg->use_tbs_index_alt) ? max_mcs_dl_alt : max_mcs_dl;
+  uint32_t max_Qm  = is_ul and not ul_64qam_enabled ? 4 : 6; //< TODO: Allow PUSCH 64QAM
+
+  // Take the upper bound code-rate
+  float    max_coderate = srslte_cqi_to_coderate(cqi < 15 ? cqi + 1 : 15);
   int      sel_mcs      = max_mcs + 1;
   float    coderate     = 99;
-  float    eff_coderate = 99;
-  uint32_t Qm           = 1;
   int      tbs          = 0;
+  uint32_t Qm           = 0;
 
   do {
     sel_mcs--;
@@ -1119,15 +1155,18 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
     coderate         = srslte_coderate(tbs, nof_re);
     srslte_mod_t mod =
         (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, use_tbs_index_alt);
-    Qm           = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
-    eff_coderate = coderate / Qm;
-  } while ((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
+    Qm = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
+  } while (sel_mcs > 0 && coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm));
 
   if (mcs != nullptr) {
     *mcs = (uint32_t)sel_mcs;
   }
 
-  return tbs;
+  if (coderate <= SRSLTE_MIN(max_coderate, 0.930 * Qm)) {
+    return tbs;
+  } else {
+    return 0;
+  }
 }
 
 /************************************************************************************************
@@ -1223,13 +1262,8 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
 {
   uint32_t sel_mcs = 0;
 
-  uint32_t cqi     = is_ul ? ul_cqi : dl_cqi;
-  uint32_t max_mcs = is_ul ? max_mcs_ul : (cfg->use_tbs_index_alt) ? max_mcs_dl_alt : max_mcs_dl;
-  uint32_t max_Qm  = is_ul ? 4 : 6; // Allow 16-QAM in PUSCH Only
-
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  int tbs_bytes =
-      sched_ue::cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, cfg->use_tbs_index_alt, is_ul, &sel_mcs) / 8;
+  int tbs_bytes = cqi_to_tbs(nof_prb, nof_re, cfg->use_tbs_index_alt, is_ul, &sel_mcs) / 8;
 
   /* If less bytes are requested, lower the MCS */
   if (tbs_bytes > (int)req_bytes && req_bytes > 0) {
@@ -1301,6 +1335,7 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
     return 0;
   }
 
+  uint32_t last_valid_n = 0;
   for (n = 1; n < cell_params->nof_prb() && nbytes < req_bytes + 4; n++) {
     uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * n * SRSLTE_NRE;
     int      tbs    = 0;
@@ -1310,15 +1345,24 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, false, true), n) / 8;
     }
     if (tbs > 0) {
-      nbytes = tbs;
+      nbytes       = tbs;
+      last_valid_n = n;
     }
   }
 
-  while (!srslte_dft_precoding_valid_prb(n) && n <= cell_params->nof_prb()) {
-    n++;
+  if (last_valid_n > 0) {
+    if (n != last_valid_n) {
+      n = last_valid_n;
+    }
+    while (!srslte_dft_precoding_valid_prb(n) && n <= cell_params->nof_prb()) {
+      n++;
+    }
+    return n;
+  } else {
+    // This should never happen. Just in case, return 0 PRB and handle it later
+    log_h->error("SCHED: Could not obtain any valid number of PRB for an uplink allocation\n");
+    return 0;
   }
-
-  return n;
 }
 
 void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)

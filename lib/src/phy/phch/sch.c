@@ -95,6 +95,15 @@ float srslte_sch_beta_cqi(uint32_t I_cqi)
   }
 }
 
+float srslte_sch_beta_ack(uint32_t I_harq)
+{
+  if (I_harq < 16) {
+    return get_beta_harq_offset(I_harq);
+  } else {
+    return 0;
+  }
+}
+
 uint32_t srslte_sch_find_Ioffset_ack(float beta)
 {
   for (int i = 0; i < 16; i++) {

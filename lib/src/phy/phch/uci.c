@@ -344,6 +344,16 @@ static uint32_t Q_prime_cqi(srslte_pusch_cfg_t* cfg, uint32_t O, float beta, uin
   return Q_prime;
 }
 
+uint32_t srslte_qprime_cqi_ext(uint32_t L_prb, uint32_t nof_symbols, uint32_t tbs, float beta)
+{
+  srslte_pusch_cfg_t cfg = {};
+  cfg.grant.L_prb        = L_prb;
+  cfg.grant.nof_symb     = nof_symbols;
+  cfg.K_segm             = tbs;
+  // O is the number of CQI + CRC len (8). See 5.2.2.6
+  return Q_prime_cqi(&cfg, SRSLTE_UCI_CQI_CODED_PUCCH_B + 8, beta, 0);
+}
+
 /* Encode UCI CQI/PMI for payloads equal or lower to 11 bits (Sec 5.2.2.6.4)
  */
 int encode_cqi_short(srslte_uci_cqi_pusch_t* q, uint8_t* data, uint32_t nof_bits, uint8_t* q_bits, uint32_t Q)
@@ -618,6 +628,15 @@ static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t* cfg, uint32_t O, uint32_t O_c
   uint32_t Q_prime = SRSLTE_MIN(x, 4 * cfg->grant.L_prb * SRSLTE_NRE);
 
   return Q_prime;
+}
+
+uint32_t srslte_qprime_ack_ext(uint32_t L_prb, uint32_t nof_symbols, uint32_t tbs, uint32_t nof_ack, float beta)
+{
+  srslte_pusch_cfg_t cfg = {};
+  cfg.grant.L_prb        = L_prb;
+  cfg.grant.nof_symb     = nof_symbols;
+  cfg.K_segm             = tbs;
+  return Q_prime_ri_ack(&cfg, nof_ack, 0, beta);
 }
 
 static uint32_t encode_ri_ack(const uint8_t data[2], uint32_t O_ack, uint8_t Qm, srslte_uci_bit_t* q_encoded_bits)

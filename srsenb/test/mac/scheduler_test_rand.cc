@@ -261,7 +261,6 @@ int sched_tester::test_pdcch_collisions()
     std::string mask_str = cc_result->pdcch_mask.to_string();
     TESTERROR("The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), used_cce.to_string().c_str());
   }
-
   // TODO: Check postponed retxs
 
   //  typedef std::map<uint16_t, srsenb::sched_ue>::iterator it_t;

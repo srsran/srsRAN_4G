@@ -33,6 +33,8 @@
 
 namespace srsenb {
 
+typedef enum { UCI_PUSCH_NONE = 0, UCI_PUSCH_CQI, UCI_PUSCH_ACK, UCI_PUSCH_ACK_CQI } uci_pusch_t;
+
 struct cc_sched_ue {
   const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
 
@@ -52,6 +54,7 @@ struct cc_sched_ue {
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
   bool                       is_active() const { return active; }
   void                       set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi);
+  int cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs);
 
   harq_entity harq_ent;
 
@@ -64,6 +67,9 @@ struct cc_sched_ue {
   uint32_t ul_cqi     = 1;
   uint32_t ul_cqi_tti = 0;
   bool     dl_cqi_rx  = false;
+
+  // Enables or disables uplink 64QAM. Not yet functional.
+  bool ul_64qam_enabled = false;
 
   uint32_t max_mcs_dl = 28, max_mcs_dl_alt = 27, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
@@ -209,7 +215,7 @@ public:
                        bool                              needs_pdcch,
                        srslte_dci_location_t             cce_range,
                        int                               explicit_mcs = -1,
-                       bool                              carriers_uci = false);
+                       uci_pusch_t                       uci_type     = UCI_PUSCH_NONE);
 
   srslte_dci_format_t get_dci_format();
   sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);
@@ -219,15 +225,6 @@ public:
   uint32_t get_max_retx();
 
   bool pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
-
-  static int cqi_to_tbs(uint32_t  cqi,
-                        uint32_t  nof_prb,
-                        uint32_t  nof_re,
-                        uint32_t  max_mcs,
-                        uint32_t  max_Qm,
-                        bool      use_tbs_index_alt,
-                        bool      is_ul,
-                        uint32_t* mcs);
 
 private:
   bool is_sr_triggered();

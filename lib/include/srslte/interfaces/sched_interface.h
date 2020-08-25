@@ -60,7 +60,6 @@ public:
     uint32_t min_nof_ctrl_symbols = 1;
     uint32_t max_nof_ctrl_symbols = 3;
     int      max_aggr_level       = 3;
-    int      uci_mcs_dec          = 3;
   };
 
   struct cell_cfg_t {
@@ -140,7 +139,7 @@ public:
     /* ue capabilities, etc */
     uint32_t                            maxharq_tx       = 5;
     bool                                continuous_pusch = false;
-    srslte_uci_offset_cfg_t             uci_offset       = {};
+    srslte_uci_offset_cfg_t             uci_offset       = {15, 12, 10};
     srslte_pucch_cfg_t                  pucch_cfg        = {};
     std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers       = {};
     std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell

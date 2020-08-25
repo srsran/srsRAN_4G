@@ -116,6 +116,8 @@ SRSLTE_API int srslte_ulsch_decode(srslte_sch_t*       q,
 
 SRSLTE_API float srslte_sch_beta_cqi(uint32_t I_cqi);
 
+SRSLTE_API float srslte_sch_beta_ack(uint32_t I_harq);
+
 SRSLTE_API uint32_t srslte_sch_find_Ioffset_ack(float beta);
 
 SRSLTE_API uint32_t srslte_sch_find_Ioffset_cqi(float beta);
