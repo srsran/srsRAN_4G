@@ -72,7 +72,15 @@ const std::set<std::string> RH_UHD_IMP_FIX_MASTER_CLOCK_RATE_DEVICE_LIST = {"x30
 /**
  * List of devices that do NOT support stream stop/start after a time out
  */
-const std::set<std::string> RH_UHD_IMP_PROHIBITED_STOP_START = {DEVNAME_X300, DEVNAME_N300, DEVNAME_E3X0, DEVNAME_B200};
+const std::set<std::string> RF_UHD_IMP_PROHIBITED_STREAM_REMAKE = {DEVNAME_X300,
+                                                                   DEVNAME_N300,
+                                                                   DEVNAME_E3X0,
+                                                                   DEVNAME_B200};
+
+/**
+ * List of devices that do NOT require/support to restart streaming after rate changes/timeouts
+ */
+const std::set<std::string> RF_UHD_IMP_PROHIBITED_STOP_START = {DEVNAME_B200};
 
 /**
  * Defines a delay used between the current USRP time and the start of the transmission. This value needs to be high
@@ -895,8 +903,10 @@ double rf_uhd_set_rx_srate(void* h, double freq)
   }
 
   // Stop RX streamer
-  if (rf_uhd_stop_rx_stream_unsafe(handler) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (RF_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
+    if (rf_uhd_stop_rx_stream_unsafe(handler) != SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
   }
 
   // Set master clock rate
@@ -920,7 +930,7 @@ double rf_uhd_set_rx_srate(void* h, double freq)
     return SRSLTE_ERROR;
   }
 
-  if (RH_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
+  if (RF_UHD_IMP_PROHIBITED_STREAM_REMAKE.count(handler->devname) == 0) {
     if (handler->uhd->get_rx_stream(handler->rx_nof_samples) != UHD_ERROR_NONE) {
       print_usrp_error(handler);
       return SRSLTE_ERROR;
@@ -974,7 +984,7 @@ double rf_uhd_set_tx_srate(void* h, double freq)
     return SRSLTE_ERROR;
   }
 
-  if (RH_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
+  if (RF_UHD_IMP_PROHIBITED_STREAM_REMAKE.count(handler->devname) == 0) {
     if (handler->uhd->get_tx_stream(handler->tx_nof_samples) != UHD_ERROR_NONE) {
       print_usrp_error(handler);
       return SRSLTE_ERROR;
@@ -1208,7 +1218,7 @@ int rf_uhd_recv_with_time_multi(void*    h,
     } else if (error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
       ERROR("Error timed out while receiving samples from UHD.\n");
 
-      if (RH_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
+      if (RF_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
         // Stop Rx stream
         rf_uhd_stop_rx_stream_unsafe(handler);
       }
