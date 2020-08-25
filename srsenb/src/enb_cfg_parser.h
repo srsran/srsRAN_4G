@@ -140,10 +140,11 @@ private:
 class field_sf_mapping : public parser::field_itf
 {
 public:
-  field_sf_mapping(uint32_t* sf_mapping_, uint32_t* nof_subframes_)
+  field_sf_mapping(uint32_t* sf_mapping_, uint32_t* nof_subframes_, uint32_t default_offset_)
   {
-    sf_mapping    = sf_mapping_;
-    nof_subframes = nof_subframes_;
+    sf_mapping     = sf_mapping_;
+    nof_subframes  = nof_subframes_;
+    default_offset = default_offset_;
   }
   int         parse(Setting& root) override;
   const char* get_name() override { return "sf_mapping"; }
@@ -151,6 +152,7 @@ public:
 private:
   uint32_t* sf_mapping;
   uint32_t* nof_subframes;
+  uint32_t  default_offset;
 };
 
 class field_qci final : public parser::field_itf

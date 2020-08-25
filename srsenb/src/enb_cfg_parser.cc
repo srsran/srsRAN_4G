@@ -359,9 +359,9 @@ int field_sf_mapping::parse(libconfig::Setting& root)
       sf_mapping[i] = root["subframe"][i];
     }
   } else {
-    *nof_subframes = root["period"];
-    for (uint32_t i = 0; i < *nof_subframes; ++i) {
-      sf_mapping[i] = i;
+    *nof_subframes = static_cast<uint32_t>(root["period"]) / 2;
+    for (uint32_t i = 0; i < *nof_subframes; i++) {
+      sf_mapping[i] = i * 2 + default_offset;
     }
   }
   return 0;
@@ -635,7 +635,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   sched_request_cnfg.add_field(make_asn1_enum_number_parser("dsr_trans_max", &rrc_cfg_->sr_cfg.dsr_max));
   sched_request_cnfg.add_field(new parser::field<uint32>("period", &rrc_cfg_->sr_cfg.period));
   sched_request_cnfg.add_field(new parser::field<uint32>("nof_prb", &rrc_cfg_->sr_cfg.nof_prb));
-  sched_request_cnfg.add_field(new field_sf_mapping(rrc_cfg_->sr_cfg.sf_mapping, &rrc_cfg_->sr_cfg.nof_subframes));
+  sched_request_cnfg.add_field(new field_sf_mapping(rrc_cfg_->sr_cfg.sf_mapping, &rrc_cfg_->sr_cfg.nof_subframes, 0));
 
   parser::section cqi_report_cnfg("cqi_report_cnfg");
   phy_cfg_.add_subsection(&cqi_report_cnfg);
@@ -646,7 +646,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   cqi_report_cnfg.add_field(new parser::field<uint32>("m_ri", &rrc_cfg_->cqi_cfg.m_ri));
   cqi_report_cnfg.add_field(new parser::field<uint32>("nof_prb", &rrc_cfg_->cqi_cfg.nof_prb));
   cqi_report_cnfg.add_field(new parser::field<bool>("simultaneousAckCQI", &rrc_cfg_->cqi_cfg.simultaneousAckCQI));
-  cqi_report_cnfg.add_field(new field_sf_mapping(rrc_cfg_->cqi_cfg.sf_mapping, &rrc_cfg_->cqi_cfg.nof_subframes));
+  cqi_report_cnfg.add_field(new field_sf_mapping(rrc_cfg_->cqi_cfg.sf_mapping, &rrc_cfg_->cqi_cfg.nof_subframes, 1));
 
   /* RRC config section */
   parser::section rrc_cnfg("cell_list");
