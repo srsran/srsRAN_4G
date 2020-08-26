@@ -632,6 +632,8 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
 
   srslte::plmn_id_t target_plmn =
       srslte::make_plmn_id_t(rrc_enb->cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id);
+  const cell_ctxt_dedicated* src_cell_ded = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const cell_info_common*    src_cell_cfg = src_cell_ded->cell_common;
 
   /*** Fill HO Preparation Info ***/
   asn1::rrc::ho_prep_info_s         hoprep;
@@ -707,19 +709,18 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   hoprep_r8.as_cfg.source_mib.phich_cfg.phich_res.value =
       (asn1::rrc::phich_cfg_s::phich_res_e_::options)rrc_enb->cfg.cell.phich_resources;
   hoprep_r8.as_cfg.source_mib.sys_frame_num.from_number(0); // NOTE: The TS says this can go empty
-  hoprep_r8.as_cfg.source_sib_type1 = rrc_enb->cfg.sib1;
-  hoprep_r8.as_cfg.source_sib_type2 = rrc_ue->get_ue_cc_cfg(0)->sib2;
+  hoprep_r8.as_cfg.source_sib_type1 = src_cell_cfg->sib1;
+  hoprep_r8.as_cfg.source_sib_type2 = src_cell_cfg->sib2;
   asn1::number_to_enum(hoprep_r8.as_cfg.ant_info_common.ant_ports_count, rrc_enb->cfg.cell.nof_ports);
-  hoprep_r8.as_cfg.source_dl_carrier_freq =
-      rrc_enb->cfg.cell_list.at(0).dl_earfcn; // TODO: use actual DL EARFCN of source cell
+  hoprep_r8.as_cfg.source_dl_carrier_freq = src_cell_cfg->cell_cfg.dl_earfcn;
   // - fill as_context
   hoprep_r8.as_context_present               = true;
   hoprep_r8.as_context.reest_info_present    = true;
-  hoprep_r8.as_context.reest_info.source_pci = rrc_enb->cfg.cell_list.at(0).pci; // TODO: use actual PCI of source cell
+  hoprep_r8.as_context.reest_info.source_pci = src_cell_cfg->cell_cfg.pci;
   hoprep_r8.as_context.reest_info.target_cell_short_mac_i.from_number(
       rrc_details::compute_mac_i(rrc_ue->rnti,
-                                 rrc_enb->cfg.sib1.cell_access_related_info.cell_id.to_number(),
-                                 rrc_enb->cfg.cell_list.at(0).pci, // TODO: use actual PCI of source cell
+                                 src_cell_cfg->sib1.cell_access_related_info.cell_id.to_number(),
+                                 src_cell_cfg->cell_cfg.pci,
                                  rrc_ue->ue_security_cfg.get_as_sec_cfg().integ_algo,
                                  rrc_ue->ue_security_cfg.get_as_sec_cfg().k_rrc_int.data()));
 
@@ -803,7 +804,8 @@ bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const var_meas_cfg_t&  source
  * @param target_cell
  */
 void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
-                                                        const cell_info_common&   target_cell)
+                                                        const cell_info_common&   target_cell,
+                                                        uint32_t                  src_dl_earfcn)
 {
   auto& recfg              = msg.msg.set_c1().set_rrc_conn_recfg();
   recfg.rrc_transaction_id = rrc_ue->transaction_id;
@@ -823,6 +825,10 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   mob_info.rr_cfg_common.p_max                  = rrc_enb->cfg.sib1.p_max;
   mob_info.carrier_freq_present                 = false; // same frequency handover for now
   asn1::number_to_enum(mob_info.carrier_bw.dl_bw, target_cell.mib.dl_bw.to_number());
+  if (target_cell.cell_cfg.dl_earfcn != src_dl_earfcn) {
+    mob_info.carrier_freq_present         = true;
+    mob_info.carrier_freq.dl_carrier_freq = target_cell.cell_cfg.dl_earfcn;
+  }
 
   // Set security cfg
   recfg_r8.security_cfg_ho_present        = true;
@@ -1046,7 +1052,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   const cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   // Fill fields common to all types of handover (e.g. new CQI/SR configuration, mobControlInfo)
-  fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common);
+  fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common, hoprep_r8.as_cfg.source_dl_carrier_freq);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply new Security Config based on HandoverRequest
@@ -1267,7 +1273,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
-  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell);
+  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell_ctxt->cell_common->cell_cfg.dl_earfcn);
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {

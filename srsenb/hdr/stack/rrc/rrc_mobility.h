@@ -127,7 +127,9 @@ private:
   bool update_ue_var_meas_cfg(const var_meas_cfg_t&  source_var_meas_cfg,
                               uint32_t               target_enb_cc_idx,
                               asn1::rrc::meas_cfg_s* diff_meas_cfg);
-  void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg, const cell_info_common& target_cell);
+  void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
+                                   const cell_info_common&   target_cell,
+                                   uint32_t                  src_dl_earfcn);
   bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
 
   rrc::ue*                   rrc_ue  = nullptr;
