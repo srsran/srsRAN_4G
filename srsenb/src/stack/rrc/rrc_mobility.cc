@@ -1055,6 +1055,12 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common, hoprep_r8.as_cfg.source_dl_carrier_freq);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
+  // Add SCells
+  if (rrc_ue->fill_scell_to_addmod_list(&recfg_r8) != SRSLTE_SUCCESS) {
+    rrc_log->warning("Could not create configuration for Scell\n");
+    return;
+  }
+
   // Apply new Security Config based on HandoverRequest
   // See TS 33.401, Sec. 7.2.8.4.3
   recfg_r8.security_cfg_ho_present = true;
