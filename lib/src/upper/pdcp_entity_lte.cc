@@ -103,6 +103,15 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
   // Get COUNT to be used with this packet
   uint32_t tx_count = COUNT(st.tx_hfn, st.next_pdcp_tx_sn);
 
+  // If the bearer is mapped to RLC AM, save TX_COUNT and a copy of the PDU.
+  // This will be used for reestablishment, where unack'ed PDUs will be re-transmitted.
+  // PDUs will be removed from the queue, either when the lower layers will report
+  // a succesfull transmission or when the discard timer expires.
+  // Status report will also use this queue, to know the First Missing SDU (FMS).
+  if (!rlc->rb_is_um(lcid)) {
+    store_sdu(st.next_pdcp_tx_sn, sdu);
+  }
+
   // check for pending security config in transmit direction
   if (enable_security_tx_sn != -1 && enable_security_tx_sn == static_cast<int32_t>(tx_count)) {
     enable_integrity(DIRECTION_TX);
@@ -111,6 +120,16 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
   }
 
   write_data_header(sdu, tx_count);
+
+  // Start discard timer
+  if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
+    timer_handler::unique_timer discard_timer = task_sched.get_unique_timer();
+    discard_callback            discard_fnc(this, st.next_pdcp_tx_sn);
+    discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
+    discard_timer.run();
+    discard_timers_map.insert(std::make_pair(tx_count, std::move(discard_timer)));
+    log->debug("Discard Timer set for SN %u. Timeout: %ums\n", tx_count, static_cast<uint32_t>(cfg.discard_timer));
+  }
 
   // Append MAC (SRBs only)
   uint8_t mac[4]       = {};
@@ -146,6 +165,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
     st.next_pdcp_tx_sn = 0;
   }
 
+  // Pass PDU to lower layers
   rlc->write_sdu(lcid, std::move(sdu));
 }
 
@@ -340,11 +360,75 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 }
 
 /****************************************************************************
- * Delivery notifications from RLC
+ * TX PDUs Queue Helper
+ ***************************************************************************/
+bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& sdu)
+{
+  // Check capacity
+  if (undelivered_sdus_queue.size() >= tx_queue_capacity) {
+    log->warning("The undelivered PDU queue is growing large. TX_COUNT=%d, Queue size=%ld\n",
+                 tx_count,
+                 undelivered_sdus_queue.size());
+  }
+
+  // Check wether PDU is already in the queue
+  if (undelivered_sdus_queue.find(tx_count) != undelivered_sdus_queue.end()) {
+    log->error("PDU already exists in the queue. TX_COUNT=%d\n", tx_count);
+    return false;
+  }
+
+  // Copy PDU contents into queue
+  unique_byte_buffer_t sdu_copy = allocate_unique_buffer(*pool);
+  memcpy(sdu_copy->msg, sdu->msg, sdu->N_bytes);
+  sdu_copy->N_bytes = sdu->N_bytes;
+
+  undelivered_sdus_queue.insert(std::make_pair(tx_count, std::move(sdu_copy)));
+  return true;
+}
+
+/****************************************************************************
+ * Discard functionality
+ ***************************************************************************/
+// Discard Timer Callback (discardTimer)
+void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
+{
+  parent->log->debug("Discard timer expired for PDU with SN = %d\n", discard_sn);
+
+  // Discard PDU if unacknowledged
+  if (parent->undelivered_sdus_queue.find(discard_sn) != parent->undelivered_sdus_queue.end()) {
+    parent->undelivered_sdus_queue.erase(discard_sn);
+    parent->log->debug("Removed undelivered PDU with TX_COUNT=%d\n", discard_sn);
+  } else {
+    parent->log->debug("Could not find PDU to discard. TX_COUNT=%d\n", discard_sn);
+  }
+
+  // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
+  parent->rlc->discard_sdu(parent->lcid, discard_sn);
+
+  // Remove timer from map
+  // NOTE: this will delete the callback. It *must* be the last instruction.
+  parent->discard_timers_map.erase(discard_sn);
+}
+
+/****************************************************************************
+ * Handle delivery notifications from RLC
  ***************************************************************************/
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
-  logger.debug("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+  log->debug("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+
+  for (uint32_t sn : pdcp_sns) {
+    // Find undelivered PDU info
+    std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus_queue.find(sn);
+    if (it == undelivered_sdus_queue.end()) {
+      log->warning("Could not find PDU for delivery notification. Notified SN=%d\n", sn);
+      return;
+    }
+
+    // If ACK'ed bytes are equal to (or exceed) PDU size, remove PDU and disarm timer.
+    undelivered_sdus_queue.erase(sn);
+    discard_timers_map.erase(sn);
+  }
 }
 
 /****************************************************************************
@@ -386,7 +470,15 @@ void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state)
 
 std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()
 {
-  return {};
+  std::map<uint32_t, srslte::unique_byte_buffer_t> cpy{};
+  // Deep copy undelivered SDUs
+  // TODO: investigate wheter the deep copy can be avoided by moving the undelivered SDU queue.
+  // That can only be done just before the PDCP is disabled though.
+  for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end(); it++) {
+    cpy[it->first]    = allocate_unique_buffer(*pool);
+    (*cpy[it->first]) = *(it->second);
+  }
+  return cpy;
 }
 
 } // namespace srslte
