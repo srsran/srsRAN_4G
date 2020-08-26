@@ -702,6 +702,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   // Make USRP
   if (handler->uhd->usrp_make(device_addr, nof_channels) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
+    uhd_free(handler);
     return SRSLTE_ERROR;
   }
 
@@ -829,7 +830,6 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
 
 int rf_uhd_close(void* h)
 {
-
   // Makes sure Tx is ended
   void* buff[SRSLTE_MAX_CHANNELS] = {};
   rf_uhd_send_timed_multi(h, buff, 0, 0, 0, false, true, false, true);
