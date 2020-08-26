@@ -1332,7 +1332,7 @@ int rf_uhd_send_timed_multi(void*  h,
 
     // Set start of burst. Time spec only for the first packet in the burst
     md.start_of_burst = is_start_of_burst;
-    md.has_time_spec  = is_start_of_burst or has_time_spec;
+    md.has_time_spec  = is_start_of_burst and has_time_spec;
 
     // middle packets are never end of burst, last one as defined
     if (nsamples - n > (int)tx_samples) {
