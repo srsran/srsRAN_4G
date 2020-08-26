@@ -187,13 +187,13 @@ int rf_blade_open(char* args, void** h)
   int status = bladerf_open(&handler->dev, args);
   if (status) {
     ERROR("Unable to open device: %s\n", bladerf_strerror(status));
-    return status;
+    goto clean_exit;
   }
 
   status = bladerf_set_gain_mode(handler->dev, BLADERF_RX_X1, BLADERF_GAIN_MGC);
   if (status) {
     ERROR("Unable to open device: %s\n", bladerf_strerror(status));
-    return status;
+    goto clean_exit;
   }
 
   // bladerf_log_set_verbosity(BLADERF_LOG_LEVEL_VERBOSE);
@@ -202,19 +202,19 @@ int rf_blade_open(char* args, void** h)
   status = bladerf_get_gain_range(handler->dev, BLADERF_RX_X1, &range_rx);
   if ((status != 0) || (range_rx == NULL)) {
     ERROR("Failed to get RX gain range: %s\n", bladerf_strerror(status));
-    return status;
+    goto clean_exit;
   }
 
   status = bladerf_get_gain_range(handler->dev, BLADERF_TX_X1, &range_tx);
   if ((status != 0) || (range_tx == NULL)) {
     ERROR("Failed to get TX gain range: %s\n", bladerf_strerror(status));
-    return status;
+    goto clean_exit;
   }
 
   status = bladerf_set_gain(handler->dev, BLADERF_RX_X1, (bladerf_gain)range_rx->max);
   if (status != 0) {
     ERROR("Failed to set RX LNA gain: %s\n", bladerf_strerror(status));
-    return status;
+    goto clean_exit;
   }
   handler->rx_stream_enabled = false;
   handler->tx_stream_enabled = false;
@@ -229,7 +229,11 @@ int rf_blade_open(char* args, void** h)
   handler->info.min_rx_gain = range_rx->min;
   handler->info.max_rx_gain = range_rx->max;
 
-  return 0;
+  return SRSLTE_SUCCESS;
+
+clean_exit:
+  free(handler);
+  return status;
 }
 
 int rf_blade_close(void* h)
