@@ -1108,6 +1108,7 @@ int mac_ul_sch_pdu_three_byte_test()
 }
 
 struct ra_test {
+  int                          rar_offset;
   uint32_t                     nof_prachs;
   uint32_t                     rar_nof_rapid; // set to zero to don't transmit RAR
   uint32_t                     rar_nof_invalid_rapid;
@@ -1162,7 +1163,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
     // TODO: Test power ramping
 
     // Check MAC does not schedule RA-RNTI before window starts
-    for (uint32_t i = 0; i < phy->prach_delay + 3 - 1; i++) {
+    for (uint32_t i = 0; i < phy->prach_delay + 3 - 1 + test.rar_offset; i++) {
       stack->run_tti(tti);
       TESTASSERT(!SRSLTE_RNTI_ISRAR(mac->get_dl_sched_rnti(tti)));
       tti++;
@@ -1370,7 +1371,7 @@ int mac_random_access_test()
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
 
-  // Test 3: RAR received but no matching RAPID. Test Msg3 retransmissions
+  // Test 3: RAR with valid RAPID. Test Msg3 retransmissions
   //         On each HARQ retx, contention resolution timer must be restarted (5.1.5)
   //         When max-HARQ-msg3-retx, contention not successful
   mac_log->info("\n=========== Test %d =============\n", test_id++);
@@ -1378,12 +1379,22 @@ int mac_random_access_test()
   my_test.nof_msg3_retx         = rach_cfg.max_harq_msg3_tx;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
 
+  // Make sure ContentionResolutionTimer is stopped after the failure
+  phy.reset();
+  for (int i = 0; i < 8; i++) {
+    stack.run_tti(tti++);
+    TESTASSERT(!phy.is_prach_transmitted());
+  }
+
+  mac.reset();
+  mac.set_contention_id(contention_id);
+  rlc.write_sdu(0, 6);   // UL-CCCH with Msg3
+  rlc.write_sdu(3, 100); // DRB data on other LCG  my_test.nof_msg3_retx = 0;
+
   // Test 4: RAR with valid RAPID. Msg3 transmitted, Msg4 received but invalid ConRes
   //         Contention resolution is defined in 5.1.5. If ConResID does not match, the ConRes is considered
   //         not successful and tries again
   mac_log->info("\n=========== Test %d =============\n", test_id++);
-  phy.reset();
-  my_test.nof_msg3_retx = 0;
   my_test.msg4_enable   = true;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
 
@@ -1393,7 +1404,10 @@ int mac_random_access_test()
   my_test.msg4_valid_conres        = true;
   my_test.check_ra_successful      = true;
   my_test.assume_prach_transmitted = 0;
+  my_test.rar_offset               = 1;
+  my_test.nof_msg3_retx            = 1;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
+  my_test.rar_offset = 0;
 
   // Test 6: RA with existing C-RNTI (Sends C-RNTI MAC CE)
   //         The transmission of C-RNTI MAC CE is only done if no CCCH is present (5.1.4).

@@ -500,6 +500,7 @@ void ra_proc::response_error()
 {
   rntis->temp_rnti = 0;
   preambleTransmissionCounter++;
+  contention_resolution_timer.stop();
   if (preambleTransmissionCounter >= rach_cfg.preambleTransMax + 1) {
     rError("Maximum number of transmissions reached (%d)\n", rach_cfg.preambleTransMax);
     rrc->ra_problem();
@@ -518,7 +519,7 @@ void ra_proc::response_error()
       rDebug("Backoff wait interval %d\n", backoff_interval);
       state = BACKOFF_WAIT;
     } else {
-      rDebug("Transmitting immediately (%d/%d)\n", preambleTransmissionCounter, rach_cfg.preambleTransMax);
+      rInfo("Transmitting new preamble immediately (%d/%d)\n", preambleTransmissionCounter, rach_cfg.preambleTransMax);
       resource_selection();
     }
   }
