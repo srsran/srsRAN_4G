@@ -200,7 +200,9 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   // MAC control element for BSR, with exception of BSR included for padding;
   if (regular_bsr) {
     if (pdu_msg.new_subh()) {
-      pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format));
+      if (pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format)) == false) {
+        pdu_msg.del_subh();
+      }
     }
   }
 
@@ -209,7 +211,9 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     float phr_value;
     if (phr_procedure->generate_phr_on_ul_grant(&phr_value)) {
       if (pdu_msg.new_subh()) {
-        pdu_msg.get()->set_phr(phr_value);
+        if (pdu_msg.get()->set_phr(phr_value) == false) {
+          pdu_msg.del_subh();
+        }
       }
     }
   }
@@ -253,7 +257,9 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     // Insert Padding BSR if not inserted Regular/Periodic BSR
     if (bsr_procedure->generate_padding_bsr(pdu_msg.rem_size(), &bsr)) {
       if (pdu_msg.new_subh()) {
-        pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format));
+        if (pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format)) == false) {
+          pdu_msg.del_subh();
+        }
       }
     }
   }
