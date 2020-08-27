@@ -82,7 +82,7 @@ uint32_t ce_size(dl_sch_lcid v)
 
 uint32_t ce_subheader_size(dl_sch_lcid v)
 {
-  return 1;
+  return CE_SUBHEADER_LEN;
 }
 
 uint32_t ce_total_size(dl_sch_lcid v)

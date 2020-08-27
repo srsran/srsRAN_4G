@@ -219,9 +219,9 @@ uint32_t bsr_proc::get_buffer_state_lcg(uint32_t lcg)
   return n;
 }
 
-bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
+bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
 {
-  bool     ret     = false;
+  bool     send_bsr = false;
   uint32_t nof_lcg = 0;
   bzero(bsr, sizeof(bsr_t));
 
@@ -230,48 +230,52 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
     bsr->buff_size[i] = get_buffer_state_lcg(i);
     if (bsr->buff_size[i] > 0) {
       nof_lcg++;
-      ret = true;
     }
   }
-  if (triggered_bsr_type == PADDING) {
-    if (nof_padding_bytes < 4) {
-      // If space only for short
-      if (nof_lcg > 1) {
-        bsr->format           = TRUNC_BSR;
-        uint32_t max_prio_lcg = find_max_priority_lcg_with_data();
-        for (uint32_t i = 0; i < NOF_LCG; i++) {
-          if (max_prio_lcg != i) {
-            bsr->buff_size[i] = 0;
-          }
+
+  if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::LONG_BSR)) {
+    // we could fit a long BSR
+    if (triggered_bsr_type != PADDING && nof_lcg <= 1) {
+      // for Regular and periodic BSR we still send a short BSR if only one LCG has data to send
+      bsr->format = SHORT_BSR;
+    } else {
+      bsr->format = LONG_BSR;
+    }
+    send_bsr = true;
+  } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
+    // we can only fit a short or truncated BSR
+    if (nof_lcg > 1) {
+      // only send truncated BSR for a padding BSR
+      bsr->format           = TRUNC_BSR;
+      uint32_t max_prio_lcg = find_max_priority_lcg_with_data();
+      for (uint32_t i = 0; i < NOF_LCG; i++) {
+        if (max_prio_lcg != i) {
+          bsr->buff_size[i] = 0;
         }
-      } else {
-        bsr->format = SHORT_BSR;
       }
     } else {
-      // If space for long BSR
-      bsr->format = LONG_BSR;
+      bsr->format = SHORT_BSR;
     }
-  } else {
-    bsr->format = SHORT_BSR;
-    if (nof_lcg > 1) {
-      bsr->format = LONG_BSR;
-    }
-  }
-  Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n",
-       bsr_type_tostring(triggered_bsr_type),
-       bsr_format_tostring(bsr->format),
-       bsr->buff_size[0],
-       bsr->buff_size[1],
-       bsr->buff_size[2],
-       bsr->buff_size[3]);
-
-  // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
-  if (timer_periodic.duration() && bsr->format != TRUNC_BSR) {
-    timer_periodic.run();
-    Debug("BSR:   Started periodicBSR-Timer\n");
+    send_bsr = true;
   }
 
-  return ret;
+  if (send_bsr) {
+    Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n",
+         bsr_type_tostring(triggered_bsr_type),
+         bsr_format_tostring(bsr->format),
+         bsr->buff_size[0],
+         bsr->buff_size[1],
+         bsr->buff_size[2],
+         bsr->buff_size[3]);
+
+    // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
+    if (timer_periodic.duration() && bsr->format != TRUNC_BSR) {
+      timer_periodic.run();
+      Debug("BSR:   Started periodicBSR-Timer\n");
+    }
+  }
+
+  return send_bsr;
 }
 
 // Checks if Regular BSR must be assembled, as defined in 5.4.5
@@ -332,19 +336,8 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
 
   bool bsr_included = false;
 
-  uint32_t bsr_sz = 0;
   if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
-
-    generate_bsr(bsr, 0);
-
-    // Only include BSR if it can fit into the remaining grant
-    bsr_sz = bsr->format == LONG_BSR ? 3 : 1;
-    if (bsr_sz > grant_size) {
-      Debug("Grant is not enough to accommodate the BSR MAC CE\n");
-    } else {
-      Debug("BSR:   Including Regular BSR: grant_size=%d, bsr_sz=%d\n", grant_size, bsr_sz);
-      bsr_included = true;
-    }
+    bsr_included = generate_bsr(bsr, grant_size);
   }
 
   // All triggered BSRs shall be cancelled in case the UL grant can accommodate all pending data available for
@@ -383,7 +376,7 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
   bool ret = false;
 
   // This function is called by MUX only if Regular BSR has not been triggered before
-  if (nof_padding_bytes >= 2) {
+  if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
     // generate padding BSR
     set_trigger(PADDING);
     generate_bsr(bsr, nof_padding_bytes);

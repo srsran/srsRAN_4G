@@ -33,6 +33,8 @@ class subh;
 
 namespace srslte {
 
+#define CE_SUBHEADER_LEN (1)
+
 /* 3GPP 36.321 Table 6.2.1-1 */
 enum class dl_sch_lcid {
   CCCH     = 0b00000,
