@@ -64,6 +64,7 @@ public:
   asn1::rrc::meas_obj_to_add_mod_list_l&         meas_objs() { return var_meas.meas_obj_list; }
   asn1::rrc::report_cfg_to_add_mod_list_l&       rep_cfgs() { return var_meas.report_cfg_list; }
   asn1::rrc::meas_id_to_add_mod_list_l&          meas_ids() { return var_meas.meas_id_list; }
+  std::string                                    to_string() const;
 
   static var_meas_cfg_t make(const asn1::rrc::meas_cfg_s& meas_cfg);
 

@@ -386,6 +386,13 @@ void var_meas_cfg_t::compute_diff_quant_cfg(const var_meas_cfg_t& target_cfg, as
   }
 }
 
+std::string var_meas_cfg_t::to_string() const
+{
+  asn1::json_writer js;
+  var_meas.to_json(js);
+  return js.to_string();
+}
+
 /**
  * Convert MeasCfg asn1 struct to var_meas_cfg_t
  * @param meas_cfg
@@ -787,6 +794,8 @@ bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const var_meas_cfg_t&  source
 
   // Update user varMeasCfg to target
   rrc_ue->mobility_handler->ue_var_meas = target_var_ptr;
+  rrc_log->debug_long(
+      "New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, rrc_ue->mobility_handler->ue_var_meas->to_string().c_str());
 
   return meas_cfg_present;
 }
@@ -1176,6 +1185,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
 
   // Save measConfig
   ue_var_meas = std::make_shared<var_meas_cfg_t>(var_meas_cfg_t::make(ho_prep.as_cfg.source_meas_cfg));
+  rrc_log->debug_long("New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, ue_var_meas->to_string().c_str());
 
   return true;
 }

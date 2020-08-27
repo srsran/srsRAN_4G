@@ -1486,7 +1486,8 @@ srslte::proc_outcome_t rrc::ho_proc::step()
     rrc_ptr->apply_rr_config_common(&recfg_r8.mob_ctrl_info.rr_cfg_common, !recfg_r8.rr_cfg_ded_present);
 
     if (recfg_r8.rr_cfg_ded_present) {
-      rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
+      // Note: Disable SR config until RA completion
+      rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded, true);
     }
 
     cell_t* target_cell =
@@ -1515,22 +1516,27 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     Warning("Received unexpected RA Complete Event\n");
     return proc_outcome_t::yield;
   }
+  bool ho_successful = ev.success and not sec_cfg_failed;
 
-  if (ev.success and not sec_cfg_failed) {
+  // TS 36.331, sec. 5.3.5.4, last "1>"
+  rrc_ptr->t304.stop();
+  rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
+
+  if (ho_successful) {
     if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
       Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
+      ho_successful = false;
     }
   }
 
-  Info("HO %ssuccessful\n", ev.success ? "" : "un");
-  rrc_ptr->rrc_log->console("HO %ssuccessful\n", ev.success ? "" : "un");
-
-  return ev.success ? proc_outcome_t::success : proc_outcome_t::error;
+  return ho_successful ? proc_outcome_t::success : proc_outcome_t::error;
 }
 
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
-  Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
+  Info("HO %ssuccessful\n", result.is_success() ? "" : "un");
+  rrc_ptr->rrc_log->console("HO %ssuccessful\n", result.is_success() ? "" : "un");
+
   if (result.is_success()) {
     rrc_ptr->t304.stop();
   } else if (rrc_ptr->t304.is_running()) {

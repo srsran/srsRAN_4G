@@ -2016,9 +2016,14 @@ void rrc::set_phy_config_dedicated_default()
 }
 
 // Apply provided PHY config
-void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
+void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_handover)
 {
   set_phy_cfg_t_dedicated_cfg(&current_phy_cfg, phy_cnfg);
+  if (is_handover) {
+    current_phy_cfg.ul_cfg.pucch.sr_configured             = false;
+    current_phy_cfg.dl_cfg.cqi_report.periodic_configured  = false;
+    current_phy_cfg.dl_cfg.cqi_report.aperiodic_configured = false;
+  }
 
   log_phy_config_dedicated();
 
@@ -2108,12 +2113,19 @@ void rrc::apply_mac_config_dedicated_default()
   log_mac_config_dedicated();
 }
 
-bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg)
+/**
+ * Applies RadioResource Config changes to lower layers
+ * @param cnfg
+ * @param is_handover - whether the SR, CQI, SRS, measurement configs take effect immediately (see TS
+ * 36.331 5.3.5.4)
+ * @return
+ */
+bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg, bool is_handover)
 {
   if (cnfg->phys_cfg_ded_present) {
-    apply_phy_config_dedicated(cnfg->phys_cfg_ded);
+    apply_phy_config_dedicated(cnfg->phys_cfg_ded, is_handover);
     // Apply SR configuration to MAC
-    if (cnfg->phys_cfg_ded.sched_request_cfg_present) {
+    if (not is_handover and cnfg->phys_cfg_ded.sched_request_cfg_present) {
       set_mac_cfg_t_sched_request_cfg(&current_mac_cfg, cnfg->phys_cfg_ded.sched_request_cfg);
     }
   }
@@ -2125,7 +2137,7 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg)
       set_mac_cfg_t_main_cfg(&current_mac_cfg, cnfg->mac_main_cfg.explicit_value());
     }
     mac->set_config(current_mac_cfg);
-  } else if (cnfg->phys_cfg_ded.sched_request_cfg_present) {
+  } else if (not is_handover and cnfg->phys_cfg_ded.sched_request_cfg_present) {
     // If MAC-main not set but SR config is set, use directly mac->set_config to update config
     mac->set_config(current_mac_cfg);
     log_mac_config_dedicated();
@@ -2160,6 +2172,29 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg)
   for (uint32_t i = 0; i < cnfg->drb_to_add_mod_list.size(); i++) {
     // TODO: handle DRB modification
     add_drb(cnfg->drb_to_add_mod_list[i]);
+  }
+  return true;
+}
+
+bool rrc::apply_rr_config_dedicated_on_ho_complete(const rr_cfg_ded_s& cnfg)
+{
+  // Apply SR+CQI configuration to PHY
+  if (cnfg.phys_cfg_ded_present) {
+    current_phy_cfg.ul_cfg.pucch.sr_configured = cnfg.phys_cfg_ded.sched_request_cfg_present;
+    if (cnfg.phys_cfg_ded.cqi_report_cfg_present) {
+      current_phy_cfg.dl_cfg.cqi_report.periodic_configured =
+          cnfg.phys_cfg_ded.cqi_report_cfg.cqi_report_periodic_present and
+          cnfg.phys_cfg_ded.cqi_report_cfg.cqi_report_periodic.type().value == setup_opts::setup;
+      current_phy_cfg.dl_cfg.cqi_report.aperiodic_configured =
+          cnfg.phys_cfg_ded.cqi_report_cfg.cqi_report_mode_aperiodic_present;
+    }
+    phy->set_config(current_phy_cfg);
+  }
+
+  // Apply SR configuration to MAC
+  if (cnfg.phys_cfg_ded.sched_request_cfg_present) {
+    set_mac_cfg_t_sched_request_cfg(&current_mac_cfg, cnfg.phys_cfg_ded.sched_request_cfg);
+    mac->set_config(current_mac_cfg);
   }
   return true;
 }
