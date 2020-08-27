@@ -194,7 +194,7 @@ public:
         dl_action.tb[0].payload, dl_mac_grant.tb[0].tbs, "Generated DL PDU (%d B)\n", dl_mac_grant.tb[0].tbs);
 
 #if HAVE_PCAP
-    pcap_handle->write_dl_crnti(dl_action.tb[0].payload, dl_mac_grant.tb[0].tbs, rnti, true, 1);
+    pcap_handle->write_dl_crnti(dl_action.tb[0].payload, dl_mac_grant.tb[0].tbs, rnti, true, 1, 0);
 #endif
 
     mac_h->tb_decoded(0, dl_mac_grant, ack_v);
@@ -273,7 +273,7 @@ public:
     log_h->info_hex(ul_action.tb.payload, ul_mac_grant.tb.tbs, "Generated UL PDU (%d B)\n", ul_mac_grant.tb.tbs);
 
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, ul_mac_grant.tb.tbs, rnti, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, ul_mac_grant.tb.tbs, rnti, true, 1, 0);
 #endif
 
     if (tv && ul_action.tb.payload) {
@@ -465,7 +465,7 @@ int mac_ul_sch_pdu_test1()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -561,7 +561,7 @@ int mac_ul_logical_channel_prioritization_test1()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -669,7 +669,7 @@ int mac_ul_logical_channel_prioritization_test2()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -758,7 +758,7 @@ int mac_ul_logical_channel_prioritization_test3()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -841,7 +841,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -894,7 +894,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -929,7 +929,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -984,7 +984,7 @@ int mac_ul_sch_pdu_one_byte_test()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -1039,7 +1039,7 @@ int mac_ul_sch_pdu_two_byte_test()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
@@ -1094,7 +1094,7 @@ int mac_ul_sch_pdu_three_byte_test()
     // print generated PDU
     mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
-    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
 #endif
 
     TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
