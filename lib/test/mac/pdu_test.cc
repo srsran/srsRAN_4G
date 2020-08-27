@@ -666,6 +666,48 @@ int mac_sch_pdu_pack_test10()
   return SRSLTE_SUCCESS;
 }
 
+// Pack test for short MAC PDU, trying to add long BSR but no space left
+int mac_sch_pdu_pack_test11()
+{
+  srslte::log_ref mac_log("MAC");
+
+  const uint32_t  pdu_size = 3;
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
+
+  uint8_t tv[pdu_size] = {0x1f, 0x00, 0x00};
+
+  byte_buffer_t buffer;
+  pdu.init_tx(&buffer, pdu_size, true);
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Try to Long BSR CE
+  uint32_t buff_size[4] = {0, 1000, 5000, 19200000};
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::LONG_BSR) == false);
+
+  // Adding BSR failed, remove subheader again
+  pdu.del_subh();
+
+  // write PDU
+  pdu.write_packet(srslte::log_ref{"MAC"});
+
+  // compare with tv
+  TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
+
+  // log
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
 // Test for checking error cases
 int mac_sch_pdu_pack_error_test()
 {
@@ -861,6 +903,7 @@ int main(int argc, char** argv)
   TESTASSERT(mac_sch_pdu_pack_test8() == SRSLTE_SUCCESS);
   TESTASSERT(mac_sch_pdu_pack_test9() == SRSLTE_SUCCESS);
   TESTASSERT(mac_sch_pdu_pack_test10() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_sch_pdu_pack_test11() == SRSLTE_SUCCESS);
 
   TESTASSERT(mac_sch_pdu_pack_error_test() == SRSLTE_SUCCESS);
 
