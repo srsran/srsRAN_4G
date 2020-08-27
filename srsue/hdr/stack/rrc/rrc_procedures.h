@@ -307,6 +307,7 @@ private:
 
   // state
   uint32_t target_earfcn;
+  bool     sec_cfg_failed = false;
   enum state_t { launch_phy_cell_select, wait_phy_cell_select_complete, wait_ra_completion } state;
 };
 

@@ -887,7 +887,7 @@ bool rrc::con_reconfig(const rrc_conn_recfg_s& reconfig)
     apply_scell_config(&reconfig_r8_);
 
     // notify back RRC
-    task_sched.defer_task([this, reconfig_r8_]() {
+    task_sched.notify_background_task_result([this, reconfig_r8_]() {
       const rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig_r8_;
 
       if (!measurements->parse_meas_config(

@@ -1348,6 +1348,7 @@ rrc::ho_proc::ho_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
 srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
 {
   Info("Starting...\n");
+  sec_cfg_failed                            = false;
   recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
 
@@ -1416,46 +1417,50 @@ srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
   rrc_ptr->set_serving_cell(target_cell->phy_cell, false);
 
   // Extract and apply scell config if any
-  rrc_ptr->apply_scell_config(&recfg_r8);
+  rrc_ptr->task_sched.enqueue_background_task([this](uint32_t wid) {
+    rrc_ptr->apply_scell_config(&recfg_r8);
 
-  if (recfg_r8.mob_ctrl_info.rach_cfg_ded_present) {
-    Info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
-         recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
-         recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
-    rrc_ptr->mac->start_noncont_ho(recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
-                                   recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
-  } else {
-    Info("Starting contention-based RA\n");
-    rrc_ptr->mac->start_cont_ho();
-  }
+    rrc_ptr->task_sched.notify_background_task_result([this]() {
+      if (recfg_r8.mob_ctrl_info.rach_cfg_ded_present) {
+        Info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
+             recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
+             recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
+        rrc_ptr->mac->start_noncont_ho(recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
+                                       recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
+      } else {
+        Info("Starting contention-based RA\n");
+        rrc_ptr->mac->start_cont_ho();
+      }
 
-  int ncc = -1;
-  if (recfg_r8.security_cfg_ho_present) {
-    auto& sec_intralte = recfg_r8.security_cfg_ho.handov_type.intra_lte();
-    ncc                = sec_intralte.next_hop_chaining_count;
-    if (sec_intralte.key_change_ind) {
-      rrc_ptr->rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
-      return proc_outcome_t::error;
-    }
-    if (sec_intralte.security_algorithm_cfg_present) {
-      rrc_ptr->sec_cfg.cipher_algo =
-          (srslte::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
-      rrc_ptr->sec_cfg.integ_algo =
-          (srslte::INTEGRITY_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
-      Info("Changed Ciphering to %s and Integrity to %s\n",
-           srslte::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
-           srslte::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
-    }
-  }
+      int ncc = -1;
+      if (recfg_r8.security_cfg_ho_present) {
+        auto& sec_intralte = recfg_r8.security_cfg_ho.handov_type.intra_lte();
+        ncc                = sec_intralte.next_hop_chaining_count;
+        if (sec_intralte.key_change_ind) {
+          rrc_ptr->rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
+          sec_cfg_failed = true;
+          return;
+        }
+        if (sec_intralte.security_algorithm_cfg_present) {
+          rrc_ptr->sec_cfg.cipher_algo =
+              (srslte::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
+          rrc_ptr->sec_cfg.integ_algo = (srslte::INTEGRITY_ALGORITHM_ID_ENUM)
+                                            sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
+          Info("Changed Ciphering to %s and Integrity to %s\n",
+               srslte::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
+               srslte::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
+        }
+      }
 
-  rrc_ptr->usim->generate_as_keys_ho(
-      recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->meas_cells.serving_cell().get_earfcn(), ncc, &rrc_ptr->sec_cfg);
+      rrc_ptr->usim->generate_as_keys_ho(
+          recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->meas_cells.serving_cell().get_earfcn(), ncc, &rrc_ptr->sec_cfg);
 
-  rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
+      rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
 
-  // Have RRCReconfComplete message ready when Msg3 is sent
-  rrc_ptr->send_rrc_con_reconfig_complete();
-
+      // Have RRCReconfComplete message ready when Msg3 is sent
+      rrc_ptr->send_rrc_con_reconfig_complete();
+    });
+  });
   state = wait_ra_completion;
   return proc_outcome_t::yield;
 }
@@ -1511,7 +1516,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     return proc_outcome_t::yield;
   }
 
-  if (ev.success) {
+  if (ev.success and not sec_cfg_failed) {
     if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
       Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
     }
