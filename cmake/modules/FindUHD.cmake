@@ -31,9 +31,17 @@ MARK_AS_ADVANCED(UHD_LIBRARIES UHD_INCLUDE_DIRS)
 include(CheckCXXSourceCompiles)
 
 IF(UHD_FOUND)
+  # UHD library directory
+  get_filename_component(UHD_LIBRARY_DIR ${UHD_LIBRARIES} DIRECTORY)
+
+  # Save current required variables
   set(_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
   set(_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
-  set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
+  set(_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
+
+  # Set required variables
+  set(CMAKE_REQUIRED_INCLUDES ${UHD_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS} -L${UHD_LIBRARY_DIR}")
   set(CMAKE_REQUIRED_LIBRARIES uhd boost_program_options boost_system)
 
   # Checks whether the UHD driver supports X300 reset from srsLTE. This functionality requires changing the function
@@ -100,8 +108,10 @@ IF(UHD_FOUND)
       return 0;
     }" UHD_ENABLE_CUSTOM_RFNOC)
 
+  # Recover required variables
   set(CMAKE_REQUIRED_FLAGS ${_CMAKE_REQUIRED_FLAGS})
   set(CMAKE_REQUIRED_LIBRARIES ${_CMAKE_REQUIRED_LIBRARIES})
+  set(CMAKE_REQUIRED_INCLUDES ${_CMAKE_REQUIRED_INCLUDES})
 ENDIF(UHD_FOUND)
 
 ENDIF(NOT UHD_FOUND)
