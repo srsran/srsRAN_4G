@@ -95,7 +95,7 @@ void sr_proc::step(uint32_t tti)
             reset();
           }
         }
-      } else {
+      } else if (ra->is_idle()) {
         Info("SR:    PUCCH not configured. Starting RA procedure\n");
         ra->start_mac_order();
         reset();

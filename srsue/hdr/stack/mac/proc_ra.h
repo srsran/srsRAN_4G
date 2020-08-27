@@ -98,6 +98,8 @@ public:
   void notify_phy_config_completed(uint32_t task_id);
   void notify_ra_completed(uint32_t task_id);
 
+  bool is_idle() const { return state == IDLE; }
+
 private:
   void state_pdcch_setup();
   void state_response_reception(uint32_t tti);
