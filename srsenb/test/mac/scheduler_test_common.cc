@@ -375,7 +375,7 @@ int ue_ctxt_test::fwd_pending_acks(sched* sched_ptr)
     }
     auto& h = active_ccs[p.ue_cc_idx].dl_harqs[p.pid];
     CONDERROR(not h.active, "The ACKed DL Harq pid=%d is not active\n", h.pid);
-    CONDERROR(h.tti_tx + FDD_HARQ_DELAY_UL_MS != p.tti_ack, "dl ack hasn't arrived when expected\n");
+    CONDERROR(h.tti_tx + FDD_HARQ_DELAY_DL_MS != p.tti_ack, "dl ack hasn't arrived when expected\n");
     CONDERROR(sched_ptr->dl_ack_info(current_tti_rx.to_uint(), rnti, p.cc_idx, p.tb, p.ack) <= 0,
               "The ACKed DL Harq pid=%d does not exist.\n",
               p.pid);
