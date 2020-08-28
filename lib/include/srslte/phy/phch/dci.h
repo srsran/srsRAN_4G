@@ -234,9 +234,15 @@ SRSLTE_API char* srslte_dci_format_string(srslte_dci_format_t format);
 
 SRSLTE_API char* srslte_dci_format_string_short(srslte_dci_format_t format);
 
+SRSLTE_API bool srslte_location_find(srslte_dci_location_t* locations, uint32_t nof_locations, srslte_dci_location_t x);
+
+SRSLTE_API bool srslte_location_find_ncce(srslte_dci_location_t* locations, uint32_t nof_locations, uint32_t ncce);
+
 SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uint32_t nCCE);
 
 SRSLTE_API bool srslte_dci_location_isvalid(srslte_dci_location_t* c);
+
+SRSLTE_API void srslte_dci_cfg_set_common_ss(srslte_dci_cfg_t* cfg);
 
 SRSLTE_API uint32_t srslte_dci_format_max_tb(srslte_dci_format_t format);
 

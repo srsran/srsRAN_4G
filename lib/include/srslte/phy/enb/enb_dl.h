@@ -84,6 +84,9 @@ typedef struct SRSLTE_API {
   float sss_signal0[SRSLTE_SSS_LEN];
   float sss_signal5[SRSLTE_SSS_LEN];
 
+  uint32_t              nof_common_locations[3];
+  srslte_dci_location_t common_locations[3][MAX_CANDIDATES_COM];
+
 } srslte_enb_dl_t;
 
 typedef struct {
@@ -102,6 +105,8 @@ SRSLTE_API int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell);
 SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t* q, uint16_t rnti);
 
 SRSLTE_API void srslte_enb_dl_rem_rnti(srslte_enb_dl_t* q, uint16_t rnti);
+
+SRSLTE_API bool srslte_enb_dl_location_is_common_ncce(srslte_enb_dl_t* q, uint32_t ncce);
 
 SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t* q, srslte_dl_sf_cfg_t* dl_sf);
 

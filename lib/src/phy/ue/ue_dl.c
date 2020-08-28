@@ -38,6 +38,8 @@ const static srslte_dci_format_t ue_dci_formats[8][2] = {
     /* Mode 7 */ {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1},
     /* Mode 8 */ {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT2B}};
 
+const uint32_t nof_ue_dci_formats = 2;
+
 static srslte_dci_format_t common_formats[]   = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1C};
 const uint32_t             nof_common_formats = 2;
 
@@ -431,57 +433,119 @@ static bool find_dci(srslte_dci_msg_t* dci_msg, uint32_t nof_dci_msg, srslte_dci
   return found;
 }
 
+static bool dci_location_is_allocated(srslte_ue_dl_t* q, srslte_dci_location_t new_loc)
+{
+  for (uint32_t i = 0; i < q->nof_allocated_locations; i++) {
+    uint32_t L    = q->allocated_locations[i].L;
+    uint32_t ncce = q->allocated_locations[i].ncce;
+    if ((ncce <= new_loc.ncce && new_loc.ncce < ncce + L) || // if new location starts in within an existing allocation
+        (new_loc.ncce <= ncce &&
+         ncce < new_loc.ncce + new_loc.L)) { // or an existing allocation starts within the new location
+      return true;
+    }
+  }
+  return false;
+}
+
 static int dci_blind_search(srslte_ue_dl_t*     q,
                             srslte_dl_sf_cfg_t* sf,
                             uint16_t            rnti,
                             dci_blind_search_t* search_space,
                             srslte_dci_cfg_t*   dci_cfg,
-                            srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG])
+                            srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG],
+                            bool                search_in_common)
 {
   uint32_t nof_dci = 0;
   if (rnti) {
-    int i = 0;
-    while ((dci_cfg->cif_enabled || !nof_dci) && (i < search_space->nof_locations) && (nof_dci < SRSLTE_MAX_DCI_MSG)) {
-      DEBUG("Searching format %s in %d,%d (%d/%d)\n",
-            srslte_dci_format_string(search_space->format),
-            search_space->loc[i].ncce,
-            search_space->loc[i].L,
-            i,
-            search_space->nof_locations);
-
-      dci_msg[nof_dci].location = search_space->loc[i];
-      dci_msg[nof_dci].format   = search_space->format;
-      dci_msg[nof_dci].rnti     = 0;
-      if (srslte_pdcch_decode_msg(&q->pdcch, sf, dci_cfg, &dci_msg[nof_dci])) {
-        ERROR("Error decoding DCI msg\n");
-        return SRSLTE_ERROR;
+    for (int l = 0; l < search_space->nof_locations; l++) {
+      if (nof_dci >= SRSLTE_MAX_DCI_MSG) {
+        ERROR("Can't store more DCIs in buffer\n");
+        return nof_dci;
       }
+      if (dci_location_is_allocated(q, search_space->loc[l])) {
+        INFO("Skipping location L=%d, ncce=%d. Already allocated\n", search_space->loc[l].L, search_space->loc[l].ncce);
+        continue;
+      }
+      for (uint32_t f = 0; f < search_space->nof_formats; f++) {
+        INFO("Searching format %s in %d,%d (%d/%d)\n",
+             srslte_dci_format_string(search_space->formats[f]),
+             search_space->loc[l].ncce,
+             search_space->loc[l].L,
+             l,
+             search_space->nof_locations);
 
-      if ((dci_msg[nof_dci].rnti == rnti) && (dci_msg[nof_dci].nof_bits > 0)) {
+        // Try to decode a valid DCI msg
+        dci_msg[nof_dci].location = search_space->loc[l];
+        dci_msg[nof_dci].format   = search_space->formats[f];
+        dci_msg[nof_dci].rnti     = 0;
+        if (srslte_pdcch_decode_msg(&q->pdcch, sf, dci_cfg, &dci_msg[nof_dci])) {
+          ERROR("Error decoding DCI msg\n");
+          return SRSLTE_ERROR;
+        }
 
-        dci_msg[nof_dci].rnti = rnti;
-        // If searching for Format1A but found Format0 save it for later
-        if (dci_msg[nof_dci].format == SRSLTE_DCI_FORMAT0 && search_space->format == SRSLTE_DCI_FORMAT1A) {
-          /* If there is space for accumulate another UL DCI dci and it was not detected before, then store it */
-          if (q->pending_ul_dci_count < SRSLTE_MAX_CARRIERS &&
-              !find_dci(q->pending_ul_dci_msg, q->pending_ul_dci_count, &dci_msg[nof_dci])) {
-            srslte_dci_msg_t* pending_ul_dci_msg = &q->pending_ul_dci_msg[q->pending_ul_dci_count];
-            pending_ul_dci_msg->format           = dci_msg[nof_dci].format;
-            pending_ul_dci_msg->location         = dci_msg[nof_dci].location;
-            pending_ul_dci_msg->nof_bits         = dci_msg[nof_dci].nof_bits;
-            pending_ul_dci_msg->rnti             = dci_msg[nof_dci].rnti;
-            memcpy(pending_ul_dci_msg->payload, dci_msg[nof_dci].payload, dci_msg[nof_dci].nof_bits);
-            q->pending_ul_dci_count++;
+        if ((dci_msg[nof_dci].rnti == rnti) && (dci_msg[nof_dci].nof_bits > 0)) {
+          dci_msg[nof_dci].rnti = rnti;
+
+          // Look for the messages found and apply the new format if the location is common
+          if (search_in_common && (dci_cfg->multiple_csi_request_enabled || dci_cfg->srs_request_enabled)) {
+            uint32_t sf_idx = sf->tti % 10;
+            uint32_t cfi    = sf->cfi;
+
+            /*
+             * A UE configured to monitor PDCCH candidates whose CRCs are scrambled with C-RNTI or SPS C-RNTI,
+             * with a common payload size and with the same first CCE index ncce, but with different sets of DCI
+             * information fields in the common and UE-specific search spaces on the primary cell, is required to assume
+             * that only the PDCCH in the common search space is transmitted by the primary cell.
+             */
+            INFO("checking if msg=%d, ncce=%d belongs to common\n", nof_dci, dci_msg[nof_dci].location.ncce);
+            // Find a matching ncce in the common SS
+            if (srslte_location_find_ncce(q->current_ss_common[MI_IDX(sf_idx)][cfi - 1].loc,
+                                          q->current_ss_common[MI_IDX(sf_idx)][cfi - 1].nof_locations,
+                                          dci_msg[nof_dci].location.ncce)) {
+              srslte_dci_cfg_t cfg = *dci_cfg;
+              srslte_dci_cfg_set_common_ss(&cfg);
+              INFO("checking if size of msg (%d) is equal to size of format1a (%d)\n",
+                   dci_msg[nof_dci].nof_bits,
+                   srslte_dci_format_sizeof(&q->cell, sf, &cfg, SRSLTE_DCI_FORMAT1A));
+              // if the payload size is the same that it would have in the common SS (only Format0/1A is allowed there)
+              if (dci_msg[nof_dci].nof_bits == srslte_dci_format_sizeof(&q->cell, sf, &cfg, SRSLTE_DCI_FORMAT1A)) {
+                // assume that only the PDDCH is transmitted, therefore update the format to 0/1A
+                dci_msg[nof_dci].format = dci_msg[nof_dci].payload[0]
+                                              ? SRSLTE_DCI_FORMAT1A
+                                              : SRSLTE_DCI_FORMAT0; // Format0/1A bit indicator is the MSB
+                INFO("DCI msg found in location L=%d, ncce=%d, size=%d belongs to the common SS and is format %s\n",
+                     dci_msg[nof_dci].location.L,
+                     dci_msg[nof_dci].location.ncce,
+                     dci_msg[nof_dci].nof_bits,
+                     srslte_dci_format_string_short(dci_msg[nof_dci].format));
+              }
+            }
           }
-          // Else if we found it, save location and keep going if required
-        } else if (dci_msg[nof_dci].format == search_space->format) {
-          /* Check if the DCI is duplicated */
-          if (!find_dci(dci_msg, (uint32_t)nof_dci, &dci_msg[nof_dci])) {
+
+          // If found a Format0, save it for later
+          if (dci_msg[nof_dci].format == SRSLTE_DCI_FORMAT0) {
+            // If there is space for accumulate another UL DCI dci and it was not detected before, then store it
+            if (q->pending_ul_dci_count < SRSLTE_MAX_DCI_MSG &&
+                !find_dci(q->pending_ul_dci_msg, q->pending_ul_dci_count, &dci_msg[nof_dci])) {
+              srslte_dci_msg_t* pending_ul_dci_msg = &q->pending_ul_dci_msg[q->pending_ul_dci_count];
+              *pending_ul_dci_msg                  = dci_msg[nof_dci];
+              q->pending_ul_dci_count++;
+            }
+            /* Check if the DCI is duplicated */
+          } else if (!find_dci(dci_msg, (uint32_t)nof_dci, &dci_msg[nof_dci]) &&
+                     !find_dci(q->pending_ul_dci_msg, q->pending_ul_dci_count, &dci_msg[nof_dci])) {
+            // Save message and continue with next location
+            if (q->nof_allocated_locations <= SRSLTE_MAX_DCI_MSG) {
+              q->allocated_locations[q->nof_allocated_locations] = dci_msg[nof_dci].location;
+              q->nof_allocated_locations++;
+            }
             nof_dci++;
+            break;
+          } else {
+            INFO("Ignoring message with size %d, already decoded\n", dci_msg[nof_dci].nof_bits);
           }
         }
       }
-      i++;
     }
   } else {
     ERROR("RNTI not specified\n");
@@ -489,16 +553,15 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
   return nof_dci;
 }
 
-static int find_dci_ue_ss(srslte_ue_dl_t*            q,
-                          srslte_dl_sf_cfg_t*        sf,
-                          srslte_ue_dl_cfg_t*        cfg,
-                          uint16_t                   rnti,
-                          srslte_dci_msg_t           dci_msg[SRSLTE_MAX_DCI_MSG],
-                          const srslte_dci_format_t* formats,
-                          uint32_t                   nof_formats,
-                          bool                       is_ue)
+static int find_dci_ss(srslte_ue_dl_t*            q,
+                       srslte_dl_sf_cfg_t*        sf,
+                       srslte_ue_dl_cfg_t*        cfg,
+                       uint16_t                   rnti,
+                       srslte_dci_msg_t*          dci_msg,
+                       const srslte_dci_format_t* formats,
+                       uint32_t                   nof_formats,
+                       bool                       is_ue)
 {
-  int                 ret          = SRSLTE_SUCCESS;
   dci_blind_search_t  search_space = {};
   dci_blind_search_t* current_ss   = &search_space;
 
@@ -516,8 +579,7 @@ static int find_dci_ue_ss(srslte_ue_dl_t*            q,
     }
   } else {
     // Disable extended CSI request and SRS request in common SS
-    dci_cfg.multiple_csi_request_enabled = false;
-    dci_cfg.srs_request_enabled          = false;
+    srslte_dci_cfg_set_common_ss(&dci_cfg);
 
     if (q->pregen_rnti == rnti) {
       current_ss = &q->current_ss_common[MI_IDX(sf_idx)][cfi - 1];
@@ -528,24 +590,23 @@ static int find_dci_ue_ss(srslte_ue_dl_t*            q,
   }
 
   // Search for DCI in the SS
-  if (current_ss->nof_locations > 0) {
-    for (int f = 0; f < nof_formats; f++) {
-      srslte_dci_format_t format = formats[f];
+  current_ss->nof_formats = nof_formats;
+  memcpy(current_ss->formats, formats, nof_formats * sizeof(srslte_dci_format_t));
 
-      INFO("Searching DCI format=%s in %d locations in %s SS\n",
-           srslte_dci_format_string(format),
-           current_ss->nof_locations,
-           is_ue ? "ue" : "common");
+  INFO("Searching %d formats in %d locations in %s SS, csi=%d\n",
+       nof_formats,
+       current_ss->nof_locations,
+       is_ue ? "ue" : "common",
+       dci_cfg.multiple_csi_request_enabled);
 
-      current_ss->format = format;
-      if ((ret = dci_blind_search(q, sf, rnti, current_ss, &dci_cfg, dci_msg))) {
-        return ret;
-      }
-    }
-  }
-  return SRSLTE_SUCCESS;
+  return dci_blind_search(q, sf, rnti, current_ss, &dci_cfg, dci_msg, cfg->cfg.dci_common_ss);
 }
 
+/*
+ * Note: This function does not perform a DCI search. It just copies the Format0 messages from the
+ * pending_ul_dci_msg buffer found during a call to srslte_ue_dl_find_dl_dci().
+ * It is assumed that the user called srslte_ue_dl_find_dl_dci() prior to calling this function.
+ */
 int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
                              srslte_dl_sf_cfg_t* sf,
                              srslte_ue_dl_cfg_t* dl_cfg,
@@ -554,34 +615,12 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
 {
   srslte_dci_msg_t dci_msg[SRSLTE_MAX_DCI_MSG];
   uint32_t         nof_msg = 0;
-  int              ret     = 0;
 
   if (rnti) {
-    /* Do not search if an UL DCI is already pending */
-    if (q->pending_ul_dci_count) {
-      nof_msg                 = SRSLTE_MIN(SRSLTE_MAX_DCI_MSG, q->pending_ul_dci_count);
-      q->pending_ul_dci_count = 0;
-      memcpy(dci_msg, q->pending_ul_dci_msg, sizeof(srslte_dci_msg_t) * nof_msg);
-    } else {
-
-      set_mi_value(q, sf, dl_cfg);
-
-      srslte_dci_format_t ul_format = SRSLTE_DCI_FORMAT0;
-
-      // Search first on the UE-specific SS to avoid ambiguity on DCI sizes
-      // Search UE-specific search space
-      if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &ul_format, 1, true)) < 0) {
-        return SRSLTE_ERROR;
-      }
-
-      // Search common SS if no DCI present in UE SS
-      if (ret == 0 && dl_cfg->cfg.dci_common_ss) {
-        if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &ul_format, 1, false)) < 0) {
-          return SRSLTE_ERROR;
-        }
-      }
-      nof_msg = (uint32_t)ret;
-    }
+    // Copy the messages found in the last call to srslte_ue_dl_find_dl_dci()
+    nof_msg = SRSLTE_MIN(SRSLTE_MAX_DCI_MSG, q->pending_ul_dci_count);
+    memcpy(dci_msg, q->pending_ul_dci_msg, sizeof(srslte_dci_msg_t) * nof_msg);
+    q->pending_ul_dci_count = 0;
 
     // Unpack DCI messages
     for (uint32_t i = 0; i < nof_msg; i++) {
@@ -605,15 +644,15 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t*     q,
                                       uint16_t            rnti,
                                       srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG])
 {
-  return find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, common_formats, nof_common_formats, false);
+  return find_dci_ss(q, sf, dl_cfg, rnti, dci_msg, common_formats, nof_common_formats, false);
 }
 
 // Blind search for C-RNTI
-static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
-                                  srslte_dl_sf_cfg_t* sf,
-                                  srslte_ue_dl_cfg_t* dl_cfg,
-                                  uint16_t            rnti,
-                                  srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG])
+static int find_dl_ul_dci_type_crnti(srslte_ue_dl_t*     q,
+                                     srslte_dl_sf_cfg_t* sf,
+                                     srslte_ue_dl_cfg_t* dl_cfg,
+                                     uint16_t            rnti,
+                                     srslte_dci_msg_t*   dci_msg)
 {
   int ret = SRSLTE_SUCCESS;
 
@@ -622,21 +661,31 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
     return SRSLTE_ERROR;
   }
 
-  // Search first on the UE-specific SS to avoid ambiguity on DCI sizes
+  int nof_dci_msg = 0;
+
+  // Although the common SS has higher priority than the UE, we'll start the search with UE space
+  // since has the smallest aggregation levels. With the messages found in the UE space, we'll
+  // check if they belong to the common SS and change the format if needed
+
   // Search UE-specific search space
-  if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, ue_dci_formats[dl_cfg->cfg.tm], 2, true))) {
+  if ((ret = find_dci_ss(q, sf, dl_cfg, rnti, dci_msg, ue_dci_formats[dl_cfg->cfg.tm], nof_ue_dci_formats, true)) < 0) {
     return ret;
   }
 
-  // Search common SS if no DCI present in UE SS
+  nof_dci_msg += ret;
+
+  // Search common SS
   if (dl_cfg->cfg.dci_common_ss) {
-    srslte_dci_format_t common_format = SRSLTE_DCI_FORMAT1A;
-    if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &common_format, 1, false))) {
+
+    // Search only for SRSLTE_DCI_FORMAT1A (1st in common_formats) when looking for C-RNTI
+    ret = 0;
+    if ((ret = find_dci_ss(q, sf, dl_cfg, rnti, &dci_msg[nof_dci_msg], common_formats, 1, false)) < 0) {
       return ret;
     }
+    nof_dci_msg += ret;
   }
 
-  return SRSLTE_SUCCESS;
+  return nof_dci_msg;
 }
 
 int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
@@ -649,11 +698,17 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
 
   srslte_dci_msg_t dci_msg[SRSLTE_MAX_DCI_MSG] = {};
 
+  // Reset pending UL grants on each call
+  q->pending_ul_dci_count = 0;
+
+  // Reset allocated DCI locations
+  q->nof_allocated_locations = 0;
+
   int nof_msg = 0;
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || SRSLTE_RNTI_ISRAR(rnti)) {
     nof_msg = find_dl_dci_type_siprarnti(q, sf, dl_cfg, rnti, dci_msg);
   } else {
-    nof_msg = find_dl_dci_type_crnti(q, sf, dl_cfg, rnti, dci_msg);
+    nof_msg = find_dl_ul_dci_type_crnti(q, sf, dl_cfg, rnti, dci_msg);
   }
 
   if (nof_msg < 0) {

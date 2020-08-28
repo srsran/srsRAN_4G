@@ -1346,7 +1346,15 @@ int srslte_dci_msg_pack_pusch(srslte_cell_t*      cell,
     cfg = &_dci_cfg;
   }
 
-  return dci_format0_pack(cell, sf, cfg, dci, msg);
+  int n = dci_format0_pack(cell, sf, cfg, dci, msg);
+
+#if SRSLTE_DCI_HEXDEBUG
+  dci->hex_str[0] = '\0';
+  srslte_vec_sprint_hex(dci->hex_str, sizeof(dci->hex_str), msg->payload, msg->nof_bits);
+  dci->nof_bits = msg->nof_bits;
+#endif /* SRSLTE_DCI_HEXDEBUG */
+
+  return n;
 }
 
 int srslte_dci_msg_unpack_pusch(srslte_cell_t*      cell,
@@ -1375,6 +1383,33 @@ int srslte_dci_msg_unpack_pusch(srslte_cell_t*      cell,
 #endif /* SRSLTE_DCI_HEXDEBUG */
 
   return dci_format0_unpack(cell, sf, cfg, msg, dci);
+}
+
+bool srslte_location_find(srslte_dci_location_t* locations, uint32_t nof_locations, srslte_dci_location_t x)
+{
+  for (uint32_t i = 0; i < nof_locations; i++) {
+    if (locations[i].L == x.L && locations[i].ncce == x.ncce) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool srslte_location_find_ncce(srslte_dci_location_t* locations, uint32_t nof_locations, uint32_t ncce)
+{
+  for (uint32_t i = 0; i < nof_locations; i++) {
+    if (locations[i].ncce == ncce) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Set the configuration for Format0/1A messages allocated on Common SS
+void srslte_dci_cfg_set_common_ss(srslte_dci_cfg_t* cfg)
+{
+  cfg->srs_request_enabled          = false;
+  cfg->multiple_csi_request_enabled = false;
 }
 
 int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uint32_t nCCE)
@@ -1593,10 +1628,6 @@ uint32_t srslte_dci_dl_info(const srslte_dci_dl_t* dci_dl, char* info_str, uint3
                          dci_dl->location.ncce,
                          dci_dl->location.L);
 
-#if SRSLTE_DCI_HEXDEBUG
-  n = srslte_print_check(info_str, len, n, ", len=%d, hex=%s", dci_dl->nof_bits, dci_dl->hex_str);
-#endif /* SRSLTE_DCI_HEXDEBUG */
-
   if (dci_dl->cif_present) {
     n = srslte_print_check(info_str, len, n, ", cif=%d", dci_dl->cif);
   }
@@ -1643,6 +1674,10 @@ uint32_t srslte_dci_dl_info(const srslte_dci_dl_t* dci_dl, char* info_str, uint3
     n = srslte_print_check(info_str, len, n, ", tb_sw=%d, pinfo=%d", dci_dl->tb_cw_swap, dci_dl->pinfo);
   }
 
+#if SRSLTE_DCI_HEXDEBUG
+  n = srslte_print_check(info_str, len, n, ", len=%d, hex=%s", dci_dl->nof_bits, dci_dl->hex_str);
+#endif /* SRSLTE_DCI_HEXDEBUG */
+
   return n;
 }
 
@@ -1684,6 +1719,10 @@ uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t le
   if (dci_ul->is_tdd) {
     n = srslte_print_check(info_str, len, n, ", ul_idx=%d, dai=%d", dci_ul->ul_idx, dci_ul->dai);
   }
+
+#if SRSLTE_DCI_HEXDEBUG
+  n = srslte_print_check(info_str, len, n, ", len=%d, hex=%s", dci_ul->nof_bits, dci_ul->hex_str);
+#endif /* SRSLTE_DCI_HEXDEBUG */
 
   return n;
 }

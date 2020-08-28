@@ -60,15 +60,18 @@
 #define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
 #define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)
 
+#define MAX_FORMATS 4
+
 #define MI_NOF_REGS ((q->cell.frame_type == SRSLTE_FDD) ? 1 : 6)
 #define MI_MAX_REGS 6
 
 #define SRSLTE_MAX_DCI_MSG SRSLTE_MAX_CARRIERS
 
 typedef struct SRSLTE_API {
-  srslte_dci_format_t   format;
+  srslte_dci_format_t   formats[MAX_FORMATS];
   srslte_dci_location_t loc[MAX_CANDIDATES];
   uint32_t              nof_locations;
+  uint32_t              nof_formats;
 } dci_blind_search_t;
 
 typedef struct SRSLTE_API {
@@ -105,6 +108,8 @@ typedef struct SRSLTE_API {
   srslte_dci_msg_t   pending_ul_dci_msg[SRSLTE_MAX_DCI_MSG];
   uint32_t           pending_ul_dci_count;
 
+  srslte_dci_location_t allocated_locations[SRSLTE_MAX_DCI_MSG];
+  uint32_t              nof_allocated_locations;
 } srslte_ue_dl_t;
 
 // Downlink config (includes common and dedicated variables)

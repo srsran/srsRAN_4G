@@ -184,15 +184,10 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
   std::lock_guard<std::mutex> lock(mutex);
   if (cc_idx < cc_workers.size()) {
     Info("Setting configuration for worker=%d, cc=%d\n", get_id(), cc_idx);
-    // Search common SS in PCell only
-    if (cc_idx > 0) {
-      phy_cfg.dl_cfg.dci_common_ss = true;
-    }
     cc_workers[cc_idx]->set_config(phy_cfg);
     if (cc_idx > 0) {
       // Update DCI config for PCell
-      srslte_dci_cfg_t dci_cfg = phy_cfg.dl_cfg.dci;
-      cc_workers[0]->upd_config_dci(dci_cfg);
+      cc_workers[0]->upd_config_dci(phy_cfg.dl_cfg.dci);
     }
   } else {
     Error("Setting config for cc=%d; Invalid cc_idx\n", cc_idx);

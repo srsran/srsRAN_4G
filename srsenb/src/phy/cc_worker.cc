@@ -449,6 +449,15 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
   for (uint32_t i = 0; i < nof_grants; i++) {
     if (grants[i].needs_pdcch) {
       srslte_dci_cfg_t dci_cfg = phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx);
+
+      if (SRSLTE_RNTI_ISUSER(grants[i].dci.rnti)) {
+        if (srslte_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+            phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
+          // Disable extended CSI request and SRS request in common SS
+          srslte_dci_cfg_set_common_ss(&dci_cfg);
+        }
+      }
+
       if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PUSCH %d\n", i);
         return SRSLTE_ERROR;
@@ -471,6 +480,14 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
     uint16_t rnti = grants[i].dci.rnti;
     if (rnti) {
       srslte_dci_cfg_t dci_cfg = phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx);
+
+      if (SRSLTE_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSLTE_DCI_FORMAT1A) {
+        if (srslte_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
+            grants[i].dci.format == SRSLTE_DCI_FORMAT1A && phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
+          srslte_dci_cfg_set_common_ss(&dci_cfg);
+        }
+      }
+
       if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PDCCH %d\n", i);
         return SRSLTE_ERROR;

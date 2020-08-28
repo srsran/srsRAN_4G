@@ -249,8 +249,8 @@ uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t               nof_cce,
   }
 
   k = 0;
-  // All aggregation levels from 8 to 1
-  for (l = 3; l >= 0; l--) {
+  // All aggregation levels from 1 to 8
+  for (l = 0; l <= 3; l++) {
     L = (1 << l);
     if (Ls < 0 || Ls == L) {
       // For all candidates as given in table 9.1.1-1
@@ -309,7 +309,7 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
   uint32_t i, l, L, k;
 
   k = 0;
-  for (l = 3; l > 1; l--) {
+  for (l = 2; l <= 3; l++) {
     L = (1 << l);
     for (i = 0; i < SRSLTE_MIN(nof_cce, 16) / (L); i++) {
       // Simplified expression, derived from:
@@ -405,15 +405,15 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t* q, srslte_dl_sf_cfg_t* sf, srslte_dc
         } else {
           ERROR("Error calling pdcch_dci_decode\n");
         }
-        DEBUG("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x\n",
-              msg->location.ncce,
-              msg->location.L,
-              srslte_dci_format_string(msg->format),
-              nof_bits,
-              mean,
-              msg->rnti);
+        INFO("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x\n",
+             msg->location.ncce,
+             msg->location.L,
+             srslte_dci_format_string(msg->format),
+             nof_bits,
+             mean,
+             msg->rnti);
       } else {
-        DEBUG(
+        INFO(
             "Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f\n", msg->location.ncce, msg->location.L, nof_bits, mean);
       }
     }
