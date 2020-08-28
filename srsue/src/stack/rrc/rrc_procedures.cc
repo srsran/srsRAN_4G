@@ -1518,11 +1518,11 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
   }
   bool ho_successful = ev.success and not sec_cfg_failed;
 
-  // TS 36.331, sec. 5.3.5.4, last "1>"
-  rrc_ptr->t304.stop();
-  rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
-
   if (ho_successful) {
+    // TS 36.331, sec. 5.3.5.4, last "1>"
+    rrc_ptr->t304.stop();
+    rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
+
     if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
       Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
       ho_successful = false;

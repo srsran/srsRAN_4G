@@ -585,7 +585,9 @@ void rrc::release_pucch_srs()
 
 void rrc::ra_problem()
 {
-  radio_link_failure();
+  if (not t304.is_running()) {
+    radio_link_failure();
+  }
 }
 
 void rrc::max_retx_attempted()
@@ -622,7 +624,8 @@ void rrc::timer_expired(uint32_t timeout_id)
   } else if (timeout_id == t300.id()) {
     // Do nothing, handled in connection_request()
   } else if (timeout_id == t304.id()) {
-    rrc_log->console("Timer T304 expired: Handover failed\n");
+    rrc_log->console("Timer t304 expired: Handover failed\n");
+    rrc_log->info("Timer t304 expired: Handover failed\n");
     ho_failed();
   } else {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
