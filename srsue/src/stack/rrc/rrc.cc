@@ -585,9 +585,7 @@ void rrc::release_pucch_srs()
 
 void rrc::ra_problem()
 {
-  if (not t304.is_running()) {
-    radio_link_failure();
-  }
+  rrc_log->warning("MAC indicated RA problem\n");
 }
 
 void rrc::max_retx_attempted()

@@ -505,9 +505,6 @@ void ra_proc::response_error()
     rError("Maximum number of transmissions reached (%d)\n", rach_cfg.preambleTransMax);
     rrc->ra_problem();
     state = IDLE;
-    if (ra_is_ho) {
-      rrc->ho_ra_completed(false);
-    }
   } else {
     backoff_interval_start = -1;
     if (backoff_param_ms) {
