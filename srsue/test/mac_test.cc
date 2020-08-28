@@ -321,15 +321,10 @@ private:
 class rrc_dummy : public rrc_interface_mac
 {
 public:
-  void ho_ra_completed(bool ra_successful)
-  {
-    ho_finish            = true;
-    ho_finish_successful = ra_successful;
-  }
+  void     ho_ra_completed() { ho_finish_successful = true; }
   void     release_pucch_srs() { printf("%s\n", __FUNCTION__); }
   void     run_tti(uint32_t tti) { printf("%s\n", __FUNCTION__); }
   void     ra_problem() { rach_problem++; }
-  bool     ho_finish            = false;
   bool     ho_finish_successful = false;
   uint32_t rach_problem         = 0;
 };
@@ -1430,7 +1425,6 @@ int mac_random_access_test()
   phy.set_crnti(0);
   mac.start_cont_ho();
   stack.run_tti(tti++);
-  rrc.ho_finish      = false;
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   my_test.msg4_valid_conres        = false;
@@ -1438,7 +1432,7 @@ int mac_random_access_test()
   my_test.check_ra_successful      = false;
   my_test.send_valid_ul_grant      = false;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
-  TESTASSERT(!rrc.ho_finish_successful && rrc.ho_finish);
+  TESTASSERT(!rrc.ho_finish_successful);
 
   // Test 8: Test Contention based Random Access. Same as above but we let the procedure finish successfully.
   mac_log->info("\n=========== Test %d =============\n", test_id++);
@@ -1446,21 +1440,20 @@ int mac_random_access_test()
   phy.set_crnti(0);
   mac.start_cont_ho();
   stack.run_tti(tti++);
-  rrc.ho_finish      = false;
   my_test.nof_prachs = 1;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   my_test.send_valid_ul_grant = true;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
-  TESTASSERT(rrc.ho_finish_successful && rrc.ho_finish);
+  TESTASSERT(rrc.ho_finish_successful);
 
   // Test 9: Test non-Contention based HO. Used in HO but preamble is given by the network. In addition to checking
   //         that the given preamble is correctly passed to the PHY, in this case there is no contention.
   //         In this first test, no RAR is received and RA procedure fails
   mac_log->info("\n=========== Test %d =============\n", test_id++);
+  rrc.ho_finish_successful = false;
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
   phy.set_crnti(0);
-  rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
   mac.start_noncont_ho(my_test.preamble_idx, 0);
   stack.run_pending_tasks();
@@ -1469,7 +1462,7 @@ int mac_random_access_test()
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
   stack.run_tti(tti++);
-  TESTASSERT(!rrc.ho_finish_successful && rrc.ho_finish);
+  TESTASSERT(!rrc.ho_finish_successful);
 
   // Test 10: Test non-Contention based HO. Used in HO but preamble is given by the network. We check that
   //         the procedure is considered successful without waiting for contention
@@ -1477,7 +1470,6 @@ int mac_random_access_test()
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
   phy.set_crnti(0);
-  rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
   mac.start_noncont_ho(my_test.preamble_idx, 0);
   stack.run_pending_tasks();
@@ -1487,7 +1479,7 @@ int mac_random_access_test()
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
   stack.run_tti(tti++);
-  TESTASSERT(rrc.ho_finish_successful && rrc.ho_finish);
+  TESTASSERT(rrc.ho_finish_successful);
 
   mac.stop();
 

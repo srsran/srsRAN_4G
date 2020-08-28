@@ -539,7 +539,7 @@ void ra_proc::complete()
   mux_unit->msg3_flush();
 
   if (ra_is_ho) {
-    rrc->ho_ra_completed(true);
+    rrc->ho_ra_completed();
   }
   log_h->console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);

@@ -125,7 +125,7 @@ public:
   void new_cell_meas(const std::vector<phy_meas_t>& meas);
 
   // MAC interface
-  void ho_ra_completed(bool ra_successful) final;
+  void ho_ra_completed() final;
   void release_pucch_srs();
   void run_tti();
   void ra_problem();

@@ -821,11 +821,11 @@ void rrc::send_rrc_con_reconfig_complete()
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::ho_ra_completed(bool ra_successful)
+void rrc::ho_ra_completed()
 {
   cmd_msg_t msg;
   msg.command = cmd_msg_t::HO_COMPLETE;
-  msg.lcid    = ra_successful ? 1 : 0;
+  msg.lcid    = 1;
   cmd_q.push(std::move(msg));
 }
 
