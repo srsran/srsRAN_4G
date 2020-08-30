@@ -96,13 +96,13 @@ check_ping()
 
 check_ue()
 {
-  # check that all log files have "Closing log" as last line
-  last_line=$(cat ./${nof_prb}prb_ue.log | tail -n1)
-  if [ "$last_line" != "Closing log" ]; then
+  # check that app exited correctly
+  last_line=$(cat ./${nof_prb}prb_screenlog_srsue.log | tail -n1)
+  if [[ "$last_line" != *"---  exiting  ---"* ]]; then
     echo "Error. srsUE didn't seem to have exited properly."
     exit 1
   fi
-
+  
   # Check UE logs don't contain Error from any layer
   num_error=$(cat ./${nof_prb}prb_ue.log | grep "\[E\]" | wc -l)
   if [ "$num_error" != "0" ] 2>/dev/null; then
@@ -162,9 +162,9 @@ check_ue()
 
 check_enb()
 {
-  # check that all log files have "Closing log" as last line
-  last_line=$(cat ./${nof_prb}prb_enb.log | tail -n1)
-  if [ "$last_line" != "Closing log" ]; then
+  # check that app exited correctly
+  last_line=$(cat ./${nof_prb}prb_screenlog_srsenb.log | tail -n1)
+  if [[ "$last_line" != *"---  exiting  ---"* ]]; then
     echo "Error. srsENB didn't seem to have exited properly."
     exit 1
   fi
@@ -214,9 +214,9 @@ check_enb()
 
 check_epc()
 {
-  # check that log has "Closing log" as last line
-  last_line=$(cat ./${nof_prb}prb_epc.log | tail -n1)
-  if [ "$last_line" != "Closing log" ]; then
+  # check that app exited correctly
+  last_line=$(cat ./${nof_prb}prb_screenlog_srsepc.log | tail -n1)
+  if [[ "$last_line" != *"---  exiting  ---"* ]]; then
     echo "Error. srsEPC didn't seem to have exited properly."
     exit 1
   fi
