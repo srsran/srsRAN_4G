@@ -269,7 +269,9 @@ void ue_stack_lte::out_of_sync()
 
 void ue_stack_lte::run_tti(uint32_t tti, uint32_t tti_jump)
 {
-  sync_task_queue.push([this, tti, tti_jump]() { run_tti_impl(tti, tti_jump); });
+  if (running) {
+    sync_task_queue.push([this, tti, tti_jump]() { run_tti_impl(tti, tti_jump); });
+  }
 }
 
 void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
