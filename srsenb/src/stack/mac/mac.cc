@@ -679,8 +679,11 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
   }
 
   // Count number of TTIs for all active users
-  for (auto& u : ue_db) {
-    u.second->metrics_cnt();
+  {
+    srslte::rwlock_read_guard lock(rwlock);
+    for (auto& u : ue_db) {
+      u.second->metrics_cnt();
+    }
   }
 
   return SRSLTE_SUCCESS;
