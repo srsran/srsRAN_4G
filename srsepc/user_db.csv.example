@@ -1,11 +1,11 @@
 #
 # .csv to store UE's information in HSS
-# Kept in the following format: "Name,Auth,IMSI,Key,OP_Type,OP,AMF,SQN,QCI,IP_alloc"
+# Kept in the following format: "Name,Auth,IMSI,Key,OP_Type,OP/OPc,AMF,SQN,QCI,IP_alloc"
 #
 # Name:     Human readable name to help distinguish UE's. Ignored by the HSS
-# IMSI:     UE's IMSI value
 # Auth:     Authentication algorithm used by the UE. Valid algorithms are XOR
 #           (xor) and MILENAGE (mil)
+# IMSI:     UE's IMSI value
 # Key:      UE's key, where other keys are derived from. Stored in hexadecimal
 # OP_Type:  Operator's code type, either OP or OPc
 # OP/OPc:   Operator Code/Cyphered Operator Code, stored in hexadecimal
