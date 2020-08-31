@@ -516,8 +516,8 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
     const cell_info_t&     cell_info = ue.cell_info[cell_idx];
     const srslte_dl_cfg_t& dl_cfg    = cell_info.phy_cfg.dl_cfg;
 
-    // Check report for primary and active cells
-    if (cell_info.state == cell_state_primary or cell_info.state == cell_state_secondary_active) {
+    // Check report for primary and active and inactive cells. CQI reports start after RRC configures the carrier
+    if (cell_info.state != cell_state_none) {
       const srslte_cell_t& cell = cell_cfg_list->at(cell_info.enb_cc_idx).cell;
 
       // Check if CQI report is required

@@ -718,9 +718,8 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
         if (nof_re >= nof_uci_re) {
           tbs = carriers[cc_idx].alloc_tbs_ul(alloc.length(), nof_re - nof_uci_re, req_bytes, &mcs);
-        } else {
-          tbs = 0;
         }
+        // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
     }
     h->new_tx(tti, mcs, tbs, alloc, nof_retx);
@@ -1162,11 +1161,10 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_inde
     *mcs = (uint32_t)sel_mcs;
   }
 
-  if (coderate <= SRSLTE_MIN(max_coderate, 0.930 * Qm)) {
-    return tbs;
-  } else {
-    return 0;
-  }
+  // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
+  // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
+
+  return tbs;
 }
 
 /************************************************************************************************
