@@ -262,10 +262,10 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
   // If this is a new transmission or the size of the TB has changed
   if (is_new_transmission || (cur_grant.tb[tid].tbs != grant.tb[tid].tbs)) {
     if (!is_new_transmission) {
-      Warning("DL PID %d: Size of dci changed during a retransmission %d!=%d\n",
-              pid,
-              cur_grant.tb[tid].tbs,
-              grant.tb[tid].tbs);
+      Debug("DL PID %d: Size of dci changed during a retransmission %d!=%d\n",
+            pid,
+            cur_grant.tb[tid].tbs,
+            grant.tb[tid].tbs);
     }
     ack    = false;
     n_retx = 0;
@@ -379,7 +379,6 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
 bool dl_harq_entity::dl_harq_process::dl_tb_process::calc_is_new_transmission(
     mac_interface_phy_lte::mac_grant_dl_t grant)
 {
-
   if (((grant.tb[tid].ndi_present &&
         grant.tb[tid].ndi != cur_grant.tb[tid].ndi) || // 1st condition (NDI provided and has changed)
        (is_bcch && grant.tb[tid].rv == 0) ||           // 2nd condition (Broadcast and 1st transmission)
