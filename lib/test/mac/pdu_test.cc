@@ -59,7 +59,7 @@ int mac_rar_pdu_unpack_test1()
   srslte::rar_pdu rar_pdu_msg;
   rar_pdu_msg.init_rx(sizeof(rar_pdu_tv1));
   rar_pdu_msg.parse_packet(rar_pdu_tv1);
-  rar_pdu_msg.fprint(stdout);
+  std::cout << rar_pdu_msg.to_string() << std::endl;
 
   TESTASSERT(not rar_pdu_msg.has_backoff());
   while (rar_pdu_msg.next()) {
@@ -76,7 +76,7 @@ int mac_rar_pdu_unpack_test2()
   srslte::rar_pdu rar_pdu_msg;
   rar_pdu_msg.init_rx(sizeof(rar_pdu_tv2));
   rar_pdu_msg.parse_packet(rar_pdu_tv2);
-  rar_pdu_msg.fprint(stdout);
+  std::cout << rar_pdu_msg.to_string() << std::endl;
 
   TESTASSERT(rar_pdu_msg.has_backoff());
   TESTASSERT(rar_pdu_msg.get_backoff() == BACKOFF_IND_TV2);

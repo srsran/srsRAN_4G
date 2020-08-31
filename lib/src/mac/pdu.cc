@@ -182,10 +182,11 @@ bool lcid_t::is_sdu() const
  *       SCH PDU
  *************************/
 
-void sch_pdu::fprint(FILE* stream)
+std::string sch_pdu::to_string()
 {
-  fprintf(stream, "MAC SDU for UL/DL-SCH. ");
-  pdu::fprint(stream);
+  std::stringstream ss;
+  ss << (is_ul() ? "UL " : "DL ") << pdu::to_string();
+  return ss.str();
 }
 
 void sch_pdu::parse_packet(uint8_t* ptr)
@@ -327,7 +328,7 @@ uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
     log_h->debug("Writing MAC PDU with padding only (%d B)\n", pdu_len);
   }
 
-  /* Sanity check and print if error */
+  // Sanity check and print if error
   if (log_h) {
     log_h->debug("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, multi=%d\n",
                  pdu_len,
@@ -400,7 +401,9 @@ int sch_pdu::get_pdu_len()
 
 uint32_t sch_pdu::size_header_sdu(uint32_t nbytes)
 {
-  if (nbytes < 128) {
+  if (nbytes == 0) {
+    return 0;
+  } else if (nbytes < 128) {
     return 2;
   } else {
     return 3;
@@ -456,7 +459,7 @@ bool sch_pdu::update_space_sdu(uint32_t nbytes)
 
 int sch_pdu::get_sdu_space()
 {
-  int ret = 0;
+  int32_t ret = 0;
   if (last_sdu_idx < 0) {
     ret = rem_len - 1;
   } else {
@@ -468,9 +471,10 @@ int sch_pdu::get_sdu_space()
 
 void sch_subh::init()
 {
+  srslte_vec_u8_zero(w_payload_ce, 64);
+  payload          = w_payload_ce;
   lcid             = 0;
   nof_bytes        = 0;
-  payload          = NULL;
   nof_mch_sched_ce = 0;
   cur_mch_sched_ce = 0;
 }
@@ -541,97 +545,68 @@ bool sch_subh::is_var_len_ce()
 
 uint16_t sch_subh::get_c_rnti()
 {
-  if (payload) {
-    return (uint16_t)payload[0] << 8 | payload[1];
-  } else {
-    return (uint16_t)w_payload_ce[0] << 8 | w_payload_ce[1];
-  }
+  return (uint16_t)payload[0] << 8 | payload[1];
 }
 
 uint64_t sch_subh::get_con_res_id()
 {
-  if (payload) {
-    return ((uint64_t)payload[5]) | (((uint64_t)payload[4]) << 8) | (((uint64_t)payload[3]) << 16) |
-           (((uint64_t)payload[2]) << 24) | (((uint64_t)payload[1]) << 32) | (((uint64_t)payload[0]) << 40);
-  } else {
-    return ((uint64_t)w_payload_ce[5]) | (((uint64_t)w_payload_ce[4]) << 8) | (((uint64_t)w_payload_ce[3]) << 16) |
-           (((uint64_t)w_payload_ce[2]) << 24) | (((uint64_t)w_payload_ce[1]) << 32) |
-           (((uint64_t)w_payload_ce[0]) << 40);
-    return 0;
-  }
+  return ((uint64_t)payload[5]) | (((uint64_t)payload[4]) << 8) | (((uint64_t)payload[3]) << 16) |
+         (((uint64_t)payload[2]) << 24) | (((uint64_t)payload[1]) << 32) | (((uint64_t)payload[0]) << 40);
 }
 
 float sch_subh::get_phr()
 {
-  if (payload) {
-    return (float)(payload[0] & 0x3f) - 23;
-  } else {
-    return (float)(w_payload_ce[0] & 0x3f) - 23;
-  }
+  return (float)(payload[0] & 0x3f) - 23;
 }
 
-int sch_subh::get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4])
+uint32_t sch_subh::get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4])
 {
-  if (payload) {
-    uint32_t nonzero_lcg = 0;
-    if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
-      buff_size_idx[0] = (payload[0] & 0xFC) >> 2;
-      buff_size_idx[1] = (payload[0] & 0x03) << 4 | (payload[1] & 0xF0) >> 4;
-      buff_size_idx[2] = (payload[1] & 0x0F) << 4 | (payload[1] & 0xC0) >> 6;
-      buff_size_idx[3] = (payload[2] & 0x3F);
-    } else {
-      nonzero_lcg                = (payload[0] & 0xc0) >> 6;
-      buff_size_idx[nonzero_lcg % 4] = payload[0] & 0x3f;
-    }
-    for (int i = 0; i < 4; i++) {
-      if (buff_size_idx[i] > 0) {
-        if (buff_size_idx[i] < 63) {
-          buff_size_bytes[i] = btable[1 + buff_size_idx[i]];
-        } else {
-          buff_size_bytes[i] = btable[63];
-        }
+  uint32_t nonzero_lcg = 0;
+  if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
+    buff_size_idx[0] = (payload[0] & 0xFC) >> 2;
+    buff_size_idx[1] = (payload[0] & 0x03) << 4 | (payload[1] & 0xF0) >> 4;
+    buff_size_idx[2] = (payload[1] & 0x0F) << 4 | (payload[1] & 0xC0) >> 6;
+    buff_size_idx[3] = (payload[2] & 0x3F);
+  } else {
+    nonzero_lcg                    = (payload[0] & 0xc0) >> 6;
+    buff_size_idx[nonzero_lcg % 4] = payload[0] & 0x3f;
+  }
+  for (int i = 0; i < 4; i++) {
+    if (buff_size_idx[i] > 0) {
+      if (buff_size_idx[i] < 63) {
+        buff_size_bytes[i] = btable[1 + buff_size_idx[i]];
+      } else {
+        buff_size_bytes[i] = btable[63];
       }
     }
-    return nonzero_lcg;
-  } else {
-    return -1;
   }
+  return nonzero_lcg;
 }
 
 bool sch_subh::get_next_mch_sched_info(uint8_t* lcid_, uint16_t* mtch_stop)
 {
   uint16_t mtch_stop_ce;
-  if (payload) {
-    nof_mch_sched_ce = nof_bytes / 2;
-    if (cur_mch_sched_ce < nof_mch_sched_ce) {
-      *lcid_       = (payload[cur_mch_sched_ce * 2] & 0xF8) >> 3;
-      mtch_stop_ce = ((uint16_t)(payload[cur_mch_sched_ce * 2] & 0x07)) << 8;
-      mtch_stop_ce += payload[cur_mch_sched_ce * 2 + 1];
-      cur_mch_sched_ce++;
-      *mtch_stop = (mtch_stop_ce == sch_subh::MTCH_STOP_EMPTY) ? (0) : (mtch_stop_ce);
-      return true;
-    }
+  nof_mch_sched_ce = nof_bytes / 2;
+  if (cur_mch_sched_ce < nof_mch_sched_ce) {
+    *lcid_       = (payload[cur_mch_sched_ce * 2] & 0xF8) >> 3;
+    mtch_stop_ce = ((uint16_t)(payload[cur_mch_sched_ce * 2] & 0x07)) << 8;
+    mtch_stop_ce += payload[cur_mch_sched_ce * 2 + 1];
+    cur_mch_sched_ce++;
+    *mtch_stop = (mtch_stop_ce == sch_subh::MTCH_STOP_EMPTY) ? (0) : (mtch_stop_ce);
+    return true;
   }
   return false;
 }
 
 uint8_t sch_subh::get_ta_cmd()
 {
-  if (payload) {
-    return (uint8_t)payload[0] & 0x3f;
-  } else {
-    return 0;
-  }
+  return (uint8_t)payload[0] & 0x3f;
 }
 
 uint8_t sch_subh::get_activation_deactivation_cmd()
 {
   /* 3GPP 36.321 section 6.1.3.8 Activation/Deactivation MAC Control Element */
-  if (payload) {
-    return payload[0];
-  } else {
-    return 0;
-  }
+  return payload[0];
 }
 
 uint32_t sch_subh::get_sdu_lcid()
@@ -677,7 +652,8 @@ void sch_subh::set_padding()
   set_padding(0);
 }
 
-bool sch_subh::set_bsr(uint32_t buff_size[4], ul_sch_lcid format)
+// Update the BSR content without changing the type
+void sch_subh::update_bsr(uint32_t buff_size[4], ul_sch_lcid format)
 {
   uint32_t nonzero_lcg = 0;
   for (int i = 0; i < 4; i++) {
@@ -685,15 +661,25 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], ul_sch_lcid format)
       nonzero_lcg = i;
     }
   }
+
+  if (format == ul_sch_lcid::LONG_BSR) {
+    w_payload_ce[0] = ((buff_size_table(buff_size[0]) & 0x3f) << 2) | ((buff_size_table(buff_size[1]) & 0x30) >> 4);
+    w_payload_ce[1] = ((buff_size_table(buff_size[1]) & 0xf) << 4) | ((buff_size_table(buff_size[2]) & 0x3c) >> 2);
+    w_payload_ce[2] = ((buff_size_table(buff_size[2]) & 0x3) << 6) | ((buff_size_table(buff_size[3]) & 0x3f));
+  } else {
+    w_payload_ce[0] = (nonzero_lcg & 0x3) << 6 | (buff_size_table(buff_size[nonzero_lcg]) & 0x3f);
+  }
+}
+
+// Makes a MAC PDU sub header a BSR subheader
+// It checks that enough space is left in the MAC PDU and
+// updates the remaning length of the parent MAC PDU
+// @return true if given BSR format could be set, false otherwise
+bool sch_subh::set_bsr(uint32_t buff_size[4], ul_sch_lcid format)
+{
   uint32_t ce_size = format == ul_sch_lcid::LONG_BSR ? 3 : 1;
   if (((sch_pdu*)parent)->has_space_ce(ce_size)) {
-    if (format == ul_sch_lcid::LONG_BSR) {
-      w_payload_ce[0] = ((buff_size_table(buff_size[0]) & 0x3f) << 2) | ((buff_size_table(buff_size[1]) & 0x30) >> 4);
-      w_payload_ce[1] = ((buff_size_table(buff_size[1]) & 0xf) << 4) | ((buff_size_table(buff_size[2]) & 0x3c) >> 2);
-      w_payload_ce[2] = ((buff_size_table(buff_size[2]) & 0x3) << 6) | ((buff_size_table(buff_size[3]) & 0x3f));
-    } else {
-      w_payload_ce[0] = (nonzero_lcg & 0x3) << 6 | (buff_size_table(buff_size[nonzero_lcg]) & 0x3f);
-    }
+    update_bsr(buff_size, format);
     lcid = (uint32_t)format;
     ((sch_pdu*)parent)->update_space_ce(ce_size);
     nof_bytes = ce_size;
@@ -904,30 +890,39 @@ void sch_subh::read_payload(uint8_t** ptr)
   *ptr += nof_bytes;
 }
 
-void sch_subh::fprint(FILE* stream)
+std::string sch_subh::to_string()
 {
+  std::stringstream ss;
   if (is_sdu()) {
-    fprintf(stream, "SDU LCHID=%d, SDU nof_bytes=%d\n", lcid, nof_bytes);
+    ss << "LCID=" << lcid << " len=" << nof_bytes;
   } else if (type == SCH_SUBH_TYPE) {
     if (parent->is_ul()) {
       switch ((ul_sch_lcid)lcid) {
         case ul_sch_lcid::CRNTI:
-          fprintf(stream, "C-RNTI CE\n");
+          ss << "CRNTI:";
           break;
         case ul_sch_lcid::PHR_REPORT:
-          fprintf(stream, "PHR\n");
+          ss << "PHR: ph=" << get_phr();
           break;
         case ul_sch_lcid::TRUNC_BSR:
-          fprintf(stream, "Truncated BSR CE\n");
-          break;
         case ul_sch_lcid::SHORT_BSR:
-          fprintf(stream, "Short BSR CE\n");
-          break;
-        case ul_sch_lcid::LONG_BSR:
-          fprintf(stream, "Long BSR CE\n");
-          break;
+        case ul_sch_lcid::LONG_BSR: {
+          uint32_t buff_size_idx[4]   = {};
+          uint32_t buff_size_bytes[4] = {};
+          uint32_t lcg                = get_bsr(buff_size_idx, buff_size_bytes);
+          if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
+            ss << "LBSR: b=";
+            for (uint32_t i = 0; i < 4; i++) {
+              ss << buff_size_idx[i] << " ";
+            }
+          } else if (ul_sch_ce_type() == ul_sch_lcid::SHORT_BSR) {
+            ss << "SBSR: lcg=" << lcg << " b=" << buff_size_idx[lcg];
+          } else {
+            ss << "TBSR: lcg=" << lcg << " b=" << buff_size_idx[lcg];
+          }
+        } break;
         case ul_sch_lcid::PADDING:
-          fprintf(stream, "PADDING\n");
+          ss << "PAD: len=" << get_payload_size();
           break;
         default:
           // do nothing
@@ -936,16 +931,16 @@ void sch_subh::fprint(FILE* stream)
     } else {
       switch ((dl_sch_lcid)lcid) {
         case dl_sch_lcid::CON_RES_ID:
-          fprintf(stream, "Contention Resolution ID CE: 0x%" PRIx64 "\n", get_con_res_id());
+          ss << "CON_RES: id=" << get_con_res_id();
           break;
         case dl_sch_lcid::TA_CMD:
-          fprintf(stream, "Time Advance Command CE: %d\n", get_ta_cmd());
+          ss << "TA: ta=" << get_ta_cmd();
           break;
         case dl_sch_lcid::DRX_CMD:
-          fprintf(stream, "DRX Command CE: Not implemented\n");
+          ss << "DRX";
           break;
         case dl_sch_lcid::PADDING:
-          fprintf(stream, "PADDING\n");
+          ss << "PAD: len=" << get_payload_size();
           break;
         default:
           break;
@@ -954,15 +949,16 @@ void sch_subh::fprint(FILE* stream)
   } else if (type == MCH_SUBH_TYPE) {
     switch ((mch_lcid)lcid) {
       case mch_lcid::MCH_SCHED_INFO:
-        fprintf(stream, "MCH Scheduling Info CE\n");
+        ss << "MCH_SCHED_INFO";
         break;
       case mch_lcid::PADDING:
-        fprintf(stream, "PADDING\n");
+        ss << "PAD: len=" << get_payload_size();
         break;
       default:
         break;
     }
   }
+  return ss.str();
 }
 
 uint8_t sch_subh::buff_size_table(uint32_t buffer_size)
@@ -993,10 +989,11 @@ uint8_t sch_subh::phr_report_table(float phr_value)
   return (uint8_t)floor(phr_value + 23);
 }
 
-void rar_pdu::fprint(FILE* stream)
+std::string rar_pdu::to_string()
 {
-  fprintf(stream, "MAC PDU for RAR. ");
-  pdu::fprint(stream);
+  std::string msg("MAC PDU for RAR. ");
+  msg += pdu::to_string();
+  return msg;
 }
 
 rar_pdu::rar_pdu(uint32_t max_rars_, srslte::log_ref log_) : pdu(max_rars_, log_)
@@ -1050,15 +1047,20 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   return true;
 }
 
-void rar_subh::fprint(FILE* stream)
+std::string rar_subh::to_string()
 {
+  std::stringstream ss;
   if (type == RAPID) {
-    fprintf(stream, "RAPID: %d, Temp C-RNTI: %d, TA: %d, UL Grant: ", preamble, temp_rnti, ta);
+    ss << "RAPID: " << preamble << ", Temp C-RNTI: " << temp_rnti << ", TA: " << ta << ", UL Grant: ";
   } else {
-    fprintf(stream, "Backoff Indicator %d. ", ((rar_pdu*)parent)->get_backoff());
+    ss << "Backoff Indicator: " << int32_t(((rar_pdu*)parent)->get_backoff()) << " ";
   }
 
-  srslte_vec_fprint_hex(stream, grant, 20);
+  char tmp[16];
+  srslte_vec_sprint_hex(tmp, sizeof(tmp), grant, RAR_GRANT_LEN);
+  ss << tmp << "\n";
+
+  return ss.str();
 }
 
 void rar_subh::init()

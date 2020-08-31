@@ -139,13 +139,13 @@ public:
   {}
   virtual ~pdu() = default;
 
-  void fprint(FILE* stream)
+  std::string to_string()
   {
-    fprintf(stream, "Number of Subheaders: %d\n", nof_subheaders);
+    std::stringstream ss;
     for (int i = 0; i < nof_subheaders; i++) {
-      fprintf(stream, " -- Subheader %d: ", i);
-      subheaders[i].fprint(stream);
+      ss << subheaders[i].to_string() << " ";
     }
+    return ss.str();
   }
 
   /* Resets the Read/Write position and remaining PDU length */
@@ -187,6 +187,8 @@ public:
     }
   }
 
+  int get_current_idx() { return cur_idx; }
+
   void del_subh()
   {
     if (nof_subheaders > 0) {
@@ -201,6 +203,16 @@ public:
   {
     if (cur_idx >= 0) {
       return &subheaders[cur_idx];
+    } else {
+      return nullptr;
+    }
+  }
+
+  // Get subheader at specified index
+  SubH* get(uint32_t idx)
+  {
+    if (nof_subheaders > 0 && idx >= 0 && idx < (uint32_t)nof_subheaders) {
+      return &subheaders[idx];
     } else {
       return nullptr;
     }
@@ -281,7 +293,7 @@ public:
   virtual void read_payload(uint8_t** ptr)                  = 0;
   virtual void write_subheader(uint8_t** ptr, bool is_last) = 0;
   virtual void write_payload(uint8_t** ptr)                 = 0;
-  virtual void fprint(FILE* stream)                         = 0;
+  virtual std::string to_string()                                  = 0;
 
   pdu<SubH>* parent = nullptr;
 
@@ -324,7 +336,7 @@ public:
   uint8_t  get_ta_cmd();
   uint8_t  get_activation_deactivation_cmd();
   float    get_phr();
-  int      get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4]);
+  uint32_t get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4]);
 
   bool get_next_mch_sched_info(uint8_t* lcid, uint16_t* mtch_stop);
 
@@ -336,6 +348,7 @@ public:
   int  set_sdu(uint32_t lcid, uint32_t requested_bytes, read_pdu_interface* sdu_itf);
   bool set_c_rnti(uint16_t crnti);
   bool set_bsr(uint32_t buff_size[4], ul_sch_lcid format);
+  void update_bsr(uint32_t buff_size[4], ul_sch_lcid format);
   bool set_con_res_id(uint64_t con_res_id);
   bool set_ta_cmd(uint8_t ta_cmd);
   bool set_scell_activation_cmd(const std::array<bool, SRSLTE_MAX_CARRIERS>& active_scell_idxs);
@@ -345,7 +358,7 @@ public:
   void set_type(subh_type type_);
 
   void init();
-  void fprint(FILE* stream);
+  std::string to_string();
 
   bool set_next_mch_sched_info(uint8_t lcid, uint16_t mtch_stop);
 
@@ -353,7 +366,7 @@ protected:
   static const int MAX_CE_PAYLOAD_LEN = 8;
   uint32_t         lcid               = 0;
   int              nof_bytes          = 0;
-  uint8_t*         payload            = nullptr;
+  uint8_t*         payload            = w_payload_ce; // points to write buffer initially
   uint8_t          w_payload_ce[64]   = {};
   uint8_t          nof_mch_sched_ce   = 0;
   uint8_t          cur_mch_sched_ce   = 0;
@@ -383,7 +396,7 @@ public:
   static uint32_t size_header_sdu(uint32_t nbytes);
   bool            update_space_ce(uint32_t nbytes, bool var_len = false);
   bool            update_space_sdu(uint32_t nbytes);
-  void            fprint(FILE* stream);
+  std::string     to_string();
 };
 
 class rar_subh : public subh<rar_subh>
@@ -421,7 +434,7 @@ public:
   void set_sched_grant(uint8_t grant[RAR_GRANT_LEN]);
 
   void init();
-  void fprint(FILE* stream);
+  std::string to_string();
 
 private:
   uint8_t         grant[RAR_GRANT_LEN];
@@ -441,7 +454,7 @@ public:
   uint8_t get_backoff();
 
   bool write_packet(uint8_t* ptr);
-  void fprint(FILE* stream);
+  std::string to_string();
 
 private:
   bool    has_backoff_indicator;
