@@ -169,11 +169,6 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  // Reset sched_len and update Bj
-  for (auto& channel : logical_channels) {
-    channel.sched_len = 0;
-  }
-
   // Logical Channel Procedure
   payload->clear();
   pdu_msg.init_tx(payload, pdu_sz, true);
@@ -194,14 +189,35 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   }
   pending_crnti_ce = 0;
 
-  bsr_proc::bsr_t bsr;
-  bool            regular_bsr = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
+  // Calculate pending UL data per LCID and LCG as well as the total amount
+  bsr_proc::bsr_t bsr                = {}; // pending data per LCG
+  int             total_pending_data = 0;
+  int             last_sdu_len       = 0;
+  for (auto& channel : logical_channels) {
+    channel.sched_len  = 0; // reset sched_len for LCID
+    channel.buffer_len = rlc->get_buffer_state(channel.lcid);
+    total_pending_data += channel.buffer_len + sch_pdu::size_header_sdu(channel.buffer_len);
+    last_sdu_len = channel.buffer_len;
+    bsr.buff_size[channel.lcg] += channel.buffer_len;
+  }
+  if (total_pending_data > 0) {
+    // remove length byte(s) of last SDU
+    total_pending_data -= sch_pdu::size_header_sdu(last_sdu_len);
+    total_pending_data++; // the R/R/E/LCID subheader is still needed
+  }
+
+  bool regular_bsr = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size(), total_pending_data, &bsr);
+  int  bsr_idx     = -1; // subheader index of BSR (needed to update content later)
 
   // MAC control element for BSR, with exception of BSR included for padding;
   if (regular_bsr) {
     if (pdu_msg.new_subh()) {
       if (pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format)) == false) {
         pdu_msg.del_subh();
+        regular_bsr = false; // make sure we don't update the BSR content later on
+      } else {
+        // BSR allocation was successful, store subheader index
+        bsr_idx = pdu_msg.get_current_idx();
       }
     }
   }
@@ -218,22 +234,25 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     }
   }
 
-  // Update buffer states for all logical channels
-  for (auto& channel : logical_channels) {
-    channel.buffer_len = rlc->get_buffer_state(channel.lcid);
-  }
-
-  int sdu_space = pdu_msg.get_sdu_space();
+  int32_t sdu_space = pdu_msg.get_sdu_space(); // considers first SDU's header is only one byte
 
   // data from any Logical Channel, except data from UL-CCCH;
   // first only those with positive Bj
+  uint32_t last_sdu_subheader_len = 0; // needed to keep track of added SDUs and actual required subheades
   for (auto& channel : logical_channels) {
     int max_sdu_sz = (channel.PBR < 0) ? -1 : channel.Bj; // this can be zero if no PBR has been allocated
     if (max_sdu_sz != 0) {
       if (sched_sdu(&channel, &sdu_space, max_sdu_sz)) {
         channel.Bj -= channel.sched_len;
+        // account for (possible) subheader needed for next SDU
+        last_sdu_subheader_len = SRSLTE_MIN((uint32_t)sdu_space, sch_pdu::size_header_sdu(channel.sched_len));
+        sdu_space -= last_sdu_subheader_len;
       }
     }
+  }
+  if (last_sdu_subheader_len > 0) {
+    // Unused last subheader, give it back ..
+    sdu_space += last_sdu_subheader_len;
   }
 
   print_logical_channel_state("First round of allocation:");
@@ -241,6 +260,10 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   // If resources remain, allocate regardless of their Bj value
   for (auto& channel : logical_channels) {
     if (channel.lcid != 0) {
+      // allocate subheader if this LCID has not been scheduled yet but there is data to send
+      if (channel.sched_len == 0 && channel.buffer_len > 0) {
+        sdu_space -= last_sdu_subheader_len;
+      }
       sched_sdu(&channel, &sdu_space, -1);
     }
   }
@@ -250,10 +273,16 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   for (auto& channel : logical_channels) {
     if (channel.sched_len != 0) {
       allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
+
+      // update BSR according to allocation
+      bsr.buff_size[channel.lcg] -= channel.sched_len;
     }
   }
 
-  if (!regular_bsr) {
+  if (regular_bsr && bsr_idx >= 0 && pdu_msg.get(bsr_idx) != nullptr) {
+    // update BSR content
+    pdu_msg.get(bsr_idx)->update_bsr(bsr.buff_size, bsr_format_convert(bsr.format));
+  } else {
     // Insert Padding BSR if not inserted Regular/Periodic BSR
     if (bsr_procedure->generate_padding_bsr(pdu_msg.rem_size(), &bsr)) {
       if (pdu_msg.new_subh()) {
@@ -264,10 +293,10 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     }
   }
 
-  log_h->debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
-
-  /* Generate MAC PDU and save to buffer */
+  // Generate MAC PDU and save to buffer
   uint8_t* ret = pdu_msg.write_packet(log_h);
+  Info("%s\n", pdu_msg.to_string().c_str());
+  Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
 
   return ret;
 }
@@ -290,20 +319,11 @@ bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz
         sched_len = *sdu_space;
       }
 
-      log_h->debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n",
-                   ch->lcid,
-                   ch->buffer_len,
-                   sched_len,
-                   sdu_space ? *sdu_space : 0);
+      *sdu_space -= sched_len; // UL-SCH subheader size is accounted for in the calling function
 
-      *sdu_space -= sched_len;
+      Debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d\n", ch->lcid, ch->buffer_len, sched_len);
+
       ch->buffer_len -= sched_len;
-
-      if (ch->sched_len == 0) {
-        // account for header for the first time
-        *sdu_space -= sch_pdu::size_header_sdu(sched_len);
-      }
-
       ch->sched_len += sched_len;
       return true;
     }

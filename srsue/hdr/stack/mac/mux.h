@@ -44,8 +44,8 @@ typedef struct {
   uint32_t bucket_size;
   uint32_t BSD;
   uint32_t priority;
-  int      sched_len;
-  int      buffer_len;
+  int      sched_len;  // scheduled upper layer payload for this LCID
+  int      buffer_len; // outstanding bytes for this LCID
 } logical_channel_config_t;
 
 namespace srsue {

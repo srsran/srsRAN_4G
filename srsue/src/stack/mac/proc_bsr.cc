@@ -25,13 +25,7 @@
 
 namespace srsue {
 
-bsr_proc::bsr_proc()
-{
-  initiated          = false;
-  current_tti        = 0;
-  trigger_tti        = 0;
-  triggered_bsr_type = NONE;
-}
+bsr_proc::bsr_proc() {}
 
 void bsr_proc::init(sr_proc*                       sr_,
                     rlc_interface_mac*             rlc_,
@@ -71,7 +65,6 @@ void bsr_proc::init(sr_proc*                       sr_,
 void bsr_proc::set_trigger(srsue::bsr_proc::triggered_bsr_type_t new_trigger)
 {
   triggered_bsr_type = new_trigger;
-  trigger_tti        = current_tti;
 
   // Trigger SR always when Regular BSR is triggered in the current TTI. Will be cancelled if a grant is received
   if (triggered_bsr_type == REGULAR) {
@@ -86,8 +79,6 @@ void bsr_proc::reset()
   timer_retx.stop();
 
   triggered_bsr_type = NONE;
-
-  trigger_tti = 0;
 }
 
 void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
@@ -141,7 +132,6 @@ uint32_t bsr_proc::get_buffer_state()
 // Checks if data is available for a a channel with higher priority than others
 bool bsr_proc::check_highest_channel()
 {
-
   for (int i = 0; i < NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
       // If new data available
@@ -219,15 +209,15 @@ uint32_t bsr_proc::get_buffer_state_lcg(uint32_t lcg)
   return n;
 }
 
+// Checks if a BSR needs to be generated and, if so, configures the BSR format
+// It does not update the BSR values of the LCGs
 bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
 {
   bool     send_bsr = false;
   uint32_t nof_lcg = 0;
-  bzero(bsr, sizeof(bsr_t));
 
-  // Calculate buffer size for each LCG
+  // Check if more than one LCG has data to sned
   for (int i = 0; i < NOF_LCG; i++) {
-    bsr->buff_size[i] = get_buffer_state_lcg(i);
     if (bsr->buff_size[i] > 0) {
       nof_lcg++;
     }
@@ -245,7 +235,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
   } else if (pdu_space >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
     // we can only fit a short or truncated BSR
     if (nof_lcg > 1) {
-      // only send truncated BSR for a padding BSR
+      // send truncated BSR
       bsr->format           = TRUNC_BSR;
       uint32_t max_prio_lcg = find_max_priority_lcg_with_data();
       for (uint32_t i = 0; i < NOF_LCG; i++) {
@@ -260,14 +250,6 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
   }
 
   if (send_bsr) {
-    Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n",
-         bsr_type_tostring(triggered_bsr_type),
-         bsr_format_tostring(bsr->format),
-         bsr->buff_size[0],
-         bsr->buff_size[1],
-         bsr->buff_size[2],
-         bsr->buff_size[3]);
-
     // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
     if (timer_periodic.duration() && bsr->format != TRUNC_BSR) {
       timer_periodic.run();
@@ -288,8 +270,6 @@ void bsr_proc::step(uint32_t tti)
   if (!initiated) {
     return;
   }
-
-  current_tti = tti;
 
   update_new_data();
 
@@ -330,31 +310,18 @@ char* bsr_proc::bsr_format_tostring(bsr_format_t format)
   }
 }
 
-bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
+bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, uint32_t total_data, bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  bool bsr_included = false;
-
+  bool send_bsr = false;
   if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
-    bsr_included = generate_bsr(bsr, grant_size);
-  }
-
-  // All triggered BSRs shall be cancelled in case the UL grant can accommodate all pending data available for
-  // transmission but is not sufficient to additionally accommodate the BSR MAC control element plus its subheader. All
-  // triggered BSRs shall be cancelled when a BSR is included in a MAC PDU for transmission
-  int total_data = 0;
-  if (!bsr_included) {
-    for (int i = 0; i < NOF_LCG; i++) {
-      for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-        total_data += srslte::sch_pdu::size_header_sdu(iter->second.old_buffer) + iter->second.old_buffer;
-      }
+    // All triggered BSRs shall be cancelled in case the UL grant can accommodate all pending data
+    if (grant_size >= total_data) {
+      triggered_bsr_type = NONE;
+    } else {
+      send_bsr = generate_bsr(bsr, grant_size);
     }
-    total_data--; // Because last SDU has no size header
-  }
-  // If all data fits in the grant or BSR has been included, cancel the trigger
-  if (total_data < (int)grant_size || bsr_included) {
-    set_trigger(NONE);
   }
 
   // Cancel SR if an Uplink grant is received
@@ -366,25 +333,23 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
     timer_retx.run();
     Debug("BSR:   Started retxBSR-Timer\n");
   }
-  return bsr_included;
+  return send_bsr;
 }
 
+// This function is called by MUX only if Regular BSR has not been triggered before
 bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  bool ret = false;
-
-  // This function is called by MUX only if Regular BSR has not been triggered before
   if (nof_padding_bytes >= CE_SUBHEADER_LEN + ce_size(srslte::ul_sch_lcid::SHORT_BSR)) {
     // generate padding BSR
     set_trigger(PADDING);
     generate_bsr(bsr, nof_padding_bytes);
     set_trigger(NONE);
-    ret = true;
+    return true;
   }
 
-  return ret;
+  return false;
 }
 
 void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)

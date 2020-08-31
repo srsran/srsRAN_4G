@@ -45,8 +45,8 @@ public:
     uint32_t     buff_size[4];
   } bsr_t;
 
-  /* MUX calls BSR to check if it can fit a BSR into PDU */
-  virtual bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr) = 0;
+  /* MUX calls BSR to check if it should send (and can fit) a BSR into PDU */
+  virtual bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, uint32_t total_data, bsr_t* bsr) = 0;
 
   /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
   virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr) = 0;
@@ -65,7 +65,7 @@ public:
   void     setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority);
   void     timer_expired(uint32_t timer_id);
   uint32_t get_buffer_state();
-  bool     need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr);
+  bool     need_to_send_bsr_on_ul_grant(uint32_t grant_size, uint32_t total_data, bsr_t* bsr);
   bool     generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr);
 
 private:
@@ -73,14 +73,14 @@ private:
 
   std::mutex mutex;
 
-  srslte::ext_task_sched_handle* task_sched;
+  srslte::ext_task_sched_handle* task_sched = nullptr;
   srslte::log_ref                log_h;
-  rlc_interface_mac*             rlc;
-  sr_proc*                       sr;
+  rlc_interface_mac*             rlc = nullptr;
+  sr_proc*                       sr  = nullptr;
 
   srslte::bsr_cfg_t bsr_cfg;
 
-  bool initiated;
+  bool initiated = false;
 
   const static int NOF_LCG = 4;
 
@@ -94,10 +94,7 @@ private:
 
   uint32_t find_max_priority_lcg_with_data();
   typedef enum { NONE, REGULAR, PADDING, PERIODIC } triggered_bsr_type_t;
-  triggered_bsr_type_t triggered_bsr_type;
-
-  uint32_t current_tti;
-  uint32_t trigger_tti;
+  triggered_bsr_type_t triggered_bsr_type = NONE;
 
   void     set_trigger(triggered_bsr_type_t new_trigger);
   void     update_new_data();
