@@ -1691,15 +1691,20 @@ float srslte_vec_estimate_frequency_simd(const cf_t* x, int len)
     }
 
     // Accumulate using horizontal addition
+    simd_f_t _sum_re = srslte_simd_cf_re(_sum);
+    simd_f_t _sum_im = srslte_simd_cf_im(_sum);
     for (int k = 1; k < SRSLTE_SIMD_CF_SIZE; k *= 2) {
-      _sum.re = srslte_simd_f_hadd(_sum.re, _sum.re);
-      _sum.im = srslte_simd_f_hadd(_sum.im, _sum.im);
+      _sum_re = srslte_simd_f_hadd(_sum_re, _sum_re);
+      _sum_im = srslte_simd_f_hadd(_sum_im, _sum_im);
     }
 
     // Get accumulator
-    srslte_simd_aligned cf_t _sum_v[SRSLTE_SIMD_CF_SIZE];
-    srslte_simd_cfi_store(_sum_v, _sum);
-    sum = _sum_v[0];
+    srslte_simd_aligned float _sum_re_v[SRSLTE_SIMD_CF_SIZE];
+    srslte_simd_aligned float _sum_im_v[SRSLTE_SIMD_CF_SIZE];
+    srslte_simd_f_store(_sum_re_v, _sum_re);
+    srslte_simd_f_store(_sum_im_v, _sum_im);
+    __real__ sum = _sum_re_v[0];
+    __imag__ sum = _sum_im_v[0];
   }
 #endif /* SRSLTE_SIMD_CF_SIZE */
 
