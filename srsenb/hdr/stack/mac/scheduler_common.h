@@ -85,6 +85,7 @@ struct prb_interval;
 struct rbg_interval : public srslte::interval<uint32_t> {
   using interval::interval;
   static rbg_interval prbs_to_rbgs(const prb_interval& prbs, uint32_t P);
+  static rbg_interval rbgmask_to_rbgs(const rbgmask_t& mask);
 };
 
 //! Struct to express a {min,...,max} range of PRBs

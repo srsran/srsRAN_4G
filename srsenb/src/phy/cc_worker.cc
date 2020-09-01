@@ -483,7 +483,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
 
       if (SRSLTE_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSLTE_DCI_FORMAT1A) {
         if (srslte_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
-            grants[i].dci.format == SRSLTE_DCI_FORMAT1A && phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
+            phy->ue_db.is_pcell(grants[i].dci.rnti, cc_idx)) {
           srslte_dci_cfg_set_common_ss(&dci_cfg);
         }
       }

@@ -460,6 +460,27 @@ prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P)
   return prb_interval{rbgs.start() * P, rbgs.stop() * P};
 }
 
+rbg_interval rbg_interval::rbgmask_to_rbgs(const rbgmask_t& mask)
+{
+  int rb_start = -1;
+  for (uint32_t i = 0; i < mask.size(); i++) {
+    if (rb_start == -1) {
+      if (mask.test(i)) {
+        rb_start = i;
+      }
+    } else {
+      if (!mask.test(i)) {
+        return rbg_interval(rb_start, i);
+      }
+    }
+  }
+  if (rb_start != -1) {
+    return rbg_interval(rb_start, mask.size());
+  } else {
+    return rbg_interval();
+  }
+}
+
 prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
 {
   if (nof_vrbs < 0) {

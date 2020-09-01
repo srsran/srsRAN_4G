@@ -479,8 +479,26 @@ int sched_ue::generate_format1(uint32_t                          pid,
   int mcs = 0;
   int tbs = 0;
 
-  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
+  // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
+  // Common SS when spaces collide
+  if (cell.nof_prb == 15 && carriers.size() > 1) {
+    dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+    dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
+    rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
+    uint32_t     P        = srslte_ra_type0_P(15);
+    prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, P);
+    dci->type2_alloc.riv =
+        srslte_ra_type2_to_riv(SRSLTE_MIN(prb_int.length(), cell.nof_prb), prb_int.start(), cell.nof_prb);
+    dci->format = SRSLTE_DCI_FORMAT1A;
+    if (prb_int.length() != P * user_mask.count()) {
+      // This happens if Type0 was using distributed allocation
+      Warning("SCHED: Can't use distributed RA due to DCI size ambiguity\n");
+    }
+  } else {
+    dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+    dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
+    dci->format                  = SRSLTE_DCI_FORMAT1;
+  }
 
   if (h->is_empty(0)) {
     auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, 0, "1");
@@ -503,8 +521,6 @@ int sched_ue::generate_format1(uint32_t                          pid,
     next_tpc_pucch = 1;
     data->tbs[0]   = (uint32_t)tbs;
     data->tbs[1]   = 0;
-
-    dci->format = SRSLTE_DCI_FORMAT1;
   }
   return tbs;
 }

@@ -497,16 +497,12 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
              * information fields in the common and UE-specific search spaces on the primary cell, is required to assume
              * that only the PDCCH in the common search space is transmitted by the primary cell.
              */
-            INFO("checking if msg=%d, ncce=%d belongs to common\n", nof_dci, dci_msg[nof_dci].location.ncce);
             // Find a matching ncce in the common SS
             if (srslte_location_find_ncce(q->current_ss_common[MI_IDX(sf_idx)][cfi - 1].loc,
                                           q->current_ss_common[MI_IDX(sf_idx)][cfi - 1].nof_locations,
                                           dci_msg[nof_dci].location.ncce)) {
               srslte_dci_cfg_t cfg = *dci_cfg;
               srslte_dci_cfg_set_common_ss(&cfg);
-              INFO("checking if size of msg (%d) is equal to size of format1a (%d)\n",
-                   dci_msg[nof_dci].nof_bits,
-                   srslte_dci_format_sizeof(&q->cell, sf, &cfg, SRSLTE_DCI_FORMAT1A));
               // if the payload size is the same that it would have in the common SS (only Format0/1A is allowed there)
               if (dci_msg[nof_dci].nof_bits == srslte_dci_format_sizeof(&q->cell, sf, &cfg, SRSLTE_DCI_FORMAT1A)) {
                 // assume that only the PDDCH is transmitted, therefore update the format to 0/1A
