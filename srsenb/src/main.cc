@@ -19,6 +19,7 @@
  *
  */
 
+#include <poll.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
@@ -401,43 +402,48 @@ static bool do_metrics = false;
 
 static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* control)
 {
-  string input_line;
+  struct pollfd pfd = {STDIN_FILENO, POLLIN, 0};
+  string        input_line;
   while (running) {
-    getline(cin, input_line);
-    if (cin.eof() || cin.bad()) {
-      cout << "Closing stdin thread." << endl;
-      break;
-    } else if (not input_line.empty()) {
-      vector<string> cmd;
-      srslte::string_parse_list(input_line, ' ', cmd);
-      if (cmd[0] == "t") {
-        do_metrics = !do_metrics;
-        if (do_metrics) {
-          cout << "Enter t to stop trace." << endl;
+    int ret = poll(&pfd, 1, 1000); // query stdin with a timeout of 1000ms
+    if (ret == 1) {
+      // there is user input to read
+      getline(cin, input_line);
+      if (cin.eof() || cin.bad()) {
+        cout << "Closing stdin thread." << endl;
+        break;
+      } else if (not input_line.empty()) {
+        vector<string> cmd;
+        srslte::string_parse_list(input_line, ' ', cmd);
+        if (cmd[0] == "t") {
+          do_metrics = !do_metrics;
+          if (do_metrics) {
+            cout << "Enter t to stop trace." << endl;
+          } else {
+            cout << "Enter t to restart trace." << endl;
+          }
+          metrics->toggle_print(do_metrics);
+        } else if (cmd[0] == "q") {
+          raise(SIGTERM);
+        } else if (cmd[0] == "cell_gain") {
+          if (cmd.size() != 3) {
+            cout << "Usage: " << cmd[0] << " [cell index] [gain in dB]" << endl;
+            continue;
+          }
+
+          // Parse command arguments
+          uint32_t cell_idx = srslte::string_cast<uint32_t>(cmd[1]);
+          float    gain_db  = srslte::string_cast<float>(cmd[2]);
+
+          // Set cell gain
+          control->cmd_cell_gain(cell_idx, gain_db);
         } else {
-          cout << "Enter t to restart trace." << endl;
+          cout << "Available commands: " << endl;
+          cout << "          t: starts console trace" << endl;
+          cout << "          q: quit srsenb" << endl;
+          cout << "  cell_gain: set relative cell gain" << endl;
+          cout << endl;
         }
-        metrics->toggle_print(do_metrics);
-      } else if (cmd[0] == "q") {
-        raise(SIGTERM);
-      } else if (cmd[0] == "cell_gain") {
-        if (cmd.size() != 3) {
-          cout << "Usage: " << cmd[0] << " [cell index] [gain in dB]" << endl;
-          continue;
-        }
-
-        // Parse command arguments
-        uint32_t cell_idx = srslte::string_cast<uint32_t>(cmd[1]);
-        float    gain_db  = srslte::string_cast<float>(cmd[2]);
-
-        // Set cell gain
-        control->cmd_cell_gain(cell_idx, gain_db);
-      } else {
-        cout << "Available commands: " << endl;
-        cout << "          t: starts console trace" << endl;
-        cout << "          q: quit srsenb" << endl;
-        cout << "  cell_gain: set relative cell gain" << endl;
-        cout << endl;
       }
     }
   }
@@ -504,9 +510,8 @@ int main(int argc, char* argv[])
   }
 
   // create input thread
-  thread input(&input_loop, &metrics_screen, (enb_command_interface*)enb.get());
+  std::thread input(&input_loop, &metrics_screen, (enb_command_interface*)enb.get());
 
-  bool signals_pregenerated = false;
   if (running) {
     if (args.gui.enable) {
       enb->start_plot();
@@ -521,8 +526,9 @@ int main(int argc, char* argv[])
         enb->print_pool();
       }
     }
-    usleep(10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
+  input.join();
   metricshub.stop();
   enb->stop();
   cout << "---  exiting  ---" << endl;
