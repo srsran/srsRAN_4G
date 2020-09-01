@@ -113,7 +113,8 @@ inline uint32_t phy_ue_db::_get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) co
 
   for (; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
     const cell_info_t& scell_info = ue.cell_info[ue_cc_idx];
-    if (scell_info.enb_cc_idx == enb_cc_idx and scell_info.state != cell_state_secondary_inactive) {
+    if (scell_info.enb_cc_idx == enb_cc_idx and
+        (scell_info.state == cell_state_primary or scell_info.state == cell_state_secondary_active)) {
       return ue_cc_idx;
     }
   }
@@ -179,9 +180,13 @@ inline int phy_ue_db::_assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const
     return SRSLTE_ERROR;
   }
 
-  // Check SCell is active, ignore PCell state
-  if (ue_cc_idx == SRSLTE_MAX_CARRIERS) {
-    ERROR("Out-of-bounds UE cell/carrier %d for RNTI 0x%X.\n", ue_cc_idx, rnti);
+  // Check the cell index is in range
+  if (ue_cc_idx >= SRSLTE_MAX_CARRIERS) {
+    return SRSLTE_ERROR;
+  }
+
+  const cell_info_t& cell_info = ue_db.at(rnti).cell_info.at(ue_cc_idx);
+  if (cell_info.state == cell_state_none) {
     return SRSLTE_ERROR;
   }
 
@@ -197,7 +202,6 @@ inline int phy_ue_db::_assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) co
   // Return error if not PCell or not Active SCell
   const cell_info_t& cell_info = ue_db.at(rnti).cell_info[ue_cc_idx];
   if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
-    ERROR("Failed to assert active UE cell/carrier %d for RNTI 0x%X", ue_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 
@@ -594,7 +598,9 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   }
 
   // Assert the SCell exists and it is active
-  _assert_ue_cc(rnti, uci_cfg.cqi.scell_index);
+  if (_assert_active_ue_cc(rnti, uci_cfg.cqi.scell_index) != SRSLTE_SUCCESS) {
+    return;
+  }
 
   // Get CQI carrier index
   cell_info_t& cqi_scell_info = ue_db.at(rnti).cell_info[uci_cfg.cqi.scell_index];
