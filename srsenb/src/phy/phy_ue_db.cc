@@ -594,7 +594,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   }
 
   // Assert the SCell exists and it is active
-  _assert_active_ue_cc(rnti, uci_cfg.cqi.scell_index);
+  _assert_ue_cc(rnti, uci_cfg.cqi.scell_index);
 
   // Get CQI carrier index
   cell_info_t& cqi_scell_info = ue_db.at(rnti).cell_info[uci_cfg.cqi.scell_index];
