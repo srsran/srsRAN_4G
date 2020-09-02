@@ -302,13 +302,12 @@ enb_args="$build_path/../srsenb/enb.conf.example \
           --enb_files.drb_config=$build_path/../srsenb/drb.conf.example \
           --rf.device_name=zmq \
           --log.all_level=info \
-          --expert.nof_phy_threads=1 \
           --enb.n_prb=$nof_prb \
           --log.filename=./${nof_prb}prb_enb.log"
 
 ue_args="$build_path/../srsue/ue.conf.example \
          --rf.device_name=zmq \
-         --phy.nof_phy_threads=1  \
+         --rf.rx_gain 60 \
          --stack.have_tti_time_stats=false \
          --gw.netns=$ue_netns \
          --log.all_level=info \
