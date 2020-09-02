@@ -203,14 +203,6 @@ private:
   inline int _assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const;
 
   /**
-   * Checks if an RNTI is configured to use an specified UE cell/carrier as PCell or SCell and it is active
-   * @param rnti provides UE identifier
-   * @param ue_cc_idx UE cell/carrier index that is asserted
-   * @return SRSLTE_SUCCESS if the indicated cell/carrier is active, otherwise it returns SRSLTE_ERROR
-   */
-  inline int _assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const;
-
-  /**
    * Checks if an RNTI is configured to use an specified eNb cell/carrier as PCell or SCell and it is active
    * @param rnti provides UE identifier
    * @param enb_cc_idx UE cell/carrier index that is asserted

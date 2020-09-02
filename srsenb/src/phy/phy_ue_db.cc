@@ -193,21 +193,6 @@ inline int phy_ue_db::_assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const
   return SRSLTE_SUCCESS;
 }
 
-inline int phy_ue_db::_assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const
-{
-  if (_assert_ue_cc(rnti, ue_cc_idx) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
-  }
-
-  // Return error if not PCell or not Active SCell
-  const cell_info_t& cell_info = ue_db.at(rnti).cell_info[ue_cc_idx];
-  if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
-    return SRSLTE_ERROR;
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 inline int phy_ue_db::_assert_active_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   if (_assert_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
@@ -598,7 +583,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   }
 
   // Assert the SCell exists and it is active
-  if (_assert_active_ue_cc(rnti, uci_cfg.cqi.scell_index) != SRSLTE_SUCCESS) {
+  if (_assert_ue_cc(rnti, uci_cfg.cqi.scell_index) != SRSLTE_SUCCESS) {
     return;
   }
 
