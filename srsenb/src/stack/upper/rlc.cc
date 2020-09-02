@@ -91,7 +91,9 @@ void rlc::clear_buffer(uint16_t rnti)
   if (users.count(rnti)) {
     users[rnti].rlc->empty_queue();
     for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
-      mac->rlc_buffer_state(rnti, i, 0, 0);
+      if (users[rnti].rlc->has_bearer(i)) {
+        mac->rlc_buffer_state(rnti, i, 0, 0);
+      }
     }
     log_h->info("Cleared buffer rnti=0x%x\n", rnti);
   }
