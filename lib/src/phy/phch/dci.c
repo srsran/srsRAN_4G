@@ -1385,7 +1385,7 @@ int srslte_dci_msg_unpack_pusch(srslte_cell_t*      cell,
   return dci_format0_unpack(cell, sf, cfg, msg, dci);
 }
 
-bool srslte_location_find(srslte_dci_location_t* locations, uint32_t nof_locations, srslte_dci_location_t x)
+bool srslte_location_find(const srslte_dci_location_t* locations, uint32_t nof_locations, srslte_dci_location_t x)
 {
   for (uint32_t i = 0; i < nof_locations; i++) {
     if (locations[i].L == x.L && locations[i].ncce == x.ncce) {
@@ -1395,7 +1395,7 @@ bool srslte_location_find(srslte_dci_location_t* locations, uint32_t nof_locatio
   return false;
 }
 
-bool srslte_location_find_ncce(srslte_dci_location_t* locations, uint32_t nof_locations, uint32_t ncce)
+bool srslte_location_find_ncce(const srslte_dci_location_t* locations, uint32_t nof_locations, uint32_t ncce)
 {
   for (uint32_t i = 0; i < nof_locations; i++) {
     if (locations[i].ncce == ncce) {
