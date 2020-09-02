@@ -336,7 +336,7 @@ private:
   std::vector<uint32_t>      active_cell_list;
 
   uint32_t              nof_locations[SRSLTE_NOF_SF_X_FRAME]                    = {};
-  srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][MAX_CANDIDATES_UE] = {};
+  srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][SRSLTE_MAX_CANDIDATES_UE] = {};
   uint32_t              ul_riv                                                  = 0;
 
 public:
@@ -371,11 +371,11 @@ public:
       sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
       uint32_t              _nof_locations                    = {};
-      srslte_dci_location_t _dci_locations[MAX_CANDIDATES_UE] = {};
-      _nof_locations = srslte_pdcch_ue_locations(&pdcch, &sf_cfg_dl, _dci_locations, MAX_CANDIDATES_UE, ue_rnti);
+      srslte_dci_location_t _dci_locations[SRSLTE_MAX_CANDIDATES_UE] = {};
+      _nof_locations = srslte_pdcch_ue_locations(&pdcch, &sf_cfg_dl, _dci_locations, SRSLTE_MAX_CANDIDATES_UE, ue_rnti);
 
       // Take L == 0 aggregation levels
-      for (uint32_t j = 0; j < _nof_locations && nof_locations[i] < MAX_CANDIDATES_UE; j++) {
+      for (uint32_t j = 0; j < _nof_locations && nof_locations[i] < SRSLTE_MAX_CANDIDATES_UE; j++) {
         if (_dci_locations[j].L == 0) {
           dci_locations[i][nof_locations[i]] = _dci_locations[j];
           nof_locations[i]++;

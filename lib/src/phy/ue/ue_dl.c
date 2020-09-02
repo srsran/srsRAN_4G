@@ -164,7 +164,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t* q)
     srslte_ofdm_rx_free(&q->fft_mbsfn);
     srslte_chest_dl_free(&q->chest);
     srslte_chest_dl_res_free(&q->chest_res);
-    for (int i = 0; i < MI_NOF_REGS; i++) {
+    for (int i = 0; i < SRSLTE_MI_NOF_REGS; i++) {
       srslte_regs_free(&q->regs[i]);
     }
     srslte_pcfich_free(&q->pcfich);
@@ -190,12 +190,12 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell)
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       if (q->cell.nof_prb != 0) {
-        for (int i = 0; i < MI_NOF_REGS; i++) {
+        for (int i = 0; i < SRSLTE_MI_NOF_REGS; i++) {
           srslte_regs_free(&q->regs[i]);
         }
       }
       q->cell = cell;
-      for (int i = 0; i < MI_NOF_REGS; i++) {
+      for (int i = 0; i < SRSLTE_MI_NOF_REGS; i++) {
         if (srslte_regs_init_opts(&q->regs[i], q->cell, mi_reg_idx[i % 3], i > 2)) {
           ERROR("Error resizing REGs\n");
           return SRSLTE_ERROR;
@@ -288,17 +288,17 @@ void srslte_ue_dl_set_rnti(srslte_ue_dl_t* q, uint16_t rnti)
   ZERO_OBJECT(sf_cfg);
 
   // Compute UE-specific and Common search space for this RNTI
-  for (int i = 0; i < MI_NOF_REGS; i++) {
+  for (int i = 0; i < SRSLTE_MI_NOF_REGS; i++) {
     srslte_pdcch_set_regs(&q->pdcch, &q->regs[i]);
-    for (int cfi = 0; cfi < 3; cfi++) {
-      sf_cfg.cfi = cfi + 1;
-      for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
+    for (int cfi = 1; cfi <= SRSLTE_NOF_CFI; cfi++) {
+      sf_cfg.cfi = cfi;
+      for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
         sf_cfg.tti                                     = sf_idx;
-        q->current_ss_ue[i][cfi][sf_idx].nof_locations = srslte_pdcch_ue_locations(
-            &q->pdcch, &sf_cfg, q->current_ss_ue[i][cfi][sf_idx].loc, MAX_CANDIDATES_UE, rnti);
+        q->current_ss_ue[i][SRSLTE_CFI_IDX(cfi)][sf_idx].nof_locations = srslte_pdcch_ue_locations(
+            &q->pdcch, &sf_cfg, q->current_ss_ue[i][SRSLTE_CFI_IDX(cfi)][sf_idx].loc, SRSLTE_MAX_CANDIDATES_UE, rnti);
       }
-      q->current_ss_common[i][cfi].nof_locations =
-          srslte_pdcch_common_locations(&q->pdcch, q->current_ss_common[i][cfi].loc, MAX_CANDIDATES_COM, cfi + 1);
+      q->current_ss_common[i][SRSLTE_CFI_IDX(cfi)].nof_locations = srslte_pdcch_common_locations(
+          &q->pdcch, q->current_ss_common[i][SRSLTE_CFI_IDX(cfi)].loc, SRSLTE_MAX_CANDIDATES_COM, cfi);
     }
   }
   q->pregen_rnti = rnti;
@@ -561,27 +561,34 @@ static int find_dci_ss(srslte_ue_dl_t*            q,
   dci_blind_search_t  search_space = {};
   dci_blind_search_t* current_ss   = &search_space;
 
-  uint32_t         sf_idx  = sf->tti % 10;
+  uint32_t         sf_idx  = sf->tti % SRSLTE_NOF_SF_X_FRAME;
   uint32_t         cfi     = sf->cfi;
   srslte_dci_cfg_t dci_cfg = cfg->cfg.dci;
+
+  if (!SRSLTE_CFI_ISVALID(cfi)) {
+    ERROR("Invalid CFI=%d\n", cfi);
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 
   // Generate Search Space
   if (is_ue) {
     if (q->pregen_rnti == rnti) {
-      current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][cfi - 1][sf_idx];
+      current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][SRSLTE_CFI_IDX(cfi)][sf_idx];
     } else {
       // If locations are not pre-generated, generate them now
-      current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, sf, current_ss->loc, MAX_CANDIDATES_UE, rnti);
+      current_ss->nof_locations =
+          srslte_pdcch_ue_locations(&q->pdcch, sf, current_ss->loc, SRSLTE_MAX_CANDIDATES_UE, rnti);
     }
   } else {
     // Disable extended CSI request and SRS request in common SS
     srslte_dci_cfg_set_common_ss(&dci_cfg);
 
     if (q->pregen_rnti == rnti) {
-      current_ss = &q->current_ss_common[MI_IDX(sf_idx)][cfi - 1];
+      current_ss = &q->current_ss_common[MI_IDX(sf_idx)][SRSLTE_CFI_IDX(cfi)];
     } else {
       // If locations are not pre-generated, generate them now
-      current_ss->nof_locations = srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_COM, cfi);
+      current_ss->nof_locations =
+          srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, SRSLTE_MAX_CANDIDATES_COM, cfi);
     }
   }
 

@@ -588,14 +588,14 @@ uint32_t srslte_nbiot_ue_dl_get_ncce(srslte_nbiot_ue_dl_t* q)
   return q->last_n_cce;
 }
 
-#define MAX_CANDIDATES_UE 3 // From 36.213 Table 16.6-1 NPDCCH Format0 and NPDCCH Format1
-#define MAX_CANDIDATES_COM                                                                                             \
+#define SRSLTE_MAX_CANDIDATES_UE 3 // From 36.213 Table 16.6-1 NPDCCH Format0 and NPDCCH Format1
+#define SRSLTE_MAX_CANDIDATES_COM                                                                                      \
   1 // From 36.213 Table 16.6-2 and Table 16.6-3, only AL2 is defined here which uses NPDCCH Format1
-#define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)
+#define SRSLTE_MAX_CANDIDATES (SRSLTE_MAX_CANDIDATES_UE + SRSLTE_MAX_CANDIDATES_COM)
 
 typedef struct {
   srslte_dci_format_t   format;
-  srslte_dci_location_t loc[MAX_CANDIDATES];
+  srslte_dci_location_t loc[SRSLTE_MAX_CANDIDATES];
   uint32_t              nof_locations;
 } dci_blind_search_t;
 
@@ -646,7 +646,7 @@ int srslte_nbiot_ue_dl_find_dl_dci_type_siprarnti(srslte_nbiot_ue_dl_t* q, uint1
   // Configure and run DCI blind search
   dci_blind_search_t search_space;
 
-  search_space.nof_locations = srslte_npdcch_common_locations(search_space.loc, MAX_CANDIDATES_COM);
+  search_space.nof_locations = srslte_npdcch_common_locations(search_space.loc, SRSLTE_MAX_CANDIDATES_COM);
   DEBUG(
       "Searching SI/P/RA-RNTI in %d common locations, %d formats\n", search_space.nof_locations, nb_nof_common_formats);
   // Search for RNTI only if there is room for the common search space
@@ -671,7 +671,7 @@ int srslte_nbiot_ue_dl_find_dl_dci_type_crnti(srslte_nbiot_ue_dl_t* q,
 
   // Search UE-specific search space
   dci_blind_search_t search_space;
-  search_space.nof_locations = srslte_npdcch_ue_locations(search_space.loc, MAX_CANDIDATES_UE);
+  search_space.nof_locations = srslte_npdcch_ue_locations(search_space.loc, SRSLTE_MAX_CANDIDATES_UE);
   DEBUG("x.%d: Searching DL C-RNTI=0x%x in %d locations, %d formats\n",
         sf_idx,
         rnti,
@@ -999,7 +999,7 @@ int srslte_nbiot_ue_dl_find_ul_dci(srslte_nbiot_ue_dl_t* q, uint32_t tti, uint32
 
   // Search UE-specific search space
   dci_blind_search_t search_space;
-  search_space.nof_locations = srslte_npdcch_ue_locations(search_space.loc, MAX_CANDIDATES_UE);
+  search_space.nof_locations = srslte_npdcch_ue_locations(search_space.loc, SRSLTE_MAX_CANDIDATES_UE);
   DEBUG("x.%d: Searching UL C-RNTI=0x%x in %d locations, %d formats\n",
         tti % 10,
         rnti,

@@ -199,7 +199,7 @@ int main(int argc, char** argv)
   int                   i;
   int                   frame_cnt;
   int                   ret;
-  srslte_dci_location_t locations[MAX_CANDIDATES];
+  srslte_dci_location_t locations[SRSLTE_MAX_CANDIDATES];
   uint32_t              nof_locations;
   srslte_dci_msg_t      dci_msg;
 
@@ -238,10 +238,10 @@ int main(int argc, char** argv)
     }
     if (rnti == SRSLTE_SIRNTI) {
       INFO("Initializing common search space for SI-RNTI\n");
-      nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
+      nof_locations = srslte_pdcch_common_locations(&pdcch, locations, SRSLTE_MAX_CANDIDATES, cfi);
     } else {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-      nof_locations = srslte_pdcch_ue_locations(&pdcch, &dl_sf, locations, MAX_CANDIDATES, rnti);
+      nof_locations = srslte_pdcch_ue_locations(&pdcch, &dl_sf, locations, SRSLTE_MAX_CANDIDATES, rnti);
     }
 
     srslte_dci_cfg_t dci_cfg;

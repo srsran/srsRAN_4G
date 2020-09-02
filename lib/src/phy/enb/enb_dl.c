@@ -220,8 +220,8 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell)
 
       // Calculate common DCI locations
       for (int32_t cfi = 1; cfi <= 3; cfi++) {
-        q->nof_common_locations[cfi - 1] =
-            srslte_pdcch_common_locations(&q->pdcch, q->common_locations[cfi - 1], MAX_CANDIDATES_COM, cfi);
+        q->nof_common_locations[SRSLTE_CFI_IDX(cfi)] = srslte_pdcch_common_locations(
+            &q->pdcch, q->common_locations[SRSLTE_CFI_IDX(cfi)], SRSLTE_MAX_CANDIDATES_COM, cfi);
       }
     }
     ret = SRSLTE_SUCCESS;
@@ -371,8 +371,12 @@ void srslte_enb_dl_put_phich(srslte_enb_dl_t* q, srslte_phich_grant_t* grant, bo
 
 bool srslte_enb_dl_location_is_common_ncce(srslte_enb_dl_t* q, uint32_t ncce)
 {
-  return srslte_location_find_ncce(
-      q->common_locations[q->dl_sf.cfi - 1], q->nof_common_locations[q->dl_sf.cfi - 1], ncce);
+  if (SRSLTE_CFI_ISVALID(q->dl_sf.cfi)) {
+    return srslte_location_find_ncce(
+        q->common_locations[SRSLTE_CFI_IDX(q->dl_sf.cfi)], q->nof_common_locations[SRSLTE_CFI_IDX(q->dl_sf.cfi)], ncce);
+  } else {
+    return false;
+  }
 }
 
 int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t* q, srslte_dci_cfg_t* dci_cfg, srslte_dci_dl_t* dci_dl)

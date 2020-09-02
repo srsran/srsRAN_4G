@@ -64,6 +64,10 @@ extern "C" {
 
 #define SRSLTE_MAX_CODEBOOKS 4
 
+#define SRSLTE_NOF_CFI 3
+#define SRSLTE_CFI_ISVALID(x) ((x >= 1 && x <= 3))
+#define SRSLTE_CFI_IDX(x) ((x - 1) % SRSLTE_NOF_CFI)
+
 #define SRSLTE_LTE_CRC24A 0x1864CFB
 #define SRSLTE_LTE_CRC24B 0X1800063
 #define SRSLTE_LTE_CRC16 0x11021

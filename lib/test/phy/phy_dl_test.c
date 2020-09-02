@@ -410,7 +410,7 @@ int main(int argc, char** argv)
    * Create PDCCH Allocations
    */
   uint32_t              nof_locations[SRSLTE_NOF_SF_X_FRAME];
-  srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][MAX_CANDIDATES_UE];
+  srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][SRSLTE_MAX_CANDIDATES_UE];
   uint32_t              location_counter = 0;
   for (uint32_t i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
     srslte_dl_sf_cfg_t sf_cfg_dl;
@@ -419,7 +419,8 @@ int main(int argc, char** argv)
     sf_cfg_dl.cfi     = cfi;
     sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
-    nof_locations[i] = srslte_pdcch_ue_locations(&enb_dl->pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, rnti);
+    nof_locations[i] =
+        srslte_pdcch_ue_locations(&enb_dl->pdcch, &sf_cfg_dl, dci_locations[i], SRSLTE_MAX_CANDIDATES_UE, rnti);
     location_counter += nof_locations[i];
   }
 

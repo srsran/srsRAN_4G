@@ -85,7 +85,7 @@ typedef struct SRSLTE_API {
   float sss_signal5[SRSLTE_SSS_LEN];
 
   uint32_t              nof_common_locations[3];
-  srslte_dci_location_t common_locations[3][MAX_CANDIDATES_COM];
+  srslte_dci_location_t common_locations[3][SRSLTE_MAX_CANDIDATES_COM];
 
 } srslte_enb_dl_t;
 
