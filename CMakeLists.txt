@@ -93,6 +93,12 @@ option(ENABLE_TIMEPROF "Enable time profiling"                    ON)
 
 option(FORCE_32BIT     "Add flags to force 32 bit compilation"    OFF)
 
+# Users that want to try this feature need to make sure the lto plugin is
+# loaded by bintools (ar, nm, ...). Older versions of bintools will not do
+# it automatically so it is necessary to use the gcc wrappers of the compiler
+# (gcc-ar, gcc-nm, ...).
+option(BUILD_WITH_LTO  "Enable LTO (experimental)"                OFF)
+
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
   message(STATUS "Detected aarch64 processor")
@@ -370,6 +376,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     else(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fno-trapping-math -fno-math-errno -DBUILD_TYPE_RELEASE")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fno-trapping-math -fno-math-errno -DBUILD_TYPE_RELEASE")
+      if(BUILD_WITH_LTO)
+        ADD_C_COMPILER_FLAG_IF_AVAILABLE(-flto HAVE_FLTO)
+        ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-flto HAVE_FLTO)
+      endif(BUILD_WITH_LTO)
     endif(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 

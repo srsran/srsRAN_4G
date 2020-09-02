@@ -102,6 +102,7 @@ typedef struct MAC_Context_Info_t {
 /* Context information for every NAS PDU that will be logged */
 typedef struct NAS_Context_Info_s {
   // No Context yet
+  unsigned char dummy;
 } NAS_Context_Info_t;
 
 #define MAC_NR_START_STRING "mac-nr"
@@ -182,6 +183,7 @@ typedef struct {
 /* Context information for every S1AP PDU that will be logged */
 typedef struct S1AP_Context_Info_s {
   // No Context yet
+  unsigned char dummy;
 } S1AP_Context_Info_t;
 
 #ifdef __cplusplus
