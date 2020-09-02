@@ -143,10 +143,10 @@ static uint32_t dci_format0_sizeof_(const srslte_cell_t* cell, srslte_dl_sf_cfg_
   n += ((IS_TDD | IS_TDD_CFG0) ? 2 : 0);
 
   /* CSI request – 1 or 2 bits */
-  n += (cfg->multiple_csi_request_enabled) ? 2 : 1;
+  n += (cfg->multiple_csi_request_enabled && !cfg->is_not_ue_ss) ? 2 : 1;
 
   /* SRS request – 0 or 1 bit */
-  n += (cfg->srs_request_enabled) ? 1 : 0;
+  n += (cfg->srs_request_enabled && !cfg->is_not_ue_ss) ? 1 : 0;
 
   /* Resource allocation type – 1 bit (N^UL_RB ≤ N^DL_RB)
    * This is a release10 field only, but it is backwards compatible to release 8 because a padding bit will be added.
@@ -460,16 +460,20 @@ static int dci_format0_pack(srslte_cell_t*      cell,
   // DM RS not implemented
   srslte_bit_unpack(dci->n_dmrs, &y, 3);
 
-  // CQI request
-  if (cfg->multiple_csi_request_enabled) {
+  // CSI request – 1 or 2 bits as defined in section 7.2.1 of 36.213. The 2-bit field applies to UEs that are configured
+  // with more than one DL cell and when the corresponding DCI format is mapped onto the UE specific search space given
+  // by the C-RNTI as defined in 36.213; otherwise the 1-bit field applies
+  if (cfg->multiple_csi_request_enabled && !cfg->is_not_ue_ss) {
     *y++ = dci->cqi_request;
     *y++ = 0;
   } else {
     *y++ = dci->cqi_request;
   }
 
-  // SRS request
-  if (cfg->srs_request_enabled) {
+  // SRS request – 0 or 1 bit. This field can only be present in DCI formats scheduling PUSCH which are mapped onto
+  // the UE specific search space given by the C-RNTI as defined in 36.213. The interpretation of this field is provided
+  // in section 8.2 of 36.213
+  if (cfg->srs_request_enabled && !cfg->is_not_ue_ss) {
     *y++ = dci->srs_request && dci->srs_request_present;
   }
 
@@ -548,7 +552,7 @@ static int dci_format0_unpack(srslte_cell_t*      cell,
   }
 
   // CQI request
-  if (cfg->multiple_csi_request_enabled) {
+  if (cfg->multiple_csi_request_enabled && !cfg->is_not_ue_ss) {
     dci->multiple_csi_request_present = true;
     dci->multiple_csi_request         = srslte_bit_pack(&y, 2);
   } else {
@@ -556,7 +560,7 @@ static int dci_format0_unpack(srslte_cell_t*      cell,
   }
 
   // SRS request
-  if (cfg->srs_request_enabled) {
+  if (cfg->srs_request_enabled && !cfg->is_not_ue_ss) {
     dci->srs_request_present = true;
     dci->srs_request         = *y++ ? true : false;
   }
@@ -1408,8 +1412,7 @@ bool srslte_location_find_ncce(const srslte_dci_location_t* locations, uint32_t 
 // Set the configuration for Format0/1A messages allocated on Common SS
 void srslte_dci_cfg_set_common_ss(srslte_dci_cfg_t* cfg)
 {
-  cfg->srs_request_enabled          = false;
-  cfg->multiple_csi_request_enabled = false;
+  cfg->is_not_ue_ss = true;
 }
 
 int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uint32_t nCCE)

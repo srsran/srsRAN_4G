@@ -576,6 +576,7 @@ int main(int argc, char** argv)
           dci_cfg.srs_request_enabled          = false;
           dci_cfg.ra_format_enabled            = false;
           dci_cfg.multiple_csi_request_enabled = false;
+          dci_cfg.is_not_ue_ss                 = false;
 
           // DCI Fixed values
           dci.pid                 = 0;
