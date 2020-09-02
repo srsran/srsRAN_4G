@@ -93,11 +93,13 @@ int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
   // Shuffle values in tables to break correlation in SIMD registers
   channel_awgn_shuffle_tables(q);
 
+#if SRSLTE_SIMD_F_SIZE != 0
   // Copy head in tail for keeping continuity in SIMD registers
   for (uint32_t i = 0; i < SRSLTE_SIMD_F_SIZE; i++) {
     q->table_log[i + AWGN_TABLE_SIZE] = q->table_log[i];
     q->table_cos[i + AWGN_TABLE_SIZE] = q->table_cos[i];
   }
+#endif
 
   return SRSLTE_SUCCESS;
 }

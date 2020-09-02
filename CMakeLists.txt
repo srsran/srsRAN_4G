@@ -66,7 +66,7 @@ option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
 option(ENABLE_5GNR     "Build with 5G-NR components"              OFF)
-option(DISABLE_SIMD    "disable simd instructions"                OFF)
+option(DISABLE_SIMD    "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA "Autodetect supported ISA extensions"      ON)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)

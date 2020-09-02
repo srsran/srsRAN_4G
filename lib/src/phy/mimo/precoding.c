@@ -1189,7 +1189,7 @@ static int srslte_predecoding_ccd_2x2_mmse(cf_t* y[SRSLTE_MAX_PORTS],
     h10 = +h[0][1][i] + h[1][1][i];
     h01 = +h[0][0][i] - h[1][0][i];
     h11 = +h[0][1][i] - h[1][1][i];
-    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f / scaling);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, norm);
 
     i++;
 
@@ -1198,7 +1198,7 @@ static int srslte_predecoding_ccd_2x2_mmse(cf_t* y[SRSLTE_MAX_PORTS],
     h10 = h[0][1][i] - h[1][1][i];
     h01 = h[0][0][i] + h[1][0][i];
     h11 = h[0][1][i] + h[1][1][i];
-    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f / scaling);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, norm);
   }
   return SRSLTE_SUCCESS;
 }
@@ -2357,7 +2357,7 @@ int srslte_precoding_pmi_select_1l_gen(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_
   return i;
 }
 
-#ifdef SRSLTE_SIMD_CF_SIZE
+#if SRSLTE_SIMD_CF_SIZE != 0
 
 /* PMI Select for 1 layer */
 int srslte_precoding_pmi_select_1l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
@@ -2477,7 +2477,7 @@ int srslte_precoding_pmi_select_1l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX
   return 4;
 }
 
-#endif /* SRSLTE_SIMD_CF_SIZE */
+#endif /* SRSLTE_SIMD_CF_SIZE != 0 */
 
 int srslte_precoding_pmi_select_1l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                    uint32_t  nof_symbols,
@@ -2486,11 +2486,11 @@ int srslte_precoding_pmi_select_1l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                    float     sinr_list[SRSLTE_MAX_CODEBOOKS])
 {
   int ret;
-#ifdef SRSLTE_SIMD_CF_SIZE
+#if SRSLTE_SIMD_CF_SIZE != 0
   ret = srslte_precoding_pmi_select_1l_simd(h, nof_symbols, noise_estimate, pmi, sinr_list);
 #else
   ret = srslte_precoding_pmi_select_1l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
-#endif /* SRSLTE_SIMD_CF_SIZE */
+#endif /* SRSLTE_SIMD_CF_SIZE != 0 */
   INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n",
        srslte_convert_power_to_dB(sinr_list[0]),
        srslte_convert_power_to_dB(sinr_list[1]),
@@ -2604,7 +2604,7 @@ int srslte_precoding_pmi_select_2l_gen(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_
   return i;
 }
 
-#ifdef SRSLTE_SIMD_CF_SIZE
+#if SRSLTE_SIMD_CF_SIZE != 0
 
 int srslte_precoding_pmi_select_2l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                         int       nof_symbols,
@@ -2758,7 +2758,7 @@ int srslte_precoding_pmi_select_2l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX
   return 2;
 }
 
-#endif /* SRSLTE_SIMD_CF_SIZE */
+#endif /* SRSLTE_SIMD_CF_SIZE != 0 */
 
 /* PMI Select for 2 layers */
 int srslte_precoding_pmi_select_2l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
@@ -2769,11 +2769,11 @@ int srslte_precoding_pmi_select_2l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
 {
 
   int ret;
-#ifdef SRSLTE_SIMD_CF_SIZE
+#if SRSLTE_SIMD_CF_SIZE != 0
   ret = srslte_precoding_pmi_select_2l_simd(h, nof_symbols, noise_estimate, pmi, sinr_list);
 #else
   ret = srslte_precoding_pmi_select_2l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
-#endif /* SRSLTE_SIMD_CF_SIZE */
+#endif /* SRSLTE_SIMD_CF_SIZE != 0 */
 
   INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n",
        srslte_convert_power_to_dB(sinr_list[0]),
