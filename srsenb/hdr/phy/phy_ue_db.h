@@ -25,6 +25,7 @@
 #include "phy_interfaces.h"
 #include <map>
 #include <mutex>
+#include <srslte/common/circular_array.h>
 #include <srslte/interfaces/enb_interfaces.h>
 #include <srslte/srslte.h>
 
@@ -84,18 +85,19 @@ private:
     cell_state_t                                     state      = cell_state_none; ///< Configuration state
     uint32_t                                         enb_cc_idx = 0;  ///< Corresponding eNb cell/carrier index
     uint8_t                                          last_ri    = 0;  ///< Last reported rank indicator
-    std::array<srslte_ra_tb_t, SRSLTE_MAX_HARQ_PROC> last_tb    = {}; ///< Stores last PUSCH Resource allocation
+    srslte::circular_array<srslte_ra_tb_t, SRSLTE_MAX_HARQ_PROC> last_tb =
+        {};                                                           ///< Stores last PUSCH Resource allocation
     srslte::phy_cfg_t                                phy_cfg;         ///< Configuration, it has a default constructor
-    std::array<bool, TTIMOD_SZ> is_grant_available;                   ///< Indicates whether there is an available grant
+    srslte::circular_array<bool, TTIMOD_SZ> is_grant_available;       ///< Indicates whether there is an available grant
   } cell_info_t;
 
   /**
    * UE object stored in the PHY common database
    */
   struct common_ue {
-    std::array<srslte_pdsch_ack_t, TTIMOD_SZ>    pdsch_ack       = {}; ///< Pending acknowledgements for this Cell
-    std::array<cell_info_t, SRSLTE_MAX_CARRIERS> cell_info       = {}; ///< Cell information, indexed by ue_cell_idx
-    srslte::phy_cfg_t                            pcell_cfg_stash = {}; ///< Stashed Cell information
+    srslte::circular_array<srslte_pdsch_ack_t, TTIMOD_SZ> pdsch_ack = {}; ///< Pending acknowledgements for this Cell
+    std::array<cell_info_t, SRSLTE_MAX_CARRIERS>          cell_info = {}; ///< Cell information, indexed by ue_cell_idx
+    srslte::phy_cfg_t                                     pcell_cfg_stash = {}; ///< Stashed Cell information
   };
 
   /**

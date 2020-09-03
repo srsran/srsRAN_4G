@@ -125,7 +125,7 @@ uint32_t phy_ue_db::_get_uci_enb_cc_idx(uint32_t tti, uint16_t rnti) const
 {
   // Find the lowest index available PUSCH grant
   for (const cell_info_t& cell_info : ue_db.at(rnti).cell_info) {
-    if (cell_info.is_grant_available[TTIMOD(tti)]) {
+    if (cell_info.is_grant_available[tti]) {
       return cell_info.enb_cc_idx;
     }
   }
@@ -657,7 +657,7 @@ void phy_ue_db::set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid,
   }
 
   // Save resource allocation
-  ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ] = tb;
+  ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid] = tb;
 }
 
 srslte_ra_tb_t phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid) const
@@ -670,7 +670,7 @@ srslte_ra_tb_t phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uin
   }
 
   // Returns the latest stored UL transmission grant
-  return ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ];
+  return ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid];
 }
 
 void phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list)
@@ -680,7 +680,7 @@ void phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_l
   // Reset all available grants flags for the given TTI
   for (auto& ue : ue_db) {
     for (cell_info_t& cell_info : ue.second.cell_info) {
-      cell_info.is_grant_available[TTIMOD(tti)] = false;
+      cell_info.is_grant_available[tti] = false;
     }
   }
 
@@ -693,7 +693,7 @@ void phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_l
       // Check that eNb Cell/Carrier is active for the given RNTI
       if (_assert_active_enb_cc(rnti, enb_cc_idx) == SRSLTE_SUCCESS) {
         // Rise Grant available flag
-        ue_db[rnti].cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].is_grant_available[TTIMOD(tti)] = true;
+        ue_db[rnti].cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].is_grant_available[tti] = true;
       }
     }
   }
