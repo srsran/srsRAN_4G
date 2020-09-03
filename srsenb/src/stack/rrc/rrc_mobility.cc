@@ -609,10 +609,9 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
       continue;
     }
     meas_ev.meas_cell  = cell_it;
-    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(),
-                                      meas_list_cfg.end(),
-                                      [pci](const meas_cell_cfg_t& c) { return c.pci == pci; })
-                             ->eci;
+    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), [pci](const meas_cell_cfg_t& c) {
+                           return c.pci == pci;
+                         })->eci;
 
     // eNB found the respective cell. eNB takes "HO Decision"
     // NOTE: From now we just choose the strongest.
@@ -1223,10 +1222,11 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     }
 
     srslte::pdcp_lte_state_t drb_state{};
-    drb_state.tx_hfn          = erab_item.dl_coun_tvalue.hfn;
-    drb_state.next_pdcp_tx_sn = erab_item.dl_coun_tvalue.pdcp_sn;
-    drb_state.rx_hfn          = erab_item.ul_coun_tvalue.hfn;
-    drb_state.next_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
+    drb_state.tx_hfn                    = erab_item.dl_coun_tvalue.hfn;
+    drb_state.next_pdcp_tx_sn           = erab_item.dl_coun_tvalue.pdcp_sn;
+    drb_state.rx_hfn                    = erab_item.ul_coun_tvalue.hfn;
+    drb_state.next_pdcp_rx_sn           = erab_item.ul_coun_tvalue.pdcp_sn;
+    drb_state.last_submitted_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
     rrc_log->info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}\n",
                   drb_it->lc_ch_id,
                   drb_state.next_pdcp_tx_sn,
