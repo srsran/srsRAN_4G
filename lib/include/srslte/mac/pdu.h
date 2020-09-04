@@ -211,7 +211,7 @@ public:
   // Get subheader at specified index
   SubH* get(uint32_t idx)
   {
-    if (nof_subheaders > 0 && idx >= 0 && idx < (uint32_t)nof_subheaders) {
+    if (nof_subheaders > 0 && idx < (uint32_t)nof_subheaders) {
       return &subheaders[idx];
     } else {
       return nullptr;
@@ -289,10 +289,10 @@ class subh
 public:
   virtual ~subh() {}
 
-  virtual bool read_subheader(uint8_t** ptr)                = 0;
-  virtual void read_payload(uint8_t** ptr)                  = 0;
-  virtual void write_subheader(uint8_t** ptr, bool is_last) = 0;
-  virtual void write_payload(uint8_t** ptr)                 = 0;
+  virtual bool        read_subheader(uint8_t** ptr)                = 0;
+  virtual void        read_payload(uint8_t** ptr)                  = 0;
+  virtual void        write_subheader(uint8_t** ptr, bool is_last) = 0;
+  virtual void        write_payload(uint8_t** ptr)                 = 0;
   virtual std::string to_string()                                  = 0;
 
   pdu<SubH>* parent = nullptr;
@@ -357,7 +357,7 @@ public:
   void set_padding(uint32_t padding_len);
   void set_type(subh_type type_);
 
-  void init();
+  void        init();
   std::string to_string();
 
   bool set_next_mch_sched_info(uint8_t lcid, uint16_t mtch_stop);
@@ -433,7 +433,7 @@ public:
   void set_temp_crnti(uint16_t temp_rnti);
   void set_sched_grant(uint8_t grant[RAR_GRANT_LEN]);
 
-  void init();
+  void        init();
   std::string to_string();
 
 private:
@@ -453,7 +453,7 @@ public:
   bool    has_backoff();
   uint8_t get_backoff();
 
-  bool write_packet(uint8_t* ptr);
+  bool        write_packet(uint8_t* ptr);
   std::string to_string();
 
 private:
