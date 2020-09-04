@@ -1190,11 +1190,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     state = state_t::cell_reselection;
 
   } else {
-    // 3GPP 36.331 Section 5.3.7.1
-    // If AS security has not been activated, the UE does not initiate the procedure but instead
-    // moves to RRC_IDLE directly
-    Info("Conditions are NOT met\n");
-    rrc_ptr->start_go_idle();
+    Warning("Conditions are NOT met to start ConnectionReestablishment\n");
     return proc_outcome_t::success;
   }
 

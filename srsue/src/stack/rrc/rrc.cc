@@ -561,8 +561,11 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
  *******************************************************************************/
 
 /*
- * This function is called from T310 expiry, RA problem or RLC max retx
- * Pushes a command to the command queue to process the actions in the background
+ * 5.3.11.3 Detection of RLF
+ * The RLF procedure starts:
+ *   - upon T310 expiry;
+ *   - upon random access problem indication from MAC while neither T300, T301, T304 nor T311 is running; or
+ *   - upon indication from RLC that the maximum number of retransmissions has been reached:
  */
 void rrc::radio_link_failure_push_cmd()
 {
@@ -578,11 +581,18 @@ void rrc::radio_link_failure_push_cmd()
 void rrc::radio_link_failure_process()
 {
   // TODO: Generate and store failure report
-  rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
 
   if (state == RRC_STATE_CONNECTED) {
-    start_con_restablishment(reest_cause_e::other_fail);
+    if (security_is_activated) {
+      rrc_log->warning("Detected Radio-Link Failure while SA activated. Starting ConnectionReestablishment...\n");
+      start_con_restablishment(reest_cause_e::other_fail);
+    } else {
+      rrc_log->warning("Detected Radio-Link Failure while SA not activated. Going to IDLE...\n");
+      start_go_idle();
+    }
+  } else {
+    rrc_log->warning("Detected Radio-Link Failure while RRC_IDLE. Ignoring it.\n");
   }
 }
 
@@ -597,13 +607,18 @@ void rrc::release_pucch_srs()
 
 void rrc::ra_problem()
 {
-  rrc_log->warning("MAC indicated RA problem\n");
+  if (not t300.is_running() and not t301.is_running() and not t304.is_running() and not t311.is_running()) {
+    rrc_log->warning("MAC indicated RA problem. Starting RLF\n");
+    radio_link_failure_push_cmd();
+  } else {
+    rrc_log->warning("MAC indicated RA problem but either T300, T301, T304 or T311 is running. Ignoring it.\n");
+  }
 }
 
 void rrc::max_retx_attempted()
 {
   // TODO: Handle the radio link failure
-  rrc_log->warning("Max RLC reTx attempted\n");
+  rrc_log->warning("Max RLC reTx attempted. Starting RLF\n");
   radio_link_failure_push_cmd();
 }
 

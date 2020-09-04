@@ -52,13 +52,32 @@ public:
   void              set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
   void              set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override {}
   void              set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
-  cell_search_ret_t cell_search(phy_cell_t* cell) override { return {}; }
+  cell_search_ret_t cell_search(phy_cell_t* cell) override
+  {
+    *cell           = cell_search_res_cell;
+    cell_select_ret = true;
+    return cell_search_res_ret;
+  }
   bool              cell_is_camping() override { return false; }
   void              set_activation_deactivation_scell(uint32_t cmd) override {}
   bool              cell_select(const phy_cell_t* cell = nullptr) override
   {
     last_selected_cell = *cell;
-    return true;
+    bool ret           = cell_select_ret;
+    if (return_to_true) {
+      cell_select_ret = true;
+    }
+    return ret;
+  }
+  void set_cell_select_ret(bool cell_select_ret_, bool return_to_true_)
+  {
+    cell_select_ret = cell_select_ret_;
+    return_to_true  = return_to_true_;
+  }
+  void set_cell_search_result(phy_cell_t cell, cell_search_ret_t ret)
+  {
+    cell_search_res_cell = cell;
+    cell_search_res_ret  = ret;
   }
   void reset() override {}
   void enable_pregen_signals(bool enable) override {}
@@ -108,6 +127,10 @@ private:
   std::map<uint32_t, std::set<uint32_t> > cells_started;
   uint32_t                                serving_pci    = 0;
   uint32_t                                serving_earfcn = 0;
+  bool                                    cell_select_ret      = true;
+  bool                                    return_to_true       = true;
+  cell_search_ret_t                       cell_search_res_ret  = {};
+  phy_cell_t                              cell_search_res_cell = {};
 };
 
 class nas_test : public srsue::nas
@@ -181,7 +204,15 @@ public:
     nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
     pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
   };
-  void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
+  void init()
+  {
+    rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {});
+    phy_interface_rrc_lte::phy_cell_t        cell_search_cell = {};
+    phy_interface_rrc_lte::cell_search_ret_t cell_search_ret  = {};
+    cell_search_ret.found     = srsue::phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    cell_search_ret.last_freq = srsue::phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
+    phytest.set_cell_search_result(cell_search_cell, cell_search_ret);
+  }
 
   void run_tti(uint32_t tti_)
   {
@@ -318,11 +349,6 @@ int cell_select_test()
     TESTASSERT(rrctest.phytest.last_selected_cell.pci == 2);
     TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
     TESTASSERT(rrctest.has_neighbour_cell(1, 1));
-
-    // PHY reports back the result
-    rrctest.cell_select_completed(true);
-    TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
-    TESTASSERT(rrctest.has_neighbour_cell(1, 1));
     // Note: cell selection procedure is not done yet at this point.
   }
 
@@ -337,21 +363,37 @@ int cell_select_test()
 
     rrctest.add_neighbour_cell(1, 1, 2.0);
     rrctest.add_neighbour_cell(2, 2, 1.0);
+    rrctest.add_neighbour_cell(3, 2, 1.0);
     rrctest.set_serving_cell(1, 1);
     TESTASSERT(not rrctest.has_neighbour_cell(1, 1));
     TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(rrctest.has_neighbour_cell(2, 3));
 
     // Start cell selection procedure. The RRC will start with strongest cell
     TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    rrctest.phytest.set_cell_select_ret(false, true); // failed to set serving cell
     stack.run_pending_tasks();
-    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 1);
-    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 1);
-    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
-    TESTASSERT(!rrctest.has_neighbour_cell(1, 1)); // selected current serving cell bc it is stronger
+    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 2);
+    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 2);
+    TESTASSERT(rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(rrctest.has_neighbour_cell(2, 3));
+    TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
+    rrctest.in_sync();
+    stack.run_pending_tasks();
 
-    rrctest.cell_select_completed(false); // failed to set serving cell
-    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
-    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+    // Cell Selection fails, make sure it goes to Cell Search
+    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    phy_interface_rrc_lte::phy_cell_t        cell_search_cell = {};
+    phy_interface_rrc_lte::cell_search_ret_t cell_search_ret  = {};
+    cell_search_cell.pci                                      = 5;
+    cell_search_cell.earfcn                                   = 5;
+    cell_search_ret.found = srsue::phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND;
+    rrctest.phytest.set_cell_search_result(cell_search_cell, cell_search_ret);
+    rrctest.phytest.set_cell_select_ret(false, false); // failed to set serving cell
+    stack.run_pending_tasks();
+    rrctest.in_sync();
+    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 5);
+    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 5);
   }
 
   return SRSLTE_SUCCESS;
