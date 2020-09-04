@@ -90,17 +90,16 @@ bool rrc::rrc_meas::parse_meas_config(const rrc_conn_recfg_r8_ies_s* mob_reconf_
   bool                        ret = true;
   if (mob_reconf_r8->meas_cfg_present) {
     ret = meas_cfg.parse_meas_config(&mob_reconf_r8->meas_cfg, is_ho_reest, src_earfcn);
-  } else {
-    cell_t* serv_cell = rrc_ptr->get_serving_cell();
-    if (serv_cell != nullptr) {
-      // Run 5.5.6.1 if we don't receive Measurement configuration
-      meas_cfg.ho_reest_finish(src_earfcn, serv_cell->get_earfcn());
-    } else {
-      log_h->warning("MEAS:  Could not call ho_reest_finish because serving_cell is null\n");
-    }
+    update_phy();
   }
-  update_phy();
   return ret;
+}
+
+// Section 5.5.6.1 Actions upon handover and re-establishment
+void rrc::rrc_meas::ho_reest_actions(const uint32_t src_earfcn, const uint32_t dst_earfcn)
+{
+  meas_cfg.ho_reest_finish(src_earfcn, dst_earfcn);
+  update_phy();
 }
 
 void rrc::rrc_meas::run_tti()

@@ -2310,6 +2310,9 @@ void rrc::handle_con_reest(const rrc_conn_reest_s& reest)
   // Resume SRB1
   rlc->resume_bearer(1);
 
+  // perform the measurement related actions as specified in 5.5.6.1;
+  measurements->ho_reest_actions(get_serving_cell()->get_earfcn(), get_serving_cell()->get_earfcn());
+
   // Send ConnectionSetupComplete message
   send_con_restablish_complete();
 

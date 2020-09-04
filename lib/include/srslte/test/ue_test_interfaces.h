@@ -74,6 +74,7 @@ class phy_dummy_interface : public phy_interface_rrc_lte
   void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) {}
   void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) {}
   void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) {}
+  void set_activation_deactivation_scell(uint32_t cmd) {}
 
   /* Measurements interface */
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) {}

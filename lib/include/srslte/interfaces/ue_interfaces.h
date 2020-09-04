@@ -589,6 +589,8 @@ public:
   virtual void set_config_mbsfn_sib13(const srslte::sib13_t& sib13)                       = 0;
   virtual void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)                      = 0;
 
+  virtual void set_activation_deactivation_scell(uint32_t cmd) = 0;
+
   /* Measurements interface */
   virtual void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) = 0;
   virtual void meas_stop()                                                       = 0;

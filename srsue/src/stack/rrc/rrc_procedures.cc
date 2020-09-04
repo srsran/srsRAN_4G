@@ -1382,7 +1382,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->mac->get_rntis(&uernti);
   ho_src_rnti = uernti.crnti;
 
-  // Section 5.3.5.4
+  // Section 5.3.5.4. The implementation of the procedure follows in function step()
   rrc_ptr->t310.stop();
   rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
   rrc_ptr->t304.run();
@@ -1480,6 +1480,12 @@ srslte::proc_outcome_t rrc::ho_proc::step()
     rrc_ptr->mac->reset();
     rrc_ptr->phy->reset();
 
+    // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
+    rrc_ptr->phy->set_activation_deactivation_scell(0);
+
+    // Todo: perform radio configuration when fullConfig is enabled
+
+    // apply the value of the newUE-Identity as the C-RNTI;
     rrc_ptr->mac->set_ho_rnti(recfg_r8.mob_ctrl_info.new_ue_id.to_number(), recfg_r8.mob_ctrl_info.target_pci);
 
     // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
@@ -1492,6 +1498,15 @@ srslte::proc_outcome_t rrc::ho_proc::step()
 
     cell_t* target_cell =
         rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+
+    // if the RRCConnectionReconfiguration message includes the measConfig:
+    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
+      Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
+      return proc_outcome_t::error;
+    }
+
+    // perform the measurement related actions as specified in 5.5.6.1;
+    rrc_ptr->measurements->ho_reest_actions(ho_src_cell.get_earfcn(), rrc_ptr->get_serving_cell()->get_earfcn());
 
     Info("Starting cell selection of target cell %s\n", target_cell->to_string().c_str());
 
@@ -1522,11 +1537,6 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
     rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
-
-    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
-      Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
-      ho_successful = false;
-    }
   }
 
   return ho_successful ? proc_outcome_t::success : proc_outcome_t::error;
