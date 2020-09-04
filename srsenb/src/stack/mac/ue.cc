@@ -156,12 +156,32 @@ void ue::start_pcap(srslte::mac_pcap* pcap_)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti)
 {
+  if ((size_t)ue_cc_idx >= softbuffer_rx.size()) {
+    ERROR("UE CC Index (%d/%zd) out-of-range\n", ue_cc_idx, softbuffer_rx.size());
+    return nullptr;
+  }
+
+  if ((size_t)nof_rx_harq_proc > softbuffer_rx.at(ue_cc_idx).size()) {
+    ERROR("HARQ process index (%d/%zd) out-of-range\n", nof_rx_harq_proc, softbuffer_rx.at(ue_cc_idx).size());
+    return nullptr;
+  }
+
   return &softbuffer_rx.at(ue_cc_idx).at(tti % nof_rx_harq_proc);
 }
 
 srslte_softbuffer_tx_t*
 ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
 {
+  if ((size_t)ue_cc_idx >= softbuffer_tx.size()) {
+    ERROR("UE CC Index (%d/%zd) out-of-range\n", ue_cc_idx, softbuffer_tx.size());
+    return nullptr;
+  }
+
+  if ((size_t)nof_tx_harq_proc > softbuffer_tx.at(ue_cc_idx).size()) {
+    ERROR("HARQ process index (%d/%zd) out-of-range\n", harq_process, softbuffer_tx.at(ue_cc_idx).size());
+    return nullptr;
+  }
+
   return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 

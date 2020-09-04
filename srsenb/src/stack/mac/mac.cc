@@ -576,6 +576,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
       // Copy data grants
       for (uint32_t i = 0; i < sched_result.nof_data_elems; i++) {
+        uint32_t tb_count = 0;
 
         // Get UE
         uint16_t rnti = sched_result.data[i].dci.rnti;
@@ -587,6 +588,11 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
           for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
             dl_sched_res->pdsch[n].softbuffer_tx[tb] =
                 ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.ue_cc_idx, sched_result.data[i].dci.pid, tb);
+
+            // If the Rx soft-buffer is not given, abort transmission
+            if (dl_sched_res->pdsch[n].softbuffer_tx[tb] == nullptr) {
+              continue;
+            }
 
             if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
               /* Get PDU if it's a new transmission */
@@ -605,13 +611,18 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
                 pcap->write_dl_crnti(
                     dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
               }
-
             } else {
               /* TB not enabled OR no data to send: set pointers to NULL  */
               dl_sched_res->pdsch[n].data[tb] = nullptr;
             }
+
+            tb_count++;
           }
-          n++;
+
+          // Count transmission if at least one TB has succesfully added
+          if (tb_count > 0) {
+            n++;
+          }
         } else {
           Warning("Invalid DL scheduling result. User 0x%x does not exist\n", rnti);
         }
@@ -868,6 +879,12 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
             phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
             phy_ul_sched_res->pusch[n].softbuffer_rx =
                 ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
+
+            // If the Rx soft-buffer is not given, abort reception
+            if (phy_ul_sched_res->pusch[n].softbuffer_rx == nullptr) {
+              continue;
+            }
+
             if (sched_result.pusch[n].current_tx_nb == 0) {
               srslte_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
             }
