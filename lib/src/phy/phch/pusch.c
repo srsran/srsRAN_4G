@@ -342,14 +342,17 @@ static srslte_sequence_t* get_user_sequence(srslte_pusch_t* q, uint16_t rnti, ui
 
 int srslte_pusch_assert_grant(const srslte_pusch_grant_t* grant)
 {
+  // Check for valid number of PRB
   if (!srslte_dft_precoding_valid_prb(grant->L_prb)) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (grant->tb.rv < 0 || grant->tb.rv > 3) {
+  // Check RV limits, -1 is for RAR, 0-3 normal HARQ
+  if (grant->tb.rv < -1 || grant->tb.rv > 3) {
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
+  // Check for positive TBS
   if (grant->tb.tbs < 0) {
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
