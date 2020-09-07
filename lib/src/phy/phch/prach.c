@@ -603,18 +603,24 @@ bool srslte_prach_have_stored(int current_idx, uint32_t* indices, uint32_t n_ind
   return false;
 }
 // set the offset based on the time domain time offset estimation
-float srslte_prach_set_offset(srslte_prach_t* p, int n_win) {
+float srslte_prach_get_offset_secs(srslte_prach_t* p, int n_win)
+{
+  // takes the offset in samples and converts to time in seconds
   return (float)p->peak_offsets[n_win] / (float)(DELTA_F_RA * p->N_zc);
 }
 
 // calculates the timing offset of the incoming PRACH by calculating the phase in frequency - alternative to time domain
 // approach
-int srslte_prach_calculate_time_offset(srslte_prach_t* p, cf_t* cross)
+float srslte_prach_calculate_time_offset_secs(srslte_prach_t* p, cf_t* cross)
 {
+  // calculate the phase of the cross correlation
   float freq_domain_phase = cargf(srslte_vec_acc_cc(cross, p->N_zc));
   float ratio             = (float)(p->N_ifft_ul * DELTA_F) / (float)(MAX_N_zc * DELTA_F_RA);
-  int   time_offset       = round((ratio * freq_domain_phase * p->N_zc) / (2 * M_PI));
-  return time_offset;
+  // converting from phase to number of samples
+  float num_samples = roundf((ratio * freq_domain_phase * p->N_zc) / (2 * M_PI));
+
+  // converting to time in seconds
+  return num_samples / ((float)p->N_ifft_ul * DELTA_F);
 }
 // calculates the aggregate phase offset of the incomming PRACH signal so it can be applied to the reference signal
 // before it is subtracted from the input
@@ -707,10 +713,10 @@ int srslte_prach_process(srslte_prach_t*             p,
             peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
           }
           if (t_offsets) {
-            t_offsets[*n_indices] =
-                (p->freq_domain_offset_calc)
-                    ? (((float)srslte_prach_calculate_time_offset(p, p->cross)) / ((float)p->N_ifft_ul * DELTA_F))
-                    : (srslte_prach_set_offset(p, j));
+            // saves the PRACH offset in seconds to t_offsets, time domain or freq domain base calc
+            t_offsets[*n_indices] = (p->freq_domain_offset_calc)
+                                        ? (srslte_prach_calculate_time_offset_secs(p, p->cross))
+                                        : (srslte_prach_get_offset_secs(p, j));
           }
           (*n_indices)++;
         }
