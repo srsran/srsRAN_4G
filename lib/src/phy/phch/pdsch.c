@@ -966,6 +966,11 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
       }
     }
 
+    if (cfg->grant.nof_layers == 0 || cfg->grant.nof_layers > SRSLTE_MAX_LAYERS) {
+      ERROR("PDSCH Number of layers (%d) is out-of-bounds\n", cfg->grant.nof_layers);
+      return SRSLTE_ERROR_OUT_OF_BOUNDS;
+    }
+
     // Prepare layers
     int nof_symbols[SRSLTE_MAX_CODEWORDS];
     nof_symbols[0] = cfg->grant.nof_re * nof_tb / cfg->grant.nof_layers;
