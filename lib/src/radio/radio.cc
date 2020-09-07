@@ -644,13 +644,14 @@ void radio::set_rx_gain_th(const float& gain)
 
 void radio::set_rx_srate(const double& srate)
 {
-  std::unique_lock<std::mutex> lock(rx_mutex);
 
   if (!is_initialized) {
     return;
   }
   // If fix sampling rate...
   if (std::isnormal(fix_srate_hz)) {
+    std::unique_lock<std::mutex> lock(rx_mutex);
+
     // If the sampling rate was not set, set it
     if (not std::isnormal(cur_rx_srate)) {
       for (srslte_rf_t& rf_device : rf_devices) {
