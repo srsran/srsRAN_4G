@@ -108,11 +108,6 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
       deadline_ms = static_cast<uint32_t>(
           (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
       break;
-    case UE_RESPONSE_RX_TIMEOUT:
-      // Arbitrarily chosen value to complete each UE config step, i.e. security, bearer setup, etc.
-      deadline_s  = 1;
-      deadline_ms = 0;
-      break;
     case UE_INACTIVITY_TIMEOUT:
       deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
       deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
@@ -247,7 +242,7 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
 
-  set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);
+  set_activity_timeout(UE_INACTIVITY_TIMEOUT);
 }
 
 void rrc::ue::send_connection_setup()
@@ -371,7 +366,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
       old_reest_rnti = old_rnti;
       state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
-      set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);
+      set_activity_timeout(UE_INACTIVITY_TIMEOUT);
     } else {
       parent->rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
       send_connection_reest_rej();

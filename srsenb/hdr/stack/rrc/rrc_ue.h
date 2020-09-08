@@ -38,7 +38,6 @@ public:
 
   typedef enum {
     MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_RESPONSE_RX_TIMEOUT, ///< General purpose timeout for responses to eNB requests
     UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout
     nulltype
   } activity_timeout_type_t;
