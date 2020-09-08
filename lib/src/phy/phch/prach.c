@@ -401,7 +401,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
       return -1;
     }
 
-    uint32_t preamble_format = srslte_prach_get_preamble_format(cfg->config_idx);
+    uint32_t preamble_format   = srslte_prach_get_preamble_format(cfg->config_idx);
     p->config_idx              = cfg->config_idx;
     p->f                       = preamble_format;
     p->rsi                     = cfg->root_seq_idx;
@@ -503,7 +503,9 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
 
     if (p->successive_cancellation) {
       for (int i = 0; i < 64; i++) {
-        p->td_signals[i]  = srslte_vec_malloc(sizeof(cf_t) * (p->N_seq + p->N_cp));
+        if (!p->td_signals[i]) {
+          p->td_signals[i] = srslte_vec_malloc(sizeof(cf_t) * (p->N_seq + p->N_cp));
+        }
       }
     }
     ret = SRSLTE_SUCCESS;
@@ -551,7 +553,7 @@ int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset
       signal[p->N_cp + i] = p->ifft_out[i % p->N_ifft_prach];
     }
     if (p->td_signals[seq_index]) {
-      memcpy(p->td_signals[seq_index], signal, (p->N_seq + p->N_cp)*sizeof(cf_t));
+      memcpy(p->td_signals[seq_index], signal, (p->N_seq + p->N_cp) * sizeof(cf_t));
     }
     ret = SRSLTE_SUCCESS;
   }
@@ -595,7 +597,7 @@ void srslte_prach_cancellation(srslte_prach_t* p)
 // again in the detected prachs array
 bool srslte_prach_have_stored(int current_idx, uint32_t* indices, uint32_t n_indices)
 {
-  for(int i = 0; i < n_indices; i++) {
+  for (int i = 0; i < n_indices; i++) {
     if (indices[i] == current_idx) {
       return true;
     }
@@ -633,15 +635,15 @@ void srslte_prach_calculate_correction_array(srslte_prach_t* p, cf_t* corr_freq)
 }
 
 // This function carries out the main processing on the incomming PRACH signal
-int srslte_prach_process(srslte_prach_t*             p,
-                         cf_t*                       signal,
-                         uint32_t*                   indices,
-                         float*                      t_offsets,
-                         float*                      peak_to_avg,
-                         uint32_t*                   n_indices,
-                         int                         cancellation_idx,
-                         uint32_t                    begin,
-                         uint32_t                    sig_len)
+int srslte_prach_process(srslte_prach_t* p,
+                         cf_t*           signal,
+                         uint32_t*       indices,
+                         float*          t_offsets,
+                         float*          peak_to_avg,
+                         uint32_t*       n_indices,
+                         int             cancellation_idx,
+                         uint32_t        begin,
+                         uint32_t        sig_len)
 {
   float max_to_cancel = 0;
   cancellation_idx    = -1;
@@ -748,7 +750,7 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
       ERROR("srslte_prach_detect: Signal length is %d and should be %d\n", sig_len, p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
-    int cancellation_idx =  -2;
+    int cancellation_idx = -2;
     bzero(&p->prach_cancel, sizeof(srslte_prach_cancellation_t));
 
     // FFT incoming signal
@@ -786,12 +788,18 @@ int srslte_prach_free(srslte_prach_t* p)
   srslte_dft_plan_free(&p->ifft);
   free(p->ifft_in);
   free(p->ifft_out);
+  free(p->cross);
+  free(p->corr_freq);
   srslte_dft_plan_free(&p->fft);
   srslte_dft_plan_free(&p->zc_fft);
   srslte_dft_plan_free(&p->zc_ifft);
 
   if (p->signal_fft) {
     free(p->signal_fft);
+  }
+
+  for (unsigned int i = 0; i < 64; i++) {
+    free(p->td_signals[i]);
   }
 
   bzero(p, sizeof(srslte_prach_t));
