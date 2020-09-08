@@ -215,6 +215,8 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   mac_msg_ul.init_rx(nof_bytes, true);
   mac_msg_ul.parse_packet(pdu);
 
+  Info("0x%x %s\n", rnti, mac_msg_ul.to_string().c_str());
+
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
   }
@@ -227,14 +229,6 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   while (mac_msg_ul.next()) {
     assert(mac_msg_ul.get());
     if (mac_msg_ul.get()->is_sdu()) {
-      // Route logical channel
-      log_h->debug_hex(mac_msg_ul.get()->get_sdu_ptr(),
-                       mac_msg_ul.get()->get_payload_size(),
-                       "PDU:   rnti=0x%x, lcid=%d, %d bytes\n",
-                       rnti,
-                       mac_msg_ul.get()->get_sdu_lcid(),
-                       mac_msg_ul.get()->get_payload_size());
-
       /* In some cases, an uplink transmission with only CQI has all zeros and gets routed to RRC
        * Compute the checksum if lcid=0 and avoid routing in that case
        */
@@ -247,7 +241,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
         }
         if (sum == 0) {
           route_pdu = false;
-          Warning("Received all zero PDU\n");
+          Debug("Received all zero PDU\n");
         }
       }
 
@@ -341,13 +335,11 @@ bool ue::process_ce(srslte::sch_subh* subh)
   switch (subh->ul_sch_ce_type()) {
     case srslte::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();
-      Info("CE:    Received PHR from rnti=0x%x, value=%.0f\n", rnti, phr);
       sched->ul_phr(rnti, (int)phr);
       metrics_phr(phr);
       break;
     case srslte::ul_sch_lcid::CRNTI:
       old_rnti = subh->get_c_rnti();
-      Info("CE:    Received C-RNTI from temp_rnti=0x%x, rnti=0x%x\n", rnti, old_rnti);
       if (sched->ue_exists(old_rnti)) {
         rrc->upd_user(rnti, old_rnti);
         rnti = old_rnti;
@@ -364,12 +356,6 @@ bool ue::process_ce(srslte::sch_subh* subh)
       }
       // Indicate BSR to scheduler
       sched->ul_bsr(rnti, idx, buff_size_bytes[idx]);
-      Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d (%d B)\n",
-           subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
-           rnti,
-           idx,
-           buff_size_idx[idx],
-           buff_size_bytes[idx]);
       is_bsr = true;
       break;
     case srslte::ul_sch_lcid::LONG_BSR:
@@ -378,15 +364,8 @@ bool ue::process_ce(srslte::sch_subh* subh)
         sched->ul_bsr(rnti, idx, buff_size_bytes[idx]);
       }
       is_bsr = true;
-      Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
-           rnti,
-           buff_size_idx[0],
-           buff_size_idx[1],
-           buff_size_idx[2],
-           buff_size_idx[3]);
       break;
     case srslte::ul_sch_lcid::PADDING:
-      Debug("CE:    Received padding for rnti=0x%x\n", rnti);
       break;
     default:
       Error("CE:    Invalid lcid=0x%x\n", (int)subh->ul_sch_ce_type());
@@ -431,9 +410,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
       if (pdu->new_subh()) {
         uint32_t ta_cmd = 31;
         pending_ta_commands.try_pop(&ta_cmd);
-        if (pdu->get()->set_ta_cmd(ta_cmd)) {
-          Info("CE:    Added TA CMD=%d\n", ta_cmd);
-        } else {
+        if (!pdu->get()->set_ta_cmd(ta_cmd)) {
           Error("CE:    Setting TA CMD CE\n");
         }
       } else {
@@ -442,9 +419,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
       break;
     case srslte::dl_sch_lcid::CON_RES_ID:
       if (pdu->new_subh()) {
-        if (pdu->get()->set_con_res_id(conres_id)) {
-          Info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
-        } else {
+        if (!pdu->get()->set_con_res_id(conres_id)) {
           Error("CE:    Setting Contention Resolution ID CE\n");
         }
       } else {
@@ -468,7 +443,6 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
         }
         if (enb_cc_idx == enb_ue_cc_map.size() and pdu->get()->set_scell_activation_cmd(active_scell_list)) {
           phy->set_activation_deactivation_scell(rnti, active_scell_list);
-          Info("CE:    Added SCell Activation CE.\n");
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           allocate_cc_buffers(active_scell_list.size() - 1);
         } else {
@@ -505,6 +479,7 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
         }
       }
       ret = mac_msg_dl.write_packet(log_h);
+      Info("0x%x %s\n", rnti, mac_msg_dl.to_string().c_str());
     } else {
       log_h->error(
           "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d\n", ue_cc_idx, harq_pid, tb_idx);
