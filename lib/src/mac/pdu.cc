@@ -899,7 +899,7 @@ std::string sch_subh::to_string()
     if (parent->is_ul()) {
       switch ((ul_sch_lcid)lcid) {
         case ul_sch_lcid::CRNTI:
-          ss << "CRNTI:";
+          ss << "CRNTI: rnti=0x" << std::hex << get_c_rnti() << std::dec;
           break;
         case ul_sch_lcid::PHR_REPORT:
           ss << "PHR: ph=" << get_phr();
@@ -931,10 +931,14 @@ std::string sch_subh::to_string()
     } else {
       switch ((dl_sch_lcid)lcid) {
         case dl_sch_lcid::CON_RES_ID:
-          ss << "CON_RES: id=" << get_con_res_id();
+          ss << "CON_RES: id=0x" << std::hex << get_con_res_id() << std::dec;
           break;
         case dl_sch_lcid::TA_CMD:
           ss << "TA: ta=" << get_ta_cmd();
+          break;
+        case dl_sch_lcid::SCELL_ACTIVATION_4_OCTET:
+        case dl_sch_lcid::SCELL_ACTIVATION:
+          ss << "SCELL_ACT";
           break;
         case dl_sch_lcid::DRX_CMD:
           ss << "DRX";
