@@ -124,7 +124,7 @@ struct rlc_um_nr_config_t {
   int32_t             t_reassembly_ms; // Timer used by rx to detect PDU loss (ms)
 };
 
-#define RLC_TX_QUEUE_LEN (128)
+#define RLC_TX_QUEUE_LEN (256)
 
 enum class srslte_rat_t { lte, nr, nulltype };
 inline std::string to_string(const srslte_rat_t& type)
