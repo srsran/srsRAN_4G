@@ -191,7 +191,8 @@ enable = false
 #
 # -- AWGN Generator
 # awgn.enable:       Enable/disable AWGN generator
-# awgn.n0:           Noise power in dBfs
+# awgn.snr:          SNR in dB
+# awgn.signal_power: Received signal power in decibels full scale (dBfs)
 #
 # -- Fading emulator
 # fading.enable:     Enable/disable fading simulator
@@ -221,7 +222,7 @@ enable = false
 
 [channel.dl.awgn]
 #enable        = false
-#n0            = -30
+#snr           = 30
 
 [channel.dl.fading]
 #enable        = false
