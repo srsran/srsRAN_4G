@@ -23,7 +23,10 @@
 
 namespace srsue {
 
-#define MIN_IN_SYNC_POWER (-120.0)
+#define SUITABLE_CELL_RS_EPRE (-97.0)      // Threshold for cell-search and cell-select
+#define NON_SUITABLE_CELL_RS_EPRE (-115.0) // Threshold until sync can be maintained
+#define NON_SUITABLE_OFF_CELL_RS_EPRE (-145.0)
+#define SUITABLE_NEIGHBOR_INTRAFREQ_RS_EPRE (-91)
 #define DEFAULT_RSRQ (-3.0)
 
 lte_ttcn3_phy::lte_ttcn3_phy(srslte::logger* logger_) : logger(logger_) {}
@@ -38,7 +41,6 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
 
 int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_)
 {
-
   return init(args_);
 }
 
@@ -86,7 +88,11 @@ void lte_ttcn3_phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint3
 // Measurements interface
 void lte_ttcn3_phy::meas_stop(){};
 
-/* Cell search and selection procedures */
+// Cell search and selection procedures
+// Note that in contrast to a real PHY, we have visibility of all existing cells
+// configured by the SS, including the ones that we should not even detect because
+// their power is too weak. The cell search should only report the cells that
+// are actually visible though.
 phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -97,12 +103,18 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
   ret.found             = cell_search_ret_t::CELL_NOT_FOUND;
 
   if (not cells.empty() && cell_idx < cells.size()) {
-    log.info("Found Cell: EARFCN=%d CellId=%d\n", cells[cell_idx].earfcn, cells[cell_idx].info.id);
-    if (found_cell) {
-      found_cell->earfcn = cells[cell_idx].earfcn;
-      found_cell->pci    = cells[cell_idx].info.id;
+    // only find suitable cells
+    if (cells[cell_idx].power >= SUITABLE_CELL_RS_EPRE) {
+      log.info("Found Cell: EARFCN=%d CellId=%d power=%.2f\n",
+               cells[cell_idx].earfcn,
+               cells[cell_idx].info.id,
+               cells[cell_idx].power);
+      if (found_cell) {
+        found_cell->earfcn = cells[cell_idx].earfcn;
+        found_cell->pci    = cells[cell_idx].info.id;
+      }
+      ret.found = cell_search_ret_t::CELL_FOUND;
     }
-    ret.found = cell_search_ret_t::CELL_FOUND;
 
     // advance index
     cell_idx++;
@@ -127,14 +139,14 @@ bool lte_ttcn3_phy::cell_select(const phy_cell_t* rrc_cell)
   // try to find RRC cell in current cell map
   for (auto& cell : cells) {
     if (cell.info.id == rrc_cell->pci) {
-      if (cell.power >= MIN_IN_SYNC_POWER) {
+      if (cell.power >= SUITABLE_CELL_RS_EPRE) {
         pcell     = cell;
         pcell_set = true;
         syssim->select_cell(pcell.info);
         log.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.\n", cell.power, rrc_cell->pci, rrc_cell->earfcn);
       } else {
         pcell_set = false;
-        log.error("Power of selected cell too low (%.2f < %.2f)\n", cell.power, MIN_IN_SYNC_POWER);
+        log.error("Power of selected cell too low (%.2f < %.2f)\n", cell.power, SUITABLE_CELL_RS_EPRE);
       }
 
       return pcell_set;
@@ -149,7 +161,7 @@ bool lte_ttcn3_phy::cell_is_camping()
 {
   if (pcell_set) {
     log.info("pcell.power=%2.f\n", pcell.power);
-    return (pcell.power >= MIN_IN_SYNC_POWER);
+    return (pcell.power >= SUITABLE_CELL_RS_EPRE);
   }
   return false;
 };
@@ -208,7 +220,7 @@ int lte_ttcn3_phy::sr_last_tx_tti()
 /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
 void lte_ttcn3_phy::set_crnti(uint16_t rnti)
 {
-  log.info("Set Temp-RNTI=%d\n", rnti);
+  log.debug("Set Temp-RNTI=%d, pregen not used\n", rnti);
 }
 
 /* Time advance commands */
@@ -327,22 +339,24 @@ void lte_ttcn3_phy::radio_failure()
 // Calling function set_tti() is holding mutex
 void lte_ttcn3_phy::run_tti()
 {
-  // send report for each cell
+  // send report for all cell stronger than non-suitable cell RS
   std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas;
   for (auto& cell : cells) {
-    rrc_interface_phy_lte::phy_meas_t m = {};
-    m.pci                               = cell.info.id;
-    m.earfcn                            = cell.earfcn;
-    m.rsrp                              = cell.power;
-    m.rsrq                              = DEFAULT_RSRQ;
+    if (cell.power >= NON_SUITABLE_CELL_RS_EPRE) {
+      rrc_interface_phy_lte::phy_meas_t m = {};
+      m.pci                               = cell.info.id;
+      m.earfcn                            = cell.earfcn;
+      m.rsrp                              = cell.power;
+      m.rsrq                              = DEFAULT_RSRQ;
 
-    // Measurement for PCell needs to have EARFCN set to 0
-    if (pcell_set && m.earfcn == pcell.earfcn) {
-      m.earfcn = 0;
+      // Measurement for PCell needs to have EARFCN set to 0
+      if (pcell_set && m.earfcn == pcell.earfcn && m.pci == pcell.info.id) {
+        m.earfcn = 0;
+      }
+
+      log.debug("Create cell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
+      phy_meas.push_back(m);
     }
-
-    log.debug("Create cell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
-    phy_meas.push_back(m);
   }
 
   if (not phy_meas.empty()) {
@@ -353,7 +367,8 @@ void lte_ttcn3_phy::run_tti()
   if (pcell_set) {
     for (auto& cell : cells) {
       if (cell.info.id == pcell.info.id) {
-        if (cell.power >= MIN_IN_SYNC_POWER) {
+        // consider Pcell in-sync until reaching threshold
+        if (cell.power >= NON_SUITABLE_CELL_RS_EPRE) {
           log.debug("PCell id=%d power=%.2f -> sync\n", pcell.info.id, cell.power);
           stack->in_sync();
         } else {
