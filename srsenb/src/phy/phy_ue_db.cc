@@ -435,7 +435,7 @@ void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_
   common_ue& ue        = ue_db[dci.rnti];
   uint32_t   ue_cc_idx = _get_ue_cc_idx(dci.rnti, enb_cc_idx);
 
-  srslte_pdsch_ack_cc_t& pdsch_ack_cc = ue.pdsch_ack[TTIMOD(tti)].cc[ue_cc_idx];
+  srslte_pdsch_ack_cc_t& pdsch_ack_cc = ue.pdsch_ack[tti].cc[ue_cc_idx];
   pdsch_ack_cc.M                      = 1; ///< Hardcoded for FDD
 
   // Fill PDSCH ACK information
@@ -540,7 +540,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   // Get pending ACKs from PDSCH
   srslte_dl_sf_cfg_t dl_sf_cfg  = {};
   dl_sf_cfg.tti                 = tti;
-  srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[TTIMOD(tti)];
+  srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[tti];
   pdsch_ack.is_pusch_available  = is_pusch_available;
   srslte_enb_dl_gen_ack(&pcell, &dl_sf_cfg, &pdsch_ack, &uci_cfg);
   uci_required |= (srslte_uci_cfg_total_ack(&uci_cfg) > 0);
@@ -576,7 +576,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   common_ue& ue = ue_db.at(rnti);
 
   // Get ACK info
-  srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[TTIMOD(tti)];
+  srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[tti];
   srslte_enb_dl_get_ack(&cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell, &uci_cfg, &uci_value, &pdsch_ack);
 
   // Iterate over the ACK information

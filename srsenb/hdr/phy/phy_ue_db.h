@@ -25,7 +25,7 @@
 #include "phy_interfaces.h"
 #include <map>
 #include <mutex>
-#include <srslte/common/circular_array.h>
+#include <srslte/adt/circular_array.h>
 #include <srslte/interfaces/enb_interfaces.h>
 #include <srslte/srslte.h>
 

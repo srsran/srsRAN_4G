@@ -109,13 +109,13 @@ void phy_common::clear_grants(uint16_t rnti)
 const stack_interface_phy_lte::ul_sched_list_t& phy_common::get_ul_grants(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(grant_mutex);
-  return ul_grants[tti % TTIMOD_SZ];
+  return ul_grants[tti];
 }
 
 void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_grant_list)
 {
   std::lock_guard<std::mutex> lock(grant_mutex);
-  ul_grants[tti % TTIMOD_SZ] = ul_grant_list;
+  ul_grants[tti] = ul_grant_list;
 }
 
 /* The transmission of UL subframes must be in sequence. The correct sequence is guaranteed by a chain of N semaphores,

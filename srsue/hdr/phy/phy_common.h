@@ -23,6 +23,7 @@
 #define SRSUE_PHCH_COMMON_H
 
 #include "phy_metrics.h"
+#include "srslte/adt/circular_array.h"
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
 #include "srslte/common/tti_sempahore.h"
@@ -204,34 +205,34 @@ private:
     srslte_phich_grant_t phich_grant;
     srslte_dci_ul_t      dci_ul;
   } pending_ul_ack_t;
-  pending_ul_ack_t pending_ul_ack[TTIMOD_SZ][SRSLTE_MAX_CARRIERS][2] = {};
-  std::mutex       pending_ul_ack_mutex;
+  srslte::circular_array<pending_ul_ack_t, TTIMOD_SZ> pending_ul_ack[SRSLTE_MAX_CARRIERS][2] = {};
+  std::mutex                                          pending_ul_ack_mutex;
 
   typedef struct {
     bool            hi_value;
     bool            hi_present;
     srslte_dci_ul_t dci_ul;
   } received_ul_ack_t;
-  received_ul_ack_t received_ul_ack[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
-  std::mutex        received_ul_ack_mutex;
+  srslte::circular_array<received_ul_ack_t, TTIMOD_SZ> received_ul_ack[SRSLTE_MAX_CARRIERS] = {};
+  std::mutex                                           received_ul_ack_mutex;
 
   typedef struct {
     bool            enable;
     uint32_t        pid;
     srslte_dci_ul_t dci;
   } pending_ul_grant_t;
-  pending_ul_grant_t pending_ul_grant[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
-  mutable std::mutex pending_ul_grant_mutex;
+  srslte::circular_array<pending_ul_grant_t, TTIMOD_SZ> pending_ul_grant[SRSLTE_MAX_CARRIERS] = {};
+  mutable std::mutex                                    pending_ul_grant_mutex;
 
   typedef struct {
     bool                        enable;
     uint8_t                     value[SRSLTE_MAX_CODEWORDS]; // 0/1 or 2 for DTX
     srslte_pdsch_ack_resource_t resource;
   } received_ack_t;
-  received_ack_t pending_dl_ack[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
-  uint32_t       pending_dl_dai[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
-  std::mutex     pending_dl_ack_mutex;
-  std::mutex     pending_dl_grant_mutex;
+  srslte::circular_array<received_ack_t, TTIMOD_SZ> pending_dl_ack[SRSLTE_MAX_CARRIERS] = {};
+  srslte::circular_array<uint32_t, TTIMOD_SZ>       pending_dl_dai[SRSLTE_MAX_CARRIERS] = {};
+  std::mutex                                        pending_dl_ack_mutex;
+  std::mutex                                        pending_dl_grant_mutex;
 
   // Cross-carried grants scheduled from PCell
   typedef struct {

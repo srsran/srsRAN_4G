@@ -177,8 +177,8 @@ public:
 
 private:
   // Common objects for scheduling grants
-  stack_interface_phy_lte::ul_sched_list_t ul_grants[TTIMOD_SZ] = {};
-  std::mutex                               grant_mutex          = {};
+  srslte::circular_array<stack_interface_phy_lte::ul_sched_list_t, TTIMOD_SZ> ul_grants   = {};
+  std::mutex                                                                  grant_mutex = {};
 
   phy_cell_cfg_list_t cell_list;
 
