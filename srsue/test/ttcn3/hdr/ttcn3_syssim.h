@@ -37,8 +37,6 @@
 #include "ttcn3_ut_interface.h"
 #include <functional>
 
-#define TTCN3_CRNTI (0x1001)
-
 class ttcn3_syssim : public syssim_interface_phy,
                      public ss_ut_interface,
                      public ss_sys_interface,
@@ -117,54 +115,47 @@ public:
 
   void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel);
 
-  void set_cell_config(const ttcn3_helpers::timing_info_t timing,
-                       const std::string                  cell_name,
-                       const uint32_t                     earfcn,
-                       const srslte_cell_t                cell,
-                       const float                        power);
+  void set_cell_config(const ttcn3_helpers::timing_info_t timing, const cell_config_t cell);
+  void set_cell_config_impl(const cell_config_t cell);
 
-  void set_cell_config_impl(const std::string   cell_name_,
-                            const uint32_t      earfcn_,
-                            const srslte_cell_t cell_,
-                            const float         power_);
-
-  // internal function
-  bool syssim_has_cell(std::string cell_name);
-
+  // cell helper
   void set_cell_attenuation(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const float value);
-
   void set_cell_attenuation_impl(const std::string cell_name, const float value);
-
-  // Internal function
-  void update_cell_map();
-
-  bool have_valid_pcell();
 
   void add_bcch_dlsch_pdu(const string cell_name, unique_byte_buffer_t pdu);
 
-  void add_ccch_pdu(const ttcn3_helpers::timing_info_t timing, unique_byte_buffer_t pdu);
+  void add_ccch_pdu(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, unique_byte_buffer_t pdu);
+  void add_ccch_pdu_impl(const std::string cell_name, unique_byte_buffer_t pdu);
 
-  void
-  add_dcch_pdu(const ttcn3_helpers::timing_info_t timing, uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag);
-
-  void add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag);
+  void add_dcch_pdu(const ttcn3_helpers::timing_info_t timing,
+                    const std::string                  cell_name,
+                    uint32_t                           lcid,
+                    unique_byte_buffer_t               pdu,
+                    bool                               follow_on_flag);
+  void add_dcch_pdu_impl(const std::string cell_name, uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag);
 
   void add_pch_pdu(unique_byte_buffer_t pdu);
 
   void step_stack();
 
-  void add_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config);
-  void add_srb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config);
+  void add_srb(const ttcn3_helpers::timing_info_t timing,
+               const std::string                  cell_name,
+               const uint32_t                     lcid,
+               const pdcp_config_t                pdcp_config);
+  void add_srb_impl(const std::string cell_name, const uint32_t lcid, const pdcp_config_t pdcp_config);
 
-  void reestablish_bearer(uint32_t lcid);
+  void reestablish_bearer(const std::string cell_name, const uint32_t lcid);
 
-  void del_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid);
-  void del_srb_impl(uint32_t lcid);
+  void del_srb(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const uint32_t lcid);
+  void del_srb_impl(const std::string cell_name, const uint32_t lcid);
 
-  void add_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config);
-  void add_drb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config);
-  void del_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid);
-  void del_drb_impl(uint32_t lcid);
+  void add_drb(const ttcn3_helpers::timing_info_t timing,
+               const std::string                  cell_name,
+               const uint32_t                     lcid,
+               const pdcp_config_t                pdcp_config);
+  void add_drb_impl(const std::string cell_name, const uint32_t lcid, const pdcp_config_t pdcp_config);
+  void del_drb(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const uint32_t lcid);
+  void del_drb_impl(const std::string cell_name, const uint32_t lcid);
 
   // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu);
@@ -187,6 +178,7 @@ public:
   bool sdu_queue_is_full(uint32_t lcid);
 
   void set_as_security(const ttcn3_helpers::timing_info_t        timing,
+                       const std::string                         cell_name,
                        std::array<uint8_t, 32>                   k_rrc_enc_,
                        std::array<uint8_t, 32>                   k_rrc_int_,
                        std::array<uint8_t, 32>                   k_up_enc_,
@@ -194,20 +186,21 @@ public:
                        const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                        const ttcn3_helpers::pdcp_count_map_t     bearers_);
 
-  void set_as_security_impl(std::array<uint8_t, 32>                   k_rrc_enc_,
+  void set_as_security_impl(const std::string                         cell_name,
+                            std::array<uint8_t, 32>                   k_rrc_enc_,
                             std::array<uint8_t, 32>                   k_rrc_int_,
                             std::array<uint8_t, 32>                   k_up_enc_,
                             const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                             const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                             const ttcn3_helpers::pdcp_count_map_t     bearers);
 
-  void release_as_security(const ttcn3_helpers::timing_info_t timing);
+  void release_as_security(const ttcn3_helpers::timing_info_t timing, const std::string cell_name);
 
-  void release_as_security_impl();
+  void release_as_security_impl(const std::string cell_name);
 
   void select_cell(srslte_cell_t phy_cell);
 
-  ttcn3_helpers::pdcp_count_map_t get_pdcp_count();
+  ttcn3_helpers::pdcp_count_map_t get_pdcp_count(const std::string cell_name);
 
 private:
   // SYS interface
@@ -260,7 +253,6 @@ private:
   int32_t                 sr_tti               = -1;
   uint32_t                prach_preamble_index = 0;
   uint16_t                dl_rnti              = 0;
-  uint16_t                crnti                = TTCN3_CRNTI;
   int                     force_lcid           = -1;
   srsue::stack_test_dummy stack;
   bool                    last_dl_ndi[SRSLTE_FDD_NOF_HARQ] = {};
@@ -272,18 +264,36 @@ private:
   tti_action_map_t                              tti_actions;
 
   // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct
-  typedef struct {
-    std::string                       name;
-    srslte_cell_t                     cell          = {};
-    float                             initial_power = 0.0;
-    float                             attenuation   = 0.0;
-    uint32_t                          earfcn        = 0;
+  class syssim_cell_t
+  {
+  public:
+    syssim_cell_t(ttcn3_syssim* ss) :
+      rlc(ss->ss_rlc_log->get_service_name().c_str()),
+      pdcp(&ss->stack.task_sched, ss->ss_pdcp_log->get_service_name().c_str())
+    {}
+
+    cell_config_t                     config;
     std::vector<unique_byte_buffer_t> sibs;
     int                               sib_idx = 0; ///< Index of SIB scheduled for next transmission
-  } syssim_cell_t;
+
+    // Simulator objects
+    srslte::rlc              rlc;
+    srslte::pdcp             pdcp;
+    std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
+
+    // security config
+    ttcn3_helpers::pdcp_count_map_t pending_bearer_config; ///< List of bearers with pending security configuration
+    srslte::as_security_config_t    sec_cfg;
+  };
   typedef std::unique_ptr<syssim_cell_t> unique_syssim_cell_t;
   std::vector<unique_syssim_cell_t>      cells;
   int32_t                                pcell_idx = -1;
+
+  // Internal function
+  void           update_cell_map();
+  bool           syssim_has_cell(std::string cell_name);
+  syssim_cell_t* get_cell(const std::string cell_name);
+  bool           have_valid_pcell();
 
   srslte::pdu_queue pdus;
   srslte::sch_pdu   mac_msg_dl, mac_msg_ul;
@@ -293,15 +303,6 @@ private:
   srslte::byte_buffer_t tx_payload_buffer; // Used to buffer final MAC PDU
 
   uint64_t conres_id = 0;
-
-  // Simulator objects
-  srslte::rlc              rlc;
-  srslte::pdcp             pdcp;
-  std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
-
-  // security config
-  ttcn3_helpers::pdcp_count_map_t pending_bearer_config; ///< List of bearers with pending security configuration
-  srslte::as_security_config_t    sec_cfg;
 
   std::vector<std::string> rb_id_vec =
       {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};

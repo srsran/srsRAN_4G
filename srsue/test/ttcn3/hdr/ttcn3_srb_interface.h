@@ -119,11 +119,12 @@ private:
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
-    syssim->add_ccch_pdu(ttcn3_helpers::get_timing_info(document), std::move(pdu));
+    syssim->add_ccch_pdu(
+        ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), std::move(pdu));
 
     // TODO: is there a better way to check for RRCConnectionReestablishment?
     if (ccch_is_rrc_reestablishment(document)) {
-      syssim->reestablish_bearer(1);
+      syssim->reestablish_bearer(ttcn3_helpers::get_cell_name(document), 1);
     }
   }
 
@@ -138,7 +139,11 @@ private:
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
-    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document), lcid, std::move(pdu), follow_on);
+    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document),
+                         ttcn3_helpers::get_cell_name(document),
+                         lcid,
+                         std::move(pdu),
+                         follow_on);
   }
 
   bool ccch_is_rrc_reestablishment(Document& document)

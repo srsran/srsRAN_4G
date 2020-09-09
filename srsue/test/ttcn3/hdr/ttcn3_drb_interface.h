@@ -128,7 +128,11 @@ private:
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
-    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document), lcid, std::move(pdu), follow_on);
+    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document),
+                         ttcn3_helpers::get_cell_name(document),
+                         lcid,
+                         std::move(pdu),
+                         follow_on);
   }
 
   ss_srb_interface* syssim = nullptr;

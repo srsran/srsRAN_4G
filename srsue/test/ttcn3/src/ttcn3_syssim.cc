@@ -47,10 +47,8 @@ ttcn3_syssim::ttcn3_syssim(swappable_log& logger_file_, srslte::logger& logger_s
   logger(&logger_file),
   pool(byte_buffer_pool::get_instance()),
   ue(ue_),
-  rlc(ss_rlc_log->get_service_name().c_str()),
   signal_handler(&running),
-  timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
-  pdcp(&stack.task_sched, ss_pdcp_log->get_service_name().c_str())
+  timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
 {
   if (ue->init(all_args_t{}, logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
     ue->stop();
@@ -124,10 +122,8 @@ int ttcn3_syssim::init(const all_args_t& args_)
     return SRSLTE_ERROR;
   }
 
-  // Init SS layers
+  // Init common SS layers
   pdus.init(this, log);
-  rlc.init(&pdcp, this, stack.task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, this, this);
 
   return SRSLTE_SUCCESS;
 }
@@ -273,8 +269,8 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
     // PCH will be triggered from SYSSIM after receiving Paging
   } else if (SRSLTE_RNTI_ISUSER(dl_rnti)) {
     // check if this is for contention resolution after PRACH/RAR
-    if (dl_rnti == crnti) {
-      log->debug("Searching for C-RNTI=%d\n", crnti);
+    if (dl_rnti == cells[pcell_idx]->config.crnti) {
+      log->debug("Searching for C-RNTI=%d\n", dl_rnti);
 
       if (rar_tti != -1) {
         msg3_tti = (rar_tti + 3) % 10240;
@@ -295,9 +291,10 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
 
       // look for DL data to be send in each bearer and provide grant accordingly
       for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
-        uint32_t buf_state = rlc.get_buffer_state(lcid);
+        uint32_t buf_state = cells[pcell_idx]->rlc.get_buffer_state(lcid);
         // Schedule DL transmission if there is data in RLC buffer or we need to send Msg4
-        if ((buf_state > 0 && bearer_follow_on_map[lcid] == false) || (msg3_tti != -1 && conres_id != 0)) {
+        if ((buf_state > 0 && cells[pcell_idx]->bearer_follow_on_map[lcid] == false) ||
+            (msg3_tti != -1 && conres_id != 0)) {
           log->debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
           tx_payload_buffer.clear();
 
@@ -324,14 +321,14 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
           // allocate SDUs
           while (buf_state > 0) { // there is pending SDU to allocate
             if (mac_msg_dl.new_subh()) {
-              int n = mac_msg_dl.get()->set_sdu(lcid, buf_state, &rlc);
+              int n = mac_msg_dl.get()->set_sdu(lcid, buf_state, &cells[pcell_idx]->rlc);
               if (n == -1) {
                 log->error("Error while adding SDU (%d B) to MAC PDU\n", buf_state);
                 mac_msg_dl.del_subh();
               }
 
               // update buffer state
-              buf_state = rlc.get_buffer_state(lcid);
+              buf_state = cells[pcell_idx]->rlc.get_buffer_state(lcid);
 
               if (mac_msg_dl.nof_subh() == 1) {
                 has_single_sdu = true;
@@ -370,7 +367,7 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
           }
           mac_msg_dl.reset();
 
-        } else if (bearer_follow_on_map[lcid]) {
+        } else if (cells[pcell_idx]->bearer_follow_on_map[lcid]) {
           log->info("Waiting for more PDUs for transmission on LCID=%d\n", lcid);
         }
       }
@@ -390,11 +387,8 @@ void ttcn3_syssim::stop()
 void ttcn3_syssim::reset()
 {
   log->info("Resetting SS\n");
-  rlc.reset();
-  pdcp.reset();
   cells.clear();
   pcell_idx = -1;
-  pending_bearer_config.clear();
 }
 
 // Called from UT before starting testcase
@@ -453,7 +447,7 @@ void ttcn3_syssim::tc_end()
 
   run_id++;
 
-  // Reset SS' RLC and PDCP
+  // Reset SS
   reset();
 }
 
@@ -487,8 +481,9 @@ void ttcn3_syssim::disable_data()
 void ttcn3_syssim::prach_indication(uint32_t preamble_index_, const uint32_t& cell_id)
 {
   // verify that UE intends to send PRACH on current Pcell
-  if (cells[pcell_idx]->cell.id != cell_id) {
-    log->error("UE is attempting to PRACH on pci=%d, current Pcell=%d\n", cell_id, cells[pcell_idx]->cell.id);
+  if (cells[pcell_idx]->config.phy_cell.id != cell_id) {
+    log->error(
+        "UE is attempting to PRACH on pci=%d, current Pcell=%d\n", cell_id, cells[pcell_idx]->config.phy_cell.id);
     return;
   }
 
@@ -512,6 +507,11 @@ void ttcn3_syssim::tx_pdu(const uint8_t* payload, const int len, const uint32_t 
     return;
   }
 
+  if (pcell_idx == -1) {
+    log->debug("Skipping TTI. Pcell not yet selected.\n");
+    return;
+  }
+
   log->info_hex(payload, len, "UL MAC PDU (%d B):\n", len);
 
   // Parse MAC
@@ -527,7 +527,7 @@ void ttcn3_syssim::tx_pdu(const uint8_t* payload, const int len, const uint32_t 
                            "Route UL PDU to LCID=%d (%d B)\n",
                            mac_msg_ul.get()->get_sdu_lcid(),
                            mac_msg_ul.get()->get_payload_size());
-      rlc.write_pdu(
+      cells[pcell_idx]->rlc.write_pdu(
           mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_sdu_ptr(), mac_msg_ul.get()->get_payload_size());
 
       // Save contention resolution if lcid == 0
@@ -581,7 +581,7 @@ void ttcn3_syssim::send_rar(uint32_t preamble_index)
   if (rar_pdu.new_subh()) {
     rar_pdu.get()->set_rapid(preamble_index);
     rar_pdu.get()->set_ta_cmd(0);
-    rar_pdu.get()->set_temp_crnti(crnti);
+    rar_pdu.get()->set_temp_crnti(cells[pcell_idx]->config.crnti);
     rar_pdu.get()->set_sched_grant(grant_buffer);
   }
   rar_pdu.write_packet(rar_buffer.msg);
@@ -605,14 +605,14 @@ void ttcn3_syssim::send_rar(uint32_t preamble_index)
 // Internal function called from main thread
 void ttcn3_syssim::send_msg3_grant()
 {
-  log->info("Sending Msg3 grant for C-RNTI=%d\n", crnti);
+  log->info("Sending Msg3 grant for C-RNTI=%d\n", cells[pcell_idx]->config.crnti);
   mac_interface_phy_lte::mac_grant_ul_t ul_grant = {};
 
   ul_grant.tti_tx         = (tti + 3) % 10240;
   ul_grant.tb.tbs         = 32;
   ul_grant.tb.ndi_present = true;
   ul_grant.tb.ndi         = get_ndi_for_new_ul_tx(tti);
-  ul_grant.rnti           = crnti;
+  ul_grant.rnti           = cells[pcell_idx]->config.crnti;
   ul_grant.pid            = get_pid(tti);
   ul_grant.is_rar         = true;
 
@@ -628,7 +628,7 @@ void ttcn3_syssim::send_sr_ul_grant()
   ul_grant.tb.tbs                                = 100; // TODO: reasonable size?
   ul_grant.tb.ndi_present                        = true;
   ul_grant.tb.ndi                                = get_ndi_for_new_ul_tx(tti);
-  ul_grant.rnti                                  = crnti;
+  ul_grant.rnti                                  = cells[pcell_idx]->config.crnti;
   ul_grant.pid                                   = get_pid(tti);
 
   ue->new_grant_ul(ul_grant);
@@ -758,53 +758,65 @@ uint32_t ttcn3_syssim::get_tti()
 
 void ttcn3_syssim::process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel) {}
 
-void ttcn3_syssim::set_cell_config(const ttcn3_helpers::timing_info_t timing,
-                                   const std::string                  cell_name,
-                                   const uint32_t                     earfcn,
-                                   const srslte_cell_t                cell,
-                                   const float                        power)
+void ttcn3_syssim::set_cell_config(const ttcn3_helpers::timing_info_t timing, const cell_config_t cell)
 {
   if (timing.now) {
-    set_cell_config_impl(cell_name, earfcn, cell, power);
+    set_cell_config_impl(cell);
   } else {
-    log->debug("Scheduling Cell configuration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
-    tti_actions[timing.tti].push_back(
-        [this, cell_name, earfcn, cell, power]() { set_cell_config_impl(cell_name, earfcn, cell, power); });
+    log->debug("Scheduling Cell configuration of %s for TTI=%d\n", cell.name.c_str(), timing.tti);
+    tti_actions[timing.tti].push_back([this, cell]() { set_cell_config_impl(cell); });
   }
 }
 
-void ttcn3_syssim::set_cell_config_impl(const std::string   cell_name_,
-                                        const uint32_t      earfcn_,
-                                        const srslte_cell_t cell_,
-                                        const float         power_)
+void ttcn3_syssim::set_cell_config_impl(const cell_config_t config)
 {
   // check if cell already exists
-  if (not syssim_has_cell(cell_name_)) {
+  if (not syssim_has_cell(config.name)) {
     // insert new cell
-    log->info("Adding cell %s with cellId=%d and power=%.2f dBm\n", cell_name_.c_str(), cell_.id, power_);
-    unique_syssim_cell_t cell = unique_syssim_cell_t(new syssim_cell_t);
-    cell->name                = cell_name_;
-    cell->cell                = cell_;
-    cell->initial_power       = power_;
-    cell->earfcn              = earfcn_;
+    log->info("Adding cell %s with cellId=%d and initial_power=%.2f dBm\n",
+              config.name.c_str(),
+              config.phy_cell.id,
+              config.initial_power);
+    unique_syssim_cell_t cell = unique_syssim_cell_t(new syssim_cell_t(this));
+    cell->config              = config;
+
+    // init RLC and PDCP
+    cell->rlc.init(&cell->pdcp, this, stack.task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
+    cell->pdcp.init(&cell->rlc, this, this);
+
     cells.push_back(std::move(cell));
   } else {
     // cell is already there
     log->info("Cell already there, reconfigure\n");
+    // We only support C-RNTI reconfiguration
+    syssim_cell_t* ss_cell = get_cell(config.name);
+    if (config.crnti > 0) {
+      ss_cell->config.crnti = config.crnti;
+    }
   }
 
   update_cell_map();
 }
 
 // internal function
-bool ttcn3_syssim::syssim_has_cell(std::string cell_name)
+bool ttcn3_syssim::syssim_has_cell(const std::string cell_name)
 {
   for (auto& cell : cells) {
-    if (cell->name == cell_name) {
+    if (cell->config.name == cell_name) {
       return true;
     }
   }
   return false;
+}
+
+ttcn3_syssim::syssim_cell_t* ttcn3_syssim::get_cell(const std::string cell_name)
+{
+  for (auto& cell : cells) {
+    if (cell->config.name == cell_name) {
+      return cell.get();
+    }
+  }
+  return nullptr;
 }
 
 void ttcn3_syssim::set_cell_attenuation(const ttcn3_helpers::timing_info_t timing,
@@ -823,15 +835,12 @@ void ttcn3_syssim::set_cell_attenuation_impl(const std::string cell_name, const 
 {
   if (not syssim_has_cell(cell_name)) {
     log->error("Can't set cell power. Cell not found.\n");
+    return;
   }
 
   // update cell's power
-  for (auto& cell : cells) {
-    if (cell->name == cell_name) {
-      cell->attenuation = value;
-      break;
-    }
-  }
+  auto cell                = get_cell(cell_name);
+  cell->config.attenuation = value;
 
   update_cell_map();
 }
@@ -840,20 +849,18 @@ void ttcn3_syssim::set_cell_attenuation_impl(const std::string cell_name, const 
 void ttcn3_syssim::update_cell_map()
 {
   // convert syssim cell list to phy cell list
-  {
-    lte_ttcn3_phy::cell_list_t phy_cells;
-    for (auto& ss_cell : cells) {
-      lte_ttcn3_phy::cell_t phy_cell = {};
-      phy_cell.info                  = ss_cell->cell;
-      phy_cell.power                 = ss_cell->initial_power - ss_cell->attenuation;
-      phy_cell.earfcn                = ss_cell->earfcn;
-      log->info("Configuring cell with PCI=%d with TxPower=%.2f\n", phy_cell.info.id, phy_cell.power);
-      phy_cells.push_back(phy_cell);
-    }
-
-    // SYSSIM defines what cells the UE can connect to
-    ue->set_cell_map(phy_cells);
+  lte_ttcn3_phy::cell_list_t phy_cells;
+  for (auto& ss_cell : cells) {
+    lte_ttcn3_phy::cell_t phy_cell = {};
+    phy_cell.info                  = ss_cell->config.phy_cell;
+    phy_cell.power                 = ss_cell->config.initial_power - ss_cell->config.attenuation;
+    phy_cell.earfcn                = ss_cell->config.earfcn;
+    log->info("Configuring cell with PCI=%d with TxPower=%.2f\n", phy_cell.info.id, phy_cell.power);
+    phy_cells.push_back(phy_cell);
   }
+
+  // SYSSIM defines what cells the UE can connect to
+  ue->set_cell_map(phy_cells);
 }
 
 bool ttcn3_syssim::have_valid_pcell()
@@ -865,51 +872,72 @@ void ttcn3_syssim::add_bcch_dlsch_pdu(const string cell_name, unique_byte_buffer
 {
   if (not syssim_has_cell(cell_name)) {
     log->error("Can't add BCCH to cell. Cell not found.\n");
+    return;
   }
 
-  // add SIB
-  for (auto& cell : cells) {
-    if (cell->name == cell_name) {
-      cell->sibs.push_back(std::move(pdu));
-      break;
-    }
-  }
+  auto cell = get_cell(cell_name);
+  cell->sibs.push_back(std::move(pdu));
 }
 
-void ttcn3_syssim::add_ccch_pdu(const ttcn3_helpers::timing_info_t timing, unique_byte_buffer_t pdu)
+void ttcn3_syssim::add_ccch_pdu(const ttcn3_helpers::timing_info_t timing,
+                                const std::string                  cell_name,
+                                unique_byte_buffer_t               pdu)
 {
   if (timing.now) {
     // Add to SRB0 Tx queue
-    rlc.write_sdu(0, std::move(pdu));
+    add_ccch_pdu_impl(cell_name, std::move(pdu));
   } else {
     log->debug("Scheduling CCCH PDU for TTI=%d\n", timing.tti);
-    auto task = [this](srslte::unique_byte_buffer_t& pdu) { rlc.write_sdu(0, std::move(pdu)); };
+    auto task = [this, cell_name](srslte::unique_byte_buffer_t& pdu) { add_ccch_pdu_impl(cell_name, std::move(pdu)); };
     tti_actions[timing.tti].push_back(std::bind(task, std::move(pdu)));
   }
 }
 
+void ttcn3_syssim::add_ccch_pdu_impl(const std::string cell_name, unique_byte_buffer_t pdu)
+{
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't add CCCH to cell. Cell not found.\n");
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+  // Add to SRB0 Tx queue
+  cell->rlc.write_sdu(0, std::move(pdu));
+}
+
 void ttcn3_syssim::add_dcch_pdu(const ttcn3_helpers::timing_info_t timing,
+                                const std::string                  cell_name,
                                 uint32_t                           lcid,
                                 unique_byte_buffer_t               pdu,
                                 bool                               follow_on_flag)
 {
   if (timing.now) {
-    add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag);
+    add_dcch_pdu_impl(cell_name, lcid, std::move(pdu), follow_on_flag);
   } else {
     log->debug("Scheduling DCCH PDU for TTI=%d\n", timing.tti);
-    auto task = [this](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) {
-      add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag);
+    auto task = [this, cell_name](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) {
+      add_dcch_pdu_impl(cell_name, lcid, std::move(pdu), follow_on_flag);
     };
     tti_actions[timing.tti].push_back(std::bind(task, lcid, std::move(pdu), follow_on_flag));
   }
 }
 
-void ttcn3_syssim::add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag)
+void ttcn3_syssim::add_dcch_pdu_impl(const std::string    cell_name,
+                                     uint32_t             lcid,
+                                     unique_byte_buffer_t pdu,
+                                     bool                 follow_on_flag)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't add CCCH to cell. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   // push to PDCP and create DL grant for it
   log->info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
-  pdcp.write_sdu(lcid, std::move(pdu));
-  bearer_follow_on_map[lcid] = follow_on_flag;
+  cell->pdcp.write_sdu(lcid, std::move(pdu));
+  cell->bearer_follow_on_map[lcid] = follow_on_flag;
 }
 
 void ttcn3_syssim::add_pch_pdu(unique_byte_buffer_t pdu)
@@ -933,89 +961,128 @@ void ttcn3_syssim::step_stack()
 }
 
 void ttcn3_syssim::add_srb(const ttcn3_helpers::timing_info_t timing,
+                           const std::string                  cell_name,
                            const uint32_t                     lcid,
                            const pdcp_config_t                pdcp_config)
 {
   if (timing.now) {
-    add_srb_impl(lcid, pdcp_config);
+    add_srb_impl(cell_name, lcid, pdcp_config);
   } else {
     log->debug("Scheduling SRB%d addition for TTI=%d\n", lcid, timing.tti);
-    tti_actions[timing.tti].push_back([this, lcid, pdcp_config]() { add_srb_impl(lcid, pdcp_config); });
+    tti_actions[timing.tti].push_back(
+        [this, cell_name, lcid, pdcp_config]() { add_srb_impl(cell_name, lcid, pdcp_config); });
   }
 }
 
-void ttcn3_syssim::add_srb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config)
+void ttcn3_syssim::add_srb_impl(const std::string cell_name, const uint32_t lcid, const pdcp_config_t pdcp_config)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't add SRB to cell. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   log->info("Adding SRB%d\n", lcid);
-  pdcp.add_bearer(lcid, pdcp_config);
-  rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
+  cell->pdcp.add_bearer(lcid, pdcp_config);
+  cell->rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
 }
 
-void ttcn3_syssim::reestablish_bearer(uint32_t lcid)
+void ttcn3_syssim::reestablish_bearer(const std::string cell_name, const uint32_t lcid)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't reestablish bearer. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   log->info("Reestablishing LCID=%d\n", lcid);
-  pdcp.reestablish(lcid);
-  rlc.reestablish(lcid);
+  cell->pdcp.reestablish(lcid);
+  cell->rlc.reestablish(lcid);
 }
 
-void ttcn3_syssim::del_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid)
+void ttcn3_syssim::del_srb(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const uint32_t lcid)
 {
   if (timing.now) {
-    del_srb_impl(lcid);
+    del_srb_impl(cell_name, lcid);
   } else {
     log->debug("Scheduling SRB%d deletion for TTI=%d\n", lcid, timing.tti);
-    tti_actions[timing.tti].push_back([this, lcid]() { del_srb_impl(lcid); });
+    tti_actions[timing.tti].push_back([this, cell_name, lcid]() { del_srb_impl(cell_name, lcid); });
   }
 }
 
-void ttcn3_syssim::del_srb_impl(uint32_t lcid)
+void ttcn3_syssim::del_srb_impl(const std::string cell_name, const uint32_t lcid)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't delete bearer. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   log->info("Deleting SRB%d\n", lcid);
   // Only delete SRB1/2
   if (lcid > 0) {
-    pdcp.del_bearer(lcid);
-    rlc.del_bearer(lcid);
+    cell->pdcp.del_bearer(lcid);
+    cell->rlc.del_bearer(lcid);
   }
 }
 
 void ttcn3_syssim::add_drb(const ttcn3_helpers::timing_info_t timing,
+                           const std::string                  cell_name,
                            const uint32_t                     lcid,
                            const srslte::pdcp_config_t        pdcp_config)
 {
   if (timing.now) {
-    add_drb_impl(lcid, pdcp_config);
+    add_drb_impl(cell_name, lcid, pdcp_config);
   } else {
     log->debug("Scheduling DRB%d addition for TTI=%d\n", lcid - 2, timing.tti);
-    tti_actions[timing.tti].push_back([this, lcid, pdcp_config]() { add_drb_impl(lcid, pdcp_config); });
+    tti_actions[timing.tti].push_back(
+        [this, cell_name, lcid, pdcp_config]() { add_drb_impl(cell_name, lcid, pdcp_config); });
   }
 }
 
-void ttcn3_syssim::add_drb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config)
+void ttcn3_syssim::add_drb_impl(const std::string cell_name, const uint32_t lcid, const pdcp_config_t pdcp_config)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't add DRB. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   if (lcid > 2) {
     log->info("Adding DRB%d\n", lcid - 2);
-    pdcp.add_bearer(lcid, pdcp_config);
-    rlc.add_bearer(lcid, srslte::rlc_config_t::default_rlc_am_config());
+    cell->pdcp.add_bearer(lcid, pdcp_config);
+    cell->rlc.add_bearer(lcid, srslte::rlc_config_t::default_rlc_am_config());
   }
 }
 
-void ttcn3_syssim::del_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid)
+void ttcn3_syssim::del_drb(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const uint32_t lcid)
 {
   if (timing.now) {
-    del_drb_impl(lcid);
+    del_drb_impl(cell_name, lcid);
   } else {
     log->debug("Scheduling DRB%d deletion for TTI=%d\n", lcid - 2, timing.tti);
-    tti_actions[timing.tti].push_back([this, lcid]() { del_drb_impl(lcid); });
+    tti_actions[timing.tti].push_back([this, cell_name, lcid]() { del_drb_impl(cell_name, lcid); });
   }
 }
 
-void ttcn3_syssim::del_drb_impl(uint32_t lcid)
+void ttcn3_syssim::del_drb_impl(const std::string cell_name, const uint32_t lcid)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't delete DRB. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   // Only delete DRB
   if (lcid > 2) {
     log->info("Deleting DRB%d\n", lcid - 2);
-    pdcp.del_bearer(lcid);
-    rlc.del_bearer(lcid);
+    cell->pdcp.del_bearer(lcid);
+    cell->rlc.del_bearer(lcid);
   }
 }
 
@@ -1026,15 +1093,16 @@ void ttcn3_syssim::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
                 pdu->N_bytes,
                 "RRC SDU received for LCID=%d cell_id=%d (%d B)\n",
                 lcid,
-                cells[pcell_idx]->cell.id,
+                cells[pcell_idx]->config.phy_cell.id,
                 pdu->N_bytes);
 
   // push content to Titan
   if (lcid <= 2) {
-    std::string out = ttcn3_helpers::get_rrc_pdu_ind_for_pdu(tti, lcid, cells[pcell_idx]->name, std::move(pdu));
+    std::string out = ttcn3_helpers::get_rrc_pdu_ind_for_pdu(tti, lcid, cells[pcell_idx]->config.name, std::move(pdu));
     srb.tx(reinterpret_cast<const uint8_t*>(out.c_str()), out.length());
   } else {
-    std::string out = ttcn3_helpers::get_drb_common_ind_for_pdu(tti, lcid, cells[pcell_idx]->name, std::move(pdu));
+    std::string out =
+        ttcn3_helpers::get_drb_common_ind_for_pdu(tti, lcid, cells[pcell_idx]->config.name, std::move(pdu));
     drb.tx(reinterpret_cast<const uint8_t*>(out.c_str()), out.length());
   }
 }
@@ -1102,6 +1170,7 @@ bool ttcn3_syssim::sdu_queue_is_full(uint32_t lcid)
 }
 
 void ttcn3_syssim::set_as_security(const ttcn3_helpers::timing_info_t        timing,
+                                   const std::string                         cell_name,
                                    std::array<uint8_t, 32>                   k_rrc_enc_,
                                    std::array<uint8_t, 32>                   k_rrc_int_,
                                    std::array<uint8_t, 32>                   k_up_enc_,
@@ -1110,79 +1179,103 @@ void ttcn3_syssim::set_as_security(const ttcn3_helpers::timing_info_t        tim
                                    const ttcn3_helpers::pdcp_count_map_t     bearers_)
 {
   if (timing.now) {
-    set_as_security_impl(k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
+    set_as_security_impl(cell_name, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
   } else {
     log->debug("Scheduling AS security configuration for TTI=%d\n", timing.tti);
-    tti_actions[timing.tti].push_back([this, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_]() {
-      set_as_security_impl(k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
-    });
+    tti_actions[timing.tti].push_back(
+        [this, cell_name, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_]() {
+          set_as_security_impl(cell_name, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
+        });
   }
 }
 
-void ttcn3_syssim::set_as_security_impl(std::array<uint8_t, 32>                   k_rrc_enc_,
+void ttcn3_syssim::set_as_security_impl(const std::string                         cell_name,
+                                        std::array<uint8_t, 32>                   k_rrc_enc_,
                                         std::array<uint8_t, 32>                   k_rrc_int_,
                                         std::array<uint8_t, 32>                   k_up_enc_,
                                         const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                         const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
                                         const ttcn3_helpers::pdcp_count_map_t     bearers)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't configure AS security. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   // store security config for later use (i.e. new bearer added)
-  sec_cfg = {.k_rrc_int   = k_rrc_int_,
-             .k_rrc_enc   = k_rrc_enc_,
-             .k_up_int    = {},
-             .k_up_enc    = k_up_enc_,
-             .integ_algo  = integ_algo_,
-             .cipher_algo = cipher_algo_};
+  cell->sec_cfg = {.k_rrc_int   = k_rrc_int_,
+                   .k_rrc_enc   = k_rrc_enc_,
+                   .k_up_int    = {},
+                   .k_up_enc    = k_up_enc_,
+                   .integ_algo  = integ_algo_,
+                   .cipher_algo = cipher_algo_};
 
   for (auto& lcid : bearers) {
-    pdcp.config_security(lcid.rb_id, sec_cfg);
+    cell->pdcp.config_security(lcid.rb_id, cell->sec_cfg);
 
     log->info("Setting AS security for LCID=%d in DL direction from SN=%d onwards\n", lcid.rb_id, lcid.dl_value);
-    pdcp.enable_security_timed(lcid.rb_id, DIRECTION_TX, lcid.dl_value);
+    cell->pdcp.enable_security_timed(lcid.rb_id, DIRECTION_TX, lcid.dl_value);
 
     log->info("Setting AS security for LCID=%d in UL direction from SN=%d onwards\n", lcid.rb_id, lcid.ul_value);
-    pdcp.enable_security_timed(lcid.rb_id, DIRECTION_RX, lcid.ul_value);
+    cell->pdcp.enable_security_timed(lcid.rb_id, DIRECTION_RX, lcid.ul_value);
   }
 }
 
-void ttcn3_syssim::release_as_security(const ttcn3_helpers::timing_info_t timing)
+void ttcn3_syssim::release_as_security(const ttcn3_helpers::timing_info_t timing, const std::string cell_name)
 {
   if (timing.now) {
-    release_as_security_impl();
+    release_as_security_impl(cell_name);
   } else {
     log->debug("Scheduling Release of AS security for TTI=%d\n", timing.tti);
-    tti_actions[timing.tti].push_back([this]() { release_as_security_impl(); });
+    tti_actions[timing.tti].push_back([this, cell_name]() { release_as_security_impl(cell_name); });
   }
 }
 
-void ttcn3_syssim::release_as_security_impl()
+void ttcn3_syssim::release_as_security_impl(const std::string cell_name)
 {
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't release AS security. Cell %s not found.\n", cell_name.c_str());
+    return;
+  }
+
+  auto cell = get_cell(cell_name);
+
   log->info("Releasing AS security\n");
-  pending_bearer_config.clear();
+  cell->pending_bearer_config.clear();
 }
 
 void ttcn3_syssim::select_cell(srslte_cell_t phy_cell)
 {
   // find matching cell in SS cell list
   for (uint32_t i = 0; i < cells.size(); ++i) {
-    if (cells[i]->cell.id == phy_cell.id) {
+    if (cells[i]->config.phy_cell.id == phy_cell.id) {
       pcell_idx = i;
-      log->info("New PCell: PCI=%d\n", cells[pcell_idx]->cell.id);
+      log->info("New PCell: PCI=%d\n", cells[pcell_idx]->config.phy_cell.id);
       return;
     }
   }
 }
 
-ttcn3_helpers::pdcp_count_map_t ttcn3_syssim::get_pdcp_count()
+ttcn3_helpers::pdcp_count_map_t ttcn3_syssim::get_pdcp_count(const std::string cell_name)
 {
   // prepare response to SS
   std::vector<ttcn3_helpers::pdcp_count_t> bearers;
+
+  if (not syssim_has_cell(cell_name)) {
+    log->error("Can't obtain PDCP count. Cell %s not found.\n", cell_name.c_str());
+    return bearers;
+  }
+
+  auto cell = get_cell(cell_name);
+
   for (uint32_t i = 0; i < rb_id_vec.size(); i++) {
-    if (pdcp.is_lcid_enabled(i)) {
+    if (cell->pdcp.is_lcid_enabled(i)) {
       ttcn3_helpers::pdcp_count_t bearer;
       uint16_t                    tmp; // not handling HFN
       srslte::pdcp_lte_state_t    pdcp_state;
-      pdcp.get_bearer_state(i, &pdcp_state);
+      cell->pdcp.get_bearer_state(i, &pdcp_state);
       bearer.rb_is_srb = i <= 2;
       bearer.rb_id     = i;
       bearer.dl_value  = pdcp_state.next_pdcp_tx_sn;

@@ -113,6 +113,9 @@ private:
     } else if (request.HasMember("Paging")) {
       log->info("Received Paging request.\n");
       handle_request_paging(document, &rx_buf->at(rx_buf_offset), n - rx_buf_offset);
+    } else if (request.HasMember("PdcpHandoverControl")) {
+      log->info("Received PdcpHandoverControl.\n");
+      handle_request_pdcp_handover_control(document);
     } else {
       log->error("Received unknown request.\n");
     }
@@ -127,38 +130,48 @@ private:
     assert(cell_name.IsString());
 
     if (document["Request"]["Cell"]["AddOrReconfigure"]["Basic"].HasMember("StaticCellInfo")) {
+      // Fill all relevant info from the cell request
+      ss_sys_interface::cell_config_t cell;
+
+      // set name
+      cell.name = cell_name.GetString();
+
       // Extract EARFCN
       const Value& earfcn =
           document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["StaticCellInfo"]["Downlink"]["Earfcn"];
       assert(earfcn.IsInt());
+      cell.earfcn = earfcn.GetInt();
 
       // Extract cell config
       const Value& common_config = document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["StaticCellInfo"]["Common"];
       const Value& dl_config = document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["StaticCellInfo"]["Downlink"];
       const Value& phy_dl_config = document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["PhysicalLayerConfigDL"];
 
-      srslte_cell_t cell = {};
-      cell.id            = common_config["PhysicalCellId"].GetInt();
-      cell.cp = (strcmp(dl_config["CyclicPrefix"].GetString(), "normal") == 0) ? SRSLTE_CP_NORM : SRSLTE_CP_EXT;
-      cell.nof_ports =
+      cell.phy_cell.id = common_config["PhysicalCellId"].GetInt();
+      cell.phy_cell.cp =
+          (strcmp(dl_config["CyclicPrefix"].GetString(), "normal") == 0) ? SRSLTE_CP_NORM : SRSLTE_CP_EXT;
+      cell.phy_cell.nof_ports =
           (strcmp(phy_dl_config["AntennaGroup"]["AntennaInfoCommon"]["R8"]["antennaPortsCount"].GetString(), "an1") ==
            0)
               ? 1
               : 2;
-      cell.nof_prb = (strcmp(dl_config["Bandwidth"].GetString(), "n25") == 0) ? 25 : 0;
-      cell.phich_length =
+      cell.phy_cell.nof_prb = (strcmp(dl_config["Bandwidth"].GetString(), "n25") == 0) ? 25 : 0;
+      cell.phy_cell.phich_length =
           (strcmp(phy_dl_config["Phich"]["PhichConfig"]["R8"]["phich_Duration"].GetString(), "normal") == 0)
               ? SRSLTE_PHICH_NORM
               : SRSLTE_PHICH_EXT;
-      cell.phich_resources =
+      cell.phy_cell.phich_resources =
           (strcmp(phy_dl_config["Phich"]["PhichConfig"]["R8"]["phich_Resource"].GetString(), "one") == 0)
               ? SRSLTE_PHICH_R_1
               : SRSLTE_PHICH_R_1_6;
-      log->info("DL EARFCN is %d with n_prb=%d\n", earfcn.GetInt(), cell.nof_prb);
+      log->info("DL EARFCN is %d with n_prb=%d\n", cell.earfcn, cell.phy_cell.nof_prb);
 
       const Value& ref_power =
           document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["InitialCellPower"]["MaxReferencePower"];
       assert(ref_power.IsInt());
+
+      // set power
+      cell.initial_power = ref_power.GetInt();
 
       const Value& att = document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["InitialCellPower"]["Attenuation"];
 
@@ -174,9 +187,15 @@ private:
         }
       }
 
+      // Extract CRNTI
+      if (document["Request"]["Cell"]["AddOrReconfigure"].HasMember("Active")) {
+        const Value& crnti_string = document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["C_RNTI"];
+        assert(crnti_string.IsString());
+        cell.crnti = std::bitset<16>(crnti_string.GetString()).to_ulong();
+      }
+
       // Now configure cell
-      syssim->set_cell_config(
-          ttcn3_helpers::get_timing_info(document), cell_name.GetString(), earfcn.GetInt(), cell, ref_power.GetInt());
+      syssim->set_cell_config(ttcn3_helpers::get_timing_info(document), cell);
       log->info("Configuring attenuation of %s to %.2f dB\n", cell_name.GetString(), att_value);
       syssim->set_cell_attenuation(ttcn3_helpers::get_timing_info(document), cell_name.GetString(), att_value);
     }
@@ -214,10 +233,28 @@ private:
     // Create response for template car_CellConfig_CNF(CellId_Type p_CellId)
     std::string cell_id = document["Common"]["CellId"].GetString();
 
-    std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id, "Cell");
+    ss_sys_interface::cell_config_t cell;
+    cell.name = cell_id;
 
-    log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    send((const uint8_t*)resp.c_str(), resp.length());
+    // Extract CRNTI
+    if (document["Request"]["Cell"]["AddOrReconfigure"].HasMember("Active")) {
+      if (document["Request"]["Cell"]["AddOrReconfigure"]["Active"].HasMember("C_RNTI")) {
+        const Value& crnti_string = document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["C_RNTI"];
+        assert(crnti_string.IsString());
+        cell.crnti = std::bitset<16>(crnti_string.GetString()).to_ulong();
+      }
+    }
+
+    syssim->set_cell_config(ttcn3_helpers::get_timing_info(document), cell);
+
+    if (ttcn3_helpers::requires_confirm(document)) {
+      std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id, "Cell");
+
+      log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
+      send((const uint8_t*)resp.c_str(), resp.length());
+    } else {
+      log->info("Skipping response for request cell active message.\n");
+    }
   }
 
   void handle_request_cell(Document& document, const uint8_t* payload, const uint16_t len)
@@ -322,11 +359,12 @@ private:
           }
           if (lcid > 0) {
             pdcp_config_t pdcp_cfg = make_srb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
-            syssim->add_srb(ttcn3_helpers::get_timing_info(document), lcid, pdcp_cfg);
+            syssim->add_srb(
+                ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {
           uint32_t lcid = id["Srb"].GetInt();
-          syssim->del_srb(ttcn3_helpers::get_timing_info(document), lcid);
+          syssim->del_srb(ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid);
         } else {
           log->error("Unknown config.\n");
         }
@@ -339,21 +377,26 @@ private:
           uint32_t     lcid = aor["LogicalChannelId"].GetInt();
           if (lcid > 0) {
             pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
-            syssim->add_drb(ttcn3_helpers::get_timing_info(document), lcid, pdcp_cfg);
+            syssim->add_drb(
+                ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {
           uint32_t lcid = id["Drb"].GetInt() + 2;
-          syssim->del_drb(ttcn3_helpers::get_timing_info(document), lcid);
+          syssim->del_drb(ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid);
         } else {
           log->error("Unknown config.\n");
         }
       }
     }
 
-    std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "RadioBearerList");
+    if (ttcn3_helpers::requires_confirm(document)) {
+      std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "RadioBearerList");
 
-    log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    send((const uint8_t*)resp.c_str(), resp.length());
+      log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
+      send((const uint8_t*)resp.c_str(), resp.length());
+    } else {
+      log->info("Skipping response for radio bearer list message.\n");
+    }
   }
 
   void handle_request_cell_attenuation_list(Document& document)
@@ -427,7 +470,8 @@ private:
     const Value& get = pdcp_count["Get"];
     assert(get.HasMember("AllRBs"));
 
-    std::string resp = ttcn3_helpers::get_pdcp_count_response(cell_id.GetString(), syssim->get_pdcp_count());
+    std::string resp = ttcn3_helpers::get_pdcp_count_response(
+        cell_id.GetString(), syssim->get_pdcp_count(ttcn3_helpers::get_cell_name(document)));
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
     send((const uint8_t*)resp.c_str(), resp.length());
@@ -532,11 +576,17 @@ private:
       }
 
       // configure SS to use AS security
-      syssim->set_as_security(
-          ttcn3_helpers::get_timing_info(document), k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo, bearers);
+      syssim->set_as_security(ttcn3_helpers::get_timing_info(document),
+                              cell_id.GetString(),
+                              k_rrc_enc,
+                              k_rrc_int,
+                              k_up_enc,
+                              cipher_algo,
+                              integ_algo,
+                              bearers);
     } else if (as_sec.HasMember("Release")) {
       // release all security configs
-      syssim->release_as_security(ttcn3_helpers::get_timing_info(document));
+      syssim->release_as_security(ttcn3_helpers::get_timing_info(document), cell_id.GetString());
     }
 
     if (config_flag.GetBool() == true) {
@@ -624,6 +674,39 @@ private:
       send((const uint8_t*)resp.c_str(), resp.length());
     } else {
       log->info("Skipping response for Paging message.\n");
+    }
+  }
+
+  void handle_request_pdcp_handover_control(Document& document)
+  {
+    const Value& a = document["Common"];
+
+    assert(a.HasMember("CellId"));
+    const Value& cell_id = a["CellId"];
+
+    // check cnf flag
+    assert(a.HasMember("ControlInfo"));
+    const Value& b = a["ControlInfo"];
+    assert(b.HasMember("CnfFlag"));
+
+    // check request
+    const Value& req = document["Request"];
+    assert(req.HasMember("PdcpHandoverControl"));
+
+    const Value& ho_control = req["PdcpHandoverControl"];
+
+    if (ho_control.HasMember("HandoverInit")) {
+      const Value& ho_init = ho_control["HandoverInit"];
+      assert(ho_init.HasMember("SourceCellId"));
+      const Value& ho_source_cellid = ho_init["SourceCellId"];
+    }
+
+    // send confirm
+    if (ttcn3_helpers::requires_confirm(document)) {
+      std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "PdcpHandoverControl");
+
+      log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
+      send((const uint8_t*)resp.c_str(), resp.length());
     }
   }
 

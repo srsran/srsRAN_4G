@@ -366,6 +366,16 @@ public:
     return config_flag.GetBool();
   }
 
+  static std::string get_cell_name(Document& document)
+  {
+    const Value& a = document["Common"];
+
+    assert(a.HasMember("CellId"));
+    const Value& cell_id = a["CellId"];
+
+    return cell_id.GetString();
+  }
+
   static timing_info_t get_timing_info(Document& document)
   {
     timing_info_t timing = {};
