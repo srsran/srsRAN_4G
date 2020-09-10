@@ -306,8 +306,11 @@ private:
   asn1::rrc::rrc_conn_recfg_r8_ies_s recfg_r8;
 
   // state
-  uint32_t target_earfcn;
-  bool     sec_cfg_failed = false;
+  phy_interface_rrc_lte::phy_cell_t target_cell;
+
+  // helper to revert security config of source cell
+  void reset_security_config();
+
   enum state_t { launch_phy_cell_select, wait_phy_cell_select_complete, wait_ra_completion } state;
 };
 

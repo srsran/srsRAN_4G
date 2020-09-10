@@ -1346,26 +1346,26 @@ rrc::ho_proc::ho_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
 srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
 {
   Info("Starting...\n");
-  sec_cfg_failed                            = false;
   recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
-
-  if (mob_ctrl_info->target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
-    rrc_ptr->rrc_log->console("Warning: Received HO command to own cell\n");
-    Warning("Received HO command to own cell\n");
-    rrc_ptr->con_reconfig_failed();
-    return proc_outcome_t::error;
-  }
 
   Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
   rrc_ptr->rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
                             mob_ctrl_info->target_pci,
                             recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
-  target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
-                                                        : rrc_ptr->meas_cells.serving_cell().get_earfcn();
+  uint32_t target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
+                                                                 : rrc_ptr->meas_cells.serving_cell().get_earfcn();
 
-  if (not rrc_ptr->has_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci)) {
+  // Target cell shall be either serving cell (intra-cell HO) or neighbour cell
+  if (rrc_ptr->has_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci)) {
+    // target cell is neighbour cell
+    target_cell =
+        rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci)->phy_cell;
+  } else if (recfg_r8.mob_ctrl_info.target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
+    // intra-cell HO, target cell is current serving cell
+    target_cell = rrc_ptr->get_serving_cell()->phy_cell;
+  } else {
     rrc_ptr->rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
     Error("Could not find target cell earfcn=%d, pci=%d\n",
           rrc_ptr->meas_cells.serving_cell().get_earfcn(),
@@ -1395,24 +1395,16 @@ srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
     Warning("Received unexpected PHY Cell Selection event\n");
     return proc_outcome_t::yield;
   }
-  // Check if cell has not been deleted in the meantime
-  cell_t* target_cell = rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
-  if (target_cell == nullptr) {
-    Error("Cell removed from list of neighbours. Aborting handover preparation\n");
-    return proc_outcome_t::error;
-  }
 
   if (not cs_ret) {
-    Error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
-          target_cell->to_string().c_str(),
+    Error("Could not synchronize with target PCI=%d on EARFCN=%d. Removing cell and trying to return to source %s\n",
+          target_cell.pci,
+          target_cell.earfcn,
           rrc_ptr->meas_cells.serving_cell().to_string().c_str());
-
-    // Remove cell from list to avoid cell re-selection, picking the same cell
-    target_cell->set_rsrp(-INFINITY);
     return proc_outcome_t::error;
   }
 
-  rrc_ptr->set_serving_cell(target_cell->phy_cell, false);
+  rrc_ptr->set_serving_cell(target_cell, false);
 
   // Extract and apply scell config if any
   rrc_ptr->task_sched.enqueue_background_task([this](uint32_t wid) {
@@ -1435,9 +1427,8 @@ srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
         auto& sec_intralte = recfg_r8.security_cfg_ho.handov_type.intra_lte();
         ncc                = sec_intralte.next_hop_chaining_count;
         if (sec_intralte.key_change_ind) {
-          rrc_ptr->rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
-          sec_cfg_failed = true;
-          return;
+          // update Kenb based on fresh Kasme taken from previous successful NAS SMC
+          rrc_ptr->generate_as_keys();
         }
         if (sec_intralte.security_algorithm_cfg_present) {
           rrc_ptr->sec_cfg.cipher_algo =
@@ -1494,9 +1485,6 @@ srslte::proc_outcome_t rrc::ho_proc::step()
       rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded, true);
     }
 
-    cell_t* target_cell =
-        rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
-
     // if the RRCConnectionReconfiguration message includes the measConfig:
     if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
       Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
@@ -1506,10 +1494,10 @@ srslte::proc_outcome_t rrc::ho_proc::step()
     // perform the measurement related actions as specified in 5.5.6.1;
     rrc_ptr->measurements->ho_reest_actions(ho_src_cell.get_earfcn(), rrc_ptr->get_serving_cell()->get_earfcn());
 
-    Info("Starting cell selection of target cell %s\n", target_cell->to_string().c_str());
+    Info("Starting cell selection of target cell PCI=%d on EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
 
-    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell->phy_cell, rrc_ptr->ho_handler)) {
-      Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
+    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell, rrc_ptr->ho_handler)) {
+      Error("Failed to launch the selection of target cell PCI=%d on EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
       return proc_outcome_t::error;
     }
     state = wait_phy_cell_select_complete;
@@ -1519,7 +1507,13 @@ srslte::proc_outcome_t rrc::ho_proc::step()
 
 srslte::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
 {
-  Info("HO preparation timed out.\n");
+  Info("HO preparation timed out. Reverting RRC security config from source cell.\n");
+
+  // revert security settings from source cell for reestablishment according to Sec 5.3.7.4
+  rrc_ptr->generate_as_keys();
+
+  rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
+
   return proc_outcome_t::error;
 }
 
@@ -1529,15 +1523,14 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     Warning("Received unexpected RA Complete Event\n");
     return proc_outcome_t::yield;
   }
-  bool ho_successful = ev.success and not sec_cfg_failed;
 
-  if (ho_successful) {
+  if (ev.success) {
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
     rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
   }
 
-  return ho_successful ? proc_outcome_t::success : proc_outcome_t::error;
+  return ev.success ? proc_outcome_t::success : proc_outcome_t::error;
 }
 
 void rrc::ho_proc::then(const srslte::proc_state_t& result)

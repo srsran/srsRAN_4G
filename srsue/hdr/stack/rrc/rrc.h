@@ -203,6 +203,7 @@ private:
   srslte::mac_cfg_t current_mac_cfg, previous_mac_cfg = {};
   bool              current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
 
+  void                         generate_as_keys();
   srslte::as_security_config_t sec_cfg = {};
 
   std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;

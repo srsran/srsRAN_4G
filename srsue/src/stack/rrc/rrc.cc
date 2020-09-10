@@ -168,7 +168,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
 {
   m.state = state;
   // Save strongest cells metrics
-  for (unique_cell_t& c : meas_cells) {
+  for (auto& c : meas_cells) {
     rrc_interface_phy_lte::phy_meas_t meas = {};
     meas.cfo_hz                            = c->get_cfo_hz();
     meas.earfcn                            = c->get_earfcn();
@@ -470,7 +470,7 @@ void rrc::cell_reselection(float rsrp, float rsrq)
   // TODO: Inter-frequency cell reselection
 }
 
-// Set new serving cell
+// Set serving cell
 void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
 {
   meas_cells.set_serving_cell(phy_cell, discard_serving);
@@ -1592,15 +1592,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
                     integrity_algorithm_id_text[sec_cfg.integ_algo]);
 
       // Generate AS security keys
-      uint8_t k_asme[32];
-      nas->get_k_asme(k_asme, 32);
-      rrc_log->debug_hex(k_asme, 32, "UE K_asme");
-      rrc_log->debug("Generating K_enb with UL NAS COUNT: %d\n", nas->get_k_enb_count());
-      usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
-      rrc_log->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
-      rrc_log->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
-      rrc_log->info_hex(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");
-
+      generate_as_keys();
       security_is_activated = true;
 
       // Configure PDCP for security
@@ -1626,6 +1618,19 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       rrc_log->error("The provided DL-CCCH message type is not recognized or supported\n");
       break;
   }
+}
+
+// Security helper used by Security Mode Command and Mobility handling routines
+void rrc::generate_as_keys(void)
+{
+  uint8_t k_asme[32] = {};
+  nas->get_k_asme(k_asme, 32);
+  rrc_log->debug_hex(k_asme, 32, "UE K_asme");
+  rrc_log->debug("Generating K_enb with UL NAS COUNT: %d\n", nas->get_k_enb_count());
+  usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
+  rrc_log->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
+  rrc_log->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
+  rrc_log->info_hex(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");
 }
 
 /*******************************************************************************

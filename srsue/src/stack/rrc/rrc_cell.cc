@@ -331,6 +331,11 @@ bool meas_cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
 
 int meas_cell_list::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
 {
+  // don't update neighbor cell list unless serving cell changes
+  if (phy_cell.pci == serving_cell().get_pci() && phy_cell.earfcn == serving_cell().get_earfcn()) {
+    return SRSLTE_SUCCESS;
+  }
+
   // Remove future serving cell from neighbours to make space for current serving cell
   unique_cell_t new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
   if (new_serving_cell == nullptr) {
