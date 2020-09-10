@@ -26,6 +26,7 @@
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
+#include "swappable_log.h"
 #include "ttcn3_common.h"
 #include "ttcn3_drb_interface.h"
 #include "ttcn3_ip_ctrl_interface.h"
@@ -49,7 +50,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public srslte::pdu_queue::process_callback
 {
 public:
-  ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
+  ttcn3_syssim(swappable_log& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
 
   ~ttcn3_syssim();
 
@@ -225,19 +226,19 @@ private:
   epoll_signal_handler               signal_handler;
 
   // Logging stuff
-  srslte::logger&         logger_stdout;
-  std::unique_ptr<logger> test_case_logger;
-  srslte::logger*         logger_ptr = nullptr;
-  srslte::log_ref         log;
-  srslte::log_filter      ut_log;
-  srslte::log_filter      sys_log;
-  srslte::log_filter      ip_sock_log;
-  srslte::log_filter      ip_ctrl_log;
-  srslte::log_filter      srb_log;
-  srslte::log_filter      drb_log;
-  srslte::log_ref         ss_mac_log{"SS-MAC"};
-  srslte::log_ref         ss_rlc_log{"SS-RLC"};
-  srslte::log_ref         ss_pdcp_log{"SS-PDCP"};
+  srslte::logger&    logger_stdout;
+  swappable_log&     logger_file;
+  srslte::logger*    logger = nullptr;
+  srslte::log_ref    log;
+  srslte::log_filter ut_log;
+  srslte::log_filter sys_log;
+  srslte::log_filter ip_sock_log;
+  srslte::log_filter ip_ctrl_log;
+  srslte::log_filter srb_log;
+  srslte::log_filter drb_log;
+  srslte::log_ref    ss_mac_log{"SS-MAC"};
+  srslte::log_ref    ss_rlc_log{"SS-RLC"};
+  srslte::log_ref    ss_pdcp_log{"SS-PDCP"};
 
   all_args_t args = {};
 

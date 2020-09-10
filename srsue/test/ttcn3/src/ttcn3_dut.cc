@@ -20,10 +20,10 @@
  */
 
 #include "srslte/build_info.h"
-#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/ue.h"
+#include "swappable_log.h"
 #include "ttcn3_syssim.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
   if (!file_chan) {
     return SRSLTE_ERROR;
   }
-  srslog::sink*        stdout_sink = srslog::create_stdout_sink();
+  srslog::sink* stdout_sink = srslog::create_stdout_sink();
   if (!stdout_sink) {
     return SRSLTE_ERROR;
   }
@@ -137,8 +137,9 @@ int main(int argc, char** argv)
   if (!stdout_chan) {
     return SRSLTE_ERROR;
   }
+
+  swappable_log          file_wrapper(std::unique_ptr<srslte::srslog_wrapper>(new srslte::srslog_wrapper(*file_chan)));
   srslte::srslog_wrapper stdout_wrapper(*stdout_chan);
-  srslte::srslog_wrapper file_wrapper(*file_chan);
 
   // Start the log backend.
   srslog::init();
