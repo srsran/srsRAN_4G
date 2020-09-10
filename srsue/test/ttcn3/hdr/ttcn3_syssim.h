@@ -259,8 +259,8 @@ private:
   bool                    last_ul_ndi[SRSLTE_FDD_NOF_HARQ] = {};
 
   // For events/actions that need to be carried out in a specific TTI
-  typedef std::vector<move_task_t>              task_list_t;
-  typedef std::map<const uint32_t, task_list_t> tti_action_map_t;
+  typedef std::queue<move_task_t>                task_queue_t;
+  typedef std::map<const uint32_t, task_queue_t> tti_action_map_t;
   tti_action_map_t                              tti_actions;
 
   // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct

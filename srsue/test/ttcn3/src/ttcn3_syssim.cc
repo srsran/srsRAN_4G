@@ -210,9 +210,9 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
   if (tti_actions.find(tti) != tti_actions.end()) {
     while (!tti_actions[tti].empty()) {
       log->debug("Running scheduled action\n");
-      move_task_t task = std::move(tti_actions[tti].back());
+      move_task_t task = std::move(tti_actions[tti].front());
       task();
-      tti_actions[tti].pop_back();
+      tti_actions[tti].pop();
     }
   }
 
@@ -764,7 +764,7 @@ void ttcn3_syssim::set_cell_config(const ttcn3_helpers::timing_info_t timing, co
     set_cell_config_impl(cell);
   } else {
     log->debug("Scheduling Cell configuration of %s for TTI=%d\n", cell.name.c_str(), timing.tti);
-    tti_actions[timing.tti].push_back([this, cell]() { set_cell_config_impl(cell); });
+    tti_actions[timing.tti].push([this, cell]() { set_cell_config_impl(cell); });
   }
 }
 
@@ -827,7 +827,7 @@ void ttcn3_syssim::set_cell_attenuation(const ttcn3_helpers::timing_info_t timin
     set_cell_attenuation_impl(cell_name, value);
   } else {
     log->debug("Scheduling Cell attenuation reconfiguration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
-    tti_actions[timing.tti].push_back([this, cell_name, value]() { set_cell_attenuation_impl(cell_name, value); });
+    tti_actions[timing.tti].push([this, cell_name, value]() { set_cell_attenuation_impl(cell_name, value); });
   }
 }
 
@@ -889,7 +889,7 @@ void ttcn3_syssim::add_ccch_pdu(const ttcn3_helpers::timing_info_t timing,
   } else {
     log->debug("Scheduling CCCH PDU for TTI=%d\n", timing.tti);
     auto task = [this, cell_name](srslte::unique_byte_buffer_t& pdu) { add_ccch_pdu_impl(cell_name, std::move(pdu)); };
-    tti_actions[timing.tti].push_back(std::bind(task, std::move(pdu)));
+    tti_actions[timing.tti].push(std::bind(task, std::move(pdu)));
   }
 }
 
@@ -918,7 +918,7 @@ void ttcn3_syssim::add_dcch_pdu(const ttcn3_helpers::timing_info_t timing,
     auto task = [this, cell_name](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) {
       add_dcch_pdu_impl(cell_name, lcid, std::move(pdu), follow_on_flag);
     };
-    tti_actions[timing.tti].push_back(std::bind(task, lcid, std::move(pdu), follow_on_flag));
+    tti_actions[timing.tti].push(std::bind(task, lcid, std::move(pdu), follow_on_flag));
   }
 }
 
@@ -969,7 +969,7 @@ void ttcn3_syssim::add_srb(const ttcn3_helpers::timing_info_t timing,
     add_srb_impl(cell_name, lcid, pdcp_config);
   } else {
     log->debug("Scheduling SRB%d addition for TTI=%d\n", lcid, timing.tti);
-    tti_actions[timing.tti].push_back(
+    tti_actions[timing.tti].push(
         [this, cell_name, lcid, pdcp_config]() { add_srb_impl(cell_name, lcid, pdcp_config); });
   }
 }
@@ -1008,7 +1008,7 @@ void ttcn3_syssim::del_srb(const ttcn3_helpers::timing_info_t timing, const std:
     del_srb_impl(cell_name, lcid);
   } else {
     log->debug("Scheduling SRB%d deletion for TTI=%d\n", lcid, timing.tti);
-    tti_actions[timing.tti].push_back([this, cell_name, lcid]() { del_srb_impl(cell_name, lcid); });
+    tti_actions[timing.tti].push([this, cell_name, lcid]() { del_srb_impl(cell_name, lcid); });
   }
 }
 
@@ -1038,7 +1038,7 @@ void ttcn3_syssim::add_drb(const ttcn3_helpers::timing_info_t timing,
     add_drb_impl(cell_name, lcid, pdcp_config);
   } else {
     log->debug("Scheduling DRB%d addition for TTI=%d\n", lcid - 2, timing.tti);
-    tti_actions[timing.tti].push_back(
+    tti_actions[timing.tti].push(
         [this, cell_name, lcid, pdcp_config]() { add_drb_impl(cell_name, lcid, pdcp_config); });
   }
 }
@@ -1065,7 +1065,7 @@ void ttcn3_syssim::del_drb(const ttcn3_helpers::timing_info_t timing, const std:
     del_drb_impl(cell_name, lcid);
   } else {
     log->debug("Scheduling DRB%d deletion for TTI=%d\n", lcid - 2, timing.tti);
-    tti_actions[timing.tti].push_back([this, cell_name, lcid]() { del_drb_impl(cell_name, lcid); });
+    tti_actions[timing.tti].push([this, cell_name, lcid]() { del_drb_impl(cell_name, lcid); });
   }
 }
 
@@ -1182,7 +1182,7 @@ void ttcn3_syssim::set_as_security(const ttcn3_helpers::timing_info_t        tim
     set_as_security_impl(cell_name, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
   } else {
     log->debug("Scheduling AS security configuration for TTI=%d\n", timing.tti);
-    tti_actions[timing.tti].push_back(
+    tti_actions[timing.tti].push(
         [this, cell_name, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_]() {
           set_as_security_impl(cell_name, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
         });
@@ -1229,7 +1229,7 @@ void ttcn3_syssim::release_as_security(const ttcn3_helpers::timing_info_t timing
     release_as_security_impl(cell_name);
   } else {
     log->debug("Scheduling Release of AS security for TTI=%d\n", timing.tti);
-    tti_actions[timing.tti].push_back([this, cell_name]() { release_as_security_impl(cell_name); });
+    tti_actions[timing.tti].push([this, cell_name]() { release_as_security_impl(cell_name); });
   }
 }
 
