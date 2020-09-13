@@ -104,15 +104,20 @@ private:
          ++itr) {
       assert(itr->HasMember("PduSduList"));
       assert((*itr)["PduSduList"].IsObject());
-      assert((*itr)["PduSduList"].HasMember("PdcpSdu"));
-      assert((*itr)["PduSduList"]["PdcpSdu"].IsArray());
-      const Value& sdulist = (*itr)["PduSduList"]["PdcpSdu"];
-      for (Value::ConstValueIterator sdu_itr = sdulist.Begin(); sdu_itr != sdulist.End(); ++sdu_itr) {
-        assert(sdu_itr->IsString());
-        string              sdustr = sdu_itr->GetString();
-        asn1::dyn_octstring octstr(sdustr.size());
-        octstr.from_string(sdustr);
-        handle_sdu(document, lcid, octstr.data(), octstr.size(), ttcn3_helpers::get_follow_on_flag(document));
+      if ((*itr)["PduSduList"].HasMember("PdcpSdu")) {
+        assert((*itr)["PduSduList"]["PdcpSdu"].IsArray());
+        const Value& sdulist = (*itr)["PduSduList"]["PdcpSdu"];
+        for (Value::ConstValueIterator sdu_itr = sdulist.Begin(); sdu_itr != sdulist.End(); ++sdu_itr) {
+          assert(sdu_itr->IsString());
+          string              sdustr = sdu_itr->GetString();
+          asn1::dyn_octstring octstr(sdustr.size());
+          octstr.from_string(sdustr);
+          handle_sdu(document, lcid, octstr.data(), octstr.size(), ttcn3_helpers::get_follow_on_flag(document));
+        }
+      } else if ((*itr)["PduSduList"].HasMember("MacPdu")) {
+        log->warning("Not handling MacPdu type.");
+      } else {
+        log->warning("Not handling this PduSdu type.\n");
       }
     }
 

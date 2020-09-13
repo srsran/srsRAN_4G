@@ -374,11 +374,13 @@ private:
         const Value& config = (*itr)["Config"];
         if (config.HasMember("AddOrReconfigure")) {
           const Value& aor  = config["AddOrReconfigure"];
-          uint32_t     lcid = aor["LogicalChannelId"].GetInt();
-          if (lcid > 0) {
-            pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
-            syssim->add_drb(
-                ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid, pdcp_cfg);
+          if (aor.HasMember("LogicalChannelId")) {
+            uint32_t lcid = aor["LogicalChannelId"].GetInt();
+            if (lcid > 0) {
+              pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
+              syssim->add_drb(
+                  ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid, pdcp_cfg);
+            }
           }
         } else if (config.HasMember("Release")) {
           uint32_t lcid = id["Drb"].GetInt() + 2;
