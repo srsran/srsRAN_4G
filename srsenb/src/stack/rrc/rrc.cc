@@ -1798,15 +1798,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   phy_cfg->pdsch_cfg_ded_present = true;
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
-  // Configure 256QAM
-  if (ue_capabilities.category_dl >= 11 && ue_capabilities.support_dl_256qam) {
-    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
-    cqi_report_cfg_v1250_s* cqi_report_cfg    = conn_reconf->rr_cfg_ded.phys_cfg_ded.cqi_report_cfg_pcell_v1250.get();
-    cqi_report_cfg->alt_cqi_table_r12_present = true;
-    cqi_report_cfg->alt_cqi_table_r12         = asn1::rrc::cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::all_sfs;
-    current_sched_ue_cfg.use_tbs_index_alt    = true;
-  }
-
   // Add SCells
   if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
     parent->rrc_log->warning("Could not create configuration for Scell\n");
@@ -2002,14 +1993,6 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
     ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
     ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
-
-    // Add 256QAM
-    if (ue_capabilities.category_dl >= 11 && ue_capabilities.support_dl_256qam) {
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250.set_present(true);
-      auto cqi_report_cfg_scell = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250.get();
-      cqi_report_cfg_scell->alt_cqi_table_r12_present = true;
-      cqi_report_cfg_scell->alt_cqi_table_r12 = asn1::rrc::cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::all_sfs;
-    }
 
     // Get CQI allocation for secondary cell
     auto& cqi_setup = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
