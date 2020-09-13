@@ -1,6 +1,10 @@
 Change Log for Releases
 =======================
 
+## 20.04.2
+  * Fix attach issue for some newer phones due to wrong CQI config
+    in RRC Connection Reconfiguration message by turning off QAM256 support
+
 ## 20.04.1
   * Fix for UE MIMO segfault issue
   * Fix for eNodeB SR configuration
