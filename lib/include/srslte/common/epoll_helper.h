@@ -118,14 +118,18 @@ inline int create_tti_timer()
   return timer_fd;
 }
 
-///< Create signalfd for handling signals
-inline int add_signalfd()
+///< Blocks all signals from the calling thread
+inline void block_signals()
 {
   // block all signals. we take signals synchronously via signalfd
   sigset_t all;
   sigfillset(&all);
-  sigprocmask(SIG_SETMASK, &all, NULL);
+  pthread_sigmask(SIG_BLOCK, &all, NULL);
+}
 
+///< Create signalfd for handling signals
+inline int add_signalfd()
+{
   // add signals we accept synchronously via signalfd
   std::vector<int> sigs = {SIGIO, SIGHUP, SIGTERM, SIGINT, SIGQUIT, SIGALRM};
 
