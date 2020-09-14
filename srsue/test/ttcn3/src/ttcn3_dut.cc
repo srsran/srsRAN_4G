@@ -117,6 +117,9 @@ int main(int argc, char** argv)
 {
   std::cout << "Built in " << srslte_get_build_mode() << " mode using " << srslte_get_build_info() << "." << std::endl;
 
+  // we handle OS signals through epoll
+  block_signals();
+
   ttcn3_dut_args_t dut_args = {};
   all_args_t       ue_args  = parse_args(&dut_args, argc, argv);
 
