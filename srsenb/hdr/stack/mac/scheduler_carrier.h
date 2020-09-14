@@ -65,10 +65,6 @@ private:
   std::unique_ptr<metric_ul>    ul_metric;
   const uint32_t                enb_cc_idx;
 
-  // derived from args
-  prbmask_t prach_mask;
-  prbmask_t pucch_mask;
-
   // Subframe scheduling logic
   std::array<sf_sched, TTIMOD_SZ> sf_scheds;
 

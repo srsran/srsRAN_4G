@@ -297,15 +297,6 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
   ul_metric.reset(new srsenb::ul_metric_rr{});
   ul_metric->set_params(*cc_cfg);
 
-  // Setup constant PUCCH/PRACH mask
-  pucch_mask.resize(cc_cfg->nof_prb());
-  if (cc_cfg->cfg.nrb_pucch > 0) {
-    pucch_mask.fill(0, (uint32_t)cc_cfg->cfg.nrb_pucch);
-    pucch_mask.fill(cc_cfg->nof_prb() - cc_cfg->cfg.nrb_pucch, cc_cfg->nof_prb());
-  }
-  prach_mask.resize(cc_cfg->nof_prb());
-  prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
-
   // Initiate the tti_scheduler for each TTI
   for (sf_sched& tti_sched : sf_scheds) {
     tti_sched.init(*cc_cfg);
@@ -391,17 +382,6 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
 
 int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 {
-  uint32_t tti_tx_ul = tti_sched->get_tti_tx_ul();
-
-  /* reserve PRBs for PRACH */
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_tx_ul, -1)) {
-    tti_sched->reserve_ul_prbs(prach_mask, false);
-    log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
-  }
-
-  /* reserve PRBs for PUCCH */
-  tti_sched->reserve_ul_prbs(pucch_mask, cc_cfg->nof_prb() != 6);
-
   /* Call scheduler for UL data */
   ul_metric->sched_users(*ue_db, tti_sched);
 

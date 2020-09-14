@@ -326,6 +326,7 @@ private:
   const sched_cell_params_t* cc_cfg = nullptr;
   srslte::log_ref            log_h;
   sf_sched_result*           cc_results; ///< Results of other CCs for the same Subframe
+  prbmask_t                  pucch_mask;
 
   // internal state
   sf_grid_t                tti_alloc;

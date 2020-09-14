@@ -570,6 +570,12 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
   cc_cfg = &cell_params_;
   tti_alloc.init(*cc_cfg);
   max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
+
+  pucch_mask.resize(cc_cfg->nof_prb());
+  if (cc_cfg->cfg.nrb_pucch > 0) {
+    pucch_mask.fill(0, (uint32_t)cc_cfg->cfg.nrb_pucch);
+    pucch_mask.fill(cc_cfg->nof_prb() - cc_cfg->cfg.nrb_pucch, cc_cfg->nof_prb());
+  }
 }
 
 void sf_sched::new_tti(uint32_t tti_rx_, sf_sched_result* cc_results_)
@@ -583,6 +589,17 @@ void sf_sched::new_tti(uint32_t tti_rx_, sf_sched_result* cc_results_)
   tti_params = tti_params_t{tti_rx_};
   tti_alloc.new_tti(tti_params);
   cc_results = cc_results_;
+
+  // Reserve PRBs for PUCCH
+  reserve_ul_prbs(pucch_mask, true);
+
+  // Reserve PRBs for PRACH
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_params.tti_tx_ul, -1)) {
+    prbmask_t prach_mask{cc_cfg->nof_prb()};
+    prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
+    reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
+    log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
+  }
 
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
   last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
@@ -1043,7 +1060,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
   }
 
   // Check if UCI needs to be allocated
-  const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
+  const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
   for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size() and uci_alloc != UCI_PUSCH_ACK_CQI;
        ++enbccidx) {
     auto p = user->get_cell_index(enbccidx);
