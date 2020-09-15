@@ -185,8 +185,8 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
   }
 
   if (not s1ap_ptr->connect_mme()) {
-    procError("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
-              s1ap_ptr->mme_connect_timer.duration() / 1000);
+    procInfo("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
+             s1ap_ptr->mme_connect_timer.duration() / 1000);
     s1ap_ptr->s1ap_log->console("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
                                 s1ap_ptr->mme_connect_timer.duration() / 1000);
     s1ap_ptr->mme_connect_timer.run();
