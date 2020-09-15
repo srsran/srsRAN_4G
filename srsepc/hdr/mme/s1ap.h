@@ -74,6 +74,7 @@ public:
   void print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ctx);
 
   uint32_t   get_plmn();
+  uint16_t   get_tac();
   uint32_t   get_next_mme_ue_s1ap_id();
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
   void       add_new_enb_ctx(const enb_ctx_t& enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
@@ -147,6 +148,11 @@ private:
 inline uint32_t s1ap::get_plmn()
 {
   return m_plmn;
+}
+
+inline uint16_t s1ap::get_tac()
+{
+  return m_s1ap_args.tac;
 }
 
 } // namespace srsepc

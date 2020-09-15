@@ -86,11 +86,24 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
   // Log S1 Setup Request Info
   m_s1ap->print_enb_ctx_info(std::string("S1 Setup Request"), enb_ctx);
 
+  // Check for TAC match
+  bool tac_match = false;
+  for (uint8_t tac : enb_ctx.tacs) {
+    if (m_s1ap->get_tac() == tac) {
+      tac_match = true;
+      break;
+    }
+  }
+
   // Check matching PLMNs
   if (enb_ctx.plmn != m_s1ap->get_plmn()) {
     m_s1ap_log->console("Sending S1 Setup Failure - Unknown PLMN\n");
     m_s1ap_log->warning("Sending S1 Setup Failure - Unknown PLMN\n");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unknown_plmn, enb_sri);
+  } else if (!tac_match) {
+    m_s1ap_log->console("Sending S1 Setup Failure - No matching TAC\n");
+    m_s1ap_log->warning("Sending S1 Setup Failure - No matching TAC\n");
+    send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unspecified, enb_sri);
   } else {
     enb_ctx_t* enb_ptr = m_s1ap->find_enb_ctx(enb_ctx.enb_id);
     if (enb_ptr != nullptr) {
@@ -145,9 +158,9 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request
   for (uint16_t i = 0; i < enb_ctx->nof_supported_ta; i++) {
     const asn1::s1ap::supported_tas_item_s& tas = s1_req.supported_tas.value[i];
     // TAC
-    ((uint8_t*)&enb_ctx->tac[i])[0]  = tas.tac[0];
-    ((uint8_t*)&enb_ctx->tac[i])[1]  = tas.tac[1];
-    enb_ctx->tac[i]                  = ntohs(enb_ctx->tac[i]);
+    ((uint8_t*)&enb_ctx->tacs[i])[0] = tas.tac[0];
+    ((uint8_t*)&enb_ctx->tacs[i])[1] = tas.tac[1];
+    enb_ctx->tacs[i]                 = ntohs(enb_ctx->tacs[i]);
     enb_ctx->nof_supported_bplmns[i] = tas.broadcast_plmns.size();
     for (uint32_t j = 0; j < tas.broadcast_plmns.size(); j++) {
       // BPLMNs

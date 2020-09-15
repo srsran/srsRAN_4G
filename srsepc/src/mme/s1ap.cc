@@ -582,12 +582,11 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
   srslte::mcc_to_string(enb_ctx.mcc, &mcc_str);
   srslte::mnc_to_string(enb_ctx.mnc, &mnc_str);
   m_s1ap_log->info("%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
-  m_s1ap_log->console(
-      "%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
+  m_s1ap_log->console("%s - MCC:%s, MNC:%s\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str());
   for (int i = 0; i < enb_ctx.nof_supported_ta; i++) {
     for (int j = 0; i < enb_ctx.nof_supported_ta; i++) {
-      m_s1ap_log->info("%s - TAC %d, B-PLMN %d\n", prefix.c_str(), enb_ctx.tac[i], enb_ctx.bplmns[i][j]);
-      m_s1ap_log->console("%s - TAC %d, B-PLMN %d\n", prefix.c_str(), enb_ctx.tac[i], enb_ctx.bplmns[i][j]);
+      m_s1ap_log->info("%s - TAC %d, B-PLMN 0x%x\n", prefix.c_str(), enb_ctx.tacs[i], enb_ctx.bplmns[i][j]);
+      m_s1ap_log->console("%s - TAC %d, B-PLMN 0x%x\n", prefix.c_str(), enb_ctx.tacs[i], enb_ctx.bplmns[i][j]);
     }
   }
   m_s1ap_log->console("%s - Paging DRX %s\n", prefix.c_str(), enb_ctx.drx.to_string().c_str());

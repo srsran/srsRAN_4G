@@ -58,9 +58,9 @@ typedef struct {
   uint16_t                                            mcc, mnc;
   uint32_t                                            plmn;
   uint8_t                                             nof_supported_ta;
-  std::array<uint8_t, MAX_TA>                         tac;
+  std::array<uint16_t, MAX_TA>                        tacs;
   std::array<uint16_t, MAX_BPLMN>                     nof_supported_bplmns;
-  std::array<std::array<uint16_t, MAX_BPLMN>, MAX_TA> bplmns;
+  std::array<std::array<uint32_t, MAX_BPLMN>, MAX_TA> bplmns;
   asn1::s1ap::paging_drx_opts                         drx;
   struct sctp_sndrcvinfo                              sri;
 } enb_ctx_t;
