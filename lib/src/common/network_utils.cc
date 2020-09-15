@@ -32,6 +32,8 @@
 
 namespace srslte {
 
+const char* LOGSERVICE = "COMN";
+
 namespace net_utils {
 
 //! Set IP:port for ipv4
@@ -111,7 +113,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
 {
   int fd = socket((int)ip_type, (int)socket_type, (int)protocol);
   if (fd == -1) {
-    srslte::logmap::get("COMMON")->error("Failed to open %s socket.\n", net_utils::protocol_to_string(protocol));
+    srslte::logmap::get(LOGSERVICE)->error("Failed to open %s socket.\n", net_utils::protocol_to_string(protocol));
     perror("Could not create socket\n");
     return -1;
   }
@@ -123,7 +125,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
     evnts.sctp_data_io_event          = 1;
     evnts.sctp_shutdown_event         = 1;
     if (setsockopt(fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
-      srslte::logmap::get("COMMON")->error("Failed to subscribe to SCTP_SHUTDOWN event: %s\n", strerror(errno));
+      srslte::logmap::get(LOGSERVICE)->error("Failed to subscribe to SCTP_SHUTDOWN event: %s\n", strerror(errno));
       perror("setsockopt");
     }
   }
@@ -134,13 +136,13 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
 bool bind_addr(int fd, const sockaddr_in& addr_in)
 {
   if (fd < 0) {
-    srslte::logmap::get("COMMON")->error("Trying to bind to a closed socket\n");
+    srslte::logmap::get(LOGSERVICE)->error("Trying to bind to a closed socket\n");
     return false;
   }
 
   if (bind(fd, (struct sockaddr*)&addr_in, sizeof(addr_in)) != 0) {
-    srslte::logmap::get("COMMON")->error(
-        "Failed to bind on address %s: %s errno %d\n", get_ip(addr_in).c_str(), strerror(errno), errno);
+    srslte::logmap::get(LOGSERVICE)
+        ->error("Failed to bind on address %s: %s errno %d\n", get_ip(addr_in).c_str(), strerror(errno), errno);
     perror("bind()");
     return false;
   }
@@ -151,7 +153,7 @@ bool bind_addr(int fd, const char* bind_addr_str, int port, sockaddr_in* addr_re
 {
   sockaddr_in addr_tmp{};
   if (not net_utils::set_sockaddr(&addr_tmp, bind_addr_str, port)) {
-    srslte::logmap::get("COMMON")->error("Failed to convert IP address (%s) to sockaddr_in struct\n", bind_addr_str);
+    srslte::logmap::get(LOGSERVICE)->error("Failed to convert IP address (%s) to sockaddr_in struct\n", bind_addr_str);
     return false;
   }
   bind_addr(fd, addr_tmp);
@@ -164,19 +166,20 @@ bool bind_addr(int fd, const char* bind_addr_str, int port, sockaddr_in* addr_re
 bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr)
 {
   if (fd < 0) {
-    srslte::logmap::get("COMMON")->error("tried to connect to remote address with an invalid socket.\n");
+    srslte::logmap::get(LOGSERVICE)->error("tried to connect to remote address with an invalid socket.\n");
     return false;
   }
   sockaddr_in sockaddr_tmp{};
   if (not net_utils::set_sockaddr(&sockaddr_tmp, dest_addr_str, dest_port)) {
-    srslte::logmap::get("COMMON")->error("Error converting IP address (%s) to sockaddr_in structure\n", dest_addr_str);
+    srslte::logmap::get(LOGSERVICE)
+        ->error("Error converting IP address (%s) to sockaddr_in structure\n", dest_addr_str);
     return false;
   }
   if (dest_sockaddr != nullptr) {
     *dest_sockaddr = sockaddr_tmp;
   }
   if (connect(fd, (const struct sockaddr*)&sockaddr_tmp, sizeof(sockaddr_tmp)) == -1) {
-    srslte::logmap::get("COMMON")->error("Failed to establish socket connection to %s\n", dest_addr_str);
+    srslte::logmap::get(LOGSERVICE)->info("Failed to establish socket connection to %s\n", dest_addr_str);
     perror("connect()");
     return false;
   }
@@ -241,7 +244,7 @@ bool socket_handler_t::open_socket(net_utils::addr_family   ip_type,
                                    net_utils::protocol_type protocol)
 {
   if (sockfd >= 0) {
-    srslte::logmap::get("COMMON")->error("Socket is already open.\n");
+    srslte::logmap::get(LOGSERVICE)->error("Socket is already open.\n");
     return false;
   }
   sockfd = net_utils::open_socket(ip_type, socket_type, protocol);
@@ -278,7 +281,7 @@ bool sctp_init_server(socket_handler_t* socket, net_utils::socket_type socktype,
   }
   // Listen for connections
   if (listen(socket->fd(), SOMAXCONN) != 0) {
-    srslte::logmap::get("COMMON")->error("Failed to listen to incoming SCTP connections\n");
+    srslte::logmap::get(LOGSERVICE)->error("Failed to listen to incoming SCTP connections\n");
     return false;
   }
   return true;
@@ -299,7 +302,7 @@ bool tcp_make_server(socket_handler_t* socket, const char* bind_addr_str, int po
   }
   // Listen for connections
   if (listen(socket->fd(), nof_connections) != 0) {
-    srslte::logmap::get("COMMON")->error("Failed to listen to incoming TCP connections\n");
+    srslte::logmap::get(LOGSERVICE)->error("Failed to listen to incoming TCP connections\n");
     return false;
   }
   return true;
@@ -310,7 +313,7 @@ int tcp_accept(socket_handler_t* socket, sockaddr_in* destaddr)
   socklen_t clilen = sizeof(destaddr);
   int       connfd = accept(socket->fd(), (struct sockaddr*)&destaddr, &clilen);
   if (connfd < 0) {
-    srslte::logmap::get("COMMON")->error("Failed to accept connection\n");
+    srslte::logmap::get(LOGSERVICE)->error("Failed to accept connection\n");
     perror("accept");
     return -1;
   }
@@ -321,12 +324,12 @@ int tcp_read(int remotefd, void* buf, size_t nbytes)
 {
   int n = ::read(remotefd, buf, nbytes);
   if (n == 0) {
-    srslte::logmap::get("COMMON")->info("TCP connection closed\n");
+    srslte::logmap::get(LOGSERVICE)->info("TCP connection closed\n");
     close(remotefd);
     return 0;
   }
   if (n == -1) {
-    srslte::logmap::get("COMMON")->error("Failed to read from TCP socket.");
+    srslte::logmap::get(LOGSERVICE)->error("Failed to read from TCP socket.");
     perror("TCP read");
   }
   return n;
@@ -340,7 +343,7 @@ int tcp_send(int remotefd, const void* buf, size_t nbytes)
   while (nbytes_remaining > 0) {
     ssize_t i = ::send(remotefd, ptr, nbytes_remaining, 0);
     if (i < 1) {
-      srslte::logmap::get("COMMON")->error("Failed to send data to TCP socket\n");
+      srslte::logmap::get(LOGSERVICE)->error("Failed to send data to TCP socket\n");
       perror("Error calling send()\n");
       return i;
     }
@@ -612,7 +615,7 @@ void rx_multisocket_handler::run_thread()
       }
       bool socket_valid = callback->operator()(fd);
       if (not socket_valid) {
-        rxSockWarn("The socket fd=%d has been closed by peer\n", fd);
+        rxSockInfo("The socket fd=%d has been closed by peer\n", fd);
         remove_socket_unprotected(fd, &total_fd_set, &max_fd);
       }
     }
