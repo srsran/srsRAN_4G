@@ -101,6 +101,10 @@ public:
   char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
 #endif
 
+  struct buffer_metadata_t {
+    uint32_t pdcp_sn;
+  } md;
+
   byte_buffer_t() : N_bytes(0)
   {
     bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
@@ -116,6 +120,7 @@ public:
     msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     next = NULL;
     // copy actual contents
+    md      = buf.md;
     N_bytes = buf.N_bytes;
     memcpy(msg, buf.msg, N_bytes);
   }
@@ -128,6 +133,7 @@ public:
     msg     = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     next    = NULL;
     N_bytes = buf.N_bytes;
+    md      = buf.md;
     memcpy(msg, buf.msg, N_bytes);
     return *this;
   }
@@ -135,6 +141,7 @@ public:
   {
     msg     = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     N_bytes = 0;
+    md      = {};
 #ifdef ENABLE_TIMESTAMP
     timestamp_is_set = false;
 #endif

@@ -139,6 +139,13 @@ void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   }
 }
 
+void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
+  }
+}
+
 void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn)
 {
   if (users.count(rnti)) {

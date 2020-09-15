@@ -308,21 +308,14 @@ private:
 
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
-  byte_buffer_pool* pool = nullptr;
+  byte_buffer_pool*                     pool = nullptr;
 };
 
 class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public thread
 {
 public:
   rlc_tester(rlc_interface_pdcp* rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_) :
-    log("TEST"),
-    rlc(rlc_),
-    run_enable(true),
-    rx_pdus(),
-    name(name_),
-    args(args_),
-    lcid(lcid_),
-    thread("RLC_TESTER")
+    log("TEST"), rlc(rlc_), run_enable(true), rx_pdus(), name(name_), args(args_), lcid(lcid_), thread("RLC_TESTER")
   {
     log.set_level(srslte::LOG_LEVEL_ERROR);
     log.set_hex_limit(LOG_HEX_LIMIT);
@@ -351,6 +344,7 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
 
   // RRC interface
   void        max_retx_attempted() {}

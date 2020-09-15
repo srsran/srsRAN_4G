@@ -247,8 +247,8 @@ public:
   virtual uint32_t get_ipv4_addr()                                            = 0;
   virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
   virtual void
-               plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                                     int                                   nof_plmns)       = 0;
+  plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                        int                                   nof_plmns)                    = 0;
   virtual bool connection_request_completed(bool outcome) = 0;
 };
 
@@ -298,11 +298,12 @@ class pdcp_interface_rlc
 {
 public:
   /* RLC calls PDCP to push a PDCP PDU. */
-  virtual void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)     = 0;
-  virtual void write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)           = 0;
-  virtual void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)         = 0;
-  virtual void write_pdu_pcch(srslte::unique_byte_buffer_t sdu)               = 0;
-  virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+  virtual void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)           = 0;
+  virtual void write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)                 = 0;
+  virtual void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)               = 0;
+  virtual void write_pdu_pcch(srslte::unique_byte_buffer_t sdu)                     = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu)       = 0;
+  virtual void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) = 0;
 };
 
 class pdcp_interface_gw
@@ -630,8 +631,8 @@ public:
   } prach_info_t;
 
   virtual void
-                       prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
-  virtual prach_info_t prach_get_info() = 0;
+  prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
+  virtual prach_info_t prach_get_info()                                                                     = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send()        = 0;

@@ -18,6 +18,10 @@ add_executable(rlc_am_test rlc_am_test.cc)
 target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_am_test rlc_am_test)
 
+add_executable(rlc_am_notify_pdcp_test rlc_am_notify_pdcp_test.cc)
+target_link_libraries(rlc_am_notify_pdcp_test srslte_upper srslte_phy)
+add_test(rlc_am_notify_pdcp_test rlc_am_notify_pdcp_test)
+
 if (ENABLE_5GNR)
   add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
   target_link_libraries(rlc_am_nr_pdu_test srslte_upper srslte_phy)

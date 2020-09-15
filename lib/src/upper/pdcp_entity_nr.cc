@@ -106,12 +106,15 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
   // Append MAC-I
   append_mac(sdu, mac);
 
-  // Increment TX_NEXT
-  tx_next++;
+  // Set meta-data for RLC AM
+  sdu->md.pdcp_sn = tx_next;
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers
   rlc->write_sdu(lcid, std::move(sdu));
+
+  // Increment TX_NEXT
+  tx_next++;
 }
 
 // RLC interface
@@ -197,6 +200,12 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     rx_reord = rx_next;
     reordering_timer.run();
   }
+}
+
+// Notification of delivery
+void pdcp_entity_nr::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
+{
+  log->debug("Received delivery notification from RLC. Nof SNs=%ld\n", pdcp_sns.size());
 }
 
 /*

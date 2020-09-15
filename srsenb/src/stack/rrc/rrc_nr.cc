@@ -20,9 +20,7 @@ using namespace asn1::rrc_nr;
 namespace srsenb {
 
 rrc_nr::rrc_nr(srslte::timer_handler* timers_) :
-  m_log("RRC"),
-  pool(srslte::byte_buffer_pool::get_instance()),
-  timers(timers_)
+  m_log("RRC"), pool(srslte::byte_buffer_pool::get_instance()), timers(timers_)
 {}
 
 void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,

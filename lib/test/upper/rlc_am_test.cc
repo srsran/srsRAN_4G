@@ -57,6 +57,7 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& tx_count) {}
 
   // RRC interface
   void        max_retx_attempted() {}

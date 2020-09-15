@@ -136,6 +136,9 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
                 srslte_direction_text[integrity_direction],
                 srslte_direction_text[encryption_direction]);
 
+  // Set SDU metadata for RLC AM
+  sdu->md.pdcp_sn = st.next_pdcp_tx_sn;
+
   // Increment NEXT_PDCP_TX_SN and TX_HFN
   st.next_pdcp_tx_sn++;
   if (st.next_pdcp_tx_sn > maximum_pdcp_sn) {
@@ -302,7 +305,9 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
                last_submit_diff_sn,
                reordering_window);
     return; // Discard
-  } else if ((int32_t)(st.next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
+  }
+
+  if ((int32_t)(st.next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
     log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
     st.rx_hfn++;
     count              = (st.rx_hfn << cfg.sn_len) | sn;
@@ -332,6 +337,14 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 
   // Pass to upper layers
   gw->write_pdu(lcid, std::move(pdu));
+}
+
+/****************************************************************************
+ * Delivery notifications from RLC
+ ***************************************************************************/
+void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
+{
+  log->debug("Received delivery notification from RLC. Number of PDU notified=%ld\n", pdcp_sns.size());
 }
 
 /****************************************************************************

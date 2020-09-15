@@ -57,8 +57,8 @@ public:
   bool        get_metrics(srsenb::stack_metrics_t* metrics) final;
 
   // GW srsue stack_interface_gw dummy interface
-  bool is_registered(){return true;};
-  bool start_service_request(){return true;};
+  bool is_registered() { return true; };
+  bool start_service_request() { return true; };
 
   // PHY->MAC interface
   int sf_indication(const uint32_t tti);

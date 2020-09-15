@@ -110,7 +110,8 @@ public:
   virtual void write_sdu(unique_byte_buffer_t sdu) = 0;
 
   // RLC interface
-  virtual void write_pdu(unique_byte_buffer_t pdu) = 0;
+  virtual void write_pdu(unique_byte_buffer_t pdu)                    = 0;
+  virtual void notify_delivery(const std::vector<uint32_t>& tx_count) = 0;
 
   virtual void get_bearer_state(pdcp_lte_state_t* state)       = 0;
   virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;

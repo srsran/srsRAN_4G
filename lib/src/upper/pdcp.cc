@@ -282,6 +282,15 @@ void pdcp::write_pdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   }
 }
 
+void pdcp::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->notify_delivery(pdcp_sns);
+  } else {
+    pdcp_log->warning("Could not notify delivery: lcid=%d, nof_sn=%ld.\n", lcid, pdcp_sns.size());
+  }
+}
+
 bool pdcp::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {

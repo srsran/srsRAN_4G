@@ -40,10 +40,11 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t header;
-  unique_byte_buffer_t buf;
-  uint32_t             retx_count;
-  bool                 is_acked;
+  rlc_amd_pdu_header_t                     header;
+  unique_byte_buffer_t                     buf;
+  uint32_t                                 retx_count;
+  bool                                     is_acked;
+  std::array<uint32_t, RLC_AM_WINDOW_SIZE> pdcp_tx_counts;
 };
 
 struct rlc_amd_retx_t {
@@ -51,6 +52,12 @@ struct rlc_amd_retx_t {
   bool     is_segment;
   uint32_t so_start;
   uint32_t so_end;
+};
+
+struct pdcp_sdu_info_t {
+  uint32_t sn;
+  uint32_t acked_bytes;
+  uint32_t total_bytes;
 };
 
 class rlc_am_lte : public rlc_common
@@ -145,7 +152,7 @@ private:
 
     // TX SDU buffers
     byte_buffer_queue    tx_sdu_queue;
-    unique_byte_buffer_t tx_sdu;
+    unique_byte_buffer_t tx_sdu = nullptr;
 
     bool tx_enabled = false;
 
@@ -173,6 +180,10 @@ private:
 
     srslte::timer_handler::unique_timer poll_retx_timer;
     srslte::timer_handler::unique_timer status_prohibit_timer;
+
+    // SDU info for PDCP notifications
+    uint32_t                            pdcp_info_queue_capacity = 128;
+    std::map<uint32_t, pdcp_sdu_info_t> undelivered_sdu_info_queue;
 
     // Callback function for buffer status report
     bsr_callback_t bsr_callback;

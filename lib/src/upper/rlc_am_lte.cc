@@ -356,6 +356,12 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
     return SRSLTE_ERROR;
   }
 
+  // Get SDU info
+  pdcp_sdu_info_t info = {};
+  info.sn              = sdu->md.pdcp_sn;
+  info.total_bytes     = sdu->N_bytes;
+
+  // Store SDU
   uint8_t*                                 msg_ptr   = sdu->msg;
   uint32_t                                 nof_bytes = sdu->N_bytes;
   srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
@@ -373,6 +379,16 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
     return SRSLTE_ERROR;
   }
 
+  // Store SDU info
+  uint32_t info_count = undelivered_sdu_info_queue.count(info.sn);
+  if (info_count != 0) {
+    log->error("PDCP SDU info alreay exists\n");
+    return SRSLTE_ERROR;
+  } else if (info_count > pdcp_info_queue_capacity) {
+    log->error("PDCP SDU info exceeds maximum queue capacity\n");
+    return SRSLTE_ERROR;
+  }
+  undelivered_sdu_info_queue[info.sn] = info;
   return SRSLTE_SUCCESS;
 }
 
@@ -829,6 +845,9 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
 
   log->debug("%s Building PDU - pdu_space: %d, head_len: %d \n", RB_NAME, pdu_space, head_len);
 
+  // Helper to keep track of the PDCP counts for each RLC PDU
+  std::array<uint32_t, RLC_AM_WINDOW_SIZE> pdcp_tx_counts = {};
+
   // Check for SDU segment
   if (tx_sdu != NULL) {
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
@@ -838,6 +857,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
+    pdcp_tx_counts[0] = tx_sdu->md.pdcp_sn;
     if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx.\n", RB_NAME);
       tx_sdu.reset();
@@ -877,6 +897,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
+    pdcp_tx_counts[header.N_li] = tx_sdu->md.pdcp_sn;
     if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx.\n", RB_NAME);
       tx_sdu.reset();
@@ -925,11 +946,12 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   vt_s      = (vt_s + 1) % MOD;
 
   // Place PDU in tx_window, write header and TX
-  tx_window[header.sn].buf        = std::move(pdu);
-  tx_window[header.sn].header     = header;
-  tx_window[header.sn].is_acked   = false;
-  tx_window[header.sn].retx_count = 0;
-  const byte_buffer_t* buffer_ptr = tx_window[header.sn].buf.get();
+  tx_window[header.sn].buf            = std::move(pdu);
+  tx_window[header.sn].header         = header;
+  tx_window[header.sn].is_acked       = false;
+  tx_window[header.sn].retx_count     = 0;
+  tx_window[header.sn].pdcp_tx_counts = pdcp_tx_counts;
+  const byte_buffer_t* buffer_ptr     = tx_window[header.sn].buf.get();
 
   uint8_t* ptr = payload;
   rlc_am_write_data_pdu_header(&header, &ptr);
@@ -967,8 +989,9 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   // Handle ACKs and NACKs
   std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
-  bool                                           update_vt_a = true;
-  uint32_t                                       i           = vt_a;
+  bool                                           update_vt_a     = true;
+  uint32_t                                       i               = vt_a;
+  std::vector<uint32_t>                          notify_info_vec = {};
 
   while (TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) && TX_MOD_BASE(i) < TX_MOD_BASE(vt_s)) {
     bool nack = false;
@@ -1027,6 +1050,28 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
         it = tx_window.find(i);
         if (it != tx_window.end()) {
           if (update_vt_a) {
+            // Notify PDCP of the number of bytes succesfully delivered
+            uint32_t notified_bytes = 0;
+            uint32_t nof_bytes      = 0;
+            uint32_t pdcp_sn        = 0;
+            for (uint32_t pdcp_notify_it = 0; pdcp_notify_it < it->second.header.N_li; pdcp_notify_it++) {
+              nof_bytes = it->second.header.li[pdcp_notify_it];
+              pdcp_sn   = it->second.pdcp_tx_counts[pdcp_notify_it];
+              undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
+              if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
+                undelivered_sdu_info_queue.erase(pdcp_sn);
+                notify_info_vec.push_back(pdcp_sn);
+                log->debug("Reporting to PDCP: TX COUNT=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
+              }
+            }
+            pdcp_sn   = it->second.pdcp_tx_counts[it->second.header.N_li];
+            nof_bytes = it->second.buf->N_bytes - notified_bytes; // Notify last SDU
+            undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
+            if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
+              undelivered_sdu_info_queue.erase(pdcp_sn);
+              notify_info_vec.push_back(pdcp_sn);
+              log->debug("Reporting to PDCP: TX COUNT=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
+            }
             tx_window.erase(it);
             vt_a  = (vt_a + 1) % MOD;
             vt_ms = (vt_ms + 1) % MOD;
@@ -1035,6 +1080,10 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       }
     }
     i = (i + 1) % MOD;
+  }
+
+  if (not notify_info_vec.empty()) {
+    parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
   }
 
   debug_state();
