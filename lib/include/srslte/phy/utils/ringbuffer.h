@@ -78,7 +78,7 @@ SRSLTE_API int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* 
 // read samples from the buffer, convert them from uint16_t to cplx float and get the conjugate
 SRSLTE_API int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, float norm, int nof_samples);
 
-SRSLTE_API int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes);
+SRSLTE_API int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes, int32_t timeout_ms);
 
 SRSLTE_API void srslte_ringbuffer_stop(srslte_ringbuffer_t* q);
 

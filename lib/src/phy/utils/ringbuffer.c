@@ -118,6 +118,11 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
   struct timespec towait;
   struct timeval  now;
 
+  if (q == NULL || q->buffer == NULL) {
+    ERROR("Invalid inputs\n");
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
   // Get current time and update timeout
   if (timeout_ms > 0) {
     gettimeofday(&now, NULL);
@@ -281,19 +286,39 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
 }
 
 /* For this function, the ring buffer capacity must be multiple of block size */
-int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes)
+int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes, int32_t timeout_ms)
 {
-  int ret = nof_bytes;
-  pthread_mutex_lock(&q->mutex);
+  int             ret    = SRSLTE_SUCCESS;
+  struct timespec towait = {};
 
-  /* Wait until enough data is in the buffer */
-  while (q->count < nof_bytes && q->active) {
-    pthread_cond_wait(&q->write_cvar, &q->mutex);
+  // Get current time and update timeout
+  if (timeout_ms > 0) {
+    struct timespec now = {};
+    timespec_get(&now, TIME_UTC);
+
+    // check nsec wrap-around
+    towait.tv_sec = now.tv_sec + timeout_ms / 1000L;
+    long nsec     = now.tv_nsec + ((timeout_ms % 1000U) * 1000UL);
+    towait.tv_sec += nsec / 1000000000L;
+    towait.tv_nsec = nsec % 1000000000L;
   }
 
-  if (!q->active) {
+  pthread_mutex_lock(&q->mutex);
+
+  // Wait for having enough samples
+  while (q->count < nof_bytes && q->active && ret == SRSLTE_SUCCESS) {
+    if (timeout_ms > 0) {
+      ret = pthread_cond_timedwait(&q->write_cvar, &q->mutex, &towait);
+    } else {
+      pthread_cond_wait(&q->write_cvar, &q->mutex);
+    }
+  }
+
+  if (ret == ETIMEDOUT) {
+    ret = SRSLTE_ERROR_TIMEOUT;
+  } else if (!q->active) {
     ret = 0;
-  } else {
+  } else if (ret == SRSLTE_SUCCESS) {
     *p = &q->buffer[q->rpm];
 
     q->count -= nof_bytes;
@@ -302,6 +327,13 @@ int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes
     if (q->rpm >= q->capacity) {
       q->rpm -= q->capacity;
     }
+    ret = nof_bytes;
+  } else if (ret == EINVAL) {
+    fprintf(stderr, "Error: pthread_cond_timedwait() returned EINVAL, timeout value corrupted.\n");
+    ret = SRSLTE_ERROR;
+  } else {
+    printf("ret=%d %s\n", ret, strerror(ret));
+    ret = SRSLTE_ERROR;
   }
   pthread_cond_broadcast(&q->read_cvar);
   pthread_mutex_unlock(&q->mutex);
