@@ -104,6 +104,7 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
     // TODO: Check if other PRACH parameters changed
     if (cell.id != cell_.id || !cell_initiated) {
       cell         = cell_;
+      cfg          = prach_cfg;
       preamble_idx = -1;
 
       if (6 + prach_cfg.freq_offset > cell.nof_prb) {
@@ -125,33 +126,7 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
         return false;
       }
 
-      uint32_t nof_f_idx = 1;
-      if (cell.frame_type == SRSLTE_TDD) {
-        nof_f_idx = srslte_prach_nof_f_idx_tdd(prach_cfg.config_idx, prach_cfg.tdd_config.sf_config);
-        // For format4, generate prach for even and odd position
-        if (prach_cfg.config_idx >= 48) {
-          nof_f_idx *= 2;
-        }
-      }
-
-      for (int i = 0; i < 64; i++) {
-        for (uint32_t f = 0; f < nof_f_idx; f++) {
-          uint32_t freq_offset = prach_cfg.freq_offset;
-          if (cell.frame_type == SRSLTE_TDD) {
-            freq_offset = srslte_prach_f_ra_tdd(prach_cfg.config_idx,
-                                                prach_cfg.tdd_config.sf_config,
-                                                (f / 6) * 10,
-                                                f % 6,
-                                                prach_cfg.freq_offset,
-                                                cell.nof_prb);
-          }
-          if (srslte_prach_gen(&prach_obj, i, freq_offset, buffer[f][i])) {
-            Error("Generating PRACH preamble %d\n", i);
-            return false;
-          }
-        }
-      }
-
+      buffer_bitmask.reset();
       len             = prach_obj.N_seq + prach_obj.N_cp;
       transmitted_tti = -1;
       cell_initiated  = true;
@@ -161,6 +136,28 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
     ERROR("PRACH: Error must call init() first\n");
     return false;
   }
+}
+
+bool prach::generate_buffer(uint32_t f_idx)
+{
+  if (is_buffer_generated(f_idx, preamble_idx)) {
+    printf("generation was already done\n");
+    return true;
+  }
+
+  uint32_t freq_offset = cfg.freq_offset;
+  if (cell.frame_type == SRSLTE_TDD) {
+    freq_offset = srslte_prach_f_ra_tdd(
+        cfg.config_idx, cfg.tdd_config.sf_config, (f_idx / 6) * 10, f_idx % 6, cfg.freq_offset, cell.nof_prb);
+  }
+  if (srslte_prach_gen(&prach_obj, preamble_idx, freq_offset, buffer[f_idx][preamble_idx])) {
+    Error("Generating PRACH preamble %d\n", preamble_idx);
+    return false;
+  }
+
+  set_buffer_as_generated(f_idx, preamble_idx);
+
+  return true;
 }
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
@@ -235,6 +232,15 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
         Error("PRACH Buffer: Invalid f_idx=%d\n", f_idx);
         f_idx = 0;
       }
+    }
+
+    if (!generate_buffer(f_idx)) {
+      return NULL;
+    }
+
+    if (!is_buffer_generated(f_idx, preamble_idx)) {
+      Error("PRACH Buffer not generated: f_idx=%d preamble_idx=%d\n", f_idx, preamble_idx);
+      return NULL;
     }
 
     // Correct CFO before transmission

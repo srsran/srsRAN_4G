@@ -22,6 +22,7 @@
 #ifndef SRSUE_PRACH_H
 #define SRSUE_PRACH_H
 
+#include <bitset>
 #include <string.h>
 
 #include "srslte/common/log.h"
@@ -58,21 +59,36 @@ public:
   phy_interface_mac_lte::prach_info_t get_info();
 
 private:
+  bool generate_buffer(uint32_t f_idx);
+
+  bool is_buffer_generated(uint32_t f_idx, uint32_t preamble_index) const
+  {
+    return buffer_bitmask.test(f_idx * 64 + preamble_index);
+  }
+
+  void set_buffer_as_generated(uint32_t f_idx, uint32_t preamble_index)
+  {
+    buffer_bitmask.set(f_idx * 64 + preamble_index);
+  }
+
+private:
   const static int MAX_LEN_SF = 3;
 
-  srslte::log*   log_h;
-  int            preamble_idx;
-  int            allowed_subframe;
-  bool           mem_initiated;
-  bool           cell_initiated;
-  uint32_t       len;
-  cf_t*          buffer[12][64];
-  srslte_prach_t prach_obj;
-  int            transmitted_tti;
-  srslte_cell_t  cell;
-  cf_t*          signal_buffer;
-  srslte_cfo_t   cfo_h;
-  float          target_power_dbm;
+  srslte::log*         log_h;
+  int                  preamble_idx;
+  int                  allowed_subframe;
+  bool                 mem_initiated;
+  bool                 cell_initiated;
+  uint32_t             len;
+  cf_t*                buffer[12][64];
+  std::bitset<12 * 64> buffer_bitmask;
+  srslte_prach_t       prach_obj;
+  int                  transmitted_tti;
+  srslte_cell_t        cell;
+  cf_t*                signal_buffer;
+  srslte_cfo_t         cfo_h;
+  float                target_power_dbm;
+  srslte_prach_cfg_t   cfg = {};
 };
 
 } // namespace srsue
