@@ -20,6 +20,7 @@
  */
 
 #include "srslte/srslte.h"
+#include <assert.h>
 #include <math.h>
 #include <string.h>
 
@@ -222,6 +223,20 @@ void print(void* d, uint32_t size, uint32_t len, char* file_str)
   fclose(f);
 }
 
+/// Calculates the FFT of the specified sequence index if not previously done and returns a pointer to the result.
+static cf_t* get_precoded_dft(srslte_prach_t* p, uint32_t idx)
+{
+  assert(idx < 64 && "Invalid idx value");
+  // Generate FFT for this sequence if it does not exist yet.
+  uint64_t gen_mask = (uint64_t)1 << idx;
+  if (!(p->dft_gen_bitmap & gen_mask)) {
+    srslte_dft_run(&p->zc_fft, p->seqs[idx], p->dft_seqs[idx]);
+    p->dft_gen_bitmap |= gen_mask;
+  }
+
+  return p->dft_seqs[idx];
+}
+
 int srslte_prach_gen_seqs(srslte_prach_t* p)
 {
   uint32_t u           = 0;
@@ -410,6 +425,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     p->detect_factor           = PRACH_DETECT_FACTOR;
     p->num_ra_preambles        = cfg->num_ra_preambles;
     p->successive_cancellation = cfg->enable_successive_cancellation;
+    p->dft_gen_bitmap          = 0;
     if (p->successive_cancellation && cfg->zero_corr_zone != 0) {
       printf("successive cancellation only currently supported with zero_correlation_zone_config of 0 - disabling\n");
       p->successive_cancellation = false;
@@ -463,10 +479,6 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     // Ensure num_ra_preambles is valid, if not assign default value
     if (p->num_ra_preambles < 4 || p->num_ra_preambles > p->N_roots) {
       p->num_ra_preambles = p->N_roots;
-    }
-    // Generate sequence FFTs
-    for (int i = 0; i < N_SEQS; i++) {
-      srslte_dft_run(&p->zc_fft, p->seqs[i], p->dft_seqs[i]);
     }
 
     // Create our FFT objects and buffers
@@ -540,7 +552,7 @@ int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset
 
     // Map dft-precoded sequence to ifft bins
     memset(p->ifft_in, 0, begin * sizeof(cf_t));
-    memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));
+    memcpy(&p->ifft_in[begin], get_precoded_dft(p, seq_index), p->N_zc * sizeof(cf_t));
     memset(&p->ifft_in[begin + p->N_zc], 0, (p->N_ifft_prach - begin - p->N_zc) * sizeof(cf_t));
 
     srslte_dft_run(&p->ifft, p->ifft_in, p->ifft_out);
@@ -581,7 +593,8 @@ int srslte_prach_detect(srslte_prach_t* p,
 void srslte_prach_cancellation(srslte_prach_t* p)
 {
   srslte_vec_cf_zero(p->sub, p->N_zc * 2);
-  srslte_vec_cf_copy(p->sub, &p->dft_seqs[p->root_seqs_idx[p->prach_cancel.idx]][0], p->N_zc);
+  srslte_vec_cf_copy(p->sub, get_precoded_dft(p, p->root_seqs_idx[p->prach_cancel.idx]), p->N_zc);
+
   srslte_vec_prod_ccc(p->sub, p->prach_cancel.phase_array, p->sub, p->N_zc);
 #ifdef PRACH_CANCELLATION_HARD
   srslte_vec_prod_conj_ccc(p->prach_bins, p->sub, p->corr_spec, p->N_zc);
@@ -651,7 +664,7 @@ int srslte_prach_process(srslte_prach_t* p,
   srslte_vec_cf_zero(p->cross, p->N_zc);
   srslte_vec_cf_zero(p->corr_freq, p->N_zc);
   for (int i = 0; i < p->num_ra_preambles; i++) {
-    cf_t* root_spec = p->dft_seqs[p->root_seqs_idx[i]];
+    cf_t* root_spec = get_precoded_dft(p, p->root_seqs_idx[i]);
 
     srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
 

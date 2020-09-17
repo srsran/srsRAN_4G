@@ -75,6 +75,7 @@ typedef struct SRSLTE_API {
   // Generated tables
   cf_t     seqs[64][839];     // Our set of 64 preamble sequences
   cf_t     dft_seqs[64][839]; // DFT-precoded seqs
+  uint64_t dft_gen_bitmap;    // Bitmap where each bit Indicates if the dft has been generated for sequence i.
   uint32_t root_seqs_idx[64]; // Indices of root seqs in seqs table
   uint32_t N_roots;           // Number of root sequences used in this configuration
   cf_t*    td_signals[64];
@@ -133,7 +134,6 @@ typedef struct {
   bool                enable_successive_cancellation;
   bool                enable_freq_domain_offset_calc;
 } srslte_prach_cfg_t;
-
 
 typedef struct SRSLTE_API {
   uint32_t f;
@@ -217,14 +217,14 @@ SRSLTE_API int srslte_prach_free(srslte_prach_t* p);
 
 SRSLTE_API int srslte_prach_print_seqs(srslte_prach_t* p);
 
-SRSLTE_API int srslte_prach_process(srslte_prach_t*             p,
-                                    cf_t*                       signal,
-                                    uint32_t*                   indices,
-                                    float*                      t_offsets,
-                                    float*                      peak_to_avg,
-                                    uint32_t*                   n_indices,
-                                    int                         cancellation_idx,
-                                    uint32_t                    begin,
-                                    uint32_t                    sig_len);
+SRSLTE_API int srslte_prach_process(srslte_prach_t* p,
+                                    cf_t*           signal,
+                                    uint32_t*       indices,
+                                    float*          t_offsets,
+                                    float*          peak_to_avg,
+                                    uint32_t*       n_indices,
+                                    int             cancellation_idx,
+                                    uint32_t        begin,
+                                    uint32_t        sig_len);
 
 #endif // SRSLTE_PRACH_H

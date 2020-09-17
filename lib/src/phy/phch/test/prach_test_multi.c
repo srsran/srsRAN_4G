@@ -110,35 +110,35 @@ void parse_args(int argc, char** argv)
   }
 }
 // this function staggers power and phase of the different PRACH signals for more realisitc testing
-void stagger_prach_powers(srslte_prach_t prach, cf_t *preamble, cf_t* preamble_sum, int freq_offset, int n_seqs, int *offsets) {
+void stagger_prach_powers(srslte_prach_t *prach, cf_t *preamble, cf_t* preamble_sum, int freq_offset, int n_seqs, int *offsets) {
 
   for (int seq_index = 0; seq_index < n_seqs; seq_index++) {
-    srslte_prach_gen(&prach, seq_index, freq_offset, preamble);
+    srslte_prach_gen(prach, seq_index, freq_offset, preamble);
     if (seq_index == 0) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.5), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.5), preamble, prach->N_cp + prach->N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 1) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 1), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.8, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 1), preamble, prach->N_cp + prach->N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.8, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 2) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.05, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach->N_cp + prach->N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.05, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 3) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.7, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach->N_cp + prach->N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.7, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 4) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.3), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.3), preamble, prach->N_cp + prach->N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach->N_cp + prach->N_seq);
     }
     if (seq_index == 5) {
-      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach->N_cp + prach->N_seq);
     }
     int off = (offset == -1) ? offsets[seq_index] : offset;
-    for (int i = 0; i < prach.N_cp + prach.N_seq; i++) {
+    for (int i = 0; i < prach->N_cp + prach->N_seq; i++) {
       preamble_sum[i + off] += preamble[i];
     }
   }
@@ -209,7 +209,7 @@ int main(int argc, char** argv)
 
   srslte_prach_set_detect_factor(&prach, 10);
   if (stagger_prach_power_and_phase) {
-    stagger_prach_powers(prach, preamble, preamble_sum, prach_cfg.freq_offset, n_seqs, offsets);
+    stagger_prach_powers(&prach, preamble, preamble_sum, prach_cfg.freq_offset, n_seqs, offsets);
   } else {
     for (seq_index = 0; seq_index < n_seqs; seq_index++) {
       srslte_prach_gen(&prach, seq_index, prach_cfg.freq_offset, preamble);
