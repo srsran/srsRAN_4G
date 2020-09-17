@@ -289,6 +289,7 @@ int main(int argc, char** argv)
 
   /* Parse args */
   parse_args(argc, argv);
+  double current_rate = srate;
 
   uint32_t nof_samples = (uint32_t)(duration * srate);
   uint32_t frame_size  = (uint32_t)(srate / 1000.0); /* 1 ms at srate */
@@ -400,16 +401,19 @@ int main(int argc, char** argv)
       if (i % 1000 == 0) {
         // toggle rate between cell search rate and configured rate every second
         static bool srate_is_cell_search = false;
-        double      new_rate             = (srate_is_cell_search = !srate_is_cell_search) ? srate : 1.92e6;
-        printf("Changing sampling rate to %.2f Msamps/s\n", new_rate / 1e6);
+        current_rate                     = (srate_is_cell_search = !srate_is_cell_search) ? srate : 1.92e6;
+        printf("Changing sampling rate to %.2f Msamps/s\n", current_rate / 1e6);
         for (uint32_t r = 0; r < nof_radios; r++) {
-          radio_h[r]->set_rx_srate(new_rate);
+          radio_h[r]->set_rx_srate(current_rate);
           if (tx_enable) {
-            radio_h[r]->set_tx_srate(new_rate);
+            radio_h[r]->set_tx_srate(current_rate);
           }
         }
       }
     }
+
+    // Update frame size according to sampling rate!
+    frame_size = (uint32_t)(current_rate / 1000.0); /* 1 ms at srate */
 
     int gap    = 0;
     frame_size = SRSLTE_MIN(frame_size, nof_samples);
@@ -496,7 +500,7 @@ int main(int argc, char** argv)
 
         srslte_timestamp_copy(&ts_diff, ts_rx[r].get_ptr(0));
         srslte_timestamp_sub(&ts_diff, ts_prev[r].get_ptr(0)->full_secs, ts_prev[r].get_ptr(0)->frac_secs);
-        gap = (int32_t)round(srslte_timestamp_real(&ts_diff) * srate) - (int32_t)frame_size;
+        gap = (int32_t)round(srslte_timestamp_real(&ts_diff) * current_rate) - (int32_t)frame_size;
 
         if (gap != 0) {
           INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f\n",
