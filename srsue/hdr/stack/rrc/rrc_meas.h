@@ -138,7 +138,7 @@ private:
     std::map<uint32_t, meas_obj_eutra_s>     measObjectsList;  // Uses MeasObjectId as key
     std::map<uint32_t, report_cfg_eutra_s>   reportConfigList; // Uses ReportConfigId as key
 
-    phy_quant_t filter_a        = {};
+    phy_quant_t filter_a = {1.0, 1.0}; // disable filtering until quantityConfig is received (see Sec. 5.5.3.2 Note 2)
     float       s_measure_value = 0.0;
 
     // trigger counters. First key is measId, second key is cell id (pci)
