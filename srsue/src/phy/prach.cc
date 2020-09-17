@@ -141,7 +141,6 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 bool prach::generate_buffer(uint32_t f_idx)
 {
   if (is_buffer_generated(f_idx, preamble_idx)) {
-    printf("generation was already done\n");
     return true;
   }
 
