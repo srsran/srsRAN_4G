@@ -138,7 +138,7 @@ bool lte_ttcn3_phy::cell_select(const phy_cell_t* rrc_cell)
 {
   // try to find RRC cell in current cell map
   for (auto& cell : cells) {
-    if (cell.info.id == rrc_cell->pci) {
+    if (cell.info.id == rrc_cell->pci && cell.earfcn == rrc_cell->earfcn) {
       if (cell.power >= SUITABLE_CELL_RS_EPRE) {
         pcell     = cell;
         pcell_set = true;
@@ -153,7 +153,7 @@ bool lte_ttcn3_phy::cell_select(const phy_cell_t* rrc_cell)
     }
   }
 
-  log.error("Couldn't fine RRC cell with PCI=%d on EARFCN=%d in cell map.\n", rrc_cell->pci, rrc_cell->earfcn);
+  log.error("Couldn't find RRC cell with PCI=%d on EARFCN=%d in cell map.\n", rrc_cell->pci, rrc_cell->earfcn);
   return false;
 };
 
@@ -339,7 +339,7 @@ void lte_ttcn3_phy::radio_failure()
 // Calling function set_tti() is holding mutex
 void lte_ttcn3_phy::run_tti()
 {
-  // send report for all cell stronger than non-suitable cell RS
+  // send report for all cells stronger than non-suitable cell RS
   std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas;
   for (auto& cell : cells) {
     if (cell.power >= NON_SUITABLE_CELL_RS_EPRE) {
@@ -351,10 +351,11 @@ void lte_ttcn3_phy::run_tti()
 
       // Measurement for PCell needs to have EARFCN set to 0
       if (pcell_set && m.earfcn == pcell.earfcn && m.pci == pcell.info.id) {
+        log.debug("Creating Pcell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
         m.earfcn = 0;
+      } else {
+        log.debug("Create cell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
       }
-
-      log.debug("Create cell measurement for PCI=%d, EARFCN=%d with RSRP=%.2f\n", m.pci, m.earfcn, m.rsrp);
       phy_meas.push_back(m);
     }
   }
@@ -390,6 +391,9 @@ void lte_ttcn3_phy::run_tti()
   }
 }
 
-void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) {}
+void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
+{
+  log.debug("%s not implemented.\n", __FUNCTION__);
+}
 
 } // namespace srsue
