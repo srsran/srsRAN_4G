@@ -76,8 +76,9 @@ proc_outcome_t rrc::cell_search_proc::step_si_acquire()
   }
   // SI Acquire has completed
   if (si_acquire_fut.is_error()) {
-    Error("Failed to trigger SI acquire for SIB0\n");
-    return proc_outcome_t::error;
+    Error("Failed SI acquire for SIB0\n");
+    search_result.cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    return proc_outcome_t::success;
   }
   Info("Completed successfully\n");
   return proc_outcome_t::success;
@@ -112,7 +113,6 @@ proc_outcome_t rrc::cell_search_proc::step_wait_measurement()
 
   if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
     Info("Cell has SIB1\n");
-    // What do we do????
     return proc_outcome_t::success;
   }
 
@@ -135,12 +135,14 @@ proc_outcome_t rrc::cell_search_proc::react(const bool& cs_ret)
 
   if (not cs_ret) {
     Error("Couldn't select new serving cell\n");
-    return proc_outcome_t::error;
+    search_result.cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    return proc_outcome_t::success;
   }
 
   if (not rrc_ptr->phy->cell_is_camping()) {
     Warning("Could not camp on found cell.\n");
-    return proc_outcome_t::error;
+    search_result.cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    return proc_outcome_t::success;
   }
 
   if (not std::isnormal(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
