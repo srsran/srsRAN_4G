@@ -470,7 +470,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
     Ofs                   = offset_val(serving_obj->second);
     auto serving_cell_off = find_pci_in_meas_obj(serving_obj->second, serving_pci);
     if (serving_cell_off != serving_obj->second.cells_to_add_mod_list.end()) {
-      Ocs = serving_cell_off->cell_individual_offset;
+      Ocs = serving_cell_off->cell_individual_offset.to_number();
     }
   }
 
@@ -813,7 +813,7 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod(const meas_obj_to_add_mod_li
                 log_h->debug("MEAS:       cell idx=%d, pci=%d, q_offset=%d\n",
                              c.cell_idx,
                              c.pci,
-                             c.cell_individual_offset.value);
+                             c.cell_individual_offset.to_number());
               }
             }
           }
@@ -882,8 +882,10 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod(const meas_obj_to_add_mod_li
                   local_obj.black_cells_to_add_mod_list.size());
       if (log_h->get_level() == LOG_LEVEL_DEBUG) {
         for (auto& c : local_obj.cells_to_add_mod_list) {
-          log_h->debug(
-              "MEAS:       cell idx=%d, pci=%d, q_offset=%d\n", c.cell_idx, c.pci, c.cell_individual_offset.value);
+          log_h->debug("MEAS:       cell idx=%d, pci=%d, q_offset=%d\n",
+                       c.cell_idx,
+                       c.pci,
+                       c.cell_individual_offset.to_number());
         }
         for (auto& b : local_obj.black_cells_to_add_mod_list) {
           log_h->debug("MEAS:       black-listed cell idx=%d\n", b.cell_idx);
