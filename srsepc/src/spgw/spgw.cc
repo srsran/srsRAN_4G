@@ -117,7 +117,6 @@ void spgw::run_thread()
 
   struct sockaddr_in src_addr_in;
   struct sockaddr_un src_addr_un;
-  socklen_t          addrlen = sizeof(src_addr_in);
   struct iphdr*      ip_pkt;
 
   int sgi = m_gtpu->get_sgi();
@@ -159,12 +158,14 @@ void spgw::run_thread()
       }
       if (FD_ISSET(s1u, &set)) {
         m_spgw_log->debug("Message received at SPGW: S1-U Message\n");
-        s1u_msg->N_bytes = recvfrom(s1u, s1u_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
+        socklen_t addrlen = sizeof(src_addr_in);
+        s1u_msg->N_bytes  = recvfrom(s1u, s1u_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
         m_gtpu->handle_s1u_pdu(s1u_msg);
       }
       if (FD_ISSET(s11, &set)) {
         m_spgw_log->debug("Message received at SPGW: S11 Message\n");
-        s11_msg->N_bytes = recvfrom(s11, s11_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
+        socklen_t addrlen = sizeof(src_addr_un);
+        s11_msg->N_bytes  = recvfrom(s11, s11_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
         m_gtpc->handle_s11_pdu(s11_msg);
       }
     } else {
