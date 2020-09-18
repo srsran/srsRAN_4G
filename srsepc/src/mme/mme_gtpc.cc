@@ -27,42 +27,14 @@
 
 namespace srsepc {
 
-mme_gtpc*       mme_gtpc::m_instance    = NULL;
-pthread_mutex_t mme_gtpc_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-mme_gtpc::mme_gtpc()
+mme_gtpc* mme_gtpc::get_instance()
 {
-  return;
-}
-
-mme_gtpc::~mme_gtpc()
-{
-  return;
-}
-
-mme_gtpc* mme_gtpc::get_instance(void)
-{
-  pthread_mutex_lock(&mme_gtpc_instance_mutex);
-  if (NULL == m_instance) {
-    m_instance = new mme_gtpc();
-  }
-  pthread_mutex_unlock(&mme_gtpc_instance_mutex);
-  return (m_instance);
-}
-
-void mme_gtpc::cleanup(void)
-{
-  pthread_mutex_lock(&mme_gtpc_instance_mutex);
-  if (NULL != m_instance) {
-    delete m_instance;
-    m_instance = NULL;
-  }
-  pthread_mutex_unlock(&mme_gtpc_instance_mutex);
+  static std::unique_ptr<mme_gtpc> instance = std::unique_ptr<mme_gtpc>(new mme_gtpc);
+  return instance.get();
 }
 
 bool mme_gtpc::init(srslte::log_filter* mme_gtpc_log)
 {
-
   /*Init log*/
   m_mme_gtpc_log = mme_gtpc_log;
 

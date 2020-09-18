@@ -42,8 +42,9 @@ public:
     srslte::gtp_fteid_t sgw_ctr_fteid;
   } gtpc_ctx_t;
 
-  static mme_gtpc* get_instance(void);
-  static void      cleanup(void);
+  virtual ~mme_gtpc() = default;
+
+  static mme_gtpc* get_instance();
 
   bool init(srslte::log_filter* mme_gtpc_log);
   bool send_s11_pdu(const srslte::gtpc_pdu& pdu);
@@ -62,9 +63,7 @@ public:
   int get_s11();
 
 private:
-  mme_gtpc();
-  virtual ~mme_gtpc();
-  static mme_gtpc* m_instance;
+  mme_gtpc() = default;
 
   srslte::log_filter* m_mme_gtpc_log;
   s1ap*               m_s1ap;
