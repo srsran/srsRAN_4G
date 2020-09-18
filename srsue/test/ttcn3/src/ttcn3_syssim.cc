@@ -727,7 +727,7 @@ int ttcn3_syssim::run()
     // handle event
     if (nof_events == -1) {
       perror("epoll_wait() error");
-      break;
+      continue;
     }
     if (nof_events == 0) {
       printf("time out %f sec expired\n", epoll_timeout_ms / 1000.0);
