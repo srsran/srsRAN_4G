@@ -322,5 +322,4 @@ int main(int argc, char** argv)
   if (tft_filter_test_ipv4_tos()) {
     return -1;
   }
-  srslte::byte_buffer_pool::cleanup();
 }

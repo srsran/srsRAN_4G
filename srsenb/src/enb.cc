@@ -40,9 +40,7 @@ enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POO
 
 enb::~enb()
 {
-  // pool has to be cleaned after enb is deleted
   stack.reset();
-  srslte::byte_buffer_pool::cleanup();
 }
 
 int enb::init(const all_args_t& args_, srslte::logger* logger_)

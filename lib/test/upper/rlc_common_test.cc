@@ -206,5 +206,4 @@ int main(int argc, char** argv)
   if (meas_obj_test()) {
     return -1;
   }
-  byte_buffer_pool::get_instance()->cleanup();
 }

@@ -172,7 +172,6 @@ int main()
     fprintf(stderr, "pdcp_nr_tests_rx() failed\n");
     return SRSLTE_ERROR;
   }
-  srslte::byte_buffer_pool::cleanup();
 
   return SRSLTE_SUCCESS;
 }

@@ -404,8 +404,6 @@ int esm_info_request_test()
     }
   }
 
-  pool->cleanup();
-
   return ret;
 }
 
@@ -485,8 +483,6 @@ int dedicated_eps_bearer_test()
   nas.write_pdu(LCID, std::move(tmp));
   nas.get_metrics(&metrics);
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
-
-  pool->cleanup();
 
   return SRSLTE_SUCCESS;
 }

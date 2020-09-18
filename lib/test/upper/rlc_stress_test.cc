@@ -560,7 +560,6 @@ int main(int argc, char** argv)
   }
 
   stress_test(args);
-  byte_buffer_pool::get_instance()->cleanup();
 
   exit(0);
 }

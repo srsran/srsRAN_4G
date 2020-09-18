@@ -48,9 +48,7 @@ ue::ue() : logger(nullptr)
 
 ue::~ue()
 {
-  // destruct stack components before cleaning buffer pool
   stack.reset();
-  byte_buffer_pool::cleanup();
 }
 
 int ue::init(const all_args_t& args_, srslte::logger* logger_)

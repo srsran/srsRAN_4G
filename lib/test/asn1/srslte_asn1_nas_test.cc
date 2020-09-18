@@ -117,6 +117,5 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
 int main(int argc, char** argv)
 {
   int result = nas_dedicated_eps_bearer_context_setup_request_test();
-  srslte::byte_buffer_pool::cleanup();
   return result;
 }

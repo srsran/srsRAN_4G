@@ -58,8 +58,8 @@ public:
     if (capacity_ > 0) {
       nof_buffers = (uint32_t)capacity_;
     }
-    pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&cv_not_empty, NULL);
+    pthread_mutex_init(&mutex, nullptr);
+    pthread_cond_init(&cv_not_empty, nullptr);
     for (uint32_t i = 0; i < nof_buffers; i++) {
       buffer_t* b = new buffer_t;
       available.push(b);
@@ -101,10 +101,10 @@ public:
 
   bool is_almost_empty() { return available.size() < capacity / 20; }
 
-  buffer_t* allocate(const char* debug_name = NULL, bool blocking = false)
+  buffer_t* allocate(const char* debug_name = nullptr, bool blocking = false)
   {
     pthread_mutex_lock(&mutex);
-    buffer_t* b = NULL;
+    buffer_t* b = nullptr;
 
     if (available.size() > 0) {
       b = available.top();
@@ -172,18 +172,18 @@ class byte_buffer_pool
 {
 public:
   // Singleton static methods
-  static byte_buffer_pool* instance;
+  static std::unique_ptr<byte_buffer_pool> instance;
   static byte_buffer_pool* get_instance(int capacity = -1);
-  static void              cleanup(void);
+  static void              cleanup();
   byte_buffer_pool(int capacity = -1)
   {
-    log  = NULL;
+    log  = nullptr;
     pool = new buffer_pool<byte_buffer_t>(capacity);
   }
   byte_buffer_pool(const byte_buffer_pool& other) = delete;
   byte_buffer_pool& operator=(const byte_buffer_pool& other) = delete;
   ~byte_buffer_pool() { delete pool; }
-  byte_buffer_t* allocate(const char* debug_name = NULL, bool blocking = false)
+  byte_buffer_t* allocate(const char* debug_name = nullptr, bool blocking = false)
   {
     return pool->allocate(debug_name, blocking);
   }
@@ -209,7 +209,7 @@ public:
 #endif
       }
     }
-    b = NULL;
+    b = nullptr;
   }
   void print_all_buffers() { pool->print_all_buffers(); }
 

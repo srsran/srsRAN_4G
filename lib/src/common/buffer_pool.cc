@@ -26,25 +26,24 @@
 
 namespace srslte {
 
-byte_buffer_pool* byte_buffer_pool::instance = NULL;
-pthread_mutex_t   instance_mutex             = PTHREAD_MUTEX_INITIALIZER;
+std::unique_ptr<byte_buffer_pool> byte_buffer_pool::instance;
+static pthread_mutex_t instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 byte_buffer_pool* byte_buffer_pool::get_instance(int capacity)
 {
   pthread_mutex_lock(&instance_mutex);
-  if (NULL == instance) {
-    instance = new byte_buffer_pool(capacity);
+  if (!instance) {
+    instance = std::unique_ptr<byte_buffer_pool>(new byte_buffer_pool(capacity));
   }
   pthread_mutex_unlock(&instance_mutex);
-  return instance;
+  return instance.get();
 }
 
-void byte_buffer_pool::cleanup(void)
+void byte_buffer_pool::cleanup()
 {
   pthread_mutex_lock(&instance_mutex);
-  if (NULL != instance) {
-    delete instance;
-    instance = NULL;
+  if (instance) {
+    instance.reset();
   }
   pthread_mutex_unlock(&instance_mutex);
 }
