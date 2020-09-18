@@ -19,15 +19,10 @@
  *
  */
 
-#include <pthread.h>
-#include <string.h>
-#include <strings.h>
-
+#include "srsue/hdr/phy/prach.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
-#include "srsue/hdr/phy/phy.h"
-#include "srsue/hdr/phy/prach.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -42,100 +37,100 @@
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
   log_h->debug(fmt, ##__VA_ARGS__)
 
-namespace srsue {
-
-prach::~prach()
-{
-  stop();
-}
+using namespace srsue;
 
 void prach::init(uint32_t max_prb, srslte::log* log_h_)
 {
   log_h = log_h_;
 
-  for (int i = 0; i < 64; i++) {
-    for (int f = 0; f < 12; f++) {
-      buffer[f][i] = srslte_vec_cf_malloc(SRSLTE_PRACH_MAX_LEN);
-      if (!buffer[f][i]) {
+  for (auto& i : buffer) {
+    for (auto& j : i) {
+      j = srslte_vec_cf_malloc(SRSLTE_PRACH_MAX_LEN);
+      if (!j) {
         perror("malloc");
         return;
       }
     }
   }
+
   if (srslte_cfo_init(&cfo_h, SRSLTE_PRACH_MAX_LEN)) {
     ERROR("PRACH: Error initiating CFO\n");
     return;
   }
+
   srslte_cfo_set_tol(&cfo_h, 0);
+
   signal_buffer = srslte_vec_cf_malloc(MAX_LEN_SF * 30720U);
   if (!signal_buffer) {
     perror("malloc");
     return;
   }
+
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(max_prb))) {
     Error("Initiating PRACH library\n");
     return;
   }
+
   mem_initiated = true;
 }
 
 void prach::stop()
 {
-  if (mem_initiated) {
-    for (int i = 0; i < 64; i++) {
-      for (int f = 0; f < 12; f++) {
-        if (buffer[f][i]) {
-          free(buffer[f][i]);
-        }
-      }
-    }
-    if (signal_buffer) {
-      free(signal_buffer);
-    }
-    srslte_cfo_free(&cfo_h);
-    srslte_prach_free(&prach_obj);
-    mem_initiated = false;
+  if (!mem_initiated) {
+    return;
   }
+
+  for (auto& i : buffer) {
+    for (auto& j : i) {
+      free(j);
+    }
+  }
+
+  free(signal_buffer);
+  srslte_cfo_free(&cfo_h);
+  srslte_prach_free(&prach_obj);
+  mem_initiated = false;
 }
 
 bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 {
-  if (mem_initiated) {
-    // TODO: Check if other PRACH parameters changed
-    if (cell.id != cell_.id || !cell_initiated) {
-      cell         = cell_;
-      cfg          = prach_cfg;
-      preamble_idx = -1;
-
-      if (6 + prach_cfg.freq_offset > cell.nof_prb) {
-        log_h->console(
-            "Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
-        log_h->error(
-            "Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
-        return false;
-      }
-
-      Info("PRACH: configIdx=%d, rootSequence=%d, zeroCorrelationConfig=%d, freqOffset=%d\n",
-           prach_cfg.config_idx,
-           prach_cfg.root_seq_idx,
-           prach_cfg.zero_corr_zone,
-           prach_cfg.freq_offset);
-
-      if (srslte_prach_set_cfg(&prach_obj, &prach_cfg, cell.nof_prb)) {
-        Error("Initiating PRACH library\n");
-        return false;
-      }
-
-      buffer_bitmask.reset();
-      len             = prach_obj.N_seq + prach_obj.N_cp;
-      transmitted_tti = -1;
-      cell_initiated  = true;
-    }
-    return true;
-  } else {
+  if (!mem_initiated) {
     ERROR("PRACH: Error must call init() first\n");
     return false;
   }
+
+  // TODO: Check if other PRACH parameters changed
+  if (cell.id == cell_.id && cell_initiated) {
+    return true;
+  }
+
+  cell         = cell_;
+  cfg          = prach_cfg;
+  preamble_idx = -1;
+
+  if (6 + prach_cfg.freq_offset > cell.nof_prb) {
+    log_h->console("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
+    log_h->error("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
+    return false;
+  }
+
+  Info("PRACH: configIdx=%d, rootSequence=%d, zeroCorrelationConfig=%d, freqOffset=%d\n",
+       prach_cfg.config_idx,
+       prach_cfg.root_seq_idx,
+       prach_cfg.zero_corr_zone,
+       prach_cfg.freq_offset);
+
+  if (srslte_prach_set_cfg(&prach_obj, &prach_cfg, cell.nof_prb)) {
+    Error("Initiating PRACH library\n");
+    return false;
+  }
+
+  buffer_bitmask.reset();
+  len             = prach_obj.N_seq + prach_obj.N_cp;
+  transmitted_tti = -1;
+  cell_initiated  = true;
+
+  return true;
 }
 
 bool prach::generate_buffer(uint32_t f_idx)
@@ -161,26 +156,26 @@ bool prach::generate_buffer(uint32_t f_idx)
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
 {
-  if (cell_initiated && preamble_idx_ < 64) {
+  if (cell_initiated && preamble_idx_ < max_preambles) {
     preamble_idx     = preamble_idx_;
     target_power_dbm = target_power_dbm_;
     allowed_subframe = allowed_subframe_;
     transmitted_tti  = -1;
     Debug("PRACH: prepare to send preamble %d\n", preamble_idx);
     return true;
-  } else {
-    if (!cell_initiated) {
-      Error("PRACH: Cell not configured\n");
-    } else {
-      Error("PRACH: Invalid preamble %d\n", preamble_idx_);
-    }
-    return false;
   }
+
+  if (!cell_initiated) {
+    Error("PRACH: Cell not configured\n");
+  } else {
+    Error("PRACH: Invalid preamble %d\n", preamble_idx_);
+  }
+  return false;
 }
 
-bool prach::is_pending()
+bool prach::is_pending() const
 {
-  return cell_initiated && preamble_idx >= 0 && preamble_idx < 64;
+  return cell_initiated && preamble_idx >= 0 && unsigned(preamble_idx) < max_preambles;
 }
 
 bool prach::is_ready_to_send(uint32_t current_tti_)
@@ -197,7 +192,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_)
   return false;
 }
 
-phy_interface_mac_lte::prach_info_t prach::get_info()
+phy_interface_mac_lte::prach_info_t prach::get_info() const
 {
   phy_interface_mac_lte::prach_info_t info = {};
 
@@ -217,61 +212,58 @@ phy_interface_mac_lte::prach_info_t prach::get_info()
 
 cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
 {
-  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx < 64 && srslte_cell_isvalid(&cell) &&
-      len < MAX_LEN_SF * 30720 && len > 0) {
-
-    uint32_t f_idx = 0;
-    if (cell.frame_type == SRSLTE_TDD) {
-      f_idx = prach_obj.current_prach_idx;
-      // For format4, choose odd or even position
-      if (prach_obj.config_idx >= 48) {
-        f_idx += 6;
-      }
-      if (f_idx >= 12) {
-        Error("PRACH Buffer: Invalid f_idx=%d\n", f_idx);
-        f_idx = 0;
-      }
-    }
-
-    if (!generate_buffer(f_idx)) {
-      return NULL;
-    }
-
-    if (!is_buffer_generated(f_idx, preamble_idx)) {
-      Error("PRACH Buffer not generated: f_idx=%d preamble_idx=%d\n", f_idx, preamble_idx);
-      return NULL;
-    }
-
-    // Correct CFO before transmission
-    srslte_cfo_correct(&cfo_h, buffer[f_idx][preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
-
-    // pad guard symbols with zeros
-    uint32_t nsf = (len - 1) / SRSLTE_SF_LEN_PRB(cell.nof_prb) + 1;
-    srslte_vec_cf_zero(&signal_buffer[len], (nsf * SRSLTE_SF_LEN_PRB(cell.nof_prb) - len));
-
-    *nof_sf = nsf;
-
-    if (target_power) {
-      *target_power = target_power_dbm;
-    }
-
-    Info("PRACH: Transmitted preamble=%d, tti_tx=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm\n",
-         preamble_idx,
-         transmitted_tti,
-         cfo * 15,
-         nsf,
-         target_power_dbm);
-    preamble_idx = -1;
-
-    return signal_buffer;
-  } else {
+  if (!cell_initiated || preamble_idx < 0 || !nof_sf || unsigned(preamble_idx) >= max_preambles ||
+      !srslte_cell_isvalid(&cell) || len >= MAX_LEN_SF * 30720 || len == 0) {
     Error("PRACH: Invalid parameters: cell_initiated=%d, preamble_idx=%d, cell.nof_prb=%d, len=%d\n",
           cell_initiated,
           preamble_idx,
           cell.nof_prb,
           len);
-    return NULL;
+    return nullptr;
   }
-}
 
-} // namespace srsue
+  uint32_t f_idx = 0;
+  if (cell.frame_type == SRSLTE_TDD) {
+    f_idx = prach_obj.current_prach_idx;
+    // For format4, choose odd or even position
+    if (prach_obj.config_idx >= 48) {
+      f_idx += 6;
+    }
+    if (f_idx >= max_fs) {
+      Error("PRACH Buffer: Invalid f_idx=%d\n", f_idx);
+      f_idx = 0;
+    }
+  }
+
+  if (!generate_buffer(f_idx)) {
+    return nullptr;
+  }
+
+  if (!is_buffer_generated(f_idx, preamble_idx)) {
+    Error("PRACH Buffer not generated: f_idx=%d preamble_idx=%d\n", f_idx, preamble_idx);
+    return nullptr;
+  }
+
+  // Correct CFO before transmission
+  srslte_cfo_correct(&cfo_h, buffer[f_idx][preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
+
+  // pad guard symbols with zeros
+  uint32_t nsf = (len - 1) / SRSLTE_SF_LEN_PRB(cell.nof_prb) + 1;
+  srslte_vec_cf_zero(&signal_buffer[len], (nsf * SRSLTE_SF_LEN_PRB(cell.nof_prb) - len));
+
+  *nof_sf = nsf;
+
+  if (target_power) {
+    *target_power = target_power_dbm;
+  }
+
+  Info("PRACH: Transmitted preamble=%d, tti_tx=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm\n",
+       preamble_idx,
+       transmitted_tti,
+       cfo * 15,
+       nsf,
+       target_power_dbm);
+  preamble_idx = -1;
+
+  return signal_buffer;
+}
