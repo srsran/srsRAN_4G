@@ -77,10 +77,10 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
                                 const nas_if_t&         itf,
                                 srslte::log*            nas_log)
 {
-  uint32_t                                       m_tmsi = 0;
-  uint64_t                                       imsi   = 0;
-  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT           attach_req;
-  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+  uint32_t                                       m_tmsi      = 0;
+  uint64_t                                       imsi        = 0;
+  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT           attach_req  = {};
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
 
   // Interfaces
   s1ap_interface_nas* s1ap = itf.s1ap;

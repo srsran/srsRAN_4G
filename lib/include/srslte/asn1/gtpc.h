@@ -88,6 +88,8 @@ typedef union gtpc_msg_choice {
 typedef struct gtpc_pdu {
   struct gtpc_header    header;
   union gtpc_msg_choice choice;
+  size_t                union_field_size;
+  size_t                get_length() const { return sizeof(gtpc_header) + union_field_size; }
 } gtpc_pdu_t;
 } // namespace srslte
 #endif // SRSLTE_GTPC_H

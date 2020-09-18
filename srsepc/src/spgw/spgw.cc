@@ -117,7 +117,7 @@ void spgw::run_thread()
 
   struct sockaddr_in src_addr_in;
   struct sockaddr_un src_addr_un;
-  socklen_t          addrlen;
+  socklen_t          addrlen = sizeof(src_addr_in);
   struct iphdr*      ip_pkt;
 
   int sgi = m_gtpu->get_sgi();
