@@ -401,12 +401,13 @@ int ue::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes)
 
 void ue::allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t total_sdu_len)
 {
-  int sdu_space = pdu->get_sdu_space();
+  const int min_sdu_len = lcid == 0 ? 1 : 2;
+  int       sdu_space   = pdu->get_sdu_space();
   if (sdu_space > 0) {
     int sdu_len = SRSLTE_MIN(total_sdu_len, (uint32_t)sdu_space);
     int n       = 1;
-    while (sdu_len >= 2 && n > 0) { // minimum size is a single RLC AM status PDU (2 Byte)
-      if (pdu->new_subh()) {        // there is space for a new subheader
+    while (sdu_len >= min_sdu_len && n > 0) { // minimum size is a single RLC AM status PDU (2 Byte)
+      if (pdu->new_subh()) {                  // there is space for a new subheader
         log_h->debug("SDU:   set_sdu(), lcid=%d, sdu_len=%d, sdu_space=%d\n", lcid, sdu_len, sdu_space);
         n = pdu->get()->set_sdu(lcid, sdu_len, this);
         if (n > 0) { // new SDU could be added

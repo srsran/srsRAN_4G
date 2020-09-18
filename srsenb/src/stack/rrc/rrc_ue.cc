@@ -331,8 +331,13 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                          (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
                          msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string().c_str());
   if (is_idle()) {
-    uint16_t old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
-    if (parent->users.count(old_rnti)) {
+    uint16_t                old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
+    uint16_t                old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+    const cell_info_common* old_cell = parent->cell_common_list->get_pci(old_pci);
+    auto                    ue_it    = parent->users.find(old_rnti);
+    // Reject unrecognized rntis, and PCIs that do not belong to eNB
+    if (ue_it != parent->users.end() and old_cell != nullptr and
+        ue_it->second->cell_ded_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
       parent->rrc_log->info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment\n",
                             old_rnti);
       send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
