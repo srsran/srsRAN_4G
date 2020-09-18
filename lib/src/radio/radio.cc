@@ -241,6 +241,12 @@ bool radio::is_init()
 
 void radio::stop()
 {
+  // Stop Rx streams as soon as possible to avoid Overflows
+  if (radio_is_streaming) {
+    for (srslte_rf_t& rf_device : rf_devices) {
+      srslte_rf_stop_rx_stream(&rf_device);
+    }
+  }
   if (zeros) {
     free(zeros);
     zeros = NULL;

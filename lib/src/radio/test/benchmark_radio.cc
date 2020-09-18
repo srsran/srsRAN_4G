@@ -281,6 +281,7 @@ int main(int argc, char** argv)
   srslte_dft_plan_t      dft_plan = {}, idft_plan = {};
   srslte_agc_t           agc[SRSLTE_MAX_RADIOS] = {};
   phy_dummy              phy;
+  srslte::rf_metrics_t   rf_metrics = {};
 
   rf_buffer_t rf_buffers[SRSLTE_MAX_RADIOS] = {};
 
@@ -523,7 +524,13 @@ int main(int argc, char** argv)
     nof_samples -= frame_size;
   }
 
-  printf("Finished streaming with %d gaps...\n", nof_gaps);
+  radio_h[0]->get_metrics(&rf_metrics);
+
+  printf("Finished streaming with %d gaps, %d late timestamps, %d overflows, %d underflow...\n",
+         nof_gaps,
+         rf_metrics.rf_l,
+         rf_metrics.rf_o,
+         rf_metrics.rf_u);
 
   ret = SRSLTE_SUCCESS;
 
