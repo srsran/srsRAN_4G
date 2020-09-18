@@ -33,19 +33,18 @@ class mme;
 
 class s1ap_paging
 {
+  s1ap_paging() = default;
+
 public:
-  static s1ap_paging* m_instance;
-  static s1ap_paging* get_instance(void);
-  static void         cleanup(void);
-  void                init(void);
+  virtual ~s1ap_paging() = default;
+
+  static s1ap_paging* get_instance();
+  void                init();
 
   // Packing/unpacking helper functions
   bool send_paging(uint64_t imsi, uint16_t erab_to_setup);
 
 private:
-  s1ap_paging();
-  virtual ~s1ap_paging();
-
   mme*                m_mme;
   s1ap*               m_s1ap;
   srslte::log_filter* m_s1ap_log;

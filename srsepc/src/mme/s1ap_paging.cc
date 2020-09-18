@@ -27,40 +27,13 @@
 
 namespace srsepc {
 
-s1ap_paging*    s1ap_paging::m_instance    = NULL;
-pthread_mutex_t s1ap_paging_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-s1ap_paging::s1ap_paging()
+s1ap_paging* s1ap_paging::get_instance()
 {
-  return;
+  static std::unique_ptr<s1ap_paging> m_instance = std::unique_ptr<s1ap_paging>(new s1ap_paging);
+  return m_instance.get();
 }
 
-s1ap_paging::~s1ap_paging()
-{
-  return;
-}
-
-s1ap_paging* s1ap_paging::get_instance(void)
-{
-  pthread_mutex_lock(&s1ap_paging_instance_mutex);
-  if (NULL == m_instance) {
-    m_instance = new s1ap_paging();
-  }
-  pthread_mutex_unlock(&s1ap_paging_instance_mutex);
-  return (m_instance);
-}
-
-void s1ap_paging::cleanup(void)
-{
-  pthread_mutex_lock(&s1ap_paging_instance_mutex);
-  if (NULL != m_instance) {
-    delete m_instance;
-    m_instance = NULL;
-  }
-  pthread_mutex_unlock(&s1ap_paging_instance_mutex);
-}
-
-void s1ap_paging::init(void)
+void s1ap_paging::init()
 {
   m_s1ap      = s1ap::get_instance();
   m_mme       = mme::get_instance();
@@ -80,7 +53,7 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
 
   // Getting UE NAS Context
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
-  if (nas_ctx == NULL) {
+  if (nas_ctx == nullptr) {
     m_s1ap_log->error("Could not find UE to page NAS context\n");
     return false;
   }
