@@ -229,6 +229,7 @@ void phy::stop()
     sfsync.stop();
     workers_pool.stop();
     prach_buffer.stop();
+    wait_thread_finish();
 
     is_configured = false;
   }
