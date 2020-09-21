@@ -53,6 +53,7 @@ static const uint32_t tx_delay_ms      = 4;
 // RF parameters
 static float uhd_rx_gain = 40, uhd_tx_gain = 60, uhd_freq = 2.4e9;
 static char* uhd_args = "";
+static char* device_name = "";
 
 // SRSLTE Verbose
 SRSLTE_API extern int srslte_verbose;
@@ -60,6 +61,7 @@ SRSLTE_API extern int srslte_verbose;
 void usage(char* prog)
 {
   printf("Usage: %s \n", prog);
+  printf("  -d RF device name [Default %s]\n", device_name);
   printf("  -a UHD args [Default %s]\n", uhd_args);
   printf("  -c Continous Tx? [Default %s]\n", continous_tx ? "true" : "false");
   printf("  -f UHD TX/RX frequency [Default %.2f MHz]\n", uhd_freq / 1e6);
@@ -90,8 +92,11 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "acpfFgGrRstoPOvz")) != -1) {
+  while ((opt = getopt(argc, argv, "acdpfFgGrRstoPOvz")) != -1) {
     switch (opt) {
+      case 'd':
+        device_name = argv[optind];
+        break;
       case 'a':
         uhd_args = argv[optind];
         break;
@@ -217,7 +222,7 @@ int main(int argc, char** argv)
   // Send through UHD
   srslte_rf_t rf;
   printf("Opening RF device...\n");
-  if (srslte_rf_open(&rf, uhd_args)) {
+  if (srslte_rf_open_devname(&rf, device_name, uhd_args, 1)) {
     ERROR("Error opening &uhd\n");
     exit(-1);
   }
