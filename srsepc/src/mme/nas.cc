@@ -1023,6 +1023,7 @@ bool nas::handle_attach_complete(srslte::byte_buffer_t* nas_rx)
   srslte::byte_buffer_t*                                           nas_tx;
 
   // Get NAS authentication response
+  std::memset(&attach_comp, 0, sizeof(attach_comp));
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &attach_comp);
   if (err != LIBLTE_SUCCESS) {
     m_nas_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);

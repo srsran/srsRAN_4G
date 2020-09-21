@@ -21,6 +21,7 @@
 
 #include "srsepc/hdr/spgw/gtpc.h"
 #include <algorithm>
+#include <cstring>
 #include <fcntl.h>
 #include <inttypes.h> // for printing uint64_t
 #include <linux/if.h>
@@ -200,9 +201,10 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   tunnel_ctx = create_gtpc_ctx(cs_req);
 
   // Create session response message
-  srslte::gtpc_pdu                      cs_resp_pdu = {};
-  srslte::gtpc_header*                  header      = &cs_resp_pdu.header;
-  srslte::gtpc_create_session_response* cs_resp     = &cs_resp_pdu.choice.create_session_response;
+  srslte::gtpc_pdu cs_resp_pdu;
+  std::memset(&cs_resp_pdu, 0, sizeof(cs_resp_pdu));
+  srslte::gtpc_header*                  header  = &cs_resp_pdu.header;
+  srslte::gtpc_create_session_response* cs_resp = &cs_resp_pdu.choice.create_session_response;
 
   // Setup GTP-C header
   header->piggyback    = false;
@@ -211,7 +213,7 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   header->type         = srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE;
 
   // Initialize to zero
-  bzero(cs_resp, sizeof(struct srslte::gtpc_create_session_response));
+  std::memset(cs_resp, 0, sizeof(struct srslte::gtpc_create_session_response));
   // Setup Cause
   cs_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   // Setup sender F-TEID (ctrl)
@@ -284,7 +286,8 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
 
   // Setting up Modify bearer response PDU
   // Header
-  srslte::gtpc_pdu     mb_resp_pdu;
+  srslte::gtpc_pdu mb_resp_pdu;
+  std::memset(&mb_resp_pdu, 0, sizeof(mb_resp_pdu));
   srslte::gtpc_header* header = &mb_resp_pdu.header;
   header->piggyback           = false;
   header->teid_present        = true;
@@ -340,10 +343,10 @@ bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
 {
   m_gtpc_log->debug("Sending Downlink Notification Request\n");
 
-  struct srslte::gtpc_pdu                         dl_not_pdu;
+  struct srslte::gtpc_pdu dl_not_pdu;
+  std::memset(&dl_not_pdu, 0, sizeof(dl_not_pdu));
   struct srslte::gtpc_header*                     header = &dl_not_pdu.header;
   struct srslte::gtpc_downlink_data_notification* dl_not = &dl_not_pdu.choice.downlink_data_notification;
-  bzero(&dl_not_pdu, sizeof(struct srslte::gtpc_pdu));
 
   // Find MME Ctrl TEID
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(spgw_ctr_teid);
@@ -454,7 +457,7 @@ spgw_tunnel_ctx_t* spgw::gtpc::create_gtpc_ctx(const struct srslte::gtpc_create_
   m_gtpc_log->console("SPGW: Allocate UE IP %s\n", inet_ntoa(ue_ip_));
 
   // Save the UE IP to User TEID map
-  spgw_tunnel_ctx_t* tunnel_ctx = new spgw_tunnel_ctx_t;
+  spgw_tunnel_ctx_t* tunnel_ctx = new spgw_tunnel_ctx_t{};
 
   tunnel_ctx->imsi = cs_req.imsi;
   tunnel_ctx->ebi  = default_bearer_id;
@@ -465,7 +468,7 @@ spgw_tunnel_ctx_t* spgw::gtpc::create_gtpc_ctx(const struct srslte::gtpc_create_
   tunnel_ctx->up_user_fteid.ipv4 = m_gtpu->get_s1u_addr();
   tunnel_ctx->dw_ctrl_fteid.teid = cs_req.sender_f_teid.teid;
   tunnel_ctx->dw_ctrl_fteid.ipv4 = cs_req.sender_f_teid.ipv4;
-  bzero(&tunnel_ctx->dw_user_fteid, sizeof(srslte::gtp_fteid_t));
+  std::memset(&tunnel_ctx->dw_user_fteid, 0, sizeof(srslte::gtp_fteid_t));
 
   m_teid_to_tunnel_ctx.insert(std::pair<uint32_t, spgw_tunnel_ctx_t*>(spgw_uplink_ctrl_teid, tunnel_ctx));
   m_imsi_to_ctr_teid.insert(std::pair<uint64_t, uint32_t>(cs_req.imsi, spgw_uplink_ctrl_teid));
