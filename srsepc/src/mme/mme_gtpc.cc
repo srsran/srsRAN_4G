@@ -146,7 +146,6 @@ bool mme_gtpc::send_create_session_request(uint64_t imsi)
   bzero(&cs_req_pdu, sizeof(struct srslte::gtpc_pdu));
 
   // Setup GTP-C Header. TODO: Length, sequence and other fields need to be added.
-  cs_req_pdu.union_field_size    = sizeof(srslte::gtpc_create_session_request);
   cs_req_pdu.header.piggyback    = false;
   cs_req_pdu.header.teid_present = true;
   cs_req_pdu.header.teid         = 0; // Send create session request to the butler TEID

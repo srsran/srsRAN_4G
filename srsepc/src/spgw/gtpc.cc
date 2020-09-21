@@ -200,9 +200,9 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   tunnel_ctx = create_gtpc_ctx(cs_req);
 
   // Create session response message
-  srslte::gtpc_pdu                      cs_resp_pdu;
-  srslte::gtpc_header*                  header  = &cs_resp_pdu.header;
-  srslte::gtpc_create_session_response* cs_resp = &cs_resp_pdu.choice.create_session_response;
+  srslte::gtpc_pdu                      cs_resp_pdu = {};
+  srslte::gtpc_header*                  header      = &cs_resp_pdu.header;
+  srslte::gtpc_create_session_response* cs_resp     = &cs_resp_pdu.choice.create_session_response;
 
   // Setup GTP-C header
   header->piggyback    = false;
