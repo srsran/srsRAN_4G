@@ -101,6 +101,7 @@ public:
   explicit serving_cell_config_proc(rrc* parent_);
   srslte::proc_outcome_t init(const std::vector<uint32_t>& required_sibs_);
   srslte::proc_outcome_t step();
+  void                   then(const srslte::proc_state_t& result);
   static const char*     name() { return "Serving Cell Configuration"; }
 
 private:
@@ -259,14 +260,20 @@ private:
 class rrc::connection_reest_proc
 {
 public:
+  struct t311_expiry {};
+  struct serv_cell_cfg_completed {};
+
   explicit connection_reest_proc(rrc* rrc_);
   srslte::proc_outcome_t init(asn1::rrc::reest_cause_e cause);
-  srslte::proc_outcome_t step();
+  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+  srslte::proc_outcome_t react(const t311_expiry& ev);
+  srslte::proc_outcome_t react(const cell_selection_proc::cell_selection_complete_ev& e);
+  srslte::proc_outcome_t react(const serv_cell_cfg_completed& result);
   static const char*     name() { return "Connection re-establishment"; }
   uint32_t               get_source_earfcn() const { return reest_source_freq; }
 
 private:
-  enum class state_t { cell_reselection, cell_configuration } state;
+  enum class state_t { wait_cell_selection, wait_cell_configuration, wait_reest_msg } state;
 
   rrc*                     rrc_ptr           = nullptr;
   asn1::rrc::reest_cause_e reest_cause       = asn1::rrc::reest_cause_e::nulltype;
@@ -274,9 +281,10 @@ private:
   uint16_t                 reest_source_pci  = 0;
   uint32_t                 reest_source_freq = 0;
 
-  srslte::proc_outcome_t step_cell_reselection();
-  srslte::proc_outcome_t step_cell_configuration();
+  bool                   sibs_acquired() const;
+  bool                   passes_cell_criteria() const;
   srslte::proc_outcome_t cell_criteria();
+  srslte::proc_outcome_t start_cell_selection();
 };
 
 class rrc::ho_proc

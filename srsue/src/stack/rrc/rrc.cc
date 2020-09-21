@@ -657,11 +657,13 @@ void rrc::timer_expired(uint32_t timeout_id)
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure_push_cmd();
   } else if (timeout_id == t311.id()) {
+    rrc_log->console("Timer T311 expired: Going to RRC IDLE\n");
     if (connection_reest.is_idle()) {
       rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
       start_go_idle();
     } else {
       // Do nothing, this is handled by the procedure
+      connection_reest.trigger(connection_reest_proc::t311_expiry{});
     }
   } else if (timeout_id == t301.id()) {
     if (state == RRC_STATE_IDLE) {
