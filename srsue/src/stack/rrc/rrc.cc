@@ -802,7 +802,10 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
   rrc_conn_reest_req->ue_id.short_mac_i.from_number(mac_key[2] << 8 | mac_key[3]);
   rrc_conn_reest_req->reest_cause = cause;
 
-  rrc_log->console("RRC Connection Reestablishment\n");
+  rrc_log->console("RRC Connection Reestablishment to PCI=%d, EARFCN=%d (Cause: \"%s\")\n",
+                   meas_cells.serving_cell().phy_cell.pci,
+                   meas_cells.serving_cell().phy_cell.earfcn,
+                   cause.to_string().c_str());
   send_ul_ccch_msg(ul_ccch_msg);
 }
 
