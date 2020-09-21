@@ -1260,7 +1260,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
   rrc_ptr->send_con_restablish_request(reest_cause, reest_rnti, reest_source_pci);
 
   state = state_t::wait_reest_msg;
-  return proc_outcome_t::success;
+  return proc_outcome_t::yield;
 }
 
 srslte::proc_outcome_t rrc::connection_reest_proc::start_cell_selection()
@@ -1312,11 +1312,91 @@ rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_comp
   return cell_criteria();
 }
 
+// 5.3.7.5 - Reception of the RRCConnectionReestablishment by the UE
+srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_s& reest_msg)
+{
+  // 1> stop timer T301;
+  rrc_ptr->t301.stop();
+
+  // 1> re-establish PDCP for SRB1;
+  rrc_ptr->pdcp->reestablish(1);
+
+  // 1> re-establish RLC for SRB1;
+  rrc_ptr->rlc->reestablish(1);
+
+  // 1> perform the radio resource configuration procedure in accordance with the received
+  //    radioResourceConfigDedicated and as specified in 5.3.10;
+  rrc_ptr->apply_rr_config_dedicated(&reest_msg.crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
+
+  // 1> Resume SRB1;
+  rrc_ptr->rlc->resume_bearer(1);
+
+  // 1> update the KeNB key based on the KASME key to which the current KeNB is associated,
+  //    using the nextHopChainingCount value indicated in the RRCConnectionReestablishment message,
+  //    as specified in TS 33.401 [32];
+  // 1> store the nextHopChainingCount value;
+  // 1> derive the KRRCint key associated with the previously configured integrity algorithm, as specified in
+  //    TS 33.401 [32];
+  // 1> derive the KRRCenc key and the KUPenc key associated with the previously configured ciphering algorithm,
+  //    as specified in TS 33.401 [32];
+  int ncc = reest_msg.crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
+  rrc_ptr->usim->generate_as_keys_ho(rrc_ptr->meas_cells.serving_cell().get_pci(),
+                                     rrc_ptr->meas_cells.serving_cell().get_earfcn(),
+                                     ncc,
+                                     &rrc_ptr->sec_cfg);
+
+  // 1> configure lower layers to activate integrity protection using the previously configured algorithm and the
+  //    KRRCint key immediately
+  // 1> configure lower layers to apply ciphering using the previously configured algorithm, the KRRCenc key and the
+  //    KUPenc key immediately
+  rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
+
+  // 1> perform the measurement related actions as specified in 5.5.6.1;
+  rrc_ptr->measurements->ho_reest_actions(rrc_ptr->get_serving_cell()->get_earfcn(),
+                                          rrc_ptr->get_serving_cell()->get_earfcn());
+
+  // 1> submit the RRCConnectionReestablishmentComplete message to lower layers for transmission, upon which the
+  //    procedure ends;
+  rrc_ptr->send_con_restablish_complete();
+
+  Info("Finished successfully\n");
+  return proc_outcome_t::success;
+}
+
+// 5.3.7.7 - T301 expiry or selected cell no longer suitable
+srslte::proc_outcome_t rrc::connection_reest_proc::react(const t301_expiry& ev)
+{
+  Info("Timer T301 expired: Going to RRC IDLE\n");
+  rrc_ptr->rrc_log->console("Timer T301 expired: Going to RRC IDLE\n");
+  rrc_ptr->start_go_idle();
+
+  return proc_outcome_t::error;
+}
+srslte::proc_outcome_t rrc::connection_reest_proc::step()
+{
+  if (rrc_ptr->t301.is_running() and not passes_cell_criteria()) {
+    Info("Selected cell no longer suitable: Going to RRC IDLE\n");
+    rrc_ptr->rrc_log->console("Selected cell no longer suitable: Going to RRC IDLE\n");
+    rrc_ptr->start_go_idle();
+    return proc_outcome_t::error;
+  }
+  return proc_outcome_t::yield;
+}
+
+// 5.3.7.8 - Reception of RRCConnectionReestablishmentReject by the UE
+srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reject_s& reject_msg)
+{
+  rrc_ptr->rrc_log->console("Reestablishment Reject. Going to RRC IDLE\n");
+  rrc_ptr->t301.stop();
+  rrc_ptr->start_go_idle();
+  return proc_outcome_t::error;
+}
+
 // 5.3.7.6 - T311 expiry
 srslte::proc_outcome_t rrc::connection_reest_proc::react(const t311_expiry& ev)
 {
   // Abort procedure if T311 expires
-  Info("T311 expired during cell configuration. Going to RRC idle\n");
+  Info("T311 expired during cell configuration. Going to RRC IDLE\n");
   rrc_ptr->start_go_idle();
   return proc_outcome_t::error;
 }

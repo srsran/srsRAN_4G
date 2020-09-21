@@ -670,7 +670,7 @@ void rrc::timer_expired(uint32_t timeout_id)
       rrc_log->info("Timer T301 expired: Already in IDLE.\n");
     } else {
       rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
-      start_go_idle();
+      connection_reest.trigger(connection_reest_proc::t301_expiry{});
     }
   } else if (timeout_id == t302.id()) {
     rrc_log->info("Timer T302 expired. Informing NAS about barrier alleviation\n");
@@ -821,6 +821,8 @@ void rrc::send_con_restablish_complete()
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
+
+  reestablishment_successful = true;
 }
 
 void rrc::send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg)
@@ -1558,8 +1560,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
     }
     /* Reception of RRCConnectionReestablishmentReject 5.3.7.8 */
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_reject:
-      rrc_log->console("Reestablishment Reject\n");
-      start_go_idle();
+      connection_reest.trigger(c1->rrc_conn_reject());
       break;
     default:
       rrc_log->error("The provided DL-CCCH message type is not recognized\n");
@@ -2348,30 +2349,7 @@ void rrc::handle_con_setup(const rrc_conn_setup_s& setup)
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(const rrc_conn_reest_s& reest)
 {
-  t301.stop();
-
-  // Reestablish PDCP and RLC for SRB1
-  pdcp->reestablish(1);
-  rlc->reestablish(1);
-
-  // Update RRC Integrity keys
-  int ncc = reest.crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
-  usim->generate_as_keys_ho(meas_cells.serving_cell().get_pci(), meas_cells.serving_cell().get_earfcn(), ncc, &sec_cfg);
-  pdcp->config_security_all(sec_cfg);
-
-  // Apply the Radio Resource configuration
-  apply_rr_config_dedicated(&reest.crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
-
-  // Resume SRB1
-  rlc->resume_bearer(1);
-
-  // perform the measurement related actions as specified in 5.5.6.1;
-  measurements->ho_reest_actions(get_serving_cell()->get_earfcn(), get_serving_cell()->get_earfcn());
-
-  // Send ConnectionSetupComplete message
-  send_con_restablish_complete();
-
-  reestablishment_successful = true;
+  connection_reest.trigger(reest);
 }
 
 void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)

@@ -262,13 +262,17 @@ class rrc::connection_reest_proc
 public:
   struct t311_expiry {};
   struct serv_cell_cfg_completed {};
+  struct t301_expiry {};
 
   explicit connection_reest_proc(rrc* rrc_);
   srslte::proc_outcome_t init(asn1::rrc::reest_cause_e cause);
-  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+  srslte::proc_outcome_t step();
   srslte::proc_outcome_t react(const t311_expiry& ev);
   srslte::proc_outcome_t react(const cell_selection_proc::cell_selection_complete_ev& e);
   srslte::proc_outcome_t react(const serv_cell_cfg_completed& result);
+  srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reest_s& reest_msg);
+  srslte::proc_outcome_t react(const t301_expiry& ev);
+  srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reject_s& reest_msg);
   static const char*     name() { return "Connection re-establishment"; }
   uint32_t               get_source_earfcn() const { return reest_source_freq; }
 
