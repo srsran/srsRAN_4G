@@ -180,8 +180,8 @@ int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes,
 
 int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
 {
-  int             ret = SRSLTE_SUCCESS;
-  uint8_t*        ptr = (uint8_t*)p;
+  int             ret    = SRSLTE_SUCCESS;
+  uint8_t*        ptr    = (uint8_t*)p;
   struct timespec towait = {};
 
   // Get current time and update timeout
@@ -270,7 +270,7 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
   if (nof_bytes + q->rpm > q->capacity) {
     int x = (q->capacity - q->rpm);
     srslte_vec_convert_if(src, norm, dst, x / 2);
-    srslte_vec_convert_if((int16_t*)q->buffer, norm, &dst[x], 2 * nof_samples - x / 2);
+    srslte_vec_convert_if((int16_t*)q->buffer, norm, &dst[x / 2], 2 * nof_samples - x / 2);
   } else {
     srslte_vec_convert_if(src, norm, dst, 2 * nof_samples);
   }
