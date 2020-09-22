@@ -238,6 +238,7 @@ void lte_ttcn3_phy::set_timeadv(uint32_t ta_cmd)
 void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
 {
   // Empty, SYSSIM knows when to provide UL grant for Msg3
+  log.debug("%s not implemented.\n", __FUNCTION__);
 }
 
 // Called from the SYSSIM to configure the current TTI

@@ -58,6 +58,7 @@ public:
     srslte_cell_t phy_cell      = {};
     float         initial_power = -90.0;
     float         attenuation   = 0.0;
+    uint16_t      temp_crnti    = 0;
     uint16_t      crnti         = 0;
   };
   virtual void set_cell_config(const ttcn3_helpers::timing_info_t timing, const cell_config_t cell) = 0;

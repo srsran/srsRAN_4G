@@ -270,7 +270,7 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
   } else if (SRSLTE_RNTI_ISUSER(dl_rnti)) {
     // check if this is for contention resolution after PRACH/RAR
     if (dl_rnti == cells[pcell_idx]->config.crnti) {
-      log->debug("Searching for C-RNTI=%d\n", dl_rnti);
+      log->debug("Searching for C-RNTI=0x%x\n", dl_rnti);
 
       if (rar_tti != -1) {
         msg3_tti = (rar_tti + 3) % 10240;
@@ -287,7 +287,7 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
     }
 
     if (dl_rnti != SRSLTE_INVALID_RNTI) {
-      log->debug("Searching for RNTI=%d\n", dl_rnti);
+      log->debug("Searching for RNTI=0x%x\n", dl_rnti);
 
       // look for DL data to be send in each bearer and provide grant accordingly
       for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
@@ -581,7 +581,7 @@ void ttcn3_syssim::send_rar(uint32_t preamble_index)
   if (rar_pdu.new_subh()) {
     rar_pdu.get()->set_rapid(preamble_index);
     rar_pdu.get()->set_ta_cmd(0);
-    rar_pdu.get()->set_temp_crnti(cells[pcell_idx]->config.crnti);
+    rar_pdu.get()->set_temp_crnti(cells[pcell_idx]->config.temp_crnti);
     rar_pdu.get()->set_sched_grant(grant_buffer);
   }
   rar_pdu.write_packet(rar_buffer.msg);
@@ -788,10 +788,13 @@ void ttcn3_syssim::set_cell_config_impl(const cell_config_t config)
   } else {
     // cell is already there
     log->info("Cell already there, reconfigure\n");
-    // We only support C-RNTI reconfiguration
+    // We only support (Temp-)CRNTI reconfiguration
     syssim_cell_t* ss_cell = get_cell(config.name);
     if (config.crnti > 0) {
       ss_cell->config.crnti = config.crnti;
+    }
+    if (config.temp_crnti > 0) {
+      ss_cell->config.temp_crnti = config.temp_crnti;
     }
   }
 

@@ -175,29 +175,25 @@ private:
 
       const Value& att = document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["InitialCellPower"]["Attenuation"];
 
-      float att_value = 0;
+      cell.attenuation = 0;
       if (att.HasMember("Value")) {
-        att_value = att["Value"].GetInt();
+        cell.attenuation = att["Value"].GetInt();
       } else if (att.HasMember("Off")) {
         // is there other values than Off=True?
         assert(att["Off"].GetBool() == true);
         if (att["Off"].GetBool() == true) {
           // use high attenuation value  (-145dB RX power as per TS 36.508 Sec 6.2.2.1-1 is a non-suitable Off cell)
-          att_value = 90.0;
+          cell.attenuation = 90.0;
         }
       }
 
-      // Extract CRNTI
-      if (document["Request"]["Cell"]["AddOrReconfigure"].HasMember("Active")) {
-        const Value& crnti_string = document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["C_RNTI"];
-        assert(crnti_string.IsString());
-        cell.crnti = std::bitset<16>(crnti_string.GetString()).to_ulong();
-      }
+      // parse and handle reconfig of active cells
+      handle_active_cell_reconfig_section(document, cell);
 
       // Now configure cell
       syssim->set_cell_config(ttcn3_helpers::get_timing_info(document), cell);
-      log->info("Configuring attenuation of %s to %.2f dB\n", cell_name.GetString(), att_value);
-      syssim->set_cell_attenuation(ttcn3_helpers::get_timing_info(document), cell_name.GetString(), att_value);
+      log->info("Configuring attenuation of %s to %.2f dB\n", cell_name.GetString(), cell.attenuation);
+      syssim->set_cell_attenuation(ttcn3_helpers::get_timing_info(document), cell_name.GetString(), cell.attenuation);
     }
 
     // Pull out SIBs and send to syssim
@@ -233,18 +229,13 @@ private:
     // Create response for template car_CellConfig_CNF(CellId_Type p_CellId)
     std::string cell_id = document["Common"]["CellId"].GetString();
 
+    // Fill relevant content
     ss_sys_interface::cell_config_t cell;
     cell.name = cell_id;
 
-    // Extract CRNTI
-    if (document["Request"]["Cell"]["AddOrReconfigure"].HasMember("Active")) {
-      if (document["Request"]["Cell"]["AddOrReconfigure"]["Active"].HasMember("C_RNTI")) {
-        const Value& crnti_string = document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["C_RNTI"];
-        assert(crnti_string.IsString());
-        cell.crnti = std::bitset<16>(crnti_string.GetString()).to_ulong();
-      }
-    }
+    handle_active_cell_reconfig_section(document, cell);
 
+    // Now configure cell
     syssim->set_cell_config(ttcn3_helpers::get_timing_info(document), cell);
 
     if (ttcn3_helpers::requires_confirm(document)) {
@@ -254,6 +245,59 @@ private:
       send((const uint8_t*)resp.c_str(), resp.length());
     } else {
       log->info("Skipping response for request cell active message.\n");
+    }
+  }
+
+  // This function just pulls out the reconfiguration section but doesn't send response to SS
+  void handle_active_cell_reconfig_section(Document& document, ss_sys_interface::cell_config_t& cell)
+  {
+    if (document["Request"]["Cell"]["AddOrReconfigure"].HasMember("Active")) {
+      // Extract CRNTI
+      if (document["Request"]["Cell"]["AddOrReconfigure"]["Active"].HasMember("C_RNTI")) {
+        const Value& crnti_string = document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["C_RNTI"];
+        assert(crnti_string.IsString());
+        cell.crnti = std::bitset<16>(crnti_string.GetString()).to_ulong();
+      }
+
+      // Extra Cont Resolution scheme
+      if (document["Request"]["Cell"]["AddOrReconfigure"]["Active"].HasMember("RachProcedureConfig")) {
+        if (document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["RachProcedureConfig"].HasMember(
+                "RachProcedureList")) {
+          const Value& rach_proc_list =
+              document["Request"]["Cell"]["AddOrReconfigure"]["Active"]["RachProcedureConfig"]["RachProcedureList"];
+          assert(rach_proc_list.IsArray());
+          for (Value::ConstValueIterator itr = rach_proc_list.Begin(); itr != rach_proc_list.End(); ++itr) {
+            if (itr->HasMember("ContentionResolutionCtrl")) {
+              const Value& cont_res_type = (*itr)["ContentionResolutionCtrl"];
+              if (cont_res_type.HasMember("CRNTI_Based")) {
+                // TODO: handle CRNTI based contention resolution
+              } else if (cont_res_type.HasMember("TCRNTI_Based")) {
+                // TODO: handle TCRNTI based contention resolution
+              }
+            }
+            if (itr->HasMember("RAResponse")) {
+              if ((*itr)["RAResponse"].HasMember("Ctrl")) {
+                if ((*itr)["RAResponse"]["Ctrl"].HasMember("Rar")) {
+                  if ((*itr)["RAResponse"]["Ctrl"]["Rar"].HasMember("List")) {
+                    const Value& rar_list_list = (*itr)["RAResponse"]["Ctrl"]["Rar"]["List"];
+                    assert(rar_list_list.IsArray());
+                    for (Value::ConstValueIterator rar_itr = rar_list_list.Begin(); rar_itr != rar_list_list.End();
+                         ++rar_itr) {
+                      if (rar_itr->HasMember("TempC_RNTI")) {
+                        if ((*rar_itr)["TempC_RNTI"].HasMember("SameAsC_RNTI")) {
+                          const Value& temp_crnti = (*rar_itr)["TempC_RNTI"]["SameAsC_RNTI"];
+                          assert(temp_crnti.IsBool() && temp_crnti.GetBool() == true);
+                          cell.temp_crnti = cell.crnti;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -373,7 +417,7 @@ private:
 
         const Value& config = (*itr)["Config"];
         if (config.HasMember("AddOrReconfigure")) {
-          const Value& aor  = config["AddOrReconfigure"];
+          const Value& aor = config["AddOrReconfigure"];
           if (aor.HasMember("LogicalChannelId")) {
             uint32_t lcid = aor["LogicalChannelId"].GetInt();
             if (lcid > 0) {
