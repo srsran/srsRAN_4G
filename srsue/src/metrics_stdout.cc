@@ -118,8 +118,8 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
     cout << std::setw(2) << r;
     cout << std::setw(4) << metrics.phy.info[r].pci << std::setw(0);
-    cout << float_to_string(metrics.phy.dl[r].rsrp, 2);
-    cout << float_to_string(metrics.phy.dl[r].pathloss, 2);
+    cout << float_to_string(metrics.phy.ch[r].rsrp, 2);
+    cout << float_to_string(metrics.phy.ch[r].pathloss, 2);
     cout << float_to_eng_string(metrics.phy.sync[r].cfo, 2);
 
     // Find strongest neighbour for this EARFCN (cells are ordered)
@@ -140,7 +140,7 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     }
 
     cout << float_to_string(metrics.phy.dl[r].mcs, 2);
-    cout << float_to_string(metrics.phy.dl[r].sinr, 2);
+    cout << float_to_string(metrics.phy.ch[r].sinr, 2);
     cout << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
 
     cout << float_to_eng_string((float)metrics.stack.mac[r].rx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);

@@ -98,8 +98,8 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << metrics.phy.info[r].pci << ";";
 
       // Print PHY metrics for first CC
-      file << float_to_string(metrics.phy.dl[r].rsrp, 2);
-      file << float_to_string(metrics.phy.dl[r].pathloss, 2);
+      file << float_to_string(metrics.phy.ch[r].rsrp, 2);
+      file << float_to_string(metrics.phy.ch[r].pathloss, 2);
       file << float_to_string(metrics.phy.sync[r].cfo, 2);
 
       // Find strongest neighbour for this EARFCN (cells are ordered)
@@ -120,7 +120,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       }
 
       file << float_to_string(metrics.phy.dl[r].mcs, 2);
-      file << float_to_string(metrics.phy.dl[r].sinr, 2);
+      file << float_to_string(metrics.phy.ch[r].sinr, 2);
       file << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
 
       if (metrics.stack.mac[r].rx_brate > 0) {

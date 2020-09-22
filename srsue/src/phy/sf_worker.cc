@@ -55,16 +55,11 @@ static int plot_worker_id = -1;
 
 namespace srsue {
 
-sf_worker::sf_worker(uint32_t            max_prb,
-                     phy_common*         phy_,
-                     srslte::log*        log_h_,
-                     srslte::log*        log_phy_lib_h_,
-                     chest_feedback_itf* chest_loop_)
+sf_worker::sf_worker(uint32_t max_prb, phy_common* phy_, srslte::log* log_h_, srslte::log* log_phy_lib_h_)
 {
   phy           = phy_;
   log_h         = log_h_;
   log_phy_lib_h = log_phy_lib_h_;
-  chest_loop    = chest_loop_;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
@@ -81,7 +76,6 @@ sf_worker::~sf_worker()
 
 void sf_worker::reset()
 {
-  rssi_read_cnt = 0;
   for (auto& cc_worker : cc_workers) {
     cc_worker->reset();
   }
@@ -270,11 +264,6 @@ void sf_worker::work_imp()
     update_measurements();
   }
 
-  // Call feedback loop for chest
-  if (chest_loop && ((1U << (tti % 10U)) & phy->args->cfo_ref_mask)) {
-    chest_loop->set_cfo(cc_workers[0]->get_ref_cfo());
-  }
-
   /* Tell the plotting thread to draw the plots */
 #ifdef ENABLE_GUI
   if ((int)get_id() == plot_worker_id) {
@@ -294,66 +283,20 @@ void sf_worker::reset_uci(srslte_uci_data_t* uci_data)
 
 void sf_worker::update_measurements()
 {
-  /* Only worker 0 reads the RSSI sensor every ~1-nof_cores s */
+  // Run measurements in all carriers, but only in one worker
   if (get_id() == 0) {
-
-    // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
-    float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0
-                         ? (srslte_convert_power_to_dB(srslte_vec_avg_power_cf(cc_workers[0]->get_rx_buffer(0),
-                                                                               SRSLTE_SF_LEN_PRB(cell.nof_prb))) +
-                            30)
-                         : 0;
-    if (std::isnormal(rssi_dbm)) {
-      phy->avg_rssi_dbm[0] = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm[0], phy->args->snr_ema_coeff);
-    }
-
-    if (!rssi_read_cnt) {
-      phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
-    }
-    rssi_read_cnt++;
-    if (rssi_read_cnt == 1000) {
-      rssi_read_cnt = 0;
-    }
-  }
-
-  // Run measurements in all carriers
-  std::vector<rrc_interface_phy_lte::phy_meas_t> serving_cells = {};
-  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-    bool active = (cc_idx == 0 || phy->scell_cfg[cc_idx].configured);
-
-    // Update measurement of the Component Carrier
-    cc_workers[cc_idx]->update_measurements();
-
-    // Send measurements for serving cells
-    if (active && ((tti % phy->pcell_report_period) == phy->pcell_report_period - 1)) {
-      rrc_interface_phy_lte::phy_meas_t meas = {};
-      meas.rsrp                              = phy->avg_rsrp_dbm[cc_idx];
-      meas.rsrq                              = phy->avg_rsrq_db[cc_idx];
-      meas.cfo_hz                            = phy->avg_cfo_hz[cc_idx];
-      // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
-      if (cc_idx > 0) {
-        meas.earfcn = phy->scell_cfg[cc_idx].earfcn;
-        meas.pci    = phy->scell_cfg[cc_idx].pci;
+    std::vector<rrc_interface_phy_lte::phy_meas_t> serving_cells = {};
+    for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
+      cf_t* rssi_power_buffer = nullptr;
+      if (cc_idx == 0) {
+        rssi_power_buffer = cc_workers[0]->get_rx_buffer(0);
       }
-      serving_cells.push_back(meas);
+      cc_workers[cc_idx]->update_measurements(serving_cells, rssi_power_buffer);
     }
-  }
-  // Send report to stack
-  if (not serving_cells.empty()) {
-    phy->stack->new_cell_meas(serving_cells);
-  }
-
-  // Check in-sync / out-sync conditions
-  if (phy->avg_rsrp_dbm[0] > phy->args->in_sync_rsrp_dbm_th && phy->avg_snr_db_cqi[0] > phy->args->in_sync_snr_db_th) {
-    log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
-                 phy->avg_snr_db_cqi[0],
-                 phy->avg_rsrp_dbm[0]);
-    chest_loop->in_sync();
-  } else {
-    log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
-                   phy->avg_snr_db_cqi[0],
-                   phy->avg_rsrp_dbm[0]);
-    chest_loop->out_of_sync();
+    // Send report to stack
+    if (not serving_cells.empty()) {
+      phy->stack->new_cell_meas(serving_cells);
+    }
   }
 }
 
@@ -386,12 +329,6 @@ int sf_worker::read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_anten
 int sf_worker::read_pdsch_d(cf_t* pdsch_d)
 {
   return cc_workers[0]->read_pdsch_d(pdsch_d);
-}
-float sf_worker::get_sync_error()
-{
-  dl_metrics_t dl_metrics[SRSLTE_MAX_CARRIERS] = {};
-  phy->get_dl_metrics(dl_metrics);
-  return dl_metrics->sync_err;
 }
 
 float sf_worker::get_cfo()

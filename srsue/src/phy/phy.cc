@@ -180,12 +180,12 @@ void phy::run_thread()
 {
   std::unique_lock<std::mutex> lock(config_mutex);
   prach_buffer.init(SRSLTE_MAX_PRB, log_h);
-  common.init(&args, (srslte::log*)log_vec[0].get(), radio, stack);
+  common.init(&args, (srslte::log*)log_vec[0].get(), radio, stack, &sfsync);
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < nof_workers; i++) {
     auto w = std::unique_ptr<sf_worker>(new sf_worker(
-        SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i].get(), (srslte::log*)log_vec[nof_workers].get(), &sfsync));
+        SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i].get(), (srslte::log*)log_vec[nof_workers].get()));
     workers_pool.init_worker(i, w.get(), WORKERS_THREAD_PRIO, args.worker_cpu_mask);
     workers.push_back(std::move(w));
   }
@@ -248,6 +248,7 @@ void phy::get_metrics(phy_metrics_t* m)
     m->info[i].pci       = common.scell_cfg[i].pci;
   }
 
+  common.get_ch_metrics(m->ch);
   common.get_dl_metrics(m->dl);
   common.get_ul_metrics(m->ul);
   common.get_sync_metrics(m->sync);
@@ -322,13 +323,13 @@ bool phy::cell_is_camping()
 
 float phy::get_phr()
 {
-  float phr = radio->get_info()->max_tx_gain - common.cur_pusch_power;
+  float phr = radio->get_info()->max_tx_gain - common.get_pusch_power();
   return phr;
 }
 
 float phy::get_pathloss_db()
 {
-  return common.cur_pathloss;
+  return common.get_pathloss();
 }
 
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)

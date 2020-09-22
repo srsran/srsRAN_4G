@@ -44,7 +44,6 @@ public:
 
   void  set_tti(uint32_t tti);
   void  set_cfo(float cfo);
-  float get_ref_cfo() const;
 
   void set_tdd_config(srslte_tdd_config_t config);
   void set_config(srslte::phy_cfg_t& phy_cfg);
@@ -61,7 +60,8 @@ public:
   int read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
   int read_pdsch_d(cf_t* pdsch_d);
 
-  void update_measurements();
+  void update_measurements(std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
+                           cf_t*                                           rssi_power_buffer = nullptr);
 
 private:
   void dl_phy_to_mac_grant(srslte_pdsch_grant_t*                  phy_grant,
@@ -116,10 +116,6 @@ private:
   /* Objects for UL */
   srslte_ue_ul_t     ue_ul     = {};
   srslte_ue_ul_cfg_t ue_ul_cfg = {};
-
-  // Metrics
-  dl_metrics_t dl_metrics = {};
-  ul_metrics_t ul_metrics = {};
 
   // Mutex, for protecting what matters most: ue_ul, ue_ul_cfg, ue_dl, ue_dl_cfg, cell, pmch_cfg
   std::mutex mutex;

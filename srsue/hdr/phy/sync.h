@@ -48,7 +48,7 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class sync : public srslte::thread, public chest_feedback_itf, public search_callback, public scell::sync_callback
+class sync : public srslte::thread, public rsrp_insync_itf, public search_callback, public scell::sync_callback
 {
 public:
   sync() : thread("SYNC"), sf_buffer(sync_nof_rx_subframes), dummy_buffer(sync_nof_rx_subframes){};

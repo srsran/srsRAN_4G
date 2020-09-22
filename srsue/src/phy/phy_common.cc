@@ -57,12 +57,14 @@ void phy_common::set_nof_workers(uint32_t nof_workers_)
 void phy_common::init(phy_args_t*                  _args,
                       srslte::log*                 _log,
                       srslte::radio_interface_phy* _radio,
-                      stack_interface_phy_lte*     _stack)
+                      stack_interface_phy_lte*     _stack,
+                      rsrp_insync_itf*             _chest_loop)
 {
   log_h          = _log;
   radio_h        = _radio;
   stack          = _stack;
   args           = _args;
+  insync_itf     = _chest_loop;
   sr_last_tx_tti = -1;
 
   ta.set_logger(_log);
@@ -603,75 +605,241 @@ void phy_common::set_cell(const srslte_cell_t& c)
   }
 }
 
-void phy_common::set_dl_metrics(const dl_metrics_t m, uint32_t cc_idx)
+void phy_common::update_cfo_measurement(uint32_t cc_idx, float cfo_hz)
 {
-  if (dl_metrics_read) {
-    bzero(dl_metrics, sizeof(dl_metrics_t) * SRSLTE_MAX_CARRIERS);
-    dl_metrics_count = 0;
-    dl_metrics_read  = false;
+  std::unique_lock<std::mutex> lock(meas_mutex);
+
+  // use SNR EMA coefficient for averaging
+  avg_cfo_hz[cc_idx] = SRSLTE_VEC_EMA(cfo_hz, avg_cfo_hz[cc_idx], args->snr_ema_coeff);
+}
+
+void phy_common::update_measurements(uint32_t                                        cc_idx,
+                                     srslte_chest_dl_res_t                           chest_res,
+                                     srslte_dl_sf_cfg_t                              sf_cfg_dl,
+                                     float                                           tx_crs_power,
+                                     std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
+                                     cf_t*                                           rssi_power_buffer)
+{
+  std::unique_lock<std::mutex> lock(meas_mutex);
+
+  float snr_ema_coeff = args->snr_ema_coeff;
+
+  // In TDD, ignore special subframes without PDSCH
+  if (srslte_sfidx_tdd_type(sf_cfg_dl.tdd_config, sf_cfg_dl.tti % 10) == SRSLTE_TDD_SF_S &&
+      srslte_sfidx_tdd_nof_dw(sf_cfg_dl.tdd_config) < 4) {
+    return;
   }
-  dl_metrics_count++;
-  dl_metrics[cc_idx].mcs  = dl_metrics[cc_idx].mcs + (m.mcs - dl_metrics[cc_idx].mcs) / dl_metrics_count;
-  dl_metrics[cc_idx].n    = dl_metrics[cc_idx].n + (m.n - dl_metrics[cc_idx].n) / dl_metrics_count;
-  dl_metrics[cc_idx].rsrq = dl_metrics[cc_idx].rsrq + (m.rsrq - dl_metrics[cc_idx].rsrq) / dl_metrics_count;
-  dl_metrics[cc_idx].rssi = dl_metrics[cc_idx].rssi + (m.rssi - dl_metrics[cc_idx].rssi) / dl_metrics_count;
-  dl_metrics[cc_idx].rsrp = dl_metrics[cc_idx].rsrp + (m.rsrp - dl_metrics[cc_idx].rsrp) / dl_metrics_count;
-  dl_metrics[cc_idx].sinr = dl_metrics[cc_idx].sinr + (m.sinr - dl_metrics[cc_idx].sinr) / dl_metrics_count;
-  dl_metrics[cc_idx].sync_err =
-      dl_metrics[cc_idx].sync_err + (m.sync_err - dl_metrics[cc_idx].sync_err) / dl_metrics_count;
-  dl_metrics[cc_idx].pathloss =
-      dl_metrics[cc_idx].pathloss + (m.pathloss - dl_metrics[cc_idx].pathloss) / dl_metrics_count;
+
+  // Only worker 0 reads the RSSI sensor
+  if (rssi_power_buffer) {
+
+    if (!rssi_read_cnt) {
+      // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
+      float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0 ? (srslte_convert_power_to_dB(srslte_vec_avg_power_cf(
+                                                                  rssi_power_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb))) +
+                                                              30)
+                                                           : 0;
+      if (std::isnormal(rssi_dbm)) {
+        avg_rssi_dbm[0] = SRSLTE_VEC_EMA(rssi_dbm, avg_rssi_dbm[0], args->snr_ema_coeff);
+      }
+
+      rx_gain_offset = get_radio()->get_rx_gain() + args->rx_gain_offset;
+    }
+    rssi_read_cnt++;
+    if (rssi_read_cnt == 1000) {
+      rssi_read_cnt = 0;
+    }
+  }
+
+  // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
+  float rsrq_db = chest_res.rsrq_db;
+  if (std::isnormal(rsrq_db)) {
+    if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrq_db[cc_idx])) {
+      avg_rsrq_db[cc_idx] = rsrq_db;
+    } else {
+      avg_rsrq_db[cc_idx] = SRSLTE_VEC_CMA(rsrq_db, avg_rsrq_db[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+    }
+  }
+
+  // Average RSRP taken from CRS
+  float rsrp_lin = chest_res.rsrp;
+  if (std::isnormal(rsrp_lin)) {
+    if (!std::isnormal(avg_rsrp[cc_idx])) {
+      avg_rsrp[cc_idx] = rsrp_lin;
+    } else {
+      avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, avg_rsrp[cc_idx], snr_ema_coeff);
+    }
+  }
+
+  /* Correct absolute power measurements by RX gain offset */
+  float rsrp_dbm = chest_res.rsrp_dbm - rx_gain_offset;
+
+  // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
+  if (std::isnormal(rsrp_dbm)) {
+    if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrp_dbm[cc_idx])) {
+      avg_rsrp_dbm[cc_idx] = rsrp_dbm;
+    } else {
+      avg_rsrp_dbm[cc_idx] = SRSLTE_VEC_CMA(rsrp_dbm, avg_rsrp_dbm[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+    }
+  }
+
+  // Compute PL
+  pathloss[cc_idx] = tx_crs_power - avg_rsrp_dbm[cc_idx];
+
+  // Average noise
+  float cur_noise = chest_res.noise_estimate;
+  if (std::isnormal(cur_noise)) {
+    if (!std::isnormal(avg_noise[cc_idx])) {
+      avg_noise[cc_idx] = cur_noise;
+    } else {
+      avg_noise[cc_idx] = SRSLTE_VEC_EMA(cur_noise, avg_noise[cc_idx], snr_ema_coeff);
+    }
+  }
+
+  // Average snr in the log domain
+  if (std::isnormal(chest_res.snr_db)) {
+    if (!std::isnormal(avg_snr_db_cqi[cc_idx])) {
+      avg_snr_db_cqi[cc_idx] = chest_res.snr_db;
+    } else {
+      avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(chest_res.snr_db, avg_snr_db_cqi[cc_idx], snr_ema_coeff);
+    }
+  }
+
+  // Store metrics
+  ch_metrics_t ch = {};
+  ch.n            = avg_noise[cc_idx];
+  ch.rsrp         = avg_rsrp_dbm[cc_idx];
+  ch.rsrq         = avg_rsrq_db[cc_idx];
+  ch.rssi         = avg_rssi_dbm[cc_idx];
+  ch.pathloss     = pathloss[cc_idx];
+  ch.sinr         = avg_snr_db_cqi[cc_idx];
+  ch.sync_err     = chest_res.sync_error;
+
+  set_ch_metrics(cc_idx, ch);
+
+  // Prepare measurements for serving cells
+  bool active = (cc_idx == 0 || scell_cfg[cc_idx].configured);
+  if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
+    rrc_interface_phy_lte::phy_meas_t meas = {};
+    meas.rsrp                              = avg_rsrp_dbm[cc_idx];
+    meas.rsrq                              = avg_rsrq_db[cc_idx];
+    meas.cfo_hz                            = avg_cfo_hz[cc_idx];
+    // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
+    if (cc_idx > 0) {
+      meas.earfcn = scell_cfg[cc_idx].earfcn;
+      meas.pci    = scell_cfg[cc_idx].pci;
+    }
+    serving_cells.push_back(meas);
+  }
+
+  // Check in-sync / out-sync conditions
+  if (avg_rsrp_dbm[0] > args->in_sync_rsrp_dbm_th && avg_snr_db_cqi[0] > args->in_sync_snr_db_th) {
+    log_h->debug(
+        "SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
+    if (insync_itf) {
+      insync_itf->in_sync();
+    }
+  } else {
+    log_h->warning(
+        "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
+    if (insync_itf) {
+      insync_itf->out_of_sync();
+    }
+  }
+  // Call feedback loop for chest
+  if (cc_idx == 0) {
+    if (insync_itf && ((1U << (sf_cfg_dl.tti % 10U)) & args->cfo_ref_mask)) {
+      insync_itf->set_cfo(chest_res.cfo);
+    }
+  }
+}
+
+void phy_common::set_dl_metrics(uint32_t cc_idx, const dl_metrics_t& m)
+{
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  dl_metrics_count[cc_idx]++;
+  dl_metrics[cc_idx].mcs = dl_metrics[cc_idx].mcs + (m.mcs - dl_metrics[cc_idx].mcs) / dl_metrics_count[cc_idx];
   dl_metrics[cc_idx].turbo_iters =
-      dl_metrics[cc_idx].turbo_iters + (m.turbo_iters - dl_metrics[cc_idx].turbo_iters) / dl_metrics_count;
+      dl_metrics[cc_idx].turbo_iters + (m.turbo_iters - dl_metrics[cc_idx].turbo_iters) / dl_metrics_count[cc_idx];
 }
 
 void phy_common::get_dl_metrics(dl_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
-  memcpy(m, dl_metrics, sizeof(dl_metrics_t) * SRSLTE_MAX_CARRIERS);
-  dl_metrics_read = true;
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+    m[i]                = dl_metrics[i];
+    dl_metrics[i]       = {};
+    dl_metrics_count[i] = 0;
+  }
 }
 
-void phy_common::set_ul_metrics(const ul_metrics_t m, uint32_t cc_idx)
+void phy_common::set_ch_metrics(uint32_t cc_idx, const ch_metrics_t& m)
 {
-  if (ul_metrics_read) {
-    bzero(ul_metrics, sizeof(ul_metrics_t) * SRSLTE_MAX_CARRIERS);
-    ul_metrics_count = 0;
-    ul_metrics_read  = false;
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  ch_metrics_count[cc_idx]++;
+  ch_metrics[cc_idx].n    = ch_metrics[cc_idx].n + (m.n - ch_metrics[cc_idx].n) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].rsrq = ch_metrics[cc_idx].rsrq + (m.rsrq - ch_metrics[cc_idx].rsrq) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].rssi = ch_metrics[cc_idx].rssi + (m.rssi - ch_metrics[cc_idx].rssi) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].rsrp = ch_metrics[cc_idx].rsrp + (m.rsrp - ch_metrics[cc_idx].rsrp) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].sinr = ch_metrics[cc_idx].sinr + (m.sinr - ch_metrics[cc_idx].sinr) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].sync_err =
+      ch_metrics[cc_idx].sync_err + (m.sync_err - ch_metrics[cc_idx].sync_err) / ch_metrics_count[cc_idx];
+  ch_metrics[cc_idx].pathloss =
+      ch_metrics[cc_idx].pathloss + (m.pathloss - ch_metrics[cc_idx].pathloss) / ch_metrics_count[cc_idx];
+}
+
+void phy_common::get_ch_metrics(ch_metrics_t m[SRSLTE_MAX_CARRIERS])
+{
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+    m[i]                = ch_metrics[i];
+    ch_metrics[i]       = {};
+    ch_metrics_count[i] = 0;
   }
-  ul_metrics_count++;
-  for (uint32_t r = 0; r < args->nof_carriers; r++) {
-    ul_metrics[cc_idx].mcs   = ul_metrics[cc_idx].mcs + (m.mcs - ul_metrics[cc_idx].mcs) / ul_metrics_count;
-    ul_metrics[cc_idx].power = ul_metrics[cc_idx].power + (m.power - ul_metrics[cc_idx].power) / ul_metrics_count;
-  }
+}
+
+void phy_common::set_ul_metrics(uint32_t cc_idx, const ul_metrics_t& m)
+{
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  ul_metrics_count[cc_idx]++;
+  ul_metrics[cc_idx].mcs   = ul_metrics[cc_idx].mcs + (m.mcs - ul_metrics[cc_idx].mcs) / ul_metrics_count[cc_idx];
+  ul_metrics[cc_idx].power = ul_metrics[cc_idx].power + (m.power - ul_metrics[cc_idx].power) / ul_metrics_count[cc_idx];
 }
 
 void phy_common::get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
-  memcpy(m, ul_metrics, sizeof(ul_metrics_t) * SRSLTE_MAX_CARRIERS);
-  ul_metrics_read = true;
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+    m[i]                = ul_metrics[i];
+    ul_metrics[i]       = {};
+    ul_metrics_count[i] = 0;
+  }
 }
 
 void phy_common::set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m)
 {
-  if (sync_metrics_read) {
-    sync_metrics[cc_idx] = m;
-    sync_metrics_count   = 1;
-    if (cc_idx == 0)
-      sync_metrics_read = false;
-  } else {
-    if (cc_idx == 0)
-      sync_metrics_count++;
-    sync_metrics[cc_idx].cfo = sync_metrics[cc_idx].cfo + (m.cfo - sync_metrics[cc_idx].cfo) / sync_metrics_count;
-    sync_metrics[cc_idx].sfo = sync_metrics[cc_idx].sfo + (m.sfo - sync_metrics[cc_idx].sfo) / sync_metrics_count;
-  }
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
+  sync_metrics_count[cc_idx]++;
+  sync_metrics[cc_idx].cfo = sync_metrics[cc_idx].cfo + (m.cfo - sync_metrics[cc_idx].cfo) / sync_metrics_count[cc_idx];
+  sync_metrics[cc_idx].sfo = sync_metrics[cc_idx].sfo + (m.sfo - sync_metrics[cc_idx].sfo) / sync_metrics_count[cc_idx];
 }
 
 void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
+  std::unique_lock<std::mutex> lock(metrics_mutex);
+
   for (uint32_t i = 0; i < args->nof_carriers; i++) {
-    m[i] = sync_metrics[i];
+    m[i]                  = sync_metrics[i];
+    sync_metrics[i]       = {};
+    sync_metrics_count[i] = 0;
   }
-  sync_metrics_read = true;
 }
 
 void phy_common::reset_radio()
@@ -691,7 +859,6 @@ void phy_common::reset()
   cur_pathloss        = 0;
   cur_pusch_power     = 0;
   sr_last_tx_tti      = -1;
-  cur_pusch_power     = 0;
   pcell_report_period = 20;
 
   ZERO_OBJECT(pathloss);

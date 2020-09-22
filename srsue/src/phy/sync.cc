@@ -445,7 +445,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
     worker->set_cfo(cc, get_tx_cfo());
-    worker_com->avg_cfo_hz[cc] = srslte_ue_sync_get_cfo(&ue_sync);
+    worker_com->update_cfo_measurement(cc, srslte_ue_sync_get_cfo(&ue_sync));
   }
 
   worker->set_tti(tti);
@@ -870,7 +870,7 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
       intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), SRSLTE_SF_LEN_PRB(cell.nof_prb));
 
       // Update RX gain
-      intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
+      intra_freq_meas[i]->set_rx_gain_offset(worker_com->get_rx_gain_offset());
     }
   }
 

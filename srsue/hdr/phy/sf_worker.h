@@ -41,11 +41,7 @@ namespace srsue {
 class sf_worker : public srslte::thread_pool::worker
 {
 public:
-  sf_worker(uint32_t            max_prb,
-            phy_common*         phy,
-            srslte::log*        log,
-            srslte::log*        log_phy_lib_h,
-            chest_feedback_itf* chest_loop);
+  sf_worker(uint32_t max_prb, phy_common* phy, srslte::log* log, srslte::log* log_phy_lib_h);
   virtual ~sf_worker();
   void reset();
 
@@ -77,7 +73,6 @@ public:
   }
   uint32_t get_rx_nof_antennas() { return phy->args->nof_rx_ant; }
   int      read_pdsch_d(cf_t* pdsch_d);
-  float    get_sync_error();
   float    get_cfo();
   void     start_plot();
 
@@ -96,8 +91,6 @@ private:
 
   srslte::log* log_phy_lib_h = nullptr;
 
-  chest_feedback_itf* chest_loop = nullptr;
-
   srslte_cell_t       cell = {};
   std::mutex          cell_mutex;
   srslte_tdd_config_t tdd_config = {};
@@ -111,7 +104,6 @@ private:
   uint32_t               tti     = 0;
   srslte::rf_timestamp_t tx_time = {};
 
-  uint32_t rssi_read_cnt = 0;
 };
 
 } // namespace srsue

@@ -37,17 +37,20 @@ struct sync_metrics_t {
   float sfo;
 };
 
-struct dl_metrics_t {
+struct ch_metrics_t {
   float n;
   float sinr;
   float rsrp;
   float rsrq;
   float rssi;
   float ri;
-  float turbo_iters;
-  float mcs;
   float pathloss;
   float sync_err;
+};
+
+struct dl_metrics_t {
+  float turbo_iters;
+  float mcs;
 };
 
 struct ul_metrics_t {
@@ -58,6 +61,7 @@ struct ul_metrics_t {
 struct phy_metrics_t {
   info_metrics_t info[SRSLTE_MAX_CARRIERS];
   sync_metrics_t sync[SRSLTE_MAX_CARRIERS];
+  ch_metrics_t   ch[SRSLTE_MAX_CARRIERS];
   dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];
   ul_metrics_t   ul[SRSLTE_MAX_CARRIERS];
   uint32_t       nof_active_cc;

@@ -46,8 +46,8 @@ public:
     bzero(m, sizeof(ue_metrics_t));
     m->rf.rf_o                = 10;
     m->phy.nof_active_cc      = 2;
-    m->phy.dl[0].rsrp         = -10.0f;
-    m->phy.dl[0].pathloss     = 74;
+    m->phy.ch[0].rsrp         = -10.0f;
+    m->phy.ch[0].pathloss     = 74;
     m->stack.mac[0].rx_pkts   = 100;
     m->stack.mac[0].rx_errors = 0;
 

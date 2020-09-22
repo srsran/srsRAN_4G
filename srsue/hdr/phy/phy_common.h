@@ -39,7 +39,7 @@
 
 namespace srsue {
 
-class chest_feedback_itf
+class rsrp_insync_itf
 {
 public:
   virtual void in_sync() = 0;
@@ -58,20 +58,6 @@ public:
   stack_interface_phy_lte* stack = nullptr;
 
   srslte::phy_cfg_mbsfn_t mbsfn_config = {};
-
-  /* Power control variables */
-  float    pathloss[SRSLTE_MAX_CARRIERS]       = {};
-  float    cur_pathloss                        = 0.0f;
-  float    cur_pusch_power                     = 0.0f;
-  float    avg_rsrp[SRSLTE_MAX_CARRIERS]       = {};
-  float    avg_rsrp_dbm[SRSLTE_MAX_CARRIERS]   = {};
-  float    avg_rsrq_db[SRSLTE_MAX_CARRIERS]    = {};
-  float    avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
-  float    avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
-  float    rx_gain_offset                      = 0.0f;
-  float    avg_snr_db_cqi[SRSLTE_MAX_CARRIERS] = {};
-  float    avg_noise[SRSLTE_MAX_CARRIERS]      = {};
-  uint32_t pcell_report_period                 = 0;
 
   // SCell EARFCN, PCI, configured and enabled list
   typedef struct {
@@ -97,7 +83,11 @@ public:
 
   ~phy_common();
 
-  void init(phy_args_t* args, srslte::log* _log, srslte::radio_interface_phy* _radio, stack_interface_phy_lte* _stack);
+  void init(phy_args_t*                  args,
+            srslte::log*                 _log,
+            srslte::radio_interface_phy* _radio,
+            stack_interface_phy_lte*     _stack,
+            rsrp_insync_itf*             rsrp_insync);
 
   uint32_t ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config);
 
@@ -157,10 +147,15 @@ public:
 
   srslte::radio_interface_phy* get_radio();
 
-  void set_dl_metrics(dl_metrics_t m, uint32_t cc_idx);
+  void set_dl_metrics(uint32_t cc_idx, const dl_metrics_t& m);
   void get_dl_metrics(dl_metrics_t m[SRSLTE_MAX_CARRIERS]);
-  void set_ul_metrics(ul_metrics_t m, uint32_t cc_idx);
+
+  void set_ch_metrics(uint32_t cc_idx, const ch_metrics_t& m);
+  void get_ch_metrics(ch_metrics_t m[SRSLTE_MAX_CARRIERS]);
+
+  void set_ul_metrics(uint32_t cc_idx, const ul_metrics_t& m);
   void get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_CARRIERS]);
+
   void set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m);
   void get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS]);
 
@@ -185,7 +180,58 @@ public:
    */
   uint32_t get_ul_earfcn(uint32_t dl_earfcn);
 
+  void update_measurements(uint32_t                                        cc_idx,
+                           srslte_chest_dl_res_t                           chest_res,
+                           srslte_dl_sf_cfg_t                              sf_cfg_dl,
+                           float                                           tx_crs_power,
+                           std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
+                           cf_t*                                           rssi_power_buffer = nullptr);
+
+  void update_cfo_measurement(uint32_t cc_idx, float cfo_hz);
+
+  float get_sinr_db(uint32_t cc_idx)
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    return avg_snr_db_cqi[cc_idx];
+  }
+
+  float get_pusch_power()
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    return cur_pusch_power;
+  }
+
+  float get_pathloss()
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    return cur_pathloss;
+  }
+
+  float get_rx_gain_offset()
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
+    return rx_gain_offset;
+  }
+
 private:
+  std::mutex meas_mutex;
+
+  float    pathloss[SRSLTE_MAX_CARRIERS]       = {};
+  float    cur_pathloss                        = 0.0f;
+  float    cur_pusch_power                     = 0.0f;
+  float    avg_rsrp[SRSLTE_MAX_CARRIERS]       = {};
+  float    avg_rsrp_dbm[SRSLTE_MAX_CARRIERS]   = {};
+  float    avg_rsrq_db[SRSLTE_MAX_CARRIERS]    = {};
+  float    avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
+  float    avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
+  float    rx_gain_offset                      = 0.0f;
+  float    avg_snr_db_cqi[SRSLTE_MAX_CARRIERS] = {};
+  float    avg_noise[SRSLTE_MAX_CARRIERS]      = {};
+  uint32_t pcell_report_period                 = 0;
+  uint32_t rssi_read_cnt                       = 0;
+
+  rsrp_insync_itf* insync_itf = nullptr;
+
   bool                    have_mtch_stop = false;
   std::mutex              mtch_mutex;
   std::condition_variable mtch_cvar;
@@ -244,15 +290,16 @@ private:
 
   srslte_cell_t cell = {};
 
-  dl_metrics_t   dl_metrics[SRSLTE_MAX_CARRIERS]   = {};
-  uint32_t       dl_metrics_count                  = 0;
-  bool           dl_metrics_read                   = true;
-  ul_metrics_t   ul_metrics[SRSLTE_MAX_CARRIERS]   = {};
-  uint32_t       ul_metrics_count                  = 0;
-  bool           ul_metrics_read                   = true;
-  sync_metrics_t sync_metrics[SRSLTE_MAX_CARRIERS] = {};
-  uint32_t       sync_metrics_count                = 0;
-  bool           sync_metrics_read                 = true;
+  std::mutex metrics_mutex;
+
+  ch_metrics_t   ch_metrics[SRSLTE_MAX_CARRIERS]         = {};
+  uint32_t       ch_metrics_count[SRSLTE_MAX_CARRIERS]   = {};
+  dl_metrics_t   dl_metrics[SRSLTE_MAX_CARRIERS]         = {};
+  uint32_t       dl_metrics_count[SRSLTE_MAX_CARRIERS]   = {};
+  ul_metrics_t   ul_metrics[SRSLTE_MAX_CARRIERS]         = {};
+  uint32_t       ul_metrics_count[SRSLTE_MAX_CARRIERS]   = {};
+  sync_metrics_t sync_metrics[SRSLTE_MAX_CARRIERS]       = {};
+  uint32_t       sync_metrics_count[SRSLTE_MAX_CARRIERS] = {};
 
   // MBSFN
   bool     sib13_configured = false;

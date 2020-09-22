@@ -117,9 +117,6 @@ cc_worker::~cc_worker()
 
 void cc_worker::reset()
 {
-  bzero(&dl_metrics, sizeof(dl_metrics_t));
-  bzero(&ul_metrics, sizeof(ul_metrics_t));
-
   // constructor sets defaults
   srslte::phy_cfg_t empty_cfg;
   set_config(empty_cfg);
@@ -182,11 +179,6 @@ void cc_worker::set_cfo(float cfo)
 {
   std::unique_lock<std::mutex> lock(mutex);
   ue_ul_cfg.cfo_value = cfo;
-}
-
-float cc_worker::get_ref_cfo() const
-{
-  return ue_dl.chest_res.cfo;
 }
 
 void cc_worker::set_crnti(uint16_t rnti)
@@ -476,8 +468,14 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
 
   if (decode_enable) {
     // Metrics
-    dl_metrics.mcs         = ue_dl_cfg.cfg.pdsch.grant.tb[0].mcs_idx;
+    dl_metrics_t dl_metrics = {};
+    if (ue_dl_cfg.cfg.pdsch.grant.nof_tb == 1) {
+      dl_metrics.mcs = ue_dl_cfg.cfg.pdsch.grant.tb[0].mcs_idx;
+    } else {
+      dl_metrics.mcs = (ue_dl_cfg.cfg.pdsch.grant.tb[0].mcs_idx + ue_dl_cfg.cfg.pdsch.grant.tb[1].mcs_idx) / 2;
+    }
     dl_metrics.turbo_iters = pdsch_dec->avg_iterations_block / 2;
+    phy->set_dl_metrics(cc_idx, dl_metrics);
 
     // Logging
     if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
@@ -508,7 +506,11 @@ int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte
     }
 
     // Store metrics
-    dl_metrics.mcs = pmch_cfg.pdsch_cfg.grant.tb[0].mcs_idx;
+    // Metrics
+    dl_metrics_t dl_metrics = {};
+    dl_metrics.mcs          = ue_dl_cfg.cfg.pdsch.grant.tb[0].mcs_idx;
+    dl_metrics.turbo_iters  = pmch_dec.avg_iterations_block / 2;
+    phy->set_dl_metrics(cc_idx, dl_metrics);
 
     Info("PMCH: l_crb=%2d, tbs=%d, mcs=%d, crc=%s, snr=%.1f dB, n_iter=%.1f\n",
          pmch_cfg.pdsch_cfg.grant.nof_prb,
@@ -552,85 +554,11 @@ void cc_worker::decode_phich()
   }
 }
 
-void cc_worker::update_measurements()
+void cc_worker::update_measurements(std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
+                                    cf_t*                                           rssi_power_buffer)
 {
-  std::unique_lock<std::mutex> lock(mutex);
-  float                        snr_ema_coeff = phy->args->snr_ema_coeff;
-
-  // In TDD, ignore special subframes without PDSCH
-  if (srslte_sfidx_tdd_type(sf_cfg_dl.tdd_config, CURRENT_SFIDX) == SRSLTE_TDD_SF_S &&
-      srslte_sfidx_tdd_nof_dw(sf_cfg_dl.tdd_config) < 4) {
-    return;
-  }
-
-  // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-  float rsrq_db = ue_dl.chest_res.rsrq_db;
-  if (std::isnormal(rsrq_db)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrq_db[cc_idx])) {
-      phy->avg_rsrq_db[cc_idx] = rsrq_db;
-    } else {
-      phy->avg_rsrq_db[cc_idx] =
-          SRSLTE_VEC_CMA(rsrq_db, phy->avg_rsrq_db[cc_idx], CURRENT_TTI % phy->pcell_report_period);
-    }
-  }
-
-  // Average RSRP taken from CRS
-  float rsrp_lin = ue_dl.chest_res.rsrp;
-  if (std::isnormal(rsrp_lin)) {
-    if (!std::isnormal(phy->avg_rsrp[cc_idx])) {
-      phy->avg_rsrp[cc_idx] = rsrp_lin;
-    } else {
-      phy->avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp[cc_idx], snr_ema_coeff);
-    }
-  }
-
-  /* Correct absolute power measurements by RX gain offset */
-  float rsrp_dbm = ue_dl.chest_res.rsrp_dbm - phy->rx_gain_offset;
-
-  // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-  if (std::isnormal(rsrp_dbm)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrp_dbm[cc_idx])) {
-      phy->avg_rsrp_dbm[cc_idx] = rsrp_dbm;
-    } else {
-      phy->avg_rsrp_dbm[cc_idx] =
-          SRSLTE_VEC_CMA(rsrp_dbm, phy->avg_rsrp_dbm[cc_idx], CURRENT_TTI % phy->pcell_report_period);
-    }
-  }
-
-  // Compute PL
-  float tx_crs_power    = ue_dl_cfg.cfg.pdsch.rs_power;
-  phy->pathloss[cc_idx] = tx_crs_power - phy->avg_rsrp_dbm[cc_idx];
-
-  // Average noise
-  float cur_noise = ue_dl.chest_res.noise_estimate;
-  if (std::isnormal(cur_noise)) {
-    if (!std::isnormal(phy->avg_noise[cc_idx])) {
-      phy->avg_noise[cc_idx] = cur_noise;
-    } else {
-      phy->avg_noise[cc_idx] = SRSLTE_VEC_EMA(cur_noise, phy->avg_noise[cc_idx], snr_ema_coeff);
-    }
-  }
-
-  // Average snr in the log domain
-  if (std::isnormal(ue_dl.chest_res.snr_db)) {
-    if (!std::isnormal(phy->avg_snr_db_cqi[cc_idx])) {
-      phy->avg_snr_db_cqi[cc_idx] = ue_dl.chest_res.snr_db;
-    } else {
-      phy->avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(ue_dl.chest_res.snr_db, phy->avg_snr_db_cqi[cc_idx], snr_ema_coeff);
-    }
-  }
-
-  // Store metrics
-  dl_metrics.n        = phy->avg_noise[cc_idx];
-  dl_metrics.rsrp     = phy->avg_rsrp_dbm[cc_idx];
-  dl_metrics.rsrq     = phy->avg_rsrq_db[cc_idx];
-  dl_metrics.rssi     = phy->avg_rssi_dbm[cc_idx];
-  dl_metrics.pathloss = phy->pathloss[cc_idx];
-  dl_metrics.sinr     = phy->avg_snr_db_cqi[cc_idx];
-  dl_metrics.sync_err = ue_dl.chest_res.sync_error;
-
-  phy->set_dl_metrics(dl_metrics, cc_idx);
-  phy->set_ul_metrics(ul_metrics, cc_idx);
+  phy->update_measurements(
+      cc_idx, ue_dl.chest_res, sf_cfg_dl, ue_dl_cfg.cfg.pdsch.rs_power, serving_cells, rssi_power_buffer);
 }
 
 /************
@@ -835,7 +763,10 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
 
   // Store metrics
   if (action->tb.enabled) {
-    ul_metrics.mcs = ue_ul_cfg.ul_cfg.pusch.grant.tb.mcs_idx;
+    ul_metrics_t ul_metrics = {};
+    ul_metrics.mcs          = ue_ul_cfg.ul_cfg.pusch.grant.tb.mcs_idx;
+    ul_metrics.power        = 0;
+    phy->set_ul_metrics(cc_idx, ul_metrics);
   }
 
   // Logging
@@ -866,7 +797,7 @@ uint32_t cc_worker::get_wideband_cqi()
   int cqi_fixed = phy->args->cqi_fixed;
   int cqi_max   = phy->args->cqi_max;
 
-  uint32_t wb_cqi_value = srslte_cqi_from_snr(phy->avg_snr_db_cqi[cc_idx] + ue_dl_cfg.snr_to_cqi_offset);
+  uint32_t wb_cqi_value = srslte_cqi_from_snr(phy->get_sinr_db(cc_idx) + ue_dl_cfg.snr_to_cqi_offset);
 
   if (cqi_fixed >= 0) {
     wb_cqi_value = cqi_fixed;
