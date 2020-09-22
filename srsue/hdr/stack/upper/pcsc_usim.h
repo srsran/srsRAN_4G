@@ -84,14 +84,16 @@ public:
   // RRC interface
   void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg);
   void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg);
+  void store_keys_before_ho(const srslte::as_security_config_t& as_ctx);
+  void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx);
 
 private:
   srslte::log* log = nullptr;
 
   // User data
   // 3GPP 33.102 v10.0.0 Annex H
-  uint64_t imsi   = 0;
-  uint64_t imei   = 0;
+  uint64_t imsi = 0;
+  uint64_t imei = 0;
 
   std::string imsi_str;
   std::string imei_str;
@@ -107,6 +109,11 @@ private:
   uint8_t k_enb[KEY_LEN]      = {};
   uint8_t k_enb_star[KEY_LEN] = {};
   uint8_t auts[AKA_AUTS_LEN]  = {};
+
+  // Helpers to restore security context if HO fails
+  uint8_t                      old_k_enb[32] = {};
+  uint8_t                      old_ncc       = {};
+  srslte::as_security_config_t old_as_ctx    = {};
 
   uint32_t current_ncc = 0;
 

@@ -263,9 +263,7 @@ void pcsc_usim::generate_nas_keys(uint8_t*                    k_asme,
   RRC interface
 *******************************************************************************/
 
-void pcsc_usim::generate_as_keys(uint8_t*                      k_asme,
-                                 uint32_t                      count_ul,
-                                 srslte::as_security_config_t* sec_cfg)
+void pcsc_usim::generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
     ERROR("USIM not initiated!\n");
@@ -332,6 +330,24 @@ void pcsc_usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
   // Generate K_up_enc and K_up_int
   security_generate_k_up(
       k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
+}
+
+void pcsc_usim::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
+{
+  INFO("Storing AS Keys pre-handover. NCC=%d\n", current_ncc);
+  old_as_ctx = as_ctx;
+  old_ncc    = current_ncc;
+  memcpy(old_k_enb, k_enb, 32);
+  return;
+}
+
+void pcsc_usim::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx)
+{
+  INFO("Restoring Keys from failed handover. NCC=%d\n", old_ncc);
+  *as_ctx     = old_as_ctx;
+  current_ncc = old_ncc;
+  memcpy(k_enb, old_k_enb, 32);
+  return;
 }
 
 /*******************************************************************************

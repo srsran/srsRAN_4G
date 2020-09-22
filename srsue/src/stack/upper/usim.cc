@@ -284,6 +284,24 @@ void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::a
   usim_log->info_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "HO K_RRC_int");
 }
 
+void usim::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
+{
+  usim_log->info("Storing AS Keys pre-handover. NCC=%d\n", current_ncc);
+  old_as_ctx = as_ctx;
+  old_ncc    = current_ncc;
+  memcpy(old_k_enb, k_enb, 32);
+  return;
+}
+
+void usim::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx)
+{
+  usim_log->info("Restoring Keys from failed handover. NCC=%d\n", old_ncc);
+  *as_ctx     = old_as_ctx;
+  current_ncc = old_ncc;
+  memcpy(k_enb, old_k_enb, 32);
+  return;
+}
+
 /*******************************************************************************
   Helpers
 *******************************************************************************/

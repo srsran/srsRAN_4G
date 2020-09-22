@@ -63,6 +63,8 @@ public:
   // RRC interface
   void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg);
   void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg);
+  void store_keys_before_ho(const srslte::as_security_config_t& as_ctx);
+  void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx);
 
 private:
   auth_result_t gen_auth_res_milenage(uint8_t* rand,
@@ -106,6 +108,11 @@ private:
   uint8_t k_enb_initial[32] = {};
   uint8_t k_enb[32]         = {};
   uint8_t k_enb_star[32]    = {};
+
+  // Helpers to restore security context if HO fails
+  uint8_t                      old_k_enb[32] = {};
+  uint8_t                      old_ncc       = {};
+  srslte::as_security_config_t old_as_ctx    = {};
 
   uint32_t current_ncc  = 0;
   bool     is_first_ncc = false;

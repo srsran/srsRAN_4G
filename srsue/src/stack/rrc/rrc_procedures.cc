@@ -367,8 +367,7 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
  *************************************/
 
 rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
-  rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
 {}
 
 /*
@@ -762,8 +761,7 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
  *************************************/
 
 rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
-  rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
 {}
 
 proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
@@ -1195,7 +1193,6 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
   rrc_ptr->phy->set_activation_deactivation_scell(0);
 
-
   // 1> apply the default physical channel configuration as specified in 9.2.4;
   // Note: this is done by the MAC Reset procedure
 
@@ -1241,7 +1238,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
   // Upon selecting a suitable E-UTRA cell, the UE shall:
   Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
        rrc_ptr->t311.time_elapsed());
-  
+
   // Note: Not explicitly defined in the specs, but UE should apply SIB1 and SIB2 configuration in order to attempt
   // a PRACH to a different cell
   Info("Applying SIB2 configuration\n");
@@ -1503,6 +1500,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
     rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded, true);
   }
 
+  rrc_ptr->usim->store_keys_before_ho(rrc_ptr->sec_cfg);
   // Security procedure
   int ncc = -1;
   if (recfg_r8.security_cfg_ho_present) {
@@ -1582,7 +1580,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
   Info("HO preparation timed out. Reverting RRC security config from source cell.\n");
 
   // revert security settings from source cell for reestablishment according to Sec 5.3.7.4
-  rrc_ptr->generate_as_keys();
+  rrc_ptr->usim->restore_keys_from_failed_ho(&rrc_ptr->sec_cfg);
 
   rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
 

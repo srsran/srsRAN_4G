@@ -78,6 +78,8 @@ class usim_interface_rrc
 public:
   virtual void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)        = 0;
   virtual void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg) = 0;
+  virtual void store_keys_before_ho(const srslte::as_security_config_t& as_cfg)                                   = 0;
+  virtual void restore_keys_from_failed_ho(srslte::as_security_config_t* as_cfg)                                  = 0;
 };
 
 // GW interface for NAS
