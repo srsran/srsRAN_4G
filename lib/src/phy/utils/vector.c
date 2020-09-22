@@ -113,6 +113,11 @@ void srslte_vec_convert_fi(const float* x, const float scale, int16_t* z, const 
   srslte_vec_convert_fi_simd(x, z, scale, len);
 }
 
+void srslte_vec_convert_conj_cs(const cf_t* x, const float scale, int16_t* z, const uint32_t len)
+{
+  srslte_vec_convert_conj_cs_simd(x, z, scale, len);
+}
+
 void srslte_vec_convert_fb(const float* x, const float scale, int8_t* z, const uint32_t len)
 {
   srslte_vec_convert_fb_simd(x, z, scale, len);

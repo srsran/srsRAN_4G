@@ -471,6 +471,52 @@ void srslte_vec_convert_fi_simd(const float* x, int16_t* z, const float scale, c
   }
 }
 
+void srslte_vec_convert_conj_cs_simd(const cf_t* x_, int16_t* z, const float scale, const int len_)
+{
+  int i = 0;
+
+  const float* x   = (float*)x_;
+  const int    len = len_ * 2;
+
+#if SRSLTE_SIMD_F_SIZE && SRSLTE_SIMD_S_SIZE
+  srslte_simd_aligned float scale_v[SRSLTE_SIMD_F_SIZE];
+  for (uint32_t j = 0; j < SRSLTE_SIMD_F_SIZE; j++) {
+    scale_v[j] = (j % 2 == 0) ? +scale : -scale;
+  }
+
+  simd_f_t s = srslte_simd_f_load(scale_v);
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_f_t a = srslte_simd_f_load(&x[i]);
+      simd_f_t b = srslte_simd_f_load(&x[i + SRSLTE_SIMD_F_SIZE]);
+
+      simd_f_t sa = srslte_simd_f_mul(a, s);
+      simd_f_t sb = srslte_simd_f_mul(b, s);
+
+      simd_s_t i16 = srslte_simd_convert_2f_s(sa, sb);
+
+      srslte_simd_s_store(&z[i], i16);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_f_t a = srslte_simd_f_loadu(&x[i]);
+      simd_f_t b = srslte_simd_f_loadu(&x[i + SRSLTE_SIMD_F_SIZE]);
+
+      simd_f_t sa = srslte_simd_f_mul(a, s);
+      simd_f_t sb = srslte_simd_f_mul(b, s);
+
+      simd_s_t i16 = srslte_simd_convert_2f_s(sa, sb);
+
+      srslte_simd_s_storeu(&z[i], i16);
+    }
+  }
+#endif /* SRSLTE_SIMD_F_SIZE && SRSLTE_SIMD_S_SIZE */
+
+  for (; i < len; i++) {
+    z[i] = (int16_t)(conjf(x[i]) * scale);
+  }
+}
+
 #define SRSLTE_IS_ALIGNED_SSE(PTR) (((size_t)(PTR)&0x0F) == 0)
 
 void srslte_vec_convert_fb_simd(const float* x, int8_t* z, const float scale, const int len)
@@ -1691,8 +1737,8 @@ float srslte_vec_estimate_frequency_simd(const cf_t* x, int len)
     }
 
     // Accumulate using horizontal addition
-    simd_f_t _sum_re = srslte_simd_cf_re(_sum);
-    simd_f_t _sum_im = srslte_simd_cf_im(_sum);
+    simd_f_t _sum_re    = srslte_simd_cf_re(_sum);
+    simd_f_t _sum_im    = srslte_simd_cf_im(_sum);
     simd_f_t _sum_re_im = srslte_simd_f_hadd(_sum_re, _sum_im);
     for (int j = 2; j < SRSLTE_SIMD_F_SIZE; j *= 2) {
       _sum_re_im = srslte_simd_f_hadd(_sum_re_im, _sum_re_im);
