@@ -99,7 +99,9 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
 
   // Signal result back to FSM that called cell selection
   bool result = csel_res.result;
-  f->cell_selection_always_observer(target_cell.earfcn, target_cell.pci, result);
+  if (f->cell_selection_always_observer) {
+    f->cell_selection_always_observer(target_cell.earfcn, target_cell.pci, result);
+  }
   f->task_sched.defer_task([f, result]() { f->cell_selection_once_observer(result); });
 }
 
