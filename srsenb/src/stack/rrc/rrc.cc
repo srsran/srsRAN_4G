@@ -538,15 +538,19 @@ void rrc::process_release_complete(uint16_t rnti)
 {
   rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
   auto user_it = users.find(rnti);
-  if (user_it != users.end()) {
-    if (!user_it->second->is_idle()) {
-      rlc->clear_buffer(rnti);
-      user_it->second->send_connection_release();
-    }
+  if (user_it == users.end()) {
+    rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
+    return;
+  }
+  ue* u = user_it->second.get();
+
+  if (u->is_idle() or u->mobility_handler->is_ho_running()) {
+    rem_user_thread(rnti);
+  } else if (not u->is_idle()) {
+    rlc->clear_buffer(rnti);
+    user_it->second->send_connection_release();
     // delay user deletion for ~50 TTI (until RRC release is sent)
     task_sched.defer_callback(50, [this, rnti]() { rem_user_thread(rnti); });
-  } else {
-    rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
   }
 }
 

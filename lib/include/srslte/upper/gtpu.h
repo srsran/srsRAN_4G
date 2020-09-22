@@ -106,7 +106,7 @@ inline bool gtpu_supported_msg_type_check(gtpu_header_t* header, srslte::log_ref
 {
   // msg_tpye
   if (header->message_type != GTPU_MSG_DATA_PDU && header->message_type != GTPU_MSG_ECHO_REQUEST &&
-      header->message_type != GTPU_MSG_ECHO_RESPONSE) {
+      header->message_type != GTPU_MSG_ECHO_RESPONSE && header->message_type != GTPU_MSG_END_MARKER) {
     gtpu_log->error("gtpu_header - Unhandled message type: 0x%x\n", header->message_type);
     return false;
   }

@@ -280,6 +280,12 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       }
       pdcp->write_sdu(rnti, lcid, std::move(pdu));
     } break;
+    case GTPU_MSG_END_MARKER: {
+      rnti_lcid_t rnti_lcid = teidin_to_rntilcid(header.teid);
+      uint16_t    rnti      = rnti_lcid.rnti;
+      gtpu_log->info("Received GTPU End Marker for rnti=0x%x.\n", rnti);
+      break;
+    }
     default:
       break;
   }
