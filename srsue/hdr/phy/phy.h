@@ -27,7 +27,9 @@
 #include "prach.h"
 #include "sf_worker.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/threads.h"
 #include "srslte/common/trace.h"
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
@@ -38,6 +40,37 @@
 namespace srsue {
 
 typedef _Complex float cf_t;
+
+class phy_cmd_proc : public srslte::thread
+{
+public:
+  phy_cmd_proc() : thread("PHY_CMD") { start(); }
+
+  ~phy_cmd_proc() { stop(); }
+
+  void add_cmd(std::function<void(void)> cmd) { cmd_queue.push(cmd); }
+
+  void stop()
+  {
+    if (running) {
+      add_cmd([this]() { running = false; });
+      wait_thread_finish();
+    }
+  }
+
+private:
+  void run_thread()
+  {
+    std::function<void(void)> cmd;
+    while (running) {
+      cmd = cmd_queue.wait_pop();
+      cmd();
+    }
+  }
+  bool running = true;
+  // Queue for commands
+  srslte::block_queue<std::function<void(void)> > cmd_queue;
+};
 
 class phy final : public ue_lte_phy_base, public srslte::thread
 {
@@ -65,22 +98,39 @@ public:
   void radio_failure() final;
 
   /********** RRC INTERFACE ********************/
-  void              reset() final;
-  cell_search_ret_t cell_search(phy_cell_t* cell) final;
-  bool              cell_select(const phy_cell_t* cell) final;
 
+  bool cell_search() final;
+  bool cell_select(phy_cell_t cell) final;
+
+  // Sets the new PHY configuration for the given CC. The configuration is applied in the background. The notify()
+  // function will be called when the reconfiguration is completed. Unless the PRACH configuration has changed, the
+  // reconfiguration will not take more than 3 ms
+  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx) final;
+
+  // Adds or modifies the cell configuration for a given CC. If the EARFCN has changed w.r.t. the previous value, or if
+  // the cell is new, this function might take a few hundred ms to complete, depending on the radio
+  bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) final;
+
+  // Applies a TDD configuration in the background. This function will take less than 3 ms to execute.
+  void set_config_tdd(srslte_tdd_config_t& tdd_config) final;
+
+  // Todo
+  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) final;
+  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) final;
+  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) final;
+
+  // This function applies the new configuration immediately
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) final;
+
+  // This function applies the new configuration immediately
   void meas_stop() final;
 
   // also MAC interface
   bool cell_is_camping() final;
 
   /********** MAC INTERFACE ********************/
-  /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
+  // Precomputes sequences for the given RNTI. The computation is done in the background.
   void set_crnti(uint16_t rnti) final;
-
-  /* Instructs the PHY to configure using the parameters written by set_param() */
-  void configure_prach_params() final;
 
   /* Transmits PRACH in the next opportunity */
   void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) final;
@@ -100,14 +150,6 @@ public:
   /* Sets RAR dci payload */
   void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) final;
 
-  /* Get/Set PHY parameters interface from RRC */
-  void set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info) final;
-  void set_config_tdd(srslte_tdd_config_t& tdd_config) final;
-
-  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) final;
-  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) final;
-  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) final;
-
   /*Set MAC->PHY MCH period  stopping point*/
   void set_mch_period_stop(uint32_t stop) final;
 
@@ -125,6 +167,8 @@ public:
 
 private:
   void run_thread() final;
+  void configure_prach_params();
+  void reset();
 
   std::mutex              config_mutex;
   std::condition_variable config_cond;
@@ -154,8 +198,15 @@ private:
   srslte::phy_cfg_t config = {};
   phy_args_t        args   = {};
 
+  // Since cell_search/cell_select operations take a lot of time, we use another queue to process the other commands
+  // in parallel and avoid accumulating in the queue
+  phy_cmd_proc cmd_worker_cell, cmd_worker;
+
+  // Tracks the current selected cell (last call to cell_select)
+  srslte_cell_t selected_cell = {};
+
   static void set_default_args(phy_args_t& args);
-  bool check_args(const phy_args_t& args);
+  bool        check_args(const phy_args_t& args);
 };
 
 } // namespace srsue

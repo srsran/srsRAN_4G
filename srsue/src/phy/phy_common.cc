@@ -878,19 +878,28 @@ void phy_common::reset()
   ZERO_OBJECT(scell_cfg);
 
   // Note: Using memset to reset these members is forbidden because they are real objects, not plain arrays.
-  for (auto& i : pending_dl_ack) {
-    i = {};
+  {
+    std::lock_guard<std::mutex> lock(pending_dl_ack_mutex);
+    for (auto& i : pending_dl_ack) {
+      i = {};
+    }
   }
   for (auto& i : pending_dl_dai) {
     i = {};
   }
-  for (auto& i : pending_ul_ack) {
-    for (auto& j : i) {
-      j = {};
+  {
+    std::lock_guard<std::mutex> lock(pending_ul_ack_mutex);
+    for (auto& i : pending_ul_ack) {
+      for (auto& j : i) {
+        j = {};
+      }
     }
   }
-  for (auto& i : pending_ul_grant) {
-    i = {};
+  {
+    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+    for (auto& i : pending_ul_grant) {
+      i = {};
+    }
   }
 
   // Release mapping of secondary cells

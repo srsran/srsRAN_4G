@@ -99,8 +99,7 @@ void rrc_nr::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
 void rrc_nr::max_retx_attempted() {}
 
 // STACK interface
-void rrc_nr::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
-                                   const phy_interface_rrc_lte::phy_cell_t&        found_cell)
+void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell)
 {}
 
 } // namespace srsue

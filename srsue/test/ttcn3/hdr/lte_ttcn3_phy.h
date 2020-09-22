@@ -65,10 +65,8 @@ public:
   // phy_interface_rrc_lte
   void enable_pregen_signals(bool enable) override;
   void set_activation_deactivation_scell(uint32_t cmd) override;
-  void set_config(srslte::phy_cfg_t& config,
-                  uint32_t           cc_idx    = 0,
-                  uint32_t           earfcn    = 0,
-                  srslte_cell_t*     cell_info = nullptr) override;
+  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx = 0) override;
+  bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override;
   void set_config_tdd(srslte_tdd_config_t& tdd_config) override;
   void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override{};
   void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override{};
@@ -81,13 +79,11 @@ public:
   void set_mch_period_stop(uint32_t stop) override{};
 
   // Cell search and selection procedures
-  cell_search_ret_t cell_search(phy_cell_t* found_cell) override;
-  bool              cell_select(const phy_cell_t* cell) override;
-  bool              cell_is_camping() override;
-  void              reset() override;
+  bool cell_search() override;
+  bool cell_select(phy_cell_t cell) override;
+  bool cell_is_camping() override;
 
   // phy_interface_mac_lte
-  void configure_prach_params() override;
   void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) override;
   prach_info_t prach_get_info() override;
   void         sr_send() override;
@@ -128,8 +124,8 @@ private:
 
   srslte::phy_cfg_t phy_cfg = {};
 
-  uint32_t current_tti       = 0;
-  uint32_t cc_idx            = 0;
+  uint32_t current_tti = 0;
+  uint32_t cc_idx      = 0;
 
   int prach_tti_tx = -1;
 

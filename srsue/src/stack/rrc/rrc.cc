@@ -247,8 +247,10 @@ void rrc::run_tti()
         case cmd_msg_t::RLF:
           radio_link_failure_process();
           break;
-        case cmd_msg_t::HO_COMPLETE:
-          ho_handler.trigger(ho_proc::ra_completed_ev{msg.lcid > 0});
+        case cmd_msg_t::RA_COMPLETE:
+          if (ho_handler.is_busy()) {
+            ho_handler.trigger(ho_proc::ra_completed_ev{msg.lcid > 0});
+          }
           break;
         case cmd_msg_t::STOP:
           return;
@@ -347,6 +349,20 @@ void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
  *
  *
  *******************************************************************************/
+
+void rrc::cell_search_complete(rrc_interface_phy_lte::cell_search_ret_t cs_ret, phy_cell_t found_cell)
+{
+  phy_ctrl->cell_search_completed(cs_ret, found_cell);
+}
+
+void rrc::cell_select_complete(bool cs_ret)
+{
+  phy_ctrl->cell_selection_completed(cs_ret);
+}
+
+void rrc::set_config_complete(bool status) {}
+
+void rrc::set_scell_complete(bool status) {}
 
 /* This function is called from a PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
@@ -478,8 +494,8 @@ void rrc::cell_reselection(float rsrp, float rsrq)
   // TODO: Inter-frequency cell reselection
 }
 
-// Set serving cell
-void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
+// Set new serving cell
+void rrc::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
 {
   meas_cells.set_serving_cell(phy_cell, discard_serving);
 }
@@ -497,6 +513,11 @@ int rrc::start_cell_select()
 bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
 {
   return meas_cells.has_neighbour_cell(earfcn, pci);
+}
+
+bool rrc::is_serving_cell(uint32_t earfcn, uint32_t pci) const
+{
+  return meas_cells.serving_cell().phy_cell.earfcn == earfcn and meas_cells.serving_cell().phy_cell.pci == pci;
 }
 
 /*******************************************************************************
@@ -854,10 +875,10 @@ void rrc::send_rrc_con_reconfig_complete()
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::ho_ra_completed()
+void rrc::ra_completed()
 {
   cmd_msg_t msg;
-  msg.command = cmd_msg_t::HO_COMPLETE;
+  msg.command = cmd_msg_t::RA_COMPLETE;
   msg.lcid    = 1;
   cmd_q.push(std::move(msg));
 }
@@ -915,36 +936,31 @@ bool rrc::con_reconfig(const rrc_conn_recfg_s& reconfig)
     }
   }
 
+  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside apply_scell_config()
+  // Note that apply_scell_config() calls set_scell() and set_config() which run in the background.
   rrc_conn_recfg_r8_ies_s reconfig_r8_ = *reconfig_r8;
-  task_sched.enqueue_background_task([this, reconfig_r8_](uint32_t worker_id) mutable {
-    // Apply configurations without blocking stack
-    apply_scell_config(&reconfig_r8_);
+  apply_scell_config(&reconfig_r8_);
 
-    // notify back RRC
-    task_sched.notify_background_task_result([this, reconfig_r8_]() {
-      const rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig_r8_;
+  if (!measurements->parse_meas_config(
+          reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
+    return false;
+  }
 
-      if (!measurements->parse_meas_config(
-              reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
-        return;
-      }
+  // FIXME-@frankist: From here to the end need to be processed when set_config_complete() is called
+  send_rrc_con_reconfig_complete();
 
-      send_rrc_con_reconfig_complete();
-
-      unique_byte_buffer_t nas_sdu;
-      for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
-        nas_sdu = srslte::allocate_unique_buffer(*pool);
-        if (nas_sdu.get()) {
-          memcpy(nas_sdu->msg, reconfig_r8->ded_info_nas_list[i].data(), reconfig_r8->ded_info_nas_list[i].size());
-          nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
-          nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
-        } else {
-          rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
-          return;
-        }
-      }
-    });
-  });
+  unique_byte_buffer_t nas_sdu;
+  for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
+    nas_sdu = srslte::allocate_unique_buffer(*pool);
+    if (nas_sdu.get()) {
+      memcpy(nas_sdu->msg, reconfig_r8->ded_info_nas_list[i].data(), reconfig_r8->ded_info_nas_list[i].size());
+      nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
+      nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
+    } else {
+      rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
+      return false;
+    }
+  }
 
   return true;
 }
@@ -1011,7 +1027,6 @@ void rrc::leave_connected()
   pdcp->reset();
   rlc->reset();
   mac->reset();
-  phy->reset();
   set_phy_default();
   set_mac_default();
   stop_timers();
@@ -1049,17 +1064,6 @@ void rrc::start_con_restablishment(reest_cause_e cause)
   }
 
   callback_list.add_proc(connection_reest);
-}
-
-void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
-                                const phy_interface_rrc_lte::phy_cell_t&        found_cell)
-{
-  phy_ctrl->cell_search_completed(cs_ret, found_cell);
-}
-
-void rrc::cell_select_completed(bool cs_ret)
-{
-  phy_ctrl->cell_selection_completed(cs_ret);
 }
 
 /**
@@ -1947,6 +1951,8 @@ void rrc::log_rr_config_common()
 
 void rrc::apply_rr_config_common(rr_cfg_common_s* config, bool send_lower_layers)
 {
+  rrc_log->info("Applying MAC/PHY config common\n");
+
   if (config->rach_cfg_common_present) {
     set_mac_cfg_t_rach_cfg_common(&current_mac_cfg, config->rach_cfg_common);
   }
@@ -2023,6 +2029,8 @@ void rrc::log_phy_config_dedicated()
 // Apply default physical common and dedicated configuration
 void rrc::set_phy_default()
 {
+  rrc_log->info("Setting default PHY config (common and dedicated)\n");
+
   current_phy_cfg.set_defaults();
 
   if (phy != nullptr) {
@@ -2040,6 +2048,8 @@ void rrc::set_phy_default()
 // Apply default physical channel configs (9.2.4)
 void rrc::set_phy_config_dedicated_default()
 {
+  rrc_log->info("Setting default PHY config dedicated\n");
+
   current_phy_cfg.set_defaults_dedicated();
 
   if (phy != nullptr) {
@@ -2057,6 +2067,8 @@ void rrc::set_phy_config_dedicated_default()
 // Apply provided PHY config
 void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_handover)
 {
+  rrc_log->info("Applying PHY config dedicated\n");
+
   set_phy_cfg_t_dedicated_cfg(&current_phy_cfg, phy_cnfg);
   if (is_handover) {
     current_phy_cfg.ul_cfg.pucch.sr_configured             = false;
@@ -2082,6 +2094,8 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
     rrc_log->info("RRC not initialized. Skipping PHY config.\n");
     return;
   }
+
+  rrc_log->info("Applying PHY config to scell\n");
 
   // Initialise default parameters from primary cell
   earfcn = meas_cells.serving_cell().get_earfcn();
@@ -2122,10 +2136,14 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
   }
 
   // Initialize scell config with pcell cfg
-  srslte::phy_cfg_t scell_phy_cfg = current_phy_cfg;
-  set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
+  set_phy_cfg_t_scell_config(&current_phy_cfg, scell_config);
 
-  phy->set_config(scell_phy_cfg, scell_config.scell_idx_r10, earfcn, &scell);
+  if (!phy->set_scell(scell, scell_config.scell_idx_r10, earfcn)) {
+    rrc_log->error("Adding SCell cc_idx=%d\n", scell_config.scell_idx_r10);
+  } else if (!phy->set_config(current_phy_cfg, scell_config.scell_idx_r10)) {
+    rrc_log->error("Setting SCell configuration for cc_idx=%d\n", scell_config.scell_idx_r10);
+  }
+
   current_scell_configured[scell_config.scell_idx_r10] = true;
 }
 
@@ -2146,7 +2164,7 @@ void rrc::log_mac_config_dedicated()
 // 3GPP 36.331 v10 9.2.2 Default MAC main configuration
 void rrc::apply_mac_config_dedicated_default()
 {
-  rrc_log->info("Set MAC default configuration\n");
+  rrc_log->info("Setting MAC default configuration\n");
   current_mac_cfg.set_mac_main_cfg_default();
   mac->set_config(current_mac_cfg);
   log_mac_config_dedicated();
@@ -2168,6 +2186,8 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg, bool is_handover)
       set_mac_cfg_t_sched_request_cfg(&current_mac_cfg, cnfg->phys_cfg_ded.sched_request_cfg);
     }
   }
+
+  rrc_log->info("Applying MAC config dedicated\n");
 
   if (cnfg->mac_main_cfg_present) {
     if (cnfg->mac_main_cfg.type() == rr_cfg_ded_s::mac_main_cfg_c_::types::default_value) {
@@ -2217,6 +2237,8 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg, bool is_handover)
 
 bool rrc::apply_rr_config_dedicated_on_ho_complete(const rr_cfg_ded_s& cnfg)
 {
+  rrc_log->info("Applying MAC/PHY config dedicated on HO complete\n");
+
   // Apply SR+CQI configuration to PHY
   if (cnfg.phys_cfg_ded_present) {
     current_phy_cfg.ul_cfg.pucch.sr_configured = cnfg.phys_cfg_ded.sched_request_cfg_present;
@@ -2246,9 +2268,9 @@ void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
   if (reconfig_r8->non_crit_ext_present) {
     auto reconfig_r890 = &reconfig_r8->non_crit_ext;
     if (reconfig_r890->non_crit_ext_present) {
-      rrc_conn_recfg_v920_ies_s* reconfig_r920 = &reconfig_r890->non_crit_ext;
+      auto* reconfig_r920 = &reconfig_r890->non_crit_ext;
       if (reconfig_r920->non_crit_ext_present) {
-        rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
+        auto* reconfig_r1020 = &reconfig_r920->non_crit_ext;
 
         // Handle Add/Modify SCell list
         if (reconfig_r1020->scell_to_add_mod_list_r10_present) {
@@ -2486,7 +2508,6 @@ void rrc::add_mrb(uint32_t lcid, uint32_t port)
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)
 void rrc::set_phy_default_pucch_srs()
 {
-  rrc_log->info("Setting default PHY config dedicated\n");
   set_phy_config_dedicated_default();
 
   // SR configuration affects to MAC SR too

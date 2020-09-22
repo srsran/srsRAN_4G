@@ -75,6 +75,12 @@ public:
   uint32_t get_received_bytes() { return received_bytes; }
 
   void disable_read() { read_enable = false; }
+  void reset_queues()
+  {
+    for (auto& q : ul_queues) {
+      q.second = 0;
+    }
+  }
 
 private:
   bool                read_enable = true;
@@ -321,7 +327,7 @@ private:
 class rrc_dummy : public rrc_interface_mac
 {
 public:
-  void     ho_ra_completed() { ho_finish_successful = true; }
+  void     ra_completed() { ho_finish_successful = true; }
   void     release_pucch_srs() { printf("%s\n", __FUNCTION__); }
   void     run_tti(uint32_t tti) { printf("%s\n", __FUNCTION__); }
   void     ra_problem() { rach_problem++; }
@@ -1274,11 +1280,12 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
         break;
       }
       // Request Msg3 (re)-transmission
+
       for (uint32_t i = 0; i < test.nof_msg3_retx + 1; i++) {
 
         // Step to contention resolution. Make sure timer does not start until Msg3 is transmitted
         // and restarts on every retx
-        for (int j = 0; j < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; j++) {
+        for (int k = 0; k < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; k++) {
           stack->run_tti(tti);
           TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
           tti++;
@@ -1300,7 +1307,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
         break;
       }
 
-      for (int i = 0; i < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; i++) {
+      for (int k = 0; k < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; k++) {
         stack->run_tti(tti);
         TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
         tti++;
@@ -1319,7 +1326,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
                 return -1;
               }
               break;
-            } else if ((int)i == test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 2) {
+            } else if ((int)k == test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 2) {
               new_prach = true;
             }
           } else {
@@ -1507,9 +1514,10 @@ int mac_random_access_test()
   //         In this case we will let the procedure expire the Contention Resolution window and make sure
   //         and RRC HO fail signal is sent to RRC.
   mac_log->info("\n=========== Test %d =============\n", test_id++);
+  rrc.ho_finish_successful = false;
   phy.set_prach_tti(tti + phy.prach_delay);
   phy.set_crnti(0);
-  mac.start_cont_ho();
+  rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   stack.run_tti(tti++);
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -1519,15 +1527,22 @@ int mac_random_access_test()
   my_test.send_valid_ul_grant      = false;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
   TESTASSERT(!rrc.ho_finish_successful);
+  TESTASSERT(rrc.rach_problem == 2);
 
   // Test 8: Test Contention based Random Access. Same as above but we let the procedure finish successfully.
   mac_log->info("\n=========== Test %d =============\n", test_id++);
+  rrc.ho_finish_successful = false;
+  // Reset queue to make sure BSR retriggers a SR
+  rlc.reset_queues();
+  stack.run_tti(tti++);
+  rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   phy.set_prach_tti(tti + phy.prach_delay);
-  phy.set_crnti(0);
-  mac.start_cont_ho();
   stack.run_tti(tti++);
   my_test.nof_prachs = 1;
-  my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
+  my_test.nof_msg3_retx = 0;
+  my_test.temp_rnti++;
+  my_test.msg4_valid_conres   = true;
+  my_test.msg4_enable         = true;
   my_test.send_valid_ul_grant = true;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
   TESTASSERT(rrc.ho_finish_successful);
@@ -1537,12 +1552,16 @@ int mac_random_access_test()
   //         In this first test, no RAR is received and RA procedure fails
   mac_log->info("\n=========== Test %d =============\n", test_id++);
   rrc.ho_finish_successful = false;
+  // Reset queue to make sure BSR retriggers a SR
+  my_test.preamble_idx = 3;
+  mac.set_rach_ded_cfg(my_test.preamble_idx, 0);
+  stack.run_pending_tasks();
+  rlc.reset_queues();
+  stack.run_tti(tti++);
+  rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
   phy.set_crnti(0);
-  my_test.preamble_idx = 3;
-  mac.start_noncont_ho(my_test.preamble_idx, 0);
-  stack.run_pending_tasks();
   my_test.nof_prachs            = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -1553,12 +1572,15 @@ int mac_random_access_test()
   // Test 10: Test non-Contention based HO. Used in HO but preamble is given by the network. We check that
   //         the procedure is considered successful without waiting for contention
   mac_log->info("\n=========== Test %d =============\n", test_id++);
+  my_test.preamble_idx = 3;
+  mac.set_rach_ded_cfg(my_test.preamble_idx, 0);
+  stack.run_pending_tasks();
+  rlc.reset_queues();
+  stack.run_tti(tti++);
+  rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
   phy.set_crnti(0);
-  my_test.preamble_idx = 3;
-  mac.start_noncont_ho(my_test.preamble_idx, 0);
-  stack.run_pending_tasks();
   my_test.nof_prachs            = 1;
   my_test.rar_nof_invalid_rapid = 0;
   my_test.check_ra_successful   = true;

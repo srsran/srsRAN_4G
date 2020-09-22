@@ -79,6 +79,10 @@ public:
   void in_sync() final;
   void out_of_sync() final;
   void new_cell_meas(const std::vector<phy_meas_t>& meas) override { rrc.new_cell_meas(meas); }
+  void cell_search_complete(cell_search_ret_t ret, phy_cell_t found_cell) final;
+  void cell_select_complete(bool status) final;
+  void set_config_complete(bool status) final;
+  void set_scell_complete(bool status) final;
 
   // MAC Interface for PHY
   uint16_t get_dl_sched_rnti(uint32_t tti) final { return mac.get_dl_sched_rnti(tti); }
@@ -158,7 +162,7 @@ private:
   static const int                      STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
   srslte::block_queue<stack_metrics_t>  pending_stack_metrics;
   task_scheduler                        task_sched;
-  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_queue_id;
+  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_queue_id, cfg_task_queue;
 
   // TTI stats
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;

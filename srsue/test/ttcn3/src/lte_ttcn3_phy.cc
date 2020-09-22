@@ -80,27 +80,35 @@ void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd)
   log.debug("%s not implemented.\n", __FUNCTION__);
 }
 
-void lte_ttcn3_phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info)
+bool lte_ttcn3_phy::set_config(srslte::phy_cfg_t config, uint32_t cc_idx_)
 {
   log.debug("%s not implemented.\n", __FUNCTION__);
+  return true;
+}
+
+bool lte_ttcn3_phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
+{
+  log.debug("%s not implemented.\n", __FUNCTION__);
+  return true;
 }
 
 // Measurements interface
-void lte_ttcn3_phy::meas_stop(){};
+void lte_ttcn3_phy::meas_stop() {}
 
 // Cell search and selection procedures
 // Note that in contrast to a real PHY, we have visibility of all existing cells
 // configured by the SS, including the ones that we should not even detect because
 // their power is too weak. The cell search should only report the cells that
 // are actually visible though.
-phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
+bool lte_ttcn3_phy::cell_search()
 {
   std::lock_guard<std::mutex> lock(mutex);
 
   log.info("Running cell search in PHY\n");
 
-  cell_search_ret_t ret = {};
-  ret.found             = cell_search_ret_t::CELL_NOT_FOUND;
+  rrc_interface_phy_lte::cell_search_ret_t ret = {};
+  ret.found                                    = rrc_interface_phy_lte::cell_search_ret_t::CELL_NOT_FOUND;
+  phy_cell_t found_cell                        = {};
 
   if (not cells.empty() && cell_idx < cells.size()) {
     // only find suitable cells
@@ -109,11 +117,9 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
                cells[cell_idx].earfcn,
                cells[cell_idx].info.id,
                cells[cell_idx].power);
-      if (found_cell) {
-        found_cell->earfcn = cells[cell_idx].earfcn;
-        found_cell->pci    = cells[cell_idx].info.id;
-      }
-      ret.found = cell_search_ret_t::CELL_FOUND;
+      found_cell.earfcn = cells[cell_idx].earfcn;
+      found_cell.pci    = cells[cell_idx].info.id;
+      ret.found         = rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
     }
 
     // advance index
@@ -121,41 +127,44 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
 
     if (cell_idx < cells.size()) {
       // more cells will be reported
-      ret.last_freq = cell_search_ret_t::MORE_FREQS;
+      ret.last_freq = rrc_interface_phy_lte::cell_search_ret_t::MORE_FREQS;
     } else {
       // all available cells have been reported, reset cell index
-      ret.last_freq = cell_search_ret_t::NO_MORE_FREQS;
+      ret.last_freq = rrc_interface_phy_lte::cell_search_ret_t::NO_MORE_FREQS;
       cell_idx      = 0;
     }
   } else {
     log.warning("No cells configured yet.\n");
   }
 
-  return ret;
-};
+  stack->cell_search_complete(ret, found_cell);
 
-bool lte_ttcn3_phy::cell_select(const phy_cell_t* rrc_cell)
+  return true;
+}
+
+bool lte_ttcn3_phy::cell_select(phy_cell_t rrc_cell)
 {
   // try to find RRC cell in current cell map
   for (auto& cell : cells) {
-    if (cell.info.id == rrc_cell->pci && cell.earfcn == rrc_cell->earfcn) {
+    if (cell.info.id == rrc_cell.pci && cell.earfcn == rrc_cell.earfcn) {
       if (cell.power >= SUITABLE_CELL_RS_EPRE) {
         pcell     = cell;
         pcell_set = true;
         syssim->select_cell(pcell.info);
-        log.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.\n", cell.power, rrc_cell->pci, rrc_cell->earfcn);
+        log.info("Select PCell with %.2f on PCI=%d on EARFCN=%d.\n", cell.power, rrc_cell.pci, rrc_cell.earfcn);
       } else {
         pcell_set = false;
         log.error("Power of selected cell too low (%.2f < %.2f)\n", cell.power, SUITABLE_CELL_RS_EPRE);
       }
 
-      return pcell_set;
+      stack->cell_select_complete(pcell_set);
+      return true;
     }
   }
 
-  log.error("Couldn't find RRC cell with PCI=%d on EARFCN=%d in cell map.\n", rrc_cell->pci, rrc_cell->earfcn);
+  log.error("Couldn't find RRC cell with PCI=%d on EARFCN=%d in cell map.\n", rrc_cell.pci, rrc_cell.earfcn);
   return false;
-};
+}
 
 bool lte_ttcn3_phy::cell_is_camping()
 {
@@ -164,18 +173,9 @@ bool lte_ttcn3_phy::cell_is_camping()
     return (pcell.power >= SUITABLE_CELL_RS_EPRE);
   }
   return false;
-};
-
-void lte_ttcn3_phy::reset()
-{
-  log.debug("%s not implemented.\n", __FUNCTION__);
-};
+}
 
 // The interface for MAC (called from Stack thread context)
-void lte_ttcn3_phy::configure_prach_params()
-{
-  log.debug("%s not implemented.\n", __FUNCTION__);
-};
 
 void lte_ttcn3_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
 {

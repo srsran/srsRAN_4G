@@ -269,6 +269,11 @@ public:
     }
   }
 
+  void cell_search_complete(cell_search_ret_t ret, srsue::phy_cell_t found_cell) override {}
+  void cell_select_complete(bool status) override {}
+  void set_config_complete(bool status) override {}
+  void set_scell_complete(bool status) override {}
+
   bool print_stats()
   {
     printf("\n-- Statistics:\n");

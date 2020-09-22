@@ -74,19 +74,15 @@ sf_worker::~sf_worker()
   }
 }
 
-void sf_worker::reset()
+void sf_worker::reset_cell_unlocked(uint32_t cc_idx)
 {
-  for (auto& cc_worker : cc_workers) {
-    cc_worker->reset();
-  }
+  cc_workers[cc_idx]->reset_cell_unlocked();
 }
 
-bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
+bool sf_worker::set_cell_unlocked(uint32_t cc_idx, srslte_cell_t cell_)
 {
-  std::lock_guard<std::mutex> lock(cell_mutex);
-
   if (cc_idx < cc_workers.size()) {
-    if (!cc_workers[cc_idx]->set_cell(cell_)) {
+    if (!cc_workers[cc_idx]->set_cell_unlocked(cell_)) {
       Error("Setting cell for cc=%d\n", cc_idx);
       return false;
     }
@@ -95,6 +91,7 @@ bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
   }
 
   if (cc_idx == 0) {
+    std::lock_guard<std::mutex> lock(cell_mutex);
     cell           = cell_;
     cell_initiated = true;
     cell_init_cond.notify_one();
@@ -142,41 +139,40 @@ void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
   prach_power = prach_power_;
 }
 
-void sf_worker::set_cfo(const uint32_t& cc_idx, float cfo)
+void sf_worker::set_cfo_unlocked(const uint32_t& cc_idx, float cfo)
 {
-  cc_workers[cc_idx]->set_cfo(cfo);
+  cc_workers[cc_idx]->set_cfo_unlocked(cfo);
 }
 
-void sf_worker::set_crnti(uint16_t rnti)
+void sf_worker::set_crnti_unlocked(uint16_t rnti)
 {
   for (auto& cc_worker : cc_workers) {
-    cc_worker->set_crnti(rnti);
+    cc_worker->set_crnti_unlocked(rnti);
   }
 }
 
-void sf_worker::set_tdd_config(srslte_tdd_config_t config)
+void sf_worker::set_tdd_config_unlocked(srslte_tdd_config_t config)
 {
   for (auto& cc_worker : cc_workers) {
-    cc_worker->set_tdd_config(config);
+    cc_worker->set_tdd_config_unlocked(config);
   }
   tdd_config = config;
 }
 
-void sf_worker::enable_pregen_signals(bool enabled)
+void sf_worker::enable_pregen_signals_unlocked(bool enabled)
 {
   for (auto& cc_worker : cc_workers) {
-    cc_worker->enable_pregen_signals(enabled);
+    cc_worker->enable_pregen_signals_unlocked(enabled);
   }
 }
 
-void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
+void sf_worker::set_config_unlocked(uint32_t cc_idx, srslte::phy_cfg_t phy_cfg)
 {
   if (cc_idx < cc_workers.size()) {
-    Info("Setting configuration for worker=%d, cc=%d\n", get_id(), cc_idx);
-    cc_workers[cc_idx]->set_config(phy_cfg);
+    cc_workers[cc_idx]->set_config_unlocked(phy_cfg);
     if (cc_idx > 0) {
       // Update DCI config for PCell
-      cc_workers[0]->upd_config_dci(phy_cfg.dl_cfg.dci);
+      cc_workers[0]->upd_config_dci_unlocked(phy_cfg.dl_cfg.dci);
     }
   } else {
     Error("Setting config for cc=%d; Invalid cc_idx\n", cc_idx);
@@ -209,7 +205,7 @@ void sf_worker::work_imp()
       if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
         cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
       } else {
-        if ((carrier_idx == 0) || phy->scell_cfg[carrier_idx].enabled) {
+        if ((carrier_idx == 0) || (phy->scell_cfg[carrier_idx].enabled && phy->scell_cfg[carrier_idx].configured)) {
           rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
         }
       }
@@ -241,10 +237,12 @@ void sf_worker::work_imp()
 
       // Loop through all carriers
       for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers; carrier_idx++) {
-        tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
+        if ((carrier_idx == 0) || (phy->scell_cfg[carrier_idx].enabled && phy->scell_cfg[carrier_idx].configured)) {
+          tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
 
-        // Set signal pointer based on offset
-        tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
+          // Set signal pointer based on offset
+          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
+        }
       }
     }
   }
@@ -283,20 +281,18 @@ void sf_worker::reset_uci(srslte_uci_data_t* uci_data)
 
 void sf_worker::update_measurements()
 {
-  // Run measurements in all carriers, but only in one worker
-  if (get_id() == 0) {
-    std::vector<rrc_interface_phy_lte::phy_meas_t> serving_cells = {};
-    for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-      cf_t* rssi_power_buffer = nullptr;
-      if (cc_idx == 0) {
-        rssi_power_buffer = cc_workers[0]->get_rx_buffer(0);
-      }
-      cc_workers[cc_idx]->update_measurements(serving_cells, rssi_power_buffer);
+  std::vector<rrc_interface_phy_lte::phy_meas_t> serving_cells = {};
+  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
+    cf_t* rssi_power_buffer = nullptr;
+    // Setting rssi_power_buffer to nullptr disables RSSI update. Do it only by worker 0
+    if (cc_idx == 0 && get_id() == 0) {
+      rssi_power_buffer = cc_workers[0]->get_rx_buffer(0);
     }
-    // Send report to stack
-    if (not serving_cells.empty()) {
-      phy->stack->new_cell_meas(serving_cells);
-    }
+    cc_workers[cc_idx]->update_measurements(serving_cells, rssi_power_buffer);
+  }
+  // Send report to stack
+  if (not serving_cells.empty()) {
+    phy->stack->new_cell_meas(serving_cells);
   }
 }
 

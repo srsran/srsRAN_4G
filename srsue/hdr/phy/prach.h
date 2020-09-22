@@ -39,8 +39,9 @@ public:
   void  init(uint32_t max_prb, srslte::log* log_h);
   void  stop();
   bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
+  void  reset_cfg();
   bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
-  bool  is_ready_to_send(uint32_t current_tti);
+  bool  is_ready_to_send(uint32_t current_tti, uint32_t current_pci);
   bool  is_pending() const;
   cf_t* generate(float cfo, uint32_t* nof_sf, float* target_power = NULL);
 
@@ -71,7 +72,7 @@ private:
   srslte_prach_cfg_t                                   cfg              = {};
   std::array<std::array<cf_t*, max_preambles>, max_fs> buffer           = {};
   cf_t*                                                signal_buffer    = nullptr;
-  int                                                  preamble_idx     = 0;
+  int                                                  preamble_idx     = -1;
   uint32_t                                             len              = 0;
   int                                                  allowed_subframe = 0;
   int                                                  transmitted_tti  = 0;

@@ -77,14 +77,14 @@ proc_outcome_t rrc::cell_search_proc::step_si_acquire()
   // SI Acquire has completed
   if (si_acquire_fut.is_error()) {
     Error("Failed SI acquire for SIB0\n");
-    search_result.cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    search_result.cs_ret.found = cell_search_ret_t::CELL_NOT_FOUND;
     return proc_outcome_t::success;
   }
   Info("Completed successfully\n");
   return proc_outcome_t::success;
 }
 
-proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_lte::phy_cell_t& new_cell)
+proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_cell_t& new_cell)
 {
   Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...\n", new_cell.earfcn, new_cell.pci);
 
@@ -135,13 +135,13 @@ proc_outcome_t rrc::cell_search_proc::react(const bool& cs_ret)
 
   if (not cs_ret) {
     Error("Couldn't select new serving cell\n");
-    search_result.cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    search_result.cs_ret.found = cell_search_ret_t::CELL_NOT_FOUND;
     return proc_outcome_t::success;
   }
 
   if (not rrc_ptr->phy->cell_is_camping()) {
     Warning("Could not camp on found cell.\n");
-    search_result.cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+    search_result.cs_ret.found = cell_search_ret_t::CELL_NOT_FOUND;
     return proc_outcome_t::success;
   }
 
@@ -161,9 +161,9 @@ proc_outcome_t rrc::cell_search_proc::react(const phy_controller::cell_srch_res&
   search_result = event;
 
   // Transition to SI Acquire or finish
-  if (search_result.cs_ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
+  if (search_result.cs_ret.found == cell_search_ret_t::CELL_FOUND) {
     return handle_cell_found(search_result.found_cell);
-  } else if (search_result.cs_ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND) {
+  } else if (search_result.cs_ret.found == cell_search_ret_t::CELL_NOT_FOUND) {
     // No cells found. Do nothing
     return proc_outcome_t::success;
   }
@@ -618,9 +618,8 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_search()
     cs_result = cs_result_t::no_cell;
     return proc_outcome_t::error;
   }
-  cs_result = (cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND)
-                  ? cs_result_t::changed_cell
-                  : cs_result_t::no_cell;
+  cs_result = (cell_search_fut.value()->found == cell_search_ret_t::CELL_FOUND) ? cs_result_t::changed_cell
+                                                                                : cs_result_t::no_cell;
   Info("Cell Search of cell selection run successfully\n");
   return proc_outcome_t::success;
 }
@@ -697,14 +696,14 @@ proc_outcome_t rrc::plmn_search_proc::step()
     // wait for new TTI
     return proc_outcome_t::yield;
   }
-  if (cell_search_fut.is_error() or cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::ERROR) {
+  if (cell_search_fut.is_error() or cell_search_fut.value()->found == cell_search_ret_t::ERROR) {
     // stop search
     nof_plmns = -1;
     Error("Failed due to failed cell search sub-procedure\n");
     return proc_outcome_t::error;
   }
 
-  if (cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
+  if (cell_search_fut.value()->found == cell_search_ret_t::CELL_FOUND) {
     if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
       // Save PLMN and TAC to NAS
       for (uint32_t i = 0; i < rrc_ptr->meas_cells.serving_cell().nof_plmns(); i++) {
@@ -721,7 +720,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
     }
   }
 
-  if (cell_search_fut.value()->last_freq == phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS) {
+  if (cell_search_fut.value()->last_freq == cell_search_ret_t::NO_MORE_FREQS) {
     Info("completed PLMN search\n");
     return proc_outcome_t::success;
   }
@@ -1175,8 +1174,11 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     // reset MAC;
     rrc_ptr->mac->reset();
 
+    // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
+    rrc_ptr->phy->set_activation_deactivation_scell(0);
+
     // apply the default physical channel configuration as specified in 9.2.4;
-    rrc_ptr->set_phy_default_pucch_srs();
+    // Note: this is done by the MAC Reset procedure
 
     // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
     // N.A.
@@ -1290,6 +1292,11 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
     Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
          rrc_ptr->t311.time_elapsed());
 
+    // Note: Not explicitly defined in the specs, but UE should apply SIB1 and SIB2 configuration in order to attempt
+    // a PRACH to a different cell
+    Info("Applying SIB2 configuration\n");
+    rrc_ptr->handle_sib2();
+
     // stop timer T311;
     rrc_ptr->t311.stop();
 
@@ -1343,6 +1350,19 @@ proc_outcome_t rrc::connection_reest_proc::step()
 
 rrc::ho_proc::ho_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
 
+/**
+ * This function implements the core of the HO procedure defined in 5.3.5.4
+ *
+ * Right after the PHY is instructed to synchronize with the new cell, DL and UL will be suspended by the PHY until in
+ * sync again with the new cell.
+ *
+ * Note that this function is executed by the main stack thread and needs to terminate in less than 1 ms. Any sub-task
+ * requiring more time shall use background workers.
+ *
+ * It is important that the whole 5.3.5.4 section is executed in a single procedure step. This guarantees that the stack
+ * will not run other functions between the steps, like SR, PRACH, etc.
+ *
+ */
 srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
 {
   Info("Starting...\n");
@@ -1376,12 +1396,103 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->mac->get_rntis(&uernti);
   ho_src_rnti = uernti.crnti;
 
-  // Section 5.3.5.4. The implementation of the procedure follows in function step()
+  // Section 5.3.5.4
   rrc_ptr->t310.stop();
   rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
   rrc_ptr->t304.run();
 
-  state = launch_phy_cell_select;
+  // starting at start synchronising to the DL of the target PCell
+  Info("Starting cell selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
+  if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell, rrc_ptr->ho_handler)) {
+    Error("Failed to launch the selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
+    return proc_outcome_t::error;
+  }
+
+  // reset MAC
+  rrc_ptr->mac->reset();
+
+  // Reestablish PDCP/RLC
+  rrc_ptr->pdcp->reestablish();
+  rrc_ptr->rlc->reestablish();
+
+  // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
+  rrc_ptr->phy->set_activation_deactivation_scell(0);
+
+  // apply the value of the newUE-Identity as the C-RNTI;
+  rrc_ptr->mac->set_ho_rnti(recfg_r8.mob_ctrl_info.new_ue_id.to_number(), recfg_r8.mob_ctrl_info.target_pci);
+
+  // perform radio configuration when fullConfig is enabled
+  if (recfg_r8.non_crit_ext.non_crit_ext.full_cfg_r9_present) {
+    Error("fullConfig section was present but is not supported. Ignoring it.\n");
+  }
+
+  // configure lower layers in accordance with the received radioResourceConfigCommon
+  // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
+  rrc_ptr->apply_rr_config_common(&recfg_r8.mob_ctrl_info.rr_cfg_common, !recfg_r8.rr_cfg_ded_present);
+
+  // configure lower layers in accordance with any additional fields, not covered in the previous, if included in the
+  // received mobilityControlInfo
+  if (recfg_r8.mob_ctrl_info.rach_cfg_ded_present) {
+    Info("Configuring RACH dedicated configuration with preamble_idx=%d, mask_idx=%d\n",
+         recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
+         recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
+    rrc_ptr->mac->set_rach_ded_cfg(recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
+                                   recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
+  }
+
+  // if the RRCConnectionReconfiguration message includes the radioResourceConfigDedicated
+  if (recfg_r8.rr_cfg_ded_present) {
+    // Note: Disable SR config until RA completion
+    rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded, true);
+  }
+
+  // Security procedure
+  int ncc = -1;
+  if (recfg_r8.security_cfg_ho_present) {
+    auto& sec_intralte = recfg_r8.security_cfg_ho.handov_type.intra_lte();
+    ncc                = sec_intralte.next_hop_chaining_count;
+    if (sec_intralte.key_change_ind) {
+      // update Kenb based on fresh Kasme taken from previous successful NAS SMC
+      rrc_ptr->generate_as_keys();
+    }
+    if (sec_intralte.security_algorithm_cfg_present) {
+      rrc_ptr->sec_cfg.cipher_algo =
+          (srslte::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
+      rrc_ptr->sec_cfg.integ_algo =
+          (srslte::INTEGRITY_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
+      Info("Changed Ciphering to %s and Integrity to %s\n",
+           srslte::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
+           srslte::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
+    }
+  }
+
+  rrc_ptr->usim->generate_as_keys_ho(recfg_r8.mob_ctrl_info.target_pci, target_earfcn, ncc, &rrc_ptr->sec_cfg);
+
+  rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
+
+  // perform the measurement related actions as specified in 5.5.6.1;
+  rrc_ptr->measurements->ho_reest_actions(ho_src_cell.get_earfcn(), target_earfcn);
+
+  // if the RRCConnectionReconfiguration message includes the measConfig:
+  if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
+    Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
+    return proc_outcome_t::error;
+  }
+
+  // Have RRCReconfComplete message ready when Msg3 is sent
+  rrc_ptr->send_rrc_con_reconfig_complete();
+
+  // SCell addition/removal can take some time to compute. Enqueue in a background task and do it in the end.
+  rrc_ptr->apply_scell_config(&recfg_r8);
+
+  Info("Finished HO configuration. Waiting PHY to synchronize with target cell\n");
+
+  state = wait_phy_cell_select_complete;
+  return proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::ho_proc::step()
+{
   return proc_outcome_t::yield;
 }
 
@@ -1400,104 +1511,11 @@ srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
     return proc_outcome_t::error;
   }
 
+  Info("PHY has synchronized with target cell. Waiting Random Access to complete\n");
+
   rrc_ptr->set_serving_cell(target_cell, false);
 
-  // Extract and apply scell config if any
-  rrc_ptr->task_sched.enqueue_background_task([this](uint32_t wid) {
-    rrc_ptr->apply_scell_config(&recfg_r8);
-
-    rrc_ptr->task_sched.notify_background_task_result([this]() {
-      if (recfg_r8.mob_ctrl_info.rach_cfg_ded_present) {
-        Info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
-             recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
-             recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
-        rrc_ptr->mac->start_noncont_ho(recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
-                                       recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
-      } else {
-        Info("Starting contention-based RA\n");
-        rrc_ptr->mac->start_cont_ho();
-      }
-
-      int ncc = -1;
-      if (recfg_r8.security_cfg_ho_present) {
-        auto& sec_intralte = recfg_r8.security_cfg_ho.handov_type.intra_lte();
-        ncc                = sec_intralte.next_hop_chaining_count;
-        if (sec_intralte.key_change_ind) {
-          // update Kenb based on fresh Kasme taken from previous successful NAS SMC
-          rrc_ptr->generate_as_keys();
-        }
-        if (sec_intralte.security_algorithm_cfg_present) {
-          rrc_ptr->sec_cfg.cipher_algo =
-              (srslte::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
-          rrc_ptr->sec_cfg.integ_algo = (srslte::INTEGRITY_ALGORITHM_ID_ENUM)
-                                            sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
-          Info("Changed Ciphering to %s and Integrity to %s\n",
-               srslte::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
-               srslte::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
-        }
-      }
-
-      rrc_ptr->usim->generate_as_keys_ho(
-          recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->meas_cells.serving_cell().get_earfcn(), ncc, &rrc_ptr->sec_cfg);
-
-      rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
-
-      // Have RRCReconfComplete message ready when Msg3 is sent
-      rrc_ptr->send_rrc_con_reconfig_complete();
-    });
-  });
   state = wait_ra_completion;
-  return proc_outcome_t::yield;
-}
-
-srslte::proc_outcome_t rrc::ho_proc::step()
-{
-  if (rrc_ptr->state != RRC_STATE_CONNECTED) {
-    Info("HO interrupted, since RRC is no longer in connected state\n");
-    return srslte::proc_outcome_t::error;
-  }
-  if (state == launch_phy_cell_select) {
-    // Reset/Reestablish stack
-    rrc_ptr->pdcp->reestablish();
-    rrc_ptr->rlc->reestablish();
-    rrc_ptr->mac->wait_uplink();
-    rrc_ptr->mac->clear_rntis();
-    rrc_ptr->mac->reset();
-    rrc_ptr->phy->reset();
-
-    // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
-    rrc_ptr->phy->set_activation_deactivation_scell(0);
-
-    // Todo: perform radio configuration when fullConfig is enabled
-
-    // apply the value of the newUE-Identity as the C-RNTI;
-    rrc_ptr->mac->set_ho_rnti(recfg_r8.mob_ctrl_info.new_ue_id.to_number(), recfg_r8.mob_ctrl_info.target_pci);
-
-    // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
-    rrc_ptr->apply_rr_config_common(&recfg_r8.mob_ctrl_info.rr_cfg_common, !recfg_r8.rr_cfg_ded_present);
-
-    if (recfg_r8.rr_cfg_ded_present) {
-      // Note: Disable SR config until RA completion
-      rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded, true);
-    }
-
-    // if the RRCConnectionReconfiguration message includes the measConfig:
-    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
-      Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
-      return proc_outcome_t::error;
-    }
-
-    // perform the measurement related actions as specified in 5.5.6.1;
-    rrc_ptr->measurements->ho_reest_actions(ho_src_cell.get_earfcn(), rrc_ptr->get_serving_cell()->get_earfcn());
-
-    Info("Starting cell selection of target cell PCI=%d on EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
-
-    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell, rrc_ptr->ho_handler)) {
-      Error("Failed to launch the selection of target cell PCI=%d on EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
-      return proc_outcome_t::error;
-    }
-    state = wait_phy_cell_select_complete;
-  }
   return proc_outcome_t::yield;
 }
 
@@ -1521,6 +1539,8 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
   }
 
   if (ev.success) {
+    Info("Random Access completed. Applying final configuration and finishing procedure\n");
+
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
     rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);

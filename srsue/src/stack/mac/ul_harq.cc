@@ -240,7 +240,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       // Uplink dci in a RAR and there is a PDU in the Msg3 buffer
       if (grant.is_rar) {
         if (harq_entity->mux_unit->msg3_is_pending()) {
-          Debug("Getting Msg3 buffer payload, dci size=%d bytes\n", grant.tb.tbs);
+          Debug("Getting Msg3 buffer payload, grant size=%d bytes\n", grant.tb.tbs);
           pdu_ptr = harq_entity->mux_unit->msg3_get(payload_buffer.get(), grant.tb.tbs);
           if (pdu_ptr) {
             generate_new_tx(grant, action);

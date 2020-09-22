@@ -119,13 +119,16 @@ void cc_worker::reset()
 {
   // constructor sets defaults
   srslte::phy_cfg_t empty_cfg;
-  set_config(empty_cfg);
+  set_config_unlocked(empty_cfg);
 }
 
-bool cc_worker::set_cell(srslte_cell_t cell_)
+void cc_worker::reset_cell_unlocked()
 {
-  std::unique_lock<std::mutex> lock(mutex);
+  cell_initiated = false;
+}
 
+bool cc_worker::set_cell_unlocked(srslte_cell_t cell_)
+{
   if (cell.id != cell_.id || !cell_initiated) {
     cell = cell_;
 
@@ -175,27 +178,29 @@ void cc_worker::set_tti(uint32_t tti)
   sf_cfg_ul.shortened = false;
 }
 
-void cc_worker::set_cfo(float cfo)
+void cc_worker::set_cfo_unlocked(float cfo)
 {
-  std::unique_lock<std::mutex> lock(mutex);
   ue_ul_cfg.cfo_value = cfo;
 }
 
-void cc_worker::set_crnti(uint16_t rnti)
+float cc_worker::get_ref_cfo() const
 {
-  std::unique_lock<std::mutex> lock(mutex);
+  return ue_dl.chest_res.cfo;
+}
+
+void cc_worker::set_crnti_unlocked(uint16_t rnti)
+{
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
 }
 
-void cc_worker::set_tdd_config(srslte_tdd_config_t config)
+void cc_worker::set_tdd_config_unlocked(srslte_tdd_config_t config)
 {
-  std::unique_lock<std::mutex> lock(mutex);
   sf_cfg_dl.tdd_config = config;
   sf_cfg_ul.tdd_config = config;
 }
 
-void cc_worker::enable_pregen_signals(bool enabled)
+void cc_worker::enable_pregen_signals_unlocked(bool enabled)
 {
   pregen_enabled = enabled;
 }
@@ -208,12 +213,16 @@ void cc_worker::enable_pregen_signals(bool enabled)
 
 bool cc_worker::work_dl_regular()
 {
-  std::unique_lock<std::mutex> lock(mutex);
   bool                         dl_ack[SRSLTE_MAX_CODEWORDS] = {};
 
   mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   bool found_dl_grant = false;
+
+  if (!cell_initiated) {
+    log_h->warning("Trying to access cc_worker=%d while cell not initialized (DL)\n", cc_idx);
+    return false;
+  }
 
   sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
@@ -266,7 +275,7 @@ bool cc_worker::work_dl_regular()
     // Generate PHY grant
     if (srslte_ue_dl_dci_to_pdsch_grant(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, &dci_dl, &ue_dl_cfg.cfg.pdsch.grant)) {
       Error("Converting DCI message to DL dci\n");
-      return -1;
+      return false;
     }
 
     // Save TB for next retx
@@ -285,17 +294,13 @@ bool cc_worker::work_dl_regular()
     srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce, grant_cc_idx, dci_dl.tpc_pucch};
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
-    mutex.unlock();
     phy->stack->new_grant_dl(cc_idx, mac_grant, &dl_action);
-    mutex.lock();
 
     // Decode PDSCH
     decode_pdsch(ack_resource, &dl_action, dl_ack);
 
     // Informs Stack about the decoding status
-    mutex.unlock();
     phy->stack->tb_decoded(cc_idx, mac_grant, dl_ack);
-    mutex.lock();
   }
 
   /* Decode PHICH */
@@ -306,8 +311,12 @@ bool cc_worker::work_dl_regular()
 
 bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
 {
-  std::unique_lock<std::mutex>          lock(mutex);
   mac_interface_phy_lte::tb_action_dl_t dl_action = {};
+
+  if (!cell_initiated) {
+    log_h->warning("Trying to access cc_worker=%d while cell not initialized (MBSFN)\n", cc_idx);
+    return false;
+  }
 
   // Configure MBSFN settings
   srslte_ue_dl_set_mbsfn_area_id(&ue_dl, mbsfn_cfg.mbsfn_area_id);
@@ -569,13 +578,17 @@ void cc_worker::update_measurements(std::vector<rrc_interface_phy_lte::phy_meas_
 
 bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 {
-  std::unique_lock<std::mutex> lock(mutex);
   bool                         signal_ready;
 
   srslte_dci_ul_t                       dci_ul       = {};
   mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant = {};
   mac_interface_phy_lte::tb_action_ul_t ul_action    = {};
   uint32_t                              pid          = 0;
+
+  if (!cell_initiated) {
+    log_h->warning("Trying to access cc_worker=%d while cell not initialized (UL)\n", cc_idx);
+    return false;
+  }
 
   bool ul_grant_available = phy->get_ul_pending_grant(&sf_cfg_ul, cc_idx, &pid, &dci_ul);
   ul_mac_grant.phich_available =
@@ -618,9 +631,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
       // Fill MAC dci
       ul_phy_to_mac_grant(&ue_ul_cfg.ul_cfg.pusch.grant, &dci_ul, pid, ul_grant_available, &ul_mac_grant);
 
-      mutex.unlock();
       phy->stack->new_grant_ul(cc_idx, ul_mac_grant, &ul_action);
-      mutex.lock();
 
       // Calculate PUSCH Hopping procedure
       ue_ul_cfg.ul_cfg.hopping.current_tx_nb = ul_action.current_tx_nb;
@@ -810,7 +821,6 @@ uint32_t cc_worker::get_wideband_cqi()
 
 void cc_worker::set_uci_periodic_cqi(srslte_uci_data_t* uci_data)
 {
-  std::unique_lock<std::mutex> lock(mutex);
   srslte_ue_dl_gen_cqi_periodic(&ue_dl, &ue_dl_cfg, get_wideband_cqi(), CURRENT_TTI_TX, uci_data);
 }
 
@@ -862,10 +872,8 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
 
 /* Translates RRC structs into PHY structs
  */
-void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
+void cc_worker::set_config_unlocked(srslte::phy_cfg_t& phy_cfg)
 {
-  std::unique_lock<std::mutex> lock(mutex);
-
   // Save configuration
   ue_dl_cfg.cfg    = phy_cfg.dl_cfg;
   ue_ul_cfg.ul_cfg = phy_cfg.ul_cfg;
@@ -880,9 +888,8 @@ void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
   }
 }
 
-void cc_worker::upd_config_dci(srslte_dci_cfg_t& dci_cfg)
+void cc_worker::upd_config_dci_unlocked(srslte_dci_cfg_t& dci_cfg)
 {
-  std::unique_lock<std::mutex> lock(mutex);
   ue_dl_cfg.cfg.dci = dci_cfg;
 }
 

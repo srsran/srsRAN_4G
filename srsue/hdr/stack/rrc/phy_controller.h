@@ -31,8 +31,7 @@ namespace srsue {
 
 class phy_controller : public srslte::fsm_t<phy_controller>
 {
-  using phy_cell_t        = phy_interface_rrc_lte::phy_cell_t;
-  using cell_search_ret_t = phy_interface_rrc_lte::cell_search_ret_t;
+  using cell_search_ret_t = rrc_interface_phy_lte::cell_search_ret_t;
 
 public:
   static const uint32_t wait_sync_timeout_ms = 50;

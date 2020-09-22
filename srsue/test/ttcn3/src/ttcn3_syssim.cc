@@ -605,7 +605,7 @@ void ttcn3_syssim::send_rar(uint32_t preamble_index)
 // Internal function called from main thread
 void ttcn3_syssim::send_msg3_grant()
 {
-  log->info("Sending Msg3 grant for C-RNTI=%d\n", cells[pcell_idx]->config.crnti);
+  log->info("Sending Msg3 grant for C-RNTI=0x%x\n", cells[pcell_idx]->config.crnti);
   mac_interface_phy_lte::mac_grant_ul_t ul_grant = {};
 
   ul_grant.tti_tx         = (tti + 3) % 10240;

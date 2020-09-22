@@ -46,8 +46,9 @@ ue_stack_lte::ue_stack_lte() :
   task_sched(512, 2, 64),
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
 {
-  ue_task_queue = task_sched.make_task_queue();
-  gw_queue_id   = task_sched.make_task_queue();
+  ue_task_queue  = task_sched.make_task_queue();
+  gw_queue_id    = task_sched.make_task_queue();
+  cfg_task_queue = task_sched.make_task_queue();
   // sync_queue is added in init()
 }
 
@@ -248,6 +249,30 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   if (not ret) {
     pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }
+}
+
+/********************
+ *  PHY Interface
+ *******************/
+
+void ue_stack_lte::cell_search_complete(cell_search_ret_t ret, phy_cell_t found_cell)
+{
+  cfg_task_queue.push([this, ret, found_cell]() { rrc.cell_search_complete(ret, found_cell); });
+}
+
+void ue_stack_lte::cell_select_complete(bool status)
+{
+  cfg_task_queue.push([this, status]() { rrc.cell_select_complete(status); });
+}
+
+void ue_stack_lte::set_config_complete(bool status)
+{
+  cfg_task_queue.push([this, status]() { rrc.set_config_complete(status); });
+}
+
+void ue_stack_lte::set_scell_complete(bool status)
+{
+  cfg_task_queue.push([this, status]() { rrc.set_scell_complete(status); });
 }
 
 /********************

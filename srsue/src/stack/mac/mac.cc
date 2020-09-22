@@ -152,16 +152,6 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
   }
 }
 
-void mac::wait_uplink()
-{
-  int cnt = 0;
-  Info("Waiting to uplink...\n");
-  while (mux_unit.is_pending_any_sdu() && cnt < 20) {
-    usleep(1000);
-    cnt++;
-  }
-}
-
 // Implement Section 5.9
 void mac::reset()
 {
@@ -601,14 +591,9 @@ void mac::set_contention_id(uint64_t uecri)
   uernti.contention_id = uecri;
 }
 
-void mac::start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask)
+void mac::set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask)
 {
-  ra_procedure.start_noncont(preamble_index, prach_mask);
-}
-
-void mac::start_cont_ho()
-{
-  ra_procedure.start_mac_order(56, true);
+  ra_procedure.set_config_ded(preamble_index, prach_mask);
 }
 
 void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
@@ -619,6 +604,7 @@ void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
 
 void mac::set_config(mac_cfg_t& mac_cfg)
 {
+  Info("Setting configuration\n");
   // Set configuration for each module in MAC
   bsr_procedure.set_config(mac_cfg.bsr_cfg);
   phr_procedure.set_config(mac_cfg.phr_cfg);

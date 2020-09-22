@@ -92,6 +92,11 @@ void prach::stop()
   mem_initiated = false;
 }
 
+void prach::reset_cfg()
+{
+  cell_initiated = false;
+}
+
 bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 {
   if (!mem_initiated) {
@@ -106,7 +111,7 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 
   cell         = cell_;
   cfg          = prach_cfg;
-  preamble_idx = -1;
+  // We must not reset preamble_idx here, MAC might have already called prepare_to_send()
 
   if (6 + prach_cfg.freq_offset > cell.nof_prb) {
     log_h->console("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
@@ -156,21 +161,17 @@ bool prach::generate_buffer(uint32_t f_idx)
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
 {
-  if (cell_initiated && preamble_idx_ < max_preambles) {
-    preamble_idx     = preamble_idx_;
-    target_power_dbm = target_power_dbm_;
-    allowed_subframe = allowed_subframe_;
-    transmitted_tti  = -1;
-    Debug("PRACH: prepare to send preamble %d\n", preamble_idx);
-    return true;
+  if (preamble_idx_ >= max_preambles) {
+    Error("PRACH: Invalid preamble %d\n", preamble_idx_);
+    return false;
   }
 
-  if (!cell_initiated) {
-    Error("PRACH: Cell not configured\n");
-  } else {
-    Error("PRACH: Invalid preamble %d\n", preamble_idx_);
-  }
-  return false;
+  preamble_idx     = preamble_idx_;
+  target_power_dbm = target_power_dbm_;
+  allowed_subframe = allowed_subframe_;
+  transmitted_tti  = -1;
+  Debug("PRACH: prepare to send preamble %d\n", preamble_idx);
+  return true;
 }
 
 bool prach::is_pending() const
@@ -178,9 +179,10 @@ bool prach::is_pending() const
   return cell_initiated && preamble_idx >= 0 && unsigned(preamble_idx) < max_preambles;
 }
 
-bool prach::is_ready_to_send(uint32_t current_tti_)
+bool prach::is_ready_to_send(uint32_t current_tti_, uint32_t current_pci)
 {
-  if (is_pending()) {
+  // Make sure the curernt PCI is the one we configured the PRACH for
+  if (is_pending() && current_pci == cell.id) {
     // consider the number of subframes the transmission must be anticipated
     uint32_t tti_tx = TTI_TX(current_tti_);
     if (srslte_prach_tti_opportunity(&prach_obj, tti_tx, allowed_subframe)) {

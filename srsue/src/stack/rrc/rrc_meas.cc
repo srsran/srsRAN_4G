@@ -208,11 +208,10 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
   var_meas_report&          var_meas   = varMeasReportList.at(measId);
 
   // sort cells by RSRP
-  std::sort(var_meas.cell_triggered_list.begin(),
-            var_meas.cell_triggered_list.end(),
-            [this](phy_interface_rrc_lte::phy_cell_t a, phy_interface_rrc_lte::phy_cell_t b) {
-              return rrc_ptr->get_cell_rsrp(a.earfcn, a.pci) > rrc_ptr->get_cell_rsrp(b.earfcn, b.pci);
-            });
+  std::sort(
+      var_meas.cell_triggered_list.begin(), var_meas.cell_triggered_list.end(), [this](phy_cell_t a, phy_cell_t b) {
+        return rrc_ptr->get_cell_rsrp(a.earfcn, a.pci) > rrc_ptr->get_cell_rsrp(b.earfcn, b.pci);
+      });
 
   // set the measResultNeighCells to include the best neighbouring cells up to maxReportCells in accordance with
   // the following
@@ -382,10 +381,9 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
         for (auto& cell : trigger_state[m.first]) {
           if (cell.second.is_enter_equal(report_cfg.trigger_type.event().time_to_trigger.to_number())) {
             // Do not add if already exists
-            if (std::find_if(cells_triggered_list.begin(),
-                             cells_triggered_list.end(),
-                             [&cell](const phy_interface_rrc_lte::phy_cell_t& c) { return cell.first == c.pci; }) ==
-                cells_triggered_list.end()) {
+            if (std::find_if(cells_triggered_list.begin(), cells_triggered_list.end(), [&cell](const phy_cell_t& c) {
+                  return cell.first == c.pci;
+                }) == cells_triggered_list.end()) {
               cells_triggered_list.push_back({cell.first, meas_obj.carrier_freq});
               new_cell_trigger = true;
             }

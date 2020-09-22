@@ -81,7 +81,6 @@ public:
   void mch_start_rx(uint32_t lcid);
   void reconfiguration(const uint32_t& cc_idx, const bool& enable);
   void reset();
-  void wait_uplink();
 
   /******** set/get MAC configuration  ****************/
   void set_config(mac_cfg_t& mac_cfg);
@@ -91,8 +90,7 @@ public:
   void reset_harq(uint32_t cc_idx);
   bool contention_resolution_id_rcv(uint64_t id);
 
-  void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask);
-  void start_cont_ho();
+  void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask);
 
   void get_rntis(ue_rnti_t* rntis);
   void set_ho_rnti(uint16_t crnti, uint16_t target_pci);

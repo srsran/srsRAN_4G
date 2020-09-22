@@ -47,11 +47,11 @@ public:
   srslte::proc_outcome_t react(const bool& event);
   srslte::proc_outcome_t step_wait_measurement();
 
-  phy_interface_rrc_lte::cell_search_ret_t get_result() const { return search_result.cs_ret; }
+  rrc_interface_phy_lte::cell_search_ret_t get_result() const { return search_result.cs_ret; }
   static const char*                       name() { return "Cell Search"; }
 
 private:
-  srslte::proc_outcome_t handle_cell_found(const phy_interface_rrc_lte::phy_cell_t& new_cell);
+  srslte::proc_outcome_t handle_cell_found(const phy_cell_t& new_cell);
 
   // conts
   rrc* rrc_ptr;
@@ -147,7 +147,7 @@ private:
   search_state_t                                                  state;
   uint32_t                                                        neigh_index;
   bool                                                            serv_cell_select_attempted = false;
-  srslte::proc_future_t<phy_interface_rrc_lte::cell_search_ret_t> cell_search_fut;
+  srslte::proc_future_t<rrc_interface_phy_lte::cell_search_ret_t> cell_search_fut;
   srslte::proc_future_t<void>                                     serv_cell_cfg_fut;
   bool                                                            discard_serving = false;
 };
@@ -169,7 +169,7 @@ private:
   // state variables
   found_plmn_t                                                    found_plmns[MAX_FOUND_PLMNS];
   int                                                             nof_plmns = 0;
-  srslte::proc_future_t<phy_interface_rrc_lte::cell_search_ret_t> cell_search_fut;
+  srslte::proc_future_t<rrc_interface_phy_lte::cell_search_ret_t> cell_search_fut;
 };
 
 class rrc::connection_request_proc
@@ -306,12 +306,12 @@ private:
   asn1::rrc::rrc_conn_recfg_r8_ies_s recfg_r8;
 
   // state
-  phy_interface_rrc_lte::phy_cell_t target_cell;
+  phy_cell_t target_cell;
 
   // helper to revert security config of source cell
   void reset_security_config();
 
-  enum state_t { launch_phy_cell_select, wait_phy_cell_select_complete, wait_ra_completion } state;
+  enum state_t { wait_phy_cell_select_complete, wait_ra_completion } state;
 };
 
 } // namespace srsue

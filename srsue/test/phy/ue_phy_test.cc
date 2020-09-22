@@ -79,6 +79,10 @@ private:
     CALLBACK(new_grant_ul)
     CALLBACK(new_grant_dl)
     CALLBACK(run_tti)
+    CALLBACK(cell_search)
+    CALLBACK(cell_select)
+    CALLBACK(config)
+    CALLBACK(scell)
 
   public:
     // Local test access methods
@@ -116,6 +120,32 @@ private:
       notify_run_tti();
       log_h.debug("Run TTI %d\n", tti);
     }
+
+    void cell_search_complete(cell_search_ret_t ret, srsue::phy_cell_t found_cell) override
+    {
+      cell_search_ret = ret;
+      last_found_cell = found_cell;
+      notify_cell_search();
+    }
+    void cell_select_complete(bool status) override
+    {
+      notify_cell_select();
+      last_cell_select = status;
+    }
+    void set_config_complete(bool status) override
+    {
+      notify_config();
+      last_config = status;
+    }
+    void set_scell_complete(bool status) override
+    {
+      notify_scell();
+      last_scell = status;
+    }
+
+    cell_search_ret_t cell_search_ret  = {};
+    srsue::phy_cell_t last_found_cell  = {};
+    bool              last_cell_select = false, last_config = false, last_scell = false;
   };
 
   class dummy_radio : public srslte::radio_interface_phy
@@ -399,7 +429,7 @@ public:
     phy->set_crnti(rnti);
 
     // Set PHY configuration
-    phy->set_config(phy_cfg, 0, 0, nullptr);
+    phy->set_config(phy_cfg, 0);
   }
 
   void run_thread() override
@@ -506,23 +536,30 @@ int main(int argc, char** argv)
   phy_test->start();
 
   // 1. Cell search
-  srsue::phy_interface_rrc_lte::phy_cell_t phy_cell;
-  auto                                     cell_search_res = phy_test->get_phy_interface_rrc()->cell_search(&phy_cell);
-  TESTASSERT(cell_search_res.found == srsue::phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND);
+  TESTASSERT(phy_test->get_phy_interface_rrc()->cell_search());
+  TESTASSERT(phy_test->get_stack()->wait_cell_search(default_timeout));
+  TESTASSERT(phy_test->get_stack()->cell_search_ret.found ==
+             srsue::rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND);
 
   // 2. Cell select
-  phy_test->get_phy_interface_rrc()->cell_select(&phy_cell);
+  srsue::phy_cell_t phy_cell = phy_test->get_stack()->last_found_cell;
+  TESTASSERT(phy_test->get_phy_interface_rrc()->cell_select(phy_cell));
+  TESTASSERT(phy_test->get_stack()->wait_cell_select(default_timeout));
   TESTASSERT(phy_test->get_stack()->wait_in_sync(default_timeout));
   TESTASSERT(phy_test->get_stack()->wait_new_phy_meas(default_timeout));
 
   // 3. Transmit PRACH
-  phy_test->get_phy_interface_mac()->configure_prach_params();
+  srslte::phy_cfg_t phy_cfg = {};
+  phy_cfg.set_defaults();
+  phy_test->get_phy_interface_rrc()->set_config(phy_cfg, 0);
+  TESTASSERT(phy_test->get_stack()->wait_config(default_timeout));
+  //  phy_test->get_phy_interface_mac()->configure_prach_params();
   phy_test->get_phy_interface_mac()->prach_send(0, -1, 0.0f);
   TESTASSERT(phy_test->get_radio()->wait_tx(default_timeout, false));
 
   // 4. Configure RNTI with PUCCH and check transmission
-  uint16_t          rnti    = 0x3c;
-  srslte::phy_cfg_t phy_cfg = {};
+  uint16_t rnti = 0x3c;
+  phy_cfg       = {};
   phy_cfg.set_defaults();
   phy_cfg.dl_cfg.cqi_report.periodic_mode       = SRSLTE_CQI_MODE_12;
   phy_cfg.dl_cfg.cqi_report.periodic_configured = true;

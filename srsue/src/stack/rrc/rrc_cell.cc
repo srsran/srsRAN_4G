@@ -171,7 +171,7 @@ const cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_
 // If only neighbour PCI is provided, copy full cell from serving cell
 bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
 {
-  phy_interface_rrc_lte::phy_cell_t phy_cell = {};
+  phy_cell_t phy_cell                        = {};
   phy_cell.earfcn                            = meas.earfcn;
   phy_cell.pci                               = meas.pci;
   unique_cell_t c                            = unique_cell_t(new cell_t(phy_cell));
@@ -337,7 +337,7 @@ cell_t* meas_cell_list::find_cell(uint32_t earfcn, uint32_t pci)
   return get_neighbour_cell_handle(earfcn, pci);
 }
 
-int meas_cell_list::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
+int meas_cell_list::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
 {
   // don't update neighbor cell list unless serving cell changes
   if (phy_cell.pci == serving_cell().get_pci() && phy_cell.earfcn == serving_cell().get_earfcn()) {

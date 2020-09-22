@@ -77,9 +77,10 @@ public:
   void reset();
 
   void set_config(srslte::rach_cfg_t& rach_cfg);
+  void set_config_ded(uint32_t preamble_index, uint32_t prach_mask);
 
   void start_pdcch_order();
-  void start_mac_order(uint32_t msg_len_bits = 56, bool is_ho = false);
+  void start_mac_order(uint32_t msg_len_bits = 56);
   void step(uint32_t tti);
 
   void update_rar_window(int& rar_window_start, int& rar_window_length);
@@ -91,11 +92,9 @@ public:
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
   void tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti);
 
-  void start_noncont(uint32_t preamble_index, uint32_t prach_mask);
   bool contention_resolution_id_received(uint64_t uecri);
   void start_pcap(srslte::mac_pcap* pcap);
 
-  void notify_phy_config_completed(uint32_t task_id);
   void notify_ra_completed(uint32_t task_id);
 
   bool is_idle() const { return state == IDLE; }
@@ -149,7 +148,6 @@ private:
 
   enum {
     IDLE = 0,
-    WAITING_PHY_CONFIG,
     PDCCH_SETUP,
     RESPONSE_RECEPTION,
     BACKOFF_WAIT,
@@ -183,7 +181,6 @@ private:
 
   std::mutex mutex;
 
-  bool     ra_is_ho;
   bool     started_by_pdcch;
   uint32_t rar_grant_nbytes;
   bool     rar_received;

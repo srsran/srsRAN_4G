@@ -129,8 +129,14 @@ public:
 class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
-  virtual void ho_ra_completed()   = 0;
+  virtual void ra_completed()      = 0;
   virtual void release_pucch_srs() = 0;
+};
+
+struct phy_cell_t {
+  uint32_t pci;
+  uint32_t earfcn;
+  float    cfo_hz;
 };
 
 // RRC interface for PHY
@@ -149,6 +155,16 @@ public:
   virtual void in_sync()                                          = 0;
   virtual void out_of_sync()                                      = 0;
   virtual void new_cell_meas(const std::vector<phy_meas_t>& meas) = 0;
+
+  typedef struct {
+    enum { CELL_FOUND = 0, CELL_NOT_FOUND, ERROR } found;
+    enum { MORE_FREQS = 0, NO_MORE_FREQS } last_freq;
+  } cell_search_ret_t;
+
+  virtual void cell_search_complete(cell_search_ret_t ret, phy_cell_t found_cell) = 0;
+  virtual void cell_select_complete(bool status)                                  = 0;
+  virtual void set_config_complete(bool status)                                   = 0;
+  virtual void set_scell_complete(bool status)                                    = 0;
 };
 
 // RRC interface for NAS
@@ -430,8 +446,6 @@ public:
 class mac_interface_rrc : public mac_interface_rrc_common
 {
 public:
-  virtual void clear_rntis() = 0;
-
   /* Instructs the MAC to start receiving BCCH */
   virtual void bcch_start_rx(int si_window_start, int si_window_length) = 0;
   virtual void bcch_stop_rx()                                           = 0;
@@ -445,18 +459,15 @@ public:
   /* Instructs the MAC to start receiving an MCH */
   virtual void mch_start_rx(uint32_t lcid) = 0;
 
-  virtual void set_config(srslte::mac_cfg_t& mac_cfg) = 0;
+  virtual void set_config(srslte::mac_cfg_t& mac_cfg)                         = 0;
+  virtual void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) = 0;
 
   virtual void get_rntis(ue_rnti_t* rntis)                      = 0;
   virtual void set_contention_id(uint64_t uecri)                = 0;
   virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
 
-  virtual void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask) = 0;
-  virtual void start_cont_ho()                                                = 0;
-
   virtual void reconfiguration(const uint32_t& cc_idx, const bool& enable) = 0;
   virtual void reset()                                                     = 0;
-  virtual void wait_uplink()                                               = 0;
 };
 
 /** PHY interface
@@ -563,9 +574,6 @@ public:
     uint32_t preamble_format;
   } prach_info_t;
 
-  /* Configure PRACH using parameters written by RRC */
-  virtual void configure_prach_params() = 0;
-
   virtual void
                        prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
   virtual prach_info_t prach_get_info() = 0;
@@ -580,10 +588,8 @@ public:
 class phy_interface_rrc_lte
 {
 public:
-  virtual void set_config(srslte::phy_cfg_t& config,
-                          uint32_t           cc_idx    = 0,
-                          uint32_t           earfcn    = 0,
-                          srslte_cell_t*     cell_info = nullptr)                             = 0;
+  virtual bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx = 0)                  = 0;
+  virtual bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)       = 0;
   virtual void set_config_tdd(srslte_tdd_config_t& tdd_config)                            = 0;
   virtual void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) = 0;
   virtual void set_config_mbsfn_sib13(const srslte::sib13_t& sib13)                       = 0;
@@ -595,23 +601,10 @@ public:
   virtual void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) = 0;
   virtual void meas_stop()                                                       = 0;
 
-  typedef struct {
-    enum { CELL_FOUND = 0, CELL_NOT_FOUND, ERROR } found;
-    enum { MORE_FREQS = 0, NO_MORE_FREQS } last_freq;
-  } cell_search_ret_t;
-
-  typedef struct {
-    uint32_t pci;
-    uint32_t earfcn;
-    float    cfo_hz;
-  } phy_cell_t;
-
   /* Cell search and selection procedures */
-  virtual cell_search_ret_t cell_search(phy_cell_t* cell)                 = 0;
-  virtual bool              cell_select(const phy_cell_t* cell = nullptr) = 0;
-  virtual bool              cell_is_camping()                             = 0;
-
-  virtual void reset() = 0;
+  virtual bool cell_search()                = 0;
+  virtual bool cell_select(phy_cell_t cell) = 0;
+  virtual bool cell_is_camping()            = 0;
 
   virtual void enable_pregen_signals(bool enable) = 0;
 };

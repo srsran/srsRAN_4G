@@ -67,27 +67,24 @@ public:
 
 class phy_dummy_interface : public phy_interface_rrc_lte
 {
-  void
-  set_config(srslte::phy_cfg_t& config, uint32_t cc_idx = 0, uint32_t earfcn = 0, srslte_cell_t* cell_info = nullptr)
-  {}
-  void set_config_tdd(srslte_tdd_config_t& tdd_config) {}
-  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) {}
-  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) {}
-  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) {}
-  void set_activation_deactivation_scell(uint32_t cmd) {}
+  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx = 0) override { return true; }
+  bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
+  void set_config_tdd(srslte_tdd_config_t& tdd_config) override {}
+  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
+  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override {}
+  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
+  void set_activation_deactivation_scell(uint32_t cmd) override {}
 
   /* Measurements interface */
-  void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) {}
-  void meas_stop() {}
+  void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) override {}
+  void meas_stop() override {}
 
   /* Cell search and selection procedures */
-  cell_search_ret_t cell_search(phy_cell_t* cell) { return {}; }
-  bool              cell_select(const phy_cell_t* cell = nullptr) { return true; }
-  bool              cell_is_camping() { return false; }
+  bool cell_search() override { return true; }
+  bool cell_select(phy_cell_t cell) override { return true; }
+  bool cell_is_camping() override { return false; }
 
-  void reset() {}
-
-  void enable_pregen_signals(bool enable) {}
+  void enable_pregen_signals(bool enable) override {}
 };
 
 } // namespace srsue

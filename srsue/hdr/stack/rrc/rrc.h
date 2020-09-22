@@ -123,9 +123,13 @@ public:
   void in_sync() final;
   void out_of_sync() final;
   void new_cell_meas(const std::vector<phy_meas_t>& meas);
+  void cell_search_complete(cell_search_ret_t ret, phy_cell_t found_cell);
+  void cell_select_complete(bool status);
+  void set_config_complete(bool status);
+  void set_scell_complete(bool status);
 
   // MAC interface
-  void ho_ra_completed() final;
+  void ra_completed() final;
   void release_pucch_srs();
   void run_tti();
   void ra_problem();
@@ -141,22 +145,18 @@ public:
   void write_pdu_pcch(srslte::unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
-  // STACK interface
-  void cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
-                             const phy_interface_rrc_lte::phy_cell_t&        found_cell);
-  void cell_select_completed(bool cs_ret);
-
   bool srbs_flushed(); //< Check if data on SRBs still needs to be sent
 
 protected:
   // Moved to protected to be accessible by unit tests
-  void set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);
+  void set_serving_cell(phy_cell_t phy_cell, bool discard_serving);
   bool has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
+  bool is_serving_cell(uint32_t earfcn, uint32_t pci) const;
   int  start_cell_select();
 
 private:
   typedef struct {
-    enum { PCCH, RLF, HO_COMPLETE, STOP } command;
+    enum { PCCH, RLF, RA_COMPLETE, STOP } command;
     srslte::unique_byte_buffer_t pdu;
     uint16_t                     lcid;
   } cmd_msg_t;
@@ -301,7 +301,7 @@ private:
   class cell_reselection_proc;
   class connection_reest_proc;
   class ho_proc;
-  srslte::proc_t<cell_search_proc, phy_interface_rrc_lte::cell_search_ret_t> cell_searcher;
+  srslte::proc_t<cell_search_proc, rrc_interface_phy_lte::cell_search_ret_t> cell_searcher;
   srslte::proc_t<si_acquire_proc>                                            si_acquirer;
   srslte::proc_t<serving_cell_config_proc>                                   serv_cell_cfg;
   srslte::proc_t<cell_selection_proc, cs_result_t>                           cell_selector;

@@ -225,10 +225,6 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::reset(bool lock)
     payload_buffer_ptr = NULL;
   }
 
-  if (is_initiated && lock) {
-    srslte_softbuffer_rx_reset(&softbuffer);
-  }
-
   if (lock) {
     mutex.unlock();
   }

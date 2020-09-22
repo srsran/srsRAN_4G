@@ -31,7 +31,6 @@
 namespace srsue {
 
 const char* state_str[] = {"RA:    INIT:   ",
-                           "RA:    INIT:   ",
                            "RA:    PDCCH:  ",
                            "RA:    Rx:     ",
                            "RA:    Backoff: ",
@@ -97,6 +96,14 @@ void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg_)
   new_cfg = rach_cfg_;
 }
 
+void ra_proc::set_config_ded(uint32_t preamble_index, uint32_t prach_mask)
+{
+  std::unique_lock<std::mutex> ul(mutex);
+  next_preamble_idx     = preamble_index;
+  next_prach_mask       = prach_mask;
+  noncontention_enabled = true;
+}
+
 /* Reads the configuration and configures internal variables */
 void ra_proc::read_params()
 {
@@ -148,7 +155,6 @@ void ra_proc::step(uint32_t tti_)
     case START_WAIT_COMPLETION:
       state_completition();
       break;
-    case WAITING_PHY_CONFIG:
     case WAITING_COMPLETION:
       // do nothing, bc we are waiting for the phy to finish
       break;
@@ -232,28 +238,11 @@ void ra_proc::state_completition()
   state            = WAITING_COMPLETION;
   uint16_t rnti    = rntis->crnti;
   uint32_t task_id = current_task_id;
-  task_sched->enqueue_background_task([this, rnti, task_id](uint32_t worker_id) {
-    phy_h->set_crnti(rnti);
-    // signal MAC RA proc to go back to idle
-    notify_ra_completed(task_id);
-  });
-}
 
-void ra_proc::notify_phy_config_completed(uint32_t task_id)
-{
-  if (current_task_id == task_id) {
-    if (state != WAITING_PHY_CONFIG) {
-      rError("Received unexpected notification of PHY configuration completed\n");
-    } else {
-      rDebug("RA waiting PHY configuration completed\n");
-    }
-    // Jump directly to Resource selection
-    resource_selection();
-  } else {
-    rError("Received old notification of PHY configuration (old task_id=%d, current_task_id=%d)\n",
-           task_id,
-           current_task_id);
-  }
+  phy_h->set_crnti(rnti);
+
+  // signal MAC RA proc to go back to idle
+  notify_ra_completed(task_id);
 }
 
 void ra_proc::notify_ra_completed(uint32_t task_id)
@@ -281,15 +270,7 @@ void ra_proc::initialization()
   preambleTransmissionCounter = 1;
   mux_unit->msg3_flush();
   backoff_param_ms = 0;
-
-  // Instruct phy to configure PRACH
-  state            = WAITING_PHY_CONFIG;
-  uint32_t task_id = current_task_id;
-  task_sched->enqueue_background_task([this, task_id](uint32_t worker_id) {
-    phy_h->configure_prach_params();
-    // notify back MAC
-    task_sched->notify_background_task_result([this, task_id]() { notify_phy_config_completed(task_id); });
-  });
+  resource_selection();
 }
 
 /* Resource selection as defined in 5.1.2 */
@@ -538,27 +519,17 @@ void ra_proc::complete()
 
   mux_unit->msg3_flush();
 
-  if (ra_is_ho) {
-    rrc->ho_ra_completed();
-  }
+  rrc->ra_completed();
+
   log_h->console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
 
   state = START_WAIT_COMPLETION;
 }
 
-void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask)
-{
-  next_preamble_idx     = preamble_index;
-  next_prach_mask       = prach_mask;
-  noncontention_enabled = true;
-  start_mac_order(56, true);
-}
-
-void ra_proc::start_mac_order(uint32_t msg_len_bits, bool is_ho)
+void ra_proc::start_mac_order(uint32_t msg_len_bits)
 {
   if (state == IDLE) {
-    ra_is_ho         = is_ho;
     started_by_pdcch = false;
     new_ra_msg_len   = msg_len_bits;
     rInfo("Starting PRACH by MAC order\n");

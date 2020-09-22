@@ -75,7 +75,8 @@ public:
   void go_idle()
   {
     std::lock_guard<std::mutex> lock(outside);
-    go_state(IDLE);
+    // Do not wait when transitioning to IDLE to avoid blocking
+    go_state_nowait(IDLE);
   }
   void run_cell_search()
   {
@@ -123,6 +124,13 @@ private:
     while (state_setting) {
       cvar.wait(ul);
     }
+  }
+
+  void go_state_nowait(state_t s)
+  {
+    std::unique_lock<std::mutex> ul(inside);
+    next_state    = s;
+    state_setting = true;
   }
 
   /* Waits until there is a call to set_state() and then run_state(). Returns when run_state() returns */

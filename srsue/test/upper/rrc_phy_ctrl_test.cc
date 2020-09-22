@@ -59,7 +59,7 @@ struct cell_select_result_test {
 
     // start a new cell selection right away
     if (counter++ < 1) {
-      phy_interface_rrc_lte::phy_cell_t new_cell;
+      phy_cell_t new_cell;
       new_cell.pci    = 3;
       new_cell.earfcn = 3400;
       phy_ctrl->start_cell_select(new_cell, *this);
@@ -100,9 +100,9 @@ int test_phy_ctrl_fsm()
   phy_ctrl.out_sync();
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() == "searching_cell");
-  phy_interface_rrc_lte::cell_search_ret_t cs_ret;
-  cs_ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND;
-  phy_interface_rrc_lte::phy_cell_t found_cell;
+  rrc_interface_phy_lte::cell_search_ret_t cs_ret;
+  cs_ret.found = rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
+  phy_cell_t found_cell;
   found_cell.pci    = 1;
   found_cell.earfcn = 2;
   phy_ctrl.cell_search_completed(cs_ret, found_cell);

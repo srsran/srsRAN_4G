@@ -181,15 +181,18 @@ void sync::reset()
  * returns 1 and stores cell information and RSRP values in the pointers (if provided). If a cell is not found in the
  * current frequency it moves to the next one and the next call to cell_search() will look in the next EARFCN in the
  * set. If no cells are found in any frequency it returns 0. If error returns -1.
+ *
+ * The first part of the procedure (call to _init()) moves the PHY To IDLE, ensuring that no UL/DL/PRACH will happen
+ *
  */
-
-phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte::phy_cell_t* found_cell)
+bool sync::cell_search_init()
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
-  phy_interface_rrc_lte::cell_search_ret_t ret = {};
-  ret.found                                    = phy_interface_rrc_lte::cell_search_ret_t::ERROR;
-  ret.last_freq                                = phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
+  if (rrc_proc_state != PROC_IDLE) {
+    Error("Cell Search: Can't start procedure. SYNC already running a procedure (%d)\n", (uint32_t)rrc_proc_state);
+    return false;
+  }
 
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, worker_com->args->dl_earfcn_list.size());
@@ -198,6 +201,26 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
 
   // Stop all intra-frequency measurement before changing frequency
   meas_stop();
+
+  rrc_proc_state = PROC_SEARCH_START;
+
+  return true;
+}
+
+rrc_interface_phy_lte::cell_search_ret_t sync::cell_search_start(phy_cell_t* found_cell)
+{
+  std::unique_lock<std::mutex> ul(rrc_mutex);
+
+  rrc_interface_phy_lte::cell_search_ret_t ret = {};
+  ret.found                                    = rrc_interface_phy_lte::cell_search_ret_t::ERROR;
+  ret.last_freq                                = rrc_interface_phy_lte::cell_search_ret_t::NO_MORE_FREQS;
+
+  if (rrc_proc_state != PROC_SEARCH_START) {
+    Error("Cell Search: Can't run procedure. Must call cell_search_init() first (%d)\n", (uint32_t)rrc_proc_state);
+    return ret;
+  }
+
+  rrc_proc_state = PROC_SEARCH_RUNNING;
 
   if (srate_mode != SRATE_FIND) {
     srate_mode = SRATE_FIND;
@@ -230,11 +253,11 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
         found_cell->pci    = cell.id;
         found_cell->cfo_hz = search_p.get_last_cfo();
       }
-      ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND;
+      ret.found = rrc_interface_phy_lte::cell_search_ret_t::CELL_FOUND;
       break;
     case search::CELL_NOT_FOUND:
       Info("Cell Search: No cell found in this frequency\n");
-      ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
+      ret.found = rrc_interface_phy_lte::cell_search_ret_t::CELL_NOT_FOUND;
       break;
     default:
       Error("Cell Search: while receiving samples\n");
@@ -246,75 +269,89 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   if (cellsearch_earfcn_index >= worker_com->args->dl_earfcn_list.size()) {
     Info("Cell Search: No more frequencies in the current EARFCN set\n");
     cellsearch_earfcn_index = 0;
-    ret.last_freq           = phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
+    ret.last_freq           = rrc_interface_phy_lte::cell_search_ret_t::NO_MORE_FREQS;
   } else {
-    ret.last_freq = phy_interface_rrc_lte::cell_search_ret_t::MORE_FREQS;
+    ret.last_freq = rrc_interface_phy_lte::cell_search_ret_t::MORE_FREQS;
   }
+
+  rrc_proc_state = PROC_IDLE;
 
   return ret;
 }
 
 /* Cell select synchronizes to a new cell (e.g. during HO or during cell reselection on IDLE) or
  * re-synchronizes with the current cell if cell argument is NULL
+ * The first phase of the procedure verifies the validity of the input parameters and switches the
+ * PHY to IDLE. Once this function returns, the PHY will not process any DL/UL nor will PRACH
+ *
+ * See cell_select_start()
  */
-bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell)
+bool sync::cell_select_init(phy_cell_t new_cell)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
-  bool ret = false;
-  int  cnt = 0;
-
-  // Move state to IDLE
-  if (new_cell == nullptr) {
-    Info("Cell Select: Starting cell resynchronization\n");
-  } else {
-    if (!srslte_cellid_isvalid(new_cell->pci)) {
-      log_h->error("Cell Select: Invalid cell_id=%d\n", new_cell->pci);
-      return ret;
-    }
-    Info("Cell Select: Starting cell selection for PCI=%d, EARFCN=%d\n", new_cell->pci, new_cell->earfcn);
+  if (rrc_proc_state != PROC_IDLE) {
+    Error("Cell Select: Can't start procedure. SYNC already running a procedure (%d)\n", (uint32_t)rrc_proc_state);
+    return false;
   }
 
-  // Wait for any pending PHICH
-  while (worker_com->is_any_ul_pending_ack() && cnt < 10) {
-    usleep(1000);
-    cnt++;
-    Info("Cell Select: waiting pending PHICH (cnt=%d)\n", cnt);
+  // Move state to IDLE
+  if (!srslte_cellid_isvalid(new_cell.pci)) {
+    Error("Cell Select: Invalid cell_id=%d\n", new_cell.pci);
+    return false;
   }
 
   Info("Cell Select: Going to IDLE\n");
   phy_state.go_idle();
-
   worker_com->reset();
+
+  // Stop intra-frequency measurements if need to change frequency
+  if ((int)new_cell.earfcn != current_earfcn) {
+    meas_stop();
+  }
+
+  rrc_proc_state = PROC_SELECT_START;
+
+  return true;
+}
+
+bool sync::cell_select_start(phy_cell_t new_cell)
+{
+  std::unique_lock<std::mutex> ul(rrc_mutex);
+
+  if (rrc_proc_state != PROC_SELECT_START) {
+    Error("Cell Select: Can't run procedure. Must call cell_select_init() first (%d)\n", (uint32_t)rrc_proc_state);
+    return false;
+  }
+
+  rrc_proc_state = PROC_SELECT_RUNNING;
+
+  bool ret = false;
+
   sfn_p.reset();
   search_p.reset();
   srslte_ue_sync_reset(&ue_sync);
 
   /* Reconfigure cell if necessary */
-  if (new_cell != nullptr) {
-    cell.id = new_cell->pci;
-    if (not set_cell(new_cell->cfo_hz)) {
-      Error("Cell Select: Reconfiguring cell\n");
-      return ret;
-    }
-
-    /* Select new frequency if necessary */
-    if ((int)new_cell->earfcn != current_earfcn) {
-      current_earfcn = new_cell->earfcn;
-
-      // Stop all intra-frequency measurement before changing frequency
-      meas_stop();
-
-      Info("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
-      if (!set_frequency()) {
-        Error("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
-        return ret;
-      }
-    }
-
-    // Reconfigure first intra-frequency measurement
-    intra_freq_meas[0]->set_primary_cell(current_earfcn, cell);
+  cell.id = new_cell.pci;
+  if (not set_cell(new_cell.cfo_hz)) {
+    Error("Cell Select: Reconfiguring cell\n");
+    return false;
   }
+
+  /* Select new frequency if necessary */
+  if ((int)new_cell.earfcn != current_earfcn) {
+    current_earfcn = new_cell.earfcn;
+
+    Info("Cell Select: Setting new frequency EARFCN=%d\n", new_cell.earfcn);
+    if (!set_frequency()) {
+      Error("Cell Select: Setting new frequency EARFCN=%d\n", new_cell.earfcn);
+      return false;
+    }
+  }
+
+  // Reconfigure first intra-frequency measurement
+  intra_freq_meas[0]->set_primary_cell(current_earfcn, cell);
 
   // Change sampling rate if necessary
   if (srate_mode != SRATE_CAMP) {
@@ -331,6 +368,8 @@ bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell)
   } else {
     Info("Cell Select: Could not synchronize SFN\n");
   }
+
+  rrc_proc_state = PROC_IDLE;
 
   return ret;
 }
@@ -433,7 +472,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
   }
 
   // Check if we need to TX a PRACH
-  if (prach_buffer->is_ready_to_send(tti)) {
+  if (prach_buffer->is_ready_to_send(tti, cell.id)) {
     prach_ptr = prach_buffer->generate(get_tx_cfo(), &prach_nof_sf, &prach_power);
     if (prach_ptr == nullptr) {
       Error("Generating PRACH\n");
@@ -444,7 +483,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
 
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
-    worker->set_cfo(cc, get_tx_cfo());
+    worker->set_cfo_unlocked(cc, get_tx_cfo());
     worker_com->update_cfo_measurement(cc, srslte_ue_sync_get_cfo(&ue_sync));
   }
 
@@ -508,6 +547,7 @@ void sync::run_camping_state()
   }
 
   // Run stack
+  Debug("run_stack_tti: from main\n");
   run_stack_tti();
 }
 
@@ -712,8 +752,15 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
 
 bool sync::set_cell(float cfo)
 {
+  // Wait the SYNC thread to transition to IDLE
+  uint32_t cnt = 0;
+  while (!phy_state.is_idle() && cnt <= 20) {
+    Info("SYNC: PHY state is_idle=%d, cnt=%d\n", phy_state.is_idle(), cnt);
+    usleep(500);
+    cnt++;
+  }
   if (!phy_state.is_idle()) {
-    Warning("Can not change Cell while not in IDLE\n");
+    Error("Can not change Cell while not in IDLE\n");
     return false;
   }
 
@@ -730,11 +777,16 @@ bool sync::set_cell(float cfo)
   sfn_p.set_cell(cell);
   worker_com->set_cell(cell);
 
+  // Reset cell configuration
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    ((sf_worker*)workers_pool->get_worker(i))->reset_cell_unlocked(0);
+  }
+
   bool success = true;
   for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
     sf_worker* w = (sf_worker*)workers_pool->wait_worker_id(i);
     if (w) {
-      success &= w->set_cell(0, cell);
+      success &= w->set_cell_unlocked(0, cell);
       w->release();
     }
   }
@@ -855,6 +907,7 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
 
   // Run stack if the sync state is not in camping
   if (not phy_state.is_camping()) {
+    Debug("run_stack_tti: from recv\n");
     run_stack_tti();
   }
 
@@ -910,7 +963,9 @@ void sync::run_stack_tti()
     }
 
     // Run stack
+    Debug("run_stack_tti: calling stack\n");
     stack->run_tti(tti, tti_jump);
+    Debug("run_stack_tti: stack called\n");
   }
 
   // update timestamp

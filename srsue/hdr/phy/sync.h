@@ -67,8 +67,10 @@ public:
   void radio_overflow();
 
   // RRC interface for controling the SYNC state
-  phy_interface_rrc_lte::cell_search_ret_t cell_search(phy_interface_rrc_lte::phy_cell_t* cell);
-  bool                                     cell_select(const phy_interface_rrc_lte::phy_cell_t* cell);
+  bool                                     cell_search_init();
+  rrc_interface_phy_lte::cell_search_ret_t cell_search_start(phy_cell_t* cell);
+  bool                                     cell_select_init(phy_cell_t cell);
+  bool                                     cell_select_start(phy_cell_t cell);
   bool                                     cell_is_camping();
 
   // RRC interface for controlling the neighbour cell measurement
@@ -227,6 +229,13 @@ private:
   uint32_t in_sync_cnt     = 0;
 
   std::mutex rrc_mutex;
+  enum {
+    PROC_IDLE = 0,
+    PROC_SELECT_START,
+    PROC_SELECT_RUNNING,
+    PROC_SEARCH_START,
+    PROC_SEARCH_RUNNING
+  } rrc_proc_state = PROC_IDLE;
 
   sync_state phy_state;
 

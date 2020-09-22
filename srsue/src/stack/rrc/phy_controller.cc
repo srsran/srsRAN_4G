@@ -23,7 +23,7 @@
 
 namespace srsue {
 
-std::string to_string(const phy_interface_rrc_lte::phy_cell_t& cell)
+std::string to_string(const phy_cell_t& cell)
 {
   char buffer[128];
   snprintf(buffer, sizeof(buffer), "{pci=%d, dl_earfcn=%d}", cell.pci, cell.earfcn);
@@ -79,12 +79,7 @@ void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd
   csel_res.result = false;
 
   fsmInfo("Starting for pci=%d, earfcn=%d\n", target_cell.pci, target_cell.earfcn);
-  phy_interface_rrc_lte::phy_cell_t cell_copy = target_cell;
-  f->task_sched.enqueue_background_task([f, cell_copy](uint32_t worker_id) {
-    bool ret = f->phy->cell_select(&cell_copy);
-    // notify back RRC
-    f->task_sched.notify_background_task_result([f, ret]() { f->cell_selection_completed(ret); });
-  });
+  f->phy->cell_select(target_cell);
 }
 
 void phy_controller::selecting_cell::exit(phy_controller* f)
@@ -139,12 +134,7 @@ void phy_controller::cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t 
 void phy_controller::searching_cell::enter(phy_controller* f)
 {
   otherfsmInfo(f, "Initiating Cell search\n");
-  f->task_sched.enqueue_background_task([f](uint32_t worker_id) {
-    phy_interface_rrc_lte::phy_cell_t        found_cell;
-    phy_interface_rrc_lte::cell_search_ret_t ret = f->phy->cell_search(&found_cell);
-    // notify back RRC
-    f->task_sched.notify_background_task_result([f, found_cell, ret]() { f->cell_search_completed(ret, found_cell); });
-  });
+  f->phy->cell_search();
 }
 
 void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_res& result)

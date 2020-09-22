@@ -35,7 +35,7 @@ namespace srsue {
 
 using namespace asn1::rrc;
 
-typedef std::vector<phy_interface_rrc_lte::phy_cell_t> cell_triggered_t;
+typedef std::vector<phy_cell_t> cell_triggered_t;
 
 // RRC Measurements class
 class rrc::rrc_meas

@@ -32,7 +32,7 @@ class cell_t
 {
 public:
   cell_t() { gettimeofday(&last_update, nullptr); }
-  explicit cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_) : cell_t() { phy_cell = phy_cell_; }
+  explicit cell_t(phy_cell_t phy_cell_) : cell_t() { phy_cell = phy_cell_; }
 
   // comparison based on pci and earfcn
   bool is_valid() { return phy_cell.earfcn != 0 && srslte_cellid_isvalid(phy_cell.pci); }
@@ -110,7 +110,7 @@ public:
 
   bool is_sib_scheduled(uint32_t sib_index) const;
 
-  phy_interface_rrc_lte::phy_cell_t phy_cell = {0, 0, 0};
+  phy_cell_t                        phy_cell = {0, 0, 0};
   bool                              has_mcch = false;
   asn1::rrc::sib_type1_s            sib1     = {};
   asn1::rrc::sib_type2_s            sib2     = {};
@@ -192,7 +192,7 @@ public:
   cell_t*            find_cell(uint32_t earfcn, uint32_t pci);
 
   // serving cell handling
-  int set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);
+  int set_serving_cell(phy_cell_t phy_cell, bool discard_serving);
 
   cell_t&       serving_cell() { return *serv_cell; }
   const cell_t& serving_cell() const { return *serv_cell; }
