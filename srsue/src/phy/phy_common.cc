@@ -620,132 +620,141 @@ void phy_common::update_measurements(uint32_t                                   
                                      std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
                                      cf_t*                                           rssi_power_buffer)
 {
-  std::unique_lock<std::mutex> lock(meas_mutex);
+  bool insync = true;
+  {
+    std::unique_lock<std::mutex> lock(meas_mutex);
 
-  float snr_ema_coeff = args->snr_ema_coeff;
+    float snr_ema_coeff = args->snr_ema_coeff;
 
-  // In TDD, ignore special subframes without PDSCH
-  if (srslte_sfidx_tdd_type(sf_cfg_dl.tdd_config, sf_cfg_dl.tti % 10) == SRSLTE_TDD_SF_S &&
-      srslte_sfidx_tdd_nof_dw(sf_cfg_dl.tdd_config) < 4) {
-    return;
-  }
+    // In TDD, ignore special subframes without PDSCH
+    if (srslte_sfidx_tdd_type(sf_cfg_dl.tdd_config, sf_cfg_dl.tti % 10) == SRSLTE_TDD_SF_S &&
+        srslte_sfidx_tdd_nof_dw(sf_cfg_dl.tdd_config) < 4) {
+      return;
+    }
 
-  // Only worker 0 reads the RSSI sensor
-  if (rssi_power_buffer) {
+    // Only worker 0 reads the RSSI sensor
+    if (rssi_power_buffer) {
 
-    if (!rssi_read_cnt) {
-      // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
-      float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0 ? (srslte_convert_power_to_dB(srslte_vec_avg_power_cf(
-                                                                  rssi_power_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb))) +
-                                                              30)
-                                                           : 0;
-      if (std::isnormal(rssi_dbm)) {
-        avg_rssi_dbm[0] = SRSLTE_VEC_EMA(rssi_dbm, avg_rssi_dbm[0], args->snr_ema_coeff);
+      if (!rssi_read_cnt) {
+        // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
+        float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0
+                             ? (srslte_convert_power_to_dB(
+                                    srslte_vec_avg_power_cf(rssi_power_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb))) +
+                                30)
+                             : 0;
+        if (std::isnormal(rssi_dbm)) {
+          avg_rssi_dbm[0] = SRSLTE_VEC_EMA(rssi_dbm, avg_rssi_dbm[0], args->snr_ema_coeff);
+        }
+
+        rx_gain_offset = get_radio()->get_rx_gain() + args->rx_gain_offset;
       }
-
-      rx_gain_offset = get_radio()->get_rx_gain() + args->rx_gain_offset;
+      rssi_read_cnt++;
+      if (rssi_read_cnt == 1000) {
+        rssi_read_cnt = 0;
+      }
     }
-    rssi_read_cnt++;
-    if (rssi_read_cnt == 1000) {
-      rssi_read_cnt = 0;
-    }
-  }
 
-  // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-  float rsrq_db = chest_res.rsrq_db;
-  if (std::isnormal(rsrq_db)) {
-    if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrq_db[cc_idx])) {
-      avg_rsrq_db[cc_idx] = rsrq_db;
+    // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
+    float rsrq_db = chest_res.rsrq_db;
+    if (std::isnormal(rsrq_db)) {
+      if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrq_db[cc_idx])) {
+        avg_rsrq_db[cc_idx] = rsrq_db;
+      } else {
+        avg_rsrq_db[cc_idx] = SRSLTE_VEC_CMA(rsrq_db, avg_rsrq_db[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+      }
+    }
+
+    // Average RSRP taken from CRS
+    float rsrp_lin = chest_res.rsrp;
+    if (std::isnormal(rsrp_lin)) {
+      if (!std::isnormal(avg_rsrp[cc_idx])) {
+        avg_rsrp[cc_idx] = rsrp_lin;
+      } else {
+        avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, avg_rsrp[cc_idx], snr_ema_coeff);
+      }
+    }
+
+    /* Correct absolute power measurements by RX gain offset */
+    float rsrp_dbm = chest_res.rsrp_dbm - rx_gain_offset;
+
+    // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
+    if (std::isnormal(rsrp_dbm)) {
+      if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrp_dbm[cc_idx])) {
+        avg_rsrp_dbm[cc_idx] = rsrp_dbm;
+      } else {
+        avg_rsrp_dbm[cc_idx] = SRSLTE_VEC_CMA(rsrp_dbm, avg_rsrp_dbm[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+      }
+    }
+
+    // Compute PL
+    pathloss[cc_idx] = tx_crs_power - avg_rsrp_dbm[cc_idx];
+
+    // Average noise
+    float cur_noise = chest_res.noise_estimate;
+    if (std::isnormal(cur_noise)) {
+      if (!std::isnormal(avg_noise[cc_idx])) {
+        avg_noise[cc_idx] = cur_noise;
+      } else {
+        avg_noise[cc_idx] = SRSLTE_VEC_EMA(cur_noise, avg_noise[cc_idx], snr_ema_coeff);
+      }
+    }
+
+    // Average snr in the log domain
+    if (std::isnormal(chest_res.snr_db)) {
+      if (!std::isnormal(avg_snr_db_cqi[cc_idx])) {
+        avg_snr_db_cqi[cc_idx] = chest_res.snr_db;
+      } else {
+        avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(chest_res.snr_db, avg_snr_db_cqi[cc_idx], snr_ema_coeff);
+      }
+    }
+
+    // Store metrics
+    ch_metrics_t ch = {};
+    ch.n            = avg_noise[cc_idx];
+    ch.rsrp         = avg_rsrp_dbm[cc_idx];
+    ch.rsrq         = avg_rsrq_db[cc_idx];
+    ch.rssi         = avg_rssi_dbm[cc_idx];
+    ch.pathloss     = pathloss[cc_idx];
+    ch.sinr         = avg_snr_db_cqi[cc_idx];
+    ch.sync_err     = chest_res.sync_error;
+
+    set_ch_metrics(cc_idx, ch);
+
+    // Prepare measurements for serving cells
+    bool active = (cc_idx == 0 || scell_cfg[cc_idx].configured);
+    if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
+      rrc_interface_phy_lte::phy_meas_t meas = {};
+      meas.rsrp                              = avg_rsrp_dbm[cc_idx];
+      meas.rsrq                              = avg_rsrq_db[cc_idx];
+      meas.cfo_hz                            = avg_cfo_hz[cc_idx];
+      // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
+      if (cc_idx > 0) {
+        meas.earfcn = scell_cfg[cc_idx].earfcn;
+        meas.pci    = scell_cfg[cc_idx].pci;
+      }
+      serving_cells.push_back(meas);
+    }
+
+    // Check in-sync / out-sync conditions
+    if (avg_rsrp_dbm[0] > args->in_sync_rsrp_dbm_th && avg_snr_db_cqi[0] > args->in_sync_snr_db_th) {
+      log_h->debug(
+          "SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
     } else {
-      avg_rsrq_db[cc_idx] = SRSLTE_VEC_CMA(rsrq_db, avg_rsrq_db[cc_idx], sf_cfg_dl.tti % pcell_report_period);
+      log_h->warning(
+          "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
+      insync = false;
     }
   }
 
-  // Average RSRP taken from CRS
-  float rsrp_lin = chest_res.rsrp;
-  if (std::isnormal(rsrp_lin)) {
-    if (!std::isnormal(avg_rsrp[cc_idx])) {
-      avg_rsrp[cc_idx] = rsrp_lin;
-    } else {
-      avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, avg_rsrp[cc_idx], snr_ema_coeff);
-    }
-  }
-
-  /* Correct absolute power measurements by RX gain offset */
-  float rsrp_dbm = chest_res.rsrp_dbm - rx_gain_offset;
-
-  // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-  if (std::isnormal(rsrp_dbm)) {
-    if (!(sf_cfg_dl.tti % pcell_report_period) || !std::isnormal(avg_rsrp_dbm[cc_idx])) {
-      avg_rsrp_dbm[cc_idx] = rsrp_dbm;
-    } else {
-      avg_rsrp_dbm[cc_idx] = SRSLTE_VEC_CMA(rsrp_dbm, avg_rsrp_dbm[cc_idx], sf_cfg_dl.tti % pcell_report_period);
-    }
-  }
-
-  // Compute PL
-  pathloss[cc_idx] = tx_crs_power - avg_rsrp_dbm[cc_idx];
-
-  // Average noise
-  float cur_noise = chest_res.noise_estimate;
-  if (std::isnormal(cur_noise)) {
-    if (!std::isnormal(avg_noise[cc_idx])) {
-      avg_noise[cc_idx] = cur_noise;
-    } else {
-      avg_noise[cc_idx] = SRSLTE_VEC_EMA(cur_noise, avg_noise[cc_idx], snr_ema_coeff);
-    }
-  }
-
-  // Average snr in the log domain
-  if (std::isnormal(chest_res.snr_db)) {
-    if (!std::isnormal(avg_snr_db_cqi[cc_idx])) {
-      avg_snr_db_cqi[cc_idx] = chest_res.snr_db;
-    } else {
-      avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(chest_res.snr_db, avg_snr_db_cqi[cc_idx], snr_ema_coeff);
-    }
-  }
-
-  // Store metrics
-  ch_metrics_t ch = {};
-  ch.n            = avg_noise[cc_idx];
-  ch.rsrp         = avg_rsrp_dbm[cc_idx];
-  ch.rsrq         = avg_rsrq_db[cc_idx];
-  ch.rssi         = avg_rssi_dbm[cc_idx];
-  ch.pathloss     = pathloss[cc_idx];
-  ch.sinr         = avg_snr_db_cqi[cc_idx];
-  ch.sync_err     = chest_res.sync_error;
-
-  set_ch_metrics(cc_idx, ch);
-
-  // Prepare measurements for serving cells
-  bool active = (cc_idx == 0 || scell_cfg[cc_idx].configured);
-  if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
-    rrc_interface_phy_lte::phy_meas_t meas = {};
-    meas.rsrp                              = avg_rsrp_dbm[cc_idx];
-    meas.rsrq                              = avg_rsrq_db[cc_idx];
-    meas.cfo_hz                            = avg_cfo_hz[cc_idx];
-    // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
-    if (cc_idx > 0) {
-      meas.earfcn = scell_cfg[cc_idx].earfcn;
-      meas.pci    = scell_cfg[cc_idx].pci;
-    }
-    serving_cells.push_back(meas);
-  }
-
-  // Check in-sync / out-sync conditions
-  if (avg_rsrp_dbm[0] > args->in_sync_rsrp_dbm_th && avg_snr_db_cqi[0] > args->in_sync_snr_db_th) {
-    log_h->debug(
-        "SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
-    if (insync_itf) {
+  // Report in-sync status to the stack outside the mutex lock
+  if (insync_itf) {
+    if (insync) {
       insync_itf->in_sync();
-    }
-  } else {
-    log_h->warning(
-        "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
-    if (insync_itf) {
+    } else {
       insync_itf->out_of_sync();
     }
   }
+
   // Call feedback loop for chest
   if (cc_idx == 0) {
     if (insync_itf && ((1U << (sf_cfg_dl.tti % 10U)) & args->cfo_ref_mask)) {
