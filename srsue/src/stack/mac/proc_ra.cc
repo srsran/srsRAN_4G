@@ -624,6 +624,7 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
 
 void ra_proc::pdcch_to_crnti(bool is_new_uplink_transmission)
 {
+  // TS 36.321 Section 5.1.5
   rDebug("PDCCH to C-RNTI received %s new UL transmission\n", is_new_uplink_transmission ? "with" : "without");
   if ((!started_by_pdcch && is_new_uplink_transmission) || started_by_pdcch) {
     rDebug("PDCCH for C-RNTI received\n");

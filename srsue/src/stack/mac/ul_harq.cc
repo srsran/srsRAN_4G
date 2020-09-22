@@ -231,10 +231,6 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       // New transmission
       reset();
 
-      if (grant.rnti == harq_entity->rntis->crnti && harq_entity->ra_procedure->is_contention_resolution()) {
-        harq_entity->ra_procedure->pdcch_to_crnti(true);
-      }
-
       // Check buffer size
       if (grant.tb.tbs > payload_buffer_len) {
         Error("Grant size exceeds payload buffer size (%d > %d)\n", grant.tb.tbs, payload_buffer_len);
@@ -263,6 +259,10 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         } else {
           Warning("Uplink dci but no MAC PDU in Multiplex Unit buffer\n");
         }
+      }
+
+      if (grant.rnti == harq_entity->rntis->crnti && harq_entity->ra_procedure->is_contention_resolution()) {
+        harq_entity->ra_procedure->pdcch_to_crnti(true);
       }
     } else if (has_grant()) {
       // Adaptive Re-TX
