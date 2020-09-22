@@ -52,7 +52,9 @@ public:
   struct in_sync_ev {};
   struct out_sync_ev {};
 
-  explicit phy_controller(phy_interface_rrc_lte* phy_, srslte::task_sched_handle task_sched_);
+  explicit phy_controller(phy_interface_rrc_lte*                        phy_,
+                          srslte::task_sched_handle                     task_sched_,
+                          std::function<void(uint32_t, uint32_t, bool)> on_cell_selection = {});
 
   // PHY procedures interfaces
   bool start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer);
@@ -114,10 +116,11 @@ public:
   };
 
 private:
-  phy_interface_rrc_lte*                  phy = nullptr;
-  srslte::task_sched_handle               task_sched;
-  srslte::event_observer<bool>            cell_selection_observer;
-  srslte::event_dispatcher<cell_srch_res> cell_search_observers;
+  phy_interface_rrc_lte*                        phy = nullptr;
+  srslte::task_sched_handle                     task_sched;
+  srslte::event_observer<bool>                  cell_selection_once_observer;
+  std::function<void(uint32_t, uint32_t, bool)> cell_selection_always_observer;
+  srslte::event_dispatcher<cell_srch_res>       cell_search_observers;
 
 protected:
   state_list<unknown_st, in_sync_st, out_sync_st, searching_cell, selecting_cell> states{this,

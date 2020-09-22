@@ -1358,13 +1358,9 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
                                                                  : rrc_ptr->meas_cells.serving_cell().get_earfcn();
 
   // Target cell shall be either serving cell (intra-cell HO) or neighbour cell
-  if (rrc_ptr->has_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci)) {
-    // target cell is neighbour cell
-    target_cell =
-        rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci)->phy_cell;
-  } else if (recfg_r8.mob_ctrl_info.target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
-    // intra-cell HO, target cell is current serving cell
-    target_cell = rrc_ptr->get_serving_cell()->phy_cell;
+  cell_t* cell_to_ho = rrc_ptr->meas_cells.find_cell(target_earfcn, mob_ctrl_info->target_pci);
+  if (cell_to_ho != nullptr) {
+    target_cell = cell_to_ho->phy_cell;
   } else {
     rrc_ptr->rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
     Error("Could not find target cell earfcn=%d, pci=%d\n",

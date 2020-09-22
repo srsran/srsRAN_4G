@@ -116,7 +116,15 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   args = args_;
 
-  phy_ctrl.reset(new phy_controller{phy, task_sched});
+  auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
+    if (not csel_result) {
+      cell_t* c = meas_cells.find_cell(earfcn, pci);
+      if (c != nullptr) {
+        c->set_rsrp(-INFINITY);
+      }
+    }
+  };
+  phy_ctrl.reset(new phy_controller{phy, task_sched, on_every_cell_selection});
 
   state            = RRC_STATE_IDLE;
   plmn_is_selected = false;

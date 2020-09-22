@@ -329,6 +329,14 @@ bool meas_cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
   return get_neighbour_cell_handle(earfcn, pci) != nullptr;
 }
 
+cell_t* meas_cell_list::find_cell(uint32_t earfcn, uint32_t pci)
+{
+  if (serving_cell().phy_cell.pci == pci and serving_cell().phy_cell.earfcn == earfcn) {
+    return &serving_cell();
+  }
+  return get_neighbour_cell_handle(earfcn, pci);
+}
+
 int meas_cell_list::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
 {
   // don't update neighbor cell list unless serving cell changes

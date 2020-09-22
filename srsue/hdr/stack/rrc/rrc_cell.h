@@ -189,6 +189,7 @@ public:
   cell_t&            operator[](size_t idx) { return *neighbour_cells[idx]; }
   const cell_t&      operator[](size_t idx) const { return *neighbour_cells[idx]; }
   cell_t&            at(size_t idx) { return *neighbour_cells.at(idx); }
+  cell_t*            find_cell(uint32_t earfcn, uint32_t pci);
 
   // serving cell handling
   int set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);

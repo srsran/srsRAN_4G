@@ -30,10 +30,13 @@ std::string to_string(const phy_interface_rrc_lte::phy_cell_t& cell)
   return buffer;
 }
 
-phy_controller::phy_controller(srsue::phy_interface_rrc_lte* phy_, srslte::task_sched_handle task_sched_) :
+phy_controller::phy_controller(srsue::phy_interface_rrc_lte*                 phy_,
+                               srslte::task_sched_handle                     task_sched_,
+                               std::function<void(uint32_t, uint32_t, bool)> on_cell_selection) :
   base_t(srslte::log_ref{"RRC"}),
   phy(phy_),
-  task_sched(task_sched_)
+  task_sched(task_sched_),
+  cell_selection_always_observer(std::move(on_cell_selection))
 {}
 
 void phy_controller::in_sync()
@@ -56,7 +59,7 @@ bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srslte::event
     log_h->warning("Failed to launch cell selection. Current state: %s\n", current_state_name().c_str());
     return false;
   }
-  cell_selection_observer = std::move(observer);
+  cell_selection_once_observer = std::move(observer);
   return true;
 }
 
@@ -96,7 +99,8 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
 
   // Signal result back to FSM that called cell selection
   bool result = csel_res.result;
-  f->task_sched.defer_task([f, result]() { f->cell_selection_observer(result); });
+  f->cell_selection_always_observer(target_cell.earfcn, target_cell.pci, result);
+  f->task_sched.defer_task([f, result]() { f->cell_selection_once_observer(result); });
 }
 
 void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)
