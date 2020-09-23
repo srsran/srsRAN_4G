@@ -55,6 +55,14 @@ class intra_measure : public srslte::thread
    *                               +---------+
    */
 public:
+  // Interface for reporting new cell measurements
+  class meas_itf
+  {
+  public:
+    virtual void cell_meas_reset(uint32_t cc_idx)                                                           = 0;
+    virtual void new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas) = 0;
+  };
+
   /**
    * Constructor
    */
@@ -71,7 +79,7 @@ public:
    * @param rrc SRSUE PHY->RRC interface for supplying the RRC with the measurements
    * @param log_h Physical layer Logging filter pointer
    */
-  void init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h);
+  void init(uint32_t cc_idx, phy_common* common, meas_itf* new_cell_itf, srslte::log* log_h);
 
   /**
    * Stops the operation of this component
@@ -191,8 +199,9 @@ private:
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
   scell_recv             scell                     = {};
-  rrc_interface_phy_lte* rrc                       = nullptr;
+  meas_itf*              new_cell_itf              = nullptr;
   srslte::log*           log_h                     = nullptr;
+  uint32_t               cc_idx                    = 0;
   uint32_t               current_earfcn            = 0;
   uint32_t               current_sflen             = 0;
   srslte_cell_t          serving_cell              = {};

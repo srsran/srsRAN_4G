@@ -100,7 +100,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
   // Start intra-frequency measurement
   for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
     scell::intra_measure* q = new scell::intra_measure;
-    q->init(worker_com, stack, log_h);
+    q->init(i, worker_com, this, log_h);
     intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure>(q));
   }
 
@@ -1025,6 +1025,20 @@ void sync::scell_sync_stop()
   for (auto& e : scell_sync) {
     e.second->stop();
   }
+}
+
+void sync::cell_meas_reset(uint32_t cc_idx)
+{
+  worker_com->neighbour_cells_reset(cc_idx);
+}
+
+void sync::new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas)
+{
+  // Pass measurements to phy_common for SINR estimation
+  worker_com->set_neighbour_cells(cc_idx, meas);
+
+  // Pass-through to the stack
+  stack->new_cell_meas(meas);
 }
 
 } // namespace srsue

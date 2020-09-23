@@ -213,6 +213,30 @@ public:
     return rx_gain_offset;
   }
 
+  void neighbour_cells_reset(uint32_t cc_idx) { avg_rsrp_neigh[cc_idx] = NAN; }
+
+  void set_neighbour_cells(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas)
+  {
+    // Add RSRP in the linear domain and average
+    float total_rsrp = 0;
+    for (auto& m : meas) {
+      total_rsrp += srslte_convert_dB_to_power(m.rsrp);
+    }
+    if (std::isnormal(total_rsrp)) {
+      if (std::isnormal(avg_rsrp_neigh[cc_idx])) {
+        avg_rsrp_neigh[cc_idx] = SRSLTE_VEC_EMA(total_rsrp, avg_rsrp_neigh[cc_idx], 0.9);
+      } else {
+        avg_rsrp_neigh[cc_idx] = total_rsrp;
+      }
+    }
+  }
+  void reset_neighbour_cells()
+  {
+    for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+      avg_rsrp_neigh[i] = NAN;
+    }
+  }
+
 private:
   std::mutex meas_mutex;
 
@@ -227,6 +251,8 @@ private:
   float    rx_gain_offset                      = 0.0f;
   float    avg_snr_db_cqi[SRSLTE_MAX_CARRIERS] = {};
   float    avg_noise[SRSLTE_MAX_CARRIERS]      = {};
+  float    avg_rsrp_neigh[SRSLTE_MAX_CARRIERS] = {};
+
   uint32_t pcell_report_period                 = 0;
   uint32_t rssi_read_cnt                       = 0;
 

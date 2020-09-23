@@ -48,7 +48,11 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class sync : public srslte::thread, public rsrp_insync_itf, public search_callback, public scell::sync_callback
+class sync : public srslte::thread,
+             public rsrp_insync_itf,
+             public search_callback,
+             public scell::sync_callback,
+             public scell::intra_measure::meas_itf
 {
 public:
   sync() : thread("SYNC"), sf_buffer(sync_nof_rx_subframes), dummy_buffer(sync_nof_rx_subframes){};
@@ -114,6 +118,10 @@ public:
    * @param offset Number of samples to offset
    */
   void set_rx_channel_offset(uint32_t ch, int32_t offset) override { radio_h->set_channel_rx_offset(ch, offset); }
+
+  // Interface from scell::intra_measure for providing neighbour cell measurements
+  void cell_meas_reset(uint32_t cc_idx) override;
+  void new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas) override;
 
 private:
   void reset();

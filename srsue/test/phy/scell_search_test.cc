@@ -227,7 +227,7 @@ public:
   }
 };
 
-class dummy_rrc : public srsue::rrc_interface_phy_lte
+class meas_itf_listener : public srsue::scell::intra_measure::meas_itf
 {
 public:
   typedef struct {
@@ -242,9 +242,8 @@ public:
 
   std::map<uint32_t, cell_meas_t> cells;
 
-  void in_sync() override {}
-  void out_of_sync() override {}
-  void new_cell_meas(const std::vector<phy_meas_t>& meas) override
+  void cell_meas_reset(uint32_t cc_idx) override {}
+  void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::rrc_interface_phy_lte::phy_meas_t>& meas) override
   {
     for (auto& m : meas) {
       uint32_t pci = m.pci;
@@ -268,11 +267,6 @@ public:
       }
     }
   }
-
-  void cell_search_complete(cell_search_ret_t ret, srsue::phy_cell_t found_cell) override {}
-  void cell_select_complete(bool status) override {}
-  void set_config_complete(bool status) override {}
-  void set_scell_complete(bool status) override {}
 
   bool print_stats()
   {
@@ -418,7 +412,7 @@ int main(int argc, char** argv)
   srslte::rf_timestamp_t      ts              = {};
   srsue::scell::intra_measure intra_measure;
   srslte::log_filter          logger("intra_measure");
-  dummy_rrc                   rrc;
+  meas_itf_listener           rrc;
   srsue::phy_common           common;
 
   // Simulation only
@@ -489,7 +483,7 @@ int main(int argc, char** argv)
 
   logger.set_level(intra_meas_log_level);
 
-  intra_measure.init(&common, &rrc, &logger);
+  intra_measure.init(0, &common, &rrc, &logger);
   intra_measure.set_primary_cell(SRSLTE_MAX(earfcn_dl, 0), cell_base);
 
   if (earfcn_dl >= 0) {

@@ -699,12 +699,24 @@ void phy_common::update_measurements(uint32_t                                   
       }
     }
 
+    // Calculate SINR using CRS from neighbours if are detected
+    float sinr_db = chest_res.snr_db;
+    if (std::isnormal(avg_rsrp_neigh[cc_idx])) {
+      cur_noise /= pow(10, rx_gain_offset / 10);
+
+      // Normalize the measured power ot the fraction of CRS pilots per PRB. Assume all neighbours have the same
+      // number of ports and CP length
+      uint32_t nof_re_x_prb = SRSLTE_NRE * (SRSLTE_CP_NSYMB(cell.cp));
+      float    factor       = nof_re_x_prb / (srslte_refsignal_cs_nof_pilots_x_slot(cell.nof_ports));
+      sinr_db = avg_rsrp_dbm[cc_idx] - srslte_convert_power_to_dB(avg_rsrp_neigh[cc_idx] / factor + cur_noise);
+    }
+
     // Average snr in the log domain
-    if (std::isnormal(chest_res.snr_db)) {
+    if (std::isnormal(sinr_db)) {
       if (!std::isnormal(avg_snr_db_cqi[cc_idx])) {
-        avg_snr_db_cqi[cc_idx] = chest_res.snr_db;
+        avg_snr_db_cqi[cc_idx] = sinr_db;
       } else {
-        avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(chest_res.snr_db, avg_snr_db_cqi[cc_idx], snr_ema_coeff);
+        avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(sinr_db, avg_snr_db_cqi[cc_idx], snr_ema_coeff);
       }
     }
 
@@ -876,6 +888,8 @@ void phy_common::reset()
   ZERO_OBJECT(avg_rsrp_dbm);
   ZERO_OBJECT(avg_rsrq_db);
   ZERO_OBJECT(scell_cfg);
+
+  reset_neighbour_cells();
 
   // Note: Using memset to reset these members is forbidden because they are real objects, not plain arrays.
   {

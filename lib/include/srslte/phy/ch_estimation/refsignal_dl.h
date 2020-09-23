@@ -74,6 +74,8 @@ SRSLTE_API uint32_t srslte_refsignal_cs_v(uint32_t port_id, uint32_t ref_symbol_
 
 SRSLTE_API uint32_t srslte_refsignal_cs_nof_symbols(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id);
 
+SRSLTE_API uint32_t srslte_refsignal_cs_nof_pilots_x_slot(uint32_t nof_ports);
+
 SRSLTE_API uint32_t srslte_refsignal_cs_nof_re(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id);
 
 SRSLTE_API int srslte_refsignal_mbsfn_init(srslte_refsignal_t* q, uint32_t max_prb);

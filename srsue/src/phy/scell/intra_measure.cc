@@ -45,10 +45,11 @@ intra_measure::~intra_measure()
   free(search_buffer);
 }
 
-void intra_measure::init(phy_common* common, rrc_interface_phy_lte* rrc_, srslte::log* log_h_)
+void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cell_itf_, srslte::log* log_h_)
 {
-  rrc   = rrc_;
-  log_h = log_h_;
+  cc_idx       = cc_idx_;
+  new_cell_itf = new_cell_itf_;
+  log_h        = log_h_;
 
   if (common) {
     intra_freq_meas_len_ms    = common->args->intra_freq_meas_len_ms;
@@ -174,6 +175,8 @@ void intra_measure::measure_proc()
   // Initialise empty neighbour cell list
   std::vector<rrc_interface_phy_lte::phy_meas_t> neighbour_cells = {};
 
+  new_cell_itf->cell_meas_reset(cc_idx);
+
   // Use Cell Reference signal to measure cells in the time domain for all known active PCI
   for (auto id : cells_to_measure) {
     // Do not measure serving cell here since it's measured by workers
@@ -208,7 +211,7 @@ void intra_measure::measure_proc()
 
   // Send measurements to RRC if any cell found
   if (not neighbour_cells.empty()) {
-    rrc->new_cell_meas(neighbour_cells);
+    new_cell_itf->new_cell_meas(cc_idx, neighbour_cells);
   }
 
   // Inform that measurement has finished

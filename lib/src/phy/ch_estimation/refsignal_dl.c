@@ -227,6 +227,18 @@ inline uint32_t srslte_refsignal_cs_nof_symbols(srslte_refsignal_t* q, srslte_dl
   }
 }
 
+inline uint32_t srslte_refsignal_cs_nof_pilots_x_slot(uint32_t nof_ports)
+{
+  switch (nof_ports) {
+    case 2:
+      return 8;
+    case 4:
+      return 12;
+    default:
+      return 4;
+  }
+}
+
 inline uint32_t srslte_refsignal_cs_nof_re(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id)
 {
   uint32_t nof_re = srslte_refsignal_cs_nof_symbols(q, sf, port_id);
