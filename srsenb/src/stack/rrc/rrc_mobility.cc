@@ -790,16 +790,11 @@ bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(var_meas_cfg_t&        source
   // Fetch cell VarMeasCfg
   const var_meas_cfg_t& target_var_meas = rrc_enb->enb_mobility_cfg->cell_meas_cfg_list[target_enb_cc_idx];
 
-  // Apply TS 36.331 5.5.6.1
+  // Apply TS 36.331 5.5.6.1 - If Source and Target eNB EARFCNs do no match, update SourceVarMeasCfg.MeasIdList
   if (target_var_meas.get_dl_earfcn() != source_var_meas_cfg.get_dl_earfcn()) {
-    meas_obj_to_add_mod_s *found_target_obj = nullptr, *found_src_obj = nullptr;
-    for (auto& o : source_var_meas_cfg.meas_objs()) {
-      if (o.meas_obj.meas_obj_eutra().carrier_freq == target_var_meas.get_dl_earfcn()) {
-        found_target_obj = &o;
-      } else if (o.meas_obj.meas_obj_eutra().carrier_freq == source_var_meas_cfg.get_dl_earfcn()) {
-        found_src_obj = &o;
-      }
-    }
+    auto&                  meas_objs        = source_var_meas_cfg.meas_objs();
+    meas_obj_to_add_mod_s* found_target_obj = rrc_details::find_meas_obj(meas_objs, target_var_meas.get_dl_earfcn());
+    meas_obj_to_add_mod_s* found_src_obj = rrc_details::find_meas_obj(meas_objs, source_var_meas_cfg.get_dl_earfcn());
     if (found_target_obj != nullptr and found_src_obj != nullptr) {
       for (auto& mid : source_var_meas_cfg.meas_ids()) {
         if (found_target_obj->meas_obj_id == mid.meas_obj_id) {
@@ -974,8 +969,10 @@ bool rrc::ue::rrc_mobility::needs_intraenb_ho(idle_st& s, const ho_meas_report_e
 
 void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
 {
-  f->get_log()->console("Starting S1 Handover of rnti=0x%x to 0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
-  f->get_log()->info("Starting S1 Handover of rnti=0x%x to 0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
+  f->get_log()->console(
+      "Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
+  f->get_log()->info(
+      "Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
   f->report = ev;
 
   bool success = f->parent_fsm()->start_ho_preparation(f->report.target_eci, f->report.meas_obj->meas_obj_id, false);
