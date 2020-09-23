@@ -32,18 +32,6 @@
 
 namespace srsue {
 
-#define AKA_RAND_LEN 16
-#define AKA_AUTN_LEN 16
-#define AKA_AUTS_LEN 14
-#define RES_MAX_LEN 16
-#define MAC_LEN 8
-#define IK_LEN 16
-#define CK_LEN 16
-#define AK_LEN 6
-#define SQN_LEN 6
-
-#define KEY_LEN 32
-
 typedef enum { SCARD_GSM_SIM, SCARD_USIM } sim_types_t;
 
 static inline uint16_t to_uint16(const uint8_t* a)
@@ -60,13 +48,6 @@ public:
   void stop();
 
   // NAS interface
-  std::string get_imsi_str();
-  std::string get_imei_str();
-
-  bool get_imsi_vec(uint8_t* imsi_, uint32_t n);
-  bool get_imei_vec(uint8_t* imei_, uint32_t n);
-  bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id);
-
   auth_result_t generate_authentication_response(uint8_t* rand,
                                                  uint8_t* autn_enb,
                                                  uint16_t mcc,
@@ -75,50 +56,7 @@ public:
                                                  int*     res_len,
                                                  uint8_t* k_asme);
 
-  void generate_nas_keys(uint8_t*                            k_asme,
-                         uint8_t*                            k_nas_enc,
-                         uint8_t*                            k_nas_int,
-                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-
-  // RRC interface
-  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg);
-  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg);
-  void store_keys_before_ho(const srslte::as_security_config_t& as_ctx);
-  void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx);
-
 private:
-  srslte::log* log = nullptr;
-
-  // User data
-  // 3GPP 33.102 v10.0.0 Annex H
-  uint64_t imsi = 0;
-  uint64_t imei = 0;
-
-  std::string imsi_str;
-  std::string imei_str;
-
-  uint32_t mnc_length = 0;
-
-  // Security variables
-  uint8_t ck[CK_LEN]          = {};
-  uint8_t ik[IK_LEN]          = {};
-  uint8_t ak[AK_LEN]          = {};
-  uint8_t k_asme[KEY_LEN]     = {};
-  uint8_t nh[KEY_LEN]         = {};
-  uint8_t k_enb[KEY_LEN]      = {};
-  uint8_t k_enb_star[KEY_LEN] = {};
-  uint8_t auts[AKA_AUTS_LEN]  = {};
-
-  // Helpers to restore security context if HO fails
-  uint8_t                      old_k_enb[32] = {};
-  uint8_t                      old_ncc       = {};
-  srslte::as_security_config_t old_as_ctx    = {};
-
-  uint32_t current_ncc = 0;
-
-  bool initiated = false;
-
   // Smartcard sub-class which is a port of the PC/SC smartcard implementation
   // of WPA Supplicant written by Jouni Malinen <j@w1.fi> and licensed under BSD
   // Source: https://w1.fi/cvs.html

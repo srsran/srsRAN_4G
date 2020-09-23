@@ -39,13 +39,6 @@ public:
   void stop();
 
   // NAS interface
-  std::string get_imsi_str();
-  std::string get_imei_str();
-
-  bool get_imsi_vec(uint8_t* imsi_, uint32_t n);
-  bool get_imei_vec(uint8_t* imei_, uint32_t n);
-  bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id);
-
   auth_result_t generate_authentication_response(uint8_t* rand,
                                                  uint8_t* autn_enb,
                                                  uint16_t mcc,
@@ -53,18 +46,6 @@ public:
                                                  uint8_t* res,
                                                  int*     res_len,
                                                  uint8_t* k_asme);
-
-  void generate_nas_keys(uint8_t*                            k_asme,
-                         uint8_t*                            k_nas_enc,
-                         uint8_t*                            k_nas_int,
-                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-
-  // RRC interface
-  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg);
-  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg);
-  void store_keys_before_ho(const srslte::as_security_config_t& as_ctx);
-  void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx);
 
 private:
   auth_result_t gen_auth_res_milenage(uint8_t* rand,
@@ -83,42 +64,16 @@ private:
                                  uint8_t* k_asme);
   void          str_to_hex(std::string str, uint8_t* hex);
 
-  srslte::log* usim_log = nullptr;
-
   // User data
   auth_algo_t auth_algo = auth_algo_milenage;
   uint8_t     amf[2]    = {}; // 3GPP 33.102 v10.0.0 Annex H
   uint8_t     op[16]    = {};
   uint8_t     opc[16]   = {};
-  uint64_t    imsi      = 0;
-  uint64_t    imei      = 0;
   uint8_t     k[16]     = {};
 
-  std::string imsi_str;
-  std::string imei_str;
-
   // Security variables
-  uint8_t ck[16]            = {};
-  uint8_t ik[16]            = {};
-  uint8_t ak[6]             = {};
-  uint8_t mac[8]            = {};
-  uint8_t autn[16]          = {};
-  uint8_t k_asme[32]        = {};
-  uint8_t nh[32]            = {};
-  uint8_t k_enb_initial[32] = {};
-  uint8_t k_enb[32]         = {};
-  uint8_t k_enb_star[32]    = {};
-
-  // Helpers to restore security context if HO fails
-  bool                         old_is_first_ncc = {};
-  uint8_t                      old_k_enb[32]    = {};
-  uint8_t                      old_ncc          = {};
-  srslte::as_security_config_t old_as_ctx       = {};
-
-  uint32_t current_ncc  = 0;
-  bool     is_first_ncc = false;
-
-  bool initiated = false;
+  uint8_t mac[8]   = {};
+  uint8_t autn[16] = {};
 };
 
 } // namespace srsue
