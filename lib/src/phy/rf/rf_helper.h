@@ -121,7 +121,7 @@ static inline int parse_uint32(char* args, const char* config_arg_base, int chan
 
   // Copy parsed value only if was found, otherwise it keeps the default
   if (ret == SRSLTE_SUCCESS) {
-    *value = (uint32_t)strtol(tmp_value, NULL, 10);
+    *value = (uint32_t)strtof(tmp_value, NULL);
   }
 
   return ret;
