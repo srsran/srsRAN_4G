@@ -155,7 +155,7 @@ enable = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
-pusch_max_mcs    = 16
+#pusch_max_mcs    = 16
 #min_nof_ctrl_symbols = 1
 #max_nof_ctrl_symbols = 3
 
