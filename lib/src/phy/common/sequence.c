@@ -215,6 +215,65 @@ static void sequence_gen_LTE_pr(uint8_t* pr, uint32_t len, uint32_t seed)
   }
 }
 
+void srslte_sequence_state_init(srslte_sequence_state_t* s, uint32_t seed)
+{
+  s->x1 = sequence_x1_init;
+  s->x2 = sequence_get_x2_init(seed);
+}
+
+void srslte_sequence_state_gen_f(srslte_sequence_state_t* s, float value, float* out, uint32_t length)
+{
+  uint32_t i          = 0;
+  const float xor [2] = {+0.0F, -0.0F};
+
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      uint32_t c = (uint32_t)(s->x1 ^ s->x2);
+
+      uint32_t j = 0;
+#ifdef LV_HAVE_SSE
+      for (; j < SEQUENCE_PAR_BITS - 3; j += 4) {
+        // Preloads bits of interest in the 4 LSB
+        __m128i mask = _mm_set1_epi32(c >> j);
+
+        // Masks each bit
+        mask = _mm_and_si128(mask, _mm_setr_epi32(1, 2, 4, 8));
+
+        // Get non zero mask
+        mask = _mm_cmpgt_epi32(mask, _mm_set1_epi32(0));
+
+        // And with MSB
+        mask = _mm_and_si128(mask, (__m128i)_mm_set1_ps(-0.0F));
+
+        // Load input
+        __m128 v = _mm_set1_ps(value);
+
+        // Loads input and perform sign XOR
+        v = _mm_xor_ps((__m128)mask, v);
+
+        _mm_storeu_ps(out + i + j, v);
+      }
+#endif
+      // Finish the parallel bits with generic code
+      for (; j < SEQUENCE_PAR_BITS; j++) {
+        *((uint32_t*)&out[i + j]) = *((uint32_t*)&value) ^ *((uint32_t*)&xor[(c >> j) & 1U]);
+      }
+
+      // Step sequences
+      s->x1 = sequence_gen_LTE_pr_memless_step_par_x1(s->x1);
+      s->x2 = sequence_gen_LTE_pr_memless_step_par_x2(s->x2);
+    }
+  }
+
+  for (; i < length; i++) {
+    *((uint32_t*)&out[i]) = *((uint32_t*)&value) ^ *((uint32_t*)&xor[(s->x1 ^ s->x2) & 1U]);
+
+    // Step sequences
+    s->x1 = sequence_gen_LTE_pr_memless_step_x1(s->x1);
+    s->x2 = sequence_gen_LTE_pr_memless_step_x2(s->x2);
+  }
+}
+
 // static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
 {

@@ -79,3 +79,13 @@ add_executable(chest_test_sl chest_test_sl.c)
 target_link_libraries(chest_test_sl srslte_phy)
 
 add_test(chest_test_sl_psbch chest_test_sl)
+
+
+########################################################################
+# NR PDSCH DMRS Channel Estimation TEST
+########################################################################
+
+add_executable(dmrs_pdsch_test dmrs_pdsch_test.c)
+target_link_libraries(dmrs_pdsch_test srslte_phy)
+
+add_test(dmrs_pdsch_test dmrs_pdsch_test)
