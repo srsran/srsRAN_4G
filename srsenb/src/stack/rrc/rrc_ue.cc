@@ -49,7 +49,6 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 
   activity_timer = outer_rrc->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
-  mobility_handler.reset(new rrc_mobility(this));
 
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
@@ -58,6 +57,8 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   if (cell_ded_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
     return;
   }
+
+  mobility_handler.reset(new rrc_mobility(this));
 }
 
 rrc::ue::~ue() {}

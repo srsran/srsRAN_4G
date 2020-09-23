@@ -399,9 +399,9 @@ std::string var_meas_cfg_t::to_string() const
  * @param meas_cfg
  * @return
  */
-var_meas_cfg_t var_meas_cfg_t::make(const asn1::rrc::meas_cfg_s& meas_cfg)
+var_meas_cfg_t var_meas_cfg_t::make(uint32_t dl_earfcn, const asn1::rrc::meas_cfg_s& meas_cfg)
 {
-  var_meas_cfg_t var;
+  var_meas_cfg_t var{dl_earfcn};
   if (meas_cfg.meas_id_to_add_mod_list_present) {
     var.var_meas.meas_id_list_present = true;
     var.var_meas.meas_id_list         = meas_cfg.meas_id_to_add_mod_list;
@@ -443,37 +443,36 @@ var_meas_cfg_t var_meas_cfg_t::make(const asn1::rrc::meas_cfg_s& meas_cfg)
 
 rrc::enb_mobility_handler::enb_mobility_handler(rrc* rrc_) : rrc_ptr(rrc_), cfg(&rrc_->cfg)
 {
-  cell_meas_cfg_list.resize(cfg->cell_list.size());
+  cell_meas_cfg_list.reserve(cfg->cell_list.size());
 
-  /* Create Template Cell VarMeasCfg List */
+  /* Create Template Cell VarMeasCfg List for each Cell */
 
-  for (size_t i = 0; i < cfg->cell_list.size(); ++i) {
-    std::unique_ptr<var_meas_cfg_t> var_meas{new var_meas_cfg_t{}};
+  for (const auto& cell_cfg : cfg->cell_list) {
+    cell_meas_cfg_list.emplace_back(cell_cfg.dl_earfcn);
+    var_meas_cfg_t& var_meas = cell_meas_cfg_list.back();
 
     if (cfg->meas_cfg_present) {
       // inserts all neighbor cells
-      for (const meas_cell_cfg_t& meascell : cfg->cell_list[i].meas_cfg.meas_cells) {
-        var_meas->add_cell_cfg(meascell);
+      for (const meas_cell_cfg_t& meascell : cell_cfg.meas_cfg.meas_cells) {
+        var_meas.add_cell_cfg(meascell);
       }
 
       // insert same report cfg for all cells
-      for (const report_cfg_eutra_s& reportcfg : cfg->cell_list[i].meas_cfg.meas_reports) {
-        var_meas->add_report_cfg(reportcfg);
+      for (const report_cfg_eutra_s& reportcfg : cell_cfg.meas_cfg.meas_reports) {
+        var_meas.add_report_cfg(reportcfg);
       }
 
       // insert all meas ids
       // TODO: add this to the parser
-      if (var_meas->rep_cfgs().size() > 0) {
-        for (const auto& measobj : var_meas->meas_objs()) {
-          var_meas->add_measid_cfg(measobj.meas_obj_id, var_meas->rep_cfgs().begin()->report_cfg_id);
+      if (var_meas.rep_cfgs().size() > 0) {
+        for (const auto& measobj : var_meas.meas_objs()) {
+          var_meas.add_measid_cfg(measobj.meas_obj_id, var_meas.rep_cfgs().begin()->report_cfg_id);
         }
       }
 
       // insert quantity config
-      var_meas->add_quant_cfg(cfg->cell_list[i].meas_cfg.quant_cfg);
+      var_meas.add_quant_cfg(cell_cfg.meas_cfg.quant_cfg);
     }
-
-    cell_meas_cfg_list[i].reset(var_meas.release());
   }
 }
 
@@ -548,7 +547,7 @@ rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
   cfg(outer_ue->parent->enb_mobility_cfg.get()),
   pool(outer_ue->pool),
   rrc_log(outer_ue->parent->rrc_log),
-  ue_var_meas(std::make_shared<var_meas_cfg_t>())
+  ue_var_meas(outer_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->cell_cfg.dl_earfcn)
 {}
 
 //! Method to add Mobility Info to a RRC Connection Reconfiguration Message
@@ -563,7 +562,7 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies
   // Check if there has been any update in ue_var_meas
   cell_info_common*      pcell    = rrc_ue->get_ue_cc_cfg(UE_PCELL_CC_IDX);
   asn1::rrc::meas_cfg_s& meas_cfg = conn_recfg->meas_cfg;
-  conn_recfg->meas_cfg_present    = update_ue_var_meas_cfg(*ue_var_meas, pcell->enb_cc_idx, &meas_cfg);
+  conn_recfg->meas_cfg_present    = update_ue_var_meas_cfg(ue_var_meas, pcell->enb_cc_idx, &meas_cfg);
   return conn_recfg->meas_cfg_present;
 }
 
@@ -585,8 +584,8 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     Error("MeasReports regarding non-EUTRA are not supported!\n");
     return;
   }
-  auto measid_it = srslte::find_rrc_obj_id(ue_var_meas->meas_ids(), meas_res.meas_id);
-  if (measid_it == ue_var_meas->meas_ids().end()) {
+  auto measid_it = srslte::find_rrc_obj_id(ue_var_meas.meas_ids(), meas_res.meas_id);
+  if (measid_it == ue_var_meas.meas_ids().end()) {
     Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
     return;
   }
@@ -594,7 +593,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
 
   // Find respective ReportCfg and MeasObj
   ho_meas_report_ev meas_ev{};
-  auto              obj_it = srslte::find_rrc_obj_id(ue_var_meas->meas_objs(), measid_it->meas_obj_id);
+  auto              obj_it = srslte::find_rrc_obj_id(ue_var_meas.meas_objs(), measid_it->meas_obj_id);
   meas_ev.meas_obj         = &(*obj_it);
 
   // iterate from strongest to weakest cell
@@ -694,7 +693,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   /*** fill AS-Config ***/
   hoprep_r8.as_cfg_present = true;
   // NOTE: set source_meas_cnfg equal to the UE's current var_meas_cfg
-  var_meas_cfg_t empty_meascfg{}, target_var_meas = *ue_var_meas;
+  var_meas_cfg_t empty_meascfg{ue_var_meas.get_dl_earfcn()}, &target_var_meas = ue_var_meas;
   //  // however, reset the MeasObjToAdd Cells, so that the UE does not measure again the target eNB
   //  meas_obj_to_add_mod_s* obj = rrc_details::binary_find(target_var_meas.meas_objs(), measobj_id);
   //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
@@ -773,30 +772,60 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
 }
 
 bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
+                                                   uint32_t                     src_dl_earfcn,
                                                    uint32_t                     target_enb_cc_idx,
                                                    asn1::rrc::meas_cfg_s*       diff_meas_cfg)
 {
   // Generate equivalent VarMeasCfg
-  var_meas_cfg_t source_var = var_meas_cfg_t::make(source_meas_cfg);
+  var_meas_cfg_t source_var = var_meas_cfg_t::make(src_dl_earfcn, source_meas_cfg);
 
   // Compute difference measCfg and update UE VarMeasCfg
   return update_ue_var_meas_cfg(source_var, target_enb_cc_idx, diff_meas_cfg);
 }
 
-bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const var_meas_cfg_t&  source_var_meas_cfg,
+bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(var_meas_cfg_t&        source_var_meas_cfg,
                                                    uint32_t               target_enb_cc_idx,
                                                    asn1::rrc::meas_cfg_s* diff_meas_cfg)
 {
   // Fetch cell VarMeasCfg
-  auto& target_var_ptr = rrc_enb->enb_mobility_cfg->cell_meas_cfg_list[target_enb_cc_idx];
+  const var_meas_cfg_t& target_var_meas = rrc_enb->enb_mobility_cfg->cell_meas_cfg_list[target_enb_cc_idx];
+
+  // Apply TS 36.331 5.5.6.1
+  if (target_var_meas.get_dl_earfcn() != source_var_meas_cfg.get_dl_earfcn()) {
+    meas_obj_to_add_mod_s *found_target_obj = nullptr, *found_src_obj = nullptr;
+    for (auto& o : source_var_meas_cfg.meas_objs()) {
+      if (o.meas_obj.meas_obj_eutra().carrier_freq == target_var_meas.get_dl_earfcn()) {
+        found_target_obj = &o;
+      } else if (o.meas_obj.meas_obj_eutra().carrier_freq == source_var_meas_cfg.get_dl_earfcn()) {
+        found_src_obj = &o;
+      }
+    }
+    if (found_target_obj != nullptr and found_src_obj != nullptr) {
+      for (auto& mid : source_var_meas_cfg.meas_ids()) {
+        if (found_target_obj->meas_obj_id == mid.meas_obj_id) {
+          mid.meas_obj_id = found_src_obj->meas_obj_id;
+        } else if (found_src_obj->meas_obj_id == mid.meas_obj_id) {
+          mid.meas_obj_id = found_target_obj->meas_obj_id;
+        }
+      }
+    } else if (found_src_obj != nullptr) {
+      for (auto it = source_var_meas_cfg.meas_ids().begin(); it != source_var_meas_cfg.meas_ids().end();) {
+        if (it->meas_obj_id == found_src_obj->meas_obj_id) {
+          auto rit = it++;
+          source_var_meas_cfg.meas_ids().erase(rit);
+        } else {
+          ++it;
+        }
+      }
+    }
+  }
 
   // Calculate difference between source and target VarMeasCfg
-  bool meas_cfg_present = source_var_meas_cfg.compute_diff_meas_cfg(*target_var_ptr, diff_meas_cfg);
+  bool meas_cfg_present = source_var_meas_cfg.compute_diff_meas_cfg(target_var_meas, diff_meas_cfg);
 
   // Update user varMeasCfg to target
-  rrc_ue->mobility_handler->ue_var_meas = target_var_ptr;
-  rrc_log->debug_long(
-      "New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, rrc_ue->mobility_handler->ue_var_meas->to_string().c_str());
+  rrc_ue->mobility_handler->ue_var_meas = target_var_meas;
+  rrc_log->debug_long("New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, ue_var_meas.to_string().c_str());
 
   return meas_cfg_present;
 }
@@ -882,7 +911,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   ant_info.ue_tx_ant_sel.set(setup_e::release);
 
   // Add MeasConfig of target cell
-  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(*ue_var_meas, target_cell.enb_cc_idx, &recfg_r8.meas_cfg);
+  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(ue_var_meas, target_cell.enb_cc_idx, &recfg_r8.meas_cfg);
 }
 
 /**
@@ -1185,8 +1214,8 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   }
 
   // Save measConfig
-  ue_var_meas = std::make_shared<var_meas_cfg_t>(var_meas_cfg_t::make(ho_prep.as_cfg.source_meas_cfg));
-  rrc_log->debug_long("New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, ue_var_meas->to_string().c_str());
+  ue_var_meas = var_meas_cfg_t::make(ho_prep.as_cfg.source_dl_carrier_freq, ho_prep.as_cfg.source_meas_cfg);
+  rrc_log->debug_long("New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, ue_var_meas.to_string().c_str());
 
   return true;
 }

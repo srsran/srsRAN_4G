@@ -42,7 +42,7 @@ public:
   using meas_obj_t   = asn1::rrc::meas_obj_to_add_mod_s;
   using report_cfg_t = asn1::rrc::report_cfg_to_add_mod_s;
 
-  var_meas_cfg_t() : rrc_log(srslte::logmap::get("RRC")) {}
+  var_meas_cfg_t(uint32_t dl_earfcn_) : dl_earfcn(dl_earfcn_), rrc_log(srslte::logmap::get("RRC")) {}
   std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
   report_cfg_t*                               add_report_cfg(const asn1::rrc::report_cfg_eutra_s& reportcfg);
   meas_id_t*                                  add_measid_cfg(uint8_t measobjid, uint8_t repid);
@@ -64,11 +64,13 @@ public:
   asn1::rrc::meas_obj_to_add_mod_list_l&         meas_objs() { return var_meas.meas_obj_list; }
   asn1::rrc::report_cfg_to_add_mod_list_l&       rep_cfgs() { return var_meas.report_cfg_list; }
   asn1::rrc::meas_id_to_add_mod_list_l&          meas_ids() { return var_meas.meas_id_list; }
+  uint32_t                                       get_dl_earfcn() const { return dl_earfcn; }
   std::string                                    to_string() const;
 
-  static var_meas_cfg_t make(const asn1::rrc::meas_cfg_s& meas_cfg);
+  static var_meas_cfg_t make(uint32_t dl_earfcn, const asn1::rrc::meas_cfg_s& meas_cfg);
 
 private:
+  uint32_t                  dl_earfcn;
   asn1::rrc::var_meas_cfg_s var_meas;
   srslte::log_ref           rrc_log;
 };
@@ -82,7 +84,7 @@ public:
 
   //! Variable used to store the MeasConfig expected for each cell.
   // Note: Made const to forbid silent updates and enable comparison based on addr
-  std::vector<std::shared_ptr<const var_meas_cfg_t> > cell_meas_cfg_list;
+  std::vector<var_meas_cfg_t> cell_meas_cfg_list;
 
   rrc*       get_rrc() { return rrc_ptr; }
   const rrc* get_rrc() const { return rrc_ptr; }
@@ -123,9 +125,10 @@ private:
 
   // Handover to target cell
   bool update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
+                              uint32_t                     src_dl_earfcn,
                               uint32_t                     target_enb_cc_idx,
                               asn1::rrc::meas_cfg_s*       diff_meas_cfg);
-  bool update_ue_var_meas_cfg(const var_meas_cfg_t&  source_var_meas_cfg,
+  bool update_ue_var_meas_cfg(var_meas_cfg_t&        source_var_meas_cfg,
                               uint32_t               target_enb_cc_idx,
                               asn1::rrc::meas_cfg_s* diff_meas_cfg);
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
@@ -140,8 +143,8 @@ private:
   srslte::log_ref            rrc_log;
 
   // vars
-  std::shared_ptr<const var_meas_cfg_t> ue_var_meas;
-  asn1::rrc::rrc_conn_recfg_complete_s  pending_recfg_complete;
+  var_meas_cfg_t                       ue_var_meas;
+  asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
   // events
   struct ho_meas_report_ev {
