@@ -57,8 +57,7 @@ report_cfg_eutra_s generate_rep1()
 
 bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell)
 {
-  return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset) and
-         cell.cell_idx == (cfg.eci & 0xFFu);
+  return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset);
 }
 
 int test_correct_insertion()
@@ -105,9 +104,10 @@ int test_correct_insertion()
     TESTASSERT(eutra.carrier_freq == cell1.earfcn);
     TESTASSERT(eutra.cells_to_add_mod_list.size() == 2);
     const cells_to_add_mod_s* cell_it = eutra.cells_to_add_mod_list.begin();
-    TESTASSERT(cell_it[0].cell_idx == (cell1.eci & 0xFFu));
-    TESTASSERT(cell_it[1].cell_idx == (cell2.eci & 0xFFu));
-    TESTASSERT(cell_it[1].pci == cell2.pci);
+    TESTASSERT(cell_it[0].cell_idx == 1);
+    TESTASSERT(cell_it[1].cell_idx == 2);
+    TESTASSERT(cell_it[0].pci == cell2.pci);
+    TESTASSERT(cell_it[1].pci == cell1.pci);
 
     // TEST 3: insertion of cell in another frequency
     auto ret1 = var_cfg.add_cell_cfg(cell3);
@@ -115,7 +115,9 @@ int test_correct_insertion()
     TESTASSERT(objs.size() == 2 and objs[1].meas_obj_id == 2);
     const auto& eutra2 = objs[1].meas_obj.meas_obj_eutra();
     TESTASSERT(eutra2.carrier_freq == cell3.earfcn);
-    TESTASSERT(eutra2.cells_to_add_mod_list.size() == 1);
+    TESTASSERT(eutra2.cells_to_add_mod_list_present and eutra2.cells_to_add_mod_list.size() == 1);
+    TESTASSERT(eutra2.cells_to_add_mod_list[0].cell_idx == 1);
+    TESTASSERT(eutra2.cells_to_add_mod_list[0].pci == cell3.pci);
 
     // TEST 4: update of existing cell
     auto ret2 = var_cfg.add_cell_cfg(cell4);
@@ -124,8 +126,9 @@ int test_correct_insertion()
     TESTASSERT(objs.size() == 2 and objs[0].meas_obj_id == 1);
     TESTASSERT(eutra3.carrier_freq == cell4.earfcn);
     TESTASSERT(eutra3.cells_to_add_mod_list.size() == 2);
-    TESTASSERT(eutra3.cells_to_add_mod_list[0].cell_idx == (cell1.eci & 0xFFu));
-    TESTASSERT(eutra3.cells_to_add_mod_list[0].cell_individual_offset.to_number() == 1);
+    TESTASSERT(eutra3.cells_to_add_mod_list[1].cell_idx == 2);
+    TESTASSERT(eutra3.cells_to_add_mod_list[1].pci == cell4.pci);
+    TESTASSERT(eutra3.cells_to_add_mod_list[1].cell_individual_offset.to_number() == 1);
   }
 
   return 0;
@@ -197,8 +200,8 @@ int test_correct_meascfg_calculation()
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 0);
 
     // TEST 3: Cell is added to cellsToAddModList if just a field was updated
-    cell1.pci = 3;
-    src_var   = target_var;
+    cell1.q_offset = 5;
+    src_var        = target_var;
     target_var.add_cell_cfg(cell1);
     src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
@@ -213,7 +216,9 @@ int test_correct_meascfg_calculation()
     TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
 
     // TEST 4: Removal of cell/rep from target propagates to the resulting meas_cfg_s
-    src_var    = target_var;
+    src_var = target_var;
+    TESTASSERT(src_var.meas_objs().size() == 1);
+    TESTASSERT(src_var.meas_objs()[0].meas_obj.meas_obj_eutra().cells_to_add_mod_list.size() == 2);
     target_var = var_meas_cfg_t{};
     target_var.add_cell_cfg(cell2);
     target_var.add_report_cfg(rep1);
@@ -225,9 +230,10 @@ int test_correct_meascfg_calculation()
     TESTASSERT(item->meas_obj_id == 1 and
                item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
     eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(not eutra.cells_to_add_mod_list_present and eutra.cells_to_rem_list_present);
-    TESTASSERT(eutra.cells_to_rem_list.size() == 1);
-    TESTASSERT(eutra.cells_to_rem_list[0] == (cell1.eci & 0xFFu));
+    TESTASSERT(eutra.cells_to_add_mod_list_present and eutra.cells_to_add_mod_list.size() == 1);
+    TESTASSERT(eutra.cells_to_add_mod_list[0].pci == cell2.pci);
+    TESTASSERT(eutra.cells_to_rem_list_present and eutra.cells_to_rem_list.size() == 1);
+    TESTASSERT(eutra.cells_to_rem_list[0] == 2);
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 1);
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 2);

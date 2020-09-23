@@ -136,11 +136,11 @@ meas_obj_to_add_mod_s* find_meas_obj(meas_obj_to_add_mod_list_l& l, uint32_t ear
   return it;
 }
 
-/** Finds a cell in this->objects based on cell_id and frequency
+/** Finds a cell in this->objects based on pci and earfcn
  *  return pair of (meas_obj,cell_obj). If no cell has frequency==earfcn, meas_obj=nullptr
  */
 std::pair<meas_obj_to_add_mod_s*, cells_to_add_mod_s*>
-find_cell(meas_obj_to_add_mod_list_l& l, uint32_t earfcn, uint8_t cell_id)
+find_cell(meas_obj_to_add_mod_list_l& l, uint32_t earfcn, uint32_t pci)
 {
   // find meas_obj with same earfcn
   meas_obj_to_add_mod_s* obj = rrc_details::find_meas_obj(l, earfcn);
@@ -149,7 +149,7 @@ find_cell(meas_obj_to_add_mod_list_l& l, uint32_t earfcn, uint8_t cell_id)
   }
   // find cell with same id
   auto& cells   = obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
-  auto  cell_it = srslte::find_rrc_obj_id(cells, cell_id);
+  auto  cell_it = std::find_if(cells.begin(), cells.end(), [pci](const cells_to_add_mod_s& c) { return c.pci == pci; });
   if (cell_it == cells.end()) {
     cell_it = nullptr;
   }
@@ -194,14 +194,12 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
   using namespace rrc_details;
   bool inserted_flag = true;
 
-  // TODO: cellcfg.eci is the ECI
-  uint32_t         cell_id = rrc_details::eci_to_cellid(cellcfg.eci);
   q_offset_range_e offset;
   asn1::number_to_enum(offset, (int8_t)cellcfg.q_offset); // TODO: What's the difference
 
-  std::pair<meas_obj_t*, meas_cell_t*> ret = rrc_details::find_cell(var_meas.meas_obj_list, cellcfg.earfcn, cell_id);
-  cells_to_add_mod_s                   new_cell;
-  new_cell.cell_idx               = cell_id;
+  std::pair<meas_obj_t*, meas_cell_t*> ret =
+      rrc_details::find_cell(var_meas.meas_obj_list, cellcfg.earfcn, cellcfg.pci);
+  cells_to_add_mod_s new_cell;
   new_cell.cell_individual_offset = offset;
   new_cell.pci                    = cellcfg.pci;
 
@@ -209,15 +207,17 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
     // there are cells with the same earfcn at least.
     if (ret.second != nullptr) {
       // the cell already existed.
-      if (ret.second->pci != cellcfg.pci or ret.second->cell_individual_offset != offset) {
+      if (ret.second->cell_individual_offset != offset) {
         // members of cell were updated
-        *ret.second = new_cell;
+        new_cell.cell_idx = ret.second->cell_idx;
+        *ret.second       = new_cell;
       } else {
         inserted_flag = false;
       }
     } else {
-      // eci not found. create new cell
-      ret.second = srslte::add_rrc_obj(ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list, new_cell);
+      // pci not found. create new cell
+      new_cell.cell_idx = srslte::find_rrc_obj_id_gap(ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list);
+      ret.second        = srslte::add_rrc_obj(ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list, new_cell);
     }
   } else {
     // no measobj has been found with same earfcn, create a new one
@@ -230,6 +230,7 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
     eutra.offset_freq_present = true;
     // TODO: Assert that q_offset is in ms
     asn1::number_to_enum(eutra.offset_freq, cellcfg.q_offset);
+    new_cell.cell_idx                   = 1;
     eutra.cells_to_add_mod_list_present = true;
     eutra.cells_to_add_mod_list.push_back(new_cell);
     ret.first  = srslte::add_rrc_obj(var_meas.meas_obj_list, new_obj);
@@ -609,9 +610,10 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
       continue;
     }
     meas_ev.meas_cell  = cell_it;
-    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), [pci](const meas_cell_cfg_t& c) {
-                           return c.pci == pci;
-                         })->eci;
+    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(),
+                                      meas_list_cfg.end(),
+                                      [pci](const meas_cell_cfg_t& c) { return c.pci == pci; })
+                             ->eci;
 
     // eNB found the respective cell. eNB takes "HO Decision"
     // NOTE: From now we just choose the strongest.
