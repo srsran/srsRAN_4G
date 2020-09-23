@@ -265,13 +265,22 @@ public:
   struct t301_expiry {};
 
   explicit connection_reest_proc(rrc* rrc_);
+  // 5.3.7.2 - Initiation
   srslte::proc_outcome_t init(asn1::rrc::reest_cause_e cause);
-  srslte::proc_outcome_t step();
-  srslte::proc_outcome_t react(const t311_expiry& ev);
+  // 5.3.7.3 Actions following cell selection while T311 is running
+  // && 5.3.7.4 - Actions related to transmission of RRCConnectionReestablishmentRequest message
   srslte::proc_outcome_t react(const cell_selection_proc::cell_selection_complete_ev& e);
+  // Wait for SIBs of selected cell (part of 5.3.7.3)
   srslte::proc_outcome_t react(const serv_cell_cfg_completed& result);
+  // 5.3.7.5 - Reception of the RRCConnectionReestablishment by the UE
   srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reest_s& reest_msg);
+  // 5.3.7.6 - T311 expiry
+  srslte::proc_outcome_t react(const t311_expiry& ev);
+  // 5.3.7.7 - T301 expiry or selected cell no longer suitable
   srslte::proc_outcome_t react(const t301_expiry& ev);
+  // detects if cell is no longer suitable (part of 5.3.7.7)
+  srslte::proc_outcome_t step();
+  // 5.3.7.8 - Reception of RRCConnectionReestablishmentReject by the UE
   srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reject_s& reest_msg);
   static const char*     name() { return "Connection re-establishment"; }
   uint32_t               get_source_earfcn() const { return reest_source_freq; }
