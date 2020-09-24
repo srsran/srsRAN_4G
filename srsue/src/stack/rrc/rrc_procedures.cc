@@ -1462,7 +1462,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   Info("Starting cell selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
   if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell, rrc_ptr->ho_handler)) {
     Error("Failed to launch the selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
-    return proc_outcome_t::error;
+    return proc_outcome_t::yield; // wait t304 expiry
   }
 
   // reset MAC
@@ -1533,7 +1533,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   // if the RRCConnectionReconfiguration message includes the measConfig:
   if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
     Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
-    return proc_outcome_t::error;
+    return proc_outcome_t::yield; // wait for t304 expiry
   }
 
   // Have RRCReconfComplete message ready when Msg3 is sent
@@ -1565,7 +1565,8 @@ srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
           target_cell.pci,
           target_cell.earfcn,
           rrc_ptr->meas_cells.serving_cell().to_string().c_str());
-    return proc_outcome_t::error;
+    // wait for t304 expiry
+    return proc_outcome_t::yield;
   }
 
   Info("PHY has synchronized with target cell. Waiting Random Access to complete\n");
@@ -1601,9 +1602,11 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
     rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
+    return proc_outcome_t::success;
   }
 
-  return ev.success ? proc_outcome_t::success : proc_outcome_t::error;
+  // wait for t304 expiry
+  return proc_outcome_t::yield;
 }
 
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
@@ -1611,11 +1614,7 @@ void rrc::ho_proc::then(const srslte::proc_state_t& result)
   Info("HO %ssuccessful\n", result.is_success() ? "" : "un");
   rrc_ptr->rrc_log->console("HO %ssuccessful\n", result.is_success() ? "" : "un");
 
-  if (result.is_success()) {
-    rrc_ptr->t304.stop();
-  } else if (rrc_ptr->t304.is_running()) {
-    Info("Waiting for t304 to expire to start the Reestablishment procedure\n");
-  }
+  rrc_ptr->t304.stop();
 }
 
 } // namespace srsue
