@@ -77,6 +77,8 @@ public:
   const cell_info_common* get_pci(uint32_t pci) const;
   size_t                  nof_cells() const { return cell_list.size(); }
 
+  std::vector<const cell_info_common*> get_potential_cells(uint32_t enb_cc_idx) const;
+
 private:
   const rrc_cfg_t&                                cfg;
   std::vector<std::unique_ptr<cell_info_common> > cell_list;
@@ -101,6 +103,8 @@ struct cell_ctxt_dedicated {
   cell_ctxt_dedicated(cell_ctxt_dedicated&&) noexcept = default;
   cell_ctxt_dedicated& operator=(const cell_ctxt_dedicated&) = delete;
   cell_ctxt_dedicated& operator=(cell_ctxt_dedicated&&) noexcept = default;
+
+  uint32_t get_dl_earfcn() const { return cell_common->cell_cfg.dl_earfcn; }
 };
 
 /** Class used to handle the allocation of a UE's resources across its cells */

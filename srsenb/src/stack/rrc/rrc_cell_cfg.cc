@@ -95,6 +95,18 @@ const cell_info_common* cell_info_common_list::get_pci(uint32_t pci) const
   return it == cell_list.end() ? nullptr : it->get();
 }
 
+std::vector<const cell_info_common*> cell_info_common_list::get_potential_cells(uint32_t enb_cc_idx) const
+{
+  const cell_info_common*              pcell = get_cc_idx(enb_cc_idx);
+  std::vector<const cell_info_common*> cells(pcell->cell_cfg.scell_list.size() + 1);
+  cells[0] = pcell;
+  for (uint32_t i = 0; i < pcell->cell_cfg.scell_list.size(); ++i) {
+    uint32_t cell_id = pcell->cell_cfg.scell_list[i].cell_id;
+    cells[i + 1]     = get_cell_id(cell_id);
+  }
+  return cells;
+}
+
 /*************************
  *  cell ctxt dedicated
  ************************/

@@ -75,7 +75,6 @@ void rrc::init(const rrc_cfg_t&       cfg_,
 
   nof_si_messages = generate_sibs();
   config_mac();
-  enb_mobility_cfg.reset(new enb_mobility_handler(this));
 
   // Check valid inactivity timeout config
   uint32_t t310 = cfg.sibs[1].sib2().ue_timers_and_consts.t310.to_number();
@@ -460,12 +459,6 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container)
 {
   users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, std::move(rrc_container));
-}
-
-uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container)
-{
-  return enb_mobility_cfg->start_ho_ue_resource_alloc(msg, container);
 }
 
 void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)

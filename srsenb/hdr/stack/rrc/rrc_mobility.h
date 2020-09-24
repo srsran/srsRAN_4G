@@ -42,8 +42,9 @@ public:
   using meas_obj_t   = asn1::rrc::meas_obj_to_add_mod_s;
   using report_cfg_t = asn1::rrc::report_cfg_to_add_mod_s;
 
-  var_meas_cfg_t(uint32_t dl_earfcn_) : dl_earfcn(dl_earfcn_), rrc_log(srslte::logmap::get("RRC")) {}
+  var_meas_cfg_t();
   std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
+  std::pair<bool, meas_obj_t*>                add_meas_obj(uint32_t dl_earfcn);
   report_cfg_t*                               add_report_cfg(const asn1::rrc::report_cfg_eutra_s& reportcfg);
   meas_id_t*                                  add_measid_cfg(uint8_t measobjid, uint8_t repid);
   asn1::rrc::quant_cfg_s*                     add_quant_cfg(const asn1::rrc::quant_cfg_eutra_s& quantcfg);
@@ -64,39 +65,17 @@ public:
   asn1::rrc::meas_obj_to_add_mod_list_l&         meas_objs() { return var_meas.meas_obj_list; }
   asn1::rrc::report_cfg_to_add_mod_list_l&       rep_cfgs() { return var_meas.report_cfg_list; }
   asn1::rrc::meas_id_to_add_mod_list_l&          meas_ids() { return var_meas.meas_id_list; }
-  uint32_t                                       get_dl_earfcn() const { return dl_earfcn; }
   std::string                                    to_string() const;
 
-  static var_meas_cfg_t make(uint32_t dl_earfcn, const asn1::rrc::meas_cfg_s& meas_cfg);
+  static var_meas_cfg_t make(const asn1::rrc::meas_cfg_s& meas_cfg);
+  static var_meas_cfg_t make(const rrc_cfg_t& cfg);
 
 private:
-  uint32_t                  dl_earfcn;
   asn1::rrc::var_meas_cfg_s var_meas;
   srslte::log_ref           rrc_log;
 };
 
 enum class ho_interface_t { S1, X2, intra_enb };
-
-class rrc::enb_mobility_handler
-{
-public:
-  explicit enb_mobility_handler(rrc* rrc_);
-
-  //! Variable used to store the MeasConfig expected for each cell.
-  // Note: Made const to forbid silent updates and enable comparison based on addr
-  std::vector<var_meas_cfg_t> cell_meas_cfg_list;
-
-  rrc*       get_rrc() { return rrc_ptr; }
-  const rrc* get_rrc() const { return rrc_ptr; }
-
-  uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
-                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
-
-private:
-  // args
-  rrc*             rrc_ptr = nullptr;
-  const rrc_cfg_t* cfg     = nullptr;
-};
 
 class rrc::ue::rrc_mobility : public srslte::fsm_t<rrc::ue::rrc_mobility>
 {
@@ -109,7 +88,8 @@ public:
   struct ho_cancel_ev {};
 
   explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
-  bool fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
+
+  bool fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
   void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
   bool is_ho_running() const { return not is_in_state<idle_st>(); }
@@ -118,29 +98,30 @@ public:
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
 
+  static uint16_t
+  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container);
+
 private:
+  // helper methods
+  bool update_ue_var_meas_cfg(uint32_t                             src_earfcn,
+                              std::vector<const cell_info_common*> target_cells,
+                              asn1::rrc::meas_cfg_s*               diff_meas_cfg);
+
   // Handover from source cell
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
   bool start_enb_status_transfer();
 
   // Handover to target cell
-  bool update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
-                              uint32_t                     src_dl_earfcn,
-                              uint32_t                     target_enb_cc_idx,
-                              asn1::rrc::meas_cfg_s*       diff_meas_cfg);
-  bool update_ue_var_meas_cfg(var_meas_cfg_t&        source_var_meas_cfg,
-                              uint32_t               target_enb_cc_idx,
-                              asn1::rrc::meas_cfg_s* diff_meas_cfg);
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
                                    const cell_info_common&   target_cell,
                                    uint32_t                  src_dl_earfcn);
   bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
 
-  rrc::ue*                   rrc_ue  = nullptr;
-  rrc*                       rrc_enb = nullptr;
-  rrc::enb_mobility_handler* cfg     = nullptr;
-  srslte::byte_buffer_pool*  pool    = nullptr;
-  srslte::log_ref            rrc_log;
+  rrc::ue*                  rrc_ue  = nullptr;
+  rrc*                      rrc_enb = nullptr;
+  srslte::byte_buffer_pool* pool    = nullptr;
+  srslte::log_ref           rrc_log;
 
   // vars
   var_meas_cfg_t                       ue_var_meas;

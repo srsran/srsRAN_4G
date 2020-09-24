@@ -182,9 +182,6 @@ private:
   uint32_t               nof_si_messages = 0;
   asn1::rrc::sib_type7_s sib7;
 
-  class enb_mobility_handler;
-  std::unique_ptr<enb_mobility_handler> enb_mobility_cfg;
-
   void rem_user_thread(uint16_t rnti);
 
   std::mutex paging_mutex;

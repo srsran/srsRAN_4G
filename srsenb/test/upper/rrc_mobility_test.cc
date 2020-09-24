@@ -75,7 +75,7 @@ int test_correct_insertion()
 
   // TEST 1: cell/rep insertion in empty varMeasCfg
   {
-    var_meas_cfg_t var_cfg{3400};
+    var_meas_cfg_t var_cfg{};
     auto           ret = var_cfg.add_cell_cfg(cell1);
     TESTASSERT(std::get<0>(ret) and std::get<1>(ret) != nullptr);
     const auto& objs = var_cfg.meas_objs();
@@ -93,7 +93,7 @@ int test_correct_insertion()
   }
 
   {
-    var_meas_cfg_t var_cfg{3400};
+    var_meas_cfg_t var_cfg{};
     const auto&    objs = var_cfg.meas_objs();
 
     // TEST 2: insertion of out-of-order cell ids in same earfcn
@@ -136,7 +136,7 @@ int test_correct_insertion()
 
 int test_correct_meascfg_calculation()
 {
-  var_meas_cfg_t src_var{3400}, target_var{3400};
+  var_meas_cfg_t src_var{}, target_var{};
 
   meas_cell_cfg_t cell1{}, cell2{};
   cell1.earfcn   = 3400;
@@ -219,7 +219,7 @@ int test_correct_meascfg_calculation()
     src_var = target_var;
     TESTASSERT(src_var.meas_objs().size() == 1);
     TESTASSERT(src_var.meas_objs()[0].meas_obj.meas_obj_eutra().cells_to_add_mod_list.size() == 2);
-    target_var = var_meas_cfg_t{3400};
+    target_var = {};
     target_var.add_cell_cfg(cell2);
     target_var.add_report_cfg(rep1);
     target_var.add_report_cfg(rep3);

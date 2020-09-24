@@ -550,7 +550,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   bearer_list.fill_pending_nas_info(conn_reconf);
 
   if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_msg(conn_reconf);
+    mobility_handler->fill_conn_recfg_no_ho_cmd(conn_reconf);
   }
   last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
 
