@@ -192,7 +192,7 @@ public:
   float get_sinr_db(uint32_t cc_idx)
   {
     std::unique_lock<std::mutex> lock(meas_mutex);
-    return avg_snr_db_cqi[cc_idx];
+    return avg_sinr_db[cc_idx];
   }
 
   float get_pusch_power()
@@ -249,7 +249,8 @@ private:
   float    avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
   float    avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
   float    rx_gain_offset                      = 0.0f;
-  float    avg_snr_db_cqi[SRSLTE_MAX_CARRIERS] = {};
+  float    avg_sinr_db[SRSLTE_MAX_CARRIERS]    = {};
+  float    avg_snr_db[SRSLTE_MAX_CARRIERS]     = {};
   float    avg_noise[SRSLTE_MAX_CARRIERS]      = {};
   float    avg_rsrp_neigh[SRSLTE_MAX_CARRIERS] = {};
 

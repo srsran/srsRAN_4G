@@ -711,12 +711,21 @@ void phy_common::update_measurements(uint32_t                                   
       sinr_db = avg_rsrp_dbm[cc_idx] - srslte_convert_power_to_dB(avg_rsrp_neigh[cc_idx] / factor + cur_noise);
     }
 
-    // Average snr in the log domain
+    // Average sinr in the log domain
     if (std::isnormal(sinr_db)) {
-      if (!std::isnormal(avg_snr_db_cqi[cc_idx])) {
-        avg_snr_db_cqi[cc_idx] = sinr_db;
+      if (!std::isnormal(avg_sinr_db[cc_idx])) {
+        avg_sinr_db[cc_idx] = sinr_db;
       } else {
-        avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(sinr_db, avg_snr_db_cqi[cc_idx], snr_ema_coeff);
+        avg_sinr_db[cc_idx] = SRSLTE_VEC_EMA(sinr_db, avg_sinr_db[cc_idx], snr_ema_coeff);
+      }
+    }
+
+    // Average snr in the log domain
+    if (std::isnormal(chest_res.snr_db)) {
+      if (!std::isnormal(avg_snr_db[cc_idx])) {
+        avg_snr_db[cc_idx] = chest_res.snr_db;
+      } else {
+        avg_snr_db[cc_idx] = SRSLTE_VEC_EMA(chest_res.snr_db, avg_snr_db[cc_idx], snr_ema_coeff);
       }
     }
 
@@ -727,7 +736,7 @@ void phy_common::update_measurements(uint32_t                                   
     ch.rsrq         = avg_rsrq_db[cc_idx];
     ch.rssi         = avg_rssi_dbm[cc_idx];
     ch.pathloss     = pathloss[cc_idx];
-    ch.sinr         = avg_snr_db_cqi[cc_idx];
+    ch.sinr         = avg_sinr_db[cc_idx];
     ch.sync_err     = chest_res.sync_error;
 
     set_ch_metrics(cc_idx, ch);
@@ -747,19 +756,21 @@ void phy_common::update_measurements(uint32_t                                   
       serving_cells.push_back(meas);
     }
 
-    // Check in-sync / out-sync conditions
-    if (avg_rsrp_dbm[0] > args->in_sync_rsrp_dbm_th && avg_snr_db_cqi[0] > args->in_sync_snr_db_th) {
-      log_h->debug(
-          "SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
-    } else {
-      log_h->warning(
-          "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n", avg_snr_db_cqi[0], avg_rsrp_dbm[0]);
-      insync = false;
+    // Check in-sync / out-sync conditions. Use SNR instead of SINR for RLF threshold
+    if (cc_idx == 0) {
+      if (avg_rsrp_dbm[0] > args->in_sync_rsrp_dbm_th && avg_snr_db[0] > args->in_sync_snr_db_th) {
+        log_h->debug(
+            "SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n", avg_snr_db[0], avg_rsrp_dbm[0]);
+      } else {
+        log_h->warning(
+            "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n", avg_snr_db[0], avg_rsrp_dbm[0]);
+        insync = false;
+      }
     }
   }
 
   // Report in-sync status to the stack outside the mutex lock
-  if (insync_itf) {
+  if (insync_itf && cc_idx) {
     if (insync) {
       insync_itf->in_sync();
     } else {
@@ -883,7 +894,8 @@ void phy_common::reset()
   pcell_report_period = 20;
 
   ZERO_OBJECT(pathloss);
-  ZERO_OBJECT(avg_snr_db_cqi);
+  ZERO_OBJECT(avg_sinr_db);
+  ZERO_OBJECT(avg_snr_db);
   ZERO_OBJECT(avg_rsrp);
   ZERO_OBJECT(avg_rsrp_dbm);
   ZERO_OBJECT(avg_rsrq_db);
