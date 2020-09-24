@@ -1222,6 +1222,7 @@ bool rrc::connection_reest_proc::passes_cell_criteria() const
 srslte::proc_outcome_t rrc::connection_reest_proc::react(const serv_cell_cfg_completed& ev)
 {
   if (state != state_t::wait_cell_configuration) {
+    Warning("Received unexpected  \"%s\" completion signal\n", rrc_ptr->serv_cell_cfg.get()->name());
     return proc_outcome_t::yield;
   }
   return cell_criteria();
@@ -1263,13 +1264,13 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
 srslte::proc_outcome_t rrc::connection_reest_proc::start_cell_selection()
 {
   // Launch cell reselection
+  state = state_t::wait_cell_selection;
   if (not rrc_ptr->cell_selector.launch()) {
     Error("Failed to initiate a Cell re-selection procedure...\n");
     // Wait for T311 to expire
     return proc_outcome_t::yield;
   }
   rrc_ptr->callback_list.add_proc(rrc_ptr->cell_selector);
-  state = state_t::wait_cell_selection;
   return proc_outcome_t::yield;
 }
 
@@ -1277,6 +1278,7 @@ srslte::proc_outcome_t
 rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_complete_ev& cell_selected_ev)
 {
   if (state != state_t::wait_cell_selection) {
+    Warning("Received unexpected \"%s\" completion signal\n", rrc_ptr->cell_selector.get()->name());
     return proc_outcome_t::yield;
   }
 
@@ -1296,13 +1298,13 @@ rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_comp
          rrc_ptr->meas_cells.serving_cell().has_sib2(),
          rrc_ptr->meas_cells.serving_cell().has_sib3());
     std::vector<uint32_t> required_sibs = {0, 1, 2};
+    state                               = state_t::wait_cell_configuration;
     if (!rrc_ptr->serv_cell_cfg.launch(required_sibs)) {
       Error("Failed to initiate configure serving cell\n");
       // Wait for T311 expiry
       return proc_outcome_t::yield;
     }
     rrc_ptr->callback_list.add_proc(rrc_ptr->serv_cell_cfg);
-    state = state_t::wait_cell_configuration;
     return proc_outcome_t::yield;
   }
 
