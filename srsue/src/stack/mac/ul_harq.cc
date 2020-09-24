@@ -368,6 +368,8 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
   current_tx_nb             = 0;
   current_irv               = 0;
 
+  action->is_rar = grant.is_rar || (grant.rnti == harq_entity->rntis->temp_rnti);
+
   Info("UL %d:  New TX%s, RV=%d, TBS=%d\n",
        pid,
        grant.rnti == harq_entity->rntis->temp_rnti ? " for Msg3" : "",

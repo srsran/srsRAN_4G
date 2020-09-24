@@ -759,6 +759,14 @@ void srslte_refsignal_srs_pusch_shortened(srslte_refsignal_ul_t*      q,
 {
   bool shortened = false;
 
+  // A UE shall not transmit SRS whenever SRS and a PUSCH transmission corresponding to a Random Access Response
+  // Grant or a retransmission of the same transport block as part of the contention based random access procedure
+  // coincide in the same subframe.
+  if (pusch_cfg->grant.is_rar) {
+    sf->shortened = false;
+    return;
+  }
+
   if (srs_cfg->configured) {
     // If UE-specific SRS is configured, PUSCH is shortened every time UE transmits SRS even if overlaping in the same
     // RB or not
@@ -786,7 +794,7 @@ void srslte_refsignal_srs_pusch_shortened(srslte_refsignal_ul_t*      q,
         uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
         for (uint32_t ns = 0; ns < 2 && !shortened; ns++) {
           if ((pusch_cfg->grant.n_prb_tilde[ns] >= k0_srs && pusch_cfg->grant.n_prb_tilde[ns] < k0_srs + nrb_srs) ||
-              (pusch_cfg->grant.n_prb_tilde[ns] + pusch_cfg->grant.L_prb >= k0_srs &&
+              (pusch_cfg->grant.n_prb_tilde[ns] + pusch_cfg->grant.L_prb > k0_srs &&
                pusch_cfg->grant.n_prb_tilde[ns] + pusch_cfg->grant.L_prb < k0_srs + nrb_srs) ||
               (pusch_cfg->grant.n_prb_tilde[ns] <= k0_srs &&
                pusch_cfg->grant.n_prb_tilde[ns] + pusch_cfg->grant.L_prb >= k0_srs + nrb_srs)) {

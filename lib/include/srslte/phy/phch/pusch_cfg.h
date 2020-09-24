@@ -52,6 +52,7 @@ typedef struct SRSLTE_API {
   srslte_ra_tb_t tb;
   srslte_ra_tb_t last_tb;
   uint32_t       n_dmrs;
+  bool           is_rar;
 
 } srslte_pusch_grant_t;
 

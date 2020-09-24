@@ -399,6 +399,7 @@ public:
     tb_action_t tb;
     uint32_t    current_tx_nb;
     bool        expect_ack;
+    bool        is_rar;
   } tb_action_ul_t;
 
   /* Query the MAC for the current RNTI to look for
