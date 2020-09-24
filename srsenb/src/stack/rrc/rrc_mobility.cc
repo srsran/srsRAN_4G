@@ -453,9 +453,22 @@ var_meas_cfg_t var_meas_cfg_t::make(const asn1::rrc::meas_cfg_s& meas_cfg)
   return var;
 }
 
-var_meas_cfg_t var_meas_cfg_t::make(const rrc_cfg_t& cfg)
+var_meas_cfg_t var_meas_cfg_t::make(std::vector<const cell_info_common*> active_cells, const rrc_cfg_t& cfg)
 {
   var_meas_cfg_t var_meas;
+  // sort by earfcn, and remove duplicates. This avoids unnecessary measObjects/measIds transmissions
+  auto cmp_freq = [](const cell_info_common* lhs, const cell_info_common* rhs) {
+    return lhs->cell_cfg.dl_earfcn < rhs->cell_cfg.dl_earfcn;
+  };
+  auto equal_freq = [](const cell_info_common* lhs, const cell_info_common* rhs) {
+    return lhs->cell_cfg.dl_earfcn == rhs->cell_cfg.dl_earfcn;
+  };
+  std::sort(active_cells.begin(), active_cells.end(), cmp_freq);
+  active_cells.erase(std::unique(active_cells.begin(), active_cells.end(), equal_freq), active_cells.end());
+  // Add PCell+Scells as MeasObjs
+  for (const cell_info_common* c : active_cells) {
+    var_meas.add_meas_obj(c->cell_cfg.dl_earfcn);
+  }
   if (not cfg.meas_cfg_present) {
     return var_meas;
   }
@@ -463,7 +476,9 @@ var_meas_cfg_t var_meas_cfg_t::make(const rrc_cfg_t& cfg)
   for (const auto& cell_cfg : cfg.cell_list) {
     // inserts all neighbor cells
     for (const meas_cell_cfg_t& meascell : cell_cfg.meas_cfg.meas_cells) {
-      var_meas.add_cell_cfg(meascell);
+      if (meascell.q_offset > 0) {
+        var_meas.add_cell_cfg(meascell);
+      }
     }
     // insert same report cfg for all cells
     for (const report_cfg_eutra_s& reportcfg : cell_cfg.meas_cfg.meas_reports) {
@@ -598,7 +613,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
     return;
   }
-  const meas_result_list_eutra_l& eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
+  const meas_result_list_eutra_l& eutra_report_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
 
   // Find respective ReportCfg and MeasObj
   ho_meas_report_ev meas_ev{};
@@ -606,22 +621,20 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
   meas_ev.meas_obj         = &(*obj_it);
 
   // iterate from strongest to weakest cell
-  const cells_to_add_mod_list_l& cells         = obj_it->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
-  const cell_ctxt_dedicated*     pcell         = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const auto&                    meas_list_cfg = pcell->cell_common->cell_cfg.meas_cfg.meas_cells;
-  const cells_to_add_mod_s*      cell_it       = nullptr;
-  for (const meas_result_eutra_s& e : eutra_list) {
-    uint16_t pci = e.pci;
-    cell_it = std::find_if(cells.begin(), cells.end(), [pci](const cells_to_add_mod_s& c) { return c.pci == pci; });
-    if (cell_it == cells.end()) {
-      rrc_log->warning("The PCI=%d inside the MeasReport is not recognized.\n", pci);
+  const cell_ctxt_dedicated* pcell         = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const auto&                meas_list_cfg = pcell->cell_common->cell_cfg.meas_cfg.meas_cells;
+  for (const meas_result_eutra_s& e : eutra_report_list) {
+    auto                    same_pci = [&e](const meas_cell_cfg_t& c) { return c.pci == e.pci; };
+    auto                    meas_it  = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), same_pci);
+    const cell_info_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
+    if (meas_it != meas_list_cfg.end()) {
+      meas_ev.target_eci = meas_it->eci;
+    } else if (c != nullptr) {
+      meas_ev.target_eci = c->cell_cfg.cell_id;
+    } else {
+      rrc_log->warning("The PCI=%d inside the MeasReport is not recognized.\n", e.pci);
       continue;
     }
-    meas_ev.meas_cell  = cell_it;
-    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(),
-                                      meas_list_cfg.end(),
-                                      [pci](const meas_cell_cfg_t& c) { return c.pci == pci; })
-                             ->eci;
 
     // eNB found the respective cell. eNB takes "HO Decision"
     // NOTE: From now we just choose the strongest.
@@ -784,13 +797,9 @@ bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(uint32_t                     
                                                    std::vector<const cell_info_common*> target_cells,
                                                    asn1::rrc::meas_cfg_s*               diff_meas_cfg)
 {
-  // Make UE Target VarMeasCfg based on parsed Config files + target cells
-  var_meas_cfg_t target_var_meas = var_meas_cfg_t::make(rrc_enb->cfg);
-  // Add PCell+Scells as MeasObjs
-  for (const cell_info_common* c : target_cells) {
-    target_var_meas.add_meas_obj(c->cell_cfg.dl_earfcn);
-  }
-  uint32_t target_earfcn = target_cells[0]->cell_cfg.dl_earfcn;
+  // Make UE Target VarMeasCfg based on active cells and parsed Config files
+  var_meas_cfg_t target_var_meas = var_meas_cfg_t::make(target_cells, rrc_enb->cfg);
+  uint32_t       target_earfcn   = target_cells[0]->cell_cfg.dl_earfcn;
 
   // Apply TS 36.331 5.5.6.1 - If Source and Target eNB EARFCNs do no match, update SourceVarMeasCfg.MeasIdList
   if (target_earfcn != src_earfcn) {

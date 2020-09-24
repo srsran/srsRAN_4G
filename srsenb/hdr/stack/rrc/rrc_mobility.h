@@ -68,7 +68,7 @@ public:
   std::string                                    to_string() const;
 
   static var_meas_cfg_t make(const asn1::rrc::meas_cfg_s& meas_cfg);
-  static var_meas_cfg_t make(const rrc_cfg_t& cfg);
+  static var_meas_cfg_t make(std::vector<const cell_info_common*> active_cells, const rrc_cfg_t& cfg);
 
 private:
   asn1::rrc::var_meas_cfg_s var_meas;
@@ -130,7 +130,6 @@ private:
   // events
   struct ho_meas_report_ev {
     uint32_t                                target_eci = 0;
-    const asn1::rrc::cells_to_add_mod_s*    meas_cell  = nullptr;
     const asn1::rrc::meas_obj_to_add_mod_s* meas_obj   = nullptr;
   };
   struct ho_req_rx_ev {
