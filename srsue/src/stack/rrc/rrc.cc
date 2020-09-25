@@ -68,7 +68,8 @@ rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
-  ho_handler(this)
+  ho_handler(this),
+  conn_recfg_proc(this)
 {}
 
 rrc::~rrc() = default;
@@ -360,7 +361,13 @@ void rrc::cell_select_complete(bool cs_ret)
   phy_ctrl->cell_selection_completed(cs_ret);
 }
 
-void rrc::set_config_complete(bool status) {}
+void rrc::set_config_complete(bool status)
+{
+  // Signal Reconfiguration Procedure that PHY configuration has completed
+  if (conn_recfg_proc.is_busy()) {
+    conn_recfg_proc.trigger(status);
+  }
+}
 
 void rrc::set_scell_complete(bool status) {}
 
@@ -906,69 +913,6 @@ void rrc::start_go_idle()
   callback_list.add_proc(idle_setter);
 }
 
-// Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
-bool rrc::con_reconfig(const rrc_conn_recfg_s& reconfig)
-{
-  const rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig.crit_exts.c1().rrc_conn_recfg_r8();
-
-  // If first message after reestablishment, resume SRB2 and all DRB
-  if (reestablishment_successful) {
-    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
-      if (rlc->has_bearer(i)) {
-        rlc->resume_bearer(i);
-      }
-    }
-  }
-
-  // If this is the first con_reconfig after a reestablishment
-  if (reestablishment_successful) {
-    // Reestablish PDCP and RLC for SRB2 and all DRB
-    // TODO: Which is the maximum LCID?
-    reestablishment_successful = false;
-    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
-      if (rlc->has_bearer(i)) {
-        pdcp->reestablish(i);
-        rlc->reestablish(i);
-      }
-    }
-  }
-
-  // Apply RR config as in 5.3.10
-  if (reconfig_r8->rr_cfg_ded_present) {
-    if (!apply_rr_config_dedicated(&reconfig_r8->rr_cfg_ded)) {
-      return false;
-    }
-  }
-
-  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside apply_scell_config()
-  // Note that apply_scell_config() calls set_scell() and set_config() which run in the background.
-  rrc_conn_recfg_r8_ies_s reconfig_r8_ = *reconfig_r8;
-  apply_scell_config(&reconfig_r8_, true);
-
-  if (!measurements->parse_meas_config(
-          reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
-    return false;
-  }
-
-  // FIXME-@frankist: From here to the end need to be processed when set_config_complete() is called
-  send_rrc_con_reconfig_complete();
-
-  unique_byte_buffer_t nas_sdu;
-  for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
-    nas_sdu = srslte::allocate_unique_buffer(*pool);
-    if (nas_sdu.get()) {
-      memcpy(nas_sdu->msg, reconfig_r8->ded_info_nas_list[i].data(), reconfig_r8->ded_info_nas_list[i].size());
-      nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
-      nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
-    } else {
-      rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
-      return false;
-    }
-  }
-
-  return true;
-}
-
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
@@ -1004,9 +948,11 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, const rrc_conn_recfg_s& reconfi
   if (reconfig_r8.mob_ctrl_info_present) {
     con_reconfig_ho(reconfig);
   } else {
-    if (!con_reconfig(reconfig)) {
-      con_reconfig_failed();
+    if (not conn_recfg_proc.launch(reconfig)) {
+      rrc_log->error("Unable to launch Handover Preparation procedure\n");
+      return;
     }
+    callback_list.add_proc(conn_recfg_proc);
   }
 }
 

@@ -197,6 +197,26 @@ private:
   srslte::proc_future_t<void> serv_cfg_fut;
 };
 
+class rrc::connection_reconf_no_ho_proc
+{
+public:
+  explicit connection_reconf_no_ho_proc(rrc* parent_);
+  srslte::proc_outcome_t init(const asn1::rrc::rrc_conn_recfg_s& recfg_);
+  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+  static const char*     name() { return "Connection Reconfiguration"; }
+  srslte::proc_outcome_t react(const bool& config_complete);
+  void                   then(const srslte::proc_state_t& result);
+
+private:
+  srslte::proc_outcome_t handle_recfg_complete();
+
+  // const
+  rrc* rrc_ptr;
+  // args
+  asn1::rrc::rrc_conn_recfg_r8_ies_s rx_recfg;
+  enum state_t { wait_scell_config, wait_phy_config } state;
+};
+
 class rrc::process_pcch_proc
 {
 public:

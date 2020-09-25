@@ -295,6 +295,7 @@ private:
   class serving_cell_config_proc;
   class cell_selection_proc;
   class connection_request_proc;
+  class connection_reconf_no_ho_proc;
   class plmn_search_proc;
   class process_pcch_proc;
   class go_idle_proc;
@@ -312,6 +313,7 @@ private:
   srslte::proc_t<cell_reselection_proc>                                      cell_reselector;
   srslte::proc_t<connection_reest_proc>                                      connection_reest;
   srslte::proc_t<ho_proc>                                                    ho_handler;
+  srslte::proc_t<connection_reconf_no_ho_proc>                               conn_recfg_proc;
 
   srslte::proc_manager_list_t callback_list;
 
@@ -345,7 +347,6 @@ private:
   void parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // Helpers
-  bool con_reconfig(const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void con_reconfig_failed();
   bool con_reconfig_ho(const asn1::rrc::rrc_conn_recfg_s& reconfig);
   void ho_failed();

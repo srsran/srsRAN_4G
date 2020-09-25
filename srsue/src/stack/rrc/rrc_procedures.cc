@@ -940,6 +940,114 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
   }
 }
 
+/******************************************
+ *  Connection Reconfiguration Procedure
+ *****************************************/
+
+// Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
+rrc::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(srsue::rrc* parent_) : rrc_ptr(parent_) {}
+
+srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& recfg_)
+{
+  Info("Starting...\n");
+  rx_recfg = recfg_.crit_exts.c1().rrc_conn_recfg_r8();
+
+  // If first message after reestablishment, resume SRB2 and all DRB
+  if (rrc_ptr->reestablishment_successful) {
+    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rrc_ptr->rlc->has_bearer(i)) {
+        rrc_ptr->rlc->resume_bearer(i);
+      }
+    }
+  }
+
+  // If this is the first con_reconfig after a reestablishment
+  if (rrc_ptr->reestablishment_successful) {
+    // Reestablish PDCP and RLC for SRB2 and all DRB
+    // TODO: Which is the maximum LCID?
+    rrc_ptr->reestablishment_successful = false;
+    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rrc_ptr->rlc->has_bearer(i)) {
+        rrc_ptr->pdcp->reestablish(i);
+        rrc_ptr->rlc->reestablish(i);
+      }
+    }
+  }
+
+  // Apply RR config as in 5.3.10
+  if (rx_recfg.rr_cfg_ded_present) {
+    if (!rrc_ptr->apply_rr_config_dedicated(&rx_recfg.rr_cfg_ded)) {
+      return proc_outcome_t::error;
+    }
+  }
+
+  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside apply_scell_config()
+  // Note that apply_scell_config() calls set_scell() and set_config() which run in the background.
+  rrc_ptr->apply_scell_config(&rx_recfg, true);
+
+  if (!rrc_ptr->measurements->parse_meas_config(
+          &rx_recfg, rrc_ptr->reestablishment_successful, rrc_ptr->connection_reest.get()->get_source_earfcn())) {
+    return proc_outcome_t::error;
+  }
+
+  // Wait for PHY configurations to be complete
+  if (std::count(&rrc_ptr->current_scell_configured[0], &rrc_ptr->current_scell_configured[SRSLTE_MAX_CARRIERS], true) >
+      0) {
+    state = wait_scell_config;
+  } else {
+    state = wait_phy_config;
+  }
+
+  return proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& config_complete)
+{
+  if (not config_complete) {
+    rrc_ptr->rrc_log->error("Failed to config PHY\n");
+    return proc_outcome_t::error;
+  }
+
+  // in case there are scell to configure, wait for second phy configuration
+  if (state == wait_scell_config) {
+    state = wait_phy_config;
+    return proc_outcome_t::yield;
+  }
+
+  return handle_recfg_complete();
+}
+
+srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::handle_recfg_complete()
+{
+  rrc_ptr->send_rrc_con_reconfig_complete();
+
+  srslte::unique_byte_buffer_t nas_sdu;
+  for (uint32_t i = 0; i < rx_recfg.ded_info_nas_list.size(); i++) {
+    nas_sdu = srslte::allocate_unique_buffer(*rrc_ptr->pool);
+    if (nas_sdu.get()) {
+      memcpy(nas_sdu->msg, rx_recfg.ded_info_nas_list[i].data(), rx_recfg.ded_info_nas_list[i].size());
+      nas_sdu->N_bytes = rx_recfg.ded_info_nas_list[i].size();
+      rrc_ptr->nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
+    } else {
+      rrc_ptr->rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
+      return proc_outcome_t::error;
+    }
+  }
+
+  return proc_outcome_t::success;
+}
+
+void rrc::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
+{
+  if (result.is_success()) {
+    rrc_ptr->rrc_log->info("Finished %s successfully\n", name());
+    return;
+  }
+
+  // Section 5.3.5.5 - Reconfiguration failure
+  rrc_ptr->con_reconfig_failed();
+}
+
 /**************************************
  *     Process PCCH procedure
  *************************************/
