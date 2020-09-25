@@ -77,12 +77,15 @@ public:
   const cell_info_common* get_pci(uint32_t pci) const;
   size_t                  nof_cells() const { return cell_list.size(); }
 
-  std::vector<const cell_info_common*> get_potential_cells(uint32_t enb_cc_idx) const;
-
 private:
   const rrc_cfg_t&                                cfg;
   std::vector<std::unique_ptr<cell_info_common> > cell_list;
 };
+
+// Helper methods
+std::vector<const cell_info_common*> get_available_intraenb_cells(const cell_info_common_list& list,
+                                                                  uint32_t                     pcell_enb_cc_idx);
+std::vector<uint32_t> get_available_intraenb_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx);
 
 /** Class used to store all the resources specific to a UE's cell */
 struct cell_ctxt_dedicated {

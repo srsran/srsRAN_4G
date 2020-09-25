@@ -68,7 +68,7 @@ public:
   std::string                                    to_string() const;
 
   static var_meas_cfg_t make(const asn1::rrc::meas_cfg_s& meas_cfg);
-  static var_meas_cfg_t make(std::vector<const cell_info_common*> active_cells, const rrc_cfg_t& cfg);
+  static var_meas_cfg_t make(const std::vector<uint32_t>& active_earfcns, const rrc_cfg_t& cfg);
 
 private:
   asn1::rrc::var_meas_cfg_s var_meas;
@@ -104,9 +104,9 @@ public:
 
 private:
   // helper methods
-  bool update_ue_var_meas_cfg(uint32_t                             src_earfcn,
-                              std::vector<const cell_info_common*> target_cells,
-                              asn1::rrc::meas_cfg_s*               diff_meas_cfg);
+  bool update_ue_var_meas_cfg(uint32_t               src_earfcn,
+                              std::vector<uint32_t>  target_earfcns,
+                              asn1::rrc::meas_cfg_s* diff_meas_cfg);
 
   // Handover from source cell
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);

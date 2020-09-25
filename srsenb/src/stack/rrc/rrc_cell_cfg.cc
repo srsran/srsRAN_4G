@@ -95,16 +95,31 @@ const cell_info_common* cell_info_common_list::get_pci(uint32_t pci) const
   return it == cell_list.end() ? nullptr : it->get();
 }
 
-std::vector<const cell_info_common*> cell_info_common_list::get_potential_cells(uint32_t enb_cc_idx) const
+std::vector<const cell_info_common*> get_available_intraenb_cells(const cell_info_common_list& list,
+                                                                  uint32_t                     pcell_enb_cc_idx)
 {
-  const cell_info_common*              pcell = get_cc_idx(enb_cc_idx);
+  const cell_info_common*              pcell = list.get_cc_idx(pcell_enb_cc_idx);
   std::vector<const cell_info_common*> cells(pcell->cell_cfg.scell_list.size() + 1);
   cells[0] = pcell;
   for (uint32_t i = 0; i < pcell->cell_cfg.scell_list.size(); ++i) {
     uint32_t cell_id = pcell->cell_cfg.scell_list[i].cell_id;
-    cells[i + 1]     = get_cell_id(cell_id);
+    cells[i + 1]     = list.get_cell_id(cell_id);
   }
   return cells;
+}
+
+std::vector<uint32_t> get_available_intraenb_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx)
+{
+  std::vector<const cell_info_common*> cells = get_available_intraenb_cells(list, pcell_enb_cc_idx);
+  std::vector<uint32_t>                earfcns(cells.size());
+  for (uint32_t i = 0; i < cells.size(); ++i) {
+    earfcns[i] = cells[i]->cell_cfg.dl_earfcn;
+  }
+  // sort by earfcn
+  std::sort(earfcns.begin(), earfcns.end());
+  // remove duplicates
+  earfcns.erase(std::unique(earfcns.begin(), earfcns.end()), earfcns.end());
+  return earfcns;
 }
 
 /*************************
