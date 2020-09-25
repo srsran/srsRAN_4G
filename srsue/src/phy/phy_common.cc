@@ -770,7 +770,7 @@ void phy_common::update_measurements(uint32_t                                   
   }
 
   // Report in-sync status to the stack outside the mutex lock
-  if (insync_itf && cc_idx) {
+  if (insync_itf && cc_idx == 0) {
     if (insync) {
       insync_itf->in_sync();
     } else {
