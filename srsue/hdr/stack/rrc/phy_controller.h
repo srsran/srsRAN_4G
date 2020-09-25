@@ -56,7 +56,7 @@ public:
                           std::function<void(uint32_t, uint32_t, bool)> on_cell_selection = {});
 
   // PHY procedures interfaces
-  bool start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer);
+  bool start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer = {});
   bool start_cell_search(srslte::event_observer<cell_srch_res> observer);
   void cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell);
   void cell_selection_completed(bool outcome);

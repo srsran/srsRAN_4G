@@ -367,7 +367,8 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
  *************************************/
 
 rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
-  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_),
+  log_h(srslte::logmap::get("RRC"))
 {}
 
 /*
@@ -761,7 +762,8 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
  *************************************/
 
 rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
-  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_),
+  log_h(srslte::logmap::get("RRC"))
 {}
 
 proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
@@ -1458,8 +1460,9 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->t304.run();
 
   // starting at start synchronising to the DL of the target PCell
+  rrc_ptr->set_serving_cell(target_cell, false);
   Info("Starting cell selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
-  if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell, rrc_ptr->ho_handler)) {
+  if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell)) {
     Error("Failed to launch the selection of target cell PCI=%d EARFCN=%d\n", target_cell.pci, target_cell.earfcn);
     return proc_outcome_t::yield; // wait t304 expiry
   }
@@ -1544,36 +1547,6 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   Info("Finished HO configuration. Waiting PHY to synchronize with target cell\n");
 
-  state = wait_phy_cell_select_complete;
-  return proc_outcome_t::yield;
-}
-
-srslte::proc_outcome_t rrc::ho_proc::step()
-{
-  return proc_outcome_t::yield;
-}
-
-srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
-{
-  if (state != wait_phy_cell_select_complete) {
-    Warning("Received unexpected PHY Cell Selection event\n");
-    return proc_outcome_t::yield;
-  }
-
-  if (not cs_ret) {
-    Error("Could not synchronize with target PCI=%d on EARFCN=%d. Removing cell and trying to return to source %s\n",
-          target_cell.pci,
-          target_cell.earfcn,
-          rrc_ptr->meas_cells.serving_cell().to_string().c_str());
-    // wait for t304 expiry
-    return proc_outcome_t::yield;
-  }
-
-  Info("PHY has synchronized with target cell. Waiting Random Access to complete\n");
-
-  rrc_ptr->set_serving_cell(target_cell, false);
-
-  state = wait_ra_completion;
   return proc_outcome_t::yield;
 }
 
@@ -1591,11 +1564,6 @@ srslte::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
 
 srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 {
-  if (state != wait_ra_completion) {
-    Warning("Received unexpected RA Complete Event\n");
-    return proc_outcome_t::yield;
-  }
-
   if (ev.success) {
     Info("Random Access completed. Applying final configuration and finishing procedure\n");
 
@@ -1611,7 +1579,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
-  Info("HO %ssuccessful\n", result.is_success() ? "" : "un");
+  Info("HO to PCI=%d, EARFCN=%d %ssuccessful\n", target_cell.pci, target_cell.earfcn, result.is_success() ? "" : "un");
   rrc_ptr->rrc_log->console("HO %ssuccessful\n", result.is_success() ? "" : "un");
 
   rrc_ptr->t304.stop();

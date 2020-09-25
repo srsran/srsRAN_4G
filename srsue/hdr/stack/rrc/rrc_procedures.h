@@ -313,7 +313,7 @@ public:
   srslte::proc_outcome_t react(const bool& ev);
   srslte::proc_outcome_t react(t304_expiry ev);
   srslte::proc_outcome_t react(ra_completed_ev ev);
-  srslte::proc_outcome_t step();
+  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
   void                   then(const srslte::proc_state_t& result);
   static const char*     name() { return "Handover"; }
 
@@ -331,8 +331,6 @@ private:
 
   // helper to revert security config of source cell
   void reset_security_config();
-
-  enum state_t { wait_phy_cell_select_complete, wait_ra_completion } state;
 };
 
 } // namespace srsue
