@@ -69,7 +69,7 @@ void s1ap_mngmt_proc::init(void)
 bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg,
                                               struct sctp_sndrcvinfo*               enb_sri)
 {
-  m_s1ap_log->console("Received S1 Setup Request.\n");
+  srslte::out_stream("Received S1 Setup Request.\n");
   m_s1ap_log->info("Received S1 Setup Request.\n");
 
   enb_ctx_t enb_ctx = {};
@@ -97,11 +97,11 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
 
   // Check matching PLMNs
   if (enb_ctx.plmn != m_s1ap->get_plmn()) {
-    m_s1ap_log->console("Sending S1 Setup Failure - Unknown PLMN\n");
+    srslte::out_stream("Sending S1 Setup Failure - Unknown PLMN\n");
     m_s1ap_log->warning("Sending S1 Setup Failure - Unknown PLMN\n");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unknown_plmn, enb_sri);
   } else if (!tac_match) {
-    m_s1ap_log->console("Sending S1 Setup Failure - No matching TAC\n");
+    srslte::out_stream("Sending S1 Setup Failure - No matching TAC\n");
     m_s1ap_log->warning("Sending S1 Setup Failure - No matching TAC\n");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unspecified, enb_sri);
   } else {
@@ -116,7 +116,7 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
     }
 
     send_s1_setup_response(m_s1ap_args, enb_sri);
-    m_s1ap_log->console("Sending S1 Setup Response\n");
+    srslte::out_stream("Sending S1 Setup Response\n");
     m_s1ap_log->info("Sending S1 Setup Response\n");
   }
   return true;

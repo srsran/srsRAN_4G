@@ -116,7 +116,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   // Init USIM first to allow early exit in case reader couldn't be found
   usim = usim_base::get_instance(&args.usim, usim_log.get());
   if (usim->init(&args.usim)) {
-    usim_log->console("Failed to initialize USIM.\n");
+    srslte::out_stream("Failed to initialize USIM.\n");
     return SRSLTE_ERROR;
   }
 
@@ -194,14 +194,14 @@ bool ue_stack_lte::switch_off()
 bool ue_stack_lte::enable_data()
 {
   // perform attach request
-  stack_log->console("Turning off airplane mode.\n");
+  srslte::out_stream("Turning off airplane mode.\n");
   return switch_on();
 }
 
 bool ue_stack_lte::disable_data()
 {
   // generate detach request
-  stack_log->console("Turning on airplane mode.\n");
+  srslte::out_stream("Turning on airplane mode.\n");
   return nas.detach_request(false);
 }
 

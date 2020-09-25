@@ -142,7 +142,7 @@ int ttcn3_syssim::add_port_handler()
     return SRSLTE_ERROR;
   }
   event_handler.insert({ut_fd, &ut});
-  log->console("UT handler listening on SCTP port %d\n", UT_PORT);
+  srslte::out_stream("UT handler listening on SCTP port %d\n", UT_PORT);
 
   // SYS port
   int sys_fd = sys.init(this, &sys_log, listen_address, SYS_PORT);
@@ -151,7 +151,7 @@ int ttcn3_syssim::add_port_handler()
     return SRSLTE_ERROR;
   }
   event_handler.insert({sys_fd, &sys});
-  log->console("SYS handler listening on SCTP port %d\n", SYS_PORT);
+  srslte::out_stream("SYS handler listening on SCTP port %d\n", SYS_PORT);
 
   // IPsock port
   int ip_sock_fd = ip_sock.init(&ip_sock_log, listen_address, IPSOCK_PORT);
@@ -160,7 +160,7 @@ int ttcn3_syssim::add_port_handler()
     return SRSLTE_ERROR;
   }
   event_handler.insert({ip_sock_fd, &ip_sock});
-  log->console("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
+  srslte::out_stream("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
 
   // IPctrl port
   int ip_ctrl_fd = ip_ctrl.init(&ip_ctrl_log, listen_address, IPCTRL_PORT);
@@ -169,7 +169,7 @@ int ttcn3_syssim::add_port_handler()
     return SRSLTE_ERROR;
   }
   event_handler.insert({ip_ctrl_fd, &ip_ctrl});
-  log->console("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
+  srslte::out_stream("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
 
   // add SRB fd
   int srb_fd = srb.init(this, &srb_log, listen_address, SRB_PORT);
@@ -178,7 +178,7 @@ int ttcn3_syssim::add_port_handler()
     return SRSLTE_ERROR;
   }
   event_handler.insert({srb_fd, &srb});
-  log->console("SRB handler listening on SCTP port %d\n", SRB_PORT);
+  srslte::out_stream("SRB handler listening on SCTP port %d\n", SRB_PORT);
 
   // add DRB fd
   int drb_fd = drb.init(this, &drb_log, listen_address, DRB_PORT);
@@ -187,7 +187,7 @@ int ttcn3_syssim::add_port_handler()
     return SRSLTE_ERROR;
   }
   event_handler.insert({drb_fd, &drb});
-  log->console("DRB handler listening on SCTP port %d\n", DRB_PORT);
+  srslte::out_stream("DRB handler listening on SCTP port %d\n", DRB_PORT);
 
   return SRSLTE_SUCCESS;
 }
@@ -221,19 +221,19 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
     ss_events_t ev = event_queue.wait_pop();
     switch (ev) {
       case UE_SWITCH_ON:
-        log->console("Switching on UE ID=%d\n", run_id);
+        srslte::out_stream("Switching on UE ID=%d\n", run_id);
         ue->switch_on();
         break;
       case UE_SWITCH_OFF:
-        log->console("Switching off UE ID=%d\n", run_id);
+        srslte::out_stream("Switching off UE ID=%d\n", run_id);
         ue->switch_off();
         break;
       case ENABLE_DATA:
-        log->console("Enabling data for UE ID=%d\n", run_id);
+        srslte::out_stream("Enabling data for UE ID=%d\n", run_id);
         ue->enable_data();
         break;
       case DISABLE_DATA:
-        log->console("Disabling data for UE ID=%d\n", run_id);
+        srslte::out_stream("Disabling data for UE ID=%d\n", run_id);
         ue->disable_data();
         break;
     }
@@ -413,7 +413,7 @@ void ttcn3_syssim::tc_start(const char* name)
   }
 
   log->info("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
-  log->console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
+  srslte::out_stream("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
 
   // Patch UE config
   local_args.stack.pcap.filename     = get_filename_with_tc_name(args.stack.pcap.filename, run_id, tc_name);
@@ -424,7 +424,7 @@ void ttcn3_syssim::tc_start(const char* name)
     ue->stop();
     std::string err("Couldn't initialize UE.\n");
     log->error("%s\n", err.c_str());
-    log->console("%s\n", err.c_str());
+    srslte::out_stream("%s\n", err.c_str());
     return;
   }
 
@@ -439,7 +439,7 @@ void ttcn3_syssim::tc_start(const char* name)
 void ttcn3_syssim::tc_end()
 {
   log->info("Deinitializing UE ID=%d\n", run_id);
-  log->console("Deinitializing UE ID=%d\n", run_id);
+  srslte::out_stream("Deinitializing UE ID=%d\n", run_id);
   ue->stop();
 
   // stop TTI timer

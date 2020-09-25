@@ -141,17 +141,6 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
   }
 }
 
-void log_filter::console(const char* message, ...)
-{
-  char    args_msg[char_buff_size];
-  va_list args;
-  va_start(args, message);
-  if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-    printf("%s", args_msg); // Print directly to stdout
-  fflush(stdout);
-  va_end(args);
-}
-
 #define all_log_expand(log_level)                                                                                      \
   do {                                                                                                                 \
     if (level >= log_level) {                                                                                          \

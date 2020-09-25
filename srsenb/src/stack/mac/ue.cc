@@ -329,7 +329,7 @@ void ue::deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti)
     pdus.deallocate(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc));
     pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
   } else {
-    log_h->console(
+    srslte::out_stream(
         "Error deallocating buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
   }
 }
@@ -340,7 +340,8 @@ void ue::push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len)
     pdus.push(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc), len);
     pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
   } else {
-    log_h->console("Error pushing buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
+    srslte::out_stream(
+        "Error pushing buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
   }
 }
 
@@ -348,10 +349,10 @@ bool ue::process_ce(srslte::sch_subh* subh)
 {
   uint32_t buff_size_idx[4]   = {};
   uint32_t buff_size_bytes[4] = {};
-  float    phr          = 0;
-  int32_t  idx          = 0;
-  uint16_t old_rnti     = 0;
-  bool     is_bsr       = false;
+  float    phr                = 0;
+  int32_t  idx                = 0;
+  uint16_t old_rnti           = 0;
+  bool     is_bsr             = false;
   switch (subh->ul_sch_ce_type()) {
     case srslte::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();

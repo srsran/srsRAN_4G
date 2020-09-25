@@ -96,7 +96,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   }
 
   if (!config_rf_channels(args)) {
-    log_h->console("Error configuring RF channels\n");
+    srslte::out_stream("Error configuring RF channels\n");
     return SRSLTE_ERROR;
   }
 
@@ -124,7 +124,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
 
   // Makes sure it is possible to have the same number of RF channels in each RF device
   if (nof_channels % device_args_list.size() != 0) {
-    log_h->console(
+    srslte::out_stream(
         "Error: The number of required RF channels (%d) is not divisible between the number of RF devices (%zd).\n",
         nof_channels,
         device_args_list.size());
@@ -175,7 +175,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   } else {
     // Set same gain than for RX until power control sets a gain
     set_tx_gain(args.rx_gain);
-    log_h->console("\nWarning: TX gain was not set. Using open-loop power control (not working properly)\n\n");
+    srslte::out_stream("\nWarning: TX gain was not set. Using open-loop power control (not working properly)\n\n");
   }
 
   // Set individual gains
@@ -445,10 +445,10 @@ bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name,
     dev_name = (char*)device_name.c_str();
   }
 
-  log_h->console("Opening %d channels in RF device=%s with args=%s\n",
-                 nof_channels_x_dev,
-                 dev_name ? dev_name : "default",
-                 dev_args ? dev_args : "default");
+  srslte::out_stream("Opening %d channels in RF device=%s with args=%s\n",
+                     nof_channels_x_dev,
+                     dev_name ? dev_name : "default",
+                     dev_args ? dev_args : "default");
 
   if (srslte_rf_open_devname(rf_device, dev_name, dev_args, nof_channels_x_dev)) {
     log_h->error("Error opening RF device\n");
@@ -800,7 +800,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 160;
       } else {
         /* Interpolate from known values */
-        log_h->console(
+        srslte::out_stream(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = uhd_default_tx_adv_samples + (int)(cur_tx_srate * uhd_default_tx_adv_offset_sec);
@@ -822,7 +822,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 80; // to calc
       } else {
         /* Interpolate from known values */
-        log_h->console(
+        srslte::out_stream(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = uhd_default_tx_adv_samples + (int)(cur_tx_srate * uhd_default_tx_adv_offset_sec);
@@ -844,7 +844,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 102;
       } else {
         /* Interpolate from known values */
-        log_h->console(
+        srslte::out_stream(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = lime_default_tx_adv_samples + (int)(cur_tx_srate * lime_default_tx_adv_offset_sec);
@@ -871,7 +871,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
         nsamples = 21;
       } else {
         /* Interpolate from known values */
-        log_h->console(
+        srslte::out_stream(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
         nsamples = blade_default_tx_adv_samples + (int)(blade_default_tx_adv_offset_sec * cur_tx_srate);
@@ -881,7 +881,7 @@ double radio::get_dev_cal_tx_adv_sec(const std::string& device_name)
     }
   } else {
     nsamples = tx_adv_nsamples;
-    log_h->console("Setting manual TX/RX offset to %d samples\n", nsamples);
+    srslte::out_stream("Setting manual TX/RX offset to %d samples\n", nsamples);
   }
 
   // Calculate TX advance in seconds from samples and sampling rate

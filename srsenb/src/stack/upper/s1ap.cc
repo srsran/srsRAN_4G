@@ -93,7 +93,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const ho_prep_fail_s& msg
 
   std::string cause = s1ap_ptr->get_cause(msg.protocol_ies.cause.value);
   procError("HO preparation Failure. Cause: %s\n", cause.c_str());
-  s1ap_ptr->s1ap_log->console("HO preparation Failure. Cause: %s\n", cause.c_str());
+  srslte::out_stream("HO preparation Failure. Cause: %s\n", cause.c_str());
 
   return srslte::proc_outcome_t::error;
 }
@@ -187,15 +187,15 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
   if (not s1ap_ptr->connect_mme()) {
     procInfo("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
              s1ap_ptr->mme_connect_timer.duration() / 1000);
-    s1ap_ptr->s1ap_log->console("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
-                                s1ap_ptr->mme_connect_timer.duration() / 1000);
+    srslte::out_stream("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
+                       s1ap_ptr->mme_connect_timer.duration() / 1000);
     s1ap_ptr->mme_connect_timer.run();
     return srslte::proc_outcome_t::error;
   }
 
   if (not s1ap_ptr->setup_s1()) {
     procError("S1 setup failed. Exiting...\n");
-    s1ap_ptr->s1ap_log->console("S1 setup failed\n");
+    srslte::out_stream("S1 setup failed\n");
     s1ap_ptr->running = false;
     return srslte::proc_outcome_t::error;
   }
@@ -215,7 +215,7 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup
     return srslte::proc_outcome_t::success;
   }
   procError("S1Setup failed. Exiting...\n");
-  s1ap_ptr->s1ap_log->console("S1setup failed\n");
+  srslte::out_stream("S1setup failed\n");
   return srslte::proc_outcome_t::error;
 }
 
@@ -504,7 +504,7 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
     s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
     if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
       s1ap_log->info("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-      s1ap_log->console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+      srslte::out_stream("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
       s1ap_socket.reset();
     }
   } else if (pdu->N_bytes == 0) {
@@ -783,7 +783,7 @@ bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
 {
   std::string cause = get_cause(msg.protocol_ies.cause.value);
   s1ap_log->error("S1 Setup Failure. Cause: %s\n", cause.c_str());
-  s1ap_log->console("S1 Setup Failure. Cause: %s\n", cause.c_str());
+  srslte::out_stream("S1 Setup Failure. Cause: %s\n", cause.c_str());
   return true;
 }
 
@@ -818,7 +818,7 @@ bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
   uint16_t rnti = SRSLTE_INVALID_RNTI;
 
   s1ap_log->info("Received S1 HO Request\n");
-  s1ap_log->console("Received S1 HO Request\n");
+  srslte::out_stream("Received S1 HO Request\n");
 
   auto on_scope_exit = srslte::make_scope_exit([this, &rnti, msg]() {
     // If rnti is not allocated successfully, remove from s1ap and send handover failure
@@ -930,7 +930,7 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
 bool s1ap::handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& msg)
 {
   s1ap_log->info("Received S1 MMEStatusTransfer\n");
-  s1ap_log->console("Received S1 MMEStatusTransfer\n");
+  srslte::out_stream("Received S1 MMEStatusTransfer\n");
 
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {

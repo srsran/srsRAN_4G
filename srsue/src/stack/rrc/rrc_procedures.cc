@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
 #include "srslte/common/security.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/tti_point.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include <inttypes.h> // for printing uint64_t
@@ -367,8 +368,7 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
  *************************************/
 
 rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
-  rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
 {}
 
 /*
@@ -781,8 +781,7 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
  *************************************/
 
 rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
-  rrc_ptr(parent_),
-  log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
 {}
 
 proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
@@ -970,7 +969,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
       if (rrc_ptr->ue_identity == s_tmsi_paged) {
         if (RRC_STATE_IDLE == rrc_ptr->state) {
           Info("S-TMSI match in paging message\n");
-          log_h->console("S-TMSI match in paging message\n");
+          srslte::out_stream("S-TMSI match in paging message\n");
           if (not rrc_ptr->nas->paging(&s_tmsi_paged)) {
             Error("Unable to start NAS paging proc\n");
             return proc_outcome_t::error;
@@ -1373,7 +1372,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_co
 srslte::proc_outcome_t rrc::connection_reest_proc::react(const t301_expiry& ev)
 {
   Info("Timer T301 expired: Going to RRC IDLE\n");
-  rrc_ptr->rrc_log->console("Timer T301 expired: Going to RRC IDLE\n");
+  srslte::out_stream("Timer T301 expired: Going to RRC IDLE\n");
   rrc_ptr->start_go_idle();
 
   return proc_outcome_t::error;
@@ -1382,7 +1381,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step()
 {
   if (rrc_ptr->t301.is_running() and not passes_cell_criteria()) {
     Info("Selected cell no longer suitable: Going to RRC IDLE\n");
-    rrc_ptr->rrc_log->console("Selected cell no longer suitable: Going to RRC IDLE\n");
+    srslte::out_stream("Selected cell no longer suitable: Going to RRC IDLE\n");
     rrc_ptr->start_go_idle();
     return proc_outcome_t::error;
   }
@@ -1392,7 +1391,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step()
 // 5.3.7.8 - Reception of RRCConnectionReestablishmentReject by the UE
 srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_reject_s& reject_msg)
 {
-  rrc_ptr->rrc_log->console("Reestablishment Reject. Going to RRC IDLE\n");
+  srslte::console("Reestablishment Reject. Going to RRC IDLE\n");
   Info("Reestablishment Reject. Going to RRC IDLE\n");
   rrc_ptr->t301.stop();
   rrc_ptr->start_go_idle();
@@ -1434,9 +1433,9 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
 
   Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
-  rrc_ptr->rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
-                            mob_ctrl_info->target_pci,
-                            recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
+  srslte::out_stream("Received HO command to target PCell=%d, NCC=%d\n",
+                     mob_ctrl_info->target_pci,
+                     recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
   uint32_t target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
                                                                  : rrc_ptr->meas_cells.serving_cell().get_earfcn();
@@ -1446,7 +1445,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   if (cell_to_ho != nullptr) {
     target_cell = cell_to_ho->phy_cell;
   } else {
-    rrc_ptr->rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
+    srslte::out_stream("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
     Error("Could not find target cell earfcn=%d, pci=%d\n",
           rrc_ptr->meas_cells.serving_cell().get_earfcn(),
           mob_ctrl_info->target_pci);
@@ -1587,7 +1586,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
 void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
   Info("HO to PCI=%d, EARFCN=%d %ssuccessful\n", target_cell.pci, target_cell.earfcn, result.is_success() ? "" : "un");
-  rrc_ptr->rrc_log->console("HO %ssuccessful\n", result.is_success() ? "" : "un");
+  srslte::console("HO %ssuccessful\n", result.is_success() ? "" : "un");
 
   rrc_ptr->t304.stop();
 }

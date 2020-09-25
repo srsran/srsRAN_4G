@@ -69,14 +69,14 @@ int spgw::gtpc::init(spgw_args_t*                           args,
   // Init S11 interface
   err = init_s11(args);
   if (err != SRSLTE_SUCCESS) {
-    m_gtpc_log->console("Could not initialize the S11 interface.\n");
+    srslte::out_stream("Could not initialize the S11 interface.\n");
     return err;
   }
 
   // Init IP pool
   err = init_ue_ip(args, ip_to_imsi);
   if (err != SRSLTE_SUCCESS) {
-    m_gtpc_log->console("Could not initialize the IP pool.\n");
+    srslte::out_stream("Could not initialize the IP pool.\n");
     return err;
   }
 
@@ -84,7 +84,7 @@ int spgw::gtpc::init(spgw_args_t*                           args,
   m_max_paging_queue = args->max_paging_queue;
 
   m_gtpc_log->info("SPGW S11 Initialized.\n");
-  m_gtpc_log->console("SPGW S11 Initialized.\n");
+  srslte::out_stream("SPGW S11 Initialized.\n");
   return 0;
 }
 
@@ -93,7 +93,7 @@ void spgw::gtpc::stop()
   std::map<uint32_t, spgw_tunnel_ctx*>::iterator it = m_teid_to_tunnel_ctx.begin();
   while (it != m_teid_to_tunnel_ctx.end()) {
     m_gtpc_log->info("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
-    m_gtpc_log->console("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
+    srslte::out_stream("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
     delete it->second;
     m_teid_to_tunnel_ctx.erase(it++);
   }
@@ -156,7 +156,7 @@ void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
 {
   // TODO add deserialization code here
   srslte::gtpc_pdu* pdu = (srslte::gtpc_pdu*)msg->msg;
-  m_gtpc_log->console("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
+  srslte::out_stream("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   m_gtpc_log->debug("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   switch (pdu->header.type) {
     case srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST:
@@ -192,9 +192,9 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   // Check if IMSI has active GTP-C and/or GTP-U
   bool gtpc_present = m_imsi_to_ctr_teid.count(cs_req.imsi);
   if (gtpc_present) {
-    m_gtpc_log->console("SPGW: GTP-C context for IMSI %015" PRIu64 " already exists.\n", cs_req.imsi);
+    srslte::out_stream("SPGW: GTP-C context for IMSI %015" PRIu64 " already exists.\n", cs_req.imsi);
     delete_gtpc_ctx(m_imsi_to_ctr_teid[cs_req.imsi]);
-    m_gtpc_log->console("SPGW: Deleted previous context.\n");
+    srslte::out_stream("SPGW: Deleted previous context.\n");
   }
 
   m_gtpc_log->info("Creating new GTP-C context\n");
@@ -280,7 +280,7 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   if (tunnel_ctx->paging_pending == true) {
     tunnel_ctx->paging_pending = false;
     m_gtpc_log->debug("Modify Bearer Request received after Downling Data Notification was sent\n");
-    m_gtpc_log->console("Modify Bearer Request received after Downling Data Notification was sent\n");
+    srslte::out_stream("Modify Bearer Request received after Downling Data Notification was sent\n");
     m_gtpu->send_all_queued_packets(tunnel_ctx->dw_user_fteid, tunnel_ctx->paging_queue);
   }
 
@@ -363,8 +363,8 @@ bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
   }
 
   tunnel_ctx->paging_pending = true;
-  m_gtpc_log->console("Found UE for Downlink Notification \n");
-  m_gtpc_log->console("MME Ctr TEID 0x%x, IMSI: %015" PRIu64 "\n", tunnel_ctx->dw_ctrl_fteid.teid, tunnel_ctx->imsi);
+  srslte::out_stream("Found UE for Downlink Notification \n");
+  srslte::out_stream("MME Ctr TEID 0x%x, IMSI: %015" PRIu64 "\n", tunnel_ctx->dw_ctrl_fteid.teid, tunnel_ctx->imsi);
 
   // Setup GTP-C header
   header->piggyback    = false;
@@ -450,11 +450,11 @@ spgw_tunnel_ctx_t* spgw::gtpc::create_gtpc_ctx(const struct srslte::gtpc_create_
 
   uint8_t default_bearer_id = 5;
 
-  m_gtpc_log->console("SPGW: Allocated Ctrl TEID %" PRIu64 "\n", spgw_uplink_ctrl_teid);
-  m_gtpc_log->console("SPGW: Allocated User TEID %" PRIu64 "\n", spgw_uplink_user_teid);
+  srslte::out_stream("SPGW: Allocated Ctrl TEID %" PRIu64 "\n", spgw_uplink_ctrl_teid);
+  srslte::out_stream("SPGW: Allocated User TEID %" PRIu64 "\n", spgw_uplink_user_teid);
   struct in_addr ue_ip_;
   ue_ip_.s_addr = ue_ip;
-  m_gtpc_log->console("SPGW: Allocate UE IP %s\n", inet_ntoa(ue_ip_));
+  srslte::out_stream("SPGW: Allocate UE IP %s\n", inet_ntoa(ue_ip_));
 
   // Save the UE IP to User TEID map
   spgw_tunnel_ctx_t* tunnel_ctx = new spgw_tunnel_ctx_t{};

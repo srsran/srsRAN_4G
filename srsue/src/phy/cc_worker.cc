@@ -148,7 +148,7 @@ bool cc_worker::set_cell_unlocked(srslte_cell_t cell_)
 
     if (cell.frame_type == SRSLTE_TDD && ue_dl_cfg.chest_cfg.estimator_alg != SRSLTE_ESTIMATOR_ALG_INTERPOLATE) {
       chest_default_cfg.estimator_alg = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
-      log_h->console("Enabling subframe interpolation for TDD cells (recommended setting)\n");
+      srslte::out_stream("Enabling subframe interpolation for TDD cells (recommended setting)\n");
     }
 
     cell_initiated = true;
@@ -213,7 +213,7 @@ void cc_worker::enable_pregen_signals_unlocked(bool enabled)
 
 bool cc_worker::work_dl_regular()
 {
-  bool                         dl_ack[SRSLTE_MAX_CODEWORDS] = {};
+  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {};
 
   mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
@@ -578,7 +578,7 @@ void cc_worker::update_measurements(std::vector<rrc_interface_phy_lte::phy_meas_
 
 bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 {
-  bool                         signal_ready;
+  bool signal_ready;
 
   srslte_dci_ul_t                       dci_ul       = {};
   mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant = {};

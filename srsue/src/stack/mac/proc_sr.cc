@@ -89,7 +89,7 @@ void sr_proc::step(uint32_t tti)
             Info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, dsr_transmax=%d\n",
                  sr_counter,
                  sr_cfg.dsr_transmax);
-            log_h->console("Scheduling request failed: releasing RRC connection...\n");
+            srslte::out_stream("Scheduling request failed: releasing RRC connection...\n");
             rrc->release_pucch_srs();
             ra->start_mac_order();
             reset();

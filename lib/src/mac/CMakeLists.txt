@@ -25,4 +25,4 @@ if (ENABLE_5GNR)
 endif(ENABLE_5GNR)
 
 add_library(srslte_mac STATIC ${SOURCES})
-
+target_link_libraries(srslte_mac srslte_common)

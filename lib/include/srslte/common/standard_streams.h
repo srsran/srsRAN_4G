@@ -24,10 +24,10 @@
 
 namespace srslte {
 
-/// Writes a message to a new line on the standard output stream.
+/// Writes the formatted string to the standard output stream.
 void out_stream(const char* str, ...);
 
-/// Writes a message to a new line on the standard error stream.
+/// Writes the formatted string to the standard error stream.
 void err_stream(const char* str, ...);
 
 } // namespace srslte

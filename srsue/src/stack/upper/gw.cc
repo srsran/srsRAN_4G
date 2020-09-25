@@ -122,7 +122,7 @@ void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     log.warning("Packet to small to hold IPv4 header. Dropping packet with %d B\n", pdu->N_bytes);
   } else {
     // Only handle IPv4 and IPv6 packets
-    struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+    struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
     if (ip_pkt->version == 4 || ip_pkt->version == 6) {
       int n = write(tun_fd, pdu->msg, pdu->N_bytes);
       if (n > 0 && (pdu->N_bytes != (uint32_t)n)) {
@@ -232,7 +232,7 @@ void gw::run_thread()
       N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {
       log.error("GW pdu buffer full - gw receive thread exiting.\n");
-      log.console("GW pdu buffer full - gw receive thread exiting.\n");
+      srslte::out_stream("GW pdu buffer full - gw receive thread exiting.\n");
       break;
     }
     log.debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
@@ -298,7 +298,7 @@ void gw::run_thread()
       }
     } else {
       log.error("Failed to read from TUN interface - gw receive thread exiting.\n");
-      log.console("Failed to read from TUN interface - gw receive thread exiting.\n");
+      srslte::out_stream("Failed to read from TUN interface - gw receive thread exiting.\n");
       break;
     }
   }
@@ -322,8 +322,7 @@ int gw::init_if(char* err_str)
     netns_fd = open(netns.c_str(), O_RDONLY);
     if (netns_fd == -1) {
       err_str = strerror(errno);
-      log.error("Failed to find netns %s (%s): %s\n",
-                args.netns.c_str(), netns.c_str(), err_str);
+      log.error("Failed to find netns %s (%s): %s\n", args.netns.c_str(), netns.c_str(), err_str);
       return SRSLTE_ERROR_CANT_START;
     }
     if (setns(netns_fd, CLONE_NEWNET) == -1) {

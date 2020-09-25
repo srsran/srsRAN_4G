@@ -51,7 +51,6 @@ public:
 
   void init(std::string layer, logger* logger_, bool tti = false);
 
-  void console(const char* message, ...) __attribute__((format(printf, 2, 3)));
   void error(const char* message, ...) __attribute__((format(printf, 2, 3)));
   void warning(const char* message, ...) __attribute__((format(printf, 2, 3)));
   void info(const char* message, ...) __attribute__((format(printf, 2, 3)));

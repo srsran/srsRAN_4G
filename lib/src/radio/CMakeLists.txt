@@ -20,7 +20,7 @@
 
 if(RF_FOUND)
   add_library(srslte_radio STATIC radio.cc radio_null.cc channel_mapping.cc)
-  target_link_libraries(srslte_radio srslte_rf)
+  target_link_libraries(srslte_radio srslte_rf srslte_common)
 endif(RF_FOUND)
 
 add_subdirectory(test)

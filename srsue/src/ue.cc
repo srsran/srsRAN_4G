@@ -63,7 +63,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Validate arguments
   if (parse_args(args_)) {
-    log.console("Error processing arguments. Please check %s for more details.\n", args_.log.filename.c_str());
+    srslte::out_stream("Error processing arguments. Please check %s for more details.\n", args_.log.filename.c_str());
     return SRSLTE_ERROR;
   }
 
@@ -71,47 +71,47 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
   if (args.stack.type == "lte") {
     std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte());
     if (!lte_stack) {
-      log.console("Error creating LTE stack instance.\n");
+      srslte::out_stream("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;
     }
 
     std::unique_ptr<gw> gw_ptr(new gw());
     if (!gw_ptr) {
-      log.console("Error creating a GW instance.\n");
+      srslte::out_stream("Error creating a GW instance.\n");
       return SRSLTE_ERROR;
     }
 
     std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy(logger));
     if (!lte_phy) {
-      log.console("Error creating LTE PHY instance.\n");
+      srslte::out_stream("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
     }
 
     std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
     if (!lte_radio) {
-      log.console("Error creating radio multi instance.\n");
+      srslte::out_stream("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
     }
 
     // init layers
     if (lte_radio->init(args.rf, lte_phy.get())) {
-      log.console("Error initializing radio.\n");
+      srslte::out_stream("Error initializing radio.\n");
       return SRSLTE_ERROR;
     }
 
     // from here onwards do not exit immediately if something goes wrong as sub-layers may already use interfaces
     if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
-      log.console("Error initializing PHY.\n");
+      srslte::out_stream("Error initializing PHY.\n");
       ret = SRSLTE_ERROR;
     }
 
     if (lte_stack->init(args.stack, logger, lte_phy.get(), gw_ptr.get())) {
-      log.console("Error initializing stack.\n");
+      srslte::out_stream("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
 
     if (gw_ptr->init(args.gw, logger, lte_stack.get())) {
-      log.console("Error initializing GW.\n");
+      srslte::out_stream("Error initializing GW.\n");
       ret = SRSLTE_ERROR;
     }
 
@@ -130,22 +130,22 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
     // Init layers
     if (nr_radio->init(args.rf, nullptr)) {
-      log.console("Error initializing radio.\n");
+      srslte::out_stream("Error initializing radio.\n");
       return SRSLTE_ERROR;
     }
 
     if (nr_phy->init(args.phy, nr_stack.get())) {
-      log.console("Error initializing PHY.\n");
+      srslte::out_stream("Error initializing PHY.\n");
       return SRSLTE_ERROR;
     }
 
     if (nr_stack->init(args.stack, nr_phy.get(), gw_ptr.get())) {
-      log.console("Error initializing stack.\n");
+      srslte::out_stream("Error initializing stack.\n");
       return SRSLTE_ERROR;
     }
 
     if (gw_ptr->init(args.gw, logger, nr_stack.get())) {
-      log.console("Error initializing GW.\n");
+      srslte::out_stream("Error initializing GW.\n");
       return SRSLTE_ERROR;
     }
 
@@ -155,18 +155,18 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     phy     = std::move(nr_phy);
     radio   = std::move(nr_radio);
 #else
-    log.console("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
+    srslte::out_stream("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
     log.error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
 #endif
   } else {
-    log.console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
+    srslte::out_stream("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
     ret = SRSLTE_ERROR;
   }
 
   if (phy) {
-    log.console("Waiting PHY to initialize ... ");
+    srslte::out_stream("Waiting PHY to initialize ... ");
     phy->wait_initialize();
-    log.console("done!\n");
+    srslte::out_stream("done!\n");
   }
 
   return ret;
@@ -230,7 +230,7 @@ int ue::parse_args(const all_args_t& args_)
     }
   } else {
     log.error("Error: dl_earfcn list is empty\n");
-    log.console("Error: dl_earfcn list is empty\n");
+    srslte::out_stream("Error: dl_earfcn list is empty\n");
     return SRSLTE_ERROR;
   }
 

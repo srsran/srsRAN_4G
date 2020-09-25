@@ -30,6 +30,7 @@
 #ifndef SRSLTE_LOG_H
 #define SRSLTE_LOG_H
 
+#include "srslte/common/standard_streams.h"
 #include <algorithm>
 #include <stdint.h>
 #include <string>
@@ -118,7 +119,6 @@ public:
   int  get_hex_limit() { return hex_limit; }
 
   // Pure virtual methods for logging
-  virtual void console(const char* message, ...) __attribute__((format(printf, 2, 3)))    = 0;
   virtual void error(const char* message, ...) __attribute__((format(printf, 2, 3)))      = 0;
   virtual void warning(const char* message, ...) __attribute__((format(printf, 2, 3)))    = 0;
   virtual void info(const char* message, ...) __attribute__((format(printf, 2, 3)))       = 0;

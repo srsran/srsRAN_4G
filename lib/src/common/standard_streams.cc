@@ -20,6 +20,7 @@
  */
 
 #include "srslte/common/standard_streams.h"
+#include <cstdarg>
 #include <cstdio>
 
 using namespace srslte;

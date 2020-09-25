@@ -109,12 +109,13 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
     return true;
   }
 
-  cell         = cell_;
-  cfg          = prach_cfg;
+  cell = cell_;
+  cfg  = prach_cfg;
   // We must not reset preamble_idx here, MAC might have already called prepare_to_send()
 
   if (6 + prach_cfg.freq_offset > cell.nof_prb) {
-    log_h->console("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
+    srslte::out_stream(
+        "Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
     log_h->error("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
     return false;
   }

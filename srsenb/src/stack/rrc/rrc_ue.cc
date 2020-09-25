@@ -180,7 +180,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete:
       handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), std::move(pdu));
-      parent->rrc_log->console("User 0x%x connected\n", rnti);
+      srslte::out_stream("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED;
       set_activity_timeout(UE_INACTIVITY_TIMEOUT);
       break;
@@ -514,7 +514,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
         phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
         phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = ri_idx;
       } else {
-        parent->rrc_log->console("\nWarning: Configured wrong M_ri parameter.\n\n");
+        srslte::out_stream("\nWarning: Configured wrong M_ri parameter.\n\n");
       }
     } else {
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
