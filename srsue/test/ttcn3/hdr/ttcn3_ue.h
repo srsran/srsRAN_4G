@@ -31,7 +31,7 @@ class ttcn3_ue : public phy_interface_syssim, public gw_interface_stack
 public:
   ttcn3_ue();
 
-  virtual ~ttcn3_ue() {}
+  virtual ~ttcn3_ue();
 
   int init(all_args_t args, srslte::logger* logger_, syssim_interface_phy* syssim_, const std::string tc_name_);
 

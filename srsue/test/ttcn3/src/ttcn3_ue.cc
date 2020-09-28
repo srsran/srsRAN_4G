@@ -96,6 +96,11 @@ int ttcn3_ue::init(all_args_t args, srslte::logger* logger_, syssim_interface_ph
   return SRSLTE_SUCCESS;
 }
 
+ttcn3_ue::~ttcn3_ue()
+{
+  stop();
+}
+
 void ttcn3_ue::stop()
 {
   if (stack) {
