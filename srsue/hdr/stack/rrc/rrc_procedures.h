@@ -286,11 +286,10 @@ public:
 private:
   enum class state_t { wait_cell_selection, wait_reest_msg } state;
 
-  rrc*                     rrc_ptr           = nullptr;
-  asn1::rrc::reest_cause_e reest_cause       = asn1::rrc::reest_cause_e::nulltype;
-  uint16_t                 reest_rnti        = 0;
-  uint16_t                 reest_source_pci  = 0;
-  uint32_t                 reest_source_freq = 0;
+  rrc*                     rrc_ptr     = nullptr;
+  asn1::rrc::reest_cause_e reest_cause = asn1::rrc::reest_cause_e::nulltype;
+  uint16_t                 reest_rnti = 0, reest_source_pci = 0;
+  uint32_t                 reest_source_freq = 0, reest_cellid = 0;
 
   bool                   passes_cell_criteria() const;
   srslte::proc_outcome_t cell_criteria();

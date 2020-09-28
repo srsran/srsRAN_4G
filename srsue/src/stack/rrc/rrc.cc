@@ -723,24 +723,10 @@ void rrc::send_con_request(srslte::establishment_cause_t cause)
 }
 
 /* RRC connection re-establishment procedure (5.3.7.4) */
-void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint16_t pci)
+void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint16_t pci, uint32_t cellid)
 {
-  uint32_t cellid;
-
   // Clean reestablishment type
   reestablishment_successful = false;
-
-  if (cause == reest_cause_e::ho_fail) {
-    crnti  = ho_handler.get()->ho_src_rnti;
-    pci    = ho_handler.get()->ho_src_cell.get_pci();
-    cellid = ho_handler.get()->ho_src_cell.get_cell_id();
-  } else if (cause == reest_cause_e::other_fail) {
-    // use source PCI after RLF
-    cellid = meas_cells.serving_cell().get_cell_id();
-  } else {
-    pci    = meas_cells.serving_cell().get_pci();
-    cellid = meas_cells.serving_cell().get_cell_id();
-  }
 
   // Compute shortMAC-I
   uint8_t       varShortMAC_packed[16] = {};
@@ -806,6 +792,10 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
                    meas_cells.serving_cell().phy_cell.pci,
                    meas_cells.serving_cell().phy_cell.earfcn,
                    cause.to_string().c_str());
+  rrc_log->info("RRC Connection Reestablishment to PCI=%d, EARFCN=%d (Cause: \"%s\")\n",
+                meas_cells.serving_cell().phy_cell.pci,
+                meas_cells.serving_cell().phy_cell.earfcn,
+                cause.to_string().c_str());
   send_ul_ccch_msg(ul_ccch_msg);
 }
 

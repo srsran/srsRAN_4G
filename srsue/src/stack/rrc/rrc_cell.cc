@@ -75,6 +75,16 @@ uint32_t cell_t::timeout_secs(struct timeval now) const
   return t[0].tv_sec;
 }
 
+bool cell_t::has_sibs(srslte::span<uint32_t> indexes) const
+{
+  for (uint32_t idx : indexes) {
+    if (not has_sib(idx)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool cell_t::has_sib(uint32_t index) const
 {
   switch (index) {

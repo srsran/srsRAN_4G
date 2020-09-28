@@ -89,6 +89,7 @@ public:
 
   uint32_t get_cell_id() const { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
 
+  bool has_sibs(srslte::span<uint32_t> indexes) const;
   bool has_sib(uint32_t index) const;
   bool has_sib1() const { return has_valid_sib1; }
   bool has_sib2() const { return has_valid_sib2; }

@@ -329,7 +329,7 @@ private:
 
   // Senders
   void send_con_request(srslte::establishment_cause_t cause);
-  void send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t rnti, uint16_t pci);
+  void send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t rnti, uint16_t pci, uint32_t cellid);
   void send_con_restablish_complete();
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);

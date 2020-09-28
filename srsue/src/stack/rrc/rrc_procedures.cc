@@ -456,8 +456,9 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  */
 proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sibs_)
 {
-  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_ctrl->is_in_sync() and
-      rrc_ptr->phy->cell_is_camping()) {
+  bool serv_cell_is_ok = rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping();
+  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and serv_cell_is_ok and
+      rrc_ptr->meas_cells.serving_cell().has_sibs(required_sibs_)) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
     cs_result = cs_result_t::same_cell;
@@ -480,8 +481,16 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
   } else {
     required_sibs = std::move(required_sibs_);
   }
-  neigh_index                = 0;
-  cs_result                  = cs_result_t::no_cell;
+  neigh_index = 0;
+  cs_result   = cs_result_t::no_cell;
+  if (serv_cell_is_ok) {
+    state = search_state_t::cell_config;
+    if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
+      Warning("Failed to launch %s procedure\n", rrc_ptr->serv_cell_cfg.get()->name());
+      return proc_outcome_t::error;
+    }
+    return proc_outcome_t::yield;
+  }
   state                      = search_state_t::cell_selection;
   discard_serving            = false;
   serv_cell_select_attempted = false;
@@ -1159,18 +1168,26 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   }
 
   // Save reestablishment Cause and current C-RNTI context
-  reest_rnti        = uernti.crnti;
-  reest_cause       = cause;
-  reest_source_pci  = rrc_ptr->meas_cells.serving_cell().get_pci(); // needed for reestablishment with another cell
-  reest_source_freq = rrc_ptr->meas_cells.serving_cell().get_earfcn();
+  reest_cause = cause;
+  if (reest_cause.value == reest_cause_opts::ho_fail) {
+    reest_rnti        = rrc_ptr->ho_handler.get()->ho_src_rnti;
+    reest_source_pci  = rrc_ptr->ho_handler.get()->ho_src_cell.get_pci();
+    reest_cellid      = rrc_ptr->ho_handler.get()->ho_src_cell.get_cell_id();
+    reest_source_freq = rrc_ptr->ho_handler.get()->ho_src_cell.get_earfcn();
+  } else {
+    reest_rnti        = uernti.crnti;
+    reest_source_pci  = rrc_ptr->meas_cells.serving_cell().get_pci(); // needed for reestablishment with another cell
+    reest_cellid      = rrc_ptr->meas_cells.serving_cell().get_cell_id();
+    reest_source_freq = rrc_ptr->meas_cells.serving_cell().get_earfcn();
+  }
 
-  Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, DL-EARFCN=%d}\n",
+  Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}\n",
        reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
            ? "Reconfiguration failure"
            : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
        reest_rnti,
        reest_source_pci,
-       reest_source_freq);
+       reest_cellid);
 
   // 5.3.7.2 - Initiation
 
@@ -1240,7 +1257,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
   // Not implemented yet.
 
   // 1> initiate transmission of the RRCConnectionReestablishmentRequest message in accordance with 5.3.7.4;
-  rrc_ptr->send_con_restablish_request(reest_cause, reest_rnti, reest_source_pci);
+  rrc_ptr->send_con_restablish_request(reest_cause, reest_rnti, reest_source_pci, reest_cellid);
 
   state = state_t::wait_reest_msg;
   return proc_outcome_t::yield;
