@@ -31,7 +31,7 @@ void srslte::console(const char* str, ...)
   va_start(args, str);
   char buffer[1024];
   std::vsnprintf(buffer, sizeof(buffer) - 1, str, args);
-  std::fprintf(stdout, "%s\n", buffer);
+  std::fputs(buffer, stdout);
   std::fflush(stdout);
   va_end(args);
 }
@@ -42,7 +42,7 @@ void srslte::console_stderr(const char* str, ...)
   va_start(args, str);
   char buffer[1024];
   std::vsnprintf(buffer, sizeof(buffer) - 1, str, args);
-  std::fprintf(stderr, "%s\n", buffer);
+  std::fputs(buffer, stderr);
   std::fflush(stderr);
   va_end(args);
 }
