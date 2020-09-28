@@ -702,7 +702,7 @@ void phy_common::update_measurements(uint32_t                                   
     // Calculate SINR using CRS from neighbours if are detected
     float sinr_db = chest_res.snr_db;
     if (std::isnormal(avg_rsrp_neigh[cc_idx])) {
-      cur_noise /= pow(10, rx_gain_offset / 10);
+      cur_noise /= srslte_convert_dB_to_power(rx_gain_offset - 30);
 
       // Normalize the measured power ot the fraction of CRS pilots per PRB. Assume all neighbours have the same
       // number of ports and CP length
