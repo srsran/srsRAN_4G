@@ -129,7 +129,7 @@ uint32_t bsr_proc::get_buffer_state()
   return buffer;
 }
 
-// Checks if data is available for a a channel with higher priority than others
+// Checks if data is available for a channel with higher priority than others
 bool bsr_proc::check_highest_channel()
 {
   for (int i = 0; i < NOF_LCG; i++) {
@@ -170,7 +170,7 @@ bool bsr_proc::check_new_data()
 {
   for (int i = 0; i < NOF_LCG; i++) {
     // If there was no data available in any LCID belonging to this LCG
-    if (!get_buffer_state_lcg(i)) {
+    if (get_buffer_state_lcg(i) == 0) {
       for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
         if (iter->second.new_buffer > 0) {
           Debug("BSR:   New data available for lcid=%d\n", iter->first);
@@ -214,7 +214,7 @@ uint32_t bsr_proc::get_buffer_state_lcg(uint32_t lcg)
 bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
 {
   bool     send_bsr = false;
-  uint32_t nof_lcg = 0;
+  uint32_t nof_lcg  = 0;
 
   // Check if more than one LCG has data to sned
   for (int i = 0; i < NOF_LCG; i++) {
