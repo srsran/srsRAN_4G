@@ -728,6 +728,13 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
   // Clean reestablishment type
   reestablishment_successful = false;
 
+  if (cause.value != reest_cause_opts::ho_fail) {
+    if (cause.value != reest_cause_opts::other_fail) {
+      pci = meas_cells.serving_cell().get_pci();
+    }
+    cellid = meas_cells.serving_cell().get_cell_id();
+  }
+
   // Compute shortMAC-I
   uint8_t       varShortMAC_packed[16] = {};
   asn1::bit_ref bref(varShortMAC_packed, sizeof(varShortMAC_packed));
