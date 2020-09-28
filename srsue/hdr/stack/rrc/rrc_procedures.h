@@ -101,7 +101,6 @@ public:
   explicit serving_cell_config_proc(rrc* parent_);
   srslte::proc_outcome_t init(const std::vector<uint32_t>& required_sibs_);
   srslte::proc_outcome_t step();
-  void                   then(const srslte::proc_state_t& result);
   static const char*     name() { return "Serving Cell Configuration"; }
 
 private:
@@ -124,7 +123,7 @@ public:
   using cell_selection_complete_ev = srslte::proc_result_t<cs_result_t>;
 
   explicit cell_selection_proc(rrc* parent_);
-  srslte::proc_outcome_t init();
+  srslte::proc_outcome_t init(std::vector<uint32_t> required_sibs_ = {});
   srslte::proc_outcome_t step();
   void                   then(const srslte::proc_result_t<cs_result_t>& proc_result) const;
   cs_result_t            get_result() const { return cs_result; }
@@ -151,6 +150,7 @@ private:
   srslte::proc_future_t<rrc_interface_phy_lte::cell_search_ret_t> cell_search_fut;
   srslte::proc_future_t<void>                                     serv_cell_cfg_fut;
   bool                                                            discard_serving = false;
+  std::vector<uint32_t>                                           required_sibs   = {};
 };
 
 class rrc::plmn_search_proc
@@ -270,8 +270,6 @@ public:
   // 5.3.7.3 Actions following cell selection while T311 is running
   // && 5.3.7.4 - Actions related to transmission of RRCConnectionReestablishmentRequest message
   srslte::proc_outcome_t react(const cell_selection_proc::cell_selection_complete_ev& e);
-  // Wait for SIBs of selected cell (part of 5.3.7.3)
-  srslte::proc_outcome_t react(const serv_cell_cfg_completed& result);
   // 5.3.7.5 - Reception of the RRCConnectionReestablishment by the UE
   srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reest_s& reest_msg);
   // 5.3.7.6 - T311 expiry
@@ -281,12 +279,12 @@ public:
   // detects if cell is no longer suitable (part of 5.3.7.7)
   srslte::proc_outcome_t step();
   // 5.3.7.8 - Reception of RRCConnectionReestablishmentReject by the UE
-  srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reject_s& reest_msg);
+  srslte::proc_outcome_t react(const asn1::rrc::rrc_conn_reest_reject_s& reest_msg);
   static const char*     name() { return "Connection re-establishment"; }
   uint32_t               get_source_earfcn() const { return reest_source_freq; }
 
 private:
-  enum class state_t { wait_cell_selection, wait_cell_configuration, wait_reest_msg } state;
+  enum class state_t { wait_cell_selection, wait_reest_msg } state;
 
   rrc*                     rrc_ptr           = nullptr;
   asn1::rrc::reest_cause_e reest_cause       = asn1::rrc::reest_cause_e::nulltype;
@@ -294,7 +292,6 @@ private:
   uint16_t                 reest_source_pci  = 0;
   uint32_t                 reest_source_freq = 0;
 
-  bool                   sibs_acquired() const;
   bool                   passes_cell_criteria() const;
   srslte::proc_outcome_t cell_criteria();
   srslte::proc_outcome_t start_cell_selection();

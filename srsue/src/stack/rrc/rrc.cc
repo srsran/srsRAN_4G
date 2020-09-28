@@ -1560,7 +1560,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
     }
     /* Reception of RRCConnectionReestablishmentReject 5.3.7.8 */
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_reject:
-      connection_reest.trigger(c1->rrc_conn_reject());
+      connection_reest.trigger(c1->rrc_conn_reest_reject());
       break;
     default:
       rrc_log->error("The provided DL-CCCH message type is not recognized\n");

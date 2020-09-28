@@ -444,13 +444,6 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
   return launch_sib_acquire();
 }
 
-void rrc::serving_cell_config_proc::then(const srslte::proc_state_t& result)
-{
-  if (rrc_ptr->connection_reest.is_busy()) {
-    rrc_ptr->connection_reest.trigger(connection_reest_proc::serv_cell_cfg_completed{});
-  }
-}
-
 /**************************************
  *       Cell Selection Procedure
  *************************************/
@@ -461,7 +454,7 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  * Cell selection procedure 36.304 5.2.3
  * Select the best cell to camp on among the list of known cells
  */
-proc_outcome_t rrc::cell_selection_proc::init()
+proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sibs_)
 {
   if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_ctrl->is_in_sync() and
       rrc_ptr->phy->cell_is_camping()) {
@@ -482,6 +475,11 @@ proc_outcome_t rrc::cell_selection_proc::init()
     Info("Cell selection criteria: not available\n");
   }
   Info("Current serving cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
+  if (required_sibs_.empty()) {
+    required_sibs = rrc_ptr->ue_required_sibs;
+  } else {
+    required_sibs = std::move(required_sibs_);
+  }
   neigh_index                = 0;
   cs_result                  = cs_result_t::no_cell;
   state                      = search_state_t::cell_selection;
@@ -583,10 +581,10 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const bool& cs_ret)
     // successful selection
     if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
       Info("PHY is in SYNC and cell selection passed\n");
-      if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, rrc_ptr->ue_required_sibs)) {
+      state = search_state_t::cell_config;
+      if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
         return proc_outcome_t::error;
       }
-      state = search_state_t::cell_config;
       return proc_outcome_t::yield;
     }
     Info("PHY is in SYNC but cell selection did not pass. Go back to select step.\n");
@@ -901,11 +899,11 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
     // timeAlignmentCommon applied in configure_serving_cell
 
     Info("Configuring serving cell...\n");
+    state = state_t::config_serving_cell;
     if (not rrc_ptr->serv_cell_cfg.launch(&serv_cfg_fut, rrc_ptr->ue_required_sibs)) {
       Error("Attach request failed to configure serving cell...\n");
       return proc_outcome_t::error;
     }
-    state = state_t::config_serving_cell;
     return step();
   } else {
     switch (cs_ret) {
@@ -1208,26 +1206,11 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   return start_cell_selection();
 }
 
-bool rrc::connection_reest_proc::sibs_acquired() const
-{
-  return rrc_ptr->meas_cells.serving_cell().has_sib1() && rrc_ptr->meas_cells.serving_cell().has_sib2() &&
-         rrc_ptr->meas_cells.serving_cell().has_sib3();
-}
-
 // Perform cell selection in accordance to 36.304
 bool rrc::connection_reest_proc::passes_cell_criteria() const
 {
-  return rrc_ptr->phy_ctrl->is_in_sync() and sibs_acquired() and
+  return rrc_ptr->phy_ctrl->is_in_sync() and
          rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp());
-}
-
-srslte::proc_outcome_t rrc::connection_reest_proc::react(const serv_cell_cfg_completed& ev)
-{
-  if (state != state_t::wait_cell_configuration) {
-    Warning("Received unexpected  \"%s\" completion signal\n", rrc_ptr->serv_cell_cfg.get()->name());
-    return proc_outcome_t::yield;
-  }
-  return cell_criteria();
 }
 
 // 5.3.7.3 - Actions following cell selection while T311 is running
@@ -1267,7 +1250,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::start_cell_selection()
 {
   // Launch cell reselection
   state = state_t::wait_cell_selection;
-  if (not rrc_ptr->cell_selector.launch()) {
+  if (not rrc_ptr->cell_selector.launch(std::vector<uint32_t>{0, 1, 2})) {
     Error("Failed to initiate a Cell re-selection procedure...\n");
     // Wait for T311 to expire
     return proc_outcome_t::yield;
@@ -1293,21 +1276,14 @@ rrc::connection_reest_proc::react(const cell_selection_proc::cell_selection_comp
     return start_cell_selection();
   }
 
-  // Acquire SIBs if necessary
-  if (not sibs_acquired()) {
-    Info("SIBs missing (%d, %d, %d), launching serving cell configuration procedure\n",
-         rrc_ptr->meas_cells.serving_cell().has_sib1(),
-         rrc_ptr->meas_cells.serving_cell().has_sib2(),
-         rrc_ptr->meas_cells.serving_cell().has_sib3());
-    std::vector<uint32_t> required_sibs = {0, 1, 2};
-    state                               = state_t::wait_cell_configuration;
-    if (!rrc_ptr->serv_cell_cfg.launch(required_sibs)) {
-      Error("Failed to initiate configure serving cell\n");
-      // Wait for T311 expiry
-      return proc_outcome_t::yield;
-    }
-    rrc_ptr->callback_list.add_proc(rrc_ptr->serv_cell_cfg);
-    return proc_outcome_t::yield;
+  // SIBs should be available
+  if (not rrc_ptr->meas_cells.serving_cell().has_sib1() or not rrc_ptr->meas_cells.serving_cell().has_sib2() or
+      not rrc_ptr->meas_cells.serving_cell().has_sib3()) {
+    Warning("SIBs missing (%d, %d, %d) after cell selection procedure\n",
+            rrc_ptr->meas_cells.serving_cell().has_sib1(),
+            rrc_ptr->meas_cells.serving_cell().has_sib2(),
+            rrc_ptr->meas_cells.serving_cell().has_sib3());
+    return proc_outcome_t::yield; // wait for t311 expiry
   }
 
   return cell_criteria();
@@ -1385,9 +1361,10 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step()
 }
 
 // 5.3.7.8 - Reception of RRCConnectionReestablishmentReject by the UE
-srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reject_s& reject_msg)
+srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_conn_reest_reject_s& reject_msg)
 {
   rrc_ptr->rrc_log->console("Reestablishment Reject. Going to RRC IDLE\n");
+  Info("Reestablishment Reject. Going to RRC IDLE\n");
   rrc_ptr->t301.stop();
   rrc_ptr->start_go_idle();
   return proc_outcome_t::error;
