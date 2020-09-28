@@ -330,10 +330,11 @@ int tft_filter_test_ipv4_remote_addr()
   // Filter length: 5 bytes
   // Filter type:   IPv4 local address
   // Remote address: 127.0.0.2
-  uint8_t filter_message[5];
-  uint8_t filter_size = 5;
+  uint8_t filter_message[9];
+  uint8_t filter_size = 9;
   filter_message[0]   = IPV4_REMOTE_ADDR_TYPE;
   inet_pton(AF_INET, "127.0.0.2", &filter_message[1]);
+  inet_pton(AF_INET, "255.0.0.0", &filter_message[5]);
 
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
