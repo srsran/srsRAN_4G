@@ -208,8 +208,6 @@ public:
   void                   then(const srslte::proc_state_t& result);
 
 private:
-  srslte::proc_outcome_t handle_recfg_complete();
-
   // const
   rrc* rrc_ptr;
   // args
