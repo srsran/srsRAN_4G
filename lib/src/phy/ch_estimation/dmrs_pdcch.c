@@ -161,3 +161,40 @@ dmrs_pdcch_put_symbol_noninterleaved(const srslte_nr_pdcch_cfg_t* cfg, uint32_t 
     }
   }
 }
+
+int srslte_dmrs_pdcch_put(const srslte_nr_pdcch_cfg_t* cfg, const srslte_dl_sf_cfg_t* dl_sf, cf_t* sf_symbols)
+{
+  int ncce = srslte_pdcch_get_ncce(cfg, dl_sf);
+  if (ncce < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  if (cfg->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
+    ERROR("Error interleaved CORESET mapping is not currently implemented\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (cfg->coreset.duration < SRSLTE_CORESET_DURATION_MIN || cfg->coreset.duration > SRSLTE_CORESET_DURATION_MAX) {
+    ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)\n",
+          cfg->coreset.duration,
+          SRSLTE_CORESET_DURATION_MIN,
+          SRSLTE_CORESET_DURATION_MAX);
+    return SRSLTE_ERROR;
+  }
+
+  // Use cell id if the DMR scrambling id is not provided by higher layers
+  uint32_t n_id = cfg->carrier.id;
+  if (cfg->coreset.dmrs_scrambling_id_present) {
+    n_id = cfg->coreset.dmrs_scrambling_id;
+  }
+
+  for (uint32_t l = 0; l < cfg->coreset.duration; l++) {
+    // Get Cin
+    uint32_t cinit = dmrs_pdcch_get_cinit(dl_sf->tti % SRSLTE_NR_NSLOTS_PER_FRAME(cfg->carrier.numerology), l, n_id);
+
+    // Put data
+    dmrs_pdcch_put_symbol_noninterleaved(cfg, cinit, ncce, &sf_symbols[cfg->carrier.nof_prb * SRSLTE_NRE * l]);
+  }
+
+  return SRSLTE_SUCCESS;
+}
