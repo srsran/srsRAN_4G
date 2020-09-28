@@ -943,7 +943,7 @@ bool rrc::con_reconfig(const rrc_conn_recfg_s& reconfig)
   // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside apply_scell_config()
   // Note that apply_scell_config() calls set_scell() and set_config() which run in the background.
   rrc_conn_recfg_r8_ies_s reconfig_r8_ = *reconfig_r8;
-  apply_scell_config(&reconfig_r8_);
+  apply_scell_config(&reconfig_r8_, true);
 
   if (!measurements->parse_meas_config(
           reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
@@ -2088,7 +2088,7 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_han
   }
 }
 
-void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
+void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config, bool enable_cqi)
 {
   srslte_cell_t scell  = {};
   uint32_t      earfcn = 0;
@@ -2139,11 +2139,17 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
   }
 
   // Initialize scell config with pcell cfg
-  set_phy_cfg_t_scell_config(&current_phy_cfg, scell_config);
+  srslte::phy_cfg_t scell_cfg = current_phy_cfg;
+  set_phy_cfg_t_scell_config(&scell_cfg, scell_config);
+
+  if (not enable_cqi) {
+    scell_cfg.dl_cfg.cqi_report.periodic_configured  = false;
+    scell_cfg.dl_cfg.cqi_report.aperiodic_configured = false;
+  }
 
   if (!phy->set_scell(scell, scell_config.scell_idx_r10, earfcn)) {
     rrc_log->error("Adding SCell cc_idx=%d\n", scell_config.scell_idx_r10);
-  } else if (!phy->set_config(current_phy_cfg, scell_config.scell_idx_r10)) {
+  } else if (!phy->set_config(scell_cfg, scell_config.scell_idx_r10)) {
     rrc_log->error("Setting SCell configuration for cc_idx=%d\n", scell_config.scell_idx_r10);
   }
 
@@ -2258,7 +2264,7 @@ bool rrc::apply_rr_config_dedicated_on_ho_complete(const rr_cfg_ded_s& cnfg)
 /*
  * Extracts and applies SCell configuration from an ASN.1 reconfiguration struct
  */
-void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
+void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8, bool enable_cqi)
 {
   if (reconfig_r8->non_crit_ext_present) {
     auto reconfig_r890 = &reconfig_r8->non_crit_ext;
@@ -2296,7 +2302,7 @@ void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
             mac->reconfiguration(scell_config->scell_idx_r10, true);
 
             // Call phy reconfiguration
-            apply_phy_scell_config(*scell_config);
+            apply_phy_scell_config(*scell_config, enable_cqi);
           }
         }
 
@@ -2313,6 +2319,28 @@ void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
       }
     }
   }
+}
+
+bool rrc::apply_scell_config_on_ho_complete(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8)
+{
+  if (reconfig_r8.non_crit_ext_present) {
+    auto& reconfig_r890 = reconfig_r8.non_crit_ext;
+    if (reconfig_r890.non_crit_ext_present) {
+      auto& reconfig_r920 = reconfig_r890.non_crit_ext;
+      if (reconfig_r920.non_crit_ext_present) {
+        auto& reconfig_r1020 = reconfig_r920.non_crit_ext;
+
+        // Handle Add/Modify SCell list
+        if (reconfig_r1020.scell_to_add_mod_list_r10_present) {
+          for (const auto& scell_config : reconfig_r1020.scell_to_add_mod_list_r10) {
+            // Call phy reconfiguration
+            apply_phy_scell_config(scell_config, true);
+          }
+        }
+      }
+    }
+  }
+  return true;
 }
 
 void rrc::handle_con_setup(const rrc_conn_setup_s& setup)

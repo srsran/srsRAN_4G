@@ -1549,7 +1549,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->send_rrc_con_reconfig_complete();
 
   // SCell addition/removal can take some time to compute. Enqueue in a background task and do it in the end.
-  rrc_ptr->apply_scell_config(&recfg_r8);
+  rrc_ptr->apply_scell_config(&recfg_r8, false);
 
   Info("Finished HO configuration. Waiting PHY to synchronize with target cell\n");
 
@@ -1576,6 +1576,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
     // TS 36.331, sec. 5.3.5.4, last "1>"
     rrc_ptr->t304.stop();
     rrc_ptr->apply_rr_config_dedicated_on_ho_complete(recfg_r8.rr_cfg_ded);
+    rrc_ptr->apply_scell_config_on_ho_complete(recfg_r8);
     return proc_outcome_t::success;
   }
 
