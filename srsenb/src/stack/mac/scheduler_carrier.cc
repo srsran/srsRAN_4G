@@ -164,7 +164,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
                            prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window,
                            tti_tx_dl);
         error_msg[len] = '\0';
-        srslte::out_stream("%s", error_msg);
+        srslte::console("%s", error_msg);
         log_h->error("%s", error_msg);
         // Remove from pending queue and get next one if window has passed already
         pending_rars.pop_front();

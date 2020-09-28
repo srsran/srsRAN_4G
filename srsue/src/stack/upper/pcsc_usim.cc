@@ -73,7 +73,7 @@ int pcsc_usim::init(usim_args_t* args)
     }
   } else {
     log->error("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
-    srslte::out_stream("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
+    srslte::console("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
     return ret;
   }
 
@@ -87,7 +87,7 @@ int pcsc_usim::init(usim_args_t* args)
     }
   } else {
     log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
-    srslte::out_stream("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    srslte::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
     return ret;
   }
 

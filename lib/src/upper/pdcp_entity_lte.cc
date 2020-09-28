@@ -62,7 +62,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
 
   // Check supported config
   if (!check_valid_config()) {
-    srslte::out_stream("Warning: Invalid PDCP config.\n");
+    srslte::console("Warning: Invalid PDCP config.\n");
   }
 }
 

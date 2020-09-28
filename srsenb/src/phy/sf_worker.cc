@@ -307,13 +307,13 @@ void sf_worker::start_plot()
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
-    srslte::out_stream("Starting plot for worker_id=%d\n", plot_worker_id);
+    srslte::console("Starting plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
-    srslte::out_stream("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
+    srslte::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
   }
 #else
-  srslte::out_stream("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
+  srslte::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
 #endif
 }
 

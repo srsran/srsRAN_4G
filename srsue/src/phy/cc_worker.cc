@@ -148,7 +148,7 @@ bool cc_worker::set_cell_unlocked(srslte_cell_t cell_)
 
     if (cell.frame_type == SRSLTE_TDD && ue_dl_cfg.chest_cfg.estimator_alg != SRSLTE_ESTIMATOR_ALG_INTERPOLATE) {
       chest_default_cfg.estimator_alg = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
-      srslte::out_stream("Enabling subframe interpolation for TDD cells (recommended setting)\n");
+      srslte::console("Enabling subframe interpolation for TDD cells (recommended setting)\n");
     }
 
     cell_initiated = true;

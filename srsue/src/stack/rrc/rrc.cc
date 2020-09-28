@@ -570,7 +570,7 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
     for (uint32_t j = 0; j < pmch->mbms_session_info_list_r9.size(); j++) {
       mbms_session_info_r9_s* sess = &pmch->mbms_session_info_list_r9[j];
       if (serv == sess->tmgi_r9.service_id_r9.to_number()) {
-        srslte::out_stream("MBMS service started. Service id=%d, port=%d, lcid=%d\n", serv, port, sess->lc_ch_id_r9);
+        srslte::console("MBMS service started. Service id=%d, port=%d, lcid=%d\n", serv, port, sess->lc_ch_id_r9);
         ret = true;
         add_mrb(sess->lc_ch_id_r9, port);
       }
@@ -610,7 +610,7 @@ void rrc::radio_link_failure_push_cmd()
 void rrc::radio_link_failure_process()
 {
   // TODO: Generate and store failure report
-  srslte::out_stream("Warning: Detected Radio-Link Failure\n");
+  srslte::console("Warning: Detected Radio-Link Failure\n");
 
   if (state == RRC_STATE_CONNECTED) {
     if (security_is_activated) {
@@ -657,7 +657,7 @@ void rrc::timer_expired(uint32_t timeout_id)
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure_push_cmd();
   } else if (timeout_id == t311.id()) {
-    srslte::out_stream("Timer T311 expired: Going to RRC IDLE\n");
+    srslte::console("Timer T311 expired: Going to RRC IDLE\n");
     if (connection_reest.is_idle()) {
       rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
       start_go_idle();
@@ -678,7 +678,7 @@ void rrc::timer_expired(uint32_t timeout_id)
   } else if (timeout_id == t300.id()) {
     // Do nothing, handled in connection_request()
   } else if (timeout_id == t304.id()) {
-    srslte::out_stream("Timer t304 expired: Handover failed\n");
+    srslte::console("Timer t304 expired: Handover failed\n");
     rrc_log->info("Timer t304 expired: Handover failed\n");
     ho_failed();
   } else {
@@ -810,7 +810,7 @@ void rrc::send_con_restablish_complete()
 {
 
   rrc_log->debug("Preparing RRC Connection Reestablishment Complete\n");
-  srslte::out_stream("RRC Connected\n");
+  srslte::console("RRC Connected\n");
 
   // Prepare ConnectionSetupComplete packet
   ul_dcch_msg_s ul_dcch_msg;
@@ -1014,14 +1014,14 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, const rrc_conn_recfg_s& reconfi
 void rrc::rrc_connection_release(const std::string& cause)
 {
   // Save idleModeMobilityControlInfo, etc.
-  srslte::out_stream("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
+  srslte::console("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
   start_go_idle();
 }
 
 /* Actions upon leaving RRC_CONNECTED 5.3.12 */
 void rrc::leave_connected()
 {
-  srslte::out_stream("RRC IDLE\n");
+  srslte::console("RRC IDLE\n");
   rrc_log->info("Leaving RRC_CONNECTED state\n");
   state                 = RRC_STATE_IDLE;
   drb_up                = false;
@@ -1528,7 +1528,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       // 5.3.3.8
       rrc_conn_reject_r8_ies_s* reject_r8 = &c1->rrc_conn_reject().crit_exts.c1().rrc_conn_reject_r8();
       rrc_log->info("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
-      srslte::out_stream("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
+      srslte::console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
 
       t300.stop();
 
@@ -1549,7 +1549,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       break;
     }
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest: {
-      srslte::out_stream("Reestablishment OK\n");
+      srslte::console("Reestablishment OK\n");
       transaction_id                   = c1->rrc_conn_reest().rrc_transaction_id;
       rrc_conn_reest_s conn_reest_copy = c1->rrc_conn_reest();
       task_sched.defer_task([this, conn_reest_copy]() { handle_con_reest(conn_reest_copy); });
@@ -2349,7 +2349,7 @@ void rrc::handle_con_setup(const rrc_conn_setup_s& setup)
   state = RRC_STATE_CONNECTED;
   t300.stop();
   t302.stop();
-  srslte::out_stream("RRC Connected\n");
+  srslte::console("RRC Connected\n");
 
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);

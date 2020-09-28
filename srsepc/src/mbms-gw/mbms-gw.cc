@@ -79,18 +79,18 @@ int mbms_gw::init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log)
 
   err = init_sgi_mb_if(args);
   if (err != SRSLTE_SUCCESS) {
-    srslte::out_stream("Error initializing SGi-MB.\n");
+    srslte::console("Error initializing SGi-MB.\n");
     m_mbms_gw_log->error("Error initializing SGi-MB.\n");
     return SRSLTE_ERROR_CANT_START;
   }
   err = init_m1_u(args);
   if (err != SRSLTE_SUCCESS) {
-    srslte::out_stream("Error initializing SGi-MB.\n");
+    srslte::console("Error initializing SGi-MB.\n");
     m_mbms_gw_log->error("Error initializing SGi-MB.\n");
     return SRSLTE_ERROR_CANT_START;
   }
   m_mbms_gw_log->info("MBMS GW Initiated\n");
-  srslte::out_stream("MBMS GW Initiated\n");
+  srslte::console("MBMS GW Initiated\n");
   return SRSLTE_SUCCESS;
 }
 
@@ -288,12 +288,12 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
 
   // Write GTP-U header into packet
   if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
-    srslte::out_stream("Error writing GTP-U header on PDU\n");
+    srslte::console("Error writing GTP-U header on PDU\n");
   }
 
   int n = sendto(m_m1u, msg->msg, msg->N_bytes, 0, (sockaddr*)&m_m1u_multi_addr, sizeof(struct sockaddr));
   if (n < 0) {
-    srslte::out_stream("Error writing to M1-U socket.\n");
+    srslte::console("Error writing to M1-U socket.\n");
   } else {
     m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
   }

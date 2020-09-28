@@ -56,7 +56,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Validate arguments
   if (parse_args(args_)) {
-    srslte::out_stream("Error processing arguments.\n");
+    srslte::console("Error processing arguments.\n");
     return SRSLTE_ERROR;
   }
 
@@ -68,32 +68,32 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   if (args.stack.type == "lte") {
     std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger));
     if (!lte_stack) {
-      srslte::out_stream("Error creating eNB stack.\n");
+      srslte::console("Error creating eNB stack.\n");
       return SRSLTE_ERROR;
     }
 
     std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
     if (!lte_radio) {
-      srslte::out_stream("Error creating radio multi instance.\n");
+      srslte::console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
     }
 
     std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(logger));
     if (!lte_phy) {
-      srslte::out_stream("Error creating LTE PHY instance.\n");
+      srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
     }
 
     // Init Radio
     if (lte_radio->init(args.rf, lte_phy.get())) {
-      srslte::out_stream("Error initializing radio.\n");
+      srslte::console("Error initializing radio.\n");
       return SRSLTE_ERROR;
     }
 
     // Only Init PHY if radio couldn't be initialized
     if (ret == SRSLTE_SUCCESS) {
       if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
-        srslte::out_stream("Error initializing PHY.\n");
+        srslte::console("Error initializing PHY.\n");
         ret = SRSLTE_ERROR;
       }
     }
@@ -101,7 +101,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     // Only init Stack if both radio and PHY could be initialized
     if (ret == SRSLTE_SUCCESS) {
       if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
-        srslte::out_stream("Error initializing stack.\n");
+        srslte::console("Error initializing stack.\n");
         ret = SRSLTE_ERROR;
       }
     }
@@ -118,7 +118,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
     // Init layers
     if (nr_radio->init(args.rf, nullptr)) {
-      srslte::out_stream("Error initializing radio.\n");
+      srslte::console("Error initializing radio.\n");
       return SRSLTE_ERROR;
     }
 
@@ -129,7 +129,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     args.phy.vnf_args.log_level     = args.phy.log.phy_level;
     args.phy.vnf_args.log_hex_limit = args.phy.log.phy_hex_limit;
     if (nr_phy->init(args.phy, nr_phy_cfg, nr_stack.get())) {
-      srslte::out_stream("Error initializing PHY.\n");
+      srslte::console("Error initializing PHY.\n");
       return SRSLTE_ERROR;
     }
 
@@ -138,7 +138,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     rrc_nr_cfg.coreless             = args.stack.coreless;
 
     if (nr_stack->init(args.stack, rrc_nr_cfg, nr_phy.get())) {
-      srslte::out_stream("Error initializing stack.\n");
+      srslte::console("Error initializing stack.\n");
       return SRSLTE_ERROR;
     }
 
@@ -146,7 +146,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     phy   = std::move(nr_phy);
     radio = std::move(nr_radio);
 #else
-    srslte::out_stream("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
+    srslte::console("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
     log->error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
 #endif
   }
@@ -154,8 +154,8 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 
   if (ret == SRSLTE_SUCCESS) {
-    srslte::out_stream("\n==== eNodeB started ===\n");
-    srslte::out_stream("Type <t> to view trace\n");
+    srslte::console("\n==== eNodeB started ===\n");
+    srslte::console("Type <t> to view trace\n");
   } else {
     // if any of the layers failed to start, make sure the rest is stopped in a controlled manner
     stop();

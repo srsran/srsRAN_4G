@@ -531,7 +531,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
                 preamble_idx,
                 time_adv,
                 rnti);
-    srslte::out_stream("RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
+    srslte::console("RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
                        tti,
                        enb_cc_idx,
                        preamble_idx,

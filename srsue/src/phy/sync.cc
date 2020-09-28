@@ -398,7 +398,7 @@ void sync::run_sfn_sync_state()
         srslte_cell_fprint(stdout, &temp_cell, 0);
         log_h->error("Detected cell during SFN synchronization differs from configured cell. Cell reselection to "
                      "cells with different MIB is not supported\n");
-        srslte::out_stream("Detected cell during SFN synchronization differs from configured cell. Cell reselection "
+        srslte::console("Detected cell during SFN synchronization differs from configured cell. Cell reselection "
                            "to cells with different MIB is not supported\n");
         phy_state.state_exit(false);
       }
@@ -452,7 +452,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
       if (memcmp(&cell, &temp_cell, sizeof(srslte_cell_t)) != 0) {
         log_h->error("Detected cell during SFN synchronization differs from configured cell. Cell "
                      "reselection to cells with different MIB is not supported\n");
-        srslte::out_stream("Detected cell during SFN synchronization differs from configured cell. Cell "
+        srslte::console("Detected cell during SFN synchronization differs from configured cell. Cell "
                            "reselection to cells with different MIB is not supported\n");
       } else {
         log_h->info("SFN resynchronized successfully\n");
@@ -562,7 +562,7 @@ void sync::run_idle_state()
     srslte_timestamp_t rx_time = {};
     dummy_buffer.set_nof_samples(nsamples);
     if (radio_recv_fnc(dummy_buffer, &rx_time) == SRSLTE_SUCCESS) {
-      srslte::out_stream("SYNC:  Receiving from radio while in IDLE_RX\n");
+      srslte::console("SYNC:  Receiving from radio while in IDLE_RX\n");
     }
     // If radio is in locked state returns immediately. In that case, do a 1 ms sleep
     if (rx_time.frac_secs == 0 && rx_time.full_secs == 0) {

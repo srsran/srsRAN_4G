@@ -25,7 +25,7 @@
 
 using namespace srslte;
 
-void srslte::out_stream(const char* str, ...)
+void srslte::console(const char* str, ...)
 {
   std::va_list args;
   va_start(args, str);
@@ -36,7 +36,7 @@ void srslte::out_stream(const char* str, ...)
   va_end(args);
 }
 
-void srslte::err_stream(const char* str, ...)
+void srslte::console_stderr(const char* str, ...)
 {
   std::va_list args;
   va_start(args, str);

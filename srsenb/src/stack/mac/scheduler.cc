@@ -27,7 +27,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/srslte.h"
 
-#define Console(fmt, ...) srslte::out_stream(fmt, ##__VA_ARGS__)
+#define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)
 #define Error(fmt, ...) srslte::logmap::get("MAC ")->error(fmt, ##__VA_ARGS__)
 
 namespace srsenb {

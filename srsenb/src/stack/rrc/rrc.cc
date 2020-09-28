@@ -82,7 +82,7 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   uint32_t n310 = cfg.sibs[1].sib2().ue_timers_and_consts.n310.to_number();
   rrc_log->info("T310 %d, T311 %d, N310 %d \n", t310, t311, n310);
   if (cfg.inactivity_timeout_ms < t310 + t311 + n310) {
-    srslte::out_stream("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
+    srslte::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
                        "This may break the UE's re-establishment procedure.\n");
     rrc_log->warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
                      "re-establishment procedure.\n");
@@ -335,7 +335,7 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
     paging_elem.ue_id.set_imsi();
     paging_elem.ue_id.imsi().resize(ue_paging_id.imsi().size());
     memcpy(paging_elem.ue_id.imsi().data(), ue_paging_id.imsi().data(), ue_paging_id.imsi().size());
-    srslte::out_stream("Warning IMSI paging not tested\n");
+    srslte::console("Warning IMSI paging not tested\n");
   } else {
     paging_elem.ue_id.set_s_tmsi();
     paging_elem.ue_id.s_tmsi().mmec.from_number(ue_paging_id.s_tmsi().mmec[0]);
@@ -551,7 +551,7 @@ void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    srslte::out_stream("Disconnecting rnti=0x%x.\n", rnti);
+    srslte::console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
 
     /* First remove MAC and GTPU to stop processing DL/UL traffic for this user

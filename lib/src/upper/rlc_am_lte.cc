@@ -804,13 +804,13 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
   if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::out_stream("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
-    srslte::out_stream("tx_window size: %zd PDUs\n", tx_window.size());
-    srslte::out_stream("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d\n", vt_a, vt_ms, vt_s, poll_sn);
-    srslte::out_stream("retx_queue size: %zd PDUs\n", retx_queue.size());
+    srslte::console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
+    srslte::console("tx_window size: %zd PDUs\n", tx_window.size());
+    srslte::console("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d\n", vt_a, vt_ms, vt_s, poll_sn);
+    srslte::console("retx_queue size: %zd PDUs\n", retx_queue.size());
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator txit;
     for (txit = tx_window.begin(); txit != tx_window.end(); txit++) {
-      srslte::out_stream("tx_window - SN=%d\n", txit->first);
+      srslte::console("tx_window - SN=%d\n", txit->first);
     }
     exit(-1);
 #else
@@ -1252,7 +1252,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
   pdu.buf = srslte::allocate_unique_buffer(*pool, true);
   if (pdu.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::out_stream("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
+    srslte::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
     exit(-1);
 #else
     log->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
@@ -1359,7 +1359,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
   segment.buf = srslte::allocate_unique_buffer(*pool, true);
   if (segment.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::out_stream("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
+    srslte::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
     exit(-1);
 #else
     log->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
@@ -1428,7 +1428,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
     rx_sdu = allocate_unique_buffer(*pool, true);
     if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-      srslte::out_stream("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
+      srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
       exit(-1);
 #else
       log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
@@ -1478,7 +1478,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
           rx_sdu = allocate_unique_buffer(*pool, true);
           if (rx_sdu == nullptr) {
 #ifdef RLC_AM_BUFFER_DEBUG
-            srslte::out_stream("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+            srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
             exit(-1);
 #else
             log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
@@ -1522,7 +1522,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
       rx_sdu = allocate_unique_buffer(*pool, true);
       if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-        srslte::out_stream("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
+        srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
         exit(-1);
 #else
         log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
@@ -1848,7 +1848,7 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
   unique_byte_buffer_t full_pdu = srslte::allocate_unique_buffer(*pool, true);
   if (full_pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
-    srslte::out_stream("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");
+    srslte::console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");
     exit(-1);
 #else
     log->error("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");

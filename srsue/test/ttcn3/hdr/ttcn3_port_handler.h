@@ -167,7 +167,7 @@ public:
 
     sock_fd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
     if (sock_fd == -1) {
-      srslte::out_stream("Could not create SCTP socket\n");
+      srslte::console("Could not create SCTP socket\n");
       return ret;
     }
 
@@ -179,7 +179,7 @@ public:
     events.sctp_association_event      = 1;
     if (setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &events, sizeof(events))) {
       close(sock_fd);
-      srslte::out_stream("Subscribing to sctp_data_io_events failed\n");
+      srslte::console("Subscribing to sctp_data_io_events failed\n");
       return SRSLTE_ERROR;
     }
 
@@ -195,7 +195,7 @@ public:
     if (ret != 0) {
       close(sock_fd);
       log->error("Error binding SCTP socket\n");
-      srslte::out_stream("Error binding SCTP socket\n");
+      srslte::console("Error binding SCTP socket\n");
       return SRSLTE_ERROR;
     }
 
@@ -204,7 +204,7 @@ public:
     if (ret != SRSLTE_SUCCESS) {
       close(sock_fd);
       log->error("Error in SCTP socket listen\n");
-      srslte::out_stream("Error in SCTP socket listen\n");
+      srslte::console("Error in SCTP socket listen\n");
       return SRSLTE_ERROR;
     }
 

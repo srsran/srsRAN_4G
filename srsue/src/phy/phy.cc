@@ -99,11 +99,11 @@ void phy::set_default_args(phy_args_t& args_)
 bool phy::check_args(const phy_args_t& args_)
 {
   if (args_.nof_phy_threads > MAX_WORKERS) {
-    srslte::out_stream("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
+    srslte::console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
     return false;
   }
   if (args_.snr_ema_coeff > 1.0) {
-    srslte::out_stream("Error in PHY args: snr_ema_coeff must be 0<=w<=1\n");
+    srslte::console("Error in PHY args: snr_ema_coeff must be 0<=w<=1\n");
     return false;
   }
   return true;
@@ -272,7 +272,7 @@ void phy::set_activation_deactivation_scell(uint32_t cmd)
   Info("Received SCell Activation / Deactivation command: 0x%x\n", cmd);
 
   /* Implements 3GPP 36.321 section 6.1.3.8. Activation/Deactivation MAC Control Element*/
-  srslte::out_stream("SCELL Activation / Deactivation CMD: %x\n", cmd);
+  srslte::console("SCELL Activation / Deactivation CMD: %x\n", cmd);
   log_h->info("SCELL Activation / Deactivation CMD: %x\n", cmd);
 
   for (uint32_t i = 1; i < SRSLTE_MAX_CARRIERS; i++) {
@@ -459,7 +459,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
 
   // Check parameters are valid
   if (cc_idx >= args.nof_carriers) {
-    srslte::out_stream("Received SCell configuration for index %d but there are not enough CC workers available\n",
+    srslte::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                        cc_idx);
     return false;
   }
@@ -510,7 +510,7 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 
   // Check parameters are valid
   if (cc_idx >= args.nof_carriers) {
-    srslte::out_stream("Received SCell configuration for index %d but there are not enough CC workers available\n",
+    srslte::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                        cc_idx);
     return false;
   }
@@ -573,7 +573,7 @@ void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
   tdd_config = tdd_config_;
 
   if (!tdd_config.configured) {
-    srslte::out_stream("Setting TDD-config: %d, SS config: %d\n", tdd_config.sf_config, tdd_config.ss_config);
+    srslte::console("Setting TDD-config: %d, SS config: %d\n", tdd_config.sf_config, tdd_config.ss_config);
   }
   tdd_config.configured = true;
 

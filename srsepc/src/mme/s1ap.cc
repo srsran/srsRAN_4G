@@ -108,7 +108,7 @@ void s1ap::stop()
   std::map<uint16_t, enb_ctx_t*>::iterator enb_it = m_active_enbs.begin();
   while (enb_it != m_active_enbs.end()) {
     m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
-    srslte::out_stream("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
+    srslte::console("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
     delete enb_it->second;
     m_active_enbs.erase(enb_it++);
   }
@@ -116,7 +116,7 @@ void s1ap::stop()
   std::map<uint64_t, nas*>::iterator ue_it = m_imsi_to_nas_ctx.begin();
   while (ue_it != m_imsi_to_nas_ctx.end()) {
     m_s1ap_log->info("Deleting UE EMM context. IMSI: %015" PRIu64 "\n", ue_it->first);
-    srslte::out_stream("Deleting UE EMM context. IMSI: %015" PRIu64 "\n", ue_it->first);
+    srslte::console("Deleting UE EMM context. IMSI: %015" PRIu64 "\n", ue_it->first);
     delete ue_it->second;
     m_imsi_to_nas_ctx.erase(ue_it++);
   }
@@ -153,7 +153,7 @@ int s1ap::enb_listen()
   m_s1ap_log->info("S1-MME Initializing\n");
   sock_fd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
   if (sock_fd == -1) {
-    srslte::out_stream("Could not create SCTP socket\n");
+    srslte::console("Could not create SCTP socket\n");
     return -1;
   }
 
@@ -164,7 +164,7 @@ int s1ap::enb_listen()
   evnts.sctp_shutdown_event = 1;
   if (setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts))) {
     close(sock_fd);
-    srslte::out_stream("Subscribing to sctp_data_io_events failed\n");
+    srslte::console("Subscribing to sctp_data_io_events failed\n");
     return -1;
   }
 
@@ -177,7 +177,7 @@ int s1ap::enb_listen()
   if (err != 0) {
     close(sock_fd);
     m_s1ap_log->error("Error binding SCTP socket\n");
-    srslte::out_stream("Error binding SCTP socket\n");
+    srslte::console("Error binding SCTP socket\n");
     return -1;
   }
 
@@ -186,7 +186,7 @@ int s1ap::enb_listen()
   if (err != 0) {
     close(sock_fd);
     m_s1ap_log->error("Error in SCTP socket listen\n");
-    srslte::out_stream("Error in SCTP socket listen\n");
+    srslte::console("Error in SCTP socket listen\n");
     return -1;
   }
 
@@ -211,7 +211,7 @@ bool s1ap::s1ap_tx_pdu(const asn1::s1ap::s1ap_pdu_c& pdu, struct sctp_sndrcvinfo
 
   ssize_t n_sent = sctp_send(m_s1mme, buf->msg, buf->N_bytes, enb_sri, MSG_NOSIGNAL);
   if (n_sent == -1) {
-    srslte::out_stream("Failed to send S1AP PDU. Error: %s\n", strerror(errno));
+    srslte::console("Failed to send S1AP PDU. Error: %s\n", strerror(errno));
     m_s1ap_log->error("Failed to send S1AP PDU. Error: %s \n", strerror(errno));
     return false;
   }
@@ -279,7 +279,7 @@ void s1ap::handle_initiating_message(const asn1::s1ap::init_msg_s& msg, struct s
       break;
     default:
       m_s1ap_log->error("Unhandled S1AP intiating message: %s\n", msg.value.type().to_string().c_str());
-      srslte::out_stream("Unhandled S1APintiating message: %s\n", msg.value.type().to_string().c_str());
+      srslte::console("Unhandled S1APintiating message: %s\n", msg.value.type().to_string().c_str());
   }
 }
 
@@ -335,7 +335,7 @@ void s1ap::delete_enb_ctx(int32_t assoc_id)
   }
 
   m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
-  srslte::out_stream("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
+  srslte::console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
 
   // Delete connected UEs ctx
   release_ues_ecm_ctx_in_enb(assoc_id);
@@ -429,11 +429,11 @@ nas* s1ap::find_nas_ctx_from_imsi(uint64_t imsi)
 
 void s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
 {
-  srslte::out_stream("Releasing UEs context\n");
+  srslte::console("Releasing UEs context\n");
   std::map<int32_t, std::set<uint32_t> >::iterator ues_in_enb = m_enb_assoc_to_ue_ids.find(enb_assoc);
   std::set<uint32_t>::iterator                     ue_id      = ues_in_enb->second.begin();
   if (ue_id == ues_in_enb->second.end()) {
-    srslte::out_stream("No UEs to be released\n");
+    srslte::console("No UEs to be released\n");
   } else {
     while (ue_id != ues_in_enb->second.end()) {
       std::map<uint32_t, nas*>::iterator nas_ctx = m_mme_ue_s1ap_id_to_nas_ctx.find(*ue_id);
@@ -446,7 +446,7 @@ void s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
         m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
         emm_ctx->state = EMM_STATE_DEREGISTERED;
       }
-      srslte::out_stream("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
+      srslte::console("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
       ecm_ctx->state          = ECM_STATE_IDLE;
       ecm_ctx->mme_ue_s1ap_id = 0;
       ecm_ctx->enb_ue_s1ap_id = 0;
@@ -532,7 +532,7 @@ void s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
         mme_ue_s1ap_id,
         ebi,
         esm_ctx->state);
-    srslte::out_stream(
+    srslte::console(
         "Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n",
         mme_ue_s1ap_id,
         ebi,
@@ -573,23 +573,23 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
   std::string mnc_str, mcc_str;
 
   if (enb_ctx.enb_name_present) {
-    srslte::out_stream("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name.c_str(), enb_ctx.enb_id);
+    srslte::console("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name.c_str(), enb_ctx.enb_id);
     m_s1ap_log->info("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name.c_str(), enb_ctx.enb_id);
   } else {
-    srslte::out_stream("%s - eNB Id 0x%x\n", prefix.c_str(), enb_ctx.enb_id);
+    srslte::console("%s - eNB Id 0x%x\n", prefix.c_str(), enb_ctx.enb_id);
     m_s1ap_log->info("%s - eNB Id 0x%x\n", prefix.c_str(), enb_ctx.enb_id);
   }
   srslte::mcc_to_string(enb_ctx.mcc, &mcc_str);
   srslte::mnc_to_string(enb_ctx.mnc, &mnc_str);
   m_s1ap_log->info("%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
-  srslte::out_stream("%s - MCC:%s, MNC:%s\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str());
+  srslte::console("%s - MCC:%s, MNC:%s\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str());
   for (int i = 0; i < enb_ctx.nof_supported_ta; i++) {
     for (int j = 0; i < enb_ctx.nof_supported_ta; i++) {
       m_s1ap_log->info("%s - TAC %d, B-PLMN 0x%x\n", prefix.c_str(), enb_ctx.tacs[i], enb_ctx.bplmns[i][j]);
-      srslte::out_stream("%s - TAC %d, B-PLMN 0x%x\n", prefix.c_str(), enb_ctx.tacs[i], enb_ctx.bplmns[i][j]);
+      srslte::console("%s - TAC %d, B-PLMN 0x%x\n", prefix.c_str(), enb_ctx.tacs[i], enb_ctx.bplmns[i][j]);
     }
   }
-  srslte::out_stream("%s - Paging DRX %s\n", prefix.c_str(), enb_ctx.drx.to_string().c_str());
+  srslte::console("%s - Paging DRX %s\n", prefix.c_str(), enb_ctx.drx.to_string().c_str());
   return;
 }
 

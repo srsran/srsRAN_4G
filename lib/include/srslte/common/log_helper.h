@@ -58,7 +58,7 @@ namespace srslte {
 #define Console(fmt, ...)                                                                                              \
   do {                                                                                                                 \
     if (log_h.get() != nullptr) {                                                                                      \
-      srslte::out_stream(fmt, ##__VA_ARGS__);                                                                          \
+      srslte::console(fmt, ##__VA_ARGS__);                                                                          \
     }                                                                                                                  \
   } while (0)
 

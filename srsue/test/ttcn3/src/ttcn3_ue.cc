@@ -68,28 +68,28 @@ int ttcn3_ue::init(all_args_t args, srslte::logger* logger_, syssim_interface_ph
   if (args.stack.type == "lte") {
     stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte());
     if (!stack) {
-      srslte::out_stream("Error creating LTE stack instance.\n");
+      srslte::console("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;
     }
 
     phy = std::unique_ptr<srsue::lte_ttcn3_phy>(new srsue::lte_ttcn3_phy(logger));
     if (!phy) {
-      srslte::out_stream("Error creating LTE PHY instance.\n");
+      srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
     }
   } else {
-    srslte::out_stream("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
+    srslte::console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
     return SRSLTE_ERROR;
   }
 
   // init layers
   if (phy->init(args.phy, stack.get(), syssim_)) {
-    srslte::out_stream("Error initializing PHY.\n");
+    srslte::console("Error initializing PHY.\n");
     return SRSLTE_ERROR;
   }
 
   if (stack->init(args.stack, logger, phy.get(), this)) {
-    srslte::out_stream("Error initializing stack.\n");
+    srslte::console("Error initializing stack.\n");
     return SRSLTE_ERROR;
   }
 

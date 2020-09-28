@@ -82,13 +82,13 @@ int mme::init(mme_args_t*         args,
   /*Init GTP-C*/
   m_mme_gtpc = mme_gtpc::get_instance();
   if (!m_mme_gtpc->init(m_mme_gtpc_log)) {
-    srslte::out_stream("Error initializing GTP-C\n");
+    srslte::console("Error initializing GTP-C\n");
     exit(-1);
   }
 
   /*Log successful initialization*/
   m_s1ap_log->info("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
-  srslte::out_stream("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
+  srslte::console("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
   return 0;
 }
 
@@ -157,7 +157,7 @@ void mme::run_thread()
             m_s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
             if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
               m_s1ap_log->info("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-              srslte::out_stream("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+              srslte::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
               m_s1ap->delete_enb_ctx(sri.sinfo_assoc_id);
             }
           } else {

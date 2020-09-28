@@ -66,19 +66,19 @@ int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, s
   // Init SGi interface
   err = init_sgi(args);
   if (err != SRSLTE_SUCCESS) {
-    srslte::out_stream("Could not initialize the SGi interface.\n");
+    srslte::console("Could not initialize the SGi interface.\n");
     return err;
   }
 
   // Init S1-U
   err = init_s1u(args);
   if (err != SRSLTE_SUCCESS) {
-    srslte::out_stream("Could not initialize the S1-U interface.\n");
+    srslte::console("Could not initialize the S1-U interface.\n");
     return err;
   }
 
   m_gtpu_log->info("SPGW GTP-U Initialized.\n");
-  srslte::out_stream("SPGW GTP-U Initialized.\n");
+  srslte::console("SPGW GTP-U Initialized.\n");
   return SRSLTE_SUCCESS;
 }
 

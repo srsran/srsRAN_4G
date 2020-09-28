@@ -969,7 +969,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
       if (rrc_ptr->ue_identity == s_tmsi_paged) {
         if (RRC_STATE_IDLE == rrc_ptr->state) {
           Info("S-TMSI match in paging message\n");
-          srslte::out_stream("S-TMSI match in paging message\n");
+          srslte::console("S-TMSI match in paging message\n");
           if (not rrc_ptr->nas->paging(&s_tmsi_paged)) {
             Error("Unable to start NAS paging proc\n");
             return proc_outcome_t::error;
@@ -1372,7 +1372,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::react(const asn1::rrc::rrc_co
 srslte::proc_outcome_t rrc::connection_reest_proc::react(const t301_expiry& ev)
 {
   Info("Timer T301 expired: Going to RRC IDLE\n");
-  srslte::out_stream("Timer T301 expired: Going to RRC IDLE\n");
+  srslte::console("Timer T301 expired: Going to RRC IDLE\n");
   rrc_ptr->start_go_idle();
 
   return proc_outcome_t::error;
@@ -1381,7 +1381,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step()
 {
   if (rrc_ptr->t301.is_running() and not passes_cell_criteria()) {
     Info("Selected cell no longer suitable: Going to RRC IDLE\n");
-    srslte::out_stream("Selected cell no longer suitable: Going to RRC IDLE\n");
+    srslte::console("Selected cell no longer suitable: Going to RRC IDLE\n");
     rrc_ptr->start_go_idle();
     return proc_outcome_t::error;
   }
@@ -1433,7 +1433,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
 
   Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
-  srslte::out_stream("Received HO command to target PCell=%d, NCC=%d\n",
+  srslte::console("Received HO command to target PCell=%d, NCC=%d\n",
                      mob_ctrl_info->target_pci,
                      recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
@@ -1445,7 +1445,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   if (cell_to_ho != nullptr) {
     target_cell = cell_to_ho->phy_cell;
   } else {
-    srslte::out_stream("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
+    srslte::console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
     Error("Could not find target cell earfcn=%d, pci=%d\n",
           rrc_ptr->meas_cells.serving_cell().get_earfcn(),
           mob_ctrl_info->target_pci);

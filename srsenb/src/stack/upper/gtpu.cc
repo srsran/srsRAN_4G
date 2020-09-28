@@ -74,7 +74,7 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   if (bind(fd, (struct sockaddr*)&bindaddr, sizeof(struct sockaddr_in))) {
     snprintf(errbuf, sizeof(errbuf), "%s", strerror(errno));
     gtpu_log->error("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
-    srslte::out_stream("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
+    srslte::console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
     return SRSLTE_ERROR;
   }
 

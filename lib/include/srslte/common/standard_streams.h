@@ -25,10 +25,10 @@
 namespace srslte {
 
 /// Writes the formatted string to the standard output stream.
-void out_stream(const char* str, ...);
+void console(const char* str, ...);
 
 /// Writes the formatted string to the standard error stream.
-void err_stream(const char* str, ...);
+void console_stderr(const char* str, ...);
 
 } // namespace srslte
 

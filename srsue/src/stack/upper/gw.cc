@@ -232,7 +232,7 @@ void gw::run_thread()
       N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {
       log.error("GW pdu buffer full - gw receive thread exiting.\n");
-      srslte::out_stream("GW pdu buffer full - gw receive thread exiting.\n");
+      srslte::console("GW pdu buffer full - gw receive thread exiting.\n");
       break;
     }
     log.debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
@@ -298,7 +298,7 @@ void gw::run_thread()
       }
     } else {
       log.error("Failed to read from TUN interface - gw receive thread exiting.\n");
-      srslte::out_stream("Failed to read from TUN interface - gw receive thread exiting.\n");
+      srslte::console("Failed to read from TUN interface - gw receive thread exiting.\n");
       break;
     }
   }

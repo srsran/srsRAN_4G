@@ -329,7 +329,7 @@ void ue::deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti)
     pdus.deallocate(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc));
     pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
   } else {
-    srslte::out_stream(
+    srslte::console(
         "Error deallocating buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
   }
 }
@@ -340,7 +340,7 @@ void ue::push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len)
     pdus.push(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc), len);
     pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
   } else {
-    srslte::out_stream(
+    srslte::console(
         "Error pushing buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
   }
 }

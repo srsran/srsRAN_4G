@@ -79,18 +79,18 @@ int spgw::init(spgw_args_t*                           args,
 
   // Init GTP-U
   if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != SRSLTE_SUCCESS) {
-    srslte::out_stream("Could not initialize the SPGW's GTP-U.\n");
+    srslte::console("Could not initialize the SPGW's GTP-U.\n");
     return SRSLTE_ERROR_CANT_START;
   }
 
   // Init GTP-C
   if (m_gtpc->init(args, this, m_gtpu, gtpc_log, ip_to_imsi) != SRSLTE_SUCCESS) {
-    srslte::out_stream("Could not initialize the S1-U interface.\n");
+    srslte::console("Could not initialize the S1-U interface.\n");
     return SRSLTE_ERROR_CANT_START;
   }
 
   m_spgw_log->info("SP-GW Initialized.\n");
-  srslte::out_stream("SP-GW Initialized.\n");
+  srslte::console("SP-GW Initialized.\n");
   return SRSLTE_SUCCESS;
 }
 

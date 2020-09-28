@@ -113,7 +113,7 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
   int      ret           = SRSLTE_ERROR;
 
   Info("SYNC:  Searching for cell...\n");
-  srslte::out_stream(".");
+  srslte::console(".");
 
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
     ret           = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
@@ -135,7 +135,7 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
   new_cell.frame_type = found_cells[max_peak_cell].frame_type;
   float cfo           = found_cells[max_peak_cell].cfo;
 
-  srslte::out_stream("\n");
+  srslte::console("\n");
   Info("SYNC:  PSS/SSS detected: Mode=%s, PCI=%d, CFO=%.1f KHz, CP=%s\n",
        new_cell.frame_type ? "TDD" : "FDD",
        new_cell.id,
