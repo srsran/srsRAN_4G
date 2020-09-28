@@ -771,6 +771,157 @@ int mac_ul_logical_channel_prioritization_test3()
   return SRSLTE_SUCCESS;
 }
 
+// Manual excecution of TC 7.1.4.6 of 36.523-1
+int mac_ul_logical_channel_prioritization_test4()
+{
+  const uint8_t tv1[] = {0x3d, 0x03, 0x86, 0x03}; // Short BSR plus SDU for LCID3
+  const uint8_t tv2[] = {0x3d, 0x04, 0x88, 0x04}; // Short BSR plus SDU for LCID4
+  const uint8_t tv3[] = {0x1e, 0x00, 0x12, 0x00}; // Long BSR
+
+  srslte::log_filter rlc_log("RLC");
+  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  rlc_log.set_hex_limit(100000);
+
+  // dummy layers
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
+
+  // the actual MAC
+  mac mac("MAC", &stack.task_sched);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc);
+  const uint16_t crnti = 0x1001;
+  mac.set_ho_rnti(crnti, 0);
+
+  // generate configs for three LCIDs with different priority and PBR (Table 7.1.4.6.1-1 in TS 36.321)
+  std::vector<logical_channel_config_t> lcids;
+  logical_channel_config_t              config = {};
+  config.lcid                                  = 3;
+  config.lcg                                   = 2;
+  config.PBR                                   = 0;
+  config.BSD                                   = 1000; // 1000ms
+  config.priority                              = 8;
+  lcids.push_back(config);
+
+  config.lcid     = 4;
+  config.lcg      = 2;
+  config.PBR      = 0;
+  config.priority = 7;
+  lcids.push_back(config);
+
+  config.lcid     = 5;
+  config.lcg      = 1;
+  config.PBR      = 0;
+  config.priority = 6; // highest prio among the three
+  lcids.push_back(config);
+
+  // setup LCIDs in MAC
+  for (auto& channel : lcids) {
+    mac.setup_lcid(channel.lcid, channel.lcg, channel.priority, channel.PBR, channel.BSD);
+  }
+
+  // write dummy data
+  rlc.write_sdu(3, 10);
+  rlc.write_sdu(3, 10);
+
+  // run TTI to setup Bj, BSR should be generated
+  stack.run_tti(0);
+  usleep(100);
+
+  // create UL action and grant and push MAC PDU (Step 5 in 7.1.4.6.3.2 in TS 36.523-1)
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = true;
+    mac_grant.tb.tbs         = 4; // Enough for Short BSR
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv1, sizeof(tv1)) == 0);
+  }
+
+  // Step 6
+  rlc.write_sdu(4, 10);
+
+  // run TTI to setup Bj, BSR should be generated
+  stack.run_tti(0);
+  usleep(100);
+
+  // create UL action and grant and push MAC PDU (Step 8)
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = false;
+    mac_grant.tb.tbs         = 4;
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
+#endif
+
+    // Step 9 (UE report BSR with index 8 or more)
+    TESTASSERT(memcmp(ul_action.tb.payload, tv2, sizeof(tv2)) == 0);
+  }
+
+  // Step 10
+  rlc.write_sdu(5, 2);
+  rlc.write_sdu(5, 2);
+
+  // run TTI to setup Bj, BSR should be generated
+  stack.run_tti(0);
+  usleep(100);
+
+  // create UL action and grant and push MAC PDU (Step 11)
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = true;
+    mac_grant.tb.tbs         = 4;
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv3, sizeof(tv3)) == 0);
+  }
+
+  // make sure MAC PDU thread picks up before stopping
+  stack.run_tti(0);
+  mac.stop();
+
+  return SRSLTE_SUCCESS;
+}
+
 // PDU with single SDU and short BSR (entire RLC buffers are transmitted in MAC PDU)
 int mac_ul_sch_pdu_with_short_bsr_test()
 {
@@ -1626,6 +1777,11 @@ int main(int argc, char** argv)
 
   if (mac_ul_logical_channel_prioritization_test3()) {
     printf("mac_ul_logical_channel_prioritization_test3() test failed.\n");
+    return -1;
+  }
+
+  if (mac_ul_logical_channel_prioritization_test4()) {
+    printf("mac_ul_logical_channel_prioritization_test4() test failed.\n");
     return -1;
   }
 
