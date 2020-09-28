@@ -27,8 +27,7 @@
 namespace srslte {
 
 pdcp_entity_base::pdcp_entity_base(task_sched_handle task_sched_, srslte::log_ref log_) :
-  log(log_),
-  task_sched(task_sched_)
+  log(log_), task_sched(task_sched_)
 {}
 
 pdcp_entity_base::~pdcp_entity_base() {}
@@ -218,6 +217,13 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
 /****************************************************************************
  * Common pack functions
  ***************************************************************************/
+
+bool pdcp_entity_base::is_control_pdu(const unique_byte_buffer_t& pdu)
+{
+  const uint8_t* payload = pdu->msg;
+  return ((*(payload) >> 7) & 0x01) == PDCP_DC_FIELD_CONTROL_PDU;
+}
+
 uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
 {
   // Check PDU is long enough to extract header
@@ -273,7 +279,7 @@ void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu
       sdu->msg[0] = SN(count); // Data PDU and SN LEN 5 implies SRB, D flag must not be present
       break;
     case PDCP_SN_LEN_7:
-      sdu->msg[0] = SN(count); 
+      sdu->msg[0] = SN(count);
       if (is_drb()) {
         sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
       }

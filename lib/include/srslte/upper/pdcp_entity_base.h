@@ -158,6 +158,7 @@ protected:
   void cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg);
 
   // Common packing functions
+  bool     is_control_pdu(const unique_byte_buffer_t& pdu);
   uint32_t read_data_header(const unique_byte_buffer_t& pdu);
   void     discard_data_header(const unique_byte_buffer_t& pdu);
   void     write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count);

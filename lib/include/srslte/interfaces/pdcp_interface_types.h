@@ -43,6 +43,13 @@ const uint8_t PDCP_SN_LEN_18 = 18;
 
 typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 
+enum pdcp_dc_field_t {
+  PDCP_DC_FIELD_CONTROL_PDU = 0,
+  PDCP_DC_FIELD_DATA_PDU,
+  PDCP_DC_FIELD_N_ITEMS,
+};
+static const char* pdcp_dc_field_text[PDCP_DC_FIELD_N_ITEMS] = {"Control PDU", "Data PDU"};
+
 // Taken from PDCP-Config (TS 38.331 version 15.2.1)
 enum class pdcp_t_reordering_t {
   ms0    = 0,

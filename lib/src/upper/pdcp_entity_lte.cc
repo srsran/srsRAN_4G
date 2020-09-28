@@ -31,10 +31,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
                                  srslte::log_ref            log_,
                                  uint32_t                   lcid_,
                                  pdcp_config_t              cfg_) :
-  pdcp_entity_base(task_sched_, log_),
-  rlc(rlc_),
-  rrc(rrc_),
-  gw(gw_)
+  pdcp_entity_base(task_sched_, log_), rlc(rlc_), rrc(rrc_), gw(gw_)
 {
   lcid                 = lcid_;
   cfg                  = cfg_;
@@ -161,6 +158,12 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
 // RLC interface
 void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 {
+  // drop control PDUs
+  if (is_drb() && is_control_pdu(pdu)) {
+    log->info("Dropping PDCP control PDU\n");
+    return;
+  }
+
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     log->error("PDCP PDU smaller than required header size.\n");
