@@ -89,3 +89,14 @@ add_executable(dmrs_pdsch_test dmrs_pdsch_test.c)
 target_link_libraries(dmrs_pdsch_test srslte_phy)
 
 add_test(dmrs_pdsch_test dmrs_pdsch_test)
+
+
+########################################################################
+# NR PDSCH DMRS Channel Estimation TEST
+########################################################################
+
+add_executable(dmrs_pdcch_test dmrs_pdcch_test.c)
+target_link_libraries(dmrs_pdcch_test srslte_phy)
+
+add_test(dmrs_pdcch_test dmrs_pdcch_test)
+
