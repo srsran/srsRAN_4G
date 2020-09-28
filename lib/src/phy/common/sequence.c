@@ -274,6 +274,24 @@ void srslte_sequence_state_gen_f(srslte_sequence_state_t* s, float value, float*
   }
 }
 
+void srslte_sequence_state_advance(srslte_sequence_state_t* s, uint32_t length)
+{
+  uint32_t i = 0;
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      // Step sequences
+      s->x1 = sequence_gen_LTE_pr_memless_step_par_x1(s->x1);
+      s->x2 = sequence_gen_LTE_pr_memless_step_par_x2(s->x2);
+    }
+  }
+
+  for (; i < length; i++) {
+    // Step sequences
+    s->x1 = sequence_gen_LTE_pr_memless_step_x1(s->x1);
+    s->x2 = sequence_gen_LTE_pr_memless_step_x2(s->x2);
+  }
+}
+
 // static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
 {

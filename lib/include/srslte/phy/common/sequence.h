@@ -39,9 +39,11 @@ typedef struct SRSLTE_API {
   uint32_t x2;
 } srslte_sequence_state_t;
 
-void srslte_sequence_state_init(srslte_sequence_state_t* s, uint32_t seed);
+SRSLTE_API void srslte_sequence_state_init(srslte_sequence_state_t* s, uint32_t seed);
 
-void srslte_sequence_state_gen_f(srslte_sequence_state_t* s, float value, float* out, uint32_t length);
+SRSLTE_API void srslte_sequence_state_gen_f(srslte_sequence_state_t* s, float value, float* out, uint32_t length);
+
+SRSLTE_API void srslte_sequence_state_advance(srslte_sequence_state_t* s, uint32_t length);
 
 typedef struct SRSLTE_API {
   uint8_t* c;
