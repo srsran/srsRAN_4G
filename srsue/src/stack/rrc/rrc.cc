@@ -2244,15 +2244,7 @@ bool rrc::apply_rr_config_dedicated_on_ho_complete(const rr_cfg_ded_s& cnfg)
 
   // Apply SR+CQI configuration to PHY
   if (cnfg.phys_cfg_ded_present) {
-    current_phy_cfg.ul_cfg.pucch.sr_configured = cnfg.phys_cfg_ded.sched_request_cfg_present;
-    if (cnfg.phys_cfg_ded.cqi_report_cfg_present) {
-      current_phy_cfg.dl_cfg.cqi_report.periodic_configured =
-          cnfg.phys_cfg_ded.cqi_report_cfg.cqi_report_periodic_present and
-          cnfg.phys_cfg_ded.cqi_report_cfg.cqi_report_periodic.type().value == setup_opts::setup;
-      current_phy_cfg.dl_cfg.cqi_report.aperiodic_configured =
-          cnfg.phys_cfg_ded.cqi_report_cfg.cqi_report_mode_aperiodic_present;
-    }
-    phy->set_config(current_phy_cfg);
+    apply_phy_config_dedicated(cnfg.phys_cfg_ded, false);
   }
 
   // Apply SR configuration to MAC

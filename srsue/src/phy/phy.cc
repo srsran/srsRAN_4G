@@ -473,7 +473,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
 
   // Apply configuration after the worker is finished to avoid race conditions
   cmd_worker.add_cmd([this, config_, cc_idx, reconfigure_prach]() {
-    log_h->info("Setting new PHY configuration...\n");
+    log_h->info("Setting new PHY configuration cc_idx=%d...\n", cc_idx);
     for (uint32_t i = 0; i < nof_workers; i++) {
       // set_cell is not protected so run when worker is finished
       sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
@@ -482,7 +482,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
         w->release();
       }
     }
-    log_h->info("Finished setting new PHY configuration.\n");
+    log_h->info("Finished setting new PHY configuration cc_idx=%d\n", cc_idx);
     if (reconfigure_prach) {
       // Reconfigure PRACH parameters only if configuration is different
       prach_cfg = config_.prach_cfg;
