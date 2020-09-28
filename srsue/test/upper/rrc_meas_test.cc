@@ -211,6 +211,7 @@ public:
     pdcptest->expecting_reconf_complete                                      = true;
     send_dcch_msg(dl_dcch_msg);
     stack->task_sched.run_pending_tasks();
+    set_config_complete(true);
     pdcptest->expecting_reconf_complete = false;
 
     return !pdcptest->get_error() && pdcptest->received_reconf_complete;
