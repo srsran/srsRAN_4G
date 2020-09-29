@@ -74,6 +74,12 @@ typedef struct {
 SRSLTE_API int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t mode, uint32_t ratio);
 
 /**
+ * @brief resets internal re-sampler state
+ * @param q Object pointer
+ */
+SRSLTE_API void srslte_resampler_fft_reset_state(srslte_resampler_fft_t* q);
+
+/**
  * Get delay from the FFT based resampler.
  * @param q Object pointer
  * @return the delay in number of samples
@@ -81,7 +87,11 @@ SRSLTE_API int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resam
 SRSLTE_API uint32_t srslte_resampler_fft_get_delay(srslte_resampler_fft_t* q);
 
 /**
- * Run FFT based resampler in the initiated mode.
+ * @brief Run FFT based resampler in the initiated mode.
+ *
+ * @note Setting the input to NULL is equivalent of feeding zeroes
+ * @note Setting the output to NULL is equivalent of dropping output samples
+ *
  * @param q Object pointer, make sure it has been initialised
  * @param input Points at the input complex buffer
  * @param output Points at the output complex buffer

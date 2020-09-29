@@ -56,6 +56,10 @@ int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
+  if (q->mode == mode && q->ratio == ratio) {
+    return SRSLTE_SUCCESS;
+  }
+
   // Make sure interpolator is freed
   srslte_resampler_fft_free(q);
 
@@ -142,49 +146,61 @@ int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t
   float norm = 1.0f / (cabsf(q->out_buffer[0]) * (float)input_fft_size);
   srslte_vec_sc_prod_cfc(q->out_buffer, norm, q->filter, high_size);
 
-  // Zero state
-  q->state_len = 0;
-  srslte_vec_cf_zero(q->state, output_fft_size);
+  // reset state
+  srslte_resampler_fft_reset_state(q);
 
   return SRSLTE_SUCCESS;
+}
+
+void srslte_resampler_fft_reset_state(srslte_resampler_fft_t* q)
+{
+  q->state_len = 0;
+  srslte_vec_cf_zero(q->state, q->ifft.size);
 }
 
 static void resampler_fft_interpolate(srslte_resampler_fft_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
 {
   uint32_t count = 0;
 
-  if (q == NULL || input == NULL || output == NULL) {
+  if (q == NULL) {
     return;
   }
 
   while (count < nsamples) {
     uint32_t n = SRSLTE_MIN(q->window_sz, nsamples - count);
 
-    // Copy input samples
-    srslte_vec_cf_copy(q->in_buffer, &input[count], q->window_sz);
+    if (input) {
+      // Copy input samples
+      srslte_vec_cf_copy(q->in_buffer, &input[count], n);
 
-    // Pad zeroes
-    srslte_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
+      // Pad zeroes
+      srslte_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
 
-    // Execute FFT
-    srslte_dft_run_guru_c(&q->fft);
+      // Execute FFT
+      srslte_dft_run_guru_c(&q->fft);
 
-    // Replicate input spectrum
-    for (uint32_t i = 1; i < q->ratio; i++) {
-      srslte_vec_cf_copy(&q->out_buffer[q->fft.size * i], q->out_buffer, q->fft.size);
+      // Replicate input spectrum
+      for (uint32_t i = 1; i < q->ratio; i++) {
+        srslte_vec_cf_copy(&q->out_buffer[q->fft.size * i], q->out_buffer, q->fft.size);
+      }
+
+      // Apply filtering
+      srslte_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size);
+
+      // Execute iFFT
+      srslte_dft_run_guru_c(&q->ifft);
+    } else {
+      // Equivalent IFFT output of feeding zeroes
+      srslte_vec_cf_zero(q->out_buffer, q->ifft.size);
     }
-
-    // Apply filtering
-    srslte_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size);
-
-    // Execute iFFT
-    srslte_dft_run_guru_c(&q->ifft);
 
     // Add previous state
     srslte_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);
 
     // Copy output
-    srslte_vec_cf_copy(&output[count * q->ratio], q->out_buffer, n * q->ratio);
+    if (output) {
+      srslte_vec_cf_copy(&output[count * q->ratio], q->out_buffer, n * q->ratio);
+    }
 
     // Save current state
     q->state_len = q->ifft.size - n * q->ratio;
@@ -206,30 +222,36 @@ static void resampler_fft_decimate(srslte_resampler_fft_t* q, const cf_t* input,
   while (count < nsamples) {
     uint32_t n = SRSLTE_MIN(q->window_sz, nsamples - count);
 
-    // Copy input samples
-    srslte_vec_cf_copy(q->in_buffer, &input[count], q->window_sz);
+    if (input) {
+      // Copy input samples
+      srslte_vec_cf_copy(q->in_buffer, &input[count], q->window_sz);
 
-    // Pad zeroes
-    srslte_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
+      // Pad zeroes
+      srslte_vec_cf_zero(&q->in_buffer[n], q->fft.size - n);
 
-    // Execute FFT
-    srslte_dft_run_guru_c(&q->fft);
+      // Execute FFT
+      srslte_dft_run_guru_c(&q->fft);
 
-    // Apply filtering and cut
-    srslte_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size / 2);
-    srslte_vec_prod_ccc(&q->out_buffer[q->fft.size - q->ifft.size / 2],
-                        &q->filter[q->fft.size - q->ifft.size / 2],
-                        &q->in_buffer[q->ifft.size / 2],
-                        q->ifft.size / 2);
+      // Apply filtering and cut
+      srslte_vec_prod_ccc(q->out_buffer, q->filter, q->in_buffer, q->ifft.size / 2);
+      srslte_vec_prod_ccc(&q->out_buffer[q->fft.size - q->ifft.size / 2],
+                          &q->filter[q->fft.size - q->ifft.size / 2],
+                          &q->in_buffer[q->ifft.size / 2],
+                          q->ifft.size / 2);
 
-    // Execute iFFT
-    srslte_dft_run_guru_c(&q->ifft);
+      // Execute iFFT
+      srslte_dft_run_guru_c(&q->ifft);
+    } else {
+      srslte_vec_cf_zero(q->out_buffer, q->ifft.size);
+    }
 
     // Add previous state
     srslte_vec_sum_ccc(q->out_buffer, q->state, q->out_buffer, q->state_len);
 
     // Copy output
-    srslte_vec_cf_copy(&output[count / q->ratio], q->out_buffer, n / q->ratio);
+    if (output) {
+      srslte_vec_cf_copy(&output[count / q->ratio], q->out_buffer, n / q->ratio);
+    }
 
     // Save current state
     q->state_len = q->ifft.size - n / q->ratio;
