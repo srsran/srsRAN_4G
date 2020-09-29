@@ -40,6 +40,11 @@ extern "C" {
 #define SRSLTE_NR_MAX_NUMEROLOGY 4
 
 /**
+ * @brief Defines the symbol duration, including cyclic prefix
+ */
+#define SRSLTE_SUBC_SPACING(NUM) (15000U << (NUM))
+
+/**
  * @brief Defines the number of slots per SF. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
 #define SRSLTE_NR_NSLOTS_PER_SF(NUM) (1U << (NUM))
@@ -80,18 +85,18 @@ typedef struct {
 #define SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE 45
 #define SRSLTE_CORESET_SHIFT_INDEX_MAX (SRSLTE_CORESET_NOF_PRB_MAX - 1)
 
-typedef enum {
+typedef enum SRSLTE_API {
   srslte_coreset_mapping_type_interleaved = 0,
   srslte_coreset_mapping_type_non_interleaved,
 } srslte_coreset_mapping_type_t;
 
-typedef enum {
+typedef enum SRSLTE_API {
   srslte_coreset_bundle_size_n2 = 0,
   srslte_coreset_bundle_size_n3,
   srslte_coreset_bundle_size_n6,
 } srslte_coreset_bundle_size_t;
 
-typedef enum {
+typedef enum SRSLTE_API {
   srslte_coreset_precoder_granularity_contiguous = 0,
   srslte_coreset_precoder_granularity_reg_bundle
 } srslte_coreset_precoder_granularity_t;
@@ -102,11 +107,11 @@ typedef enum {
  * Fields follow the same order than described in 3GPP 38.331 R15 - ControlResourceSet
  *
  */
-typedef struct {
+typedef struct SRSLTE_API {
   srslte_coreset_mapping_type_t mapping_type;
   uint32_t                      id;
   uint32_t                      duration;
-  bool                          freq_domain_resources[SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE];
+  bool                          freq_resources[SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE];
   srslte_coreset_bundle_size_t  interleaver_size;
 
   bool                                  dmrs_scrambling_id_present;
@@ -117,21 +122,21 @@ typedef struct {
   /** Missing TCI parameters */
 } srslte_coreset_t;
 
-typedef enum {
+typedef enum SRSLTE_API {
   srslte_search_space_type_common = 0,
   srslte_search_space_type_ue,
 } srslte_search_space_type_t;
 
 #define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS 5
 
-typedef struct {
+typedef struct SRSLTE_API {
   uint32_t                   start;    // start symbol within slot
   uint32_t                   duration; // in slots
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS];
 } srslte_search_space_t;
 
-typedef struct {
+typedef struct SRSLTE_API {
   srslte_nr_carrier_t   carrier;
   uint16_t              rnti;
   srslte_coreset_t      coreset;
@@ -139,6 +144,30 @@ typedef struct {
   uint32_t              candidate;
   uint32_t              aggregation_level;
 } srslte_nr_pdcch_cfg_t;
+
+/**
+ * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the
+ * frequency domain resources bit-map for counting the number of PRB.
+ *
+ * @attention Prior to this function call, the frequency domain resources bit-map shall be zeroed beyond the
+ * carrier.nof_prb / 6 index, otherwise the CORESET bandwidth might be greater than the carrier.
+ *
+ * @param coreset provides the given CORESET configuration
+ * @return The number of PRB that the CORESET takes in frequency domain
+ */
+SRSLTE_API uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset);
+
+/**
+ * @brief Calculates the number of Physical Resource Elements (time and frequency domain) that a given CORESET uses.
+ * This function uses the frequency domain resources bit-map and duration to compute the number of symbols.
+ *
+ * @attention Prior to this function call, the frequency domain resources bit-map shall be zeroed beyond the
+ * carrier.nof_prb / 6 index, otherwise the CORESET bandwidth might be greater than the carrier.
+ *
+ * @param coreset provides the given CORESET configuration
+ * @return The number of resource elements that compose the coreset
+ */
+SRSLTE_API uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset);
 
 #ifdef __cplusplus
 }
