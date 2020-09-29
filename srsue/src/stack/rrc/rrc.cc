@@ -1960,10 +1960,9 @@ void rrc::log_phy_config_dedicated()
   }
 
   if (current_phy_cfg.ul_cfg.pucch.sr_configured) {
-    rrc_log->info("Set PHY config ded: SR-n_pucch=%d, SR-ConfigIndex=%d, SR-TransMax=%d\n",
+    rrc_log->info("Set PHY config ded: SR-n_pucch=%d, SR-ConfigIndex=%d\n",
                   current_phy_cfg.ul_cfg.pucch.n_pucch_sr,
-                  current_phy_cfg.ul_cfg.pucch.I_sr,
-                  current_mac_cfg.sr_cfg.dsr_transmax);
+                  current_phy_cfg.ul_cfg.pucch.I_sr);
   }
 
   if (current_phy_cfg.ul_cfg.srs.configured) {
@@ -2105,10 +2104,13 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config, boo
 
 void rrc::log_mac_config_dedicated()
 {
-  rrc_log->info("Set MAC main config: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
-                current_mac_cfg.harq_cfg.max_harq_msg3_tx,
-                current_mac_cfg.bsr_cfg.retx_timer,
-                current_mac_cfg.bsr_cfg.periodic_timer);
+  rrc_log->info(
+      "Set MAC main config: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d, SR %s (dsr-TransMax=%d)\n",
+      current_mac_cfg.harq_cfg.max_harq_msg3_tx,
+      current_mac_cfg.bsr_cfg.retx_timer,
+      current_mac_cfg.bsr_cfg.periodic_timer,
+      current_mac_cfg.sr_cfg.enabled ? "enabled" : "disabled",
+      current_mac_cfg.sr_cfg.dsr_transmax);
   if (current_mac_cfg.phr_cfg.enabled) {
     rrc_log->info("Set MAC PHR config: periodicPHR-Timer=%d, prohibitPHR-Timer=%d, dl-PathlossChange=%d\n",
                   current_mac_cfg.phr_cfg.periodic_timer,
@@ -2137,7 +2139,7 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg, bool is_handover)
 {
   if (cnfg->phys_cfg_ded_present) {
     apply_phy_config_dedicated(cnfg->phys_cfg_ded, is_handover);
-    // Apply SR configuration to MAC
+    // Apply SR configuration to MAC (leave SR unconfigured during handover)
     if (not is_handover and cnfg->phys_cfg_ded.sched_request_cfg_present) {
       set_mac_cfg_t_sched_request_cfg(&current_mac_cfg, cnfg->phys_cfg_ded.sched_request_cfg);
     }
@@ -2152,6 +2154,7 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg, bool is_handover)
       set_mac_cfg_t_main_cfg(&current_mac_cfg, cnfg->mac_main_cfg.explicit_value());
     }
     mac->set_config(current_mac_cfg);
+    log_mac_config_dedicated();
   } else if (not is_handover and cnfg->phys_cfg_ded.sched_request_cfg_present) {
     // If MAC-main not set but SR config is set, use directly mac->set_config to update config
     mac->set_config(current_mac_cfg);
@@ -2204,6 +2207,7 @@ bool rrc::apply_rr_config_dedicated_on_ho_complete(const rr_cfg_ded_s& cnfg)
   if (cnfg.phys_cfg_ded.sched_request_cfg_present) {
     set_mac_cfg_t_sched_request_cfg(&current_mac_cfg, cnfg.phys_cfg_ded.sched_request_cfg);
     mac->set_config(current_mac_cfg);
+    log_mac_config_dedicated();
   }
   return true;
 }
