@@ -644,7 +644,6 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
     return proc_outcome_t::yield;
   }
   if (serv_cell_cfg_fut.is_success()) {
-    rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
     Info("All SIBs of serving cell obtained successfully\n");
     cs_result = cs_result_t::changed_cell;
     return proc_outcome_t::success;
