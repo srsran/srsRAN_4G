@@ -83,12 +83,14 @@ void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd)
 bool lte_ttcn3_phy::set_config(srslte::phy_cfg_t config, uint32_t cc_idx_)
 {
   log.debug("%s not implemented.\n", __FUNCTION__);
+  task_sched.defer_task([this]() { stack->set_config_complete(true); });
   return true;
 }
 
 bool lte_ttcn3_phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 {
   log.debug("%s not implemented.\n", __FUNCTION__);
+  task_sched.defer_task([this]() { stack->set_scell_complete(true); });
   return true;
 }
 
@@ -390,6 +392,8 @@ void lte_ttcn3_phy::run_tti()
     sr_pending = false;
     sr_tx_tti  = current_tti;
   }
+
+  task_sched.run_pending_tasks();
 }
 
 void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)

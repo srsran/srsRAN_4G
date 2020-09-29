@@ -134,6 +134,8 @@ private:
 
   std::mutex mutex;
 
+  srslte::task_scheduler task_sched;
+
   uint32_t ra_trans_cnt = 0;
 
   stack_interface_phy_lte* stack  = nullptr;
