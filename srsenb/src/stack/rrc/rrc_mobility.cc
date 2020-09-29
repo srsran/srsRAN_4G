@@ -1210,6 +1210,11 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
         rrc_log->warning("Failed to unpack UE EUTRA Capability\n");
         continue;
       }
+      if (rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
+        asn1::json_writer js{};
+        rrc_ue->eutra_capabilities.to_json(js);
+        rrc_log->debug_long("New rnti=0x%x EUTRA capabilities: %s\n", rrc_ue->rnti, js.to_string().c_str());
+      }
       rrc_ue->eutra_capabilities_unpacked = true;
     }
   }

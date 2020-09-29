@@ -368,7 +368,13 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       }
 
       // Make sure UE capabilities are copied over to new RNTI
-      eutra_capabilities = parent->users[old_rnti]->eutra_capabilities;
+      eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
+      eutra_capabilities_unpacked = parent->users[old_rnti]->eutra_capabilities_unpacked;
+      if (parent->rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
+        asn1::json_writer js{};
+        eutra_capabilities.to_json(js);
+        parent->rrc_log->debug_long("rnti=0x%x EUTRA capabilities: %s\n", rnti, js.to_string().c_str());
+      }
 
       old_reest_rnti = old_rnti;
       state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
@@ -744,6 +750,11 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
         parent->rrc_log->error("Failed to unpack EUTRA capabilities message\n");
         return false;
+      }
+      if (parent->rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
+        asn1::json_writer js{};
+        eutra_capabilities.to_json(js);
+        parent->rrc_log->debug_long("rnti=0x%x EUTRA capabilities: %s\n", rnti, js.to_string().c_str());
       }
       eutra_capabilities_unpacked = true;
       ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
