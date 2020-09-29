@@ -70,6 +70,10 @@ bool sr_proc::need_tx(uint32_t tti)
 
 void sr_proc::set_config(srslte::sr_cfg_t& cfg)
 {
+  if (cfg.enabled && cfg.dsr_transmax == 0) {
+    Error("Zero is an invalid value for dsr-TransMax (n4, n8, n16, n32, n64 are supported). Disabling SR.\n");
+    return;
+  }
   sr_cfg = cfg;
 }
 
