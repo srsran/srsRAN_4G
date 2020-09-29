@@ -149,8 +149,8 @@ private:
   bool                                                            serv_cell_select_attempted = false;
   srslte::proc_future_t<rrc_interface_phy_lte::cell_search_ret_t> cell_search_fut;
   srslte::proc_future_t<void>                                     serv_cell_cfg_fut;
-  bool                                                            discard_serving = false;
-  std::vector<uint32_t>                                           required_sibs   = {};
+  bool                                                            discard_serving = false, cell_search_called = false;
+  std::vector<uint32_t>                                           required_sibs = {};
 };
 
 class rrc::plmn_search_proc

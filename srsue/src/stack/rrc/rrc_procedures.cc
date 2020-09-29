@@ -481,8 +481,11 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
   } else {
     required_sibs = std::move(required_sibs_);
   }
-  neigh_index = 0;
-  cs_result   = cs_result_t::no_cell;
+  neigh_index                = 0;
+  cs_result                  = cs_result_t::no_cell;
+  discard_serving            = false;
+  serv_cell_select_attempted = false;
+  cell_search_called         = false;
   if (serv_cell_is_ok) {
     state = search_state_t::cell_config;
     if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
@@ -491,9 +494,7 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
     }
     return proc_outcome_t::yield;
   }
-  state                      = search_state_t::cell_selection;
-  discard_serving            = false;
-  serv_cell_select_attempted = false;
+  state = search_state_t::cell_selection;
   return start_cell_selection();
 }
 
@@ -576,12 +577,16 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   }
 
   // If any of the known cells meets the selection criteria or could not be selected, search again.
-  Info("Could not select any known cell. Searching new cells\n");
-  if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
-    return proc_outcome_t::error;
+  if (not cell_search_called) {
+    Info("Could not select any known cell. Searching new cells\n");
+    state              = search_state_t::cell_search;
+    cell_search_called = true;
+    if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
+      return proc_outcome_t::error;
+    }
+    return step();
   }
-  state = search_state_t::cell_search;
-  return step();
+  return proc_outcome_t::error;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const bool& cs_ret)
@@ -634,6 +639,14 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_search()
   }
   cs_result = (cell_search_fut.value()->found == cell_search_ret_t::CELL_FOUND) ? cs_result_t::changed_cell
                                                                                 : cs_result_t::no_cell;
+  if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
+    Info("PHY is in SYNC and cell selection passed.\n");
+    state = search_state_t::cell_config;
+    if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
+      return proc_outcome_t::error;
+    }
+    return proc_outcome_t::yield;
+  }
   Info("Cell Search of cell selection run successfully\n");
   return proc_outcome_t::success;
 }
