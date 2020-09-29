@@ -990,19 +990,6 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
     return proc_outcome_t::error;
   }
 
-  srslte::unique_byte_buffer_t nas_sdu;
-  for (uint32_t i = 0; i < rx_recfg.ded_info_nas_list.size(); i++) {
-    nas_sdu = srslte::allocate_unique_buffer(*rrc_ptr->pool);
-    if (nas_sdu.get()) {
-      memcpy(nas_sdu->msg, rx_recfg.ded_info_nas_list[i].data(), rx_recfg.ded_info_nas_list[i].size());
-      nas_sdu->N_bytes = rx_recfg.ded_info_nas_list[i].size();
-      rrc_ptr->nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
-    } else {
-      rrc_ptr->rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
-      return proc_outcome_t::error;
-    }
-  }
-
   // Wait for PHY configurations to be complete
   if (std::count(&rrc_ptr->current_scell_configured[0], &rrc_ptr->current_scell_configured[SRSLTE_MAX_CARRIERS], true) >
       0) {
@@ -1028,6 +1015,20 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
   }
 
   rrc_ptr->send_rrc_con_reconfig_complete();
+
+  srslte::unique_byte_buffer_t nas_pdu;
+  for (auto& pdu : rx_recfg.ded_info_nas_list) {
+    nas_pdu = srslte::allocate_unique_buffer(*rrc_ptr->pool);
+    if (nas_pdu.get()) {
+      memcpy(nas_pdu->msg, pdu.data(), pdu.size());
+      nas_pdu->N_bytes = pdu.size();
+      rrc_ptr->nas->write_pdu(RB_ID_SRB1, std::move(nas_pdu));
+    } else {
+      rrc_ptr->rrc_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
+      return proc_outcome_t::error;
+    }
+  }
+
   return proc_outcome_t::success;
 }
 
