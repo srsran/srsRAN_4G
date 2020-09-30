@@ -681,14 +681,14 @@ int sched_ue::generate_format2(uint32_t                          pid,
 
 int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
                                uint32_t                          tti,
-                               uint32_t                          cc_idx,
+                               uint32_t                          ue_cc_idx,
                                prb_interval                      alloc,
                                bool                              needs_pdcch,
                                srslte_dci_location_t             dci_pos,
                                int                               explicit_mcs,
                                uci_pusch_t                       uci_type)
 {
-  ul_harq_proc*    h   = get_ul_harq(tti, cc_idx);
+  ul_harq_proc*    h   = get_ul_harq(tti, ue_cc_idx);
   srslte_dci_ul_t* dci = &data->dci;
 
   bool cqi_request = needs_cqi_unlocked(tti, true);
@@ -697,7 +697,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   data->needs_pdcch = needs_pdcch;
   dci->location     = dci_pos;
 
-  int mcs = (explicit_mcs >= 0) ? explicit_mcs : carriers[cc_idx].fixed_mcs_ul;
+  int mcs = (explicit_mcs >= 0) ? explicit_mcs : carriers[ue_cc_idx].fixed_mcs_ul;
   int tbs = 0;
 
   bool is_newtx = h->is_empty(0);
@@ -711,11 +711,11 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
     } else {
       // dynamic mcs
-      uint32_t req_bytes = get_pending_ul_new_data_unlocked(tti);
+      uint32_t req_bytes = get_pending_ul_new_data(tti, ue_cc_idx);
       uint32_t N_srs     = 0;
       uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
       uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
-      tbs                = carriers[cc_idx].alloc_tbs_ul(alloc.length(), nof_re, req_bytes, &mcs);
+      tbs                = carriers[ue_cc_idx].alloc_tbs_ul(alloc.length(), nof_re, req_bytes, &mcs);
 
       // Reduce MCS to fit UCI if transmitted in this grant
       if (uci_type != UCI_PUSCH_NONE) {
@@ -733,7 +733,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         }
         // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
         if (nof_re >= nof_uci_re) {
-          tbs = carriers[cc_idx].alloc_tbs_ul(alloc.length(), nof_re - nof_uci_re, req_bytes, &mcs);
+          tbs = carriers[ue_cc_idx].alloc_tbs_ul(alloc.length(), nof_re - nof_uci_re, req_bytes, &mcs);
         }
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
@@ -753,7 +753,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     data->tbs        = tbs;
     dci->rnti        = rnti;
     dci->format      = SRSLTE_DCI_FORMAT0;
-    dci->ue_cc_idx   = cc_idx;
+    dci->ue_cc_idx   = ue_cc_idx;
     dci->tb.ndi      = h->get_ndi(0);
     dci->cqi_request = cqi_request;
     dci->freq_hop_fl = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
@@ -972,18 +972,12 @@ uint32_t sched_ue::get_pending_dl_new_data()
   return pending_data;
 }
 
-uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
-{
-  return get_pending_ul_new_data_unlocked(tti);
-}
-
 uint32_t sched_ue::get_pending_ul_old_data(uint32_t cc_idx)
 {
   return get_pending_ul_old_data_unlocked(cc_idx);
 }
 
-// Private lock-free implementation
-uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
+uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
 {
   // Note: If there are no active bearers, scheduling requests are also ignored.
   uint32_t pending_data     = 0;
@@ -995,8 +989,19 @@ uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
     }
   }
   if (pending_data == 0) {
-    if (is_sr_triggered() and ul_bearers_found) {
-      return 512;
+    if (is_sr_triggered() and ul_bearers_found and this_ue_cc_idx >= 0) {
+      // Check if this_cc_idx is the carrier with highest CQI
+      uint32_t max_cqi = 0, max_cc_idx = 0;
+      for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
+        uint32_t sum_cqi = carriers[cc_idx].dl_cqi + carriers[cc_idx].ul_cqi;
+        if (carriers[cc_idx].is_active() and sum_cqi > max_cqi) {
+          max_cqi    = sum_cqi;
+          max_cc_idx = cc_idx;
+        }
+      }
+      if ((int)max_cc_idx == this_ue_cc_idx) {
+        return 512;
+      }
     }
     for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
       if (needs_cqi_unlocked(tti, cc_idx)) {

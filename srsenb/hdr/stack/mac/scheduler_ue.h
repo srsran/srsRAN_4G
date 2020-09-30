@@ -181,7 +181,7 @@ public:
   rbg_interval               get_required_dl_rbgs(uint32_t ue_cc_idx);
   srslte::interval<uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
   uint32_t                   get_pending_dl_new_data();
-  uint32_t                   get_pending_ul_new_data(uint32_t tti);
+  uint32_t                   get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx);
   uint32_t                   get_pending_ul_old_data(uint32_t cc_idx);
   uint32_t                   get_pending_dl_new_data_total();
 
@@ -247,7 +247,6 @@ private:
                                           const srslte_dci_dl_t& dci);
 
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
-  uint32_t get_pending_ul_new_data_unlocked(uint32_t tti);
 
   bool needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_send = false);
 

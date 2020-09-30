@@ -1030,7 +1030,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
       if (ue_ev.buffer_ev->sr_data > 0 and user->drb_cfg_flag) {
         uint32_t tot_ul_data =
-            ue_db[ue_ev.rnti].get_pending_ul_new_data(tti_info.tti_params.tti_tx_ul) + ue_ev.buffer_ev->sr_data;
+            ue_db[ue_ev.rnti].get_pending_ul_new_data(tti_info.tti_params.tti_tx_ul, -1) + ue_ev.buffer_ev->sr_data;
         uint32_t lcg = 1;
         ul_bsr(ue_ev.rnti, lcg, tot_ul_data);
       }

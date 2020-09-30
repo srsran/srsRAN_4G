@@ -287,7 +287,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
   }
   uint32_t cell_idx = p.second;
 
-  uint32_t      pending_data = user->get_pending_ul_new_data(current_tti);
+  uint32_t      pending_data = user->get_pending_ul_new_data(current_tti, cell_idx);
   ul_harq_proc* h            = user->get_ul_harq(current_tti, cell_idx);
 
   // find an empty PID

@@ -255,8 +255,7 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(
-      rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); }, __PRETTY_FUNCTION__);
+  ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -265,7 +264,7 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
   // TODO: Check if correct use of last_tti
   uint32_t ret = SRSLTE_ERROR;
   ue_db_access(
-      rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti); }, __PRETTY_FUNCTION__);
+      rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti, -1); }, __PRETTY_FUNCTION__);
   return ret;
 }
 

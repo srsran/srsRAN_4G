@@ -1152,7 +1152,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     uci_pusch_t uci_type = is_uci_included(this, *cc_results, user, cc_cfg->enb_cc_idx);
 
     /* Generate DCI Format1A */
-    uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul());
+    uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index);
     int      tbs                 = user->generate_format0(pusch,
                                      get_tti_tx_ul(),
                                      cell_index,
@@ -1173,7 +1173,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                      pusch->dci.location.L,
                      pusch->dci.location.ncce,
                      ul_alloc.alloc.to_string().c_str(),
-                     user->get_pending_ul_new_data(get_tti_tx_ul()));
+                     user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index));
       continue;
     }
 
@@ -1189,7 +1189,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                 ul_alloc.alloc.to_string().c_str(),
                 h->nof_retx(0),
                 tbs,
-                user->get_pending_ul_new_data(get_tti_tx_ul()),
+                user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index),
                 pending_data_before,
                 user->get_pending_ul_old_data(cell_index));
 
