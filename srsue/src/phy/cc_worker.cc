@@ -274,7 +274,7 @@ bool cc_worker::work_dl_regular()
     }
     // Generate PHY grant
     if (srslte_ue_dl_dci_to_pdsch_grant(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, &dci_dl, &ue_dl_cfg.cfg.pdsch.grant)) {
-      Error("Converting DCI message to DL dci\n");
+      Info("Converting DCI message to DL dci\n");
       return false;
     }
 
@@ -615,10 +615,10 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 
     // Generate PHY grant
     if (srslte_ue_ul_dci_to_pusch_grant(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &dci_ul, &ue_ul_cfg.ul_cfg.pusch.grant)) {
-      if (log_h->get_level() >= srslte::LOG_LEVEL_ERROR) {
+      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         char str[128];
         srslte_dci_ul_info(&dci_ul, str, sizeof(str));
-        Error("Converting DCI message to UL grant %s\n", str);
+        Info("Converting DCI message to UL grant %s\n", str);
       }
       ul_grant_available = false;
     } else if (ue_ul_cfg.ul_cfg.pusch.grant.tb.mod == SRSLTE_MOD_BPSK) {

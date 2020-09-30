@@ -310,7 +310,7 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
     }
 
     if (grant->nof_symb == 0 || grant->nof_re == 0) {
-      ERROR("Converting ul_dci to grant, nof_symb=%d, nof_re=%d\n", grant->nof_symb, grant->nof_re);
+      INFO("Error converting ul_dci to grant, nof_symb=%d, nof_re=%d\n", grant->nof_symb, grant->nof_re);
       return SRSLTE_ERROR;
     }
 

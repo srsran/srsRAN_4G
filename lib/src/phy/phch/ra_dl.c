@@ -399,7 +399,7 @@ static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, const srslte_dci_dl_t
         if (grant->tb[i].tbs < 0) {
           char str[128];
           srslte_dci_dl_info(dci, str, sizeof(str));
-          ERROR("Computing TBS from %s\n", str);
+          INFO("Error computing TBS from %s\n", str);
           return SRSLTE_ERROR;
         }
       } else {
@@ -624,7 +624,7 @@ int srslte_ra_dl_dci_to_grant(const srslte_cell_t*   cell,
         }
       }
     } else {
-      ERROR("Configuring TB Info\n");
+      INFO("Configuring TB Info\n");
       return SRSLTE_ERROR;
     }
   } else {
