@@ -31,6 +31,7 @@ namespace detail {
 /// The logger_impl template class contains the common functionality to loggers.
 /// Its main responsibility is to control the logging level by individually
 /// enabling or disabling the logging channels that form the logger.
+/// NOTE: Thread safe class.
 template <typename T, typename Enum>
 class logger_impl : public T
 {
@@ -60,8 +61,28 @@ public:
   /// Change the logging level.
   void set_level(Enum lvl)
   {
+    detail::scoped_lock lock(m);
     for (unsigned i = 0, e = channels.size(); i != e; ++i) {
       channels[i]->set_enabled(static_cast<Enum>(i) <= lvl);
+    }
+  }
+
+  /// Set the specified context value to all the channels of the logger.
+  void set_context(uint32_t x)
+  {
+    detail::scoped_lock lock(m);
+    for (auto channel : channels) {
+      channel->set_context(x);
+    }
+  }
+
+  /// Set the maximum number of bytes to can be printed in a hex dump to all the
+  /// channels of the logger.
+  void set_hex_dump_max_size(int x)
+  {
+    detail::scoped_lock lock(m);
+    for (auto channel : channels) {
+      channel->set_hex_dump_max_size(x);
     }
   }
 
@@ -75,6 +96,7 @@ private:
 private:
   const std::string logger_id;
   const std::array<log_channel*, size> channels;
+  mutable detail::mutex m;
 };
 
 /// Type trait to detect if T is a logger.
@@ -117,12 +139,13 @@ using build_logger_type = detail::logger_impl<T, Enum>;
 /// Common logger types.
 ///
 
-/// Basic logger with three levels.
-enum class basic_levels { error, warning, info, LAST };
+/// Basic logger with four levels.
+enum class basic_levels { error, warning, info, debug, LAST };
 struct basic_logger_channels {
   log_channel& error;
   log_channel& warning;
   log_channel& info;
+  log_channel& debug;
 };
 using basic_logger = build_logger_type<basic_logger_channels, basic_levels>;
 

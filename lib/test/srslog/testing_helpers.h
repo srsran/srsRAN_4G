@@ -25,9 +25,9 @@
 #include <cstdio>
 
 /// Invokes the given test function and printing test results to stdout.
-#define TEST_FUNCTION(func)                                                    \
+#define TEST_FUNCTION(func, ...)                                               \
   do {                                                                         \
-    if (!func()) {                                                             \
+    if (!func(__VA_ARGS__)) {                                                  \
       std::printf("Test \"%s\" FAILED! - %s:%u\n", #func, __FILE__, __LINE__); \
       return -1;                                                               \
     } else {                                                                   \

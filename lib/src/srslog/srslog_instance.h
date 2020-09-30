@@ -23,17 +23,16 @@
 #define SRSLOG_SRSLOG_INSTANCE_H
 
 #include "log_backend_impl.h"
-#include "object_repository.h"
+#include "sink_repository.h"
 #include "srslte/srslog/detail/support/any.h"
 #include "srslte/srslog/log_channel.h"
-#include "srslte/srslog/sink.h"
 
 namespace srslog {
 
 /// Singleton of the framework containing all the required classes.
 class srslog_instance
 {
-  srslog_instance() = default;
+  srslog_instance() { default_sink = &sink_repo.get_stdout_sink(); }
 
 public:
   srslog_instance(const srslog_instance& other) = delete;
@@ -52,15 +51,13 @@ public:
   const logger_repo_type& get_logger_repo() const { return logger_repo; }
 
   /// Log channel repository accessor.
-  using channel_repo_type =
-      object_repository<std::string, std::unique_ptr<log_channel>>;
+  using channel_repo_type = object_repository<std::string, log_channel>;
   channel_repo_type& get_channel_repo() { return channel_repo; }
   const channel_repo_type& get_channel_repo() const { return channel_repo; }
 
   /// Sink repository accessor.
-  using sink_repo_type = object_repository<std::string, std::unique_ptr<sink>>;
-  sink_repo_type& get_sink_repo() { return sink_repo; }
-  const sink_repo_type& get_sink_repo() const { return sink_repo; }
+  sink_repository& get_sink_repo() { return sink_repo; }
+  const sink_repository& get_sink_repo() const { return sink_repo; }
 
   /// Backend accessor.
   detail::log_backend& get_backend() { return backend; }
@@ -72,13 +69,20 @@ public:
     backend.set_error_handler(std::move(callback));
   }
 
+  /// Set the specified sink as the default one.
+  void set_default_sink(sink& s) { default_sink = &s; }
+
+  /// Returns the default sink.
+  sink& get_default_sink() { return *default_sink; }
+
 private:
   /// NOTE: The order of declaration of each member is important here for proper
   /// destruction.
-  sink_repo_type sink_repo;
+  sink_repository sink_repo;
   log_backend_impl backend;
   channel_repo_type channel_repo;
   logger_repo_type logger_repo;
+  detail::shared_variable<sink*> default_sink{nullptr};
 };
 
 } // namespace srslog

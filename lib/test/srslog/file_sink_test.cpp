@@ -19,13 +19,13 @@
  *
  */
 
-#include "src/srslog/sinks/file_sink.h"
 #include "file_test_utils.h"
+#include "src/srslog/sinks/file_sink.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
 
-static const char* const log_filename = "testfile.log";
+static constexpr char log_filename[] = "file_sink_test.log";
 
 static bool when_data_is_written_to_file_then_contents_are_valid()
 {
@@ -48,6 +48,18 @@ static bool when_data_is_written_to_file_then_contents_are_valid()
   return true;
 }
 
+/// A Test-Specific Subclass of file_sink. This subclass provides public access
+/// to the data members of the parent class.
+class file_sink_subclass : public file_sink
+{
+public:
+  file_sink_subclass(std::string name, size_t max_size) :
+    file_sink(std::move(name), max_size)
+  {}
+
+  uint32_t get_num_of_files() const { return get_file_index(); }
+};
+
 static bool when_data_written_exceeds_size_threshold_then_new_file_is_created()
 {
   std::string filename0 =
@@ -59,7 +71,7 @@ static bool when_data_written_exceeds_size_threshold_then_new_file_is_created()
   file_test_utils::scoped_file_deleter deleter = {
       filename0, filename1, filename2};
 
-  file_sink file(log_filename, 5001);
+  file_sink_subclass file(log_filename, 5001);
 
   // Build a 1000 byte entry.
   std::string entry(1000, 'a');
@@ -71,16 +83,14 @@ static bool when_data_written_exceeds_size_threshold_then_new_file_is_created()
   file.flush();
 
   // Only one file should exist.
-  ASSERT_EQ(file_test_utils::file_exists(filename0), true);
-  ASSERT_EQ(file_test_utils::file_exists(filename1), false);
+  ASSERT_EQ(file.get_num_of_files(), 1);
 
   // Trigger a file rotation.
   file.write(detail::memory_buffer(entry));
   file.flush();
 
   // A second file should be created.
-  ASSERT_EQ(file_test_utils::file_exists(filename0), true);
-  ASSERT_EQ(file_test_utils::file_exists(filename1), true);
+  ASSERT_EQ(file.get_num_of_files(), 2);
 
   // Fill in the second file with 4000 bytes, one byte less than the threshold.
   for (unsigned i = 0; i != 4; ++i) {
@@ -88,19 +98,15 @@ static bool when_data_written_exceeds_size_threshold_then_new_file_is_created()
   }
   file.flush();
 
-  // Two file should exist, third should not be created yet.
-  ASSERT_EQ(file_test_utils::file_exists(filename0), true);
-  ASSERT_EQ(file_test_utils::file_exists(filename1), true);
-  ASSERT_EQ(file_test_utils::file_exists(filename2), false);
+  // Two files should exist, third should not be created yet.
+  ASSERT_EQ(file.get_num_of_files(), 2);
 
   // Trigger a file rotation.
   file.write(detail::memory_buffer(entry));
   file.flush();
 
   // Three files should exist.
-  ASSERT_EQ(file_test_utils::file_exists(filename0), true);
-  ASSERT_EQ(file_test_utils::file_exists(filename1), true);
-  ASSERT_EQ(file_test_utils::file_exists(filename2), true);
+  ASSERT_EQ(file.get_num_of_files(), 3);
 
   return true;
 }

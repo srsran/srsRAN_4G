@@ -103,29 +103,26 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
                          bool                   long_msg)
 {
   char buffer_tti[16]  = {};
-  char buffer_time[64] = {};
 
   if (logger_h) {
     logger::unique_log_str_t log_str = nullptr;
 
     if (long_msg || hex) {
       // For long messages, dynamically allocate a new log_str with enough size outside the pool.
-      uint32_t log_str_msg_len = sizeof(buffer_tti) + sizeof(buffer_time) + 20 + strlen(msg) + CHARS_FOR_HEX_DUMP(size);
+      uint32_t log_str_msg_len = sizeof(buffer_tti) + 20 + strlen(msg) + CHARS_FOR_HEX_DUMP(size);
       log_str = logger::unique_log_str_t(new logger::log_str(nullptr, log_str_msg_len), logger::log_str_deleter());
     } else {
       log_str = logger_h->allocate_unique_log_str();
     }
 
     if (log_str) {
-      now_time(buffer_time, sizeof(buffer_time));
       if (do_tti) {
         get_tti_str(tti, buffer_tti, sizeof(buffer_tti));
       }
 
       snprintf(log_str->str(),
                log_str->get_buffer_size(),
-               "%s [%-4s] %s %s%s%s%s%s",
-               buffer_time,
+               "[%-4s] %s %s%s%s%s%s",
                get_service_name().c_str(),
                log_level_text_short[level],
                do_tti ? buffer_tti : "",

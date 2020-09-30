@@ -25,102 +25,93 @@
 
 using namespace srslog;
 
-static const char* const test_id = "Test";
+static constexpr char test_id1[] = "Test1";
+static constexpr char test_id2[] = "Test2";
 
-//:FIXME: older compilers may not have defined this C++11 trait.
+//:TODO: older compilers may not have defined this C++11 trait.
 #if (defined(__clang__) && (__clang_major__ >= 5)) ||                          \
     (defined(__GNUG__) && (__GNUC__ >= 5))
 static_assert(std::is_trivially_copyable<detail::memory_buffer>::value,
               "Expected to be trivially copyable");
 #endif
 
-namespace {
-
-/// A Dummy implementation of a sink.
-class sink_dummy : public sink
+static bool when_fetching_channel_then_channel_instance_is_returned()
 {
-public:
-  detail::error_string write(detail::memory_buffer buffer) override
-  {
-    return {};
-  }
+  log_channel& channel1 = fetch_log_channel(test_id1);
+  log_channel& channel2 = fetch_log_channel(test_id2, fetch_stdout_sink(), {});
 
-  detail::error_string flush() override { return {}; }
-};
-
-} // namespace
-
-static bool when_no_channel_exists_then_channel_is_created()
-{
-  sink_dummy s;
-  log_channel* channel = create_log_channel(test_id, s);
-
-  ASSERT_NE(channel, nullptr);
-  ASSERT_EQ(channel->id(), test_id);
-
-  return true;
-}
-
-static bool when_channel_already_exists_then_nullptr_is_returned()
-{
-  sink_dummy s;
-  log_channel* channel = create_log_channel(test_id, s);
-
-  ASSERT_EQ(channel, nullptr);
+  ASSERT_EQ(channel1.id(), test_id1);
+  ASSERT_EQ(channel2.id(), test_id2);
 
   return true;
 }
 
 static bool when_valid_id_is_passed_then_channel_is_found()
 {
-  log_channel* c = find_log_channel(test_id);
+  log_channel* channel1 = find_log_channel(test_id1);
+  log_channel* channel2 = find_log_channel(test_id2);
 
-  ASSERT_NE(c, nullptr);
-  ASSERT_EQ(c->id(), test_id);
+  ASSERT_NE(channel1, nullptr);
+  ASSERT_EQ(channel1->id(), test_id1);
 
-  return true;
-}
-
-static bool when_invalid_id_is_passed_then_nothing_is_found()
-{
-  ASSERT_EQ(find_log_channel("invalid"), nullptr);
+  ASSERT_NE(channel2, nullptr);
+  ASSERT_EQ(channel2->id(), test_id2);
 
   return true;
 }
 
-static const char* const logger_id = "TestLogger";
-
-static bool when_no_logger_exists_then_logger_is_created()
+static bool when_non_existent_id_is_passed_then_nothing_is_found()
 {
-  sink_dummy s;
-  log_channel& error = *create_log_channel("logger#error", s);
-  log_channel& warning = *create_log_channel("logger#warning", s);
-  log_channel& info = *create_log_channel("logger#info", s);
-  basic_logger* logger =
-      create_logger<basic_logger>(logger_id, error, warning, info);
-
-  ASSERT_NE(logger, nullptr);
-  ASSERT_EQ(logger->id(), logger_id);
+  ASSERT_EQ(find_log_channel("non_existent_channel"), nullptr);
 
   return true;
 }
 
-static bool when_logger_already_exists_then_nullptr_is_returned()
+static bool
+when_id_with_sharps_is_passed_then_channel_is_fetched_with_clean_id()
 {
-  log_channel& error = *find_log_channel("logger#error");
-  log_channel& warning = *find_log_channel("logger#warning");
-  log_channel& info = *find_log_channel("logger#info");
-  basic_logger* logger =
-      create_logger<basic_logger>(logger_id, error, warning, info);
+  log_channel& channel1 = fetch_log_channel("a1#a");
+  log_channel& channel2 = fetch_log_channel("a2#a", fetch_stdout_sink(), {});
 
-  ASSERT_EQ(logger, nullptr);
+  ASSERT_EQ(channel1.id(), "a1a");
+  ASSERT_EQ(channel2.id(), "a2a");
+
+  return true;
+}
+
+static constexpr char logger_id[] = "TestLogger";
+static constexpr char basic_logger_id1[] = "BasicTestLogger";
+static constexpr char basic_logger_id2[] = "BasicTestLogger2";
+
+static bool when_fetching_logger_then_logger_instance_is_returned()
+{
+  log_channel& error = fetch_log_channel("logger.error");
+  log_channel& warning = fetch_log_channel("logger.warning");
+  log_channel& info = fetch_log_channel("logger.info");
+  log_channel& debug = fetch_log_channel("logger.debug");
+
+  auto& logger =
+      fetch_logger<basic_logger>(logger_id, error, warning, info, debug);
+
+  ASSERT_EQ(logger.id(), logger_id);
+
+  return true;
+}
+
+static bool when_fetching_basic_logger_then_basic_logger_instance_is_returned()
+{
+  basic_logger& logger1 = fetch_basic_logger(basic_logger_id1);
+  basic_logger& logger2 = fetch_basic_logger(basic_logger_id2, fetch_stdout_sink());
+
+  ASSERT_EQ(logger1.id(), basic_logger_id1);
+  ASSERT_EQ(logger2.id(), basic_logger_id2);
 
   return true;
 }
 
 static bool when_valid_id_and_type_is_passed_then_logger_is_found()
 {
-  basic_logger* l = find_logger<basic_logger>(logger_id);
+  auto* l = find_logger<basic_logger>(logger_id);
 
   ASSERT_NE(l, nullptr);
   ASSERT_EQ(l->id(), logger_id);
@@ -156,27 +147,12 @@ static bool when_valid_id_with_invalid_type_is_passed_then_no_logger_is_found()
   return true;
 }
 
-static bool when_no_sink_exists_then_sink_is_created()
+static constexpr char file_name[] = "file_fetch_test.txt";
+
+static bool when_file_sink_is_fetched_then_sink_instance_is_returned()
 {
-  sink* s = create_stdout_sink();
-
-  ASSERT_NE(s, nullptr);
-
-  return true;
-}
-
-static bool when_sink_already_exists_then_nullptr_is_returned()
-{
-  sink* s = create_stdout_sink();
-
-  ASSERT_EQ(s, nullptr);
-
-  return true;
-}
-
-static bool when_valid_id_is_passed_then_sink_is_found()
-{
-  sink* s = find_sink("stdout");
+  fetch_file_sink(file_name);
+  sink* s = find_sink(file_name);
 
   ASSERT_NE(s, nullptr);
 
@@ -190,24 +166,47 @@ static bool when_invalid_id_is_passed_then_no_sink_is_found()
   return true;
 }
 
+static bool when_no_installed_default_sink_then_stdout_sink_is_used()
+{
+  sink& default_sink = get_default_sink();
+
+  ASSERT_EQ(&default_sink, &fetch_stdout_sink());
+
+  return true;
+}
+
+static bool
+when_setting_stderr_as_default_then_get_default_returns_stderr_sink()
+{
+  set_default_sink(fetch_stderr_sink());
+  sink& default_sink = get_default_sink();
+
+  ASSERT_EQ(&default_sink, &fetch_stderr_sink());
+
+  return true;
+}
+
 int main()
 {
-  TEST_FUNCTION(when_no_channel_exists_then_channel_is_created);
-  TEST_FUNCTION(when_channel_already_exists_then_nullptr_is_returned);
+  TEST_FUNCTION(when_fetching_channel_then_channel_instance_is_returned);
   TEST_FUNCTION(when_valid_id_is_passed_then_channel_is_found);
-  TEST_FUNCTION(when_invalid_id_is_passed_then_nothing_is_found);
-  TEST_FUNCTION(when_no_logger_exists_then_logger_is_created);
-  TEST_FUNCTION(when_logger_already_exists_then_nullptr_is_returned);
+  TEST_FUNCTION(when_non_existent_id_is_passed_then_nothing_is_found);
+  TEST_FUNCTION(
+      when_id_with_sharps_is_passed_then_channel_is_fetched_with_clean_id);
+  TEST_FUNCTION(when_fetching_logger_then_logger_instance_is_returned);
+  TEST_FUNCTION(
+      when_fetching_basic_logger_then_basic_logger_instance_is_returned);
   TEST_FUNCTION(when_valid_id_and_type_is_passed_then_logger_is_found);
   TEST_FUNCTION(
       when_invalid_id_with_valid_type_is_passed_then_no_logger_is_found);
   TEST_FUNCTION(when_invalid_id_and_type_is_passed_then_no_logger_is_found);
   TEST_FUNCTION(
       when_valid_id_with_invalid_type_is_passed_then_no_logger_is_found);
-  TEST_FUNCTION(when_no_sink_exists_then_sink_is_created);
-  TEST_FUNCTION(when_sink_already_exists_then_nullptr_is_returned);
-  TEST_FUNCTION(when_valid_id_is_passed_then_sink_is_found);
+  TEST_FUNCTION(when_file_sink_is_fetched_then_sink_instance_is_returned);
   TEST_FUNCTION(when_invalid_id_is_passed_then_no_sink_is_found);
+  TEST_FUNCTION(when_no_installed_default_sink_then_stdout_sink_is_used);
+  TEST_FUNCTION(
+      when_setting_stderr_as_default_then_get_default_returns_stderr_sink);
 
   return 0;
 }

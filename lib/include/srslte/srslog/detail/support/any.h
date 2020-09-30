@@ -48,7 +48,7 @@ struct is_in_place_type_t<in_place_type_t<T>> : std::true_type {};
 class any
 {
 public:
-  //:FIXME: Clang 3.8 does not compile when default constructing a const object
+  //:TODO: Clang 3.8 does not compile when default constructing a const object
   // due to DR253. Declare the defaulted constructor out of the class.
   any();
 
@@ -149,7 +149,7 @@ private:
   std::unique_ptr<type_interface> storage;
 };
 
-//:FIXME: declared out of line, see FIXME above.
+//:TODO: declared out of line, see TODO above.
 inline any::any() = default;
 
 /// Constructs an any object containing an object of type T, passing the

@@ -26,7 +26,7 @@
 #include <queue>
 
 #ifndef SRSLOG_QUEUE_CAPACITY
-#define SRSLOG_QUEUE_CAPACITY 2048
+#define SRSLOG_QUEUE_CAPACITY 8192
 #endif
 
 namespace srslog {

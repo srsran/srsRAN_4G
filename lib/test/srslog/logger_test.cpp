@@ -25,7 +25,7 @@
 
 using namespace srslog;
 
-static const char* const logger_id = "TestLogger";
+static constexpr char logger_id[] = "TestLogger";
 
 namespace {
 
@@ -48,6 +48,8 @@ public:
   void start() override {}
 
   void push(detail::log_entry&& entry) override {}
+
+  bool is_running() const override { return true; }
 };
 
 /// Definition of a three level logger

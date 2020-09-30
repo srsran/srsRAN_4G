@@ -45,14 +45,13 @@ public:
     queue.push(std::move(entry));
   }
 
+  bool is_running() const override { return worker.is_running(); }
+
   /// Installs the specified error handler into the backend worker.
   void set_error_handler(error_handler err_handler)
   {
     worker.set_error_handler(std::move(err_handler));
   }
-
-  /// Returns true if the backend has been started, otherwise returns false.
-  bool is_started() const { return worker.is_running(); }
 
   /// Stops the backend worker thread.
   void stop() { worker.stop(); }

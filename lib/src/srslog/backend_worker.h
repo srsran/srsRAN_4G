@@ -41,8 +41,7 @@ class backend_worker
 
 public:
   explicit backend_worker(detail::work_queue<detail::log_entry>& queue) :
-    queue(queue),
-    running_flag(false)
+    queue(queue), running_flag(false)
   {}
 
   backend_worker(const backend_worker&) = delete;
@@ -100,7 +99,8 @@ private:
 
   /// Checks the current size of the queue reporting an error message if it is
   /// about to reach its maximum capacity.
-  void report_queue_on_full() const
+  /// Error message is only reported once to avoid spamming.
+  void report_queue_on_full_once()
   {
     if (queue.is_almost_full()) {
       err_handler(
@@ -108,6 +108,7 @@ private:
                       "capacity of {} elements, new log entries will get "
                       "discarded.\nConsider increasing the queue capacity.",
                       queue.get_capacity()));
+      err_handler = [](const std::string&) {};
     }
   }
 

@@ -46,6 +46,8 @@ public:
   void start() override {}
 
   void push(detail::log_entry&& entry) override {}
+
+  bool is_running() const override { return true; }
 };
 
 } // namespace
@@ -102,6 +104,8 @@ public:
     ++count;
   }
 
+  bool is_running() const override { return true; }
+
   unsigned push_invocation_count() const { return count; }
 
   const detail::log_entry& last_entry() const { return e; }
@@ -120,12 +124,10 @@ when_logging_in_log_channel_then_log_entry_is_pushed_into_the_backend()
   sink_dummy s;
   log_channel log("id", s, backend);
 
-  std::string fmtstring = "Arg1: %u Arg2: %s";
+  std::string fmtstring = "test";
   log(fmtstring, 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
-  ASSERT_NE(backend.last_entry().s, nullptr);
-  ASSERT_EQ(backend.last_entry().fmtstring, fmtstring);
 
   return true;
 }
@@ -137,10 +139,103 @@ static bool when_logging_in_disabled_log_channel_then_log_entry_is_ignored()
   log_channel log("id", s, backend);
 
   log.set_enabled(false);
-  std::string fmtstring = "Arg1: %u Arg2: %s";
+  std::string fmtstring = "test";
   log(fmtstring, 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 0);
+
+  return true;
+}
+
+static bool when_logging_then_filled_in_log_entry_is_pushed_into_the_backend()
+{
+  backend_spy backend;
+  sink_dummy s;
+
+  std::string name = "name";
+  char tag = 'A';
+
+  log_channel log("id", s, backend, {name, tag, true});
+
+  std::string fmtstring = "test";
+  uint32_t ctx = 10;
+
+  log.set_context(ctx);
+  log(fmtstring, 42, "Hello");
+
+  ASSERT_EQ(backend.push_invocation_count(), 1);
+
+  const detail::log_entry& entry = backend.last_entry();
+  ASSERT_NE(entry.tp.time_since_epoch().count(), 0);
+  ASSERT_EQ(entry.context.value, ctx);
+  ASSERT_EQ(entry.context.enabled, true);
+  ASSERT_EQ(entry.fmtstring, fmtstring);
+  ASSERT_EQ(entry.log_name, name);
+  ASSERT_EQ(entry.log_tag, tag);
+
+  return true;
+}
+
+static bool
+when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend()
+{
+  backend_spy backend;
+  sink_dummy s;
+
+  std::string name = "name";
+  char tag = 'A';
+
+  log_channel log("id", s, backend, {name, tag, true});
+
+  std::string fmtstring = "test";
+  uint32_t ctx = 4;
+
+  log.set_context(ctx);
+  log.set_hex_dump_max_size(4);
+  uint8_t hex[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+  log(hex, sizeof(hex), fmtstring, 42, "Hello");
+
+  ASSERT_EQ(backend.push_invocation_count(), 1);
+
+  const detail::log_entry& entry = backend.last_entry();
+  ASSERT_NE(entry.tp.time_since_epoch().count(), 0);
+  ASSERT_EQ(entry.context.value, ctx);
+  ASSERT_EQ(entry.context.enabled, true);
+  ASSERT_EQ(entry.fmtstring, fmtstring);
+  ASSERT_EQ(entry.log_name, name);
+  ASSERT_EQ(entry.log_tag, tag);
+  ASSERT_EQ(entry.hex_dump.size(), 4);
+  ASSERT_EQ(
+      std::equal(entry.hex_dump.begin(), entry.hex_dump.end(), std::begin(hex)),
+      true);
+
+  return true;
+}
+
+static bool
+when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used()
+{
+  backend_spy backend;
+  sink_dummy s;
+
+  std::string name = "name";
+  char tag = 'A';
+
+  log_channel log("id", s, backend);
+
+  std::string fmtstring = "test";
+
+  log.set_hex_dump_max_size(10);
+  uint8_t hex[] = {0, 1, 2};
+  log(hex, sizeof(hex), fmtstring, 42, "Hello");
+
+  ASSERT_EQ(backend.push_invocation_count(), 1);
+
+  const detail::log_entry& entry = backend.last_entry();
+  ASSERT_EQ(entry.hex_dump.size(), 3);
+  ASSERT_EQ(
+      std::equal(entry.hex_dump.begin(), entry.hex_dump.end(), std::begin(hex)),
+      true);
 
   return true;
 }
@@ -153,6 +248,12 @@ int main()
   TEST_FUNCTION(
       when_logging_in_log_channel_then_log_entry_is_pushed_into_the_backend);
   TEST_FUNCTION(when_logging_in_disabled_log_channel_then_log_entry_is_ignored);
+  TEST_FUNCTION(
+      when_logging_then_filled_in_log_entry_is_pushed_into_the_backend);
+  TEST_FUNCTION(
+      when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend);
+  TEST_FUNCTION(
+      when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used);
 
   return 0;
 }

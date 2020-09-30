@@ -19,14 +19,14 @@
  *
  */
 
-#include "src/srslog/sinks/file_utils.h"
 #include "file_test_utils.h"
+#include "src/srslog/sinks/file_utils.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
 
-static const char* const log_filename = "testfile.log";
-static const char* const log_filename2 = "testfile2.log";
+static constexpr char log_filename[] = "file_utils_test.log";
+static constexpr char log_filename2[] = "file_utils_test2.log";
 
 static bool filename_extension_split_test()
 {

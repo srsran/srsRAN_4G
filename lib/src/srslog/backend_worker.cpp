@@ -20,6 +20,7 @@
  */
 
 #include "backend_worker.h"
+#include "formatter.h"
 #include "srslte/srslog/sink.h"
 #include <cassert>
 
@@ -69,7 +70,7 @@ void backend_worker::do_work()
       continue;
     }
 
-    report_queue_on_full();
+    report_queue_on_full_once();
 
     process_log_entry(std::move(item.second));
   }
@@ -79,12 +80,32 @@ void backend_worker::do_work()
   process_outstanding_entries();
 }
 
+/// Executes the flush command over all registered sinks.
+static void process_flush_command(const detail::flush_backend_cmd& cmd)
+{
+  for (const auto sink : cmd.sinks) {
+    sink->flush();
+  }
+
+  // Notify caller thread we are done.
+  cmd.completion_flag = true;
+}
+
 void backend_worker::process_log_entry(detail::log_entry&& entry)
 {
-  std::string result = fmt::vsprintf(entry.fmtstring, std::move(entry.store));
+  // Check first for flush commands.
+  if (entry.flush_cmd) {
+    process_flush_command(*entry.flush_cmd);
+    return;
+  }
+
+  // Save sink pointer before moving the entry.
+  sink* s = entry.s;
+
+  std::string result = format_log_entry_to_text(std::move(entry));
   detail::memory_buffer buffer(result);
 
-  if (auto err_str = entry.s->write(buffer)) {
+  if (auto err_str = s->write(buffer)) {
     err_handler(err_str.get_error());
   }
 }

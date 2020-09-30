@@ -42,6 +42,9 @@ public:
 
   /// Pushes a log entry into the backend.
   virtual void push(detail::log_entry&& entry) = 0;
+
+  /// Returns true when the backend has been started, otherwise false.
+  virtual bool is_running() const = 0;
 };
 
 } // namespace detail

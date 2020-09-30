@@ -29,9 +29,9 @@ static bool when_backend_is_started_then_is_started_returns_true()
 {
   log_backend_impl backend;
 
-  ASSERT_EQ(backend.is_started(), false);
+  ASSERT_EQ(backend.is_running(), false);
   backend.start();
-  ASSERT_EQ(backend.is_started(), true);
+  ASSERT_EQ(backend.is_running(), true);
 
   return true;
 }
@@ -43,7 +43,7 @@ static bool when_backend_is_started_and_stopped_then_is_started_returns_false()
   backend.start();
   backend.stop();
 
-  ASSERT_EQ(backend.is_started(), false);
+  ASSERT_EQ(backend.is_running(), false);
 
   return true;
 }
@@ -80,7 +80,7 @@ static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()
   sink_spy spy;
   log_backend_impl backend;
 
-  detail::log_entry entry = {&spy, "Test"};
+  detail::log_entry entry = {&spy};
   backend.push(std::move(entry));
 
   ASSERT_EQ(spy.write_invocation_count(), 0);
@@ -88,19 +88,16 @@ static bool when_backend_is_not_started_then_pushed_log_entries_are_ignored()
   return true;
 }
 
-/// Helper to build a log entry.
+/// Builds a basic log entry.
 static detail::log_entry build_log_entry(sink* s)
 {
-  // Populate store with some arguments.
+  using tp_ty = std::chrono::time_point<std::chrono::high_resolution_clock>;
+  tp_ty tp;
+
   fmt::dynamic_format_arg_store<fmt::printf_context> store;
-  store.push_back(3);
-  store.push_back("Hello");
-  store.push_back(3.14);
+  store.push_back(88);
 
-  // Send the log entry to the backend.
-  detail::log_entry entry = {s, "Arg1:%u Arg2:%s Arg3:%.2f", std::move(store)};
-
-  return entry;
+  return {s, tp, {0, false}, "Text %d", std::move(store), "", '\0'};
 }
 
 static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()
@@ -116,7 +113,7 @@ static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()
   backend.stop();
 
   ASSERT_EQ(spy.write_invocation_count(), 1);
-  ASSERT_EQ(spy.received_buffer(), "Arg1:3 Arg2:Hello Arg3:3.14");
+  ASSERT_NE(spy.received_buffer().find("Text 88"), std::string::npos);
 
   return true;
 }

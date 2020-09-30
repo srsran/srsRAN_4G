@@ -69,6 +69,10 @@ public:
 
   detail::error_string flush() override { return handler.flush(); }
 
+protected:
+  /// Returns the current file index.
+  uint32_t get_file_index() const { return file_index; }
+
 private:
   /// Returns true when the sink has never written data to a file, otherwise
   /// returns false.

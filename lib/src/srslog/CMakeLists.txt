@@ -19,8 +19,10 @@
 #
 
 set(SOURCES
+    backend_worker.cpp
     srslog.cpp
-    backend_worker.cpp)
+    srslog_c.cpp
+    event_trace.cpp)
 
 add_subdirectory(bundled/fmt)
 

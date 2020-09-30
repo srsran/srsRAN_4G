@@ -46,6 +46,8 @@ public:
   {
     assert(handle && "Invalid stream handle");
     std::fwrite(buffer.data(), sizeof(char), buffer.size(), handle);
+    // We want to see the output instantly.
+    std::fflush(handle);
     return {};
   }
 

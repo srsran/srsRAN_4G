@@ -24,6 +24,7 @@
 
 #include "srslte/srslog/detail/support/thread_utils.h"
 #include <unordered_map>
+#include <vector>
 
 namespace srslog {
 
@@ -49,8 +50,19 @@ public:
     return &insertion.first->second;
   }
 
-  /// Finds a value with the specified key in the repository. Returns a
-  /// pointer to the value, otherwise nullptr if not found.
+  /// Inserts a new entry in-place into the repository if there is no element
+  /// with the specified key. Returns a reference to the inserted element or to
+  /// the already existing element if no insertion happened.
+  template <typename... Args>
+  V& emplace(Args&&... args)
+  {
+    detail::scoped_lock lock(m);
+    auto insertion = repo.emplace(std::forward<Args>(args)...);
+    return insertion.first->second;
+  }
+
+  /// Finds a value with the specified key in the repository. Returns a pointer
+  /// to the value, otherwise nullptr if not found.
   V* find(const K& key)
   {
     detail::scoped_lock lock(m);
@@ -62,6 +74,32 @@ public:
     detail::scoped_lock lock(m);
     const auto it = repo.find(key);
     return (it != repo.cend()) ? &it->second : nullptr;
+  }
+
+  /// Returns a copy of the contents of the repository.
+  std::vector<V*> contents()
+  {
+    detail::scoped_lock lock(m);
+
+    std::vector<V*> data;
+    data.reserve(repo.size());
+    for (auto& elem : repo) {
+      data.push_back(&elem.second);
+    }
+
+    return data;
+  }
+  std::vector<const V*> contents() const
+  {
+    detail::scoped_lock lock(m);
+
+    std::vector<const V*> data;
+    data.reserve(repo.size());
+    for (const auto& elem : repo) {
+      data.push_back(&elem.second);
+    }
+
+    return data;
   }
 };
 

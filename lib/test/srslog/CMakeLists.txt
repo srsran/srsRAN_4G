@@ -48,3 +48,13 @@ add_executable(file_utils_test file_utils_test.cpp)
 target_include_directories(file_utils_test PUBLIC ../../)
 target_link_libraries(file_utils_test srslog)
 add_test(file_utils_test file_utils_test)
+
+add_executable(tracer_test event_trace_test.cpp)
+add_definitions(-DENABLE_SRSLOG_EVENT_TRACE)
+target_link_libraries(tracer_test srslog)
+add_test(tracer_test tracer_test)
+
+add_executable(formatter_test formatter_test.cpp)
+target_include_directories(formatter_test PUBLIC ../../)
+target_link_libraries(formatter_test srslog)
+add_test(formatter_test formatter_test)
