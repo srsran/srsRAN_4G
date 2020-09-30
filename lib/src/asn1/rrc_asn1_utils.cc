@@ -607,6 +607,7 @@ void set_phy_cfg_t_common_prach(phy_cfg_t* cfg, const asn1::rrc::prach_cfg_info_
     cfg->prach_cfg.hs_flag        = asn1_type->high_speed_flag;
   }
   cfg->prach_cfg.root_seq_idx = root_seq_idx;
+  cfg->prach_cfg_present      = true;
 }
 
 void set_phy_cfg_t_common_pdsch(phy_cfg_t* cfg, const asn1::rrc::pdsch_cfg_common_s& asn1_type)

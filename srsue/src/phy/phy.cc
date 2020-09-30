@@ -466,7 +466,11 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
 
   Info("Setting configuration\n");
 
-  bool reconfigure_prach = !cc_idx && (prach_cfg != config_.prach_cfg);
+  // The PRACH shall be re-configured only if:
+  // - The new configuration belongs to the primary cell
+  // - The PRACH configuration is present
+  // - The PRACH configuration has changed
+  bool reconfigure_prach = !cc_idx && config_.prach_cfg_present && (prach_cfg != config_.prach_cfg);
 
   if (reconfigure_prach) {
     prach_buffer.reset_cfg();

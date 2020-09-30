@@ -177,6 +177,8 @@ struct phy_cfg_t {
   {
     ul_cfg    = {};
     dl_cfg    = {};
+
+    prach_cfg_present = false;
     prach_cfg = {};
 
     // CommonConfig defaults for non-zero values
@@ -221,6 +223,8 @@ struct phy_cfg_t {
 
   srslte_dl_cfg_t    dl_cfg    = {};
   srslte_ul_cfg_t    ul_cfg    = {};
+
+  bool               prach_cfg_present = false;
   srslte_prach_cfg_t prach_cfg = {};
 };
 
