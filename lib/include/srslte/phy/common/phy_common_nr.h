@@ -35,6 +35,11 @@ extern "C" {
 #define SRSLTE_NR_NSYMB_PER_SLOT 14
 
 /**
+ * @brief Defines the resource grid size in physical resource elements (frequency and time domain)
+ */
+#define SRSLTE_NR_SLOT_LEN_RE(nof_prb) (nof_prb * SRSLTE_NRE * SRSLTE_NR_NSYMB_PER_SLOT)
+
+/**
  * @brief Defines the maximum numerology supported. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
 #define SRSLTE_NR_MAX_NUMEROLOGY 4
