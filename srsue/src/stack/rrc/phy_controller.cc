@@ -44,6 +44,24 @@ void phy_controller::in_sync()
   trigger(in_sync_ev{});
 }
 
+bool phy_controller::set_config(const srslte::phy_cfg_t& config, uint32_t cc_idx)
+{
+  if (phy->set_config(config, cc_idx)) {
+    nof_pending_configs++;
+    return true;
+  }
+  return false;
+}
+
+void phy_controller::set_config_complete()
+{
+  if (nof_pending_configs == 0) {
+    log_h->warning("Received more phy config complete signals than the ones scheduled\n");
+    return;
+  }
+  nof_pending_configs--;
+}
+
 /**************************************
  *    PHY Cell Select Procedure
  *************************************/

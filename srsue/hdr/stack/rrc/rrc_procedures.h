@@ -212,7 +212,6 @@ private:
   rrc* rrc_ptr;
   // args
   asn1::rrc::rrc_conn_recfg_r8_ies_s rx_recfg;
-  enum state_t { wait_scell_config, wait_phy_config } state;
 };
 
 class rrc::process_pcch_proc

@@ -368,7 +368,8 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
  *************************************/
 
 rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
-  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_),
+  log_h(srslte::logmap::get("RRC"))
 {}
 
 /*
@@ -781,7 +782,8 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
  *************************************/
 
 rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
-  rrc_ptr(parent_), log_h(srslte::logmap::get("RRC"))
+  rrc_ptr(parent_),
+  log_h(srslte::logmap::get("RRC"))
 {}
 
 proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
@@ -990,14 +992,10 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
     return proc_outcome_t::error;
   }
 
-  // Wait for PHY configurations to be complete
-  if (std::count(&rrc_ptr->current_scell_configured[0], &rrc_ptr->current_scell_configured[SRSLTE_MAX_CARRIERS], true) >
-      0) {
-    state = wait_scell_config;
-  } else {
-    state = wait_phy_config;
+  // No phy config was scheduled, run config completion immediately
+  if (rrc_ptr->phy_ctrl->is_config_pending()) {
+    return react(true);
   }
-
   return proc_outcome_t::yield;
 }
 
@@ -1009,8 +1007,7 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
   }
 
   // in case there are scell to configure, wait for second phy configuration
-  if (state == wait_scell_config) {
-    state = wait_phy_config;
+  if (not rrc_ptr->phy_ctrl->is_config_pending()) {
     return proc_outcome_t::yield;
   }
 
@@ -1537,8 +1534,8 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
   srslte::console("Received HO command to target PCell=%d, NCC=%d\n",
-                     mob_ctrl_info->target_pci,
-                     recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
+                  mob_ctrl_info->target_pci,
+                  recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
   uint32_t target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
                                                                  : rrc_ptr->meas_cells.serving_cell().get_earfcn();

@@ -364,6 +364,7 @@ void rrc::cell_select_complete(bool cs_ret)
 void rrc::set_config_complete(bool status)
 {
   // Signal Reconfiguration Procedure that PHY configuration has completed
+  phy_ctrl->set_config_complete();
   if (conn_recfg_proc.is_busy()) {
     conn_recfg_proc.trigger(status);
   }
@@ -924,7 +925,7 @@ void rrc::ho_failed()
 void rrc::con_reconfig_failed()
 {
   // Set previous PHY/MAC configuration
-  phy->set_config(previous_phy_cfg);
+  phy_ctrl->set_config(previous_phy_cfg);
   mac->set_config(previous_mac_cfg);
 
   // And restore current configs
@@ -1227,7 +1228,7 @@ void rrc::handle_sib2()
     set_phy_cfg_t_enable_64qam(&current_phy_cfg, false);
   }
 
-  phy->set_config(current_phy_cfg);
+  phy_ctrl->set_config(current_phy_cfg);
 
   log_rr_config_common();
 
@@ -1938,7 +1939,7 @@ void rrc::apply_rr_config_common(rr_cfg_common_s* config, bool send_lower_layers
 
   if (send_lower_layers) {
     mac->set_config(current_mac_cfg);
-    phy->set_config(current_phy_cfg);
+    phy_ctrl->set_config(current_phy_cfg);
   }
 }
 
@@ -1982,10 +1983,10 @@ void rrc::set_phy_default()
 
   current_phy_cfg.set_defaults();
 
-  if (phy != nullptr) {
+  if (phy_ctrl != nullptr) {
     for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
       if (i == 0 or current_scell_configured[i]) {
-        phy->set_config(current_phy_cfg, i);
+        phy_ctrl->set_config(current_phy_cfg, i);
         current_scell_configured[i] = false;
       }
     }
@@ -2001,10 +2002,10 @@ void rrc::set_phy_config_dedicated_default()
 
   current_phy_cfg.set_defaults_dedicated();
 
-  if (phy != nullptr) {
+  if (phy_ctrl != nullptr) {
     for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
       if (i == 0 or current_scell_configured[i]) {
-        phy->set_config(current_phy_cfg, i);
+        phy_ctrl->set_config(current_phy_cfg, i);
         current_scell_configured[i] = false;
       }
     }
@@ -2027,8 +2028,8 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_han
 
   log_phy_config_dedicated();
 
-  if (phy != nullptr) {
-    phy->set_config(current_phy_cfg);
+  if (phy_ctrl != nullptr) {
+    phy_ctrl->set_config(current_phy_cfg);
   } else {
     rrc_log->info("RRC not initialized. Skipping PHY config.\n");
   }
@@ -2095,7 +2096,7 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config, boo
 
   if (!phy->set_scell(scell, scell_config.scell_idx_r10, earfcn)) {
     rrc_log->error("Adding SCell cc_idx=%d\n", scell_config.scell_idx_r10);
-  } else if (!phy->set_config(scell_cfg, scell_config.scell_idx_r10)) {
+  } else if (!phy_ctrl->set_config(scell_cfg, scell_config.scell_idx_r10)) {
     rrc_log->error("Setting SCell configuration for cc_idx=%d\n", scell_config.scell_idx_r10);
   }
 

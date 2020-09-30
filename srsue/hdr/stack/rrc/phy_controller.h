@@ -62,10 +62,13 @@ public:
   void cell_selection_completed(bool outcome);
   void in_sync();
   void out_sync() { trigger(out_sync_ev{}); }
+  bool set_config(const srslte::phy_cfg_t& config, uint32_t cc_idx = 0);
+  void set_config_complete();
 
   // state getters
   bool cell_is_camping() { return phy->cell_is_camping(); }
   bool is_in_sync() const { return is_in_state<in_sync_st>(); }
+  bool is_config_pending() const { return nof_pending_configs == 0; }
 
   // FSM states
   struct unknown_st {};
@@ -120,6 +123,7 @@ private:
   srslte::event_observer<bool>                  cell_selection_once_observer;
   std::function<void(uint32_t, uint32_t, bool)> cell_selection_always_observer;
   srslte::event_dispatcher<cell_srch_res>       cell_search_observers;
+  uint32_t                                      nof_pending_configs = 0;
 
 protected:
   state_list<unknown_st, in_sync_st, out_sync_st, searching_cell, selecting_cell> states{this,
