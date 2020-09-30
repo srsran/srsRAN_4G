@@ -456,9 +456,9 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  */
 proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sibs_)
 {
-  bool serv_cell_is_ok = rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping();
-  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and serv_cell_is_ok and
-      rrc_ptr->meas_cells.serving_cell().has_sibs(required_sibs_)) {
+  bool serv_cell_is_ok   = rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping();
+  bool has_required_sibs = rrc_ptr->meas_cells.serving_cell().has_sibs(required_sibs_);
+  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and serv_cell_is_ok and has_required_sibs) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
     cs_result = cs_result_t::same_cell;
@@ -486,7 +486,7 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
   discard_serving            = false;
   serv_cell_select_attempted = false;
   cell_search_called         = false;
-  if (serv_cell_is_ok) {
+  if (serv_cell_is_ok and not has_required_sibs) {
     state = search_state_t::cell_config;
     if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
       Warning("Failed to launch %s procedure\n", rrc_ptr->serv_cell_cfg.get()->name());
