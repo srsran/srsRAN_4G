@@ -622,7 +622,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     if (meas_it != meas_list_cfg.end()) {
       meas_ev.target_eci = meas_it->eci;
     } else if (c != nullptr) {
-      meas_ev.target_eci = c->cell_cfg.cell_id;
+      meas_ev.target_eci = (rrc_enb->cfg.enb_id << 8u) + c->cell_cfg.cell_id;
     } else {
       rrc_log->warning("The PCI=%d inside the MeasReport is not recognized.\n", e.pci);
       continue;
@@ -973,8 +973,7 @@ bool rrc::ue::rrc_mobility::needs_intraenb_ho(idle_st& s, const ho_meas_report_e
 
 void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
 {
-  srslte::console(
-      "Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
+  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
   f->get_log()->info(
       "Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
   f->report = ev;
@@ -1291,7 +1290,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 {
   uint32_t cell_id = rrc_details::eci_to_cellid(meas_report.target_eci);
   target_cell      = f->rrc_enb->cell_common_list->get_cell_id(cell_id);
-  source_cell_ctxt = f->rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  source_cell      = f->rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common;
   if (target_cell == nullptr) {
     f->log_h->error("The target cell_id=0x%x was not found in the list of eNB cells\n", cell_id);
     f->trigger(srslte::failure_ev{});
@@ -1326,7 +1325,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
-  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell_ctxt->cell_common->cell_cfg.dl_earfcn);
+  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn);
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
