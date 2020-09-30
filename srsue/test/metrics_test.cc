@@ -43,24 +43,35 @@ public:
   bool get_metrics(ue_metrics_t* m)
   {
     // fill dummy values
-    bzero(m, sizeof(ue_metrics_t));
     m->rf.rf_o                = 10;
     m->phy.nof_active_cc      = 2;
     m->phy.ch[0].rsrp         = -10.0f;
     m->phy.ch[0].pathloss     = 74;
     m->stack.mac[0].rx_pkts   = 100;
     m->stack.mac[0].rx_errors = 0;
+    m->stack.mac[0].rx_brate  = 200;
+    m->stack.mac[0].nof_tti   = 1;
 
     m->stack.mac[1].rx_pkts   = 100;
-    m->stack.mac[1].rx_errors = 100;
+    m->stack.mac[1].rx_errors = 50;
+    m->stack.mac[1].rx_brate  = 150;
+    m->stack.mac[1].nof_tti   = 1;
 
-    m->stack.mac->nof_tti = 1;
+    // random neighbour cells
+    if (rand() % 2 == 0) {
+      rrc_interface_phy_lte::phy_meas_t neighbor = {};
+      neighbor.pci                               = 8;
+      neighbor.rsrp                              = -33;
+      m->stack.rrc.neighbour_cells.push_back(neighbor);
+      m->stack.rrc.neighbour_cells.push_back(neighbor); // need to add twice since we use CA
+    }
+
+    m->stack.rrc.state = (rand() % 2 == 0) ? RRC_STATE_CONNECTED : RRC_STATE_IDLE;
 
     return true;
   }
-
-  bool is_rrc_connected() { return (rand() % 2 == 0); }
 };
+
 } // namespace srsue
 
 void usage(char* prog)
@@ -117,8 +128,8 @@ int main(int argc, char** argv)
   // enable printing
   metrics_screen.toggle_print(true);
 
-  std::cout << "Running for 2 seconds .." << std::endl;
-  usleep(2e6);
+  std::cout << "Running for 5 seconds .." << std::endl;
+  usleep(5e6);
 
   metricshub.stop();
   return 0;
