@@ -66,6 +66,7 @@ if(RF_FOUND)
 
   add_library(srslte_rf SHARED ${SOURCES_RF})
   target_link_libraries(srslte_rf srslte_rf_utils srslte_phy)
+  set_target_properties(srslte_rf PROPERTIES VERSION ${SRSLTE_VERSION_STRING} SOVERSION ${SRSLTE_SOVERSION})
   
   if (UHD_FOUND)
     target_link_libraries(srslte_rf ${UHD_LIBRARIES})
