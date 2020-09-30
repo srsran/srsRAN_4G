@@ -39,7 +39,7 @@ namespace srsue {
 class metrics_stdout : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
-  metrics_stdout();
+  metrics_stdout(){};
 
   void toggle_print(bool b);
   void set_metrics(const ue_metrics_t& m, const uint32_t period_usec);
@@ -49,10 +49,12 @@ public:
 private:
   std::string float_to_string(float f, int digits);
   std::string float_to_eng_string(float f, int digits);
+  void        print_table(const bool display_neighbours);
 
-  bool                  do_print;
-  uint8_t               n_reports;
-  ue_metrics_interface* ue;
+  bool                  do_print             = false;
+  bool                  table_has_neighbours = false; ///< state of last table head
+  uint8_t               n_reports            = 10;
+  ue_metrics_interface* ue                   = nullptr;
 };
 
 } // namespace srsue

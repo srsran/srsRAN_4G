@@ -60,11 +60,6 @@ char const* const prefixes[2][9] = {
     },
 };
 
-metrics_stdout::metrics_stdout() : do_print(false), n_reports(10), ue(nullptr)
-{
-  // Do nothing
-}
-
 void metrics_stdout::set_ue_handle(ue_metrics_interface* ue_)
 {
   ue = ue_;
@@ -73,6 +68,20 @@ void metrics_stdout::set_ue_handle(ue_metrics_interface* ue_)
 void metrics_stdout::toggle_print(bool b)
 {
   do_print = b;
+}
+
+void metrics_stdout::print_table(const bool display_neighbours)
+{
+  if (display_neighbours) {
+    cout << "--------Signal-------------Neighbour--DL-------------------------------------UL----------------------"
+         << endl;
+    cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler"
+         << endl;
+  } else {
+    cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
+    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
+  }
+  table_has_neighbours = display_neighbours;
 }
 
 void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
@@ -102,19 +111,18 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     display_neighbours = metrics.stack.rrc.neighbour_cells.size() > 0;
   }
 
+  // print table header every 10 reports
   if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
-    if (display_neighbours) {
-      cout << "--------Signal--------------Neighbor----DL-------------------------------------UL----------------------"
-           << endl;
-      cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler"
-           << endl;
-    } else {
-      cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
-      cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
-    }
+    print_table(display_neighbours);
   }
+
+  // also print table header if neighbours are added/removed in between
+  if (display_neighbours != table_has_neighbours) {
+    print_table(display_neighbours);
+  }
+
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
     cout << std::setw(2) << r;
     cout << std::setw(4) << metrics.phy.info[r].pci << std::setw(0);
