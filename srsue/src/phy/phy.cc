@@ -272,11 +272,8 @@ void phy::set_activation_deactivation_scell(uint32_t cmd)
   Info("Received SCell Activation / Deactivation command: 0x%x\n", cmd);
 
   /* Implements 3GPP 36.321 section 6.1.3.8. Activation/Deactivation MAC Control Element*/
-  srslte::console("SCELL Activation / Deactivation CMD: %x\n", cmd);
-  log_h->info("SCELL Activation / Deactivation CMD: %x\n", cmd);
-
   for (uint32_t i = 1; i < SRSLTE_MAX_CARRIERS; i++) {
-    bool activated = ((cmd >> i) & 0x1) == 0x1;
+    bool activated = ((cmd >> i) & 0x1u) == 0x1u;
 
     /* Enable actual cell */
     common.enable_scell(i, activated);

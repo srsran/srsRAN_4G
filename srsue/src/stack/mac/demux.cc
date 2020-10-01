@@ -286,9 +286,13 @@ bool demux::process_ce(srslte::sch_subh* subh)
     case srslte::dl_sch_lcid::TA_CMD:
       parse_ta_cmd(subh);
       break;
-    case srslte::dl_sch_lcid::SCELL_ACTIVATION:
-      phy_h->set_activation_deactivation_scell((uint32_t)subh->get_activation_deactivation_cmd());
+    case srslte::dl_sch_lcid::SCELL_ACTIVATION: {
+      uint32_t cmd = (uint32_t)subh->get_activation_deactivation_cmd();
+      srslte::console("SCELL Activation / Deactivation CMD: %x\n", cmd);
+      log_h->info("SCELL Activation / Deactivation CMD: %x\n", cmd);
+      phy_h->set_activation_deactivation_scell(cmd);
       break;
+    }
     case srslte::dl_sch_lcid::PADDING:
       break;
     default:
