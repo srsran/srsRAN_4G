@@ -748,8 +748,11 @@ void phy_common::update_measurements(uint32_t                                   
       meas.rsrp                              = avg_rsrp_dbm[cc_idx];
       meas.rsrq                              = avg_rsrq_db[cc_idx];
       meas.cfo_hz                            = avg_cfo_hz[cc_idx];
-      // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
-      if (cc_idx > 0) {
+
+      // Save PCI and EARFCN (if available)
+      if (cc_idx == 0) {
+        meas.pci = cell.id;
+      } else {
         meas.earfcn = scell_cfg[cc_idx].earfcn;
         meas.pci    = scell_cfg[cc_idx].pci;
       }
