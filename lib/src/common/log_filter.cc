@@ -97,12 +97,12 @@ void log_filter::init(std::string layer, logger* logger_, bool tti)
 
 void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
                          uint32_t               tti,
-                         const char*            msg,
+                         char*                  msg,
                          const uint8_t*         hex,
                          int                    size,
                          bool                   long_msg)
 {
-  char buffer_tti[16]  = {};
+  char buffer_tti[16] = {};
 
   if (logger_h) {
     logger::unique_log_str_t log_str = nullptr;
@@ -120,15 +120,19 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
         get_tti_str(tti, buffer_tti, sizeof(buffer_tti));
       }
 
+      // Trim away a newline character at the end of the message.
+      if (msg[strlen(msg) - 1] == '\n') {
+        msg[strlen(msg) - 1] = '\0';
+      }
+
       snprintf(log_str->str(),
                log_str->get_buffer_size(),
-               "[%-4s] %s %s%s%s%s%s",
+               "[%-4s] %s %s%s%s%s",
                get_service_name().c_str(),
                log_level_text_short[level],
                do_tti ? buffer_tti : "",
                add_string_en ? add_string_val.c_str() : "",
                msg,
-               msg[strlen(msg) - 1] != '\n' ? "\n" : "",
                (hex_limit > 0 && hex && size > 0) ? hex_string(hex, size).c_str() : "");
 
       logger_h->log(std::move(log_str));

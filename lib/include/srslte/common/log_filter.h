@@ -85,7 +85,7 @@ protected:
 
   void        all_log(srslte::LOG_LEVEL_ENUM level,
                       uint32_t               tti,
-                      const char*            msg,
+                      char*                  msg,
                       const uint8_t*         hex      = nullptr,
                       int                    size     = 0,
                       bool                   long_msg = false);
