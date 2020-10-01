@@ -110,9 +110,10 @@ private:
   uint8_t k_enb_star[32]    = {};
 
   // Helpers to restore security context if HO fails
-  uint8_t                      old_k_enb[32] = {};
-  uint8_t                      old_ncc       = {};
-  srslte::as_security_config_t old_as_ctx    = {};
+  bool                         old_is_first_ncc = {};
+  uint8_t                      old_k_enb[32]    = {};
+  uint8_t                      old_ncc          = {};
+  srslte::as_security_config_t old_as_ctx       = {};
 
   uint32_t current_ncc  = 0;
   bool     is_first_ncc = false;

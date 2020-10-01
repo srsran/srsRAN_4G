@@ -80,6 +80,7 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
              count,
              cfg.bearer_id,
              (cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+  log->debug_hex(k_int, 32, "Integrity gen key:");
   log->debug_hex(msg, msg_len, "Integrity gen input msg:");
   log->debug_hex(mac, 4, "MAC (generated)");
 }
@@ -117,6 +118,7 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
              count,
              cfg.bearer_id,
              cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
+  log->debug_hex(k_int, 32, "Integrity check key:");
   log->debug_hex(msg, msg_len, "Integrity check input msg:");
 
   if (sec_cfg.integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
@@ -152,6 +154,7 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
              count,
              cfg.bearer_id,
              cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
+  log->debug_hex(k_enc, 32, "Cipher encrypt key:");
   log->debug_hex(msg, msg_len, "Cipher encrypt input msg");
 
   switch (sec_cfg.cipher_algo) {
@@ -191,6 +194,7 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
              count,
              cfg.bearer_id,
              (cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  log->debug_hex(k_enc, 32, "Cipher decrypt key:");
   log->debug_hex(ct, ct_len, "Cipher decrypt input msg");
 
   switch (sec_cfg.cipher_algo) {

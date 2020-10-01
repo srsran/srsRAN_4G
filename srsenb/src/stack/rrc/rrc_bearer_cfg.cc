@@ -185,6 +185,7 @@ void security_cfg_handler::generate_as_keys()
   security_generate_k_up(
       k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_up_enc.data(), sec_cfg.k_up_int.data());
 
+  log_h->info_hex(k_enb, 32, "K_eNB (k_enb)");
   log_h->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
   log_h->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
   log_h->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
@@ -192,6 +193,8 @@ void security_cfg_handler::generate_as_keys()
 
 void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn)
 {
+  log_h->info("Regenerating KeNB with PCI=0x%02x, DL-EARFCN=%d\n", new_pci, new_dl_earfcn);
+  log_h->info_hex(k_enb, 32, "Old K_eNB (k_enb)");
   // Generate K_enb*
   uint8_t k_enb_star[32];
   srslte::security_generate_k_enb_star(k_enb, new_pci, new_dl_earfcn, k_enb_star);
@@ -200,11 +203,6 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
   memcpy(k_enb, k_enb_star, 32);
 
   generate_as_keys();
-
-  log_h->info("Regenerating KeNB with PCI=0x%02x, DL-EARFCN=%d\n", new_pci, new_dl_earfcn);
-  log_h->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
-  log_h->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
-  log_h->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
 }
 
 /*****************************

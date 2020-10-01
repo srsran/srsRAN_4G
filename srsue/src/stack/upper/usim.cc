@@ -239,8 +239,8 @@ void usim::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as_secu
 void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
 {
   usim_log->info("Generating AS Keys HO. PCI 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, ncc);
-  usim_log->info_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "Original HO K_RRC_enc");
-  usim_log->info_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "Original HO K_RRC_int");
+  usim_log->info_hex(k_enb, 32, "Old K_eNB");
+
   uint8_t* enb_star_key = k_enb;
 
   if (ncc < 0) {
@@ -251,9 +251,11 @@ void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::a
   while (current_ncc != (uint32_t)ncc) {
     uint8_t* sync = NULL;
     if (is_first_ncc) {
+      usim_log->debug("Using K_enb_initial for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
       sync         = k_enb_initial;
       is_first_ncc = false;
     } else {
+      usim_log->debug("Using NH for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
       sync = nh;
     }
     // Generate NH
@@ -280,6 +282,7 @@ void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::a
   security_generate_k_up(
       k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
 
+  usim_log->info_hex(k_enb, 32, "HO K_eNB");
   usim_log->info_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "HO K_RRC_enc");
   usim_log->info_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "HO K_RRC_int");
 }
@@ -287,8 +290,14 @@ void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::a
 void usim::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
 {
   usim_log->info("Storing AS Keys pre-handover. NCC=%d\n", current_ncc);
-  old_as_ctx = as_ctx;
-  old_ncc    = current_ncc;
+  usim_log->info_hex(k_enb, 32, "Old K_eNB");
+  usim_log->info_hex(as_ctx.k_rrc_enc.data(), as_ctx.k_rrc_enc.size(), "Old K_RRC_enc");
+  usim_log->info_hex(as_ctx.k_rrc_enc.data(), as_ctx.k_rrc_enc.size(), "Old K_RRC_enc");
+  usim_log->info_hex(as_ctx.k_rrc_int.data(), as_ctx.k_rrc_int.size(), "Old K_RRC_int");
+  usim_log->info_hex(as_ctx.k_rrc_int.data(), as_ctx.k_rrc_int.size(), "Old K_RRC_int");
+  old_is_first_ncc = is_first_ncc;
+  old_as_ctx       = as_ctx;
+  old_ncc          = current_ncc;
   memcpy(old_k_enb, k_enb, 32);
   return;
 }
@@ -296,8 +305,9 @@ void usim::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
 void usim::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx)
 {
   usim_log->info("Restoring Keys from failed handover. NCC=%d\n", old_ncc);
-  *as_ctx     = old_as_ctx;
-  current_ncc = old_ncc;
+  is_first_ncc = old_is_first_ncc;
+  *as_ctx      = old_as_ctx;
+  current_ncc  = old_ncc;
   memcpy(k_enb, old_k_enb, 32);
   return;
 }
