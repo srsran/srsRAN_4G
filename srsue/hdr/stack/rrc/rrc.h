@@ -66,7 +66,6 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-
 class phy_controller;
 
 class rrc : public rrc_interface_nas,

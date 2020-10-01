@@ -181,10 +181,10 @@ const cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_
 // If only neighbour PCI is provided, copy full cell from serving cell
 bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
 {
-  phy_cell_t phy_cell                        = {};
-  phy_cell.earfcn                            = meas.earfcn;
-  phy_cell.pci                               = meas.pci;
-  unique_cell_t c                            = unique_cell_t(new cell_t(phy_cell));
+  phy_cell_t phy_cell = {};
+  phy_cell.earfcn     = meas.earfcn;
+  phy_cell.pci        = meas.pci;
+  unique_cell_t c     = unique_cell_t(new cell_t(phy_cell));
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
   c.get()->set_cfo(meas.cfo_hz);
@@ -403,15 +403,12 @@ bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&       
       neighbour_added |= add_meas_cell(m);
     }
 
-    if (is_serving_cell) {
-      log_h->info("MEAS:  New measurement serving cell: rsrp=%.2f dBm.\n", m.rsrp);
-    } else {
-      log_h->info("MEAS:  New measurement neighbour cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz\n",
-                  m.earfcn,
-                  m.pci,
-                  m.rsrp,
-                  m.cfo_hz);
-    }
+    log_h->info("MEAS:  New measurement %s cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz\n",
+                is_serving_cell ? "serving" : "neighbour",
+                m.earfcn,
+                m.pci,
+                m.rsrp,
+                m.cfo_hz);
   }
   return neighbour_added;
 }
