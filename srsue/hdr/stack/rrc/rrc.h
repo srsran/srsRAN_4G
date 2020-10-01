@@ -198,9 +198,8 @@ private:
 
   uint32_t cell_clean_cnt = 0;
 
-  srslte::phy_cfg_t current_phy_cfg, previous_phy_cfg = {};
+  srslte::phy_cfg_t previous_phy_cfg = {};
   srslte::mac_cfg_t current_mac_cfg, previous_mac_cfg = {};
-  bool              current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
 
   void                         generate_as_keys();
   srslte::as_security_config_t sec_cfg = {};

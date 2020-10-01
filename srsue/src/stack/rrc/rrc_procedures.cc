@@ -1271,6 +1271,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   // Save Current RNTI before MAC Reset
   mac_interface_rrc::ue_rnti_t uernti;
   rrc_ptr->mac->get_rntis(&uernti);
+  size_t nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
 
   // 5.3.7.1 - Conditions for Reestablishment procedure
   if (not rrc_ptr->security_is_activated or rrc_ptr->state != RRC_STATE_CONNECTED or
@@ -1319,7 +1320,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   rrc_ptr->mac->reset();
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
-  rrc_ptr->phy->set_activation_deactivation_scell(0);
+  if (nof_scells_active > 0) {
+    rrc_ptr->phy->set_activation_deactivation_scell(0);
+  }
 
   // 1> apply the default physical channel configuration as specified in 9.2.4;
   // Note: this is done by the MAC Reset procedure
@@ -1529,8 +1532,9 @@ rrc::ho_proc::ho_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
 srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
 {
   Info("Starting...\n");
-  recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
-  asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
+  recfg_r8                                      = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
+  asn1::rrc::mob_ctrl_info_s* mob_ctrl_info     = &recfg_r8.mob_ctrl_info;
+  size_t                      nof_scells_active = rrc_ptr->phy_ctrl->current_config_scells().count();
 
   Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
   srslte::console("Received HO command to target PCell=%d, NCC=%d\n",
@@ -1580,7 +1584,9 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->rlc->reestablish();
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
-  rrc_ptr->phy->set_activation_deactivation_scell(0);
+  if (nof_scells_active > 0) {
+    rrc_ptr->phy->set_activation_deactivation_scell(0);
+  }
 
   // apply the value of the newUE-Identity as the C-RNTI;
   rrc_ptr->mac->set_ho_rnti(recfg_r8.mob_ctrl_info.new_ue_id.to_number(), recfg_r8.mob_ctrl_info.target_pci);
