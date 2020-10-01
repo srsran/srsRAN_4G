@@ -135,6 +135,14 @@ bool pdcp::set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte
   return users[rnti].pdcp->set_bearer_state(lcid, state);
 }
 
+void pdcp::reestablish(uint16_t rnti)
+{
+  if (users.count(rnti) == 0) {
+    return;
+  }
+  users[rnti].pdcp->reestablish();
+}
+
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {

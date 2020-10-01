@@ -1314,7 +1314,6 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 
   /* Freeze all DRBs. SRBs DL are needed for sending the HO Cmd */
   for (const drb_to_add_mod_s& drb : f->rrc_ue->bearer_list.get_established_drbs()) {
-    f->rrc_enb->pdcp->del_bearer(f->rrc_ue->rnti, drb.drb_id + 2);
     f->rrc_enb->mac->bearer_ue_rem(f->rrc_ue->rnti, drb.drb_id + 2);
   }
   sched_interface::ue_bearer_cfg_t bcfg = {};
@@ -1342,8 +1341,7 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
 
   if (is_first_crnti_ce) {
     // Need to reset SNs of bearers.
-    rrc_enb->pdcp->rem_user(rrc_ue->rnti);
-    rrc_enb->pdcp->add_user(rrc_ue->rnti);
+    rrc_enb->pdcp->reestablish(rrc_ue->rnti);
     rrc_enb->rlc->reestablish(rrc_ue->rnti);
 
     // Change PCell in MAC/Scheduler

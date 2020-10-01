@@ -74,6 +74,7 @@ public:
   void enable_encryption(uint16_t rnti, uint32_t lcid) override {}
   bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override { return true; }
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override { return true; }
+  void reestablish(uint16_t rnti) override {}
 };
 
 class s1ap_dummy : public s1ap_interface_rrc

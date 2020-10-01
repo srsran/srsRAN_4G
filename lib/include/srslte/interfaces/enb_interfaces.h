@@ -373,6 +373,7 @@ public:
   virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                       = 0;
   virtual bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state)       = 0;
   virtual bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) = 0;
+  virtual void reestablish(uint16_t rnti)                                                            = 0;
 };
 
 // PDCP interface for RLC
