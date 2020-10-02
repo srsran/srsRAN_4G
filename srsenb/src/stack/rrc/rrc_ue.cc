@@ -47,16 +47,16 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 {
   mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
 
-  activity_timer = outer_rrc->task_sched.get_unique_timer();
-  set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
-
-  // Configure
-  apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
-
   // Allocate cell and PUCCH resources
   if (cell_ded_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
     return;
   }
+
+  // Configure
+  apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
+
+  activity_timer = outer_rrc->task_sched.get_unique_timer();
+  set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   mobility_handler.reset(new rrc_mobility(this));
 }
@@ -1007,10 +1007,10 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
 //! Helper method to access Cell configuration based on UE Carrier Index
 cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
-  if (ue_cc_idx >= mac_ctrl->get_ue_sched_cfg().supported_cc_list.size()) {
+  if (ue_cc_idx >= cell_ded_list.nof_cells()) {
     return nullptr;
   }
-  uint32_t enb_cc_idx = mac_ctrl->get_ue_sched_cfg().supported_cc_list[ue_cc_idx].enb_cc_idx;
+  uint32_t enb_cc_idx = cell_ded_list.get_ue_cc_idx(ue_cc_idx)->cell_common->enb_cc_idx;
   return parent->cell_common_list->get_cc_idx(enb_cc_idx);
 }
 

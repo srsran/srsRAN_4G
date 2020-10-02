@@ -1306,7 +1306,6 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   last_temp_crnti = SRSLTE_INVALID_RNTI;
 
   /* Allocate Resources in Target Cell */
-  // NOTE: for intra-eNB Handover only CQI resources will change
   if (not f->rrc_ue->cell_ded_list.set_cells({target_cell->enb_cc_idx})) {
     f->trigger(srslte::failure_ev{});
     return;
