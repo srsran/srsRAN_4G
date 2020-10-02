@@ -126,7 +126,12 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   // update bearer cfgs
   lch_handler.set_cfg(cfg_);
 
-  // either add a new carrier, or reconfigure existing one
+  // in case carriers have been removed
+  while (carriers.size() > cfg.supported_cc_list.size()) {
+    // TODO: distinguish cell deactivation from reconfiguration
+    carriers.pop_back();
+  }
+  // in case carriers have been added or modified
   bool scell_activation_state_changed = false;
   for (uint32_t ue_idx = 0; ue_idx < cfg.supported_cc_list.size(); ++ue_idx) {
     auto& cc_cfg = cfg.supported_cc_list[ue_idx];
@@ -138,7 +143,7 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       // One carrier was added in the place of another
       carriers[ue_idx] = cc_sched_ue{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
       if (ue_idx == 0) {
-        log_h->info("SCHED: rnti=0x%x PCell is now %d.\n", rnti, cc_cfg.enb_cc_idx);
+        log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cc_cfg.enb_cc_idx);
       }
     } else {
       // The SCell internal configuration may have changed

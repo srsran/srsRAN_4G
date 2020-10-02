@@ -150,8 +150,6 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
     handle_con_reconf_with_mobility();
   }
 
-  // Assume rest of parameters in current_sched_ue_cfg do not change in a Reconfig
-
   // Apply changes to MAC scheduler
   mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
   mac->phy_config_enabled(rrc_ue->rnti, false);
