@@ -1282,15 +1282,14 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cause = cause;
   if (reest_cause.value == reest_cause_opts::ho_fail) {
     reest_rnti        = rrc_ptr->ho_handler.get()->ho_src_rnti;
-    reest_source_pci  = rrc_ptr->ho_handler.get()->ho_src_cell.get_pci();
-    reest_cellid      = rrc_ptr->ho_handler.get()->ho_src_cell.get_cell_id();
-    reest_source_freq = rrc_ptr->ho_handler.get()->ho_src_cell.get_earfcn();
+    reest_source_pci  = rrc_ptr->ho_handler.get()->ho_src_cell.pci;
+    reest_source_freq = rrc_ptr->ho_handler.get()->ho_src_cell.earfcn;
   } else {
     reest_rnti        = uernti.crnti;
     reest_source_pci  = rrc_ptr->meas_cells.serving_cell().get_pci(); // needed for reestablishment with another cell
-    reest_cellid      = rrc_ptr->meas_cells.serving_cell().get_cell_id();
     reest_source_freq = rrc_ptr->meas_cells.serving_cell().get_earfcn();
   }
+  reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}\n",
        reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
@@ -1554,7 +1553,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   }
 
   // Save serving cell and current configuration
-  ho_src_cell = rrc_ptr->meas_cells.serving_cell();
+  ho_src_cell = rrc_ptr->meas_cells.serving_cell().phy_cell;
   mac_interface_rrc::ue_rnti_t uernti;
   rrc_ptr->mac->get_rntis(&uernti);
   ho_src_rnti = uernti.crnti;
@@ -1636,10 +1635,10 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
 
   // perform the measurement related actions as specified in 5.5.6.1;
-  rrc_ptr->measurements->ho_reest_actions(ho_src_cell.get_earfcn(), target_earfcn);
+  rrc_ptr->measurements->ho_reest_actions(ho_src_cell.earfcn, target_earfcn);
 
   // if the RRCConnectionReconfiguration message includes the measConfig:
-  if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.get_earfcn())) {
+  if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, ho_src_cell.earfcn)) {
     Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
     return proc_outcome_t::yield; // wait for t304 expiry
   }
