@@ -69,7 +69,8 @@ rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
   cell_reselector(this),
   connection_reest(this),
   ho_handler(this),
-  conn_recfg_proc(this)
+  conn_recfg_proc(this),
+  meas_cells(task_sched_)
 {}
 
 rrc::~rrc() = default;

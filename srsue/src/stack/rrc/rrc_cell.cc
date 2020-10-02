@@ -23,6 +23,16 @@
 
 namespace srsue {
 
+meas_cell::meas_cell(srslte::unique_timer timer_) : timer(std::move(timer_))
+{
+  timer.set(neighbour_timeout_ms);
+  timer.run();
+}
+meas_cell::meas_cell(const phy_cell_t& phy_cell_, srslte::unique_timer timer) : meas_cell(std::move(timer))
+{
+  phy_cell = phy_cell_;
+}
+
 srslte::plmn_id_t meas_cell::get_plmn(uint32_t idx) const
 {
   if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
@@ -64,15 +74,6 @@ void meas_cell::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
 bool meas_cell::is_sib_scheduled(uint32_t sib_index) const
 {
   return sib_info_map.find(sib_index) != sib_info_map.end();
-}
-
-uint32_t meas_cell::timeout_secs(struct timeval now) const
-{
-  struct timeval t[3];
-  memcpy(&t[2], &now, sizeof(struct timeval));
-  memcpy(&t[1], &last_update, sizeof(struct timeval));
-  get_time_interval(t);
-  return t[0].tv_sec;
 }
 
 bool meas_cell::has_sibs(srslte::span<uint32_t> indexes) const
@@ -160,7 +161,10 @@ uint16_t meas_cell::get_mnc() const
  *           Neighbour Cell List
  ********************************************/
 
-meas_cell_list::meas_cell_list() : serv_cell(new meas_cell()) {}
+meas_cell_list::meas_cell_list(srslte::task_sched_handle task_sched_) :
+  serv_cell(new meas_cell(task_sched_.get_unique_timer())),
+  task_sched(task_sched_)
+{}
 
 meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
 {
@@ -184,7 +188,7 @@ bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas
   phy_cell_t phy_cell = {};
   phy_cell.earfcn     = meas.earfcn;
   phy_cell.pci        = meas.pci;
-  unique_meas_cell c  = unique_meas_cell(new meas_cell(phy_cell));
+  unique_meas_cell c  = unique_meas_cell(new meas_cell(phy_cell, task_sched.get_unique_timer()));
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
   c.get()->set_cfo(meas.cfo_hz);
@@ -296,11 +300,8 @@ void meas_cell_list::log_neighbour_cells() const
 //! Called by main RRC thread to remove neighbours from which measurements have not been received in a while
 void meas_cell_list::clean_neighbours()
 {
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-
   for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
-    if ((*it)->timeout_secs(now) > NEIGHBOUR_TIMEOUT) {
+    if (it->get()->timer.is_expired()) {
       log_h->info("Neighbour PCI=%d timed out. Deleting\n", (*it)->get_pci());
       it = neighbour_cells.erase(it);
     } else {

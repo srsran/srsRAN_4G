@@ -90,7 +90,8 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_cell_t& new_ce
   Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...\n", new_cell.earfcn, new_cell.pci);
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
-  if (not rrc_ptr->meas_cells.add_meas_cell(unique_cell_t(new meas_cell(new_cell)))) {
+  if (not rrc_ptr->meas_cells.add_meas_cell(
+          unique_cell_t(new meas_cell(new_cell, rrc_ptr->task_sched.get_unique_timer())))) {
     Error("Could not add new found cell\n");
     return proc_outcome_t::error;
   }

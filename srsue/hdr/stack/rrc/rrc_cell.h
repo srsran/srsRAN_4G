@@ -28,19 +28,29 @@
 
 namespace srsue {
 
+inline std::string to_string(const srsue::phy_cell_t& c)
+{
+  char buffer[64];
+  snprintf(buffer, 64, "{earfcn=%d, pci=%d}\n", c.earfcn, c.pci);
+  return {buffer};
+}
+
 class meas_cell
 {
 public:
-  meas_cell() { gettimeofday(&last_update, nullptr); }
-  explicit meas_cell(phy_cell_t phy_cell_) : meas_cell() { phy_cell = phy_cell_; }
+  const static int neighbour_timeout_ms = 5000;
+
+  explicit meas_cell(srslte::unique_timer timer);
+  meas_cell(const phy_cell_t& phy_cell_, srslte::unique_timer timer);
 
   // comparison based on pci and earfcn
-  bool is_valid() { return phy_cell.earfcn != 0 && srslte_cellid_isvalid(phy_cell.pci); }
+  bool is_valid() const { return phy_cell.earfcn != 0 && srslte_cellid_isvalid(phy_cell.pci); }
   bool equals(const meas_cell& x) { return equals(x.phy_cell.earfcn, x.phy_cell.pci); }
   bool equals(uint32_t earfcn, uint32_t pci) { return earfcn == phy_cell.earfcn && pci == phy_cell.pci; }
 
   // NaN means an RSRP value has not yet been obtained. Keep then in the list and clean them if never updated
-  bool greater(meas_cell* x) { return rsrp > x->rsrp || std::isnan(rsrp); }
+  bool greater(const meas_cell* x) const { return rsrp > x->rsrp || std::isnan(rsrp); }
+  bool greater(const meas_cell& x) const { return rsrp > x.rsrp || std::isnan(rsrp); }
 
   bool              has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const;
   uint32_t          nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
@@ -55,7 +65,7 @@ public:
     if (!std::isnan(rsrp_)) {
       rsrp = rsrp_;
     }
-    gettimeofday(&last_update, nullptr);
+    timer.run();
   }
   void set_rsrq(float rsrq_)
   {
@@ -73,9 +83,6 @@ public:
   float get_rsrp() const { return rsrp; }
   float get_rsrq() const { return rsrq; }
   float get_cfo_hz() const { return phy_cell.cfo_hz; }
-
-  // TODO: replace with TTI count
-  uint32_t timeout_secs(struct timeval now) const;
 
   void set_sib1(const asn1::rrc::sib_type1_s& sib1_);
   void set_sib2(const asn1::rrc::sib_type2_s& sib2_);
@@ -118,12 +125,11 @@ public:
   asn1::rrc::sib_type3_s     sib3     = {};
   asn1::rrc::sib_type13_r9_s sib13    = {};
   asn1::rrc::mcch_msg_s      mcch     = {};
+  srslte::unique_timer       timer;
 
 private:
   float rsrp = NAN;
   float rsrq = NAN;
-
-  struct timeval last_update = {};
 
   bool                         has_valid_sib1  = false;
   bool                         has_valid_sib2  = false;
@@ -168,7 +174,7 @@ public:
   const static int                   MAX_NEIGHBOUR_CELLS = 8;
   typedef std::unique_ptr<meas_cell> unique_meas_cell;
 
-  meas_cell_list();
+  explicit meas_cell_list(srslte::task_sched_handle task_sched_);
 
   bool             add_meas_cell(const phy_meas_t& meas);
   bool             add_meas_cell(unique_meas_cell cell);
@@ -205,7 +211,9 @@ public:
 private:
   bool add_neighbour_cell_unsorted(unique_meas_cell cell);
 
-  srslte::log_ref log_h{"RRC"};
+  // args
+  srslte::log_ref           log_h{"RRC"};
+  srslte::task_sched_handle task_sched;
 
   unique_meas_cell              serv_cell;
   std::vector<unique_meas_cell> neighbour_cells;

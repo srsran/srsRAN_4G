@@ -26,7 +26,8 @@ using namespace srsue;
 
 int test_meas_cell()
 {
-  meas_cell invalid_cell{}, cell{phy_cell_t{1, 3400}};
+  srslte::task_scheduler task_sched;
+  meas_cell invalid_cell{task_sched.get_unique_timer()}, cell{phy_cell_t{1, 3400}, task_sched.get_unique_timer()};
 
   TESTASSERT(not invalid_cell.is_valid());
   TESTASSERT(cell.is_valid());
@@ -40,12 +41,26 @@ int test_meas_cell()
   cell.set_rsrp(NAN);
   TESTASSERT(cell.get_rsrp() == -50);
 
+  // Test meas timer expiry
+  for (size_t i = 0; i < meas_cell::neighbour_timeout_ms; ++i) {
+    TESTASSERT(not cell.timer.is_expired());
+    task_sched.tic();
+  }
+  TESTASSERT(cell.timer.is_expired());
+  cell.set_rsrp(-20);
+  for (size_t i = 0; i < meas_cell::neighbour_timeout_ms; ++i) {
+    TESTASSERT(not cell.timer.is_expired());
+    task_sched.tic();
+  }
+  TESTASSERT(cell.timer.is_expired());
+
   return SRSLTE_SUCCESS;
 }
 
 int test_add_neighbours()
 {
-  meas_cell_list list;
+  srslte::task_scheduler task_sched;
+  meas_cell_list         list{&task_sched};
   TESTASSERT(list.nof_neighbours() == 0);
   TESTASSERT(not list.serving_cell().is_valid());
   TESTASSERT(list.get_neighbour_cell_handle(0, 0) == nullptr);
@@ -78,6 +93,19 @@ int test_add_neighbours()
   TESTASSERT(list.serving_cell().is_valid());
   auto c2 = list.remove_neighbour_cell(3400, 1);
   TESTASSERT(c2 != nullptr and c2->is_valid() and c2->equals(3400, 1));
+  TESTASSERT(list.nof_neighbours() == 0);
+
+  TESTASSERT(list.add_meas_cell(pmeas));
+  TESTASSERT(list.nof_neighbours() == 1);
+  task_sched.tic();
+  task_sched.tic();
+  list.get_neighbour_cell_handle(3400, 1)->set_rsrp(-20);
+  for (size_t i = 0; i < meas_cell::neighbour_timeout_ms; ++i) {
+    TESTASSERT(list.nof_neighbours() == 1);
+    list.clean_neighbours();
+    task_sched.tic();
+  }
+  list.clean_neighbours();
   TESTASSERT(list.nof_neighbours() == 0);
 
   return SRSLTE_SUCCESS;
