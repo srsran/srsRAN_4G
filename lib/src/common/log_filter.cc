@@ -286,7 +286,7 @@ std::string log_filter::hex_string(const uint8_t* hex, int size)
   std::stringstream ss;
   int               c = 0;
 
-  ss << std::hex << std::setfill('0');
+  ss << '\n' << std::hex << std::setfill('0');
   if (hex_limit >= 0) {
     size = (size > hex_limit) ? hex_limit : size;
   }
@@ -296,8 +296,11 @@ std::string log_filter::hex_string(const uint8_t* hex, int size)
     for (int i = 0; i < tmp; i++) {
       ss << std::setw(2) << static_cast<unsigned>(hex[c++]) << " ";
     }
-    ss << "\n";
+    if (c != size) {
+      ss << "\n";
+    }
   }
+
   return ss.str();
 }
 
