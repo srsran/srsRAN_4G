@@ -354,34 +354,40 @@ uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
 
   if (buffer_tx->N_bytes != pdu_len) {
     if (log_h) {
-      srslte::console("\n------------------------------\n");
-      for (int i = 0; i < nof_subheaders; i++) {
-        srslte::console(
-            "SUBH %d is_sdu=%d, payload=%d\n", i, subheaders[i].is_sdu(), subheaders[i].get_payload_size());
-      }
-      srslte::console("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, "
-                         "onepad=%d, multi=%d\n",
-                         pdu_len,
-                         header_sz + ce_payload_sz,
-                         header_sz,
-                         ce_payload_sz,
-                         nof_subheaders,
-                         last_sdu_idx,
-                         onetwo_padding,
-                         num_padding);
-      ERROR("Expected PDU len %d bytes but wrote %d\n", pdu_len, buffer_tx->N_bytes);
+      srslte::console("------------------------------\n");
+      srslte::console("Wrote PDU: pdu_len=%d, expected_pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, "
+                      "onepad=%d, multi=%d\n",
+                      buffer_tx->N_bytes,
+                      pdu_len,
+                      header_sz + ce_payload_sz,
+                      header_sz,
+                      ce_payload_sz,
+                      nof_subheaders,
+                      last_sdu_idx,
+                      onetwo_padding,
+                      num_padding);
       srslte::console("------------------------------\n");
 
-      log_h->error("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
-                   "multi=%d\n",
-                   pdu_len,
-                   header_sz + ce_payload_sz,
-                   header_sz,
-                   ce_payload_sz,
-                   nof_subheaders,
-                   last_sdu_idx,
-                   onetwo_padding,
-                   num_padding);
+      log_h->error(
+          "Wrote PDU: pdu_len=%d, expected_pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
+          "multi=%d\n",
+          buffer_tx->N_bytes,
+          pdu_len,
+          header_sz + ce_payload_sz,
+          header_sz,
+          ce_payload_sz,
+          nof_subheaders,
+          last_sdu_idx,
+          onetwo_padding,
+          num_padding);
+
+      for (int i = 0; i < nof_subheaders; i++) {
+        log_h->error("SUBH %d is_sdu=%d, head_size=%d, payload=%d\n",
+                     i,
+                     subheaders[i].is_sdu(),
+                     subheaders[i].get_header_size(i == (nof_subheaders - 1)),
+                     subheaders[i].get_payload_size());
+      }
     }
 
     return nullptr;
