@@ -82,6 +82,7 @@ void metrics_stdout::print_table(const bool display_neighbours)
     cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
   }
   table_has_neighbours = display_neighbours;
+  n_reports            = 0;
 }
 
 void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
@@ -113,8 +114,6 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
 
   // print table header every 10 reports
   if (++n_reports > 10) {
-    n_reports = 0;
-    cout << endl;
     print_table(display_neighbours);
   }
 
