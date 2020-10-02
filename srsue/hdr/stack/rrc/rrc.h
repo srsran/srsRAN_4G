@@ -245,7 +245,7 @@ private:
   std::unique_ptr<rrc_meas> measurements;
 
   // List of strongest neighbour cell
-  using unique_cell_t = std::unique_ptr<cell_t>;
+  using unique_cell_t = std::unique_ptr<meas_cell>;
   meas_cell_list meas_cells;
 
   bool                     initiated                  = false;
@@ -260,7 +260,7 @@ private:
   std::set<uint32_t> get_cells(const uint32_t earfcn);
   float              get_cell_rsrp(const uint32_t earfcn, const uint32_t pci);
   float              get_cell_rsrq(const uint32_t earfcn, const uint32_t pci);
-  cell_t*            get_serving_cell();
+  meas_cell*         get_serving_cell();
 
   void                                          process_cell_meas();
   void                                          process_new_cell_meas(const std::vector<phy_meas_t>& meas);

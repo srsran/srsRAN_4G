@@ -23,7 +23,7 @@
 
 namespace srsue {
 
-srslte::plmn_id_t cell_t::get_plmn(uint32_t idx) const
+srslte::plmn_id_t meas_cell::get_plmn(uint32_t idx) const
 {
   if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
     return srslte::make_plmn_id_t(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
@@ -32,7 +32,7 @@ srslte::plmn_id_t cell_t::get_plmn(uint32_t idx) const
   }
 }
 
-void cell_t::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
+void meas_cell::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
 {
   sib1           = sib1_;
   has_valid_sib1 = true;
@@ -45,28 +45,28 @@ void cell_t::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
   }
 }
 
-void cell_t::set_sib2(const asn1::rrc::sib_type2_s& sib2_)
+void meas_cell::set_sib2(const asn1::rrc::sib_type2_s& sib2_)
 {
   sib2           = sib2_;
   has_valid_sib2 = true;
 }
-void cell_t::set_sib3(const asn1::rrc::sib_type3_s& sib3_)
+void meas_cell::set_sib3(const asn1::rrc::sib_type3_s& sib3_)
 {
   sib3           = sib3_;
   has_valid_sib3 = true;
 }
-void cell_t::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
+void meas_cell::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
 {
   sib13           = sib13_;
   has_valid_sib13 = true;
 }
 
-bool cell_t::is_sib_scheduled(uint32_t sib_index) const
+bool meas_cell::is_sib_scheduled(uint32_t sib_index) const
 {
   return sib_info_map.find(sib_index) != sib_info_map.end();
 }
 
-uint32_t cell_t::timeout_secs(struct timeval now) const
+uint32_t meas_cell::timeout_secs(struct timeval now) const
 {
   struct timeval t[3];
   memcpy(&t[2], &now, sizeof(struct timeval));
@@ -75,7 +75,7 @@ uint32_t cell_t::timeout_secs(struct timeval now) const
   return t[0].tv_sec;
 }
 
-bool cell_t::has_sibs(srslte::span<uint32_t> indexes) const
+bool meas_cell::has_sibs(srslte::span<uint32_t> indexes) const
 {
   for (uint32_t idx : indexes) {
     if (not has_sib(idx)) {
@@ -85,7 +85,7 @@ bool cell_t::has_sibs(srslte::span<uint32_t> indexes) const
   return true;
 }
 
-bool cell_t::has_sib(uint32_t index) const
+bool meas_cell::has_sib(uint32_t index) const
 {
   switch (index) {
     case 0:
@@ -102,7 +102,7 @@ bool cell_t::has_sib(uint32_t index) const
   return false;
 }
 
-std::string cell_t::to_string() const
+std::string meas_cell::to_string() const
 {
   char buf[256];
   snprintf(buf,
@@ -116,7 +116,7 @@ std::string cell_t::to_string() const
   return std::string{buf};
 }
 
-bool cell_t::has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const
+bool meas_cell::has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const
 {
   if (has_valid_sib1) {
     for (const auto& e : sib1.cell_access_related_info.plmn_id_list) {
@@ -128,7 +128,7 @@ bool cell_t::has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const
   return false;
 }
 
-uint16_t cell_t::get_mcc() const
+uint16_t meas_cell::get_mcc() const
 {
   uint16_t mcc;
   if (has_valid_sib1) {
@@ -141,7 +141,7 @@ uint16_t cell_t::get_mcc() const
   return 0;
 }
 
-uint16_t cell_t::get_mnc() const
+uint16_t meas_cell::get_mnc() const
 {
   uint16_t mnc;
   if (has_valid_sib1) {
@@ -160,19 +160,19 @@ uint16_t cell_t::get_mnc() const
  *           Neighbour Cell List
  ********************************************/
 
-meas_cell_list::meas_cell_list() : serv_cell(new cell_t()) {}
+meas_cell_list::meas_cell_list() : serv_cell(new meas_cell()) {}
 
-cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
+meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
 {
-  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
+  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_meas_cell& cell) {
     return cell->equals(earfcn, pci);
   });
   return it != neighbour_cells.end() ? it->get() : nullptr;
 }
 
-const cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
+const meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
 {
-  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
+  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_meas_cell& cell) {
     return cell->equals(earfcn, pci);
   });
   return it != neighbour_cells.end() ? it->get() : nullptr;
@@ -184,14 +184,14 @@ bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas
   phy_cell_t phy_cell = {};
   phy_cell.earfcn     = meas.earfcn;
   phy_cell.pci        = meas.pci;
-  unique_cell_t c     = unique_cell_t(new cell_t(phy_cell));
+  unique_meas_cell c  = unique_meas_cell(new meas_cell(phy_cell));
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
   c.get()->set_cfo(meas.cfo_hz);
   return add_meas_cell(std::move(c));
 }
 
-bool meas_cell_list::add_meas_cell(unique_cell_t cell)
+bool meas_cell_list::add_meas_cell(unique_meas_cell cell)
 {
   bool ret = add_neighbour_cell_unsorted(std::move(cell));
   if (ret) {
@@ -200,7 +200,7 @@ bool meas_cell_list::add_meas_cell(unique_cell_t cell)
   return ret;
 }
 
-bool meas_cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
+bool meas_cell_list::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
 {
   // Make sure cell is valid
   if (!new_cell->is_valid()) {
@@ -215,7 +215,7 @@ bool meas_cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
   }
 
   // If cell exists, update RSRP value
-  cell_t* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
+  meas_cell* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
   if (existing_cell != nullptr) {
     if (std::isnormal(new_cell.get()->get_rsrp())) {
       existing_cell->set_rsrp(new_cell.get()->get_rsrp());
@@ -243,15 +243,15 @@ bool meas_cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
 void meas_cell_list::rem_last_neighbour()
 {
   if (not neighbour_cells.empty()) {
-    unique_cell_t& c = neighbour_cells.back();
+    unique_meas_cell& c = neighbour_cells.back();
     log_h->debug("Delete cell %s from neighbor list.\n", c->to_string().c_str());
     neighbour_cells.pop_back();
   }
 }
 
-meas_cell_list::unique_cell_t meas_cell_list::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
+meas_cell_list::unique_meas_cell meas_cell_list::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
 {
-  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
+  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_meas_cell& cell) {
     return cell->equals(earfcn, pci);
   });
   if (it != neighbour_cells.end()) {
@@ -265,9 +265,9 @@ meas_cell_list::unique_cell_t meas_cell_list::remove_neighbour_cell(uint32_t ear
 // Sort neighbour cells by decreasing order of RSRP
 void meas_cell_list::sort_neighbour_cells()
 {
-  std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
-    return a->greater(b.get());
-  });
+  std::sort(std::begin(neighbour_cells),
+            std::end(neighbour_cells),
+            [](const unique_meas_cell& a, const unique_meas_cell& b) { return a->greater(b.get()); });
 
   log_neighbour_cells();
 }
@@ -326,7 +326,7 @@ std::string meas_cell_list::print_neighbour_cells() const
 std::set<uint32_t> meas_cell_list::get_neighbour_pcis(uint32_t earfcn) const
 {
   std::set<uint32_t> pcis = {};
-  for (const unique_cell_t& cell : neighbour_cells) {
+  for (const unique_meas_cell& cell : neighbour_cells) {
     if (cell->get_earfcn() == earfcn) {
       pcis.insert(cell->get_pci());
     }
@@ -339,7 +339,7 @@ bool meas_cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
   return get_neighbour_cell_handle(earfcn, pci) != nullptr;
 }
 
-cell_t* meas_cell_list::find_cell(uint32_t earfcn, uint32_t pci)
+meas_cell* meas_cell_list::find_cell(uint32_t earfcn, uint32_t pci)
 {
   if (serving_cell().phy_cell.pci == pci and serving_cell().phy_cell.earfcn == earfcn) {
     return &serving_cell();
@@ -355,7 +355,7 @@ int meas_cell_list::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
   }
 
   // Remove future serving cell from neighbours to make space for current serving cell
-  unique_cell_t new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
+  unique_meas_cell new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
   if (new_serving_cell == nullptr) {
     log_h->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
     return SRSLTE_ERROR;
@@ -375,12 +375,12 @@ int meas_cell_list::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
   return SRSLTE_SUCCESS;
 }
 
-bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&                         meas,
-                                           const std::function<void(cell_t&, const phy_meas_t&)>& filter_meas)
+bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&                            meas,
+                                           const std::function<void(meas_cell&, const phy_meas_t&)>& filter_meas)
 {
   bool neighbour_added = false;
   for (const auto& m : meas) {
-    cell_t* c = nullptr;
+    meas_cell* c = nullptr;
 
     // Get serving_cell handle if it's the serving cell
     bool is_serving_cell = m.earfcn == 0 or is_same_cell(m, serving_cell());

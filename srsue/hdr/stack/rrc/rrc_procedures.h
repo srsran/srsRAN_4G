@@ -330,8 +330,8 @@ public:
   void                   then(const srslte::proc_state_t& result);
   static const char*     name() { return "Handover"; }
 
-  cell_t   ho_src_cell;
-  uint16_t ho_src_rnti = 0;
+  meas_cell ho_src_cell;
+  uint16_t  ho_src_rnti = 0;
 
 private:
   rrc* rrc_ptr = nullptr;

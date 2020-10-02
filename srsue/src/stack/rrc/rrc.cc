@@ -119,7 +119,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
     if (not csel_result) {
-      cell_t* c = meas_cells.find_cell(earfcn, pci);
+      meas_cell* c = meas_cells.find_cell(earfcn, pci);
       if (c != nullptr) {
         c->set_rsrp(-INFINITY);
       }
@@ -395,7 +395,7 @@ void rrc::process_cell_meas()
 
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
-  const std::function<void(cell_t&, const phy_meas_t&)> filter = [this](cell_t& c, const phy_meas_t& m) {
+  const std::function<void(meas_cell&, const phy_meas_t&)> filter = [this](meas_cell& c, const phy_meas_t& m) {
     c.set_rsrp(measurements->rsrp_filter(m.rsrp, c.get_rsrp()));
     c.set_rsrq(measurements->rsrq_filter(m.rsrq, c.get_rsrq()));
     c.set_cfo(m.cfo_hz);
@@ -1055,17 +1055,17 @@ std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
 
 float rrc::get_cell_rsrp(const uint32_t earfcn, const uint32_t pci)
 {
-  cell_t* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
+  meas_cell* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
   return (c != nullptr) ? c->get_rsrp() : NAN;
 }
 
 float rrc::get_cell_rsrq(const uint32_t earfcn, const uint32_t pci)
 {
-  cell_t* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
+  meas_cell* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
   return (c != nullptr) ? c->get_rsrq() : NAN;
 }
 
-cell_t* rrc::get_serving_cell()
+meas_cell* rrc::get_serving_cell()
 {
   return &meas_cells.serving_cell();
 }

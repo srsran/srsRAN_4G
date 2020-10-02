@@ -28,19 +28,19 @@
 
 namespace srsue {
 
-class cell_t
+class meas_cell
 {
 public:
-  cell_t() { gettimeofday(&last_update, nullptr); }
-  explicit cell_t(phy_cell_t phy_cell_) : cell_t() { phy_cell = phy_cell_; }
+  meas_cell() { gettimeofday(&last_update, nullptr); }
+  explicit meas_cell(phy_cell_t phy_cell_) : meas_cell() { phy_cell = phy_cell_; }
 
   // comparison based on pci and earfcn
   bool is_valid() { return phy_cell.earfcn != 0 && srslte_cellid_isvalid(phy_cell.pci); }
-  bool equals(const cell_t& x) { return equals(x.phy_cell.earfcn, x.phy_cell.pci); }
+  bool equals(const meas_cell& x) { return equals(x.phy_cell.earfcn, x.phy_cell.pci); }
   bool equals(uint32_t earfcn, uint32_t pci) { return earfcn == phy_cell.earfcn && pci == phy_cell.pci; }
 
   // NaN means an RSRP value has not yet been obtained. Keep then in the list and clean them if never updated
-  bool greater(cell_t* x) { return rsrp > x->rsrp || std::isnan(rsrp); }
+  bool greater(meas_cell* x) { return rsrp > x->rsrp || std::isnan(rsrp); }
 
   bool              has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const;
   uint32_t          nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
@@ -111,13 +111,13 @@ public:
 
   bool is_sib_scheduled(uint32_t sib_index) const;
 
-  phy_cell_t                        phy_cell = {0, 0, 0};
-  bool                              has_mcch = false;
-  asn1::rrc::sib_type1_s            sib1     = {};
-  asn1::rrc::sib_type2_s            sib2     = {};
-  asn1::rrc::sib_type3_s            sib3     = {};
-  asn1::rrc::sib_type13_r9_s        sib13    = {};
-  asn1::rrc::mcch_msg_s             mcch     = {};
+  phy_cell_t                 phy_cell = {0, 0, 0};
+  bool                       has_mcch = false;
+  asn1::rrc::sib_type1_s     sib1     = {};
+  asn1::rrc::sib_type2_s     sib2     = {};
+  asn1::rrc::sib_type3_s     sib3     = {};
+  asn1::rrc::sib_type13_r9_s sib13    = {};
+  asn1::rrc::mcch_msg_s      mcch     = {};
 
 private:
   float rsrp = NAN;
@@ -139,7 +139,7 @@ uint32_t get_pci(const T& t)
   return t.pci;
 }
 template <>
-inline uint32_t get_pci(const cell_t& t)
+inline uint32_t get_pci(const meas_cell& t)
 {
   return t.get_pci();
 }
@@ -149,7 +149,7 @@ uint32_t get_earfcn(const T& t)
   return t.earfcn;
 }
 template <>
-inline uint32_t get_earfcn(const cell_t& t)
+inline uint32_t get_earfcn(const meas_cell& t)
 {
   return t.get_earfcn();
 }
@@ -164,51 +164,51 @@ class meas_cell_list
   using phy_meas_t = rrc_interface_phy_lte::phy_meas_t;
 
 public:
-  const static int                NEIGHBOUR_TIMEOUT   = 5;
-  const static int                MAX_NEIGHBOUR_CELLS = 8;
-  typedef std::unique_ptr<cell_t> unique_cell_t;
+  const static int                   NEIGHBOUR_TIMEOUT   = 5;
+  const static int                   MAX_NEIGHBOUR_CELLS = 8;
+  typedef std::unique_ptr<meas_cell> unique_meas_cell;
 
   meas_cell_list();
 
-  bool          add_meas_cell(const phy_meas_t& meas);
-  bool          add_meas_cell(unique_cell_t cell);
-  void          rem_last_neighbour();
-  unique_cell_t remove_neighbour_cell(uint32_t earfcn, uint32_t pci);
-  void          clean_neighbours();
-  void          sort_neighbour_cells();
+  bool             add_meas_cell(const phy_meas_t& meas);
+  bool             add_meas_cell(unique_meas_cell cell);
+  void             rem_last_neighbour();
+  unique_meas_cell remove_neighbour_cell(uint32_t earfcn, uint32_t pci);
+  void             clean_neighbours();
+  void             sort_neighbour_cells();
 
-  bool process_new_cell_meas(const std::vector<phy_meas_t>&                         meas,
-                             const std::function<void(cell_t&, const phy_meas_t&)>& filter_meas);
+  bool process_new_cell_meas(const std::vector<phy_meas_t>&                            meas,
+                             const std::function<void(meas_cell&, const phy_meas_t&)>& filter_meas);
 
-  cell_t*            get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
-  const cell_t*      get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const;
+  meas_cell*         get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
+  const meas_cell*   get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const;
   void               log_neighbour_cells() const;
   std::string        print_neighbour_cells() const;
   std::set<uint32_t> get_neighbour_pcis(uint32_t earfcn) const;
   bool               has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
   size_t             nof_neighbours() const { return neighbour_cells.size(); }
-  cell_t&            operator[](size_t idx) { return *neighbour_cells[idx]; }
-  const cell_t&      operator[](size_t idx) const { return *neighbour_cells[idx]; }
-  cell_t&            at(size_t idx) { return *neighbour_cells.at(idx); }
-  cell_t*            find_cell(uint32_t earfcn, uint32_t pci);
+  meas_cell&         operator[](size_t idx) { return *neighbour_cells[idx]; }
+  const meas_cell&   operator[](size_t idx) const { return *neighbour_cells[idx]; }
+  meas_cell&         at(size_t idx) { return *neighbour_cells.at(idx); }
+  meas_cell*         find_cell(uint32_t earfcn, uint32_t pci);
 
   // serving cell handling
   int set_serving_cell(phy_cell_t phy_cell, bool discard_serving);
 
-  cell_t&       serving_cell() { return *serv_cell; }
-  const cell_t& serving_cell() const { return *serv_cell; }
+  meas_cell&       serving_cell() { return *serv_cell; }
+  const meas_cell& serving_cell() const { return *serv_cell; }
 
-  using iterator = std::vector<unique_cell_t>::iterator;
+  using iterator = std::vector<unique_meas_cell>::iterator;
   iterator begin() { return neighbour_cells.begin(); }
   iterator end() { return neighbour_cells.end(); }
 
 private:
-  bool add_neighbour_cell_unsorted(unique_cell_t cell);
+  bool add_neighbour_cell_unsorted(unique_meas_cell cell);
 
   srslte::log_ref log_h{"RRC"};
 
-  unique_cell_t              serv_cell;
-  std::vector<unique_cell_t> neighbour_cells;
+  unique_meas_cell              serv_cell;
+  std::vector<unique_meas_cell> neighbour_cells;
 };
 
 } // namespace srsue
