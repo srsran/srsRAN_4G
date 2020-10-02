@@ -169,7 +169,6 @@ void ul_harq_entity::ul_harq_process::reset()
   current_irv         = 0;
   is_grant_configured = false;
   bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_ul_t));
-  payload_buffer->clear();
 }
 
 void ul_harq_entity::ul_harq_process::reset_ndi()
