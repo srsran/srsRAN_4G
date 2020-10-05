@@ -872,7 +872,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   auto& intralte                          = recfg_r8.security_cfg_ho.handov_type.set_intra_lte();
   intralte.security_algorithm_cfg_present = false;
   intralte.key_change_ind                 = false;
-  intralte.next_hop_chaining_count        = 0;
+  intralte.next_hop_chaining_count        = rrc_ue->ue_security_cfg.get_ncc();
 
   recfg_r8.rr_cfg_ded_present              = true;
   recfg_r8.rr_cfg_ded.phys_cfg_ded_present = true;
