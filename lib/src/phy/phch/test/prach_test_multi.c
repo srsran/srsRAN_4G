@@ -150,7 +150,7 @@ int main(int argc, char** argv)
   srslte_prach_t prach;
 
   bool high_speed_flag = false;
-  srand (time(NULL));
+  srand(0);
   cf_t preamble[MAX_LEN];
   memset(preamble, 0, sizeof(cf_t) * MAX_LEN);
   cf_t preamble_sum[MAX_LEN];
