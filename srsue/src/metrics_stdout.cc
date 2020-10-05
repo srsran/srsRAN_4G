@@ -178,7 +178,8 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
 std::string metrics_stdout::float_to_string(float f, int digits)
 {
   std::ostringstream os;
-  const int precision = SRSLTE_MIN((int)((f == 0.0f) ? digits - 1 : digits - log10f(fabsf(f)) - 2 * FLT_EPSILON), 3);
+  const int          precision =
+      SRSLTE_MIN((int)((f == 0.0f || f == 100.0f) ? digits - 1 : digits - log10f(fabsf(f)) - 2 * FLT_EPSILON), 3);
   os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
   return os.str();
 }

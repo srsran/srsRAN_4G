@@ -53,7 +53,7 @@ public:
     m->stack.mac[0].nof_tti   = 1;
 
     m->stack.mac[1].rx_pkts   = 100;
-    m->stack.mac[1].rx_errors = 50;
+    m->stack.mac[1].rx_errors = 100;
     m->stack.mac[1].rx_brate  = 150;
     m->stack.mac[1].nof_tti   = 1;
 
