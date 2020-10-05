@@ -59,6 +59,7 @@ static uint32_t    cfi;
 static float       ncell_attenuation_dB;
 static float       channel_hst_fd_hz;
 static float       channel_delay_max_us;
+static float       channel_snr_db;
 static std::string channel_log_level;
 
 // Simulation Serving cell PDSCH parameters
@@ -107,8 +108,7 @@ private:
 
 public:
   test_enb(const srslte_cell_t& cell, const srslte::channel::args_t& channel_args) :
-    enb_dl(),
-    channel_log("Channel pci=" + std::to_string(cell.id))
+    enb_dl(), channel_log("Channel pci=" + std::to_string(cell.id))
   {
     channel_log.set_level(channel_log_level);
 
@@ -348,6 +348,7 @@ int parse_args(int argc, char** argv)
       ("ncell_attenuation",         bpo::value<float>(&ncell_attenuation_dB)->default_value(3.0f),                 "Neighbour cell attenuation relative to serving cell in dB")
       ("channel.hst.fd",            bpo::value<float>(&channel_hst_fd_hz)->default_value(750.0f),                  "Channel High Speed Train doppler in Hz. Set to 0 for disabling")
       ("channel.delay_max",         bpo::value<float>(&channel_delay_max_us)->default_value(4.7f),                 "Maximum simulated delay in microseconds. Set to 0 for disabling")
+      ("channel.snr",               bpo::value<float>(&channel_snr_db)->default_value(NAN),                        "Channel simulator SNR in dB")
       ("channel.log_level",         bpo::value<std::string>(&channel_log_level)->default_value("info"),            "Channel simulator logging level")
       ("serving_cell_pdsch_enable", bpo::value<bool>(&serving_cell_pdsch_enable)->default_value(true),             "Enable simulated PDSCH in serving cell")
       ("serving_cell_pdsch_rnti",   bpo::value<uint16_t >(&serving_cell_pdsch_rnti)->default_value(0x1234),        "Simulated PDSCH RNTI")
@@ -500,7 +501,7 @@ int main(int argc, char** argv)
     radio_args.device_name       = radio_device_name;
     radio_args.nof_carriers      = 1;
     radio_args.nof_antennas      = 1;
-    radio->init(radio_args, NULL);
+    radio->init(radio_args, nullptr);
 
     // Set sampling rate
     radio->set_rx_srate(srslte_sampling_freq_hz(cell_base.nof_prb));
@@ -512,23 +513,26 @@ int main(int argc, char** argv)
     // Create test eNb's if radio is not available
     float channel_init_time_s = 0;
     float channel_delay_us    = 0;
-    for (auto& pci : pcis_to_simulate) {
+    for (const auto& pci : pcis_to_simulate) {
       // Initialise cell
       srslte_cell_t cell = cell_base;
       cell.id            = pci;
 
       // Initialise channel and push back
       srslte::channel::args_t channel_args;
-      channel_args.enable            = (channel_period_s != 0);
-      channel_args.hst_enable        = (channel_hst_fd_hz != 0.0f);
+      channel_args.enable                 = (channel_period_s != 0);
+      channel_args.hst_enable             = std::isnormal(channel_hst_fd_hz);
       channel_args.hst_init_time_s   = channel_init_time_s;
-      channel_args.hst_period_s      = (float)channel_period_s;
-      channel_args.hst_fd_hz         = channel_hst_fd_hz;
-      channel_args.delay_enable      = (channel_delay_max_us != 0.0f);
-      channel_args.delay_min_us      = channel_delay_us;
-      channel_args.delay_max_us      = channel_delay_us;
-      channel_args.delay_period_s    = (uint32)channel_period_s;
-      channel_args.delay_init_time_s = channel_init_time_s;
+      channel_args.hst_period_s           = (float)channel_period_s;
+      channel_args.hst_fd_hz              = channel_hst_fd_hz;
+      channel_args.delay_enable           = std::isnormal(channel_delay_max_us);
+      channel_args.delay_min_us           = channel_delay_us;
+      channel_args.delay_max_us           = channel_delay_us;
+      channel_args.delay_period_s         = (uint32)channel_period_s;
+      channel_args.delay_init_time_s      = channel_init_time_s;
+      channel_args.awgn_enable            = std::isnormal(channel_snr_db) and (pci == *pcis_to_simulate.begin());
+      channel_args.awgn_signal_power_dBfs = srslte_enb_dl_get_maximum_signal_power_dBfs(cell.nof_prb);
+      channel_args.awgn_snr_dB            = channel_snr_db;
       test_enb_v.push_back(std::unique_ptr<test_enb>(new test_enb(cell, channel_args)));
 
       // Add cell to known cells
