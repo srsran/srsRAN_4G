@@ -74,7 +74,7 @@ void phy_controller::set_phy_to_default_dedicated()
 
 bool phy_controller::set_cell_config_common(const srslte::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set)
 {
-  if ((is_set or cc_idx == 0 or current_scells_cfg[cc_idx]) and phy->set_config(cfg)) {
+  if ((is_set or cc_idx == 0 or current_scells_cfg[cc_idx]) and phy->set_config(cfg, cc_idx)) {
     current_cells_cfg[cc_idx] = cfg;
     if (cc_idx > 0) {
       current_scells_cfg[cc_idx] = is_set;
