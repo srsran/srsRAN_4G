@@ -143,9 +143,10 @@ private:
   // states
   struct idle_st {};
   struct intraenb_ho_st {
-    const cell_info_common* target_cell     = nullptr;
-    const cell_info_common* source_cell     = nullptr;
-    uint16_t                last_temp_crnti = SRSLTE_INVALID_RNTI;
+    const cell_info_common*            target_cell     = nullptr;
+    const cell_info_common*            source_cell     = nullptr;
+    uint16_t                           last_temp_crnti = SRSLTE_INVALID_RNTI;
+    asn1::rrc::rrc_conn_recfg_r8_ies_s pending_ho_cmd;
 
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };

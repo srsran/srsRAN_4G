@@ -53,7 +53,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   }
 
   // Configure
-  apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
+  apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
   activity_timer = outer_rrc->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
@@ -1148,7 +1148,8 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     scell_phy_rrc_ded.enb_cc_idx = cc_cfg->enb_cc_idx;
 
     // Append to PHY RRC config dedicated which will be applied further down
-    phy_rrc_dedicated_list.push_back(scell_phy_rrc_ded);
+    phy_rrc_dedicated_list.resize(scell_idx + 1);
+    phy_rrc_dedicated_list[scell_idx] = scell_phy_rrc_ded;
   }
 
   // Set DL HARQ Feedback mode
@@ -1316,7 +1317,7 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte
   return true;
 }
 
-void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config)
+void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config, bool update_phy)
 {
   // Return if no cell is supported
   if (phy_rrc_dedicated_list.empty()) {
@@ -1337,7 +1338,7 @@ void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& confi
   phy_rrc_dedicated_list[0].enb_cc_idx = get_ue_cc_cfg(UE_PCELL_CC_IDX)->enb_cc_idx;
 
   // Send configuration to physical layer
-  if (parent->phy != nullptr) {
+  if (parent->phy != nullptr and update_phy) {
     parent->phy->set_config(rnti, phy_rrc_dedicated_list);
   }
 }

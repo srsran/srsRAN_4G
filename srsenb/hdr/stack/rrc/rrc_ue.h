@@ -155,7 +155,7 @@ private:
    *
    * @param config ASN1 Common SIB struct carrying the common physical layer parameters
    */
-  void apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config);
+  void apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config, bool update_phy);
 
   /**
    * Setups the PCell physical layer dedicated configuration of the UE. This method shall be called from the

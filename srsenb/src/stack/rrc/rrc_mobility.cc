@@ -878,6 +878,9 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   recfg_r8.rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s& phy_cfg                  = recfg_r8.rr_cfg_ded.phys_cfg_ded;
 
+  phy_cfg.pusch_cfg_ded_present = true;
+  phy_cfg.pusch_cfg_ded         = rrc_enb->cfg.pusch_cfg;
+
   // Set SR in new CC
   phy_cfg.sched_request_cfg_present = true;
   auto& sr_setup                    = phy_cfg.sched_request_cfg.set_setup();
@@ -1324,6 +1327,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
   f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn);
+  pending_ho_cmd = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
@@ -1346,7 +1350,8 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     // Change PCell in MAC/Scheduler
     rrc_ue->mac_ctrl->handle_crnti_ce(ev.temp_crnti);
 
-    rrc_ue->apply_setup_phy_common(s.target_cell->sib2.rr_cfg_common);
+    rrc_ue->apply_setup_phy_common(s.target_cell->sib2.rr_cfg_common, false);
+    rrc_ue->apply_reconf_phy_config(s.pending_ho_cmd);
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->bearer_list.reest_bearers();
