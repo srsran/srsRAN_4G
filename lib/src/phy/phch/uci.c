@@ -939,10 +939,10 @@ int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_data
     n = srslte_print_check(str, str_len, n, ", ri=%d", uci_data->ri);
   }
 
-  char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = "";
   if (uci_cfg->cqi.data_enable) {
+    char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = "";
     srslte_cqi_value_tostring(&uci_cfg->cqi, &uci_data->cqi, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
-    n = srslte_print_check(str, str_len, n, "%s", cqi_str);
+    n = srslte_print_check(str, str_len, n, "%s (cc=%d)", cqi_str, uci_cfg->cqi.scell_index);
   }
 
   return n;

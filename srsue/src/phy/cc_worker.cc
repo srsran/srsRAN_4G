@@ -822,6 +822,9 @@ uint32_t cc_worker::get_wideband_cqi()
 void cc_worker::set_uci_periodic_cqi(srslte_uci_data_t* uci_data)
 {
   srslte_ue_dl_gen_cqi_periodic(&ue_dl, &ue_dl_cfg, get_wideband_cqi(), CURRENT_TTI_TX, uci_data);
+
+  // Store serving cell index for logging purposes
+  uci_data->cfg.cqi.scell_index = cc_idx;
 }
 
 void cc_worker::set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data)
