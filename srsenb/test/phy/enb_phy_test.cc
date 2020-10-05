@@ -1472,6 +1472,8 @@ int main(int argc, char** argv)
   }
   srslte::srslog_wrapper log_wrapper(*chan);
 
+  srslog::init();
+
   // Create Test Bench
   unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args, log_wrapper));
 
