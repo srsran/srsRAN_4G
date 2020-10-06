@@ -1044,6 +1044,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
 
   // Add all SCells configured+allocated for the current PCell
+  phy_rrc_dedicated_list.resize(cell_ded_list.nof_cells());
   for (auto& p : cell_ded_list) {
     if (p.ue_cc_idx == UE_PCELL_CC_IDX) {
       continue;
@@ -1148,7 +1149,6 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     scell_phy_rrc_ded.enb_cc_idx = cc_cfg->enb_cc_idx;
 
     // Append to PHY RRC config dedicated which will be applied further down
-    phy_rrc_dedicated_list.resize(scell_idx + 1);
     phy_rrc_dedicated_list[scell_idx] = scell_phy_rrc_ded;
   }
 

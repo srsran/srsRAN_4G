@@ -878,9 +878,6 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   recfg_r8.rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s& phy_cfg                  = recfg_r8.rr_cfg_ded.phys_cfg_ded;
 
-  phy_cfg.pusch_cfg_ded_present = true;
-  phy_cfg.pusch_cfg_ded         = rrc_enb->cfg.pusch_cfg;
-
   // Set SR in new CC
   phy_cfg.sched_request_cfg_present = true;
   auto& sr_setup                    = phy_cfg.sched_request_cfg.set_setup();
