@@ -623,10 +623,10 @@ void rrc::radio_link_failure_process()
 
   if (state == RRC_STATE_CONNECTED) {
     if (security_is_activated) {
-      rrc_log->warning("Detected Radio-Link Failure while SA activated. Starting ConnectionReestablishment...\n");
+      rrc_log->warning("Detected Radio-Link Failure with active AS security. Starting ConnectionReestablishment...\n");
       start_con_restablishment(reest_cause_e::other_fail);
     } else {
-      rrc_log->warning("Detected Radio-Link Failure while SA not activated. Going to IDLE...\n");
+      rrc_log->warning("Detected Radio-Link Failure with AS security deactivated. Going to IDLE...\n");
       start_go_idle();
     }
   } else {
