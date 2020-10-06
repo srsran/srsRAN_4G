@@ -162,8 +162,7 @@ uint16_t meas_cell::get_mnc() const
  ********************************************/
 
 meas_cell_list::meas_cell_list(srslte::task_sched_handle task_sched_) :
-  serv_cell(new meas_cell(task_sched_.get_unique_timer())),
-  task_sched(task_sched_)
+  serv_cell(new meas_cell(task_sched_.get_unique_timer())), task_sched(task_sched_)
 {}
 
 meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
@@ -302,7 +301,7 @@ void meas_cell_list::clean_neighbours()
 {
   for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
     if (it->get()->timer.is_expired()) {
-      log_h->info("Neighbour PCI=%d timed out. Deleting\n", (*it)->get_pci());
+      log_h->info("Neighbour PCI=%d timed out. Deleting.\n", (*it)->get_pci());
       it = neighbour_cells.erase(it);
     } else {
       ++it;

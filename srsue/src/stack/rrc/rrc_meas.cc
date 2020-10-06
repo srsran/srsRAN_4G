@@ -428,6 +428,32 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
           }
         }
       }
+      {
+        meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+        if (serv_cell == nullptr) {
+          log_h->warning("MEAS:  Serving cell not set when reporting triggers\n");
+          return;
+        }
+        uint32_t serving_pci = serv_cell->get_pci();
+
+        // remove all cells in the cellsTriggeredList that are no neighbor cells anymore
+        cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(m.first);
+        auto             it                   = cells_triggered_list.begin();
+        while (it != cells_triggered_list.end()) {
+          if (not rrc_ptr->has_neighbour_cell(it->earfcn, it->pci) and it->pci != serving_pci) {
+            log_h->debug("MEAS:  Removing unknown PCI=%d from event trigger list\n", it->pci);
+            it = cells_triggered_list.erase(it);
+            meas_report->upd_measId(m.first, cells_triggered_list);
+
+            // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
+            if (cells_triggered_list.empty()) {
+              remove_varmeas_report(m.first);
+            }
+          } else {
+            it++;
+          }
+        }
+      }
     }
 
     // upon expiry of the periodical reporting timer for this measId
