@@ -83,9 +83,9 @@ private:
 };
 
 // Helper methods
-std::vector<const cell_info_common*> get_available_intraenb_cells(const cell_info_common_list& list,
-                                                                  uint32_t                     pcell_enb_cc_idx);
-std::vector<uint32_t> get_available_intraenb_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx);
+std::vector<const cell_info_common*> get_cfg_intraenb_scells(const cell_info_common_list& list,
+                                                             uint32_t                     pcell_enb_cc_idx);
+std::vector<uint32_t> get_cfg_intraenb_measobj_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx);
 
 /** Class used to store all the resources specific to a UE's cell */
 struct cell_ctxt_dedicated {

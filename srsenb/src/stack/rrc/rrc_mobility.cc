@@ -577,7 +577,7 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
   // Check if there has been any update in ue_var_meas based on UE current cell list
   cell_ctxt_dedicated* pcell      = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   uint32_t             src_earfcn = pcell->get_dl_earfcn();
-  auto target_earfcns = get_available_intraenb_earfcns(*rrc_enb->cell_common_list, pcell->cell_common->enb_cc_idx);
+  auto target_earfcns = get_cfg_intraenb_measobj_earfcns(*rrc_enb->cell_common_list, pcell->cell_common->enb_cc_idx);
   conn_recfg->meas_cfg_present = update_ue_var_meas_cfg(src_earfcn, target_earfcns, &conn_recfg->meas_cfg);
   return conn_recfg->meas_cfg_present;
 }
@@ -909,7 +909,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   ant_info.ue_tx_ant_sel.set(setup_e::release);
 
   // Add MeasConfig of target cell
-  auto target_earfcns       = get_available_intraenb_earfcns(*rrc_enb->cell_common_list, target_cell.enb_cc_idx);
+  auto target_earfcns       = get_cfg_intraenb_measobj_earfcns(*rrc_enb->cell_common_list, target_cell.enb_cc_idx);
   recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_earfcns, &recfg_r8.meas_cfg);
 
   // Add SCells

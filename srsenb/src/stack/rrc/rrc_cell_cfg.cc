@@ -95,25 +95,30 @@ const cell_info_common* cell_info_common_list::get_pci(uint32_t pci) const
   return it == cell_list.end() ? nullptr : it->get();
 }
 
-std::vector<const cell_info_common*> get_available_intraenb_cells(const cell_info_common_list& list,
-                                                                  uint32_t                     pcell_enb_cc_idx)
+std::vector<const cell_info_common*> get_cfg_intraenb_scells(const cell_info_common_list& list,
+                                                             uint32_t                     pcell_enb_cc_idx)
 {
   const cell_info_common*              pcell = list.get_cc_idx(pcell_enb_cc_idx);
-  std::vector<const cell_info_common*> cells(pcell->cell_cfg.scell_list.size() + 1);
-  cells[0] = pcell;
+  std::vector<const cell_info_common*> cells(pcell->cell_cfg.scell_list.size());
   for (uint32_t i = 0; i < pcell->cell_cfg.scell_list.size(); ++i) {
     uint32_t cell_id = pcell->cell_cfg.scell_list[i].cell_id;
-    cells[i + 1]     = list.get_cell_id(cell_id);
+    cells[i]         = list.get_cell_id(cell_id);
   }
   return cells;
 }
 
-std::vector<uint32_t> get_available_intraenb_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx)
+std::vector<uint32_t> get_cfg_intraenb_measobj_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx)
 {
-  std::vector<const cell_info_common*> cells = get_available_intraenb_cells(list, pcell_enb_cc_idx);
-  std::vector<uint32_t>                earfcns(cells.size());
-  for (uint32_t i = 0; i < cells.size(); ++i) {
-    earfcns[i] = cells[i]->cell_cfg.dl_earfcn;
+  std::vector<const cell_info_common*> scells = get_cfg_intraenb_scells(list, pcell_enb_cc_idx);
+  const cell_info_common*              pcell  = list.get_cc_idx(pcell_enb_cc_idx);
+  std::vector<uint32_t>                earfcns{};
+  earfcns.reserve(1 + scells.size() + pcell->cell_cfg.meas_cfg.meas_cells.size());
+  earfcns.push_back(pcell->cell_cfg.dl_earfcn);
+  for (auto& scell : scells) {
+    earfcns.push_back(scell->cell_cfg.dl_earfcn);
+  }
+  for (auto meas_cell : pcell->cell_cfg.meas_cfg.meas_cells) {
+    earfcns.push_back(meas_cell.earfcn);
   }
   // sort by earfcn
   std::sort(earfcns.begin(), earfcns.end());
