@@ -1989,16 +1989,6 @@ void rrc::set_phy_default()
   }
 }
 
-// Apply default physical channel configs (9.2.4)
-void rrc::set_phy_config_dedicated_default()
-{
-  if (phy_ctrl != nullptr) {
-    phy_ctrl->set_phy_to_default_dedicated();
-  } else {
-    rrc_log->info("RRC not initialized. Skipping default PHY config.\n");
-  }
-}
-
 // Apply provided PHY config
 void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg, bool is_handover)
 {
@@ -2440,7 +2430,11 @@ void rrc::add_mrb(uint32_t lcid, uint32_t port)
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)
 void rrc::set_phy_default_pucch_srs()
 {
-  set_phy_config_dedicated_default();
+  if (phy_ctrl != nullptr) {
+    phy_ctrl->set_phy_to_default_pucch_srs();
+  } else {
+    rrc_log->info("RRC not initialized. Skipping default PUCCH/SRS config.\n");
+  }
 
   // SR configuration affects to MAC SR too
   current_mac_cfg.sr_cfg.reset();

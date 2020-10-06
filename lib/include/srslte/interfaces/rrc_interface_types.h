@@ -192,6 +192,18 @@ struct phy_cfg_t {
     set_defaults_dedicated();
   }
 
+  // 36.331 9.2.4 for CQI-ReportConfig, soundingRS-UL-ConfigDedicated and schedulingRequestConfig
+  void set_defaults_pucch_sr()
+  {
+    dl_cfg.cqi_report.periodic_configured  = false;
+    dl_cfg.cqi_report.aperiodic_configured = false;
+
+    ul_cfg.srs.dedicated_enabled = false;
+    ul_cfg.srs.configured        = false;
+
+    ul_cfg.pucch.sr_configured = false;
+  }
+
   // 36.331 9.2.4
   void set_defaults_dedicated()
   {
@@ -199,9 +211,6 @@ struct phy_cfg_t {
 
     dl_cfg.pdsch.use_tbs_index_alt = false;
     dl_cfg.pdsch.p_a               = 0;
-
-    dl_cfg.cqi_report.periodic_configured  = false;
-    dl_cfg.cqi_report.aperiodic_configured = false;
 
     ul_cfg.pucch.tdd_ack_multiplex = false;
 
@@ -215,10 +224,7 @@ struct phy_cfg_t {
     ul_cfg.power_ctrl.p0_nominal_pucch = 0;
     ul_cfg.power_ctrl.p_srs_offset     = 7;
 
-    ul_cfg.srs.dedicated_enabled = false;
-    ul_cfg.srs.configured        = false;
-
-    ul_cfg.pucch.sr_configured = false;
+    set_defaults_pucch_sr();
   }
 
   srslte_dl_cfg_t    dl_cfg    = {};

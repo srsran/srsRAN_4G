@@ -65,7 +65,7 @@ public:
   void out_sync() { trigger(out_sync_ev{}); }
   bool set_cell_config(const srslte::phy_cfg_t& config, uint32_t cc_idx = 0);
   void set_phy_to_default();
-  void set_phy_to_default_dedicated();
+  void set_phy_to_default_pucch_srs();
   void set_config_complete();
 
   // state getters

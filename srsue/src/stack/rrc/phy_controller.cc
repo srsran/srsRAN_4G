@@ -61,12 +61,12 @@ void phy_controller::set_phy_to_default()
   }
 }
 
-void phy_controller::set_phy_to_default_dedicated()
+void phy_controller::set_phy_to_default_pucch_srs()
 {
   log_h->info("Setting default PHY config dedicated\n");
 
   srslte::phy_cfg_t& default_cfg_ded = current_cells_cfg[0];
-  default_cfg_ded.set_defaults_dedicated();
+  default_cfg_ded.set_defaults_pucch_sr();
   for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
     set_cell_config_common(default_cfg_ded, i, false);
   }

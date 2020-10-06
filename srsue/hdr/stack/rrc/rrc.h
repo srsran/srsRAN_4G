@@ -387,7 +387,6 @@ private:
 
   // Helpers for setting default values
   void set_phy_default_pucch_srs();
-  void set_phy_config_dedicated_default();
   void set_phy_default();
   void set_mac_default();
   void set_rrc_default();
