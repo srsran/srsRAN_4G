@@ -101,6 +101,10 @@ public:
   void store_keys_before_ho(const srslte::as_security_config_t& as_ctx) final;
   void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx) final;
 
+  // Helpers
+  std::string         get_mcc_str(const uint8_t* imsi_vec);
+  virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) = 0;
+
 protected:
   bool initiated = false;
 
@@ -113,7 +117,6 @@ protected:
   uint64_t    imei = 0;
   std::string imsi_str;
   std::string imei_str;
-  uint32_t    mnc_length = 0;
 
   // Security variables
   uint8_t ck[CK_LEN]             = {};

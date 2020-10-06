@@ -62,7 +62,10 @@ private:
                                  uint8_t* res,
                                  int*     res_len,
                                  uint8_t* k_asme);
-  void          str_to_hex(std::string str, uint8_t* hex);
+
+  // Helpers
+  virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) final;
+  void                str_to_hex(std::string str, uint8_t* hex);
 
   // User data
   auth_algo_t auth_algo = auth_algo_milenage;

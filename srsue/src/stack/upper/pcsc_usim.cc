@@ -91,10 +91,6 @@ int pcsc_usim::init(usim_args_t* args)
     return ret;
   }
 
-  // Get MNC length
-  mnc_length = sc.get_mnc_len();
-  log->debug("MNC length %d\n", mnc_length);
-
   initiated = true;
   ret       = SRSLTE_SUCCESS;
 
@@ -161,6 +157,19 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
   ret = AUTH_OK;
 
   return ret;
+}
+
+std::string pcsc_usim::get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str)
+{
+  uint32_t           mcc_len = 3;
+  uint32_t           mnc_len = sc.get_mnc_len();
+  std::ostringstream mnc_oss;
+
+  for (uint32_t i = mcc_len; i < mcc_len + mnc_len; i++) {
+    mnc_oss << (int)imsi_vec[i];
+  }
+
+  return mnc_oss.str();
 }
 
 /*********************************

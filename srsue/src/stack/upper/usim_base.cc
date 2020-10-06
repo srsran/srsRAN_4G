@@ -96,6 +96,16 @@ bool usim_base::get_imei_vec(uint8_t* imei_, uint32_t n)
   return true;
 }
 
+std::string usim_base::get_mcc_str(const uint8_t* imsi_vec)
+{
+  std::ostringstream mcc_oss;
+  uint32_t           mcc_len = 3;
+  for (uint32_t i = 0; i < mcc_len; i++) {
+    mcc_oss << (int)imsi_vec[i];
+  }
+  return mcc_oss.str();
+}
+
 bool usim_base::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
 {
   if (!initiated) {
@@ -106,18 +116,11 @@ bool usim_base::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
   uint8_t imsi_vec[15];
   get_imsi_vec(imsi_vec, 15);
 
-  std::ostringstream plmn_str;
+  std::string mcc_str = get_mcc_str(imsi_vec);
+  std::string mnc_str = get_mnc_str(imsi_vec, mcc_str);
 
-  uint mcc_len = 3;
-  for (uint i = 0; i < mcc_len; i++) {
-    plmn_str << (int)imsi_vec[i];
-  }
-
-  for (uint i = mcc_len; i < mcc_len + mnc_length; i++) {
-    plmn_str << (int)imsi_vec[i];
-  }
-
-  if (home_plmn_id->from_string(plmn_str.str())) {
+  std::string plmn_str = mcc_str + mnc_str;
+  if (home_plmn_id->from_string(plmn_str)) {
     log->error("Error reading home PLMN from SIM.\n");
     return false;
   }

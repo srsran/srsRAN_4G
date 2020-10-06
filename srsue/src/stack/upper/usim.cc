@@ -248,6 +248,25 @@ auth_result_t usim::gen_auth_res_xor(uint8_t* rand,
   return result;
 }
 
+std::string usim::get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str)
+{
+  uint32_t           mcc_len = 3;
+  uint32_t           mnc_len = 2;
+  std::ostringstream mnc_oss;
+
+  // US MCC uses 3 MNC digits
+  if (!mcc_str.compare("310") || !mcc_str.compare("311") || !mcc_str.compare("312") || !mcc_str.compare("313") ||
+      !mcc_str.compare("316")) {
+    mnc_len = 3;
+  }
+
+  for (uint32_t i = mcc_len; i < mcc_len + mnc_len; i++) {
+    mnc_oss << (int)imsi_vec[i];
+  }
+
+  return mnc_oss.str();
+}
+
 void usim::str_to_hex(std::string str, uint8_t* hex)
 {
   uint32_t    i;

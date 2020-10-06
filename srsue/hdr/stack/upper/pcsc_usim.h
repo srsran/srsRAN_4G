@@ -56,6 +56,9 @@ public:
                                                  int*     res_len,
                                                  uint8_t* k_asme);
 
+  // Helpers
+  virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) final;
+
 private:
   // Smartcard sub-class which is a port of the PC/SC smartcard implementation
   // of WPA Supplicant written by Jouni Malinen <j@w1.fi> and licensed under BSD
