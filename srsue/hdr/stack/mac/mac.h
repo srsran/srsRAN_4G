@@ -84,6 +84,7 @@ public:
 
   /******** set/get MAC configuration  ****************/
   void set_config(mac_cfg_t& mac_cfg);
+  void set_config(sr_cfg_t& sr_cfg);
   void set_contention_id(uint64_t uecri);
 
   /******* interface from demux object ****************/

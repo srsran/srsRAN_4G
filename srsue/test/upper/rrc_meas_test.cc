@@ -159,6 +159,7 @@ public:
   void mch_start_rx(uint32_t lcid) override {}
 
   void set_config(srslte::mac_cfg_t& mac_cfg) override {}
+  void set_config(srslte::sr_cfg_t& sr_cfg) override {}
   void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) override {}
 
   void get_rntis(ue_rnti_t* rntis) override {}

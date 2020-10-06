@@ -602,6 +602,13 @@ void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
   phy_mbsfn_cfg.nof_mbsfn_services = nof_mbsfn_services;
 }
 
+// Only reset SR config
+void mac::set_config(sr_cfg_t& sr_cfg)
+{
+  Info("Setting SR configuration\n");
+  sr_procedure.set_config(sr_cfg);
+}
+
 void mac::set_config(mac_cfg_t& mac_cfg)
 {
   Info("Setting configuration\n");

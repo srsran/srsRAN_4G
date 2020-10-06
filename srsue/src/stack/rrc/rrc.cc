@@ -2449,7 +2449,7 @@ void rrc::set_phy_default_pucch_srs()
 
   // SR configuration affects to MAC SR too
   current_mac_cfg.sr_cfg.reset();
-  mac->set_config(current_mac_cfg);
+  mac->set_config(current_mac_cfg.sr_cfg);
 }
 
 void rrc::set_mac_default()

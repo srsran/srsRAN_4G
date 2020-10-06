@@ -462,7 +462,12 @@ public:
   /* Instructs the MAC to start receiving an MCH */
   virtual void mch_start_rx(uint32_t lcid) = 0;
 
-  virtual void set_config(srslte::mac_cfg_t& mac_cfg)                         = 0;
+  /* Set entire MAC config */
+  virtual void set_config(srslte::mac_cfg_t& mac_cfg) = 0;
+
+  /* Update SR config only for PUCCH release */
+  virtual void set_config(srslte::sr_cfg_t& sr_cfg) = 0;
+
   virtual void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) = 0;
 
   virtual void get_rntis(ue_rnti_t* rntis)                      = 0;
