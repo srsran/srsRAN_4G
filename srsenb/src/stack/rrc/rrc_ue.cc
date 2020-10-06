@@ -537,7 +537,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     return;
   }
 
-  apply_reconf_phy_config(*conn_reconf);
+  apply_reconf_phy_config(*conn_reconf, true);
 
   // setup SRB2/DRBs in PDCP and RLC
   apply_pdcp_srb_updates();
@@ -622,7 +622,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
       phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
     }
   }
-  apply_reconf_phy_config(reconfig_r8);
+  apply_reconf_phy_config(reconfig_r8, true);
 
   phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = cell_ded_list.get_sr_res()->sr_I;
   phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
@@ -1364,7 +1364,7 @@ void rrc::ue::apply_setup_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& 
   }
 }
 
-void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8)
+void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8, bool update_phy)
 {
   // Return if no cell is supported
   if (phy_rrc_dedicated_list.empty()) {
@@ -1397,7 +1397,7 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
   }
 
   // Send configuration to physical layer
-  if (parent->phy != nullptr) {
+  if (parent->phy != nullptr and update_phy) {
     parent->phy->set_config(rnti, phy_rrc_dedicated_list);
   }
 }

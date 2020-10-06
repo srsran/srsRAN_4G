@@ -574,6 +574,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
   tester.pdcp.last_sdu.sdu = nullptr;
   tester.rlc.test_reset_all();
+  tester.phy.phy_cfg_set = false;
 
   /* Receive MeasReport from UE (correct if PCI=2) */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
@@ -623,12 +624,15 @@ int test_intraenb_mobility(mobility_test_params test_params)
   const asn1::rrc::phys_cfg_ded_s& phy_cfg_ded = recfg_r8.rr_cfg_ded.phys_cfg_ded;
   TESTASSERT(phy_cfg_ded.sched_request_cfg_present);
   TESTASSERT(phy_cfg_ded.cqi_report_cfg_present);
+  // PHY should not be updated until the UE handovers to the new cell
+  TESTASSERT(not tester.phy.phy_cfg_set);
 
-  /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished */
+  /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished, PHY is configured */
   tester.pdcp.last_sdu.sdu = nullptr;
   tester.rrc.upd_user(tester.rnti + 1, tester.rnti);
   TESTASSERT(tester.rlc.ue_db[tester.rnti].reest_sdu_counter == 0);
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+  TESTASSERT(tester.phy.phy_cfg_set);
   TESTASSERT(tester.phy.last_cfg.size() == 1 and tester.mac.ue_db[tester.rnti].supported_cc_list.size() == 1);
   TESTASSERT(tester.phy.last_cfg[0].enb_cc_idx == tester.mac.ue_db[tester.rnti].supported_cc_list[0].enb_cc_idx);
 

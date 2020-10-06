@@ -172,6 +172,11 @@ void rrc::ue::mac_controller::handle_con_reconf_complete()
     }
   }
 
+  // PUSCH UCI configuration
+  current_sched_ue_cfg.uci_offset.I_offset_cqi = rrc_cfg->pusch_cfg.beta_offset_cqi_idx;
+  current_sched_ue_cfg.uci_offset.I_offset_ack = rrc_cfg->pusch_cfg.beta_offset_ack_idx;
+  current_sched_ue_cfg.uci_offset.I_offset_ri  = rrc_cfg->pusch_cfg.beta_offset_ri_idx;
+
   // Setup all bearers
   apply_current_bearers_cfg();
 

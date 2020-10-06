@@ -878,6 +878,9 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   recfg_r8.rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s& phy_cfg                  = recfg_r8.rr_cfg_ded.phys_cfg_ded;
 
+  phy_cfg.pusch_cfg_ded_present = true;
+  phy_cfg.pusch_cfg_ded         = rrc_enb->cfg.pusch_cfg;
+
   // Set SR in new CC
   phy_cfg.sched_request_cfg_present = true;
   auto& sr_setup                    = phy_cfg.sched_request_cfg.set_setup();
@@ -907,6 +910,9 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   auto& ant_info                                    = recfg_r8.rr_cfg_ded.phys_cfg_ded.ant_info.set_explicit_value();
   ant_info.tx_mode.value                            = ant_info_ded_s::tx_mode_e_::tm1;
   ant_info.ue_tx_ant_sel.set(setup_e::release);
+
+  rrc_ue->apply_setup_phy_common(target_cell.sib2.rr_cfg_common, false);
+  rrc_ue->apply_reconf_phy_config(recfg_r8, false);
 
   // Add MeasConfig of target cell
   auto target_earfcns       = get_cfg_intraenb_measobj_earfcns(*rrc_enb->cell_common_list, target_cell.enb_cc_idx);
@@ -1141,7 +1147,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   // Update MAC
   rrc_ue->mac_ctrl->handle_ho_prep(hoprep_r8, recfg_r8);
   // Apply PHY updates
-  rrc_ue->apply_reconf_phy_config(recfg_r8);
+  rrc_ue->apply_reconf_phy_config(recfg_r8, true);
 
   /* send S1AP HandoverRequestAcknowledge */
   std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
@@ -1324,7 +1330,6 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
   f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn);
-  pending_ho_cmd = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
@@ -1347,8 +1352,8 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     // Change PCell in MAC/Scheduler
     rrc_ue->mac_ctrl->handle_crnti_ce(ev.temp_crnti);
 
-    rrc_ue->apply_setup_phy_common(s.target_cell->sib2.rr_cfg_common, false);
-    rrc_ue->apply_reconf_phy_config(s.pending_ho_cmd);
+    // finally apply new phy changes
+    rrc_enb->phy->set_config(rrc_ue->rnti, rrc_ue->phy_rrc_dedicated_list);
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->bearer_list.reest_bearers();

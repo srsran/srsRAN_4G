@@ -203,7 +203,12 @@ public:
 class phy_mobility_dummy : public phy_dummy
 {
 public:
-  void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& dedicated_list) override { last_cfg = dedicated_list; }
+  void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& dedicated_list) override
+  {
+    phy_cfg_set = true;
+    last_cfg    = dedicated_list;
+  }
+  bool               phy_cfg_set = false;
   phy_rrc_cfg_list_t last_cfg;
 };
 

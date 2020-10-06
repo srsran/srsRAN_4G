@@ -172,7 +172,7 @@ private:
    *
    * @param reconfig_r8 ASN1 reconfiguration message
    */
-  void apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8);
+  void apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8, bool update_phy);
 
   /**
    * Reconfigures PDCP bearers
