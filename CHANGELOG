@@ -1,6 +1,14 @@
 Change Log for Releases
 =======================
 
+## 20.10
+  * Add Mobility (Intra eNB and S1) and RRC Reestablishment to srsENB
+  * Add new logging framework
+  * Make UE PHY layer non-blocking
+  * Replace some PHY pre-calculations with fast on-the-fly routines
+  * Add initial NR PHY layer and stack components
+  * Other bug-fixes and improved stability and performance in all parts
+
 ## 20.04.2
   * Fix attach issue for some newer phones due to wrong CQI config
     in RRC Connection Reconfiguration message by turning off QAM256 support
