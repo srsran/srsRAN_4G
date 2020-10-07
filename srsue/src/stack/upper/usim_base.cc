@@ -159,25 +159,35 @@ void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as
   log->debug_hex(k_asme_, 32, "K_asme");
 
   // Generate K_enb
-  srslte::security_generate_k_enb(k_asme_, count_ul, k_enb);
+  srslte::security_generate_k_enb(k_asme_, count_ul, k_enb_ctx.k_enb.data());
 
   memcpy(k_asme, k_asme_, 32);
 
   // Save initial k_enb
-  memcpy(k_enb_initial, k_enb, 32);
+  memcpy(k_enb_initial, k_enb_ctx.k_enb.data(), 32);
 
   // Generate K_rrc_enc and K_rrc_int
-  security_generate_k_rrc(
-      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_int.data());
+  security_generate_k_rrc(k_enb_ctx.k_enb.data(),
+                          sec_cfg->cipher_algo,
+                          sec_cfg->integ_algo,
+                          sec_cfg->k_rrc_enc.data(),
+                          sec_cfg->k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up(
-      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
+  security_generate_k_up(k_enb_ctx.k_enb.data(),
+                         sec_cfg->cipher_algo,
+                         sec_cfg->integ_algo,
+                         sec_cfg->k_up_enc.data(),
+                         sec_cfg->k_up_int.data());
 
-  current_ncc  = 0;
-  is_first_ncc = true;
+  k_enb_ctx.ncc          = 0;
+  k_enb_ctx.is_first_ncc = true;
 
-  log->debug_hex(k_enb, 32, "Initial K_eNB");
+  log->debug_hex(k_enb_ctx.k_enb.data(), 32, "Initial K_eNB");
+  log->debug_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "K_RRC_enc");
+  log->debug_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "K_RRC_enc");
+  log->debug_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "K_RRC_int");
+  log->debug_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "K_RRC_int");
 }
 
 void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
@@ -188,76 +198,79 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
   }
 
   log->info("Re-generating AS Keys. PCI 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, ncc);
-  log->info_hex(k_enb, 32, "Old K_eNB");
+  log->info_hex(k_enb_ctx.k_enb.data(), 32, "Old K_eNB");
 
-  uint8_t* enb_star_key = k_enb;
+  uint8_t* enb_star_key = k_enb_ctx.k_enb.data();
 
   if (ncc < 0) {
-    ncc = current_ncc;
+    ncc = k_enb_ctx.ncc;
   }
 
-  while (current_ncc != (uint32_t)ncc) {
-    uint8_t* sync = NULL;
-    if (is_first_ncc) {
-      log->debug("Using K_enb_initial for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
-      sync         = k_enb_initial;
-      is_first_ncc = false;
+  while (k_enb_ctx.ncc != (uint32_t)ncc) {
+    uint8_t* sync = nullptr;
+    if (k_enb_ctx.is_first_ncc) {
+      log->debug("Using K_enb_initial for sync. 0x%02x, DL-EARFCN %d, NCC used: %d\n", pci, earfcn, k_enb_ctx.ncc);
+      sync                   = k_enb_initial;
+      k_enb_ctx.is_first_ncc = false;
     } else {
-      log->debug("Using NH for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
-      sync = nh;
+      log->debug("Using NH for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, k_enb_ctx.ncc);
+      sync = k_enb_ctx.nh.data();
     }
-    // Generate NH
-    srslte::security_generate_nh(k_asme, sync, nh);
+    log->debug_hex(k_enb_ctx.nh.data(), 32, "NH:");
 
-    current_ncc++;
-    if (current_ncc == 8) {
-      current_ncc = 0;
+    // Generate NH
+    srslte::security_generate_nh(k_asme, sync, k_enb_ctx.nh.data());
+
+    k_enb_ctx.ncc++;
+    if (k_enb_ctx.ncc == 8) {
+      k_enb_ctx.ncc = 0;
     }
-    enb_star_key = nh;
+    enb_star_key = k_enb_ctx.nh.data();
   }
+
   // Generate K_enb
   srslte::security_generate_k_enb_star(enb_star_key, pci, earfcn, k_enb_star);
 
   // K_enb becomes K_enb*
-  memcpy(k_enb, k_enb_star, 32);
+  memcpy(k_enb_ctx.k_enb.data(), k_enb_star, 32);
 
   // Generate K_rrc_enc and K_rrc_int
-  security_generate_k_rrc(
-      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_int.data());
+  security_generate_k_rrc(k_enb_ctx.k_enb.data(),
+                          sec_cfg->cipher_algo,
+                          sec_cfg->integ_algo,
+                          sec_cfg->k_rrc_enc.data(),
+                          sec_cfg->k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up(
-      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
+  security_generate_k_up(k_enb_ctx.k_enb.data(),
+                         sec_cfg->cipher_algo,
+                         sec_cfg->integ_algo,
+                         sec_cfg->k_up_enc.data(),
+                         sec_cfg->k_up_int.data());
 
-  log->info_hex(k_enb, 32, "HO K_eNB");
+  log->info_hex(k_enb_ctx.k_enb.data(), 32, "HO K_eNB");
   log->info_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "HO K_RRC_enc");
   log->info_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "HO K_RRC_int");
 }
 
 void usim_base::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
 {
-  log->info("Storing AS Keys pre-handover. NCC=%d\n", current_ncc);
-  log->info_hex(k_enb, 32, "Old K_eNB");
+  log->info("Storing AS Keys pre-handover. NCC=%d\n", k_enb_ctx.ncc);
+  log->info_hex(k_enb_ctx.k_enb.data(), 32, "Old K_eNB");
   log->info_hex(as_ctx.k_rrc_enc.data(), as_ctx.k_rrc_enc.size(), "Old K_RRC_enc");
   log->info_hex(as_ctx.k_rrc_enc.data(), as_ctx.k_rrc_enc.size(), "Old K_RRC_enc");
   log->info_hex(as_ctx.k_rrc_int.data(), as_ctx.k_rrc_int.size(), "Old K_RRC_int");
   log->info_hex(as_ctx.k_rrc_int.data(), as_ctx.k_rrc_int.size(), "Old K_RRC_int");
-  old_is_first_ncc = is_first_ncc;
-  old_as_ctx       = as_ctx;
-  old_ncc          = current_ncc;
-  memcpy(old_nh, nh, 32);
-  memcpy(old_k_enb, k_enb, 32);
+  old_k_enb_ctx = k_enb_ctx;
+  old_as_ctx    = as_ctx;
   return;
 }
 
 void usim_base::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx)
 {
-  log->info("Restoring Keys from failed handover. NCC=%d\n", old_ncc);
-  *as_ctx      = old_as_ctx;
-  current_ncc  = old_ncc;
-  is_first_ncc = old_is_first_ncc;
-  memcpy(nh, old_nh, 32);
-  memcpy(k_enb, old_k_enb, 32);
+  log->info("Restoring Keys from failed handover. NCC=%d\n", old_k_enb_ctx.ncc);
+  *as_ctx   = old_as_ctx;
+  k_enb_ctx = old_k_enb_ctx;
   return;
 }
 

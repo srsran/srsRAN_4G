@@ -123,21 +123,16 @@ protected:
   uint8_t ik[IK_LEN]             = {};
   uint8_t ak[AK_LEN]             = {};
   uint8_t k_asme[KEY_LEN]        = {};
-  uint8_t nh[KEY_LEN]            = {};
-  uint8_t k_enb[KEY_LEN]         = {};
   uint8_t k_enb_star[KEY_LEN]    = {};
   uint8_t k_enb_initial[KEY_LEN] = {};
   uint8_t auts[AKA_AUTS_LEN]     = {};
 
-  // Helpers to restore security context if HO fails
-  bool                         old_is_first_ncc = false;
-  uint8_t                      old_k_enb[32]    = {};
-  uint8_t                      old_nh[32]       = {};
-  uint8_t                      old_ncc          = {};
-  srslte::as_security_config_t old_as_ctx       = {};
+  // Current K_eNB context (K_eNB, NH and NCC)
+  srslte::k_enb_context_t k_enb_ctx = {};
 
-  uint32_t current_ncc  = 0;
-  bool     is_first_ncc = false;
+  // Helpers to restore security context if HO fails
+  srslte::k_enb_context_t      old_k_enb_ctx = {};
+  srslte::as_security_config_t old_as_ctx    = {};
 };
 
 } // namespace srsue

@@ -62,6 +62,13 @@ typedef enum {
 static const char security_direction_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"Uplink", "Downlink"};
 
 using as_key_t = std::array<uint8_t, 32>;
+struct k_enb_context_t {
+  as_key_t k_enb;
+  as_key_t nh;
+  bool     is_first_ncc;
+  uint32_t ncc;
+};
+
 struct as_security_config_t {
   as_key_t                    k_rrc_int;
   as_key_t                    k_rrc_enc;
