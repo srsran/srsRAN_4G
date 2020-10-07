@@ -25,6 +25,7 @@
 #include "srslte/common/security.h"
 #include <cmath>
 #include <inttypes.h> // for printing uint64_t
+#include <time.h>
 
 namespace srsepc {
 
@@ -1529,6 +1530,21 @@ bool nas::pack_emm_information(srslte::byte_buffer_t* nas_buffer)
   emm_info.local_time_zone_present         = false;
   emm_info.utc_and_local_time_zone_present = false;
   emm_info.net_dst_present                 = false;
+
+  time_t now;
+  struct tm broken_down_time;
+  if ((time(&now) != -1) && (gmtime_r(&now, &broken_down_time) != NULL)) {
+    emm_info.utc_and_local_time_zone.year = broken_down_time.tm_year + 1900;
+    emm_info.utc_and_local_time_zone.month = broken_down_time.tm_mon+1;
+    emm_info.utc_and_local_time_zone.day = broken_down_time.tm_mday;
+    emm_info.utc_and_local_time_zone.hour = broken_down_time.tm_hour;
+    emm_info.utc_and_local_time_zone.minute = broken_down_time.tm_min;
+    emm_info.utc_and_local_time_zone.second = broken_down_time.tm_sec;
+    emm_info.utc_and_local_time_zone.tz = 0;
+    emm_info.utc_and_local_time_zone_present = true;
+  } else {
+    m_nas_log->error("Error getting current time: %s\n", strerror(errno));
+  }
 
   uint8_t sec_hdr_type = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
   m_sec_ctx.dl_nas_count++;
