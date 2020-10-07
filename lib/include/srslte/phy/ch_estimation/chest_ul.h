@@ -47,7 +47,7 @@ typedef struct SRSLTE_API {
   float    epre_dBfs;
   float    snr;
   float    snr_db;
-  float    cfo;
+  float    cfo_hz;
   float    ta_us;
 } srslte_chest_ul_res_t;
 

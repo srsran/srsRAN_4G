@@ -256,7 +256,7 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
   }
 
   // Measure CFO
-  res->cfo = NAN; // Not implemented
+  res->cfo_hz = NAN; // Not implemented
 
   // Do averaging here
   // ... Not implemented

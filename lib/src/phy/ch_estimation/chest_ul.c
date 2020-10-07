@@ -288,6 +288,15 @@ static void chest_ul_estimate(srslte_chest_ul_t*     q,
                               uint32_t               n_prb[SRSLTE_NOF_SLOTS_PER_SF],
                               srslte_chest_ul_res_t* res)
 {
+  // Calculate CFO
+  if (nslots == 2) {
+    float phase = cargf(srslte_vec_dot_prod_conj_ccc(
+        &q->pilot_estimates[0 * nrefs_sym], &q->pilot_estimates[1 * nrefs_sym], nrefs_sym));
+    res->cfo_hz = phase / (2.0f * (float)M_PI * 0.0005f);
+  } else {
+    res->cfo_hz = NAN;
+  }
+
   // Calculate time alignment error
   float ta_err = 0.0f;
   if (meas_ta_en) {

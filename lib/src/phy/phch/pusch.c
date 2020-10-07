@@ -515,6 +515,11 @@ uint32_t srslte_pusch_rx_info(srslte_pusch_cfg_t*    cfg,
     len = srslte_print_check(str, str_len, len, ", ta=%.1f us", chest_res->ta_us);
   }
 
+  // Append CFO information if available
+  if (!isnan(chest_res->cfo_hz)) {
+    len = srslte_print_check(str, str_len, len, ", cfo=%.1f hz", chest_res->cfo_hz);
+  }
+
   // Append EVM measurement if available
   if (cfg->meas_evm_en) {
     len = srslte_print_check(str, str_len, len, ", evm=%.1f %%", res->evm * 100);
