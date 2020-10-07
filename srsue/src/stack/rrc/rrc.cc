@@ -965,7 +965,7 @@ void rrc::rrc_connection_release(const std::string& cause)
   start_go_idle();
 }
 
-/* Actions upon leaving RRC_CONNECTED 5.3.12 */
+/// TS 36.331, 5.3.12 - UE actions upon leaving RRC_CONNECTED
 void rrc::leave_connected()
 {
   srslte::console("RRC IDLE\n");
@@ -973,14 +973,25 @@ void rrc::leave_connected()
   state                 = RRC_STATE_IDLE;
   drb_up                = false;
   security_is_activated = false;
-  measurements->reset();
-  nas->left_rrc_connected();
-  pdcp->reset();
-  rlc->reset();
+
+  // 1> reset MAC;
   mac->reset();
-  set_phy_default();
-  set_mac_default();
+
+  // 1> stop all timers that are running except T320;
   stop_timers();
+
+  // 1> release all radio resources, including release of the RLC entity, the MAC configuration and the associated
+  //    PDCP entity for all established RBs
+  rlc->reset();
+  pdcp->reset();
+  set_mac_default();
+
+  // 1> indicate the release of the RRC connection to upper layers together with the release cause;
+  nas->left_rrc_connected();
+
+  // 1> if leaving RRC_CONNECTED was not triggered by reception of the MobilityFromEUTRACommand message:
+  //    2> enter RRC_IDLE by performing cell selection in accordance with the cell selection process, defined for the
+  //       case of leaving RRC_CONNECTED, as specified in TS 36.304 [4];
   rrc_log->info("Going RRC_IDLE\n");
   if (phy->cell_is_camping()) {
     // Receive paging
