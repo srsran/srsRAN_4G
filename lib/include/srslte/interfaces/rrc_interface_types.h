@@ -175,11 +175,11 @@ struct phy_cfg_t {
 
   void set_defaults()
   {
-    ul_cfg    = {};
-    dl_cfg    = {};
+    ul_cfg = {};
+    dl_cfg = {};
 
     prach_cfg_present = false;
-    prach_cfg = {};
+    prach_cfg         = {};
 
     // CommonConfig defaults for non-zero values
     ul_cfg.pucch.delta_pucch_shift     = 1;
@@ -192,7 +192,16 @@ struct phy_cfg_t {
     set_defaults_dedicated();
   }
 
-  // 36.331 9.2.4 for CQI-ReportConfig, soundingRS-UL-ConfigDedicated and schedulingRequestConfig
+  /**
+   *  @brief Sets default PUCCH and SRS configuration (release)
+   *
+   *  @remark Implemented as specified by TS 36.331 V8.21.0 5.3.13 UE actions upon PUCCH/ SRS release request
+   *  @remark Values are according to TS 36.331 V8.21.0 9.2.4 for CQI-ReportConfig, soundingRS-UL-ConfigDedicated
+   * and schedulingRequestConfig
+   *
+   * @see set_defaults_dedicated
+   * @see phy_controller::set_phy_to_default_pucch_srs
+   */
   void set_defaults_pucch_sr()
   {
     dl_cfg.cqi_report.periodic_configured  = false;
@@ -204,7 +213,13 @@ struct phy_cfg_t {
     ul_cfg.pucch.sr_configured = false;
   }
 
-  // 36.331 9.2.4
+  /**
+   *  @brief Implements physical layer dedicated configuration default values setting
+   *
+   *  @remark Implemented as specified by TS 36.331 V8.21.0 9.2.4
+   *
+   *  @see set_defaults
+   */
   void set_defaults_dedicated()
   {
     dl_cfg.tm = SRSLTE_TM1;
@@ -227,11 +242,11 @@ struct phy_cfg_t {
     set_defaults_pucch_sr();
   }
 
-  srslte_dl_cfg_t    dl_cfg    = {};
-  srslte_ul_cfg_t    ul_cfg    = {};
+  srslte_dl_cfg_t dl_cfg = {};
+  srslte_ul_cfg_t ul_cfg = {};
 
   bool               prach_cfg_present = false;
-  srslte_prach_cfg_t prach_cfg = {};
+  srslte_prach_cfg_t prach_cfg         = {};
 };
 
 struct mbsfn_sf_cfg_t {
