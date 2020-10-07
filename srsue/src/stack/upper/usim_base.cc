@@ -59,7 +59,7 @@ std::string usim_base::get_imei_str()
 bool usim_base::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    log->error("USIM not initiated!\n");
     return false;
   }
 
@@ -79,12 +79,12 @@ bool usim_base::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 bool usim_base::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    log->error("USIM not initiated!\n");
     return false;
   }
 
   if (NULL == imei_ || n < 15) {
-    ERROR("Invalid parameters to get_imei_vec\n");
+    log->error("Invalid parameters to get_imei_vec\n");
     return false;
   }
 
@@ -109,7 +109,7 @@ std::string usim_base::get_mcc_str(const uint8_t* imsi_vec)
 bool usim_base::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
 {
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    log->error("USIM not initiated!\n");
     return false;
   }
 
@@ -137,7 +137,7 @@ void usim_base::generate_nas_keys(uint8_t*                            k_asme,
                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    log->error("USIM not initiated!\n");
     return;
   }
 
@@ -151,9 +151,12 @@ void usim_base::generate_nas_keys(uint8_t*                            k_asme,
 void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    log->error("USIM not initiated!\n");
     return;
   }
+
+  log->info("Generating AS Keys. NAS UL COUNT %d\n", count_ul);
+  log->debug_hex(k_asme_, 32, "K_asme");
 
   // Generate K_enb
   srslte::security_generate_k_enb(k_asme_, count_ul, k_enb);
@@ -173,16 +176,18 @@ void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as
 
   current_ncc  = 0;
   is_first_ncc = true;
+
+  log->debug_hex(k_enb, 32, "Initial K_eNB");
 }
 
 void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
 {
   if (!initiated) {
-    ERROR("USIM not initiated!\n");
+    log->error("USIM not initiated!\n");
     return;
   }
 
-  INFO("Generating AS Keys HO. PCI 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, ncc);
+  log->info("Re-generating AS Keys. PCI 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, ncc);
   log->info_hex(k_enb, 32, "Old K_eNB");
 
   uint8_t* enb_star_key = k_enb;
@@ -191,15 +196,14 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
     ncc = current_ncc;
   }
 
-  // Generate successive NH
   while (current_ncc != (uint32_t)ncc) {
     uint8_t* sync = NULL;
     if (is_first_ncc) {
-      DEBUG("Using K_enb_initial for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
+      log->debug("Using K_enb_initial for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
       sync         = k_enb_initial;
       is_first_ncc = false;
     } else {
-      DEBUG("Using NH for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
+      log->debug("Using NH for sync. 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, current_ncc);
       sync = nh;
     }
     // Generate NH
@@ -211,7 +215,6 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
     }
     enb_star_key = nh;
   }
-
   // Generate K_enb
   srslte::security_generate_k_enb_star(enb_star_key, pci, earfcn, k_enb_star);
 
@@ -233,7 +236,7 @@ void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srsl
 
 void usim_base::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
 {
-  INFO("Storing AS Keys pre-handover. NCC=%d\n", current_ncc);
+  log->info("Storing AS Keys pre-handover. NCC=%d\n", current_ncc);
   log->info_hex(k_enb, 32, "Old K_eNB");
   log->info_hex(as_ctx.k_rrc_enc.data(), as_ctx.k_rrc_enc.size(), "Old K_RRC_enc");
   log->info_hex(as_ctx.k_rrc_enc.data(), as_ctx.k_rrc_enc.size(), "Old K_RRC_enc");
@@ -242,16 +245,18 @@ void usim_base::store_keys_before_ho(const srslte::as_security_config_t& as_ctx)
   old_is_first_ncc = is_first_ncc;
   old_as_ctx       = as_ctx;
   old_ncc          = current_ncc;
+  memcpy(old_nh, nh, 32);
   memcpy(old_k_enb, k_enb, 32);
   return;
 }
 
 void usim_base::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx)
 {
-  INFO("Restoring Keys from failed handover. NCC=%d\n", old_ncc);
+  log->info("Restoring Keys from failed handover. NCC=%d\n", old_ncc);
   *as_ctx      = old_as_ctx;
   current_ncc  = old_ncc;
   is_first_ncc = old_is_first_ncc;
+  memcpy(nh, old_nh, 32);
   memcpy(k_enb, old_k_enb, 32);
   return;
 }

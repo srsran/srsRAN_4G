@@ -132,6 +132,7 @@ protected:
   // Helpers to restore security context if HO fails
   bool                         old_is_first_ncc = false;
   uint8_t                      old_k_enb[32]    = {};
+  uint8_t                      old_nh[32]       = {};
   uint8_t                      old_ncc          = {};
   srslte::as_security_config_t old_as_ctx       = {};
 
