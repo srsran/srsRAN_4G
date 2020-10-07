@@ -515,10 +515,10 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
                        mac_interface_phy_lte::mac_grant_ul_t  grant,
                        mac_interface_phy_lte::tb_action_ul_t* action)
 {
-  /* Start PHR Periodic timer on first UL dci */
+  // Start PHR Periodic timer on first UL DCI (See TS 36.321 Sec 5.4.6)
   if (is_first_ul_grant) {
     is_first_ul_grant = false;
-    phr_procedure.start_timer();
+    phr_procedure.start_periodic_timer();
   }
 
   // Assert UL HARQ entity

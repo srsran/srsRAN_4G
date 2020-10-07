@@ -44,7 +44,7 @@ public:
   bool is_extended();
   void timer_expired(uint32_t timer_id);
 
-  void start_timer();
+  void start_periodic_timer();
 
 private:
   bool pathloss_changed();

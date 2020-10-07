@@ -100,16 +100,19 @@ bool phr_proc::pathloss_changed()
   }
 }
 
-void phr_proc::start_timer()
+void phr_proc::start_periodic_timer()
 {
-  timer_periodic.run();
+  if (phr_cfg.enabled && phr_cfg.periodic_timer > 0) {
+    timer_periodic.run();
+  }
 }
 
 /* Trigger PHR when timers exires */
 void phr_proc::timer_expired(uint32_t timer_id)
 {
   if (!phr_cfg.enabled) {
-    Warning("PHR:   Timer triggered but PHR has been disabled\n");
+    Warning("PHR:   %s timer triggered but PHR has been disabled\n",
+            timer_id == timer_periodic.id() ? "Periodic" : "Prohibit");
     return;
   }
   if (timer_id == timer_periodic.id()) {
