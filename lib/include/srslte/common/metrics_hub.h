@@ -31,6 +31,8 @@
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 #include <chrono>
+#include <mutex>
+#include <thread>
 #include <vector>
 
 namespace srslte {
@@ -54,7 +56,7 @@ template <typename metrics_t>
 class metrics_hub : public periodic_thread
 {
 public:
-  metrics_hub() : m(nullptr), sleep_start(std::chrono::steady_clock::now()), periodic_thread("METRICS_HUB") {}
+  metrics_hub() : sleep_start(std::chrono::steady_clock::now()), periodic_thread("METRICS_HUB") {}
   bool init(metrics_interface<metrics_t>* m_, float report_period_secs_ = 1.0)
   {
     m = m_;
@@ -73,11 +75,17 @@ public:
     wait_thread_finish();
   }
 
-  void add_listener(metrics_listener<metrics_t>* listener) { listeners.push_back(listener); }
+  void add_listener(metrics_listener<metrics_t>* listener)
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    listeners.push_back(listener);
+  }
 
 private:
   void run_period()
   {
+    std::unique_lock<std::mutex> lock(mutex);
+
     // get current time and check how long we slept
     auto period_usec =
         std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - sleep_start);
@@ -92,9 +100,10 @@ private:
     // store start of sleep period
     sleep_start = std::chrono::steady_clock::now();
   }
-  metrics_interface<metrics_t>*             m;
+  metrics_interface<metrics_t>*             m = nullptr;
   std::vector<metrics_listener<metrics_t>*> listeners;
   std::chrono::steady_clock::time_point     sleep_start;
+  std::mutex                                mutex;
 };
 
 } // namespace srslte
