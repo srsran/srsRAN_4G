@@ -263,7 +263,7 @@ private:
 class rrc::cell_reselection_proc
 {
 public:
-  const static uint32_t cell_reselection_periodicity_ms = 20;
+  const static uint32_t cell_reselection_periodicity_ms = 20, cell_reselection_periodicity_long_ms = 1000;
 
   cell_reselection_proc(rrc* rrc_);
   srslte::proc_outcome_t init();
@@ -276,6 +276,7 @@ private:
 
   srslte::timer_handler::unique_timer reselection_timer;
   srslte::proc_future_t<cs_result_t>  cell_selection_fut;
+  cs_result_t                         cell_sel_result;
 };
 
 class rrc::connection_reest_proc

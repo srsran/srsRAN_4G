@@ -1203,12 +1203,6 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_ctrl->is_in_sync() and
-      rrc_ptr->phy->cell_is_camping()) {
-    // don't bother with cell selection if there are no neighbours and we are already camping
-    return proc_outcome_t::success;
-  }
-
   Info("Starting...\n");
   if (not rrc_ptr->cell_selector.launch(&cell_selection_fut)) {
     Error("Failed to initiate a Cell Selection procedure...\n");
@@ -1227,9 +1221,10 @@ proc_outcome_t rrc::cell_reselection_proc::step()
     Error("Error while selecting a cell\n");
     return srslte::proc_outcome_t::error;
   }
+  cell_sel_result = *cell_selection_fut.value();
 
   Info("Cell Selection completed. Handling its result...\n");
-  switch (*cell_selection_fut.value()) {
+  switch (cell_sel_result) {
     case cs_result_t::changed_cell:
       if (rrc_ptr->state == rrc_state_t::RRC_STATE_IDLE) {
         Info("New cell has been selected, start receiving PCCH\n");
@@ -1253,6 +1248,20 @@ void rrc::cell_reselection_proc::then(const srslte::proc_state_t& result)
 {
   // Schedule cell reselection periodically, while rrc is idle
   if (not rrc_ptr->is_connected() and rrc_ptr->nas->is_attached()) {
+    if (cell_sel_result == cs_result_t::changed_cell) {
+      // TS 36.304 5.2.4.6 - Intra-frequency and equal priority inter-frequency Cell Reselection criteria
+      // the UE shall reselect a new cell if more than 1 second has elapsed since the UE camped
+      // on the current serving cell.
+      reselection_timer.set(cell_reselection_periodicity_long_ms);
+
+      // start intra-frequency measurements if necessary
+      // UE must start intra-frequency measurements
+      auto pci = rrc_ptr->meas_cells.get_neighbour_pcis(rrc_ptr->meas_cells.serving_cell().get_earfcn());
+      rrc_ptr->phy->set_cells_to_meas(rrc_ptr->meas_cells.serving_cell().get_earfcn(), pci);
+    } else {
+      reselection_timer.set(cell_reselection_periodicity_ms);
+    }
+
     reselection_timer.run();
   }
 }
