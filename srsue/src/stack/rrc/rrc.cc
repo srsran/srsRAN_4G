@@ -471,7 +471,7 @@ void rrc::in_sync()
 // Cell selection criteria Section 5.2.3.2 of 36.304
 bool rrc::cell_selection_criteria(float rsrp, float rsrq)
 {
-  return std::isnormal(rsrp) && (get_srxlev(rsrp) > 0 || !meas_cells.serving_cell().has_sib3());
+  return std::isnormal(rsrp) and (meas_cells.serving_cell().has_sib3() and get_srxlev(rsrp) > 0);
 }
 
 float rrc::get_srxlev(float Qrxlevmeas)
@@ -1141,23 +1141,23 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
         case sib_info_item_c::types::sib2:
           if (not meas_cells.serving_cell().has_sib2()) {
             meas_cells.serving_cell().set_sib2(sib_list[i].sib2());
-            si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib2();
+          si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           break;
         case sib_info_item_c::types::sib3:
           if (not meas_cells.serving_cell().has_sib3()) {
             meas_cells.serving_cell().set_sib3(sib_list[i].sib3());
-            si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib3();
+          si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           break;
         case sib_info_item_c::types::sib13_v920:
           if (not meas_cells.serving_cell().has_sib13()) {
             meas_cells.serving_cell().set_sib13(sib_list[i].sib13_v920());
-            si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib13();
+          si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           break;
         default:
           rrc_log->warning("SIB%d is not supported\n", sib_list[i].type().to_number());

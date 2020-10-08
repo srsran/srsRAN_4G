@@ -125,21 +125,24 @@ public:
   explicit cell_selection_proc(rrc* parent_);
   srslte::proc_outcome_t init(std::vector<uint32_t> required_sibs_ = {});
   srslte::proc_outcome_t step();
-  void                   then(const srslte::proc_result_t<cs_result_t>& proc_result) const;
   cs_result_t            get_result() const { return cs_result; }
   static const char*     name() { return "Cell Selection"; }
   srslte::proc_outcome_t react(const bool& event);
+  void                   then(const srslte::proc_result_t<cs_result_t>& proc_result) const;
 
 private:
-  srslte::proc_outcome_t start_serv_cell_selection();
-  srslte::proc_outcome_t start_cell_selection();
-  srslte::proc_outcome_t step_cell_selection(const bool& event);
-  srslte::proc_outcome_t step_serv_cell_camp(const bool& event);
+  srslte::proc_outcome_t start_next_cell_selection();
   srslte::proc_outcome_t step_cell_search();
   srslte::proc_outcome_t step_cell_config();
+  bool                   is_serv_cell_suitable() const;
+  bool                   is_sib_acq_required() const;
+  srslte::proc_outcome_t set_proc_complete();
+  srslte::proc_outcome_t start_phy_cell_selection(const meas_cell& cell);
+  srslte::proc_outcome_t start_sib_acquisition();
 
   // consts
-  rrc* rrc_ptr;
+  rrc*            rrc_ptr;
+  meas_cell_list* meas_cells;
 
   // state variables
   enum class search_state_t { cell_selection, serv_cell_camp, cell_config, cell_search };
@@ -151,6 +154,7 @@ private:
   srslte::proc_future_t<void>                                     serv_cell_cfg_fut;
   bool                                                            discard_serving = false, cell_search_called = false;
   std::vector<uint32_t>                                           required_sibs = {};
+  phy_cell_t                                                      init_serv_cell;
 };
 
 class rrc::plmn_search_proc

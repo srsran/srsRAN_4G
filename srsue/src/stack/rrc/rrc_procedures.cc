@@ -378,7 +378,10 @@ rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
  */
 proc_outcome_t rrc::serving_cell_config_proc::init(const std::vector<uint32_t>& required_sibs_)
 {
+  // remove duplicates from list of required SIBs
   required_sibs = required_sibs_;
+  std::sort(required_sibs.begin(), required_sibs.end());
+  required_sibs.erase(std::unique(required_sibs.begin(), required_sibs.end()), required_sibs.end());
 
   Info("Starting a Serving Cell Configuration Procedure\n");
 
@@ -450,95 +453,98 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
  *       Cell Selection Procedure
  *************************************/
 
-rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {}
+constexpr std::array<uint32_t, 3> mandatory_sibs = {0, 1, 2};
 
-/*
- * Cell selection procedure 36.304 5.2.3
- * Select the best cell to camp on among the list of known cells
+rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_), meas_cells(&rrc_ptr->meas_cells) {}
+
+/// Verifies if serving cell passes selection criteria, UE is camping, and required SIBs were obtained
+bool rrc::cell_selection_proc::is_serv_cell_suitable() const
+{
+  return rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping() and
+         rrc_ptr->cell_selection_criteria(meas_cells->serving_cell().get_rsrp()) and
+         meas_cells->serving_cell().has_sibs(mandatory_sibs);
+}
+
+/// Verifies if UE is camping, but not all required SIBs were obtained yet
+bool rrc::cell_selection_proc::is_sib_acq_required() const
+{
+  // cell passes the criteria that are available but is missing SIBs
+  return rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping() and
+         not meas_cells->serving_cell().has_sibs(required_sibs) and
+         (not meas_cells->serving_cell().has_sib3() or
+          rrc_ptr->cell_selection_criteria(meas_cells->serving_cell().get_rsrp()));
+}
+
+/// Called on procedure exit to set result
+proc_outcome_t rrc::cell_selection_proc::set_proc_complete()
+{
+  if (is_serv_cell_suitable()) {
+    cs_result =
+        is_same_cell(init_serv_cell, meas_cells->serving_cell()) ? cs_result_t::same_cell : cs_result_t::changed_cell;
+    return proc_outcome_t::success;
+  }
+  cs_result = cs_result_t::no_cell;
+  return proc_outcome_t::error;
+}
+
+/**
+ * Initiation of Cell Selection Procedure. This procedure will iterate through serving cell and list of neighbors
+ * until it finds a suitable cell. To qualify as suitable, a cell has to meet the criteria:
+ * - the UE has to be able to camp on it
+ * - the cell RSRP passes the S-Criteria (see TS 36.304 5.2.3.2)
+ * - the passed SIBs were successfully acquired (including SIB3)
+ * @param required_sibs_ the list of SIBs to acquire
  */
 proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sibs_)
 {
-  bool serv_cell_is_ok   = rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping();
-  bool has_required_sibs = rrc_ptr->meas_cells.serving_cell().has_sibs(required_sibs_);
-  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and serv_cell_is_ok and has_required_sibs) {
-    // don't bother with cell selection if there are no neighbours and we are already camping
-    Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
-    cs_result = cs_result_t::same_cell;
-    return proc_outcome_t::success;
+  if (required_sibs_.empty()) {
+    required_sibs = rrc_ptr->ue_required_sibs;
+  } else {
+    required_sibs = std::move(required_sibs_);
+  }
+  required_sibs.insert(required_sibs.end(), mandatory_sibs.begin(), mandatory_sibs.end());
+  init_serv_cell = meas_cells->serving_cell().phy_cell;
+
+  // Check if there are sronger neighbors in same EARFCN
+  const sib_type3_s* sib3      = meas_cells->serving_cell().sib3ptr();
+  uint32_t           threshold = sib3 != nullptr ? sib3->cell_resel_serving_freq_info.thresh_serving_low * 2 : 5;
+  bool               stronger_neigh_in_earfcn =
+      std::any_of(meas_cells->begin(), meas_cells->end(), [this, threshold](const unique_cell_t& c) {
+        return meas_cells->serving_cell().get_earfcn() == c->get_earfcn() and std::isnormal(c->get_rsrp()) and
+               meas_cells->serving_cell().get_rsrp() + threshold < c->get_rsrp();
+      });
+
+  // Skip cell selection if serving cell is suitable and there are no stronger neighbours in same earfcn
+  if (is_serv_cell_suitable() and not stronger_neigh_in_earfcn) {
+    Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.\n");
+    return set_proc_complete();
   }
 
   Info("Starting...\n");
-  Info("Current neighbor cells: [%s]\n", rrc_ptr->meas_cells.print_neighbour_cells().c_str());
+  Info("Current neighbor cells: [%s]\n", meas_cells->print_neighbour_cells().c_str());
   Info("Current PHY state: %s\n", rrc_ptr->phy_ctrl->is_in_sync() ? "in-sync" : "out-of-sync");
-  if (rrc_ptr->meas_cells.serving_cell().has_sib3()) {
+  if (meas_cells->serving_cell().has_sib3()) {
     Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
          rrc_ptr->cell_resel_cfg.Qrxlevmin,
          rrc_ptr->cell_resel_cfg.Qrxlevminoffset);
   } else {
     Info("Cell selection criteria: not available\n");
   }
-  Info("Current serving cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
-  if (required_sibs_.empty()) {
-    required_sibs = rrc_ptr->ue_required_sibs;
-  } else {
-    required_sibs = std::move(required_sibs_);
-  }
+  Info("Current serving cell: %s\n", meas_cells->serving_cell().to_string().c_str());
+
   neigh_index                = 0;
   cs_result                  = cs_result_t::no_cell;
   discard_serving            = false;
-  serv_cell_select_attempted = false;
+  serv_cell_select_attempted = stronger_neigh_in_earfcn;
   cell_search_called         = false;
-  if (serv_cell_is_ok and not has_required_sibs) {
-    state = search_state_t::cell_config;
-    if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
-      Warning("Failed to launch %s procedure\n", rrc_ptr->serv_cell_cfg.get()->name());
-      return proc_outcome_t::error;
-    }
-    return proc_outcome_t::yield;
-  }
-  state = search_state_t::cell_selection;
-  return start_cell_selection();
+  state                      = search_state_t::cell_selection;
+  return start_next_cell_selection();
 }
 
-proc_outcome_t rrc::cell_selection_proc::react(const bool& event)
-{
-  switch (state) {
-    case search_state_t::cell_selection: {
-      return step_cell_selection(event);
-    }
-    case search_state_t::serv_cell_camp: {
-      return step_serv_cell_camp(event);
-    }
-    case search_state_t::cell_search:
-      // cell search may call cell_select
-      break;
-    default:
-      Warning("Unexpected cell selection event received\n");
-  }
-  return proc_outcome_t::yield;
-}
-
-proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
-{
-  if (rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping()) {
-    cs_result = cs_result_t::same_cell;
-    return proc_outcome_t::success;
-  }
-
-  Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
-
-  state = search_state_t::serv_cell_camp;
-  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, rrc_ptr->cell_selector)) {
-    Error("Failed to launch PHY Cell Selection\n");
-    return proc_outcome_t::error;
-  }
-  serv_cell_select_attempted = true;
-  return proc_outcome_t::yield;
-}
-
-/** Cell selection procedure defined in 36.304 5.2
+/**
+ * Implementation of the Cell Selection Procedure main steps
  * The procedure starts with Stored Information Cell Selection. In our implementation,
- * we use known neighbour cells. If that fails, the procedure continues with Initial Cell Selection .
+ * we use known neighbour cells. If that fails, the procedure continues with Initial Cell Selection via cell search.
  *
  * The standard requires the UE to attach to any cell that meets the Cell Selection Criteria on any frequency.
  * On each frequency, the UE shall select the strongest cell.
@@ -546,35 +552,24 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
  * In our implementation, we will try to select the strongest cell of all known frequencies, if they are still
  * available, or the strongest of all available cells we've found on any frequency.
  */
-proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
+proc_outcome_t rrc::cell_selection_proc::start_next_cell_selection()
 {
   // First of all, try to re-select the current serving cell if it meets the criteria
-  if (not serv_cell_select_attempted and
-      rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
-    return start_serv_cell_selection();
+  if (not serv_cell_select_attempted) {
+    serv_cell_select_attempted = true;
+    return start_phy_cell_selection(meas_cells->serving_cell());
   }
 
   // If serving is not available, use the stored information (known neighbours) to find the strongest
   // cell that meets the selection criteria.
-  for (; neigh_index < rrc_ptr->meas_cells.nof_neighbours(); ++neigh_index) {
+  for (; neigh_index < meas_cells->nof_neighbours(); ++neigh_index) {
+    const meas_cell& neigh_cell = meas_cells->at(neigh_index);
 
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * meas_cells[i]->plmn_equals(selected_plmn_id) && */
-    // Matches S criteria
-    if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.at(neigh_index).get_rsrp())) {
-      // currently connected and verifies cell selection criteria
-      // Try to select Cell
-      rrc_ptr->set_serving_cell(rrc_ptr->meas_cells.at(neigh_index).phy_cell, discard_serving);
-      discard_serving = false;
-      Info("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
-
-      state = search_state_t::cell_selection;
-      if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
-                                                   rrc_ptr->cell_selector)) {
-        Error("Failed to launch PHY Cell Selection\n");
-        return proc_outcome_t::error;
-      }
-      return proc_outcome_t::yield;
+    if (rrc_ptr->cell_selection_criteria(neigh_cell.get_rsrp()) or not neigh_cell.has_sibs(required_sibs)) {
+      neigh_index++;
+      return start_phy_cell_selection(neigh_cell);
     }
   }
 
@@ -591,43 +586,62 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   return proc_outcome_t::error;
 }
 
-proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const bool& cs_ret)
+proc_outcome_t rrc::cell_selection_proc::react(const bool& cell_selection_result)
 {
-  if (cs_ret) {
-    // successful selection
-    if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
-      Info("PHY is in SYNC and cell selection passed\n");
-      state = search_state_t::cell_config;
-      if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
-        return proc_outcome_t::error;
-      }
-      return proc_outcome_t::yield;
-    }
-    Info("PHY is in SYNC but cell selection did not pass. Go back to select step.\n");
-    cs_result = cs_result_t::no_cell;
-  } else {
-    Error("Could not camp on serving cell.\n");
+  if (state != search_state_t::cell_selection) {
+    Warning("Unexpected cell selection event received\n");
+    return proc_outcome_t::yield;
   }
 
-  rrc_ptr->meas_cells.serving_cell().set_rsrp(-INFINITY);
-  discard_serving = true; // Discard this cell
-  // Continue to next neighbour cell
-  ++neigh_index;
-  return start_cell_selection();
+  if (cell_selection_result) {
+    // successful selection
+    if (is_serv_cell_suitable()) {
+      return set_proc_complete();
+    }
+    if (is_sib_acq_required()) {
+      return start_sib_acquisition();
+    }
+  }
+
+  Info("Cell selection criteria not passed.\n");
+
+  discard_serving = not is_same_cell(init_serv_cell, meas_cells->serving_cell());
+  return start_next_cell_selection();
 }
 
-srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const bool& cs_ret)
+srslte::proc_outcome_t rrc::cell_selection_proc::start_phy_cell_selection(const meas_cell& cell)
 {
-  // if we are now camping, the proc was successful
-  if (cs_ret) {
-    Info("Selected serving cell OK.\n");
-    cs_result = cs_result_t::same_cell;
-    return proc_outcome_t::success;
+  if (not is_same_cell(cell, meas_cells->serving_cell())) {
+    rrc_ptr->set_serving_cell(cell.phy_cell, discard_serving);
+    discard_serving = false;
+    Info("Set serving cell: %s\n", meas_cells->serving_cell().to_string().c_str());
+  } else {
+    // in case the cell had already been selected
+    if (is_serv_cell_suitable()) {
+      return set_proc_complete();
+    }
+    if (is_sib_acq_required()) {
+      return start_sib_acquisition();
+    }
   }
 
-  rrc_ptr->meas_cells.serving_cell().set_rsrp(-INFINITY);
-  Warning("Could not camp on serving cell.\n");
-  return start_cell_selection();
+  state = search_state_t::cell_selection;
+  if (not rrc_ptr->phy_ctrl->start_cell_select(meas_cells->serving_cell().phy_cell, rrc_ptr->cell_selector)) {
+    Error("Failed to launch PHY Cell Selection\n");
+    return set_proc_complete();
+  }
+  return proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::cell_selection_proc::start_sib_acquisition()
+{
+  Info("PHY is camping on serving cell, but SIBs need to be acquired\n");
+  state = search_state_t::cell_config;
+  if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
+    Warning("Failed to launch %s procedure\n", rrc_ptr->serv_cell_cfg.get()->name());
+    return set_proc_complete();
+  }
+  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_search()
@@ -635,22 +649,12 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_search()
   if (rrc_ptr->cell_searcher.run()) {
     return proc_outcome_t::yield;
   }
-  if (cell_search_fut.is_error()) {
-    cs_result = cs_result_t::no_cell;
-    return proc_outcome_t::error;
+
+  if (is_sib_acq_required()) {
+    return start_sib_acquisition();
   }
-  cs_result = (cell_search_fut.value()->found == cell_search_ret_t::CELL_FOUND) ? cs_result_t::changed_cell
-                                                                                : cs_result_t::no_cell;
-  if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
-    Info("PHY is in SYNC and cell selection passed.\n");
-    state = search_state_t::cell_config;
-    if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, required_sibs)) {
-      return proc_outcome_t::error;
-    }
-    return proc_outcome_t::yield;
-  }
-  Info("Cell Search of cell selection run successfully\n");
-  return proc_outcome_t::success;
+
+  return set_proc_complete();
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_config()
@@ -658,15 +662,11 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
   if (rrc_ptr->serv_cell_cfg.run()) {
     return proc_outcome_t::yield;
   }
-  if (serv_cell_cfg_fut.is_success()) {
-    Info("All SIBs of serving cell obtained successfully\n");
-    cs_result = cs_result_t::changed_cell;
-    return proc_outcome_t::success;
+  if (is_serv_cell_suitable()) {
+    return set_proc_complete();
   }
-  Error("While configuring serving cell\n");
-  // resume cell selection
-  ++neigh_index;
-  return start_cell_selection();
+  Error("Failed to configure serving cell\n");
+  return start_next_cell_selection();
 }
 
 proc_outcome_t rrc::cell_selection_proc::step()
@@ -688,11 +688,9 @@ proc_outcome_t rrc::cell_selection_proc::step()
 
 void rrc::cell_selection_proc::then(const srslte::proc_result_t<cs_result_t>& proc_result) const
 {
+  Info("Completed with %s.\n", proc_result.is_success() ? "success" : "failure");
   // Inform Connection Request Procedure
   if (rrc_ptr->conn_req_proc.is_busy()) {
-    Info("Completed with %s. Informing proc %s\n",
-         proc_result.is_success() ? "success" : "failure",
-         rrc_ptr->conn_req_proc.get()->name());
     rrc_ptr->conn_req_proc.trigger(proc_result);
   } else if (rrc_ptr->connection_reest.is_busy()) {
     rrc_ptr->connection_reest.trigger(proc_result);

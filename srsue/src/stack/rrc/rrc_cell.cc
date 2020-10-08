@@ -76,7 +76,7 @@ bool meas_cell::is_sib_scheduled(uint32_t sib_index) const
   return sib_info_map.find(sib_index) != sib_info_map.end();
 }
 
-bool meas_cell::has_sibs(srslte::span<uint32_t> indexes) const
+bool meas_cell::has_sibs(srslte::span<const uint32_t> indexes) const
 {
   for (uint32_t idx : indexes) {
     if (not has_sib(idx)) {
@@ -162,7 +162,8 @@ uint16_t meas_cell::get_mnc() const
  ********************************************/
 
 meas_cell_list::meas_cell_list(srslte::task_sched_handle task_sched_) :
-  serv_cell(new meas_cell(task_sched_.get_unique_timer())), task_sched(task_sched_)
+  serv_cell(new meas_cell(task_sched_.get_unique_timer())),
+  task_sched(task_sched_)
 {}
 
 meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)

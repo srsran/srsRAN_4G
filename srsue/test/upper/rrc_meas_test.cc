@@ -50,7 +50,7 @@ public:
   void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override {}
   void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
   bool cell_search() override { return true; }
-  bool cell_is_camping() override { return false; }
+  bool cell_is_camping() override { return true; }
   void set_activation_deactivation_scell(uint32_t cmd) override {}
   bool cell_select(phy_cell_t cell) override
   {
@@ -105,6 +105,68 @@ private:
   std::map<uint32_t, std::set<uint32_t> > cells_started;
   uint32_t                                serving_pci    = 0;
   uint32_t                                serving_earfcn = 0;
+};
+
+class mac_test : public srsue::mac_interface_rrc
+{
+public:
+  srslte::task_sched_handle task_sched;
+  rrc*                      rrc_ptr;
+
+  mac_test(rrc* rrc_, srslte::task_sched_handle task_sched_) : rrc_ptr(rrc_), task_sched(task_sched_) {}
+
+  int get_dlsch_with_sib1(bcch_dl_sch_msg_s& dlsch_msg)
+  {
+    sib_type1_s    sib1;
+    uint8_t        asn1_msg[] = {0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    asn1::cbit_ref bref{asn1_msg, sizeof(asn1_msg)};
+    return dlsch_msg.unpack(bref);
+  }
+  int get_dlsch_with_sys_info(bcch_dl_sch_msg_s& dlsch_msg)
+  {
+    sib_type1_s sib1;
+    uint8_t     asn1_msg[] = {0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00};
+    asn1::cbit_ref bref{asn1_msg, sizeof(asn1_msg)};
+    return dlsch_msg.unpack(bref);
+  }
+
+  void bcch_start_rx(int si_window_start, int si_window_length) override
+  {
+    task_sched.defer_task([this]() {
+      srslte::unique_byte_buffer_t pdu;
+      for (uint32_t i = 0; i < 2; ++i) {
+        bcch_dl_sch_msg_s dlsch_msg;
+        if (i == 0) {
+          get_dlsch_with_sib1(dlsch_msg);
+        } else {
+          get_dlsch_with_sys_info(dlsch_msg);
+        }
+
+        pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+        asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+        dlsch_msg.pack(bref);
+        pdu->N_bytes = bref.distance_bytes();
+        rrc_ptr->write_pdu_bcch_dlsch(std::move(pdu));
+      }
+    });
+  }
+  void bcch_stop_rx() override {}
+  void pcch_start_rx() override {}
+
+  void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) override {}
+
+  void mch_start_rx(uint32_t lcid) override {}
+
+  void set_config(srslte::mac_cfg_t& mac_cfg) override {}
+  void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) override {}
+
+  void get_rntis(ue_rnti_t* rntis) override {}
+  void set_contention_id(uint64_t uecri) override {}
+  void set_ho_rnti(uint16_t crnti, uint16_t target_pci) override {}
+
+  void reconfiguration(const uint32_t& cc_idx, const bool& enable) override {}
+  void reset() override {}
 };
 
 class nas_test : public srsue::nas
@@ -172,13 +234,16 @@ class rrc_test : public rrc
   stack_test_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) : rrc(stack_, &stack_->task_sched), stack(stack_)
+  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) :
+    rrc(stack_, &stack_->task_sched),
+    stack(stack_),
+    mactest(this, &stack_->task_sched)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
     nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
     pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
   }
-  void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
+  void init() { rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
 
   void run_tti(uint32_t tti_)
   {
@@ -269,6 +334,7 @@ public:
   bool get_meas_res(meas_results_s& meas_res) { return pdcptest->get_meas_res(meas_res); }
 
   phy_test phytest;
+  mac_test mactest;
 
 private:
   std::unique_ptr<pdcp_test> pdcptest;
@@ -347,13 +413,17 @@ int cell_select_test()
     rrctest.cell_select_complete(true); // it will select pci=2
     rrctest.in_sync();
     stack.run_pending_tasks(); // it will select pci=2
+    rrctest.run_tti(0);        // Needed to advance si acquisition procedure
     TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 2);
     TESTASSERT(rrctest.phytest.last_selected_cell.pci == 2);
     TESTASSERT(rrctest.has_neighbour_cell(1, 1));
     TESTASSERT(rrctest.has_neighbour_cell(2, 3));
     TESTASSERT(not rrctest.has_neighbour_cell(2, 2));
 
-    // Cell Selection fails, make sure it goes to Cell Search
+    // CHECK: UE moves to stronger intra-freq neighbor
+    // CHECK: Cell Selection fails, make sure it goes to Cell Search
+    rrctest.add_neighbour_cell(4, 2, 100);
+
     phy_cell_t                               cell_search_cell = {};
     rrc_interface_phy_lte::cell_search_ret_t cell_search_ret  = {};
     cell_search_cell.pci                                      = 5;
