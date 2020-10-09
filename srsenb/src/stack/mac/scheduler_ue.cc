@@ -998,7 +998,9 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
     }
   }
   if (pending_data > 0) {
-    // BSR is expected
+    // The scheduler needs to account for the possibility of BSRs being allocated in the UL grant.
+    // Otherwise, the UL grants allocated for very small RRC messages (e.g. rrcReconfigurationComplete)
+    // may be fully occupied by a BSR, and RRC the message transmission needs to be postponed.
     pending_data += (pending_lcgs <= 1) ? sbsr_size : lbsr_size;
   } else {
     if (is_sr_triggered() and active_lcgs > 0 and this_ue_cc_idx >= 0) {
