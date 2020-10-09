@@ -208,7 +208,6 @@ int srslte_pucch_cs_get_ack(const srslte_pucch_cfg_t* cfg,
   if (cfg && uci_cfg && uci_value) {
     // Set bits to 0 by default
     memset(uci_value->ack.ack_value, 0, SRSLTE_UCI_MAX_ACK_BITS);
-    uci_value->ack.valid = true;
 
     uint32_t nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
     switch (nof_ack) {

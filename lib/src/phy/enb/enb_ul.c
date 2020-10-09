@@ -219,15 +219,20 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
       ERROR("Error decoding PUCCH\n");
     } else {
 
-      // Get PUCCH Format 1b with channel selection if used
+      // Get PUCCH Format 1b with channel selection if:
+      // - At least one ACK bit needs to be received; and
+      // - PUCCH Format 1b was used; and
+      // - HARQ feedback mode is set to PUCCH Format1b with Channel Selection (CS); and
+      // - No scheduling request is expected; and
+      // - Data is valid (invalid data does not make sense to decode).
       if (uci_cfg_total_ack > 0 && cfg->format == SRSLTE_PUCCH_FORMAT_1B &&
           cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS &&
-          !cfg->uci_cfg.is_scheduling_request_tti) {
+          !cfg->uci_cfg.is_scheduling_request_tti && pucch_res.uci_data.ack.valid) {
         uint8_t b[2] = {pucch_res.uci_data.ack.ack_value[0], pucch_res.uci_data.ack.ack_value[1]};
         srslte_pucch_cs_get_ack(cfg, &cfg->uci_cfg, i, b, &pucch_res.uci_data);
       }
 
-      // Check correlation value, keep maximum
+      // Compares correlation value, it stores the PUCCH result with the greatest correlation
       if (i == 0 || pucch_res.correlation > res->correlation) {
         // Copy measurements only if PUCCH was decoded succesfully
         if (cfg->meas_ta_en) {
