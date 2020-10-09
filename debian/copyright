@@ -9,16 +9,49 @@ Files: *
 Copyright: 2013-2020, Software Radio Systems Limited.
 License: AGPL-3+
 
-Files: lib/src/phy/fec/viterbi37_port.c
-       lib/src/phy/fec/viterbi37_sse.c
-       lib/src/phy/fec/parity.c
+
+The following files are used within srsLTE:
+
+Files:  lib/src/phy/fec/viterbi37_port.c
+        lib/src/phy/fec/viterbi37_sse.c
+        lib/src/phy/fec/viterbi37_avx2.c
+        lib/src/phy/fec/viterbi37_neon.c
+        lib/src/phy/fec/viterbi37_avx2_16bit.c
+        lib/src/phy/fec/parity.c
 Copyright: 2009, Phil Karn, KA9Q
 License: LGPL-2.1
 
-Files: srsue/src/upper/pcsc_usim.cc
-       srsue/hdr/upper/pcsc_usim.h
+Files:  srsue/src/upper/pcsc_usim.cc
+        srsue/hdr/upper/pcsc_usim.h
 Copyright: 2002-2014, Jouni Malinen <j@w1.fi>
 License: BSD-3-clause
+
+Files:  lib/include/srslte/asn1/liblte_common.h
+        lib/include/srslte/asn1/liblte_mme.h
+        lib/include/srslte/common/liblte_security.h
+        lib/src/asn1/liblte_common.cc
+        lib/src/asn1/liblte_mme.cc
+        lib/src/common/liblte_security.cc
+Copyright: 2012-2014 Ben Wojtowicz
+License: AGPL-3+
+
+Files:  lib/include/srslte/srslog/bundled/fmt/chrono.h
+        lib/include/srslte/srslog/bundled/fmt/color.h
+        lib/include/srslte/srslog/bundled/fmt/compile.h
+        lib/include/srslte/srslog/bundled/fmt/core.h
+        lib/include/srslte/srslog/bundled/fmt/format.h
+        lib/include/srslte/srslog/bundled/fmt/format-inl.h
+        lib/include/srslte/srslog/bundled/fmt/LICENSE.rst
+        lib/include/srslte/srslog/bundled/fmt/locale.h
+        lib/include/srslte/srslog/bundled/fmt/os.h
+        lib/include/srslte/srslog/bundled/fmt/ostream.h
+        lib/include/srslte/srslog/bundled/fmt/posix.h
+        lib/include/srslte/srslog/bundled/fmt/printf.h
+        lib/include/srslte/srslog/bundled/fmt/ranges.h
+        lib/src/srslog/bundled/fmt/format.cc
+        lib/src/srslog/bundled/fmt/os.cc
+Copyright: 2012-2020, Victor Zverovich
+License: MIT
 
 
 License: AGPL-3+
@@ -79,3 +112,30 @@ License: BSD-3-clause
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+License: MIT
+Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+--- Optional exception to the license ---
+
+As an exception, if, as a result of your compiling your source code,
+portions of this Software are embedded into a machine-executable object
+form of such source code, you may redistribute such embedded portions in
+such object form without including the above copyright and permission notices.
