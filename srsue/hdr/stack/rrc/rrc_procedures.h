@@ -263,6 +263,7 @@ private:
 class rrc::cell_reselection_proc
 {
 public:
+  /// Timer duration to restart Cell Reselection Procedure
   const static uint32_t cell_reselection_periodicity_ms = 20, cell_reselection_periodicity_long_ms = 1000;
 
   cell_reselection_proc(rrc* rrc_);

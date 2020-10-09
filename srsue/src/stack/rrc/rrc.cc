@@ -471,7 +471,7 @@ void rrc::in_sync()
 // Cell selection criteria Section 5.2.3.2 of 36.304
 bool rrc::cell_selection_criteria(float rsrp, float rsrq)
 {
-  return std::isnormal(rsrp) and (meas_cells.serving_cell().has_sib3() and get_srxlev(rsrp) > 0);
+  return std::isnormal(rsrp) and meas_cells.serving_cell().has_sib3() and get_srxlev(rsrp) > 0;
 }
 
 float rrc::get_srxlev(float Qrxlevmeas)
