@@ -984,17 +984,24 @@ uint32_t sched_ue::get_pending_ul_old_data(uint32_t cc_idx)
 
 uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
 {
+  static constexpr uint32_t lbsr_size = 4, sbsr_size = 2;
+
   // Note: If there are no active bearers, scheduling requests are also ignored.
-  uint32_t pending_data     = 0;
-  bool     ul_bearers_found = false;
+  uint32_t pending_data = 0;
+  uint32_t active_lcgs = 0, pending_lcgs = 0;
   for (int i = 0; i < sched_interface::MAX_LC_GROUP; i++) {
     if (lch_handler.is_bearer_ul(i)) {
-      pending_data += lch_handler.get_bsr(i);
-      ul_bearers_found = true;
+      int bsr = lch_handler.get_bsr(i);
+      pending_data += bsr;
+      active_lcgs++;
+      pending_lcgs += (bsr > 0) ? 1 : 0;
     }
   }
-  if (pending_data == 0) {
-    if (is_sr_triggered() and ul_bearers_found and this_ue_cc_idx >= 0) {
+  if (pending_data > 0) {
+    // BSR is expected
+    pending_data += (pending_lcgs <= 1) ? sbsr_size : lbsr_size;
+  } else {
+    if (is_sr_triggered() and active_lcgs > 0 and this_ue_cc_idx >= 0) {
       // Check if this_cc_idx is the carrier with highest CQI
       uint32_t max_cqi = 0, max_cc_idx = 0;
       for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
