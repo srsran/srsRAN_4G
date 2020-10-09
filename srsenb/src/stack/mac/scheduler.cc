@@ -30,6 +30,8 @@
 #define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)
 #define Error(fmt, ...) srslte::logmap::get("MAC ")->error(fmt, ##__VA_ARGS__)
 
+using srslte::tti_point;
+
 namespace srsenb {
 
 namespace sched_utils {
@@ -238,7 +240,7 @@ void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // TODO: Check if correct use of last_tti
   ue_db_access(
-      rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); }, __PRETTY_FUNCTION__);
+      rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti.to_uint(), enabled); }, __PRETTY_FUNCTION__);
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
@@ -263,8 +265,9 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(
-      rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti, -1); }, __PRETTY_FUNCTION__);
+  ue_db_access(rnti,
+               [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti.to_uint(), -1); },
+               __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -281,8 +284,7 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmd
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
-  ue_db_access(
-      rnti, [&](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); }, __PRETTY_FUNCTION__);
+  ue_db_access(rnti, [&](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -330,14 +332,12 @@ int sched::ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes)
 
 int sched::ul_phr(uint16_t rnti, int phr)
 {
-  return ue_db_access(
-      rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
+  return ue_db_access(rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
-  return ue_db_access(
-      rnti, [](sched_ue& ue) { ue.set_sr(); }, __PRETTY_FUNCTION__);
+  return ue_db_access(rnti, [](sched_ue& ue) { ue.set_sr(); }, __PRETTY_FUNCTION__);
 }
 
 void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
@@ -348,31 +348,28 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 
 void sched::tpc_inc(uint16_t rnti)
 {
-  ue_db_access(
-      rnti, [](sched_ue& ue) { ue.tpc_inc(); }, __PRETTY_FUNCTION__);
+  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); }, __PRETTY_FUNCTION__);
 }
 
 void sched::tpc_dec(uint16_t rnti)
 {
-  ue_db_access(
-      rnti, [](sched_ue& ue) { ue.tpc_dec(); }, __PRETTY_FUNCTION__);
+  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); }, __PRETTY_FUNCTION__);
 }
 
 std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 {
   std::array<int, SRSLTE_MAX_CARRIERS> ret{};
   ret.fill(-1); // -1 for inactive carriers
-  ue_db_access(
-      rnti,
-      [this, &ret](sched_ue& ue) {
-        for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
-          auto p = ue.get_cell_index(enb_cc_idx);
-          if (p.second < SRSLTE_MAX_CARRIERS) {
-            ret[enb_cc_idx] = p.second;
-          }
-        }
-      },
-      __PRETTY_FUNCTION__);
+  ue_db_access(rnti,
+               [this, &ret](sched_ue& ue) {
+                 for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
+                   auto p = ue.get_cell_index(enb_cc_idx);
+                   if (p.second < SRSLTE_MAX_CARRIERS) {
+                     ret[enb_cc_idx] = p.second;
+                   }
+                 }
+               },
+               __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -383,46 +380,69 @@ std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
  *******************************************************/
 
 // Downlink Scheduler API
-int sched::dl_sched(uint32_t tti_tx_dl, uint32_t cc_idx, sched_interface::dl_sched_res_t& sched_result)
+int sched::dl_sched(uint32_t tti_tx_dl, uint32_t enb_cc_idx, sched_interface::dl_sched_res_t& sched_result)
 {
   if (!configured) {
     return 0;
   }
 
   std::lock_guard<std::mutex> lock(sched_mutex);
-  uint32_t                    tti_rx = sched_utils::tti_subtract(tti_tx_dl, FDD_HARQ_DELAY_UL_MS);
-  last_tti                           = sched_utils::max_tti(last_tti, tti_rx);
-
-  if (cc_idx < carrier_schedulers.size()) {
-    // Compute scheduling Result for tti_rx
-    const cc_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
-
-    // copy result
-    sched_result = tti_sched.dl_sched_result;
+  if (enb_cc_idx >= carrier_schedulers.size()) {
+    return 0;
   }
+
+  tti_point tti_rx = tti_point{tti_tx_dl} - FDD_HARQ_DELAY_UL_MS;
+  new_tti(tti_rx);
+
+  // copy result
+  sched_result = sched_results.get_sf(tti_rx)->get_cc(enb_cc_idx)->dl_sched_result;
 
   return 0;
 }
 
 // Uplink Scheduler API
-int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_sched_res_t& sched_result)
+int sched::ul_sched(uint32_t tti, uint32_t enb_cc_idx, srsenb::sched_interface::ul_sched_res_t& sched_result)
 {
   if (!configured) {
     return 0;
   }
 
   std::lock_guard<std::mutex> lock(sched_mutex);
-  // Compute scheduling Result for tti_rx
-  uint32_t tti_rx = sched_utils::tti_subtract(tti, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
-
-  if (cc_idx < carrier_schedulers.size()) {
-    const cc_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
-
-    // copy result
-    sched_result = tti_sched.ul_sched_result;
+  if (enb_cc_idx >= carrier_schedulers.size()) {
+    return 0;
   }
 
+  // Compute scheduling Result for tti_rx
+  tti_point tti_rx = tti_point{tti} - FDD_HARQ_DELAY_UL_MS - FDD_HARQ_DELAY_DL_MS;
+  new_tti(tti_rx);
+
+  // copy result
+  sched_result = sched_results.get_sf(tti_rx)->get_cc(enb_cc_idx)->ul_sched_result;
+
   return SRSLTE_SUCCESS;
+}
+
+/// Generate scheduling decision for tti_rx, if it wasn't already generated
+/// NOTE: The scheduling decision is made for all CCs in a single call/lock, otherwise the UE can have different
+///       configurations (e.g. different set of activated SCells) in different CC decisions
+void sched::new_tti(tti_point tti_rx)
+{
+  last_tti = std::max(last_tti, tti_rx);
+
+  // Generate sched results for all CCs, if not yet generated
+  for (size_t cc_idx = 0; cc_idx < carrier_schedulers.size(); ++cc_idx) {
+    if (not is_generated(tti_rx, cc_idx)) {
+      carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    }
+  }
+}
+
+/// Check if TTI result is generated
+bool sched::is_generated(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+{
+  const sf_sched_result* sf_result = sched_results.get_sf(tti_rx);
+  return sf_result != nullptr and sf_result->get_cc(enb_cc_idx) != nullptr and
+         sf_result->get_cc(enb_cc_idx)->is_generated(tti_rx);
 }
 
 // Common way to access ue_db elements in a read locking way

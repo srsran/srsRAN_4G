@@ -138,6 +138,8 @@ public:
   class carrier_sched;
 
 protected:
+  void new_tti(srslte::tti_point tti_rx);
+  bool is_generated(srslte::tti_point, uint32_t enb_cc_idx) const;
   // Helper methods
   template <typename Func>
   int ue_db_access(uint16_t rnti, Func, const char* func_name = nullptr);
@@ -156,9 +158,9 @@ protected:
   // Storage of past scheduling results
   sched_result_list sched_results;
 
-  uint32_t   last_tti = 0;
-  std::mutex sched_mutex;
-  bool       configured = false;
+  srslte::tti_point last_tti;
+  std::mutex        sched_mutex;
+  bool              configured = false;
 };
 
 } // namespace srsenb

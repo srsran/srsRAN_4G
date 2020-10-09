@@ -25,6 +25,8 @@
 #include "srslte/common/logmap.h"
 #include <srslte/interfaces/sched_interface.h>
 
+using srslte::tti_point;
+
 namespace srsenb {
 
 const char* alloc_outcome_t::to_string() const
@@ -563,7 +565,7 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-sf_sched::sf_sched() : log_h(srslte::logmap::get("MAC ")) {}
+sf_sched::sf_sched() : log_h(srslte::logmap::get("MAC")) {}
 
 void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
@@ -578,7 +580,7 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
   }
 }
 
-void sf_sched::new_tti(uint32_t tti_rx_, sf_sched_result* cc_results_)
+void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
 {
   // reset internal state
   bc_allocs.clear();
@@ -586,7 +588,7 @@ void sf_sched::new_tti(uint32_t tti_rx_, sf_sched_result* cc_results_)
   data_allocs.clear();
   ul_data_allocs.clear();
 
-  tti_params = tti_params_t{tti_rx_};
+  tti_params = tti_params_t{tti_rx_.to_uint()};
   tti_alloc.new_tti(tti_params);
   cc_results = cc_results_;
 

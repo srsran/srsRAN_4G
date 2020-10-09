@@ -53,6 +53,8 @@ struct cc_sched_result {
   rbgmask_t                       dl_mask         = {}; ///< Accumulation of all DL RBG allocations
   prbmask_t                       ul_mask         = {}; ///< Accumulation of all UL PRB allocations
   pdcch_mask_t                    pdcch_mask      = {}; ///< Accumulation of all CCE allocations
+
+  bool is_generated(srslte::tti_point tti_rx) const { return srslte::tti_point{tti_params.tti_rx} == tti_rx; }
 };
 
 struct sf_sched_result {
@@ -279,7 +281,7 @@ public:
   // Control/Configuration Methods
   sf_sched();
   void init(const sched_cell_params_t& cell_params_);
-  void new_tti(uint32_t tti_rx_, sf_sched_result* cc_results);
+  void new_tti(srslte::tti_point tti_rx_, sf_sched_result* cc_results);
 
   // DL alloc methods
   alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);

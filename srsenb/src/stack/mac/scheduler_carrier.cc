@@ -26,6 +26,8 @@
 
 namespace srsenb {
 
+using srslte::tti_point;
+
 /*******************************************************
  *        Broadcast (SIB+Paging) scheduling
  *******************************************************/
@@ -136,7 +138,9 @@ void bc_sched::reset()
  *******************************************************/
 
 ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_) :
-  cc_cfg(&cfg_), log_h(srslte::logmap::get("MAC")), ue_db(&ue_db_)
+  cc_cfg(&cfg_),
+  log_h(srslte::logmap::get("MAC")),
+  ue_db(&ue_db_)
 {}
 
 // Schedules RAR
@@ -306,55 +310,50 @@ void sched::carrier_sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
   sf_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
 }
 
-const cc_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
+const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_rx)
 {
-  cc_sched_result* cc_result = prev_sched_results->get_cc(srslte::tti_point{tti_rx}, enb_cc_idx);
+  sf_sched*        tti_sched = get_sf_sched(tti_rx);
+  sf_sched_result* sf_result = prev_sched_results->get_sf(tti_rx);
+  cc_sched_result* cc_result = sf_result->new_cc(enb_cc_idx);
 
-  // if it is the first time tti is run, reset vars
-  if (cc_result == nullptr) {
-    sf_sched*        tti_sched = get_sf_sched(tti_rx);
-    sf_sched_result* sf_result = prev_sched_results->get_sf(srslte::tti_point{tti_rx});
-    cc_result                  = sf_result->new_cc(enb_cc_idx);
+  bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
 
-    bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
+  /* Schedule PHICH */
+  for (auto& ue_pair : *ue_db) {
+    tti_sched->alloc_phich(&ue_pair.second, &cc_result->ul_sched_result);
+  }
 
-    /* Schedule PHICH */
-    for (auto& ue_pair : *ue_db) {
-      tti_sched->alloc_phich(&ue_pair.second, &cc_result->ul_sched_result);
-    }
+  /* Schedule DL control data */
+  if (dl_active) {
+    /* Schedule Broadcast data (SIB and paging) */
+    bc_sched_ptr->dl_sched(tti_sched);
 
-    /* Schedule DL control data */
-    if (dl_active) {
-      /* Schedule Broadcast data (SIB and paging) */
-      bc_sched_ptr->dl_sched(tti_sched);
+    /* Schedule RAR */
+    ra_sched_ptr->dl_sched(tti_sched);
 
-      /* Schedule RAR */
-      ra_sched_ptr->dl_sched(tti_sched);
+    /* Schedule Msg3 */
+    sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
+    ra_sched_ptr->ul_sched(tti_sched, sf_msg3_sched);
+  }
 
-      /* Schedule Msg3 */
-      sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
-      ra_sched_ptr->ul_sched(tti_sched, sf_msg3_sched);
-    }
+  /* Prioritize PDCCH scheduling for DL and UL data in a RoundRobin fashion */
+  if ((tti_rx.to_uint() % 2) == 0) {
+    alloc_ul_users(tti_sched);
+  }
 
-    /* Prioritize PDCCH scheduling for DL and UL data in a RoundRobin fashion */
-    if ((tti_rx % 2) == 0) {
-      alloc_ul_users(tti_sched);
-    }
+  /* Schedule DL user data */
+  alloc_dl_users(tti_sched);
 
-    /* Schedule DL user data */
-    alloc_dl_users(tti_sched);
+  if ((tti_rx.to_uint() % 2) == 1) {
+    alloc_ul_users(tti_sched);
+  }
 
-    if ((tti_rx % 2) == 1) {
-      alloc_ul_users(tti_sched);
-    }
+  /* Select the winner DCI allocation combination, store all the scheduling results */
+  tti_sched->generate_sched_results();
 
-    /* Select the winner DCI allocation combination, store all the scheduling results */
-    tti_sched->generate_sched_results();
-
-    /* Reset ue harq pending ack state, clean-up blocked pids */
-    for (auto& user : *ue_db) {
-      user.second.finish_tti(cc_result->tti_params, enb_cc_idx);
-    }
+  /* Reset ue harq pending ack state, clean-up blocked pids */
+  for (auto& user : *ue_db) {
+    user.second.finish_tti(cc_result->tti_params, enb_cc_idx);
   }
 
   return *cc_result;
@@ -386,10 +385,10 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   return SRSLTE_SUCCESS;
 }
 
-sf_sched* sched::carrier_sched::get_sf_sched(uint32_t tti_rx)
+sf_sched* sched::carrier_sched::get_sf_sched(tti_point tti_rx)
 {
-  sf_sched* ret = &sf_scheds[tti_rx % sf_scheds.size()];
-  if (ret->get_tti_rx() != tti_rx) {
+  sf_sched* ret = &sf_scheds[tti_rx.to_uint() % sf_scheds.size()];
+  if (ret->get_tti_rx() != tti_rx.to_uint()) {
     sf_sched_result* sf_res = prev_sched_results->get_sf(srslte::tti_point{tti_rx});
     if (sf_res == nullptr) {
       // Reset if tti_rx has not been yet set in the sched results

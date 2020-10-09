@@ -40,7 +40,7 @@ public:
   void                   reset();
   void                   carrier_cfg(const sched_cell_params_t& sched_params_);
   void                   set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
-  const cc_sched_result& generate_tti_result(uint32_t tti_rx);
+  const cc_sched_result& generate_tti_result(srslte::tti_point tti_rx);
   int                    dl_rach_info(dl_sched_rar_info_t rar_info);
 
   // getters
@@ -54,7 +54,7 @@ private:
   //! Compute UL scheduler result for given TTI
   int alloc_ul_users(sf_sched* tti_sched);
   //! Get sf_sched for a given TTI
-  sf_sched* get_sf_sched(uint32_t tti_rx);
+  sf_sched* get_sf_sched(srslte::tti_point tti_rx);
 
   // args
   const sched_cell_params_t*    cc_cfg = nullptr;
