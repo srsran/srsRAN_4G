@@ -23,6 +23,7 @@
 #define SRSLTE_MAC_CONTROLLER_H
 
 #include "rrc_ue.h"
+#include <bitset>
 
 namespace srsenb {
 
@@ -48,6 +49,11 @@ public:
   void handle_ho_prep_complete();
 
   const sched_interface::ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
+
+  void set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask);
+
+  enum proc_stage_t : int8_t { config_tx, config_complete, other };
+  void update_mac(proc_stage_t stage);
 
 private:
   void handle_con_reconf_with_mobility();

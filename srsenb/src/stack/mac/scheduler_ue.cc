@@ -1258,8 +1258,16 @@ void cc_sched_ue::reset()
 void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   cfg = &cfg_;
+
   // Config HARQ processes
   harq_ent.set_cfg(cfg->maxharq_tx);
+
+  // Handle deactivation
+  if (ue_cc_idx > 0 and not cfg_.supported_cc_list[ue_cc_idx].active and active) {
+    active = false;
+    reset();
+    log_h->info("SCHED: rnti=0x%x SCellIndex=%d deactivated\n", rnti, ue_cc_idx);
+  }
 }
 
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */

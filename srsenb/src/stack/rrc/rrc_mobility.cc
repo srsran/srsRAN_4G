@@ -1318,6 +1318,8 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   }
 
   /* Freeze all DRBs. SRBs DL are needed for sending the HO Cmd */
+  f->rrc_ue->mac_ctrl->set_scell_activation({0});
+  f->rrc_ue->mac_ctrl->update_mac(mac_controller::config_tx);
   for (const drb_to_add_mod_s& drb : f->rrc_ue->bearer_list.get_established_drbs()) {
     f->rrc_enb->mac->bearer_ue_rem(f->rrc_ue->rnti, drb.drb_id + 2);
   }

@@ -336,4 +336,20 @@ void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ie
 
 void rrc::ue::mac_controller::handle_ho_prep_complete() {}
 
+void rrc::ue::mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
+{
+  for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {
+    current_sched_ue_cfg.supported_cc_list[i].active = scell_mask[i];
+  }
+}
+
+void rrc::ue::mac_controller::update_mac(proc_stage_t stage)
+{
+  // Apply changes to MAC scheduler
+  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
+  if (stage != proc_stage_t::other) {
+    mac->phy_config_enabled(rrc_ue->rnti, stage == proc_stage_t::config_complete);
+  }
+}
+
 } // namespace srsenb
