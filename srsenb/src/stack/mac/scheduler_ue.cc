@@ -1216,11 +1216,9 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   last_tti(current_tti),
   harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC)
 {
-  // only PCell starts active. Remaining ones wait for valid CQI
-  cc_state_ =
-      ue_cc_idx == 0 ? cc_st::active : (cfg_.supported_cc_list[ue_cc_idx].active ? cc_st::activating : cc_st::idle);
   dl_cqi_rx = false;
   dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
+  set_cfg(cfg_);
 
   // set max mcs
   max_mcs_ul = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
@@ -1239,8 +1237,6 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
       sched_utils::generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
     }
   }
-
-  set_cfg(cfg_);
 }
 
 void cc_sched_ue::reset()
@@ -1264,11 +1260,29 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   // Config HARQ processes
   harq_ent.set_cfg(cfg->maxharq_tx);
 
-  // Handle deactivation
-  if (ue_cc_idx > 0 and not cfg->supported_cc_list[ue_cc_idx].active) {
-    if (cc_state_ == cc_st::active or cc_state_ == cc_st::activating) {
-      cc_state_ = cc_st::deactivating;
-      log_h->info("SCHED: rnti=0x%x SCellIndex=%d deactivated\n", rnti, ue_cc_idx);
+  if (ue_cc_idx == 0) {
+    // PCell is always active
+    cc_state_ = cc_st::active;
+  } else {
+    switch (cc_state()) {
+      case cc_st::activating:
+      case cc_st::active:
+        if (not cfg->supported_cc_list[ue_cc_idx].active) {
+          cc_state_ = cc_st::deactivating;
+          log_h->info("SCHED: rnti=0x%x SCellIndex=%d deactivated\n", rnti, ue_cc_idx);
+        }
+        break;
+      case cc_st::deactivating:
+      case cc_st::idle:
+        if (cfg->supported_cc_list[ue_cc_idx].active) {
+          cc_state_ = cc_st::activating;
+          dl_cqi_rx = false;
+          dl_cqi    = 0;
+          log_h->info("SCHED: rnti=0x%x SCellIndex=%d activated\n", rnti, ue_cc_idx);
+        }
+        break;
+      default:
+        break;
     }
   }
 }
@@ -1431,11 +1445,10 @@ void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
   dl_cqi     = dl_cqi_;
   dl_cqi_tti = tti_tx_dl;
   dl_cqi_rx  = dl_cqi_rx or dl_cqi > 0;
-  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating) {
-    if (dl_cqi_rx) {
-      cc_state_ = cc_st::active;
-      log_h->info("SCHED: SCell index=%d is now active\n", ue_cc_idx);
-    }
+  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_rx) {
+    // Wait for SCell to receive a positive CQI before activating it
+    cc_state_ = cc_st::active;
+    log_h->info("SCHED: SCell index=%d is now active\n", ue_cc_idx);
   }
 }
 
