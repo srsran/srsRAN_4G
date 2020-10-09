@@ -380,10 +380,10 @@ std::pair<bool, uint32_t> harq_entity::set_ul_crc(srslte::tti_point tti_rx, uint
   return {h->set_ack(tb_idx, ack_), pid};
 }
 
-void harq_entity::reset_pending_data(uint32_t tti_rx)
+void harq_entity::reset_pending_data(srslte::tti_point tti_rx)
 {
-  tti_point tti_tx_ul = srslte::to_tx_ul(tti_point{tti_rx});
-  tti_point tti_tx_dl = srslte::to_tx_dl(tti_point{tti_rx});
+  tti_point tti_tx_ul = srslte::to_tx_ul(tti_rx);
+  tti_point tti_tx_dl = srslte::to_tx_dl(tti_rx);
 
   // Reset ACK state of UL Harq
   get_ul_harq(tti_tx_ul.to_uint())->reset_pending_data();

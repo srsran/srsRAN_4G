@@ -89,7 +89,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
     return nullptr;
   }
   // Do not allocate a user to an inactive carrier
-  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
+  auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     return nullptr;
   }
@@ -238,7 +238,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
   if (tti_alloc->is_ul_alloc(user)) {
     return nullptr;
   }
-  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
+  auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // this cc is not activated for this user
     return nullptr;
@@ -280,7 +280,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
   if (tti_alloc->is_ul_alloc(user)) {
     return nullptr;
   }
-  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
+  auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // this cc is not activated for this user
     return nullptr;

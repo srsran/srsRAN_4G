@@ -470,7 +470,7 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
-  uint32_t            aggr_idx   = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+  uint32_t            aggr_idx   = user->find_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
   alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user);
 
   return ret;
@@ -491,7 +491,7 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, boo
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
     uint32_t nof_bits = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0);
-    uint32_t aggr_idx = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+    uint32_t aggr_idx = user->find_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
@@ -770,7 +770,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   }
 
   // Check if allocation would cause segmentation
-  uint32_t            ue_cc_idx = user->get_cell_index(cc_cfg->enb_cc_idx).second;
+  uint32_t            ue_cc_idx = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
   const dl_harq_proc& h         = user->get_dl_harq(pid, ue_cc_idx);
   if (h.is_empty()) {
     // It is newTx
@@ -845,7 +845,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
 {
   // check whether adaptive/non-adaptive retx/newtx
   ul_alloc_t::type_t alloc_type;
-  ul_harq_proc*      h        = user->get_ul_harq(get_tti_tx_ul(), user->get_cell_index(cc_cfg->enb_cc_idx).second);
+  ul_harq_proc*      h = user->get_ul_harq(get_tti_tx_ul(), user->get_active_cell_index(cc_cfg->enb_cc_idx).second);
   bool               has_retx = h->has_pending_retx();
   if (has_retx) {
     prb_interval prev_alloc = h->get_alloc();
@@ -866,7 +866,7 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
   using phich_t    = sched_interface::ul_sched_phich_t;
   auto& phich_list = ul_sf_result->phich[ul_sf_result->nof_phich_elems];
 
-  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
+  auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // user does not support this carrier
     return false;
@@ -1012,7 +1012,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
 
     // Generate DCI Format1/2/2A
     sched_ue*           user        = data_alloc.user_ptr;
-    uint32_t            cell_index  = user->get_cell_index(cc_cfg->enb_cc_idx).second;
+    uint32_t            cell_index  = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
     uint32_t            data_before = user->get_pending_dl_new_data();
     const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cell_index);
     bool                is_newtx    = dl_harq.is_empty();
@@ -1057,7 +1057,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
 {
   uci_pusch_t uci_alloc = UCI_PUSCH_NONE;
 
-  if (not user->get_cell_index(current_enb_cc_idx).first) {
+  if (not user->get_active_cell_index(current_enb_cc_idx).first) {
     return UCI_PUSCH_NONE;
   }
 
@@ -1065,7 +1065,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
   const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
   for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size() and uci_alloc != UCI_PUSCH_ACK_CQI;
        ++enbccidx) {
-    auto p = user->get_cell_index(enbccidx);
+    auto p = user->get_active_cell_index(enbccidx);
     if (not p.first) {
       continue;
     }
@@ -1111,7 +1111,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
   uint32_t ue_cc_idx      = other_cc_results.enb_cc_list.size();
   int      sel_enb_cc_idx = -1;
   if (sf_sched->is_ul_alloc(user)) {
-    ue_cc_idx      = user->get_cell_index(current_enb_cc_idx).second;
+    ue_cc_idx      = user->get_active_cell_index(current_enb_cc_idx).second;
     sel_enb_cc_idx = current_enb_cc_idx;
   }
 
@@ -1119,7 +1119,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
     for (uint32_t j = 0; j < other_cc_results.enb_cc_list[enbccidx].ul_sched_result.nof_dci_elems; ++j) {
       // Checks all the UL grants already allocated for the given rnti
       if (other_cc_results.enb_cc_list[enbccidx].ul_sched_result.pusch[j].dci.rnti == user->get_rnti()) {
-        auto p = user->get_cell_index(enbccidx);
+        auto p = user->get_active_cell_index(enbccidx);
         // If the UE CC Idx is the lowest so far
         if (p.first and p.second < ue_cc_idx) {
           ue_cc_idx      = p.second;
@@ -1143,7 +1143,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     sched_interface::ul_sched_data_t* pusch = &ul_result->pusch[ul_result->nof_dci_elems];
 
     sched_ue* user       = ul_alloc.user_ptr;
-    uint32_t  cell_index = user->get_cell_index(cc_cfg->enb_cc_idx).second;
+    uint32_t  cell_index = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
 
     srslte_dci_location_t cce_range = {0, 0};
     if (ul_alloc.needs_pdcch()) {

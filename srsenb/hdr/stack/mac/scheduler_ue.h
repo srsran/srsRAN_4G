@@ -34,6 +34,7 @@
 namespace srsenb {
 
 typedef enum { UCI_PUSCH_NONE = 0, UCI_PUSCH_CQI, UCI_PUSCH_ACK, UCI_PUSCH_ACK_CQI } uci_pusch_t;
+enum class cc_st { active, idle, activating, deactivating };
 
 struct cc_sched_ue {
   const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
@@ -41,9 +42,11 @@ struct cc_sched_ue {
   cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
               const sched_cell_params_t&       cell_cfg_,
               uint16_t                         rnti_,
-              uint32_t                         ue_cc_idx);
+              uint32_t                         ue_cc_idx,
+              srslte::tti_point                current_tti);
   void reset();
   void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
+  void finish_tti(srslte::tti_point tti_rx);
 
   uint32_t                   get_aggr_level(uint32_t nof_bits);
   int                        alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
@@ -52,9 +55,9 @@ struct cc_sched_ue {
   int                        get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
-  bool                       is_active() const { return active; }
   void                       set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi);
-  int cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs);
+  int   cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs);
+  cc_st cc_state() const { return cc_state_; }
 
   harq_entity harq_ent;
 
@@ -85,7 +88,11 @@ private:
   const sched_cell_params_t*       cell_params = nullptr;
   uint16_t                         rnti;
   uint32_t                         ue_cc_idx = 0;
-  bool                             active    = false;
+  srslte::tti_point                cfg_tti;
+
+  // state
+  srslte::tti_point last_tti;
+  cc_st             cc_state_ = cc_st::idle;
 };
 
 const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
@@ -167,7 +174,7 @@ public:
 
   const dl_harq_proc&              get_dl_harq(uint32_t idx, uint32_t cc_idx) const;
   uint16_t                         get_rnti() const { return rnti; }
-  std::pair<bool, uint32_t>        get_cell_index(uint32_t enb_cc_idx) const;
+  std::pair<bool, uint32_t>        get_active_cell_index(uint32_t enb_cc_idx) const;
   const sched_interface::ue_cfg_t& get_ue_cfg() const { return cfg; }
   uint32_t                         get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits);
   void                             ul_buffer_add(uint8_t lcid, uint32_t bytes);
@@ -219,7 +226,7 @@ public:
 
   srslte_dci_format_t get_dci_format();
   sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);
-  cc_sched_ue*        get_ue_carrier(uint32_t enb_cc_idx);
+  cc_sched_ue*        find_ue_carrier(uint32_t enb_cc_idx);
 
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
   uint32_t get_max_retx();
@@ -291,6 +298,7 @@ private:
 
   bool phy_config_dedicated_enabled = false;
 
+  srslte::tti_point        last_tti;
   std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
 
   // Control Element Command queue
