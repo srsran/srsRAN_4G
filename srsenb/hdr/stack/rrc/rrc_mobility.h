@@ -153,7 +153,7 @@ private:
   struct wait_recfg_comp {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     ho_meas_report_ev report;
-    using ho_cmd_msg = srslte::unique_byte_buffer_t;
+    using ho_cmd_msg = asn1::rrc::ho_cmd_r8_ies_s;
 
     struct wait_ho_req_ack_st {
       void enter(s1_source_ho_st* f, const ho_meas_report_ev& ev);
@@ -165,9 +165,8 @@ private:
     explicit s1_source_ho_st(rrc_mobility* parent_) : base_t(parent_) {}
 
   private:
-    bool send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_msg& container);
-    void handle_ho_cancel(wait_ho_req_ack_st& s, const ho_cancel_ev& ev);
-    void handle_ho_cancel(status_transfer_st& s, const ho_cancel_ev& ev);
+    void send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_msg& ho_cmd);
+    void handle_ho_cancel(const ho_cancel_ev& ev);
 
   protected:
     using fsm = s1_source_ho_st;
@@ -177,10 +176,8 @@ private:
     //           Start                 Target                   Event       Action                 Guard
     //      +-------------------+------------------+---------------------+-----------------------+---------------------+
     to_state<                     idle_st,            srslte::failure_ev                                               >,
-         row< wait_ho_req_ack_st, status_transfer_st, ho_cmd_msg,          nullptr,               &fsm::send_ho_cmd    >,
-         row< wait_ho_req_ack_st, idle_st,            ho_cmd_msg                                                       >,
-         row< wait_ho_req_ack_st, idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >,
-         row< status_transfer_st, idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >
+    to_state<                     idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >,
+         row< wait_ho_req_ack_st, status_transfer_st, ho_cmd_msg,          &fsm::send_ho_cmd                           >
     //      +-------------------+------------------+---------------------+-----------------------+---------------------+
     >;
     // clang-format on

@@ -774,7 +774,25 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
     trigger(srslte::failure_ev{});
     return;
   }
-  trigger(std::move(container));
+  /* unpack RRC HOCmd struct and perform sanity checks */
+  asn1::rrc::ho_cmd_s rrchocmd;
+  {
+    asn1::cbit_ref bref(container->msg, container->N_bytes);
+    if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      get_log()->warning("Unpacking of RRC HOCommand was unsuccessful\n");
+      get_log()->warning_hex(container->msg, container->N_bytes, "Received container:\n");
+      trigger(ho_cancel_ev{});
+      return;
+    }
+  }
+  if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
+      rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
+    get_log()->warning("Only handling r8 Handover Commands\n");
+    trigger(ho_cancel_ev{});
+    return;
+  }
+
+  trigger(rrchocmd.crit_exts.c1().ho_cmd_r8());
 }
 
 bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
@@ -996,62 +1014,40 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source
   }
 }
 
-bool rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st&                 s,
-                                                         const srslte::unique_byte_buffer_t& container)
+void rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_r8_ies_s& ho_cmd)
 {
-  /* unpack RRC HOCmd struct and perform sanity checks */
-  asn1::rrc::ho_cmd_s rrchocmd;
-  {
-    asn1::cbit_ref bref(container->msg, container->N_bytes);
-    if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      get_log()->warning("Unpacking of RRC HOCommand was unsuccessful\n");
-      get_log()->warning_hex(container->msg, container->N_bytes, "Received container:\n");
-      return false;
-    }
-  }
-  if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
-      rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
-    get_log()->warning("Only handling r8 Handover Commands\n");
-    return false;
-  }
-
   /* unpack DL-DCCH message containing the RRCRonnectionReconf (with MobilityInfo) to be sent to the UE */
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   {
-    asn1::cbit_ref bref(&rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg[0],
-                        rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size());
+    asn1::cbit_ref bref(&ho_cmd.ho_cmd_msg[0], ho_cmd.ho_cmd_msg.size());
     if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
       get_log()->warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.\n");
-      return false;
+      trigger(ho_cancel_ev{});
+      return;
     }
   }
   if (dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1 or
       dl_dcch_msg.msg.c1().type().value != dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg) {
     get_log()->warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside\n");
-    return false;
+    trigger(ho_cancel_ev{});
+    return;
   }
   asn1::rrc::rrc_conn_recfg_s& reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
   if (not reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info_present) {
     get_log()->warning("HandoverCommand is expected to have mobility control subfield\n");
-    return false;
+    trigger(ho_cancel_ev{});
+    return;
   }
 
   /* Send HO Command to UE */
   if (not parent_fsm()->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
-    return false;
+    trigger(ho_cancel_ev{});
+    return;
   }
-
-  return true;
 }
 
 //! Called in Source ENB during S1-Handover when there was a Reestablishment Request
-void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(wait_ho_req_ack_st& s, const ho_cancel_ev& ev)
-{
-  parent_fsm()->rrc_enb->s1ap->send_ho_cancel(parent_fsm()->rrc_ue->rnti);
-}
-
-//! Called in Source ENB during S1-Handover when there was a Reestablishment Request
-void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(status_transfer_st& s, const ho_cancel_ev& ev)
+void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev& ev)
 {
   parent_fsm()->rrc_enb->s1ap->send_ho_cancel(parent_fsm()->rrc_ue->rnti);
 }

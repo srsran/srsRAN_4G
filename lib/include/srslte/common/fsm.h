@@ -246,8 +246,10 @@ struct apply_first_guard_pass<FSM, type_list<> > {
   template <typename SrcState, typename Event>
   static bool trigger(FSM* f, SrcState& s, const Event& ev)
   {
-    otherfsmDebug(
-        static_cast<typename FSM::derived_t*>(f), "unhandled event caught: \"%s\"\n", get_type_name<Event>().c_str());
+    otherfsmDebug(static_cast<typename FSM::derived_t*>(f),
+                  "unhandled event caught in state \"%s\": \"%s\"\n",
+                  get_type_name<SrcState>().c_str(),
+                  get_type_name<Event>().c_str());
     return false;
   }
 };
@@ -348,16 +350,23 @@ public:
             bool (Derived::*GuardFn)(SrcState&, const Event&) = nullptr>
   using upd = row<SrcState, SrcState, Event, ReactFn, GuardFn>;
 
-  template <typename DestState, typename Event, bool (Derived::*GuardFn)(const Event&) = nullptr>
+  template <typename DestState,
+            typename Event,
+            void (Derived::*ReactFn)(const Event&) = nullptr,
+            bool (Derived::*GuardFn)(const Event&) = nullptr>
   struct to_state {
     using dest_state_t                                       = DestState;
     using event_t                                            = Event;
+    constexpr static void (Derived::*react_fn)(const Event&) = ReactFn;
     constexpr static bool (Derived::*guard_fn)(const Event&) = GuardFn;
 
     template <typename SrcState>
     static bool react(derived_view* f, SrcState& s, const event_t& ev)
     {
       if (guard_fn == nullptr or (f->*guard_fn)(ev)) {
+        if (react_fn != nullptr) {
+          (f->*react_fn)(ev);
+        }
         return true;
       }
       return false;
