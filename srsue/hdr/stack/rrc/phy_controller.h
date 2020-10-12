@@ -49,7 +49,9 @@ public:
     phy_cell_t phy_cell;
   };
   struct cell_search_cmd {};
-  struct in_sync_ev {};
+  struct in_sync_ev {
+    static const bool log_verbose = false;
+  };
   struct out_sync_ev {};
 
   explicit phy_controller(phy_interface_rrc_lte*                        phy_,

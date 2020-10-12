@@ -64,6 +64,17 @@ struct is_composite_fsm<T, typename std::enable_if<is_fsm<T>::value>::type> {
 
 namespace fsm_details {
 
+/// check whether to log unhandled event
+template <typename Event>
+auto should_log_unhandled_event(const Event* ev) -> decltype(Event::log_verbose)
+{
+  return Event::log_verbose;
+}
+inline bool should_log_unhandled_event(...)
+{
+  return true;
+}
+
 //! Meta-function to filter transition_list<Rows...> by <Event, SrcState> types
 template <class Event, class SrcState, class...>
 struct filter_transition_type;
@@ -246,10 +257,12 @@ struct apply_first_guard_pass<FSM, type_list<> > {
   template <typename SrcState, typename Event>
   static bool trigger(FSM* f, SrcState& s, const Event& ev)
   {
-    otherfsmDebug(static_cast<typename FSM::derived_t*>(f),
-                  "unhandled event caught in state \"%s\": \"%s\"\n",
-                  get_type_name<SrcState>().c_str(),
-                  get_type_name<Event>().c_str());
+    if (should_log_unhandled_event(&ev)) {
+      otherfsmDebug(static_cast<typename FSM::derived_t*>(f),
+                    "unhandled event caught in state \"%s\": \"%s\"\n",
+                    get_type_name<SrcState>().c_str(),
+                    get_type_name<Event>().c_str());
+    }
     return false;
   }
 };
