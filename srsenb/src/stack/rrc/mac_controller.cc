@@ -27,6 +27,35 @@ namespace srsenb {
 
 using namespace asn1::rrc;
 
+// TS 36.331 9.1.1.2 - CCCH configuration
+sched_interface::ue_bearer_cfg_t get_bearer_default_ccch_config()
+{
+  sched_interface::ue_bearer_cfg_t bearer = {};
+  bearer.priority                         = 1;
+  bearer.pbr                              = -1;
+  bearer.bsd                              = -1;
+  bearer.group                            = 0;
+  return bearer;
+}
+
+// TS 36.331 9.2.1.1 - SRB1
+sched_interface::ue_bearer_cfg_t get_bearer_default_srb1_config()
+{
+  return get_bearer_default_ccch_config();
+}
+
+// TS 36.331 9.2.1.2 - SRB2
+sched_interface::ue_bearer_cfg_t get_bearer_default_srb2_config()
+{
+  sched_interface::ue_bearer_cfg_t bearer = get_bearer_default_srb1_config();
+  bearer.priority                         = 3;
+  return bearer;
+}
+
+/***************************
+ *  MAC Controller class
+ **************************/
+
 rrc::ue::mac_controller::mac_controller(rrc::ue* rrc_ue_, const sched_interface::ue_cfg_t& sched_ue_cfg) :
   log_h("RRC"),
   rrc_ue(rrc_ue_),
@@ -202,24 +231,55 @@ void rrc::ue::mac_controller::handle_con_reconf_with_mobility()
 
 void rrc::ue::mac_controller::apply_current_bearers_cfg()
 {
-  srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
-  current_sched_ue_cfg.ue_bearers                     = {};
-  current_sched_ue_cfg.ue_bearers[0].direction        = sched_interface::ue_bearer_cfg_t::BOTH;
+  current_sched_ue_cfg.ue_bearers              = {};
+  current_sched_ue_cfg.ue_bearers[0].direction = sched_interface::ue_bearer_cfg_t::BOTH;
 
   // Configure SRBs
   const srb_to_add_mod_list_l& srbs = rrc_ue->bearer_list.get_established_srbs();
   for (const srb_to_add_mod_s& srb : srbs) {
-    bearer_cfg.direction                        = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    bearer_cfg.group                            = 0;
-    current_sched_ue_cfg.ue_bearers[srb.srb_id] = bearer_cfg;
+    auto& bcfg = current_sched_ue_cfg.ue_bearers[srb.srb_id];
+    switch (srb.srb_id) {
+      case 0:
+        bcfg = get_bearer_default_ccch_config();
+        break;
+      case 1:
+        bcfg = get_bearer_default_srb1_config();
+        break;
+      case 2:
+        bcfg = get_bearer_default_srb2_config();
+        break;
+      default:
+        bcfg = {};
+    }
+    bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    if (srb.lc_ch_cfg_present and
+        srb.lc_ch_cfg.type().value == srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::explicit_value and
+        srb.lc_ch_cfg.explicit_value().ul_specific_params_present) {
+      // NOTE: Use UL values for DL prioritization as well
+      auto& ul_params = srb.lc_ch_cfg.explicit_value().ul_specific_params;
+      bcfg.pbr        = ul_params.prioritised_bit_rate.to_number();
+      bcfg.priority   = ul_params.prio;
+      bcfg.bsd        = ul_params.bucket_size_dur.to_number();
+      if (ul_params.lc_ch_group_present) {
+        bcfg.group = ul_params.lc_ch_group;
+      }
+    }
   }
 
   // Configure DRBs
   const drb_to_add_mod_list_l& drbs = rrc_ue->bearer_list.get_established_drbs();
   for (const drb_to_add_mod_s& drb : drbs) {
-    bearer_cfg.direction                          = sched_interface::ue_bearer_cfg_t::BOTH;
-    bearer_cfg.group                              = drb.lc_ch_cfg.ul_specific_params.lc_ch_group;
-    current_sched_ue_cfg.ue_bearers[drb.lc_ch_id] = bearer_cfg;
+    auto& bcfg     = current_sched_ue_cfg.ue_bearers[drb.lc_ch_id];
+    bcfg           = {};
+    bcfg.direction = sched_interface::ue_bearer_cfg_t::BOTH;
+    bcfg.group     = 1;
+    bcfg.priority  = 4;
+    if (drb.lc_ch_cfg_present and drb.lc_ch_cfg.ul_specific_params_present) {
+      bcfg.group    = drb.lc_ch_cfg.ul_specific_params.lc_ch_group;
+      bcfg.pbr      = drb.lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
+      bcfg.priority = drb.lc_ch_cfg.ul_specific_params.prio;
+      bcfg.bsd      = drb.lc_ch_cfg.ul_specific_params.bucket_size_dur;
+    }
   }
 }
 

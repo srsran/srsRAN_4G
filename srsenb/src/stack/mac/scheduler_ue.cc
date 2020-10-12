@@ -136,10 +136,10 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 
     if (ue_idx >= prev_supported_cc_list.size()) {
       // New carrier needs to be added
-      carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx, last_tti);
+      carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti);
     } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
       // One carrier was added in the place of another
-      carriers[ue_idx] = cc_sched_ue{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx, last_tti};
+      carriers[ue_idx] = cc_sched_ue{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti};
       if (ue_idx == 0) {
         log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cc_cfg.enb_cc_idx);
       }
@@ -170,6 +170,13 @@ void sched_ue::reset()
   for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
     lch_handler.config_lcid(i, {});
   }
+}
+
+void sched_ue::new_tti(srslte::tti_point new_tti)
+{
+  current_tti = new_tti;
+
+  lch_handler.new_tti();
 }
 
 /*******************************************************
@@ -241,12 +248,12 @@ void sched_ue::unset_sr()
   sr = false;
 }
 
-bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
+bool sched_ue::pucch_sr_collision(uint32_t tti, uint32_t n_cce)
 {
   if (!phy_config_dedicated_enabled) {
     return false;
   }
-  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, current_tti)) {
+  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, tti)) {
     return (n_cce + cfg.pucch_cfg.N_pucch_1) == cfg.pucch_cfg.n_pucch_sr;
   }
   return false;
@@ -1110,12 +1117,11 @@ uint32_t sched_ue::get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits)
 
 void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
 {
-  last_tti       = tti_point{tti_params.tti_rx};
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
 
   if (c != nullptr) {
     // Check that scell state needs to change
-    c->finish_tti(last_tti);
+    c->finish_tti(current_tti);
   }
 }
 
@@ -1481,6 +1487,18 @@ void lch_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
   }
 }
 
+void lch_manager::new_tti()
+{
+  prio_idx++;
+  for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; ++lcid) {
+    if (is_bearer_active(lcid)) {
+      if (lch[lcid].cfg.pbr != pbr_infinity) {
+        lch[lcid].Bj = std::min(lch[lcid].Bj + (int)(lch[lcid].cfg.pbr * tti_duration_ms), lch[lcid].bucket_size);
+      }
+    }
+  }
+}
+
 void lch_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg)
 {
   if (lc_id >= sched_interface::MAX_LC) {
@@ -1497,6 +1515,13 @@ void lch_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_c
 
   if (not is_equal) {
     lch[lc_id].cfg = bearer_cfg;
+    if (lch[lc_id].cfg.pbr == pbr_infinity) {
+      lch[lc_id].bucket_size = std::numeric_limits<int>::max();
+      lch[lc_id].Bj          = std::numeric_limits<int>::max();
+    } else {
+      lch[lc_id].bucket_size = lch[lc_id].cfg.bsd * lch[lc_id].cfg.pbr;
+      lch[lc_id].Bj          = 0;
+    }
     Info("SCHED: bearer configured: lc_id=%d, mode=%s, prio=%d\n",
          lc_id,
          to_string(lch[lc_id].cfg.direction),
@@ -1535,21 +1560,65 @@ void lch_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx
   Debug("SCHED: DL lcid=%d buffer_state=%d,%d\n", lcid, tx_queue, retx_queue);
 }
 
-/* Allocates first available RLC PDU */
-int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
+int lch_manager::get_max_prio_lcid() const
 {
-  // TODO: Implement lcid priority (now lowest index is lowest priority)
-  int alloc_bytes = 0;
-  int i           = 0;
-  for (i = 0; i < sched_interface::MAX_LC and alloc_bytes == 0; i++) {
-    alloc_bytes = alloc_retx_bytes(i, rem_bytes);
-    if (alloc_bytes == 0) {
-      alloc_bytes = alloc_tx_bytes(i, rem_bytes);
+  int min_prio_val = std::numeric_limits<int>::max(), prio_lcid = -1;
+  for (uint32_t lcid = 0; lcid < MAX_LC; ++lcid) {
+    if (get_dl_tx_total(lcid) > 0 and lch[lcid].Bj > 0 and lch[lcid].cfg.priority < min_prio_val) {
+      min_prio_val = lch[lcid].cfg.priority;
+      prio_lcid    = lcid;
     }
   }
+
+  if (prio_lcid < 0) {
+    // disregard Bj value in selection of lcid
+    size_t                       nof_lcids    = 0;
+    std::array<uint32_t, MAX_LC> chosen_lcids = {};
+    for (uint32_t lcid = 0; lcid < MAX_LC; ++lcid) {
+      if (get_dl_tx_total(lcid) > 0) {
+        if (lch[lcid].cfg.priority < min_prio_val) {
+          min_prio_val    = lch[lcid].cfg.priority;
+          chosen_lcids[0] = lcid;
+          nof_lcids       = 1;
+        } else if (lch[lcid].cfg.priority == min_prio_val) {
+          chosen_lcids[nof_lcids++] = lcid;
+        }
+      }
+    }
+    // logical chanels with equal priority should be served equally
+    if (nof_lcids > 0) {
+      prio_lcid = chosen_lcids[prio_idx % nof_lcids];
+    }
+  }
+
+  return prio_lcid;
+}
+
+/// Allocates first available RLC PDU
+int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
+{
+  int alloc_bytes = 0;
+  int lcid        = get_max_prio_lcid();
+  if (lcid < 0) {
+    return alloc_bytes;
+  }
+
+  // try first to allocate retxs
+  alloc_bytes = alloc_retx_bytes(lcid, rem_bytes);
+
+  // if no retx alloc, try newtx
+  if (alloc_bytes == 0) {
+    alloc_bytes = alloc_tx_bytes(lcid, rem_bytes);
+  }
+
   if (alloc_bytes > 0) {
+    // Update Bj
+    if (lch[lcid].cfg.pbr != pbr_infinity) {
+      lch[lcid].Bj -= alloc_bytes;
+    }
+
     rlc_pdu->nbytes = alloc_bytes;
-    rlc_pdu->lcid   = i - 1;
+    rlc_pdu->lcid   = lcid;
     Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", rlc_pdu->lcid, rlc_pdu->nbytes, rem_bytes);
   }
   return alloc_bytes;

@@ -432,6 +432,12 @@ void sched::new_tti(tti_point tti_rx)
   // Generate sched results for all CCs, if not yet generated
   for (size_t cc_idx = 0; cc_idx < carrier_schedulers.size(); ++cc_idx) {
     if (not is_generated(tti_rx, cc_idx)) {
+      // Setup tti-specific vars of the UE
+      for (auto& user : ue_db) {
+        user.second.new_tti(tti_rx);
+      }
+
+      // Generate carrier scheduling result
       carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
     }
   }

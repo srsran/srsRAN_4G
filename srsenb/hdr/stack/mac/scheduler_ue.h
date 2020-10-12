@@ -99,8 +99,13 @@ const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
 
 class lch_manager
 {
+  constexpr static uint32_t pbr_infinity = -1;
+  constexpr static uint32_t MAX_LC       = sched_interface::MAX_LC;
+
 public:
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
+  void new_tti();
+
   void config_lcid(uint32_t lcg_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void ul_bsr(uint8_t lcg_id, uint32_t bsr);
   void ul_buffer_add(uint8_t lcid, uint32_t bytes);
@@ -112,22 +117,27 @@ public:
   bool is_bearer_ul(uint32_t lcid) const;
   bool is_bearer_dl(uint32_t lcid) const;
 
+  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
   int get_dl_tx(uint32_t lcid) const;
   int get_dl_retx(uint32_t lcid) const;
   int get_bsr(uint32_t lcid) const;
+  int get_max_prio_lcid() const;
 
   std::string get_bsr_text() const;
 
 private:
   struct ue_bearer_t {
-    sched_interface::ue_bearer_cfg_t cfg      = {};
-    int                              buf_tx   = 0;
-    int                              buf_retx = 0;
+    sched_interface::ue_bearer_cfg_t cfg         = {};
+    int                              bucket_size = 0;
+    int                              buf_tx      = 0;
+    int                              buf_retx    = 0;
+    int                              Bj          = 0;
   };
 
   int alloc_retx_bytes(uint8_t lcid, uint32_t rem_bytes);
   int alloc_tx_bytes(uint8_t lcid, uint32_t rem_bytes);
 
+  size_t                                           prio_idx = 0;
   srslte::log_ref                                  log_h{"MAC"};
   std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
   std::array<int, 4>                               lcg_bsr = {};
@@ -139,15 +149,17 @@ private:
 class sched_ue
 {
 public:
+  sched_ue();
+  void reset();
+  void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
+  void new_tti(srslte::tti_point new_tti);
+
   /*************************************************************
    *
    * FAPI-like Interface
    *
    ************************************************************/
-  sched_ue();
-  void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
-  void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
   void set_cfg(const sched_interface::ue_cfg_t& cfg);
 
   void set_bearer_cfg(uint32_t lc_id, srsenb::sched_interface::ue_bearer_cfg_t* cfg);
@@ -231,7 +243,7 @@ public:
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
   uint32_t get_max_retx();
 
-  bool pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
+  bool pucch_sr_collision(uint32_t tti, uint32_t n_cce);
 
 private:
   bool is_sr_triggered();
@@ -298,7 +310,7 @@ private:
 
   bool phy_config_dedicated_enabled = false;
 
-  srslte::tti_point        last_tti;
+  srslte::tti_point        current_tti;
   std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
 
   // Control Element Command queue
