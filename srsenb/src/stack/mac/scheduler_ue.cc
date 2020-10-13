@@ -1626,11 +1626,6 @@ int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem
   }
 
   if (alloc_bytes > 0) {
-    // Update Bj
-    if (lch[lcid].cfg.pbr != pbr_infinity) {
-      lch[lcid].Bj -= alloc_bytes;
-    }
-
     rlc_pdu->nbytes = alloc_bytes;
     rlc_pdu->lcid   = lcid;
     Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", rlc_pdu->lcid, rlc_pdu->nbytes, rem_bytes);
@@ -1649,6 +1644,10 @@ int lch_manager::alloc_tx_bytes(uint8_t lcid, uint32_t rem_bytes)
 {
   int alloc = std::min((int)rem_bytes, get_dl_tx(lcid));
   lch[lcid].buf_tx -= alloc;
+  if (alloc > 0 and lch[lcid].cfg.pbr != pbr_infinity) {
+    // Update Bj
+    lch[lcid].Bj -= alloc;
+  }
   return alloc;
 }
 

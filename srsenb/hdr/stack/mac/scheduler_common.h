@@ -32,7 +32,7 @@ namespace srsenb {
  *     Constants
  **********************/
 
-constexpr uint32_t tti_duration_ms = 1000;
+constexpr float tti_duration_ms = 1;
 
 /***********************
  *   Helper Types
