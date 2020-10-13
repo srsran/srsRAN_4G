@@ -56,3 +56,6 @@ target_link_libraries(scheduler_ca_test srsenb_mac
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
 add_test(scheduler_ca_test scheduler_ca_test)
+
+add_executable(sched_lc_ch_test sched_lc_ch_test.cc scheduler_test_common.cc)
+target_link_libraries(sched_lc_ch_test srsenb_mac srslte_common srslte_mac scheduler_test_common)

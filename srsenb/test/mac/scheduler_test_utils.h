@@ -116,7 +116,7 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
 
 inline srsenb::sched_interface::ue_cfg_t generate_reconf_ue_cfg(const srsenb::sched_interface::ue_cfg_t& final_cfg)
 {
-  srsenb::sched_interface::ue_cfg_t cfg = final_cfg;
+  srsenb::sched_interface::ue_cfg_t cfg = generate_setup_ue_cfg(final_cfg);
 
   cfg.supported_cc_list.resize(1);
   cfg.ue_bearers                     = {};

@@ -1563,32 +1563,46 @@ void lch_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx
 int lch_manager::get_max_prio_lcid() const
 {
   int min_prio_val = std::numeric_limits<int>::max(), prio_lcid = -1;
+
+  // Prioritize retxs
   for (uint32_t lcid = 0; lcid < MAX_LC; ++lcid) {
-    if (get_dl_tx_total(lcid) > 0 and lch[lcid].Bj > 0 and lch[lcid].cfg.priority < min_prio_val) {
+    if (get_dl_retx(lcid) > 0 and lch[lcid].cfg.priority < min_prio_val) {
       min_prio_val = lch[lcid].cfg.priority;
       prio_lcid    = lcid;
     }
   }
+  if (prio_lcid >= 0) {
+    return prio_lcid;
+  }
 
-  if (prio_lcid < 0) {
-    // disregard Bj value in selection of lcid
-    size_t                       nof_lcids    = 0;
-    std::array<uint32_t, MAX_LC> chosen_lcids = {};
-    for (uint32_t lcid = 0; lcid < MAX_LC; ++lcid) {
-      if (get_dl_tx_total(lcid) > 0) {
-        if (lch[lcid].cfg.priority < min_prio_val) {
-          min_prio_val    = lch[lcid].cfg.priority;
-          chosen_lcids[0] = lcid;
-          nof_lcids       = 1;
-        } else if (lch[lcid].cfg.priority == min_prio_val) {
-          chosen_lcids[nof_lcids++] = lcid;
-        }
+  // Select lcid with new txs using Bj
+  for (uint32_t lcid = 0; lcid < MAX_LC; ++lcid) {
+    if (get_dl_tx(lcid) > 0 and lch[lcid].Bj > 0 and lch[lcid].cfg.priority < min_prio_val) {
+      min_prio_val = lch[lcid].cfg.priority;
+      prio_lcid    = lcid;
+    }
+  }
+  if (prio_lcid >= 0) {
+    return prio_lcid;
+  }
+
+  // Disregard Bj
+  size_t                       nof_lcids    = 0;
+  std::array<uint32_t, MAX_LC> chosen_lcids = {};
+  for (uint32_t lcid = 0; lcid < MAX_LC; ++lcid) {
+    if (get_dl_tx_total(lcid) > 0) {
+      if (lch[lcid].cfg.priority < min_prio_val) {
+        min_prio_val    = lch[lcid].cfg.priority;
+        chosen_lcids[0] = lcid;
+        nof_lcids       = 1;
+      } else if (lch[lcid].cfg.priority == min_prio_val) {
+        chosen_lcids[nof_lcids++] = lcid;
       }
     }
-    // logical chanels with equal priority should be served equally
-    if (nof_lcids > 0) {
-      prio_lcid = chosen_lcids[prio_idx % nof_lcids];
-    }
+  }
+  // logical chanels with equal priority should be served equally
+  if (nof_lcids > 0) {
+    prio_lcid = chosen_lcids[prio_idx % nof_lcids];
   }
 
   return prio_lcid;
