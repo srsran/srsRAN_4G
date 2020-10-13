@@ -255,6 +255,8 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
       timer_periodic.run();
       Debug("BSR:   Started periodicBSR-Timer\n");
     }
+    // reset trigger to avoid another BSR in the next UL grant
+    triggered_bsr_type = NONE;
   }
 
   return send_bsr;
