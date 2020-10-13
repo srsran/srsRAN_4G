@@ -150,7 +150,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     /* Downlink Channel emulator section */
     ("channel.dl.enable",            bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false),               "Enable/Disable internal Downlink channel emulator")
     ("channel.dl.awgn.enable",       bpo::value<bool>(&args->phy.dl_channel_args.awgn_enable)->default_value(false),          "Enable/Disable AWGN simulator")
-    ("channel.dl.awgn.snr",          bpo::value<float>(&args->phy.dl_channel_args.awgn_snr_dB)->default_value(30.0f),         "Noise level in decibels full scale (dBfs)")
+    ("channel.dl.awgn.snr",          bpo::value<float>(&args->phy.dl_channel_args.awgn_snr_dB)->default_value(30.0f),         "Target SNR in dB")
     ("channel.dl.fading.enable",     bpo::value<bool>(&args->phy.dl_channel_args.fading_enable)->default_value(false),        "Enable/Disable Fading model")
     ("channel.dl.fading.model",      bpo::value<string>(&args->phy.dl_channel_args.fading_model)->default_value("none"),      "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
     ("channel.dl.delay.enable",      bpo::value<bool>(&args->phy.dl_channel_args.delay_enable)->default_value(false),         "Enable/Disable Delay simulator")
