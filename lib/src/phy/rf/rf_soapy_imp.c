@@ -286,7 +286,10 @@ float rf_soapy_get_rssi(void* h)
 int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
 {
   size_t          length;
-  SoapySDRKwargs* soapy_args = SoapySDRDevice_enumerateStrArgs(args, &length);
+
+  // Let Soapy pick the device if no arguments are passed
+  SoapySDRKwargs* soapy_args =
+      args == NULL ? SoapySDRDevice_enumerate(NULL, &length) : SoapySDRDevice_enumerateStrArgs(args, &length);
 
   if (length == 0) {
     printf("No Soapy devices found.\n");
