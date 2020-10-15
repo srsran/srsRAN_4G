@@ -240,6 +240,38 @@ int test_correct_meascfg_calculation()
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep3);
   }
 
+  {
+    // TEST: creation of a var_meas_cfg using the srsenb::rrc_cfg_t
+    rrc_cfg_t cfg;
+    cfg.enb_id           = 0x19B;
+    cfg.meas_cfg_present = true;
+    cfg.cell_list.resize(2);
+    cfg.cell_list[0].dl_earfcn = 2850;
+    cfg.cell_list[0].cell_id   = 0x01;
+    cfg.cell_list[0].scell_list.resize(1);
+    cfg.cell_list[0].scell_list[0].cell_id = 0x02;
+    cfg.cell_list[1].dl_earfcn             = 3400;
+    cfg.cell_list[1].cell_id               = 0x02;
+    cfg.sibs[1].set_sib2();
+
+    // TEST: correct construction of list of cells
+    cell_info_common_list cell_list{cfg};
+    TESTASSERT(cell_list.nof_cells() == 2);
+    TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
+    TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
+    TESTASSERT(cell_list.get_cc_idx(1)->scells.empty());
+
+    // measConfig only includes earfcns of active carriers for a given pcell
+    var_meas_cfg_t var_meas = var_meas_cfg_t::make(cfg, *cell_list.get_cc_idx(0));
+    TESTASSERT(var_meas.meas_objs().size() == 2);
+    TESTASSERT(var_meas.meas_objs()[0].meas_obj.meas_obj_eutra().carrier_freq == 2850);
+    TESTASSERT(var_meas.meas_objs()[1].meas_obj.meas_obj_eutra().carrier_freq == 3400);
+
+    var_meas_cfg_t var_meas2 = var_meas_cfg_t::make(cfg, *cell_list.get_cc_idx(1));
+    TESTASSERT(var_meas2.meas_objs().size() == 1);
+    TESTASSERT(var_meas2.meas_objs()[0].meas_obj.meas_obj_eutra().carrier_freq == 3400);
+  }
+
   return SRSLTE_SUCCESS;
 }
 

@@ -52,29 +52,44 @@ cell_info_common_list::cell_info_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
   // Store the SIB cfg of each carrier
   for (uint32_t ccidx = 0; ccidx < cfg.cell_list.size(); ++ccidx) {
     cell_list.emplace_back(std::unique_ptr<cell_info_common>{new cell_info_common{ccidx, cfg.cell_list[ccidx]}});
-    cell_info_common* cell_ctxt = cell_list.back().get();
+    cell_info_common* new_cell = cell_list.back().get();
 
     // Set Cell MIB
-    asn1::number_to_enum(cell_ctxt->mib.dl_bw, cfg.cell.nof_prb);
-    cell_ctxt->mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
-    cell_ctxt->mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
+    asn1::number_to_enum(new_cell->mib.dl_bw, cfg.cell.nof_prb);
+    new_cell->mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
+    new_cell->mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
 
     // Set Cell SIB1
-    cell_ctxt->sib1 = cfg.sib1;
+    new_cell->sib1 = cfg.sib1;
     // Update cellId
-    sib_type1_s::cell_access_related_info_s_* cell_access = &cell_ctxt->sib1.cell_access_related_info;
-    cell_access->cell_id.from_number((cfg.enb_id << 8u) + cell_ctxt->cell_cfg.cell_id);
-    cell_access->tac.from_number(cell_ctxt->cell_cfg.tac);
+    sib_type1_s::cell_access_related_info_s_* cell_access = &new_cell->sib1.cell_access_related_info;
+    cell_access->cell_id.from_number((cfg.enb_id << 8u) + new_cell->cell_cfg.cell_id);
+    cell_access->tac.from_number(new_cell->cell_cfg.tac);
     // Update DL EARFCN
-    cell_ctxt->sib1.freq_band_ind = (uint8_t)srslte_band_get_band(cell_ctxt->cell_cfg.dl_earfcn);
+    new_cell->sib1.freq_band_ind = (uint8_t)srslte_band_get_band(new_cell->cell_cfg.dl_earfcn);
 
     // Set Cell SIB2
     // update PRACH root seq index for this cell
-    cell_ctxt->sib2                                      = cfg.sibs[1].sib2();
-    cell_ctxt->sib2.rr_cfg_common.prach_cfg.root_seq_idx = cell_ctxt->cell_cfg.root_seq_idx;
+    new_cell->sib2                                      = cfg.sibs[1].sib2();
+    new_cell->sib2.rr_cfg_common.prach_cfg.root_seq_idx = new_cell->cell_cfg.root_seq_idx;
     // update carrier freq
-    if (cell_ctxt->sib2.freq_info.ul_carrier_freq_present) {
-      cell_ctxt->sib2.freq_info.ul_carrier_freq = cell_ctxt->cell_cfg.ul_earfcn;
+    if (new_cell->sib2.freq_info.ul_carrier_freq_present) {
+      new_cell->sib2.freq_info.ul_carrier_freq = new_cell->cell_cfg.ul_earfcn;
+    }
+  }
+
+  // Once all Cells are added to the list, fill the scell list of each cell for convenient access
+  for (uint32_t i = 0; i < cell_list.size(); ++i) {
+    auto& c = cell_list[i];
+    c->scells.resize(cfg.cell_list[i].scell_list.size());
+    for (uint32_t j = 0; j < c->scells.size(); ++j) {
+      uint32_t cell_id = cfg.cell_list[i].scell_list[j].cell_id;
+      auto it = std::find_if(cell_list.begin(), cell_list.end(), [cell_id](const std::unique_ptr<cell_info_common>& e) {
+        return e->cell_cfg.cell_id == cell_id;
+      });
+      if (it != cell_list.end()) {
+        c->scells[j] = it->get();
+      }
     }
   }
 }
@@ -107,18 +122,14 @@ std::vector<const cell_info_common*> get_cfg_intraenb_scells(const cell_info_com
   return cells;
 }
 
-std::vector<uint32_t> get_cfg_intraenb_measobj_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx)
+std::vector<uint32_t> get_measobj_earfcns(const cell_info_common& pcell)
 {
-  std::vector<const cell_info_common*> scells = get_cfg_intraenb_scells(list, pcell_enb_cc_idx);
-  const cell_info_common*              pcell  = list.get_cc_idx(pcell_enb_cc_idx);
-  std::vector<uint32_t>                earfcns{};
-  earfcns.reserve(1 + scells.size() + pcell->cell_cfg.meas_cfg.meas_cells.size());
-  earfcns.push_back(pcell->cell_cfg.dl_earfcn);
-  for (auto& scell : scells) {
+  // Make a list made of EARFCNs of the PCell and respective SCells (according to conf file)
+  std::vector<uint32_t> earfcns{};
+  earfcns.reserve(1 + pcell.scells.size());
+  earfcns.push_back(pcell.cell_cfg.dl_earfcn);
+  for (auto& scell : pcell.scells) {
     earfcns.push_back(scell->cell_cfg.dl_earfcn);
-  }
-  for (auto meas_cell : pcell->cell_cfg.meas_cfg.meas_cells) {
-    earfcns.push_back(meas_cell.earfcn);
   }
   // sort by earfcn
   std::sort(earfcns.begin(), earfcns.end());

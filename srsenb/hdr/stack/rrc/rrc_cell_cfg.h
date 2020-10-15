@@ -62,6 +62,7 @@ struct cell_info_common {
   asn1::rrc::sib_type2_s                    sib2;
   const cell_cfg_t&                         cell_cfg;
   std::vector<srslte::unique_byte_buffer_t> sib_buffer; ///< Packed SIBs for given CC
+  std::vector<const cell_info_common*>      scells;
 
   cell_info_common(uint32_t idx_, const cell_cfg_t& cfg) : enb_cc_idx(idx_), cell_cfg(cfg) {}
 };
@@ -85,7 +86,7 @@ private:
 // Helper methods
 std::vector<const cell_info_common*> get_cfg_intraenb_scells(const cell_info_common_list& list,
                                                              uint32_t                     pcell_enb_cc_idx);
-std::vector<uint32_t> get_cfg_intraenb_measobj_earfcns(const cell_info_common_list& list, uint32_t pcell_enb_cc_idx);
+std::vector<uint32_t>                get_measobj_earfcns(const cell_info_common& pcell);
 
 /** Class used to store all the resources specific to a UE's cell */
 struct cell_ctxt_dedicated {

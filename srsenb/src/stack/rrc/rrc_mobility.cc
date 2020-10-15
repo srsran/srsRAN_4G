@@ -237,9 +237,11 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
         inserted_flag = false;
       }
     } else {
+      auto& eutra_obj = ret.first->meas_obj.meas_obj_eutra();
       // pci not found. create new cell
-      new_cell.cell_idx = srslte::find_rrc_obj_id_gap(ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list);
-      ret.second        = srslte::add_rrc_obj(ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list, new_cell);
+      new_cell.cell_idx                       = srslte::find_rrc_obj_id_gap(eutra_obj.cells_to_add_mod_list);
+      ret.second                              = srslte::add_rrc_obj(eutra_obj.cells_to_add_mod_list, new_cell);
+      eutra_obj.cells_to_add_mod_list_present = true;
     }
   } else {
     // no measobj has been found with same earfcn, create a new one
@@ -453,8 +455,11 @@ var_meas_cfg_t var_meas_cfg_t::make(const asn1::rrc::meas_cfg_s& meas_cfg)
   return var;
 }
 
-var_meas_cfg_t var_meas_cfg_t::make(const std::vector<uint32_t>& active_earfcns, const rrc_cfg_t& cfg)
+var_meas_cfg_t var_meas_cfg_t::make(const rrc_cfg_t& cfg, const cell_info_common& pcell)
 {
+  // The measConfig contains measObjs for the PCell DL-EARFCN and activated UE carriers
+  auto active_earfcns = get_measobj_earfcns(pcell);
+
   var_meas_cfg_t var_meas;
   if (not cfg.meas_cfg_present) {
     return var_meas;
@@ -466,9 +471,9 @@ var_meas_cfg_t var_meas_cfg_t::make(const std::vector<uint32_t>& active_earfcns,
   }
 
   for (const auto& cell_cfg : cfg.cell_list) {
-    // inserts all neighbor cells
+    // inserts all neighbor cells and pcell, if q_offset > 0
     for (const meas_cell_cfg_t& meascell : cell_cfg.meas_cfg.meas_cells) {
-      if (meascell.q_offset > 0) {
+      if (meascell.pci != pcell.cell_cfg.pci or meascell.earfcn != pcell.cell_cfg.dl_earfcn or meascell.q_offset > 0) {
         var_meas.add_cell_cfg(meascell);
       }
     }
@@ -577,8 +582,7 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
   // Check if there has been any update in ue_var_meas based on UE current cell list
   cell_ctxt_dedicated* pcell      = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   uint32_t             src_earfcn = pcell->get_dl_earfcn();
-  auto target_earfcns = get_cfg_intraenb_measobj_earfcns(*rrc_enb->cell_common_list, pcell->cell_common->enb_cc_idx);
-  conn_recfg->meas_cfg_present = update_ue_var_meas_cfg(src_earfcn, target_earfcns, &conn_recfg->meas_cfg);
+  conn_recfg->meas_cfg_present    = update_ue_var_meas_cfg(src_earfcn, *pcell->cell_common, &conn_recfg->meas_cfg);
   return conn_recfg->meas_cfg_present;
 }
 
@@ -803,13 +807,13 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
   return is_in_state<s1_target_ho_st>();
 }
 
-bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(uint32_t               src_earfcn,
-                                                   std::vector<uint32_t>  target_earfcns,
-                                                   asn1::rrc::meas_cfg_s* diff_meas_cfg)
+bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(uint32_t                src_earfcn,
+                                                   const cell_info_common& target_pcell,
+                                                   asn1::rrc::meas_cfg_s*  diff_meas_cfg)
 {
   // Make UE Target VarMeasCfg based on active cells and parsed Config files
-  var_meas_cfg_t target_var_meas = var_meas_cfg_t::make(target_earfcns, rrc_enb->cfg);
-  uint32_t       target_earfcn   = target_earfcns[0];
+  var_meas_cfg_t target_var_meas = var_meas_cfg_t::make(rrc_enb->cfg, target_pcell);
+  uint32_t       target_earfcn   = target_pcell.cell_cfg.dl_earfcn;
 
   // Apply TS 36.331 5.5.6.1 - If Source and Target eNB EARFCNs do no match, update SourceVarMeasCfg.MeasIdList
   if (target_earfcn != src_earfcn) {
@@ -933,8 +937,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   rrc_ue->apply_reconf_phy_config(recfg_r8, false);
 
   // Add MeasConfig of target cell
-  auto target_earfcns       = get_cfg_intraenb_measobj_earfcns(*rrc_enb->cell_common_list, target_cell.enb_cc_idx);
-  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_earfcns, &recfg_r8.meas_cfg);
+  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_cell, &recfg_r8.meas_cfg);
 
   // Add SCells
   if (rrc_ue->fill_scell_to_addmod_list(&recfg_r8) != SRSLTE_SUCCESS) {
