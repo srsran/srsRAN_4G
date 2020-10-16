@@ -72,9 +72,11 @@ IF(UHD_FOUND)
   check_cxx_source_compiles("#include <uhd.h>
     #include <uhd/device3.hpp>
     #include <uhd/rfnoc/ddc_block_ctrl.hpp>
+    #include <uhd/rfnoc/radio_ctrl.hpp>
 
     static uhd::device3::sptr device3;
     static uhd::rfnoc::ddc_block_ctrl::sptr ddc_ctrl;
+    static uhd::rfnoc::radio_ctrl::sptr radio_ctrl;
 
     uhd_error try_device3_ddc_ctrl()
     {
@@ -82,9 +84,16 @@ IF(UHD_FOUND)
       return UHD_ERROR_NONE;
     }
 
+    uhd_error try_device3_radio_ctrl()
+    {
+      radio_ctrl = device3->get_block_ctrl<uhd::rfnoc::radio_ctrl>(uhd::rfnoc::block_id_t(\"Radio_0\"));
+      return UHD_ERROR_NONE;
+    }
+
     int main(int argc, char** argv)
     {
       try_device3_ddc_ctrl();
+      try_device3_radio_ctrl();
       return 0;
     }" UHD_ENABLE_RFNOC)
 
