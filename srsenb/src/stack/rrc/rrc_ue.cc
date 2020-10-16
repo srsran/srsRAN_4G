@@ -366,6 +366,8 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                                old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
                                old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
       }
+      // Apply PDCP configuration to SRB1
+      apply_pdcp_srb_updates();
 
       // Make sure UE capabilities are copied over to new RNTI
       eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
