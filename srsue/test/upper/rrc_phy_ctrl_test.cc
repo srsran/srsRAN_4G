@@ -61,7 +61,7 @@ struct cell_select_result_test {
 
     // start a new cell selection right away
     if (counter++ < 1) {
-      phy_cell_t new_cell;
+      phy_cell_t new_cell = {};
       new_cell.pci    = 3;
       new_cell.earfcn = 3400;
       phy_ctrl->start_cell_select(new_cell, *this);
