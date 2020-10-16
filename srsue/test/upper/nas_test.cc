@@ -100,8 +100,8 @@ class rrc_dummy : public rrc_interface_nas
 public:
   rrc_dummy() : last_sdu_len(0)
   {
-    plmns.plmn_id.from_number(mcc, mnc);
-    plmns.tac = 0xffff;
+    plmns[0].plmn_id.from_number(mcc, mnc);
+    plmns[0].tac = 0xffff;
   }
   void init(nas* nas_) { nas_ptr = nas_; }
   void write_sdu(unique_byte_buffer_t sdu)
@@ -116,7 +116,7 @@ public:
 
   bool plmn_search()
   {
-    nas_ptr->plmn_search_completed(&plmns, 1);
+    nas_ptr->plmn_search_completed(plmns, 1);
     return true;
   }
   void plmn_select(srslte::plmn_id_t plmn_id){};
@@ -141,7 +141,7 @@ public:
 private:
   nas*         nas_ptr;
   uint32_t     last_sdu_len;
-  found_plmn_t plmns;
+  found_plmn_t plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
   bool         is_connected_flag = false;
 };
 
