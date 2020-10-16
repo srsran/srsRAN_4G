@@ -319,14 +319,13 @@ bool sync::cell_select_start(phy_cell_t new_cell)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
+  bool ret = false;
   if (rrc_proc_state != PROC_SELECT_START) {
     Error("Cell Select: Can't run procedure. Must call cell_select_init() first (%d)\n", (uint32_t)rrc_proc_state);
-    return false;
+    goto clean_exit;
   }
 
   rrc_proc_state = PROC_SELECT_RUNNING;
-
-  bool ret = false;
 
   sfn_p.reset();
   search_p.reset();
@@ -336,7 +335,7 @@ bool sync::cell_select_start(phy_cell_t new_cell)
   cell.id = new_cell.pci;
   if (not set_cell(new_cell.cfo_hz)) {
     Error("Cell Select: Reconfiguring cell\n");
-    return false;
+    goto clean_exit;
   }
 
   /* Select new frequency if necessary */
@@ -346,7 +345,7 @@ bool sync::cell_select_start(phy_cell_t new_cell)
     Info("Cell Select: Setting new frequency EARFCN=%d\n", new_cell.earfcn);
     if (!set_frequency()) {
       Error("Cell Select: Setting new frequency EARFCN=%d\n", new_cell.earfcn);
-      return false;
+      goto clean_exit;
     }
   }
 
@@ -369,8 +368,8 @@ bool sync::cell_select_start(phy_cell_t new_cell)
     Info("Cell Select: Could not synchronize SFN\n");
   }
 
+clean_exit:
   rrc_proc_state = PROC_IDLE;
-
   return ret;
 }
 
@@ -399,7 +398,7 @@ void sync::run_sfn_sync_state()
         log_h->error("Detected cell during SFN synchronization differs from configured cell. Cell reselection to "
                      "cells with different MIB is not supported\n");
         srslte::console("Detected cell during SFN synchronization differs from configured cell. Cell reselection "
-                           "to cells with different MIB is not supported\n");
+                        "to cells with different MIB is not supported\n");
         phy_state.state_exit(false);
       }
       stack->in_sync();
@@ -453,7 +452,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
         log_h->error("Detected cell during SFN synchronization differs from configured cell. Cell "
                      "reselection to cells with different MIB is not supported\n");
         srslte::console("Detected cell during SFN synchronization differs from configured cell. Cell "
-                           "reselection to cells with different MIB is not supported\n");
+                        "reselection to cells with different MIB is not supported\n");
       } else {
         log_h->info("SFN resynchronized successfully\n");
       }
