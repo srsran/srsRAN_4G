@@ -565,8 +565,8 @@ int main(int argc, char** argv)
     INFO("--- Process  UE ---\n");
     gettimeofday(&t[1], NULL);
 
-    srslte_ue_dl_cfg_t ue_dl_cfg;
-    srslte_dci_dl_t    dci_dl[SRSLTE_MAX_DCI_MSG];
+    srslte_ue_dl_cfg_t ue_dl_cfg                  = {};
+    srslte_dci_dl_t    dci_dl[SRSLTE_MAX_DCI_MSG] = {};
 
     ue_dl_cfg.cfg.tm                       = transmission_mode;
     ue_dl_cfg.cfg.pdsch.p_a                = 0.0;
