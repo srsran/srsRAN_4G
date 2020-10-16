@@ -44,13 +44,14 @@ public:
   void handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
   void handle_con_reconf_complete();
 
-  void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s&   ho_prep,
-                      const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
-  void handle_ho_prep_complete();
+  void handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
+  void handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
+  void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
   const sched_interface::ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
 
   void set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask);
+  void set_drb_activation(bool active);
 
   enum proc_stage_t : int8_t { config_tx, config_complete, other };
   void update_mac(proc_stage_t stage);
@@ -59,7 +60,6 @@ private:
   void handle_con_reconf_with_mobility();
   int  apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg);
   void apply_current_bearers_cfg();
-  void apply_phy_cfg_updates_common(const asn1::rrc::phys_cfg_ded_s& phy_cfg);
   void apply_scell_cfg_updates(uint32_t ue_cc_idx);
 
   srslte::log_ref           log_h;

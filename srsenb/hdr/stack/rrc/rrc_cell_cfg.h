@@ -128,6 +128,10 @@ public:
   {
     return (ue_cc_idx < nof_cells()) ? &cell_ded_list[ue_cc_idx] : nullptr;
   }
+  const cell_ctxt_dedicated* get_ue_cc_idx(uint32_t ue_cc_idx) const
+  {
+    return (ue_cc_idx < nof_cells()) ? &cell_ded_list[ue_cc_idx] : nullptr;
+  }
   cell_ctxt_dedicated* get_enb_cc_idx(uint32_t enb_cc_idx);
   size_t               nof_cells() const { return cell_ded_list.size(); }
   bool                 is_allocated() const { return nof_cells() > 0; }

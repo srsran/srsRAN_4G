@@ -1275,7 +1275,7 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       case cc_st::active:
         if (not cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::deactivating;
-          log_h->info("SCHED: rnti=0x%x SCellIndex=%d deactivated\n", rnti, ue_cc_idx);
+          log_h->info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
         }
         break;
       case cc_st::deactivating:
@@ -1284,7 +1284,7 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
           cc_state_ = cc_st::activating;
           dl_cqi_rx = false;
           dl_cqi    = 0;
-          log_h->info("SCHED: rnti=0x%x SCellIndex=%d activated\n", rnti, ue_cc_idx);
+          log_h->info("SCHED: Activating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
         }
         break;
       default:

@@ -1042,6 +1042,10 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st& s, 
     return;
   }
 
+  // Disable DRBs
+  parent_fsm()->rrc_ue->mac_ctrl->set_drb_activation(false);
+  parent_fsm()->rrc_ue->mac_ctrl->update_mac(mac_controller::proc_stage_t::other);
+
   /* Send HO Command to UE */
   if (not parent_fsm()->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
     trigger(ho_cancel_ev{});
@@ -1144,7 +1148,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   rrc_ue->apply_pdcp_srb_updates();
   rrc_ue->apply_rlc_rb_updates();
   // Update MAC
-  rrc_ue->mac_ctrl->handle_ho_prep(hoprep_r8, recfg_r8);
+  rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8);
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
 
@@ -1222,6 +1226,9 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
       rrc_ue->eutra_capabilities_unpacked = true;
     }
   }
+
+  // Save source UE MAC configuration as a base
+  rrc_ue->mac_ctrl->handle_ho_prep(ho_prep);
 
   // Save measConfig
   ue_var_meas = var_meas_cfg_t::make(ho_prep.as_cfg.source_meas_cfg);
@@ -1316,21 +1323,12 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
     return;
   }
 
-  /* Freeze all DRBs. SRBs DL are needed for sending the HO Cmd */
-  f->rrc_ue->mac_ctrl->set_scell_activation({0});
-  f->rrc_ue->mac_ctrl->update_mac(mac_controller::config_tx);
-  for (const drb_to_add_mod_s& drb : f->rrc_ue->bearer_list.get_established_drbs()) {
-    f->rrc_enb->mac->bearer_ue_rem(f->rrc_ue->rnti, drb.drb_id + 2);
-  }
-  sched_interface::ue_bearer_cfg_t bcfg = {};
-  bcfg.direction                        = sched_interface::ue_bearer_cfg_t::DL;
-  for (uint32_t srb_id = 0; srb_id < 3; ++srb_id) {
-    f->rrc_enb->mac->bearer_ue_cfg(f->rrc_ue->rnti, srb_id, &bcfg);
-  }
-
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
   f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn);
+
+  // Apply changes to the MAC scheduler
+  f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8());
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {

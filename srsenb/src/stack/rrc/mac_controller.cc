@@ -26,6 +26,9 @@
 namespace srsenb {
 
 using namespace asn1::rrc;
+using ue_cfg_t = sched_interface::ue_cfg_t;
+
+/********* Helper Methods ********/
 
 // TS 36.331 9.1.1.2 - CCCH configuration
 sched_interface::ue_bearer_cfg_t get_bearer_default_ccch_config()
@@ -52,11 +55,17 @@ sched_interface::ue_bearer_cfg_t get_bearer_default_srb2_config()
   return bearer;
 }
 
+/**
+ * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message related to
+ * PHY ConfigurationDedicated
+ */
+void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& rrc_cfg);
+
 /***************************
  *  MAC Controller class
  **************************/
 
-rrc::ue::mac_controller::mac_controller(rrc::ue* rrc_ue_, const sched_interface::ue_cfg_t& sched_ue_cfg) :
+rrc::ue::mac_controller::mac_controller(rrc::ue* rrc_ue_, const ue_cfg_t& sched_ue_cfg) :
   log_h("RRC"),
   rrc_ue(rrc_ue_),
   rrc_cfg(&rrc_ue_->parent->cfg),
@@ -91,7 +100,7 @@ void rrc::ue::mac_controller::handle_con_reject()
   }
 }
 
-//! Called in case of Handover
+/// Called in case of intra-eNB Handover to activate the new PCell for the reception of the RRC Reconf Complete message
 int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
 {
   uint32_t target_enb_cc_idx = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx;
@@ -126,7 +135,7 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
 
   // Apply common PhyConfig updates (e.g. SR/CQI resources, antenna cfg)
   if (rr_cfg.phys_cfg_ded_present) {
-    apply_phy_cfg_updates_common(rr_cfg.phys_cfg_ded);
+    ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, rr_cfg.phys_cfg_ded, *rrc_cfg);
   }
 
   // Other PUCCH params
@@ -163,7 +172,7 @@ void rrc::ue::mac_controller::handle_con_reest_complete()
 void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
 {
   if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
-    apply_phy_cfg_updates_common(conn_recfg.rr_cfg_ded.phys_cfg_ded);
+    ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
   }
 
   // Store Scells Configuration
@@ -283,45 +292,40 @@ void rrc::ue::mac_controller::apply_current_bearers_cfg()
   }
 }
 
-void rrc::ue::mac_controller::apply_phy_cfg_updates_common(const asn1::rrc::phys_cfg_ded_s& phy_cfg)
+void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
 {
-  // Apply SR config
-  if (phy_cfg.sched_request_cfg_present) {
-    current_sched_ue_cfg.pucch_cfg.sr_configured = true;
-    current_sched_ue_cfg.pucch_cfg.I_sr          = phy_cfg.sched_request_cfg.setup().sr_cfg_idx;
-    current_sched_ue_cfg.pucch_cfg.n_pucch_sr    = phy_cfg.sched_request_cfg.setup().sr_pucch_res_idx;
+  if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
+    ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
   }
 
-  // Apply CQI config
-  auto& pcell_cfg = current_sched_ue_cfg.supported_cc_list[0];
-  if (phy_cfg.cqi_report_cfg_present) {
-    if (phy_cfg.cqi_report_cfg.cqi_report_periodic_present) {
-      auto& cqi_cfg                                   = phy_cfg.cqi_report_cfg.cqi_report_periodic.setup();
-      current_sched_ue_cfg.pucch_cfg.n_pucch          = cqi_cfg.cqi_pucch_res_idx;
-      pcell_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_cfg.cqi_pmi_cfg_idx;
-      pcell_cfg.dl_cfg.cqi_report.periodic_configured = true;
-    } else if (phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-      pcell_cfg.aperiodic_cqi_period                   = rrc_cfg->cqi_cfg.period;
-      pcell_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
-    }
+  // Store Scells Configuration
+  if (conn_recfg.non_crit_ext_present and conn_recfg.non_crit_ext.non_crit_ext_present and
+      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present and
+      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present) {
+    pending_scells_cfg.reset(new asn1::rrc::scell_to_add_mod_list_r10_l{
+        conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10});
   }
 
-  // Configure 256QAM
-  if (phy_cfg.cqi_report_cfg_pcell_v1250.is_present() and
-      phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present) {
-    current_sched_ue_cfg.use_tbs_index_alt = true;
-  }
+  // Apply changes to MAC scheduler
+  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
+  mac->phy_config_enabled(rrc_ue->rnti, false);
+}
 
-  // Apply Antenna Configuration
-  if (phy_cfg.ant_info_present) {
-    if (phy_cfg.ant_info.type().value == phys_cfg_ded_s::ant_info_c_::types_opts::explicit_value) {
-      current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg.ant_info.explicit_value());
-    } else {
-      log_h->warning("No antenna configuration provided\n");
-      pcell_cfg.dl_cfg.tm                      = SRSLTE_TM1;
-      current_sched_ue_cfg.dl_ant_info.tx_mode = sched_interface::ant_info_ded_t::tx_mode_t::tm1;
-    }
-  }
+void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
+{
+  // Freeze SCells
+  // NOTE: this avoids that the UE receives an HOCmd retx from target cell and do an incorrect RLC-level concatenation
+  set_scell_activation({0});
+
+  // Freeze all DRBs. SRBs are needed for sending the HO Cmd
+  set_drb_activation(false);
+
+  update_mac(mac_controller::config_tx);
+}
+
+void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep)
+{
+  // TODO: Apply configuration in ho_prep as a base
 }
 
 void rrc::ue::mac_controller::apply_scell_cfg_updates(uint32_t ue_cc_idx)
@@ -372,34 +376,18 @@ void rrc::ue::mac_controller::apply_scell_cfg_updates(uint32_t ue_cc_idx)
   pending_scells_cfg->erase(it);
 }
 
-void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s&   ho_prep,
-                                             const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
-{
-  // TODO: Apply configuration in ho_prep
-
-  if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
-    apply_phy_cfg_updates_common(conn_recfg.rr_cfg_ded.phys_cfg_ded);
-  }
-
-  // Store Scells Configuration
-  if (conn_recfg.non_crit_ext_present and conn_recfg.non_crit_ext.non_crit_ext_present and
-      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present and
-      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present) {
-    pending_scells_cfg.reset(new asn1::rrc::scell_to_add_mod_list_r10_l{
-        conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10});
-  }
-
-  // Apply changes to MAC scheduler
-  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
-  mac->phy_config_enabled(rrc_ue->rnti, false);
-}
-
-void rrc::ue::mac_controller::handle_ho_prep_complete() {}
-
 void rrc::ue::mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
 {
   for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {
     current_sched_ue_cfg.supported_cc_list[i].active = scell_mask[i];
+  }
+}
+
+void rrc::ue::mac_controller::set_drb_activation(bool active)
+{
+  for (const drb_to_add_mod_s& drb : rrc_ue->bearer_list.get_established_drbs()) {
+    current_sched_ue_cfg.ue_bearers[drb.drb_id + rb_id_t::RB_ID_SRB2].direction =
+        active ? sched_interface::ue_bearer_cfg_t::BOTH : sched_interface::ue_bearer_cfg_t::IDLE;
   }
 }
 
@@ -408,7 +396,43 @@ void rrc::ue::mac_controller::update_mac(proc_stage_t stage)
   // Apply changes to MAC scheduler
   mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
   if (stage != proc_stage_t::other) {
+    // Acknowledge Dedicated Configuration
     mac->phy_config_enabled(rrc_ue->rnti, stage == proc_stage_t::config_complete);
+  }
+}
+
+void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& rrc_cfg)
+{
+  // Apply SR config
+  if (phy_cfg.sched_request_cfg_present) {
+    ue_cfg.pucch_cfg.sr_configured = true;
+    ue_cfg.pucch_cfg.I_sr          = phy_cfg.sched_request_cfg.setup().sr_cfg_idx;
+    ue_cfg.pucch_cfg.n_pucch_sr    = phy_cfg.sched_request_cfg.setup().sr_pucch_res_idx;
+  }
+
+  // Apply CQI config
+  auto& pcell_cfg = ue_cfg.supported_cc_list[0];
+  if (phy_cfg.cqi_report_cfg_present) {
+    if (phy_cfg.cqi_report_cfg.cqi_report_periodic_present) {
+      auto& cqi_cfg                                   = phy_cfg.cqi_report_cfg.cqi_report_periodic.setup();
+      ue_cfg.pucch_cfg.n_pucch                        = cqi_cfg.cqi_pucch_res_idx;
+      pcell_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_cfg.cqi_pmi_cfg_idx;
+      pcell_cfg.dl_cfg.cqi_report.periodic_configured = true;
+    } else if (phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
+      pcell_cfg.aperiodic_cqi_period                   = rrc_cfg.cqi_cfg.period;
+      pcell_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
+    }
+  }
+
+  // Apply Antenna Configuration
+  if (phy_cfg.ant_info_present) {
+    if (phy_cfg.ant_info.type().value == phys_cfg_ded_s::ant_info_c_::types_opts::explicit_value) {
+      ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg.ant_info.explicit_value());
+    } else {
+      srslte::logmap::get("RRC")->warning("No antenna configuration provided\n");
+      pcell_cfg.dl_cfg.tm        = SRSLTE_TM1;
+      ue_cfg.dl_ant_info.tx_mode = sched_interface::ant_info_ded_t::tx_mode_t::tm1;
+    }
   }
 }
 
