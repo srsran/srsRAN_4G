@@ -180,7 +180,7 @@ public:
   const static int MAX_DL_GRANTS = 4;
 
   typedef struct {
-    // FIXME: not including NR related fields yet
+    // TODO: include NR related fields
   } dl_sched_grant_t;
 
   typedef struct {
