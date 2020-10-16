@@ -42,6 +42,8 @@ class ue_dummy : public ue_metrics_interface
 public:
   bool get_metrics(ue_metrics_t* m)
   {
+    *m = {};
+
     // fill dummy values
     m->rf.rf_o                = 10;
     m->phy.nof_active_cc      = 2;
