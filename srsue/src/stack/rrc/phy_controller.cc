@@ -109,7 +109,7 @@ bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srslte::event
     log_h->warning("Failed to launch cell selection. Current state: %s\n", current_state_name().c_str());
     return false;
   }
-  cell_selection_once_observer = std::move(observer);
+  cell_selection_notifier = std::move(observer);
   return true;
 }
 
@@ -129,7 +129,9 @@ void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd
   csel_res.result = false;
 
   fsmInfo("Starting for pci=%d, earfcn=%d\n", target_cell.pci, target_cell.earfcn);
-  f->phy->cell_select(target_cell);
+  if (not f->phy->cell_select(target_cell)) {
+    trigger(srslte::failure_ev{});
+  }
 }
 
 void phy_controller::selecting_cell::exit(phy_controller* f)
@@ -147,7 +149,7 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
   if (f->cell_selection_always_observer) {
     f->cell_selection_always_observer(target_cell.earfcn, target_cell.pci, result);
   }
-  f->task_sched.defer_task([f, result]() { f->cell_selection_once_observer(result); });
+  f->task_sched.defer_task([f, result]() { f->cell_selection_notifier(result); });
 }
 
 void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)

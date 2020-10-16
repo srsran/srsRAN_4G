@@ -117,7 +117,8 @@ public:
     row< wait_csel_res,   unknown_st,     cell_sel_res                                           >,
     // +----------------+---------------+--------------+------------------+----------------------+
     row< wait_in_sync,    in_sync_st,     in_sync_ev,    &c::set_success                         >,
-    row< wait_in_sync,    unknown_st,     timeout_ev                                             >
+    row< wait_in_sync,    unknown_st,     timeout_ev                                             >,
+    to_state<             unknown_st,     srslte::failure_ev                                     >
     // +----------------+---------------+--------------+------------------+----------------------+
     >;
     // clang-format on
@@ -129,7 +130,7 @@ public:
 private:
   phy_interface_rrc_lte*                             phy = nullptr;
   srslte::task_sched_handle                          task_sched;
-  srslte::event_observer<bool>                       cell_selection_once_observer;
+  srslte::event_observer<bool>                       cell_selection_notifier;
   std::function<void(uint32_t, uint32_t, bool)>      cell_selection_always_observer;
   srslte::event_dispatcher<cell_srch_res>            cell_search_observers;
   uint32_t                                           nof_pending_configs = 0;

@@ -67,7 +67,7 @@ public:
 
 class phy_dummy_interface : public phy_interface_rrc_lte
 {
-  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx = 0) override { return true; }
+  bool set_config(srslte::phy_cfg_t config, uint32_t cc_idx) override { return true; }
   bool set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn) override { return true; }
   void set_config_tdd(srslte_tdd_config_t& tdd_config) override {}
   void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}

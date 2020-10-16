@@ -25,6 +25,8 @@
 
 namespace srsue {
 
+srslte::log_ref test_log{"TEST"};
+
 struct cell_search_result_test {
   cell_search_result_test(phy_controller* phy_ctrl_) : phy_ctrl(phy_ctrl_) {}
 
@@ -72,7 +74,6 @@ struct cell_select_result_test {
 
 int test_phy_ctrl_fsm()
 {
-  srslte::log_ref         test_log{"TEST"};
   srslte::task_scheduler  task_sched;
   phy_dummy_interface     phy;
   phy_controller          phy_ctrl{&phy, &task_sched};
@@ -167,8 +168,34 @@ int test_phy_ctrl_fsm()
   task_sched.run_pending_tasks();
   TESTASSERT(csel_tester.result == 0);
 
-  test_log->info("Finished RRC PHY controller test successfully\n");
+  phy_ctrl.start_cell_select(found_cell, csel_tester);
+
   return SRSLTE_SUCCESS;
+}
+
+class phy_test_dummy : public phy_dummy_interface
+{
+public:
+  bool success_on_cell_select_init = true;
+
+  bool cell_select(phy_cell_t cell) override { return success_on_cell_select_init; }
+};
+
+/// TEST: Check if controller handles the case when PHY fails to init cell selection
+int test_phy_cell_select_init_error_handling()
+{
+  srslte::task_scheduler task_sched;
+  phy_test_dummy         phy;
+  phy_controller         phy_ctrl{&phy, &task_sched};
+  phy_cell_t             found_cell{};
+  found_cell.pci                  = 1;
+  found_cell.earfcn               = 2;
+  int test_result                 = -1;
+  phy.success_on_cell_select_init = false;
+
+  phy_ctrl.start_cell_select(found_cell, [&test_result](bool csel_result) { test_result = csel_result ? 1 : 0; });
+
+  return test_result == 0;
 }
 
 } // namespace srsue
@@ -178,4 +205,6 @@ int main()
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
 
   TESTASSERT(srsue::test_phy_ctrl_fsm() == SRSLTE_SUCCESS);
+  TESTASSERT(srsue::test_phy_cell_select_init_error_handling() == SRSLTE_SUCCESS);
+  srsue::test_log->info("Finished RRC PHY controller test successfully\n");
 }
