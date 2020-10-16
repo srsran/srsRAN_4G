@@ -872,7 +872,9 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     }
     head_len = rlc_am_packed_length(&header);
     if (head_len >= pdu_space) {
-      header.N_li--;
+      if (header.N_li > 0) {
+        header.N_li--;
+      }
       break;
     }
     tx_sdu  = tx_sdu_queue.read();
