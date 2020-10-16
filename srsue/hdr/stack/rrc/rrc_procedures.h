@@ -277,7 +277,7 @@ private:
 
   srslte::timer_handler::unique_timer reselection_timer;
   srslte::proc_future_t<cs_result_t>  cell_selection_fut;
-  cs_result_t                         cell_sel_result;
+  cs_result_t                         cell_sel_result = cs_result_t::no_cell;
 };
 
 class rrc::connection_reest_proc
