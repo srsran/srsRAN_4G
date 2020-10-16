@@ -20,17 +20,15 @@
  */
 
 #include "srslte/common/test_common.h"
-#include "srslte/srslte.h"
+#include "srslte/phy/ch_estimation/dmrs_pdcch.h"
+#include "srslte/phy/phch/pdcch_nr.h"
 #include <complex.h>
-#include <srslte/phy/ch_estimation/dmrs_pdcch.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 
-static srslte_nr_carrier_t carrier = {
-    .nof_prb = 50,
-};
+static srslte_carrier_nr_t carrier = {};
 
 static uint16_t rnti = 0x1234;
 
@@ -46,7 +44,7 @@ void usage(char* prog)
   printf("\t-v increase verbosity\n");
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "recov")) != -1) {
@@ -67,34 +65,44 @@ void parse_args(int argc, char** argv)
   }
 }
 
-static int
-run_test(srslte_dmrs_pdcch_estimator_t* estimator, const srslte_nr_pdcch_cfg_t* cfg, cf_t* sf_symbols, cf_t* h)
+static int run_test(srslte_dmrs_pdcch_estimator_t* estimator, srslte_pdcch_cfg_nr_t* cfg, cf_t* sf_symbols, cf_t* h)
 {
-  for (uint32_t slot_idx = 0; slot_idx < SRSLTE_NR_NSLOTS_PER_SF(cfg->carrier.numerology); slot_idx++) {
-    uint32_t nof_re = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NR_NSYMB_PER_SLOT;
-    srslte_vec_cf_zero(sf_symbols, nof_re);
+  for (uint32_t slot_idx = 0; slot_idx < SRSLTE_NSLOTS_PER_FRAME_NR(cfg->carrier.numerology); slot_idx++) {
+    uint32_t locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES] = {};
 
-    TESTASSERT(srslte_dmrs_pdcch_put(cfg, slot_idx, sf_symbols) == SRSLTE_SUCCESS);
+    int nof_locations = srslte_pdcch_nr_locations_ncce(
+        &cfg->coreset, &cfg->search_space, cfg->rnti, cfg->aggregation_level, slot_idx, locations);
 
-    TESTASSERT(srslte_dmrs_pdcch_estimate(estimator, slot_idx, sf_symbols) == SRSLTE_SUCCESS);
+    TESTASSERT(nof_locations == cfg->search_space.nof_candidates[cfg->aggregation_level]);
 
-    srslte_dmrs_pdcch_measure_t measure = {};
-    TESTASSERT(
-        srslte_dmrs_pdcch_get_measure(
-            estimator, &cfg->search_space, slot_idx, cfg->aggregation_level, cfg->candidate, cfg->rnti, &measure) ==
-        SRSLTE_SUCCESS);
+    for (uint32_t candidate = 0; candidate < nof_locations; candidate++) {
+      cfg->n_cce = locations[candidate];
 
-    if (fabsf(measure.rsrp - 1.0f) > 1e-2) {
-      printf("EPRE=%f; RSRP=%f; CFO=%f; SYNC_ERR=%f;\n",
-             measure.epre,
-             measure.rsrp,
-             measure.cfo_hz,
-             measure.sync_error_us);
+      uint32_t nof_re = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR;
+      srslte_vec_cf_zero(sf_symbols, nof_re);
+
+      TESTASSERT(srslte_dmrs_pdcch_put(cfg, slot_idx, sf_symbols) == SRSLTE_SUCCESS);
+
+      TESTASSERT(srslte_dmrs_pdcch_estimate(estimator, slot_idx, sf_symbols) == SRSLTE_SUCCESS);
+
+      srslte_dmrs_pdcch_measure_t measure = {};
+      TESTASSERT(
+          srslte_dmrs_pdcch_get_measure(
+              estimator, &cfg->search_space, slot_idx, cfg->aggregation_level, cfg->n_cce, cfg->rnti, &measure) ==
+          SRSLTE_SUCCESS);
+
+      if (fabsf(measure.rsrp - 1.0f) > 1e-2) {
+        printf("EPRE=%f; RSRP=%f; CFO=%f; SYNC_ERR=%f;\n",
+               measure.epre,
+               measure.rsrp,
+               measure.cfo_hz,
+               measure.sync_error_us);
+      }
+      TESTASSERT(fabsf(measure.epre - 1.0f) < 1e-3f);
+      TESTASSERT(fabsf(measure.rsrp - 1.0f) < 1e-3f);
+      TESTASSERT(fabsf(measure.cfo_hz) < 1e-3f);
+      TESTASSERT(fabsf(measure.sync_error_us) < 1e-3f);
     }
-    TESTASSERT(fabsf(measure.epre - 1.0f) < 1e-3f);
-    TESTASSERT(fabsf(measure.rsrp - 1.0f) < 1e-3f);
-    TESTASSERT(fabsf(measure.cfo_hz) < 1e-3f);
-    TESTASSERT(fabsf(measure.sync_error_us) < 1e-3f);
   }
 
   return SRSLTE_SUCCESS;
@@ -104,12 +112,14 @@ int main(int argc, char** argv)
 {
   int ret = SRSLTE_ERROR;
 
+  carrier.nof_prb = 50;
+
   parse_args(argc, argv);
 
-  srslte_nr_pdcch_cfg_t         cfg       = {};
+  srslte_pdcch_cfg_nr_t         cfg       = {};
   srslte_dmrs_pdcch_estimator_t estimator = {};
 
-  uint32_t nof_re     = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NR_NSYMB_PER_SLOT;
+  uint32_t nof_re     = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR;
   cf_t*    sf_symbols = srslte_vec_cf_malloc(nof_re);
   cf_t*    h          = srslte_vec_cf_malloc(nof_re);
 
@@ -139,24 +149,20 @@ int main(int argc, char** argv)
           uint32_t L                         = 1 << i;
           uint32_t nof_reg                   = cfg.coreset.duration * nof_freq_resources * 6;
           uint32_t nof_cce                   = nof_reg / 6;
-          cfg.search_space.nof_candidates[i] = nof_cce / L;
+          cfg.search_space.nof_candidates[i] = SRSLTE_MIN(nof_cce / L, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES);
         }
 
         for (cfg.aggregation_level = 0; cfg.aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS;
              cfg.aggregation_level++) {
 
-          for (cfg.candidate = 0; cfg.candidate < cfg.search_space.nof_candidates[cfg.aggregation_level];
-               cfg.candidate++) {
+          srslte_dmrs_pdcch_estimator_init(&estimator, &cfg.carrier, &cfg.coreset);
 
-            srslte_dmrs_pdcch_estimator_init(&estimator, &cfg.carrier, &cfg.coreset);
-
-            if (run_test(&estimator, &cfg, sf_symbols, h)) {
-              ERROR("Test %d failed\n", test_counter);
-            } else {
-              test_passed++;
-            }
-            test_counter++;
+          if (run_test(&estimator, &cfg, sf_symbols, h)) {
+            ERROR("Test %d failed\n", test_counter);
+          } else {
+            test_passed++;
           }
+          test_counter++;
         }
       }
     }

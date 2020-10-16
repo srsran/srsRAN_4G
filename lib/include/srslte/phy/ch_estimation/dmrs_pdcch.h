@@ -35,14 +35,14 @@ extern "C" {
  *
  * @remark: Implemented as specified by TS 38.211 V15.8.0 Section 7.1.4.3
  *
- * @attention it expects sf_symbols to be size SRSLTE_NR_SLOT_LEN_RE(cfg->carrier.nof_prb)
+ * @attention it expects sf_symbols to be size SRSLTE_SLOT_LEN_RE_NR(cfg->carrier.nof_prb)
  *
  * @param cfg Configuration that includes Carrier, CORESET, Search Space and PDCCH candidate
  * @param slot_idx Slot index in the frame
  * @param sf_symbols is the resource grid where the DMRS resource elements will be written
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_dmrs_pdcch_put(const srslte_nr_pdcch_cfg_t* cfg, uint32_t slot_idx, cf_t* sf_symbols);
+SRSLTE_API int srslte_dmrs_pdcch_put(const srslte_pdcch_cfg_nr_t* cfg, uint32_t slot_idx, cf_t* sf_symbols);
 
 /**
  * @brief PDCCH DMRS channel estimator object
@@ -54,7 +54,7 @@ SRSLTE_API int srslte_dmrs_pdcch_put(const srslte_nr_pdcch_cfg_t* cfg, uint32_t 
  */
 typedef struct SRSLTE_API {
   /// Current estimator carrier configuration
-  srslte_nr_carrier_t carrier;
+  srslte_carrier_nr_t carrier;
 
   /// Current estimator CORESET configuration
   srslte_coreset_t coreset;
@@ -66,7 +66,7 @@ typedef struct SRSLTE_API {
   uint32_t coreset_sz;
 
   /// Object for interpolating, it shall be initialised only once
-  srslte_resampler_fft_t interpolator;
+  srslte_interp_lin_t interpolator;
 
   /// Pilots least square estimates, one vector for each possible symbol. Since there are one pilot every 4 sub-carriers
   /// , each vector is three times the CORESEt band-width
@@ -92,7 +92,7 @@ typedef struct SRSLTE_API {
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
 SRSLTE_API int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
-                                                const srslte_nr_carrier_t*     carrier,
+                                                const srslte_carrier_nr_t*     carrier,
                                                 const srslte_coreset_t*        coreset);
 
 /**

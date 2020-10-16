@@ -32,12 +32,12 @@ extern "C" {
 /**
  * @brief Defines the number of symbols per slot. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NR_NSYMB_PER_SLOT 14
+#define SRSLTE_NSYMB_PER_SLOT_NR 14
 
 /**
  * @brief Defines the resource grid size in physical resource elements (frequency and time domain)
  */
-#define SRSLTE_NR_SLOT_LEN_RE(nof_prb) (nof_prb * SRSLTE_NRE * SRSLTE_NR_NSYMB_PER_SLOT)
+#define SRSLTE_SLOT_LEN_RE_NR(nof_prb) (nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR)
 
 /**
  * @brief Defines the maximum numerology supported. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
@@ -47,40 +47,40 @@ extern "C" {
 /**
  * @brief Defines the symbol duration, including cyclic prefix
  */
-#define SRSLTE_SUBC_SPACING(NUM) (15000U << (NUM))
+#define SRSLTE_SUBC_SPACING_NR(NUM) (15000U << (NUM))
 
 /**
  * @brief Defines the number of slots per SF. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NR_NSLOTS_PER_SF(NUM) (1U << (NUM))
+#define SRSLTE_NSLOTS_PER_SF_NR(NUM) (1U << (NUM))
 
 /**
  * @brief Defines the number of slots per frame. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NR_NSLOTS_PER_FRAME(NUM) (SRSLTE_NR_NSLOTS_PER_SF(NUM) * SRSLTE_NOF_SF_X_FRAME)
+#define SRSLTE_NSLOTS_PER_FRAME_NR(NUM) (SRSLTE_NSLOTS_PER_SF_NR(NUM) * SRSLTE_NOF_SF_X_FRAME)
 
 /**
  * @brief Maximum Carrier identification value. Defined by TS 38.331 v15.10.0 as PhysCellId from 0 to 1007.
  */
-#define SRSLTE_NR_MAX_ID 1007
+#define SRSLTE_MAX_ID_NR 1007
 
 /**
  * @brief Maximum number of physical resource blocks (PRB) that a 5G NR can have. This is defined by TS 38.331 v15.10.0
  * as maxNrofPhysicalResourceBlocks
  */
-#define SRSLTE_NR_MAX_PRB 275
+#define SRSLTE_MAX_PRB_NR 275
 
-#define SRSLTE_NR_MAX_START 2199
+#define SRSLTE_MAX_START_NR 2199
 
 /**
- * Common carrier parameters
+ * @brief NR carrier parameters
  */
 typedef struct {
   uint32_t id;
   uint32_t numerology;
   uint32_t nof_prb;
   uint32_t start;
-} srslte_nr_carrier_t;
+} srslte_carrier_nr_t;
 
 /**
  * CORESET related constants
@@ -132,23 +132,34 @@ typedef enum SRSLTE_API {
   srslte_search_space_type_ue,
 } srslte_search_space_type_t;
 
+/**
+ * @brief defines the maximum number of Aggregation levels: 1, 2, 4, 8 and 16
+ */
 #define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS 5
 
+/**
+ * @brief defines the maximum number of candidates for a given Aggregation level
+ */
+#define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES 8
+
+/**
+ * @brief SearchSpace parameters as defined in TS 38.331 v15.10.0 SearchSpace sequence
+ */
 typedef struct SRSLTE_API {
-  uint32_t                   start;    // start symbol within slot
+  uint32_t                   id;
   uint32_t                   duration; // in slots
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS];
 } srslte_search_space_t;
 
 typedef struct SRSLTE_API {
-  srslte_nr_carrier_t   carrier;
+  srslte_carrier_nr_t   carrier;
   uint16_t              rnti;
   srslte_coreset_t      coreset;
   srslte_search_space_t search_space;
-  uint32_t              candidate;
   uint32_t              aggregation_level;
-} srslte_nr_pdcch_cfg_t;
+  uint32_t              n_cce;
+} srslte_pdcch_cfg_nr_t;
 
 /**
  * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the

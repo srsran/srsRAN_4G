@@ -25,75 +25,13 @@
 /// per frequency resource.
 #define NOF_PILOTS_X_FREQ_RES 18
 
-uint32_t srslte_pdcch_calculate_Y_p_n(uint32_t coreset_id, uint16_t rnti, int n)
-{
-  const uint32_t A_p[3] = {39827, 39829, 39839};
-  const uint32_t D      = 65537;
-
-  if (n < 0) {
-    return rnti;
-  }
-
-  return (A_p[coreset_id % 3] * srslte_pdcch_calculate_Y_p_n(coreset_id, rnti, n - 1)) % D;
-}
-
-/**
- * Calculates the Control Channnel Element As described in 3GPP 38.213 R15 10.1 UE procedure for determining physical
- * downlink control channel assignment
- *
- */
-static int srslte_pdcch_get_ncce(const srslte_coreset_t*      coreset,
-                                 const srslte_search_space_t* search_space,
-                                 uint16_t                     rnti,
-                                 uint32_t                     aggregation_level,
-                                 uint32_t                     candidate,
-                                 const uint32_t               slot_idx)
-{
-  if (aggregation_level >= SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS) {
-    ERROR("Invalid aggregation level %d;\n", aggregation_level);
-    return SRSLTE_ERROR;
-  }
-
-  uint32_t L    = 1U << aggregation_level;                         // Aggregation level
-  uint32_t n_ci = 0;                                               //  Carrier indicator field
-  uint32_t m    = candidate;                                       // Selected PDDCH candidate
-  uint32_t M    = search_space->nof_candidates[aggregation_level]; // Number of aggregation levels
-
-  if (M == 0) {
-    ERROR("Invalid number of candidates %d for aggregation level %d\n", M, aggregation_level);
-    return SRSLTE_ERROR;
-  }
-
-  // Count number of REG
-  uint32_t N_cce = 0;
-  for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    // Every frequency domain resource is 6 PRB, a REG is 1PRB wide and a CCE is 6 REG. So, for every frequency domain
-    // resource there is one CCE.
-    N_cce += coreset->freq_resources[i] ? coreset->duration : 0;
-  }
-
-  if (N_cce < L) {
-    ERROR("Error number of CCE %d is lower than the aggregation level %d\n", N_cce, L);
-    return SRSLTE_ERROR;
-  }
-
-  // Calculate Y_p_n
-  uint32_t Y_p_n = 0;
-  if (search_space->type == srslte_search_space_type_ue) {
-    Y_p_n = srslte_pdcch_calculate_Y_p_n(coreset->id, rnti, slot_idx);
-  }
-
-  return (int)(L * ((Y_p_n + (m * N_cce) / (L * M) + n_ci) % (N_cce / L)));
-}
-
 static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uint32_t n_id)
 {
-  return (uint32_t)((((SRSLTE_NR_NSYMB_PER_SLOT * slot_idx + symbol_idx + 1UL) << 17UL) * (2 * n_id + 1) + 2 * n_id) &
+  return (uint32_t)((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) << 17UL) * (2 * n_id + 1) + 2 * n_id) &
                     (uint64_t)INT32_MAX);
 }
 
-static void
-dmrs_pdcch_put_symbol_noninterleaved(const srslte_nr_pdcch_cfg_t* cfg, uint32_t cinit, uint32_t ncce, cf_t* sf_symbol)
+static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_pdcch_cfg_nr_t* cfg, uint32_t cinit, cf_t* sf_symbol)
 {
   uint32_t L            = 1U << cfg->aggregation_level;
   uint32_t nof_freq_res = SRSLTE_MIN(cfg->carrier.nof_prb / 6, SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE);
@@ -104,8 +42,8 @@ dmrs_pdcch_put_symbol_noninterleaved(const srslte_nr_pdcch_cfg_t* cfg, uint32_t 
   uint32_t sequence_skip = 0; // Accumulates pilot locations to skip
 
   // Calculate Resource block indexes range, every CCE is 6 REG, 1 REG is 6 RE in resource blocks
-  uint32_t rb_coreset_idx_begin = (ncce * 6) / cfg->coreset.duration;
-  uint32_t rb_coreset_idx_end   = ((ncce + L) * 6) / cfg->coreset.duration;
+  uint32_t rb_coreset_idx_begin = (cfg->n_cce * 6) / cfg->coreset.duration;
+  uint32_t rb_coreset_idx_end   = ((cfg->n_cce + L) * 6) / cfg->coreset.duration;
 
   // CORESET Resource Block counter
   uint32_t rb_coreset_idx = 0;
@@ -168,12 +106,10 @@ dmrs_pdcch_put_symbol_noninterleaved(const srslte_nr_pdcch_cfg_t* cfg, uint32_t 
   }
 }
 
-int srslte_dmrs_pdcch_put(const srslte_nr_pdcch_cfg_t* cfg, uint32_t slot_idx, cf_t* sf_symbols)
+int srslte_dmrs_pdcch_put(const srslte_pdcch_cfg_nr_t* cfg, uint32_t slot_idx, cf_t* sf_symbols)
 {
-  int ncce = srslte_pdcch_get_ncce(
-      &cfg->coreset, &cfg->search_space, cfg->rnti, cfg->aggregation_level, cfg->candidate, slot_idx);
-  if (ncce < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (cfg == NULL || sf_symbols == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (cfg->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
@@ -200,16 +136,20 @@ int srslte_dmrs_pdcch_put(const srslte_nr_pdcch_cfg_t* cfg, uint32_t slot_idx, c
     uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
 
     // Put data
-    dmrs_pdcch_put_symbol_noninterleaved(cfg, cinit, ncce, &sf_symbols[cfg->carrier.nof_prb * SRSLTE_NRE * l]);
+    dmrs_pdcch_put_symbol_noninterleaved(cfg, cinit, &sf_symbols[cfg->carrier.nof_prb * SRSLTE_NRE * l]);
   }
 
   return SRSLTE_SUCCESS;
 }
 
 int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
-                                     const srslte_nr_carrier_t*     carrier,
+                                     const srslte_carrier_nr_t*     carrier,
                                      const srslte_coreset_t*        coreset)
 {
+  if (q == NULL || carrier == NULL || coreset == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
   if (coreset->duration < SRSLTE_CORESET_DURATION_MIN || coreset->duration > SRSLTE_CORESET_DURATION_MAX) {
     ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)\n",
           coreset->duration,
@@ -230,7 +170,11 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
   q->coreset = *coreset;
 
   // The interpolator may return without reconfiguring after the first call
-  if (srslte_resampler_fft_init(&q->interpolator, SRSLTE_RESAMPLER_MODE_INTERPOLATE, 4)) {
+  if (q->interpolator.M != 0) {
+    srslte_interp_linear_free(&q->interpolator);
+  }
+
+  if (srslte_interp_linear_init(&q->interpolator, srslte_coreset_get_bw(coreset) * 3, 4)) {
     ERROR("Initiating interpolator\n");
     return SRSLTE_ERROR;
   }
@@ -271,6 +215,10 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
 
 void srslte_dmrs_pdcch_estimator_free(srslte_dmrs_pdcch_estimator_t* q)
 {
+  if (q == NULL) {
+    return;
+  }
+
   if (q->ce) {
     free(q->ce);
   }
@@ -281,7 +229,7 @@ void srslte_dmrs_pdcch_estimator_free(srslte_dmrs_pdcch_estimator_t* q)
     }
   }
 
-  srslte_resampler_fft_free(&q->interpolator);
+  srslte_interp_linear_free(&q->interpolator);
 
   memset(q, 0, sizeof(srslte_dmrs_pdcch_estimator_t));
 }
@@ -340,6 +288,10 @@ srslte_dmrs_pdcch_extract(srslte_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
 
 int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, uint32_t slot_idx, const cf_t* sf_symbols)
 {
+  if (q == NULL || sf_symbols == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
   // Saves slot index for posterior use
   q->slot_idx = slot_idx;
 
@@ -358,32 +310,12 @@ int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, uint32_t slot_i
     srslte_dmrs_pdcch_extract(q, cinit, &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], q->lse[l]);
   }
 
-  // Time averaging should be implemented here
+  // Time averaging and smoothing should be implemented here
   // ...
-
-  // Interpolator impulse response
-  uint32_t interpolation_delay = srslte_resampler_fft_get_delay(&q->interpolator) / 4;
 
   // Interpolation, it assumes all frequency domain resources are contiguous
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
-    cf_t* ce_ptr = &q->ce[SRSLTE_NRE * q->coreset_bw * l];
-
-    srslte_resampler_fft_reset_state(&q->interpolator);
-
-    // Feed inital samples
-    uint32_t discard_initial = SRSLTE_MIN(interpolation_delay, q->coreset_bw * 3);
-    srslte_resampler_fft_run(&q->interpolator, q->lse[l], NULL, discard_initial);
-    uint32_t n = 0;
-
-    // Pad zeroes until impulsional response is covered
-    if (discard_initial < interpolation_delay) {
-      srslte_resampler_fft_run(&q->interpolator, NULL, NULL, interpolation_delay - discard_initial);
-    } else {
-      n = q->coreset_bw * 3 - discard_initial;
-      srslte_resampler_fft_run(&q->interpolator, q->lse[l], ce_ptr, n);
-    }
-
-    srslte_resampler_fft_run(&q->interpolator, NULL, &ce_ptr[n * 4], q->coreset_bw * 3 - n);
+    srslte_interp_linear_offset(&q->interpolator, q->lse[l], &q->ce[SRSLTE_NRE * q->coreset_bw * l], 1, 3);
   }
 
   return SRSLTE_SUCCESS;
@@ -393,16 +325,15 @@ int srslte_dmrs_pdcch_get_measure(srslte_dmrs_pdcch_estimator_t* q,
                                   const srslte_search_space_t*   search_space,
                                   uint32_t                       slot_idx,
                                   uint32_t                       aggregation_level,
-                                  uint32_t                       candidate,
+                                  uint32_t                       ncce,
                                   uint16_t                       rnti,
                                   srslte_dmrs_pdcch_measure_t*   measure)
 {
-  uint32_t L    = 1U << aggregation_level;
-  int      ncce = srslte_pdcch_get_ncce(&q->coreset, search_space, rnti, aggregation_level, candidate, slot_idx);
-  if (ncce < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (q == NULL || search_space == NULL || measure == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  uint32_t L = 1U << aggregation_level;
   if (q->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
     ERROR("Error interleaved mapping not implemented\n");
     return SRSLTE_ERROR;
@@ -453,7 +384,7 @@ int srslte_dmrs_pdcch_get_measure(srslte_dmrs_pdcch_estimator_t* q,
   measure->epre   = epre / (float)q->coreset.duration;
   measure->cfo_hz = cfo / (2.0f * (float)M_PI * Ts);
   measure->sync_error_us =
-      (float)SRSLTE_SUBC_SPACING(q->carrier.numerology) * sync_err / (4.0e-6f * (float)q->coreset.duration);
+      (float)SRSLTE_SUBC_SPACING_NR(q->carrier.numerology) * sync_err / (4.0e-6f * (float)q->coreset.duration);
 
   return SRSLTE_SUCCESS;
 }

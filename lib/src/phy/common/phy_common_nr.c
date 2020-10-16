@@ -19,7 +19,7 @@
  *
  */
 
-#include <srslte/phy/common/phy_common_nr.h>
+#include "srslte/phy/common/phy_common_nr.h"
 
 uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset)
 {
@@ -27,7 +27,7 @@ uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset)
 
   // Iterate all the frequency domain resources bit-map...
   for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    // ... and count 6 PRB for everu frequency domain resource that it is enabled
+    // ... and count 6 PRB for every frequency domain resource that it is enabled
     if (coreset->freq_resources[i]) {
       prb_count += 6;
     }
