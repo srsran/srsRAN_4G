@@ -32,7 +32,7 @@ int srslte_dmrs_pdsch_cfg_to_str(const srslte_dmrs_pdsch_cfg_t* cfg, char* msg, 
                                  ? 1
                                  : cfg->additional_pos == srslte_dmrs_pdsch_add_pos_2 ? 2 : 3;
   const char* len     = cfg->length == srslte_dmrs_pdsch_len_1 ? "single" : "double";
-  const char* mapping = cfg->mapping_type == srslte_dmrs_pdsch_mapping_type_A ? "A" : "B";
+  const char* mapping = cfg->mapping_type == srslte_pdsch_mapping_type_A ? "A" : "B";
 
   return srslte_print_check(msg,
                             max_len,
@@ -174,7 +174,7 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_
 static int srslte_dmrs_pdsch_get_symbols_idx(const srslte_dmrs_pdsch_cfg_t* cfg, uint32_t* symbols)
 {
   switch (cfg->mapping_type) {
-    case srslte_dmrs_pdsch_mapping_type_A:
+    case srslte_pdsch_mapping_type_A:
       // The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal to 'pos2'
       if (cfg->typeA_pos != srslte_dmrs_pdsch_typeA_pos_2 && cfg->additional_pos == srslte_dmrs_pdsch_add_pos_3) {
         ERROR("The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal "
@@ -194,7 +194,7 @@ static int srslte_dmrs_pdsch_get_symbols_idx(const srslte_dmrs_pdsch_cfg_t* cfg,
         return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(cfg, symbols);
       }
       return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(cfg, symbols);
-    case srslte_dmrs_pdsch_mapping_type_B:
+    case srslte_pdsch_mapping_type_B:
       ERROR("Error PDSCH mapping type B not supported\n");
       return SRSLTE_ERROR;
   }

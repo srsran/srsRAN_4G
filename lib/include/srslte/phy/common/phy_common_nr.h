@@ -70,7 +70,57 @@ extern "C" {
  */
 #define SRSLTE_MAX_PRB_NR 275
 
+/**
+ * @brief Maximum start sub-carrier index for the carrier relative point
+ */
 #define SRSLTE_MAX_START_NR 2199
+
+/**
+ * @brief defines the maximum number of Aggregation levels: 1, 2, 4, 8 and 16
+ */
+#define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS 5
+
+/**
+ * @brief defines the maximum number of candidates for a given Aggregation level
+ */
+#define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES 8
+
+/**
+ * @brief Maximum number of PDSCH time domain resource allocations. This is defined by TS 38.331 v15.10.0
+ * as maxNrofDL-Allocations
+ */
+#define SRSLTE_MAX_NOF_DL_ALLOCATION 16
+
+typedef enum SRSLTE_API {
+  srslte_coreset_mapping_type_interleaved = 0,
+  srslte_coreset_mapping_type_non_interleaved,
+} srslte_coreset_mapping_type_t;
+
+typedef enum SRSLTE_API {
+  srslte_coreset_bundle_size_n2 = 0,
+  srslte_coreset_bundle_size_n3,
+  srslte_coreset_bundle_size_n6,
+} srslte_coreset_bundle_size_t;
+
+typedef enum SRSLTE_API {
+  srslte_coreset_precoder_granularity_contiguous = 0,
+  srslte_coreset_precoder_granularity_reg_bundle
+} srslte_coreset_precoder_granularity_t;
+
+/**
+ * @brief PDSCH mapping type
+ * @remark Described in TS 38.331 V15.10.0 Section PDSCH-TimeDomainResourceAllocationList
+ */
+typedef enum SRSLTE_API {
+  /// Type A allocation is relative to the
+  srslte_pdsch_mapping_type_A = 0,
+  srslte_pdsch_mapping_type_B
+} srslte_pdsch_mapping_type_t;
+
+typedef enum SRSLTE_API {
+  srslte_search_space_type_common = 0,
+  srslte_search_space_type_ue,
+} srslte_search_space_type_t;
 
 /**
  * @brief NR carrier parameters
@@ -89,22 +139,6 @@ typedef struct {
 #define SRSLTE_CORESET_DURATION_MAX 3
 #define SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE 45
 #define SRSLTE_CORESET_SHIFT_INDEX_MAX (SRSLTE_CORESET_NOF_PRB_MAX - 1)
-
-typedef enum SRSLTE_API {
-  srslte_coreset_mapping_type_interleaved = 0,
-  srslte_coreset_mapping_type_non_interleaved,
-} srslte_coreset_mapping_type_t;
-
-typedef enum SRSLTE_API {
-  srslte_coreset_bundle_size_n2 = 0,
-  srslte_coreset_bundle_size_n3,
-  srslte_coreset_bundle_size_n6,
-} srslte_coreset_bundle_size_t;
-
-typedef enum SRSLTE_API {
-  srslte_coreset_precoder_granularity_contiguous = 0,
-  srslte_coreset_precoder_granularity_reg_bundle
-} srslte_coreset_precoder_granularity_t;
 
 /**
  * CORESET structure
@@ -126,21 +160,6 @@ typedef struct SRSLTE_API {
   uint32_t                              shift_index;
   /** Missing TCI parameters */
 } srslte_coreset_t;
-
-typedef enum SRSLTE_API {
-  srslte_search_space_type_common = 0,
-  srslte_search_space_type_ue,
-} srslte_search_space_type_t;
-
-/**
- * @brief defines the maximum number of Aggregation levels: 1, 2, 4, 8 and 16
- */
-#define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS 5
-
-/**
- * @brief defines the maximum number of candidates for a given Aggregation level
- */
-#define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES 8
 
 /**
  * @brief SearchSpace parameters as defined in TS 38.331 v15.10.0 SearchSpace sequence

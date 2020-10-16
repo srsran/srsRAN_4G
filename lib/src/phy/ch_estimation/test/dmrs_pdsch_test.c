@@ -37,7 +37,7 @@ static srslte_cell_t cell = {50,             // nof_prb
                              SRSLTE_FDD};
 
 typedef struct {
-  srslte_dmrs_pdsch_mapping_type_t mapping_type;
+  srslte_pdsch_mapping_type_t      mapping_type;
   srslte_dmrs_pdsch_typeA_pos_t    typeA_pos;
   srslte_dmrs_pdsch_len_t          max_length;
   srslte_dmrs_pdsch_add_pos_t      additional_pos;
@@ -49,7 +49,7 @@ typedef struct {
 } golden_t;
 
 // Golden values extracted from https://www.sharetechnote.com/html/5G/5G_PDSCH_DMRS.html
-static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+static const golden_t gold[] = {{.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_0,
@@ -58,7 +58,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2},
                                  .nof_sc         = 4,
                                  .sc_idx         = {0, 1, 6, 7}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_3,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_0,
@@ -67,7 +67,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {3},
                                  .nof_sc         = 4,
                                  .sc_idx         = {0, 1, 6, 7}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_2,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_0,
@@ -76,7 +76,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2, 3},
                                  .nof_sc         = 4,
                                  .sc_idx         = {0, 1, 6, 7}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_1,
@@ -85,7 +85,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2, 11},
                                  .nof_sc         = 4,
                                  .sc_idx         = {0, 1, 6, 7}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_2,
@@ -94,7 +94,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2, 7, 11},
                                  .nof_sc         = 4,
                                  .sc_idx         = {0, 1, 6, 7}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_3,
@@ -103,7 +103,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2, 5, 8, 11},
                                  .nof_sc         = 4,
                                  .sc_idx         = {0, 1, 6, 7}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_0,
@@ -112,7 +112,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2},
                                  .nof_sc         = 6,
                                  .sc_idx         = {0, 2, 4, 6, 8, 10}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_2,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_0,
@@ -121,7 +121,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_dmrs_pdsch_mapping_typ
                                  .symbol_idx     = {2, 3},
                                  .nof_sc         = 6,
                                  .sc_idx         = {0, 2, 4, 6, 8, 10}},
-                                {.mapping_type   = srslte_dmrs_pdsch_mapping_type_A,
+                                {.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .typeA_pos      = srslte_dmrs_pdsch_typeA_pos_2,
                                  .max_length     = srslte_dmrs_pdsch_len_1,
                                  .additional_pos = srslte_dmrs_pdsch_add_pos_3,

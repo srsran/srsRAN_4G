@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/srslte.h"
 #include <stdint.h>
 
@@ -62,18 +62,16 @@ typedef enum {
   srslte_dmrs_pdsch_add_pos_3
 } srslte_dmrs_pdsch_add_pos_t;
 
-typedef enum {
-  srslte_dmrs_pdsch_mapping_type_A = 0,
-  srslte_dmrs_pdsch_mapping_type_B
-} srslte_dmrs_pdsch_mapping_type_t;
-
 typedef struct {
-  srslte_dmrs_pdsch_type_t         type;
-  srslte_dmrs_pdsch_typeA_pos_t    typeA_pos;
-  srslte_dmrs_pdsch_add_pos_t      additional_pos;
-  srslte_dmrs_pdsch_len_t          length;
-  srslte_dmrs_pdsch_mapping_type_t mapping_type;
-  uint32_t                         duration;
+  /// Parameters provided by DMRS-DownlinkConfig
+  srslte_dmrs_pdsch_type_t      type;
+  srslte_dmrs_pdsch_typeA_pos_t typeA_pos;
+  srslte_dmrs_pdsch_add_pos_t   additional_pos;
+  srslte_dmrs_pdsch_len_t       length;
+  uint32_t                      duration;
+
+  /// Parameters provided by PDSCH-TimeDomainResourceAllocation
+  srslte_pdsch_mapping_type_t mapping_type;
 
   bool lte_CRS_to_match_around;
   bool additional_DMRS_DL_Alt;
