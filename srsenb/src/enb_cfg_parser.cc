@@ -889,6 +889,10 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       cfg.dl_freq_hz = args_->rf.dl_freq;
       ERROR("Force DL freq for cell PCI=%d to %f MHz\n", cfg.pci, cfg.dl_freq_hz / 1e6f);
     }
+    if (args_->rf.ul_freq > 0) {
+      cfg.ul_freq_hz = args_->rf.ul_freq;
+      ERROR("Force UL freq for cell PCI=%d to %f MHz\n", cfg.pci, cfg.ul_freq_hz / 1e6f);
+    }
   } else {
     // If more than one cell is defined, single EARFCN or DL freq will be ignored
     if (args_->enb.dl_earfcn > 0 || args_->rf.dl_freq > 0) {
