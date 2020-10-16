@@ -909,7 +909,8 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   args_->stack.s1ap.tac     = rrc_cfg_->cell_list.at(0).tac;
 
   // Create dedicated cell configuration from RRC configuration
-  for (auto& cfg : rrc_cfg_->cell_list) {
+  for (auto it = rrc_cfg_->cell_list.begin(); it != rrc_cfg_->cell_list.end(); ++it) {
+    auto&          cfg          = *it;
     phy_cell_cfg_t phy_cell_cfg = {};
     phy_cell_cfg.cell           = cell_cfg_;
     phy_cell_cfg.cell.id        = cfg.pci;
@@ -947,6 +948,18 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       } else {
         scell_it++;
       }
+    }
+
+    // Check if the enb cells PCIs won't lead to PSS detection issues
+    auto is_pss_collision = [&cfg](const cell_cfg_t& c) {
+      return c.pci % 3 == cfg.pci % 3 and c.dl_earfcn == cfg.dl_earfcn;
+    };
+    auto collision_it = std::find_if(it + 1, rrc_cfg_->cell_list.end(), is_pss_collision);
+    if (collision_it != rrc_cfg_->cell_list.end()) {
+      ERROR("The cells pci1=%d and pci2=%d will have the same PSS. Consider changing one of the cells' PCI values, "
+            "otherwise a UE may fail to correctly detect and distinguish them\n",
+            it->pci,
+            collision_it->pci);
     }
 
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
