@@ -29,8 +29,10 @@ namespace srsenb {
 
 class rrc::ue::mac_controller
 {
+  using ue_cfg_t = sched_interface::ue_cfg_t;
+
 public:
-  mac_controller(rrc::ue* rrc_ue, const sched_interface::ue_cfg_t& sched_ue_cfg);
+  mac_controller(rrc::ue* rrc_ue, const ue_cfg_t& sched_ue_cfg);
 
   // Handling of Msg4
   int  handle_con_setup(const asn1::rrc::rrc_conn_setup_r8_ies_s& conn_setup);
@@ -48,7 +50,7 @@ public:
   void handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
   void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
-  const sched_interface::ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
+  const ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
 
   void set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask);
   void set_drb_activation(bool active);
@@ -57,20 +59,18 @@ public:
   void update_mac(proc_stage_t stage);
 
 private:
-  void handle_con_reconf_with_mobility();
   int  apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg);
   void apply_current_bearers_cfg();
-  void apply_scell_cfg_updates(uint32_t ue_cc_idx);
 
-  srslte::log_ref           log_h;
-  rrc_cfg_t*                rrc_cfg              = nullptr;
-  rrc::ue*                  rrc_ue               = nullptr;
-  mac_interface_rrc*        mac                  = nullptr;
-  sched_interface::ue_cfg_t current_sched_ue_cfg = {};
-  bool                      crnti_set            = false;
-
-  // pending changes
-  std::unique_ptr<asn1::rrc::scell_to_add_mod_list_r10_l> pending_scells_cfg;
+  srslte::log_ref    log_h;
+  rrc_cfg_t*         rrc_cfg = nullptr;
+  rrc::ue*           rrc_ue  = nullptr;
+  mac_interface_rrc* mac     = nullptr;
+  /// UE configuration currently present at the MAC, including any transient disabling of bearers/scells
+  ue_cfg_t current_sched_ue_cfg = {};
+  /// UE configuration once the RRC config procedure (e.g. Reconfiguration) is complete
+  ue_cfg_t next_sched_ue_cfg = {};
+  bool     crnti_set         = false;
 };
 
 } // namespace srsenb
