@@ -265,7 +265,7 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t*       q,
   float    max_peak_value     = -1.0;
   uint32_t nof_detected_cells = 0;
 
-  for (uint32_t N_id_2 = 0; N_id_2 < 3 && ret >= 0; N_id_2++) {
+  for (uint32_t N_id_2 = 0; N_id_2 < 3; N_id_2++) {
     INFO("CELL SEARCH: Starting scan for N_id_2=%d\n", N_id_2);
     ret = srslte_ue_cellsearch_scan_N_id_2(q, N_id_2, &found_cells[N_id_2]);
     if (ret < 0) {

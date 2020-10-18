@@ -245,29 +245,30 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t* q,
   uint32_t nof_frames = 0;
   int      mib_ret    = SRSLTE_UE_MIB_NOTFOUND;
 
-  if (q != NULL) {
-    srslte_ue_mib_sync_reset(q);
-
-    ret = SRSLTE_SUCCESS;
-    do {
-      mib_ret = SRSLTE_UE_MIB_NOTFOUND;
-      ret     = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer, MIB_BUFFER_MAX_SAMPLES);
-      if (ret < 0) {
-        ERROR("Error calling srslte_ue_sync_work()\n");
-        return -1;
-      } else if (srslte_ue_sync_get_sfidx(&q->ue_sync) == 0) {
-        if (ret == 1) {
-          mib_ret = srslte_ue_mib_decode(&q->ue_mib, bch_payload, nof_tx_ports, sfn_offset);
-        } else {
-          DEBUG("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
-          srslte_ue_mib_reset(&q->ue_mib);
-        }
-        nof_frames++;
-      }
-    } while (mib_ret == SRSLTE_UE_MIB_NOTFOUND && ret >= 0 && nof_frames < max_frames_timeout);
-    if (mib_ret < 0) {
-      ret = mib_ret;
-    }
+  if (q == NULL) {
+    return ret;
   }
+
+  srslte_ue_mib_sync_reset(q);
+
+  do {
+    mib_ret = SRSLTE_UE_MIB_NOTFOUND;
+    ret     = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer, MIB_BUFFER_MAX_SAMPLES);
+    if (ret < 0) {
+      ERROR("Error calling srslte_ue_sync_work()\n");
+      return -1;
+    }
+
+    if (srslte_ue_sync_get_sfidx(&q->ue_sync) == 0) {
+      if (ret == 1) {
+        mib_ret = srslte_ue_mib_decode(&q->ue_mib, bch_payload, nof_tx_ports, sfn_offset);
+      } else {
+        DEBUG("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
+        srslte_ue_mib_reset(&q->ue_mib);
+      }
+      nof_frames++;
+    }
+  } while (mib_ret == SRSLTE_UE_MIB_NOTFOUND && nof_frames < max_frames_timeout);
+
   return mib_ret;
 }

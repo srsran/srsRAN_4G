@@ -244,29 +244,31 @@ int srslte_ue_mib_sync_nbiot_decode(srslte_ue_mib_sync_nbiot_t* q,
                                     uint32_t*                   nof_tx_ports,
                                     int*                        sfn_offset)
 {
-  int mib_ret = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
+  int      ret        = SRSLTE_ERROR_INVALID_INPUTS;
+  uint32_t nof_frames = 0;
+  int      mib_ret    = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
 
-  if (q != NULL) {
-    int      ret        = SRSLTE_SUCCESS;
-    uint32_t nof_frames = 0;
-    do {
-      mib_ret = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
-      ret     = srslte_ue_sync_nbiot_zerocopy_multi(&q->ue_sync, q->sf_buffer);
-      if (ret < 0) {
-        fprintf(stderr, "Error calling srslte_ue_sync_nbiot_zerocopy_multi()\n");
-        break;
-      } else if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 0) {
-        mib_ret = srslte_ue_mib_nbiot_decode(&q->ue_mib, NULL, bch_payload, nof_tx_ports, sfn_offset);
-        if (mib_ret < 0) {
-          DEBUG("Resetting NPBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
-          srslte_ue_mib_nbiot_reset(&q->ue_mib);
-        }
-        nof_frames++;
-      }
-    } while (mib_ret == SRSLTE_UE_MIB_NBIOT_NOTFOUND && ret >= 0 && nof_frames < max_frames_timeout);
-    if (mib_ret < 0) {
-      ret = mib_ret;
-    }
+  if (q == NULL) {
+      return ret;
   }
+
+  do {
+    mib_ret = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
+    ret     = srslte_ue_sync_nbiot_zerocopy_multi(&q->ue_sync, q->sf_buffer);
+    if (ret < 0) {
+      fprintf(stderr, "Error calling srslte_ue_sync_nbiot_zerocopy_multi()\n");
+      break;
+    }
+
+    if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 0) {
+      mib_ret = srslte_ue_mib_nbiot_decode(&q->ue_mib, NULL, bch_payload, nof_tx_ports, sfn_offset);
+      if (mib_ret < 0) {
+        DEBUG("Resetting NPBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
+        srslte_ue_mib_nbiot_reset(&q->ue_mib);
+      }
+      nof_frames++;
+    }
+  } while (mib_ret == SRSLTE_UE_MIB_NBIOT_NOTFOUND && nof_frames < max_frames_timeout);
+
   return mib_ret;
 }
