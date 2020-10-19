@@ -38,7 +38,7 @@
 /**
  * @brief Calculates the PDSCH time resource provided by higher layers and stores it in the provided PDSCH NR grant.
  *
- * @remark Defined by TS 36.214 V15.10.0 section 5.1.2.1.1 Determination of the resource allocation table to be used for
+ * @remark Defined by TS 38.214 V15.10.0 section 5.1.2.1.1 Determination of the resource allocation table to be used for
  * PDSCH
  *
  * @param pdsch_alloc Flattened PHY PDSCH allocation configuration provided from higher layers

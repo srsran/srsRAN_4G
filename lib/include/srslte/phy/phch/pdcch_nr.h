@@ -22,9 +22,9 @@
 /******************************************************************************
  *  File:         pdcch.h
  *
- *  Description:  Physical downlink control channel.
+ *  Description:  Physical downlink control channel for NR.
  *
- *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.8
+ *  Reference:    3GPP TS 38.211 version 15.10.0
  *****************************************************************************/
 
 #ifndef SRSLTE_PDCCH_NR_H
