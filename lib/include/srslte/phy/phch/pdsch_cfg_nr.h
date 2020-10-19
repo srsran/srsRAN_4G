@@ -30,11 +30,67 @@
 #ifndef SRSLTE_PDSCH_CFG_NR_H
 #define SRSLTE_PDSCH_CFG_NR_H
 
-#include "srslte/phy/ch_estimation/dmrs_pdsch.h"
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/phch/ra.h"
+
+/**
+ * @brief PDSCH DMRS type
+ */
+typedef enum {
+  srslte_dmrs_pdsch_type_1 = 0, // 1 pilot every 2 sub-carriers (default)
+  srslte_dmrs_pdsch_type_2      // 2 consecutive pilots every 6 sub-carriers
+} srslte_dmrs_pdsch_type_t;
+
+/**
+ * @brief PDSCH DMRS length in symbols
+ */
+typedef enum {
+  srslte_dmrs_pdsch_len_1 = 0, // single, 1 symbol long (default)
+  srslte_dmrs_pdsch_len_2      // double, 2 symbol long
+} srslte_dmrs_pdsch_len_t;
+
+/**
+ * @brief Determines whether the first pilot goes into symbol index 2 or 3
+ */
+typedef enum {
+  srslte_dmrs_pdsch_typeA_pos_2 = 0, // Start in slot symbol index 2 (default)
+  srslte_dmrs_pdsch_typeA_pos_3      // Start in slot symbol index 3
+} srslte_dmrs_pdsch_typeA_pos_t;
+
+/**
+ * @brief Determines additional symbols if possible to be added
+ */
+typedef enum {
+  srslte_dmrs_pdsch_add_pos_2 = 0,
+  srslte_dmrs_pdsch_add_pos_0,
+  srslte_dmrs_pdsch_add_pos_1,
+  srslte_dmrs_pdsch_add_pos_3
+} srslte_dmrs_pdsch_add_pos_t;
+
+/**
+ * @brief Provides PDSCH DMRS configuration from higher layers
+ * @remark Parameters described in TS 38.331 V15.10.0
+ */
+typedef struct {
+  /// Parameters provided by IE DMRS-DownlinkConfig
+  srslte_dmrs_pdsch_type_t      type;
+  srslte_dmrs_pdsch_add_pos_t   additional_pos;
+  srslte_dmrs_pdsch_len_t       length;
+  srslte_dmrs_pdsch_typeA_pos_t typeA_pos;
+  bool                          scrambling_id0_present;
+  uint32_t                      scrambling_id0;
+  bool                          scrambling_id1_present;
+  uint32_t                      scrambling_id1;
+
+  /// Parameters provided by ServingCellConfig
+  bool lte_CRS_to_match_around;
+
+  /// Parameters provided by FeatureSetDownlink-v1540
+  bool additional_DMRS_DL_Alt;
+
+} srslte_pdsch_dmrs_cfg_t;
 
 /**
  * @brief flatten PDSCH time domain allocation parameters
@@ -54,17 +110,28 @@ typedef struct SRSLTE_API {
 } srslte_pdsch_allocation_t;
 
 typedef struct SRSLTE_API {
-  /// TBD
+  /// UE identifier
+  uint16_t rnti;
+
+  /// Time domain resources
+  uint32_t                    k0;
+  uint32_t                    S;
+  uint32_t                    L;
+  srslte_pdsch_mapping_type_t mapping;
+
+  /// Frequency domain resources
+  bool prb_idx[SRSLTE_MAX_PRB_NR];
+
+  /// DMRS Scrambling sequence initialization (false: 0 or true: 1)
+  bool n_scid;
+
+  /// Transport block
+  /// ....
 } srslte_pdsch_grant_nr_t;
 
 typedef struct SRSLTE_API {
-  srslte_pdsch_allocation_t allocation;
-
-  /// PDSCH Start symbol index
-  uint32_t S;
-
-  /// PDSCH length in number of symbols
-  uint32_t L;
+  srslte_pdsch_grant_nr_t grant;
+  srslte_pdsch_dmrs_cfg_t dmrs_cfg;
 } srslte_pdsch_cfg_nr_t;
 
 #endif // SRSLTE_PDSCH_CFG_NR_H

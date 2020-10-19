@@ -22,7 +22,7 @@
 #include "srslte/phy/ch_estimation/dmrs_pdsch.h"
 #include <srslte/phy/utils/debug.h>
 
-int srslte_dmrs_pdsch_cfg_to_str(const srslte_dmrs_pdsch_cfg_t* cfg, char* msg, uint32_t max_len)
+int srslte_dmrs_pdsch_cfg_to_str(const srslte_pdsch_dmrs_cfg_t* cfg, char* msg, uint32_t max_len)
 {
   int type           = (int)cfg->type + 1;
   int typeA_pos      = (int)cfg->typeA_pos + 2;
@@ -31,33 +31,207 @@ int srslte_dmrs_pdsch_cfg_to_str(const srslte_dmrs_pdsch_cfg_t* cfg, char* msg, 
                            : cfg->additional_pos == srslte_dmrs_pdsch_add_pos_1
                                  ? 1
                                  : cfg->additional_pos == srslte_dmrs_pdsch_add_pos_2 ? 2 : 3;
-  const char* len     = cfg->length == srslte_dmrs_pdsch_len_1 ? "single" : "double";
-  const char* mapping = cfg->mapping_type == srslte_pdsch_mapping_type_A ? "A" : "B";
+  const char* len = cfg->length == srslte_dmrs_pdsch_len_1 ? "single" : "double";
 
-  return srslte_print_check(msg,
-                            max_len,
-                            0,
-                            "mapping=%s, type=%d, typeA_pos=%d, add_pos=%d, len=%s",
-                            mapping,
-                            type,
-                            typeA_pos,
-                            additional_pos,
-                            len);
+  return srslte_print_check(
+      msg, max_len, 0, "type=%d, typeA_pos=%d, add_pos=%d, len=%s", type, typeA_pos, additional_pos, len);
+}
+
+static uint32_t
+srslte_dmrs_get_pilots_type1(uint32_t start_prb, uint32_t nof_prb, uint32_t delta, const cf_t* symbols, cf_t* pilots)
+{
+  uint32_t count   = 0;
+  uint32_t n_begin = start_prb * 3;
+  uint32_t n_enb   = n_begin + nof_prb * 3;
+
+  for (uint32_t n = n_begin; n < n_enb; n++) {
+    for (uint32_t k_prime = 0; k_prime < 2; k_prime++, count++) {
+      pilots[count] = symbols[4 * n + 2 * k_prime + delta];
+    }
+  }
+
+  return count;
+}
+
+static uint32_t
+srslte_dmrs_get_pilots_type2(uint32_t start_prb, uint32_t nof_prb, uint32_t delta, const cf_t* symbols, cf_t* pilots)
+{
+  uint32_t count   = 0;
+  uint32_t n_begin = start_prb * 2;
+  uint32_t n_enb   = n_begin + nof_prb * 2;
+
+  for (uint32_t n = n_begin; n < n_enb; n++) {
+    for (uint32_t k_prime = 0; k_prime < 2; k_prime++, count++) {
+      pilots[count] = symbols[6 * n + k_prime + delta];
+    }
+  }
+
+  return count;
+}
+
+static uint32_t srslte_dmrs_get_lse(srslte_dmrs_pdsch_t*     q,
+                                    srslte_sequence_state_t* sequence_state,
+                                    srslte_dmrs_pdsch_type_t dmrs_type,
+                                    uint32_t                 start_prb,
+                                    uint32_t                 nof_prb,
+                                    uint32_t                 delta,
+                                    const cf_t*              symbols,
+                                    cf_t*                    least_square_estimates)
+{
+  uint32_t count = 0;
+
+  switch (dmrs_type) {
+
+    case srslte_dmrs_pdsch_type_1:
+      count = srslte_dmrs_get_pilots_type1(start_prb, nof_prb, delta, symbols, least_square_estimates);
+      break;
+    case srslte_dmrs_pdsch_type_2:
+      count = srslte_dmrs_get_pilots_type2(start_prb, nof_prb, delta, symbols, least_square_estimates);
+      break;
+    default:
+      ERROR("Unknown DMRS type.\n");
+  }
+
+  // Generate sequence for the given pilots
+  srslte_sequence_state_gen_f(sequence_state, M_SQRT1_2, (float*)q->temp, count * 2);
+
+  // Calculate least square estimates
+  srslte_vec_prod_conj_ccc(least_square_estimates, q->temp, least_square_estimates, count);
+
+  return count;
+}
+
+static uint32_t
+srslte_dmrs_put_pilots_type1(uint32_t start_prb, uint32_t nof_prb, uint32_t delta, cf_t* symbols, const cf_t* pilots)
+{
+  uint32_t count   = 0;
+  uint32_t n_begin = start_prb * 3;
+  uint32_t n_enb   = n_begin + nof_prb * 3;
+
+  for (uint32_t n = n_begin; n < n_enb; n++) {
+    for (uint32_t k_prime = 0; k_prime < 2; k_prime++, count++) {
+      symbols[4 * n + 2 * k_prime + delta] = pilots[count];
+    }
+  }
+
+  return count;
+}
+
+static uint32_t
+srslte_dmrs_put_pilots_type2(uint32_t start_prb, uint32_t nof_prb, uint32_t delta, cf_t* symbols, const cf_t* pilots)
+{
+  uint32_t count   = 0;
+  uint32_t n_begin = start_prb * 2;
+  uint32_t n_enb   = n_begin + nof_prb * 2;
+
+  for (uint32_t n = n_begin; n < n_enb; n++) {
+    for (uint32_t k_prime = 0; k_prime < 2; k_prime++, count++) {
+      symbols[6 * n + k_prime + delta] = pilots[count];
+    }
+  }
+
+  return count;
+}
+
+static uint32_t srslte_dmrs_put_pilots(srslte_dmrs_pdsch_t*     q,
+                                       srslte_sequence_state_t* sequence_state,
+                                       srslte_dmrs_pdsch_type_t dmrs_type,
+                                       uint32_t                 start_prb,
+                                       uint32_t                 nof_prb,
+                                       uint32_t                 delta,
+                                       cf_t*                    symbols)
+{
+  uint32_t count = (dmrs_type == srslte_dmrs_pdsch_type_1) ? nof_prb * 6 : nof_prb * 4;
+
+  // Generate sequence for the given pilots
+  srslte_sequence_state_gen_f(sequence_state, M_SQRT1_2, (float*)q->temp, count * 2);
+
+  switch (dmrs_type) {
+
+    case srslte_dmrs_pdsch_type_1:
+      count = srslte_dmrs_put_pilots_type1(start_prb, nof_prb, delta, symbols, q->temp);
+      break;
+    case srslte_dmrs_pdsch_type_2:
+      count = srslte_dmrs_put_pilots_type2(start_prb, nof_prb, delta, symbols, q->temp);
+      break;
+    default:
+      ERROR("Unknown DMRS type.\n");
+  }
+
+  return count;
+}
+
+static int srslte_dmrs_pdsch_put_symbol(srslte_dmrs_pdsch_t*         q,
+                                        const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                        uint32_t                     cinit,
+                                        uint32_t                     delta,
+                                        cf_t*                        symbols)
+{
+  uint32_t prb_count        = 0; // Counts consecutive used PRB
+  uint32_t prb_start        = 0; // Start consecutive used PRB
+  uint32_t prb_skip         = 0; // Number of PRB to skip
+  uint32_t nof_pilots_x_prb = pdsch_cfg->dmrs_cfg.type == srslte_dmrs_pdsch_type_1 ? 6 : 4;
+  uint32_t pilot_count      = 0;
+
+  // Initialise sequence
+  srslte_sequence_state_t sequence_state = {};
+  srslte_sequence_state_init(&sequence_state, cinit);
+
+  // Iterate over PRBs
+  for (uint32_t prb_idx = 0; prb_idx < q->carrier.nof_prb; prb_idx++) {
+    // If the PRB is used for PDSCH transmission count
+    if (pdsch_cfg->grant.prb_idx[prb_idx]) {
+      // If it is the first PRB...
+      if (prb_count == 0) {
+        // ... save first consecutive PRB in the group
+        prb_start = prb_idx;
+
+        // ... discard unused pilots and reset counter
+        srslte_sequence_state_advance(&sequence_state, prb_skip * nof_pilots_x_prb * 2);
+        prb_skip = 0;
+      }
+      prb_count++;
+
+      continue;
+    }
+
+    // Increase number of PRB to skip
+    prb_skip++;
+
+    // End of consecutive PRB, skip copying if no PRB was counted
+    if (prb_count == 0) {
+      continue;
+    }
+
+    // Get contiguous pilots
+    pilot_count += srslte_dmrs_put_pilots(
+        q, &sequence_state, pdsch_cfg->dmrs_cfg.type, prb_start, prb_count, delta, &symbols[prb_start * SRSLTE_NRE]);
+
+    // Reset counter
+    prb_count = 0;
+  }
+
+  if (prb_count > 0) {
+    pilot_count += srslte_dmrs_put_pilots(
+        q, &sequence_state, pdsch_cfg->dmrs_cfg.type, prb_start, prb_count, delta, &symbols[prb_start * SRSLTE_NRE]);
+  }
+
+  return pilot_count;
 }
 
 // Implements 3GPP 38.211 R.15 Table 7.4.1.1.2-3 PDSCH mapping type A Single
-static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_dmrs_pdsch_cfg_t* cfg,
+static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_pdsch_cfg_nr_t* cfg,
                                                                    uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS])
 {
   int count = 0;
 
-  if (cfg->duration < SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN) {
+  if (cfg->grant.L < SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN) {
     ERROR("Duration is below the minimum\n");
     return SRSLTE_ERROR;
   }
 
   // l0 = 3 if the higher-layer parameter dmrs-TypeA-Position is equal to 'pos3' and l0 = 2 otherwise
-  int l0 = (cfg->typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) ? 3 : 2;
+  int l0 = (cfg->dmrs_cfg.typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) ? 3 : 2;
 
   // For PDSCH mapping Type A single-symbol DM-RS, l1 = 11 except if all of the following conditions are fulfilled in
   // which case l1 = 12:
@@ -65,23 +239,23 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
   // - the higher-layer parameters dmrs-AdditionalPosition is equal to 'pos1' and l0 = 3; and
   // - the UE has indicated it is capable of additionalDMRS-DL-Alt
   int l1 = 11;
-  if (cfg->lte_CRS_to_match_around && cfg->additional_pos == srslte_dmrs_pdsch_add_pos_1 &&
-      cfg->typeA_pos == srslte_dmrs_pdsch_typeA_pos_3 && cfg->additional_DMRS_DL_Alt) {
+  if (cfg->dmrs_cfg.lte_CRS_to_match_around && cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_1 &&
+      cfg->dmrs_cfg.typeA_pos == srslte_dmrs_pdsch_typeA_pos_3 && cfg->dmrs_cfg.additional_DMRS_DL_Alt) {
     l1 = 12;
   }
 
   symbols[count] = l0;
   count++;
 
-  if (cfg->duration < 8 || cfg->additional_pos == srslte_dmrs_pdsch_add_pos_0) {
+  if (cfg->grant.L < 8 || cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_0) {
     return count;
   }
 
-  if (cfg->duration < 10) {
+  if (cfg->grant.L < 10) {
     symbols[count] = 7;
     count++;
-  } else if (cfg->duration < 12) {
-    if (cfg->additional_pos > srslte_dmrs_pdsch_add_pos_2) {
+  } else if (cfg->grant.L < 12) {
+    if (cfg->dmrs_cfg.additional_pos > srslte_dmrs_pdsch_add_pos_2) {
       symbols[count] = 6;
       count++;
     }
@@ -89,8 +263,8 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
     symbols[count] = 9;
     count++;
 
-  } else if (cfg->duration == 12) {
-    switch (cfg->additional_pos) {
+  } else if (cfg->grant.L == 12) {
+    switch (cfg->dmrs_cfg.additional_pos) {
       case srslte_dmrs_pdsch_add_pos_1:
         symbols[count] = 9;
         count++;
@@ -110,7 +284,7 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
         count++;
     }
   } else {
-    switch (cfg->additional_pos) {
+    switch (cfg->dmrs_cfg.additional_pos) {
       case srslte_dmrs_pdsch_add_pos_1:
         symbols[count] = l1;
         count++;
@@ -135,28 +309,28 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
 }
 
 // Implements 3GPP 38.211 R.15 Table 7.4.1.1.2-4 PDSCH mapping type A Double
-static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_dmrs_pdsch_cfg_t* cfg,
+static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_pdsch_cfg_nr_t* cfg,
                                                                    uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS])
 {
   int count = 0;
 
-  if (cfg->duration < SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN) {
+  if (cfg->grant.L < SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN) {
     return SRSLTE_ERROR;
   }
 
   // l0 = 3 if the higher-layer parameter dmrs-TypeA-Position is equal to 'pos3' and l0 = 2 otherwise
-  int l0 = (cfg->typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) ? 3 : 2;
+  int l0 = (cfg->dmrs_cfg.typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) ? 3 : 2;
 
   symbols[count] = l0;
   count++;
   symbols[count] = symbols[count - 1] + 1;
   count++;
 
-  if (cfg->duration < 10 || cfg->additional_pos == srslte_dmrs_pdsch_add_pos_0) {
+  if (cfg->grant.L < 10 || cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_0) {
     return count;
   }
 
-  if (cfg->duration < 13) {
+  if (cfg->grant.L < 13) {
     symbols[count] = 8;
     count++;
     symbols[count] = symbols[count - 1] + 1;
@@ -171,12 +345,13 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_
   return count;
 }
 
-static int srslte_dmrs_pdsch_get_symbols_idx(const srslte_dmrs_pdsch_cfg_t* cfg, uint32_t* symbols)
+int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t* cfg, uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS])
 {
-  switch (cfg->mapping_type) {
+  switch (cfg->grant.mapping) {
     case srslte_pdsch_mapping_type_A:
       // The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal to 'pos2'
-      if (cfg->typeA_pos != srslte_dmrs_pdsch_typeA_pos_2 && cfg->additional_pos == srslte_dmrs_pdsch_add_pos_3) {
+      if (cfg->dmrs_cfg.typeA_pos != srslte_dmrs_pdsch_typeA_pos_2 &&
+          cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_3) {
         ERROR("The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal "
               "to 'pos2'\n");
         return SRSLTE_ERROR;
@@ -184,13 +359,13 @@ static int srslte_dmrs_pdsch_get_symbols_idx(const srslte_dmrs_pdsch_cfg_t* cfg,
 
       // For PDSCH mapping type A, ld = 3 and ld = 4 symbols in Tables 7.4.1.1.2-3 and 7.4.1.1.2-4 respectively is only
       // applicable when dmrs-TypeA-Position is equal to 'pos2
-      if ((cfg->duration == 3 || cfg->duration == 4) && cfg->typeA_pos != srslte_dmrs_pdsch_typeA_pos_2) {
+      if ((cfg->grant.L == 3 || cfg->grant.L == 4) && cfg->dmrs_cfg.typeA_pos != srslte_dmrs_pdsch_typeA_pos_2) {
         ERROR("For PDSCH mapping type A, ld = 3 and ld = 4 symbols in Tables 7.4.1.1.2-3 and 7.4.1.1.2-4 respectively "
               "is only applicable when dmrs-TypeA-Position is equal to 'pos2\n");
         return SRSLTE_ERROR;
       }
 
-      if (cfg->length == srslte_dmrs_pdsch_len_1) {
+      if (cfg->dmrs_cfg.length == srslte_dmrs_pdsch_len_1) {
         return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(cfg, symbols);
       }
       return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(cfg, symbols);
@@ -202,20 +377,20 @@ static int srslte_dmrs_pdsch_get_symbols_idx(const srslte_dmrs_pdsch_cfg_t* cfg,
   return SRSLTE_ERROR;
 }
 
-static int srslte_dmrs_pdsch_get_sc_idx(const srslte_dmrs_pdsch_cfg_t* cfg, uint32_t sc_idx[SRSLTE_NRE])
+int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx)
 {
   int      count = 0;
   uint32_t delta = 0;
 
   if (cfg->type == srslte_dmrs_pdsch_type_1) {
-    for (uint32_t n = 0; n < SRSLTE_NRE; n += 4) {
-      for (uint32_t k_prime = 0; k_prime < 2; k_prime++) {
+    for (uint32_t n = 0; count < max_count; n += 4) {
+      for (uint32_t k_prime = 0; k_prime < 2 && count < max_count; k_prime++) {
         sc_idx[count++] = n + 2 * k_prime + delta;
       }
     }
   } else {
-    for (uint32_t n = 0; n < SRSLTE_NRE; n += 6) {
-      for (uint32_t k_prime = 0; k_prime < 2; k_prime++) {
+    for (uint32_t n = 0; count < max_count; n += 6) {
+      for (uint32_t k_prime = 0; k_prime < 2 && count < max_count; k_prime++) {
         sc_idx[count++] = n + k_prime + delta;
       }
     }
@@ -224,122 +399,280 @@ static int srslte_dmrs_pdsch_get_sc_idx(const srslte_dmrs_pdsch_cfg_t* cfg, uint
   return count;
 }
 
-static uint32_t srslte_dmrs_pdsch_seed(const srslte_dmrs_pdsch_cfg_t* cfg, uint32_t slot_idx, uint32_t symbol_idx)
+static uint32_t srslte_dmrs_pdsch_seed(const srslte_carrier_nr_t*   carrier,
+                                       const srslte_pdsch_cfg_nr_t* cfg,
+                                       uint32_t                     slot_idx,
+                                       uint32_t                     symbol_idx)
 {
-  return (uint32_t)(((((SRSLTE_MAX_NSYMB * slot_idx + symbol_idx + 1UL) * (2UL * cfg->n_id + 1UL)) << 17UL) +
-                     (2UL * cfg->n_id + cfg->n_scid)) &
+  // Calculate scrambling IDs
+  uint32_t n_id   = carrier->id;
+  uint32_t n_scid = (cfg->grant.n_scid) ? 1 : 0;
+  if (!cfg->grant.n_scid && cfg->dmrs_cfg.scrambling_id0_present) {
+    // n_scid = 0 and ID0 present
+    n_id = cfg->dmrs_cfg.scrambling_id0;
+  } else if (cfg->grant.n_scid && cfg->dmrs_cfg.scrambling_id1_present) {
+    // n_scid = 1 and ID1 present
+    n_id = cfg->dmrs_cfg.scrambling_id1;
+  }
+
+  return (uint32_t)(((((SRSLTE_MAX_NSYMB * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17UL) +
+                     (2UL * carrier->id + n_scid)) &
                     (uint64_t)INT32_MAX);
 }
 
-int srslte_dmrs_pdsch_init(srslte_dmrs_pdsch_t* q, const srslte_dmrs_pdsch_cfg_t* cfg)
+int srslte_dmrs_pdsch_init(srslte_dmrs_pdsch_t* q, bool is_ue)
 {
-  // Copy new configuration
-  q->cfg = *cfg;
-
-  // Calculate the symbols that carry PDSCH DMRS
-  int n = srslte_dmrs_pdsch_get_symbols_idx(&q->cfg, q->symbols_idx);
-  if (n < SRSLTE_SUCCESS) {
-    ERROR("Getting symbols indexes\n");
-    return n;
+  if (q == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
-  q->nof_symbols = (uint32_t)n;
 
-  // Calculate the sub-carrier index that carry PDSCH DMRS
-  n = srslte_dmrs_pdsch_get_sc_idx(&q->cfg, q->sc_idx);
-  if (n < SRSLTE_SUCCESS) {
-    ERROR("Getting sub-carriers indexes\n");
-    return n;
+  if (is_ue) {
+    q->is_ue = true;
   }
-  q->nof_sc = (uint32_t)n;
 
   return SRSLTE_SUCCESS;
 }
-#define SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE 64
 
-int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t* q, const srslte_dl_sf_cfg_t* sf, cf_t* sf_symbols)
+void srslte_dmrs_pdsch_free(srslte_dmrs_pdsch_t* q)
 {
-  uint32_t delta = 0;
+  if (q == NULL) {
+    return;
+  }
 
-  // Iterate symbols
-  for (uint32_t i = 0; i < q->nof_symbols; i++) {
-    uint32_t l         = q->symbols_idx[i]; // Symbol index inside the sub-frame
-    uint32_t slot_idx  = (sf->tti % SRSLTE_NOF_SF_X_FRAME) * SRSLTE_NOF_SLOTS_PER_SF; // Slot index in the frame
-    uint32_t symbol_sz = q->cfg.nof_prb * SRSLTE_NRE; // Symbol size in resource elements
+  srslte_interp_linear_free(&q->interpolator_type1);
+  srslte_interp_linear_free(&q->interpolator_type2);
+  if (q->pilot_estimates) {
+    free(q->pilot_estimates);
+  }
+  if (q->temp) {
+    free(q->temp);
+  }
+}
 
-    srslte_sequence_state_t sequence_state = {};
-    srslte_sequence_state_init(&sequence_state, srslte_dmrs_pdsch_seed(&q->cfg, slot_idx, l));
+int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_nr_t* carrier)
+{
+  bool nof_prb_changed = q->carrier.nof_prb != carrier->nof_prb;
 
-    // Generate
-    uint32_t k_end = q->cfg.nof_prb * SRSLTE_NRE;
-    for (uint32_t k = delta; k < k_end;) {
+  // Set carrier
+  q->carrier = *carrier;
 
-      cf_t temp_pilots[SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE] = {};
-      srslte_sequence_state_gen_f(
-          &sequence_state, M_SQRT1_2, (float*)temp_pilots, 2 * SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE);
-      switch (q->cfg.type) {
+  if (!q->is_ue) {
+    return SRSLTE_SUCCESS;
+  }
 
-        case srslte_dmrs_pdsch_type_1:
-          for (uint32_t idx = 0; idx < SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE && k < k_end; k += 2) {
-            sf_symbols[l * symbol_sz + k] = temp_pilots[idx++];
-          }
-          break;
-        case srslte_dmrs_pdsch_type_2:
-          for (uint32_t idx = 0; idx < SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE && k < k_end; k += 6) {
-            sf_symbols[l * symbol_sz + k]     = temp_pilots[idx++];
-            sf_symbols[l * symbol_sz + k + 1] = temp_pilots[idx++];
-          }
-          break;
-      }
+  // Free interpolator
+  if (nof_prb_changed) {
+    srslte_interp_linear_free(&q->interpolator_type1);
+    srslte_interp_linear_free(&q->interpolator_type2);
+
+    if (srslte_interp_linear_init(&q->interpolator_type1, carrier->nof_prb * SRSLTE_NRE / 2, 2) != SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
+    if (srslte_interp_linear_init(&q->interpolator_type2, carrier->nof_prb * SRSLTE_NRE / 3, 6) != SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
+  }
+
+  if (q->max_nof_prb < carrier->nof_prb) {
+    q->max_nof_prb = carrier->nof_prb;
+    if (q->pilot_estimates) {
+      free(q->pilot_estimates);
+    }
+
+    // The maximum number of pilots is for Type 1
+    q->pilot_estimates = srslte_vec_cf_malloc(SRSLTE_DMRS_PDSCH_MAX_SYMBOLS * q->max_nof_prb * SRSLTE_NRE / 2);
+    if (!q->pilot_estimates) {
+      ERROR("malloc\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (q->temp) {
+      free(q->temp);
+    }
+
+    q->temp = srslte_vec_cf_malloc(q->max_nof_prb * SRSLTE_NRE);
+    if (!q->temp) {
+      ERROR("malloc\n");
+      return SRSLTE_ERROR;
     }
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dmrs_pdsch_get_sf(srslte_dmrs_pdsch_t*      q,
-                             const srslte_dl_sf_cfg_t* sf,
-                             const cf_t*               sf_symbols,
-                             cf_t*                     least_square_estimates)
+int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*         q,
+                             const srslte_dl_slot_cfg_t*  slot_cfg,
+                             const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                             cf_t*                        sf_symbols)
 {
   uint32_t delta = 0;
 
-  // Iterate symbols
-  for (uint32_t i = 0; i < q->nof_symbols; i++) {
-    uint32_t l         = q->symbols_idx[i]; // Symbol index inside the sub-frame
-    uint32_t slot_idx  = (sf->tti % SRSLTE_NOF_SF_X_FRAME) * SRSLTE_NOF_SLOTS_PER_SF; // Slot index in the frame
-    uint32_t symbol_sz = q->cfg.nof_prb * SRSLTE_NRE; // Symbol size in resource elements
-
-    srslte_sequence_state_t sequence_state = {};
-    srslte_sequence_state_init(&sequence_state, srslte_dmrs_pdsch_seed(&q->cfg, slot_idx, l));
-
-    uint32_t n_end = q->cfg.nof_prb * SRSLTE_NRE;
-    for (uint32_t n = 0; n < n_end;) {
-
-      cf_t temp_pilots[SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE];
-      srslte_sequence_state_gen_f(
-          &sequence_state, M_SQRT1_2, (float*)temp_pilots, 2 * SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE);
-
-      switch (q->cfg.type) {
-
-        case srslte_dmrs_pdsch_type_1:
-          for (uint32_t idx = 0; idx < SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE && n < n_end; n += 4) {
-            for (uint32_t k_prime = 0; k_prime < 2; k_prime++) {
-              uint32_t k                  = n + 2 * k_prime + delta;
-              *(least_square_estimates++) = sf_symbols[l * symbol_sz + k] * conjf(temp_pilots[idx++]);
-            }
-          }
-          break;
-        case srslte_dmrs_pdsch_type_2:
-          for (uint32_t idx = 0; idx < SRSLTE_DMRS_PDSCH_TEMP_PILOT_SIZE && n < n_end; n += 6) {
-            for (uint32_t k_prime = 0; k_prime < 2; k_prime++) {
-              uint32_t k                  = n + k_prime + delta;
-              *(least_square_estimates++) = sf_symbols[l * symbol_sz + k] * conjf(temp_pilots[idx++]);
-            }
-          }
-          break;
-      }
-    }
+  if (q == NULL || slot_cfg == NULL || pdsch_cfg == NULL || sf_symbols == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
+
+  uint32_t symbol_sz = q->carrier.nof_prb * SRSLTE_NRE; // Symbol size in resource elements
+
+  // Get symbols indexes
+  uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
+  int      nof_symbols                            = srslte_dmrs_pdsch_get_symbols_idx(pdsch_cfg, symbols);
+  if (nof_symbols < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  // Iterate symbols
+  for (uint32_t i = 0; i < nof_symbols; i++) {
+    uint32_t l        = symbols[i];    // Symbol index inside the slot
+    uint32_t slot_idx = slot_cfg->idx; // Slot index in the frame
+    uint32_t cinit    = srslte_dmrs_pdsch_seed(&q->carrier, pdsch_cfg, slot_idx, l);
+
+    srslte_dmrs_pdsch_put_symbol(q, pdsch_cfg, cinit, delta, &sf_symbols[symbol_sz * l]);
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static int srslte_dmrs_pdsch_get_symbol(srslte_dmrs_pdsch_t*         q,
+                                        const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                        uint32_t                     cinit,
+                                        uint32_t                     delta,
+                                        const cf_t*                  symbols,
+                                        cf_t*                        least_square_estimates)
+{
+  uint32_t prb_count        = 0; // Counts consecutive used PRB
+  uint32_t prb_start        = 0; // Start consecutive used PRB
+  uint32_t prb_skip         = 0; // Number of PRB to skip
+  uint32_t nof_pilots_x_prb = pdsch_cfg->dmrs_cfg.type == srslte_dmrs_pdsch_type_1 ? 6 : 4;
+  uint32_t pilot_count      = 0;
+
+  // Initialise sequence
+  srslte_sequence_state_t sequence_state = {};
+  srslte_sequence_state_init(&sequence_state, cinit);
+
+  // Iterate over PRBs
+  for (uint32_t prb_idx = 0; prb_idx < q->carrier.nof_prb; prb_idx++) {
+    // If the PRB is used for PDSCH transmission count
+    if (pdsch_cfg->grant.prb_idx[prb_idx]) {
+      // If it is the first PRB...
+      if (prb_count == 0) {
+        // ... save first consecutive PRB in the group
+        prb_start = prb_idx;
+
+        // ... discard unused pilots and reset counter
+        srslte_sequence_state_advance(&sequence_state, prb_skip * nof_pilots_x_prb * 2);
+        prb_skip = 0;
+      }
+      prb_count++;
+
+      continue;
+    }
+
+    // Increase number of PRB to skip
+    prb_skip++;
+
+    // End of consecutive PRB, skip copying if no PRB was counted
+    if (prb_count == 0) {
+      continue;
+    }
+
+    // Get contiguous pilots
+    pilot_count += srslte_dmrs_get_lse(q,
+                                       &sequence_state,
+                                       pdsch_cfg->dmrs_cfg.type,
+                                       prb_start,
+                                       prb_count,
+                                       delta,
+                                       &symbols[prb_start * SRSLTE_NRE],
+                                       &least_square_estimates[pilot_count]);
+
+    // Reset counter
+    prb_count = 0;
+  }
+
+  if (prb_count > 0) {
+    pilot_count += srslte_dmrs_get_lse(q,
+                                       &sequence_state,
+                                       pdsch_cfg->dmrs_cfg.type,
+                                       prb_start,
+                                       prb_count,
+                                       delta,
+                                       &symbols[prb_start * SRSLTE_NRE],
+                                       &least_square_estimates[pilot_count]);
+  }
+
+  return pilot_count;
+}
+
+int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*         q,
+                               const srslte_dl_slot_cfg_t*  slot_cfg,
+                               const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                               const cf_t*                  sf_symbols,
+                               srslte_chest_dl_res_t*       chest_res)
+{
+  const uint32_t delta = 0;
+
+  if (q == NULL || slot_cfg == NULL || sf_symbols == NULL || chest_res == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+  cf_t*    ce        = chest_res->ce[0][0];
+  uint32_t symbol_sz = q->carrier.nof_prb * SRSLTE_NRE; // Symbol size in resource elements
+
+  // Get symbols indexes
+  uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
+  int      nof_symbols                            = srslte_dmrs_pdsch_get_symbols_idx(pdsch_cfg, symbols);
+  if (nof_symbols < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t nof_pilots_x_symbol = 0;
+
+  // Iterate symbols
+  for (uint32_t i = 0; i < nof_symbols; i++) {
+    uint32_t l = symbols[i]; // Symbol index inside the slot
+
+    uint32_t cinit = srslte_dmrs_pdsch_seed(&q->carrier, pdsch_cfg, slot_cfg->idx, l);
+
+    nof_pilots_x_symbol = srslte_dmrs_pdsch_get_symbol(
+        q, pdsch_cfg, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
+  }
+
+  // Perform measurements here
+  // ...
+
+  // Average over time, only if more than one DMRS symbol
+  for (uint32_t i = 1; i < nof_symbols; i++) {
+    srslte_vec_sum_ccc(
+        q->pilot_estimates, &q->pilot_estimates[nof_pilots_x_symbol * i], q->pilot_estimates, nof_pilots_x_symbol);
+  }
+  if (nof_symbols > 0) {
+    srslte_vec_sc_prod_cfc(q->pilot_estimates, 1.0f / (float)nof_symbols, q->pilot_estimates, nof_pilots_x_symbol);
+  }
+
+  // Frequency domain interpolate
+  uint32_t nof_re_x_symbol =
+      (pdsch_cfg->dmrs_cfg.type == srslte_dmrs_pdsch_type_1) ? nof_pilots_x_symbol * 2 : nof_pilots_x_symbol * 3;
+  if (pdsch_cfg->dmrs_cfg.type == srslte_dmrs_pdsch_type_1) {
+    // Prepare interpolator
+    srslte_interp_linear_resize(&q->interpolator_type1, nof_pilots_x_symbol, 2);
+
+    // Interpolate
+    srslte_interp_linear_offset(&q->interpolator_type1, q->pilot_estimates, ce, delta, 2 - delta);
+
+  } else {
+    // Prepare interpolator
+    srslte_interp_linear_resize(&q->interpolator_type2, nof_pilots_x_symbol, 3);
+
+    // Interpolate
+    srslte_interp_linear_offset(&q->interpolator_type2, q->pilot_estimates, ce, delta, 3 - delta);
+  }
+
+  // Time domain hold
+  for (uint32_t i = 1; i < pdsch_cfg->grant.L; i++) {
+    srslte_vec_cf_copy(&ce[i * nof_re_x_symbol], ce, nof_re_x_symbol);
+  }
+
+  // Set other values in the estimation result
+  chest_res->nof_re = nof_re_x_symbol * pdsch_cfg->grant.L;
 
   return SRSLTE_SUCCESS;
 }

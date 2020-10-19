@@ -27,6 +27,7 @@ extern "C" {
 #endif
 
 #include "srslte/phy/common/phy_common_nr.h"
+#include "srslte/phy/phch/pdsch_cfg_nr.h"
 #include "srslte/srslte.h"
 #include <stdint.h>
 
@@ -34,76 +35,122 @@ extern "C" {
 #define SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN 3
 #define SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN 4
 
-typedef enum {
-  srslte_dmrs_pdsch_type_1 = 0, // 1 pilot every 2 sub-carriers (default)
-  srslte_dmrs_pdsch_type_2      // 2 consecutive pilots every 6 sub-carriers
-} srslte_dmrs_pdsch_type_t;
-
-typedef enum {
-  srslte_dmrs_pdsch_len_1 = 0, // single, 1 symbol long (default)
-  srslte_dmrs_pdsch_len_2      // double, 2 symbol long
-} srslte_dmrs_pdsch_len_t;
-
 /**
- * Determines whether the first pilot goes into symbol index 2 or 3
+ * @brief PDSCH DMRS estimator object
+ *
+ * @note The DMRS PDSCH object has to be initialised and the carrier parameters needs to be set.
+ *
+ * @see srslte_dmrs_pdsch_init
+ * @see srslte_dmrs_pdsch_set_carrier
+ * @see srslte_dmrs_pdsch_free
+ * @see srslte_dmrs_pdsch_put_sf
+ * @see srslte_dmrs_pdsch_estimate
  */
-typedef enum {
-  srslte_dmrs_pdsch_typeA_pos_2 = 0, // Start in slot symbol index 2 (default)
-  srslte_dmrs_pdsch_typeA_pos_3      // Start in slot symbol index 3
-} srslte_dmrs_pdsch_typeA_pos_t;
-
-/**
- * Determines additional symbols if possible to be added
- */
-typedef enum {
-  srslte_dmrs_pdsch_add_pos_2 = 0,
-  srslte_dmrs_pdsch_add_pos_0,
-  srslte_dmrs_pdsch_add_pos_1,
-  srslte_dmrs_pdsch_add_pos_3
-} srslte_dmrs_pdsch_add_pos_t;
-
 typedef struct {
-  /// Parameters provided by DMRS-DownlinkConfig
-  srslte_dmrs_pdsch_type_t      type;
-  srslte_dmrs_pdsch_typeA_pos_t typeA_pos;
-  srslte_dmrs_pdsch_add_pos_t   additional_pos;
-  srslte_dmrs_pdsch_len_t       length;
-  uint32_t                      duration;
+  bool is_ue;
 
-  /// Parameters provided by PDSCH-TimeDomainResourceAllocation
-  srslte_pdsch_mapping_type_t mapping_type;
+  srslte_carrier_nr_t carrier;
 
-  bool lte_CRS_to_match_around;
-  bool additional_DMRS_DL_Alt;
+  srslte_interp_lin_t interpolator_type1; /// Type 1 DMRS: 1 pilot every 2 RE
+  srslte_interp_lin_t interpolator_type2; /// Type 2 DMRS: 2 consecutive pilots every 6 RE
 
-  uint32_t n_id;
-  uint32_t n_scid;
-  uint32_t nof_prb;
-  float    beta;
-  uint32_t reference_point;
-} srslte_dmrs_pdsch_cfg_t;
-
-typedef struct {
-  srslte_dmrs_pdsch_cfg_t cfg;
-
-  uint32_t symbols_idx[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS];
-  uint32_t nof_symbols;
-
-  uint32_t sc_idx[SRSLTE_NRE];
-  uint32_t nof_sc;
+  uint32_t max_nof_prb;
+  cf_t*    pilot_estimates; /// Pilots least squares estimates
+  cf_t*    temp;            /// Temporal data vector of size SRSLTE_NRE * carrier.nof_prb
 
 } srslte_dmrs_pdsch_t;
 
-SRSLTE_API int srslte_dmrs_pdsch_cfg_to_str(const srslte_dmrs_pdsch_cfg_t* cfg, char* msg, uint32_t max_len);
+/**
+ * @brief Computes the symbol indexes carrying DMRS and stores them in symbols_idx
+ * @param cfg PDSCH configuration that includes DMRS, PDSCH and grant parameters
+ * @param symbols_idx is the destination pointer where the symbols indexes are stored
+ * @return It returns the number of symbols if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
+ */
+SRSLTE_API int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                                 uint32_t symbols_idx[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS]);
 
-SRSLTE_API int srslte_dmrs_pdsch_init(srslte_dmrs_pdsch_t* q, const srslte_dmrs_pdsch_cfg_t* cfg);
+/**
+ * @brief Computes the sub-carrier indexes carrying DMRS
+ *
+ * @param cfg PDSCH DMRS configuration provided by upper layers
+ * @param max_count is the number of sub-carriers to generate
+ * @param sc_idx is the destination pointer where the sub-carrier indexes are stored
+ *
+ * @return It returns the number of sub-carriers if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
+ */
+SRSLTE_API int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx);
 
-SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t* q, const srslte_dl_sf_cfg_t* sf, cf_t* sf_symbols);
+/**
+ * @brief Stringifies the PDSCH DMRS configuration
+ *
+ * @param cfg PDSCH DMRS configuration
+ * @param msg Pointer to the destination array
+ * @param max_len Maximum number of characters to write
+ *
+ * @return It returns the number of characters written in the vector if no error occurs, otherwise it returns
+ * SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_dmrs_pdsch_cfg_to_str(const srslte_pdsch_dmrs_cfg_t* cfg, char* msg, uint32_t max_len);
 
-SRSLTE_API int srslte_dmrs_pdsch_get_sf(srslte_dmrs_pdsch_t*      q,
-                                        const srslte_dl_sf_cfg_t* sf,
-                                        const cf_t*               sf_symbols,
-                                        cf_t*                     lest_square_estimates);
+/**
+ * @brief Initialises DMRS PDSCH object
+ *
+ * @param q DMRS PDSCH object
+ * @param is_ue indicates whethe the object is for a UE (in this case, it shall initialise as an estimator)
+ * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
+ */
+SRSLTE_API int srslte_dmrs_pdsch_init(srslte_dmrs_pdsch_t* q, bool is_ue);
+
+/**
+ * @brief Frees DMRS PDSCH object
+ *
+ * @param q DMRS PDSCH object
+ */
+SRSLTE_API void srslte_dmrs_pdsch_free(srslte_dmrs_pdsch_t* q);
+
+/**
+ * @brief Sets the carrier configuration. if the PDSCH DMRS object is configured as UE, it will resize internal buffers
+ * and objects.
+ *
+ * @param q DMRS PDSCH object
+ * @param carrier Carrier configuration
+ *
+ * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
+ */
+SRSLTE_API int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_nr_t* carrier);
+
+/**
+ * @brief Puts PDSCH DMRS into a given resource grid
+ *
+ * @param q DMRS PDSCH object
+ * @param slot_cfg Slot configuration
+ * @param pdsch_cfg PDSCH transmission configuration
+ * @param sf_symbols Resource grid
+ *
+ * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
+ */
+SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*         q,
+                                        const srslte_dl_slot_cfg_t*  slot_cfg,
+                                        const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                        cf_t*                        sf_symbols);
+
+/**
+ * @brief Estimates the channel for PDSCH from the DMRS
+ *
+ * @attention Current implementation is thought for type1 PDSCH DMRS (1 pilot every 2 RE)
+ *
+ * @param q DMRS-PDSCH object
+ * @param slot_cfg Slot configuration
+ * @param sf_symbols Received resource grid
+ * @param[out] ce Channel estimates
+ *
+ * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
+ */
+SRSLTE_API int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*         q,
+                                          const srslte_dl_slot_cfg_t*  slot_cfg,
+                                          const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                          const cf_t*                  sf_symbols,
+                                          srslte_chest_dl_res_t*       chest_res);
 
 #ifdef __cplusplus
 }

@@ -123,7 +123,7 @@ typedef enum SRSLTE_API {
 } srslte_search_space_type_t;
 
 /**
- * @brief NR carrier parameters
+ * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
  */
 typedef struct {
   uint32_t id;
@@ -133,18 +133,38 @@ typedef struct {
 } srslte_carrier_nr_t;
 
 /**
- * CORESET related constants
+ * @brief NR Slot parameters. It contains parameters that change in a slot basis.
+ */
+typedef struct {
+  /// Slot index in the radio frame
+  uint32_t idx;
+
+  /// Left for future parameters
+  /// ...
+} srslte_dl_slot_cfg_t;
+
+/**
+ * @brief Min number of OFDM symbols in a control resource set.
  */
 #define SRSLTE_CORESET_DURATION_MIN 1
+
+/**
+ * @brief Max number of OFDM symbols in a control resource set. Specified in TS 38.331 V15.10.0 as maxCoReSetDuration
+ */
 #define SRSLTE_CORESET_DURATION_MAX 3
+
+/**
+ * @brief Number of possible CORESET frequency resources.
+ */
 #define SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE 45
+
+/**
+ * @brief Max value for shift index
+ */
 #define SRSLTE_CORESET_SHIFT_INDEX_MAX (SRSLTE_CORESET_NOF_PRB_MAX - 1)
 
 /**
- * CORESET structure
- *
- * Fields follow the same order than described in 3GPP 38.331 R15 - ControlResourceSet
- *
+ * @brief CORESET parameters as defined in TS 38.331 V15.10.0 - ControlResourceSet
  */
 typedef struct SRSLTE_API {
   srslte_coreset_mapping_type_t mapping_type;
@@ -171,6 +191,9 @@ typedef struct SRSLTE_API {
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS];
 } srslte_search_space_t;
 
+/**
+ * @brief PDCCH configuration
+ */
 typedef struct SRSLTE_API {
   srslte_carrier_nr_t   carrier;
   uint16_t              rnti;
