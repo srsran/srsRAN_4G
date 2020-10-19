@@ -154,6 +154,8 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     pending_ces.emplace_back(srslte::dl_sch_lcid::SCELL_ACTIVATION);
     log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
   }
+
+  check_ue_cfg_correctness();
 }
 
 void sched_ue::reset()
@@ -177,6 +179,35 @@ void sched_ue::new_tti(srslte::tti_point new_tti)
   current_tti = new_tti;
 
   lch_handler.new_tti();
+}
+
+/// sanity check the UE CC configuration
+void sched_ue::check_ue_cfg_correctness() const
+{
+  using cc_t             = sched::ue_cfg_t::cc_cfg_t;
+  const auto& cc_list    = cfg.supported_cc_list;
+  bool        has_scells = std::count_if(cc_list.begin(), cc_list.end(), [](const cc_t& c) { return c.active; }) > 1;
+
+  if (has_scells) {
+    // In case of CA, CQI configs must exist and cannot collide in the PUCCH
+    for (uint32_t i = 0; i < cc_list.size(); ++i) {
+      const auto& cc1 = cc_list[i];
+      if (not cc1.active) {
+        continue;
+      }
+      if (not cc1.dl_cfg.cqi_report.periodic_configured and not cc1.dl_cfg.cqi_report.aperiodic_configured) {
+        log_h->warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
+      } else if (cc1.dl_cfg.cqi_report.periodic_configured) {
+        for (uint32_t j = i + 1; j < cc_list.size(); ++j) {
+          if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
+              cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
+            log_h->warning(
+                "SCHED: The provided CQI configurations for UE scells %d and %d collide in the PUCCH\n", i, j);
+          }
+        }
+      }
+    }
+  }
 }
 
 /*******************************************************

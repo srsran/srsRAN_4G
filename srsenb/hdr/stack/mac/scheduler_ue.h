@@ -246,6 +246,7 @@ public:
   bool pucch_sr_collision(uint32_t tti, uint32_t n_cce);
 
 private:
+  void check_ue_cfg_correctness() const;
   bool is_sr_triggered();
 
   uint32_t            allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx);
