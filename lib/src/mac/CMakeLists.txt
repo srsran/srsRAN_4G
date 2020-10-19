@@ -26,3 +26,4 @@ endif(ENABLE_5GNR)
 
 add_library(srslte_mac STATIC ${SOURCES})
 target_link_libraries(srslte_mac srslte_common)
+INSTALL(TARGETS srslte_mac DESTINATION ${LIBRARY_DIR})

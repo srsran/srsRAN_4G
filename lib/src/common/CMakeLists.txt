@@ -60,4 +60,6 @@ add_executable(arch_select arch_select.cc)
 target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS})
 target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES})
 
+INSTALL(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
+
 add_subdirectory(test)

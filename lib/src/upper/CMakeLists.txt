@@ -35,3 +35,4 @@ endif(ENABLE_5GNR)
 
 add_library(srslte_upper STATIC ${SOURCES})
 target_link_libraries(srslte_upper srslte_common srslte_asn1)
+INSTALL(TARGETS srslte_upper DESTINATION ${LIBRARY_DIR})
