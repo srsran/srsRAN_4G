@@ -244,6 +244,7 @@ int test_correct_meascfg_calculation()
     // TEST: creation of a var_meas_cfg using the srsenb::rrc_cfg_t
     rrc_cfg_t cfg;
     cfg.enb_id           = 0x19B;
+    cfg.cell.nof_prb     = 6;
     cfg.meas_cfg_present = true;
     cfg.cell_list.resize(2);
     cfg.cell_list[0].dl_earfcn = 2850;
