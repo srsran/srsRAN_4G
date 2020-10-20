@@ -134,19 +134,27 @@ static uint32_t ra_re_x_prb(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, u
       switch (cell->nof_ports) {
         case 1:
         case 2:
-          if (nof_symbols >= 5) {
+          if ((cp_ == SRSLTE_CP_NORM && nof_symbols >= 5) || (cp_ == SRSLTE_CP_EXT && nof_symbols >= 4)) {
             re -= 2 * (slot + 1) * cell->nof_ports;
           } else if (slot == 1) {
-            re -= 2 * cell->nof_ports;
+            if (nof_symbols >= 1) {
+              re -= 2 * cell->nof_ports;
+            }
           }
           break;
         case 4:
           if (slot == 1) {
-            re -= 12;
+            if ((cp_ == SRSLTE_CP_NORM && nof_symbols >= 5) || (cp_ == SRSLTE_CP_EXT && nof_symbols >= 4)) {
+              re -= 12;
+            } else if (nof_symbols >= 2) {
+              re -= 8;
+            }
           } else {
-            re -= 4;
-            if (nof_ctrl_symbols == 1) {
+            if ((cp_ == SRSLTE_CP_NORM && nof_symbols >= 5) || (cp_ == SRSLTE_CP_EXT && nof_symbols >= 4)) {
               re -= 4;
+              if (nof_ctrl_symbols == 1) {
+                re -= 4;
+              }
             }
           }
           break;
