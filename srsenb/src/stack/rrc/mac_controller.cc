@@ -127,7 +127,7 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
   current_sched_ue_cfg.continuous_pusch = false;
 
   // Only PCell active at this point
-  current_sched_ue_cfg.supported_cc_list.resize(1);
+  current_sched_ue_cfg.supported_cc_list.resize(1, {});
   current_sched_ue_cfg.supported_cc_list[0].active     = true;
   current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = pcell->cell_common->enb_cc_idx;
 
@@ -136,8 +136,9 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
   current_sched_ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
-  // Set basic antenna configuration
+  // Set default configuration
   current_sched_ue_cfg.supported_cc_list[0].dl_cfg.tm = SRSLTE_TM1;
+  current_sched_ue_cfg.use_tbs_index_alt              = false;
 
   // Apply common PhyConfig updates (e.g. SR/CQI resources, antenna cfg)
   if (rr_cfg.phys_cfg_ded_present) {

@@ -388,7 +388,6 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   } else {
     parent->rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
   }
-  return;
 }
 
 void rrc::ue::send_connection_reest(uint8_t ncc)

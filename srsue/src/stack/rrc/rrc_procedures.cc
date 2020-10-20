@@ -1332,7 +1332,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   }
 
   // 1> apply the default physical channel configuration as specified in 9.2.4;
-  // Note: this is done by the MAC Reset procedure
+  rrc_ptr->phy_ctrl->set_phy_to_default_dedicated();
 
   // 1> apply the default semi-persistent scheduling configuration as specified in 9.2.3;
   // N.A.

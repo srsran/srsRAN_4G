@@ -1381,6 +1381,10 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
   if (tbs_bytes > (int)req_bytes && req_bytes > 0) {
     int req_tbs_idx = srslte_ra_tbs_to_table_idx(req_bytes * 8, nof_prb);
     int req_mcs     = srslte_ra_mcs_from_tbs_idx(req_tbs_idx, cfg->use_tbs_index_alt, is_ul);
+    while (cfg->use_tbs_index_alt and req_mcs < 0 and req_tbs_idx < 33) {
+      // some tbs_idx are invalid for 256QAM. See TS 36.213 - Table 7.1.7.1-1A
+      req_mcs = srslte_ra_mcs_from_tbs_idx(++req_tbs_idx, cfg->use_tbs_index_alt, is_ul);
+    }
 
     if (req_mcs >= 0 and req_mcs < (int)sel_mcs) {
       sel_mcs   = req_mcs;

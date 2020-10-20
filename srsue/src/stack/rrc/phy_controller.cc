@@ -47,7 +47,7 @@ void phy_controller::in_sync()
 bool phy_controller::set_cell_config(const srslte::phy_cfg_t& config, uint32_t cc_idx)
 {
   log_h->info("Setting PHY config for cc_idx=%d\n", cc_idx);
-  return set_cell_config_common(config, cc_idx, true);
+  return set_cell_config(config, cc_idx, true);
 }
 
 void phy_controller::set_phy_to_default()
@@ -57,7 +57,19 @@ void phy_controller::set_phy_to_default()
   srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults();
   for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
-    set_cell_config_common(default_cfg, i, false);
+    set_cell_config(default_cfg, i, false);
+  }
+}
+
+/// Apply default PHY config for all SCells as specified in TS 36.331 9.2.4
+void phy_controller::set_phy_to_default_dedicated()
+{
+  log_h->info("Setting default dedicated PHY config\n");
+
+  srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
+  default_cfg.set_defaults_dedicated();
+  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
+    set_cell_config(default_cfg, i, false);
   }
 }
 
@@ -68,16 +80,16 @@ void phy_controller::set_phy_to_default_pucch_srs()
   srslte::phy_cfg_t& default_cfg_ded = current_cells_cfg[0];
   default_cfg_ded.set_defaults_pucch_sr();
   for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; ++i) {
-    set_cell_config_common(default_cfg_ded, i, false);
+    set_cell_config(default_cfg_ded, i, false);
   }
 }
 
-bool phy_controller::set_cell_config_common(const srslte::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set)
+bool phy_controller::set_cell_config(const srslte::phy_cfg_t& cfg, uint32_t cc_idx, bool is_set)
 {
-  if ((is_set or cc_idx == 0 or current_scells_cfg[cc_idx]) and phy->set_config(cfg, cc_idx)) {
+  if ((is_set or cc_idx == 0 or configured_scell_mask[cc_idx]) and phy->set_config(cfg, cc_idx)) {
     current_cells_cfg[cc_idx] = cfg;
     if (cc_idx > 0) {
-      current_scells_cfg[cc_idx] = is_set;
+      configured_scell_mask[cc_idx] = is_set;
     }
     nof_pending_configs++;
     return true;
