@@ -31,8 +31,8 @@
 #define srslte_pdsch_nr_H
 
 #include "srslte/config.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
 #include "srslte/phy/ch_estimation/dmrs_pdsch.h"
+#include "srslte/phy/phch/pdsch_cfg_nr.h"
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/scrambling/scrambling.h"
@@ -64,13 +64,13 @@ SRSLTE_API int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, srslte_cell_t c
 
 /* These functions do not modify the state and run in real-time */
 SRSLTE_API int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*     q,
-                                      uint32_t slot_idx,
+                                      uint32_t               slot_idx,
                                       srslte_pdsch_cfg_nr_t* cfg,
                                       uint8_t*               data[SRSLTE_MAX_CODEWORDS],
                                       cf_t*                  sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*     q,
-                                      uint32_t slot_idx,
+                                      uint32_t               slot_idx,
                                       srslte_pdsch_cfg_nr_t* cfg,
                                       srslte_chest_dl_res_t* channel,
                                       cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],

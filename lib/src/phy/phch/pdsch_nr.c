@@ -195,14 +195,12 @@ int srslte_pdsch_nr_put(const srslte_pdsch_nr_t* q, const srslte_pdsch_cfg_nr_t*
   return srslte_pdsch_nr_cp(q, cfg, symbols, sf_symbols, true);
 }
 
-
 int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*     q,
-                           uint32_t slot_idx,
+                           uint32_t               slot_idx,
                            srslte_pdsch_cfg_nr_t* cfg,
                            uint8_t*               data[SRSLTE_MAX_CODEWORDS],
-                           cf_t*                  sf_symbols[SRSLTE_MAX_PORTS]) {
-
-
+                           cf_t*                  sf_symbols[SRSLTE_MAX_PORTS])
+{
 
   return SRSLTE_SUCCESS;
 }
