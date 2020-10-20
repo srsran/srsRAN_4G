@@ -161,6 +161,6 @@ SRSLTE_API int srslte_cqi_hl_get_no_subbands(int nof_prb);
 
 SRSLTE_API uint8_t srslte_cqi_from_snr(float snr);
 
-SRSLTE_API float srslte_cqi_to_coderate(uint32_t cqi);
+SRSLTE_API float srslte_cqi_to_coderate(uint32_t cqi, bool use_alt_table);
 
 #endif // SRSLTE_CQI_H

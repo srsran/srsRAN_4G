@@ -1208,10 +1208,10 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_inde
 
   uint32_t cqi     = is_ul ? ul_cqi : dl_cqi;
   uint32_t max_mcs = is_ul ? max_mcs_ul : (cfg->use_tbs_index_alt) ? max_mcs_dl_alt : max_mcs_dl;
-  uint32_t max_Qm  = is_ul and not ul_64qam_enabled ? 4 : 6; //< TODO: Allow PUSCH 64QAM
+  uint32_t max_Qm  = is_ul and not ul_64qam_enabled ? 4 : (not is_ul and use_tbs_index_alt ? 8 : 6);
 
   // Take the upper bound code-rate
-  float    max_coderate = srslte_cqi_to_coderate(cqi < 15 ? cqi + 1 : 15);
+  float    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
   int      sel_mcs      = max_mcs + 1;
   float    coderate     = 99;
   int      tbs          = 0;
@@ -1345,7 +1345,7 @@ void cc_sched_ue::finish_tti(srslte::tti_point tti_rx)
 uint32_t cc_sched_ue::get_aggr_level(uint32_t nof_bits)
 {
   uint32_t l            = 0;
-  float    max_coderate = srslte_cqi_to_coderate(dl_cqi);
+  float    max_coderate = srslte_cqi_to_coderate(dl_cqi, cfg->use_tbs_index_alt);
   float    coderate     = 99;
   float    factor       = 1.5;
   uint32_t l_max        = 3;
@@ -1382,7 +1382,7 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
     int req_tbs_idx = srslte_ra_tbs_to_table_idx(req_bytes * 8, nof_prb);
     int req_mcs     = srslte_ra_mcs_from_tbs_idx(req_tbs_idx, cfg->use_tbs_index_alt, is_ul);
 
-    if (req_mcs < (int)sel_mcs) {
+    if (req_mcs >= 0 and req_mcs < (int)sel_mcs) {
       sel_mcs   = req_mcs;
       tbs_bytes = srslte_ra_tbs_from_idx(req_tbs_idx, nof_prb) / 8;
     }

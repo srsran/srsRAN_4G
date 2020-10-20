@@ -537,7 +537,7 @@ bool srslte_cqi_periodic_send(const srslte_cqi_report_cfg_t* cfg, uint32_t tti, 
   return cfg->periodic_configured && cqi_send(cfg->pmi_idx, tti, frame_type == SRSLTE_FDD);
 }
 
-// CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-1  */
+// CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-1
 static float cqi_to_coderate[16] = {0,
                                     0.1523,
                                     0.2344,
@@ -555,10 +555,28 @@ static float cqi_to_coderate[16] = {0,
                                     5.1152,
                                     5.5547};
 
-float srslte_cqi_to_coderate(uint32_t cqi)
+// CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-2
+static float cqi_to_coderate_table2[16] = {0,
+                                           0.1523,
+                                           0.3770,
+                                           0.8770,
+                                           1.4766,
+                                           1.9141,
+                                           2.4063,
+                                           2.7305,
+                                           3.3223,
+                                           3.9023,
+                                           4.5234,
+                                           5.1152,
+                                           5.5547,
+                                           6.2266,
+                                           6.9141,
+                                           7.4063};
+
+float srslte_cqi_to_coderate(uint32_t cqi, bool use_alt_table)
 {
   if (cqi < 16) {
-    return cqi_to_coderate[cqi];
+    return use_alt_table ? cqi_to_coderate_table2[cqi] : cqi_to_coderate[cqi];
   } else {
     return 0;
   }
