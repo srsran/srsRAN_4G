@@ -1185,7 +1185,7 @@ void rrc::handle_sib1()
 
   // Set TDD Config
   if (sib1->tdd_cfg_present) {
-    srslte_tdd_config_t tdd_config;
+    srslte_tdd_config_t tdd_config = {};
     tdd_config.sf_config = sib1->tdd_cfg.sf_assign.to_number();
     tdd_config.ss_config = sib1->tdd_cfg.special_sf_patterns.to_number();
     phy->set_config_tdd(tdd_config);

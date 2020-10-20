@@ -745,7 +745,7 @@ srslte_sync_find(srslte_sync_t* q, const cf_t* input, uint32_t find_offset, uint
           int                 sss_idx;
           uint32_t            nof_frame_type_trials;
           srslte_frame_type_t frame_type_trials[2];
-          float               sss_corr[2];
+          float               sss_corr[2] = {};
           uint32_t            sf_idx[2], N_id_1[2];
 
           if (q->detect_frame_type) {
