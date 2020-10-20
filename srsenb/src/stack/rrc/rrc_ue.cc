@@ -532,6 +532,14 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // PDSCH
   phy_cfg->pdsch_cfg_ded_present = true;
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
+  // 256-QAM
+  if (ue_capabilities.support_dl_256qam) {
+    phy_cfg->ext = true;
+    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
+    phy_cfg->cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present = true;
+    phy_cfg->cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
+        cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
+  }
 
   // Add SCells
   if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
