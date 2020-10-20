@@ -509,6 +509,7 @@ template <typename S> struct char_t_impl<S, enable_if_t<is_string<S>::value>> {
 struct error_handler {
   constexpr error_handler() = default;
   constexpr error_handler(const error_handler&) = default;
+  error_handler& operator=(const error_handler&) = default;
 
   // This function is intentionally not constexpr to give a compile-time error.
   FMT_NORETURN FMT_API void on_error(const char* message);

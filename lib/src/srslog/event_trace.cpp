@@ -64,7 +64,9 @@ void srslog::event_trace_init(log_channel& c)
 static void format_time(char* buffer, size_t len)
 {
   std::time_t t = std::time(nullptr);
-  std::strftime(buffer, len, "%FT%T", std::localtime(&t));
+  std::tm lt{};
+  ::localtime_r(&t, &lt);
+  std::strftime(buffer, len, "%FT%T", &lt);
 }
 
 namespace srslog {
