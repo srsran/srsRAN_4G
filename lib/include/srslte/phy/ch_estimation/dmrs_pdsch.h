@@ -32,8 +32,6 @@ extern "C" {
 #include <stdint.h>
 
 #define SRSLTE_DMRS_PDSCH_MAX_SYMBOLS 4
-#define SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN 3
-#define SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN 4
 
 /**
  * @brief PDSCH DMRS estimator object

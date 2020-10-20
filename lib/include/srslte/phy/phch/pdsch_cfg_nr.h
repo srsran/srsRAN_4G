@@ -78,13 +78,13 @@ typedef struct {
   srslte_dmrs_pdsch_type_t      type;
   srslte_dmrs_pdsch_add_pos_t   additional_pos;
   srslte_dmrs_pdsch_len_t       length;
-  srslte_dmrs_pdsch_typeA_pos_t typeA_pos;
   bool                          scrambling_id0_present;
   uint32_t                      scrambling_id0;
   bool                          scrambling_id1_present;
   uint32_t                      scrambling_id1;
 
-  /// Parameters provided by ServingCellConfig
+  /// Parameters provided by ServingCellConfigCommon
+  srslte_dmrs_pdsch_typeA_pos_t typeA_pos;
   bool lte_CRS_to_match_around;
 
   /// Parameters provided by FeatureSetDownlink-v1540

@@ -22,6 +22,9 @@
 #include "srslte/phy/ch_estimation/dmrs_pdsch.h"
 #include <srslte/phy/utils/debug.h>
 
+#define SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN 3
+#define SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN 4
+
 int srslte_dmrs_pdsch_cfg_to_str(const srslte_pdsch_dmrs_cfg_t* cfg, char* msg, uint32_t max_len)
 {
   int type           = (int)cfg->type + 1;
@@ -221,11 +224,12 @@ static int srslte_dmrs_pdsch_put_symbol(srslte_dmrs_pdsch_t*         q,
 
 // Implements 3GPP 38.211 R.15 Table 7.4.1.1.2-3 PDSCH mapping type A Single
 static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_pdsch_cfg_nr_t* cfg,
+                                                                   uint32_t                     ld,
                                                                    uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS])
 {
   int count = 0;
 
-  if (cfg->grant.L < SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN) {
+  if (ld < SRSLTE_DMRS_PDSCH_TYPEA_SINGLE_DURATION_MIN) {
     ERROR("Duration is below the minimum\n");
     return SRSLTE_ERROR;
   }
@@ -247,14 +251,14 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
   symbols[count] = l0;
   count++;
 
-  if (cfg->grant.L < 8 || cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_0) {
+  if (ld < 8 || cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_0) {
     return count;
   }
 
-  if (cfg->grant.L < 10) {
+  if (ld < 10) {
     symbols[count] = 7;
     count++;
-  } else if (cfg->grant.L < 12) {
+  } else if (ld < 12) {
     if (cfg->dmrs_cfg.additional_pos > srslte_dmrs_pdsch_add_pos_2) {
       symbols[count] = 6;
       count++;
@@ -263,7 +267,7 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
     symbols[count] = 9;
     count++;
 
-  } else if (cfg->grant.L == 12) {
+  } else if (ld == 12) {
     switch (cfg->dmrs_cfg.additional_pos) {
       case srslte_dmrs_pdsch_add_pos_1:
         symbols[count] = 9;
@@ -310,11 +314,12 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(const srslte_
 
 // Implements 3GPP 38.211 R.15 Table 7.4.1.1.2-4 PDSCH mapping type A Double
 static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_pdsch_cfg_nr_t* cfg,
+                                                                   uint32_t                     ld,
                                                                    uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS])
 {
   int count = 0;
 
-  if (cfg->grant.L < SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN) {
+  if (ld < SRSLTE_DMRS_PDSCH_TYPEA_DOUBLE_DURATION_MIN) {
     return SRSLTE_ERROR;
   }
 
@@ -326,11 +331,11 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_
   symbols[count] = symbols[count - 1] + 1;
   count++;
 
-  if (cfg->grant.L < 10 || cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_0) {
+  if (ld < 10 || cfg->dmrs_cfg.additional_pos == srslte_dmrs_pdsch_add_pos_0) {
     return count;
   }
 
-  if (cfg->grant.L < 13) {
+  if (ld < 13) {
     symbols[count] = 8;
     count++;
     symbols[count] = symbols[count - 1] + 1;
@@ -347,6 +352,15 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_
 
 int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t* cfg, uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS])
 {
+  // The position(s) of the DM-RS symbols is given by l and duration ld where
+  // - for PDSCH mapping type A, ld is the duration between the first OFDM symbol of the slot and the last OFDM symbol
+  //   of the scheduled PDSCH resources in the slot
+  // - for PDSCH mapping type B, ld is the duration of the scheduled PDSCH resources
+  uint32_t ld = cfg->grant.L;
+  if (cfg->grant.mapping == srslte_pdsch_mapping_type_A) {
+    ld = cfg->grant.S + cfg->grant.L;
+  }
+
   switch (cfg->grant.mapping) {
     case srslte_pdsch_mapping_type_A:
       // The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal to 'pos2'
@@ -359,16 +373,16 @@ int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t* cfg, uint32_t
 
       // For PDSCH mapping type A, ld = 3 and ld = 4 symbols in Tables 7.4.1.1.2-3 and 7.4.1.1.2-4 respectively is only
       // applicable when dmrs-TypeA-Position is equal to 'pos2
-      if ((cfg->grant.L == 3 || cfg->grant.L == 4) && cfg->dmrs_cfg.typeA_pos != srslte_dmrs_pdsch_typeA_pos_2) {
+      if ((ld == 3 || ld == 4) && cfg->dmrs_cfg.typeA_pos != srslte_dmrs_pdsch_typeA_pos_2) {
         ERROR("For PDSCH mapping type A, ld = 3 and ld = 4 symbols in Tables 7.4.1.1.2-3 and 7.4.1.1.2-4 respectively "
               "is only applicable when dmrs-TypeA-Position is equal to 'pos2\n");
         return SRSLTE_ERROR;
       }
 
       if (cfg->dmrs_cfg.length == srslte_dmrs_pdsch_len_1) {
-        return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(cfg, symbols);
+        return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_single(cfg, ld, symbols);
       }
-      return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(cfg, symbols);
+      return srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(cfg, ld, symbols);
     case srslte_pdsch_mapping_type_B:
       ERROR("Error PDSCH mapping type B not supported\n");
       return SRSLTE_ERROR;
@@ -451,17 +465,32 @@ void srslte_dmrs_pdsch_free(srslte_dmrs_pdsch_t* q)
 
 int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_nr_t* carrier)
 {
-  bool nof_prb_changed = q->carrier.nof_prb != carrier->nof_prb;
+  bool max_nof_prb_changed = q->max_nof_prb < carrier->nof_prb;
 
-  // Set carrier
+  // Set carrier and update maximum number of PRB
   q->carrier = *carrier;
+  q->max_nof_prb = SRSLTE_MAX(q->max_nof_prb, carrier->nof_prb);
 
+  // Resize/allocate temp for gNb and UE
+  if (max_nof_prb_changed) {
+    if (q->temp) {
+      free(q->temp);
+    }
+
+    q->temp = srslte_vec_cf_malloc(q->max_nof_prb * SRSLTE_NRE);
+    if (!q->temp) {
+      ERROR("malloc\n");
+      return SRSLTE_ERROR;
+    }
+  }
+
+  // If it is not UE, quit now
   if (!q->is_ue) {
     return SRSLTE_SUCCESS;
   }
 
-  // Free interpolator
-  if (nof_prb_changed) {
+  if (max_nof_prb_changed) {
+    // Resize interpolator only if the number of PRB has increased
     srslte_interp_linear_free(&q->interpolator_type1);
     srslte_interp_linear_free(&q->interpolator_type2);
 
@@ -471,10 +500,7 @@ int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_n
     if (srslte_interp_linear_init(&q->interpolator_type2, carrier->nof_prb * SRSLTE_NRE / 3, 6) != SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
-  }
 
-  if (q->max_nof_prb < carrier->nof_prb) {
-    q->max_nof_prb = carrier->nof_prb;
     if (q->pilot_estimates) {
       free(q->pilot_estimates);
     }
@@ -482,16 +508,6 @@ int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_n
     // The maximum number of pilots is for Type 1
     q->pilot_estimates = srslte_vec_cf_malloc(SRSLTE_DMRS_PDSCH_MAX_SYMBOLS * q->max_nof_prb * SRSLTE_NRE / 2);
     if (!q->pilot_estimates) {
-      ERROR("malloc\n");
-      return SRSLTE_ERROR;
-    }
-
-    if (q->temp) {
-      free(q->temp);
-    }
-
-    q->temp = srslte_vec_cf_malloc(q->max_nof_prb * SRSLTE_NRE);
-    if (!q->temp) {
       ERROR("malloc\n");
       return SRSLTE_ERROR;
     }
