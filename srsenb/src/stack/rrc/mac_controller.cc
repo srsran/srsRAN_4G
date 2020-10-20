@@ -370,11 +370,11 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg
     if (conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
       auto& phy_cfg = conn_recfg.rr_cfg_ded.phys_cfg_ded;
 
-      //      // Configure 256QAM
-      //      if (phy_cfg.cqi_report_cfg_pcell_v1250.is_present() and
-      //          phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present) {
-      //        ue_cfg.use_tbs_index_alt = true;
-      //      }
+      // Configure 256QAM
+      if (phy_cfg.cqi_report_cfg_pcell_v1250.is_present() and
+          phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present) {
+        ue_cfg.use_tbs_index_alt = true;
+      }
 
       // PUSCH UCI configuration
       if (phy_cfg.pusch_cfg_ded_present) {
