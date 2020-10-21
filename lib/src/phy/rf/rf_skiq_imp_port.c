@@ -536,12 +536,12 @@ int rf_skiq_rx_port_set_lo(rf_skiq_rx_port_t* q, uint64_t lo_freq)
   skiq_filt_t filt = (lo_freq < 3000000000UL) ? skiq_filt_0_to_3000_MHz : skiq_filt_3000_to_6000_MHz;
 
   if (skiq_write_rx_LO_freq(q->card, q->hdl, lo_freq)) {
-    ERROR("Setting card %d:%d Tx Lo frequency", q->card, (int)q->hdl);
+    ERROR("Setting card %d:%d Rx Lo frequency", q->card, (int)q->hdl);
     return SRSRAN_ERROR;
   }
 
   if (skiq_write_rx_preselect_filter_path(q->card, q->hdl, filt)) {
-    ERROR("Setting card %d:%d Tx filter", q->card, q->hdl);
+    ERROR("Setting card %d:%d Rx filter", q->card, q->hdl);
     return SRSRAN_ERROR;
   }
 
