@@ -528,7 +528,9 @@ int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srs
   }
 
   // Save metrics stats
-  ue_db[SRSLTE_MRNTI]->metrics_dl(mbsfn_cfg->mbsfn_mcs);
+  if (ue_db.count(SRSLTE_MRNTI)) {
+    ue_db[SRSLTE_MRNTI]->metrics_dl(mbsfn_cfg->mbsfn_mcs);
+  }
   return SRSLTE_SUCCESS;
 }
 

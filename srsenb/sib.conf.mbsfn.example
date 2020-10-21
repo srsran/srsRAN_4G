@@ -9,8 +9,9 @@ sib1 =
     (
         {
             si_periodicity = 16;
-            si_mapping_info = [13]; // comma-separated array of SIB-indexes (from 3 to 13). 
-            // Leave empty or commented to just scheduler sib2
+
+            // comma-separated array of SIB-indexes (from 3 to 13), leave empty or commented to just scheduler sib2
+            si_mapping_info = [3,13];
         }
     );
     system_info_value_tag = 0;
@@ -52,7 +53,9 @@ sib2 =
         };
         pdsch_cnfg = 
         {
-            p_b = 0; 
+            /* Warning: Currently disabled and forced to p_b=1 for TM2/3/4 and p_b=0 for TM1
+             */
+            p_b = 1;
             rs_power = 0;
         };
         pusch_cnfg = 
@@ -98,9 +101,9 @@ sib2 =
     {
         t300 = 2000; // in ms
         t301 = 100;  // in ms
-        t310 = 1000; // in ms
+        t310 = 200; // in ms
         n310 = 1;
-        t311 = 1000; // in ms
+        t311 = 10000; // in ms
         n311 = 1;
     };
 
@@ -122,16 +125,74 @@ sib2 =
     time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
 };
 
-sib13 = 
+sib3 =
 {
-    mbsfn_notification_config = 
+    cell_reselection_common = {
+        q_hyst = 2; // in dB
+    },
+    cell_reselection_serving = {
+        s_non_intra_search = 3,
+        thresh_serving_low = 2,
+        cell_resel_prio = 6
+    },
+    intra_freq_reselection = {
+        q_rx_lev_min = -61,
+        p_max = 23,
+        s_intra_search = 5,
+        presence_ant_port_1 = true,
+        neigh_cell_cnfg = 1,
+        t_resel_eutra = 1
+    }
+};
+
+#####################################################################
+# sib7 configuration options (See TS 36.331)
+# Contains GERAN neighbor information for CSFB and inter-rat handover.
+# Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
+#
+# t_resel_geran: Cell reselection timer (seconds)
+# carrier_freqs_info_list: A list of carrier frequency groups.
+#     cell_resel_prio: Absolute priority of the carrier frequency group
+#     ncc_permitted: 8-bit bitmap of NCC carriers permitted for monitoring
+#     q_rx_lev_min: Minimum receive level in gsm cell, ([field_val] * 2) - 115 = [level in dBm]
+#     thresh_x_high: Srclev threshold (dB) to select to a higher-priority RAT/Frequency
+#     thresh_x_low: Srclev threshold (dB) to select to a lower-priority RAT/Frequency
+#     start_arfcn: Initial search ARFCN value
+#     band_ind: One of "dcs1800" or "pcs1900" Disambiguates ARFCNs in these bands, has no meaning for other ARFCNs.
+#     explicit_list_of_arfcns: List of ARFCN numbers in the group
+#
+#####################################################################
+#sib7 =
+#{
+#    t_resel_geran = 1;
+#    carrier_freqs_info_list =
+#    (
+#        {
+#            cell_resel_prio = 0;
+#            ncc_permitted = 255;
+#            q_rx_lev_min = 0;
+#            thresh_x_high = 2;
+#            thresh_x_low = 2;
+#
+#            start_arfcn = 871;
+#            band_ind = "dcs1800";
+#            explicit_list_of_arfcns = (
+#                871
+#            );
+#        }
+#    );
+#};
+
+sib13 =
+{
+    mbsfn_notification_config =
     {
         mbsfn_notification_repetition_coeff = "n2";
         mbsfn_notification_offset = 0;
         mbsfn_notification_sf_index = 1;
     };
     mbsfn_area_info_list_size = 1;
-    mbsfn_area_info_list = 
+    mbsfn_area_info_list =
     {
         non_mbsfn_region_length = "s2";
         mcch_repetition_period = "rf64";
@@ -143,3 +204,5 @@ sib13 =
         sf_alloc_info = 32;
     };
 };
+
+
