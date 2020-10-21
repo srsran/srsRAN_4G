@@ -414,7 +414,7 @@ TEST(
 
     short gold_re;
     short gold_im;
-    for (int i = 0; i < block_size; i++) { x[i] = (float)RANDOM_CF(); }
+    for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
 
     TEST_CALL(srslte_vec_convert_conj_cs(x, scale, z, block_size))
 

@@ -513,7 +513,9 @@ void srslte_vec_convert_conj_cs_simd(const cf_t* x_, int16_t* z, const float sca
 #endif /* SRSLTE_SIMD_F_SIZE && SRSLTE_SIMD_S_SIZE */
 
   for (; i < len; i++) {
-    z[i] = (int16_t)(conjf(x[i]) * scale);
+    z[i] = (int16_t)(x[i] * scale);
+    i++;
+    z[i] = (int16_t)(x[i] * -scale);
   }
 }
 
