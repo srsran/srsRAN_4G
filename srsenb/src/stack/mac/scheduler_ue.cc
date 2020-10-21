@@ -202,7 +202,7 @@ void sched_ue::check_ue_cfg_correctness() const
           if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
               cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
             log_h->warning(
-                "SCHED: The provided CQI configurations for UE scells %d and %d collide in the PUCCH\n", i, j);
+                "SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.\n", i, j);
           }
         }
       }
