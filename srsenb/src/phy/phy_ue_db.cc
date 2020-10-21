@@ -98,6 +98,7 @@ inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti, srslte::phy_cfg_t&
   phy_cfg.ul_cfg.pusch.meas_epre_en                  = phy_args->pusch_meas_epre;
   phy_cfg.ul_cfg.pusch.meas_ta_en                    = phy_args->pusch_meas_ta;
   phy_cfg.ul_cfg.pusch.meas_evm_en                   = phy_args->pusch_meas_evm;
+  phy_cfg.ul_cfg.pusch.max_nof_iterations            = phy_args->pusch_max_its;
   phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
   phy_cfg.ul_cfg.pucch.threshold_data_valid_format1a = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1A;
   phy_cfg.ul_cfg.pucch.threshold_data_valid_format2  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT2;

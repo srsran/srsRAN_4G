@@ -556,6 +556,9 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
       srslte_scrambling_s_offset(seq, q->q, 0, cfg->grant.tb.nof_bits);
     }
 
+    // Set max number of iterations
+    srslte_sch_set_max_noi(&q->ul_sch, cfg->max_nof_iterations);
+
     // Decode
     ret      = srslte_ulsch_decode(&q->ul_sch, cfg, q->q, q->g, seq->c, out->data, &out->uci);
     out->crc = (ret == 0);
