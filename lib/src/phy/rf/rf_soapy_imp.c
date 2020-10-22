@@ -460,9 +460,11 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     char*      rx_ant_ptr     = strstr(args, rx_ant_arg);
     if (rx_ant_ptr) {
       copy_subdev_string(rx_ant_str, rx_ant_ptr + strlen(rx_ant_arg));
-      printf("Setting Rx antenna to %s\n", rx_ant_str);
-      if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, 0, rx_ant_str) != 0) {
-        ERROR("Failed to set Rx antenna.\n");
+      for (int i = 0; i < handler->num_rx_channels; i++) {
+        printf("Setting Rx channel %d antenna to %s\n", i, rx_ant_str);
+        if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, i, rx_ant_str) != 0) {
+          ERROR("Failed to set Rx antenna for channel %d.\n", i);
+        }
       }
       remove_substring(args, rx_ant_arg);
       remove_substring(args, rx_ant_str);
@@ -474,9 +476,11 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     char*      tx_ant_ptr     = strstr(args, tx_ant_arg);
     if (tx_ant_ptr) {
       copy_subdev_string(tx_ant_str, tx_ant_ptr + strlen(tx_ant_arg));
-      printf("Setting Tx antenna to %s\n", tx_ant_str);
-      if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, 0, tx_ant_str) != 0) {
-        ERROR("Failed to set Tx antenna.\n");
+      for (int i = 0; i < handler->num_rx_channels; i++) {
+        printf("Setting Tx channel %d antenna to %s\n", i, tx_ant_str);
+        if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, i, tx_ant_str) != 0) {
+          ERROR("Failed to set Tx antenna for channel %d.\n", i);
+        }
       }
       remove_substring(args, tx_ant_arg);
       remove_substring(args, tx_ant_str);
