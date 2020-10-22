@@ -933,6 +933,15 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   ant_info.tx_mode.value                            = ant_info_ded_s::tx_mode_e_::tm1;
   ant_info.ue_tx_ant_sel.set(setup_e::release);
 
+  // 256-QAM
+  if (rrc_ue->ue_capabilities.support_dl_256qam) {
+    phy_cfg.ext = true;
+    phy_cfg.cqi_report_cfg_pcell_v1250.set_present(true);
+    phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present = true;
+    phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
+        cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
+  }
+
   rrc_ue->apply_setup_phy_common(target_cell.sib2.rr_cfg_common, false);
   rrc_ue->apply_reconf_phy_config(recfg_r8, false);
 
@@ -1223,6 +1232,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
         rrc_ue->eutra_capabilities.to_json(js);
         rrc_log->debug_long("New rnti=0x%x EUTRA capabilities: %s\n", rrc_ue->rnti, js.to_string().c_str());
       }
+      rrc_ue->ue_capabilities             = srslte::make_rrc_ue_capabilities(rrc_ue->eutra_capabilities);
       rrc_ue->eutra_capabilities_unpacked = true;
     }
   }
