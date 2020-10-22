@@ -1119,6 +1119,13 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
     ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
     ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
+    if (ue_capabilities.support_dl_256qam) {
+      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ext = true;
+      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250.set_present(true);
+      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250->alt_cqi_table_r12_present = true;
+      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250->alt_cqi_table_r12.value =
+          cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
+    }
 
     // Get CQI allocation for secondary cell
     auto& cqi_setup = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
