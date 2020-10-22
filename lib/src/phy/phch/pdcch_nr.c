@@ -50,7 +50,7 @@ static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
                                     uint32_t                     slot_idx,
                                     uint32_t                     candidate)
 {
-  if (aggregation_level >= SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS) {
+  if (aggregation_level >= SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR) {
     ERROR("Invalid aggregation level %d;\n", aggregation_level);
     return SRSLTE_ERROR;
   }
@@ -83,12 +83,12 @@ static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
   return (int)(L * ((Y_p_n + (m * N_cce) / (L * M) + n_ci) % (N_cce / L)));
 }
 
-int srslte_pdcch_nr_locations_ncce(const srslte_coreset_t*      coreset,
-                                   const srslte_search_space_t* search_space,
-                                   uint16_t                     rnti,
-                                   uint32_t                     aggregation_level,
-                                   uint32_t                     slot_idx,
-                                   uint32_t                     locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES])
+int srslte_pdcch_nr_locations_coreset(const srslte_coreset_t*      coreset,
+                                      const srslte_search_space_t* search_space,
+                                      uint16_t                     rnti,
+                                      uint32_t                     aggregation_level,
+                                      uint32_t                     slot_idx,
+                                      uint32_t                     locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR])
 {
   if (coreset == NULL || search_space == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -96,7 +96,7 @@ int srslte_pdcch_nr_locations_ncce(const srslte_coreset_t*      coreset,
 
   uint32_t nof_candidates = search_space->nof_candidates[aggregation_level];
 
-  nof_candidates = SRSLTE_MIN(nof_candidates, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES);
+  nof_candidates = SRSLTE_MIN(nof_candidates, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
 
   for (uint32_t candidate = 0; candidate < nof_candidates; candidate++) {
     int ret = srslte_pdcch_nr_get_ncce(coreset, search_space, rnti, aggregation_level, slot_idx, candidate);

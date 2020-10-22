@@ -47,11 +47,11 @@
  * @param slot_idx Slot index within the radio frame
  * @param locations is the destination array with the possible candidate locations n_cce
  */
-int srslte_pdcch_nr_locations_ncce(const srslte_coreset_t*      coreset,
-                                   const srslte_search_space_t* search_space,
-                                   uint16_t                     rnti,
-                                   uint32_t                     aggregation_level,
-                                   uint32_t                     slot_idx,
-                                   uint32_t                     locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES]);
+int srslte_pdcch_nr_locations_coreset(const srslte_coreset_t*      coreset,
+                                      const srslte_search_space_t* search_space,
+                                      uint16_t                     rnti,
+                                      uint32_t                     aggregation_level,
+                                      uint32_t                     slot_idx,
+                                      uint32_t locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR]);
 
 #endif // SRSLTE_PDCCH_NR_H

@@ -68,9 +68,9 @@ static void parse_args(int argc, char** argv)
 static int run_test(srslte_dmrs_pdcch_estimator_t* estimator, srslte_pdcch_cfg_nr_t* cfg, cf_t* sf_symbols, cf_t* h)
 {
   for (uint32_t slot_idx = 0; slot_idx < SRSLTE_NSLOTS_PER_FRAME_NR(cfg->carrier.numerology); slot_idx++) {
-    uint32_t locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES] = {};
+    uint32_t locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
 
-    int nof_locations = srslte_pdcch_nr_locations_ncce(
+    int nof_locations = srslte_pdcch_nr_locations_coreset(
         &cfg->coreset, &cfg->search_space, cfg->rnti, cfg->aggregation_level, slot_idx, locations);
 
     TESTASSERT(nof_locations == cfg->search_space.nof_candidates[cfg->aggregation_level]);
@@ -145,14 +145,14 @@ int main(int argc, char** argv)
            cfg.search_space.type <= srslte_search_space_type_ue;
            cfg.search_space.type++) {
 
-        for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS; i++) {
-          uint32_t L                         = 1 << i;
+        for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {
+          uint32_t L                         = 1U << i;
           uint32_t nof_reg                   = cfg.coreset.duration * nof_freq_resources * 6;
           uint32_t nof_cce                   = nof_reg / 6;
-          cfg.search_space.nof_candidates[i] = SRSLTE_MIN(nof_cce / L, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES);
+          cfg.search_space.nof_candidates[i] = SRSLTE_MIN(nof_cce / L, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
         }
 
-        for (cfg.aggregation_level = 0; cfg.aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS;
+        for (cfg.aggregation_level = 0; cfg.aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
              cfg.aggregation_level++) {
 
           srslte_dmrs_pdcch_estimator_init(&estimator, &cfg.carrier, &cfg.coreset);

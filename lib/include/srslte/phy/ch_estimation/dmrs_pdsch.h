@@ -135,7 +135,7 @@ SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*         q,
 /**
  * @brief Estimates the channel for PDSCH from the DMRS
  *
- * @attention Current implementation is thought for type1 PDSCH DMRS (1 pilot every 2 RE)
+ * @attention Current implementation supports only type1 PDSCH DMRS (1 pilot every 2 RE)
  *
  * @param q DMRS-PDSCH object
  * @param slot_cfg Slot configuration

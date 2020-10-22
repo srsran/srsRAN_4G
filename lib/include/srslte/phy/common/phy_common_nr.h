@@ -78,12 +78,12 @@ extern "C" {
 /**
  * @brief defines the maximum number of Aggregation levels: 1, 2, 4, 8 and 16
  */
-#define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS 5
+#define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR 5
 
 /**
  * @brief defines the maximum number of candidates for a given Aggregation level
  */
-#define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES 8
+#define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR 8
 
 /**
  * @brief Maximum number of PDSCH time domain resource allocations. This is defined by TS 38.331 v15.10.0
@@ -188,7 +188,7 @@ typedef struct SRSLTE_API {
   uint32_t                   id;
   uint32_t                   duration; // in slots
   srslte_search_space_type_t type;
-  uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS];
+  uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];
 } srslte_search_space_t;
 
 /**

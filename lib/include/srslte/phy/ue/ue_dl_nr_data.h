@@ -22,7 +22,7 @@
 /******************************************************************************
  *  @file ue_dl_nr.h
  *
- *  Description:  UE downlink object for NR data.
+ *  Description:  NR UE downlink physical layer procedures for data
  *
  *                This module is a frontend to all the downlink data channel processing modules.
  *
