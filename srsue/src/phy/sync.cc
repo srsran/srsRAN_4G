@@ -751,9 +751,9 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
 
 bool sync::set_cell(float cfo)
 {
-  // Wait the SYNC thread to transition to IDLE
+  // Wait for SYNC thread to transition to IDLE (max. 2000ms)
   uint32_t cnt = 0;
-  while (!phy_state.is_idle() && cnt <= 20) {
+  while (!phy_state.is_idle() && cnt <= 4000) {
     Info("SYNC: PHY state is_idle=%d, cnt=%d\n", phy_state.is_idle(), cnt);
     usleep(500);
     cnt++;
