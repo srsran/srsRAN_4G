@@ -30,10 +30,10 @@ class enb_command_interface
 public:
   /**
    * Sets the relative gain of a cell from it's index (following rr.conf) order.
-   * @param cell_idx Provides a cell index
+   * @param cell_id Provides a cell identifier
    * @param gain Relative gain
    */
-  virtual void cmd_cell_gain(uint32_t cell_idx, float gain) = 0;
+  virtual void cmd_cell_gain(uint32_t cell_id, float gain) = 0;
 };
 } // namespace srsenb
 

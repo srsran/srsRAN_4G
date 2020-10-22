@@ -220,9 +220,9 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
   }
 }
 
-void phy::cmd_cell_gain(uint32_t cc_idx, float gain_db)
+void phy::cmd_cell_gain(uint32_t cell_id, float gain_db)
 {
-  workers_common.set_cell_gain(cc_idx, gain_db);
+  workers_common.set_cell_gain(cell_id, gain_db);
 }
 
 /***** RRC->PHY interface **********/

@@ -209,9 +209,9 @@ bool enb::get_metrics(enb_metrics_t* m)
   return true;
 }
 
-void enb::cmd_cell_gain(uint32_t cell_idx, float gain)
+void enb::cmd_cell_gain(uint32_t cell_id, float gain)
 {
-  phy->cmd_cell_gain(cell_idx, gain);
+  phy->cmd_cell_gain(cell_id, gain);
 }
 
 srslte::LOG_LEVEL_ENUM enb::level(std::string l)

@@ -68,7 +68,7 @@ public:
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) override;
 
-  void cmd_cell_gain(uint32_t cell_idx, float gain_db) override;
+  void cmd_cell_gain(uint32_t cell_id, float gain_db) override;
 
   void radio_overflow() override{};
   void radio_failure() override{};

@@ -427,16 +427,16 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
           raise(SIGTERM);
         } else if (cmd[0] == "cell_gain") {
           if (cmd.size() != 3) {
-            cout << "Usage: " << cmd[0] << " [cell index] [gain in dB]" << endl;
+            cout << "Usage: " << cmd[0] << " [cell identifier] [gain in dB]" << endl;
             continue;
           }
 
           // Parse command arguments
-          uint32_t cell_idx = srslte::string_cast<uint32_t>(cmd[1]);
+          uint32_t cell_id  = srslte::string_cast<uint32_t>(cmd[1]);
           float    gain_db  = srslte::string_cast<float>(cmd[2]);
 
           // Set cell gain
-          control->cmd_cell_gain(cell_idx, gain_db);
+          control->cmd_cell_gain(cell_id, gain_db);
         } else {
           cout << "Available commands: " << endl;
           cout << "          t: starts console trace" << endl;

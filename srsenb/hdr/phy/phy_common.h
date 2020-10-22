@@ -137,11 +137,18 @@ public:
     return c;
   };
 
-  void set_cell_gain(uint32_t cc_idx, float gain_db)
+  void set_cell_gain(uint32_t cell_id, float gain_db)
   {
-    if (cc_idx < cell_list.size()) {
-      cell_list.at(cc_idx).gain_db = gain_db;
+    auto it =
+        std::find_if(cell_list.begin(), cell_list.end(), [cell_id](phy_cell_cfg_t& x) { return x.cell_id == cell_id; });
+
+    // Check if the cell was found;
+    if (it == cell_list.end()) {
+      srslte::console("cell ID %d not found\n", cell_id);
+      return;
     }
+
+    it->gain_db = gain_db;
   }
 
   float get_cell_gain(uint32_t cc_idx)
