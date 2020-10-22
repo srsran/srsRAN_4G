@@ -318,6 +318,9 @@ private:
   using ce_cmd = srslte::dl_sch_lcid;
   std::deque<ce_cmd> pending_ces;
 };
+
+using sched_ue_list = std::map<uint16_t, sched_ue>;
+
 } // namespace srsenb
 
 #endif // SRSENB_SCHEDULER_UE_H

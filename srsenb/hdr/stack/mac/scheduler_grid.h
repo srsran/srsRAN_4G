@@ -208,7 +208,7 @@ public:
   virtual const rbgmask_t& get_dl_mask() const                                                     = 0;
   virtual uint32_t         get_tti_tx_dl() const                                                   = 0;
   virtual uint32_t         get_nof_ctrl_symbols() const                                            = 0;
-  virtual bool             is_dl_alloc(const sched_ue* user) const                                 = 0;
+  virtual bool             is_dl_alloc(uint16_t rnti) const                                        = 0;
 };
 
 //! generic interface used by UL scheduler algorithm
@@ -218,7 +218,7 @@ public:
   virtual alloc_outcome_t  alloc_ul_user(sched_ue* user, prb_interval alloc) = 0;
   virtual const prbmask_t& get_ul_mask() const                               = 0;
   virtual uint32_t         get_tti_tx_ul() const                             = 0;
-  virtual bool             is_ul_alloc(const sched_ue* user) const           = 0;
+  virtual bool             is_ul_alloc(uint16_t rnti) const                  = 0;
 };
 
 /** Description: Stores the RAR, broadcast, paging, DL data, UL data allocations for the given subframe
@@ -249,7 +249,7 @@ public:
   };
   struct dl_alloc_t {
     size_t    dci_idx;
-    sched_ue* user_ptr;
+    uint16_t  rnti;
     rbgmask_t user_mask;
     uint32_t  pid;
   };
@@ -257,7 +257,7 @@ public:
     enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX, MSG3 };
     size_t       dci_idx;
     type_t       type;
-    sched_ue*    user_ptr;
+    uint16_t     rnti;
     prb_interval alloc;
     int          msg3_mcs = -1;
     bool         is_retx() const { return type == NOADAPT_RETX or type == ADAPT_RETX; }
@@ -297,7 +297,7 @@ public:
   bool alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result);
 
   // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
-  void generate_sched_results();
+  void generate_sched_results(sched_ue_list& ue_db);
 
   // dl_tti_sched itf
   alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
@@ -312,8 +312,8 @@ public:
   // getters
   uint32_t            get_tti_rx() const { return tti_params.tti_rx; }
   const tti_params_t& get_tti_params() const { return tti_params; }
-  bool                is_dl_alloc(const sched_ue* user) const final;
-  bool                is_ul_alloc(const sched_ue* user) const final;
+  bool                is_dl_alloc(uint16_t rnti) const final;
+  bool                is_ul_alloc(uint16_t rnti) const final;
 
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
@@ -321,8 +321,11 @@ private:
   void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
   void set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
   void set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
-                                sched_interface::dl_sched_res_t*    dl_result);
-  void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result, sched_interface::ul_sched_res_t* ul_result);
+                                sched_interface::dl_sched_res_t*    dl_result,
+                                sched_ue_list&                      ue_list);
+  void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
+                           sched_interface::ul_sched_res_t*    ul_result,
+                           sched_ue_list&                      ue_list);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;

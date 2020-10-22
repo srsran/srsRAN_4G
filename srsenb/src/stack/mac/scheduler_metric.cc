@@ -85,7 +85,7 @@ bool dl_metric_rr::find_allocation(uint32_t min_nof_rbg, uint32_t max_nof_rbg, r
 dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 {
   // Do not allocate a user multiple times in the same tti
-  if (tti_alloc->is_dl_alloc(user)) {
+  if (tti_alloc->is_dl_alloc(user->get_rnti())) {
     return nullptr;
   }
   // Do not allocate a user to an inactive carrier
@@ -235,7 +235,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, prb_interval* alloc)
 
 ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
 {
-  if (tti_alloc->is_ul_alloc(user)) {
+  if (tti_alloc->is_ul_alloc(user->get_rnti())) {
     return nullptr;
   }
   auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);
@@ -277,7 +277,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
 
 ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
 {
-  if (tti_alloc->is_ul_alloc(user)) {
+  if (tti_alloc->is_ul_alloc(user->get_rnti())) {
     return nullptr;
   }
   auto p = user->get_active_cell_index(cc_cfg->enb_cc_idx);

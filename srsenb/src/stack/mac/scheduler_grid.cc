@@ -611,20 +611,20 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
   }
 }
 
-bool sf_sched::is_dl_alloc(const sched_ue* user) const
+bool sf_sched::is_dl_alloc(uint16_t rnti) const
 {
   for (const auto& a : data_allocs) {
-    if (a.user_ptr == user) {
+    if (a.rnti == rnti) {
       return true;
     }
   }
   return false;
 }
 
-bool sf_sched::is_ul_alloc(const sched_ue* user) const
+bool sf_sched::is_ul_alloc(uint16_t rnti) const
 {
   for (const auto& a : ul_data_allocs) {
-    if (a.user_ptr == user) {
+    if (a.rnti == rnti) {
       return true;
     }
   }
@@ -764,7 +764,7 @@ bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, uint32_t 
 
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
-  if (is_dl_alloc(user)) {
+  if (is_dl_alloc(user->get_rnti())) {
     log_h->warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
     return alloc_outcome_t::ERROR;
   }
@@ -785,7 +785,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   const sched_interface::ue_cfg_t& ue_cfg     = user->get_ue_cfg();
   bool                             has_scells = ue_cfg.supported_cc_list.size() > 1;
   if (has_scells and is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
-    bool has_pusch_grant = is_ul_alloc(user) or cc_results->is_ul_alloc(user->get_rnti());
+    bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
     if (not has_pusch_grant) {
       // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
       prb_interval alloc = {};
@@ -807,7 +807,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   // Allocation Successful
   dl_alloc_t alloc;
   alloc.dci_idx   = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
-  alloc.user_ptr  = user;
+  alloc.rnti      = user->get_rnti();
   alloc.user_mask = user_mask;
   alloc.pid       = pid;
   data_allocs.push_back(alloc);
@@ -818,7 +818,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
 alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs)
 {
   // Check whether user was already allocated
-  if (is_ul_alloc(user)) {
+  if (is_ul_alloc(user->get_rnti())) {
     log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
     return alloc_outcome_t::ERROR;
   }
@@ -833,7 +833,7 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
   ul_alloc_t ul_alloc = {};
   ul_alloc.type       = alloc_type;
   ul_alloc.dci_idx    = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
-  ul_alloc.user_ptr   = user;
+  ul_alloc.rnti       = user->get_rnti();
   ul_alloc.alloc      = alloc;
   ul_alloc.msg3_mcs   = msg3_mcs;
   ul_data_allocs.push_back(ul_alloc);
@@ -1002,7 +1002,8 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
 }
 
 void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
-                                        sched_interface::dl_sched_res_t*    dl_result)
+                                        sched_interface::dl_sched_res_t*    dl_result,
+                                        sched_ue_list&                      ue_list)
 {
   for (const auto& data_alloc : data_allocs) {
     sched_interface::dl_sched_data_t* data = &dl_result->data[dl_result->nof_data_elems];
@@ -1011,7 +1012,11 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     data->dci.location = dci_result[data_alloc.dci_idx]->dci_pos;
 
     // Generate DCI Format1/2/2A
-    sched_ue*           user        = data_alloc.user_ptr;
+    auto ue_it = ue_list.find(data_alloc.rnti);
+    if (ue_it == ue_list.end()) {
+      continue;
+    }
+    sched_ue*           user        = &ue_it->second;
     uint32_t            cell_index  = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
     uint32_t            data_before = user->get_pending_dl_new_data();
     const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cell_index);
@@ -1084,7 +1089,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
     // Check if DL alloc is pending
     bool needs_ack_uci = false;
     if (enbccidx == current_enb_cc_idx) {
-      needs_ack_uci = sf_sched->is_dl_alloc(user);
+      needs_ack_uci = sf_sched->is_dl_alloc(user->get_rnti());
     } else {
       auto& dl_result = other_cc_results.enb_cc_list[enbccidx].dl_sched_result;
       for (uint32_t j = 0; j < dl_result.nof_data_elems; ++j) {
@@ -1110,7 +1115,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
   // If UL grant allocated in current carrier
   uint32_t ue_cc_idx      = other_cc_results.enb_cc_list.size();
   int      sel_enb_cc_idx = -1;
-  if (sf_sched->is_ul_alloc(user)) {
+  if (sf_sched->is_ul_alloc(user->get_rnti())) {
     ue_cc_idx      = user->get_active_cell_index(current_enb_cc_idx).second;
     sel_enb_cc_idx = current_enb_cc_idx;
   }
@@ -1136,13 +1141,18 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
 }
 
 void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
-                                   sched_interface::ul_sched_res_t*    ul_result)
+                                   sched_interface::ul_sched_res_t*    ul_result,
+                                   sched_ue_list&                      ue_list)
 {
   /* Set UL data DCI locs and format */
   for (const auto& ul_alloc : ul_data_allocs) {
     sched_interface::ul_sched_data_t* pusch = &ul_result->pusch[ul_result->nof_dci_elems];
 
-    sched_ue* user       = ul_alloc.user_ptr;
+    auto ue_it = ue_list.find(ul_alloc.rnti);
+    if (ue_it == ue_list.end()) {
+      continue;
+    }
+    sched_ue* user       = &ue_it->second;
     uint32_t  cell_index = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
 
     srslte_dci_location_t cce_range = {0, 0};
@@ -1211,7 +1221,7 @@ alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_s
   return ret;
 }
 
-void sf_sched::generate_sched_results()
+void sf_sched::generate_sched_results(sched_ue_list& ue_db)
 {
   cc_sched_result* cc_result = cc_results->get_cc(cc_cfg->enb_cc_idx);
 
@@ -1228,9 +1238,9 @@ void sf_sched::generate_sched_results()
 
   set_rar_sched_result(dci_result, &cc_result->dl_sched_result);
 
-  set_dl_data_sched_result(dci_result, &cc_result->dl_sched_result);
+  set_dl_data_sched_result(dci_result, &cc_result->dl_sched_result, ue_db);
 
-  set_ul_sched_result(dci_result, &cc_result->ul_sched_result);
+  set_ul_sched_result(dci_result, &cc_result->ul_sched_result, ue_db);
 
   /* Store remaining sf_sched results for this TTI */
   cc_result->dl_mask    = tti_alloc.get_dl_mask();

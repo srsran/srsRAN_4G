@@ -349,7 +349,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
   }
 
   /* Select the winner DCI allocation combination, store all the scheduling results */
-  tti_sched->generate_sched_results();
+  tti_sched->generate_sched_results(*ue_db);
 
   /* Reset ue harq pending ack state, clean-up blocked pids */
   for (auto& user : *ue_db) {
