@@ -21,9 +21,14 @@ and at http://www.gnu.org/licenses/.
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/common/test_common.h"
 #include <cmath>
+#include <numeric>
+#include <random>
 
 using namespace std;
 using namespace asn1;
+
+std::random_device rd;
+std::mt19937       g(rd());
 
 int test_arrays()
 {
@@ -443,9 +448,13 @@ int test_seq_of()
 
   // dynamic array
   dyn_array<int> vec, vec2(33);
+  std::iota(vec2.begin(), vec2.end(), 0);
+  std::shuffle(vec2.begin(), vec2.end(), g);
   TESTASSERT(vec2.size() == 33);
   TESTASSERT(vec.size() == 0);
   vec.resize(32);
+  std::iota(vec.begin(), vec.end(), 0);
+  std::shuffle(vec.begin(), vec.end(), g);
   TESTASSERT(vec.size() == 32);
   vec[5] = 5;
   vec.push_back(33);
@@ -458,10 +467,10 @@ int test_seq_of()
   {
     dyn_array<int> vec3 = vec2;
     TESTASSERT(vec3.size() == vec2.size());
-    TESTASSERT(std::equal(&vec3[0], &vec3.back(), &vec2[0]));
+    TESTASSERT(std::equal(vec3.begin(), vec3.end(), vec2.begin()));
     vec3 = vec;
     TESTASSERT(vec3.size() == vec.size());
-    TESTASSERT(std::equal(&vec3[0], &vec3.back(), &vec[0]));
+    TESTASSERT(std::equal(vec3.begin(), vec3.end(), vec.begin()));
   }
   TESTASSERT(vec[5] == 5);
 
