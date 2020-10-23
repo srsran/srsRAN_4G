@@ -275,6 +275,8 @@ void rrc::ue::send_connection_setup()
   apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
   send_dl_ccch(&dl_ccch_msg);
+
+  apply_rr_cfg_ded_diff(current_rr_cfg, rr_cfg);
 }
 
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -420,6 +422,8 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
   send_dl_ccch(&dl_ccch_msg);
+
+  apply_rr_cfg_ded_diff(current_rr_cfg, rr_cfg);
 }
 
 void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -474,77 +478,32 @@ void rrc::ue::send_connection_reest_rej()
  */
 void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 {
+  parent->rrc_log->debug("RRC state %d\n", state);
   // Setup SRB2
   bearer_list.add_srb(2);
 
-  // Add re-establish DRBs
-  parent->rrc_log->debug("RRC state %d\n", state);
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  dl_dcch_msg_s     dl_dcch_msg;
+  rrc_conn_recfg_s& recfg           = dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
+  recfg.rrc_transaction_id          = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
-  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-
-  // Add DRBs/SRBs
-  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
-
-  conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
-  phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
-
-  // Configure PHY layer
-  phy_cfg->ant_info_present              = true;
-  phy_cfg->ant_info.set_explicit_value() = parent->cfg.antenna_info;
-  phy_cfg->cqi_report_cfg_present        = true;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    if (phy_cfg->ant_info_present and
-        phy_cfg->ant_info.explicit_value().tx_mode.value == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
-    }
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    auto& cqi_rep                                       = phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    get_cqi(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx, UE_PCELL_CC_IDX);
-    cqi_rep.cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    cqi_rep.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (phy_cfg->ant_info_present and
-        ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
-         (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
-      uint16_t ri_idx = 0;
-      if (get_ri(parent->cfg.cqi_cfg.m_ri, &ri_idx) == SRSLTE_SUCCESS) {
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = ri_idx;
-      } else {
-        srslte::console("\nWarning: Configured wrong M_ri parameter.\n\n");
-      }
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
-    }
-  }
-  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
-  // PDSCH
-  phy_cfg->pdsch_cfg_ded_present = true;
-  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
-  // 256-QAM
-  if (ue_capabilities.support_dl_256qam) {
-    phy_cfg->ext = true;
-    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
-    phy_cfg->cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present = true;
-    phy_cfg->cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
-        cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
-  }
+  // Fill RR Config Ded
+  fill_rr_cfg_ded_reconf(recfg_r8.rr_cfg_ded,
+                         current_rr_cfg,
+                         parent->cfg,
+                         cell_ded_list,
+                         bearer_list,
+                         ue_capabilities,
+                         reconf_cause::init);
+  recfg_r8.rr_cfg_ded_present = true;
 
   // Add SCells
-  if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
+  if (fill_scell_to_addmod_list(&recfg_r8) != SRSLTE_SUCCESS) {
     parent->rrc_log->warning("Could not create configuration for Scell\n");
     return;
   }
 
-  apply_reconf_phy_config(*conn_reconf, true);
+  apply_reconf_phy_config(recfg_r8, true);
 
   // setup SRB2/DRBs in PDCP and RLC
   apply_pdcp_srb_updates();
@@ -552,15 +511,15 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   apply_rlc_rb_updates();
 
   // Add pending NAS info
-  bearer_list.fill_pending_nas_info(conn_reconf);
+  bearer_list.fill_pending_nas_info(&recfg_r8);
 
   if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_no_ho_cmd(conn_reconf);
+    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
   }
   last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
 
   // Apply Reconf Msg configuration to MAC scheduler
-  mac_ctrl->handle_con_reconf(*conn_reconf);
+  mac_ctrl->handle_con_reconf(recfg_r8);
 
   // If reconf due to reestablishment, recover PDCP state
   if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
@@ -587,6 +546,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+
+  apply_rr_cfg_ded_diff(current_rr_cfg, recfg_r8.rr_cfg_ded);
 }
 
 void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)

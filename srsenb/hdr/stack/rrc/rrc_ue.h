@@ -37,8 +37,8 @@ public:
   bool is_idle();
 
   typedef enum {
-    MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout
+    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout
     nulltype
   } activity_timeout_type_t;
   std::string to_string(const activity_timeout_type_t& type);
@@ -108,6 +108,7 @@ private:
 
   // cached for ease of context transfer
   asn1::rrc::rrc_conn_recfg_s last_rrc_conn_recfg;
+  asn1::rrc::rr_cfg_ded_s     current_rr_cfg;
 
   asn1::rrc::establishment_cause_e establishment_cause;
 

@@ -238,13 +238,28 @@ void fill_phy_cfg_ded_enb_cfg(phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& enb_cfg)
   fill_cqi_report_enb_cfg(phy_cfg.cqi_report_cfg, enb_cfg);
 }
 
-/// Fills ASN1 PhysicalConfigurationDedicated struct with eNB config params at RRCReconf
-void fill_phy_cfg_ded_enb_cfg_reconf(phys_cfg_ded_s&                 phy_cfg,
-                                     const rrc_cfg_t&                enb_cfg,
-                                     const cell_ctxt_dedicated_list& ue_cell_list)
+void fill_phy_cfg_ded_setup(phys_cfg_ded_s&                 phy_cfg,
+                            const rrc_cfg_t&                enb_cfg,
+                            const cell_ctxt_dedicated_list& ue_cell_list)
 {
   // Set PHYConfigDedicated base
   fill_phy_cfg_ded_enb_cfg(phy_cfg, enb_cfg);
+
+  // Setup SR PUCCH config
+  fill_sr_cfg_setup(phy_cfg.sched_request_cfg, ue_cell_list);
+
+  // Setup CQI PUCCH config
+  fill_cqi_report_setup(phy_cfg.cqi_report_cfg, enb_cfg, ue_cell_list);
+}
+
+/// Fills ASN1 PhysicalConfigurationDedicated struct with eNB config params at RRCReconf
+void fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
+                             const rrc_cfg_t&                     enb_cfg,
+                             const cell_ctxt_dedicated_list&      ue_cell_list,
+                             const srslte::rrc_ue_capabilities_t& ue_caps)
+{
+  // Use RRCSetup as starting point
+  fill_phy_cfg_ded_setup(phy_cfg, enb_cfg, ue_cell_list);
 
   // Antenna Configuration
   ant_info_ded_s& ant_info = phy_cfg.ant_info.explicit_value();
@@ -252,6 +267,15 @@ void fill_phy_cfg_ded_enb_cfg_reconf(phys_cfg_ded_s&                 phy_cfg,
 
   // CQI Report Config
   fill_cqi_report_reconf(phy_cfg.cqi_report_cfg, enb_cfg, ue_cell_list);
+
+  // DL 256-QAM
+  if (ue_caps.support_dl_256qam) {
+    phy_cfg.ext = true;
+    phy_cfg.cqi_report_cfg_pcell_v1250.set_present(true);
+    phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present = true;
+    phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
+        cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
+  }
 }
 
 /***********************************
@@ -292,23 +316,20 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
   rr_cfg.srb_to_add_mod_list_present = true;
   add_srb(rr_cfg.srb_to_add_mod_list, 1);
 
-  // Setup SR PUCCH config
-  fill_sr_cfg_setup(rr_cfg.phys_cfg_ded.sched_request_cfg, ue_cell_list);
-
-  // Setup CQI PUCCH config
-  fill_cqi_report_setup(rr_cfg.phys_cfg_ded.cqi_report_cfg, enb_cfg, ue_cell_list);
+  // Setup SR/CQI configs
+  rr_cfg.phys_cfg_ded_present = true;
+  fill_phy_cfg_ded_setup(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list);
 }
 
-enum class reconf_cause { setup, reest, crnti_ce, handover, other };
-
-void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
-                            const rr_cfg_ded_s&             current_rr_cfg,
-                            const rrc_cfg_t&                enb_cfg,
-                            const cell_ctxt_dedicated_list& ue_cell_list,
-                            const bearer_cfg_handler&       bearers,
-                            reconf_cause                    cause)
+void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
+                            const rr_cfg_ded_s&                  current_rr_cfg,
+                            const rrc_cfg_t&                     enb_cfg,
+                            const cell_ctxt_dedicated_list&      ue_cell_list,
+                            const bearer_cfg_handler&            bearers,
+                            const srslte::rrc_ue_capabilities_t& ue_caps,
+                            reconf_cause                         cause)
 {
-  // Establish SRBs if required
+  // (Re)establish SRBs
   fill_srbs_reconf(rr_cfg.srb_to_add_mod_list, current_rr_cfg.srb_to_add_mod_list);
   rr_cfg.srb_to_add_mod_list_present = rr_cfg.srb_to_add_mod_list.size() > 0;
 
@@ -323,7 +344,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
   // PhysCfgDed update needed
   if (cause != reconf_cause::other) {
     rr_cfg.phys_cfg_ded_present = true;
-    fill_phy_cfg_ded_enb_cfg_reconf(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list);
+    fill_phy_cfg_ded_reconf(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list, ue_caps);
   }
 }
 
