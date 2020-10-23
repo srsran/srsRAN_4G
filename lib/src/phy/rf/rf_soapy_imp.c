@@ -510,24 +510,6 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   }
 #endif
 
-  // receive one subframe to allow for transceiver calibration
-  if (strstr(devname, "lime")) {
-    // set default tx gain and leave some time to calibrate tx
-    rf_soapy_set_tx_gain(handler, 45);
-    rf_soapy_set_rx_gain(handler, 35);
-
-    cf_t  dummy_buffer[1920];
-    cf_t* dummy_buffer_array[SRSLTE_MAX_PORTS];
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      dummy_buffer_array[i] = dummy_buffer;
-    }
-    rf_soapy_start_rx_stream(handler, true);
-    rf_soapy_recv_with_time_multi(handler, (void**)dummy_buffer_array, 1920, false, NULL, NULL);
-    rf_soapy_stop_rx_stream(handler);
-
-    usleep(10000);
-  }
-
   // list gains and AGC mode
   bool has_agc = SoapySDRDevice_hasGainMode(handler->device, SOAPY_SDR_RX, 0);
   list         = SoapySDRDevice_listGains(handler->device, SOAPY_SDR_RX, 0, &list_length);
