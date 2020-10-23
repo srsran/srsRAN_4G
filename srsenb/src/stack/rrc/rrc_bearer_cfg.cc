@@ -211,21 +211,6 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
 
 bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_) : rnti(rnti_), cfg(&cfg_) {}
 
-void bearer_cfg_handler::add_srb(uint8_t srb_id)
-{
-  if (srb_id > 2 or srb_id == 0) {
-    log_h->error("Invalid SRB id=%d\n", srb_id);
-    return;
-  }
-
-  // Set SRBtoAddMod
-  auto srb_it               = srslte::add_rrc_obj_id(srbs_to_add, srb_id);
-  srb_it->lc_ch_cfg_present = true;
-  srb_it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
-  srb_it->rlc_cfg_present = true;
-  srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::default_value);
-}
-
 int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
                                  const asn1::s1ap::erab_level_qos_params_s&         qos,
                                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
@@ -309,18 +294,15 @@ void bearer_cfg_handler::release_erabs()
 void bearer_cfg_handler::reest_bearers()
 {
   // Re-add all SRBs/DRBs
-  srbs_to_add = current_srbs;
   drbs_to_add = current_drbs;
 }
 
 void bearer_cfg_handler::rr_ded_cfg_complete()
 {
   // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
-  srslte::apply_addmodlist_diff(current_srbs, srbs_to_add, current_srbs);
   srslte::apply_addmodremlist_diff(current_drbs, drbs_to_add, drbs_to_release, current_drbs);
 
   // Reset DRBs/SRBs to Add/mod/release
-  srbs_to_add = {};
   drbs_to_add = {};
   drbs_to_release.resize(0);
 }
@@ -328,8 +310,6 @@ void bearer_cfg_handler::rr_ded_cfg_complete()
 bool bearer_cfg_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
 {
   // Add altered bearers to message
-  msg.srb_to_add_mod_list_present = srbs_to_add.size() > 0;
-  msg.srb_to_add_mod_list         = srbs_to_add;
   msg.drb_to_add_mod_list_present = drbs_to_add.size() > 0;
   msg.drb_to_add_mod_list         = drbs_to_add;
   msg.drb_to_release_list_present = drbs_to_release.size() > 0;

@@ -249,9 +249,6 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 
 void rrc::ue::send_connection_setup()
 {
-  // (Re-)Establish SRB1
-  bearer_list.add_srb(1);
-
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1();
 
@@ -267,9 +264,9 @@ void rrc::ue::send_connection_setup()
   mac_ctrl->handle_con_setup(setup_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_pdcp_srb_updates(setup_r8.rr_cfg_ded);
+  apply_pdcp_drb_updates(setup_r8.rr_cfg_ded);
+  apply_rlc_rb_updates(setup_r8.rr_cfg_ded);
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
@@ -368,8 +365,8 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                                old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
                                old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
       }
-      // Apply PDCP configuration to SRB1
-      apply_pdcp_srb_updates();
+      //      // Apply PDCP configuration to SRB1
+      //      apply_pdcp_srb_updates(setup_r8.rr_cfg_ded);
 
       // Make sure UE capabilities are copied over to new RNTI
       eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
@@ -395,9 +392,6 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
 void rrc::ue::send_connection_reest(uint8_t ncc)
 {
-  // Re-Establish SRB1
-  bearer_list.add_srb(1);
-
   dl_ccch_msg_s dl_ccch_msg;
   auto&         reest               = dl_ccch_msg.msg.set_c1().set_rrc_conn_reest();
   reest.rrc_transaction_id          = (uint8_t)((transaction_id++) % 4);
@@ -414,9 +408,9 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   mac_ctrl->handle_con_reest(reest_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_pdcp_srb_updates(rr_cfg);
+  apply_pdcp_drb_updates(rr_cfg);
+  apply_rlc_rb_updates(rr_cfg);
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
@@ -479,8 +473,6 @@ void rrc::ue::send_connection_reest_rej()
 void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 {
   parent->rrc_log->debug("RRC state %d\n", state);
-  // Setup SRB2
-  bearer_list.add_srb(2);
 
   dl_dcch_msg_s     dl_dcch_msg;
   rrc_conn_recfg_s& recfg           = dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
@@ -506,9 +498,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   apply_reconf_phy_config(recfg_r8, true);
 
   // setup SRB2/DRBs in PDCP and RLC
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
+  apply_pdcp_drb_updates(recfg_r8.rr_cfg_ded);
+  apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
 
   // Add pending NAS info
   bearer_list.fill_pending_nas_info(&recfg_r8);
@@ -615,9 +607,9 @@ void rrc::ue::send_connection_reconf_new_bearer()
   conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
 
   // Setup new bearer
-  apply_pdcp_srb_updates();
-  apply_pdcp_drb_updates();
-  apply_rlc_rb_updates();
+  apply_pdcp_srb_updates(conn_reconf->rr_cfg_ded);
+  apply_pdcp_drb_updates(conn_reconf->rr_cfg_ded);
+  apply_rlc_rb_updates(conn_reconf->rr_cfg_ded);
   // Add pending NAS info
   bearer_list.fill_pending_nas_info(conn_reconf);
 
@@ -1301,9 +1293,9 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
   }
 }
 
-void rrc::ue::apply_pdcp_srb_updates()
+void rrc::ue::apply_pdcp_srb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (const srb_to_add_mod_s& srb : bearer_list.get_pending_addmod_srbs()) {
+  for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
     parent->pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
 
     // For SRB2, enable security/encryption/integrity
@@ -1315,12 +1307,12 @@ void rrc::ue::apply_pdcp_srb_updates()
   }
 }
 
-void rrc::ue::apply_pdcp_drb_updates()
+void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (uint8_t drb_id : bearer_list.get_pending_rem_drbs()) {
+  for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
     parent->pdcp->del_bearer(rnti, drb_id + 2);
   }
-  for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
+  for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     // Configure DRB1 in PDCP
     if (drb.pdcp_cfg_present) {
       srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
@@ -1338,15 +1330,15 @@ void rrc::ue::apply_pdcp_drb_updates()
   }
 }
 
-void rrc::ue::apply_rlc_rb_updates()
+void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 {
-  for (const srb_to_add_mod_s& srb : bearer_list.get_pending_addmod_srbs()) {
+  for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
     parent->rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
   }
-  if (bearer_list.get_pending_rem_drbs().size() > 0) {
+  if (pending_rr_cfg.drb_to_release_list.size() > 0) {
     parent->rrc_log->error("Removing DRBs not currently supported\n");
   }
-  for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
+  for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     if (not drb.rlc_cfg_present) {
       parent->rrc_log->warning("Default RLC DRB config not supported\n");
     }

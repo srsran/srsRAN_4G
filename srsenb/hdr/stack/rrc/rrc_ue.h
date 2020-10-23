@@ -176,9 +176,9 @@ private:
    * Reconfigures PDCP bearers
    * @param srbs_to_add SRBs to add
    */
-  void apply_pdcp_srb_updates();
-  void apply_pdcp_drb_updates();
-  void apply_rlc_rb_updates();
+  void apply_pdcp_srb_updates(const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg);
+  void apply_pdcp_drb_updates(const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg);
+  void apply_rlc_rb_updates(const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg);
 }; // class ue
 
 } // namespace srsenb

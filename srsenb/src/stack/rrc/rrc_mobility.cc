@@ -1155,12 +1155,14 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
 
   /* Configure remaining layers based on pending changes */
   // Update RLC + PDCP SRBs (no DRBs until MME Status Transfer)
-  rrc_ue->apply_pdcp_srb_updates();
-  rrc_ue->apply_rlc_rb_updates();
+  rrc_ue->apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
+  rrc_ue->apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
   // Update MAC
   rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8);
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
+
+  apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, recfg_r8.rr_cfg_ded);
 
   /* send S1AP HandoverRequestAcknowledge */
   std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
@@ -1177,16 +1179,8 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
 bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho_prep,
                                               const asn1::s1ap::ho_request_s& ho_req_msg)
 {
-  const cell_ctxt_dedicated*     target_cell     = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const cell_cfg_t&              target_cell_cfg = target_cell->cell_common->cell_cfg;
-  const asn1::rrc::rr_cfg_ded_s& src_rr_cfg      = ho_prep.as_cfg.source_rr_cfg;
-
-  // Establish SRBs
-  if (src_rr_cfg.srb_to_add_mod_list_present) {
-    for (auto& srb : src_rr_cfg.srb_to_add_mod_list) {
-      rrc_ue->bearer_list.add_srb(srb.srb_id);
-    }
-  }
+  const cell_ctxt_dedicated* target_cell     = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const cell_cfg_t&          target_cell_cfg = target_cell->cell_common->cell_cfg;
 
   // Establish ERABs/DRBs
   for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
@@ -1262,7 +1256,7 @@ void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recf
 void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& erabs)
 {
   // Establish DRBs
-  rrc_ue->apply_pdcp_drb_updates();
+  rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_rr_cfg);
 
   // Set DRBs SNs
   for (const auto& erab : erabs) {
@@ -1337,15 +1331,18 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
   f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn);
+  rrc_conn_recfg_r8_ies_s& reconf_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply changes to the MAC scheduler
-  f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8());
+  f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(reconf_r8);
 
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
     f->trigger(srslte::failure_ev{});
     return;
   }
+
+  apply_rr_cfg_ded_diff(f->rrc_ue->current_rr_cfg, reconf_r8.rr_cfg_ded);
 }
 
 void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev)
@@ -1367,8 +1364,8 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->bearer_list.reest_bearers();
-    rrc_ue->apply_pdcp_srb_updates();
-    rrc_ue->apply_pdcp_drb_updates();
+    rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
+    rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_rr_cfg);
   } else {
     rrc_log->info("Received duplicate C-RNTI CE during rnti=0x%x handover.\n", rrc_ue->rnti);
   }

@@ -34,6 +34,7 @@ using ue_cfg_t = sched_interface::ue_cfg_t;
 sched_interface::ue_bearer_cfg_t get_bearer_default_ccch_config()
 {
   sched_interface::ue_bearer_cfg_t bearer = {};
+  bearer.direction                        = sched_interface::ue_bearer_cfg_t::BOTH;
   bearer.priority                         = 1;
   bearer.pbr                              = -1;
   bearer.bsd                              = -1;
@@ -132,9 +133,9 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
   current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = pcell->cell_common->enb_cc_idx;
 
   // Only SRB0 and SRB1 active in the Scheduler at this point
-  current_sched_ue_cfg.ue_bearers              = {};
-  current_sched_ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  current_sched_ue_cfg.ue_bearers    = {};
+  current_sched_ue_cfg.ue_bearers[0] = get_bearer_default_ccch_config();
+  current_sched_ue_cfg.ue_bearers[1] = get_bearer_default_srb1_config();
 
   // Set default configuration
   current_sched_ue_cfg.supported_cc_list[0].dl_cfg.tm = SRSLTE_TM1;
@@ -206,41 +207,6 @@ void rrc::ue::mac_controller::handle_con_reconf_complete()
 
 void rrc::ue::mac_controller::apply_current_bearers_cfg()
 {
-  current_sched_ue_cfg.ue_bearers              = {};
-  current_sched_ue_cfg.ue_bearers[0].direction = sched_interface::ue_bearer_cfg_t::BOTH;
-
-  // Configure SRBs
-  const srb_to_add_mod_list_l& srbs = rrc_ue->bearer_list.get_established_srbs();
-  for (const srb_to_add_mod_s& srb : srbs) {
-    auto& bcfg = current_sched_ue_cfg.ue_bearers[srb.srb_id];
-    switch (srb.srb_id) {
-      case 0:
-        bcfg = get_bearer_default_ccch_config();
-        break;
-      case 1:
-        bcfg = get_bearer_default_srb1_config();
-        break;
-      case 2:
-        bcfg = get_bearer_default_srb2_config();
-        break;
-      default:
-        bcfg = {};
-    }
-    bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    if (srb.lc_ch_cfg_present and
-        srb.lc_ch_cfg.type().value == srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::explicit_value and
-        srb.lc_ch_cfg.explicit_value().ul_specific_params_present) {
-      // NOTE: Use UL values for DL prioritization as well
-      auto& ul_params = srb.lc_ch_cfg.explicit_value().ul_specific_params;
-      bcfg.pbr        = ul_params.prioritised_bit_rate.to_number();
-      bcfg.priority   = ul_params.prio;
-      bcfg.bsd        = ul_params.bucket_size_dur.to_number();
-      if (ul_params.lc_ch_group_present) {
-        bcfg.group = ul_params.lc_ch_group;
-      }
-    }
-  }
-
   // Configure DRBs
   const drb_to_add_mod_list_l& drbs = rrc_ue->bearer_list.get_established_drbs();
   for (const drb_to_add_mod_s& drb : drbs) {
@@ -382,6 +348,37 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg
         ue_cfg.uci_offset.I_offset_cqi = phy_cfg.pusch_cfg_ded.beta_offset_cqi_idx;
         ue_cfg.uci_offset.I_offset_ack = phy_cfg.pusch_cfg_ded.beta_offset_ack_idx;
         ue_cfg.uci_offset.I_offset_ri  = phy_cfg.pusch_cfg_ded.beta_offset_ri_idx;
+      }
+    }
+
+    // Apply SRB updates
+    if (conn_recfg.rr_cfg_ded.srb_to_add_mod_list_present) {
+      for (const srb_to_add_mod_s& srb : conn_recfg.rr_cfg_ded.srb_to_add_mod_list) {
+        auto& bcfg = ue_cfg.ue_bearers[srb.srb_id];
+        switch (srb.srb_id) {
+          case 1:
+            bcfg = get_bearer_default_srb1_config();
+            break;
+          case 2:
+            bcfg = get_bearer_default_srb2_config();
+            break;
+          default:
+            srslte::logmap::get("RRC")->warning("Invalid SRB ID %d\n", (int)srb.srb_id);
+            bcfg = {};
+        }
+        bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+        if (srb.lc_ch_cfg_present and
+            srb.lc_ch_cfg.type().value == srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::explicit_value and
+            srb.lc_ch_cfg.explicit_value().ul_specific_params_present) {
+          // NOTE: Use UL values for DL prioritization as well
+          auto& ul_params = srb.lc_ch_cfg.explicit_value().ul_specific_params;
+          bcfg.pbr        = ul_params.prioritised_bit_rate.to_number();
+          bcfg.priority   = ul_params.prio;
+          bcfg.bsd        = ul_params.bucket_size_dur.to_number();
+          if (ul_params.lc_ch_group_present) {
+            bcfg.group = ul_params.lc_ch_group;
+          }
+        }
       }
     }
   }
