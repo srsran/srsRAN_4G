@@ -273,6 +273,7 @@ void fill_rr_cfg_ded_enb_cfg(asn1::rrc::rr_cfg_ded_s& rr_cfg, const rrc_cfg_t& e
   mac_cfg.time_align_timer_ded = enb_cfg.mac_cnfg.time_align_timer_ded;
 
   // Fill physicalConfigDedicated
+  rr_cfg.phys_cfg_ded_present = true;
   fill_phy_cfg_ded_enb_cfg(rr_cfg.phys_cfg_ded, enb_cfg);
 
   // Other RR params
@@ -321,6 +322,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
 
   // PhysCfgDed update needed
   if (cause != reconf_cause::other) {
+    rr_cfg.phys_cfg_ded_present = true;
     fill_phy_cfg_ded_enb_cfg_reconf(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list);
   }
 }

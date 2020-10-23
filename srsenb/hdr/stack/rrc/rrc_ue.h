@@ -137,9 +137,6 @@ private:
   class mac_controller;
   std::unique_ptr<mac_controller> mac_ctrl;
 
-  ///< Helper to fill RR config dedicated struct for RRR Connection Setup/Reestablish
-  void fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg);
-
   ///< Helper to access a cell cfg based on ue_cc_idx
   cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 

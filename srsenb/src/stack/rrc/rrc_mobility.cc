@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
+#include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
@@ -717,7 +718,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
   empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
   // - fill source RR Config
-  rrc_ue->fill_rrc_setup_rr_config_dedicated(&hoprep_r8.as_cfg.source_rr_cfg);
+  fill_rr_cfg_ded_setup(hoprep_r8.as_cfg.source_rr_cfg, rrc_enb->cfg, rrc_ue->cell_ded_list);
   // Add already established SRBs to the message
   hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
   hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list         = rrc_ue->bearer_list.get_established_srbs();

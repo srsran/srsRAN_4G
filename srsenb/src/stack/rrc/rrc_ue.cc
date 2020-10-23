@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/int_helpers.h"
 
@@ -254,17 +255,16 @@ void rrc::ue::send_connection_setup()
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1();
 
-  dl_ccch_msg.msg.c1().set_rrc_conn_setup();
-  dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_setup_r8_ies_s& setup  = dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
-  rr_cfg_ded_s*            rr_cfg = &setup.rr_cfg_ded;
+  rrc_conn_setup_s& rrc_setup       = dl_ccch_msg.msg.c1().set_rrc_conn_setup();
+  rrc_setup.rrc_transaction_id      = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_setup_r8_ies_s& setup_r8 = rrc_setup.crit_exts.set_c1().set_rrc_conn_setup_r8();
+  rr_cfg_ded_s&            rr_cfg   = setup_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rrc_setup_rr_config_dedicated(rr_cfg);
-  phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, cell_ded_list);
 
   // Apply ConnectionSetup Configuration to MAC scheduler
-  mac_ctrl->handle_con_setup(setup);
+  mac_ctrl->handle_con_setup(setup_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   apply_pdcp_srb_updates();
@@ -272,7 +272,7 @@ void rrc::ue::send_connection_setup()
   apply_rlc_rb_updates();
 
   // Configure PHY layer
-  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
+  apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
   send_dl_ccch(&dl_ccch_msg);
 }
@@ -397,22 +397,19 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   bearer_list.add_srb(1);
 
   dl_ccch_msg_s dl_ccch_msg;
-  dl_ccch_msg.msg.set_c1();
-
-  dl_ccch_msg.msg.c1().set_rrc_conn_reest();
-  dl_ccch_msg.msg.c1().rrc_conn_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_reest_r8_ies_s& reest  = dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
-  rr_cfg_ded_s*            rr_cfg = &reest.rr_cfg_ded;
+  auto&         reest               = dl_ccch_msg.msg.set_c1().set_rrc_conn_reest();
+  reest.rrc_transaction_id          = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_reest_r8_ies_s& reest_r8 = reest.crit_exts.set_c1().set_rrc_conn_reest_r8();
+  rr_cfg_ded_s&            rr_cfg   = reest_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rrc_setup_rr_config_dedicated(rr_cfg);
-  phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, cell_ded_list);
 
   // Set NCC
-  reest.next_hop_chaining_count = ncc;
+  reest_r8.next_hop_chaining_count = ncc;
 
   // Apply ConnectionReest Configuration to MAC scheduler
-  mac_ctrl->handle_con_reest(reest);
+  mac_ctrl->handle_con_reest(reest_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   apply_pdcp_srb_updates();
@@ -420,7 +417,7 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   apply_rlc_rb_updates();
 
   // Configure PHY layer
-  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
+  apply_setup_phy_config_dedicated(rr_cfg.phys_cfg_ded); // It assumes SCell has not been set before
 
   send_dl_ccch(&dl_ccch_msg);
 }
@@ -1207,82 +1204,6 @@ void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byt
 }
 
 /********************** HELPERS ***************************/
-
-// Helper method to fill in rr_config_dedicated
-void rrc::ue::fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg)
-{
-  // Fill drbsToAddModList/srbsToAddModList/drbsToReleaseList
-  bearer_list.fill_rr_cfg_ded(*rr_cfg);
-
-  // Fill mac-MainConfig
-  rr_cfg->mac_main_cfg_present  = true;
-  mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.set_explicit_value();
-  mac_cfg->ul_sch_cfg_present   = true;
-  mac_cfg->ul_sch_cfg           = parent->cfg.mac_cnfg.ul_sch_cfg;
-  mac_cfg->phr_cfg_present      = true;
-  mac_cfg->phr_cfg              = parent->cfg.mac_cnfg.phr_cfg;
-  mac_cfg->time_align_timer_ded = parent->cfg.mac_cnfg.time_align_timer_ded;
-
-  // Fill physicalConfigDedicated
-  rr_cfg->phys_cfg_ded_present       = true;
-  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
-  phy_cfg->pusch_cfg_ded_present     = true;
-  phy_cfg->pusch_cfg_ded             = parent->cfg.pusch_cfg;
-  phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set_setup();
-  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
-
-  // set default antenna config
-  phy_cfg->ant_info_present = true;
-  phy_cfg->ant_info.set_explicit_value();
-  if (parent->cfg.cell.nof_ports == 1) {
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
-  } else {
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm2;
-  }
-  phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
-
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  // Power control
-  phy_cfg->ul_pwr_ctrl_ded_present              = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
-  phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
-  phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch          = 0;
-  phy_cfg->ul_pwr_ctrl_ded.psrs_offset          = 3;
-
-  // PDSCH
-  phy_cfg->pdsch_cfg_ded_present = true;
-  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
-
-  // PUCCH
-  phy_cfg->pucch_cfg_ded_present = true;
-  phy_cfg->pucch_cfg_ded.ack_nack_repeat.set(pucch_cfg_ded_s::ack_nack_repeat_c_::types::release);
-
-  phy_cfg->cqi_report_cfg_present = true;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-                &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-                UE_PCELL_CC_IDX)) {
-      parent->rrc_log->error("Allocating CQI resources for rnti=%d\n", rnti);
-      return;
-    }
-  }
-  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
-
-  rr_cfg->rlf_timers_and_consts_r9.set_present(false);
-  rr_cfg->sps_cfg_present = false;
-}
 
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
