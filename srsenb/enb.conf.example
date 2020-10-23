@@ -10,6 +10,7 @@
 # mnc:            Mobile Network Code
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
+# gtp_ext_addr:   External gateway IP address for GTP (optional, defaults to gtp_bind_addr)
 # s1c_bind_addr:  Local IP address to bind for S1AP connection
 # n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
 # tm:             Transmission mode 1-4 (TM1 default)

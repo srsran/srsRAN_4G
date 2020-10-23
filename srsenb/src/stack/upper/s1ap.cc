@@ -911,7 +911,7 @@ bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_s
     auto& item = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
     item.transport_layer_address.resize(32);
     uint8_t addr[4];
-    inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+    inet_pton(AF_INET, s1ap_ptr->args.gtp_ext_addr.c_str(), addr);
     for (uint32_t j = 0; j < 4; ++j) {
       item.transport_layer_address.data()[j] = addr[3 - j];
     }
@@ -932,13 +932,18 @@ bool s1ap::ue::send_erab_setup_response(const erab_setup_resp_s& res_)
 
   res = res_;
 
-  // Fill in the GTP bind address for all bearers
+  // if no external GTP address given, default to GTP bind addr
+  if (s1ap_ptr->args.gtp_ext_addr == "") {
+    s1ap_ptr->args.gtp_ext_addr = s1ap_ptr->args.gtp_bind_addr;
+  }
+
+  // Fill in the GTP address for all bearers
   if (res.protocol_ies.erab_setup_list_bearer_su_res_present) {
     for (uint32_t i = 0; i < res.protocol_ies.erab_setup_list_bearer_su_res.value.size(); ++i) {
       auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
       item.transport_layer_address.resize(32);
       uint8_t addr[4];
-      inet_pton(AF_INET, s1ap_ptr->args.gtp_bind_addr.c_str(), addr);
+      inet_pton(AF_INET, s1ap_ptr->args.gtp_ext_addr.c_str(), addr);
       for (uint32_t j = 0; j < 4; ++j) {
         item.transport_layer_address.data()[j] = addr[3 - j];
       }

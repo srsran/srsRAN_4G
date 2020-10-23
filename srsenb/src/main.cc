@@ -72,6 +72,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("enb.mnc",           bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("enb.mme_addr",      bpo::value<string>(&args->stack.s1ap.mme_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connection")
     ("enb.gtp_bind_addr", bpo::value<string>(&args->stack.s1ap.gtp_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for GTP connection")
+    ("enb.gtp_ext_addr",  bpo::value<string>(&args->stack.s1ap.gtp_ext_addr)->default_value(""), "GTP external address (gateway), defaults to gtp_bind_addr")
     ("enb.s1c_bind_addr", bpo::value<string>(&args->stack.s1ap.s1c_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for S1AP connection")
     ("enb.n_prb",         bpo::value<uint32_t>(&args->enb.n_prb)->default_value(25),               "Number of PRB")
     ("enb.nof_ports",     bpo::value<uint32_t>(&args->enb.nof_ports)->default_value(1),            "Number of ports")
@@ -287,6 +288,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   if (pos != enb_id.size()) {
     cout << "Error parsing enb.enb_id: " << enb_id << "." << endl;
     exit(1);
+  }
+
+  // gtp_ext_addr is optional, defaults to gtp_bind_addr
+  if (args->stack.s1ap.gtp_ext_addr == "") {
+    args->stack.s1ap.gtp_ext_addr = args->stack.s1ap.gtp_bind_addr;
   }
 
   // Apply all_level to any unset layers
