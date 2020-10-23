@@ -90,7 +90,7 @@ public:
   const std::map<uint8_t, erab_t>&                get_erabs() const { return erabs; }
   const asn1::rrc::drb_to_add_mod_list_l&         get_established_drbs() const { return current_drbs; }
   const asn1::rrc::srb_to_add_mod_list_l&         get_established_srbs() const { return current_srbs; }
-  srslte::span<const asn1::rrc::drb_to_add_mod_s> get_pending_addmod_drbs() const { return drbs_to_add; }
+  const asn1::rrc::drb_to_add_mod_list_l&         get_pending_addmod_drbs() const { return drbs_to_add; }
   srslte::span<const uint8_t>                     get_pending_rem_drbs() const { return drbs_to_release; }
   srslte::span<const asn1::rrc::srb_to_add_mod_s> get_pending_addmod_srbs() const { return srbs_to_add; }
 

@@ -719,13 +719,13 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
   // - fill source RR Config
   fill_rr_cfg_ded_setup(hoprep_r8.as_cfg.source_rr_cfg, rrc_enb->cfg, rrc_ue->cell_ded_list);
-  // Add already established SRBs to the message
-  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
-  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list         = rrc_ue->bearer_list.get_established_srbs();
-  // Get DRBs configuration
-  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list = rrc_ue->bearer_list.get_established_drbs();
-  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present =
-      hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list.size() > 0;
+  fill_rr_cfg_ded_reconf(hoprep_r8.as_cfg.source_rr_cfg,
+                         hoprep_r8.as_cfg.source_rr_cfg,
+                         rrc_enb->cfg,
+                         rrc_ue->cell_ded_list,
+                         rrc_ue->bearer_list,
+                         rrc_ue->ue_capabilities,
+                         reconf_cause::handover);
   // Get security cfg
   hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);

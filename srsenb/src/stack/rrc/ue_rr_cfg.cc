@@ -62,11 +62,11 @@ srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
 void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& current_srbs)
 {
   // NOTE: In case of Handover, the Reconf includes SRB1
-  if (not srslte::find_rrc_obj_id(current_srbs, 1)) {
+  if (srslte::find_rrc_obj_id(current_srbs, 1) == current_srbs.end()) {
     add_srb(srbs, 1);
   }
 
-  if (not srslte::find_rrc_obj_id(current_srbs, 2)) {
+  if (srslte::find_rrc_obj_id(current_srbs, 2) == current_srbs.end()) {
     add_srb(srbs, 2);
   }
 }
@@ -335,7 +335,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
 
   // Update DRBs if required
   srslte::compute_cfg_diff(current_rr_cfg.drb_to_add_mod_list,
-                           bearers.get_established_drbs(),
+                           bearers.get_pending_addmod_drbs(),
                            rr_cfg.drb_to_add_mod_list,
                            rr_cfg.drb_to_release_list);
   rr_cfg.drb_to_add_mod_list_present = rr_cfg.drb_to_add_mod_list.size() > 0;
