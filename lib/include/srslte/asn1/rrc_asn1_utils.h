@@ -159,6 +159,11 @@ bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_
 bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs);
 bool operator==(const quant_cfg_s& lhs, const quant_cfg_s& rhs);
 
+/***************************
+ *      SRBs/DRBs
+ **************************/
+bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs);
+
 /**************************
  *     RRC Obj Id
  *************************/

@@ -1106,6 +1106,70 @@ bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s&
          lhs.quant_cfg_eutra.filt_coef_rsrq == rhs.quant_cfg_eutra.filt_coef_rsrq;
 }
 
+/***************************
+ *      SRBs/DRBs
+ **************************/
+
+bool operator==(const lc_ch_cfg_s& lhs, const lc_ch_cfg_s& rhs)
+{
+  if (not(lhs.ul_specific_params_present == rhs.ul_specific_params_present and lhs.ext == rhs.ext)) {
+    return false;
+  }
+  if (lhs.ul_specific_params_present and
+      not(lhs.ul_specific_params.bucket_size_dur == rhs.ul_specific_params.bucket_size_dur and
+          lhs.ul_specific_params.prio == rhs.ul_specific_params.prio and
+          lhs.ul_specific_params.prioritised_bit_rate == rhs.ul_specific_params.prioritised_bit_rate and
+          lhs.ul_specific_params.lc_ch_group_present == rhs.ul_specific_params.lc_ch_group_present and
+          (not lhs.ul_specific_params.lc_ch_group_present or
+           lhs.ul_specific_params.lc_ch_group == rhs.ul_specific_params.lc_ch_group))) {
+    return false;
+  }
+  // TODO: do remaining comparisons
+  return true;
+}
+
+bool operator==(const pdcp_cfg_s& lhs, const pdcp_cfg_s& rhs)
+{
+  if (lhs.discard_timer_present == rhs.discard_timer_present and lhs.discard_timer == rhs.discard_timer and
+      lhs.ext == rhs.ext) {
+    return false;
+  }
+  // TODO: do remaining comparisons
+  return true;
+}
+
+bool operator==(const rlc_cfg_c& lhs, const rlc_cfg_c& rhs)
+{
+  // TODO: do remaining comparisons
+  return !(lhs.type().value != rhs.type().value);
+}
+
+bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs)
+{
+  if (lhs.drb_id != rhs.drb_id or lhs.ext != rhs.ext) {
+    return false;
+  }
+  if (lhs.eps_bearer_id_present != rhs.eps_bearer_id_present or (lhs.eps_bearer_id != rhs.eps_bearer_id)) {
+    return false;
+  }
+  if (not(lhs.pdcp_cfg_present == rhs.pdcp_cfg_present and
+          (not lhs.pdcp_cfg_present or lhs.pdcp_cfg == rhs.pdcp_cfg))) {
+    return false;
+  }
+  if (not(lhs.rlc_cfg_present == rhs.rlc_cfg_present and (not lhs.rlc_cfg_present or lhs.rlc_cfg == rhs.rlc_cfg))) {
+    return false;
+  }
+  if (lhs.lc_ch_id_present != rhs.lc_ch_id_present or (lhs.lc_ch_id_present and lhs.lc_ch_id != rhs.lc_ch_id)) {
+    return false;
+  }
+  if (not(lhs.lc_ch_cfg_present == rhs.lc_ch_cfg_present and
+          (not lhs.lc_ch_cfg_present or lhs.lc_ch_cfg == rhs.lc_ch_cfg))) {
+    return false;
+  }
+  // TODO: remaining comparisons
+  return true;
+}
+
 /**************************
  *     RRC Obj Id
  *************************/

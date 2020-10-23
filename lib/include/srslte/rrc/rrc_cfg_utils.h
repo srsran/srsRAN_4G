@@ -164,7 +164,7 @@ void apply_addmodlist_diff(const AddModList& src_list, const AddModList& add_dif
 template <typename AddModList, typename RemoveList>
 void apply_addmodremlist_diff(const AddModList& src_list,
                               const AddModList& add_diff_list,
-                              RemoveList&       rm_diff_list,
+                              const RemoveList& rm_diff_list,
                               AddModList&       target_list)
 {
   if (add_diff_list.size() == 0 and rm_diff_list.size() == 0) {
