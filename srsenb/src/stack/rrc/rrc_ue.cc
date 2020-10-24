@@ -468,20 +468,16 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 {
   parent->rrc_log->debug("RRC state %d\n", state);
 
+  /* Create RRCConnectionReconfiguration ASN1 message */
   dl_dcch_msg_s     dl_dcch_msg;
-  rrc_conn_recfg_s& recfg           = dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
-  recfg.rrc_transaction_id          = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg_r8_ies_s& recfg_r8 = recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
+  rrc_conn_recfg_s& rrc_conn_recfg  = dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
+  rrc_conn_recfg.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
   // Fill RR Config Ded
-  fill_rr_cfg_ded_reconf(recfg_r8.rr_cfg_ded,
-                         current_rr_cfg,
-                         parent->cfg,
-                         cell_ded_list,
-                         bearer_list,
-                         ue_capabilities,
-                         reconf_cause::init);
   recfg_r8.rr_cfg_ded_present = true;
+  fill_rr_cfg_ded_reconf(
+      recfg_r8.rr_cfg_ded, current_rr_cfg, parent->cfg, cell_ded_list, bearer_list, ue_capabilities, true);
 
   // Add SCells
   if (fill_scell_to_addmod_list(&recfg_r8) != SRSLTE_SUCCESS) {
@@ -489,6 +485,22 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     return;
   }
 
+  // Add pending NAS info
+  bearer_list.fill_pending_nas_info(&recfg_r8);
+
+  // Add measConfig
+  if (mobility_handler != nullptr) {
+    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
+  }
+
+  // if no updates were detected, skip rrc reconfiguration
+  if (not(recfg_r8.rr_cfg_ded_present or recfg_r8.meas_cfg_present or recfg_r8.mob_ctrl_info_present or
+          recfg_r8.ded_info_nas_list_present or recfg_r8.security_cfg_ho_present or recfg_r8.non_crit_ext_present)) {
+    return;
+  }
+
+  /* Apply updates present in RRCConnectionReconfiguration to lower layers */
+  // apply PHY config
   apply_reconf_phy_config(recfg_r8, true);
 
   // setup SRB2/DRBs in PDCP and RLC
@@ -496,99 +508,21 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   apply_pdcp_drb_updates(recfg_r8.rr_cfg_ded);
   apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
 
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(&recfg_r8);
-
-  if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
-  }
-  last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
-
-  // Apply Reconf Msg configuration to MAC scheduler
+  // UE MAC scheduler updates
   mac_ctrl->handle_con_reconf(recfg_r8);
 
-  // If reconf due to reestablishment, recover PDCP state
-  if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
-    for (const auto& erab_pair : bearer_list.get_erabs()) {
-      uint16_t lcid  = erab_pair.second.id - 2;
-      bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
-                   asn1::rrc::rlc_cfg_c::types_opts::am;
-      if (is_am) {
-        parent->rrc_log->debug("Set PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
-                               "LAST_SUBMITTED_PDCP_RX_SN %d\n",
-                               old_reest_pdcp_state[lcid].tx_hfn,
-                               old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
-                               old_reest_pdcp_state[lcid].rx_hfn,
-                               old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
-                               old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
-        parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
-      }
-    }
-  }
-
   // Reuse same PDU
-  pdu->clear();
-
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
-
-  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
-
-  apply_rr_cfg_ded_diff(current_rr_cfg, recfg_r8.rr_cfg_ded);
-}
-
-void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
-{
-  dl_dcch_msg_s     dl_dcch_msg;
-  rrc_conn_recfg_s* rrc_conn_recfg     = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
-  rrc_conn_recfg->rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg_r8_ies_s& reconfig_r8 = rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
-
-  reconfig_r8.rr_cfg_ded_present = true;
-  rr_cfg_ded_s* rr_cfg           = &reconfig_r8.rr_cfg_ded;
-
-  rr_cfg->phys_cfg_ded_present       = true;
-  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
-  phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set_setup();
-  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
-
-  phy_cfg->cqi_report_cfg_present = true;
-  if (cell_ded_list.nof_cells() > 0) {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-            UE_PCELL_CC_IDX);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
-        parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx = 483; /* TODO: HARDCODED! Add to UL scheduler */
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
-    }
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    if (phy_cfg->ant_info_present && parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
-    }
+  if (pdu != nullptr) {
+    pdu->clear();
   }
-  apply_reconf_phy_config(reconfig_r8, true);
 
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  // Apply Reconf Msg configuration to MAC scheduler
-  mac_ctrl->handle_con_reconf(reconfig_r8);
-
-  pdu->clear();
-
+  // send DL-DCCH message to lower layers
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+
+  // Update UE current RadioResourceConfiguration
+  apply_rr_cfg_ded_diff(current_rr_cfg, recfg_r8.rr_cfg_ded);
 }
 
 void rrc::ue::send_connection_reconf_new_bearer()
@@ -598,13 +532,8 @@ void rrc::ue::send_connection_reconf_new_bearer()
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  fill_rr_cfg_ded_reconf(conn_reconf->rr_cfg_ded,
-                         current_rr_cfg,
-                         parent->cfg,
-                         cell_ded_list,
-                         bearer_list,
-                         ue_capabilities,
-                         reconf_cause::other);
+  fill_rr_cfg_ded_reconf(
+      conn_reconf->rr_cfg_ded, current_rr_cfg, parent->cfg, cell_ded_list, bearer_list, ue_capabilities, false);
 
   // Setup new bearer
   apply_pdcp_srb_updates(conn_reconf->rr_cfg_ded);
@@ -625,17 +554,18 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   // Inform PHY about the configuration completion
   parent->phy->complete_config(rnti);
 
-  if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
-    // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
-    mac_ctrl->handle_con_reconf_complete();
-
-    // If performing handover, signal its completion
-    mobility_handler->trigger(*msg);
-  } else {
+  if (transaction_id != msg->rrc_transaction_id) {
     parent->rrc_log->error("Expected RRCReconfigurationComplete with transaction ID: %d, got %d\n",
-                           last_rrc_conn_recfg.rrc_transaction_id,
+                           transaction_id,
                            msg->rrc_transaction_id);
+    return;
   }
+
+  // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
+  mac_ctrl->handle_con_reconf_complete();
+
+  // If performing handover, signal its completion
+  mobility_handler->trigger(*msg);
 }
 
 /*
@@ -1325,6 +1255,25 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       parent->pdcp->config_security(rnti, drb.lc_ch_id, ue_security_cfg.get_as_sec_cfg());
       parent->pdcp->enable_integrity(rnti, drb.lc_ch_id);
       parent->pdcp->enable_encryption(rnti, drb.lc_ch_id);
+    }
+  }
+
+  // If reconf due to reestablishment, recover PDCP state
+  if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
+    for (const auto& erab_pair : bearer_list.get_erabs()) {
+      uint16_t lcid  = erab_pair.second.id - 2;
+      bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
+                   asn1::rrc::rlc_cfg_c::types_opts::am;
+      if (is_am) {
+        parent->rrc_log->debug("Set PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
+                               "LAST_SUBMITTED_PDCP_RX_SN %d\n",
+                               old_reest_pdcp_state[lcid].tx_hfn,
+                               old_reest_pdcp_state[lcid].next_pdcp_tx_sn,
+                               old_reest_pdcp_state[lcid].rx_hfn,
+                               old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+                               old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+        parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
+      }
     }
   }
 }

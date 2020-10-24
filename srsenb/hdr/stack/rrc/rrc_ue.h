@@ -53,9 +53,8 @@ public:
   void send_connection_reject();
   void send_connection_release();
   void send_connection_reest_rej();
-  void send_connection_reconf(srslte::unique_byte_buffer_t sdu);
+  void send_connection_reconf(srslte::unique_byte_buffer_t sdu = {});
   void send_connection_reconf_new_bearer();
-  void send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -106,9 +105,8 @@ private:
   srslte::byte_buffer_pool*           pool = nullptr;
   srslte::timer_handler::unique_timer activity_timer;
 
-  // cached for ease of context transfer
-  asn1::rrc::rrc_conn_recfg_s last_rrc_conn_recfg;
-  asn1::rrc::rr_cfg_ded_s     current_rr_cfg;
+  /// cached for ease of context transfer
+  asn1::rrc::rr_cfg_ded_s current_rr_cfg;
 
   asn1::rrc::establishment_cause_e establishment_cause;
 

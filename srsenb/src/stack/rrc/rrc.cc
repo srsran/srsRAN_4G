@@ -83,7 +83,7 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   rrc_log->info("T310 %d, T311 %d, N310 %d \n", t310, t311, n310);
   if (cfg.inactivity_timeout_ms < t310 + t311 + n310) {
     srslte::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
-                       "This may break the UE's re-establishment procedure.\n");
+                    "This may break the UE's re-establishment procedure.\n");
     rrc_log->warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
                      "re-establishment procedure.\n");
   }
@@ -203,7 +203,7 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
     if (ue_ptr->mobility_handler->is_ho_running()) {
       ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
     } else if (ue_ptr->is_connected()) {
-      old_it->second->send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
+      old_it->second->send_connection_reconf();
     } else {
       old_it->second->send_connection_reject();
     }

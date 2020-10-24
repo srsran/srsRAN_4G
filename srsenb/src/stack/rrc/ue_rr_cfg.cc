@@ -327,7 +327,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
                             const cell_ctxt_dedicated_list&      ue_cell_list,
                             const bearer_cfg_handler&            bearers,
                             const srslte::rrc_ue_capabilities_t& ue_caps,
-                            reconf_cause                         cause)
+                            bool                                 phy_cfg_updated)
 {
   // (Re)establish SRBs
   fill_srbs_reconf(rr_cfg.srb_to_add_mod_list, current_rr_cfg.srb_to_add_mod_list);
@@ -342,7 +342,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
   rr_cfg.drb_to_release_list_present = rr_cfg.drb_to_release_list.size() > 0;
 
   // PhysCfgDed update needed
-  if (cause != reconf_cause::other) {
+  if (phy_cfg_updated) {
     rr_cfg.phys_cfg_ded_present = true;
     fill_phy_cfg_ded_reconf(rr_cfg.phys_cfg_ded, enb_cfg, ue_cell_list, ue_caps);
   }

@@ -725,7 +725,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
                          rrc_ue->cell_ded_list,
                          rrc_ue->bearer_list,
                          rrc_ue->ue_capabilities,
-                         reconf_cause::handover);
+                         true);
   // Get security cfg
   hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);

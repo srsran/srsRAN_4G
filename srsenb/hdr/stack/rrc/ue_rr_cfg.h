@@ -38,14 +38,13 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
                            const cell_ctxt_dedicated_list& ue_cell_list);
 
 /// Fill RadioResourceConfigDedicated with RRCReconf data
-enum class reconf_cause { init, reest, crnti_ce, handover, other };
 void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
                             const asn1::rrc::rr_cfg_ded_s&       current_rr_cfg,
                             const rrc_cfg_t&                     enb_cfg,
                             const cell_ctxt_dedicated_list&      ue_cell_list,
                             const bearer_cfg_handler&            bearers,
                             const srslte::rrc_ue_capabilities_t& ue_caps,
-                            reconf_cause                         cause);
+                            bool                                 phy_cfg_updated);
 
 void apply_rr_cfg_ded_diff(asn1::rrc::rr_cfg_ded_s&       current_rr_cfg_ded,
                            const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg_ded);
