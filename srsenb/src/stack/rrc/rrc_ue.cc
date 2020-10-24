@@ -290,9 +290,6 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   pdu->N_bytes = msg_r8->ded_info_nas.size();
   memcpy(pdu->msg, msg_r8->ded_info_nas.data(), pdu->N_bytes);
 
-  // Flag completion of RadioResource Configuration
-  bearer_list.rr_ded_cfg_complete();
-
   // Signal MAC scheduler that configuration was successful
   mac_ctrl->handle_con_setup_complete();
 
@@ -433,9 +430,6 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   // Modify GTP-U tunnel and S1AP context
   parent->gtpu->mod_bearer_rnti(old_reest_rnti, rnti);
   parent->s1ap->user_mod(old_reest_rnti, rnti);
-
-  // Flag completion of RadioResource Configuration
-  bearer_list.rr_ded_cfg_complete();
 
   // Signal MAC scheduler that configuration was successful
   mac_ctrl->handle_con_reest_complete();
@@ -604,7 +598,13 @@ void rrc::ue::send_connection_reconf_new_bearer()
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
+  fill_rr_cfg_ded_reconf(conn_reconf->rr_cfg_ded,
+                         current_rr_cfg,
+                         parent->cfg,
+                         cell_ded_list,
+                         bearer_list,
+                         ue_capabilities,
+                         reconf_cause::other);
 
   // Setup new bearer
   apply_pdcp_srb_updates(conn_reconf->rr_cfg_ded);
@@ -616,6 +616,8 @@ void rrc::ue::send_connection_reconf_new_bearer()
   if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
     send_dl_dcch(&dl_dcch_msg);
   }
+
+  apply_rr_cfg_ded_diff(current_rr_cfg, conn_reconf->rr_cfg_ded);
 }
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -624,9 +626,6 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   parent->phy->complete_config(rnti);
 
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
-    // Flag completion of RadioResource Configuration
-    bearer_list.rr_ded_cfg_complete();
-
     // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
     mac_ctrl->handle_con_reconf_complete();
 

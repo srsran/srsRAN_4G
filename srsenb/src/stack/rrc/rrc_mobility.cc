@@ -1153,16 +1153,16 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
 
+  apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, recfg_r8.rr_cfg_ded);
+
   /* Configure remaining layers based on pending changes */
   // Update RLC + PDCP SRBs (no DRBs until MME Status Transfer)
-  rrc_ue->apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
-  rrc_ue->apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
+  rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
+  rrc_ue->apply_rlc_rb_updates(rrc_ue->current_rr_cfg);
   // Update MAC
   rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8);
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
-
-  apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, recfg_r8.rr_cfg_ded);
 
   /* send S1AP HandoverRequestAcknowledge */
   std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
@@ -1232,6 +1232,9 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
     }
   }
 
+  // Save source eNB UE RR cfg as a starting point
+  apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, ho_prep.as_cfg.source_rr_cfg);
+
   // Save source UE MAC configuration as a base
   rrc_ue->mac_ctrl->handle_ho_prep(ho_prep);
 
@@ -1266,7 +1269,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
       rrc_log->warning("The E-RAB Id=%d is not recognized\n", erab_item.erab_id);
       continue;
     }
-    const auto& drbs  = rrc_ue->bearer_list.get_pending_addmod_drbs();
+    const auto& drbs  = rrc_ue->bearer_list.get_established_drbs();
     uint8_t     drbid = erab_item.erab_id - 4;
     auto        drb_it =
         std::find_if(drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return drb.drb_id == drbid; });
@@ -1363,7 +1366,6 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     rrc_enb->phy->set_config(rrc_ue->rnti, rrc_ue->phy_rrc_dedicated_list);
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
-    rrc_ue->bearer_list.reest_bearers();
     rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
     rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_rr_cfg);
   } else {

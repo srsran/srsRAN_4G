@@ -105,6 +105,17 @@ typename Container::iterator add_rrc_obj(Container& c, const typename Container:
   return it;
 }
 
+template <typename Container, typename IdType>
+bool rem_rrc_obj_id(Container& c, IdType id)
+{
+  auto it = sorted_find_rrc_obj_id(c, id);
+  if (it != c.end()) {
+    c.erase(it);
+    return true;
+  }
+  return false;
+}
+
 /**
  * Find rrc obj id gap in list of rrc objs (e.g. {1, 2, 4} -> 3)
  * Expects list to be sorted
@@ -234,6 +245,21 @@ void compute_cfg_diff(const toAddModList& src_list,
                       toAddModList&       add_diff_list,
                       RemoveList&         rem_diff_list)
 {
+  if (&src_list == &target_list) {
+    // early exit
+    return;
+  } else if (&src_list == &add_diff_list) {
+    // use const src_list
+    toAddModList src_list2 = src_list;
+    compute_cfg_diff(src_list2, target_list, add_diff_list, rem_diff_list);
+    return;
+  } else if (&target_list == &add_diff_list) {
+    // use const target_list
+    toAddModList target_list2 = target_list;
+    compute_cfg_diff(src_list, target_list2, add_diff_list, rem_diff_list);
+    return;
+  }
+
   using it_t    = typename toAddModList::const_iterator;
   auto rem_func = [&rem_diff_list](it_t rem_it) { rem_diff_list.push_back(asn1::rrc::get_rrc_obj_id(*rem_it)); };
   auto add_func = [&add_diff_list](it_t add_it) { add_diff_list.push_back(*add_it); };

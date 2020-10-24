@@ -56,6 +56,8 @@ sched_interface::ue_bearer_cfg_t get_bearer_default_srb2_config()
   return bearer;
 }
 
+void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srbs);
+
 /**
  * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message that should
  * only take effect after the RRCReconfigurationComplete is received
@@ -266,6 +268,9 @@ void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_r
 void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep)
 {
   // TODO: Apply configuration in ho_prep as a base
+  if (ho_prep.as_cfg.source_rr_cfg.srb_to_add_mod_list_present) {
+    ue_cfg_apply_srb_updates(current_sched_ue_cfg, ho_prep.as_cfg.source_rr_cfg.srb_to_add_mod_list);
+  }
 }
 
 void rrc::ue::mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
@@ -328,6 +333,37 @@ void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s&
   }
 }
 
+void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srbs)
+{
+  for (const srb_to_add_mod_s& srb : srbs) {
+    auto& bcfg = ue_cfg.ue_bearers[srb.srb_id];
+    switch (srb.srb_id) {
+      case 1:
+        bcfg = get_bearer_default_srb1_config();
+        break;
+      case 2:
+        bcfg = get_bearer_default_srb2_config();
+        break;
+      default:
+        srslte::logmap::get("RRC")->warning("Invalid SRB ID %d\n", (int)srb.srb_id);
+        bcfg = {};
+    }
+    bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    if (srb.lc_ch_cfg_present and
+        srb.lc_ch_cfg.type().value == srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::explicit_value and
+        srb.lc_ch_cfg.explicit_value().ul_specific_params_present) {
+      // NOTE: Use UL values for DL prioritization as well
+      auto& ul_params = srb.lc_ch_cfg.explicit_value().ul_specific_params;
+      bcfg.pbr        = ul_params.prioritised_bit_rate.to_number();
+      bcfg.priority   = ul_params.prio;
+      bcfg.bsd        = ul_params.bucket_size_dur.to_number();
+      if (ul_params.lc_ch_group_present) {
+        bcfg.group = ul_params.lc_ch_group;
+      }
+    }
+  }
+}
+
 void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
                                           const rrc_conn_recfg_r8_ies_s&  conn_recfg,
                                           const cell_ctxt_dedicated_list& ue_cell_list)
@@ -353,33 +389,7 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg
 
     // Apply SRB updates
     if (conn_recfg.rr_cfg_ded.srb_to_add_mod_list_present) {
-      for (const srb_to_add_mod_s& srb : conn_recfg.rr_cfg_ded.srb_to_add_mod_list) {
-        auto& bcfg = ue_cfg.ue_bearers[srb.srb_id];
-        switch (srb.srb_id) {
-          case 1:
-            bcfg = get_bearer_default_srb1_config();
-            break;
-          case 2:
-            bcfg = get_bearer_default_srb2_config();
-            break;
-          default:
-            srslte::logmap::get("RRC")->warning("Invalid SRB ID %d\n", (int)srb.srb_id);
-            bcfg = {};
-        }
-        bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-        if (srb.lc_ch_cfg_present and
-            srb.lc_ch_cfg.type().value == srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::explicit_value and
-            srb.lc_ch_cfg.explicit_value().ul_specific_params_present) {
-          // NOTE: Use UL values for DL prioritization as well
-          auto& ul_params = srb.lc_ch_cfg.explicit_value().ul_specific_params;
-          bcfg.pbr        = ul_params.prioritised_bit_rate.to_number();
-          bcfg.priority   = ul_params.prio;
-          bcfg.bsd        = ul_params.bucket_size_dur.to_number();
-          if (ul_params.lc_ch_group_present) {
-            bcfg.group = ul_params.lc_ch_group;
-          }
-        }
-      }
+      ue_cfg_apply_srb_updates(ue_cfg, conn_recfg.rr_cfg_ded.srb_to_add_mod_list);
     }
   }
 

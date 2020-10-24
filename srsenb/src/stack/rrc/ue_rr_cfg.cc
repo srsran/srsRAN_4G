@@ -335,7 +335,7 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
 
   // Update DRBs if required
   srslte::compute_cfg_diff(current_rr_cfg.drb_to_add_mod_list,
-                           bearers.get_pending_addmod_drbs(),
+                           bearers.get_established_drbs(),
                            rr_cfg.drb_to_add_mod_list,
                            rr_cfg.drb_to_release_list);
   rr_cfg.drb_to_add_mod_list_present = rr_cfg.drb_to_add_mod_list.size() > 0;

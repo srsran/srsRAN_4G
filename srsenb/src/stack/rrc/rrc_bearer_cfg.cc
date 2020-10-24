@@ -250,7 +250,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   }
 
   // Set DRBtoAddMod
-  auto drb_it                                              = srslte::add_rrc_obj_id(drbs_to_add, drbid);
+  auto drb_it                                              = srslte::add_rrc_obj_id(current_drbs, drbid);
   drb_it->lc_ch_id_present                                 = true;
   drb_it->lc_ch_id                                         = (uint8_t)lcid;
   drb_it->eps_bearer_id_present                            = true;
@@ -276,7 +276,8 @@ void bearer_cfg_handler::release_erab(uint8_t erab_id)
   }
 
   uint8_t drb_id = erab_id - 4;
-  drbs_to_release.push_back(drb_id);
+
+  srslte::rem_rrc_obj_id(current_drbs, drb_id);
 
   erabs.erase(it);
   erab_info_list.erase(erab_id);
@@ -289,32 +290,6 @@ void bearer_cfg_handler::release_erabs()
   while (not erabs.empty()) {
     release_erab(erabs.begin()->first);
   }
-}
-
-void bearer_cfg_handler::reest_bearers()
-{
-  // Re-add all SRBs/DRBs
-  drbs_to_add = current_drbs;
-}
-
-void bearer_cfg_handler::rr_ded_cfg_complete()
-{
-  // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
-  srslte::apply_addmodremlist_diff(current_drbs, drbs_to_add, drbs_to_release, current_drbs);
-
-  // Reset DRBs/SRBs to Add/mod/release
-  drbs_to_add = {};
-  drbs_to_release.resize(0);
-}
-
-bool bearer_cfg_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
-{
-  // Add altered bearers to message
-  msg.drb_to_add_mod_list_present = drbs_to_add.size() > 0;
-  msg.drb_to_add_mod_list         = drbs_to_add;
-  msg.drb_to_release_list_present = drbs_to_release.size() > 0;
-  msg.drb_to_release_list         = drbs_to_release;
-  return msg.srb_to_add_mod_list_present or msg.drb_to_add_mod_list_present or msg.drb_to_release_list_present;
 }
 
 void bearer_cfg_handler::add_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
