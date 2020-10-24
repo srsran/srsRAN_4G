@@ -105,8 +105,9 @@ private:
   srslte::byte_buffer_pool*           pool = nullptr;
   srslte::timer_handler::unique_timer activity_timer;
 
-  /// cached for ease of context transfer
-  asn1::rrc::rr_cfg_ded_s current_rr_cfg;
+  /// cached ASN1 for update checking, and ease of context transfer during HO
+  asn1::rrc::rr_cfg_ded_s                current_rr_cfg;
+  asn1::rrc::scell_to_add_mod_list_r10_l current_scells;
 
   asn1::rrc::establishment_cause_e establishment_cause;
 
@@ -139,8 +140,8 @@ private:
   ///< Helper to access a cell cfg based on ue_cc_idx
   cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
-  ///< Helper to fill SCell struct for RRR Connection Reconfig
-  int fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
+  /// Helper to fill cell_ded_list with SCells provided in the eNB config
+  void update_scells();
 
   ///< UE's Physical layer dedicated configuration
   phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_dedicated_list = {};

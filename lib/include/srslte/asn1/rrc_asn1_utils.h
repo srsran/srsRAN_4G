@@ -164,6 +164,11 @@ bool operator==(const quant_cfg_s& lhs, const quant_cfg_s& rhs);
  **************************/
 bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs);
 
+/***************************
+ *        SCells
+ **************************/
+bool operator==(const scell_to_add_mod_r10_s& lhs, const scell_to_add_mod_r10_s& rhs);
+
 /**************************
  *     RRC Obj Id
  *************************/

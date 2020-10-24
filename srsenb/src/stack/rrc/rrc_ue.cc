@@ -468,6 +468,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 {
   parent->rrc_log->debug("RRC state %d\n", state);
 
+  update_scells();
+
   /* Create RRCConnectionReconfiguration ASN1 message */
   dl_dcch_msg_s     dl_dcch_msg;
   rrc_conn_recfg_s& rrc_conn_recfg  = dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
@@ -479,11 +481,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   fill_rr_cfg_ded_reconf(
       recfg_r8.rr_cfg_ded, current_rr_cfg, parent->cfg, cell_ded_list, bearer_list, ue_capabilities, true);
 
-  // Add SCells
-  if (fill_scell_to_addmod_list(&recfg_r8) != SRSLTE_SUCCESS) {
-    parent->rrc_log->warning("Could not create configuration for Scell\n");
-    return;
-  }
+  // Add SCells config
+  fill_scells_reconf(recfg_r8, current_scells, parent->cfg, cell_ded_list, ue_capabilities);
 
   // Add pending NAS info
   bearer_list.fill_pending_nas_info(&recfg_r8);
@@ -522,7 +521,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 
   // Update UE current RadioResourceConfiguration
-  apply_rr_cfg_ded_diff(current_rr_cfg, recfg_r8.rr_cfg_ded);
+  apply_reconf_diff(current_rr_cfg, current_scells, recfg_r8);
 }
 
 void rrc::ue::send_connection_reconf_new_bearer()
@@ -546,7 +545,7 @@ void rrc::ue::send_connection_reconf_new_bearer()
     send_dl_dcch(&dl_dcch_msg);
   }
 
-  apply_rr_cfg_ded_diff(current_rr_cfg, conn_reconf->rr_cfg_ded);
+  apply_reconf_diff(current_rr_cfg, current_scells, *conn_reconf);
 }
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -895,13 +894,14 @@ cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
   return parent->cell_common_list->get_cc_idx(enb_cc_idx);
 }
 
-//! Method to fill SCellToAddModList for SCell info
-int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
+void rrc::ue::update_scells()
 {
-  // check whether we have SCells configured
-  const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-  if (pcell_cfg->cell_cfg.scell_list.empty()) {
-    return SRSLTE_SUCCESS;
+  const cell_ctxt_dedicated* pcell     = cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const cell_info_common*    pcell_cfg = pcell->cell_common;
+
+  if (cell_ded_list.nof_cells() == pcell_cfg->scells.size() + 1) {
+    // SCells already added
+    return;
   }
 
   // Check whether UE supports CA
@@ -911,171 +911,14 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
       eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020.supported_band_combination_r10.size() ==
           0) {
     parent->rrc_log->info("UE doesn't support CA. Skipping SCell activation\n");
-    return SRSLTE_SUCCESS;
+    return;
   }
 
-  // Allocate CQI + PUCCH for SCells.
-  for (const scell_cfg_t& scell_cfg : pcell_cfg->cell_cfg.scell_list) {
-    uint32_t cell_id = scell_cfg.cell_id;
-    cell_ded_list.add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx);
-  }
-  if (cell_ded_list.nof_cells() == 1) {
-    // No SCell could be allocated. Fallback to single cell mode.
-    return SRSLTE_SUCCESS;
+  for (const cell_info_common* scell : pcell_cfg->scells) {
+    cell_ded_list.add_cell(scell->enb_cc_idx);
   }
 
   parent->rrc_log->info("SCells activated for rnti=0x%x\n", rnti);
-
-  conn_reconf->non_crit_ext_present                                                     = true;
-  conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
-  conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
-  conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
-  auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
-
-  // Add all SCells configured+allocated for the current PCell
-  phy_rrc_dedicated_list.resize(cell_ded_list.nof_cells());
-  for (auto& p : cell_ded_list) {
-    if (p.ue_cc_idx == UE_PCELL_CC_IDX) {
-      continue;
-    }
-    uint32_t                scell_idx = p.ue_cc_idx;
-    const cell_info_common* cc_cfg    = p.cell_common;
-    const sib_type1_s&      cell_sib1 = cc_cfg->sib1;
-    const sib_type2_s&      cell_sib2 = cc_cfg->sib2;
-
-    scell_to_add_mod_r10_s cell;
-    cell.scell_idx_r10                        = scell_idx;
-    cell.cell_identif_r10_present             = true;
-    cell.cell_identif_r10.pci_r10             = cc_cfg->cell_cfg.pci;
-    cell.cell_identif_r10.dl_carrier_freq_r10 = cc_cfg->cell_cfg.dl_earfcn;
-    cell.rr_cfg_common_scell_r10_present      = true;
-    // RadioResourceConfigCommon
-    const rr_cfg_common_sib_s& cc_cfg_sib = cell_sib2.rr_cfg_common;
-    auto&                      nonul_cfg  = cell.rr_cfg_common_scell_r10.non_ul_cfg_r10;
-    asn1::number_to_enum(nonul_cfg.dl_bw_r10, parent->cfg.cell.nof_prb);
-    nonul_cfg.ant_info_common_r10.ant_ports_count.value = ant_info_common_s::ant_ports_count_opts::an1;
-    nonul_cfg.phich_cfg_r10                             = cc_cfg->mib.phich_cfg;
-    nonul_cfg.pdsch_cfg_common_r10                      = cc_cfg_sib.pdsch_cfg_common;
-    // RadioResourceConfigCommonSCell-r10::ul-Configuration-r10
-    cell.rr_cfg_common_scell_r10.ul_cfg_r10_present          = true;
-    auto& ul_cfg                                             = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
-    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10_present      = true;
-    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10              = cc_cfg->cell_cfg.ul_earfcn;
-    ul_cfg.p_max_r10_present                                 = cell_sib1.p_max_present;
-    ul_cfg.p_max_r10                                         = cell_sib1.p_max;
-    ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10      = 1;
-    ul_cfg.ul_pwr_ctrl_common_scell_r10.p0_nominal_pusch_r10 = cc_cfg_sib.ul_pwr_ctrl_common.p0_nominal_pusch;
-    ul_cfg.ul_pwr_ctrl_common_scell_r10.alpha_r10.value      = cc_cfg_sib.ul_pwr_ctrl_common.alpha;
-    ul_cfg.srs_ul_cfg_common_r10                             = cc_cfg_sib.srs_ul_cfg_common;
-    ul_cfg.ul_cp_len_r10.value                               = cc_cfg_sib.ul_cp_len.value;
-    ul_cfg.pusch_cfg_common_r10                              = cc_cfg_sib.pusch_cfg_common;
-    // RadioResourceConfigDedicatedSCell-r10
-    cell.rr_cfg_ded_scell_r10_present                                       = true;
-    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present                = true;
-    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10_present = true;
-    auto& nonul_cfg_ded                = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10;
-    nonul_cfg_ded.ant_info_r10_present = true;
-    asn1::number_to_enum(nonul_cfg_ded.ant_info_r10.tx_mode_r10, parent->cfg.cell.nof_ports);
-    nonul_cfg_ded.ant_info_r10.ue_tx_ant_sel.set(setup_opts::release);
-    nonul_cfg_ded.cross_carrier_sched_cfg_r10_present                                            = true;
-    nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
-    nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
-    nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value                           = parent->cfg.pdsch_cfg.value;
-    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present = true;
-    auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
-    ul_cfg_ded.ant_info_ul_r10_present                = true;
-    ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
-    asn1::number_to_enum(ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10, parent->cfg.cell.nof_ports);
-    ul_cfg_ded.pusch_cfg_ded_scell_r10_present           = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10_present         = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.p0_ue_pusch_r10 = 0;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.delta_mcs_enabled_r10.value =
-        ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::en0;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.accumulation_enabled_r10   = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10_present = true;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10         = 3;
-    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.pathloss_ref_linking_r10.value =
-        ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::scell;
-    ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
-    ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
-    ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
-    if (ue_capabilities.support_dl_256qam) {
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ext = true;
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250.set_present(true);
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250->alt_cqi_table_r12_present = true;
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.cqi_report_cfg_scell_v1250->alt_cqi_table_r12.value =
-          cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
-    }
-
-    // Get CQI allocation for secondary cell
-    auto& cqi_setup = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
-    get_cqi(&cqi_setup.cqi_pmi_cfg_idx, &cqi_setup.cqi_pucch_res_idx_r10, scell_idx);
-
-    cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
-    cqi_setup.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-#if SRS_ENABLED
-    ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
-    auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
-    srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
-    srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
-    srs_setup.freq_domain_position                         = 0;
-    srs_setup.dur                                          = true;
-    srs_setup.srs_cfg_idx                                  = 167;
-    srs_setup.tx_comb                                      = 0;
-    srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
-    ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
-    ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
-    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
-    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
-#endif // SRS_ENABLED
-    list.push_back(cell);
-
-    // Create new PHY configuration structure for this SCell
-    phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
-    srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
-    scell_phy_rrc_ded.configured = true;
-
-    // Set PUSCH dedicated configuration following 3GPP TS 36.331 R 10 Section 6.3.2 Radio resource control information
-    // elements - PUSCH-Config
-    //   One value applies for all serving cells with an uplink (the associated functionality is common i.e. not
-    //   performed independently for each cell).
-    scell_phy_rrc_ded.phy_cfg.ul_cfg.pusch.uci_offset = phy_rrc_dedicated_list[0].phy_cfg.ul_cfg.pusch.uci_offset;
-
-    // Get corresponding eNB CC index
-    scell_phy_rrc_ded.enb_cc_idx = cc_cfg->enb_cc_idx;
-
-    // Append to PHY RRC config dedicated which will be applied further down
-    phy_rrc_dedicated_list[scell_idx] = scell_phy_rrc_ded;
-  }
-
-  // Set DL HARQ Feedback mode
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.set_present(true);
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020->pucch_format_r10_present = true;
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.ext                                           = true;
-  auto pucch_format_r10                      = conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get();
-  pucch_format_r10->pucch_format_r10_present = true;
-  if (cell_ded_list.nof_cells() <= 2) {
-    // Use PUCCH format 1b with channel selection for 2 serving cells
-    auto& ch_sel_r10                      = pucch_format_r10->pucch_format_r10.set_ch_sel_r10();
-    ch_sel_r10.n1_pucch_an_cs_r10_present = true;
-    ch_sel_r10.n1_pucch_an_cs_r10.set_setup();
-    n1_pucch_an_cs_r10_l item0(4);
-    // TODO: should we use a different n1PUCCH-AN-CS-List configuration?
-    for (auto& it : item0) {
-      it = cell_ded_list.is_pucch_cs_allocated() ? *cell_ded_list.get_n_pucch_cs() : 0;
-    }
-    ch_sel_r10.n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10.push_back(item0);
-  } else {
-    // Use PUCCH format 3 for more than 2 serving cells
-    auto& format3_r10                        = pucch_format_r10->pucch_format_r10.set_format3_r10();
-    format3_r10.n3_pucch_an_list_r13_present = true;
-    format3_r10.n3_pucch_an_list_r13.resize(4);
-    for (auto& it : format3_r10.n3_pucch_an_list_r13) {
-      // Hard-coded resource, only one user is supported
-      it = 0;
-    }
-  }
-  return SRSLTE_SUCCESS;
 }
 
 /********************** Handover **************************/
@@ -1210,7 +1053,28 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
 
         // Handle Add/Modify SCell list
         if (reconfig_r1020.scell_to_add_mod_list_r10_present) {
-          // This is already applied when packing the SCell list
+          auto& list = reconfig_r1020.scell_to_add_mod_list_r10;
+          phy_rrc_dedicated_list.resize(cell_ded_list.nof_cells());
+          for (const scell_to_add_mod_r10_s& scell : list) {
+            cell_ctxt_dedicated* ue_cc = cell_ded_list.get_ue_cc_idx(scell.scell_idx_r10);
+            // Create new PHY configuration structure for this SCell
+            phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
+            srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, scell);
+            scell_phy_rrc_ded.configured = true;
+
+            // Set PUSCH dedicated configuration following 3GPP TS 36.331 R 10 Section 6.3.2 Radio resource control
+            // information elements - PUSCH-Config
+            //   One value applies for all serving cells with an uplink (the associated functionality is common i.e. not
+            //   performed independently for each cell).
+            scell_phy_rrc_ded.phy_cfg.ul_cfg.pusch.uci_offset =
+                phy_rrc_dedicated_list[0].phy_cfg.ul_cfg.pusch.uci_offset;
+
+            // Get corresponding eNB CC index
+            scell_phy_rrc_ded.enb_cc_idx = ue_cc->cell_common->enb_cc_idx;
+
+            // Append to PHY RRC config dedicated which will be applied further down
+            phy_rrc_dedicated_list[scell.scell_idx_r10] = scell_phy_rrc_ded;
+          }
         }
       }
     }

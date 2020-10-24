@@ -1166,8 +1166,25 @@ bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs)
           (not lhs.lc_ch_cfg_present or lhs.lc_ch_cfg == rhs.lc_ch_cfg))) {
     return false;
   }
-  // TODO: remaining comparisons
+  // TODO: compare remaining fields
   return true;
+}
+
+/***************************
+ *        SCells
+ **************************/
+
+bool operator==(const scell_to_add_mod_r10_s& lhs, const scell_to_add_mod_r10_s& rhs)
+{
+  return lhs.scell_idx_r10 == rhs.scell_idx_r10 and lhs.ext == rhs.ext and
+         lhs.dl_carrier_freq_v1090_present == rhs.dl_carrier_freq_v1090_present and
+         (not lhs.dl_carrier_freq_v1090_present or lhs.dl_carrier_freq_v1090 == rhs.dl_carrier_freq_v1090) and
+         lhs.rr_cfg_ded_scell_r10_present == rhs.rr_cfg_ded_scell_r10_present and
+         lhs.cell_identif_r10_present == rhs.cell_identif_r10_present and
+         (not lhs.cell_identif_r10_present or
+          (lhs.cell_identif_r10.dl_carrier_freq_r10 == rhs.cell_identif_r10.dl_carrier_freq_r10 and
+           lhs.cell_identif_r10.pci_r10 == rhs.cell_identif_r10.pci_r10));
+  // TODO: compare remaining fields
 }
 
 /**************************

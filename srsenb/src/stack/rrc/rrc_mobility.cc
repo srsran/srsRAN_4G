@@ -950,10 +950,7 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_cell, &recfg_r8.meas_cfg);
 
   // Add SCells
-  if (rrc_ue->fill_scell_to_addmod_list(&recfg_r8) != SRSLTE_SUCCESS) {
-    rrc_log->warning("Could not create configuration for Scell\n");
-    return;
-  }
+  fill_scells_reconf(recfg_r8, rrc_ue->current_scells, rrc_enb->cfg, rrc_ue->cell_ded_list, rrc_ue->ue_capabilities);
 }
 
 /**
@@ -1153,7 +1150,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
 
-  apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, recfg_r8.rr_cfg_ded);
+  apply_reconf_diff(rrc_ue->current_rr_cfg, rrc_ue->current_scells, recfg_r8);
 
   /* Configure remaining layers based on pending changes */
   // Update RLC + PDCP SRBs (no DRBs until MME Status Transfer)
@@ -1231,6 +1228,9 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
       rrc_ue->eutra_capabilities_unpacked = true;
     }
   }
+
+  // Update SCells list
+  rrc_ue->update_scells();
 
   // Save source eNB UE RR cfg as a starting point
   apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, ho_prep.as_cfg.source_rr_cfg);
@@ -1330,6 +1330,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
     f->trigger(srslte::failure_ev{});
     return;
   }
+  f->rrc_ue->update_scells();
 
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
@@ -1339,13 +1340,15 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   // Apply changes to the MAC scheduler
   f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(reconf_r8);
 
+  f->rrc_ue->apply_reconf_phy_config(reconf_r8, false);
+
   // Send DL-DCCH Message via current PCell
   if (not f->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
     f->trigger(srslte::failure_ev{});
     return;
   }
 
-  apply_rr_cfg_ded_diff(f->rrc_ue->current_rr_cfg, reconf_r8.rr_cfg_ded);
+  apply_reconf_diff(f->rrc_ue->current_rr_cfg, f->rrc_ue->current_scells, reconf_r8);
 }
 
 void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev)

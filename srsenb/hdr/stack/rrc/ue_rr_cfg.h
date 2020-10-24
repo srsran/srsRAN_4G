@@ -49,6 +49,16 @@ void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
 void apply_rr_cfg_ded_diff(asn1::rrc::rr_cfg_ded_s&       current_rr_cfg_ded,
                            const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg_ded);
 
+void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&           recfg_r8,
+                        const asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
+                        const rrc_cfg_t&                              enb_cfg,
+                        const cell_ctxt_dedicated_list&               ue_cell_list,
+                        const srslte::rrc_ue_capabilities_t&          ue_caps);
+
+void apply_reconf_diff(asn1::rrc::rr_cfg_ded_s&                  current_rr_cfg_ded,
+                       asn1::rrc::scell_to_add_mod_list_r10_l&   current_scells,
+                       const asn1::rrc::rrc_conn_recfg_r8_ies_s& recfg_r8);
+
 } // namespace srsenb
 
 #endif // SRSENB_UE_RR_CFG_H
