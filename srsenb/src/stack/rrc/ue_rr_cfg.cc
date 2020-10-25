@@ -282,7 +282,7 @@ void fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
  *   radioResourceConfigDedicated
  **********************************/
 
-/// Function to fill rrc asn1 radioResourceConfigDedicated with values provided in eNB config
+/// fill radioResourceConfigDedicated with values provided in eNB config
 void fill_rr_cfg_ded_enb_cfg(asn1::rrc::rr_cfg_ded_s& rr_cfg, const rrc_cfg_t& enb_cfg)
 {
   rr_cfg = {};
@@ -555,25 +555,34 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
 void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
                               const rrc_conn_recfg_r8_ies_s&          recfg_r8)
 {
-  if (not recfg_r8.non_crit_ext_present or not recfg_r8.non_crit_ext.non_crit_ext_present or
-      not recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext_present) {
+  if (recfg_r8.non_crit_ext_present or recfg_r8.non_crit_ext.non_crit_ext_present or
+      recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext_present) {
     const rrc_conn_recfg_v1020_ies_s& recfg_v1020 = recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext;
-    //    srslte::apply_addmodremlist_diff(
-    //        current_scells, recfg_v1020.scell_to_add_mod_list_r10, recfg_v1020.scell_to_release_list_r10,
-    //        current_scells);
-    current_scells = recfg_v1020.scell_to_add_mod_list_r10;
-    // TODO: Support add/release of scells in a diff-basis
+    srslte::apply_addmodremlist_diff(
+        current_scells, recfg_v1020.scell_to_add_mod_list_r10, recfg_v1020.scell_to_release_list_r10, current_scells);
   }
 }
 
-void apply_reconf_diff(rr_cfg_ded_s&                           current_rr_cfg_ded,
-                       asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
-                       const rrc_conn_recfg_r8_ies_s&          recfg_r8)
+/// Apply Reconf updates and update current state
+void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&     recfg_r8,
+                          asn1::rrc::rr_cfg_ded_s&                current_rr_cfg,
+                          asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
+                          const rrc_cfg_t&                        enb_cfg,
+                          const cell_ctxt_dedicated_list&         ue_cell_list,
+                          bearer_cfg_handler&                     bearers,
+                          const srslte::rrc_ue_capabilities_t&    ue_caps,
+                          bool                                    phy_cfg_updated)
 {
-  if (recfg_r8.rr_cfg_ded_present) {
-    apply_rr_cfg_ded_diff(current_rr_cfg_ded, recfg_r8.rr_cfg_ded);
-  }
+  // Compute pending updates and fill reconf msg
+  recfg_r8.rr_cfg_ded_present = true;
+  fill_rr_cfg_ded_reconf(recfg_r8.rr_cfg_ded, current_rr_cfg, enb_cfg, ue_cell_list, bearers, ue_caps, phy_cfg_updated);
+  fill_scells_reconf(recfg_r8, current_scells, enb_cfg, ue_cell_list, ue_caps);
 
+  // Add pending NAS info
+  bearers.fill_pending_nas_info(&recfg_r8);
+
+  // Update current rr_cfg_ded and scells state
+  apply_rr_cfg_ded_diff(current_rr_cfg, recfg_r8.rr_cfg_ded);
   apply_scells_to_add_diff(current_scells, recfg_r8);
 }
 

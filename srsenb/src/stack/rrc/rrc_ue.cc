@@ -464,7 +464,7 @@ void rrc::ue::send_connection_reest_rej()
 /*
  * Connection Reconfiguration
  */
-void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
+void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_cfg_updated)
 {
   parent->rrc_log->debug("RRC state %d\n", state);
 
@@ -476,16 +476,15 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   rrc_conn_recfg.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
-  // Fill RR Config Ded
-  recfg_r8.rr_cfg_ded_present = true;
-  fill_rr_cfg_ded_reconf(
-      recfg_r8.rr_cfg_ded, current_rr_cfg, parent->cfg, cell_ded_list, bearer_list, ue_capabilities, true);
-
-  // Add SCells config
-  fill_scells_reconf(recfg_r8, current_scells, parent->cfg, cell_ded_list, ue_capabilities);
-
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(&recfg_r8);
+  // Fill RR Config Ded and SCells
+  apply_reconf_updates(recfg_r8,
+                       current_rr_cfg,
+                       current_scells,
+                       parent->cfg,
+                       cell_ded_list,
+                       bearer_list,
+                       ue_capabilities,
+                       phy_cfg_updated);
 
   // Add measConfig
   if (mobility_handler != nullptr) {
@@ -519,33 +518,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
-
-  // Update UE current RadioResourceConfiguration
-  apply_reconf_diff(current_rr_cfg, current_scells, recfg_r8);
-}
-
-void rrc::ue::send_connection_reconf_new_bearer()
-{
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-
-  fill_rr_cfg_ded_reconf(
-      conn_reconf->rr_cfg_ded, current_rr_cfg, parent->cfg, cell_ded_list, bearer_list, ue_capabilities, false);
-
-  // Setup new bearer
-  apply_pdcp_srb_updates(conn_reconf->rr_cfg_ded);
-  apply_pdcp_drb_updates(conn_reconf->rr_cfg_ded);
-  apply_rlc_rb_updates(conn_reconf->rr_cfg_ded);
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(conn_reconf);
-
-  if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
-    send_dl_dcch(&dl_dcch_msg);
-  }
-
-  apply_reconf_diff(current_rr_cfg, current_scells, *conn_reconf);
 }
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -846,7 +818,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
 
   // Work in progress
   notify_s1ap_ue_erab_setup_response(e);
-  send_connection_reconf_new_bearer();
+  send_connection_reconf(nullptr, false);
   return true;
 }
 

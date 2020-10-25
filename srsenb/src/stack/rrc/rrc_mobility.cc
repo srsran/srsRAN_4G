@@ -710,22 +710,15 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     memcpy(&hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container[0], buffer->msg, bref.distance_bytes());
   }
   /*** fill AS-Config ***/
-  hoprep_r8.as_cfg_present = true;
+  hoprep_r8.as_cfg_present       = true;
+  hoprep_r8.as_cfg.source_rr_cfg = rrc_ue->current_rr_cfg;
+  hoprep_r8.as_cfg.source_scell_cfg_list_r10.reset(new scell_to_add_mod_list_r10_l{rrc_ue->current_scells});
   // NOTE: set source_meas_cnfg equal to the UE's current var_meas_cfg
   var_meas_cfg_t empty_meascfg{}, &target_var_meas = ue_var_meas;
   //  // however, reset the MeasObjToAdd Cells, so that the UE does not measure again the target eNB
   //  meas_obj_to_add_mod_s* obj = rrc_details::binary_find(target_var_meas.meas_objs(), measobj_id);
   //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
   empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
-  // - fill source RR Config
-  fill_rr_cfg_ded_setup(hoprep_r8.as_cfg.source_rr_cfg, rrc_enb->cfg, rrc_ue->cell_ded_list);
-  fill_rr_cfg_ded_reconf(hoprep_r8.as_cfg.source_rr_cfg,
-                         hoprep_r8.as_cfg.source_rr_cfg,
-                         rrc_enb->cfg,
-                         rrc_ue->cell_ded_list,
-                         rrc_ue->bearer_list,
-                         rrc_ue->ue_capabilities,
-                         true);
   // Get security cfg
   hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);
@@ -897,60 +890,17 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   intralte.key_change_ind                 = false;
   intralte.next_hop_chaining_count        = rrc_ue->ue_security_cfg.get_ncc();
 
-  recfg_r8.rr_cfg_ded_present              = true;
-  recfg_r8.rr_cfg_ded.phys_cfg_ded_present = true;
-  phys_cfg_ded_s& phy_cfg                  = recfg_r8.rr_cfg_ded.phys_cfg_ded;
-
-  phy_cfg.pusch_cfg_ded_present = true;
-  phy_cfg.pusch_cfg_ded         = rrc_enb->cfg.pusch_cfg;
-
-  // Set SR in new CC
-  phy_cfg.sched_request_cfg_present = true;
-  auto& sr_setup                    = phy_cfg.sched_request_cfg.set_setup();
-  sr_setup.dsr_trans_max            = rrc_enb->cfg.sr_cfg.dsr_max;
-  // TODO: For intra-freq handover, SR resources do not get updated. Update for inter-freq case
-  sr_setup.sr_cfg_idx       = rrc_ue->cell_ded_list.get_sr_res()->sr_I;
-  sr_setup.sr_pucch_res_idx = rrc_ue->cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  // Set CQI in new CC
-  phy_cfg.cqi_report_cfg_present = true;
-  if (rrc_enb->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
-  } else {
-    phy_cfg.cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg.cqi_report_cfg.cqi_report_periodic.set_setup();
-    phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = rrc_enb->cfg.cqi_cfg.simultaneousAckCQI;
-    rrc_ue->get_cqi(&phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-                    &phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-                    UE_PCELL_CC_IDX);
-  }
-
-  // Antenna info - start at TM1
-  recfg_r8.rr_cfg_ded.phys_cfg_ded.ant_info_present = true;
-  auto& ant_info                                    = recfg_r8.rr_cfg_ded.phys_cfg_ded.ant_info.set_explicit_value();
-  ant_info.tx_mode.value                            = ant_info_ded_s::tx_mode_e_::tm1;
-  ant_info.ue_tx_ant_sel.set(setup_e::release);
-
-  // 256-QAM
-  if (rrc_ue->ue_capabilities.support_dl_256qam) {
-    phy_cfg.ext = true;
-    phy_cfg.cqi_report_cfg_pcell_v1250.set_present(true);
-    phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present = true;
-    phy_cfg.cqi_report_cfg_pcell_v1250->alt_cqi_table_r12.value =
-        cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::all_sfs;
-  }
-
-  rrc_ue->apply_setup_phy_common(target_cell.sib2.rr_cfg_common, false);
-  rrc_ue->apply_reconf_phy_config(recfg_r8, false);
+  apply_reconf_updates(recfg_r8,
+                       rrc_ue->current_rr_cfg,
+                       rrc_ue->current_scells,
+                       rrc_enb->cfg,
+                       rrc_ue->cell_ded_list,
+                       rrc_ue->bearer_list,
+                       rrc_ue->ue_capabilities,
+                       true);
 
   // Add MeasConfig of target cell
   recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_cell, &recfg_r8.meas_cfg);
-
-  // Add SCells
-  fill_scells_reconf(recfg_r8, rrc_ue->current_scells, rrc_enb->cfg, rrc_ue->cell_ded_list, rrc_ue->ue_capabilities);
 }
 
 /**
@@ -1150,8 +1100,6 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   }
   ho_cmd_pdu->N_bytes = bref2.distance_bytes();
 
-  apply_reconf_diff(rrc_ue->current_rr_cfg, rrc_ue->current_scells, recfg_r8);
-
   /* Configure remaining layers based on pending changes */
   // Update RLC + PDCP SRBs (no DRBs until MME Status Transfer)
   rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
@@ -1340,6 +1288,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   // Apply changes to the MAC scheduler
   f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(reconf_r8);
 
+  f->rrc_ue->apply_setup_phy_common(f->rrc_enb->cfg.sibs[1].sib2().rr_cfg_common, false);
   f->rrc_ue->apply_reconf_phy_config(reconf_r8, false);
 
   // Send DL-DCCH Message via current PCell
@@ -1347,8 +1296,6 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
     f->trigger(srslte::failure_ev{});
     return;
   }
-
-  apply_reconf_diff(f->rrc_ue->current_rr_cfg, f->rrc_ue->current_scells, reconf_r8);
 }
 
 void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev)

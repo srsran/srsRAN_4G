@@ -53,14 +53,12 @@ public:
   void send_connection_reject();
   void send_connection_release();
   void send_connection_reest_rej();
-  void send_connection_reconf(srslte::unique_byte_buffer_t sdu = {});
-  void send_connection_reconf_new_bearer();
+  void send_connection_reconf(srslte::unique_byte_buffer_t sdu = {}, bool phy_cfg_updated = true);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
-  void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_r8_ies_s* msg);
   void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu);
   void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_s* msg);
   void handle_rrc_con_reest_complete(asn1::rrc::rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu);

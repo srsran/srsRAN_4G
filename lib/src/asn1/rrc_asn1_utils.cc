@@ -1132,10 +1132,10 @@ bool operator==(const pdcp_cfg_s& lhs, const pdcp_cfg_s& rhs)
 {
   if (lhs.discard_timer_present == rhs.discard_timer_present and lhs.discard_timer == rhs.discard_timer and
       lhs.ext == rhs.ext) {
-    return false;
+    return true;
   }
   // TODO: do remaining comparisons
-  return true;
+  return false;
 }
 
 bool operator==(const rlc_cfg_c& lhs, const rlc_cfg_c& rhs)
@@ -1149,7 +1149,8 @@ bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs)
   if (lhs.drb_id != rhs.drb_id or lhs.ext != rhs.ext) {
     return false;
   }
-  if (lhs.eps_bearer_id_present != rhs.eps_bearer_id_present or (lhs.eps_bearer_id != rhs.eps_bearer_id)) {
+  if (lhs.eps_bearer_id_present != rhs.eps_bearer_id_present or
+      (lhs.eps_bearer_id_present and lhs.eps_bearer_id != rhs.eps_bearer_id)) {
     return false;
   }
   if (not(lhs.pdcp_cfg_present == rhs.pdcp_cfg_present and
