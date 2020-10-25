@@ -28,52 +28,74 @@
 
 namespace srslte {
 
+template <typename rrcObj>
+using rrc_obj_id_t = decltype(asn1::rrc::get_rrc_obj_id(std::declval<rrcObj>()));
+
 //! Functor to compare RRC config elements (e.g. SRB/measObj/Rep) based on ID
-template <typename T>
 struct rrc_obj_id_cmp {
-  bool operator()(const T& lhs, const T& rhs) const
+  template <typename T, typename U>
+  typename std::enable_if<not std::is_integral<T>::value and not std::is_integral<U>::value, bool>::type
+  operator()(const T& lhs, const U& rhs) const
   {
     return asn1::rrc::get_rrc_obj_id(lhs) < asn1::rrc::get_rrc_obj_id(rhs);
   }
-  template <typename IdType>
-  bool operator()(const T& lhs, IdType id) const
+  template <typename T>
+  bool operator()(const T& lhs, rrc_obj_id_t<T> id) const
   {
     return asn1::rrc::get_rrc_obj_id(lhs) < id;
   }
-  template <typename IdType>
-  bool operator()(IdType id, const T& rhs) const
+  template <typename T>
+  bool operator()(rrc_obj_id_t<T> id, const T& rhs) const
   {
     return id < asn1::rrc::get_rrc_obj_id(rhs);
   }
 };
-template <typename Container>
-using rrc_obj_id_list_cmp = rrc_obj_id_cmp<typename Container::value_type>;
 
+template <typename Container>
+struct unary_rrc_obj_id {
+  rrc_obj_id_t<typename Container::value_type> id;
+  template <typename T>
+  explicit unary_rrc_obj_id(T id_) : id(id_)
+  {}
+  bool operator()(const typename Container::value_type& e) const { return asn1::rrc::get_rrc_obj_id(e) == id; }
+};
+
+/// Find rrc object in list based on ID
 template <typename Container, typename IdType>
 typename Container::iterator find_rrc_obj_id(Container& c, IdType id)
 {
-  return std::find_if(
-      c.begin(), c.end(), [id](const typename Container::value_type& e) { return asn1::rrc::get_rrc_obj_id(e) == id; });
+  return std::find_if(c.begin(), c.end(), unary_rrc_obj_id<Container>{id});
 }
 template <typename Container, typename IdType>
 typename Container::const_iterator find_rrc_obj_id(const Container& c, IdType id)
 {
-  return std::find_if(
-      c.begin(), c.end(), [id](const typename Container::value_type& e) { return asn1::rrc::get_rrc_obj_id(e) == id; });
+  return std::find_if(c.begin(), c.end(), unary_rrc_obj_id<Container>{id});
 }
 
-//! Search of rrc cfg element based on ID. Assumes sorted list.
+/// Find rrc object in sorted list based on ID (binary search)
 template <typename Container, typename IdType>
 typename Container::iterator sorted_find_rrc_obj_id(Container& c, IdType id)
 {
-  auto it = std::lower_bound(c.begin(), c.end(), id, rrc_obj_id_list_cmp<Container>{});
+  auto it = std::lower_bound(c.begin(), c.end(), id, rrc_obj_id_cmp{});
   return (it == c.end() or asn1::rrc::get_rrc_obj_id(*it) != id) ? c.end() : it;
 }
 template <typename Container, typename IdType>
 typename Container::const_iterator sorted_find_rrc_obj_id(const Container& c, IdType id)
 {
-  auto it = std::lower_bound(c.begin(), c.end(), id, rrc_obj_id_list_cmp<Container>{});
+  auto it = std::lower_bound(c.begin(), c.end(), id, rrc_obj_id_cmp{});
   return (it == c.end() or asn1::rrc::get_rrc_obj_id(*it) != id) ? c.end() : it;
+}
+
+template <typename Container, typename Container2>
+bool equal_rrc_obj_ids(const Container& c, const Container2& c2)
+{
+  return std::equal(c.begin(),
+                    c.end(),
+                    c2.begin(),
+                    c2.end(),
+                    [](const typename Container::value_type& e, const typename Container2::value_type& e2) {
+                      return asn1::rrc::get_rrc_obj_id(e) == asn1::rrc::get_rrc_obj_id(e2);
+                    });
 }
 
 //! Add Id to List in a sorted manner
@@ -85,7 +107,7 @@ typename Container::iterator add_rrc_obj_id(Container& c, IdType id)
     c.push_back({});
     it = c.end() - 1;
     asn1::rrc::set_rrc_obj_id(*it, id);
-    std::sort(c.begin(), c.end(), rrc_obj_id_list_cmp<Container>{});
+    std::sort(c.begin(), c.end(), rrc_obj_id_cmp{});
     it = sorted_find_rrc_obj_id(c, id);
   }
   return it;
@@ -97,7 +119,7 @@ typename Container::iterator add_rrc_obj(Container& c, const typename Container:
   auto it = sorted_find_rrc_obj_id(c, asn1::rrc::get_rrc_obj_id(v));
   if (it == c.end()) {
     c.push_back(v);
-    std::sort(c.begin(), c.end(), rrc_obj_id_list_cmp<Container>{});
+    std::sort(c.begin(), c.end(), rrc_obj_id_cmp{});
     it = sorted_find_rrc_obj_id(c, asn1::rrc::get_rrc_obj_id(v));
   } else {
     *it = v;
@@ -124,7 +146,7 @@ bool rem_rrc_obj_id(Container& c, IdType id)
 template <typename Container>
 auto find_rrc_obj_id_gap(const Container& c) -> decltype(asn1::rrc::get_rrc_obj_id(c[0]))
 {
-  auto id_cmp_op = rrc_obj_id_list_cmp<Container>{};
+  auto id_cmp_op = rrc_obj_id_cmp{};
   assert(std::is_sorted(c.begin(), c.end(), id_cmp_op));
 
   auto prev_it = c.begin();
@@ -155,7 +177,7 @@ void apply_addmodlist_diff(const AddModList& src_list, const AddModList& add_dif
     }
     return;
   }
-  auto id_cmp_op = rrc_obj_id_list_cmp<AddModList>{};
+  auto id_cmp_op = rrc_obj_id_cmp{};
   assert(std::is_sorted(src_list.begin(), src_list.end(), id_cmp_op));
   assert(std::is_sorted(add_diff_list.begin(), add_diff_list.end(), id_cmp_op));
 
@@ -184,7 +206,7 @@ void apply_addmodremlist_diff(const AddModList& src_list,
     }
     return;
   }
-  auto id_cmp_op = rrc_obj_id_list_cmp<AddModList>{};
+  auto id_cmp_op = rrc_obj_id_cmp{};
   assert(std::is_sorted(src_list.begin(), src_list.end(), id_cmp_op));
   assert(std::is_sorted(add_diff_list.begin(), add_diff_list.end(), id_cmp_op));
   assert(std::is_sorted(rm_diff_list.begin(), rm_diff_list.end()));
@@ -216,7 +238,7 @@ void compute_cfg_diff(const List& src_list,
                       AddFunctor  add_func,
                       ModFunctor  mod_func)
 {
-  auto id_cmp_op = rrc_obj_id_list_cmp<List>{};
+  auto id_cmp_op = rrc_obj_id_cmp{};
   assert(std::is_sorted(src_list.begin(), src_list.end(), id_cmp_op));
   assert(std::is_sorted(target_list.begin(), target_list.end(), id_cmp_op));
 

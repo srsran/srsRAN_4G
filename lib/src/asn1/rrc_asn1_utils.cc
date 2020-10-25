@@ -1215,6 +1215,10 @@ uint8_t get_rrc_obj_id(const meas_id_to_add_mod_s& obj)
 {
   return obj.meas_id;
 }
+uint8_t get_rrc_obj_id(const scell_to_add_mod_r10_s& obj)
+{
+  return obj.scell_idx_r10;
+}
 
 void set_rrc_obj_id(srb_to_add_mod_s& srb, uint8_t id)
 {
@@ -1239,6 +1243,10 @@ void set_rrc_obj_id(report_cfg_to_add_mod_s& obj, uint8_t id)
 void set_rrc_obj_id(meas_id_to_add_mod_s& obj, uint8_t id)
 {
   obj.meas_id = id;
+}
+void set_rrc_obj_id(scell_to_add_mod_r10_s& obj, uint8_t id)
+{
+  obj.scell_idx_r10 = id;
 }
 
 } // namespace rrc

@@ -417,20 +417,14 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     }
   }
 
-  recfg_r8.non_crit_ext_present                                                     = true;
-  recfg_r8.non_crit_ext.non_crit_ext_present                                        = true;
-  recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
-  recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
-  auto& scells_to_add = recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
-
-  scells_to_add.resize(ue_cell_list.nof_cells() - 1);
+  scell_to_add_mod_list_r10_l target_scells(ue_cell_list.nof_cells() - 1);
   for (size_t ue_cc_idx = 1; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
     const cell_ctxt_dedicated& scell     = *ue_cell_list.get_ue_cc_idx(ue_cc_idx);
     const cell_info_common&    scell_cfg = *scell.cell_common;
     const sib_type1_s&         cell_sib1 = scell_cfg.sib1;
     const sib_type2_s&         cell_sib2 = scell_cfg.sib2;
 
-    scell_to_add_mod_r10_s& asn1cell              = scells_to_add[ue_cc_idx - 1];
+    scell_to_add_mod_r10_s& asn1cell              = target_scells[ue_cc_idx - 1];
     asn1cell.scell_idx_r10                        = ue_cc_idx;
     asn1cell.cell_identif_r10_present             = true;
     asn1cell.cell_identif_r10.pci_r10             = scell_cfg.cell_cfg.pci;
@@ -519,6 +513,15 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
 #endif // SRS_ENABLED
   }
+
+  // Fill RRCConnectionReconf message
+  recfg_r8.non_crit_ext_present                                                     = true;
+  recfg_r8.non_crit_ext.non_crit_ext_present                                        = true;
+  recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
+  recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
+  auto& recfg_v1020 = recfg_r8.non_crit_ext.non_crit_ext.non_crit_ext;
+  srslte::compute_cfg_diff(
+      current_scells, target_scells, recfg_v1020.scell_to_add_mod_list_r10, recfg_v1020.scell_to_release_list_r10);
 
   // Set DL HARQ Feedback mode
   recfg_r8.rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.set_present(true);
