@@ -141,11 +141,13 @@ bool bsr_proc::check_highest_channel()
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
       // If new data available
       if (iter->second.new_buffer > iter->second.old_buffer) {
-        // Check if this lcid has higher priority than any other LCID in the group for which data is available
+        // Check if this LCID has higher priority than any other LCID ("belong to any LCG") for which data is already
+        // available for transmission
         bool is_max_priority = true;
         for (int j = 0; j < NOF_LCG; j++) {
           for (std::map<uint32_t, lcid_t>::iterator iter2 = lcgs[j].begin(); iter2 != lcgs[j].end(); ++iter2) {
-            if (iter2->second.priority < iter->second.priority && iter2->second.old_buffer) {
+            // No max prio LCG if prio isn't higher or LCID already had buffered data
+            if (iter2->second.priority <= iter->second.priority && (iter2->second.old_buffer > 0)) {
               is_max_priority = false;
             }
           }
