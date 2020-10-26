@@ -802,11 +802,15 @@ int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell)
   cell->phich_resources = (srslte_phich_r_t)(int)phichcfg.phich_res;
 
   if (!srslte_cell_isvalid(cell)) {
-    fprintf(stderr, "Invalid cell parameters: nof_prb=%d, cell_id=%d\n", args_->enb.n_prb, args_->stack.s1ap.cell_id);
-    return -1;
+    fprintf(stderr,
+            "Invalid cell parameters: nof_prb=%d, nof_ports=%d, cell_id=%d\n",
+            cell->nof_prb,
+            cell->nof_ports,
+            cell->id);
+    return SRSLTE_ERROR;
   }
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
