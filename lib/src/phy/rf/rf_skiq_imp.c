@@ -898,6 +898,7 @@ int rf_skiq_send_timed_multi(void*  h_,
   if (is_start_of_burst) {
     if (has_time_spec) {
       h->next_tstamp = time_to_tstamp(h, secs, frac_secs);
+      SKIQ_RF_DEBUG("[Tx SOB] ts=%ld\n", h->next_tstamp);
     } else {
       h->next_tstamp = rf_skiq_card_read_rf_timestamp(&h->cards[0]);
       h->next_tstamp += (uint64_t)round(h->current_srate_hz / 10); // increment a 10th of a second

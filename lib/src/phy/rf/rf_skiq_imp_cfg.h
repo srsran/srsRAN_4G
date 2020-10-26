@@ -100,4 +100,11 @@ extern uint32_t rf_skiq_logging_level;
     }                                                                                                                  \
   } while (false)
 
-#endif // SRSRAN_RF_SKIQ_IMP_CFG_H
+#define SKIQ_RF_ERROR(...)                                                                                             \
+  do {                                                                                                                 \
+    if (rf_skiq_logging_level >= SKIQ_LOG_ERROR) {                                                                     \
+      fprintf(stdout, "[SKIQ RF ERROR] " __VA_ARGS__);                                                                 \
+    }                                                                                                                  \
+  } while (false)
+
+#endif // SRSLTE_RF_SKIQ_IMP_CFG_H

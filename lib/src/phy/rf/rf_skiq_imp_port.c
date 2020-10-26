@@ -84,25 +84,44 @@ static void* writer_thread(void* arg)
       break;
     }
 
+    // If the ring buffer read resulted in timeout
+    if (n == SRSRAN_ERROR_TIMEOUT) {
+      continue;
+    }
+
     // Ignore blocks with TS=0
-    if (q->p_tx_block->timestamp == 0) {
+    if (p_tx_block->timestamp == 0) {
       continue;
     }
 
     // Check if the timestamp is the past (this can be caused by sample rate change)
-    if (last_tx_ts > q->p_tx_block->timestamp) {
-      skiq_read_curr_tx_timestamp(q->card, q->hdl, &last_tx_ts);
-      if (last_tx_ts > q->p_tx_block->timestamp) {
-        ERROR("Tx block (ts=%ld) is in the past (%ld), ignoring\n", q->p_tx_block->timestamp, last_tx_ts);
+    if (last_tx_ts > p_tx_block->timestamp) {
+
+      // Get current RF timestamp
+      uint64_t curr_tx_ts = 0UL;
+      skiq_read_curr_tx_timestamp(q->card, q->hdl, &curr_tx_ts);
+
+      // Avoids giving a block to the FPGA that has already passed, otherwise it could hang forever
+      if (curr_tx_ts > p_tx_block->timestamp) {
+        SKIQ_RF_ERROR("[Tx %d:%d block] Tx block (ts=%ld) is in the past (last_tx_ts=%ld, curr_tx_ts=%ld), ignoring\n",
+                      q->card,
+                      (int)q->hdl,
+                      q->p_tx_block->timestamp,
+                      last_tx_ts,
+                      curr_tx_ts);
         continue;
       }
     }
-    last_tx_ts = q->p_tx_block->timestamp + q->block_size;
+    last_tx_ts = p_tx_block->timestamp + q->block_size;
 
     // If the ring-buffer did not return with error code...
     if (n > SRSRAN_SUCCESS) {
-      SKIQ_RF_DEBUG(
-          "[Tx %d:%d block] ts=%ld; nsamples=%d;\n", q->card, (int)q->hdl, p_tx_block->timestamp, q->block_size);
+      SKIQ_RF_DEBUG("[Tx %d:%d block] ts=%ld; nsamples=%d; last_tx_ts=%ld;\n",
+                    q->card,
+                    (int)q->hdl,
+                    p_tx_block->timestamp,
+                    q->block_size,
+                    last_tx_ts);
 
       if (skiq_transmit(q->card, q->hdl, p_tx_block, NULL) < 0) {
         ERROR("Error transmitting card %d\n", q->card);
@@ -247,7 +266,7 @@ void rf_skiq_tx_port_end_of_burst(rf_skiq_tx_port_t* q)
     // Write block into the ring-buffer
     srsran_ringbuffer_write_block(&q->rb, q->p_tx_block, q->p_block_nbytes);
 
-    SKIQ_RF_DEBUG("[Tx %d:%d] Padding offset=%d; n=%d; ts=%ld\n",
+    SKIQ_RF_DEBUG("[Tx EOB %d:%d] Padding offset=%d; n=%d; ts=%ld\n",
                   q->card,
                   (int)q->hdl,
                   q->next_offset,
@@ -265,6 +284,11 @@ int rf_skiq_tx_port_send(rf_skiq_tx_port_t* q, const cf_t* buffer, uint32_t nsam
 {
   // Ignore transmission if the stream is not enabled
   if (q->state != RF_SKIQ_PORT_STATE_STREAMING) {
+    return nsamples;
+  }
+
+  // If no data and no block has started, early return
+  if (buffer == NULL && q->next_offset == 0) {
     return nsamples;
   }
 
@@ -390,6 +414,7 @@ int rf_skiq_rx_port_init(rf_skiq_rx_port_t* q, uint8_t card, skiq_rx_hdl_t hdl, 
 
 void rf_skiq_rx_port_free(rf_skiq_rx_port_t* q)
 {
+
   srsran_ringbuffer_free(&q->rb);
 }
 
