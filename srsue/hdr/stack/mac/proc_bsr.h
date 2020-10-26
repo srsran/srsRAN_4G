@@ -96,6 +96,7 @@ private:
   typedef enum { NONE, REGULAR, PADDING, PERIODIC } triggered_bsr_type_t;
   triggered_bsr_type_t triggered_bsr_type = NONE;
 
+  void     print_state();
   void     set_trigger(triggered_bsr_type_t new_trigger);
   void     update_new_data();
   void     update_buffer_state();

@@ -45,21 +45,26 @@ void bsr_proc::init(sr_proc*                       sr_,
 
   // Print periodically the LCID queue status
   auto queue_status_print_task = [this](uint32_t tid) {
-    char str[128];
-    str[0] = '\0';
-    int n  = 0;
-    for (auto& lcg : lcgs) {
-      for (auto& iter : lcg) {
-        n = srslte_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
-      }
-    }
-    Info("BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s\n", bsr_type_tostring(triggered_bsr_type), str);
+    print_state();
     timer_queue_status_print.run();
   };
   timer_queue_status_print.set(QUEUE_STATUS_PERIOD_MS, queue_status_print_task);
   timer_queue_status_print.run();
 
   initiated = true;
+}
+
+void bsr_proc::print_state()
+{
+  char str[128];
+  str[0] = '\0';
+  int n  = 0;
+  for (auto& lcg : lcgs) {
+    for (auto& iter : lcg) {
+      n = srslte_print_check(str, 128, n, "%d: %d ", iter.first, iter.second.old_buffer);
+    }
+  }
+  Info("BSR:   triggered_bsr_type=%s, LCID QUEUE status: %s\n", bsr_type_tostring(triggered_bsr_type), str);
 }
 
 void bsr_proc::set_trigger(srsue::bsr_proc::triggered_bsr_type_t new_trigger)
