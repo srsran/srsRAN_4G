@@ -1185,8 +1185,7 @@ int mac_ul_sch_regular_bsr_retx_test()
 {
   const uint8_t tv1[] = {0x3e, 0x01, 0x04, 0x00, 0x1f, 0x01, 0x01}; // First PDU with Long BSR plus 2 B SDU for LCID1
   const uint8_t tv2[] = {0x01, 0x01, 0x01, 0x01, 0x01};             // Second PDU is just SDU for LCID1
-  const uint8_t tv3[] = {
-      0x3f, 0x1e, 0x04, 0x00, 0x1f}; // Third PDU is after retx Timer is expired and contains BSR again
+  const uint8_t tv3[] = {0x3f, 0x1e, 0x04, 0x00, 0x1f}; // 3rd PDU is after retx Timer is expired and contains BSR again
 
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
