@@ -2070,8 +2070,9 @@ int mac_random_access_test()
 
   // Test 6: RA with existing C-RNTI (Sends C-RNTI MAC CE)
   //         The transmission of C-RNTI MAC CE is only done if no CCCH is present (5.1.4).
-  //         To trigger a new RA we have to either generate more data for DRB or wait until BSR-reTX is triggered
-  rlc.write_sdu(3, 100);
+  //         To trigger a new RA we have to either generate more data for high-prio LCID (e.g. SRB1)
+  //         or wait until BSR-reTX is triggered
+  rlc.write_sdu(1, 100);
   phy.set_crnti(0);
   mac_log->info("\n=========== Test %d =============\n", test_id++);
   my_test.crnti = my_test.temp_rnti;
