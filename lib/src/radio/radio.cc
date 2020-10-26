@@ -446,9 +446,9 @@ bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name,
   }
 
   srslte::console("Opening %d channels in RF device=%s with args=%s\n",
-                     nof_channels_x_dev,
-                     dev_name ? dev_name : "default",
-                     dev_args ? dev_args : "default");
+                  nof_channels_x_dev,
+                  dev_name ? dev_name : "default",
+                  dev_args ? dev_args : "default");
 
   if (srslte_rf_open_devname(rf_device, dev_name, dev_args, nof_channels_x_dev)) {
     log_h->error("Error opening RF device\n");
@@ -486,58 +486,63 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
     srslte_timestamp_add(&tx_time, 0, tx_adv_sec);
   }
 
-  // Calculate transmission overlap/gap if it is not start of the burst
-  if (not is_start_of_burst) {
-    // Calculates transmission time overlap with previous transmission
-    srslte_timestamp_t ts_overlap = end_of_burst_time[device_idx];
-    srslte_timestamp_sub(&ts_overlap, tx_time.full_secs, tx_time.frac_secs);
+  // Calculates transmission time overlap with previous transmission
+  srslte_timestamp_t ts_overlap = end_of_burst_time[device_idx];
+  srslte_timestamp_sub(&ts_overlap, tx_time.full_secs, tx_time.frac_secs);
 
-    // Calculates number of overlap samples with previous transmission
-    int32_t past_nsamples = (int32_t)round(cur_tx_srate * srslte_timestamp_real(&ts_overlap));
+  // Calculates number of overlap samples with previous transmission
+  int32_t past_nsamples = (int32_t)round(cur_tx_srate * srslte_timestamp_real(&ts_overlap));
 
-    // if past_nsamples is positive, the current transmission overlaps with the previous transmission. If it is negative
-    // there is a gap between the previous transmission and the current transmission.
-    if (past_nsamples > 0) {
-      // If the overlap length is greater than the current transmission length, it means the whole transmission is in
-      // the past and it shall be ignored
-      if ((int32_t)nof_samples < past_nsamples) {
-        return true;
-      }
+  // if past_nsamples is positive, the current transmission overlaps with the previous transmission. If it is negative
+  // there is a gap between the previous transmission and the current transmission.
+  if (past_nsamples > 0) {
+    // If the overlap length is greater than the current transmission length, it means the whole transmission is in
+    // the past and it shall be ignored
+    if ((int32_t)nof_samples < past_nsamples) {
+      return true;
+    }
 
-      // Trim the first past_nsamples
-      sample_offset = (uint32_t)past_nsamples;       // Sets an offset for moving first samples offset
-      tx_time       = end_of_burst_time[device_idx]; // Keeps same transmission time
-      nof_samples   = nof_samples - past_nsamples;   // Subtracts the number of trimmed samples
+    // Trim the first past_nsamples
+    sample_offset = (uint32_t)past_nsamples;       // Sets an offset for moving first samples offset
+    tx_time       = end_of_burst_time[device_idx]; // Keeps same transmission time
+    nof_samples   = nof_samples - past_nsamples;   // Subtracts the number of trimmed samples
 
-    } else if (past_nsamples < 0) {
-      // if the gap is bigger than TX_MAX_GAP_ZEROS, stop burst
-      if (fabs(srslte_timestamp_real(&ts_overlap)) > tx_max_gap_zeros) {
-        tx_end();
-      } else {
-        // Otherwise, transmit zeros
-        uint32_t gap_nsamples = abs(past_nsamples);
-        while (gap_nsamples > 0) {
-          // Transmission cannot exceed SRSLTE_SF_LEN_MAX (zeros buffer size limitation)
-          uint32_t nzeros = SRSLTE_MIN(gap_nsamples, SRSLTE_SF_LEN_MAX);
+    // Prints discarded samples
+    log_h->debug("Detected RF overlap of %.1f us. Discarding %d samples. Power=%+.1f dBfs\n",
+                 srslte_timestamp_real(&ts_overlap) * 1.0e6,
+                 past_nsamples,
+                 srslte_convert_power_to_dB(srslte_vec_avg_power_cf(&buffer.get(0)[nof_samples], past_nsamples)));
 
-          // Zeros transmission
-          int ret = srslte_rf_send_timed2(rf_device,
-                                          zeros,
-                                          nzeros,
-                                          end_of_burst_time[device_idx].full_secs,
-                                          end_of_burst_time[device_idx].frac_secs,
-                                          false,
-                                          false);
-          if (ret < SRSLTE_SUCCESS) {
-            return false;
-          }
+  } else if (past_nsamples < 0 and not is_start_of_burst) {
+    // if the gap is bigger than TX_MAX_GAP_ZEROS, stop burst
+    if (fabs(srslte_timestamp_real(&ts_overlap)) > tx_max_gap_zeros) {
+      log_h->info("Detected RF gap of %.1f us. Sending end-of-burst.\n", srslte_timestamp_real(&ts_overlap) * 1.0e6);
+      tx_end();
+    } else {
+      log_h->debug("Detected RF gap of %.1f us. Tx'ing zeroes.\n", srslte_timestamp_real(&ts_overlap) * 1.0e6);
+      // Otherwise, transmit zeros
+      uint32_t gap_nsamples = abs(past_nsamples);
+      while (gap_nsamples > 0) {
+        // Transmission cannot exceed SRSLTE_SF_LEN_MAX (zeros buffer size limitation)
+        uint32_t nzeros = SRSLTE_MIN(gap_nsamples, SRSLTE_SF_LEN_MAX);
 
-          // Substract gap samples
-          gap_nsamples -= nzeros;
-
-          // Increase timestamp
-          srslte_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nzeros / cur_tx_srate);
+        // Zeros transmission
+        int ret = srslte_rf_send_timed2(rf_device,
+                                        zeros,
+                                        nzeros,
+                                        end_of_burst_time[device_idx].full_secs,
+                                        end_of_burst_time[device_idx].frac_secs,
+                                        false,
+                                        false);
+        if (ret < SRSLTE_SUCCESS) {
+          return false;
         }
+
+        // Substract gap samples
+        gap_nsamples -= nzeros;
+
+        // Increase timestamp
+        srslte_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nzeros / cur_tx_srate);
       }
     }
   }
