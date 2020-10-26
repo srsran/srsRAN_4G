@@ -74,6 +74,9 @@ void sr_proc::set_config(srslte::sr_cfg_t& cfg)
     Error("Zero is an invalid value for dsr-TransMax (n4, n8, n16, n32, n64 are supported). Disabling SR.\n");
     return;
   }
+  if (cfg.enabled) {
+    Info("SR:    Set dsr_transmax=%d\n", sr_cfg.dsr_transmax);
+  }
   sr_cfg = cfg;
 }
 
@@ -114,9 +117,6 @@ void sr_proc::start()
     if (!is_pending_sr) {
       sr_counter    = 0;
       is_pending_sr = true;
-    }
-    if (sr_cfg.enabled) {
-      Info("SR:    Starting Procedure. dsrTransMax=%d\n", sr_cfg.dsr_transmax);
     }
   }
 }
