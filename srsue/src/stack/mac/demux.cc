@@ -167,6 +167,7 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
       // Unpack DLSCH MAC PDU
       mac_msg.init_rx(nof_bytes);
       mac_msg.parse_packet(mac_pdu);
+      Info("%s\n", mac_msg.to_string().c_str());
       process_sch_pdu(&mac_msg);
       pdus.deallocate(mac_pdu);
       break;
@@ -220,9 +221,9 @@ void demux::process_sch_pdu(srslte::sch_pdu* pdu_msg)
       }
       // Route logical channel
       if (route_pdu) {
-        Info("Delivering PDU for lcid=%d, %d bytes\n",
-             pdu_msg->get()->get_sdu_lcid(),
-             pdu_msg->get()->get_payload_size());
+        Debug("Delivering PDU for lcid=%d, %d bytes\n",
+              pdu_msg->get()->get_sdu_lcid(),
+              pdu_msg->get()->get_payload_size());
         if (pdu_msg->get()->get_payload_size() < MAX_PDU_LEN) {
           rlc->write_pdu(
               pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
