@@ -50,6 +50,9 @@ public:
 
   /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
   virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr) = 0;
+
+  /* MUX calls BSR to update buffer state of each LCG after all PDUs for this TTI have been packed */
+  virtual void update_bsr_tti_end(const bsr_t* bsr) = 0;
 };
 
 class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
@@ -67,6 +70,7 @@ public:
   uint32_t get_buffer_state();
   bool     need_to_send_bsr_on_ul_grant(uint32_t grant_size, uint32_t total_data, bsr_t* bsr);
   bool     generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr);
+  void     update_bsr_tti_end(const bsr_t* bsr);
 
 private:
   const static int QUEUE_STATUS_PERIOD_MS = 1000;
@@ -99,7 +103,7 @@ private:
   void     print_state();
   void     set_trigger(triggered_bsr_type_t new_trigger);
   void     update_new_data();
-  void     update_buffer_state();
+  void     update_old_buffer();
   bool     check_highest_channel();
   bool     check_new_data();
   bool     check_any_channel();

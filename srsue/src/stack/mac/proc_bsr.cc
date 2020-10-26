@@ -198,7 +198,7 @@ void bsr_proc::update_new_data()
   }
 }
 
-void bsr_proc::update_buffer_state()
+void bsr_proc::update_old_buffer()
 {
   for (int i = 0; i < NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
@@ -269,6 +269,24 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
   return send_bsr;
 }
 
+/* After packing all UL PDUs for this TTI, the internal buffer state of the BSR procedure needs to be updated with what
+ * has actually been transmitted in each LCG. We don't ask RLC again as new SDUs could have queued up again. Currently
+ * we just get the updates per LCG. Since we are only interested when zero outstanding data has been reported, we
+ * currently just reset the buffer for each LCID of the LCG.
+ */
+void bsr_proc::update_bsr_tti_end(const bsr_t* bsr)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  for (uint32_t i = 0; i < NOF_LCG; i++) {
+    if (bsr->buff_size[i] == 0) {
+      for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
+        // Reset buffer state for all LCIDs of that the LCG for which we reported no further data to transmit
+        iter->second.old_buffer = 0;
+      }
+    }
+  }
+}
+
 // Checks if Regular BSR must be assembled, as defined in 5.4.5
 // Padding BSR is assembled when called by mux_unit when UL dci is received
 // Periodic BSR is triggered by the expiration of the timers
@@ -288,7 +306,7 @@ void bsr_proc::step(uint32_t tti)
     set_trigger(REGULAR);
   }
 
-  update_buffer_state();
+  update_old_buffer();
 }
 
 char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type)

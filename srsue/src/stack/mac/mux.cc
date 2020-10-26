@@ -293,6 +293,9 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     }
   }
 
+  // Update buffers in BSR procedure after packing entire TTI
+  bsr_procedure->update_bsr_tti_end(&bsr);
+
   // Generate MAC PDU and save to buffer
   uint8_t* ret = pdu_msg.write_packet(log_h);
   Info("%s\n", pdu_msg.to_string().c_str());
