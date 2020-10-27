@@ -141,7 +141,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
                 sdu->N_bytes,
                 "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
                 rrc->get_rb_name(lcid).c_str(),
-                tx_count,
+                st.next_pdcp_tx_sn,
                 srslte_direction_text[integrity_direction],
                 srslte_direction_text[encryption_direction]);
 
