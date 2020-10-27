@@ -21,6 +21,7 @@
 
 #include <complex.h>
 #include <math.h>
+#include <srslte/common/test_common.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -367,6 +368,12 @@ int main(int argc, char** argv)
 
   srslte_rf_close(&rf);
   srslte_prach_free(&prach);
+
+  TESTASSERT(count == nof_repetitions);
+  TESTASSERT(delay_us_max - delay_us_min < 0.5);
+  TESTASSERT(isnormal(peak_min));
+  TESTASSERT(isnormal(peak_max));
+  TESTASSERT(peak_max < peak_min * 2);
 
   printf("Done\n");
   exit(0);
