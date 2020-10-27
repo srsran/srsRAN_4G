@@ -531,7 +531,7 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
           } else if (!find_dci(dci_msg, (uint32_t)nof_dci, &dci_msg[nof_dci]) &&
                      !find_dci(q->pending_ul_dci_msg, q->pending_ul_dci_count, &dci_msg[nof_dci])) {
             // Save message and continue with next location
-            if (q->nof_allocated_locations <= SRSLTE_MAX_DCI_MSG) {
+            if (q->nof_allocated_locations < SRSLTE_MAX_DCI_MSG) {
               q->allocated_locations[q->nof_allocated_locations] = dci_msg[nof_dci].location;
               q->nof_allocated_locations++;
             }

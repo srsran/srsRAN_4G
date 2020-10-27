@@ -914,7 +914,7 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
 
   /* Set pointers for layermapping & precoding */
   uint32_t i;
-  cf_t*    x[SRSLTE_MAX_LAYERS];
+  cf_t**   x;
 
   if (q != NULL && sf_symbols != NULL && data != NULL && cfg != NULL) {
 
@@ -978,15 +978,10 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
 
     if (cfg->grant.nof_layers == nof_tb) {
       /* Skip layer demap */
-      for (i = 0; i < cfg->grant.nof_layers; i++) {
-        x[i] = q->d[i];
-      }
+      x = q->d;
     } else {
       /* number of layers equals number of ports */
-      for (i = 0; i < cfg->grant.nof_layers; i++) {
-        x[i] = q->x[i];
-      }
-      memset(&x[cfg->grant.nof_layers], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - cfg->grant.nof_layers));
+      x = q->x;
     }
 
     // Pre-decoder
