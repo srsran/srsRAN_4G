@@ -6,6 +6,7 @@ Change Log for Releases
   * Add new logging framework
   * Make UE PHY layer non-blocking
   * Replace some PHY pre-calculations with fast on-the-fly routines
+  * Fix QAM256 support in srsENB
   * Add initial NR PHY layer and stack components
   * Other bug-fixes and improved stability and performance in all parts
 

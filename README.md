@@ -23,6 +23,7 @@ Common Features
  * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
  * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (CCD) and 4 (closed-loop spatial multiplexing)
  * Carrier Aggregation support
+ * QAM256 support in Downlink
  * Frequency-based ZF and MMSE equalizer
  * Evolved multimedia broadcast and multicast service (eMBMS)
  * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX2 (+150 Mbps)
@@ -43,9 +44,9 @@ srsUE Features
  * Hard USIM support using PCSC framework
  * Virtual network interface *tun_srsue* created upon network attach
  * QoS support
- * 150 Mbps DL in 20 MHz MIMO TM3/TM4 configuration in i7 Quad-Core CPU.
- * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
- * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
+ * 150 Mbps DL in 20 MHz MIMO TM3/TM4 or 2xCA configuration (195 Mbps with QAM256)
+ * 75 Mbps DL in 20 MHz SISO configuration (98 Mbps with QAM256)
+ * 36 Mbps DL in 10 MHz SISO configuration
 
 srsUE has been fully tested and validated with the following network equipment: 
  * Amarisoft LTE100 eNodeB and EPC
@@ -61,7 +62,7 @@ srsENB Features
  * SR support
  * Periodic and Aperiodic CQI feedback support
  * Standard S1AP and GTP-U interfaces to the Core Network
- * 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
+ * 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs (195 Mbps with QAM256)
  * 75 Mbps DL in SISO configuration with commercial UEs
  * 50 Mbps UL in 20 MHz with commercial UEs
  * User-plane encryption
