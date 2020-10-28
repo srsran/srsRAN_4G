@@ -26,7 +26,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "parity.h"
+#include "../parity.h"
 #include "srslte/phy/fec/viterbi.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"

@@ -5,7 +5,7 @@
  * May be used under the terms of the GNU Lesser General Public License (LGPL)
  */
 
-#include "parity.h"
+#include "../parity.h"
 #include <limits.h>
 #include <memory.h>
 #include <stdint.h>
@@ -14,32 +14,26 @@
 
 //#define DEBUG
 
-#ifdef LV_HAVE_AVX2
+#ifdef LV_HAVE_SSE
 
 #include <emmintrin.h>
-#include <immintrin.h>
-#include <tmmintrin.h>
-#define _mm256_set_m128i(v0, v1) _mm256_insertf128_si256(_mm256_castsi128_si256(v1), (v0), 1)
-
-#define _mm256_setr_m128i(v0, v1) _mm256_set_m128i((v1), (v0))
 
 typedef union {
   unsigned char c[64];
   __m128i       v[4];
 } metric_t;
 typedef union {
-  unsigned int   w[2];
+  unsigned long  w[2];
   unsigned char  c[8];
   unsigned short s[4];
-  __m64          v;
+  __m64          v[1];
 } decision_t;
 
 static union branchtab27 {
   unsigned char c[32];
-  __m256i       v;
+  __m128i       v[2];
 } Branchtab37_sse2[3];
 
-int firstGo;
 /* State info for instance of Viterbi decoder */
 struct v37 {
   metric_t    metrics1;                  /* path metric buffer 1 */
@@ -50,7 +44,7 @@ struct v37 {
   uint32_t    len;
 };
 
-void set_viterbi37_polynomial_avx2(int polys[3])
+void set_viterbi37_polynomial_sse(int polys[3])
 {
   int state;
 
@@ -61,7 +55,7 @@ void set_viterbi37_polynomial_avx2(int polys[3])
   }
 }
 
-void clear_v37_avx2(struct v37* vp)
+void clear_v37_sse(struct v37* vp)
 {
   bzero(vp->decisions, sizeof(decision_t) * vp->len);
   vp->dp = NULL;
@@ -72,21 +66,19 @@ void clear_v37_avx2(struct v37* vp)
 }
 
 /* Initialize Viterbi decoder for start of new frame */
-int init_viterbi37_avx2(void* p, int starting_state)
+int init_viterbi37_sse(void* p, int starting_state)
 {
   struct v37* vp = p;
   uint32_t    i;
-  firstGo = 1;
 
   for (i = 0; i < 64; i++)
     vp->metrics1.c[i] = 63;
 
-  clear_v37_avx2(vp);
+  clear_v37_sse(vp);
 
   vp->old_metrics = &vp->metrics1;
   vp->new_metrics = &vp->metrics2;
   vp->dp          = vp->decisions;
-
   if (starting_state != -1) {
     vp->old_metrics->c[starting_state & 63] = 0; /* Bias known start state */
   }
@@ -94,12 +86,12 @@ int init_viterbi37_avx2(void* p, int starting_state)
 }
 
 /* Create a new instance of a Viterbi decoder */
-void* create_viterbi37_avx2(int polys[3], uint32_t len)
+void* create_viterbi37_sse(int polys[3], uint32_t len)
 {
   void*       p;
   struct v37* vp;
 
-  set_viterbi37_polynomial_avx2(polys);
+  set_viterbi37_polynomial_sse(polys);
 
   /* Ordinary malloc() only returns 8-byte alignment, we need 16 */
   if (posix_memalign(&p, sizeof(__m128i), sizeof(struct v37)))
@@ -116,10 +108,10 @@ void* create_viterbi37_avx2(int polys[3], uint32_t len)
 }
 
 /* Viterbi chainback */
-int chainback_viterbi37_avx2(void*    p,
-                             uint8_t* data,  /* Decoded output data */
-                             uint32_t nbits, /* Number of data bits */
-                             uint32_t endstate)
+int chainback_viterbi37_sse(void*    p,
+                            uint8_t* data,  /* Decoded output data */
+                            uint32_t nbits, /* Number of data bits */
+                            uint32_t endstate)
 { /* Terminal encoder state */
   struct v37* vp = p;
 
@@ -152,7 +144,7 @@ int chainback_viterbi37_avx2(void*    p,
 }
 
 /* Delete instance of a Viterbi decoder */
-void delete_viterbi37_avx2(void* p)
+void delete_viterbi37_sse(void* p)
 {
   struct v37* vp = p;
 
@@ -161,19 +153,8 @@ void delete_viterbi37_avx2(void* p)
     free(vp);
   }
 }
-void printer_256i(char* s, __m256i val)
-{
 
-  printf("%s: ", s);
-
-  uint8_t* x = (uint8_t*)&val;
-  for (int i = 0; i < 32; i++) {
-    printf("%3d, ", x[i]);
-  }
-  printf("\n");
-}
-
-void printer_128i(char* s, __m128i val)
+void print_128i(char* s, __m128i val)
 {
 
   printf("%s: ", s);
@@ -185,19 +166,7 @@ void printer_128i(char* s, __m128i val)
   printf("\n");
 }
 
-void printer_m64(char* s, __m64 val)
-{
-
-  printf("%s: ", s);
-
-  uint8_t* x = (uint8_t*)&val;
-  for (int i = 0; i < 8; i++) {
-    printf("%3d, ", x[i]);
-  }
-  printf("\n");
-}
-
-void update_viterbi37_blk_avx2(void* p, unsigned char* syms, int nbits, uint32_t* best_state)
+void update_viterbi37_blk_sse(void* p, unsigned char* syms, int nbits, uint32_t* best_state)
 {
   struct v37* vp = p;
   decision_t* d;
@@ -216,74 +185,59 @@ void update_viterbi37_blk_avx2(void* p, unsigned char* syms, int nbits, uint32_t
   }
 
   while (nbits--) {
-    __m256i sym0v, sym1v, sym2v;
+    __m128i sym0v, sym1v, sym2v;
+    void*   tmp;
+    int     i;
 
-    void* tmp;
+    // printf("nbits=%d, syms=%d,%d,%d\n", nbits, syms[0], syms[1], syms[2]);fflush(stdout);
 
-    sym0v = _mm256_set1_epi8(syms[0]);
-    sym1v = _mm256_set1_epi8(syms[1]);
-    sym2v = _mm256_set1_epi8(syms[2]);
-
+    /* Splat the 0th symbol across sym0v, the 1st symbol across sym1v, etc */
+    sym0v = _mm_set1_epi8(syms[0]);
+    sym1v = _mm_set1_epi8(syms[1]);
+    sym2v = _mm_set1_epi8(syms[2]);
     syms += 3;
 
-    __m256i decision0, decision1, survivor0, survivor1, metric, m_metric, m0, m1, m2, m3;
+    for (i = 0; i < 2; i++) {
+      __m128i decision0, decision1, metric, m_metric, m0, m1, m2, m3, survivor0, survivor1;
 
-    /* Form branch metrics */
-    m0 =
-        _mm256_avg_epu8(_mm256_xor_si256(Branchtab37_sse2[0].v, sym0v), _mm256_xor_si256(Branchtab37_sse2[1].v, sym1v));
-    metric = _mm256_avg_epu8(_mm256_xor_si256(Branchtab37_sse2[2].v, sym2v), m0);
-
-#ifdef DEBUG
-    print_128i("metric_initial", metric);
-#endif
-    /* There's no packed bytes right shift in SSE2, so we use the word version and mask
-     */
-    metric   = _mm256_srli_epi16(metric, 3);
-    metric   = _mm256_and_si256(metric, _mm256_set1_epi8(31));
-    m_metric = _mm256_sub_epi8(_mm256_set1_epi8(31), metric);
+      /* Form branch metrics */
+      m0 = _mm_avg_epu8(_mm_xor_si128(Branchtab37_sse2[0].v[i], sym0v), _mm_xor_si128(Branchtab37_sse2[1].v[i], sym1v));
+      metric = _mm_avg_epu8(_mm_xor_si128(Branchtab37_sse2[2].v[i], sym2v), m0);
 
 #ifdef DEBUG
-    print_128i("metric        ", metric);
-    print_128i("m_metric      ", m_metric);
+      print_128i("metric_initial", metric);
+#endif
+      /* There's no packed bytes right shift in SSE2, so we use the word version and mask
+       */
+      metric   = _mm_srli_epi16(metric, 3);
+      metric   = _mm_and_si128(metric, _mm_set1_epi8(31));
+      m_metric = _mm_sub_epi8(_mm_set1_epi8(31), metric);
+
+#ifdef DEBUG
+      print_128i("metric        ", metric);
+      print_128i("m_metric      ", m_metric);
 #endif
 
-    __m256i temp = _mm256_set_m128i(vp->old_metrics->v[1], vp->old_metrics->v[0]);
-    m0           = _mm256_add_epi8(temp, metric);
-    m2           = _mm256_add_epi8(temp, m_metric);
+      /* Add branch metrics to path metrics */
+      m0 = _mm_add_epi8(vp->old_metrics->v[i], metric);
+      m3 = _mm_add_epi8(vp->old_metrics->v[2 + i], metric);
+      m1 = _mm_add_epi8(vp->old_metrics->v[2 + i], m_metric);
+      m2 = _mm_add_epi8(vp->old_metrics->v[i], m_metric);
 
-    temp = _mm256_set_m128i(vp->old_metrics->v[3], vp->old_metrics->v[2]);
-    m3   = _mm256_add_epi8(temp, metric);
-    m1   = _mm256_add_epi8(temp, m_metric);
+      /* Compare and select, using modulo arithmetic */
+      decision0 = _mm_cmpgt_epi8(_mm_sub_epi8(m0, m1), _mm_setzero_si128());
+      decision1 = _mm_cmpgt_epi8(_mm_sub_epi8(m2, m3), _mm_setzero_si128());
+      survivor0 = _mm_or_si128(_mm_and_si128(decision0, m1), _mm_andnot_si128(decision0, m0));
+      survivor1 = _mm_or_si128(_mm_and_si128(decision1, m3), _mm_andnot_si128(decision1, m2));
 
-    /* Compare and select, using modulo arithmetic */
-    decision0 = _mm256_cmpgt_epi8(_mm256_sub_epi8(m0, m1), _mm256_setzero_si256());
-    decision1 = _mm256_cmpgt_epi8(_mm256_sub_epi8(m2, m3), _mm256_setzero_si256());
-    survivor0 = _mm256_or_si256(_mm256_and_si256(decision0, m1), _mm256_andnot_si256(decision0, m0));
-    survivor1 = _mm256_or_si256(_mm256_and_si256(decision1, m3), _mm256_andnot_si256(decision1, m2));
+      /* Pack each set of decisions into 16 bits */
+      d->s[2 * i]     = _mm_movemask_epi8(_mm_unpacklo_epi8(decision0, decision1));
+      d->s[2 * i + 1] = _mm_movemask_epi8(_mm_unpackhi_epi8(decision0, decision1));
 
-    unsigned int x = _mm256_movemask_epi8(_mm256_unpackhi_epi8(decision0, decision1));
-    unsigned int y = _mm256_movemask_epi8(_mm256_unpacklo_epi8(decision0, decision1));
-
-    d->s[0] = (short)y;
-    d->s[1] = (short)x;
-    d->s[2] = (short)(y >> 16);
-    d->s[3] = (short)(x >> 16);
-
-    __m256i unpack;
-    unpack                = _mm256_unpacklo_epi8(survivor0, survivor1);
-    vp->new_metrics->v[0] = _mm256_castsi256_si128(unpack);
-
-    vp->new_metrics->v[1] = _mm256_extractf128_si256(unpack, 1);
-
-    unpack = _mm256_unpackhi_epi8(survivor0, survivor1);
-
-    vp->new_metrics->v[2] = _mm256_castsi256_si128(unpack);
-    vp->new_metrics->v[3] = _mm256_extractf128_si256(unpack, 1);
-
-    __m128i temp1 = vp->new_metrics->v[1];
-
-    vp->new_metrics->v[1] = vp->new_metrics->v[2];
-    vp->new_metrics->v[2] = temp1;
+      /* Store surviving metrics */
+      vp->new_metrics->v[2 * i]     = _mm_unpacklo_epi8(survivor0, survivor1);
+      vp->new_metrics->v[2 * i + 1] = _mm_unpackhi_epi8(survivor0, survivor1);
+    }
 
     // See if we need to normalize
     if (vp->new_metrics->c[0] > 100) {
@@ -315,7 +269,6 @@ void update_viterbi37_blk_avx2(void* p, unsigned char* syms, int nbits, uint32_t
         vp->new_metrics->v[i] = _mm_sub_epi8(vp->new_metrics->v[i], adjustv);
     }
 
-    firstGo = 0;
     d++;
     /* Swap pointers to old and new metrics */
     tmp             = vp->old_metrics;

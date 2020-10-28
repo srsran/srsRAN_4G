@@ -32,8 +32,8 @@
 #ifndef SRSLTE_CONVCODER_H
 #define SRSLTE_CONVCODER_H
 
-#include "srslte/config.h"
-#include <stdbool.h>
+#include "../../../../../../../../../../usr/lib/gcc/x86_64-linux-gnu/7/include/stdbool.h"
+#include "../../../config.h"
 
 typedef struct SRSLTE_API {
   uint32_t R;

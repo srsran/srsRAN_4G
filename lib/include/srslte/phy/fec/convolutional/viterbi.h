@@ -20,7 +20,7 @@
  */
 
 /******************************************************************************
- *  File:         viterbi.h
+ *  File:         convolutional.h
  *
  *  Description:  Viterbi decoder for convolutionally encoded data.
  *                Used for decoding of PBCH and PDCCH (type 37 decoder).
@@ -31,8 +31,8 @@
 #ifndef SRSLTE_VITERBI_H
 #define SRSLTE_VITERBI_H
 
-#include "srslte/config.h"
-#include <stdbool.h>
+#include "../../../../../../../../../../usr/lib/gcc/x86_64-linux-gnu/7/include/stdbool.h"
+#include "../../../config.h"
 
 typedef enum { SRSLTE_VITERBI_27 = 0, SRSLTE_VITERBI_29, SRSLTE_VITERBI_37, SRSLTE_VITERBI_39 } srslte_viterbi_type_t;
 
