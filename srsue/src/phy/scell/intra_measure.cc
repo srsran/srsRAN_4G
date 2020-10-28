@@ -75,9 +75,14 @@ void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cel
 
 void intra_measure::stop()
 {
+  // Notify quit to asynchronous thread. If it is measuring, it will first finish the measure, report to stack and
+  // then it will finish
   state.set_state(internal_state::quit);
-  srslte_ringbuffer_stop(&ring_buffer);
+
+  // Wait for the asynchronous thread to finish
   wait_thread_finish();
+
+  srslte_ringbuffer_stop(&ring_buffer);
   srslte_refsignal_dl_sync_free(&refsignal_dl_sync);
 }
 
@@ -114,7 +119,7 @@ void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
 
 void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 {
-  uint32_t elapsed_tti = ((tti + 10240) - last_measure_tti) % 10240;
+  uint32_t elapsed_tti = TTI_SUB(tti, last_measure_tti);
 
   switch (state.get_state()) {
 
@@ -213,9 +218,6 @@ void intra_measure::measure_proc()
   if (not neighbour_cells.empty()) {
     new_cell_itf->new_cell_meas(cc_idx, neighbour_cells);
   }
-
-  // Inform that measurement has finished
-  meas_sync.increase();
 }
 
 void intra_measure::run_thread()
@@ -223,13 +225,15 @@ void intra_measure::run_thread()
   bool quit = false;
 
   do {
-    switch (state.get_state()) {
+    // Get state
+    internal_state::state_t s = state.get_state();
+    switch (s) {
 
       case internal_state::idle:
       case internal_state::wait:
       case internal_state::receive:
-        // Wait for a state change
-        state.wait_change();
+        // Wait for a different state
+        state.wait_change(s);
         break;
       case internal_state::measure:
         // Run the measurement process

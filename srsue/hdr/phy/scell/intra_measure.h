@@ -40,7 +40,8 @@ class intra_measure : public srslte::thread
    *          except quit can transition to idle.
    *  - wait: waits for at least intra_freq_meas_period_ms since last receive start and goes to receive.
    *  - receive: captures base-band samples for intra_freq_meas_len_ms and goes to measure.
-   *  - measure: enables the inner thread to start the measuring function and goes to wait.
+   *  - measure: enables the inner thread to start the measuring function. The asynchronous buffer will transition to
+   *             wait as soon as it has read the data from the buffer.
    *  - quit: stops the inner thread and quits. Transition from any state measure state.
    *
    * FSM abstraction:
@@ -49,7 +50,7 @@ class intra_measure : public srslte::thread
    *  | Idle | --------------------->| Wait |------------------------------>| Receive |
    *  +------+                       +------+                               +---------+
    *     ^                              ^                                        |          stop  +------+
-   *     |                              |                                        |          ----->| Quit |
+   *     |                  Read buffer |                                        |          ----->| Quit |
    *   init                        +---------+    intra_freq_meas_len_ms         |                +------+
    * meas_stop                     | Measure |<----------------------------------+
    *                               +---------+
@@ -125,11 +126,12 @@ public:
   uint32_t get_earfcn() { return current_earfcn; };
 
   /**
-   * Synchronous wait mechanism, used for testing purposes, it waits for the inner thread to return a measurement.
+   * Synchronous wait mechanism, blocks the writer thread while it is in measure state. If the asynchonous thread is too
+   * slow, use this method for stalling the writing thread and wait the asynchronous thread to clear the buffer.
    */
   void wait_meas()
   { // Only used by scell_search_test
-    meas_sync.wait();
+    state.wait_change(internal_state::measure);
   }
 
 private:
@@ -173,12 +175,14 @@ private:
     }
 
     /**
-     * Waits for a state transition change, used for blocking the inner thread
+     * Waits for a state transition to a state different than the provided, used for blocking the inner thread
      */
-    void wait_change()
+    void wait_change(state_t s)
     {
       std::unique_lock<std::mutex> lock(mutex);
-      cvar.wait(lock);
+      while (state == s) {
+        cvar.wait(lock);
+      }
     }
   };
 
@@ -198,20 +202,19 @@ private:
   ///< Internal Thread priority, low by default
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
-  scell_recv             scell                     = {};
-  meas_itf*              new_cell_itf              = nullptr;
-  srslte::log*           log_h                     = nullptr;
-  uint32_t               cc_idx                    = 0;
-  uint32_t               current_earfcn            = 0;
-  uint32_t               current_sflen             = 0;
-  srslte_cell_t          serving_cell              = {};
-  std::set<uint32_t>     active_pci                = {};
-  std::mutex             active_pci_mutex          = {};
-  uint32_t               last_measure_tti          = 0;
-  uint32_t               intra_freq_meas_len_ms    = 20;
-  uint32_t               intra_freq_meas_period_ms = 200;
-  uint32_t               rx_gain_offset_db         = 0;
-  srslte::tti_sync_cv    meas_sync; // Only used by scell_search_test
+  scell_recv         scell                     = {};
+  meas_itf*          new_cell_itf              = nullptr;
+  srslte::log*       log_h                     = nullptr;
+  uint32_t           cc_idx                    = 0;
+  uint32_t           current_earfcn            = 0;
+  uint32_t           current_sflen             = 0;
+  srslte_cell_t      serving_cell              = {};
+  std::set<uint32_t> active_pci                = {};
+  std::mutex         active_pci_mutex          = {};
+  uint32_t           last_measure_tti          = 0;
+  uint32_t           intra_freq_meas_len_ms    = 20;
+  uint32_t           intra_freq_meas_period_ms = 200;
+  uint32_t           rx_gain_offset_db         = 0;
 
   cf_t* search_buffer = nullptr;
 

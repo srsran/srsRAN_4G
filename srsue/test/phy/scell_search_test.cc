@@ -641,12 +641,8 @@ int main(int argc, char** argv)
           enb->work(&sf_cfg_dl, nullptr, nullptr, nullptr, nullptr, baseband_buffer, ts);
         }
       }
-      // If it is time for a measurement, wait previous to finish
-      if (sf_idx > phy_args.intra_freq_meas_period_ms) {
-        if (sf_idx % phy_args.intra_freq_meas_period_ms == 0) {
-          intra_measure.wait_meas();
-        }
-      }
+      // if it measuring, wait for avoiding overflowing
+      intra_measure.wait_meas();
     }
 
     // Increase Time counter
@@ -664,7 +660,7 @@ int main(int argc, char** argv)
     intra_measure.wait_meas();
   }
 
-  // Stop
+  // Stop, it will block until the asynchronous thread quits
   intra_measure.stop();
 
   ret = rrc.print_stats() ? SRSLTE_SUCCESS : SRSLTE_ERROR;
