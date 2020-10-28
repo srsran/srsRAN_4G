@@ -27,9 +27,9 @@
 #include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/dft/dft_precoding.h"
-#include "srslte/phy/fec/convcoder.h"
+#include "srslte/phy/fec/convolutional/convcoder.h"
+#include "srslte/phy/fec/convolutional/viterbi.h"
 #include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/viterbi.h"
 #include "srslte/phy/modem/modem_table.h"
 
 /**

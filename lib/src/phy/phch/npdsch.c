@@ -29,7 +29,7 @@
 
 #include "prb_dl.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/convolutional/rm_conv.h"
 #include "srslte/phy/phch/npdsch.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"

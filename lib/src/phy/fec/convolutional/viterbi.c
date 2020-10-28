@@ -26,8 +26,8 @@
 #include <math.h>
 #include <string.h>
 
-#include "../parity.h"
-#include "srslte/phy/fec/viterbi.h"
+#include "parity.h"
+#include "srslte/phy/fec/convolutional/viterbi.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include "viterbi37.h"

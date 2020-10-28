@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/tc_interl.h"
+#include "srslte/phy/fec/turbo/tc_interl.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 

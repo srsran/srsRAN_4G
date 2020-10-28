@@ -21,7 +21,7 @@
 
 #include <string.h>
 
-#include "srslte/phy/fec/rm_turbo.h"
+#include "srslte/phy/fec/turbo/rm_turbo.h"
 #include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/phch/pssch.h"
 #include "srslte/phy/phch/ra.h"

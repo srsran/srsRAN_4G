@@ -26,7 +26,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/turbodecoder_sse.h"
+#include "srslte/phy/fec/turbo/turbodecoder_sse.h"
 #include "srslte/phy/utils/vector.h"
 
 #include <inttypes.h>

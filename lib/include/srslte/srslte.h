@@ -58,19 +58,18 @@ extern "C" {
 
 #include "srslte/phy/channel/ch_awgn.h"
 
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/convcoder.h"
-#include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/rm_conv.h"
-#include "srslte/phy/fec/rm_turbo.h"
-#include "srslte/phy/fec/tc_interl.h"
-#include "srslte/phy/fec/turbocoder.h"
-#include "srslte/phy/fec/turbodecoder.h"
-#include "srslte/phy/fec/viterbi.h"
-
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/fec/convolutional/convcoder.h"
+#include "srslte/phy/fec/convolutional/rm_conv.h"
+#include "srslte/phy/fec/convolutional/viterbi.h"
+#include "srslte/phy/fec/crc.h"
+#include "srslte/phy/fec/turbo/cbsegm.h"
+#include "srslte/phy/fec/turbo/rm_turbo.h"
+#include "srslte/phy/fec/turbo/tc_interl.h"
+#include "srslte/phy/fec/turbo/turbocoder.h"
+#include "srslte/phy/fec/turbo/turbodecoder.h"
 
 #include "srslte/phy/io/binsource.h"
 #include "srslte/phy/io/filesink.h"

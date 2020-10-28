@@ -25,8 +25,8 @@
 #include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/turbocoder.h"
-#include "srslte/phy/fec/turbodecoder.h"
+#include "srslte/phy/fec/turbo/turbocoder.h"
+#include "srslte/phy/fec/turbo/turbodecoder.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/scrambling/scrambling.h"
 

@@ -35,8 +35,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/tc_interl.h"
-
+#include "srslte/phy/fec/turbo/tc_interl.h"
 #define SRSLTE_TCOD_MAX_LEN_CB_BYTES (6144 / 8)
 
 #ifndef SRSLTE_TX_NULL

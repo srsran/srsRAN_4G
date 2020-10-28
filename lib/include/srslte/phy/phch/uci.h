@@ -32,8 +32,8 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/fec/convolutional/viterbi.h"
 #include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/viterbi.h"
 #include "srslte/phy/phch/pusch_cfg.h"
 #include "srslte/phy/phch/uci_cfg.h"
 

@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../parity.h"
+#include "parity.h"
 #include "viterbi37.h"
 #include <limits.h>
 #include <memory.h>

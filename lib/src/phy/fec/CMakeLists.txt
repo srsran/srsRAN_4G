@@ -18,6 +18,12 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
-add_library(srslte_fec OBJECT ${SOURCES})
+set(FEC_SOURCES
+        crc.c
+        softbuffer.c)
+
 add_subdirectory(test)
+add_subdirectory(convolutional)
+add_subdirectory(turbo)
+
+add_library(srslte_fec OBJECT ${FEC_SOURCES})

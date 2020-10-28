@@ -35,8 +35,8 @@
 #define SRSLTE_TURBODECODER_H
 
 #include "srslte/config.h"
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/tc_interl.h"
+#include "srslte/phy/fec/turbo/cbsegm.h"
+#include "srslte/phy/fec/turbo/tc_interl.h"
 
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12
@@ -48,11 +48,11 @@
 
 // Include interfaces for 8 and 16 bit decoder implementations
 #define LLR_IS_8BIT
-#include "srslte/phy/fec/turbodecoder_impl.h"
+#include "srslte/phy/fec/turbo/turbodecoder_impl.h"
 #undef LLR_IS_8BIT
 
 #define LLR_IS_16BIT
-#include "srslte/phy/fec/turbodecoder_impl.h"
+#include "srslte/phy/fec/turbo/turbodecoder_impl.h"
 #undef LLR_IS_16BIT
 
 #define SRSLTE_TDEC_NOF_AUTO_MODES_8 2

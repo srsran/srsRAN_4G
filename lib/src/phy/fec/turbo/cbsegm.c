@@ -22,8 +22,8 @@
 #include <math.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/turbo/cbsegm.h"
+#include "srslte/phy/fec/turbo/turbodecoder_gen.h"
 #include "srslte/phy/utils/debug.h"
 
 const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = {

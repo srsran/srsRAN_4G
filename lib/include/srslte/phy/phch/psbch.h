@@ -22,14 +22,14 @@
 #ifndef SRSLTE_PSBCH_H
 #define SRSLTE_PSBCH_H
 
-#include <srslte/phy/common/phy_common_sl.h>
-#include <srslte/phy/dft/dft_precoding.h>
-#include <srslte/phy/fec/convcoder.h>
-#include <srslte/phy/fec/crc.h>
-#include <srslte/phy/fec/viterbi.h>
-#include <srslte/phy/modem/demod_soft.h>
-#include <srslte/phy/modem/modem_table.h>
-#include <srslte/phy/scrambling/scrambling.h>
+#include "srslte/phy/common/phy_common_sl.h"
+#include "srslte/phy/dft/dft_precoding.h"
+#include "srslte/phy/fec/convolutional/convcoder.h"
+#include "srslte/phy/fec/convolutional/viterbi.h"
+#include "srslte/phy/fec/crc.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/modem_table.h"
+#include "srslte/phy/scrambling/scrambling.h"
 
 #define SRSLTE_SL_BCH_CRC_LEN 16
 

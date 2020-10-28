@@ -20,7 +20,7 @@
  */
 
 #include "srslte/phy/phch/psbch.h"
-#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/convolutional/rm_conv.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/utils/bit.h"

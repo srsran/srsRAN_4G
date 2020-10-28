@@ -25,7 +25,7 @@
 #include <stdlib.h>
 
 #include "parity.h"
-#include "srslte/phy/fec/convcoder.h"
+#include "srslte/phy/fec/convolutional/convcoder.h"
 
 /**
  * Convolution encodes according to given parameters.

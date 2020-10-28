@@ -30,8 +30,8 @@
 #ifndef SRSLTE_PDSCH_CFG_H
 #define SRSLTE_PDSCH_CFG_H
 
-#include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/softbuffer.h"
+#include "srslte/phy/fec/turbo/cbsegm.h"
 #include "srslte/phy/phch/ra.h"
 
 typedef struct SRSLTE_API {

@@ -31,7 +31,7 @@
 #ifndef SRSLTE_RM_CONV_H
 #define SRSLTE_RM_CONV_H
 
-#include "../../../config.h"
+#include "srslte/config.h"
 
 #ifndef SRSLTE_RX_NULL
 #define SRSLTE_RX_NULL 10000

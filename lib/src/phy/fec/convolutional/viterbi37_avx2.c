@@ -5,7 +5,7 @@
  * May be used under the terms of the GNU Lesser General Public License (LGPL)
  */
 
-#include "../parity.h"
+#include "parity.h"
 #include <limits.h>
 #include <memory.h>
 #include <stdint.h>

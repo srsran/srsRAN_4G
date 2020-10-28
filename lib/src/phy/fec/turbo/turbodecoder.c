@@ -24,14 +24,14 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/fec/turbodecoder.h"
+#include "srslte/phy/fec/turbo/turbodecoder.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/srslte.h"
 
 #define debug_enabled 0
 
 /* Generic (no SSE) implementation */
-#include "srslte/phy/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/turbo/turbodecoder_gen.h"
 srslte_tdec_16bit_impl_t gen_impl = {tdec_gen_init,
                                      tdec_gen_free,
                                      tdec_gen_dec,
@@ -40,7 +40,7 @@ srslte_tdec_16bit_impl_t gen_impl = {tdec_gen_init,
 
 /* SSE no-window implementation */
 #ifdef LV_HAVE_SSE
-#include "srslte/phy/fec/turbodecoder_sse.h"
+#include "srslte/phy/fec/turbo/turbodecoder_sse.h"
 srslte_tdec_16bit_impl_t sse_impl = {tdec_sse_init,
                                      tdec_sse_free,
                                      tdec_sse_dec,
@@ -50,7 +50,7 @@ srslte_tdec_16bit_impl_t sse_impl = {tdec_sse_init,
 /* SSE window implementation */
 
 #define WINIMP_IS_SSE16
-#include "srslte/phy/fec/turbodecoder_win.h"
+#include "srslte/phy/fec/turbo/turbodecoder_win.h"
 #undef WINIMP_IS_SSE16
 
 srslte_tdec_16bit_impl_t sse16_win_impl = {tdec_winsse16_init,
@@ -63,7 +63,7 @@ srslte_tdec_16bit_impl_t sse16_win_impl = {tdec_winsse16_init,
 /* AVX window implementation */
 #ifdef LV_HAVE_AVX2
 #define WINIMP_IS_AVX16
-#include "srslte/phy/fec/turbodecoder_win.h"
+#include "srslte/phy/fec/turbo/turbodecoder_win.h"
 #undef WINIMP_IS_AVX16
 srslte_tdec_16bit_impl_t avx16_win_impl = {tdec_winavx16_init,
                                            tdec_winavx16_free,
@@ -75,7 +75,7 @@ srslte_tdec_16bit_impl_t avx16_win_impl = {tdec_winavx16_init,
 /* SSE window implementation */
 #ifdef LV_HAVE_SSE
 #define WINIMP_IS_SSE8
-#include "srslte/phy/fec/turbodecoder_win.h"
+#include "srslte/phy/fec/turbo/turbodecoder_win.h"
 #undef WINIMP_IS_SSE8
 
 srslte_tdec_8bit_impl_t sse8_win_impl = {tdec_winsse8_init,
@@ -88,7 +88,7 @@ srslte_tdec_8bit_impl_t sse8_win_impl = {tdec_winsse8_init,
 /* AVX window implementation */
 #ifdef LV_HAVE_AVX2
 #define WINIMP_IS_AVX8
-#include "srslte/phy/fec/turbodecoder_win.h"
+#include "srslte/phy/fec/turbo/turbodecoder_win.h"
 #undef WINIMP_IS_AVX8
 srslte_tdec_8bit_impl_t avx8_win_impl = {tdec_winavx8_init,
                                          tdec_winavx8_free,
@@ -119,11 +119,11 @@ srslte_tdec_16bit_impl_t arm16_win_impl = {tdec_winarm16_init,
 
 // Include interfaces for 8 and 16 bit decoder implementations
 #define LLR_IS_8BIT
-#include "srslte/phy/fec/turbodecoder_iter.h"
+#include "srslte/phy/fec/turbo/turbodecoder_iter.h"
 #undef LLR_IS_8BIT
 
 #define LLR_IS_16BIT
-#include "srslte/phy/fec/turbodecoder_iter.h"
+#include "srslte/phy/fec/turbo/turbodecoder_iter.h"
 #undef LLR_IS_16BIT
 
 int srslte_tdec_init(srslte_tdec_t* h, uint32_t max_long_cb)

@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/turbocoder.h"
+#include "srslte/phy/fec/turbo/cbsegm.h"
+#include "srslte/phy/fec/turbo/turbocoder.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"

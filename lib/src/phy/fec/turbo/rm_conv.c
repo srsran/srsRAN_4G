@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/convolutional/rm_conv.h"
 #include "srslte/phy/utils/debug.h"
 
 #define NCOLS 32

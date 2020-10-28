@@ -19,21 +19,16 @@
  *
  */
 
-#include <assert.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <strings.h>
 
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/fec/rm_turbo.h"
 #include "srslte/phy/fec/softbuffer.h"
-#include "srslte/phy/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/turbo/turbodecoder_gen.h"
 #include "srslte/phy/phch/ra.h"
-#include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)

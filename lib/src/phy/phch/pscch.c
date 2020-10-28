@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/convolutional/rm_conv.h"
 #include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/pscch.h"

@@ -24,7 +24,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/fec/convcoder.h"
+#include "srslte/phy/fec/convolutional/convcoder.h"
 #include "srslte/phy/fec/crc.h"
 #include "srslte/phy/mimo/layermap.h"
 #include "srslte/phy/mimo/precoding.h"

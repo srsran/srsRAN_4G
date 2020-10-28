@@ -31,7 +31,7 @@
 #define SRSLTE_RM_TURBO_H
 
 #include "srslte/config.h"
-#include "srslte/phy/fec/turbodecoder.h"
+#include "srslte/phy/fec/turbo/turbodecoder.h"
 
 #ifndef SRSLTE_RX_NULL
 #define SRSLTE_RX_NULL 10000

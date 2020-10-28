@@ -35,9 +35,8 @@
 #define SRSLTE_TURBODECODER_GEN_H
 
 #include "srslte/config.h"
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/tc_interl.h"
-
+#include "srslte/phy/fec/turbo/cbsegm.h"
+#include "srslte/phy/fec/turbo/tc_interl.h"
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12
 
