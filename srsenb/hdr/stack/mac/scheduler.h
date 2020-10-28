@@ -129,11 +129,12 @@ public:
 
   /* Custom functions
    */
-  void                                 set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
-  void                                 tpc_inc(uint16_t rnti);
-  void                                 tpc_dec(uint16_t rnti);
-  std::array<int, SRSLTE_MAX_CARRIERS> get_enb_ue_cc_map(uint16_t rnti) final;
-  int                                  ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;
+  void                                  set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
+  void                                  tpc_inc(uint16_t rnti);
+  void                                  tpc_dec(uint16_t rnti);
+  std::array<int, SRSLTE_MAX_CARRIERS>  get_enb_ue_cc_map(uint16_t rnti) final;
+  std::array<bool, SRSLTE_MAX_CARRIERS> get_scell_activation_mask(uint16_t rnti) final;
+  int                                   ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;
 
   class carrier_sched;
 

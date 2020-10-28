@@ -55,6 +55,7 @@ struct cc_sched_ue {
   int                        get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
+  uint32_t                   get_ue_cc_idx() const { return ue_cc_idx; }
   void                       set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi);
   int   cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs);
   cc_st cc_state() const { return cc_state_; }

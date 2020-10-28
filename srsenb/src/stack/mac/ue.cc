@@ -450,20 +450,8 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
       break;
     case srslte::dl_sch_lcid::SCELL_ACTIVATION:
       if (pdu->new_subh()) {
-        std::array<int, SRSLTE_MAX_CARRIERS>  enb_ue_cc_map     = sched->get_enb_ue_cc_map(rnti);
-        std::array<bool, SRSLTE_MAX_CARRIERS> active_scell_list = {};
-        size_t                                enb_cc_idx        = 0;
-        for (; enb_cc_idx < enb_ue_cc_map.size(); ++enb_cc_idx) {
-          if (enb_ue_cc_map[enb_cc_idx] >= 8) {
-            break;
-          }
-          if (enb_ue_cc_map[enb_cc_idx] <= 0) {
-            // inactive or PCell
-            continue;
-          }
-          active_scell_list[enb_ue_cc_map[enb_cc_idx]] = true;
-        }
-        if (enb_cc_idx == enb_ue_cc_map.size() and pdu->get()->set_scell_activation_cmd(active_scell_list)) {
+        std::array<bool, SRSLTE_MAX_CARRIERS> active_scell_list = sched->get_scell_activation_mask(rnti);
+        if (pdu->get()->set_scell_activation_cmd(active_scell_list)) {
           phy->set_activation_deactivation_scell(rnti, active_scell_list);
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           allocate_cc_buffers(active_scell_list.size() - 1);

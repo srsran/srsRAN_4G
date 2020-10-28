@@ -120,6 +120,11 @@ int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
   // keep DRBs disabled until RRCReconfComplete is received
   set_drb_activation(false);
 
+  // Re-activate SRBs UL (needed for ReconfComplete)
+  for (uint32_t i = rb_id_t::RB_ID_SRB1; i <= rb_id_t::RB_ID_SRB2; ++i) {
+    current_sched_ue_cfg.ue_bearers[i] = next_sched_ue_cfg.ue_bearers[i];
+  }
+
   return mac->ue_set_crnti(temp_crnti, rrc_ue->rnti, &current_sched_ue_cfg);
 }
 
@@ -263,6 +268,11 @@ void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_r
 
   // Freeze all DRBs. SRBs DL are needed for sending the HO Cmd
   set_drb_activation(false);
+
+  // Stop any SRB UL (including SRs)
+  for (uint32_t i = rb_id_t::RB_ID_SRB1; i <= rb_id_t::RB_ID_SRB2; ++i) {
+    next_sched_ue_cfg.ue_bearers[i].direction = sched_interface::ue_bearer_cfg_t::DL;
+  }
 
   update_mac(mac_controller::config_tx);
 }
