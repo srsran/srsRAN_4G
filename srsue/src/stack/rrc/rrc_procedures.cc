@@ -1262,6 +1262,12 @@ void rrc::cell_reselection_proc::then(const srslte::proc_state_t& result)
       reselection_timer.set(cell_reselection_periodicity_ms);
     }
 
+    // starts listening to paging (PCCH) if necessary
+    // TODO: make sure PCCH is enabled in all possible idle cases.
+    if (rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->state == RRC_STATE_IDLE) {
+      rrc_ptr->mac->pcch_start_rx();
+    }
+
     reselection_timer.run();
   }
 }
