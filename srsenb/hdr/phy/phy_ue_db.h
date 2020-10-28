@@ -60,6 +60,9 @@ private:
    * Initially the the state is default (none) and it goes to inactive as soon as it is configured from the stack, then
    * it can transition to active as soon as the stack indicates so.
    *
+   * Consider that once the secondary serving cell is configured, the state transition between active and deactivated
+   * shall be performed by stack calls activation/deactivation and not re-configuration.
+   *
    *  +---------+   Set SCell Configuration   +-------------+   SCell activation   +--------+
    *  | Default | --------------------------->| Deactivated |--------------------->| Active |
    *  +---------+                             +-------------+                      +--------+
@@ -67,7 +70,6 @@ private:
    *     | |                                         |                                 | |
    *   --+ |                                         |         SCell deactivation      | |
    *       |                                         +---------------------------------+ |
-   *       |                                                   Reconfigure SCell         |
    *       |       Remove SCell configuration                                            |
    *       +-----------------------------------------------------------------------------+
    */

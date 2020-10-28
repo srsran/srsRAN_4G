@@ -302,12 +302,14 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
       ue.pcell_cfg_stash = phy_rrc_dedicated.phy_cfg;
       _set_common_config_rnti(rnti, ue.pcell_cfg_stash);
     } else if (phy_rrc_dedicated.configured) {
-      // Only set to inactive if cell is not already configured
-      if (cell_info.state == cell_state_t::cell_state_none) {
-        cell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
-        _set_common_config_rnti(rnti, cell_info.phy_cfg);
+      // Overwrite the secondary serving cell configuration independently of the current state. Higher layers (MAC
+      // and/or RRC) shall be responsible for the secondary serving cell activation/deactivation.
+      cell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
+      _set_common_config_rnti(rnti, cell_info.phy_cfg);
 
-        // Set Cell state, all inactive by default
+      // Set Cell state to inactive (as configured) only if it was not configured before. Avoid losing coherence with
+      // MAC Activation/Deactivation states
+      if (cell_info.state == cell_state_t::cell_state_none) {
         cell_info.state = cell_state_secondary_inactive;
       }
       // Count Serving cell
