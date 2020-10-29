@@ -1842,6 +1842,9 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
       carryover = 0;
     }
     count = 0;
+
+    // set Poll bit if any of the segments had it set
+    header.p |= it->header.p;
   }
 
   log->debug("Finished header reconstruction of %zd segments\n", pdu->segments.size());
