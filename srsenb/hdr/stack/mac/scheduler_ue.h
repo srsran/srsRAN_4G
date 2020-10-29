@@ -134,8 +134,8 @@ private:
     int                              Bj          = 0;
   };
 
-  int alloc_retx_bytes(uint8_t lcid, uint32_t rem_bytes);
-  int alloc_tx_bytes(uint8_t lcid, uint32_t rem_bytes);
+  int alloc_retx_bytes(uint8_t lcid, int rem_bytes);
+  int alloc_tx_bytes(uint8_t lcid, int rem_bytes);
 
   size_t                                           prio_idx = 0;
   srslte::log_ref                                  log_h{"MAC"};

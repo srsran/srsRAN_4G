@@ -36,6 +36,9 @@ namespace srsenb {
  *                 Helper Functions                   *
  ******************************************************/
 
+#define RLC_MAX_HEADER_SIZE 3
+#define MAC_MAX_HEADER_SIZE 3
+
 namespace sched_utils {
 
 //! Obtains TB size *in bytes* for a given MCS and N_{PRB}
@@ -386,8 +389,6 @@ void sched_ue::tpc_dec()
  *
  *******************************************************/
 
-constexpr uint32_t min_mac_sdu_size = 5; // accounts for MAC SDU subheader and RLC header
-
 /**
  * Allocate space for multiple MAC SDUs (i.e. RLC PDUs) and corresponding MAC SDU subheaders
  * @param data struct where the rlc pdu allocations are stored
@@ -402,7 +403,7 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   uint32_t rem_tbs                = total_tbs;
 
   // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
-  while (rem_tbs >= min_mac_sdu_size) {
+  while (rem_tbs >= RLC_MAX_HEADER_SIZE + MAC_MAX_HEADER_SIZE) {
     uint32_t max_sdu_bytes   = rem_tbs - compute_subheader_size(rem_tbs - 2);
     uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
@@ -1668,22 +1669,30 @@ int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem
   return alloc_bytes;
 }
 
-int lch_manager::alloc_retx_bytes(uint8_t lcid, uint32_t rem_bytes)
+int lch_manager::alloc_retx_bytes(uint8_t lcid, int rem_bytes)
 {
-  int alloc = std::min((int)rem_bytes, get_dl_retx(lcid));
+  if (rem_bytes <= RLC_MAX_HEADER_SIZE) {
+    return 0;
+  }
+  int rem_bytes_no_header = rem_bytes - RLC_MAX_HEADER_SIZE;
+  int alloc               = std::min(rem_bytes_no_header, get_dl_retx(lcid));
   lch[lcid].buf_retx -= alloc;
-  return alloc;
+  return alloc + (alloc > 0 ? RLC_MAX_HEADER_SIZE : 0);
 }
 
-int lch_manager::alloc_tx_bytes(uint8_t lcid, uint32_t rem_bytes)
+int lch_manager::alloc_tx_bytes(uint8_t lcid, int rem_bytes)
 {
-  int alloc = std::min((int)rem_bytes, get_dl_tx(lcid));
+  if (rem_bytes <= RLC_MAX_HEADER_SIZE) {
+    return 0;
+  }
+  int rem_bytes_no_header = rem_bytes - RLC_MAX_HEADER_SIZE;
+  int alloc               = std::min(rem_bytes_no_header, get_dl_tx(lcid));
   lch[lcid].buf_tx -= alloc;
   if (alloc > 0 and lch[lcid].cfg.pbr != pbr_infinity) {
     // Update Bj
     lch[lcid].Bj -= alloc;
   }
-  return alloc;
+  return alloc + (alloc > 0 ? RLC_MAX_HEADER_SIZE : 0);
 }
 
 bool lch_manager::is_bearer_active(uint32_t lcid) const
