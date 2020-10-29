@@ -103,7 +103,7 @@ private:
   srslte::byte_buffer_pool*           pool = nullptr;
   srslte::timer_handler::unique_timer activity_timer;
 
-  /// cached ASN1 for update checking, and ease of context transfer during HO
+  /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
   asn1::rrc::rr_cfg_ded_s                current_rr_cfg;
   asn1::rrc::scell_to_add_mod_list_r10_l current_scells;
 
