@@ -114,9 +114,11 @@ void rrc::ue::mac_controller::handle_con_reject()
 /// Called in case of intra-eNB Handover to activate the new PCell for the reception of the RRC Reconf Complete message
 int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
 {
-  // Change PCell in MAC/Scheduler
-  current_sched_ue_cfg.supported_cc_list.resize(1);
-  current_sched_ue_cfg.supported_cc_list[0] = next_sched_ue_cfg.supported_cc_list[0];
+  // Change PCell and add SCell configurations to MAC/Scheduler
+  current_sched_ue_cfg = next_sched_ue_cfg;
+
+  // keep DRBs disabled until RRCReconfComplete is received
+  set_drb_activation(false);
 
   return mac->ue_set_crnti(temp_crnti, rrc_ue->rnti, &current_sched_ue_cfg);
 }
