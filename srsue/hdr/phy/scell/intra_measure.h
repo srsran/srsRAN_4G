@@ -218,7 +218,6 @@ private:
 
   cf_t* search_buffer = nullptr;
 
-  uint32_t            receive_cnt = 0;
   srslte_ringbuffer_t ring_buffer = {};
 
   srslte_refsignal_dl_sync_t refsignal_dl_sync = {};

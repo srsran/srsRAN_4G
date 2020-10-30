@@ -21,16 +21,16 @@
 #include "srsue/hdr/phy/scell/intra_measure.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
   log_h->warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
   log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
   log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
@@ -100,12 +100,10 @@ void intra_measure::set_rx_gain_offset(float rx_gain_offset_db_)
 
 void intra_measure::meas_stop()
 {
+  // Transition state to idle
+  // Ring-buffer shall not be reset, it will automatically be reset as soon as the FSM transitions to receive
   state.set_state(internal_state::idle);
-  receive_cnt = 0;
-  srslte_ringbuffer_reset(&ring_buffer);
-  if (log_h) {
-    log_h->info("INTRA: Disabled neighbour cell search for EARFCN %d\n", get_earfcn());
-  }
+  Info("INTRA: Disabled neighbour cell search for EARFCN %d\n", get_earfcn());
 }
 
 void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
@@ -119,7 +117,9 @@ void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
 
 void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 {
-  uint32_t elapsed_tti = TTI_SUB(tti, last_measure_tti);
+  int      nbytes          = (int)(nsamples * sizeof(cf_t));
+  int      required_nbytes = (int)(intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
+  uint32_t elapsed_tti     = TTI_SUB(tti, last_measure_tti);
 
   switch (state.get_state()) {
 
@@ -131,19 +131,19 @@ void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
     case internal_state::wait:
       if (elapsed_tti >= intra_freq_meas_period_ms) {
         state.set_state(internal_state::receive);
-        receive_cnt      = 0;
         last_measure_tti = tti;
         srslte_ringbuffer_reset(&ring_buffer);
       }
       break;
     case internal_state::receive:
-      if (srslte_ringbuffer_write(&ring_buffer, data, nsamples * sizeof(cf_t)) < (int)(nsamples * sizeof(cf_t))) {
-        Warning("Error writing to ringbuffer\n");
-        state.set_state(internal_state::idle);
+      if (srslte_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
+        Warning("INTRA: Error writing to ringbuffer (EARFCN=%d)\n", current_earfcn);
+
+        // Transition to wait, so it can keep receiving without stopping the component operation
+        state.set_state(internal_state::wait);
       } else {
-        receive_cnt++;
-        if (receive_cnt == intra_freq_meas_len_ms) {
-          // Buffer ready for measuring, start
+        // As soon as there are enough samples in the buffer, transition to measure
+        if (srslte_ringbuffer_status(&ring_buffer) >= required_nbytes) {
           state.set_state(internal_state::measure);
         }
       }
@@ -161,7 +161,7 @@ void intra_measure::measure_proc()
   active_pci_mutex.unlock();
 
   // Read data from buffer and find cells in it
-  srslte_ringbuffer_read(&ring_buffer, search_buffer, intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
+  srslte_ringbuffer_read(&ring_buffer, search_buffer, (int)intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
 
   // Go to receive before finishing, so new samples can be enqueued before the thread finishes
   if (state.get_state() == internal_state::measure) {
@@ -173,7 +173,7 @@ void intra_measure::measure_proc()
   std::set<uint32_t> detected_cells = scell.find_cells(search_buffer, serving_cell, intra_freq_meas_len_ms);
 
   // Add detected cells to the list of cells to measure
-  for (auto& c : detected_cells) {
+  for (const uint32_t& c : detected_cells) {
     cells_to_measure.insert(c);
   }
 
@@ -183,7 +183,7 @@ void intra_measure::measure_proc()
   new_cell_itf->cell_meas_reset(cc_idx);
 
   // Use Cell Reference signal to measure cells in the time domain for all known active PCI
-  for (auto id : cells_to_measure) {
+  for (const uint32_t& id : cells_to_measure) {
     // Do not measure serving cell here since it's measured by workers
     if (id == serving_cell.id) {
       continue;

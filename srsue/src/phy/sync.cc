@@ -919,7 +919,8 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
   // Save signal for Intra-frequency measurement
   if (srslte_cell_isvalid(&cell)) {
     for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
-      intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), SRSLTE_SF_LEN_PRB(cell.nof_prb));
+      // Feed the exact number of base-band samples for avoiding an invalid buffer read
+      intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), data.get_nof_samples());
 
       // Update RX gain
       intra_freq_meas[i]->set_rx_gain_offset(worker_com->get_rx_gain_offset());
