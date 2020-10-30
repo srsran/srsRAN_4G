@@ -935,6 +935,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     } else {
       if (cfg.ul_earfcn == 0) {
         cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
+        ERROR("Force UL freq for cell PCI=%d to EARFCN %d, Please explictly set ul_freq or ul_earfcn\n", cfg.pci,cfg.ul_earfcn);
       }
       phy_cell_cfg.ul_freq_hz = 1e6 * srslte_band_fu(cfg.ul_earfcn);
     }
