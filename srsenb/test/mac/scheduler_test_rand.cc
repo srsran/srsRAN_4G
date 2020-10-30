@@ -63,9 +63,8 @@ using srslte::tti_point;
  *   - DL adaptive retx/new tx <=> PDCCH alloc
  *******************************************************/
 
-uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
-// uint32_t const seed = 1581009287; // prb==25
-bool check_old_pids = false;
+uint32_t const seed           = std::chrono::system_clock::now().time_since_epoch().count();
+bool           check_old_pids = false;
 
 struct ue_stats_t {
   uint64_t nof_dl_rbs = 0;

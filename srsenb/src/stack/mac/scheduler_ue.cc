@@ -36,8 +36,9 @@ namespace srsenb {
  *                 Helper Functions                   *
  ******************************************************/
 
-#define RLC_MAX_HEADER_SIZE 3
+#define RLC_MAX_HEADER_SIZE_NO_LI 3
 #define MAC_MAX_HEADER_SIZE 3
+#define MAC_MIN_ALLOC_SIZE RLC_MAX_HEADER_SIZE_NO_LI + MAC_MAX_HEADER_SIZE
 
 namespace sched_utils {
 
@@ -58,9 +59,13 @@ uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_
 }
 
 //! TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
-uint32_t get_mac_subheader_sdu_size(uint32_t sdu_bytes)
+uint32_t get_mac_subheader_size(uint32_t sdu_bytes)
 {
   return sdu_bytes == 0 ? 0 : (sdu_bytes > 128 ? 3 : 2);
+}
+uint32_t get_mac_sdu_and_subheader_size(uint32_t sdu_bytes)
+{
+  return sdu_bytes + get_mac_subheader_size(sdu_bytes);
 }
 
 /**
@@ -398,18 +403,16 @@ void sched_ue::tpc_dec()
  */
 uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx)
 {
-  // TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
-  auto     compute_subheader_size = [](uint32_t sdu_size) { return sdu_size > 128 ? 3 : 2; };
-  uint32_t rem_tbs                = total_tbs;
+  uint32_t rem_tbs = total_tbs;
 
   // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
-  while (rem_tbs >= RLC_MAX_HEADER_SIZE + MAC_MAX_HEADER_SIZE) {
-    uint32_t max_sdu_bytes   = rem_tbs - compute_subheader_size(rem_tbs - 2);
+  while (rem_tbs > MAC_MAX_HEADER_SIZE) {
+    uint32_t max_sdu_bytes   = rem_tbs - sched_utils::get_mac_subheader_size(rem_tbs - 2);
     uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
       break;
     }
-    rem_tbs -= (alloc_sdu_bytes + compute_subheader_size(alloc_sdu_bytes)); // account for MAC sub-header
+    rem_tbs -= sched_utils::get_mac_sdu_and_subheader_size(alloc_sdu_bytes); // account for MAC sub-header
     data->nof_pdu_elems[tbidx]++;
   }
 
@@ -465,12 +468,12 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
   int              mcs     = ret.first;
   int              tbs     = ret.second;
 
-  /* Allocate MAC PDU (subheaders, CEs, and SDUS) */
+  // Allocate MAC PDU (subheaders, CEs, and SDUS)
   int rem_tbs = tbs;
   rem_tbs -= allocate_mac_ces(data, rem_tbs, ue_cc_idx);
   rem_tbs -= allocate_mac_sdus(data, rem_tbs, tb);
 
-  /* Allocate DL UE Harq */
+  // Allocate DL UE Harq
   if (rem_tbs != tbs) {
     h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
     Debug("SCHED: Alloc DCI format%s new mcs=%d, tbs=%d, nof_prb=%d\n", dci_format, mcs, tbs, nof_prb);
@@ -478,7 +481,7 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
     Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
   }
 
-  return std::make_pair(tbs, mcs);
+  return {tbs, mcs};
 }
 
 int sched_ue::generate_dl_dci_format(uint32_t                          pid,
@@ -930,14 +933,13 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx)
  */
 srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
 {
-  const uint32_t min_alloc_bytes = 5; // 2 for subheader, and 3 for RLC header
   // Convenience function to compute the number of bytes allocated for a given SDU
-  auto compute_sdu_total_bytes = [&min_alloc_bytes](uint32_t lcid, uint32_t buffer_bytes) {
+  auto compute_sdu_total_bytes = [](uint32_t lcid, uint32_t buffer_bytes) {
     if (buffer_bytes == 0) {
       return 0u;
     }
-    uint32_t subheader_and_sdu = buffer_bytes + sched_utils::get_mac_subheader_sdu_size(buffer_bytes);
-    return (lcid == 0) ? subheader_and_sdu : std::max(subheader_and_sdu, min_alloc_bytes);
+    uint32_t subheader_and_sdu = sched_utils::get_mac_sdu_and_subheader_size(buffer_bytes);
+    return (lcid == 0) ? subheader_and_sdu : std::max(subheader_and_sdu, (uint32_t)MAC_MIN_ALLOC_SIZE);
   };
 
   /* Set Maximum boundary */
@@ -986,7 +988,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
     if (sum_ce_data > 0) {
       min_data = srslte::ce_total_size(pending_ces.front());
     } else if (rb_data > 0) {
-      min_data = min_alloc_bytes;
+      min_data = MAC_MIN_ALLOC_SIZE;
     }
   }
 
@@ -1661,6 +1663,12 @@ int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem
     alloc_bytes = alloc_tx_bytes(lcid, rem_bytes);
   }
 
+  // If it is last PDU of the TBS, allocate all leftover bytes
+  int leftover_bytes = rem_bytes - alloc_bytes;
+  if (leftover_bytes > 0 and (leftover_bytes <= MAC_MIN_ALLOC_SIZE or get_dl_tx_total() == 0)) {
+    alloc_bytes += leftover_bytes;
+  }
+
   if (alloc_bytes > 0) {
     rlc_pdu->nbytes = alloc_bytes;
     rlc_pdu->lcid   = lcid;
@@ -1671,28 +1679,30 @@ int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem
 
 int lch_manager::alloc_retx_bytes(uint8_t lcid, int rem_bytes)
 {
-  if (rem_bytes <= RLC_MAX_HEADER_SIZE) {
+  const int rlc_overhead = (lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
+  if (rem_bytes <= rlc_overhead) {
     return 0;
   }
-  int rem_bytes_no_header = rem_bytes - RLC_MAX_HEADER_SIZE;
+  int rem_bytes_no_header = rem_bytes - rlc_overhead;
   int alloc               = std::min(rem_bytes_no_header, get_dl_retx(lcid));
   lch[lcid].buf_retx -= alloc;
-  return alloc + (alloc > 0 ? RLC_MAX_HEADER_SIZE : 0);
+  return alloc + (alloc > 0 ? rlc_overhead : 0);
 }
 
 int lch_manager::alloc_tx_bytes(uint8_t lcid, int rem_bytes)
 {
-  if (rem_bytes <= RLC_MAX_HEADER_SIZE) {
+  const int rlc_overhead = (lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
+  if (rem_bytes <= rlc_overhead) {
     return 0;
   }
-  int rem_bytes_no_header = rem_bytes - RLC_MAX_HEADER_SIZE;
+  int rem_bytes_no_header = rem_bytes - rlc_overhead;
   int alloc               = std::min(rem_bytes_no_header, get_dl_tx(lcid));
   lch[lcid].buf_tx -= alloc;
   if (alloc > 0 and lch[lcid].cfg.pbr != pbr_infinity) {
     // Update Bj
     lch[lcid].Bj -= alloc;
   }
-  return alloc + (alloc > 0 ? RLC_MAX_HEADER_SIZE : 0);
+  return alloc + (alloc > 0 ? rlc_overhead : 0);
 }
 
 bool lch_manager::is_bearer_active(uint32_t lcid) const
@@ -1708,6 +1718,15 @@ bool lch_manager::is_bearer_ul(uint32_t lcid) const
 bool lch_manager::is_bearer_dl(uint32_t lcid) const
 {
   return is_bearer_active(lcid) and lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::UL;
+}
+
+int lch_manager::get_dl_tx_total() const
+{
+  int sum = 0;
+  for (size_t lcid = 0; lcid < lch.size(); ++lcid) {
+    sum += get_dl_tx_total(lcid);
+  }
+  return sum;
 }
 
 int lch_manager::get_dl_tx(uint32_t lcid) const

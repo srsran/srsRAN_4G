@@ -117,6 +117,7 @@ public:
   bool is_bearer_ul(uint32_t lcid) const;
   bool is_bearer_dl(uint32_t lcid) const;
 
+  int get_dl_tx_total() const;
   int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
   int get_dl_tx(uint32_t lcid) const;
   int get_dl_retx(uint32_t lcid) const;
