@@ -406,8 +406,8 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     uint32_t ue_cc_idx = 1;
     for (; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
       auto& cellcfg = ue_cell_list.get_ue_cc_idx(ue_cc_idx)->cell_common->cell_cfg;
-      if (cellcfg.pci != current_scells[ue_cc_idx].cell_identif_r10.pci_r10 or
-          cellcfg.dl_earfcn != current_scells[ue_cc_idx].cell_identif_r10.dl_carrier_freq_r10) {
+      if (cellcfg.pci != current_scells[ue_cc_idx - 1].cell_identif_r10.pci_r10 or
+          cellcfg.dl_earfcn != current_scells[ue_cc_idx - 1].cell_identif_r10.dl_carrier_freq_r10) {
         break;
       }
     }
