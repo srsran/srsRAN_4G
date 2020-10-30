@@ -147,12 +147,22 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
   } else if (!q->active) {
     ret = SRSLTE_SUCCESS;
   } else if (ret == SRSLTE_SUCCESS) {
-    if (w_bytes > q->capacity - q->wpm) {
-      int x = q->capacity - q->wpm;
-      memcpy(&q->buffer[q->wpm], ptr, x);
-      memcpy(q->buffer, &ptr[x], w_bytes - x);
+    if (ptr != NULL) {
+      if (w_bytes > q->capacity - q->wpm) {
+        int x = q->capacity - q->wpm;
+        memcpy(&q->buffer[q->wpm], ptr, x);
+        memcpy(q->buffer, &ptr[x], w_bytes - x);
+      } else {
+        memcpy(&q->buffer[q->wpm], ptr, w_bytes);
+      }
     } else {
-      memcpy(&q->buffer[q->wpm], ptr, w_bytes);
+      if (w_bytes > q->capacity - q->wpm) {
+        int x = q->capacity - q->wpm;
+        memset(&q->buffer[q->wpm], 0, x);
+        memset(q->buffer, 0, w_bytes - x);
+      } else {
+        memset(&q->buffer[q->wpm], 0, w_bytes);
+      }
     }
     q->wpm += w_bytes;
     if (q->wpm >= q->capacity) {
