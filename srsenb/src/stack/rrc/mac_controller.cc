@@ -117,6 +117,11 @@ int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
   // Change PCell and add SCell configurations to MAC/Scheduler
   current_sched_ue_cfg = next_sched_ue_cfg;
 
+  // Disable SCells, until RRCReconfComplete is received, otherwise the SCell Act MAC CE is sent too early
+  for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {
+    current_sched_ue_cfg.supported_cc_list[i].active = false;
+  }
+
   // keep DRBs disabled until RRCReconfComplete is received
   set_drb_activation(false);
 
