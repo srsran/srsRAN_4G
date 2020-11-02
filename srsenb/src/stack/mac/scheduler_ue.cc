@@ -1200,10 +1200,27 @@ sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint
 
 cc_sched_ue* sched_ue::find_ue_carrier(uint32_t enb_cc_idx)
 {
+  int ue_cc_idx = find_enb_cc_idx(enb_cc_idx);
+  return ue_cc_idx >= 0 ? &carriers[ue_cc_idx] : nullptr;
+}
+
+std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
+{
+  std::bitset<SRSLTE_MAX_CARRIERS> ret{0};
+  for (size_t i = 1; i < carriers.size(); ++i) {
+    if (carriers[i].cc_state() == cc_st::active) {
+      ret[i] = true;
+    }
+  }
+  return ret;
+}
+
+int sched_ue::find_enb_cc_idx(uint32_t enb_cc_idx) const
+{
   auto it = std::find_if(carriers.begin(), carriers.end(), [enb_cc_idx](const cc_sched_ue& c) {
     return c.get_cell_cfg()->enb_cc_idx == enb_cc_idx;
   });
-  return it != carriers.end() ? &(*it) : nullptr;
+  return it != carriers.end() ? std::distance(carriers.begin(), it) : -1;
 }
 
 int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs)
