@@ -434,7 +434,7 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     const rr_cfg_common_sib_s& cc_cfg_sib = cell_sib2.rr_cfg_common;
     auto&                      nonul_cfg  = asn1cell.rr_cfg_common_scell_r10.non_ul_cfg_r10;
     asn1::number_to_enum(nonul_cfg.dl_bw_r10, enb_cfg.cell.nof_prb);
-    nonul_cfg.ant_info_common_r10.ant_ports_count.value = ant_info_common_s::ant_ports_count_opts::an1;
+    asn1::number_to_enum(nonul_cfg.ant_info_common_r10.ant_ports_count, enb_cfg.cell.nof_ports);
     nonul_cfg.phich_cfg_r10                             = scell_cfg.mib.phich_cfg;
     nonul_cfg.pdsch_cfg_common_r10                      = cc_cfg_sib.pdsch_cfg_common;
     // RadioResourceConfigCommonSCell-r10::ul-Configuration-r10
@@ -508,7 +508,7 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     srs_setup.tx_comb                                      = 0;
     srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
     ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
-    ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
+    asn1::number_to_enum(ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10, enb_cfg.cell.nof_ports);
     ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
     ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
 #endif // SRS_ENABLED
