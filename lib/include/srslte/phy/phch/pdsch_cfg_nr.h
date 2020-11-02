@@ -31,7 +31,6 @@
 #define SRSLTE_PDSCH_CFG_NR_H
 
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/phch/ra.h"
 
