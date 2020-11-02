@@ -65,7 +65,7 @@ void srslte_scrambling_c_offset(srslte_sequence_t* s, cf_t* data, int offset, in
 
 static inline void scrambling_b(uint8_t* c, uint8_t* data, int len)
 {
-  srslte_vec_xor_bbb((int8_t*)c, (int8_t*)data, (int8_t*)data, len);
+  srslte_vec_xor_bbb(c, data, data, len);
 }
 
 void srslte_scrambling_b(srslte_sequence_t* s, uint8_t* data)

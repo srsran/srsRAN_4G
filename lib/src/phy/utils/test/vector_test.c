@@ -87,7 +87,7 @@ float squared_error(cf_t a, cf_t b)
 }
 
 TEST(
-    srslte_vec_xor_bbb, MALLOC(int8_t, x); MALLOC(int8_t, y); MALLOC(int8_t, z);
+    srslte_vec_xor_bbb, MALLOC(uint8_t, x); MALLOC(uint8_t, y); MALLOC(uint8_t, z);
 
     cf_t gold = 0.0f;
     for (int i = 0; i < block_size; i++) {

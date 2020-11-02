@@ -31,7 +31,7 @@ extern "C" {
 #include <stdio.h>
 
 /*SIMD Logical operations*/
-SRSLTE_API void srslte_vec_xor_bbb_simd(const int8_t* x, const int8_t* y, int8_t* z, int len);
+SRSLTE_API void srslte_vec_xor_bbb_simd(const uint8_t* x, const uint8_t* y, uint8_t* z, int len);
 
 /* SIMD Basic vector math */
 SRSLTE_API void srslte_vec_sum_sss_simd(const int16_t* x, const int16_t* y, int16_t* z, int len);

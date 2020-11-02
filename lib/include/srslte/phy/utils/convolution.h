@@ -32,6 +32,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/dft/dft.h"
+#include <stdint.h>
 
 typedef struct SRSLTE_API {
   cf_t*             input_fft;
@@ -72,12 +73,12 @@ SRSLTE_API uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t* q,
                                                cf_t*                 output);
 
 SRSLTE_API uint32_t
-           srslte_conv_cc(const cf_t* input, const cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len);
+srslte_conv_cc(const cf_t* input, const cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len);
 
 SRSLTE_API uint32_t
-           srslte_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t input_len, uint32_t filter_len);
+srslte_conv_same_cf(cf_t* input, float* filter, cf_t* output, uint32_t input_len, uint32_t filter_len);
 
 SRSLTE_API uint32_t
-           srslte_conv_same_cc(cf_t* input, cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len);
+srslte_conv_same_cc(cf_t* input, cf_t* filter, cf_t* output, uint32_t input_len, uint32_t filter_len);
 
 #endif // SRSLTE_CONVOLUTION_H

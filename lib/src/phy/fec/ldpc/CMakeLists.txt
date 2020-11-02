@@ -19,14 +19,21 @@
 #
 
 set(FEC_SOURCES ${FEC_SOURCES}
-        convolutional/convcoder.c
-        convolutional/parity.c
-        convolutional/viterbi.c
-        convolutional/viterbi37_avx2.c
-        convolutional/viterbi37_avx2_16bit.c
-        convolutional/viterbi37_neon.c
-        convolutional/viterbi37_port.c
-        convolutional/viterbi37_sse.c
+        ldpc/base_graph.c
+        ldpc/ldpc_dec_f.c
+        ldpc/ldpc_dec_s.c
+        ldpc/ldpc_dec_c.c
+        ldpc/ldpc_dec_c_flood.c
+        ldpc/ldpc_dec_c_avx2.c
+        ldpc/ldpc_dec_c_avx2long.c
+        ldpc/ldpc_dec_c_avx2_flood.c
+        ldpc/ldpc_dec_c_avx2long_flood.c
+        ldpc/ldpc_decoder.c
+        ldpc/ldpc_enc_c.c
+        ldpc/ldpc_enc_avx2.c
+        ldpc/ldpc_enc_avx2long.c
+        ldpc/ldpc_encoder.c
+        ldpc/ldpc_rm.c
         PARENT_SCOPE)
 
 add_subdirectory(test)

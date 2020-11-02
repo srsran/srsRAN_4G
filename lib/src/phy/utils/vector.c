@@ -31,7 +31,7 @@
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/vector_simd.h"
 
-void srslte_vec_xor_bbb(int8_t* x, int8_t* y, int8_t* z, const uint32_t len)
+void srslte_vec_xor_bbb(const uint8_t* x, const uint8_t* y, uint8_t* z, const uint32_t len)
 {
   srslte_vec_xor_bbb_simd(x, y, z, len);
 }
@@ -595,6 +595,62 @@ uint32_t srslte_vec_max_abs_fi(const float* x, const uint32_t len)
 uint32_t srslte_vec_max_abs_ci(const cf_t* x, const uint32_t len)
 {
   return srslte_vec_max_ci_simd(x, len);
+}
+
+void srslte_vec_quant_fs(const float*   in,
+                         int16_t*       out,
+                         const float    gain,
+                         const float    offset,
+                         const float    clip,
+                         const uint32_t len)
+{
+  int  i   = 0;
+  long tmp = 0;
+
+  const int16_t inf = (1U << 15U) - 1;
+
+  for (i = 0; i < len; i++) {
+    if (isinf(in[i])) {
+      tmp = inf * (-2 * (in[i] < 0) + 1);
+    } else {
+      tmp = (long)(offset + gain * in[i] + INT16_MAX + 0.5) - INT16_MAX;
+      if (tmp < -clip) {
+        tmp = -clip;
+      }
+      if (tmp > clip) {
+        tmp = clip;
+      }
+    }
+
+    out[i] = (int16_t)tmp;
+  }
+}
+
+void srslte_vec_quant_fc(const float*   in,
+                         int8_t*        out,
+                         const float    gain,
+                         const float    offset,
+                         const float    clip,
+                         const uint32_t len)
+{
+  int  i   = 0;
+  long tmp = 0;
+
+  for (i = 0; i < len; i++) {
+    if (isinf(in[i])) {
+      tmp = 127 * (-2 * (in[i] < 0) + 1);
+    } else {
+      tmp = (long)(offset + gain * in[i] + INT8_MAX + 0.5) - INT8_MAX;
+      if (tmp < -clip) {
+        tmp = -clip;
+      }
+      if (tmp > clip) {
+        tmp = clip;
+      }
+    }
+
+    out[i] = (int8_t)tmp;
+  }
 }
 
 void srslte_vec_quant_fus(const float*   in,

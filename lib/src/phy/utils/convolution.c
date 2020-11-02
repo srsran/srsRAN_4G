@@ -19,12 +19,12 @@
  *
  */
 
-#include "srslte/srslte.h"
 #include <stdlib.h>
 #include <string.h>
 
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/utils/convolution.h"
+#include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
 int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_t filter_len)

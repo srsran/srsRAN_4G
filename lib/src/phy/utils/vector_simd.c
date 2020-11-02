@@ -30,27 +30,27 @@
 #include "srslte/phy/utils/simd.h"
 #include "srslte/phy/utils/vector_simd.h"
 
-void srslte_vec_xor_bbb_simd(const int8_t* x, const int8_t* y, int8_t* z, const int len)
+void srslte_vec_xor_bbb_simd(const uint8_t* x, const uint8_t* y, uint8_t* z, const int len)
 {
   int i = 0;
 #if SRSLTE_SIMD_B_SIZE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
     for (; i < len - SRSLTE_SIMD_B_SIZE + 1; i += SRSLTE_SIMD_B_SIZE) {
-      simd_b_t a = srslte_simd_b_load(&x[i]);
-      simd_b_t b = srslte_simd_b_load(&y[i]);
+      simd_b_t a = srslte_simd_b_load((int8_t*)&x[i]);
+      simd_b_t b = srslte_simd_b_load((int8_t*)&y[i]);
 
       simd_b_t r = srslte_simd_b_xor(a, b);
 
-      srslte_simd_b_store(&z[i], r);
+      srslte_simd_b_store((int8_t*)&z[i], r);
     }
   } else {
     for (; i < len - SRSLTE_SIMD_B_SIZE + 1; i += SRSLTE_SIMD_B_SIZE) {
-      simd_b_t a = srslte_simd_b_loadu(&x[i]);
-      simd_b_t b = srslte_simd_b_loadu(&y[i]);
+      simd_b_t a = srslte_simd_b_loadu((int8_t*)&x[i]);
+      simd_b_t b = srslte_simd_b_loadu((int8_t*)&y[i]);
 
       simd_b_t r = srslte_simd_b_xor(a, b);
 
-      srslte_simd_b_storeu(&z[i], r);
+      srslte_simd_b_storeu((int8_t*)&z[i], r);
     }
   }
 #endif /* SRSLTE_SIMD_B_SIZE */

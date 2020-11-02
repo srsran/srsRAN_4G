@@ -22,8 +22,10 @@ set(FEC_SOURCES
         crc.c
         softbuffer.c)
 
-add_subdirectory(test)
 add_subdirectory(convolutional)
+add_subdirectory(ldpc)
+add_subdirectory(polar)
+add_subdirectory(test)
 add_subdirectory(turbo)
 
 add_library(srslte_fec OBJECT ${FEC_SOURCES})

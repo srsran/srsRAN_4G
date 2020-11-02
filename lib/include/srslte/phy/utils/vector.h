@@ -72,8 +72,14 @@ static inline float srslte_convert_dB_to_power(float v)
   return powf(10.0f, v / 10.0f);
 }
 
-/*logical operations */
-SRSLTE_API void srslte_vec_xor_bbb(int8_t* x, int8_t* y, int8_t* z, const uint32_t len);
+/*!
+ * Computes \f$ z = x \oplus y \f$ elementwise.
+ * \param[in] x A pointer to a vector of uint8_t with 0's and 1's.
+ * \param[in] y A pointer to a vector of uint8_t with 0's and 1's.
+ * \param[out] z A pointer to a vector of uint8_t with 0's and 1's.
+ * \param[in] len Length of vectors x, y and z.
+ */
+SRSLTE_API void srslte_vec_xor_bbb(const uint8_t* x, const uint8_t* y, uint8_t* z, const uint32_t len);
 
 /** Return the sum of all the elements */
 SRSLTE_API float srslte_vec_acc_ff(const float* x, const uint32_t len);
@@ -193,6 +199,32 @@ SRSLTE_API float srslte_vec_corr_ccc(const cf_t* x, cf_t* y, const uint32_t len)
 SRSLTE_API uint32_t srslte_vec_max_fi(const float* x, const uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_fi(const float* x, const uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(const cf_t* x, const uint32_t len);
+
+/*!
+ * Quantizes an array of floats into an array of 16-bit signed integers. It is
+ * ensured that *-inf* and *inf* map to -32767 and 32767, respectively (useful
+ * when quantizing on less than 16 bits).
+ * \param[in]  in     Real values to be quantized.
+ * \param[out] out    Quantized values.
+ * \param[in]  gain   Quantization gain, controls the output range.
+ * \param[in]  offset Quantization offset, for asymmetric quantization.
+ * \param[in]  clip   Saturation value.
+ * \param[in]  len    Number of values to be quantized.
+ */
+SRSLTE_API void srslte_vec_quant_fs(const float* in, int16_t* out, float gain, float offset, float clip, uint32_t len);
+
+/*!
+ * Quantizes an array of floats into an array of 8-bit signed integers. It is
+ * ensured that *-inf* and *inf* map to -127 and 127, respectively (useful
+ * when quantizing on less than 8 bits).
+ * \param[in]  in     Real values to be quantized.
+ * \param[out] out    Quantized values.
+ * \param[in]  gain   Quantization gain, controls the output range.
+ * \param[in]  offset Quantization offset, for asymmetric quantization.
+ * \param[in]  clip   Saturation value.
+ * \param[in]  len    Number of values to be quantized.
+ */
+SRSLTE_API void srslte_vec_quant_fc(const float* in, int8_t* out, float gain, float offset, float clip, uint32_t len);
 
 /* quantify vector of floats or int16 and convert to uint8_t */
 SRSLTE_API void srslte_vec_quant_fuc(const float*   in,
