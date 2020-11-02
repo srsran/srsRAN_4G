@@ -44,7 +44,7 @@ set_target_properties(ldpc_enc_test ldpc_dec_test ldpc_dec_s_test ldpc_dec_c_tes
   RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/tests/ldpc"
 )
 
-if(NOT DISABLE_SIMD)
+if(HAVE_AVX2)
   add_executable(ldpc_enc_avx2_test ldpc_enc_avx2_test.c)
   target_link_libraries(ldpc_enc_avx2_test srslte_phy)
 
@@ -55,7 +55,7 @@ if(NOT DISABLE_SIMD)
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/tests/ldpc"
   )
-endif(NOT DISABLE_SIMD)
+endif(HAVE_AVX2)
 
 add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/tests/ldpc/examplesBG1.dat

@@ -246,19 +246,22 @@ int main(int argc, char** argv)
   int            i_bit   = 0;
   int            i_batch = 0;
   struct timeval t[3];
-  double         elapsed_time_enc           = 0;
-  double         elapsed_time_dec_f         = 0;
-  double         elapsed_time_dec_s         = 0;
-  double         elapsed_time_dec_c         = 0;
-  double         elapsed_time_dec_c_flood   = 0;
-  double         elapsed_time_dec_avx       = 0;
-  double         elapsed_time_dec_avx_flood = 0;
-  int            n_error_words_f            = 0;
-  int            n_error_words_s            = 0;
-  int            n_error_words_c            = 0;
-  int            n_error_words_c_flood      = 0;
-  int            n_error_words_avx          = 0;
-  int            n_error_words_avx_flood    = 0;
+  double         elapsed_time_enc         = 0;
+  double         elapsed_time_dec_f       = 0;
+  double         elapsed_time_dec_s       = 0;
+  double         elapsed_time_dec_c       = 0;
+  double         elapsed_time_dec_c_flood = 0;
+  int            n_error_words_f          = 0;
+  int            n_error_words_s          = 0;
+  int            n_error_words_c          = 0;
+  int            n_error_words_c_flood    = 0;
+
+#ifdef LV_HAVE_AVX
+  double elapsed_time_dec_avx       = 0;
+  double elapsed_time_dec_avx_flood = 0;
+  int    n_error_words_avx          = 0;
+  int    n_error_words_avx_flood    = 0;
+#endif // LV_HAVE_AVX2
 
   float noise_std_dev = srslte_convert_dB_to_amplitude(-snr);
 

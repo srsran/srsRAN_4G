@@ -181,15 +181,17 @@ int main(int argc, char** argv)
   double var[SNR_POINTS + 1];
 
   double snr_db_vec[SNR_POINTS + 1];
-  int    i = 0;
 
   int j          = 0;
   int snr_points = 0;
 
-  int errors_symb        = 0;
-  int errors_symb_s      = 0;
-  int errors_symb_c      = 0;
+  int errors_symb   = 0;
+  int errors_symb_s = 0;
+  int errors_symb_c = 0;
+
+#ifdef LV_HAVE_AVX
   int errors_symb_c_avx2 = 0;
+#endif // LV_HAVE_AVX
 
   int n_error_words[SNR_POINTS + 1];
   int n_error_words_s[SNR_POINTS + 1];
@@ -208,11 +210,13 @@ int main(int argc, char** argv)
   double elapsed_time_enc_avx2[SNR_POINTS + 1];
 
   // 16-bit quantizer
-  int16_t inf16       = (1U << 15U) - 1;
-  int8_t  inf8        = (1U << 7U) - 1;
-  float   gain_s      = NAN;
-  float   gain_c      = NAN;
-  float   gain_c_avx2 = NAN;
+  int16_t inf16  = (1U << 15U) - 1;
+  int8_t  inf8   = (1U << 7U) - 1;
+  float   gain_s = NAN;
+  float   gain_c = NAN;
+#ifdef LV_HAVE_AVX
+  float gain_c_avx2 = NAN;
+#endif // LV_HAVE_AVX2
 
   srslte_polar_sets_t    sets;
   srslte_subchn_alloc_t  subch;
@@ -380,7 +384,7 @@ int main(int argc, char** argv)
       }
 
 #else
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
         for (j = 0; j < message_size; j++) {
           data_tx[i * message_size + j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
         }
@@ -388,7 +392,7 @@ int main(int argc, char** argv)
 #endif
 
       // subchannel_allocation block
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
         srslte_subchannel_allocation(&subch, data_tx + i * message_size, input_enc + i * code_size);
       }
 
@@ -417,7 +421,7 @@ int main(int argc, char** argv)
       // check encoders have the same output.
 
       // check errors with respect the output of the pipeline encoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
         if (srslte_bit_diff(output_enc + i * code_size, output_enc_avx2 + i * code_size, code_size) != 0) {
           printf("ERROR: Wrong avx2 encoder output. SNR= %f, Batch: %d\n", snr_db_vec[i_snr], i);
           exit(-1);
@@ -455,7 +459,7 @@ int main(int argc, char** argv)
       }
 
       // check errors - float decpder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
         errors_symb = srslte_bit_diff(data_tx + i * message_size, data_rx + i * message_size, message_size);
 
         if (errors_symb != 0) {
@@ -488,7 +492,7 @@ int main(int argc, char** argv)
       }
 
       // check errors 16-bit decoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
         errors_symb_s = srslte_bit_diff(data_tx + i * message_size, data_rx_s + i * message_size, message_size);
 
         if (errors_symb_s != 0) {
@@ -519,7 +523,7 @@ int main(int argc, char** argv)
       }
 
       // check errors 8-bits decoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
 
         errors_symb_c = srslte_bit_diff(data_tx + i * message_size, data_rx_c + i * message_size, message_size);
 
@@ -552,7 +556,7 @@ int main(int argc, char** argv)
       }
 
       // check errors 8-bits decoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (uint32_t i = 0; i < BATCH_SIZE; i++) {
 
         errors_symb_c_avx2 =
             srslte_bit_diff(data_tx + i * message_size, data_rx_c_avx2 + i * message_size, message_size);
@@ -780,7 +784,7 @@ int main(int argc, char** argv)
     );
 
   } else {
-    for (int i_snr = 0; i_snr < snr_points; i_snr++) {
+    for (i_snr = 0; i_snr < snr_points; i_snr++) {
       if (n_error_words_s[i_snr] > 10 * n_error_words[i_snr]) {
         perror("16-bit performance at SNR = %d too low!");
         exit(-1);
