@@ -14,22 +14,6 @@ set_target_properties(polar_chain_test
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/tests/polar"
         )
 
-file(GLOB FROZEN_SETS
-        "frozensets/*.bin"
-        )
-set(OUT_FROZEN_SETS ${FROZEN_SETS})
-list(TRANSFORM OUT_FROZEN_SETS REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/frozensets/" "")
-list(TRANSFORM OUT_FROZEN_SETS PREPEND "${PROJECT_SOURCE_DIR}/tests/polar/frozensets/")
-
-add_custom_command(
-        OUTPUT ${OUT_FROZEN_SETS}
-        COMMAND cp -r frozensets "${PROJECT_SOURCE_DIR}/tests/polar"
-        DEPENDS ${FROZEN_SETS}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Copying frozen set files"
-        VERBATIM
-)
-
 add_custom_target(polar_frozen_sets
         DEPENDS ${OUT_FROZEN_SETS}
         )
@@ -54,7 +38,7 @@ function(polar_unit_tests)
         list(GET listW ${num} wval)
         add_test(NAME ${test_name}-s${S}-c${cval}-r${rval}-m${mval}-p${pval}-w${wval}
                 COMMAND ${test_command} -s${S} -c${cval} -r${rval} -m${mval} -p${pval} -w${wval}
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                 )
     endforeach()
 endfunction()
