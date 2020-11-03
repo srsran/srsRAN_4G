@@ -164,36 +164,36 @@ void parse_args(int argc, char** argv)
   }
 }
 
-static int assert_cfg(const srslte_pdsch_cfg_nr_t* pdsch_cfg)
+static int assert_cfg(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_grant_nr_t* grant)
 {
   for (uint32_t i = 0; gold[i].nof_sc != 0; i++) {
     // Gold examples are done for more than 12 symbols
-    if (pdsch_cfg->grant.L <= 12) {
+    if (grant->L <= 12) {
       continue;
     }
 
-    if (pdsch_cfg->grant.mapping != gold[i].mapping_type) {
+    if (grant->mapping != gold[i].mapping_type) {
       continue;
     }
 
-    if (pdsch_cfg->dmrs_cfg.typeA_pos != gold[i].typeA_pos) {
+    if (pdsch_cfg->dmrs_cfg_typeA.typeA_pos != gold[i].typeA_pos) {
       continue;
     }
 
-    if (pdsch_cfg->dmrs_cfg.additional_pos != gold[i].additional_pos) {
+    if (pdsch_cfg->dmrs_cfg_typeA.additional_pos != gold[i].additional_pos) {
       continue;
     }
 
-    if (pdsch_cfg->dmrs_cfg.length != gold[i].max_length) {
+    if (pdsch_cfg->dmrs_cfg_typeA.length != gold[i].max_length) {
       continue;
     }
 
-    if (pdsch_cfg->dmrs_cfg.type != gold[i].type) {
+    if (pdsch_cfg->dmrs_cfg_typeA.type != gold[i].type) {
       continue;
     }
 
     uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
-    int      nof_symbols                            = srslte_dmrs_pdsch_get_symbols_idx(pdsch_cfg, symbols);
+    int      nof_symbols                            = srslte_dmrs_pdsch_get_symbols_idx(pdsch_cfg, grant, symbols);
 
     TESTASSERT(nof_symbols == gold[i].nof_symbols);
 
@@ -202,7 +202,7 @@ static int assert_cfg(const srslte_pdsch_cfg_nr_t* pdsch_cfg)
     }
 
     uint32_t sc[SRSLTE_NRE] = {};
-    srslte_dmrs_pdsch_get_sc_idx(&pdsch_cfg->dmrs_cfg, SRSLTE_NRE, sc);
+    srslte_dmrs_pdsch_get_sc_idx(&pdsch_cfg->dmrs_cfg_typeA, SRSLTE_NRE, sc);
 
     for (uint32_t j = 0; j < gold[i].nof_sc; j++) {
       TESTASSERT(sc[j] == gold[i].sc_idx[j]);
@@ -214,18 +214,19 @@ static int assert_cfg(const srslte_pdsch_cfg_nr_t* pdsch_cfg)
   return SRSLTE_SUCCESS;
 }
 
-static int run_test(srslte_dmrs_pdsch_t*         dmrs_pdsch,
-                    const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                    cf_t*                        sf_symbols,
-                    srslte_chest_dl_res_t*       chest_res)
+static int run_test(srslte_dmrs_pdsch_t*           dmrs_pdsch,
+                    const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
+                    const srslte_pdsch_grant_nr_t* grant,
+                    cf_t*                          sf_symbols,
+                    srslte_chest_dl_res_t*         chest_res)
 {
-  TESTASSERT(assert_cfg(pdsch_cfg) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_cfg(pdsch_cfg, grant) == SRSLTE_SUCCESS);
 
   srslte_dl_slot_cfg_t slot_cfg = {};
   for (slot_cfg.idx = 0; slot_cfg.idx < SRSLTE_NSLOTS_PER_FRAME_NR(dmrs_pdsch->carrier.numerology); slot_cfg.idx++) {
-    srslte_dmrs_pdsch_put_sf(dmrs_pdsch, &slot_cfg, pdsch_cfg, sf_symbols);
+    srslte_dmrs_pdsch_put_sf(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols);
 
-    srslte_dmrs_pdsch_estimate(dmrs_pdsch, &slot_cfg, pdsch_cfg, sf_symbols, chest_res);
+    srslte_dmrs_pdsch_estimate(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols, chest_res);
 
     float mse = 0.0f;
     for (uint32_t i = 0; i < chest_res->nof_re; i++) {
@@ -247,9 +248,10 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  srslte_dmrs_pdsch_t   dmrs_pdsch   = {};
-  srslte_pdsch_cfg_nr_t pdsch_cfg    = {};
-  srslte_chest_dl_res_t chest_dl_res = {};
+  srslte_dmrs_pdsch_t     dmrs_pdsch   = {};
+  srslte_pdsch_cfg_nr_t   pdsch_cfg    = {};
+  srslte_pdsch_grant_nr_t grant        = {};
+  srslte_chest_dl_res_t   chest_dl_res = {};
 
   uint32_t nof_re     = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NOF_SLOTS_PER_SF * SRSLTE_MAX_NSYMB;
   cf_t*    sf_symbols = srslte_vec_cf_malloc(nof_re);
@@ -279,44 +281,53 @@ int main(int argc, char** argv)
     srslte_dmrs_pdsch_type_t type_begin = srslte_dmrs_pdsch_type_1;
     srslte_dmrs_pdsch_type_t type_end   = srslte_dmrs_pdsch_type_2;
 
-    for (pdsch_cfg.dmrs_cfg.type = type_begin; pdsch_cfg.dmrs_cfg.type <= type_end; pdsch_cfg.dmrs_cfg.type++) {
+    for (pdsch_cfg.dmrs_cfg_typeA.type = type_begin; pdsch_cfg.dmrs_cfg_typeA.type <= type_end;
+         pdsch_cfg.dmrs_cfg_typeA.type++) {
       srslte_dmrs_pdsch_typeA_pos_t typeA_pos_begin = srslte_dmrs_pdsch_typeA_pos_2;
       srslte_dmrs_pdsch_typeA_pos_t typeA_pos_end   = srslte_dmrs_pdsch_typeA_pos_3;
 
-      for (pdsch_cfg.dmrs_cfg.typeA_pos = typeA_pos_begin; pdsch_cfg.dmrs_cfg.typeA_pos <= typeA_pos_end;
-           pdsch_cfg.dmrs_cfg.typeA_pos++) {
+      for (pdsch_cfg.dmrs_cfg_typeA.typeA_pos = typeA_pos_begin; pdsch_cfg.dmrs_cfg_typeA.typeA_pos <= typeA_pos_end;
+           pdsch_cfg.dmrs_cfg_typeA.typeA_pos++) {
         srslte_dmrs_pdsch_add_pos_t add_pos_begin = srslte_dmrs_pdsch_add_pos_2;
         srslte_dmrs_pdsch_add_pos_t add_pos_end   = srslte_dmrs_pdsch_add_pos_3;
 
-        if (pdsch_cfg.dmrs_cfg.typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) {
+        if (pdsch_cfg.dmrs_cfg_typeA.typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) {
           add_pos_end = srslte_dmrs_pdsch_add_pos_1;
         }
 
-        for (pdsch_cfg.dmrs_cfg.additional_pos = add_pos_begin; pdsch_cfg.dmrs_cfg.additional_pos <= add_pos_end;
-             pdsch_cfg.dmrs_cfg.additional_pos++) {
+        for (pdsch_cfg.dmrs_cfg_typeA.additional_pos = add_pos_begin;
+             pdsch_cfg.dmrs_cfg_typeA.additional_pos <= add_pos_end;
+             pdsch_cfg.dmrs_cfg_typeA.additional_pos++) {
 
           srslte_dmrs_pdsch_len_t max_len_begin = srslte_dmrs_pdsch_len_1;
           srslte_dmrs_pdsch_len_t max_len_end   = srslte_dmrs_pdsch_len_2;
 
-          for (pdsch_cfg.dmrs_cfg.length = max_len_begin; pdsch_cfg.dmrs_cfg.length <= max_len_end;
-               pdsch_cfg.dmrs_cfg.length++) {
+          for (pdsch_cfg.dmrs_cfg_typeA.length = max_len_begin; pdsch_cfg.dmrs_cfg_typeA.length <= max_len_end;
+               pdsch_cfg.dmrs_cfg_typeA.length++) {
 
             for (uint32_t bw = 1; bw <= carrier.nof_prb; bw++) {
 
               for (uint32_t i = 0; i < carrier.nof_prb; i++) {
-                pdsch_cfg.grant.prb_idx[i] = (i < bw);
+                grant.prb_idx[i] = (i < bw);
               }
 
               // Load default type A grant
-              srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg.typeA_pos, &pdsch_cfg.grant);
+              srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &grant);
 
-              int n = run_test(&dmrs_pdsch, &pdsch_cfg, sf_symbols, &chest_dl_res);
+              // Copy configuration
+              pdsch_cfg.dmrs_cfg_typeB = pdsch_cfg.dmrs_cfg_typeA;
+
+              int n = run_test(&dmrs_pdsch, &pdsch_cfg, &grant, sf_symbols, &chest_dl_res);
 
               if (n == SRSLTE_SUCCESS) {
                 test_passed++;
               } else {
+                const srslte_pdsch_dmrs_cfg_t* dmrs_cfg = grant.mapping == srslte_pdsch_mapping_type_A
+                                                              ? &pdsch_cfg.dmrs_cfg_typeA
+                                                              : &pdsch_cfg.dmrs_cfg_typeB;
+
                 char str[64] = {};
-                srslte_dmrs_pdsch_cfg_to_str(&pdsch_cfg.dmrs_cfg, str, 64);
+                srslte_dmrs_pdsch_cfg_to_str(dmrs_cfg, str, 64);
 
                 ERROR("Test %d failed. %s.\n", test_counter, str);
               }

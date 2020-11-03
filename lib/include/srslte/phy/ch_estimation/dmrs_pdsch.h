@@ -60,11 +60,13 @@ typedef struct {
 
 /**
  * @brief Computes the symbol indexes carrying DMRS and stores them in symbols_idx
- * @param cfg PDSCH configuration that includes DMRS, PDSCH and grant parameters
+ * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param grant PDSCH information provided by a DCI
  * @param symbols_idx is the destination pointer where the symbols indexes are stored
  * @return It returns the number of symbols if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
  */
-SRSLTE_API int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+SRSLTE_API int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
+                                                 const srslte_pdsch_grant_nr_t* grant,
                                                  uint32_t symbols_idx[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS]);
 
 /**
@@ -77,6 +79,14 @@ SRSLTE_API int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t* pd
  * @return It returns the number of sub-carriers if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
  */
 SRSLTE_API int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx);
+
+/**
+ * @brief Calculates the number of resource elements taken by a PDSCH-DMRS for a given PDSCH transmission
+ * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param grant PDSCH information provided by a DCI
+ * @return it returns the number of resource elements if the configuration is valid, otherwise it returns SRSLTE_ERROR
+ */
+SRSLTE_API int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_pdsch_grant_nr_t* grant);
 
 /**
  * @brief Stringifies the PDSCH DMRS configuration
@@ -122,15 +132,17 @@ SRSLTE_API int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslt
  *
  * @param q DMRS PDSCH object
  * @param slot_cfg Slot configuration
- * @param pdsch_cfg PDSCH transmission configuration
+ * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param grant PDSCH information provided by a DCI
  * @param sf_symbols Resource grid
  *
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*         q,
-                                        const srslte_dl_slot_cfg_t*  slot_cfg,
-                                        const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                                        cf_t*                        sf_symbols);
+SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*           q,
+                                        const srslte_dl_slot_cfg_t*    slot_cfg,
+                                        const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
+                                        const srslte_pdsch_grant_nr_t* grant,
+                                        cf_t*                          sf_symbols);
 
 /**
  * @brief Estimates the channel for PDSCH from the DMRS
@@ -139,16 +151,19 @@ SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*         q,
  *
  * @param q DMRS-PDSCH object
  * @param slot_cfg Slot configuration
+ * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param grant PDSCH information provided by a DCI
  * @param sf_symbols Received resource grid
  * @param[out] ce Channel estimates
  *
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*         q,
-                                          const srslte_dl_slot_cfg_t*  slot_cfg,
-                                          const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                                          const cf_t*                  sf_symbols,
-                                          srslte_chest_dl_res_t*       chest_res);
+SRSLTE_API int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
+                                          const srslte_dl_slot_cfg_t*    slot_cfg,
+                                          const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
+                                          const srslte_pdsch_grant_nr_t* grant,
+                                          const cf_t*                    sf_symbols,
+                                          srslte_chest_dl_res_t*         chest_res);
 
 #ifdef __cplusplus
 }

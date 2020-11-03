@@ -36,17 +36,17 @@ static void srslte_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, 
   }
 }
 
-static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*     q,
-                                              const srslte_pdsch_cfg_nr_t* cfg,
-                                              cf_t*                        symbols,
-                                              cf_t*                        sf_symbols,
-                                              bool                         put)
+static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*       q,
+                                              const srslte_pdsch_grant_nr_t* grant,
+                                              cf_t*                          symbols,
+                                              cf_t*                          sf_symbols,
+                                              bool                           put)
 {
   uint32_t count = 0;
   uint32_t delta = 0;
 
   for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (cfg->grant.prb_idx[i]) {
+    if (grant->prb_idx[i]) {
       for (uint32_t j = 0; j < SRSLTE_NRE; j += 2) {
         if (put) {
           sf_symbols[i * SRSLTE_NRE + delta + j] = symbols[count++];
@@ -60,17 +60,17 @@ static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*     q,
   return count;
 }
 
-static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*     q,
-                                              const srslte_pdsch_cfg_nr_t* cfg,
-                                              cf_t*                        symbols,
-                                              cf_t*                        sf_symbols,
-                                              bool                         put)
+static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*       q,
+                                              const srslte_pdsch_grant_nr_t* grant,
+                                              cf_t*                          symbols,
+                                              cf_t*                          sf_symbols,
+                                              bool                           put)
 {
   uint32_t count = 0;
   uint32_t delta = 0;
 
   for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (cfg->grant.prb_idx[i]) {
+    if (grant->prb_idx[i]) {
       // Copy RE before first pilot pair
       if (delta > 0) {
         srslte_pdsch_re_cp(&sf_symbols[i * SRSLTE_NRE], &symbols[count], delta, put);
@@ -90,38 +90,42 @@ static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*     q,
   return count;
 }
 
-static uint32_t srslte_pdsch_nr_cp_dmrs(const srslte_pdsch_nr_t*     q,
-                                        const srslte_pdsch_cfg_nr_t* cfg,
-                                        cf_t*                        symbols,
-                                        cf_t*                        sf_symbols,
-                                        bool                         put)
+static uint32_t srslte_pdsch_nr_cp_dmrs(const srslte_pdsch_nr_t*       q,
+                                        const srslte_pdsch_cfg_nr_t*   cfg,
+                                        const srslte_pdsch_grant_nr_t* grant,
+                                        cf_t*                          symbols,
+                                        cf_t*                          sf_symbols,
+                                        bool                           put)
 {
   uint32_t count = 0;
 
-  switch (cfg->dmrs_cfg.type) {
+  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
+      grant->mapping == srslte_pdsch_mapping_type_A ? &cfg->dmrs_cfg_typeA : &cfg->dmrs_cfg_typeB;
+
+  switch (dmrs_cfg->type) {
     case srslte_dmrs_pdsch_type_1:
-      count = srslte_pdsch_nr_cp_dmrs_type1(q, cfg, symbols, sf_symbols, put);
+      count = srslte_pdsch_nr_cp_dmrs_type1(q, grant, symbols, sf_symbols, put);
       break;
     case srslte_dmrs_pdsch_type_2:
-      count = srslte_pdsch_nr_cp_dmrs_type2(q, cfg, symbols, sf_symbols, put);
+      count = srslte_pdsch_nr_cp_dmrs_type2(q, grant, symbols, sf_symbols, put);
       break;
   }
 
   return count;
 }
 
-static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*     q,
-                                         const srslte_pdsch_cfg_nr_t* cfg,
-                                         cf_t*                        symbols,
-                                         cf_t*                        sf_symbols,
-                                         bool                         put)
+static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*       q,
+                                         const srslte_pdsch_grant_nr_t* grant,
+                                         cf_t*                          symbols,
+                                         cf_t*                          sf_symbols,
+                                         bool                           put)
 {
   uint32_t count  = 0;
   uint32_t start  = 0; // Index of the start of continuous data
   uint32_t length = 0; // End of continuous RE
 
   for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (cfg->grant.prb_idx[i]) {
+    if (grant->prb_idx[i]) {
       // If fist continuous block, save start
       if (length == 0) {
         start = i * SRSLTE_NRE;
@@ -156,23 +160,24 @@ static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*     q,
   return count;
 }
 
-static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*     q,
-                              const srslte_pdsch_cfg_nr_t* cfg,
-                              cf_t*                        symbols,
-                              cf_t*                        sf_symbols,
-                              bool                         put)
+static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*       q,
+                              const srslte_pdsch_cfg_nr_t*   cfg,
+                              const srslte_pdsch_grant_nr_t* grant,
+                              cf_t*                          symbols,
+                              cf_t*                          sf_symbols,
+                              bool                           put)
 {
   uint32_t count                                     = 0;
   uint32_t dmrs_l_idx[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
   uint32_t dmrs_l_count                              = 0;
 
   // Get symbol indexes carrying DMRS
-  int32_t nof_dmrs_symbols = srslte_dmrs_pdsch_get_symbols_idx(cfg, dmrs_l_idx);
+  int32_t nof_dmrs_symbols = srslte_dmrs_pdsch_get_symbols_idx(cfg, grant, dmrs_l_idx);
   if (nof_dmrs_symbols < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
-  for (uint32_t l = cfg->grant.S; l < cfg->grant.L; l++) {
+  for (uint32_t l = grant->S; l < grant->L; l++) {
     // Advance DMRS symbol counter until:
     // - the current DMRS symbol index is greater or equal than current symbol l
     // - no more DMRS symbols
@@ -181,18 +186,24 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*     q,
     }
 
     if (l == dmrs_l_idx[dmrs_l_count]) {
-      count += srslte_pdsch_nr_cp_dmrs(q, cfg, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
+      count += srslte_pdsch_nr_cp_dmrs(
+          q, cfg, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
     } else {
-      count += srslte_pdsch_nr_cp_clean(q, cfg, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
+      count +=
+          srslte_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
     }
   }
 
   return count;
 }
 
-int srslte_pdsch_nr_put(const srslte_pdsch_nr_t* q, const srslte_pdsch_cfg_nr_t* cfg, cf_t* symbols, cf_t* sf_symbols)
+int srslte_pdsch_nr_put(const srslte_pdsch_nr_t*       q,
+                        const srslte_pdsch_cfg_nr_t*   cfg,
+                        const srslte_pdsch_grant_nr_t* grant,
+                        cf_t*                          symbols,
+                        cf_t*                          sf_symbols)
 {
-  return srslte_pdsch_nr_cp(q, cfg, symbols, sf_symbols, true);
+  return srslte_pdsch_nr_cp(q, cfg, grant, symbols, sf_symbols, true);
 }
 
 int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*     q,

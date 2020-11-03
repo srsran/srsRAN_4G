@@ -86,6 +86,18 @@ extern "C" {
 #define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR 8
 
 /**
+ * @brief defines the maximum number of resource elements per PRB
+ * @remark Defined in TS 36.214 V15.10.0 5.1.3.2 Transport block size determination, point 1, second bullet
+ */
+#define SRSLTE_MAX_NRE_NR 156
+
+/**
+ * @brief defines the maximum number of resource elements in a PDSCH transmission
+ * @remark deduced from in TS 36.214 V15.10.0 5.1.3.2 Transport block size determination
+ */
+#define SRSLTE_PDSCH_MAX_RE_NR (SRSLTE_MAX_NRE_NR * SRSLTE_MAX_PRB_NR)
+
+/**
  * @brief Maximum number of PDSCH time domain resource allocations. This is defined by TS 38.331 v15.10.0
  * as maxNrofDL-Allocations
  */
@@ -111,11 +123,7 @@ typedef enum SRSLTE_API {
  * @brief PDSCH mapping type
  * @remark Described in TS 38.331 V15.10.0 Section PDSCH-TimeDomainResourceAllocationList
  */
-typedef enum SRSLTE_API {
-  /// Type A allocation is relative to the
-  srslte_pdsch_mapping_type_A = 0,
-  srslte_pdsch_mapping_type_B
-} srslte_pdsch_mapping_type_t;
+typedef enum SRSLTE_API { srslte_pdsch_mapping_type_A = 0, srslte_pdsch_mapping_type_B } srslte_pdsch_mapping_type_t;
 
 typedef enum SRSLTE_API {
   srslte_search_space_type_common = 0,
@@ -123,9 +131,27 @@ typedef enum SRSLTE_API {
 } srslte_search_space_type_t;
 
 /**
+ * @brief Indicates the MCS table the UE shall use for PDSCH and/or PUSCH without transform precoding
+ */
+typedef enum SRSLTE_API {
+  srslte_mcs_table_64qam = 0,
+  srslte_mcs_table_256qam,
+  srslte_mcs_table_qam64LowSE
+} srslte_mcs_table_t;
+
+/**
+ * @brief DCI formats
+ * @remark Described in TS 38.331 V15.10.0 Section PDSCH-TimeDomainResourceAllocationList
+ */
+typedef enum SRSLTE_API {
+  srslte_dci_format_nr_1_0 = 0,
+  srslte_dci_format_nr_1_1,
+} srslte_dci_format_nr_t;
+
+/**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
  */
-typedef struct {
+typedef struct SRSLTE_API {
   uint32_t id;
   uint32_t numerology;
   uint32_t nof_prb;
@@ -135,7 +161,7 @@ typedef struct {
 /**
  * @brief NR Slot parameters. It contains parameters that change in a slot basis.
  */
-typedef struct {
+typedef struct SRSLTE_API {
   /// Slot index in the radio frame
   uint32_t idx;
 

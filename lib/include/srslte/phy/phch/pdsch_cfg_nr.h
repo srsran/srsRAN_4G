@@ -74,17 +74,17 @@ typedef enum {
  */
 typedef struct {
   /// Parameters provided by IE DMRS-DownlinkConfig
-  srslte_dmrs_pdsch_type_t      type;
-  srslte_dmrs_pdsch_add_pos_t   additional_pos;
-  srslte_dmrs_pdsch_len_t       length;
-  bool                          scrambling_id0_present;
-  uint32_t                      scrambling_id0;
-  bool                          scrambling_id1_present;
-  uint32_t                      scrambling_id1;
+  srslte_dmrs_pdsch_type_t    type;
+  srslte_dmrs_pdsch_add_pos_t additional_pos;
+  srslte_dmrs_pdsch_len_t     length;
+  bool                        scrambling_id0_present;
+  uint32_t                    scrambling_id0;
+  bool                        scrambling_id1_present;
+  uint32_t                    scrambling_id1;
 
   /// Parameters provided by ServingCellConfigCommon
   srslte_dmrs_pdsch_typeA_pos_t typeA_pos;
-  bool lte_CRS_to_match_around;
+  bool                          lte_CRS_to_match_around;
 
   /// Parameters provided by FeatureSetDownlink-v1540
   bool additional_DMRS_DL_Alt;
@@ -108,6 +108,9 @@ typedef struct SRSLTE_API {
 
 } srslte_pdsch_allocation_t;
 
+/**
+ * @brief PDSCH grant information provided by the Downlink Control Information (DCI)
+ */
 typedef struct SRSLTE_API {
   /// UE identifier
   uint16_t rnti;
@@ -121,16 +124,33 @@ typedef struct SRSLTE_API {
   /// Frequency domain resources
   bool prb_idx[SRSLTE_MAX_PRB_NR];
 
+  /// Spatial resources
+  uint32_t nof_layers;
+
   /// DMRS Scrambling sequence initialization (false: 0 or true: 1)
   bool n_scid;
 
+  /// DCI information
+  srslte_dci_format_nr_t     dci_format;
+  srslte_search_space_type_t dci_search_space;
+
   /// Transport block
+  uint32_t tb_scaling_field;
   /// ....
 } srslte_pdsch_grant_nr_t;
 
+/**
+ * @brief flatten PDSCH configuration parameters provided by higher layers
+ * @remark Described in TS 38.331 V15.10.0 Section PDSCH-Config
+ */
 typedef struct SRSLTE_API {
-  srslte_pdsch_grant_nr_t grant;
-  srslte_pdsch_dmrs_cfg_t dmrs_cfg;
+
+  bool     scrambling_id_present;
+  uint32_t scambling_id; // Identifier used to initialize data scrambling (0-1023)
+
+  srslte_pdsch_dmrs_cfg_t dmrs_cfg_typeA;
+  srslte_pdsch_dmrs_cfg_t dmrs_cfg_typeB;
+  srslte_mcs_table_t      mcs_table;
 } srslte_pdsch_cfg_nr_t;
 
 #endif // SRSLTE_PDSCH_CFG_NR_H
