@@ -53,14 +53,14 @@
 #include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
 
-static srslte_basegraph_t base_graph = BG2;  /*!< \brief Base Graph (BG1 or BG2). */
-static uint32_t           lift_size  = 208;  /*!< \brief Lifting Size. */
-static uint32_t           C          = 2;    /*!< \brief Number of code block segments (CBS). */
-static uint32_t           F          = 10;   /*!< \brief Number of filler bits in each CBS. */
-static uint32_t           E          = 0;    /*!< \brief Rate-matched codeword size (E = 0, no rate matching). */
-static uint8_t            rv         = 0;    /*!< \brief Redundancy version {0-3}. */
-static mod_type_t         mod_type   = QPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256. */
-static uint32_t           Nref       = 0;    /*!< \brief Limited buffer size.*/
+static srslte_basegraph_t base_graph = BG2; /*!< \brief Base Graph (BG1 or BG2). */
+static uint32_t           lift_size  = 208; /*!< \brief Lifting Size. */
+static uint32_t           C          = 2;   /*!< \brief Number of code block segments (CBS). */
+static uint32_t           F          = 10;  /*!< \brief Number of filler bits in each CBS. */
+static uint32_t           E          = 0;   /*!< \brief Rate-matched codeword size (E = 0, no rate matching). */
+static uint8_t            rv         = 0;   /*!< \brief Redundancy version {0-3}. */
+static srslte_mod_t       mod_type = SRSLTE_MOD_QPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256. */
+static uint32_t           Nref     = 0;               /*!< \brief Limited buffer size.*/
 
 static uint32_t N = 0; /*!< \brief Codeblock size (including punctured and filler bits). */
 static uint32_t K = 0; /*!< \brief Codeword size. */
@@ -104,7 +104,7 @@ void parse_args(int argc, char** argv)
         rv = (uint8_t)strtol(optarg, NULL, 10);
         break;
       case 'm':
-        mod_type = (mod_type_t)strtol(optarg, NULL, 10);
+        mod_type = (srslte_mod_t)strtol(optarg, NULL, 10);
         break;
       case 'M':
         Nref = (uint32_t)strtol(optarg, NULL, 10);

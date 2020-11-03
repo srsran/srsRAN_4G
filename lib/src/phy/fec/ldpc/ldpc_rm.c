@@ -62,7 +62,7 @@ static const uint32_t BASEN[2] = {66, 50};
 static const uint32_t BASEK[2] = {22, 10};
 
 /*!
- * \brief Look-up table: Retuns the mod order associated to a mod_type_t
+ * \brief Look-up table: Retuns the mod order associated to a srslte_mod_t
  *
  */
 static const uint32_t MODORD[5] = {1, 2, 4, 6, 8};
@@ -116,14 +116,14 @@ struct pRM_rx_c {
 /*!
  * Initialize rate-matching parameters
  */
-static int init_rm(srslte_ldpc_rm_t* p,
-                   const uint32_t    E,
-                   const uint32_t    F,
-                   const uint32_t    bg,
-                   const uint32_t    ls,
-                   const uint8_t     rv,
-                   const mod_type_t  mod_type,
-                   const uint32_t    Nref)
+static int init_rm(srslte_ldpc_rm_t*  p,
+                   const uint32_t     E,
+                   const uint32_t     F,
+                   const uint32_t     bg,
+                   const uint32_t     ls,
+                   const uint8_t      rv,
+                   const srslte_mod_t mod_type,
+                   const uint32_t     Nref)
 {
   if (p == NULL) {
     return -1;
@@ -574,7 +574,7 @@ int srslte_ldpc_rm_tx(srslte_ldpc_rm_t*        q,
                       const srslte_basegraph_t bg,
                       const uint32_t           ls,
                       const uint8_t            rv,
-                      const mod_type_t         mod_type,
+                      const srslte_mod_t       mod_type,
                       const uint32_t           Nref)
 
 {
@@ -605,7 +605,7 @@ int srslte_ldpc_rm_rx_f(srslte_ldpc_rm_t*        q,
                         const srslte_basegraph_t bg,
                         const uint32_t           ls,
                         const uint8_t            rv,
-                        const mod_type_t         mod_type,
+                        const srslte_mod_t       mod_type,
                         const uint32_t           Nref)
 {
 
@@ -637,7 +637,7 @@ int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
                         const srslte_basegraph_t bg,
                         const uint32_t           ls,
                         const uint8_t            rv,
-                        const mod_type_t         mod_type,
+                        const srslte_mod_t       mod_type,
                         const uint32_t           Nref)
 {
 
@@ -670,7 +670,7 @@ int srslte_ldpc_rm_rx_c(srslte_ldpc_rm_t*        q,
                         const srslte_basegraph_t bg,
                         const uint32_t           ls,
                         const uint8_t            rv,
-                        const mod_type_t         mod_type,
+                        const srslte_mod_t       mod_type,
                         const uint32_t           Nref)
 {
 

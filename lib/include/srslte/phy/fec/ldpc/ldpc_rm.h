@@ -32,18 +32,8 @@
 #ifndef SRSLTE_LDPCRM_H
 #define SRSLTE_LDPCRM_H
 
+#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/fec/ldpc/base_graph.h"
-
-/*!
- * \brief Types of modulations and associated modulation order.
- */
-typedef enum SRSLTE_API {
-  BPSK,  /*!< \brief pi/2-BPSK. */
-  QPSK,  /*!< \brief QPSK. */
-  QAM16, /*!< \brief QAM16. */
-  QAM64, /*!< \brief QAM64. */
-  QAM256 /*!< \brief QAM256. */
-} mod_type_t;
 
 /*!
  * \brief Describes a rate matcher or rate dematcher (K, F are ignored at rate matcher)
@@ -90,7 +80,7 @@ SRSLTE_API int srslte_ldpc_rm_tx(srslte_ldpc_rm_t*        q,
                                  const srslte_basegraph_t bg,
                                  const uint32_t           ls,
                                  const uint8_t            rv,
-                                 const mod_type_t         mod_type,
+                                 const srslte_mod_t       mod_type,
                                  const uint32_t           Nref);
 
 /*!
@@ -125,7 +115,7 @@ SRSLTE_API int srslte_ldpc_rm_rx_f(srslte_ldpc_rm_t*        q,
                                    const srslte_basegraph_t bg,
                                    const uint32_t           ls,
                                    const uint8_t            rv,
-                                   const mod_type_t         mod_type,
+                                   const srslte_mod_t       mod_type,
                                    const uint32_t           Nref);
 
 /*!
@@ -159,7 +149,7 @@ SRSLTE_API int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
                                    const srslte_basegraph_t bg,
                                    const uint32_t           ls,
                                    const uint8_t            rv,
-                                   const mod_type_t         mod_type,
+                                   const srslte_mod_t       mod_type,
                                    const uint32_t           Nref);
 
 /*!
@@ -194,7 +184,7 @@ SRSLTE_API int srslte_ldpc_rm_rx_c(srslte_ldpc_rm_t*        q,
                                    const srslte_basegraph_t bg,
                                    const uint32_t           ls,
                                    const uint8_t            rv,
-                                   const mod_type_t         mod_type,
+                                   const srslte_mod_t       mod_type,
                                    const uint32_t           Nref);
 
 /*!

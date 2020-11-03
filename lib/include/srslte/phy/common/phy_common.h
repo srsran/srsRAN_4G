@@ -185,8 +185,7 @@ typedef enum SRSLTE_API {
 } srslte_phich_r_t;
 
 /// LTE duplex modes.
-typedef enum SRSLTE_API
-{
+typedef enum SRSLTE_API {
   /// FDD uses frame structure type 1.
   SRSLTE_FDD = 0,
   /// TDD uses frame structure type 2.
@@ -208,7 +207,7 @@ typedef struct SRSLTE_API {
   /// TS 36.211 v13.13.0 Table 4.2-1.
   uint32_t ss_config;
   /// Set to true when the fields have been configured, otherwise false.
-  bool     configured;
+  bool configured;
 } srslte_tdd_config_t;
 
 /// TDD uplink-downlink subframe types.
@@ -276,12 +275,15 @@ typedef enum SRSLTE_API {
 
 typedef enum SRSLTE_API { SRSLTE_MIMO_DECODER_ZF, SRSLTE_MIMO_DECODER_MMSE } srslte_mimo_decoder_t;
 
+/*!
+ * \brief Types of modulations and associated modulation order.
+ */
 typedef enum SRSLTE_API {
-  SRSLTE_MOD_BPSK = 0,
-  SRSLTE_MOD_QPSK,
-  SRSLTE_MOD_16QAM,
-  SRSLTE_MOD_64QAM,
-  SRSLTE_MOD_256QAM,
+  SRSLTE_MOD_BPSK = 0, /*!< \brief pi/2-BPSK. */
+  SRSLTE_MOD_QPSK,     /*!< \brief QPSK. */
+  SRSLTE_MOD_16QAM,    /*!< \brief QAM16. */
+  SRSLTE_MOD_64QAM,    /*!< \brief QAM64. */
+  SRSLTE_MOD_256QAM,   /*!< \brief QAM256. */
   SRSLTE_MOD_NITEMS
 } srslte_mod_t;
 
