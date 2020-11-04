@@ -23,7 +23,7 @@
 #define SRSLTE_RRC_CONFIG_H
 
 #include "rrc_config_common.h"
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
 #include <array>

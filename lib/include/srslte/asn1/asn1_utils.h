@@ -45,6 +45,20 @@ constexpr Integer ceil_frac(Integer n, Integer d)
   return (n + (d - 1)) / d;
 }
 
+template <std::size_t arg1, std::size_t... others>
+struct static_max;
+
+template <std::size_t arg>
+struct static_max<arg> {
+  static const std::size_t value = arg;
+};
+
+template <std::size_t arg1, std::size_t arg2, std::size_t... others>
+struct static_max<arg1, arg2, others...> {
+  static const std::size_t value =
+      arg1 >= arg2 ? static_max<arg1, others...>::value : static_max<arg2, others...>::value;
+};
+
 /************************
         logging
 ************************/
@@ -53,6 +67,15 @@ void log_error(const char* format, ...);
 void log_warning(const char* format, ...);
 void log_info(const char* format, ...);
 void log_debug(const char* format, ...);
+
+void warn_assert(bool cond, const char* filename, int lineno);
+void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
+void log_invalid_choice_id(uint32_t val, const char* choice_type);
+void invalid_enum_number(int value, const char* name);
+void assert_choice_type(uint32_t val, uint32_t choice_id);
+void assert_choice_type(const std::string& access_type,
+                        const std::string& current_type,
+                        const std::string& choice_type);
 
 /************************
      error handling
@@ -70,6 +93,10 @@ void log_error_code(SRSASN_CODE code, const char* filename, int line);
       return macrocode;                                                                                                \
     }                                                                                                                  \
   } while (0)
+
+const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template <class ItemType>
+ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 /************************
         bit_ref
@@ -673,6 +700,69 @@ SRSASN_CODE fixed_octstring<N, aligned>::unpack(cbit_ref& bref)
 }
 
 /************************
+  constrained_octstring
+************************/
+
+template <uint32_t LB, uint32_t UB, bool aligned = false>
+class bounded_octstring
+{
+public:
+  const uint8_t& operator[](uint32_t idx) const { return octets_[idx]; }
+  uint8_t&       operator[](uint32_t idx) { return octets_[idx]; }
+  bool           operator==(const bounded_octstring& other) const { return octets_ == other.octets_; }
+  uint8_t*       data() { return &octets_[0]; }
+  const uint8_t* data() const { return &octets_[0]; }
+
+  void                                resize(uint32_t new_size) { octets_.resize(new_size); }
+  uint32_t                            size() const { return octets_.size(); }
+  std::string                         to_string() const { return octstring_to_string(data(), size()); }
+  bounded_octstring<LB, UB, aligned>& from_string(const std::string& hexstr)
+  {
+    if (hexstr.size() > 2 * UB) {
+      log_error("The provided hex string size is not valid (%zd>2*%zd).\n", hexstr.size(), (size_t)UB);
+    } else {
+      resize(hexstr.size() / 2);
+      string_to_octstring(&octets_[0], hexstr);
+    }
+    return *this;
+  }
+  uint64_t                            to_number() const { return octstring_to_number(&octets_[0], size()); }
+  bounded_octstring<LB, UB, aligned>& from_number(uint64_t val)
+  {
+    number_to_octstring(&octets_[0], val, size());
+    return *this;
+  }
+
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    HANDLE_CODE(pack_length(bref, size(), LB, UB, aligned));
+    if (aligned) {
+      bref.align_bytes_zero();
+    }
+    for (uint32_t i = 0; i < size(); ++i) {
+      HANDLE_CODE(bref.pack(octets_[i], 8));
+    }
+    return SRSASN_SUCCESS;
+  }
+  SRSASN_CODE unpack(cbit_ref& bref)
+  {
+    uint32_t len;
+    HANDLE_CODE(unpack_length(len, bref, LB, UB, aligned));
+    resize(len);
+    if (aligned) {
+      bref.align_bytes();
+    }
+    for (uint32_t i = 0; i < size(); ++i) {
+      HANDLE_CODE(bref.unpack(octets_[i], 8));
+    }
+    return SRSASN_SUCCESS;
+  }
+
+private:
+  ext_array<uint8_t, static_max<UB, 64u>::value> octets_;
+};
+
+/************************
      dyn_octstring
 ************************/
 
@@ -1031,9 +1121,8 @@ template <class T>
 class copy_ptr
 {
 public:
-  explicit copy_ptr(T* ptr_ = nullptr) :
-    ptr(ptr_) {} // it takes hold of the pointer (including destruction). You should use make_copy_ptr() in most cases
-  // instead of this ctor
+  copy_ptr() : ptr(nullptr) {}
+  explicit copy_ptr(T* ptr_) : ptr(ptr_) {}
   copy_ptr(const copy_ptr<T>& other) { ptr = (other.ptr == nullptr) ? nullptr : new T(*other.ptr); }
   ~copy_ptr() { destroy_(); }
   copy_ptr<T>& operator=(const copy_ptr<T>& other)
@@ -1082,9 +1171,10 @@ private:
 };
 
 template <class T>
-copy_ptr<T> make_copy_ptr(const T& t)
+copy_ptr<typename std::decay<T>::type> make_copy_ptr(T&& t)
 {
-  return copy_ptr<T>(new T(t));
+  using T2 = typename std::decay<T>::type;
+  return copy_ptr<T2>(new T2(std::forward<T>(t)));
 }
 
 /*********************
@@ -1099,20 +1189,6 @@ union alignment_t {
   double      d;
   long double d2;
   uint32_t*   ptr;
-};
-
-template <std::size_t arg1, std::size_t... others>
-struct static_max;
-
-template <std::size_t arg>
-struct static_max<arg> {
-  static const std::size_t value = arg;
-};
-
-template <std::size_t arg1, std::size_t arg2, std::size_t... others>
-struct static_max<arg1, arg2, others...> {
-  static const std::size_t value =
-      arg1 >= arg2 ? static_max<arg1, others...>::value : static_max<arg2, others...>::value;
 };
 
 template <std::size_t Size, std::size_t Align>

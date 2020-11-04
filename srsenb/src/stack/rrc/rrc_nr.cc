@@ -21,7 +21,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_nr_asn1_utils.h"
+#include "srslte/asn1/rrc_nr_utils.h"
 #include "srslte/interfaces/nr_common_interface_types.h"
 
 using namespace asn1::rrc_nr;

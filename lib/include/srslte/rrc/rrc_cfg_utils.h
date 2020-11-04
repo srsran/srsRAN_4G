@@ -22,7 +22,7 @@
 #ifndef SRSLTE_RRC_CFG_UTILS_H
 #define SRSLTE_RRC_CFG_UTILS_H
 
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc_utils.h"
 #include <algorithm>
 #include <cassert>
 

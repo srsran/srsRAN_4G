@@ -36,23 +36,6 @@ namespace asn1 {
 namespace ngap_nr {
 
 /*******************************************************************************
- *                        Functions for external logging
- ******************************************************************************/
-
-void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
-
-void assert_choice_type(uint32_t val, uint32_t choice_id);
-
-void assert_choice_type(const std::string& access_type,
-                        const std::string& current_type,
-                        const std::string& choice_type);
-
-const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
-
-template <class ItemType>
-ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
-
-/*******************************************************************************
  *                             Constant Definitions
  ******************************************************************************/
 
@@ -489,7 +472,7 @@ private:
 // ProtocolExtensionContainer{NGAP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
 // ProtocolExtensionField
 template <class ext_set_paramT_>
-using protocol_ext_container_l = dyn_array<protocol_ext_field_s<ext_set_paramT_> >;
+using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ext_set_paramT_>, 1, 65535, true>;
 
 template <class extT_>
 struct protocol_ext_container_item_s {
@@ -796,7 +779,7 @@ struct amf_cfg_upd_ies_o {
 
 // ProtocolIE-Container{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
 template <class ies_set_paramT_>
-using protocol_ie_container_l = dyn_array<protocol_ie_field_s<ies_set_paramT_> >;
+using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<ies_set_paramT_>, 0, 65535, true>;
 
 template <class valueT_>
 struct protocol_ie_container_item_s {
@@ -1864,24 +1847,10 @@ struct amf_status_ind_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct amf_status_ind_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<dyn_seq_of<unavailable_guami_item_s, 1, 256, true> > unavailable_guami_list;
-
-  // sequence methods
-  amf_status_ind_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // AMFStatusIndication ::= SEQUENCE
 struct amf_status_ind_s {
-  bool                         ext = false;
-  amf_status_ind_ies_container protocol_ies;
+  bool                                          ext = false;
+  protocol_ie_container_l<amf_status_ind_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -4208,35 +4177,20 @@ using service_area_info_l = dyn_array<service_area_info_item_s>;
 // UEAggregateMaximumBitRate-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 typedef ngap_protocol_ext_empty_o ue_aggregate_maximum_bit_rate_ext_ies_o;
 
-struct mob_restrict_list_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                  last_eutran_plmn_id_present = false;
-  ie_field_s<fixed_octstring<3, true> > last_eutran_plmn_id;
-
-  // sequence methods
-  mob_restrict_list_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // MobilityRestrictionList ::= SEQUENCE
 struct mob_restrict_list_s {
-  bool                                ext                         = false;
-  bool                                equivalent_plmns_present    = false;
-  bool                                rat_restricts_present       = false;
-  bool                                forbidden_area_info_present = false;
-  bool                                service_area_info_present   = false;
-  bool                                ie_exts_present             = false;
-  fixed_octstring<3, true>            serving_plmn;
-  equivalent_plmns_l                  equivalent_plmns;
-  rat_restricts_l                     rat_restricts;
-  forbidden_area_info_l               forbidden_area_info;
-  service_area_info_l                 service_area_info;
-  mob_restrict_list_ext_ies_container ie_exts;
+  bool                                                  ext                         = false;
+  bool                                                  equivalent_plmns_present    = false;
+  bool                                                  rat_restricts_present       = false;
+  bool                                                  forbidden_area_info_present = false;
+  bool                                                  service_area_info_present   = false;
+  bool                                                  ie_exts_present             = false;
+  fixed_octstring<3, true>                              serving_plmn;
+  equivalent_plmns_l                                    equivalent_plmns;
+  rat_restricts_l                                       rat_restricts;
+  forbidden_area_info_l                                 forbidden_area_info;
+  service_area_info_l                                   service_area_info;
+  protocol_ext_container_l<mob_restrict_list_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -5436,32 +5390,17 @@ typedef ngap_protocol_ext_empty_o ho_prep_unsuccessful_transfer_ext_ies_o;
 // QosFlowToBeForwardedList ::= SEQUENCE (SIZE (1..64)) OF QosFlowToBeForwardedItem
 using qos_flow_to_be_forwarded_list_l = dyn_array<qos_flow_to_be_forwarded_item_s>;
 
-struct ho_cmd_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                              add_dl_forwarding_uptnl_info_present = false;
-  ie_field_s<dyn_seq_of<qos_flow_per_tnl_info_item_s, 1, 3, true> > add_dl_forwarding_uptnl_info;
-
-  // sequence methods
-  ho_cmd_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // HandoverCommandTransfer ::= SEQUENCE
 struct ho_cmd_transfer_s {
-  bool                              ext                                   = false;
-  bool                              dlforwarding_up_tnl_info_present      = false;
-  bool                              qos_flow_to_be_forwarded_list_present = false;
-  bool                              data_forwarding_resp_drb_list_present = false;
-  bool                              ie_exts_present                       = false;
-  up_transport_layer_info_c         dlforwarding_up_tnl_info;
-  qos_flow_to_be_forwarded_list_l   qos_flow_to_be_forwarded_list;
-  data_forwarding_resp_drb_list_l   data_forwarding_resp_drb_list;
-  ho_cmd_transfer_ext_ies_container ie_exts;
+  bool                                                ext                                   = false;
+  bool                                                dlforwarding_up_tnl_info_present      = false;
+  bool                                                qos_flow_to_be_forwarded_list_present = false;
+  bool                                                data_forwarding_resp_drb_list_present = false;
+  bool                                                ie_exts_present                       = false;
+  up_transport_layer_info_c                           dlforwarding_up_tnl_info;
+  qos_flow_to_be_forwarded_list_l                     qos_flow_to_be_forwarded_list;
+  data_forwarding_resp_drb_list_l                     data_forwarding_resp_drb_list;
+  protocol_ext_container_l<ho_cmd_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -6319,30 +6258,15 @@ typedef enumerated<pdu_session_type_opts, true> pdu_session_type_e;
 // QosFlowSetupRequestList ::= SEQUENCE (SIZE (1..64)) OF QosFlowSetupRequestItem
 using qos_flow_setup_request_list_l = dyn_array<qos_flow_setup_request_item_s>;
 
-struct security_ind_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                maximum_integrity_protected_data_rate_dl_present = false;
-  ie_field_s<maximum_integrity_protected_data_rate_e> maximum_integrity_protected_data_rate_dl;
-
-  // sequence methods
-  security_ind_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // SecurityIndication ::= SEQUENCE
 struct security_ind_s {
-  bool                                    ext                                              = false;
-  bool                                    maximum_integrity_protected_data_rate_ul_present = false;
-  bool                                    ie_exts_present                                  = false;
-  integrity_protection_ind_e              integrity_protection_ind;
-  confidentiality_protection_ind_e        confidentiality_protection_ind;
-  maximum_integrity_protected_data_rate_e maximum_integrity_protected_data_rate_ul;
-  security_ind_ext_ies_container          ie_exts;
+  bool                                             ext                                              = false;
+  bool                                             maximum_integrity_protected_data_rate_ul_present = false;
+  bool                                             ie_exts_present                                  = false;
+  integrity_protection_ind_e                       integrity_protection_ind;
+  confidentiality_protection_ind_e                 confidentiality_protection_ind;
+  maximum_integrity_protected_data_rate_e          maximum_integrity_protected_data_rate_ul;
+  protocol_ext_container_l<security_ind_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -6905,36 +6829,21 @@ struct security_result_s {
   void        to_json(json_writer& j) const;
 };
 
-struct ho_request_ack_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                                add_dluptnl_info_for_ho_list_present = false;
-  ie_field_s<dyn_seq_of<add_dluptnl_info_for_ho_item_s, 1, 3, true> > add_dluptnl_info_for_ho_list;
-
-  // sequence methods
-  ho_request_ack_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // HandoverRequestAcknowledgeTransfer ::= SEQUENCE
 struct ho_request_ack_transfer_s {
-  bool                                      ext                                   = false;
-  bool                                      dlforwarding_up_tnl_info_present      = false;
-  bool                                      security_result_present               = false;
-  bool                                      qos_flow_failed_to_setup_list_present = false;
-  bool                                      data_forwarding_resp_drb_list_present = false;
-  bool                                      ie_exts_present                       = false;
-  up_transport_layer_info_c                 dl_ngu_up_tnl_info;
-  up_transport_layer_info_c                 dlforwarding_up_tnl_info;
-  security_result_s                         security_result;
-  qos_flow_list_with_data_forwarding_l      qos_flow_setup_resp_list;
-  qos_flow_list_with_cause_l                qos_flow_failed_to_setup_list;
-  data_forwarding_resp_drb_list_l           data_forwarding_resp_drb_list;
-  ho_request_ack_transfer_ext_ies_container ie_exts;
+  bool                                                        ext                                   = false;
+  bool                                                        dlforwarding_up_tnl_info_present      = false;
+  bool                                                        security_result_present               = false;
+  bool                                                        qos_flow_failed_to_setup_list_present = false;
+  bool                                                        data_forwarding_resp_drb_list_present = false;
+  bool                                                        ie_exts_present                       = false;
+  up_transport_layer_info_c                                   dl_ngu_up_tnl_info;
+  up_transport_layer_info_c                                   dlforwarding_up_tnl_info;
+  security_result_s                                           security_result;
+  qos_flow_list_with_data_forwarding_l                        qos_flow_setup_resp_list;
+  qos_flow_list_with_cause_l                                  qos_flow_failed_to_setup_list;
+  data_forwarding_resp_drb_list_l                             data_forwarding_resp_drb_list;
+  protocol_ext_container_l<ho_request_ack_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -8605,26 +8514,11 @@ struct pdu_session_res_notify_transfer_ext_ies_o {
 // PDUSessionResourceReleaseCommandTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 typedef ngap_protocol_ext_empty_o pdu_session_res_release_cmd_transfer_ext_ies_o;
 
-struct pdu_session_res_release_resp_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                  secondary_ratusage_info_present = false;
-  ie_field_s<secondary_ratusage_info_s> secondary_ratusage_info;
-
-  // sequence methods
-  pdu_session_res_release_resp_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PDUSessionResourceReleaseResponseTransfer ::= SEQUENCE
 struct pdu_session_res_release_resp_transfer_s {
-  bool                                                    ext             = false;
-  bool                                                    ie_exts_present = false;
-  pdu_session_res_release_resp_transfer_ext_ies_container ie_exts;
+  bool                                                                      ext             = false;
+  bool                                                                      ie_exts_present = false;
+  protocol_ext_container_l<pdu_session_res_release_resp_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9010,36 +8904,21 @@ struct pdu_session_res_modify_request_transfer_s {
   void        to_json(json_writer& j) const;
 };
 
-struct pdu_session_res_modify_resp_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                                     add_ngu_up_tnl_info_present = false;
-  ie_field_s<dyn_seq_of<up_transport_layer_info_pair_item_s, 1, 3, true> > add_ngu_up_tnl_info;
-
-  // sequence methods
-  pdu_session_res_modify_resp_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PDUSessionResourceModifyResponseTransfer ::= SEQUENCE
 struct pdu_session_res_modify_resp_transfer_s {
-  bool                                                   ext                                           = false;
-  bool                                                   dl_ngu_up_tnl_info_present                    = false;
-  bool                                                   ul_ngu_up_tnl_info_present                    = false;
-  bool                                                   qos_flow_add_or_modify_resp_list_present      = false;
-  bool                                                   add_dl_qos_flow_per_tnl_info_present          = false;
-  bool                                                   qos_flow_failed_to_add_or_modify_list_present = false;
-  bool                                                   ie_exts_present                               = false;
-  up_transport_layer_info_c                              dl_ngu_up_tnl_info;
-  up_transport_layer_info_c                              ul_ngu_up_tnl_info;
-  qos_flow_add_or_modify_resp_list_l                     qos_flow_add_or_modify_resp_list;
-  qos_flow_per_tnl_info_list_l                           add_dl_qos_flow_per_tnl_info;
-  qos_flow_list_with_cause_l                             qos_flow_failed_to_add_or_modify_list;
-  pdu_session_res_modify_resp_transfer_ext_ies_container ie_exts;
+  bool                               ext                                           = false;
+  bool                               dl_ngu_up_tnl_info_present                    = false;
+  bool                               ul_ngu_up_tnl_info_present                    = false;
+  bool                               qos_flow_add_or_modify_resp_list_present      = false;
+  bool                               add_dl_qos_flow_per_tnl_info_present          = false;
+  bool                               qos_flow_failed_to_add_or_modify_list_present = false;
+  bool                               ie_exts_present                               = false;
+  up_transport_layer_info_c          dl_ngu_up_tnl_info;
+  up_transport_layer_info_c          ul_ngu_up_tnl_info;
+  qos_flow_add_or_modify_resp_list_l qos_flow_add_or_modify_resp_list;
+  qos_flow_per_tnl_info_list_l       add_dl_qos_flow_per_tnl_info;
+  qos_flow_list_with_cause_l         qos_flow_failed_to_add_or_modify_list;
+  protocol_ext_container_l<pdu_session_res_modify_resp_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9069,27 +8948,12 @@ struct pdu_session_res_modify_unsuccessful_transfer_s {
 // PDUSessionResourceNotifyItem-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 typedef ngap_protocol_ext_empty_o pdu_session_res_notify_item_ext_ies_o;
 
-struct pdu_session_res_notify_released_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                  secondary_ratusage_info_present = false;
-  ie_field_s<secondary_ratusage_info_s> secondary_ratusage_info;
-
-  // sequence methods
-  pdu_session_res_notify_released_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PDUSessionResourceNotifyReleasedTransfer ::= SEQUENCE
 struct pdu_session_res_notify_released_transfer_s {
-  bool                                                       ext             = false;
-  bool                                                       ie_exts_present = false;
-  cause_c                                                    cause;
-  pdu_session_res_notify_released_transfer_ext_ies_container ie_exts;
+  bool                                                                         ext             = false;
+  bool                                                                         ie_exts_present = false;
+  cause_c                                                                      cause;
+  protocol_ext_container_l<pdu_session_res_notify_released_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9098,30 +8962,15 @@ struct pdu_session_res_notify_released_transfer_s {
   void        to_json(json_writer& j) const;
 };
 
-struct pdu_session_res_notify_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                  secondary_ratusage_info_present = false;
-  ie_field_s<secondary_ratusage_info_s> secondary_ratusage_info;
-
-  // sequence methods
-  pdu_session_res_notify_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PDUSessionResourceNotifyTransfer ::= SEQUENCE
 struct pdu_session_res_notify_transfer_s {
-  bool                                              ext                            = false;
-  bool                                              qos_flow_notify_list_present   = false;
-  bool                                              qos_flow_released_list_present = false;
-  bool                                              ie_exts_present                = false;
-  qos_flow_notify_list_l                            qos_flow_notify_list;
-  qos_flow_list_with_cause_l                        qos_flow_released_list;
-  pdu_session_res_notify_transfer_ext_ies_container ie_exts;
+  bool                                                                ext                            = false;
+  bool                                                                qos_flow_notify_list_present   = false;
+  bool                                                                qos_flow_released_list_present = false;
+  bool                                                                ie_exts_present                = false;
+  qos_flow_notify_list_l                                              qos_flow_notify_list;
+  qos_flow_list_with_cause_l                                          qos_flow_released_list;
+  protocol_ext_container_l<pdu_session_res_notify_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9176,30 +9025,15 @@ typedef ngap_protocol_ext_empty_o pdu_session_res_to_be_switched_dl_item_ext_ies
 // PDUSessionResourceToReleaseItemRelCmd-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 typedef ngap_protocol_ext_empty_o pdu_session_res_to_release_item_rel_cmd_ext_ies_o;
 
-struct path_switch_request_ack_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                                     add_ngu_up_tnl_info_present = false;
-  ie_field_s<dyn_seq_of<up_transport_layer_info_pair_item_s, 1, 3, true> > add_ngu_up_tnl_info;
-
-  // sequence methods
-  path_switch_request_ack_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PathSwitchRequestAcknowledgeTransfer ::= SEQUENCE
 struct path_switch_request_ack_transfer_s {
-  bool                                               ext                        = false;
-  bool                                               ul_ngu_up_tnl_info_present = false;
-  bool                                               security_ind_present       = false;
-  bool                                               ie_exts_present            = false;
-  up_transport_layer_info_c                          ul_ngu_up_tnl_info;
-  security_ind_s                                     security_ind;
-  path_switch_request_ack_transfer_ext_ies_container ie_exts;
+  bool                                                                 ext                        = false;
+  bool                                                                 ul_ngu_up_tnl_info_present = false;
+  bool                                                                 security_ind_present       = false;
+  bool                                                                 ie_exts_present            = false;
+  up_transport_layer_info_c                                            ul_ngu_up_tnl_info;
+  security_ind_s                                                       security_ind;
+  protocol_ext_container_l<path_switch_request_ack_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9224,32 +9058,17 @@ struct path_switch_request_setup_failed_transfer_s {
   void        to_json(json_writer& j) const;
 };
 
-struct path_switch_request_transfer_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                              add_dl_qos_flow_per_tnl_info_present = false;
-  ie_field_s<dyn_seq_of<qos_flow_per_tnl_info_item_s, 1, 3, true> > add_dl_qos_flow_per_tnl_info;
-
-  // sequence methods
-  path_switch_request_transfer_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PathSwitchRequestTransfer ::= SEQUENCE
 struct path_switch_request_transfer_s {
-  bool                                           ext                              = false;
-  bool                                           dl_ngu_tnl_info_reused_present   = false;
-  bool                                           user_plane_security_info_present = false;
-  bool                                           ie_exts_present                  = false;
-  up_transport_layer_info_c                      dl_ngu_up_tnl_info;
-  dl_ngu_tnl_info_reused_e                       dl_ngu_tnl_info_reused;
-  user_plane_security_info_s                     user_plane_security_info;
-  qos_flow_accepted_list_l                       qos_flow_accepted_list;
-  path_switch_request_transfer_ext_ies_container ie_exts;
+  bool                                                             ext                              = false;
+  bool                                                             dl_ngu_tnl_info_reused_present   = false;
+  bool                                                             user_plane_security_info_present = false;
+  bool                                                             ie_exts_present                  = false;
+  up_transport_layer_info_c                                        dl_ngu_up_tnl_info;
+  dl_ngu_tnl_info_reused_e                                         dl_ngu_tnl_info_reused;
+  user_plane_security_info_s                                       user_plane_security_info;
+  qos_flow_accepted_list_l                                         qos_flow_accepted_list;
+  protocol_ext_container_l<path_switch_request_transfer_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9467,27 +9286,12 @@ struct pdu_session_res_failed_to_setup_item_su_res_s {
   void        to_json(json_writer& j) const;
 };
 
-struct pdu_session_res_item_cxt_rel_cpl_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                   pdu_session_res_release_resp_transfer_present = false;
-  ie_field_s<unbounded_octstring<true> > pdu_session_res_release_resp_transfer;
-
-  // sequence methods
-  pdu_session_res_item_cxt_rel_cpl_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PDUSessionResourceItemCxtRelCpl ::= SEQUENCE
 struct pdu_session_res_item_cxt_rel_cpl_s {
-  bool                                               ext             = false;
-  bool                                               ie_exts_present = false;
-  uint16_t                                           pdu_session_id  = 0;
-  pdu_session_res_item_cxt_rel_cpl_ext_ies_container ie_exts;
+  bool                                                                 ext             = false;
+  bool                                                                 ie_exts_present = false;
+  uint16_t                                                             pdu_session_id  = 0;
+  protocol_ext_container_l<pdu_session_res_item_cxt_rel_cpl_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -9546,30 +9350,15 @@ struct pdu_session_res_modify_item_mod_ind_s {
   void        to_json(json_writer& j) const;
 };
 
-struct pdu_session_res_modify_item_mod_req_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                  s_nssai_present = false;
-  ie_field_s<s_nssai_s> s_nssai;
-
-  // sequence methods
-  pdu_session_res_modify_item_mod_req_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PDUSessionResourceModifyItemModReq ::= SEQUENCE
 struct pdu_session_res_modify_item_mod_req_s {
-  bool                                                  ext             = false;
-  bool                                                  nas_pdu_present = false;
-  bool                                                  ie_exts_present = false;
-  uint16_t                                              pdu_session_id  = 0;
-  unbounded_octstring<true>                             nas_pdu;
-  unbounded_octstring<true>                             pdu_session_res_modify_request_transfer;
-  pdu_session_res_modify_item_mod_req_ext_ies_container ie_exts;
+  bool                                                                    ext             = false;
+  bool                                                                    nas_pdu_present = false;
+  bool                                                                    ie_exts_present = false;
+  uint16_t                                                                pdu_session_id  = 0;
+  unbounded_octstring<true>                                               nas_pdu;
+  unbounded_octstring<true>                                               pdu_session_res_modify_request_transfer;
+  protocol_ext_container_l<pdu_session_res_modify_item_mod_req_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -11881,7 +11670,7 @@ struct path_switch_request_ies_o {
 
 // PrivateIE-Container{NGAP-PRIVATE-IES : IEsSetParam} ::= SEQUENCE (SIZE (1..65535)) OF PrivateIE-Field
 template <class ies_set_paramT_>
-using private_ie_container_l = dyn_array<private_ie_field_s<ies_set_paramT_> >;
+using private_ie_container_l = dyn_seq_of<private_ie_field_s<ies_set_paramT_>, 1, 65535, true>;
 
 struct ngap_private_ies_empty_o {
   // Value ::= OPEN TYPE
@@ -14049,25 +13838,10 @@ struct ran_cfg_upd_s {
   void        to_json(json_writer& j) const;
 };
 
-struct ran_cfg_upd_ack_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  bool                           crit_diagnostics_present = false;
-  ie_field_s<crit_diagnostics_s> crit_diagnostics;
-
-  // sequence methods
-  ran_cfg_upd_ack_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // RANConfigurationUpdateAcknowledge ::= SEQUENCE
 struct ran_cfg_upd_ack_s {
-  bool                          ext = false;
-  ran_cfg_upd_ack_ies_container protocol_ies;
+  bool                                           ext = false;
+  protocol_ie_container_l<ran_cfg_upd_ack_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -15513,11 +15287,6 @@ struct pdu_session_res_info_item_s {
 // PDUSessionResourceInformationList ::= SEQUENCE (SIZE (1..256)) OF PDUSessionResourceInformationItem
 using pdu_session_res_info_list_l = dyn_array<pdu_session_res_info_item_s>;
 
-// ProtocolIE-ContainerList{INTEGER : lowerBound, INTEGER : upperBound, NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE
-// (SIZE (lowerBound..upperBound)) OF ProtocolIE-SingleContainer
-template <class ies_set_paramT_>
-using protocol_ie_container_list_l = dyn_array<protocol_ie_single_container_s<ies_set_paramT_> >;
-
 // ProtocolIE-FieldPair{NGAP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES-PAIR}}
 template <class ies_set_paramT_>
 struct protocol_ie_field_pair_s {
@@ -15535,12 +15304,7 @@ struct protocol_ie_field_pair_s {
 
 // ProtocolIE-ContainerPair{NGAP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-FieldPair
 template <class ies_set_paramT_>
-using protocol_ie_container_pair_l = dyn_array<protocol_ie_field_pair_s<ies_set_paramT_> >;
-
-// ProtocolIE-ContainerPairList{INTEGER : lowerBound, INTEGER : upperBound, NGAP-PROTOCOL-IES-PAIR : IEsSetParam} ::=
-// SEQUENCE (SIZE (lowerBound..upperBound)) OF ProtocolIE-ContainerPair
-template <class ies_set_paramT_>
-using protocol_ie_container_pair_list_l = dyn_array<protocol_ie_container_pair_l<ies_set_paramT_> >;
+using protocol_ie_container_pair_l = dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>;
 
 // QosFlowSetupResponseItemSURes-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 typedef ngap_protocol_ext_empty_o qos_flow_setup_resp_item_su_res_ext_ies_o;

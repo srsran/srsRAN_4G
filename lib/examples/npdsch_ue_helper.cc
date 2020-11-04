@@ -20,7 +20,7 @@
  */
 
 #include "npdsch_ue_helper.h"
-#include "srslte/asn1/rrc_asn1_nbiot.h"
+#include "srslte/asn1/rrc_nbiot.h"
 #include "srslte/phy/utils/vector.h" // for SRSLTE_MIN
 
 int get_sib2_params(const uint8_t* sib1_payload, const uint32_t len, srslte_nbiot_si_params_t* sib2_params)

@@ -43,7 +43,7 @@
 #ifndef SRSENB_UE_RR_CFG_H
 #define SRSENB_UE_RR_CFG_H
 
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 

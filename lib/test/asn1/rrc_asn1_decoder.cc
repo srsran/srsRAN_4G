@@ -22,7 +22,7 @@
 #include <iostream>
 
 #include "srslte/asn1/asn1_utils.h"
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 
 using namespace std;
 

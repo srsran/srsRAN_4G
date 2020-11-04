@@ -24,7 +24,7 @@
 
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/s1ap_asn1.h"
+#include "srslte/asn1/s1ap.h"
 #include "srslte/common/security.h"
 #include <netinet/sctp.h>
 #include <string.h>

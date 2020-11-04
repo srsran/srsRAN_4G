@@ -84,6 +84,35 @@ void log_debug(const char* format, ...)
   va_end(args);
 }
 
+void warn_assert(bool cond, const char* filename, int lineno)
+{
+  if (cond) {
+    log_warning("Assertion in [%s][%d] failed.\n", filename, lineno);
+  }
+}
+
+void invalid_enum_number(int value, const char* name)
+{
+  log_error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
+}
+
+void assert_choice_type(uint32_t val, uint32_t choice_id)
+{
+  if (val != choice_id) {
+    log_invalid_access_choice_id(val, choice_id);
+  }
+}
+
+void assert_choice_type(const std::string& access_type, const std::string& current_type, const std::string& choice_type)
+{
+  if (access_type != current_type) {
+    log_error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+              choice_type.c_str(),
+              access_type.c_str(),
+              current_type.c_str());
+  }
+}
+
 /************************
      error handling
 ************************/
@@ -101,6 +130,51 @@ void log_error_code(SRSASN_CODE code, const char* filename, int line)
       log_warning("[%s][%d] SRSASN_CODE=%d not recognized.\n", filename, line, (int)code);
   }
 }
+
+const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+{
+  if (enum_val >= nof_types) {
+    if (enum_val == nof_types) {
+      log_error("The enum of type %s was not initialized.\n", enum_type);
+    } else {
+      log_error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+    }
+    return "";
+  }
+  return array[enum_val];
+}
+
+template <class ItemType>
+ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+{
+  if (enum_val >= nof_types) {
+    if (enum_val == nof_types) {
+      log_error("The enum of type %s is not initialized.\n", enum_type);
+    } else {
+      log_error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
+    }
+    return 0;
+  }
+  return array[enum_val];
+}
+template const uint8_t
+map_enum_number<const uint8_t>(const uint8_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const uint16_t
+map_enum_number<const uint16_t>(const uint16_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const uint32_t
+map_enum_number<const uint32_t>(const uint32_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const uint64_t
+map_enum_number<const uint64_t>(const uint64_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const int8_t
+map_enum_number<const int8_t>(const int8_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const int16_t
+map_enum_number<const int16_t>(const int16_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const int32_t
+map_enum_number<const int32_t>(const int32_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const int64_t
+map_enum_number<const int64_t>(const int64_t* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
+template const float
+map_enum_number<const float>(const float* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 /*********************
        bit_ref

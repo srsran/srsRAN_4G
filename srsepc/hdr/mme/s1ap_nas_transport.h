@@ -25,7 +25,7 @@
 #include "s1ap_common.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srslte/asn1/gtpc.h"
-#include "srslte/asn1/s1ap_asn1.h"
+#include "srslte/asn1/s1ap.h"
 #include "srslte/common/buffer_pool.h"
 
 namespace srsepc {

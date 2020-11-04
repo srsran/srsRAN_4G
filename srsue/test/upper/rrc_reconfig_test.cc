@@ -20,7 +20,7 @@
  */
 
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 #include "srslte/common/log_filter.h"
 #include <iostream>
 #include <srslte/srslte.h>

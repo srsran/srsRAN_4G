@@ -21,7 +21,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
 
 namespace srsenb {

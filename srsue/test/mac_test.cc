@@ -19,8 +19,8 @@
  *
  */
 
-#include "srslte/asn1/rrc_asn1.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/test_common.h"

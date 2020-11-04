@@ -23,7 +23,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/int_helpers.h"
 
 using namespace asn1::rrc;

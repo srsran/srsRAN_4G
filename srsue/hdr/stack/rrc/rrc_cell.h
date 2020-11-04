@@ -22,8 +22,8 @@
 #ifndef SRSLTE_RRC_CELL_H
 #define SRSLTE_RRC_CELL_H
 
-#include "srslte/asn1/rrc_asn1.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {

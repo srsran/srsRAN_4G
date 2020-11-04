@@ -25,7 +25,7 @@
 #include "rrc_config_common.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
-#include "srslte/asn1/rrc_nr_asn1.h"
+#include "srslte/asn1/rrc_nr.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"

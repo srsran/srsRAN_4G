@@ -23,7 +23,7 @@
 
 #include "mme_gtpc.h"
 #include "s1ap_common.h"
-#include "srslte/asn1/s1ap_asn1.h"
+#include "srslte/asn1/s1ap.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log_filter.h"

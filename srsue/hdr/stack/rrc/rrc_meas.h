@@ -21,8 +21,8 @@
 #ifndef SRSLTE_RRC_MEAS_H_
 #define SRSLTE_RRC_MEAS_H_
 
-#include "srslte/asn1/rrc_asn1.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"

@@ -36,23 +36,6 @@ namespace asn1 {
 namespace s1ap {
 
 /*******************************************************************************
- *                        Functions for external logging
- ******************************************************************************/
-
-void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
-
-void assert_choice_type(uint32_t val, uint32_t choice_id);
-
-void assert_choice_type(const std::string& access_type,
-                        const std::string& current_type,
-                        const std::string& choice_type);
-
-const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
-
-template <class ItemType>
-ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
-
-/*******************************************************************************
  *                             Constant Definitions
  ******************************************************************************/
 
@@ -7549,22 +7532,22 @@ struct ho_notify_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                        mme_ue_s1ap_id();
-    uint32_t&                        enb_ue_s1ap_id();
-    eutran_cgi_s&                    eutran_cgi();
-    tai_s&                           tai();
-    tunnel_info_s&                   tunnel_info_for_bbf();
-    unbounded_octstring<true>&       lhn_id();
-    const uint64_t&                  mme_ue_s1ap_id() const;
-    const uint32_t&                  enb_ue_s1ap_id() const;
-    const eutran_cgi_s&              eutran_cgi() const;
-    const tai_s&                     tai() const;
-    const tunnel_info_s&             tunnel_info_for_bbf() const;
-    const unbounded_octstring<true>& lhn_id() const;
+    uint64_t&                               mme_ue_s1ap_id();
+    uint32_t&                               enb_ue_s1ap_id();
+    eutran_cgi_s&                           eutran_cgi();
+    tai_s&                                  tai();
+    tunnel_info_s&                          tunnel_info_for_bbf();
+    bounded_octstring<32, 256, true>&       lhn_id();
+    const uint64_t&                         mme_ue_s1ap_id() const;
+    const uint32_t&                         enb_ue_s1ap_id() const;
+    const eutran_cgi_s&                     eutran_cgi() const;
+    const tai_s&                            tai() const;
+    const tunnel_info_s&                    tunnel_info_for_bbf() const;
+    const bounded_octstring<32, 256, true>& lhn_id() const;
 
   private:
-    types                                                                           type_;
-    choice_buffer_t<eutran_cgi_s, tai_s, tunnel_info_s, unbounded_octstring<true> > c;
+    types                                                                                 type_;
+    choice_buffer_t<bounded_octstring<32, 256, true>, eutran_cgi_s, tai_s, tunnel_info_s> c;
 
     void destroy_();
   };
@@ -7589,7 +7572,7 @@ struct ho_notify_ies_container {
   ie_field_s<eutran_cgi_s>                                   eutran_cgi;
   ie_field_s<tai_s>                                          tai;
   ie_field_s<tunnel_info_s>                                  tunnel_info_for_bbf;
-  ie_field_s<unbounded_octstring<true> >                     lhn_id;
+  ie_field_s<bounded_octstring<32, 256, true> >              lhn_id;
 
   // sequence methods
   ho_notify_ies_container();
@@ -9833,7 +9816,7 @@ struct init_ue_msg_ies_o {
     gummei_type_e&                               gummei_type();
     tunnel_info_s&                               tunnel_info_for_bbf();
     bounded_bitstring<1, 160, true, true>&       sipto_l_gw_transport_layer_address();
-    unbounded_octstring<true>&                   lhn_id();
+    bounded_octstring<32, 256, true>&            lhn_id();
     fixed_octstring<2, true>&                    mme_group_id();
     uint16_t&                                    ue_usage_type();
     ce_mode_b_support_ind_e&                     ce_mode_b_support_ind();
@@ -9853,7 +9836,7 @@ struct init_ue_msg_ies_o {
     const gummei_type_e&                         gummei_type() const;
     const tunnel_info_s&                         tunnel_info_for_bbf() const;
     const bounded_bitstring<1, 160, true, true>& sipto_l_gw_transport_layer_address() const;
-    const unbounded_octstring<true>&             lhn_id() const;
+    const bounded_octstring<32, 256, true>&      lhn_id() const;
     const fixed_octstring<2, true>&              mme_group_id() const;
     const uint16_t&                              ue_usage_type() const;
     const ce_mode_b_support_ind_e&               ce_mode_b_support_ind() const;
@@ -9863,6 +9846,7 @@ struct init_ue_msg_ies_o {
   private:
     types type_;
     choice_buffer_t<bounded_bitstring<1, 160, true, true>,
+                    bounded_octstring<32, 256, true>,
                     eutran_cgi_s,
                     fixed_bitstring<27, false, true>,
                     fixed_octstring<2, true>,
@@ -9918,7 +9902,7 @@ struct init_ue_msg_ies_container {
   ie_field_s<gummei_type_e>                                gummei_type;
   ie_field_s<tunnel_info_s>                                tunnel_info_for_bbf;
   ie_field_s<bounded_bitstring<1, 160, true, true> >       sipto_l_gw_transport_layer_address;
-  ie_field_s<unbounded_octstring<true> >                   lhn_id;
+  ie_field_s<bounded_octstring<32, 256, true> >            lhn_id;
   ie_field_s<fixed_octstring<2, true> >                    mme_group_id;
   ie_field_s<integer<uint16_t, 0, 255, false, true> >      ue_usage_type;
   ie_field_s<ce_mode_b_support_ind_e>                      ce_mode_b_support_ind;
@@ -10572,35 +10556,35 @@ struct ue_paging_id_c {
     assert_choice_type("s-TMSI", type_.to_string(), "UEPagingID");
     return c.get<s_tmsi_s>();
   }
-  unbounded_octstring<true>& imsi()
+  bounded_octstring<3, 8, true>& imsi()
   {
     assert_choice_type("iMSI", type_.to_string(), "UEPagingID");
-    return c.get<unbounded_octstring<true> >();
+    return c.get<bounded_octstring<3, 8, true> >();
   }
   const s_tmsi_s& s_tmsi() const
   {
     assert_choice_type("s-TMSI", type_.to_string(), "UEPagingID");
     return c.get<s_tmsi_s>();
   }
-  const unbounded_octstring<true>& imsi() const
+  const bounded_octstring<3, 8, true>& imsi() const
   {
     assert_choice_type("iMSI", type_.to_string(), "UEPagingID");
-    return c.get<unbounded_octstring<true> >();
+    return c.get<bounded_octstring<3, 8, true> >();
   }
   s_tmsi_s& set_s_tmsi()
   {
     set(types::s_tmsi);
     return c.get<s_tmsi_s>();
   }
-  unbounded_octstring<true>& set_imsi()
+  bounded_octstring<3, 8, true>& set_imsi()
   {
     set(types::imsi);
-    return c.get<unbounded_octstring<true> >();
+    return c.get<bounded_octstring<3, 8, true> >();
   }
 
 private:
-  types                                                 type_;
-  choice_buffer_t<s_tmsi_s, unbounded_octstring<true> > c;
+  types                                                    type_;
+  choice_buffer_t<bounded_octstring<3, 8, true>, s_tmsi_s> c;
 
   void destroy_();
 };
@@ -11735,7 +11719,7 @@ struct path_switch_request_ies_o {
     gummei_s&                                                          source_mme_gummei();
     csg_membership_status_e&                                           csg_membership_status();
     tunnel_info_s&                                                     tunnel_info_for_bbf();
-    unbounded_octstring<true>&                                         lhn_id();
+    bounded_octstring<32, 256, true>&                                  lhn_id();
     rrc_establishment_cause_e&                                         rrc_resume_cause();
     const uint32_t&                                                    enb_ue_s1ap_id() const;
     const erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>& erab_to_be_switched_dl_list() const;
@@ -11748,19 +11732,19 @@ struct path_switch_request_ies_o {
     const gummei_s&                                                    source_mme_gummei() const;
     const csg_membership_status_e&                                     csg_membership_status() const;
     const tunnel_info_s&                                               tunnel_info_for_bbf() const;
-    const unbounded_octstring<true>&                                   lhn_id() const;
+    const bounded_octstring<32, 256, true>&                            lhn_id() const;
     const rrc_establishment_cause_e&                                   rrc_resume_cause() const;
 
   private:
     types type_;
-    choice_buffer_t<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>,
+    choice_buffer_t<bounded_octstring<32, 256, true>,
+                    erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>,
                     eutran_cgi_s,
                     fixed_bitstring<27, false, true>,
                     gummei_s,
                     tai_s,
                     tunnel_info_s,
-                    ue_security_cap_s,
-                    unbounded_octstring<true> >
+                    ue_security_cap_s>
         c;
 
     void destroy_();
@@ -13124,7 +13108,7 @@ struct ul_nas_transport_ies_o {
     tai_s&                                       tai();
     bounded_bitstring<1, 160, true, true>&       gw_transport_layer_address();
     bounded_bitstring<1, 160, true, true>&       sipto_l_gw_transport_layer_address();
-    unbounded_octstring<true>&                   lhn_id();
+    bounded_octstring<32, 256, true>&            lhn_id();
     const uint64_t&                              mme_ue_s1ap_id() const;
     const uint32_t&                              enb_ue_s1ap_id() const;
     const unbounded_octstring<true>&             nas_pdu() const;
@@ -13132,11 +13116,16 @@ struct ul_nas_transport_ies_o {
     const tai_s&                                 tai() const;
     const bounded_bitstring<1, 160, true, true>& gw_transport_layer_address() const;
     const bounded_bitstring<1, 160, true, true>& sipto_l_gw_transport_layer_address() const;
-    const unbounded_octstring<true>&             lhn_id() const;
+    const bounded_octstring<32, 256, true>&      lhn_id() const;
 
   private:
-    types                                                                                                   type_;
-    choice_buffer_t<bounded_bitstring<1, 160, true, true>, eutran_cgi_s, tai_s, unbounded_octstring<true> > c;
+    types type_;
+    choice_buffer_t<bounded_bitstring<1, 160, true, true>,
+                    bounded_octstring<32, 256, true>,
+                    eutran_cgi_s,
+                    tai_s,
+                    unbounded_octstring<true> >
+        c;
 
     void destroy_();
   };
@@ -13350,7 +13339,7 @@ struct write_replace_warning_request_ies_o {
     fixed_octstring<2, true>&               warning_type();
     fixed_octstring<50, true>&              warning_security_info();
     fixed_bitstring<8, false, true>&        data_coding_scheme();
-    unbounded_octstring<true>&              warning_msg_contents();
+    bounded_octstring<1, 9600, true>&       warning_msg_contents();
     concurrent_warning_msg_ind_e&           concurrent_warning_msg_ind();
     const fixed_bitstring<16, false, true>& msg_id() const;
     const fixed_bitstring<16, false, true>& serial_num() const;
@@ -13361,15 +13350,15 @@ struct write_replace_warning_request_ies_o {
     const fixed_octstring<2, true>&         warning_type() const;
     const fixed_octstring<50, true>&        warning_security_info() const;
     const fixed_bitstring<8, false, true>&  data_coding_scheme() const;
-    const unbounded_octstring<true>&        warning_msg_contents() const;
+    const bounded_octstring<1, 9600, true>& warning_msg_contents() const;
     const concurrent_warning_msg_ind_e&     concurrent_warning_msg_ind() const;
 
   private:
     types type_;
-    choice_buffer_t<fixed_bitstring<16, false, true>,
+    choice_buffer_t<bounded_octstring<1, 9600, true>,
+                    fixed_bitstring<16, false, true>,
                     fixed_octstring<2, true>,
                     fixed_octstring<50, true>,
-                    unbounded_octstring<true>,
                     warning_area_list_c>
         c;
 
@@ -13961,7 +13950,7 @@ struct path_switch_request_ies_container {
   ie_field_s<gummei_s>                                                     source_mme_gummei;
   ie_field_s<csg_membership_status_e>                                      csg_membership_status;
   ie_field_s<tunnel_info_s>                                                tunnel_info_for_bbf;
-  ie_field_s<unbounded_octstring<true> >                                   lhn_id;
+  ie_field_s<bounded_octstring<32, 256, true> >                            lhn_id;
   ie_field_s<rrc_establishment_cause_e>                                    rrc_resume_cause;
 
   // sequence methods
@@ -14926,7 +14915,7 @@ struct ul_nas_transport_ies_container {
   ie_field_s<tai_s>                                          tai;
   ie_field_s<bounded_bitstring<1, 160, true, true> >         gw_transport_layer_address;
   ie_field_s<bounded_bitstring<1, 160, true, true> >         sipto_l_gw_transport_layer_address;
-  ie_field_s<unbounded_octstring<true> >                     lhn_id;
+  ie_field_s<bounded_octstring<32, 256, true> >              lhn_id;
 
   // sequence methods
   ul_nas_transport_ies_container();
@@ -15062,7 +15051,7 @@ struct write_replace_warning_request_ies_container {
   ie_field_s<fixed_octstring<2, true> >                     warning_type;
   ie_field_s<fixed_octstring<50, true> >                    warning_security_info;
   ie_field_s<fixed_bitstring<8, false, true> >              data_coding_scheme;
-  ie_field_s<unbounded_octstring<true> >                    warning_msg_contents;
+  ie_field_s<bounded_octstring<1, 9600, true> >             warning_msg_contents;
   ie_field_s<concurrent_warning_msg_ind_e>                  concurrent_warning_msg_ind;
 
   // sequence methods

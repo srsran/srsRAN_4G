@@ -22,7 +22,7 @@
 #ifndef SRSUE_RRC_NR_H
 #define SRSUE_RRC_NR_H
 
-#include "srslte/asn1/rrc_nr_asn1.h"
+#include "srslte/asn1/rrc_nr.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/nr_common_interface_types.h"

@@ -21,14 +21,14 @@
 
 /*******************************************************************************
  *
- *                      3GPP TS ASN1 RRC v15.4.0 (2018-12)
+ *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
  *
  ******************************************************************************/
 
 #ifndef SRSASN1_RRC_NBIOT_H
 #define SRSASN1_RRC_NBIOT_H
 
-#include "rrc_asn1.h"
+#include "rrc.h"
 
 namespace asn1 {
 namespace rrc {
@@ -1354,6 +1354,8 @@ struct phys_cfg_ded_nb_r13_s {
   bool interference_randomisation_cfg_r14_present = false;
   // group 2
   copy_ptr<npdcch_cfg_ded_nb_v1530_s> npdcch_cfg_ded_v1530;
+  // group 3
+  bool add_tx_sib1_cfg_v1540_present = false;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

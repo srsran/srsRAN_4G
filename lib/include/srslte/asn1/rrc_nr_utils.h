@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_RRC_NR_ASN1_UTILS_H
-#define SRSLTE_RRC_NR_ASN1_UTILS_H
+#ifndef SRSLTE_RRC_NR_UTILS_H
+#define SRSLTE_RRC_NR_UTILS_H
 
 #include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -52,4 +52,4 @@ namespace srsenb {
 int set_sched_cell_cfg_sib1(srsenb::sched_interface::cell_cfg_t* sched_cfg, const asn1::rrc_nr::sib1_s& sib1);
 }
 
-#endif // SRSLTE_RRC_NR_ASN1_UTILS_H
+#endif // SRSLTE_RRC_NR_UTILS_H

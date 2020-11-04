@@ -20,8 +20,8 @@
  */
 
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/asn1/rrc_asn1.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include <arpa/inet.h> //for inet_ntop()

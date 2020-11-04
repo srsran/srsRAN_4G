@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 #include "srslte/common/test_common.h"
 #include <cstdio>
 
@@ -88,6 +88,52 @@ int test_json_printer()
   //  cfg.to_json(jw);
   //  printf("%s\n", jw.to_string().c_str());
   return 0;
+}
+
+int test_compare_eq()
+{
+  // TEST1: Compare pdcp configurations
+  pdcp_cfg_s pdcp1, pdcp2;
+  pdcp1.discard_timer_present     = true;
+  pdcp1.discard_timer             = pdcp_cfg_s::discard_timer_opts::ms1500;
+  pdcp1.rlc_um_present            = true;
+  pdcp1.rlc_um.pdcp_sn_size.value = pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_opts::len7bits;
+  TESTASSERT(pdcp1 != pdcp2);
+  pdcp2 = pdcp1;
+  TESTASSERT(pdcp1 == pdcp2);
+  pdcp2.rlc_um.pdcp_sn_size.value = pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_opts::len12bits;
+  TESTASSERT(pdcp1 != pdcp2);
+  pdcp2                                                = pdcp1;
+  pdcp1.hdr_compress.set_rohc().profiles.profile0x0002 = true;
+  TESTASSERT(pdcp1 != pdcp2);
+  pdcp2.hdr_compress.set_rohc().profiles.profile0x0003 = true;
+  TESTASSERT(pdcp1 != pdcp2);
+  pdcp2.hdr_compress = pdcp1.hdr_compress;
+  TESTASSERT(pdcp1 == pdcp2);
+
+  // TEST1: Compare drb configurations
+  drb_to_add_mod_s drb1, drb2;
+  drb1.drb_id                = 1;
+  drb1.eps_bearer_id_present = true;
+  drb1.eps_bearer_id         = 5;
+  TESTASSERT(drb1 != drb2);
+  drb2 = drb1;
+  TESTASSERT(drb1 == drb2);
+  drb1.pdcp_cfg = pdcp1;
+  TESTASSERT(drb1 == drb2); // pdcp_cfg not yet flagged as present
+  drb1.pdcp_cfg_present = true;
+  TESTASSERT(drb1 != drb2);
+  drb2 = drb1;
+
+  drb1.rlc_cfg_present                               = true;
+  drb1.rlc_cfg.set_am().dl_am_rlc.t_reordering.value = t_reordering_opts::ms15;
+  drb1.lc_ch_id_present                              = true;
+  drb1.lc_ch_id                                      = 3;
+  TESTASSERT(drb1 != drb2);
+  drb1 = drb2;
+  TESTASSERT(drb1 == drb2);
+
+  return SRSLTE_SUCCESS;
 }
 
 int test_mib_msg()
@@ -595,6 +641,25 @@ int test_rrc_conn_reconf_r15_2()
   return SRSASN_SUCCESS;
 }
 
+int test_rrc_conn_reconf_v2()
+{
+  uint8_t rrc_msg[] = {0x20, 0x16, 0x00, 0x82, 0x00, 0x4A, 0x27, 0x50, 0x89, 0x30, 0x3C, 0x02, 0x07, 0x42, 0x02, 0x3E,
+                       0x06, 0x00, 0x02, 0xF8, 0x39, 0x00, 0x07, 0x00, 0x1D, 0x52, 0x36, 0xC1, 0x01, 0x07, 0x07, 0x06,
+                       0x73, 0x72, 0x73, 0x61, 0x70, 0x6E, 0x05, 0x01, 0xAC, 0x10, 0x00, 0x02, 0x27, 0x08, 0x80, 0x00,
+                       0x0D, 0x04, 0x08, 0x08, 0x08, 0x08, 0x50, 0x0B, 0xF6, 0x02, 0xF8, 0x39, 0x00, 0x01, 0x1A, 0x26,
+                       0xB1, 0x8F, 0x01, 0x13, 0x02, 0xF8, 0x39, 0x00, 0x01, 0x23, 0x05, 0xF4, 0x26, 0xB1, 0x8F, 0x01,
+                       0x62, 0x7C, 0x1F, 0x50, 0x29, 0x8E, 0x90, 0xF1, 0xCC, 0x82, 0xA2, 0x60, 0x00, 0x12, 0xA0, 0x00};
+  // 20160082004A275089303C020742023E060002F8390007001D5236C10107070673727361706E0501AC100002270880000D0408080808500BF602F83900011A26B18F011302F83900012305F426B18F01627C1F50298E90F1CC82A2600012A000
+
+  cbit_ref      bref(rrc_msg, sizeof(rrc_msg));
+  dl_dcch_msg_s recfg_msg;
+  TESTASSERT(recfg_msg.unpack(bref) == SRSASN_SUCCESS);
+
+  TESTASSERT(test_pack_unpack_consistency(recfg_msg) == SRSASN_SUCCESS);
+
+  return SRSASN_SUCCESS;
+}
+
 int test_rrc_conn_reconf_r15_3()
 {
   uint8_t rrc_msg[] = {
@@ -633,7 +698,7 @@ int test_rrc_conn_reconf_r15_3()
       0x39, 0x4c, 0xc5, 0x00, 0xc3, 0x23, 0x32, 0x07, 0x80, 0x81, 0x62, 0x68, 0x02, 0x01, 0x62, 0x20, 0x0a, 0x01, 0xf9,
       0xe1, 0xc1, 0x20, 0x22, 0x30, 0xac, 0x23, 0x00, 0x20, 0x00, 0x00, 0x20, 0x02, 0xbc, 0x84, 0x20, 0xe4, 0x21, 0x06,
       0xa0, 0x00, 0x00, 0xe2, 0x80, 0xa0, 0x3a, 0x6e, 0xc3, 0x0a, 0x00};
-      
+
   // 200294088081880c02303101584941043a741390641222e20582018e31be8210762dc0fd3bf8e0c658061088c1041a7090835bb06ee37a5a4e53301349c6d600002f46328d35fd23b8201000011141f9010a800400004450004020da140d888523018caa471c8ac3b8400005e9c30ca34ca99402a999ab73808002748337126e34dc79b91376032f8210a80e80250024fa100009a12e019308cb112f987ddc4008000088a0fc90854002000022280024412d0a06c4429180c655238e4561d6540247fffffffffc040000b270dc510800074959483a12c80f480f4800012000c8a06c443018c6a4328990ac11001ff11400e0027fc850038021158a00700522b5400e00c496a801c041100442428c885311c32e225f32a6501aa666adce020009d20cdc49b8d371e6e44dd8098f4b335554941c001040c2050c1e9c409142c60d1c3ff08e0020e8354030211739aa018273844d500c1ba0206a8061020e8374030a11739ba018673844dd00c3ba0206e8062026e56141890a3918506282ae361418b0b3898506302ee161418d0c38185063832df61418f6f865850641d0102140350e60930a081270c0a108389bc184673c8e9268293410800c10ac624dc89bc7fea3194a528942e00010d80704c00420e3b0018000000004d40890de90080200009a811243d2020040001350224d7a40600800026a044a4f498456aa2a0210004042003810f4b8a4021020800e043d2e290104042003810f4b8c4061020800e043d2e310e115aa007021e9900088018000810180e00e01c13000e0900000000400800300a01cc05000c03780801043930a83c6ffff841fe1e4b0015400079401394cc500c323320780816268020162200a01f9e1c1202230ac23002000002002bc8420e42106a00000e280a03a6ec30a00
 
   cbit_ref      bref(rrc_msg, sizeof(rrc_msg));
@@ -651,6 +716,7 @@ int main()
 
   TESTASSERT(test_generic() == 0);
   TESTASSERT(test_json_printer() == 0);
+  TESTASSERT(test_compare_eq() == 0);
   TESTASSERT(test_mib_msg() == 0);
   TESTASSERT(test_bcch_dl_sch_msg() == 0);
   TESTASSERT(test_bcch_dl_sch_msg2() == 0);
@@ -661,6 +727,7 @@ int main()
   TESTASSERT(unrecognized_ext_group_test() == 0);
   TESTASSERT(v2x_test() == 0);
   TESTASSERT(test_rrc_conn_reconf_r15_2() == 0);
+  TESTASSERT(test_rrc_conn_reconf_v2() == 0);
   TESTASSERT(test_rrc_conn_reconf_r15_3() == 0);
   printf("Success\n");
   return 0;

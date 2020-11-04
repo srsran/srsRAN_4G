@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/asn1/ngap_nr_asn1.h"
+#include "srslte/asn1/ngap.h"
 #include "srslte/common/test_common.h"
 
 using namespace asn1;

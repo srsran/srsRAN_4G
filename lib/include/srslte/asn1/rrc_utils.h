@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_RRC_ASN1_UTILS_H
-#define SRSLTE_RRC_ASN1_UTILS_H
+#ifndef SRSLTE_RRC_UTILS_H
+#define SRSLTE_RRC_UTILS_H
 
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
@@ -149,26 +149,6 @@ sib13_t           make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type);
 namespace asn1 {
 namespace rrc {
 
-/***************************
- *      MeasConfig
- **************************/
-bool operator==(const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs);
-bool operator==(const meas_obj_to_add_mod_s& lhs, const meas_obj_to_add_mod_s& rhs);
-bool operator==(const report_cfg_eutra_s& lhs, const report_cfg_eutra_s& rhs);
-bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_s& rhs);
-bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs);
-bool operator==(const quant_cfg_s& lhs, const quant_cfg_s& rhs);
-
-/***************************
- *      SRBs/DRBs
- **************************/
-bool operator==(const drb_to_add_mod_s& lhs, const drb_to_add_mod_s& rhs);
-
-/***************************
- *        SCells
- **************************/
-bool operator==(const scell_to_add_mod_r10_s& lhs, const scell_to_add_mod_r10_s& rhs);
-
 /**************************
  *     RRC Obj Id
  *************************/
@@ -192,4 +172,4 @@ void set_rrc_obj_id(scell_to_add_mod_r10_s& obj, uint8_t id);
 } // namespace rrc
 } // namespace asn1
 
-#endif // SRSLTE_RRC_ASN1_UTILS_H
+#endif // SRSLTE_RRC_UTILS_H

@@ -19,119 +19,11 @@
  *
  */
 
-#include "srslte/asn1/s1ap_asn1.h"
+#include "srslte/asn1/s1ap.h"
 #include <sstream>
 
 using namespace asn1;
 using namespace asn1::s1ap;
-
-/*******************************************************************************
- *                              Logging Utilities
- ******************************************************************************/
-
-void asn1::s1ap::log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
-{
-  asn1::log_error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
-}
-
-void asn1::s1ap::assert_choice_type(uint32_t val, uint32_t choice_id)
-{
-  if (val != choice_id) {
-    log_invalid_access_choice_id(val, choice_id);
-  }
-}
-
-void asn1::s1ap::assert_choice_type(const std::string& access_type,
-                                    const std::string& current_type,
-                                    const std::string& choice_type)
-{
-  if (access_type != current_type) {
-    asn1::log_error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                    choice_type.c_str(),
-                    access_type.c_str(),
-                    current_type.c_str());
-  }
-}
-
-const char*
-asn1::s1ap::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
-{
-  if (enum_val >= nof_types) {
-    if (enum_val == nof_types) {
-      asn1::log_error("The enum of type %s was not initialized.\n", enum_type);
-    } else {
-      asn1::log_error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
-    }
-    return "";
-  }
-  return array[enum_val];
-}
-
-template <class ItemType>
-ItemType asn1::s1ap::map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
-{
-  if (enum_val >= nof_types) {
-    if (enum_val == nof_types) {
-      asn1::log_error("The enum of type %s is not initialized.\n", enum_type);
-    } else {
-      asn1::log_error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
-    }
-    return 0;
-  }
-  return array[enum_val];
-}
-template const uint8_t  asn1::s1ap::map_enum_number<const uint8_t>(const uint8_t* array,
-                                                                  uint32_t       nof_types,
-                                                                  uint32_t       enum_val,
-                                                                  const char*    enum_type);
-template const uint16_t asn1::s1ap::map_enum_number<const uint16_t>(const uint16_t* array,
-                                                                    uint32_t        nof_types,
-                                                                    uint32_t        enum_val,
-                                                                    const char*     enum_type);
-template const uint32_t asn1::s1ap::map_enum_number<const uint32_t>(const uint32_t* array,
-                                                                    uint32_t        nof_types,
-                                                                    uint32_t        enum_val,
-                                                                    const char*     enum_type);
-template const uint64_t asn1::s1ap::map_enum_number<const uint64_t>(const uint64_t* array,
-                                                                    uint32_t        nof_types,
-                                                                    uint32_t        enum_val,
-                                                                    const char*     enum_type);
-template const int8_t   asn1::s1ap::map_enum_number<const int8_t>(const int8_t* array,
-                                                                uint32_t      nof_types,
-                                                                uint32_t      enum_val,
-                                                                const char*   enum_type);
-template const int16_t  asn1::s1ap::map_enum_number<const int16_t>(const int16_t* array,
-                                                                  uint32_t       nof_types,
-                                                                  uint32_t       enum_val,
-                                                                  const char*    enum_type);
-template const int32_t  asn1::s1ap::map_enum_number<const int32_t>(const int32_t* array,
-                                                                  uint32_t       nof_types,
-                                                                  uint32_t       enum_val,
-                                                                  const char*    enum_type);
-template const int64_t  asn1::s1ap::map_enum_number<const int64_t>(const int64_t* array,
-                                                                  uint32_t       nof_types,
-                                                                  uint32_t       enum_val,
-                                                                  const char*    enum_type);
-template const float    asn1::s1ap::map_enum_number<const float>(const float* array,
-                                                              uint32_t     nof_types,
-                                                              uint32_t     enum_val,
-                                                              const char*  enum_type);
-
-void s1ap_asn1_warn_assert(bool cond, const char* filename, int lineno)
-{
-  if (cond) {
-    asn1::log_warning("Assertion in [%s][%d] failed.\n", filename, lineno);
-  }
-}
-static void log_invalid_choice_id(uint32_t val, const char* choice_type)
-{
-  asn1::log_error("Invalid choice id=%d for choice type %s\n", val, choice_type);
-}
-
-static void invalid_enum_number(int value, const char* name)
-{
-  asn1::log_error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
-}
 
 /*******************************************************************************
  *                                Struct Methods
@@ -280,7 +172,7 @@ template <class ext_set_paramT_>
 SRSASN_CODE protocol_ext_field_s<ext_set_paramT_>::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  s1ap_asn1_warn_assert(crit != ext_set_paramT_::get_crit(id), __func__, __LINE__);
+  warn_assert(crit != ext_set_paramT_::get_crit(id), __func__, __LINE__);
   HANDLE_CODE(crit.pack(bref));
   HANDLE_CODE(ext_value.pack(bref));
 
@@ -321,7 +213,7 @@ template <class ies_set_paramT_>
 SRSASN_CODE protocol_ie_field_s<ies_set_paramT_>::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  s1ap_asn1_warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
+  warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
   HANDLE_CODE(crit.pack(bref));
   HANDLE_CODE(value.pack(bref));
 
@@ -362,7 +254,7 @@ template <class ies_set_paramT_>
 SRSASN_CODE protocol_ie_single_container_s<ies_set_paramT_>::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  s1ap_asn1_warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
+  warn_assert(crit != ies_set_paramT_::get_crit(id), __func__, __LINE__);
   HANDLE_CODE(crit.pack(bref));
   HANDLE_CODE(value.pack(bref));
 
@@ -404,10 +296,10 @@ template <class ies_set_paramT_>
 SRSASN_CODE protocol_ie_field_pair_s<ies_set_paramT_>::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  s1ap_asn1_warn_assert(first_crit != ies_set_paramT_::get_first_crit(id), __func__, __LINE__);
+  warn_assert(first_crit != ies_set_paramT_::get_first_crit(id), __func__, __LINE__);
   HANDLE_CODE(first_crit.pack(bref));
   HANDLE_CODE(first_value.pack(bref));
-  s1ap_asn1_warn_assert(second_crit != ies_set_paramT_::get_second_crit(id), __func__, __LINE__);
+  warn_assert(second_crit != ies_set_paramT_::get_second_crit(id), __func__, __LINE__);
   HANDLE_CODE(second_crit.pack(bref));
   HANDLE_CODE(second_value.pack(bref));
 
@@ -1778,8 +1670,9 @@ bearers_subject_to_status_transfer_item_ext_ies_o::ext_c::ext_c(
       log_invalid_choice_id(type_, "bearers_subject_to_status_transfer_item_ext_ies_o::ext_c");
   }
 }
-bearers_subject_to_status_transfer_item_ext_ies_o::ext_c& bearers_subject_to_status_transfer_item_ext_ies_o::ext_c::
-                                                          operator=(const bearers_subject_to_status_transfer_item_ext_ies_o::ext_c& other)
+bearers_subject_to_status_transfer_item_ext_ies_o::ext_c&
+bearers_subject_to_status_transfer_item_ext_ies_o::ext_c::operator=(
+    const bearers_subject_to_status_transfer_item_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -2458,8 +2351,8 @@ broadcast_cancelled_area_list_c::broadcast_cancelled_area_list_c(const broadcast
       log_invalid_choice_id(type_, "broadcast_cancelled_area_list_c");
   }
 }
-broadcast_cancelled_area_list_c& broadcast_cancelled_area_list_c::
-                                 operator=(const broadcast_cancelled_area_list_c& other)
+broadcast_cancelled_area_list_c&
+broadcast_cancelled_area_list_c::operator=(const broadcast_cancelled_area_list_c& other)
 {
   if (this == &other) {
     return *this;
@@ -2814,8 +2707,8 @@ broadcast_completed_area_list_c::broadcast_completed_area_list_c(const broadcast
       log_invalid_choice_id(type_, "broadcast_completed_area_list_c");
   }
 }
-broadcast_completed_area_list_c& broadcast_completed_area_list_c::
-                                 operator=(const broadcast_completed_area_list_c& other)
+broadcast_completed_area_list_c&
+broadcast_completed_area_list_c::operator=(const broadcast_completed_area_list_c& other)
 {
   if (this == &other) {
     return *this;
@@ -4163,8 +4056,8 @@ cell_traffic_trace_ies_o::value_c::value_c(const cell_traffic_trace_ies_o::value
       log_invalid_choice_id(type_, "cell_traffic_trace_ies_o::value_c");
   }
 }
-cell_traffic_trace_ies_o::value_c& cell_traffic_trace_ies_o::value_c::
-                                   operator=(const cell_traffic_trace_ies_o::value_c& other)
+cell_traffic_trace_ies_o::value_c&
+cell_traffic_trace_ies_o::value_c::operator=(const cell_traffic_trace_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -4761,8 +4654,8 @@ conn_establishment_ind_ies_o::value_c::value_c(const conn_establishment_ind_ies_
       log_invalid_choice_id(type_, "conn_establishment_ind_ies_o::value_c");
   }
 }
-conn_establishment_ind_ies_o::value_c& conn_establishment_ind_ies_o::value_c::
-                                       operator=(const conn_establishment_ind_ies_o::value_c& other)
+conn_establishment_ind_ies_o::value_c&
+conn_establishment_ind_ies_o::value_c::operator=(const conn_establishment_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -5403,9 +5296,7 @@ std::string deactiv_trace_ies_o::value_c::types_opts::to_string() const
 template struct asn1::s1ap::protocol_ie_field_s<deactiv_trace_ies_o>;
 
 deactiv_trace_ies_container::deactiv_trace_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  e_utran_trace_id(86, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), e_utran_trace_id(86, crit_e::ignore)
 {}
 SRSASN_CODE deactiv_trace_ies_container::pack(bit_ref& bref) const
 {
@@ -6025,8 +5916,8 @@ dl_nas_transport_ies_o::value_c::value_c(const dl_nas_transport_ies_o::value_c& 
       log_invalid_choice_id(type_, "dl_nas_transport_ies_o::value_c");
   }
 }
-dl_nas_transport_ies_o::value_c& dl_nas_transport_ies_o::value_c::
-                                 operator=(const dl_nas_transport_ies_o::value_c& other)
+dl_nas_transport_ies_o::value_c&
+dl_nas_transport_ies_o::value_c::operator=(const dl_nas_transport_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -6555,8 +6446,8 @@ dl_non_ueassociated_lp_pa_transport_ies_o::value_c::value_c(
       log_invalid_choice_id(type_, "dl_non_ueassociated_lp_pa_transport_ies_o::value_c");
   }
 }
-dl_non_ueassociated_lp_pa_transport_ies_o::value_c& dl_non_ueassociated_lp_pa_transport_ies_o::value_c::
-                                                    operator=(const dl_non_ueassociated_lp_pa_transport_ies_o::value_c& other)
+dl_non_ueassociated_lp_pa_transport_ies_o::value_c& dl_non_ueassociated_lp_pa_transport_ies_o::value_c::operator=(
+    const dl_non_ueassociated_lp_pa_transport_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -6639,8 +6530,7 @@ uint8_t dl_non_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_numbe
 template struct asn1::s1ap::protocol_ie_field_s<dl_non_ueassociated_lp_pa_transport_ies_o>;
 
 dl_non_ueassociated_lp_pa_transport_ies_container::dl_non_ueassociated_lp_pa_transport_ies_container() :
-  routing_id(148, crit_e::reject),
-  lp_pa_pdu(147, crit_e::reject)
+  routing_id(148, crit_e::reject), lp_pa_pdu(147, crit_e::reject)
 {}
 SRSASN_CODE dl_non_ueassociated_lp_pa_transport_ies_container::pack(bit_ref& bref) const
 {
@@ -7097,8 +6987,8 @@ dl_s1cdma2000tunnelling_ies_o::value_c::value_c(const dl_s1cdma2000tunnelling_ie
       log_invalid_choice_id(type_, "dl_s1cdma2000tunnelling_ies_o::value_c");
   }
 }
-dl_s1cdma2000tunnelling_ies_o::value_c& dl_s1cdma2000tunnelling_ies_o::value_c::
-                                        operator=(const dl_s1cdma2000tunnelling_ies_o::value_c& other)
+dl_s1cdma2000tunnelling_ies_o::value_c&
+dl_s1cdma2000tunnelling_ies_o::value_c::operator=(const dl_s1cdma2000tunnelling_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -7525,8 +7415,8 @@ dl_ueassociated_lp_pa_transport_ies_o::value_c::value_c(const dl_ueassociated_lp
       log_invalid_choice_id(type_, "dl_ueassociated_lp_pa_transport_ies_o::value_c");
   }
 }
-dl_ueassociated_lp_pa_transport_ies_o::value_c& dl_ueassociated_lp_pa_transport_ies_o::value_c::
-                                                operator=(const dl_ueassociated_lp_pa_transport_ies_o::value_c& other)
+dl_ueassociated_lp_pa_transport_ies_o::value_c&
+dl_ueassociated_lp_pa_transport_ies_o::value_c::operator=(const dl_ueassociated_lp_pa_transport_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -8847,8 +8737,8 @@ erab_mod_confirm_ies_o::value_c::value_c(const erab_mod_confirm_ies_o::value_c& 
       log_invalid_choice_id(type_, "erab_mod_confirm_ies_o::value_c");
   }
 }
-erab_mod_confirm_ies_o::value_c& erab_mod_confirm_ies_o::value_c::
-                                 operator=(const erab_mod_confirm_ies_o::value_c& other)
+erab_mod_confirm_ies_o::value_c&
+erab_mod_confirm_ies_o::value_c::operator=(const erab_mod_confirm_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -10416,8 +10306,8 @@ erab_modify_request_ies_o::value_c::value_c(const erab_modify_request_ies_o::val
       log_invalid_choice_id(type_, "erab_modify_request_ies_o::value_c");
   }
 }
-erab_modify_request_ies_o::value_c& erab_modify_request_ies_o::value_c::
-                                    operator=(const erab_modify_request_ies_o::value_c& other)
+erab_modify_request_ies_o::value_c&
+erab_modify_request_ies_o::value_c::operator=(const erab_modify_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -10826,8 +10716,8 @@ erab_modify_resp_ies_o::value_c::value_c(const erab_modify_resp_ies_o::value_c& 
       log_invalid_choice_id(type_, "erab_modify_resp_ies_o::value_c");
   }
 }
-erab_modify_resp_ies_o::value_c& erab_modify_resp_ies_o::value_c::
-                                 operator=(const erab_modify_resp_ies_o::value_c& other)
+erab_modify_resp_ies_o::value_c&
+erab_modify_resp_ies_o::value_c::operator=(const erab_modify_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -11273,8 +11163,8 @@ erab_release_cmd_ies_o::value_c::value_c(const erab_release_cmd_ies_o::value_c& 
       log_invalid_choice_id(type_, "erab_release_cmd_ies_o::value_c");
   }
 }
-erab_release_cmd_ies_o::value_c& erab_release_cmd_ies_o::value_c::
-                                 operator=(const erab_release_cmd_ies_o::value_c& other)
+erab_release_cmd_ies_o::value_c&
+erab_release_cmd_ies_o::value_c::operator=(const erab_release_cmd_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -11723,8 +11613,8 @@ erab_release_ind_ies_o::value_c::value_c(const erab_release_ind_ies_o::value_c& 
       log_invalid_choice_id(type_, "erab_release_ind_ies_o::value_c");
   }
 }
-erab_release_ind_ies_o::value_c& erab_release_ind_ies_o::value_c::
-                                 operator=(const erab_release_ind_ies_o::value_c& other)
+erab_release_ind_ies_o::value_c&
+erab_release_ind_ies_o::value_c::operator=(const erab_release_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -12257,8 +12147,8 @@ erab_release_resp_ies_o::value_c::value_c(const erab_release_resp_ies_o::value_c
       log_invalid_choice_id(type_, "erab_release_resp_ies_o::value_c");
   }
 }
-erab_release_resp_ies_o::value_c& erab_release_resp_ies_o::value_c::
-                                  operator=(const erab_release_resp_ies_o::value_c& other)
+erab_release_resp_ies_o::value_c&
+erab_release_resp_ies_o::value_c::operator=(const erab_release_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -12906,8 +12796,8 @@ erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::ext_c(
       log_invalid_choice_id(type_, "erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c");
   }
 }
-erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c& erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::
-                                                      operator=(const erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c& other)
+erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c& erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::operator=(
+    const erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -12997,9 +12887,7 @@ std::string erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::types_opts::to
 template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_bearer_su_req_ext_ies_o>;
 
 erab_to_be_setup_item_bearer_su_req_ext_ies_container::erab_to_be_setup_item_bearer_su_req_ext_ies_container() :
-  correlation_id(156, crit_e::ignore),
-  sipto_correlation_id(183, crit_e::ignore),
-  bearer_type(233, crit_e::reject)
+  correlation_id(156, crit_e::ignore), sipto_correlation_id(183, crit_e::ignore), bearer_type(233, crit_e::reject)
 {}
 SRSASN_CODE erab_to_be_setup_item_bearer_su_req_ext_ies_container::pack(bit_ref& bref) const
 {
@@ -13356,8 +13244,8 @@ erab_setup_request_ies_o::value_c::value_c(const erab_setup_request_ies_o::value
       log_invalid_choice_id(type_, "erab_setup_request_ies_o::value_c");
   }
 }
-erab_setup_request_ies_o::value_c& erab_setup_request_ies_o::value_c::
-                                   operator=(const erab_setup_request_ies_o::value_c& other)
+erab_setup_request_ies_o::value_c&
+erab_setup_request_ies_o::value_c::operator=(const erab_setup_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -14164,8 +14052,8 @@ erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::ext_c(
       log_invalid_choice_id(type_, "erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c");
   }
 }
-erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c& erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::
-                                                    operator=(const erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c& other)
+erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c& erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::operator=(
+    const erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -14255,9 +14143,7 @@ std::string erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::types_opts::to_s
 template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_ctxt_su_req_ext_ies_o>;
 
 erab_to_be_setup_item_ctxt_su_req_ext_ies_container::erab_to_be_setup_item_ctxt_su_req_ext_ies_container() :
-  correlation_id(156, crit_e::ignore),
-  sipto_correlation_id(183, crit_e::ignore),
-  bearer_type(233, crit_e::reject)
+  correlation_id(156, crit_e::ignore), sipto_correlation_id(183, crit_e::ignore), bearer_type(233, crit_e::reject)
 {}
 SRSASN_CODE erab_to_be_setup_item_ctxt_su_req_ext_ies_container::pack(bit_ref& bref) const
 {
@@ -14558,8 +14444,8 @@ erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::ext_c(const erab_to_be_setup_item
       log_invalid_choice_id(type_, "erab_to_be_setup_item_ho_req_ext_ies_o::ext_c");
   }
 }
-erab_to_be_setup_item_ho_req_ext_ies_o::ext_c& erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::
-                                               operator=(const erab_to_be_setup_item_ho_req_ext_ies_o::ext_c& other)
+erab_to_be_setup_item_ho_req_ext_ies_o::ext_c&
+erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::operator=(const erab_to_be_setup_item_ho_req_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -14637,8 +14523,7 @@ std::string erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::types_opts::to_string
 template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_ho_req_ext_ies_o>;
 
 erab_to_be_setup_item_ho_req_ext_ies_container::erab_to_be_setup_item_ho_req_ext_ies_container() :
-  data_forwarding_not_possible(143, crit_e::ignore),
-  bearer_type(233, crit_e::reject)
+  data_forwarding_not_possible(143, crit_e::ignore), bearer_type(233, crit_e::reject)
 {}
 SRSASN_CODE erab_to_be_setup_item_ho_req_ext_ies_container::pack(bit_ref& bref) const
 {
@@ -15358,8 +15243,8 @@ enbcp_relocation_ind_ies_o::value_c::value_c(const enbcp_relocation_ind_ies_o::v
       log_invalid_choice_id(type_, "enbcp_relocation_ind_ies_o::value_c");
   }
 }
-enbcp_relocation_ind_ies_o::value_c& enbcp_relocation_ind_ies_o::value_c::
-                                     operator=(const enbcp_relocation_ind_ies_o::value_c& other)
+enbcp_relocation_ind_ies_o::value_c&
+enbcp_relocation_ind_ies_o::value_c::operator=(const enbcp_relocation_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -16027,8 +15912,8 @@ x2_tnl_cfg_info_ext_ies_o::ext_c::ext_c(const x2_tnl_cfg_info_ext_ies_o::ext_c& 
       log_invalid_choice_id(type_, "x2_tnl_cfg_info_ext_ies_o::ext_c");
   }
 }
-x2_tnl_cfg_info_ext_ies_o::ext_c& x2_tnl_cfg_info_ext_ies_o::ext_c::
-                                  operator=(const x2_tnl_cfg_info_ext_ies_o::ext_c& other)
+x2_tnl_cfg_info_ext_ies_o::ext_c&
+x2_tnl_cfg_info_ext_ies_o::ext_c::operator=(const x2_tnl_cfg_info_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -16853,8 +16738,8 @@ son_cfg_transfer_ext_ies_o::ext_c::ext_c(const son_cfg_transfer_ext_ies_o::ext_c
       log_invalid_choice_id(type_, "son_cfg_transfer_ext_ies_o::ext_c");
   }
 }
-son_cfg_transfer_ext_ies_o::ext_c& son_cfg_transfer_ext_ies_o::ext_c::
-                                   operator=(const son_cfg_transfer_ext_ies_o::ext_c& other)
+son_cfg_transfer_ext_ies_o::ext_c&
+son_cfg_transfer_ext_ies_o::ext_c::operator=(const son_cfg_transfer_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -17164,8 +17049,7 @@ void targetenb_id_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ext_field_s<son_cfg_transfer_ext_ies_o>;
 
 son_cfg_transfer_ext_ies_container::son_cfg_transfer_ext_ies_container() :
-  x2_tnl_cfg_info(152, crit_e::ignore),
-  synchronisation_info(209, crit_e::ignore)
+  x2_tnl_cfg_info(152, crit_e::ignore), synchronisation_info(209, crit_e::ignore)
 {}
 SRSASN_CODE son_cfg_transfer_ext_ies_container::pack(bit_ref& bref) const
 {
@@ -18176,8 +18060,8 @@ enb_cfg_upd_fail_ies_o::value_c::value_c(const enb_cfg_upd_fail_ies_o::value_c& 
       log_invalid_choice_id(type_, "enb_cfg_upd_fail_ies_o::value_c");
   }
 }
-enb_cfg_upd_fail_ies_o::value_c& enb_cfg_upd_fail_ies_o::value_c::
-                                 operator=(const enb_cfg_upd_fail_ies_o::value_c& other)
+enb_cfg_upd_fail_ies_o::value_c&
+enb_cfg_upd_fail_ies_o::value_c::operator=(const enb_cfg_upd_fail_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -18269,9 +18153,7 @@ std::string enb_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
 template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_upd_fail_ies_o>;
 
 enb_cfg_upd_fail_ies_container::enb_cfg_upd_fail_ies_container() :
-  cause(2, crit_e::ignore),
-  time_to_wait(65, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  cause(2, crit_e::ignore), time_to_wait(65, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE enb_cfg_upd_fail_ies_container::pack(bit_ref& bref) const
 {
@@ -18972,8 +18854,8 @@ enb_status_transfer_ies_o::value_c::value_c(const enb_status_transfer_ies_o::val
       log_invalid_choice_id(type_, "enb_status_transfer_ies_o::value_c");
   }
 }
-enb_status_transfer_ies_o::value_c& enb_status_transfer_ies_o::value_c::
-                                    operator=(const enb_status_transfer_ies_o::value_c& other)
+enb_status_transfer_ies_o::value_c&
+enb_status_transfer_ies_o::value_c::operator=(const enb_status_transfer_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -20165,9 +20047,7 @@ std::string ho_cancel_ies_o::value_c::types_opts::to_string() const
 template struct asn1::s1ap::protocol_ie_field_s<ho_cancel_ies_o>;
 
 ho_cancel_ies_container::ho_cancel_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  cause(2, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), cause(2, crit_e::ignore)
 {}
 SRSASN_CODE ho_cancel_ies_container::pack(bit_ref& bref) const
 {
@@ -20488,9 +20368,7 @@ std::string ho_cancel_ack_ies_o::value_c::types_opts::to_string() const
 template struct asn1::s1ap::protocol_ie_field_s<ho_cancel_ack_ies_o>;
 
 ho_cancel_ack_ies_container::ho_cancel_ack_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::ignore),
-  enb_ue_s1ap_id(8, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::ignore), enb_ue_s1ap_id(8, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE ho_cancel_ack_ies_container::pack(bit_ref& bref) const
 {
@@ -21481,9 +21359,7 @@ uint8_t ho_fail_ies_o::value_c::types_opts::to_number() const
 template struct asn1::s1ap::protocol_ie_field_s<ho_fail_ies_o>;
 
 ho_fail_ies_container::ho_fail_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::ignore),
-  cause(2, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::ignore), cause(2, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE ho_fail_ies_container::pack(bit_ref& bref) const
 {
@@ -21687,10 +21563,10 @@ tunnel_info_s& ho_notify_ies_o::value_c::tunnel_info_for_bbf()
   assert_choice_type("TunnelInformation", type_.to_string(), "Value");
   return c.get<tunnel_info_s>();
 }
-unbounded_octstring<true>& ho_notify_ies_o::value_c::lhn_id()
+bounded_octstring<32, 256, true>& ho_notify_ies_o::value_c::lhn_id()
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 const uint64_t& ho_notify_ies_o::value_c::mme_ue_s1ap_id() const
 {
@@ -21717,10 +21593,10 @@ const tunnel_info_s& ho_notify_ies_o::value_c::tunnel_info_for_bbf() const
   assert_choice_type("TunnelInformation", type_.to_string(), "Value");
   return c.get<tunnel_info_s>();
 }
-const unbounded_octstring<true>& ho_notify_ies_o::value_c::lhn_id() const
+const bounded_octstring<32, 256, true>& ho_notify_ies_o::value_c::lhn_id() const
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 void ho_notify_ies_o::value_c::destroy_()
 {
@@ -21735,7 +21611,7 @@ void ho_notify_ies_o::value_c::destroy_()
       c.destroy<tunnel_info_s>();
       break;
     case types::lhn_id:
-      c.destroy<unbounded_octstring<true> >();
+      c.destroy<bounded_octstring<32, 256, true> >();
       break;
     default:
       break;
@@ -21760,7 +21636,7 @@ void ho_notify_ies_o::value_c::set(types::options e)
       c.init<tunnel_info_s>();
       break;
     case types::lhn_id:
-      c.init<unbounded_octstring<true> >();
+      c.init<bounded_octstring<32, 256, true> >();
       break;
     case types::nulltype:
       break;
@@ -21788,7 +21664,7 @@ ho_notify_ies_o::value_c::value_c(const ho_notify_ies_o::value_c& other)
       c.init(other.c.get<tunnel_info_s>());
       break;
     case types::lhn_id:
-      c.init(other.c.get<unbounded_octstring<true> >());
+      c.init(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::nulltype:
       break;
@@ -21819,7 +21695,7 @@ ho_notify_ies_o::value_c& ho_notify_ies_o::value_c::operator=(const ho_notify_ie
       c.set(other.c.get<tunnel_info_s>());
       break;
     case types::lhn_id:
-      c.set(other.c.get<unbounded_octstring<true> >());
+      c.set(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::nulltype:
       break;
@@ -21852,7 +21728,7 @@ void ho_notify_ies_o::value_c::to_json(json_writer& j) const
       c.get<tunnel_info_s>().to_json(j);
       break;
     case types::lhn_id:
-      j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
+      j.write_str("OCTET STRING", c.get<bounded_octstring<32, 256, true> >().to_string());
       break;
     default:
       log_invalid_choice_id(type_, "ho_notify_ies_o::value_c");
@@ -21879,7 +21755,7 @@ SRSASN_CODE ho_notify_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<tunnel_info_s>().pack(bref));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().pack(bref)));
       break;
     default:
       log_invalid_choice_id(type_, "ho_notify_ies_o::value_c");
@@ -21907,7 +21783,7 @@ SRSASN_CODE ho_notify_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<tunnel_info_s>().unpack(bref));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().unpack(bref)));
       break;
     default:
       log_invalid_choice_id(type_, "ho_notify_ies_o::value_c");
@@ -28307,8 +28183,8 @@ init_context_setup_fail_ies_o::value_c::value_c(const init_context_setup_fail_ie
       log_invalid_choice_id(type_, "init_context_setup_fail_ies_o::value_c");
   }
 }
-init_context_setup_fail_ies_o::value_c& init_context_setup_fail_ies_o::value_c::
-                                        operator=(const init_context_setup_fail_ies_o::value_c& other)
+init_context_setup_fail_ies_o::value_c&
+init_context_setup_fail_ies_o::value_c::operator=(const init_context_setup_fail_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -29285,8 +29161,8 @@ init_context_setup_request_ies_o::value_c::value_c(const init_context_setup_requ
       log_invalid_choice_id(type_, "init_context_setup_request_ies_o::value_c");
   }
 }
-init_context_setup_request_ies_o::value_c& init_context_setup_request_ies_o::value_c::
-                                           operator=(const init_context_setup_request_ies_o::value_c& other)
+init_context_setup_request_ies_o::value_c&
+init_context_setup_request_ies_o::value_c::operator=(const init_context_setup_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -30365,8 +30241,8 @@ init_context_setup_resp_ies_o::value_c::value_c(const init_context_setup_resp_ie
       log_invalid_choice_id(type_, "init_context_setup_resp_ies_o::value_c");
   }
 }
-init_context_setup_resp_ies_o::value_c& init_context_setup_resp_ies_o::value_c::
-                                        operator=(const init_context_setup_resp_ies_o::value_c& other)
+init_context_setup_resp_ies_o::value_c&
+init_context_setup_resp_ies_o::value_c::operator=(const init_context_setup_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -30904,10 +30780,10 @@ bounded_bitstring<1, 160, true, true>& init_ue_msg_ies_o::value_c::sipto_l_gw_tr
   assert_choice_type("BIT STRING", type_.to_string(), "Value");
   return c.get<bounded_bitstring<1, 160, true, true> >();
 }
-unbounded_octstring<true>& init_ue_msg_ies_o::value_c::lhn_id()
+bounded_octstring<32, 256, true>& init_ue_msg_ies_o::value_c::lhn_id()
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 fixed_octstring<2, true>& init_ue_msg_ies_o::value_c::mme_group_id()
 {
@@ -31004,10 +30880,10 @@ const bounded_bitstring<1, 160, true, true>& init_ue_msg_ies_o::value_c::sipto_l
   assert_choice_type("BIT STRING", type_.to_string(), "Value");
   return c.get<bounded_bitstring<1, 160, true, true> >();
 }
-const unbounded_octstring<true>& init_ue_msg_ies_o::value_c::lhn_id() const
+const bounded_octstring<32, 256, true>& init_ue_msg_ies_o::value_c::lhn_id() const
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 const fixed_octstring<2, true>& init_ue_msg_ies_o::value_c::mme_group_id() const
 {
@@ -31065,7 +30941,7 @@ void init_ue_msg_ies_o::value_c::destroy_()
       c.destroy<bounded_bitstring<1, 160, true, true> >();
       break;
     case types::lhn_id:
-      c.destroy<unbounded_octstring<true> >();
+      c.destroy<bounded_octstring<32, 256, true> >();
       break;
     case types::mme_group_id:
       c.destroy<fixed_octstring<2, true> >();
@@ -31117,7 +30993,7 @@ void init_ue_msg_ies_o::value_c::set(types::options e)
       c.init<bounded_bitstring<1, 160, true, true> >();
       break;
     case types::lhn_id:
-      c.init<unbounded_octstring<true> >();
+      c.init<bounded_octstring<32, 256, true> >();
       break;
     case types::mme_group_id:
       c.init<fixed_octstring<2, true> >();
@@ -31183,7 +31059,7 @@ init_ue_msg_ies_o::value_c::value_c(const init_ue_msg_ies_o::value_c& other)
       c.init(other.c.get<bounded_bitstring<1, 160, true, true> >());
       break;
     case types::lhn_id:
-      c.init(other.c.get<unbounded_octstring<true> >());
+      c.init(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::mme_group_id:
       c.init(other.c.get<fixed_octstring<2, true> >());
@@ -31256,7 +31132,7 @@ init_ue_msg_ies_o::value_c& init_ue_msg_ies_o::value_c::operator=(const init_ue_
       c.set(other.c.get<bounded_bitstring<1, 160, true, true> >());
       break;
     case types::lhn_id:
-      c.set(other.c.get<unbounded_octstring<true> >());
+      c.set(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::mme_group_id:
       c.set(other.c.get<fixed_octstring<2, true> >());
@@ -31333,7 +31209,7 @@ void init_ue_msg_ies_o::value_c::to_json(json_writer& j) const
       j.write_str("BIT STRING", c.get<bounded_bitstring<1, 160, true, true> >().to_string());
       break;
     case types::lhn_id:
-      j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
+      j.write_str("OCTET STRING", c.get<bounded_octstring<32, 256, true> >().to_string());
       break;
     case types::mme_group_id:
       j.write_str("OCTET STRING", c.get<fixed_octstring<2, true> >().to_string());
@@ -31402,7 +31278,7 @@ SRSASN_CODE init_ue_msg_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE((c.get<bounded_bitstring<1, 160, true, true> >().pack(bref)));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().pack(bref)));
       break;
     case types::mme_group_id:
       HANDLE_CODE((c.get<fixed_octstring<2, true> >().pack(bref)));
@@ -31472,7 +31348,7 @@ SRSASN_CODE init_ue_msg_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE((c.get<bounded_bitstring<1, 160, true, true> >().unpack(bref)));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().unpack(bref)));
       break;
     case types::mme_group_id:
       HANDLE_CODE((c.get<fixed_octstring<2, true> >().unpack(bref)));
@@ -32819,7 +32695,7 @@ void ue_paging_id_c::destroy_()
       c.destroy<s_tmsi_s>();
       break;
     case types::imsi:
-      c.destroy<unbounded_octstring<true> >();
+      c.destroy<bounded_octstring<3, 8, true> >();
       break;
     default:
       break;
@@ -32834,7 +32710,7 @@ void ue_paging_id_c::set(types::options e)
       c.init<s_tmsi_s>();
       break;
     case types::imsi:
-      c.init<unbounded_octstring<true> >();
+      c.init<bounded_octstring<3, 8, true> >();
       break;
     case types::nulltype:
       break;
@@ -32850,7 +32726,7 @@ ue_paging_id_c::ue_paging_id_c(const ue_paging_id_c& other)
       c.init(other.c.get<s_tmsi_s>());
       break;
     case types::imsi:
-      c.init(other.c.get<unbounded_octstring<true> >());
+      c.init(other.c.get<bounded_octstring<3, 8, true> >());
       break;
     case types::nulltype:
       break;
@@ -32869,7 +32745,7 @@ ue_paging_id_c& ue_paging_id_c::operator=(const ue_paging_id_c& other)
       c.set(other.c.get<s_tmsi_s>());
       break;
     case types::imsi:
-      c.set(other.c.get<unbounded_octstring<true> >());
+      c.set(other.c.get<bounded_octstring<3, 8, true> >());
       break;
     case types::nulltype:
       break;
@@ -32888,7 +32764,7 @@ void ue_paging_id_c::to_json(json_writer& j) const
       c.get<s_tmsi_s>().to_json(j);
       break;
     case types::imsi:
-      j.write_str("iMSI", c.get<unbounded_octstring<true> >().to_string());
+      j.write_str("iMSI", c.get<bounded_octstring<3, 8, true> >().to_string());
       break;
     default:
       log_invalid_choice_id(type_, "ue_paging_id_c");
@@ -32903,7 +32779,7 @@ SRSASN_CODE ue_paging_id_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<s_tmsi_s>().pack(bref));
       break;
     case types::imsi:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<3, 8, true> >().pack(bref)));
       break;
     default:
       log_invalid_choice_id(type_, "ue_paging_id_c");
@@ -32921,7 +32797,7 @@ SRSASN_CODE ue_paging_id_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<s_tmsi_s>().unpack(bref));
       break;
     case types::imsi:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<3, 8, true> >().unpack(bref)));
       break;
     default:
       log_invalid_choice_id(type_, "ue_paging_id_c");
@@ -34096,8 +33972,8 @@ location_report_ctrl_ies_o::value_c::value_c(const location_report_ctrl_ies_o::v
       log_invalid_choice_id(type_, "location_report_ctrl_ies_o::value_c");
   }
 }
-location_report_ctrl_ies_o::value_c& location_report_ctrl_ies_o::value_c::
-                                     operator=(const location_report_ctrl_ies_o::value_c& other)
+location_report_ctrl_ies_o::value_c&
+location_report_ctrl_ies_o::value_c::operator=(const location_report_ctrl_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -34326,8 +34202,8 @@ location_report_fail_ind_ies_o::value_c::value_c(const location_report_fail_ind_
       log_invalid_choice_id(type_, "location_report_fail_ind_ies_o::value_c");
   }
 }
-location_report_fail_ind_ies_o::value_c& location_report_fail_ind_ies_o::value_c::
-                                         operator=(const location_report_fail_ind_ies_o::value_c& other)
+location_report_fail_ind_ies_o::value_c&
+location_report_fail_ind_ies_o::value_c::operator=(const location_report_fail_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -34514,8 +34390,8 @@ mmecp_relocation_ind_ies_o::value_c::value_c(const mmecp_relocation_ind_ies_o::v
       log_invalid_choice_id(type_, "mmecp_relocation_ind_ies_o::value_c");
   }
 }
-mmecp_relocation_ind_ies_o::value_c& mmecp_relocation_ind_ies_o::value_c::
-                                     operator=(const mmecp_relocation_ind_ies_o::value_c& other)
+mmecp_relocation_ind_ies_o::value_c&
+mmecp_relocation_ind_ies_o::value_c::operator=(const mmecp_relocation_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -34859,8 +34735,8 @@ mme_cfg_upd_fail_ies_o::value_c::value_c(const mme_cfg_upd_fail_ies_o::value_c& 
       log_invalid_choice_id(type_, "mme_cfg_upd_fail_ies_o::value_c");
   }
 }
-mme_cfg_upd_fail_ies_o::value_c& mme_cfg_upd_fail_ies_o::value_c::
-                                 operator=(const mme_cfg_upd_fail_ies_o::value_c& other)
+mme_cfg_upd_fail_ies_o::value_c&
+mme_cfg_upd_fail_ies_o::value_c::operator=(const mme_cfg_upd_fail_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -35440,8 +35316,8 @@ mme_status_transfer_ies_o::value_c::value_c(const mme_status_transfer_ies_o::val
       log_invalid_choice_id(type_, "mme_status_transfer_ies_o::value_c");
   }
 }
-mme_status_transfer_ies_o::value_c& mme_status_transfer_ies_o::value_c::
-                                    operator=(const mme_status_transfer_ies_o::value_c& other)
+mme_status_transfer_ies_o::value_c&
+mme_status_transfer_ies_o::value_c::operator=(const mme_status_transfer_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -35629,8 +35505,8 @@ nas_delivery_ind_ies_o::value_c::value_c(const nas_delivery_ind_ies_o::value_c& 
       log_invalid_choice_id(type_, "nas_delivery_ind_ies_o::value_c");
   }
 }
-nas_delivery_ind_ies_o::value_c& nas_delivery_ind_ies_o::value_c::
-                                 operator=(const nas_delivery_ind_ies_o::value_c& other)
+nas_delivery_ind_ies_o::value_c&
+nas_delivery_ind_ies_o::value_c::operator=(const nas_delivery_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -35872,8 +35748,8 @@ nas_non_delivery_ind_ies_o::value_c::value_c(const nas_non_delivery_ind_ies_o::v
       log_invalid_choice_id(type_, "nas_non_delivery_ind_ies_o::value_c");
   }
 }
-nas_non_delivery_ind_ies_o::value_c& nas_non_delivery_ind_ies_o::value_c::
-                                     operator=(const nas_non_delivery_ind_ies_o::value_c& other)
+nas_non_delivery_ind_ies_o::value_c&
+nas_non_delivery_ind_ies_o::value_c::operator=(const nas_non_delivery_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -37930,8 +37806,8 @@ path_switch_request_ack_ies_o::value_c::value_c(const path_switch_request_ack_ie
       log_invalid_choice_id(type_, "path_switch_request_ack_ies_o::value_c");
   }
 }
-path_switch_request_ack_ies_o::value_c& path_switch_request_ack_ies_o::value_c::
-                                        operator=(const path_switch_request_ack_ies_o::value_c& other)
+path_switch_request_ack_ies_o::value_c&
+path_switch_request_ack_ies_o::value_c::operator=(const path_switch_request_ack_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -38368,8 +38244,8 @@ path_switch_request_fail_ies_o::value_c::value_c(const path_switch_request_fail_
       log_invalid_choice_id(type_, "path_switch_request_fail_ies_o::value_c");
   }
 }
-path_switch_request_fail_ies_o::value_c& path_switch_request_fail_ies_o::value_c::
-                                         operator=(const path_switch_request_fail_ies_o::value_c& other)
+path_switch_request_fail_ies_o::value_c&
+path_switch_request_fail_ies_o::value_c::operator=(const path_switch_request_fail_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -38661,10 +38537,10 @@ tunnel_info_s& path_switch_request_ies_o::value_c::tunnel_info_for_bbf()
   assert_choice_type("TunnelInformation", type_.to_string(), "Value");
   return c.get<tunnel_info_s>();
 }
-unbounded_octstring<true>& path_switch_request_ies_o::value_c::lhn_id()
+bounded_octstring<32, 256, true>& path_switch_request_ies_o::value_c::lhn_id()
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 rrc_establishment_cause_e& path_switch_request_ies_o::value_c::rrc_resume_cause()
 {
@@ -38727,10 +38603,10 @@ const tunnel_info_s& path_switch_request_ies_o::value_c::tunnel_info_for_bbf() c
   assert_choice_type("TunnelInformation", type_.to_string(), "Value");
   return c.get<tunnel_info_s>();
 }
-const unbounded_octstring<true>& path_switch_request_ies_o::value_c::lhn_id() const
+const bounded_octstring<32, 256, true>& path_switch_request_ies_o::value_c::lhn_id() const
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 const rrc_establishment_cause_e& path_switch_request_ies_o::value_c::rrc_resume_cause() const
 {
@@ -38762,7 +38638,7 @@ void path_switch_request_ies_o::value_c::destroy_()
       c.destroy<tunnel_info_s>();
       break;
     case types::lhn_id:
-      c.destroy<unbounded_octstring<true> >();
+      c.destroy<bounded_octstring<32, 256, true> >();
       break;
     default:
       break;
@@ -38803,7 +38679,7 @@ void path_switch_request_ies_o::value_c::set(types::options e)
       c.init<tunnel_info_s>();
       break;
     case types::lhn_id:
-      c.init<unbounded_octstring<true> >();
+      c.init<bounded_octstring<32, 256, true> >();
       break;
     case types::rrc_resume_cause:
       break;
@@ -38851,7 +38727,7 @@ path_switch_request_ies_o::value_c::value_c(const path_switch_request_ies_o::val
       c.init(other.c.get<tunnel_info_s>());
       break;
     case types::lhn_id:
-      c.init(other.c.get<unbounded_octstring<true> >());
+      c.init(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::rrc_resume_cause:
       c.init(other.c.get<rrc_establishment_cause_e>());
@@ -38862,8 +38738,8 @@ path_switch_request_ies_o::value_c::value_c(const path_switch_request_ies_o::val
       log_invalid_choice_id(type_, "path_switch_request_ies_o::value_c");
   }
 }
-path_switch_request_ies_o::value_c& path_switch_request_ies_o::value_c::
-                                    operator=(const path_switch_request_ies_o::value_c& other)
+path_switch_request_ies_o::value_c&
+path_switch_request_ies_o::value_c::operator=(const path_switch_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -38904,7 +38780,7 @@ path_switch_request_ies_o::value_c& path_switch_request_ies_o::value_c::
       c.set(other.c.get<tunnel_info_s>());
       break;
     case types::lhn_id:
-      c.set(other.c.get<unbounded_octstring<true> >());
+      c.set(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::rrc_resume_cause:
       c.set(other.c.get<rrc_establishment_cause_e>());
@@ -38960,7 +38836,7 @@ void path_switch_request_ies_o::value_c::to_json(json_writer& j) const
       c.get<tunnel_info_s>().to_json(j);
       break;
     case types::lhn_id:
-      j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
+      j.write_str("OCTET STRING", c.get<bounded_octstring<32, 256, true> >().to_string());
       break;
     case types::rrc_resume_cause:
       j.write_str("RRC-Establishment-Cause", c.get<rrc_establishment_cause_e>().to_string());
@@ -39009,7 +38885,7 @@ SRSASN_CODE path_switch_request_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<tunnel_info_s>().pack(bref));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().pack(bref)));
       break;
     case types::rrc_resume_cause:
       HANDLE_CODE(c.get<rrc_establishment_cause_e>().pack(bref));
@@ -39059,7 +38935,7 @@ SRSASN_CODE path_switch_request_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<tunnel_info_s>().unpack(bref));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().unpack(bref)));
       break;
     case types::rrc_resume_cause:
       HANDLE_CODE(c.get<rrc_establishment_cause_e>().unpack(bref));
@@ -39327,8 +39203,8 @@ reroute_nas_request_ies_o::value_c::value_c(const reroute_nas_request_ies_o::val
       log_invalid_choice_id(type_, "reroute_nas_request_ies_o::value_c");
   }
 }
-reroute_nas_request_ies_o::value_c& reroute_nas_request_ies_o::value_c::
-                                    operator=(const reroute_nas_request_ies_o::value_c& other)
+reroute_nas_request_ies_o::value_c&
+reroute_nas_request_ies_o::value_c::operator=(const reroute_nas_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -40402,8 +40278,8 @@ s1_setup_request_ies_o::value_c::value_c(const s1_setup_request_ies_o::value_c& 
       log_invalid_choice_id(type_, "s1_setup_request_ies_o::value_c");
   }
 }
-s1_setup_request_ies_o::value_c& s1_setup_request_ies_o::value_c::
-                                 operator=(const s1_setup_request_ies_o::value_c& other)
+s1_setup_request_ies_o::value_c&
+s1_setup_request_ies_o::value_c::operator=(const s1_setup_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -41877,8 +41753,8 @@ ue_context_mod_confirm_ies_o::value_c::value_c(const ue_context_mod_confirm_ies_
       log_invalid_choice_id(type_, "ue_context_mod_confirm_ies_o::value_c");
   }
 }
-ue_context_mod_confirm_ies_o::value_c& ue_context_mod_confirm_ies_o::value_c::
-                                       operator=(const ue_context_mod_confirm_ies_o::value_c& other)
+ue_context_mod_confirm_ies_o::value_c&
+ue_context_mod_confirm_ies_o::value_c::operator=(const ue_context_mod_confirm_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -42146,8 +42022,8 @@ ue_context_mod_fail_ies_o::value_c::value_c(const ue_context_mod_fail_ies_o::val
       log_invalid_choice_id(type_, "ue_context_mod_fail_ies_o::value_c");
   }
 }
-ue_context_mod_fail_ies_o::value_c& ue_context_mod_fail_ies_o::value_c::
-                                    operator=(const ue_context_mod_fail_ies_o::value_c& other)
+ue_context_mod_fail_ies_o::value_c&
+ue_context_mod_fail_ies_o::value_c::operator=(const ue_context_mod_fail_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -42390,8 +42266,8 @@ ue_context_mod_ind_ies_o::value_c::value_c(const ue_context_mod_ind_ies_o::value
       log_invalid_choice_id(type_, "ue_context_mod_ind_ies_o::value_c");
   }
 }
-ue_context_mod_ind_ies_o::value_c& ue_context_mod_ind_ies_o::value_c::
-                                   operator=(const ue_context_mod_ind_ies_o::value_c& other)
+ue_context_mod_ind_ies_o::value_c&
+ue_context_mod_ind_ies_o::value_c::operator=(const ue_context_mod_ind_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -42909,8 +42785,8 @@ ue_context_mod_request_ies_o::value_c::value_c(const ue_context_mod_request_ies_
       log_invalid_choice_id(type_, "ue_context_mod_request_ies_o::value_c");
   }
 }
-ue_context_mod_request_ies_o::value_c& ue_context_mod_request_ies_o::value_c::
-                                       operator=(const ue_context_mod_request_ies_o::value_c& other)
+ue_context_mod_request_ies_o::value_c&
+ue_context_mod_request_ies_o::value_c::operator=(const ue_context_mod_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -43302,8 +43178,8 @@ ue_context_mod_resp_ies_o::value_c::value_c(const ue_context_mod_resp_ies_o::val
       log_invalid_choice_id(type_, "ue_context_mod_resp_ies_o::value_c");
   }
 }
-ue_context_mod_resp_ies_o::value_c& ue_context_mod_resp_ies_o::value_c::
-                                    operator=(const ue_context_mod_resp_ies_o::value_c& other)
+ue_context_mod_resp_ies_o::value_c&
+ue_context_mod_resp_ies_o::value_c::operator=(const ue_context_mod_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -43514,8 +43390,8 @@ ue_context_release_cmd_ies_o::value_c::value_c(const ue_context_release_cmd_ies_
       log_invalid_choice_id(type_, "ue_context_release_cmd_ies_o::value_c");
   }
 }
-ue_context_release_cmd_ies_o::value_c& ue_context_release_cmd_ies_o::value_c::
-                                       operator=(const ue_context_release_cmd_ies_o::value_c& other)
+ue_context_release_cmd_ies_o::value_c&
+ue_context_release_cmd_ies_o::value_c::operator=(const ue_context_release_cmd_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -43820,8 +43696,8 @@ ue_context_release_complete_ies_o::value_c::value_c(const ue_context_release_com
       log_invalid_choice_id(type_, "ue_context_release_complete_ies_o::value_c");
   }
 }
-ue_context_release_complete_ies_o::value_c& ue_context_release_complete_ies_o::value_c::
-                                            operator=(const ue_context_release_complete_ies_o::value_c& other)
+ue_context_release_complete_ies_o::value_c&
+ue_context_release_complete_ies_o::value_c::operator=(const ue_context_release_complete_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -44116,8 +43992,8 @@ ue_context_release_request_ies_o::value_c::value_c(const ue_context_release_requ
       log_invalid_choice_id(type_, "ue_context_release_request_ies_o::value_c");
   }
 }
-ue_context_release_request_ies_o::value_c& ue_context_release_request_ies_o::value_c::
-                                           operator=(const ue_context_release_request_ies_o::value_c& other)
+ue_context_release_request_ies_o::value_c&
+ue_context_release_request_ies_o::value_c::operator=(const ue_context_release_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -44385,8 +44261,8 @@ ue_context_resume_fail_ies_o::value_c::value_c(const ue_context_resume_fail_ies_
       log_invalid_choice_id(type_, "ue_context_resume_fail_ies_o::value_c");
   }
 }
-ue_context_resume_fail_ies_o::value_c& ue_context_resume_fail_ies_o::value_c::
-                                       operator=(const ue_context_resume_fail_ies_o::value_c& other)
+ue_context_resume_fail_ies_o::value_c&
+ue_context_resume_fail_ies_o::value_c::operator=(const ue_context_resume_fail_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -44653,8 +44529,8 @@ ue_context_resume_request_ies_o::value_c::value_c(const ue_context_resume_reques
       log_invalid_choice_id(type_, "ue_context_resume_request_ies_o::value_c");
   }
 }
-ue_context_resume_request_ies_o::value_c& ue_context_resume_request_ies_o::value_c::
-                                          operator=(const ue_context_resume_request_ies_o::value_c& other)
+ue_context_resume_request_ies_o::value_c&
+ue_context_resume_request_ies_o::value_c::operator=(const ue_context_resume_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -44975,8 +44851,8 @@ ue_context_resume_resp_ies_o::value_c::value_c(const ue_context_resume_resp_ies_
       log_invalid_choice_id(type_, "ue_context_resume_resp_ies_o::value_c");
   }
 }
-ue_context_resume_resp_ies_o::value_c& ue_context_resume_resp_ies_o::value_c::
-                                       operator=(const ue_context_resume_resp_ies_o::value_c& other)
+ue_context_resume_resp_ies_o::value_c&
+ue_context_resume_resp_ies_o::value_c::operator=(const ue_context_resume_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -45279,8 +45155,8 @@ ue_context_suspend_request_ies_o::value_c::value_c(const ue_context_suspend_requ
       log_invalid_choice_id(type_, "ue_context_suspend_request_ies_o::value_c");
   }
 }
-ue_context_suspend_request_ies_o::value_c& ue_context_suspend_request_ies_o::value_c::
-                                           operator=(const ue_context_suspend_request_ies_o::value_c& other)
+ue_context_suspend_request_ies_o::value_c&
+ue_context_suspend_request_ies_o::value_c::operator=(const ue_context_suspend_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -45551,8 +45427,8 @@ ue_context_suspend_resp_ies_o::value_c::value_c(const ue_context_suspend_resp_ie
       log_invalid_choice_id(type_, "ue_context_suspend_resp_ies_o::value_c");
   }
 }
-ue_context_suspend_resp_ies_o::value_c& ue_context_suspend_resp_ies_o::value_c::
-                                        operator=(const ue_context_suspend_resp_ies_o::value_c& other)
+ue_context_suspend_resp_ies_o::value_c&
+ue_context_suspend_resp_ies_o::value_c::operator=(const ue_context_suspend_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -45825,8 +45701,8 @@ ue_info_transfer_ies_o::value_c::value_c(const ue_info_transfer_ies_o::value_c& 
       log_invalid_choice_id(type_, "ue_info_transfer_ies_o::value_c");
   }
 }
-ue_info_transfer_ies_o::value_c& ue_info_transfer_ies_o::value_c::
-                                 operator=(const ue_info_transfer_ies_o::value_c& other)
+ue_info_transfer_ies_o::value_c&
+ue_info_transfer_ies_o::value_c::operator=(const ue_info_transfer_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -46068,8 +45944,8 @@ ue_radio_cap_match_request_ies_o::value_c::value_c(const ue_radio_cap_match_requ
       log_invalid_choice_id(type_, "ue_radio_cap_match_request_ies_o::value_c");
   }
 }
-ue_radio_cap_match_request_ies_o::value_c& ue_radio_cap_match_request_ies_o::value_c::
-                                           operator=(const ue_radio_cap_match_request_ies_o::value_c& other)
+ue_radio_cap_match_request_ies_o::value_c&
+ue_radio_cap_match_request_ies_o::value_c::operator=(const ue_radio_cap_match_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -46319,8 +46195,8 @@ ue_radio_cap_match_resp_ies_o::value_c::value_c(const ue_radio_cap_match_resp_ie
       log_invalid_choice_id(type_, "ue_radio_cap_match_resp_ies_o::value_c");
   }
 }
-ue_radio_cap_match_resp_ies_o::value_c& ue_radio_cap_match_resp_ies_o::value_c::
-                                        operator=(const ue_radio_cap_match_resp_ies_o::value_c& other)
+ue_radio_cap_match_resp_ies_o::value_c&
+ue_radio_cap_match_resp_ies_o::value_c::operator=(const ue_radio_cap_match_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -46555,10 +46431,10 @@ bounded_bitstring<1, 160, true, true>& ul_nas_transport_ies_o::value_c::sipto_l_
   assert_choice_type("BIT STRING", type_.to_string(), "Value");
   return c.get<bounded_bitstring<1, 160, true, true> >();
 }
-unbounded_octstring<true>& ul_nas_transport_ies_o::value_c::lhn_id()
+bounded_octstring<32, 256, true>& ul_nas_transport_ies_o::value_c::lhn_id()
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 const uint64_t& ul_nas_transport_ies_o::value_c::mme_ue_s1ap_id() const
 {
@@ -46595,10 +46471,10 @@ const bounded_bitstring<1, 160, true, true>& ul_nas_transport_ies_o::value_c::si
   assert_choice_type("BIT STRING", type_.to_string(), "Value");
   return c.get<bounded_bitstring<1, 160, true, true> >();
 }
-const unbounded_octstring<true>& ul_nas_transport_ies_o::value_c::lhn_id() const
+const bounded_octstring<32, 256, true>& ul_nas_transport_ies_o::value_c::lhn_id() const
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<32, 256, true> >();
 }
 void ul_nas_transport_ies_o::value_c::destroy_()
 {
@@ -46619,7 +46495,7 @@ void ul_nas_transport_ies_o::value_c::destroy_()
       c.destroy<bounded_bitstring<1, 160, true, true> >();
       break;
     case types::lhn_id:
-      c.destroy<unbounded_octstring<true> >();
+      c.destroy<bounded_octstring<32, 256, true> >();
       break;
     default:
       break;
@@ -46650,7 +46526,7 @@ void ul_nas_transport_ies_o::value_c::set(types::options e)
       c.init<bounded_bitstring<1, 160, true, true> >();
       break;
     case types::lhn_id:
-      c.init<unbounded_octstring<true> >();
+      c.init<bounded_octstring<32, 256, true> >();
       break;
     case types::nulltype:
       break;
@@ -46684,7 +46560,7 @@ ul_nas_transport_ies_o::value_c::value_c(const ul_nas_transport_ies_o::value_c& 
       c.init(other.c.get<bounded_bitstring<1, 160, true, true> >());
       break;
     case types::lhn_id:
-      c.init(other.c.get<unbounded_octstring<true> >());
+      c.init(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::nulltype:
       break;
@@ -46692,8 +46568,8 @@ ul_nas_transport_ies_o::value_c::value_c(const ul_nas_transport_ies_o::value_c& 
       log_invalid_choice_id(type_, "ul_nas_transport_ies_o::value_c");
   }
 }
-ul_nas_transport_ies_o::value_c& ul_nas_transport_ies_o::value_c::
-                                 operator=(const ul_nas_transport_ies_o::value_c& other)
+ul_nas_transport_ies_o::value_c&
+ul_nas_transport_ies_o::value_c::operator=(const ul_nas_transport_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -46722,7 +46598,7 @@ ul_nas_transport_ies_o::value_c& ul_nas_transport_ies_o::value_c::
       c.set(other.c.get<bounded_bitstring<1, 160, true, true> >());
       break;
     case types::lhn_id:
-      c.set(other.c.get<unbounded_octstring<true> >());
+      c.set(other.c.get<bounded_octstring<32, 256, true> >());
       break;
     case types::nulltype:
       break;
@@ -46760,7 +46636,7 @@ void ul_nas_transport_ies_o::value_c::to_json(json_writer& j) const
       j.write_str("BIT STRING", c.get<bounded_bitstring<1, 160, true, true> >().to_string());
       break;
     case types::lhn_id:
-      j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
+      j.write_str("OCTET STRING", c.get<bounded_octstring<32, 256, true> >().to_string());
       break;
     default:
       log_invalid_choice_id(type_, "ul_nas_transport_ies_o::value_c");
@@ -46793,7 +46669,7 @@ SRSASN_CODE ul_nas_transport_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE((c.get<bounded_bitstring<1, 160, true, true> >().pack(bref)));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().pack(bref)));
       break;
     default:
       log_invalid_choice_id(type_, "ul_nas_transport_ies_o::value_c");
@@ -46827,7 +46703,7 @@ SRSASN_CODE ul_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE((c.get<bounded_bitstring<1, 160, true, true> >().unpack(bref)));
       break;
     case types::lhn_id:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<32, 256, true> >().unpack(bref)));
       break;
     default:
       log_invalid_choice_id(type_, "ul_nas_transport_ies_o::value_c");
@@ -46970,8 +46846,8 @@ ul_non_ueassociated_lp_pa_transport_ies_o::value_c::value_c(
       log_invalid_choice_id(type_, "ul_non_ueassociated_lp_pa_transport_ies_o::value_c");
   }
 }
-ul_non_ueassociated_lp_pa_transport_ies_o::value_c& ul_non_ueassociated_lp_pa_transport_ies_o::value_c::
-                                                    operator=(const ul_non_ueassociated_lp_pa_transport_ies_o::value_c& other)
+ul_non_ueassociated_lp_pa_transport_ies_o::value_c& ul_non_ueassociated_lp_pa_transport_ies_o::value_c::operator=(
+    const ul_non_ueassociated_lp_pa_transport_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -47336,8 +47212,8 @@ ul_s1cdma2000tunnelling_ies_o::value_c::value_c(const ul_s1cdma2000tunnelling_ie
       log_invalid_choice_id(type_, "ul_s1cdma2000tunnelling_ies_o::value_c");
   }
 }
-ul_s1cdma2000tunnelling_ies_o::value_c& ul_s1cdma2000tunnelling_ies_o::value_c::
-                                        operator=(const ul_s1cdma2000tunnelling_ies_o::value_c& other)
+ul_s1cdma2000tunnelling_ies_o::value_c&
+ul_s1cdma2000tunnelling_ies_o::value_c::operator=(const ul_s1cdma2000tunnelling_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -47668,8 +47544,8 @@ ul_ueassociated_lp_pa_transport_ies_o::value_c::value_c(const ul_ueassociated_lp
       log_invalid_choice_id(type_, "ul_ueassociated_lp_pa_transport_ies_o::value_c");
   }
 }
-ul_ueassociated_lp_pa_transport_ies_o::value_c& ul_ueassociated_lp_pa_transport_ies_o::value_c::
-                                                operator=(const ul_ueassociated_lp_pa_transport_ies_o::value_c& other)
+ul_ueassociated_lp_pa_transport_ies_o::value_c&
+ul_ueassociated_lp_pa_transport_ies_o::value_c::operator=(const ul_ueassociated_lp_pa_transport_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -47934,10 +47810,10 @@ fixed_bitstring<8, false, true>& write_replace_warning_request_ies_o::value_c::d
   assert_choice_type("BIT STRING", type_.to_string(), "Value");
   return c.get<fixed_bitstring<8, false, true> >();
 }
-unbounded_octstring<true>& write_replace_warning_request_ies_o::value_c::warning_msg_contents()
+bounded_octstring<1, 9600, true>& write_replace_warning_request_ies_o::value_c::warning_msg_contents()
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<1, 9600, true> >();
 }
 concurrent_warning_msg_ind_e& write_replace_warning_request_ies_o::value_c::concurrent_warning_msg_ind()
 {
@@ -47989,10 +47865,10 @@ const fixed_bitstring<8, false, true>& write_replace_warning_request_ies_o::valu
   assert_choice_type("BIT STRING", type_.to_string(), "Value");
   return c.get<fixed_bitstring<8, false, true> >();
 }
-const unbounded_octstring<true>& write_replace_warning_request_ies_o::value_c::warning_msg_contents() const
+const bounded_octstring<1, 9600, true>& write_replace_warning_request_ies_o::value_c::warning_msg_contents() const
 {
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
-  return c.get<unbounded_octstring<true> >();
+  return c.get<bounded_octstring<1, 9600, true> >();
 }
 const concurrent_warning_msg_ind_e& write_replace_warning_request_ies_o::value_c::concurrent_warning_msg_ind() const
 {
@@ -48021,7 +47897,7 @@ void write_replace_warning_request_ies_o::value_c::destroy_()
       c.destroy<fixed_bitstring<8, false, true> >();
       break;
     case types::warning_msg_contents:
-      c.destroy<unbounded_octstring<true> >();
+      c.destroy<bounded_octstring<1, 9600, true> >();
       break;
     default:
       break;
@@ -48057,7 +47933,7 @@ void write_replace_warning_request_ies_o::value_c::set(types::options e)
       c.init<fixed_bitstring<8, false, true> >();
       break;
     case types::warning_msg_contents:
-      c.init<unbounded_octstring<true> >();
+      c.init<bounded_octstring<1, 9600, true> >();
       break;
     case types::concurrent_warning_msg_ind:
       break;
@@ -48099,7 +47975,7 @@ write_replace_warning_request_ies_o::value_c::value_c(const write_replace_warnin
       c.init(other.c.get<fixed_bitstring<8, false, true> >());
       break;
     case types::warning_msg_contents:
-      c.init(other.c.get<unbounded_octstring<true> >());
+      c.init(other.c.get<bounded_octstring<1, 9600, true> >());
       break;
     case types::concurrent_warning_msg_ind:
       c.init(other.c.get<concurrent_warning_msg_ind_e>());
@@ -48110,8 +47986,8 @@ write_replace_warning_request_ies_o::value_c::value_c(const write_replace_warnin
       log_invalid_choice_id(type_, "write_replace_warning_request_ies_o::value_c");
   }
 }
-write_replace_warning_request_ies_o::value_c& write_replace_warning_request_ies_o::value_c::
-                                              operator=(const write_replace_warning_request_ies_o::value_c& other)
+write_replace_warning_request_ies_o::value_c&
+write_replace_warning_request_ies_o::value_c::operator=(const write_replace_warning_request_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -48146,7 +48022,7 @@ write_replace_warning_request_ies_o::value_c& write_replace_warning_request_ies_
       c.set(other.c.get<fixed_bitstring<8, false, true> >());
       break;
     case types::warning_msg_contents:
-      c.set(other.c.get<unbounded_octstring<true> >());
+      c.set(other.c.get<bounded_octstring<1, 9600, true> >());
       break;
     case types::concurrent_warning_msg_ind:
       c.set(other.c.get<concurrent_warning_msg_ind_e>());
@@ -48192,7 +48068,7 @@ void write_replace_warning_request_ies_o::value_c::to_json(json_writer& j) const
       j.write_str("BIT STRING", c.get<fixed_bitstring<8, false, true> >().to_string());
       break;
     case types::warning_msg_contents:
-      j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
+      j.write_str("OCTET STRING", c.get<bounded_octstring<1, 9600, true> >().to_string());
       break;
     case types::concurrent_warning_msg_ind:
       j.write_str("ConcurrentWarningMessageIndicator", "true");
@@ -48234,7 +48110,7 @@ SRSASN_CODE write_replace_warning_request_ies_o::value_c::pack(bit_ref& bref) co
       HANDLE_CODE((c.get<fixed_bitstring<8, false, true> >().pack(bref)));
       break;
     case types::warning_msg_contents:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<1, 9600, true> >().pack(bref)));
       break;
     case types::concurrent_warning_msg_ind:
       HANDLE_CODE(c.get<concurrent_warning_msg_ind_e>().pack(bref));
@@ -48277,7 +48153,7 @@ SRSASN_CODE write_replace_warning_request_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE((c.get<fixed_bitstring<8, false, true> >().unpack(bref)));
       break;
     case types::warning_msg_contents:
-      HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
+      HANDLE_CODE((c.get<bounded_octstring<1, 9600, true> >().unpack(bref)));
       break;
     case types::concurrent_warning_msg_ind:
       HANDLE_CODE(c.get<concurrent_warning_msg_ind_e>().unpack(bref));
@@ -48480,8 +48356,8 @@ write_replace_warning_resp_ies_o::value_c::value_c(const write_replace_warning_r
       log_invalid_choice_id(type_, "write_replace_warning_resp_ies_o::value_c");
   }
 }
-write_replace_warning_resp_ies_o::value_c& write_replace_warning_resp_ies_o::value_c::
-                                           operator=(const write_replace_warning_resp_ies_o::value_c& other)
+write_replace_warning_resp_ies_o::value_c&
+write_replace_warning_resp_ies_o::value_c::operator=(const write_replace_warning_resp_ies_o::value_c& other)
 {
   if (this == &other) {
     return *this;
@@ -48927,9 +48803,7 @@ void location_report_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<location_report_ctrl_ies_o>;
 
 location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  request_type(98, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), request_type(98, crit_e::ignore)
 {}
 SRSASN_CODE location_report_ctrl_ies_container::pack(bit_ref& bref) const
 {
@@ -49021,9 +48895,7 @@ void location_report_ctrl_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<location_report_fail_ind_ies_o>;
 
 location_report_fail_ind_ies_container::location_report_fail_ind_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  cause(2, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), cause(2, crit_e::ignore)
 {}
 SRSASN_CODE location_report_fail_ind_ies_container::pack(bit_ref& bref) const
 {
@@ -49115,8 +48987,7 @@ void location_report_fail_ind_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<mmecp_relocation_ind_ies_o>;
 
 mmecp_relocation_ind_ies_container::mmecp_relocation_ind_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject)
 {}
 SRSASN_CODE mmecp_relocation_ind_ies_container::pack(bit_ref& bref) const
 {
@@ -49361,9 +49232,7 @@ void mme_cfg_upd_ack_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_upd_fail_ies_o>;
 
 mme_cfg_upd_fail_ies_container::mme_cfg_upd_fail_ies_container() :
-  cause(2, crit_e::ignore),
-  time_to_wait(65, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  cause(2, crit_e::ignore), time_to_wait(65, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE mme_cfg_upd_fail_ies_container::pack(bit_ref& bref) const
 {
@@ -49581,8 +49450,7 @@ void mme_status_transfer_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<nas_delivery_ind_ies_o>;
 
 nas_delivery_ind_ies_container::nas_delivery_ind_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject)
 {}
 SRSASN_CODE nas_delivery_ind_ies_container::pack(bit_ref& bref) const
 {
@@ -49769,9 +49637,7 @@ void nas_non_delivery_ind_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<overload_start_ies_o>;
 
 overload_start_ies_container::overload_start_ies_container() :
-  overload_resp(101, crit_e::reject),
-  gummei_list(154, crit_e::ignore),
-  traffic_load_reduction_ind(161, crit_e::ignore)
+  overload_resp(101, crit_e::reject), gummei_list(154, crit_e::ignore), traffic_load_reduction_ind(161, crit_e::ignore)
 {}
 SRSASN_CODE overload_start_ies_container::pack(bit_ref& bref) const
 {
@@ -49895,8 +49761,7 @@ void overload_stop_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<pws_fail_ind_ies_o>;
 
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
-  pw_sfailed_ecgi_list(222, crit_e::reject),
-  global_enb_id(59, crit_e::reject)
+  pw_sfailed_ecgi_list(222, crit_e::reject), global_enb_id(59, crit_e::reject)
 {}
 SRSASN_CODE pws_fail_ind_ies_container::pack(bit_ref& bref) const
 {
@@ -50983,8 +50848,7 @@ void path_switch_request_fail_s::to_json(json_writer& j) const
 
 template <class valueT_>
 private_ie_container_item_s<valueT_>::private_ie_container_item_s(private_ie_id_c id_, crit_e crit_) :
-  id(id_),
-  crit(crit_)
+  id(id_), crit(crit_)
 
 {}
 template <class valueT_>
@@ -51295,8 +51159,7 @@ void reset_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<reset_ack_ies_o>;
 
 reset_ack_ies_container::reset_ack_ies_container() :
-  ue_associated_lc_s1_conn_list_res_ack(93, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  ue_associated_lc_s1_conn_list_res_ack(93, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE reset_ack_ies_container::pack(bit_ref& bref) const
 {
@@ -51405,9 +51268,7 @@ void retrieve_ue_info_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<s1_setup_fail_ies_o>;
 
 s1_setup_fail_ies_container::s1_setup_fail_ies_container() :
-  cause(2, crit_e::ignore),
-  time_to_wait(65, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  cause(2, crit_e::ignore), time_to_wait(65, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE s1_setup_fail_ies_container::pack(bit_ref& bref) const
 {
@@ -51926,9 +51787,7 @@ void trace_fail_ind_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<trace_start_ies_o>;
 
 trace_start_ies_container::trace_start_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  trace_activation(25, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), trace_activation(25, crit_e::ignore)
 {}
 SRSASN_CODE trace_start_ies_container::pack(bit_ref& bref) const
 {
@@ -52352,9 +52211,7 @@ void ue_context_mod_fail_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_ind_ies_o>;
 
 ue_context_mod_ind_ies_container::ue_context_mod_ind_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  csg_membership_info(226, crit_e::reject)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), csg_membership_info(226, crit_e::reject)
 {}
 SRSASN_CODE ue_context_mod_ind_ies_container::pack(bit_ref& bref) const
 {
@@ -52730,9 +52587,7 @@ void ue_context_mod_request_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
 
 ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::ignore),
-  enb_ue_s1ap_id(8, crit_e::ignore),
-  crit_diagnostics(58, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::ignore), enb_ue_s1ap_id(8, crit_e::ignore), crit_diagnostics(58, crit_e::ignore)
 {}
 SRSASN_CODE ue_context_mod_resp_ies_container::pack(bit_ref& bref) const
 {
@@ -52829,8 +52684,7 @@ void ue_context_mod_resp_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
-  ue_s1ap_ids(99, crit_e::reject),
-  cause(2, crit_e::ignore)
+  ue_s1ap_ids(99, crit_e::reject), cause(2, crit_e::ignore)
 {}
 SRSASN_CODE ue_context_release_cmd_ies_container::pack(bit_ref& bref) const
 {
@@ -53880,9 +53734,7 @@ void ue_info_transfer_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<ue_radio_cap_match_request_ies_o>;
 
 ue_radio_cap_match_request_ies_container::ue_radio_cap_match_request_ies_container() :
-  mme_ue_s1ap_id(0, crit_e::reject),
-  enb_ue_s1ap_id(8, crit_e::reject),
-  ue_radio_cap(74, crit_e::ignore)
+  mme_ue_s1ap_id(0, crit_e::reject), enb_ue_s1ap_id(8, crit_e::reject), ue_radio_cap(74, crit_e::ignore)
 {}
 SRSASN_CODE ue_radio_cap_match_request_ies_container::pack(bit_ref& bref) const
 {
@@ -54247,8 +54099,7 @@ void ul_nas_transport_s::to_json(json_writer& j) const
 template struct asn1::s1ap::protocol_ie_field_s<ul_non_ueassociated_lp_pa_transport_ies_o>;
 
 ul_non_ueassociated_lp_pa_transport_ies_container::ul_non_ueassociated_lp_pa_transport_ies_container() :
-  routing_id(148, crit_e::reject),
-  lp_pa_pdu(147, crit_e::reject)
+  routing_id(148, crit_e::reject), lp_pa_pdu(147, crit_e::reject)
 {}
 SRSASN_CODE ul_non_ueassociated_lp_pa_transport_ies_container::pack(bit_ref& bref) const
 {
@@ -57141,8 +56992,8 @@ s1ap_elem_procs_o::successful_outcome_c::successful_outcome_c(const s1ap_elem_pr
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::successful_outcome_c");
   }
 }
-s1ap_elem_procs_o::successful_outcome_c& s1ap_elem_procs_o::successful_outcome_c::
-                                         operator=(const s1ap_elem_procs_o::successful_outcome_c& other)
+s1ap_elem_procs_o::successful_outcome_c&
+s1ap_elem_procs_o::successful_outcome_c::operator=(const s1ap_elem_procs_o::successful_outcome_c& other)
 {
   if (this == &other) {
     return *this;
@@ -57606,8 +57457,8 @@ s1ap_elem_procs_o::unsuccessful_outcome_c::unsuccessful_outcome_c(
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::unsuccessful_outcome_c");
   }
 }
-s1ap_elem_procs_o::unsuccessful_outcome_c& s1ap_elem_procs_o::unsuccessful_outcome_c::
-                                           operator=(const s1ap_elem_procs_o::unsuccessful_outcome_c& other)
+s1ap_elem_procs_o::unsuccessful_outcome_c&
+s1ap_elem_procs_o::unsuccessful_outcome_c::operator=(const s1ap_elem_procs_o::unsuccessful_outcome_c& other)
 {
   if (this == &other) {
     return *this;
@@ -57781,7 +57632,7 @@ uint8_t s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::to_number() const
 SRSASN_CODE init_msg_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, proc_code, (uint16_t)0u, (uint16_t)255u, false, true));
-  s1ap_asn1_warn_assert(crit != s1ap_elem_procs_o::get_crit(proc_code), __func__, __LINE__);
+  warn_assert(crit != s1ap_elem_procs_o::get_crit(proc_code), __func__, __LINE__);
   HANDLE_CODE(crit.pack(bref));
   HANDLE_CODE(value.pack(bref));
 
@@ -57935,8 +57786,8 @@ last_visited_eutran_cell_info_ext_ies_o::ext_c::ext_c(const last_visited_eutran_
       log_invalid_choice_id(type_, "last_visited_eutran_cell_info_ext_ies_o::ext_c");
   }
 }
-last_visited_eutran_cell_info_ext_ies_o::ext_c& last_visited_eutran_cell_info_ext_ies_o::ext_c::
-                                                operator=(const last_visited_eutran_cell_info_ext_ies_o::ext_c& other)
+last_visited_eutran_cell_info_ext_ies_o::ext_c&
+last_visited_eutran_cell_info_ext_ies_o::ext_c::operator=(const last_visited_eutran_cell_info_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -58020,8 +57871,7 @@ uint8_t last_visited_eutran_cell_info_ext_ies_o::ext_c::types_opts::to_number() 
 template struct asn1::s1ap::protocol_ext_field_s<last_visited_eutran_cell_info_ext_ies_o>;
 
 last_visited_eutran_cell_info_ext_ies_container::last_visited_eutran_cell_info_ext_ies_container() :
-  time_ue_stayed_in_cell_enhanced_granularity(167, crit_e::ignore),
-  ho_cause(168, crit_e::ignore)
+  time_ue_stayed_in_cell_enhanced_granularity(167, crit_e::ignore), ho_cause(168, crit_e::ignore)
 {}
 SRSASN_CODE last_visited_eutran_cell_info_ext_ies_container::pack(bit_ref& bref) const
 {
@@ -58392,8 +58242,8 @@ multi_cell_load_report_resp_item_c::multi_cell_load_report_resp_item_c(const mul
       log_invalid_choice_id(type_, "multi_cell_load_report_resp_item_c");
   }
 }
-multi_cell_load_report_resp_item_c& multi_cell_load_report_resp_item_c::
-                                    operator=(const multi_cell_load_report_resp_item_c& other)
+multi_cell_load_report_resp_item_c&
+multi_cell_load_report_resp_item_c::operator=(const multi_cell_load_report_resp_item_c& other)
 {
   if (this == &other) {
     return *this;
@@ -58525,7 +58375,7 @@ void report_cell_list_item_s::to_json(json_writer& j) const
 SRSASN_CODE successful_outcome_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, proc_code, (uint16_t)0u, (uint16_t)255u, false, true));
-  s1ap_asn1_warn_assert(crit != s1ap_elem_procs_o::get_crit(proc_code), __func__, __LINE__);
+  warn_assert(crit != s1ap_elem_procs_o::get_crit(proc_code), __func__, __LINE__);
   HANDLE_CODE(crit.pack(bref));
   HANDLE_CODE(value.pack(bref));
 
@@ -58564,7 +58414,7 @@ bool successful_outcome_s::load_info_obj(const uint16_t& proc_code_)
 SRSASN_CODE unsuccessful_outcome_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(pack_integer(bref, proc_code, (uint16_t)0u, (uint16_t)255u, false, true));
-  s1ap_asn1_warn_assert(crit != s1ap_elem_procs_o::get_crit(proc_code), __func__, __LINE__);
+  warn_assert(crit != s1ap_elem_procs_o::get_crit(proc_code), __func__, __LINE__);
   HANDLE_CODE(crit.pack(bref));
   HANDLE_CODE(value.pack(bref));
 
@@ -59067,8 +58917,8 @@ so_ntransfer_request_container_c::so_ntransfer_request_container_c(const so_ntra
       log_invalid_choice_id(type_, "so_ntransfer_request_container_c");
   }
 }
-so_ntransfer_request_container_c& so_ntransfer_request_container_c::
-                                  operator=(const so_ntransfer_request_container_c& other)
+so_ntransfer_request_container_c&
+so_ntransfer_request_container_c::operator=(const so_ntransfer_request_container_c& other)
 {
   if (this == &other) {
     return *this;
@@ -59573,8 +59423,8 @@ sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c::ext_c(
   }
 }
 sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c&
-sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c::
-operator=(const sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c& other)
+sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c::operator=(
+    const sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c& other)
 {
   if (this == &other) {
     return *this;
@@ -59653,8 +59503,7 @@ template struct asn1::s1ap::protocol_ext_field_s<sourceenb_to_targetenb_transpar
 
 sourceenb_to_targetenb_transparent_container_ext_ies_container::
     sourceenb_to_targetenb_transparent_container_ext_ies_container() :
-  mob_info(175, crit_e::ignore),
-  ue_history_info_from_the_ue(194, crit_e::ignore)
+  mob_info(175, crit_e::ignore), ue_history_info_from_the_ue(194, crit_e::ignore)
 {}
 SRSASN_CODE sourceenb_to_targetenb_transparent_container_ext_ies_container::pack(bit_ref& bref) const
 {

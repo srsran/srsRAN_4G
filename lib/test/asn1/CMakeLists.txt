@@ -50,16 +50,12 @@ add_executable(asn1_utils_test asn1_utils_test.cc)
 target_link_libraries(asn1_utils_test asn1_utils srslte_common)
 add_test(asn1_utils_test asn1_utils_test)
 
-add_executable(rrc_asn1_test rrc_asn1_test.cc)
+add_executable(rrc_asn1_test rrc_test.cc)
 target_link_libraries(rrc_asn1_test rrc_asn1 asn1_utils srslte_common)
 add_test(rrc_asn1_test rrc_asn1_test)
 
-add_executable(s1ap_asn1_test s1ap_asn1_test.cc)
-target_link_libraries(s1ap_asn1_test s1ap_asn1 asn1_utils srslte_common)
-add_test(s1ap_asn1_test s1ap_asn1_test)
-
 if (ENABLE_5GNR)
-    add_executable(ngap_asn1_test ngap_asn1_test.cc)
+    add_executable(ngap_asn1_test ngap_test.cc)
     target_link_libraries(ngap_asn1_test ngap_nr_asn1 srslte_common)
     add_test(ngap_asn1_test ngap_asn1_test)
 endif(ENABLE_5GNR)

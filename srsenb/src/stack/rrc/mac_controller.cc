@@ -20,7 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/interfaces/sched_interface.h"
 
 namespace srsenb {

@@ -20,7 +20,7 @@
  */
 
 #include "srsenb/hdr/phy/txrx.h"
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/phy/channel/channel.h"

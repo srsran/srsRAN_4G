@@ -21,7 +21,7 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/src/enb_cfg_parser.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/test_common.h"
 #include "test_helpers.h"
 #include <iostream>

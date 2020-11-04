@@ -19,8 +19,8 @@
  *
  */
 
-#include "srslte/asn1/rrc_nr_asn1_utils.h"
-#include "srslte/asn1/rrc_nr_asn1.h"
+#include "srslte/asn1/rrc_nr_utils.h"
+#include "srslte/asn1/rrc_nr.h"
 #include "srslte/config.h"
 #include <algorithm>
 

@@ -20,7 +20,7 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc.h"
-#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"

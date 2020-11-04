@@ -36,23 +36,6 @@ namespace asn1 {
 namespace rrc_nr {
 
 /*******************************************************************************
- *                        Functions for external logging
- ******************************************************************************/
-
-void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
-
-void assert_choice_type(uint32_t val, uint32_t choice_id);
-
-void assert_choice_type(const std::string& access_type,
-                        const std::string& current_type,
-                        const std::string& choice_type);
-
-const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
-
-template <class ItemType>
-ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
-
-/*******************************************************************************
  *                             Constant Definitions
  ******************************************************************************/
 

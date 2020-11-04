@@ -22,7 +22,7 @@
 #ifndef SRSUE_TTCN3_SYS_INTERFACE_H
 #define SRSUE_TTCN3_SYS_INTERFACE_H
 
-#include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/buffer_pool.h"
 #include "ttcn3_helpers.h"
 #include "ttcn3_interfaces.h"
