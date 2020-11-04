@@ -163,6 +163,7 @@ private:
   // Airplane mode simulation
   typedef enum { DISABLED = 0, ENABLED } airplane_mode_state_t;
   airplane_mode_state_t airplane_mode_state = {};
+  srslte::timer_handler::unique_timer airplane_mode_sim_timer;
 
   // PCAP
   srslte::nas_pcap* pcap = nullptr;
@@ -226,7 +227,6 @@ private:
 
   // Other internal helpers
   void enter_state(emm_state_t state_);
-  void handle_airplane_mode_sim();
   void enter_emm_deregistered();
 
   // security context persistence file
