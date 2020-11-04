@@ -190,4 +190,4 @@ set(test_name LDPC-RM-BG1)
 set(test_command ldpc_rm_test)
 ldpc_rm_unit_tests(${lifting_sizes})
 
-add_test(NAME LDPC-RM-chain COMMAND ldpc_rm_chain_test)
+add_test(NAME LDPC-RM-chain COMMAND ldpc_rm_chain_test -E 1 -B 1)

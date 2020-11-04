@@ -32,6 +32,7 @@
  * Options:
  *  - **-b \<number\>** Base Graph (1 or 2. Default 1).
  *  - **-l \<number\>** Lifting Size (according to 5GNR standard. Default 2).
+ *  - **-R \<number\>** Number of times tests are repeated (for computing throughput).
  */
 
 #include <stdio.h>
@@ -48,8 +49,8 @@ int                lift_size  = 2;   /*!< \brief Lifting Size. */
 int                finalK;           /*!< \brief Number of uncoded bits (message length). */
 int                finalN;           /*!< \brief Number of coded bits (codeword length). */
 
-#define NOF_MESSAGES 10 /*!< \brief Number of codewords in the test. */
-#define NOF_REPS 1000   /*!< \brief Number of times tests are repeated (for computing throughput). */
+#define NOF_MESSAGES 10  /*!< \brief Number of codewords in the test. */
+static int nof_reps = 1; /*!< \brief Number of times tests are repeated (for computing throughput). */
 
 /*!
  * \brief Prints test help when a wrong parameter is passed as input.
@@ -59,6 +60,7 @@ void usage(char* prog)
   printf("Usage: %s [-bX] [-lX]\n", prog);
   printf("\t-b Base Graph [(1 or 2) Default %d]\n", base_graph + 1);
   printf("\t-l Lifting Size [Default %d]\n", lift_size);
+  printf("\t-R Number of times tests are repeated (for computing throughput). [Default %d]\n", lift_size);
 }
 
 /*!
@@ -67,13 +69,16 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt = 0;
-  while ((opt = getopt(argc, argv, "b:l:")) != -1) {
+  while ((opt = getopt(argc, argv, "b:l:R:")) != -1) {
     switch (opt) {
       case 'b':
         base_graph = (int)strtol(optarg, NULL, 10) - 1;
         break;
       case 'l':
         lift_size = (int)strtol(optarg, NULL, 10);
+        break;
+      case 'R':
+        nof_reps = (int)strtol(optarg, NULL, 10);
         break;
       default:
         usage(argv[0]);
@@ -195,14 +200,14 @@ int main(int argc, char** argv)
   for (j = 0; j < NOF_MESSAGES; j++) {
     printf("  codeword %d\n", j);
     gettimeofday(&t[1], NULL);
-    for (l = 0; l < NOF_REPS; l++) {
-      srslte_ldpc_encoder_encode(&encoder, messages + j * finalK, codewords_sim + j * finalN, finalK, finalN);
+    for (l = 0; l < nof_reps; l++) {
+      srslte_ldpc_encoder_encode_rm(&encoder, messages + j * finalK, codewords_sim + j * finalN, finalK, finalN);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     elapsed_time += t[0].tv_sec + 1e-6 * t[0].tv_usec;
   }
-  printf("Elapsed time: %e s\n", elapsed_time / NOF_REPS);
+  printf("Elapsed time: %e s\n", elapsed_time / nof_reps);
 
   printf("\nVerifing results...\n");
   for (i = 0; i < NOF_MESSAGES * finalN; i++) {
@@ -213,9 +218,9 @@ int main(int argc, char** argv)
   }
 
   printf("Estimated throughput:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-         NOF_MESSAGES / (elapsed_time / NOF_REPS),
-         NOF_MESSAGES * finalK / (elapsed_time / NOF_REPS),
-         NOF_MESSAGES * finalN / (elapsed_time / NOF_REPS));
+         NOF_MESSAGES / (elapsed_time / nof_reps),
+         NOF_MESSAGES * finalK / (elapsed_time / nof_reps),
+         NOF_MESSAGES * finalN / (elapsed_time / nof_reps));
 
   printf("\nTest completed successfully!\n\n");
 

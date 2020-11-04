@@ -714,6 +714,7 @@ int main(int argc, char** argv)
   free(data_rx);
   free(data_rx_s);
   free(data_rx_c);
+  free(data_rx_c_avx2);
 
   free(input_enc);
   free(output_enc);
@@ -722,10 +723,12 @@ int main(int argc, char** argv)
   free(llr);
   free(llr_s);
   free(llr_c);
+  free(llr_c_avx2);
 
   free(output_dec);
   free(output_dec_s);
   free(output_dec_c);
+  free(output_dec_c_avx2);
 
 #ifdef DATA_ALL_ONES
 #else

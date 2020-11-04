@@ -18,20 +18,25 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(FEC_SOURCES ${FEC_SOURCES}
+if (HAVE_AVX2)
+    set(AVX2_SOURCES
+            ldpc/ldpc_dec_c_avx2.c
+            ldpc/ldpc_dec_c_avx2long.c
+            ldpc/ldpc_dec_c_avx2_flood.c
+            ldpc/ldpc_dec_c_avx2long_flood.c
+            ldpc/ldpc_enc_avx2.c
+            ldpc/ldpc_enc_avx2long.c
+            )
+endif (HAVE_AVX2)
+
+set(FEC_SOURCES ${FEC_SOURCES} ${AVX2_SOURCES}
         ldpc/base_graph.c
         ldpc/ldpc_dec_f.c
         ldpc/ldpc_dec_s.c
         ldpc/ldpc_dec_c.c
         ldpc/ldpc_dec_c_flood.c
-        ldpc/ldpc_dec_c_avx2.c
-        ldpc/ldpc_dec_c_avx2long.c
-        ldpc/ldpc_dec_c_avx2_flood.c
-        ldpc/ldpc_dec_c_avx2long_flood.c
         ldpc/ldpc_decoder.c
         ldpc/ldpc_enc_c.c
-        ldpc/ldpc_enc_avx2.c
-        ldpc/ldpc_enc_avx2long.c
         ldpc/ldpc_encoder.c
         ldpc/ldpc_rm.c
         PARENT_SCOPE)

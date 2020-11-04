@@ -380,11 +380,16 @@ void srslte_ldpc_encoder_free(srslte_ldpc_encoder_t* q)
   bzero(q, sizeof(srslte_ldpc_encoder_t));
 }
 
-int srslte_ldpc_encoder_encode(srslte_ldpc_encoder_t* q,
-                               const uint8_t*         input,
-                               uint8_t*               output,
-                               uint32_t               input_length,
-                               uint32_t               cdwd_rm_length)
+int srslte_ldpc_encoder_encode(srslte_ldpc_encoder_t* q, const uint8_t* input, uint8_t* output, uint32_t input_length)
+{
+  return q->encode(q, input, output, input_length, q->liftN - 2 * q->ls);
+}
+
+int srslte_ldpc_encoder_encode_rm(srslte_ldpc_encoder_t* q,
+                                  const uint8_t*         input,
+                                  uint8_t*               output,
+                                  uint32_t               input_length,
+                                  uint32_t               cdwd_rm_length)
 {
   return q->encode(q, input, output, input_length, cdwd_rm_length);
 }

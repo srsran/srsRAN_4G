@@ -92,13 +92,24 @@ SRSLTE_API void srslte_ldpc_encoder_free(srslte_ldpc_encoder_t* q);
  * \param[in] input The message to encode.
  * \param[out] output The resulting codeword.
  * \param[in] input_length The number of uncoded bits in the input message.
+ * \return An integer: 0 if the function executes correctly, -1 otherwise.
+ */
+SRSLTE_API int
+srslte_ldpc_encoder_encode(srslte_ldpc_encoder_t* q, const uint8_t* input, uint8_t* output, uint32_t input_length);
+
+/*!
+ * Encodes a message into a codeword with the specified encoder.
+ * \param[in] q A pointer to the desired encoder.
+ * \param[in] input The message to encode.
+ * \param[out] output The resulting codeword.
+ * \param[in] input_length The number of uncoded bits in the input message.
  * \param[in] cdwd_rm_length The codeword length after rate matching.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
  */
-SRSLTE_API int srslte_ldpc_encoder_encode(srslte_ldpc_encoder_t* q,
-                                          const uint8_t*         input,
-                                          uint8_t*               output,
-                                          uint32_t               input_length,
-                                          uint32_t               cdwd_rm_length);
+SRSLTE_API int srslte_ldpc_encoder_encode_rm(srslte_ldpc_encoder_t* q,
+                                             const uint8_t*         input,
+                                             uint8_t*               output,
+                                             uint32_t               input_length,
+                                             uint32_t               cdwd_rm_length);
 
 #endif // SRSLTE_LDPCENCODER_H

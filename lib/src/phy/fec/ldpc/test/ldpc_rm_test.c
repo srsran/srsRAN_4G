@@ -51,18 +51,19 @@
 #include "srslte/phy/fec/ldpc/ldpc_rm.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/random.h"
+#include "srslte/phy/utils/vector.h"
 
-srslte_basegraph_t base_graph = BG2;  /*!< \brief Base Graph (BG1 or BG2). */
-uint32_t           lift_size  = 208;  /*!< \brief Lifting Size. */
-uint32_t           C          = 2;    /*!< \brief Number of code block segments (CBS). */
-uint32_t           F          = 10;   /*!< \brief Number of filler bits in each CBS. */
-uint32_t           E          = 0;    /*!< \brief Rate-matched codeword size (E = 0, no rate matching). */
-uint8_t            rv         = 0;    /*!< \brief Redundancy version {0-3}. */
-mod_type_t         mod_type   = QPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256. */
-uint32_t           Nref       = 0;    /*!< \brief Limited buffer size.*/
+static srslte_basegraph_t base_graph = BG2;  /*!< \brief Base Graph (BG1 or BG2). */
+static uint32_t           lift_size  = 208;  /*!< \brief Lifting Size. */
+static uint32_t           C          = 2;    /*!< \brief Number of code block segments (CBS). */
+static uint32_t           F          = 10;   /*!< \brief Number of filler bits in each CBS. */
+static uint32_t           E          = 0;    /*!< \brief Rate-matched codeword size (E = 0, no rate matching). */
+static uint8_t            rv         = 0;    /*!< \brief Redundancy version {0-3}. */
+static mod_type_t         mod_type   = QPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256. */
+static uint32_t           Nref       = 0;    /*!< \brief Limited buffer size.*/
 
-uint32_t N = 0; /*!< \brief Codeblock size (including punctured and filler bits). */
-uint32_t K = 0; /*!< \brief Codeword size. */
+static uint32_t N = 0; /*!< \brief Codeblock size (including punctured and filler bits). */
+static uint32_t K = 0; /*!< \brief Codeword size. */
 
 /*!
  * \brief Prints test help when a wrong parameter is passed as input.
@@ -218,7 +219,6 @@ int main(int argc, char** argv)
   // Generate random bits
   for (r = 0; r < C; r++) {
     for (i = 0; i < K - F; i++) {
-      // codeblock_seg[i] = rand() % 2;
       codeblocks[r * K + i] = srslte_random_uniform_int_dist(random_gen, 0, 1);
     }
     for (; i < K; i++) { // add filler bits
@@ -226,14 +226,10 @@ int main(int argc, char** argv)
     }
   }
 
-  // lDPC Encoding
-  // compute the number of symbols that we need to encode/decode: at least (E + F) if E+F < N,
-  unsigned int n_useful_symbols = (E + F);
-
   // Encode messages
   // gettimeofday(&t[1], NULL);
   for (r = 0; r < C; r++) {
-    if (srslte_ldpc_encoder_encode(&encoder, codeblocks + r * K, codewords + r * N, K, n_useful_symbols)) {
+    if (srslte_ldpc_encoder_encode(&encoder, codeblocks + r * K, codewords + r * N, K)) {
       exit(-1);
     }
 

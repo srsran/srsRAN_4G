@@ -35,6 +35,7 @@
 #include "../utils_avx2.h"
 #include "polar_decoder_vector_avx2.h"
 #include "srslte/phy/fec/polar/polar_encoder.h"
+#include "srslte/phy/utils/vector.h"
 
 #ifdef LV_HAVE_AVX2
 
@@ -148,7 +149,8 @@ void* create_polar_decoder_ssc_c_avx2(uint16_t* frozen_set, const uint8_t code_s
     return NULL;
   }
 
-  if ((pp->param->code_stage_size = malloc((code_size_log + 1) * sizeof(uint16_t))) == NULL) {
+  printf("-- code_stage_size=%d;\n", code_size_log + 1);
+  if ((pp->param->code_stage_size = srslte_vec_u16_malloc(code_size_log + 1)) == NULL) {
     free(pp->param);
     free(pp->enc);
     free(pp);
@@ -315,7 +317,10 @@ static void simplified_node(struct pSSC_c_avx2* p)
   uint8_t* estbits1 = NULL;
 
   uint16_t stage_size      = pp->param->code_stage_size[stage];
-  uint16_t stage_half_size = pp->param->code_stage_size[stage - 1];
+  uint16_t stage_half_size = 0;
+  if (stage > 0) {
+    stage_half_size = pp->param->code_stage_size[stage - 1];
+  }
 
   switch (pp->param->node_type[stage][bit_pos]) {
 
