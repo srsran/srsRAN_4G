@@ -19,13 +19,15 @@
  *
  */
 
-#include <math.h>
-#include <strings.h>
-
-#include "srslte/phy/fec/turbo/cbsegm.h"
+#include "srslte/phy/fec/cbsegm.h"
+#include "srslte/phy/fec/ldpc/base_graph.h"
 #include "srslte/phy/fec/turbo/turbodecoder_gen.h"
 #include "srslte/phy/utils/debug.h"
+#include <strings.h>
 
+/**
+ * TS 36.212 V8.8.0 Table 5.1.3-3: Turbo code internal interleaver parameters
+ */
 const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = {
     40,   48,   56,   64,   72,   80,   88,   96,   104,  112,  120,  128,  136,  144,  152,  160,  168,  176,  184,
     192,  200,  208,  216,  224,  232,  240,  248,  256,  264,  272,  280,  288,  296,  304,  312,  320,  328,  336,
@@ -38,13 +40,26 @@ const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = {
     3904, 3968, 4032, 4096, 4160, 4224, 4288, 4352, 4416, 4480, 4544, 4608, 4672, 4736, 4800, 4864, 4928, 4992, 5056,
     5120, 5184, 5248, 5312, 5376, 5440, 5504, 5568, 5632, 5696, 5760, 5824, 5888, 5952, 6016, 6080, 6144};
 
+#define CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
+
 /**
- * Calculate Codeblock Segmentation parameters as in Section 5.1.2 of 36.212
- *
- * @param[out] s Output of code block segmentation calculation
- * @param[in] tbs Input Transport Block Size in bits. CRC's will be added to this
- * @return Error code
+ * @brief Calculates the number of code blocks and the total size
+ * @param[in] B Transport block size including TB CRC
+ * @param[in] Z Maximum transport block size
+ * @param[out] C Number of code blocks
+ * @param[out] B_prime Code block size
  */
+static void cbsegm_cb_size(uint32_t B, uint32_t Z, uint32_t* C, uint32_t* B_prime)
+{
+  if (B <= Z) {
+    *C       = 1;
+    *B_prime = B;
+  } else {
+    *C       = CEIL(B, (Z - 24U));
+    *B_prime = B + 24U * (*C);
+  }
+}
+
 int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
 {
   uint32_t Bp, B, idx1;
@@ -57,14 +72,9 @@ int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
     B      = tbs + 24;
     s->tbs = tbs;
 
-    /* Calculate CB sizes */
-    if (B <= SRSLTE_TCOD_MAX_LEN_CB) {
-      s->C = 1;
-      Bp   = B;
-    } else {
-      s->C = (uint32_t)ceilf((float)B / (SRSLTE_TCOD_MAX_LEN_CB - 24));
-      Bp   = B + 24 * s->C;
-    }
+    // Calculate CB sizes
+    cbsegm_cb_size(B, SRSLTE_TCOD_MAX_LEN_CB, &s->C, &Bp);
+
     ret = srslte_cbsegm_cbindex((Bp - 1) / s->C + 1);
     if (ret != SRSLTE_ERROR) {
       idx1 = (uint32_t)ret;
@@ -105,11 +115,6 @@ int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
   return ret;
 }
 
-/*
- * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
- *
- * @return I_TBS or error code
- */
 int srslte_cbsegm_cbindex(uint32_t long_cb)
 {
   int j = 0;
@@ -124,11 +129,6 @@ int srslte_cbsegm_cbindex(uint32_t long_cb)
   }
 }
 
-/*
- * Returns Turbo coder interleaver size for Table 5.1.3-3 (36.212) index
- *
- * @return Code block size in bits or error code
- */
 int srslte_cbsegm_cbsize(uint32_t index)
 {
   if (index < SRSLTE_NOF_TC_CB_SIZES) {
@@ -138,12 +138,6 @@ int srslte_cbsegm_cbsize(uint32_t index)
   }
 }
 
-/**
- * Check is code block size is valid for LTE Turbo Code
- *
- * @param[in] size Size of code block in bits
- * @return true if Code Block size is allowed
- */
 bool srslte_cbsegm_cbsize_isvalid(uint32_t size)
 {
   for (int i = 0; i < SRSLTE_NOF_TC_CB_SIZES; i++) {
@@ -152,4 +146,117 @@ bool srslte_cbsegm_cbsize_isvalid(uint32_t size)
     }
   }
   return false;
+}
+
+/**
+ * @brief Selects a lifting size Z_c that satisfies K_b · Z_c >= Kp
+ * @param[in] Kp actual code block size
+ * @param[in] K_b Some constant
+ * @param[out] Z_c Lifting size
+ * @param[out] i_ls Lifting size group index
+ */
+static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8_t* i_ls)
+{
+  // Early return if the minimum required lift size is too high
+  if (Kp / K_b > MAX_LIFTSIZE) {
+    return SRSLTE_ERROR;
+  }
+
+  // Iterate from the minimum required lift size to the maximum value
+  for (uint16_t Z = Kp / K_b; Z < MAX_LIFTSIZE; Z++) {
+    // Get index for a selected lifting size
+    uint8_t i = get_ls_index(Z);
+
+    // If the lifting index is valid, save outputs and return
+    if (i != VOID_LIFTSIZE) {
+
+      if (i_ls) {
+        *i_ls = i;
+      }
+
+      if (Z_c) {
+        *Z_c = Z;
+      }
+
+      return SRSLTE_SUCCESS;
+    }
+
+    // Otherwise continue...
+  }
+
+  return SRSLTE_ERROR;
+}
+
+static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_t tbs)
+{
+  // Check input pointer
+  if (s == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Early return if no TBS is provided
+  if (tbs == 0) {
+    bzero(s, sizeof(srslte_cbsegm_t));
+    return SRSLTE_SUCCESS;
+  }
+
+  // Select maximum code block size
+  uint32_t K_cb = (bg == BG1) ? SRSLTE_LDPC_BG1_MAX_LEN_CB : SRSLTE_LDPC_BG2_MAX_LEN_CB;
+
+  // Calculate CB sizes
+  uint32_t B  = tbs + 24;
+  uint32_t C  = 0;
+  uint32_t Bp = 0;
+  cbsegm_cb_size(B, K_cb, &C, &Bp);
+
+  // Calculate the code block size
+  uint32_t Kp  = Bp / C;
+  uint32_t K_b = 22;
+  if (bg == BG2) {
+    if (B > 640) {
+      K_b = 10;
+    } else if (B > 560) {
+      K_b = 9;
+    } else if (B > 192) {
+      K_b = 8;
+    } else {
+      K_b = 6;
+    }
+  }
+
+  // Select lifting size
+  uint8_t  i_ls = 0;
+  uint32_t Z_c  = 0;
+  int      ret  = cbsegm_ldpc_select_ls(Kp, K_b, &Z_c, &i_ls);
+  if (ret < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+  uint32_t K = Z_c * ((bg == BG1) ? 22U : 10U);
+
+  // Save segmentation
+  s->tbs    = tbs;
+  s->C      = C;
+  s->F      = K * C;
+  s->C1     = C;
+  s->K1     = K;
+  s->K1_idx = i_ls;
+
+  // Only one CB size is used
+  s->C2     = 0;
+  s->K2     = 0;
+  s->K2_idx = 0;
+
+  INFO("LDPC CB Segmentation: TBS: %d, C=%d, K=%d, F=%d, Bp=%d\n", tbs, s->C, s->K1, s->F, Bp);
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_cbsegm_ldpc_bg1(srslte_cbsegm_t* s, uint32_t tbs)
+{
+  return srslte_cbsegm_ldpc(s, BG1, tbs);
+}
+
+int srslte_cbsegm_ldpc_bg2(srslte_cbsegm_t* s, uint32_t tbs)
+{
+  return srslte_cbsegm_ldpc(s, BG2, tbs);
 }

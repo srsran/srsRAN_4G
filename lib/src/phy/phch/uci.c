@@ -29,10 +29,10 @@
 #include <strings.h>
 
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/convolutional/convcoder.h"
 #include "srslte/phy/fec/convolutional/rm_conv.h"
 #include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/turbo/cbsegm.h"
 #include "srslte/phy/phch/uci.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"

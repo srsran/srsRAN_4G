@@ -19,6 +19,7 @@
 #
 
 set(FEC_SOURCES
+        cbsegm.c
         crc.c
         softbuffer.c)
 

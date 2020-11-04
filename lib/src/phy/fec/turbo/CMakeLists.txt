@@ -19,7 +19,6 @@
 #
 
 set(FEC_SOURCES ${FEC_SOURCES}
-        turbo/cbsegm.c
         turbo/rm_conv.c
         turbo/rm_turbo.c
         turbo/tc_interl_lte.c

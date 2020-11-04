@@ -41,6 +41,9 @@
 
 #include <stdint.h>
 
+#define SRSLTE_LDPC_BG1_MAX_LEN_CB 8448 /*!< \brief Maximum code block size for LDPC BG1 */
+#define SRSLTE_LDPC_BG2_MAX_LEN_CB 3840 /*!< \brief Maximum code block size for LDPC BG2 */
+
 #define BG1Nfull 68 /*!< \brief Number of variable nodes in BG1. */
 #define BG1N 66     /*!< \brief Number of variable nodes in BG1 after puncturing. */
 #define BG1M 46     /*!< \brief Number of check nodes in BG1. */
