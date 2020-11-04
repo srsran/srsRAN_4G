@@ -39,48 +39,19 @@ target_link_libraries(ldpc_rm_test srslte_phy)
 add_executable(ldpc_rm_chain_test ldpc_rm_chain_test.c)
 target_link_libraries(ldpc_rm_chain_test srslte_phy)
 
-set_target_properties(ldpc_enc_test ldpc_dec_test ldpc_dec_s_test ldpc_dec_c_test ldpc_chain_test ldpc_rm_test ldpc_rm_chain_test
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/tests/ldpc"
-)
-
 if(HAVE_AVX2)
   add_executable(ldpc_enc_avx2_test ldpc_enc_avx2_test.c)
   target_link_libraries(ldpc_enc_avx2_test srslte_phy)
 
   add_executable(ldpc_dec_avx2_test ldpc_dec_avx2_test.c)
   target_link_libraries(ldpc_dec_avx2_test srslte_phy)
-
-  set_target_properties(ldpc_dec_avx2_test ldpc_enc_avx2_test
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/tests/ldpc"
-  )
 endif(HAVE_AVX2)
-
-add_custom_command(
-  OUTPUT ${PROJECT_SOURCE_DIR}/tests/ldpc/examplesBG1.dat
-         ${PROJECT_SOURCE_DIR}/tests/ldpc/examplesBG2.dat
-  COMMAND cp examplesBG?.dat ${PROJECT_SOURCE_DIR}/tests/ldpc
-  DEPENDS examplesBG1.dat examplesBG2.dat
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMENT "Copying LDPC test reference files"
-  VERBATIM
-)
-
-add_custom_target(ldpc_test_files
-  DEPENDS ${PROJECT_SOURCE_DIR}/tests/ldpc/examplesBG1.dat
-          ${PROJECT_SOURCE_DIR}/tests/ldpc/examplesBG2.dat
-)
-
-add_dependencies(ldpc_dec_test ldpc_test_files)
-add_dependencies(ldpc_enc_test ldpc_test_files)
-add_dependencies(ldpc_rm_test ldpc_test_files)
 
 ### Test LDPC libs
 function(ldpc_unit_tests)
   foreach(i IN LISTS ARGN)
     add_test(NAME ${test_name}-LS${i} COMMAND ${test_command} -l${i}
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/ldpc
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
             )
   endforeach()
 endfunction()
@@ -150,23 +121,23 @@ function(ldpc_rm_unit_tests)
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
 
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
-                  WORKING_DIRECTORY ${PROJECT_S${cval}OURCE_DIR}/tests/ldpc
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N} / 2")
           # Half size buffer
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
-                  WORKING_DIRECTORY ${PROJECT_S${cval}OURCE_DIR}/tests/ldpc
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR Div "2*${Ordval}")
           math(EXPR tmpN "${N} - (${N} % ${Div})")
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
-                  WORKING_DIRECTORY ${PROJECT_S${cval}OURCE_DIR}/tests/ldpc
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N}/ 2")
           # Half size buffer
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
-                  WORKING_DIRECTORY ${PROJECT_S${cval}OURCE_DIR}/tests/ldpc
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
 
           math(EXPR Div "${Ordval}")
@@ -174,12 +145,12 @@ function(ldpc_rm_unit_tests)
           math(EXPR E "${Ordval}*(${tmpN})/${Div}")
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
 
-                  WORKING_DIRECTORY ${PROJECT_S${cval}OURCE_DIR}/tests/ldpc
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N}/ 2")
           # Half size buffer
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
-                  WORKING_DIRECTORY ${PROJECT_S${cval}OURCE_DIR}/tests/ldpc
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
         endforeach()
       endforeach()

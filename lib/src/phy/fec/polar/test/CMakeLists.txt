@@ -24,16 +24,6 @@ add_executable(polar_chain_test polar_chain_test.c)
 
 target_link_libraries(polar_chain_test srslte_phy polar_test_utils)
 
-set_target_properties(polar_chain_test
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/tests/polar"
-        )
-
-add_custom_target(polar_frozen_sets
-        DEPENDS ${OUT_FROZEN_SETS}
-        )
-
-add_dependencies(polar_chain_test polar_frozen_sets)
-
 ### Test polar libs
 function(polar_unit_tests)
     set(S ${ARGV0})  #101 means no noise, 100 scan
@@ -51,7 +41,7 @@ function(polar_unit_tests)
         list(GET listP ${num} pval)
         list(GET listW ${num} wval)
         add_test(NAME ${test_name}-s${S}-c${cval}-r${rval}-m${mval}-p${pval}-w${wval}
-                COMMAND ${test_command} -s${S} -c${cval} -r${rval} -m${mval} -p${pval} -w${wval}
+                COMMAND ${test_command} -s${S} -c${cval} -r${rval} -m${mval} -p${pval} -w${wval} -E1 -N1
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                 )
     endforeach()
