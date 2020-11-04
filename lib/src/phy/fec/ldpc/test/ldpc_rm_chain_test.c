@@ -64,7 +64,6 @@ static srslte_basegraph_t base_graph = BG1;     /*!< \brief Base Graph (BG1 or B
 static uint32_t           lift_size  = 2;       /*!< \brief Lifting Size. */
 static uint32_t           rm_length  = 0;       /*!< \brief Codeword length after rate matching. */
 static uint32_t           F          = 22 - 5;  /*!< \brief Number of filler bits in each CBS. */
-static uint32_t           E          = 14000;   /*!< \brief Rate-matched Codeword size. */
 static uint8_t            rv         = 0;       /*!< \brief Redundancy version {0-3}. */
 static srslte_mod_t mod_type = SRSLTE_MOD_BPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256 = 4 */
 static uint32_t     Nref     = 0;               /*!< \brief Limited buffer size. */
