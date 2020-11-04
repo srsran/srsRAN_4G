@@ -19,6 +19,8 @@
  *
  */
 
+#include <pthread.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 #ifdef __cplusplus
@@ -56,6 +58,8 @@ static bool        measure_delay   = false;
 static bool        capture         = false;
 static bool        agc_enable      = true;
 static float       rf_gain         = -1.0;
+
+static pthread_t radio_thread;
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -270,9 +274,10 @@ private:
   uint32_t num_failures  = 0;
 };
 
-int main(int argc, char** argv)
+static int ret = SRSLTE_ERROR;
+
+static void* radio_thread_run(void* arg)
 {
-  int                    ret                        = SRSLTE_ERROR;
   radio*                 radio_h[SRSLTE_MAX_RADIOS] = {nullptr};
   srslte::rf_timestamp_t ts_prev[SRSLTE_MAX_RADIOS], ts_rx[SRSLTE_MAX_RADIOS], ts_tx;
   uint32_t               nof_gaps                    = 0;
@@ -288,11 +293,9 @@ int main(int argc, char** argv)
   float    delay_idx[SRSLTE_MAX_RADIOS] = {0};
   uint32_t delay_count                  = 0;
 
-  /* Parse args */
-  parse_args(argc, argv);
   double current_rate = srate;
 
-  uint32_t nof_samples = (uint32_t)(duration * srate);
+  uint64_t nof_samples = (uint64_t)(duration * srate);
   uint32_t frame_size  = (uint32_t)(srate / 1000.0); /* 1 ms at srate */
   uint32_t nof_frames  = (uint32_t)ceil(nof_samples / frame_size);
 
@@ -326,6 +329,11 @@ int main(int argc, char** argv)
     sleep(1);
   }
 #endif /* ENABLE_GUI */
+
+  // lock all memory to prevent swapping
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
+    perror("mlockall");
+  }
 
   /* Initialise instances */
   printf("Initialising instances...\n");
@@ -388,8 +396,15 @@ int main(int argc, char** argv)
     }
   }
 
+  // setup thread priority
+  struct sched_param schedp;
+  memset(&schedp, 0, sizeof(schedp));
+  schedp.sched_priority = 90;
+  sched_setscheduler(0, SCHED_FIFO, &schedp);
+
   /* Receive */
-  printf("Start capturing %d frames of %d samples...\n", nof_frames, frame_size);
+  printf(
+      "Start capturing %d sub-frames of %d samples (approx. %ds) ...\n", nof_frames, frame_size, (nof_frames / 1000));
 
   for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
     for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
@@ -532,7 +547,9 @@ int main(int argc, char** argv)
          rf_metrics.rf_o,
          rf_metrics.rf_u);
 
-  ret = SRSLTE_SUCCESS;
+  if (nof_gaps == 0 && rf_metrics.rf_l == 0 && rf_metrics.rf_o == 0 && rf_metrics.rf_u == 0) {
+    ret = SRSLTE_SUCCESS;
+  }
 
   if (measure_delay && delay_count > 0) {
     for (uint32_t r = 1; r < nof_radios; r++) {
@@ -586,6 +603,21 @@ clean_exit:
   } else {
     printf("Ok!\n");
   }
+
+  return nullptr;
+}
+
+int main(int argc, char** argv)
+{
+  // Parse args
+  parse_args(argc, argv);
+
+  if (pthread_create(&radio_thread, NULL, radio_thread_run, NULL)) {
+    perror("pthread_create");
+    exit(-1);
+  }
+
+  pthread_join(radio_thread, NULL);
 
   return ret;
 }
