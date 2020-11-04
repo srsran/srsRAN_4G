@@ -30,15 +30,15 @@
 #define SRSLTE_NOF_TC_CB_SIZES 188
 
 typedef struct SRSLTE_API {
-  uint32_t F;      /*!< \brief %Total number of the transport block bit */
-  uint32_t C;      /*!< \brief %Total number of code blocks */
-  uint32_t K1;     /*!< \brief %Code block size 1 */
-  uint32_t K2;     /*!< \brief %Code block size 2 */
-  uint32_t K1_idx; /*!< \brief %Code block size index 1 */
-  uint32_t K2_idx; /*!< \brief %Code block size index 2 */
-  uint32_t C1;     /*!< \brief %Number of code blocks of size 1 */
-  uint32_t C2;     /*!< \brief %Number of code blocks of size 2 */
-  uint32_t tbs;    /*!< \brief %Actual transport block size */
+  uint32_t F;      ///< \brief Total number of the transport block bit
+  uint32_t C;      ///< \brief Total number of code blocks
+  uint32_t K1;     ///< \brief Code block size 1
+  uint32_t K2;     ///< \brief Code block size 2
+  uint32_t K1_idx; ///< \brief Code block size index 1
+  uint32_t K2_idx; ///< \brief Code block size index 2
+  uint32_t C1;     ///< \brief Number of code blocks of size 1
+  uint32_t C2;     ///< \brief Number of code blocks of size 2
+  uint32_t tbs;    ///< \brief Actual transport block size
 } srslte_cbsegm_t;
 
 /**

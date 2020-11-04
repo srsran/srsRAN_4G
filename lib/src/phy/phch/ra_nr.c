@@ -84,7 +84,7 @@ static const mcs_entry_t ra_nr_table2[RA_NR_MCS_SIZE_TABLE2] = {
     {SRSLTE_MOD_256QAM, 948, 7.4063}};
 
 /**
- * TS 38.214 V15.10.0 Table 5.1.3.1-2: MCS index table 2 for PDSCH
+ * TS 38.214 V15.10.0 Table 5.1.3.1-3: MCS index table 3 for PDSCH
  */
 static const mcs_entry_t ra_nr_table3[RA_NR_MCS_SIZE_TABLE3] = {
     {SRSLTE_MOD_QPSK, 30, 0.0586},   {SRSLTE_MOD_QPSK, 40, 0.0781},   {SRSLTE_MOD_QPSK, 50, 0.0977},

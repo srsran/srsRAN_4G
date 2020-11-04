@@ -141,11 +141,18 @@ typedef enum SRSLTE_API {
 
 /**
  * @brief DCI formats
- * @remark Described in TS 38.331 V15.10.0 Section PDSCH-TimeDomainResourceAllocationList
+ * @remark Described in TS 38.212 V15.9.0 Section 7.3.1 DCI formats
  */
 typedef enum SRSLTE_API {
-  srslte_dci_format_nr_1_0 = 0,
-  srslte_dci_format_nr_1_1,
+  srslte_dci_format_nr_0_0 = 0, ///< @brief Scheduling of PUSCH in one cell
+  srslte_dci_format_nr_0_1,     ///< @brief Scheduling of PUSCH in one cell
+  srslte_dci_format_nr_1_0,     ///< @brief Scheduling of PDSCH in one cell
+  srslte_dci_format_nr_1_1,     ///< @brief Scheduling of PDSCH in one cell
+  srslte_dci_format_nr_2_0,     ///< @brief Notifying a group of UEs of the slot format
+  srslte_dci_format_nr_2_1, ///< @brief Notifying a group of UEs of the PRB(s) and OFDM symbol(s) where UE may assume no
+                            ///< transmission is intended for the UE
+  srslte_dci_format_nr_2_2, ///< @brief Transmission of TPC commands for PUCCH and PUSCH
+  srslte_dci_format_nr_2_3  ///< @brief Transmission of a group of TPC commands for SRS transmissions by one or more UEs
 } srslte_dci_format_nr_t;
 
 /**
