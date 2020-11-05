@@ -335,7 +335,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
   // Room needed for fixed header of data PDUs
   if (n_bytes > 0 && n_sdus > 0) {
-    n_bytes += 3;
+    n_bytes += 2; // Two bytes for fixed header with SN length = 10
     log->debug("%s Total buffer state - %d SDUs (%d B)\n", RB_NAME, n_sdus, n_bytes);
   }
 
@@ -827,7 +827,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   uint32_t pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
   uint8_t* pdu_ptr   = pdu->msg;
 
-  if (pdu_space <= head_len + 1) {
+  if (pdu_space <= head_len) {
     log->info(
         "%s Cannot build a PDU - %d bytes available, %d bytes required for header\n", RB_NAME, nof_bytes, head_len);
     return 0;
@@ -863,7 +863,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   }
 
   // Pull SDUs from queue
-  while (pdu_space > head_len + 1 && tx_sdu_queue.size() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
+  while (pdu_space > head_len && tx_sdu_queue.size() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
     if (last_li > 0) {
       header.li[header.N_li] = last_li;
       header.N_li++;
