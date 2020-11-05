@@ -62,12 +62,6 @@ static const uint32_t BASEN[2] = {66, 50};
 static const uint32_t BASEK[2] = {22, 10};
 
 /*!
- * \brief Look-up table: Retuns the mod order associated to a srslte_mod_t
- *
- */
-static const uint32_t MODORD[5] = {1, 2, 4, 6, 8};
-
-/*!
  * \brief Look-up table: Maximum number of coded bits available for transmission in a
  * transport block
  *If there is only one user
@@ -130,7 +124,7 @@ static int init_rm(srslte_ldpc_rm_t*  p,
   }
 
   uint32_t basek0    = BASEK0[rv][bg];
-  uint32_t mod_order = MODORD[mod_type];
+  uint32_t mod_order = srslte_mod_bits_x_symbol(mod_type);
   uint32_t N         = ls * BASEN[bg];
   uint32_t K         = ls * BASEK[bg];
 

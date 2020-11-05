@@ -97,7 +97,9 @@ int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
             s->C2     = (s->C * s->K1 - Bp) / (s->K1 - s->K2);
             s->C1     = s->C - s->C2;
           }
-          s->F = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
+          s->L_tb = 24; // 24 bit CRC always
+          s->L_cb = 24; // 24 bit CRC always
+          s->F    = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
           INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
                tbs,
                s->C,
@@ -187,6 +189,23 @@ static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8
   return SRSLTE_ERROR;
 }
 
+/**
+ * @brief Calculate the transport block (TB) CRC length for LDPC based shared
+ *
+ * @remark Implemented according to TS 38.212 V15.9.0 7.2.1 Transport block CRC attachment
+ *
+ * @param tbs Transport block size
+ * @return The TB CRC length L
+ */
+static uint32_t srslte_cbsegm_ldpc_L(uint32_t tbs)
+{
+  if (tbs <= 3824) {
+    return 16;
+  }
+
+  return 24;
+}
+
 static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_t tbs)
 {
   // Check input pointer
@@ -200,11 +219,14 @@ static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_
     return SRSLTE_SUCCESS;
   }
 
+  // Calculate TB CRC length
+  uint32_t L = srslte_cbsegm_ldpc_L(tbs);
+
   // Select maximum code block size
   uint32_t K_cb = (bg == BG1) ? SRSLTE_LDPC_BG1_MAX_LEN_CB : SRSLTE_LDPC_BG2_MAX_LEN_CB;
 
   // Calculate CB sizes
-  uint32_t B  = tbs + 24;
+  uint32_t B  = tbs + L;
   uint32_t C  = 0;
   uint32_t Bp = 0;
   cbsegm_cb_size(B, K_cb, &C, &Bp);
@@ -235,11 +257,14 @@ static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_
 
   // Save segmentation
   s->tbs    = tbs;
+  s->L_tb   = L;
+  s->L_cb   = C > 1 ? 24 : 0;
   s->C      = C;
   s->F      = K * C;
   s->C1     = C;
   s->K1     = K;
   s->K1_idx = i_ls;
+  s->Z      = Z_c;
 
   // Only one CB size is used
   s->C2     = 0;

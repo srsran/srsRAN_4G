@@ -39,6 +39,9 @@ typedef struct SRSLTE_API {
   uint32_t C1;     ///< \brief Number of code blocks of size 1
   uint32_t C2;     ///< \brief Number of code blocks of size 2
   uint32_t tbs;    ///< \brief Actual transport block size
+  uint32_t L_tb;   ///< \brief Transport block CRC length
+  uint32_t L_cb;   ///< \brief Code block CRC length
+  uint32_t Z;      ///< \brief Lifting size, LDPC only
 } srslte_cbsegm_t;
 
 /**
@@ -97,6 +100,6 @@ SRSLTE_API int srslte_cbsegm_ldpc_bg1(srslte_cbsegm_t* s, uint32_t tbs);
  * @param[in] tbs Input Transport Block Size in bits. CRC's will be added to this
  * @return It returns SRSLTE_SUCCESS if the provided arguments are valid, otherwise it returns SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_cbsegm_nr_bg2(srslte_cbsegm_t* s, uint32_t tbs);
+SRSLTE_API int srslte_cbsegm_ldpc_bg2(srslte_cbsegm_t* s, uint32_t tbs);
 
 #endif // SRSLTE_CBSEGM_H
