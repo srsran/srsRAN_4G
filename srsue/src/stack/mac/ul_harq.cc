@@ -341,6 +341,9 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
 
     generate_tx(action);
 
+    // Reset the RV received in this grant
+    cur_grant.tb.rv = -1;
+
     // HARQ entity requests a non-adaptive transmission
   } else if (!harq_feedback) {
     // Non-adaptive retx are only sent if HI=NACK. If HI=ACK but no dci was received do not reset PID
