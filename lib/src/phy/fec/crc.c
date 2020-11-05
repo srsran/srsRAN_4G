@@ -140,7 +140,7 @@ uint32_t srslte_crc_checksum(srslte_crc_t* h, uint8_t* data, int len)
 }
 
 // len is multiple of 8
-uint32_t srslte_crc_checksum_byte(srslte_crc_t* h, uint8_t* data, int len)
+uint32_t srslte_crc_checksum_byte(srslte_crc_t* h, const uint8_t* data, int len)
 {
   int      i;
   uint32_t crc = 0;

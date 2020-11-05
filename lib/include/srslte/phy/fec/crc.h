@@ -69,7 +69,7 @@ static inline uint64_t srslte_crc_checksum_get(srslte_crc_t* h)
   return (h->crcinit & h->crcmask);
 }
 
-SRSLTE_API uint32_t srslte_crc_checksum_byte(srslte_crc_t* h, uint8_t* data, int len);
+SRSLTE_API uint32_t srslte_crc_checksum_byte(srslte_crc_t* h, const uint8_t* data, int len);
 
 SRSLTE_API uint32_t srslte_crc_checksum(srslte_crc_t* h, uint8_t* data, int len);
 
