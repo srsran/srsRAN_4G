@@ -697,7 +697,7 @@ void srslte_bit_copy(uint8_t* dst, uint32_t dst_offset, uint8_t* src, uint32_t s
   }
 }
 
-void srslte_bit_unpack_vector(uint8_t* packed, uint8_t* unpacked, int nof_bits)
+void srslte_bit_unpack_vector(const uint8_t* packed, uint8_t* unpacked, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits / 8;
