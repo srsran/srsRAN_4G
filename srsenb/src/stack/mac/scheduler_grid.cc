@@ -784,14 +784,15 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   // Check if there is space in the PUCCH for HARQ ACKs
   const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
   std::bitset<SRSLTE_MAX_CARRIERS> scells = user->scell_activation_mask();
-  if (scells.any() and (ue_cc_idx == 0 or scells[ue_cc_idx]) and is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
+  if (user->nof_carriers_configured() > 1 and (ue_cc_idx == 0 or scells[ue_cc_idx]) and
+      is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
     bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
     if (not has_pusch_grant) {
       // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
       prb_interval alloc = {};
       uint32_t     L     = user->get_required_prb_ul(ue_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
       tti_alloc.find_ul_alloc(L, &alloc);
-      bool ul_alloc_success = alloc.length() > 0 or alloc_ul_user(user, alloc);
+      bool ul_alloc_success = alloc.length() > 0 and alloc_ul_user(user, alloc);
       if (ue_cc_idx != 0 and not ul_alloc_success) {
         // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
         return alloc_outcome_t::PUCCH_COLLISION;

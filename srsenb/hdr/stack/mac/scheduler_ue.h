@@ -243,7 +243,7 @@ public:
   sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);
 
   cc_sched_ue*                     find_ue_carrier(uint32_t enb_cc_idx);
-  size_t                           nof_carriers() const { return carriers.size(); }
+  size_t                           nof_carriers_configured() const { return carriers.size(); }
   std::bitset<SRSLTE_MAX_CARRIERS> scell_activation_mask() const;
   int                              find_enb_cc_idx(uint32_t enb_cc_idx) const;
 
