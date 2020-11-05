@@ -301,10 +301,6 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   bool uci_required =
       phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, ul_grant.dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
 
-  if (ul_cfg.pusch.softbuffers.rx) {
-    srslte_softbuffer_rx_reset(ul_cfg.pusch.softbuffers.rx);
-  }
-
   // Compute UL grant
   srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
   if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
