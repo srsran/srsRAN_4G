@@ -32,7 +32,6 @@
 
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/fec/softbuffer.h"
-#include "srslte/phy/phch/ra.h"
 
 /**
  * @brief PDSCH DMRS type
@@ -151,6 +150,10 @@ typedef struct SRSLTE_API {
   srslte_pdsch_dmrs_cfg_t dmrs_cfg_typeA;
   srslte_pdsch_dmrs_cfg_t dmrs_cfg_typeB;
   srslte_mcs_table_t      mcs_table;
+
+  /// Parameters provided by PDSCH-ServingCellConfig
+  srslte_serving_cell_cfg_t serving_cell_cfg;
+
 } srslte_pdsch_cfg_nr_t;
 
 #endif // SRSLTE_PDSCH_CFG_NR_H

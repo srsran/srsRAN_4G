@@ -156,6 +156,18 @@ typedef enum SRSLTE_API {
 } srslte_dci_format_nr_t;
 
 /**
+ * @brief Overhead configuration provided by higher layers
+ * @remark Described in TS 38.331 V15.10.0 PDSCH-ServingCellConfig
+ * @remark Described in TS 38.331 V15.10.0 PUSCH-ServingCellConfig
+ */
+typedef enum SRSLTE_API {
+  srslte_xoverhead_0 = 0,
+  srslte_xoverhead_6,
+  srslte_xoverhead_12,
+  srslte_xoverhead_18
+} srslte_xoverhead_t;
+
+/**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
  */
 typedef struct SRSLTE_API {
@@ -235,6 +247,15 @@ typedef struct SRSLTE_API {
   uint32_t              aggregation_level;
   uint32_t              n_cce;
 } srslte_pdcch_cfg_nr_t;
+
+typedef struct SRSLTE_API {
+  uint32_t max_mimo_layers; ///< @brief DL: Indicates the maximum number of MIMO layers to be used for PDSCH in all BWPs
+                            ///< of this serving cell. (see TS 38.212 [17], clause 5.4.2.1). UL: Indicates the maximum
+                            ///< MIMO layer to be used for PUSCH in all BWPs of the normal UL of this serving cell (see
+                            ///< TS 38.212 [17], clause 5.4.2.1)
+  srslte_xoverhead_t xoverhead; ///< Accounts for overhead from CSI-RS, CORESET, etc. If the field is absent, the UE
+                                ///< applies value xOh0 (see TS 38.214 [19], clause 5.1.3.2).
+} srslte_serving_cell_cfg_t;
 
 /**
  * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the

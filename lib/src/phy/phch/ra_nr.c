@@ -106,7 +106,7 @@ RA_NR_READ_TABLE(2)
 RA_NR_READ_TABLE(3)
 
 /**
- * TS 38.214 V15.10.0 Table 5.1.3.2-1: TBS for N inf o ≤ 3824
+ * TS 38.214 V15.10.0 Table 5.1.3.2-1: TBS for N info ≤ 3824
  */
 static const uint32_t ra_nr_tbs_table[RA_NR_TBS_SIZE_TABLE] = {
     24,   32,   40,   48,   56,   64,   72,   80,   88,   96,   104,  112,  120,  128,  136,  144,  152,  160,  168,
@@ -222,6 +222,20 @@ static int ra_nr_determine_N_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const sr
 
   // the overhead configured by higher layer parameter xOverhead in PDSCH-ServingCellConfig
   uint32_t n_prb_oh = 0;
+  switch (pdsch_cfg->serving_cell_cfg.xoverhead) {
+    case srslte_xoverhead_0:
+      n_prb_oh = 0;
+      break;
+    case srslte_xoverhead_6:
+      n_prb_oh = 6;
+      break;
+    case srslte_xoverhead_12:
+      n_prb_oh = 12;
+      break;
+    case srslte_xoverhead_18:
+      n_prb_oh = 18;
+      break;
+  }
 
   // Compute total number of n_re used for PDSCH
   uint32_t n_re_prime = SRSLTE_NRE * n_sh_symb - n_prb_dmrs - n_prb_oh;
@@ -291,7 +305,27 @@ static double ra_nr_get_scaling(uint32_t tb_scaling_field)
   return NAN;
 }
 
-int srslte_ra_nr_tbs(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_grant_nr_t* grant, uint32_t mcs_idx)
+uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32_t nof_layers)
+{
+  if (!isnormal(S)) {
+    S = 1.0;
+  }
+
+  // 2) Intermediate number of information bits (N info ) is obtained by N inf o = N RE · R · Q m · υ .
+  uint32_t n_info = (uint32_t)(N_re * S * R * Qm * nof_layers);
+
+  // 3) When n_info ≤ 3824
+  if (n_info <= 3824) {
+    return ra_nr_tbs_from_n_info3(n_info);
+  }
+  // 4) When n_info > 3824
+  return ra_nr_tbs_from_n_info4(n_info, R);
+}
+
+int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
+                         const srslte_pdsch_grant_nr_t* grant,
+                         uint32_t                       mcs_idx,
+                         srslte_ra_tb_nr_t*             tb)
 {
   // Get target Rate
   double R =
@@ -330,19 +364,16 @@ int srslte_ra_nr_tbs(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_
   }
 
   // 1) The UE shall first determine the number of REs (N RE ) within the slot.
-  int n_re = ra_nr_determine_N_re(pdsch_cfg, grant);
-  if (n_re < SRSLTE_SUCCESS) {
+  int N_re = ra_nr_determine_N_re(pdsch_cfg, grant);
+  if (N_re < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
-  // 2) Intermediate number of information bits (N info ) is obtained by N inf o = N RE · R · Q m · υ .
-  uint32_t n_info = (uint32_t)(n_re * S * R * Qm * grant->nof_layers);
+  // Steps 2,3,4
+  tb->tbs      = (int)srslte_ra_nr_tbs(N_re, S, R, Qm, grant->nof_layers);
+  tb->R        = R;
+  tb->mod      = m;
+  tb->nof_bits = N_re * Qm * grant->nof_layers;
 
-  // 3) When n_info ≤ 3824
-  if (n_info <= 3824) {
-    return (int)ra_nr_tbs_from_n_info3(n_info);
-  }
-
-  // 4) When n_info > 3824
-  return (int)ra_nr_tbs_from_n_info4(n_info, R);
+  return SRSLTE_SUCCESS;
 }
