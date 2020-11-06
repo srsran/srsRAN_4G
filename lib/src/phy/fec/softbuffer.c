@@ -87,7 +87,7 @@ int srslte_softbuffer_rx_init_guru(srslte_softbuffer_rx_t* q, uint32_t max_cb, u
       goto clean_exit;
     }
 
-    q->data[i] = srslte_vec_u8_malloc(6144 / 8);
+    q->data[i] = srslte_vec_u8_malloc(q->max_cb_size / 8);
     if (!q->data[i]) {
       perror("malloc");
       goto clean_exit;
@@ -136,7 +136,7 @@ void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t* q)
 void srslte_softbuffer_rx_reset_tbs(srslte_softbuffer_rx_t* q, uint32_t tbs)
 {
   uint32_t nof_cb = (tbs + 24) / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
-  srslte_softbuffer_rx_reset_cb(q, nof_cb);
+  srslte_softbuffer_rx_reset_cb(q, SRSLTE_MIN(nof_cb, q->max_cb));
 }
 
 void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t* q)
@@ -152,10 +152,10 @@ void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t* q, uint32_t nof_cb)
     }
     for (uint32_t i = 0; i < nof_cb; i++) {
       if (q->buffer_f[i]) {
-        bzero(q->buffer_f[i], SOFTBUFFER_SIZE * sizeof(int16_t));
+        bzero(q->buffer_f[i], q->max_cb_size * sizeof(int16_t));
       }
       if (q->data[i]) {
-        bzero(q->data[i], sizeof(uint8_t) * 6144 / 8);
+        bzero(q->data[i], sizeof(uint8_t) * q->max_cb_size / 8);
       }
     }
   }
@@ -246,7 +246,7 @@ void srslte_softbuffer_tx_reset_cb(srslte_softbuffer_tx_t* q, uint32_t nof_cb)
     }
     for (i = 0; i < nof_cb; i++) {
       if (q->buffer_b[i]) {
-        bzero(q->buffer_b[i], sizeof(uint8_t) * SOFTBUFFER_SIZE);
+        bzero(q->buffer_b[i], sizeof(uint8_t) * q->max_cb_size);
       }
     }
   }
