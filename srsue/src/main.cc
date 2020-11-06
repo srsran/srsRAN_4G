@@ -61,6 +61,8 @@ string config_file;
 
 static int parse_args(all_args_t* args, int argc, char* argv[])
 {
+  bool use_standard_lte_rates = false;
+
   // Command line only options
   bpo::options_description general("General options");
 
@@ -391,6 +393,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<uint32_t>(&args->phy.nof_out_of_sync_events)->default_value(20),
      "Number of PHY out-sync events before sending an out-sync event to RRC")
 
+    ("expert.lte_sample_rates",
+     bpo::value<bool>(&use_standard_lte_rates)->default_value(false),
+     "Whether to use default LTE sample rates instead of shorter variants.")
+
     // UE simulation args
     ("sim.airplane_t_on_ms",
      bpo::value<int>(&args->stack.nas.sim.airplane_t_on_ms)->default_value(-1),
@@ -575,6 +581,8 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     // use default size
     args->stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
   }
+
+  srslte_use_standard_symbol_size(use_standard_lte_rates);
 
   return SRSLTE_SUCCESS;
 }
