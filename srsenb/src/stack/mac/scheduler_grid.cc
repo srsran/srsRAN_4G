@@ -1205,6 +1205,8 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                 pending_data_before,
                 user->get_pending_ul_old_data(cell_index));
 
+    pusch->current_tx_nb = h->nof_retx(0);
+
     ul_result->nof_dci_elems++;
   }
 }
