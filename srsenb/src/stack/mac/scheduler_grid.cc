@@ -1167,8 +1167,8 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     uci_pusch_t uci_type = is_uci_included(this, *cc_results, user, cc_cfg->enb_cc_idx);
 
     /* Generate DCI Format1A */
-    uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index);
-    int      tbs                 = user->generate_format0(pusch,
+    uint32_t total_data_before = user->get_pending_ul_data_total(get_tti_tx_ul(), cell_index);
+    int      tbs               = user->generate_format0(pusch,
                                      get_tti_tx_ul(),
                                      cell_index,
                                      ul_alloc.alloc,
@@ -1177,7 +1177,8 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                                      ul_alloc.msg3_mcs,
                                      uci_type);
 
-    ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
+    ul_harq_proc* h                 = user->get_ul_harq(get_tti_tx_ul(), cell_index);
+    uint32_t      new_pending_bytes = user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index);
     // Allow TBS=0 in case of UCI-only PUSCH
     if (tbs < 0 || (tbs == 0 && pusch->dci.tb.mcs_idx != 29)) {
       log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=%s, bsr=%d\n",
@@ -1188,11 +1189,12 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                      pusch->dci.location.L,
                      pusch->dci.location.ncce,
                      ul_alloc.alloc.to_string().c_str(),
-                     user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index));
+                     new_pending_bytes);
       continue;
     }
 
     // Print Resulting UL Allocation
+    uint32_t old_pending_bytes = user->get_pending_ul_old_data();
     log_h->info("SCHED: %s %s rnti=0x%x, cc=%d, pid=%d, dci=(%d,%d), prb=%s, n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
                 ul_alloc.is_msg3() ? "Msg3" : "UL",
                 ul_alloc.is_retx() ? "retx" : "tx",
@@ -1204,9 +1206,9 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                 ul_alloc.alloc.to_string().c_str(),
                 h->nof_retx(0),
                 tbs,
-                user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index),
-                pending_data_before,
-                user->get_pending_ul_old_data(cell_index));
+                new_pending_bytes,
+                total_data_before,
+                old_pending_bytes);
 
     ul_result->nof_dci_elems++;
   }

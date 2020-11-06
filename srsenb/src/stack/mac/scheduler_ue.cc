@@ -1018,12 +1018,28 @@ uint32_t sched_ue::get_pending_dl_new_data()
   return pending_data;
 }
 
-uint32_t sched_ue::get_pending_ul_old_data(uint32_t cc_idx)
+/// Returns nof bytes allocated to active UL HARQs in the carrier cc_idx.
+/// NOTE: The returned value accounts for the MAC header and payload (RLC headers and actual data)
+uint32_t sched_ue::get_pending_ul_old_data(uint32_t ue_cc_idx)
 {
-  return get_pending_ul_old_data_unlocked(cc_idx);
+  uint32_t pending_data = 0;
+  for (auto& h : carriers[ue_cc_idx].harq_ent.ul_harq_procs()) {
+    pending_data += h.get_pending_data();
+  }
+  return pending_data;
 }
 
-uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
+/// Returns the total of all TB bytes allocated to UL HARQs
+uint32_t sched_ue::get_pending_ul_old_data()
+{
+  uint32_t pending_ul_data = 0;
+  for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
+    pending_ul_data += get_pending_ul_old_data(cc_idx);
+  }
+  return pending_ul_data;
+}
+
+uint32_t sched_ue::get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx)
 {
   static constexpr uint32_t lbsr_size = 4, sbsr_size = 2;
 
@@ -1033,9 +1049,11 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
   for (int i = 0; i < sched_interface::MAX_LC_GROUP; i++) {
     if (lch_handler.is_bearer_ul(i)) {
       int bsr = lch_handler.get_bsr(i);
-      pending_data += bsr;
+      if (bsr > 0) {
+        pending_data += sched_utils::get_mac_sdu_and_subheader_size(bsr + RLC_MAX_HEADER_SIZE_NO_LI);
+        pending_data++;
+      }
       active_lcgs++;
-      pending_lcgs += (bsr > 0) ? 1 : 0;
     }
   }
   if (pending_data > 0) {
@@ -1065,28 +1083,22 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
     }
   }
 
-  // Subtract all the UL data already allocated in the UL harqs
-  uint32_t pending_ul_data = 0;
-  for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
-    pending_ul_data += get_pending_ul_old_data_unlocked(cc_idx);
-  }
-  pending_data = (pending_data > pending_ul_data) ? pending_data - pending_ul_data : 0;
-
-  if (pending_data > 0) {
-    Debug("SCHED: pending_data=%d, pending_ul_data=%d, bsr=%s\n",
-          pending_data,
-          pending_ul_data,
-          lch_handler.get_bsr_text().c_str());
-  }
   return pending_data;
 }
 
-// Private lock-free implementation
-uint32_t sched_ue::get_pending_ul_old_data_unlocked(uint32_t cc_idx)
+uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
 {
-  uint32_t pending_data = 0;
-  for (auto& h : carriers[cc_idx].harq_ent.ul_harq_procs()) {
-    pending_data += h.get_pending_data();
+  uint32_t pending_data = get_pending_ul_data_total(tti, this_ue_cc_idx);
+
+  // Subtract all the UL data already allocated in the UL harqs
+  uint32_t pending_ul_data = get_pending_ul_old_data();
+  pending_data             = (pending_data > pending_ul_data) ? pending_data - pending_ul_data : 0;
+
+  if (pending_data > 0) {
+    Debug("SCHED: pending_data=%d, in_harq_data=%d, bsr=%s\n",
+          pending_data,
+          pending_ul_data,
+          lch_handler.get_bsr_text().c_str());
   }
   return pending_data;
 }
