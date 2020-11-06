@@ -1200,7 +1200,7 @@ sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint
 
 cc_sched_ue* sched_ue::find_ue_carrier(uint32_t enb_cc_idx)
 {
-  int ue_cc_idx = find_enb_cc_idx(enb_cc_idx);
+  int ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
   return ue_cc_idx >= 0 ? &carriers[ue_cc_idx] : nullptr;
 }
 
@@ -1215,7 +1215,7 @@ std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
   return ret;
 }
 
-int sched_ue::find_enb_cc_idx(uint32_t enb_cc_idx) const
+int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 {
   auto it = std::find_if(carriers.begin(), carriers.end(), [enb_cc_idx](const cc_sched_ue& c) {
     return c.get_cell_cfg()->enb_cc_idx == enb_cc_idx;

@@ -324,7 +324,15 @@ int sched_tester::test_harqs()
     CONDERROR(not hprev.has_pending_ack(), "Alloc PHICH did not have any pending ack\n");
     bool maxretx_flag = hprev.nof_retx(0) + 1 >= hprev.max_nof_retx();
     if (phich.phich == sched_interface::ul_sched_phich_t::ACK) {
-      CONDERROR(!hprev.is_empty(), "ack phich for UL harq that is not empty\n");
+      // The harq can be either ACKed or Resumed
+      if (not hprev.is_empty()) {
+        // In case it was resumed
+        CONDERROR(h == nullptr or h->is_empty(), "Cannot resume empty UL harq\n");
+        for (uint32_t j = 0; j < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++j) {
+          auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[j];
+          CONDERROR(pusch.dci.rnti == phich.rnti, "Cannot send PHICH::ACK for same harq that got UL grant.\n");
+        }
+      }
     } else {
       CONDERROR(h->get_pending_data() == 0 and !maxretx_flag, "NACKed harq has no pending data\n");
     }

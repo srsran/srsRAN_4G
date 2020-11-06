@@ -245,7 +245,7 @@ public:
   cc_sched_ue*                     find_ue_carrier(uint32_t enb_cc_idx);
   size_t                           nof_carriers_configured() const { return carriers.size(); }
   std::bitset<SRSLTE_MAX_CARRIERS> scell_activation_mask() const;
-  int                              find_enb_cc_idx(uint32_t enb_cc_idx) const;
+  int                              enb_to_ue_cc_idx(uint32_t enb_cc_idx) const;
 
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
   uint32_t get_max_retx();

@@ -600,7 +600,8 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
     reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
-    log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
+    log_h->debug(
+        "SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s\n", tti_params.tti_tx_ul, prach_mask.to_hex().c_str());
   }
 
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
@@ -770,7 +771,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   }
 
   // Check if allocation would cause segmentation
-  uint32_t            ue_cc_idx = user->find_enb_cc_idx(cc_cfg->enb_cc_idx);
+  uint32_t            ue_cc_idx = user->enb_to_ue_cc_idx(cc_cfg->enb_cc_idx);
   const dl_harq_proc& h         = user->get_dl_harq(pid, ue_cc_idx);
   if (h.is_empty()) {
     // It is newTx
@@ -1226,6 +1227,23 @@ alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_s
 void sf_sched::generate_sched_results(sched_ue_list& ue_db)
 {
   cc_sched_result* cc_result = cc_results->get_cc(cc_cfg->enb_cc_idx);
+
+  /* Resume UL HARQs with pending retxs that did not get allocated */
+  using phich_t    = sched_interface::ul_sched_phich_t;
+  auto& phich_list = cc_result->ul_sched_result.phich;
+  for (uint32_t i = 0; i < cc_result->ul_sched_result.nof_phich_elems; ++i) {
+    auto& phich = phich_list[i];
+    if (phich.phich == phich_t::NACK) {
+      auto&         ue        = ue_db[phich.rnti];
+      int           ue_cc_idx = ue.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx);
+      ul_harq_proc* h         = (ue_cc_idx >= 0) ? ue.get_ul_harq(get_tti_tx_ul(), ue_cc_idx) : nullptr;
+      if (not is_ul_alloc(ue.get_rnti()) and h != nullptr and not h->is_empty()) {
+        // There was a missed UL harq retx. Halt+Resume the HARQ
+        phich.phich = phich_t::ACK;
+        log_h->debug("SCHED: rnti=0x%x UL harq pid=%d is being resumed\n", ue.get_rnti(), h->get_id());
+      }
+    }
+  }
 
   /* Pick one of the possible DCI masks */
   pdcch_grid_t::alloc_result_t dci_result;
