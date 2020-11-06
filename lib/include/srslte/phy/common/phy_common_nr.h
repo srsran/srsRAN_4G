@@ -136,7 +136,8 @@ typedef enum SRSLTE_API {
 typedef enum SRSLTE_API {
   srslte_mcs_table_64qam = 0,
   srslte_mcs_table_256qam,
-  srslte_mcs_table_qam64LowSE
+  srslte_mcs_table_qam64LowSE,
+  srslte_mcs_table_N
 } srslte_mcs_table_t;
 
 /**
@@ -280,6 +281,20 @@ SRSLTE_API uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset);
  * @return The number of resource elements that compose the coreset
  */
 SRSLTE_API uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset);
+
+/**
+ * @brief Get the MCS table string
+ * @param mcs_table MCS table value
+ * @return Constant string with the MCS table name
+ */
+SRSLTE_API const char* srslte_mcs_table_to_str(srslte_mcs_table_t mcs_table);
+
+/**
+ * @brief Get the MCS table value from a string
+ * @param str Points to a given string
+ * @return The MCS table value
+ */
+SRSLTE_API srslte_mcs_table_t srslte_mcs_table_from_str(const char* str);
 
 #ifdef __cplusplus
 }

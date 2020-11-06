@@ -20,6 +20,7 @@
  */
 
 #include "srslte/phy/common/phy_common_nr.h"
+#include <string.h>
 
 uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset)
 {
@@ -41,4 +42,33 @@ uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset)
 {
   // Returns the number of resource elements in time and frequency domains
   return srslte_coreset_get_bw(coreset) * SRSLTE_NRE * coreset->duration;
+}
+
+const char* srslte_mcs_table_to_str(srslte_mcs_table_t mcs_table)
+{
+  switch (mcs_table) {
+
+    case srslte_mcs_table_64qam:
+      return "64qam";
+    case srslte_mcs_table_256qam:
+      return "256qam";
+    case srslte_mcs_table_qam64LowSE:
+      return "qam64LowSE";
+    default:
+      return "undefined";
+  }
+}
+
+srslte_mcs_table_t srslte_mcs_table_from_str(const char* str)
+{
+  if (strcmp(str, "64qam") == 0) {
+    return srslte_mcs_table_64qam;
+  }
+  if (strcmp(str, "256qam") == 0) {
+    return srslte_mcs_table_256qam;
+  }
+  if (strcmp(str, "qam64LowSE") == 0) {
+    return srslte_mcs_table_qam64LowSE;
+  }
+  return srslte_mcs_table_N;
 }
