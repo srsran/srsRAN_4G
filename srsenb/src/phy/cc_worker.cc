@@ -317,8 +317,15 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Handle Format0 adaptive retx
   // Use last TBS for this TB in case of mcs>28
   if (ul_grant.dci.tb.mcs_idx > 28) {
+    int rv_idx  = grant.tb.rv;
     grant.tb = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
-    Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", ul_grant.dci.tb.mcs_idx, grant.tb.tbs, ul_pid);
+    grant.tb.rv = rv_idx;
+    Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d\n",
+         rnti,
+         ul_pid,
+         grant.tb.rv,
+         ul_grant.dci.tb.mcs_idx,
+         grant.tb.tbs / 8);
   }
   phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_pid, grant.tb);
 
