@@ -255,7 +255,8 @@ void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, prb_interval alloc, u
 
 void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, prb_interval alloc)
 {
-  is_adaptive = alloc != allocation;
+  // If PRBs changed, or there was no CRC (e.g. HARQ is being resumed)
+  is_adaptive = alloc != allocation or not has_pending_ack();
   allocation  = alloc;
   new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
 }

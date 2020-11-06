@@ -852,7 +852,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   bool               has_retx = h->has_pending_retx();
   if (has_retx) {
     prb_interval prev_alloc = h->get_alloc();
-    if (prev_alloc == alloc) {
+    if (prev_alloc == alloc and h->has_pending_ack()) {
       alloc_type = ul_alloc_t::NOADAPT_RETX;
     } else {
       alloc_type = ul_alloc_t::ADAPT_RETX;
