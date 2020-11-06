@@ -521,7 +521,7 @@ bool cell_ctxt_dedicated_list::alloc_pucch_cs_resources()
   const uint32_t     max_cce   = srslte_max_cce(cfg.cell.nof_prb);
   // Loop through all available resources
   for (uint32_t i = 0; i < pucch_res_common::N_PUCCH_MAX_RES; i++) {
-    if (!pucch_res->n_pucch_cs_used[i] && !(i >= N_pucch_1 && i < N_pucch_1 + max_cce)) {
+    if (!pucch_res->n_pucch_cs_used[i] && (i <= N_pucch_1 && i != sr_res.sr_N_pucch)) {
       // Allocate resource
       pucch_res->n_pucch_cs_used[i] = true;
       n_pucch_cs_idx                = i;
