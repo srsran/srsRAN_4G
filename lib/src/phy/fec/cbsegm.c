@@ -165,7 +165,7 @@ static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8
   }
 
   // Iterate from the minimum required lift size to the maximum value
-  for (uint16_t Z = Kp / K_b; Z < MAX_LIFTSIZE; Z++) {
+  for (uint16_t Z = Kp / K_b; Z <= MAX_LIFTSIZE; Z++) {
     // Get index for a selected lifting size
     uint8_t i = get_ls_index(Z);
 

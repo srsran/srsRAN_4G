@@ -47,7 +47,7 @@ typedef struct SRSLTE_API {
   int          tbs; ///< Payload size, TS 38.212 refers to it as A
   double       R;   ///< Target LDPC rate
   int          rv;
-  uint32_t     nof_bits;
+  uint32_t     nof_bits; ///< Number of available bits to send, known as G
   uint32_t     cw_idx;
   bool         enabled;
 

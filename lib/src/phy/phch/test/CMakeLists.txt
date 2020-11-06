@@ -617,3 +617,10 @@ if(RF_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
   target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread)
 endif(RF_FOUND)
+
+########################################################################
+# NR
+########################################################################
+
+add_executable(dlsch_nr_test dlsch_nr_test.c)
+target_link_libraries(dlsch_nr_test srslte_phy)

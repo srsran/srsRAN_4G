@@ -375,5 +375,8 @@ int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
   tb->mod      = m;
   tb->nof_bits = N_re * Qm * grant->nof_layers;
 
+  // Calculate number of layers accordingly
+  tb->N_L = grant->nof_layers;
+
   return SRSLTE_SUCCESS;
 }
