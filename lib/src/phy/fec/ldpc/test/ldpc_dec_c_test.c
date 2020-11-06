@@ -205,7 +205,7 @@ int main(int argc, char** argv)
   gettimeofday(&t[1], NULL);
   for (j = 0; j < NOF_MESSAGES; j++) {
     printf("  codeword %d\n", j);
-    srslte_ldpc_decoder_decode_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
+    srslte_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);

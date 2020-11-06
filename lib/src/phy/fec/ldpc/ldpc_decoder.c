@@ -776,10 +776,15 @@ int srslte_ldpc_decoder_decode_s(srslte_ldpc_decoder_t* q,
   return q->decode_s(q, llrs, message, cdwd_rm_length);
 }
 
-int srslte_ldpc_decoder_decode_c(srslte_ldpc_decoder_t* q,
-                                 const int8_t*          llrs,
-                                 uint8_t*               message,
-                                 uint32_t               cdwd_rm_length)
+int srslte_ldpc_decoder_decode_c(srslte_ldpc_decoder_t* q, const int8_t* llrs, uint8_t* message)
+{
+  return q->decode_c(q, llrs, message, q->liftN - 2 * q->ls);
+}
+
+int srslte_ldpc_decoder_decode_rm_c(srslte_ldpc_decoder_t* q,
+                                    const int8_t*          llrs,
+                                    uint8_t*               message,
+                                    uint32_t               cdwd_rm_length)
 {
   return q->decode_c(q, llrs, message, cdwd_rm_length);
 }

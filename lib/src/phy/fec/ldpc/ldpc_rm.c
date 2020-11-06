@@ -526,8 +526,12 @@ void srslte_ldpc_rm_tx_free(srslte_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_tx* qq = q->ptr;
-    free(qq->tmp_rm_codeword);
-    free(qq);
+    if (qq != NULL) {
+      if (qq->tmp_rm_codeword != NULL) {
+        free(qq->tmp_rm_codeword);
+      }
+      free(qq);
+    }
   }
 }
 
@@ -535,9 +539,15 @@ void srslte_ldpc_rm_rx_free_f(srslte_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_f* qq = q->ptr;
-    free(qq->tmp_rm_symbol);
-    free(qq->indices);
-    free(qq);
+    if (qq != NULL) {
+      if (qq->tmp_rm_symbol != NULL) {
+        free(qq->tmp_rm_symbol);
+      }
+      if (qq->indices != NULL) {
+        free(qq->indices);
+      }
+      free(qq);
+    }
   }
 }
 
@@ -545,9 +555,15 @@ void srslte_ldpc_rm_rx_free_s(srslte_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_s* qq = q->ptr;
-    free(qq->tmp_rm_symbol);
-    free(qq->indices);
-    free(qq);
+    if (qq != NULL) {
+      if (qq->tmp_rm_symbol != NULL) {
+        free(qq->tmp_rm_symbol);
+      }
+      if (qq->indices != NULL) {
+        free(qq->indices);
+      }
+      free(qq);
+    }
   }
 }
 
@@ -555,9 +571,15 @@ void srslte_ldpc_rm_rx_free_c(srslte_ldpc_rm_t* q)
 {
   if (q != NULL) {
     struct pRM_rx_c* qq = q->ptr;
-    free(qq->tmp_rm_symbol);
-    free(qq->indices);
-    free(qq);
+    if (qq != NULL) {
+      if (qq->tmp_rm_symbol != NULL) {
+        free(qq->tmp_rm_symbol);
+      }
+      if (qq->indices != NULL) {
+        free(qq->indices);
+      }
+      free(qq);
+    }
   }
 }
 
