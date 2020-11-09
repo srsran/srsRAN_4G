@@ -442,7 +442,7 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
   if (poll_retx_timer.is_valid() && poll_retx_timer.id() == timeout_id) {
-    log->debug("Poll reTx timer expired for LCID=%d after %d ms\n", parent->lcid, poll_retx_timer.duration());
+    log->debug("%s Poll reTx timer expired after %dms\n", RB_NAME, poll_retx_timer.duration());
     // Section 5.2.2.3 in TS 36.311, schedule random PDU for retransmission if
     // (a) both tx and retx buffer are empty, or
     // (b) no new data PDU can be transmitted (tx window is full)
@@ -599,8 +599,8 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   log->info("%s pdu_without_poll: %d\n", RB_NAME, pdu_without_poll);
   log->info("%s byte_without_poll: %d\n", RB_NAME, byte_without_poll);
   if (poll_required()) {
-    new_header.p      = 1;
-    poll_sn           = vt_s;
+    new_header.p = 1;
+    // vt_s won't change for reTx, so don't update poll_sn
     pdu_without_poll  = 0;
     byte_without_poll = 0;
     if (poll_retx_timer.is_valid()) {
@@ -657,8 +657,8 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
   new_header.p    = 0;
   if (poll_required()) {
     log->debug("%s setting poll bit to request status\n", RB_NAME);
-    new_header.p      = 1;
-    poll_sn           = vt_s;
+    new_header.p = 1;
+    // vt_s won't change for reTx, so don't update poll_sn
     pdu_without_poll  = 0;
     byte_without_poll = 0;
     if (poll_retx_timer.is_valid()) {
@@ -960,7 +960,10 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   log->info("%s Rx Status PDU: %s\n", RB_NAME, rlc_am_status_pdu_to_string(&status).c_str());
 
-  if (poll_retx_timer.is_valid()) {
+  // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
+  // for the RLC data PDU with sequence number poll_sn
+  if (poll_retx_timer.is_valid() && (TX_MOD_BASE(poll_sn) < TX_MOD_BASE(status.ack_sn))) {
+    log->debug("%s Stopping pollRetx timer\n", RB_NAME);
     poll_retx_timer.stop();
   }
 

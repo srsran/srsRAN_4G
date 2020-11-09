@@ -145,7 +145,7 @@ void basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
   assert(0 == rlc->get_buffer_state());
 }
 
-bool meas_obj_test()
+bool basic_test()
 {
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -409,6 +409,110 @@ bool retx_test()
   }
 
   return 0;
+}
+
+// Purpose: test correct retx of lost segment and pollRetx timer expiration
+bool segment_retx_test()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  int           len = 0;
+
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
+    return -1;
+  }
+
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
+    return -1;
+  }
+
+  // Push SDU(s) into RLC1
+  byte_buffer_pool*    pool     = byte_buffer_pool::get_instance();
+  const uint32_t       nof_sdus = 1; // just one SDU to make sure the transmitter sets polling bit
+  unique_byte_buffer_t sdu_bufs[nof_sdus];
+
+  for (uint32_t i = 0; i < nof_sdus; i++) {
+    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]->msg[0]  = i;  // Write the index into the buffer
+    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 1 byte
+    rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read 2 PDUs from RLC1
+  const uint32_t nof_pdus = 2;
+  byte_buffer_t  pdu_bufs[nof_pdus];
+  for (uint32_t i = 0; i < nof_pdus; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 7); // 2 byte header
+    pdu_bufs[i].N_bytes = len;
+  }
+
+  TESTASSERT(rlc1.get_buffer_state() == 0);
+
+  // Step timers until poll Retx timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
+
+  uint32_t buffer_state = rlc1.get_buffer_state();
+  TESTASSERT(buffer_state == 7);
+
+  // Read retx PDU from RLC1
+  byte_buffer_t retx_pdu;
+  len              = rlc1.read_pdu(retx_pdu.msg, buffer_state); // provide exactly the reported buffer state
+  retx_pdu.N_bytes = len;
+
+  // Write retx segment to RLC2
+  rlc2.write_pdu(retx_pdu.msg, retx_pdu.N_bytes);
+
+  buffer_state = rlc2.get_buffer_state(); // Status PDU
+  TESTASSERT(buffer_state == 2);
+
+  // Read status PDU from RLC2
+  byte_buffer_t status_buf;
+  len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  status_buf.N_bytes = len;
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Step timers again until poll Retx timeout expires
+  cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
+
+  // read buffer state from RLC1 again to see if it has rescheduled SN=1 for retx
+  buffer_state = rlc1.get_buffer_state(); // Status PDU
+  TESTASSERT(buffer_state == 7);
+
+  // Read 2nd retx PDU from RLC1
+  byte_buffer_t retx_pdu2;
+  len               = rlc1.read_pdu(retx_pdu2.msg, buffer_state); // provide exactly the reported buffer state
+  retx_pdu2.N_bytes = len;
+
+  // Write retx segment to RLC2
+  rlc2.write_pdu(retx_pdu2.msg, retx_pdu2.N_bytes);
+
+  // read Status PDU from RLC2 again
+  len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  status_buf.N_bytes = len;
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  TESTASSERT(tester.n_sdus == nof_sdus);
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 10) {
+      return SRSLTE_ERROR;
+    }
+    if (*(tester.sdus[i]->msg) != i) {
+      return SRSLTE_ERROR;
+    }
+  }
+
+  return SRSLTE_SUCCESS;
 }
 
 bool resegment_test_1()
@@ -1549,7 +1653,7 @@ int main(int argc, char** argv)
   rrc_log1->set_hex_limit(-1);
   rrc_log2->set_hex_limit(-1);
 
-  if (meas_obj_test()) {
+  if (basic_test()) {
     printf("basic_test failed\n");
     exit(-1);
   };
@@ -1575,6 +1679,12 @@ int main(int argc, char** argv)
 
   if (retx_test()) {
     printf("retx_test failed\n");
+    exit(-1);
+  };
+  byte_buffer_pool::get_instance()->cleanup();
+
+  if (segment_retx_test()) {
+    printf("segment_retx_test failed\n");
     exit(-1);
   };
   byte_buffer_pool::get_instance()->cleanup();
