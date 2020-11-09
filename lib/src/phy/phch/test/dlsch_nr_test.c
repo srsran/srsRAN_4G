@@ -33,8 +33,8 @@ static srslte_carrier_nr_t carrier = {
     0                  // start
 };
 
-static uint32_t                n_prb       = 1;  // Set to 0 for steering
-static uint32_t                mcs         = 16; // Set to 30 for steering
+static uint32_t                n_prb       = 0;  // Set to 0 for steering
+static uint32_t                mcs         = 30; // Set to 30 for steering
 static srslte_pdsch_cfg_nr_t   pdsch_cfg   = {};
 static srslte_pdsch_grant_nr_t pdsch_grant = {};
 

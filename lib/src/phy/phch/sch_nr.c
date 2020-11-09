@@ -196,11 +196,7 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q)
     return ret;
   }
 
-#ifdef LV_HAVE_AVX2
-  srslte_ldpc_encoder_type_t encoder_type = SRSLTE_LDPC_ENCODER_AVX2;
-#else  // LV_HAVE_AVX2
   srslte_ldpc_encoder_type_t encoder_type = SRSLTE_LDPC_ENCODER_C;
-#endif // LV_HAVE_AVX2
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
