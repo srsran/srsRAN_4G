@@ -742,7 +742,7 @@ void phy_common::update_measurements(uint32_t                                   
     set_ch_metrics(cc_idx, ch);
 
     // Prepare measurements for serving cells
-    bool active = (cc_idx == 0 || scell_cfg[cc_idx].configured);
+    bool active = scell_state.is_configured(cc_idx);
     if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
       rrc_interface_phy_lte::phy_meas_t meas = {};
       meas.rsrp                              = avg_rsrp_dbm[cc_idx];
@@ -753,8 +753,8 @@ void phy_common::update_measurements(uint32_t                                   
       if (cc_idx == 0) {
         meas.pci = cell.id;
       } else {
-        meas.earfcn = scell_cfg[cc_idx].earfcn;
-        meas.pci    = scell_cfg[cc_idx].pci;
+        meas.earfcn = scell_state.get_earfcn(cc_idx);
+        meas.pci    = scell_state.get_pci(cc_idx);
       }
       serving_cells.push_back(meas);
     }
@@ -903,7 +903,7 @@ void phy_common::reset()
   ZERO_OBJECT(avg_rsrp);
   ZERO_OBJECT(avg_rsrp_dbm);
   ZERO_OBJECT(avg_rsrq_db);
-  ZERO_OBJECT(scell_cfg);
+  scell_state.reset();
 
   reset_neighbour_cells();
 
@@ -1123,21 +1123,6 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 bool phy_common::is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
   return is_mch_subframe(cfg, phy_tti);
-}
-
-void phy_common::enable_scell(uint32_t cc_idx, bool enable)
-{
-  if (cc_idx < SRSLTE_MAX_CARRIERS) {
-    if (scell_cfg[cc_idx].configured) {
-      scell_cfg[cc_idx].enabled = enable;
-    } else {
-      if (enable) {
-        Error("Leaving SCell %s. cc_idx=%d has not been configured.\n",
-              scell_cfg[cc_idx].enabled ? "enabled" : "disabled",
-              cc_idx);
-      }
-    }
-  }
 }
 
 } // namespace srsue

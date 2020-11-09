@@ -480,6 +480,9 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
 
   worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
 
+  // Execute Serving Cell state FSM
+  worker_com->scell_state.run_tti(tti);
+
   // Set CFO for all Carriers
   for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
     worker->set_cfo_unlocked(cc, get_tx_cfo());

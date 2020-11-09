@@ -31,6 +31,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/scell/scell_state.h"
 #include "ta_control.h"
 #include <condition_variable>
 #include <mutex>
@@ -59,14 +60,8 @@ public:
 
   srslte::phy_cfg_mbsfn_t mbsfn_config = {};
 
-  // SCell EARFCN, PCI, configured and enabled list
-  typedef struct {
-    uint32_t earfcn     = 0;
-    uint32_t pci        = 0;
-    bool     configured = false;
-    bool     enabled    = false;
-  } scell_cfg_t;
-  scell_cfg_t scell_cfg[SRSLTE_MAX_CARRIERS];
+  // Secondary serving cell states
+  scell::state scell_state;
 
   // Save last TBS for uplink (mcs >= 28)
   srslte_ra_tb_t last_ul_tb[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS] = {};
@@ -162,9 +157,6 @@ public:
   void reset();
   void reset_radio();
 
-  /* SCell Management */
-  void enable_scell(uint32_t cc_idx, bool enable);
-
   void build_mch_table();
   void build_mcch_table();
   void set_mcch();
@@ -240,22 +232,22 @@ public:
 private:
   std::mutex meas_mutex;
 
-  float    pathloss[SRSLTE_MAX_CARRIERS]       = {};
-  float    cur_pathloss                        = 0.0f;
-  float    cur_pusch_power                     = 0.0f;
-  float    avg_rsrp[SRSLTE_MAX_CARRIERS]       = {};
-  float    avg_rsrp_dbm[SRSLTE_MAX_CARRIERS]   = {};
-  float    avg_rsrq_db[SRSLTE_MAX_CARRIERS]    = {};
-  float    avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
-  float    avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
-  float    rx_gain_offset                      = 0.0f;
-  float    avg_sinr_db[SRSLTE_MAX_CARRIERS]    = {};
-  float    avg_snr_db[SRSLTE_MAX_CARRIERS]     = {};
-  float    avg_noise[SRSLTE_MAX_CARRIERS]      = {};
-  float    avg_rsrp_neigh[SRSLTE_MAX_CARRIERS] = {};
+  float pathloss[SRSLTE_MAX_CARRIERS]       = {};
+  float cur_pathloss                        = 0.0f;
+  float cur_pusch_power                     = 0.0f;
+  float avg_rsrp[SRSLTE_MAX_CARRIERS]       = {};
+  float avg_rsrp_dbm[SRSLTE_MAX_CARRIERS]   = {};
+  float avg_rsrq_db[SRSLTE_MAX_CARRIERS]    = {};
+  float avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
+  float avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
+  float rx_gain_offset                      = 0.0f;
+  float avg_sinr_db[SRSLTE_MAX_CARRIERS]    = {};
+  float avg_snr_db[SRSLTE_MAX_CARRIERS]     = {};
+  float avg_noise[SRSLTE_MAX_CARRIERS]      = {};
+  float avg_rsrp_neigh[SRSLTE_MAX_CARRIERS] = {};
 
-  uint32_t pcell_report_period                 = 0;
-  uint32_t rssi_read_cnt                       = 0;
+  uint32_t pcell_report_period = 0;
+  uint32_t rssi_read_cnt       = 0;
 
   rsrp_insync_itf* insync_itf = nullptr;
 
