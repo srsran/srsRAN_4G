@@ -463,7 +463,7 @@ void rlc_am_lte::rlc_am_lte_tx::retransmit_random_pdu()
     // randomly select PDU in tx window for retransmission
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
     std::advance(it, rand() % tx_window.size());
-    log->info("Schedule SN=%d for reTx.\n", it->first);
+    log->info("%s Schedule SN=%d for reTx.\n", RB_NAME, it->first);
     rlc_amd_retx_t retx = {};
     retx.is_segment     = false;
     retx.so_start       = 0;

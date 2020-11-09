@@ -81,7 +81,7 @@ public:
 private:
   bool has_logical_channel(const uint32_t& lcid);
   bool pdu_move_to_msg3(uint32_t pdu_sz);
-  bool allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu, int max_sdu_sz);
+  uint32_t allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu, int max_sdu_sz);
   bool sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
 
   const static int MAX_NOF_SUBHEADERS = 20;

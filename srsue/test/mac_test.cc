@@ -1599,6 +1599,173 @@ int mac_ul_sch_periodic_bsr_test()
   return SRSLTE_SUCCESS;
 }
 
+/**
+ * Test handling of TBSR
+ *
+ *  with { data available for two LCGs, small grant arrives and TBSR is sent for highest-priorit LCG }
+ *  ensure that {
+ *    when { bigger grant becomes available }
+ *    then { No further (L)BSR is included, only SDUs are sent }
+ *
+ *  with { data available for two LCGs }
+ *  ensure that {
+ *    when { small grant arrives but RLC can't generate PDU }
+ *    then { TBSR is generated with highest priority LCG }
+ */
+int mac_ul_sch_trunc_bsr_test2()
+{
+  // 1st and 3rd PDU, TBSR
+  const uint8_t tv1[] = {0x3f, 0x1c, 0x01};
+
+  // Following PDU includes only SDUs for highest priority LCID
+  const uint8_t tv2[] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+
+  srslte::log_filter rlc_log("RLC");
+  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  rlc_log.set_hex_limit(100000);
+
+  // dummy layers
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
+
+  // the actual MAC
+  mac mac("MAC", &stack.task_sched);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc);
+
+  mac_cfg_t mac_cfg              = {};
+  mac_cfg.bsr_cfg.periodic_timer = 20;
+  mac.set_config(mac_cfg);
+
+  const uint16_t crnti = 0x1001;
+  mac.set_ho_rnti(crnti, 0);
+
+  // generate configs for two LCIDs with different priority and PBR
+  std::vector<logical_channel_config_t> lcids;
+  logical_channel_config_t              config = {};
+  // The config of SRB1
+  config.lcid     = 1;
+  config.lcg      = 0;
+  config.PBR      = 8;   // 8 kByte/s
+  config.BSD      = 100; // 100ms
+  config.priority = 7;
+  lcids.push_back(config);
+
+  // DRB
+  config.lcid     = 3;
+  config.lcg      = 2;
+  config.PBR      = 0;  // no PBR
+  config.priority = 15; // lower prio than SRB1
+  lcids.push_back(config);
+
+  // setup LCIDs in MAC
+  for (auto& channel : lcids) {
+    mac.setup_lcid(channel.lcid, channel.lcg, channel.priority, channel.PBR, channel.BSD);
+  }
+
+  // generate SRB and DRB data
+  rlc.write_sdu(1, 9);
+  rlc.write_sdu(3, 100);
+
+  // generate TTI
+  uint32 tti = 0;
+  stack.run_tti(tti++);
+  usleep(100);
+
+  bool ndi = true;
+
+  // create UL action and grant and push MAC PDU
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = ndi;
+    mac_grant.tb.tbs         = 3; // only space for TBSR
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv1, sizeof(tv1)) == 0);
+  }
+
+  // trigger next TTI
+  stack.run_tti(tti++);
+  usleep(100);
+
+  // toggle NDI
+  ndi = !ndi;
+
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = ndi;
+    mac_grant.tb.tbs         = 9; // room SDU
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv2, sizeof(tv2)) == 0);
+  }
+
+  // trigger next TTI
+  stack.run_tti(tti++);
+  usleep(100);
+
+  ndi = !ndi;
+
+  // turn of RLC read (simulate RLC can't generate PDU)
+  rlc.disable_read();
+
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = ndi; // toggled NDI
+    mac_grant.tb.tbs         = 3;   // again only room for TBSR
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1, 0);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv1, sizeof(tv1)) == 0);
+  }
+
+  // make sure MAC PDU thread picks up before stopping
+  stack.run_tti(tti);
+  mac.stop();
+
+  return SRSLTE_SUCCESS;
+}
+
 // Single byte MAC PDU
 int mac_ul_sch_pdu_one_byte_test()
 {
@@ -2175,80 +2342,22 @@ int main(int argc, char** argv)
   mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
   mac_log->set_hex_limit(100000);
 
-  if (mac_unpack_test()) {
-    printf("MAC PDU unpack test failed.\n");
-    return -1;
-  }
+  TESTASSERT(mac_unpack_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_test1() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test1() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test3() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_logical_channel_prioritization_test4() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_short_bsr_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_padding_long_bsr_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_with_padding_trunc_bsr_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_regular_bsr_retx_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_periodic_bsr_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_trunc_bsr_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_one_byte_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_two_byte_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_ul_sch_pdu_three_byte_test() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_random_access_test() == SRSLTE_SUCCESS);
 
-  if (mac_ul_sch_pdu_test1()) {
-    printf("mac_ul_sch_pdu_test1() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_logical_channel_prioritization_test1()) {
-    printf("mac_ul_logical_channel_prioritization_test1() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_logical_channel_prioritization_test2()) {
-    printf("mac_ul_logical_channel_prioritization_test2() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_logical_channel_prioritization_test3()) {
-    printf("mac_ul_logical_channel_prioritization_test3() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_logical_channel_prioritization_test4()) {
-    printf("mac_ul_logical_channel_prioritization_test4() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_pdu_with_short_bsr_test()) {
-    printf("mac_ul_sch_pdu_with_short_bsr_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_pdu_with_padding_long_bsr_test()) {
-    printf("mac_ul_sch_pdu_with_padding_long_bsr_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_pdu_with_padding_trunc_bsr_test()) {
-    printf("mac_ul_sch_pdu_with_padding_trunc_bsr_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_regular_bsr_retx_test()) {
-    printf("mac_ul_sch_regular_bsr_retx_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_periodic_bsr_test()) {
-    printf("mac_ul_sch_periodic_bsr_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_pdu_one_byte_test()) {
-    printf("mac_ul_sch_pdu_one_byte_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_pdu_two_byte_test()) {
-    printf("mac_ul_sch_pdu_two_byte_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_ul_sch_pdu_three_byte_test()) {
-    printf("mac_ul_sch_pdu_three_byte_test() test failed.\n");
-    return -1;
-  }
-
-  if (mac_random_access_test()) {
-    printf("mac_random_access_test() test failed.\n");
-    return -1;
-  }
-
-  return 0;
+  return SRSLTE_SUCCESS;
 }

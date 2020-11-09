@@ -277,6 +277,12 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t pdu_space)
 void bsr_proc::update_bsr_tti_end(const bsr_t* bsr)
 {
   std::lock_guard<std::mutex> lock(mutex);
+
+  // Don't handle TBSR as it would reset old state for all non-reported LCGs, which might be wrong.
+  if (bsr->format == TRUNC_BSR) {
+    return;
+  }
+
   for (uint32_t i = 0; i < NOF_LCG; i++) {
     if (bsr->buff_size[i] == 0) {
       for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {

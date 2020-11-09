@@ -272,10 +272,10 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 
   for (auto& channel : logical_channels) {
     if (channel.sched_len != 0) {
-      allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
+      uint32_t sdu_len = allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
 
-      // update BSR according to allocation
-      bsr.buff_size[channel.lcg] -= channel.sched_len;
+      // update BSR according to allocation (may be smaller than sched_len)
+      bsr.buff_size[channel.lcg] -= sdu_len;
     }
   }
 
@@ -334,11 +334,11 @@ bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz
   return false;
 }
 
-bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
+uint32_t mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
 {
-  bool sdu_added    = false;
-  int  sdu_space    = max_sdu_sz;
-  int  buffer_state = rlc->get_buffer_state(lcid);
+  uint32_t total_sdu_len = 0;
+  int32_t  sdu_space     = max_sdu_sz;
+  int32_t  buffer_state  = rlc->get_buffer_state(lcid);
 
   while (buffer_state > 0 && sdu_space > 0) { // there is pending SDU to allocate
     int requested_sdu_len = SRSLTE_MIN(buffer_state, sdu_space);
@@ -356,7 +356,7 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
               max_sdu_sz,
               pdu_msg->rem_size());
         sdu_space -= sdu_len;
-        sdu_added = true;
+        total_sdu_len += sdu_len;
 
         buffer_state = rlc->get_buffer_state(lcid);
       } else {
@@ -382,7 +382,7 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       break;
     }
   }
-  return sdu_added;
+  return total_sdu_len;
 }
 
 void mux::msg3_flush()
