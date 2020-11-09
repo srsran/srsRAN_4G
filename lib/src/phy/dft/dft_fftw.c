@@ -21,7 +21,11 @@
 
 #include "srslte/srslte.h"
 #include <complex.h>
+#ifdef USE_CUFFTW
+#include <cufftw.h>
+#else
 #include <fftw3.h>
+#endif
 #include <math.h>
 #include <pwd.h>
 #include <string.h>
@@ -32,6 +36,8 @@
 
 #define dft_ceil(a, b) ((a - 1) / b + 1)
 #define dft_floor(a, b) (a / b)
+
+#ifndef USE_CUFFTW
 
 #define FFTW_WISDOM_FILE "%s/.srslte_fftwisdom"
 
@@ -44,6 +50,8 @@ static int get_fftw_wisdom_file(char* full_path, uint32_t n)
 
   return snprintf(full_path, n, FFTW_WISDOM_FILE, homedir);
 }
+
+#endif
 
 #ifdef FFTW_WISDOM_FILE
 #define FFTW_TYPE FFTW_MEASURE
@@ -61,7 +69,9 @@ __attribute__((constructor)) static void srslte_dft_load()
   get_fftw_wisdom_file(full_path, sizeof(full_path));
   fftwf_import_wisdom_from_filename(full_path);
 #else
+#ifndef USE_CUFFTW
   printf("Warning: FFTW Wisdom file not defined\n");
+#endif
 #endif
 }
 
@@ -82,7 +92,12 @@ int srslte_dft_plan(srslte_dft_plan_t* plan, const int dft_points, srslte_dft_di
   if (mode == SRSLTE_DFT_COMPLEX) {
     return srslte_dft_plan_c(plan, dft_points, dir);
   } else {
+#ifndef USE_CUFFTW
     return srslte_dft_plan_r(plan, dft_points, dir);
+#else
+    ERROR("srslte_dft_plan_r: R2R not available in cuFFTW.\n");
+    return 0;
+#endif
   }
   return 0;
 }
@@ -93,7 +108,12 @@ int srslte_dft_replan(srslte_dft_plan_t* plan, const int new_dft_points)
     if (plan->mode == SRSLTE_DFT_COMPLEX) {
       return srslte_dft_replan_c(plan, new_dft_points);
     } else {
+#ifndef USE_CUFFTW
       return srslte_dft_replan_r(plan, new_dft_points);
+#else
+    ERROR("srslte_dft_replan_r: R2R not available in cuFFTW.\n");
+    return 0;
+#endif
     }
   } else {
     ERROR("DFT: Error calling replan: new_dft_points (%d) must be lower or equal "
@@ -228,6 +248,8 @@ int srslte_dft_plan_c(srslte_dft_plan_t* plan, const int dft_points, srslte_dft_
   return 0;
 }
 
+#ifndef USE_CUFFTW
+
 int srslte_dft_replan_r(srslte_dft_plan_t* plan, const int new_dft_points)
 {
   int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
@@ -271,6 +293,8 @@ int srslte_dft_plan_r(srslte_dft_plan_t* plan, const int dft_points, srslte_dft_
 
   return 0;
 }
+
+#endif
 
 void srslte_dft_plan_set_mirror(srslte_dft_plan_t* plan, bool val)
 {

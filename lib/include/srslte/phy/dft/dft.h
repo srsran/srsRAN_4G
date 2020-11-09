@@ -82,7 +82,9 @@ SRSLTE_API int srslte_dft_plan_guru_c(srslte_dft_plan_t* plan,
                                       int                idist,
                                       int                odist);
 
+#ifndef USE_CUFFTW
 SRSLTE_API int srslte_dft_plan_r(srslte_dft_plan_t* plan, int dft_points, srslte_dft_dir_t dir);
+#endif
 
 SRSLTE_API int srslte_dft_replan(srslte_dft_plan_t* plan, const int new_dft_points);
 
@@ -98,7 +100,9 @@ SRSLTE_API int srslte_dft_replan_guru_c(srslte_dft_plan_t* plan,
 
 SRSLTE_API int srslte_dft_replan_c(srslte_dft_plan_t* plan, int new_dft_points);
 
+#ifndef USE_CUFFTW
 SRSLTE_API int srslte_dft_replan_r(srslte_dft_plan_t* plan, int new_dft_points);
+#endif
 
 SRSLTE_API void srslte_dft_plan_free(srslte_dft_plan_t* plan);
 
