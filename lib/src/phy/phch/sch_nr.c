@@ -85,7 +85,7 @@ int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*             q,
 
   // Compute code block segmentation
   srslte_cbsegm_t cbsegm = {};
-  if (cfg->bg == BG1) {
+  if (bg == BG1) {
     if (srslte_cbsegm_ldpc_bg1(&cbsegm, tb->tbs) != SRSLTE_SUCCESS) {
       ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d\n", tb->tbs);
       return SRSLTE_ERROR;
@@ -180,7 +180,7 @@ static inline int sch_nr_init_common(srslte_sch_nr_t* q)
   }
 
   if (!q->temp_cb) {
-    q->temp_cb = srslte_vec_u8_malloc(SRSLTE_LDPC_MAX_LEN_CB);
+    q->temp_cb = srslte_vec_u8_malloc(SRSLTE_LDPC_MAX_LEN_CB * 8);
     if (!q->temp_cb) {
       return SRSLTE_ERROR;
     }
@@ -416,6 +416,7 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
         // Append TB CRC
         uint8_t* ptr = &q->temp_cb[cfg.Kp - cfg.L_cb - cfg.L_tb];
         srslte_bit_unpack(checksum_tb, &ptr, cfg.L_tb);
+        INFO("CB %d: appending TB CRC=%06x\n", r, checksum_tb);
       } else {
         // Copy payload
         srslte_bit_unpack_vector(data, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
@@ -424,6 +425,7 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
       // Attach code block CRC if required
       if (cfg.L_cb) {
         srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
+        INFO("CB %d: CRC=%06x\n", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
       }
 
       // Insert filler bits
@@ -445,6 +447,15 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
     j++;
 
     // LDPC Rate matching
+    INFO("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
+         r,
+         E,
+         cfg.F,
+         cfg.bg == BG1 ? 1 : 2,
+         cfg.Z,
+         tb->rv,
+         cfg.Qm,
+         cfg.Nref);
     srslte_ldpc_rm_tx(&q->tx_rm, rm_buffer, output_ptr, E, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
     output_ptr += E;
   }
@@ -512,6 +523,15 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
     j++;
 
     // LDPC Rate matching
+    INFO("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
+         r,
+         E,
+         cfg.F,
+         cfg.bg == BG1 ? 1 : 2,
+         cfg.Z,
+         tb->rv,
+         cfg.Qm,
+         cfg.Nref);
     srslte_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
 
     // Decode
@@ -524,6 +544,12 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
       uint32_t checksum1           = srslte_crc_checksum(&q->crc_cb, q->temp_cb, (int)cb_len);
       uint32_t checksum2           = srslte_bit_pack(&ptr, cfg.L_cb);
       tb->softbuffer.rx->cb_crc[r] = (checksum1 == checksum2);
+
+      INFO("CB %d: CRC={%06x, %06x} ... %s\n",
+           r,
+           checksum1,
+           checksum2,
+           tb->softbuffer.rx->cb_crc[r] ? "OK" : "KOtb->softbuffer.rx->cb_crc[r]");
 
       // Pack only if CRC is match
       if (tb->softbuffer.rx->cb_crc[r]) {
@@ -566,6 +592,9 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
     // Calculate TB CRC from packed data
     uint32_t checksum1 = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
     *crc_ok            = (checksum1 == checksum2);
+
+    INFO("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
+    //    srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
   } else {
     *crc_ok = false;
   }
