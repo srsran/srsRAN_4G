@@ -1105,7 +1105,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
   rrc_ue->apply_rlc_rb_updates(rrc_ue->current_rr_cfg);
   // Update MAC
-  rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8);
+  rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8, rrc_ue->ue_capabilities);
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
 
@@ -1286,7 +1286,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   rrc_conn_recfg_r8_ies_s& reconf_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply changes to the MAC scheduler
-  f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(reconf_r8);
+  f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(reconf_r8, f->rrc_ue->ue_capabilities);
 
   f->rrc_ue->apply_setup_phy_common(f->rrc_enb->cfg.sibs[1].sib2().rr_cfg_common, false);
   f->rrc_ue->apply_reconf_phy_config(reconf_r8, false);

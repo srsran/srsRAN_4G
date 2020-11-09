@@ -62,9 +62,10 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
  * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message that should
  * only take effect after the RRCReconfigurationComplete is received
  */
-void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
-                                          const rrc_conn_recfg_r8_ies_s&  conn_recfg,
-                                          const cell_ctxt_dedicated_list& ue_cell_list);
+void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                            ue_cfg,
+                                          const rrc_conn_recfg_r8_ies_s&       conn_recfg,
+                                          const cell_ctxt_dedicated_list&      ue_cell_list,
+                                          const srslte::rrc_ue_capabilities_t& uecaps);
 
 /**
  * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message related to
@@ -191,7 +192,8 @@ void rrc::ue::mac_controller::handle_con_reest_complete()
   mac->phy_config_enabled(rrc_ue->rnti, true);
 }
 
-void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
+void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                                const srslte::rrc_ue_capabilities_t&      uecaps)
 {
   if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
     ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
@@ -199,7 +201,7 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
 
   // Store MAC updates that are applied once RRCReconfigurationComplete is received
   next_sched_ue_cfg = current_sched_ue_cfg;
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list, uecaps);
 
   // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
   set_drb_activation(false);
@@ -238,14 +240,15 @@ void rrc::ue::mac_controller::apply_current_bearers_cfg()
   }
 }
 
-void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
+void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                                       const srslte::rrc_ue_capabilities_t&      uecaps)
 {
   if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
     ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
   }
 
   next_sched_ue_cfg = current_sched_ue_cfg;
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list, uecaps);
 
   // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
   set_drb_activation(false);
@@ -255,7 +258,8 @@ void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn
   mac->phy_config_enabled(rrc_ue->rnti, false);
 }
 
-void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg)
+void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                                     const srslte::rrc_ue_capabilities_t&      uecaps)
 {
   next_sched_ue_cfg = current_sched_ue_cfg;
   next_sched_ue_cfg.supported_cc_list.resize(1);
@@ -265,7 +269,7 @@ void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_r
   if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
     ue_cfg_apply_phy_cfg_ded(next_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
   }
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list, uecaps);
 
   // Freeze SCells
   // NOTE: this avoids that the UE receives an HOCmd retx from target cell and do an incorrect RLC-level concatenation
@@ -381,9 +385,10 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
   }
 }
 
-void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
-                                          const rrc_conn_recfg_r8_ies_s&  conn_recfg,
-                                          const cell_ctxt_dedicated_list& ue_cell_list)
+void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                            ue_cfg,
+                                          const rrc_conn_recfg_r8_ies_s&       conn_recfg,
+                                          const cell_ctxt_dedicated_list&      ue_cell_list,
+                                          const srslte::rrc_ue_capabilities_t& uecaps)
 {
   // Configure RadioResourceConfigDedicated
   if (conn_recfg.rr_cfg_ded_present) {
@@ -447,6 +452,11 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg
         }
       }
     }
+  }
+
+  // Params non-dependent on Reconf message content
+  if (uecaps.support_ul_64qam) {
+    ue_cfg.support_ul_64qam = true;
   }
 }
 

@@ -1239,17 +1239,25 @@ int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 
 int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs)
 {
-
-  uint32_t cqi     = is_ul ? ul_cqi : dl_cqi;
-  uint32_t max_mcs = is_ul ? max_mcs_ul : (cfg->use_tbs_index_alt) ? max_mcs_dl_alt : max_mcs_dl;
-  uint32_t max_Qm  = is_ul and not ul_64qam_enabled ? 4 : (not is_ul and use_tbs_index_alt ? 8 : 6);
+  uint32_t cqi, max_mcs, max_Qm;
+  float    max_coderate;
+  if (is_ul) {
+    cqi          = ul_cqi;
+    max_mcs      = cfg->support_ul_64qam ? max_mcs_ul : std::min(max_mcs_ul, 20u);
+    max_Qm       = cfg->support_ul_64qam ? 6 : 4;
+    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), false);
+  } else {
+    cqi          = dl_cqi;
+    max_mcs      = cfg->use_tbs_index_alt ? max_mcs_dl_alt : max_mcs_dl;
+    max_Qm       = use_tbs_index_alt ? 8 : 6;
+    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
+  }
 
   // Take the upper bound code-rate
-  float    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
-  int      sel_mcs      = max_mcs + 1;
-  float    coderate     = 99;
-  int      tbs          = 0;
-  uint32_t Qm           = 0;
+  int      sel_mcs  = max_mcs + 1;
+  float    coderate = 99;
+  int      tbs      = 0;
+  uint32_t Qm       = 0;
 
   do {
     sel_mcs--;

@@ -43,11 +43,14 @@ public:
   void handle_con_setup_complete();
   void handle_con_reest_complete();
 
-  void handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
+  void handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                         const srslte::rrc_ue_capabilities_t&      uecaps);
   void handle_con_reconf_complete();
 
-  void handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
-  void handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg);
+  void handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                const srslte::rrc_ue_capabilities_t&      uecaps);
+  void handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                              const srslte::rrc_ue_capabilities_t&      uecaps);
   void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
   const ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }

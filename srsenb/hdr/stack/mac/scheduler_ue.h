@@ -73,9 +73,6 @@ struct cc_sched_ue {
   uint32_t ul_cqi_tti = 0;
   bool     dl_cqi_rx  = false;
 
-  // Enables or disables uplink 64QAM. Not yet functional.
-  bool ul_64qam_enabled = false;
-
   uint32_t max_mcs_dl = 28, max_mcs_dl_alt = 27, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
