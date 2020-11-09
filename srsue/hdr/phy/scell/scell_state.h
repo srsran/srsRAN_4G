@@ -95,6 +95,8 @@ public:
    */
   void deactivate_all()
   {
+    std::unique_lock<std::mutex> lock(mutex);
+
     for (cfg& e : scell_cfg) {
       if (e.status == cfg::active) {
         e.status = cfg::inactive;
