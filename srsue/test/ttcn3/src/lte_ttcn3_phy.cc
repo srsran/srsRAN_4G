@@ -75,7 +75,12 @@ void lte_ttcn3_phy::enable_pregen_signals(bool enable)
   log.debug("%s not implemented.\n", __FUNCTION__);
 }
 
-void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd)
+void lte_ttcn3_phy::deactivate_scells()
+{
+  log.debug("%s not implemented.\n", __FUNCTION__);
+}
+
+void lte_ttcn3_phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti)
 {
   log.debug("%s not implemented.\n", __FUNCTION__);
 }

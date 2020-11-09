@@ -267,7 +267,14 @@ void phy::set_timeadv(uint32_t ta_cmd)
   common.ta.add_ta_cmd_new(ta_cmd);
 }
 
-void phy::set_activation_deactivation_scell(uint32_t cmd)
+void phy::deactivate_scells()
+{
+  for (uint32_t i = 1; i < SRSLTE_MAX_CARRIERS; i++) {
+    common.enable_scell(i, false);
+  }
+}
+
+void phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti)
 {
   /* Implements 3GPP 36.321 section 6.1.3.8. Activation/Deactivation MAC Control Element*/
   for (uint32_t i = 1; i < SRSLTE_MAX_CARRIERS; i++) {

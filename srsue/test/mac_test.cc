@@ -163,7 +163,7 @@ public:
   void set_crnti(uint16_t rnti) { last_crnti = rnti; }
   void set_timeadv_rar(uint32_t ta_cmd) { rar_time_adv = ta_cmd; }
   void set_timeadv(uint32_t ta_cmd){};
-  void set_activation_deactivation_scell(uint32_t cmd) { scell_cmd = cmd; };
+  void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) override { scell_cmd = cmd; };
   void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
   {
     memcpy(rar_payload, grant_payload, SRSLTE_RAR_GRANT_LEN);

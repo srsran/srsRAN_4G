@@ -145,7 +145,8 @@ public:
   void set_timeadv(uint32_t ta_cmd) final;
 
   /* Activate / Disactivate SCell*/
-  void set_activation_deactivation_scell(uint32_t ta_cmd) final;
+  void deactivate_scells() final;
+  void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) final;
 
   /* Sets RAR dci payload */
   void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) final;

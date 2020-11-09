@@ -552,7 +552,7 @@ public:
   virtual void set_timeadv(uint32_t ta_cmd)     = 0;
 
   /* Activate / Disactivate SCell*/
-  virtual void set_activation_deactivation_scell(uint32_t cmd) = 0;
+  virtual void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) = 0;
 
   /* Sets RAR dci payload */
   virtual void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) = 0;
@@ -595,7 +595,7 @@ public:
   virtual void set_config_mbsfn_sib13(const srslte::sib13_t& sib13)                       = 0;
   virtual void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)                      = 0;
 
-  virtual void set_activation_deactivation_scell(uint32_t cmd) = 0;
+  virtual void deactivate_scells() = 0;
 
   /* Measurements interface */
   virtual void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) = 0;

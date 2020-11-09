@@ -125,11 +125,11 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
  * This function enqueues the packet and returns quickly because ACK
  * deadline is important here.
  */
-void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes)
+void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
 {
 
   // Process Real-Time PDUs
-  process_sch_pdu_rt(buff, nof_bytes);
+  process_sch_pdu_rt(buff, nof_bytes, tti);
 
   return pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
 }
@@ -180,7 +180,7 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
   }
 }
 
-void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes)
+void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
 {
   srslte::sch_pdu mac_msg_rt(20, log_h);
 
@@ -192,7 +192,7 @@ void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes)
       // Ignore SDU
     } else {
       // Process MAC Control Element
-      if (!process_ce(mac_msg_rt.get())) {
+      if (!process_ce(mac_msg_rt.get(), tti)) {
         Warning("Received Subheader with invalid or unknown LCID\n");
       }
     }
@@ -274,7 +274,7 @@ void demux::mch_start_rx(uint32_t lcid)
   }
 }
 
-bool demux::process_ce(srslte::sch_subh* subh)
+bool demux::process_ce(srslte::sch_subh* subh, uint32_t tti)
 {
   switch (subh->dl_sch_ce_type()) {
     case srslte::dl_sch_lcid::CON_RES_ID:
@@ -287,7 +287,7 @@ bool demux::process_ce(srslte::sch_subh* subh)
       uint32_t cmd = (uint32_t)subh->get_activation_deactivation_cmd();
       srslte::console("SCELL Activation / Deactivation CMD: %x\n", cmd);
       log_h->info("SCELL Activation / Deactivation CMD: %x\n", cmd);
-      phy_h->set_activation_deactivation_scell(cmd);
+      phy_h->set_activation_deactivation_scell(cmd, tti);
       break;
     }
     case srslte::dl_sch_lcid::PADDING:

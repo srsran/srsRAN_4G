@@ -1332,7 +1332,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
   if (nof_scells_active > 0) {
-    rrc_ptr->phy->set_activation_deactivation_scell(0);
+    rrc_ptr->phy->deactivate_scells();
   }
 
   // 1> apply the default physical channel configuration as specified in 9.2.4;
@@ -1596,7 +1596,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
   if (nof_scells_active > 0) {
-    rrc_ptr->phy->set_activation_deactivation_scell(0);
+    rrc_ptr->phy->deactivate_scells();
   }
 
   // apply the value of the newUE-Identity as the C-RNTI;

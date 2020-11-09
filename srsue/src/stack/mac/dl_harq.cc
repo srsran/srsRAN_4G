@@ -341,7 +341,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
 
         } else {
           Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.tb[tid].tbs);
-          harq_entity->demux_unit->push_pdu(payload_buffer_ptr, cur_grant.tb[tid].tbs);
+          harq_entity->demux_unit->push_pdu(payload_buffer_ptr, cur_grant.tb[tid].tbs, grant.tti);
 
           // Compute average number of retransmissions per packet
           harq_entity->average_retx = SRSLTE_VEC_CMA((float)n_retx, harq_entity->average_retx, harq_entity->nof_pkts++);

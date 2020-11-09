@@ -54,7 +54,7 @@ public:
   uint8_t* request_buffer_bcch(uint32_t len);
   void     deallocate(uint8_t* payload_buffer_ptr);
 
-  void push_pdu(uint8_t* buff, uint32_t nof_bytes);
+  void push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti);
   void push_pdu_bcch(uint8_t* buff, uint32_t nof_bytes);
   void push_pdu_mch(uint8_t* buff, uint32_t nof_bytes);
   void push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes);
@@ -79,10 +79,10 @@ private:
   srslte::mch_pdu mch_mac_msg;
   srslte::sch_pdu pending_mac_msg;
   uint8_t         mch_lcids[SRSLTE_N_MCH_LCIDS] = {};
-  void            process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes);
+  void            process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes, uint32_t tti);
   void            process_sch_pdu(srslte::sch_pdu* pdu);
   void            process_mch_pdu(srslte::mch_pdu* pdu);
-  bool            process_ce(srslte::sch_subh* subheader);
+  bool            process_ce(srslte::sch_subh* subheader, uint32_t tti);
   void            parse_ta_cmd(srslte::sch_subh* subh);
 
   bool is_uecrid_successful = false;
