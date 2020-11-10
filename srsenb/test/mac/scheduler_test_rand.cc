@@ -37,6 +37,7 @@
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/phy/utils/debug.h"
 
+#include "sched_common_test_suite.h"
 #include "scheduler_test_common.h"
 #include "scheduler_test_utils.h"
 #include "srslte/common/test_common.h"
@@ -123,15 +124,14 @@ struct sched_tester : public srsenb::common_sched_tester {
   sched_tti_data tti_data;
 
   void rem_user(uint16_t rnti) override;
-  int  test_pdcch_collisions();
   int  assert_no_empty_allocs();
-  int  test_sch_collisions();
   int  test_harqs();
 
 private:
   void new_test_tti() override;
   void before_sched() override;
   int  process_results() override;
+  int  update_ue_stats();
 };
 
 void sched_tester::rem_user(uint16_t rnti)
@@ -189,15 +189,25 @@ int sched_tester::process_results()
 {
   const srsenb::cc_sched_result* cc_result =
       sched_results.get_cc(srslte::tti_point{tti_info.tti_params.tti_rx}, CARRIER_IDX);
+  srsenb::sf_output_res_t sf_out{sched_cell_params[CARRIER_IDX],
+                                 tti_point{tti_info.tti_params.tti_rx},
+                                 tti_info.ul_sched_result[CARRIER_IDX],
+                                 tti_info.dl_sched_result[CARRIER_IDX]};
   TESTASSERT(tti_info.tti_params.tti_rx == cc_result->tti_params.tti_rx);
 
-  test_pdcch_collisions();
+  // Common tests
+  TESTASSERT(test_pdcch_collisions(sf_out, &cc_result->pdcch_mask) == SRSLTE_SUCCESS);
+  TESTASSERT(test_dci_content_common(sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_sib_scheduling(sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pusch_collisions(sf_out, &cc_result->ul_mask) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdsch_collisions(sf_out, &cc_result->dl_mask) == SRSLTE_SUCCESS);
+
+  // UE dedicated tests
   TESTASSERT(ue_tester->test_all(0, tti_info.dl_sched_result[CARRIER_IDX], tti_info.ul_sched_result[CARRIER_IDX]) ==
              SRSLTE_SUCCESS);
-  test_sch_collisions();
   assert_no_empty_allocs();
   test_harqs();
-  output_tester[CARRIER_IDX].test_sib_scheduling(tti_info.tti_params, tti_info.dl_sched_result[CARRIER_IDX]);
+  update_ue_stats();
 
   return SRSLTE_SUCCESS;
 }
@@ -234,45 +244,6 @@ int sched_tester::assert_no_empty_allocs()
   //  }
   //  CONDERROR(tti_data.total_ues.has_dl_tx and no_dl_allocs, "There was pending DL data but no user got allocated\n");
   // TODO: You have to verify if there is space for the retx since it is non-adaptive
-  return SRSLTE_SUCCESS;
-}
-
-/**
- * Tests whether there were collisions in the DCI allocations
- */
-int sched_tester::test_pdcch_collisions()
-{
-  srslte::bounded_bitset<128, true> used_cce;
-  used_cce.resize(srslte_regs_pdcch_ncce(sched_cell_params[CARRIER_IDX].regs.get(), sched_cfg.max_nof_ctrl_symbols));
-
-  /* TEST: Check if there are collisions in the PDCCH */
-  TESTASSERT(output_tester[CARRIER_IDX].test_pdcch_collisions(tti_info.dl_sched_result[CARRIER_IDX],
-                                                              tti_info.ul_sched_result[CARRIER_IDX],
-                                                              &used_cce) == SRSLTE_SUCCESS);
-
-  /* TEST: Check whether dci values are correct */
-  TESTASSERT(output_tester[CARRIER_IDX].test_dci_values_consistency(
-                 tti_info.dl_sched_result[CARRIER_IDX], tti_info.ul_sched_result[CARRIER_IDX]) == SRSLTE_SUCCESS);
-
-  /* verify if sched_result "used_cce" coincide with sched "used_cce" */
-  const srsenb::cc_sched_result* cc_result = sched_results.get_cc(tti_point{tti_info.tti_params.tti_rx}, CARRIER_IDX);
-  if (used_cce != cc_result->pdcch_mask) {
-    std::string mask_str = cc_result->pdcch_mask.to_string();
-    TESTERROR("The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), used_cce.to_string().c_str());
-  }
-  // TODO: Check postponed retxs
-
-  //  typedef std::map<uint16_t, srsenb::sched_ue>::iterator it_t;
-  //  // There must be allocations if there is pending data/retxs.
-  //  if(total_ues.has_ul_tx and ul_sched_result.empty()) {
-  //    for (it_t it = ue_db.begin(); it != ue_db.end(); ++it) {
-  //      uint32_t aggr_level = it->second.get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, cfg.cell.nof_prb,
-  //      cfg.cell.nof_ports)); if (find_empty_dci(it->second.get_locations(current_cfi, sf_idx), aggr_level) > 0) {
-  //        TESTERROR("[%d] There was pending UL data and free CCEs, but no user got allocated\n",
-  //        tti_info.tti_params.tti_rx);
-  //      }
-  //    }
-  //  }
   return SRSLTE_SUCCESS;
 }
 
@@ -370,21 +341,8 @@ int sched_tester::test_harqs()
   return SRSLTE_SUCCESS;
 }
 
-int sched_tester::test_sch_collisions()
+int sched_tester::update_ue_stats()
 {
-  const srsenb::cc_sched_result* cc_result = sched_results.get_cc(tti_point{tti_info.tti_params.tti_rx}, CARRIER_IDX);
-
-  srsenb::prbmask_t ul_allocs(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
-
-  /* TEST: any collision in PUCCH and PUSCH */
-  TESTASSERT(output_tester[CARRIER_IDX].test_pusch_collisions(
-                 tti_info.tti_params, tti_info.ul_sched_result[CARRIER_IDX], ul_allocs) == SRSLTE_SUCCESS);
-
-  /* TEST: check whether cumulative UL PRB masks coincide */
-  if (ul_allocs != cc_result->ul_mask) {
-    TESTERROR("The UL PRB mask and the scheduler result UL mask are not consistent\n");
-  }
-
   // update ue stats with number of allocated UL PRBs
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++i) {
     uint32_t L, RBstart;
@@ -396,26 +354,15 @@ int sched_tester::test_sch_collisions()
     ue_stats[tti_info.ul_sched_result[CARRIER_IDX].pusch[i].dci.rnti].nof_ul_rbs += L;
   }
 
-  /* TEST: check any collision in PDSCH */
-  srsenb::rbgmask_t rbgmask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
-  TESTASSERT(output_tester[CARRIER_IDX].test_pdsch_collisions(
-                 tti_info.tti_params, tti_info.dl_sched_result[CARRIER_IDX], rbgmask) == SRSLTE_SUCCESS);
-
   // update ue stats with number of DL RB allocations
   srslte::bounded_bitset<100, true> alloc_mask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
   for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].nof_data_elems; ++i) {
     TESTASSERT(srsenb::extract_dl_prbmask(sched_cell_params[CARRIER_IDX].cfg.cell,
                                           tti_info.dl_sched_result[CARRIER_IDX].data[i].dci,
-                                          &alloc_mask) == SRSLTE_SUCCESS);
+                                          alloc_mask) == SRSLTE_SUCCESS);
     ue_stats[tti_info.dl_sched_result[CARRIER_IDX].data[i].dci.rnti].nof_dl_rbs += alloc_mask.count();
   }
 
-  // TEST: check if resulting DL mask is equal to scheduler internal DL mask
-  if (rbgmask != cc_result->dl_mask) {
-    TESTERROR("The DL PRB mask and the scheduler result DL mask are not consistent (%s!=%s)\n",
-              rbgmask.to_string().c_str(),
-              cc_result->dl_mask.to_string().c_str());
-  }
   return SRSLTE_SUCCESS;
 }
 
