@@ -124,12 +124,14 @@ int main(int argc, char** argv)
   srslte_softbuffer_tx_t softbuffer_tx = {};
   srslte_softbuffer_rx_t softbuffer_rx = {};
 
-  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, 50, 18000) < SRSLTE_SUCCESS) {
+  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSLTE_SUCCESS) {
     ERROR("Error init soft-buffer\n");
     goto clean_exit;
   }
 
-  if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, 50, 18000) < SRSLTE_SUCCESS) {
+  if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSLTE_SUCCESS) {
     ERROR("Error init soft-buffer\n");
     goto clean_exit;
   }

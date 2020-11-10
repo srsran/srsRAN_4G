@@ -61,6 +61,8 @@
 
 #define MAX_LIFTSIZE 384 /*!< \brief Maximum lifting size. */
 
+#define SRSLTE_LDPC_MAX_LEN_ENCODED_CB (MAX_LIFTSIZE * SRSLTE_MAX(BG1N, BG2N))
+
 #define VOID_LIFTSIZE 255 /*!< \brief Identifies an invalid lifting size in the lookup table. */
 /*!
  * \brief Identifies a missing connection between a check node and a variable node

@@ -365,7 +365,8 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  uint8_t* output_ptr = e_bits;
+  const uint8_t* input_ptr  = data;
+  uint8_t*       output_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
   if (srslte_dlsch_nr_fill_cfg(q, pdsch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
@@ -385,12 +386,25 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
   }
 
   // Soft-buffer number of code-block protection
-  if (tb->softbuffer.tx->max_cb < cfg.Cp || tb->softbuffer.tx->max_cb_size < (cfg.encoder->liftN - 2 * cfg.Z)) {
+  if (tb->softbuffer.tx->max_cb < cfg.C) {
+    ERROR("Soft-buffer does not have enough code-blocks (max_cb=%d) for a TBS=%d, C=%d.\n",
+          tb->softbuffer.tx->max_cb,
+          tb->tbs,
+          cfg.C);
+    return SRSLTE_ERROR;
+  }
+
+  if (tb->softbuffer.tx->max_cb_size < (cfg.encoder->liftN - 2 * cfg.Z)) {
+    ERROR("Soft-buffer code-block maximum size insufficient (max_cb_size=%d) for a TBS=%d, requires %d.\n",
+          tb->softbuffer.tx->max_cb_size,
+          tb->tbs,
+          (cfg.encoder->liftN - 2 * cfg.Z));
     return SRSLTE_ERROR;
   }
 
   // Calculate TB CRC
   uint32_t checksum_tb = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
+  // printf(" Encode: "); srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
 
   // For each code block...
   uint32_t j = 0;
@@ -404,10 +418,12 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
 
     // If data provided, encode and store in RM circular buffer
     if (data != NULL) {
+      uint32_t cb_len = cfg.Kp - cfg.L_cb;
+
       // If it is the last segment...
       if (r == cfg.C - 1) {
         // Copy payload without TB CRC
-        srslte_bit_unpack_vector(data, q->temp_cb, (int)(cfg.Kp - cfg.L_cb - cfg.L_tb));
+        srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)(cb_len - cfg.L_tb));
 
         // Append TB CRC
         uint8_t* ptr = &q->temp_cb[cfg.Kp - cfg.L_cb - cfg.L_tb];
@@ -415,12 +431,14 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
         INFO("CB %d: appending TB CRC=%06x\n", r, checksum_tb);
       } else {
         // Copy payload
-        srslte_bit_unpack_vector(data, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
+        srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
       }
+      //      printf("CB %d:", r); srslte_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
+      input_ptr += cb_len / 8;
 
       // Attach code block CRC if required
       if (cfg.L_cb) {
-        srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
+        srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)cb_len);
         INFO("CB %d: CRC=%06x\n", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
       }
 
@@ -471,8 +489,7 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  int8_t*  input_ptr  = e_bits;
-  uint8_t* output_ptr = data;
+  int8_t* input_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
   if (srslte_dlsch_nr_fill_cfg(q, pdsch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
@@ -509,14 +526,25 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
       return SRSLTE_ERROR;
     }
 
-    // Select rate matching output sequence number of bits
-    if (decoded) {
-      cb_ok++;
+    // Skip CB if mask indicates no transmission of the CB
+    if (!cfg.mask[r]) {
+      if (decoded) {
+        cb_ok++;
+      }
+      INFO("RM CB %d: Disabled, CRC %s ... Skipping\n", r, decoded ? "OK" : "KO");
       continue;
     }
 
+    // Select rate matching output sequence number of bits
     uint32_t E = sch_nr_get_E(&cfg, j);
     j++;
+
+    // Skip CB if it has a matched CRC
+    if (decoded) {
+      INFO("RM CB %d: CRC OK ... Skipping\n", r);
+      cb_ok++;
+      continue;
+    }
 
     // LDPC Rate matching
     INFO("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
@@ -536,46 +564,46 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
     // Compute CB CRC
     uint32_t cb_len = cfg.Kp - cfg.L_cb;
     if (cfg.L_cb) {
-      uint8_t* ptr                 = q->temp_cb;
+      uint8_t* ptr                 = q->temp_cb + cb_len;
       uint32_t checksum1           = srslte_crc_checksum(&q->crc_cb, q->temp_cb, (int)cb_len);
       uint32_t checksum2           = srslte_bit_pack(&ptr, cfg.L_cb);
       tb->softbuffer.rx->cb_crc[r] = (checksum1 == checksum2);
 
-      INFO("CB %d: CRC={%06x, %06x} ... %s\n",
+      INFO("CB %d/%d: CRC={%06x, %06x} ... %s\n",
            r,
+           cfg.C,
            checksum1,
            checksum2,
-           tb->softbuffer.rx->cb_crc[r] ? "OK" : "KOtb->softbuffer.rx->cb_crc[r]");
-
-      // Pack only if CRC is match
-      if (tb->softbuffer.rx->cb_crc[r]) {
-        srslte_bit_pack_vector(q->temp_cb, tb->softbuffer.rx->data[r], cb_len);
-      }
+           tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
     } else {
-      srslte_bit_pack_vector(q->temp_cb, tb->softbuffer.rx->data[r], cb_len);
       tb->softbuffer.rx->cb_crc[r] = true;
     }
 
-    // Count if CB CRC OK
-    cb_ok += tb->softbuffer.rx->cb_crc[r];
+    // Pack and count CRC OK only if CRC is match
+    if (tb->softbuffer.rx->cb_crc[r]) {
+      srslte_bit_pack_vector(q->temp_cb, tb->softbuffer.rx->data[r], cb_len);
+      cb_ok++;
+    }
 
     input_ptr += E;
   }
 
   // All CB are decoded
   if (cb_ok == cfg.C) {
-    uint32_t checksum2 = 0;
+    uint32_t checksum2  = 0;
+    uint8_t* output_ptr = data;
 
     for (uint32_t r = 0; r < cfg.C; r++) {
       uint32_t cb_len = cfg.Kp - cfg.L_cb;
 
-      // Subtract TB CRC from the last codde block
+      // Subtract TB CRC from the last code block
       if (r == cfg.C - 1) {
         cb_len -= cfg.L_tb;
       }
 
       srslte_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
       output_ptr += cb_len / 8;
+      //      printf("CB %d:", r); srslte_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
 
       if (r == cfg.C - 1) {
         uint8_t  tb_crc_unpacked[24] = {};
@@ -590,7 +618,7 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
     *crc_ok            = (checksum1 == checksum2);
 
     INFO("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
-    //    srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+    //    printf("Decoded: "); srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
   } else {
     *crc_ok = false;
   }

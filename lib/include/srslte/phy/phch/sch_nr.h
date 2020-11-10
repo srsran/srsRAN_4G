@@ -40,7 +40,7 @@
 #include "srslte/phy/phch/ra_nr.h"
 
 #define SRSLTE_SCH_NR_MAX_NOF_CB_LDPC                                                                                  \
-  (SRSLTE_MAX_PRB_NR * SRSLTE_NRE * 8 * SRSLTE_NSYMB_PER_SLOT_NR * (SRSLTE_LDPC_BG2_MAX_LEN_CB + 1) /                  \
+  ((SRSLTE_MAX_PRB_NR * SRSLTE_NRE * 8 * SRSLTE_NSYMB_PER_SLOT_NR + (SRSLTE_LDPC_BG2_MAX_LEN_CB - 1)) /                \
    SRSLTE_LDPC_BG2_MAX_LEN_CB)
 
 typedef struct SRSLTE_API {
