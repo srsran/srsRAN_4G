@@ -670,7 +670,7 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
   const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
       grant->mapping == srslte_pdsch_mapping_type_A ? &pdsch_cfg->dmrs_cfg_typeA : &pdsch_cfg->dmrs_cfg_typeB;
 
-  cf_t*    ce        = chest_res->ce[0][0];
+  cf_t*    ce        = q->temp;
   uint32_t symbol_sz = q->carrier.nof_prb * SRSLTE_NRE; // Symbol size in resource elements
 
   // Get symbols indexes
@@ -722,13 +722,41 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
     srslte_interp_linear_offset(&q->interpolator_type2, q->pilot_estimates, ce, delta, 3 - delta);
   }
 
-  // Time domain hold
-  for (uint32_t i = 1; i < grant->L; i++) {
-    srslte_vec_cf_copy(&ce[i * nof_re_x_symbol], ce, nof_re_x_symbol);
-  }
+  // Time domain hold, extract resource elements estimates for PDSCH
+  uint32_t symbol_idx = 0;
+  uint32_t count      = 0;
+  for (uint32_t l = grant->S; l < grant->L; l++) {
+    while (symbols[symbol_idx] < l && symbol_idx < nof_symbols) {
+      symbol_idx++;
+    }
 
+    if (symbols[symbol_idx] == l) {
+      switch (dmrs_cfg->type) {
+
+        case srslte_dmrs_pdsch_type_1:
+          for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
+            if (i % 2 != delta) {
+              chest_res->ce[0][0][count] = ce[i];
+              count++;
+            }
+          }
+          break;
+        case srslte_dmrs_pdsch_type_2:
+          for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
+            if ((i % 6 != delta) && (i % 6 != delta + 1)) {
+              chest_res->ce[0][0][count] = ce[i];
+              count++;
+            }
+          }
+          break;
+      }
+    } else {
+      srslte_vec_cf_copy(&chest_res->ce[0][0][count], ce, nof_re_x_symbol);
+      count += nof_re_x_symbol;
+    }
+  }
   // Set other values in the estimation result
-  chest_res->nof_re = nof_re_x_symbol * grant->L;
+  chest_res->nof_re = count;
 
   return SRSLTE_SUCCESS;
 }

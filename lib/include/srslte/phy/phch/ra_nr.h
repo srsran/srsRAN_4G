@@ -37,29 +37,14 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
 
-/**************************************************
- * Common structures used for Resource Allocation
- **************************************************/
-
-typedef struct SRSLTE_API {
-  srslte_mod_t mod;
-  uint32_t     N_L; ///< the number of transmission layers that the transport block is mapped onto
-  int          tbs; ///< Payload size, TS 38.212 refers to it as A
-  double       R;   ///< Target LDPC rate
-  int          rv;
-  uint32_t     nof_bits; ///< Number of available bits to send, known as G
-  uint32_t     cw_idx;
-  bool         enabled;
-
-  // this is for debugging and metrics purposes
-  uint32_t mcs_idx;
-
-  /// Soft-buffers pointers
-  union {
-    srslte_softbuffer_tx_t* tx;
-    srslte_softbuffer_rx_t* rx;
-  } softbuffer;
-} srslte_ra_tb_nr_t;
+/**
+ * @brief Determines the number of resource elements available for a given PDSCH transmission
+ * @param pdsch_cfg PDSCH configuration provided by higher layers
+ * @param grant The given PDSCH transmission grant
+ * @return The number of resource elements if the provided configuration is valid, otherwise SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
+                                           const srslte_pdsch_grant_nr_t* grant);
 
 /**
  * @brief Calculates shared channel TBS
@@ -75,5 +60,5 @@ SRSLTE_API uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t
 SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
                                     const srslte_pdsch_grant_nr_t* grant,
                                     uint32_t                       mcs_idx,
-                                    srslte_ra_tb_nr_t*             tb);
+                                    srslte_sch_tb_t*               tb);
 #endif // SRSLTE_RA_NR_H

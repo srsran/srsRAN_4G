@@ -39,6 +39,10 @@ extern "C" {
  */
 #define SRSLTE_SLOT_LEN_RE_NR(nof_prb) (nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR)
 
+#define SRSLTE_SLOT_MAX_LEN_RE_NR (SRSLTE_SLOT_LEN_RE_NR(SRSLTE_MAX_PRB_NR))
+#define SRSLTE_SLOT_MAX_NOF_BITS_NR (SRSLTE_SLOT_MAX_LEN_RE_NR * SRSLTE_MAX_QM)
+#define SRSLTE_MAX_LAYERS_NR 8
+
 /**
  * @brief Defines the maximum numerology supported. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
@@ -248,15 +252,6 @@ typedef struct SRSLTE_API {
   uint32_t              aggregation_level;
   uint32_t              n_cce;
 } srslte_pdcch_cfg_nr_t;
-
-typedef struct SRSLTE_API {
-  uint32_t max_mimo_layers; ///< @brief DL: Indicates the maximum number of MIMO layers to be used for PDSCH in all BWPs
-                            ///< of this serving cell. (see TS 38.212 [17], clause 5.4.2.1). UL: Indicates the maximum
-                            ///< MIMO layer to be used for PUSCH in all BWPs of the normal UL of this serving cell (see
-                            ///< TS 38.212 [17], clause 5.4.2.1)
-  srslte_xoverhead_t xoverhead; ///< Accounts for overhead from CSI-RS, CORESET, etc. If the field is absent, the UE
-                                ///< applies value xOh0 (see TS 38.214 [19], clause 5.1.3.2).
-} srslte_serving_cell_cfg_t;
 
 /**
  * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the

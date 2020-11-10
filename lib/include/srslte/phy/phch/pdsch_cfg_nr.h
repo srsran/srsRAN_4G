@@ -31,7 +31,7 @@
 #define SRSLTE_PDSCH_CFG_NR_H
 
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/fec/softbuffer.h"
+#include "srslte/phy/phch/sch_cfg_nr.h"
 
 /**
  * @brief PDSCH DMRS type
@@ -136,6 +136,8 @@ typedef struct SRSLTE_API {
   /// Transport block
   uint32_t tb_scaling_field;
   /// ....
+
+  srslte_sch_tb_t tb[SRSLTE_MAX_TB];
 } srslte_pdsch_grant_nr_t;
 
 /**
@@ -149,11 +151,8 @@ typedef struct SRSLTE_API {
 
   srslte_pdsch_dmrs_cfg_t dmrs_cfg_typeA;
   srslte_pdsch_dmrs_cfg_t dmrs_cfg_typeB;
-  srslte_mcs_table_t      mcs_table;
 
-  /// Parameters provided by PDSCH-ServingCellConfig
-  srslte_serving_cell_cfg_t serving_cell_cfg;
-
+  srslte_sch_cfg_t sch_cfg; ///< Common shared channel parameters
 } srslte_pdsch_cfg_nr_t;
 
 #endif // SRSLTE_PDSCH_CFG_NR_H

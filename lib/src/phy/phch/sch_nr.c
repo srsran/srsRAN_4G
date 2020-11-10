@@ -24,6 +24,7 @@
 #include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/ldpc/ldpc_common.h"
 #include "srslte/phy/fec/ldpc/ldpc_rm.h"
+#include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
@@ -70,13 +71,13 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
-int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*             q,
-                             const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                             const srslte_ra_tb_nr_t*     tb,
-                             srslte_sch_nr_common_cfg_t*  cfg)
+int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
+                             const srslte_sch_cfg_t*     sch_cfg,
+                             const srslte_sch_tb_t*      tb,
+                             srslte_sch_nr_common_cfg_t* cfg)
 {
 
-  if (!pdsch_cfg || !tb || !cfg) {
+  if (!sch_cfg || !tb || !cfg) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -119,8 +120,8 @@ int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*             q,
   // Calculate Nref
   uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(q->carrier.nof_prb);
   double   R_lbrm    = 948.0 / 1024.0;
-  uint32_t Qm_lbrm   = (pdsch_cfg->mcs_table == srslte_mcs_table_256qam) ? 8 : 6;
-  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, R_lbrm, Qm_lbrm, pdsch_cfg->serving_cell_cfg.max_mimo_layers);
+  uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srslte_mcs_table_256qam) ? 8 : 6;
+  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, R_lbrm, Qm_lbrm, sch_cfg->max_mimo_layers);
   cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * 2.0 / 3.0));
 
   // Calculate number of code blocks after applying CBGTI... not implemented, activate all CB
@@ -354,11 +355,11 @@ void srslte_sch_nr_free(srslte_sch_nr_t* q)
   srslte_ldpc_rm_rx_free_c(&q->rx_rm);
 }
 
-int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
-                           const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                           const srslte_ra_tb_nr_t*     tb,
-                           const uint8_t*               data,
-                           uint8_t*                     e_bits)
+int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* pdsch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           const uint8_t*          data,
+                           uint8_t*                e_bits)
 {
   // Pointer protection
   if (!q || !pdsch_cfg || !tb || !data || !e_bits) {
@@ -477,22 +478,22 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
-                           const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                           const srslte_ra_tb_nr_t*     tb,
-                           int8_t*                      e_bits,
-                           uint8_t*                     data,
-                           bool*                        crc_ok)
+int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* sch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           int8_t*                 e_bits,
+                           uint8_t*                data,
+                           bool*                   crc_ok)
 {
   // Pointer protection
-  if (!q || !pdsch_cfg || !tb || !data || !e_bits || !crc_ok) {
+  if (!q || !sch_cfg || !tb || !data || !e_bits || !crc_ok) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   int8_t* input_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_dlsch_nr_fill_cfg(q, pdsch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_dlsch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 

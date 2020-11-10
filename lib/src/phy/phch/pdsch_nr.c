@@ -19,6 +19,148 @@
  *
  */
 #include "srslte/phy/phch/pdsch_nr.h"
+#include "srslte/phy/common/phy_common_nr.h"
+
+int pdsch_nr_init_common(srslte_pdsch_nr_t* q)
+{
+  for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
+    if (srslte_modem_table_lte(&q->modem_tables[mod], mod) < SRSLTE_SUCCESS) {
+      ERROR("Error initialising modem table for %s\n", srslte_mod_string(mod));
+      return SRSLTE_ERROR;
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q)
+{
+
+  if (q == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (pdsch_nr_init_common(q) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  if (srslte_sch_nr_init_tx(&q->sch)) {
+    ERROR("Initialising SCH\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q)
+{
+
+  if (q == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (pdsch_nr_init_common(q) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  srslte_sch_nr_decoder_cfg_t decoder_cfg = {};
+  if (srslte_sch_nr_init_rx(&q->sch, &decoder_cfg)) {
+    ERROR("Initialising SCH\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t*         q,
+                                const srslte_carrier_nr_t* carrier,
+                                const srslte_sch_cfg_t*    sch_cfg)
+{
+  // Set carrier
+  q->carrier = *carrier;
+
+  // Reallocate symbols if necessary
+  if (q->max_layers < sch_cfg->max_mimo_layers || q->max_prb < carrier->nof_prb) {
+    q->max_layers = sch_cfg->max_mimo_layers;
+    q->max_prb    = carrier->nof_prb;
+
+    // Free current allocations
+    for (uint32_t i = 0; i < SRSLTE_MAX_LAYERS_NR; i++) {
+      if (q->x[i] != NULL) {
+        free(q->x[i]);
+      }
+    }
+
+    // Allocate for new sizes
+    for (uint32_t i = 0; i < q->max_layers; i++) {
+      q->x[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(q->max_prb));
+      if (q->x[i] == NULL) {
+        ERROR("Malloc");
+        return SRSLTE_ERROR;
+      }
+    }
+  }
+
+  // Allocate code words according to table 7.3.1.3-1
+  uint32_t max_cw = (q->max_layers > 5) ? 2 : 1;
+  if (q->max_cw < max_cw) {
+    q->max_cw = max_cw;
+
+    for (uint32_t i = 0; i < max_cw; i++) {
+      if (q->b[i] == NULL) {
+        q->b[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
+        if (q->b[i] == NULL) {
+          ERROR("Malloc");
+          return SRSLTE_ERROR;
+        }
+      }
+
+      if (q->d[i] == NULL) {
+        q->d[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
+        if (q->d[i] == NULL) {
+          ERROR("Malloc");
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+  }
+
+  // Set carrier in SCH
+  if (srslte_sch_nr_set_carrier(&q->sch, carrier) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q)
+{
+  if (q == NULL) {
+    return;
+  }
+
+  for (uint32_t cw = 0; cw < SRSLTE_MAX_CODEWORDS; cw++) {
+    if (q->b[cw]) {
+      free(q->b[cw]);
+    }
+
+    if (q->d[cw]) {
+      free(q->d[cw]);
+    }
+  }
+
+  srslte_sch_nr_free(&q->sch);
+
+  for (uint32_t i = 0; i < SRSLTE_MAX_LAYERS_NR; i++) {
+    if (q->x[i]) {
+      free(q->x[i]);
+    }
+  }
+
+  for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
+    srslte_modem_table_free(&q->modem_tables[mod]);
+  }
+}
 
 /**
  * @brief copies a number of countiguous Resource Elements
@@ -197,21 +339,197 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*       q,
   return count;
 }
 
-int srslte_pdsch_nr_put(const srslte_pdsch_nr_t*       q,
-                        const srslte_pdsch_cfg_nr_t*   cfg,
-                        const srslte_pdsch_grant_nr_t* grant,
-                        cf_t*                          symbols,
-                        cf_t*                          sf_symbols)
+static int srslte_pdsch_nr_put(const srslte_pdsch_nr_t*       q,
+                               const srslte_pdsch_cfg_nr_t*   cfg,
+                               const srslte_pdsch_grant_nr_t* grant,
+                               cf_t*                          symbols,
+                               cf_t*                          sf_symbols)
 {
   return srslte_pdsch_nr_cp(q, cfg, grant, symbols, sf_symbols, true);
 }
 
-int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*     q,
-                           uint32_t               slot_idx,
-                           srslte_pdsch_cfg_nr_t* cfg,
-                           uint8_t*               data[SRSLTE_MAX_CODEWORDS],
-                           cf_t*                  sf_symbols[SRSLTE_MAX_PORTS])
+static int srslte_pdsch_nr_get(const srslte_pdsch_nr_t*       q,
+                               const srslte_pdsch_cfg_nr_t*   cfg,
+                               const srslte_pdsch_grant_nr_t* grant,
+                               cf_t*                          symbols,
+                               cf_t*                          sf_symbols)
 {
+  return srslte_pdsch_nr_cp(q, cfg, grant, symbols, sf_symbols, false);
+}
+
+static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
+                                           const srslte_pdsch_cfg_nr_t* cfg,
+                                           const srslte_sch_tb_t*       tb,
+                                           const uint8_t*               data,
+                                           uint16_t                     rnti)
+{
+  // Early return if TB is not enabled
+  if (!tb->enabled) {
+    return SRSLTE_SUCCESS;
+  }
+
+  // Check codeword index
+  if (tb->cw_idx >= q->max_cw) {
+    ERROR("Unsupported codeword index %d\n", tb->cw_idx);
+    return SRSLTE_ERROR;
+  }
+
+  // Check modulation
+  if (tb->mod >= SRSLTE_MOD_NITEMS) {
+    ERROR("Invalid modulation %s\n", srslte_mod_string(tb->mod));
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  }
+
+  // Encode SCH
+  if (srslte_dlsch_nr_encode(&q->sch, &cfg->sch_cfg, tb, data, q->b[tb->cw_idx]) < SRSLTE_SUCCESS) {
+    ERROR("Error in DL-SCH encoding\n");
+    return SRSLTE_ERROR;
+  }
+
+  // 7.3.1.1 Scrambling
+  uint32_t n_id = q->carrier.id;
+  if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
+    n_id = cfg->scambling_id;
+  }
+  uint32_t cinit = ((uint32_t)rnti << 15U) + (tb->cw_idx << 14U) + n_id;
+  srslte_sequence_apply_bit(q->b[tb->cw_idx], q->b[tb->cw_idx], tb->nof_bits, cinit);
+
+  // 7.3.1.2 Modulation
+  srslte_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], tb->nof_bits);
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*             q,
+                           const srslte_pdsch_cfg_nr_t*   cfg,
+                           const srslte_pdsch_grant_nr_t* grant,
+                           uint8_t*                       data[SRSLTE_MAX_TB],
+                           cf_t*                          sf_symbols[SRSLTE_MAX_PORTS])
+{
+  uint32_t nof_cw = 0;
+
+  // Check input pointers
+  if (!q || !cfg || !grant || !data || !sf_symbols) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Check number of layers
+  if (q->max_layers < grant->nof_layers) {
+    ERROR("Error number of layers (%d) exceeds configured maximum (%d)\n", grant->nof_layers, q->max_layers);
+    return SRSLTE_ERROR;
+  }
+
+  // 7.3.1.1 and 7.3.1.2
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    nof_cw += grant->tb[tb].enabled ? 1 : 0;
+
+    if (pdsch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb], grant->rnti) < SRSLTE_SUCCESS) {
+      ERROR("Error encoding TB %d\n", tb);
+      return SRSLTE_ERROR;
+    }
+  }
+
+  // 7.3.1.3 Layer mapping
+  cf_t** x = q->d;
+  if (grant->nof_layers > 1) {
+    x = q->x;
+    srslte_layermap_nr(q->d, nof_cw, x, grant->nof_layers, grant->nof_layers);
+  }
+
+  // 7.3.1.4 Antenna port mapping
+  // ... Not implemented
+
+  // 7.3.1.5 Mapping to virtual resource blocks
+  // ... Not implemented
+
+  // 7.3.1.6 Mapping from virtual to physical resource blocks
+  srslte_pdsch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
+
+  return SRSLTE_SUCCESS;
+}
+
+static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*           q,
+                                           const srslte_pdsch_cfg_nr_t* cfg,
+                                           const srslte_sch_tb_t*       tb,
+                                           srslte_pdsch_res_nr_t*       res,
+                                           uint16_t                     rnti)
+{
+  // Early return if TB is not enabled
+  if (!tb->enabled) {
+    return SRSLTE_SUCCESS;
+  }
+
+  // Check codeword index
+  if (tb->cw_idx >= q->max_cw) {
+    ERROR("Unsupported codeword index %d\n", tb->cw_idx);
+    return SRSLTE_ERROR;
+  }
+
+  // Check modulation
+  if (tb->mod >= SRSLTE_MOD_NITEMS) {
+    ERROR("Invalid modulation %s\n", srslte_mod_string(tb->mod));
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  }
+
+  // Demodulation
+  cf_t**  d   = (tb->N_L > 1) ? q->d : q->x;
+  int8_t* llr = (int8_t*)q->b;
+  if (srslte_demod_soft_demodulate_b(tb->mod, d[tb->cw_idx], llr, tb->nof_bits)) {
+    return SRSLTE_ERROR;
+  }
+
+  // Descrambling
+  uint32_t n_id = q->carrier.id;
+  if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
+    n_id = cfg->scambling_id;
+  }
+  uint32_t cinit = ((uint32_t)rnti << 15U) + (tb->cw_idx << 14U) + n_id;
+  srslte_sequence_apply_c(llr, llr, tb->nof_bits, cinit);
+
+  // Decode SCH
+  if (srslte_dlsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
+    ERROR("Error in DL-SCH encoding\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
+                           const srslte_pdsch_cfg_nr_t*   cfg,
+                           const srslte_pdsch_grant_nr_t* grant,
+                           srslte_chest_dl_res_t*         channel,
+                           cf_t*                          sf_symbols[SRSLTE_MAX_PORTS],
+                           srslte_pdsch_res_nr_t          data[SRSLTE_MAX_TB])
+{
+  uint32_t nof_cw = 0;
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    nof_cw += grant->tb[tb].enabled ? 1 : 0;
+  }
+
+  // Demapping from virtual to physical resource blocks
+  srslte_pdsch_nr_get(q, cfg, grant, q->x[0], sf_symbols[0]);
+
+  // Demapping to virtual resource blocks
+  // ... Not implemented
+
+  // Antenna port demapping
+  // ... Not implemented
+
+  // Layer demapping
+  if (grant->nof_layers > 1) {
+    srslte_layermap_nr(q->d, nof_cw, q->x, grant->nof_layers, grant->nof_layers);
+  }
+
+  // SCH decode
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    nof_cw += grant->tb[tb].enabled ? 1 : 0;
+
+    if (pdsch_nr_decode_codeword(q, cfg, &grant->tb[tb], &data[tb], grant->rnti) < SRSLTE_SUCCESS) {
+      ERROR("Error encoding TB %d\n", tb);
+      return SRSLTE_ERROR;
+    }
+  }
 
   return SRSLTE_SUCCESS;
 }

@@ -209,7 +209,7 @@ srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
   return SRSLTE_MOD_NITEMS;
 }
 
-static int ra_nr_determine_N_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_grant_nr_t* grant)
+int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_grant_nr_t* grant)
 {
   // the number of symbols of the PDSCH allocation within the slot
   int n_sh_symb = grant->L;
@@ -222,7 +222,7 @@ static int ra_nr_determine_N_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const sr
 
   // the overhead configured by higher layer parameter xOverhead in PDSCH-ServingCellConfig
   uint32_t n_prb_oh = 0;
-  switch (pdsch_cfg->serving_cell_cfg.xoverhead) {
+  switch (pdsch_cfg->sch_cfg.xoverhead) {
     case srslte_xoverhead_0:
       n_prb_oh = 0;
       break;
@@ -325,18 +325,20 @@ uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32
 int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
                          const srslte_pdsch_grant_nr_t* grant,
                          uint32_t                       mcs_idx,
-                         srslte_ra_tb_nr_t*             tb)
+                         srslte_sch_tb_t*               tb)
 {
+  uint32_t cw_idx = 0;
+
   // Get target Rate
-  double R =
-      srslte_ra_nr_R_from_mcs(pdsch_cfg->mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
+  double R = srslte_ra_nr_R_from_mcs(
+      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
   if (!isnormal(R)) {
     return SRSLTE_ERROR;
   }
 
   // Get modulation
-  srslte_mod_t m =
-      srslte_ra_nr_mod_from_mcs(pdsch_cfg->mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
+  srslte_mod_t m = srslte_ra_nr_mod_from_mcs(
+      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
   if (m >= SRSLTE_MOD_NITEMS) {
     return SRSLTE_ERROR;
   }
@@ -364,19 +366,23 @@ int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
   }
 
   // 1) The UE shall first determine the number of REs (N RE ) within the slot.
-  int N_re = ra_nr_determine_N_re(pdsch_cfg, grant);
+  int N_re = srslte_ra_dl_nr_slot_nof_re(pdsch_cfg, grant);
   if (N_re < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
+  // Calculate number of layers accordingly
+  uint32_t nof_cw         = grant->nof_layers < 5 ? 1 : 2;
+  uint32_t nof_layers_cw1 = grant->nof_layers / nof_cw;
+  uint32_t nof_layers_cw2 = grant->nof_layers - nof_layers_cw1;
+  tb->N_L                 = (cw_idx == 0) ? nof_layers_cw1 : nof_layers_cw2;
+
   // Steps 2,3,4
-  tb->tbs      = (int)srslte_ra_nr_tbs(N_re, S, R, Qm, grant->nof_layers);
+  tb->tbs      = (int)srslte_ra_nr_tbs(N_re, S, R, Qm, tb->N_L);
   tb->R        = R;
   tb->mod      = m;
   tb->nof_bits = N_re * Qm * grant->nof_layers;
-
-  // Calculate number of layers accordingly
-  tb->N_L = grant->nof_layers;
+  tb->enabled  = true;
 
   return SRSLTE_SUCCESS;
 }

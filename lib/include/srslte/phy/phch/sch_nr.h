@@ -37,11 +37,9 @@
 #include "srslte/phy/fec/ldpc/ldpc_encoder.h"
 #include "srslte/phy/fec/ldpc/ldpc_rm.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
-#include "srslte/phy/phch/ra_nr.h"
 
 #define SRSLTE_SCH_NR_MAX_NOF_CB_LDPC                                                                                  \
-  ((SRSLTE_MAX_PRB_NR * SRSLTE_NRE * 8 * SRSLTE_NSYMB_PER_SLOT_NR + (SRSLTE_LDPC_BG2_MAX_LEN_CB - 1)) /                \
-   SRSLTE_LDPC_BG2_MAX_LEN_CB)
+  ((SRSLTE_SLOT_MAX_NOF_BITS_NR + (SRSLTE_LDPC_BG2_MAX_LEN_CB - 1)) / SRSLTE_LDPC_BG2_MAX_LEN_CB)
 
 typedef struct SRSLTE_API {
   srslte_carrier_nr_t carrier;
@@ -113,15 +111,15 @@ SRSLTE_API srslte_basegraph_t srslte_sch_nr_select_basegraph(uint32_t tbs, doubl
 
 /**
  * @brief Calculates all the parameters required for performing TS 38.212 V15.9.0 5.4 General procedures for LDPC
- * @param pdsch_cfg Provides higher layers configuration
+ * @param sch_cfg Provides higher layers configuration
  * @param tb Provides transport block configuration
  * @param cfg SCH object
  * @return
  */
-SRSLTE_API int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*             q,
-                                        const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                                        const srslte_ra_tb_nr_t*     tb,
-                                        srslte_sch_nr_common_cfg_t*  cfg);
+SRSLTE_API int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
+                                        const srslte_sch_cfg_t*     sch_cfg,
+                                        const srslte_sch_tb_t*      tb,
+                                        srslte_sch_nr_common_cfg_t* cfg);
 
 SRSLTE_API int srslte_sch_nr_init_tx(srslte_sch_nr_t* q);
 
@@ -131,19 +129,19 @@ SRSLTE_API int srslte_sch_nr_set_carrier(srslte_sch_nr_t* q, const srslte_carrie
 
 SRSLTE_API void srslte_sch_nr_free(srslte_sch_nr_t* q);
 
-SRSLTE_API int srslte_dlsch_nr_encode(srslte_sch_nr_t*             q,
-                                      const srslte_pdsch_cfg_nr_t* cfg,
-                                      const srslte_ra_tb_nr_t*     tb,
-                                      const uint8_t*               data,
-                                      uint8_t*                     e_bits);
+SRSLTE_API int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
+                                      const srslte_sch_cfg_t* cfg,
+                                      const srslte_sch_tb_t*  tb,
+                                      const uint8_t*          data,
+                                      uint8_t*                e_bits);
 
 SRSLTE_API int srslte_sch_nr_decoder_set_carrier(srslte_sch_nr_t* q, const srslte_carrier_nr_t* carrier);
 
-SRSLTE_API int srslte_dlsch_nr_decode(srslte_sch_nr_t*             q,
-                                      const srslte_pdsch_cfg_nr_t* cfg,
-                                      const srslte_ra_tb_nr_t*     tb,
-                                      int8_t*                      e_bits,
-                                      uint8_t*                     data,
-                                      bool*                        crc_ok);
+SRSLTE_API int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
+                                      const srslte_sch_cfg_t* sch_cfg,
+                                      const srslte_sch_tb_t*  tb,
+                                      int8_t*                 e_bits,
+                                      uint8_t*                data,
+                                      bool*                   crc_ok);
 
 #endif // SRSLTE_SCH_NR_H
