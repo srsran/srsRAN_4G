@@ -97,7 +97,8 @@ SRSLTE_API int srslte_ldpc_rm_rx_init_f(srslte_ldpc_rm_t* q);
  * \param[in] input      The LLRs obtained from the channel samples that correspond to
  *                       the codeword to be first, rate-dematched and then decoded.
  * \param[out] output    The rate-dematched codeword resulting from the rate-dematching
- *                       operation.
+ *                       operation. Shall be either initialized to all zeros or to the
+ *                       result of previous redundancy versions is available.
  * \param[in] E          Rate-matched codeword length.
  * \param[in] F          Number of filler bits.
  * \param[in] bg;        Current base graph.
@@ -131,6 +132,9 @@ SRSLTE_API int srslte_ldpc_rm_rx_init_s(srslte_ldpc_rm_t* q);
  *                        instance) that carries out the rate matching.
  * \param[in] input       The LLRs obtained from the channel samples that correspond to
  *                        the codeword to be first, rate-dematched and then decoded.
+ * \param[out] output    The rate-dematched codeword resulting from the rate-dematching
+ *                       operation. Shall be either initialized to all zeros or to the
+ *                       result of previous redundancy versions is available.
  * \param[in] E           Rate-matched codeword length.
  * \param[in] F           Number of filler bits.
  * \param[in] bg;         Current base graph.
@@ -165,8 +169,9 @@ SRSLTE_API int srslte_ldpc_rm_rx_init_c(srslte_ldpc_rm_t* q);
  *                        instance) that carries out the rate matching.
  * \param[in] input       The LLRs obtained from the channel samples that correspond to
  *                        the codeword to be first, rate-dematched and then decoded.
- * \param[out] output     The rate-dematched codeword resulting from the rate-dematching
- *                        operation.
+ * \param[out] output    The rate-dematched codeword resulting from the rate-dematching
+ *                       operation. Shall be either initialized to all zeros or to the
+ *                       result of previous redundancy versions is available.
  * \param[in] E           Rate-matched codeword length.
  * \param[in] F           Number of filler bits.
  * \param[in] bg;         Current base graph.

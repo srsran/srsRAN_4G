@@ -407,6 +407,14 @@ int main(int argc, char** argv)
       }
     }
 
+    // HARQ procedure. Use previous previous rate-matched outputs if available from the previous redundancy versions,
+    // otherwise initialize to zeros.
+    for (i = 0; i < batch_size; i++) {
+      bzero(symbols + i * finalN, finalN * sizeof(float));
+      bzero(symbols_s + i * finalN, finalN * sizeof(int16_t));
+      bzero(symbols_c + i * finalN, finalN * sizeof(int8_t));
+    }
+
     for (i = 0; i < batch_size; i++) {
       if (srslte_ldpc_rm_rx_f(&rm_rx,
                               rm_symbols + i * rm_length,

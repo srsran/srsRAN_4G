@@ -191,11 +191,12 @@ static void bit_selection_rm_tx(const uint8_t* input,
  * The output has the codeword length N. It inserts filler bits as INFINITY symbols
  * (to indicate very reliable 0 bit), and set to 0 (completely unknown bit) all
  * missing symbol. Repeated symbols are added.
+ * The input memory *output shall be either initialized to all zeros or to the
+ * result of previous redundancy versions is available.
  */
 static void bit_selection_rm_rx(const float*   input,
                                 const uint32_t in_len,
                                 float*         output,
-                                const uint32_t out_len,
                                 uint32_t*      indices,
                                 const uint32_t ini_exclude,
                                 const uint32_t end_exclude,
@@ -203,7 +204,6 @@ static void bit_selection_rm_rx(const float*   input,
                                 const uint32_t Ncb)
 {
   uint32_t E = in_len;
-  uint32_t N = out_len;
 
   uint32_t k    = 0;
   uint32_t j    = 0;
@@ -216,9 +216,6 @@ static void bit_selection_rm_rx(const float*   input,
     }
     j = j + 1;
   } // while
-
-  // Initializes the data_decoded_vector to all zeros
-  bzero(output, N * sizeof(float));
 
   // set filler bits to INFINITY
   for (uint32_t i = ini_exclude; i < end_exclude; i++) {
@@ -236,11 +233,12 @@ static void bit_selection_rm_rx(const float*   input,
  * The output has the codeword length N. It inserts filler bits as INFINITY symbols
  * (to indicate very reliable 0 bit), and set to 0 (completely unknown bit) all
  * missing symbol. Repeated symbols are added.
+ * The input memory *output shall be either initialized to all zeros or to the
+ * result of previous redundancy versions is available.
  */
 static void bit_selection_rm_rx_s(const int16_t* input,
                                   const uint32_t in_len,
                                   int16_t*       output,
-                                  const uint32_t out_len,
                                   uint32_t*      indices,
                                   const uint32_t ini_exclude,
                                   const uint32_t end_exclude,
@@ -248,7 +246,6 @@ static void bit_selection_rm_rx_s(const int16_t* input,
                                   const uint32_t Ncb)
 {
   uint32_t E = in_len;
-  uint32_t N = out_len;
 
   uint32_t k    = 0;
   uint32_t j    = 0;
@@ -261,9 +258,6 @@ static void bit_selection_rm_rx_s(const int16_t* input,
     }
     j = j + 1;
   } // while
-
-  // Initializes the data_decoded_vector to all zeros
-  bzero(output, N * sizeof(int16_t));
 
   // set filler bits to INFINITY
   const long infinity16 = (1U << 15U) - 1; // Max positive value in 16-bit representation
@@ -293,11 +287,12 @@ static void bit_selection_rm_rx_s(const int16_t* input,
  * The output has the codeword length N. It inserts filler bits as INFINITY symbols
  * (to indicate very reliable 0 bit), and set to 0 (completely unknown bit) all
  * missing symbol. Repeated symbols are added.
+ * The input memory *output shall be either initialized to all zeros or to the
+ * result of previous redundancy versions is available.
  */
 static void bit_selection_rm_rx_c(const int8_t*  input,
                                   const uint32_t in_len,
                                   int8_t*        output,
-                                  const uint32_t out_len,
                                   uint32_t*      indices,
                                   const uint32_t ini_exclude,
                                   const uint32_t end_exclude,
@@ -305,7 +300,6 @@ static void bit_selection_rm_rx_c(const int8_t*  input,
                                   const uint32_t Ncb)
 {
   uint32_t E = in_len;
-  uint32_t N = out_len;
 
   uint32_t k    = 0;
   uint32_t j    = 0;
@@ -318,9 +312,6 @@ static void bit_selection_rm_rx_c(const int8_t*  input,
     }
     j = j + 1;
   } // while
-
-  // Initializes the data_decoded_vector to all zeros
-  bzero(output, N * sizeof(int8_t));
 
   // set filler bits to INFINITY
   const long infinity8 = (1U << 7U) - 1; // Max positive value in 8-bit representation
@@ -637,10 +628,10 @@ int srslte_ldpc_rm_rx_f(srslte_ldpc_rm_t*        q,
   uint32_t         ini_exclude   = end_exclude - q->F;
 
   if (q->mod_order == 1) { // interleaver can be skipped
-    bit_selection_rm_rx(input, q->E, output, q->N, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
+    bit_selection_rm_rx(input, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   } else {
     bit_interleaver_rm_rx(input, tmp_rm_symbol, q->E, q->mod_order);
-    bit_selection_rm_rx(tmp_rm_symbol, q->E, output, q->N, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
+    bit_selection_rm_rx(tmp_rm_symbol, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   }
   return 0;
 }
@@ -669,10 +660,10 @@ int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
   uint32_t         ini_exclude   = end_exclude - q->F;
 
   if (q->mod_order == 1) { // interleaver can be skipped
-    bit_selection_rm_rx_s(input, q->E, output, q->N, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
+    bit_selection_rm_rx_s(input, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   } else {
     bit_interleaver_rm_rx_s(input, tmp_rm_symbol, q->E, q->mod_order);
-    bit_selection_rm_rx_s(tmp_rm_symbol, q->E, output, q->N, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
+    bit_selection_rm_rx_s(tmp_rm_symbol, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   }
 
   return 0;
@@ -702,10 +693,10 @@ int srslte_ldpc_rm_rx_c(srslte_ldpc_rm_t*        q,
   uint32_t         ini_exclude   = end_exclude - q->F;
 
   if (q->mod_order == 1) { // interleaver can be skipped
-    bit_selection_rm_rx_c(input, q->E, output, q->N, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
+    bit_selection_rm_rx_c(input, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   } else {
     bit_interleaver_rm_rx_c(input, tmp_rm_symbol, q->E, q->mod_order);
-    bit_selection_rm_rx_c(tmp_rm_symbol, q->E, output, q->N, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
+    bit_selection_rm_rx_c(tmp_rm_symbol, q->E, output, indices, ini_exclude, end_exclude, q->k0, q->Ncb);
   }
 
   return 0;

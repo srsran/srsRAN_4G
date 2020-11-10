@@ -250,6 +250,12 @@ int main(int argc, char** argv)
       rm_symbols_c[r * E + i] = rm_codewords[r * E + i] ? -1 : 1;
     }
 
+    // HARQ procedure. Use previous previous rate-matched outputs if available from the previous redundancy versions,
+    // otherwise initialize to zeros.
+    bzero(unrm_symbols + r * N, N * sizeof(float));
+    bzero(unrm_symbols_s + r * N, N * sizeof(int16_t));
+    bzero(unrm_symbols_c + r * N, N * sizeof(int8_t));
+
     if (srslte_ldpc_rm_rx_f(
             &rm_rx, rm_symbols + r * E, unrm_symbols + r * N, E, F, base_graph, lift_size, rv, mod_type, Nref)) {
       exit(-1);
