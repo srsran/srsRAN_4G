@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/mimo/layermap.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
@@ -226,4 +227,70 @@ int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
       break;
   }
   return 0;
+}
+
+int srslte_layermap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_t nof_re)
+{
+  if (nof_cw == 1 && nof_layers > 0 && nof_layers < 5) {
+    for (uint32_t i = 0; i < nof_re / nof_layers; i++) {
+      for (uint32_t j = 0; j < nof_layers; j++) {
+        x[j][i] = d[0][nof_layers * i + j];
+      }
+    }
+    return SRSLTE_SUCCESS;
+  }
+
+  if (nof_cw == 2 && nof_layers >= 5 && nof_layers <= SRSLTE_MAX_LAYERS_NR) {
+    uint32_t nof_layers_cw1 = nof_layers / 2;
+    for (uint32_t i = 0; i < nof_re / nof_layers_cw1; i++) {
+      for (uint32_t j = 0; j < nof_layers_cw1; j++) {
+        x[j][i] = d[0][nof_layers_cw1 * i + j];
+      }
+    }
+
+    uint32_t nof_layers_cw2 = nof_layers - nof_layers_cw1;
+    for (uint32_t i = 0; i < nof_re / nof_layers_cw2; i++) {
+      for (uint32_t j = 0; j < nof_layers_cw2; j++) {
+        x[j + nof_layers_cw1][i] = d[0][nof_layers_cw2 * i + j];
+      }
+    }
+
+    return SRSLTE_SUCCESS;
+  }
+
+  ERROR("Error. Incompatible number of layers (%d) and codewords (%d)\n", nof_layers, nof_cw);
+  return SRSLTE_ERROR;
+}
+
+int srslte_layerdemap_nr(cf_t** d, int nof_cw, const cf_t** x, int nof_layers, uint32_t nof_re)
+{
+  if (nof_cw == 1 && nof_layers > 0 && nof_layers < 5) {
+    for (uint32_t i = 0; i < nof_re / nof_layers; i++) {
+      for (uint32_t j = 0; j < nof_layers; j++) {
+        d[0][nof_layers * i + j] = x[j][i];
+      }
+    }
+    return SRSLTE_SUCCESS;
+  }
+
+  if (nof_cw == 2 && nof_layers >= 5 && nof_layers <= SRSLTE_MAX_LAYERS_NR) {
+    uint32_t nof_layers_cw1 = nof_layers / 2;
+    for (uint32_t i = 0; i < nof_re / nof_layers_cw1; i++) {
+      for (uint32_t j = 0; j < nof_layers_cw1; j++) {
+        d[0][nof_layers_cw1 * i + j] = x[j][i];
+      }
+    }
+
+    uint32_t nof_layers_cw2 = nof_layers - nof_layers_cw1;
+    for (uint32_t i = 0; i < nof_re / nof_layers_cw2; i++) {
+      for (uint32_t j = 0; j < nof_layers_cw2; j++) {
+        d[0][nof_layers_cw2 * i + j] = x[j + nof_layers_cw1][i];
+      }
+    }
+
+    return SRSLTE_SUCCESS;
+  }
+
+  ERROR("Error. Incompatible number of layers (%d) and codewords (%d)\n", nof_layers, nof_cw);
+  return SRSLTE_ERROR;
 }
