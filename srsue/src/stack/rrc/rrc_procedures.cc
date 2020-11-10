@@ -505,17 +505,15 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
   required_sibs.insert(required_sibs.end(), mandatory_sibs.begin(), mandatory_sibs.end());
   init_serv_cell = meas_cells->serving_cell().phy_cell;
 
-  // Check if there are sronger neighbors in same EARFCN
+  // Check if there are stronger neighbors in any EARFCN
   const sib_type3_s* sib3      = meas_cells->serving_cell().sib3ptr();
-  uint32_t           threshold = sib3 != nullptr ? sib3->cell_resel_serving_freq_info.thresh_serving_low * 2 : 5;
-  bool               stronger_neigh_in_earfcn =
-      std::any_of(meas_cells->begin(), meas_cells->end(), [this, threshold](const unique_cell_t& c) {
-        return meas_cells->serving_cell().get_earfcn() == c->get_earfcn() and std::isnormal(c->get_rsrp()) and
-               meas_cells->serving_cell().get_rsrp() + threshold < c->get_rsrp();
-      });
+  uint32_t           threshold = sib3 != nullptr ? sib3->cell_resel_serving_freq_info.thresh_serving_low * 2 : 3;
+  bool stronger_neigh = std::any_of(meas_cells->begin(), meas_cells->end(), [this, threshold](const unique_cell_t& c) {
+    return std::isnormal(c->get_rsrp()) and meas_cells->serving_cell().get_rsrp() + threshold < c->get_rsrp();
+  });
 
   // Skip cell selection if serving cell is suitable and there are no stronger neighbours in same earfcn
-  if (is_serv_cell_suitable() and not stronger_neigh_in_earfcn) {
+  if (is_serv_cell_suitable() and not stronger_neigh) {
     Debug("Skipping cell selection procedure as there are no stronger neighbours in same EARFCN.\n");
     return set_proc_complete();
   }
@@ -535,7 +533,7 @@ proc_outcome_t rrc::cell_selection_proc::init(std::vector<uint32_t> required_sib
   neigh_index                = 0;
   cs_result                  = cs_result_t::no_cell;
   discard_serving            = false;
-  serv_cell_select_attempted = stronger_neigh_in_earfcn;
+  serv_cell_select_attempted = stronger_neigh;
   cell_search_called         = false;
   state                      = search_state_t::cell_selection;
   return start_next_cell_selection();
