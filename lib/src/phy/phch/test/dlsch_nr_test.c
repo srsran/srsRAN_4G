@@ -41,7 +41,8 @@ static srslte_pdsch_grant_nr_t pdsch_grant = {};
 void usage(char* prog)
 {
   printf("Usage: %s [pTL] \n", prog);
-  printf("\t-p Number of carrier PRB [Default %d]\n", carrier.nof_prb);
+  printf("\t-p Number of grant PRB, set to 0 for steering [Default %d]\n", n_prb);
+  printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srslte_mcs_table_to_str(pdsch_cfg.mcs_table));
   printf("\t-L Provide number of layers [Default %d]\n", pdsch_cfg.serving_cell_cfg.max_mimo_layers);
@@ -51,10 +52,13 @@ void usage(char* prog)
 int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "pTLv")) != -1) {
+  while ((opt = getopt(argc, argv, "pmTLv")) != -1) {
     switch (opt) {
       case 'p':
-        carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        n_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        mcs = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         pdsch_cfg.mcs_table = srslte_mcs_table_from_str(argv[optind]);
@@ -70,7 +74,6 @@ int parse_args(int argc, char** argv)
         return SRSLTE_ERROR;
     }
   }
-  srslte_verbose++;
 
   return SRSLTE_SUCCESS;
 }
@@ -88,8 +91,8 @@ int main(int argc, char** argv)
   uint8_t* data_rx = srslte_vec_u8_malloc(1024 * 1024);
 
   // Set default PDSCH configuration
-  pdsch_cfg.mcs_table                        = srslte_mcs_table_256qam;
-  pdsch_cfg.serving_cell_cfg.max_mimo_layers = 2;
+  pdsch_cfg.mcs_table                        = srslte_mcs_table_64qam;
+  pdsch_cfg.serving_cell_cfg.max_mimo_layers = 1;
 
   if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
     goto clean_exit;
