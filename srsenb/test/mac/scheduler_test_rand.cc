@@ -189,18 +189,16 @@ int sched_tester::process_results()
 {
   const srsenb::cc_sched_result* cc_result =
       sched_results.get_cc(srslte::tti_point{tti_info.tti_params.tti_rx}, CARRIER_IDX);
-  srsenb::sf_output_res_t sf_out{sched_cell_params[CARRIER_IDX],
-                                 tti_point{tti_info.tti_params.tti_rx},
-                                 tti_info.ul_sched_result[CARRIER_IDX],
-                                 tti_info.dl_sched_result[CARRIER_IDX]};
+  srsenb::sf_output_res_t sf_out{
+      sched_cell_params, tti_point{tti_info.tti_params.tti_rx}, tti_info.ul_sched_result, tti_info.dl_sched_result};
   TESTASSERT(tti_info.tti_params.tti_rx == cc_result->tti_params.tti_rx);
 
   // Common tests
-  TESTASSERT(test_pdcch_collisions(sf_out, &cc_result->pdcch_mask) == SRSLTE_SUCCESS);
-  TESTASSERT(test_dci_content_common(sf_out) == SRSLTE_SUCCESS);
-  TESTASSERT(test_sib_scheduling(sf_out) == SRSLTE_SUCCESS);
-  TESTASSERT(test_pusch_collisions(sf_out, &cc_result->ul_mask) == SRSLTE_SUCCESS);
-  TESTASSERT(test_pdsch_collisions(sf_out, &cc_result->dl_mask) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdcch_collisions(sf_out, CARRIER_IDX, &cc_result->pdcch_mask) == SRSLTE_SUCCESS);
+  TESTASSERT(test_dci_content_common(sf_out, CARRIER_IDX) == SRSLTE_SUCCESS);
+  TESTASSERT(test_sib_scheduling(sf_out, CARRIER_IDX) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pusch_collisions(sf_out, CARRIER_IDX, &cc_result->ul_mask) == SRSLTE_SUCCESS);
+  TESTASSERT(test_pdsch_collisions(sf_out, CARRIER_IDX, &cc_result->dl_mask) == SRSLTE_SUCCESS);
 
   // UE dedicated tests
   TESTASSERT(ue_tester->test_all(0, tti_info.dl_sched_result[CARRIER_IDX], tti_info.ul_sched_result[CARRIER_IDX]) ==

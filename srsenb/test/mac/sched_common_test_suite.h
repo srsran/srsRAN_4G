@@ -30,13 +30,13 @@
 namespace srsenb {
 
 struct sf_output_res_t {
-  const sched_cell_params_t&             cell_params;
-  srslte::tti_point                      tti_rx;
-  const sched_interface::ul_sched_res_t& ul_result;
-  const sched_interface::dl_sched_res_t& dl_result;
-  srslte::tti_point                      tti_tx_ul() const { return srslte::to_tx_ul(tti_rx); }
-  srslte::tti_point                      tti_rx_ack_dl() const { return tti_tx_ul(); }
-  srslte::tti_point                      tti_tx_dl() const { return srslte::to_tx_dl(tti_rx); }
+  srslte::span<const sched_cell_params_t>             cc_params;
+  srslte::tti_point                                   tti_rx;
+  srslte::span<const sched_interface::ul_sched_res_t> ul_cc_result;
+  srslte::span<const sched_interface::dl_sched_res_t> dl_cc_result;
+  srslte::tti_point                                   tti_tx_ul() const { return srslte::to_tx_ul(tti_rx); }
+  srslte::tti_point                                   tti_rx_ack_dl() const { return tti_tx_ul(); }
+  srslte::tti_point                                   tti_tx_dl() const { return srslte::to_tx_dl(tti_rx); }
 };
 
 /**
@@ -50,7 +50,7 @@ struct sf_output_res_t {
  * @param expected_ul_mask optional arg for expected cumulative UL PRB mask
  * @return error code
  */
-int test_pusch_collisions(const sf_output_res_t& sf_out, const prbmask_t* expected_ul_mask);
+int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, const prbmask_t* expected_ul_mask);
 
 /**
  * verifies correctness of the output of PDSCH allocations for a subframe. Current checks:
@@ -63,7 +63,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, const prbmask_t* expect
  * @param expected_rbgmask optional arg for expected cumulative DL RBG mask
  * @return error code
  */
-int test_pdsch_collisions(const sf_output_res_t& sf_out, const rbgmask_t* expected_rbgmask);
+int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, const rbgmask_t* expected_rbgmask);
 
 /**
  * verifies correctness of SIB allocations. Current checks:
@@ -73,7 +73,7 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, const rbgmask_t* expect
  * @param sf_out result of subframe allocation and associated metadata
  * @return error code
  */
-int test_sib_scheduling(const sf_output_res_t& sf_out);
+int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
 
 /**
  * verifies correctness of PDCCH allocations for DL, RAR, UL, Broadcast. Current checks:
@@ -83,7 +83,9 @@ int test_sib_scheduling(const sf_output_res_t& sf_out);
  * @param used_cce
  * @return error code
  */
-int test_pdcch_collisions(const sf_output_res_t& sf_out, const srslte::bounded_bitset<128, true>* expected_cce_mask);
+int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
+                          uint32_t                                 enb_cc_idx,
+                          const srslte::bounded_bitset<128, true>* expected_cce_mask);
 
 /**
  * verifies correctness of DCI content for params that are independent of the UE configuration.
@@ -91,7 +93,7 @@ int test_pdcch_collisions(const sf_output_res_t& sf_out, const srslte::bounded_b
  * @param sf_out
  * @return error code
  */
-int test_dci_content_common(const sf_output_res_t& sf_out);
+int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
 
 /**
  * Call all available eNB common tests

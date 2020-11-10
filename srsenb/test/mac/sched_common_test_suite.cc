@@ -27,9 +27,10 @@ using srslte::tti_point;
 
 namespace srsenb {
 
-int test_pusch_collisions(const sf_output_res_t& sf_out, const prbmask_t* expected_ul_mask)
+int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, const prbmask_t* expected_ul_mask)
 {
-  auto&     cell_params = sf_out.cell_params;
+  auto&     cell_params = sf_out.cc_params[enb_cc_idx];
+  auto&     ul_result   = sf_out.ul_cc_result[enb_cc_idx];
   uint32_t  nof_prb     = cell_params.nof_prb();
   prbmask_t ul_allocs(nof_prb);
 
@@ -48,7 +49,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, const prbmask_t* expect
 
   /* TEST: Check if there is space for PRACH */
   bool is_prach_tti_tx_ul =
-      srslte_prach_tti_opportunity_config_fdd(sf_out.cell_params.cfg.prach_config, sf_out.tti_tx_ul().to_uint(), -1);
+      srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, sf_out.tti_tx_ul().to_uint(), -1);
   if (is_prach_tti_tx_ul) {
     try_ul_fill({cell_params.cfg.prach_freq_offset, cell_params.cfg.prach_freq_offset + 6}, "PRACH");
   }
@@ -61,10 +62,10 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, const prbmask_t* expect
               strict);
 
   /* TEST: check collisions in the UL PUSCH */
-  for (uint32_t i = 0; i < sf_out.ul_result.nof_dci_elems; ++i) {
+  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
     uint32_t L, RBstart;
-    srslte_ra_type2_from_riv(sf_out.ul_result.pusch[i].dci.type2_alloc.riv, &L, &RBstart, nof_prb, nof_prb);
-    strict = sf_out.ul_result.pusch[i].needs_pdcch or nof_prb != 6; // Msg3 may collide with PUCCH at PRB==6
+    srslte_ra_type2_from_riv(ul_result.pusch[i].dci.type2_alloc.riv, &L, &RBstart, nof_prb, nof_prb);
+    strict = ul_result.pusch[i].needs_pdcch or nof_prb != 6; // Msg3 may collide with PUCCH at PRB==6
     try_ul_fill({RBstart, RBstart + L}, "PUSCH", strict);
   }
 
@@ -96,13 +97,15 @@ int extract_dl_prbmask(const srslte_cell_t&               cell,
   return SRSLTE_SUCCESS;
 }
 
-int test_pdsch_collisions(const sf_output_res_t& sf_out, const rbgmask_t* expected_rbgmask)
+int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, const rbgmask_t* expected_rbgmask)
 {
-  srslte::bounded_bitset<100, true> dl_allocs(sf_out.cell_params.nof_prb()), alloc_mask(sf_out.cell_params.nof_prb());
-  rbgmask_t                         rbgmask{sf_out.cell_params.nof_rbgs};
+  auto&                             cell_params = sf_out.cc_params[enb_cc_idx];
+  auto&                             dl_result   = sf_out.dl_cc_result[enb_cc_idx];
+  srslte::bounded_bitset<100, true> dl_allocs(cell_params.nof_prb()), alloc_mask(cell_params.nof_prb());
+  rbgmask_t                         rbgmask{cell_params.nof_rbgs};
 
   auto try_dl_mask_fill = [&](const srslte_dci_dl_t& dci, const char* channel) {
-    if (extract_dl_prbmask(sf_out.cell_params.cfg.cell, dci, alloc_mask) != SRSLTE_SUCCESS) {
+    if (extract_dl_prbmask(cell_params.cfg.cell, dci, alloc_mask) != SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
     CONDERROR(alloc_mask.none(), "DL allocation must occupy at least one RBG.\n");
@@ -117,36 +120,35 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, const rbgmask_t* expect
   };
 
   // Decode BC allocations, check collisions, and fill cumulative mask
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_bc_elems; ++i) {
-    TESTASSERT(try_dl_mask_fill(sf_out.dl_result.bc[i].dci, "BC") == SRSLTE_SUCCESS);
+  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+    TESTASSERT(try_dl_mask_fill(dl_result.bc[i].dci, "BC") == SRSLTE_SUCCESS);
   }
 
   // Decode RAR allocations, check collisions, and fill cumulative mask
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_rar_elems; ++i) {
-    TESTASSERT(try_dl_mask_fill(sf_out.dl_result.rar[i].dci, "RAR") == SRSLTE_SUCCESS);
+  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+    TESTASSERT(try_dl_mask_fill(dl_result.rar[i].dci, "RAR") == SRSLTE_SUCCESS);
   }
 
   // forbid Data in DL if its ACKs conflict with PRACH for PRB==6
-  if (sf_out.cell_params.nof_prb() == 6) {
-    if (srslte_prach_tti_opportunity_config_fdd(
-            sf_out.cell_params.cfg.prach_config, sf_out.tti_rx_ack_dl().to_uint(), -1)) {
+  if (cell_params.nof_prb() == 6) {
+    if (srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, sf_out.tti_rx_ack_dl().to_uint(), -1)) {
       dl_allocs.fill(0, dl_allocs.size());
     }
   }
 
   // Decode Data allocations, check collisions and fill cumulative mask
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_data_elems; ++i) {
-    TESTASSERT(try_dl_mask_fill(sf_out.dl_result.data[i].dci, "data") == SRSLTE_SUCCESS);
+  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+    TESTASSERT(try_dl_mask_fill(dl_result.data[i].dci, "data") == SRSLTE_SUCCESS);
   }
 
   // TEST: check for holes in the PRB mask (RBGs not fully filled)
-  rbgmask.resize(sf_out.cell_params.nof_rbgs);
+  rbgmask.resize(cell_params.nof_rbgs);
   rbgmask.reset();
   srslte::bounded_bitset<100, true> rev_alloc = ~dl_allocs;
-  for (uint32_t i = 0; i < sf_out.cell_params.nof_rbgs; ++i) {
-    uint32_t lim = SRSLTE_MIN((i + 1) * sf_out.cell_params.P, dl_allocs.size());
-    bool     val = dl_allocs.any(i * sf_out.cell_params.P, lim);
-    CONDERROR(rev_alloc.any(i * sf_out.cell_params.P, lim) and val, "No holes can be left in an RBG\n");
+  for (uint32_t i = 0; i < cell_params.nof_rbgs; ++i) {
+    uint32_t lim = SRSLTE_MIN((i + 1) * cell_params.P, dl_allocs.size());
+    bool     val = dl_allocs.any(i * cell_params.P, lim);
+    CONDERROR(rev_alloc.any(i * cell_params.P, lim) and val, "No holes can be left in an RBG\n");
     if (val) {
       rbgmask.set(i);
     }
@@ -165,15 +167,17 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, const rbgmask_t* expect
  * - TB size is adequate for SIB allocation
  * - The SIBs with index>1 are allocated in expected TTI windows
  */
-int test_sib_scheduling(const sf_output_res_t& sf_out)
+int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
 {
-  uint32_t sfn           = sf_out.tti_tx_dl().to_uint() / 10;
-  uint32_t sf_idx        = sf_out.tti_tx_dl().to_uint() % 10;
-  bool     sib1_expected = ((sfn % 2) == 0) and sf_idx == 5;
+  const auto& cell_params   = sf_out.cc_params[enb_cc_idx];
+  const auto& dl_result     = sf_out.dl_cc_result[enb_cc_idx];
+  uint32_t    sfn           = sf_out.tti_tx_dl().to_uint() / 10;
+  uint32_t    sf_idx        = sf_out.tti_tx_dl().to_uint() % 10;
+  bool        sib1_expected = ((sfn % 2) == 0) and sf_idx == 5;
 
   using bc_elem     = const sched_interface::dl_sched_bc_t;
-  bc_elem* bc_begin = &sf_out.dl_result.bc[0];
-  bc_elem* bc_end   = &sf_out.dl_result.bc[sf_out.dl_result.nof_bc_elems];
+  bc_elem* bc_begin = &dl_result.bc[0];
+  bc_elem* bc_end   = &dl_result.bc[dl_result.nof_bc_elems];
 
   /* Test if SIB1 was correctly scheduled */
   auto it = std::find_if(bc_begin, bc_end, [](bc_elem& elem) { return elem.index == 0; });
@@ -186,26 +190,31 @@ int test_sib_scheduling(const sf_output_res_t& sf_out)
       continue;
     }
     CONDERROR(bc->index >= sched_interface::MAX_SIBS, "Invalid SIB idx=%d\n", bc->index + 1);
-    CONDERROR(bc->tbs < sf_out.cell_params.cfg.sibs[bc->index].len,
+    CONDERROR(bc->tbs < cell_params.cfg.sibs[bc->index].len,
               "Allocated BC process with TBS=%d < sib_len=%d\n",
               bc->tbs,
-              sf_out.cell_params.cfg.sibs[bc->index].len);
-    uint32_t x         = (bc->index - 1) * sf_out.cell_params.cfg.si_window_ms;
+              cell_params.cfg.sibs[bc->index].len);
+    uint32_t x         = (bc->index - 1) * cell_params.cfg.si_window_ms;
     uint32_t sf        = x % 10;
     uint32_t sfn_start = sfn;
-    while ((sfn_start % sf_out.cell_params.cfg.sibs[bc->index].period_rf) != x / 10) {
+    while ((sfn_start % cell_params.cfg.sibs[bc->index].period_rf) != x / 10) {
       sfn_start--;
     }
     srslte::tti_point    win_start{sfn_start * 10 + sf};
-    srslte::tti_interval window{win_start, win_start + sf_out.cell_params.cfg.si_window_ms};
+    srslte::tti_interval window{win_start, win_start + cell_params.cfg.si_window_ms};
     CONDERROR(not window.contains(sf_out.tti_tx_dl()), "Scheduled SIB is outside of its SIB window\n");
   }
   return SRSLTE_SUCCESS;
 }
 
-int test_pdcch_collisions(const sf_output_res_t& sf_out, const srslte::bounded_bitset<128, true>* expected_cce_mask)
+int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
+                          uint32_t                                 enb_cc_idx,
+                          const srslte::bounded_bitset<128, true>* expected_cce_mask)
 {
-  int ret = srslte_regs_pdcch_ncce(sf_out.cell_params.regs.get(), sf_out.dl_result.cfi);
+  const auto& cell_params = sf_out.cc_params[enb_cc_idx];
+  const auto& dl_result   = sf_out.dl_cc_result[enb_cc_idx];
+  const auto& ul_result   = sf_out.ul_cc_result[enb_cc_idx];
+  int         ret         = srslte_regs_pdcch_ncce(cell_params.regs.get(), dl_result.cfi);
   TESTASSERT(ret > 0);
   uint32_t                          ncce = ret;
   srslte::bounded_bitset<128, true> used_cce{ncce};
@@ -226,22 +235,22 @@ int test_pdcch_collisions(const sf_output_res_t& sf_out, const srslte::bounded_b
   };
 
   /* TEST: verify there are no dci collisions for UL, DL data, BC, RAR */
-  for (uint32_t i = 0; i < sf_out.ul_result.nof_dci_elems; ++i) {
-    const auto& pusch = sf_out.ul_result.pusch[i];
+  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+    const auto& pusch = ul_result.pusch[i];
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
       continue;
     }
     try_cce_fill(pusch.dci.location, "UL");
   }
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_data_elems; ++i) {
-    try_cce_fill(sf_out.dl_result.data[i].dci.location, "DL data");
+  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+    try_cce_fill(dl_result.data[i].dci.location, "DL data");
   }
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_bc_elems; ++i) {
-    try_cce_fill(sf_out.dl_result.bc[i].dci.location, "DL BC");
+  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+    try_cce_fill(dl_result.bc[i].dci.location, "DL BC");
   }
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_rar_elems; ++i) {
-    try_cce_fill(sf_out.dl_result.rar[i].dci.location, "DL RAR");
+  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+    try_cce_fill(dl_result.rar[i].dci.location, "DL RAR");
   }
 
   CONDERROR(expected_cce_mask != nullptr and *expected_cce_mask != used_cce,
@@ -252,10 +261,13 @@ int test_pdcch_collisions(const sf_output_res_t& sf_out, const srslte::bounded_b
   return SRSLTE_SUCCESS;
 }
 
-int test_dci_content_common(const sf_output_res_t& sf_out)
+int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
 {
-  for (uint32_t i = 0; i < sf_out.ul_result.nof_dci_elems; ++i) {
-    const auto& pusch = sf_out.ul_result.pusch[i];
+  const auto& cell_params = sf_out.cc_params[enb_cc_idx];
+  const auto& dl_result   = sf_out.dl_cc_result[enb_cc_idx];
+  const auto& ul_result   = sf_out.ul_cc_result[enb_cc_idx];
+  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+    const auto& pusch = ul_result.pusch[i];
     CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d\n", pusch.tbs);
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
@@ -263,25 +275,25 @@ int test_dci_content_common(const sf_output_res_t& sf_out)
     }
     // TODO: extend this test
   }
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_data_elems; ++i) {
-    auto& data = sf_out.dl_result.data[i];
+  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+    auto& data = dl_result.data[i];
     CONDERROR(data.tbs[0] == 0, "Allocated DL data has empty TBS\n");
   }
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_bc_elems; ++i) {
-    auto& bc = sf_out.dl_result.bc[i];
+  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+    auto& bc = dl_result.bc[i];
     if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
-      CONDERROR(bc.tbs < sf_out.cell_params.cfg.sibs[bc.index].len,
+      CONDERROR(bc.tbs < cell_params.cfg.sibs[bc.index].len,
                 "Allocated BC process with TBS=%d < sib_len=%d\n",
                 bc.tbs,
-                sf_out.cell_params.cfg.sibs[bc.index].len);
+                cell_params.cfg.sibs[bc.index].len);
     } else if (bc.type == sched_interface::dl_sched_bc_t::PCCH) {
       CONDERROR(bc.tbs == 0, "Allocated paging process with invalid TBS=%d\n", bc.tbs);
     } else {
       TESTERROR("Invalid broadcast process id=%d\n", (int)bc.type);
     }
   }
-  for (uint32_t i = 0; i < sf_out.dl_result.nof_rar_elems; ++i) {
-    const auto& rar = sf_out.dl_result.rar[i];
+  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+    const auto& rar = dl_result.rar[i];
     CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
   }
 
@@ -290,11 +302,13 @@ int test_dci_content_common(const sf_output_res_t& sf_out)
 
 int test_all_common(const sf_output_res_t& sf_out)
 {
-  TESTASSERT(test_pusch_collisions(sf_out, nullptr) == SRSLTE_SUCCESS);
-  TESTASSERT(test_pdsch_collisions(sf_out, nullptr) == SRSLTE_SUCCESS);
-  TESTASSERT(test_sib_scheduling(sf_out) == SRSLTE_SUCCESS);
-  TESTASSERT(test_pdcch_collisions(sf_out, nullptr) == SRSLTE_SUCCESS);
-  TESTASSERT(test_dci_content_common(sf_out) == SRSLTE_SUCCESS);
+  for (uint32_t i = 0; i < sf_out.cc_params.size(); ++i) {
+    TESTASSERT(test_pusch_collisions(sf_out, i, nullptr) == SRSLTE_SUCCESS);
+    TESTASSERT(test_pdsch_collisions(sf_out, i, nullptr) == SRSLTE_SUCCESS);
+    TESTASSERT(test_sib_scheduling(sf_out, i) == SRSLTE_SUCCESS);
+    TESTASSERT(test_pdcch_collisions(sf_out, i, nullptr) == SRSLTE_SUCCESS);
+    TESTASSERT(test_dci_content_common(sf_out, i) == SRSLTE_SUCCESS);
+  }
   return SRSLTE_SUCCESS;
 }
 

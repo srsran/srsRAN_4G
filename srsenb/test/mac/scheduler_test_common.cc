@@ -683,10 +683,10 @@ int common_sched_tester::process_results()
   for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
     TESTASSERT(ue_tester->test_all(i, tti_info.dl_sched_result[i], tti_info.ul_sched_result[i]) == SRSLTE_SUCCESS);
 
-    sf_output_res_t sf_out{sched_cell_params[i],
+    sf_output_res_t sf_out{sched_cell_params,
                            srslte::tti_point{tti_info.tti_params.tti_rx},
-                           tti_info.ul_sched_result[i],
-                           tti_info.dl_sched_result[i]};
+                           tti_info.ul_sched_result,
+                           tti_info.dl_sched_result};
     TESTASSERT(test_all_common(sf_out) == SRSLTE_SUCCESS);
   }
   sched_stats->process_results(tti_info.tti_params, tti_info.dl_sched_result, tti_info.ul_sched_result);
