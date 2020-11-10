@@ -32,7 +32,6 @@
 #define SRSLTE_SOFTBUFFER_H
 
 #include "srslte/config.h"
-#include "srslte/phy/common/phy_common.h"
 
 typedef struct SRSLTE_API {
   uint32_t  max_cb;
