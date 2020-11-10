@@ -608,3 +608,62 @@ void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uin
     x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
   }
 }
+
+void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
+{
+  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
+  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
+
+  uint32_t i = 0;
+
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      uint32_t c = (uint32_t)(x1 ^ x2);
+
+      uint32_t j = 0;
+#ifdef LV_HAVE_SSE
+      if (SEQUENCE_PAR_BITS >= 16) {
+        // Preloads bits of interest in the 16 LSB
+        __m128i mask = _mm_set1_epi32(c);
+        mask         = _mm_shuffle_epi8(mask, _mm_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1));
+
+        // Masks each bit
+        // mask = _mm_and_si128( mask, _mm_set_epi64x(0x0102040810204080, 0x0102040810204080));
+        mask = _mm_and_si128(mask, _mm_set_epi64x(0x8040201008040201, 0x8040201008040201));
+
+        // Get non zero mask
+        mask = _mm_cmpeq_epi8(mask, _mm_set_epi64x(0x8040201008040201, 0x8040201008040201));
+
+        // Reduce to 1s and 0s
+        mask = _mm_and_si128(mask, _mm_set1_epi8(1));
+
+        // Load input
+        __m128i v = _mm_loadu_si128((__m128i*)(in + i + j));
+
+        // Apply XOR
+        v = _mm_xor_si128(mask, v);
+
+        _mm_storeu_si128((__m128i*)(out + i + j), v);
+
+        // Increment bit counter `j`
+        j += 16;
+      }
+#endif
+      for (; j < SEQUENCE_PAR_BITS; j++) {
+        out[i + j] = in[i + j] ^ ((c >> j) & 1U);
+      }
+
+      // Step sequences
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+    }
+  }
+
+  for (; i < length; i++) {
+    out[i] = in[i] ^ ((x1 ^ x2) & 1U);
+
+    // Step sequences
+    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
+    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
+  }
+}

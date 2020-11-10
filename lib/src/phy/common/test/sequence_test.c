@@ -34,20 +34,23 @@ static float   c_float[Nc + MAX_SEQ_LEN + 31];
 static int16_t c_short[Nc + MAX_SEQ_LEN + 31];
 static int8_t  c_char[Nc + MAX_SEQ_LEN + 31];
 static uint8_t c_packed[MAX_SEQ_LEN / 8];
+static uint8_t c_unpacked[MAX_SEQ_LEN];
 
 static float   ones_float[Nc + MAX_SEQ_LEN + 31];
 static int16_t ones_short[Nc + MAX_SEQ_LEN + 31];
 static int8_t  ones_char[Nc + MAX_SEQ_LEN + 31];
 static uint8_t ones_packed[MAX_SEQ_LEN / 8];
+static uint8_t ones_unpacked[MAX_SEQ_LEN];
 
 static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t length, uint32_t repetitions)
 {
-  int            ret                   = SRSLTE_SUCCESS;
-  struct timeval t[3]                  = {};
-  uint64_t       interval_gen_us       = 0;
-  uint64_t       interval_xor_float_us = 0;
-  uint64_t       interval_xor_short_us = 0;
-  uint64_t       interval_xor_char_us  = 0;
+  int            ret                      = SRSLTE_SUCCESS;
+  struct timeval t[3]                     = {};
+  uint64_t       interval_gen_us          = 0;
+  uint64_t       interval_xor_float_us    = 0;
+  uint64_t       interval_xor_short_us    = 0;
+  uint64_t       interval_xor_char_us     = 0;
+  uint64_t       interval_xor_unpacked_us = 0;
 
   gettimeofday(&t[1], NULL);
 
@@ -135,6 +138,15 @@ static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t le
   get_time_interval(t);
   interval_xor_char_us = t->tv_sec * 1000000UL + t->tv_usec;
 
+  // Test in-place unpacked XOR
+  gettimeofday(&t[1], NULL);
+  for (uint32_t r = 0; r < repetitions; r++) {
+    srslte_sequence_apply_bit(ones_unpacked, c_unpacked, length, seed);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  interval_xor_unpacked_us = t->tv_sec * 1000000UL + t->tv_usec;
+
   if (memcmp(c_char, sequence->c_char, length * sizeof(int8_t)) != 0) {
     ERROR("Unmatched XOR c_char");
     ret = SRSLTE_ERROR;
@@ -145,13 +157,19 @@ static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t le
     ret = SRSLTE_ERROR;
   }
 
-  printf("%08x; %8d; %8.1f; %8.1f; %8.1f; %8.1f; %8c\n",
+  if (memcmp(c, c_unpacked, length) != 0) {
+    ERROR("Unmatched c_unpacked");
+    ret = SRSLTE_ERROR;
+  }
+
+  printf("%08x; %8d; %8.1f; %8.1f; %8.1f; %8.1f; %8.1f; %8c\n",
          seed,
          length,
          (double)(length * repetitions) / (double)interval_gen_us,
          (double)(length * repetitions) / (double)interval_xor_float_us,
          (double)(length * repetitions) / (double)interval_xor_short_us,
          (double)(length * repetitions) / (double)interval_xor_char_us,
+         (double)(length * repetitions) / (double)interval_xor_unpacked_us,
          ret == SRSLTE_SUCCESS ? 'y' : 'n');
 
   return SRSLTE_SUCCESS;
@@ -168,9 +186,10 @@ int main(int argc, char** argv)
 
   // Initialise vectors with ones
   for (uint32_t i = 0; i < MAX_SEQ_LEN; i++) {
-    ones_float[i] = 1.0F;
-    ones_short[i] = 1;
-    ones_char[i]  = 1;
+    ones_float[i]    = 1.0F;
+    ones_short[i]    = 1;
+    ones_char[i]     = 1;
+    ones_unpacked[i] = 0;
     if (i < MAX_SEQ_LEN / 8) {
       ones_packed[i] = UINT8_MAX;
     }
@@ -182,7 +201,15 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  printf("%8s; %8s; %8s; %8s; %8s; %8s; %8s\n", "seed", "length", "GEN", "XOR PS", "XOR 16", "XOR 8", "Passed");
+  printf("%8s; %8s; %8s; %8s; %8s; %8s; %8s; %8s;\n",
+         "seed",
+         "length",
+         "GEN",
+         "XOR PS",
+         "XOR 16",
+         "XOR 8",
+         "XOR Unpack",
+         "Passed");
 
   for (uint32_t length = min_length; length <= max_length; length = (length * 5) / 4) {
     test_sequence(&sequence, (uint32_t)srslte_random_uniform_int_dist(random_gen, 1, INT32_MAX), length, repetitions);
