@@ -187,7 +187,7 @@ static int ofdm_init_mbsfn_(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg, srslte_dft
 #endif
 
   srslte_dft_plan_set_mirror(&q->fft_plan, true);
-  srslte_dft_plan_set_dc(&q->fft_plan, true);
+  srslte_dft_plan_set_dc(&q->fft_plan, cfg->keep_dc);
 
   DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
         dir == SRSLTE_DFT_FORWARD ? "FFT" : "iFFT",

@@ -47,17 +47,18 @@
  */
 typedef struct SRSLTE_API {
   // Compulsory parameters
-  uint32_t    nof_prb;    //< Number of Resource Block
-  cf_t*       in_buffer;  //< Input bnuffer pointer
-  cf_t*       out_buffer; //< Output buffer pointer
-  srslte_cp_t cp;         //< Cyclic prefix type
+  uint32_t    nof_prb;    ///< Number of Resource Block
+  cf_t*       in_buffer;  ///< Input bnuffer pointer
+  cf_t*       out_buffer; ///< Output buffer pointer
+  srslte_cp_t cp;         ///< Cyclic prefix type
 
   // Optional parameters
-  srslte_sf_t sf_type;          //< Subframe type, normal or MBSFN
-  bool        normalize;        //< Normalization flag, it divides the output by square root of the symbol size
-  float       freq_shift_f;     //< Frequency shift, normalised by sampling rate (used in UL)
-  float       rx_window_offset; //< DFT Window offset in CP portion (0-1), RX only
-  uint32_t    symbol_sz;        //< Symbol size, forces a given symbol size for the number of PRB
+  srslte_sf_t sf_type;          ///< Subframe type, normal or MBSFN
+  bool        normalize;        ///< Normalization flag, it divides the output by square root of the symbol size
+  float       freq_shift_f;     ///< Frequency shift, normalised by sampling rate (used in UL)
+  float       rx_window_offset; ///< DFT Window offset in CP portion (0-1), RX only
+  uint32_t    symbol_sz;        ///< Symbol size, forces a given symbol size for the number of PRB
+  bool        keep_dc;          ///< If true, it does not remove the DC
 } srslte_ofdm_cfg_t;
 
 /**
