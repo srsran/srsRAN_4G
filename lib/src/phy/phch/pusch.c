@@ -166,7 +166,7 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
         goto clean;
       }
 
-      q->evm_buffer = srslte_evm_buffer_alloc(6);
+      q->evm_buffer = srslte_evm_buffer_alloc(srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, 6));
       if (!q->evm_buffer) {
         ERROR("Allocating EVM buffer\n");
         goto clean;

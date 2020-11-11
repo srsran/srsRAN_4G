@@ -45,12 +45,12 @@ typedef struct {
  * @param nof_prb that provides the maximum number of bits
  * @return EVM buffer pointer
  */
-static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_prb)
+static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_bits)
 {
   srslte_evm_buffer_t* q = (srslte_evm_buffer_t*)srslte_vec_malloc(sizeof(srslte_evm_buffer_t));
 
   // Check allocation result and number of PRB
-  if (!q || !nof_prb) {
+  if (!q || !nof_bits) {
     ERROR("Malloc");
     return q;
   }
@@ -59,7 +59,7 @@ static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_prb)
   memset(q, 0, sizeof(srslte_evm_buffer_t));
 
   // Set max number of bits
-  q->max_bits = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
+  q->max_bits = nof_bits;
 
   // Allocate hard bits
   q->hard_bits = srslte_vec_u8_malloc(q->max_bits);
@@ -83,16 +83,13 @@ static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_prb)
  * @param nof_prb that provides the maximum number of bits
  * @return EVM buffer pointer
  */
-static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t nof_prb)
+static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t new_max_bits)
 {
   // Assert pointer and number of PRB
-  if (!q || !nof_prb) {
+  if (!q || !new_max_bits) {
     ERROR("Invalid inputs");
     return;
   }
-
-  // Get new number of max bits
-  uint32_t new_max_bits = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
 
   // Return if no resize is required
   if (q->max_bits >= new_max_bits) {
@@ -160,6 +157,14 @@ static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t nof
       w ^= (*ptr & 0x80) >> 7;                                                                                         \
       ptr += sizeof(LLR_T);                                                                                            \
       HARDBITS[i] = w;                                                                                                 \
+    }                                                                                                                  \
+    if (NOF_SOFTBITS % 8) {                                                                                            \
+      uint8_t w = 0xff;                                                                                                \
+      for (uint32_t i = 0; i < NOF_SOFTBITS % 8; i++) {                                                                \
+        w ^= (*ptr & 0x80) >> i;                                                                                       \
+        ptr += sizeof(LLR_T);                                                                                          \
+      }                                                                                                                \
+      HARDBITS[NOF_SOFTBITS / 8] = w;                                                                                  \
     }                                                                                                                  \
   } while (false)
 

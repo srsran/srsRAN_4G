@@ -296,7 +296,7 @@ static int pdsch_init(srslte_pdsch_t* q, uint32_t max_prb, bool is_ue, uint32_t 
 
       // If it is the UE, allocate EVM buffer, for only minimum PRB
       if (is_ue) {
-        q->evm_buffer[i] = srslte_evm_buffer_alloc(6);
+        q->evm_buffer[i] = srslte_evm_buffer_alloc(srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, 6));
         if (!q->evm_buffer[i]) {
           ERROR("Allocating EVM buffer\n");
           goto clean;
