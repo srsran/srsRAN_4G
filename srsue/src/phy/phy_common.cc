@@ -742,7 +742,7 @@ void phy_common::update_measurements(uint32_t                                   
     set_ch_metrics(cc_idx, ch);
 
     // Prepare measurements for serving cells
-    bool active = scell_state.is_configured(cc_idx);
+    bool active = cell_state.is_configured(cc_idx);
     if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
       rrc_interface_phy_lte::phy_meas_t meas = {};
       meas.rsrp                              = avg_rsrp_dbm[cc_idx];
@@ -753,8 +753,8 @@ void phy_common::update_measurements(uint32_t                                   
       if (cc_idx == 0) {
         meas.pci = cell.id;
       } else {
-        meas.earfcn = scell_state.get_earfcn(cc_idx);
-        meas.pci    = scell_state.get_pci(cc_idx);
+        meas.earfcn = cell_state.get_earfcn(cc_idx);
+        meas.pci    = cell_state.get_pci(cc_idx);
       }
       serving_cells.push_back(meas);
     }
@@ -903,7 +903,7 @@ void phy_common::reset()
   ZERO_OBJECT(avg_rsrp);
   ZERO_OBJECT(avg_rsrp_dbm);
   ZERO_OBJECT(avg_rsrq_db);
-  scell_state.reset();
+  cell_state.reset();
 
   reset_neighbour_cells();
 

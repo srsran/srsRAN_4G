@@ -205,7 +205,7 @@ void sf_worker::work_imp()
       if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
         cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
       } else {
-        if (phy->scell_state.is_active(carrier_idx, tti)) {
+        if (phy->cell_state.is_active(carrier_idx, tti)) {
           rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
         }
       }
@@ -230,14 +230,14 @@ void sf_worker::work_imp()
       for (uint32_t carrier_idx = 0;
            carrier_idx < phy->args->nof_carriers and not uci_data.cfg.cqi.data_enable and uci_data.cfg.cqi.ri_len == 0;
            carrier_idx++) {
-        if (phy->scell_state.is_active(carrier_idx, TTI_TX(tti))) {
+        if (phy->cell_state.is_active(carrier_idx, TTI_TX(tti))) {
           cc_workers[carrier_idx]->set_uci_periodic_cqi(&uci_data);
         }
       }
 
       // Loop through all carriers
       for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers; carrier_idx++) {
-        if (phy->scell_state.is_active(carrier_idx, tti)) {
+        if (phy->cell_state.is_active(carrier_idx, tti)) {
           tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
 
           // Set signal pointer based on offset

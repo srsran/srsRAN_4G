@@ -61,7 +61,7 @@ public:
   srslte::phy_cfg_mbsfn_t mbsfn_config = {};
 
   // Secondary serving cell states
-  scell::state scell_state;
+  scell::state cell_state;
 
   // Save last TBS for uplink (mcs >= 28)
   srslte_ra_tb_t last_ul_tb[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS] = {};

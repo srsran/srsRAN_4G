@@ -246,8 +246,8 @@ void phy::get_metrics(phy_metrics_t* m)
   m->info[0].dl_earfcn = dl_earfcn;
 
   for (uint32_t i = 1; i < args.nof_carriers; i++) {
-    m->info[i].dl_earfcn = common.scell_state.get_earfcn(i);
-    m->info[i].pci       = common.scell_state.get_pci(i);
+    m->info[i].dl_earfcn = common.cell_state.get_earfcn(i);
+    m->info[i].pci       = common.cell_state.get_pci(i);
   }
 
   common.get_ch_metrics(m->ch);
@@ -269,12 +269,12 @@ void phy::set_timeadv(uint32_t ta_cmd)
 
 void phy::deactivate_scells()
 {
-  common.scell_state.deactivate_all();
+  common.cell_state.deactivate_all();
 }
 
 void phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti)
 {
-  common.scell_state.set_activation_deactivation(cmd, tti);
+  common.cell_state.set_activation_deactivation(cmd, tti);
 }
 
 void phy::configure_prach_params()
@@ -519,13 +519,13 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
     return false;
   }
 
-  bool earfcn_is_different = common.scell_state.get_earfcn(cc_idx) != earfcn;
+  bool earfcn_is_different = common.cell_state.get_earfcn(cc_idx) != earfcn;
 
   // Set inter-frequency measurement
   sfsync.set_inter_frequency_measurement(cc_idx, earfcn, cell_info);
 
   // Store secondary serving cell EARFCN and PCI
-  common.scell_state.configure(cc_idx, earfcn, cell_info.id);
+  common.cell_state.configure(cc_idx, earfcn, cell_info.id);
 
   // Reset cell configuration
   for (uint32_t i = 0; i < nof_workers; i++) {
