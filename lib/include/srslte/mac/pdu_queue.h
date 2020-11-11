@@ -51,6 +51,8 @@ public:
 
   bool process_pdus();
 
+  void reset();
+
 private:
   const static int DEFAULT_POOL_SIZE = 64;             // Number of PDU buffers in total
   const static int MAX_PDU_LEN       = 150 * 1024 / 8; // ~ 150 Mbps

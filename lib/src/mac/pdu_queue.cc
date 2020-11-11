@@ -95,4 +95,12 @@ bool pdu_queue::process_pdus()
   return have_data;
 }
 
+void pdu_queue::reset()
+{
+  pdu_t* pdu;
+  while (pdu_q.try_pop(&pdu)) {
+    // nop
+  }
+}
+
 } // namespace srslte
