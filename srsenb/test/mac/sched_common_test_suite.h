@@ -23,7 +23,7 @@
 #define SRSLTE_SCHED_COMMON_TEST_SUITE_H
 
 #include "srsenb/hdr/stack/mac/scheduler_common.h"
-#include "srslte/common/bounded_bitset.h"
+#include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
 
@@ -87,6 +87,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
 /**
  * verifies correctness of DCI content for params that are independent of the UE configuration.
  * - TB size is large enough
+ * - No repeated rntis in PDSCH and PUSCH
  * @param sf_out
  * @return error code
  */

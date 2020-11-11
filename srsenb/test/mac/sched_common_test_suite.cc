@@ -22,6 +22,7 @@
 #include "sched_common_test_suite.h"
 #include "lib/include/srslte/phy/phch/prach.h"
 #include "srslte/common/test_common.h"
+#include <set>
 
 using srslte::tti_point;
 
@@ -267,18 +268,50 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   const auto& cell_params = sf_out.cc_params[enb_cc_idx];
   const auto& dl_result   = sf_out.dl_cc_result[enb_cc_idx];
   const auto& ul_result   = sf_out.ul_cc_result[enb_cc_idx];
+
+  std::set<uint16_t> alloc_rntis;
   for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
     const auto& pusch = ul_result.pusch[i];
+    uint16_t    rnti  = pusch.dci.rnti;
     CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d\n", pusch.tbs);
+    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in UL\n", rnti);
+    alloc_rntis.insert(pusch.dci.rnti);
+    CONDERROR(not((pusch.current_tx_nb == 0) xor (pusch.dci.tb.rv != 0)), "Number of txs incorrectly set\n");
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
       continue;
     }
-    // TODO: extend this test
+    if (pusch.dci.tb.rv == 0) {
+      // newTx
+      CONDERROR(pusch.dci.format != SRSLTE_DCI_FORMAT0, "Incorrect UL DCI format\n");
+      CONDERROR(pusch.dci.tb.mcs_idx > 28, "Incorrect UL MCS index\n");
+    }
   }
+
+  alloc_rntis.clear();
   for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-    auto& data = dl_result.data[i];
-    CONDERROR(data.tbs[0] == 0, "Allocated DL data has empty TBS\n");
+    auto&    data = dl_result.data[i];
+    uint16_t rnti = data.dci.rnti;
+    CONDERROR(data.tbs[0] == 0 and data.tbs[1] == 0, "Allocated DL data has empty TBS\n");
+    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in DL\n", rnti);
+    alloc_rntis.insert(data.dci.rnti);
+    for (uint32_t tb = 0; tb < 2; ++tb) {
+      if (data.tbs[tb] == 0) {
+        continue;
+      }
+      if (data.dci.tb[tb].rv == 0) {
+        // newTx
+        CONDERROR(data.nof_pdu_elems[tb] == 0, "Allocated DL grant does not have MAC SDUs\n");
+        CONDERROR(data.nof_pdu_elems[tb] > sched_interface::MAX_RLC_PDU_LIST,
+                  "Number of SDUs in DL grant exceeds limit\n");
+        uint32_t alloc_bytes = 0;
+        for (uint32_t pdu = 0; pdu < data.nof_pdu_elems[tb]; ++pdu) {
+          alloc_bytes += data.pdu[tb][pdu].nbytes;
+        }
+        CONDERROR(alloc_bytes > data.tbs[tb], "The bytes allocated to individual MAC SDUs is larger than total TBS\n");
+        CONDERROR(data.dci.tb[tb].mcs_idx > 28, "Incorrect DL MCS index\n");
+      }
+    }
   }
   for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
     auto& bc = dl_result.bc[i];

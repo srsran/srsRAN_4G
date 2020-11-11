@@ -27,8 +27,6 @@
 #include "sched_common_test_suite.h"
 #include "srslte/common/test_common.h"
 
-#include <set>
-
 using namespace srsenb;
 
 /***************************
@@ -533,21 +531,15 @@ int user_state_sched_tester::test_ctrl_info(uint32_t                            
   }
 
   /* TEST: All DL allocs have a correct rnti */
-  std::set<uint16_t> alloc_rntis;
   for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
     uint16_t rnti = dl_result.data[i].dci.rnti;
-    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in DL\n", rnti);
     CONDERROR(users.count(rnti) == 0, "The user rnti=0x%x allocated in DL does not exist\n", rnti);
-    alloc_rntis.insert(rnti);
   }
 
   /* TEST: All UL allocs have a correct rnti */
-  alloc_rntis.clear();
   for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
     uint16_t rnti = ul_result.pusch[i].dci.rnti;
-    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in UL\n", rnti);
     CONDERROR(users.count(rnti) == 0, "The user rnti=0x%x allocated in UL does not exist\n", rnti);
-    alloc_rntis.insert(rnti);
   }
 
   return SRSLTE_SUCCESS;

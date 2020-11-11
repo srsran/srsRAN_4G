@@ -407,7 +407,7 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   uint32_t rem_tbs = total_tbs;
 
   // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
-  while (rem_tbs > MAC_MAX_HEADER_SIZE) {
+  while (rem_tbs > MAC_MAX_HEADER_SIZE and data->nof_pdu_elems[tbidx] < sched_interface::MAX_RLC_PDU_LIST) {
     uint32_t max_sdu_bytes   = rem_tbs - sched_utils::get_mac_subheader_size(rem_tbs - 2);
     uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
@@ -433,7 +433,7 @@ uint32_t sched_ue::allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint
   }
 
   int rem_tbs = total_tbs;
-  while (not pending_ces.empty()) {
+  while (not pending_ces.empty() and data->nof_pdu_elems[0] < sched_interface::MAX_RLC_PDU_LIST) {
     int toalloc = srslte::ce_total_size(pending_ces.front());
     if (rem_tbs < toalloc) {
       break;
@@ -797,15 +797,16 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   }
 
   if (tbs >= 0) {
-    data->tbs        = tbs;
-    dci->rnti        = rnti;
-    dci->format      = SRSLTE_DCI_FORMAT0;
-    dci->ue_cc_idx   = ue_cc_idx;
-    dci->tb.ndi      = h->get_ndi(0);
-    dci->cqi_request = cqi_request;
-    dci->freq_hop_fl = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
-    dci->tpc_pusch   = next_tpc_pusch;
-    next_tpc_pusch   = 1;
+    data->tbs           = tbs;
+    data->current_tx_nb = h->nof_retx(0);
+    dci->rnti           = rnti;
+    dci->format         = SRSLTE_DCI_FORMAT0;
+    dci->ue_cc_idx      = ue_cc_idx;
+    dci->tb.ndi         = h->get_ndi(0);
+    dci->cqi_request    = cqi_request;
+    dci->freq_hop_fl    = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
+    dci->tpc_pusch      = next_tpc_pusch;
+    next_tpc_pusch      = 1;
 
     dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
 
