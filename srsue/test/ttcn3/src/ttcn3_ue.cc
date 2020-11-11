@@ -238,7 +238,7 @@ void ttcn3_ue::send_queued_data()
 {
   if (!stack->is_rrc_connected()) {
     log.info("RRC not connected, requesting NAS attach\n");
-    if (not stack->switch_on()) {
+    if (not stack->start_service_request()) {
       log.warning("Could not reestablish the connection\n");
     }
     stack->get_task_sched().defer_callback(500, [&]() { send_queued_data(); });

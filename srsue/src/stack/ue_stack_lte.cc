@@ -168,7 +168,7 @@ bool ue_stack_lte::switch_on()
   if (running) {
     ue_task_queue.try_push([this]() { nas.switch_on(); });
   }
-  return false;
+  return true;
 }
 
 bool ue_stack_lte::switch_off()

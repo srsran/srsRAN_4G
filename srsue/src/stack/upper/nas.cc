@@ -406,11 +406,22 @@ bool nas::detach_request(const bool switch_off)
 // Signal from RRC that connection request proc completed
 bool nas::connection_request_completed(bool outcome)
 {
-  nas_log->debug("RRC connection request completed. NAS State %s.\n", state.get_full_state_text().c_str());
-  if (state.get_state() == emm_state_t::state_t::service_request_initiated) {
-    srslte::console("Service Request Finished.\n");
-    rrc->paging_completed(true);
-    state.set_registered(emm_state_t::registered_substate_t::normal_service);
+  if (outcome == true) {
+    nas_log->debug("RRC connection request completed. NAS State %s.\n", state.get_full_state_text().c_str());
+    if (state.get_state() == emm_state_t::state_t::service_request_initiated) {
+      srslte::console("Service Request successful.\n");
+      nas_log->info("Service Request successful.\n");
+      rrc->paging_completed(true);
+      state.set_registered(emm_state_t::registered_substate_t::normal_service);
+    }
+  } else {
+    nas_log->debug("RRC connection request failed. NAS State %s.\n", state.get_full_state_text().c_str());
+    if (state.get_state() == emm_state_t::state_t::service_request_initiated) {
+      srslte::console("RRC connection for Service Request failed.\n");
+      nas_log->info("RRC connection for Service Request failed.\n");
+      rrc->paging_completed(false);
+      state.set_registered(emm_state_t::registered_substate_t::normal_service);
+    }
   }
   return true;
 }
