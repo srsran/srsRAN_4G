@@ -405,7 +405,10 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
 
   // Calculate TB CRC
   uint32_t checksum_tb = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
-  // printf(" Encode: "); srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    printf("Encode: ");
+    srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+  }
 
   // For each code block...
   uint32_t j = 0;
@@ -423,23 +426,30 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
 
       // If it is the last segment...
       if (r == cfg.C - 1) {
+        cb_len -= cfg.L_tb;
+
         // Copy payload without TB CRC
-        srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)(cb_len - cfg.L_tb));
+        srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
 
         // Append TB CRC
-        uint8_t* ptr = &q->temp_cb[cfg.Kp - cfg.L_cb - cfg.L_tb];
+        uint8_t* ptr = &q->temp_cb[cb_len];
         srslte_bit_unpack(checksum_tb, &ptr, cfg.L_tb);
         INFO("CB %d: appending TB CRC=%06x\n", r, checksum_tb);
       } else {
         // Copy payload
         srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
       }
-      //      printf("CB %d:", r); srslte_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
+
+      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+        printf("CB %d:", r);
+        srslte_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
+      }
+
       input_ptr += cb_len / 8;
 
       // Attach code block CRC if required
       if (cfg.L_cb) {
-        srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)cb_len);
+        srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
         INFO("CB %d: CRC=%06x\n", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
       }
 
@@ -604,7 +614,11 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
 
       srslte_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
       output_ptr += cb_len / 8;
-      //      printf("CB %d:", r); srslte_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
+
+      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+        printf("CB %d:", r);
+        srslte_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
+      }
 
       if (r == cfg.C - 1) {
         uint8_t  tb_crc_unpacked[24] = {};
@@ -619,7 +633,10 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
     *crc_ok            = (checksum1 == checksum2);
 
     INFO("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
-    //    printf("Decoded: "); srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      printf("Decode: ");
+      srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
+    }
   } else {
     *crc_ok = false;
   }

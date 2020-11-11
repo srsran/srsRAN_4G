@@ -20,6 +20,7 @@
  */
 #include "srslte/phy/phch/pdsch_nr.h"
 #include "srslte/phy/common/phy_common_nr.h"
+#include "srslte/phy/phch/ra_nr.h"
 
 int pdsch_nr_init_common(srslte_pdsch_nr_t* q)
 {
@@ -64,6 +65,7 @@ int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q)
   }
 
   srslte_sch_nr_decoder_cfg_t decoder_cfg = {};
+  decoder_cfg.disable_simd                = true;
   if (srslte_sch_nr_init_rx(&q->sch, &decoder_cfg)) {
     ERROR("Initialising SCH\n");
     return SRSLTE_ERROR;
@@ -319,7 +321,12 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*       q,
     return SRSLTE_ERROR;
   }
 
-  for (uint32_t l = grant->S; l < grant->L; l++) {
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    printf("dmrs_l_idx=");
+    srslte_vec_fprint_i(stdout, (int32_t*)dmrs_l_idx, nof_dmrs_symbols);
+  }
+
+  for (uint32_t l = grant->S; l < grant->S + grant->L; l++) {
     // Advance DMRS symbol counter until:
     // - the current DMRS symbol index is greater or equal than current symbol l
     // - no more DMRS symbols
@@ -386,6 +393,11 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
     return SRSLTE_ERROR;
   }
 
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    printf("b=");
+    srslte_vec_fprint_b(stdout, q->b[tb->cw_idx], tb->nof_bits);
+  }
+
   // 7.3.1.1 Scrambling
   uint32_t n_id = q->carrier.id;
   if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
@@ -396,6 +408,11 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
 
   // 7.3.1.2 Modulation
   srslte_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], tb->nof_bits);
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    printf("d=");
+    srslte_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -471,11 +488,19 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*           q,
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    printf("d=");
+    srslte_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
+  }
+
   // Demodulation
-  cf_t**  d   = (tb->N_L > 1) ? q->d : q->x;
-  int8_t* llr = (int8_t*)q->b;
-  if (srslte_demod_soft_demodulate_b(tb->mod, d[tb->cw_idx], llr, tb->nof_bits)) {
+  int8_t* llr = (int8_t*)q->b[tb->cw_idx];
+  if (srslte_demod_soft_demodulate_b(tb->mod, q->d[tb->cw_idx], llr, tb->nof_re)) {
     return SRSLTE_ERROR;
+  }
+  // Change LLR sign
+  for (uint32_t i = 0; i < tb->nof_bits; i++) {
+    llr[i] = -llr[i];
   }
 
   // Descrambling
@@ -485,6 +510,11 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*           q,
   }
   uint32_t cinit = ((uint32_t)rnti << 15U) + (tb->cw_idx << 14U) + n_id;
   srslte_sequence_apply_c(llr, llr, tb->nof_bits, cinit);
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    printf("b=");
+    srslte_vec_fprint_b(stdout, q->b[tb->cw_idx], tb->nof_bits);
+  }
 
   // Decode SCH
   if (srslte_dlsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
@@ -507,8 +537,15 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
   }
 
+  uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(cfg, grant);
+
   // Demapping from virtual to physical resource blocks
-  srslte_pdsch_nr_get(q, cfg, grant, q->x[0], sf_symbols[0]);
+  cf_t**   x          = (grant->nof_layers > 1) ? q->x : q->d;
+  uint32_t nof_re_get = srslte_pdsch_nr_get(q, cfg, grant, x[0], sf_symbols[0]);
+  if (nof_re_get != nof_re) {
+    ERROR("Inconsistent number of RE (%d!=%d)\n", nof_re_get, nof_re);
+    return SRSLTE_ERROR;
+  }
 
   // Demapping to virtual resource blocks
   // ... Not implemented
@@ -518,7 +555,7 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
 
   // Layer demapping
   if (grant->nof_layers > 1) {
-    srslte_layermap_nr(q->d, nof_cw, q->x, grant->nof_layers, grant->nof_layers);
+    srslte_layerdemap_nr(q->d, nof_cw, q->x, grant->nof_layers, nof_re);
   }
 
   // SCH decode

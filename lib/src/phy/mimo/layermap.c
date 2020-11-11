@@ -262,7 +262,7 @@ int srslte_layermap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_t 
   return SRSLTE_ERROR;
 }
 
-int srslte_layerdemap_nr(cf_t** d, int nof_cw, const cf_t** x, int nof_layers, uint32_t nof_re)
+int srslte_layerdemap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_t nof_re)
 {
   if (nof_cw == 1 && nof_layers > 0 && nof_layers < 5) {
     for (uint32_t i = 0; i < nof_re / nof_layers; i++) {

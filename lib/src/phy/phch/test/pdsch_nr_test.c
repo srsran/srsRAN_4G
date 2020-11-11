@@ -23,9 +23,9 @@
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/ue/ue_dl_nr_data.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
 #include <getopt.h>
-#include <srslte/phy/utils/random.h>
 
 static srslte_carrier_nr_t carrier = {
     0,                 // cell_id
@@ -217,12 +217,33 @@ int main(int argc, char** argv)
         goto clean_exit;
       }
 
+      float    mse    = 0.0f;
+      uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(&pdsch_cfg, &pdsch_grant);
+      for (uint32_t i = 0; i < pdsch_grant.nof_layers; i++) {
+        for (uint32_t j = 0; j < nof_re; j++) {
+          mse += cabsf(pdsch_tx.d[i][j] - pdsch_rx.d[i][j]);
+        }
+      }
+      if (nof_re * pdsch_grant.nof_layers > 0) {
+        mse = mse / (nof_re * pdsch_grant.nof_layers);
+      }
+      if (mse > 0.001) {
+        ERROR("MSE error (%f) is too high\n", mse);
+        for (uint32_t i = 0; i < pdsch_grant.nof_layers; i++) {
+          printf("d_tx[%d]=", i);
+          srslte_vec_fprint_c(stdout, pdsch_tx.d[i], nof_re);
+          printf("d_rx[%d]=", i);
+          srslte_vec_fprint_c(stdout, pdsch_rx.d[i], nof_re);
+        }
+        goto clean_exit;
+      }
+
       if (!pdsch_res[0].crc) {
         ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;\n", n_prb, mcs, pdsch_grant.tb[0].tbs);
         goto clean_exit;
       }
 
-      if (memcmp(data_tx, data_rx, pdsch_grant.tb[0].tbs / 8) != 0) {
+      if (memcmp(data_tx[0], data_rx[0], pdsch_grant.tb[0].tbs / 8) != 0) {
         ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;\n", n_prb, mcs, pdsch_grant.tb[0].tbs);
         printf("Tx data: ");
         srslte_vec_fprint_byte(stdout, data_tx[0], pdsch_grant.tb[0].tbs / 8);
@@ -257,5 +278,5 @@ clean_exit:
   srslte_softbuffer_tx_free(&softbuffer_tx);
   srslte_softbuffer_rx_free(&softbuffer_rx);
 
-  return SRSLTE_SUCCESS;
+  return ret;
 }

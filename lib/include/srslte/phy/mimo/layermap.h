@@ -77,6 +77,6 @@ SRSLTE_API int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
 
 SRSLTE_API int srslte_layermap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_t nof_re);
 
-SRSLTE_API int srslte_layerdemap_nr(cf_t** d, int nof_cw, const cf_t** x, int nof_layers, uint32_t nof_re);
+SRSLTE_API int srslte_layerdemap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_t nof_re);
 
 #endif // SRSLTE_LAYERMAP_H

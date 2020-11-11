@@ -381,7 +381,8 @@ int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
   tb->tbs      = (int)srslte_ra_nr_tbs(N_re, S, R, Qm, tb->N_L);
   tb->R        = R;
   tb->mod      = m;
-  tb->nof_bits = N_re * Qm * grant->nof_layers;
+  tb->nof_re   = N_re * grant->nof_layers;
+  tb->nof_bits = tb->nof_re * Qm;
   tb->enabled  = true;
 
   return SRSLTE_SUCCESS;
