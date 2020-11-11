@@ -141,6 +141,7 @@ SRSLTE_API int srslte_chest_dl_init(srslte_chest_dl_t* q, uint32_t max_prb, uint
 SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t* q);
 
 SRSLTE_API int srslte_chest_dl_res_init(srslte_chest_dl_res_t* q, uint32_t max_prb);
+SRSLTE_API int srslte_chest_dl_res_init_re(srslte_chest_dl_res_t* q, uint32_t nof_re);
 
 SRSLTE_API void srslte_chest_dl_res_set_identity(srslte_chest_dl_res_t* q);
 

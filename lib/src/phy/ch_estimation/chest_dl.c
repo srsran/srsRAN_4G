@@ -208,8 +208,13 @@ void srslte_chest_dl_free(srslte_chest_dl_t* q)
 
 int srslte_chest_dl_res_init(srslte_chest_dl_res_t* q, uint32_t max_prb)
 {
+  return srslte_chest_dl_res_init_re(q, SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
+}
+
+int srslte_chest_dl_res_init_re(srslte_chest_dl_res_t* q, uint32_t nof_re)
+{
   bzero(q, sizeof(srslte_chest_dl_res_t));
-  q->nof_re = SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM);
+  q->nof_re = nof_re;
   for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
     for (uint32_t j = 0; j < SRSLTE_MAX_PORTS; j++) {
       q->ce[i][j] = srslte_vec_cf_malloc(q->nof_re);
@@ -217,7 +222,7 @@ int srslte_chest_dl_res_init(srslte_chest_dl_res_t* q, uint32_t max_prb)
         perror("malloc");
         return -1;
       }
-      srslte_vec_cf_zero(q->ce[i][j], SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
+      srslte_vec_cf_zero(q->ce[i][j], nof_re);
     }
   }
   return 0;
