@@ -104,8 +104,6 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srslte_sch_nr_decoder_cfg_t decoder_cfg = {};
-  decoder_cfg.disable_simd                = false;
   if (srslte_pdsch_nr_init_rx(&pdsch_rx) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Rx\n");
     goto clean_exit;
@@ -178,6 +176,11 @@ int main(int argc, char** argv)
     mcs_end   = SRSLTE_MIN(mcs + 1, mcs_end);
   }
 
+  if (srslte_chest_dl_res_init(&chest, carrier.nof_prb) < SRSLTE_SUCCESS) {
+    ERROR("Initiating chest\n");
+    goto clean_exit;
+  }
+
   for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
     for (mcs = mcs_start; mcs < mcs_end; mcs++) {
 
@@ -211,6 +214,11 @@ int main(int argc, char** argv)
         pdsch_grant.tb[tb].softbuffer.rx = &softbuffer_rx;
         srslte_softbuffer_rx_reset(pdsch_grant.tb[tb].softbuffer.rx);
       }
+
+      for (uint32_t i = 0; i < pdsch_grant.tb->nof_re; i++) {
+        chest.ce[0][0][i] = 1.0f;
+      }
+      chest.nof_re = pdsch_grant.tb->nof_re;
 
       if (srslte_pdsch_nr_decode(&pdsch_rx, &pdsch_cfg, &pdsch_grant, &chest, sf_symbols, pdsch_res) < SRSLTE_SUCCESS) {
         ERROR("Error encoding\n");
@@ -259,6 +267,7 @@ int main(int argc, char** argv)
   ret = SRSLTE_SUCCESS;
 
 clean_exit:
+  srslte_chest_dl_res_free(&chest);
   srslte_random_free(rand_gen);
   srslte_pdsch_nr_free(&pdsch_tx);
   srslte_pdsch_nr_free(&pdsch_rx);

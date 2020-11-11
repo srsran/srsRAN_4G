@@ -552,6 +552,7 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
 
   // Antenna port demapping
   // ... Not implemented
+  srslte_predecoding_single(x[0], channel->ce[0][0], x[0], NULL, nof_re, 1.0f, channel->noise_estimate);
 
   // Layer demapping
   if (grant->nof_layers > 1) {
