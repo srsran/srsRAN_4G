@@ -299,6 +299,66 @@ bool sched_ue::pucch_sr_collision(uint32_t tti, uint32_t n_cce)
   return false;
 }
 
+tti_point prev_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
+{
+  return tti_point{static_cast<uint32_t>(floor(static_cast<float>((tti - offset).to_uint()) / period))};
+}
+
+tti_point next_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
+{
+  return prev_meas_gap_start(tti, period, offset) + period;
+}
+
+tti_point nearest_meas_gap(tti_point tti, uint32_t period, uint32_t offset)
+{
+  return tti_point{static_cast<uint32_t>(round(static_cast<float>((tti - offset).to_uint()) / period))};
+}
+
+bool sched_ue::pdsch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+{
+  if (carriers[0].get_cell_cfg()->enb_cc_idx != enb_cc_idx) {
+    return true;
+  }
+
+  // Check measGap collision
+  if (cfg.measgap_period > 0) {
+    tti_point    tti_tx_dl = to_tx_dl(tti_rx), tti_tx_dl_ack = to_tx_dl_ack(tti_rx);
+    tti_point    mgap_tti = nearest_meas_gap(tti_tx_dl, cfg.measgap_period, cfg.measgap_offset);
+    tti_interval meas_gap{mgap_tti, mgap_tti + 6};
+
+    // disable TTIs that lead to PDCCH/PDSCH or respective ACKs to fall in measGap
+    if (meas_gap.contains(tti_tx_dl) or meas_gap.contains(tti_tx_dl_ack)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool sched_ue::pusch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const
+{
+  if (carriers[0].get_cell_cfg()->enb_cc_idx != enb_cc_idx) {
+    return true;
+  }
+
+  // Check measGap collision
+  if (cfg.measgap_period > 0) {
+    tti_point    tti_tx_ul = to_tx_ul(tti_rx), tti_tx_ul_ack = to_tx_ul_ack(tti_rx);
+    tti_point    tti_tx_dl = to_tx_dl(tti_rx);
+    tti_point    mgap_tti  = nearest_meas_gap(tti_tx_ul, cfg.measgap_period, cfg.measgap_offset);
+    tti_interval meas_gap{mgap_tti, mgap_tti + 6};
+
+    // disable TTIs that leads to PUSCH tx or PHICH rx falling in measGap
+    if (meas_gap.contains(tti_tx_ul) or meas_gap.contains(tti_tx_ul_ack)) {
+      return false;
+    }
+    // disable TTIs which respective PDCCH falls in measGap (in case PDCCH is needed)
+    if (needs_pdcch and meas_gap.contains(tti_tx_dl)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int          tbs_acked = -1;

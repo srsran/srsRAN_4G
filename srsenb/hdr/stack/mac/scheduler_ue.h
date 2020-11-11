@@ -251,6 +251,8 @@ public:
   uint32_t get_max_retx();
 
   bool pucch_sr_collision(uint32_t tti, uint32_t n_cce);
+  bool pdsch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const;
+  bool pusch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
 
 private:
   void check_ue_cfg_correctness() const;
