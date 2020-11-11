@@ -99,12 +99,16 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_pdsch_nr_init_tx(&pdsch_tx) < SRSLTE_SUCCESS) {
+  srslte_pdsch_args_t pdsch_args = {};
+  pdsch_args.sch.disable_simd    = true;
+  pdsch_args.measure_evm         = true;
+
+  if (srslte_pdsch_nr_init_tx(&pdsch_tx, &pdsch_args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating PDSCH for Tx\n");
     goto clean_exit;
   }
 
-  if (srslte_pdsch_nr_init_rx(&pdsch_rx) < SRSLTE_SUCCESS) {
+  if (srslte_pdsch_nr_init_rx(&pdsch_rx, &pdsch_args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Rx\n");
     goto clean_exit;
   }
@@ -225,6 +229,11 @@ int main(int argc, char** argv)
         goto clean_exit;
       }
 
+      if (pdsch_res->evm > 0.001f) {
+        ERROR("Error PDSCH EVM is too high %f\n", pdsch_res->evm);
+        goto clean_exit;
+      }
+
       float    mse    = 0.0f;
       uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(&pdsch_cfg, &pdsch_grant);
       for (uint32_t i = 0; i < pdsch_grant.nof_layers; i++) {
@@ -260,7 +269,7 @@ int main(int argc, char** argv)
         goto clean_exit;
       }
 
-      printf("n_prb=%d; mcs=%d; TBS=%d; PASSED!\n", n_prb, mcs, pdsch_grant.tb[0].tbs);
+      printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pdsch_grant.tb[0].tbs, pdsch_res[0].evm);
     }
   }
 

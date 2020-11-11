@@ -249,7 +249,7 @@ int srslte_pusch_set_cell(srslte_pusch_t* q, srslte_cell_t cell)
 
     // Resize EVM buffer, only for eNb
     if (!q->is_ue && q->evm_buffer) {
-      srslte_evm_buffer_resize(q->evm_buffer, cell.nof_prb);
+      srslte_evm_buffer_resize(q->evm_buffer, srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, cell.nof_prb));
     }
 
     q->cell   = cell;

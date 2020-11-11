@@ -65,11 +65,14 @@ typedef struct SRSLTE_API {
   srslte_ldpc_rm_t rx_rm;
 } srslte_sch_nr_t;
 
+/**
+ * @brief SCH encoder and decoder initialization arguments
+ */
 typedef struct SRSLTE_API {
   bool  disable_simd;
-  bool  use_flooded;
-  float scaling_factor;
-} srslte_sch_nr_decoder_cfg_t;
+  bool  decoder_use_flooded;
+  float decoder_scaling_factor;
+} srslte_sch_nr_args_t;
 
 /**
  * @brief Common SCH configuration
@@ -121,9 +124,9 @@ SRSLTE_API int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
                                         const srslte_sch_tb_t*      tb,
                                         srslte_sch_nr_common_cfg_t* cfg);
 
-SRSLTE_API int srslte_sch_nr_init_tx(srslte_sch_nr_t* q);
+SRSLTE_API int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* cfg);
 
-SRSLTE_API int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_decoder_cfg_t* cfg);
+SRSLTE_API int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* cfg);
 
 SRSLTE_API int srslte_sch_nr_set_carrier(srslte_sch_nr_t* q, const srslte_carrier_nr_t* carrier);
 

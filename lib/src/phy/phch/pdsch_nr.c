@@ -22,30 +22,33 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 
-int pdsch_nr_init_common(srslte_pdsch_nr_t* q)
+int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
   for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
     if (srslte_modem_table_lte(&q->modem_tables[mod], mod) < SRSLTE_SUCCESS) {
       ERROR("Error initialising modem table for %s\n", srslte_mod_string(mod));
       return SRSLTE_ERROR;
     }
+    if (args->measure_evm) {
+      srslte_modem_table_bytes(&q->modem_tables[mod]);
+    }
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q)
+int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
 
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (pdsch_nr_init_common(q) < SRSLTE_SUCCESS) {
+  if (pdsch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
-  if (srslte_sch_nr_init_tx(&q->sch)) {
+  if (srslte_sch_nr_init_tx(&q->sch, &args->sch)) {
     ERROR("Initialising SCH\n");
     return SRSLTE_ERROR;
   }
@@ -53,22 +56,28 @@ int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q)
+int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
 
-  if (q == NULL) {
+  if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (pdsch_nr_init_common(q) < SRSLTE_SUCCESS) {
+  if (pdsch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
-  srslte_sch_nr_decoder_cfg_t decoder_cfg = {};
-  decoder_cfg.disable_simd                = true;
-  if (srslte_sch_nr_init_rx(&q->sch, &decoder_cfg)) {
+  if (srslte_sch_nr_init_rx(&q->sch, &args->sch)) {
     ERROR("Initialising SCH\n");
     return SRSLTE_ERROR;
+  }
+
+  if (args->measure_evm) {
+    q->evm_buffer = srslte_evm_buffer_alloc(8);
+    if (q->evm_buffer == NULL) {
+      ERROR("Initialising EVM\n");
+      return SRSLTE_ERROR;
+    }
   }
 
   return SRSLTE_SUCCESS;
@@ -132,6 +141,10 @@ int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t*         q,
     return SRSLTE_ERROR;
   }
 
+  if (q->evm_buffer != NULL) {
+    srslte_evm_buffer_resize(q->evm_buffer, SRSLTE_SLOT_LEN_RE_NR(q->max_prb) * SRSLTE_MAX_QM);
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -161,6 +174,10 @@ void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q)
 
   for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
     srslte_modem_table_free(&q->modem_tables[mod]);
+  }
+
+  if (q->evm_buffer != NULL) {
+    srslte_evm_free(q->evm_buffer);
   }
 }
 
@@ -498,6 +515,12 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*           q,
   if (srslte_demod_soft_demodulate_b(tb->mod, q->d[tb->cw_idx], llr, tb->nof_re)) {
     return SRSLTE_ERROR;
   }
+
+  // EVM
+  if (q->evm_buffer != NULL) {
+    res->evm = srslte_evm_run_b(q->evm_buffer, &q->modem_tables[tb->mod], q->d[tb->cw_idx], llr, tb->nof_bits);
+  }
+
   // Change LLR sign
   for (uint32_t i = 0; i < tb->nof_bits; i++) {
     llr[i] = -llr[i];

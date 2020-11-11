@@ -190,7 +190,7 @@ static inline int sch_nr_init_common(srslte_sch_nr_t* q)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_sch_nr_init_tx(srslte_sch_nr_t* q)
+int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
 {
   int ret = sch_nr_init_common(q);
   if (ret < SRSLTE_SUCCESS) {
@@ -198,6 +198,11 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q)
   }
 
   srslte_ldpc_encoder_type_t encoder_type = SRSLTE_LDPC_ENCODER_C;
+#ifdef LV_HAVE_AVX2
+  if (!args->disable_simd) {
+    encoder_type = SRSLTE_LDPC_ENCODER_AVX2;
+  }
+#endif // LV_HAVE_AVX2
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
@@ -240,7 +245,7 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_decoder_cfg_t* decoder_cfg)
+int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
 {
   int ret = sch_nr_init_common(q);
   if (ret < SRSLTE_SUCCESS) {
@@ -248,9 +253,9 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_decoder_cfg_t*
   }
 
   srslte_ldpc_decoder_type_t decoder_type = SRSLTE_LDPC_DECODER_C;
-  if (decoder_cfg->use_flooded) {
+  if (args->decoder_use_flooded) {
 #ifdef LV_HAVE_AVX2
-    if (decoder_cfg->disable_simd) {
+    if (args->disable_simd) {
       decoder_type = SRSLTE_LDPC_DECODER_C_FLOOD;
     } else {
       decoder_type = SRSLTE_LDPC_DECODER_C_AVX2_FLOOD;
@@ -260,13 +265,13 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_decoder_cfg_t*
 #endif // LV_HAVE_AVX2
   } else {
 #ifdef LV_HAVE_AVX2
-    if (!decoder_cfg->disable_simd) {
+    if (!args->disable_simd) {
       decoder_type = SRSLTE_LDPC_DECODER_C_AVX2;
     }
 #endif // LV_HAVE_AVX2
   }
 
-  float scaling_factor = isnormal(decoder_cfg->scaling_factor) ? decoder_cfg->scaling_factor : 0.75f;
+  float scaling_factor = isnormal(args->decoder_scaling_factor) ? args->decoder_scaling_factor : 0.75f;
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {

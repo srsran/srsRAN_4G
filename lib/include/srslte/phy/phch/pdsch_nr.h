@@ -38,6 +38,14 @@
 #include "srslte/phy/scrambling/scrambling.h"
 
 /**
+ * @brief PDSCH encoder and decoder initialization arguments
+ */
+typedef struct SRSLTE_API {
+  srslte_sch_nr_args_t sch;
+  bool                 measure_evm;
+} srslte_pdsch_args_t;
+
+/**
  * @brief PDSCH NR object
  */
 typedef struct SRSLTE_API {
@@ -50,6 +58,7 @@ typedef struct SRSLTE_API {
   cf_t*                d[SRSLTE_MAX_CODEWORDS];         ///< PDSCH modulated bits
   cf_t*                x[SRSLTE_MAX_LAYERS_NR];         ///< PDSCH modulated bits
   srslte_modem_table_t modem_tables[SRSLTE_MOD_NITEMS]; ///< Modulator tables
+  srslte_evm_buffer_t* evm_buffer;
 } srslte_pdsch_nr_t;
 
 /**
@@ -61,9 +70,9 @@ typedef struct {
   float    evm;
 } srslte_pdsch_res_nr_t;
 
-SRSLTE_API int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q);
+SRSLTE_API int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args);
 
-SRSLTE_API int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q);
+SRSLTE_API int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args);
 
 SRSLTE_API void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q);
 

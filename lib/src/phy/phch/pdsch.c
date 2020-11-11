@@ -495,7 +495,7 @@ int srslte_pdsch_set_cell(srslte_pdsch_t* q, srslte_cell_t cell)
     // Resize EVM buffer, only for UE
     if (q->is_ue) {
       for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-        srslte_evm_buffer_resize(q->evm_buffer[i], cell.nof_prb);
+        srslte_evm_buffer_resize(q->evm_buffer[i], srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, cell.nof_prb));
       }
     }
 

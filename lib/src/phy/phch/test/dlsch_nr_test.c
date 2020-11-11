@@ -108,8 +108,8 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srslte_sch_nr_decoder_cfg_t decoder_cfg = {};
-  decoder_cfg.disable_simd                = false;
+  srslte_sch_nr_args_t decoder_cfg = {};
+  decoder_cfg.disable_simd         = false;
   if (srslte_sch_nr_init_rx(&sch_nr_rx, &decoder_cfg) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Rx\n");
     goto clean_exit;
