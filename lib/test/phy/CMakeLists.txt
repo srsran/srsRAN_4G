@@ -23,7 +23,6 @@
 #######################################################################
 add_executable(phy_dl_test phy_dl_test.c)
 target_link_libraries(phy_dl_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-add_test(phy_dl_test phy_dl_test)
 
 # All valid number of PRBs for PUSCH
 set(ue_dl_min_mcs 0)
@@ -63,3 +62,6 @@ target_link_libraries(pucch_ca_test srslte_phy srslte_common srslte_phy ${SEC_LI
 add_test(pucch_ca_test pucch_ca_test)
 set_tests_properties(pucch_ca_test PROPERTIES LABELS "long;phy")
 
+add_executable(phy_dl_nr_test phy_dl_nr_test.c)
+target_link_libraries(phy_dl_nr_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_test(phy_dl_nr_test phy_dl_nr_test)

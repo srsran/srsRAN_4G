@@ -37,7 +37,7 @@ int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
+int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
 
   if (q == NULL) {
@@ -56,7 +56,7 @@ int srslte_pdsch_nr_init_tx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* arg
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_rx(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
+int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
 
   if (q == NULL || args == NULL) {
