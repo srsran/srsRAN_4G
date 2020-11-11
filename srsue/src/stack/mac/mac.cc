@@ -167,6 +167,8 @@ void mac::reset()
   mux_unit.msg3_flush();
   mux_unit.reset();
 
+  demux_unit.reset();
+
   ra_procedure.reset();
   sr_procedure.reset();
   bsr_procedure.reset();

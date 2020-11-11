@@ -47,6 +47,7 @@ public:
             rlc_interface_mac*                   rlc,
             mac_interface_demux*                 mac,
             srslte::timer_handler::unique_timer* time_alignment_timer);
+  void reset();
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t len);
@@ -77,14 +78,14 @@ private:
   srslte::sch_pdu mac_msg;
   srslte::mch_pdu mch_mac_msg;
   srslte::sch_pdu pending_mac_msg;
-  uint8_t         mch_lcids[SRSLTE_N_MCH_LCIDS];
+  uint8_t         mch_lcids[SRSLTE_N_MCH_LCIDS] = {};
   void            process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes);
   void            process_sch_pdu(srslte::sch_pdu* pdu);
   void            process_mch_pdu(srslte::mch_pdu* pdu);
   bool            process_ce(srslte::sch_subh* subheader);
   void            parse_ta_cmd(srslte::sch_subh* subh);
 
-  bool is_uecrid_successful;
+  bool is_uecrid_successful = false;
 
   srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
 

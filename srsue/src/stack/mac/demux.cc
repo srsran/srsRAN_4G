@@ -30,16 +30,7 @@
 
 namespace srsue {
 
-demux::demux(log_ref log_h_) :
-  log_h(log_h_),
-  mac_msg(20, log_h_),
-  mch_mac_msg(20, log_h_),
-  pending_mac_msg(20, log_h_),
-  rlc(NULL),
-  is_uecrid_successful(false),
-  phy_h(nullptr),
-  time_alignment_timer(nullptr),
-  mac(nullptr)
+demux::demux(log_ref log_h_) : log_h(log_h_), mac_msg(20, log_h_), mch_mac_msg(20, log_h_), pending_mac_msg(20, log_h_)
 {}
 
 void demux::init(phy_interface_mac_common*            phy_,
@@ -52,7 +43,12 @@ void demux::init(phy_interface_mac_common*            phy_,
   mac                  = mac_;
   time_alignment_timer = time_alignment_timer_;
   pdus.init(this, log_h);
-  bzero(&mch_lcids, SRSLTE_N_MCH_LCIDS);
+}
+
+void demux::reset()
+{
+  // flush all buffered PDUs
+  pdus.reset();
 }
 
 bool demux::get_uecrid_successful()
