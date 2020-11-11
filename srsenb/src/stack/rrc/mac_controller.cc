@@ -72,6 +72,12 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg
  */
 void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& rrc_cfg);
 
+/**
+ * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message that can be
+ * applied immediately (rather than waiting for the complete)
+ */
+void ue_cfg_apply_conn_reconf(ue_cfg_t& ue_cfg, const rrc_conn_recfg_r8_ies_s& conn_recfg, const rrc_cfg_t& rrc_cfg);
+
 void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const srslte::rrc_ue_capabilities_t& uecaps);
 
 /***************************
@@ -196,9 +202,7 @@ void rrc::ue::mac_controller::handle_con_reest_complete()
 void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
                                                 const srslte::rrc_ue_capabilities_t&      uecaps)
 {
-  if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
-    ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
-  }
+  ue_cfg_apply_conn_reconf(current_sched_ue_cfg, conn_recfg, *rrc_cfg);
 
   // Store MAC updates that are applied once RRCReconfigurationComplete is received
   next_sched_ue_cfg = current_sched_ue_cfg;
@@ -245,9 +249,7 @@ void rrc::ue::mac_controller::apply_current_bearers_cfg()
 void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
                                                        const srslte::rrc_ue_capabilities_t&      uecaps)
 {
-  if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
-    ue_cfg_apply_phy_cfg_ded(current_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
-  }
+  ue_cfg_apply_conn_reconf(current_sched_ue_cfg, conn_recfg, *rrc_cfg);
 
   next_sched_ue_cfg = current_sched_ue_cfg;
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
@@ -269,9 +271,7 @@ void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_r
   next_sched_ue_cfg.supported_cc_list[0].active = true;
   next_sched_ue_cfg.supported_cc_list[0].enb_cc_idx =
       rrc_ue->parent->cell_common_list->get_pci(conn_recfg.mob_ctrl_info.target_pci)->enb_cc_idx;
-  if (conn_recfg.rr_cfg_ded_present and conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
-    ue_cfg_apply_phy_cfg_ded(next_sched_ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, *rrc_cfg);
-  }
+  ue_cfg_apply_conn_reconf(next_sched_ue_cfg, conn_recfg, *rrc_cfg);
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
   ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
 
@@ -455,6 +455,43 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg
         }
       }
     }
+  }
+}
+
+void ue_cfg_apply_meas_cfg(ue_cfg_t& ue_cfg, const meas_cfg_s& meas_cfg, const rrc_cfg_t& rrc_cfg)
+{
+  if (meas_cfg.meas_gap_cfg_present) {
+    if (meas_cfg.meas_gap_cfg.type().value == setup_opts::release) {
+      ue_cfg.measgap_period = 0;
+      ue_cfg.measgap_offset = 0;
+    } else {
+      auto& setup = meas_cfg.meas_gap_cfg.setup();
+      switch (setup.gap_offset.type().value) {
+        case meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::gp0:
+          ue_cfg.measgap_period = 40;
+          ue_cfg.measgap_offset = setup.gap_offset.gp0();
+        case meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::gp1:
+          ue_cfg.measgap_period = 80;
+          ue_cfg.measgap_offset = setup.gap_offset.gp1();
+        default:
+          srslte::logmap::get("RRC")->warning("Invalid measGap configuration\n");
+          ue_cfg.measgap_period = 0;
+          ue_cfg.measgap_offset = 0;
+      }
+    }
+  }
+}
+
+void ue_cfg_apply_conn_reconf(ue_cfg_t& ue_cfg, const rrc_conn_recfg_r8_ies_s& conn_recfg, const rrc_cfg_t& rrc_cfg)
+{
+  if (conn_recfg.rr_cfg_ded_present) {
+    if (conn_recfg.rr_cfg_ded.phys_cfg_ded_present) {
+      ue_cfg_apply_phy_cfg_ded(ue_cfg, conn_recfg.rr_cfg_ded.phys_cfg_ded, rrc_cfg);
+    }
+  }
+
+  if (conn_recfg.meas_cfg_present) {
+    ue_cfg_apply_meas_cfg(ue_cfg, conn_recfg.meas_cfg, rrc_cfg);
   }
 }
 
