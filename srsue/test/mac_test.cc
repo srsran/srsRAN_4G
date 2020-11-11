@@ -130,7 +130,7 @@ public:
   // phy_interface_mac_lte
   void configure_prach_params(){};
 
-  void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
+  void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) override
   {
     prach_delay_cnt   = 0;
     last_preamble_idx = preamble_idx;
@@ -140,7 +140,7 @@ public:
     log_h->info("PRACH will be transmitted at tti=%d, preamble_idx=%d\n", prach_tti, preamble_idx);
   }
 
-  prach_info_t prach_get_info()
+  prach_info_t prach_get_info() override
   {
     prach_info_t info = {};
     if (prach_info_tx) {
@@ -155,25 +155,25 @@ public:
     return info;
   };
 
-  void sr_send(){};
-  int  sr_last_tx_tti() { return 0; };
-  void set_mch_period_stop(uint32_t stop){};
+  void sr_send() override{};
+  int  sr_last_tx_tti() override { return 0; };
+  void set_mch_period_stop(uint32_t stop) override{};
 
   // phy_interface_mac_common
-  void set_crnti(uint16_t rnti) { last_crnti = rnti; }
-  void set_timeadv_rar(uint32_t ta_cmd) { rar_time_adv = ta_cmd; }
-  void set_timeadv(uint32_t ta_cmd){};
+  void set_crnti(uint16_t rnti) override { last_crnti = rnti; }
+  void set_timeadv_rar(uint32_t ta_cmd) override { rar_time_adv = ta_cmd; }
+  void set_timeadv(uint32_t ta_cmd) override{};
   void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) override { scell_cmd = cmd; };
-  void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
+  void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) override
   {
     memcpy(rar_payload, grant_payload, SRSLTE_RAR_GRANT_LEN);
     rar_temp_rnti = rnti;
     nof_rar_grants++;
   }
 
-  uint32_t get_current_tti() { return 0; }
-  float    get_phr() { return 0; };
-  float    get_pathloss_db() { return 0; };
+  uint32_t get_current_tti() override { return 0; }
+  float    get_phr() override { return 0; };
+  float    get_pathloss_db() override { return 0; };
 
   // getter for test execution
   uint32_t get_scell_cmd() { return scell_cmd; }
@@ -2304,7 +2304,7 @@ int mac_random_access_test()
   //         Contention resolution is defined in 5.1.5. If ConResID does not match, the ConRes is considered
   //         not successful and tries again
   mac_log->info("\n=========== Test %d =============\n", test_id++);
-  my_test.msg4_enable   = true;
+  my_test.msg4_enable = true;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
 
   // Test 5: Msg4 received and valid ConRes. In this case a valid ConResID is received and RA procedure is successful
@@ -2360,7 +2360,7 @@ int mac_random_access_test()
   rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
-  my_test.nof_prachs = 1;
+  my_test.nof_prachs    = 1;
   my_test.nof_msg3_retx = 0;
   my_test.temp_rnti++;
   my_test.msg4_valid_conres   = true;
