@@ -28,6 +28,7 @@
 #include "srslte/mac/pdu.h"
 #include "srslte/srslte.h"
 
+using srslte::tti_interval;
 using srslte::tti_point;
 
 namespace srsenb {
@@ -1366,7 +1367,7 @@ void cc_sched_ue::finish_tti(srslte::tti_point tti_rx)
   // Check if cell state needs to be updated
   if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {
     // wait for all ACKs to be received before completely deactivating SCell
-    if (last_tti > srslte::to_tx_dl_ack(cfg_tti)) {
+    if (last_tti > to_tx_dl_ack(cfg_tti)) {
       cc_state_ = cc_st::idle;
       reset();
     }

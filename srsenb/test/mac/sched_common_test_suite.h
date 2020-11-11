@@ -34,9 +34,6 @@ struct sf_output_res_t {
   srslte::tti_point                                   tti_rx;
   srslte::span<const sched_interface::ul_sched_res_t> ul_cc_result;
   srslte::span<const sched_interface::dl_sched_res_t> dl_cc_result;
-  srslte::tti_point                                   tti_tx_ul() const { return srslte::to_tx_ul(tti_rx); }
-  srslte::tti_point                                   tti_rx_ack_dl() const { return tti_tx_ul(); }
-  srslte::tti_point                                   tti_tx_dl() const { return srslte::to_tx_dl(tti_rx); }
 };
 
 /**

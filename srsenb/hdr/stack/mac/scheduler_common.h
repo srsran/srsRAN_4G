@@ -23,7 +23,7 @@
 #define SRSLTE_SCHEDULER_COMMON_H
 
 #include "srslte/adt/bounded_bitset.h"
-#include "srslte/adt/interval.h"
+#include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
 
 namespace srsenb {

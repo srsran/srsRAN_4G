@@ -31,7 +31,7 @@ namespace srslte {
 
 struct tti_point {
   constexpr tti_point() = default;
-  explicit tti_point(uint32_t tti_val_) : tti_val(tti_val_ % 10240)
+  explicit tti_point(uint32_t tti_val_) : tti_val(tti_val_ % 10240u)
   {
     if (tti_val_ > std::numeric_limits<uint32_t>::max() / 2) {
       // there was a overflow at tti initialization
@@ -118,21 +118,29 @@ inline tti_point min(tti_point tti1, tti_point tti2)
   return tti1 < tti2 ? tti1 : tti2;
 }
 
-inline tti_point to_tx_dl(const srslte::tti_point& t)
-{
-  return t + FDD_HARQ_DELAY_UL_MS;
-}
-inline tti_point to_tx_ul(const srslte::tti_point& t)
-{
-  return t + (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
-}
-inline tti_point to_tx_dl_ack(const srslte::tti_point& t)
-{
-  return to_tx_ul(t);
-}
-
 using tti_interval = srslte::interval<srslte::tti_point>;
 
 } // namespace srslte
+
+namespace srsenb {
+
+inline srslte::tti_point to_tx_dl(srslte::tti_point t)
+{
+  return t + TX_ENB_DELAY;
+}
+inline srslte::tti_point to_tx_ul(srslte::tti_point t)
+{
+  return t + (TX_ENB_DELAY + FDD_HARQ_DELAY_DL_MS);
+}
+inline srslte::tti_point to_tx_dl_ack(srslte::tti_point t)
+{
+  return to_tx_ul(t);
+}
+inline srslte::tti_point to_tx_ul_ack(srslte::tti_point t)
+{
+  return to_tx_ul(t) + TX_ENB_DELAY;
+}
+
+} // namespace srsenb
 
 #endif // SRSLTE_TTI_POINT_H

@@ -199,8 +199,8 @@ int ue_ctxt_test::test_ra(cc_result result)
   /* TEST: RAR allocation */
   uint32_t                         rar_win_size     = cell_params[result.enb_cc_idx].prach_rar_window;
   std::array<srslte::tti_point, 2> rar_window       = {prach_tti + 3, prach_tti + 3 + rar_win_size};
-  srslte::tti_point                tti_tx_dl        = srslte::to_tx_dl(current_tti_rx);
-  srslte::tti_point                tti_tx_ul        = srslte::to_tx_ul(current_tti_rx);
+  srslte::tti_point                tti_tx_dl        = to_tx_dl(current_tti_rx);
+  srslte::tti_point                tti_tx_ul        = to_tx_ul(current_tti_rx);
   bool                             is_in_rar_window = tti_tx_dl >= rar_window[0] and tti_tx_dl <= rar_window[1];
 
   if (not is_in_rar_window) {
@@ -357,7 +357,7 @@ int ue_ctxt_test::test_harqs(cc_result result)
       h.active    = true;
       h.nof_retxs = 0;
       h.ndi       = data.dci.tb[0].ndi;
-      h.tti_tx    = srslte::to_tx_dl(current_tti_rx);
+      h.tti_tx    = to_tx_dl(current_tti_rx);
     } else {
       // it is retx
       CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)data.dci.tb[0].rv, "Invalid rv index for retx\n");
@@ -370,7 +370,7 @@ int ue_ctxt_test::test_harqs(cc_result result)
                 sim_cfg.ue_cfg.maxharq_tx);
 
       h.nof_retxs++;
-      h.tti_tx = srslte::to_tx_dl(current_tti_rx);
+      h.tti_tx = to_tx_dl(current_tti_rx);
     }
     h.nof_txs++;
   }
@@ -383,7 +383,7 @@ int ue_ctxt_test::test_harqs(cc_result result)
     }
 
     CONDERROR(pusch.dci.ue_cc_idx != cc->ue_cc_idx, "invalid ue_cc_idx=%d in sched result\n", pusch.dci.ue_cc_idx);
-    auto&    h        = cc->ul_harqs[srslte::to_tx_ul(current_tti_rx).to_uint() % cc->ul_harqs.size()];
+    auto&    h        = cc->ul_harqs[to_tx_ul(current_tti_rx).to_uint() % cc->ul_harqs.size()];
     uint32_t nof_retx = sched_utils::get_nof_retx(pusch.dci.tb.rv); // 0..3
 
     if (h.nof_txs == 0 or h.ndi != pusch.dci.tb.ndi) {
@@ -409,7 +409,7 @@ int ue_ctxt_test::test_harqs(cc_result result)
 
       h.nof_retxs++;
     }
-    h.tti_tx = srslte::to_tx_ul(current_tti_rx);
+    h.tti_tx = to_tx_ul(current_tti_rx);
     h.riv    = pusch.dci.type2_alloc.riv;
     h.nof_txs++;
   }
@@ -430,7 +430,7 @@ int ue_ctxt_test::schedule_acks(cc_result result)
       continue;
     }
     pending_ack_t ack_data;
-    ack_data.tti_ack   = srslte::to_tx_dl_ack(current_tti_rx);
+    ack_data.tti_ack   = to_tx_dl_ack(current_tti_rx);
     ack_data.cc_idx    = result.enb_cc_idx;
     ack_data.tb        = 0;
     ack_data.pid       = data.dci.pid;
@@ -449,11 +449,11 @@ int ue_ctxt_test::schedule_acks(cc_result result)
     }
 
     pending_ack_t ack_data;
-    ack_data.tti_ack   = srslte::to_tx_ul(current_tti_rx);
+    ack_data.tti_ack   = to_tx_ul(current_tti_rx);
     ack_data.cc_idx    = result.enb_cc_idx;
     ack_data.ue_cc_idx = pusch.dci.ue_cc_idx;
     ack_data.tb        = 0;
-    ack_data.pid       = srslte::to_tx_ul(current_tti_rx).to_uint() % cc->ul_harqs.size();
+    ack_data.pid       = to_tx_ul(current_tti_rx).to_uint() % cc->ul_harqs.size();
     uint32_t nof_retx  = sched_utils::get_nof_retx(pusch.dci.tb.rv); // 0..3
     ack_data.ack       = randf() < sim_cfg.prob_ul_ack_mask[nof_retx % sim_cfg.prob_ul_ack_mask.size()];
 

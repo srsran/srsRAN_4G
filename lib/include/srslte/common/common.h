@@ -59,6 +59,7 @@
 #define TTIMOD(tti) (tti % TTIMOD_SZ)
 
 #define INVALID_TTI 10241
+#define TX_ENB_DELAY FDD_HARQ_DELAY_UL_MS
 
 #define PHICH_MAX_SF 6 // Maximum PHICH in a subframe (1 in FDD, > 1 in TDD, see table 9.1.2-1 36.213)
 

@@ -49,7 +49,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   /* TEST: Check if there is space for PRACH */
   bool is_prach_tti_tx_ul =
-      srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, sf_out.tti_tx_ul().to_uint(), -1);
+      srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, to_tx_ul(sf_out.tti_rx).to_uint(), -1);
   if (is_prach_tti_tx_ul) {
     try_ul_fill({cell_params.cfg.prach_freq_offset, cell_params.cfg.prach_freq_offset + 6}, "PRACH");
   }
@@ -131,7 +131,8 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   // forbid Data in DL if its ACKs conflict with PRACH for PRB==6
   if (cell_params.nof_prb() == 6) {
-    if (srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, sf_out.tti_rx_ack_dl().to_uint(), -1)) {
+    if (srslte_prach_tti_opportunity_config_fdd(
+            cell_params.cfg.prach_config, to_tx_dl_ack(sf_out.tti_rx).to_uint(), -1)) {
       dl_allocs.fill(0, dl_allocs.size());
     }
   }
@@ -171,8 +172,8 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
 {
   const auto& cell_params   = sf_out.cc_params[enb_cc_idx];
   const auto& dl_result     = sf_out.dl_cc_result[enb_cc_idx];
-  uint32_t    sfn           = sf_out.tti_tx_dl().to_uint() / 10;
-  uint32_t    sf_idx        = sf_out.tti_tx_dl().to_uint() % 10;
+  uint32_t    sfn           = to_tx_dl(sf_out.tti_rx).to_uint() / 10;
+  uint32_t    sf_idx        = to_tx_dl(sf_out.tti_rx).to_uint() % 10;
   bool        sib1_expected = ((sfn % 2) == 0) and sf_idx == 5;
 
   using bc_elem     = const sched_interface::dl_sched_bc_t;
@@ -202,7 +203,7 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     }
     srslte::tti_point    win_start{sfn_start * 10 + sf};
     srslte::tti_interval window{win_start, win_start + cell_params.cfg.si_window_ms};
-    CONDERROR(not window.contains(sf_out.tti_tx_dl()), "Scheduled SIB is outside of its SIB window\n");
+    CONDERROR(not window.contains(to_tx_dl(sf_out.tti_rx)), "Scheduled SIB is outside of its SIB window\n");
   }
   return SRSLTE_SUCCESS;
 }
