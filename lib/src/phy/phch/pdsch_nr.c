@@ -119,7 +119,7 @@ int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t*         q,
 
     for (uint32_t i = 0; i < max_cw; i++) {
       if (q->b[i] == NULL) {
-        q->b[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
+        q->b[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
         if (q->b[i] == NULL) {
           ERROR("Malloc");
           return SRSLTE_ERROR;
@@ -210,9 +210,9 @@ static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*       q,
     if (grant->prb_idx[i]) {
       for (uint32_t j = 0; j < SRSLTE_NRE; j += 2) {
         if (put) {
-          sf_symbols[i * SRSLTE_NRE + delta + j] = symbols[count++];
+          sf_symbols[i * SRSLTE_NRE + delta + j + 1] = symbols[count++];
         } else {
-          symbols[count++] = sf_symbols[i * SRSLTE_NRE + delta + j];
+          symbols[count++] = sf_symbols[i * SRSLTE_NRE + delta + j + 1];
         }
       }
     }
@@ -562,12 +562,23 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
 
   uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(cfg, grant);
 
+  if (channel->nof_re != nof_re) {
+    ERROR("Inconsistent number of RE (%d!=%d)\n", channel->nof_re, nof_re);
+    return SRSLTE_ERROR;
+  }
+
   // Demapping from virtual to physical resource blocks
-  cf_t**   x          = (grant->nof_layers > 1) ? q->x : q->d;
-  uint32_t nof_re_get = srslte_pdsch_nr_get(q, cfg, grant, x[0], sf_symbols[0]);
+  uint32_t nof_re_get = srslte_pdsch_nr_get(q, cfg, grant, q->x[0], sf_symbols[0]);
   if (nof_re_get != nof_re) {
     ERROR("Inconsistent number of RE (%d!=%d)\n", nof_re_get, nof_re);
     return SRSLTE_ERROR;
+  }
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("ce=");
+    srslte_vec_fprint_c(stdout, channel->ce[0][0], nof_re);
+    INFO("x=");
+    srslte_vec_fprint_c(stdout, q->x[0], nof_re);
   }
 
   // Demapping to virtual resource blocks
@@ -575,7 +586,8 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
 
   // Antenna port demapping
   // ... Not implemented
-  srslte_predecoding_single(x[0], channel->ce[0][0], x[0], NULL, nof_re, 1.0f, channel->noise_estimate);
+  srslte_predecoding_type(
+      q->x, channel->ce, q->d, NULL, 1, 1, 1, 0, nof_re, SRSLTE_TXSCHEME_PORT0, 1.0f, channel->noise_estimate);
 
   // Layer demapping
   if (grant->nof_layers > 1) {

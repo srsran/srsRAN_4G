@@ -628,4 +628,4 @@ add_test(dlsch_nr_test dlsch_nr_test -m 0 -n 1)
 
 add_executable(pdsch_nr_test pdsch_nr_test.c)
 target_link_libraries(pdsch_nr_test srslte_phy)
-add_test(pdsch_nr_test pdsch_nr_test -n 6 -m 20)
+add_test(pdsch_nr_test pdsch_nr_test -p 6 -m 20)

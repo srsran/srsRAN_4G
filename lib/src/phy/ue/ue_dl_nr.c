@@ -158,15 +158,6 @@ int srslte_ue_dl_nr_pdsch_get(srslte_ue_dl_nr_t*             q,
     return SRSLTE_ERROR;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("ce[0][0]=");
-    srslte_vec_fprint_c(stdout, q->chest.ce[0][0], q->chest.nof_re);
-  }
-
-  for (uint32_t i = 0; i < grant->tb->nof_re; i++) {
-    q->chest.ce[0][0][i] = (1536);
-  }
-
   if (srslte_pdsch_nr_decode(&q->pdsch, cfg, grant, &q->chest, q->sf_symbols, res) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }

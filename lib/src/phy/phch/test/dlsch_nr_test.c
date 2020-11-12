@@ -103,14 +103,14 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_sch_nr_init_tx(&sch_nr_tx) < SRSLTE_SUCCESS) {
+  srslte_sch_nr_args_t args = {};
+  args.disable_simd         = false;
+  if (srslte_sch_nr_init_tx(&sch_nr_tx, &args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Tx\n");
     goto clean_exit;
   }
 
-  srslte_sch_nr_args_t decoder_cfg = {};
-  decoder_cfg.disable_simd         = false;
-  if (srslte_sch_nr_init_rx(&sch_nr_rx, &decoder_cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_init_rx(&sch_nr_rx, &args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Rx\n");
     goto clean_exit;
   }

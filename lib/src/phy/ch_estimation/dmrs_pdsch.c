@@ -725,7 +725,7 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
   // Time domain hold, extract resource elements estimates for PDSCH
   uint32_t symbol_idx = 0;
   uint32_t count      = 0;
-  for (uint32_t l = grant->S; l < grant->L; l++) {
+  for (uint32_t l = grant->S; l < grant->S + grant->L; l++) {
     while (symbols[symbol_idx] < l && symbol_idx < nof_symbols) {
       symbol_idx++;
     }

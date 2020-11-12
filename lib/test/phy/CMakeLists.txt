@@ -64,4 +64,4 @@ set_tests_properties(pucch_ca_test PROPERTIES LABELS "long;phy")
 
 add_executable(phy_dl_nr_test phy_dl_nr_test.c)
 target_link_libraries(phy_dl_nr_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-add_test(phy_dl_nr_test phy_dl_nr_test)
+add_test(phy_dl_nr_test phy_dl_nr_test -p 100 -m 28)
