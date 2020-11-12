@@ -43,11 +43,6 @@ void harq_proc::init(uint32_t id_)
   id    = id_;
 }
 
-void harq_proc::set_cfg(uint32_t max_retx_)
-{
-  max_retx = max_retx_;
-}
-
 void harq_proc::reset(uint32_t tb_idx)
 {
   ack_state[tb_idx] = NULL_ACK;
@@ -98,11 +93,11 @@ int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   ack_state[tb_idx] = ack_ ? ACK : NACK;
   log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
-    Warning("SCHED: discarding TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n",
-            tb_idx,
-            id,
-            tti.to_uint(),
-            max_retx);
+    Info("SCHED: discarding TB=%d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n",
+         tb_idx,
+         id,
+         tti.to_uint(),
+         max_retx);
     active[tb_idx] = false;
   } else if (ack_) {
     active[tb_idx] = false;
@@ -110,11 +105,12 @@ int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   return SRSLTE_SUCCESS;
 }
 
-void harq_proc::new_tx_common(uint32_t tb_idx, tti_point tti_, int mcs, int tbs)
+void harq_proc::new_tx_common(uint32_t tb_idx, tti_point tti_, int mcs, int tbs, uint32_t max_retx_)
 {
   reset(tb_idx);
   ndi[tb_idx] = !ndi[tb_idx];
   tti         = tti_;
+  max_retx    = max_retx_;
   tx_cnt[tb_idx]++;
   last_mcs[tb_idx] = mcs;
   last_tbs[tb_idx] = tbs;
@@ -174,11 +170,17 @@ dl_harq_proc::dl_harq_proc() : harq_proc()
   n_cce = 0;
 }
 
-void dl_harq_proc::new_tx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce_)
+void dl_harq_proc::new_tx(const rbgmask_t& new_mask,
+                          uint32_t         tb_idx,
+                          uint32_t         tti,
+                          int              mcs,
+                          int              tbs,
+                          uint32_t         n_cce_,
+                          uint32_t         max_retx_)
 {
   n_cce   = n_cce_;
   rbgmask = new_mask;
-  new_tx_common(tb_idx, tti_point{tti}, mcs, tbs);
+  new_tx_common(tb_idx, tti_point{tti}, mcs, tbs, max_retx_);
 }
 
 void dl_harq_proc::new_retx(const rbgmask_t& new_mask,
@@ -245,10 +247,9 @@ bool ul_harq_proc::is_adaptive_retx() const
 
 void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_)
 {
-  max_retx    = (uint32_t)max_retx_;
   is_adaptive = false;
   allocation  = alloc;
-  new_tx_common(0, tti_point{tti_}, mcs, tbs);
+  new_tx_common(0, tti_point{tti_}, mcs, tbs, max_retx_);
   pending_data = tbs;
   pending_ack  = NULL_ACK;
 }
@@ -326,16 +327,6 @@ void harq_entity::reset()
   }
 }
 
-void harq_entity::set_cfg(uint32_t max_retx)
-{
-  for (auto& h : dl_harqs) {
-    h.set_cfg(max_retx);
-  }
-  for (auto& h : ul_harqs) {
-    h.set_cfg(max_retx);
-  }
-}
-
 dl_harq_proc* harq_entity::get_empty_dl_harq(uint32_t tti_tx_dl)
 {
   if (not is_async) {
@@ -374,11 +365,11 @@ ul_harq_proc* harq_entity::get_ul_harq(uint32_t tti_tx_ul)
   return &ul_harqs[tti_tx_ul % ul_harqs.size()];
 }
 
-std::pair<bool, uint32_t> harq_entity::set_ul_crc(srslte::tti_point tti_rx, uint32_t tb_idx, bool ack_)
+int harq_entity::set_ul_crc(srslte::tti_point tti_rx, uint32_t tb_idx, bool ack_)
 {
   ul_harq_proc* h   = get_ul_harq(tti_rx.to_uint());
   uint32_t      pid = h->get_id();
-  return {h->set_ack(tb_idx, ack_), pid};
+  return h->set_ack(tb_idx, ack_) ? pid : -1;
 }
 
 void harq_entity::reset_pending_data(srslte::tti_point tti_rx)

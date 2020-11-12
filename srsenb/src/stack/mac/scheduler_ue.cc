@@ -321,8 +321,8 @@ void sched_ue::set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool cr
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    auto ret = c->harq_ent.set_ul_crc(tti_rx, 0, crc_res);
-    if (not ret.first) {
+    int ret = c->harq_ent.set_ul_crc(tti_rx, 0, crc_res);
+    if (ret < 0) {
       log_h->warning("Received UL CRC for invalid tti_rx=%d\n", (int)tti_rx.to_uint());
     }
   } else {
@@ -476,7 +476,7 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
 
   // Allocate DL UE Harq
   if (rem_tbs != tbs) {
-    h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
+    h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce, get_ue_cfg().maxharq_tx);
     Debug("SCHED: Alloc DCI format%s new mcs=%d, tbs=%d, nof_prb=%d\n", dci_format, mcs, tbs, nof_prb);
   } else {
     Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
@@ -1327,9 +1327,6 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   cfg     = &cfg_;
   cfg_tti = last_tti;
-
-  // Config HARQ processes
-  harq_ent.set_cfg(cfg->maxharq_tx);
 
   if (ue_cc_idx == 0) {
     // PCell is always active

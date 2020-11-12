@@ -25,6 +25,7 @@
 #include "srslte/mac/pdu.h"
 
 #include "sched_common_test_suite.h"
+#include "sched_ue_ded_test_suite.h"
 #include "srslte/common/test_common.h"
 
 using namespace srsenb;
@@ -402,7 +403,7 @@ int ue_ctxt_test::test_harqs(cc_result result)
         CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch.dci.tb.rv, "Invalid rv index for retx\n");
       }
       CONDERROR(h.ndi != pusch.dci.tb.ndi, "Invalid ndi for retx\n");
-      CONDERROR(not h.active, "retx for inactive UL harq pid=%d\n", h.pid);
+      CONDERROR(not h.active, "Re-tx allocated for rnti=0x%x inactive UL harq pid=%d\n", rnti, h.pid);
       CONDERROR(h.tti_tx > current_tti_rx, "UL harq pid=%d was reused too soon\n", h.pid);
 
       h.nof_retxs++;
@@ -476,6 +477,8 @@ int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, cons
   TESTASSERT(users.count(rnti) == 0);
   ue_ctxt_test ue{rnti, preamble_idx, srslte::tti_point{tic.to_uint()}, cfg_, cell_params};
   users.insert(std::make_pair(rnti, ue));
+
+  sim_users.add_user(rnti, cfg_.ue_cfg, tic);
   return SRSLTE_SUCCESS;
 }
 
@@ -483,6 +486,7 @@ int user_state_sched_tester::user_reconf(uint16_t rnti, const srsenb::sched_inte
 {
   TESTASSERT(users.count(rnti) > 0);
   users.at(rnti).set_cfg(ue_cfg);
+  sim_users.ue_recfg(rnti, ue_cfg);
   return SRSLTE_SUCCESS;
 }
 
@@ -505,6 +509,7 @@ int user_state_sched_tester::bearer_cfg(uint16_t                                
 void user_state_sched_tester::rem_user(uint16_t rnti)
 {
   users.erase(rnti);
+  sim_users.rem_user(rnti);
 }
 
 /**
@@ -545,14 +550,23 @@ int user_state_sched_tester::test_ctrl_info(uint32_t                            
   return SRSLTE_SUCCESS;
 }
 
-int user_state_sched_tester::test_all(uint32_t                               enb_cc_idx,
-                                      const sched_interface::dl_sched_res_t& dl_result,
-                                      const sched_interface::ul_sched_res_t& ul_result)
+int user_state_sched_tester::test_all(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
 {
-  TESTASSERT(test_ctrl_info(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
+  // Perform UE-dedicated result tests
+  sim_enb_ctxt_t enb_ctxt;
+  enb_ctxt.cell_params = &cell_params;
+  enb_ctxt.ue_db       = sim_users.get_ues_ctxt();
+  TESTASSERT(test_all_ues(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+
+  // Update Simulated UEs state
+  sim_users.update(sf_out);
+
+  TESTASSERT(test_ctrl_info(enb_cc_idx, sf_out.dl_cc_result[enb_cc_idx], sf_out.ul_cc_result[enb_cc_idx]) ==
+             SRSLTE_SUCCESS);
 
   for (auto& u : users) {
-    TESTASSERT(u.second.test_sched_result(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
+    TESTASSERT(u.second.test_sched_result(
+                   enb_cc_idx, sf_out.dl_cc_result[enb_cc_idx], sf_out.ul_cc_result[enb_cc_idx]) == SRSLTE_SUCCESS);
   }
 
   return SRSLTE_SUCCESS;
@@ -672,14 +686,15 @@ void common_sched_tester::new_test_tti()
 
 int common_sched_tester::process_results()
 {
-  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
-    TESTASSERT(ue_tester->test_all(i, tti_info.dl_sched_result[i], tti_info.ul_sched_result[i]) == SRSLTE_SUCCESS);
+  // Perform common eNB result tests
+  sf_output_res_t sf_out{sched_cell_params,
+                         srslte::tti_point{tti_info.tti_params.tti_rx},
+                         tti_info.ul_sched_result,
+                         tti_info.dl_sched_result};
+  TESTASSERT(test_all_common(sf_out) == SRSLTE_SUCCESS);
 
-    sf_output_res_t sf_out{sched_cell_params,
-                           srslte::tti_point{tti_info.tti_params.tti_rx},
-                           tti_info.ul_sched_result,
-                           tti_info.dl_sched_result};
-    TESTASSERT(test_all_common(sf_out) == SRSLTE_SUCCESS);
+  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
+    TESTASSERT(ue_tester->test_all(sf_out, i) == SRSLTE_SUCCESS);
   }
   sched_stats->process_results(tti_info.tti_params, tti_info.dl_sched_result, tti_info.ul_sched_result);
 

@@ -38,6 +38,7 @@
 #include "srslte/phy/utils/debug.h"
 
 #include "sched_common_test_suite.h"
+#include "sched_sim_ue.h"
 #include "scheduler_test_common.h"
 #include "scheduler_test_utils.h"
 #include "srslte/common/test_common.h"
@@ -201,8 +202,7 @@ int sched_tester::process_results()
   TESTASSERT(test_pdsch_collisions(sf_out, CARRIER_IDX, &cc_result->dl_mask) == SRSLTE_SUCCESS);
 
   // UE dedicated tests
-  TESTASSERT(ue_tester->test_all(0, tti_info.dl_sched_result[CARRIER_IDX], tti_info.ul_sched_result[CARRIER_IDX]) ==
-             SRSLTE_SUCCESS);
+  TESTASSERT(ue_tester->test_all(sf_out, CARRIER_IDX) == SRSLTE_SUCCESS);
   assert_no_empty_allocs();
   test_harqs();
   update_ue_stats();

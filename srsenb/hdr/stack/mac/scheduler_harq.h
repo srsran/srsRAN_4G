@@ -34,7 +34,6 @@ class harq_proc
 {
 public:
   void     init(uint32_t id);
-  void     set_cfg(uint32_t max_retx);
   void     reset(uint32_t tb_idx);
   uint32_t get_id() const;
   bool     is_empty() const;
@@ -47,7 +46,7 @@ public:
   uint32_t          max_nof_retx() const;
 
 protected:
-  void new_tx_common(uint32_t tb_idx, srslte::tti_point tti, int mcs, int tbs);
+  void new_tx_common(uint32_t tb_idx, srslte::tti_point tti, int mcs, int tbs, uint32_t max_retx_);
   void new_retx_common(uint32_t tb_idx, srslte::tti_point tti, int* mcs, int* tbs);
   bool has_pending_retx_common(uint32_t tb_idx) const;
   int  set_ack_common(uint32_t tb_idx, bool ack);
@@ -73,7 +72,13 @@ class dl_harq_proc : public harq_proc
 {
 public:
   dl_harq_proc();
-  void      new_tx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce_);
+  void      new_tx(const rbgmask_t& new_mask,
+                   uint32_t         tb_idx,
+                   uint32_t         tti,
+                   int              mcs,
+                   int              tbs,
+                   uint32_t         n_cce_,
+                   uint32_t         max_retx);
   void      new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, uint32_t n_cce_);
   int       set_ack(uint32_t tb_idx, bool ack);
   rbgmask_t get_rbgmask() const;
@@ -117,7 +122,6 @@ public:
 
   harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs);
   void reset();
-  void set_cfg(uint32_t max_retx);
 
   size_t                           nof_dl_harqs() const { return dl_harqs.size(); }
   size_t                           nof_ul_harqs() const { return ul_harqs.size(); }
@@ -153,7 +157,7 @@ public:
   /**
    * Set ACK state for UL Harq Proc
    */
-  std::pair<bool, uint32_t> set_ul_crc(srslte::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
+  int set_ul_crc(srslte::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
 
   //! Resets pending harq ACKs and cleans UL Harqs with maxretx == 0
   void reset_pending_data(srslte::tti_point tti_rx);

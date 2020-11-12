@@ -18,7 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_library(scheduler_test_common STATIC scheduler_test_common.cc sched_common_test_suite.cc sched_ue_ded_test_suite.cc sched_sim_ue.cc)
+add_library(scheduler_test_common STATIC scheduler_test_common.cc sched_common_test_suite.cc sched_ue_ded_test_suite.cc
+            sched_sim_ue.cc sched_sim_ue.cc)
 
 # Scheduler subcomponent testing
 add_executable(sched_grid_test sched_grid_test.cc)

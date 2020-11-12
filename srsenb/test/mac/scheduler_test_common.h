@@ -22,6 +22,7 @@
 #ifndef SRSLTE_SCHEDULER_TEST_COMMON_H
 #define SRSLTE_SCHEDULER_TEST_COMMON_H
 
+#include "sched_sim_ue.h"
 #include "scheduler_test_utils.h"
 #include "srsenb/hdr/stack/mac/scheduler.h"
 #include <random>
@@ -150,13 +151,12 @@ public:
                      const sched_interface::dl_sched_res_t& dl_result,
                      const sched_interface::ul_sched_res_t& ul_result);
 
-  int test_all(uint32_t                               enb_cc_idx,
-               const sched_interface::dl_sched_res_t& dl_result,
-               const sched_interface::ul_sched_res_t& ul_result);
+  int test_all(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
 
 private:
   const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
+  ue_db_sim                        sim_users;
   std::map<uint16_t, ue_ctxt_test> users;
   srslte::tti_point                tic;
 };

@@ -23,6 +23,22 @@
 
 namespace srsenb {
 
+using phich_t = sched_interface::ul_sched_phich_t;
+
+ue_sim::ue_sim(uint16_t rnti_, const sched_interface::ue_cfg_t& ue_cfg_, srslte::tti_point prach_tti_rx_)
+{
+  ctxt.rnti         = rnti_;
+  ctxt.ue_cfg       = ue_cfg_;
+  ctxt.prach_tti_rx = prach_tti_rx_;
+  ctxt.cc_list.resize(ue_cfg_.supported_cc_list.size());
+}
+
+void ue_sim::set_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
+{
+  ctxt.ue_cfg = ue_cfg_;
+  ctxt.cc_list.resize(ue_cfg_.supported_cc_list.size());
+}
+
 bool ue_sim::enqueue_pending_acks(srslte::tti_point                tti_rx,
                                   pucch_feedback&                  feedback_list,
                                   std::bitset<SRSLTE_MAX_CARRIERS> ack_val)
@@ -58,6 +74,7 @@ bool ue_sim::enqueue_pending_acks(srslte::tti_point                tti_rx,
 
 int ue_sim::update(const sf_output_res_t& sf_out)
 {
+  update_conn_state(sf_out);
   update_dl_harqs(sf_out);
   update_ul_harqs(sf_out);
 
@@ -89,6 +106,7 @@ void ue_sim::update_dl_harqs(const sf_output_res_t& sf_out)
 
 void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 {
+  uint32_t pid = to_tx_ul(sf_out.tti_rx).to_uint() % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
   for (uint32_t cc = 0; cc < sf_out.cc_params.size(); ++cc) {
     // Update UL harqs with PHICH info
     for (uint32_t i = 0; i < sf_out.ul_cc_result[cc].nof_phich_elems; ++i) {
@@ -100,9 +118,13 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
       const auto *cc_cfg = ctxt.get_cc_cfg(cc), *start = &ctxt.ue_cfg.supported_cc_list[0];
       uint32_t    ue_cc_idx  = std::distance(start, cc_cfg);
       auto&       ue_cc_ctxt = ctxt.cc_list[ue_cc_idx];
-      auto&       h          = ue_cc_ctxt.ul_harqs[to_tx_ul(sf_out.tti_rx).to_uint() % ue_cc_ctxt.ul_harqs.size()];
+      auto&       h          = ue_cc_ctxt.ul_harqs[pid];
 
-      if (phich.phich == sched_interface::ul_sched_phich_t::ACK or h.nof_retxs + 1 >= ctxt.ue_cfg.maxharq_tx) {
+      bool is_ack = phich.phich == phich_t::ACK;
+      bool is_msg3 =
+          h.nof_txs == h.nof_retxs + 1 and ctxt.msg3_tti_rx.is_valid() and h.first_tti_rx == ctxt.msg3_tti_rx;
+      bool last_retx = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ctxt.ue_cfg.maxharq_tx);
+      if (is_ack or last_retx) {
         h.active = false;
       }
     }
@@ -118,17 +140,63 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 
       if (h.nof_txs == 0 or h.ndi != data.dci.tb.ndi) {
         // newtx
-        h.active    = true;
-        h.nof_retxs = 0;
-        h.ndi       = data.dci.tb.ndi;
+        h.nof_retxs    = 0;
+        h.ndi          = data.dci.tb.ndi;
+        h.first_tti_rx = sf_out.tti_rx;
       } else {
         h.nof_retxs++;
       }
+      h.active      = true;
       h.last_tti_rx = sf_out.tti_rx;
       h.riv         = data.dci.type2_alloc.riv;
       h.nof_txs++;
     }
   }
+}
+
+void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
+{
+  if (not ctxt.msg3_tti_rx.is_valid()) {
+    auto& cc_result = sf_out.ul_cc_result[ctxt.ue_cfg.supported_cc_list[0].enb_cc_idx];
+    for (uint32_t i = 0; i < cc_result.nof_dci_elems; ++i) {
+      if (cc_result.pusch[i].dci.rnti == ctxt.rnti) {
+        ctxt.msg3_tti_rx = sf_out.tti_rx;
+      }
+    }
+  }
+}
+
+void ue_db_sim::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, srslte::tti_point prach_tti_rx_)
+{
+  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, ue_cfg_, prach_tti_rx_)));
+}
+
+void ue_db_sim::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
+{
+  ue_db.at(rnti).set_cfg(ue_cfg_);
+}
+
+void ue_db_sim::rem_user(uint16_t rnti)
+{
+  ue_db.erase(rnti);
+}
+
+void ue_db_sim::update(const sf_output_res_t& sf_out)
+{
+  for (auto& ue_pair : ue_db) {
+    ue_pair.second.update(sf_out);
+  }
+}
+
+std::map<uint16_t, const sim_ue_ctxt_t*> ue_db_sim::get_ues_ctxt() const
+{
+  std::map<uint16_t, const sim_ue_ctxt_t*> ret;
+
+  for (auto& ue_pair : ue_db) {
+    ret.insert(std::make_pair(ue_pair.first, &ue_pair.second.get_ctxt()));
+  }
+
+  return ret;
 }
 
 } // namespace srsenb
