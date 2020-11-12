@@ -39,7 +39,6 @@ int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 
 int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
-
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -58,7 +57,6 @@ int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* ar
 
 int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
 {
-
   if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }

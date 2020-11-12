@@ -91,7 +91,7 @@ extern "C" {
 
 /**
  * @brief defines the maximum number of resource elements per PRB
- * @remark Defined in TS 36.214 V15.10.0 5.1.3.2 Transport block size determination, point 1, second bullet
+ * @remark Defined in TS 38.214 V15.10.0 5.1.3.2 Transport block size determination, point 1, second bullet
  */
 #define SRSLTE_MAX_NRE_NR 156
 
