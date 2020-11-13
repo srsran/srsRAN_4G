@@ -65,11 +65,7 @@ struct ue_ctxt_test {
 
   bool drb_cfg_flag = false;
 
-  ue_ctxt_test(uint16_t                                      rnti_,
-               srslte::tti_point                             prach_tti,
-               const ue_ctxt_test_cfg&                       cfg_,
-               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
-               ue_sim&                                       ue_ctxt_);
+  ue_ctxt_test(uint16_t rnti_, srslte::tti_point prach_tti, const ue_ctxt_test_cfg& cfg_, ue_sim& ue_ctxt_);
 
   int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
   cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
@@ -90,8 +86,6 @@ private:
   //! Test correct activation of SCells
   int test_scell_activation(cc_result result);
   int schedule_acks(cc_result result);
-
-  const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
   struct pending_ack_t {
     srslte::tti_point tti_ack;

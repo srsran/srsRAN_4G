@@ -56,14 +56,12 @@ std::default_random_engine& ::srsenb::get_rand_gen()
  *  User State Tester
  ***********************/
 
-ue_ctxt_test::ue_ctxt_test(uint16_t                                      rnti_,
-                           srslte::tti_point                             prach_tti_,
-                           const ue_ctxt_test_cfg&                       cfg_,
-                           const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
-                           ue_sim&                                       ue_ctxt_) :
+ue_ctxt_test::ue_ctxt_test(uint16_t                rnti_,
+                           srslte::tti_point       prach_tti_,
+                           const ue_ctxt_test_cfg& cfg_,
+                           ue_sim&                 ue_ctxt_) :
   sim_cfg(cfg_),
   rnti(rnti_),
-  cell_params(cell_params_),
   current_tti_rx(prach_tti_),
   ue_ctxt(&ue_ctxt_)
 {
@@ -268,7 +266,7 @@ int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, cons
   TESTASSERT(users.count(rnti) == 0);
   sim_users.add_user(rnti, cfg_.ue_cfg, tic, preamble_idx);
 
-  ue_ctxt_test ue{rnti, tic, cfg_, cell_params, sim_users.at(rnti)};
+  ue_ctxt_test ue{rnti, tic, cfg_, sim_users.at(rnti)};
   users.insert(std::make_pair(rnti, ue));
 
   return SRSLTE_SUCCESS;
