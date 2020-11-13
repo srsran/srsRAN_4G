@@ -57,15 +57,12 @@ std::default_random_engine& ::srsenb::get_rand_gen()
  ***********************/
 
 ue_ctxt_test::ue_ctxt_test(uint16_t                                      rnti_,
-                           uint32_t                                      preamble_idx_,
                            srslte::tti_point                             prach_tti_,
                            const ue_ctxt_test_cfg&                       cfg_,
                            const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
                            ue_sim&                                       ue_ctxt_) :
   sim_cfg(cfg_),
   rnti(rnti_),
-  prach_tti(prach_tti_),
-  preamble_idx(preamble_idx_),
   cell_params(cell_params_),
   current_tti_rx(prach_tti_),
   ue_ctxt(&ue_ctxt_)
@@ -271,7 +268,7 @@ int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, cons
   TESTASSERT(users.count(rnti) == 0);
   sim_users.add_user(rnti, cfg_.ue_cfg, tic, preamble_idx);
 
-  ue_ctxt_test ue{rnti, preamble_idx, tic, cfg_, cell_params, sim_users.at(rnti)};
+  ue_ctxt_test ue{rnti, tic, cfg_, cell_params, sim_users.at(rnti)};
   users.insert(std::make_pair(rnti, ue));
 
   return SRSLTE_SUCCESS;
@@ -307,32 +304,6 @@ void user_state_sched_tester::rem_user(uint16_t rnti)
   sim_users.rem_user(rnti);
 }
 
-/**
- * Individual tests:
- * - All RARs belong to a user that just PRACHed
- * - All DL/UL data allocs have a valid RNTI
- */
-int user_state_sched_tester::test_ctrl_info(uint32_t                               enb_cc_idx,
-                                            const sched_interface::dl_sched_res_t& dl_result,
-                                            const sched_interface::ul_sched_res_t& ul_result)
-{
-  /* TEST: Ensure there are no spurious RARs that do not belong to any user */
-  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
-    for (uint32_t j = 0; j < dl_result.rar[i].nof_grants; ++j) {
-      uint32_t prach_tti    = dl_result.rar[i].msg3_grant[j].data.prach_tti;
-      uint32_t preamble_idx = dl_result.rar[i].msg3_grant[j].data.preamble_idx;
-      auto     it           = std::find_if(users.begin(), users.end(), [&](const std::pair<uint16_t, ue_ctxt_test>& u) {
-        return u.second.preamble_idx == preamble_idx and ((uint32_t)u.second.prach_tti.to_uint() == prach_tti);
-      });
-      CONDERROR(it == users.end(), "There was a RAR allocation with no associated user");
-      CONDERROR(it->second.user_cfg.supported_cc_list[0].enb_cc_idx != enb_cc_idx,
-                "The allocated RAR is in the wrong cc\n");
-    }
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 int user_state_sched_tester::test_all(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
 {
   // Perform UE-dedicated sched result tests
@@ -343,9 +314,6 @@ int user_state_sched_tester::test_all(const sf_output_res_t& sf_out, uint32_t en
 
   // Update Simulated UEs state
   sim_users.update(sf_out);
-
-  TESTASSERT(test_ctrl_info(enb_cc_idx, sf_out.dl_cc_result[enb_cc_idx], sf_out.ul_cc_result[enb_cc_idx]) ==
-             SRSLTE_SUCCESS);
 
   for (auto& u : users) {
     TESTASSERT(u.second.test_sched_result(
@@ -512,26 +480,31 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
     const ue_ctxt_test* user = ue_tester->get_user_ctxt(ue_ev.rnti);
 
-    if (user != nullptr and not user->msg4_tti.is_valid() and user->msg3_tti.is_valid() and user->msg3_tti <= tic) {
-      // Msg3 has been received but Msg4 has not been yet transmitted
-      // Setup default UE config
-      reconf_user(user->rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg));
+    if (user != nullptr) {
+      const auto& ue_sim_ctxt = user->ue_ctxt->get_ctxt();
+      if (not ue_sim_ctxt.msg4_tti_rx.is_valid() and ue_sim_ctxt.msg3_tti_rx.is_valid() and
+          to_tx_ul(ue_sim_ctxt.msg3_tti_rx) <= tic) {
+        // Msg3 has been received but Msg4 has not been yet transmitted
+        // Setup default UE config
+        reconf_user(user->rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg));
 
-      // Schedule RRC Setup and ConRes CE
-      uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
-      if (pending_dl_new_data == 0) {
-        uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
-        dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
-        dl_mac_buffer_state(ue_ev.rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
-      } else {
-        // Let SRB0 Msg4 get fully transmitted
+        // Schedule RRC Setup and ConRes CE
+        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
+        if (pending_dl_new_data == 0) {
+          uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
+          dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
+          dl_mac_buffer_state(ue_ev.rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
+        } else {
+          // Let SRB0 Msg4 get fully transmitted
+        }
       }
     }
 
     // push UL SRs and DL packets
     if (ue_ev.buffer_ev != nullptr) {
       CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
-      if (ue_ev.buffer_ev->dl_data > 0 and user->msg4_tti.is_valid()) {
+      const auto& ue_sim_ctxt = user->ue_ctxt->get_ctxt();
+      if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.msg4_tti_rx.is_valid()) {
         // If Msg4 has already been tx and there DL data to transmit
         uint32_t lcid                = RB_ID_DRB1;
         uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();

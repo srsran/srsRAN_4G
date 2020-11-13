@@ -51,26 +51,21 @@ struct ue_ctxt_test {
 
   // prach args
   uint16_t rnti;
-  uint32_t preamble_idx = 0;
 
   /* state */
   srsenb::sched_interface::ue_cfg_t user_cfg;
   srslte::tti_point                 current_tti_rx;
-
-  // RA state
-  srslte::tti_point prach_tti, rar_tti, msg3_tti, msg4_tti;
-  uint32_t          msg3_riv = 0;
 
   struct cc_ue_ctxt_test {
     uint32_t ue_cc_idx  = 0;
     uint32_t enb_cc_idx = 0;
   };
   std::vector<cc_ue_ctxt_test> active_ccs;
+  ue_sim*                      ue_ctxt;
 
   bool drb_cfg_flag = false;
 
   ue_ctxt_test(uint16_t                                      rnti_,
-               uint32_t                                      preamble_idx_,
                srslte::tti_point                             prach_tti,
                const ue_ctxt_test_cfg&                       cfg_,
                const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
@@ -78,7 +73,6 @@ struct ue_ctxt_test {
 
   int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
   cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
-  bool is_msg3_rx(const srslte::tti_point& tti_rx) const { return msg3_tti.is_valid() and msg3_tti <= tti_rx; }
 
   int new_tti(sched* sched_ptr, srslte::tti_point tti_rx);
   int test_sched_result(uint32_t                     enb_cc_idx,
@@ -106,7 +100,6 @@ private:
     bool              operator<(const pending_ack_t& other) const { return tti_ack > other.tti_ack; }
   };
   std::priority_queue<pending_ack_t> pending_dl_acks, pending_ul_acks;
-  ue_sim*                            ue_ctxt;
 };
 
 class user_state_sched_tester
@@ -132,11 +125,6 @@ public:
   int  user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
   int  bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void rem_user(uint16_t rnti);
-
-  /* Test allocs control content */
-  int test_ctrl_info(uint32_t                               enb_cc_idx,
-                     const sched_interface::dl_sched_res_t& dl_result,
-                     const sched_interface::ul_sched_res_t& ul_result);
 
   int test_all(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
 

@@ -64,6 +64,8 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
  * - Msg3 is allocated in expected TTI, without PDCCH, and PRBs advertised in RAR
  * - First Data allocation happens after Msg3 is ACKed, and contains a ConRes CE
  * - No RARs are allocated with wrong enb_cc_idx, preamble_idx or wrong user
+ * - All RARs belong to a user that just PRACHed
+ * - All DL/UL data allocs have a valid RNTI
  */
 int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
 

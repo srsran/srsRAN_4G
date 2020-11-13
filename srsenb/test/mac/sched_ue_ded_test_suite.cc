@@ -176,10 +176,10 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
   for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+    const auto& dl_cc_res = sf_out.dl_cc_result[cc];
+    const auto& ul_cc_res = sf_out.ul_cc_result[cc];
     for (const auto& ue_pair : enb_ctxt.ue_db) {
       const auto& ue        = *ue_pair.second;
-      const auto& dl_cc_res = sf_out.dl_cc_result[cc];
-      const auto& ul_cc_res = sf_out.ul_cc_result[cc];
       uint16_t    rnti      = ue.rnti;
       uint32_t    ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
 
@@ -280,6 +280,21 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
             CONDERROR(dl_cc_res.data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg3 is scheduled\n");
           }
         }
+      }
+    }
+
+    // TEST: Ensure there are no spurious RARs that do not belong to any user
+    for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
+      for (uint32_t j = 0; j < dl_cc_res.rar[i].nof_grants; ++j) {
+        uint32_t prach_tti    = dl_cc_res.rar[i].msg3_grant[j].data.prach_tti;
+        uint32_t preamble_idx = dl_cc_res.rar[i].msg3_grant[j].data.preamble_idx;
+        auto     it           = std::find_if(
+            enb_ctxt.ue_db.begin(), enb_ctxt.ue_db.end(), [&](const std::pair<uint16_t, const sim_ue_ctxt_t*>& u) {
+              const auto& ctxt = *u.second;
+              return ctxt.preamble_idx == preamble_idx and ((uint32_t)ctxt.prach_tti_rx.to_uint() == prach_tti);
+            });
+        CONDERROR(it == enb_ctxt.ue_db.end(), "There was a RAR allocation with no associated user");
+        CONDERROR(it->second->ue_cfg.supported_cc_list[0].enb_cc_idx != cc, "The allocated RAR is in the wrong cc\n");
       }
     }
   }
