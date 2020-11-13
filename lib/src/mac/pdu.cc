@@ -979,9 +979,9 @@ uint8_t sch_subh::buff_size_table(uint32_t buffer_size)
   } else if (buffer_size > 150000) {
     return 63;
   } else {
-    for (int i = 0; i < 61; i++) {
-      if (buffer_size < btable[i + 2]) {
-        return 1 + i;
+    for (int i = 1; i < 62; i++) {
+      if (buffer_size <= btable[i + 1]) {
+        return i;
       }
     }
     return 62;
