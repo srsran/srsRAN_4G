@@ -1012,7 +1012,10 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
     if (rr_cfg_ded.phys_cfg_ded_present) {
       auto& phys_cfg_ded = rr_cfg_ded.phys_cfg_ded;
       srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
-      srslte::set_phy_cfg_t_enable_64qam(&phy_rrc_dedicated_list[0].phy_cfg, ue_capabilities.support_ul_64qam);
+      srslte::set_phy_cfg_t_enable_64qam(
+          &phy_rrc_dedicated_list[0].phy_cfg,
+          ue_capabilities.support_ul_64qam and
+              parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
     }
   }
 
@@ -1045,8 +1048,10 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
             // Get corresponding eNB CC index
             scell_phy_rrc_ded.enb_cc_idx = ue_cc->cell_common->enb_cc_idx;
 
-            srslte::set_phy_cfg_t_enable_64qam(&phy_rrc_dedicated_list[scell.scell_idx_r10].phy_cfg,
-                                               ue_capabilities.support_ul_64qam);
+            srslte::set_phy_cfg_t_enable_64qam(
+                &phy_rrc_dedicated_list[scell.scell_idx_r10].phy_cfg,
+                ue_capabilities.support_ul_64qam and
+                    parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
 
             // Append to PHY RRC config dedicated which will be applied further down
             phy_rrc_dedicated_list[scell.scell_idx_r10] = scell_phy_rrc_ded;
