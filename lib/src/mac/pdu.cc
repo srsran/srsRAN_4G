@@ -572,7 +572,7 @@ uint32_t sch_subh::get_bsr(uint32_t buff_size_idx[4], uint32_t buff_size_bytes[4
   if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
     buff_size_idx[0] = (payload[0] & 0xFC) >> 2;
     buff_size_idx[1] = (payload[0] & 0x03) << 4 | (payload[1] & 0xF0) >> 4;
-    buff_size_idx[2] = (payload[1] & 0x0F) << 2 | (payload[1] & 0xC0) >> 6;
+    buff_size_idx[2] = (payload[1] & 0x0F) << 2 | (payload[2] & 0xC0) >> 6;
     buff_size_idx[3] = (payload[2] & 0x3F);
   } else {
     nonzero_lcg                    = (payload[0] & 0xc0) >> 6;
