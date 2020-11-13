@@ -65,8 +65,7 @@ using srslte::tti_point;
  *   - DL adaptive retx/new tx <=> PDCCH alloc
  *******************************************************/
 
-uint32_t const seed           = std::chrono::system_clock::now().time_since_epoch().count();
-bool           check_old_pids = false;
+uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 struct ue_stats_t {
   uint64_t nof_dl_rbs = 0;
@@ -233,15 +232,6 @@ int sched_tester::assert_no_empty_allocs()
     CONDERROR(tti_data.total_ues.ul_retx_got_delayed, "There was a retx that was erased for user rnti=0x%x\n", rnti);
   }
 
-  // There must be allocations if there is pending data/retxs.
-  //  bool no_dl_allocs = true;
-  //  for (auto& it : tti_data.ue_data) {
-  //    if (it.second.dl_sched != nullptr) {
-  //      no_dl_allocs = false;
-  //    }
-  //  }
-  //  CONDERROR(tti_data.total_ues.has_dl_tx and no_dl_allocs, "There was pending DL data but no user got allocated\n");
-  // TODO: You have to verify if there is space for the retx since it is non-adaptive
   return SRSLTE_SUCCESS;
 }
 
@@ -253,7 +243,6 @@ int sched_tester::test_harqs()
     uint32_t                    h_id = data.dci.pid;
     uint16_t                    rnti = data.dci.rnti;
     const srsenb::dl_harq_proc& h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
-    CONDERROR(h.is_empty(), "Cannot schedule an empty harq proc\n");
     CONDERROR(h.get_tti() != tti_point{tti_info.tti_params.tti_tx_dl},
               "The scheduled DL harq pid=%d does not a valid tti=%u\n",
               h_id,
@@ -287,7 +276,6 @@ int sched_tester::test_harqs()
   /* Check PHICH allocations */
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems; ++i) {
     const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
-    CONDERROR(tti_data.ue_data.count(phich.rnti) == 0, "Allocated PHICH rnti no longer exists\n");
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
     const auto* h     = ue_db[phich.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
     CONDERROR(not hprev.has_pending_ack(), "Alloc PHICH did not have any pending ack\n");
@@ -304,35 +292,6 @@ int sched_tester::test_harqs()
       }
     } else {
       CONDERROR(h->get_pending_data() == 0 and !maxretx_flag, "NACKed harq has no pending data\n");
-    }
-  }
-  for (const auto& ue : ue_db) {
-    const auto& hprev = tti_data.ue_data[ue.first].ul_harq;
-    if (not hprev.has_pending_ack()) {
-      continue;
-    }
-    uint32_t i = 0;
-    for (; i < tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems; ++i) {
-      const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
-      if (phich.rnti == ue.first) {
-        break;
-      }
-    }
-    CONDERROR(i == tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems,
-              "harq had pending ack but no phich was allocked\n");
-  }
-
-  // Check whether some pids got old
-  if (check_old_pids) {
-    for (auto& user : ue_db) {
-      for (int i = 0; i < srsenb::cc_sched_ue::SCHED_MAX_HARQ_PROC; i++) {
-        if (not user.second.get_dl_harq(i, CARRIER_IDX).is_empty(0)) {
-          if (tti_point{tti_info.tti_params.tti_tx_dl} > user.second.get_dl_harq(i, CARRIER_IDX).get_tti() + 49) {
-            TESTERROR(
-                "The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i, CARRIER_IDX).get_id(), user.first);
-          }
-        }
-      }
     }
   }
 

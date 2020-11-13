@@ -75,8 +75,23 @@ int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
               "The number of retx=%d exceeded its max=%d\n",
               h.nof_retxs + 1,
               ue_ctxt.ue_cfg.maxharq_tx);
+    CONDERROR(h.dci_loc.L != pdsch.dci.location.L, "Harq DCI aggregation level changed.\n");
+    CONDERROR(h.tbs != pdsch.tbs[0], "TBS changed during HARQ retx\n");
   }
 
+  return SRSLTE_SUCCESS;
+}
+
+int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
+{
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+      const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
+      CONDERROR(
+          enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x\n", data.dci.rnti);
+      TESTASSERT(test_pdsch_grant(*enb_ctxt.ue_db.at(data.dci.rnti), sf_out.tti_rx, cc, data) == SRSLTE_SUCCESS);
+    }
+  }
   return SRSLTE_SUCCESS;
 }
 
@@ -133,7 +148,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
                 pid);
 
       // TEST: absent PUSCH grants for active DL HARQs must be either ACKs, last retx, or interrupted HARQs
-      if (phich_ptr != nullptr and pusch_ptr == nullptr) {
+      if ((phich_ptr != nullptr) and (pusch_ptr == nullptr)) {
         CONDERROR(not h_inactive, "PHICH NACK received for rnti=0x%x but no PUSCH retx reallocated\n", rnti);
       }
 
@@ -156,13 +171,12 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           }
           if (pusch_ptr->needs_pdcch) {
             // adaptive retx
+            CONDERROR(h.tbs != pusch_ptr->tbs, "TBS changed during HARQ retx\n");
+            CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv,
+                      "Invalid rv index for retx\n");
           } else {
             // non-adaptive retx
             CONDERROR(pusch_ptr->dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv\n");
-          }
-          if (pusch_ptr->tbs > 0) {
-            CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv,
-                      "Invalid rv index for retx\n");
           }
           CONDERROR(to_tx_ul(h.last_tti_rx) > sf_out.tti_rx, "UL harq pid=%d was reused too soon\n", h.pid);
         }
@@ -304,14 +318,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
 int test_all_ues(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
-    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
-      const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
-      CONDERROR(
-          enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x\n", data.dci.rnti);
-      TESTASSERT(test_pdsch_grant(*enb_ctxt.ue_db.at(data.dci.rnti), sf_out.tti_rx, cc, data) == SRSLTE_SUCCESS);
-    }
-  }
+  TESTASSERT(test_dl_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
 
   TESTASSERT(test_ul_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
 

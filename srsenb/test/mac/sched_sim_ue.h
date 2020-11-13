@@ -29,13 +29,15 @@
 namespace srsenb {
 
 struct ue_harq_ctxt_t {
-  bool              active    = false;
-  bool              ndi       = false;
-  uint32_t          pid       = 0;
-  uint32_t          nof_txs   = 0;
-  uint32_t          nof_retxs = 0;
-  uint32_t          riv       = 0;
-  srslte::tti_point last_tti_rx, first_tti_rx;
+  bool                  active    = false;
+  bool                  ndi       = false;
+  uint32_t              pid       = 0;
+  uint32_t              nof_txs   = 0;
+  uint32_t              nof_retxs = 0;
+  uint32_t              riv       = 0;
+  srslte_dci_location_t dci_loc   = {};
+  uint32_t              tbs       = 0;
+  srslte::tti_point     last_tti_rx, first_tti_rx;
 };
 struct ue_cc_ctxt_t {
   std::array<ue_harq_ctxt_t, SRSLTE_FDD_NOF_HARQ> dl_harqs;

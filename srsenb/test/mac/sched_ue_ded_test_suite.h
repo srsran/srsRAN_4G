@@ -32,16 +32,11 @@ namespace srsenb {
  * - The DCI rv matches the nof DL harq retxs observed from the UE perspective
  * - The number of retxs per DL harq does not exceed its maximum set in the ue cfg
  * - HARQ pids are not reused too early (ACK hasn't arrive to the eNB yet)
- * @param ue_ctxt current simulation UE context
- * @param tti_rx TTI when scheduling decision was made
- * @param enb_cc_idx eNB carrier index
- * @param pdsch PDSCH grant data
+ * @param enb_ctxt current eNB state, including list of UEs
+ * @param sf_out result of a subframe sched result
  * @return error code
  */
-int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
-                     srslte::tti_point                       tti_rx,
-                     uint32_t                                enb_cc_idx,
-                     const sched_interface::dl_sched_data_t& pdsch);
+int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
 
 /**
  * Checks PHICH & PUSCH grant content and whether it is consistent with the current UE HARQ state. Current checks:

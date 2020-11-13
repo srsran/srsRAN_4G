@@ -124,6 +124,8 @@ void ue_sim::update_dl_harqs(const sf_output_res_t& sf_out)
         h.nof_retxs    = 0;
         h.ndi          = data.dci.tb[0].ndi;
         h.first_tti_rx = sf_out.tti_rx;
+        h.dci_loc      = data.dci.location;
+        h.tbs          = data.tbs[0];
       } else {
         // it is retx
         h.nof_retxs++;
@@ -174,6 +176,7 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
         h.nof_retxs    = 0;
         h.ndi          = data.dci.tb.ndi;
         h.first_tti_rx = sf_out.tti_rx;
+        h.tbs          = data.tbs;
       } else {
         h.nof_retxs++;
       }
