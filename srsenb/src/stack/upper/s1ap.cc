@@ -169,7 +169,6 @@ void s1ap::ue::ho_prep_proc_t::then(const srslte::proc_state_t& result)
 srslte::proc_outcome_t s1ap::s1_setup_proc_t::init()
 {
   procInfo("Starting new MME connection.\n");
-
   return start_mme_connection();
 }
 
@@ -188,7 +187,7 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
     procInfo("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
              s1ap_ptr->mme_connect_timer.duration() / 1000);
     srslte::console("Failed to initiate SCTP socket. Attempting reconnection in %d seconds\n",
-                       s1ap_ptr->mme_connect_timer.duration() / 1000);
+                    s1ap_ptr->mme_connect_timer.duration() / 1000);
     s1ap_ptr->mme_connect_timer.run();
     return srslte::proc_outcome_t::error;
   }
@@ -505,6 +504,13 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
     if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
       s1ap_log->info("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
       srslte::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+      stack->remove_mme_socket(s1ap_socket.get_socket());
+      s1ap_socket.reset();
+    } else if (notification->sn_header.sn_type == SCTP_PEER_ADDR_CHANGE &&
+               notification->sn_paddr_change.spc_state == SCTP_ADDR_UNREACHABLE) {
+      s1ap_log->info("SCTP peer addres unreachable. Association: %d\n", sri.sinfo_assoc_id);
+      srslte::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
+      stack->remove_mme_socket(s1ap_socket.get_socket());
       s1ap_socket.reset();
     }
   } else if (pdu->N_bytes == 0) {

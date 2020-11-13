@@ -121,12 +121,62 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
   if (protocol == protocol_type::SCTP) {
     // Sets the data_io_event to be able to use sendrecv_info
     // Subscribes to the SCTP_SHUTDOWN event, to handle graceful shutdown
+    // Also subscribes to SCTP_PEER_ADDR_CHANGE, to handle ungraceful shutdown of the link.
     struct sctp_event_subscribe evnts = {};
     evnts.sctp_data_io_event          = 1;
     evnts.sctp_shutdown_event         = 1;
+    evnts.sctp_address_event          = 1;
     if (setsockopt(fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
       srslte::logmap::get(LOGSERVICE)->error("Failed to subscribe to SCTP_SHUTDOWN event: %s\n", strerror(errno));
-      perror("setsockopt");
+      perror("Could not regiester socket to SCTP events\n");
+    }
+
+    /*
+     * Modify SCTP default parameters for quicker detection of broken links.
+     * This includes changes to the SCTP_INITMSG parameters (to control the timeout of the connect() syscall)
+     * And changes to the maximum re-transmission timeout (rto_max), for quicker detection of broken links.
+     */
+    // Set RTO_MAX to quickly detect broken links.
+    sctp_rtoinfo rto_opts;
+    socklen_t    rto_sz    = sizeof(sctp_rtoinfo);
+    rto_opts.srto_assoc_id = 0;
+    if (getsockopt(fd, SOL_SCTP, SCTP_RTOINFO, &rto_opts, &rto_sz) < 0) {
+      printf("Error getting RTO_INFO sockopts\n");
+      return -1;
+    }
+
+    rto_opts.srto_max = 6000; // 6 seconds
+
+    srslte::logmap::get(LOGSERVICE)
+        ->debug(
+            "Setting RTO_INFO options on SCTP socket. Association %d, Initial RTO %d, Minimum RTO %d, Maximum RTO %d\n",
+            rto_opts.srto_assoc_id,
+            rto_opts.srto_initial,
+            rto_opts.srto_min,
+            rto_opts.srto_max);
+
+    if (setsockopt(fd, SOL_SCTP, SCTP_RTOINFO, &rto_opts, rto_sz) < 0) {
+      perror("Error setting RTO_INFO sockopts\n");
+      return -1;
+    }
+
+    // Set SCTP INITMSG options to reduce blocking timeout of connect()
+    sctp_initmsg init_opts;
+    socklen_t    init_sz = sizeof(sctp_initmsg);
+    if (getsockopt(fd, SOL_SCTP, SCTP_INITMSG, &init_opts, &init_sz) < 0) {
+      printf("Error getting sockopts\n");
+    }
+
+    init_opts.sinit_max_attempts   = 3;
+    init_opts.sinit_max_init_timeo = 5000; // 5 seconds
+
+    srslte::logmap::get(LOGSERVICE)
+        ->debug("Setting SCTP_INITMSG options on SCTP socket. Max attempts %d, Max init attempts timeout %d\n",
+                init_opts.sinit_max_attempts,
+                init_opts.sinit_max_init_timeo);
+    if (setsockopt(fd, SOL_SCTP, SCTP_INITMSG, &init_opts, init_sz) < 0) {
+      perror("Error setting SCTP_INITMSG sockopts\n");
+      return -1;
     }
   }
 
@@ -368,11 +418,8 @@ class recvfrom_pdu_task final : public rx_multisocket_handler::recv_task
 public:
   using callback_t = std::function<void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from)>;
   explicit recvfrom_pdu_task(srslte::byte_buffer_pool* pool_, srslte::log_ref log_, callback_t func_) :
-    pool(pool_),
-    log_h(log_),
-    func(std::move(func_))
-  {
-  }
+    pool(pool_), log_h(log_), func(std::move(func_))
+  {}
 
   bool operator()(int fd) override
   {
@@ -407,11 +454,8 @@ public:
   using callback_t = std::function<
       void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags)>;
   explicit sctp_recvmsg_pdu_task(srslte::byte_buffer_pool* pool_, srslte::log_ref log_, callback_t func_) :
-    pool(pool_),
-    log_h(log_),
-    func(std::move(func_))
-  {
-  }
+    pool(pool_), log_h(log_), func(std::move(func_))
+  {}
 
   bool operator()(int fd) override
   {
@@ -456,9 +500,7 @@ private:
  **************************************************************/
 
 rx_multisocket_handler::rx_multisocket_handler(std::string name_, srslte::log_ref log_, int thread_prio) :
-  thread(name_),
-  name(std::move(name_)),
-  log_h(log_)
+  thread(name_), name(std::move(name_)), log_h(log_)
 {
   pool = srslte::byte_buffer_pool::get_instance();
   // register control pipe fd

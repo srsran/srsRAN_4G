@@ -86,6 +86,7 @@ public:
   bool bind_addr(const char* bind_addr_str, int port);
   bool connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
   bool open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
+  int  get_socket() { return sockfd; };
 
 protected:
   sockaddr_in addr   = {};
