@@ -440,7 +440,7 @@ int main()
   srsenb::set_randseed(seed);
   printf("This is the chosen seed: %u\n", seed);
 
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;
 
   for (uint32_t n = 0; n < N_runs; ++n) {

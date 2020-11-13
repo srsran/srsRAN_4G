@@ -20,6 +20,7 @@
  */
 
 #include "sched_ue_ded_test_suite.h"
+#include "lib/include/srslte/mac/pdu.h"
 #include "srslte/common/test_common.h"
 
 namespace srsenb {
@@ -64,6 +65,7 @@ int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
   if (h.nof_txs == 0 or h.ndi != pdsch.dci.tb[0].ndi) {
     // It is newtx
     CONDERROR(nof_retx != 0, "Invalid rv index for new tx\n");
+    CONDERROR(h.active, "DL newtx for already active DL harq pid=%d\n", h.pid);
   } else {
     // it is retx
     CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pdsch.dci.tb[0].rv, "Invalid rv index for retx\n");
@@ -104,6 +106,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
       const auto& ue        = *ue_pair.second;
       uint16_t    rnti      = ue.rnti;
       int         ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
+      const auto& h         = ue.cc_list[ue_cc_idx].ul_harqs[pid];
 
       // TEST: Check if CC is configured and active
       CONDERROR(ue_cc_idx < 0 or not ue.ue_cfg.supported_cc_list[ue_cc_idx].active,
@@ -116,8 +119,12 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           std::find_if(pusch_begin, pusch_end, [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
       pusch_ptr = pusch_ptr == pusch_end ? nullptr : pusch_ptr;
 
+      bool phich_ack  = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
+      bool is_msg3    = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
+      bool last_retx  = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx);
+      bool h_inactive = (not h.active) or (phich_ack or last_retx);
+
       // TEST: Already active UL HARQs have to receive PHICH
-      const auto& h = ue.cc_list[ue_cc_idx].ul_harqs[pid];
       CONDERROR(
           h.active and phich_ptr == nullptr, "PHICH not received for rnti=0x%x active UL HARQ pid=%d\n", rnti, pid);
       CONDERROR(not h.active and phich_ptr != nullptr,
@@ -127,11 +134,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 
       // TEST: absent PUSCH grants for active DL HARQs must be either ACKs, last retx, or interrupted HARQs
       if (phich_ptr != nullptr and pusch_ptr == nullptr) {
-        bool is_ack    = phich_ptr->phich == phich_t::ACK;
-        bool is_msg3   = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
-        bool last_retx = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx);
-        CONDERROR(
-            not is_ack and not last_retx, "PHICH NACK received for rnti=0x%x but no PUSCH retx reallocated\n", rnti);
+        CONDERROR(not h_inactive, "PHICH NACK received for rnti=0x%x but no PUSCH retx reallocated\n", rnti);
       }
 
       if (pusch_ptr != nullptr) {
@@ -144,6 +147,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           // newtx
           CONDERROR(nof_retx != 0, "Invalid rv index for new tx\n");
           CONDERROR(pusch_ptr->current_tx_nb != 0, "UL HARQ retxs need to have been previously transmitted\n");
+          CONDERROR(not h_inactive, "New tx for already active UL HARQ\n");
         } else {
           CONDERROR(pusch_ptr->current_tx_nb == 0, "UL retx has to have nof tx > 0\n");
           if (not h.active) {
@@ -169,19 +173,134 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
   return SRSLTE_SUCCESS;
 }
 
+int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
+{
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+    for (const auto& ue_pair : enb_ctxt.ue_db) {
+      const auto& ue        = *ue_pair.second;
+      const auto& dl_cc_res = sf_out.dl_cc_result[cc];
+      const auto& ul_cc_res = sf_out.ul_cc_result[cc];
+      uint16_t    rnti      = ue.rnti;
+      uint32_t    ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
+
+      if (ue_cc_idx != 0) {
+        // only check for RAR/Msg3/Msg4 presence for a UE's PCell
+        continue;
+      }
+
+      // TEST: RAR allocation
+      uint32_t             rar_win_size = (*enb_ctxt.cell_params)[cc].prach_rar_window;
+      srslte::tti_interval rar_window{ue.prach_tti_rx + 3, ue.prach_tti_rx + 3 + rar_win_size};
+      srslte::tti_point    tti_tx_dl = to_tx_dl(sf_out.tti_rx);
+
+      if (not rar_window.contains(tti_tx_dl)) {
+        CONDERROR(not ue.rar_tti_rx.is_valid() and tti_tx_dl > rar_window.stop(),
+                  "rnti=0x%x RAR not scheduled within the RAR Window\n",
+                  rnti);
+        for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_rar_elems; ++i) {
+          CONDERROR(sf_out.dl_cc_result[cc].rar[i].dci.rnti == rnti,
+                    "No RAR allocations allowed outside of user RAR window\n");
+        }
+      } else {
+        // Inside RAR window
+        uint32_t nof_rars = ue.rar_tti_rx.is_valid() ? 1 : 0;
+        for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
+          for (uint32_t j = 0; j < dl_cc_res.rar[i].nof_grants; ++j) {
+            const auto& data = dl_cc_res.rar[i].msg3_grant[j].data;
+            if (data.prach_tti == (uint32_t)ue.prach_tti_rx.to_uint() and data.preamble_idx == ue.preamble_idx) {
+              CONDERROR(rnti != data.temp_crnti, "RAR grant C-RNTI does not match the expected.\n");
+              nof_rars++;
+            }
+          }
+        }
+        CONDERROR(nof_rars > 1, "There was more than one RAR for the same user\n");
+      }
+
+      // TEST: Msg3 was allocated
+      if (ue.rar_tti_rx.is_valid() and not ue.msg3_tti_rx.is_valid()) {
+        // RAR scheduled, Msg3 not yet scheduled
+        srslte::tti_point expected_msg3_tti_rx = ue.rar_tti_rx + MSG3_DELAY_MS;
+        CONDERROR(expected_msg3_tti_rx < sf_out.tti_rx, "No UL msg3 alloc was made\n");
+
+        if (expected_msg3_tti_rx == sf_out.tti_rx) {
+          // Msg3 should exist
+          uint32_t msg3_count = 0;
+          for (uint32_t i = 0; i < ul_cc_res.nof_dci_elems; ++i) {
+            if (ul_cc_res.pusch[i].dci.rnti == rnti) {
+              msg3_count++;
+              CONDERROR(ul_cc_res.pusch[i].needs_pdcch, "Msg3 allocations do not require PDCCH\n");
+              CONDERROR(ue.msg3_riv != ul_cc_res.pusch[i].dci.type2_alloc.riv,
+                        "The Msg3 was not allocated in the expected PRBs.\n");
+            }
+          }
+          CONDERROR(msg3_count == 0, "Msg3 was not transmitted.\n");
+          CONDERROR(msg3_count > 1, "Only one Msg3 allower per user.\n");
+        }
+      }
+
+      // TEST: Check Msg4
+      if (ue.msg3_tti_rx.is_valid() and not ue.msg4_tti_rx.is_valid()) {
+        // Msg3 scheduled, but Msg4 not yet scheduled
+        uint32_t msg4_count = 0;
+        for (uint32_t i = 0; i < dl_cc_res.nof_data_elems; ++i) {
+          if (dl_cc_res.data[i].dci.rnti == rnti) {
+            CONDERROR(to_tx_dl(sf_out.tti_rx) < to_tx_ul(ue.msg3_tti_rx),
+                      "Msg4 cannot be scheduled without Msg3 being tx\n");
+            for (uint32_t j = 0; j < dl_cc_res.data[i].nof_pdu_elems[0]; ++j) {
+              if (dl_cc_res.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
+                // ConRes found
+                CONDERROR(dl_cc_res.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
+                msg4_count++;
+              }
+            }
+            CONDERROR(msg4_count == 0, "No ConRes CE was scheduled in Msg4\n");
+          }
+        }
+        CONDERROR(msg4_count > 1, "Duplicate ConRes CE for the same rnti\n");
+      }
+
+      if (not ue.msg4_tti_rx.is_valid()) {
+        // TEST: No UL allocs except for Msg3 before Msg4
+        for (uint32_t i = 0; i < ul_cc_res.nof_dci_elems; ++i) {
+          if (ul_cc_res.pusch[i].dci.rnti == rnti) {
+            CONDERROR(not ue.rar_tti_rx.is_valid(), "No UL allocs before RAR allowed\n");
+            srslte::tti_point expected_msg3_tti = ue.rar_tti_rx + MSG3_DELAY_MS;
+            CONDERROR(expected_msg3_tti > sf_out.tti_rx, "No UL allocs before Msg3 is scheduled\n");
+            if (expected_msg3_tti < sf_out.tti_rx) {
+              bool msg3_retx =
+                  ((ue.msg3_tti_rx - expected_msg3_tti) % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)) == 0;
+              CONDERROR(not msg3_retx, "No UL txs allowed except for Msg3 before user received Msg4\n");
+            }
+          }
+        }
+
+        // TEST: No DL allocs before Msg3
+        if (not ue.msg3_tti_rx.is_valid()) {
+          for (uint32_t i = 0; i < dl_cc_res.nof_data_elems; ++i) {
+            CONDERROR(dl_cc_res.data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg3 is scheduled\n");
+          }
+        }
+      }
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int test_all_ues(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
-  //  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
-  //    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
-  //      const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
-  //      CONDERROR(
-  //          enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x\n",
-  //          data.dci.rnti);
-  //      TESTASSERT(test_pdsch_grant(*enb_ctxt.ue_db.at(data.dci.rnti), sf_out.tti_rx, cc, data) == SRSLTE_SUCCESS);
-  //    }
-  //  }
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+    for (uint32_t i = 0; i < sf_out.dl_cc_result[cc].nof_data_elems; ++i) {
+      const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
+      CONDERROR(
+          enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x\n", data.dci.rnti);
+      TESTASSERT(test_pdsch_grant(*enb_ctxt.ue_db.at(data.dci.rnti), sf_out.tti_rx, cc, data) == SRSLTE_SUCCESS);
+    }
+  }
 
   TESTASSERT(test_ul_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+
+  TESTASSERT(test_ra(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }

@@ -20,23 +20,52 @@
  */
 
 #include "sched_sim_ue.h"
+#include "lib/include/srslte/mac/pdu.h"
 
 namespace srsenb {
 
 using phich_t = sched_interface::ul_sched_phich_t;
 
-ue_sim::ue_sim(uint16_t rnti_, const sched_interface::ue_cfg_t& ue_cfg_, srslte::tti_point prach_tti_rx_)
+bool sim_ue_ctxt_t::is_msg3_harq(uint32_t ue_cc_idx, uint32_t pid) const
+{
+  auto& h = cc_list.at(ue_cc_idx).ul_harqs[pid];
+  return h.first_tti_rx == msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
+}
+
+bool sim_ue_ctxt_t::is_last_ul_retx(uint32_t ue_cc_idx, uint32_t pid, uint32_t maxharq_msg3tx) const
+{
+  bool  is_msg3 = is_msg3_harq(ue_cc_idx, pid);
+  auto& h       = cc_list.at(ue_cc_idx).ul_harqs[pid];
+  return h.nof_retxs + 1 >= (is_msg3 ? maxharq_msg3tx : ue_cfg.maxharq_tx);
+}
+
+bool sim_ue_ctxt_t::is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
+{
+  auto& h = cc_list.at(ue_cc_idx).dl_harqs[pid];
+  return h.nof_retxs + 1 >= ue_cfg.maxharq_tx;
+}
+
+ue_sim::ue_sim(uint16_t                         rnti_,
+               const sched_interface::ue_cfg_t& ue_cfg_,
+               srslte::tti_point                prach_tti_rx_,
+               uint32_t                         preamble_idx)
 {
   ctxt.rnti         = rnti_;
-  ctxt.ue_cfg       = ue_cfg_;
   ctxt.prach_tti_rx = prach_tti_rx_;
-  ctxt.cc_list.resize(ue_cfg_.supported_cc_list.size());
+  ctxt.preamble_idx = preamble_idx;
+  set_cfg(ue_cfg_);
 }
 
 void ue_sim::set_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
 {
   ctxt.ue_cfg = ue_cfg_;
   ctxt.cc_list.resize(ue_cfg_.supported_cc_list.size());
+  for (auto& cc : ctxt.cc_list) {
+    for (size_t pid = 0; pid < (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS); ++pid) {
+      cc.ul_harqs[pid].pid = pid;
+      cc.dl_harqs[pid].pid = pid;
+    }
+  }
 }
 
 bool ue_sim::enqueue_pending_acks(srslte::tti_point                tti_rx,
@@ -92,14 +121,16 @@ void ue_sim::update_dl_harqs(const sf_output_res_t& sf_out)
       auto& h = ctxt.cc_list[data.dci.ue_cc_idx].dl_harqs[data.dci.pid];
       if (h.nof_txs == 0 or h.ndi != data.dci.tb[0].ndi) {
         // It is newtx
-        h.active    = true;
-        h.nof_retxs = 0;
-        h.ndi       = data.dci.tb[0].ndi;
+        h.nof_retxs    = 0;
+        h.ndi          = data.dci.tb[0].ndi;
+        h.first_tti_rx = sf_out.tti_rx;
       } else {
         // it is retx
         h.nof_retxs++;
       }
+      h.active      = true;
       h.last_tti_rx = sf_out.tti_rx;
+      h.nof_txs++;
     }
   }
 }
@@ -156,19 +187,68 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 
 void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
 {
-  if (not ctxt.msg3_tti_rx.is_valid()) {
-    auto& cc_result = sf_out.ul_cc_result[ctxt.ue_cfg.supported_cc_list[0].enb_cc_idx];
-    for (uint32_t i = 0; i < cc_result.nof_dci_elems; ++i) {
-      if (cc_result.pusch[i].dci.rnti == ctxt.rnti) {
-        ctxt.msg3_tti_rx = sf_out.tti_rx;
+  if (ctxt.msg4_tti_rx.is_valid()) {
+    return;
+  }
+
+  // only check for RAR/Msg3 presence for a UE's PCell
+  uint32_t          cc           = ctxt.ue_cfg.supported_cc_list[0].enb_cc_idx;
+  const auto&       dl_cc_result = sf_out.dl_cc_result[cc];
+  const auto&       ul_cc_result = sf_out.ul_cc_result[cc];
+  srslte::tti_point tti_tx_dl    = to_tx_dl(sf_out.tti_rx);
+
+  if (not ctxt.rar_tti_rx.is_valid()) {
+    // RAR not yet found
+    uint32_t             rar_win_size = sf_out.cc_params[cc].cfg.prach_rar_window;
+    srslte::tti_interval rar_window{ctxt.prach_tti_rx + 3, ctxt.prach_tti_rx + 3 + rar_win_size};
+
+    if (rar_window.contains(tti_tx_dl)) {
+      for (uint32_t i = 0; i < dl_cc_result.nof_rar_elems; ++i) {
+        for (uint32_t j = 0; j < dl_cc_result.rar[i].nof_grants; ++j) {
+          const auto& data = dl_cc_result.rar[i].msg3_grant[j].data;
+          if (data.prach_tti == (uint32_t)ctxt.prach_tti_rx.to_uint() and data.preamble_idx == ctxt.preamble_idx) {
+            ctxt.rar_tti_rx = sf_out.tti_rx;
+            ctxt.msg3_riv   = dl_cc_result.rar[i].msg3_grant[j].grant.rba;
+          }
+        }
+      }
+    }
+  }
+
+  if (ctxt.rar_tti_rx.is_valid() and not ctxt.msg3_tti_rx.is_valid()) {
+    // RAR scheduled, Msg3 not yet scheduled
+    srslte::tti_point expected_msg3_tti_rx = ctxt.rar_tti_rx + MSG3_DELAY_MS;
+    if (expected_msg3_tti_rx == sf_out.tti_rx) {
+      // Msg3 should exist
+      for (uint32_t i = 0; i < ul_cc_result.nof_dci_elems; ++i) {
+        if (ul_cc_result.pusch[i].dci.rnti == ctxt.rnti) {
+          ctxt.msg3_tti_rx = sf_out.tti_rx;
+        }
+      }
+    }
+  }
+
+  if (ctxt.msg3_tti_rx.is_valid() and not ctxt.msg4_tti_rx.is_valid()) {
+    // Msg3 scheduled, but Msg4 not yet scheduled
+    for (uint32_t i = 0; i < dl_cc_result.nof_data_elems; ++i) {
+      if (dl_cc_result.data[i].dci.rnti == ctxt.rnti) {
+        for (uint32_t j = 0; j < dl_cc_result.data[i].nof_pdu_elems[0]; ++j) {
+          if (dl_cc_result.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
+            // ConRes found
+            ctxt.msg4_tti_rx = sf_out.tti_rx;
+          }
+        }
       }
     }
   }
 }
 
-void ue_db_sim::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, srslte::tti_point prach_tti_rx_)
+void ue_db_sim::add_user(uint16_t                         rnti,
+                         const sched_interface::ue_cfg_t& ue_cfg_,
+                         srslte::tti_point                prach_tti_rx_,
+                         uint32_t                         preamble_idx)
 {
-  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, ue_cfg_, prach_tti_rx_)));
+  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, ue_cfg_, prach_tti_rx_, preamble_idx)));
 }
 
 void ue_db_sim::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)

@@ -43,12 +43,16 @@ struct ue_cc_ctxt_t {
 };
 struct sim_ue_ctxt_t {
   uint16_t                  rnti;
-  srslte::tti_point         prach_tti_rx, msg3_tti_rx;
+  uint32_t                  preamble_idx, msg3_riv;
+  srslte::tti_point         prach_tti_rx, rar_tti_rx, msg3_tti_rx, msg4_tti_rx;
   sched_interface::ue_cfg_t ue_cfg;
   std::vector<ue_cc_ctxt_t> cc_list;
 
   const sched_interface::ue_cfg_t::cc_cfg_t* get_cc_cfg(uint32_t enb_cc_idx) const;
   int                                        enb_to_ue_cc_idx(uint32_t enb_cc_idx) const;
+  bool                                       is_msg3_harq(uint32_t ue_cc_idx, uint32_t pid) const;
+  bool is_last_ul_retx(uint32_t ue_cc_idx, uint32_t pid, uint32_t maxharq_msg3tx) const;
+  bool is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const;
 };
 
 struct sim_enb_ctxt_t {
@@ -68,7 +72,10 @@ struct pucch_feedback {
 class ue_sim
 {
 public:
-  ue_sim(uint16_t rnti_, const sched_interface::ue_cfg_t& ue_cfg_, srslte::tti_point prach_tti_rx);
+  ue_sim(uint16_t                         rnti_,
+         const sched_interface::ue_cfg_t& ue_cfg_,
+         srslte::tti_point                prach_tti_rx,
+         uint32_t                         preamble_idx);
 
   void set_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
 
@@ -92,12 +99,17 @@ private:
 class ue_db_sim
 {
 public:
-  void add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, srslte::tti_point prach_tti_rx_);
+  void add_user(uint16_t                         rnti,
+                const sched_interface::ue_cfg_t& ue_cfg_,
+                srslte::tti_point                prach_tti_rx_,
+                uint32_t                         preamble_idx);
   void ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_);
   void rem_user(uint16_t rnti);
 
   void                                     update(const sf_output_res_t& sf_out);
   std::map<uint16_t, const sim_ue_ctxt_t*> get_ues_ctxt() const;
+  ue_sim&                                  at(uint16_t rnti) { return ue_db.at(rnti); }
+  const ue_sim&                            at(uint16_t rnti) const { return ue_db.at(rnti); }
 
 private:
   std::map<uint16_t, ue_sim> ue_db;

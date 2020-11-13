@@ -58,6 +58,16 @@ int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
 int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
 
 /**
+ * Checks whether the RAR, Msg3, Msg4 were scheduled within the expected windows. Current tests:
+ * - RAR alloc falls within RAR window and only takes place once per user
+ * - No UL allocs before Msg4 that are not Msg3
+ * - Msg3 is allocated in expected TTI, without PDCCH, and PRBs advertised in RAR
+ * - First Data allocation happens after Msg3 is ACKed, and contains a ConRes CE
+ * - No RARs are allocated with wrong enb_cc_idx, preamble_idx or wrong user
+ */
+int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
+
+/**
  * Call all tests that depend on the UE internal state for all registered UEs in the eNB
  * @param enb_ctxt current eNB state, including list of UEs
  * @param sf_out result of a subframe sched result

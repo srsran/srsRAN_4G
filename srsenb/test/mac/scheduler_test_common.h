@@ -64,18 +64,6 @@ struct ue_ctxt_test {
   struct cc_ue_ctxt_test {
     uint32_t ue_cc_idx  = 0;
     uint32_t enb_cc_idx = 0;
-    // Harq State
-    struct harq_state_t {
-      uint32_t          pid = 0;
-      srslte::tti_point tti_tx;
-      bool              active    = false;
-      bool              ndi       = false;
-      uint32_t          nof_retxs = 0;
-      uint32_t          nof_txs   = 0;
-      uint32_t          riv       = 0;
-    };
-    std::array<harq_state_t, cc_sched_ue::SCHED_MAX_HARQ_PROC> dl_harqs = {};
-    std::array<harq_state_t, cc_sched_ue::SCHED_MAX_HARQ_PROC> ul_harqs = {};
   };
   std::vector<cc_ue_ctxt_test> active_ccs;
 
@@ -85,7 +73,8 @@ struct ue_ctxt_test {
                uint32_t                                      preamble_idx_,
                srslte::tti_point                             prach_tti,
                const ue_ctxt_test_cfg&                       cfg_,
-               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_);
+               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
+               ue_sim&                                       ue_ctxt_);
 
   int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
   cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
@@ -104,9 +93,6 @@ private:
     const sched::dl_sched_res_t* dl_result;
     const sched::ul_sched_res_t* ul_result;
   };
-  //! Test the timing of RAR, Msg3, Msg4
-  int test_ra(cc_result result);
-  int test_harqs(cc_result result);
   //! Test correct activation of SCells
   int test_scell_activation(cc_result result);
   int schedule_acks(cc_result result);
@@ -120,6 +106,7 @@ private:
     bool              operator<(const pending_ack_t& other) const { return tti_ack > other.tti_ack; }
   };
   std::priority_queue<pending_ack_t> pending_dl_acks, pending_ul_acks;
+  ue_sim*                            ue_ctxt;
 };
 
 class user_state_sched_tester
