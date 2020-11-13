@@ -195,6 +195,7 @@ public:
       nof_subheaders--;
     }
     if (cur_idx >= 0) {
+      subheaders[cur_idx].init();
       cur_idx--;
     }
   }
