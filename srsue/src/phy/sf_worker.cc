@@ -205,7 +205,7 @@ void sf_worker::work_imp()
       if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
         cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
       } else {
-        if (phy->cell_state.is_active(carrier_idx, tti)) {
+        if (phy->cell_state.is_configured(carrier_idx)) {
           rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
         }
       }

@@ -254,8 +254,9 @@ bool cc_worker::work_dl_regular()
       return false;
     }
 
-    /* Look for DL and UL dci(s) if this is PCell, or no cross-carrier scheduling is enabled */
-    if ((cc_idx == 0) || (!ue_dl_cfg.cfg.dci.cif_present)) {
+    // Look for DL and UL dci(s) if the serving cell is active and it is NOT a secondary serving cell without
+    // cross-carrier scheduling is enabled
+    if (phy->cell_state.is_active(cc_idx, sf_cfg_dl.tti) and (cc_idx != 0 or not ue_dl_cfg.cfg.dci.cif_present)) {
       found_dl_grant = decode_pdcch_dl() > 0;
       decode_pdcch_ul();
     }
