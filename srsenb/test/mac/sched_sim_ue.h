@@ -44,6 +44,7 @@ struct ue_cc_ctxt_t {
   std::array<ue_harq_ctxt_t, SRSLTE_FDD_NOF_HARQ> ul_harqs;
 };
 struct sim_ue_ctxt_t {
+  bool                      conres_rx = false;
   uint16_t                  rnti;
   uint32_t                  preamble_idx, msg3_riv;
   srslte::tti_point         prach_tti_rx, rar_tti_rx, msg3_tti_rx, msg4_tti_rx;

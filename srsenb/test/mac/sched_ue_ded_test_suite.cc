@@ -121,11 +121,6 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
       const auto& ue        = *ue_pair.second;
       uint16_t    rnti      = ue.rnti;
       int         ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
-      const auto& h         = ue.cc_list[ue_cc_idx].ul_harqs[pid];
-
-      // TEST: Check if CC is configured and active
-      CONDERROR(ue_cc_idx < 0 or not ue.ue_cfg.supported_cc_list[ue_cc_idx].active,
-                "PUSCH allocation for disabled or unavailable cc\n");
 
       const phich_t* phich_ptr =
           std::find_if(phich_begin, phich_end, [rnti](const phich_t& phich) { return phich.rnti == rnti; });
@@ -134,8 +129,16 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           std::find_if(pusch_begin, pusch_end, [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
       pusch_ptr = pusch_ptr == pusch_end ? nullptr : pusch_ptr;
 
-      bool phich_ack  = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
-      bool is_msg3    = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
+      // TEST: Check that idle CCs do not receive PUSCH grants or PHICH
+      if (ue_cc_idx < 0 or not ue.ue_cfg.supported_cc_list[ue_cc_idx].active) {
+        CONDERROR(phich_ptr != nullptr, "PHICH cannot be allocated in idle cells\n");
+        CONDERROR(pusch_ptr != nullptr, "PUSCH cannot be allocated in idle cells\n");
+        continue;
+      }
+
+      const auto& h         = ue.cc_list[ue_cc_idx].ul_harqs[pid];
+      bool        phich_ack = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
+      bool        is_msg3   = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
       bool last_retx  = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx);
       bool h_inactive = (not h.active) or (phich_ack or last_retx);
 

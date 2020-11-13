@@ -190,7 +190,7 @@ void ue_sim::update_ul_harqs(const sf_output_res_t& sf_out)
 
 void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
 {
-  if (ctxt.msg4_tti_rx.is_valid()) {
+  if (ctxt.conres_rx) {
     return;
   }
 
@@ -242,6 +242,12 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
           }
         }
       }
+    }
+  }
+
+  if (ctxt.msg4_tti_rx.is_valid()) {
+    if (to_tx_dl(ctxt.msg4_tti_rx) >= sf_out.tti_rx) {
+      ctxt.conres_rx = true;
     }
   }
 }

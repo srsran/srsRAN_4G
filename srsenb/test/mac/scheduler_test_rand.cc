@@ -201,7 +201,7 @@ int sched_tester::process_results()
   TESTASSERT(test_pdsch_collisions(sf_out, CARRIER_IDX, &cc_result->dl_mask) == SRSLTE_SUCCESS);
 
   // UE dedicated tests
-  TESTASSERT(ue_tester->test_all(sf_out, CARRIER_IDX) == SRSLTE_SUCCESS);
+  TESTASSERT(ue_tester->test_all(sf_out) == SRSLTE_SUCCESS);
   assert_no_empty_allocs();
   test_harqs();
   update_ue_stats();
@@ -399,7 +399,7 @@ int main()
   srsenb::set_randseed(seed);
   printf("This is the chosen seed: %u\n", seed);
 
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;
 
   for (uint32_t n = 0; n < N_runs; ++n) {

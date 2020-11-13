@@ -304,7 +304,7 @@ void user_state_sched_tester::rem_user(uint16_t rnti)
   sim_users.rem_user(rnti);
 }
 
-int user_state_sched_tester::test_all(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
+int user_state_sched_tester::test_all(const sf_output_res_t& sf_out)
 {
   // Perform UE-dedicated sched result tests
   sim_enb_ctxt_t enb_ctxt;
@@ -315,9 +315,11 @@ int user_state_sched_tester::test_all(const sf_output_res_t& sf_out, uint32_t en
   // Update Simulated UEs state
   sim_users.update(sf_out);
 
-  for (auto& u : users) {
-    TESTASSERT(u.second.test_sched_result(
-                   enb_cc_idx, sf_out.dl_cc_result[enb_cc_idx], sf_out.ul_cc_result[enb_cc_idx]) == SRSLTE_SUCCESS);
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < enb_ctxt.cell_params->size(); ++enb_cc_idx) {
+    for (auto& u : users) {
+      TESTASSERT(u.second.test_sched_result(
+                     enb_cc_idx, sf_out.dl_cc_result[enb_cc_idx], sf_out.ul_cc_result[enb_cc_idx]) == SRSLTE_SUCCESS);
+    }
   }
 
   return SRSLTE_SUCCESS;
@@ -444,9 +446,8 @@ int common_sched_tester::process_results()
                          tti_info.dl_sched_result};
   TESTASSERT(test_all_common(sf_out) == SRSLTE_SUCCESS);
 
-  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
-    TESTASSERT(ue_tester->test_all(sf_out, i) == SRSLTE_SUCCESS);
-  }
+  TESTASSERT(ue_tester->test_all(sf_out) == SRSLTE_SUCCESS);
+
   sched_stats->process_results(tti_info.tti_params, tti_info.dl_sched_result, tti_info.ul_sched_result);
 
   return SRSLTE_SUCCESS;

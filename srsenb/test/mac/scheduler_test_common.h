@@ -126,7 +126,7 @@ public:
   int  bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void rem_user(uint16_t rnti);
 
-  int test_all(const sf_output_res_t& sf_out, uint32_t enb_cc_idx);
+  int test_all(const sf_output_res_t& sf_out);
 
 private:
   const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
