@@ -27,6 +27,7 @@ namespace srsenb {
 
 using phich_t = sched_interface::ul_sched_phich_t;
 using pusch_t = sched_interface::ul_sched_data_t;
+using pdsch_t = sched_interface::dl_sched_data_t;
 
 const sched_interface::ue_cfg_t::cc_cfg_t* sim_ue_ctxt_t::get_cc_cfg(uint32_t enb_cc_idx) const
 {
@@ -45,6 +46,22 @@ int sim_ue_ctxt_t::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
                    ue_cfg.supported_cc_list.end(),
                    [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& cc) { return cc.enb_cc_idx == enb_cc_idx; });
   return it == ue_cfg.supported_cc_list.end() ? -1 : std::distance(ue_cfg.supported_cc_list.begin(), it);
+}
+
+const pusch_t* find_pusch_grant(uint16_t rnti, const sched_interface::ul_sched_res_t& ul_cc_res)
+{
+  const pusch_t* ptr = std::find_if(&ul_cc_res.pusch[0],
+                                    &ul_cc_res.pusch[ul_cc_res.nof_dci_elems],
+                                    [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
+  return ptr == &ul_cc_res.pusch[ul_cc_res.nof_dci_elems] ? nullptr : ptr;
+}
+
+const pdsch_t* find_pdsch_grant(uint16_t rnti, const sched_interface::dl_sched_res_t& dl_cc_res)
+{
+  const pdsch_t* ptr = std::find_if(&dl_cc_res.data[0],
+                                    &dl_cc_res.data[dl_cc_res.nof_data_elems],
+                                    [rnti](const pdsch_t& pdsch) { return pdsch.dci.rnti == rnti; });
+  return ptr == &dl_cc_res.data[dl_cc_res.nof_data_elems] ? nullptr : ptr;
 }
 
 int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
@@ -124,10 +141,8 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
 
       const phich_t* phich_ptr =
           std::find_if(phich_begin, phich_end, [rnti](const phich_t& phich) { return phich.rnti == rnti; });
-      phich_ptr = phich_ptr == phich_end ? nullptr : phich_ptr;
-      const pusch_t* pusch_ptr =
-          std::find_if(pusch_begin, pusch_end, [rnti](const pusch_t& pusch) { return pusch.dci.rnti == rnti; });
-      pusch_ptr = pusch_ptr == pusch_end ? nullptr : pusch_ptr;
+      phich_ptr                = phich_ptr == phich_end ? nullptr : phich_ptr;
+      const pusch_t* pusch_ptr = find_pusch_grant(rnti, sf_out.ul_cc_result[cc]);
 
       // TEST: Check that idle CCs do not receive PUSCH grants or PHICH
       if (ue_cc_idx < 0 or not ue.ue_cfg.supported_cc_list[ue_cc_idx].active) {
@@ -136,7 +151,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
         continue;
       }
 
-      const auto& h         = ue.cc_list[ue_cc_idx].ul_harqs[pid];
+      const auto& h          = ue.cc_list[ue_cc_idx].ul_harqs[pid];
       bool        phich_ack = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
       bool        is_msg3   = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
       bool last_retx  = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx);
@@ -319,6 +334,43 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
   return SRSLTE_SUCCESS;
 }
 
+bool is_in_measgap(srslte::tti_point tti, uint32_t period, uint32_t offset)
+{
+  uint32_t T = period / 10;
+  return (tti.sfn() % T == offset / 10) and (tti.sf_idx() == offset % 10);
+}
+
+int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
+{
+  for (uint32_t cc = 0; cc < enb_ctxt.cell_params->size(); ++cc) {
+    const auto& dl_cc_res = sf_out.dl_cc_result[cc];
+    const auto& ul_cc_res = sf_out.ul_cc_result[cc];
+    for (const auto& ue_pair : enb_ctxt.ue_db) {
+      const auto&       ue        = *ue_pair.second;
+      uint16_t          rnti      = ue.rnti;
+      uint32_t          ue_cc_idx = ue.enb_to_ue_cc_idx(cc);
+      srslte::tti_point tti_tx_ul = to_tx_ul(sf_out.tti_rx), tti_tx_dl = to_tx_dl(sf_out.tti_rx),
+                        tti_tx_dl_ack = to_tx_dl_ack(sf_out.tti_rx), tti_tx_phich = to_tx_ul_ack(sf_out.tti_rx);
+
+      if (ue_cc_idx != 0 or ue.ue_cfg.measgap_period == 0) {
+        continue;
+      }
+
+      if (is_in_measgap(tti_tx_ul, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset) or
+          is_in_measgap(tti_tx_phich, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset)) {
+        const pusch_t* pusch_ptr = find_pusch_grant(rnti, ul_cc_res);
+        CONDERROR(pusch_ptr != nullptr, "PUSCH grants and PHICH cannot fall in UE measGap\n");
+      }
+      if (is_in_measgap(tti_tx_dl, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset) or
+          is_in_measgap(tti_tx_dl_ack, ue.ue_cfg.measgap_period, ue.ue_cfg.measgap_offset)) {
+        const pdsch_t* pdsch_ptr = find_pdsch_grant(rnti, dl_cc_res);
+        CONDERROR(pdsch_ptr != nullptr, "PDSCH grants and respective ACKs cannot fall in UE measGap\n");
+      }
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
 int test_all_ues(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 {
   TESTASSERT(test_dl_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
@@ -326,6 +378,8 @@ int test_all_ues(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
   TESTASSERT(test_ul_sched_result(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
 
   TESTASSERT(test_ra(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
+
+  TESTASSERT(test_meas_gaps(enb_ctxt, sf_out) == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }

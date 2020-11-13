@@ -335,6 +335,12 @@ void test_scheduler_rand(sched_sim_events sim)
   tester.test_next_ttis(sim.tti_events);
 }
 
+template <typename T>
+T pick_random_uniform(std::initializer_list<T> v)
+{
+  return *(v.begin() + std::uniform_int_distribution<size_t>{0, v.size()}(srsenb::get_rand_gen()));
+}
+
 sched_sim_events rand_sim_params(uint32_t nof_ttis)
 {
   auto             boolean_dist = []() { return std::uniform_int_distribution<>{0, 1}(srsenb::get_rand_gen()); };
@@ -356,8 +362,11 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg            = generate_default_ue_cfg();
   sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi      = true;
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.maxharq_tx = std::uniform_int_distribution<>{1, 5}(srsenb::get_rand_gen());
-  sim_gen.sim_args.start_tti                            = 0;
-  sim_gen.sim_args.sim_log                              = log_global.get();
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period = pick_random_uniform({0, 40, 80});
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_offset = std::uniform_int_distribution<uint32_t>{
+      0, sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period}(srsenb::get_rand_gen());
+  sim_gen.sim_args.start_tti = 0;
+  sim_gen.sim_args.sim_log   = log_global.get();
   sim_gen.sim_args.sched_args.pdsch_mcs =
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
   sim_gen.sim_args.sched_args.pusch_mcs =

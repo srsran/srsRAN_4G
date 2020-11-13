@@ -64,6 +64,8 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
  */
 int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
 
+int test_meas_gaps(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out);
+
 /**
  * Call all tests that depend on the UE internal state for all registered UEs in the eNB
  * @param enb_ctxt current eNB state, including list of UEs

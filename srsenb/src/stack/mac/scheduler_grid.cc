@@ -44,6 +44,8 @@ const char* alloc_outcome_t::to_string() const
       return "invalid nof prbs";
     case PUCCH_COLLISION:
       return "pucch_collision";
+    case MEASGAP_COLLISION:
+      return "measgap_collision";
   }
   return "unknown error";
 }
@@ -769,10 +771,17 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
     log_h->warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
     return alloc_outcome_t::ERROR;
   }
+  auto* cc = user->find_ue_carrier(cc_cfg->enb_cc_idx);
+  if (cc == nullptr or cc->cc_state() != cc_st::active) {
+    return alloc_outcome_t::ERROR;
+  }
+  uint32_t ue_cc_idx = cc->get_ue_cc_idx();
+  if (not user->pdsch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx)) {
+    return alloc_outcome_t::MEASGAP_COLLISION;
+  }
 
   // Check if allocation would cause segmentation
-  uint32_t            ue_cc_idx = user->enb_to_ue_cc_idx(cc_cfg->enb_cc_idx);
-  const dl_harq_proc& h         = user->get_dl_harq(pid, ue_cc_idx);
+  const dl_harq_proc& h = user->get_dl_harq(pid, ue_cc_idx);
   if (h.is_empty()) {
     // It is newTx
     rbg_interval r = user->get_required_dl_rbgs(ue_cc_idx);
@@ -826,9 +835,14 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
     return alloc_outcome_t::ERROR;
   }
 
+  // Check if there is no collision with measGap
+  bool needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or alloc_type == ul_alloc_t::NEWTX;
+  if (not user->pusch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx, needs_pdcch)) {
+    return alloc_outcome_t::MEASGAP_COLLISION;
+  }
+
   // Allocate RBGs and DCI space
-  bool            needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or alloc_type == ul_alloc_t::NEWTX;
-  alloc_outcome_t ret         = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
+  alloc_outcome_t ret = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }

@@ -301,7 +301,8 @@ bool sched_ue::pucch_sr_collision(uint32_t tti, uint32_t n_cce)
 
 tti_point prev_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
 {
-  return tti_point{static_cast<uint32_t>(floor(static_cast<float>((tti - offset).to_uint()) / period))};
+  return tti_point{static_cast<uint32_t>(floor(static_cast<float>((tti - offset).to_uint()) / period)) * period +
+                   offset};
 }
 
 tti_point next_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
@@ -311,7 +312,8 @@ tti_point next_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
 
 tti_point nearest_meas_gap(tti_point tti, uint32_t period, uint32_t offset)
 {
-  return tti_point{static_cast<uint32_t>(round(static_cast<float>((tti - offset).to_uint()) / period))};
+  return tti_point{static_cast<uint32_t>(round(static_cast<float>((tti - offset).to_uint()) / period)) * period +
+                   offset};
 }
 
 bool sched_ue::pdsch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
@@ -342,17 +344,16 @@ bool sched_ue::pusch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool
 
   // Check measGap collision
   if (cfg.measgap_period > 0) {
-    tti_point    tti_tx_ul = to_tx_ul(tti_rx), tti_tx_ul_ack = to_tx_ul_ack(tti_rx);
-    tti_point    tti_tx_dl = to_tx_dl(tti_rx);
+    tti_point    tti_tx_ul = to_tx_ul(tti_rx);
     tti_point    mgap_tti  = nearest_meas_gap(tti_tx_ul, cfg.measgap_period, cfg.measgap_offset);
     tti_interval meas_gap{mgap_tti, mgap_tti + 6};
 
     // disable TTIs that leads to PUSCH tx or PHICH rx falling in measGap
-    if (meas_gap.contains(tti_tx_ul) or meas_gap.contains(tti_tx_ul_ack)) {
+    if (meas_gap.contains(tti_tx_ul) or meas_gap.contains(to_tx_ul_ack(tti_rx))) {
       return false;
     }
     // disable TTIs which respective PDCCH falls in measGap (in case PDCCH is needed)
-    if (needs_pdcch and meas_gap.contains(tti_tx_dl)) {
+    if (needs_pdcch and meas_gap.contains(to_tx_dl(tti_rx))) {
       return false;
     }
   }

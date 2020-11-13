@@ -264,7 +264,7 @@ int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, cons
                 cell_params[cfg_.ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.to_uint(), -1),
             "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
-  sim_users.add_user(rnti, cfg_.ue_cfg, tic, preamble_idx);
+  sim_users.add_user(rnti, generate_rach_ue_cfg(cfg_.ue_cfg), tic, preamble_idx);
 
   ue_ctxt_test ue{rnti, tic, cfg_, sim_users.at(rnti)};
   users.insert(std::make_pair(rnti, ue));

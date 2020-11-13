@@ -94,6 +94,9 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
     return nullptr;
   }
   uint32_t cell_idx = p.second;
+  if (not user->pdsch_enabled(srslte::tti_point(tti_alloc->get_tti_tx_dl() - TX_ENB_DELAY), cc_cfg->enb_cc_idx)) {
+    return nullptr;
+  }
 
   alloc_outcome_t code;
   uint32_t        tti_dl = tti_alloc->get_tti_tx_dl();
@@ -245,8 +248,9 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
   }
   uint32_t cell_idx = p.second;
 
-  alloc_outcome_t ret;
-  ul_harq_proc*   h = user->get_ul_harq(current_tti, cell_idx);
+  alloc_outcome_t   ret;
+  ul_harq_proc*     h = user->get_ul_harq(current_tti, cell_idx);
+  srslte::tti_point tti_rx{current_tti - (TX_ENB_DELAY + FDD_HARQ_DELAY_DL_MS)};
 
   // if there are procedures and we have space
   if (h->has_pending_retx()) {
@@ -286,6 +290,12 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
     return nullptr;
   }
   uint32_t cell_idx = p.second;
+
+  // Avoid measGaps
+  if (not user->pusch_enabled(
+          srslte::tti_point{current_tti - (TX_ENB_DELAY + FDD_HARQ_DELAY_DL_MS)}, cc_cfg->enb_cc_idx, true)) {
+    return nullptr;
+  }
 
   uint32_t      pending_data = user->get_pending_ul_new_data(current_tti, cell_idx);
   ul_harq_proc* h            = user->get_ul_harq(current_tti, cell_idx);
