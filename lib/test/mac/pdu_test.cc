@@ -457,9 +457,12 @@ int mac_sch_pdu_pack_test6()
   const uint32_t  pdu_size = 8;
   srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
-  uint8_t tv[pdu_size] = {0x3e, 0x1f, 0x01, 0xfa, 0x7f, 0x00, 0x00, 0x00};
+  uint8_t tv[pdu_size]  = {0x3e, 0x1f, 0x86, 0x18, 0x61, 0x00, 0x00, 0x00}; // upper edge case
+  uint8_t tv2[pdu_size] = {0x3e, 0x1f, 0x04, 0x10, 0x41, 0x00, 0x00, 0x00}; // lower edge case
+  uint8_t tv3[pdu_size] = {0x3e, 0x1f, 0xf3, 0xdf, 0xbf, 0x00, 0x00, 0x00}; // max index case
 
   byte_buffer_t buffer;
+  byte_buffer_t rx_buffer;
   pdu.init_tx(&buffer, pdu_size, true);
 
   TESTASSERT(pdu.rem_size() == pdu_size);
@@ -467,10 +470,12 @@ int mac_sch_pdu_pack_test6()
   TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
   TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
 
-  // Try to Long BSR CE
-  uint32_t buff_size[4] = {0, 1000, 5000, 19200000};
+  // Long BSR CE
+  // 1552 B is the upper edge for BSR index 33 (1326 < BS <= 1552), which results in 0b100001 being
+  // the bit-pattern reported for each LCG
+  uint32_t buff_size_tx[4] = {1552, 1552, 1552, 1552};
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::LONG_BSR));
+  TESTASSERT(pdu.get()->set_bsr(buff_size_tx, srslte::ul_sch_lcid::LONG_BSR));
 
   // write PDU
   pdu.write_packet(srslte::log_ref{"MAC"});
@@ -478,12 +483,145 @@ int mac_sch_pdu_pack_test6()
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
+  // unpack again
+  pdu.init_rx(sizeof(tv), true);
+  pdu.parse_packet(tv);
+
+  // check subheaders
+  TESTASSERT(pdu.nof_subh() == 2);
+
+  uint32_t buff_size_rx[4] = {};
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->ul_sch_ce_type() == srslte::ul_sch_lcid::LONG_BSR) {
+      uint32_t buff_size_idx[4] = {};
+      uint32_t nonzero_lcg      = pdu.get()->get_bsr(buff_size_idx, buff_size_rx);
+      for (uint32_t i = 0; i < 4; i++) {
+        printf("buff_size_idx[%d]=%d buff_size_bytes=%d\n", i, buff_size_idx[i], buff_size_rx[i]);
+      }
+    }
+  }
+
+  // check received buff sizes match transmitted ones
+  for (uint32_t i = 0; i < 4; i++) {
+    TESTASSERT(buff_size_rx[i] == buff_size_tx[i]);
+  }
+
+  mac_log->info("%s\n", pdu.to_string().c_str());
+
   // log
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
+
+  // test lower edge BSR (1 B available for each LCG)
+  pdu.init_tx(&buffer, pdu_size, true);
+  buffer.clear();
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Long BSR CE
+  // 1 B is the lower edge for BSR index 1 (0 < BS <= 10) so the UE should report index 1 when there is one byte to
+  // transmit One the receive side, the eNB should extract the maximum number of bytes for this index, i.e. 10 for each
+  // LCG
+  uint32_t buff_size_tx_low_edge[4]          = {1, 1, 1, 1};
+  uint32_t buff_size_rx_expected_low_edge[4] = {10, 10, 10, 10};
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_bsr(buff_size_tx_low_edge, srslte::ul_sch_lcid::LONG_BSR));
+
+  // write PDU
+  pdu.write_packet(srslte::log_ref{"MAC"});
+  mac_log->info("%s\n", pdu.to_string().c_str());
+
+  TESTASSERT(memcmp(buffer.msg, tv2, buffer.N_bytes) == 0);
+
+  // log
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
+#endif
+
+  // read PDU again
+  rx_buffer.clear();
+  pdu.init_rx(sizeof(tv2), true);
+  pdu.parse_packet(tv2);
+
+  // check subheaders
+  TESTASSERT(pdu.nof_subh() == 2);
+
+  uint32_t buff_size_rx_low_edge[4] = {};
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->ul_sch_ce_type() == srslte::ul_sch_lcid::LONG_BSR) {
+      uint32_t buff_size_idx[4] = {};
+      uint32_t nonzero_lcg      = pdu.get()->get_bsr(buff_size_idx, buff_size_rx_low_edge);
+      for (uint32_t i = 0; i < 4; i++) {
+        printf("buff_size_idx[%d]=%d buff_size_bytes=%d\n", i, buff_size_idx[i], buff_size_rx_low_edge[i]);
+      }
+    }
+  }
+
+  // check received buff sizes match transmitted ones
+  for (uint32_t i = 0; i < 4; i++) {
+    TESTASSERT(buff_size_rx_low_edge[i] == buff_size_rx_expected_low_edge[i]);
+  }
+
+  // test index 62 and 63 (max value) buffer states
+  pdu.init_tx(&buffer, pdu_size, true);
+  buffer.clear();
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Long BSR CE with index 60, 61, 62, and 63
+  uint32_t buff_size_max_idx[4]               = {93480, 128125, 150000, 150001};
+  uint32_t buff_size_rx_expected_max_idx[4]   = {60, 61, 62, 63};
+  uint32_t buff_size_rx_expected_max_value[4] = {109439, 128125, 150000, 150000};
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_bsr(buff_size_max_idx, srslte::ul_sch_lcid::LONG_BSR));
+
+  // write PDU
+  pdu.write_packet(srslte::log_ref{"MAC"});
+  mac_log->info("%s\n", pdu.to_string().c_str());
+
+  TESTASSERT(memcmp(buffer.msg, tv3, buffer.N_bytes) == 0);
+
+  // log
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
+#endif
+
+  // read PDU again
+  rx_buffer.clear();
+  pdu.init_rx(sizeof(tv3), true);
+  pdu.parse_packet(tv3);
+
+  // check subheaders
+  TESTASSERT(pdu.nof_subh() == 2);
+
+  uint32_t buff_size_rx_max_idx[4] = {};
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->ul_sch_ce_type() == srslte::ul_sch_lcid::LONG_BSR) {
+      uint32_t buff_size[4] = {};
+      uint32_t nonzero_lcg  = pdu.get()->get_bsr(buff_size_rx_max_idx, buff_size);
+      for (uint32_t i = 0; i < 4; i++) {
+        printf("buff_size_idx[%d]=%d buff_size_bytes=%d\n", i, buff_size_rx_max_idx[i], buff_size[i]);
+      }
+    }
+  }
+
+  // check received buff sizes match transmitted ones
+  for (uint32_t i = 0; i < 4; i++) {
+    TESTASSERT(buff_size_rx_max_idx[i] == buff_size_rx_expected_max_idx[i]);
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -591,7 +729,7 @@ int mac_sch_pdu_pack_test9()
   const uint32_t  pdu_size = 3;
   srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
-  uint8_t tv[pdu_size] = {0x3f, 0x1d, 0x0a};
+  uint8_t tv[pdu_size] = {0x3f, 0x1d, 0x09};
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -631,7 +769,7 @@ int mac_sch_pdu_pack_test10()
   const uint32_t  pdu_size = 4;
   srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
-  uint8_t tv[pdu_size] = {0x3d, 0x1a, 0x20, 0x21};
+  uint8_t tv[pdu_size] = {0x3d, 0x1a, 0x1f, 0x21};
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
