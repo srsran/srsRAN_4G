@@ -1242,9 +1242,10 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_inde
   uint32_t cqi, max_mcs, max_Qm;
   float    max_coderate;
   if (is_ul) {
-    cqi          = ul_cqi;
-    max_mcs      = cfg->support_ul_64qam ? max_mcs_ul : std::min(max_mcs_ul, 20u);
-    max_Qm       = cfg->support_ul_64qam ? 6 : 4;
+    cqi = ul_cqi;
+    // if cell supports UL 64QAM but the UE does not support it, cap the mcs to avoid Qm == 6
+    max_mcs = (not cfg->support_ul_64qam and cell_params->cfg.enable_64qam) ? std::min(max_mcs_ul, 20u) : max_mcs_ul;
+    max_Qm  = cfg->support_ul_64qam ? 6 : 4;
     max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), false);
   } else {
     cqi          = dl_cqi;
