@@ -363,6 +363,13 @@ struct sib13_t {
   mbms_notif_cfg_t      notif_cfg;
 };
 
+struct sib2_mbms_t {
+  bool                  mbsfn_sf_cfg_list_present;
+  static const uint32_t max_nof_mbsfn_sf_cfg = 8;
+  int                   nof_mbsfn_sf_cfg;
+  mbsfn_sf_cfg_t        mbsfn_sf_cfg_list[max_nof_mbsfn_sf_cfg];
+};
+
 enum class barring_t { none = 0, mo_data, mo_signalling, mt, all };
 inline std::string to_string(const barring_t& b)
 {

@@ -152,7 +152,8 @@ private:
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);
   uint32_t generate_sibs();
-  void     configure_mbsfn_sibs(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13);
+  void     configure_mbsfn_sibs(srslte::sib2_mbms_t* sib2_, srslte::sib13_t* sib13_);
+  int      pack_mcch();
 
   void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -160,7 +161,9 @@ private:
 
   uint32_t              paging_tti = INVALID_TTI;
   srslte::byte_buffer_t byte_buf_paging;
-
+  const static int      mcch_payload_len                      = 3000;
+  int                   current_mcch_length                   = 0;
+  uint8_t               mcch_payload_buffer[mcch_payload_len] = {};
   typedef struct {
     uint16_t                     rnti;
     uint32_t                     lcid;

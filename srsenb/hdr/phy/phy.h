@@ -58,9 +58,7 @@ public:
                                          const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) override;
 
   /*RRC-PHY interface*/
-  void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
-                       asn1::rrc::sib_type13_r9_s*  sib13,
-                       const asn1::rrc::mcch_msg_s& mcch) override;
+  void configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch) override;
 
   void start_plot() override;
   void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list) override;
@@ -74,7 +72,7 @@ public:
   void radio_failure() override{};
 
 private:
-  phy_cfg_mbsfn_t mbsfn_config = {};
+  srslte::phy_cfg_mbsfn_t mbsfn_config = {};
   uint32_t        nof_workers  = 0;
 
   const static int MAX_WORKERS = 4;

@@ -224,16 +224,9 @@ public:
 class phy_interface_rrc_lte
 {
 public:
-  struct phy_cfg_mbsfn_t {
-    asn1::rrc::mbsfn_sf_cfg_s       mbsfn_subfr_cnfg;
-    asn1::rrc::mbms_notif_cfg_r9_s  mbsfn_notification_cnfg;
-    asn1::rrc::mbsfn_area_info_r9_s mbsfn_area_info;
-    asn1::rrc::mcch_msg_s           mcch;
-  };
+  srslte::phy_cfg_mbsfn_t mbsfn_cfg;
 
-  virtual void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
-                               asn1::rrc::sib_type13_r9_s*  sib13,
-                               const asn1::rrc::mcch_msg_s& mcch) = 0;
+  virtual void configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch) = 0;
 
   typedef struct {
     bool              configured = false; ///< Indicates whether PHY shall consider configuring this cell/carrier
@@ -291,8 +284,11 @@ public:
   virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) = 0;
   virtual int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                                        = 0;
   virtual void phy_config_enabled(uint16_t rnti, bool enabled)                                     = 0;
-  virtual void
-  write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) = 0;
+  virtual void write_mcch(srslte::sib2_mbms_t* sib2_,
+                          srslte::sib13_t*     sib13_,
+                          srslte::mcch_msg_t*  mcch_,
+                          uint8_t*             mcch_payload,
+                          uint8_t              mcch_payload_length)                                             = 0;
 
   /**
    * Allocate a C-RNTI for a new user, without adding it to the phy layer and scheduler yet

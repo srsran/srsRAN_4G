@@ -99,8 +99,11 @@ public:
   bool process_pdus();
 
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-  void
-  write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override;
+  void write_mcch(srslte::sib2_mbms_t* sib2_,
+                  srslte::sib13_t*     sib13_,
+                  srslte::mcch_msg_t*  mcch_,
+                  uint8_t*             mcch_payload,
+                  uint8_t              mcch_payload_length) override;
 
 private:
   static const uint32_t cfi = 3;
@@ -167,10 +170,9 @@ private:
   const static int           mcch_payload_len                      = 3000; // TODO FIND OUT MAX LENGTH
   int                        current_mcch_length                   = 0;
   uint8_t                    mcch_payload_buffer[mcch_payload_len] = {};
-  asn1::rrc::mcch_msg_s      mcch;
-  asn1::rrc::sib_type2_s     sib2;
-  asn1::rrc::sib_type13_r9_s sib13;
-
+  srslte::mcch_msg_t         mcch;
+  srslte::sib2_mbms_t        sib2;
+  srslte::sib13_t            sib13;
   const static int mtch_payload_len                      = 10000;
   uint8_t          mtch_payload_buffer[mtch_payload_len] = {};
 

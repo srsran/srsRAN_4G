@@ -37,7 +37,11 @@ public:
   int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
   int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
   void phy_config_enabled(uint16_t rnti, bool enabled) override {}
-  void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
+  void write_mcch(srslte::sib2_mbms_t* sib2_,
+                  srslte::sib13_t*     sib13_,
+                  srslte::mcch_msg_t*  mcch_,
+                  uint8_t*             mcch_payload,
+                  uint8_t              mcch_payload_length) override
   {}
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override { return last_rnti++; }
 
@@ -121,10 +125,7 @@ public:
 class phy_dummy : public phy_interface_rrc_lte
 {
 public:
-  void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
-                       asn1::rrc::sib_type13_r9_s*  sib13,
-                       const asn1::rrc::mcch_msg_s& mcch) override
-  {}
+  void configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch) override {}
   void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& dedicated_list) override {}
   void complete_config(uint16_t rnti) override{};
 };

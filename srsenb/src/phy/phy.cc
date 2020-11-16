@@ -252,14 +252,14 @@ void phy::complete_config(uint16_t rnti)
   workers_common.ue_db.complete_config(rnti);
 }
 
-void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, const mcch_msg_s& mcch)
+void phy::configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch)
 {
   if (sib2->mbsfn_sf_cfg_list_present) {
-    if (sib2->mbsfn_sf_cfg_list.size() == 0) {
+    if (sib2->nof_mbsfn_sf_cfg == 0) {
       Warning("SIB2 does not have any MBSFN config although it was set as present\n");
     } else {
-      if (sib2->mbsfn_sf_cfg_list.size() > 1) {
-        Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_sf_cfg_list.size());
+      if (sib2->nof_mbsfn_sf_cfg > 1) {
+        Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->nof_mbsfn_sf_cfg);
       }
       mbsfn_config.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
     }
@@ -268,12 +268,12 @@ void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, const mcch_
     return;
   }
 
-  mbsfn_config.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
-  if (sib13->mbsfn_area_info_list_r9.size() > 0) {
-    if (sib13->mbsfn_area_info_list_r9.size() > 1) {
-      Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9.size());
+  mbsfn_config.mbsfn_notification_cnfg = sib13->notif_cfg;
+  if (sib13->nof_mbsfn_area_info > 0) {
+    if (sib13->nof_mbsfn_area_info > 1) {
+      Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->nof_mbsfn_area_info);
     }
-    mbsfn_config.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
+    mbsfn_config.mbsfn_area_info = sib13->mbsfn_area_info_list[0];
   }
 
   mbsfn_config.mcch = mcch;

@@ -171,7 +171,7 @@ public:
    */
   phy_ue_db ue_db;
 
-  void configure_mbsfn(phy_interface_stack_lte::phy_cfg_mbsfn_t* cfg);
+  void configure_mbsfn(srslte::phy_cfg_mbsfn_t* cfg);
   void build_mch_table();
   void build_mcch_table();
   bool is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
@@ -192,7 +192,7 @@ private:
   bool                                     have_mtch_stop   = false;
   pthread_mutex_t                          mtch_mutex       = {};
   pthread_cond_t                           mtch_cvar        = {};
-  phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn            = {};
+  srslte::phy_cfg_mbsfn_t                  mbsfn            = {};
   bool                                     sib13_configured = false;
   bool                                     mcch_configured  = false;
   uint8_t                                  mch_table[40]    = {};

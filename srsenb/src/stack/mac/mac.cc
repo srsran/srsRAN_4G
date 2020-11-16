@@ -702,7 +702,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
 void mac::build_mch_sched(uint32_t tbs)
 {
-  int sfs_per_sched_period = mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9;
+  int sfs_per_sched_period = mcch.pmch_info_list[0].sf_alloc_end;
   int bytes_per_sf         = tbs / 8 - 6; // leave 6 bytes for header
 
   int total_space_avail_bytes = sfs_per_sched_period * bytes_per_sf;
@@ -739,8 +739,8 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
   log_h->step(tti);
   srslte_ra_tb_t mcs      = {};
   srslte_ra_tb_t mcs_data = {};
-  mcs.mcs_idx             = this->sib13.mbsfn_area_info_list_r9[0].mcch_cfg_r9.sig_mcs_r9.to_number();
-  mcs_data.mcs_idx        = this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.data_mcs_r9;
+  mcs.mcs_idx             = enum_to_number(this->sib13.mbsfn_area_info_list[0].mcch_cfg.sig_mcs);
+  mcs_data.mcs_idx        = this->mcch.pmch_info_list[0].data_mcs;
   srslte_dl_fill_ra_mcs(&mcs, 0, cell_config[0].cell.nof_prb, false);
   srslte_dl_fill_ra_mcs(&mcs_data, 0, cell_config[0].cell.nof_prb, false);
   if (is_mcch) {
@@ -924,22 +924,21 @@ bool mac::process_pdus()
   return ret;
 }
 
-void mac::write_mcch(sib_type2_s* sib2_, sib_type13_r9_s* sib13_, mcch_msg_s* mcch_)
+void mac::write_mcch(srslte::sib2_mbms_t* sib2_,
+                     srslte::sib13_t*     sib13_,
+                     srslte::mcch_msg_t*  mcch_,
+                     uint8_t*             mcch_payload,
+                     uint8_t              mcch_payload_length)
 {
   mcch               = *mcch_;
-  mch.num_mtch_sched = this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size();
+  mch.num_mtch_sched = this->mcch.pmch_info_list[0].nof_mbms_session_info;
   for (uint32_t i = 0; i < mch.num_mtch_sched; ++i) {
-    mch.mtch_sched[i].lcid =
-        this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9[i].lc_ch_id_r9;
+    mch.mtch_sched[i].lcid = this->mcch.pmch_info_list[0].mbms_session_info_list[i].lc_ch_id;
   }
   sib2  = *sib2_;
   sib13 = *sib13_;
-
-  const int     rlc_header_len = 1;
-  asn1::bit_ref bref(&mcch_payload_buffer[rlc_header_len], sizeof(mcch_payload_buffer) - rlc_header_len);
-  mcch.pack(bref);
-  current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
-  current_mcch_length = current_mcch_length + rlc_header_len;
+  memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
+  current_mcch_length = mcch_payload_length;
   ue_db[SRSLTE_MRNTI] =
       std::unique_ptr<ue>{new ue(SRSLTE_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size())};
 

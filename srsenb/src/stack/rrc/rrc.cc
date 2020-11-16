@@ -65,7 +65,53 @@ void rrc::init(const rrc_cfg_t&       cfg_,
 
   if (cfg.sibs[12].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib13_v920 &&
       cfg.enable_mbsfn) {
-    configure_mbsfn_sibs(&cfg.sibs[1].sib2(), &cfg.sibs[12].sib13_v920());
+    srslte::sib2_mbms_t sibs2;
+    sibs2.mbsfn_sf_cfg_list_present = cfg.sibs[1].sib2().mbsfn_sf_cfg_list_present;
+    sibs2.nof_mbsfn_sf_cfg          = cfg.sibs[1].sib2().mbsfn_sf_cfg_list.size();
+    for (int i = 0; i < sibs2.nof_mbsfn_sf_cfg; i++) {
+      sibs2.mbsfn_sf_cfg_list[i].nof_alloc_subfrs = srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame;
+      sibs2.mbsfn_sf_cfg_list[i].radioframe_alloc_offset =
+          cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_offset;
+      sibs2.mbsfn_sf_cfg_list[i].radioframe_alloc_period =
+          (srslte::mbsfn_sf_cfg_t::alloc_period_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].radioframe_alloc_period.value;
+      sibs2.mbsfn_sf_cfg_list[i].sf_alloc =
+          (uint32_t)cfg.sibs[1].sib2().mbsfn_sf_cfg_list[i].sf_alloc.one_frame().to_number();
+    }
+    srslte::sib13_t sibs13;
+    sibs13.notif_cfg.notif_offset = cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_offset_r9;
+    sibs13.notif_cfg.notif_repeat_coeff =
+        (srslte::mbms_notif_cfg_t::coeff_t)cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_repeat_coeff_r9.value;
+    sibs13.notif_cfg.notif_sf_idx = cfg.sibs[12].sib13_v920().notif_cfg_r9.notif_sf_idx_r9;
+    sibs13.nof_mbsfn_area_info    = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9.size();
+    for (uint32_t i = 0; i < sibs13.nof_mbsfn_area_info; i++) {
+      sibs13.mbsfn_area_info_list[i].mbsfn_area_id =
+          cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mbsfn_area_id_r9;
+      sibs13.mbsfn_area_info_list[i].notif_ind = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].notif_ind_r9;
+      sibs13.mbsfn_area_info_list[i].mcch_cfg.sig_mcs = (srslte::mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t)cfg.sibs[12]
+                                                            .sib13_v920()
+                                                            .mbsfn_area_info_list_r9[i]
+                                                            .mcch_cfg_r9.sig_mcs_r9.value;
+      sibs13.mbsfn_area_info_list[i].mcch_cfg.sf_alloc_info =
+          cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mcch_cfg_r9.sf_alloc_info_r9.to_number();
+      sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_repeat_period =
+          (srslte::mbsfn_area_info_t::mcch_cfg_t::repeat_period_t)cfg.sibs[12]
+              .sib13_v920()
+              .mbsfn_area_info_list_r9[i]
+              .mcch_cfg_r9.mcch_repeat_period_r9.value;
+      sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_offset =
+          cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].mcch_cfg_r9.mcch_offset_r9;
+      sibs13.mbsfn_area_info_list[i].mcch_cfg.mcch_mod_period =
+          (srslte::mbsfn_area_info_t::mcch_cfg_t::mod_period_t)cfg.sibs[12]
+              .sib13_v920()
+              .mbsfn_area_info_list_r9[i]
+              .mcch_cfg_r9.mcch_mod_period_r9.value;
+      sibs13.mbsfn_area_info_list[i].non_mbsfn_region_len = (srslte::mbsfn_area_info_t::region_len_t)cfg.sibs[12]
+                                                                .sib13_v920()
+                                                                .mbsfn_area_info_list_r9[i]
+                                                                .non_mbsfn_region_len.value;
+      sibs13.mbsfn_area_info_list[i].notif_ind = cfg.sibs[12].sib13_v920().mbsfn_area_info_list_r9[i].notif_ind_r9;
+    }
+    configure_mbsfn_sibs(&sibs2, &sibs13);
   }
 
   cell_res_list.reset(new freq_res_common_list{cfg});
@@ -702,9 +748,41 @@ uint32_t rrc::generate_sibs()
   return nof_messages;
 }
 
-void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
+void rrc::configure_mbsfn_sibs(srslte::sib2_mbms_t* sib2_, srslte::sib13_t* sib13_)
 {
-  // Temp assignment of MCCH, this will eventually come from a cfg file
+  pack_mcch();
+  srslte::mcch_msg_t mcch_t;
+  mcch_t.common_sf_alloc_period         = srslte::mcch_msg_t::common_sf_alloc_period_t::rf64;
+  mcch_t.nof_common_sf_alloc            = 1;
+  srslte::mbsfn_sf_cfg_t sf_alloc_item  = mcch_t.common_sf_alloc[0];
+  sf_alloc_item.radioframe_alloc_offset = 0;
+  sf_alloc_item.radioframe_alloc_period = srslte::mbsfn_sf_cfg_t::alloc_period_t::n1;
+  sf_alloc_item.sf_alloc                = 63;
+  mcch_t.nof_pmch_info                  = 1;
+  srslte::pmch_info_t* pmch_item        = &mcch_t.pmch_info_list[0];
+
+  pmch_item->nof_mbms_session_info              = 1;
+  pmch_item->mbms_session_info_list[0].lc_ch_id = 1;
+  if (pmch_item->nof_mbms_session_info > 1) {
+    pmch_item->mbms_session_info_list[1].lc_ch_id = 2;
+  }
+  uint16_t mbms_mcs = cfg.mbms_mcs;
+  if (mbms_mcs > 28) {
+    mbms_mcs = 28; // TS 36.213, Table 8.6.1-1
+    rrc_log->warning("PMCH data MCS too high, setting it to 28\n");
+  }
+  rrc_log->debug("PMCH data MCS=%d\n", mbms_mcs);
+  pmch_item->data_mcs         = mbms_mcs;
+  pmch_item->mch_sched_period = srslte::pmch_info_t::mch_sched_period_t::rf64;
+  pmch_item->sf_alloc_end     = 64 * 6;
+  phy->configure_mbsfn(sib2_, sib13_, mcch_t);
+  mac->write_mcch(sib2_, sib13_, &mcch_t, mcch_payload_buffer, current_mcch_length);
+}
+
+int rrc::pack_mcch()
+{
+
+  mcch.msg.set_c1();
   mcch.msg.set_c1();
   mbsfn_area_cfg_r9_s& area_cfg_r9      = mcch.msg.c1().mbsfn_area_cfg_r9();
   area_cfg_r9.common_sf_alloc_period_r9 = mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::rf64;
@@ -751,8 +829,12 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
   pmch_item->pmch_cfg_r9.sf_alloc_end_r9     = 64 * 6;
 
-  phy->configure_mbsfn(sib2_, sib13_, mcch);
-  mac->write_mcch(sib2_, sib13_, &mcch);
+  const int     rlc_header_len = 1;
+  asn1::bit_ref bref(&mcch_payload_buffer[rlc_header_len], sizeof(mcch_payload_buffer) - rlc_header_len);
+  mcch.pack(bref);
+  current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
+  current_mcch_length = current_mcch_length + rlc_header_len;
+  return current_mcch_length;
 }
 
 /*******************************************************************************
