@@ -90,7 +90,6 @@ private:
   struct common_ue {
     srslte::circular_array<srslte_pdsch_ack_t, TTIMOD_SZ> pdsch_ack = {}; ///< Pending acknowledgements for this Cell
     std::array<cell_info_t, SRSLTE_MAX_CARRIERS>          cell_info = {}; ///< Cell information, indexed by ue_cell_idx
-    srslte::phy_cfg_t                                     pcell_cfg_stash = {}; ///< Stashed Cell information
   };
 
   /**
@@ -220,10 +219,9 @@ private:
    *
    * @param rnti provides UE identifier
    * @param enb_cc_idx eNb cell index
-   * @param stashed if it is true, it returns the stashed configuration. Otherwise, it return the current configuration.
    * @return The PHY configuration of the indicated UE for the indicated eNb carrier/call index.
    */
-  inline srslte::phy_cfg_t _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx, bool stashed) const;
+  inline srslte::phy_cfg_t _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
 public:
   /**

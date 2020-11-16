@@ -218,7 +218,7 @@ inline int phy_ue_db::_assert_cell_list_cfg() const
   return SRSLTE_SUCCESS;
 }
 
-inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx, bool stashed) const
+inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   srslte::phy_cfg_t default_cfg = {};
   default_cfg.set_defaults();
@@ -238,11 +238,6 @@ inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb
   }
 
   uint32_t ue_cc_idx = _get_ue_cc_idx(rnti, enb_cc_idx);
-
-  // Return Stashed configuration if PCell and stashed is true
-  if (ue_cc_idx == 0 and stashed) {
-    return ue_db.at(rnti).pcell_cfg_stash;
-  }
 
   // Otherwise return current configuration
   return ue_db.at(rnti).cell_info.at(ue_cc_idx).phy_cfg;
@@ -289,9 +284,9 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
         _set_common_config_rnti(rnti, cell_info.phy_cfg);
       }
 
-      // Apply primmary serving cell configuration in stash
-      ue.pcell_cfg_stash = phy_rrc_dedicated.phy_cfg;
-      _set_common_config_rnti(rnti, ue.pcell_cfg_stash);
+      // Apply primary serving cell configuration
+      cell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
+      _set_common_config_rnti(rnti, cell_info.phy_cfg);
     } else if (phy_rrc_dedicated.configured) {
       // Overwrite the secondary serving cell configuration independently of the current state. Higher layers (MAC
       // and/or RRC) shall be responsible for the secondary serving cell activation/deactivation.
@@ -322,16 +317,13 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
   // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < nof_cc; ue_cc_idx++) {
     if (ue.cell_info[ue_cc_idx].state == cell_state_primary) {
-      // The primary cell applies changes in the stashed config
-      ue.pcell_cfg_stash.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
+      // The primary cell applies change after reception of ReconfigurationComplete (call to complete_config())
+      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = false;
     } else {
       // The rest apply changes directly
       ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
     }
   }
-
-  // Load new UL configuration
-  ue.cell_info[0].phy_cfg.ul_cfg = ue.pcell_cfg_stash.ul_cfg;
 }
 
 void phy_ue_db::rem_rnti(uint16_t rnti)
@@ -352,8 +344,23 @@ void phy_ue_db::complete_config(uint16_t rnti)
     return;
   }
 
-  // Apply stashed configuration
-  ue_db[rnti].cell_info[0].phy_cfg = ue_db[rnti].pcell_cfg_stash;
+  // Count number of configured secondary serving cells
+  uint32_t nof_configured_scell = 0;
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
+    if (ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_t::cell_state_secondary_inactive ||
+        ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_t::cell_state_secondary_active) {
+      nof_configured_scell++;
+    }
+  }
+
+  // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
+    if (ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_primary) {
+      // The primary cell applies change after reception of ReconfigurationComplete (call to complete_config())
+      ue_db[rnti].cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
+      break;
+    }
+  }
 }
 
 void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate)
@@ -385,25 +392,25 @@ bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
 srslte_dl_cfg_t phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return _get_rnti_config(rnti, enb_cc_idx, false).dl_cfg;
+  return _get_rnti_config(rnti, enb_cc_idx).dl_cfg;
 }
 
 srslte_dci_cfg_t phy_ue_db::get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return _get_rnti_config(rnti, enb_cc_idx, false).dl_cfg.dci;
+  return _get_rnti_config(rnti, enb_cc_idx).dl_cfg.dci;
 }
 
 srslte_ul_cfg_t phy_ue_db::get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return _get_rnti_config(rnti, enb_cc_idx, false).ul_cfg;
+  return _get_rnti_config(rnti, enb_cc_idx).ul_cfg;
 }
 
 srslte_dci_cfg_t phy_ue_db::get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return _get_rnti_config(rnti, enb_cc_idx, true).dl_cfg.dci;
+  return _get_rnti_config(rnti, enb_cc_idx).dl_cfg.dci;
 }
 
 void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci)
