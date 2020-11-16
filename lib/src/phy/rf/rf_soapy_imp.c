@@ -310,6 +310,12 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     printf("\n");
   }
 
+  // With the Lime we are better off using LTE sample rates
+  if (strcmp(devname, "Lime") && srslte_symbol_size_is_standard() == false) {
+    printf("\033[0;31mConsider using LTE sample rates for better RF performance.\nEither compile with "
+           "\'-DUSE_LTE_RATES=True\' or start srsENB or srsUE with \'--expert.lte_sample_rates=true\'\033[0m\n");
+  }
+
   // Select Soapy device by id
   int dev_id = 0;
   if (args != NULL) {
