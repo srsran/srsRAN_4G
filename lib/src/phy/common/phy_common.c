@@ -321,6 +321,11 @@ void srslte_use_standard_symbol_size(bool enabled)
   use_standard_rates = enabled;
 }
 
+bool srslte_symbol_size_is_standard()
+{
+  return use_standard_rates;
+}
+
 int srslte_sampling_freq_hz(uint32_t nof_prb)
 {
   int n = srslte_symbol_sz(nof_prb);

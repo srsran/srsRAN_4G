@@ -444,6 +444,8 @@ SRSLTE_API int srslte_sampling_freq_hz(uint32_t nof_prb);
 
 SRSLTE_API void srslte_use_standard_symbol_size(bool enabled);
 
+SRSLTE_API bool srslte_symbol_size_is_standard();
+
 SRSLTE_API uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint32_t nof_symbols);
 
 SRSLTE_API uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports);
