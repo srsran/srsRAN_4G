@@ -338,7 +338,7 @@ void test_scheduler_rand(sched_sim_events sim)
 template <typename T>
 T pick_random_uniform(std::initializer_list<T> v)
 {
-  return *(v.begin() + std::uniform_int_distribution<size_t>{0, v.size()}(srsenb::get_rand_gen()));
+  return *(v.begin() + std::uniform_int_distribution<size_t>{0, v.size() - 1}(srsenb::get_rand_gen()));
 }
 
 sched_sim_events rand_sim_params(uint32_t nof_ttis)
