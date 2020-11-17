@@ -404,7 +404,9 @@ void sync::run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t
 {
   // Update logging TTI
   log_h->step(tti);
-  log_phy_lib_h->step(tti);
+  if (log_phy_lib_h != nullptr) {
+    log_phy_lib_h->step(tti);
+  }
 
   // Check tti is synched with ue_sync
   if (srslte_ue_sync_get_sfidx(&ue_sync) != tti % 10) {
