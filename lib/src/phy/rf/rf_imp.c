@@ -58,7 +58,7 @@ static void* thread_gain_fcn(void* h)
 
   while (rf->thread_gain_run) {
     pthread_mutex_lock(&rf->mutex);
-    while (rf->cur_rx_gain == rf->new_rx_gain) {
+    while (rf->cur_rx_gain == rf->new_rx_gain && rf->thread_gain_run) {
       pthread_cond_wait(&rf->cond, &rf->mutex);
     }
     if (rf->new_rx_gain != rf->cur_rx_gain) {
@@ -184,7 +184,8 @@ int srslte_rf_close(srslte_rf_t* rf)
 {
   // Stop gain thread
   if (rf->thread_gain_run) {
-    pthread_cancel(rf->thread_gain);
+    rf->thread_gain_run = false;
+    pthread_cond_signal(&rf->cond);
     pthread_join(rf->thread_gain, NULL);
   }
 
