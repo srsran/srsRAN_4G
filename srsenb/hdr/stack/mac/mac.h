@@ -99,11 +99,11 @@ public:
   bool process_pdus();
 
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-  void write_mcch(srslte::sib2_mbms_t* sib2_,
-                  srslte::sib13_t*     sib13_,
-                  srslte::mcch_msg_t*  mcch_,
-                  uint8_t*             mcch_payload,
-                  uint8_t              mcch_payload_length) override;
+  void write_mcch(const srslte::sib2_mbms_t* sib2_,
+                  const srslte::sib13_t*     sib13_,
+                  const srslte::mcch_msg_t*  mcch_,
+                  const uint8_t*             mcch_payload,
+                  const uint8_t              mcch_payload_length) override;
 
 private:
   static const uint32_t cfi = 3;

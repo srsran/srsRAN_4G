@@ -924,11 +924,11 @@ bool mac::process_pdus()
   return ret;
 }
 
-void mac::write_mcch(srslte::sib2_mbms_t* sib2_,
-                     srslte::sib13_t*     sib13_,
-                     srslte::mcch_msg_t*  mcch_,
-                     uint8_t*             mcch_payload,
-                     uint8_t              mcch_payload_length)
+void mac::write_mcch(const srslte::sib2_mbms_t* sib2_,
+                     const srslte::sib13_t*     sib13_,
+                     const srslte::mcch_msg_t*  mcch_,
+                     const uint8_t*             mcch_payload,
+                     const uint8_t              mcch_payload_length)
 {
   mcch               = *mcch_;
   mch.num_mtch_sched = this->mcch.pmch_info_list[0].nof_mbms_session_info;

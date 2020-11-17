@@ -152,7 +152,7 @@ private:
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);
   uint32_t generate_sibs();
-  void     configure_mbsfn_sibs(srslte::sib2_mbms_t* sib2_, srslte::sib13_t* sib13_);
+  void     configure_mbsfn_sibs();
   int      pack_mcch();
 
   void config_mac();

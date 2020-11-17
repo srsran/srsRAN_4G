@@ -284,11 +284,11 @@ public:
   virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) = 0;
   virtual int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                                        = 0;
   virtual void phy_config_enabled(uint16_t rnti, bool enabled)                                     = 0;
-  virtual void write_mcch(srslte::sib2_mbms_t* sib2_,
-                          srslte::sib13_t*     sib13_,
-                          srslte::mcch_msg_t*  mcch_,
-                          uint8_t*             mcch_payload,
-                          uint8_t              mcch_payload_length)                                             = 0;
+  virtual void write_mcch(const srslte::sib2_mbms_t* sib2_,
+                          const srslte::sib13_t*     sib13_,
+                          const srslte::mcch_msg_t*  mcch_,
+                          const uint8_t*             mcch_payload,
+                          const uint8_t              mcch_payload_length)                                       = 0;
 
   /**
    * Allocate a C-RNTI for a new user, without adding it to the phy layer and scheduler yet

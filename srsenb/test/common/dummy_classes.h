@@ -37,11 +37,11 @@ public:
   int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
   int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
   void phy_config_enabled(uint16_t rnti, bool enabled) override {}
-  void write_mcch(srslte::sib2_mbms_t* sib2_,
-                  srslte::sib13_t*     sib13_,
-                  srslte::mcch_msg_t*  mcch_,
-                  uint8_t*             mcch_payload,
-                  uint8_t              mcch_payload_length) override
+  void write_mcch(const srslte::sib2_mbms_t* sib2_,
+                  const srslte::sib13_t*     sib13_,
+                  const srslte::mcch_msg_t*  mcch_,
+                  const uint8_t*             mcch_payload,
+                  const uint8_t              mcch_payload_length) override
   {}
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override { return last_rnti++; }
 
