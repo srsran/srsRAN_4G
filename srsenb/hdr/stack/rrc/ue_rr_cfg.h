@@ -52,6 +52,7 @@ namespace srsenb {
 struct rrc_cfg_t;
 class cell_ctxt_dedicated_list;
 class bearer_cfg_handler;
+struct ue_var_cfg_t;
 
 /// Fill RadioResourceConfigDedicated with data known at the RRCSetup/Reestablishment stage
 void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
@@ -59,25 +60,17 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
                            const cell_ctxt_dedicated_list& ue_cell_list);
 
 /// Apply Reconf updates and update current state
-void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&     recfg_r8,
-                          asn1::rrc::rr_cfg_ded_s&                current_rr_cfg,
-                          asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
-                          const rrc_cfg_t&                        enb_cfg,
-                          const cell_ctxt_dedicated_list&         ue_cell_list,
-                          bearer_cfg_handler&                     bearers,
-                          const srslte::rrc_ue_capabilities_t&    ue_caps,
-                          bool                                    phy_cfg_updated);
+void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
+                          ue_var_cfg_t&                        current_ue_cfg,
+                          const rrc_cfg_t&                     enb_cfg,
+                          const cell_ctxt_dedicated_list&      ue_cell_list,
+                          bearer_cfg_handler&                  bearers,
+                          const srslte::rrc_ue_capabilities_t& ue_caps,
+                          bool                                 phy_cfg_updated);
 
 /// Apply radioResourceConfigDedicated updates to the current UE RRC configuration
 void apply_rr_cfg_ded_diff(asn1::rrc::rr_cfg_ded_s&       current_rr_cfg_ded,
                            const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg_ded);
-
-/// Fill rrcConnectionReconfiguration with SCells that were added/mod/removed since last RRC config update
-void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&           recfg_r8,
-                        const asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
-                        const rrc_cfg_t&                              enb_cfg,
-                        const cell_ctxt_dedicated_list&               ue_cell_list,
-                        const srslte::rrc_ue_capabilities_t&          ue_caps);
 
 /// Apply Scell updates to the current UE RRC configuration
 void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l&   current_scells,

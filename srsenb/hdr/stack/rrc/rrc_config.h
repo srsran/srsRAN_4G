@@ -54,23 +54,29 @@ struct rrc_cfg_t {
   asn1::rrc::sib_info_item_c sibs[ASN1_RRC_MAX_SIB];
   asn1::rrc::mac_main_cfg_s  mac_cnfg;
 
-  asn1::rrc::pusch_cfg_ded_s          pusch_cfg;
-  asn1::rrc::ant_info_ded_s           antenna_info;
-  asn1::rrc::pdsch_cfg_ded_s::p_a_e_  pdsch_cfg;
-  rrc_cfg_sr_t                        sr_cfg;
-  rrc_cfg_cqi_t                       cqi_cfg;
-  rrc_cfg_qci_t                       qci_cfg[MAX_NOF_QCI];
-  bool                                enable_mbsfn;
-  uint16_t                            mbms_mcs;
-  uint32_t                            inactivity_timeout_ms;
+  asn1::rrc::pusch_cfg_ded_s                                                              pusch_cfg;
+  asn1::rrc::ant_info_ded_s                                                               antenna_info;
+  asn1::rrc::pdsch_cfg_ded_s::p_a_e_                                                      pdsch_cfg;
+  rrc_cfg_sr_t                                                                            sr_cfg;
+  rrc_cfg_cqi_t                                                                           cqi_cfg;
+  rrc_cfg_qci_t                                                                           qci_cfg[MAX_NOF_QCI];
+  bool                                                                                    enable_mbsfn;
+  uint16_t                                                                                mbms_mcs;
+  uint32_t                                                                                inactivity_timeout_ms;
   std::array<srslte::CIPHERING_ALGORITHM_ID_ENUM, srslte::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
   std::array<srslte::INTEGRITY_ALGORITHM_ID_ENUM, srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
-  bool                                meas_cfg_present = false;
-  srslte_cell_t                       cell;
-  cell_list_t                         cell_list;
+  bool                                                                                    meas_cfg_present = false;
+  srslte_cell_t                                                                           cell;
+  cell_list_t                                                                             cell_list;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;
+
+struct ue_var_cfg_t {
+  asn1::rrc::rr_cfg_ded_s                rr_cfg;
+  asn1::rrc::meas_gap_cfg_c              meas_gaps;
+  asn1::rrc::scell_to_add_mod_list_r10_l scells;
+};
 
 } // namespace srsenb
 

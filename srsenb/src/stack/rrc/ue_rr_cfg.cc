@@ -38,6 +38,8 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
+srslte::log_ref log_h = srslte::logmap::get("RRC");
+
 /******************************
  *        SRBs / DRBs
  *****************************/
@@ -45,7 +47,7 @@ namespace srsenb {
 srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
 {
   if (srb_id > 2 or srb_id == 0) {
-    srslte::logmap::get("RRC")->error("Invalid SRB id=%d\n", srb_id);
+    log_h->error("Invalid SRB id=%d\n", srb_id);
     return nullptr;
   }
 
@@ -114,7 +116,7 @@ int16_t get_ri(uint32_t m_ri)
       ri_idx = 805 - N_offset_ri;
       break;
     default:
-      srslte::logmap::get("RRC")->error("Allocating RI: invalid m_ri=%d\n", m_ri);
+      log_h->error("Allocating RI: invalid m_ri=%d\n", m_ri);
       return -1;
   }
 
@@ -146,7 +148,7 @@ int fill_cqi_report_setup(cqi_report_cfg_s&               cqi_rep,
   if (cqi_rep.cqi_report_periodic_present) {
     const cell_ctxt_dedicated* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
     if (pcell == nullptr or not pcell->cqi_res_present) {
-      srslte::logmap::get("RRC")->warning("PCell CQI resources haven\'t been allocated yet\n");
+      log_h->warning("PCell CQI resources haven\'t been allocated yet\n");
       return SRSLTE_ERROR;
     }
     auto& cqi_periodic             = cqi_rep.cqi_report_periodic.setup();
@@ -186,7 +188,7 @@ void fill_cqi_report_reconf(cqi_report_cfg_s&               cqi_rep,
         cqi_setup.ri_cfg_idx_present = true;
         cqi_setup.ri_cfg_idx         = ri_idx;
       } else {
-        srslte::logmap::get("RRC")->warning("Warning: Configured wrong M_ri parameter.\n");
+        log_h->warning("Warning: Configured wrong M_ri parameter.\n");
       }
     }
   }
@@ -394,6 +396,7 @@ void apply_rr_cfg_ded_diff(rr_cfg_ded_s& current_rr_cfg_ded, const rr_cfg_ded_s&
   }
 }
 
+/// Fill rrcConnectionReconfiguration with SCells that were added/mod/removed since last RRC config update
 void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                         const scell_to_add_mod_list_r10_l&   current_scells,
                         const rrc_cfg_t&                     enb_cfg,
@@ -435,8 +438,8 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     auto&                      nonul_cfg  = asn1cell.rr_cfg_common_scell_r10.non_ul_cfg_r10;
     asn1::number_to_enum(nonul_cfg.dl_bw_r10, enb_cfg.cell.nof_prb);
     asn1::number_to_enum(nonul_cfg.ant_info_common_r10.ant_ports_count, enb_cfg.cell.nof_ports);
-    nonul_cfg.phich_cfg_r10                             = scell_cfg.mib.phich_cfg;
-    nonul_cfg.pdsch_cfg_common_r10                      = cc_cfg_sib.pdsch_cfg_common;
+    nonul_cfg.phich_cfg_r10        = scell_cfg.mib.phich_cfg;
+    nonul_cfg.pdsch_cfg_common_r10 = cc_cfg_sib.pdsch_cfg_common;
     // RadioResourceConfigCommonSCell-r10::ul-Configuration-r10
     asn1cell.rr_cfg_common_scell_r10.ul_cfg_r10_present      = true;
     auto& ul_cfg                                             = asn1cell.rr_cfg_common_scell_r10.ul_cfg_r10;
@@ -498,18 +501,18 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
     }
 
 #if SRS_ENABLED
-    ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
-    auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
-    srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
-    srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
-    srs_setup.freq_domain_position                         = 0;
-    srs_setup.dur                                          = true;
-    srs_setup.srs_cfg_idx                                  = 167;
-    srs_setup.tx_comb                                      = 0;
-    srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
-    ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
+    ul_cfg_ded.srs_ul_cfg_ded_r10_present   = true;
+    auto& srs_setup                         = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
+    srs_setup.srs_bw.value                  = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
+    srs_setup.srs_hop_bw.value              = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
+    srs_setup.freq_domain_position          = 0;
+    srs_setup.dur                           = true;
+    srs_setup.srs_cfg_idx                   = 167;
+    srs_setup.tx_comb                       = 0;
+    srs_setup.cyclic_shift.value            = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
+    ul_cfg_ded.srs_ul_cfg_ded_v1020_present = true;
     asn1::number_to_enum(ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10, enb_cfg.cell.nof_ports);
-    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
+    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present = true;
     ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
 #endif // SRS_ENABLED
   }
@@ -563,27 +566,70 @@ void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l& current_sc
   }
 }
 
+bool apply_measgap_updates(meas_gap_cfg_c&                 meas_gaps,
+                           meas_gap_cfg_c&                 current_meas_gaps,
+                           const cell_ctxt_dedicated_list& ue_cell_list)
+{
+  bool                       flag_set = false;
+  const cell_ctxt_dedicated* pcell    = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+
+  meas_gap_cfg_c target_meas_gap;
+  switch (pcell->cell_common->cell_cfg.meas_cfg.meas_gap_period) {
+    case 40:
+      target_meas_gap.set_setup().gap_offset.set_gp0() = pcell->meas_gap_offset;
+      break;
+    case 80:
+      target_meas_gap.set_setup().gap_offset.set_gp1() = pcell->meas_gap_offset;
+      break;
+    case 0: // no meas gaps
+      break;
+    default:
+      log_h->error("Error setting measurement gaps\n");
+  }
+
+  bool is_current_setup = current_meas_gaps.type().value == setup_opts::setup;
+  bool is_target_setup  = target_meas_gap.type().value == setup_opts::setup;
+  if (is_target_setup) {
+    if (not is_current_setup or
+        current_meas_gaps.setup().gap_offset.type() != target_meas_gap.setup().gap_offset.type()) {
+      meas_gaps = target_meas_gap;
+      flag_set  = true;
+    }
+  } else if (is_current_setup) {
+    meas_gaps.set(setup_opts::release);
+    flag_set = true;
+  }
+
+  // update meas gaps
+  current_meas_gaps = target_meas_gap;
+
+  return flag_set;
+}
+
 /// Apply Reconf updates and update current state
-void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&     recfg_r8,
-                          asn1::rrc::rr_cfg_ded_s&                current_rr_cfg,
-                          asn1::rrc::scell_to_add_mod_list_r10_l& current_scells,
-                          const rrc_cfg_t&                        enb_cfg,
-                          const cell_ctxt_dedicated_list&         ue_cell_list,
-                          bearer_cfg_handler&                     bearers,
-                          const srslte::rrc_ue_capabilities_t&    ue_caps,
-                          bool                                    phy_cfg_updated)
+void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
+                          ue_var_cfg_t&                        current_ue_cfg,
+                          const rrc_cfg_t&                     enb_cfg,
+                          const cell_ctxt_dedicated_list&      ue_cell_list,
+                          bearer_cfg_handler&                  bearers,
+                          const srslte::rrc_ue_capabilities_t& ue_caps,
+                          bool                                 phy_cfg_updated)
 {
   // Compute pending updates and fill reconf msg
   recfg_r8.rr_cfg_ded_present = true;
-  fill_rr_cfg_ded_reconf(recfg_r8.rr_cfg_ded, current_rr_cfg, enb_cfg, ue_cell_list, bearers, ue_caps, phy_cfg_updated);
-  fill_scells_reconf(recfg_r8, current_scells, enb_cfg, ue_cell_list, ue_caps);
+  fill_rr_cfg_ded_reconf(
+      recfg_r8.rr_cfg_ded, current_ue_cfg.rr_cfg, enb_cfg, ue_cell_list, bearers, ue_caps, phy_cfg_updated);
+  fill_scells_reconf(recfg_r8, current_ue_cfg.scells, enb_cfg, ue_cell_list, ue_caps);
+  recfg_r8.meas_cfg.meas_gap_cfg_present =
+      apply_measgap_updates(recfg_r8.meas_cfg.meas_gap_cfg, current_ue_cfg.meas_gaps, ue_cell_list);
+  recfg_r8.meas_cfg_present |= recfg_r8.meas_cfg.meas_gap_cfg_present;
 
   // Add pending NAS info
   bearers.fill_pending_nas_info(&recfg_r8);
 
   // Update current rr_cfg_ded and scells state
-  apply_rr_cfg_ded_diff(current_rr_cfg, recfg_r8.rr_cfg_ded);
-  apply_scells_to_add_diff(current_scells, recfg_r8);
+  apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, recfg_r8.rr_cfg_ded);
+  apply_scells_to_add_diff(current_ue_cfg.scells, recfg_r8);
 }
 
 } // namespace srsenb

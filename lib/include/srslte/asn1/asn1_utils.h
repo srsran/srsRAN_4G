@@ -117,9 +117,7 @@ class bit_ref_impl
 public:
   bit_ref_impl() = default;
   bit_ref_impl(Ptr start_ptr_, uint32_t max_size_) :
-    ptr(start_ptr_),
-    start_ptr(start_ptr_),
-    max_ptr(max_size_ + start_ptr_)
+    ptr(start_ptr_), start_ptr(start_ptr_), max_ptr(max_size_ + start_ptr_)
   {}
 
   int distance(const bit_ref_impl<Ptr>& other) const;
@@ -1123,12 +1121,21 @@ class copy_ptr
 public:
   copy_ptr() : ptr(nullptr) {}
   explicit copy_ptr(T* ptr_) : ptr(ptr_) {}
+  copy_ptr(copy_ptr<T>&& other) noexcept : ptr(other.ptr) { other.ptr = nullptr; }
   copy_ptr(const copy_ptr<T>& other) { ptr = (other.ptr == nullptr) ? nullptr : new T(*other.ptr); }
   ~copy_ptr() { destroy_(); }
   copy_ptr<T>& operator=(const copy_ptr<T>& other)
   {
     if (this != &other) {
       reset((other.ptr == nullptr) ? nullptr : new T(*other.ptr));
+    }
+    return *this;
+  }
+  copy_ptr<T>& operator=(copy_ptr<T>&& other) noexcept
+  {
+    if (this != &other) {
+      ptr       = other.ptr;
+      other.ptr = nullptr;
     }
     return *this;
   }

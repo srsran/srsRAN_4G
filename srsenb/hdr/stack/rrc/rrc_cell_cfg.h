@@ -27,18 +27,20 @@
 
 namespace srsenb {
 
-class pucch_res_common
+class cell_res_common
 {
 public:
   struct pucch_idx_sched_t {
     uint32_t nof_users[100][80];
   };
 
-  const static uint32_t             N_PUCCH_MAX_PRB = 4; // Maximum number of PRB to use for PUCCH ACK/NACK in CS mode
-  const static uint32_t             N_PUCCH_MAX_RES = 3 * SRSLTE_NRE * N_PUCCH_MAX_PRB;
-  pucch_idx_sched_t                 sr_sched        = {};
-  pucch_idx_sched_t                 cqi_sched       = {};
-  std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used = {};
+  const static uint32_t N_PUCCH_MAX_PRB = 4; // Maximum number of PRB to use for PUCCH ACK/NACK in CS mode
+  const static uint32_t N_PUCCH_MAX_RES = 3 * SRSLTE_NRE * N_PUCCH_MAX_PRB;
+
+  uint32_t                          next_measgap_offset = 0;
+  pucch_idx_sched_t                 sr_sched            = {};
+  pucch_idx_sched_t                 cqi_sched           = {};
+  std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used     = {};
 };
 
 /** Storage of CQI/SR/PUCCH CS resources across multiple frequencies and for multiple users */
@@ -47,11 +49,11 @@ class freq_res_common_list
 public:
   explicit freq_res_common_list(const rrc_cfg_t& cfg_);
 
-  pucch_res_common* get_earfcn(uint32_t earfcn);
+  cell_res_common* get_earfcn(uint32_t earfcn);
 
 private:
-  const rrc_cfg_t&                     cfg;
-  std::map<uint32_t, pucch_res_common> pucch_res_list;
+  const rrc_cfg_t&                    cfg;
+  std::map<uint32_t, cell_res_common> pucch_res_list;
 };
 
 /** Storage of cell-specific eNB config and derived params */
@@ -99,6 +101,8 @@ struct cell_ctxt_dedicated {
     uint32_t prb_idx   = 0;
     uint32_t sf_idx    = 0;
   } cqi_res;
+  uint32_t meas_gap_period = 0;
+  uint32_t meas_gap_offset = 0;
 
   explicit cell_ctxt_dedicated(uint32_t i_, const cell_info_common& c_) : ue_cc_idx(i_), cell_common(&c_) {}
 
@@ -116,7 +120,7 @@ class cell_ctxt_dedicated_list
 {
 public:
   explicit cell_ctxt_dedicated_list(const rrc_cfg_t&             cfg_,
-                                    freq_res_common_list&        pucch_res_list_,
+                                    freq_res_common_list&        cell_res_list_,
                                     const cell_info_common_list& enb_common_list);
   ~cell_ctxt_dedicated_list();
 
@@ -163,9 +167,9 @@ private:
   srslte::log_ref              log_h{"RRC"};
   const rrc_cfg_t&             cfg;
   const cell_info_common_list& common_list;
-  freq_res_common_list&        pucch_res_list;
+  freq_res_common_list&        cell_res_list;
 
-  pucch_res_common*                pucch_res = nullptr;
+  cell_res_common*                 pucch_res = nullptr;
   std::vector<cell_ctxt_dedicated> cell_ded_list;
   bool                             sr_res_present     = false;
   bool                             n_pucch_cs_present = false;

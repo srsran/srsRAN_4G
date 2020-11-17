@@ -25,6 +25,7 @@
 #include "srsenb/test/common/dummy_classes.h"
 #include "srslte/adt/span.h"
 #include "srslte/common/log_filter.h"
+#include "srsenb/src/enb_cfg_parser.h"
 
 using namespace srsenb;
 using namespace asn1::rrc;

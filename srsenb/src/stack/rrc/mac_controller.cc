@@ -470,9 +470,11 @@ void ue_cfg_apply_meas_cfg(ue_cfg_t& ue_cfg, const meas_cfg_s& meas_cfg, const r
         case meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::gp0:
           ue_cfg.measgap_period = 40;
           ue_cfg.measgap_offset = setup.gap_offset.gp0();
+          break;
         case meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::gp1:
           ue_cfg.measgap_period = 80;
           ue_cfg.measgap_offset = setup.gap_offset.gp1();
+          break;
         default:
           srslte::logmap::get("RRC")->warning("Invalid measGap configuration\n");
           ue_cfg.measgap_period = 0;

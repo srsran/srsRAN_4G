@@ -47,8 +47,7 @@ struct rrc_meas_cfg_t {
   std::vector<meas_cell_cfg_t>               meas_cells;
   std::vector<asn1::rrc::report_cfg_eutra_s> meas_reports;
   asn1::rrc::quant_cfg_eutra_s               quant_cfg;
-  // TODO: Add blacklist cells
-  // TODO: Add multiple meas configs
+  uint32_t                                   meas_gap_period;
 };
 
 // Cell/Sector configuration

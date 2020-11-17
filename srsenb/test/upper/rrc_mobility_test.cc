@@ -21,13 +21,14 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
-#include "srsenb/src/enb_cfg_parser.h"
 #include "srsenb/test/common/dummy_classes.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/test_common.h"
 #include "test_helpers.h"
 #include <iostream>
 #include <srslte/common/log_filter.h>
+
+using namespace asn1::rrc;
 
 meas_cell_cfg_t generate_cell1()
 {
@@ -378,6 +379,7 @@ struct s1ap_mobility_tester : public mobility_tester {
   {
     TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
     cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19C02;
+    cfg.cell_list[0].meas_cfg.meas_gap_period   = 40;
     return SRSLTE_SUCCESS;
   }
 };
@@ -388,12 +390,14 @@ struct intraenb_mobility_tester : public mobility_tester {
   {
     TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
     cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19B02;
+    cfg.cell_list[0].meas_cfg.meas_gap_period   = 40;
 
     cell_cfg_t cell2                 = cfg.cell_list[0];
     cell2.pci                        = 2;
     cell2.cell_id                    = 2;
     cell2.meas_cfg.meas_cells[0].pci = 1;
     cell2.meas_cfg.meas_cells[0].eci = 0x19B01;
+    cell2.meas_cfg.meas_gap_period   = 80;
     cfg.cell_list.push_back(cell2);
 
     return SRSLTE_SUCCESS;
@@ -410,6 +414,15 @@ int test_s1ap_mobility(mobility_test_params test_params)
   TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
   TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
   test_dummies::s1ap_mobility_dummy& s1ap = tester.s1ap;
+
+  /* Receive correct measConfig */
+  dl_dcch_msg_s dl_dcch_msg;
+  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
+  TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
+  TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
+             tester.cfg.cell_list[0].meas_cfg.meas_gap_period);
 
   /* Receive MeasReport from UE (correct if PCI=2) */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
@@ -479,7 +492,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   TESTASSERT(tester.rrc_log->error_counter == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;
   TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
-  auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
 
   return SRSLTE_SUCCESS;
@@ -605,6 +618,16 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
   TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
   TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
+
+  /* Receive correct measConfig */
+  dl_dcch_msg_s dl_dcch_msg;
+  TESTASSERT(test_helpers::unpack_asn1(dl_dcch_msg, srslte::make_span(tester.pdcp.last_sdu.sdu)));
+  rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
+  TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
+  TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
+             tester.cfg.cell_list[0].meas_cfg.meas_gap_period);
+
   tester.pdcp.last_sdu.sdu = nullptr;
   tester.rlc.test_reset_all();
   tester.phy.phy_cfg_set = false;
@@ -648,7 +671,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.pdcp.last_sdu.lcid == 1); // SRB1
   asn1::rrc::dl_dcch_msg_s ho_cmd;
   TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
-  auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
   TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 2);
@@ -659,6 +682,11 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(phy_cfg_ded.cqi_report_cfg_present);
   // PHY should not be updated until the UE handovers to the new cell
   TESTASSERT(not tester.phy.phy_cfg_set);
+  // Correct measConfig
+  TESTASSERT(recfg_r8.meas_cfg_present and recfg_r8.meas_cfg.meas_gap_cfg_present);
+  TESTASSERT(recfg_r8.meas_cfg.meas_gap_cfg.type().value == setup_opts::setup);
+  TESTASSERT((1 + recfg_r8.meas_cfg.meas_gap_cfg.setup().gap_offset.type().value) * 40u ==
+             tester.cfg.cell_list[1].meas_cfg.meas_gap_period);
 
   /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished, PHY is configured */
   tester.pdcp.last_sdu.sdu = nullptr;

@@ -27,7 +27,7 @@ namespace srsenb {
 
 freq_res_common_list::freq_res_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
 {
-  for (auto& c : cfg.cell_list) {
+  for (const auto& c : cfg.cell_list) {
     auto it = pucch_res_list.find(c.dl_earfcn);
     if (it == pucch_res_list.end()) {
       pucch_res_list[c.dl_earfcn] = {};
@@ -35,7 +35,7 @@ freq_res_common_list::freq_res_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
   }
 }
 
-pucch_res_common* freq_res_common_list::get_earfcn(uint32_t earfcn)
+cell_res_common* freq_res_common_list::get_earfcn(uint32_t earfcn)
 {
   auto it = pucch_res_list.find(earfcn);
   return (it == pucch_res_list.end()) ? nullptr : &(it->second);
@@ -143,11 +143,9 @@ std::vector<uint32_t> get_measobj_earfcns(const cell_info_common& pcell)
  ************************/
 
 cell_ctxt_dedicated_list::cell_ctxt_dedicated_list(const rrc_cfg_t&             cfg_,
-                                                   freq_res_common_list&        pucch_res_list_,
+                                                   freq_res_common_list&        cell_res_list_,
                                                    const cell_info_common_list& enb_common_list) :
-  cfg(cfg_),
-  pucch_res_list(pucch_res_list_),
-  common_list(enb_common_list)
+  cfg(cfg_), cell_res_list(cell_res_list_), common_list(enb_common_list)
 {
   cell_ded_list.reserve(common_list.nof_cells());
 }
@@ -186,7 +184,7 @@ cell_ctxt_dedicated* cell_ctxt_dedicated_list::add_cell(uint32_t enb_cc_idx)
 
   if (ue_cc_idx == UE_PCELL_CC_IDX) {
     // Fetch PUCCH resources if it's pcell
-    pucch_res = pucch_res_list.get_earfcn(cell_common->cell_cfg.dl_earfcn);
+    pucch_res = cell_res_list.get_earfcn(cell_common->cell_cfg.dl_earfcn);
   }
 
   cell_ded_list.emplace_back(cell_ded_list.size(), *cell_common);
@@ -230,11 +228,17 @@ bool cell_ctxt_dedicated_list::alloc_cell_resources(uint32_t ue_cc_idx)
         return false;
       }
     }
+
+    cell_ctxt_dedicated* cell = get_ue_cc_idx(UE_PCELL_CC_IDX);
+    cell->meas_gap_period     = cell->cell_common->cell_cfg.meas_cfg.meas_gap_period;
+    cell->meas_gap_offset     = pucch_res->next_measgap_offset;
+    pucch_res->next_measgap_offset += 6;
   }
   if (not alloc_cqi_resources(ue_cc_idx, cfg.cqi_cfg.period)) {
     log_h->error("Failed to allocate CQIresources for cell ue_cc_idx=%d\n", ue_cc_idx);
     return false;
   }
+
   return true;
 }
 
@@ -520,7 +524,7 @@ bool cell_ctxt_dedicated_list::alloc_pucch_cs_resources()
   const uint16_t     N_pucch_1 = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
   const uint32_t     max_cce   = srslte_max_cce(cfg.cell.nof_prb);
   // Loop through all available resources
-  for (uint32_t i = 0; i < pucch_res_common::N_PUCCH_MAX_RES; i++) {
+  for (uint32_t i = 0; i < cell_res_common::N_PUCCH_MAX_RES; i++) {
     if (!pucch_res->n_pucch_cs_used[i] && (i <= N_pucch_1 && i != sr_res.sr_N_pucch)) {
       // Allocate resource
       pucch_res->n_pucch_cs_used[i] = true;

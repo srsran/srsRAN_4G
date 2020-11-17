@@ -711,8 +711,8 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   }
   /*** fill AS-Config ***/
   hoprep_r8.as_cfg_present       = true;
-  hoprep_r8.as_cfg.source_rr_cfg = rrc_ue->current_rr_cfg;
-  hoprep_r8.as_cfg.source_scell_cfg_list_r10.reset(new scell_to_add_mod_list_r10_l{rrc_ue->current_scells});
+  hoprep_r8.as_cfg.source_rr_cfg = rrc_ue->current_ue_cfg.rr_cfg;
+  hoprep_r8.as_cfg.source_scell_cfg_list_r10.reset(new scell_to_add_mod_list_r10_l{rrc_ue->current_ue_cfg.scells});
   // NOTE: set source_meas_cnfg equal to the UE's current var_meas_cfg
   var_meas_cfg_t empty_meascfg{}, &target_var_meas = ue_var_meas;
   //  // however, reset the MeasObjToAdd Cells, so that the UE does not measure again the target eNB
@@ -890,17 +890,16 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   intralte.key_change_ind                 = false;
   intralte.next_hop_chaining_count        = rrc_ue->ue_security_cfg.get_ncc();
 
+  // Add MeasConfig of target cell
+  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_cell, &recfg_r8.meas_cfg);
+
   apply_reconf_updates(recfg_r8,
-                       rrc_ue->current_rr_cfg,
-                       rrc_ue->current_scells,
+                       rrc_ue->current_ue_cfg,
                        rrc_enb->cfg,
                        rrc_ue->cell_ded_list,
                        rrc_ue->bearer_list,
                        rrc_ue->ue_capabilities,
                        true);
-
-  // Add MeasConfig of target cell
-  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_cell, &recfg_r8.meas_cfg);
 }
 
 /**
@@ -1102,8 +1101,8 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
 
   /* Configure remaining layers based on pending changes */
   // Update RLC + PDCP SRBs (no DRBs until MME Status Transfer)
-  rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
-  rrc_ue->apply_rlc_rb_updates(rrc_ue->current_rr_cfg);
+  rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_ue_cfg.rr_cfg);
+  rrc_ue->apply_rlc_rb_updates(rrc_ue->current_ue_cfg.rr_cfg);
   // Update MAC
   rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8, rrc_ue->ue_capabilities);
   // Apply PHY updates
@@ -1181,7 +1180,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   rrc_ue->update_scells();
 
   // Save source eNB UE RR cfg as a starting point
-  apply_rr_cfg_ded_diff(rrc_ue->current_rr_cfg, ho_prep.as_cfg.source_rr_cfg);
+  apply_rr_cfg_ded_diff(rrc_ue->current_ue_cfg.rr_cfg, ho_prep.as_cfg.source_rr_cfg);
 
   // Save source UE MAC configuration as a base
   rrc_ue->mac_ctrl->handle_ho_prep(ho_prep);
@@ -1207,7 +1206,7 @@ void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recf
 void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& erabs)
 {
   // Establish DRBs
-  rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_rr_cfg);
+  rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_ue_cfg.rr_cfg);
 
   // Set DRBs SNs
   for (const auto& erab : erabs) {
@@ -1316,8 +1315,8 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     rrc_enb->phy->set_config(rrc_ue->rnti, rrc_ue->phy_rrc_dedicated_list);
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
-    rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_rr_cfg);
-    rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_rr_cfg);
+    rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_ue_cfg.rr_cfg);
+    rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_ue_cfg.rr_cfg);
   } else {
     rrc_log->info("Received duplicate C-RNTI CE during rnti=0x%x handover.\n", rrc_ue->rnti);
   }

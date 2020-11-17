@@ -42,7 +42,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   rnti(rnti_),
   pool(srslte::byte_buffer_pool::get_instance()),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
-  cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list),
+  cell_ded_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
   bearer_list(rnti_, parent->cfg),
   ue_security_cfg(parent->cfg)
 {
@@ -273,7 +273,7 @@ void rrc::ue::send_connection_setup()
 
   send_dl_ccch(&dl_ccch_msg);
 
-  apply_rr_cfg_ded_diff(current_rr_cfg, rr_cfg);
+  apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 }
 
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -414,7 +414,7 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
 
   send_dl_ccch(&dl_ccch_msg);
 
-  apply_rr_cfg_ded_diff(current_rr_cfg, rr_cfg);
+  apply_rr_cfg_ded_diff(current_ue_cfg.rr_cfg, rr_cfg);
 }
 
 void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -476,20 +476,19 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
   rrc_conn_recfg.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
+  // Add measConfig
+  if (mobility_handler != nullptr) {
+    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
+  }
+
   // Fill RR Config Ded and SCells
   apply_reconf_updates(recfg_r8,
-                       current_rr_cfg,
-                       current_scells,
+                       current_ue_cfg,
                        parent->cfg,
                        cell_ded_list,
                        bearer_list,
                        ue_capabilities,
                        phy_cfg_updated);
-
-  // Add measConfig
-  if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
-  }
 
   // if no updates were detected, skip rrc reconfiguration
   if (not(recfg_r8.rr_cfg_ded_present or recfg_r8.meas_cfg_present or recfg_r8.mob_ctrl_info_present or

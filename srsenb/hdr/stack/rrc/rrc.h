@@ -145,7 +145,7 @@ private:
   std::unique_ptr<cell_info_common_list> cell_common_list;
 
   // state
-  std::unique_ptr<freq_res_common_list>          pucch_res_list;
+  std::unique_ptr<freq_res_common_list>          cell_res_list;
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
   std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
 

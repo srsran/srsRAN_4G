@@ -68,7 +68,7 @@ void rrc::init(const rrc_cfg_t&       cfg_,
     configure_mbsfn_sibs(&cfg.sibs[1].sib2(), &cfg.sibs[12].sib13_v920());
   }
 
-  pucch_res_list.reset(new freq_res_common_list{cfg});
+  cell_res_list.reset(new freq_res_common_list{cfg});
 
   // Loads the PRACH root sequence
   cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list[0].root_seq_idx;
