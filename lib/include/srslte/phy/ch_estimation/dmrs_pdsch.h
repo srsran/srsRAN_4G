@@ -13,14 +13,14 @@
 #ifndef SRSLTE_DMRS_PDSCH_H
 #define SRSLTE_DMRS_PDSCH_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
 #include "srslte/srslte.h"
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define SRSLTE_DMRS_PDSCH_MAX_SYMBOLS 4
 

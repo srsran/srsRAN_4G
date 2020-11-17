@@ -72,16 +72,14 @@ int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* arg
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t*         q,
-                                const srslte_carrier_nr_t* carrier,
-                                const srslte_sch_cfg_t*    sch_cfg)
+int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, const srslte_carrier_nr_t* carrier)
 {
   // Set carrier
   q->carrier = *carrier;
 
   // Reallocate symbols if necessary
-  if (q->max_layers < sch_cfg->max_mimo_layers || q->max_prb < carrier->nof_prb) {
-    q->max_layers = sch_cfg->max_mimo_layers;
+  if (q->max_layers < carrier->max_mimo_layers || q->max_prb < carrier->nof_prb) {
+    q->max_layers = carrier->max_mimo_layers;
     q->max_prb    = carrier->nof_prb;
 
     // Free current allocations

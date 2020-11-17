@@ -100,9 +100,9 @@ void srslte_ue_dl_nr_free(srslte_ue_dl_nr_t* q)
   memset(q, 0, sizeof(srslte_ue_dl_nr_t));
 }
 
-int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_t* sch)
+int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t* carrier)
 {
-  if (srslte_pdsch_nr_set_carrier(&q->pdsch, carrier, sch) < SRSLTE_SUCCESS) {
+  if (srslte_pdsch_nr_set_carrier(&q->pdsch, carrier) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 

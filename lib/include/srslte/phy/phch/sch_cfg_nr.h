@@ -18,10 +18,7 @@
 typedef struct SRSLTE_API {
   srslte_mcs_table_t mcs_table; ///< @brief Indicates the MCS table the UE shall use for PDSCH and/or PUSCH without
                                 ///< transform precoding
-  uint32_t max_mimo_layers; ///< @brief DL: Indicates the maximum number of MIMO layers to be used for PDSCH in all BWPs
-                            ///< of this serving cell. (see TS 38.212 [17], clause 5.4.2.1). UL: Indicates the maximum
-                            ///< MIMO layer to be used for PUSCH in all BWPs of the normal UL of this serving cell (see
-                            ///< TS 38.212 [17], clause 5.4.2.1)
+
   srslte_xoverhead_t xoverhead; ///< Accounts for overhead from CSI-RS, CORESET, etc. If the field is absent, the UE
                                 ///< applies value xOh0 (see TS 38.214 [19], clause 5.1.3.2).
 } srslte_sch_cfg_t;

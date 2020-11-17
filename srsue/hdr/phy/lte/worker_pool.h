@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_WORKER_POOL_H
-#define SRSLTE_WORKER_POOL_H
+#ifndef SRSUE_LTE_WORKER_POOL_H
+#define SRSUE_LTE_WORKER_POOL_H
 
 #include "sf_worker.h"
 #include "srslte/common/thread_pool.h"
@@ -51,4 +51,4 @@ public:
 } // namespace lte
 } // namespace srsue
 
-#endif // SRSLTE_WORKER_POOL_H
+#endif // SRSUE_LTE_WORKER_POOL_H

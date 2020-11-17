@@ -37,8 +37,7 @@ typedef struct SRSLTE_API {
 SRSLTE_API int
 srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS], const srslte_enb_dl_nr_args_t* args);
 
-SRSLTE_API int
-srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_t* common);
+SRSLTE_API int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_t* carrier);
 
 SRSLTE_API void srslte_enb_dl_nr_free(srslte_enb_dl_nr_t* q);
 

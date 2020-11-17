@@ -112,7 +112,7 @@ int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
   uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(q->carrier.nof_prb);
   double   R_lbrm    = 948.0 / 1024.0;
   uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srslte_mcs_table_256qam) ? 8 : 6;
-  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, R_lbrm, Qm_lbrm, sch_cfg->max_mimo_layers);
+  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, R_lbrm, Qm_lbrm, q->carrier.max_mimo_layers);
   cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * 2.0 / 3.0));
 
   // Calculate number of code blocks after applying CBGTI... not implemented, activate all CB

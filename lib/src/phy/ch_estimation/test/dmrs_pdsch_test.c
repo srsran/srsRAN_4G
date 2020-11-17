@@ -24,7 +24,8 @@ static srslte_carrier_nr_t carrier = {
     0,  // cell_id
     0,  // numerology
     50, // nof_prb
-    0   // start
+    0,  // start
+    1   // max_mimo_layers
 };
 
 typedef struct {

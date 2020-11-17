@@ -171,6 +171,10 @@ typedef struct SRSLTE_API {
   uint32_t numerology;
   uint32_t nof_prb;
   uint32_t start;
+  uint32_t max_mimo_layers; ///< @brief DL: Indicates the maximum number of MIMO layers to be used for PDSCH in all BWPs
+                            ///< of this serving cell. (see TS 38.212 [17], clause 5.4.2.1). UL: Indicates the maximum
+                            ///< MIMO layer to be used for PUSCH in all BWPs of the normal UL of this serving cell (see
+                            ///< TS 38.212 [17], clause 5.4.2.1)
 } srslte_carrier_nr_t;
 
 /**

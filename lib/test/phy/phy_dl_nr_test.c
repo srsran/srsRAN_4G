@@ -23,7 +23,9 @@ static srslte_carrier_nr_t carrier = {
     0,   // cell_id
     0,   // numerology
     100, // nof_prb
-    0    // start
+    0,   // start
+    1    // max_mimo_layers
+
 };
 
 static uint32_t                n_prb       = 0;  // Set to 0 for steering
@@ -38,7 +40,7 @@ void usage(char* prog)
   printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
   printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
          srslte_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
-  printf("\t-L Provide number of layers [Default %d]\n", pdsch_cfg.sch_cfg.max_mimo_layers);
+  printf("\t-L Provide number of layers [Default %d]\n", carrier.max_mimo_layers);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
@@ -57,7 +59,7 @@ int parse_args(int argc, char** argv)
         pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_from_str(argv[optind]);
         break;
       case 'L':
-        pdsch_cfg.sch_cfg.max_mimo_layers = (uint32_t)strtol(argv[optind], NULL, 10);
+        carrier.max_mimo_layers = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
@@ -100,8 +102,8 @@ int main(int argc, char** argv)
   enb_dl_args.pdsch.sch.disable_simd  = true;
 
   // Set default PDSCH configuration
-  pdsch_cfg.sch_cfg.mcs_table       = srslte_mcs_table_64qam;
-  pdsch_cfg.sch_cfg.max_mimo_layers = 1;
+  pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_64qam;
+
   if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
     goto clean_exit;
   }
@@ -120,12 +122,12 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_ue_dl_nr_set_carrier(&ue_dl, &carrier, &pdsch_cfg.sch_cfg)) {
+  if (srslte_ue_dl_nr_set_carrier(&ue_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier\n");
     goto clean_exit;
   }
 
-  if (srslte_enb_dl_nr_set_carrier(&enb_dl, &carrier, &pdsch_cfg.sch_cfg)) {
+  if (srslte_enb_dl_nr_set_carrier(&enb_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier\n");
     goto clean_exit;
   }
@@ -162,7 +164,7 @@ int main(int argc, char** argv)
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }
-  pdsch_grant.nof_layers = pdsch_cfg.sch_cfg.max_mimo_layers;
+  pdsch_grant.nof_layers = carrier.max_mimo_layers;
   pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
 
   uint32_t n_prb_start = 1;

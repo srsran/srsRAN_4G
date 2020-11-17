@@ -67,8 +67,7 @@ SRSLTE_API int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_
 
 SRSLTE_API void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q);
 
-SRSLTE_API int
-srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_t* sch_cfg);
+SRSLTE_API int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, const srslte_carrier_nr_t* carrier);
 
 SRSLTE_API int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*             q,
                                       const srslte_pdsch_cfg_nr_t*   cfg,

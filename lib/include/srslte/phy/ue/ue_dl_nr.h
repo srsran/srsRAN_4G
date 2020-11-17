@@ -17,6 +17,10 @@
 #include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/phch/pdsch_nr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct SRSLTE_API {
   srslte_pdsch_args_t pdsch;
   uint32_t            nof_rx_antennas;
@@ -38,8 +42,7 @@ typedef struct SRSLTE_API {
 SRSLTE_API int
 srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], const srslte_ue_dl_nr_args_t* args);
 
-SRSLTE_API int
-srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_t* common);
+SRSLTE_API int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t* carrier);
 
 SRSLTE_API void srslte_ue_dl_nr_free(srslte_ue_dl_nr_t* q);
 
@@ -50,5 +53,8 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_get(srslte_ue_dl_nr_t*             q,
                                          const srslte_pdsch_cfg_nr_t*   cfg,
                                          const srslte_pdsch_grant_nr_t* grant,
                                          srslte_pdsch_res_nr_t*         res);
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_UE_DL_NR_H
