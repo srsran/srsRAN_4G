@@ -126,7 +126,6 @@ public:
   void worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time);
 
   void set_cell(const srslte_cell_t& c);
-  void set_nof_workers(uint32_t nof_workers);
 
   bool sr_enabled     = false;
   int  sr_last_tx_tti = -1;
@@ -245,8 +244,6 @@ private:
   bool                    have_mtch_stop = false;
   std::mutex              mtch_mutex;
   std::condition_variable mtch_cvar;
-
-  uint32_t nof_workers = 0;
 
   bool is_pending_tx_end = false;
 

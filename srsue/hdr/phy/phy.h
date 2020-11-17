@@ -16,7 +16,6 @@
 #include "phy_common.h"
 #include "phy_metrics.h"
 #include "prach.h"
-#include "sf_worker.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/trace.h"
@@ -25,6 +24,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/lte/worker_pool.h"
 #include "srsue/hdr/phy/ue_lte_phy_base.h"
 #include "sync.h"
 
@@ -66,7 +66,7 @@ private:
 class phy final : public ue_lte_phy_base, public srslte::thread
 {
 public:
-  explicit phy(srslte::logger* logger_) : logger(logger_), workers_pool(MAX_WORKERS), common(), thread("PHY"){};
+  explicit phy(srslte::logger* logger_) : logger(logger_), lte_workers(MAX_WORKERS), common(), thread("PHY"){};
   ~phy() final { stop(); }
 
   // Init defined in base class
@@ -165,24 +165,21 @@ private:
   std::mutex              config_mutex;
   std::condition_variable config_cond;
   bool                    is_configured = false;
-  uint32_t                nof_workers   = 0;
 
   const static int SF_RECV_THREAD_PRIO = 0;
   const static int WORKERS_THREAD_PRIO = 2;
 
-  srslte::radio_interface_phy*                      radio = nullptr;
-  std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
-  srslte::logger*                                   logger = nullptr;
+  srslte::radio_interface_phy* radio  = nullptr;
+  srslte::logger*              logger = nullptr;
 
-  srslte::log*                    log_h         = nullptr;
-  srslte::log*                    log_phy_lib_h = nullptr;
-  srsue::stack_interface_phy_lte* stack         = nullptr;
+  std::unique_ptr<srslte::log_filter> log_h         = nullptr;
+  std::unique_ptr<srslte::log_filter> log_phy_lib_h = nullptr;
+  srsue::stack_interface_phy_lte*     stack         = nullptr;
 
-  srslte::thread_pool                      workers_pool;
-  std::vector<std::unique_ptr<sf_worker> > workers;
-  phy_common                               common;
-  sync                                     sfsync;
-  prach                                    prach_buffer;
+  lte::worker_pool lte_workers;
+  phy_common       common;
+  sync             sfsync;
+  prach            prach_buffer;
 
   srslte_prach_cfg_t  prach_cfg  = {};
   srslte_tdd_config_t tdd_config = {};

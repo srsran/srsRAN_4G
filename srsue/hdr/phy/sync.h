@@ -23,7 +23,6 @@
 #include "scell/intra_measure.h"
 #include "scell/scell_sync.h"
 #include "search.h"
-#include "sf_worker.h"
 #include "sfn_sync.h"
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
@@ -33,6 +32,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/lte/worker_pool.h"
 #include "sync_state.h"
 
 namespace srsue {
@@ -52,7 +52,7 @@ public:
   void init(srslte::radio_interface_phy* radio_,
             stack_interface_phy_lte*     _stack,
             prach*                       prach_buffer,
-            srslte::thread_pool*         _workers_pool,
+            lte::worker_pool*            _workers_pool,
             phy_common*                  _worker_com,
             srslte::log*                 _log_h,
             srslte::log*                 _log_phy_lib_h,
@@ -164,7 +164,7 @@ private:
    * @param worker Selected worker for the current TTI
    * @param sync_buffer Sub-frame buffer for the current TTI
    */
-  void  run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& sync_buffer);
+  void run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t& sync_buffer);
 
   /**
    * Helper method, executed in a TTI basis for signaling to the stack a new TTI execution
@@ -197,7 +197,7 @@ private:
   stack_interface_phy_lte*     stack            = nullptr;
   srslte::log*                 log_h            = nullptr;
   srslte::log*                 log_phy_lib_h    = nullptr;
-  srslte::thread_pool*         workers_pool     = nullptr;
+  lte::worker_pool*            workers_pool     = nullptr;
   srslte::radio_interface_phy* radio_h          = nullptr;
   phy_common*                  worker_com       = nullptr;
   prach*                       prach_buffer     = nullptr;
@@ -252,7 +252,6 @@ private:
   srslte_timestamp_t                          stack_tti_ts           = {};
   std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib                    = {};
 
-  uint32_t nof_workers             = 0;
   uint32_t nof_rf_channels         = 0;
   float    ul_dl_factor            = NAN;
   int      current_earfcn          = 0;

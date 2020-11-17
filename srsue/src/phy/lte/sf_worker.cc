@@ -13,7 +13,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
 
-#include "srsue/hdr/phy/sf_worker.h"
+#include "srsue/hdr/phy/lte/sf_worker.h"
 #include <string.h>
 #include <unistd.h>
 
@@ -45,12 +45,12 @@ static int plot_worker_id = -1;
 /*********************************************/
 
 namespace srsue {
+namespace lte {
 
-sf_worker::sf_worker(uint32_t max_prb, phy_common* phy_, srslte::log* log_h_, srslte::log* log_phy_lib_h_)
+sf_worker::sf_worker(uint32_t max_prb, phy_common* phy_, srslte::log* log_h_)
 {
-  phy           = phy_;
-  log_h         = log_h_;
-  log_phy_lib_h = log_phy_lib_h_;
+  phy   = phy_;
+  log_h = log_h_;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
@@ -113,10 +113,6 @@ void sf_worker::set_tti(uint32_t tti_)
   }
 
   log_h->step(tti);
-
-  if (log_phy_lib_h) {
-    log_phy_lib_h->step(tti);
-  }
 }
 
 void sf_worker::set_tx_time(const srslte::rf_timestamp_t& tx_time_)
@@ -324,6 +320,7 @@ float sf_worker::get_cfo()
   phy->get_sync_metrics(sync_metrics);
   return sync_metrics[0].cfo;
 }
+} // namespace lte
 } // namespace srsue
 
 /***********************************************************

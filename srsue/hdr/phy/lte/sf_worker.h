@@ -10,16 +10,17 @@
  *
  */
 
-#ifndef SRSUE_PHCH_WORKER_H
-#define SRSUE_PHCH_WORKER_H
+#ifndef SRSUE_LTE_SF_WORKER_H
+#define SRSUE_LTE_SF_WORKER_H
 
 #include "cc_worker.h"
-#include "phy_common.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/phy_common.h"
 #include <string.h>
 
 namespace srsue {
+namespace lte {
 
 /**
  * The sf_worker class handles the PHY processing, UL and DL procedures associated with 1 subframe.
@@ -32,7 +33,7 @@ namespace srsue {
 class sf_worker : public srslte::thread_pool::worker
 {
 public:
-  sf_worker(uint32_t max_prb, phy_common* phy, srslte::log* log, srslte::log* log_phy_lib_h);
+  sf_worker(uint32_t max_prb, phy_common* phy, srslte::log* log);
   virtual ~sf_worker();
 
   void reset_cell_unlocked(uint32_t cc_idx);
@@ -80,8 +81,6 @@ private:
 
   srslte::log* log_h = nullptr;
 
-  srslte::log* log_phy_lib_h = nullptr;
-
   srslte_cell_t       cell = {};
   std::mutex          cell_mutex;
   srslte_tdd_config_t tdd_config = {};
@@ -94,9 +93,9 @@ private:
 
   uint32_t               tti     = 0;
   srslte::rf_timestamp_t tx_time = {};
-
 };
 
+} // namespace lte
 } // namespace srsue
 
-#endif // SRSUE_PHCH_WORKER_H
+#endif // SRSUE_LTE_SF_WORKER_H

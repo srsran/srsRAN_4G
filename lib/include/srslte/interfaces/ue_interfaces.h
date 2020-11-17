@@ -481,7 +481,7 @@ typedef struct {
   float    prach_gain      = -1;
   uint32_t pdsch_max_its   = 8;
   bool     meas_evm        = false;
-  int      nof_phy_threads = 3;
+  uint32_t nof_phy_threads = 3;
 
   int worker_cpu_mask   = -1;
   int sync_cpu_affinity = -1;

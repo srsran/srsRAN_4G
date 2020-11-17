@@ -14,7 +14,7 @@
 #include "srslte/common/log.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/srslte.h"
-#include "srsue/hdr/phy/sf_worker.h"
+#include "srsue/hdr/phy/lte/sf_worker.h"
 #include <algorithm>
 #include <unistd.h>
 
@@ -48,7 +48,7 @@ static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)
 void sync::init(srslte::radio_interface_phy* _radio,
                 stack_interface_phy_lte*     _stack,
                 prach*                       _prach_buffer,
-                srslte::thread_pool*         _workers_pool,
+                lte::worker_pool*            _workers_pool,
                 phy_common*                  _worker_com,
                 srslte::log*                 _log_h,
                 srslte::log*                 _log_phy_lib_h,
@@ -78,9 +78,6 @@ void sync::init(srslte::radio_interface_phy* _radio,
   if (worker_com->args->dl_channel_args.enable) {
     channel_emulator = srslte::channel_ptr(new srslte::channel(worker_com->args->dl_channel_args, nof_rf_channels));
   }
-
-  nof_workers = workers_pool->get_nof_workers();
-  worker_com->set_nof_workers(nof_workers);
 
   // Initialize cell searcher
   search_p.init(sf_buffer, log_h, nof_rf_channels, this);
@@ -403,8 +400,11 @@ void sync::run_sfn_sync_state()
   }
 }
 
-void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& sync_buffer)
+void sync::run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t& sync_buffer)
 {
+  // Update logging TTI
+  log_h->step(tti);
+  log_phy_lib_h->step(tti);
 
   // Check tti is synched with ue_sync
   if (srslte_ue_sync_get_sfidx(&ue_sync) != tti % 10) {
@@ -501,7 +501,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
 }
 void sync::run_camping_state()
 {
-  sf_worker*          worker      = (sf_worker*)workers_pool->wait_worker(tti);
+  lte::sf_worker*     worker      = (lte::sf_worker*)workers_pool->wait_worker(tti);
   srslte::rf_buffer_t sync_buffer = {};
 
   if (worker == nullptr) {
@@ -771,13 +771,13 @@ bool sync::set_cell(float cfo)
   worker_com->set_cell(cell);
 
   // Reset cell configuration
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    ((sf_worker*)workers_pool->get_worker(i))->reset_cell_unlocked(0);
+  for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
+    (*workers_pool)[i]->reset_cell_unlocked(0);
   }
 
   bool success = true;
-  for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
-    sf_worker* w = (sf_worker*)workers_pool->wait_worker_id(i);
+  for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
+    lte::sf_worker* w = (lte::sf_worker*)workers_pool->wait_worker_id(i);
     if (w) {
       success &= w->set_cell_unlocked(0, cell);
       w->release();

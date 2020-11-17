@@ -10,14 +10,15 @@
  *
  */
 
-#ifndef SRSLTE_CC_WORKER_H
-#define SRSLTE_CC_WORKER_H
+#ifndef SRSUE_LTE_CC_WORKER_H
+#define SRSUE_LTE_CC_WORKER_H
 
-#include "phy_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/phy_common.h"
 
 namespace srsue {
+namespace lte {
 
 class cc_worker
 {
@@ -113,6 +114,7 @@ private:
   srslte_ue_ul_cfg_t ue_ul_cfg = {};
 };
 
+} // namespace lte
 } // namespace srsue
 
-#endif // SRSLTE_CC_WORKER_H
+#endif // SRSUE_LTE_CC_WORKER_H

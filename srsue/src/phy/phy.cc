@@ -122,43 +122,32 @@ int phy::init(const phy_args_t& args_)
     sfsync.force_freq(args.dl_freq, args.ul_freq);
   }
 
-  // Create array of pointers to phy_logs
-  for (int i = 0; i < args.nof_phy_threads; i++) {
-    auto* mylog = new srslte::log_filter;
-    char  tmp[16];
-    sprintf(tmp, "PHY%d", i);
-    mylog->init(tmp, logger, true);
-    mylog->set_level(args.log.phy_level);
-    mylog->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::unique_ptr<srslte::log_filter>(mylog));
-  }
-
   // Add PHY lib log
-  if (log_vec.at(0)->get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
-    auto* lib_log = new srslte::log_filter;
-    char  tmp[16];
+  if (srslte::log::get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
+    log_phy_lib_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
+    char tmp[16];
     sprintf(tmp, "PHY_LIB");
-    lib_log->init(tmp, logger, true);
-    lib_log->set_level(args.log.phy_lib_level);
-    lib_log->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::unique_ptr<srslte::log_filter>(lib_log));
-  } else {
-    log_vec.push_back(nullptr);
+    log_phy_lib_h->init(tmp, logger, true);
+    log_phy_lib_h->set_level(args.log.phy_lib_level);
+    log_phy_lib_h->set_hex_limit(args.log.phy_hex_limit);
   }
 
   // set default logger
-  log_h = log_vec.at(0).get();
+  {
+    log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
+    char tmp[16];
+    sprintf(tmp, "PHY_COM");
+    log_h->init(tmp, logger, true);
+    log_h->set_level(args.log.phy_lib_level);
+    log_h->set_hex_limit(args.log.phy_hex_limit);
+  }
 
   if (!check_args(args)) {
     return false;
   }
 
-  nof_workers = args.nof_phy_threads;
-  if (log_vec[nof_workers]) {
-    this->log_phy_lib_h = (srslte::log*)log_vec[0].get();
+  if (log_phy_lib_h) {
     srslte_phy_log_register_handler(this, srslte_phy_handler);
-  } else {
-    this->log_phy_lib_h = nullptr;
   }
 
   is_configured = false;
@@ -170,25 +159,20 @@ int phy::init(const phy_args_t& args_)
 void phy::run_thread()
 {
   std::unique_lock<std::mutex> lock(config_mutex);
-  prach_buffer.init(SRSLTE_MAX_PRB, log_h);
-  common.init(&args, (srslte::log*)log_vec[0].get(), radio, stack, &sfsync);
+  prach_buffer.init(SRSLTE_MAX_PRB, log_h.get());
+  common.init(&args, log_h.get(), radio, stack, &sfsync);
 
-  // Add workers to workers pool and start threads
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    auto w = std::unique_ptr<sf_worker>(new sf_worker(
-        SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i].get(), (srslte::log*)log_vec[nof_workers].get()));
-    workers_pool.init_worker(i, w.get(), WORKERS_THREAD_PRIO, args.worker_cpu_mask);
-    workers.push_back(std::move(w));
-  }
+  // Initialise workers
+  lte_workers.init(&common, logger, WORKERS_THREAD_PRIO);
 
   // Warning this must be initialized after all workers have been added to the pool
   sfsync.init(radio,
               stack,
               &prach_buffer,
-              &workers_pool,
+              &lte_workers,
               &common,
-              log_h,
-              log_phy_lib_h,
+              log_h.get(),
+              log_phy_lib_h.get(),
               SF_RECV_THREAD_PRIO,
               args.sync_cpu_affinity);
 
@@ -220,7 +204,7 @@ void phy::stop()
   cmd_worker_cell.stop();
   if (is_configured) {
     sfsync.stop();
-    workers_pool.stop();
+    lte_workers.stop();
     prach_buffer.stop();
     wait_thread_finish();
 
@@ -445,9 +429,9 @@ void phy::set_crnti(uint16_t rnti)
   // set_crnti() is an operation that takes time, run in background worker
   cmd_worker.add_cmd([this, rnti]() {
     log_h->info("Configuring sequences for C-RNTI=0x%x...\n", rnti);
-    for (uint32_t i = 0; i < nof_workers; i++) {
+    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_crnti is not protected so run when worker is finished
-      sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
+      lte::sf_worker* w = lte_workers.wait_worker_id(i);
       if (w) {
         w->set_crnti_unlocked(rnti);
         w->release();
@@ -460,13 +444,13 @@ void phy::set_crnti(uint16_t rnti)
 // Start GUI
 void phy::start_plot()
 {
-  workers[0]->start_plot();
+  lte_workers[0]->start_plot();
 }
 
 void phy::enable_pregen_signals(bool enable)
 {
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    workers[i]->enable_pregen_signals_unlocked(enable);
+  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
+    lte_workers[i]->enable_pregen_signals_unlocked(enable);
   }
 }
 
@@ -499,9 +483,9 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
   // Apply configuration after the worker is finished to avoid race conditions
   cmd_worker.add_cmd([this, config_, cc_idx, reconfigure_prach]() {
     log_h->info("Setting new PHY configuration cc_idx=%d...\n", cc_idx);
-    for (uint32_t i = 0; i < nof_workers; i++) {
+    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_cell is not protected so run when worker is finished
-      sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
+      lte::sf_worker* w = lte_workers.wait_worker_id(i);
       if (w) {
         w->set_config_unlocked(cc_idx, config_);
         w->release();
@@ -554,17 +538,17 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   common.cell_state.configure(cc_idx, earfcn, cell_info.id);
 
   // Reset cell configuration
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    workers[i]->reset_cell_unlocked(cc_idx);
+  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
+    lte_workers[i]->reset_cell_unlocked(cc_idx);
   }
 
   // Component carrier index zero should be reserved for PCell
   // Send configuration to workers
   cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
     log_h->info("Setting new SCell configuration cc_idx=%d, earfcn=%d...\n", cc_idx, earfcn);
-    for (uint32_t i = 0; i < nof_workers; i++) {
+    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_cell is not protected so run when worker is finished
-      sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
+      lte::sf_worker* w = lte_workers.wait_worker_id(i);
       if (w) {
         w->set_cell_unlocked(cc_idx, cell_info);
         w->release();
@@ -600,9 +584,9 @@ void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
 
   // Apply config when worker is finished
   cmd_worker.add_cmd([this]() {
-    for (uint32_t i = 0; i < nof_workers; i++) {
+    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_tdd_config is not protected so run when worker is finished
-      sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
+      lte::sf_worker* w = lte_workers.wait_worker_id(i);
       if (w) {
         w->set_tdd_config_unlocked(tdd_config);
         w->release();

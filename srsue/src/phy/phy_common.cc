@@ -40,11 +40,6 @@ phy_common::phy_common()
 
 phy_common::~phy_common() = default;
 
-void phy_common::set_nof_workers(uint32_t nof_workers_)
-{
-  nof_workers = nof_workers_;
-}
-
 void phy_common::init(phy_args_t*                  _args,
                       srslte::log*                 _log,
                       srslte::radio_interface_phy* _radio,

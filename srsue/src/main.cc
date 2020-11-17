@@ -270,7 +270,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      "Measure PDSCH EVM, increases CPU load (default false)")
 
     ("phy.nof_phy_threads",
-     bpo::value<int>(&args->phy.nof_phy_threads)->default_value(3),
+     bpo::value<uint32_t>(&args->phy.nof_phy_threads)->default_value(3),
      "Number of PHY threads")
 
     ("phy.equalizer_mode",

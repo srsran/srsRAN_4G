@@ -12,7 +12,7 @@
 
 #include "srslte/srslte.h"
 
-#include "srsue/hdr/phy/cc_worker.h"
+#include "srsue/hdr/phy/lte/cc_worker.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -32,6 +32,7 @@
 #define CURRENT_TTI_TX (sf_cfg_ul.tti)
 
 namespace srsue {
+namespace lte {
 
 /************
  *
@@ -903,4 +904,5 @@ int cc_worker::read_pdsch_d(cf_t* pdsch_d)
   return ue_dl_cfg.cfg.pdsch.grant.nof_re;
 }
 
+} // namespace lte
 } // namespace srsue
