@@ -181,7 +181,7 @@ if (ENABLE_SSE)
             # Force skylake architecture without AVX512
             set(GCC_ARCH "skylake")
             message(STATUS "This is a skylake-avx512 CPU, as AVX512 was disabled the architecture will be set to skylake")
-        endif (${IS_SKYLAKE_AVX512})
+        endif ()
     endif()
 
 
