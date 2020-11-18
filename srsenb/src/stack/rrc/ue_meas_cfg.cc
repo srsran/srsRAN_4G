@@ -338,9 +338,18 @@ bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const cell_ctxt_dedicated_list& u
   const auto&             pcell_meascfg = pcell_cfg->cell_cfg.meas_cfg;
 
   // Add PCell+Scells to measObjToAddModList
+  // NOTE: sort by EARFCN to avoid unnecessary reconfigurations of measObjToAddModList
+  std::vector<const cell_ctxt_dedicated*> sorted_ue_cells(ue_cell_list.nof_cells());
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
-    const auto* cell = ue_cell_list.get_ue_cc_idx(ue_cc_idx);
-    add_meas_obj(meascfg.meas_obj_to_add_mod_list, cell->get_dl_earfcn());
+    sorted_ue_cells[ue_cc_idx] = ue_cell_list.get_ue_cc_idx(ue_cc_idx);
+  }
+  std::sort(sorted_ue_cells.begin(),
+            sorted_ue_cells.end(),
+            [](const cell_ctxt_dedicated* cc1, const cell_ctxt_dedicated* cc2) {
+              return cc1->get_dl_earfcn() < cc2->get_dl_earfcn();
+            });
+  for (auto* cc : sorted_ue_cells) {
+    add_meas_obj(meascfg.meas_obj_to_add_mod_list, cc->get_dl_earfcn());
   }
 
   // Inserts all cells in meas_cell_list that are not PCell or SCells
@@ -403,23 +412,21 @@ bool compute_diff_meascfg(const meas_cfg_s& current_meascfg, const meas_cfg_s& t
 bool apply_meascfg_updates(meas_cfg_s&                     meascfg,
                            meas_cfg_s&                     current_meascfg,
                            const cell_ctxt_dedicated_list& ue_cell_list,
+                           int                             prev_earfcn,
                            int                             prev_pci)
 {
   meascfg = {};
 
-  const cell_ctxt_dedicated* pcell       = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  uint32_t                   prev_earfcn = 0, target_earfcn = pcell->get_dl_earfcn();
-  if (current_meascfg.meas_obj_to_add_mod_list_present) {
-    prev_earfcn = get_earfcn(current_meascfg.meas_obj_to_add_mod_list[0]);
-  }
+  const cell_ctxt_dedicated* pcell         = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  uint32_t                   target_earfcn = pcell->get_dl_earfcn();
 
-  if (static_cast<uint32_t>(prev_pci) == pcell->get_pci() and prev_earfcn == target_earfcn) {
+  if (static_cast<uint32_t>(prev_pci) == pcell->get_pci() and static_cast<uint32_t>(prev_earfcn) == target_earfcn) {
     // Shortcut: No PCell change -> no measConfig updates
     return false;
   }
 
   // Apply TS 36.331 5.5.6.1 - If Source and Target eNB EARFCNs do no match, update SourceMeasCfg.MeasIdList
-  if (prev_earfcn != target_earfcn) {
+  if ((uint32_t)prev_earfcn != target_earfcn) {
     meas_obj_t* found_target_obj = find_meas_obj(current_meascfg.meas_obj_to_add_mod_list, target_earfcn);
     meas_obj_t* found_src_obj    = prev_earfcn != 0 ? &current_meascfg.meas_obj_to_add_mod_list[0] : nullptr;
     if (found_target_obj != nullptr and found_src_obj != nullptr) {

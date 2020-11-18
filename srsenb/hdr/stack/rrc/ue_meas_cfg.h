@@ -68,10 +68,20 @@ bool compute_diff_meascfg(const asn1::rrc::meas_cfg_s& current_meascfg,
 
 bool fill_meascfg_enb_cfg(asn1::rrc::meas_cfg_s& meascfg, const cell_ctxt_dedicated_list& ue_cell_list);
 
-bool apply_meascfg_updates(asn1::rrc::meas_cfg_s&          meascfg,
-                           asn1::rrc::meas_cfg_s&          current_meascfg,
+/**
+ * Computes diff measConfig based on the previous measConfig and the UE current cells
+ * @param diff_meascfg resulting configuration to be added to the RRCConnectionReconf message
+ * @param prev_meascfg measConfig sent in the last RRCConnectionReconfiguration to the UE
+ * @param ue_cell_list contains the final list of cells configured in the UE after the Reconf procedure
+ * @param prev_earfcn  DL earfcn of Pcell in the last RRCReconf message
+ * @param prev_pci     pci of PCell in the last RRCReconf message
+ * @return true if updates exist that have been registered in diff_meascfg
+ */
+bool apply_meascfg_updates(asn1::rrc::meas_cfg_s&          diff_meascfg,
+                           asn1::rrc::meas_cfg_s&          prev_meascfg,
                            const cell_ctxt_dedicated_list& ue_cell_list,
-                           int                             prev_pci = -1);
+                           int                             prev_earfcn = -1,
+                           int                             prev_pci    = -1);
 
 } // namespace srsenb
 

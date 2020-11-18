@@ -24,6 +24,7 @@
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
 #include "test_helpers.h"
+#include "srslte/rrc/rrc_cfg_utils.h"
 
 using namespace asn1::rrc;
 
@@ -279,6 +280,54 @@ int test_correct_meascfg_calculation()
   return SRSLTE_SUCCESS;
 }
 
+int test_minimize_meascfg_reordering()
+{
+  rrc_cfg_t          default_cfg, cfg1;
+  srsenb::all_args_t all_args;
+  TESTASSERT(test_helpers::parse_default_cfg(&default_cfg, all_args) == SRSLTE_SUCCESS);
+  cfg1                  = default_cfg;
+  cfg1.enb_id           = 0x19B;
+  cfg1.cell.nof_prb     = 6;
+  cfg1.meas_cfg_present = true;
+  cfg1.cell_list.resize(2);
+  cfg1.cell_list[0].dl_earfcn = 2850;
+  cfg1.cell_list[0].cell_id   = 0x01;
+  cfg1.cell_list[0].scell_list.resize(1);
+  cfg1.cell_list[0].scell_list[0].cell_id = 0x02;
+  cfg1.cell_list[0].meas_cfg.meas_cells.resize(1);
+  cfg1.cell_list[0].meas_cfg.meas_cells[0]     = generate_cell1();
+  cfg1.cell_list[0].meas_cfg.meas_cells[0].pci = 3;
+  cfg1.cell_list[1].dl_earfcn                  = 3400;
+  cfg1.cell_list[1].cell_id                    = 0x02;
+
+  cell_info_common_list cell_list{cfg1};
+  TESTASSERT(cell_list.nof_cells() == 2);
+  TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
+  TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
+  TESTASSERT(cell_list.get_cc_idx(1)->scells.empty());
+  freq_res_common_list     freq_res{cfg1};
+  cell_ctxt_dedicated_list ue_cell_list1{cfg1, freq_res, cell_list};
+  cell_ctxt_dedicated_list ue_cell_list2{cfg1, freq_res, cell_list};
+
+  meas_cfg_s mcfg1{}, mcfg2{};
+  ue_cell_list1.set_cells({0, 1});
+  ue_cell_list2.set_cells({1, 0});
+  TESTASSERT(fill_meascfg_enb_cfg(mcfg1, ue_cell_list1));
+  TESTASSERT(fill_meascfg_enb_cfg(mcfg2, ue_cell_list2));
+
+  // TEST1: Ensure consistent order of measObjects based on DL-EARFCN
+  TESTASSERT(mcfg1.meas_obj_to_add_mod_list_present and mcfg2.meas_obj_to_add_mod_list_present);
+  TESTASSERT(mcfg1.meas_obj_to_add_mod_list.size() == mcfg2.meas_obj_to_add_mod_list.size());
+  TESTASSERT(get_earfcn(mcfg1.meas_obj_to_add_mod_list[0]) == get_earfcn(mcfg2.meas_obj_to_add_mod_list[0]));
+  TESTASSERT(get_earfcn(mcfg1.meas_obj_to_add_mod_list[1]) == get_earfcn(mcfg2.meas_obj_to_add_mod_list[1]));
+  TESTASSERT(std::is_sorted(
+      mcfg1.meas_obj_to_add_mod_list.begin(), mcfg1.meas_obj_to_add_mod_list.end(), srslte::rrc_obj_id_cmp{}));
+  TESTASSERT(std::is_sorted(
+      mcfg2.meas_obj_to_add_mod_list.begin(), mcfg2.meas_obj_to_add_mod_list.end(), srslte::rrc_obj_id_cmp{}));
+
+  return SRSLTE_SUCCESS;
+}
+
 } // namespace srsenb
 
 int main(int argc, char** argv)
@@ -292,6 +341,7 @@ int main(int argc, char** argv)
   argparse::parse_args(argc, argv);
   TESTASSERT(test_correct_meascfg_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
+  TESTASSERT(test_minimize_meascfg_reordering() == 0);
   srslte::console("Success\n");
 
   return 0;
