@@ -323,7 +323,7 @@ int main(int argc, char** argv)
   int            n_error_words_c          = 0;
   int            n_error_words_c_flood    = 0;
 
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   double elapsed_time_dec_avx       = 0;
   double elapsed_time_dec_avx_flood = 0;
   int    n_error_words_avx          = 0;
