@@ -74,7 +74,7 @@ constexpr uint32_t UE_PCELL_CC_IDX = 0;
 
 struct ue_var_cfg_t {
   asn1::rrc::rr_cfg_ded_s                rr_cfg;
-  asn1::rrc::meas_gap_cfg_c              meas_gaps;
+  asn1::rrc::meas_cfg_s                  meas_cfg;
   asn1::rrc::scell_to_add_mod_list_r10_l scells;
 };
 

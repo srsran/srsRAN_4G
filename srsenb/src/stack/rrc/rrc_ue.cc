@@ -476,11 +476,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
   rrc_conn_recfg.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
-  // Add measConfig
-  if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
-  }
-
   // Fill RR Config Ded and SCells
   apply_reconf_updates(recfg_r8,
                        current_ue_cfg,
@@ -489,6 +484,11 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
                        bearer_list,
                        ue_capabilities,
                        phy_cfg_updated);
+
+  // Add measConfig
+  if (mobility_handler != nullptr) {
+    mobility_handler->fill_conn_recfg_no_ho_cmd(&recfg_r8);
+  }
 
   // if no updates were detected, skip rrc reconfiguration
   if (not(recfg_r8.rr_cfg_ded_present or recfg_r8.meas_cfg_present or recfg_r8.mob_ctrl_info_present or

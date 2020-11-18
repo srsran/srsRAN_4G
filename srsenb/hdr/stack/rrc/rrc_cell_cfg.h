@@ -113,6 +113,7 @@ struct cell_ctxt_dedicated {
   cell_ctxt_dedicated& operator=(cell_ctxt_dedicated&&) noexcept = default;
 
   uint32_t get_dl_earfcn() const { return cell_common->cell_cfg.dl_earfcn; }
+  uint32_t get_pci() const { return cell_common->cell_cfg.pci; }
 };
 
 /** Class used to handle the allocation of a UE's resources across its cells */
@@ -136,13 +137,17 @@ public:
   {
     return (ue_cc_idx < nof_cells()) ? &cell_ded_list[ue_cc_idx] : nullptr;
   }
-  cell_ctxt_dedicated* get_enb_cc_idx(uint32_t enb_cc_idx);
-  size_t               nof_cells() const { return cell_ded_list.size(); }
-  bool                 is_allocated() const { return nof_cells() > 0; }
+  cell_ctxt_dedicated*       get_enb_cc_idx(uint32_t enb_cc_idx);
+  const cell_ctxt_dedicated* find_cell(uint32_t earfcn, uint32_t pci) const;
+  size_t                     nof_cells() const { return cell_ded_list.size(); }
+  bool                       is_allocated() const { return nof_cells() > 0; }
 
-  using iterator = std::vector<cell_ctxt_dedicated>::iterator;
-  iterator begin() { return cell_ded_list.begin(); }
-  iterator end() { return cell_ded_list.end(); }
+  using iterator       = std::vector<cell_ctxt_dedicated>::iterator;
+  using const_iterator = std::vector<cell_ctxt_dedicated>::const_iterator;
+  iterator       begin() { return cell_ded_list.begin(); }
+  iterator       end() { return cell_ded_list.end(); }
+  const_iterator begin() const { return cell_ded_list.begin(); }
+  const_iterator end() const { return cell_ded_list.end(); }
 
   struct sr_res_t {
     int      sr_sched_sf_idx  = 0;

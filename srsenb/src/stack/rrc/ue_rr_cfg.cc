@@ -38,8 +38,6 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-srslte::log_ref log_h = srslte::logmap::get("RRC");
-
 /******************************
  *        SRBs / DRBs
  *****************************/
@@ -47,7 +45,7 @@ srslte::log_ref log_h = srslte::logmap::get("RRC");
 srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
 {
   if (srb_id > 2 or srb_id == 0) {
-    log_h->error("Invalid SRB id=%d\n", srb_id);
+    srslte::logmap::get("RRC")->error("Invalid SRB id=%d\n", srb_id);
     return nullptr;
   }
 
@@ -116,7 +114,7 @@ int16_t get_ri(uint32_t m_ri)
       ri_idx = 805 - N_offset_ri;
       break;
     default:
-      log_h->error("Allocating RI: invalid m_ri=%d\n", m_ri);
+      srslte::logmap::get("RRC")->error("Allocating RI: invalid m_ri=%d\n", m_ri);
       return -1;
   }
 
@@ -148,7 +146,7 @@ int fill_cqi_report_setup(cqi_report_cfg_s&               cqi_rep,
   if (cqi_rep.cqi_report_periodic_present) {
     const cell_ctxt_dedicated* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
     if (pcell == nullptr or not pcell->cqi_res_present) {
-      log_h->warning("PCell CQI resources haven\'t been allocated yet\n");
+      srslte::logmap::get("RRC")->warning("PCell CQI resources haven\'t been allocated yet\n");
       return SRSLTE_ERROR;
     }
     auto& cqi_periodic             = cqi_rep.cqi_report_periodic.setup();
@@ -188,7 +186,7 @@ void fill_cqi_report_reconf(cqi_report_cfg_s&               cqi_rep,
         cqi_setup.ri_cfg_idx_present = true;
         cqi_setup.ri_cfg_idx         = ri_idx;
       } else {
-        log_h->warning("Warning: Configured wrong M_ri parameter.\n");
+        srslte::logmap::get("RRC")->warning("Warning: Configured wrong M_ri parameter.\n");
       }
     }
   }
@@ -566,45 +564,9 @@ void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l& current_sc
   }
 }
 
-bool apply_measgap_updates(meas_gap_cfg_c&                 meas_gaps,
-                           meas_gap_cfg_c&                 current_meas_gaps,
-                           const cell_ctxt_dedicated_list& ue_cell_list)
-{
-  bool                       flag_set = false;
-  const cell_ctxt_dedicated* pcell    = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-
-  meas_gap_cfg_c target_meas_gap;
-  switch (pcell->cell_common->cell_cfg.meas_cfg.meas_gap_period) {
-    case 40:
-      target_meas_gap.set_setup().gap_offset.set_gp0() = pcell->meas_gap_offset;
-      break;
-    case 80:
-      target_meas_gap.set_setup().gap_offset.set_gp1() = pcell->meas_gap_offset;
-      break;
-    case 0: // no meas gaps
-      break;
-    default:
-      log_h->error("Error setting measurement gaps\n");
-  }
-
-  bool is_current_setup = current_meas_gaps.type().value == setup_opts::setup;
-  bool is_target_setup  = target_meas_gap.type().value == setup_opts::setup;
-  if (is_target_setup) {
-    if (not is_current_setup or
-        current_meas_gaps.setup().gap_offset.type() != target_meas_gap.setup().gap_offset.type()) {
-      meas_gaps = target_meas_gap;
-      flag_set  = true;
-    }
-  } else if (is_current_setup) {
-    meas_gaps.set(setup_opts::release);
-    flag_set = true;
-  }
-
-  // update meas gaps
-  current_meas_gaps = target_meas_gap;
-
-  return flag_set;
-}
+/***********************************
+ *        measConfig
+ **********************************/
 
 /// Apply Reconf updates and update current state
 void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
@@ -620,8 +582,6 @@ void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
   fill_rr_cfg_ded_reconf(
       recfg_r8.rr_cfg_ded, current_ue_cfg.rr_cfg, enb_cfg, ue_cell_list, bearers, ue_caps, phy_cfg_updated);
   fill_scells_reconf(recfg_r8, current_ue_cfg.scells, enb_cfg, ue_cell_list, ue_caps);
-  recfg_r8.meas_cfg.meas_gap_cfg_present =
-      apply_measgap_updates(recfg_r8.meas_cfg.meas_gap_cfg, current_ue_cfg.meas_gaps, ue_cell_list);
   recfg_r8.meas_cfg_present |= recfg_r8.meas_cfg.meas_gap_cfg_present;
 
   // Add pending NAS info

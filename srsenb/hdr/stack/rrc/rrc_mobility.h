@@ -115,7 +115,8 @@ private:
   // Handover to target cell
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
                                    const cell_info_common&   target_cell,
-                                   uint32_t                  src_dl_earfcn);
+                                   uint32_t                  src_dl_earfcn,
+                                   uint32_t                  src_pci);
   bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
 
   rrc::ue*                  rrc_ue  = nullptr;
@@ -124,7 +125,7 @@ private:
   srslte::log_ref           rrc_log;
 
   // vars
-  var_meas_cfg_t                       ue_var_meas;
+  asn1::rrc::meas_cfg_s                current_meas_cfg;
   asn1::rrc::rrc_conn_recfg_complete_s pending_recfg_complete;
 
   // events

@@ -30,253 +30,6 @@
 
 using namespace asn1::rrc;
 
-meas_cell_cfg_t generate_cell1()
-{
-  meas_cell_cfg_t cell1{};
-  cell1.earfcn   = 3400;
-  cell1.pci      = 1;
-  cell1.q_offset = 0;
-  cell1.eci      = 0x19C01;
-  return cell1;
-}
-
-report_cfg_eutra_s generate_rep1()
-{
-  report_cfg_eutra_s rep{};
-  rep.report_amount.value = report_cfg_eutra_s::report_amount_opts::r16;
-  rep.report_interv.value = report_interv_opts::ms240;
-  rep.max_report_cells    = 2;
-  rep.report_quant.value  = report_cfg_eutra_s::report_quant_opts::both;
-  rep.trigger_quant.value = report_cfg_eutra_s::trigger_quant_opts::rsrp;
-  rep.trigger_type.set_event().event_id.set_event_a3();
-  rep.trigger_type.event().time_to_trigger.value               = time_to_trigger_opts::ms100;
-  rep.trigger_type.event().hysteresis                          = 0;
-  rep.trigger_type.event().event_id.event_a3().a3_offset       = 5;
-  rep.trigger_type.event().event_id.event_a3().report_on_leave = true;
-  return rep;
-}
-
-bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell)
-{
-  return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset);
-}
-
-int test_correct_insertion()
-{
-  meas_cell_cfg_t cell1 = generate_cell1(), cell2{}, cell3{}, cell4{};
-  cell2                 = cell1;
-  cell2.pci             = 2;
-  cell2.eci             = 0x19C02;
-  cell3                 = cell1;
-  cell3.earfcn          = 2850;
-  cell4                 = cell1;
-  cell4.q_offset        = 1;
-
-  report_cfg_eutra_s rep1 = generate_rep1();
-
-  // TEST 1: cell/rep insertion in empty varMeasCfg
-  {
-    var_meas_cfg_t var_cfg{};
-    auto           ret = var_cfg.add_cell_cfg(cell1);
-    TESTASSERT(std::get<0>(ret) and std::get<1>(ret) != nullptr);
-    const auto& objs = var_cfg.meas_objs();
-    TESTASSERT(objs.size() == 1 and objs[0].meas_obj_id == 1);
-    TESTASSERT(objs[0].meas_obj.type().value ==
-               asn1::rrc::meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    auto& eutra = objs[0].meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.carrier_freq == cell1.earfcn);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 1);
-    TESTASSERT(is_cell_cfg_equal(cell1, eutra.cells_to_add_mod_list[0]));
-
-    auto ret2 = var_cfg.add_report_cfg(rep1);
-    TESTASSERT(ret2->report_cfg_id == 1);
-    TESTASSERT(ret2->report_cfg.report_cfg_eutra() == rep1);
-  }
-
-  {
-    var_meas_cfg_t var_cfg{};
-    const auto&    objs = var_cfg.meas_objs();
-
-    // TEST 2: insertion of out-of-order cell ids in same earfcn
-    var_cfg.add_cell_cfg(cell2);
-    var_cfg.add_cell_cfg(cell1);
-    TESTASSERT(objs.size() == 1 and objs[0].meas_obj_id == 1);
-    auto& eutra = objs[0].meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.carrier_freq == cell1.earfcn);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 2);
-    const cells_to_add_mod_s* cell_it = eutra.cells_to_add_mod_list.begin();
-    TESTASSERT(cell_it[0].cell_idx == 1);
-    TESTASSERT(cell_it[1].cell_idx == 2);
-    TESTASSERT(cell_it[0].pci == cell2.pci);
-    TESTASSERT(cell_it[1].pci == cell1.pci);
-
-    // TEST 3: insertion of cell in another frequency
-    auto ret1 = var_cfg.add_cell_cfg(cell3);
-    TESTASSERT(std::get<0>(ret1) and std::get<1>(ret1)->meas_obj_id == 2);
-    TESTASSERT(objs.size() == 2 and objs[1].meas_obj_id == 2);
-    const auto& eutra2 = objs[1].meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra2.carrier_freq == cell3.earfcn);
-    TESTASSERT(eutra2.cells_to_add_mod_list_present and eutra2.cells_to_add_mod_list.size() == 1);
-    TESTASSERT(eutra2.cells_to_add_mod_list[0].cell_idx == 1);
-    TESTASSERT(eutra2.cells_to_add_mod_list[0].pci == cell3.pci);
-
-    // TEST 4: update of existing cell
-    auto ret2 = var_cfg.add_cell_cfg(cell4);
-    TESTASSERT(std::get<0>(ret2) and std::get<1>(ret2)->meas_obj_id == 1);
-    auto& eutra3 = objs[0].meas_obj.meas_obj_eutra();
-    TESTASSERT(objs.size() == 2 and objs[0].meas_obj_id == 1);
-    TESTASSERT(eutra3.carrier_freq == cell4.earfcn);
-    TESTASSERT(eutra3.cells_to_add_mod_list.size() == 2);
-    TESTASSERT(eutra3.cells_to_add_mod_list[1].cell_idx == 2);
-    TESTASSERT(eutra3.cells_to_add_mod_list[1].pci == cell4.pci);
-    TESTASSERT(eutra3.cells_to_add_mod_list[1].cell_individual_offset.to_number() == 1);
-  }
-
-  return 0;
-}
-
-int test_correct_meascfg_calculation()
-{
-  var_meas_cfg_t src_var{}, target_var{};
-
-  meas_cell_cfg_t cell1{}, cell2{};
-  cell1.earfcn   = 3400;
-  cell1.pci      = 1;
-  cell1.q_offset = 0;
-  cell1.eci      = 0x19C01;
-  cell2          = cell1;
-  cell2.pci      = 2;
-  cell2.eci      = 0x19C02;
-
-  report_cfg_eutra_s rep1  = generate_rep1(), rep2{}, rep3{};
-  rep2                     = rep1;
-  rep2.trigger_quant.value = report_cfg_eutra_s::trigger_quant_opts::rsrq;
-  rep3                     = rep2;
-  rep3.report_quant.value  = report_cfg_eutra_s::report_quant_opts::same_as_trigger_quant;
-
-  {
-    meas_cfg_s result_meascfg;
-
-    // TEST 1: Insertion of two cells in var_meas propagates to the resulting meas_cfg_s cellsToAddMod list
-    target_var.add_cell_cfg(cell1);
-    target_var.add_cell_cfg(cell2);
-    target_var.add_report_cfg(rep1);
-    target_var.add_report_cfg(rep2);
-    target_var.add_measid_cfg(1, 1);
-    target_var.add_measid_cfg(1, 2);
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
-    TESTASSERT(not result_meascfg.meas_obj_to_rem_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
-    auto* item = &result_meascfg.meas_obj_to_add_mod_list[0];
-    TESTASSERT(item->meas_obj_id == 1 and
-               item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    auto& eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.cells_to_add_mod_list_present and not eutra.cells_to_rem_list_present);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 2);
-    auto* cell_item = &eutra.cells_to_add_mod_list[0];
-    TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
-    cell_item++;
-    TESTASSERT(is_cell_cfg_equal(cell2, *cell_item));
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 1);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep1);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[1].report_cfg_id == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[1].report_cfg.report_cfg_eutra() == rep2);
-    TESTASSERT(result_meascfg.meas_id_to_add_mod_list_present and not result_meascfg.meas_id_to_rem_list_present);
-    TESTASSERT(result_meascfg.meas_id_to_add_mod_list.size() == 2);
-    auto* measid_item = &result_meascfg.meas_id_to_add_mod_list[0];
-    TESTASSERT(measid_item->meas_id == 1 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 1);
-    measid_item++;
-    TESTASSERT(measid_item->meas_id == 2 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 2);
-
-    // TEST 2: measConfig is empty if nothing was updated
-    src_var = target_var;
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(not result_meascfg.meas_obj_to_add_mod_list_present and not result_meascfg.meas_obj_to_rem_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 0);
-    TESTASSERT(not result_meascfg.report_cfg_to_add_mod_list_present and
-               not result_meascfg.report_cfg_to_rem_list_present);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 0);
-
-    // TEST 3: Cell is added to cellsToAddModList if just a field was updated
-    cell1.q_offset = 5;
-    src_var        = target_var;
-    target_var.add_cell_cfg(cell1);
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
-    item = &result_meascfg.meas_obj_to_add_mod_list[0];
-    TESTASSERT(item->meas_obj_id == 1 and
-               item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.cells_to_add_mod_list_present and not eutra.cells_to_rem_list_present);
-    TESTASSERT(eutra.cells_to_add_mod_list.size() == 1);
-    cell_item = &eutra.cells_to_add_mod_list[0];
-    TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
-
-    // TEST 4: Removal of cell/rep from target propagates to the resulting meas_cfg_s
-    src_var = target_var;
-    TESTASSERT(src_var.meas_objs().size() == 1);
-    TESTASSERT(src_var.meas_objs()[0].meas_obj.meas_obj_eutra().cells_to_add_mod_list.size() == 2);
-    target_var = {};
-    target_var.add_cell_cfg(cell2);
-    target_var.add_report_cfg(rep1);
-    target_var.add_report_cfg(rep3);
-    src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
-    TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
-    item = &result_meascfg.meas_obj_to_add_mod_list[0];
-    TESTASSERT(item->meas_obj_id == 1 and
-               item->meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra);
-    eutra = item->meas_obj.meas_obj_eutra();
-    TESTASSERT(eutra.cells_to_add_mod_list_present and eutra.cells_to_add_mod_list.size() == 1);
-    TESTASSERT(eutra.cells_to_add_mod_list[0].pci == cell2.pci);
-    TESTASSERT(eutra.cells_to_rem_list_present and eutra.cells_to_rem_list.size() == 1);
-    TESTASSERT(eutra.cells_to_rem_list[0] == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 1);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 2);
-    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep3);
-  }
-
-  {
-    // TEST: creation of a var_meas_cfg using the srsenb::rrc_cfg_t
-    rrc_cfg_t cfg;
-    cfg.enb_id           = 0x19B;
-    cfg.cell.nof_prb     = 6;
-    cfg.meas_cfg_present = true;
-    cfg.cell_list.resize(2);
-    cfg.cell_list[0].dl_earfcn = 2850;
-    cfg.cell_list[0].cell_id   = 0x01;
-    cfg.cell_list[0].scell_list.resize(1);
-    cfg.cell_list[0].scell_list[0].cell_id = 0x02;
-    cfg.cell_list[1].dl_earfcn             = 3400;
-    cfg.cell_list[1].cell_id               = 0x02;
-    cfg.sibs[1].set_sib2();
-
-    // TEST: correct construction of list of cells
-    cell_info_common_list cell_list{cfg};
-    TESTASSERT(cell_list.nof_cells() == 2);
-    TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
-    TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
-    TESTASSERT(cell_list.get_cc_idx(1)->scells.empty());
-
-    // measConfig only includes earfcns of active carriers for a given pcell
-    var_meas_cfg_t var_meas = var_meas_cfg_t::make(cfg, *cell_list.get_cc_idx(0));
-    TESTASSERT(var_meas.meas_objs().size() == 2);
-    TESTASSERT(var_meas.meas_objs()[0].meas_obj.meas_obj_eutra().carrier_freq == 2850);
-    TESTASSERT(var_meas.meas_objs()[1].meas_obj.meas_obj_eutra().carrier_freq == 3400);
-
-    var_meas_cfg_t var_meas2 = var_meas_cfg_t::make(cfg, *cell_list.get_cc_idx(1));
-    TESTASSERT(var_meas2.meas_objs().size() == 1);
-    TESTASSERT(var_meas2.meas_objs()[0].meas_obj.meas_obj_eutra().carrier_freq == 3400);
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 struct mobility_test_params {
   enum class test_event {
     success,
@@ -378,8 +131,9 @@ struct s1ap_mobility_tester : public mobility_tester {
   int generate_rrc_cfg() final
   {
     TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
-    cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19C02;
-    cfg.cell_list[0].meas_cfg.meas_gap_period   = 40;
+    cfg.cell_list[0].meas_cfg.meas_cells[0].eci    = 0x19C02;
+    cfg.cell_list[0].meas_cfg.meas_cells[0].earfcn = 2850;
+    cfg.cell_list[0].meas_cfg.meas_gap_period      = 40;
     return SRSLTE_SUCCESS;
   }
 };
@@ -389,15 +143,18 @@ struct intraenb_mobility_tester : public mobility_tester {
   int generate_rrc_cfg() final
   {
     TESTASSERT(generate_rrc_cfg_common() == SRSLTE_SUCCESS);
-    cfg.cell_list[0].meas_cfg.meas_cells[0].eci = 0x19B02;
-    cfg.cell_list[0].meas_cfg.meas_gap_period   = 40;
+    cfg.cell_list[0].meas_cfg.meas_cells[0].eci    = 0x19B02;
+    cfg.cell_list[0].meas_cfg.meas_gap_period      = 40;
+    cfg.cell_list[0].meas_cfg.meas_cells[0].earfcn = 2850;
 
-    cell_cfg_t cell2                 = cfg.cell_list[0];
-    cell2.pci                        = 2;
-    cell2.cell_id                    = 2;
-    cell2.meas_cfg.meas_cells[0].pci = 1;
-    cell2.meas_cfg.meas_cells[0].eci = 0x19B01;
-    cell2.meas_cfg.meas_gap_period   = 80;
+    cell_cfg_t cell2                    = cfg.cell_list[0];
+    cell2.pci                           = 2;
+    cell2.cell_id                       = 2;
+    cell2.dl_earfcn                     = 2850;
+    cell2.meas_cfg.meas_cells[0].pci    = 1;
+    cell2.meas_cfg.meas_cells[0].earfcn = 3400;
+    cell2.meas_cfg.meas_cells[0].eci    = 0x19B01;
+    cell2.meas_cfg.meas_gap_period      = 80;
     cfg.cell_list.push_back(cell2);
 
     return SRSLTE_SUCCESS;
@@ -747,8 +504,6 @@ int main(int argc, char** argv)
     return -1;
   }
   argparse::parse_args(argc, argv);
-  TESTASSERT(test_correct_insertion() == 0);
-  TESTASSERT(test_correct_meascfg_calculation() == 0);
 
   // S1AP Handover
   TESTASSERT(test_s1ap_mobility(mobility_test_params{event::wrong_measreport}) == 0);

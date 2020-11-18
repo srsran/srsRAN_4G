@@ -167,6 +167,14 @@ cell_ctxt_dedicated* cell_ctxt_dedicated_list::get_enb_cc_idx(uint32_t enb_cc_id
   return it == cell_ded_list.end() ? nullptr : &(*it);
 }
 
+const cell_ctxt_dedicated* cell_ctxt_dedicated_list::find_cell(uint32_t earfcn, uint32_t pci) const
+{
+  auto it = std::find_if(cell_ded_list.begin(), cell_ded_list.end(), [earfcn, pci](const cell_ctxt_dedicated& c) {
+    return c.get_pci() == pci and c.get_dl_earfcn() == earfcn;
+  });
+  return it == cell_ded_list.end() ? nullptr : &(*it);
+}
+
 cell_ctxt_dedicated* cell_ctxt_dedicated_list::add_cell(uint32_t enb_cc_idx)
 {
   const cell_info_common* cell_common = common_list.get_cc_idx(enb_cc_idx);

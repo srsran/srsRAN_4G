@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
+#include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
@@ -581,9 +582,8 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
   }
 
   // Check if there has been any update in ue_var_meas based on UE current cell list
-  cell_ctxt_dedicated* pcell      = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  uint32_t             src_earfcn = pcell->get_dl_earfcn();
-  conn_recfg->meas_cfg_present    = update_ue_var_meas_cfg(src_earfcn, *pcell->cell_common, &conn_recfg->meas_cfg);
+  conn_recfg->meas_cfg_present = apply_meascfg_updates(
+      conn_recfg->meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->cell_ded_list);
   return conn_recfg->meas_cfg_present;
 }
 
@@ -605,8 +605,10 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     Error("MeasReports regarding non-EUTRA are not supported!\n");
     return;
   }
-  auto measid_it = srslte::find_rrc_obj_id(ue_var_meas.meas_ids(), meas_res.meas_id);
-  if (measid_it == ue_var_meas.meas_ids().end()) {
+  const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
+  const meas_obj_list& measobj_list = rrc_ue->current_ue_cfg.meas_cfg.meas_obj_to_add_mod_list;
+  auto                 measid_it    = srslte::find_rrc_obj_id(measid_list, meas_res.meas_id);
+  if (measid_it == measid_list.end()) {
     Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
     return;
   }
@@ -614,7 +616,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
 
   // Find respective ReportCfg and MeasObj
   ho_meas_report_ev meas_ev{};
-  auto              obj_it = srslte::find_rrc_obj_id(ue_var_meas.meas_objs(), measid_it->meas_obj_id);
+  auto              obj_it = srslte::find_rrc_obj_id(measobj_list, measid_it->meas_obj_id);
   meas_ev.meas_obj         = &(*obj_it);
 
   // iterate from strongest to weakest cell
@@ -713,12 +715,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   hoprep_r8.as_cfg_present       = true;
   hoprep_r8.as_cfg.source_rr_cfg = rrc_ue->current_ue_cfg.rr_cfg;
   hoprep_r8.as_cfg.source_scell_cfg_list_r10.reset(new scell_to_add_mod_list_r10_l{rrc_ue->current_ue_cfg.scells});
-  // NOTE: set source_meas_cnfg equal to the UE's current var_meas_cfg
-  var_meas_cfg_t empty_meascfg{}, &target_var_meas = ue_var_meas;
-  //  // however, reset the MeasObjToAdd Cells, so that the UE does not measure again the target eNB
-  //  meas_obj_to_add_mod_s* obj = rrc_details::binary_find(target_var_meas.meas_objs(), measobj_id);
-  //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
-  empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
+  hoprep_r8.as_cfg.source_meas_cfg = rrc_ue->current_ue_cfg.meas_cfg;
   // Get security cfg
   hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);
@@ -801,49 +798,6 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
   return is_in_state<s1_target_ho_st>();
 }
 
-bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(uint32_t                src_earfcn,
-                                                   const cell_info_common& target_pcell,
-                                                   asn1::rrc::meas_cfg_s*  diff_meas_cfg)
-{
-  // Make UE Target VarMeasCfg based on active cells and parsed Config files
-  var_meas_cfg_t target_var_meas = var_meas_cfg_t::make(rrc_enb->cfg, target_pcell);
-  uint32_t       target_earfcn   = target_pcell.cell_cfg.dl_earfcn;
-
-  // Apply TS 36.331 5.5.6.1 - If Source and Target eNB EARFCNs do no match, update SourceVarMeasCfg.MeasIdList
-  if (target_earfcn != src_earfcn) {
-    auto&                  meas_objs        = ue_var_meas.meas_objs();
-    meas_obj_to_add_mod_s* found_target_obj = rrc_details::find_meas_obj(meas_objs, target_earfcn);
-    meas_obj_to_add_mod_s* found_src_obj    = rrc_details::find_meas_obj(meas_objs, src_earfcn);
-    if (found_target_obj != nullptr and found_src_obj != nullptr) {
-      for (auto& mid : ue_var_meas.meas_ids()) {
-        if (found_target_obj->meas_obj_id == mid.meas_obj_id) {
-          mid.meas_obj_id = found_src_obj->meas_obj_id;
-        } else if (found_src_obj->meas_obj_id == mid.meas_obj_id) {
-          mid.meas_obj_id = found_target_obj->meas_obj_id;
-        }
-      }
-    } else if (found_src_obj != nullptr) {
-      for (auto it = ue_var_meas.meas_ids().begin(); it != ue_var_meas.meas_ids().end();) {
-        if (it->meas_obj_id == found_src_obj->meas_obj_id) {
-          auto rit = it++;
-          ue_var_meas.meas_ids().erase(rit);
-        } else {
-          ++it;
-        }
-      }
-    }
-  }
-
-  // Calculate difference between source and target VarMeasCfg
-  bool meas_cfg_present = ue_var_meas.compute_diff_meas_cfg(target_var_meas, diff_meas_cfg);
-
-  // Update user varMeasCfg to target
-  ue_var_meas = target_var_meas;
-  rrc_log->debug_long("New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, ue_var_meas.to_string().c_str());
-
-  return meas_cfg_present;
-}
-
 /**
  * @brief Fills RRCConnectionReconfigurationMessage with Handover Command fields that are common to
  *        all types of handover (e.g. S1, intra-enb, X2), namely:
@@ -858,7 +812,8 @@ bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(uint32_t                src_e
  */
 void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
                                                         const cell_info_common&   target_cell,
-                                                        uint32_t                  src_dl_earfcn)
+                                                        uint32_t                  src_dl_earfcn,
+                                                        uint32_t                  src_pci)
 {
   auto& recfg              = msg.msg.set_c1().set_rrc_conn_recfg();
   recfg.rrc_transaction_id = rrc_ue->transaction_id;
@@ -891,7 +846,8 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
   intralte.next_hop_chaining_count        = rrc_ue->ue_security_cfg.get_ncc();
 
   // Add MeasConfig of target cell
-  recfg_r8.meas_cfg_present = update_ue_var_meas_cfg(src_dl_earfcn, target_cell, &recfg_r8.meas_cfg);
+  recfg_r8.meas_cfg_present =
+      apply_meascfg_updates(recfg_r8.meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->cell_ded_list, src_pci);
 
   apply_reconf_updates(recfg_r8,
                        rrc_ue->current_ue_cfg,
@@ -1062,7 +1018,10 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   const cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   // Fill fields common to all types of handover (e.g. new CQI/SR configuration, mobControlInfo)
-  fill_mobility_reconf_common(dl_dcch_msg, *target_cell->cell_common, hoprep_r8.as_cfg.source_dl_carrier_freq);
+  fill_mobility_reconf_common(dl_dcch_msg,
+                              *target_cell->cell_common,
+                              hoprep_r8.as_cfg.source_dl_carrier_freq,
+                              hoprep_r8.as_context.reest_info.source_pci);
   rrc_conn_recfg_r8_ies_s& recfg_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply new Security Config based on HandoverRequest
@@ -1182,12 +1141,11 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   // Save source eNB UE RR cfg as a starting point
   apply_rr_cfg_ded_diff(rrc_ue->current_ue_cfg.rr_cfg, ho_prep.as_cfg.source_rr_cfg);
 
+  // Save measConfig
+  rrc_ue->current_ue_cfg.meas_cfg = ho_prep.as_cfg.source_meas_cfg;
+
   // Save source UE MAC configuration as a base
   rrc_ue->mac_ctrl->handle_ho_prep(ho_prep);
-
-  // Save measConfig
-  ue_var_meas = var_meas_cfg_t::make(ho_prep.as_cfg.source_meas_cfg);
-  rrc_log->debug_long("New rnti=0x%x varMeasConfig: %s", rrc_ue->rnti, ue_var_meas.to_string().c_str());
 
   return true;
 }
@@ -1281,7 +1239,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 
   /* Prepare RRC Reconf Message with mobility info */
   dl_dcch_msg_s dl_dcch_msg;
-  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn);
+  f->fill_mobility_reconf_common(dl_dcch_msg, *target_cell, source_cell->cell_cfg.dl_earfcn, source_cell->cell_cfg.pci);
   rrc_conn_recfg_r8_ies_s& reconf_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply changes to the MAC scheduler
