@@ -6,7 +6,7 @@
 # the distribution.
 #
 
-set(SOURCES cc_worker.cc phy.cc phy_common.cc phy_ue_db.cc prach_worker.cc sf_worker.cc txrx.cc)
+set(SOURCES lte/cc_worker.cc lte/sf_worker.cc lte/worker_pool.cc phy.cc phy_common.cc phy_ue_db.cc prach_worker.cc txrx.cc)
 add_library(srsenb_phy STATIC ${SOURCES})
 
 if(ENABLE_GUI AND SRSGUI_FOUND)

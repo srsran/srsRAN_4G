@@ -15,9 +15,8 @@
 
 #include "phy_common.h"
 #include "prach_worker.h"
+#include "srsenb/hdr/phy/lte/worker_pool.h"
 #include "srslte/common/log.h"
-#include "srslte/common/thread_pool.h"
-#include "srslte/common/threads.h"
 #include "srslte/config.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"
@@ -30,7 +29,7 @@ public:
   txrx();
   bool init(stack_interface_phy_lte*     stack_,
             srslte::radio_interface_phy* radio_handler,
-            srslte::thread_pool*         _workers_pool,
+            lte::worker_pool*            _workers_pool,
             phy_common*                  worker_com,
             prach_worker_pool*           prach_,
             srslte::log*                 log_h,
@@ -43,7 +42,7 @@ private:
   stack_interface_phy_lte*     stack        = nullptr;
   srslte::radio_interface_phy* radio_h      = nullptr;
   srslte::log*                 log_h        = nullptr;
-  srslte::thread_pool*         workers_pool = nullptr;
+  lte::worker_pool*            workers_pool = nullptr;
   prach_worker_pool*           prach        = nullptr;
   phy_common*                  worker_com   = nullptr;
   srslte::channel_ptr          ul_channel   = nullptr;

@@ -15,11 +15,12 @@
 
 #include <string.h>
 
-#include "phy_common.h"
+#include "../phy_common.h"
 
 #define LOG_EXECTIME
 
 namespace srsenb {
+namespace lte {
 
 class cc_worker
 {
@@ -114,6 +115,7 @@ private:
   std::mutex              mutex;
 };
 
+} // namespace lte
 } // namespace srsenb
 
 #endif // SRSENB_CC_WORKER_H

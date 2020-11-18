@@ -14,7 +14,7 @@
 #define SRSENB_PHY_H
 
 #include "phy_common.h"
-#include "sf_worker.h"
+#include "lte/sf_worker.h"
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
@@ -62,6 +62,8 @@ public:
   void radio_overflow() override{};
   void radio_failure() override{};
 
+  void srslte_phy_logger(phy_logger_level_t log_level, char* str);
+
 private:
   srslte::phy_cfg_mbsfn_t mbsfn_config = {};
   uint32_t        nof_workers  = 0;
@@ -75,14 +77,13 @@ private:
   srslte::radio_interface_phy* radio = nullptr;
 
   srslte::logger*                                   logger = nullptr;
-  std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
-  srslte::log*                                      log_h = nullptr;
+  std::unique_ptr<srslte::log_filter>               log_h         = nullptr;
+  std::unique_ptr<srslte::log_filter>               log_phy_lib_h = nullptr;
 
-  srslte::thread_pool    workers_pool;
-  std::vector<sf_worker> workers;
-  phy_common             workers_common;
-  prach_worker_pool      prach;
-  txrx                   tx_rx;
+  lte::worker_pool  lte_workers;
+  phy_common        workers_common;
+  prach_worker_pool prach;
+  txrx              tx_rx;
 
   bool initialized = false;
 

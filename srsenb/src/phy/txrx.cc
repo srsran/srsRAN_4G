@@ -16,7 +16,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 
-#include "srsenb/hdr/phy/sf_worker.h"
+#include "srsenb/hdr/phy/lte/sf_worker.h"
 #include "srsenb/hdr/phy/txrx.h"
 
 #define Error(fmt, ...)                                                                                                \
@@ -43,7 +43,7 @@ txrx::txrx() : thread("TXRX")
 
 bool txrx::init(stack_interface_phy_lte*     stack_,
                 srslte::radio_interface_phy* radio_h_,
-                srslte::thread_pool*         workers_pool_,
+                lte::worker_pool*            workers_pool_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 srslte::log*                 log_h_,
@@ -80,7 +80,7 @@ void txrx::stop()
 
 void txrx::run_thread()
 {
-  sf_worker*             worker    = nullptr;
+  lte::sf_worker*        worker    = nullptr;
   srslte::rf_buffer_t    buffer    = {};
   srslte::rf_timestamp_t timestamp = {};
   uint32_t               sf_len    = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
@@ -118,7 +118,12 @@ void txrx::run_thread()
   // Main loop
   while (running) {
     tti    = TTI_ADD(tti, 1);
-    worker = (sf_worker*)workers_pool->wait_worker(tti);
+
+    if (log_h) {
+      log_h->step(tti);
+    }
+
+    worker = workers_pool->wait_worker(tti);
     if (worker) {
       // Multiple cell buffer mapping
       for (uint32_t cc = 0; cc < worker_com->get_nof_carriers(); cc++) {

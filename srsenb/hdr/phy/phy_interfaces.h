@@ -42,7 +42,7 @@ struct phy_args_t {
   int         pusch_max_its       = 10;
   bool        pusch_8bit_decoder  = false;
   float       tx_amplitude        = 1.0f;
-  int         nof_phy_threads     = 1;
+  uint32_t    nof_phy_threads     = 1;
   std::string equalizer_mode      = "mmse";
   float       estimator_fil_w     = 1.0f;
   bool        pusch_meas_epre     = true;

@@ -16,11 +16,12 @@
 #include <mutex>
 #include <string.h>
 
+#include "../phy_common.h"
 #include "cc_worker.h"
-#include "phy_common.h"
 #include "srslte/srslte.h"
 
 namespace srsenb {
+namespace lte {
 
 class sf_worker : public srslte::thread_pool::worker
 {
@@ -44,7 +45,7 @@ public:
   int      read_ce_arg(uint32_t cc_idx, float* ce_abs);
   int      read_pusch_d(uint32_t cc_idx, cf_t* pusch_d);
   int      read_pucch_d(uint32_t cc_idx, cf_t* pusch_d);
-  void start_plot();
+  void     start_plot();
 
   uint32_t get_metrics(std::vector<phy_metrics_t>& metrics);
 
@@ -68,6 +69,7 @@ private:
   srslte_softbuffer_tx_t temp_mbsfn_softbuffer = {};
 };
 
+} // namespace lte
 } // namespace srsenb
 
 #endif // SRSENB_PHCH_WORKER_H

@@ -14,7 +14,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 
-#include "srsenb/hdr/phy/sf_worker.h"
+#include "srsenb/hdr/phy/lte/sf_worker.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -58,6 +58,7 @@ using namespace asn1::rrc;
 //#define DEBUG_WRITE_FILE
 
 namespace srsenb {
+namespace lte {
 
 #ifdef DEBUG_WRITE_FILE
 FILE* f;
@@ -342,6 +343,7 @@ sf_worker::~sf_worker()
   srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
 }
 
+} // namespace lte
 } // namespace srsenb
 
 /***********************************************************

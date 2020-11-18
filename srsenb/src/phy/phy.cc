@@ -40,9 +40,34 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phy::phy(srslte::logger* logger_) :
-  logger(logger_), workers_pool(MAX_WORKERS), workers(MAX_WORKERS), workers_common(), nof_workers(0)
-{}
+static void srslte_phy_handler(phy_logger_level_t log_level, void* ctx, char* str)
+{
+  phy* r = (phy*)ctx;
+  r->srslte_phy_logger(log_level, str);
+}
+
+void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
+{
+  if (log_phy_lib_h) {
+    switch (log_level) {
+      case LOG_LEVEL_INFO_S:
+        log_phy_lib_h->info(" %s", str);
+        break;
+      case LOG_LEVEL_DEBUG_S:
+        log_phy_lib_h->debug(" %s", str);
+        break;
+      case LOG_LEVEL_ERROR_S:
+        log_phy_lib_h->error(" %s", str);
+        break;
+      default:
+        break;
+    }
+  } else {
+    printf("[PHY_LIB]: %s\n", str);
+  }
+}
+
+phy::phy(srslte::logger* logger_) : logger(logger_), lte_workers(MAX_WORKERS), workers_common(), nof_workers(0) {}
 
 phy::~phy()
 {
@@ -72,29 +97,21 @@ int phy::init(const phy_args_t&            args,
 {
   mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE);
 
-  // Create array of pointers to phy_logs
-  for (int i = 0; i < args.nof_phy_threads; i++) {
-    auto mylog   = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    char tmp[16] = {};
-    sprintf(tmp, "PHY%d", i);
-    mylog->init(tmp, logger, true);
-    mylog->set_level(args.log.phy_level);
-    mylog->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::move(mylog));
-  }
-  log_h = log_vec[0].get();
-
   // Add PHY lib log
-  if (log_vec.at(0)->get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
-    auto lib_log = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    char tmp[16] = {};
-    sprintf(tmp, "PHY_LIB");
-    lib_log->init(tmp, logger, true);
-    lib_log->set_level(args.log.phy_lib_level);
-    lib_log->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::move(lib_log));
-  } else {
-    log_vec.push_back(nullptr);
+  if (srslte::log::get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
+    log_phy_lib_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
+    log_phy_lib_h->init("PHY_LIB", logger, true);
+    log_phy_lib_h->set_level(args.log.phy_lib_level);
+    log_phy_lib_h->set_hex_limit(args.log.phy_hex_limit);
+    srslte_phy_log_register_handler(this, srslte_phy_handler);
+  }
+
+  // Create default log
+  {
+    log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
+    log_h->init("PHY", logger, true);
+    log_h->set_level(args.log.phy_lib_level);
+    log_h->set_hex_limit(args.log.phy_hex_limit);
   }
 
   radio       = radio_;
@@ -107,20 +124,17 @@ int phy::init(const phy_args_t&            args,
   parse_common_config(cfg);
 
   // Add workers to workers pool and start threads
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    workers[i].init(&workers_common, log_vec.at(i).get());
-    workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO);
-  }
+  lte_workers.init(args, &workers_common, logger, WORKERS_THREAD_PRIO);
 
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
     prach_cfg.root_seq_idx = cfg.phy_cell_cfg[cc].root_seq_idx;
-    prach.init(cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, log_vec.at(0).get(), PRACH_WORKER_THREAD_PRIO);
+    prach.init(cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, log_h.get(), PRACH_WORKER_THREAD_PRIO);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(stack_, radio, &workers_pool, &workers_common, &prach, log_vec.at(0).get(), SF_RECV_THREAD_PRIO);
+  tx_rx.init(stack_, radio, &lte_workers, &workers_common, &prach, log_h.get(), SF_RECV_THREAD_PRIO);
 
   initialized = true;
 
@@ -132,7 +146,7 @@ void phy::stop()
   if (initialized) {
     tx_rx.stop();
     workers_common.stop();
-    workers_pool.stop();
+    lte_workers.stop();
     prach.stop();
 
     initialized = false;
@@ -145,7 +159,7 @@ void phy::rem_rnti(uint16_t rnti)
 {
   // Remove the RNTI when the TTI finishes, this has a delay up to the pipeline length (3 ms)
   for (uint32_t i = 0; i < nof_workers; i++) {
-    sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
+    lte::sf_worker* w = lte_workers.wait_worker_id(i);
     if (w) {
       w->rem_rnti(rnti);
       w->release();
@@ -160,7 +174,7 @@ void phy::rem_rnti(uint16_t rnti)
 int phy::pregen_sequences(uint16_t rnti)
 {
   for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i].pregen_sequences(rnti) != SRSLTE_SUCCESS) {
+    if (lte_workers[i]->pregen_sequences(rnti) != SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
   }
@@ -184,7 +198,7 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
 {
   std::vector<phy_metrics_t> metrics_tmp;
   for (uint32_t i = 0; i < nof_workers; i++) {
-    workers[i].get_metrics(metrics_tmp);
+    lte_workers[i]->get_metrics(metrics_tmp);
     metrics.resize(std::max(metrics_tmp.size(), metrics.size()));
     for (uint32_t j = 0; j < metrics_tmp.size(); j++) {
       metrics[j].dl.n_samples += metrics_tmp[j].dl.n_samples;
@@ -228,7 +242,7 @@ void phy::set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list)
     if (config.configured) {
       // Add RNTI to all SF workers
       for (uint32_t w = 0; w < nof_workers; w++) {
-        workers[w].add_rnti(rnti, config.enb_cc_idx);
+        lte_workers[w]->add_rnti(rnti, config.enb_cc_idx);
       }
     }
   }
@@ -272,7 +286,7 @@ void phy::configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, con
 // Start GUI
 void phy::start_plot()
 {
-  workers[0].start_plot();
+  lte_workers[0]->start_plot();
 }
 
 } // namespace srsenb

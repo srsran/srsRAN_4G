@@ -14,7 +14,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 
-#include "srsenb/hdr/phy/cc_worker.h"
+#include "srsenb/hdr/phy/lte/cc_worker.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -44,6 +44,7 @@ using namespace asn1::rrc;
 //#define DEBUG_WRITE_FILE
 
 namespace srsenb {
+namespace lte {
 
 cc_worker::cc_worker()
 {
@@ -651,4 +652,5 @@ int cc_worker::read_pucch_d(cf_t* pdsch_d)
   return nof_re;
 }
 
+} // namespace lte
 } // namespace srsenb

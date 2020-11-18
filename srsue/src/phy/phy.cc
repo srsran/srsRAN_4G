@@ -125,29 +125,22 @@ int phy::init(const phy_args_t& args_)
   // Add PHY lib log
   if (srslte::log::get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
     log_phy_lib_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    char tmp[16];
-    sprintf(tmp, "PHY_LIB");
-    log_phy_lib_h->init(tmp, logger, true);
+    log_phy_lib_h->init("PHY_LIB", logger, true);
     log_phy_lib_h->set_level(args.log.phy_lib_level);
     log_phy_lib_h->set_hex_limit(args.log.phy_hex_limit);
+    srslte_phy_log_register_handler(this, srslte_phy_handler);
   }
 
   // set default logger
   {
     log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    char tmp[16];
-    sprintf(tmp, "PHY_COM");
-    log_h->init(tmp, logger, true);
+    log_h->init("PHY", logger, true);
     log_h->set_level(args.log.phy_lib_level);
     log_h->set_hex_limit(args.log.phy_hex_limit);
   }
 
   if (!check_args(args)) {
     return false;
-  }
-
-  if (log_phy_lib_h) {
-    srslte_phy_log_register_handler(this, srslte_phy_handler);
   }
 
   is_configured = false;
