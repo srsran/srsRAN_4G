@@ -268,6 +268,47 @@ meas_gap_cfg_c make_measgap(const meas_obj_list& measobjs, const cell_ctxt_dedic
   return meas_gap;
 }
 
+bool apply_meas_gap_updates(const meas_gap_cfg_c& src_gaps,
+                            const meas_gap_cfg_c& target_gaps,
+                            meas_gap_cfg_c&       diff_gaps)
+{
+  if (src_gaps.type() != target_gaps.type()) {
+    if (target_gaps.type().value == setup_opts::setup) {
+      diff_gaps = target_gaps;
+      return true;
+    } else if (src_gaps.type().value == setup_opts::setup) {
+      diff_gaps.set(setup_opts::release);
+      return true;
+    }
+  } else if (target_gaps.type().value == setup_opts::setup) {
+    const auto& target_offset = target_gaps.setup().gap_offset;
+    const auto& src_offset    = src_gaps.setup().gap_offset;
+    if (target_offset.type().value != src_offset.type().value) {
+      diff_gaps = target_gaps;
+      return true;
+    } else {
+      switch (target_offset.type().value) {
+        case meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::gp0:
+          if (target_offset.gp0() != src_offset.gp0()) {
+            diff_gaps = target_gaps;
+            return true;
+          }
+          break;
+        case meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::gp1:
+          if (target_offset.gp1() != src_offset.gp1()) {
+            diff_gaps = target_gaps;
+            return true;
+          }
+          break;
+        default:
+          srslte::logmap::get("RRC")->warning("MeasGap of type %s not supported\n",
+                                              target_offset.type().to_string().c_str());
+      }
+    }
+  }
+  return false;
+}
+
 /***********************************
  *          measConfig
  **********************************/
@@ -291,10 +332,10 @@ bool set_meascfg_presence_flags(meas_cfg_s& meascfg)
 
 bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const cell_ctxt_dedicated_list& ue_cell_list)
 {
-  const cell_ctxt_dedicated* pcell         = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const cell_ctxt_dedicated* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   assert(pcell != nullptr);
-  const cell_info_common*    pcell_cfg     = pcell->cell_common;
-  const auto&                pcell_meascfg = pcell_cfg->cell_cfg.meas_cfg;
+  const cell_info_common* pcell_cfg     = pcell->cell_common;
+  const auto&             pcell_meascfg = pcell_cfg->cell_cfg.meas_cfg;
 
   // Add PCell+Scells to measObjToAddModList
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
@@ -414,17 +455,10 @@ bool apply_meascfg_updates(meas_cfg_s&                     meascfg,
       (target_meascfg.quant_cfg_present and target_meascfg.quant_cfg != current_meascfg.quant_cfg)) {
     meascfg.quant_cfg = target_meascfg.quant_cfg;
   }
-  // Only update measGap if it was not set before or periodicity changed
-  if (current_meascfg.meas_gap_cfg.type().value == setup_opts::setup) {
-    if (target_meascfg.meas_gap_cfg.type().value != setup_opts::setup) {
-      meascfg.meas_gap_cfg.set(setup_opts::release);
-    } else if (target_meascfg.meas_gap_cfg.setup().gap_offset.type() !=
-               current_meascfg.meas_gap_cfg.setup().gap_offset.type()) {
-      meascfg.meas_gap_cfg = target_meascfg.meas_gap_cfg;
-    }
-  } else {
-    meascfg.meas_gap_cfg = target_meascfg.meas_gap_cfg;
-  }
+
+  // Set measGaps if changed
+  meascfg.meas_gap_cfg_present =
+      apply_meas_gap_updates(current_meascfg.meas_gap_cfg, target_meascfg.meas_gap_cfg, meascfg.meas_gap_cfg);
 
   // Update current measconfig
   bool ret        = set_meascfg_presence_flags(meascfg);
