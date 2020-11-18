@@ -56,11 +56,14 @@ typedef union bg_node_t {
  * \brief Inner registers for the optimized LDPC encoder.
  */
 struct ldpc_enc_avx2long {
-  bg_node_t* codeword;     /*!< \brief Contains the entire codeword, before puncturing. */
-  __m256i*   aux;          /*!< \brief Auxiliary register. */
-  __m256i*   rotated_node; /*!< \brief To store rotated versions of the nodes. */
-
-  uint8_t n_subnodes; /*!< \brief Number of subnodes. */
+  bg_node_t* codeword;           /*!< \brief Contains the entire codeword, before puncturing. */
+  bg_node_t* codeword_to_free;   /*!< \brief Auxiliary pointer with a free memory of size CTTC_AVX2_B_SIZE previous to
+                                    codeword */
+  __m256i* aux;                  /*!< \brief Auxiliary register. */
+  __m256i* rotated_node;         /*!< \brief To store rotated versions of the nodes. */
+  __m256i* rotated_node_to_free; /*!< \brief Auxiliary pointer to store rotated versions of the nodes with extra free
+                                    memory of size CTTC_AVX2_B_SIZE previous to rotated_node */
+  uint8_t n_subnodes;            /*!< \brief Number of subnodes. */
 };
 
 /*!
@@ -86,25 +89,25 @@ void* create_ldpc_enc_avx2long(srslte_ldpc_encoder_t* q)
   int left_out   = q->ls % SRSLTE_AVX2_B_SIZE;
   vp->n_subnodes = q->ls / SRSLTE_AVX2_B_SIZE + (left_out > 0);
 
-  if ((vp->codeword = srslte_vec_malloc(q->bgN * vp->n_subnodes * sizeof(bg_node_t))) == NULL) {
+  if ((vp->codeword_to_free = srslte_vec_malloc((q->bgN * vp->n_subnodes + 1) * sizeof(bg_node_t))) == NULL) {
     free(vp);
     return NULL;
   }
+  vp->codeword = &vp->codeword_to_free[1];
 
   if ((vp->aux = srslte_vec_malloc(q->bgM * vp->n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->codeword);
+    free(vp->codeword_to_free);
     free(vp);
     return NULL;
   }
 
-  // for some reason, the software stops with a segmentation fault when ls is a multiple of 32
-  // if we don't add the extra block.
-  if ((vp->rotated_node = srslte_vec_malloc((vp->n_subnodes + 1) * sizeof(__m256i))) == NULL) {
+  if ((vp->rotated_node_to_free = srslte_vec_malloc((vp->n_subnodes + 2) * sizeof(__m256i))) == NULL) {
     free(vp->aux);
-    free(vp->codeword);
+    free(vp->codeword_to_free);
     free(vp);
     return NULL;
   }
+  vp->rotated_node = &vp->rotated_node_to_free[1];
 
   return vp;
 }
@@ -114,9 +117,9 @@ void delete_ldpc_enc_avx2long(void* p)
   struct ldpc_enc_avx2long* vp = p;
 
   if (vp != NULL) {
-    free(vp->rotated_node);
+    free(vp->rotated_node_to_free);
     free(vp->aux);
-    free(vp->codeword);
+    free(vp->codeword_to_free);
     free(vp);
   }
 }

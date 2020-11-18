@@ -157,7 +157,8 @@ function(ldpc_rm_unit_tests)
     endforeach()
   endforeach()
 endfunction()
-set(test_name LDPC-RM-BG1)
+
+set(test_name LDPC-RM)
 set(test_command ldpc_rm_test)
 ldpc_rm_unit_tests(${lifting_sizes})
 

@@ -72,17 +72,20 @@ static const int8_t infinity7 = (1U << 6U) - 1;
 struct ldpc_regs_c_avx2long_flood {
   __m256i scaling_fctr; /*!< \brief Scaling factor for the normalized min-sum decoding algorithm. */
 
-  bg_node_t* soft_bits;    /*!< \brief A-posteriori log-likelihood ratios. */
-  __m256i*   llrs;         /*!< \brief A-priori log-likelihood ratios. */
-  __m256i*   check_to_var; /*!< \brief Check-to-variable messages. */
-  __m256i*   var_to_check; /*!< \brief Variable-to-check messages. */
+  bg_node_t* soft_bits;            /*!< \brief A-posteriori log-likelihood ratios. */
+  __m256i*   llrs;                 /*!< \brief A-priori log-likelihood ratios. */
+  __m256i*   check_to_var;         /*!< \brief Check-to-variable messages. */
+  __m256i*   var_to_check;         /*!< \brief Variable-to-check messages. */
+  __m256i*   var_to_check_to_free; /*!< \brief Auxiliar variable-to-check messages, with 2 extra __m256 space. */
 
   __m256i* rotated_v2c;   /*!< \brief To store a rotated version of the variable-to-check messages. */
   __m256i* this_c2v_epi8; /*!< \brief Helper register for the current c2v node. */
-  __m256i* minp_v2c_epi8; /*!< \brief Helper register for the minimum v2c message. */
-  __m256i* mins_v2c_epi8; /*!< \brief Helper register for the second minimum v2c message. */
-  __m256i* prod_v2c_epi8; /*!< \brief Helper register for the sign of the product of all v2c messages. */
-  __m256i* min_ix_epi8;   /*!< \brief Helper register for the index of the minimum v2c message. */
+  __m256i*
+           this_c2v_epi8_to_free; /*!< \brief Auxiliar helper register for the current c2v node, with 2 extra _mm256 space */
+  __m256i* minp_v2c_epi8;         /*!< \brief Helper register for the minimum v2c message. */
+  __m256i* mins_v2c_epi8;         /*!< \brief Helper register for the second minimum v2c message. */
+  __m256i* prod_v2c_epi8;         /*!< \brief Helper register for the sign of the product of all v2c messages. */
+  __m256i* min_ix_epi8;           /*!< \brief Helper register for the index of the minimum v2c message. */
 
   uint16_t ls;         /*!< \brief Lifting size. */
   uint8_t  n_subnodes; /*!< \brief Number of subnodes. */
@@ -160,16 +163,17 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
     return NULL;
   }
 
-  if ((vp->var_to_check = srslte_vec_malloc((hrr + 1) * bgM * n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->var_to_check_to_free = srslte_vec_malloc(((hrr + 1) * bgM * n_subnodes + 2) * sizeof(__m256i))) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
     free(vp);
     return NULL;
   }
+  vp->var_to_check = &vp->var_to_check_to_free[1];
 
   if ((vp->minp_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
@@ -179,7 +183,7 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
 
   if ((vp->mins_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->minp_v2c_epi8);
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
@@ -190,7 +194,7 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
   if ((vp->prod_v2c_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
@@ -202,7 +206,7 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
@@ -215,7 +219,7 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
@@ -223,19 +227,20 @@ void* create_ldpc_dec_c_avx2long_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, fl
     return NULL;
   }
 
-  if ((vp->this_c2v_epi8 = srslte_vec_malloc(n_subnodes * sizeof(__m256i))) == NULL) {
+  if ((vp->this_c2v_epi8_to_free = srslte_vec_malloc((n_subnodes + 2) * sizeof(__m256i))) == NULL) {
     free(vp->rotated_v2c);
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);
     free(vp);
     return NULL;
   }
+  vp->this_c2v_epi8 = &vp->this_c2v_epi8_to_free[1];
 
   vp->bgM = bgM;
   vp->bgN = bgN;
@@ -254,13 +259,13 @@ void delete_ldpc_dec_c_avx2long_flood(void* p)
   struct ldpc_regs_c_avx2long_flood* vp = p;
 
   if (vp != NULL) {
-    free(vp->this_c2v_epi8);
+    free(vp->this_c2v_epi8_to_free);
     free(vp->rotated_v2c);
     free(vp->min_ix_epi8);
     free(vp->prod_v2c_epi8);
     free(vp->mins_v2c_epi8);
     free(vp->minp_v2c_epi8);
-    free(vp->var_to_check);
+    free(vp->var_to_check_to_free);
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp->llrs);

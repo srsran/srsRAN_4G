@@ -710,6 +710,11 @@ int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
   }
 
   q->var_indices = srslte_vec_malloc(q->bgM * sizeof(int8_t[MAX_CNCT]));
+  if (!q->var_indices) {
+    free(q->pcm);
+    perror("malloc");
+    return -1;
+  }
 
   if (create_compact_pcm(q->pcm, q->var_indices, q->bg, q->ls) != 0) {
     perror("Create PCM");

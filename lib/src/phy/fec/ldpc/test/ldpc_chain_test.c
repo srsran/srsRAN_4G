@@ -214,6 +214,9 @@ int main(int argc, char** argv)
 
   uint32_t F = encoder.bgK - 5; // This value is arbitrary
 
+  finalK = encoder.liftK;
+  finalN = encoder.liftN - 2 * lift_size;
+
   if (rm_length == 0) {
     rm_length = finalN - F;
   }
@@ -234,9 +237,6 @@ int main(int argc, char** argv)
          rm_length,
          1.0 * (encoder.liftK - F) / rm_length);
   printf("\n  Signal-to-Noise Ratio -> %.2f dB\n", snr);
-
-  finalK = encoder.liftK;
-  finalN = encoder.liftN - 2 * lift_size;
 
   messages_true          = malloc(finalK * batch_size * sizeof(uint8_t));
   messages_sim_f         = malloc(finalK * batch_size * sizeof(uint8_t));
@@ -314,8 +314,6 @@ int main(int argc, char** argv)
     // Extra F bits are added since filler-bits are not part of the rm_length
     int n_useful_symbols =
         (rm_length + F) % lift_size ? ((rm_length + F) / lift_size + 1) * lift_size : (rm_length + F);
-
-    printf("n_useful_symbols = %d\n", n_useful_symbols);
 
     // Encode messages
     gettimeofday(&t[1], NULL);
