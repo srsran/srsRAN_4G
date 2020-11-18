@@ -337,15 +337,17 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
         ue_it->second->cell_ded_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
       parent->rrc_log->info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment\n",
                             old_rnti);
-      send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
 
       // Cancel Handover in Target eNB if on-going
       parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
 
-      // Setup security
+      // Recover security setup
       const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
       ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
+
+      // send reestablishment and restore bearer configuration
+      send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
 
       // Get PDCP entity state (required when using RLC AM)
       for (const auto& erab_pair : parent->users[old_rnti]->bearer_list.get_erabs()) {
@@ -362,8 +364,6 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                                old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
                                old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
       }
-      //      // Apply PDCP configuration to SRB1
-      //      apply_pdcp_srb_updates(setup_r8.rr_cfg_ded);
 
       // Make sure UE capabilities are copied over to new RNTI
       eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
@@ -1071,7 +1071,7 @@ void rrc::ue::apply_pdcp_srb_updates(const rr_cfg_ded_s& pending_rr_cfg)
   for (const srb_to_add_mod_s& srb : pending_rr_cfg.srb_to_add_mod_list) {
     parent->pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
 
-    // For SRB2, enable security/encryption/integrity
+    // enable security config
     if (ue_security_cfg.is_as_sec_cfg_valid()) {
       parent->pdcp->config_security(rnti, srb.srb_id, ue_security_cfg.get_as_sec_cfg());
       parent->pdcp->enable_integrity(rnti, srb.srb_id);
