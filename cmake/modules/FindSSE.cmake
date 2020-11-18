@@ -168,6 +168,20 @@ if (ENABLE_SSE)
         if (HAVE_AVX512)
             message(STATUS "AVX512 is enabled - target CPU must support it")
         endif()
+    elseif (${GCC_ARCH} MATCHES "native" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        # When GCC flag -march=native and the CPU supports AVX512 (skylake-avx512 architecture), GCC uses AVX512 instructions
+        # automatically, independently of the rest of flags.
+
+        # Get the CPU architecture
+        execute_process(COMMAND ${CMAKE_C_COMPILER} -march=native -Q --help=target
+                OUTPUT_VARIABLE DETECT_SKYLAKE_AVX512)
+
+        # Check if the native architecture matches with skylake-avx512
+        if (${DETECT_SKYLAKE_AVX512} MATCHES "march=.*skylake-avx512")
+            # Force skylake architecture without AVX512
+            set(GCC_ARCH "skylake")
+            message(STATUS "This is a skylake-avx512 CPU, as AVX512 was disabled the architecture will be set to skylake")
+        endif (${IS_SKYLAKE_AVX512})
     endif()
 
 
