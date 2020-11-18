@@ -17,6 +17,10 @@
 #include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/phch/pdsch_nr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct SRSLTE_API {
   srslte_pdsch_args_t pdsch;
   uint32_t            nof_tx_antennas;
@@ -48,5 +52,9 @@ SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,
                                           const srslte_pdsch_cfg_nr_t*   cfg,
                                           const srslte_pdsch_grant_nr_t* grant,
                                           uint8_t*                       data[SRSLTE_MAX_TB]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_ENB_DL_NR_H

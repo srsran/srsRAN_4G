@@ -19,22 +19,21 @@
  *
  */
 
-#ifndef SRSLTE_NR_CC_WORKER_H
-#define SRSLTE_NR_CC_WORKER_H
+#ifndef SRSENB_NR_CC_WORKER_H
+#define SRSENB_NR_CC_WORKER_H
 
 #include "srslte/common/log.h"
-#include "srslte/phy/ue/ue_dl_nr.h"
-#include "srsue/hdr/phy/phy_common.h"
+#include "srslte/phy/enb/enb_dl_nr.h"
 #include <array>
 #include <vector>
 
-namespace srsue {
+namespace srsenb {
 namespace nr {
 
 typedef struct {
-  uint32_t               nof_carriers;
-  uint32_t               max_prb;
-  srslte_ue_dl_nr_args_t dl;
+  uint32_t                nof_carriers;
+  uint32_t                max_prb;
+  srslte_enb_dl_nr_args_t dl;
 } phy_nr_args_t;
 
 typedef struct {
@@ -51,7 +50,7 @@ public:
   {
     args.nof_carriers              = 1;
     args.max_prb                   = SRSLTE_MAX_PRB;
-    args.dl.nof_rx_antennas        = 1;
+    args.dl.nof_tx_antennas        = 1;
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.sch.disable_simd = true;
   }
@@ -66,6 +65,7 @@ public:
   bool set_carrier(const srslte_carrier_nr_t* carrier);
   void set_tti(uint32_t tti);
 
+  cf_t*    get_tx_buffer(uint32_t antenna_idx);
   cf_t*    get_rx_buffer(uint32_t antenna_idx);
   uint32_t get_buffer_len();
 
@@ -74,17 +74,17 @@ public:
 private:
   srslte_dl_slot_cfg_t                            dl_slot_cfg = {};
   uint32_t                                        cc_idx      = 0;
-  std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> rx_buffer   = {};
   std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> tx_buffer   = {};
+  std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> rx_buffer   = {};
   phy_nr_state*                                   phy_state;
-  srslte_ue_dl_nr_t                               ue_dl = {};
+  srslte_enb_dl_nr_t                              enb_dl = {};
 
   // Temporal attributes
-  srslte_softbuffer_rx_t softbuffer_rx = {};
+  srslte_softbuffer_tx_t softbuffer_tx = {};
   std::vector<uint8_t>   data;
 };
 
 } // namespace nr
-} // namespace srsue
+} // namespace srsenb
 
-#endif // SRSLTE_NR_CC_WORKER_H
+#endif // SRSENB_NR_CC_WORKER_H

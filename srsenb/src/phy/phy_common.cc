@@ -44,13 +44,15 @@ void phy_common::reset()
   }
 }
 
-bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
-                      srslte::radio_interface_phy* radio_h_,
-                      stack_interface_phy_lte*     stack_)
+bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
+                      const phy_cell_cfg_list_nr_t& cell_list_nr_,
+                      srslte::radio_interface_phy*  radio_h_,
+                      stack_interface_phy_lte*      stack_)
 {
   radio     = radio_h_;
   stack     = stack_;
-  cell_list = cell_list_;
+  cell_list_lte = cell_list_;
+  cell_list_nr  = cell_list_nr_;
 
   pthread_mutex_init(&mtch_mutex, nullptr);
   pthread_cond_init(&mtch_cvar, nullptr);
@@ -58,17 +60,17 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
   // Instantiate DL channel emulator
   if (params.dl_channel_args.enable) {
     dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, get_nof_rf_channels()));
-    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list[0].cell.nof_prb));
-    dl_channel->set_signal_power_dBfs(srslte_enb_dl_get_maximum_signal_power_dBfs(cell_list[0].cell.nof_prb));
+    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list_lte[0].cell.nof_prb));
+    dl_channel->set_signal_power_dBfs(srslte_enb_dl_get_maximum_signal_power_dBfs(cell_list_lte[0].cell.nof_prb));
   }
 
   // Create grants
   for (auto& q : ul_grants) {
-    q.resize(cell_list.size());
+    q.resize(cell_list_lte.size());
   }
 
   // Set UE PHY data-base stack and configuration
-  ue_db.init(stack, params, cell_list);
+  ue_db.init(stack, params, cell_list_lte);
 
   reset();
   return true;

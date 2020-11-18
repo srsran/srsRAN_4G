@@ -16,6 +16,7 @@
 #include "phy_common.h"
 #include "prach_worker.h"
 #include "srsenb/hdr/phy/lte/worker_pool.h"
+#include "srsenb/hdr/phy/nr/worker_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/config.h"
 #include "srslte/phy/channel/channel.h"
@@ -39,13 +40,14 @@ public:
 private:
   void run_thread() override;
 
-  stack_interface_phy_lte*     stack        = nullptr;
-  srslte::radio_interface_phy* radio_h      = nullptr;
-  srslte::log*                 log_h        = nullptr;
-  lte::worker_pool*            workers_pool = nullptr;
-  prach_worker_pool*           prach        = nullptr;
-  phy_common*                  worker_com   = nullptr;
-  srslte::channel_ptr          ul_channel   = nullptr;
+  stack_interface_phy_lte*     stack       = nullptr;
+  srslte::radio_interface_phy* radio_h     = nullptr;
+  srslte::log*                 log_h       = nullptr;
+  lte::worker_pool*            lte_workers = nullptr;
+  nr::worker_pool*             nr_workers  = nullptr;
+  prach_worker_pool*           prach       = nullptr;
+  phy_common*                  worker_com  = nullptr;
+  srslte::channel_ptr          ul_channel  = nullptr;
 
   // Main system TTI counter
   uint32_t tti = 0;

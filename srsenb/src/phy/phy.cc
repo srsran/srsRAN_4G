@@ -119,7 +119,7 @@ int phy::init(const phy_args_t&            args,
 
   workers_common.params = args;
 
-  workers_common.init(cfg.phy_cell_cfg, radio, stack_);
+  workers_common.init(cfg.phy_cell_cfg, cfg.phy_cell_cfg_nr, radio, stack_);
 
   parse_common_config(cfg);
 

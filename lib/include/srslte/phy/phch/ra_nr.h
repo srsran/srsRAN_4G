@@ -28,6 +28,10 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Determines the number of resource elements available for a given PDSCH transmission
  * @param pdsch_cfg PDSCH configuration provided by higher layers
@@ -52,4 +56,9 @@ SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
                                     const srslte_pdsch_grant_nr_t* grant,
                                     uint32_t                       mcs_idx,
                                     srslte_sch_tb_t*               tb);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // SRSLTE_RA_NR_H

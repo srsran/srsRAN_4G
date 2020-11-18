@@ -14,9 +14,10 @@
 #define SRSENB_PHY_INTERFACES_H_
 
 #include "srslte/asn1/rrc/rr_common.h"
+#include "srslte/common/interfaces_common.h"
+#include "srslte/phy/channel/channel.h"
+#include "srslte/phy/common/phy_common_nr.h"
 #include <inttypes.h>
-#include <srslte/common/interfaces_common.h>
-#include <srslte/phy/channel/channel.h>
 #include <vector>
 
 namespace srsenb {
@@ -32,7 +33,19 @@ struct phy_cell_cfg_t {
   float         gain_db;
 };
 
+struct phy_cell_cfg_nr_t {
+  srslte_carrier_nr_t cell;
+  uint32_t            rf_port;
+  uint32_t            cell_id;
+  double              dl_freq_hz;
+  double              ul_freq_hz;
+  uint32_t            root_seq_idx;
+  uint32_t            num_ra_preambles;
+  float               gain_db;
+};
+
 typedef std::vector<phy_cell_cfg_t> phy_cell_cfg_list_t;
+typedef std::vector<phy_cell_cfg_nr_t> phy_cell_cfg_list_nr_t;
 
 struct phy_args_t {
   std::string            type;
@@ -59,6 +72,7 @@ struct phy_args_t {
 struct phy_cfg_t {
   // Individual cell/sector configuration list
   phy_cell_cfg_list_t phy_cell_cfg;
+  phy_cell_cfg_list_nr_t phy_cell_cfg_nr;
 
   // Common configuration for all cells
   asn1::rrc::prach_cfg_sib_s     prach_cnfg;

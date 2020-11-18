@@ -26,6 +26,10 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Calculates the PDSCH time resource provided by higher layers and stores it in the provided PDSCH NR grant.
  *
@@ -54,5 +58,9 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocat
 SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      m,
                                                              srslte_dmrs_pdsch_typeA_pos_t dmrs_typeA_pos,
                                                              srslte_pdsch_grant_nr_t*      grant);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_UE_DL_NR_DATA_H

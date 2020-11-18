@@ -24,6 +24,10 @@
 
 #include "srslte/config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct SRSLTE_API {
   uint32_t  max_cb;
   uint32_t  max_cb_size;
@@ -78,5 +82,9 @@ SRSLTE_API void srslte_softbuffer_tx_reset_tbs(srslte_softbuffer_tx_t* q, uint32
 SRSLTE_API void srslte_softbuffer_tx_reset_cb(srslte_softbuffer_tx_t* q, uint32_t nof_cb);
 
 SRSLTE_API void srslte_softbuffer_tx_free(srslte_softbuffer_tx_t* p);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_SOFTBUFFER_H

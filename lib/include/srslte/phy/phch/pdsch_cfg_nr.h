@@ -24,6 +24,10 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/sch_cfg_nr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief PDSCH DMRS type
  */
@@ -145,5 +149,9 @@ typedef struct SRSLTE_API {
 
   srslte_sch_cfg_t sch_cfg; ///< Common shared channel parameters
 } srslte_pdsch_cfg_nr_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_PDSCH_CFG_NR_H

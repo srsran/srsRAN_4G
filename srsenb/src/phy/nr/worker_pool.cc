@@ -18,10 +18,10 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#include "srsenb/hdr/phy/lte/worker_pool.h"
+#include "srsenb/hdr/phy/nr/worker_pool.h"
 
 namespace srsenb {
-namespace lte {
+namespace nr {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
@@ -41,8 +41,7 @@ bool worker_pool::init(const phy_args_t& args, phy_common* common, srslte::logge
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    auto w = std::unique_ptr<lte::sf_worker>(new sf_worker());
-    w->init(common, (srslte::log*)log_vec[i].get());
+    auto w = std::unique_ptr<sf_worker>(new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get()));
     pool.init_worker(i, w.get(), prio);
     workers.push_back(std::move(w));
   }
@@ -70,5 +69,5 @@ void worker_pool::stop()
   pool.stop();
 }
 
-}; // namespace lte
+}; // namespace nr
 }; // namespace srsenb
