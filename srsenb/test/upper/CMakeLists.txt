@@ -26,15 +26,15 @@ add_executable(plmn_test plmn_test.cc)
 target_link_libraries(plmn_test rrc_asn1)
 
 add_executable(rrc_mobility_test rrc_mobility_test.cc)
-target_link_libraries(rrc_mobility_test srsenb_rrc rrc_asn1 s1ap_asn1 srslte_common srslte_asn1 enb_cfg_parser test_helpers ${LIBCONFIGPP_LIBRARIES})
+target_link_libraries(rrc_mobility_test srslte_asn1 test_helpers)
 
 add_executable(erab_setup_test erab_setup_test.cc)
 target_link_libraries(erab_setup_test srsenb_rrc rrc_asn1 s1ap_asn1 srslte_common srslte_asn1 enb_cfg_parser test_helpers ${LIBCONFIGPP_LIBRARIES})
 
 add_executable(rrc_meascfg_test rrc_meascfg_test.cc)
 target_link_libraries(rrc_meascfg_test test_helpers)
-add_test(rrc_meascfg_test rrc_meascfg_test)
 
 add_test(rrc_mobility_test rrc_mobility_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 add_test(erab_setup_test erab_setup_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+add_test(rrc_meascfg_test rrc_meascfg_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
