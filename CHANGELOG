@@ -1,6 +1,9 @@
 Change Log for Releases
 =======================
 
+## 20.10.1
+  * Fix bug in srsENB that effectively disabled UL HARQ
+
 ## 20.10
   * Add Mobility (Intra eNB and S1) and RRC Reestablishment to srsENB
   * Add new logging framework
