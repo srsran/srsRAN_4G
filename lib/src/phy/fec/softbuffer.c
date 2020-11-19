@@ -62,13 +62,13 @@ int srslte_softbuffer_rx_init_guru(srslte_softbuffer_rx_t* q, uint32_t max_cb, u
   q->max_cb      = max_cb;
   q->max_cb_size = max_cb_size;
 
-  q->buffer_f = srslte_vec_malloc(sizeof(int16_t*) * q->max_cb);
+  q->buffer_f = calloc(sizeof(int16_t*), q->max_cb);
   if (!q->buffer_f) {
     perror("malloc");
     goto clean_exit;
   }
 
-  q->data = srslte_vec_malloc(sizeof(uint8_t*) * q->max_cb);
+  q->data = calloc(sizeof(uint8_t*), q->max_cb);
   if (!q->data) {
     perror("malloc");
     goto clean_exit;
@@ -191,7 +191,7 @@ int srslte_softbuffer_tx_init_guru(srslte_softbuffer_tx_t* q, uint32_t max_cb, u
   q->max_cb      = max_cb;
   q->max_cb_size = max_cb_size;
 
-  q->buffer_b = srslte_vec_malloc(sizeof(uint8_t*) * q->max_cb);
+  q->buffer_b = calloc(sizeof(uint8_t*), q->max_cb);
   if (!q->buffer_b) {
     perror("malloc");
     return SRSLTE_ERROR;
