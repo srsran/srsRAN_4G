@@ -45,8 +45,9 @@ public:
   enb_dummy()
   {
     // first entry
-    metrics[0].rf.rf_o                = 10;
-    metrics[0].stack.rrc.n_ues        = 1;
+    metrics[0].rf.rf_o = 10;
+    metrics[0].stack.rrc.ues.resize(1);
+    metrics[0].stack.mac.resize(metrics[0].stack.rrc.ues.size());
     metrics[0].stack.mac[0].rnti      = 0x46;
     metrics[0].stack.mac[0].tx_pkts   = 1000;
     metrics[0].stack.mac[0].tx_errors = 1000;
@@ -60,13 +61,15 @@ public:
     metrics[0].stack.mac[0].dl_ri     = 1.5;
     metrics[0].stack.mac[0].dl_pmi    = 1.0;
     metrics[0].stack.mac[0].phr       = 12.0;
-    metrics[0].phy->dl.mcs            = 28.0;
-    metrics[0].phy->ul.mcs            = 20.2;
-    metrics[0].phy->ul.sinr           = 14.2;
+    metrics[0].phy.resize(1);
+    metrics[0].phy[0].dl.mcs  = 28.0;
+    metrics[0].phy[0].ul.mcs  = 20.2;
+    metrics[0].phy[0].ul.sinr = 14.2;
 
     // second
-    metrics[1].rf.rf_o                = 10;
-    metrics[1].stack.rrc.n_ues        = 1;
+    metrics[1].rf.rf_o = 10;
+    metrics[1].stack.rrc.ues.resize(1);
+    metrics[1].stack.mac.resize(metrics[1].stack.rrc.ues.size());
     metrics[1].stack.mac[0].rnti      = 0xffff;
     metrics[1].stack.mac[0].tx_pkts   = 100;
     metrics[1].stack.mac[0].tx_errors = 0;
@@ -80,13 +83,15 @@ public:
     metrics[1].stack.mac[0].dl_ri     = 1.5;
     metrics[1].stack.mac[0].dl_pmi    = 1.0;
     metrics[1].stack.mac[0].phr       = 99.1;
-    metrics[1].phy->dl.mcs            = 6.2;
-    metrics[1].phy->ul.mcs            = 28.0;
-    metrics[1].phy->ul.sinr           = 22.2;
+    metrics[1].phy.resize(1);
+    metrics[1].phy[0].dl.mcs  = 6.2;
+    metrics[1].phy[0].ul.mcs  = 28.0;
+    metrics[1].phy[0].ul.sinr = 22.2;
 
     // third entry
-    metrics[2].rf.rf_o                = 10;
-    metrics[2].stack.rrc.n_ues        = 1;
+    metrics[2].rf.rf_o = 10;
+    metrics[2].stack.rrc.ues.resize(1);
+    metrics[2].stack.mac.resize(metrics[2].stack.rrc.ues.size());
     metrics[2].stack.mac[0].rnti      = 0x1;
     metrics[2].stack.mac[0].tx_pkts   = 9999;
     metrics[2].stack.mac[0].tx_errors = 1;
@@ -100,15 +105,16 @@ public:
     metrics[2].stack.mac[0].dl_ri     = 1.5;
     metrics[2].stack.mac[0].dl_pmi    = 1.0;
     metrics[2].stack.mac[0].phr       = 12.0;
-    metrics[2].phy->dl.mcs            = 28.0;
-    metrics[2].phy->ul.mcs            = 20.2;
-    metrics[2].phy->ul.sinr           = 14.2;
+    metrics[2].phy.resize(1);
+    metrics[2].phy[0].dl.mcs  = 28.0;
+    metrics[2].phy[0].ul.mcs  = 20.2;
+    metrics[2].phy[0].ul.sinr = 14.2;
   }
 
   bool get_metrics(enb_metrics_t* m)
   {
     // fill dummy values
-    memcpy(m, &metrics[counter % NUM_METRICS], sizeof(enb_metrics_t));
+    *m = metrics[counter % NUM_METRICS];
     counter++;
     return true;
   }

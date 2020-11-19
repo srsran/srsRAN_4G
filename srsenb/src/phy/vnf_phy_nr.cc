@@ -69,7 +69,7 @@ void vnf_phy_nr::stop()
 // Start GUI
 void vnf_phy_nr::start_plot() {}
 
-void vnf_phy_nr::get_metrics(srsenb::phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) {}
+void vnf_phy_nr::get_metrics(std::vector<srsenb::phy_metrics_t>& metrics) {}
 
 int vnf_phy_nr::dl_config_request(const dl_config_request_t& request)
 {

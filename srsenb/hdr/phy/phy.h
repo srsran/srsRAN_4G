@@ -64,7 +64,7 @@ public:
   void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list) override;
   void complete_config(uint16_t rnti) override;
 
-  void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) override;
+  void get_metrics(std::vector<phy_metrics_t>& metrics) override;
 
   void cmd_cell_gain(uint32_t cell_id, float gain_db) override;
 

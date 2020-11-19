@@ -60,7 +60,7 @@ public:
                stack_interface_phy_lte::ul_sched_t& ul_grants,
                srslte_mbsfn_cfg_t*                  mbsfn_cfg);
 
-  uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
+  uint32_t get_metrics(std::vector<phy_metrics_t>& metrics);
 
 private:
   constexpr static float PUSCH_RL_SNR_DB_TH = 1.0f;

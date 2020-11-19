@@ -276,10 +276,11 @@ int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
   return scheduler.cell_cfg(cell_config);
 }
 
-void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
+void mac::get_metrics(std::vector<mac_metrics_t>& metrics)
 {
   srslte::rwlock_read_guard lock(rwlock);
   int                       cnt = 0;
+  metrics.resize(ue_db.size());
   for (auto& u : ue_db) {
     u.second->metrics_read(&metrics[cnt]);
     cnt++;
@@ -443,15 +444,23 @@ uint16_t mac::allocate_rnti()
   return rnti;
 }
 
-uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
+uint16_t mac::allocate_ue()
 {
+  {
+    srslte::rwlock_read_guard lock(rwlock);
+    if (ue_db.size() >= args.max_nof_ues) {
+      Warning("Maximum number of connected UEs %d reached. Ignoring PRACH\n", args.max_nof_ues);
+      return SRSLTE_INVALID_RNTI;
+    }
+  }
+
   // Get pre-allocated UE object
   if (ue_pool.empty()) {
     Error("Ignoring RACH attempt. UE pool empty.\n");
     return SRSLTE_INVALID_RNTI;
   }
-  auto     ue_ptr = ue_pool.wait_pop();
-  uint16_t rnti   = ue_ptr->get_rnti();
+  std::unique_ptr<ue> ue_ptr = ue_pool.wait_pop();
+  uint16_t            rnti   = ue_ptr->get_rnti();
 
   // Set PCAP if available
   if (pcap != nullptr) {
@@ -463,14 +472,27 @@ uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
     ue_db[rnti] = std::move(ue_ptr);
   }
 
+  return rnti;
+}
+
+uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
+{
+  uint16_t rnti = allocate_ue();
+  if (rnti == SRSLTE_INVALID_RNTI) {
+    return rnti;
+  }
+
+  task_sched.enqueue_background_task([this](uint32_t wid) {
+    // Allocate one new UE object in advance
+    prealloc_ue(1);
+  });
+
   // Add new user to the scheduler so that it can RX/TX SRB0
   if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
     Error("Registering new user rnti=0x%x to SCHED\n", rnti);
     return SRSLTE_INVALID_RNTI;
   }
 
-  // Allocate one new UE object in advance
-  prealloc_ue(1);
   return rnti;
 }
 
@@ -480,21 +502,9 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   log_h->step(tti);
   auto rach_tprof_meas = rach_tprof.start();
 
-  // Get pre-allocated UE object
-  if (ue_pool.empty()) {
-    Error("Ignoring RACH attempt. UE pool empty.\n");
-  }
-  auto     ue_ptr = ue_pool.wait_pop();
-  uint16_t rnti   = ue_ptr->get_rnti();
-
-  // Set PCAP if available
-  if (pcap != nullptr) {
-    ue_ptr->start_pcap(pcap);
-  }
-
-  {
-    srslte::rwlock_write_guard lock(rwlock);
-    ue_db[rnti] = std::move(ue_ptr);
+  uint16_t rnti = allocate_ue();
+  if (rnti == SRSLTE_INVALID_RNTI) {
+    return;
   }
 
   stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {
@@ -532,11 +542,11 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
                 time_adv,
                 rnti);
     srslte::console("RACH:  tti=%d, cc=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n",
-                       tti,
-                       enb_cc_idx,
-                       preamble_idx,
-                       time_adv,
-                       rnti);
+                    tti,
+                    enb_cc_idx,
+                    preamble_idx,
+                    time_adv,
+                    rnti);
   });
 
   // Allocate one new UE object in advance

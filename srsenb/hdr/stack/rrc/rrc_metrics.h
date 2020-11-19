@@ -23,6 +23,7 @@
 #define SRSENB_RRC_METRICS_H
 
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include <vector>
 
 namespace srsenb {
 
@@ -44,8 +45,7 @@ struct rrc_ue_metrics_t {
 };
 
 struct rrc_metrics_t {
-  uint16_t         n_ues;
-  rrc_ue_metrics_t ues[ENB_METRICS_MAX_USERS];
+  std::vector<rrc_ue_metrics_t> ues;
 };
 
 } // namespace srsenb

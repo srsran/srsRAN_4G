@@ -30,7 +30,6 @@
 
 namespace srsenb {
 
-#define ENB_METRICS_MAX_USERS 64
 #define SRSENB_RRC_MAX_N_PLMN_IDENTITIES 6
 
 #define SRSENB_N_SRB 3

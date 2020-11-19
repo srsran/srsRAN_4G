@@ -280,23 +280,24 @@ void sf_worker::work_imp()
 }
 
 /************ METRICS interface ********************/
-uint32_t sf_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
+uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
 {
-  uint32_t      cnt                             = 0;
-  phy_metrics_t _metrics[ENB_METRICS_MAX_USERS] = {};
+  uint32_t                   cnt = 0;
+  std::vector<phy_metrics_t> metrics_;
   for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
-    cnt = cc_workers[cc]->get_metrics(_metrics);
+    cnt = cc_workers[cc]->get_metrics(metrics_);
+    metrics.resize(std::max(metrics_.size(), metrics.size()));
     for (uint32_t r = 0; r < cnt; r++) {
       phy_metrics_t* m  = &metrics[r];
-      phy_metrics_t* _m = &_metrics[r];
-      m->dl.mcs         = SRSLTE_VEC_PMA(m->dl.mcs, m->dl.n_samples, _m->dl.mcs, _m->dl.n_samples);
-      m->dl.n_samples += _m->dl.n_samples;
-      m->ul.n           = SRSLTE_VEC_PMA(m->ul.n, m->ul.n_samples, _m->ul.n, _m->ul.n_samples);
-      m->ul.sinr        = SRSLTE_VEC_PMA(m->ul.sinr, m->ul.n_samples, _m->ul.sinr, _m->ul.n_samples);
-      m->ul.mcs         = SRSLTE_VEC_PMA(m->ul.mcs, m->ul.n_samples, _m->ul.mcs, _m->ul.n_samples);
-      m->ul.rssi        = SRSLTE_VEC_PMA(m->ul.rssi, m->ul.n_samples, _m->ul.rssi, _m->ul.n_samples);
-      m->ul.turbo_iters = SRSLTE_VEC_PMA(m->ul.turbo_iters, m->ul.n_samples, _m->ul.turbo_iters, _m->ul.n_samples);
-      m->ul.n_samples += _m->ul.n_samples;
+      phy_metrics_t* m_ = &metrics_[r];
+      m->dl.mcs         = SRSLTE_VEC_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
+      m->dl.n_samples += m_->dl.n_samples;
+      m->ul.n           = SRSLTE_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
+      m->ul.sinr        = SRSLTE_VEC_PMA(m->ul.sinr, m->ul.n_samples, m_->ul.sinr, m_->ul.n_samples);
+      m->ul.mcs         = SRSLTE_VEC_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);
+      m->ul.rssi        = SRSLTE_VEC_PMA(m->ul.rssi, m->ul.n_samples, m_->ul.rssi, m_->ul.n_samples);
+      m->ul.turbo_iters = SRSLTE_VEC_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
+      m->ul.n_samples += m_->ul.n_samples;
     }
   }
   return cnt;

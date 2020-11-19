@@ -98,7 +98,7 @@ public:
 
   bool process_pdus();
 
-  void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
+  void get_metrics(std::vector<mac_metrics_t>& metrics);
   void write_mcch(const srslte::sib2_mbms_t* sib2_,
                   const srslte::sib13_t*     sib13_,
                   const srslte::mcch_msg_t*  mcch_,
@@ -110,6 +110,7 @@ private:
 
   bool     check_ue_exists(uint16_t rnti);
   uint16_t allocate_rnti();
+  uint16_t allocate_ue();
 
   std::mutex rnti_mutex;
 

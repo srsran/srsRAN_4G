@@ -37,17 +37,17 @@
 namespace srsenb {
 
 struct stack_metrics_t {
-  mac_metrics_t  mac[ENB_METRICS_MAX_USERS];
-  rrc_metrics_t  rrc;
-  s1ap_metrics_t s1ap;
+  std::vector<mac_metrics_t> mac;
+  rrc_metrics_t              rrc;
+  s1ap_metrics_t             s1ap;
 };
 
-typedef struct {
-  srslte::rf_metrics_t rf;
-  phy_metrics_t        phy[ENB_METRICS_MAX_USERS];
-  stack_metrics_t      stack;
-  bool                 running;
-} enb_metrics_t;
+struct enb_metrics_t {
+  srslte::rf_metrics_t       rf;
+  std::vector<phy_metrics_t> phy;
+  stack_metrics_t            stack;
+  bool                       running;
+};
 
 // ENB interface
 class enb_metrics_interface : public srslte::metrics_interface<enb_metrics_t>

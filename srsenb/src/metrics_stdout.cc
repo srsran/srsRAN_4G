@@ -83,7 +83,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 
-  if (metrics.stack.rrc.n_ues == 0) {
+  if (metrics.stack.rrc.ues.size() == 0) {
     return;
   }
 
@@ -96,7 +96,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     cout << "rnti cqi  ri mcs brate   ok  nok  (%)  snr  phr mcs brate   ok  nok  (%)   bsr" << endl;
   }
 
-  for (int i = 0; i < metrics.stack.rrc.n_ues; i++) {
+  for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
     if (metrics.stack.mac[i].tx_errors > metrics.stack.mac[i].tx_pkts) {
       printf("tx caution errors %d > %d\n", metrics.stack.mac[i].tx_errors, metrics.stack.mac[i].tx_pkts);
     }

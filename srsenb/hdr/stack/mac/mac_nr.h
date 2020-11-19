@@ -60,7 +60,7 @@ public:
             rrc_interface_mac_nr*   rrc_);
   void stop();
 
-  void get_metrics(srsenb::mac_metrics_t* metrics);
+  void get_metrics(std::vector<srsenb::mac_metrics_t>& metrics);
 
   // MAC interface for RRC
   int cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg);

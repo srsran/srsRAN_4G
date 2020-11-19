@@ -28,6 +28,7 @@
 #define SRSENB_PHY_BASE_H
 
 #include "srsenb/hdr/phy/phy_metrics.h"
+#include <vector>
 
 namespace srsenb {
 
@@ -43,7 +44,7 @@ public:
 
   virtual void start_plot() = 0;
 
-  virtual void get_metrics(phy_metrics_t* m) = 0;
+  virtual void get_metrics(std::vector<phy_metrics_t>& m) = 0;
 
   virtual void cmd_cell_gain(uint32_t cell_idx, float gain_db) = 0;
 };

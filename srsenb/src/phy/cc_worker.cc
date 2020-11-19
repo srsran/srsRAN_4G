@@ -314,7 +314,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Use last TBS for this TB in case of mcs>28
   if (ul_grant.dci.tb.mcs_idx > 28) {
     int rv_idx  = grant.tb.rv;
-    grant.tb = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
+    grant.tb    = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
     grant.tb.rv = rv_idx;
     Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d\n",
          rnti,
@@ -591,16 +591,17 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 }
 
 /************ METRICS interface ********************/
-uint32_t cc_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
+uint32_t cc_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint32_t                    cnt = 0;
+  metrics.resize(ue_db.size());
   for (auto& ue : ue_db) {
-    if ((SRSLTE_RNTI_ISUSER(ue.first) || ue.first == SRSLTE_MRNTI) && cnt < ENB_METRICS_MAX_USERS) {
-      ue.second->metrics_read(&metrics[cnt]);
-      cnt++;
+    if ((SRSLTE_RNTI_ISUSER(ue.first) || ue.first == SRSLTE_MRNTI)) {
+      ue.second->metrics_read(&metrics[cnt++]);
     }
   }
+  metrics.resize(cnt);
   return cnt;
 }
 

@@ -109,10 +109,10 @@ void rrc::stop()
 void rrc::get_metrics(rrc_metrics_t& m)
 {
   if (running) {
-    m.n_ues = 0;
-    for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
-      ue* u                  = iter->second.get();
-      m.ues[m.n_ues++].state = u->get_state();
+    m.ues.resize(users.size());
+    size_t count = 0;
+    for (auto& ue : users) {
+      m.ues[count++].state = ue.second->get_state();
     }
   }
 }

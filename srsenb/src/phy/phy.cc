@@ -51,8 +51,7 @@ namespace srsenb {
 
 phy::phy(srslte::logger* logger_) :
   logger(logger_), workers_pool(MAX_WORKERS), workers(MAX_WORKERS), workers_common(), nof_workers(0)
-{
-}
+{}
 
 phy::~phy()
 {
@@ -190,14 +189,13 @@ void phy::set_activation_deactivation_scell(uint16_t rnti, const std::array<bool
   }
 }
 
-void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
+void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
 {
-  phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS] = {};
-
-  uint32_t nof_users = workers[0].get_nof_rnti();
-  bzero(metrics, sizeof(phy_metrics_t) * ENB_METRICS_MAX_USERS);
+  uint32_t                   nof_users = workers[0].get_nof_rnti();
+  std::vector<phy_metrics_t> metrics_tmp;
   for (uint32_t i = 0; i < nof_workers; i++) {
     workers[i].get_metrics(metrics_tmp);
+    metrics.resize(std::max(metrics_tmp.size(), metrics.size()));
     for (uint32_t j = 0; j < nof_users; j++) {
       metrics[j].dl.n_samples += metrics_tmp[j].dl.n_samples;
       metrics[j].dl.mcs += metrics_tmp[j].dl.n_samples * metrics_tmp[j].dl.mcs;

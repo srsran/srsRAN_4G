@@ -55,7 +55,7 @@ public:
   int      read_pucch_d(uint32_t cc_idx, cf_t* pusch_d);
   void start_plot();
 
-  uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
+  uint32_t get_metrics(std::vector<phy_metrics_t>& metrics);
 
 private:
   void work_imp() final;

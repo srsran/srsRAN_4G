@@ -50,7 +50,7 @@ public:
 
   void start_plot() override;
 
-  void get_metrics(srsenb::phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) override;
+  void get_metrics(std::vector<srsenb::phy_metrics_t>& metrics) override;
 
   // MAC interface
   int dl_config_request(const dl_config_request_t& request) override;
