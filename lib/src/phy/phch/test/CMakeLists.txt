@@ -624,7 +624,7 @@ endif(RF_FOUND)
 
 add_executable(dlsch_nr_test dlsch_nr_test.c)
 target_link_libraries(dlsch_nr_test srslte_phy)
-add_test(dlsch_nr_test dlsch_nr_test -m 0 -n 1)
+add_test(dlsch_nr_test dlsch_nr_test -m 0 -p 1)
 
 add_executable(pdsch_nr_test pdsch_nr_test.c)
 target_link_libraries(pdsch_nr_test srslte_phy)
