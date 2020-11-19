@@ -164,7 +164,10 @@ public:
 
   void run_thread()
   {
+    std::unique_lock<std::mutex> lk(init_mutex);
     running = true;
+    init_cv.notify_all();
+    lk.unlock();
     while (running) {
       task_sched.tic();
       task_sched.run_pending_tasks();
@@ -173,13 +176,19 @@ public:
   }
   void stop()
   {
+    std::unique_lock<std::mutex> lk(init_mutex);
+    while (not running) {
+      init_cv.wait(lk);
+    }
     running = false;
     wait_thread_finish();
   }
-  srslte::log_ref    stack_log{"STCK"};
-  pdcp_interface_gw* pdcp    = nullptr;
-  srsue::nas*        nas     = nullptr;
-  bool               running = false;
+  srslte::log_ref         stack_log{"STCK"};
+  pdcp_interface_gw*      pdcp    = nullptr;
+  srsue::nas*             nas     = nullptr;
+  bool                    running = false;
+  std::mutex              init_mutex;
+  std::condition_variable init_cv;
 };
 
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
@@ -310,7 +319,6 @@ int mme_attach_request_test()
 
     gw.init(gw_args, g_logger, &stack);
     stack.init(&nas);
-    usleep(5000); // Wait for stack to initialize before stoping it.
     // trigger test
     stack.switch_on();
     stack.stop();
