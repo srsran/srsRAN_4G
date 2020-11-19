@@ -42,14 +42,14 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   rnti(rnti_),
   pool(srslte::byte_buffer_pool::get_instance()),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
-  cell_ded_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
+  ue_cell_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
   bearer_list(rnti_, parent->cfg),
   ue_security_cfg(parent->cfg)
 {
   mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
 
   // Allocate cell and PUCCH resources
-  if (cell_ded_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
+  if (ue_cell_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
     return;
   }
 
@@ -258,7 +258,7 @@ void rrc::ue::send_connection_setup()
   rr_cfg_ded_s&            rr_cfg   = setup_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, cell_ded_list);
+  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
 
   // Apply ConnectionSetup Configuration to MAC scheduler
   mac_ctrl->handle_con_setup(setup_r8);
@@ -330,11 +330,11 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   if (is_idle()) {
     uint16_t                old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
     uint16_t                old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
-    const cell_info_common* old_cell = parent->cell_common_list->get_pci(old_pci);
+    const enb_cell_common* old_cell = parent->cell_common_list->get_pci(old_pci);
     auto                    ue_it    = parent->users.find(old_rnti);
     // Reject unrecognized rntis, and PCIs that do not belong to eNB
     if (ue_it != parent->users.end() and old_cell != nullptr and
-        ue_it->second->cell_ded_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
+        ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
       parent->rrc_log->info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment\n",
                             old_rnti);
 
@@ -342,7 +342,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
 
       // Recover security setup
-      const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+      const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
       ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
 
@@ -396,7 +396,7 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   rr_cfg_ded_s&            rr_cfg   = reest_r8.rr_cfg_ded;
 
   // Fill RR config dedicated
-  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, cell_ded_list);
+  fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
 
   // Set NCC
   reest_r8.next_hop_chaining_count = ncc;
@@ -479,8 +479,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
   // Fill RR Config Ded and SCells
   apply_reconf_updates(recfg_r8,
                        current_ue_cfg,
-                       parent->cfg,
-                       cell_ded_list,
+                       parent->cfg, ue_cell_list,
                        bearer_list,
                        ue_capabilities,
                        phy_cfg_updated);
@@ -856,21 +855,21 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index
-cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
+enb_cell_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
-  if (ue_cc_idx >= cell_ded_list.nof_cells()) {
+  if (ue_cc_idx >= ue_cell_list.nof_cells()) {
     return nullptr;
   }
-  uint32_t enb_cc_idx = cell_ded_list.get_ue_cc_idx(ue_cc_idx)->cell_common->enb_cc_idx;
+  uint32_t enb_cc_idx = ue_cell_list.get_ue_cc_idx(ue_cc_idx)->cell_common->enb_cc_idx;
   return parent->cell_common_list->get_cc_idx(enb_cc_idx);
 }
 
 void rrc::ue::update_scells()
 {
-  const cell_ctxt_dedicated* pcell     = cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const cell_info_common*    pcell_cfg = pcell->cell_common;
+  const ue_cell_ded* pcell     = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const enb_cell_common*    pcell_cfg = pcell->cell_common;
 
-  if (cell_ded_list.nof_cells() == pcell_cfg->scells.size() + 1) {
+  if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
     // SCells already added
     return;
   }
@@ -885,8 +884,8 @@ void rrc::ue::update_scells()
     return;
   }
 
-  for (const cell_info_common* scell : pcell_cfg->scells) {
-    cell_ded_list.add_cell(scell->enb_cc_idx);
+  for (const enb_cell_common* scell : pcell_cfg->scells) {
+    ue_cell_list.add_cell(scell->enb_cc_idx);
   }
 
   parent->rrc_log->info("SCells activated for rnti=0x%x\n", rnti);
@@ -1029,9 +1028,9 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
         // Handle Add/Modify SCell list
         if (reconfig_r1020.scell_to_add_mod_list_r10_present) {
           auto& list = reconfig_r1020.scell_to_add_mod_list_r10;
-          phy_rrc_dedicated_list.resize(cell_ded_list.nof_cells());
+          phy_rrc_dedicated_list.resize(ue_cell_list.nof_cells());
           for (const scell_to_add_mod_r10_s& scell : list) {
-            cell_ctxt_dedicated* ue_cc = cell_ded_list.get_ue_cc_idx(scell.scell_idx_r10);
+            ue_cell_ded* ue_cc = ue_cell_list.get_ue_cc_idx(scell.scell_idx_r10);
             // Create new PHY configuration structure for this SCell
             phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
             srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, scell);
@@ -1140,7 +1139,7 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
 
 int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 {
-  cell_ctxt_dedicated* c = cell_ded_list.get_ue_cc_idx(ue_cc_idx);
+  ue_cell_ded* c = ue_cell_list.get_ue_cc_idx(ue_cc_idx);
   if (c != nullptr and c->cqi_res_present) {
     *pmi_idx = c->cqi_res.pmi_idx;
     *n_pucch = c->cqi_res.pucch_res;
@@ -1153,7 +1152,7 @@ int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 
 bool rrc::ue::is_allocated() const
 {
-  return cell_ded_list.is_allocated();
+  return ue_cell_list.is_allocated();
 }
 
 int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)

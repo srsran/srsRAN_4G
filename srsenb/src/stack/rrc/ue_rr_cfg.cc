@@ -75,7 +75,7 @@ void fill_srbs_reconf(srb_to_add_mod_list_l& srbs, const srb_to_add_mod_list_l& 
  *        SR Config
  *****************************/
 
-void fill_sr_cfg_setup(sched_request_cfg_c& sr_cfg, const cell_ctxt_dedicated_list& ue_cell_list)
+void fill_sr_cfg_setup(sched_request_cfg_c& sr_cfg, const ue_cell_ded_list& ue_cell_list)
 {
   auto& setup            = sr_cfg.setup();
   setup.sr_cfg_idx       = ue_cell_list.get_sr_res()->sr_I;
@@ -138,13 +138,13 @@ void fill_cqi_report_enb_cfg(cqi_report_cfg_s& cqi_report_cfg, const rrc_cfg_t& 
 
 int fill_cqi_report_setup(cqi_report_cfg_s&               cqi_rep,
                           const rrc_cfg_t&                enb_cfg,
-                          const cell_ctxt_dedicated_list& ue_cell_list)
+                          const ue_cell_ded_list& ue_cell_list)
 {
   // eNB params set at this point
 
   // For Periodic CQI, set PUCCH resources
   if (cqi_rep.cqi_report_periodic_present) {
-    const cell_ctxt_dedicated* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+    const ue_cell_ded* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
     if (pcell == nullptr or not pcell->cqi_res_present) {
       srslte::logmap::get("RRC")->warning("PCell CQI resources haven\'t been allocated yet\n");
       return SRSLTE_ERROR;
@@ -159,7 +159,7 @@ int fill_cqi_report_setup(cqi_report_cfg_s&               cqi_rep,
 
 void fill_cqi_report_reconf(cqi_report_cfg_s&               cqi_rep,
                             const rrc_cfg_t&                enb_cfg,
-                            const cell_ctxt_dedicated_list& ue_cell_list)
+                            const ue_cell_ded_list& ue_cell_list)
 {
   // Get RRC setup CQI config
   if (fill_cqi_report_setup(cqi_rep, enb_cfg, ue_cell_list) == SRSLTE_ERROR) {
@@ -240,7 +240,7 @@ void fill_phy_cfg_ded_enb_cfg(phys_cfg_ded_s& phy_cfg, const rrc_cfg_t& enb_cfg)
 
 void fill_phy_cfg_ded_setup(phys_cfg_ded_s&                 phy_cfg,
                             const rrc_cfg_t&                enb_cfg,
-                            const cell_ctxt_dedicated_list& ue_cell_list)
+                            const ue_cell_ded_list& ue_cell_list)
 {
   // Set PHYConfigDedicated base
   fill_phy_cfg_ded_enb_cfg(phy_cfg, enb_cfg);
@@ -255,7 +255,7 @@ void fill_phy_cfg_ded_setup(phys_cfg_ded_s&                 phy_cfg,
 /// Fills ASN1 PhysicalConfigurationDedicated struct with eNB config params at RRCReconf
 void fill_phy_cfg_ded_reconf(phys_cfg_ded_s&                      phy_cfg,
                              const rrc_cfg_t&                     enb_cfg,
-                             const cell_ctxt_dedicated_list&      ue_cell_list,
+                             const ue_cell_ded_list&      ue_cell_list,
                              const srslte::rrc_ue_capabilities_t& ue_caps)
 {
   // Use RRCSetup as starting point
@@ -307,7 +307,7 @@ void fill_rr_cfg_ded_enb_cfg(asn1::rrc::rr_cfg_ded_s& rr_cfg, const rrc_cfg_t& e
 
 void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
                            const rrc_cfg_t&                enb_cfg,
-                           const cell_ctxt_dedicated_list& ue_cell_list)
+                           const ue_cell_ded_list& ue_cell_list)
 {
   // Establish default enb config
   fill_rr_cfg_ded_enb_cfg(rr_cfg, enb_cfg);
@@ -324,7 +324,7 @@ void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
 void fill_rr_cfg_ded_reconf(asn1::rrc::rr_cfg_ded_s&             rr_cfg,
                             const rr_cfg_ded_s&                  current_rr_cfg,
                             const rrc_cfg_t&                     enb_cfg,
-                            const cell_ctxt_dedicated_list&      ue_cell_list,
+                            const ue_cell_ded_list&      ue_cell_list,
                             const bearer_cfg_handler&            bearers,
                             const srslte::rrc_ue_capabilities_t& ue_caps,
                             bool                                 phy_cfg_updated)
@@ -398,7 +398,7 @@ void apply_rr_cfg_ded_diff(rr_cfg_ded_s& current_rr_cfg_ded, const rr_cfg_ded_s&
 void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                         const scell_to_add_mod_list_r10_l&   current_scells,
                         const rrc_cfg_t&                     enb_cfg,
-                        const cell_ctxt_dedicated_list&      ue_cell_list,
+                        const ue_cell_ded_list&      ue_cell_list,
                         const srslte::rrc_ue_capabilities_t& ue_caps)
 {
   // check whether there has been scell updates
@@ -420,8 +420,8 @@ void fill_scells_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
 
   scell_to_add_mod_list_r10_l target_scells(ue_cell_list.nof_cells() - 1);
   for (size_t ue_cc_idx = 1; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
-    const cell_ctxt_dedicated& scell     = *ue_cell_list.get_ue_cc_idx(ue_cc_idx);
-    const cell_info_common&    scell_cfg = *scell.cell_common;
+    const ue_cell_ded& scell     = *ue_cell_list.get_ue_cc_idx(ue_cc_idx);
+    const enb_cell_common&    scell_cfg = *scell.cell_common;
     const sib_type1_s&         cell_sib1 = scell_cfg.sib1;
     const sib_type2_s&         cell_sib2 = scell_cfg.sib2;
 
@@ -572,7 +572,7 @@ void apply_scells_to_add_diff(asn1::rrc::scell_to_add_mod_list_r10_l& current_sc
 void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                           ue_var_cfg_t&                        current_ue_cfg,
                           const rrc_cfg_t&                     enb_cfg,
-                          const cell_ctxt_dedicated_list&      ue_cell_list,
+                          const ue_cell_ded_list&      ue_cell_list,
                           bearer_cfg_handler&                  bearers,
                           const srslte::rrc_ue_capabilities_t& ue_caps,
                           bool                                 phy_cfg_updated)

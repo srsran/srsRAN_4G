@@ -142,7 +142,7 @@ private:
   srslte::log_ref           rrc_log;
 
   // derived params
-  std::unique_ptr<cell_info_common_list> cell_common_list;
+  std::unique_ptr<enb_cell_common_list> cell_common_list;
 
   // state
   std::unique_ptr<freq_res_common_list>          cell_res_list;

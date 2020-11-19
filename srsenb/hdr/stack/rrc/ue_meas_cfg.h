@@ -29,7 +29,7 @@ namespace srsenb {
 // fwd declarations
 struct rrc_cfg_t;
 struct meas_cell_cfg_t;
-class cell_ctxt_dedicated_list;
+class ue_cell_ded_list;
 
 using meas_obj_t      = asn1::rrc::meas_obj_to_add_mod_s;
 using meas_obj_list   = asn1::rrc::meas_obj_to_add_mod_list_l;
@@ -66,7 +66,7 @@ bool compute_diff_meascfg(const asn1::rrc::meas_cfg_s& current_meascfg,
                           const asn1::rrc::meas_cfg_s& target_meascfg,
                           asn1::rrc::meas_cfg_s&       diff_meascfg);
 
-bool fill_meascfg_enb_cfg(asn1::rrc::meas_cfg_s& meascfg, const cell_ctxt_dedicated_list& ue_cell_list);
+bool fill_meascfg_enb_cfg(asn1::rrc::meas_cfg_s& meascfg, const ue_cell_ded_list& ue_cell_list);
 
 /**
  * Computes diff measConfig based on the previous measConfig and the UE current cells
@@ -79,7 +79,7 @@ bool fill_meascfg_enb_cfg(asn1::rrc::meas_cfg_s& meascfg, const cell_ctxt_dedica
  */
 bool apply_meascfg_updates(asn1::rrc::meas_cfg_s&          diff_meascfg,
                            asn1::rrc::meas_cfg_s&          prev_meascfg,
-                           const cell_ctxt_dedicated_list& ue_cell_list,
+                           const ue_cell_ded_list& ue_cell_list,
                            int                             prev_earfcn = -1,
                            int                             prev_pci    = -1);
 

@@ -246,7 +246,7 @@ void compute_diff_meas_ids(const meas_cfg_s& src_cfg, const meas_cfg_s& target_c
   meas_cfg.meas_id_to_rem_list_present     = meas_cfg.meas_id_to_rem_list.size() > 0;
 }
 
-meas_gap_cfg_c make_measgap(const meas_obj_list& measobjs, const cell_ctxt_dedicated& pcell)
+meas_gap_cfg_c make_measgap(const meas_obj_list& measobjs, const ue_cell_ded& pcell)
 {
   meas_gap_cfg_c meas_gap;
   if (measobjs.size() == 1) {
@@ -330,22 +330,22 @@ bool set_meascfg_presence_flags(meas_cfg_s& meascfg)
          meascfg.meas_gap_cfg_present;
 }
 
-bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const cell_ctxt_dedicated_list& ue_cell_list)
+bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const ue_cell_ded_list& ue_cell_list)
 {
-  const cell_ctxt_dedicated* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const ue_cell_ded* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   assert(pcell != nullptr);
-  const cell_info_common* pcell_cfg     = pcell->cell_common;
+  const enb_cell_common* pcell_cfg     = pcell->cell_common;
   const auto&             pcell_meascfg = pcell_cfg->cell_cfg.meas_cfg;
 
   // Add PCell+Scells to measObjToAddModList
   // NOTE: sort by EARFCN to avoid unnecessary reconfigurations of measObjToAddModList
-  std::vector<const cell_ctxt_dedicated*> sorted_ue_cells(ue_cell_list.nof_cells());
+  std::vector<const ue_cell_ded*> sorted_ue_cells(ue_cell_list.nof_cells());
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
     sorted_ue_cells[ue_cc_idx] = ue_cell_list.get_ue_cc_idx(ue_cc_idx);
   }
   std::sort(sorted_ue_cells.begin(),
             sorted_ue_cells.end(),
-            [](const cell_ctxt_dedicated* cc1, const cell_ctxt_dedicated* cc2) {
+            [](const ue_cell_ded* cc1, const ue_cell_ded* cc2) {
               return cc1->get_dl_earfcn() < cc2->get_dl_earfcn();
             });
   for (auto* cc : sorted_ue_cells) {
@@ -411,13 +411,13 @@ bool compute_diff_meascfg(const meas_cfg_s& current_meascfg, const meas_cfg_s& t
 
 bool apply_meascfg_updates(meas_cfg_s&                     meascfg,
                            meas_cfg_s&                     current_meascfg,
-                           const cell_ctxt_dedicated_list& ue_cell_list,
+                           const ue_cell_ded_list& ue_cell_list,
                            int                             prev_earfcn,
                            int                             prev_pci)
 {
   meascfg = {};
 
-  const cell_ctxt_dedicated* pcell         = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const ue_cell_ded* pcell         = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   uint32_t                   target_earfcn = pcell->get_dl_earfcn();
 
   if (static_cast<uint32_t>(prev_pci) == pcell->get_pci() and static_cast<uint32_t>(prev_earfcn) == target_earfcn) {

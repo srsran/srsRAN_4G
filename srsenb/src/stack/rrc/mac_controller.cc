@@ -64,7 +64,7 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
  */
 void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
                                           const rrc_conn_recfg_r8_ies_s&  conn_recfg,
-                                          const cell_ctxt_dedicated_list& ue_cell_list);
+                                          const ue_cell_ded_list& ue_cell_list);
 
 /**
  * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message related to
@@ -143,7 +143,7 @@ int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
 
 int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg)
 {
-  const auto* pcell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const auto* pcell = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   // Set static config params
   current_sched_ue_cfg.maxharq_tx       = rrc_cfg->mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
@@ -207,7 +207,7 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
   // Store MAC updates that are applied once RRCReconfigurationComplete is received
   next_sched_ue_cfg = current_sched_ue_cfg;
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->ue_cell_list);
 
   // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
   set_drb_activation(false);
@@ -253,7 +253,7 @@ void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn
 
   next_sched_ue_cfg = current_sched_ue_cfg;
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->ue_cell_list);
 
   // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
   set_drb_activation(false);
@@ -273,7 +273,7 @@ void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_r
       rrc_ue->parent->cell_common_list->get_pci(conn_recfg.mob_ctrl_info.target_pci)->enb_cc_idx;
   ue_cfg_apply_conn_reconf(next_sched_ue_cfg, conn_recfg, *rrc_cfg);
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->cell_ded_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->ue_cell_list);
 
   // Freeze SCells
   // NOTE: this avoids that the UE receives an HOCmd retx from target cell and do an incorrect RLC-level concatenation
@@ -391,7 +391,7 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
 
 void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
                                           const rrc_conn_recfg_r8_ies_s&  conn_recfg,
-                                          const cell_ctxt_dedicated_list& ue_cell_list)
+                                          const ue_cell_ded_list& ue_cell_list)
 {
   // Configure RadioResourceConfigDedicated
   if (conn_recfg.rr_cfg_ded_present) {

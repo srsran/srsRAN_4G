@@ -60,7 +60,7 @@ public:
 private:
   // helper methods
   bool update_ue_var_meas_cfg(uint32_t                src_earfcn,
-                              const cell_info_common& target_pcell,
+                              const enb_cell_common& target_pcell,
                               asn1::rrc::meas_cfg_s*  diff_meas_cfg);
 
   // Handover from source cell
@@ -69,7 +69,7 @@ private:
 
   // Handover to target cell
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
-                                   const cell_info_common&   target_cell,
+                                   const enb_cell_common&   target_cell,
                                    uint32_t                  src_dl_earfcn,
                                    uint32_t                  src_pci);
   bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
@@ -99,8 +99,8 @@ private:
   // states
   struct idle_st {};
   struct intraenb_ho_st {
-    const cell_info_common* target_cell     = nullptr;
-    const cell_info_common* source_cell     = nullptr;
+    const enb_cell_common* target_cell     = nullptr;
+    const enb_cell_common* source_cell     = nullptr;
     uint16_t                last_temp_crnti = SRSLTE_INVALID_RNTI;
 
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);

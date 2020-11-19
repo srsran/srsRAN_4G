@@ -645,11 +645,11 @@ uint32_t rrc::generate_sibs()
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
   // Store configs,SIBs in common cell ctxt list
-  cell_common_list.reset(new cell_info_common_list{cfg});
+  cell_common_list.reset(new enb_cell_common_list{cfg});
 
   // generate and pack into SIB buffers
   for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
-    cell_info_common* cell_ctxt = cell_common_list->get_cc_idx(cc_idx);
+    enb_cell_common* cell_ctxt = cell_common_list->get_cc_idx(cc_idx);
     // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);

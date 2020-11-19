@@ -127,15 +127,15 @@ private:
 
   const static uint32_t UE_PCELL_CC_IDX = 0;
 
-  cell_ctxt_dedicated_list cell_ded_list;
-  bearer_cfg_handler       bearer_list;
-  security_cfg_handler     ue_security_cfg;
+  ue_cell_ded_list     ue_cell_list;
+  bearer_cfg_handler   bearer_list;
+  security_cfg_handler ue_security_cfg;
 
   class mac_controller;
   std::unique_ptr<mac_controller> mac_ctrl;
 
   ///< Helper to access a cell cfg based on ue_cc_idx
-  cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
+  enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
   /// Helper to fill cell_ded_list with SCells provided in the eNB config
   void update_scells();

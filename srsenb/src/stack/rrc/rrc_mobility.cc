@@ -145,7 +145,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
 
   /* Evaluate if cell exists */
   uint32_t                target_eci  = container.target_cell_id.cell_id.to_number();
-  const cell_info_common* target_cell = cell_common_list->get_cell_id(rrc_details::eci_to_cellid(target_eci));
+  const enb_cell_common* target_cell = cell_common_list->get_cell_id(rrc_details::eci_to_cellid(target_eci));
   if (target_cell == nullptr) {
     rrc_log->error("The S1-handover target cell_id=0x%x does not exist\n", rrc_details::eci_to_cellid(target_eci));
     return SRSLTE_INVALID_RNTI;
@@ -210,7 +210,7 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
 
   // Check if there has been any update in ue_var_meas based on UE current cell list
   conn_recfg->meas_cfg_present =
-      apply_meascfg_updates(conn_recfg->meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->cell_ded_list);
+      apply_meascfg_updates(conn_recfg->meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->ue_cell_list);
   return conn_recfg->meas_cfg_present;
 }
 
@@ -247,12 +247,12 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
   meas_ev.meas_obj         = &(*obj_it);
 
   // iterate from strongest to weakest cell
-  const cell_ctxt_dedicated* pcell         = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const ue_cell_ded* pcell         = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const auto&                meas_list_cfg = pcell->cell_common->cell_cfg.meas_cfg.meas_cells;
   for (const meas_result_eutra_s& e : eutra_report_list) {
     auto                    same_pci = [&e](const meas_cell_cfg_t& c) { return c.pci == e.pci; };
     auto                    meas_it  = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), same_pci);
-    const cell_info_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
+    const enb_cell_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
     if (meas_it != meas_list_cfg.end()) {
       meas_ev.target_eci = meas_it->eci;
     } else if (c != nullptr) {
@@ -287,8 +287,8 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
 
   srslte::plmn_id_t target_plmn =
       srslte::make_plmn_id_t(rrc_enb->cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id);
-  const cell_ctxt_dedicated* src_cell_ded = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const cell_info_common*    src_cell_cfg = src_cell_ded->cell_common;
+  const ue_cell_ded* src_cell_ded = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const enb_cell_common*    src_cell_cfg = src_cell_ded->cell_common;
 
   /*** Fill HO Preparation Info ***/
   asn1::rrc::ho_prep_info_s         hoprep;
@@ -438,7 +438,7 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
  * @param target_cell
  */
 void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
-                                                        const cell_info_common&   target_cell,
+                                                        const enb_cell_common&   target_cell,
                                                         uint32_t                  src_dl_earfcn,
                                                         uint32_t                  src_pci)
 {
@@ -474,12 +474,12 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
 
   // Add MeasConfig of target cell
   recfg_r8.meas_cfg_present = apply_meascfg_updates(
-      recfg_r8.meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->cell_ded_list, src_dl_earfcn, src_pci);
+      recfg_r8.meas_cfg, rrc_ue->current_ue_cfg.meas_cfg, rrc_ue->ue_cell_list, src_dl_earfcn, src_pci);
 
   apply_reconf_updates(recfg_r8,
                        rrc_ue->current_ue_cfg,
                        rrc_enb->cfg,
-                       rrc_ue->cell_ded_list,
+                       rrc_ue->ue_cell_list,
                        rrc_ue->bearer_list,
                        rrc_ue->ue_capabilities,
                        true);
@@ -642,7 +642,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
   dl_dcch_msg_s              dl_dcch_msg;
-  const cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const ue_cell_ded* target_cell = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   // Fill fields common to all types of handover (e.g. new CQI/SR configuration, mobControlInfo)
   fill_mobility_reconf_common(dl_dcch_msg,
@@ -709,7 +709,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
 bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho_prep,
                                               const asn1::s1ap::ho_request_s& ho_req_msg)
 {
-  const cell_ctxt_dedicated* target_cell     = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const ue_cell_ded* target_cell     = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const cell_cfg_t&          target_cell_cfg = target_cell->cell_common->cell_cfg;
 
   // Establish ERABs/DRBs
@@ -779,7 +779,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev)
 {
-  cell_ctxt_dedicated* target_cell = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  ue_cell_ded* target_cell = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   rrc_log->info("User rnti=0x%x successfully handovered to cell_id=0x%x\n",
                 rrc_ue->rnti,
                 target_cell->cell_common->cell_cfg.cell_id);
@@ -842,7 +842,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 {
   uint32_t cell_id = rrc_details::eci_to_cellid(meas_report.target_eci);
   target_cell      = f->rrc_enb->cell_common_list->get_cell_id(cell_id);
-  source_cell      = f->rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common;
+  source_cell      = f->rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common;
   if (target_cell == nullptr) {
     f->log_h->error("The target cell_id=0x%x was not found in the list of eNB cells\n", cell_id);
     f->trigger(srslte::failure_ev{});
@@ -858,7 +858,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   last_temp_crnti = SRSLTE_INVALID_RNTI;
 
   /* Allocate Resources in Target Cell */
-  if (not f->rrc_ue->cell_ded_list.set_cells({target_cell->enb_cc_idx})) {
+  if (not f->rrc_ue->ue_cell_list.set_cells({target_cell->enb_cc_idx})) {
     f->trigger(srslte::failure_ev{});
     return;
   }

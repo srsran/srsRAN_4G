@@ -240,7 +240,7 @@ int test_correct_meascfg_calculation()
     cfg.cell_list[0].meas_cfg.meas_reports[0] = generate_rep1();
 
     // TEST: correct construction of list of cells
-    cell_info_common_list cell_list{cfg};
+    enb_cell_common_list cell_list{cfg};
     TESTASSERT(cell_list.nof_cells() == 2);
     TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
     TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
@@ -249,7 +249,7 @@ int test_correct_meascfg_calculation()
 
     // measConfig only includes earfcns of active carriers for a given pcell
     meas_cfg_s               cell_meas_cfg;
-    cell_ctxt_dedicated_list ue_cell_list{cfg, freq_res, cell_list};
+    ue_cell_ded_list         ue_cell_list{cfg, freq_res, cell_list};
     ue_cell_list.set_cells({0});
     TESTASSERT(fill_meascfg_enb_cfg(cell_meas_cfg, ue_cell_list));
     const auto& measobjs = cell_meas_cfg.meas_obj_to_add_mod_list;
@@ -300,14 +300,14 @@ int test_minimize_meascfg_reordering()
   cfg1.cell_list[1].dl_earfcn                  = 3400;
   cfg1.cell_list[1].cell_id                    = 0x02;
 
-  cell_info_common_list cell_list{cfg1};
+  enb_cell_common_list cell_list{cfg1};
   TESTASSERT(cell_list.nof_cells() == 2);
   TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
   TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
   TESTASSERT(cell_list.get_cc_idx(1)->scells.empty());
   freq_res_common_list     freq_res{cfg1};
-  cell_ctxt_dedicated_list ue_cell_list1{cfg1, freq_res, cell_list};
-  cell_ctxt_dedicated_list ue_cell_list2{cfg1, freq_res, cell_list};
+  ue_cell_ded_list            ue_cell_list1{cfg1, freq_res, cell_list};
+  ue_cell_ded_list            ue_cell_list2{cfg1, freq_res, cell_list};
 
   meas_cfg_s mcfg1{}, mcfg2{};
   ue_cell_list1.set_cells({0, 1});

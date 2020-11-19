@@ -50,20 +50,20 @@
 namespace srsenb {
 
 struct rrc_cfg_t;
-class cell_ctxt_dedicated_list;
+class ue_cell_ded_list;
 class bearer_cfg_handler;
 struct ue_var_cfg_t;
 
 /// Fill RadioResourceConfigDedicated with data known at the RRCSetup/Reestablishment stage
 void fill_rr_cfg_ded_setup(asn1::rrc::rr_cfg_ded_s&        rr_cfg,
                            const rrc_cfg_t&                enb_cfg,
-                           const cell_ctxt_dedicated_list& ue_cell_list);
+                           const ue_cell_ded_list& ue_cell_list);
 
 /// Apply Reconf updates and update current state
 void apply_reconf_updates(asn1::rrc::rrc_conn_recfg_r8_ies_s&  recfg_r8,
                           ue_var_cfg_t&                        current_ue_cfg,
                           const rrc_cfg_t&                     enb_cfg,
-                          const cell_ctxt_dedicated_list&      ue_cell_list,
+                          const ue_cell_ded_list&      ue_cell_list,
                           bearer_cfg_handler&                  bearers,
                           const srslte::rrc_ue_capabilities_t& ue_caps,
                           bool                                 phy_cfg_updated);
