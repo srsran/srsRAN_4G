@@ -56,6 +56,8 @@ public:
   int  get_dl_tx_with_overhead(uint32_t lcid) const;
   int  get_dl_retx(uint32_t lcid) const;
   int  get_dl_retx_with_overhead(uint32_t lcid) const;
+
+  bool is_lcg_active(uint32_t lcg) const;
   int  get_bsr(uint32_t lcid) const;
   int  get_bsr_with_overhead(uint32_t lcid) const;
   int  get_max_prio_lcid() const;

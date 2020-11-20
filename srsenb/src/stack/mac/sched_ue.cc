@@ -861,7 +861,7 @@ bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_se
 {
   bool ret = false;
   if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period &&
-      lch_handler.has_pending_dl_txs() && scell_activation_mask().any()) {
+      lch_handler.has_pending_dl_txs()) {
     uint32_t interval = srslte_tti_interval(tti, carriers[cc_idx].dl_cqi_tti);
     bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
@@ -1012,12 +1012,12 @@ uint32_t sched_ue::get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx)
 
   // Note: If there are no active bearers, scheduling requests are also ignored.
   uint32_t pending_data = 0;
-  uint32_t active_lcgs = 0, pending_lcgs = 0;
-  for (int i = 0; i < sched_interface::MAX_LC_GROUP; i++) {
-    if (lch_handler.is_bearer_ul(i)) {
-      int bsr = lch_handler.get_bsr_with_overhead(i);
-      pending_data += bsr == 0 ? 0 : 1;
-      active_lcgs++;
+  uint32_t pending_lcgs = 0;
+  for (int lcg = 0; lcg < sched_interface::MAX_LC_GROUP; lcg++) {
+    uint32_t bsr = lch_handler.get_bsr_with_overhead(lcg);
+    if (bsr > 0) {
+      pending_data += bsr;
+      pending_lcgs++;
     }
   }
   if (pending_data > 0) {
@@ -1026,7 +1026,7 @@ uint32_t sched_ue::get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx)
     // may be fully occupied by a BSR, and RRC the message transmission needs to be postponed.
     pending_data += (pending_lcgs <= 1) ? sbsr_size : lbsr_size;
   } else {
-    if (is_sr_triggered() and active_lcgs > 0 and this_ue_cc_idx >= 0) {
+    if (is_sr_triggered() and this_ue_cc_idx >= 0) {
       // Check if this_cc_idx is the carrier with highest CQI
       uint32_t max_cqi = 0, max_cc_idx = 0;
       for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
