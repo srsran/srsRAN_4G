@@ -23,6 +23,7 @@
 #include "srsenb/hdr/stack/mac/sched_metric.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
+#include "srsenb/hdr/stack/mac/sched_interface_helpers.h"
 
 namespace srsenb {
 
@@ -138,9 +139,7 @@ void bc_sched::reset()
  *******************************************************/
 
 ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_) :
-  cc_cfg(&cfg_),
-  log_h(srslte::logmap::get("MAC")),
-  ue_db(&ue_db_)
+  cc_cfg(&cfg_), log_h(srslte::logmap::get("MAC")), ue_db(&ue_db_)
 {}
 
 // Schedules RAR
@@ -355,6 +354,8 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
   for (auto& user : *ue_db) {
     user.second.finish_tti(cc_result->tti_params, enb_cc_idx);
   }
+
+  log_dl_cc_results(log_h, enb_cc_idx, cc_result->dl_sched_result);
 
   return *cc_result;
 }

@@ -454,33 +454,6 @@ void sched_ue::tpc_dec()
  *******************************************************/
 
 /**
- * Allocate space for pending MAC CEs
- * @param data struct where the MAC CEs allocations are stored
- * @param total_tbs available space in bytes for allocations
- * @return number of bytes allocated
- */
-uint32_t sched_ue::allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t ue_cc_idx)
-{
-  if (ue_cc_idx != 0) {
-    return 0;
-  }
-
-  int rem_tbs = total_tbs;
-  while (not lch_handler.pending_ces.empty() and data->nof_pdu_elems[0] < sched_interface::MAX_RLC_PDU_LIST) {
-    int toalloc = srslte::ce_total_size(lch_handler.pending_ces.front());
-    if (rem_tbs < toalloc) {
-      break;
-    }
-    data->pdu[0][data->nof_pdu_elems[0]].lcid = (uint32_t)lch_handler.pending_ces.front();
-    data->nof_pdu_elems[0]++;
-    rem_tbs -= toalloc;
-    Info("SCHED: Added a MAC %s CE for rnti=0x%x\n", srslte::to_string(lch_handler.pending_ces.front()), rnti);
-    lch_handler.pending_ces.pop_front();
-  }
-  return total_tbs - rem_tbs;
-}
-
-/**
  * Allocate space
  * @param data
  * @param total_tbs
@@ -504,13 +477,12 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
 
   // Allocate MAC PDU (subheaders, CEs, and SDUS)
   int rem_tbs = tbs;
-  rem_tbs -= allocate_mac_ces(data, rem_tbs, ue_cc_idx);
+  rem_tbs -= allocate_mac_ces(data, lch_handler, rem_tbs, ue_cc_idx);
   rem_tbs -= allocate_mac_sdus(data, lch_handler, rem_tbs, tb);
 
   // Allocate DL UE Harq
   if (rem_tbs != tbs) {
     h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce, get_ue_cfg().maxharq_tx);
-    Debug("SCHED: Alloc DCI format%s new mcs=%d, tbs=%d, nof_prb=%d\n", dci_format, mcs, tbs, nof_prb);
   } else {
     Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
   }
@@ -699,10 +671,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     int      tbs       = 0;
 
     if (!h->is_empty(tb)) {
-
       h->new_retx(user_mask, tb, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
-      Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
-
     } else if (tb_en[tb] && req_bytes > 0 && no_retx) {
       auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, tb, "2/2a");
       tbs      = ret.first;

@@ -40,6 +40,28 @@ namespace srslte {
  *       DL-SCH LCID
  *************************/
 
+const char* to_string_short(dl_sch_lcid v)
+{
+  switch (v) {
+    case dl_sch_lcid::CCCH:
+      return "CCCH";
+    case dl_sch_lcid::SCELL_ACTIVATION_4_OCTET:
+      return "SCellAct4";
+    case dl_sch_lcid::SCELL_ACTIVATION:
+      return "SCellAct";
+    case dl_sch_lcid::CON_RES_ID:
+      return "ConResId";
+    case dl_sch_lcid::TA_CMD:
+      return "TA_CMD";
+    case dl_sch_lcid::DRX_CMD:
+      return "DRX_CMD";
+    case dl_sch_lcid::PADDING:
+      return "PAD";
+    default:
+      return "Unrecognized LCID";
+  }
+}
+
 const char* to_string(dl_sch_lcid v)
 {
   switch (v) {

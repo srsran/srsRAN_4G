@@ -48,6 +48,7 @@ enum class dl_sch_lcid {
   PADDING                  = 0b11111
 };
 const char*    to_string(dl_sch_lcid v);
+const char*    to_string_short(dl_sch_lcid v);
 uint32_t       ce_size(dl_sch_lcid v);
 uint32_t       ce_subheader_size(dl_sch_lcid v);
 uint32_t       ce_total_size(dl_sch_lcid v);

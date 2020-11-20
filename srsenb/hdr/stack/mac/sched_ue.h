@@ -211,7 +211,6 @@ private:
   void check_ue_cfg_correctness() const;
   bool is_sr_triggered();
 
-  uint32_t            allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t ue_cc_idx);
   std::pair<int, int> allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
                                               dl_harq_proc*                     h,
                                               const rbgmask_t&                  user_mask,

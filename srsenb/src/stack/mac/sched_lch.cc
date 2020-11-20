@@ -220,7 +220,6 @@ int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem
   if (alloc_bytes > 0) {
     rlc_pdu->nbytes = alloc_bytes;
     rlc_pdu->lcid   = lcid;
-    Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", rlc_pdu->lcid, rlc_pdu->nbytes, rem_bytes);
   }
   return alloc_bytes;
 }
@@ -319,6 +318,29 @@ allocate_mac_sdus(sched_interface::dl_sched_data_t* data, lch_manager& lch_handl
     data->nof_pdu_elems[tbidx]++;
   }
 
+  return total_tbs - rem_tbs;
+}
+
+uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data,
+                          lch_manager&                      lch_handler,
+                          uint32_t                          total_tbs,
+                          uint32_t                          ue_cc_idx)
+{
+  if (ue_cc_idx != 0) {
+    return 0;
+  }
+
+  int rem_tbs = total_tbs;
+  while (not lch_handler.pending_ces.empty() and data->nof_pdu_elems[0] < sched_interface::MAX_RLC_PDU_LIST) {
+    int toalloc = srslte::ce_total_size(lch_handler.pending_ces.front());
+    if (rem_tbs < toalloc) {
+      break;
+    }
+    data->pdu[0][data->nof_pdu_elems[0]].lcid = (uint32_t)lch_handler.pending_ces.front();
+    data->nof_pdu_elems[0]++;
+    rem_tbs -= toalloc;
+    lch_handler.pending_ces.pop_front();
+  }
   return total_tbs - rem_tbs;
 }
 
