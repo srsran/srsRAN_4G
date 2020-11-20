@@ -191,12 +191,11 @@ void phy::set_activation_deactivation_scell(uint16_t rnti, const std::array<bool
 
 void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
 {
-  uint32_t                   nof_users = workers[0].get_nof_rnti();
   std::vector<phy_metrics_t> metrics_tmp;
   for (uint32_t i = 0; i < nof_workers; i++) {
     workers[i].get_metrics(metrics_tmp);
     metrics.resize(std::max(metrics_tmp.size(), metrics.size()));
-    for (uint32_t j = 0; j < nof_users; j++) {
+    for (uint32_t j = 0; j < metrics_tmp.size(); j++) {
       metrics[j].dl.n_samples += metrics_tmp[j].dl.n_samples;
       metrics[j].dl.mcs += metrics_tmp[j].dl.n_samples * metrics_tmp[j].dl.mcs;
 
@@ -208,7 +207,7 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
       metrics[j].ul.turbo_iters += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.turbo_iters;
     }
   }
-  for (uint32_t j = 0; j < nof_users; j++) {
+  for (uint32_t j = 0; j < metrics.size(); j++) {
     metrics[j].dl.mcs /= metrics[j].dl.n_samples;
     metrics[j].ul.mcs /= metrics[j].ul.n_samples;
     metrics[j].ul.n /= metrics[j].ul.n_samples;
