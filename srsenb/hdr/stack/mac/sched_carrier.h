@@ -19,10 +19,10 @@
  *
  */
 
-#ifndef SRSLTE_SCHEDULER_CARRIER_H
-#define SRSLTE_SCHEDULER_CARRIER_H
+#ifndef SRSLTE_SCHED_CARRIER_H
+#define SRSLTE_SCHED_CARRIER_H
 
-#include "scheduler.h"
+#include "sched.h"
 
 namespace srsenb {
 
@@ -134,4 +134,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHEDULER_CARRIER_H
+#endif // SRSLTE_SCHED_CARRIER_H

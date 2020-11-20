@@ -22,7 +22,7 @@
 #ifndef SRSLTE_SCHED_COMMON_TEST_SUITE_H
 #define SRSLTE_SCHED_COMMON_TEST_SUITE_H
 
-#include "srsenb/hdr/stack/mac/scheduler_common.h"
+#include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"

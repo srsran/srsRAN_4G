@@ -19,9 +19,9 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/scheduler.h"
-#include "srsenb/hdr/stack/mac/scheduler_carrier.h"
-#include "srsenb/hdr/stack/mac/scheduler_ue.h"
+#include "srsenb/hdr/stack/mac/sched.h"
+#include "srsenb/hdr/stack/mac/sched_carrier.h"
+#include "srsenb/hdr/stack/mac/sched_ue.h"
 #include <algorithm>
 #include <chrono>
 #include <random>
@@ -39,8 +39,8 @@
 
 #include "sched_common_test_suite.h"
 #include "sched_sim_ue.h"
-#include "scheduler_test_common.h"
-#include "scheduler_test_utils.h"
+#include "sched_test_common.h"
+#include "sched_test_utils.h"
 #include "srslte/common/test_common.h"
 
 using srslte::tti_point;

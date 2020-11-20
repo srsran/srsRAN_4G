@@ -22,8 +22,8 @@
 #ifndef SRSENB_MAC_H
 #define SRSENB_MAC_H
 
-#include "scheduler.h"
-#include "scheduler_metric.h"
+#include "sched.h"
+#include "sched_metric.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/task_scheduler.h"

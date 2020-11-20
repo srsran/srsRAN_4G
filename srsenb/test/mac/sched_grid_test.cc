@@ -19,8 +19,8 @@
  *
  */
 
-#include "scheduler_test_common.h"
-#include "srsenb/hdr/stack/mac/scheduler_grid.h"
+#include "sched_test_common.h"
+#include "srsenb/hdr/stack/mac/sched_grid.h"
 #include "srslte/common/test_common.h"
 
 using namespace srsenb;

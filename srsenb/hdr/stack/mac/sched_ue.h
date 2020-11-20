@@ -22,13 +22,13 @@
 #ifndef SRSENB_SCHEDULER_UE_H
 #define SRSENB_SCHEDULER_UE_H
 
-#include "scheduler_common.h"
+#include "sched_common.h"
 #include "srslte/common/log.h"
 #include "srslte/mac/pdu.h"
 #include <map>
 #include <vector>
 
-#include "scheduler_harq.h"
+#include "sched_harq.h"
 #include <bitset>
 #include <deque>
 

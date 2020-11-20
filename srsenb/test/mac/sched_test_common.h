@@ -19,12 +19,12 @@
  *
  */
 
-#ifndef SRSLTE_SCHEDULER_TEST_COMMON_H
-#define SRSLTE_SCHEDULER_TEST_COMMON_H
+#ifndef SRSLTE_SCHED_TEST_COMMON_H
+#define SRSLTE_SCHED_TEST_COMMON_H
 
 #include "sched_sim_ue.h"
-#include "scheduler_test_utils.h"
-#include "srsenb/hdr/stack/mac/scheduler.h"
+#include "sched_test_utils.h"
+#include "srsenb/hdr/stack/mac/sched.h"
 #include <random>
 
 namespace srsenb {
@@ -200,4 +200,4 @@ protected:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHEDULER_TEST_COMMON_H
+#endif // SRSLTE_SCHED_TEST_COMMON_H

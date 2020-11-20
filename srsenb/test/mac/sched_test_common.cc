@@ -19,8 +19,8 @@
  *
  */
 
-#include "scheduler_test_common.h"
-#include "srsenb/hdr/stack/mac/scheduler.h"
+#include "sched_test_common.h"
+#include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/mac/pdu.h"
 

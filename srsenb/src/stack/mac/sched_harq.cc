@@ -21,7 +21,7 @@
 
 #include <string.h>
 
-#include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/sched.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/srslte.h"

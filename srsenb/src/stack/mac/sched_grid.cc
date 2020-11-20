@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/scheduler_grid.h"
-#include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/sched_grid.h"
+#include "srsenb/hdr/stack/mac/sched.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
 #include <srslte/interfaces/sched_interface.h>

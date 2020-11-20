@@ -19,10 +19,10 @@
  *
  */
 
-#ifndef SRSLTE_SCHEDULER_TEST_UTILS_H
-#define SRSLTE_SCHEDULER_TEST_UTILS_H
+#ifndef SRSLTE_SCHED_TEST_UTILS_H
+#define SRSLTE_SCHED_TEST_UTILS_H
 
-#include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -304,4 +304,4 @@ private:
   }
 };
 
-#endif // SRSLTE_SCHEDULER_TEST_UTILS_H
+#endif // SRSLTE_SCHED_TEST_UTILS_H

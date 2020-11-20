@@ -19,11 +19,11 @@
  *
  */
 
-#ifndef SRSLTE_SCHEDULER_GRID_H
-#define SRSLTE_SCHEDULER_GRID_H
+#ifndef SRSLTE_SCHED_GRID_H
+#define SRSLTE_SCHED_GRID_H
 
 #include "lib/include/srslte/interfaces/sched_interface.h"
-#include "scheduler_ue.h"
+#include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/log.h"
 #include <deque>
@@ -347,4 +347,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHEDULER_GRID_H
+#endif // SRSLTE_SCHED_GRID_H

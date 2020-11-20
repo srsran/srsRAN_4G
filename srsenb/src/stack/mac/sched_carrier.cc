@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/scheduler_carrier.h"
-#include "srsenb/hdr/stack/mac/scheduler_metric.h"
+#include "srsenb/hdr/stack/mac/sched_carrier.h"
+#include "srsenb/hdr/stack/mac/sched_metric.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
 

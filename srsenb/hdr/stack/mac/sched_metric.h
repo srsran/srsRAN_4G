@@ -22,7 +22,7 @@
 #ifndef SRSENB_SCHEDULER_METRIC_H
 #define SRSENB_SCHEDULER_METRIC_H
 
-#include "scheduler.h"
+#include "sched.h"
 
 namespace srsenb {
 

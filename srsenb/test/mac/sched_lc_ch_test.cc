@@ -19,9 +19,9 @@
  *
  */
 
-#include "scheduler_test_common.h"
-#include "scheduler_test_utils.h"
-#include "srsenb/hdr/stack/mac/scheduler_ue.h"
+#include "sched_test_common.h"
+#include "sched_test_utils.h"
+#include "srsenb/hdr/stack/mac/sched_ue.h"
 #include "srslte/common/test_common.h"
 
 using namespace srsenb;

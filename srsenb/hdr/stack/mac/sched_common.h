@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_SCHEDULER_COMMON_H
-#define SRSLTE_SCHEDULER_COMMON_H
+#ifndef SRSLTE_SCHED_COMMON_H
+#define SRSLTE_SCHED_COMMON_H
 
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/tti_point.h"
@@ -149,4 +149,4 @@ void generate_cce_location(srslte_regs_t*   regs,
 
 } // namespace srsenb
 
-#endif // SRSLTE_SCHEDULER_COMMON_H
+#endif // SRSLTE_SCHED_COMMON_H
