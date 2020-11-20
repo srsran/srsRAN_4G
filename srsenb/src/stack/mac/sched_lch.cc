@@ -79,14 +79,14 @@ const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir)
   }
 }
 
-void lch_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
+void lch_ue_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
 {
   for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; lcid++) {
     config_lcid(lcid, cfg.ue_bearers[lcid]);
   }
 }
 
-void lch_manager::new_tti()
+void lch_ue_manager::new_tti()
 {
   prio_idx++;
   for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; ++lcid) {
@@ -98,7 +98,7 @@ void lch_manager::new_tti()
   }
 }
 
-void lch_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg)
+void lch_ue_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg)
 {
   if (lc_id >= sched_interface::MAX_LC) {
     Warning("Adding bearer with invalid logical channel id=%d\n", lc_id);
@@ -128,7 +128,7 @@ void lch_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_c
   }
 }
 
-void lch_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
+void lch_ue_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
 {
   if (lcg_id >= sched_interface::MAX_LC_GROUP) {
     Warning("The provided logical channel group id=%d is not valid\n", lcg_id);
@@ -138,7 +138,7 @@ void lch_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
   Debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s\n", bsr, lcg_id, get_bsr_text().c_str());
 }
 
-void lch_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
+void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
 {
   if (lcid >= sched_interface::MAX_LC) {
     Warning("The provided lcid=%d is not valid\n", lcid);
@@ -148,7 +148,7 @@ void lch_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
   Debug("SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s\n", bytes, lch[lcid].cfg.group, get_bsr_text().c_str());
 }
 
-void lch_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
+void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
 {
   if (lcid >= sched_interface::MAX_LC) {
     Warning("The provided lcid=%d is not valid\n", lcid);
@@ -159,7 +159,7 @@ void lch_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx
   Debug("SCHED: DL lcid=%d buffer_state=%d,%d\n", lcid, tx_queue, retx_queue);
 }
 
-int lch_manager::get_max_prio_lcid() const
+int lch_ue_manager::get_max_prio_lcid() const
 {
   int min_prio_val = std::numeric_limits<int>::max(), prio_lcid = -1;
 
@@ -208,7 +208,7 @@ int lch_manager::get_max_prio_lcid() const
 }
 
 /// Allocates first available RLC PDU
-int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
+int lch_ue_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
 {
   int alloc_bytes = 0;
   int lcid        = get_max_prio_lcid();
@@ -237,7 +237,7 @@ int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem
   return alloc_bytes;
 }
 
-int lch_manager::alloc_retx_bytes(uint8_t lcid, int rem_bytes)
+int lch_ue_manager::alloc_retx_bytes(uint8_t lcid, int rem_bytes)
 {
   const int rlc_overhead = (lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
   if (rem_bytes <= rlc_overhead) {
@@ -249,7 +249,7 @@ int lch_manager::alloc_retx_bytes(uint8_t lcid, int rem_bytes)
   return alloc + (alloc > 0 ? rlc_overhead : 0);
 }
 
-int lch_manager::alloc_tx_bytes(uint8_t lcid, int rem_bytes)
+int lch_ue_manager::alloc_tx_bytes(uint8_t lcid, int rem_bytes)
 {
   const int rlc_overhead = (lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
   if (rem_bytes <= rlc_overhead) {
@@ -265,35 +265,35 @@ int lch_manager::alloc_tx_bytes(uint8_t lcid, int rem_bytes)
   return alloc + (alloc > 0 ? rlc_overhead : 0);
 }
 
-bool lch_manager::is_bearer_active(uint32_t lcid) const
+bool lch_ue_manager::is_bearer_active(uint32_t lcid) const
 {
   return lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE;
 }
 
-bool lch_manager::is_bearer_ul(uint32_t lcid) const
+bool lch_ue_manager::is_bearer_ul(uint32_t lcid) const
 {
   return is_bearer_active(lcid) and lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::DL;
 }
 
-bool lch_manager::is_bearer_dl(uint32_t lcid) const
+bool lch_ue_manager::is_bearer_dl(uint32_t lcid) const
 {
   return is_bearer_active(lcid) and lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::UL;
 }
 
-bool lch_manager::has_pending_dl_txs() const
+bool lch_ue_manager::has_pending_dl_txs() const
 {
-  if(not pending_ces.empty()) {
+  if (not pending_ces.empty()) {
     return true;
   }
-  for(uint32_t lcid = 0; lcid < lch.size(); ++lcid) {
-    if(get_dl_tx_total(lcid) > 0) {
+  for (uint32_t lcid = 0; lcid < lch.size(); ++lcid) {
+    if (get_dl_tx_total(lcid) > 0) {
       return true;
     }
   }
   return false;
 }
 
-int lch_manager::get_dl_tx_total() const
+int lch_ue_manager::get_dl_tx_total() const
 {
   int sum = 0;
   for (size_t lcid = 0; lcid < lch.size(); ++lcid) {
@@ -302,48 +302,50 @@ int lch_manager::get_dl_tx_total() const
   return sum;
 }
 
-int lch_manager::get_dl_tx_total_with_overhead(uint32_t lcid) const
+int lch_ue_manager::get_dl_tx_total_with_overhead(uint32_t lcid) const
 {
   return get_dl_retx_with_overhead(lcid) + get_dl_tx_with_overhead(lcid);
 }
 
-int lch_manager::get_dl_tx(uint32_t lcid) const
+int lch_ue_manager::get_dl_tx(uint32_t lcid) const
 {
   return is_bearer_dl(lcid) ? lch[lcid].buf_tx : 0;
 }
-int lch_manager::get_dl_tx_with_overhead(uint32_t lcid) const
+int lch_ue_manager::get_dl_tx_with_overhead(uint32_t lcid) const
 {
   return get_mac_sdu_size_with_overhead(lcid, get_dl_tx(lcid));
 }
 
-int lch_manager::get_dl_retx(uint32_t lcid) const
+int lch_ue_manager::get_dl_retx(uint32_t lcid) const
 {
   return is_bearer_dl(lcid) ? lch[lcid].buf_retx : 0;
 }
-int lch_manager::get_dl_retx_with_overhead(uint32_t lcid) const
+int lch_ue_manager::get_dl_retx_with_overhead(uint32_t lcid) const
 {
   return get_mac_sdu_size_with_overhead(lcid, get_dl_retx(lcid));
 }
 
-int lch_manager::get_bsr(uint32_t lcid) const
+int lch_ue_manager::get_bsr(uint32_t lcid) const
 {
   return is_bearer_ul(lcid) ? lcg_bsr[lch[lcid].cfg.group] : 0;
 }
-int lch_manager::get_bsr_with_overhead(uint32_t lcid) const
+int lch_ue_manager::get_bsr_with_overhead(uint32_t lcid) const
 {
   int bsr = get_bsr(lcid);
   return bsr + (bsr == 0 ? 0 : ((lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI));
 }
 
-std::string lch_manager::get_bsr_text() const
+std::string lch_ue_manager::get_bsr_text() const
 {
   std::stringstream ss;
   ss << "{" << lcg_bsr[0] << ", " << lcg_bsr[1] << ", " << lcg_bsr[2] << ", " << lcg_bsr[3] << "}";
   return ss.str();
 }
 
-uint32_t
-allocate_mac_sdus(sched_interface::dl_sched_data_t* data, lch_manager& lch_handler, uint32_t total_tbs, uint32_t tbidx)
+uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,
+                           lch_ue_manager&                   lch_handler,
+                           uint32_t                          total_tbs,
+                           uint32_t                          tbidx)
 {
   uint32_t rem_tbs = total_tbs;
 
@@ -363,7 +365,7 @@ allocate_mac_sdus(sched_interface::dl_sched_data_t* data, lch_manager& lch_handl
 }
 
 uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data,
-                          lch_manager&                      lch_handler,
+                          lch_ue_manager&                   lch_handler,
                           uint32_t                          total_tbs,
                           uint32_t                          ue_cc_idx)
 {

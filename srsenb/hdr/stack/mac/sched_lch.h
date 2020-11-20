@@ -28,7 +28,7 @@
 
 namespace srsenb {
 
-class lch_manager
+class lch_ue_manager
 {
   constexpr static uint32_t pbr_infinity = -1;
   constexpr static uint32_t MAX_LC       = sched_interface::MAX_LC;
@@ -49,16 +49,16 @@ public:
   bool is_bearer_dl(uint32_t lcid) const;
 
   bool has_pending_dl_txs() const;
-  int get_dl_tx_total() const;
-  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
-  int get_dl_tx_total_with_overhead(uint32_t lcid) const;
-  int get_dl_tx(uint32_t lcid) const;
-  int get_dl_tx_with_overhead(uint32_t lcid) const;
-  int get_dl_retx(uint32_t lcid) const;
-  int get_dl_retx_with_overhead(uint32_t lcid) const;
-  int get_bsr(uint32_t lcid) const;
-  int get_bsr_with_overhead(uint32_t lcid) const;
-  int get_max_prio_lcid() const;
+  int  get_dl_tx_total() const;
+  int  get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
+  int  get_dl_tx_total_with_overhead(uint32_t lcid) const;
+  int  get_dl_tx(uint32_t lcid) const;
+  int  get_dl_tx_with_overhead(uint32_t lcid) const;
+  int  get_dl_retx(uint32_t lcid) const;
+  int  get_dl_retx_with_overhead(uint32_t lcid) const;
+  int  get_bsr(uint32_t lcid) const;
+  int  get_bsr_with_overhead(uint32_t lcid) const;
+  int  get_max_prio_lcid() const;
 
   std::string get_bsr_text() const;
 
@@ -91,8 +91,10 @@ private:
  * @param tbidx index of TB
  * @return allocated bytes, which is always equal or lower than total_tbs
  */
-uint32_t
-allocate_mac_sdus(sched_interface::dl_sched_data_t* data, lch_manager& lch_handler, uint32_t total_tbs, uint32_t tbidx);
+uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,
+                           lch_ue_manager&                   lch_handler,
+                           uint32_t                          total_tbs,
+                           uint32_t                          tbidx);
 
 /**
  * Allocate space for pending MAC CEs
@@ -101,7 +103,7 @@ allocate_mac_sdus(sched_interface::dl_sched_data_t* data, lch_manager& lch_handl
  * @return number of bytes allocated
  */
 uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data,
-                          lch_manager&                      lch_handler,
+                          lch_ue_manager&                   lch_handler,
                           uint32_t                          total_tbs,
                           uint32_t                          ue_cc_idx);
 

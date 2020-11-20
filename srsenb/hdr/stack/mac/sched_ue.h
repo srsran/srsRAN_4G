@@ -253,8 +253,8 @@ private:
   const sched_cell_params_t*              main_cc_params   = nullptr;
 
   /* Buffer states */
-  bool        sr = false;
-  lch_manager lch_handler;
+  bool           sr = false;
+  lch_ue_manager lch_handler;
 
   int      power_headroom  = 0;
   uint32_t cqi_request_tti = 0;

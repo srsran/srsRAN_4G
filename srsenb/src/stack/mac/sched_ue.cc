@@ -264,9 +264,9 @@ void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_q
 
 void sched_ue::mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds)
 {
-  auto cmd = (lch_manager::ce_cmd)ce_code;
+  auto cmd = (lch_ue_manager::ce_cmd)ce_code;
   for (uint32_t i = 0; i < nof_cmds; ++i) {
-    if (cmd == lch_manager::ce_cmd::CON_RES_ID) {
+    if (cmd == lch_ue_manager::ce_cmd::CON_RES_ID) {
       lch_handler.pending_ces.push_front(cmd);
     } else {
       lch_handler.pending_ces.push_back(cmd);
@@ -946,7 +946,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
       // Wait for SRB0 data to be available for Msg4 before scheduling the ConRes CE
       return {};
     }
-    for (const lch_manager::ce_cmd& ce : lch_handler.pending_ces) {
+    for (const lch_ue_manager::ce_cmd& ce : lch_handler.pending_ces) {
       sum_ce_data += srslte::ce_total_size(ce);
     }
   }
@@ -958,7 +958,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
 
   /* Set Minimum boundary */
   min_data = srb0_data;
-  if (not lch_handler.pending_ces.empty() and lch_handler.pending_ces.front() == lch_manager::ce_cmd::CON_RES_ID) {
+  if (not lch_handler.pending_ces.empty() and lch_handler.pending_ces.front() == lch_ue_manager::ce_cmd::CON_RES_ID) {
     min_data += srslte::ce_total_size(lch_handler.pending_ces.front());
   }
   if (min_data == 0) {

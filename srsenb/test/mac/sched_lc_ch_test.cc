@@ -28,7 +28,7 @@ using namespace srsenb;
 const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 /// Tests if a PDU was allocated with lcid and pdu_size bytes
-int test_pdu_alloc_successful(srsenb::lch_manager&             lch_handler,
+int test_pdu_alloc_successful(srsenb::lch_ue_manager&          lch_handler,
                               sched_interface::dl_sched_pdu_t& pdu,
                               int                              lcid,
                               uint32_t                         pdu_size)
@@ -40,7 +40,7 @@ int test_pdu_alloc_successful(srsenb::lch_manager&             lch_handler,
   return SRSLTE_SUCCESS;
 }
 
-int test_retx_until_empty(srsenb::lch_manager& lch_handler, int lcid, uint32_t pdu_size)
+int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t pdu_size)
 {
   uint32_t                        nof_pdus = lch_handler.get_dl_retx(lcid) / pdu_size;
   sched_interface::dl_sched_pdu_t pdu;
@@ -52,7 +52,7 @@ int test_retx_until_empty(srsenb::lch_manager& lch_handler, int lcid, uint32_t p
   return nof_pdus * pdu_size;
 }
 
-int test_newtx_until_empty(srsenb::lch_manager& lch_handler, int lcid, uint32_t pdu_size)
+int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t pdu_size)
 {
   uint32_t                        nof_pdus = lch_handler.get_dl_tx(lcid) / pdu_size;
   sched_interface::dl_sched_pdu_t pdu;
@@ -66,7 +66,7 @@ int test_newtx_until_empty(srsenb::lch_manager& lch_handler, int lcid, uint32_t 
 
 int test_lc_ch_pbr_infinity()
 {
-  srsenb::lch_manager lch_handler;
+  srsenb::lch_ue_manager lch_handler;
 
   srsenb::sched_interface::ue_cfg_t ue_cfg        = generate_default_ue_cfg();
   ue_cfg                                          = generate_setup_ue_cfg(ue_cfg);
@@ -115,7 +115,7 @@ int test_lc_ch_pbr_infinity()
 
 int test_lc_ch_pbr_finite()
 {
-  srsenb::lch_manager             lch_handler;
+  srsenb::lch_ue_manager          lch_handler;
   sched_interface::dl_sched_pdu_t pdu;
 
   srsenb::sched_interface::ue_cfg_t ue_cfg        = generate_default_ue_cfg();
