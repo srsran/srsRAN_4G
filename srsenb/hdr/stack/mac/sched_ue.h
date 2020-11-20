@@ -152,8 +152,7 @@ public:
 
   rbg_interval               get_required_dl_rbgs(uint32_t ue_cc_idx);
   srslte::interval<uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
-  uint32_t                   get_pending_dl_new_data();
-  uint32_t                   get_pending_dl_new_data_total();
+  uint32_t                   get_pending_dl_rlc_data() const;
 
   uint32_t get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx);
   uint32_t get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx);
@@ -217,8 +216,7 @@ private:
                                               uint32_t                          tti_tx_dl,
                                               uint32_t                          ue_cc_idx,
                                               uint32_t                          cfi,
-                                              uint32_t                          tb,
-                                              const char*                       dci_format);
+                                              uint32_t                          tb);
 
   std::pair<int, int> compute_mcs_and_tbs(uint32_t               ue_cc_idx,
                                           uint32_t               tti_tx_dl,

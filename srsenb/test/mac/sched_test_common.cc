@@ -488,7 +488,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
         reconf_user(user->rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg));
 
         // Schedule RRC Setup and ConRes CE
-        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
+        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
         if (pending_dl_new_data == 0) {
           uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
           dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
@@ -506,7 +506,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.msg4_tti_rx.is_valid()) {
         // If Msg4 has already been tx and there DL data to transmit
         uint32_t lcid                = RB_ID_DRB1;
-        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
+        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
         if (user->drb_cfg_flag or pending_dl_new_data == 0) {
           // If RRCSetup finished
           if (not user->drb_cfg_flag) {

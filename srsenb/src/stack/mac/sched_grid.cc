@@ -1035,7 +1035,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     }
     sched_ue*           user        = &ue_it->second;
     uint32_t            cell_index  = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
-    uint32_t            data_before = user->get_pending_dl_new_data();
+    uint32_t            data_before = user->get_requested_dl_bytes(cell_index).stop();
     const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cell_index);
     bool                is_newtx    = dl_harq.is_empty();
 
@@ -1049,7 +1049,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
                      data_alloc.pid,
                      data_alloc.user_mask.to_hex().c_str(),
                      tbs,
-                     user->get_pending_dl_new_data());
+                     user->get_requested_dl_bytes(cell_index).stop());
       continue;
     }
 
@@ -1065,7 +1065,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
                 dl_harq.nof_retx(0) + dl_harq.nof_retx(1),
                 tbs,
                 data_before,
-                user->get_pending_dl_new_data());
+                user->get_requested_dl_bytes(cell_index).stop());
 
     dl_result->nof_data_elems++;
   }

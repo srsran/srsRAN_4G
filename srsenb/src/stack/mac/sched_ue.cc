@@ -36,7 +36,7 @@ namespace srsenb {
  *                 Helper Functions                   *
  ******************************************************/
 
-#define MAC_MIN_ALLOC_SIZE 6
+#define MAC_MIN_ALLOC_SIZE 5
 
 namespace sched_utils {
 
@@ -454,7 +454,7 @@ void sched_ue::tpc_dec()
  *******************************************************/
 
 /**
- * Allocate space
+ * Allocate MAC PDU for a UE HARQ pid
  * @param data
  * @param total_tbs
  * @param ue_cc_idx
@@ -466,8 +466,7 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
                                                       uint32_t                tti_tx_dl,
                                                       uint32_t                ue_cc_idx,
                                                       uint32_t                cfi,
-                                                      uint32_t                tb,
-                                                      const char*             dci_format)
+                                                      uint32_t                tb)
 {
   srslte_dci_dl_t* dci     = &data->dci;
   uint32_t         nof_prb = sched_utils::count_prb_per_tb(*carriers[ue_cc_idx].get_cell_cfg(), user_mask);
@@ -553,7 +552,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
   }
 
   if (h->is_empty(0)) {
-    auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, 0, "1");
+    auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, 0);
     tbs      = ret.first;
     mcs      = ret.second;
   } else {
@@ -666,14 +665,13 @@ int sched_ue::generate_format2a(uint32_t                          pid,
   }
 
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    uint32_t req_bytes = get_pending_dl_new_data_total();
-    int      mcs       = 0;
-    int      tbs       = 0;
+    int mcs = 0;
+    int tbs = 0;
 
     if (!h->is_empty(tb)) {
       h->new_retx(user_mask, tb, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
-    } else if (tb_en[tb] && req_bytes > 0 && no_retx) {
-      auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, tb, "2/2a");
+    } else if (tb_en[tb] && no_retx) {
+      auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, tb);
       tbs      = ret.first;
       mcs      = ret.second;
     }
@@ -862,7 +860,8 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
 bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
 {
   bool ret = false;
-  if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period && get_pending_dl_new_data() > 0) {
+  if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period &&
+      lch_handler.has_pending_dl_txs() && scell_activation_mask().any()) {
     uint32_t interval = srslte_tti_interval(tti, carriers[cc_idx].dl_cqi_tti);
     bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
@@ -877,18 +876,6 @@ bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_se
     }
   }
   return ret;
-}
-
-/// Use this function in the dl-metric to get the bytes to be scheduled. It accounts for the UE data,
-/// the RAR resources, and headers
-/// \return number of bytes to be allocated
-uint32_t sched_ue::get_pending_dl_new_data_total()
-{
-  uint32_t req_bytes = get_pending_dl_new_data();
-  if (req_bytes > 0) {
-    req_bytes += (req_bytes < 128) ? 2 : 3; // consider the header
-  }
-  return req_bytes;
 }
 
 /**
@@ -937,15 +924,6 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx)
  */
 srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
 {
-  // Convenience function to compute the number of bytes allocated for a given SDU
-  auto compute_sdu_total_bytes = [](uint32_t lcid, uint32_t buffer_bytes) {
-    if (buffer_bytes == 0) {
-      return 0u;
-    }
-    uint32_t subheader_and_sdu = sched_utils::get_mac_sdu_and_subheader_size(buffer_bytes);
-    return (lcid == 0) ? subheader_and_sdu : std::max(subheader_and_sdu, (uint32_t)MAC_MIN_ALLOC_SIZE);
-  };
-
   /* Set Maximum boundary */
   // Ensure there is space for ConRes and RRC Setup
   // SRB0 is a special case due to being RLC TM (no segmentation possible)
@@ -959,14 +937,12 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
 
   uint32_t max_data = 0, min_data = 0;
   uint32_t srb0_data = 0, rb_data = 0, sum_ce_data = 0;
-  bool     is_dci_format1 = get_dci_format() == SRSLTE_DCI_FORMAT1;
-  if (is_dci_format1) {
-    srb0_data += compute_sdu_total_bytes(0, lch_handler.get_dl_retx(0));
-    srb0_data += compute_sdu_total_bytes(0, lch_handler.get_dl_tx(0));
-  }
+
+  srb0_data = lch_handler.get_dl_tx_total_with_overhead(0);
   // Add pending CEs
   if (ue_cc_idx == 0) {
-    if (srb0_data == 0 and not lch_handler.pending_ces.empty() and lch_handler.pending_ces.front() == srslte::dl_sch_lcid::CON_RES_ID) {
+    if (srb0_data == 0 and not lch_handler.pending_ces.empty() and
+        lch_handler.pending_ces.front() == srslte::dl_sch_lcid::CON_RES_ID) {
       // Wait for SRB0 data to be available for Msg4 before scheduling the ConRes CE
       return {};
     }
@@ -976,10 +952,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
   }
   // Add pending data in remaining RLC buffers
   for (int i = 1; i < sched_interface::MAX_LC; i++) {
-    if (lch_handler.is_bearer_dl(i)) {
-      rb_data += compute_sdu_total_bytes(i, lch_handler.get_dl_retx(i));
-      rb_data += compute_sdu_total_bytes(i, lch_handler.get_dl_tx(i));
-    }
+    rb_data += lch_handler.get_dl_tx_total_with_overhead(i);
   }
   max_data = srb0_data + sum_ce_data + rb_data;
 
@@ -1000,24 +973,14 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
 }
 
 /**
- * Get pending DL data in RLC buffers + CEs
+ * Get pending RLC DL data in RLC buffers. Header sizes not accounted
  * @return
  */
-uint32_t sched_ue::get_pending_dl_new_data()
+uint32_t sched_ue::get_pending_dl_rlc_data() const
 {
-  if (std::none_of(
-          carriers.begin(), carriers.end(), [](const cc_sched_ue& cc) { return cc.cc_state() == cc_st::active; })) {
-    return 0;
-  }
-
   uint32_t pending_data = 0;
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
-    if (lch_handler.is_bearer_dl(i)) {
-      pending_data += lch_handler.get_dl_tx(i) + lch_handler.get_dl_retx(i);
-    }
-  }
-  for (auto& ce : lch_handler.pending_ces) {
-    pending_data += srslte::ce_total_size(ce);
+    pending_data += lch_handler.get_dl_tx_total(i);
   }
   return pending_data;
 }

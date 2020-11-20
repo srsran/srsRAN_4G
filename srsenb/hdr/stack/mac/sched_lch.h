@@ -48,10 +48,14 @@ public:
   bool is_bearer_ul(uint32_t lcid) const;
   bool is_bearer_dl(uint32_t lcid) const;
 
+  bool has_pending_dl_txs() const;
   int get_dl_tx_total() const;
   int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
+  int get_dl_tx_total_with_overhead(uint32_t lcid) const;
   int get_dl_tx(uint32_t lcid) const;
+  int get_dl_tx_with_overhead(uint32_t lcid) const;
   int get_dl_retx(uint32_t lcid) const;
+  int get_dl_retx_with_overhead(uint32_t lcid) const;
   int get_bsr(uint32_t lcid) const;
   int get_bsr_with_overhead(uint32_t lcid) const;
   int get_max_prio_lcid() const;

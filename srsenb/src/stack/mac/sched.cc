@@ -255,9 +255,8 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
-  // TODO: Check if correct use of last_tti
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); }, __PRETTY_FUNCTION__);
+  ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_rlc_data(); }, __PRETTY_FUNCTION__);
   return ret;
 }
 

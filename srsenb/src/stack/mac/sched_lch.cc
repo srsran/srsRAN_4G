@@ -32,7 +32,7 @@ namespace srsenb {
 #define RLC_MAX_HEADER_SIZE_NO_LI 3
 #define MAC_MAX_HEADER_SIZE 3
 #define MAC_MIN_HEADER_SIZE 2
-#define MAC_MIN_ALLOC_SIZE RLC_MAX_HEADER_SIZE_NO_LI + MAC_MAX_HEADER_SIZE
+#define MAC_MIN_ALLOC_SIZE RLC_MAX_HEADER_SIZE_NO_LI + MAC_MIN_HEADER_SIZE
 
 /// TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
 uint32_t get_mac_subheader_size(uint32_t sdu_bytes)
@@ -42,6 +42,19 @@ uint32_t get_mac_subheader_size(uint32_t sdu_bytes)
 uint32_t get_mac_sdu_and_subheader_size(uint32_t sdu_bytes)
 {
   return sdu_bytes + get_mac_subheader_size(sdu_bytes);
+}
+
+uint32_t get_rlc_header_size_est(uint32_t lcid, uint32_t rlc_pdu_bytes)
+{
+  return (lcid == 0 or rlc_pdu_bytes == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
+}
+uint32_t get_rlc_mac_overhead(uint32_t lcid, uint32_t rlc_pdu_bytes)
+{
+  return get_mac_subheader_size(rlc_pdu_bytes) + get_rlc_header_size_est(lcid, rlc_pdu_bytes);
+}
+uint32_t get_mac_sdu_size_with_overhead(uint32_t lcid, uint32_t rlc_pdu_bytes)
+{
+  return rlc_pdu_bytes + get_rlc_mac_overhead(lcid, rlc_pdu_bytes);
 }
 
 /*******************************************************
@@ -267,6 +280,19 @@ bool lch_manager::is_bearer_dl(uint32_t lcid) const
   return is_bearer_active(lcid) and lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::UL;
 }
 
+bool lch_manager::has_pending_dl_txs() const
+{
+  if(not pending_ces.empty()) {
+    return true;
+  }
+  for(uint32_t lcid = 0; lcid < lch.size(); ++lcid) {
+    if(get_dl_tx_total(lcid) > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int lch_manager::get_dl_tx_total() const
 {
   int sum = 0;
@@ -276,14 +302,29 @@ int lch_manager::get_dl_tx_total() const
   return sum;
 }
 
+int lch_manager::get_dl_tx_total_with_overhead(uint32_t lcid) const
+{
+  return get_dl_retx_with_overhead(lcid) + get_dl_tx_with_overhead(lcid);
+}
+
 int lch_manager::get_dl_tx(uint32_t lcid) const
 {
   return is_bearer_dl(lcid) ? lch[lcid].buf_tx : 0;
 }
+int lch_manager::get_dl_tx_with_overhead(uint32_t lcid) const
+{
+  return get_mac_sdu_size_with_overhead(lcid, get_dl_tx(lcid));
+}
+
 int lch_manager::get_dl_retx(uint32_t lcid) const
 {
   return is_bearer_dl(lcid) ? lch[lcid].buf_retx : 0;
 }
+int lch_manager::get_dl_retx_with_overhead(uint32_t lcid) const
+{
+  return get_mac_sdu_size_with_overhead(lcid, get_dl_retx(lcid));
+}
+
 int lch_manager::get_bsr(uint32_t lcid) const
 {
   return is_bearer_ul(lcid) ? lcg_bsr[lch[lcid].cfg.group] : 0;
@@ -291,7 +332,7 @@ int lch_manager::get_bsr(uint32_t lcid) const
 int lch_manager::get_bsr_with_overhead(uint32_t lcid) const
 {
   int bsr = get_bsr(lcid);
-  return bsr == 0 ? 0 : bsr + RLC_MAX_HEADER_SIZE_NO_LI;
+  return bsr + (bsr == 0 ? 0 : ((lcid == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI));
 }
 
 std::string lch_manager::get_bsr_text() const
