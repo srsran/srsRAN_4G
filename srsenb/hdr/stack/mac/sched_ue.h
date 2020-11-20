@@ -24,11 +24,11 @@
 
 #include "sched_common.h"
 #include "srslte/common/log.h"
-#include "srslte/mac/pdu.h"
 #include <map>
 #include <vector>
 
 #include "sched_harq.h"
+#include "sched_lch.h"
 #include <bitset>
 #include <deque>
 
@@ -95,53 +95,6 @@ private:
 };
 
 const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
-
-class lch_manager
-{
-  constexpr static uint32_t pbr_infinity = -1;
-  constexpr static uint32_t MAX_LC       = sched_interface::MAX_LC;
-
-public:
-  void set_cfg(const sched_interface::ue_cfg_t& cfg_);
-  void new_tti();
-
-  void config_lcid(uint32_t lcg_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg);
-  void ul_bsr(uint8_t lcg_id, uint32_t bsr);
-  void ul_buffer_add(uint8_t lcid, uint32_t bytes);
-  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
-
-  int alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
-
-  bool is_bearer_active(uint32_t lcid) const;
-  bool is_bearer_ul(uint32_t lcid) const;
-  bool is_bearer_dl(uint32_t lcid) const;
-
-  int get_dl_tx_total() const;
-  int get_dl_tx_total(uint32_t lcid) const { return get_dl_tx(lcid) + get_dl_retx(lcid); }
-  int get_dl_tx(uint32_t lcid) const;
-  int get_dl_retx(uint32_t lcid) const;
-  int get_bsr(uint32_t lcid) const;
-  int get_max_prio_lcid() const;
-
-  std::string get_bsr_text() const;
-
-private:
-  struct ue_bearer_t {
-    sched_interface::ue_bearer_cfg_t cfg         = {};
-    int                              bucket_size = 0;
-    int                              buf_tx      = 0;
-    int                              buf_retx    = 0;
-    int                              Bj          = 0;
-  };
-
-  int alloc_retx_bytes(uint8_t lcid, int rem_bytes);
-  int alloc_tx_bytes(uint8_t lcid, int rem_bytes);
-
-  size_t                                           prio_idx = 0;
-  srslte::log_ref                                  log_h{"MAC"};
-  std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
-  std::array<int, 4>                               lcg_bsr = {};
-};
 
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
  * higher layers and mac threads.
@@ -258,7 +211,6 @@ private:
   void check_ue_cfg_correctness() const;
   bool is_sr_triggered();
 
-  uint32_t            allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx);
   uint32_t            allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t ue_cc_idx);
   std::pair<int, int> allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
                                               dl_harq_proc*                     h,
@@ -320,10 +272,6 @@ private:
 
   srslte::tti_point        current_tti;
   std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
-
-  // Control Element Command queue
-  using ce_cmd = srslte::dl_sch_lcid;
-  std::deque<ce_cmd> pending_ces;
 };
 
 using sched_ue_list = std::map<uint16_t, sched_ue>;
