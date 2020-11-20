@@ -83,6 +83,11 @@ const std::set<std::string> RF_UHD_IMP_PROHIBITED_STREAM_REMAKE = {DEVNAME_X300,
 const std::set<std::string> RF_UHD_IMP_PROHIBITED_STOP_START = {DEVNAME_B200};
 
 /**
+ * List of devices that work better if timespec is sent at the start of the burst only
+ */
+const std::set<std::string> RF_UHD_IMP_TIMESPEC_AT_BURST_START_ONLY = {DEVNAME_X300, DEVNAME_N300};
+
+/**
  * Defines a delay used between the current USRP time and the start of the transmission. This value needs to be high
  * enough for being distributed to all the devices before the time expires and short enough to be as seamless as
  * possible.
@@ -1342,11 +1347,13 @@ int rf_uhd_send_timed_multi(void*  h,
 
     // Set start of burst. Time spec only for the first packet in the burst
     md.start_of_burst = is_start_of_burst;
-    // X300 devices work better if Timespec is sent at the start of the burst only
-    if (!handler->devname.compare(DEVNAME_X300)) {
-      md.has_time_spec = is_start_of_burst and has_time_spec;
-    } else {
+
+    // some devices don't like timestamps in each call
+    if (RF_UHD_IMP_TIMESPEC_AT_BURST_START_ONLY.count(handler->devname) == 0) {
       md.has_time_spec = is_start_of_burst or has_time_spec;
+    } else {
+      // only set time for start
+      md.has_time_spec = is_start_of_burst and has_time_spec;
     }
 
     // middle packets are never end of burst, last one as defined
