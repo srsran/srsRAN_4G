@@ -88,6 +88,7 @@ option(ENABLE_TIDY     "Enable clang tidy"                        OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 option(USE_MKL         "Use MKL instead of fftw"                  OFF)
+option(USE_CUDA        "Use cuFFT instead of fftw (experimental)" OFF)
 
 option(ENABLE_TIMEPROF "Enable time profiling"                    ON)
 
@@ -129,25 +130,34 @@ endif()
 # Threads
 find_package(Threads REQUIRED)
 
-# FFT
-if(USE_MKL)
-  find_package(MKL REQUIRED)
-  include_directories(${MKL_INCLUDE_DIRS})
-  link_directories(${MKL_LIBRARY_DIRS})
-  set(FFT_LIBRARIES "${MKL_STATIC_LIBRARIES}") # Static by default
-else(USE_MKL)
-  find_package(FFTW3F REQUIRED)
-  if(FFTW3F_FOUND)
-    include_directories(${FFTW3F_INCLUDE_DIRS})
-    link_directories(${FFTW3F_LIBRARY_DIRS})
-    if(BUILD_STATIC)
-      set(FFT_LIBRARIES "${FFTW3F_STATIC_LIBRARIES}")
-    else(BUILD_STATIC)
-      set(FFT_LIBRARIES "${FFTW3F_LIBRARIES}")
-    endif(BUILD_STATIC)
-    message(STATUS "FFT_LIBRARIES: " ${FFT_LIBRARIES})
-  endif(FFTW3F_FOUND)
-endif(USE_MKL)
+# CUDA
+if(USE_CUDA)
+  find_package(CUDA REQUIRED)
+  include_directories(${CUDA_INCLUDE_DIRS})
+  add_definitions("-DUSE_CUFFTW")
+  set(FFT_LIBRARIES cufftw)
+  message(STATUS "FFT_LIBRARIES: " ${FFT_LIBRARIES})
+else()
+  # FFT
+  if(USE_MKL)
+    find_package(MKL REQUIRED)
+    include_directories(${MKL_INCLUDE_DIRS})
+    link_directories(${MKL_LIBRARY_DIRS})
+    set(FFT_LIBRARIES "${MKL_STATIC_LIBRARIES}") # Static by default
+  else(USE_MKL)
+    find_package(FFTW3F REQUIRED)
+    if(FFTW3F_FOUND)
+      include_directories(${FFTW3F_INCLUDE_DIRS})
+      link_directories(${FFTW3F_LIBRARY_DIRS})
+      if(BUILD_STATIC)
+        set(FFT_LIBRARIES "${FFTW3F_STATIC_LIBRARIES}")
+      else(BUILD_STATIC)
+        set(FFT_LIBRARIES "${FFTW3F_LIBRARIES}")
+      endif(BUILD_STATIC)
+      message(STATUS "FFT_LIBRARIES: " ${FFT_LIBRARIES})
+    endif(FFTW3F_FOUND)
+  endif(USE_MKL)
+endif()
 
 # Crypto
 find_package(Polarssl)
