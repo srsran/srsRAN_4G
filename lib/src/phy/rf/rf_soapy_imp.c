@@ -38,6 +38,7 @@
 #define HAVE_ASYNC_THREAD 0
 
 #define STOP_STREAM_BEFORE_RATE_CHANGE 0
+#define SET_SAMPLING_RATE_RETRY 3
 #define USE_TX_MTU 0
 #define SET_RF_BW 0
 
@@ -604,8 +605,14 @@ double rf_soapy_set_rx_srate(void* h, double rate)
 #endif // STOP_STREAM_BEFORE_RATE_CHANGE
 
   for (uint32_t i = 0; i < handler->num_rx_channels; i++) {
-    if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_RX, i, rate) != 0) {
+    int retry_counter = 0;
+    while (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_RX, i, rate) != 0) {
       printf("setSampleRate Rx fail: %s\n", SoapySDRDevice_lastError());
+      retry_counter ++;
+      printf("retrying %d/%d...\n", retry_counter, SET_SAMPLING_RATE_RETRY);
+      usleep(1000000);
+      if(retry_counter <= SET_SAMPLING_RATE_RETRY)
+        continue;
       return SRSLTE_ERROR;
     }
 
@@ -649,8 +656,14 @@ double rf_soapy_set_tx_srate(void* h, double rate)
 #endif // STOP_STREAM_BEFORE_RATE_CHANGE
 
   for (uint32_t i = 0; i < handler->num_tx_channels; i++) {
-    if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, i, rate) != 0) {
+    int retry_counter = 0;
+    while (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, i, rate) != 0) {
       printf("setSampleRate Tx fail: %s\n", SoapySDRDevice_lastError());
+      retry_counter ++;
+      printf("retrying %d/%d...\n", retry_counter, SET_SAMPLING_RATE_RETRY);
+      usleep(1000000);
+      if(retry_counter <= SET_SAMPLING_RATE_RETRY)
+        continue;
       return SRSLTE_ERROR;
     }
 
