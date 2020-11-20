@@ -33,6 +33,7 @@
 #include "srslte/phy/channel/channel.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/lte/worker_pool.h"
+#include "srsue/hdr/phy/nr/worker_pool.h"
 #include "sync_state.h"
 
 namespace srsue {
@@ -52,7 +53,8 @@ public:
   void init(srslte::radio_interface_phy* radio_,
             stack_interface_phy_lte*     _stack,
             prach*                       prach_buffer,
-            lte::worker_pool*            _workers_pool,
+            lte::worker_pool*            _lte_workers_pool,
+            nr::worker_pool*             _nr_workers_pool,
             phy_common*                  _worker_com,
             srslte::log*                 _log_h,
             srslte::log*                 _log_phy_lib_h,
@@ -161,10 +163,12 @@ private:
 
   /**
    * Helper method, executed when the UE is camping and in-sync
-   * @param worker Selected worker for the current TTI
+   * @param lte_worker Selected LTE worker for the current TTI
+   * @param nr_worker Selected NR worker for the current TTI
    * @param sync_buffer Sub-frame buffer for the current TTI
    */
-  void run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t& sync_buffer);
+  void
+  run_camping_in_sync_state(lte::sf_worker* lte_worker, nr::sf_worker* nr_worker, srslte::rf_buffer_t& sync_buffer);
 
   /**
    * Helper method, executed in a TTI basis for signaling to the stack a new TTI execution
@@ -197,7 +201,8 @@ private:
   stack_interface_phy_lte*     stack            = nullptr;
   srslte::log*                 log_h            = nullptr;
   srslte::log*                 log_phy_lib_h    = nullptr;
-  lte::worker_pool*            workers_pool     = nullptr;
+  lte::worker_pool*            lte_worker_pool  = nullptr;
+  nr::worker_pool*             nr_worker_pool   = nullptr;
   srslte::radio_interface_phy* radio_h          = nullptr;
   phy_common*                  worker_com       = nullptr;
   prach*                       prach_buffer     = nullptr;

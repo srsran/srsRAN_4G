@@ -35,10 +35,21 @@ uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset)
   return srslte_coreset_get_bw(coreset) * SRSLTE_NRE * coreset->duration;
 }
 
+const char* srslte_pdsch_mapping_type_to_str(srslte_pdsch_mapping_type_t mapping_type)
+{
+  switch (mapping_type) {
+    case srslte_pdsch_mapping_type_A:
+      return "A";
+    case srslte_pdsch_mapping_type_B:
+      return "B";
+    default:
+      return "undefined";
+  }
+}
+
 const char* srslte_mcs_table_to_str(srslte_mcs_table_t mcs_table)
 {
   switch (mcs_table) {
-
     case srslte_mcs_table_64qam:
       return "64qam";
     case srslte_mcs_table_256qam:

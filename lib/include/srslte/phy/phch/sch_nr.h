@@ -138,4 +138,6 @@ SRSLTE_API int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
                                       uint8_t*                data,
                                       bool*                   crc_ok);
 
+SRSLTE_API int srslte_sch_nr_tb_info(const srslte_sch_tb_t* tb, char* str, uint32_t str_len);
+
 #endif // SRSLTE_SCH_NR_H

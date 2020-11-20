@@ -27,6 +27,15 @@ worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
 bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
 {
+  // Set NR arguments
+  phy_state.args.nof_carriers   = common->args->nof_nr_carriers;
+  phy_state.args.dl.nof_max_prb = common->args->nr_nof_prb;
+
+  // Skip init of workers if no NR carriers
+  if (phy_state.args.nof_carriers == 0) {
+    return true;
+  }
+
   // Create logs
   // Create array of pointers to phy_logs
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
@@ -41,9 +50,17 @@ bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    auto w = std::unique_ptr<sf_worker>(new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get()));
-    pool.init_worker(i, w.get(), prio, common->args->worker_cpu_mask);
-    workers.push_back(std::move(w));
+    auto w = new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get());
+    pool.init_worker(i, w, prio, common->args->worker_cpu_mask);
+    workers.push_back(std::unique_ptr<sf_worker>(w));
+
+    srslte_carrier_nr_t c = {};
+    c.nof_prb             = phy_state.args.dl.nof_max_prb;
+    c.max_mimo_layers     = 1;
+
+    if (not w->set_carrier_unlocked(0, &c)) {
+      return false;
+    }
   }
 
   return true;
@@ -69,5 +86,5 @@ void worker_pool::stop()
   pool.stop();
 }
 
-}; // namespace nr
-}; // namespace srsue
+} // namespace nr
+} // namespace srsue

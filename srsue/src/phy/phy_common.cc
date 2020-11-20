@@ -57,7 +57,8 @@ void phy_common::init(phy_args_t*                  _args,
 
   // Instantiate UL channel emulator
   if (args->ul_channel_args.enable) {
-    ul_channel = srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_carriers * args->nof_rx_ant));
+    ul_channel =
+        srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant));
   }
 }
 
@@ -363,7 +364,7 @@ bool phy_common::get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, u
 uint32_t phy_common::get_ul_uci_cc(uint32_t tti_tx) const
 {
   std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
-  for (uint32_t cc = 0; cc < args->nof_carriers; cc++) {
+  for (uint32_t cc = 0; cc < args->nof_lte_carriers; cc++) {
     const pending_ul_grant_t& grant = pending_ul_grant[cc][tti_tx];
     if (grant.enable) {
       return cc;
@@ -789,7 +790,7 @@ void phy_common::get_dl_metrics(dl_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
-  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
     m[i]                = dl_metrics[i];
     dl_metrics[i]       = {};
     dl_metrics_count[i] = 0;
@@ -816,7 +817,7 @@ void phy_common::get_ch_metrics(ch_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
-  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
     m[i]                = ch_metrics[i];
     ch_metrics[i]       = {};
     ch_metrics_count[i] = 0;
@@ -836,7 +837,7 @@ void phy_common::get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
-  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
     m[i]                = ul_metrics[i];
     ul_metrics[i]       = {};
     ul_metrics_count[i] = 0;
@@ -857,7 +858,7 @@ void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
   std::unique_lock<std::mutex> lock(metrics_mutex);
 
-  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < args->nof_lte_carriers; i++) {
     m[i]                  = sync_metrics[i];
     sync_metrics[i]       = {};
     sync_metrics_count[i] = 0;
@@ -920,7 +921,7 @@ void phy_common::reset()
 
   // Release mapping of secondary cells
   if (args != nullptr && radio_h != nullptr) {
-    for (uint32_t i = 1; i < args->nof_carriers; i++) {
+    for (uint32_t i = 1; i < args->nof_lte_carriers; i++) {
       radio_h->release_freq(i);
     }
   }

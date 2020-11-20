@@ -34,6 +34,7 @@
 typedef struct SRSLTE_API {
   srslte_sch_nr_args_t sch;
   bool                 measure_evm;
+  bool                 measure_time;
 } srslte_pdsch_args_t;
 
 /**
@@ -50,6 +51,8 @@ typedef struct SRSLTE_API {
   cf_t*                x[SRSLTE_MAX_LAYERS_NR];         ///< PDSCH modulated bits
   srslte_modem_table_t modem_tables[SRSLTE_MOD_NITEMS]; ///< Modulator tables
   srslte_evm_buffer_t* evm_buffer;
+  bool                 meas_time_en;
+  uint32_t             meas_time_us;
 } srslte_pdsch_nr_t;
 
 /**
@@ -82,16 +85,17 @@ SRSLTE_API int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
                                       cf_t*                          sf_symbols[SRSLTE_MAX_PORTS],
                                       srslte_pdsch_res_nr_t          data[SRSLTE_MAX_TB]);
 
-SRSLTE_API uint32_t srslte_pdsch_nr_grant_rx_info(srslte_pdsch_grant_nr_t* grant,
-                                                  srslte_pdsch_res_nr_t    res[SRSLTE_MAX_CODEWORDS],
-                                                  char*                    str,
-                                                  uint32_t                 str_len);
+SRSLTE_API uint32_t srslte_pdsch_nr_rx_info(const srslte_pdsch_nr_t*       q,
+                                            const srslte_pdsch_cfg_nr_t*   cfg,
+                                            const srslte_pdsch_grant_nr_t* grant,
+                                            const srslte_pdsch_res_nr_t*   res,
+                                            char*                          str,
+                                            uint32_t                       str_len);
 
-SRSLTE_API uint32_t srslte_pdsch_nr_rx_info(srslte_pdsch_cfg_nr_t* cfg,
-                                            srslte_pdsch_res_nr_t  res[SRSLTE_MAX_CODEWORDS],
-                                            char*                  str,
-                                            uint32_t               str_len);
-
-SRSLTE_API uint32_t srslte_pdsch_nr_tx_info(srslte_pdsch_cfg_nr_t* cfg, char* str, uint32_t str_len);
+SRSLTE_API uint32_t srslte_pdsch_nr_tx_info(const srslte_pdsch_nr_t*       q,
+                                            const srslte_pdsch_cfg_nr_t*   cfg,
+                                            const srslte_pdsch_grant_nr_t* grant,
+                                            char*                          str,
+                                            uint32_t                       str_len);
 
 #endif // srslte_pdsch_nr_H

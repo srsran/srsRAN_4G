@@ -157,12 +157,14 @@ void phy::run_thread()
 
   // Initialise workers
   lte_workers.init(&common, logger, WORKERS_THREAD_PRIO);
+  nr_workers.init(&common, logger, WORKERS_THREAD_PRIO);
 
   // Warning this must be initialized after all workers have been added to the pool
   sfsync.init(radio,
               stack,
               &prach_buffer,
               &lte_workers,
+              &nr_workers,
               &common,
               log_h.get(),
               log_phy_lib_h.get(),
@@ -198,6 +200,7 @@ void phy::stop()
   if (is_configured) {
     sfsync.stop();
     lte_workers.stop();
+    nr_workers.stop();
     prach_buffer.stop();
     wait_thread_finish();
 
@@ -213,7 +216,7 @@ void phy::get_metrics(phy_metrics_t* m)
   m->info[0].pci       = cell.id;
   m->info[0].dl_earfcn = dl_earfcn;
 
-  for (uint32_t i = 1; i < args.nof_carriers; i++) {
+  for (uint32_t i = 1; i < args.nof_lte_carriers; i++) {
     m->info[i].dl_earfcn = common.cell_state.get_earfcn(i);
     m->info[i].pci       = common.cell_state.get_pci(i);
   }
@@ -222,7 +225,7 @@ void phy::get_metrics(phy_metrics_t* m)
   common.get_dl_metrics(m->dl);
   common.get_ul_metrics(m->ul);
   common.get_sync_metrics(m->sync);
-  m->nof_active_cc = args.nof_carriers;
+  m->nof_active_cc = args.nof_lte_carriers;
 }
 
 void phy::set_timeadv_rar(uint32_t ta_cmd)
@@ -455,7 +458,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
   }
 
   // Check parameters are valid
-  if (cc_idx >= args.nof_carriers) {
+  if (cc_idx >= args.nof_lte_carriers) {
     srslte::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                     cc_idx);
     return false;
@@ -510,7 +513,7 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   }
 
   // Check parameters are valid
-  if (cc_idx >= args.nof_carriers) {
+  if (cc_idx >= args.nof_lte_carriers) {
     srslte::console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                     cc_idx);
     return false;

@@ -25,6 +25,7 @@
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/lte/worker_pool.h"
+#include "srsue/hdr/phy/nr/worker_pool.h"
 #include "srsue/hdr/phy/ue_lte_phy_base.h"
 #include "sync.h"
 
@@ -66,7 +67,8 @@ private:
 class phy final : public ue_lte_phy_base, public srslte::thread
 {
 public:
-  explicit phy(srslte::logger* logger_) : logger(logger_), lte_workers(MAX_WORKERS), common(), thread("PHY"){};
+  explicit phy(srslte::logger* logger_) :
+    logger(logger_), lte_workers(MAX_WORKERS), nr_workers(MAX_WORKERS), common(), thread("PHY"){};
   ~phy() final { stop(); }
 
   // Init defined in base class
@@ -177,6 +179,7 @@ private:
   srsue::stack_interface_phy_lte*     stack         = nullptr;
 
   lte::worker_pool lte_workers;
+  nr::worker_pool  nr_workers;
   phy_common       common;
   sync             sfsync;
   prach            prach_buffer;

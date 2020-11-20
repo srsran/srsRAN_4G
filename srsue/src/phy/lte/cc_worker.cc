@@ -839,7 +839,7 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
   uint32_t           nof_configured_carriers = 0;
 
   // Only PCell generates ACK for all SCell
-  for (uint32_t i = 0; i < phy->args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < phy->args->nof_lte_carriers; i++) {
     if (phy->cell_state.is_configured(i)) {
       phy->get_dl_pending_ack(&sf_cfg_ul, i, &ack_info.cc[i]);
       nof_configured_carriers++;

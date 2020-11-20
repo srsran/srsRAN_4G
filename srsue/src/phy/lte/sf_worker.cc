@@ -53,14 +53,14 @@ sf_worker::sf_worker(uint32_t max_prb, phy_common* phy_, srslte::log* log_h_)
   log_h = log_h_;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
-  for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
+  for (uint32_t r = 0; r < phy->args->nof_lte_carriers; r++) {
     cc_workers.push_back(new cc_worker(r, max_prb, phy, log_h));
   }
 }
 
 sf_worker::~sf_worker()
 {
-  for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
+  for (uint32_t r = 0; r < phy->args->nof_lte_carriers; r++) {
     delete cc_workers[r];
   }
 }
@@ -214,8 +214,8 @@ void sf_worker::work_imp()
 
       // Fill periodic CQI data; In case of periodic CSI report collision, lower carrier index have preference, so
       // stop as soon as either CQI data is enabled or RI is carried
-      for (uint32_t carrier_idx = 0;
-           carrier_idx < phy->args->nof_carriers and not uci_data.cfg.cqi.data_enable and uci_data.cfg.cqi.ri_len == 0;
+      for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_lte_carriers and not uci_data.cfg.cqi.data_enable and
+                                     uci_data.cfg.cqi.ri_len == 0;
            carrier_idx++) {
         if (phy->cell_state.is_active(carrier_idx, TTI_TX(tti))) {
           cc_workers[carrier_idx]->set_uci_periodic_cqi(&uci_data);
@@ -223,7 +223,7 @@ void sf_worker::work_imp()
       }
 
       // Loop through all carriers
-      for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers; carrier_idx++) {
+      for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_lte_carriers; carrier_idx++) {
         if (phy->cell_state.is_active(carrier_idx, tti)) {
           tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
 

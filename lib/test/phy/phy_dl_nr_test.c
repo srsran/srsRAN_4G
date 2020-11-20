@@ -94,8 +94,10 @@ int main(int argc, char** argv)
 
   srslte_ue_dl_nr_args_t ue_dl_args = {};
   ue_dl_args.nof_rx_antennas        = 1;
+  ue_dl_args.nof_max_prb            = carrier.nof_prb;
   ue_dl_args.pdsch.sch.disable_simd = true;
   ue_dl_args.pdsch.measure_evm      = true;
+  ue_dl_args.pdsch.measure_time     = true;
 
   srslte_enb_dl_nr_args_t enb_dl_args = {};
   enb_dl_args.nof_tx_antennas         = 1;
@@ -107,10 +109,6 @@ int main(int argc, char** argv)
   if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
     goto clean_exit;
   }
-
-  srslte_pdsch_args_t pdsch_args = {};
-  pdsch_args.sch.disable_simd    = true;
-  pdsch_args.measure_evm         = true;
 
   if (srslte_ue_dl_nr_init(&ue_dl, &buffer, &ue_dl_args)) {
     ERROR("Error UE DL\n");

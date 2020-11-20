@@ -69,5 +69,5 @@ void sf_worker::work_imp()
   }
 }
 
-}; // namespace nr
-}; // namespace srsue
+} // namespace nr
+} // namespace srsue

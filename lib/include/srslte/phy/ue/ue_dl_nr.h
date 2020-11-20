@@ -24,6 +24,7 @@ extern "C" {
 typedef struct SRSLTE_API {
   srslte_pdsch_args_t pdsch;
   uint32_t            nof_rx_antennas;
+  uint32_t            nof_max_prb;
 } srslte_ue_dl_nr_args_t;
 
 typedef struct SRSLTE_API {
@@ -53,6 +54,14 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_get(srslte_ue_dl_nr_t*             q,
                                          const srslte_pdsch_cfg_nr_t*   cfg,
                                          const srslte_pdsch_grant_nr_t* grant,
                                          srslte_pdsch_res_nr_t*         res);
+
+SRSLTE_API int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*       q,
+                                          const srslte_pdsch_cfg_nr_t*   cfg,
+                                          const srslte_pdsch_grant_nr_t* grant,
+                                          const srslte_pdsch_res_nr_t    res[SRSLTE_MAX_CODEWORDS],
+                                          char*                          str,
+                                          uint32_t                       str_len);
+
 #ifdef __cplusplus
 }
 #endif

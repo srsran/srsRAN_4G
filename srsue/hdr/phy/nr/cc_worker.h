@@ -33,7 +33,6 @@ namespace nr {
 
 typedef struct {
   uint32_t               nof_carriers;
-  uint32_t               max_prb;
   srslte_ue_dl_nr_args_t dl;
 } phy_nr_args_t;
 
@@ -50,9 +49,10 @@ public:
   phy_nr_state()
   {
     args.nof_carriers              = 1;
-    args.max_prb                   = SRSLTE_MAX_PRB;
     args.dl.nof_rx_antennas        = 1;
+    args.dl.nof_max_prb            = 100;
     args.dl.pdsch.measure_evm      = true;
+    args.dl.pdsch.measure_time     = true;
     args.dl.pdsch.sch.disable_simd = true;
   }
 };
@@ -72,12 +72,13 @@ public:
   bool work_dl();
 
 private:
-  srslte_dl_slot_cfg_t                            dl_slot_cfg = {};
-  uint32_t                                        cc_idx      = 0;
-  std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> rx_buffer   = {};
-  std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> tx_buffer   = {};
-  phy_nr_state*                                   phy_state;
-  srslte_ue_dl_nr_t                               ue_dl = {};
+  srslte_dl_slot_cfg_t                dl_slot_cfg = {};
+  uint32_t                            cc_idx      = 0;
+  std::array<cf_t*, SRSLTE_MAX_PORTS> rx_buffer   = {};
+  std::array<cf_t*, SRSLTE_MAX_PORTS> tx_buffer   = {};
+  phy_nr_state*                       phy_state   = nullptr;
+  srslte_ue_dl_nr_t                   ue_dl       = {};
+  srslte::log*                        log_h       = nullptr;
 
   // Temporal attributes
   srslte_softbuffer_rx_t softbuffer_rx = {};

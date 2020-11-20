@@ -69,6 +69,8 @@ int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* arg
     }
   }
 
+  q->meas_time_en = args->measure_time;
+
   return SRSLTE_SUCCESS;
 }
 
@@ -427,11 +429,15 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*             q,
                            uint8_t*                       data[SRSLTE_MAX_TB],
                            cf_t*                          sf_symbols[SRSLTE_MAX_PORTS])
 {
-  uint32_t nof_cw = 0;
 
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
     return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  struct timeval t[3];
+  if (q->meas_time_en) {
+    gettimeofday(&t[1], NULL);
   }
 
   // Check number of layers
@@ -441,6 +447,7 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*             q,
   }
 
   // 7.3.1.1 and 7.3.1.2
+  uint32_t nof_cw = 0;
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
@@ -465,6 +472,12 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*             q,
 
   // 7.3.1.6 Mapping from virtual to physical resource blocks
   srslte_pdsch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
+
+  if (q->meas_time_en) {
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    q->meas_time_us = (uint32_t)t[0].tv_usec;
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -542,6 +555,16 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
                            cf_t*                          sf_symbols[SRSLTE_MAX_PORTS],
                            srslte_pdsch_res_nr_t          data[SRSLTE_MAX_TB])
 {
+  // Check input pointers
+  if (!q || !cfg || !grant || !data || !sf_symbols) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  struct timeval t[3];
+  if (q->meas_time_en) {
+    gettimeofday(&t[1], NULL);
+  }
+
   uint32_t nof_cw = 0;
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
@@ -591,5 +614,113 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
     }
   }
 
+  if (q->meas_time_en) {
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    q->meas_time_us = (uint32_t)t[0].tv_usec;
+  }
+
   return SRSLTE_SUCCESS;
+}
+
+static uint32_t srslte_pdsch_nr_grant_info(const srslte_pdsch_cfg_nr_t*   cfg,
+                                           const srslte_pdsch_grant_nr_t* grant,
+                                           char*                          str,
+                                           uint32_t                       str_len)
+{
+  uint32_t len = 0;
+  len          = srslte_print_check(str, str_len, len, "rnti=0x%x", grant->rnti);
+
+  // Append time-domain resource mapping
+  len = srslte_print_check(str,
+                           str_len,
+                           len,
+                           ",k0=%d,S=%d,L=%d,mapping=%s",
+                           grant->k0,
+                           grant->S,
+                           grant->L,
+                           srslte_pdsch_mapping_type_to_str(grant->mapping));
+
+  // Skip frequency domain resources...
+  // ...
+
+  // Append spatial resources
+  len = srslte_print_check(str, str_len, len, ",Nl=%d", grant->nof_layers);
+
+  // Append scrambling ID
+  len = srslte_print_check(str, str_len, len, ",n_scid=%d", grant->n_scid);
+
+  // Append TB info
+  for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
+    len += srslte_sch_nr_tb_info(&grant->tb[i], &str[len], str_len - len);
+  }
+
+  return len;
+}
+
+uint32_t srslte_pdsch_nr_rx_info(const srslte_pdsch_nr_t*       q,
+                                 const srslte_pdsch_cfg_nr_t*   cfg,
+                                 const srslte_pdsch_grant_nr_t* grant,
+                                 const srslte_pdsch_res_nr_t    res[SRSLTE_MAX_CODEWORDS],
+                                 char*                          str,
+                                 uint32_t                       str_len)
+{
+
+  uint32_t len = 0;
+
+  len += srslte_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+
+  if (q->evm_buffer != NULL) {
+    len = srslte_print_check(str, str_len, len, ",evm={", 0);
+    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      if (grant->tb[i].enabled && !isnan(res[i].evm)) {
+        len = srslte_print_check(str, str_len, len, "%.2f", res[i].evm);
+        if (i < SRSLTE_MAX_CODEWORDS - 1) {
+          if (grant->tb[i + 1].enabled) {
+            len = srslte_print_check(str, str_len, len, ",", 0);
+          }
+        }
+      }
+    }
+    len = srslte_print_check(str, str_len, len, "}", 0);
+  }
+
+  if (res != NULL) {
+    len = srslte_print_check(str, str_len, len, ",crc={", 0);
+    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      if (grant->tb[i].enabled) {
+        len = srslte_print_check(str, str_len, len, "%s", res[i].crc ? "OK" : "KO");
+        if (i < SRSLTE_MAX_CODEWORDS - 1) {
+          if (grant->tb[i + 1].enabled) {
+            len = srslte_print_check(str, str_len, len, ",", 0);
+          }
+        }
+      }
+    }
+    len = srslte_print_check(str, str_len, len, "}", 0);
+  }
+
+  if (q->meas_time_en) {
+    len = srslte_print_check(str, str_len, len, ", t=%d us\n", q->meas_time_us);
+  }
+
+  return len;
+}
+
+uint32_t srslte_pdsch_nr_tx_info(const srslte_pdsch_nr_t*       q,
+                                 const srslte_pdsch_cfg_nr_t*   cfg,
+                                 const srslte_pdsch_grant_nr_t* grant,
+                                 char*                          str,
+                                 uint32_t                       str_len)
+{
+
+  uint32_t len = 0;
+
+  len += srslte_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+
+  if (q->meas_time_en) {
+    len = srslte_print_check(str, str_len, len, ", t=%d us\n", q->meas_time_us);
+  }
+
+  return len;
 }

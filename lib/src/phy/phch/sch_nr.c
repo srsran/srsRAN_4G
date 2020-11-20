@@ -639,3 +639,25 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
 
   return SRSLTE_SUCCESS;
 }
+
+int srslte_sch_nr_tb_info(const srslte_sch_tb_t* tb, char* str, uint32_t str_len)
+{
+  int len = 0;
+
+  if (tb->enabled) {
+    len += srslte_print_check(str,
+                              str_len,
+                              len,
+                              "tb={mod=%s,Nl=%d,TBS=%d,R=%.3f,rv=%d,Nre=%d,Nbit=%d,cw=%d}",
+                              srslte_mod_string(tb->mod),
+                              tb->N_L,
+                              tb->tbs,
+                              tb->R,
+                              tb->rv,
+                              tb->nof_re,
+                              tb->nof_bits,
+                              tb->cw_idx);
+  }
+
+  return len;
+}

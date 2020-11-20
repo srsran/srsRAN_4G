@@ -424,6 +424,7 @@ int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_p
   uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
   int      ret                                    = srslte_dmrs_pdsch_get_symbols_idx(cfg, grant, symbols);
   if (ret < SRSLTE_SUCCESS) {
+    ERROR("Error getting PDSCH DMRS symbol indexes\n");
     return SRSLTE_ERROR;
   }
 
@@ -667,7 +668,8 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
   // Get symbols indexes
   uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
   int      nof_symbols                            = srslte_dmrs_pdsch_get_symbols_idx(pdsch_cfg, grant, symbols);
-  if (nof_symbols < SRSLTE_SUCCESS) {
+  if (nof_symbols <= SRSLTE_SUCCESS) {
+    ERROR("Error getting symbol indexes\n");
     return SRSLTE_ERROR;
   }
 
@@ -681,6 +683,11 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
 
     nof_pilots_x_symbol = srslte_dmrs_pdsch_get_symbol(
         q, pdsch_cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
+
+    if (nof_pilots_x_symbol == 0) {
+      ERROR("Error, no pilots extracted (i=%d, l=%d)\n", i, l);
+      return SRSLTE_ERROR;
+    }
   }
 
   // Perform measurements here
@@ -700,14 +707,20 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
       (dmrs_cfg->type == srslte_dmrs_pdsch_type_1) ? nof_pilots_x_symbol * 2 : nof_pilots_x_symbol * 3;
   if (dmrs_cfg->type == srslte_dmrs_pdsch_type_1) {
     // Prepare interpolator
-    srslte_interp_linear_resize(&q->interpolator_type1, nof_pilots_x_symbol, 2);
+    if (srslte_interp_linear_resize(&q->interpolator_type1, nof_pilots_x_symbol, 2) < SRSLTE_SUCCESS) {
+      ERROR("Resizing interpolator nof_pilots_x_symbol=%d; M=%d;\n", nof_pilots_x_symbol, 2);
+      return SRSLTE_ERROR;
+    }
 
     // Interpolate
     srslte_interp_linear_offset(&q->interpolator_type1, q->pilot_estimates, ce, delta, 2 - delta);
 
   } else {
     // Prepare interpolator
-    srslte_interp_linear_resize(&q->interpolator_type2, nof_pilots_x_symbol, 3);
+    if (srslte_interp_linear_resize(&q->interpolator_type2, nof_pilots_x_symbol, 3) < SRSLTE_SUCCESS) {
+      ERROR("Resizing interpolator nof_pilots_x_symbol=%d; M=%d;\n", nof_pilots_x_symbol, 3);
+      return SRSLTE_ERROR;
+    }
 
     // Interpolate
     srslte_interp_linear_offset(&q->interpolator_type2, q->pilot_estimates, ce, delta, 3 - delta);

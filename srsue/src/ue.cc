@@ -199,8 +199,16 @@ int ue::parse_args(const all_args_t& args_)
     return SRSLTE_ERROR;
   }
 
+  if (args.rf.nof_carriers <= args.phy.nof_nr_carriers) {
+    fprintf(stderr,
+            "Maximum number of carriers enough for NR and LTE (%d <= %d)\n",
+            args.rf.nof_carriers,
+            args.phy.nof_nr_carriers);
+    return SRSLTE_ERROR;
+  }
+
   // replicate some RF parameter to make them available to PHY
-  args.phy.nof_carriers = args.rf.nof_carriers;
+  args.phy.nof_lte_carriers = args.rf.nof_carriers - args.phy.nof_nr_carriers;
   args.phy.nof_rx_ant   = args.rf.nof_antennas;
   args.phy.agc_enable   = args.rf.rx_gain < 0.0f;
 
@@ -241,7 +249,7 @@ int ue::parse_args(const all_args_t& args_)
   args.stack.rrc.ue_category = (uint32_t)strtoul(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
 
   // Consider Carrier Aggregation support if more than one
-  args.stack.rrc.support_ca = (args.rf.nof_carriers > 1);
+  args.stack.rrc.support_ca = (args.phy.nof_lte_carriers > 1);
 
   return SRSLTE_SUCCESS;
 }

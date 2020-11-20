@@ -48,22 +48,24 @@ static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)
 void sync::init(srslte::radio_interface_phy* _radio,
                 stack_interface_phy_lte*     _stack,
                 prach*                       _prach_buffer,
-                lte::worker_pool*            _workers_pool,
+                lte::worker_pool*            _lte_workers_pool,
+                nr::worker_pool*             _nr_workers_pool,
                 phy_common*                  _worker_com,
                 srslte::log*                 _log_h,
                 srslte::log*                 _log_phy_lib_h,
                 uint32_t                     prio,
                 int                          sync_cpu_affinity)
 {
-  radio_h       = _radio;
-  log_h         = _log_h;
-  log_phy_lib_h = _log_phy_lib_h;
-  stack         = _stack;
-  workers_pool  = _workers_pool;
-  worker_com    = _worker_com;
-  prach_buffer  = _prach_buffer;
+  radio_h         = _radio;
+  log_h           = _log_h;
+  log_phy_lib_h   = _log_phy_lib_h;
+  stack           = _stack;
+  lte_worker_pool = _lte_workers_pool;
+  nr_worker_pool  = _nr_workers_pool;
+  worker_com      = _worker_com;
+  prach_buffer    = _prach_buffer;
 
-  nof_rf_channels = worker_com->args->nof_carriers * worker_com->args->nof_rx_ant;
+  nof_rf_channels = worker_com->args->nof_lte_carriers * worker_com->args->nof_rx_ant;
   if (nof_rf_channels == 0 || nof_rf_channels > SRSLTE_MAX_CHANNELS) {
     Error("SYNC:  Invalid number of RF channels (%d)\n", nof_rf_channels);
     return;
@@ -86,14 +88,14 @@ void sync::init(srslte::radio_interface_phy* _radio,
   sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size(), log_h);
 
   // Start intra-frequency measurement
-  for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
     scell::intra_measure* q = new scell::intra_measure;
     q->init(i, worker_com, this, log_h);
     intra_freq_meas.push_back(std::unique_ptr<scell::intra_measure>(q));
   }
 
   // Allocate Secondary serving cell synchronization
-  for (uint32_t i = 1; i < worker_com->args->nof_carriers; i++) {
+  for (uint32_t i = 1; i < worker_com->args->nof_lte_carriers; i++) {
     // Give the logical channel
     scell_sync[i] = std::unique_ptr<scell::sync>(new scell::sync(this, i * worker_com->args->nof_rx_ant));
   }
@@ -400,7 +402,9 @@ void sync::run_sfn_sync_state()
   }
 }
 
-void sync::run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t& sync_buffer)
+void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
+                                     nr::sf_worker*       nr_worker,
+                                     srslte::rf_buffer_t& sync_buffer)
 {
   // Update logging TTI
   log_h->step(tti);
@@ -454,12 +458,12 @@ void sync::run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t
     }
   }
 
-  Debug("SYNC:  Worker %d synchronized\n", worker->get_id());
+  Debug("SYNC:  Worker %d synchronized\n", lte_worker->get_id());
 
   metrics.sfo   = srslte_ue_sync_get_sfo(&ue_sync);
   metrics.cfo   = srslte_ue_sync_get_cfo(&ue_sync);
   metrics.ta_us = worker_com->ta.get_usec();
-  for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
+  for (uint32_t i = 0; i < worker_com->args->nof_lte_carriers; i++) {
     worker_com->set_sync_metrics(i, metrics);
   }
 
@@ -471,22 +475,22 @@ void sync::run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t
     }
   }
 
-  worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
+  lte_worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
 
   // Execute Serving Cell state FSM
   worker_com->cell_state.run_tti(tti);
 
   // Set CFO for all Carriers
-  for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
-    worker->set_cfo_unlocked(cc, get_tx_cfo());
+  for (uint32_t cc = 0; cc < worker_com->args->nof_lte_carriers; cc++) {
+    lte_worker->set_cfo_unlocked(cc, get_tx_cfo());
     worker_com->update_cfo_measurement(cc, srslte_ue_sync_get_cfo(&ue_sync));
   }
 
-  worker->set_tti(tti);
+  lte_worker->set_tti(tti);
 
   // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
   last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
-  worker->set_tx_time(last_rx_time);
+  lte_worker->set_tx_time(last_rx_time);
 
   // Advance/reset prach subframe pointer
   if (prach_ptr) {
@@ -497,37 +501,57 @@ void sync::run_camping_in_sync_state(lte::sf_worker* worker, srslte::rf_buffer_t
     }
   }
 
-  // Start worker
-  worker_com->semaphore.push(worker);
-  workers_pool->start_worker(worker);
+  // Start LTE worker
+  worker_com->semaphore.push(lte_worker);
+  lte_worker_pool->start_worker(lte_worker);
+
+  // Start NR worker only if present
+  if (nr_worker != nullptr) {
+    nr_worker_pool->start_worker(nr_worker);
+  }
 }
 void sync::run_camping_state()
 {
-  lte::sf_worker*     worker      = (lte::sf_worker*)workers_pool->wait_worker(tti);
+  lte::sf_worker*     lte_worker  = lte_worker_pool->wait_worker(tti);
   srslte::rf_buffer_t sync_buffer = {};
 
-  if (worker == nullptr) {
+  if (lte_worker == nullptr) {
     // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
     running = false;
     return;
   }
 
+  nr::sf_worker* nr_worker = nullptr;
+  if (worker_com->args->nof_nr_carriers > 0) {
+    nr_worker = nr_worker_pool->wait_worker(tti);
+    if (nr_worker == nullptr) {
+      running = false;
+      return;
+    }
+  }
+
   // Map carrier/antenna buffers to worker buffers
-  for (uint32_t c = 0; c < worker_com->args->nof_carriers; c++) {
+  uint32_t cc_idx = 0;
+  for (uint32_t lte_cc_idx = 0; lte_cc_idx < worker_com->args->nof_lte_carriers; lte_cc_idx++, cc_idx++) {
     for (uint32_t i = 0; i < worker_com->args->nof_rx_ant; i++) {
-      sync_buffer.set(c, i, worker_com->args->nof_rx_ant, worker->get_buffer(c, i));
+      sync_buffer.set(cc_idx, i, worker_com->args->nof_rx_ant, lte_worker->get_buffer(lte_cc_idx, i));
+    }
+  }
+  for (uint32_t nr_cc_idx = 0; nr_cc_idx < worker_com->args->nof_nr_carriers; nr_cc_idx++, cc_idx++) {
+    for (uint32_t i = 0; i < worker_com->args->nof_rx_ant; i++) {
+      sync_buffer.set(cc_idx, i, worker_com->args->nof_rx_ant, nr_worker->get_buffer(nr_cc_idx, i));
     }
   }
 
   // Primary Cell (PCell) Synchronization
-  switch (srslte_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), worker->get_buffer_len())) {
+  switch (srslte_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), lte_worker->get_buffer_len())) {
     case 1:
-      run_camping_in_sync_state(worker, sync_buffer);
+      run_camping_in_sync_state(lte_worker, nr_worker, sync_buffer);
       break;
     case 0:
       Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
       out_of_sync();
-      worker->release();
+      lte_worker->release();
 
       // Force decoding MIB, for making sure that the TTI will be right
       if (!force_camping_sfn_sync) {
@@ -537,7 +561,7 @@ void sync::run_camping_state()
       break;
     default:
       radio_error();
-      worker->release();
+      lte_worker->release();
       break;
   }
 
@@ -774,12 +798,12 @@ bool sync::set_cell(float cfo)
 
   // Reset cell configuration
   for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
-    (*workers_pool)[i]->reset_cell_unlocked(0);
+    (*lte_worker_pool)[i]->reset_cell_unlocked(0);
   }
 
   bool success = true;
   for (uint32_t i = 0; i < worker_com->args->nof_phy_threads; i++) {
-    lte::sf_worker* w = (lte::sf_worker*)workers_pool->wait_worker_id(i);
+    lte::sf_worker* w = lte_worker_pool->wait_worker_id(i);
     if (w) {
       success &= w->set_cell_unlocked(0, cell);
       w->release();

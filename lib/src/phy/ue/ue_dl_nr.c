@@ -55,14 +55,14 @@ int srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], co
     return SRSLTE_ERROR;
   }
 
-  if (ue_dl_alloc_prb(q, SRSLTE_MAX_PRB_NR)) {
+  if (ue_dl_alloc_prb(q, args->nof_max_prb)) {
     ERROR("Error allocating\n");
     return SRSLTE_ERROR;
   }
 
   srslte_ofdm_cfg_t fft_cfg = {};
-  fft_cfg.nof_prb           = 100;
-  fft_cfg.symbol_sz         = srslte_symbol_sz(100);
+  fft_cfg.nof_prb           = args->nof_max_prb;
+  fft_cfg.symbol_sz         = srslte_symbol_sz(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
 
   for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
@@ -153,5 +153,29 @@ int srslte_ue_dl_nr_pdsch_get(srslte_ue_dl_nr_t*             q,
     return SRSLTE_ERROR;
   }
 
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    char str[512];
+    srslte_ue_dl_nr_pdsch_info(q, cfg, grant, res, str, sizeof(str));
+    INFO("PDSCH: %s\n", str);
+  }
+
   return SRSLTE_SUCCESS;
+}
+
+int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*       q,
+                               const srslte_pdsch_cfg_nr_t*   cfg,
+                               const srslte_pdsch_grant_nr_t* grant,
+                               const srslte_pdsch_res_nr_t*   res,
+                               char*                          str,
+                               uint32_t                       str_len)
+{
+  int len = 0;
+
+  // Append channel estimator info
+  // ...
+
+  // Append PDSCH info
+  len += srslte_pdsch_nr_rx_info(&q->pdsch, cfg, grant, res, &str[len], str_len - len);
+
+  return len;
 }

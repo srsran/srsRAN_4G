@@ -208,6 +208,7 @@ int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const sr
   // the number of REs for DM-RS per PRB in the scheduled duration
   int n_prb_dmrs = srslte_dmrs_pdsch_get_N_prb(pdsch_cfg, grant);
   if (n_prb_dmrs < SRSLTE_SUCCESS) {
+    ERROR("Invalid number of DMRS RE\n");
     return SRSLTE_ERROR;
   }
 
@@ -358,7 +359,8 @@ int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
 
   // 1) The UE shall first determine the number of REs (N RE ) within the slot.
   int N_re = srslte_ra_dl_nr_slot_nof_re(pdsch_cfg, grant);
-  if (N_re < SRSLTE_SUCCESS) {
+  if (N_re <= SRSLTE_SUCCESS) {
+    ERROR("Invalid number of RE\n");
     return SRSLTE_ERROR;
   }
 

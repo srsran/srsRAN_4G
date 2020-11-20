@@ -273,6 +273,13 @@ SRSLTE_API uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset);
 SRSLTE_API uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset);
 
 /**
+ * @brief Get the NR PDSCH mapping type in string
+ * @param mapping_type Mapping type
+ * @return Constant string with PDSCH mapping type
+ */
+SRSLTE_API const char* srslte_pdsch_mapping_type_to_str(srslte_pdsch_mapping_type_t mapping_type);
+
+/**
  * @brief Get the MCS table string
  * @param mcs_table MCS table value
  * @return Constant string with the MCS table name

@@ -486,7 +486,9 @@ typedef struct {
   int worker_cpu_mask   = -1;
   int sync_cpu_affinity = -1;
 
-  uint32_t    nof_carriers                 = 1;
+  uint32_t    nof_lte_carriers             = 1;
+  uint32_t    nof_nr_carriers              = 0;
+  uint32_t    nr_nof_prb                   = 50;
   uint32_t    nof_rx_ant                   = 1;
   std::string equalizer_mode               = "mmse";
   int         cqi_max                      = 15;
