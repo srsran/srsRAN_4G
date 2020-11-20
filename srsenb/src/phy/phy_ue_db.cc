@@ -265,8 +265,11 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
   // Get UE by reference
   common_ue& ue = ue_db[rnti];
 
-  // Number of configured secondary serving cells
-  uint32_t nof_configured_scell = 0;
+  // Number of configured secondary serving cells before applying the reconfiguration
+  uint32_t nof_configured_scell_before_config = _count_nof_configured_scell(rnti);
+
+  // Number of configured secondary serving cells after applying the reconfiguration
+  uint32_t nof_configured_scell_after_config = 0;
 
   // Iterate PHY RRC configuration for each UE cell/carrier
   uint32_t nof_cc = SRSLTE_MIN(phy_cfg_list.size(), SRSLTE_MAX_CARRIERS);
@@ -299,7 +302,7 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
         cell_info.state = cell_state_secondary_inactive;
       }
       // Count Serving cell
-      nof_configured_scell++;
+      nof_configured_scell_after_config++;
     } else {
       // Cell without configuration (except PCell)
       cell_info.state = cell_state_none;
@@ -318,10 +321,11 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < nof_cc; ue_cc_idx++) {
     if (ue.cell_info[ue_cc_idx].state == cell_state_primary) {
       // The primary cell applies change after reception of ReconfigurationComplete (call to complete_config())
-      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = false;
+      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled =
+          (nof_configured_scell_before_config > 0);
     } else {
       // The rest apply changes directly
-      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
+      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell_after_config > 0);
     }
   }
 }
@@ -335,6 +339,18 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
   }
 }
 
+uint32_t phy_ue_db::_count_nof_configured_scell(uint16_t rnti)
+{
+  uint32_t nof_configured_scell = 0;
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
+    if (ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_t::cell_state_secondary_inactive ||
+        ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_t::cell_state_secondary_active) {
+      nof_configured_scell++;
+    }
+  }
+  return nof_configured_scell;
+}
+
 void phy_ue_db::complete_config(uint16_t rnti)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -344,14 +360,7 @@ void phy_ue_db::complete_config(uint16_t rnti)
     return;
   }
 
-  // Count number of configured secondary serving cells
-  uint32_t nof_configured_scell = 0;
-  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
-    if (ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_t::cell_state_secondary_inactive ||
-        ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_t::cell_state_secondary_active) {
-      nof_configured_scell++;
-    }
-  }
+  uint32_t nof_configured_scell = _count_nof_configured_scell(rnti);
 
   // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {

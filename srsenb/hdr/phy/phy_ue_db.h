@@ -223,6 +223,14 @@ private:
    */
   inline srslte::phy_cfg_t _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
+  /**
+   * Count number of configured secondary serving cells
+   *
+   * @param rnti provides UE identifier
+   * @return The number of configured secondary cells
+   */
+  inline uint32_t _count_nof_configured_scell(uint16_t rnti);
+
 public:
   /**
    * Initialises the UE database with the stack and cell list
