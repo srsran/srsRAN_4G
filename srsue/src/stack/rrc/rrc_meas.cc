@@ -20,7 +20,7 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
-#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc/dl_dcch_msg.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 
 /************************************************************************

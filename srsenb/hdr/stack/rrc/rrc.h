@@ -175,8 +175,7 @@ private:
   const static uint32_t LCID_REL_USER = 0xffff0002;
   const static uint32_t LCID_ACT_USER = 0xffff0004;
 
-  bool                         running         = false;
-  static const int             RRC_THREAD_PRIO = 65;
+  bool                         running = false;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
   asn1::rrc::mcch_msg_s  mcch;

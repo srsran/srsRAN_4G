@@ -24,7 +24,7 @@
 #include "pdcp_interface_types.h"
 #include "rlc_interface_types.h"
 #include "rrc_interface_types.h"
-#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/asn1/s1ap.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
@@ -46,11 +46,11 @@ public:
   /**
    * DL grant structure per UE
    */
-  typedef struct {
+  struct dl_sched_grant_t {
     srslte_dci_dl_t         dci                          = {};
     uint8_t*                data[SRSLTE_MAX_TB]          = {};
     srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB] = {};
-  } dl_sched_grant_t;
+  };
 
   /**
    * DL Scheduling result per cell/carrier
@@ -228,11 +228,11 @@ public:
 
   virtual void configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, const srslte::mcch_msg_t& mcch) = 0;
 
-  typedef struct {
+  struct phy_rrc_cfg_t {
     bool              configured = false; ///< Indicates whether PHY shall consider configuring this cell/carrier
     uint32_t          enb_cc_idx = 0;     ///< eNb Cell index
     srslte::phy_cfg_t phy_cfg    = {};    ///< Dedicated physical layer configuration
-  } phy_rrc_cfg_t;
+  };
 
   typedef std::vector<phy_rrc_cfg_t> phy_rrc_cfg_list_t;
 
@@ -547,12 +547,12 @@ typedef struct {
   std::string enb_name;
 } s1ap_args_t;
 
-typedef struct {
+struct mac_args_t {
   uint32_t                      nof_prb; ///< Needed to dimension MAC softbuffers for all cells
   sched_interface::sched_args_t sched;
   int                           nr_tb_size = -1;
   uint32_t                      max_nof_ues;
-} mac_args_t;
+};
 
 class stack_interface_s1ap_lte
 {

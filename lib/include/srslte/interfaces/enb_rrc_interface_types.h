@@ -22,6 +22,7 @@
 #ifndef SRSLTE_ENB_RRC_INTERFACE_TYPES_H
 #define SRSLTE_ENB_RRC_INTERFACE_TYPES_H
 
+#include "srslte/asn1/rrc/meascfg.h"
 #include <vector>
 
 namespace srsenb {

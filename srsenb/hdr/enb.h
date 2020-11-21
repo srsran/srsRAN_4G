@@ -33,7 +33,6 @@
 #include <string>
 
 #include "phy/phy.h"
-#include "srsenb/hdr/stack/rrc/rrc.h"
 
 #include "srslte/radio/radio.h"
 
@@ -139,9 +138,9 @@ private:
   int parse_args(const all_args_t& args_);
 
   // eNB components
-  std::unique_ptr<enb_stack_base>     stack = nullptr;
-  std::unique_ptr<srslte::radio_base> radio = nullptr;
-  std::unique_ptr<enb_phy_base>       phy   = nullptr;
+  std::unique_ptr<enb_stack_base>     stack;
+  std::unique_ptr<srslte::radio_base> radio;
+  std::unique_ptr<enb_phy_base>       phy;
 
   srslte::logger* logger = nullptr;
   srslte::log_ref log; // Own logger for eNB
@@ -157,9 +156,6 @@ private:
   rrc_cfg_t rrc_cfg = {};
 
   srslte::LOG_LEVEL_ENUM level(std::string l);
-
-  //  bool check_srslte_version();
-  int parse_cell_cfg(all_args_t* args, srslte_cell_t* cell);
 
   std::string get_build_mode();
   std::string get_build_info();

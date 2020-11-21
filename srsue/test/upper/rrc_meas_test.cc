@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc/meascfg.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/test_common.h"
@@ -236,9 +236,7 @@ class rrc_test : public rrc
 
 public:
   rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) :
-    rrc(stack_, &stack_->task_sched),
-    stack(stack_),
-    mactest(this, &stack_->task_sched)
+    rrc(stack_, &stack_->task_sched), stack(stack_), mactest(this, &stack_->task_sched)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
     nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));

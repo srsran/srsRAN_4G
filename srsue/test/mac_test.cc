@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc/rr_common.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"

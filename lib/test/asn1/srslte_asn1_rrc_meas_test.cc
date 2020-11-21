@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc/ul_dcch_msg.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"

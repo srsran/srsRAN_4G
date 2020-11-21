@@ -22,7 +22,7 @@
 #ifndef SRSENB_PHY_INTERFACES_H_
 #define SRSENB_PHY_INTERFACES_H_
 
-#include "srslte/asn1/rrc.h"
+#include "srslte/asn1/rrc/rr_common.h"
 #include <inttypes.h>
 #include <srslte/common/interfaces_common.h>
 #include <srslte/phy/channel/channel.h>

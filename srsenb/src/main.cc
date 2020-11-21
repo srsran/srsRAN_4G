@@ -20,7 +20,6 @@
  */
 
 #include <poll.h>
-#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -437,8 +436,8 @@ static void* input_loop(metrics_stdout* metrics, srsenb::enb_command_interface* 
           }
 
           // Parse command arguments
-          uint32_t cell_id  = srslte::string_cast<uint32_t>(cmd[1]);
-          float    gain_db  = srslte::string_cast<float>(cmd[2]);
+          uint32_t cell_id = srslte::string_cast<uint32_t>(cmd[1]);
+          float    gain_db = srslte::string_cast<float>(cmd[2]);
 
           // Set cell gain
           control->cmd_cell_gain(cell_id, gain_db);
