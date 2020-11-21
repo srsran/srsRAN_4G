@@ -38,7 +38,6 @@
 
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
-#include "srsenb/hdr/stack/enb_stack_lte.h"
 
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
@@ -107,6 +106,8 @@ struct all_args_t {
   stack_args_t      stack;
 };
 
+struct rrc_cfg_t;
+
 /*******************************************************************************
   Main eNB class
 *******************************************************************************/
@@ -135,7 +136,7 @@ public:
 private:
   const static int ENB_POOL_SIZE = 1024 * 10;
 
-  int parse_args(const all_args_t& args_);
+  int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg);
 
   // eNB components
   std::unique_ptr<enb_stack_base>     stack;
@@ -153,7 +154,6 @@ private:
   bool       started = false;
 
   phy_cfg_t phy_cfg = {};
-  rrc_cfg_t rrc_cfg = {};
 
   srslte::LOG_LEVEL_ENUM level(std::string l);
 

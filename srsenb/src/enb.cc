@@ -55,7 +55,8 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   log->info("%s", get_build_string().c_str());
 
   // Validate arguments
-  if (parse_args(args_)) {
+  rrc_cfg_t rrc_cfg = {};
+  if (parse_args(args_, rrc_cfg)) {
     srslte::console("Error processing arguments.\n");
     return SRSLTE_ERROR;
   }
@@ -183,7 +184,7 @@ void enb::stop()
   }
 }
 
-int enb::parse_args(const all_args_t& args_)
+int enb::parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg)
 {
   // set member variable
   args = args_;
