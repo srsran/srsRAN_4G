@@ -25,7 +25,7 @@
 #include "rlc_interface_types.h"
 #include "rrc_interface_types.h"
 #include "srslte/asn1/rrc_utils.h"
-#include "srslte/asn1/s1ap.h"
+#include "srslte/asn1/s1ap_utils.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"

@@ -23,6 +23,7 @@
 #define SRSLTE_RRC_BEARER_CFG_H
 
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
+#include "srslte/asn1/s1ap.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
