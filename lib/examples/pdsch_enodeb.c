@@ -49,6 +49,8 @@ static char* output_file_name = NULL;
 #define RIGHT_KEY 67
 #define UP_KEY 65
 #define DOWN_KEY 66
+#define PAGE_UP 53
+#define PAGE_DOWN 54
 
 static srslte_cell_t cell = {
     25,                // nof_prb
@@ -58,7 +60,6 @@ static srslte_cell_t cell = {
     SRSLTE_PHICH_NORM, // PHICH length
     SRSLTE_PHICH_R_1,  // PHICH resources
     SRSLTE_FDD,
-
 };
 
 static int      net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
@@ -580,6 +581,22 @@ static int update_control()
             if (prbset_num > 0)
               prbset_num--;
             break;
+#ifndef DISABLE_RF
+          case PAGE_UP:
+            if (!output_file_name) {
+              rf_gain++;
+              srslte_rf_set_tx_gain(&radio, rf_gain);
+              printf("Set TX gain: %.1f dB\n", srslte_rf_get_tx_gain(&radio));
+            }
+            break;
+          case PAGE_DOWN:
+            if (!output_file_name) {
+              rf_gain--;
+              srslte_rf_set_tx_gain(&radio, rf_gain);
+              printf("Set TX gain: %.1f dB\n", srslte_rf_get_tx_gain(&radio));
+            }
+            break;
+#endif
         }
       } else {
         switch (input[0]) {
