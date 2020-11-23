@@ -1064,6 +1064,14 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
       cfg->meas_time_value = t[0].tv_usec;
     }
 
+    if (cfg->meas_evm_en) {
+      for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+        if (cfg->grant.tb[i].enabled && !isnan(data[i].evm)) {
+          q->avg_evm = SRSLTE_VEC_EMA(data[i].evm, q->avg_evm, 0.1);
+        }
+      }
+    }
+
     return SRSLTE_SUCCESS;
   } else {
     ERROR("Invalid inputs\n");
@@ -1314,7 +1322,6 @@ uint32_t srslte_pdsch_grant_rx_info(srslte_pdsch_grant_t* grant,
 uint32_t
 srslte_pdsch_rx_info(srslte_pdsch_cfg_t* cfg, srslte_pdsch_res_t res[SRSLTE_MAX_CODEWORDS], char* str, uint32_t str_len)
 {
-
   uint32_t len = srslte_print_check(str, str_len, 0, "rnti=0x%x", cfg->rnti);
   len += srslte_pdsch_grant_rx_info(&cfg->grant, res, &str[len], str_len - len);
 

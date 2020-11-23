@@ -77,6 +77,7 @@ typedef struct SRSLTE_API {
 
   // EVM buffers, one for each codeword (avoid concurrency issue with coworker)
   srslte_evm_buffer_t* evm_buffer[SRSLTE_MAX_CODEWORDS];
+  float                avg_evm;
 
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pdsch_user_t** users;
