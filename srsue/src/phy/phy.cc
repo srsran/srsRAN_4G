@@ -268,7 +268,7 @@ void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 
   // Find if there is secondary serving cell configured with the specified EARFCN
   uint32_t cc_empty = 0;
-  for (uint32_t cc = 1; cc < args.nof_carriers and not available; cc++) {
+  for (uint32_t cc = 1; cc < args.nof_lte_carriers and not available; cc++) {
     // If it is configured...
     if (common.cell_state.is_configured(cc)) {
       // ... Check if the EARFCN match
