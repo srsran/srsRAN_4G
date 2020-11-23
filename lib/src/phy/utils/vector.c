@@ -152,42 +152,42 @@ void* srslte_vec_malloc(uint32_t size)
 
 cf_t* srslte_vec_cf_malloc(uint32_t nsamples)
 {
-  return (cf_t*)srslte_vec_malloc((uint32_t)sizeof(cf_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(cf_t, nsamples);
 }
 
 float* srslte_vec_f_malloc(uint32_t nsamples)
 {
-  return (float*)srslte_vec_malloc((uint32_t)sizeof(float) * nsamples);
+  return SRSLTE_MEM_ALLOC(float, nsamples);
 }
 
 int32_t* srslte_vec_i32_malloc(uint32_t nsamples)
 {
-  return (int32_t*)srslte_vec_malloc((uint32_t)sizeof(int32_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(int32_t, nsamples);
 }
 
 uint32_t* srslte_vec_u32_malloc(uint32_t nsamples)
 {
-  return (uint32_t*)srslte_vec_malloc((uint32_t)sizeof(uint32_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(uint32_t, nsamples);
 }
 
 int16_t* srslte_vec_i16_malloc(uint32_t nsamples)
 {
-  return (int16_t*)srslte_vec_malloc((uint32_t)sizeof(int16_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(int16_t, nsamples);
 }
 
 uint16_t* srslte_vec_u16_malloc(uint32_t nsamples)
 {
-  return (uint16_t*)srslte_vec_malloc((uint32_t)sizeof(uint16_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(uint16_t, nsamples);
 }
 
 int8_t* srslte_vec_i8_malloc(uint32_t nsamples)
 {
-  return (int8_t*)srslte_vec_malloc((uint32_t)sizeof(int8_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(int8_t, nsamples);
 }
 
 uint8_t* srslte_vec_u8_malloc(uint32_t nsamples)
 {
-  return (uint8_t*)srslte_vec_malloc((uint32_t)sizeof(uint8_t) * nsamples);
+  return SRSLTE_MEM_ALLOC(uint8_t, nsamples);
 }
 
 void srslte_vec_zero(void* ptr, uint32_t nbytes)
@@ -197,7 +197,7 @@ void srslte_vec_zero(void* ptr, uint32_t nbytes)
 
 void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples)
 {
-  memset(ptr, 0, sizeof(uint8_t) * nsamples);
+  SRSLTE_MEM_ZERO(ptr, uint8_t, nsamples);
 }
 
 void srslte_vec_i16_zero(int16_t* ptr, uint32_t nsamples)

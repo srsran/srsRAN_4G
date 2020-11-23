@@ -39,6 +39,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 
+#define SRSLTE_MEM_ALLOC(T, N) ((T*)srslte_vec_malloc((uint32_t)sizeof(T) * (N)))
 #define SRSLTE_MEM_ZERO(Q, T, N)                                                                                       \
   do {                                                                                                                 \
     T* ptr_ = (Q);                                                                                                     \
