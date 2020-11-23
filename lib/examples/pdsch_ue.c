@@ -374,6 +374,7 @@ srslte_ue_sync_t   ue_sync;
 prog_args_t        prog_args;
 
 uint32_t pkt_errors = 0, pkt_total = 0, nof_detected = 0, pmch_pkt_errors = 0, pmch_pkt_total = 0, nof_trials = 0;
+double   evm = 0.0;
 
 srslte_netsink_t net_sink, net_sink_signal;
 /* Useful macros for printing lines which will disappear */
@@ -603,6 +604,8 @@ int main(int argc, char** argv)
   ZERO_OBJECT(ue_dl_cfg);
   ZERO_OBJECT(dl_sf);
   ZERO_OBJECT(pdsch_cfg);
+
+  pdsch_cfg.meas_evm_en = true;
 
   if (cell.frame_type == SRSLTE_TDD && prog_args.tdd_special_sf >= 0 && prog_args.sf_config >= 0) {
     dl_sf.tdd_config.ss_config  = prog_args.tdd_special_sf;
@@ -916,6 +919,7 @@ int main(int argc, char** argv)
                 "           Rb: %6.2f / %6.2f / %6.2f Mbps (net/maximum/processing)", uerate, enodebrate, procrate);
             PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float)nof_detected / nof_trials));
             PRINT_LINE("   PDSCH-BLER: %5.2f%%", (float)100 * pkt_errors / pkt_total);
+            PRINT_LINE("   PDSCH-EVM: %5.2f%%", ue_dl.pdsch.avg_evm);
 
             if (prog_args.mbsfn_area_id > -1) {
               PRINT_LINE("   PMCH-BLER: %5.2f%%", (float)100 * pkt_errors / pmch_pkt_total);
