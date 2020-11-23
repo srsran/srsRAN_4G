@@ -616,12 +616,19 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   retx_queue.pop_front();
   tx_window[retx.sn].retx_count++;
   if (tx_window[retx.sn].retx_count >= cfg.max_retx_thresh) {
-    log->warning(
-        "%s Signaling max number of reTx=%d for for PDU %d\n", RB_NAME, tx_window[retx.sn].retx_count, retx.sn);
+    log->warning("%s Signaling max number of reTx=%d for for SN=%d\n", RB_NAME, tx_window[retx.sn].retx_count, retx.sn);
     parent->rrc->max_retx_attempted();
   }
 
-  log->info("%s Retx PDU scheduled for tx. SN=%d, retx count: %d\n", RB_NAME, retx.sn, tx_window[retx.sn].retx_count);
+  log->info_hex(payload,
+                tx_window[retx.sn].buf->N_bytes,
+                "%s Tx PDU SN=%d (%d B) (attempt %d/%d)\n",
+                RB_NAME,
+                retx.sn,
+                tx_window[retx.sn].buf->N_bytes,
+                tx_window[retx.sn].retx_count + 1,
+                cfg.max_retx_thresh);
+  log->debug("%s\n", rlc_amd_pdu_header_to_string(new_header).c_str());
 
   debug_state();
   return (ptr - payload) + tx_window[retx.sn].buf->N_bytes;
