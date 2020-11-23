@@ -83,7 +83,7 @@ private:
     ~rlc_um_lte_rx();
     void stop();
     void reestablish();
-    bool configure();
+    bool configure(const rlc_config_t& cnfg_, std::string rb_name_);
     void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes);
     void reassemble_rx_sdus();
     bool pdu_belongs_to_rx_sdu();

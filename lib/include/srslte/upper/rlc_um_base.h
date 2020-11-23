@@ -117,7 +117,7 @@ protected:
   public:
     rlc_um_base_rx(rlc_um_base* parent_);
     virtual ~rlc_um_base_rx();
-    virtual bool configure() = 0;
+    virtual bool configure(const rlc_config_t& cnfg_, std::string rb_name_) = 0;
 
     virtual void stop()        = 0;
     virtual void reestablish() = 0;

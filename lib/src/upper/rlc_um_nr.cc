@@ -48,7 +48,7 @@ bool rlc_um_nr::configure(const rlc_config_t& cnfg_)
   cfg = cnfg_;
 
   rx.reset(new rlc_um_nr_rx(this));
-  if (not rx->configure()) {
+  if (not rx->configure(cfg, rb_name)) {
     return false;
   }
 
@@ -223,7 +223,7 @@ rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_rx(rlc_um_base* parent_) :
   reassembly_timer(timers->get_unique_timer())
 {}
 
-bool rlc_um_nr::rlc_um_nr_rx::configure()
+bool rlc_um_nr::rlc_um_nr_rx::configure(const rlc_config_t& cnfg_, std::string rb_name_)
 {
   if (cfg.um_nr.mod == 0) {
     log->error("Error configuring %s RLC UM: rx_mod==0\n", rb_name.c_str());

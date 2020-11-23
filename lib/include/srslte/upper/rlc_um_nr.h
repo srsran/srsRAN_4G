@@ -81,7 +81,7 @@ private:
   public:
     rlc_um_nr_rx(rlc_um_base* parent_);
 
-    bool configure();
+    bool configure(const rlc_config_t& cnfg_, std::string rb_name_);
     void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes);
 
     void reestablish();

@@ -50,7 +50,7 @@ bool rlc_um_lte::configure(const rlc_config_t& cnfg_)
   cfg = cnfg_;
 
   rx.reset(new rlc_um_lte_rx(this));
-  if (not rx->configure()) {
+  if (not rx->configure(cfg, rb_name)) {
     return false;
   }
 
@@ -236,8 +236,10 @@ rlc_um_lte::rlc_um_lte_rx::rlc_um_lte_rx(rlc_um_base* parent_) :
 
 rlc_um_lte::rlc_um_lte_rx::~rlc_um_lte_rx() {}
 
-bool rlc_um_lte::rlc_um_lte_rx::configure()
+bool rlc_um_lte::rlc_um_lte_rx::configure(const rlc_config_t& cnfg_, std::string rb_name_)
 {
+  cfg = cnfg_;
+
   if (cfg.um.rx_mod == 0) {
     log->error("Error configuring %s RLC UM: rx_mod==0\n", rb_name.c_str());
     return false;
@@ -253,6 +255,8 @@ bool rlc_um_lte::rlc_um_lte_rx::configure()
   if (cfg.um.t_reordering > 0) {
     reordering_timer.set(static_cast<uint32_t>(cfg.um.t_reordering), [this](uint32_t tid) { timer_expired(tid); });
   }
+
+  rb_name = rb_name_;
 
   return true;
 }
@@ -292,7 +296,7 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 {
   rlc_umd_pdu_header_t header;
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.um.rx_sn_field_length, &header);
-  log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN=%d (%d B)", rb_name.c_str(), header.sn, nof_bytes);
+  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)", rb_name.c_str(), header.sn, nof_bytes);
 
   if (RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh - cfg.um.rx_window_size) &&
       RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ur)) {

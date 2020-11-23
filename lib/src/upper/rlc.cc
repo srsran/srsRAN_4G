@@ -147,7 +147,7 @@ void rlc::reestablish()
 void rlc::reestablish(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
-    rlc_log->info("Reestablishing LCID %d\n", lcid);
+    rlc_log->info("Reestablishing %s\n", rrc->get_rb_name(lcid).c_str());
     rlc_array.at(lcid)->reestablish();
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist.\n", lcid);
