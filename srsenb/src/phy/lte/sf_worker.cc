@@ -70,7 +70,7 @@ void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
   log_h = log_h_;
 
   // Initialise each component carrier workers
-  for (uint32_t i = 0; i < phy->get_nof_carriers(); i++) {
+  for (uint32_t i = 0; i < phy->get_nof_carriers_lte(); i++) {
     // Create pointer
     auto q = new cc_worker();
 
@@ -164,7 +164,7 @@ void sf_worker::work_imp()
 
   // Get Transmission buffers
   srslte::rf_buffer_t tx_buffer = {};
-  for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers_lte(); cc++) {
     for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
       tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
     }
@@ -184,7 +184,7 @@ void sf_worker::work_imp()
   stack_interface_phy_lte::ul_sched_list_t ul_grants_tx = phy->get_ul_grants(t_tx_ul);
 
   // Downlink grants to transmit this TTI
-  stack_interface_phy_lte::dl_sched_list_t dl_grants(phy->get_nof_carriers());
+  stack_interface_phy_lte::dl_sched_list_t dl_grants(phy->get_nof_carriers_lte());
 
   stack_interface_phy_lte* stack = phy->stack;
 
@@ -276,7 +276,7 @@ uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
 {
   uint32_t                   cnt = 0;
   std::vector<phy_metrics_t> metrics_;
-  for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers_lte(); cc++) {
     cnt = cc_workers[cc]->get_metrics(metrics_);
     metrics.resize(std::max(metrics_.size(), metrics.size()));
     for (uint32_t r = 0; r < cnt; r++) {
@@ -312,7 +312,7 @@ void sf_worker::start_plot()
 
 uint32_t sf_worker::get_nof_carriers()
 {
-  return phy->get_nof_carriers();
+  return phy->get_nof_carriers_lte();
 }
 int sf_worker::get_carrier_pci(uint32_t cc_idx)
 {

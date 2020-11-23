@@ -67,7 +67,9 @@ void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
   }
 }
 
-phy::phy(srslte::logger* logger_) : logger(logger_), lte_workers(MAX_WORKERS), workers_common(), nof_workers(0) {}
+phy::phy(srslte::logger* logger_) :
+  logger(logger_), lte_workers(MAX_WORKERS), nr_workers(MAX_WORKERS), workers_common(), nof_workers(0)
+{}
 
 phy::~phy()
 {
@@ -125,6 +127,7 @@ int phy::init(const phy_args_t&            args,
 
   // Add workers to workers pool and start threads
   lte_workers.init(args, &workers_common, logger, WORKERS_THREAD_PRIO);
+  nr_workers.init(args, &workers_common, logger, WORKERS_THREAD_PRIO);
 
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
@@ -134,7 +137,7 @@ int phy::init(const phy_args_t&            args,
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(stack_, radio, &lte_workers, &workers_common, &prach, log_h.get(), SF_RECV_THREAD_PRIO);
+  tx_rx.init(stack_, radio, &lte_workers, &nr_workers, &workers_common, &prach, log_h.get(), SF_RECV_THREAD_PRIO);
 
   initialized = true;
 
@@ -147,6 +150,7 @@ void phy::stop()
     tx_rx.stop();
     workers_common.stop();
     lte_workers.stop();
+    nr_workers.stop();
     prach.stop();
 
     initialized = false;

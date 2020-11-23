@@ -41,9 +41,12 @@ bool worker_pool::init(const phy_args_t& args, phy_common* common, srslte::logge
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    auto w = std::unique_ptr<sf_worker>(new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get()));
-    pool.init_worker(i, w.get(), prio);
-    workers.push_back(std::move(w));
+    auto w = new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get());
+    pool.init_worker(i, w, prio);
+    workers.push_back(std::unique_ptr<sf_worker>(w));
+
+    srslte_carrier_nr_t c = common->get_cell_nr(0);
+    w->set_carrier_unlocked(0, &c);
   }
 
   return true;
@@ -69,5 +72,5 @@ void worker_pool::stop()
   pool.stop();
 }
 
-}; // namespace nr
-}; // namespace srsenb
+} // namespace nr
+} // namespace srsenb

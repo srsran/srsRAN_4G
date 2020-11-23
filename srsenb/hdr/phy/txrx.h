@@ -30,7 +30,8 @@ public:
   txrx();
   bool init(stack_interface_phy_lte*     stack_,
             srslte::radio_interface_phy* radio_handler,
-            lte::worker_pool*            _workers_pool,
+            lte::worker_pool*            lte_workers_,
+            nr::worker_pool*             nr_workers_,
             phy_common*                  worker_com,
             prach_worker_pool*           prach_,
             srslte::log*                 log_h,

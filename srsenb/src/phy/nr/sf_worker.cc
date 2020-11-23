@@ -73,10 +73,21 @@ void sf_worker::set_tti(uint32_t tti)
 
 void sf_worker::work_imp()
 {
+  // Get Transmission buffers
+  srslte::rf_buffer_t    tx_buffer = {};
+  srslte::rf_timestamp_t dummy_ts  = {};
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers_nr(); cc++) {
+    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
+      tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_tx_buffer(ant));
+    }
+  }
+
   for (auto& w : cc_workers) {
     w->work_dl();
   }
+
+  phy->worker_end(this, tx_buffer, dummy_ts, true);
 }
 
-}; // namespace nr
-}; // namespace srsenb
+} // namespace nr
+} // namespace srsenb

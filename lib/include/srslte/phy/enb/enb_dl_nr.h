@@ -53,6 +53,12 @@ SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,
                                           const srslte_pdsch_grant_nr_t* grant,
                                           uint8_t*                       data[SRSLTE_MAX_TB]);
 
+SRSLTE_API int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*      q,
+                                           const srslte_pdsch_cfg_nr_t*   cfg,
+                                           const srslte_pdsch_grant_nr_t* grant,
+                                           char*                          str,
+                                           uint32_t                       str_len);
+
 #ifdef __cplusplus
 }
 #endif

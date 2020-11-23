@@ -719,10 +719,9 @@ static int parse_scell_list(cell_cfg_t& cell_cfg, Setting& cellroot)
 
 static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 {
-  rrc_cfg->cell_list.resize(root.getLength());
-  for (uint32_t n = 0; n < rrc_cfg->cell_list.size(); ++n) {
-    cell_cfg_t& cell_cfg = rrc_cfg->cell_list[n];
-    auto&       cellroot = root[n];
+  for (uint32_t n = 0; n < (uint32_t)root.getLength(); ++n) {
+    cell_cfg_t cell_cfg = {};
+    auto&      cellroot = root[n];
 
     parse_opt_field(cell_cfg.rf_port, cellroot, "rf_port");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.cell_id, cellroot, "cell_id"));
@@ -743,6 +742,16 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 
     if (cellroot.exists("scell_list")) {
       parse_scell_list(cell_cfg, cellroot);
+    }
+
+    std::string type = "lte";
+    if (cellroot.exists("type")) {
+      cellroot.lookupValue("type", type);
+    }
+    if (type == "lte") {
+      rrc_cfg->cell_list.push_back(cell_cfg);
+    } else if (type == "nr") {
+      rrc_cfg->cell_list_nr.push_back(cell_cfg);
     }
   }
 
@@ -961,6 +970,37 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
   }
 
+  // Create NR dedicated cell configuration from RRC configuration
+  for (auto it = rrc_cfg_->cell_list_nr.begin(); it != rrc_cfg_->cell_list_nr.end(); ++it) {
+    auto&             cfg                = *it;
+    phy_cell_cfg_nr_t phy_cell_cfg       = {};
+    phy_cell_cfg.carrier.max_mimo_layers = cell_cfg_.nof_ports;
+    phy_cell_cfg.carrier.nof_prb         = cell_cfg_.nof_prb;
+    phy_cell_cfg.carrier.id              = cfg.pci;
+    phy_cell_cfg.cell_id                 = cfg.cell_id;
+    phy_cell_cfg.root_seq_idx            = cfg.root_seq_idx;
+    phy_cell_cfg.rf_port                 = cfg.rf_port;
+    phy_cell_cfg.num_ra_preambles =
+        rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
+
+    if (cfg.dl_freq_hz > 0) {
+      phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
+    } else {
+      phy_cell_cfg.dl_freq_hz = 1e6 * srslte_band_fd(cfg.dl_earfcn);
+    }
+
+    if (cfg.ul_freq_hz > 0) {
+      phy_cell_cfg.ul_freq_hz = cfg.ul_freq_hz;
+    } else {
+      if (cfg.ul_earfcn == 0) {
+        cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
+      }
+      phy_cell_cfg.ul_freq_hz = 1e6 * srslte_band_fu(cfg.ul_earfcn);
+    }
+
+    phy_cfg_->phy_cell_cfg_nr.push_back(phy_cell_cfg);
+  }
+
   if (args_->enb.transmission_mode == 1) {
     phy_cfg_->pdsch_cnfg.p_b                                    = 0; // Default TM1
     rrc_cfg_->sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 0;
@@ -1080,7 +1120,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   }
 
   // Patch certain args that are not exposed yet
-  args_->rf.nof_carriers = rrc_cfg_->cell_list.size();
+  args_->rf.nof_carriers = rrc_cfg_->cell_list.size() + rrc_cfg_->cell_list_nr.size();
   args_->rf.nof_antennas = args_->enb.nof_ports;
 
   // MAC needs to know the cell bandwidth to dimension softbuffers

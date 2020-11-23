@@ -42,7 +42,8 @@ txrx::txrx() : thread("TXRX")
 
 bool txrx::init(stack_interface_phy_lte*     stack_,
                 srslte::radio_interface_phy* radio_h_,
-                lte::worker_pool*            workers_pool_,
+                lte::worker_pool*            lte_workers_,
+                nr::worker_pool*             nr_workers_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 srslte::log*                 log_h_,
@@ -51,7 +52,8 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
   stack         = stack_;
   radio_h       = radio_h_;
   log_h         = log_h_;
-  lte_workers   = workers_pool_;
+  lte_workers   = lte_workers_;
+  nr_workers    = nr_workers_;
   worker_com    = worker_com_;
   prach         = prach_;
   tx_worker_cnt = 0;
@@ -180,6 +182,12 @@ void txrx::run_thread()
 
     lte_worker->set_time(tti, tx_worker_cnt, timestamp);
     tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
+
+    // Launch NR worker only if available
+    if (nr_worker != nullptr) {
+      worker_com->semaphore.push(nr_worker);
+      nr_workers->start_worker(nr_worker);
+    }
 
     // Trigger phy worker execution
     worker_com->semaphore.push(lte_worker);

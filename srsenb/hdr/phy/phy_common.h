@@ -54,8 +54,9 @@ public:
    * @param tx_sem_id Semaphore identifier, the worker thread pointer is used
    * @param buffer baseband IQ sample buffer
    * @param tx_time timestamp to transmit samples
+   * @param is_nr flag is true if it is called from NR
    */
-  void worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time);
+  void worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time, bool is_nr = false);
 
   // Common objects
   phy_args_t params = {};
@@ -92,7 +93,7 @@ public:
     }
 
     for (auto& cell : cell_list_nr) {
-      count += cell.cell.max_mimo_layers;
+      count += cell.carrier.max_mimo_layers;
     }
 
     return count;
@@ -153,13 +154,8 @@ public:
   srslte_carrier_nr_t get_cell_nr(uint32_t cc_idx)
   {
     srslte_carrier_nr_t c = {};
-    if (cc_idx < cell_list_lte.size()) {
-      return c;
-    }
-
-    cc_idx -= cell_list_lte.size();
     if (cc_idx < cell_list_nr.size()) {
-      c = cell_list_nr[cc_idx].cell;
+      c = cell_list_nr[cc_idx].carrier;
     }
 
     return c;
@@ -246,6 +242,8 @@ private:
   uint32_t                                 mch_period_stop  = 0;
   bool                                     is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
   bool                                     is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  srslte::rf_buffer_t                      nr_tx_buffer;
+  bool                                     nr_tx_buffer_ready = false;
 };
 
 } // namespace srsenb

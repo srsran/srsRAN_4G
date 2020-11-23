@@ -59,6 +59,7 @@ struct rrc_cfg_t {
   bool                                                                                    meas_cfg_present = false;
   srslte_cell_t                                                                           cell;
   cell_list_t                                                                             cell_list;
+  cell_list_t                                                                             cell_list_nr;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;

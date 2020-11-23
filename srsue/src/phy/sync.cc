@@ -855,6 +855,11 @@ bool sync::set_frequency()
     radio_h->set_rx_freq(0, set_dl_freq);
     radio_h->set_tx_freq(0, set_ul_freq);
 
+    for (uint32_t i = 0; i < worker_com->args->nof_nr_carriers; i++) {
+      radio_h->set_rx_freq(i + worker_com->args->nof_lte_carriers, worker_com->args->nr_freq_hz);
+      //      radio_h->set_tx_freq(0, set_ul_freq);
+    }
+
     ul_dl_factor = (float)(set_ul_freq / set_dl_freq);
 
     srslte_ue_sync_reset(&ue_sync);

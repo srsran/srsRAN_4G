@@ -34,7 +34,7 @@ struct phy_cell_cfg_t {
 };
 
 struct phy_cell_cfg_nr_t {
-  srslte_carrier_nr_t cell;
+  srslte_carrier_nr_t carrier;
   uint32_t            rf_port;
   uint32_t            cell_id;
   double              dl_freq_hz;
@@ -44,7 +44,7 @@ struct phy_cell_cfg_nr_t {
   float               gain_db;
 };
 
-typedef std::vector<phy_cell_cfg_t> phy_cell_cfg_list_t;
+typedef std::vector<phy_cell_cfg_t>    phy_cell_cfg_list_t;
 typedef std::vector<phy_cell_cfg_nr_t> phy_cell_cfg_list_nr_t;
 
 struct phy_args_t {
@@ -71,7 +71,7 @@ struct phy_args_t {
 
 struct phy_cfg_t {
   // Individual cell/sector configuration list
-  phy_cell_cfg_list_t phy_cell_cfg;
+  phy_cell_cfg_list_t    phy_cell_cfg;
   phy_cell_cfg_list_nr_t phy_cell_cfg_nr;
 
   // Common configuration for all cells

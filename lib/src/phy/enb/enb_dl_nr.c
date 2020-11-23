@@ -149,3 +149,17 @@ int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,
 
   return SRSLTE_SUCCESS;
 }
+
+int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*      q,
+                                const srslte_pdsch_cfg_nr_t*   cfg,
+                                const srslte_pdsch_grant_nr_t* grant,
+                                char*                          str,
+                                uint32_t                       str_len)
+{
+  int len = 0;
+
+  // Append PDSCH info
+  len += srslte_pdsch_nr_tx_info(&q->pdsch, cfg, grant, &str[len], str_len - len);
+
+  return len;
+}

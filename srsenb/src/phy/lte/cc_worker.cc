@@ -101,11 +101,11 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
     srslte_vec_cf_zero(signal_buffer_tx[p], 2 * sf_len);
   }
   if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, nof_prb)) {
-    ERROR("Error initiating ENB DL\n");
+    ERROR("Error initiating ENB DL (cc=%d)\n", cc_idx);
     return;
   }
   if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
-    ERROR("Error initiating ENB DL\n");
+    ERROR("Error initiating ENB DL (cc=%d)\n", cc_idx);
     return;
   }
   if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {

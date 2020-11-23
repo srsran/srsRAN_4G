@@ -76,11 +76,12 @@ private:
 
   srslte::radio_interface_phy* radio = nullptr;
 
-  srslte::logger*                                   logger = nullptr;
-  std::unique_ptr<srslte::log_filter>               log_h         = nullptr;
-  std::unique_ptr<srslte::log_filter>               log_phy_lib_h = nullptr;
+  srslte::logger*                     logger        = nullptr;
+  std::unique_ptr<srslte::log_filter> log_h         = nullptr;
+  std::unique_ptr<srslte::log_filter> log_phy_lib_h = nullptr;
 
   lte::worker_pool  lte_workers;
+  nr::worker_pool   nr_workers;
   phy_common        workers_common;
   prach_worker_pool prach;
   txrx              tx_rx;

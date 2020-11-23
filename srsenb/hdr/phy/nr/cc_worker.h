@@ -49,9 +49,10 @@ public:
   phy_nr_state()
   {
     args.nof_carriers              = 1;
-    args.max_prb                   = SRSLTE_MAX_PRB;
+    args.max_prb                   = 100;
     args.dl.nof_tx_antennas        = 1;
     args.dl.pdsch.measure_evm      = true;
+    args.dl.pdsch.measure_time     = true;
     args.dl.pdsch.sch.disable_simd = true;
   }
 };
@@ -72,12 +73,13 @@ public:
   bool work_dl();
 
 private:
-  srslte_dl_slot_cfg_t                            dl_slot_cfg = {};
-  uint32_t                                        cc_idx      = 0;
-  std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> tx_buffer   = {};
-  std::array<std::vector<cf_t>, SRSLTE_MAX_PORTS> rx_buffer   = {};
-  phy_nr_state*                                   phy_state;
-  srslte_enb_dl_nr_t                              enb_dl = {};
+  srslte_dl_slot_cfg_t                dl_slot_cfg = {};
+  uint32_t                            cc_idx      = 0;
+  std::array<cf_t*, SRSLTE_MAX_PORTS> tx_buffer   = {};
+  std::array<cf_t*, SRSLTE_MAX_PORTS> rx_buffer   = {};
+  phy_nr_state*                       phy_state;
+  srslte_enb_dl_nr_t                  enb_dl = {};
+  srslte::log*                        log_h  = nullptr;
 
   // Temporal attributes
   srslte_softbuffer_tx_t softbuffer_tx = {};

@@ -428,6 +428,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3334), "Bind port")
     ("nr.nof_carriers", bpo::value<uint32_t>(&args->phy.nof_nr_carriers)->default_value(1), "Number of NR carriers")
     ("nr.nof_prb", bpo::value<uint32_t>(&args->phy.nr_nof_prb)->default_value(50), "NR carrier bandwidth")
+    ("nr.freq", bpo::value<double>(&args->phy.nr_freq_hz)->default_value(2630e6), "NR carrier bandwidth")
     ;
 
   // Positional options - config file location

@@ -49,8 +49,8 @@ bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
                       srslte::radio_interface_phy*  radio_h_,
                       stack_interface_phy_lte*      stack_)
 {
-  radio     = radio_h_;
-  stack     = stack_;
+  radio         = radio_h_;
+  stack         = stack_;
   cell_list_lte = cell_list_;
   cell_list_nr  = cell_list_nr_;
 
@@ -116,10 +116,28 @@ void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_s
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time)
+void phy_common::worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time, bool is_nr)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
+
+  // If this is for NR, save Tx buffers...
+  if (is_nr) {
+    nr_tx_buffer       = buffer;
+    nr_tx_buffer_ready = true;
+    semaphore.release();
+    return;
+  } else if (nr_tx_buffer_ready) {
+    // ... otherwise, append NR baseband from saved buffer if available
+    uint32_t j = 0;
+    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+      if (buffer.get(i) == nullptr) {
+        buffer.set(i, nr_tx_buffer.get(j));
+        j++;
+      }
+    }
+    nr_tx_buffer_ready = false;
+  }
 
   // Run DL channel emulator if created
   if (dl_channel) {

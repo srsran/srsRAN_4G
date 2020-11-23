@@ -27,15 +27,16 @@
 namespace srsenb {
 namespace nr {
 cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_)
+  cc_idx(cc_idx_), phy_state(phy_state_), log_h(log)
 {
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
   // Allocate buffers
-  for (uint32_t i = 0; phy_state_->args.dl.nof_tx_antennas; i++) {
-    tx_buffer[i].resize(SRSLTE_SF_LEN_PRB(phy_state->args.max_prb));
-    rx_buffer[i].resize(SRSLTE_SF_LEN_PRB(phy_state->args.max_prb));
-    buffer_c[i] = tx_buffer[i].data();
+  uint32_t sf_len = SRSLTE_SF_LEN_PRB(phy_state->args.max_prb);
+  for (uint32_t i = 0; i < phy_state_->args.dl.nof_tx_antennas; i++) {
+    tx_buffer[i] = srslte_vec_cf_malloc(sf_len);
+    rx_buffer[i] = srslte_vec_cf_malloc(sf_len);
+    buffer_c[i]  = tx_buffer[i];
   }
 
   if (srslte_enb_dl_nr_init(&enb_dl, buffer_c, &phy_state_->args.dl)) {
@@ -60,6 +61,16 @@ cc_worker::~cc_worker()
 {
   srslte_enb_dl_nr_free(&enb_dl);
   srslte_softbuffer_tx_free(&softbuffer_tx);
+  for (cf_t* p : rx_buffer) {
+    if (p != nullptr) {
+      free(p);
+    }
+  }
+  for (cf_t* p : tx_buffer) {
+    if (p != nullptr) {
+      free(p);
+    }
+  }
 }
 
 bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
@@ -82,7 +93,7 @@ cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)
     return nullptr;
   }
 
-  return tx_buffer.at(antenna_idx).data();
+  return tx_buffer.at(antenna_idx);
 }
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
@@ -91,7 +102,7 @@ cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
     return nullptr;
   }
 
-  return rx_buffer.at(antenna_idx).data();
+  return rx_buffer.at(antenna_idx);
 }
 
 uint32_t cc_worker::get_buffer_len()
@@ -103,7 +114,6 @@ bool cc_worker::work_dl()
 {
   srslte_pdsch_grant_nr_t pdsch_grant = {};
   srslte_pdsch_cfg_nr_t   pdsch_cfg   = phy_state->cfg.pdsch;
-
   // Use grant default A time resources with m=0
   if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &pdsch_grant) <
       SRSLTE_SUCCESS) {
@@ -112,12 +122,13 @@ bool cc_worker::work_dl()
   }
   pdsch_grant.nof_layers = enb_dl.carrier.max_mimo_layers;
   pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
+  pdsch_grant.rnti       = 0x1234;
 
   for (uint32_t i = 0; i < enb_dl.carrier.nof_prb; i++) {
     pdsch_grant.prb_idx[i] = true;
   }
 
-  if (srslte_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, 20, &pdsch_grant.tb[0]) < SRSLTE_SUCCESS) {
+  if (srslte_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, 27, &pdsch_grant.tb[0]) < SRSLTE_SUCCESS) {
     ERROR("Error filing tb\n");
     return false;
   }
@@ -129,6 +140,13 @@ bool cc_worker::work_dl()
   if (srslte_enb_dl_nr_pdsch_put(&enb_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_grant, data2) < SRSLTE_SUCCESS) {
     ERROR("Error decoding PDSCH\n");
     return false;
+  }
+
+  // Logging
+  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    char str[512];
+    srslte_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, &pdsch_grant, str, sizeof(str));
+    log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
   }
 
   srslte_enb_dl_nr_gen_signal(&enb_dl);
