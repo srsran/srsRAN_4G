@@ -109,6 +109,7 @@ typedef struct {
   int      sf_config;
   int      verbose;
   bool     enable_256qam;
+  bool     use_standard_lte_rate;
 } prog_args_t;
 
 void args_default(prog_args_t* args)
@@ -195,6 +196,7 @@ void usage(prog_args_t* args, char* prog)
   printf("\t-M MBSFN area id [Default %d]\n", args->mbsfn_area_id);
   printf("\t-N Non-MBSFN region [Default %d]\n", args->non_mbsfn_region);
   printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", args->enable_256qam ? "enabled" : "disabled");
+  printf("\t-Q Use standard LTE sample rates (default %s)\n", args->use_standard_lte_rate ? "enabled" : "disabled");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
@@ -203,7 +205,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
   int opt;
   args_default(args);
 
-  while ((opt = getopt(argc, argv, "adAogliIpPcOCtdDFRqnvrfuUsSZyWMNBTG")) != -1) {
+  while ((opt = getopt(argc, argv, "adAogliIpPcOCtdDFRqnvrfuUsSZyWMNBTGQ")) != -1) {
     switch (opt) {
       case 'i':
         args->input_file_name = argv[optind];
@@ -308,6 +310,9 @@ void parse_args(prog_args_t* args, int argc, char** argv)
       case 'q':
         args->enable_256qam ^= true;
         break;
+      case 'Q':
+        args->use_standard_lte_rate ^= true;
+        break;
       default:
         usage(args, argv[0]);
         exit(-1);
@@ -395,6 +400,8 @@ int main(int argc, char** argv)
   srslte_debug_handle_crash(argc, argv);
 
   parse_args(&prog_args, argc, argv);
+
+  srslte_use_standard_symbol_size(prog_args.use_standard_lte_rate);
 
 #ifdef ENABLE_GUI
   if (prog_args.mbsfn_area_id > -1) {

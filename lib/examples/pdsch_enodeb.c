@@ -75,7 +75,8 @@ static char*       rf_args              = "";
 static char*       rf_dev               = "";
 static float       rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
 static bool        enable_256qam   = false;
-static float       output_file_snr = +INFINITY;
+static float       output_file_snr       = +INFINITY;
+static bool        use_standard_lte_rate = false;
 
 static bool                    null_file_sink = false;
 static srslte_filesink_t       fsink;
@@ -140,6 +141,7 @@ static void usage(char* prog)
   printf("\t-v [set srslte_verbose to debug, default none]\n");
   printf("\t-s output file SNR [Default %f]\n", output_file_snr);
   printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
+  printf("\t-Q Use standard LTE sample rates (default %s)\n", use_standard_lte_rate ? "enabled" : "disabled");
   printf("\n");
   printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
@@ -147,7 +149,7 @@ static void usage(char* prog)
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "IadglfmoncpqvutxbwMsB")) != -1) {
+  while ((opt = getopt(argc, argv, "IadglfmoncpqvutxbwMsBQ")) != -1) {
 
     switch (opt) {
       case 'I':
@@ -206,6 +208,9 @@ static void parse_args(int argc, char** argv)
         break;
       case 'q':
         enable_256qam ^= true;
+        break;
+      case 'Q':
+        use_standard_lte_rate ^= true;
         break;
       default:
         usage(argv[0]);
@@ -707,6 +712,8 @@ int main(int argc, char** argv)
 #endif
 
   parse_args(argc, argv);
+
+  srslte_use_standard_symbol_size(use_standard_lte_rate);
 
   uint8_t mch_table[10];
   bzero(&mch_table[0], sizeof(uint8_t) * 10);
