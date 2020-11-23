@@ -32,7 +32,6 @@ namespace nr {
 
 typedef struct {
   uint32_t                nof_carriers;
-  uint32_t                max_prb;
   srslte_enb_dl_nr_args_t dl;
 } phy_nr_args_t;
 
@@ -49,7 +48,7 @@ public:
   phy_nr_state()
   {
     args.nof_carriers              = 1;
-    args.max_prb                   = 100;
+    args.dl.nof_max_prb            = 100;
     args.dl.nof_tx_antennas        = 1;
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.measure_time     = true;
@@ -77,6 +76,7 @@ private:
   uint32_t                            cc_idx      = 0;
   std::array<cf_t*, SRSLTE_MAX_PORTS> tx_buffer   = {};
   std::array<cf_t*, SRSLTE_MAX_PORTS> rx_buffer   = {};
+  uint32_t                            buffer_sz   = 0;
   phy_nr_state*                       phy_state;
   srslte_enb_dl_nr_t                  enb_dl = {};
   srslte::log*                        log_h  = nullptr;

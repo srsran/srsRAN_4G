@@ -31,10 +31,10 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
   // Allocate buffers
-  uint32_t sf_len = SRSLTE_SF_LEN_PRB(phy_state->args.dl.nof_max_prb);
+  buffer_sz = SRSLTE_SF_LEN_PRB(phy_state->args.dl.nof_max_prb) * 5;
   for (uint32_t i = 0; i < phy_state_->args.dl.nof_rx_antennas; i++) {
-    rx_buffer[i] = srslte_vec_cf_malloc(sf_len);
-    tx_buffer[i] = srslte_vec_cf_malloc(sf_len);
+    rx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
+    tx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
     buffer_c[i]  = rx_buffer[i];
   }
 
@@ -93,7 +93,7 @@ cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
 
 uint32_t cc_worker::get_buffer_len()
 {
-  return rx_buffer.size();
+  return buffer_sz;
 }
 
 bool cc_worker::work_dl()

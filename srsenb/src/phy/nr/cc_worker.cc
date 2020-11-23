@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/phy/nr/cc_worker.h"
+#include "srslte/common/common.h"
 #include "srslte/phy/enb/enb_dl_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/ue/ue_dl_nr_data.h"
@@ -32,10 +33,10 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
   // Allocate buffers
-  uint32_t sf_len = SRSLTE_SF_LEN_PRB(phy_state->args.max_prb);
+  buffer_sz = SRSLTE_SF_LEN_PRB(phy_state->args.dl.nof_max_prb);
   for (uint32_t i = 0; i < phy_state_->args.dl.nof_tx_antennas; i++) {
-    tx_buffer[i] = srslte_vec_cf_malloc(sf_len);
-    rx_buffer[i] = srslte_vec_cf_malloc(sf_len);
+    tx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
+    rx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
     buffer_c[i]  = tx_buffer[i];
   }
 
@@ -49,12 +50,9 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state
     ERROR("Error init soft-buffer\n");
     return;
   }
-  data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB);
-  srslte_random_t r = srslte_random_init(1234);
-  for (uint32_t i = 0; i < SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB; i++) {
-    data[i] = srslte_random_uniform_int_dist(r, 0, UINT8_MAX);
-  }
-  srslte_random_free(r);
+  data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
+  srslte_vec_u8_zero(data.data(), SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
+  snprintf((char*)data.data(), SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8, "hello world!");
 }
 
 cc_worker::~cc_worker()
@@ -84,7 +82,7 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
 
 void cc_worker::set_tti(uint32_t tti)
 {
-  dl_slot_cfg.idx = tti;
+  dl_slot_cfg.idx = TTI_ADD(tti, FDD_HARQ_DELAY_UL_MS);
 }
 
 cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)

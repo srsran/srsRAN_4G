@@ -440,6 +440,8 @@ static uint32_t srslte_dmrs_pdsch_seed(const srslte_carrier_nr_t*     carrier,
   const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
       grant->mapping == srslte_pdsch_mapping_type_A ? &cfg->dmrs_cfg_typeA : &cfg->dmrs_cfg_typeB;
 
+  slot_idx = slot_idx % SRSLTE_NSLOTS_PER_FRAME_NR(carrier->numerology);
+
   // Calculate scrambling IDs
   uint32_t n_id   = carrier->id;
   uint32_t n_scid = (grant->n_scid) ? 1 : 0;

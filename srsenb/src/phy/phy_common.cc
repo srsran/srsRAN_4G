@@ -127,8 +127,10 @@ void phy_common::worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, srslte
     nr_tx_buffer_ready = true;
     semaphore.release();
     return;
-  } else if (nr_tx_buffer_ready) {
-    // ... otherwise, append NR baseband from saved buffer if available
+  }
+
+  // ... otherwise, append NR base-band from saved buffer if available
+  if (nr_tx_buffer_ready) {
     uint32_t j = 0;
     for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
       if (buffer.get(i) == nullptr) {

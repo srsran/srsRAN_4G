@@ -76,6 +76,7 @@ private:
   uint32_t                            cc_idx      = 0;
   std::array<cf_t*, SRSLTE_MAX_PORTS> rx_buffer   = {};
   std::array<cf_t*, SRSLTE_MAX_PORTS> tx_buffer   = {};
+  uint32_t                            buffer_sz   = 0;
   phy_nr_state*                       phy_state   = nullptr;
   srslte_ue_dl_nr_t                   ue_dl       = {};
   srslte::log*                        log_h       = nullptr;

@@ -185,6 +185,7 @@ void txrx::run_thread()
 
     // Launch NR worker only if available
     if (nr_worker != nullptr) {
+      nr_worker->set_tti(tti);
       worker_com->semaphore.push(nr_worker);
       nr_workers->start_worker(nr_worker);
     }

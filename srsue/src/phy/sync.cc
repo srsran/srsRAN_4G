@@ -65,7 +65,8 @@ void sync::init(srslte::radio_interface_phy* _radio,
   worker_com      = _worker_com;
   prach_buffer    = _prach_buffer;
 
-  nof_rf_channels = worker_com->args->nof_lte_carriers * worker_com->args->nof_rx_ant;
+  nof_rf_channels =
+      (worker_com->args->nof_lte_carriers + worker_com->args->nof_nr_carriers) * worker_com->args->nof_rx_ant;
   if (nof_rf_channels == 0 || nof_rf_channels > SRSLTE_MAX_CHANNELS) {
     Error("SYNC:  Invalid number of RF channels (%d)\n", nof_rf_channels);
     return;
@@ -507,6 +508,7 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
 
   // Start NR worker only if present
   if (nr_worker != nullptr) {
+    nr_worker->set_tti(tti);
     nr_worker_pool->start_worker(nr_worker);
   }
 }

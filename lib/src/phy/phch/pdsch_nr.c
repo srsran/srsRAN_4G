@@ -648,7 +648,7 @@ static uint32_t srslte_pdsch_nr_grant_info(const srslte_pdsch_cfg_nr_t*   cfg,
   len = srslte_print_check(str, str_len, len, ",Nl=%d", grant->nof_layers);
 
   // Append scrambling ID
-  len = srslte_print_check(str, str_len, len, ",n_scid=%d", grant->n_scid);
+  len = srslte_print_check(str, str_len, len, ",n_scid=%d,", grant->n_scid);
 
   // Append TB info
   for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {

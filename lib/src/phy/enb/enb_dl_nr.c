@@ -50,14 +50,14 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
     return SRSLTE_ERROR;
   }
 
-  if (enb_dl_alloc_prb(q, SRSLTE_MAX_PRB_NR) < SRSLTE_SUCCESS) {
+  if (enb_dl_alloc_prb(q, args->nof_max_prb) < SRSLTE_SUCCESS) {
     ERROR("Error allocating\n");
     return SRSLTE_ERROR;
   }
 
   srslte_ofdm_cfg_t fft_cfg = {};
-  fft_cfg.nof_prb           = 100;
-  fft_cfg.symbol_sz         = srslte_symbol_sz(100);
+  fft_cfg.nof_prb           = args->nof_max_prb;
+  fft_cfg.symbol_sz         = srslte_symbol_sz(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {

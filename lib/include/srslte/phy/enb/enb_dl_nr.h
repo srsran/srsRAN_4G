@@ -24,6 +24,7 @@ extern "C" {
 typedef struct SRSLTE_API {
   srslte_pdsch_args_t pdsch;
   uint32_t            nof_tx_antennas;
+  uint32_t            nof_max_prb;
 } srslte_enb_dl_nr_args_t;
 
 typedef struct SRSLTE_API {

@@ -28,6 +28,8 @@ static srslte_carrier_nr_t carrier = {
 
 };
 
+#define MAX_PRB 100
+
 static uint32_t                n_prb       = 0;  // Set to 0 for steering
 static uint32_t                mcs         = 30; // Set to 30 for steering
 static srslte_pdsch_cfg_nr_t   pdsch_cfg   = {};
@@ -86,7 +88,7 @@ int main(int argc, char** argv)
   uint8_t* data_rx[SRSLTE_MAX_CODEWORDS] = {};
   cf_t*    buffer                        = NULL;
 
-  buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(carrier.nof_prb));
+  buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(MAX_PRB));
   if (buffer == NULL) {
     ERROR("Error malloc\n");
     goto clean_exit;
@@ -94,13 +96,14 @@ int main(int argc, char** argv)
 
   srslte_ue_dl_nr_args_t ue_dl_args = {};
   ue_dl_args.nof_rx_antennas        = 1;
-  ue_dl_args.nof_max_prb            = carrier.nof_prb;
+  ue_dl_args.nof_max_prb            = MAX_PRB;
   ue_dl_args.pdsch.sch.disable_simd = true;
   ue_dl_args.pdsch.measure_evm      = true;
   ue_dl_args.pdsch.measure_time     = true;
 
   srslte_enb_dl_nr_args_t enb_dl_args = {};
   enb_dl_args.nof_tx_antennas         = 1;
+  enb_dl_args.nof_max_prb             = MAX_PRB;
   enb_dl_args.pdsch.sch.disable_simd  = true;
 
   // Set default PDSCH configuration

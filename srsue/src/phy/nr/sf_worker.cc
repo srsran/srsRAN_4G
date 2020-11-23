@@ -57,6 +57,7 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_tti(uint32_t tti)
 {
+  log_h->step(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
   }
