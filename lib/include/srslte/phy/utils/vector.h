@@ -39,6 +39,12 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 
+#define SRSLTE_MEM_ZERO(Q, T, N)                                                                                       \
+  do {                                                                                                                 \
+    T* ptr_ = (Q);                                                                                                     \
+    srslte_vec_zero((void*)ptr_, (uint32_t)sizeof(T) * (N));                                                           \
+  } while (false)
+
 #define SRSLTE_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define SRSLTE_MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -83,7 +89,7 @@ SRSLTE_API void srslte_vec_xor_bbb(const uint8_t* x, const uint8_t* y, uint8_t* 
 
 /** Return the sum of all the elements */
 SRSLTE_API float srslte_vec_acc_ff(const float* x, const uint32_t len);
-SRSLTE_API cf_t srslte_vec_acc_cc(const cf_t* x, const uint32_t len);
+SRSLTE_API cf_t  srslte_vec_acc_cc(const cf_t* x, const uint32_t len);
 
 SRSLTE_API void* srslte_vec_malloc(uint32_t size);
 SRSLTE_API cf_t*  srslte_vec_cf_malloc(uint32_t size);
@@ -98,6 +104,7 @@ SRSLTE_API uint8_t* srslte_vec_u8_malloc(uint32_t nsamples);
 SRSLTE_API void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size);
 
 /* Zero memory */
+SRSLTE_API void srslte_vec_zero(void* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_f_zero(float* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples);
@@ -174,10 +181,10 @@ SRSLTE_API void srslte_vec_neg_sss(const int16_t* x, const int16_t* y, int16_t* 
 SRSLTE_API void srslte_vec_neg_bbb(const int8_t* x, const int8_t* y, int8_t* z, const uint32_t len);
 
 /* Dot-product */
-SRSLTE_API cf_t srslte_vec_dot_prod_cfc(const cf_t* x, const float* y, const uint32_t len);
-SRSLTE_API cf_t srslte_vec_dot_prod_ccc(const cf_t* x, const cf_t* y, const uint32_t len);
-SRSLTE_API cf_t  srslte_vec_dot_prod_conj_ccc(const cf_t* x, const cf_t* y, const uint32_t len);
-SRSLTE_API float srslte_vec_dot_prod_fff(const float* x, const float* y, const uint32_t len);
+SRSLTE_API cf_t    srslte_vec_dot_prod_cfc(const cf_t* x, const float* y, const uint32_t len);
+SRSLTE_API cf_t    srslte_vec_dot_prod_ccc(const cf_t* x, const cf_t* y, const uint32_t len);
+SRSLTE_API cf_t    srslte_vec_dot_prod_conj_ccc(const cf_t* x, const cf_t* y, const uint32_t len);
+SRSLTE_API float   srslte_vec_dot_prod_fff(const float* x, const float* y, const uint32_t len);
 SRSLTE_API int32_t srslte_vec_dot_prod_sss(const int16_t* x, const int16_t* y, const uint32_t len);
 
 /* z=x/y vector division (element-wise) */

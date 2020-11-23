@@ -190,6 +190,11 @@ uint8_t* srslte_vec_u8_malloc(uint32_t nsamples)
   return (uint8_t*)srslte_vec_malloc((uint32_t)sizeof(uint8_t) * nsamples);
 }
 
+void srslte_vec_zero(void* ptr, uint32_t nbytes)
+{
+  memset(ptr, 0, nbytes);
+}
+
 void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples)
 {
   memset(ptr, 0, sizeof(uint8_t) * nsamples);
@@ -197,22 +202,22 @@ void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples)
 
 void srslte_vec_i16_zero(int16_t* ptr, uint32_t nsamples)
 {
-  memset(ptr, 0, sizeof(int16_t) * nsamples);
+  SRSLTE_MEM_ZERO(ptr, int16_t, nsamples);
 }
 
 void srslte_vec_u32_zero(uint32_t* ptr, uint32_t nsamples)
 {
-  memset(ptr, 0, sizeof(uint32_t) * nsamples);
+  SRSLTE_MEM_ZERO(ptr, uint32_t, nsamples);
 }
 
 void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples)
 {
-  memset(ptr, 0, sizeof(cf_t) * nsamples);
+  SRSLTE_MEM_ZERO(ptr, cf_t, nsamples);
 }
 
 void srslte_vec_f_zero(float* ptr, uint32_t nsamples)
 {
-  memset(ptr, 0, sizeof(float) * nsamples);
+  SRSLTE_MEM_ZERO(ptr, float, nsamples);
 }
 
 void srslte_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len)
