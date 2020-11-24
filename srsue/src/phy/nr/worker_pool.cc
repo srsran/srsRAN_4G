@@ -50,7 +50,7 @@ bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    auto w = new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get());
+    auto w = new sf_worker(&phy_state, (srslte::log*)log_vec[i].get());
     pool.init_worker(i, w, prio, common->args->worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
 

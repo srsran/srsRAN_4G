@@ -23,8 +23,7 @@
 
 namespace srsue {
 namespace nr {
-sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log) :
-  phy(phy_), phy_state(phy_state_), log_h(log)
+sf_worker::sf_worker(phy_nr_state* phy_state_, srslte::log* log) : phy_state(phy_state_), log_h(log)
 {
   for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, log, phy_state);
