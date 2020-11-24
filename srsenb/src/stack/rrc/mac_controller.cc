@@ -62,9 +62,9 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
  * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message that should
  * only take effect after the RRCReconfigurationComplete is received
  */
-void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
-                                          const rrc_conn_recfg_r8_ies_s&  conn_recfg,
-                                          const ue_cell_ded_list& ue_cell_list);
+void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
+                                          const rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                          const ue_cell_ded_list&        ue_cell_list);
 
 /**
  * Adds to sched_interface::ue_cfg_t the changes present in the asn1 RRCReconfiguration message related to
@@ -389,9 +389,9 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
   }
 }
 
-void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                       ue_cfg,
-                                          const rrc_conn_recfg_r8_ies_s&  conn_recfg,
-                                          const ue_cell_ded_list& ue_cell_list)
+void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
+                                          const rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                          const ue_cell_ded_list&        ue_cell_list)
 {
   // Configure RadioResourceConfigDedicated
   if (conn_recfg.rr_cfg_ded_present) {
@@ -499,8 +499,11 @@ void ue_cfg_apply_conn_reconf(ue_cfg_t& ue_cfg, const rrc_conn_recfg_r8_ies_s& c
 
 void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const srslte::rrc_ue_capabilities_t& uecaps)
 {
-  ue_cfg.support_ul_64qam =
-      uecaps.support_ul_64qam and rrc_cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+  bool enb_enable64qam   = rrc_cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+  ue_cfg.support_ul64qam = ue_cfg_t::ul64qam_cap::undefined;
+  if (enb_enable64qam) {
+    ue_cfg.support_ul64qam = uecaps.support_ul_64qam ? ue_cfg_t::ul64qam_cap::enabled : ue_cfg_t::ul64qam_cap::disabled;
+  }
 }
 
 } // namespace srsenb

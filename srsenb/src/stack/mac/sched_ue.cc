@@ -1201,17 +1201,17 @@ int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 
 int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs)
 {
+  using ul64qam_cap = sched_interface::ue_cfg_t::ul64qam_cap;
   uint32_t cqi, max_mcs, max_Qm;
   float    max_coderate;
   if (is_ul) {
-    cqi = ul_cqi;
-    // if cell supports UL 64QAM but the UE does not support it, cap the mcs to avoid Qm == 6
-    max_mcs = (not cfg->support_ul_64qam and cell_params->cfg.enable_64qam) ? std::min(max_mcs_ul, 20u) : max_mcs_ul;
-    max_Qm  = cfg->support_ul_64qam ? 6 : 4;
+    cqi          = ul_cqi;
+    max_mcs      = max_mcs_ul;
+    max_Qm       = cfg->support_ul64qam == ul64qam_cap::enabled ? 6 : 4;
     max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), false);
   } else {
     cqi          = dl_cqi;
-    max_mcs      = cfg->use_tbs_index_alt ? max_mcs_dl_alt : max_mcs_dl;
+    max_mcs      = max_mcs_dl;
     max_Qm       = use_tbs_index_alt ? 8 : 6;
     max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
   }
@@ -1262,11 +1262,6 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
   set_cfg(cfg_);
 
-  // set max mcs
-  max_mcs_ul = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
-  max_mcs_dl = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? cell_params->sched_cfg->pdsch_max_mcs : 28;
-  max_mcs_dl_alt =
-      cell_params->sched_cfg->pdsch_max_mcs >= 0 ? SRSLTE_MIN(cell_params->sched_cfg->pdsch_max_mcs, 27) : 27;
   max_aggr_level = cell_params->sched_cfg->max_aggr_level >= 0 ? cell_params->sched_cfg->max_aggr_level : 3;
 
   // set fixed mcs
@@ -1298,6 +1293,17 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   cfg     = &cfg_;
   cfg_tti = last_tti;
+
+  // set max mcs
+  max_mcs_ul = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28u;
+  if (cell_params->cfg.enable_64qam) {
+    const uint32_t max_64qam_mcs[] = {20, 24, 28};
+    max_mcs_ul                     = std::min(max_mcs_ul, max_64qam_mcs[(size_t)cfg->support_ul64qam]);
+  }
+  max_mcs_dl = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? std::min(cell_params->sched_cfg->pdsch_max_mcs, 28) : 28u;
+  if (cfg->use_tbs_index_alt) {
+    max_mcs_dl = std::min(max_mcs_dl, 27u);
+  }
 
   if (ue_cc_idx == 0) {
     // PCell is always active

@@ -146,9 +146,10 @@ public:
     std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell
     ant_info_ded_t                      dl_ant_info;
     bool                                use_tbs_index_alt = false;
-    bool                                support_ul_64qam  = false;
     uint32_t                            measgap_period    = 0;
     uint32_t                            measgap_offset    = 0;
+    enum class ul64qam_cap { undefined, disabled, enabled };
+    ul64qam_cap support_ul64qam = ul64qam_cap::undefined;
   };
 
   typedef struct {
