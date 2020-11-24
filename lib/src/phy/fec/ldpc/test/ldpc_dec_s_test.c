@@ -25,6 +25,7 @@
  *  - **-l \<number\>** Lifting Size (according to 5GNR standard. Default 2).
  */
 
+#include "srslte/phy/utils/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,10 +159,10 @@ int main(int argc, char** argv)
   finalK = decoder.liftK;
   finalN = decoder.liftN - 2 * lift_size;
 
-  messages_true = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
-  messages_sim  = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
-  codewords     = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
-  symbols       = malloc(finalN * NOF_MESSAGES * sizeof(int16_t));
+  messages_true = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
+  messages_sim  = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
+  codewords     = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
+  symbols       = srslte_vec_i16_malloc(finalN * NOF_MESSAGES);
   if (!messages_true || !messages_sim || !codewords || !symbols) {
     perror("malloc");
     exit(-1);

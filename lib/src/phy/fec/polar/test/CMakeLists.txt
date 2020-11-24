@@ -13,35 +13,80 @@ add_executable(polar_chain_test polar_chain_test.c)
 target_link_libraries(polar_chain_test srslte_phy polar_test_utils)
 
 ### Test polar libs
-function(polar_unit_tests)
+function(polar_tests_lite)
     set(S ${ARGV0})  #101 means no noise, 100 scan
-    set(listC 5   6  6  6   7   7   8   8   9   9   10)
-    set(listR 32 64 64 64 128 128 256 256 512 864 1024)
-    set(listM 31 31 36 63  36  64  36 128 256  56  512)
-    set(listP  0  0  0  0   0   0   0   0   0   0    0)
-    set(listW  0  0  0  0   0   0   0   0   0   0    0)
-    list(LENGTH listC len)
+    set(listN 10 10  9  9   9   9   9   9  10   9   10)
+    set(listE 32 64 64 64 128 128 256 256 512 864 1024)
+    set(listK 31 31 36 63  36  64  36 128 256  56  512)
+    set(listI  0  0  0  0   0   0   0   0   1   0    1)
+    list(LENGTH listN len)
     math(EXPR lenr "${len} - 1")
     foreach(num RANGE ${lenr})
-        list(GET listC ${num} cval)
-        list(GET listR ${num} rval)
-        list(GET listM ${num} mval)
-        list(GET listP ${num} pval)
-        list(GET listW ${num} wval)
-        add_test(NAME ${test_name}-s${S}-c${cval}-r${rval}-m${mval}-p${pval}-w${wval}
-                COMMAND ${test_command} -s${S} -c${cval} -r${rval} -m${mval} -p${pval} -w${wval} -E1 -N1
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+        list(GET listN ${num} nval)
+        list(GET listE ${num} eval)
+        list(GET listK ${num} kval)
+        list(GET listI ${num} ival)
+        add_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
+                COMMAND ${test_command} -s${S} -n${nval} -e${eval} -k${kval} -i${ival}
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
                 )
     endforeach()
 endfunction()
 
+### Test polar libs
+function(polar_tests)
+    set(S ${ARGV0})  #101 means no noise, 100 scan
+    #Downlink tests
+    set(nval 9)
+    foreach(Kval RANGE 36 164 32)
+        math(EXPR Emin "${Kval} + 1")
+        foreach(Eval RANGE ${Emin} 8192 128)
+            add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
+                    COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i0
+                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
+                    )
+        endforeach()
+    endforeach()
+
+
+    #Uplink tests
+    set(nval 10)
+    foreach(Kval RANGE 18 25)
+        math(EXPR Emin "${Kval} + 3 + 1")
+        foreach(Eval RANGE ${Emin} 8192 128)
+            add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
+                    COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
+                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
+                    )
+        endforeach()
+    endforeach()
+
+    foreach(Kval RANGE 32 1023 32)
+        math(EXPR Emin "${Kval} + 1")
+        foreach(Eval RANGE ${Emin} 8192 128)
+            add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
+                    COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
+                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
+                    )
+        endforeach()
+    endforeach()
+
+
+endfunction()
+
+
+
 # Unit tests
-set(test_name POLAR-UNIT-TEST)
+set(test_name POLAR-UNIT-TEST-LITE)
 set(test_command polar_chain_test)
-polar_unit_tests(101)
+polar_tests_lite(101)
 
 # WER (performance) tests
-# For these tests, run ctest --verbose
 set(test_name POLAR-PERF-TEST)
 set(test_command polar_chain_test)
-polar_unit_tests(-3)
+polar_tests_lite(-3)
+
+# Unit tests full
+set(test_name POLAR-UNIT-TEST)
+set(test_command polar_chain_test)
+polar_tests(101)

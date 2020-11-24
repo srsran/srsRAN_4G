@@ -26,6 +26,7 @@
  */
 
 #include "srslte/phy/fec/polar/polar_encoder.h"
+#include "srslte/phy/utils/vector.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,14 +72,14 @@ void* create_polar_encoder_pipelined(const uint8_t code_size_log)
   uint16_t code_size      = 1U << code_size_log;
   uint16_t code_half_size = code_size / 2;
 
-  q->i_odd = malloc(code_half_size * sizeof(uint16_t));
+  q->i_odd = srslte_vec_u16_malloc(code_half_size);
   if (!q->i_odd) {
     free(q);
     perror("malloc");
     return NULL;
   }
 
-  q->i_even = malloc(code_half_size * sizeof(uint16_t));
+  q->i_even = srslte_vec_u16_malloc(code_half_size);
   if (!q->i_even) {
     free(q->i_odd);
     free(q);
@@ -86,7 +87,7 @@ void* create_polar_encoder_pipelined(const uint8_t code_size_log)
     return NULL;
   }
 
-  q->tmp = malloc(code_size * sizeof(uint8_t));
+  q->tmp = srslte_vec_u8_malloc(code_size);
   if (!q->tmp) {
     free(q->i_even);
     free(q->i_odd);

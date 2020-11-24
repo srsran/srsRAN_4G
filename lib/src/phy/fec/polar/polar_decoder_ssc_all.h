@@ -66,4 +66,31 @@ struct State {
  */
 int init_node_type(const uint16_t* frozen_set, struct Params* param);
 
+/*!
+ * Computes node types for the decoding tree associated to the given frozen set.
+ * \param[in] p Pointer of a Tmp_node_type structure with the memory resources needed.
+ * \param[out] node_type Double pointer containing the node type at each stage of the decoding tree.
+ * \param[in] code_size_log \f$log_2\f$ of code size.
+ * \param[in] frozen_set The position of the frozen bits in the codeword.
+ * \param[in] frozen_set_size The size of the frozen set.
+ */
+int compute_node_type(void*           p,
+                      uint8_t**       node_type,
+                      const uint16_t* frozen_set,
+                      const uint16_t  code_size_log,
+                      const uint16_t  frozen_set_size);
+
+/*!
+ * The "destructor" of the memory resources used to compute the node types.
+ * \param[in, out] p A pointer to the dismantled resources..
+ */
+void delete_tmp_node_type(void* p);
+
+/*!
+ * Allocates memory resources for the computation of the node_type.
+ * \param[in] nMax \f$log_2\f$ of the maximum number of bits in the codeword.
+ * \return A pointer to a Tmp_node_type structure if the function executes correctly, NULL otherwise.
+ */
+void* create_tmp_node_type(const uint8_t nMax);
+
 #endif // polar_decoder_SSC_ALL_H

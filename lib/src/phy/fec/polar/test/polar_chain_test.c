@@ -12,47 +12,40 @@
 
 /*!
  * \file polar_chain_test.c
- * \brief Throughput and WER tests for the polar encoder/decoder.
+ * \brief Ent-to-end test for the Polar coding chain including: subchannel allocator, encoder, rate-matcher,
+ rate-dematcher, decoder and subchannel deallocation.
  *
- * Synopsis: **polar_test [options]**
+ * A batch of example messages is randomly generated, frozen bits are added, encoded, rate-matched, 2-PAM modulated,
+ * sent over an AWGN channel, rate-dematched, and, finally, decoded by all three types of
+ * decoder. Transmitted and received messages are compared to estimate the WER.
+ * Multiple batches are simulated if the number of errors is not significant
+ * enough.
+ *
+ * Synopsis: **polar_chain_test [options]**
  *
  * Options:
  *
- *  - <b>-c \<number\></b> \f$log_2\f$ of the codeword length [Default 8]
- *
- *  - <b>-r \<number\></b> Rate matching size [Default 256]
- *
- *  - <b>-m \<number\></b> Message size [Default 128]
- *
- *  - <b>-p \<number\></b> Parity-set size [Default 0]
- *
- *  - <b>-w \<number\></b> nWmPC [Default 0]
- *
- *  - <b>-s \<number\></b>  SNR [dB, Default 3.00 dB] -- Use 100 for scan, and 101 for noiseless
- *
+ *  - <b>-n \<number\></b> nMax,  [Default 9] -- Use 9 for downlink, and 10 for uplink configuration.
+ *  - <b>-k \<number\></b> Message size (K),  [Default 128]. K includes the CRC bits if applicable.
+ *  If nMax = 9, K must satisfy 165 > K > 35. If nMax = 10, K must satisfy K > 17 and K <1024, excluding 31 > K > 25.
+ *  - <b>-e \<number\></b> Rate matching size (E), [Default 256]. If 17 < K < 26, E must satisfy K +3 < E < 8193.
+ * If K > 30, E must satisfy K < E < 8193.
+ *  - <b>-i \<number\></b> Enable bit interleaver (bil),  [Default 0] -- Set bil = 0 to disable the
+ * bit interleaver at rate matching. Choose 0 for downlink and 1 for uplink configuration.
+ *  - <b>-s \<number\></b>  SNR [dB, Default 3.00 dB] -- Use 100 for scan, and 101 for noiseless.
  *  - <b>-o \<number\></b>  Print output results [Default 0] -- Use 0 for detailed, Use 1 for 1 line, Use 2 for vector
- * form
+ * form.
  *
- *  - <b>-B \<number\>** Number of codewords in a batch.(Default 100).
+ * Example 1: BCH - ./polar_chain_test -n9 -k56 -e864 -i0 -s101 -o1
  *
- *  - <b>-N \<number\>** Max number of simulated batches.(Default 10000).
+ * Example 2: DCI - ./polar_chain_test -n9 -k40 -e100 -i0 -s101 -o1
  *
- *  - <b>-E \<number\>** Minimum number of errors for a significant simulation.(Default 100).
+ * Example 3: UCI - PC bits - ./polar_chain_test -n10 -k20 -e256 -i1 -s101 -o1
  *
- * It (1) generates a random set of bits (data); (2) passes the data bits
- * through the subchannel allocation block where the input vector to the
- * encoder is generated; (3) encodes the input vector; (4) adds Gaussian channel noise
- * (optional); (5) passes the decoder output through the subchannel
- * deallocation block where data bits are extracted; (6) compares the decoded
- * bits with the original data bits and measures the throughput (in bit / s).
+ * Example 4: UCI - puncturing 19 first bits - ./polar_chain_test -n10 -k18 -e45 -i1 -s101 -o1
  *
- * The message, frozen and parity bit sets corresponding to the input
- * parameters -c, -r, -m, -p, -w must be available in the subfolder \a
- * frozensets of the execution directory.
- * These sets are stored in files with the following name convention:
- * >  polar_code_<code_size>_<rate_matching_size>_<message_size>_<parity_set_size>_<wmPC>.bin
+ * Example 5: UCI - shortening 26 last bits - ./polar_chain_test -n10 -k18 -e38 -i1 -s101 -o1
  *
- * See \ref polar for futher details.
  *
  */
 
@@ -64,7 +57,7 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/phy_logger.h"
 #include "srslte/phy/utils/random.h"
-#include "srslte/phy/utils/vector.h" // srslte_convert_dB_to_amplitude
+#include "srslte/phy/utils/vector.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -76,45 +69,44 @@
 #include "srslte/phy/utils/vector.h"
 
 //  polar libs
-#include "polar_sets.h"
+#include "srslte/phy/fec/polar/polar_chanalloc.h"
+#include "srslte/phy/fec/polar/polar_code.h"
 #include "srslte/phy/fec/polar/polar_decoder.h"
 #include "srslte/phy/fec/polar/polar_encoder.h"
-#include "subchannel_allocation.h"
+#include "srslte/phy/fec/polar/polar_rm.h"
+
+//#define debug
+//#define DATA_ALL_ONES
 
 #define SNR_POINTS 10  /*!< \brief Number of SNR evaluation points.*/
 #define SNR_MIN (-2.0) /*!< \brief Min SNR [dB].*/
 #define SNR_MAX 8.0    /*!< \brief Max SNR [dB].*/
 
-static int batch_size  = 100;   /*!< \brief Number of codewords in a batch. */
-static int max_n_batch = 10000; /*!< \brief Max number of simulated batches. */
-static int req_errors  = 100;   /*!< \brief Minimum number of errors for a significant simulation. */
+#define BATCH_SIZE 100    /*!< \brief Number of codewords in a batch. */
+#define MAX_N_BATCH 10000 /*!< \brief Max number of simulated batches. */
+#define REQ_ERRORS 100    /*!< \brief Minimum number of errors for a significant simulation. */
 
 // default values
-static uint8_t  code_size_log      = 8;   /*!< \brief \f$log_2\f$ of code size. */
-static uint16_t message_size       = 128; /*!< \brief Number of message bits (data and CRC). */
-static uint16_t rate_matching_size = 256; /*!< \brief Number of bits of the codeword after rate matching. */
-static uint8_t  parity_set_size    = 0;   /*!< \brief Number of parity bits. */
-static uint8_t  nWmPC              = 0;   /*!< \brief Number of parity bits of minimum weight type. */
-static double   snr_db             = 3;   /*!< \brief SNR in dB (101 for no noise, 100 for scan). */
-static int      print_output       = 0;   /*!< \brief print output form (0 for detailed, 1 for 1 line, 2 for vector). */
+static uint16_t K            = 128; /*!< \brief Number of message bits (data and CRC). */
+static uint16_t E            = 256; /*!< \brief Number of bits of the codeword after rate matching. */
+static uint8_t  nMax         = 9;   /*!< \brief Maximum \f$log_2(N)\f$, where \f$N\f$ is the codeword size.*/
+static uint8_t  bil          = 0;   /*!< \brief If bil = 0 channel interleaver disabled. */
+static double   snr_db       = 3;   /*!< \brief SNR in dB (101 for no noise, 100 for scan). */
+static int      print_output = 0;   /*!< \brief print output form (0 for detailed, 1 for one line, 2 for vector). */
 
 /*!
  * \brief Prints test help when a wrong parameter is passed as input.
  */
 void usage(char* prog)
 {
-  printf("Usage: %s [-cX] [-rX] [-mX] [-pX] [-wX] [-sX]\n", prog);
-  printf("\t-c log2 of the codeword length [Default %d]\n", code_size_log);
-  printf("\t-r Rate matching size [Default %d]\n", rate_matching_size);
-  printf("\t-m Message size [Default %d]\n", message_size);
-  printf("\t-p Parity-set size [Default %d]\n", parity_set_size);
-  printf("\t-w nWmPC [Default %d]\n", nWmPC);
+  printf("Usage: %s [-nX] [-kX] [-eX] [-iX] [-sX] [-oX]\n", prog);
+  printf("\t-n nMax [Default %d]\n", nMax);
+  printf("\t-k Message size [Default %d]\n", K);
+  printf("\t-e Rate matching size [Default %d]\n", E);
+  printf("\t-i Bit interleaver indicator [Default %d]\n", bil);
   printf("\t-s SNR [dB, Default %.2f dB] -- Use 100 for scan, and 101 for noiseless\n", snr_db);
   printf("\t-o Print output results [Default %d] -- Use 0 for detailed, Use 1 for 1 line, Use 2 for vector form\n",
          print_output);
-  printf("\t-B Number of codewords in a batch. [Default %d]\n", batch_size);
-  printf("\t-N Max number of simulated batches. [Default %d]\n", max_n_batch);
-  printf("\t-E Minimum number of errors for a significant simulation. [Default %d]\n", req_errors);
 }
 
 /*!
@@ -123,37 +115,26 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt = 0;
-  while ((opt = getopt(argc, argv, "c:r:m:p:w:e:s:t:o:B:N:E:")) != -1) {
+  while ((opt = getopt(argc, argv, "n:k:e:i:s:o:")) != -1) {
+    //  printf("opt : %d\n", opt);
     switch (opt) {
-      case 'c':
-        code_size_log = (int)strtol(optarg, NULL, 10);
+      case 'e':
+        E = (int)strtol(optarg, NULL, 10);
         break;
-      case 'r':
-        rate_matching_size = (int)strtol(optarg, NULL, 10);
+      case 'k':
+        K = (int)strtol(optarg, NULL, 10);
         break;
-      case 'm':
-        message_size = (int)strtol(optarg, NULL, 10);
+      case 'n':
+        nMax = (int)strtol(optarg, NULL, 10);
         break;
-      case 'p':
-        parity_set_size = (int)strtol(optarg, NULL, 10);
-        break;
-      case 'w':
-        nWmPC = (int)strtol(optarg, NULL, 10);
+      case 'i':
+        bil = (int)strtol(optarg, NULL, 10);
         break;
       case 's':
         snr_db = strtof(optarg, NULL);
         break;
       case 'o':
         print_output = (int)strtol(optarg, NULL, 10);
-        break;
-      case 'B':
-        batch_size = (int)strtol(optarg, NULL, 10);
-        break;
-      case 'N':
-        max_n_batch = (int)strtol(optarg, NULL, 10);
-        break;
-      case 'E':
-        req_errors = (int)strtol(optarg, NULL, 10);
         break;
       default:
         usage(argv[0]);
@@ -177,6 +158,13 @@ int main(int argc, char** argv)
   uint8_t* output_enc      = NULL; // output encoder
   uint8_t* output_enc_avx2 = NULL; // output encoder
 
+  uint8_t* rm_codeword = NULL; // output rate-matcher
+
+  float*   rm_llr        = NULL; // rate-matched llr
+  int16_t* rm_llr_s      = NULL; // rate-matched llr
+  int8_t*  rm_llr_c      = NULL; // rate-matched llr
+  int8_t*  rm_llr_c_avx2 = NULL; // rate-matched llr
+
   float*   llr        = NULL; // input decoder
   int16_t* llr_s      = NULL; // input decoder
   int8_t*  llr_c      = NULL; // input decoder
@@ -190,17 +178,17 @@ int main(int argc, char** argv)
   double var[SNR_POINTS + 1];
 
   double snr_db_vec[SNR_POINTS + 1];
+  int    i = 0;
+
+  int reportinfo = 0;
 
   int j          = 0;
   int snr_points = 0;
 
-  int errors_symb   = 0;
-  int errors_symb_s = 0;
-  int errors_symb_c = 0;
-
-#ifdef LV_HAVE_AVX
+  int errors_symb        = 0;
+  int errors_symb_s      = 0;
+  int errors_symb_c      = 0;
   int errors_symb_c_avx2 = 0;
-#endif // LV_HAVE_AVX
 
   int n_error_words[SNR_POINTS + 1];
   int n_error_words_s[SNR_POINTS + 1];
@@ -219,20 +207,22 @@ int main(int argc, char** argv)
   double elapsed_time_enc_avx2[SNR_POINTS + 1];
 
   // 16-bit quantizer
-  int16_t inf16  = (1U << 15U) - 1;
-  int8_t  inf8   = (1U << 7U) - 1;
-  float   gain_s = NAN;
-  float   gain_c = NAN;
-#ifdef LV_HAVE_AVX
-  float gain_c_avx2 = NAN;
-#endif // LV_HAVE_AVX2
+  int16_t inf16       = (1U << 15U) - 1;
+  int8_t  inf8        = (1U << 7U) - 1;
+  float   gain_s      = NAN;
+  float   gain_c      = NAN;
+  float   gain_c_avx2 = NAN;
 
-  srslte_polar_sets_t    sets;
-  srslte_subchn_alloc_t  subch;
+  srslte_polar_code_t    code;
   srslte_polar_encoder_t enc;
   srslte_polar_decoder_t dec;
   srslte_polar_decoder_t dec_s; // 16-bit
   srslte_polar_decoder_t dec_c; // 8-bit
+  srslte_polar_rm_t      rm_tx;
+  srslte_polar_rm_t      rm_rx_f;
+  srslte_polar_rm_t      rm_rx_s;
+  srslte_polar_rm_t      rm_rx_c;
+
 #ifdef LV_HAVE_AVX2
   srslte_polar_encoder_t enc_avx2;
   srslte_polar_decoder_t dec_c_avx2; // 8-bit
@@ -240,45 +230,40 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  uint16_t code_size = 1U << code_size_log;
-
-  printf("Test POLAR chain:\n");
-  printf("  Final code bits    -> E  = %d\n", rate_matching_size);
-  printf("  Code bits          -> N  = %d\n", code_size);
-  printf("  CRC + Data bits    -> K  = %d\n", message_size);
-  printf("  Parity Check bits  -> PC = %d \n", parity_set_size);
-  printf("  Code rate          -> (K + PC)/N = (%d + %d)/%d = %.2f\n",
-         message_size,
-         parity_set_size,
-         code_size,
-         (double)(message_size + parity_set_size) / code_size);
-
-  // read polar index sets from a file
-  srslte_polar_code_sets_read(&sets, message_size, code_size_log, rate_matching_size, parity_set_size, nWmPC);
-
-  // subchannel allocation
-  srslte_subchannel_allocation_init(&subch, code_size_log, message_size, sets.message_set);
+  // uinitialize polar code
+  srslte_polar_code_init(&code);
 
   // initialize encoder pipeline
-  srslte_polar_encoder_init(&enc, SRSLTE_POLAR_ENCODER_PIPELINED, code_size_log);
+  srslte_polar_encoder_init(&enc, SRSLTE_POLAR_ENCODER_PIPELINED, nMax);
+
+  // initialize rate-matcher
+  srslte_polar_rm_tx_init(&rm_tx);
+
+  // initialize rate-matcher
+  srslte_polar_rm_rx_init_f(&rm_rx_f);
+
+  // initialize rate-matcher
+  srslte_polar_rm_rx_init_s(&rm_rx_s);
+
+  // initialize rate-matcher
+  srslte_polar_rm_rx_init_c(&rm_rx_c);
 
   // initialize a POLAR decoder (float)
-  srslte_polar_decoder_init(&dec, SRSLTE_POLAR_DECODER_SSC_F, code_size_log, sets.frozen_set, sets.frozen_set_size);
+  srslte_polar_decoder_init(&dec, SRSLTE_POLAR_DECODER_SSC_F, nMax);
 
   // initialize a POLAR decoder (16 bit)
-  srslte_polar_decoder_init(&dec_s, SRSLTE_POLAR_DECODER_SSC_S, code_size_log, sets.frozen_set, sets.frozen_set_size);
+  srslte_polar_decoder_init(&dec_s, SRSLTE_POLAR_DECODER_SSC_S, nMax);
 
   // initialize a POLAR decoder (8 bit)
-  srslte_polar_decoder_init(&dec_c, SRSLTE_POLAR_DECODER_SSC_C, code_size_log, sets.frozen_set, sets.frozen_set_size);
+  srslte_polar_decoder_init(&dec_c, SRSLTE_POLAR_DECODER_SSC_C, nMax);
 
 #ifdef LV_HAVE_AVX2
 
   // initialize encoder  avx2
-  srslte_polar_encoder_init(&enc_avx2, SRSLTE_POLAR_ENCODER_AVX2, code_size_log);
+  srslte_polar_encoder_init(&enc_avx2, SRSLTE_POLAR_ENCODER_AVX2, nMax);
 
   // initialize a POLAR decoder (8 bit, avx2)
-  srslte_polar_decoder_init(
-      &dec_c_avx2, SRSLTE_POLAR_DECODER_SSC_C_AVX2, code_size_log, sets.frozen_set, sets.frozen_set_size);
+  srslte_polar_decoder_init(&dec_c_avx2, SRSLTE_POLAR_DECODER_SSC_C_AVX2, nMax);
 #endif // LV_HAVE_AVX2
 
 #ifdef DATA_ALL_ONES
@@ -286,29 +271,36 @@ int main(int argc, char** argv)
   srslte_random_t random_gen = srslte_random_init(0);
 #endif
 
-  data_tx        = srslte_vec_u8_malloc(message_size * batch_size);
-  data_rx        = srslte_vec_u8_malloc(message_size * batch_size);
-  data_rx_s      = srslte_vec_u8_malloc(message_size * batch_size);
-  data_rx_c      = srslte_vec_u8_malloc(message_size * batch_size);
-  data_rx_c_avx2 = srslte_vec_u8_malloc(message_size * batch_size);
+  data_tx        = srslte_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx        = srslte_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx_s      = srslte_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx_c      = srslte_vec_u8_malloc(K * BATCH_SIZE);
+  data_rx_c_avx2 = srslte_vec_u8_malloc(K * BATCH_SIZE);
 
-  input_enc       = srslte_vec_u8_malloc(code_size * batch_size);
-  output_enc      = srslte_vec_u8_malloc(code_size * batch_size);
-  output_enc_avx2 = srslte_vec_u8_malloc(code_size * batch_size);
+  input_enc       = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_enc      = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_enc_avx2 = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
 
-  llr        = srslte_vec_f_malloc(code_size * batch_size);
-  llr_s      = srslte_vec_i16_malloc(code_size * batch_size);
-  llr_c      = srslte_vec_i8_malloc(code_size * batch_size);
-  llr_c_avx2 = srslte_vec_i8_malloc(code_size * batch_size);
+  rm_codeword = srslte_vec_u8_malloc(E * BATCH_SIZE);
 
-  output_dec        = srslte_vec_u8_malloc(code_size * batch_size);
-  output_dec_s      = srslte_vec_u8_malloc(code_size * batch_size);
-  output_dec_c      = srslte_vec_u8_malloc(code_size * batch_size);
-  output_dec_c_avx2 = srslte_vec_u8_malloc(code_size * batch_size);
+  rm_llr        = srslte_vec_f_malloc(E * BATCH_SIZE);
+  rm_llr_s      = srslte_vec_i16_malloc(E * BATCH_SIZE);
+  rm_llr_c      = srslte_vec_i8_malloc(E * BATCH_SIZE);
+  rm_llr_c_avx2 = srslte_vec_i8_malloc(E * BATCH_SIZE);
+
+  llr        = srslte_vec_f_malloc(NMAX * BATCH_SIZE);
+  llr_s      = srslte_vec_i16_malloc(NMAX * BATCH_SIZE);
+  llr_c      = srslte_vec_i8_malloc(NMAX * BATCH_SIZE);
+  llr_c_avx2 = srslte_vec_i8_malloc(NMAX * BATCH_SIZE);
+
+  output_dec        = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec_s      = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec_c      = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
+  output_dec_c_avx2 = srslte_vec_u8_malloc(NMAX * BATCH_SIZE);
 
   if (!data_tx || !data_rx || !data_rx_s || !data_rx_c || !data_rx_c_avx2 || !input_enc || !output_enc ||
-      !output_enc_avx2 || !llr || !llr_s || !llr_c || !llr_c_avx2 || !output_dec || !output_dec_s || !output_dec_c ||
-      !output_dec_c_avx2) {
+      !output_enc_avx2 || !rm_codeword || !rm_llr || !rm_llr_s || !rm_llr_c || !rm_llr_c_avx2 || !llr || !llr_s ||
+      !llr_c || !llr_c_avx2 || !output_dec || !output_dec_s || !output_dec_c || !output_dec_c_avx2) {
     perror("malloc");
     exit(-1);
   }
@@ -364,9 +356,14 @@ int main(int argc, char** argv)
     int i_batch = 0;
     printf("\nBatch:\n  ");
 
+    int req_errors  = 0;
+    int max_n_batch = 0;
     if (snr_db_vec[i_snr] == 101) {
       req_errors  = 1;
       max_n_batch = 1;
+    } else {
+      req_errors  = REQ_ERRORS;
+      max_n_batch = MAX_N_BATCH;
     }
 
     while ((n_error_words[i_snr] < req_errors) && (i_batch < max_n_batch)) {
@@ -381,76 +378,104 @@ int main(int argc, char** argv)
 
 // generate data_tx
 #ifdef DATA_ALL_ONES
-      for (i = 0; i < batch_size; i++) {
-        for (j = 0; j < message_size; j++) {
-          data_tx[i * message_size + j] = 1;
+      for (i = 0; i < BATCH_SIZE; i++) {
+        for (j = 0; j < K; j++) {
+          data_tx[i * K + j] = 1;
         }
       }
 
 #else
-      for (uint32_t i = 0; i < batch_size; i++) {
-        for (j = 0; j < message_size; j++) {
-          data_tx[i * message_size + j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
+      for (i = 0; i < BATCH_SIZE; i++) {
+        for (j = 0; j < K; j++) {
+          data_tx[i * K + j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
         }
       }
 #endif
 
+      // get polar code, compute frozen_set (F_set), message_set (K_set) and parity bit set (PC_set)
+      if (srslte_polar_code_get(&code, K, E, nMax) == -1) {
+        return -1;
+      }
+
+      if (reportinfo == 0) {
+        reportinfo = 1;
+        printf("Test POLAR chain:\n");
+        printf("  Final code bits    -> E  = %d\n", E);
+        printf("  Code bits          -> N  = %d\n", code.N);
+        printf("  CRC + Data bits    -> K  = %d\n", K);
+        printf("  Parity Check bits  -> PC = %d \n", code.nPC);
+        printf("  Code rate          -> (K + PC)/N = (%d + %d)/%d = %.2f\n",
+               K,
+               code.nPC,
+               code.N,
+               (double)(K + code.nPC) / code.N);
+      }
       // subchannel_allocation block
-      for (uint32_t i = 0; i < batch_size; i++) {
-        srslte_subchannel_allocation(&subch, data_tx + i * message_size, input_enc + i * code_size);
+      for (i = 0; i < BATCH_SIZE; i++) {
+        srslte_polar_chanalloc_tx(
+            data_tx + i * K, input_enc + i * code.N, code.N, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // encoding pipeline
       gettimeofday(&t[1], NULL);
-      for (j = 0; j < batch_size; j++) {
-        srslte_polar_encoder_encode(&enc, input_enc + j * code_size, output_enc + j * code_size, code_size_log);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_encoder_encode(&enc, input_enc + j * code.N, output_enc + j * code.N, code.n);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
 
       elapsed_time_enc[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
+      // rate matcher
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_rm_tx(&rm_tx, output_enc + j * code.N, rm_codeword + j * E, code.n, E, K, bil);
+      }
+
 #ifdef LV_HAVE_AVX2
       // encoding  avx2
       gettimeofday(&t[1], NULL);
-      for (j = 0; j < batch_size; j++) {
-        srslte_polar_encoder_encode(
-            &enc_avx2, input_enc + j * code_size, output_enc_avx2 + j * code_size, code_size_log);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_encoder_encode(&enc_avx2, input_enc + j * code.N, output_enc_avx2 + j * code.N, code.n);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
 
       elapsed_time_enc_avx2[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
-      // check encoders have the same output.
-
       // check errors with respect the output of the pipeline encoder
-      for (uint32_t i = 0; i < batch_size; i++) {
-        if (srslte_bit_diff(output_enc + i * code_size, output_enc_avx2 + i * code_size, code_size) != 0) {
+      for (i = 0; i < BATCH_SIZE; i++) {
+        if (srslte_bit_diff(output_enc + i * code.N, output_enc_avx2 + i * code.N, code.N) != 0) {
           printf("ERROR: Wrong avx2 encoder output. SNR= %f, Batch: %d\n", snr_db_vec[i_snr], i);
           exit(-1);
         }
       }
 #endif // LV_HAVE_AVX2
 
-      for (j = 0; j < code_size * batch_size; j++) {
-        llr[j] = output_enc[j] ? -1 : 1;
+      for (j = 0; j < E * BATCH_SIZE; j++) {
+        rm_llr[j] = rm_codeword[j] ? -1 : 1;
       }
 
       // add noise
       if (snr_db_vec[i_snr] != 101) {
-        srslte_ch_awgn_f(llr, llr, var[i_snr], batch_size * code_size);
+        srslte_ch_awgn_f(rm_llr, rm_llr, var[i_snr], BATCH_SIZE * E);
 
         // Convert symbols into LLRs
-        for (j = 0; j < batch_size * code_size; j++) {
-          llr[j] *= 2 / (var[i_snr] * var[i_snr]);
+        for (j = 0; j < BATCH_SIZE * code.N; j++) {
+          rm_llr[j] *= 2 / (var[i_snr] * var[i_snr]);
         }
+      }
+
+      // rate-Dematcher
+
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_rm_rx_f(&rm_rx_f, rm_llr + j * E, llr + j * code.N, E, code.n, K, bil);
       }
 
       // decoding float point
       gettimeofday(&t[1], NULL);
-      for (j = 0; j < batch_size; j++) {
-        srslte_polar_decoder_decode_f(&dec, llr + j * code_size, output_dec + j * code_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_decoder_decode_f(
+            &dec, llr + j * code.N, output_dec + j * code.N, code.n, code.F_set, code.F_set_size);
       }
 
       gettimeofday(&t[2], NULL);
@@ -458,13 +483,16 @@ int main(int argc, char** argv)
       elapsed_time_dec[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
       // extract message bits - float decoder
-      for (j = 0; j < batch_size; j++) {
-        srslte_subchannel_deallocation(&subch, output_dec + j * code_size, data_rx + j * message_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_chanalloc_rx(output_dec + j * code.N, data_rx + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
-      // check errors - float decpder
-      for (uint32_t i = 0; i < batch_size; i++) {
-        errors_symb = srslte_bit_diff(data_tx + i * message_size, data_rx + i * message_size, message_size);
+// check errors - float decpder
+#ifdef debug
+      int i_error = 0;
+#endif
+      for (i = 0; i < BATCH_SIZE; i++) {
+        errors_symb = srslte_bit_diff(data_tx + i * K, data_rx + i * K, K);
 
         if (errors_symb != 0) {
           n_error_words[i_snr]++;
@@ -474,16 +502,23 @@ int main(int argc, char** argv)
       // decoding 16-bit
       // 16-quantization
       if (snr_db_vec[i_snr] == 101) {
-        srslte_vec_quant_fs(llr, llr_s, 8192, 0, 32767, batch_size * code_size);
+        srslte_vec_quant_fs(rm_llr, rm_llr_s, 8192, 0, 32767, BATCH_SIZE * E);
       } else {
         gain_s = inf16 * var[i_snr] / 20 / (1 / var[i_snr] + 2);
-        srslte_vec_quant_fs(llr, llr_s, gain_s, 0, inf16, batch_size * code_size);
+        // printf("gain_s: %f, inf16:%d\n", gain_s, inf16);
+        srslte_vec_quant_fs(rm_llr, rm_llr_s, gain_s, 0, inf16, BATCH_SIZE * E);
+      }
+
+      // Rate dematcher
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_rm_rx_s(&rm_rx_s, rm_llr_s + j * E, llr_s + j * code.N, E, code.n, K, bil);
       }
 
       // decoding 16-bit
       gettimeofday(&t[1], NULL);
-      for (j = 0; j < batch_size; j++) {
-        srslte_polar_decoder_decode_s(&dec_s, llr_s + j * code_size, output_dec_s + j * code_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_decoder_decode_s(
+            &dec_s, llr_s + j * code.N, output_dec_s + j * code.N, code.n, code.F_set, code.F_set_size);
       }
 
       gettimeofday(&t[2], NULL);
@@ -491,13 +526,14 @@ int main(int argc, char** argv)
       elapsed_time_dec_s[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
       // extract message bits  16-bit decoder
-      for (j = 0; j < batch_size; j++) {
-        srslte_subchannel_deallocation(&subch, output_dec_s + j * code_size, data_rx_s + j * message_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_chanalloc_rx(
+            output_dec_s + j * code.N, data_rx_s + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // check errors 16-bit decoder
-      for (uint32_t i = 0; i < batch_size; i++) {
-        errors_symb_s = srslte_bit_diff(data_tx + i * message_size, data_rx_s + i * message_size, message_size);
+      for (i = 0; i < BATCH_SIZE; i++) {
+        errors_symb_s = srslte_bit_diff(data_tx + i * K, data_rx_s + i * K, K);
 
         if (errors_symb_s != 0) {
           n_error_words_s[i_snr]++;
@@ -507,29 +543,37 @@ int main(int argc, char** argv)
       // 8-bit decoding
       // 8-bit quantization
       if (snr_db_vec[i_snr] == 101) {
-        srslte_vec_quant_fc(llr, llr_c, 32, 0, 127, batch_size * code_size);
+        srslte_vec_quant_fc(rm_llr, rm_llr_c, 32, 0, 127, BATCH_SIZE * E);
       } else {
         gain_c = inf8 * var[i_snr] / 20 / (1 / var[i_snr] + 2);
-        srslte_vec_quant_fc(llr, llr_c, gain_c, 0, inf8, batch_size * code_size);
+        srslte_vec_quant_fc(rm_llr, rm_llr_c, gain_c, 0, inf8, BATCH_SIZE * E);
       }
 
+      // Rate dematcher
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_rm_rx_c(&rm_rx_c, rm_llr_c + j * E, llr_c + j * code.N, E, code.n, K, bil);
+      }
+
+      // Decoding
       gettimeofday(&t[1], NULL);
-      for (j = 0; j < batch_size; j++) {
-        srslte_polar_decoder_decode_c(&dec_c, llr_c + j * code_size, output_dec_c + j * code_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_decoder_decode_c(
+            &dec_c, llr_c + j * code.N, output_dec_c + j * code.N, code.n, code.F_set, code.F_set_size);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       elapsed_time_dec_c[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
       // extract message bits
-      for (j = 0; j < batch_size; j++) {
-        srslte_subchannel_deallocation(&subch, output_dec_c + j * code_size, data_rx_c + j * message_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_chanalloc_rx(
+            output_dec_c + j * code.N, data_rx_c + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // check errors 8-bits decoder
-      for (uint32_t i = 0; i < batch_size; i++) {
+      for (i = 0; i < BATCH_SIZE; i++) {
 
-        errors_symb_c = srslte_bit_diff(data_tx + i * message_size, data_rx_c + i * message_size, message_size);
+        errors_symb_c = srslte_bit_diff(data_tx + i * K, data_rx_c + i * K, K);
 
         if (errors_symb_c != 0) {
           n_error_words_c[i_snr]++;
@@ -540,30 +584,36 @@ int main(int argc, char** argv)
       // 8-bit avx2 decoding
       // 8-bit quantization
       if (snr_db_vec[i_snr] == 101) {
-        srslte_vec_quant_fc(llr, llr_c_avx2, 32, 0, 127, batch_size * code_size);
+        srslte_vec_quant_fc(rm_llr, rm_llr_c_avx2, 32, 0, 127, BATCH_SIZE * E);
       } else {
         gain_c_avx2 = inf8 * var[i_snr] / 20 / (1 / var[i_snr] + 2);
-        srslte_vec_quant_fc(llr, llr_c_avx2, gain_c_avx2, 0, inf8, batch_size * code_size);
+        srslte_vec_quant_fc(rm_llr, rm_llr_c_avx2, gain_c_avx2, 0, inf8, BATCH_SIZE * E);
+      }
+
+      // Rate dematcher
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_rm_rx_c(&rm_rx_c, rm_llr_c_avx2 + j * E, llr_c_avx2 + j * code.N, E, code.n, K, bil);
       }
 
       gettimeofday(&t[1], NULL);
-      for (j = 0; j < batch_size; j++) {
-        srslte_polar_decoder_decode_c(&dec_c_avx2, llr_c_avx2 + j * code_size, output_dec_c_avx2 + j * code_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_decoder_decode_c(
+            &dec_c_avx2, llr_c_avx2 + j * code.N, output_dec_c_avx2 + j * code.N, code.n, code.F_set, code.F_set_size);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       elapsed_time_dec_c_avx2[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
       // extract message bits
-      for (j = 0; j < batch_size; j++) {
-        srslte_subchannel_deallocation(&subch, output_dec_c_avx2 + j * code_size, data_rx_c_avx2 + j * message_size);
+      for (j = 0; j < BATCH_SIZE; j++) {
+        srslte_polar_chanalloc_rx(
+            output_dec_c_avx2 + j * code.N, data_rx_c_avx2 + j * K, code.K, code.nPC, code.K_set, code.PC_set);
       }
 
       // check errors 8-bits decoder
-      for (uint32_t i = 0; i < batch_size; i++) {
+      for (i = 0; i < BATCH_SIZE; i++) {
 
-        errors_symb_c_avx2 =
-            srslte_bit_diff(data_tx + i * message_size, data_rx_c_avx2 + i * message_size, message_size);
+        errors_symb_c_avx2 = srslte_bit_diff(data_tx + i * K, data_rx_c_avx2 + i * K, K);
 
         if (errors_symb_c_avx2 != 0) {
           n_error_words_c_avx2[i_snr]++;
@@ -587,26 +637,26 @@ int main(int argc, char** argv)
       printf("];\n");
       printf("WER=[");
       for (int i_snr = 0; i_snr < snr_points; i_snr++) {
-        printf("%e ", (float)n_error_words[i_snr] / last_i_batch[i_snr] / batch_size);
+        printf("%e ", (float)n_error_words[i_snr] / last_i_batch[i_snr] / BATCH_SIZE);
       }
       printf("];\n");
 
       printf("WER_16=[");
       for (int i_snr = 0; i_snr < snr_points; i_snr++) {
-        printf("%e ", (float)n_error_words_s[i_snr] / last_i_batch[i_snr] / batch_size);
+        printf("%e ", (float)n_error_words_s[i_snr] / last_i_batch[i_snr] / BATCH_SIZE);
       }
       printf("];\n");
 
       printf("WER_8=[");
       for (int i_snr = 0; i_snr < snr_points; i_snr++) {
-        printf("%e ", (float)n_error_words_c[i_snr] / last_i_batch[i_snr] / batch_size);
+        printf("%e ", (float)n_error_words_c[i_snr] / last_i_batch[i_snr] / BATCH_SIZE);
       }
       printf("];\n");
 
 #ifdef LV_HAVE_AVX2
       printf("WER_8_AVX2=[");
       for (int i_snr = 0; i_snr < snr_points; i_snr++) {
-        printf("%e ", (float)n_error_words_c_avx2[i_snr] / last_i_batch[i_snr] / batch_size);
+        printf("%e ", (float)n_error_words_c_avx2[i_snr] / last_i_batch[i_snr] / BATCH_SIZE);
       }
       printf("];\n");
 #endif // LV_HAVE_AVX2
@@ -616,34 +666,34 @@ int main(int argc, char** argv)
         printf("SNR: %3.1f\t enc_pipe_thrpt(Mbps):  %.2f\t  enc_avx2_thrpt(Mbps):  "
                "%.2f\n",
                snr_db_vec[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / (1000000 * elapsed_time_enc[i_snr]),
-               last_i_batch[i_snr] * batch_size * code_size / (1000000 * elapsed_time_enc_avx2[i_snr]));
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / (1000000 * elapsed_time_enc[i_snr]),
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / (1000000 * elapsed_time_enc_avx2[i_snr]));
 
         printf("SNR: %3.1f\t FLOAT WER: %.8f %d/%d \t  dec_thrput(Mbps): %.2f\n",
                snr_db_vec[i_snr],
-               (double)n_error_words[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size,
-               last_i_batch[i_snr] * batch_size * code_size / (1000000 * elapsed_time_dec[i_snr]));
+               last_i_batch[i_snr] * BATCH_SIZE * code.N,
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / (1000000 * elapsed_time_dec[i_snr]));
         printf("SNR: %3.1f\t INT16 WER: %.8f %d/%d \t dec_thrput(Mbps): %.2f\n",
                snr_db_vec[i_snr],
-               (double)n_error_words_s[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words_s[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words_s[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size,
-               last_i_batch[i_snr] * batch_size * code_size / (1000000 * elapsed_time_dec_s[i_snr]));
+               last_i_batch[i_snr] * BATCH_SIZE * code.N,
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / (1000000 * elapsed_time_dec_s[i_snr]));
         printf("SNR: %3.1f\t INT8  WER: %.8f %d/%d \t dec_thrput(Mbps): %.2f\n",
                snr_db_vec[i_snr],
-               (double)n_error_words_c[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words_c[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words_c[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size,
-               last_i_batch[i_snr] * batch_size * code_size / (1000000 * elapsed_time_dec_c[i_snr]));
+               last_i_batch[i_snr] * BATCH_SIZE * code.N,
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / (1000000 * elapsed_time_dec_c[i_snr]));
 #ifdef LV_HAVE_AVX2
         printf("SNR: %3.1f\t INT8-AVX2  WER: %.8f %d/%d \t dec_thrput(Mbps): %.2f\n",
                snr_db_vec[i_snr],
-               (double)n_error_words_c_avx2[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words_c_avx2[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words_c_avx2[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size,
-               last_i_batch[i_snr] * batch_size * code_size / (1000000 * elapsed_time_dec_c_avx2[i_snr]));
+               last_i_batch[i_snr] * BATCH_SIZE * code.N,
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / (1000000 * elapsed_time_dec_c_avx2[i_snr]));
 #endif // LV_HAVE_AVX2
         printf("\n");
       }
@@ -654,97 +704,108 @@ int main(int argc, char** argv)
       for (int i_snr = 0; i_snr < snr_points; i_snr++) {
         printf("**** PIPELINE  ENCODER ****\n");
         printf("Estimated throughput:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-               last_i_batch[i_snr] * batch_size / elapsed_time_enc[i_snr],
-               last_i_batch[i_snr] * batch_size * message_size / elapsed_time_enc[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / elapsed_time_enc[i_snr]);
+               last_i_batch[i_snr] * BATCH_SIZE / elapsed_time_enc[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * K / elapsed_time_enc[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / elapsed_time_enc[i_snr]);
 
 #ifdef LV_HAVE_AVX2
         printf("\n**** AVX2 ENCODER ****\n");
         printf("Estimated throughput:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s "
                "(encoded)\n",
-               last_i_batch[i_snr] * batch_size / elapsed_time_enc_avx2[i_snr],
-               last_i_batch[i_snr] * batch_size * message_size / elapsed_time_enc_avx2[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / elapsed_time_enc_avx2[i_snr]);
+               last_i_batch[i_snr] * BATCH_SIZE / elapsed_time_enc_avx2[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * K / elapsed_time_enc_avx2[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / elapsed_time_enc_avx2[i_snr]);
 #endif // LV_HAVE_AVX2
 
         printf("\n**** FLOATING POINT ****");
         printf("\nEstimated word error rate:\n  %e (%d errors)\n",
-               (double)n_error_words[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words[i_snr]);
 
         printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-               last_i_batch[i_snr] * batch_size / elapsed_time_dec[i_snr],
-               last_i_batch[i_snr] * batch_size * message_size / elapsed_time_dec[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / elapsed_time_dec[i_snr]);
+               last_i_batch[i_snr] * BATCH_SIZE / elapsed_time_dec[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * K / elapsed_time_dec[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / elapsed_time_dec[i_snr]);
 
         printf("\n**** FIXED POINT (16 bits) ****");
         printf("\nEstimated word error rate:\n  %e (%d errors)\n",
-               (double)n_error_words_s[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words_s[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words_s[i_snr]);
 
         printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-               last_i_batch[i_snr] * batch_size / elapsed_time_dec_s[i_snr],
-               last_i_batch[i_snr] * batch_size * message_size / elapsed_time_dec_s[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / elapsed_time_dec_s[i_snr]);
+               last_i_batch[i_snr] * BATCH_SIZE / elapsed_time_dec_s[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * K / elapsed_time_dec_s[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / elapsed_time_dec_s[i_snr]);
 
         printf("\n**** FIXED POINT (8 bits) ****");
         printf("\nEstimated word error rate:\n  %e (%d errors)\n",
-               (double)n_error_words_c[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words_c[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words_c[i_snr]);
 
         printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-               last_i_batch[i_snr] * batch_size / elapsed_time_dec_c[i_snr],
-               last_i_batch[i_snr] * batch_size * message_size / elapsed_time_dec_c[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / elapsed_time_dec_c[i_snr]);
+               last_i_batch[i_snr] * BATCH_SIZE / elapsed_time_dec_c[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * K / elapsed_time_dec_c[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / elapsed_time_dec_c[i_snr]);
 
 #ifdef LV_HAVE_AVX2
         printf("\n**** FIXED POINT (8 bits, AVX2) ****");
         printf("\nEstimated word error rate:\n  %e (%d errors)\n",
-               (double)n_error_words_c_avx2[i_snr] / last_i_batch[i_snr] / batch_size,
+               (double)n_error_words_c_avx2[i_snr] / last_i_batch[i_snr] / BATCH_SIZE,
                n_error_words_c_avx2[i_snr]);
 
         printf("Estimated throughput decoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-               last_i_batch[i_snr] * batch_size / elapsed_time_dec_c_avx2[i_snr],
-               last_i_batch[i_snr] * batch_size * message_size / elapsed_time_dec_c_avx2[i_snr],
-               last_i_batch[i_snr] * batch_size * code_size / elapsed_time_dec_c_avx2[i_snr]);
+               last_i_batch[i_snr] * BATCH_SIZE / elapsed_time_dec_c_avx2[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * K / elapsed_time_dec_c_avx2[i_snr],
+               last_i_batch[i_snr] * BATCH_SIZE * code.N / elapsed_time_dec_c_avx2[i_snr]);
 #endif // LV_HAVE_AVX2
 
         printf("\n");
       }
       break;
   }
-
   free(data_tx);
   free(data_rx);
   free(data_rx_s);
   free(data_rx_c);
-  free(data_rx_c_avx2);
 
   free(input_enc);
   free(output_enc);
-  free(output_enc_avx2);
+
+  free(rm_codeword);
+
+  free(rm_llr);
+  free(rm_llr_s);
+  free(rm_llr_c);
+  free(rm_llr_c_avx2);
 
   free(llr);
   free(llr_s);
+
   free(llr_c);
   free(llr_c_avx2);
 
   free(output_dec);
   free(output_dec_s);
   free(output_dec_c);
+
   free(output_dec_c_avx2);
+  free(output_enc_avx2);
+  free(data_rx_c_avx2);
 
 #ifdef DATA_ALL_ONES
 #else
   srslte_random_free(random_gen);
 #endif
-  // free sets
-  srslte_polar_code_sets_free(&sets);
+  // free code
+  srslte_polar_code_free(&code);
   srslte_polar_encoder_free(&enc);
   srslte_polar_decoder_free(&dec);
   srslte_polar_decoder_free(&dec_s);
   srslte_polar_decoder_free(&dec_c);
-
+  srslte_polar_rm_rx_free_f(&rm_rx_f);
+  srslte_polar_rm_rx_free_s(&rm_rx_s);
+  srslte_polar_rm_rx_free_c(&rm_rx_c);
+  srslte_polar_rm_tx_free(&rm_tx);
 #ifdef LV_HAVE_AVX2
   srslte_polar_encoder_free(&enc_avx2);
   srslte_polar_decoder_free(&dec_c_avx2);
@@ -791,7 +852,7 @@ int main(int argc, char** argv)
     );
 
   } else {
-    for (i_snr = 0; i_snr < snr_points; i_snr++) {
+    for (int i_snr = 0; i_snr < snr_points; i_snr++) {
       if (n_error_words_s[i_snr] > 10 * n_error_words[i_snr]) {
         perror("16-bit performance at SNR = %d too low!");
         exit(-1);

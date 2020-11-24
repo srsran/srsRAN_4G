@@ -694,7 +694,7 @@ int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
   q->liftM = ls * q->bgM;
   q->liftN = ls * q->bgN;
 
-  q->pcm = srslte_vec_malloc(q->bgM * q->bgN * sizeof(uint16_t));
+  q->pcm = srslte_vec_u16_malloc(q->bgM * q->bgN);
   if (!q->pcm) {
     perror("malloc");
     return -1;

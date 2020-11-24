@@ -192,15 +192,15 @@ int main(int argc, char** argv)
   printf("  Final code rate  -> (K-F)/E = (%d - %d)/%d = %.3f\n", encoder.liftK, F, E, 1.0 * (encoder.liftK - F) / E);
   printf("\n");
 
-  codeblocks     = malloc(C * K * sizeof(uint8_t));
-  codewords      = malloc(C * N * sizeof(uint8_t));
-  rm_codewords   = malloc(C * E * sizeof(uint8_t));
-  rm_symbols     = malloc(C * E * sizeof(float));
-  rm_symbols_s   = malloc(C * E * sizeof(int16_t));
-  rm_symbols_c   = malloc(C * E * sizeof(int8_t));
-  unrm_symbols   = malloc(C * N * sizeof(float));
-  unrm_symbols_s = malloc(C * N * sizeof(int16_t));
-  unrm_symbols_c = malloc(C * N * sizeof(int8_t));
+  codeblocks     = srslte_vec_u8_malloc(C * K);
+  codewords      = srslte_vec_u8_malloc(C * N);
+  rm_codewords   = srslte_vec_u8_malloc(C * E);
+  rm_symbols     = srslte_vec_f_malloc(C * E);
+  rm_symbols_s   = srslte_vec_i16_malloc(C * E);
+  rm_symbols_c   = srslte_vec_i8_malloc(C * E);
+  unrm_symbols   = srslte_vec_f_malloc(C * N);
+  unrm_symbols_s = srslte_vec_i16_malloc(C * N);
+  unrm_symbols_c = srslte_vec_i8_malloc(C * N);
   if (!codeblocks || !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c || !unrm_symbols ||
       !unrm_symbols_s || !unrm_symbols_c) {
     perror("malloc");

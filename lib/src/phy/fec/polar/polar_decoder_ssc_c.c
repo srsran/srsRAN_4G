@@ -41,12 +41,13 @@
  * \brief Describes an SSC polar decoder (8-bit version).
  */
 struct pSSC_c {
-  int8_t**                llr0;    /*!< \brief Pointers to the upper half of LLRs values at all stages. */
-  int8_t**                llr1;    /*!< \brief Pointers to the lower half of LLRs values at all stages. */
-  uint8_t*                est_bit; /*!< \brief Pointers to the temporary estimated bits. */
-  struct Params*          param;   /*!< \brief Pointer to a Params structure. */
-  struct State*           state;   /*!< \brief Pointer to a State. */
-  srslte_polar_encoder_t* enc;     /*!< \brief Pointer to a srslte_polar_encoder_t. */
+  int8_t**                llr0;          /*!< \brief Pointers to the upper half of LLRs values at all stages. */
+  int8_t**                llr1;          /*!< \brief Pointers to the lower half of LLRs values at all stages. */
+  uint8_t*                est_bit;       /*!< \brief Pointers to the temporary estimated bits. */
+  struct Params*          param;         /*!< \brief Pointer to a Params structure. */
+  struct State*           state;         /*!< \brief Pointer to a State. */
+  void*                   tmp_node_type; /*!< \brief Pointer to a Tmp_node_type. */
+  srslte_polar_encoder_t* enc;           /*!< \brief Pointer to a srslte_polar_encoder_t. */
   void (*f)(const int8_t* x, const int8_t* y, int8_t* z, const uint16_t len); /*!< \brief Pointer to the function-f. */
   void (*g)(const uint8_t* b,
             const int8_t*  x,
@@ -94,7 +95,12 @@ static void rate_1_node(void* p, uint8_t* message);
  */
 static void rate_r_node(void* p, uint8_t* message);
 
-int init_polar_decoder_ssc_c(void* p, const int8_t* input_llr, uint8_t* data_decoded)
+int init_polar_decoder_ssc_c(void*           p,
+                             const int8_t*   input_llr,
+                             uint8_t*        data_decoded,
+                             const uint8_t   code_size_log,
+                             const uint16_t* frozen_set,
+                             const uint16_t  frozen_set_size)
 {
   struct pSSC_c* pp = p;
 
@@ -102,9 +108,9 @@ int init_polar_decoder_ssc_c(void* p, const int8_t* input_llr, uint8_t* data_dec
     return -1;
   }
 
-  uint8_t code_size_log  = pp->param->code_size_log; // code_size_log.
-  int16_t code_size      = pp->param->code_stage_size[code_size_log];
-  int16_t code_half_size = pp->param->code_stage_size[code_size_log - 1];
+  pp->param->code_size_log = code_size_log;
+  int16_t code_size        = pp->param->code_stage_size[code_size_log];
+  int16_t code_half_size   = pp->param->code_stage_size[code_size_log - 1];
 
   // Initializes the data_decoded_vector to all zeros
   memset(data_decoded, 0, code_size);
@@ -125,6 +131,12 @@ int init_polar_decoder_ssc_c(void* p, const int8_t* input_llr, uint8_t* data_dec
   }
   pp->state->flag_finished = false;
 
+  // frozen_set
+  pp->param->frozen_set_size = frozen_set_size;
+
+  // computes the node types for the decoding tree
+  compute_node_type(pp->tmp_node_type, pp->param->node_type, frozen_set, code_size_log, frozen_set_size);
+
   return 0;
 }
 
@@ -144,23 +156,46 @@ void delete_polar_decoder_ssc_c(void* p)
   struct pSSC_c* pp = p;
 
   if (p != NULL) {
-    free(pp->llr0[0]); // remove LLR buffer.
-    free(pp->llr0);
-    free(pp->llr1);
-    free(pp->param->node_type[0]);
-    free(pp->param->node_type);
-    free(pp->est_bit); // remove estbits buffer.
-    free(pp->param->code_stage_size);
-    free(pp->param);
-    free(pp->state->active_node_per_stage);
-    free(pp->state);
-    srslte_polar_encoder_free(pp->enc);
-    free(pp->enc);
+    if (pp->llr0) {
+      if (pp->llr0[0]) {
+        free(pp->llr0[0]); // remove LLR buffer.
+      }
+      free(pp->llr0);
+    }
+    if (pp->llr1) {
+      free(pp->llr1);
+    }
+    if (pp->param) {
+      if (pp->param->node_type) {
+        if (pp->param->node_type[0]) {
+          free(pp->param->node_type[0]);
+        }
+        free(pp->param->node_type);
+      }
+      if (pp->param->code_stage_size) {
+        free(pp->param->code_stage_size);
+      }
+      free(pp->param);
+    }
+    if (pp->est_bit) {
+      free(pp->est_bit); // remove estbits buffer.
+    }
+    if (pp->state) {
+      free(pp->state->active_node_per_stage);
+      free(pp->state);
+    }
+    if (pp->enc) {
+      srslte_polar_encoder_free(pp->enc);
+      free(pp->enc);
+    }
+    if (pp->tmp_node_type) {
+      delete_tmp_node_type(pp->tmp_node_type);
+    }
     free(pp);
   }
 }
 
-void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_log, const uint16_t frozen_set_size)
+void* create_polar_decoder_ssc_c(const uint8_t nMax)
 {
   struct pSSC_c* pp = NULL; // pointer to the polar decoder instance
 
@@ -168,6 +203,7 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
   if ((pp = malloc(sizeof(struct pSSC_c))) == NULL) {
     return NULL;
   }
+  SRSLTE_MEM_ZERO(pp, struct pSSC_c, 1);
 
   // set functions
   pp->f        = srslte_vec_function_f_ccc;
@@ -176,32 +212,27 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
   pp->hard_bit = srslte_vec_hard_bit_cc;
 
   // encoder of maximum size
-  if ((pp->enc = malloc(sizeof(srslte_polar_encoder_t))) == NULL) {
-    free(pp);
+  if ((pp->enc = SRSLTE_MEM_ALLOC(srslte_polar_encoder_t, 1)) == NULL) {
+    delete_polar_decoder_ssc_c(pp);
     return NULL;
   }
-  srslte_polar_encoder_init(pp->enc, SRSLTE_POLAR_ENCODER_PIPELINED, code_size_log);
+  srslte_polar_encoder_init(pp->enc, SRSLTE_POLAR_ENCODER_PIPELINED, nMax);
 
   // algorithm constants/parameters
-  if ((pp->param = malloc(sizeof(struct Params))) == NULL) {
-    free(pp->enc);
-    free(pp);
+  if ((pp->param = SRSLTE_MEM_ALLOC(struct Params, 1)) == NULL) {
+    delete_polar_decoder_ssc_c(pp);
     return NULL;
   }
 
-  if ((pp->param->code_stage_size = malloc((code_size_log + 1) * sizeof(uint16_t))) == NULL) {
-    free(pp->param);
-    free(pp->enc);
-    free(pp);
+  if ((pp->param->code_stage_size = srslte_vec_u16_malloc(nMax + 1)) == NULL) {
+    delete_polar_decoder_ssc_c(pp);
     return NULL;
   }
 
   pp->param->code_stage_size[0] = 1;
-  for (uint8_t i = 1; i < code_size_log + 1; i++) {
+  for (uint8_t i = 1; i < nMax + 1; i++) {
     pp->param->code_stage_size[i] = 2 * pp->param->code_stage_size[i - 1];
   }
-
-  pp->param->code_size_log = code_size_log;
 
   // state  -- initialized in polar_decoder_ssc_init
   if ((pp->state = malloc(sizeof(struct State))) == NULL) {
@@ -211,7 +242,7 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
     free(pp);
     return NULL;
   }
-  if ((pp->state->active_node_per_stage = malloc((code_size_log + 1) * sizeof(uint16_t))) == NULL) {
+  if ((pp->state->active_node_per_stage = srslte_vec_u16_malloc(nMax + 1)) == NULL) {
     free(pp->state);
     free(pp->param->code_stage_size);
     free(pp->param);
@@ -221,13 +252,13 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
   }
 
   // allocates memory for estimated bits per stage
-  uint16_t est_bits_size = pp->param->code_stage_size[code_size_log];
+  uint16_t est_bits_size = pp->param->code_stage_size[nMax];
 
-  pp->est_bit = aligned_alloc(SRSLTE_AVX2_B_SIZE, est_bits_size); // every 32 chars are aligned
+  pp->est_bit = srslte_vec_u8_malloc(est_bits_size); // every 32 chars are aligned
 
   // allocate memory for LLR pointers.
-  pp->llr0 = malloc((code_size_log + 1) * sizeof(int8_t*));
-  pp->llr1 = malloc((code_size_log + 1) * sizeof(int8_t*));
+  pp->llr0 = malloc((nMax + 1) * sizeof(int8_t*));
+  pp->llr1 = malloc((nMax + 1) * sizeof(int8_t*));
 
   // There are LLR buffers for n = 0 to n = code_size_log. Each with size 2^n. Thus,
   // the total memory needed is 2^(n+1)-1.
@@ -237,10 +268,10 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
   // i.e. in a SIMD instruction we can load 2^(n_simd_llr) LLR values
   // then the memory for stages s >= n_simd_llr - 1 is aligned.
   // but only the operations at stages s > n_simd_llr have all the inputs aligned.
-  uint8_t  n_llr_all_stages = code_size_log + 1; // there are 2^(n_llr_all_stages) - 1 LLR values summing up all stages.
+  uint8_t  n_llr_all_stages = nMax + 1; // there are 2^(n_llr_all_stages) - 1 LLR values summing up all stages.
   uint16_t llr_all_stages   = 1U << n_llr_all_stages;
 
-  pp->llr0[0] = aligned_alloc(SRSLTE_AVX2_B_SIZE, llr_all_stages * sizeof(int8_t)); // 32*8=256
+  pp->llr0[0] = srslte_vec_i8_malloc(llr_all_stages); // 32*8=256
   // allocate memory to the polar decoder instance
   if (pp->llr0[0] == NULL) {
     free(pp->est_bit);
@@ -254,18 +285,17 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
 
   // initialize all LLR pointers
   pp->llr1[0] = pp->llr0[0] + 1;
-  for (uint8_t s = 1; s < code_size_log + 1; s++) {
+  for (uint8_t s = 1; s < nMax + 1; s++) {
     pp->llr0[s] = pp->llr0[0] + pp->param->code_stage_size[s];
     pp->llr1[s] = pp->llr0[0] + pp->param->code_stage_size[s] + pp->param->code_stage_size[s - 1];
   }
 
   // allocate memory for node type pointers, one per stage.
-  pp->param->frozen_set_size = frozen_set_size;
-  pp->param->node_type       = malloc((code_size_log + 1) * sizeof(uint8_t*));
+  pp->param->node_type = malloc((nMax + 1) * sizeof(uint8_t*));
 
   // allocate memory to node_type_ssc. Stage s has  2^(N-s) nodes s=0,...,N.
   // Thus, same size as LLRs all stages.
-  pp->param->node_type[0] = aligned_alloc(SRSLTE_AVX2_B_SIZE, llr_all_stages * sizeof(uint8_t)); // 32*8=256
+  pp->param->node_type[0] = srslte_vec_u8_malloc(llr_all_stages); // 32*8=256
 
   if (pp->param->node_type[0] == NULL) {
     free(pp->param->node_type);
@@ -279,11 +309,24 @@ void* create_polar_decoder_ssc_c(uint16_t* frozen_set, const uint8_t code_size_l
   }
 
   // initialize all node type pointers. (stage 0 is the first, opposite to LLRs)
-  for (uint8_t s = 1; s < code_size_log + 1; s++) {
-    pp->param->node_type[s] = pp->param->node_type[s - 1] + pp->param->code_stage_size[code_size_log - s + 1];
+  for (uint8_t s = 1; s < nMax + 1; s++) {
+    pp->param->node_type[s] = pp->param->node_type[s - 1] + pp->param->code_stage_size[nMax - s + 1];
   }
 
-  init_node_type(frozen_set, pp->param);
+  // memory allocation to compute node_type
+  pp->tmp_node_type = create_tmp_node_type(nMax);
+  if (pp->tmp_node_type == NULL) {
+    free(pp->param->node_type[0]);
+    free(pp->llr0[0]);
+    free(pp->llr1);
+    free(pp->llr0);
+    free(pp->state);
+    free(pp->param->code_stage_size);
+    free(pp->param);
+    free(pp->enc);
+    free(pp);
+    return NULL;
+  }
 
   return pp;
 }

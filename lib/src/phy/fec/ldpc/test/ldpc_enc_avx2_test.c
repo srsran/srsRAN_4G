@@ -26,6 +26,7 @@
  *  - **-R \<number\>** Number of times tests are repeated (for computing throughput).
  */
 
+#include "srslte/phy/utils/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -165,9 +166,9 @@ int main(int argc, char** argv)
   finalK = encoder.liftK;
   finalN = encoder.liftN - 2 * lift_size;
 
-  messages       = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
-  codewords_true = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
-  codewords_sim  = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
+  messages       = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
+  codewords_true = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
+  codewords_sim  = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
   if (!messages || !codewords_true || !codewords_sim) {
     perror("malloc");
     exit(-1);

@@ -23,6 +23,7 @@
  */
 
 #include "../utils_avx2.h"
+#include "srslte/phy/utils/vector.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,9 +67,9 @@ void* create_polar_encoder_avx2(const uint8_t code_size_log)
   uint16_t code_size = 1U << code_size_log;
 
   if (code_size_log > SRSLTE_AVX2_B_SIZE_LOG) {
-    q->tmp = malloc(code_size * sizeof(uint8_t));
+    q->tmp = srslte_vec_u8_malloc(code_size);
   } else {
-    q->tmp = malloc(SRSLTE_AVX2_B_SIZE * sizeof(uint8_t));
+    q->tmp = srslte_vec_u8_malloc(SRSLTE_AVX2_B_SIZE);
   }
   if (!q->tmp) {
     free(q);

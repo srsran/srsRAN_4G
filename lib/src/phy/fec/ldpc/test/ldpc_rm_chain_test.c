@@ -286,22 +286,22 @@ int main(int argc, char** argv)
          1.0 * (encoder.liftK - F) / rm_length);
   printf("\n  Signal-to-Noise Ratio -> %.2f dB\n", snr);
 
-  messages_true          = malloc(finalK * batch_size * sizeof(uint8_t));
-  messages_sim_f         = malloc(finalK * batch_size * sizeof(uint8_t));
-  messages_sim_s         = malloc(finalK * batch_size * sizeof(uint8_t));
-  messages_sim_c         = malloc(finalK * batch_size * sizeof(uint8_t));
-  messages_sim_c_flood   = malloc(finalK * batch_size * sizeof(uint8_t));
-  messages_sim_avx       = malloc(finalK * batch_size * sizeof(uint8_t));
-  messages_sim_avx_flood = malloc(finalK * batch_size * sizeof(uint8_t));
-  codewords              = malloc(finalN * batch_size * sizeof(uint8_t));
-  rm_codewords           = malloc(rm_length * batch_size * sizeof(uint8_t));
-  rm_symbols             = malloc(rm_length * batch_size * sizeof(float));
-  rm_symbols_s           = malloc(rm_length * batch_size * sizeof(uint16_t));
-  rm_symbols_c           = malloc(rm_length * batch_size * sizeof(uint8_t));
+  messages_true          = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_f         = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_s         = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_c         = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_c_flood   = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx       = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx_flood = srslte_vec_u8_malloc(finalK * batch_size);
+  codewords              = srslte_vec_u8_malloc(finalN * batch_size);
+  rm_codewords           = srslte_vec_u8_malloc(rm_length * batch_size);
+  rm_symbols             = srslte_vec_f_malloc(rm_length * batch_size);
+  rm_symbols_s           = srslte_vec_i16_malloc(rm_length * batch_size);
+  rm_symbols_c           = srslte_vec_i8_malloc(rm_length * batch_size);
 
-  symbols   = malloc(finalN * batch_size * sizeof(float));
-  symbols_s = malloc(finalN * batch_size * sizeof(int16_t));
-  symbols_c = malloc(finalN * batch_size * sizeof(int8_t));
+  symbols   = srslte_vec_f_malloc(finalN * batch_size);
+  symbols_s = srslte_vec_i16_malloc(finalN * batch_size);
+  symbols_c = srslte_vec_i8_malloc(finalN * batch_size);
   if (!messages_true || !messages_sim_f || !messages_sim_s || !messages_sim_c || //
       !messages_sim_avx || !messages_sim_c_flood || !messages_sim_avx_flood ||   //
       !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c || !symbols || !symbols_s ||

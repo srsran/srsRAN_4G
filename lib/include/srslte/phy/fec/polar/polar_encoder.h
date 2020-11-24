@@ -31,7 +31,7 @@
 /*!
  * Lists the different types of polar decoder.
  */
-typedef enum SRSLTE_API {
+typedef enum {
   SRSLTE_POLAR_ENCODER_PIPELINED = 0, /*!< \brief Non-optimized version of the pipelined polar encoder*/
   SRSLTE_POLAR_ENCODER_AVX2      = 1, /*!< \brief SIMD implementation of the polar encoder */
 } srslte_polar_encoder_type_t;
@@ -39,7 +39,7 @@ typedef enum SRSLTE_API {
 /*!
  * \brief Describes a polar encoder.
  */
-typedef struct srslte_polar_encoder_t {
+typedef struct SRSLTE_API {
   void* ptr; /*!< \brief Pointer to the actual polar encoder structure. */
   int (*encode)(void*          ptr,
                 const uint8_t* input,

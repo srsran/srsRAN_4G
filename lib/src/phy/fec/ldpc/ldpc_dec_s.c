@@ -88,18 +88,18 @@ void* create_ldpc_dec_s(uint8_t bgN, uint8_t bgM, uint16_t ls, float scaling_fct
     return NULL;
   }
 
-  if ((vp->soft_bits = malloc(liftN * sizeof(int16_t))) == NULL) {
+  if ((vp->soft_bits = srslte_vec_i16_malloc(liftN)) == NULL) {
     free(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = malloc((hrrN + ls) * bgM * sizeof(int16_t))) == NULL) {
+  if ((vp->check_to_var = srslte_vec_i16_malloc((hrrN + ls) * bgM)) == NULL) {
     free(vp->soft_bits);
     free(vp);
     return NULL;
   }
 
-  if ((vp->var_to_check = malloc((hrrN + ls) * sizeof(int16_t))) == NULL) {
+  if ((vp->var_to_check = srslte_vec_i16_malloc(hrrN + ls)) == NULL) {
     free(vp->check_to_var);
     free(vp->soft_bits);
     free(vp);

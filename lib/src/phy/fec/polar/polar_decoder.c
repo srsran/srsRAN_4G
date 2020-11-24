@@ -36,12 +36,16 @@
 #include "srslte/phy/utils/debug.h"
 
 /*! SSC Polar decoder with float LLR inputs. */
-static int decode_ssc_f(void* o, const float* symbols, uint8_t* data)
+static int decode_ssc_f(void*           o,
+                        const float*    symbols,
+                        uint8_t*        data,
+                        const uint8_t   n,
+                        const uint16_t* frozen_set,
+                        const uint16_t  frozen_set_size)
 {
-
   srslte_polar_decoder_t* q = o;
 
-  init_polar_decoder_ssc_f(q->ptr, symbols, data);
+  init_polar_decoder_ssc_f(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
   polar_decoder_ssc_f(q->ptr, data);
 
@@ -49,11 +53,16 @@ static int decode_ssc_f(void* o, const float* symbols, uint8_t* data)
 }
 
 /*! SSC Polar decoder with int16_t LLR inputs. */
-static int decode_ssc_s(void* o, const int16_t* symbols, uint8_t* data)
+static int decode_ssc_s(void*           o,
+                        const int16_t*  symbols,
+                        uint8_t*        data,
+                        const uint8_t   n,
+                        const uint16_t* frozen_set,
+                        const uint16_t  frozen_set_size)
 {
   srslte_polar_decoder_t* q = o;
 
-  init_polar_decoder_ssc_s(q->ptr, symbols, data);
+  init_polar_decoder_ssc_s(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
   polar_decoder_ssc_s(q->ptr, data);
 
@@ -61,11 +70,16 @@ static int decode_ssc_s(void* o, const int16_t* symbols, uint8_t* data)
 }
 
 /*! SSC Polar decoder with int8_t LLR inputs. */
-static int decode_ssc_c(void* o, const int8_t* symbols, uint8_t* data)
+static int decode_ssc_c(void*           o,
+                        const int8_t*   symbols,
+                        uint8_t*        data,
+                        const uint8_t   n,
+                        const uint16_t* frozen_set,
+                        const uint16_t  frozen_set_size)
 {
   srslte_polar_decoder_t* q = o;
 
-  init_polar_decoder_ssc_c(q->ptr, symbols, data);
+  init_polar_decoder_ssc_c(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
   polar_decoder_ssc_c(q->ptr, data);
 
@@ -74,11 +88,16 @@ static int decode_ssc_c(void* o, const int8_t* symbols, uint8_t* data)
 
 #ifdef LV_HAVE_AVX2
 /*! SSC Polar decoder AVX2 with int8_t LLR inputs . */
-static int decode_ssc_c_avx2(void* o, const int8_t* symbols, uint8_t* data)
+static int decode_ssc_c_avx2(void*           o,
+                             const int8_t*   symbols,
+                             uint8_t*        data,
+                             const uint8_t   n,
+                             const uint16_t* frozen_set,
+                             const uint16_t  frozen_set_size)
 {
   srslte_polar_decoder_t* q = o;
 
-  init_polar_decoder_ssc_c_avx2(q->ptr, symbols, data);
+  init_polar_decoder_ssc_c_avx2(q->ptr, symbols, data, n, frozen_set, frozen_set_size);
 
   polar_decoder_ssc_c_avx2(q->ptr, data);
 
@@ -117,12 +136,12 @@ static void free_ssc_c_avx2(void* o)
 #endif
 
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with float LLR inputs. */
-static int init_ssc_f(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t code_size_log, uint16_t frozen_set_size)
+static int init_ssc_f(srslte_polar_decoder_t* q)
 {
   q->decode_f = decode_ssc_f;
   q->free     = free_ssc_f;
 
-  if ((q->ptr = create_polar_decoder_ssc_f(frozen_set, code_size_log, frozen_set_size)) == NULL) {
+  if ((q->ptr = create_polar_decoder_ssc_f(q->nMax)) == NULL) {
     ERROR("create_polar_decoder_ssc_f failed\n");
     free_ssc_f(q);
     return -1;
@@ -131,12 +150,12 @@ static int init_ssc_f(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t 
 }
 
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with uint16_t LLR inputs. */
-static int init_ssc_s(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t code_size_log, uint16_t frozen_set_size)
+static int init_ssc_s(srslte_polar_decoder_t* q)
 {
   q->decode_s = decode_ssc_s;
   q->free     = free_ssc_s;
 
-  if ((q->ptr = create_polar_decoder_ssc_s(frozen_set, code_size_log, frozen_set_size)) == NULL) {
+  if ((q->ptr = create_polar_decoder_ssc_s(q->nMax)) == NULL) {
     ERROR("create_polar_decoder_ssc_s failed\n");
     free_ssc_s(q);
     return -1;
@@ -145,12 +164,12 @@ static int init_ssc_s(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t 
 }
 
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with uint8_t LLR inputs. */
-static int init_ssc_c(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t code_size_log, uint16_t frozen_set_size)
+static int init_ssc_c(srslte_polar_decoder_t* q)
 {
   q->decode_c = decode_ssc_c;
   q->free     = free_ssc_c;
 
-  if ((q->ptr = create_polar_decoder_ssc_c(frozen_set, code_size_log, frozen_set_size)) == NULL) {
+  if ((q->ptr = create_polar_decoder_ssc_c(q->nMax)) == NULL) {
     ERROR("create_polar_decoder_ssc_c failed\n");
     free_ssc_c(q);
     return -1;
@@ -161,13 +180,12 @@ static int init_ssc_c(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t 
 #ifdef LV_HAVE_AVX2
 /*! Initializes a polar decoder structure to use the SSC polar decoder algorithm with uint8_t LLR inputs and AVX2
  * instructions. */
-static int
-init_ssc_c_avx2(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t code_size_log, uint16_t frozen_set_size)
+static int init_ssc_c_avx2(srslte_polar_decoder_t* q)
 {
   q->decode_c = decode_ssc_c_avx2;
   q->free     = free_ssc_c_avx2;
 
-  if ((q->ptr = create_polar_decoder_ssc_c_avx2(frozen_set, code_size_log, frozen_set_size)) == NULL) {
+  if ((q->ptr = create_polar_decoder_ssc_c_avx2(q->nMax)) == NULL) {
     ERROR("create_polar_decoder_ssc_c failed\n");
     free_ssc_c_avx2(q);
     return -1;
@@ -176,22 +194,19 @@ init_ssc_c_avx2(srslte_polar_decoder_t* q, uint16_t* frozen_set, uint16_t code_s
 }
 #endif
 
-int srslte_polar_decoder_init(srslte_polar_decoder_t*     q,
-                              srslte_polar_decoder_type_t type,
-                              uint16_t                    code_size_log,
-                              uint16_t*                   frozen_set,
-                              uint16_t                    frozen_set_size)
+int srslte_polar_decoder_init(srslte_polar_decoder_t* q, srslte_polar_decoder_type_t type, const uint8_t nMax)
 {
+  q->nMax = nMax;
   switch (type) {
     case SRSLTE_POLAR_DECODER_SSC_F:
-      return init_ssc_f(q, frozen_set, code_size_log, frozen_set_size);
+      return init_ssc_f(q);
     case SRSLTE_POLAR_DECODER_SSC_S:
-      return init_ssc_s(q, frozen_set, code_size_log, frozen_set_size);
+      return init_ssc_s(q);
     case SRSLTE_POLAR_DECODER_SSC_C:
-      return init_ssc_c(q, frozen_set, code_size_log, frozen_set_size);
+      return init_ssc_c(q);
 #ifdef LV_HAVE_AVX2
     case SRSLTE_POLAR_DECODER_SSC_C_AVX2:
-      return init_ssc_c_avx2(q, frozen_set, code_size_log, frozen_set_size);
+      return init_ssc_c_avx2(q);
 #endif
     default:
       ERROR("Decoder not implemented\n");
@@ -208,17 +223,44 @@ void srslte_polar_decoder_free(srslte_polar_decoder_t* q)
   memset(q, 0, sizeof(srslte_polar_decoder_t));
 }
 
-int srslte_polar_decoder_decode_f(srslte_polar_decoder_t* q, const float* llr, uint8_t* data_decoded)
+int srslte_polar_decoder_decode_f(srslte_polar_decoder_t* q,
+                                  const float*            llr,
+                                  uint8_t*                data_decoded,
+                                  const uint8_t           n,
+                                  const uint16_t*         frozen_set,
+                                  const uint16_t          frozen_set_size)
 {
-  return q->decode_f(q, llr, data_decoded);
+  if (q->nMax >= n) {
+    return q->decode_f(q, llr, data_decoded, n, frozen_set, frozen_set_size);
+  }
+
+  return -1;
 }
 
-int srslte_polar_decoder_decode_s(srslte_polar_decoder_t* q, const int16_t* llr, uint8_t* data_decoded)
+int srslte_polar_decoder_decode_s(srslte_polar_decoder_t* q,
+                                  const int16_t*          llr,
+                                  uint8_t*                data_decoded,
+                                  const uint8_t           n,
+                                  const uint16_t*         frozen_set,
+                                  const uint16_t          frozen_set_size)
 {
-  return q->decode_s(q, llr, data_decoded);
+  if (q->nMax >= n) {
+    return q->decode_s(q, llr, data_decoded, n, frozen_set, frozen_set_size);
+  }
+
+  return -1;
 }
 
-int srslte_polar_decoder_decode_c(srslte_polar_decoder_t* q, const int8_t* llr, uint8_t* data_decoded)
+int srslte_polar_decoder_decode_c(srslte_polar_decoder_t* q,
+                                  const int8_t*           llr,
+                                  uint8_t*                data_decoded,
+                                  const uint8_t           n,
+                                  const uint16_t*         frozen_set,
+                                  const uint16_t          frozen_set_size)
 {
-  return q->decode_c(q, llr, data_decoded);
+  if (q->nMax >= n) {
+    return q->decode_c(q, llr, data_decoded, n, frozen_set, frozen_set_size);
+  }
+
+  return -1;
 }

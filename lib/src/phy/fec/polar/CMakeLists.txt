@@ -15,6 +15,8 @@ if (HAVE_AVX2)
 endif (HAVE_AVX2)
 
 set(FEC_SOURCES ${FEC_SOURCES} ${AVX2_SOURCES}
+        polar/polar_chanalloc.c
+        polar/polar_code.c
         polar/polar_encoder.c
         polar/polar_encoder_pipelined.c
         polar/polar_decoder.c
@@ -23,6 +25,7 @@ set(FEC_SOURCES ${FEC_SOURCES} ${AVX2_SOURCES}
         polar/polar_decoder_ssc_s.c
         polar/polar_decoder_ssc_c.c
         polar/polar_decoder_vector.c
+        polar/polar_rm.c
         PARENT_SCOPE)
 
 add_subdirectory(test)

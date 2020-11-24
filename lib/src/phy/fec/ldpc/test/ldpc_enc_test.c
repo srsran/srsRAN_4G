@@ -34,6 +34,7 @@
 #include "srslte/phy/fec/ldpc/ldpc_common.h"
 #include "srslte/phy/fec/ldpc/ldpc_encoder.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 static srslte_basegraph_t base_graph = BG1; /*!< \brief Base Graph (BG1 or BG2). */
 static int                lift_size  = 2;   /*!< \brief Lifting Size. */
@@ -165,9 +166,9 @@ int main(int argc, char** argv)
   finalK = encoder.liftK;
   finalN = encoder.liftN - 2 * lift_size;
 
-  messages       = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
-  codewords_true = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
-  codewords_sim  = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
+  messages       = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
+  codewords_true = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
+  codewords_sim  = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
   if (!messages || !codewords_true || !codewords_sim) {
     perror("malloc");
     exit(-1);
