@@ -2538,6 +2538,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_reject_msg(LIBLTE_BYTE_MSG_STRUCT*   
 #define LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_IEI 0x5D
 #define LIBLTE_MME_ATTACH_REQUEST_DEVICE_PROPERTIES_IEI 0xD
 #define LIBLTE_MME_GUTI_TYPE_IEI 0xE
+#define LIBLTE_MME_ADDITIONAL_SECURITY_CAP_IEI 0x6F
 // Enums
 // Structs
 typedef struct {
@@ -2574,6 +2575,7 @@ typedef struct {
   bool                                                     voice_domain_pref_and_ue_usage_setting_present;
   bool                                                     device_properties_present;
   bool                                                     old_guti_type_present;
+  bool                                                     additional_security_cap_present;
 } LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT* attach_req,

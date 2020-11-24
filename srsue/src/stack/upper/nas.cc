@@ -1702,6 +1702,12 @@ void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
   attach_req.device_properties_present                      = false;
   attach_req.old_guti_type_present                          = false;
 
+  if (rrc->has_nr_dc()) {
+    attach_req.ue_network_cap.dc_nr_present    = true;
+    attach_req.ue_network_cap.dc_nr            = true;
+    attach_req.additional_security_cap_present = true;
+  }
+
   // ESM message (PDN connectivity request) for first default bearer
   gen_pdn_connectivity_request(&attach_req.esm_msg);
 

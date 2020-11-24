@@ -5062,6 +5062,43 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
       msg_ptr++;
     }
 
+    if (attach_req->additional_security_cap_present) {
+      *msg_ptr = LIBLTE_MME_ADDITIONAL_SECURITY_CAP_IEI;
+      msg_ptr++;
+      *msg_ptr = 0x4; // Length
+      msg_ptr++;
+
+      // Pack same capabilities that are used for EUTRA
+      *msg_ptr = attach_req->ue_network_cap.eea[0] << 7;
+      *msg_ptr |= attach_req->ue_network_cap.eea[1] << 6;
+      *msg_ptr |= attach_req->ue_network_cap.eea[2] << 5;
+      *msg_ptr |= attach_req->ue_network_cap.eea[3] << 4;
+      *msg_ptr |= attach_req->ue_network_cap.eea[4] << 3;
+      *msg_ptr |= attach_req->ue_network_cap.eea[5] << 2;
+      *msg_ptr |= attach_req->ue_network_cap.eea[6] << 1;
+      *msg_ptr |= attach_req->ue_network_cap.eea[7];
+      msg_ptr++;
+
+      // 0x00 (5G-EA8=0, 5G-EA9=0, 5G-EA10=0, 5G-EA11=0, 5G-EA12=0, 5G-EA13=0, 5G-EA14=0, 5G-EA15=0)
+      *msg_ptr = 0x00;
+      msg_ptr++;
+
+      // Pack same integrity caps
+      *msg_ptr = attach_req->ue_network_cap.eia[0] << 7;
+      *msg_ptr |= attach_req->ue_network_cap.eia[1] << 6;
+      *msg_ptr |= attach_req->ue_network_cap.eia[2] << 5;
+      *msg_ptr |= attach_req->ue_network_cap.eia[3] << 4;
+      *msg_ptr |= attach_req->ue_network_cap.eia[4] << 3;
+      *msg_ptr |= attach_req->ue_network_cap.eia[5] << 2;
+      *msg_ptr |= attach_req->ue_network_cap.eia[6] << 1;
+      *msg_ptr |= attach_req->ue_network_cap.eia[7];
+      msg_ptr++;
+
+      // 0x00 (5G-IA8=0, 5G-IA9=0, 5G-IA10=0, 5G-IA11=0, 5G-IA12=0, 5G-IA13=0, 5G-IA14=0, 5G-IA15=0)
+      *msg_ptr = 0x00;
+      msg_ptr++;
+    }
+
     // Fill in the number of bytes used
     msg->N_bytes = msg_ptr - msg->msg;
 
