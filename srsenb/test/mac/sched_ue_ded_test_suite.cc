@@ -151,7 +151,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
         continue;
       }
 
-      const auto& h          = ue.cc_list[ue_cc_idx].ul_harqs[pid];
+      const auto& h         = ue.cc_list[ue_cc_idx].ul_harqs[pid];
       bool        phich_ack = phich_ptr != nullptr and phich_ptr->phich == phich_t::ACK;
       bool        is_msg3   = h.first_tti_rx == ue.msg3_tti_rx and h.nof_txs == h.nof_retxs + 1;
       bool last_retx  = h.nof_retxs + 1 >= (is_msg3 ? sf_out.cc_params[0].cfg.maxharq_msg3tx : ue.ue_cfg.maxharq_tx);
@@ -165,7 +165,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
                 rnti,
                 pid);
 
-      // TEST: absent PUSCH grants for active DL HARQs must be either ACKs, last retx, or interrupted HARQs
+      // TEST: absent PUSCH grants for active UL HARQs must be either ACKs, last retx, or interrupted HARQs
       if ((phich_ptr != nullptr) and (pusch_ptr == nullptr)) {
         CONDERROR(not h_inactive, "PHICH NACK received for rnti=0x%x but no PUSCH retx reallocated\n", rnti);
       }
@@ -187,15 +187,13 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
             // the HARQ is being resumed
             CONDERROR(not pusch_ptr->needs_pdcch, "Resumed UL HARQs need to be signalled in PDCCH\n");
           }
-          if (pusch_ptr->needs_pdcch) {
-            // adaptive retx
-            CONDERROR(h.tbs != pusch_ptr->tbs, "TBS changed during HARQ retx\n");
-            CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv,
-                      "Invalid rv index for retx\n");
-          } else {
+          if (not pusch_ptr->needs_pdcch) {
             // non-adaptive retx
             CONDERROR(pusch_ptr->dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv\n");
           }
+          CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv,
+                    "Invalid rv index for retx\n");
+          CONDERROR(h.tbs != pusch_ptr->tbs, "TBS changed during HARQ retx\n");
           CONDERROR(to_tx_ul(h.last_tti_rx) > sf_out.tti_rx, "UL harq pid=%d was reused too soon\n", h.pid);
         }
       }

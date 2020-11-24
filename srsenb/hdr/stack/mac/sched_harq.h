@@ -54,7 +54,7 @@ protected:
 
   enum ack_t { NULL_ACK, NACK, ACK };
 
-  ack_t                           ack_state[SRSLTE_MAX_TB];
+  bool                            ack_state[SRSLTE_MAX_TB];
   bool                            active[SRSLTE_MAX_TB];
   std::array<bool, SRSLTE_MAX_TB> ndi = {};
   uint32_t                        id;
@@ -95,8 +95,8 @@ private:
 class ul_harq_proc : public harq_proc
 {
 public:
-  void new_tx(uint32_t tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_);
-  void new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, prb_interval alloc);
+  void new_tx(srslte::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_);
+  void new_retx(srslte::tti_point tti_, int* mcs, int* tbs, prb_interval alloc);
   bool set_ack(uint32_t tb_idx, bool ack);
 
   prb_interval get_alloc() const;
@@ -104,15 +104,15 @@ public:
   bool         is_adaptive_retx() const;
 
   void     reset_pending_data();
-  bool     has_pending_ack() const;
-  bool     get_pending_ack() const;
   uint32_t get_pending_data() const;
+  bool     has_pending_phich() const;
+  bool     pop_pending_phich();
 
 private:
   prb_interval allocation;
   int          pending_data;
   bool         is_adaptive;
-  ack_t        pending_ack;
+  bool         pending_phich = false;
 };
 
 class harq_entity

@@ -785,14 +785,14 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
     }
-    h->new_tx(tti, mcs, tbs, alloc, nof_retx);
+    h->new_tx(tti_point{tti}, mcs, tbs, alloc, nof_retx);
     // Un-trigger the SR if data is allocated
     if (tbs > 0) {
       unset_sr();
     }
   } else {
     // retx
-    h->new_retx(0, tti, &mcs, nullptr, alloc);
+    h->new_retx(tti_point{tti}, &mcs, nullptr, alloc);
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
   }
 

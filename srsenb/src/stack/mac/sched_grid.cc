@@ -866,7 +866,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   bool               has_retx = h->has_pending_retx();
   if (has_retx) {
     prb_interval prev_alloc = h->get_alloc();
-    if (prev_alloc == alloc and h->has_pending_ack()) {
+    if (prev_alloc == alloc and h->has_pending_phich()) {
       alloc_type = ul_alloc_t::NOADAPT_RETX;
     } else {
       alloc_type = ul_alloc_t::ADAPT_RETX;
@@ -893,8 +893,8 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
   ul_harq_proc* h = user->get_ul_harq(tti_params.tti_tx_ul, cell_index);
 
   /* Indicate PHICH acknowledgment if needed */
-  if (h->has_pending_ack()) {
-    phich_list.phich = h->get_pending_ack() ? phich_t::ACK : phich_t::NACK;
+  if (h->has_pending_phich()) {
+    phich_list.phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
     phich_list.rnti  = user->get_rnti();
     log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
                  user->get_rnti(),

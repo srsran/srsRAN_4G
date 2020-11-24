@@ -250,35 +250,12 @@ int sched_tester::test_harqs()
     CONDERROR(h.get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result\n");
   }
 
-  for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++i) {
-    const auto&                 pusch   = tti_info.ul_sched_result[CARRIER_IDX].pusch[i];
-    uint16_t                    rnti    = pusch.dci.rnti;
-    const auto&                 ue_data = tti_data.ue_data[rnti];
-    const srsenb::ul_harq_proc* h       = ue_db[rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
-    CONDERROR(h == nullptr or h->is_empty(), "scheduled UL harq does not exist or is empty\n");
-    CONDERROR(h->get_tti() != tti_point{tti_info.tti_params.tti_tx_ul},
-              "The scheduled UL harq does not a valid tti=%u\n",
-              tti_info.tti_params.tti_tx_ul);
-    CONDERROR(h->has_pending_ack(), "At the end of the TTI, there shouldnt be any pending ACKs\n");
-
-    if (h->has_pending_retx()) {
-      // retx
-      CONDERROR(ue_data.ul_harq.is_empty(0), "reTx in an UL harq that was empty\n");
-      CONDERROR(h->nof_retx(0) != ue_data.ul_harq.nof_retx(0) + 1,
-                "A retx UL harq was scheduled but with invalid number of retxs\n");
-      CONDERROR(h->is_adaptive_retx() and not pusch.needs_pdcch, "Adaptive retxs need PDCCH alloc\n");
-    } else {
-      CONDERROR(h->nof_retx(0) != 0, "A new harq was scheduled but with invalid number of retxs\n");
-      CONDERROR(not ue_data.ul_harq.is_empty(0), "UL new tx in a UL harq that was not empty\n");
-    }
-  }
-
   /* Check PHICH allocations */
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems; ++i) {
     const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
     const auto* h     = ue_db[phich.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
-    CONDERROR(not hprev.has_pending_ack(), "Alloc PHICH did not have any pending ack\n");
+    CONDERROR(not hprev.has_pending_phich(), "Alloc PHICH did not have any pending ack\n");
     bool maxretx_flag = hprev.nof_retx(0) + 1 >= hprev.max_nof_retx();
     if (phich.phich == sched_interface::ul_sched_phich_t::ACK) {
       // The harq can be either ACKed or Resumed

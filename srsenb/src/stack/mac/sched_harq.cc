@@ -45,7 +45,7 @@ void harq_proc::init(uint32_t id_)
 
 void harq_proc::reset(uint32_t tb_idx)
 {
-  ack_state[tb_idx] = NULL_ACK;
+  ack_state[tb_idx] = false;
   active[tb_idx]    = false;
   n_rtx[tb_idx]     = 0;
   tti               = tti_point{0};
@@ -76,7 +76,7 @@ bool harq_proc::is_empty(uint32_t tb_idx) const
 
 bool harq_proc::has_pending_retx_common(uint32_t tb_idx) const
 {
-  return !is_empty(tb_idx) && ack_state[tb_idx] == NACK;
+  return active[tb_idx] && not ack_state[tb_idx];
 }
 
 tti_point harq_proc::get_tti() const
@@ -90,7 +90,7 @@ int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
     log_h->warning("Received ACK for inactive harq\n");
     return SRSLTE_ERROR;
   }
-  ack_state[tb_idx] = ack_ ? ACK : NACK;
+  ack_state[tb_idx] = ack_;
   log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
     Info("SCHED: discarding TB=%d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n",
@@ -120,7 +120,7 @@ void harq_proc::new_tx_common(uint32_t tb_idx, tti_point tti_, int mcs, int tbs,
 
 void harq_proc::new_retx_common(uint32_t tb_idx, tti_point tti_, int* mcs, int* tbs)
 {
-  ack_state[tb_idx] = NACK;
+  ack_state[tb_idx] = false;
   tti               = tti_;
   n_rtx[tb_idx]++;
   if (mcs) {
@@ -212,8 +212,7 @@ rbgmask_t dl_harq_proc::get_rbgmask() const
 
 bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t tti_tx_dl) const
 {
-  return (tti_point{tti_tx_dl} >= tti + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS) and
-         has_pending_retx_common(tb_idx);
+  return (tti_point{tti_tx_dl} >= to_tx_dl_ack(tti)) and has_pending_retx_common(tb_idx);
 }
 
 int dl_harq_proc::get_tbs(uint32_t tb_idx) const
@@ -245,21 +244,22 @@ bool ul_harq_proc::is_adaptive_retx() const
   return is_adaptive and has_pending_retx();
 }
 
-void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_)
+void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_)
 {
   is_adaptive = false;
   allocation  = alloc;
   new_tx_common(0, tti_point{tti_}, mcs, tbs, max_retx_);
-  pending_data = tbs;
-  pending_ack  = NULL_ACK;
+  pending_data  = tbs;
+  pending_phich = true;
 }
 
-void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, prb_interval alloc)
+void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval alloc)
 {
-  // If PRBs changed, or there was no CRC (e.g. HARQ is being resumed)
-  is_adaptive = alloc != allocation or not has_pending_ack();
+  // If PRBs changed, or there was no tx in last oportunity (e.g. HARQ is being resumed)
+  is_adaptive = alloc != allocation or tti_ != to_tx_ul(tti);
   allocation  = alloc;
-  new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
+  new_retx_common(0, tti_point{tti_}, mcs, tbs);
+  pending_phich = true;
 }
 
 bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
@@ -267,25 +267,25 @@ bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
   if (is_empty()) {
     return false;
   }
-  pending_ack = ack_ ? ACK : NACK;
   set_ack_common(tb_idx, ack_);
   return true;
 }
 
-bool ul_harq_proc::has_pending_ack() const
+bool ul_harq_proc::has_pending_phich() const
 {
-  return pending_ack != NULL_ACK;
+  return pending_phich;
 }
 
-bool ul_harq_proc::get_pending_ack() const
+bool ul_harq_proc::pop_pending_phich()
 {
-  return pending_ack == ACK;
+  bool ret      = ack_state[0];
+  pending_phich = false;
+  return ret;
 }
 
 void ul_harq_proc::reset_pending_data()
 {
   reset_pending_data_common();
-  pending_ack = NULL_ACK;
   if (is_empty(0)) {
     pending_data = 0;
   }
@@ -301,9 +301,7 @@ uint32_t ul_harq_proc::get_pending_data() const
  *******************/
 
 harq_entity::harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs) :
-  dl_harqs(nof_dl_harqs),
-  ul_harqs(nof_ul_harqs),
-  log_h(srslte::logmap::get("MAC "))
+  dl_harqs(nof_dl_harqs), ul_harqs(nof_ul_harqs), log_h(srslte::logmap::get("MAC "))
 {
   for (uint32_t i = 0; i < dl_harqs.size(); ++i) {
     dl_harqs[i].init(i);
