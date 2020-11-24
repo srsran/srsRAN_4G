@@ -59,7 +59,8 @@ private:
   uint32_t                                channel  = 0;
   srslte_sync_t                           find_pss = {};
   int32_t                                 sf_len   = 0;
-  std::array<cf_t, 2 * SRSLTE_SF_LEN_MAX> temp;
+  std::array<cf_t, 2 * SRSLTE_SF_LEN_MAX> temp     = {};
+  std::mutex                              mutex; ///< Used for avoiding reconfiguring (set_cell) while it is searching
 
   /**
    * Executes the PSS search state
@@ -136,6 +137,9 @@ public:
    */
   void set_cell(const srslte_cell_t& cell)
   {
+    // Protect DSP objects and buffers; As it is called by asynchronous thread, it can wait to finish current processing
+    std::unique_lock<std::mutex> lock(mutex);
+
     uint32_t symbol_sz = srslte_symbol_sz(cell.nof_prb);
     sf_len             = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
@@ -172,6 +176,12 @@ public:
    */
   void run(uint32_t tti, cf_t* buffer)
   {
+    // Try to get lock. The lock is unsuccessful if the DSP objects are getting configured. In this case, ignore
+    // the sub-frame.
+    if (not mutex.try_lock()) {
+      return;
+    }
+
     switch (state) {
       case STATE_IDLE:
         // Do nothing
@@ -183,13 +193,9 @@ public:
         // Do nothing
         break;
     }
-  }
 
-  /**
-   * Get channel index
-   * @return The channel number it has been configured
-   */
-  uint32_t get_channel() const { return channel; }
+    mutex.unlock();
+  }
 
   /**
    * Indicates whether the secondary serving cell assigned to the instance is in-sync
