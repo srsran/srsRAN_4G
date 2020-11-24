@@ -865,11 +865,10 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   ul_harq_proc*      h = user->get_ul_harq(get_tti_tx_ul(), user->get_active_cell_index(cc_cfg->enb_cc_idx).second);
   bool               has_retx = h->has_pending_retx();
   if (has_retx) {
-    prb_interval prev_alloc = h->get_alloc();
-    if (prev_alloc == alloc and h->has_pending_phich()) {
-      alloc_type = ul_alloc_t::NOADAPT_RETX;
-    } else {
+    if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
       alloc_type = ul_alloc_t::ADAPT_RETX;
+    } else {
+      alloc_type = ul_alloc_t::NOADAPT_RETX;
     }
   } else {
     alloc_type = ul_alloc_t::NEWTX;

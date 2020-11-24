@@ -825,7 +825,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       }
     } else if (tbs > 0) {
       dci->tb.rv = sched_utils::get_rvidx(h->nof_retx(0));
-      if (!is_newtx && h->is_adaptive_retx()) {
+      if (!is_newtx && data->needs_pdcch) {
         dci->tb.mcs_idx = 28 + dci->tb.rv;
       } else {
         dci->tb.mcs_idx = mcs;

@@ -186,10 +186,13 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           if (not h.active) {
             // the HARQ is being resumed
             CONDERROR(not pusch_ptr->needs_pdcch, "Resumed UL HARQs need to be signalled in PDCCH\n");
-          }
-          if (not pusch_ptr->needs_pdcch) {
-            // non-adaptive retx
-            CONDERROR(pusch_ptr->dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv\n");
+          } else {
+            if (pusch_ptr->needs_pdcch) {
+              CONDERROR(pusch_ptr->dci.type2_alloc.riv == h.riv, "Adaptive retx must change riv\n");
+            } else {
+              // non-adaptive retx
+              CONDERROR(pusch_ptr->dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv\n");
+            }
           }
           CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv,
                     "Invalid rv index for retx\n");

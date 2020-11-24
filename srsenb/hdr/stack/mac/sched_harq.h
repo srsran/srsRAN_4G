@@ -26,7 +26,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
-#include <map>
 
 namespace srsenb {
 
@@ -52,7 +51,7 @@ protected:
   int  set_ack_common(uint32_t tb_idx, bool ack);
   void reset_pending_data_common();
 
-  enum ack_t { NULL_ACK, NACK, ACK };
+  enum ack_t { NACK, ACK };
 
   bool                            ack_state[SRSLTE_MAX_TB];
   bool                            active[SRSLTE_MAX_TB];
@@ -98,10 +97,10 @@ public:
   void new_tx(srslte::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_);
   void new_retx(srslte::tti_point tti_, int* mcs, int* tbs, prb_interval alloc);
   bool set_ack(uint32_t tb_idx, bool ack);
+  bool retx_requires_pdcch(srslte::tti_point tti_, prb_interval alloc) const;
 
   prb_interval get_alloc() const;
   bool         has_pending_retx() const;
-  bool         is_adaptive_retx() const;
 
   void     reset_pending_data();
   uint32_t get_pending_data() const;
@@ -111,7 +110,6 @@ public:
 private:
   prb_interval allocation;
   int          pending_data;
-  bool         is_adaptive;
   bool         pending_phich = false;
 };
 

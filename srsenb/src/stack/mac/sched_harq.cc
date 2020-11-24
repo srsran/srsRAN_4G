@@ -239,15 +239,9 @@ bool ul_harq_proc::has_pending_retx() const
   return has_pending_retx_common(0);
 }
 
-bool ul_harq_proc::is_adaptive_retx() const
-{
-  return is_adaptive and has_pending_retx();
-}
-
 void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_)
 {
-  is_adaptive = false;
-  allocation  = alloc;
+  allocation = alloc;
   new_tx_common(0, tti_point{tti_}, mcs, tbs, max_retx_);
   pending_data  = tbs;
   pending_phich = true;
@@ -256,10 +250,14 @@ void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, 
 void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval alloc)
 {
   // If PRBs changed, or there was no tx in last oportunity (e.g. HARQ is being resumed)
-  is_adaptive = alloc != allocation or tti_ != to_tx_ul(tti);
-  allocation  = alloc;
+  allocation = alloc;
   new_retx_common(0, tti_point{tti_}, mcs, tbs);
   pending_phich = true;
+}
+
+bool ul_harq_proc::retx_requires_pdcch(srslte::tti_point tti_, prb_interval alloc) const
+{
+  return alloc != allocation or tti_ != to_tx_ul(tti);
 }
 
 bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
