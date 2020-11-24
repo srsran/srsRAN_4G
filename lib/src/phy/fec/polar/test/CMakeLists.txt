@@ -28,7 +28,6 @@ function(polar_tests_lite)
         list(GET listI ${num} ival)
         add_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
                 COMMAND ${test_command} -s${S} -n${nval} -e${eval} -k${kval} -i${ival}
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
                 )
     endforeach()
 endfunction()
@@ -43,7 +42,6 @@ function(polar_tests)
         foreach(Eval RANGE ${Emin} 8192 128)
             add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i0
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
                     )
         endforeach()
     endforeach()
@@ -56,7 +54,6 @@ function(polar_tests)
         foreach(Eval RANGE ${Emin} 8192 128)
             add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
                     )
         endforeach()
     endforeach()
@@ -66,7 +63,6 @@ function(polar_tests)
         foreach(Eval RANGE ${Emin} 8192 128)
             add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/polar
                     )
         endforeach()
     endforeach()
