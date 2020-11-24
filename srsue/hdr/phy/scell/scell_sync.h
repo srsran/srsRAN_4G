@@ -54,11 +54,11 @@ private:
    */
   typedef enum { STATE_IDLE = 0, STATE_SEARCH_PSS, STATE_IN_SYNCH } state_t;
 
-  state_t                             state    = STATE_IDLE;
-  sync_callback*                      callback = nullptr;
-  uint32_t                            channel  = 0;
-  srslte_sync_t                       find_pss = {};
-  int32_t                             sf_len   = 0;
+  state_t                                 state    = STATE_IDLE;
+  sync_callback*                          callback = nullptr;
+  uint32_t                                channel  = 0;
+  srslte_sync_t                           find_pss = {};
+  int32_t                                 sf_len   = 0;
   std::array<cf_t, 2 * SRSLTE_SF_LEN_MAX> temp;
 
   /**
@@ -71,7 +71,11 @@ private:
     uint32_t peak_pos = 0;
 
     // Append new base-band
-    srslte_vec_cf_copy(&temp[sf_len], buffer, sf_len);
+    if (buffer == nullptr) {
+      srslte_vec_cf_zero(&temp[sf_len], sf_len);
+    } else {
+      srslte_vec_cf_copy(&temp[sf_len], buffer, sf_len);
+    }
 
     // Run PSS search
     switch (srslte_sync_find(&find_pss, temp.data(), 0, &peak_pos)) {
