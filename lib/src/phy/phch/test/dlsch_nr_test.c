@@ -104,7 +104,7 @@ int main(int argc, char** argv)
   }
 
   srslte_sch_nr_args_t args = {};
-  args.disable_simd         = true;
+  args.disable_simd         = false;
   if (srslte_sch_nr_init_tx(&sch_nr_tx, &args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Tx\n");
     goto clean_exit;
