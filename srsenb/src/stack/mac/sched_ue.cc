@@ -89,11 +89,6 @@ bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sched_inte
   return lhs.enb_cc_idx == rhs.enb_cc_idx and lhs.active == rhs.active;
 }
 
-template <typename YType, typename Callable>
-std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y0, const Callable& f)
-{
-  return false_position_method(x1, x2, y0, f, [](int x) { return false; });
-}
 template <typename YType, typename Callable, typename ErrorDetect>
 std::tuple<int, YType, int, YType>
 false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDetect& is_error)
@@ -102,11 +97,11 @@ false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDe
                 "The type of the final result and callable return do not match\n");
   YType y1 = f(x1);
   if (is_error(y1) or y1 >= y0) {
-    return {x1, y1, x1, y1};
+    return std::make_tuple(x1, y1, x1, y1);
   }
   YType y2 = f(x2);
   if (is_error(y2) or y2 <= y0) {
-    return {x2, y2, x2, y2};
+    return std::make_tuple(x2, y2, x2, y2);
   }
   YType y3;
   while (x2 > x1 + 1) {
@@ -116,7 +111,7 @@ false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDe
       // check if in frontier
       YType y3_1 = f(x3 - 1);
       if (not is_error(y3_1) and y3_1 < y0) {
-        return {x3 - 1, y3_1, x3, y3};
+        return std::make_tuple(x3 - 1, y3_1, x3, y3);
       } else {
         x3--;
         y3 = y3_1;
@@ -126,7 +121,7 @@ false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDe
       // check if in frontier
       YType y3_1 = f(x3 + 1);
       if (not is_error(y3_1) and y3_1 >= y0) {
-        return {x3, y3, x3 + 1, y3_1};
+        return std::make_tuple(x3, y3, x3 + 1, y3_1);
       } else {
         x3++;
         y3 = y3_1;
@@ -134,7 +129,7 @@ false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDe
     } else {
       y3 = f(x3);
       if (is_error(y3) or y3 == y0) {
-        return {x3, y3, x3, y3};
+        return std::make_tuple(x3, y3, x3, y3);
       }
     }
     if (y3 < y0) {
@@ -145,7 +140,12 @@ false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDe
       y2 = y3;
     }
   }
-  return {x1, y1, x2, y2};
+  return std::make_tuple(x1, y1, x2, y2);
+}
+template <typename YType, typename Callable>
+std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y0, const Callable& f)
+{
+  return false_position_method(x1, x2, y0, f, [](int x) { return false; });
 }
 
 /*******************************************************
