@@ -89,6 +89,65 @@ bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sched_inte
   return lhs.enb_cc_idx == rhs.enb_cc_idx and lhs.active == rhs.active;
 }
 
+template <typename YType, typename Callable, typename ErrorDetect>
+std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y0, const Callable& f)
+{
+  return false_position_method(x1, x2, y0, f, []() { return false; });
+}
+template <typename YType, typename Callable, typename ErrorDetect>
+std::tuple<int, YType, int, YType>
+false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDetect& is_error)
+{
+  static_assert(std::is_same<YType, decltype(f(x1))>::value,
+                "The type of the final result and callable return do not match\n");
+  YType y1 = f(x1);
+  if (is_error(y1) or y1 >= y0) {
+    return {x1, y1, x1, y1};
+  }
+  YType y2 = f(x2);
+  if (is_error(y2) or y2 <= y0) {
+    return {x2, y2, x2, y2};
+  }
+  YType y3;
+  while (x2 > x1 + 1) {
+    int x3 = round(x1 - ((x2 - x1) * (y1 - y0) / (float)(y2 - y1)));
+    if (x3 == x2) {
+      y3 = y2;
+      // check if in frontier
+      YType y3_1 = f(x3 - 1);
+      if (not is_error(y3_1) and y3_1 < y0) {
+        return {x3 - 1, y3_1, x3, y3};
+      } else {
+        x3--;
+        y3 = y3_1;
+      }
+    } else if (x3 == x1) {
+      y3 = y1;
+      // check if in frontier
+      YType y3_1 = f(x3 + 1);
+      if (not is_error(y3_1) and y3_1 >= y0) {
+        return {x3, y3, x3 + 1, y3_1};
+      } else {
+        x3++;
+        y3 = y3_1;
+      }
+    } else {
+      y3 = f(x3);
+      if (is_error(y3) or y3 == y0) {
+        return {x3, y3, x3, y3};
+      }
+    }
+    if (y3 < y0) {
+      x1 = x3;
+      y1 = y3;
+    } else {
+      x2 = x3;
+      y2 = y3;
+    }
+  }
+  return {x1, y1, x2, y2};
+}
+
 /*******************************************************
  *
  * Initialization and configuration functions
@@ -1425,68 +1484,46 @@ int cc_sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_by
 
 int cc_sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
 {
-  int      mcs    = 0;
-  uint32_t nof_re = 0;
-  int      tbs    = 0;
-
-  uint32_t nbytes = 0;
-  uint32_t n;
-  for (n = 0; n < cell_params->nof_prb() and nbytes < req_bytes; ++n) {
-    nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, n + 1, nof_ctrl_symbols);
+  auto compute_tbs_approx = [this, nof_ctrl_symbols](uint32_t nof_prb) {
+    uint32_t nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, nof_prb, nof_ctrl_symbols);
+    int      mcs, tbs;
     if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
-      tbs = alloc_tbs_dl(n + 1, nof_re, 0, &mcs);
-    } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, cfg->use_tbs_index_alt, false), n + 1) / 8;
+      return alloc_tbs_dl(nof_prb, nof_re, 0, &mcs);
     }
-    if (tbs > 0) {
-      nbytes = tbs;
-    } else if (tbs < 0) {
-      return 0;
-    }
-  }
+    return srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, cfg->use_tbs_index_alt, false), nof_prb) / 8;
+  };
 
-  return (nbytes >= req_bytes) ? n : -1;
+  std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
+      1u, cell_params->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+  int      upper_tbs  = std::get<3>(ret);
+  uint32_t upper_nprb = std::get<2>(ret);
+  return (upper_tbs < 0) ? 0 : ((upper_tbs < (int)req_bytes) ? -1 : upper_nprb);
 }
 
 uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
 {
-  int      mcs    = 0;
-  uint32_t nbytes = 0;
-  uint32_t N_srs  = 0;
-
-  uint32_t n = 0;
   if (req_bytes == 0) {
     return 0;
   }
-
-  uint32_t last_valid_n = 0;
-  for (n = 1; n < cell_params->nof_prb() && nbytes < req_bytes + 4; n++) {
-    uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * n * SRSLTE_NRE;
-    int      tbs    = 0;
+  auto compute_tbs_approx = [this](uint32_t nof_prb) {
+    const uint32_t N_srs  = 0;
+    uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
+    int            mcs, tbs;
     if (fixed_mcs_ul < 0) {
-      tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
-    } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, false, true), n) / 8;
+      return alloc_tbs_ul(nof_prb, nof_re, 0, &mcs);
     }
-    if (tbs > 0) {
-      nbytes       = tbs;
-      last_valid_n = n;
-    }
-  }
+    return srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, false, true), nof_prb) / 8;
+  };
 
-  if (last_valid_n > 0) {
-    if (n != last_valid_n) {
-      n = last_valid_n;
-    }
-    while (!srslte_dft_precoding_valid_prb(n) && n <= cell_params->nof_prb()) {
-      n++;
-    }
-    return n;
-  } else {
-    // This should never happen. Just in case, return 0 PRB and handle it later
-    log_h->error("SCHED: Could not obtain any valid number of PRB for an uplink allocation\n");
-    return 0;
+  // find nof prbs that lead to a tbs just above req_bytes
+  int                                      target_tbs = req_bytes + 4;
+  std::tuple<uint32_t, int, uint32_t, int> ret        = false_position_method(
+      1u, cell_params->nof_prb(), target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+  uint32_t req_prbs = std::get<2>(ret);
+  while (!srslte_dft_precoding_valid_prb(req_prbs) && req_prbs < cell_params->nof_prb()) {
+    req_prbs++;
   }
+  return req_prbs;
 }
 
 void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
