@@ -20,10 +20,10 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
+#include "srsenb/hdr/stack/mac/sched_interface_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_metric.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
-#include "srsenb/hdr/stack/mac/sched_interface_helpers.h"
 
 namespace srsenb {
 
@@ -216,6 +216,10 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   // find pending rar with same RA-RNTI
   for (sf_sched::pending_rar_t& r : pending_rars) {
     if (r.prach_tti == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
+      if (r.nof_grants >= sched_interface::MAX_RAR_LIST) {
+        log_h->warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached\n");
+        return SRSLTE_ERROR;
+      }
       r.msg3_grant[r.nof_grants] = rar_info;
       r.nof_grants++;
       return SRSLTE_SUCCESS;
