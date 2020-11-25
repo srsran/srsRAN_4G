@@ -332,6 +332,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   std::uniform_int_distribution<uint32_t> dist_prb_idx(0, 5);
   uint32_t                                prb_idx = dist_prb_idx(srsenb::get_rand_gen());
   uint32_t                                nof_prb = std::array<uint32_t, 6>({6, 15, 25, 50, 75, 100})[prb_idx];
+  printf("Number of PRBs is %u\n", nof_prb);
 
   sched_sim_event_generator generator;
 

@@ -89,10 +89,10 @@ bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sched_inte
   return lhs.enb_cc_idx == rhs.enb_cc_idx and lhs.active == rhs.active;
 }
 
-template <typename YType, typename Callable, typename ErrorDetect>
+template <typename YType, typename Callable>
 std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y0, const Callable& f)
 {
-  return false_position_method(x1, x2, y0, f, []() { return false; });
+  return false_position_method(x1, x2, y0, f, [](int x) { return false; });
 }
 template <typename YType, typename Callable, typename ErrorDetect>
 std::tuple<int, YType, int, YType>
@@ -1261,44 +1261,52 @@ int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs)
 {
   using ul64qam_cap = sched_interface::ue_cfg_t::ul64qam_cap;
-  uint32_t cqi, max_mcs, max_Qm;
+  uint32_t max_Qm;
+  int      max_mcs;
   float    max_coderate;
   if (is_ul) {
-    cqi          = ul_cqi;
     max_mcs      = max_mcs_ul;
     max_Qm       = cfg->support_ul64qam == ul64qam_cap::enabled ? 6 : 4;
-    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), false);
+    max_coderate = srslte_cqi_to_coderate(std::min(ul_cqi + 1u, 15u), false);
   } else {
-    cqi          = dl_cqi;
     max_mcs      = max_mcs_dl;
     max_Qm       = use_tbs_index_alt ? 8 : 6;
-    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
+    max_coderate = srslte_cqi_to_coderate(std::min(dl_cqi + 1u, 15u), use_tbs_index_alt);
   }
 
-  // Take the upper bound code-rate
-  int      sel_mcs  = max_mcs + 1;
-  float    coderate = 99;
-  int      tbs      = 0;
-  uint32_t Qm       = 0;
-
-  do {
-    sel_mcs--;
-    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs, use_tbs_index_alt, is_ul);
-    tbs              = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
-    coderate         = srslte_coderate(tbs, nof_re);
+  // function with sign-flip at solution
+  auto compute_tbs = [&](int sel_mcs) -> float {
+    uint32_t     tbs_idx  = srslte_ra_tbs_idx_from_mcs(sel_mcs, use_tbs_index_alt, is_ul);
+    int          tbs      = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
+    float        coderate = srslte_coderate(tbs, nof_re);
     srslte_mod_t mod =
         (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, use_tbs_index_alt);
-    Qm = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
-  } while (sel_mcs > 0 && coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm));
+    uint32_t Qm = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
+    return coderate - std::min(max_coderate, 0.930f * Qm);
+  };
+
+  std::tuple<int, float, int, float> ret;
+  if (nof_prb > 1) {
+    // for non-voip case
+    ret = false_position_method(0, max_mcs, 0.0f, compute_tbs);
+  } else {
+    // avoid 6 prbs (voip case), where function is not monotonic
+    ret = false_position_method(7, max_mcs, 0.0f, compute_tbs);
+    if (std::get<1>(ret) > 0) {
+      ret = false_position_method(0, 5, 0.0f, compute_tbs);
+    }
+  }
+  int      chosen_mcs = std::get<0>(ret);
+  uint32_t tbs_idx    = srslte_ra_tbs_idx_from_mcs(chosen_mcs, use_tbs_index_alt, is_ul);
+  int      chosen_tbs = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
 
   if (mcs != nullptr) {
-    *mcs = (uint32_t)sel_mcs;
+    *mcs = (uint32_t)chosen_mcs;
   }
-
   // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
   // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
 
-  return tbs;
+  return chosen_tbs;
 }
 
 /************************************************************************************************
