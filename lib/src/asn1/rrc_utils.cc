@@ -878,9 +878,7 @@ static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                   
     const asn1::rrc::rf_params_v1250_s& rf_params = ue_eutra_cap.rf_params_v1250;
     if (rf_params.supported_band_list_eutra_v1250_present) {
       ue_cap.support_dl_256qam = true;
-      ue_cap.support_ul_64qam  = (ue_cap.category == 5) or (ue_cap.category == 8 and ue_cap.release >= 10) or
-                                (ue_cap.category_ul == 5 or ue_cap.category_ul == 13 and ue_cap.release >= 12);
-
+      ue_cap.support_ul_64qam |= (ue_cap.category_ul == 5 or ue_cap.category_ul == 13) and ue_cap.release >= 12;
       for (const asn1::rrc::supported_band_eutra_v1250_s& supported_band : rf_params.supported_band_list_eutra_v1250) {
         ue_cap.support_dl_256qam &= supported_band.dl_minus256_qam_r12_present;
         ue_cap.support_ul_64qam &= supported_band.ul_minus64_qam_r12_present;
@@ -903,6 +901,7 @@ rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& 
 {
   rrc_ue_capabilities_t ue_cap;
   set_rrc_ue_eutra_cap_t_gen(ue_cap, eutra_cap_s);
+  ue_cap.support_ul_64qam |= (ue_cap.category == 5) or (ue_cap.category == 8 and ue_cap.release >= 10);
   return ue_cap;
 }
 
