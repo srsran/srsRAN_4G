@@ -263,7 +263,7 @@ int srslte_predecoding_single_avx(cf_t* y[SRSLTE_MAX_PORTS],
     _mm256_store_ps(xPtr, x2Val);
     xPtr += 8;
   }
-  for (int i = 16 * (nof_symbols / 16); i < nof_symbols; i++) {
+  for (int i = 8 * (nof_symbols / 8); i < nof_symbols; i++) {
     cf_t r  = 0;
     cf_t hh = 0;
     for (int p = 0; p < nof_rxant; p++) {
