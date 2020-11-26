@@ -5,7 +5,7 @@ srsLTE
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsLTE/srsLTE.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsLTE/srsLTE/context:cpp)
 [![Coverity](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/srslte)
 
-srsLTE is a free and open-source LTE software suite developed by SRS (www.softwareradiosystems.com). 
+srsLTE is a 4G/5G software radio suite developed by SRS (www.softwareradiosystems.com)
 See the srsLTE project pages (www.srslte.com) for documentation, guides and project news.
 
 It includes:
@@ -14,7 +14,7 @@ It includes:
   * srsEPC - a light-weight LTE core network implementation with MME, HSS and S/P-GW
   * a highly modular set of common libraries for PHY, MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers. 
 
-srsLTE is released under the AGPLv3 license and uses software from the OpenLTE project (http://sourceforge.net/projects/openlte) for some security functions and for NAS message parsing.
+For license details, see LICENSE file.
 
 Common Features
 ---------------

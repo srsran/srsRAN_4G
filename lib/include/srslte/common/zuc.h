@@ -1,12 +1,14 @@
-/*---------------------------------------------------------
-
-    zuc.h
-    Adapted from ETSI/SAGE specifications:
-    "Specification of the 3GPP Confidentiality
-    and Integrity Algorithms 128-EEA3 & 128-EIA3.
-    Document 2: ZUC Specification"
-
----------------------------------------------------------*/
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2020 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
 
 #ifndef SRSLTE_ZUC_H
 #define SRSLTE_ZUC_H
