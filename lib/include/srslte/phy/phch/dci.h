@@ -50,7 +50,7 @@ typedef struct {
 } srslte_dci_cfg_t;
 
 typedef struct SRSLTE_API {
-  uint32_t L;    // Aggregation level
+  uint32_t L;    // Aggregation level (logarithmic)
   uint32_t ncce; // Position of first CCE of the dci
 } srslte_dci_location_t;
 
