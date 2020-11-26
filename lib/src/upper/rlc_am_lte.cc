@@ -755,6 +755,11 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
     retx_queue.front().so_start   = retx.so_end;
   }
 
+  // increment counter for retx of first segment
+  if (retx.so_start == 0) {
+    tx_window[retx.sn].retx_count++;
+  }
+
   // Write header and pdu
   uint8_t* ptr = payload;
   rlc_am_write_data_pdu_header(&new_header, &ptr);
@@ -776,12 +781,13 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
 
   log->info_hex(payload,
                 pdu_len,
-                "%s Retx PDU segment of SN=%d (%d B), SO: %d, N_li: %d\n",
+                "%s Retx PDU segment SN=%d [so=%d] (%d B) (attempt %d/%d)\n",
                 RB_NAME,
                 retx.sn,
-                pdu_len,
                 retx.so_start,
-                new_header.N_li);
+                pdu_len,
+                tx_window[retx.sn].retx_count + 1,
+                cfg.max_retx_thresh);
 
   return pdu_len;
 }
