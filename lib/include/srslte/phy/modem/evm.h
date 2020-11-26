@@ -38,7 +38,7 @@ typedef struct {
  */
 static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_bits)
 {
-  srslte_evm_buffer_t* q = (srslte_evm_buffer_t*)srslte_vec_malloc(sizeof(srslte_evm_buffer_t));
+  srslte_evm_buffer_t* q = SRSLTE_MEM_ALLOC(srslte_evm_buffer_t, 1);
 
   // Check allocation result and number of PRB
   if (!q || !nof_bits) {
@@ -47,7 +47,7 @@ static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_bits)
   }
 
   // Zero memory the buffer fields
-  memset(q, 0, sizeof(srslte_evm_buffer_t));
+  SRSLTE_MEM_ZERO(q, srslte_evm_buffer_t, 1);
 
   // Set max number of bits
   q->max_bits = nof_bits;
