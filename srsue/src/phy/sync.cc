@@ -599,15 +599,15 @@ void sync::run_idle_state()
 void sync::run_thread()
 {
   while (running) {
+    if (log_phy_lib_h) {
+      log_phy_lib_h->step(tti);
+    }
+
     Debug("SYNC:  state=%s, tti=%d\n", phy_state.to_string(), tti);
 
     // If not camping, clear SFN sync
     if (!phy_state.is_camping()) {
       force_camping_sfn_sync = false;
-    }
-
-    if (log_phy_lib_h) {
-      log_phy_lib_h->step(tti);
     }
 
     switch (phy_state.run_state()) {
