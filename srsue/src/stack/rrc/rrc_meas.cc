@@ -789,126 +789,197 @@ void rrc::rrc_meas::var_meas_cfg::measObject_removal(const meas_obj_to_rem_list_
   }
 }
 
+void rrc::rrc_meas::var_meas_cfg::measObject_addmod_eutra(uint8_t meas_obj_id, const meas_obj_eutra_s& cfg_obj)
+{
+  bool entry_exists = measObjectsList.count(meas_obj_id) > 0;
+  if (!entry_exists) {
+    // add a new entry for the received measObject to the measObjectList within VarMeasConfig
+    measObjectsList.emplace(meas_obj_id, cfg_obj);
+  }
+
+  meas_obj_eutra_s& local_obj = measObjectsList.at(meas_obj_id);
+
+  // if an entry with the matching measObjectId exists in the measObjectList within the VarMeasConfig
+  if (entry_exists) {
+    // Update carrier frequency0
+    local_obj.carrier_freq    = cfg_obj.carrier_freq;
+    local_obj.allowed_meas_bw = cfg_obj.allowed_meas_bw;
+
+    // Combine the new cells with the existing ones and remove the cells indicated in config
+    {
+      // Remove cells
+      if (cfg_obj.cells_to_rem_list_present) {
+        log_h->debug("MEAS:     Removing %d cells\n", cfg_obj.cells_to_rem_list.size());
+        cells_to_add_mod_list_l new_list;
+        for (auto& local_cell : local_obj.cells_to_add_mod_list) {
+          // If not in the list to remove, copy to new list
+          if (std::find(cfg_obj.cells_to_rem_list.begin(), cfg_obj.cells_to_rem_list.end(), local_cell.cell_idx) ==
+              cfg_obj.cells_to_rem_list.end()) {
+            new_list.push_back(local_cell);
+          }
+        }
+        local_obj.cells_to_add_mod_list = new_list;
+        if (log_h->get_level() == LOG_LEVEL_DEBUG) {
+          for (auto& c : local_obj.cells_to_add_mod_list) {
+            log_h->debug("MEAS:       cell idx=%d, pci=%d, q_offset=%d\n",
+                         c.cell_idx,
+                         c.pci,
+                         c.cell_individual_offset.to_number());
+          }
+        }
+      }
+      if (cfg_obj.cells_to_add_mod_list_present) {
+        for (auto& new_cell : cfg_obj.cells_to_add_mod_list) {
+          // If an entry with the matching cellIndex exists in the local object cellsToAddModList:
+          auto it = std::find_if(local_obj.cells_to_add_mod_list.begin(),
+                                 local_obj.cells_to_add_mod_list.end(),
+                                 [&new_cell](const cells_to_add_mod_s& c) { return c.cell_idx == new_cell.cell_idx; });
+          if (it != local_obj.cells_to_add_mod_list.end()) {
+            // If the new cell exists, copy it
+            *it = new_cell;
+          } else {
+            // otherwise add it
+            local_obj.cells_to_add_mod_list.push_back(new_cell);
+          }
+        }
+      }
+    }
+
+    // Do the same with black list
+    {
+      if (cfg_obj.black_cells_to_add_mod_list_present) {
+        black_cells_to_add_mod_list_l new_list;
+        for (auto& local_cell : local_obj.black_cells_to_add_mod_list) {
+          // If doesn't exists in cells to rem
+          if (std::find(cfg_obj.black_cells_to_rem_list.begin(),
+                        cfg_obj.black_cells_to_rem_list.end(),
+                        local_cell.cell_idx) == cfg_obj.black_cells_to_rem_list.end()) {
+            new_list.push_back(local_cell);
+          }
+        }
+        local_obj.black_cells_to_add_mod_list = new_list;
+      }
+      if (cfg_obj.black_cells_to_add_mod_list_present) {
+        for (auto& new_cell : cfg_obj.black_cells_to_add_mod_list) {
+          // If an entry with the matching cellIndex exists in the local object blackCellsToAddModList:
+          auto it =
+              std::find_if(local_obj.black_cells_to_add_mod_list.begin(),
+                           local_obj.black_cells_to_add_mod_list.end(),
+                           [&new_cell](const black_cells_to_add_mod_s& c) { return c.cell_idx == new_cell.cell_idx; });
+          if (it != local_obj.black_cells_to_add_mod_list.end()) {
+            // copy the new entry
+            *it = new_cell;
+          } else {
+            local_obj.black_cells_to_add_mod_list.push_back(new_cell);
+          }
+        }
+      }
+    }
+
+    // for each measId associated with this measObjectId in the measIdList within the VarMeasConfig
+    for (auto& m : measIdList) {
+      if (m.second.meas_obj_id == meas_obj_id) {
+        remove_varmeas_report(m.first);
+      }
+    }
+  }
+
+  log_h->info("MEAS:  %s objectId=%d, carrier_freq=%d, %u cells, %u black-listed cells\n",
+              !entry_exists ? "Added" : "Modified",
+              meas_obj_id,
+              local_obj.carrier_freq,
+              local_obj.cells_to_add_mod_list.size(),
+              local_obj.black_cells_to_add_mod_list.size());
+  if (log_h->get_level() == LOG_LEVEL_DEBUG) {
+    for (auto& c : local_obj.cells_to_add_mod_list) {
+      log_h->debug(
+          "MEAS:       cell idx=%d, pci=%d, q_offset=%d\n", c.cell_idx, c.pci, c.cell_individual_offset.to_number());
+    }
+    for (auto& b : local_obj.black_cells_to_add_mod_list) {
+      log_h->debug("MEAS:       black-listed cell idx=%d\n", b.cell_idx);
+    }
+  }
+}
+
+void rrc::rrc_meas::var_meas_cfg::measObject_addmod_nr_r15(uint8_t meas_obj_id, const meas_obj_nr_r15_s& cfg_obj)
+{
+  bool entry_exists = measObjectsListNrR15.count(meas_obj_id) > 0;
+  if (!entry_exists) {
+    // add a new entry for the received measObject to the measObjectList within VarMeasConfig
+    measObjectsListNrR15.emplace(meas_obj_id, cfg_obj);
+  }
+  meas_obj_nr_r15_s& local_obj = measObjectsListNrR15.at(meas_obj_id);
+
+  // if an entry with the matching measObjectId exists in the measObjectList within the VarMeasConfig
+  if (entry_exists) {
+    // Update carrier frequency0
+    local_obj.carrier_freq_r15 = cfg_obj.carrier_freq_r15;
+
+    // Combine the new cells with the existing ones and remove the cells indicated in config
+    // Do the same with black list
+    {
+      if (cfg_obj.black_cells_to_add_mod_list_r15_present) {
+        cells_to_add_mod_list_nr_r15_l new_list;
+        for (auto& local_cell : local_obj.black_cells_to_add_mod_list_r15) {
+          // If doesn't exists in cells to rem
+          if (std::find(cfg_obj.black_cells_to_rem_list_r15.begin(),
+                        cfg_obj.black_cells_to_rem_list_r15.end(),
+                        local_cell.cell_idx_r15) == cfg_obj.black_cells_to_rem_list_r15.end()) {
+            new_list.push_back(local_cell);
+          }
+        }
+        local_obj.black_cells_to_add_mod_list_r15 = new_list;
+      }
+      if (cfg_obj.black_cells_to_add_mod_list_r15_present) {
+        for (auto& new_cell : cfg_obj.black_cells_to_add_mod_list_r15) {
+          // If an entry with the matching cellIndex exists in the local object blackCellsToAddModList:
+          auto it = std::find_if(
+              local_obj.black_cells_to_add_mod_list_r15.begin(),
+              local_obj.black_cells_to_add_mod_list_r15.end(),
+              [&new_cell](const cells_to_add_mod_nr_r15_s& c) { return c.cell_idx_r15 == new_cell.cell_idx_r15; });
+          if (it != local_obj.black_cells_to_add_mod_list_r15.end()) {
+            // copy the new entry
+            *it = new_cell;
+          } else {
+            local_obj.black_cells_to_add_mod_list_r15.push_back(new_cell);
+          }
+        }
+      }
+    }
+    // for each measId associated with this measObjectId in the measIdList within the VarMeasConfig
+    for (auto& m : measIdList) {
+      if (m.second.meas_obj_id == meas_obj_id) {
+        remove_varmeas_report(m.first);
+      }
+    }
+  }
+
+  log_h->info("MEAS (NR R15):  %s objectId=%d, carrier_freq=%d, %u black-listed cells\n",
+              !entry_exists ? "Added" : "Modified",
+              meas_obj_id,
+              local_obj.carrier_freq_r15,
+              local_obj.black_cells_to_add_mod_list_r15.size());
+  if (log_h->get_level() == LOG_LEVEL_DEBUG) {
+    for (auto& b : local_obj.black_cells_to_add_mod_list_r15) {
+      log_h->debug("MEAS:       black-listed cell idx=%d\n", b.cell_idx_r15);
+    }
+  }
+}
+
 // Measurement object addition/modification Section 5.5.2.5
 void rrc::rrc_meas::var_meas_cfg::measObject_addmod(const meas_obj_to_add_mod_list_l& list)
 {
   for (auto& l : list) {
-    if (l.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra) {
-      bool                    entry_exists = measObjectsList.count(l.meas_obj_id) > 0;
-      const meas_obj_eutra_s& cfg_obj      = l.meas_obj.meas_obj_eutra();
-      if (!entry_exists) {
-        // add a new entry for the received measObject to the measObjectList within VarMeasConfig
-        measObjectsList.emplace(l.meas_obj_id, cfg_obj);
-      }
-
-      meas_obj_eutra_s& local_obj = measObjectsList.at(l.meas_obj_id);
-
-      // if an entry with the matching measObjectId exists in the measObjectList within the VarMeasConfig
-      if (entry_exists) {
-        // Update carrier frequency0
-        local_obj.carrier_freq    = cfg_obj.carrier_freq;
-        local_obj.allowed_meas_bw = cfg_obj.allowed_meas_bw;
-
-        // Combine the new cells with the existing ones and remove the cells indicated in config
-        {
-          // Remove cells
-          if (cfg_obj.cells_to_rem_list_present) {
-            log_h->debug("MEAS:     Removing %d cells\n", cfg_obj.cells_to_rem_list.size());
-            cells_to_add_mod_list_l new_list;
-            for (auto& local_cell : local_obj.cells_to_add_mod_list) {
-              // If not in the list to remove, copy to new list
-              if (std::find(cfg_obj.cells_to_rem_list.begin(), cfg_obj.cells_to_rem_list.end(), local_cell.cell_idx) ==
-                  cfg_obj.cells_to_rem_list.end()) {
-                new_list.push_back(local_cell);
-              }
-            }
-            local_obj.cells_to_add_mod_list = new_list;
-            if (log_h->get_level() == LOG_LEVEL_DEBUG) {
-              for (auto& c : local_obj.cells_to_add_mod_list) {
-                log_h->debug("MEAS:       cell idx=%d, pci=%d, q_offset=%d\n",
-                             c.cell_idx,
-                             c.pci,
-                             c.cell_individual_offset.to_number());
-              }
-            }
-          }
-          if (cfg_obj.cells_to_add_mod_list_present) {
-            for (auto& new_cell : cfg_obj.cells_to_add_mod_list) {
-              // If an entry with the matching cellIndex exists in the local object cellsToAddModList:
-              auto it =
-                  std::find_if(local_obj.cells_to_add_mod_list.begin(),
-                               local_obj.cells_to_add_mod_list.end(),
-                               [&new_cell](const cells_to_add_mod_s& c) { return c.cell_idx == new_cell.cell_idx; });
-              if (it != local_obj.cells_to_add_mod_list.end()) {
-                // If the new cell exists, copy it
-                *it = new_cell;
-              } else {
-                // otherwise add it
-                local_obj.cells_to_add_mod_list.push_back(new_cell);
-              }
-            }
-          }
-        }
-
-        // Do the same with black list
-        {
-          if (cfg_obj.black_cells_to_add_mod_list_present) {
-            black_cells_to_add_mod_list_l new_list;
-            for (auto& local_cell : local_obj.black_cells_to_add_mod_list) {
-              // If doesn't exists in cells to rem
-              if (std::find(cfg_obj.black_cells_to_rem_list.begin(),
-                            cfg_obj.black_cells_to_rem_list.end(),
-                            local_cell.cell_idx) == cfg_obj.black_cells_to_rem_list.end()) {
-                new_list.push_back(local_cell);
-              }
-            }
-            local_obj.black_cells_to_add_mod_list = new_list;
-          }
-          if (cfg_obj.black_cells_to_add_mod_list_present) {
-            for (auto& new_cell : cfg_obj.black_cells_to_add_mod_list) {
-              // If an entry with the matching cellIndex exists in the local object blackCellsToAddModList:
-              auto it = std::find_if(
-                  local_obj.black_cells_to_add_mod_list.begin(),
-                  local_obj.black_cells_to_add_mod_list.end(),
-                  [&new_cell](const black_cells_to_add_mod_s& c) { return c.cell_idx == new_cell.cell_idx; });
-              if (it != local_obj.black_cells_to_add_mod_list.end()) {
-                // copy the new entry
-                *it = new_cell;
-              } else {
-                local_obj.black_cells_to_add_mod_list.push_back(new_cell);
-              }
-            }
-          }
-        }
-
-        // for each measId associated with this measObjectId in the measIdList within the VarMeasConfig
-        for (auto& m : measIdList) {
-          if (m.second.meas_obj_id == l.meas_obj_id) {
-            remove_varmeas_report(m.first);
-          }
-        }
-      }
-
-      log_h->info("MEAS:  %s objectId=%d, carrier_freq=%d, %u cells, %u black-listed cells\n",
-                  !entry_exists ? "Added" : "Modified",
-                  l.meas_obj_id,
-                  local_obj.carrier_freq,
-                  local_obj.cells_to_add_mod_list.size(),
-                  local_obj.black_cells_to_add_mod_list.size());
-      if (log_h->get_level() == LOG_LEVEL_DEBUG) {
-        for (auto& c : local_obj.cells_to_add_mod_list) {
-          log_h->debug("MEAS:       cell idx=%d, pci=%d, q_offset=%d\n",
-                       c.cell_idx,
-                       c.pci,
-                       c.cell_individual_offset.to_number());
-        }
-        for (auto& b : local_obj.black_cells_to_add_mod_list) {
-          log_h->debug("MEAS:       black-listed cell idx=%d\n", b.cell_idx);
-        }
-      }
-
-    } else {
-      log_h->error("Unsupported measObject type: %s\n", l.meas_obj.type().to_string().c_str());
+    switch (l.meas_obj.type().value) {
+      case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra:
+        measObject_addmod_eutra(l.meas_obj_id, l.meas_obj.meas_obj_eutra());
+        break;
+      case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15:
+        measObject_addmod_nr_r15(l.meas_obj_id, l.meas_obj.meas_obj_nr_r15());
+        break;
+      default:
+        log_h->error("Unsupported measObject type: %s\n", l.meas_obj.type().to_string().c_str());
+        break;
     }
   }
 }
@@ -936,39 +1007,46 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_removal(const report_cfg_to_rem_l
   }
 }
 
+void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod_eutra(uint8_t report_cfg_id, const report_cfg_eutra_s& report_cfg)
+{
+  if (!(report_cfg.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types_opts::event)) {
+    log_h->error("MEAS:  Periodical reports not supported. Received in reportConfigId=%d\n", report_cfg_id);
+    return;
+  }
+  bool entry_exists = reportConfigList.count(report_cfg_id) > 0;
+  if (entry_exists) {
+    reportConfigList.at(report_cfg_id) = report_cfg;
+    // for each measId associated with this reportConfigId in the measIdList within the VarMeasConfig
+    for (auto& m : measIdList) {
+      if (m.second.report_cfg_id == report_cfg_id) {
+        remove_varmeas_report(m.first);
+      }
+    }
+  } else {
+    reportConfigList.emplace(report_cfg_id, report_cfg);
+  }
+  log_h->info("MEAS:  %s reportConfig id=%d, event-type=%s, time-to-trigger=%d ms, reportInterval=%d\n",
+              !entry_exists ? "Added" : "Modified",
+              report_cfg_id,
+              report_cfg.trigger_type.event().event_id.type().to_string().c_str(),
+              report_cfg.trigger_type.event().time_to_trigger.to_number(),
+              report_cfg.report_interv.to_number());
+  if (entry_exists) {
+    log_debug_trigger_value(report_cfg.trigger_type.event().event_id);
+  }
+}
 // perform the reporting configuration addition/ modification procedure as specified in 5.5.2.7
 void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod(const report_cfg_to_add_mod_list_l& list)
 {
   for (auto& l : list) {
-    if (l.report_cfg.type() == report_cfg_to_add_mod_s::report_cfg_c_::types_opts::report_cfg_eutra) {
-      if (l.report_cfg.report_cfg_eutra().trigger_type.type().value ==
-          report_cfg_eutra_s::trigger_type_c_::types_opts::event) {
-        bool entry_exists = reportConfigList.count(l.report_cfg_id) > 0;
-        if (entry_exists) {
-          reportConfigList.at(l.report_cfg_id) = l.report_cfg.report_cfg_eutra();
-          // for each measId associated with this reportConfigId in the measIdList within the VarMeasConfig
-          for (auto& m : measIdList) {
-            if (m.second.report_cfg_id == l.report_cfg_id) {
-              remove_varmeas_report(m.first);
-            }
-          }
-        } else {
-          reportConfigList.emplace(l.report_cfg_id, l.report_cfg.report_cfg_eutra());
-        }
-        log_h->info("MEAS:  %s reportConfig id=%d, event-type=%s, time-to-trigger=%d ms, reportInterval=%d\n",
-                    !entry_exists ? "Added" : "Modified",
-                    l.report_cfg_id,
-                    l.report_cfg.report_cfg_eutra().trigger_type.event().event_id.type().to_string().c_str(),
-                    l.report_cfg.report_cfg_eutra().trigger_type.event().time_to_trigger.to_number(),
-                    l.report_cfg.report_cfg_eutra().report_interv.to_number());
-        if (entry_exists) {
-          log_debug_trigger_value(l.report_cfg.report_cfg_eutra().trigger_type.event().event_id);
-        }
-      } else {
-        log_h->error("MEAS:  Periodical reports not supported. Received in reportConfigId=%d\n", l.report_cfg_id);
-      }
-    } else {
+    switch (l.report_cfg.type())
+    {
+    case report_cfg_to_add_mod_s::report_cfg_c_::types_opts::report_cfg_eutra:
+      reportConfig_addmod_eutra(l.report_cfg_id,l.report_cfg.report_cfg_eutra());
+      break;
+    default:
       log_h->error("MEAS: Unsupported reportConfig type: %s\n", l.report_cfg.type().to_string().c_str());
+      break;
     }
   }
 }

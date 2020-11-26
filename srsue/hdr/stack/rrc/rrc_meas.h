@@ -111,7 +111,13 @@ private:
     void log_debug_trigger_value(const eutra_event_s::event_id_c_& e);
 
     static bool is_rsrp(report_cfg_eutra_s::trigger_quant_opts::options q);
+    
+    // Helpers
+    void measObject_addmod_eutra(uint8_t meas_obj_id, const meas_obj_eutra_s& cfg_obj);
+    void measObject_addmod_nr_r15(uint8_t meas_obj_id, const meas_obj_nr_r15_s& cfg_obj);
 
+    void reportConfig_addmod_eutra(uint8_t report_cfg_id, const report_cfg_eutra_s& report_cfg);
+    
     class cell_trigger_state
     {
     public:
@@ -125,9 +131,10 @@ private:
     };
 
     // varMeasConfig data
-    std::map<uint32_t, meas_id_to_add_mod_s> measIdList;       // Uses MeasId as key
-    std::map<uint32_t, meas_obj_eutra_s>     measObjectsList;  // Uses MeasObjectId as key
-    std::map<uint32_t, report_cfg_eutra_s>   reportConfigList; // Uses ReportConfigId as key
+    std::map<uint32_t, meas_id_to_add_mod_s> measIdList;           // Uses MeasId as key
+    std::map<uint32_t, meas_obj_eutra_s>     measObjectsList;      // Uses MeasObjectId as key
+    std::map<uint32_t, meas_obj_nr_r15_s>    measObjectsListNrR15; // Uses MeasObjectId as key
+    std::map<uint32_t, report_cfg_eutra_s>   reportConfigList;     // Uses ReportConfigId as key
 
     phy_quant_t filter_a = {1.0, 1.0}; // disable filtering until quantityConfig is received (see Sec. 5.5.3.2 Note 2)
     float       s_measure_value = 0.0;

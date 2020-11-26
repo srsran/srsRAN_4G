@@ -1116,10 +1116,93 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   return SRSLTE_SUCCESS;
 }
 
+// Minimal testcase for testing inter rat reporting with nr
+int meas_obj_inter_rat_nr_test()
+{
+  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
+  log1->set_level(srslte::LOG_LEVEL_DEBUG);
+  log1->set_hex_limit(-1);
+  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log->set_hex_limit(-1);
+
+  printf("==========================================================\n");
+  printf("======    NR Inter Rat Configuration Testing    ==========\n");
+  printf("==========================================================\n");
+
+  stack_test_dummy stack;
+  rrc_test         rrctest(log1, &stack);
+  rrctest.init();
+  rrctest.connect();
+
+  rrc_conn_recfg_r8_ies_s rrc_conn_recfg = {};
+  rrc_conn_recfg.meas_cfg_present        = true;
+  meas_cfg_s& meas_cfg                   = rrc_conn_recfg.meas_cfg;
+
+  meas_obj_to_add_mod_s obj = {};
+
+  obj.meas_obj_id = 2;
+  obj.meas_obj.set_meas_obj_nr_r15();
+  obj.meas_obj.meas_obj_nr_r15().ext = true;
+  obj.meas_obj.meas_obj_nr_r15().carrier_freq_r15 = 631680;
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15.set_sf20_r15();
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15 = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::options::sf1;
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15 = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::options::khz30;
+  obj.meas_obj.meas_obj_nr_r15().quant_cfg_set_r15 = 1;
+  obj.meas_obj.meas_obj_nr_r15().band_nr_r15.reset(new asn1::rrc::meas_obj_nr_r15_s::band_nr_r15_c_{});
+  obj.meas_obj.meas_obj_nr_r15().band_nr_r15->set_setup() = 78;
+
+  meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
+
+  obj = {};
+  obj.meas_obj_id = 1;
+  obj.meas_obj.set_meas_obj_eutra();
+  obj.meas_obj.meas_obj_eutra().carrier_freq = 300;
+  obj.meas_obj.meas_obj_eutra().allowed_meas_bw = asn1::rrc::allowed_meas_bw_opts::options::mbw100;
+  obj.meas_obj.meas_obj_eutra().presence_ant_port1 = true;
+  obj.meas_obj.meas_obj_eutra().neigh_cell_cfg.from_number(01); 
+  
+  meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
+  meas_cfg.meas_obj_to_add_mod_list_present = true;
+
+  report_cfg_to_add_mod_s rep               = {};
+  rep.report_cfg_id                         = 1;
+  rep.report_cfg.set_report_cfg_inter_rat();
+  rep.report_cfg.report_cfg_inter_rat().ext = true;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.set_event();
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.set_event_b1_nr_r15();
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().b1_thres_nr_r15.set_nr_rsrp_r15();
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().report_on_leave_r15 = true;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().hysteresis = 0;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().time_to_trigger = asn1::rrc::time_to_trigger_opts::options::ms100; 
+  rep.report_cfg.report_cfg_inter_rat().max_report_cells = 8;
+  rep.report_cfg.report_cfg_inter_rat().report_interv = asn1::rrc::report_interv_opts::options::ms120;
+  rep.report_cfg.report_cfg_inter_rat().report_amount = asn1::rrc::report_cfg_inter_rat_s::report_amount_opts::r1;
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.reset(new asn1::rrc::report_quant_nr_r15_s{});
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_rsrp = true;
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_rsrq = true;
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_sinr = true; 
+
+  meas_cfg.report_cfg_to_add_mod_list.push_back(rep);
+  meas_cfg.report_cfg_to_add_mod_list_present = true;
+
+  meas_cfg.meas_id_to_add_mod_list_present = true;
+  meas_id_to_add_mod_s meas = {};
+  meas.meas_id = 1;
+  meas.meas_obj_id = 2;
+  meas.report_cfg_id = 1;
+  meas_cfg.meas_id_to_add_mod_list.push_back(meas);
+
+  // Just test it doesn't crash
+  TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
+  TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   TESTASSERT(cell_select_test() == SRSLTE_SUCCESS);
   TESTASSERT(meas_obj_test() == SRSLTE_SUCCESS);
+  TESTASSERT(meas_obj_inter_rat_nr_test() == SRSLTE_SUCCESS);
   TESTASSERT(
       a1event_report_test(
           30, time_to_trigger_opts::ms40, 3, report_cfg_eutra_s::report_amount_opts::r1, report_interv_opts::ms120) ==
