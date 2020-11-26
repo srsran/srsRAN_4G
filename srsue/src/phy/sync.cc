@@ -990,7 +990,7 @@ void sync::run_stack_tti()
     }
 
     // Run stack
-    Debug("run_stack_tti: calling stack\n");
+    Debug("run_stack_tti: calling stack tti=%d, tti_jump=%d\n", tti, tti_jump);
     stack->run_tti(tti, tti_jump);
     Debug("run_stack_tti: stack called\n");
   }
