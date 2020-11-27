@@ -245,6 +245,10 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
 
   // if there are procedures and we have space
   if (h->has_pending_retx()) {
+    // Avoid measGaps
+    if (not user->pusch_enabled(tti_rx, cc_cfg->enb_cc_idx, false)) {
+      return nullptr;
+    }
     prb_interval alloc = h->get_alloc();
 
     // If can schedule the same mask, do it
@@ -257,6 +261,10 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
       return nullptr;
     }
 
+    // Avoid measGaps accounting for PDCCH
+    if (not user->pusch_enabled(tti_rx, cc_cfg->enb_cc_idx, true)) {
+      return nullptr;
+    }
     if (find_allocation(alloc.length(), &alloc)) {
       ret = tti_alloc->alloc_ul_user(user, alloc);
       if (ret == alloc_outcome_t::SUCCESS) {

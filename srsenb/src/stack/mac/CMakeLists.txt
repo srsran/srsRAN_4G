@@ -7,7 +7,7 @@
 #
 
 set(SOURCES mac.cc ue.cc sched.cc sched_carrier.cc sched_grid.cc sched_harq.cc sched_metric.cc sched_ue.cc
-            sched_lch.cc sched_interface_helpers.cc)
+            sched_lch.cc sched_interface_helpers.cc sched_pf.cc)
 add_library(srsenb_mac STATIC ${SOURCES})
 
 if(ENABLE_5GNR)

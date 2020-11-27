@@ -371,21 +371,6 @@ void harq_entity::reset_pending_data(srslte::tti_point tti_rx)
   for (auto& h : dl_harqs) {
     h.reset_pending_data();
   }
-
-  // delete old DL harq procs
-  for (auto& h : dl_harqs) {
-    if (not h.is_empty()) {
-      if (tti_tx_dl > h.get_tti() + 100) {
-        srslte::logmap::get("MAC")->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n",
-                                         h.get_id(),
-                                         h.get_tti().to_uint(),
-                                         tti_tx_dl.to_uint());
-        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-          h.reset(tb);
-        }
-      }
-    }
-  }
 }
 
 /**

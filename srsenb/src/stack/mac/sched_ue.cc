@@ -1035,6 +1035,34 @@ uint32_t sched_ue::get_pending_dl_rlc_data() const
   return pending_data;
 }
 
+uint32_t sched_ue::get_expected_dl_bitrate(uint32_t ue_cc_idx) const
+{
+  const cc_sched_ue* cc = &carriers[ue_cc_idx];
+
+  auto*    cell_cfg = carriers[ue_cc_idx].get_cell_cfg();
+  uint32_t nof_re =
+      srslte_ra_dl_approx_nof_re(&cell_cfg->cfg.cell, cell_cfg->nof_prb(), cell_cfg->sched_cfg->max_nof_ctrl_symbols);
+  float max_coderate = srslte_cqi_to_coderate(std::min(cc->dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
+
+  // Inverse of srslte_coderate(tbs, nof_re)
+  uint32_t tbs = max_coderate * nof_re - 24;
+  return tbs / tti_duration_ms;
+}
+
+uint32_t sched_ue::get_expected_ul_bitrate(uint32_t ue_cc_idx) const
+{
+  const cc_sched_ue* cc = &carriers[ue_cc_idx];
+
+  uint32_t N_srs        = 0;
+  uint32_t nof_symb     = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
+  uint32_t nof_re       = nof_symb * cell.nof_prb * SRSLTE_NRE;
+  float    max_coderate = srslte_cqi_to_coderate(std::min(cc->ul_cqi + 1u, 15u), false);
+
+  // Inverse of srslte_coderate(tbs, nof_re)
+  uint32_t tbs = max_coderate * nof_re - 24;
+  return tbs / tti_duration_ms;
+}
+
 /// Returns nof bytes allocated to active UL HARQs in the carrier cc_idx.
 /// NOTE: The returned value accounts for the MAC header and payload (RLC headers and actual data)
 uint32_t sched_ue::get_pending_ul_old_data(uint32_t ue_cc_idx)
@@ -1249,7 +1277,7 @@ int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
   return it != carriers.end() ? std::distance(carriers.begin(), it) : -1;
 }
 
-int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_index_alt, bool is_ul, uint32_t* mcs)
+int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs)
 {
   using ul64qam_cap = sched_interface::ue_cfg_t::ul64qam_cap;
   uint32_t max_Qm;
@@ -1261,17 +1289,17 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_inde
     max_coderate = srslte_cqi_to_coderate(std::min(ul_cqi + 1u, 15u), false);
   } else {
     max_mcs      = max_mcs_dl;
-    max_Qm       = use_tbs_index_alt ? 8 : 6;
-    max_coderate = srslte_cqi_to_coderate(std::min(dl_cqi + 1u, 15u), use_tbs_index_alt);
+    max_Qm       = cfg->use_tbs_index_alt ? 8 : 6;
+    max_coderate = srslte_cqi_to_coderate(std::min(dl_cqi + 1u, 15u), cfg->use_tbs_index_alt);
   }
 
   // function with sign-flip at solution
   auto compute_tbs = [&](int sel_mcs) -> float {
-    uint32_t     tbs_idx  = srslte_ra_tbs_idx_from_mcs(sel_mcs, use_tbs_index_alt, is_ul);
+    uint32_t     tbs_idx  = srslte_ra_tbs_idx_from_mcs(sel_mcs, cfg->use_tbs_index_alt, is_ul);
     int          tbs      = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
     float        coderate = srslte_coderate(tbs, nof_re);
     srslte_mod_t mod =
-        (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, use_tbs_index_alt);
+        (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, cfg->use_tbs_index_alt);
     uint32_t Qm = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
     return coderate - std::min(max_coderate, 0.930f * Qm);
   };
@@ -1288,7 +1316,7 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool use_tbs_inde
     }
   }
   int      chosen_mcs = std::get<0>(ret);
-  uint32_t tbs_idx    = srslte_ra_tbs_idx_from_mcs(chosen_mcs, use_tbs_index_alt, is_ul);
+  uint32_t tbs_idx    = srslte_ra_tbs_idx_from_mcs(chosen_mcs, cfg->use_tbs_index_alt, is_ul);
   int      chosen_tbs = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
 
   if (mcs != nullptr) {
@@ -1441,7 +1469,7 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
   uint32_t sel_mcs = 0;
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  int tbs_bytes = cqi_to_tbs(nof_prb, nof_re, cfg->use_tbs_index_alt, is_ul, &sel_mcs) / 8;
+  int tbs_bytes = cqi_to_tbs(nof_prb, nof_re, is_ul, &sel_mcs) / 8;
 
   /* If less bytes are requested, lower the MCS */
   if (tbs_bytes > (int)req_bytes && req_bytes > 0) {
