@@ -98,7 +98,8 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   if (ip_pkt->version != 4 && ip_pkt->version != 6) {
     gtpu_log->error("Invalid IP version to SPGW\n");
     return;
-  } else if (ip_pkt->version == 4) {
+  }
+  if (ip_pkt->version == 4) {
     if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
       gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
     }
@@ -236,6 +237,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
     // Received G-PDU for non-existing and non-zero TEID.
     // Sending GTP-U error indication
     error_indication(addr.sin_addr.s_addr, addr.sin_port, header.teid);
+    return;
   }
 
   switch (header.message_type) {
@@ -267,7 +269,9 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       if (ip_pkt->version != 4 && ip_pkt->version != 6) {
         gtpu_log->error("Invalid IP version to SPGW\n");
         return;
-      } else if (ip_pkt->version == 4) {
+      }
+
+      if (ip_pkt->version == 4) {
         if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
           gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
         }
@@ -298,10 +302,10 @@ void gtpu::handle_gtpu_m1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
  ***************************************************************************/
 void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
 {
-  gtpu_log->info("TX GTPU Error Indication, Seq: %d\n", tx_seq);
+  gtpu_log->info("TX GTPU Error Indication. Seq: %d, Error TEID: %d\n", tx_seq, err_teid);
 
-  gtpu_header_t        header;
-  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
+  gtpu_header_t        header = {};
+  unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
 
   // header
   header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
@@ -330,8 +334,8 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 {
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
 
-  gtpu_header_t        header;
-  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
+  gtpu_header_t        header = {};
+  unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
 
   // header
   header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;

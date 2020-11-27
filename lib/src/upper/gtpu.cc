@@ -59,6 +59,7 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
   uint16_to_uint8(header->length, ptr);
   ptr += 2;
   uint32_to_uint8(header->teid, ptr);
+  ptr += 4;
   // write optional fields, if E, S or PN are set.
   if (header->flags & (GTPU_FLAGS_EXTENDED_HDR | GTPU_FLAGS_SEQUENCE | GTPU_FLAGS_PACKET_NUM)) {
     // S
