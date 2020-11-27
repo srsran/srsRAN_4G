@@ -34,6 +34,7 @@ static uint32_t                n_prb       = 0;  // Set to 0 for steering
 static uint32_t                mcs         = 30; // Set to 30 for steering
 static srslte_pdsch_cfg_nr_t   pdsch_cfg   = {};
 static srslte_pdsch_grant_nr_t pdsch_grant = {};
+static uint16_t                rnti        = 0x1234;
 
 void usage(char* prog)
 {
@@ -107,10 +108,27 @@ int main(int argc, char** argv)
   enb_dl_args.pdsch.sch.disable_simd  = true;
 
   // Set default PDSCH configuration
-  pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_64qam;
-
+  pdsch_cfg.sch_cfg.mcs_table       = srslte_mcs_table_64qam;
   if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
     goto clean_exit;
+  }
+
+  srslte_pdsch_nr_args_t pdsch_args = {};
+  pdsch_args.sch.disable_simd       = true;
+  pdsch_args.measure_evm            = true;
+
+  // Configure CORESET
+  srslte_coreset_t coreset = {};
+  coreset.duration         = 2;
+  for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+    coreset.freq_resources[i] = i < carrier.nof_prb;
+  }
+
+  // Configure Search Space
+  srslte_search_space_t search_space = {};
+  search_space.type                  = srslte_search_space_type_ue;
+  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR; L++) {
+    search_space.nof_candidates[L] = srslte_pdcch_nr_max_candidates_coreset(&coreset, L);
   }
 
   if (srslte_ue_dl_nr_init(&ue_dl, &buffer, &ue_dl_args)) {
@@ -128,8 +146,18 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
+  if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset)) {
+    ERROR("Error setting CORESET\n");
+    goto clean_exit;
+  }
+
   if (srslte_enb_dl_nr_set_carrier(&enb_dl, &carrier)) {
     ERROR("Error setting SCH NR carrier\n");
+    goto clean_exit;
+  }
+
+  if (srslte_enb_dl_nr_set_coreset(&enb_dl, &coreset)) {
+    ERROR("Error setting CORESET\n");
     goto clean_exit;
   }
 
@@ -206,8 +234,33 @@ int main(int argc, char** argv)
         pdsch_grant.tb[tb].softbuffer.tx = &softbuffer_tx;
       }
 
+      // Compute PDCCH candidate locations
+      uint32_t L                                                          = 0;
+      uint32_t ncce_candidates[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
+      int      nof_candidates =
+          srslte_pdcch_nr_locations_coreset(&coreset, &search_space, rnti, L, slot.idx, ncce_candidates);
+      if (nof_candidates < SRSLTE_SUCCESS) {
+        ERROR("Error getting PDCCH candidates\n");
+        goto clean_exit;
+      }
+
+      // Setup DCI location
+      srslte_dci_location_t dci_location = {};
+      dci_location.ncce                  = ncce_candidates[0];
+      dci_location.L                     = L;
+
+      // Setup DCI
+      srslte_dci_dl_nr_t dci_dl = {};
+
+      // Put actual DCI
+      if (srslte_enb_dl_nr_pdcch_put(&enb_dl, &slot, &search_space, &dci_dl, &dci_location, rnti) < SRSLTE_SUCCESS) {
+        ERROR("Error putting PDCCH\n");
+        goto clean_exit;
+      }
+
+      // Put PDSCH transmission
       if (srslte_enb_dl_nr_pdsch_put(&enb_dl, &slot, &pdsch_cfg, &pdsch_grant, data_tx) < SRSLTE_SUCCESS) {
-        ERROR("Error encoding\n");
+        ERROR("Error putting PDSCH\n");
         goto clean_exit;
       }
 
@@ -218,7 +271,19 @@ int main(int argc, char** argv)
         srslte_softbuffer_rx_reset(pdsch_grant.tb[tb].softbuffer.rx);
       }
 
-      srslte_ue_dl_nr_estimate_fft(&ue_dl);
+      srslte_ue_dl_nr_estimate_fft(&ue_dl, &slot);
+
+      srslte_dci_dl_nr_t dci_dl_rx     = {};
+      int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &search_space, &slot, rnti, &dci_dl_rx, 1);
+      if (nof_found_dci < SRSLTE_SUCCESS) {
+        ERROR("Error decoding\n");
+        goto clean_exit;
+      }
+
+      if (nof_found_dci < 1) {
+        ERROR("Error DCI not found\n");
+        goto clean_exit;
+      }
 
       if (srslte_ue_dl_nr_pdsch_get(&ue_dl, &slot, &pdsch_cfg, &pdsch_grant, pdsch_res) < SRSLTE_SUCCESS) {
         ERROR("Error decoding\n");

@@ -71,6 +71,11 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
     return SRSLTE_ERROR;
   }
 
+  if (srslte_pdcch_nr_init_tx(&q->pdcch, &args->pdcch) < SRSLTE_SUCCESS) {
+    ERROR("Error PDCCH\n");
+    return SRSLTE_ERROR;
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -90,6 +95,8 @@ void srslte_enb_dl_nr_free(srslte_enb_dl_nr_t* q)
 
   srslte_pdsch_nr_free(&q->pdsch);
   srslte_dmrs_pdsch_free(&q->dmrs);
+
+  srslte_pdcch_nr_free(&q->pdcch);
 
   memset(q, 0, sizeof(srslte_enb_dl_nr_t));
 }
@@ -121,6 +128,21 @@ int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_
   return SRSLTE_SUCCESS;
 }
 
+int srslte_enb_dl_nr_set_coreset(srslte_enb_dl_nr_t* q, const srslte_coreset_t* coreset)
+{
+  if (q == NULL || coreset == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  q->coreset = *coreset;
+
+  if (srslte_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, &q->coreset) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q)
 {
   if (q == NULL) {
@@ -130,6 +152,50 @@ void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q)
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
     srslte_ofdm_tx_sf(&q->fft[i]);
   }
+}
+
+int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,
+                               const srslte_dl_slot_cfg_t*  slot_cfg,
+                               const srslte_search_space_t* search_space,
+                               const srslte_dci_dl_nr_t*    dci_dl,
+                               const srslte_dci_location_t* dci_location,
+                               uint16_t                     rnti)
+{
+  if (q == NULL || search_space == NULL || slot_cfg == NULL || dci_dl == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Hard-coded values
+  srslte_dci_format_nr_t dci_format = srslte_dci_format_nr_1_0;
+  srslte_rnti_type_t     rnti_type  = srslte_rnti_type_c;
+
+  // Put DMRS
+  if (srslte_dmrs_pdcch_put(&q->carrier, &q->coreset, slot_cfg, dci_location, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
+    ERROR("Error putting PDCCH DMRS\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Initialise DCI MSG fields
+  srslte_dci_msg_nr_t dci_msg = {};
+  dci_msg.location            = *dci_location;
+  dci_msg.search_space        = search_space->type;
+  dci_msg.rnti_type           = rnti_type;
+  dci_msg.rnti                = rnti;
+  dci_msg.format              = dci_format;
+
+  // Pack DCI
+  if (srslte_dci_nr_format_1_0_pack(&q->carrier, &q->coreset, dci_dl, &dci_msg) < SRSLTE_SUCCESS) {
+    ERROR("Error packing DL DCI\n");
+    return SRSLTE_ERROR;
+  }
+
+  // PDCCH Encode
+  if (srslte_pdcch_nr_encode(&q->pdcch, &dci_msg, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
+    ERROR("Error encoding PDCCH\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,

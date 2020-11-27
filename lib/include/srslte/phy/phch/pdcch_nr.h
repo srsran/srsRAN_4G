@@ -95,6 +95,8 @@ int srslte_pdcch_nr_locations_coreset(const srslte_coreset_t*      coreset,
                                       uint32_t                     slot_idx,
                                       uint32_t locations[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR]);
 
+SRSLTE_API int srslte_pdcch_nr_max_candidates_coreset(const srslte_coreset_t* coreset, uint32_t aggregation_level);
+
 SRSLTE_API int srslte_pdcch_nr_init_tx(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args);
 
 SRSLTE_API int srslte_pdcch_nr_init_rx(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args);

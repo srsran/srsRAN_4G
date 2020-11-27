@@ -35,7 +35,7 @@ typedef struct SRSLTE_API {
   srslte_sch_nr_args_t sch;
   bool                 measure_evm;
   bool                 measure_time;
-} srslte_pdsch_args_t;
+} srslte_pdsch_nr_args_t;
 
 /**
  * @brief PDSCH NR object
@@ -64,9 +64,9 @@ typedef struct {
   float    evm;
 } srslte_pdsch_res_nr_t;
 
-SRSLTE_API int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args);
+SRSLTE_API int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args);
 
-SRSLTE_API int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args);
+SRSLTE_API int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args);
 
 SRSLTE_API void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q);
 

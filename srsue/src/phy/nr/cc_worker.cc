@@ -125,7 +125,7 @@ bool cc_worker::work_dl()
   pdsch_grant.tb[0].softbuffer.rx = &softbuffer_rx;
   srslte_softbuffer_rx_reset(pdsch_grant.tb[0].softbuffer.rx);
 
-  srslte_ue_dl_nr_estimate_fft(&ue_dl);
+  srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
   if (srslte_ue_dl_nr_pdsch_get(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_grant, pdsch_res.data()) < SRSLTE_SUCCESS) {
     ERROR("Error decoding PDSCH\n");

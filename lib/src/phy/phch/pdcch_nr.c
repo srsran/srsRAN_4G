@@ -104,6 +104,21 @@ int srslte_pdcch_nr_locations_coreset(const srslte_coreset_t*      coreset,
   return nof_candidates;
 }
 
+int srslte_pdcch_nr_max_candidates_coreset(const srslte_coreset_t* coreset, uint32_t aggregation_level)
+{
+  if (coreset == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t coreset_bw = srslte_coreset_get_bw(coreset);
+  uint32_t nof_cce    = (coreset_bw * coreset->duration) / 6;
+
+  uint32_t L              = 1U << aggregation_level;
+  uint32_t nof_candidates = nof_cce / L;
+
+  return SRSLTE_MIN(nof_candidates, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
+}
+
 static int pdcch_nr_init_common(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {

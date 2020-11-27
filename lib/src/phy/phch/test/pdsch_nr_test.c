@@ -91,9 +91,9 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srslte_pdsch_args_t pdsch_args = {};
-  pdsch_args.sch.disable_simd    = true;
-  pdsch_args.measure_evm         = true;
+  srslte_pdsch_nr_args_t pdsch_args = {};
+  pdsch_args.sch.disable_simd       = true;
+  pdsch_args.measure_evm            = true;
 
   if (srslte_pdsch_nr_init_enb(&pdsch_tx, &pdsch_args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating PDSCH for Tx\n");

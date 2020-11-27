@@ -13,7 +13,7 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 
-int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
+int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args)
 {
   for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
     if (srslte_modem_table_lte(&q->modem_tables[mod], mod) < SRSLTE_SUCCESS) {
@@ -28,7 +28,7 @@ int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
+int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args)
 {
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -46,7 +46,7 @@ int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* ar
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_args_t* args)
+int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;

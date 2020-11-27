@@ -140,7 +140,7 @@ int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
     return SRSLTE_ERROR;
   }
 
-  return SRSLTE_ERROR;
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
@@ -254,7 +254,7 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
     return SRSLTE_ERROR;
   }
 
-  return SRSLTE_ERROR;
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,

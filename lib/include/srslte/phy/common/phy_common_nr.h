@@ -104,8 +104,8 @@ extern "C" {
 #define SRSLTE_MAX_NOF_DL_ALLOCATION 16
 
 typedef enum SRSLTE_API {
-  srslte_coreset_mapping_type_interleaved = 0,
-  srslte_coreset_mapping_type_non_interleaved,
+  srslte_coreset_mapping_type_non_interleaved = 0,
+  srslte_coreset_mapping_type_interleaved,
 } srslte_coreset_mapping_type_t;
 
 typedef enum SRSLTE_API {

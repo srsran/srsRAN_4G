@@ -27,7 +27,8 @@ static srslte_carrier_nr_t carrier = {
     0,  // cell_id
     0,  // numerology
     50, // nof_prb
-    0   // start
+    0,  // start
+    1   // max_mimo_layers
 };
 
 static uint16_t rnti       = 0x1234;
@@ -163,25 +164,15 @@ int main(int argc, char** argv)
         goto clean_exit;
       }
 
-      uint32_t coreset_bw            = srslte_coreset_get_bw(&coreset);
-      uint32_t nof_cce               = (coreset_bw * coreset.duration) / 6;
-      uint32_t max_aggregation_level = (uint32_t)floor(log2(nof_cce));
-      max_aggregation_level = SRSLTE_MIN(max_aggregation_level + 1, SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR);
-
       // Fill search space maximum number of candidates
-      for (uint32_t aggregation_level = 0; aggregation_level < max_aggregation_level; aggregation_level++) {
-        uint32_t L              = 1U << aggregation_level;
-        uint32_t nof_candidates = nof_cce / L;
-        nof_candidates          = SRSLTE_MIN(nof_candidates, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR);
-        search_space.nof_candidates[aggregation_level] = nof_candidates;
-      }
-      for (uint32_t aggregation_level = max_aggregation_level;
-           aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
+      for (uint32_t aggregation_level = 0; aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
            aggregation_level++) {
-        search_space.nof_candidates[aggregation_level] = 0;
+        search_space.nof_candidates[aggregation_level] =
+            srslte_pdcch_nr_max_candidates_coreset(&coreset, aggregation_level);
       }
 
-      for (uint32_t aggregation_level = 0; aggregation_level < max_aggregation_level; aggregation_level++) {
+      for (uint32_t aggregation_level = 0; aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
+           aggregation_level++) {
         uint32_t L = 1U << aggregation_level;
 
         for (uint32_t slot_idx = 0; slot_idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_idx++) {
@@ -194,9 +185,10 @@ int main(int argc, char** argv)
             ERROR("Error calculating locations in CORESET\n");
             goto clean_exit;
           }
+
+          // Skip if no candidates
           if (n == 0) {
-            ERROR("Invalid number of locations (%d)\n", n);
-            goto clean_exit;
+            continue;
           }
 
           for (uint32_t ncce_idx = 0; ncce_idx < n; ncce_idx++) {

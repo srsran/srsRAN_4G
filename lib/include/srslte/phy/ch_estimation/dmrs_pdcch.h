@@ -13,13 +13,13 @@
 #ifndef SRSLTE_DMRS_PDCCH_H
 #define SRSLTE_DMRS_PDCCH_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/resampling/resampler.h"
 #include "srslte/srslte.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Puts in the resource grid the DeModulation Reference Signals for decoding PDCCH.
