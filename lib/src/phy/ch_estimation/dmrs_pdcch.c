@@ -22,10 +22,14 @@ static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uin
                     (uint64_t)INT32_MAX);
 }
 
-static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_pdcch_cfg_nr_t* cfg, uint32_t cinit, cf_t* sf_symbol)
+static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_carrier_nr_t*   carrier,
+                                                 const srslte_coreset_t*      coreset,
+                                                 const srslte_dci_location_t* dci_location,
+                                                 uint32_t                     cinit,
+                                                 cf_t*                        sf_symbol)
 {
-  uint32_t L            = 1U << cfg->aggregation_level;
-  uint32_t nof_freq_res = SRSLTE_MIN(cfg->carrier.nof_prb / 6, SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE);
+  uint32_t L            = 1U << dci_location->L;
+  uint32_t nof_freq_res = SRSLTE_MIN(carrier->nof_prb / 6, SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE);
 
   // Initialise sequence for this symbol
   srslte_sequence_state_t sequence_state = {};
@@ -33,14 +37,14 @@ static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_pdcch_cfg_nr_t* cf
   uint32_t sequence_skip = 0; // Accumulates pilot locations to skip
 
   // Calculate Resource block indexes range, every CCE is 6 REG, 1 REG is 6 RE in resource blocks
-  uint32_t rb_coreset_idx_begin = (cfg->n_cce * 6) / cfg->coreset.duration;
-  uint32_t rb_coreset_idx_end   = ((cfg->n_cce + L) * 6) / cfg->coreset.duration;
+  uint32_t rb_coreset_idx_begin = (dci_location->ncce * 6) / coreset->duration;
+  uint32_t rb_coreset_idx_end   = ((dci_location->ncce + L) * 6) / coreset->duration;
 
   // CORESET Resource Block counter
   uint32_t rb_coreset_idx = 0;
   for (uint32_t i = 0; i < nof_freq_res; i++) {
     // Skip frequency resource if outside of the CORESET
-    if (!cfg->coreset.freq_resources[i]) {
+    if (!coreset->freq_resources[i]) {
       // Skip possible DMRS locations in this region
       sequence_skip += NOF_PILOTS_X_FREQ_RES;
       continue;
@@ -97,37 +101,42 @@ static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_pdcch_cfg_nr_t* cf
   }
 }
 
-int srslte_dmrs_pdcch_put(const srslte_pdcch_cfg_nr_t* cfg, uint32_t slot_idx, cf_t* sf_symbols)
+int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
+                          const srslte_coreset_t*      coreset,
+                          const srslte_dl_slot_cfg_t*  slot_cfg,
+                          const srslte_dci_location_t* dci_location,
+                          cf_t*                        sf_symbols)
 {
-  if (cfg == NULL || sf_symbols == NULL) {
+  if (carrier == NULL || coreset == NULL || slot_cfg == NULL || dci_location == NULL || sf_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (cfg->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
+  if (coreset->mapping_type == srslte_coreset_mapping_type_interleaved) {
     ERROR("Error interleaved CORESET mapping is not currently implemented\n");
     return SRSLTE_ERROR;
   }
 
-  if (cfg->coreset.duration < SRSLTE_CORESET_DURATION_MIN || cfg->coreset.duration > SRSLTE_CORESET_DURATION_MAX) {
+  if (coreset->duration < SRSLTE_CORESET_DURATION_MIN || coreset->duration > SRSLTE_CORESET_DURATION_MAX) {
     ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)\n",
-          cfg->coreset.duration,
+          coreset->duration,
           SRSLTE_CORESET_DURATION_MIN,
           SRSLTE_CORESET_DURATION_MAX);
     return SRSLTE_ERROR;
   }
 
   // Use cell id if the DMR scrambling id is not provided by higher layers
-  uint32_t n_id = cfg->carrier.id;
-  if (cfg->coreset.dmrs_scrambling_id_present) {
-    n_id = cfg->coreset.dmrs_scrambling_id;
+  uint32_t n_id = carrier->id;
+  if (coreset->dmrs_scrambling_id_present) {
+    n_id = coreset->dmrs_scrambling_id;
   }
 
-  for (uint32_t l = 0; l < cfg->coreset.duration; l++) {
+  for (uint32_t l = 0; l < coreset->duration; l++) {
     // Get Cin
-    uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
+    uint32_t cinit = dmrs_pdcch_get_cinit(slot_cfg->idx, l, n_id);
 
     // Put data
-    dmrs_pdcch_put_symbol_noninterleaved(cfg, cinit, &sf_symbols[cfg->carrier.nof_prb * SRSLTE_NRE * l]);
+    dmrs_pdcch_put_symbol_noninterleaved(
+        carrier, coreset, dci_location, cinit, &sf_symbols[carrier->nof_prb * SRSLTE_NRE * l]);
   }
 
   return SRSLTE_SUCCESS;
@@ -165,14 +174,14 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
     srslte_interp_linear_free(&q->interpolator);
   }
 
-  if (srslte_interp_linear_init(&q->interpolator, srslte_coreset_get_bw(coreset) * 3, 4)) {
-    ERROR("Initiating interpolator\n");
-    return SRSLTE_ERROR;
-  }
-
   // Calculate new bandwidth and size
   uint32_t coreset_bw = srslte_coreset_get_bw(coreset);
   uint32_t coreset_sz = srslte_coreset_get_sz(coreset);
+
+  if (srslte_interp_linear_init(&q->interpolator, coreset_bw * 3, 4)) {
+    ERROR("Initiating interpolator\n");
+    return SRSLTE_ERROR;
+  }
 
   // Reallocate only if the CORESET size or bandwidth changed
   if (q->coreset_bw != coreset_bw || q->coreset_sz != coreset_sz) {
@@ -277,14 +286,13 @@ srslte_dmrs_pdcch_extract(srslte_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
   }
 }
 
-int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, uint32_t slot_idx, const cf_t* sf_symbols)
+int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
+                               const srslte_dl_slot_cfg_t*    slot_cfg,
+                               const cf_t*                    sf_symbols)
 {
   if (q == NULL || sf_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
-
-  // Saves slot index for posterior use
-  q->slot_idx = slot_idx;
 
   // Use cell id if the DMR scrambling id is not provided by higher layers
   uint32_t n_id = q->carrier.id;
@@ -295,7 +303,7 @@ int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, uint32_t slot_i
   // Extract pilots
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     // Calculate PRN sequence initial state
-    uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
+    uint32_t cinit = dmrs_pdcch_get_cinit(slot_cfg->idx, l, n_id);
 
     // Extract pilots least square estimates
     srslte_dmrs_pdcch_extract(q, cinit, &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], q->lse[l]);
@@ -312,19 +320,15 @@ int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, uint32_t slot_i
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dmrs_pdcch_get_measure(srslte_dmrs_pdcch_estimator_t* q,
-                                  const srslte_search_space_t*   search_space,
-                                  uint32_t                       slot_idx,
-                                  uint32_t                       aggregation_level,
-                                  uint32_t                       ncce,
-                                  uint16_t                       rnti,
-                                  srslte_dmrs_pdcch_measure_t*   measure)
+int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
+                                  const srslte_dci_location_t*         dci_location,
+                                  srslte_dmrs_pdcch_measure_t*         measure)
 {
-  if (q == NULL || search_space == NULL || measure == NULL) {
+  if (q == NULL || dci_location == NULL || measure == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  uint32_t L = 1U << aggregation_level;
+  uint32_t L = 1U << dci_location->L;
   if (q->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
     ERROR("Error interleaved mapping not implemented\n");
     return SRSLTE_ERROR;
@@ -337,7 +341,7 @@ int srslte_dmrs_pdcch_get_measure(srslte_dmrs_pdcch_estimator_t* q,
   }
 
   // Get base pilot;
-  uint32_t pilot_idx  = (ncce * 18) / q->coreset.duration;
+  uint32_t pilot_idx  = (dci_location->ncce * 18) / q->coreset.duration;
   uint32_t nof_pilots = (L * 18) / q->coreset.duration;
 
   float rsrp                              = 0.0f;
@@ -376,6 +380,49 @@ int srslte_dmrs_pdcch_get_measure(srslte_dmrs_pdcch_estimator_t* q,
   measure->cfo_hz = cfo / (2.0f * (float)M_PI * Ts);
   measure->sync_error_us =
       (float)SRSLTE_SUBC_SPACING_NR(q->carrier.numerology) * sync_err / (4.0e-6f * (float)q->coreset.duration);
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_dmrs_pdcch_get_ce(const srslte_dmrs_pdcch_estimator_t* q,
+                             const srslte_dci_location_t*         dci_location,
+                             srslte_dmrs_pdcch_ce_t*              ce)
+{
+  if (q == NULL || dci_location == NULL || ce == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  uint32_t L = 1U << dci_location->L;
+  if (q->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
+    ERROR("Error interleaved mapping not implemented\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Check that CORESET duration is not less than minimum
+  if (q->coreset.duration < SRSLTE_CORESET_DURATION_MIN) {
+    ERROR("Invalid CORESET duration\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Calculate begin and end sub-carrier index for the selected candidate
+  uint32_t k_begin = (dci_location->ncce * SRSLTE_NRE * 6) / q->coreset.duration;
+  uint32_t k_end   = k_begin + (L * 6 * SRSLTE_NRE) / q->coreset.duration;
+
+  // Extract CE for PDCCH
+  uint32_t count = 0;
+  for (uint32_t l = 0; l < q->coreset.duration; l++) {
+    for (uint32_t k = k_begin; k < k_end; k++) {
+      if (k % 4 != 1) {
+        ce->ce[count++] = q->ce[q->coreset_bw * SRSLTE_NRE * l + k];
+      }
+    }
+  }
+
+  // Double check extracted RE match ideal count
+  ce->nof_re = (SRSLTE_NRE - 3) * 6 * L;
+  if (count != ce->nof_re) {
+    ERROR("Incorrect number of extracted resources (%d != %d)\n", count, ce->nof_re);
+  }
 
   return SRSLTE_SUCCESS;
 }

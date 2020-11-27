@@ -13,6 +13,7 @@
 #ifndef SRSLTE_DCI_NR_H
 #define SRSLTE_DCI_NR_H
 
+#include "dci.h"
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
 
@@ -25,11 +26,13 @@ typedef enum SRSLTE_API {
 } srslte_rnti_type_t;
 
 typedef struct SRSLTE_API {
-  uint8_t                payload[32];
-  srslte_rnti_type_t     rnti_type;
-  uint32_t               nof_bits;
-  srslte_dci_format_nr_t format;
-  uint16_t               rnti;
+  srslte_dci_location_t      location;
+  srslte_search_space_type_t search_space;
+  uint8_t                    payload[32];
+  srslte_rnti_type_t         rnti_type;
+  uint32_t                   nof_bits;
+  srslte_dci_format_nr_t     format;
+  uint16_t                   rnti;
 } srslte_dci_msg_nr_t;
 
 typedef struct SRSLTE_API {
@@ -59,7 +62,7 @@ typedef struct SRSLTE_API {
   // SI-RNTI specific fields
   uint32_t sii; ///< System information indicator
 
-} srslte_dci_dl_t;
+} srslte_dci_dl_nr_t;
 
 SRSLTE_API SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
                                                           const srslte_coreset_t*    coreset,
@@ -67,12 +70,12 @@ SRSLTE_API SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_n
 
 SRSLTE_API int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
                                              const srslte_coreset_t*    coreset,
-                                             const srslte_dci_dl_t*     dci,
+                                             const srslte_dci_dl_nr_t*  dci,
                                              srslte_dci_msg_nr_t*       msg);
 
 SRSLTE_API int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
                                                const srslte_coreset_t*    coreset,
                                                srslte_dci_msg_nr_t*       msg,
-                                               srslte_dci_dl_t*           dci);
+                                               srslte_dci_dl_nr_t*        dci);
 
 #endif // SRSLTE_DCI_NR_H

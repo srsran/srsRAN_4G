@@ -28,12 +28,18 @@ extern "C" {
  *
  * @attention it expects sf_symbols to be size SRSLTE_SLOT_LEN_RE_NR(cfg->carrier.nof_prb)
  *
- * @param cfg Configuration that includes Carrier, CORESET, Search Space and PDCCH candidate
- * @param slot_idx Slot index in the frame
+ * @param[in] carrier Provides carrier configuration
+ * @param[in] coreset Provides higher layer CORSET configuration
+ * @param[in] slot_cfg Provides DL slot configuration
+ * @param[in] dci_location Provides DCI location
  * @param sf_symbols is the resource grid where the DMRS resource elements will be written
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_dmrs_pdcch_put(const srslte_pdcch_cfg_nr_t* cfg, uint32_t slot_idx, cf_t* sf_symbols);
+SRSLTE_API int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
+                                     const srslte_coreset_t*      coreset,
+                                     const srslte_dl_slot_cfg_t*  slot_cfg,
+                                     const srslte_dci_location_t* dci_location,
+                                     cf_t*                        sf_symbols);
 
 /**
  * @brief PDCCH DMRS channel estimator object
@@ -65,9 +71,6 @@ typedef struct SRSLTE_API {
 
   /// Channel estimates, size coreset_sz
   cf_t* ce;
-
-  /// Stores latest slot index in frame
-  uint32_t slot_idx;
 } srslte_dmrs_pdcch_estimator_t;
 
 /**
@@ -77,9 +80,9 @@ typedef struct SRSLTE_API {
  * \attention Initialization is required every time the carrier and/or CORESET changes. No free is required between
  * initializations.
  *
- * @param q provides PDCCH DMRS estimator object
- * @param carrier provides the required carrier configuration for some estimation
- * @param coreset provides the required configuration for initialising the object
+ * @param[in,out] q provides PDCCH DMRS estimator object
+ * @param[in] carrier Provides carrier configuration
+ * @param[in] coreset Provides higher layer CORSET configuration
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
 SRSLTE_API int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
@@ -101,13 +104,14 @@ SRSLTE_API void srslte_dmrs_pdcch_estimator_free(srslte_dmrs_pdcch_estimator_t* 
  * The channel estimate measurements are performed at PDCCH candidate level through the function
  * srslte_dmrs_pdcch_estimator_measure.
  *
- * @param cfg Configuration that includes Carrier, CORESET and the Search Space
- * @param slot_idx Slot index in the frame
- * @param sf_symbols Received resource grid.
- * @param estimates CORESET Resource grid with the estimated channel
+ * @param[in,out] cfg Configuration that includes Carrier, CORESET and the Search Space
+ * @param[in] slot_cfg Slot index in the frame
+ * @param[in] sf_symbols Received resource grid.
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, uint32_t slot_idx, const cf_t* sf_symbols);
+SRSLTE_API int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
+                                          const srslte_dl_slot_cfg_t*    slot_cfg,
+                                          const cf_t*                    sf_symbols);
 
 /**
  * @brief PDSCH DMRS measurement results
@@ -129,28 +133,45 @@ typedef struct SRSLTE_API {
 } srslte_dmrs_pdcch_measure_t;
 
 /**
- * @brief Performs PDCCH DMRS measurements of a given PDCCH candidate for an aggregation level
+ * @brief PDSCH DMRS Channel estimates structure
  *
- * @note The measurement is useful for determining whether there is a PDCCH transmission in the given candidate.
+ * @see srslte_dmrs_pdcch_get_ce
+ */
+typedef struct SRSLTE_API {
+  /// Channel estimates, subtract 1 DMRS for every 4 RE, a maximum of L=16 and 6 PRB per CCE
+  cf_t     ce[SRSLTE_PDCCH_MAX_RE];
+  uint32_t nof_re;
+  float    noise_var;
+} srslte_dmrs_pdcch_ce_t;
+
+/**
+ * @brief Performs PDCCH DMRS measurements of a given DCI location
+ *
+ * @note The measurement is useful for determining whether there is a PDCCH transmission in the given DCI location.
+ *
+ * @param[in] q provides PDCCH DMRS estimator object
+ * @param[in] dci_location provides the search space
+ * @param[in] location Provides the aggregation level and CCE resource
+ * @param[out] measure Provides the structure for storing the channel estimate measurements
+ * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
+                                             const srslte_dci_location_t*         location,
+                                             srslte_dmrs_pdcch_measure_t*         measure);
+
+/**
+ * @brief Extracts PDCCH DMRS channel estimates of a given PDCCH candidate for an aggregation level
  *
  * @attention The provided aggregation level and candidate need to be according to the search space.
  *
- * @param q provides PDCCH DMRS estimator object
- * @param search_space provides the search space
- * @param slot_idx Slot index in the frame
- * @param aggregation_level Indicates the aggregation level of the candidate to examine
- * @param candidate Indicates the candidate index of the available
- * @param rnti Indicates the UE RNTI (only used for UE search space type)
- * @param measure Provides the structure for storing the channel estimate measurements
+ * @param[in] q provides PDCCH DMRS estimator object
+ * @param[in] location Provides the aggregation level and CCE resource
+ * @param[out] ce Provides the structure for storing the channel estimates
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
-int srslte_dmrs_pdcch_get_measure(srslte_dmrs_pdcch_estimator_t* q,
-                                  const srslte_search_space_t*   search_space,
-                                  uint32_t                       slot_idx,
-                                  uint32_t                       aggregation_level,
-                                  uint32_t                       candidate,
-                                  uint16_t                       rnti,
-                                  srslte_dmrs_pdcch_measure_t*   measure);
+SRSLTE_API int srslte_dmrs_pdcch_get_ce(const srslte_dmrs_pdcch_estimator_t* q,
+                                        const srslte_dci_location_t*         location,
+                                        srslte_dmrs_pdcch_ce_t*              ce);
 
 #ifdef __cplusplus
 }

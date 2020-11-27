@@ -76,6 +76,11 @@ extern "C" {
 #define SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR 5
 
 /**
+ * @brief defines the maximum number of RE
+ */
+#define SRSLTE_PDCCH_MAX_RE ((SRSLTE_NRE - 3U) * (1U << (SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR - 1U)) * 6U)
+
+/**
  * @brief defines the maximum number of candidates for a given Aggregation level
  */
 #define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR 8
@@ -235,18 +240,6 @@ typedef struct SRSLTE_API {
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];
 } srslte_search_space_t;
-
-/**
- * @brief PDCCH configuration
- */
-typedef struct SRSLTE_API {
-  srslte_carrier_nr_t   carrier;
-  uint16_t              rnti;
-  srslte_coreset_t      coreset;
-  srslte_search_space_t search_space;
-  uint32_t              aggregation_level;
-  uint32_t              n_cce;
-} srslte_pdcch_cfg_nr_t;
 
 /**
  * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the

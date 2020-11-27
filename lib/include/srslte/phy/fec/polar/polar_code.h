@@ -45,6 +45,11 @@ static const uint16_t EMAX = 8192;
 static const uint16_t NMAX = 1024;
 
 /*!
+ * \brief Base 2 logarithm of maximum codeword length
+ */
+static const uint16_t NMAX_LOG = 10;
+
+/*!
  * \brief \f$log_2(EMAX)\f$
  */
 static const uint16_t eMAX = 13; // log2(EMAX);

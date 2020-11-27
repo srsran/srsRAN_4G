@@ -37,7 +37,7 @@ static int dci_nr_format_1_0_freq_resource_size(const srslte_carrier_nr_t* carri
 
 int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
                                   const srslte_coreset_t*    coreset,
-                                  const srslte_dci_dl_t*     dci,
+                                  const srslte_dci_dl_nr_t*  dci,
                                   srslte_dci_msg_nr_t*       msg)
 {
   uint8_t*           y         = msg->payload;
@@ -146,7 +146,7 @@ int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
 int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
                                     const srslte_coreset_t*    coreset,
                                     srslte_dci_msg_nr_t*       msg,
-                                    srslte_dci_dl_t*           dci)
+                                    srslte_dci_dl_nr_t*        dci)
 {
   uint8_t*           y         = msg->payload;
   srslte_rnti_type_t rnti_type = msg->rnti_type;
