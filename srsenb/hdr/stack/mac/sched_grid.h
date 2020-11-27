@@ -191,32 +191,11 @@ private:
   prbmask_t ul_mask   = {};
 };
 
-//! generic interface used by DL scheduler algorithm
-class dl_sf_sched_itf
-{
-public:
-  virtual alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) = 0;
-  virtual const rbgmask_t& get_dl_mask() const                                                     = 0;
-  virtual uint32_t         get_tti_tx_dl() const                                                   = 0;
-  virtual uint32_t         get_nof_ctrl_symbols() const                                            = 0;
-  virtual bool             is_dl_alloc(uint16_t rnti) const                                        = 0;
-};
-
-//! generic interface used by UL scheduler algorithm
-class ul_sf_sched_itf
-{
-public:
-  virtual alloc_outcome_t  alloc_ul_user(sched_ue* user, prb_interval alloc) = 0;
-  virtual const prbmask_t& get_ul_mask() const                               = 0;
-  virtual uint32_t         get_tti_tx_ul() const                             = 0;
-  virtual bool             is_ul_alloc(uint16_t rnti) const                  = 0;
-};
-
 /** Description: Stores the RAR, broadcast, paging, DL data, UL data allocations for the given subframe
  *               Converts the stored allocations' metadata to the scheduler DL/UL result
  *               Handles the generation of DCI formats
  */
-class sf_sched : public dl_sf_sched_itf, public ul_sf_sched_itf
+class sf_sched
 {
 public:
   struct ctrl_alloc_t {
@@ -290,21 +269,19 @@ public:
   // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
   void generate_sched_results(sched_ue_list& ue_db);
 
-  // dl_tti_sched itf
-  alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
-  uint32_t         get_tti_tx_dl() const final { return tti_params.tti_tx_dl; }
-  uint32_t         get_nof_ctrl_symbols() const final;
-  const rbgmask_t& get_dl_mask() const final { return tti_alloc.get_dl_mask(); }
-  // ul_tti_sched itf
-  alloc_outcome_t  alloc_ul_user(sched_ue* user, prb_interval alloc) final;
-  const prbmask_t& get_ul_mask() const final { return tti_alloc.get_ul_mask(); }
-  uint32_t         get_tti_tx_ul() const final { return tti_params.tti_tx_ul; }
+  alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid);
+  uint32_t         get_tti_tx_dl() const { return tti_params.tti_tx_dl; }
+  uint32_t         get_nof_ctrl_symbols() const;
+  const rbgmask_t& get_dl_mask() const { return tti_alloc.get_dl_mask(); }
+  alloc_outcome_t  alloc_ul_user(sched_ue* user, prb_interval alloc);
+  const prbmask_t& get_ul_mask() const { return tti_alloc.get_ul_mask(); }
+  uint32_t         get_tti_tx_ul() const { return tti_params.tti_tx_ul; }
 
   // getters
   uint32_t            get_tti_rx() const { return tti_params.tti_rx; }
   const tti_params_t& get_tti_params() const { return tti_params; }
-  bool                is_dl_alloc(uint16_t rnti) const final;
-  bool                is_ul_alloc(uint16_t rnti) const final;
+  bool                is_dl_alloc(uint16_t rnti) const;
+  bool                is_ul_alloc(uint16_t rnti) const;
   uint32_t            get_enb_cc_idx() const { return cc_cfg->enb_cc_idx; }
 
 private:

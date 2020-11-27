@@ -51,10 +51,7 @@ ue_ctxt_test::ue_ctxt_test(uint16_t                rnti_,
                            srslte::tti_point       prach_tti_,
                            const ue_ctxt_test_cfg& cfg_,
                            ue_sim&                 ue_ctxt_) :
-  sim_cfg(cfg_),
-  rnti(rnti_),
-  current_tti_rx(prach_tti_),
-  ue_ctxt(&ue_ctxt_)
+  sim_cfg(cfg_), rnti(rnti_), current_tti_rx(prach_tti_), ue_ctxt(&ue_ctxt_)
 {
   set_cfg(cfg_.ue_cfg);
 }

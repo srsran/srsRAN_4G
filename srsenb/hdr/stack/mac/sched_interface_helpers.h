@@ -13,8 +13,8 @@
 #ifndef SRSLTE_SCHED_INTERFACE_HELPERS_H
 #define SRSLTE_SCHED_INTERFACE_HELPERS_H
 
-#include "srslte/interfaces/sched_interface.h"
 #include "srslte/common/logmap.h"
+#include "srslte/interfaces/sched_interface.h"
 
 namespace srsenb {
 

@@ -247,7 +247,8 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_rlc_data(); }, __PRETTY_FUNCTION__);
+  ue_db_access(
+      rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_rlc_data(); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -255,9 +256,10 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(rnti,
-               [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti.to_uint(), -1); },
-               __PRETTY_FUNCTION__);
+  ue_db_access(
+      rnti,
+      [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti.to_uint(), -1); },
+      __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -274,7 +276,8 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmd
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
-  ue_db_access(rnti, [&](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); }, __PRETTY_FUNCTION__);
+  ue_db_access(
+      rnti, [&](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -322,12 +325,14 @@ int sched::ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes)
 
 int sched::ul_phr(uint16_t rnti, int phr)
 {
-  return ue_db_access(rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
+  return ue_db_access(
+      rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
-  return ue_db_access(rnti, [](sched_ue& ue) { ue.set_sr(); }, __PRETTY_FUNCTION__);
+  return ue_db_access(
+      rnti, [](sched_ue& ue) { ue.set_sr(); }, __PRETTY_FUNCTION__);
 }
 
 void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
@@ -338,28 +343,31 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 
 void sched::tpc_inc(uint16_t rnti)
 {
-  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); }, __PRETTY_FUNCTION__);
+  ue_db_access(
+      rnti, [](sched_ue& ue) { ue.tpc_inc(); }, __PRETTY_FUNCTION__);
 }
 
 void sched::tpc_dec(uint16_t rnti)
 {
-  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); }, __PRETTY_FUNCTION__);
+  ue_db_access(
+      rnti, [](sched_ue& ue) { ue.tpc_dec(); }, __PRETTY_FUNCTION__);
 }
 
 std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 {
   std::array<int, SRSLTE_MAX_CARRIERS> ret{};
   ret.fill(-1); // -1 for inactive & non-existent carriers
-  ue_db_access(rnti,
-               [this, &ret](sched_ue& ue) {
-                 for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
-                   const cc_sched_ue* cc_ue = ue.find_ue_carrier(enb_cc_idx);
-                   if (cc_ue != nullptr) {
-                     ret[enb_cc_idx] = cc_ue->get_ue_cc_idx();
-                   }
-                 }
-               },
-               __PRETTY_FUNCTION__);
+  ue_db_access(
+      rnti,
+      [this, &ret](sched_ue& ue) {
+        for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
+          const cc_sched_ue* cc_ue = ue.find_ue_carrier(enb_cc_idx);
+          if (cc_ue != nullptr) {
+            ret[enb_cc_idx] = cc_ue->get_ue_cc_idx();
+          }
+        }
+      },
+      __PRETTY_FUNCTION__);
   return ret;
 }
 

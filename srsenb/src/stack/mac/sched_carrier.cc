@@ -288,8 +288,13 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
   ra_sched_ptr.reset(new ra_sched{*cc_cfg, *ue_db});
 
   // Setup data scheduling algorithms
-  sched_algo.reset(new sched_time_pf{*cc_cfg});
-  //  sched_algo.reset(new sched_time_rr{*cc_cfg});
+  if (cell_params_.sched_cfg->sched_policy == "time_rr") {
+    sched_algo.reset(new sched_time_rr{*cc_cfg});
+    log_h->info("Using time-domain RR scheduling policy for cc=%d\n", cc_cfg->enb_cc_idx);
+  } else {
+    sched_algo.reset(new sched_time_pf{*cc_cfg});
+    log_h->info("Using time-domain PF scheduling policy for cc=%d\n", cc_cfg->enb_cc_idx);
+  }
 
   // Initiate the tti_scheduler for each TTI
   for (sf_sched& tti_sched : sf_scheds) {
