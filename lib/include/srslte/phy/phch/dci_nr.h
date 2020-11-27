@@ -28,7 +28,7 @@ typedef enum SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_dci_location_t      location;
   srslte_search_space_type_t search_space;
-  uint8_t                    payload[32];
+  uint8_t                    payload[50];
   srslte_rnti_type_t         rnti_type;
   uint32_t                   nof_bits;
   srslte_dci_format_nr_t     format;

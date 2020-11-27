@@ -11,8 +11,11 @@
  */
 
 #include "srslte/phy/phch/pdcch_nr.h"
+#include "srslte/phy/fec/polar/polar_chanalloc.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
+
+#define PDCCH_NR_POLAR_RM_IBIL 0
 
 /**
  * @brief Recursive Y_p_n function
@@ -107,6 +110,8 @@ static int pdcch_nr_init_common(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  q->meas_time_en = args->measure_time;
+
   q->c = srslte_vec_u8_malloc(SRSLTE_PDCCH_MAX_RE * 2);
   if (q->c == NULL) {
     return SRSLTE_ERROR;
@@ -127,6 +132,11 @@ static int pdcch_nr_init_common(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args
     return SRSLTE_ERROR;
   }
 
+  q->allocated = srslte_vec_u8_malloc(NMAX);
+  if (q->allocated == NULL) {
+    return SRSLTE_ERROR;
+  }
+
   if (srslte_crc_init(&q->crc24c, SRSLTE_LTE_CRC24C, 24) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
@@ -136,6 +146,9 @@ static int pdcch_nr_init_common(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args
   }
 
   srslte_modem_table_lte(&q->modem_table, SRSLTE_MOD_QPSK);
+  if (args->measure_evm) {
+    srslte_modem_table_bytes(&q->modem_table);
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -185,7 +198,7 @@ int srslte_pdcch_nr_init_rx(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* 
   return SRSLTE_SUCCESS;
 }
 
-void srslte_pdcch_nr_init_free(srslte_pdcch_nr_t* q)
+void srslte_pdcch_nr_free(srslte_pdcch_nr_t* q)
 {
   if (q == NULL) {
     return;
@@ -213,7 +226,19 @@ void srslte_pdcch_nr_init_free(srslte_pdcch_nr_t* q)
     free(q->f);
   }
 
+  if (q->allocated) {
+    free(q->allocated);
+  }
+
+  if (q->symbols) {
+    free(q->symbols);
+  }
+
   srslte_modem_table_free(&q->modem_table);
+
+  if (q->evm_buffer) {
+    srslte_evm_free(q->evm_buffer);
+  }
 
   SRSLTE_MEM_ZERO(q, srslte_pdcch_nr_t, 1);
 }
@@ -291,15 +316,21 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
     return SRSLTE_ERROR;
   }
 
+  struct timeval t[3];
+  if (q->meas_time_en) {
+    gettimeofday(&t[1], NULL);
+  }
+
   // Calculate...
-  uint32_t K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  uint32_t M = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
-  uint32_t E = M * 2;                                                // Number of Rate-Matched bits
+  q->K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
+  q->M = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
+  q->E = q->M * 2;                                             // Number of Rate-Matched bits
 
   // Get polar code
-  if (srslte_polar_code_get(&q->code, K, E, 9U) < SRSLTE_SUCCESS) {
+  if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
+  INFO("PDCCH NR TX: K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
 
   // Copy DCI message
   srslte_vec_u8_copy(q->c, dci_msg->payload, dci_msg->nof_bits);
@@ -307,33 +338,62 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   // Append CRC
   srslte_crc_attach(&q->crc24c, q->c, dci_msg->nof_bits);
 
+  INFO("PDCCH NR TX: Append CRC %06x\n", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
+
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
   uint8_t* ptr               = unpacked_rnti;
   srslte_bit_unpack(dci_msg->rnti, &ptr, 16);
 
   // Scramble CRC with RNTI
-  srslte_vec_xor_bbb(unpacked_rnti, &q->c[K - 16], &q->c[K - 16], 16);
+  srslte_vec_xor_bbb(unpacked_rnti, &q->c[q->K - 16], &q->c[q->K - 16], 16);
+
+  // Print c
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("PDCCH NR TX: c=");
+    srslte_vec_fprint_hex(stdout, q->c, q->K);
+  }
+
+  // Allocate channel
+  srslte_polar_chanalloc_tx(q->c, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
   // Encode bits
-  if (srslte_polar_encoder_encode(&q->encoder, q->c, q->d, q->code.n) < SRSLTE_SUCCESS) {
+  if (srslte_polar_encoder_encode(&q->encoder, q->allocated, q->d, q->code.n) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
+  // Print d
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("PDCCH NR TX: d=");
+    srslte_vec_fprint_byte(stdout, q->d, q->K);
+  }
+
   // Rate matching
-  srslte_polar_rm_tx(&q->rm, q->d, q->f, q->code.n, E, K, 0);
+  srslte_polar_rm_tx(&q->rm, q->d, q->f, q->code.n, q->E, q->K, PDCCH_NR_POLAR_RM_IBIL);
 
   // Scrambling
-  srslte_sequence_apply_bit(q->f, q->f, E, pdcch_nr_c_init(q, dci_msg));
+  srslte_sequence_apply_bit(q->f, q->f, q->E, pdcch_nr_c_init(q, dci_msg));
 
   // Modulation
-  srslte_mod_modulate(&q->modem_table, q->f, q->symbols, E);
+  srslte_mod_modulate(&q->modem_table, q->f, q->symbols, q->E);
 
   // Put symbols in grid
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, true);
-  if (M != m) {
-    ERROR("Unmatch number of RE (%d != %d)\n", m, M);
+  if (q->M != m) {
+    ERROR("Unmatch number of RE (%d != %d)\n", m, q->M);
     return SRSLTE_ERROR;
+  }
+
+  if (q->meas_time_en) {
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    q->meas_time_us = (uint32_t)t[0].tv_usec;
+  }
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    char str[128] = {};
+    srslte_pdcch_nr_info(q, NULL, str, sizeof(str));
+    INFO("PDCCH NR TX: %s\n", str);
   }
 
   return SRSLTE_SUCCESS;
@@ -349,55 +409,82 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
     return SRSLTE_ERROR;
   }
 
+  struct timeval t[3];
+  if (q->meas_time_en) {
+    gettimeofday(&t[1], NULL);
+  }
+
   // Calculate...
-  uint32_t K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  uint32_t M = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
-  uint32_t E = M * 2;                                                // Number of Rate-Matched bits
+  q->K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
+  q->M = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
+  q->E = q->M * 2;                                             // Number of Rate-Matched bits
 
   // Check number of estimates is correct
-  if (ce->nof_re != M) {
-    ERROR("Invalid number of channel estimates (%d != %d)\n", M, ce->nof_re);
+  if (ce->nof_re != q->M) {
+    ERROR("Invalid number of channel estimates (%d != %d)\n", q->M, ce->nof_re);
     return SRSLTE_ERROR;
   }
 
   // Get polar code
-  if (srslte_polar_code_get(&q->code, K, E, 9U) < SRSLTE_SUCCESS) {
+  if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
+  INFO("PDCCH NR RX: K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
 
   // Get symbols from grid
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, false);
-  if (M != m) {
-    ERROR("Unmatch number of RE (%d != %d)\n", m, M);
+  if (q->M != m) {
+    ERROR("Unmatch number of RE (%d != %d)\n", m, q->M);
+    return SRSLTE_ERROR;
   }
 
   // Equalise
-  srslte_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, M, 1.0f, ce->noise_var);
+  srslte_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, q->M, 1.0f, ce->noise_var);
 
   // Demodulation
   int8_t* llr = (int8_t*)q->f;
-  srslte_demod_soft_demodulate_b(SRSLTE_MOD_QPSK, q->symbols, llr, M);
+  srslte_demod_soft_demodulate_b(SRSLTE_MOD_QPSK, q->symbols, llr, q->M);
 
   // Measure EVM if configured
   if (q->evm_buffer != NULL) {
-    res->evm = srslte_evm_run_b(q->evm_buffer, &q->modem_table, q->symbols, llr, E);
+    res->evm = srslte_evm_run_b(q->evm_buffer, &q->modem_table, q->symbols, llr, q->E);
   } else {
     res->evm = NAN;
   }
 
+  // Negate all LLR
+  for (uint32_t i = 0; i < q->E; i++) {
+    llr[i] *= -1;
+  }
+
   // Descrambling
-  srslte_sequence_apply_c(llr, llr, E, pdcch_nr_c_init(q, dci_msg));
+  srslte_sequence_apply_c(llr, llr, q->E, pdcch_nr_c_init(q, dci_msg));
 
   // Un-rate matching
   int8_t* d = (int8_t*)q->d;
-  if (srslte_polar_rm_rx_c(&q->rm, llr, d, E, q->code.n, K, 0) < SRSLTE_SUCCESS) {
+  if (srslte_polar_rm_rx_c(&q->rm, llr, d, q->E, q->code.n, q->K, PDCCH_NR_POLAR_RM_IBIL) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
+  // Print d
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("PDCCH NR RX: d=");
+    srslte_vec_fprint_bs(stdout, d, q->K);
+  }
+
   // Decode
-  if (srslte_polar_decoder_decode_c(&q->decoder, d, q->c, q->code.n, q->code.F_set, q->code.F_set_size) <
+  if (srslte_polar_decoder_decode_c(&q->decoder, d, q->allocated, q->code.n, q->code.F_set, q->code.F_set_size) <
       SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
+  }
+
+  // De-allocate channel
+  srslte_polar_chanalloc_rx(q->allocated, q->c, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+
+  // Print c
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("PDCCH NR RX: c=");
+    srslte_vec_fprint_hex(stdout, q->c, q->K);
   }
 
   // Unpack RNTI
@@ -406,16 +493,55 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   srslte_bit_unpack(dci_msg->rnti, &ptr, 16);
 
   // De-Scramble CRC with RNTI
-  ptr = &q->c[K - 24];
-  srslte_vec_xor_bbb(unpacked_rnti, &q->c[K - 16], &q->c[K - 16], 16);
+  ptr = &q->c[q->K - 24];
+  srslte_vec_xor_bbb(unpacked_rnti, &q->c[q->K - 16], &q->c[q->K - 16], 16);
 
   // Check CRC
   uint32_t checksum1 = srslte_crc_checksum(&q->crc24c, q->c, dci_msg->nof_bits);
   uint32_t checksum2 = srslte_bit_pack(&ptr, 24);
   res->crc           = checksum1 == checksum2;
 
+  INFO("PDCCH NR RX: CRC={%06x, %06x}\n", checksum1, checksum2);
+
   // Copy DCI message
   srslte_vec_u8_copy(dci_msg->payload, q->c, dci_msg->nof_bits);
 
+  if (q->meas_time_en) {
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    q->meas_time_us = (uint32_t)t[0].tv_usec;
+  }
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    char str[128] = {};
+    srslte_pdcch_nr_info(q, res, str, sizeof(str));
+    INFO("PDCCH NR RX: %s\n", str);
+  }
+
   return SRSLTE_SUCCESS;
+}
+
+uint32_t srslte_pdcch_nr_info(const srslte_pdcch_nr_t* q, const srslte_pdcch_nr_res_t* res, char* str, uint32_t str_len)
+{
+  int len = 0;
+
+  if (q == NULL) {
+    return len;
+  }
+
+  len = srslte_print_check(str, str_len, len, "K=%d,E=%d", q->K, q->E);
+
+  if (res != NULL) {
+    len = srslte_print_check(str, str_len, len, ",crc=%s", res->crc ? "OK" : "KO");
+
+    if (q->evm_buffer && res) {
+      len = srslte_print_check(str, str_len, len, ",evm=%.2f", res->evm);
+    }
+  }
+
+  if (q->meas_time_en) {
+    len = srslte_print_check(str, str_len, len, ",t=%d us", q->meas_time_us);
+  }
+
+  return len;
 }

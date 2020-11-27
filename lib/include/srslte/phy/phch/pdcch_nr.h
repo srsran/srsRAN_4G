@@ -37,6 +37,7 @@
 typedef struct {
   bool disable_simd;
   bool measure_evm;
+  bool measure_time;
 } srslte_pdcch_nr_args_t;
 
 /**
@@ -51,12 +52,18 @@ typedef struct SRSLTE_API {
   srslte_carrier_nr_t    carrier;
   srslte_coreset_t       coreset;
   srslte_crc_t           crc24c;
-  uint8_t*               c; // Message bits with attached CRC
-  uint8_t*               d; // encoded bits
-  uint8_t*               f; // bits at the Rate matching output
+  uint8_t*               c;         // Message bits with attached CRC
+  uint8_t*               d;         // encoded bits
+  uint8_t*               f;         // bits at the Rate matching output
+  uint8_t*               allocated; // Allocated polar bit buffer, encoder input, decoder output
   cf_t*                  symbols;
   srslte_modem_table_t   modem_table;
   srslte_evm_buffer_t*   evm_buffer;
+  bool                   meas_time_en;
+  uint32_t               meas_time_us;
+  uint32_t               K;
+  uint32_t               M;
+  uint32_t               E;
 } srslte_pdcch_nr_t;
 
 /**
@@ -92,7 +99,7 @@ SRSLTE_API int srslte_pdcch_nr_init_tx(srslte_pdcch_nr_t* q, const srslte_pdcch_
 
 SRSLTE_API int srslte_pdcch_nr_init_rx(srslte_pdcch_nr_t* q, const srslte_pdcch_nr_args_t* args);
 
-SRSLTE_API void srslte_pdcch_nr_init_free(srslte_pdcch_nr_t* q);
+SRSLTE_API void srslte_pdcch_nr_free(srslte_pdcch_nr_t* q);
 
 SRSLTE_API int
 srslte_pdcch_nr_set_carrier(srslte_pdcch_nr_t* q, const srslte_carrier_nr_t* carrier, const srslte_coreset_t* coreset);
@@ -115,5 +122,19 @@ SRSLTE_API int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
                                       srslte_dmrs_pdcch_ce_t* ce,
                                       srslte_dci_msg_nr_t*    dci_msg,
                                       srslte_pdcch_nr_res_t*  res);
+
+/**
+ * @brief Stringifies NR PDCCH decoding information from the latest encoded/decoded transmission
+ *
+ * @param[in] q provides PDCCH encoder/decoder object
+ * @param[in] res Optional PDCCH decode result
+ * @param[out] str Destination string
+ * @param[out] str_len Maximum destination string length
+ * @return The number of characters written in the string
+ */
+SRSLTE_API uint32_t srslte_pdcch_nr_info(const srslte_pdcch_nr_t*     q,
+                                         const srslte_pdcch_nr_res_t* res,
+                                         char*                        str,
+                                         uint32_t                     str_len);
 
 #endif // SRSLTE_PDCCH_NR_H
