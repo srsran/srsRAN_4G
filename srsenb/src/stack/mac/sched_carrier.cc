@@ -12,9 +12,8 @@
 
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
 #include "srsenb/hdr/stack/mac/sched_interface_helpers.h"
-#include "srsenb/hdr/stack/mac/sched_metric.h"
-#include "srsenb/hdr/stack/mac/sched_pf.h"
-#include "srslte/common/log_helper.h"
+#include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
+#include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srslte/common/logmap.h"
 
 namespace srsenb {
@@ -289,14 +288,8 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
   ra_sched_ptr.reset(new ra_sched{*cc_cfg, *ue_db});
 
   // Setup data scheduling algorithms
-  //  dl_metric.reset(new srsenb::dl_metric_rr{});
-  //  dl_metric->set_params(*cc_cfg);
-  //  ul_metric.reset(new srsenb::ul_metric_rr{});
-  //  ul_metric->set_params(*cc_cfg);
-  dl_metric.reset(new srsenb::sched_dl_pf{});
-  dl_metric->set_params(*cc_cfg);
-  ul_metric.reset(new srsenb::sched_ul_pf{});
-  ul_metric->set_params(*cc_cfg);
+  sched_algo.reset(new sched_time_pf{*cc_cfg});
+  //  sched_algo.reset(new sched_time_rr{*cc_cfg});
 
   // Initiate the tti_scheduler for each TTI
   for (sf_sched& tti_sched : sf_scheds) {
@@ -375,13 +368,13 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
   }
 
   // call DL scheduler metric to fill RB grid
-  dl_metric->sched_users(*ue_db, tti_result);
+  sched_algo->sched_dl_users(*ue_db, tti_result);
 }
 
 int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 {
   /* Call scheduler for UL data */
-  ul_metric->sched_users(*ue_db, tti_sched);
+  sched_algo->sched_ul_users(*ue_db, tti_sched);
 
   return SRSLTE_SUCCESS;
 }

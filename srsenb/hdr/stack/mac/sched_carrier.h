@@ -14,6 +14,7 @@
 #define SRSLTE_SCHED_CARRIER_H
 
 #include "sched.h"
+#include "schedulers/sched_base.h"
 
 namespace srsenb {
 
@@ -52,8 +53,6 @@ private:
   srslte::log_ref               log_h;
   rrc_interface_mac*            rrc   = nullptr;
   std::map<uint16_t, sched_ue>* ue_db = nullptr;
-  std::unique_ptr<metric_dl>    dl_metric;
-  std::unique_ptr<metric_ul>    ul_metric;
   const uint32_t                enb_cc_idx;
 
   // Subframe scheduling logic
@@ -64,8 +63,9 @@ private:
 
   std::vector<uint8_t> sf_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
 
-  std::unique_ptr<bc_sched> bc_sched_ptr;
-  std::unique_ptr<ra_sched> ra_sched_ptr;
+  std::unique_ptr<bc_sched>   bc_sched_ptr;
+  std::unique_ptr<ra_sched>   ra_sched_ptr;
+  std::unique_ptr<sched_base> sched_algo;
 };
 
 //! Broadcast (SIB + paging) scheduler

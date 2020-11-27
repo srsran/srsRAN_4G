@@ -14,7 +14,7 @@
 #define SRSENB_MAC_H
 
 #include "sched.h"
-#include "sched_metric.h"
+#include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/task_scheduler.h"
@@ -159,14 +159,14 @@ private:
 
   std::vector<common_buffers_t> common_buffers;
 
-  const static int           mcch_payload_len                      = 3000; // TODO FIND OUT MAX LENGTH
-  int                        current_mcch_length                   = 0;
-  uint8_t                    mcch_payload_buffer[mcch_payload_len] = {};
-  srslte::mcch_msg_t         mcch;
-  srslte::sib2_mbms_t        sib2;
-  srslte::sib13_t            sib13;
-  const static int mtch_payload_len                      = 10000;
-  uint8_t          mtch_payload_buffer[mtch_payload_len] = {};
+  const static int    mcch_payload_len                      = 3000; // TODO FIND OUT MAX LENGTH
+  int                 current_mcch_length                   = 0;
+  uint8_t             mcch_payload_buffer[mcch_payload_len] = {};
+  srslte::mcch_msg_t  mcch;
+  srslte::sib2_mbms_t sib2;
+  srslte::sib13_t     sib13;
+  const static int    mtch_payload_len                      = 10000;
+  uint8_t             mtch_payload_buffer[mtch_payload_len] = {};
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap = nullptr;

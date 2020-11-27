@@ -305,6 +305,7 @@ public:
   const tti_params_t& get_tti_params() const { return tti_params; }
   bool                is_dl_alloc(uint16_t rnti) const final;
   bool                is_ul_alloc(uint16_t rnti) const final;
+  uint32_t            get_enb_cc_idx() const { return cc_cfg->enb_cc_idx; }
 
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
