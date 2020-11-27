@@ -232,6 +232,12 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
     return;
   }
 
+  if (header.teid != 0 && teidin_to_rntilcid_map.count(header.teid) == 0) {
+    // Received G-PDU for non-existing and non-zero TEID.
+    // Sending GTP-U error indication
+    error_indication(addr.sin_addr.s_addr, addr.sin_port, header.teid);
+  }
+
   switch (header.message_type) {
     case GTPU_MSG_ECHO_REQUEST:
       // Echo request - send response
@@ -287,6 +293,39 @@ void gtpu::handle_gtpu_m1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
   m1u.handle_rx_packet(std::move(pdu), addr);
 }
 
+/****************************************************************************
+ * GTP-U Error Indication
+ ***************************************************************************/
+void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
+{
+  gtpu_log->info("TX GTPU Error Indication, Seq: %d\n", tx_seq);
+
+  gtpu_header_t        header;
+  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
+
+  // header
+  header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
+  header.message_type      = GTPU_MSG_ERROR_INDICATION;
+  header.teid              = err_teid;
+  header.length            = 4;
+  header.seq_number        = tx_seq;
+  header.n_pdu             = 0;
+  header.next_ext_hdr_type = 0;
+
+  gtpu_write_header(&header, pdu.get(), gtpu_log);
+
+  struct sockaddr_in servaddr;
+  servaddr.sin_family      = AF_INET;
+  servaddr.sin_addr.s_addr = addr;
+  servaddr.sin_port        = port;
+
+  sendto(fd, pdu->msg, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  tx_seq++;
+}
+
+/****************************************************************************
+ * GTP-U Echo Request/Response
+ ***************************************************************************/
 void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 {
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);

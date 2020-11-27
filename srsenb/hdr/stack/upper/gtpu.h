@@ -103,10 +103,14 @@ private:
   } rnti_lcid_t;
   std::map<uint32_t, rnti_lcid_t> teidin_to_rntilcid_map;
 
+  // Tx sequence number for signaling messages
+  uint32_t tx_seq = 0;
+
   // Socket file descriptor
   int fd = -1;
 
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
+  void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
 
   /****************************************************************************
    * TEID to RNIT/LCID helper functions
