@@ -97,7 +97,7 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
     case 9: // downlink
       // iil = true
       if (K < 36 || K > 164) {
-        ERROR("Codeblock length (K) not supported for downlink transmission, choose 165 > K > 35\n");
+        ERROR("Codeblock length (K=%d) not supported for downlink transmission, choose 165 > K > 35\n", K);
         return -1;
       }
       break;
@@ -288,14 +288,13 @@ int srslte_polar_code_get(srslte_polar_code_t* c, uint16_t K, uint16_t E, uint8_
   uint16_t fvalue = 0;
   uint16_t i_f    = 0;
   while (i_f < c->F_set_size) {
-    if (c->K_set[i_k] == fvalue) {
-      i_k++; // skip
-      fvalue++;
-    } else {
+    if (c->K_set[i_k] != fvalue) {
       c->F_set[i_f] = fvalue;
-      fvalue++;
       i_f++;
+    } else if (i_k < K + nPC - 1) {
+      i_k++; // skip
     }
+    fvalue++;
   }
 
   // mark the end of the sets (useful at subchannel allocation)
