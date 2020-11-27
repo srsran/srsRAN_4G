@@ -59,10 +59,14 @@ using srslte::tti_point;
 uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 struct ue_stats_t {
-  uint64_t nof_dl_rbs = 0;
-  uint64_t nof_ul_rbs = 0;
+  uint32_t nof_dl_rbs   = 0;
+  uint32_t nof_ul_rbs   = 0;
+  uint64_t nof_dl_bytes = 0;
+  uint64_t nof_ul_bytes = 0;
+  uint32_t nof_ttis     = 0;
 };
 std::map<uint16_t, ue_stats_t> ue_stats;
+ue_stats_t                     ue_tot_stats;
 
 /*******************
  *     Logging     *
@@ -77,8 +81,18 @@ public:
   void log_diagnostics() override
   {
     info("UE stats:\n");
+    info("all: {DL/UL RBs: %" PRIu32 "/%" PRIu32 ", DL/UL bitrates: %0.2f/%0.2f Mbps}\n",
+         ue_tot_stats.nof_dl_rbs,
+         ue_tot_stats.nof_ul_rbs,
+         ue_tot_stats.nof_dl_bytes * 8 * 0.001 / ue_tot_stats.nof_ttis,
+         ue_tot_stats.nof_ul_bytes * 8 * 0.001 / ue_tot_stats.nof_ttis);
     for (auto& e : ue_stats) {
-      info("0x%x: {DL RBs: %" PRIu64 ", UL RBs: %" PRIu64 "}\n", e.first, e.second.nof_dl_rbs, e.second.nof_ul_rbs);
+      info("0x%x: {DL/UL RBs: %" PRIu32 "/%" PRIu32 ", DL/UL bitrates: %0.2f/%0.2f Mbps}\n",
+           e.first,
+           e.second.nof_dl_rbs,
+           e.second.nof_ul_rbs,
+           e.second.nof_dl_bytes * 8 * 0.001 / e.second.nof_ttis,
+           e.second.nof_ul_bytes * 8 * 0.001 / e.second.nof_ttis);
     }
     info("Number of assertion warnings: %u\n", warn_counter);
     info("Number of assertion errors: %u\n", error_counter);
@@ -270,23 +284,36 @@ int sched_tester::update_ue_stats()
 {
   // update ue stats with number of allocated UL PRBs
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++i) {
-    uint32_t L, RBstart;
-    srslte_ra_type2_from_riv(tti_info.ul_sched_result[CARRIER_IDX].pusch[i].dci.type2_alloc.riv,
+    const auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[i];
+    uint32_t    L, RBstart;
+    srslte_ra_type2_from_riv(pusch.dci.type2_alloc.riv,
                              &L,
                              &RBstart,
                              sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb,
                              sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
-    ue_stats[tti_info.ul_sched_result[CARRIER_IDX].pusch[i].dci.rnti].nof_ul_rbs += L;
+    ue_stats[pusch.dci.rnti].nof_ul_rbs += L;
+    ue_stats[pusch.dci.rnti].nof_ul_bytes += pusch.tbs;
+    ue_tot_stats.nof_ul_rbs += L;
+    ue_tot_stats.nof_ul_bytes += pusch.tbs;
   }
 
   // update ue stats with number of DL RB allocations
   srslte::bounded_bitset<100, true> alloc_mask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
   for (uint32_t i = 0; i < tti_info.dl_sched_result[CARRIER_IDX].nof_data_elems; ++i) {
+    auto& data = tti_info.dl_sched_result[CARRIER_IDX].data[i];
     TESTASSERT(srsenb::extract_dl_prbmask(sched_cell_params[CARRIER_IDX].cfg.cell,
                                           tti_info.dl_sched_result[CARRIER_IDX].data[i].dci,
                                           alloc_mask) == SRSLTE_SUCCESS);
-    ue_stats[tti_info.dl_sched_result[CARRIER_IDX].data[i].dci.rnti].nof_dl_rbs += alloc_mask.count();
+    ue_stats[data.dci.rnti].nof_dl_rbs += alloc_mask.count();
+    ue_stats[data.dci.rnti].nof_dl_bytes += data.tbs[0] + data.tbs[1];
+    ue_tot_stats.nof_dl_rbs += alloc_mask.count();
+    ue_tot_stats.nof_dl_bytes += data.tbs[0] + data.tbs[1];
   }
+
+  for (auto& u : ue_db) {
+    ue_stats[u.first].nof_ttis++;
+  }
+  ue_tot_stats.nof_ttis++;
 
   return SRSLTE_SUCCESS;
 }
