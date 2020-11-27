@@ -24,13 +24,14 @@
 #include <getopt.h>
 
 static srslte_carrier_nr_t carrier = {
-    0,                 // cell_id
-    0,                 // numerology
-    SRSLTE_MAX_PRB_NR, // nof_prb
-    0                  // start
+    0,  // cell_id
+    0,  // numerology
+    50, // nof_prb
+    0   // start
 };
 
-static uint16_t rnti = 0x1234;
+static uint16_t rnti       = 0x1234;
+static bool     fast_sweep = true;
 
 typedef struct {
   uint64_t time_us;
@@ -72,22 +73,22 @@ static int test(srslte_pdcch_nr_t*      tx,
 
 static void usage(char* prog)
 {
-  printf("Usage: %s [v] \n", prog);
+  printf("Usage: %s [pFv] \n", prog);
   printf("\t-p Number of carrier PRB [Default %d]\n", carrier.nof_prb);
-  //  printf("\t-m MCS PRB, set to >28 for steering [Default %d]\n", mcs);
-  //  printf("\t-T Provide MCS table (64qam, 256qam, 64qamLowSE) [Default %s]\n",
-  //         srslte_mcs_table_to_str(pdsch_cfg.sch_cfg.mcs_table));
-  //  printf("\t-L Provide number of layers [Default %d]\n", pdsch_cfg.sch_cfg.max_mimo_layers);
+  printf("\t-F Fast CORESET frequency resource sweeping [Default %s]\n", fast_sweep ? "Enabled" : "Disabled");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 static int parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "vp")) != -1) {
+  while ((opt = getopt(argc, argv, "pFv")) != -1) {
     switch (opt) {
       case 'p':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'F':
+        fast_sweep ^= true;
         break;
       case 'v':
         srslte_verbose++;
@@ -140,7 +141,8 @@ int main(int argc, char** argv)
 
   srslte_coreset_t coreset                = {};
   uint32_t         nof_frequency_resource = SRSLTE_MIN(SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE, carrier.nof_prb / 6);
-  for (uint32_t frequency_resources = 1; frequency_resources < (1U << nof_frequency_resource); frequency_resources++) {
+  for (uint32_t frequency_resources = 1; frequency_resources < (1U << nof_frequency_resource);
+       frequency_resources          = (fast_sweep) ? ((frequency_resources << 1U) | 1U) : (frequency_resources + 1)) {
     for (uint32_t i = 0; i < nof_frequency_resource; i++) {
       uint32_t mask             = ((frequency_resources >> i) & 1U);
       coreset.freq_resources[i] = (mask == 1);
@@ -228,17 +230,21 @@ int main(int argc, char** argv)
     }
   }
 
-  printf("%6s %6s %6s\n", " ", " Time ", " Time ");
-  printf("%6s %6s %6s\n", "L", "Encode", "Decode");
-  printf("%6s %6s %6s\n", " ", " (us) ", " (us) ");
+  printf("+--------+--------+--------+--------+\n");
+  printf("| %6s | %6s | %6s | %6s |\n", " ", " ", " Time ", " Time ");
+  printf("| %6s | %6s | %6s | %6s |\n", "  L  ", "Count", "Encode", "Decode");
+  printf("| %6s | %6s | %6s | %6s |\n", " ", " ", " (us) ", " (us) ");
+  printf("+--------+--------+--------+--------+\n");
   for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {
     if (enc_time[i].count > 0 && dec_time[i].count) {
-      printf("%6d %6.1f %6.1f\n",
+      printf("| %6d | %6ld | %6.1f | %6.1f |\n",
              i,
+             enc_time[i].count,
              (double)enc_time[i].time_us / (double)enc_time[i].count,
              (double)dec_time[i].time_us / (double)dec_time[i].count);
     }
   }
+  printf("+--------+--------+--------+--------+\n");
 
   ret = SRSLTE_SUCCESS;
 clean_exit:
