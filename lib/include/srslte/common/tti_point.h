@@ -113,7 +113,19 @@ using tti_interval = srslte::interval<srslte::tti_point>;
 
 } // namespace srslte
 
+template <>
+struct fmt::formatter<srslte::tti_point> : public fmt::formatter<uint32_t> {
+  // parse is inherited from formatter<int>.
+  template <typename FormatContext>
+  auto format(srslte::tti_point tti, FormatContext& ctx) -> decltype(format_to(ctx.out(), ""))
+  {
+    return format_to(ctx.out(), "{}", tti.to_uint());
+  }
+};
+
 namespace srsenb {
+
+using tti_point = srslte::tti_point;
 
 inline srslte::tti_point to_tx_dl(srslte::tti_point t)
 {

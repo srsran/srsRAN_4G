@@ -47,16 +47,6 @@ uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_
   return (uint32_t)tbs / 8U;
 }
 
-//! TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
-uint32_t get_mac_subheader_size(uint32_t sdu_bytes)
-{
-  return sdu_bytes == 0 ? 0 : (sdu_bytes > 128 ? 3 : 2);
-}
-uint32_t get_mac_sdu_and_subheader_size(uint32_t sdu_bytes)
-{
-  return sdu_bytes + get_mac_subheader_size(sdu_bytes);
-}
-
 /**
  * Count number of PRBs present in a DL RBG mask
  * @param bitmask DL RBG mask
@@ -145,7 +135,7 @@ std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y
  *
  *******************************************************/
 
-sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC "))
+sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC"))
 {
   reset();
 }
@@ -157,7 +147,7 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
   Info("SCHED: Added user rnti=0x%x\n", rnti);
 }
 
-void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
+void sched_ue::set_cfg(const ue_cfg_t& cfg_)
 {
   // for the first configured cc, set it as primary cc
   if (cfg.supported_cc_list.empty()) {
@@ -187,8 +177,11 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   }
   // in case carriers have been added or modified
   bool scell_activation_state_changed = false;
+  enb_ue_cc_idx_map.clear();
+  enb_ue_cc_idx_map.resize(cell_params_list->size(), -1);
   for (uint32_t ue_idx = 0; ue_idx < cfg.supported_cc_list.size(); ++ue_idx) {
-    auto& cc_cfg = cfg.supported_cc_list[ue_idx];
+    auto& cc_cfg                         = cfg.supported_cc_list[ue_idx];
+    enb_ue_cc_idx_map[cc_cfg.enb_cc_idx] = ue_idx;
 
     if (ue_idx >= prev_supported_cc_list.size()) {
       // New carrier needs to be added
@@ -230,11 +223,12 @@ void sched_ue::reset()
   }
 }
 
-void sched_ue::new_tti(srslte::tti_point new_tti)
+void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
 {
-  current_tti = new_tti;
-
-  lch_handler.new_tti();
+  if (current_tti != tti_rx) {
+    current_tti = tti_rx;
+    lch_handler.new_tti();
+  }
 }
 
 /// sanity check the UE CC configuration
@@ -272,10 +266,10 @@ void sched_ue::check_ue_cfg_correctness() const
  *
  *******************************************************/
 
-void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
+void sched_ue::set_bearer_cfg(uint32_t lc_id, const bearer_cfg_t& cfg_)
 {
-  cfg.ue_bearers[lc_id] = *cfg_;
-  lch_handler.config_lcid(lc_id, *cfg_);
+  cfg.ue_bearers[lc_id] = cfg_;
+  lch_handler.config_lcid(lc_id, cfg_);
 }
 
 void sched_ue::rem_bearer(uint32_t lc_id)
@@ -284,10 +278,10 @@ void sched_ue::rem_bearer(uint32_t lc_id)
   lch_handler.config_lcid(lc_id, sched_interface::ue_bearer_cfg_t{});
 }
 
-void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
+void sched_ue::phy_config_enabled(tti_point tti_rx, bool enabled)
 {
   for (cc_sched_ue& c : carriers) {
-    c.dl_cqi_tti = tti;
+    c.dl_cqi_tti_rx = tti_rx;
   }
   phy_config_dedicated_enabled = enabled;
 }
@@ -335,12 +329,12 @@ void sched_ue::unset_sr()
   sr = false;
 }
 
-bool sched_ue::pucch_sr_collision(uint32_t tti, uint32_t n_cce)
+bool sched_ue::pucch_sr_collision(tti_point tti_tx_dl, uint32_t n_cce)
 {
   if (!phy_config_dedicated_enabled) {
     return false;
   }
-  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, tti)) {
+  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, tti_tx_dl.to_uint())) {
     return (n_cce + cfg.pucch_cfg.N_pucch_1) == cfg.pucch_cfg.n_pucch_sr;
   }
   return false;
@@ -383,7 +377,7 @@ bool sched_ue::pdsch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx) cons
   return true;
 }
 
-bool sched_ue::pusch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const
+bool sched_ue::pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const
 {
   if (carriers[0].get_cell_cfg()->enb_cc_idx != enb_cc_idx) {
     return true;
@@ -407,7 +401,7 @@ bool sched_ue::pusch_enabled(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool
   return true;
 }
 
-int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
+int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int          tbs_acked = -1;
   cc_sched_ue* c         = find_ue_carrier(enb_cc_idx);
@@ -415,9 +409,10 @@ int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx
     std::pair<uint32_t, int> p2 = c->harq_ent.set_ack_info(tti_rx, tb_idx, ack);
     tbs_acked                   = p2.second;
     if (tbs_acked > 0) {
-      Debug("SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx);
+      Debug(
+          "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
     } else {
-      Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx);
+      Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx.to_uint());
     }
   } else {
     log_h->warning("Received DL ACK for invalid cell index %d\n", enb_cc_idx);
@@ -425,7 +420,7 @@ int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx
   return tbs_acked;
 }
 
-void sched_ue::set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
+void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
@@ -438,44 +433,44 @@ void sched_ue::set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool cr
   }
 }
 
-void sched_ue::set_dl_ri(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri)
+void sched_ue::set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->dl_ri     = ri;
-    c->dl_ri_tti = tti;
+    c->dl_ri        = ri;
+    c->dl_ri_tti_rx = tti_rx;
   } else {
     log_h->warning("Received DL RI for invalid cell index %d\n", enb_cc_idx);
   }
 }
 
-void sched_ue::set_dl_pmi(uint32_t tti, uint32_t enb_cc_idx, uint32_t pmi)
+void sched_ue::set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t pmi)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->dl_pmi     = pmi;
-    c->dl_pmi_tti = tti;
+    c->dl_pmi        = pmi;
+    c->dl_pmi_tti_rx = tti_rx;
   } else {
     log_h->warning("Received DL PMI for invalid cell index %d\n", enb_cc_idx);
   }
 }
 
-void sched_ue::set_dl_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi)
+void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->set_dl_cqi(tti, cqi);
+    c->set_dl_cqi(tti_rx, cqi);
   } else {
     log_h->warning("Received DL CQI for invalid enb cell index %d\n", enb_cc_idx);
   }
 }
 
-void sched_ue::set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
+void sched_ue::set_ul_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->ul_cqi     = cqi;
-    c->ul_cqi_tti = tti;
+    c->ul_cqi        = cqi;
+    c->ul_cqi_tti_rx = tti_rx;
   } else {
     log_h->warning("Received SNR info for invalid cell index %d\n", enb_cc_idx);
   }
@@ -513,7 +508,7 @@ void sched_ue::tpc_dec()
 std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
                                                       dl_harq_proc*           h,
                                                       const rbgmask_t&        user_mask,
-                                                      uint32_t                tti_tx_dl,
+                                                      tti_point               tti_tx_dl,
                                                       uint32_t                ue_cc_idx,
                                                       uint32_t                cfi,
                                                       uint32_t                tb)
@@ -541,7 +536,7 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
 
 int sched_ue::generate_dl_dci_format(uint32_t                          pid,
                                      sched_interface::dl_sched_data_t* data,
-                                     uint32_t                          tti_tx_dl,
+                                     tti_point                         tti_tx_dl,
                                      uint32_t                          ue_cc_idx,
                                      uint32_t                          cfi,
                                      const rbgmask_t&                  user_mask)
@@ -569,7 +564,7 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
 // > return 0 if allocation is invalid
 int sched_ue::generate_format1(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
-                               uint32_t                          tti_tx_dl,
+                               tti_point                         tti_tx_dl,
                                uint32_t                          ue_cc_idx,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
@@ -636,7 +631,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
  * @return pair with MCS and TBS (in bytes)
  */
 std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_idx,
-                                                  uint32_t               tti_tx_dl,
+                                                  tti_point              tti_tx_dl,
                                                   uint32_t               nof_alloc_prbs,
                                                   uint32_t               cfi,
                                                   const srslte_dci_dl_t& dci)
@@ -648,7 +643,7 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   srslte_pdsch_grant_t grant = {};
   srslte_dl_sf_cfg_t   dl_sf = {};
   dl_sf.cfi                  = cfi;
-  dl_sf.tti                  = tti_tx_dl;
+  dl_sf.tti                  = tti_tx_dl.to_uint();
   srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, carriers[ue_cc_idx].get_cell_cfg()->nof_prb());
   uint32_t nof_re = srslte_ra_dl_grant_nof_re(&carriers[ue_cc_idx].get_cell_cfg()->cfg.cell, &dl_sf, &grant);
 
@@ -677,7 +672,7 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
 // Generates a Format2a dci
 int sched_ue::generate_format2a(uint32_t                          pid,
                                 sched_interface::dl_sched_data_t* data,
-                                uint32_t                          tti_tx_dl,
+                                tti_point                         tti_tx_dl,
                                 uint32_t                          ue_cc_idx,
                                 uint32_t                          cfi,
                                 const rbgmask_t&                  user_mask)
@@ -757,13 +752,13 @@ int sched_ue::generate_format2a(uint32_t                          pid,
 // Generates a Format2 dci
 int sched_ue::generate_format2(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
-                               uint32_t                          tti,
+                               tti_point                         tti_tx_dl,
                                uint32_t                          cc_idx,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
 {
   /* Call Format 2a (common) */
-  int ret = generate_format2a(pid, data, tti, cc_idx, cfi, user_mask);
+  int ret = generate_format2a(pid, data, tti_tx_dl, cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
   data->dci.format = SRSLTE_DCI_FORMAT2;
@@ -777,7 +772,7 @@ int sched_ue::generate_format2(uint32_t                          pid,
 }
 
 int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
-                               uint32_t                          tti,
+                               tti_point                         tti_tx_ul,
                                uint32_t                          ue_cc_idx,
                                prb_interval                      alloc,
                                bool                              needs_pdcch,
@@ -785,10 +780,10 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
                                int                               explicit_mcs,
                                uci_pusch_t                       uci_type)
 {
-  ul_harq_proc*    h   = get_ul_harq(tti, ue_cc_idx);
+  ul_harq_proc*    h   = get_ul_harq(tti_tx_ul, ue_cc_idx);
   srslte_dci_ul_t* dci = &data->dci;
 
-  bool cqi_request = needs_cqi_unlocked(tti, true);
+  bool cqi_request = needs_cqi(tti_tx_ul.to_uint(), true);
 
   // Set DCI position
   data->needs_pdcch = needs_pdcch;
@@ -808,7 +803,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
     } else {
       // dynamic mcs
-      uint32_t req_bytes = get_pending_ul_new_data(tti, ue_cc_idx);
+      uint32_t req_bytes = get_pending_ul_new_data(tti_tx_ul, ue_cc_idx);
       uint32_t N_srs     = 0;
       uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
       uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
@@ -835,14 +830,14 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
     }
-    h->new_tx(tti_point{tti}, mcs, tbs, alloc, nof_retx);
+    h->new_tx(tti_tx_ul, mcs, tbs, alloc, nof_retx);
     // Un-trigger the SR if data is allocated
     if (tbs > 0) {
       unset_sr();
     }
   } else {
     // retx
-    h->new_retx(tti_point{tti}, &mcs, nullptr, alloc);
+    h->new_retx(tti_tx_ul, &mcs, nullptr, alloc);
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
   }
 
@@ -901,26 +896,20 @@ uint32_t sched_ue::get_max_retx()
   return cfg.maxharq_tx;
 }
 
-bool sched_ue::needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
-{
-  return needs_cqi_unlocked(tti, cc_idx, will_be_sent);
-}
-
-// Private lock-free implemenentation
-bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
+bool sched_ue::needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send)
 {
   bool ret = false;
   if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period &&
       lch_handler.has_pending_dl_txs()) {
-    uint32_t interval = srslte_tti_interval(tti, carriers[cc_idx].dl_cqi_tti);
+    uint32_t interval = srslte_tti_interval(tti, carriers[cc_idx].dl_cqi_tti_rx.to_uint());
     bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
       uint32_t interval_sent = srslte_tti_interval(tti, cqi_request_tti);
       if (interval_sent >= 16) {
-        if (will_be_sent) {
+        if (will_send) {
           cqi_request_tti = tti;
         }
-        Debug("SCHED: Needs_cqi, last_sent=%d, will_be_sent=%d\n", cqi_request_tti, will_be_sent);
+        Debug("SCHED: Needs_cqi, last_sent=%d, will_be_sent=%d\n", cqi_request_tti, will_send);
         ret = true;
       }
     }
@@ -1084,7 +1073,7 @@ uint32_t sched_ue::get_pending_ul_old_data()
   return pending_ul_data;
 }
 
-uint32_t sched_ue::get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx)
+uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_ue_cc_idx)
 {
   static constexpr uint32_t lbsr_size = 4, sbsr_size = 2;
 
@@ -1119,7 +1108,7 @@ uint32_t sched_ue::get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx)
       }
     }
     for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
-      if (needs_cqi_unlocked(tti, cc_idx)) {
+      if (needs_cqi(tti_tx_ul.to_uint(), cc_idx)) {
         return 128;
       }
     }
@@ -1128,9 +1117,9 @@ uint32_t sched_ue::get_pending_ul_data_total(uint32_t tti, int this_ue_cc_idx)
   return pending_data;
 }
 
-uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti, int this_ue_cc_idx)
+uint32_t sched_ue::get_pending_ul_new_data(tti_point tti_tx_ul, int this_ue_cc_idx)
 {
-  uint32_t pending_data = get_pending_ul_data_total(tti, this_ue_cc_idx);
+  uint32_t pending_data = get_pending_ul_data_total(tti_tx_ul, this_ue_cc_idx);
 
   // Subtract all the UL data already allocated in the UL harqs
   uint32_t pending_ul_data = get_pending_ul_old_data();
@@ -1156,7 +1145,7 @@ bool sched_ue::is_sr_triggered()
 }
 
 /* Gets HARQ process with oldest pending retx */
-dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
+dl_harq_proc* sched_ue::get_pending_dl_harq(tti_point tti_tx_dl, uint32_t ue_cc_idx)
 {
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
     return carriers[ue_cc_idx].harq_ent.get_pending_dl_harq(tti_tx_dl);
@@ -1164,7 +1153,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_i
   return nullptr;
 }
 
-dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
+dl_harq_proc* sched_ue::get_empty_dl_harq(tti_point tti_tx_dl, uint32_t ue_cc_idx)
 {
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
     return carriers[ue_cc_idx].harq_ent.get_empty_dl_harq(tti_tx_dl);
@@ -1172,7 +1161,7 @@ dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx
   return nullptr;
 }
 
-ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti_tx_ul, uint32_t ue_cc_idx)
+ul_harq_proc* sched_ue::get_ul_harq(tti_point tti_tx_ul, uint32_t ue_cc_idx)
 {
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
     return carriers[ue_cc_idx].harq_ent.get_ul_harq(tti_tx_ul);
@@ -1203,13 +1192,13 @@ uint32_t sched_ue::get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits)
   return carriers[ue_cc_idx].get_aggr_level(nof_bits);
 }
 
-void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
+void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
 
   if (c != nullptr) {
     // Check that scell state needs to change
-    c->finish_tti(current_tti);
+    c->finish_tti(tti_rx);
   }
 }
 
@@ -1271,10 +1260,7 @@ std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
 
 int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 {
-  auto it = std::find_if(carriers.begin(), carriers.end(), [enb_cc_idx](const cc_sched_ue& c) {
-    return c.get_cell_cfg()->enb_cc_idx == enb_cc_idx;
-  });
-  return it != carriers.end() ? std::distance(carriers.begin(), it) : -1;
+  return enb_ue_cc_idx_map[enb_cc_idx];
 }
 
 int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs)
@@ -1364,14 +1350,14 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
 
 void cc_sched_ue::reset()
 {
-  dl_ri      = 0;
-  dl_ri_tti  = 0;
-  dl_pmi     = 0;
-  dl_pmi_tti = 0;
-  dl_cqi     = 1;
-  dl_cqi_tti = 0;
-  ul_cqi     = 1;
-  ul_cqi_tti = 0;
+  dl_ri         = 0;
+  dl_ri_tti_rx  = tti_point{};
+  dl_pmi        = 0;
+  dl_pmi_tti_rx = tti_point{};
+  dl_cqi        = 1;
+  dl_cqi_tti_rx = tti_point{};
+  ul_cqi        = 1;
+  ul_cqi_tti_rx = tti_point{};
   harq_ent.reset();
 }
 
@@ -1418,7 +1404,7 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   }
 }
 
-void cc_sched_ue::finish_tti(srslte::tti_point tti_rx)
+void cc_sched_ue::finish_tti(tti_point tti_rx)
 {
   last_tti = tti_point{tti_rx};
 
@@ -1553,11 +1539,11 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
   return req_prbs;
 }
 
-void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
+void cc_sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
 {
-  dl_cqi     = dl_cqi_;
-  dl_cqi_tti = tti_tx_dl;
-  dl_cqi_rx  = dl_cqi_rx or dl_cqi > 0;
+  dl_cqi        = dl_cqi_;
+  dl_cqi_tti_rx = tti_rx;
+  dl_cqi_rx     = dl_cqi_rx or dl_cqi > 0;
   if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_rx) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;

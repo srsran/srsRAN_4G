@@ -163,7 +163,7 @@ dl_harq_proc::dl_harq_proc() : harq_proc()
 
 void dl_harq_proc::new_tx(const rbgmask_t& new_mask,
                           uint32_t         tb_idx,
-                          uint32_t         tti,
+                          tti_point        tti_tx_dl,
                           int              mcs,
                           int              tbs,
                           uint32_t         n_cce_,
@@ -171,19 +171,19 @@ void dl_harq_proc::new_tx(const rbgmask_t& new_mask,
 {
   n_cce   = n_cce_;
   rbgmask = new_mask;
-  new_tx_common(tb_idx, tti_point{tti}, mcs, tbs, max_retx_);
+  new_tx_common(tb_idx, tti_tx_dl, mcs, tbs, max_retx_);
 }
 
 void dl_harq_proc::new_retx(const rbgmask_t& new_mask,
                             uint32_t         tb_idx,
-                            uint32_t         tti_,
+                            tti_point        tti_tx_dl,
                             int*             mcs,
                             int*             tbs,
                             uint32_t         n_cce_)
 {
   n_cce   = n_cce_;
   rbgmask = new_mask;
-  new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
+  new_retx_common(tb_idx, tti_tx_dl, mcs, tbs);
 }
 
 int dl_harq_proc::set_ack(uint32_t tb_idx, bool ack)
@@ -201,9 +201,9 @@ rbgmask_t dl_harq_proc::get_rbgmask() const
   return rbgmask;
 }
 
-bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t tti_tx_dl) const
+bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, tti_point tti_tx_dl) const
 {
-  return (tti_point{tti_tx_dl} >= to_tx_dl_ack(tti)) and has_pending_retx_common(tb_idx);
+  return (tti_tx_dl >= to_tx_dl_ack(tti)) and has_pending_retx_common(tb_idx);
 }
 
 int dl_harq_proc::get_tbs(uint32_t tb_idx) const
@@ -314,10 +314,10 @@ void harq_entity::reset()
   }
 }
 
-dl_harq_proc* harq_entity::get_empty_dl_harq(uint32_t tti_tx_dl)
+dl_harq_proc* harq_entity::get_empty_dl_harq(tti_point tti_tx_dl)
 {
   if (not is_async) {
-    dl_harq_proc* h = &dl_harqs[tti_tx_dl % nof_dl_harqs()];
+    dl_harq_proc* h = &dl_harqs[tti_tx_dl.to_uint() % nof_dl_harqs()];
     return h->is_empty() ? h : nullptr;
   }
 
@@ -325,19 +325,19 @@ dl_harq_proc* harq_entity::get_empty_dl_harq(uint32_t tti_tx_dl)
   return it != dl_harqs.end() ? &(*it) : nullptr;
 }
 
-dl_harq_proc* harq_entity::get_pending_dl_harq(uint32_t tti_tx_dl)
+dl_harq_proc* harq_entity::get_pending_dl_harq(tti_point tti_tx_dl)
 {
   if (not is_async) {
-    dl_harq_proc* h = &dl_harqs[tti_tx_dl % nof_dl_harqs()];
+    dl_harq_proc* h = &dl_harqs[tti_tx_dl.to_uint() % nof_dl_harqs()];
     return (h->has_pending_retx(0, tti_tx_dl) or h->has_pending_retx(1, tti_tx_dl)) ? h : nullptr;
   }
   return get_oldest_dl_harq(tti_tx_dl);
 }
 
-std::pair<uint32_t, int> harq_entity::set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack)
+std::pair<uint32_t, int> harq_entity::set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack)
 {
   for (auto& h : dl_harqs) {
-    if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_point{tti_rx}) {
+    if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_rx) {
       if (h.set_ack(tb_idx, ack) == SRSLTE_SUCCESS) {
         return {h.get_id(), h.get_tbs(tb_idx)};
       }
@@ -347,25 +347,24 @@ std::pair<uint32_t, int> harq_entity::set_ack_info(uint32_t tti_rx, uint32_t tb_
   return {dl_harqs.size(), -1};
 }
 
-ul_harq_proc* harq_entity::get_ul_harq(uint32_t tti_tx_ul)
+ul_harq_proc* harq_entity::get_ul_harq(tti_point tti_tx_ul)
 {
-  return &ul_harqs[tti_tx_ul % ul_harqs.size()];
+  return &ul_harqs[tti_tx_ul.to_uint() % ul_harqs.size()];
 }
 
-int harq_entity::set_ul_crc(srslte::tti_point tti_rx, uint32_t tb_idx, bool ack_)
+int harq_entity::set_ul_crc(tti_point tti_rx, uint32_t tb_idx, bool ack_)
 {
-  ul_harq_proc* h   = get_ul_harq(tti_rx.to_uint());
+  ul_harq_proc* h   = get_ul_harq(tti_rx);
   uint32_t      pid = h->get_id();
   return h->set_ack(tb_idx, ack_) ? pid : -1;
 }
 
-void harq_entity::reset_pending_data(srslte::tti_point tti_rx)
+void harq_entity::reset_pending_data(tti_point tti_rx)
 {
   tti_point tti_tx_ul = to_tx_ul(tti_rx);
-  tti_point tti_tx_dl = to_tx_dl(tti_rx);
 
   // Reset ACK state of UL Harq
-  get_ul_harq(tti_tx_ul.to_uint())->reset_pending_data();
+  get_ul_harq(tti_tx_ul)->reset_pending_data();
 
   // Reset any DL harq which has 0 retxs
   for (auto& h : dl_harqs) {
@@ -378,14 +377,13 @@ void harq_entity::reset_pending_data(srslte::tti_point tti_rx)
  * @param tti_tx_dl assumed to always be equal or ahead in time in comparison to current harqs
  * @return pointer to found dl_harq
  */
-dl_harq_proc* harq_entity::get_oldest_dl_harq(uint32_t tti_tx_dl)
+dl_harq_proc* harq_entity::get_oldest_dl_harq(tti_point tti_tx_dl)
 {
-  tti_point t_tx_dl{tti_tx_dl};
-  int       oldest_idx = -1;
-  uint32_t  oldest_tti = 0;
+  int      oldest_idx = -1;
+  uint32_t oldest_tti = 0;
   for (const dl_harq_proc& h : dl_harqs) {
     if (h.has_pending_retx(0, tti_tx_dl) or h.has_pending_retx(1, tti_tx_dl)) {
-      uint32_t x = t_tx_dl - h.get_tti();
+      uint32_t x = tti_tx_dl - h.get_tti();
       if (x > oldest_tti) {
         oldest_idx = h.get_id();
         oldest_tti = x;

@@ -38,7 +38,7 @@ public:
   // getters
   const ra_sched* get_ra_sched() const { return ra_sched_ptr.get(); }
   //! Get a subframe result for a given tti
-  const sf_sched_result* get_sf_result(uint32_t tti_rx) const;
+  const sf_sched_result* get_sf_result(tti_point tti_rx) const;
 
 private:
   //! Compute DL scheduler result for given TTI
@@ -78,9 +78,9 @@ public:
 
 private:
   struct sched_sib_t {
-    bool     is_in_window = false;
-    uint32_t window_start = 0;
-    uint32_t n_tx         = 0;
+    bool      is_in_window = false;
+    tti_point window_start{};
+    uint32_t  n_tx = 0;
   };
 
   void update_si_windows(sf_sched* tti_sched);
@@ -94,8 +94,8 @@ private:
   std::array<sched_sib_t, sched_interface::MAX_SIBS> pending_sibs;
 
   // TTI specific
-  uint32_t current_tti   = 0;
-  uint32_t bc_aggr_level = 2;
+  tti_point current_tti{};
+  uint32_t  bc_aggr_level = 2;
 };
 
 //! RAR/Msg3 scheduler

@@ -284,16 +284,16 @@ void mac::get_metrics(std::vector<mac_metrics_t>& metrics)
  *
  *******************************************************/
 
-int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
+int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
-  log_h->step(tti);
+  log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
     return SRSLTE_ERROR;
   }
 
-  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, enb_cc_idx, tb_idx, ack);
+  uint32_t nof_bytes = scheduler.dl_ack_info(tti_rx, rnti, enb_cc_idx, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
 
   if (ack) {
@@ -382,9 +382,9 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi
   return SRSLTE_SUCCESS;
 }
 
-int mac::snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr)
+int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr)
 {
-  log_h->step(tti);
+  log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -392,7 +392,7 @@ int mac::snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr)
   }
 
   uint32_t cqi = srslte_cqi_from_snr(snr);
-  return scheduler.ul_cqi_info(tti, rnti, enb_cc_idx, cqi, 0);
+  return scheduler.ul_cqi_info(tti_rx, rnti, enb_cc_idx, cqi, 0);
 }
 
 int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)

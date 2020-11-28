@@ -14,6 +14,7 @@
 #define SRSLTE_INTERVAL_H
 
 #include "adt_utils.h"
+#include "srslte/srslog/bundled/fmt/format.h"
 #include <cassert>
 #include <string>
 #include <type_traits>
@@ -76,11 +77,7 @@ public:
 
   bool contains(T point) const { return start_ <= point and point < stop_; }
 
-  std::string to_string() const
-  {
-    std::string s = "[" + std::to_string(start_) + "," + std::to_string(stop_) + ")";
-    return s;
-  }
+  std::string to_string() const { return fmt::format("[{},{})", start_, stop_); }
 
 private:
   T start_;

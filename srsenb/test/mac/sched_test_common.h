@@ -94,7 +94,7 @@ public:
     cell_params(cell_params_)
   {}
 
-  void                new_tti(sched* sched_ptr, uint32_t tti_rx);
+  void                new_tti(sched* sched_ptr, tti_point tti_rx);
   bool                user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
   const ue_ctxt_test* get_user_ctxt(uint16_t rnti) const
   {
@@ -128,7 +128,7 @@ public:
     cell_params(std::move(cell_params_))
   {}
 
-  void process_results(const tti_params_t&                                 tti_params,
+  void process_results(tti_point                                           tti_rx,
                        const std::vector<sched_interface::dl_sched_res_t>& dl_result,
                        const std::vector<sched_interface::ul_sched_res_t>& ul_result);
 
@@ -151,7 +151,6 @@ class common_sched_tester : public sched
 {
 public:
   struct tti_info_t {
-    tti_params_t                                 tti_params{10241};
     uint32_t                                     nof_prachs = 0;
     std::vector<sched_interface::dl_sched_res_t> dl_sched_result;
     std::vector<sched_interface::ul_sched_res_t> ul_sched_result;
@@ -176,9 +175,9 @@ public:
   srslte::log*   tester_log = nullptr;
 
   // tti specific params
-  tti_info_t        tti_info;
-  srslte::tti_point tic;
-  uint32_t          tti_count = 0;
+  tti_info_t tti_info;
+  tti_point  tti_rx;
+  uint32_t   tti_count = 0;
 
   // testers
   std::unique_ptr<user_state_sched_tester> ue_tester;

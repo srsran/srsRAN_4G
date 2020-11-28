@@ -38,14 +38,14 @@ struct alloc_outcome_t {
 
 //! Result of a Subframe sched computation
 struct cc_sched_result {
-  tti_params_t                    tti_params{10241};
+  tti_point                       tti_rx;
   sched_interface::dl_sched_res_t dl_sched_result = {};
   sched_interface::ul_sched_res_t ul_sched_result = {};
   rbgmask_t                       dl_mask         = {}; ///< Accumulation of all DL RBG allocations
   prbmask_t                       ul_mask         = {}; ///< Accumulation of all UL PRB allocations
   pdcch_mask_t                    pdcch_mask      = {}; ///< Accumulation of all CCE allocations
 
-  bool is_generated(srslte::tti_point tti_rx) const { return srslte::tti_point{tti_params.tti_rx} == tti_rx; }
+  bool is_generated(tti_point tti_rx_) const { return tti_rx == tti_rx_; }
 };
 
 struct sf_sched_result {
@@ -91,7 +91,7 @@ public:
   using alloc_result_t = std::vector<const alloc_t*>;
 
   void init(const sched_cell_params_t& cell_params_);
-  void new_tti(const tti_params_t& tti_params_);
+  void new_tti(tti_point tti_rx_);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
 
@@ -134,14 +134,14 @@ private:
                                    int                    node_idx,
                                    const alloc_record_t&  dci_record,
                                    const sched_dci_cce_t& dci_locs,
-                                   uint32_t               tti_tx_dl);
+                                   tti_point              tti_tx_dl);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
   srslte::log_ref            log_h;
 
   // tti vars
-  const tti_params_t*         tti_params   = nullptr;
+  tti_point                   tti_rx;
   uint32_t                    current_cfix = 0;
   std::vector<alloc_tree_t>   alloc_trees;     ///< List of PDCCH alloc trees, where index is the cfi index
   std::vector<alloc_record_t> dci_record_list; ///< Keeps a record of all the PDCCH allocations done so far
@@ -157,7 +157,7 @@ public:
   };
 
   void            init(const sched_cell_params_t& cell_params_);
-  void            new_tti(const tti_params_t& tti_params_);
+  void            new_tti(tti_point tti_rx);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
@@ -180,12 +180,11 @@ private:
   uint32_t                   nof_rbgs = 0;
   uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
 
-  // tti const
-  const tti_params_t* tti_params = nullptr;
   // derived
   pdcch_grid_t pdcch_alloc = {};
 
   // internal state
+  tti_point tti_rx;
   uint32_t  avail_rbg = 0;
   rbgmask_t dl_mask   = {};
   prbmask_t ul_mask   = {};
@@ -241,8 +240,8 @@ public:
     uint32_t mcs   = 0;
   };
   struct pending_rar_t {
-    uint16_t                             ra_rnti                                   = 0;
-    uint32_t                             prach_tti                                 = 0;
+    uint16_t                             ra_rnti = 0;
+    tti_point                            prach_tti{};
     uint32_t                             nof_grants                                = 0;
     sched_interface::dl_sched_rar_info_t msg3_grant[sched_interface::MAX_RAR_LIST] = {};
   };
@@ -270,19 +269,18 @@ public:
   void generate_sched_results(sched_ue_list& ue_db);
 
   alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid);
-  uint32_t         get_tti_tx_dl() const { return tti_params.tti_tx_dl; }
+  tti_point        get_tti_tx_dl() const { return to_tx_dl(tti_rx); }
   uint32_t         get_nof_ctrl_symbols() const;
   const rbgmask_t& get_dl_mask() const { return tti_alloc.get_dl_mask(); }
   alloc_outcome_t  alloc_ul_user(sched_ue* user, prb_interval alloc);
   const prbmask_t& get_ul_mask() const { return tti_alloc.get_ul_mask(); }
-  uint32_t         get_tti_tx_ul() const { return tti_params.tti_tx_ul; }
+  tti_point        get_tti_tx_ul() const { return to_tx_ul(tti_rx); }
 
   // getters
-  uint32_t            get_tti_rx() const { return tti_params.tti_rx; }
-  const tti_params_t& get_tti_params() const { return tti_params; }
-  bool                is_dl_alloc(uint16_t rnti) const;
-  bool                is_ul_alloc(uint16_t rnti) const;
-  uint32_t            get_enb_cc_idx() const { return cc_cfg->enb_cc_idx; }
+  tti_point get_tti_rx() const { return tti_rx; }
+  bool      is_dl_alloc(uint16_t rnti) const;
+  bool      is_ul_alloc(uint16_t rnti) const;
+  uint32_t  get_enb_cc_idx() const { return cc_cfg->enb_cc_idx; }
 
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
@@ -311,7 +309,7 @@ private:
   uint32_t                 last_msg3_prb = 0, max_msg3_prb = 0;
 
   // Next TTI state
-  tti_params_t tti_params{10241};
+  tti_point tti_rx;
 };
 
 } // namespace srsenb

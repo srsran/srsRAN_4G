@@ -41,14 +41,6 @@ const char* alloc_outcome_t::to_string() const
   return "unknown error";
 }
 
-tti_params_t::tti_params_t(uint32_t tti_rx_) :
-  tti_rx(tti_rx_),
-  sf_idx_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS) % 10),
-  tti_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS)),
-  tti_tx_ul(TTI_ADD(tti_rx, (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS))),
-  sfn_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS) / 10)
-{}
-
 cc_sched_result* sf_sched_result::new_cc(uint32_t enb_cc_idx)
 {
   if (enb_cc_idx >= enb_cc_list.size()) {
@@ -135,9 +127,9 @@ void pdcch_grid_t::init(const sched_cell_params_t& cell_params_)
   }
 }
 
-void pdcch_grid_t::new_tti(const tti_params_t& tti_params_)
+void pdcch_grid_t::new_tti(tti_point tti_rx_)
 {
-  tti_params = &tti_params_;
+  tti_rx = tti_rx_;
 
   // Reset back all CFIs
   for (auto& t : alloc_trees) {
@@ -155,11 +147,11 @@ const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, 
     case alloc_type_t::DL_PCCH:
       return &cc_cfg->common_locations[cfix];
     case alloc_type_t::DL_RAR:
-      return &cc_cfg->rar_locations[cfix][tti_params->sf_idx_tx_dl];
+      return &cc_cfg->rar_locations[cfix][to_tx_dl(tti_rx).sf_idx()];
     case alloc_type_t::DL_DATA:
-      return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, tti_params->sf_idx_tx_dl);
+      return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, to_tx_dl(tti_rx).sf_idx());
     case alloc_type_t::UL_DATA:
-      return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, tti_params->sf_idx_tx_dl);
+      return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, to_tx_dl(tti_rx).sf_idx());
     default:
       break;
   }
@@ -204,10 +196,10 @@ bool pdcch_grid_t::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
 
   if (tree.prev_end > 0) {
     for (size_t j = tree.prev_start; j < tree.prev_end; ++j) {
-      ret |= add_tree_node_leaves(tree, (int)j, record, *dci_locs, tti_params->tti_tx_dl);
+      ret |= add_tree_node_leaves(tree, (int)j, record, *dci_locs, to_tx_dl(tti_rx));
     }
   } else {
-    ret = add_tree_node_leaves(tree, -1, record, *dci_locs, tti_params->tti_tx_dl);
+    ret = add_tree_node_leaves(tree, -1, record, *dci_locs, to_tx_dl(tti_rx));
   }
 
   if (ret) {
@@ -223,7 +215,7 @@ bool pdcch_grid_t::add_tree_node_leaves(alloc_tree_t&          tree,
                                         int                    parent_node_idx,
                                         const alloc_record_t&  dci_record,
                                         const sched_dci_cce_t& dci_locs,
-                                        uint32_t               tti_tx_dl)
+                                        tti_point              tti_tx_dl)
 {
   bool ret = false;
 
@@ -397,16 +389,16 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
   pdcch_alloc.init(*cc_cfg);
 }
 
-void sf_grid_t::new_tti(const tti_params_t& tti_params_)
+void sf_grid_t::new_tti(tti_point tti_rx_)
 {
-  tti_params = &tti_params_;
+  tti_rx = tti_rx_;
 
   dl_mask.reset();
   ul_mask.reset();
   avail_rbg = nof_rbgs;
 
   // internal state
-  pdcch_alloc.new_tti(*tti_params);
+  pdcch_alloc.new_tti(tti_rx);
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
@@ -581,26 +573,27 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
   data_allocs.clear();
   ul_data_allocs.clear();
 
-  tti_params = tti_params_t{tti_rx_.to_uint()};
-  tti_alloc.new_tti(tti_params);
+  tti_rx = tti_rx_;
+  tti_alloc.new_tti(tti_rx_);
   cc_results = cc_results_;
 
   // Reserve PRBs for PUCCH
   reserve_ul_prbs(pucch_mask, true);
 
   // Reserve PRBs for PRACH
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_params.tti_tx_ul, -1)) {
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
     reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
-    log_h->debug(
-        "SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s\n", tti_params.tti_tx_ul, prach_mask.to_hex().c_str());
+    log_h->debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s\n",
+                 to_tx_ul(tti_rx).to_uint(),
+                 prach_mask.to_hex().c_str());
   }
 
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
-  last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
-  uint32_t tti_msg3_alloc = TTI_ADD(tti_params.tti_tx_ul, MSG3_DELAY_MS);
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
+  last_msg3_prb            = cc_cfg->cfg.nrb_pucch;
+  tti_point tti_msg3_alloc = to_tx_ul(tti_rx) + MSG3_DELAY_MS;
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
     last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
   }
 }
@@ -744,11 +737,11 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
   return ret;
 }
 
-bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, uint32_t tti_tx_ul)
+bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, tti_point tti_tx_ul)
 {
   for (const sched_interface::ue_cfg_t::cc_cfg_t& cc : ue_cfg.supported_cc_list) {
     if (cc.dl_cfg.cqi_report.periodic_configured) {
-      if (srslte_cqi_periodic_send(&cc.dl_cfg.cqi_report, tti_tx_ul, SRSLTE_FDD)) {
+      if (srslte_cqi_periodic_send(&cc.dl_cfg.cqi_report, tti_tx_ul.to_uint(), SRSLTE_FDD)) {
         return true;
       }
     }
@@ -880,7 +873,7 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
   }
   uint32_t cell_index = p.second;
 
-  ul_harq_proc* h = user->get_ul_harq(tti_params.tti_tx_ul, cell_index);
+  ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
 
   /* Indicate PHICH acknowledgment if needed */
   if (h->has_pending_phich()) {
@@ -1085,7 +1078,7 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
 
     // Check if CQI is pending for this CC
     const srslte_cqi_report_cfg_t& cqi_report = ue_cfg.supported_cc_list[ueccidx].dl_cfg.cqi_report;
-    if (srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul(), SRSLTE_FDD)) {
+    if (srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul().to_uint(), SRSLTE_FDD)) {
       if (uci_alloc == UCI_PUSCH_ACK) {
         uci_alloc = UCI_PUSCH_ACK_CQI;
       } else {
@@ -1271,9 +1264,9 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   set_ul_sched_result(dci_result, &cc_result->ul_sched_result, ue_db);
 
   /* Store remaining sf_sched results for this TTI */
-  cc_result->dl_mask    = tti_alloc.get_dl_mask();
-  cc_result->ul_mask    = tti_alloc.get_ul_mask();
-  cc_result->tti_params = tti_params;
+  cc_result->dl_mask = tti_alloc.get_dl_mask();
+  cc_result->ul_mask = tti_alloc.get_ul_mask();
+  cc_result->tti_rx  = get_tti_rx();
 }
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const

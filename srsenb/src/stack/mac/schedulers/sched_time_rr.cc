@@ -31,7 +31,7 @@ void sched_time_rr::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
   }
 
   // give priority in a time-domain RR basis.
-  uint32_t priority_idx = tti_sched->get_tti_tx_dl() % (uint32_t)ue_db.size();
+  uint32_t priority_idx = tti_sched->get_tti_tx_dl().to_uint() % (uint32_t)ue_db.size();
   sched_dl_retxs(ue_db, tti_sched, priority_idx);
   sched_dl_newtxs(ue_db, tti_sched, priority_idx);
 }
@@ -94,7 +94,7 @@ void sched_time_rr::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
     return;
   }
   // give priority in a time-domain RR basis.
-  uint32_t priority_idx = tti_sched->get_tti_tx_ul() % (uint32_t)ue_db.size();
+  uint32_t priority_idx = tti_sched->get_tti_tx_ul().to_uint() % (uint32_t)ue_db.size();
   sched_ul_retxs(ue_db, tti_sched, priority_idx);
   sched_ul_newtxs(ue_db, tti_sched, priority_idx);
 }

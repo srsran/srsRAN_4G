@@ -44,9 +44,9 @@ void bc_sched::dl_sched(sf_sched* tti_sched)
 
 void bc_sched::update_si_windows(sf_sched* tti_sched)
 {
-  uint32_t tti_tx_dl      = tti_sched->get_tti_tx_dl();
-  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx_tx_dl;
-  uint32_t current_sfn    = tti_sched->get_tti_params().sfn_tx_dl;
+  tti_point tti_tx_dl      = tti_sched->get_tti_tx_dl();
+  uint32_t  current_sf_idx = tti_sched->get_tti_tx_dl().sf_idx();
+  uint32_t  current_sfn    = tti_sched->get_tti_tx_dl().sfn();
 
   for (uint32_t i = 0; i < pending_sibs.size(); ++i) {
     // There is SIB data
@@ -68,7 +68,7 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
       }
     } else {
       if (i > 0) {
-        if (srslte_tti_interval(tti_tx_dl, pending_sibs[i].window_start) > cc_cfg->cfg.si_window_ms) {
+        if (pending_sibs[i].window_start + cc_cfg->cfg.si_window_ms < tti_tx_dl) {
           // the si window has passed
           pending_sibs[i] = {};
         }
@@ -84,8 +84,8 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 
 void bc_sched::alloc_sibs(sf_sched* tti_sched)
 {
-  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx_tx_dl;
-  uint32_t current_sfn    = tti_sched->get_tti_params().sfn_tx_dl;
+  uint32_t current_sf_idx = tti_sched->get_tti_tx_dl().sf_idx();
+  uint32_t current_sfn    = tti_sched->get_tti_tx_dl().sfn();
 
   for (uint32_t i = 0; i < pending_sibs.size(); i++) {
     if (cc_cfg->cfg.sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {
@@ -112,7 +112,7 @@ void bc_sched::alloc_paging(sf_sched* tti_sched)
   /* Allocate DCIs and RBGs for paging */
   if (rrc != nullptr) {
     uint32_t paging_payload = 0;
-    if (rrc->is_paging_opportunity(current_tti, &paging_payload) and paging_payload > 0) {
+    if (rrc->is_paging_opportunity(current_tti.to_uint(), &paging_payload) and paging_payload > 0) {
       tti_sched->alloc_paging(bc_aggr_level, paging_payload);
     }
   }
@@ -138,25 +138,24 @@ ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>
 // discard it.
 void ra_sched::dl_sched(sf_sched* tti_sched)
 {
-  uint32_t tti_tx_dl = tti_sched->get_tti_tx_dl();
-  rar_aggr_level     = 2;
+  tti_point tti_tx_dl = tti_sched->get_tti_tx_dl();
+  rar_aggr_level      = 2;
 
   while (not pending_rars.empty()) {
-    sf_sched::pending_rar_t& rar       = pending_rars.front();
-    uint32_t                 prach_tti = rar.prach_tti;
+    sf_sched::pending_rar_t& rar = pending_rars.front();
 
     // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
-    if (not sched_utils::is_in_tti_interval(
-            tti_tx_dl, prach_tti + PRACH_RAR_OFFSET, prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window)) {
-      if (tti_tx_dl >= prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window) {
+    srslte::tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
+                                    rar.prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window};
+    if (not rar_window.contains(tti_tx_dl)) {
+      if (tti_tx_dl >= rar_window.stop()) {
         char error_msg[128];
         int  len       = snprintf(error_msg,
                            sizeof(error_msg),
-                           "SCHED: Could not transmit RAR within the window (RA=%d, Window=[%d..%d], RAR=%d)\n",
-                           prach_tti,
-                           prach_tti + PRACH_RAR_OFFSET,
-                           prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window,
-                           tti_tx_dl);
+                           "SCHED: Could not transmit RAR within the window (RA=%d, Window=%s, RAR=%d)\n",
+                           rar.prach_tti.to_uint(),
+                           rar_window.to_string().c_str(),
+                           tti_tx_dl.to_uint());
         error_msg[len] = '\0';
         srslte::console("%s", error_msg);
         log_h->error("%s", error_msg);
@@ -206,7 +205,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 
   // find pending rar with same RA-RNTI
   for (sf_sched::pending_rar_t& r : pending_rars) {
-    if (r.prach_tti == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
+    if (r.prach_tti.to_uint() == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
       if (r.nof_grants >= sched_interface::MAX_RAR_LIST) {
         log_h->warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached\n");
         return SRSLTE_ERROR;
@@ -220,7 +219,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   // create new RAR
   sf_sched::pending_rar_t p;
   p.ra_rnti       = ra_rnti;
-  p.prach_tti     = rar_info.prach_tti;
+  p.prach_tti     = tti_point{rar_info.prach_tti};
   p.nof_grants    = 1;
   p.msg3_grant[0] = rar_info;
   pending_rars.push_back(p);
@@ -240,9 +239,11 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
       uint16_t crnti   = msg3grant.data.temp_crnti;
       auto     user_it = ue_db->find(crnti);
       if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(&user_it->second, msg3grant)) {
-        log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul());
+        log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul().to_uint());
       } else {
-        log_h->error("SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul());
+        log_h->error("SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n",
+                     crnti,
+                     sf_msg3_sched->get_tti_tx_ul().to_uint());
       }
     }
   }
@@ -313,7 +314,12 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
   sf_sched_result* sf_result = prev_sched_results->get_sf(tti_rx);
   cc_sched_result* cc_result = sf_result->new_cc(enb_cc_idx);
 
-  bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
+  bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl().to_uint() % sf_dl_mask.size()] == 0;
+
+  /* Refresh UE internal buffers and subframe vars */
+  for (auto& user : *ue_db) {
+    user.second.new_subframe(tti_rx, enb_cc_idx);
+  }
 
   /* Schedule PHICH */
   for (auto& ue_pair : *ue_db) {
@@ -350,7 +356,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Reset ue harq pending ack state, clean-up blocked pids */
   for (auto& user : *ue_db) {
-    user.second.finish_tti(cc_result->tti_params, enb_cc_idx);
+    user.second.finish_tti(tti_rx, enb_cc_idx);
   }
 
   log_dl_cc_results(log_h, enb_cc_idx, cc_result->dl_sched_result);
@@ -360,14 +366,14 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
 void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
 {
-  if (sf_dl_mask[tti_result->get_tti_tx_dl() % sf_dl_mask.size()] != 0) {
+  if (sf_dl_mask[tti_result->get_tti_tx_dl().to_uint() % sf_dl_mask.size()] != 0) {
     return;
   }
 
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
   if (cc_cfg->nof_prb() == 6) {
-    uint32_t tti_rx_ack = tti_result->get_tti_params().tti_rx_ack_dl();
-    if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack, -1)) {
+    tti_point tti_rx_ack = to_tx_dl_ack(tti_result->get_tti_rx());
+    if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack.to_uint(), -1)) {
       tti_result->reserve_dl_rbgs(0, cc_cfg->nof_rbgs);
     }
   }
@@ -387,11 +393,11 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 sf_sched* sched::carrier_sched::get_sf_sched(tti_point tti_rx)
 {
   sf_sched* ret = &sf_scheds[tti_rx.to_uint() % sf_scheds.size()];
-  if (ret->get_tti_rx() != tti_rx.to_uint()) {
-    sf_sched_result* sf_res = prev_sched_results->get_sf(srslte::tti_point{tti_rx});
+  if (ret->get_tti_rx() != tti_rx) {
+    sf_sched_result* sf_res = prev_sched_results->get_sf(tti_rx);
     if (sf_res == nullptr) {
       // Reset if tti_rx has not been yet set in the sched results
-      sf_res = prev_sched_results->new_tti(srslte::tti_point{tti_rx});
+      sf_res = prev_sched_results->new_tti(tti_rx);
     }
     // start new TTI for the given CC.
     ret->new_tti(tti_rx, sf_res);
@@ -399,9 +405,9 @@ sf_sched* sched::carrier_sched::get_sf_sched(tti_point tti_rx)
   return ret;
 }
 
-const sf_sched_result* sched::carrier_sched::get_sf_result(uint32_t tti_rx) const
+const sf_sched_result* sched::carrier_sched::get_sf_result(tti_point tti_rx) const
 {
-  return prev_sched_results->get_sf(srslte::tti_point{tti_rx});
+  return prev_sched_results->get_sf(tti_rx);
 }
 
 int sched::carrier_sched::dl_rach_info(dl_sched_rar_info_t rar_info)

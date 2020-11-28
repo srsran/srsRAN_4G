@@ -56,21 +56,21 @@ int test_pdcch_one_ue()
 
   uint32_t tti_counter = 0;
   for (; tti_counter < nof_ttis; ++tti_counter) {
-    tti_params_t tti_params{(start_tti + tti_counter).to_uint()};
-    pdcch.new_tti(tti_params);
+    tti_point tti_rx = start_tti + tti_counter;
+    pdcch.new_tti(tti_rx);
     TESTASSERT(pdcch.nof_cces() == cell_params[ENB_CC_IDX].nof_cce_table[0]);
     TESTASSERT(pdcch.get_cfi() == 1); // Start at CFI=1
 
     // Set DL CQI - it should affect aggregation level
     uint32_t dl_cqi = std::uniform_int_distribution<uint32_t>{1, 25}(srsenb::get_rand_gen());
-    sched_ue.set_dl_cqi(tti_params.tti_tx_dl, ENB_CC_IDX, dl_cqi);
+    sched_ue.set_dl_cqi(to_tx_dl(tti_rx), ENB_CC_IDX, dl_cqi);
     uint32_t aggr_idx = get_aggr_level(sched_ue, PCell_IDX, cell_params);
     uint32_t max_nof_cce_locs =
-        sched_ue.get_locations(ENB_CC_IDX, pdcch_grid_t::MAX_CFI, tti_params.sf_idx_tx_dl)->nof_loc[aggr_idx];
+        sched_ue.get_locations(ENB_CC_IDX, pdcch_grid_t::MAX_CFI, to_tx_dl(tti_rx).sf_idx())->nof_loc[aggr_idx];
 
     // allocate DL user
-    uint32_t                 prev_cfi          = pdcch.get_cfi();
-    srsenb::sched_dci_cce_t* dci_cce           = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, tti_params.sf_idx_tx_dl);
+    uint32_t                 prev_cfi = pdcch.get_cfi();
+    srsenb::sched_dci_cce_t* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
     uint32_t                 prev_nof_cce_locs = dci_cce->nof_loc[aggr_idx];
 
     TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, aggr_idx, &sched_ue));
@@ -83,7 +83,7 @@ int test_pdcch_one_ue()
       TESTASSERT(pdcch.get_cfi() == prev_cfi);
     }
 
-    dci_cce                      = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), tti_params.sf_idx_tx_dl);
+    dci_cce                      = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), to_tx_dl(tti_rx).sf_idx());
     uint32_t        nof_dci_locs = dci_cce->nof_loc[aggr_idx];
     const uint32_t* dci_locs     = dci_cce->cce_start[aggr_idx];
 
@@ -115,7 +115,7 @@ int test_pdcch_one_ue()
       TESTASSERT(pdcch.get_cfi() == prev_cfi);
     }
 
-    dci_cce      = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), tti_params.sf_idx_tx_dl);
+    dci_cce      = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), to_tx_dl(tti_rx).sf_idx());
     nof_dci_locs = dci_cce->nof_loc[aggr_idx];
     dci_locs     = dci_cce->cce_start[aggr_idx];
 

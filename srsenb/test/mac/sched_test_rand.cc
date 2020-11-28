@@ -160,17 +160,16 @@ void sched_tester::before_sched()
     uint16_t              rnti = it.first;
     srsenb::sched_ue*     user = &it.second;
     tester_user_results   d;
-    srsenb::ul_harq_proc* hul = user->get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
+    srsenb::ul_harq_proc* hul = user->get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
     d.ul_pending_data         = get_ul_buffer(rnti);
     //        user->get_pending_ul_new_data(tti_info.tti_params.tti_tx_ul) or hul->has_pending_retx(); //
     //        get_ul_buffer(rnti);
     d.dl_pending_data         = get_dl_buffer(rnti);
     d.has_ul_retx             = hul->has_pending_retx();
     d.has_ul_tx               = d.has_ul_retx or d.ul_pending_data > 0;
-    srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(tti_info.tti_params.tti_tx_dl, CARRIER_IDX);
-    d.has_dl_tx =
-        (hdl != nullptr) or
-        (it.second.get_empty_dl_harq(tti_info.tti_params.tti_tx_dl, CARRIER_IDX) != nullptr and d.dl_pending_data > 0);
+    srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(srsenb::to_tx_dl(tti_rx), CARRIER_IDX);
+    d.has_dl_tx = (hdl != nullptr) or (it.second.get_empty_dl_harq(srsenb::to_tx_dl(tti_rx), CARRIER_IDX) != nullptr and
+                                       d.dl_pending_data > 0);
     d.has_ul_newtx = not d.has_ul_retx and d.ul_pending_data > 0;
     tti_data.ue_data.insert(std::make_pair(rnti, d));
     tti_data.total_ues.dl_pending_data += d.dl_pending_data;
@@ -184,7 +183,7 @@ void sched_tester::before_sched()
       tti_data.ue_data[rnti].dl_harqs[i] = h;
     }
     // NOTE: ACK might have just cleared the harq for tti_info.tti_params.tti_tx_ul
-    tti_data.ue_data[rnti].ul_harq = *user->get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
+    tti_data.ue_data[rnti].ul_harq = *user->get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
   }
 
   // TODO: Check whether pending pending_rar.rar_tti correspond to a prach_tti
@@ -192,11 +191,9 @@ void sched_tester::before_sched()
 
 int sched_tester::process_results()
 {
-  const srsenb::cc_sched_result* cc_result =
-      sched_results.get_cc(srslte::tti_point{tti_info.tti_params.tti_rx}, CARRIER_IDX);
-  srsenb::sf_output_res_t sf_out{
-      sched_cell_params, tti_point{tti_info.tti_params.tti_rx}, tti_info.ul_sched_result, tti_info.dl_sched_result};
-  TESTASSERT(tti_info.tti_params.tti_rx == cc_result->tti_params.tti_rx);
+  const srsenb::cc_sched_result* cc_result = sched_results.get_cc(tti_rx, CARRIER_IDX);
+  srsenb::sf_output_res_t        sf_out{sched_cell_params, tti_rx, tti_info.ul_sched_result, tti_info.dl_sched_result};
+  TESTASSERT(tti_rx == cc_result->tti_rx);
 
   // Common tests
   TESTASSERT(test_pdcch_collisions(sf_out, CARRIER_IDX, &cc_result->pdcch_mask) == SRSLTE_SUCCESS);
@@ -248,10 +245,10 @@ int sched_tester::test_harqs()
     uint32_t                    h_id = data.dci.pid;
     uint16_t                    rnti = data.dci.rnti;
     const srsenb::dl_harq_proc& h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
-    CONDERROR(h.get_tti() != tti_point{tti_info.tti_params.tti_tx_dl},
+    CONDERROR(h.get_tti() != srsenb::to_tx_dl(tti_rx),
               "The scheduled DL harq pid=%d does not a valid tti=%u\n",
               h_id,
-              tti_info.tti_params.tti_tx_dl);
+              srsenb::to_tx_dl(tti_rx).to_uint());
     CONDERROR(h.get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result\n");
   }
 
@@ -259,7 +256,7 @@ int sched_tester::test_harqs()
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems; ++i) {
     const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
-    const auto* h     = ue_db[phich.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
+    const auto* h     = ue_db[phich.rnti].get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
     CONDERROR(not hprev.has_pending_phich(), "Alloc PHICH did not have any pending ack\n");
     bool maxretx_flag = hprev.nof_retx(0) + 1 >= hprev.max_nof_retx();
     if (phich.phich == sched_interface::ul_sched_phich_t::ACK) {

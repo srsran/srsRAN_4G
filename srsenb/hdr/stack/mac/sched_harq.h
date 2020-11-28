@@ -62,17 +62,17 @@ class dl_harq_proc : public harq_proc
 {
 public:
   dl_harq_proc();
-  void      new_tx(const rbgmask_t& new_mask,
-                   uint32_t         tb_idx,
-                   uint32_t         tti,
-                   int              mcs,
-                   int              tbs,
-                   uint32_t         n_cce_,
-                   uint32_t         max_retx);
-  void      new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, uint32_t n_cce_);
-  int       set_ack(uint32_t tb_idx, bool ack);
+  void new_tx(const rbgmask_t& new_mask,
+              uint32_t         tb_idx,
+              tti_point        tti_tx_dl,
+              int              mcs,
+              int              tbs,
+              uint32_t         n_cce_,
+              uint32_t         max_retx);
+  void new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, tti_point tti_tx_dl, int* mcs, int* tbs, uint32_t n_cce_);
+  int  set_ack(uint32_t tb_idx, bool ack);
   rbgmask_t get_rbgmask() const;
-  bool      has_pending_retx(uint32_t tb_idx, uint32_t tti) const;
+  bool      has_pending_retx(uint32_t tb_idx, tti_point tti_tx_dl) const;
   int       get_tbs(uint32_t tb_idx) const;
   uint32_t  get_n_cce() const;
   void      reset_pending_data();
@@ -123,13 +123,13 @@ public:
    * @param tti_tx_dl assumed to always be equal or ahead in time in comparison to current harqs
    * @return pointer to found dl_harq
    */
-  dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl);
+  dl_harq_proc* get_pending_dl_harq(tti_point tti_tx_dl);
   /**
    * Get empty DL Harq
    * @param tti_tx_dl only used in case of sync dl sched
    * @return pointer to found dl_harq
    */
-  dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl);
+  dl_harq_proc* get_empty_dl_harq(tti_point tti_tx_dl);
 
   /**
    * Set ACK state for DL Harq Proc
@@ -138,10 +138,10 @@ public:
    * @param ack true for ACK and false for NACK
    * @return pair with pid and size of TB of the DL harq that was ACKed
    */
-  std::pair<uint32_t, int> set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack);
+  std::pair<uint32_t, int> set_ack_info(tti_point tti_rx, uint32_t tb_idx, bool ack);
 
   //! Get UL Harq for a given tti_tx_ul
-  ul_harq_proc* get_ul_harq(uint32_t tti_tx_ul);
+  ul_harq_proc* get_ul_harq(tti_point tti_tx_ul);
 
   /**
    * Set ACK state for UL Harq Proc
@@ -152,7 +152,7 @@ public:
   void reset_pending_data(srslte::tti_point tti_rx);
 
 private:
-  dl_harq_proc* get_oldest_dl_harq(uint32_t tti_tx_dl);
+  dl_harq_proc* get_oldest_dl_harq(tti_point tti_tx_dl);
 
   srslte::log_ref log_h;
 

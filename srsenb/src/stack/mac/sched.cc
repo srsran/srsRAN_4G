@@ -231,12 +231,12 @@ void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // TODO: Check if correct use of last_tti
   ue_db_access(
-      rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti.to_uint(), enabled); }, __PRETTY_FUNCTION__);
+      rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); }, __PRETTY_FUNCTION__);
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
 {
-  return ue_db_access(rnti, [lc_id, cfg_](sched_ue& ue) { ue.set_bearer_cfg(lc_id, cfg_); });
+  return ue_db_access(rnti, [lc_id, cfg_](sched_ue& ue) { ue.set_bearer_cfg(lc_id, *cfg_); });
 }
 
 int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
@@ -258,7 +258,7 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
   uint32_t ret = SRSLTE_ERROR;
   ue_db_access(
       rnti,
-      [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti.to_uint(), -1); },
+      [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(to_tx_ul(last_tti), -1); },
       __PRETTY_FUNCTION__);
   return ret;
 }
@@ -273,33 +273,38 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmd
   return ue_db_access(rnti, [ce_code, nof_cmds](sched_ue& ue) { ue.mac_buffer_state(ce_code, nof_cmds); });
 }
 
-int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
+int sched::dl_ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
   ue_db_access(
-      rnti, [&](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); }, __PRETTY_FUNCTION__);
+      rnti,
+      [&](sched_ue& ue) { ret = ue.set_ack_info(tti_point{tti_rx}, enb_cc_idx, tb_idx, ack); },
+      __PRETTY_FUNCTION__);
   return ret;
 }
 
 int sched::ul_crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, bool crc)
 {
-  return ue_db_access(
-      rnti, [tti_rx, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(srslte::tti_point{tti_rx}, enb_cc_idx, crc); });
+  return ue_db_access(rnti,
+                      [tti_rx, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(tti_point{tti_rx}, enb_cc_idx, crc); });
 }
 
 int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)
 {
-  return ue_db_access(rnti, [tti, enb_cc_idx, ri_value](sched_ue& ue) { ue.set_dl_ri(tti, enb_cc_idx, ri_value); });
+  return ue_db_access(
+      rnti, [tti, enb_cc_idx, ri_value](sched_ue& ue) { ue.set_dl_ri(tti_point{tti}, enb_cc_idx, ri_value); });
 }
 
 int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value)
 {
-  return ue_db_access(rnti, [tti, enb_cc_idx, pmi_value](sched_ue& ue) { ue.set_dl_pmi(tti, enb_cc_idx, pmi_value); });
+  return ue_db_access(
+      rnti, [tti, enb_cc_idx, pmi_value](sched_ue& ue) { ue.set_dl_pmi(tti_point{tti}, enb_cc_idx, pmi_value); });
 }
 
 int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)
 {
-  return ue_db_access(rnti, [tti, enb_cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti, enb_cc_idx, cqi_value); });
+  return ue_db_access(
+      rnti, [tti, enb_cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti_point{tti}, enb_cc_idx, cqi_value); });
 }
 
 int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
@@ -308,9 +313,9 @@ int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
   return carrier_schedulers[enb_cc_idx]->dl_rach_info(rar_info);
 }
 
-int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
+int sched::ul_cqi_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
 {
-  return ue_db_access(rnti, [&](sched_ue& ue) { ue.set_ul_cqi(tti, enb_cc_idx, cqi, ul_ch_code); });
+  return ue_db_access(rnti, [&](sched_ue& ue) { ue.set_ul_cqi(tti_point{tti_rx}, enb_cc_idx, cqi, ul_ch_code); });
 }
 
 int sched::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
@@ -444,11 +449,6 @@ void sched::new_tti(tti_point tti_rx)
   // Generate sched results for all CCs, if not yet generated
   for (size_t cc_idx = 0; cc_idx < carrier_schedulers.size(); ++cc_idx) {
     if (not is_generated(tti_rx, cc_idx)) {
-      // Setup tti-specific vars of the UE
-      for (auto& user : ue_db) {
-        user.second.new_tti(tti_rx);
-      }
-
       // Generate carrier scheduling result
       carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
     }

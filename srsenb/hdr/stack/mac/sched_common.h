@@ -35,17 +35,6 @@ struct sched_dci_cce_t {
   uint32_t nof_loc[4];      ///< Number of possible CCE locations for each aggregation level index
 };
 
-//! Params relative to a single TTI
-struct tti_params_t {
-  uint32_t tti_rx;
-  uint32_t tti_tx_dl;
-  uint32_t tti_tx_ul;
-  uint32_t sf_idx_tx_dl;
-  uint32_t sfn_tx_dl;
-  explicit tti_params_t(uint32_t tti_rx_);
-  uint32_t tti_rx_ack_dl() const { return tti_tx_ul; }
-};
-
 //! structs to bundle together all the sched arguments, and share them with all the sched sub-components
 class sched_cell_params_t
 {
