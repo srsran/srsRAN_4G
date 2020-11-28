@@ -192,7 +192,7 @@ int test_scell_activation(test_scell_activation_params params)
   uint32_t cqi = 0;
   for (uint32_t cidx = 1; cidx < cc_idxs.size(); ++cidx) {
     for (uint32_t i = 0; i < FDD_HARQ_DELAY_UL_MS; ++i) {
-      tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, cc_idxs[cidx], cqi);
+      tester.dl_cqi_info(tester.tti_rx.to_uint(), rnti1, cc_idxs[cidx], cqi);
       generator.step_tti();
     }
   }
@@ -212,7 +212,7 @@ int test_scell_activation(test_scell_activation_params params)
   // Event: Scheduler receives dl_cqi for SCell. Data should go through SCells
   cqi = 14;
   for (uint32_t i = 1; i < cc_idxs.size(); ++i) {
-    tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, cc_idxs[i], cqi);
+    tester.dl_cqi_info(tester.tti_rx.to_uint(), rnti1, cc_idxs[i], cqi);
   }
   generate_data(10, 1.0, 1.0, 1.0);
   tester.test_next_ttis(generator.tti_events);
