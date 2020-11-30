@@ -209,7 +209,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
   ue_task_queue.try_push([this]() {
     stack_metrics_t metrics{};
     mac.get_metrics(metrics.mac);
-    rlc.get_metrics(metrics.rlc);
+    rlc.get_metrics(metrics.rlc, metrics.mac[0].nof_tti);
     nas.get_metrics(&metrics.nas);
     rrc.get_metrics(metrics.rrc);
     pending_stack_metrics.push(metrics);

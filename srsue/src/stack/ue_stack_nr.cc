@@ -132,7 +132,7 @@ bool ue_stack_nr::switch_off()
 bool ue_stack_nr::get_metrics(stack_metrics_t* metrics)
 {
   // mac.get_metrics(metrics->mac);
-  rlc->get_metrics(metrics->rlc);
+  rlc->get_metrics(metrics->rlc, metrics->mac[0].nof_tti);
   // rrc.get_metrics(metrics->rrc);
   return true;
 }

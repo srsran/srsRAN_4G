@@ -94,7 +94,7 @@ void rlc::stop()
   }
 }
 
-void rlc::get_metrics(rlc_metrics_t& m)
+void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
 {
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
@@ -102,17 +102,28 @@ void rlc::get_metrics(rlc_metrics_t& m)
 
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
-    rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
+
+    // Rx/Tx rate based on real time
+    double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs;
+    double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs;
+
+    // Rx/Tx rate based on number of TTIs
+    double rx_rate_mbps = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
+    double tx_rate_mbps = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
+
+    rlc_log->info("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)\n",
                   it->first,
-                  (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs,
-                  (metrics.num_tx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs);
+                  rx_rate_mbps,
+                  rx_rate_mbps_real_time,
+                  tx_rate_mbps,
+                  tx_rate_mbps_real_time);
     m.bearer[it->first] = metrics;
   }
 
   // Add multicast metrics
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
-    rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps\n",
+    rlc_log->info("MCH_LCID=%d, rx_rate_mbps=%4.2f\n",
                   it->first,
                   (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs);
     m.bearer[it->first] = metrics;

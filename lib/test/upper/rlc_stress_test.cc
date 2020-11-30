@@ -517,7 +517,7 @@ void stress_test(stress_test_args_t args)
   }
 
   rlc_metrics_t metrics = {};
-  rlc1.get_metrics(metrics);
+  rlc1.get_metrics(metrics, 1);
 
   printf("RLC1 received %d SDUs in %ds (%.2f/s), Tx=%" PRIu64 " B, Rx=%" PRIu64 " B\n",
          tester1.get_nof_rx_pdus(),
@@ -527,7 +527,7 @@ void stress_test(stress_test_args_t args)
          metrics.bearer[lcid].num_rx_pdu_bytes);
   rlc_bearer_metrics_print(metrics.bearer[lcid]);
 
-  rlc2.get_metrics(metrics);
+  rlc2.get_metrics(metrics, 1);
   printf("RLC2 received %d SDUs in %ds (%.2f/s), Tx=%" PRIu64 " B, Rx=%" PRIu64 " B\n",
          tester2.get_nof_rx_pdus(),
          args.test_duration_sec,

@@ -44,7 +44,7 @@ public:
             bsr_callback_t             bsr_callback_);
   void stop();
 
-  void get_metrics(rlc_metrics_t& m);
+  void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
 
   // PDCP interface
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu);
