@@ -13,7 +13,7 @@
 /*!
  * \file polar_decoder_vector_avx2.h
  * \brief Declaration of the 8-bit AVX2 polar decoder vectorizable functions.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

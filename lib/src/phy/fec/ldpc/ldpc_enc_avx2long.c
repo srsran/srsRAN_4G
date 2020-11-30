@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_enc_avx2long.c
  * \brief Definition of the LDPC encoder inner functions (AVX2 version, large lifting size).
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited
@@ -48,12 +48,12 @@ typedef union bg_node_t {
  */
 struct ldpc_enc_avx2long {
   bg_node_t* codeword;           /*!< \brief Contains the entire codeword, before puncturing. */
-  bg_node_t* codeword_to_free;   /*!< \brief Auxiliary pointer with a free memory of size CTTC_AVX2_B_SIZE previous to
+  bg_node_t* codeword_to_free;   /*!< \brief Auxiliary pointer with a free memory of size SRSLTE_AVX2_B_SIZE previous to
                                     codeword */
   __m256i* aux;                  /*!< \brief Auxiliary register. */
   __m256i* rotated_node;         /*!< \brief To store rotated versions of the nodes. */
   __m256i* rotated_node_to_free; /*!< \brief Auxiliary pointer to store rotated versions of the nodes with extra free
-                                    memory of size CTTC_AVX2_B_SIZE previous to rotated_node */
+                                    memory of size SRSLTE_AVX2_B_SIZE previous to rotated_node */
   uint8_t n_subnodes;            /*!< \brief Number of subnodes. */
 };
 

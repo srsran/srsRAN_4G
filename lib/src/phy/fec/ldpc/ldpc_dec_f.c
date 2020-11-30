@@ -14,7 +14,7 @@
  * \file ldpc_dec_f.c
  * \brief Definition of the LDPC decoder inner functions working
  *    with float-valued LLRs.
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

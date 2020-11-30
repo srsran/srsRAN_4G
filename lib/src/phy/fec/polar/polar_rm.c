@@ -22,7 +22,7 @@
 /*!
  * \file polar_rm.c
  * \brief Definition of the LDPC Rate Matcher and Rate Dematcher (float-valued, int16_t and int8_t)
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_common.h
  * \brief Declaration of elements common to both the LDPC encoder and the LDPC decoder.
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

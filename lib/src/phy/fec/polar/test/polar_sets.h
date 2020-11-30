@@ -13,7 +13,7 @@
 /*!
  * \file polar_sets.h
  * \brief Declaration of the auxiliary function that reads polar index sets from a file.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

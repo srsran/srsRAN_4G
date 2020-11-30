@@ -15,7 +15,7 @@
  * \brief Definition of the SSC polar decoder inner functions working with
  * 8-bit integer-valued LLRs.
  *
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

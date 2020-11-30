@@ -14,7 +14,7 @@
  * \file polar_decoder_ssc_all.c
  * \brief Definition of the SSC polar decoder functions common to all implementations
  *
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

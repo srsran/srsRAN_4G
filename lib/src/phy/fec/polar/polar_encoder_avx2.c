@@ -13,7 +13,7 @@
 /*!
  * \file polar_encoder_avx2.c
  * \brief Definition of the AVX2 polar encoder.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

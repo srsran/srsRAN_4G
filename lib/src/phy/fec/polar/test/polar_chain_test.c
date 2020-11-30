@@ -65,7 +65,7 @@
 #include <time.h>
 #include <unistd.h>
 
-// cttc utils lib
+// utils lib
 #include "srslte/phy/utils/vector.h"
 
 //  polar libs

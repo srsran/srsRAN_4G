@@ -15,7 +15,7 @@
  * \brief Declaration of constants and masks for the AVX2-based implementation
  *   of the LDPC encoder and decoder.
  *
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

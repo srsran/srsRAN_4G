@@ -14,7 +14,7 @@
  * \file polar_decoder_ssc_f.h
  * \brief Declaration of the SSC polar decoder inner functions working with
  * float-valued LLRs.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

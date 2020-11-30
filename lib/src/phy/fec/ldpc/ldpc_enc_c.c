@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_enc_c.c
  * \brief Definition of the LDPC encoder inner functions (not optimized).
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

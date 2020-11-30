@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_enc_avx2.c
  * \brief Definition of the LDPC encoder inner functions (AVX2 version, small lifting size).
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

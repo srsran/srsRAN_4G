@@ -23,7 +23,7 @@
  * \file polar_code.c
  * \brief Definition of the function that computes the polar code parameters including,
  * message set (K_Set), the frozen set (F_set), and the parity check bits set (PC_Set)..
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

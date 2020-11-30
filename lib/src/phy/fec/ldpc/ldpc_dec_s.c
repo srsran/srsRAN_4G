@@ -19,7 +19,7 @@
  * variable-to-check messages are actually represented with 15 bits, the
  * remaining bit is used to represent infinity.
  *
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

@@ -13,7 +13,7 @@
 /*!
  * \file subchannel_allocation.c
  * \brief Defiition of the auxiliary subchannel allocation block.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

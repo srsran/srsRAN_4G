@@ -13,7 +13,7 @@
 /*!
  * \file polar_encoder_pipelined.h
  * \brief Declaration of the pipelined polar encoder.
- * \author Jesus Gomez (CTTC) \date 2020
+ * \author Jesus Gomez \date 2020
  *
  * \copyright Software Radio Systems Limited
  *

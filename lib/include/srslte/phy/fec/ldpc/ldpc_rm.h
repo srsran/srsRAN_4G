@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_rm.h
  * \brief Declaration of the LDPC RateMatcher and RateDematcher.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

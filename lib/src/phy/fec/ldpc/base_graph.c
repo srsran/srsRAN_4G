@@ -14,7 +14,7 @@
  * \file base_graph.c
  * \brief Definition of the two LDPC base graphs employed in the 5G NR
  * standard.
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * Look-up tables defining the 51 possible Lifting Sizes (grouped into 8 sets)

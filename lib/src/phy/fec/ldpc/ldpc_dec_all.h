@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_dec_all.h
  * \brief Declaration of the LDPC decoder inner functions.
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

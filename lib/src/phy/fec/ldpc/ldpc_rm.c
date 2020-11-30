@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_rm.c
  * \brief Definition of the LDPC Rate Matcher and Rate Demacher (float-valued, int16_t and int8_t)
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

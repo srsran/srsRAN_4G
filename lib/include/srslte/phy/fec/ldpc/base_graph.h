@@ -14,7 +14,7 @@
  * \file base_graph.h
  * \brief Declaration of the two LDPC base graphs employed in the 5G NR
  * standard.
- * \author David Gregoratti (CTTC)
+ * \author David Gregoratti
  * \date 2020
  *
  * This file declares the dimensions of the base graphs and provides an interface

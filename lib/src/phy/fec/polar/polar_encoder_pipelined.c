@@ -13,7 +13,7 @@
 /*!
  * \file polar_encoder_pipelined.c
  * \brief Definition of the pipelined polar encoder.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

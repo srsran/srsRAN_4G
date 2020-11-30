@@ -23,7 +23,7 @@
  * \file polar_code.h
  * \brief Declaration of the function that obtains
  * the polar code parameters.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited

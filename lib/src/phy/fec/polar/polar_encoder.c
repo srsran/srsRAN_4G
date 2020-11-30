@@ -13,7 +13,7 @@
 /*!
  * \file polar_encoder.c
  * \brief Definition of the polar encoder.
- * \author Jesus Gomez (CTTC)
+ * \author Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited
