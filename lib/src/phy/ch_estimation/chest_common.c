@@ -62,19 +62,26 @@ uint32_t srslte_chest_set_smooth_filter_gauss(float* filter, uint32_t order, flo
 {
   const uint32_t filterlen = order + 1;
   const int      center    = (filterlen - 1) / 2;
-  float          norm_p    = 0.0f;
 
-  if (filterlen) {
-
-    for (int i = 0; i < filterlen; i++) {
-      filter[i] = expf(-powf(i - center, 2) / (2.0f * powf(std_dev, 2)));
-      norm_p += powf(filter[i], 2);
-    }
-
-    const float norm = srslte_vec_acc_ff(filter, filterlen);
-
-    srslte_vec_sc_prod_fff(filter, 1.0f / norm, filter, filterlen);
+  if (!filterlen) {
+    return 0;
   }
+
+  for (int i = 0; i < filterlen; i++) {
+    filter[i] = expf(-powf(i - center, 2) / (2.0f * powf(std_dev, 2)));
+  }
+
+  // Calculate average for normalization
+  const float norm = srslte_vec_acc_ff(filter, filterlen);
+
+  // Avoids NAN, INF or ZERO division
+  if (!isnormal(norm)) {
+    return 0;
+  }
+
+  // Normalize filter
+  srslte_vec_sc_prod_fff(filter, 1.0f / norm, filter, filterlen);
+
   return filterlen;
 }
 
