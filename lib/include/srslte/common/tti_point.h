@@ -113,15 +113,21 @@ using tti_interval = srslte::interval<srslte::tti_point>;
 
 } // namespace srslte
 
+namespace fmt {
 template <>
-struct fmt::formatter<srslte::tti_point> : public fmt::formatter<uint32_t> {
-  // parse is inherited from formatter<int>.
+struct formatter<srslte::tti_point> {
+  template <typename ParseContext>
+  auto parse(ParseContext& ctx) -> decltype(ctx.begin())
+  {
+    return ctx.begin();
+  }
   template <typename FormatContext>
-  auto format(srslte::tti_point tti, FormatContext& ctx) -> decltype(format_to(ctx.out(), ""))
+  auto format(srslte::tti_point tti, FormatContext& ctx) -> decltype(std::declval<FormatContext>().out())
   {
     return format_to(ctx.out(), "{}", tti.to_uint());
   }
 };
+} // namespace fmt
 
 namespace srsenb {
 
