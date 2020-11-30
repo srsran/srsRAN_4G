@@ -106,8 +106,6 @@ private:
 
     bool     has_data();
     uint32_t get_buffer_state();
-    uint32_t get_num_tx_bytes();
-    void     reset_metrics();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
@@ -184,9 +182,6 @@ private:
 
     // Mutexes
     pthread_mutex_t mutex;
-
-    // Metrics
-    uint32_t num_tx_bytes = 0;
   };
 
   // Receiver sub-class
@@ -203,7 +198,6 @@ private:
     void write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
     uint32_t get_num_rx_bytes();
-    void     reset_metrics();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
@@ -254,9 +248,6 @@ private:
     // Rx windows
     std::map<uint32_t, rlc_amd_rx_pdu_t>          rx_window;
     std::map<uint32_t, rlc_amd_rx_pdu_segments_t> rx_segments;
-
-    // Metrics
-    uint32_t num_rx_bytes = 0;
 
     bool poll_received = false;
     bool do_status     = false;

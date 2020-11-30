@@ -104,8 +104,7 @@ rlc_bearer_metrics_t rlc_am_lte::get_metrics()
 
 void rlc_am_lte::reset_metrics()
 {
-  tx.reset_metrics();
-  rx.reset_metrics();
+  metrics = {};
 }
 
 /****************************************************************************
@@ -424,7 +423,6 @@ int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   pdu_size = build_data_pdu(payload, nof_bytes);
 
 unlock_and_exit:
-  num_tx_bytes += pdu_size;
   pthread_mutex_unlock(&mutex);
   return pdu_size;
 }
@@ -462,18 +460,6 @@ void rlc_am_lte::rlc_am_lte_tx::retransmit_random_pdu()
     retx.sn             = it->first;
     retx_queue.push_back(retx);
   }
-}
-
-uint32_t rlc_am_lte::rlc_am_lte_tx::get_num_tx_bytes()
-{
-  return num_tx_bytes;
-}
-
-void rlc_am_lte::rlc_am_lte_tx::reset_metrics()
-{
-  pthread_mutex_lock(&mutex);
-  num_tx_bytes = 0;
-  pthread_mutex_unlock(&mutex);
 }
 
 /****************************************************************************
@@ -1577,25 +1563,12 @@ bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
   return do_status;
 }
 
-uint32_t rlc_am_lte::rlc_am_lte_rx::get_num_rx_bytes()
-{
-  return num_rx_bytes;
-}
-
-void rlc_am_lte::rlc_am_lte_rx::reset_metrics()
-{
-  pthread_mutex_lock(&mutex);
-  num_rx_bytes = 0;
-  pthread_mutex_unlock(&mutex);
-}
-
 void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
   if (nof_bytes < 1)
     return;
 
   pthread_mutex_lock(&mutex);
-  num_rx_bytes += nof_bytes;
 
   if (rlc_am_is_control_pdu(payload)) {
     // unlock mutex and pass to Tx subclass
