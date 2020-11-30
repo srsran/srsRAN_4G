@@ -879,6 +879,10 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
 
 bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result)
 {
+  if (ul_sf_result->nof_phich_elems >= sched_interface::MAX_PHICH_LIST) {
+    Warning("SCHED: Maximum number of PHICH allocations has been reached\n");
+    return false;
+  }
   using phich_t    = sched_interface::ul_sched_phich_t;
   auto& phich_list = ul_sf_result->phich[ul_sf_result->nof_phich_elems];
 
