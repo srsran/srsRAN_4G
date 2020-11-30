@@ -55,6 +55,11 @@ extern "C" {
 #define SRSLTE_NSLOTS_PER_FRAME_NR(NUM) (SRSLTE_NSLOTS_PER_SF_NR(NUM) * SRSLTE_NOF_SF_X_FRAME)
 
 /**
+ * @brief Bounds slot index into the frame
+ */
+#define SRSLTE_SLOT_NR_MOD(NUM, N) ((N) % SRSLTE_NSLOTS_PER_FRAME_NR(NUM))
+
+/**
  * @brief Maximum Carrier identification value. Defined by TS 38.331 v15.10.0 as PhysCellId from 0 to 1007.
  */
 #define SRSLTE_MAX_ID_NR 1007

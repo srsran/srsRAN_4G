@@ -53,6 +53,8 @@ SRSLTE_API int srslte_enb_dl_nr_set_coreset(srslte_enb_dl_nr_t* q, const srslte_
 
 SRSLTE_API void srslte_enb_dl_nr_free(srslte_enb_dl_nr_t* q);
 
+SRSLTE_API int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q);
+
 SRSLTE_API void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q);
 
 SRSLTE_API int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,

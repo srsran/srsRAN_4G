@@ -154,6 +154,19 @@ void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q)
   }
 }
 
+int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q)
+{
+  if (q == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
+    srslte_vec_cf_zero(q->sf_symbols[i], SRSLTE_SLOT_LEN_RE_NR(q->carrier.nof_prb));
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,
                                const srslte_dl_slot_cfg_t*  slot_cfg,
                                const srslte_search_space_t* search_space,
@@ -194,6 +207,8 @@ int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,
     ERROR("Error encoding PDCCH\n");
     return SRSLTE_ERROR;
   }
+
+  INFO("DCI DL NR: L=%d; ncce=%d;\n", dci_location->L, dci_location->ncce);
 
   return SRSLTE_SUCCESS;
 }

@@ -16,6 +16,12 @@
 /// per frequency resource.
 #define NOF_PILOTS_X_FREQ_RES 18
 
+#define DMRS_PDCCH_INFO_TX(...) INFO("PDCCH DMRS Tx: " __VA_ARGS__)
+#define DMRS_PDCCH_INFO_RX(...) INFO("PDCCH DMRS Rx: " __VA_ARGS__)
+
+/// @brief Enables interpolation at CCE frequency bandwidth to avoid interference with adjacent PDCCH DMRS
+#define DMRS_PDCCH_INTERPOLATE_GROUP 1
+
 static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uint32_t n_id)
 {
   return (uint32_t)((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) << 17UL) * (2 * n_id + 1) + 2 * n_id) &
@@ -130,9 +136,14 @@ int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
     n_id = coreset->dmrs_scrambling_id;
   }
 
+  // Bound slot index
+  uint32_t slot_idx = SRSLTE_SLOT_NR_MOD(carrier->numerology, slot_cfg->idx);
+
   for (uint32_t l = 0; l < coreset->duration; l++) {
     // Get Cin
-    uint32_t cinit = dmrs_pdcch_get_cinit(slot_cfg->idx, l, n_id);
+    uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
+
+    DMRS_PDCCH_INFO_TX("n=%d; l=%d; cinit=%08x\n", slot_idx, l, cinit);
 
     // Put data
     dmrs_pdcch_put_symbol_noninterleaved(
@@ -178,7 +189,11 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
   uint32_t coreset_bw = srslte_coreset_get_bw(coreset);
   uint32_t coreset_sz = srslte_coreset_get_sz(coreset);
 
+#if DMRS_PDCCH_INTERPOLATE_GROUP
+  if (srslte_interp_linear_init(&q->interpolator, NOF_PILOTS_X_FREQ_RES / q->coreset.duration, 4)) {
+#else
   if (srslte_interp_linear_init(&q->interpolator, coreset_bw * 3, 4)) {
+#endif
     ERROR("Initiating interpolator\n");
     return SRSLTE_ERROR;
   }
@@ -206,6 +221,17 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
     q->ce = srslte_vec_cf_malloc(coreset_sz);
   }
 
+  if (q->filter == NULL) {
+    q->filter_len = 5U;
+
+    q->filter = srslte_vec_f_malloc(q->filter_len);
+    if (q->filter == NULL) {
+      return SRSLTE_ERROR;
+    }
+
+    srslte_chest_set_smooth_filter_gauss(q->filter, q->filter_len - 1, 2);
+  }
+
   // Save new calculated values
   q->coreset_bw = coreset_bw;
   q->coreset_sz = coreset_sz;
@@ -229,9 +255,13 @@ void srslte_dmrs_pdcch_estimator_free(srslte_dmrs_pdcch_estimator_t* q)
     }
   }
 
+  if (q->filter) {
+    free(q->filter);
+  }
+
   srslte_interp_linear_free(&q->interpolator);
 
-  memset(q, 0, sizeof(srslte_dmrs_pdcch_estimator_t));
+  SRSLTE_MEM_ZERO(q, srslte_dmrs_pdcch_estimator_t, 1);
 }
 
 static void
@@ -246,8 +276,10 @@ srslte_dmrs_pdcch_extract(srslte_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
 
   // Counts enabled frequency domain resources
   uint32_t rb_coreset_idx = 0;
+
   // Iterate over all possible frequency resources
-  for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+  uint32_t freq_domain_res_size = SRSLTE_MIN(q->carrier.nof_prb / 6, SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE);
+  for (uint32_t i = 0; i < freq_domain_res_size; i++) {
     // Skip disabled frequency resources
     if (!q->coreset.freq_resources[i]) {
       sequence_skip += NOF_PILOTS_X_FREQ_RES;
@@ -300,10 +332,15 @@ int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
     n_id = q->coreset.dmrs_scrambling_id;
   }
 
+  // Bound slot index
+  uint32_t slot_idx = SRSLTE_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx);
+
   // Extract pilots
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     // Calculate PRN sequence initial state
-    uint32_t cinit = dmrs_pdcch_get_cinit(slot_cfg->idx, l, n_id);
+    uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
+
+    DMRS_PDCCH_INFO_RX("n=%d; l=%d; cinit=%08x\n", slot_idx, l, cinit);
 
     // Extract pilots least square estimates
     srslte_dmrs_pdcch_extract(q, cinit, &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], q->lse[l]);
@@ -312,10 +349,26 @@ int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
   // Time averaging and smoothing should be implemented here
   // ...
 
-  // Interpolation, it assumes all frequency domain resources are contiguous
+  // Interpolation in groups
+#if DMRS_PDCCH_INTERPOLATE_GROUP
+  uint32_t group_count = (q->coreset.duration * q->coreset_bw * 3) / NOF_PILOTS_X_FREQ_RES;
+  uint32_t group_size  = NOF_PILOTS_X_FREQ_RES / q->coreset.duration;
+  for (uint32_t l = 0; l < q->coreset.duration; l++) {
+    for (uint32_t j = 0; j < group_count; j++) {
+      cf_t tmp[NOF_PILOTS_X_FREQ_RES];
+
+      // Smoothing filter group
+      srslte_conv_same_cf(&q->lse[l][j * group_size], q->filter, tmp, group_size, q->filter_len);
+
+      srslte_interp_linear_offset(
+          &q->interpolator, tmp, &q->ce[SRSLTE_NRE * q->coreset_bw * l + j * group_size * 4], 1, 3);
+    }
+  }
+#else
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
     srslte_interp_linear_offset(&q->interpolator, q->lse[l], &q->ce[SRSLTE_NRE * q->coreset_bw * l], 1, 3);
   }
+#endif
 
   return SRSLTE_SUCCESS;
 }
@@ -350,11 +403,16 @@ int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
   float sync_err                          = 0.0f;
   cf_t  corr[SRSLTE_CORESET_DURATION_MAX] = {};
   for (uint32_t l = 0; l < q->coreset.duration; l++) {
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      DMRS_PDCCH_INFO_RX("Measuring PDCCH l=%d; lse=", l);
+      srslte_vec_fprint_c(stdout, &q->lse[l][pilot_idx], nof_pilots);
+    }
+
     // Correlate DMRS
     corr[l] = srslte_vec_acc_cc(&q->lse[l][pilot_idx], nof_pilots) / (float)nof_pilots;
 
     // Measure symbol RSRP
-    rsrp += cabsf(corr[l]);
+    rsrp += __real__ corr[l] * __real__ corr[l] + __imag__ corr[l] * __imag__ corr[l];
 
     // Measure symbol EPRE
     epre += srslte_vec_avg_power_cf(&q->lse[l][pilot_idx], nof_pilots);
@@ -380,6 +438,22 @@ int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
   measure->cfo_hz = cfo / (2.0f * (float)M_PI * Ts);
   measure->sync_error_us =
       (float)SRSLTE_SUBC_SPACING_NR(q->carrier.numerology) * sync_err / (4.0e-6f * (float)q->coreset.duration);
+
+  measure->rsrp_dBfs = srslte_convert_power_to_dB(measure->rsrp);
+  measure->epre_dBfs = srslte_convert_power_to_dB(measure->epre);
+
+  if (isnormal(measure->rsrp) && isnormal(measure->epre)) {
+    measure->norm_corr = measure->rsrp / measure->epre;
+  } else {
+    measure->norm_corr = 0.0f;
+  }
+
+  DMRS_PDCCH_INFO_RX("Measure L=%d; ncce=%d; RSRP=%+.1f dBfs; EPRE=%+.1f dBfs; Corr=%.3f\n",
+                     dci_location->L,
+                     dci_location->ncce,
+                     measure->rsrp_dBfs,
+                     measure->epre_dBfs,
+                     measure->norm_corr);
 
   return SRSLTE_SUCCESS;
 }
@@ -423,6 +497,9 @@ int srslte_dmrs_pdcch_get_ce(const srslte_dmrs_pdcch_estimator_t* q,
   if (count != ce->nof_re) {
     ERROR("Incorrect number of extracted resources (%d != %d)\n", count, ce->nof_re);
   }
+
+  // At the moment Noise is not calculated
+  ce->noise_var = 0.0f;
 
   return SRSLTE_SUCCESS;
 }

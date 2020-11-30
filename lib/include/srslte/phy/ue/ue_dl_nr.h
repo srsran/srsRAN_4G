@@ -36,6 +36,7 @@ typedef struct SRSLTE_API {
   uint32_t max_prb;
   uint32_t nof_rx_antennas;
   float    pdcch_dmrs_corr_thr;
+  float    pdcch_dmrs_epre_thr;
 
   srslte_carrier_nr_t carrier;
   srslte_coreset_t    coreset;

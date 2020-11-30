@@ -71,6 +71,10 @@ typedef struct SRSLTE_API {
 
   /// Channel estimates, size coreset_sz
   cf_t* ce;
+
+  /// Frequency domain smoothing filter
+  float*   filter;
+  uint32_t filter_len;
 } srslte_dmrs_pdcch_estimator_t;
 
 /**
@@ -121,9 +125,14 @@ SRSLTE_API int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
 typedef struct SRSLTE_API {
   /// Linear reference signal received power (RSRP). Measure correlation
   float rsrp;
+  float rsrp_dBfs;
 
   /// Energy per resource element (EPRE)
   float epre;
+  float epre_dBfs;
+
+  /// Normalized Correlation (RSRP / EPRE)
+  float norm_corr;
 
   /// CFO Measure in Hz (only available for CORESET durations 2 and 3)
   float cfo_hz;

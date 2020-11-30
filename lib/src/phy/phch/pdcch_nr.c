@@ -17,6 +17,9 @@
 
 #define PDCCH_NR_POLAR_RM_IBIL 0
 
+#define PDCCH_INFO_TX(...) INFO("PDCCH Tx: " __VA_ARGS__)
+#define PDCCH_INFO_RX(...) INFO("PDCCH Rx: " __VA_ARGS__)
+
 /**
  * @brief Recursive Y_p_n function
  */
@@ -345,7 +348,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
-  INFO("PDCCH NR TX: K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
+  PDCCH_INFO_TX("K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
 
   // Copy DCI message
   srslte_vec_u8_copy(q->c, dci_msg->payload, dci_msg->nof_bits);
@@ -353,7 +356,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   // Append CRC
   srslte_crc_attach(&q->crc24c, q->c, dci_msg->nof_bits);
 
-  INFO("PDCCH NR TX: Append CRC %06x\n", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
+  PDCCH_INFO_TX("Append CRC %06x\n", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
 
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
@@ -365,7 +368,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
 
   // Print c
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("PDCCH NR TX: c=");
+    PDCCH_INFO_TX("c=");
     srslte_vec_fprint_hex(stdout, q->c, q->K);
   }
 
@@ -379,7 +382,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
 
   // Print d
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("PDCCH NR TX: d=");
+    PDCCH_INFO_TX("d=");
     srslte_vec_fprint_byte(stdout, q->d, q->K);
   }
 
@@ -408,7 +411,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     char str[128] = {};
     srslte_pdcch_nr_info(q, NULL, str, sizeof(str));
-    INFO("PDCCH NR TX: %s\n", str);
+    PDCCH_INFO_TX("%s\n", str);
   }
 
   return SRSLTE_SUCCESS;
@@ -444,7 +447,7 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
-  INFO("PDCCH NR RX: K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
+  PDCCH_INFO_RX("K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
 
   // Get symbols from grid
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, false);
@@ -453,8 +456,20 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
     return SRSLTE_ERROR;
   }
 
+  // Print channel estimates if enabled
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    PDCCH_INFO_RX("ce=");
+    srslte_vec_fprint_c(stdout, ce->ce, q->M);
+  }
+
   // Equalise
   srslte_predecoding_single(q->symbols, ce->ce, q->symbols, NULL, q->M, 1.0f, ce->noise_var);
+
+  // Print symbols if enabled
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    PDCCH_INFO_RX("symbols=");
+    srslte_vec_fprint_c(stdout, q->symbols, q->M);
+  }
 
   // Demodulation
   int8_t* llr = (int8_t*)q->f;
@@ -483,7 +498,7 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
 
   // Print d
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("PDCCH NR RX: d=");
+    PDCCH_INFO_RX("d=");
     srslte_vec_fprint_bs(stdout, d, q->K);
   }
 
@@ -498,7 +513,7 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
 
   // Print c
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("PDCCH NR RX: c=");
+    PDCCH_INFO_RX("c=");
     srslte_vec_fprint_hex(stdout, q->c, q->K);
   }
 
@@ -516,7 +531,10 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   uint32_t checksum2 = srslte_bit_pack(&ptr, 24);
   res->crc           = checksum1 == checksum2;
 
-  INFO("PDCCH NR RX: CRC={%06x, %06x}\n", checksum1, checksum2);
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    PDCCH_INFO_RX("CRC={%06x, %06x}; msg=", checksum1, checksum2);
+    srslte_vec_fprint_hex(stdout, q->c, dci_msg->nof_bits);
+  }
 
   // Copy DCI message
   srslte_vec_u8_copy(dci_msg->payload, q->c, dci_msg->nof_bits);
@@ -530,7 +548,7 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     char str[128] = {};
     srslte_pdcch_nr_info(q, res, str, sizeof(str));
-    INFO("PDCCH NR RX: %s\n", str);
+    PDCCH_INFO_RX("%s\n", str);
   }
 
   return SRSLTE_SUCCESS;

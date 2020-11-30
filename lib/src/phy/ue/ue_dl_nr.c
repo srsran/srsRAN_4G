@@ -13,6 +13,7 @@
 #include "srslte/phy/ue/ue_dl_nr.h"
 
 #define UE_DL_NR_PDCCH_CORR_DEFAULT_THR 0.5f
+#define UE_DL_NR_PDCCH_EPRE_DEFAULT_THR -10.0f
 
 static int ue_dl_nr_alloc_prb(srslte_ue_dl_nr_t* q, uint32_t new_nof_prb)
 {
@@ -189,18 +190,42 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t* q, srslte_dci_msg_nr_t* dci
     return SRSLTE_ERROR;
   }
 
-  // If measured RSRP and EPRE is invalid, early return
-  if (!isnormal(m.rsrp) || !isnormal(m.epre)) {
+  // If measured correlation is invalid, early return
+  if (!isnormal(m.norm_corr)) {
+    INFO("Discarded PDCCH candidate L=%d;ncce=%d; Invalid measurement;\n", dci_msg->location.L, dci_msg->location.ncce);
     return SRSLTE_SUCCESS;
   }
 
-  // Compare DMRS correlation with threshold
-  float thr = q->pdcch_dmrs_corr_thr;
-  if (!isnormal(thr)) {
-    thr = UE_DL_NR_PDCCH_CORR_DEFAULT_THR; //< Load default threshold if not provided
+  // Compare EPRE with threshold
+  {
+    float thr = q->pdcch_dmrs_epre_thr;
+    if (!isnormal(thr)) {
+      thr = UE_DL_NR_PDCCH_EPRE_DEFAULT_THR; //< Load default threshold if not provided
+    }
+    if (m.epre_dBfs < thr) {
+      INFO("Discarded PDCCH candidate L=%d;ncce=%d; EPRE is too weak (%.1f<%.1f);\n",
+           dci_msg->location.L,
+           dci_msg->location.ncce,
+           m.epre_dBfs,
+           thr);
+      return SRSLTE_SUCCESS;
+    }
   }
-  if (m.rsrp / m.epre < thr) {
-    return SRSLTE_SUCCESS;
+
+  // Compare DMRS correlation with threshold
+  {
+    float thr = q->pdcch_dmrs_corr_thr;
+    if (!isnormal(thr)) {
+      thr = UE_DL_NR_PDCCH_CORR_DEFAULT_THR; //< Load default threshold if not provided
+    }
+    if (m.norm_corr < thr) {
+      INFO("Discarded PDCCH candidate L=%d;ncce=%d; Correlation is too low (%.1f<%.1f);\n",
+           dci_msg->location.L,
+           dci_msg->location.ncce,
+           m.norm_corr,
+           thr);
+      return SRSLTE_SUCCESS;
+    }
   }
 
   // Extract PDCCH channel estimates
