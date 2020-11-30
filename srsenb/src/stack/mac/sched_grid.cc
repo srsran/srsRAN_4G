@@ -671,6 +671,10 @@ alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t
 
 alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload)
 {
+  if (bc_allocs.size() >= sched_interface::MAX_BC_LIST) {
+    Warning("SCHED: Maximum number of Broadcast allocations reached\n");
+    return alloc_outcome_t::ERROR;
+  }
   ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, paging_payload, SRSLTE_PRNTI);
   if (not ret.first) {
     Warning(
@@ -689,6 +693,10 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
 {
   const uint32_t                       msg3_grant_size = 3;
   std::pair<alloc_outcome_t, uint32_t> ret             = {alloc_outcome_t::ERROR, 0};
+  if (rar_allocs.size() >= sched_interface::MAX_RAR_LIST) {
+    Warning("SCHED: Maximum number of RAR allocations per TTI reached.\n");
+    return ret;
+  }
 
   for (uint32_t nof_grants = rar.nof_grants; nof_grants > 0; nof_grants--) {
     uint32_t buf_rar         = 7 * nof_grants + 1; // 1+6 bytes per RAR subheader+body and 1 byte for Backoff
@@ -752,7 +760,11 @@ bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, tti_point
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
   if (is_dl_alloc(user->get_rnti())) {
-    log_h->warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
+    Warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
+    return alloc_outcome_t::ERROR;
+  }
+  if (data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
+    Warning("SCHED: Maximum number of DL allocations reached\n");
     return alloc_outcome_t::ERROR;
   }
   auto* cc = user->find_ue_carrier(cc_cfg->enb_cc_idx);
@@ -816,6 +828,10 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
   // Check whether user was already allocated
   if (is_ul_alloc(user->get_rnti())) {
     log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
+    return alloc_outcome_t::ERROR;
+  }
+  if (ul_data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
+    Warning("SCHED: Maximum number of UL allocations reached\n");
     return alloc_outcome_t::ERROR;
   }
 
