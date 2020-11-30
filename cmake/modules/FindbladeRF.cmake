@@ -1,3 +1,11 @@
+#
+# Copyright 2013-2020 Software Radio Systems Limited
+#
+# By using this file, you agree to the terms and conditions set
+# forth in the LICENSE file which can be found at the top level of
+# the distribution.
+#
+
 if(NOT BLADERF_FOUND)
   pkg_check_modules (BLADERF_PKG libbladeRF)
   find_path(BLADERF_INCLUDE_DIRS NAMES libbladeRF.h
