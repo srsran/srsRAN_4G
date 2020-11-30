@@ -84,15 +84,24 @@ void gw::stop()
   }
 }
 
-void gw::get_metrics(gw_metrics_t& m)
+void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
 {
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
-  double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec * 1e-6;
 
-  m.dl_tput_mbps = (dl_tput_bytes * 8 / (double)1e6) / secs;
-  m.ul_tput_mbps = (ul_tput_bytes * 8 / (double)1e6) / secs;
-  log.info("RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n", m.dl_tput_mbps, m.ul_tput_mbps);
+  double secs                   = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec * 1e-6;
+  double dl_tput_mbps_real_time = (dl_tput_bytes * 8 / (double)1e6) / secs;
+  double ul_tput_mbps_real_time = (ul_tput_bytes * 8 / (double)1e6) / secs;
+
+  // Use the provided TTI counter to compute rate for metrics interface
+  m.dl_tput_mbps = (dl_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
+  m.ul_tput_mbps = (ul_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
+
+  log.info("gw_rx_rate_mbps=%4.2f (real=%4.2f), gw_tx_rate_mbps=%4.2f (real=%4.2f)\n",
+           m.dl_tput_mbps,
+           dl_tput_mbps_real_time,
+           m.ul_tput_mbps,
+           ul_tput_mbps_real_time);
 
   memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
   dl_tput_bytes = 0;

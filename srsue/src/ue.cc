@@ -298,7 +298,7 @@ bool ue::get_metrics(ue_metrics_t* m)
   phy->get_metrics(&m->phy);
   radio->get_metrics(&m->rf);
   stack->get_metrics(&m->stack);
-  gw_inst->get_metrics(m->gw);
+  gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);
   return true;
 }
 

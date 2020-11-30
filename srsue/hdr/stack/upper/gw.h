@@ -43,7 +43,7 @@ public:
   int  init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack);
   void stop();
 
-  void get_metrics(gw_metrics_t& m);
+  void get_metrics(gw_metrics_t& m, const uint32_t nof_tti);
 
   // PDCP interface
   void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -82,8 +82,8 @@ private:
   uint32_t current_ip_addr = 0;
   uint8_t  current_if_id[8];
 
-  long           ul_tput_bytes = 0;
-  long           dl_tput_bytes = 0;
+  uint32_t       ul_tput_bytes = 0;
+  uint32_t       dl_tput_bytes = 0;
   struct timeval metrics_time[3];
 
   void run_thread();
