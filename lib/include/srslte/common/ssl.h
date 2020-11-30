@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_LIBLTE_SSL_H
-#define SRSLTE_LIBLTE_SSL_H
+#ifndef SRSLTE_SSL_H
+#define SRSLTE_SSL_H
 
 #ifdef HAVE_POLARSSL
 
@@ -82,4 +82,4 @@ void sha256(const unsigned char* key,
 
 #endif // HAVE_MBEDTLS
 
-#endif // SRSLTE_LIBLTE_SSL_H
+#endif // SRSLTE_SSL_H

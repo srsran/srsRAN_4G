@@ -36,7 +36,7 @@
 
 #include "srslte/common/liblte_security.h"
 #include "math.h"
-#include "srslte/common/liblte_ssl.h"
+#include "srslte/common/ssl.h"
 #include "srslte/common/s3g.h"
 #include "srslte/common/zuc.h"
 
