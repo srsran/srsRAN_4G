@@ -13,11 +13,11 @@
 add_executable(pbch_test pbch_test.c)
 target_link_libraries(pbch_test srslte_phy)
 
-add_test(pbch_test_6 pbch_test -p 1 -n 6 -c 100) 
-add_test(pbch_test_62 pbch_test -p 2 -n 6 -c 100) 
-add_test(pbch_test_64 pbch_test -p 4 -n 6 -c 100) 
-add_test(pbch_test_50 pbch_test -p 1 -n 50 -c 50) 
-add_test(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
+add_test(pbch_test_6 pbch_test -p 1 -n 6 -c 100)
+add_test(pbch_test_62 pbch_test -p 2 -n 6 -c 100)
+add_test(pbch_test_64 pbch_test -p 4 -n 6 -c 100)
+add_test(pbch_test_50 pbch_test -p 1 -n 50 -c 50)
+add_test(pbch_test_502 pbch_test -p 2 -n 50 -c 50)
 add_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50)
 
 ########################################################################
@@ -157,40 +157,40 @@ add_test(npbch_file_test_nid257_r13 npbch_file_test -l 257 -r 4 -i ${CMAKE_CURRE
 add_test(npbch_file_test_nid257_r14 npbch_file_test -l 257 -R -r 7 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_nid257_r14_sf0.bin)
 
 ########################################################################
-# PCFICH TEST  
+# PCFICH TEST
 ########################################################################
 
 add_executable(pcfich_test pcfich_test.c)
 target_link_libraries(pcfich_test srslte_phy)
 
-add_test(pcfich_test_6 pcfich_test -p 1 -n 6) 
-add_test(pcfich_test_62 pcfich_test -p 2 -n 6) 
-add_test(pcfich_test_64 pcfich_test -p 4 -n 6) 
-add_test(pcfich_test_10 pcfich_test -p 1 -n 10) 
-add_test(pcfich_test_102 pcfich_test -p 2 -n 10) 
+add_test(pcfich_test_6 pcfich_test -p 1 -n 6)
+add_test(pcfich_test_62 pcfich_test -p 2 -n 6)
+add_test(pcfich_test_64 pcfich_test -p 4 -n 6)
+add_test(pcfich_test_10 pcfich_test -p 1 -n 10)
+add_test(pcfich_test_102 pcfich_test -p 2 -n 10)
 add_test(pcfich_test_104 pcfich_test -p 4 -n 10)
 
 ########################################################################
-# PHICH TEST  
+# PHICH TEST
 ########################################################################
 
 add_executable(phich_test phich_test.c)
 target_link_libraries(phich_test srslte_phy)
 
-add_test(phich_test_6 phich_test -p 1 -n 6) 
-add_test(phich_test_62 phich_test -p 2 -n 6) 
+add_test(phich_test_6 phich_test -p 1 -n 6)
+add_test(phich_test_62 phich_test -p 2 -n 6)
 add_test(phich_test_64 phich_test -p 4 -n 6 -g 1/6)
- 
-add_test(phich_test_6e phich_test -p 1 -n 6 -e) 
-add_test(phich_test_62e phich_test -p 2 -n 6 -e -l) 
+
+add_test(phich_test_6e phich_test -p 1 -n 6 -e)
+add_test(phich_test_62e phich_test -p 2 -n 6 -e -l)
 add_test(phich_test_64e phich_test -p 4 -n 6 -e -l -g 2)
- 
-add_test(phich_test_10 phich_test -p 1 -n 10 -e) 
-add_test(phich_test_102 phich_test -p 2 -n 10 -g 2) 
+
+add_test(phich_test_10 phich_test -p 1 -n 10 -e)
+add_test(phich_test_102 phich_test -p 2 -n 10 -g 2)
 add_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2)
 
 ########################################################################
-# PDCCH TEST  
+# PDCCH TEST
 ########################################################################
 
 add_executable(pdcch_test pdcch_test.c)
@@ -211,7 +211,7 @@ add_test(pdcch_test_100_mimo pdcch_test -n 100 -p 2)
 #add_test(pdcch_test_crosscarrier pdcch_test -x)
 
 ########################################################################
-# PDSCH TEST  
+# PDSCH TEST
 ########################################################################
 
 add_executable(pdsch_test pdsch_test.c)
@@ -319,7 +319,7 @@ add_test(pdsch_test_multiplex2cw_p1_75  pdsch_test -x 4 -a 2 -t 0 -p 1 -n 75)
 add_test(pdsch_test_multiplex2cw_p1_100 pdsch_test -x 4 -a 2 -t 0 -p 1 -n 100)
 
 ########################################################################
-# PMCH TEST  
+# PMCH TEST
 ########################################################################
 
 add_executable(pmch_test pmch_test.c)
@@ -392,7 +392,7 @@ target_link_libraries(dci_nbiot_test srslte_phy)
 add_test(dci_nbiot_test dci_nbiot_test)
 
 ########################################################################
-# FILE TEST  
+# FILE TEST
 ########################################################################
 
 add_executable(pbch_file_test pbch_file_test.c)
@@ -421,10 +421,10 @@ add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.9
 add_executable(pmch_file_test pmch_file_test.c)
 target_link_libraries(pmch_file_test srslte_phy)
 
-add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat) 
-add_test(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
-add_test(phich_file_test phich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
-add_test(pdcch_file_test pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
+add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat)
+add_test(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat)
+add_test(phich_file_test phich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat)
+add_test(pdcch_file_test pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat)
 add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat)
 add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100prbs_MCS2_SR0.bin)
 
@@ -445,7 +445,7 @@ add_test(npdsch_npdcch_dci_formatN0_test npdsch_npdcch_file_test -c 0 -s 4 -w 86
 add_test(npdsch_npdcch_dci_formatN1_test npdsch_npdcch_file_test -c 0 -s 1 -w 546 -r 0x89 -v -o FormatN1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN1_nid0_tti_5461_rnti_0x89.bin)
 
 ########################################################################
-# PUSCH TEST  
+# PUSCH TEST
 ########################################################################
 
 add_executable(pusch_test pusch_test.c)
@@ -472,7 +472,7 @@ else (TEST_EXTENSION STREQUAL Paranoid)
 
   set(pusch_min_mcs 0)
   set(pusch_max_mcs 28)
-  set(pusch_step_mcs 10)
+  set(pusch_step_mcs 7)
 
   set(pusch_acks 0 1 2 10)
 
@@ -506,10 +506,14 @@ foreach (cell_n_prb 6 15 25 50 75 100)
 
           if (NOT (${cqi} STREQUAL none))
             set(pusch_test_args ${pusch_test_args} -p cqi ${cqi})
-            #if (mcs EQUAL 28)
-            #  set(mcs 27)
-            #endif (mcs EQUAL 28)
+            if (mcs EQUAL 28)
+              set(mcs 27)
+            endif (mcs EQUAL 28)
           endif (NOT (${cqi} STREQUAL none))
+
+          if (${mcs} GREATER 24)
+            set(pusch_test_args ${pusch_test_args} -p enable_64qam)
+          endif(${mcs} GREATER 24)
 
           set(pusch_test_args ${pusch_test_args} -m ${mcs})
 
@@ -523,7 +527,7 @@ foreach (cell_n_prb 6 15 25 50 75 100)
 endforeach (cell_n_prb)
 
 ########################################################################
-# PUCCH TEST  
+# PUCCH TEST
 ########################################################################
 
 add_executable(pucch_test pucch_test.c)
@@ -533,7 +537,7 @@ add_test(pucch_test pucch_test)
 add_test(pucch_test_uci_cqi_decoder pucch_test -q)
 
 ########################################################################
-# PRACH TEST  
+# PRACH TEST
 ########################################################################
 
 add_executable(prach_test prach_test.c)
@@ -559,7 +563,7 @@ add_test(prach_rs3 prach_test -r 3)
 add_test(prach_zc0 prach_test -z 0)
 add_test(prach_zc2 prach_test -z 2)
 add_test(prach_zc3 prach_test -z 3)
- 
+
 add_executable(prach_test_multi prach_test_multi.c)
 target_link_libraries(prach_test_multi srslte_phy)
 

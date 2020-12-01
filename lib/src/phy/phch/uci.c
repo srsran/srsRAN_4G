@@ -864,7 +864,7 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
   }
 
   /// Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212
-  int32_t thr  = count_acc * ((Qm < 4) ? 100 : (Qm < 6) ? 200 : (Qm < 8) ? 700 : 1000) / 2;
+  int32_t thr  = (count_acc * ((Qm < 4) ? 100 : (Qm < 6) ? 200 : (Qm < 8) ? 700 : 1000)) / Qm;
   int32_t corr = 0;
   switch (nof_bits) {
     case 1:

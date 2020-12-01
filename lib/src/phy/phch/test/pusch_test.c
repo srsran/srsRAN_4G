@@ -271,7 +271,7 @@ int main(int argc, char** argv)
   srslte_chest_ul_res_init(&chest_res, cell.nof_prb);
   srslte_chest_ul_res_set_identity(&chest_res);
 
-  cfg.enable_64qam = enable_64_qam;
+  cfg.enable_64qam     = enable_64_qam;
   uint64_t decode_us   = 0;
   uint64_t decode_bits = 0;
 
@@ -333,7 +333,12 @@ int main(int argc, char** argv)
     }
 
     if (uci_data_tx.cfg.ack[0].nof_acks) {
-      if (memcmp(uci_data_tx.value.ack.ack_value, pusch_res.uci.ack.ack_value, uci_data_tx.cfg.ack[0].nof_acks) != 0) {
+      if (!pusch_res.uci.ack.valid) {
+        printf("Invalid UCI ACK bit\n");
+        ret = SRSLTE_ERROR;
+      } else if (memcmp(uci_data_tx.value.ack.ack_value,
+                        pusch_res.uci.ack.ack_value,
+                        uci_data_tx.cfg.ack[0].nof_acks) != 0) {
         printf("UCI ACK bit error:\n");
         printf("\tTx: ");
         srslte_vec_fprint_byte(stdout, uci_data_tx.value.ack.ack_value, uci_data_tx.cfg.ack[0].nof_acks);

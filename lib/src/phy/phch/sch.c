@@ -212,6 +212,10 @@ void srslte_sch_free(srslte_sch_t* q)
 
 void srslte_sch_set_max_noi(srslte_sch_t* q, uint32_t max_iterations)
 {
+  if (max_iterations == 0) {
+    max_iterations = SRSLTE_PDSCH_MAX_TDEC_ITERS;
+  }
+
   q->max_iterations = max_iterations;
 }
 
@@ -856,7 +860,7 @@ static void ulsch_interleave_qm6(const uint8_t* g_bits,
           q_bits[write_byte_idx + 1] |= w << 4;
           break;
         default:
-            /* Do nothing */;
+          /* Do nothing */;
       }
 
       bit_read_idx += 6;
@@ -909,7 +913,7 @@ static void ulsch_interleave_qm6(const uint8_t* g_bits,
             q_bits[write_byte_idx + 1] |= w << 4;
             break;
           default:
-              /* Do nothing */;
+            /* Do nothing */;
         }
 
         bit_read_idx += 6;
