@@ -1,39 +1,15 @@
-/*******************************************************************************
-
-    Copyright 2014-2015 Ben Wojtowicz
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*******************************************************************************
-
-    File: liblte_mme.h
-
-    Description: Contains all the definitions for the LTE Mobility Management
-                 Entity library.
-
-    Revision History
-    ----------    -------------    --------------------------------------------
-    06/15/2014    Ben Wojtowicz    Created file.
-    08/03/2014    Ben Wojtowicz    Added more decoding/encoding.
-    09/03/2014    Ben Wojtowicz    Added more decoding/encoding.
-    11/01/2014    Ben Wojtowicz    Added more decoding/encoding.
-    11/29/2014    Ben Wojtowicz    Added more decoding/encoding.
-    12/16/2014    Ben Wojtowicz    Added more decoding/encoding.
-    12/24/2014    Ben Wojtowicz    Cleaned up the Time Zone and Time IE.
-    02/15/2015    Ben Wojtowicz    Added more decoding/encoding.
-
-*******************************************************************************/
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2014-2015 Ben Wojtowicz
+ *           2016-2020 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
 
 #ifndef SRSLTE_LIBLTE_MME_H
 #define SRSLTE_LIBLTE_MME_H
