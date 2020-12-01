@@ -188,7 +188,7 @@ int main(int argc, char** argv)
             srslte_dci_msg_nr_t dci_msg = {};
             dci_msg.rnti_type           = srslte_rnti_type_c;
             dci_msg.location.L          = aggregation_level;
-            dci_msg.location.ncce       = dci_locations[n];
+            dci_msg.location.ncce       = dci_locations[ncce_idx];
             dci_msg.nof_bits            = srslte_dci_nr_format_1_0_sizeof(&carrier, &coreset, dci_msg.rnti_type);
 
             // Generate random payload
