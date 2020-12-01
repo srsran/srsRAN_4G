@@ -1007,9 +1007,17 @@ uint8_t get_rrc_obj_id(const drb_to_add_mod_s& drb)
 {
   return drb.drb_id;
 }
+uint8_t get_rrc_obj_id(const black_cells_to_add_mod_s& obj)
+{
+  return obj.cell_idx;
+}
 uint8_t get_rrc_obj_id(const cells_to_add_mod_s& obj)
 {
   return obj.cell_idx;
+}
+uint8_t get_rrc_obj_id(const cells_to_add_mod_nr_r15_s& obj)
+{
+  return obj.cell_idx_r15;
 }
 uint8_t get_rrc_obj_id(const meas_obj_to_add_mod_s& obj)
 {
@@ -1036,9 +1044,17 @@ void set_rrc_obj_id(drb_to_add_mod_s& drb, uint8_t id)
 {
   drb.drb_id = id;
 }
+void set_rrc_obj_id(black_cells_to_add_mod_s& obj, uint8_t id)
+{
+  obj.cell_idx = id;
+}
 void set_rrc_obj_id(cells_to_add_mod_s& obj, uint8_t id)
 {
   obj.cell_idx = id;
+}
+void set_rrc_obj_id(cells_to_add_mod_nr_r15_s& obj, uint8_t id)
+{
+  obj.cell_idx_r15 = id;
 }
 void set_rrc_obj_id(meas_obj_to_add_mod_s& obj, uint8_t id)
 {

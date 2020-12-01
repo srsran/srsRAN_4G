@@ -13,6 +13,7 @@
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srslte/asn1/rrc/dl_dcch_msg.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
+#include "srslte/rrc/rrc_cfg_utils.h"
 
 /************************************************************************
  *
@@ -810,15 +811,8 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_eutra(uint8_t meas_obj_id, c
       // Remove cells
       if (cfg_obj.cells_to_rem_list_present) {
         log_h->debug("MEAS:     Removing %d cells\n", cfg_obj.cells_to_rem_list.size());
-        cells_to_add_mod_list_l new_list;
-        for (auto& local_cell : local_obj.cells_to_add_mod_list) {
-          // If not in the list to remove, copy to new list
-          if (std::find(cfg_obj.cells_to_rem_list.begin(), cfg_obj.cells_to_rem_list.end(), local_cell.cell_idx) ==
-              cfg_obj.cells_to_rem_list.end()) {
-            new_list.push_back(local_cell);
-          }
-        }
-        local_obj.cells_to_add_mod_list = new_list;
+        apply_remlist_diff(local_obj.cells_to_add_mod_list, cfg_obj.cells_to_rem_list, local_obj.cells_to_add_mod_list);
+
         if (log_h->get_level() == LOG_LEVEL_DEBUG) {
           for (auto& c : local_obj.cells_to_add_mod_list) {
             log_h->debug("MEAS:       cell idx=%d, pci=%d, q_offset=%d\n",
@@ -829,50 +823,22 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_eutra(uint8_t meas_obj_id, c
         }
       }
       if (cfg_obj.cells_to_add_mod_list_present) {
-        for (auto& new_cell : cfg_obj.cells_to_add_mod_list) {
-          // If an entry with the matching cellIndex exists in the local object cellsToAddModList:
-          auto it = std::find_if(local_obj.cells_to_add_mod_list.begin(),
-                                 local_obj.cells_to_add_mod_list.end(),
-                                 [&new_cell](const cells_to_add_mod_s& c) { return c.cell_idx == new_cell.cell_idx; });
-          if (it != local_obj.cells_to_add_mod_list.end()) {
-            // If the new cell exists, copy it
-            *it = new_cell;
-          } else {
-            // otherwise add it
-            local_obj.cells_to_add_mod_list.push_back(new_cell);
-          }
-        }
+        apply_addmodlist_diff(
+            local_obj.cells_to_add_mod_list, cfg_obj.cells_to_add_mod_list, local_obj.cells_to_add_mod_list);
       }
     }
 
     // Do the same with black list
     {
-      if (cfg_obj.black_cells_to_add_mod_list_present) {
-        black_cells_to_add_mod_list_l new_list;
-        for (auto& local_cell : local_obj.black_cells_to_add_mod_list) {
-          // If doesn't exists in cells to rem
-          if (std::find(cfg_obj.black_cells_to_rem_list.begin(),
-                        cfg_obj.black_cells_to_rem_list.end(),
-                        local_cell.cell_idx) == cfg_obj.black_cells_to_rem_list.end()) {
-            new_list.push_back(local_cell);
-          }
-        }
-        local_obj.black_cells_to_add_mod_list = new_list;
+      if (cfg_obj.black_cells_to_rem_list_present) {
+        apply_remlist_diff(local_obj.black_cells_to_add_mod_list,
+                           cfg_obj.black_cells_to_rem_list,
+                           local_obj.black_cells_to_add_mod_list);
       }
       if (cfg_obj.black_cells_to_add_mod_list_present) {
-        for (auto& new_cell : cfg_obj.black_cells_to_add_mod_list) {
-          // If an entry with the matching cellIndex exists in the local object blackCellsToAddModList:
-          auto it =
-              std::find_if(local_obj.black_cells_to_add_mod_list.begin(),
-                           local_obj.black_cells_to_add_mod_list.end(),
-                           [&new_cell](const black_cells_to_add_mod_s& c) { return c.cell_idx == new_cell.cell_idx; });
-          if (it != local_obj.black_cells_to_add_mod_list.end()) {
-            // copy the new entry
-            *it = new_cell;
-          } else {
-            local_obj.black_cells_to_add_mod_list.push_back(new_cell);
-          }
-        }
+        apply_addmodlist_diff(local_obj.black_cells_to_add_mod_list,
+                              cfg_obj.black_cells_to_add_mod_list,
+                              local_obj.black_cells_to_add_mod_list);
       }
     }
 
@@ -918,32 +884,15 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_nr_r15(uint8_t meas_obj_id, 
     // Combine the new cells with the existing ones and remove the cells indicated in config
     // Do the same with black list
     {
-      if (cfg_obj.black_cells_to_add_mod_list_r15_present) {
-        cells_to_add_mod_list_nr_r15_l new_list;
-        for (auto& local_cell : local_obj.black_cells_to_add_mod_list_r15) {
-          // If doesn't exists in cells to rem
-          if (std::find(cfg_obj.black_cells_to_rem_list_r15.begin(),
-                        cfg_obj.black_cells_to_rem_list_r15.end(),
-                        local_cell.cell_idx_r15) == cfg_obj.black_cells_to_rem_list_r15.end()) {
-            new_list.push_back(local_cell);
-          }
-        }
-        local_obj.black_cells_to_add_mod_list_r15 = new_list;
+      if (cfg_obj.black_cells_to_rem_list_r15_present) {
+        apply_remlist_diff(local_obj.black_cells_to_add_mod_list_r15,
+                           cfg_obj.black_cells_to_rem_list_r15,
+                           local_obj.black_cells_to_add_mod_list_r15);
       }
       if (cfg_obj.black_cells_to_add_mod_list_r15_present) {
-        for (auto& new_cell : cfg_obj.black_cells_to_add_mod_list_r15) {
-          // If an entry with the matching cellIndex exists in the local object blackCellsToAddModList:
-          auto it = std::find_if(
-              local_obj.black_cells_to_add_mod_list_r15.begin(),
-              local_obj.black_cells_to_add_mod_list_r15.end(),
-              [&new_cell](const cells_to_add_mod_nr_r15_s& c) { return c.cell_idx_r15 == new_cell.cell_idx_r15; });
-          if (it != local_obj.black_cells_to_add_mod_list_r15.end()) {
-            // copy the new entry
-            *it = new_cell;
-          } else {
-            local_obj.black_cells_to_add_mod_list_r15.push_back(new_cell);
-          }
-        }
+        apply_addmodlist_diff(local_obj.black_cells_to_add_mod_list_r15,
+                              cfg_obj.black_cells_to_add_mod_list_r15,
+                              local_obj.black_cells_to_add_mod_list_r15);
       }
     }
     // for each measId associated with this measObjectId in the measIdList within the VarMeasConfig
