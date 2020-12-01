@@ -211,8 +211,6 @@ void sched_ue::reset()
 {
   cfg                          = {};
   sr                           = false;
-  next_tpc_pusch               = 1;
-  next_tpc_pucch               = 1;
   phy_config_dedicated_enabled = false;
   cqi_request_tti              = 0;
   carriers.clear();
@@ -229,6 +227,7 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
     current_tti = tti_rx;
     lch_handler.new_tti();
   }
+  carriers.at(enb_ue_cc_idx_map[enb_cc_idx]).tpc_fsm.new_tti();
 }
 
 /// sanity check the UE CC configuration
@@ -296,9 +295,9 @@ void sched_ue::ul_buffer_add(uint8_t lcid, uint32_t bytes)
   lch_handler.ul_buffer_add(lcid, bytes);
 }
 
-void sched_ue::ul_phr(int phr)
+void sched_ue::ul_phr(uint32_t enb_cc_idx, int phr)
 {
-  power_headroom = phr;
+  carriers[enb_ue_cc_idx_map[enb_cc_idx]].tpc_fsm.set_phr(phr);
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
@@ -465,31 +464,16 @@ void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
   }
 }
 
-void sched_ue::set_ul_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
+void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->ul_cqi        = cqi;
+    c->tpc_fsm.set_snr(snr);
+    c->ul_cqi        = srslte_cqi_from_snr(snr);
     c->ul_cqi_tti_rx = tti_rx;
   } else {
     log_h->warning("Received SNR info for invalid cell index %d\n", enb_cc_idx);
   }
-}
-
-void sched_ue::tpc_inc()
-{
-  if (power_headroom > 0) {
-    next_tpc_pusch = 3;
-    next_tpc_pucch = 3;
-  }
-  log_h->info("SCHED: Set TCP=%d for rnti=0x%x\n", next_tpc_pucch, rnti);
-}
-
-void sched_ue::tpc_dec()
-{
-  next_tpc_pusch = 0;
-  next_tpc_pucch = 0;
-  log_h->info("SCHED: Set TCP=%d for rnti=0x%x\n", next_tpc_pucch, rnti);
 }
 
 /*******************************************************
@@ -613,8 +597,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
     dci->tb[0].rv      = sched_utils::get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
-    dci->tpc_pucch = (uint8_t)next_tpc_pucch;
-    next_tpc_pucch = 1;
+    dci->tpc_pucch = carriers[ue_cc_idx].tpc_fsm.encode_pucch_tpc();
     data->tbs[0]   = (uint32_t)tbs;
     data->tbs[1]   = 0;
   }
@@ -742,8 +725,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
   dci->rnti      = rnti;
   dci->ue_cc_idx = ue_cc_idx;
   dci->pid       = h->get_id();
-  dci->tpc_pucch = (uint8_t)next_tpc_pucch;
-  next_tpc_pucch = 1;
+  dci->tpc_pucch = carriers[ue_cc_idx].tpc_fsm.encode_pucch_tpc();
 
   int ret = data->tbs[0] + data->tbs[1];
   return ret;
@@ -850,8 +832,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     dci->tb.ndi         = h->get_ndi(0);
     dci->cqi_request    = cqi_request;
     dci->freq_hop_fl    = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
-    dci->tpc_pusch      = next_tpc_pusch;
-    next_tpc_pusch      = 1;
+    dci->tpc_pusch      = carriers[ue_cc_idx].tpc_fsm.encode_pusch_tpc();
 
     dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
 
@@ -1328,7 +1309,8 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   log_h(srslte::logmap::get("MAC ")),
   ue_cc_idx(ue_cc_idx_),
   last_tti(current_tti),
-  harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC)
+  harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
+  tpc_fsm(cell_cfg_.cfg.target_ul_sinr)
 {
   dl_cqi_rx = false;
   dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
@@ -1530,8 +1512,9 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
 
   // find nof prbs that lead to a tbs just above req_bytes
   int                                      target_tbs = req_bytes + 4;
-  std::tuple<uint32_t, int, uint32_t, int> ret        = false_position_method(
-      1u, cell_params->nof_prb(), target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+  uint32_t                                 max_prbs   = std::min(tpc_fsm.max_ul_prbs(), cell_params->nof_prb());
+  std::tuple<uint32_t, int, uint32_t, int> ret =
+      false_position_method(1u, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
   uint32_t req_prbs = std::get<2>(ret);
   while (!srslte_dft_precoding_valid_prb(req_prbs) && req_prbs < cell_params->nof_prb()) {
     req_prbs++;

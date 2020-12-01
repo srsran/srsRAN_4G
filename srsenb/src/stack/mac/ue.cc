@@ -347,7 +347,8 @@ bool ue::process_ce(srslte::sch_subh* subh)
   switch (subh->ul_sch_ce_type()) {
     case srslte::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();
-      sched->ul_phr(rnti, (int)phr);
+      // TODO: Add enb_cc_idx
+      sched->ul_phr(rnti, 0, (int)phr);
       metrics_phr(phr);
       break;
     case srslte::ul_sch_lcid::CRNTI:
@@ -583,6 +584,15 @@ void ue::metrics_tx(bool crc, uint32_t tbs)
 void ue::metrics_cnt()
 {
   metrics.nof_tti++;
+}
+
+void ue::tic()
+{
+  // Check for pending TA commands
+  uint32_t nof_ta_count = ta_fsm.tick();
+  if (nof_ta_count) {
+    sched->dl_mac_buffer_state(rnti, (uint32_t)srslte::dl_sch_lcid::TA_CMD, nof_ta_count);
+  }
 }
 
 } // namespace srsenb

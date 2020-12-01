@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/sched_lch.h"
+#include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_lch.h"
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srslte/common/log_helper.h"
 

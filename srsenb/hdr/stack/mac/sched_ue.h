@@ -19,7 +19,8 @@
 #include <vector>
 
 #include "sched_harq.h"
-#include "sched_lch.h"
+#include "sched_ue_ctrl/sched_lch.h"
+#include "sched_ue_ctrl/tpc.h"
 #include <bitset>
 #include <deque>
 
@@ -67,6 +68,7 @@ struct cc_sched_ue {
   uint32_t max_mcs_dl = 28, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
+  tpc      tpc_fsm;
 
   // Allowed DCI locations per per CFI and per subframe
   std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
@@ -115,10 +117,10 @@ public:
 
   void dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
   void ul_buffer_state(uint8_t lcg_id, uint32_t bsr);
-  void ul_phr(int phr);
+  void ul_phr(uint32_t enb_cc_idx, int phr);
   void mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds);
 
-  void set_ul_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code);
+  void set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code);
   void set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri);
   void set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri);
   void set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi);
@@ -128,9 +130,6 @@ public:
   /*******************************************************
    * Custom functions
    *******************************************************/
-
-  void tpc_inc();
-  void tpc_dec();
 
   const dl_harq_proc&       get_dl_harq(uint32_t idx, uint32_t cc_idx) const;
   uint16_t                  get_rnti() const { return rnti; }
@@ -252,14 +251,9 @@ private:
   bool           sr = false;
   lch_ue_manager lch_handler;
 
-  int      power_headroom  = 0;
   uint32_t cqi_request_tti = 0;
   uint16_t rnti            = 0;
   uint32_t max_msg3retx    = 0;
-
-  /* User State */
-  int next_tpc_pusch = 0;
-  int next_tpc_pucch = 0;
 
   bool phy_config_dedicated_enabled = false;
 

@@ -88,8 +88,8 @@ public:
   int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc) final;
   int ul_sr_info(uint32_t tti, uint16_t rnti) override;
   int ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) final;
-  int ul_phr(uint16_t rnti, int phr) final;
-  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code) final;
+  int ul_phr(uint16_t rnti, uint32_t enb_cc_idx, int phr) final;
+  int ul_snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code) final;
 
   int dl_sched(uint32_t tti, uint32_t enb_cc_idx, dl_sched_res_t& sched_result) final;
   int ul_sched(uint32_t tti, uint32_t enb_cc_idx, ul_sched_res_t& sched_result) final;
@@ -97,8 +97,6 @@ public:
   /* Custom functions
    */
   void                                  set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
-  void                                  tpc_inc(uint16_t rnti);
-  void                                  tpc_dec(uint16_t rnti);
   std::array<int, SRSLTE_MAX_CARRIERS>  get_enb_ue_cc_map(uint16_t rnti) final;
   std::array<bool, SRSLTE_MAX_CARRIERS> get_scell_activation_mask(uint16_t rnti) final;
   int                                   ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;

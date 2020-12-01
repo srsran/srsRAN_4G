@@ -391,8 +391,7 @@ int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr
     return SRSLTE_ERROR;
   }
 
-  uint32_t cqi = srslte_cqi_from_snr(snr);
-  return scheduler.ul_cqi_info(tti_rx, rnti, enb_cc_idx, cqi, 0);
+  return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, 0);
 }
 
 int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
@@ -843,12 +842,9 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
 
   log_h->step(TTI_SUB(tti_tx_ul, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
 
-  // Execute TA FSM
+  // Execute UE FSMs (e.g. TA)
   for (auto& ue : ue_db) {
-    uint32_t nof_ta_count = ue.second->tick_ta_fsm();
-    if (nof_ta_count) {
-      scheduler.dl_mac_buffer_state(ue.first, (uint32_t)srslte::dl_sch_lcid::TA_CMD, nof_ta_count);
-    }
+    ue.second->tic();
   }
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < cell_config.size(); enb_cc_idx++) {

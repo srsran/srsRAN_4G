@@ -65,6 +65,7 @@ public:
 
     /* pusch configuration */
     srslte_pusch_hopping_cfg_t pusch_hopping_cfg;
+    float                      target_ul_sinr;
 
     /* prach configuration */
     uint32_t prach_config;
@@ -282,11 +283,11 @@ public:
   virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)        = 0;
 
   /* UL information */
-  virtual int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc)                          = 0;
-  virtual int ul_sr_info(uint32_t tti, uint16_t rnti)                                                          = 0;
-  virtual int ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)                                             = 0;
-  virtual int ul_phr(uint16_t rnti, int phr)                                                                   = 0;
-  virtual int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code) = 0;
+  virtual int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc)                       = 0;
+  virtual int ul_sr_info(uint32_t tti, uint16_t rnti)                                                       = 0;
+  virtual int ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)                                          = 0;
+  virtual int ul_phr(uint16_t rnti, uint32_t enb_cc_idx, int phr)                                           = 0;
+  virtual int ul_snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code) = 0;
 
   /* Run Scheduler for this tti */
   virtual int dl_sched(uint32_t tti, uint32_t enb_cc_idx, dl_sched_res_t& sched_result) = 0;

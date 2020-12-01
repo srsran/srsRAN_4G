@@ -91,8 +91,8 @@ int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
     for (auto& cc : active_ccs) {
       sched_ptr->dl_cqi_info(
           tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen()));
-      sched_ptr->ul_cqi_info(
-          tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen()), 0);
+      sched_ptr->ul_snr_info(
+          tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen()), 0);
     }
   }
 
