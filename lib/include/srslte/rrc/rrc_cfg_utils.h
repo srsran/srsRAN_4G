@@ -179,6 +179,34 @@ void apply_addmodlist_diff(const AddModList& src_list, const AddModList& add_dif
 }
 
 /**
+ * Apply toRemoveList changes
+ * @param src_list original list of rrc fields
+ * @param rm_diff_list removed elements
+ * @param target_list resulting list. (Can be same as src_list)
+ */
+template <typename AddModList, typename RemoveList>
+void apply_remlist_diff(const AddModList& src_list, const RemoveList& rm_diff_list, AddModList& target_list)
+{
+  if (rm_diff_list.size() == 0) {
+    if (&target_list != &src_list) {
+      target_list = src_list;
+    }
+    return;
+  }
+  auto id_cmp_op = rrc_obj_id_cmp{};
+  assert(std::is_sorted(src_list.begin(), src_list.end(), id_cmp_op));
+  assert(std::is_sorted(rm_diff_list.begin(), rm_diff_list.end()));
+
+  AddModList tmp_lst;
+  std::set_difference(src_list.begin(),
+                      src_list.end(),
+                      rm_diff_list.begin(),
+                      rm_diff_list.end(),
+                      std::back_inserter(tmp_lst),
+                      id_cmp_op);
+  target_list = tmp_lst;
+}
+/**
  * Apply toAddModList/toRemoveList changes
  * @param src_list original list of rrc fields
  * @param add_diff_list added/modified elements
