@@ -28,6 +28,10 @@ using namespace asn1::rrc;
 
 typedef std::vector<phy_cell_t> cell_triggered_t;
 
+// TODO make this agnostic with srsenb
+int get_carrier_freq(const meas_obj_to_add_mod_s& obj);
+meas_obj_to_add_mod_s* find_meas_obj_map(std::map<uint32_t, meas_obj_to_add_mod_s>& l, uint32_t earfcn);
+
 // RRC Measurements class
 class rrc::rrc_meas
 {
@@ -88,15 +92,17 @@ private:
   {
   public:
     var_meas_cfg(var_meas_report_list* meas_report_) : meas_report(meas_report_), log_h(srslte::logmap::get("RRC")) {}
-    void                        init(rrc* rrc);
-    void                        reset();
-    phy_quant_t                 get_filter_a();
-    void                        remove_measId(const uint32_t measId);
-    std::list<meas_obj_eutra_s> get_active_objects();
-    void                        ho_reest_finish(const uint32_t src_earfcn, const uint32_t dst_earfcn);
-    bool                        parse_meas_config(const meas_cfg_s* meas_config, bool is_ho_reest, uint32_t src_earfcn);
-    void                        eval_triggers();
-    void                        report_triggers();
+    void                             init(rrc* rrc);
+    void                             reset();
+    phy_quant_t                      get_filter_a();
+    void                             remove_measId(const uint32_t measId);
+    std::list<meas_obj_to_add_mod_s> get_active_objects();
+    void                             ho_reest_finish(const uint32_t src_earfcn, const uint32_t dst_earfcn);
+    bool parse_meas_config(const meas_cfg_s* meas_config, bool is_ho_reest, uint32_t src_earfcn);
+    void eval_triggers();
+    void eval_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj, meas_cell* serv_cell, float Ofs, float Ocs);
+    void report_triggers();
+    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
 
   private:
     void remove_varmeas_report(const uint32_t meas_id);
@@ -108,16 +114,18 @@ private:
     void measId_removal(const meas_id_to_rem_list_l& list);
     void measId_addmod(const meas_id_to_add_mod_list_l& list);
     void quantity_config(const quant_cfg_s& cfg);
-    void log_debug_trigger_value(const eutra_event_s::event_id_c_& e);
+    void log_debug_trigger_value_eutra(const eutra_event_s::event_id_c_& e);
 
     static bool is_rsrp(report_cfg_eutra_s::trigger_quant_opts::options q);
     
     // Helpers
-    void measObject_addmod_eutra(uint8_t meas_obj_id, const meas_obj_eutra_s& cfg_obj);
-    void measObject_addmod_nr_r15(uint8_t meas_obj_id, const meas_obj_nr_r15_s& cfg_obj);
+    void measObject_addmod_eutra(const meas_obj_to_add_mod_s& l);
+    void measObject_addmod_nr_r15(const meas_obj_to_add_mod_s& l);
 
-    void reportConfig_addmod_eutra(uint8_t report_cfg_id, const report_cfg_eutra_s& report_cfg);
-    
+    void reportConfig_addmod_eutra(const report_cfg_to_add_mod_s& l);
+    void reportConfig_addmod_interrat(const report_cfg_to_add_mod_s& l);
+    bool reportConfig_addmod_to_reportConfigList(const report_cfg_to_add_mod_s& l);
+
     class cell_trigger_state
     {
     public:
@@ -131,10 +139,9 @@ private:
     };
 
     // varMeasConfig data
-    std::map<uint32_t, meas_id_to_add_mod_s> measIdList;           // Uses MeasId as key
-    std::map<uint32_t, meas_obj_eutra_s>     measObjectsList;      // Uses MeasObjectId as key
-    std::map<uint32_t, meas_obj_nr_r15_s>    measObjectsListNrR15; // Uses MeasObjectId as key
-    std::map<uint32_t, report_cfg_eutra_s>   reportConfigList;     // Uses ReportConfigId as key
+    std::map<uint32_t, meas_id_to_add_mod_s>    measIdList;       // Uses MeasId as key
+    std::map<uint32_t, meas_obj_to_add_mod_s>   measObjectsList;  // Uses MeasObjectId as key
+    std::map<uint32_t, report_cfg_to_add_mod_s> reportConfigList; // Uses ReportConfigId as key
 
     phy_quant_t filter_a = {1.0, 1.0}; // disable filtering until quantityConfig is received (see Sec. 5.5.3.2 Note 2)
     float       s_measure_value = 0.0;
