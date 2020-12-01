@@ -120,7 +120,7 @@ static int chest_sl_psbch_gen(srslte_chest_sl_t* q)
     u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
   }
 
-  int32_t N_zc = 0; // N_zc - Zadoff Chu Sequence Length
+  int32_t N_zc = prime_numbers[0]; // N_zc - Zadoff Chu Sequence Length
   for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
     if (prime_numbers[i] < q->M_sc_rs) {
       N_zc = prime_numbers[i];

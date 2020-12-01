@@ -122,11 +122,11 @@ int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamp
 int main(int argc, char** argv)
 {
   cf_t*             buffer[SRSLTE_MAX_CHANNELS] = {NULL};
-  int               n;
-  srslte_rf_t       rf;
-  srslte_filesink_t sink;
-  srslte_ue_sync_t  ue_sync;
-  srslte_cell_t     cell;
+  int               n                           = 0;
+  srslte_rf_t       rf                          = {};
+  srslte_filesink_t sink                        = {};
+  srslte_ue_sync_t  ue_sync                     = {};
+  srslte_cell_t     cell                        = {};
 
   signal(SIGINT, int_handler);
 

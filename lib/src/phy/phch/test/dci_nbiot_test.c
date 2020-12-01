@@ -52,7 +52,7 @@ int dl_timing_test()
 
   cf_t                 rx_buff[SRSLTE_SF_LEN_PRB_NBIOT];
   cf_t*                buff_ptrs[SRSLTE_MAX_PORTS] = {rx_buff, NULL, NULL, NULL};
-  srslte_nbiot_ue_dl_t ue_dl;
+  srslte_nbiot_ue_dl_t ue_dl                       = {};
   if (srslte_nbiot_ue_dl_init(&ue_dl, buff_ptrs, SRSLTE_NBIOT_MAX_PRB, SRSLTE_NBIOT_NUM_RX_ANTENNAS)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return SRSLTE_ERROR;
@@ -63,13 +63,13 @@ int dl_timing_test()
     return SRSLTE_ERROR;
   }
 
-  srslte_mib_nb_t mib;
+  srslte_mib_nb_t mib = {};
   mib.sched_info_sib1 = 2;
   srslte_nbiot_ue_dl_set_mib(&ue_dl, mib);
 
   // a dummy grant
   uint8_t          dci_bits_packed[] = {0x81, 0x00, 0x00};
-  srslte_dci_msg_t dci_tmp;
+  srslte_dci_msg_t dci_tmp           = {};
   dci_tmp.format   = SRSLTE_DCI_FORMATN1;
   dci_tmp.nof_bits = 23;
   srslte_bit_unpack_vector(dci_bits_packed, dci_tmp.payload, dci_tmp.nof_bits);
