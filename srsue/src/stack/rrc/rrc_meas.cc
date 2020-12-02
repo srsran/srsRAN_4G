@@ -197,7 +197,7 @@ void rrc::rrc_meas::var_meas_report_list::init(rrc* rrc_ptr_)
 /* Generate report procedure 5.5.5 */
 void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
 {
-  meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+  meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
   if (serv_cell == nullptr) {
     log_h->warning("MEAS:  Serving cell not set when evaluating triggers\n");
     return;
@@ -435,7 +435,7 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra(uint32_t            meas
       }
     }
     {
-      meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+      meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
       if (serv_cell == nullptr) {
         log_h->warning("MEAS:  Serving cell not set when reporting triggers\n");
         return;
@@ -499,7 +499,7 @@ bool rrc::rrc_meas::var_meas_cfg::is_rsrp(report_cfg_eutra_s::trigger_quant_opts
 void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_id,
                                                       report_cfg_eutra_s& report_cfg,
                                                       meas_obj_eutra_s&   meas_obj,
-                                                      meas_cell*          serv_cell,
+                                                      meas_cell_eutra*    serv_cell,
                                                       float               Ofs,
                                                       float               Ocs)
 {
@@ -627,7 +627,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
 /* Evaluate event trigger conditions for each cell 5.5.4 */
 void rrc::rrc_meas::var_meas_cfg::eval_triggers()
 {
-  meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+  meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
 
   if (serv_cell == nullptr) {
     log_h->warning("MEAS:  Serving cell not set when evaluating triggers\n");
@@ -1226,7 +1226,7 @@ bool rrc::rrc_meas::var_meas_cfg::parse_meas_config(const meas_cfg_s* cfg, bool 
   // According to 5.5.6.1, if the new configuration after a HO/Reest does not configure the target frequency, we need to
   // swap frequencies with source
   if (is_ho_reest) {
-    meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+    meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
     if (serv_cell) {
       // Check if the target frequency is configured
       uint32_t target_earfcn = serv_cell->get_earfcn();

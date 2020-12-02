@@ -61,6 +61,9 @@ rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
   connection_reest(this),
   ho_handler(this),
   conn_recfg_proc(this),
+#ifdef HAVE_5GNR
+  meas_cells_nr(task_sched_),
+#endif
   meas_cells(task_sched_)
 {}
 
@@ -111,7 +114,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
     if (not csel_result) {
-      meas_cell* c = meas_cells.find_cell(earfcn, pci);
+      meas_cell_eutra* c = meas_cells.find_cell(earfcn, pci);
       if (c != nullptr) {
         c->set_rsrp(-INFINITY);
       }
@@ -364,6 +367,7 @@ void rrc::set_config_complete(bool status)
 
 void rrc::set_scell_complete(bool status) {}
 
+#ifdef HAVE_5GNR
 /* This function is called from a NR PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
  */
@@ -385,7 +389,31 @@ void rrc::process_cell_meas_nr()
   }
 }
 
-void rrc::process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas) {}
+void rrc::process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas)
+{
+
+  // Convert vector
+  std::vector<phy_meas_t> meas_lte;
+  for (const auto& m : meas) {
+    phy_meas_t tmp_meas = {};
+    tmp_meas.cfo_hz     = m.cfo_hz;
+    tmp_meas.earfcn     = m.arfcn_nr;
+    tmp_meas.rsrp       = m.rsrp;
+    tmp_meas.rsrq       = m.rsrp;
+    tmp_meas.pci        = m.pci_nr;
+    meas_lte.push_back(tmp_meas);
+  }
+  const std::function<void(meas_cell_nr&, const phy_meas_t&)> filter = [this](meas_cell_nr& c, const phy_meas_t& m) {
+    c.set_rsrp(measurements->rsrp_filter(m.rsrp, c.get_rsrp()));
+    c.set_rsrq(measurements->rsrq_filter(m.rsrq, c.get_rsrq()));
+    c.set_cfo(m.cfo_hz);
+  };
+
+  rrc_log->debug("MEAS:  Processing measurement of %zd cells\n", meas.size());
+
+  bool neighbour_added = meas_cells_nr.process_new_cell_meas(meas_lte, filter);
+}
+#endif
 
 /* This function is called from a PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
@@ -394,7 +422,6 @@ void rrc::new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
   cell_meas_q.push(meas);
 }
-
 /* Processes all pending PHY measurements in queue.
  */
 void rrc::process_cell_meas()
@@ -410,7 +437,8 @@ void rrc::process_cell_meas()
 
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
-  const std::function<void(meas_cell&, const phy_meas_t&)> filter = [this](meas_cell& c, const phy_meas_t& m) {
+  const std::function<void(meas_cell_eutra&, const phy_meas_t&)> filter = [this](meas_cell_eutra&  c,
+                                                                                 const phy_meas_t& m) {
     c.set_rsrp(measurements->rsrp_filter(m.rsrp, c.get_rsrp()));
     c.set_rsrq(measurements->rsrq_filter(m.rsrq, c.get_rsrq()));
     c.set_cfo(m.cfo_hz);
@@ -1080,17 +1108,17 @@ std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
 
 float rrc::get_cell_rsrp(const uint32_t earfcn, const uint32_t pci)
 {
-  meas_cell* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
+  meas_cell_eutra* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
   return (c != nullptr) ? c->get_rsrp() : NAN;
 }
 
 float rrc::get_cell_rsrq(const uint32_t earfcn, const uint32_t pci)
 {
-  meas_cell* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
+  meas_cell_eutra* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
   return (c != nullptr) ? c->get_rsrq() : NAN;
 }
 
-meas_cell* rrc::get_serving_cell()
+meas_cell_eutra* rrc::get_serving_cell()
 {
   return &meas_cells.serving_cell();
 }

@@ -15,7 +15,11 @@ target_link_libraries(srslte_asn1_rrc_mcch_test rrc_asn1 srslte_common)
 add_test(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test)
 
 add_executable(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test.cc)
+if (ENABLE_5GNR)
+target_link_libraries(srslte_asn1_rrc_meas_test rrc_asn1 rrc_nr_asn1 srslte_common)
+else()
 target_link_libraries(srslte_asn1_rrc_meas_test rrc_asn1 srslte_common)
+endif(ENABLE_5GNR)
 add_test(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test)
 
 add_executable(srslte_asn1_rrc_ul_dcch_test srslte_asn1_rrc_ul_dcch_test.cc)

@@ -99,7 +99,12 @@ private:
     void                             ho_reest_finish(const uint32_t src_earfcn, const uint32_t dst_earfcn);
     bool parse_meas_config(const meas_cfg_s* meas_config, bool is_ho_reest, uint32_t src_earfcn);
     void eval_triggers();
-    void eval_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj, meas_cell* serv_cell, float Ofs, float Ocs);
+    void                             eval_triggers_eutra(uint32_t            meas_id,
+                                                         report_cfg_eutra_s& report_cfg,
+                                                         meas_obj_eutra_s&   meas_obj,
+                                                         meas_cell_eutra*    serv_cell,
+                                                         float               Ofs,
+                                                         float               Ocs);
     void report_triggers();
     void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
 
