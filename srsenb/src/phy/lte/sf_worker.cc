@@ -44,7 +44,7 @@ using namespace std;
 
 #include "srslte/srslte.h"
 
-void       init_plots(srsenb::sf_worker* worker);
+void       init_plots(srsenb::lte::sf_worker* worker);
 pthread_t  plot_thread;
 sem_t      plot_sem;
 static int plot_worker_id = -1;
@@ -367,7 +367,7 @@ static cf_t  tmp_pucch_plot[SRSLTE_PUCCH_MAX_BITS / 2];
 
 void* plot_thread_run(void* arg)
 {
-  auto worker = (srsenb::sf_worker*)arg;
+  auto worker = (srsenb::lte::sf_worker*)arg;
 
   for (uint32_t cc_idx = 0; cc_idx < worker->get_nof_carriers(); cc_idx++) {
     plot_cc_s& p = plots[cc_idx];
@@ -427,7 +427,7 @@ void* plot_thread_run(void* arg)
   return nullptr;
 }
 
-void init_plots(srsenb::sf_worker* worker)
+void init_plots(srsenb::lte::sf_worker* worker)
 {
 
   if (sem_init(&plot_sem, 0, 0)) {

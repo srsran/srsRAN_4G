@@ -35,7 +35,7 @@
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 
-void       init_plots(srsue::sf_worker* worker);
+void       init_plots(srsue::lte::sf_worker* worker);
 pthread_t  plot_thread;
 sem_t      plot_sem;
 static int plot_worker_id = -1;
@@ -354,7 +354,7 @@ static float       sync_buffer[SYNC_PLOT_LEN];
 
 void* plot_thread_run(void* arg)
 {
-  auto     worker    = (srsue::sf_worker*)arg;
+  auto     worker    = (srsue::lte::sf_worker*)arg;
   uint32_t row_count = 0;
 
   sdrgui_init();
@@ -432,7 +432,7 @@ void* plot_thread_run(void* arg)
   return nullptr;
 }
 
-void init_plots(srsue::sf_worker* worker)
+void init_plots(srsue::lte::sf_worker* worker)
 {
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
