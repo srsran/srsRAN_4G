@@ -227,7 +227,10 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
     current_tti = tti_rx;
     lch_handler.new_tti();
   }
-  carriers.at(enb_ue_cc_idx_map[enb_cc_idx]).tpc_fsm.new_tti();
+  int ue_cc_idx = enb_ue_cc_idx_map[enb_cc_idx];
+  if (ue_cc_idx >= 0) {
+    carriers.at(ue_cc_idx).tpc_fsm.new_tti();
+  }
 }
 
 /// sanity check the UE CC configuration
