@@ -17,42 +17,59 @@
 
 using namespace srsenb;
 const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
+uint32_t       rlc_overhead(uint32_t lcid)
+{
+  return lcid == 0 ? 0 : 3;
+}
+uint32_t add_rlc_overhead(uint32_t lcid, uint32_t rlc_payload_size)
+{
+  return rlc_payload_size + (rlc_payload_size == 0 ? 0 : rlc_overhead(lcid));
+}
 
 /// Tests if a PDU was allocated with lcid and pdu_size bytes
 int test_pdu_alloc_successful(srsenb::lch_ue_manager&          lch_handler,
                               sched_interface::dl_sched_pdu_t& pdu,
                               int                              lcid,
-                              uint32_t                         pdu_size)
+                              uint32_t                         rlc_payload_size)
 {
+  uint32_t mac_sdu_size = add_rlc_overhead(lcid, rlc_payload_size);
   TESTASSERT(lch_handler.get_max_prio_lcid() == lcid);
-  TESTASSERT(lch_handler.alloc_rlc_pdu(&pdu, pdu_size) == (int)pdu_size);
+  TESTASSERT(lch_handler.alloc_rlc_pdu(&pdu, mac_sdu_size) == (int)mac_sdu_size);
   TESTASSERT(pdu.lcid == (uint32_t)lcid);
-  TESTASSERT(pdu.nbytes == pdu_size);
+  TESTASSERT(pdu.nbytes == mac_sdu_size);
   return SRSLTE_SUCCESS;
 }
 
-int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t pdu_size)
+int test_retx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t rlc_payload_size)
 {
-  uint32_t                        nof_pdus = lch_handler.get_dl_retx(lcid) / pdu_size;
-  sched_interface::dl_sched_pdu_t pdu;
+  int start_rlc_bytes = lch_handler.get_dl_retx(lcid);
+  int nof_pdus        = ceil(start_rlc_bytes / (float)rlc_payload_size);
+  int rem_rlc_bytes   = start_rlc_bytes;
 
-  for (uint32_t i = 0; i < nof_pdus; ++i) {
-    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, pdu_size) == SRSLTE_SUCCESS);
-    TESTASSERT(lch_handler.get_dl_retx(lcid) == (int)((nof_pdus - i - 1) * pdu_size));
+  sched_interface::dl_sched_pdu_t pdu;
+  for (int i = 0; i < nof_pdus; ++i) {
+    uint32_t expected_payload_size = std::min(rlc_payload_size, (uint32_t)rem_rlc_bytes);
+    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSLTE_SUCCESS);
+    rem_rlc_bytes -= expected_payload_size;
+    TESTASSERT(lch_handler.get_dl_retx(lcid) == rem_rlc_bytes);
   }
-  return nof_pdus * pdu_size;
+  return start_rlc_bytes;
 }
 
-int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t pdu_size)
+int test_newtx_until_empty(srsenb::lch_ue_manager& lch_handler, int lcid, uint32_t rlc_payload_size)
 {
-  uint32_t                        nof_pdus = lch_handler.get_dl_tx(lcid) / pdu_size;
-  sched_interface::dl_sched_pdu_t pdu;
+  int start_rlc_bytes = lch_handler.get_dl_tx(lcid);
+  int nof_pdus        = ceil(start_rlc_bytes / (float)rlc_payload_size);
+  int rem_rlc_bytes   = start_rlc_bytes;
 
-  for (uint32_t i = 0; i < nof_pdus; ++i) {
-    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, pdu_size) == SRSLTE_SUCCESS);
-    TESTASSERT(lch_handler.get_dl_tx(lcid) == (int)((nof_pdus - i - 1) * pdu_size));
+  sched_interface::dl_sched_pdu_t pdu;
+  for (int i = 0; i < nof_pdus; ++i) {
+    uint32_t expected_payload_size = std::min(rlc_payload_size, (uint32_t)rem_rlc_bytes);
+    TESTASSERT(test_pdu_alloc_successful(lch_handler, pdu, lcid, expected_payload_size) == SRSLTE_SUCCESS);
+    rem_rlc_bytes -= expected_payload_size;
+    TESTASSERT(lch_handler.get_dl_tx(lcid) == (int)rem_rlc_bytes);
   }
-  return nof_pdus * pdu_size;
+  return start_rlc_bytes;
 }
 
 int test_lc_ch_pbr_infinity()

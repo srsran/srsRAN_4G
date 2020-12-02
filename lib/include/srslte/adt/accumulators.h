@@ -13,6 +13,7 @@
 #ifndef SRSLTE_ACCUMULATORS_H
 #define SRSLTE_ACCUMULATORS_H
 
+#include <cassert>
 #include <cstdint>
 #include <limits>
 #include <vector>
@@ -62,7 +63,7 @@ namespace detail {
 
 template <typename T>
 struct sliding_window {
-  sliding_window(uint32_t N, T val) : window(N, val) {}
+  sliding_window(uint32_t N, T val = 0) : window(N, val) {}
   void push(T sample)
   {
     window[next_idx++] = sample;
@@ -71,6 +72,7 @@ struct sliding_window {
     }
   }
   size_t         size() const { return window.size(); }
+  const T&       oldest() const { return window[(next_idx + size() - 1) % size()]; }
   T&             operator[](size_t i) { return window[i]; }
   const T&       operator[](size_t i) const { return window[i]; }
   std::vector<T> window;
@@ -80,22 +82,21 @@ struct sliding_window {
 } // namespace detail
 
 template <typename T>
-struct sliding_sum {
-  sliding_sum(uint32_t N) : window(N, 0) {}
+struct sliding_sum : private detail::sliding_window<T> {
+  using base_t = detail::sliding_window<T>;
+  using base_t::oldest;
+  using base_t::push;
+  using base_t::size;
+  using base_t::sliding_window;
 
-  void push(T sample) { window.push(sample); }
-  T    value() const
+  T value() const
   {
     T ret = 0;
-    for (size_t i = 0; i < window.size(); ++i) {
-      ret += window[i];
+    for (size_t i = 0; i < size(); ++i) {
+      ret += (*this)[i];
     }
     return ret;
   }
-  size_t size() const { return window.size(); }
-
-private:
-  detail::sliding_window<T> window;
 };
 
 template <typename T>
