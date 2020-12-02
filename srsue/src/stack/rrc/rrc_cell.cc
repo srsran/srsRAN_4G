@@ -174,7 +174,7 @@ const meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
+bool meas_cell_list::add_meas_cell(const phy_meas_t& meas)
 {
   phy_cell_t phy_cell = {};
   phy_cell.earfcn     = meas.earfcn;

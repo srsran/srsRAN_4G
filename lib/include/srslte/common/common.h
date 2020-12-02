@@ -283,6 +283,25 @@ inline const_byte_span make_span(const unique_byte_buffer_t& b)
   return const_byte_span{b->msg, b->N_bytes};
 }
 
+// helper functions
+inline const char* enum_to_text(const char* const array[], uint32_t nof_types, uint32_t enum_val)
+{
+  return enum_val >= nof_types ? "" : array[enum_val];
+}
+
+template <class ItemType>
+ItemType enum_to_number(ItemType* array, uint32_t nof_types, uint32_t enum_val)
+{
+  return enum_val >= nof_types ? -1 : array[enum_val];
+}
+
+enum class srslte_rat_t { lte, nr, nulltype };
+inline std::string to_string(const srslte_rat_t& type)
+{
+  constexpr static const char* options[] = {"LTE", "NR"};
+  return enum_to_text(options, (uint32_t)srslte_rat_t::nulltype, (uint32_t)type);
+}
+
 } // namespace srslte
 
 #endif // SRSLTE_COMMON_H

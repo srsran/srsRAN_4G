@@ -234,7 +234,7 @@ public:
   std::map<uint32_t, cell_meas_t> cells;
 
   void cell_meas_reset(uint32_t cc_idx) override {}
-  void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::rrc_interface_phy_lte::phy_meas_t>& meas) override
+  void new_cell_meas(uint32_t cc_idx, const std::vector<srsue::phy_meas_t>& meas) override
   {
     for (auto& m : meas) {
       uint32_t pci = m.pci;

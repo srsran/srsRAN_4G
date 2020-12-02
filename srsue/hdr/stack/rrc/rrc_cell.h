@@ -158,7 +158,6 @@ bool is_same_cell(const T& lhs, const U& rhs)
 
 class meas_cell_list
 {
-  using phy_meas_t = rrc_interface_phy_lte::phy_meas_t;
 
 public:
   const static int                   NEIGHBOUR_TIMEOUT   = 5;

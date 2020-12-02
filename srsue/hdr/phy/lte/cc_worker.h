@@ -54,8 +54,7 @@ public:
   int read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
   int read_pdsch_d(cf_t* pdsch_d);
 
-  void update_measurements(std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
-                           cf_t*                                           rssi_power_buffer = nullptr);
+  void update_measurements(std::vector<phy_meas_t>& serving_cells, cf_t* rssi_power_buffer = nullptr);
 
 private:
   void reset();

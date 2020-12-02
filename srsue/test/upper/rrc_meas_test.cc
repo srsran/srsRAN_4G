@@ -307,11 +307,11 @@ public:
 
   void add_neighbour_cell(uint32_t pci, uint32_t earfcn, float rsrp = 0)
   {
-    std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
-    rrc_interface_phy_lte::phy_meas_t              meas     = {};
-    meas.pci                                                = pci;
-    meas.earfcn                                             = earfcn;
-    meas.rsrp                                               = rsrp;
+    std::vector<phy_meas_t> phy_meas = {};
+    phy_meas_t              meas     = {};
+    meas.pci                         = pci;
+    meas.earfcn                      = earfcn;
+    meas.rsrp                        = rsrp;
     phy_meas.push_back(meas); // neighbour cell
     new_cell_meas(phy_meas);
     run_tti(1);
@@ -637,7 +637,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 24));  // was added
 
   log1->info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them\n");
-  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
+  std::vector<phy_meas_t> phy_meas = {};
   phy_meas.push_back({0, 0, 0.0f, 1, 31});
   phy_meas.push_back({-1, 0, 0.0f, 1, 32});
   phy_meas.push_back({-2, 0, 0.0f, 1, 33});
@@ -760,7 +760,7 @@ void send_report(rrc_test&                   rrctest,
                  const std::vector<uint32_t> earfcn,
                  const std::vector<uint32_t> pci)
 {
-  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
+  std::vector<phy_meas_t> phy_meas = {};
   for (uint32_t i = 0; i < pci.size(); i++) {
     float r = rsrp[0];
     if (rsrp.size() == pci.size()) {

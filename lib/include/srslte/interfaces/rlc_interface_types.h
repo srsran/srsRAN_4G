@@ -117,13 +117,6 @@ struct rlc_um_nr_config_t {
 
 #define RLC_TX_QUEUE_LEN (256)
 
-enum class srslte_rat_t { lte, nr, nulltype };
-inline std::string to_string(const srslte_rat_t& type)
-{
-  constexpr static const char* options[] = {"LTE", "NR"};
-  return enum_to_text(options, (uint32_t)srslte_rat_t::nulltype, (uint32_t)type);
-}
-
 class rlc_config_t
 {
 public:

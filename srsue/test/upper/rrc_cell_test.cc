@@ -56,7 +56,7 @@ int test_add_neighbours()
   TESTASSERT(not list.serving_cell().is_valid());
   TESTASSERT(list.get_neighbour_cell_handle(0, 0) == nullptr);
 
-  rrc_interface_phy_lte::phy_meas_t pmeas;
+  phy_meas_t pmeas;
   pmeas.cfo_hz = 4;
   pmeas.rsrp   = -20;
   pmeas.pci    = 1;

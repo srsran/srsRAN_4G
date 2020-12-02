@@ -170,7 +170,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
   m.state = state;
   // Save strongest cells metrics
   for (auto& c : meas_cells) {
-    rrc_interface_phy_lte::phy_meas_t meas = {};
+    phy_meas_t meas = {};
     meas.cfo_hz                            = c->get_cfo_hz();
     meas.earfcn                            = c->get_earfcn();
     meas.rsrq                              = c->get_rsrq();
@@ -363,6 +363,29 @@ void rrc::set_config_complete(bool status)
 }
 
 void rrc::set_scell_complete(bool status) {}
+
+/* This function is called from a NR PHY worker thus must return very quickly.
+ * Queue the values of the measurements and process them from the RRC thread
+ */
+void rrc::new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas)
+{
+  cell_meas_nr_q.push(meas);
+}
+
+/* Processes all pending PHY measurements in queue.
+ */
+void rrc::process_cell_meas_nr()
+{
+  std::vector<phy_meas_nr_t> m;
+  while (cell_meas_nr_q.try_pop(&m)) {
+    if (cell_meas_nr_q.size() > 0) {
+      rrc_log->debug("MEAS:  Processing measurement. %zd measurements in queue\n", cell_meas_q.size());
+    }
+    process_new_cell_meas_nr(m);
+  }
+}
+
+void rrc::process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas) {}
 
 /* This function is called from a PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread

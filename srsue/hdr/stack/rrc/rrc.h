@@ -62,6 +62,7 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_phy_lte,
             public rrc_interface_mac,
             public rrc_interface_pdcp,
+            public rrc_interface_rrc_nr,
             public rrc_interface_rlc,
             public srslte::timer_callback
 {
@@ -107,6 +108,9 @@ public:
   bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
   void     paging_completed(bool outcome) final;
+
+  // NR interface
+  void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
 
   // PHY interface
   void in_sync() final;
@@ -254,6 +258,10 @@ private:
   void                                          process_cell_meas();
   void                                          process_new_cell_meas(const std::vector<phy_meas_t>& meas);
   srslte::block_queue<std::vector<phy_meas_t> > cell_meas_q;
+
+  void                                             process_cell_meas_nr();
+  void                                             process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
+  srslte::block_queue<std::vector<phy_meas_nr_t> > cell_meas_nr_q;
 
   // Cell selection/reselection functions/variables
   typedef struct {

@@ -51,8 +51,8 @@ public:
   class meas_itf
   {
   public:
-    virtual void cell_meas_reset(uint32_t cc_idx)                                                           = 0;
-    virtual void new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas) = 0;
+    virtual void cell_meas_reset(uint32_t cc_idx)                                    = 0;
+    virtual void new_cell_meas(uint32_t cc_idx, const std::vector<phy_meas_t>& meas) = 0;
   };
 
   /**
