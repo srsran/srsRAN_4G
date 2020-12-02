@@ -10,9 +10,10 @@
  *
  */
 
-#include "srslte/config.h"
-#include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/ch_estimation/csi_rs.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/utils/vector.h"
+#include <complex.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -21,73 +22,6 @@
 #define SRSLTE_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_ROW4 3
 #define SRSLTE_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_OTHER 6
 #define SRSLTE_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_MAX 12
-
-typedef enum SRSLTE_API {
-  srslte_csi_rs_resource_mapping_row_1 = 0,
-  srslte_csi_rs_resource_mapping_row_2,
-  srslte_csi_rs_resource_mapping_row_4,
-  srslte_csi_rs_resource_mapping_row_other,
-} srslte_csi_rs_resource_mapping_row_t;
-
-typedef enum SRSLTE_API {
-  srslte_csi_rs_resource_mapping_density_three = 0,
-  srslte_csi_rs_resource_mapping_density_dot5_even,
-  srslte_csi_rs_resource_mapping_density_dot5_odd,
-  srslte_csi_rs_resource_mapping_density_one,
-  srslte_csi_rs_resource_mapping_density_spare
-} srslte_csi_rs_density_t;
-
-typedef enum SRSLTE_API {
-  srslte_csi_rs_cdm_nocdm = 0,
-  srslte_csi_rs_cdm_fd_cdm2,
-  srslte_csi_rs_cdm_cdm4_fd2_td2,
-  srslte_csi_rs_cdm_cdm8_fd2_td4
-} srslte_csi_rs_cdm_t;
-
-/**
- * @brief Contains CSI-FrequencyOccupation flattened configuration
- */
-typedef struct SRSLTE_API {
-  uint32_t start_rb; // 0..274
-  uint32_t nof_rb;   // 24..276
-} srslte_csi_rs_freq_occupation_t;
-
-/**
- * @brief Contains CSI-ResourcePeriodicityAndOffset flattened configuration
- */
-typedef struct SRSLTE_API {
-  uint32_t period; // 4,5,8,10,16,20,32,40,64,80,160,320,640
-  uint32_t offset; // 0..period-1
-} srslte_csi_rs_period_and_offset_t;
-
-/**
- * @brief Contains CSI-RS-ResourceMapping flattened configuration
- */
-typedef struct SRSLTE_API {
-  srslte_csi_rs_resource_mapping_row_t row;
-  bool                                 frequency_domain_alloc[SRSLTE_CSI_RS_NOF_FREQ_DOMAIN_ALLOC_MAX];
-  uint32_t                             ports;             // 1, 2, 4, 8, 12, 16, 24, 32
-  uint32_t                             first_symbol_idx;  // 0..13
-  uint32_t                             first_symbol_idx2; // 2..12 (set to 0 for disabled)
-  srslte_csi_rs_cdm_t                  cdm;
-  srslte_csi_rs_density_t              density;
-  srslte_csi_rs_freq_occupation_t      freq_band;
-} srslte_csi_rs_resource_mapping_t;
-
-/**
- * @brief Contains NZP-CSI-RS-Resource flattened configuration
- */
-typedef struct SRSLTE_API {
-  srslte_csi_rs_resource_mapping_t resource_mapping;
-
-  int8_t power_control_offset;    // -8..15 dB
-  int8_t power_control_offset_ss; // -3, 0, 3, 6 dB
-
-  uint32_t scrambling_id; // 0..1023
-
-  srslte_csi_rs_period_and_offset_t periodicity;
-
-} srslte_csi_rs_nzp_resource_t;
 
 #define CSI_RS_MAX_CDM_GROUP 16
 
@@ -123,6 +57,7 @@ static int csi_rs_location_f(const srslte_csi_rs_resource_mapping_t* resource, u
   return SRSLTE_ERROR;
 }
 
+// Table 7.4.1.5.3-1: CSI-RS locations within a slot
 static int csi_rs_location_get_k_list(const srslte_csi_rs_resource_mapping_t* resource,
                                       uint32_t                                k_list[CSI_RS_MAX_CDM_GROUP])
 {
@@ -147,6 +82,7 @@ static int csi_rs_location_get_k_list(const srslte_csi_rs_resource_mapping_t* re
   return SRSLTE_ERROR;
 }
 
+// Table 7.4.1.5.3-1: CSI-RS locations within a slot
 static int csi_rs_location_get_l_list(const srslte_csi_rs_resource_mapping_t* resource,
                                       uint32_t                                l_list[CSI_RS_MAX_CDM_GROUP])
 {
@@ -171,7 +107,230 @@ static int csi_rs_location_get_l_list(const srslte_csi_rs_resource_mapping_t* re
   return SRSLTE_ERROR;
 }
 
-int srslte_csi_rs_put(const srslte_carrier_nr_t* carrier)
+uint32_t csi_rs_cinit(const srslte_carrier_nr_t*          carrier,
+                      const srslte_dl_slot_cfg_t*         slot_cfg,
+                      const srslte_csi_rs_nzp_resource_t* resource,
+                      uint32_t                            l)
 {
+  uint32_t n    = slot_cfg->idx % SRSLTE_NSLOTS_PER_FRAME_NR(carrier->numerology);
+  uint32_t n_id = resource->scrambling_id;
+
+  return ((SRSLTE_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id) << 10UL) + n_id;
+}
+
+bool srslte_csi_send(const srslte_csi_rs_period_and_offset_t* periodicity, const srslte_dl_slot_cfg_t* slot_cfg)
+{
+  if (periodicity == NULL || slot_cfg == NULL) {
+    return false;
+  }
+
+  if (periodicity->period == 0) {
+    return false;
+  }
+
+  uint32_t n = ((slot_cfg->idx + periodicity->period) - periodicity->offset) % periodicity->period;
+
+  return n == 0;
+}
+
+uint32_t csi_rs_count(srslte_csi_rs_density_t density, uint32_t nprb)
+{
+  switch (density) {
+
+    case srslte_csi_rs_resource_mapping_density_three:
+      return nprb * 3;
+    case srslte_csi_rs_resource_mapping_density_dot5_even:
+      return nprb / 2;
+    case srslte_csi_rs_resource_mapping_density_dot5_odd:
+      return nprb / 2;
+    case srslte_csi_rs_resource_mapping_density_one:
+      return nprb;
+    case srslte_csi_rs_resource_mapping_density_spare:
+    default:; // Do nothing
+  }
+  return 0;
+}
+
+int srslte_csi_rs_nzp_put(const srslte_carrier_nr_t*          carrier,
+                          const srslte_dl_slot_cfg_t*         slot_cfg,
+                          const srslte_csi_rs_nzp_resource_t* resource,
+                          cf_t*                               grid)
+{
+  if (carrier == NULL || resource == NULL || grid == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t k_list[CSI_RS_MAX_CDM_GROUP];
+  int      nof_k = csi_rs_location_get_k_list(&resource->resource_mapping, k_list);
+  if (nof_k <= 0) {
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t l_list[CSI_RS_MAX_CDM_GROUP];
+  int      nof_l = csi_rs_location_get_l_list(&resource->resource_mapping, l_list);
+  if (nof_l <= 0) {
+    return SRSLTE_ERROR;
+  }
+
+  // Calculate Resource Block boundaries
+  uint32_t rb_begin  = resource->resource_mapping.freq_band.start_rb;
+  uint32_t rb_end    = resource->resource_mapping.freq_band.start_rb + resource->resource_mapping.freq_band.nof_rb;
+  uint32_t rb_stride = 1;
+
+  // Calculate power allocation
+  float beta = srslte_convert_dB_to_amplitude((float)resource->power_control_offset);
+  if (!isnormal(beta)) {
+    beta = 1.0f;
+  }
+
+  // Special .5 density cases
+  if (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even ||
+      resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd) {
+    // Increase the start by one if:
+    // - Even and starts with odd
+    // - Odd and starts with even
+    if ((resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even && rb_begin % 2 == 1) ||
+        (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd && rb_begin % 2 == 0)) {
+      rb_begin++;
+    }
+
+    // Skip one RB
+    rb_stride = 2;
+  }
+
+  for (int l_idx = 0; l_idx < nof_l; l_idx++) {
+    // Get symbol index
+    uint32_t l = l_list[l_idx];
+
+    // Initialise sequence for this OFDM symbol
+    uint32_t                cinit          = csi_rs_cinit(carrier, slot_cfg, resource, l);
+    srslte_sequence_state_t sequence_state = {};
+    srslte_sequence_state_init(&sequence_state, cinit);
+
+    // Skip unallocated RB
+    srslte_sequence_state_advance(&sequence_state, 2 * csi_rs_count(resource->resource_mapping.density, rb_begin));
+
+    // Temporal R sequence
+    cf_t     r[64];
+    uint32_t r_idx = 64;
+
+    // Iterate over frequency domain
+    for (uint32_t n = rb_begin; n < rb_end; n += rb_stride) {
+      for (uint32_t k_idx = 0; k_idx < nof_k; k_idx++) {
+        // Calculate sub-carrier index k
+        uint32_t k = SRSLTE_NRE * n + k_list[k_idx];
+
+        // Do we need more r?
+        if (r_idx >= 64) {
+          // ... Generate a bunch of it!
+          srslte_sequence_state_gen_f(&sequence_state, M_SQRT1_2 * beta, (float*)r, 64 * 2);
+          r_idx = 0;
+        }
+
+        // Put CSI in grid
+        grid[l * SRSLTE_NRE * carrier->nof_prb + k] = r[r_idx++];
+      }
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
+                              const srslte_dl_slot_cfg_t*         slot_cfg,
+                              const srslte_csi_rs_nzp_resource_t* resource,
+                              const cf_t*                         grid,
+                              srslte_csi_rs_measure_t*            measure)
+{
+  if (carrier == NULL || resource == NULL || grid == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t k_list[CSI_RS_MAX_CDM_GROUP];
+  int      nof_k = csi_rs_location_get_k_list(&resource->resource_mapping, k_list);
+  if (nof_k <= 0) {
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t l_list[CSI_RS_MAX_CDM_GROUP];
+  int      nof_l = csi_rs_location_get_l_list(&resource->resource_mapping, l_list);
+  if (nof_l <= 0) {
+    return SRSLTE_ERROR;
+  }
+
+  // Calculate Resource Block boundaries
+  uint32_t rb_begin  = resource->resource_mapping.freq_band.start_rb;
+  uint32_t rb_end    = resource->resource_mapping.freq_band.start_rb + resource->resource_mapping.freq_band.nof_rb;
+  uint32_t rb_stride = 1;
+
+  // Calculate power allocation
+  float beta = srslte_convert_dB_to_amplitude((float)resource->power_control_offset);
+  if (!isnormal(beta)) {
+    beta = 1.0f;
+  }
+
+  // Special .5 density cases
+  if (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even ||
+      resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd) {
+    // Increase the start by one if:
+    // - Even and starts with odd
+    // - Odd and starts with even
+    if ((resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even && rb_begin % 2 == 1) ||
+        (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd && rb_begin % 2 == 0)) {
+      rb_begin++;
+    }
+
+    // Skip one RB
+    rb_stride = 2;
+  }
+
+  // Accumulators
+  float    epre_acc = 0.0f;
+  cf_t     rsrp_acc = 0.0f;
+  uint32_t count    = 0;
+
+  for (int l_idx = 0; l_idx < nof_l; l_idx++) {
+    // Get symbol index
+    uint32_t l = l_list[l_idx];
+
+    // Initialise sequence for this OFDM symbol
+    uint32_t                cinit          = csi_rs_cinit(carrier, slot_cfg, resource, l);
+    srslte_sequence_state_t sequence_state = {};
+    srslte_sequence_state_init(&sequence_state, cinit);
+
+    // Skip unallocated RB
+    srslte_sequence_state_advance(&sequence_state, 2 * csi_rs_count(resource->resource_mapping.density, rb_begin));
+
+    // Temporal R sequence
+    cf_t     r[64];
+    uint32_t r_idx = 64;
+
+    // Iterate over frequency domain
+    for (uint32_t n = rb_begin; n < rb_end; n += rb_stride) {
+      for (uint32_t k_idx = 0; k_idx < nof_k; k_idx++) {
+        // Calculate sub-carrier index k
+        uint32_t k = SRSLTE_NRE * n + k_list[k_idx];
+
+        // Do we need more r?
+        if (r_idx >= 64) {
+          // ... Generate a bunch of it!
+          srslte_sequence_state_gen_f(&sequence_state, M_SQRT1_2 / beta, (float*)r, 64 * 2);
+          r_idx = 0;
+        }
+
+        // Take CSI-RS from grid and measure
+        cf_t tmp = grid[l * SRSLTE_NRE * carrier->nof_prb + k] * conjf(r[r_idx++]);
+        rsrp_acc += tmp;
+        epre_acc = __real__ tmp * __real__ tmp + __imag__ tmp * __imag__ tmp;
+        count++;
+      }
+    }
+  }
+
+  if (count) {
+    measure->epre = epre_acc / (float)count;
+    measure->rsrp = cabsf(rsrp_acc) / (float)count;
+  }
+
   return SRSLTE_SUCCESS;
 }
