@@ -328,10 +328,10 @@ int sched::ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes)
   return ue_db_access(rnti, [lcid, bytes](sched_ue& ue) { ue.ul_buffer_add(lcid, bytes); });
 }
 
-int sched::ul_phr(uint16_t rnti, uint32_t enb_cc_idx, int phr)
+int sched::ul_phr(uint16_t rnti, int phr)
 {
   return ue_db_access(
-      rnti, [enb_cc_idx, phr](sched_ue& ue) { ue.ul_phr(enb_cc_idx, phr); }, __PRETTY_FUNCTION__);
+      rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)

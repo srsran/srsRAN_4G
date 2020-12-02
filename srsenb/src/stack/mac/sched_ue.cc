@@ -298,9 +298,9 @@ void sched_ue::ul_buffer_add(uint8_t lcid, uint32_t bytes)
   lch_handler.ul_buffer_add(lcid, bytes);
 }
 
-void sched_ue::ul_phr(uint32_t enb_cc_idx, int phr)
+void sched_ue::ul_phr(int phr)
 {
-  carriers[enb_ue_cc_idx_map[enb_cc_idx]].tpc_fsm.set_phr(phr);
+  carriers[0].tpc_fsm.set_phr(phr);
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)

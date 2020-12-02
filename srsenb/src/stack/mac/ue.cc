@@ -347,8 +347,7 @@ bool ue::process_ce(srslte::sch_subh* subh)
   switch (subh->ul_sch_ce_type()) {
     case srslte::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();
-      // TODO: Add enb_cc_idx
-      sched->ul_phr(rnti, 0, (int)phr);
+      sched->ul_phr(rnti, (int)phr);
       metrics_phr(phr);
       break;
     case srslte::ul_sch_lcid::CRNTI:

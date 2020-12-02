@@ -88,7 +88,7 @@ public:
   int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc) final;
   int ul_sr_info(uint32_t tti, uint16_t rnti) override;
   int ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) final;
-  int ul_phr(uint16_t rnti, uint32_t enb_cc_idx, int phr) final;
+  int ul_phr(uint16_t rnti, int phr) final;
   int ul_snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code) final;
 
   int dl_sched(uint32_t tti, uint32_t enb_cc_idx, dl_sched_res_t& sched_result) final;
