@@ -82,9 +82,9 @@
 #define SNR_MIN (-2.0) /*!< \brief Min SNR [dB].*/
 #define SNR_MAX 8.0    /*!< \brief Max SNR [dB].*/
 
-#define BATCH_SIZE 100    /*!< \brief Number of codewords in a batch. */
-#define MAX_N_BATCH 10000 /*!< \brief Max number of simulated batches. */
-#define REQ_ERRORS 100    /*!< \brief Minimum number of errors for a significant simulation. */
+#define BATCH_SIZE 10    /*!< \brief Number of codewords in a batch. */
+#define MAX_N_BATCH 1000 /*!< \brief Max number of simulated batches. */
+#define REQ_ERRORS 10    /*!< \brief Minimum number of errors for a significant simulation. */
 
 // default values
 static uint16_t K            = 128; /*!< \brief Number of message bits (data and CRC). */
