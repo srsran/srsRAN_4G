@@ -48,6 +48,7 @@ inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t no
   cell_cfg.prach_rar_window  = 3;
   cell_cfg.maxharq_msg3tx    = 3;
   cell_cfg.initial_dl_cqi    = 5;
+  cell_cfg.target_ul_sinr    = -1;
 
   return cell_cfg;
 }

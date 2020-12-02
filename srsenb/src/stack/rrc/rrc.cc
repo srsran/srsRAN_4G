@@ -590,6 +590,7 @@ void rrc::config_mac()
     item.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
     item.enable_64qam      = cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
     item.initial_dl_cqi    = cfg.cell_list[ccidx].initial_dl_cqi;
+    item.target_ul_sinr    = cfg.cell_list[ccidx].target_ul_sinr_db;
 
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);

@@ -1310,7 +1310,7 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   ue_cc_idx(ue_cc_idx_),
   last_tti(current_tti),
   harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
-  tpc_fsm(cell_cfg_.cfg.target_ul_sinr)
+  tpc_fsm(cell_cfg_.nof_prb(), cell_cfg_.cfg.target_ul_sinr)
 {
   dl_cqi_rx = false;
   dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;

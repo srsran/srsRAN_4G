@@ -36,10 +36,13 @@ private:
 
 template <typename T>
 struct exp_average_fast_start {
-  exp_average_fast_start(T alpha_, uint32_t start_size = 100) : alpha(alpha_), nof_left(start_size) {}
+  exp_average_fast_start(T alpha_, uint32_t start_size = 100) : alpha(alpha_), start_count_size(start_size)
+  {
+    assert(start_size > 0);
+  }
   void push(T sample)
   {
-    if (nof_left-- > 0) {
+    if (count < start_count_size) {
       avg_ += (sample - avg_) / (count + 1);
       count++;
     } else {
@@ -51,7 +54,7 @@ struct exp_average_fast_start {
 private:
   T        avg_  = 0;
   uint32_t count = 0;
-  uint32_t nof_left;
+  uint32_t start_count_size;
   T        alpha;
 };
 
@@ -107,25 +110,25 @@ private:
 
 template <typename T>
 struct null_sliding_average {
-  null_sliding_average(uint32_t N, T null_val = std::numeric_limits<T>::max()) :
-    null_value_(null_val), window(N, null_val)
-  {}
+  static constexpr T null_value = std::numeric_limits<T>::max();
+
+  null_sliding_average(uint32_t N) : window(N, null_value) {}
   void push(T sample) { window.push(sample); }
-  void push_hole() { window.push(null_value_); }
+  void push_hole() { window.push(null_value); }
   T    value() const
   {
-    T ret = 0;
+    T        ret   = 0;
+    uint32_t count = 0;
     for (size_t i = 0; i < window.size(); ++i) {
-      if (window[i] != null_value_) {
+      if (window[i] != null_value) {
         ret += window[i];
+        count++;
       }
     }
-    return ret;
+    return (count == 0) ? null_value : ret / count;
   }
-  T null_value() const { return null_value_; }
 
 private:
-  T                         null_value_;
   detail::sliding_window<T> window;
 };
 
