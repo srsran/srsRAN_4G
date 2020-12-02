@@ -75,7 +75,7 @@ struct test_scell_activation_params {
 
 int test_scell_activation(test_scell_activation_params params)
 {
-  std::array<uint32_t, 6> prb_list = {6, 15, 25, 50, 75, 100};
+  std::array<uint32_t, 6> prb_list{6, 15, 25, 50, 75, 100};
 
   /* Simulation Configuration Arguments */
   uint32_t nof_prb   = prb_list[std::uniform_int_distribution<uint32_t>{0, 5}(get_rand_gen())];

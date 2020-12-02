@@ -69,7 +69,7 @@ public:
     }
 
     // Enqueue pending SNR measurement
-    if (pending_snr == snr_avg.null_value) {
+    if (pending_snr == snr_avg.null_value()) {
       acc_pusch_tpc_values += win_pusch_tpc_values.oldest();
       acc_pucch_tpc_values += win_pusch_tpc_values.oldest();
     } else {
@@ -77,7 +77,7 @@ public:
       acc_pusch_tpc_values = 0;
     }
     snr_avg.push(pending_snr);
-    pending_snr = snr_avg.null_value;
+    pending_snr = snr_avg.null_value();
 
     // Enqueue PUSCH/PUCCH TPC sent in last TTI (zero for both Delta_PUSCH/Delta_PUCCH=0 and TPC not sent)
     win_pusch_tpc_values.push(pending_pusch_tpc);
@@ -101,7 +101,7 @@ public:
         pending_pusch_tpc = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
         pusch_phr_flag    = true;
       }
-    } else if (snr_avg.value() != snr_avg.null_value) {
+    } else if (snr_avg.value() != snr_avg.null_value()) {
       // target SINR is finite and there is power headroom
       float diff = target_snr_dB - snr_avg.value();
       diff -= win_pusch_tpc_values.value() + acc_pusch_tpc_values;
@@ -134,7 +134,7 @@ public:
         pending_pucch_tpc = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
         pucch_phr_flag    = true;
       }
-    } else if (snr_avg.value() != snr_avg.null_value) {
+    } else if (snr_avg.value() != snr_avg.null_value()) {
       // target SINR is finite and there is power headroom
       float diff = target_snr_dB - snr_avg.value();
       diff -= win_pucch_tpc_values.value() + acc_pucch_tpc_values;
@@ -162,7 +162,7 @@ private:
   srslte::sliding_sum<int>            win_pusch_tpc_values, win_pucch_tpc_values;
   uint32_t                            max_prbs_cached   = 100;
   int                                 pending_pusch_tpc = 0, pending_pucch_tpc = 0;
-  float                               pending_snr          = srslte::null_sliding_average<float>::null_value;
+  float                               pending_snr          = srslte::null_sliding_average<float>::null_value();
   int                                 acc_pusch_tpc_values = 0, acc_pucch_tpc_values = 0;
   int                                 last_phr       = undefined_phr;
   bool                                pusch_phr_flag = false, pucch_phr_flag = false;

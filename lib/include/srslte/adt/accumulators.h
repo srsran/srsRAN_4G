@@ -71,12 +71,12 @@ struct sliding_window {
       next_idx -= window.size();
     }
   }
-  size_t         size() const { return window.size(); }
+  std::size_t    size() const { return window.size(); }
   const T&       oldest() const { return window[(next_idx + size() - 1) % size()]; }
-  T&             operator[](size_t i) { return window[i]; }
-  const T&       operator[](size_t i) const { return window[i]; }
+  T&             operator[](std::size_t i) { return window[i]; }
+  const T&       operator[](std::size_t i) const { return window[i]; }
   std::vector<T> window;
-  size_t         next_idx = 0;
+  std::size_t    next_idx = 0;
 };
 
 } // namespace detail
@@ -92,7 +92,7 @@ struct sliding_sum : private detail::sliding_window<T> {
   T value() const
   {
     T ret = 0;
-    for (size_t i = 0; i < size(); ++i) {
+    for (std::size_t i = 0; i < size(); ++i) {
       ret += (*this)[i];
     }
     return ret;
@@ -111,23 +111,23 @@ private:
 
 template <typename T>
 struct null_sliding_average {
-  static constexpr T null_value = std::numeric_limits<T>::max();
 
-  null_sliding_average(uint32_t N) : window(N, null_value) {}
+  null_sliding_average(uint32_t N) : window(N, null_value()) {}
   void push(T sample) { window.push(sample); }
-  void push_hole() { window.push(null_value); }
+  void push_hole() { window.push(null_value()); }
   T    value() const
   {
     T        ret   = 0;
     uint32_t count = 0;
-    for (size_t i = 0; i < window.size(); ++i) {
-      if (window[i] != null_value) {
+    for (std::size_t i = 0; i < window.size(); ++i) {
+      if (window[i] != null_value()) {
         ret += window[i];
         count++;
       }
     }
-    return (count == 0) ? null_value : ret / count;
+    return (count == 0) ? null_value() : ret / count;
   }
+  static constexpr T null_value() { return std::numeric_limits<T>::max(); }
 
 private:
   detail::sliding_window<T> window;
