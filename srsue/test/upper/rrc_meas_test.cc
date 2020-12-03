@@ -317,6 +317,20 @@ public:
     run_tti(1);
   }
 
+#ifdef HAVE_5GNR
+  void add_neighbour_cell_nr(uint32_t pci, uint32_t earfcn, float rsrp = 0)
+  {
+    std::vector<phy_meas_nr_t> phy_meas = {};
+    phy_meas_nr_t              meas     = {};
+    meas.pci_nr                         = pci;
+    meas.arfcn_nr                       = earfcn;
+    meas.rsrp                           = rsrp;
+    phy_meas.push_back(meas); // neighbour cell
+    new_cell_meas_nr(phy_meas);
+    run_tti(1);
+  }
+#endif
+
   using rrc::has_neighbour_cell;
   using rrc::is_serving_cell;
   using rrc::start_cell_select;
@@ -1171,6 +1185,8 @@ int meas_obj_inter_rat_nr_test()
   rep.report_cfg.report_cfg_inter_rat().trigger_type.set_event();
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.set_event_b1_nr_r15();
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().b1_thres_nr_r15.set_nr_rsrp_r15();
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15() =
+      56;
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().report_on_leave_r15 = true;
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().hysteresis = 0;
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().time_to_trigger = asn1::rrc::time_to_trigger_opts::options::ms100; 
@@ -1195,6 +1211,20 @@ int meas_obj_inter_rat_nr_test()
   // Just test it doesn't crash
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
+
+#ifdef HAVE_5GNR
+
+  rrctest.add_neighbour_cell(2, 300, 2.0);
+  rrctest.set_serving_cell(2, 300);
+  rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
+  int ttt_iters = 100 + 1; // 100 ms
+
+  for (int i = 0; i < ttt_iters; i++) {
+    log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+    rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
+  }
+
+#endif
   return SRSLTE_SUCCESS;
 }
 

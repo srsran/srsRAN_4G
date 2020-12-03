@@ -463,6 +463,11 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra(uint32_t            meas
   }
 }
 
+void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_nr(uint32_t                meas_id,
+                                                              report_cfg_inter_rat_s& report_cfg,
+                                                              meas_obj_nr_r15_s&      meas_obj)
+{}
+
 void rrc::rrc_meas::var_meas_cfg::report_triggers()
 {
   // for each measId included in the measIdList within VarMeasConfig
@@ -478,6 +483,11 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       report_triggers_eutra(m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra());
+    } else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+               report_cfg.report_cfg.type().value ==
+                   report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat) {
+      report_triggers_interrat_nr(
+          m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
     } else {
       log_h->error("Unsupported combination of measurement object type %s and report config type %s \n",
                    meas_obj.meas_obj.type().to_string().c_str(),
@@ -624,6 +634,10 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
   }
 }
 
+void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t                meas_id,
+                                                            report_cfg_inter_rat_s& report_cfg,
+                                                            meas_obj_nr_r15_s&      meas_obj)
+{}
 /* Evaluate event trigger conditions for each cell 5.5.4 */
 void rrc::rrc_meas::var_meas_cfg::eval_triggers()
 {
@@ -661,10 +675,22 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
                  m.second.meas_obj_id,
                  m.second.report_cfg_id);
 
-    report_cfg_eutra_s& report_cfg = reportConfigList.at(m.second.report_cfg_id).report_cfg.report_cfg_eutra();
-    meas_obj_eutra_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id).meas_obj.meas_obj_eutra();
-
-    eval_triggers_eutra(m.first, report_cfg, meas_obj, serv_cell, Ofs, Ocs);
+    report_cfg_to_add_mod_s& report_cfg = reportConfigList.at(m.second.report_cfg_id);
+    meas_obj_to_add_mod_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id);
+    if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
+        report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
+      eval_triggers_eutra(
+          m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra(), serv_cell, Ofs, Ocs);
+    } else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+               report_cfg.report_cfg.type().value ==
+                   report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
+      eval_triggers_interrat_nr(
+          m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
+    else {
+      log_h->error("Unsupported combination of measurement object type %s and report config type %s \n",
+                   meas_obj.meas_obj.type().to_string().c_str(),
+                   report_cfg.report_cfg.type().to_string().c_str());
+    }
   }
 }
 

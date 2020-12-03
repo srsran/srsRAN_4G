@@ -99,15 +99,7 @@ private:
     void                             ho_reest_finish(const uint32_t src_earfcn, const uint32_t dst_earfcn);
     bool parse_meas_config(const meas_cfg_s* meas_config, bool is_ho_reest, uint32_t src_earfcn);
     void eval_triggers();
-    void                             eval_triggers_eutra(uint32_t            meas_id,
-                                                         report_cfg_eutra_s& report_cfg,
-                                                         meas_obj_eutra_s&   meas_obj,
-                                                         meas_cell_eutra*    serv_cell,
-                                                         float               Ofs,
-                                                         float               Ocs);
     void report_triggers();
-    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
-
   private:
     void remove_varmeas_report(const uint32_t meas_id);
 
@@ -129,6 +121,17 @@ private:
     void reportConfig_addmod_eutra(const report_cfg_to_add_mod_s& l);
     void reportConfig_addmod_interrat(const report_cfg_to_add_mod_s& l);
     bool reportConfig_addmod_to_reportConfigList(const report_cfg_to_add_mod_s& l);
+
+    void eval_triggers_eutra(uint32_t            meas_id,
+                             report_cfg_eutra_s& report_cfg,
+                             meas_obj_eutra_s&   meas_obj,
+                             meas_cell_eutra*    serv_cell,
+                             float               Ofs,
+                             float               Ocs);
+    void eval_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
+
+    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
+    void report_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
 
     class cell_trigger_state
     {
