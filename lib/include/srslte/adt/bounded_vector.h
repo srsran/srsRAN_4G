@@ -101,8 +101,16 @@ public:
     assert(i < size_ && "Array index is out of bounds.");
     return reinterpret_cast<const T&>(buffer[i]);
   }
-  T&       back() { return (*this)[size_ - 1]; }
-  const T& back() const { return (*this)[size_ - 1]; }
+  T& back()
+  {
+    assert(size_ > 0 && "Trying to get back of empty array.");
+    return *(begin() + size_ - 1);
+  }
+  const T& back() const
+  {
+    assert(size_ > 0 && "Trying to get back of empty array.");
+    return *(begin() + size_ - 1);
+  }
   T&       front() { return (*this)[0]; }
   const T& front() const { return (*this)[0]; }
   T*       data() { return reinterpret_cast<T*>(&buffer[0]); }
