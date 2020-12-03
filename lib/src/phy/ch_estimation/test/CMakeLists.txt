@@ -88,3 +88,13 @@ target_link_libraries(dmrs_pdcch_test srslte_phy)
 
 add_test(dmrs_pdcch_test dmrs_pdcch_test)
 
+
+########################################################################
+# NR CSI RS Measurement test
+########################################################################
+
+add_executable(csi_rs_test csi_rs_test.c)
+target_link_libraries(csi_rs_test srslte_phy)
+
+add_test(csi_rs_test csi_rs_test -o 3 -S 0 -L 150 -f 3 -p 15)
+

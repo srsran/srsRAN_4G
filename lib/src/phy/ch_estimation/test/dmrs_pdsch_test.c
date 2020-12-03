@@ -124,7 +124,7 @@ static const golden_t gold[] = {{.mapping_type   = srslte_pdsch_mapping_type_A,
                                  .sc_idx         = {0, 2, 4, 6, 8, 10}},
                                 {}};
 
-void usage(char* prog)
+static void usage(char* prog)
 {
   printf("Usage: %s [recov]\n", prog);
 
@@ -135,7 +135,7 @@ void usage(char* prog)
   printf("\t-v increase verbosity\n");
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "rcov")) != -1) {

@@ -75,7 +75,7 @@ static int csi_rs_location_get_k_list(const srslte_csi_rs_resource_mapping_t* re
       resource->density == srslte_csi_rs_resource_mapping_density_three && resource->cdm == srslte_csi_rs_cdm_nocdm) {
     k_list[0] = k0;
     k_list[1] = k0 + 4;
-    k_list[3] = k0 + 8;
+    k_list[2] = k0 + 8;
     return 3;
   }
 
@@ -151,6 +151,37 @@ uint32_t csi_rs_count(srslte_csi_rs_density_t density, uint32_t nprb)
   return 0;
 }
 
+uint32_t csi_rs_rb_begin(const srslte_carrier_nr_t* carrier, const srslte_csi_rs_resource_mapping_t* m)
+{
+  uint32_t ret = SRSLTE_MAX(carrier->start, m->freq_band.start_rb);
+
+  if ((m->density == srslte_csi_rs_resource_mapping_density_dot5_even && ret % 2 == 1) ||
+      (m->density == srslte_csi_rs_resource_mapping_density_dot5_odd && ret % 2 == 0)) {
+    ret++;
+  }
+
+  return ret;
+}
+
+uint32_t csi_rs_rb_end(const srslte_carrier_nr_t* carrier, const srslte_csi_rs_resource_mapping_t* m)
+{
+  return SRSLTE_MIN(carrier->start + carrier->nof_prb, m->freq_band.start_rb + m->freq_band.nof_rb);
+}
+
+uint32_t csi_rs_rb_stride(const srslte_csi_rs_resource_mapping_t* m)
+{
+  uint32_t ret = 1;
+
+  // Special .5 density cases
+  if (m->density == srslte_csi_rs_resource_mapping_density_dot5_even ||
+      m->density == srslte_csi_rs_resource_mapping_density_dot5_odd) {
+    // Skip one RB
+    ret = 2;
+  }
+
+  return ret;
+}
+
 int srslte_csi_rs_nzp_put(const srslte_carrier_nr_t*          carrier,
                           const srslte_dl_slot_cfg_t*         slot_cfg,
                           const srslte_csi_rs_nzp_resource_t* resource,
@@ -173,29 +204,14 @@ int srslte_csi_rs_nzp_put(const srslte_carrier_nr_t*          carrier,
   }
 
   // Calculate Resource Block boundaries
-  uint32_t rb_begin  = resource->resource_mapping.freq_band.start_rb;
-  uint32_t rb_end    = resource->resource_mapping.freq_band.start_rb + resource->resource_mapping.freq_band.nof_rb;
-  uint32_t rb_stride = 1;
+  uint32_t rb_begin  = csi_rs_rb_begin(carrier, &resource->resource_mapping);
+  uint32_t rb_end    = csi_rs_rb_end(carrier, &resource->resource_mapping);
+  uint32_t rb_stride = csi_rs_rb_stride(&resource->resource_mapping);
 
   // Calculate power allocation
   float beta = srslte_convert_dB_to_amplitude((float)resource->power_control_offset);
   if (!isnormal(beta)) {
     beta = 1.0f;
-  }
-
-  // Special .5 density cases
-  if (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even ||
-      resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd) {
-    // Increase the start by one if:
-    // - Even and starts with odd
-    // - Odd and starts with even
-    if ((resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even && rb_begin % 2 == 1) ||
-        (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd && rb_begin % 2 == 0)) {
-      rb_begin++;
-    }
-
-    // Skip one RB
-    rb_stride = 2;
   }
 
   for (int l_idx = 0; l_idx < nof_l; l_idx++) {
@@ -259,30 +275,9 @@ int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
   }
 
   // Calculate Resource Block boundaries
-  uint32_t rb_begin  = resource->resource_mapping.freq_band.start_rb;
-  uint32_t rb_end    = resource->resource_mapping.freq_band.start_rb + resource->resource_mapping.freq_band.nof_rb;
-  uint32_t rb_stride = 1;
-
-  // Calculate power allocation
-  float beta = srslte_convert_dB_to_amplitude((float)resource->power_control_offset);
-  if (!isnormal(beta)) {
-    beta = 1.0f;
-  }
-
-  // Special .5 density cases
-  if (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even ||
-      resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd) {
-    // Increase the start by one if:
-    // - Even and starts with odd
-    // - Odd and starts with even
-    if ((resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_even && rb_begin % 2 == 1) ||
-        (resource->resource_mapping.density == srslte_csi_rs_resource_mapping_density_dot5_odd && rb_begin % 2 == 0)) {
-      rb_begin++;
-    }
-
-    // Skip one RB
-    rb_stride = 2;
-  }
+  uint32_t rb_begin  = csi_rs_rb_begin(carrier, &resource->resource_mapping);
+  uint32_t rb_end    = csi_rs_rb_end(carrier, &resource->resource_mapping);
+  uint32_t rb_stride = csi_rs_rb_stride(&resource->resource_mapping);
 
   // Accumulators
   float    epre_acc = 0.0f;
@@ -314,14 +309,14 @@ int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
         // Do we need more r?
         if (r_idx >= 64) {
           // ... Generate a bunch of it!
-          srslte_sequence_state_gen_f(&sequence_state, M_SQRT1_2 / beta, (float*)r, 64 * 2);
+          srslte_sequence_state_gen_f(&sequence_state, M_SQRT1_2, (float*)r, 64 * 2);
           r_idx = 0;
         }
 
         // Take CSI-RS from grid and measure
         cf_t tmp = grid[l * SRSLTE_NRE * carrier->nof_prb + k] * conjf(r[r_idx++]);
         rsrp_acc += tmp;
-        epre_acc = __real__ tmp * __real__ tmp + __imag__ tmp * __imag__ tmp;
+        epre_acc += __real__ tmp * __real__ tmp + __imag__ tmp * __imag__ tmp;
         count++;
       }
     }
@@ -329,8 +324,33 @@ int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
 
   if (count) {
     measure->epre = epre_acc / (float)count;
-    measure->rsrp = cabsf(rsrp_acc) / (float)count;
+    rsrp_acc /= (float)count;
+    measure->rsrp = (__real__ rsrp_acc * __real__ rsrp_acc + __imag__ rsrp_acc * __imag__ rsrp_acc);
+    if (measure->epre > measure->rsrp) {
+      measure->n0 = measure->epre - measure->rsrp;
+    } else {
+      measure->n0 = 0.0f;
+    }
   }
 
+  measure->rsrp_dB = srslte_convert_power_to_dB(measure->rsrp);
+  measure->epre_dB = srslte_convert_power_to_dB(measure->epre);
+  measure->n0_dB   = srslte_convert_power_to_dB(measure->n0);
+  measure->snr_dB  = measure->rsrp_dB - measure->n0_dB;
+  measure->nof_re  = count;
+
   return SRSLTE_SUCCESS;
+}
+
+uint32_t srslte_csi_rs_measure_info(const srslte_csi_rs_measure_t* measure, char* str, uint32_t str_len)
+{
+  return srslte_print_check(str,
+                            str_len,
+                            0,
+                            "rsrp=%+.1f, epre=%+.1f, n0=%+.1f, snr=%+.1f, nof_re=%d",
+                            measure->rsrp_dB,
+                            measure->epre_dB,
+                            measure->n0_dB,
+                            measure->snr_dB,
+                            measure->nof_re);
 }

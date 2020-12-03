@@ -88,8 +88,8 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_csi_rs_resource_mapping_t resource_mapping;
 
-  int8_t power_control_offset;    // -8..15 dB
-  int8_t power_control_offset_ss; // -3, 0, 3, 6 dB
+  float power_control_offset;    // -8..15 dB
+  float power_control_offset_ss; // -3, 0, 3, 6 dB
 
   uint32_t scrambling_id; // 0..1023
 
@@ -107,6 +107,10 @@ typedef struct SRSLTE_API {
   float rsrp_dB;
   float epre;
   float epre_dB;
+  float    n0;
+  float    n0_dB;
+  float    snr_dB;
+  uint32_t nof_re;
 } srslte_csi_rs_measure_t;
 
 SRSLTE_API int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
@@ -114,5 +118,7 @@ SRSLTE_API int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          car
                                          const srslte_csi_rs_nzp_resource_t* resource,
                                          const cf_t*                         grid,
                                          srslte_csi_rs_measure_t*            measure);
+
+SRSLTE_API uint32_t srslte_csi_rs_measure_info(const srslte_csi_rs_measure_t* measure, char* str, uint32_t str_len);
 
 #endif // SRSLTE_CSI_RS_H_
