@@ -265,11 +265,19 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
   // Get UE by reference
   common_ue& ue = ue_db[rnti];
 
-  // Number of configured secondary serving cells before applying the reconfiguration
-  uint32_t nof_configured_scell_before_config = _count_nof_configured_scell(rnti);
+  // During a reconfiguration, all parameters in phy_cfg_t shall be applied immediately except:
+  // - Multiple CSI request field in DCI (phy_cfg_t.dl_cfg.dci.multiple_csi_request_enabled)
+  // - Extended TBS tables (for 256QAM) (phy_cfg_t.dl_cfg.pdsch.use_tbs_index_alt)
+  // which shall be applied immediately only for UL grants and transmissions.
+  //
+  // For DL grants and transmissions, during the period between the transmission of the reconfiguration
+  // and the reception of the reconfigurationComplete, the values before the reconfiguration shall be used
 
-  // Number of configured secondary serving cells after applying the reconfiguration
-  uint32_t nof_configured_scell_after_config = 0;
+  // Store the current values for CSI and extended TBS in temporary variables
+  ue.stashed_multiple_csi_request_enabled = (_count_nof_configured_scell(rnti) > 0);
+  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+    ue.cell_info[i].stash_use_tbs_index_alt = ue.cell_info[i].phy_cfg.dl_cfg.pdsch.use_tbs_index_alt;
+  }
 
   // Iterate PHY RRC configuration for each UE cell/carrier
   uint32_t nof_cc = SRSLTE_MIN(phy_cfg_list.size(), SRSLTE_MAX_CARRIERS);
@@ -301,8 +309,6 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
       if (cell_info.state == cell_state_t::cell_state_none) {
         cell_info.state = cell_state_secondary_inactive;
       }
-      // Count Serving cell
-      nof_configured_scell_after_config++;
     } else {
       // Cell without configuration (except PCell)
       cell_info.state = cell_state_none;
@@ -319,14 +325,7 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
 
   // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < nof_cc; ue_cc_idx++) {
-    if (ue.cell_info[ue_cc_idx].state == cell_state_primary) {
-      // The primary cell applies change after reception of ReconfigurationComplete (call to complete_config())
-      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled =
-          (nof_configured_scell_before_config > 0);
-    } else {
-      // The rest apply changes directly
-      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell_after_config > 0);
-    }
+    ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (_count_nof_configured_scell(rnti) > 0);
   }
 }
 
@@ -360,15 +359,14 @@ void phy_ue_db::complete_config(uint16_t rnti)
     return;
   }
 
-  uint32_t nof_configured_scell = _count_nof_configured_scell(rnti);
+  // Once the reconfiguration is complete, the temporary parameters become the new ones
 
-  // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
+  // Update temporary multiple CSI DCI field with the new value
+  ue_db[rnti].stashed_multiple_csi_request_enabled = (_count_nof_configured_scell(rnti) > 0);
+  // Update temporary alternate TBS value with the new one
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
-    if (ue_db[rnti].cell_info[ue_cc_idx].state == cell_state_primary) {
-      // The primary cell applies change after reception of ReconfigurationComplete (call to complete_config())
-      ue_db[rnti].cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
-      break;
-    }
+    ue_db[rnti].cell_info[ue_cc_idx].stash_use_tbs_index_alt =
+        ue_db[rnti].cell_info[ue_cc_idx].phy_cfg.dl_cfg.pdsch.use_tbs_index_alt;
   }
 }
 
@@ -401,13 +399,33 @@ bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
 srslte_dl_cfg_t phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return _get_rnti_config(rnti, enb_cc_idx).dl_cfg;
+  srslte_dl_cfg_t             ret = _get_rnti_config(rnti, enb_cc_idx).dl_cfg;
+
+  // The DL configuration must overwrite the use_tbs_index_alt value (for 256QAM) with the temporary value
+  // in case we are in the middle of a reconfiguration
+  if (ue_db.count(rnti) && SRSLTE_RNTI_ISUSER(rnti)) {
+    uint32_t ue_cc_idx = _get_ue_cc_idx(rnti, enb_cc_idx);
+    if (ue_cc_idx == 0) {
+      ret.pdsch.use_tbs_index_alt = ue_db.at(rnti).cell_info[ue_cc_idx].stash_use_tbs_index_alt;
+    }
+  }
+  return ret;
 }
 
 srslte_dci_cfg_t phy_ue_db::get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return _get_rnti_config(rnti, enb_cc_idx).dl_cfg.dci;
+  srslte_dci_cfg_t            ret = _get_rnti_config(rnti, enb_cc_idx).dl_cfg.dci;
+
+  // The DCI configuration used for DL grants must overwrite the multiple_csi_request_enabled value with the temporary
+  // value in case we are in the middle of a reconfiguration
+  if (ue_db.count(rnti) && SRSLTE_RNTI_ISUSER(rnti)) {
+    uint32_t ue_cc_idx = _get_ue_cc_idx(rnti, enb_cc_idx);
+    if (ue_cc_idx == 0) {
+      ret.multiple_csi_request_enabled = ue_db.at(rnti).stashed_multiple_csi_request_enabled;
+    }
+  }
+  return ret;
 }
 
 srslte_ul_cfg_t phy_ue_db::get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const

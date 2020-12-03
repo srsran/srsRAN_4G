@@ -80,6 +80,7 @@ private:
     uint8_t                                          last_ri    = 0;  ///< Last reported rank indicator
     srslte::circular_array<srslte_ra_tb_t, SRSLTE_MAX_HARQ_PROC> last_tb =
         {};                                                           ///< Stores last PUSCH Resource allocation
+    bool                                             stash_use_tbs_index_alt = false;
     srslte::phy_cfg_t                                phy_cfg;         ///< Configuration, it has a default constructor
     srslte::circular_array<bool, TTIMOD_SZ> is_grant_available;       ///< Indicates whether there is an available grant
   } cell_info_t;
@@ -88,6 +89,7 @@ private:
    * UE object stored in the PHY common database
    */
   struct common_ue {
+    bool                                                  stashed_multiple_csi_request_enabled = false;
     srslte::circular_array<srslte_pdsch_ack_t, TTIMOD_SZ> pdsch_ack = {}; ///< Pending acknowledgements for this Cell
     std::array<cell_info_t, SRSLTE_MAX_CARRIERS>          cell_info = {}; ///< Cell information, indexed by ue_cell_idx
   };
