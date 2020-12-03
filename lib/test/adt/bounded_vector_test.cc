@@ -46,6 +46,12 @@ int C::nof_value_ctor = 0;
 int C::nof_move_ctor  = 0;
 int C::nof_dtor       = 0;
 
+struct moveonly {
+  moveonly()                    = default;
+  moveonly(moveonly&&) noexcept = default;
+  moveonly& operator=(moveonly&&) noexcept = default;
+};
+
 int test_ctor()
 {
   // TEST: default ctor
@@ -113,22 +119,24 @@ int test_obj_add_rem()
   a.back() = 4;
   TESTASSERT(not std::equal(a.begin(), a.end(), a2.begin()));
   a2 = a;
-  TESTASSERT(std::equal(a.begin(), a.end(), a2.begin()));
+  TESTASSERT(a == a2);
 
   // TEST: assign
   a.resize(5);
   a2.assign(a.begin(), a.end());
   TESTASSERT(a2.size() == 5);
-  TESTASSERT(std::equal(a.begin(), a.end(), a2.begin()));
+  TESTASSERT(a == a2);
 
   // TEST: pop_back
   int last_nof_dtor = C::nof_dtor;
   a.pop_back();
   TESTASSERT(a.size() == 4 and last_nof_dtor == C::nof_dtor - 1);
+  TESTASSERT(a != a2);
 
   // TEST: erase
   a.erase(a.begin() + 1);
-  TESTASSERT(std::equal(a.begin(), a.end(), std::initializer_list<C>{1, 3, 3}.begin()));
+  srslte::bounded_vector<C, 10> test = {1, 3, 3};
+  TESTASSERT(a == test);
 
   // TEST: clear
   last_nof_dtor = C::nof_dtor;
@@ -139,6 +147,34 @@ int test_obj_add_rem()
   TESTASSERT(a2.size() == 5);
   a = std::move(a2);
   TESTASSERT(a.size() == 5 and a2.empty());
+  test = {1, 2, 3, 3, 3};
+  TESTASSERT(a == test);
+
+  // TEST: move assignment from empty array
+  a2.clear();
+  a = std::move(a2);
+  TESTASSERT(a.empty() and a2.empty());
+
+  return SRSLTE_SUCCESS;
+}
+
+int test_move_only_type()
+{
+  bounded_vector<moveonly, 10> a(5);
+  TESTASSERT(a.size() == 5);
+
+  bounded_vector<moveonly, 10> a2(std::move(a));
+  TESTASSERT(a2.size() == 5 and a.empty());
+
+  a2[0] = moveonly();
+  moveonly c;
+  a2[1] = std::move(c);
+
+  a2.emplace_back();
+  TESTASSERT(a2.size() == 6);
+
+  a2.push_back(moveonly());
+  TESTASSERT(a2.size() == 7);
 
   return SRSLTE_SUCCESS;
 }
@@ -155,6 +191,7 @@ int main()
 {
   TESTASSERT(srslte::test_ctor() == SRSLTE_SUCCESS);
   TESTASSERT(srslte::test_obj_add_rem() == SRSLTE_SUCCESS);
+  TESTASSERT(srslte::test_move_only_type() == SRSLTE_SUCCESS);
   TESTASSERT(srslte::assert_dtor_consistency() == SRSLTE_SUCCESS);
   printf("Success\n");
   return 0;

@@ -32,7 +32,7 @@ public:
   template <typename std::enable_if<std::is_default_constructible<T>::value, int>::type = 0>
   bounded_vector(size_type N)
   {
-    append(N, T());
+    append(N);
   }
   template <typename U, typename std::enable_if<std::is_constructible<T, U>::value, int>::type = 0>
   bounded_vector(size_type N, const U& init_val)
@@ -42,9 +42,7 @@ public:
   bounded_vector(const bounded_vector& other) { append(other.begin(), other.end()); }
   bounded_vector(bounded_vector&& other) noexcept
   {
-    for (size_type i = 0; i < other.size(); ++i) {
-      new (&buffer[i]) T(std::move(other[i]));
-    }
+    std::uninitialized_copy(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()), end());
     size_ = other.size();
     other.clear();
   }
@@ -69,12 +67,12 @@ public:
       // move already constructed elements
       auto it = std::move(other.begin(), other.begin() + min_common_size, begin());
       destroy(it, end());
-      size_ = min_common_size;
+    } else {
+      clear();
     }
     // append the rest
-    for (size_t i = size_; i < other.size(); ++i) {
-      new (&buffer[i]) T(std::move(other[i]));
-    }
+    std::uninitialized_copy(
+        std::make_move_iterator(other.begin() + min_common_size), std::make_move_iterator(other.end()), end());
     size_ = other.size();
     other.clear();
     return *this;
@@ -95,12 +93,12 @@ public:
   // Element access
   T& operator[](std::size_t i)
   {
-    assert(i < size_);
+    assert(i < size_ && "Array index is out of bounds.");
     return reinterpret_cast<T&>(buffer[i]);
   }
   const T& operator[](std::size_t i) const
   {
-    assert(i < size_);
+    assert(i < size_ && "Array index is out of bounds.");
     return reinterpret_cast<const T&>(buffer[i]);
   }
   T&       back() { return (*this)[size_ - 1]; }
@@ -112,9 +110,9 @@ public:
 
   // Iterators
   iterator       begin() { return reinterpret_cast<iterator>(&buffer[0]); }
-  iterator       end() { return reinterpret_cast<iterator>(&buffer[size_]); }
+  iterator       end() { return begin() + size_; }
   const_iterator begin() const { return reinterpret_cast<const_iterator>(&buffer[0]); }
-  const_iterator end() const { return reinterpret_cast<const_iterator>(&buffer[size_]); }
+  const_iterator end() const { return begin() + size_; }
 
   // Capacity
   bool        empty() const { return size_ == 0; }
@@ -170,7 +168,7 @@ public:
   }
   void pop_back()
   {
-    assert(size_ > 0);
+    assert(size_ > 0 && "Trying to erase element from empty vector.");
     back().~T();
     size_--;
   }
@@ -189,18 +187,13 @@ public:
   {
     return other.size() == size() and std::equal(begin(), end(), other.begin());
   }
+  bool operator!=(const bounded_vector& other) const { return not(*this == other); }
 
 private:
   void destroy(iterator it_start, iterator it_end)
   {
     for (auto it = it_start; it != it_end; ++it) {
       it->~T();
-    }
-  }
-  void construct_(iterator it_start, iterator it_end, const T& value)
-  {
-    for (auto it = it_start; it != it_end; ++it) {
-      new (it) T(value);
     }
   }
   void append(const_iterator it_begin, const_iterator it_end)
@@ -214,6 +207,14 @@ private:
   {
     assert(N + size_ <= MAX_N);
     std::uninitialized_fill_n(end(), N, element);
+    size_ += N;
+  }
+  void append(size_type N)
+  {
+    assert(N + size_ <= MAX_N);
+    for (size_type i = size_; i < size_ + N; ++i) {
+      new (&buffer[i]) T();
+    }
     size_ += N;
   }
 
