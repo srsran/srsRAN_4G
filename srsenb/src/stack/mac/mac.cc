@@ -640,8 +640,11 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
       dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].rar_softbuffer_tx;
 
       // Assemble PDU
-      dl_sched_res->pdsch[n].data[0] = assemble_rar(
-          sched_result.rar[i].msg3_grant, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs, tti_tx_dl);
+      dl_sched_res->pdsch[n].data[0] = assemble_rar(sched_result.rar[i].msg3_grant.data(),
+                                                    sched_result.rar[i].msg3_grant.size(),
+                                                    i,
+                                                    sched_result.rar[i].tbs,
+                                                    tti_tx_dl);
 
       if (pcap) {
         pcap->write_dl_ranti(dl_sched_res->pdsch[n].data[0],

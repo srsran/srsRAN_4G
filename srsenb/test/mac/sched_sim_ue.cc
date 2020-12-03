@@ -198,7 +198,7 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
 
     if (rar_window.contains(tti_tx_dl)) {
       for (uint32_t i = 0; i < dl_cc_result.nof_rar_elems; ++i) {
-        for (uint32_t j = 0; j < dl_cc_result.rar[i].nof_grants; ++j) {
+        for (uint32_t j = 0; j < dl_cc_result.rar[i].msg3_grant.size(); ++j) {
           const auto& data = dl_cc_result.rar[i].msg3_grant[j].data;
           if (data.prach_tti == (uint32_t)ctxt.prach_tti_rx.to_uint() and data.preamble_idx == ctxt.preamble_idx) {
             ctxt.rar_tti_rx = sf_out.tti_rx;

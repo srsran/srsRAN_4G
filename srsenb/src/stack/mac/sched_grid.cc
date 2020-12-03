@@ -725,7 +725,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
 
     // RAR allocation successful
     sched_interface::dl_sched_rar_t rar_grant = {};
-    rar_grant.nof_grants                      = nof_grants;
+    rar_grant.msg3_grant.resize(nof_grants);
     for (uint32_t i = 0; i < nof_grants; ++i) {
       rar_grant.msg3_grant[i].data            = rar.msg3_grant[i];
       rar_grant.msg3_grant[i].grant.tpc_pusch = 3;
@@ -999,11 +999,10 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
 
     // Setup RAR process
     rar->tbs        = rar_alloc.alloc_data.req_bytes;
-    rar->nof_grants = rar_alloc.rar_grant.nof_grants;
-    std::copy(&rar_alloc.rar_grant.msg3_grant[0], &rar_alloc.rar_grant.msg3_grant[rar->nof_grants], rar->msg3_grant);
+    rar->msg3_grant = rar_alloc.rar_grant.msg3_grant;
 
     // Print RAR allocation result
-    for (uint32_t i = 0; i < rar->nof_grants; ++i) {
+    for (uint32_t i = 0; i < rar->msg3_grant.size(); ++i) {
       const auto& msg3_grant    = rar->msg3_grant[i];
       uint16_t    expected_rnti = msg3_grant.data.temp_crnti;
       log_h->info("SCHED: RAR, temp_crnti=0x%x, ra-rnti=%d, rbgs=%s, dci=(%d,%d), rar_grant_rba=%d, "

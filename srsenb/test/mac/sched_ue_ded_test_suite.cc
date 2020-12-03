@@ -229,8 +229,8 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
         // Inside RAR window
         uint32_t nof_rars = ue.rar_tti_rx.is_valid() ? 1 : 0;
         for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
-          for (uint32_t j = 0; j < dl_cc_res.rar[i].nof_grants; ++j) {
-            const auto& data = dl_cc_res.rar[i].msg3_grant[j].data;
+          for (const auto& grant : dl_cc_res.rar[i].msg3_grant) {
+            const auto& data = grant.data;
             if (data.prach_tti == (uint32_t)ue.prach_tti_rx.to_uint() and data.preamble_idx == ue.preamble_idx) {
               CONDERROR(rnti != data.temp_crnti, "RAR grant C-RNTI does not match the expected.\n");
               nof_rars++;
@@ -309,7 +309,7 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
 
     // TEST: Ensure there are no spurious RARs that do not belong to any user
     for (uint32_t i = 0; i < dl_cc_res.nof_rar_elems; ++i) {
-      for (uint32_t j = 0; j < dl_cc_res.rar[i].nof_grants; ++j) {
+      for (uint32_t j = 0; j < dl_cc_res.rar[i].msg3_grant.size(); ++j) {
         uint32_t prach_tti    = dl_cc_res.rar[i].msg3_grant[j].data.prach_tti;
         uint32_t preamble_idx = dl_cc_res.rar[i].msg3_grant[j].data.preamble_idx;
         auto     it           = std::find_if(

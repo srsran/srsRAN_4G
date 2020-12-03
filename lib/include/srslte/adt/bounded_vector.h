@@ -107,8 +107,8 @@ public:
   const T& back() const { return (*this)[size_ - 1]; }
   T&       front() { return (*this)[0]; }
   const T& front() const { return (*this)[0]; }
-  T*       data() { return &buffer[0]; }
-  const T* data() const { return &buffer[0]; }
+  T*       data() { return reinterpret_cast<T*>(&buffer[0]); }
+  const T* data() const { return reinterpret_cast<T*>(&buffer[0]); }
 
   // Iterators
   iterator       begin() { return reinterpret_cast<iterator>(&buffer[0]); }

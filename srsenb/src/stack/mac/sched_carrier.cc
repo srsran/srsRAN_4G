@@ -233,8 +233,7 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
   const std::vector<sf_sched::rar_alloc_t>& alloc_rars = sf_dl_sched->get_allocated_rars();
 
   for (const auto& rar : alloc_rars) {
-    for (uint32_t j = 0; j < rar.rar_grant.nof_grants; ++j) {
-      const auto& msg3grant = rar.rar_grant.msg3_grant[j];
+    for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
 
       uint16_t crnti   = msg3grant.data.temp_crnti;
       auto     user_it = ue_db->find(crnti);

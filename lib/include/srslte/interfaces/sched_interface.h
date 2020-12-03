@@ -10,6 +10,7 @@
  *
  */
 
+#include "srslte/adt/bounded_vector.h"
 #include "srslte/common/common.h"
 #include "srslte/srslte.h"
 #include <vector>
@@ -194,12 +195,11 @@ public:
     srslte_dci_rar_grant_t grant;
   } dl_sched_rar_grant_t;
 
-  typedef struct {
-    uint32_t             tbs;
-    srslte_dci_dl_t      dci;
-    uint32_t             nof_grants;
-    dl_sched_rar_grant_t msg3_grant[MAX_RAR_LIST];
-  } dl_sched_rar_t;
+  struct dl_sched_rar_t {
+    uint32_t                                                   tbs;
+    srslte_dci_dl_t                                            dci;
+    srslte::bounded_vector<dl_sched_rar_grant_t, MAX_RAR_LIST> msg3_grant;
+  };
 
   typedef struct {
     srslte_dci_dl_t dci;
