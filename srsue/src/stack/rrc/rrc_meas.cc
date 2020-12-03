@@ -126,6 +126,7 @@ void rrc::rrc_meas::run_tti()
   meas_cfg.report_triggers();
 }
 
+
 uint8_t rrc::rrc_meas::value_to_range(const report_cfg_eutra_s::trigger_quant_opts::options quant, const float value)
 {
   uint8_t range = 0;
@@ -168,6 +169,54 @@ float rrc::rrc_meas::range_to_value(const report_cfg_eutra_s::trigger_quant_opts
       break;
   }
   return val;
+}
+
+// For thresholds, the actual value is (field value – 156) dBm, except for field value 127, in which case the actual
+// value is infinity.
+float rrc::rrc_meas::range_to_value_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const uint8_t range)
+{
+  float val = 0;
+  switch (type) {
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15:
+      if (range == 127)
+        val = std::numeric_limits<float>::infinity();
+      else {
+        val = -156 + (float)range;
+      }
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15:
+      val = -87 + (float)range / 2;
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15:
+      val = -46 + (float)range / 2;
+      break;
+    default:
+      break;
+  }
+  return val;
+}
+
+uint8_t rrc::rrc_meas::value_to_range_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const float value)
+{
+  uint8_t range = 0;
+  switch (type) {
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15:
+      if (value == std::numeric_limits<float>::infinity()) {
+        range = 127;
+      } else {
+        range = (uint8_t)(value + 156);
+      }
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15:
+      range = (uint8_t)(2 * (value + 87));
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15:
+      range = (uint8_t)(2 * (value + 46));
+      break;
+    default:
+      break;
+  }
+  return range;
 }
 
 uint8_t rrc::rrc_meas::offset_val(const meas_obj_eutra_s& meas_obj)
@@ -1088,9 +1137,7 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod_interrat(const report_cfg_
               report_cfg.trigger_type.event().event_id.type().to_string().c_str(),
               report_cfg.trigger_type.event().time_to_trigger.to_number(),
               report_cfg.report_interv.to_number());
-  if (entry_exists) {
-    // TODO Debug
-  }
+  log_debug_trigger_value_interrat(report_cfg.trigger_type.event().event_id);
 }
 
 // perform the reporting configuration addition/ modification procedure as specified in 5.5.2.7
@@ -1106,6 +1153,25 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod(const report_cfg_to_add_mo
         break;
       default:
         log_h->error("MEAS: Unsupported reportConfig type: %s\n", l.report_cfg.type().to_string().c_str());
+        break;
+    }
+  }
+}
+
+// Warning: Use for Test debug purposes only. Assumes thresholds in RSRP
+void rrc::rrc_meas::var_meas_cfg::log_debug_trigger_value_interrat(
+    const report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_& e)
+{
+  if (log_h->get_level() == LOG_LEVEL_DEBUG) {
+    switch (e.type()) {
+      case report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::types_opts::event_b1_nr_r15: {
+        log_h->debug("MEAS:   B1-NR-R15-threashold (%d)=%.1f dBm\n",
+                     e.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15(),
+                    range_to_value_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15, e.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15()));
+        break;
+      }
+      default:
+        log_h->debug("MEAS:     Unsupported inter rat trigger type %s\n", e.type().to_string().c_str());
         break;
     }
   }
@@ -1249,8 +1315,8 @@ bool rrc::rrc_meas::var_meas_cfg::parse_meas_config(const meas_cfg_s* cfg, bool 
     }
   }
 
-  // According to 5.5.6.1, if the new configuration after a HO/Reest does not configure the target frequency, we need to
-  // swap frequencies with source
+  // According to 5.5.6.1, if the new configuration after a HO/Reest does not configure the target frequency, we need
+  // to swap frequencies with source
   if (is_ho_reest) {
     meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
     if (serv_cell) {

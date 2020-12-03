@@ -111,7 +111,7 @@ private:
     void measId_addmod(const meas_id_to_add_mod_list_l& list);
     void quantity_config(const quant_cfg_s& cfg);
     void log_debug_trigger_value_eutra(const eutra_event_s::event_id_c_& e);
-
+    void log_debug_trigger_value_interrat(const report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_& e);
     static bool is_rsrp(report_cfg_eutra_s::trigger_quant_opts::options q);
     
     // Helpers
@@ -171,6 +171,8 @@ private:
   // Static functions
   static uint8_t value_to_range(const report_cfg_eutra_s::trigger_quant_opts::options q, float value);
   static float   range_to_value(const report_cfg_eutra_s::trigger_quant_opts::options q, const uint8_t range);
+  static uint8_t value_to_range_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const float value);
+  static float   range_to_value_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const uint8_t range);
   static uint8_t offset_val(const meas_obj_eutra_s& meas_obj);
   static asn1::dyn_array<cells_to_add_mod_s>::iterator find_pci_in_meas_obj(meas_obj_eutra_s& meas_obj, uint32_t pci);
 };
