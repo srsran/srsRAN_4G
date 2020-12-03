@@ -33,3 +33,7 @@ add_test(interval_test interval_test)
 add_executable(observer_test observer_test.cc)
 target_link_libraries(observer_test srslte_common)
 add_test(observer_test observer_test)
+
+add_executable(bounded_vector_test bounded_vector_test.cc)
+target_link_libraries(bounded_vector_test srslte_common)
+add_test(bounded_vector_test bounded_vector_test)
