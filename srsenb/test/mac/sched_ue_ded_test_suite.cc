@@ -55,12 +55,15 @@ const pdsch_t* find_pdsch_grant(uint16_t rnti, const sched_interface::dl_sched_r
   return ptr == &dl_cc_res.data[dl_cc_res.nof_data_elems] ? nullptr : ptr;
 }
 
-int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
-                     srslte::tti_point                       tti_rx,
+int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
+                     const sf_output_res_t&                  sf_out,
                      uint32_t                                enb_cc_idx,
                      const sched_interface::dl_sched_data_t& pdsch)
 {
-  auto* cc_cfg = ue_ctxt.get_cc_cfg(enb_cc_idx);
+  tti_point                                  tti_rx      = sf_out.tti_rx;
+  const sim_ue_ctxt_t&                       ue_ctxt     = *enb_ctxt.ue_db.at(pdsch.dci.rnti);
+  const sched_interface::ue_cfg_t::cc_cfg_t* cc_cfg      = ue_ctxt.get_cc_cfg(enb_cc_idx);
+  const sched_interface::cell_cfg_t&         cell_params = (*enb_ctxt.cell_params)[enb_cc_idx];
 
   // TEST: Check if CC is configured and active
   CONDERROR(cc_cfg == nullptr or not cc_cfg->active, "PDSCH allocation for disabled or unavailable cc\n");
@@ -87,6 +90,19 @@ int test_pdsch_grant(const sim_ue_ctxt_t&                    ue_ctxt,
     CONDERROR(h.tbs != pdsch.tbs[0], "TBS changed during HARQ retx\n");
   }
 
+  // TEST: max coderate is not exceeded
+  srslte_pdsch_grant_t grant = {};
+  srslte_dl_sf_cfg_t   dl_sf = {};
+  dl_sf.cfi                  = sf_out.dl_cc_result[enb_cc_idx].cfi;
+  dl_sf.tti                  = to_tx_dl(tti_rx).to_uint();
+  srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.cell.nof_prb);
+  uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cell, &dl_sf, &grant);
+  float        coderate = srslte_coderate(pdsch.tbs[0], nof_re);
+  srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
+  uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
+  uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
+  CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded\n");
+
   return SRSLTE_SUCCESS;
 }
 
@@ -97,7 +113,7 @@ int test_dl_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
       const sched_interface::dl_sched_data_t& data = sf_out.dl_cc_result[cc].data[i];
       CONDERROR(
           enb_ctxt.ue_db.count(data.dci.rnti) == 0, "Allocated DL grant for non-existent rnti=0x%x\n", data.dci.rnti);
-      TESTASSERT(test_pdsch_grant(*enb_ctxt.ue_db.at(data.dci.rnti), sf_out.tti_rx, cc, data) == SRSLTE_SUCCESS);
+      TESTASSERT(test_pdsch_grant(enb_ctxt, sf_out, cc, data) == SRSLTE_SUCCESS);
     }
   }
   return SRSLTE_SUCCESS;
