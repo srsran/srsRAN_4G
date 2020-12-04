@@ -15,6 +15,12 @@
 
 namespace srsenb {
 
+int8_t decode_tpc(uint8_t encoded_tpc)
+{
+  const static int8_t tpc_table[] = {-1, 0, 1, 3};
+  return encoded_tpc < sizeof(tpc_table) ? tpc_table[encoded_tpc] : std::numeric_limits<int8_t>::max();
+}
+
 int test_finite_target_snr()
 {
   const uint32_t nof_prbs   = 50;
@@ -25,8 +31,8 @@ int test_finite_target_snr()
   // TEST: While no SNR info is provided, no TPC commands are sent
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    TESTASSERT(tpcfsm.encode_pucch_tpc() == 0);
-    TESTASSERT(tpcfsm.encode_pusch_tpc() == 0);
+    TESTASSERT(decode_tpc(tpcfsm.encode_pucch_tpc()) == 0);
+    TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 0);
   }
 
   // TEST: current SNR above target SNR. Checks:
@@ -37,9 +43,9 @@ int test_finite_target_snr()
   int sum_pusch = 0, sum_pucch = 0;
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    sum_pusch += tpcfsm.encode_pusch_tpc();
+    sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
     TESTASSERT(sum_pusch < 0 and sum_pusch >= -snr_diff);
-    sum_pucch += tpcfsm.encode_pucch_tpc();
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
     TESTASSERT(sum_pucch < 0 and sum_pucch >= -snr_diff);
   }
 
@@ -52,9 +58,9 @@ int test_finite_target_snr()
   sum_pucch = 0;
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    sum_pusch += tpcfsm.encode_pusch_tpc();
+    sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
     TESTASSERT(sum_pusch > 0 and sum_pusch <= -snr_diff);
-    sum_pucch += tpcfsm.encode_pucch_tpc();
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
     TESTASSERT(sum_pucch > 0 and sum_pucch <= -snr_diff);
   }
 
@@ -72,8 +78,8 @@ int test_undefined_target_snr()
   int sum_pusch = 0, sum_pucch = 0;
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    sum_pusch += tpcfsm.encode_pusch_tpc();
-    sum_pucch += tpcfsm.encode_pucch_tpc();
+    sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
   }
   TESTASSERT(sum_pusch <= 3 and sum_pusch >= -1);
   TESTASSERT(sum_pucch <= 3 and sum_pucch >= -1);
@@ -85,8 +91,8 @@ int test_undefined_target_snr()
   sum_pucch = 0;
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    sum_pusch += tpcfsm.encode_pusch_tpc();
-    sum_pucch += tpcfsm.encode_pucch_tpc();
+    sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
   }
   TESTASSERT(sum_pusch == 0);
   TESTASSERT(sum_pucch == 0);
@@ -99,8 +105,8 @@ int test_undefined_target_snr()
   sum_pucch = 0;
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    sum_pusch += tpcfsm.encode_pusch_tpc();
-    sum_pucch += tpcfsm.encode_pucch_tpc();
+    sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
   }
   TESTASSERT(sum_pusch > 0 and sum_pusch <= 3);
   TESTASSERT(sum_pucch > 0 and sum_pucch <= 3);
@@ -111,8 +117,8 @@ int test_undefined_target_snr()
   TESTASSERT(tpcfsm.max_ul_prbs() < 50);
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    TESTASSERT(tpcfsm.encode_pusch_tpc() == 0);
-    TESTASSERT(tpcfsm.encode_pucch_tpc() == 0);
+    TESTASSERT(decode_tpc(tpcfsm.encode_pusch_tpc()) == 0);
+    TESTASSERT(decode_tpc(tpcfsm.encode_pucch_tpc()) == 0);
   }
 
   // TEST: PHR is negative. The TPC should slightly decrease Tx UL power until next PHR
@@ -123,8 +129,8 @@ int test_undefined_target_snr()
   sum_pucch = 0;
   for (uint32_t i = 0; i < 100; ++i) {
     tpcfsm.new_tti();
-    sum_pusch += tpcfsm.encode_pusch_tpc();
-    sum_pucch += tpcfsm.encode_pucch_tpc();
+    sum_pusch += decode_tpc(tpcfsm.encode_pusch_tpc());
+    sum_pucch += decode_tpc(tpcfsm.encode_pucch_tpc());
   }
   TESTASSERT(sum_pusch <= 0 and sum_pusch >= -1);
   TESTASSERT(sum_pucch <= 0 and sum_pucch >= -1);

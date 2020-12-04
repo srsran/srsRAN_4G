@@ -15,6 +15,7 @@
 
 #include "srslte/adt/accumulators.h"
 #include "srslte/common/common.h"
+#include "srslte/common/logmap.h"
 
 namespace srsenb {
 
@@ -26,8 +27,8 @@ namespace srsenb {
  */
 class tpc
 {
-  static constexpr size_t SNR_WINDOW_SIZE_MS = 20;
-  static constexpr int    undefined_phr      = std::numeric_limits<int>::max();
+  static constexpr int   undefined_phr = std::numeric_limits<int>::max();
+  static constexpr float null_snr      = std::numeric_limits<float>::max();
 
 public:
   static constexpr int PHR_NEG_NOF_PRB = 1;
@@ -35,7 +36,7 @@ public:
   tpc(uint32_t cell_nof_prb, float target_snr_dB_ = -1.0) :
     nof_prb(cell_nof_prb),
     target_snr_dB(target_snr_dB_),
-    snr_avg(SNR_WINDOW_SIZE_MS),
+    snr_avg(0.1, target_snr_dB_),
     win_pusch_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS),
     win_pucch_tpc_values(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS)
   {
@@ -63,27 +64,29 @@ public:
   void new_tti()
   {
     if (target_snr_dB < 0) {
-      pending_pusch_tpc = 0;
-      pending_pucch_tpc = 0;
+      pending_pusch_delta = 0;
+      pending_pucch_delta = 0;
       return;
     }
 
     // Enqueue pending SNR measurement
-    if (pending_snr == snr_avg.null_value()) {
+    if (pending_snr == null_snr) {
+      last_snr_sample_count++;
       acc_pusch_tpc_values += win_pusch_tpc_values.oldest();
       acc_pucch_tpc_values += win_pusch_tpc_values.oldest();
     } else {
       acc_pucch_tpc_values = 0;
       acc_pusch_tpc_values = 0;
+      snr_avg.push(pending_snr, last_snr_sample_count);
+      last_snr_sample_count = 1;
     }
-    snr_avg.push(pending_snr);
-    pending_snr = snr_avg.null_value();
+    pending_snr = null_snr;
 
     // Enqueue PUSCH/PUCCH TPC sent in last TTI (zero for both Delta_PUSCH/Delta_PUCCH=0 and TPC not sent)
-    win_pusch_tpc_values.push(pending_pusch_tpc);
-    pending_pusch_tpc = 0;
-    win_pucch_tpc_values.push(pending_pucch_tpc);
-    pending_pucch_tpc = 0;
+    win_pusch_tpc_values.push(pending_pusch_delta);
+    pending_pusch_delta = 0;
+    win_pucch_tpc_values.push(pending_pucch_delta);
+    pending_pucch_delta = 0;
   }
 
   /**
@@ -91,31 +94,32 @@ public:
    * @remark See TS 36.213 Section 5.1.1
    * @return accumulated TPC value {-1, 0, 1, 3}
    */
-  int8_t encode_pusch_tpc()
+  uint8_t encode_pusch_tpc()
   {
-    assert(pending_pusch_tpc == 0); // ensure called once per {cc,tti}
+    assert(pending_pusch_delta == 0); // ensure called once per {cc,tti}
     if (target_snr_dB < 0) {
       // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
       // unchanged
       if (not pusch_phr_flag) {
-        pending_pusch_tpc = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
-        pusch_phr_flag    = true;
+        pending_pusch_delta = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
+        pusch_phr_flag      = true;
       }
-    } else if (snr_avg.value() != snr_avg.null_value()) {
+    } else {
       // target SINR is finite and there is power headroom
       float diff = target_snr_dB - snr_avg.value();
       diff -= win_pusch_tpc_values.value() + acc_pusch_tpc_values;
-      if (diff > 1) {
-        pending_pusch_tpc = diff > 3 ? 3 : 1;
-      } else if (diff <= -1) {
-        pending_pusch_tpc = -1;
+      int8_t diff_round = roundf(diff);
+      if (diff_round >= 1) {
+        pending_pusch_delta = diff_round > 3 ? 3 : 1;
+      } else if (diff_round <= -1) {
+        pending_pusch_delta = -1;
       }
       if (last_phr <= 0) {
         // In case there is no headroom, forbid power increases
-        pending_pusch_tpc = std::min(pending_pusch_tpc, 0);
+        pending_pusch_delta = std::min(pending_pusch_delta, 0);
       }
     }
-    return pending_pusch_tpc;
+    return encode_tpc_delta(pending_pusch_delta);
   }
 
   /**
@@ -124,48 +128,71 @@ public:
    * @remark See TS 36.213 Section 5.1.2
    * @return accumulated TPC value {-1, 0, 1, 3}
    */
-  int8_t encode_pucch_tpc()
+  uint8_t encode_pucch_tpc()
   {
-    assert(pending_pucch_tpc == 0); // ensure called once per {cc,tti}
+    assert(pending_pucch_delta == 0); // ensure called once per {cc,tti}
     if (target_snr_dB < 0) {
       // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
       // unchanged
       if (not pucch_phr_flag) {
-        pending_pucch_tpc = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
-        pucch_phr_flag    = true;
+        pending_pucch_delta = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
+        pucch_phr_flag      = true;
       }
-    } else if (snr_avg.value() != snr_avg.null_value()) {
+    } else {
       // target SINR is finite and there is power headroom
       float diff = target_snr_dB - snr_avg.value();
       diff -= win_pucch_tpc_values.value() + acc_pucch_tpc_values;
-      pending_pucch_tpc = 0;
-      if (diff > 1) {
-        pending_pucch_tpc = diff > 3 ? 3 : 1;
-      } else if (diff <= -1) {
-        pending_pucch_tpc = -1;
+      int8_t diff_round = roundf(diff);
+      if (diff_round >= 1) {
+        pending_pucch_delta = diff_round > 3 ? 3 : 1;
+      } else if (diff_round <= -1) {
+        pending_pucch_delta = -1;
       }
       if (last_phr <= 0) {
         // In case there is no headroom, forbid power increases
-        pending_pucch_tpc = std::min(pending_pucch_tpc, 0);
+        pending_pucch_delta = std::min(pending_pucch_delta, 0);
       }
     }
-    return pending_pucch_tpc;
+    return encode_tpc_delta(pending_pucch_delta);
   }
 
   uint32_t max_ul_prbs() const { return max_prbs_cached; }
 
 private:
+  uint8_t encode_tpc_delta(int8_t delta)
+  {
+    switch (delta) {
+      case -1:
+        return 0;
+      case 0:
+        return 1;
+      case 1:
+        return 2;
+      case 3:
+        return 3;
+      default:
+        srslte::logmap::get("MAC")->warning("Invalid TPC delta value=%d\n", delta);
+        return 1;
+    }
+  }
+
   uint32_t nof_prb;
   float    target_snr_dB;
 
-  srslte::null_sliding_average<float> snr_avg;
-  srslte::sliding_sum<int>            win_pusch_tpc_values, win_pucch_tpc_values;
-  uint32_t                            max_prbs_cached   = 100;
-  int                                 pending_pusch_tpc = 0, pending_pucch_tpc = 0;
-  float                               pending_snr          = srslte::null_sliding_average<float>::null_value();
-  int                                 acc_pusch_tpc_values = 0, acc_pucch_tpc_values = 0;
-  int                                 last_phr       = undefined_phr;
-  bool                                pusch_phr_flag = false, pucch_phr_flag = false;
+  // PHR-related variables
+  int      last_phr        = undefined_phr;
+  uint32_t max_prbs_cached = 100;
+  bool     pusch_phr_flag = false, pucch_phr_flag = false;
+
+  // SNR estimation
+  srslte::exp_average_irreg_sampling<float> snr_avg;
+  float                                     pending_snr           = srslte::null_sliding_average<float>::null_value();
+  uint32_t                                  last_snr_sample_count = 1;
+
+  // Accumulation of past TPC commands
+  srslte::sliding_sum<int> win_pusch_tpc_values, win_pucch_tpc_values;
+  int                      pending_pusch_delta = 0, pending_pucch_delta = 0;
+  int                      acc_pusch_tpc_values = 0, acc_pucch_tpc_values = 0;
 };
 
 } // namespace srsenb

@@ -14,6 +14,7 @@
 #define SRSLTE_ACCUMULATORS_H
 
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <vector>
@@ -72,7 +73,7 @@ struct sliding_window {
     }
   }
   std::size_t    size() const { return window.size(); }
-  const T&       oldest() const { return window[(next_idx + size() - 1) % size()]; }
+  const T&       oldest() const { return window[next_idx % size()]; }
   T&             operator[](std::size_t i) { return window[i]; }
   const T&       operator[](std::size_t i) const { return window[i]; }
   std::vector<T> window;
@@ -131,6 +132,24 @@ struct null_sliding_average {
 
 private:
   detail::sliding_window<T> window;
+};
+
+template <typename T>
+struct exp_average_irreg_sampling {
+  // an exp_average has the formula y_n = alpha*x + (1-alpha)*y_n-1 <=> y_n += alpha(x - y_n-1)
+  // alpha can be thought as 1-exp^{-dt/T} where dt is the sample period and T is the time-constant of a LP filter
+  // for variable dt, alpha[dt] = 1-exp^{-dt/T} = 1-(exp^{-1/T})^dt = 1 - (1-alpha[1])^dt
+  exp_average_irreg_sampling(T alpha_, T init_val) : avg_(init_val)
+  {
+    assert(alpha_ < 1 and alpha_ > 0 and "Invalid alpha parameter.");
+    coeff = 1 - alpha_;
+  }
+  void push(T sample, uint32_t sample_jump) { avg_ += (1 - pow(coeff, sample_jump)) * (sample - avg_); }
+  T    value() const { return avg_; }
+
+private:
+  T avg_ = 0;
+  T coeff;
 };
 
 } // namespace srslte
