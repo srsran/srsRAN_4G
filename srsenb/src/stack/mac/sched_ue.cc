@@ -570,8 +570,10 @@ int sched_ue::generate_format1(uint32_t                          pid,
     rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
     uint32_t     P        = srslte_ra_type0_P(15);
     prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, P);
-    dci->type2_alloc.riv =
-        srslte_ra_type2_to_riv(SRSLTE_MIN(prb_int.length(), cell.nof_prb), prb_int.start(), cell.nof_prb);
+    uint32_t     L_crb =
+        SRSLTE_MIN(sched_utils::count_prb_per_tb(*carriers[ue_cc_idx].get_cell_cfg(), user_mask), cell.nof_prb);
+    uint32_t RB_start    = prb_int.start();
+    dci->type2_alloc.riv = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
     dci->format = SRSLTE_DCI_FORMAT1A;
     if (prb_int.length() != P * user_mask.count()) {
       // This happens if Type0 was using distributed allocation
