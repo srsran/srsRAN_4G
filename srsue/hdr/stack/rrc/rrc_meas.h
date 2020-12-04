@@ -128,8 +128,9 @@ private:
                              meas_cell_eutra*    serv_cell,
                              float               Ofs,
                              float               Ocs);
+#ifdef HAVE_5GNR
     void eval_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
-
+#endif
     void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
     void report_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
 
@@ -156,6 +157,10 @@ private:
     // trigger counters. First key is measId, second key is cell id (pci)
     // It is safe to use [] operator in this double-map because all members are uint32_t
     std::map<uint32_t, std::map<uint32_t, cell_trigger_state> > trigger_state;
+
+#ifdef HAVE_5GNR
+    std::map<uint32_t, std::map<uint32_t, cell_trigger_state> > trigger_state_nr;
+#endif
 
     var_meas_report_list* meas_report = nullptr;
     srslte::log_ref       log_h;

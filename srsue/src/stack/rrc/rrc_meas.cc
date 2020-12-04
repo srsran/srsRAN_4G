@@ -529,6 +529,14 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
 
     report_cfg_to_add_mod_s& report_cfg = reportConfigList.at(m.second.report_cfg_id);
     meas_obj_to_add_mod_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id);
+
+    log_h->debug("MEAS:  Calculating reports for MeasId=%d, ObjectId=%d (Type %s), ReportId=%d (Type %s)\n",
+                 m.first,
+                 m.second.meas_obj_id,
+                 report_cfg.report_cfg.type().to_string().c_str(),
+                 m.second.report_cfg_id,
+                 meas_obj.meas_obj.type().to_string().c_str());
+
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       report_triggers_eutra(m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra());
@@ -683,10 +691,54 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
   }
 }
 
+#ifdef HAVE_5GNR
 void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t                meas_id,
                                                             report_cfg_inter_rat_s& report_cfg,
                                                             meas_obj_nr_r15_s&      meas_obj)
-{}
+{
+  if (!(report_cfg.trigger_type.type() == report_cfg_inter_rat_s::trigger_type_c_::types::event)) {
+    log_h->error("Unsupported trigger type for interrat nr eval\n");
+    return;
+  }
+
+  report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_ event_id = report_cfg.trigger_type.event().event_id;
+
+  double hyst = (double)report_cfg.trigger_type.event().hysteresis;
+
+  auto cells = rrc_ptr->get_cells_nr(meas_obj.carrier_freq_r15);
+
+  for (auto& pci : cells) {
+    float thresh          = 0.0;
+    bool  enter_condition = false;
+    bool  exit_condition  = false;
+    float Mn              = 0.0;
+
+    log_h->debug(
+        "MEAS:  eventId=%s, pci=%d, earfcn=%d\n", event_id.type().to_string().c_str(), pci, meas_obj.carrier_freq_r15);
+
+    if (event_id.event_b1_nr_r15().b1_thres_nr_r15.type().value == thres_nr_r15_c::types::nr_rsrp_r15) {
+      Mn     = rrc_ptr->get_cell_rsrp_nr(meas_obj.carrier_freq_r15, pci);
+      thresh = range_to_value_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15,
+                                 event_id.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15());
+    } else {
+      log_h->warning("Other threshold values are not supported yet!\n");
+    }
+
+    enter_condition = Mn - hyst > thresh;
+    exit_condition  = Mn + hyst < thresh;
+
+    trigger_state_nr[meas_id][pci].event_condition(enter_condition, exit_condition);
+
+    log_h->debug("MEAS (NR):  eventId=%s, Mn=%.2f, hyst=%.2f, Thresh=%.2f, enter_condition=%d, exit_condition=%d\n",
+                 event_id.type().to_string().c_str(),
+                 Mn,
+                 hyst,
+                 thresh,
+                 enter_condition,
+                 exit_condition);
+  }
+}
+#endif
 /* Evaluate event trigger conditions for each cell 5.5.4 */
 void rrc::rrc_meas::var_meas_cfg::eval_triggers()
 {
@@ -719,22 +771,28 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
       log_h->error("MEAS:  Computing report triggers. MeasId=%d has invalid report or object settings\n", m.first);
       continue;
     }
-    log_h->debug("MEAS:  Calculating trigger for MeasId=%d, ObjectId=%d, ReportId=%d\n",
-                 m.first,
-                 m.second.meas_obj_id,
-                 m.second.report_cfg_id);
 
     report_cfg_to_add_mod_s& report_cfg = reportConfigList.at(m.second.report_cfg_id);
     meas_obj_to_add_mod_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id);
+
+    log_h->debug("MEAS:  Calculating trigger for MeasId=%d, ObjectId=%d (Type %s), ReportId=%d (Type %s)\n",
+                 m.first,
+                 m.second.meas_obj_id,
+                 report_cfg.report_cfg.type().to_string().c_str(),
+                 m.second.report_cfg_id,
+                 meas_obj.meas_obj.type().to_string().c_str());
+
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       eval_triggers_eutra(
           m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra(), serv_cell, Ofs, Ocs);
-    } else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
-               report_cfg.report_cfg.type().value ==
-                   report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
+    }
+#ifdef HAVE_5GNR
+    else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+             report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
       eval_triggers_interrat_nr(
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
+#endif
     else {
       log_h->error("Unsupported combination of measurement object type %s and report config type %s \n",
                    meas_obj.meas_obj.type().to_string().c_str(),

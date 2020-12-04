@@ -261,6 +261,12 @@ private:
   float              get_cell_rsrq(const uint32_t earfcn, const uint32_t pci);
   meas_cell_eutra*   get_serving_cell();
 
+#ifdef HAVE_5GNR
+  std::set<uint32_t> get_cells_nr(const uint32_t arfcn_nr);
+  float              get_cell_rsrp_nr(const uint32_t arfcn_nr, const uint32_t pci_nr);
+  float              get_cell_rsrq_nr(const uint32_t arfcn_nr, const uint32_t pci_nr);
+#endif
+
   void                                          process_cell_meas();
   void                                          process_new_cell_meas(const std::vector<phy_meas_t>& meas);
   srslte::block_queue<std::vector<phy_meas_t> > cell_meas_q;

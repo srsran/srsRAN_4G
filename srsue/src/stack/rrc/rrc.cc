@@ -212,6 +212,10 @@ void rrc::run_tti()
   // Process pending PHY measurements in IDLE/CONNECTED
   process_cell_meas();
 
+#ifdef HAVE_5GNR
+  process_cell_meas_nr();
+#endif
+
   // Process on-going callbacks, and clear finished callbacks
   callback_list.run();
 
@@ -1122,6 +1126,25 @@ meas_cell_eutra* rrc::get_serving_cell()
 {
   return &meas_cells.serving_cell();
 }
+
+#ifdef HAVE_5GNR
+std::set<uint32_t> rrc::get_cells_nr(const uint32_t arfcn_nr)
+{
+  return meas_cells_nr.get_neighbour_pcis(arfcn_nr);
+}
+
+float rrc::get_cell_rsrp_nr(const uint32_t arfcn_nr, const uint32_t pci_nr)
+{
+  meas_cell_nr* c = meas_cells_nr.get_neighbour_cell_handle(arfcn_nr, pci_nr);
+  return (c != nullptr) ? c->get_rsrp() : NAN;
+}
+
+float rrc::get_cell_rsrq_nr(const uint32_t arfcn_nr, const uint32_t pci_nr)
+{
+  meas_cell_nr* c = meas_cells_nr.get_neighbour_cell_handle(arfcn_nr, pci_nr);
+  return (c != nullptr) ? c->get_rsrq() : NAN;
+}
+#endif
 
 /*******************************************************************************
  *
