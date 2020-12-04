@@ -51,6 +51,8 @@ private:
     float rsrq;
   } phy_quant_t;
 
+  typedef enum { eutra, inter_rat } report_type_t;
+
   class var_meas_cfg;
 
   class var_meas_report_list
@@ -66,6 +68,12 @@ private:
                                 const uint32_t            carrier_freq,
                                 const report_cfg_eutra_s& report_cfg,
                                 const cell_triggered_t&   cell_triggered_list);
+
+    void set_measId(const uint32_t                measId,
+                    const uint32_t                carrier_freq,
+                    const report_cfg_inter_rat_s& report_cfg,
+                    const cell_triggered_t&       cell_triggered_list);
+
     void             upd_measId(const uint32_t measId, const cell_triggered_t& cell_triggered_list);
     cell_triggered_t get_measId_cells(const uint32_t measId);
 
@@ -73,10 +81,12 @@ private:
     class var_meas_report
     {
     public:
+      report_type_t                       report_type         = eutra;
       uint32_t                            carrier_freq        = 0;
       uint8_t                             nof_reports_sent    = 0;
       cell_triggered_t                    cell_triggered_list = {};
-      report_cfg_eutra_s                  report_cfg          = {};
+      report_cfg_eutra_s                  report_cfg_eutra    = {};
+      report_cfg_inter_rat_s              report_cfg_inter    = {};
       srslte::timer_handler::unique_timer periodic_timer      = {};
     };
     var_meas_cfg*                       meas_cfg = nullptr;
@@ -133,6 +143,17 @@ private:
 #endif
     void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
     void report_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
+
+    void report_triggers_eutra_check_new(int32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
+    void
+    report_triggers_eutra_check_leaving(int32_t meas_id, report_cfg_eutra_s& report_cfg);
+    void report_triggers_eutra_removing_trigger(int32_t meas_id);
+
+    void report_triggers_interrat_check_new(int32_t                 meas_id,
+                                            report_cfg_inter_rat_s& report_cfg,
+                                            meas_obj_nr_r15_s&      meas_obj);
+    void report_triggers_interrat_check_leaving(int32_t meas_id, report_cfg_inter_rat_s& report_cfg);
+    void report_triggers_interrat_removing_trigger(int32_t meas_id); 
 
     class cell_trigger_state
     {
