@@ -91,17 +91,20 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
   }
 
   // TEST: max coderate is not exceeded
-  srslte_pdsch_grant_t grant = {};
-  srslte_dl_sf_cfg_t   dl_sf = {};
-  dl_sf.cfi                  = sf_out.dl_cc_result[enb_cc_idx].cfi;
-  dl_sf.tti                  = to_tx_dl(tti_rx).to_uint();
-  srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.cell.nof_prb);
-  uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cell, &dl_sf, &grant);
-  float        coderate = srslte_coderate(pdsch.tbs[0], nof_re);
-  srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
-  uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
-  uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
-  CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded\n");
+  if (h.nof_txs == 0 or h.ndi != pdsch.dci.tb[0].ndi) {
+    // it is newtx
+    srslte_pdsch_grant_t grant = {};
+    srslte_dl_sf_cfg_t   dl_sf = {};
+    dl_sf.cfi                  = sf_out.dl_cc_result[enb_cc_idx].cfi;
+    dl_sf.tti                  = to_tx_dl(tti_rx).to_uint();
+    srslte_ra_dl_grant_to_grant_prb_allocation(&pdsch.dci, &grant, cell_params.cell.nof_prb);
+    uint32_t     nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cell, &dl_sf, &grant);
+    float        coderate = srslte_coderate(pdsch.tbs[0] * 8, nof_re);
+    srslte_mod_t mod      = srslte_ra_dl_mod_from_mcs(pdsch.dci.tb[0].mcs_idx, ue_ctxt.ue_cfg.use_tbs_index_alt);
+    uint32_t     max_Qm   = ue_ctxt.ue_cfg.use_tbs_index_alt ? 8 : 6;
+    uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
+    CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded\n");
+  }
 
   return SRSLTE_SUCCESS;
 }

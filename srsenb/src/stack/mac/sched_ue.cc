@@ -1294,9 +1294,6 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint3
   }
   // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
   // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
-  if (chosen_mcs == 0 and compute_tbs(chosen_mcs) > 0.0f) {
-    log_h->warning("SCHED: Failed to compute valid tbs/mcs for rnti=0x%x\n", rnti);
-  }
 
   return chosen_tbs;
 }
