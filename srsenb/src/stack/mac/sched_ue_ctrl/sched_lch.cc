@@ -37,8 +37,7 @@ uint32_t get_mac_sdu_and_subheader_size(uint32_t sdu_bytes)
 uint32_t get_dl_mac_sdu_size_with_overhead(uint32_t lcid, uint32_t rlc_pdu_bytes)
 {
   uint32_t overhead = (lcid == 0 or rlc_pdu_bytes == 0) ? 0 : RLC_MAX_HEADER_SIZE_NO_LI;
-  overhead += get_mac_sdu_and_subheader_size(overhead + rlc_pdu_bytes);
-  return overhead + rlc_pdu_bytes;
+  return get_mac_sdu_and_subheader_size(overhead + rlc_pdu_bytes);
 }
 uint32_t get_ul_mac_sdu_size_with_overhead(uint32_t rlc_pdu_bytes)
 {
