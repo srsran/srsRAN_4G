@@ -570,6 +570,13 @@ bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
   return meas_cells.has_neighbour_cell(earfcn, pci);
 }
 
+#ifdef HAVE_5GNR
+bool rrc::has_neighbour_cell_nr(uint32_t earfcn, uint32_t pci) const
+{
+  return meas_cells_nr.has_neighbour_cell(earfcn, pci);
+}
+#endif
+
 bool rrc::is_serving_cell(uint32_t earfcn, uint32_t pci) const
 {
   return meas_cells.serving_cell().phy_cell.earfcn == earfcn and meas_cells.serving_cell().phy_cell.pci == pci;

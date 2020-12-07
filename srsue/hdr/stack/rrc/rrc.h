@@ -149,6 +149,10 @@ protected:
   bool is_serving_cell(uint32_t earfcn, uint32_t pci) const;
   int  start_cell_select();
 
+#ifdef HAVE_5GNR
+  bool has_neighbour_cell_nr(uint32_t earfcn, uint32_t pci) const;
+#endif
+
 private:
   typedef struct {
     enum { PCCH, RLF, RA_COMPLETE, STOP } command;
