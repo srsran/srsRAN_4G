@@ -78,6 +78,10 @@ private:
     cell_triggered_t get_measId_cells(const uint32_t measId);
 
   private:
+    void generate_report_eutra(meas_results_s* report, const uint32_t measId);
+#ifdef HAVE_5GNR
+    void generate_report_interrat(meas_results_s* report, const uint32_t measId);
+#endif
     class var_meas_report
     {
     public:
@@ -138,22 +142,19 @@ private:
                              meas_cell_eutra*    serv_cell,
                              float               Ofs,
                              float               Ocs);
+    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
+    void report_triggers_eutra_check_new(int32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
+    void report_triggers_eutra_check_leaving(int32_t meas_id, report_cfg_eutra_s& report_cfg);
+    void report_triggers_eutra_removing_trigger(int32_t meas_id);
 #ifdef HAVE_5GNR
     void eval_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
-#endif
-    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
     void report_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
-
-    void report_triggers_eutra_check_new(int32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
-    void
-    report_triggers_eutra_check_leaving(int32_t meas_id, report_cfg_eutra_s& report_cfg);
-    void report_triggers_eutra_removing_trigger(int32_t meas_id);
-
     void report_triggers_interrat_check_new(int32_t                 meas_id,
                                             report_cfg_inter_rat_s& report_cfg,
                                             meas_obj_nr_r15_s&      meas_obj);
     void report_triggers_interrat_check_leaving(int32_t meas_id, report_cfg_inter_rat_s& report_cfg);
-    void report_triggers_interrat_removing_trigger(int32_t meas_id); 
+    void report_triggers_interrat_removing_trigger(int32_t meas_id);
+#endif
 
     class cell_trigger_state
     {
