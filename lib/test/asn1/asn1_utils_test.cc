@@ -622,6 +622,25 @@ int test_json_writer()
   return 0;
 }
 
+int test_big_integers()
+{
+  integer<uint64_t, 0, 4294967295, false, true> big_integer = 3172073535;
+
+  uint8_t mem_chunk[128];
+  bit_ref bref(&mem_chunk[0], sizeof(mem_chunk));
+  TESTASSERT(big_integer.pack(bref) == 0);
+
+  uint8_t bytes[] = {0xC0, 0xBD, 0x12, 0x00, 0x3F};
+  TESTASSERT(memcmp(bytes, mem_chunk, sizeof(bytes)) == 0);
+
+  integer<uint64_t, 0, 4294967295, false, true> big_integer2;
+  cbit_ref                                      cbref(mem_chunk, sizeof(mem_chunk));
+  TESTASSERT(big_integer2.unpack(cbref) == 0);
+  TESTASSERT(big_integer == big_integer2);
+
+  return 0;
+}
+
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
@@ -632,6 +651,7 @@ int main()
   TESTASSERT(test_seq_of() == 0);
   TESTASSERT(test_copy_ptr() == 0);
   TESTASSERT(test_enum() == 0);
+  TESTASSERT(test_big_integers() == 0);
   //  TESTASSERT(test_json_writer()==0);
   printf("Success\n");
 }

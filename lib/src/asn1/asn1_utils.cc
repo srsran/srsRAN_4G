@@ -197,19 +197,19 @@ int bit_ref_impl<Ptr>::distance_bytes() const
   return ((int)(ptr - start_ptr)) + ((offset) ? 1 : 0);
 }
 
-SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
+SRSASN_CODE bit_ref::pack(uint64_t val, uint32_t n_bits)
 {
-  if (n_bits >= 32) {
-    log_error("This method only supports packing up to 32 bits\n");
+  if (n_bits >= 64) {
+    log_error("This method only supports packing up to 64 bits\n");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
-  uint32_t mask;
+  uint64_t mask;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
       log_error("Buffer size limit was achieved\n");
       return SRSASN_ERROR_ENCODE_FAIL;
     }
-    mask             = ((1u << n_bits) - 1u);
+    mask             = ((1ul << n_bits) - 1ul);
     val              = val & mask;
     uint8_t keepmask = ((uint8_t)-1) - (uint8_t)((1u << (8u - offset)) - 1u);
     if ((uint32_t)(8 - offset) > n_bits) {
@@ -531,14 +531,12 @@ SRSASN_CODE pack_constrained_whole_number(bit_ref& bref, IntType n, IntType lb, 
       HANDLE_CODE(bref.pack(toencode, n_bits));
       ret = bref.align_bytes_zero();
     } else {
-      // TODO: Check if this is correct
       uint32_t n_bits_len = (uint32_t)ceilf(log2f(ceil_frac(n_bits, 8u)));
-      n_bits              = (uint32_t)floorf(log2f(SRSLTE_MAX(toencode, 1)) + 1);
-      uint32_t n_octets   = (uint32_t)((n_bits + 7) / 8);
+      n_bits              = (uint32_t)floorf(log2f(std::max(toencode, (IntType)1)) + 1);
+      uint32_t n_octets   = ceil_frac(n_bits, 8u);
       HANDLE_CODE(bref.pack(n_octets - 1, n_bits_len));
       HANDLE_CODE(bref.align_bytes_zero());
-      HANDLE_CODE(bref.pack(0, (n_octets * 8) - n_bits));
-      ret = bref.pack(toencode, n_bits);
+      ret = bref.pack(toencode, n_octets * 8u);
     }
     return ret;
   }
@@ -601,7 +599,6 @@ SRSASN_CODE unpack_constrained_whole_number(IntType& n, cbit_ref& bref, IntType 
       HANDLE_CODE(bref.unpack(n, n_octets * 8));
       HANDLE_CODE(bref.align_bytes());
     } else {
-      // TODO: Check if this is correct
       uint32_t n_bits_len = (uint32_t)ceilf(log2f(ceil_frac(n_bits, 8u)));
       uint32_t n_octets;
       HANDLE_CODE(bref.unpack(n_octets, n_bits_len));
@@ -974,10 +971,7 @@ template SRSASN_CODE unpack_unconstrained_integer<int64_t>(int64_t& n, cbit_ref&
 // standalone packer
 template <class IntType>
 integer_packer<IntType>::integer_packer(IntType lb_, IntType ub_, bool has_ext_, bool aligned_) :
-  lb(lb_),
-  ub(ub_),
-  has_ext(has_ext_),
-  aligned(aligned_)
+  lb(lb_), ub(ub_), has_ext(has_ext_), aligned(aligned_)
 {}
 
 template <class IntType>

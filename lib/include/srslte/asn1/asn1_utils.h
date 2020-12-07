@@ -146,7 +146,7 @@ public:
   bit_ref() = default;
   bit_ref(uint8_t* start_ptr_, uint32_t max_size_) : bit_ref_impl(start_ptr_, max_size_) {}
 
-  SRSASN_CODE pack(uint32_t val, uint32_t n_bits);
+  SRSASN_CODE pack(uint64_t val, uint32_t n_bits);
   SRSASN_CODE pack_bytes(const uint8_t* buf, uint32_t n_bytes);
   SRSASN_CODE align_bytes_zero();
 };
