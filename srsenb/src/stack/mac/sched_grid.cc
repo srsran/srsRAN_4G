@@ -12,9 +12,9 @@
 
 #include "srsenb/hdr/stack/mac/sched_grid.h"
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
-#include <srslte/interfaces/sched_interface.h>
 
 using srslte::tti_point;
 
@@ -649,7 +649,7 @@ sf_sched::ctrl_code_t sf_sched::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_by
 alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
 {
   uint32_t    sib_len = cc_cfg->cfg.sibs[sib_idx].len;
-  uint32_t    rv      = sched_utils::get_rvidx(sib_ntx);
+  uint32_t    rv      = get_rvidx(sib_ntx);
   ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
   if (not ret.first) {
     Warning("SCHED: Could not allocate SIB=%d, L=%d, len=%d, cause=%s\n",

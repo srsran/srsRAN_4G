@@ -26,28 +26,6 @@
 
 namespace srsenb {
 
-namespace sched_utils {
-
-inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
-{
-  tti %= 10240;
-  tti1 %= 10240;
-  tti2 %= 10240;
-  if (tti1 <= tti2) {
-    return tti >= tti1 and tti <= tti2;
-  }
-  return tti >= tti1 or tti <= tti2;
-}
-
-} // namespace sched_utils
-
-/* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
- * Rest of operations are thread-safe
- *
- * The subclass sched_ue is thread-safe so that access to shared variables like buffer states
- * from scheduler thread and other threads is protected for each individual user.
- */
-
 class sched : public sched_interface
 {
 public:

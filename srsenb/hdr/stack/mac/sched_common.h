@@ -35,7 +35,7 @@ struct sched_dci_cce_t {
   uint32_t nof_loc[4];      ///< Number of possible CCE locations for each aggregation level index
 };
 
-//! structs to bundle together all the sched arguments, and share them with all the sched sub-components
+/// structs to bundle together all the sched arguments, and share them with all the sched sub-components
 class sched_cell_params_t
 {
   struct regs_deleter {
@@ -85,47 +85,6 @@ struct prb_interval : public srslte::interval<uint32_t> {
   static prb_interval rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P);
   static prb_interval riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
 };
-
-/***********************
- *   Helper Functions
- **********************/
-
-namespace sched_utils {
-
-inline uint32_t aggr_level(uint32_t aggr_idx)
-{
-  return 1u << aggr_idx;
-}
-
-//! Obtain rvidx from nof retxs. This value is stored in DCI
-inline uint32_t get_rvidx(uint32_t retx_idx)
-{
-  const static uint32_t rv_idx[4] = {0, 2, 3, 1};
-  return rv_idx[retx_idx % 4];
-}
-
-//! Obtain nof retxs from rvidx.
-inline uint32_t get_nof_retx(uint32_t rv_idx)
-{
-  const static uint32_t nof_retxs[4] = {0, 3, 1, 2};
-  return nof_retxs[rv_idx % 4];
-}
-
-/**
- * Generate possible CCE locations a user can use to allocate DCIs
- * @param regs Regs data for the given cell configuration
- * @param location Result of the CCE location computation.
- * @param cfi Number of control symbols used for the PDCCH
- * @param sf_idx subframe index specific to the tx TTI (relevant only for data and RAR transmissions)
- * @param rnti identity of the user (invalid RNTI for RAR and BC transmissions)
- */
-void generate_cce_location(srslte_regs_t*   regs,
-                           sched_dci_cce_t* location,
-                           uint32_t         cfi,
-                           uint32_t         sf_idx = 0,
-                           uint16_t         rnti   = SRSLTE_INVALID_RNTI);
-
-} // namespace sched_utils
 
 } // namespace srsenb
 

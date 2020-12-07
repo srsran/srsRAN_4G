@@ -12,6 +12,7 @@
 
 #include "sched_ue_ded_test_suite.h"
 #include "lib/include/srslte/mac/pdu.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/test_common.h"
 
 namespace srsenb {
@@ -72,14 +73,14 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
 
   // TEST: DCI is consistent with current UE DL harq state
   auto&    h        = ue_ctxt.cc_list[pdsch.dci.ue_cc_idx].dl_harqs[pdsch.dci.pid];
-  uint32_t nof_retx = sched_utils::get_nof_retx(pdsch.dci.tb[0].rv); // 0..3
+  uint32_t nof_retx = get_nof_retx(pdsch.dci.tb[0].rv); // 0..3
   if (h.nof_txs == 0 or h.ndi != pdsch.dci.tb[0].ndi) {
     // It is newtx
     CONDERROR(nof_retx != 0, "Invalid rv index for new tx\n");
     CONDERROR(h.active, "DL newtx for already active DL harq pid=%d\n", h.pid);
   } else {
     // it is retx
-    CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pdsch.dci.tb[0].rv, "Invalid rv index for retx\n");
+    CONDERROR(get_rvidx(h.nof_retxs + 1) != (uint32_t)pdsch.dci.tb[0].rv, "Invalid rv index for retx\n");
     CONDERROR(not h.active, "retx for inactive dl harq pid=%d\n", h.pid);
     CONDERROR(to_tx_dl_ack(h.last_tti_rx) > tti_rx, "harq pid=%d reused too soon\n", h.pid);
     CONDERROR(h.nof_retxs + 1 > ue_ctxt.ue_cfg.maxharq_tx,
@@ -184,7 +185,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
         CONDERROR(pusch_ptr->dci.ue_cc_idx != (uint32_t)ue_cc_idx, "Inconsistent enb_cc_idx -> ue_cc_idx mapping\n");
 
         // TEST: DCI is consistent with current UE UL harq state
-        uint32_t nof_retx = sched_utils::get_nof_retx(pusch_ptr->dci.tb.rv); // 0..3
+        uint32_t nof_retx = get_nof_retx(pusch_ptr->dci.tb.rv); // 0..3
 
         if (h.nof_txs == 0 or h.ndi != pusch_ptr->dci.tb.ndi) {
           // newtx
@@ -204,8 +205,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
               CONDERROR(pusch_ptr->dci.type2_alloc.riv != h.riv, "Non-adaptive retx must keep the same riv\n");
             }
           }
-          CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv,
-                    "Invalid rv index for retx\n");
+          CONDERROR(get_rvidx(h.nof_retxs + 1) != (uint32_t)pusch_ptr->dci.tb.rv, "Invalid rv index for retx\n");
           CONDERROR(h.tbs != pusch_ptr->tbs, "TBS changed during HARQ retx\n");
           CONDERROR(to_tx_ul(h.last_tti_rx) > sf_out.tti_rx, "UL harq pid=%d was reused too soon\n", h.pid);
         }

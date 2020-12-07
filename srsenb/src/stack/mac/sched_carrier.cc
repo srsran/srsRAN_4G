@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
-#include "srsenb/hdr/stack/mac/sched_interface_helpers.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srslte/common/logmap.h"

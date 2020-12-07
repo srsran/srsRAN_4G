@@ -12,6 +12,7 @@
 
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/mac/pdu.h"
 
@@ -211,7 +212,7 @@ int ue_ctxt_test::schedule_acks(cc_result result)
     ack_data.tb        = 0;
     ack_data.pid       = data.dci.pid;
     ack_data.ue_cc_idx = data.dci.ue_cc_idx;
-    uint32_t nof_retx  = sched_utils::get_nof_retx(data.dci.tb[0].rv); // 0..3
+    uint32_t nof_retx  = srsenb::get_nof_retx(data.dci.tb[0].rv); // 0..3
     ack_data.ack       = randf() < sim_cfg.prob_dl_ack_mask[nof_retx % sim_cfg.prob_dl_ack_mask.size()];
 
     pending_dl_acks.push(ack_data);
@@ -230,7 +231,7 @@ int ue_ctxt_test::schedule_acks(cc_result result)
     ack_data.ue_cc_idx = pusch.dci.ue_cc_idx;
     ack_data.tb        = 0;
     ack_data.pid       = to_tx_ul(current_tti_rx).to_uint() % (FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS);
-    uint32_t nof_retx  = sched_utils::get_nof_retx(pusch.dci.tb.rv); // 0..3
+    uint32_t nof_retx  = srsenb::get_nof_retx(pusch.dci.tb.rv); // 0..3
     ack_data.ack       = randf() < sim_cfg.prob_ul_ack_mask[nof_retx % sim_cfg.prob_ul_ack_mask.size()];
 
     pending_ul_acks.push(ack_data);

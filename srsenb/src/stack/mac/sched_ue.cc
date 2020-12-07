@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_ue.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
@@ -31,7 +32,7 @@ namespace srsenb {
 
 namespace sched_utils {
 
-//! Obtains TB size *in bytes* for a given MCS and N_{PRB}
+/// Obtains TB size *in bytes* for a given MCS and nof allocated prbs
 uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_alt, bool is_ul)
 {
   int tbs_idx = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
@@ -574,7 +575,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
         SRSLTE_MIN(sched_utils::count_prb_per_tb(*carriers[ue_cc_idx].get_cell_cfg(), user_mask), cell.nof_prb);
     uint32_t RB_start    = prb_int.start();
     dci->type2_alloc.riv = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
-    dci->format = SRSLTE_DCI_FORMAT1A;
+    dci->format          = SRSLTE_DCI_FORMAT1A;
     if (prb_int.length() != P * user_mask.count()) {
       // This happens if Type0 was using distributed allocation
       Warning("SCHED: Can't use distributed RA due to DCI size ambiguity\n");
@@ -599,7 +600,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
     dci->pid           = h->get_id();
     dci->ue_cc_idx     = ue_cc_idx;
     dci->tb[0].mcs_idx = (uint32_t)mcs;
-    dci->tb[0].rv      = sched_utils::get_rvidx(h->nof_retx(0));
+    dci->tb[0].rv      = get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
     dci->tpc_pucch = carriers[ue_cc_idx].tpc_fsm.encode_pucch_tpc();
@@ -647,11 +648,8 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
         (uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
   }
 
-  // If the number of prbs is not sufficient to fit minimum required bytes, increase the mcs
-  // NOTE: this may happen during ConRes CE tx when DL-CQI is still not available
-  while (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start() and mcs < 28) {
-    mcs++;
-    tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
+  if (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start() and mcs < 28) {
+    log_h->warning("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SBR0 PDU segmentation\n");
   }
 
   return {mcs, tbs_bytes};
@@ -712,7 +710,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     /* Fill DCI TB dedicated fields */
     if (tbs > 0 && tb_en[tb]) {
       dci->tb[tb].mcs_idx = (uint32_t)mcs;
-      dci->tb[tb].rv      = sched_utils::get_rvidx(h->nof_retx(tb));
+      dci->tb[tb].rv      = get_rvidx(h->nof_retx(tb));
       if (!SRSLTE_DCI_IS_TB_EN(dci->tb[tb])) {
         dci->tb[tb].rv = 2;
       }
@@ -855,7 +853,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         alloc.set(alloc.start(), alloc.start() + 4);
       }
     } else if (tbs > 0) {
-      dci->tb.rv = sched_utils::get_rvidx(h->nof_retx(0));
+      dci->tb.rv = get_rvidx(h->nof_retx(0));
       if (!is_newtx && data->needs_pdcch) {
         dci->tb.mcs_idx = 28 + dci->tb.rv;
       } else {
@@ -1330,7 +1328,7 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   // Generate allowed CCE locations
   for (int cfi = 0; cfi < 3; cfi++) {
     for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
-      sched_utils::generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+      generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
     }
   }
 }

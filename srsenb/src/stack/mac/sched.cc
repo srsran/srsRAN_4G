@@ -15,6 +15,7 @@
 
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/logmap.h"
 #include "srslte/srslte.h"
 
@@ -24,103 +25,6 @@
 using srslte::tti_point;
 
 namespace srsenb {
-
-namespace sched_utils {
-
-uint32_t tti_subtract(uint32_t tti1, uint32_t tti2)
-{
-  return TTI_SUB(tti1, tti2);
-}
-
-uint32_t max_tti(uint32_t tti1, uint32_t tti2)
-{
-  return ((tti1 - tti2) > 10240 / 2) ? SRSLTE_MIN(tti1, tti2) : SRSLTE_MAX(tti1, tti2);
-}
-
-} // namespace sched_utils
-
-/*******************************************************
- *                 Sched Params
- *******************************************************/
-
-bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_idx_,
-                                  const sched_interface::cell_cfg_t&   cfg_,
-                                  const sched_interface::sched_args_t& sched_args)
-{
-  enb_cc_idx = enb_cc_idx_;
-  cfg        = cfg_;
-  sched_cfg  = &sched_args;
-
-  // Basic cell config checks
-  if (cfg.si_window_ms == 0) {
-    Error("SCHED: Invalid si-window length 0 ms\n");
-    return false;
-  }
-
-  bool invalid_prach;
-  if (cfg.cell.nof_prb == 6) {
-    // PUCCH has to allow space for Msg3
-    if (cfg.nrb_pucch > 1) {
-      Console("Invalid PUCCH configuration: nrb_pucch=%d does not allow space for Msg3 transmission..\n",
-              cfg.nrb_pucch);
-      return false;
-    }
-    // PRACH has to fit within the PUSCH+PUCCH space
-    invalid_prach = cfg.prach_freq_offset + 6 > cfg.cell.nof_prb;
-  } else {
-    // PRACH has to fit within the PUSCH space
-    invalid_prach = (cfg.prach_freq_offset + 6) > (cfg.cell.nof_prb - cfg.nrb_pucch) or
-                    ((int)cfg.prach_freq_offset < cfg.nrb_pucch);
-  }
-  if (invalid_prach) {
-    Error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
-    Console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
-    return false;
-  }
-
-  // Set derived sched parameters
-
-  // init regs
-  regs.reset(new srslte_regs_t{});
-  if (srslte_regs_init(regs.get(), cfg.cell) != SRSLTE_SUCCESS) {
-    Error("Getting DCI locations\n");
-    return false;
-  }
-
-  // Compute Common locations for DCI for each CFI
-  for (uint32_t cfix = 0; cfix < pdcch_grid_t::MAX_CFI; cfix++) {
-    sched_utils::generate_cce_location(regs.get(), &common_locations[cfix], cfix + 1);
-  }
-  if (common_locations[sched_cfg->max_nof_ctrl_symbols - 1].nof_loc[2] == 0) {
-    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).\n",
-          sched_cfg->max_nof_ctrl_symbols);
-    Console("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).\n",
-            sched_cfg->max_nof_ctrl_symbols);
-    return false;
-  }
-
-  // Compute UE locations for RA-RNTI
-  for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
-      sched_utils::generate_cce_location(regs.get(), &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
-    }
-  }
-
-  // precompute nof cces in PDCCH for each CFI
-  for (uint32_t cfix = 0; cfix < nof_cce_table.size(); ++cfix) {
-    int ret = srslte_regs_pdcch_ncce(regs.get(), cfix + 1);
-    if (ret < 0) {
-      Error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
-      return false;
-    }
-    nof_cce_table[cfix] = (uint32_t)ret;
-  }
-
-  P        = srslte_ra_type0_P(cfg.cell.nof_prb);
-  nof_rbgs = srslte::ceil_div(cfg.cell.nof_prb, P);
-
-  return true;
-}
 
 /*******************************************************
  *
@@ -469,88 +373,5 @@ int sched::ue_db_access(uint16_t rnti, Func f, const char* func_name)
   }
   return SRSLTE_SUCCESS;
 }
-
-/*******************************************************
- *
- * Helper functions and common data types
- *
- *******************************************************/
-
-void sched_cell_params_t::regs_deleter::operator()(srslte_regs_t* p)
-{
-  if (p != nullptr) {
-    srslte_regs_free(p);
-    delete p;
-  }
-}
-
-rbg_interval rbg_interval::prbs_to_rbgs(const prb_interval& prbs, uint32_t P)
-{
-  return rbg_interval{srslte::ceil_div(prbs.start(), P), srslte::ceil_div(prbs.stop(), P)};
-}
-
-prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P)
-{
-  return prb_interval{rbgs.start() * P, rbgs.stop() * P};
-}
-
-rbg_interval rbg_interval::rbgmask_to_rbgs(const rbgmask_t& mask)
-{
-  int rb_start = -1;
-  for (uint32_t i = 0; i < mask.size(); i++) {
-    if (rb_start == -1) {
-      if (mask.test(i)) {
-        rb_start = i;
-      }
-    } else {
-      if (!mask.test(i)) {
-        return rbg_interval(rb_start, i);
-      }
-    }
-  }
-  if (rb_start != -1) {
-    return rbg_interval(rb_start, mask.size());
-  } else {
-    return rbg_interval();
-  }
-}
-
-prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
-{
-  if (nof_vrbs < 0) {
-    nof_vrbs = nof_prbs;
-  }
-  uint32_t rb_start, l_crb;
-  srslte_ra_type2_from_riv(riv, &l_crb, &rb_start, nof_prbs, (uint32_t)nof_vrbs);
-  return {rb_start, rb_start + l_crb};
-}
-
-namespace sched_utils {
-
-void generate_cce_location(srslte_regs_t*   regs_,
-                           sched_dci_cce_t* location,
-                           uint32_t         cfi,
-                           uint32_t         sf_idx,
-                           uint16_t         rnti)
-{
-  *location = {};
-
-  srslte_dci_location_t loc[64];
-  uint32_t              nloc = 0;
-  if (rnti == 0) {
-    nloc = srslte_pdcch_common_locations_ncce(srslte_regs_pdcch_ncce(regs_, cfi), loc, 64);
-  } else {
-    nloc = srslte_pdcch_ue_locations_ncce(srslte_regs_pdcch_ncce(regs_, cfi), loc, 64, sf_idx, rnti);
-  }
-
-  // Save to different format
-  for (uint32_t i = 0; i < nloc; i++) {
-    uint32_t l                                   = loc[i].L;
-    location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
-    location->nof_loc[l]++;
-  }
-}
-
-} // namespace sched_utils
 
 } // namespace srsenb
