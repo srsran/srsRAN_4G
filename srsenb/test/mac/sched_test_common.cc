@@ -102,29 +102,19 @@ int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
 
 int ue_ctxt_test::fwd_pending_acks(sched* sched_ptr)
 {
-  /* Ack DL HARQs */
-  // Checks:
-  // - Pending DL ACK {cc_idx,rnti,tb} exist in scheduler harqs
-  // - Pending DL ACK tti_ack correspond to the expected based on tti_tx_dl
-  while (not pending_dl_acks.empty()) {
-    auto& p = pending_dl_acks.top();
-    if (p.tti_ack > current_tti_rx) {
-      break;
-    }
-    auto& h = ue_ctxt->get_ctxt().cc_list[p.ue_cc_idx].dl_harqs[p.pid];
-    CONDERROR(not h.active, "The ACKed DL Harq pid=%d is not active\n", h.pid);
-    CONDERROR(to_tx_dl(h.last_tti_rx) + FDD_HARQ_DELAY_DL_MS != p.tti_ack, "dl ack hasn't arrived when expected\n");
-    CONDERROR(sched_ptr->dl_ack_info(current_tti_rx.to_uint(), rnti, p.cc_idx, p.tb, p.ack) <= 0,
-              "The ACKed DL Harq pid=%d does not exist.\n",
-              p.pid);
+  auto pending_feedback = ue_ctxt->get_pending_events(current_tti_rx, sched_ptr);
 
-    if (p.ack) {
-      log_h->info("DL ACK tti=%u rnti=0x%x pid=%d\n", current_tti_rx.to_uint(), rnti, p.pid);
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_feedback->cc_list.size(); ++enb_cc_idx) {
+    auto& cc_feedback = pending_feedback->cc_list[enb_cc_idx];
+    if (not cc_feedback.configured) {
+      continue;
     }
-    if (p.ack or ue_ctxt->get_ctxt().is_last_dl_retx(p.ue_cc_idx, p.pid)) {
-      h.active = false;
+
+    // ACK DL HARQs
+    if (cc_feedback.dl_pid >= 0) {
+      auto& h            = ue_ctxt->get_ctxt().cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
+      cc_feedback.dl_ack = randf() < sim_cfg.prob_dl_ack_mask[h.nof_retxs % sim_cfg.prob_dl_ack_mask.size()];
     }
-    pending_dl_acks.pop();
   }
 
   /* Ack UL HARQs */
@@ -199,23 +189,6 @@ int ue_ctxt_test::schedule_acks(cc_result result)
   auto* cc = get_cc_state(result.enb_cc_idx);
   if (cc == nullptr) {
     return SRSLTE_SUCCESS;
-  }
-  /* Schedule DL ACKs */
-  for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
-    const auto& data = result.dl_result->data[i];
-    if (data.dci.rnti != rnti) {
-      continue;
-    }
-    pending_ack_t ack_data;
-    ack_data.tti_ack   = to_tx_dl_ack(current_tti_rx);
-    ack_data.cc_idx    = result.enb_cc_idx;
-    ack_data.tb        = 0;
-    ack_data.pid       = data.dci.pid;
-    ack_data.ue_cc_idx = data.dci.ue_cc_idx;
-    uint32_t nof_retx  = srsenb::get_nof_retx(data.dci.tb[0].rv); // 0..3
-    ack_data.ack       = randf() < sim_cfg.prob_dl_ack_mask[nof_retx % sim_cfg.prob_dl_ack_mask.size()];
-
-    pending_dl_acks.push(ack_data);
   }
 
   /* Schedule UL ACKs */

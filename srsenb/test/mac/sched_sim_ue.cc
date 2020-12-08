@@ -36,14 +36,17 @@ bool sim_ue_ctxt_t::is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
   return h.nof_retxs + 1 >= ue_cfg.maxharq_tx;
 }
 
-ue_sim::ue_sim(uint16_t                         rnti_,
-               const sched_interface::ue_cfg_t& ue_cfg_,
-               srslte::tti_point                prach_tti_rx_,
-               uint32_t                         preamble_idx)
+ue_sim::ue_sim(uint16_t                                        rnti_,
+               const std::vector<sched_interface::cell_cfg_t>& cell_params_,
+               const sched_interface::ue_cfg_t&                ue_cfg_,
+               srslte::tti_point                               prach_tti_rx_,
+               uint32_t                                        preamble_idx) :
+  cell_params(&cell_params_)
 {
   ctxt.rnti         = rnti_;
   ctxt.prach_tti_rx = prach_tti_rx_;
   ctxt.preamble_idx = preamble_idx;
+  pending_feedback.cc_list.resize(cell_params->size());
   set_cfg(ue_cfg_);
 }
 
@@ -59,37 +62,57 @@ void ue_sim::set_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   }
 }
 
-bool ue_sim::enqueue_pending_acks(srslte::tti_point                tti_rx,
-                                  pucch_feedback&                  feedback_list,
-                                  std::bitset<SRSLTE_MAX_CARRIERS> ack_val)
+ue_sim::sync_tti_events ue_sim::get_pending_events(srslte::tti_point tti_rx, sched_interface* sched)
 {
-  bool ack_added = false;
-  for (uint32_t ue_cc_idx = 0; ue_cc_idx < ctxt.cc_list.size(); ++ue_cc_idx) {
-    uint32_t enb_cc_idx = ctxt.ue_cfg.supported_cc_list[ue_cc_idx].enb_cc_idx;
-    auto&    ue_cc      = ctxt.cc_list[ue_cc_idx];
+  pending_feedback.tti_rx = tti_rx;
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_feedback.cc_list.size(); ++enb_cc_idx) {
+    auto& cc_feedback = pending_feedback.cc_list[enb_cc_idx];
+    cc_feedback       = {};
+    if (ctxt.enb_to_ue_cc_idx(enb_cc_idx) < 0) {
+      continue;
+    }
 
+    cc_feedback.configured = true;
+    cc_feedback.ue_cc_idx  = ctxt.enb_to_ue_cc_idx(enb_cc_idx);
     for (uint32_t pid = 0; pid < SRSLTE_FDD_NOF_HARQ; ++pid) {
-      auto& h = ue_cc.dl_harqs[pid];
+      auto& h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
 
       if (h.active and to_tx_dl_ack(h.last_tti_rx) == tti_rx) {
-        if (feedback_list.cc_list.size() <= ue_cc_idx) {
-          feedback_list.cc_list.resize(ue_cc_idx + 1);
-        }
-        auto& result      = feedback_list.cc_list[ue_cc_idx];
-        result.enb_cc_idx = enb_cc_idx;
-        result.ack        = ack_val[ue_cc_idx];
-        result.pid        = pid;
-
-        if (result.pid >= 0 and (result.ack or h.nof_retxs + 1 >= ctxt.ue_cfg.maxharq_tx)) {
-          h.active = false;
-        }
-
-        ack_added = true;
+        cc_feedback.dl_pid = pid;
+        cc_feedback.dl_ack = false; // default is NACK
       }
     }
   }
+  return {this, sched};
+}
 
-  return ack_added;
+void ue_sim::push_feedback(sched_interface* sched)
+{
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_feedback.cc_list.size(); ++enb_cc_idx) {
+    const auto& cc_feedback = pending_feedback.cc_list[enb_cc_idx];
+    if (not cc_feedback.configured) {
+      continue;
+    }
+
+    if (cc_feedback.dl_pid >= 0) {
+      auto& h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
+
+      if (cc_feedback.dl_ack) {
+        log_h->info(
+            "DL ACK rnti=0x%x tti_dl_tx=%u pid=%d\n", ctxt.rnti, to_tx_dl(h.last_tti_rx).to_uint(), cc_feedback.dl_pid);
+      }
+      // update scheduler
+      if (sched->dl_ack_info(
+              pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.tb, cc_feedback.dl_ack) < 0) {
+        log_h->error("The ACKed DL Harq pid=%d does not exist.\n", cc_feedback.dl_pid);
+      }
+
+      // set UE sim context
+      if (cc_feedback.dl_ack or ctxt.is_last_dl_retx(cc_feedback.ue_cc_idx, cc_feedback.dl_pid)) {
+        h.active = false;
+      }
+    }
+  }
 }
 
 int ue_sim::update(const sf_output_res_t& sf_out)
@@ -248,7 +271,7 @@ void ue_db_sim::add_user(uint16_t                         rnti,
                          srslte::tti_point                prach_tti_rx_,
                          uint32_t                         preamble_idx)
 {
-  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, ue_cfg_, prach_tti_rx_, preamble_idx)));
+  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, *cell_params, ue_cfg_, prach_tti_rx_, preamble_idx)));
 }
 
 void ue_db_sim::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)

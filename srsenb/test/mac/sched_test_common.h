@@ -84,14 +84,14 @@ private:
     bool              ack;
     bool              operator<(const pending_ack_t& other) const { return tti_ack > other.tti_ack; }
   };
-  std::priority_queue<pending_ack_t> pending_dl_acks, pending_ul_acks;
+  std::priority_queue<pending_ack_t> pending_ul_acks;
 };
 
 class user_state_sched_tester
 {
 public:
   explicit user_state_sched_tester(const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
-    cell_params(cell_params_)
+    cell_params(cell_params_), sim_users(cell_params_)
   {}
 
   void                new_tti(sched* sched_ptr, tti_point tti_rx);

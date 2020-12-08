@@ -53,46 +53,69 @@ struct sim_enb_ctxt_t {
   const std::vector<sched_interface::cell_cfg_t>* cell_params;
   std::map<uint16_t, const sim_ue_ctxt_t*>        ue_db;
 };
-struct pucch_feedback {
+struct ue_tti_events {
   struct cc_data {
-    uint32_t enb_cc_idx = 0;
-    int      cqi        = -1;
-    int      pid        = -1;
-    bool     ack        = false;
+    bool     configured = false;
+    uint32_t ue_cc_idx  = 0;
+    int      dl_cqi     = -1;
+    int      dl_pid     = -1;
+    bool     dl_ack     = false;
+    int      tb         = 0;
   };
+  srslte::tti_point    tti_rx;
   std::vector<cc_data> cc_list;
 };
 
 class ue_sim
 {
 public:
-  ue_sim(uint16_t                         rnti_,
-         const sched_interface::ue_cfg_t& ue_cfg_,
-         srslte::tti_point                prach_tti_rx,
-         uint32_t                         preamble_idx);
+  ue_sim(uint16_t                                        rnti_,
+         const std::vector<sched_interface::cell_cfg_t>& cell_params_,
+         const sched_interface::ue_cfg_t&                ue_cfg_,
+         srslte::tti_point                               prach_tti_rx,
+         uint32_t                                        preamble_idx);
 
   void set_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
 
   int update(const sf_output_res_t& sf_out);
 
-  bool enqueue_pending_acks(srslte::tti_point                tti_rx,
-                            pucch_feedback&                  feedback_list,
-                            std::bitset<SRSLTE_MAX_CARRIERS> ack_val);
-
   const sim_ue_ctxt_t& get_ctxt() const { return ctxt; }
   sim_ue_ctxt_t&       get_ctxt() { return ctxt; }
+
+  class sync_tti_events
+  {
+  public:
+    sync_tti_events(ue_sim* ue_, sched_interface* sched_) : ue(ue_), sched(sched_) {}
+    sync_tti_events(const sync_tti_events&) = delete;
+    sync_tti_events(sync_tti_events&&)      = default;
+    sync_tti_events& operator=(const sync_tti_events&) = delete;
+    sync_tti_events& operator=(sync_tti_events&&) = default;
+    ~sync_tti_events() { ue->push_feedback(sched); }
+    ue_tti_events* operator->() { return &ue->pending_feedback; }
+    ue_tti_events* operator*() { return &ue->pending_feedback; }
+
+  private:
+    ue_sim*          ue;
+    sched_interface* sched;
+  };
+  sync_tti_events get_pending_events(srslte::tti_point tti_rx, sched_interface* sched);
 
 private:
   void update_conn_state(const sf_output_res_t& sf_out);
   void update_dl_harqs(const sf_output_res_t& sf_out);
   void update_ul_harqs(const sf_output_res_t& sf_out);
+  void push_feedback(sched_interface* sched);
 
-  sim_ue_ctxt_t ctxt;
+  srslte::log_ref                                 log_h{"MAC"};
+  const std::vector<sched_interface::cell_cfg_t>* cell_params;
+  sim_ue_ctxt_t                                   ctxt;
+  ue_tti_events                                   pending_feedback;
 };
 
 class ue_db_sim
 {
 public:
+  ue_db_sim(const std::vector<sched_interface::cell_cfg_t>& cell_params_) : cell_params(&cell_params_) {}
   void add_user(uint16_t                         rnti,
                 const sched_interface::ue_cfg_t& ue_cfg_,
                 srslte::tti_point                prach_tti_rx_,
@@ -106,7 +129,8 @@ public:
   const ue_sim&                            at(uint16_t rnti) const { return ue_db.at(rnti); }
 
 private:
-  std::map<uint16_t, ue_sim> ue_db;
+  const std::vector<sched_interface::cell_cfg_t>* cell_params;
+  std::map<uint16_t, ue_sim>                      ue_db;
 };
 
 } // namespace srsenb
