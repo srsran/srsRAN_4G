@@ -103,7 +103,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
     m.ues.resize(users.size());
     size_t count = 0;
     for (auto& ue : users) {
-      m.ues[count++].state = ue.second->get_state();
+      ue.second->get_metrics(m.ues[count++]);
     }
   }
 }

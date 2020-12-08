@@ -32,7 +32,8 @@ typedef enum {
 } rrc_state_t;
 
 struct rrc_ue_metrics_t {
-  rrc_state_t state;
+  rrc_state_t                                 state;
+  std::vector<std::pair<uint32_t, uint32_t> > drb_qci_map;
 };
 
 struct rrc_metrics_t {

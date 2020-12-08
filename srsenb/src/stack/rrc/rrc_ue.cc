@@ -60,6 +60,18 @@ rrc_state_t rrc::ue::get_state()
   return state;
 }
 
+void rrc::ue::get_metrics(rrc_ue_metrics_t& ue_metrics) const
+{
+  ue_metrics.state      = state;
+  const auto& drb_list  = bearer_list.get_established_drbs();
+  const auto& erab_list = bearer_list.get_erabs();
+  ue_metrics.drb_qci_map.resize(drb_list.size());
+  for (size_t i = 0; i < drb_list.size(); ++i) {
+    ue_metrics.drb_qci_map[i] =
+        std::make_pair(drb_list[i].lc_ch_id, erab_list.at(drb_list[i].eps_bearer_id).qos_params.qci);
+  }
+}
+
 void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value

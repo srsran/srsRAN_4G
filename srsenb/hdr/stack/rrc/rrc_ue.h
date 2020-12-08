@@ -38,6 +38,7 @@ public:
   void        activity_timer_expired();
 
   rrc_state_t get_state();
+  void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
 
   void send_connection_setup();
   void send_connection_reest(uint8_t ncc);
