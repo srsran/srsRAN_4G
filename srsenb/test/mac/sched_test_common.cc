@@ -87,7 +87,7 @@ int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
 {
   current_tti_rx = tti_rx;
 
-  TESTASSERT(fwd_pending_acks(sched_ptr) == SRSLTE_SUCCESS);
+  TESTASSERT(fwd_ue_feedback(sched_ptr) == SRSLTE_SUCCESS);
   if (sim_cfg.periodic_cqi and (tti_rx.to_uint() % sim_cfg.cqi_Npd) == sim_cfg.cqi_Noffset) {
     for (auto& cc : active_ccs) {
       sched_ptr->dl_cqi_info(
@@ -100,7 +100,7 @@ int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
   return SRSLTE_SUCCESS;
 }
 
-int ue_ctxt_test::fwd_pending_acks(sched* sched_ptr)
+int ue_ctxt_test::fwd_ue_feedback(sched* sched_ptr)
 {
   auto pending_feedback = ue_ctxt->get_pending_events(current_tti_rx, sched_ptr);
 
@@ -115,24 +115,12 @@ int ue_ctxt_test::fwd_pending_acks(sched* sched_ptr)
       auto& h            = ue_ctxt->get_ctxt().cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
       cc_feedback.dl_ack = randf() < sim_cfg.prob_dl_ack_mask[h.nof_retxs % sim_cfg.prob_dl_ack_mask.size()];
     }
-  }
 
-  /* Ack UL HARQs */
-  while (not pending_ul_acks.empty()) {
-    auto& p = pending_ul_acks.top();
-    if (p.tti_ack > current_tti_rx) {
-      break;
+    // ACK UL HARQs
+    if (cc_feedback.ul_pid >= 0) {
+      auto& h            = ue_ctxt->get_ctxt().cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.ul_pid];
+      cc_feedback.ul_ack = randf() < sim_cfg.prob_ul_ack_mask[h.nof_retxs % sim_cfg.prob_ul_ack_mask.size()];
     }
-    auto& h = ue_ctxt->get_ctxt().cc_list[p.ue_cc_idx].ul_harqs[p.pid];
-    CONDERROR(not h.active, "The ACKed UL Harq pid=%d is not active\n", h.pid);
-    CONDERROR(to_tx_ul(h.last_tti_rx) != p.tti_ack, "UL CRC wasn't set when expected\n");
-    CONDERROR(sched_ptr->ul_crc_info(current_tti_rx.to_uint(), rnti, p.cc_idx, p.ack) != SRSLTE_SUCCESS,
-              "Failed UL ACK\n");
-
-    if (p.ack) {
-      log_h->info("UL ACK tti=%u rnti=0x%x pid=%d\n", current_tti_rx.to_uint(), rnti, p.pid);
-    }
-    pending_ul_acks.pop();
   }
 
   return SRSLTE_SUCCESS;
@@ -144,7 +132,6 @@ int ue_ctxt_test::test_sched_result(uint32_t                     enb_cc_idx,
 {
   cc_result result{enb_cc_idx, &dl_result, &ul_result};
   TESTASSERT(test_scell_activation(result) == SRSLTE_SUCCESS);
-  TESTASSERT(schedule_acks(result) == SRSLTE_SUCCESS);
   return SRSLTE_SUCCESS;
 }
 
@@ -181,34 +168,6 @@ int ue_ctxt_test::test_scell_activation(cc_result result)
     }
   }
 
-  return SRSLTE_SUCCESS;
-}
-
-int ue_ctxt_test::schedule_acks(cc_result result)
-{
-  auto* cc = get_cc_state(result.enb_cc_idx);
-  if (cc == nullptr) {
-    return SRSLTE_SUCCESS;
-  }
-
-  /* Schedule UL ACKs */
-  for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
-    const auto& pusch = result.ul_result->pusch[i];
-    if (pusch.dci.rnti != rnti) {
-      continue;
-    }
-
-    pending_ack_t ack_data;
-    ack_data.tti_ack   = to_tx_ul(current_tti_rx);
-    ack_data.cc_idx    = result.enb_cc_idx;
-    ack_data.ue_cc_idx = pusch.dci.ue_cc_idx;
-    ack_data.tb        = 0;
-    ack_data.pid       = to_tx_ul(current_tti_rx).to_uint() % (FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS);
-    uint32_t nof_retx  = srsenb::get_nof_retx(pusch.dci.tb.rv); // 0..3
-    ack_data.ack       = randf() < sim_cfg.prob_ul_ack_mask[nof_retx % sim_cfg.prob_ul_ack_mask.size()];
-
-    pending_ul_acks.push(ack_data);
-  }
   return SRSLTE_SUCCESS;
 }
 

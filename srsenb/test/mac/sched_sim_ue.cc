@@ -75,11 +75,16 @@ ue_sim::sync_tti_events ue_sim::get_pending_events(srslte::tti_point tti_rx, sch
     cc_feedback.configured = true;
     cc_feedback.ue_cc_idx  = ctxt.enb_to_ue_cc_idx(enb_cc_idx);
     for (uint32_t pid = 0; pid < SRSLTE_FDD_NOF_HARQ; ++pid) {
-      auto& h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
+      auto& dl_h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
+      auto& ul_h = ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[pid];
 
-      if (h.active and to_tx_dl_ack(h.last_tti_rx) == tti_rx) {
+      if (dl_h.active and to_tx_dl_ack(dl_h.last_tti_rx) == tti_rx) {
         cc_feedback.dl_pid = pid;
         cc_feedback.dl_ack = false; // default is NACK
+      }
+      if (ul_h.active and to_tx_ul(ul_h.last_tti_rx) == tti_rx) {
+        cc_feedback.ul_pid = pid;
+        cc_feedback.ul_ack = false;
       }
     }
   }
@@ -105,6 +110,7 @@ void ue_sim::push_feedback(sched_interface* sched)
       if (sched->dl_ack_info(
               pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.tb, cc_feedback.dl_ack) < 0) {
         log_h->error("The ACKed DL Harq pid=%d does not exist.\n", cc_feedback.dl_pid);
+        error_count++;
       }
 
       // set UE sim context
@@ -112,11 +118,33 @@ void ue_sim::push_feedback(sched_interface* sched)
         h.active = false;
       }
     }
+
+    if (cc_feedback.ul_pid >= 0) {
+      auto& h = ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.dl_pid];
+
+      if (cc_feedback.ul_ack) {
+        log_h->info(
+            "UL ACK rnti=0x%x tti_ul_tx=%u pid=%d\n", ctxt.rnti, to_tx_ul(h.last_tti_rx).to_uint(), cc_feedback.dl_pid);
+      }
+
+      // update scheduler
+      if (sched->ul_crc_info(pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.ul_ack) < 0) {
+        log_h->error("The ACKed UL Harq pid=%d does not exist.\n", cc_feedback.ul_pid);
+        error_count++;
+      }
+    }
   }
 }
 
 int ue_sim::update(const sf_output_res_t& sf_out)
 {
+  if (error_count > 0) {
+    return SRSLTE_ERROR;
+  }
+  if (pending_feedback.tti_rx != sf_out.tti_rx) {
+    // generate default events
+    auto default_events = get_pending_events(sf_out.tti_rx, nullptr);
+  }
   update_conn_state(sf_out);
   update_dl_harqs(sf_out);
   update_ul_harqs(sf_out);

@@ -61,6 +61,8 @@ struct ue_tti_events {
     int      dl_pid     = -1;
     bool     dl_ack     = false;
     int      tb         = 0;
+    int      ul_pid     = -1;
+    bool     ul_ack     = false;
   };
   srslte::tti_point    tti_rx;
   std::vector<cc_data> cc_list;
@@ -110,6 +112,7 @@ private:
   const std::vector<sched_interface::cell_cfg_t>* cell_params;
   sim_ue_ctxt_t                                   ctxt;
   ue_tti_events                                   pending_feedback;
+  uint32_t                                        error_count = 0;
 };
 
 class ue_db_sim

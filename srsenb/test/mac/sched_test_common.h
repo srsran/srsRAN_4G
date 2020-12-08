@@ -67,7 +67,7 @@ struct ue_ctxt_test {
                         const sched::ul_sched_res_t& ul_result);
 
 private:
-  int fwd_pending_acks(sched* sched_ptr);
+  int fwd_ue_feedback(sched* sched_ptr);
 
   struct cc_result {
     uint32_t                     enb_cc_idx;
@@ -76,15 +76,6 @@ private:
   };
   //! Test correct activation of SCells
   int test_scell_activation(cc_result result);
-  int schedule_acks(cc_result result);
-
-  struct pending_ack_t {
-    srslte::tti_point tti_ack;
-    uint32_t          cc_idx, ue_cc_idx, tb, pid;
-    bool              ack;
-    bool              operator<(const pending_ack_t& other) const { return tti_ack > other.tti_ack; }
-  };
-  std::priority_queue<pending_ack_t> pending_ul_acks;
 };
 
 class user_state_sched_tester
