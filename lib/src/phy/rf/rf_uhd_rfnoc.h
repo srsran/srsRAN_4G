@@ -390,6 +390,7 @@ private:
   }
 
 public:
+  virtual ~rf_uhd_rfnoc() = default;
   static bool is_required(const uhd::device_addr_t& device_addr)
   {
     const std::vector<std::string> keys = device_addr.keys();
