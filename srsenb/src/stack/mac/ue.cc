@@ -525,6 +525,11 @@ void ue::metrics_read(mac_metrics_t* metrics_)
   metrics.ul_buffer = sched->get_ul_buffer(rnti);
   metrics.dl_buffer = sched->get_dl_buffer(rnti);
 
+  // set PCell sector id
+  std::array<int, SRSLTE_MAX_CARRIERS> cc_list = sched->get_enb_ue_cc_map(rnti);
+  auto                                 it      = std::find(cc_list.begin(), cc_list.end(), 0);
+  metrics.cc_idx                               = std::distance(cc_list.begin(), it);
+
   memcpy(metrics_, &metrics, sizeof(mac_metrics_t));
 
   phr_counter    = 0;
