@@ -27,18 +27,9 @@
 
 namespace srsenb {
 
-//:TODO: move this struct to the layer it belongs to.
-struct bearer_container_t {
-  uint32_t id;
-  uint32_t qci;
-};
-using bearer_list_t = std::vector<bearer_container_t>;
-
 struct stack_metrics_t {
   std::vector<mac_metrics_t> mac;
-  // For XICO: Each position in the vector represents a ue. Should have the same number of ues and ue order as the mac vector
-  // above.
-  std::vector<bearer_list_t> bearers;
+  std::vector<uint32_t>      cc_rach_counter;
   rrc_metrics_t              rrc;
   s1ap_metrics_t             s1ap;
 };

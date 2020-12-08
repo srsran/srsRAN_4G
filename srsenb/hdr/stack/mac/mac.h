@@ -89,7 +89,7 @@ public:
 
   bool process_pdus();
 
-  void get_metrics(std::vector<mac_metrics_t>& metrics);
+  void get_metrics(std::vector<mac_metrics_t>& metrics, std::vector<uint32_t> &detected_rachs);
   void write_mcch(const srslte::sib2_mbms_t* sib2_,
                   const srslte::sib13_t*     sib13_,
                   const srslte::mcch_msg_t*  mcch_,
@@ -170,6 +170,9 @@ private:
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap = nullptr;
+
+  // Number of rach preambles detected for a cc.
+  std::vector<uint32_t> detected_rachs;
 };
 
 } // namespace srsenb

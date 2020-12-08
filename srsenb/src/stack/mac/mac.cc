@@ -85,6 +85,8 @@ bool mac::init(const mac_args_t&        args_,
     // Pre-alloc UE objects for first attaching users
     prealloc_ue(10);
 
+    detected_rachs.resize(cells.size());
+
     started = true;
   }
 
@@ -267,11 +269,12 @@ int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
   return scheduler.cell_cfg(cell_config);
 }
 
-void mac::get_metrics(std::vector<mac_metrics_t>& metrics)
+void mac::get_metrics(std::vector<mac_metrics_t>& metrics, std::vector<uint32_t>& _detected_rachs)
 {
   srslte::rwlock_read_guard lock(rwlock);
   int                       cnt = 0;
   metrics.resize(ue_db.size());
+  _detected_rachs = detected_rachs;
   for (auto& u : ue_db) {
     u.second->metrics_read(&metrics[cnt]);
     cnt++;
@@ -506,6 +509,9 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     rar_info.temp_crnti                           = rnti;
     rar_info.msg3_size                            = 7;
     rar_info.prach_tti                            = tti;
+
+    // Log this event.
+    ++detected_rachs[enb_cc_idx];
 
     // Add new user to the scheduler so that it can RX/TX SRB0
     sched_interface::ue_cfg_t ue_cfg = {};
