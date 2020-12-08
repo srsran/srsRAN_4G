@@ -123,6 +123,11 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled);
 
 /***************************
+ *      Measurements
+ **************************/
+int get_carrier_freq(const asn1::rrc::meas_obj_to_add_mod_s& obj);
+
+/***************************
  *  EUTRA UE Capabilities
  **************************/
 rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_cap_s);

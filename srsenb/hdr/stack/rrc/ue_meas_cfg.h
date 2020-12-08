@@ -30,7 +30,6 @@ using report_cfg_list = asn1::rrc::report_cfg_to_add_mod_list_l;
 using meas_id_t       = asn1::rrc::meas_id_to_add_mod_s;
 using meas_id_list    = asn1::rrc::meas_id_to_add_mod_list_l;
 
-int  get_earfcn(const meas_obj_t& obj);
 bool is_same_earfcn(const meas_obj_t& lhs, const meas_obj_t& rhs);
 
 /// Find MeasObj with same earfcn. Assumes ordered list

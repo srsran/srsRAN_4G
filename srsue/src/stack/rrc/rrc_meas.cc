@@ -27,20 +27,10 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-
-int get_carrier_freq(const meas_obj_to_add_mod_s& obj)
-{
-  if (obj.meas_obj.type().value != meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra) {
-    return -1;
-  }
-  return obj.meas_obj.meas_obj_eutra().carrier_freq;
-}
-
-
 meas_obj_to_add_mod_s* find_meas_obj_map(std::map<uint32_t, meas_obj_to_add_mod_s>& l, uint32_t earfcn)
 {
   auto same_earfcn = [earfcn](const std::pair<uint32_t, meas_obj_to_add_mod_s>& c) {
-    return (int)earfcn == get_carrier_freq(c.second);
+    return (int)earfcn == srslte::get_carrier_freq(c.second);
   };
   auto it = std::find_if(l.begin(), l.end(), same_earfcn);
   if (it == l.end()) {

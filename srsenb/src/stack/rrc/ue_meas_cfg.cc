@@ -22,30 +22,23 @@ namespace srsenb {
  *          measObjToAddMod
  **********************************/
 
-int get_earfcn(const meas_obj_t& obj)
-{
-  if (obj.meas_obj.type().value != meas_obj_t::meas_obj_c_::types_opts::meas_obj_eutra) {
-    return -1;
-  }
-  return obj.meas_obj.meas_obj_eutra().carrier_freq;
-}
 
 bool is_same_earfcn(const meas_obj_t& lhs, const meas_obj_t& rhs)
 {
-  int freq1 = get_earfcn(lhs);
-  int freq2 = get_earfcn(rhs);
+  int freq1 = srslte::get_carrier_freq(lhs);
+  int freq2 = srslte::get_carrier_freq(rhs);
   return freq1 != -1 and freq1 == freq2;
 }
 
 meas_obj_t* find_meas_obj(meas_obj_to_add_mod_list_l& l, uint32_t earfcn)
 {
-  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == get_earfcn(obj); };
+  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == srslte::get_carrier_freq(obj); };
   auto it          = std::find_if(l.begin(), l.end(), same_earfcn);
   return it == l.end() ? nullptr : &(*it);
 }
 const meas_obj_t* find_meas_obj(const meas_obj_to_add_mod_list_l& l, uint32_t earfcn)
 {
-  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == get_earfcn(obj); };
+  auto same_earfcn = [earfcn](const meas_obj_t& obj) { return (int)earfcn == srslte::get_carrier_freq(obj); };
   auto it          = std::find_if(l.begin(), l.end(), same_earfcn);
   return it == l.end() ? nullptr : &(*it);
 }

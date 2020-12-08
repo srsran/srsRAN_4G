@@ -29,7 +29,6 @@ using namespace asn1::rrc;
 typedef std::vector<phy_cell_t> cell_triggered_t;
 
 // TODO make this agnostic with srsenb
-int get_carrier_freq(const meas_obj_to_add_mod_s& obj);
 meas_obj_to_add_mod_s* find_meas_obj_map(std::map<uint32_t, meas_obj_to_add_mod_s>& l, uint32_t earfcn);
 
 // RRC Measurements class

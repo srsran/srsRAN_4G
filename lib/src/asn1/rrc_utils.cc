@@ -820,6 +820,17 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
   }
 }
 
+/***************************
+ *      Measurements
+ **************************/
+int get_carrier_freq(const asn1::rrc::meas_obj_to_add_mod_s& obj)
+{
+  if (obj.meas_obj.type().value != meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra) {
+    return -1;
+  }
+  return obj.meas_obj.meas_obj_eutra().carrier_freq;
+}
+
 /*
  * UE Capabilities parser
  */

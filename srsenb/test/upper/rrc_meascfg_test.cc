@@ -12,10 +12,11 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/ue_meas_cfg.h"
+#include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
-#include "test_helpers.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
+#include "test_helpers.h"
 
 using namespace asn1::rrc;
 
@@ -309,8 +310,10 @@ int test_minimize_meascfg_reordering()
   // TEST1: Ensure consistent order of measObjects based on DL-EARFCN
   TESTASSERT(mcfg1.meas_obj_to_add_mod_list_present and mcfg2.meas_obj_to_add_mod_list_present);
   TESTASSERT(mcfg1.meas_obj_to_add_mod_list.size() == mcfg2.meas_obj_to_add_mod_list.size());
-  TESTASSERT(get_earfcn(mcfg1.meas_obj_to_add_mod_list[0]) == get_earfcn(mcfg2.meas_obj_to_add_mod_list[0]));
-  TESTASSERT(get_earfcn(mcfg1.meas_obj_to_add_mod_list[1]) == get_earfcn(mcfg2.meas_obj_to_add_mod_list[1]));
+  TESTASSERT(srslte::get_carrier_freq(mcfg1.meas_obj_to_add_mod_list[0]) ==
+             srslte::get_carrier_freq(mcfg2.meas_obj_to_add_mod_list[0]));
+  TESTASSERT(srslte::get_carrier_freq(mcfg1.meas_obj_to_add_mod_list[1]) ==
+             srslte::get_carrier_freq(mcfg2.meas_obj_to_add_mod_list[1]));
   TESTASSERT(std::is_sorted(
       mcfg1.meas_obj_to_add_mod_list.begin(), mcfg1.meas_obj_to_add_mod_list.end(), srslte::rrc_obj_id_cmp{}));
   TESTASSERT(std::is_sorted(
