@@ -125,8 +125,8 @@ int test_scell_activation(test_scell_activation_params params)
   TESTASSERT(tester.ue_tester->user_exists(rnti1));
 
   // Event (TTI=prach_tti+msg4_tot_delay): First Tx (Msg4). Goes in SRB0 and contains ConRes
-  while (not tester.ue_tester->get_user_ctxt(rnti1)->ue_ctxt->get_ctxt().msg3_tti_rx.is_valid() or
-         srsenb::to_tx_ul(tester.ue_tester->get_user_ctxt(rnti1)->ue_ctxt->get_ctxt().msg3_tti_rx).to_uint() >
+  while (not tester.ue_tester->get_user_ctxt(rnti1)->get_ctxt().msg3_tti_rx.is_valid() or
+         srsenb::to_tx_ul(tester.ue_tester->get_user_ctxt(rnti1)->get_ctxt().msg3_tti_rx).to_uint() >
              generator.tti_counter) {
     generator.step_tti();
     tester.test_next_ttis(generator.tti_events);
@@ -134,7 +134,7 @@ int test_scell_activation(test_scell_activation_params params)
   generator.step_tti();
   generator.add_dl_data(rnti1, msg4_size);
   tester.test_next_ttis(generator.tti_events);
-  while (not tester.ue_tester->get_user_ctxt(rnti1)->ue_ctxt->get_ctxt().conres_rx) {
+  while (not tester.ue_tester->get_user_ctxt(rnti1)->get_ctxt().conres_rx) {
     generator.step_tti();
     tester.test_next_ttis(generator.tti_events);
   }

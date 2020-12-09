@@ -35,20 +35,6 @@ std::default_random_engine& get_rand_gen();
 using dl_sched_res_list = std::vector<sched_interface::dl_sched_res_t>;
 using ul_sched_res_list = std::vector<sched_interface::ul_sched_res_t>;
 
-struct ue_ctxt_test {
-  // args
-  srslte::log_ref  log_h{"TEST"};
-  ue_ctxt_test_cfg sim_cfg;
-
-  ue_sim* ue_ctxt;
-
-  bool drb_cfg_flag = false;
-
-  ue_ctxt_test(const ue_ctxt_test_cfg& cfg_, ue_sim& ue_ctxt_);
-
-  int new_tti(sched* sched_ptr, srslte::tti_point tti_rx);
-};
-
 class user_state_sched_tester
 {
 public:
@@ -56,15 +42,13 @@ public:
     cell_params(cell_params_), sim_users(cell_params_)
   {}
 
-  void                new_tti(sched* sched_ptr, tti_point tti_rx);
-  bool                user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
-  const ue_ctxt_test* get_user_ctxt(uint16_t rnti) const
-  {
-    return users.count(rnti) > 0 ? &users.find(rnti)->second : nullptr;
-  }
+  void                   new_tti(sched* sched_ptr, tti_point tti_rx);
+  bool                   user_exists(uint16_t rnti) const { return sim_users.find_rnti(rnti) != nullptr; }
+  const ue_sim*          get_user_ctxt(uint16_t rnti) const { return sim_users.find_rnti(rnti); }
   const sched::ue_cfg_t* get_user_cfg(uint16_t rnti) const
   {
-    return users.count(rnti) > 0 ? &sim_users.at(rnti).get_ctxt().ue_cfg : nullptr;
+    const ue_sim* ue = get_user_ctxt(rnti);
+    return ue == nullptr ? nullptr : &ue->get_ctxt().ue_cfg;
   }
 
   /* Config users */
@@ -75,12 +59,14 @@ public:
 
   int test_all(const sf_output_res_t& sf_out);
 
+  bool is_drb_cfg(uint16_t rnti) const;
+
 private:
   const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
-  ue_db_sim                        sim_users;
-  std::map<uint16_t, ue_ctxt_test> users;
-  srslte::tti_point                tic;
+  ue_db_sim                            sim_users;
+  std::map<uint16_t, ue_ctxt_test_cfg> ue_sim_cfg_map;
+  srslte::tti_point                    tic;
 };
 
 class sched_result_stats

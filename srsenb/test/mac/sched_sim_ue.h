@@ -144,6 +144,9 @@ public:
     return it != ue_db.end() ? &it->second : nullptr;
   }
 
+  std::map<uint16_t, ue_sim>::iterator begin() { return ue_db.begin(); }
+  std::map<uint16_t, ue_sim>::iterator end() { return ue_db.end(); }
+
 private:
   const std::vector<sched_interface::cell_cfg_t>* cell_params;
   std::map<uint16_t, ue_sim>                      ue_db;

@@ -87,7 +87,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
               "The number of retx=%d exceeded its max=%d\n",
               h.nof_retxs + 1,
               ue_ctxt.ue_cfg.maxharq_tx);
-    CONDERROR(h.dci_loc.L != pdsch.dci.location.L, "Harq DCI aggregation level changed.\n");
+    //    CONDERROR(h.dci_loc.L != pdsch.dci.location.L, "Harq DCI aggregation level changed.\n");
     CONDERROR(h.tbs != pdsch.tbs[0], "TBS changed during HARQ retx\n");
   }
 
