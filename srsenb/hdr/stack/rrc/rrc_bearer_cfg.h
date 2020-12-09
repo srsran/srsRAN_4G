@@ -67,7 +67,7 @@ public:
                 const asn1::bounded_bitstring<1, 160, true, true>& addr,
                 uint32_t                                           teid_out,
                 const asn1::unbounded_octstring<true>*             nas_pdu);
-  void release_erab(uint8_t erab_id);
+  bool release_erab(uint8_t erab_id);
   void release_erabs();
 
   // Methods to apply bearer updates

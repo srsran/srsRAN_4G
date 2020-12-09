@@ -16,6 +16,7 @@
 #include "srslte/common/security.h"
 #include <cmath>
 #include <inttypes.h> // for printing uint64_t
+#include <netinet/sctp.h>
 #include <sys/timerfd.h>
 #include <time.h>
 
@@ -115,14 +116,14 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
   srslte::console("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
   nas_log->info("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
   srslte::console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
-                     attach_req.ue_network_cap.eea[0],
-                     attach_req.ue_network_cap.eea[1],
-                     attach_req.ue_network_cap.eea[2],
-                     attach_req.ue_network_cap.eea[3],
-                     attach_req.ue_network_cap.eea[4],
-                     attach_req.ue_network_cap.eea[5],
-                     attach_req.ue_network_cap.eea[6],
-                     attach_req.ue_network_cap.eea[7]);
+                  attach_req.ue_network_cap.eea[0],
+                  attach_req.ue_network_cap.eea[1],
+                  attach_req.ue_network_cap.eea[2],
+                  attach_req.ue_network_cap.eea[3],
+                  attach_req.ue_network_cap.eea[4],
+                  attach_req.ue_network_cap.eea[5],
+                  attach_req.ue_network_cap.eea[6],
+                  attach_req.ue_network_cap.eea[7]);
   nas_log->info("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
                 attach_req.ue_network_cap.eea[0],
                 attach_req.ue_network_cap.eea[1],
@@ -133,14 +134,14 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
                 attach_req.ue_network_cap.eea[6],
                 attach_req.ue_network_cap.eea[7]);
   srslte::console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
-                     attach_req.ue_network_cap.eia[0],
-                     attach_req.ue_network_cap.eia[1],
-                     attach_req.ue_network_cap.eia[2],
-                     attach_req.ue_network_cap.eia[3],
-                     attach_req.ue_network_cap.eia[4],
-                     attach_req.ue_network_cap.eia[5],
-                     attach_req.ue_network_cap.eia[6],
-                     attach_req.ue_network_cap.eia[7]);
+                  attach_req.ue_network_cap.eia[0],
+                  attach_req.ue_network_cap.eia[1],
+                  attach_req.ue_network_cap.eia[2],
+                  attach_req.ue_network_cap.eia[3],
+                  attach_req.ue_network_cap.eia[4],
+                  attach_req.ue_network_cap.eia[5],
+                  attach_req.ue_network_cap.eia[6],
+                  attach_req.ue_network_cap.eia[7]);
   nas_log->info("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
                 attach_req.ue_network_cap.eia[0],
                 attach_req.ue_network_cap.eia[1],
@@ -151,7 +152,7 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
                 attach_req.ue_network_cap.eia[6],
                 attach_req.ue_network_cap.eia[7]);
   srslte::console("Attach Request -- MS Network Capabilities Present: %s\n",
-                     attach_req.ms_network_cap_present ? "true" : "false");
+                  attach_req.ms_network_cap_present ? "true" : "false");
   nas_log->info("Attach Request -- MS Network Capabilities Present: %s\n",
                 attach_req.ms_network_cap_present ? "true" : "false");
   srslte::console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
@@ -159,7 +160,7 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
   srslte::console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
   nas_log->info("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
   srslte::console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n",
-                     pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
+                  pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
   nas_log->info("PDN Connectivity Request -- ESM Information Transfer requested: %s\n",
                 pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
 
@@ -422,9 +423,9 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
   gtpc_interface_nas* gtpc = itf.gtpc;
 
   srslte::console("Found UE context. IMSI: %015" PRIu64 ", old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n",
-                     emm_ctx->imsi,
-                     ecm_ctx->enb_ue_s1ap_id,
-                     ecm_ctx->mme_ue_s1ap_id);
+                  emm_ctx->imsi,
+                  ecm_ctx->enb_ue_s1ap_id,
+                  ecm_ctx->mme_ue_s1ap_id);
 
   // Check NAS integrity
   msg_valid = nas_ctx->integrity_check(nas_rx);

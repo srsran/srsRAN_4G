@@ -318,10 +318,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                          (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
                          msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string().c_str());
   if (is_idle()) {
-    uint16_t                old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
-    uint16_t                old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+    uint16_t               old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
+    uint16_t               old_pci  = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
     const enb_cell_common* old_cell = parent->cell_common_list->get_pci(old_pci);
-    auto                    ue_it    = parent->users.find(old_rnti);
+    auto                   ue_it    = parent->users.find(old_rnti);
     // Reject unrecognized rntis, and PCIs that do not belong to eNB
     if (ue_it != parent->users.end() and old_cell != nullptr and
         ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) != nullptr) {
@@ -333,7 +333,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 
       // Recover security setup
       const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-      ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;
+      ue_security_cfg                  = parent->users[old_rnti]->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
 
       // send reestablishment and restore bearer configuration
@@ -467,12 +467,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
   rrc_conn_recfg_r8_ies_s& recfg_r8 = rrc_conn_recfg.crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
   // Fill RR Config Ded and SCells
-  apply_reconf_updates(recfg_r8,
-                       current_ue_cfg,
-                       parent->cfg, ue_cell_list,
-                       bearer_list,
-                       ue_capabilities,
-                       phy_cfg_updated);
+  apply_reconf_updates(
+      recfg_r8, current_ue_cfg, parent->cfg, ue_cell_list, bearer_list, ue_capabilities, phy_cfg_updated);
 
   // Add measConfig
   if (mobility_handler != nullptr) {
@@ -816,6 +812,11 @@ bool rrc::ue::release_erabs()
   return true;
 }
 
+bool rrc::ue::release_erab(uint32_t erab_id)
+{
+  return bearer_list.release_erab(erab_id);
+}
+
 void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
 {
   asn1::s1ap::erab_setup_resp_s res;
@@ -856,8 +857,8 @@ enb_cell_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 
 void rrc::ue::update_scells()
 {
-  const ue_cell_ded* pcell     = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const enb_cell_common*    pcell_cfg = pcell->cell_common;
+  const ue_cell_ded*     pcell     = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const enb_cell_common* pcell_cfg = pcell->cell_common;
 
   if (ue_cell_list.nof_cells() == pcell_cfg->scells.size() + 1) {
     // SCells already added

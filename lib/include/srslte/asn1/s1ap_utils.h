@@ -25,6 +25,7 @@ namespace s1ap {
 struct init_context_setup_request_s;
 struct ue_context_mod_request_s;
 struct erab_setup_request_s;
+struct erab_release_cmd_s;
 struct ue_paging_id_c;
 struct ho_request_s;
 struct sourceenb_to_targetenb_transparent_container_s;

@@ -55,7 +55,7 @@ public:
 
   // RRC interface
   void
-       initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override;
+  initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override;
   void initial_ue(uint16_t                              rnti,
                   asn1::s1ap::rrc_establishment_cause_e cause,
                   srslte::unique_byte_buffer_t          pdu,
@@ -84,7 +84,7 @@ public:
 
   // Stack interface
   bool
-       handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srslte::s1ap_pcap* pcap_);
 
 private:
@@ -138,6 +138,7 @@ private:
   bool handle_uectxtreleasecommand(const asn1::s1ap::ue_context_release_cmd_s& msg);
   bool handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg);
   bool handle_erabsetuprequest(const asn1::s1ap::erab_setup_request_s& msg);
+  bool handle_erabreleasecommand(const asn1::s1ap::erab_release_cmd_s& msg);
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
   // bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
@@ -156,7 +157,7 @@ private:
       struct ts1_reloc_prep_expired {};
       ho_prep_proc_t(s1ap::ue* ue_);
       srslte::proc_outcome_t
-                             init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+      init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
       srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
       srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
       srslte::proc_outcome_t react(const asn1::s1ap::ho_prep_fail_s& msg);
@@ -189,6 +190,8 @@ private:
     bool send_initial_ctxt_setup_response(const asn1::s1ap::init_context_setup_resp_s& res_);
     bool send_initial_ctxt_setup_failure();
     bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
+    bool send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
+                                    const std::vector<uint16_t>& erabs_failed_to_release);
     bool was_uectxtrelease_requested() const { return release_requested; }
 
     ue_ctxt_t ctxt      = {};

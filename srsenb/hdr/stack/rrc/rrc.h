@@ -77,6 +77,10 @@ public:
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
   bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;
   bool release_erabs(uint32_t rnti) override;
+  void release_erabs(uint32_t                              rnti,
+                     const asn1::s1ap::erab_release_cmd_s& msg,
+                     std::vector<uint16_t>*                erabs_released,
+                     std::vector<uint16_t>*                erabs_failed_to_release) override;
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
   void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
   uint16_t

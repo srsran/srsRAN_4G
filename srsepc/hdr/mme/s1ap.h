@@ -15,6 +15,7 @@
 #include "mme_gtpc.h"
 #include "nas.h"
 #include "s1ap_ctx_mngmt_proc.h"
+#include "s1ap_erab_mngmt_proc.h"
 #include "s1ap_mngmt_proc.h"
 #include "s1ap_nas_transport.h"
 #include "s1ap_paging.h"
@@ -89,10 +90,11 @@ public:
   srslte::log_filter* m_s1ap_log;
   srslte::log_filter* m_nas_log;
 
-  s1ap_mngmt_proc*     m_s1ap_mngmt_proc;
-  s1ap_nas_transport*  m_s1ap_nas_transport;
-  s1ap_ctx_mngmt_proc* m_s1ap_ctx_mngmt_proc;
-  s1ap_paging*         m_s1ap_paging;
+  s1ap_mngmt_proc*      m_s1ap_mngmt_proc;
+  s1ap_nas_transport*   m_s1ap_nas_transport;
+  s1ap_ctx_mngmt_proc*  m_s1ap_ctx_mngmt_proc;
+  s1ap_erab_mngmt_proc* m_s1ap_erab_mngmt_proc;
+  s1ap_paging*          m_s1ap_paging;
 
   std::map<uint32_t, uint64_t>   m_tmsi_to_imsi;
   std::map<uint16_t, enb_ctx_t*> m_active_enbs;
@@ -100,6 +102,10 @@ public:
   // Interfaces
   virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup);
   virtual bool send_ue_context_release_command(uint32_t mme_ue_s1ap_id);
+  virtual bool send_erab_release_command(uint32_t               enb_ue_s1ap_id,
+                                         uint32_t               mme_ue_s1ap_id,
+                                         std::vector<uint16_t>  erabs_to_release,
+                                         struct sctp_sndrcvinfo enb_sri);
   virtual bool send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                            uint32_t               mme_ue_s1ap_id,
                                            srslte::byte_buffer_t* nas_msg,

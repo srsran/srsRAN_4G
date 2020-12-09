@@ -74,6 +74,8 @@ int s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter* nas_log, srslte::log_f
   m_s1ap_nas_transport->init();
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); // Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
+  m_s1ap_erab_mngmt_proc = s1ap_erab_mngmt_proc::get_instance(); // E-RAB Management Procedures
+  m_s1ap_erab_mngmt_proc->init();
   m_s1ap_paging = s1ap_paging::get_instance(); // Paging
   m_s1ap_paging->init();
 
@@ -617,6 +619,15 @@ bool s1ap::send_ue_context_release_command(uint32_t mme_ue_s1ap_id)
   }
   m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
   return true;
+}
+
+bool s1ap::send_erab_release_command(uint32_t               enb_ue_s1ap_id,
+                                     uint32_t               mme_ue_s1ap_id,
+                                     std::vector<uint16_t>  erabs_to_be_released,
+                                     struct sctp_sndrcvinfo enb_sri)
+{
+  return m_s1ap_erab_mngmt_proc->send_erab_release_command(
+      enb_ue_s1ap_id, mme_ue_s1ap_id, erabs_to_be_released, enb_sri);
 }
 
 bool s1ap::send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
