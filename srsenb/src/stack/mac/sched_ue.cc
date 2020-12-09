@@ -1247,6 +1247,22 @@ int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
   return enb_ue_cc_idx_map[enb_cc_idx];
 }
 
+float diff_coderate_maxcoderate(int      mcs,
+                                uint32_t nof_prb,
+                                uint32_t nof_re,
+                                uint32_t max_Qm,
+                                float    max_coderate,
+                                bool     use_tbs_index_alt,
+                                bool     is_ul)
+{
+  uint32_t     tbs_idx  = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
+  int          tbs      = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
+  float        coderate = srslte_coderate(tbs, nof_re);
+  srslte_mod_t mod      = (is_ul) ? srslte_ra_ul_mod_from_mcs(mcs) : srslte_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
+  uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
+  return coderate - std::min(max_coderate, 0.930f * Qm);
+}
+
 int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs)
 {
   using ul64qam_cap = sched_interface::ue_cfg_t::ul64qam_cap;
@@ -1264,25 +1280,19 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint3
   }
 
   // function with sign-flip at solution
-  auto compute_tbs = [&](int sel_mcs) -> float {
-    uint32_t     tbs_idx  = srslte_ra_tbs_idx_from_mcs(sel_mcs, cfg->use_tbs_index_alt, is_ul);
-    int          tbs      = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
-    float        coderate = srslte_coderate(tbs, nof_re);
-    srslte_mod_t mod =
-        (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, cfg->use_tbs_index_alt);
-    uint32_t Qm = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
-    return coderate - std::min(max_coderate, 0.930f * Qm);
+  auto test_mcs = [&](int sel_mcs) -> float {
+    return diff_coderate_maxcoderate(sel_mcs, nof_prb, nof_re, max_Qm, max_coderate, cfg->use_tbs_index_alt, is_ul);
   };
 
   std::tuple<int, float, int, float> ret;
   if (nof_prb > 1) {
     // for non-voip case
-    ret = false_position_method(0, max_mcs, 0.0f, compute_tbs);
+    ret = false_position_method(0, max_mcs, 0.0f, test_mcs);
   } else {
     // avoid 6 prbs (voip case), where function is not monotonic
-    ret = false_position_method(7, max_mcs, 0.0f, compute_tbs);
+    ret = false_position_method(7, max_mcs, 0.0f, test_mcs);
     if (std::get<1>(ret) > 0) {
-      ret = false_position_method(0, 5, 0.0f, compute_tbs);
+      ret = false_position_method(0, 5, 0.0f, test_mcs);
     }
   }
   int      chosen_mcs = std::get<0>(ret);
@@ -1452,8 +1462,15 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
     }
 
     if (req_mcs >= 0 and req_mcs < (int)sel_mcs) {
-      sel_mcs   = req_mcs;
-      tbs_bytes = srslte_ra_tbs_from_idx(req_tbs_idx, nof_prb) / 8;
+      uint32_t max_Qm = (is_ul) ? (cfg->support_ul64qam == sched_interface::ue_cfg_t::ul64qam_cap::enabled ? 6 : 4)
+                                : (cfg->use_tbs_index_alt ? 8 : 6);
+      float max_coderate = (is_ul) ? srslte_cqi_to_coderate(std::min(ul_cqi + 1u, 15u), false)
+                                   : srslte_cqi_to_coderate(std::min(dl_cqi + 1u, 15u), cfg->use_tbs_index_alt);
+      if (diff_coderate_maxcoderate(req_mcs, nof_prb, nof_re, max_Qm, max_coderate, cfg->use_tbs_index_alt, is_ul) <
+          0) {
+        sel_mcs   = req_mcs;
+        tbs_bytes = srslte_ra_tbs_from_idx(req_tbs_idx, nof_prb) / 8;
+      }
     }
   }
   // Avoid the unusual case n_prb=1, mcs=6 tbs=328 (used in voip)
