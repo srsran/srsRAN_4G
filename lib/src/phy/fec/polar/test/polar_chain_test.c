@@ -188,7 +188,9 @@ int main(int argc, char** argv)
   int errors_symb        = 0;
   int errors_symb_s      = 0;
   int errors_symb_c      = 0;
+#ifdef LV_HAVE_AVX2
   int errors_symb_c_avx2 = 0;
+#endif
 
   int n_error_words[SNR_POINTS + 1];
   int n_error_words_s[SNR_POINTS + 1];
@@ -211,7 +213,9 @@ int main(int argc, char** argv)
   int8_t  inf8        = (1U << 7U) - 1;
   float   gain_s      = NAN;
   float   gain_c      = NAN;
+#ifdef LV_HAVE_AVX2
   float   gain_c_avx2 = NAN;
+#endif
 
   srslte_polar_code_t    code;
   srslte_polar_encoder_t enc;
