@@ -74,8 +74,7 @@ void rrc::ue::activity_timer_expired()
 {
   if (parent) {
     if (parent->rrc_log) {
-      parent->rrc_log->warning(
-          "Activity timer for rnti=0x%x expired after %d ms\n", rnti, activity_timer.time_elapsed());
+      parent->rrc_log->info("Activity timer for rnti=0x%x expired after %d ms\n", rnti, activity_timer.time_elapsed());
     }
 
     if (parent->s1ap->user_exists(rnti)) {

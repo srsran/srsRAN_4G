@@ -291,11 +291,11 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
     action->tb[tid].rv            = cur_grant.tb[tid].rv;
     action->tb[tid].softbuffer.rx = &softbuffer;
   } else {
-    Warning("DL PID %d: Received duplicate TB%d. Discarding and retransmitting ACK (n_retx=%d, reset=%s)\n",
-            pid,
-            tid,
-            n_retx,
-            n_retx > RESET_DUPLICATE_TIMEOUT ? "yes" : "no");
+    Info("DL PID %d: Received duplicate TB%d. Discarding and retransmitting ACK (n_retx=%d, reset=%s)\n",
+         pid,
+         tid,
+         n_retx,
+         n_retx > RESET_DUPLICATE_TIMEOUT ? "yes" : "no");
     if (n_retx > RESET_DUPLICATE_TIMEOUT) {
       reset(false);
     }

@@ -120,7 +120,7 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
       valid_lcids_cached.insert(lcid);
     }
   } else {
-    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
+    pdcp_log->info("Bearer %s already configured.\n", rrc->get_rb_name(lcid).c_str());
   }
 }
 
