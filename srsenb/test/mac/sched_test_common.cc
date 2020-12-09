@@ -48,61 +48,11 @@ std::default_random_engine& ::srsenb::get_rand_gen()
  *  User State Tester
  ***********************/
 
-ue_ctxt_test::ue_ctxt_test(uint16_t                rnti_,
-                           srslte::tti_point       prach_tti_,
-                           const ue_ctxt_test_cfg& cfg_,
-                           ue_sim&                 ue_ctxt_) :
-  sim_cfg(cfg_), rnti(rnti_), current_tti_rx(prach_tti_), ue_ctxt(&ue_ctxt_)
-{
-  set_cfg(cfg_.ue_cfg);
-}
-
-int ue_ctxt_test::set_cfg(const sched::ue_cfg_t& ue_cfg_)
-{
-  for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cfg_.supported_cc_list.size(); ++ue_cc_idx) {
-    const auto& cc = ue_cfg_.supported_cc_list[ue_cc_idx];
-    if (ue_cc_idx >= active_ccs.size()) {
-      // new cell
-      active_ccs.emplace_back();
-      active_ccs.back().ue_cc_idx  = active_ccs.size() - 1;
-      active_ccs.back().enb_cc_idx = cc.enb_cc_idx;
-    } else {
-      CONDERROR(cc.enb_cc_idx != active_ccs[ue_cc_idx].enb_cc_idx, "changing ccs not supported\n");
-    }
-  }
-
-  user_cfg = ue_cfg_;
-  return SRSLTE_SUCCESS;
-}
-
-ue_ctxt_test::cc_ue_ctxt_test* ue_ctxt_test::get_cc_state(uint32_t enb_cc_idx)
-{
-  auto it = std::find_if(active_ccs.begin(), active_ccs.end(), [enb_cc_idx](const cc_ue_ctxt_test& c) {
-    return c.enb_cc_idx == enb_cc_idx;
-  });
-  return it == active_ccs.end() ? nullptr : &(*it);
-}
+ue_ctxt_test::ue_ctxt_test(const ue_ctxt_test_cfg& cfg_, ue_sim& ue_ctxt_) : sim_cfg(cfg_), ue_ctxt(&ue_ctxt_) {}
 
 int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
 {
-  current_tti_rx = tti_rx;
-
-  TESTASSERT(fwd_ue_feedback(sched_ptr) == SRSLTE_SUCCESS);
-  if (sim_cfg.periodic_cqi and (tti_rx.to_uint() % sim_cfg.cqi_Npd) == sim_cfg.cqi_Noffset) {
-    for (auto& cc : active_ccs) {
-      sched_ptr->dl_cqi_info(
-          tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen()));
-      sched_ptr->ul_snr_info(
-          tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen()), 0);
-    }
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
-int ue_ctxt_test::fwd_ue_feedback(sched* sched_ptr)
-{
-  auto pending_feedback = ue_ctxt->get_pending_events(current_tti_rx, sched_ptr);
+  auto pending_feedback = ue_ctxt->get_pending_events(tti_rx, sched_ptr);
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_feedback->cc_list.size(); ++enb_cc_idx) {
     auto& cc_feedback = pending_feedback->cc_list[enb_cc_idx];
@@ -121,50 +71,15 @@ int ue_ctxt_test::fwd_ue_feedback(sched* sched_ptr)
       auto& h            = ue_ctxt->get_ctxt().cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.ul_pid];
       cc_feedback.ul_ack = randf() < sim_cfg.prob_ul_ack_mask[h.nof_retxs % sim_cfg.prob_ul_ack_mask.size()];
     }
-  }
 
-  return SRSLTE_SUCCESS;
-}
-
-int ue_ctxt_test::test_sched_result(uint32_t                     enb_cc_idx,
-                                    const sched::dl_sched_res_t& dl_result,
-                                    const sched::ul_sched_res_t& ul_result)
-{
-  cc_result result{enb_cc_idx, &dl_result, &ul_result};
-  TESTASSERT(test_scell_activation(result) == SRSLTE_SUCCESS);
-  return SRSLTE_SUCCESS;
-}
-
-/**
- * Tests whether the SCells are correctly activated. Individual tests:
- * - no DL and UL allocations in inactive carriers
- */
-int ue_ctxt_test::test_scell_activation(cc_result result)
-{
-  auto cc_it =
-      std::find_if(user_cfg.supported_cc_list.begin(),
-                   user_cfg.supported_cc_list.end(),
-                   [&result](const sched::ue_cfg_t::cc_cfg_t& cc) { return cc.enb_cc_idx == result.enb_cc_idx; });
-
-  if (cc_it == user_cfg.supported_cc_list.end() or not cc_it->active) {
-    // cell not active. Ensure data allocations are not made
-    for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
-      CONDERROR(result.dl_result->data[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
+    // DL CQI
+    if (cc_feedback.dl_cqi >= 0) {
+      cc_feedback.dl_cqi = std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen());
     }
-    for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
-      CONDERROR(result.ul_result->pusch[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
-    }
-  } else {
-    uint32_t ue_cc_idx = std::distance(user_cfg.supported_cc_list.begin(), cc_it);
-    for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
-      if (result.dl_result->data[i].dci.rnti == rnti) {
-        CONDERROR(result.dl_result->data[i].dci.ue_cc_idx != ue_cc_idx, "User cell index was incorrectly set\n");
-      }
-    }
-    for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
-      if (result.ul_result->pusch[i].dci.rnti == rnti) {
-        CONDERROR(result.ul_result->pusch[i].dci.ue_cc_idx != ue_cc_idx, "The user cell index was incorrectly set\n");
-      }
+
+    // UL CQI
+    if (cc_feedback.ul_cqi >= 0) {
+      cc_feedback.ul_cqi = std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen());
     }
   }
 
@@ -187,7 +102,7 @@ int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, cons
   TESTASSERT(users.count(rnti) == 0);
   sim_users.add_user(rnti, generate_rach_ue_cfg(cfg_.ue_cfg), tic, preamble_idx);
 
-  ue_ctxt_test ue{rnti, tic, cfg_, sim_users.at(rnti)};
+  ue_ctxt_test ue{cfg_, sim_users.at(rnti)};
   users.insert(std::make_pair(rnti, ue));
 
   return SRSLTE_SUCCESS;
@@ -196,7 +111,6 @@ int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, cons
 int user_state_sched_tester::user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg)
 {
   TESTASSERT(users.count(rnti) > 0);
-  users.at(rnti).set_cfg(ue_cfg);
   sim_users.ue_recfg(rnti, ue_cfg);
   return SRSLTE_SUCCESS;
 }
@@ -205,12 +119,13 @@ int user_state_sched_tester::bearer_cfg(uint16_t                                
                                         uint32_t                                        lcid,
                                         const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg)
 {
-  auto it = users.find(rnti);
+  sim_users.bearer_cfg(rnti, lcid, bearer_cfg);
+  ue_sim* ue = sim_users.find_rnti(rnti);
+  auto    it = users.find(rnti);
   TESTASSERT(it != users.end());
-  it->second.user_cfg.ue_bearers[lcid] = bearer_cfg;
-  users.at(rnti).drb_cfg_flag          = false;
-  for (uint32_t i = 2; i < it->second.user_cfg.ue_bearers.size(); ++i) {
-    if (it->second.user_cfg.ue_bearers[i].direction != sched_interface::ue_bearer_cfg_t::IDLE) {
+  users.at(rnti).drb_cfg_flag = false;
+  for (uint32_t i = 2; i < ue->get_ctxt().ue_cfg.ue_bearers.size(); ++i) {
+    if (ue->get_ctxt().ue_cfg.ue_bearers[i].direction != sched_interface::ue_bearer_cfg_t::IDLE) {
       users.at(rnti).drb_cfg_flag = true;
     }
   }
@@ -233,13 +148,6 @@ int user_state_sched_tester::test_all(const sf_output_res_t& sf_out)
 
   // Update Simulated UEs state
   sim_users.update(sf_out);
-
-  for (uint32_t enb_cc_idx = 0; enb_cc_idx < enb_ctxt.cell_params->size(); ++enb_cc_idx) {
-    for (auto& u : users) {
-      TESTASSERT(u.second.test_sched_result(
-                     enb_cc_idx, sf_out.dl_cc_result[enb_cc_idx], sf_out.ul_cc_result[enb_cc_idx]) == SRSLTE_SUCCESS);
-    }
-  }
 
   return SRSLTE_SUCCESS;
 }
@@ -402,7 +310,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
           to_tx_ul(ue_sim_ctxt.msg3_tti_rx) <= tti_rx) {
         // Msg3 has been received but Msg4 has not been yet transmitted
         // Setup default UE config
-        reconf_user(user->rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg));
+        reconf_user(ue_sim_ctxt.rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg));
 
         // Schedule RRC Setup and ConRes CE
         uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
@@ -427,7 +335,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
         if (user->drb_cfg_flag or pending_dl_new_data == 0) {
           // If RRCSetup finished
           if (not user->drb_cfg_flag) {
-            reconf_user(user->rnti, sim_args0.default_ue_sim_cfg.ue_cfg);
+            reconf_user(ue_sim_ctxt.rnti, sim_args0.default_ue_sim_cfg.ue_cfg);
             // setup lcid==drb1 bearer
             sched::ue_bearer_cfg_t cfg = {};
             cfg.direction              = ue_bearer_cfg_t::BOTH;

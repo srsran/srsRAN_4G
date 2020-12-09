@@ -57,12 +57,13 @@ struct ue_tti_events {
   struct cc_data {
     bool     configured = false;
     uint32_t ue_cc_idx  = 0;
-    int      dl_cqi     = -1;
     int      dl_pid     = -1;
     bool     dl_ack     = false;
     int      tb         = 0;
     int      ul_pid     = -1;
     bool     ul_ack     = false;
+    int      dl_cqi     = -1;
+    int      ul_cqi     = -1;
   };
   srslte::tti_point    tti_rx;
   std::vector<cc_data> cc_list;
@@ -78,6 +79,7 @@ public:
          uint32_t                                        preamble_idx);
 
   void set_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
+  void bearer_cfg(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg);
 
   int update(const sf_output_res_t& sf_out);
 
@@ -124,12 +126,23 @@ public:
                 srslte::tti_point                prach_tti_rx_,
                 uint32_t                         preamble_idx);
   void ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_);
+  void bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg);
   void rem_user(uint16_t rnti);
 
   void                                     update(const sf_output_res_t& sf_out);
   std::map<uint16_t, const sim_ue_ctxt_t*> get_ues_ctxt() const;
   ue_sim&                                  at(uint16_t rnti) { return ue_db.at(rnti); }
   const ue_sim&                            at(uint16_t rnti) const { return ue_db.at(rnti); }
+  ue_sim*                                  find_rnti(uint16_t rnti)
+  {
+    auto it = ue_db.find(rnti);
+    return it != ue_db.end() ? &it->second : nullptr;
+  }
+  const ue_sim* find_rnti(uint16_t rnti) const
+  {
+    auto it = ue_db.find(rnti);
+    return it != ue_db.end() ? &it->second : nullptr;
+  }
 
 private:
   const std::vector<sched_interface::cell_cfg_t>* cell_params;

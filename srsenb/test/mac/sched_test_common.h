@@ -40,42 +40,13 @@ struct ue_ctxt_test {
   srslte::log_ref  log_h{"TEST"};
   ue_ctxt_test_cfg sim_cfg;
 
-  // prach args
-  uint16_t rnti;
-
-  /* state */
-  srsenb::sched_interface::ue_cfg_t user_cfg;
-  srslte::tti_point                 current_tti_rx;
-
-  struct cc_ue_ctxt_test {
-    uint32_t ue_cc_idx  = 0;
-    uint32_t enb_cc_idx = 0;
-  };
-  std::vector<cc_ue_ctxt_test> active_ccs;
-  ue_sim*                      ue_ctxt;
+  ue_sim* ue_ctxt;
 
   bool drb_cfg_flag = false;
 
-  ue_ctxt_test(uint16_t rnti_, srslte::tti_point prach_tti, const ue_ctxt_test_cfg& cfg_, ue_sim& ue_ctxt_);
-
-  int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
-  cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
+  ue_ctxt_test(const ue_ctxt_test_cfg& cfg_, ue_sim& ue_ctxt_);
 
   int new_tti(sched* sched_ptr, srslte::tti_point tti_rx);
-  int test_sched_result(uint32_t                     enb_cc_idx,
-                        const sched::dl_sched_res_t& dl_result,
-                        const sched::ul_sched_res_t& ul_result);
-
-private:
-  int fwd_ue_feedback(sched* sched_ptr);
-
-  struct cc_result {
-    uint32_t                     enb_cc_idx;
-    const sched::dl_sched_res_t* dl_result;
-    const sched::ul_sched_res_t* ul_result;
-  };
-  //! Test correct activation of SCells
-  int test_scell_activation(cc_result result);
 };
 
 class user_state_sched_tester
@@ -93,7 +64,7 @@ public:
   }
   const sched::ue_cfg_t* get_user_cfg(uint16_t rnti) const
   {
-    return users.count(rnti) > 0 ? &users.find(rnti)->second.user_cfg : nullptr;
+    return users.count(rnti) > 0 ? &sim_users.at(rnti).get_ctxt().ue_cfg : nullptr;
   }
 
   /* Config users */

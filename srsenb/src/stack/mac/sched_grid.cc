@@ -11,7 +11,6 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_grid.h"
-#include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"

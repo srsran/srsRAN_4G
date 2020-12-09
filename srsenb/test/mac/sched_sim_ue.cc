@@ -62,6 +62,11 @@ void ue_sim::set_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   }
 }
 
+void ue_sim::bearer_cfg(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
+{
+  ctxt.ue_cfg.ue_bearers.at(lc_id) = cfg;
+}
+
 ue_sim::sync_tti_events ue_sim::get_pending_events(srslte::tti_point tti_rx, sched_interface* sched)
 {
   pending_feedback.tti_rx = tti_rx;
@@ -78,14 +83,25 @@ ue_sim::sync_tti_events ue_sim::get_pending_events(srslte::tti_point tti_rx, sch
       auto& dl_h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
       auto& ul_h = ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[pid];
 
+      // Set default DL ACK
       if (dl_h.active and to_tx_dl_ack(dl_h.last_tti_rx) == tti_rx) {
         cc_feedback.dl_pid = pid;
         cc_feedback.dl_ack = false; // default is NACK
       }
+
+      // Set default UL ACK
       if (ul_h.active and to_tx_ul(ul_h.last_tti_rx) == tti_rx) {
         cc_feedback.ul_pid = pid;
         cc_feedback.ul_ack = false;
       }
+
+      // Set default DL CQI
+      if (srslte_cqi_periodic_send(
+              &ctxt.ue_cfg.supported_cc_list[cc_feedback.ue_cc_idx].dl_cfg.cqi_report, tti_rx.to_uint(), SRSLTE_FDD)) {
+        cc_feedback.dl_cqi = 0;
+      }
+
+      // TODO: UL CQI
     }
   }
   return {this, sched};
@@ -132,6 +148,14 @@ void ue_sim::push_feedback(sched_interface* sched)
         log_h->error("The ACKed UL Harq pid=%d does not exist.\n", cc_feedback.ul_pid);
         error_count++;
       }
+    }
+
+    if (cc_feedback.dl_cqi >= 0) {
+      sched->dl_cqi_info(pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.dl_cqi);
+    }
+
+    if (cc_feedback.ul_cqi >= 0) {
+      sched->ul_snr_info(pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.ul_cqi, 0);
     }
   }
 }
@@ -305,6 +329,11 @@ void ue_db_sim::add_user(uint16_t                         rnti,
 void ue_db_sim::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
 {
   ue_db.at(rnti).set_cfg(ue_cfg_);
+}
+
+void ue_db_sim::bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
+{
+  ue_db.at(rnti).bearer_cfg(lc_id, cfg);
 }
 
 void ue_db_sim::rem_user(uint16_t rnti)
