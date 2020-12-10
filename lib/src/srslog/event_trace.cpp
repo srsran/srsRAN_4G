@@ -12,7 +12,6 @@
 
 #include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/srslog.h"
-#include <cassert>
 #include <ctime>
 
 #undef trace_duration_begin

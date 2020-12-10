@@ -14,8 +14,6 @@
 #define SRSLOG_STREAM_SINK_H
 
 #include "srslte/srslog/sink.h"
-#include <cassert>
-#include <cstdio>
 
 namespace srslog {
 
@@ -26,7 +24,8 @@ enum class sink_stream_type { stdout, stderr };
 class stream_sink : public sink
 {
 public:
-  explicit stream_sink(sink_stream_type s) :
+  stream_sink(sink_stream_type s, std::unique_ptr<log_formatter> f) :
+    sink(std::move(f)),
     handle((s == sink_stream_type::stdout) ? stdout : stderr)
   {}
 

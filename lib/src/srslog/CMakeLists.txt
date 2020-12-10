@@ -13,9 +13,9 @@ set(SOURCES
     event_trace.cpp)
 
 add_subdirectory(bundled/fmt)
+add_subdirectory(formatters)
 
 find_package(Threads REQUIRED)
 
 add_library(srslog STATIC ${SOURCES})
-target_link_libraries(srslog fmt "${CMAKE_THREAD_LIBS_INIT}")
-INSTALL(TARGETS srslog DESTINATION ${LIBRARY_DIR})
+target_link_libraries(srslog formatters fmt "${CMAKE_THREAD_LIBS_INIT}")

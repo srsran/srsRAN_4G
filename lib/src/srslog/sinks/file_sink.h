@@ -15,7 +15,6 @@
 
 #include "file_utils.h"
 #include "srslte/srslog/sink.h"
-#include <cassert>
 
 namespace srslog {
 
@@ -25,15 +24,16 @@ namespace srslog {
 class file_sink : public sink
 {
 public:
-  file_sink(std::string name, size_t max_size) :
+  file_sink(std::string name,
+            size_t max_size,
+            std::unique_ptr<log_formatter> f) :
+    sink(std::move(f)),
     base_filename(std::move(name)),
     max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024))
   {}
 
   file_sink(const file_sink& other) = delete;
   file_sink& operator=(const file_sink& other) = delete;
-
-  ~file_sink() override { handler.close(); }
 
   detail::error_string write(detail::memory_buffer buffer) override
   {

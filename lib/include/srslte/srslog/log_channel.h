@@ -14,7 +14,8 @@
 #define SRSLOG_LOG_CHANNEL_H
 
 #include "srslte/srslog/detail/log_backend.h"
-#include <cassert>
+#include "srslte/srslog/detail/log_entry.h"
+#include "srslte/srslog/sink.h"
 
 namespace srslog {
 
@@ -22,9 +23,7 @@ namespace srslog {
 struct log_channel_config {
   log_channel_config() = default;
   log_channel_config(std::string n, char tag, bool should_print_context) :
-    name(std::move(n)),
-    tag(tag),
-    should_print_context(should_print_context)
+    name(std::move(n)), tag(tag), should_print_context(should_print_context)
   {}
 
   /// Optional log channel name. If set, will get printed for each log entry.
@@ -95,19 +94,25 @@ public:
     if (!enabled()) {
       return;
     }
-    assert(&log_sink);
+
     // Populate the store with all incoming arguments.
     fmt::dynamic_format_arg_store<fmt::printf_context> store;
     (void)std::initializer_list<int>{(store.push_back(args), 0)...};
 
     // Send the log entry to the backend.
-    detail::log_entry entry = {&log_sink,
-                               std::chrono::high_resolution_clock::now(),
-                               {ctx_value, should_print_context},
-                               fmtstr,
-                               std::move(store),
-                               log_name,
-                               log_tag};
+    log_formatter& formatter = log_sink.get_formatter();
+    detail::log_entry entry = {
+        &log_sink,
+        [&formatter](detail::log_entry_metadata&& metadata,
+                     fmt::memory_buffer& buffer) {
+          formatter.format(std::move(metadata), buffer);
+        },
+        {std::chrono::high_resolution_clock::now(),
+         {ctx_value, should_print_context},
+         fmtstr,
+         std::move(store),
+         log_name,
+         log_tag}};
     backend.push(std::move(entry));
   }
 
@@ -123,7 +128,6 @@ public:
       return;
     }
 
-    assert(&log_sink);
     // Populate the store with all incoming arguments.
     fmt::dynamic_format_arg_store<fmt::printf_context> store;
     (void)std::initializer_list<int>{(store.push_back(args), 0)...};
@@ -133,14 +137,78 @@ public:
       len = std::min<size_t>(len, hex_max_size);
 
     // Send the log entry to the backend.
-    detail::log_entry entry = {&log_sink,
-                               std::chrono::high_resolution_clock::now(),
-                               {ctx_value, should_print_context},
-                               fmtstr,
-                               std::move(store),
-                               log_name,
-                               log_tag,
-                               std::vector<uint8_t>(buffer, buffer + len)};
+    log_formatter& formatter = log_sink.get_formatter();
+    detail::log_entry entry = {
+        &log_sink,
+        [&formatter](detail::log_entry_metadata&& metadata,
+                     fmt::memory_buffer& buffer) {
+          formatter.format(std::move(metadata), buffer);
+        },
+        {std::chrono::high_resolution_clock::now(),
+         {ctx_value, should_print_context},
+         fmtstr,
+         std::move(store),
+         log_name,
+         log_tag,
+         std::vector<uint8_t>(buffer, buffer + len)}};
+    backend.push(std::move(entry));
+  }
+
+  /// Builds the provided log entry and passes it to the backend. When the
+  /// channel is disabled the log entry will be discarded.
+  template <typename... Ts>
+  void operator()(const context<Ts...>& ctx)
+  {
+    if (!enabled()) {
+      return;
+    }
+
+    // Send the log entry to the backend.
+    log_formatter& formatter = log_sink.get_formatter();
+    detail::log_entry entry = {
+        &log_sink,
+        [&formatter, ctx](detail::log_entry_metadata&& metadata,
+                          fmt::memory_buffer& buffer) {
+          formatter.format_ctx(ctx, std::move(metadata), buffer);
+        },
+        {std::chrono::high_resolution_clock::now(),
+         {ctx_value, should_print_context},
+         "",
+         {},
+         log_name,
+         log_tag}};
+    backend.push(std::move(entry));
+  }
+
+  /// Builds the provided log entry and passes it to the backend. When the
+  /// channel is disabled the log entry will be discarded.
+  template <typename... Ts, typename... Args>
+  void operator()(const context<Ts...>& ctx,
+                  const std::string& fmtstr,
+                  Args&&... args)
+  {
+    if (!enabled()) {
+      return;
+    }
+
+    // Populate the store with all incoming arguments.
+    fmt::dynamic_format_arg_store<fmt::printf_context> store;
+    (void)std::initializer_list<int>{(store.push_back(args), 0)...};
+
+    // Send the log entry to the backend.
+    log_formatter& formatter = log_sink.get_formatter();
+    detail::log_entry entry = {
+        &log_sink,
+        [&formatter, ctx](detail::log_entry_metadata&& metadata,
+                          fmt::memory_buffer& buffer) {
+          formatter.format_ctx(ctx, std::move(metadata), buffer);
+        },
+        {std::chrono::high_resolution_clock::now(),
+         {ctx_value, should_print_context},
+         fmtstr,
+         std::move(store),
+         log_name,
+         log_tag}};
     backend.push(std::move(entry));
   }
 

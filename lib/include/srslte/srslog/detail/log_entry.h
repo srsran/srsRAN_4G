@@ -13,23 +13,14 @@
 #ifndef SRSLOG_DETAIL_LOG_ENTRY_H
 #define SRSLOG_DETAIL_LOG_ENTRY_H
 
-#include "srslte/srslog/bundled/fmt/printf.h"
+#include "srslte/srslog/detail/log_entry_metadata.h"
 #include "srslte/srslog/detail/support/thread_utils.h"
-#include <chrono>
 
 namespace srslog {
 
 class sink;
 
 namespace detail {
-
-/// This structure gives the user a way to log generic information as a context.
-struct log_context {
-  /// Generic contxt value.
-  uint32_t value;
-  /// When true, the context value will be printed in the log entry.
-  bool enabled;
-};
 
 /// This command flushes all the messages pending in the backend.
 struct flush_backend_cmd {
@@ -39,16 +30,13 @@ struct flush_backend_cmd {
 
 /// This structure packs all the required data required to create a log entry in
 /// the backend.
-//:TODO: provide proper command objects when we have custom formatting.
+//:TODO: replace this object using a real command pattern when we have a raw
+// memory queue for passing entries.
 struct log_entry {
   sink* s;
-  std::chrono::high_resolution_clock::time_point tp;
-  log_context context;
-  std::string fmtstring;
-  fmt::dynamic_format_arg_store<fmt::printf_context> store;
-  std::string log_name;
-  char log_tag;
-  std::vector<uint8_t> hex_dump;
+  std::function<void(log_entry_metadata&& metadata, fmt::memory_buffer& buffer)>
+      format_func;
+  log_entry_metadata metadata;
   std::unique_ptr<flush_backend_cmd> flush_cmd;
 };
 

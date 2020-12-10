@@ -13,11 +13,11 @@
 #ifndef SRSLOG_DETAIL_LOG_BACKEND_H
 #define SRSLOG_DETAIL_LOG_BACKEND_H
 
-#include "srslte/srslog/detail/log_entry.h"
-
 namespace srslog {
 
 namespace detail {
+
+struct log_entry;
 
 /// The log backend receives generated log entries from the application. Each
 /// entry gets distributed to the corresponding sinks.
@@ -32,7 +32,7 @@ public:
   virtual void start() = 0;
 
   /// Pushes a log entry into the backend.
-  virtual void push(detail::log_entry&& entry) = 0;
+  virtual void push(log_entry&& entry) = 0;
 
   /// Returns true when the backend has been started, otherwise false.
   virtual bool is_running() const = 0;

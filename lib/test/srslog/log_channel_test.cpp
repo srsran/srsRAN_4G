@@ -11,42 +11,15 @@
  */
 
 #include "srslte/srslog/log_channel.h"
-#include "srslte/srslog/sink.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
 
-namespace {
-
-/// A Dummy implementation of a sink.
-class sink_dummy : public sink
-{
-public:
-  detail::error_string write(detail::memory_buffer buffer) override
-  {
-    return {};
-  }
-
-  detail::error_string flush() override { return {}; }
-};
-
-/// A Dummy implementation of the log backend.
-class backend_dummy : public detail::log_backend
-{
-public:
-  void start() override {}
-
-  void push(detail::log_entry&& entry) override {}
-
-  bool is_running() const override { return true; }
-};
-
-} // namespace
-
 static bool when_log_channel_is_created_then_id_matches_expected_value()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel log("id", s, backend);
 
   ASSERT_EQ(log.id(), "id");
@@ -56,8 +29,8 @@ static bool when_log_channel_is_created_then_id_matches_expected_value()
 
 static bool when_log_channel_is_disabled_then_enabled_returns_false()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel log("id", s, backend);
 
   log.set_enabled(false);
@@ -69,8 +42,8 @@ static bool when_log_channel_is_disabled_then_enabled_returns_false()
 
 static bool when_log_channel_is_enabled_then_enabled_returns_true()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel log("id", s, backend);
 
   log.set_enabled(true);
@@ -112,7 +85,7 @@ static bool
 when_logging_in_log_channel_then_log_entry_is_pushed_into_the_backend()
 {
   backend_spy backend;
-  sink_dummy s;
+  test_dummies::sink_dummy s;
   log_channel log("id", s, backend);
 
   std::string fmtstring = "test";
@@ -126,7 +99,7 @@ when_logging_in_log_channel_then_log_entry_is_pushed_into_the_backend()
 static bool when_logging_in_disabled_log_channel_then_log_entry_is_ignored()
 {
   backend_spy backend;
-  sink_dummy s;
+  test_dummies::sink_dummy s;
   log_channel log("id", s, backend);
 
   log.set_enabled(false);
@@ -141,7 +114,7 @@ static bool when_logging_in_disabled_log_channel_then_log_entry_is_ignored()
 static bool when_logging_then_filled_in_log_entry_is_pushed_into_the_backend()
 {
   backend_spy backend;
-  sink_dummy s;
+  test_dummies::sink_dummy s;
 
   std::string name = "name";
   char tag = 'A';
@@ -157,12 +130,15 @@ static bool when_logging_then_filled_in_log_entry_is_pushed_into_the_backend()
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
   const detail::log_entry& entry = backend.last_entry();
-  ASSERT_NE(entry.tp.time_since_epoch().count(), 0);
-  ASSERT_EQ(entry.context.value, ctx);
-  ASSERT_EQ(entry.context.enabled, true);
-  ASSERT_EQ(entry.fmtstring, fmtstring);
-  ASSERT_EQ(entry.log_name, name);
-  ASSERT_EQ(entry.log_tag, tag);
+  ASSERT_EQ(&s, entry.s);
+  ASSERT_NE(entry.format_func, nullptr);
+  ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
+  ASSERT_EQ(entry.metadata.context.value, ctx);
+  ASSERT_EQ(entry.metadata.context.enabled, true);
+  ASSERT_EQ(entry.metadata.fmtstring, fmtstring);
+  ASSERT_EQ(entry.metadata.log_name, name);
+  ASSERT_EQ(entry.metadata.log_tag, tag);
+  ASSERT_EQ(entry.metadata.hex_dump.empty(), true);
 
   return true;
 }
@@ -171,7 +147,7 @@ static bool
 when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend()
 {
   backend_spy backend;
-  sink_dummy s;
+  test_dummies::sink_dummy s;
 
   std::string name = "name";
   char tag = 'A';
@@ -189,16 +165,19 @@ when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend()
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
   const detail::log_entry& entry = backend.last_entry();
-  ASSERT_NE(entry.tp.time_since_epoch().count(), 0);
-  ASSERT_EQ(entry.context.value, ctx);
-  ASSERT_EQ(entry.context.enabled, true);
-  ASSERT_EQ(entry.fmtstring, fmtstring);
-  ASSERT_EQ(entry.log_name, name);
-  ASSERT_EQ(entry.log_tag, tag);
-  ASSERT_EQ(entry.hex_dump.size(), 4);
-  ASSERT_EQ(
-      std::equal(entry.hex_dump.begin(), entry.hex_dump.end(), std::begin(hex)),
-      true);
+  ASSERT_EQ(&s, entry.s);
+  ASSERT_NE(entry.format_func, nullptr);
+  ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
+  ASSERT_EQ(entry.metadata.context.value, ctx);
+  ASSERT_EQ(entry.metadata.context.enabled, true);
+  ASSERT_EQ(entry.metadata.fmtstring, fmtstring);
+  ASSERT_EQ(entry.metadata.log_name, name);
+  ASSERT_EQ(entry.metadata.log_tag, tag);
+  ASSERT_EQ(entry.metadata.hex_dump.size(), 4);
+  ASSERT_EQ(std::equal(entry.metadata.hex_dump.begin(),
+                       entry.metadata.hex_dump.end(),
+                       std::begin(hex)),
+            true);
 
   return true;
 }
@@ -207,10 +186,9 @@ static bool
 when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used()
 {
   backend_spy backend;
-  sink_dummy s;
+  test_dummies::sink_dummy s;
 
   std::string name = "name";
-  char tag = 'A';
 
   log_channel log("id", s, backend);
 
@@ -223,10 +201,85 @@ when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used()
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
   const detail::log_entry& entry = backend.last_entry();
-  ASSERT_EQ(entry.hex_dump.size(), 3);
-  ASSERT_EQ(
-      std::equal(entry.hex_dump.begin(), entry.hex_dump.end(), std::begin(hex)),
-      true);
+  ASSERT_EQ(entry.metadata.hex_dump.size(), 3);
+  ASSERT_EQ(std::equal(entry.metadata.hex_dump.begin(),
+                       entry.metadata.hex_dump.end(),
+                       std::begin(hex)),
+            true);
+
+  return true;
+}
+
+namespace {
+
+DECLARE_METRIC("SNR", snr_t, int, "dB");
+DECLARE_METRIC_SET("myset", my_set, snr_t);
+using my_ctx = srslog::build_context_type<my_set>;
+
+} // namespace
+
+static bool
+when_logging_with_context_then_filled_in_log_entry_is_pushed_into_the_backend()
+{
+  backend_spy backend;
+  test_dummies::sink_dummy s;
+
+  std::string name = "name";
+  char tag = 'A';
+
+  log_channel log("id", s, backend, {name, tag, true});
+
+  uint32_t ctx_value = 4;
+  log.set_context(ctx_value);
+
+  my_ctx ctx("myctx");
+  log(ctx);
+
+  ASSERT_EQ(backend.push_invocation_count(), 1);
+
+  const detail::log_entry& entry = backend.last_entry();
+  ASSERT_EQ(&s, entry.s);
+  ASSERT_NE(entry.format_func, nullptr);
+  ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
+  ASSERT_EQ(entry.metadata.context.value, ctx_value);
+  ASSERT_EQ(entry.metadata.context.enabled, true);
+  ASSERT_EQ(entry.metadata.log_name, name);
+  ASSERT_EQ(entry.metadata.log_tag, tag);
+  ASSERT_EQ(entry.metadata.hex_dump.empty(), true);
+
+  return true;
+}
+
+static bool
+when_logging_with_context_and_message_then_filled_in_log_entry_is_pushed_into_the_backend()
+{
+  backend_spy backend;
+  test_dummies::sink_dummy s;
+
+  std::string name = "name";
+  char tag = 'A';
+
+  log_channel log("id", s, backend, {name, tag, true});
+
+  uint32_t ctx_value = 4;
+  log.set_context(ctx_value);
+  std::string fmtstring = "test";
+
+  my_ctx ctx("myctx");
+  log(ctx, fmtstring, 10, 3.3);
+
+  ASSERT_EQ(backend.push_invocation_count(), 1);
+
+  const detail::log_entry& entry = backend.last_entry();
+  ASSERT_EQ(&s, entry.s);
+  ASSERT_NE(entry.format_func, nullptr);
+  ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
+  ASSERT_EQ(entry.metadata.context.value, ctx_value);
+  ASSERT_EQ(entry.metadata.context.enabled, true);
+  ASSERT_EQ(entry.metadata.fmtstring, fmtstring);
+  ASSERT_EQ(entry.metadata.log_name, name);
+  ASSERT_EQ(entry.metadata.log_tag, tag);
+  ASSERT_EQ(entry.metadata.hex_dump.empty(), true);
 
   return true;
 }
@@ -245,6 +298,10 @@ int main()
       when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend);
   TEST_FUNCTION(
       when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used);
+  TEST_FUNCTION(
+      when_logging_with_context_then_filled_in_log_entry_is_pushed_into_the_backend);
+  TEST_FUNCTION(
+      when_logging_with_context_and_message_then_filled_in_log_entry_is_pushed_into_the_backend);
 
   return 0;
 }

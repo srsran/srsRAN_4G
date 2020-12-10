@@ -11,9 +11,7 @@
  */
 
 #include "backend_worker.h"
-#include "formatter.h"
 #include "srslte/srslog/sink.h"
-#include <cassert>
 
 using namespace srslog;
 
@@ -90,13 +88,14 @@ void backend_worker::process_log_entry(detail::log_entry&& entry)
     return;
   }
 
-  // Save sink pointer before moving the entry.
-  sink* s = entry.s;
+  fmt::memory_buffer fmt_buffer;
 
-  std::string result = format_log_entry_to_text(std::move(entry));
-  detail::memory_buffer buffer(result);
+  assert(entry.format_func && "Invalid format function");
+  entry.format_func(std::move(entry.metadata), fmt_buffer);
 
-  if (auto err_str = s->write(buffer)) {
+  const auto str = fmt::to_string(fmt_buffer);
+  detail::memory_buffer buffer(str);
+  if (auto err_str = entry.s->write(buffer)) {
     err_handler(err_str.get_error());
   }
 }

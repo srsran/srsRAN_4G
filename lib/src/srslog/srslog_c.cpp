@@ -12,7 +12,6 @@
 
 #include "srslte/srslog/srslog_c.h"
 #include "srslte/srslog/srslog.h"
-#include <cassert>
 #include <cstdarg>
 
 using namespace srslog;

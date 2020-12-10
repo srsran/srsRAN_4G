@@ -11,7 +11,7 @@
  */
 
 #include "srslte/srslog/logger.h"
-#include "srslte/srslog/sink.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
@@ -19,29 +19,6 @@ using namespace srslog;
 static constexpr char logger_id[] = "TestLogger";
 
 namespace {
-
-/// A Dummy implementation of a sink.
-class sink_dummy : public sink
-{
-public:
-  detail::error_string write(detail::memory_buffer buffer) override
-  {
-    return {};
-  }
-
-  detail::error_string flush() override { return {}; }
-};
-
-/// A Dummy implementation of the log backend.
-class backend_dummy : public detail::log_backend
-{
-public:
-  void start() override {}
-
-  void push(detail::log_entry&& entry) override {}
-
-  bool is_running() const override { return true; }
-};
 
 /// Definition of a three level logger
 enum class test_logger_levels { error, warning, info, LAST };
@@ -56,8 +33,8 @@ using test_logger = build_logger_type<test_logger_channels, test_logger_levels>;
 
 static bool when_logger_is_created_then_id_matches_expected_value()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel error("err", s, backend);
   log_channel warning("warning", s, backend);
   log_channel info("info", s, backend);
@@ -71,8 +48,8 @@ static bool when_logger_is_created_then_id_matches_expected_value()
 
 static bool when_level_is_set_to_error_then_info_and_warning_is_disabled()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel error("err", s, backend);
   log_channel warning("warning", s, backend);
   log_channel info("info", s, backend);
@@ -89,8 +66,8 @@ static bool when_level_is_set_to_error_then_info_and_warning_is_disabled()
 
 static bool when_level_is_set_to_warning_then_info_is_disabled()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel error("err", s, backend);
   log_channel warning("warning", s, backend);
   log_channel info("info", s, backend);
@@ -107,8 +84,8 @@ static bool when_level_is_set_to_warning_then_info_is_disabled()
 
 static bool when_level_is_set_to_info_then_all_are_enabled()
 {
-  backend_dummy backend;
-  sink_dummy s;
+  test_dummies::backend_dummy backend;
+  test_dummies::sink_dummy s;
   log_channel error("err", s, backend);
   log_channel warning("warning", s, backend);
   log_channel info("info", s, backend);

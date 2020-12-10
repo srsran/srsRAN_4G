@@ -11,7 +11,7 @@
  */
 
 #include "src/srslog/log_backend_impl.h"
-#include "srslte/srslog/sink.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
@@ -46,6 +46,10 @@ namespace {
 class sink_spy : public sink
 {
 public:
+  sink_spy() :
+    sink(std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy))
+  {}
+
   detail::error_string write(detail::memory_buffer buffer) override
   {
     ++count;
@@ -88,7 +92,10 @@ static detail::log_entry build_log_entry(sink* s)
   fmt::dynamic_format_arg_store<fmt::printf_context> store;
   store.push_back(88);
 
-  return {s, tp, {0, false}, "Text %d", std::move(store), "", '\0'};
+  return {
+      s,
+      [](detail::log_entry_metadata&& metadata, fmt::memory_buffer& buffer) {},
+      {tp, {0, false}, "Text %d", std::move(store), "", '\0'}};
 }
 
 static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()
@@ -104,7 +111,27 @@ static bool when_backend_is_started_then_pushed_log_entries_are_sent_to_sink()
   backend.stop();
 
   ASSERT_EQ(spy.write_invocation_count(), 1);
-  ASSERT_NE(spy.received_buffer().find("Text 88"), std::string::npos);
+
+  return true;
+}
+
+static bool when_backend_is_started_then_backend_invokes_format_func()
+{
+  test_dummies::sink_dummy s;
+
+  log_backend_impl backend;
+  backend.start();
+
+  auto entry = build_log_entry(&s);
+  unsigned counter = 0;
+  entry.format_func = [&counter](detail::log_entry_metadata&& metadata,
+                                 fmt::memory_buffer& buffer) { ++counter; };
+  backend.push(std::move(entry));
+
+  // Stop the backend to ensure the entry has been processed.
+  backend.stop();
+
+  ASSERT_EQ(counter, 1);
 
   return true;
 }
@@ -117,7 +144,10 @@ namespace {
 class sink_error_stub : public sink
 {
 public:
-  explicit sink_error_stub(std::string err) : err(std::move(err)) {}
+  explicit sink_error_stub(std::string err) :
+    sink(std::unique_ptr<log_formatter>(new test_dummies::log_formatter_dummy)),
+    err(std::move(err))
+  {}
 
   detail::error_string write(detail::memory_buffer buffer) override
   {
@@ -211,6 +241,7 @@ int main()
       when_backend_is_not_started_then_pushed_log_entries_are_ignored);
   TEST_FUNCTION(
       when_backend_is_started_then_pushed_log_entries_are_sent_to_sink);
+  TEST_FUNCTION(when_backend_is_started_then_backend_invokes_format_func);
   TEST_FUNCTION(when_sink_write_fails_then_error_handler_is_invoked);
   TEST_FUNCTION(when_handler_is_set_after_start_then_handler_is_not_used);
   TEST_FUNCTION(when_empty_handler_is_used_then_backend_does_not_crash);
