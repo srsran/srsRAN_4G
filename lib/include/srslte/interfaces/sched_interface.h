@@ -246,8 +246,8 @@ public:
   virtual bool ue_exists(uint16_t rnti)                   = 0;
 
   /* Manages UE bearers and associated configuration */
-  virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) = 0;
-  virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                       = 0;
+  virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const ue_bearer_cfg_t& cfg) = 0;
+  virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                             = 0;
 
   virtual uint32_t get_ul_buffer(uint16_t rnti) = 0;
   virtual uint32_t get_dl_buffer(uint16_t rnti) = 0;

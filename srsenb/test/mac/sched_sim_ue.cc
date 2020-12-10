@@ -12,6 +12,7 @@
 
 #include "sched_sim_ue.h"
 #include "lib/include/srslte/mac/pdu.h"
+#include "sched_test_utils.h"
 
 namespace srsenb {
 
@@ -46,7 +47,6 @@ ue_sim::ue_sim(uint16_t                                        rnti_,
   ctxt.rnti         = rnti_;
   ctxt.prach_tti_rx = prach_tti_rx_;
   ctxt.preamble_idx = preamble_idx;
-  pending_feedback.cc_list.resize(cell_params->size());
   set_cfg(ue_cfg_);
 }
 
@@ -67,108 +67,8 @@ void ue_sim::bearer_cfg(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& 
   ctxt.ue_cfg.ue_bearers.at(lc_id) = cfg;
 }
 
-ue_sim::sync_tti_events ue_sim::get_pending_events(srslte::tti_point tti_rx, sched_interface* sched)
-{
-  pending_feedback.tti_rx = tti_rx;
-  for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_feedback.cc_list.size(); ++enb_cc_idx) {
-    auto& cc_feedback = pending_feedback.cc_list[enb_cc_idx];
-    cc_feedback       = {};
-    if (ctxt.enb_to_ue_cc_idx(enb_cc_idx) < 0) {
-      continue;
-    }
-
-    cc_feedback.configured = true;
-    cc_feedback.ue_cc_idx  = ctxt.enb_to_ue_cc_idx(enb_cc_idx);
-    for (uint32_t pid = 0; pid < SRSLTE_FDD_NOF_HARQ; ++pid) {
-      auto& dl_h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
-      auto& ul_h = ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[pid];
-
-      // Set default DL ACK
-      if (dl_h.active and to_tx_dl_ack(dl_h.last_tti_rx) == tti_rx) {
-        cc_feedback.dl_pid = pid;
-        cc_feedback.dl_ack = false; // default is NACK
-      }
-
-      // Set default UL ACK
-      if (ul_h.active and to_tx_ul(ul_h.last_tti_rx) == tti_rx) {
-        cc_feedback.ul_pid = pid;
-        cc_feedback.ul_ack = false;
-      }
-
-      // Set default DL CQI
-      if (srslte_cqi_periodic_send(
-              &ctxt.ue_cfg.supported_cc_list[cc_feedback.ue_cc_idx].dl_cfg.cqi_report, tti_rx.to_uint(), SRSLTE_FDD)) {
-        cc_feedback.dl_cqi = 0;
-      }
-
-      // TODO: UL CQI
-    }
-  }
-  return {this, sched};
-}
-
-void ue_sim::push_feedback(sched_interface* sched)
-{
-  for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_feedback.cc_list.size(); ++enb_cc_idx) {
-    const auto& cc_feedback = pending_feedback.cc_list[enb_cc_idx];
-    if (not cc_feedback.configured) {
-      continue;
-    }
-
-    if (cc_feedback.dl_pid >= 0) {
-      auto& h = ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
-
-      if (cc_feedback.dl_ack) {
-        log_h->info(
-            "DL ACK rnti=0x%x tti_dl_tx=%u pid=%d\n", ctxt.rnti, to_tx_dl(h.last_tti_rx).to_uint(), cc_feedback.dl_pid);
-      }
-      // update scheduler
-      if (sched->dl_ack_info(
-              pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.tb, cc_feedback.dl_ack) < 0) {
-        log_h->error("The ACKed DL Harq pid=%d does not exist.\n", cc_feedback.dl_pid);
-        error_count++;
-      }
-
-      // set UE sim context
-      if (cc_feedback.dl_ack or ctxt.is_last_dl_retx(cc_feedback.ue_cc_idx, cc_feedback.dl_pid)) {
-        h.active = false;
-      }
-    }
-
-    if (cc_feedback.ul_pid >= 0) {
-      auto& h = ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.dl_pid];
-
-      if (cc_feedback.ul_ack) {
-        log_h->info(
-            "UL ACK rnti=0x%x tti_ul_tx=%u pid=%d\n", ctxt.rnti, to_tx_ul(h.last_tti_rx).to_uint(), cc_feedback.dl_pid);
-      }
-
-      // update scheduler
-      if (sched->ul_crc_info(pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.ul_ack) < 0) {
-        log_h->error("The ACKed UL Harq pid=%d does not exist.\n", cc_feedback.ul_pid);
-        error_count++;
-      }
-    }
-
-    if (cc_feedback.dl_cqi >= 0) {
-      sched->dl_cqi_info(pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.dl_cqi);
-    }
-
-    if (cc_feedback.ul_cqi >= 0) {
-      sched->ul_snr_info(pending_feedback.tti_rx.to_uint(), ctxt.rnti, enb_cc_idx, cc_feedback.ul_cqi, 0);
-    }
-  }
-}
-
 int ue_sim::update(const sf_output_res_t& sf_out)
 {
-  if (error_count > 0) {
-    return SRSLTE_ERROR;
-  }
-  if (pending_feedback.tti_rx != sf_out.tti_rx) {
-    // generate default events
-    auto default_events = get_pending_events(sf_out.tti_rx, nullptr);
-  }
   update_conn_state(sf_out);
   update_dl_harqs(sf_out);
   update_ul_harqs(sf_out);
@@ -318,45 +218,182 @@ void ue_sim::update_conn_state(const sf_output_res_t& sf_out)
   }
 }
 
-void ue_db_sim::add_user(uint16_t                         rnti,
-                         const sched_interface::ue_cfg_t& ue_cfg_,
-                         srslte::tti_point                prach_tti_rx_,
-                         uint32_t                         preamble_idx)
+int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_, uint32_t preamble_idx)
 {
-  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, *cell_params, ue_cfg_, prach_tti_rx_, preamble_idx)));
+  CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
+                (*cell_params)[ue_cfg_.supported_cc_list[0].enb_cc_idx].prach_config, current_tti_rx.to_uint(), -1),
+            "New user added in a non-PRACH TTI\n");
+  TESTASSERT(ue_db.count(rnti) == 0);
+
+  final_ue_cfg[rnti] = ue_cfg_;
+  auto rach_cfg      = generate_rach_ue_cfg(ue_cfg_);
+  ue_db.insert(std::make_pair(rnti, ue_sim(rnti, *cell_params, rach_cfg, current_tti_rx, preamble_idx)));
+
+  CONDERROR(sched_ptr->ue_cfg(rnti, generate_rach_ue_cfg(ue_cfg_)) != SRSLTE_SUCCESS,
+            "Configuring new user rnti=0x%x to sched\n",
+            rnti);
+
+  sched_interface::dl_sched_rar_info_t rar_info = {};
+  rar_info.prach_tti                            = current_tti_rx.to_uint();
+  rar_info.temp_crnti                           = rnti;
+  rar_info.msg3_size                            = 7;
+  rar_info.preamble_idx                         = preamble_idx;
+  uint32_t pcell_idx                            = ue_cfg_.supported_cc_list[0].enb_cc_idx;
+  TESTASSERT(sched_ptr->dl_rach_info(pcell_idx, rar_info) == SRSLTE_SUCCESS);
+
+  return SRSLTE_SUCCESS;
 }
 
-void ue_db_sim::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
+int sched_sim_base::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
 {
   ue_db.at(rnti).set_cfg(ue_cfg_);
+
+  CONDERROR(ue_db.count(rnti) == 0, "User must already exist to be configured\n");
+  CONDERROR(sched_ptr->ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
+
+  return SRSLTE_SUCCESS;
 }
 
-void ue_db_sim::bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
+int sched_sim_base::bearer_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg)
 {
   ue_db.at(rnti).bearer_cfg(lc_id, cfg);
+  return sched_ptr->bearer_ue_cfg(rnti, lc_id, cfg);
 }
 
-void ue_db_sim::rem_user(uint16_t rnti)
+int sched_sim_base::rem_user(uint16_t rnti)
 {
   ue_db.erase(rnti);
+  return sched_ptr->ue_rem(rnti);
 }
 
-void ue_db_sim::update(const sf_output_res_t& sf_out)
+void sched_sim_base::update(const sf_output_res_t& sf_out)
 {
   for (auto& ue_pair : ue_db) {
     ue_pair.second.update(sf_out);
   }
 }
 
-std::map<uint16_t, const sim_ue_ctxt_t*> ue_db_sim::get_ues_ctxt() const
+sim_enb_ctxt_t sched_sim_base::get_enb_ctxt() const
 {
-  std::map<uint16_t, const sim_ue_ctxt_t*> ret;
+  sim_enb_ctxt_t ctxt;
+  ctxt.cell_params = cell_params;
 
   for (auto& ue_pair : ue_db) {
-    ret.insert(std::make_pair(ue_pair.first, &ue_pair.second.get_ctxt()));
+    ctxt.ue_db.insert(std::make_pair(ue_pair.first, &ue_pair.second.get_ctxt()));
   }
 
-  return ret;
+  return ctxt;
+}
+
+void sched_sim_base::set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events)
+{
+  pending_events.cc_list.clear();
+  pending_events.cc_list.resize(cell_params->size());
+  pending_events.tti_rx = current_tti_rx;
+
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < pending_events.cc_list.size(); ++enb_cc_idx) {
+    auto& cc_feedback = pending_events.cc_list[enb_cc_idx];
+    if (ue_ctxt.enb_to_ue_cc_idx(enb_cc_idx) < 0) {
+      continue;
+    }
+
+    cc_feedback.configured = true;
+    cc_feedback.ue_cc_idx  = ue_ctxt.enb_to_ue_cc_idx(enb_cc_idx);
+    for (uint32_t pid = 0; pid < SRSLTE_FDD_NOF_HARQ; ++pid) {
+      auto& dl_h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[pid];
+      auto& ul_h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[pid];
+
+      // Set default DL ACK
+      if (dl_h.active and to_tx_dl_ack(dl_h.last_tti_rx) == current_tti_rx) {
+        cc_feedback.dl_pid = pid;
+        cc_feedback.dl_ack = true; // default is ACK
+      }
+
+      // Set default UL ACK
+      if (ul_h.active and to_tx_ul(ul_h.last_tti_rx) == current_tti_rx) {
+        cc_feedback.ul_pid = pid;
+        cc_feedback.ul_ack = true;
+      }
+
+      // Set default DL CQI
+      if (srslte_cqi_periodic_send(&ue_ctxt.ue_cfg.supported_cc_list[cc_feedback.ue_cc_idx].dl_cfg.cqi_report,
+                                   current_tti_rx.to_uint(),
+                                   SRSLTE_FDD)) {
+        cc_feedback.dl_cqi = 28;
+      }
+
+      // TODO: UL CQI
+    }
+  }
+}
+
+void sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events& events)
+{
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < events.cc_list.size(); ++enb_cc_idx) {
+    const auto& cc_feedback = events.cc_list[enb_cc_idx];
+    if (not cc_feedback.configured) {
+      continue;
+    }
+
+    if (cc_feedback.dl_pid >= 0) {
+      auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
+
+      if (cc_feedback.dl_ack) {
+        log_h->info("DL ACK rnti=0x%x tti_dl_tx=%u pid=%d\n",
+                    ue_ctxt.rnti,
+                    to_tx_dl(h.last_tti_rx).to_uint(),
+                    cc_feedback.dl_pid);
+      }
+
+      // update scheduler
+      if (sched_ptr->dl_ack_info(
+              events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.tb, cc_feedback.dl_ack) < 0) {
+        log_h->error("The ACKed DL Harq pid=%d does not exist.\n", cc_feedback.dl_pid);
+        error_counter++;
+      }
+
+      // update UE sim context
+      if (cc_feedback.dl_ack or ue_ctxt.is_last_dl_retx(cc_feedback.ue_cc_idx, cc_feedback.dl_pid)) {
+        h.active = false;
+      }
+    }
+
+    if (cc_feedback.ul_pid >= 0) {
+      auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.dl_pid];
+
+      if (cc_feedback.ul_ack) {
+        log_h->info("UL ACK rnti=0x%x tti_ul_tx=%u pid=%d\n",
+                    ue_ctxt.rnti,
+                    to_tx_ul(h.last_tti_rx).to_uint(),
+                    cc_feedback.dl_pid);
+      }
+
+      // update scheduler
+      if (sched_ptr->ul_crc_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_ack) < 0) {
+        log_h->error("The ACKed UL Harq pid=%d does not exist.\n", cc_feedback.ul_pid);
+        error_counter++;
+      }
+    }
+
+    if (cc_feedback.dl_cqi >= 0) {
+      sched_ptr->dl_cqi_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.dl_cqi);
+    }
+
+    if (cc_feedback.ul_cqi >= 0) {
+      sched_ptr->ul_snr_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_cqi, 0);
+    }
+  }
+}
+
+void sched_sim_base::new_tti(srslte::tti_point tti_rx)
+{
+  current_tti_rx = tti_rx;
+  for (auto& ue : ue_db) {
+    ue_tti_events events;
+    set_default_tti_events(ue.second.get_ctxt(), events);
+    before_sched(ue.second.get_ctxt(), events);
+    apply_tti_events(ue.second.get_ctxt(), events);
+  }
 }
 
 } // namespace srsenb

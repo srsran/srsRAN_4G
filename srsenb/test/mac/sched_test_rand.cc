@@ -128,9 +128,9 @@ struct sched_tester : public srsenb::common_sched_tester {
   // sched results
   sched_tti_data tti_data;
 
-  void rem_user(uint16_t rnti) override;
-  int  assert_no_empty_allocs();
-  int  test_harqs();
+  int rem_user(uint16_t rnti) override;
+  int assert_no_empty_allocs();
+  int test_harqs();
 
 private:
   void new_test_tti() override;
@@ -139,10 +139,10 @@ private:
   int  update_ue_stats();
 };
 
-void sched_tester::rem_user(uint16_t rnti)
+int sched_tester::rem_user(uint16_t rnti)
 {
-  common_sched_tester::rem_user(rnti);
   tti_data.ue_data.erase(rnti);
+  return common_sched_tester::rem_user(rnti);
 }
 
 void sched_tester::new_test_tti()
@@ -203,7 +203,7 @@ int sched_tester::process_results()
   TESTASSERT(test_pdsch_collisions(sf_out, CARRIER_IDX, &cc_result->dl_mask) == SRSLTE_SUCCESS);
 
   // UE dedicated tests
-  TESTASSERT(ue_tester->test_all(sf_out) == SRSLTE_SUCCESS);
+  TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSLTE_SUCCESS);
   assert_no_empty_allocs();
   test_harqs();
   update_ue_stats();

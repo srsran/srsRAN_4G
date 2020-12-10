@@ -49,7 +49,7 @@ public:
 
   void phy_config_enabled(uint16_t rnti, bool enabled);
 
-  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) final;
+  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const ue_bearer_cfg_t& cfg) final;
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) final;
 
   uint32_t get_ul_buffer(uint16_t rnti) final;
