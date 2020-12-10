@@ -20,41 +20,17 @@
 #include <srslte/srslte.h>
 #include <unistd.h>
 
-#include "srsenb/hdr/phy/phy.h"
-#include "srsenb/hdr/stack/mac/mac.h"
-
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/phy/utils/debug.h"
 
 #include "sched_common_test_suite.h"
-#include "sched_sim_ue.h"
 #include "sched_test_common.h"
 #include "sched_test_utils.h"
 #include "srslte/common/test_common.h"
 
 using srslte::tti_point;
-
-/********************************************************
- * Random Tester for Scheduler.
- * Current Checks:
- * - Check correct timing of PRACH, RAR, and Msg3
- * - Check whether Msg4 contains ConRes
- * - Check allocs of users that no longer exist
- * - Check collisions in PDCCH, PUSCH, and PDSCH
- * - Unexpected Msg3, RAR allocs or with wrong values
- * - Users without data to Tx cannot be allocated in UL
- * - Retxs always take precedence
- * - Invalid BC SIB index or TBS
- * - Harqs:
- *   - invalid pids scheduled
- *   - empty harqs scheduled
- *   - invalid harq TTI
- *   - consistent NCCE loc
- *   - invalid retx number
- *   - DL adaptive retx/new tx <=> PDCCH alloc
- *******************************************************/
 
 uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
 
@@ -110,14 +86,6 @@ constexpr uint32_t CARRIER_IDX = 0;
 // Designed for testing purposes
 struct sched_tester : public srsenb::common_sched_tester {
   struct tester_user_results {
-    uint32_t             dl_pending_data     = 0;
-    uint32_t             ul_pending_data     = 0; ///< data pending for UL
-    bool                 has_dl_tx           = false;
-    bool                 has_ul_tx           = false; ///< has either tx or retx
-    bool                 has_ul_retx         = false;
-    bool                 has_ul_newtx        = false; ///< *no* retx, but has tx
-    bool                 ul_retx_got_delayed = false;
-    srsenb::dl_harq_proc dl_harqs[srsenb::cc_sched_ue::SCHED_MAX_HARQ_PROC];
     srsenb::ul_harq_proc ul_harq;
   };
   struct sched_tti_data {
@@ -129,7 +97,6 @@ struct sched_tester : public srsenb::common_sched_tester {
   sched_tti_data tti_data;
 
   int rem_user(uint16_t rnti) override;
-  int assert_no_empty_allocs();
   int test_harqs();
 
 private:
@@ -157,36 +124,14 @@ void sched_tester::before_sched()
 {
   // check pending data buffers
   for (auto& it : ue_db) {
-    uint16_t              rnti = it.first;
-    srsenb::sched_ue*     user = &it.second;
-    tester_user_results   d;
-    srsenb::ul_harq_proc* hul = user->get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
-    d.ul_pending_data         = get_ul_buffer(rnti);
-    //        user->get_pending_ul_new_data(tti_info.tti_params.tti_tx_ul) or hul->has_pending_retx(); //
-    //        get_ul_buffer(rnti);
-    d.dl_pending_data         = get_dl_buffer(rnti);
-    d.has_ul_retx             = hul->has_pending_retx();
-    d.has_ul_tx               = d.has_ul_retx or d.ul_pending_data > 0;
-    srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(srsenb::to_tx_dl(tti_rx), CARRIER_IDX);
-    d.has_dl_tx = (hdl != nullptr) or (it.second.get_empty_dl_harq(srsenb::to_tx_dl(tti_rx), CARRIER_IDX) != nullptr and
-                                       d.dl_pending_data > 0);
-    d.has_ul_newtx = not d.has_ul_retx and d.ul_pending_data > 0;
+    uint16_t            rnti = it.first;
+    srsenb::sched_ue*   user = &it.second;
+    tester_user_results d;
     tti_data.ue_data.insert(std::make_pair(rnti, d));
-    tti_data.total_ues.dl_pending_data += d.dl_pending_data;
-    tti_data.total_ues.ul_pending_data += d.ul_pending_data;
-    tti_data.total_ues.has_ul_tx |= d.has_ul_tx;
-    tti_data.total_ues.has_dl_tx |= d.has_dl_tx;
-    tti_data.total_ues.has_ul_newtx |= d.has_ul_newtx;
 
-    for (uint32_t i = 0; i < srsenb::cc_sched_ue::SCHED_MAX_HARQ_PROC; ++i) {
-      const srsenb::dl_harq_proc& h      = user->get_dl_harq(i, CARRIER_IDX);
-      tti_data.ue_data[rnti].dl_harqs[i] = h;
-    }
     // NOTE: ACK might have just cleared the harq for tti_info.tti_params.tti_tx_ul
     tti_data.ue_data[rnti].ul_harq = *user->get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
   }
-
-  // TODO: Check whether pending pending_rar.rar_tti correspond to a prach_tti
 }
 
 int sched_tester::process_results()
@@ -204,35 +149,8 @@ int sched_tester::process_results()
 
   // UE dedicated tests
   TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSLTE_SUCCESS);
-  assert_no_empty_allocs();
   test_harqs();
   update_ue_stats();
-
-  return SRSLTE_SUCCESS;
-}
-
-int sched_tester::assert_no_empty_allocs()
-{
-  // Test if allocations only take place for users with pending data or in RAR
-  for (auto& iter : tti_data.ue_data) {
-    uint16_t rnti = iter.first;
-    //    srsenb::sched_ue* user = &ue_db[rnti];
-
-    if (not iter.second.has_ul_tx) {
-      for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++i) {
-        auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[i];
-        if (pusch.dci.rnti == rnti and pusch.needs_pdcch) {
-          // TODO: This test does not work for adaptive re-tx
-          TESTERROR("There was a user without data that got allocated in UL\n");
-        }
-      }
-    }
-    //    srsenb::ul_harq_proc* hul       = user->get_ul_harq(tti_info.tti_params.tti_tx_ul);
-    iter.second.ul_retx_got_delayed = iter.second.has_ul_retx and iter.second.ul_harq.is_empty(0);
-    tti_data.total_ues.ul_retx_got_delayed |= iter.second.ul_retx_got_delayed;
-    // Retxs cannot give space to newtx allocations
-    CONDERROR(tti_data.total_ues.ul_retx_got_delayed, "There was a retx that was erased for user rnti=0x%x\n", rnti);
-  }
 
   return SRSLTE_SUCCESS;
 }
@@ -356,8 +274,14 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg            = generate_default_ue_cfg();
   sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi      = true;
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.maxharq_tx = std::uniform_int_distribution<>{1, 5}(srsenb::get_rand_gen());
-  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period = pick_random_uniform({0, 40, 80});
-  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_offset = std::uniform_int_distribution<uint32_t>{
+  sim_gen.sim_args.default_ue_sim_cfg.prob_dl_ack_mask.resize(sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.maxharq_tx,
+                                                              0.5);
+  sim_gen.sim_args.default_ue_sim_cfg.prob_dl_ack_mask.back() = 1;
+  sim_gen.sim_args.default_ue_sim_cfg.prob_ul_ack_mask.resize(sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.maxharq_tx,
+                                                              0.5);
+  sim_gen.sim_args.default_ue_sim_cfg.prob_ul_ack_mask.back() = 1;
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period   = pick_random_uniform({0, 40, 80});
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_offset   = std::uniform_int_distribution<uint32_t>{
       0, sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period}(srsenb::get_rand_gen());
   sim_gen.sim_args.start_tti = 0;
   sim_gen.sim_args.sim_log   = log_global.get();
@@ -385,8 +309,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
     bool is_prach_tti =
         srslte_prach_tti_opportunity_config_fdd(sim_gen.sim_args.cell_cfg[CARRIER_IDX].prach_config, tti, -1);
     if (is_prach_tti and generator.current_users.size() < max_nof_users and srsenb::randf() < P_prach) {
-      generator.add_new_default_user(connection_dur_dist(srsenb::get_rand_gen()),
-                                     sim_gen.sim_args.default_ue_sim_cfg.ue_cfg);
+      generator.add_new_default_user(connection_dur_dist(srsenb::get_rand_gen()), sim_gen.sim_args.default_ue_sim_cfg);
     }
     generator.step_tti();
   }

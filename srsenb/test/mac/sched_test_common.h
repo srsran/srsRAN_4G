@@ -39,7 +39,7 @@ class sched_sim_random : public sched_sim_base
 {
 public:
   using sched_sim_base::sched_sim_base;
-  void before_sched(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events) override;
+  void set_external_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events) override;
   std::map<uint16_t, ue_ctxt_test_cfg> ue_sim_cfg_map;
 };
 

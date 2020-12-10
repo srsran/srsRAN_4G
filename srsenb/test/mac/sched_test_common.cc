@@ -13,7 +13,6 @@
 #include "sched_test_common.h"
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
-#include "srslte/mac/pdu.h"
 
 #include "sched_common_test_suite.h"
 #include "sched_ue_ded_test_suite.h"
@@ -47,7 +46,7 @@ std::default_random_engine& ::srsenb::get_rand_gen()
  *  User State Tester
  ***********************/
 
-void sched_sim_random::before_sched(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events)
+void sched_sim_random::set_external_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events)
 {
   const auto& sim_cfg = ue_sim_cfg_map.at(ue_ctxt.rnti);
 
@@ -79,16 +78,6 @@ void sched_sim_random::before_sched(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events&
       cc_feedback.ul_cqi = std::uniform_int_distribution<uint32_t>{5, 40}(get_rand_gen());
     }
   }
-}
-
-bool is_drb_cfg(const sched_interface::ue_cfg_t& ue_cfg)
-{
-  for (uint32_t i = 2; i < ue_cfg.ue_bearers.size(); ++i) {
-    if (ue_cfg.ue_bearers[i].direction != sched_interface::ue_bearer_cfg_t::IDLE) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /***********************
@@ -233,54 +222,20 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
     const ue_sim* user = sched_sim->find_rnti(ue_ev.rnti);
 
-    if (user != nullptr) {
-      const auto& ue_sim_ctxt = user->get_ctxt();
-      if (not ue_sim_ctxt.msg4_tti_rx.is_valid() and ue_sim_ctxt.msg3_tti_rx.is_valid() and
-          to_tx_ul(ue_sim_ctxt.msg3_tti_rx) <= tti_rx) {
-        // Msg3 has been received but Msg4 has not been yet transmitted
-        // Setup default UE config
-        TESTASSERT(reconf_user(ue_sim_ctxt.rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg)) ==
-                   SRSLTE_SUCCESS);
-
-        // Schedule RRC Setup and ConRes CE
-        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
-        if (pending_dl_new_data == 0) {
-          uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
-          dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
-          dl_mac_buffer_state(ue_ev.rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
-        } else {
-          // Let SRB0 Msg4 get fully transmitted
-        }
-      }
-    }
-
     // push UL SRs and DL packets
     if (ue_ev.buffer_ev != nullptr) {
       CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
       const auto& ue_sim_ctxt = user->get_ctxt();
-      if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.msg4_tti_rx.is_valid()) {
+      if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.conres_rx) {
         // If Msg4 has already been tx and there DL data to transmit
         uint32_t lcid                = RB_ID_DRB1;
         uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
-        if (is_drb_cfg(sched_sim->find_rnti(ue_ev.rnti)->get_ctxt().ue_cfg) or pending_dl_new_data == 0) {
-          // If RRCSetup finished
-          if (not is_drb_cfg(sched_sim->find_rnti(ue_ev.rnti)->get_ctxt().ue_cfg)) {
-            reconf_user(ue_sim_ctxt.rnti, sim_args0.default_ue_sim_cfg.ue_cfg);
-            // setup lcid==drb1 bearer
-            sched::ue_bearer_cfg_t cfg = {};
-            cfg.direction              = ue_bearer_cfg_t::BOTH;
-            cfg.group                  = 1;
-            TESTASSERT(sched_sim->bearer_cfg(ue_ev.rnti, lcid, cfg) == SRSLTE_SUCCESS);
-          }
-          // DRB is set. Update DL buffer
-          uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
-          dl_rlc_buffer_state(ue_ev.rnti, lcid, tot_dl_data, 0);                 // TODO: Check retx_queue
-        } else {
-          // Let SRB0 get emptied
-        }
+        // DRB is set. Update DL buffer
+        uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
+        dl_rlc_buffer_state(ue_ev.rnti, lcid, tot_dl_data, 0);                 // TODO: Check retx_queue
       }
 
-      if (ue_ev.buffer_ev->sr_data > 0 and is_drb_cfg(sched_sim->find_rnti(ue_ev.rnti)->get_ctxt().ue_cfg)) {
+      if (ue_ev.buffer_ev->sr_data > 0 and ue_sim_ctxt.conres_rx) {
         uint32_t tot_ul_data =
             ue_db[ue_ev.rnti].get_pending_ul_new_data(to_tx_ul(tti_rx), -1) + ue_ev.buffer_ev->sr_data;
         uint32_t lcg = 1;

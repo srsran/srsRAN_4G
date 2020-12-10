@@ -63,7 +63,11 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
   ue_cfg.supported_cc_list[0].enb_cc_idx           = 0;
   ue_cfg.supported_cc_list[0].active               = true;
   ue_cfg.supported_cc_list[0].dl_cfg.tm            = SRSLTE_TM1;
-  ue_cfg.ue_bearers[0].direction                   = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srsenb::RB_ID_SRB0].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srsenb::RB_ID_SRB1].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srsenb::RB_ID_SRB2].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].direction  = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[srsenb::RB_ID_DRB1].group      = 1;
 
   return ue_cfg;
 }
@@ -201,19 +205,18 @@ struct sched_sim_event_generator {
     return jump;
   }
 
-  tti_ev::user_cfg_ev* add_new_default_user(uint32_t duration, const srsenb::sched_interface::ue_cfg_t& ue_cfg)
+  tti_ev::user_cfg_ev* add_new_default_user(uint32_t duration, const ue_ctxt_test_cfg& ue_sim_cfg)
   {
     std::vector<tti_ev::user_cfg_ev>& user_updates = tti_events[tti_counter].user_updates;
     user_updates.emplace_back();
     auto& user = user_updates.back();
     user.rnti  = next_rnti++;
     // creates a user with one supported CC (PRACH stage)
-    user.ue_sim_cfg.reset(new ue_ctxt_test_cfg{});
-    auto& u                 = current_users[user.rnti];
-    u.rnti                  = user.rnti;
-    u.tti_start             = tti_counter;
-    u.tti_duration          = duration;
-    user.ue_sim_cfg->ue_cfg = ue_cfg;
+    user.ue_sim_cfg.reset(new ue_ctxt_test_cfg{ue_sim_cfg});
+    auto& u        = current_users[user.rnti];
+    u.rnti         = user.rnti;
+    u.tti_start    = tti_counter;
+    u.tti_duration = duration;
     return &user;
   }
 

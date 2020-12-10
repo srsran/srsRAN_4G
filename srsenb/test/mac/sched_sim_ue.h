@@ -72,11 +72,10 @@ struct ue_tti_events {
 class ue_sim
 {
 public:
-  ue_sim(uint16_t                                        rnti_,
-         const std::vector<sched_interface::cell_cfg_t>& cell_params_,
-         const sched_interface::ue_cfg_t&                ue_cfg_,
-         srslte::tti_point                               prach_tti_rx,
-         uint32_t                                        preamble_idx);
+  ue_sim(uint16_t                         rnti_,
+         const sched_interface::ue_cfg_t& ue_cfg_,
+         srslte::tti_point                prach_tti_rx,
+         uint32_t                         preamble_idx);
 
   void set_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
   void bearer_cfg(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg);
@@ -91,9 +90,8 @@ private:
   void update_dl_harqs(const sf_output_res_t& sf_out);
   void update_ul_harqs(const sf_output_res_t& sf_out);
 
-  srslte::log_ref                                 log_h{"MAC"};
-  const std::vector<sched_interface::cell_cfg_t>* cell_params;
-  sim_ue_ctxt_t                                   ctxt;
+  srslte::log_ref log_h{"MAC"};
+  sim_ue_ctxt_t   ctxt;
 };
 
 class sched_sim_base
@@ -138,11 +136,11 @@ public:
   std::map<uint16_t, ue_sim>::iterator end() { return ue_db.end(); }
 
   // configurable by simulator concrete implementation
-  virtual void before_sched(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events) = 0;
+  virtual void set_external_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events) = 0;
 
 private:
-  void set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events);
-  void apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events& events);
+  int set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events);
+  int apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events& events);
 
   srslte::log_ref                                 log_h{"MAC"};
   sched_interface*                                sched_ptr;
