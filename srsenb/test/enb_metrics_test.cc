@@ -27,7 +27,7 @@ namespace srsenb {
 
 char* csv_file_name = NULL;
 
-#define NUM_METRICS (3)
+#define NUM_METRICS (4)
 
 // fake classes
 class enb_dummy : public enb_metrics_interface
@@ -100,6 +100,25 @@ public:
     metrics[2].phy[0].dl.mcs  = 28.0;
     metrics[2].phy[0].ul.mcs  = 20.2;
     metrics[2].phy[0].ul.sinr = 14.2;
+
+    // fourth entry with incomple PHY and MAC stats
+    metrics[3].rf.rf_o = 10;
+    metrics[3].stack.rrc.ues.resize(2);
+    metrics[3].stack.mac.resize(metrics[3].stack.rrc.ues.size());
+    metrics[3].stack.mac[0].rnti      = 0x1;
+    metrics[3].stack.mac[0].tx_pkts   = 9999;
+    metrics[3].stack.mac[0].tx_errors = 1;
+    metrics[3].stack.mac[0].tx_brate  = 776;
+    metrics[3].stack.mac[0].rx_pkts   = 50;
+    metrics[3].stack.mac[0].rx_errors = 0;
+    metrics[3].stack.mac[0].rx_brate  = 1e3;
+    metrics[3].stack.mac[0].ul_buffer = 100;
+    metrics[3].stack.mac[0].dl_buffer = 200;
+    metrics[3].stack.mac[0].dl_cqi    = 15.9;
+    metrics[3].stack.mac[0].dl_ri     = 1.5;
+    metrics[3].stack.mac[0].dl_pmi    = 1.0;
+    metrics[3].stack.mac[0].phr       = 12.0;
+    metrics[3].phy.resize(0); // no PHY metrics for this UE
   }
 
   bool get_metrics(enb_metrics_t* m)

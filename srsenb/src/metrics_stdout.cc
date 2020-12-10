@@ -88,6 +88,12 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   }
 
   for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
+    // make sure we have stats for MAC and PHY layer too
+    if (metrics.stack.mac.size() == 0 || metrics.phy.size() == 0 || i > metrics.stack.mac.size() ||
+        i > metrics.phy.size()) {
+      break;
+    }
+
     if (metrics.stack.mac[i].tx_errors > metrics.stack.mac[i].tx_pkts) {
       printf("tx caution errors %d > %d\n", metrics.stack.mac[i].tx_errors, metrics.stack.mac[i].tx_pkts);
     }
