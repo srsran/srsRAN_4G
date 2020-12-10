@@ -273,7 +273,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   // IP Headers
   struct iphdr* iph = (struct iphdr*)msg->msg;
   if (iph->version != 4) {
-    m_mbms_gw_log->warning("IPv6 not supported yet.\n");
+    m_mbms_gw_log->info("IPv6 not supported yet.\n");
     return;
   }
 

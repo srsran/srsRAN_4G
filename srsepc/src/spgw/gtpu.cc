@@ -199,7 +199,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
   m_gtpu_log->debug("Received SGi PDU. Bytes %d\n", msg->N_bytes);
 
   if (iph->version != 4) {
-    m_gtpu_log->warning("IPv6 not supported yet.\n");
+    m_gtpu_log->info("IPv6 not supported yet.\n");
     return;
   }
   if (ntohs(iph->tot_len) < 20) {
