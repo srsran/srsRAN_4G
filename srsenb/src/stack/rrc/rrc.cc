@@ -333,6 +333,56 @@ void rrc::release_erabs(uint32_t                              rnti,
   return;
 }
 
+void rrc::modify_erabs(uint16_t                                 rnti,
+                       const asn1::s1ap::erab_modify_request_s& msg,
+                       std::vector<uint16_t>*                   erabs_modified,
+                       std::vector<uint16_t>*                   erabs_failed_to_modify)
+{
+  rrc_log->info("Modifying E-RABs for 0x%x\n", rnti);
+  auto user_it = users.find(rnti);
+
+  if (user_it == users.end()) {
+    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    return;
+  }
+
+  // Iterate over bearers
+  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value.size(); i++) {
+    const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s& erab_to_mod =
+        msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value[i]
+            .value.erab_to_be_modified_item_bearer_mod_req();
+
+    uint32_t                            erab_id    = erab_to_mod.erab_id;
+    asn1::s1ap::erab_level_qos_params_s qos_params = erab_to_mod.erab_level_qos_params;
+
+    bool ret = modify_ue_erab(rnti, erab_id, qos_params, &erab_to_mod.nas_pdu);
+    if (ret) {
+      erabs_modified->push_back(erab_to_mod.erab_id);
+    } else {
+      erabs_failed_to_modify->push_back(erab_to_mod.erab_id);
+    }
+  }
+
+  return;
+}
+
+bool rrc::modify_ue_erab(uint16_t                                   rnti,
+                         uint8_t                                    erab_id,
+                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                         const asn1::unbounded_octstring<true>*     nas_pdu)
+{
+  rrc_log->info("Modifying E-RAB for 0x%x. E-RAB Id %d\n", rnti, erab_id);
+  auto user_it = users.find(rnti);
+
+  if (user_it == users.end()) {
+    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    return false;
+  }
+
+  bool ret = user_it->second->modify_erab(erab_id, qos_params, nas_pdu);
+  return ret;
+}
+
 /*******************************************************************************
   Paging functions
   These functions use a different mutex because access different shared variables

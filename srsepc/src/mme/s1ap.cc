@@ -630,6 +630,16 @@ bool s1ap::send_erab_release_command(uint32_t               enb_ue_s1ap_id,
       enb_ue_s1ap_id, mme_ue_s1ap_id, erabs_to_be_released, enb_sri);
 }
 
+bool s1ap::send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
+                                    uint32_t                     mme_ue_s1ap_id,
+                                    std::map<uint16_t, uint16_t> erabs_to_be_modified,
+                                    srslte::byte_buffer_t*       nas_msg,
+                                    struct sctp_sndrcvinfo       enb_sri)
+{
+  return m_s1ap_erab_mngmt_proc->send_erab_modify_request(
+      enb_ue_s1ap_id, mme_ue_s1ap_id, erabs_to_be_modified, nas_msg, enb_sri);
+}
+
 bool s1ap::send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                        uint32_t               mme_ue_s1ap_id,
                                        srslte::byte_buffer_t* nas_msg,

@@ -838,6 +838,17 @@ bool rrc::ue::release_erab(uint32_t erab_id)
   return bearer_list.release_erab(erab_id);
 }
 
+bool rrc::ue::modify_erab(uint16_t                                   erab_id,
+                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                          const asn1::unbounded_octstring<true>*     nas_pdu)
+{
+  bool ret = bearer_list.modify_erab(erab_id, qos_params, nas_pdu);
+  if (ret) {
+    send_connection_reconf(nullptr, false);
+  }
+  return ret;
+}
+
 void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
 {
   asn1::s1ap::erab_setup_resp_s res;

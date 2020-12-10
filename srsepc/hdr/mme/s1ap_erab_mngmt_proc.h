@@ -37,6 +37,11 @@ public:
                                  uint32_t               mme_ue_s1ap_id,
                                  std::vector<uint16_t>  erabs_to_release,
                                  struct sctp_sndrcvinfo enb_sri);
+  bool send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
+                                uint32_t                     mme_ue_s1ap_id,
+                                std::map<uint16_t, uint16_t> erabs_to_modify,
+                                srslte::byte_buffer_t*       nas_msg,
+                                struct sctp_sndrcvinfo       enb_sri);
   bool handle_erab_release_response(const asn1::s1ap::init_context_setup_resp_s& in_ctxt_resp);
 
 private:

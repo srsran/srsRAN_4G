@@ -14,6 +14,8 @@
 #define SRSLTE_RRC_CFG_UTILS_H
 
 #include "srslte/asn1/rrc_utils.h"
+#include "srslte/common/common.h"
+#include "srslte/common/logmap.h"
 #include <algorithm>
 #include <cassert>
 
@@ -289,12 +291,16 @@ void compute_cfg_diff(const toAddModList& src_list,
   if (&src_list == &target_list) {
     // early exit
     return;
-  } else if (&src_list == &add_diff_list) {
+  }
+
+  if (&src_list == &add_diff_list) {
     // use const src_list
     toAddModList src_list2 = src_list;
     compute_cfg_diff(src_list2, target_list, add_diff_list, rem_diff_list);
     return;
-  } else if (&target_list == &add_diff_list) {
+  }
+
+  if (&target_list == &add_diff_list) {
     // use const target_list
     toAddModList target_list2 = target_list;
     compute_cfg_diff(src_list, target_list2, add_diff_list, rem_diff_list);

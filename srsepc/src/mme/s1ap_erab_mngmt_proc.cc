@@ -96,4 +96,51 @@ bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_
   return true;
 }
 
+bool s1ap_erab_mngmt_proc::send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
+                                                    uint32_t                     mme_ue_s1ap_id,
+                                                    std::map<uint16_t, uint16_t> erabs_to_modify,
+                                                    srslte::byte_buffer_t*       nas_msg,
+                                                    struct sctp_sndrcvinfo       enb_sri)
+{
+  m_s1ap_log->info("Preparing to send E-RAB Modify Command\n");
+
+  // Prepare reply PDU
+  s1ap_pdu_t tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
+
+  asn1::s1ap::erab_modify_request_ies_container& erab_mod_req =
+      tx_pdu.init_msg().value.erab_modify_request().protocol_ies;
+
+  // Add MME and eNB S1AP Ids
+  erab_mod_req.enb_ue_s1ap_id.value = enb_ue_s1ap_id;
+  erab_mod_req.mme_ue_s1ap_id.value = mme_ue_s1ap_id;
+
+  // Number of E-RABs to be setup
+  erab_mod_req.erab_to_be_modified_list_bearer_mod_req.value.resize(erabs_to_modify.size());
+  uint32_t i = 0;
+  for (auto erab_it = erabs_to_modify.begin(); erab_it != erabs_to_modify.end(); erab_it++) {
+    erab_mod_req.erab_to_be_modified_list_bearer_mod_req.value[i].load_info_obj(
+        ASN1_S1AP_ID_ERAB_TO_BE_MODIFIED_ITEM_BEARER_MOD_REQ);
+    asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s& erab_to_mod =
+        erab_mod_req.erab_to_be_modified_list_bearer_mod_req.value[i].value.erab_to_be_modified_item_bearer_mod_req();
+    erab_to_mod.erab_id                                               = erab_it->first;
+    erab_to_mod.erab_level_qos_params.qci                             = erab_it->second;
+    erab_to_mod.erab_level_qos_params.alloc_retention_prio.prio_level = 15; // lowest
+    erab_to_mod.erab_level_qos_params.alloc_retention_prio.pre_emption_cap =
+        asn1::s1ap::pre_emption_cap_opts::shall_not_trigger_pre_emption;
+    erab_to_mod.erab_level_qos_params.alloc_retention_prio.pre_emption_vulnerability =
+        asn1::s1ap::pre_emption_vulnerability_opts::not_pre_emptable;
+    erab_to_mod.nas_pdu.resize(nas_msg->N_bytes);
+    memcpy(erab_to_mod.nas_pdu.data(), nas_msg->msg, nas_msg->N_bytes);
+    m_s1ap_log->info("Sending release comman to E-RAB Id %d\n", erab_it->first);
+    i++;
+  }
+
+  if (!m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_sri)) {
+    m_s1ap_log->error("Error sending Initial Context Setup Request.\n");
+    return false;
+  }
+  return true;
+}
+
 } // namespace srsepc

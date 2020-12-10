@@ -167,7 +167,8 @@ void rlc::reset()
       delete (it->second);
     }
     rlc_array.clear();
-    // the multicast bearer (MRB) is not removed here because eMBMS services continue to be streamed in idle mode (3GPP TS 23.246 version 14.1.0 Release 14 section 8)
+    // the multicast bearer (MRB) is not removed here because eMBMS services continue to be streamed in idle mode (3GPP
+    // TS 23.246 version 14.1.0 Release 14 section 8)
   }
 
   // Add SRB0 again
@@ -389,6 +390,11 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   rwlock_write_guard lock(rwlock);
 
   rlc_common* rlc_entity = nullptr;
+
+  if (cnfg.rlc_mode != rlc_mode_t::tm and rlc_array.find(lcid) != rlc_array.end()) {
+    // RLC entity already exists. Recreating it.
+    rlc_array.erase(lcid);
+  }
 
   if (not valid_lcid(lcid)) {
     if (cnfg.rat == srslte_rat_t::lte) {

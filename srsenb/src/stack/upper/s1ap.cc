@@ -569,6 +569,8 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_erabsetuprequest(msg.value.erab_setup_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::erab_release_cmd:
       return handle_erabreleasecommand(msg.value.erab_release_cmd());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::erab_modify_request:
+      return handle_erabmodifyrequest(msg.value.erab_modify_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request:
@@ -707,9 +709,12 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
   return rrc->setup_ue_erabs(u->ctxt.rnti, msg);
 }
 
-bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
+bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
 {
-  s1ap_log->info("Received ERABReleaseCommand\n");
+  s1ap_log->info("Received ERABModifyRequest\n");
+  std::vector<uint16_t> erab_successful_modified = {};
+  std::vector<uint16_t> erab_failed_to_modify    = {};
+
   if (msg.ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
@@ -718,8 +723,31 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
     return false;
   }
 
+  // Modify E-RABs from RRC
+  rrc->modify_erabs(u->ctxt.rnti, msg, &erab_successful_modified, &erab_failed_to_modify);
+
+  // Send E-RAB modify response back to the MME
+  if (not u->send_erab_modify_response(erab_successful_modified, erab_failed_to_modify)) {
+    s1ap_log->info("Failed to send ERABReleaseResponse\n");
+    return false;
+  }
+
+  return true;
+}
+
+bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
+{
+  s1ap_log->info("Received ERABReleaseCommand\n");
   std::vector<uint16_t> erab_successful_release = {};
   std::vector<uint16_t> erab_failed_to_release  = {};
+
+  if (msg.ext) {
+    s1ap_log->warning("Not handling S1AP message extension\n");
+  }
+  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (u == nullptr) {
+    return false;
+  }
 
   // Release E-RABs from RRC
   rrc->release_erabs(u->ctxt.rnti, msg, &erab_successful_release, &erab_failed_to_release);
@@ -1273,6 +1301,47 @@ bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_suc
       container.erab_failed_to_release_list.value[i].value.erab_item().erab_id = erabs_failed_to_release[i];
       container.erab_failed_to_release_list.value[i].value.erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
       container.erab_failed_to_release_list.value[i].value.erab_item().cause.misc() =
+          asn1::s1ap::cause_misc_opts::unspecified;
+    }
+  }
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABReleaseResponse");
+}
+
+bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_modified,
+                                         const std::vector<uint16_t>& erabs_failed_to_modify)
+{
+  if (not s1ap_ptr->mme_connected) {
+    return false;
+  }
+
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY);
+
+  auto& container                = tx_pdu.successful_outcome().value.erab_modify_resp().protocol_ies;
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+
+  // Fill in which E-RABs were successfully released
+  if (not erabs_successfully_modified.empty()) {
+    container.erab_modify_list_bearer_mod_res_present = true;
+    container.erab_modify_list_bearer_mod_res.value.resize(erabs_successfully_modified.size());
+    for (uint32_t i = 0; i < container.erab_modify_list_bearer_mod_res.value.size(); i++) {
+      container.erab_modify_list_bearer_mod_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_MODIFY_ITEM_BEARER_MOD_RES);
+      container.erab_modify_list_bearer_mod_res.value[i].value.erab_modify_item_bearer_mod_res().erab_id =
+          erabs_successfully_modified[i];
+    }
+  }
+
+  // Fill in which E-RABs were *not* successfully released
+  if (not erabs_failed_to_modify.empty()) {
+    container.erab_failed_to_modify_list_present = true;
+    container.erab_failed_to_modify_list.value.resize(erabs_failed_to_modify.size());
+    for (uint32_t i = 0; i < container.erab_failed_to_modify_list.value.size(); i++) {
+      container.erab_failed_to_modify_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+      container.erab_failed_to_modify_list.value[i].value.erab_item().erab_id = erabs_failed_to_modify[i];
+      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
+      container.erab_failed_to_modify_list.value[i].value.erab_item().cause.misc() =
           asn1::s1ap::cause_misc_opts::unspecified;
     }
   }
