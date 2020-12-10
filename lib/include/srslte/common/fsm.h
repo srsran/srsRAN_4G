@@ -13,9 +13,9 @@
 #ifndef SRSLTE_FSM_H
 #define SRSLTE_FSM_H
 
+#include "srslte/adt/detail/type_utils.h"
 #include "srslte/adt/move_callback.h"
 #include "srslte/common/logmap.h"
-#include "type_utils.h"
 #include <cstdio>
 #include <limits>
 #include <list>

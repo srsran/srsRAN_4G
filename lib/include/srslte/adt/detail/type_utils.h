@@ -287,7 +287,8 @@ const T& get(const TypeContainer& c)
 }
 
 template <size_t I,
-          template <typename...> class TypeContainer,
+          template <typename...>
+          class TypeContainer,
           typename... Args,
           typename T = typename get_index_type<I, Args...>::type>
 T& get(TypeContainer<Args...>& c)
@@ -296,7 +297,8 @@ T& get(TypeContainer<Args...>& c)
 }
 
 template <size_t I,
-          template <typename...> class TypeContainer,
+          template <typename...>
+          class TypeContainer,
           typename... Args,
           typename T = typename get_index_type<I, Args...>::type>
 const T& get(const TypeContainer<Args...>& c)

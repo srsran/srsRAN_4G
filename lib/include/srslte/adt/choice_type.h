@@ -10,7 +10,7 @@
  *
  */
 
-#include "type_utils.h"
+#include "srslte/adt/detail/type_utils.h"
 
 #ifndef SRSLTE_CHOICE_TYPE_H
 #define SRSLTE_CHOICE_TYPE_H

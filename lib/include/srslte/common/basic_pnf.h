@@ -15,9 +15,9 @@
 
 #include "basic_vnf_api.h"
 #include "common.h"
+#include "srslte/adt/choice_type.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/choice_type.h"
 #include "srslte/common/logmap.h"
 #include <arpa/inet.h>
 #include <atomic>

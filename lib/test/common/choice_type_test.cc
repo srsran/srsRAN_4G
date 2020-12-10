@@ -10,7 +10,7 @@
  *
  */
 
-#include "srslte/common/choice_type.h"
+#include "srslte/adt/choice_type.h"
 #include "srslte/common/test_common.h"
 
 struct C {

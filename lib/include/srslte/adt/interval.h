@@ -39,7 +39,7 @@ public:
 
   bool empty() const { return stop_ == start_; }
 
-  T length() const { return stop_ - start_; }
+  auto length() -> decltype(std::declval<T>() - std::declval<T>()) const { return stop_ - start_; }
 
   void set(T start_point, T stop_point)
   {
