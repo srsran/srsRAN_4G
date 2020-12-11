@@ -76,7 +76,7 @@ void mac_nr::stop()
   }
 }
 
-void mac_nr::get_metrics(std::vector<srsenb::mac_metrics_t>& metrics) {}
+void mac_nr::get_metrics(srsenb::mac_metrics_t& metrics) {}
 
 // Fills both, DL_CONFIG.request and TX.request structs
 void mac_nr::get_dl_config(const uint32_t                               tti,
