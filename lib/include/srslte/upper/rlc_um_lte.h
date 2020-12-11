@@ -13,6 +13,7 @@
 #ifndef SRSLTE_RLC_UM_LTE_H
 #define SRSLTE_RLC_UM_LTE_H
 
+#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -62,6 +63,9 @@ private:
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
     uint32_t vt_us = 0; // Send state. SN to be assigned for next PDU.
+
+    // Metrics
+    srslte::rolling_average<float> mean_pdu_latency_us;
 
     void debug_state();
   };

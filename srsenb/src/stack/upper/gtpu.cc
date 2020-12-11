@@ -227,6 +227,7 @@ void gtpu::rem_user(uint16_t rnti)
 void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
   gtpu_log->debug("Received %d bytes from S1-U interface\n", pdu->N_bytes);
+  pdu->set_timestamp();
 
   gtpu_header_t header;
   if (not gtpu_read_header(pdu.get(), &header, gtpu_log)) {

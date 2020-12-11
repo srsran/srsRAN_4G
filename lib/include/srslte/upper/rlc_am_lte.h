@@ -13,6 +13,7 @@
 #ifndef SRSLTE_RLC_AM_LTE_H
 #define SRSLTE_RLC_AM_LTE_H
 
+#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -182,6 +183,9 @@ private:
 
     // Mutexes
     pthread_mutex_t mutex;
+
+    // Metrics
+    srslte::rolling_average<float> mean_pdu_latency_us;
   };
 
   // Receiver sub-class

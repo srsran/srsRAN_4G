@@ -23,8 +23,7 @@ rlc_um_lte::rlc_um_lte(srslte::log_ref            log_,
                        srsue::rrc_interface_rlc*  rrc_,
                        srslte::timer_handler*     timers_) :
   rlc_um_base(log_, lcid_, pdcp_, rrc_, timers_)
-{
-}
+{}
 
 // Warning: must call stop() to properly deallocate all buffers
 rlc_um_lte::~rlc_um_lte()
@@ -146,8 +145,12 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     if (tx_sdu->N_bytes == 0) {
-      log->debug(
-          "%s Complete SDU scheduled for tx. Stack latency: %ld us\n", rb_name.c_str(), tx_sdu->get_latency_us());
+      long latency_us = tx_sdu->get_latency_us();
+      mean_pdu_latency_us.push(latency_us);
+      log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %ld/%ld us\n",
+                 rb_name.c_str(),
+                 latency_us,
+                 (long)mean_pdu_latency_us.value());
 
       tx_sdu.reset();
     }
@@ -178,8 +181,12 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     if (tx_sdu->N_bytes == 0) {
-      log->debug(
-          "%s Complete SDU scheduled for tx. Stack latency: %ld us\n", rb_name.c_str(), tx_sdu->get_latency_us());
+      long latency_us = tx_sdu->get_latency_us();
+      mean_pdu_latency_us.push(latency_us);
+      log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %ld/%ld us\n",
+                 rb_name.c_str(),
+                 latency_us,
+                 (long)mean_pdu_latency_us.value());
 
       tx_sdu.reset();
     }
@@ -220,10 +227,8 @@ void rlc_um_lte::rlc_um_lte_tx::reset()
  ***************************************************************************/
 
 rlc_um_lte::rlc_um_lte_rx::rlc_um_lte_rx(rlc_um_base* parent_) :
-  rlc_um_base_rx(parent_),
-  reordering_timer(timers->get_unique_timer())
-{
-}
+  rlc_um_base_rx(parent_), reordering_timer(timers->get_unique_timer())
+{}
 
 rlc_um_lte::rlc_um_lte_rx::~rlc_um_lte_rx() {}
 
