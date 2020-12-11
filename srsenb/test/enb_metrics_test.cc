@@ -104,20 +104,20 @@ public:
     // fourth entry with incomple PHY and MAC stats
     metrics[3].rf.rf_o = 10;
     metrics[3].stack.rrc.ues.resize(2);
-    metrics[3].stack.mac.resize(metrics[3].stack.rrc.ues.size());
-    metrics[3].stack.mac[0].rnti      = 0x1;
-    metrics[3].stack.mac[0].tx_pkts   = 9999;
-    metrics[3].stack.mac[0].tx_errors = 1;
-    metrics[3].stack.mac[0].tx_brate  = 776;
-    metrics[3].stack.mac[0].rx_pkts   = 50;
-    metrics[3].stack.mac[0].rx_errors = 0;
-    metrics[3].stack.mac[0].rx_brate  = 1e3;
-    metrics[3].stack.mac[0].ul_buffer = 100;
-    metrics[3].stack.mac[0].dl_buffer = 200;
-    metrics[3].stack.mac[0].dl_cqi    = 15.9;
-    metrics[3].stack.mac[0].dl_ri     = 1.5;
-    metrics[3].stack.mac[0].dl_pmi    = 1.0;
-    metrics[3].stack.mac[0].phr       = 12.0;
+    metrics[3].stack.mac.ues.resize(metrics[3].stack.rrc.ues.size());
+    metrics[3].stack.mac.ues[0].rnti      = 0x1;
+    metrics[3].stack.mac.ues[0].tx_pkts   = 9999;
+    metrics[3].stack.mac.ues[0].tx_errors = 1;
+    metrics[3].stack.mac.ues[0].tx_brate  = 776;
+    metrics[3].stack.mac.ues[0].rx_pkts   = 50;
+    metrics[3].stack.mac.ues[0].rx_errors = 0;
+    metrics[3].stack.mac.ues[0].rx_brate  = 1e3;
+    metrics[3].stack.mac.ues[0].ul_buffer = 100;
+    metrics[3].stack.mac.ues[0].dl_buffer = 200;
+    metrics[3].stack.mac.ues[0].dl_cqi    = 15.9;
+    metrics[3].stack.mac.ues[0].dl_ri     = 1.5;
+    metrics[3].stack.mac.ues[0].dl_pmi    = 1.0;
+    metrics[3].stack.mac.ues[0].phr       = 12.0;
     metrics[3].phy.resize(0); // no PHY metrics for this UE
   }
 
