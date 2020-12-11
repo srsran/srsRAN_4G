@@ -178,7 +178,6 @@ int main(int argc, char** argv)
   double var[SNR_POINTS + 1];
 
   double snr_db_vec[SNR_POINTS + 1];
-  int    i = 0;
 
   int reportinfo = 0;
 
@@ -317,7 +316,7 @@ int main(int argc, char** argv)
 
   if (snr_db == 100.0) {
     snr_points = SNR_POINTS;
-    for (int32_t i = 0; i < snr_points; i++) {
+    for (int i = 0; i < snr_points; i++) {
       snr_db        = SNR_MIN + i * snr_inc;
       snr_db_vec[i] = snr_db;
       var[i]        = srslte_convert_dB_to_amplitude(-snr_db);
@@ -389,7 +388,7 @@ int main(int argc, char** argv)
       }
 
 #else
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
         for (j = 0; j < K; j++) {
           data_tx[i * K + j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
         }
@@ -415,7 +414,7 @@ int main(int argc, char** argv)
                (double)(K + code.nPC) / code.N);
       }
       // subchannel_allocation block
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
         srslte_polar_chanalloc_tx(
             data_tx + i * K, input_enc + i * code.N, code.N, code.K, code.nPC, code.K_set, code.PC_set);
       }
@@ -447,7 +446,7 @@ int main(int argc, char** argv)
       elapsed_time_enc_avx2[i_snr] += t[0].tv_sec + 1e-6 * t[0].tv_usec;
 
       // check errors with respect the output of the pipeline encoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
         if (srslte_bit_diff(output_enc + i * code.N, output_enc_avx2 + i * code.N, code.N) != 0) {
           printf("ERROR: Wrong avx2 encoder output. SNR= %f, Batch: %d\n", snr_db_vec[i_snr], i);
           exit(-1);
@@ -495,7 +494,7 @@ int main(int argc, char** argv)
 #ifdef debug
       int i_error = 0;
 #endif
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
         errors_symb = srslte_bit_diff(data_tx + i * K, data_rx + i * K, K);
 
         if (errors_symb != 0) {
@@ -536,7 +535,7 @@ int main(int argc, char** argv)
       }
 
       // check errors 16-bit decoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
         errors_symb_s = srslte_bit_diff(data_tx + i * K, data_rx_s + i * K, K);
 
         if (errors_symb_s != 0) {
@@ -575,7 +574,7 @@ int main(int argc, char** argv)
       }
 
       // check errors 8-bits decoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
 
         errors_symb_c = srslte_bit_diff(data_tx + i * K, data_rx_c + i * K, K);
 
@@ -615,7 +614,7 @@ int main(int argc, char** argv)
       }
 
       // check errors 8-bits decoder
-      for (i = 0; i < BATCH_SIZE; i++) {
+      for (int i = 0; i < BATCH_SIZE; i++) {
 
         errors_symb_c_avx2 = srslte_bit_diff(data_tx + i * K, data_rx_c_avx2 + i * K, K);
 
