@@ -86,3 +86,8 @@ polar_tests_lite(-3)
 set(test_name POLAR-UNIT-TEST)
 set(test_command polar_chain_test)
 polar_tests(101)
+
+# Polar inter-leaver test
+add_executable(polar_interleaver_test polar_interleaver_test.c)
+target_link_libraries(polar_interleaver_test srslte_phy)
+add_test(polar_interleaver_test polar_interleaver_test)
