@@ -13,11 +13,13 @@
 #ifndef SRSENB_MAC_METRICS_H
 #define SRSENB_MAC_METRICS_H
 
+#include <cstdint>
+#include <vector>
+
 namespace srsenb {
 
-// MAC metrics per user
-
-struct mac_metrics_t {
+/// MAC metrics per user
+struct mac_ue_metrics_t {
   uint16_t rnti;
   uint32_t nof_tti;
   uint32_t cc_idx;
@@ -33,6 +35,14 @@ struct mac_metrics_t {
   float    dl_ri;
   float    dl_pmi;
   float    phr;
+};
+
+/// Main MAC metrics.
+struct mac_metrics_t {
+  /// RACH preamble counter per cc.
+  std::vector<uint32_t> cc_rach_counter;
+  /// Per UE MAC metrics.
+  std::vector<mac_ue_metrics_t> ues;
 };
 
 } // namespace srsenb

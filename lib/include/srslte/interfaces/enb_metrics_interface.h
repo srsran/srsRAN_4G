@@ -28,10 +28,9 @@
 namespace srsenb {
 
 struct stack_metrics_t {
-  std::vector<mac_metrics_t> mac;
-  std::vector<uint32_t>      cc_rach_counter;
-  rrc_metrics_t              rrc;
-  s1ap_metrics_t             s1ap;
+  mac_metrics_t  mac;
+  rrc_metrics_t  rrc;
+  s1ap_metrics_t s1ap;
 };
 
 struct enb_metrics_t {

@@ -171,7 +171,7 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
   // use stack thread to query metrics
   auto ret = enb_task_queue.try_push([this]() {
     stack_metrics_t metrics{};
-    mac.get_metrics(metrics.mac, metrics.cc_rach_counter);
+    mac.get_metrics(metrics.mac);
     rrc.get_metrics(metrics.rrc);
     s1ap.get_metrics(metrics.s1ap);
     pending_stack_metrics.push(metrics);

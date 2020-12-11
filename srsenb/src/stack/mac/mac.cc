@@ -269,16 +269,16 @@ int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
   return scheduler.cell_cfg(cell_config);
 }
 
-void mac::get_metrics(std::vector<mac_metrics_t>& metrics, std::vector<uint32_t>& _detected_rachs)
+void mac::get_metrics(mac_metrics_t& metrics)
 {
   srslte::rwlock_read_guard lock(rwlock);
   int                       cnt = 0;
-  metrics.resize(ue_db.size());
-  _detected_rachs = detected_rachs;
+  metrics.ues.resize(ue_db.size());
   for (auto& u : ue_db) {
-    u.second->metrics_read(&metrics[cnt]);
+    u.second->metrics_read(&metrics.ues[cnt]);
     cnt++;
   }
+  metrics.cc_rach_counter = detected_rachs;
 }
 
 /********************************************************

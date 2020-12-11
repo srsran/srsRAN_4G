@@ -76,7 +76,7 @@ public:
   void     push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len);
   void     deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti);
 
-  void metrics_read(srsenb::mac_metrics_t* metrics);
+  void metrics_read(mac_ue_metrics_t* metrics_);
   void metrics_rx(bool crc, uint32_t tbs);
   void metrics_tx(bool crc, uint32_t tbs);
   void metrics_phr(float phr);
@@ -95,11 +95,11 @@ private:
   bool process_ce(srslte::sch_subh* subh);
   void allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid);
 
-  uint32_t      phr_counter    = 0;
-  uint32_t      dl_cqi_counter = 0;
-  uint32_t      dl_ri_counter  = 0;
-  uint32_t      dl_pmi_counter = 0;
-  mac_metrics_t metrics        = {};
+  uint32_t         phr_counter    = 0;
+  uint32_t         dl_cqi_counter = 0;
+  uint32_t         dl_ri_counter  = 0;
+  uint32_t         dl_pmi_counter = 0;
+  mac_ue_metrics_t ue_metrics     = {};
 
   srslte::mac_pcap* pcap             = nullptr;
   uint64_t          conres_id        = 0;

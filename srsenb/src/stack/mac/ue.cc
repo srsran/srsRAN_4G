@@ -80,7 +80,7 @@ ue::~ue()
 
 void ue::reset()
 {
-  metrics      = {};
+  ue_metrics   = {};
   nof_failures = 0;
 
   for (auto cc : softbuffer_rx) {
@@ -519,75 +519,75 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
 }
 
 /******* METRICS interface ***************/
-void ue::metrics_read(mac_metrics_t* metrics_)
+void ue::metrics_read(mac_ue_metrics_t* metrics_)
 {
-  metrics.rnti      = rnti;
-  metrics.ul_buffer = sched->get_ul_buffer(rnti);
-  metrics.dl_buffer = sched->get_dl_buffer(rnti);
+  ue_metrics.rnti      = rnti;
+  ue_metrics.ul_buffer = sched->get_ul_buffer(rnti);
+  ue_metrics.dl_buffer = sched->get_dl_buffer(rnti);
 
   // set PCell sector id
   std::array<int, SRSLTE_MAX_CARRIERS> cc_list = sched->get_enb_ue_cc_map(rnti);
   auto                                 it      = std::find(cc_list.begin(), cc_list.end(), 0);
-  metrics.cc_idx                               = std::distance(cc_list.begin(), it);
+  ue_metrics.cc_idx                            = std::distance(cc_list.begin(), it);
 
-  memcpy(metrics_, &metrics, sizeof(mac_metrics_t));
+  *metrics_ = ue_metrics;
 
   phr_counter    = 0;
   dl_cqi_counter = 0;
-  metrics        = {};
+  ue_metrics     = {};
 }
 
 void ue::metrics_phr(float phr)
 {
-  metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
+  ue_metrics.phr = SRSLTE_VEC_CMA(phr, ue_metrics.phr, phr_counter);
   phr_counter++;
 }
 
 void ue::metrics_dl_ri(uint32_t dl_ri)
 {
-  if (metrics.dl_ri == 0.0f) {
-    metrics.dl_ri = (float)dl_ri + 1.0f;
+  if (ue_metrics.dl_ri == 0.0f) {
+    ue_metrics.dl_ri = (float)dl_ri + 1.0f;
   } else {
-    metrics.dl_ri = SRSLTE_VEC_EMA((float)dl_ri + 1.0f, metrics.dl_ri, 0.5f);
+    ue_metrics.dl_ri = SRSLTE_VEC_EMA((float)dl_ri + 1.0f, ue_metrics.dl_ri, 0.5f);
   }
   dl_ri_counter++;
 }
 
 void ue::metrics_dl_pmi(uint32_t dl_ri)
 {
-  metrics.dl_pmi = SRSLTE_VEC_CMA((float)dl_ri, metrics.dl_pmi, dl_pmi_counter);
+  ue_metrics.dl_pmi = SRSLTE_VEC_CMA((float)dl_ri, ue_metrics.dl_pmi, dl_pmi_counter);
   dl_pmi_counter++;
 }
 
 void ue::metrics_dl_cqi(uint32_t dl_cqi)
 {
-  metrics.dl_cqi = SRSLTE_VEC_CMA((float)dl_cqi, metrics.dl_cqi, dl_cqi_counter);
+  ue_metrics.dl_cqi = SRSLTE_VEC_CMA((float)dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
   dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)
 {
   if (crc) {
-    metrics.rx_brate += tbs * 8;
+    ue_metrics.rx_brate += tbs * 8;
   } else {
-    metrics.rx_errors++;
+    ue_metrics.rx_errors++;
   }
-  metrics.rx_pkts++;
+  ue_metrics.rx_pkts++;
 }
 
 void ue::metrics_tx(bool crc, uint32_t tbs)
 {
   if (crc) {
-    metrics.tx_brate += tbs * 8;
+    ue_metrics.tx_brate += tbs * 8;
   } else {
-    metrics.tx_errors++;
+    ue_metrics.tx_errors++;
   }
-  metrics.tx_pkts++;
+  ue_metrics.tx_pkts++;
 }
 
 void ue::metrics_cnt()
 {
-  metrics.nof_tti++;
+  ue_metrics.nof_tti++;
 }
 
 void ue::tic()
