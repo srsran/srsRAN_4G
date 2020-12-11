@@ -185,8 +185,10 @@ private:
     pthread_mutex_t mutex;
 
     // Metrics
-    uint64_t                        tx_byte_count = 0;
+    uint64_t tx_byte_count = 0;
+#ifdef ENABLE_TIMESTAMP
     srslte::rolling_average<double> mean_pdu_latency_us;
+#endif
   };
 
   // Receiver sub-class
