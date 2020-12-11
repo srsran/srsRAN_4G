@@ -19,6 +19,7 @@
 #include "srsue/hdr/ue_metrics_interface.h"
 
 #include "rrc/rrc.h"
+#include "rrc/rrc_nr.h"
 #include "upper/gw.h"
 #include "upper/usim.h"
 

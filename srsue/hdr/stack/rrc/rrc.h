@@ -79,7 +79,10 @@ public:
             nas_interface_rrc*     nas_,
             usim_interface_rrc*    usim_,
             gw_interface_rrc*      gw_,
-            const rrc_args_t&      args_);
+#ifdef HAVE_5GNR
+            rrc_nr_interface_rrc* rrc_nr_,
+#endif
+            const rrc_args_t& args_);
 
   void stop();
 
@@ -179,7 +182,9 @@ private:
   nas_interface_rrc*        nas  = nullptr;
   usim_interface_rrc*       usim = nullptr;
   gw_interface_rrc*         gw   = nullptr;
-
+#ifdef HAVE_5GNR
+  rrc_nr_interface_rrc* rrc_nr = nullptr;
+#endif
   srslte::unique_byte_buffer_t dedicated_info_nas;
 
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
@@ -410,6 +415,10 @@ private:
   void set_phy_default();
   void set_mac_default();
   void set_rrc_default();
+
+  // Helpers for nr communicaiton
+  asn1::rrc::ue_cap_rat_container_s get_eutra_nr_capabilities();
+  asn1::rrc::ue_cap_rat_container_s get_nr_capabilities();
 };
 
 } // namespace srsue

@@ -7,6 +7,11 @@
 #
 
 set(SOURCES rrc.cc rrc_procedures.cc rrc_meas.cc rrc_cell.cc phy_controller.cc)
+
+if(ENABLE_5GNR)
+    set(SOURCES ${SOURCES} rrc_nr.cc)
+endif()
+
 add_library(srsue_rrc STATIC ${SOURCES})
 
 if(ENABLE_5GNR)

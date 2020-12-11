@@ -99,7 +99,10 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               const rrc_args_t&      args_)
+#ifdef HAVE_5GNR
+               rrc_nr_interface_rrc* rrc_nr_,
+#endif
+               const rrc_args_t& args_)
 {
   pool = byte_buffer_pool::get_instance();
   phy  = phy_;
@@ -109,7 +112,9 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   nas  = nas_;
   usim = usim_;
   gw   = gw_;
-
+#ifdef HAVE_5GNR
+  rrc_nr = rrc_nr_;
+#endif
   args = args_;
 
   auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
@@ -154,7 +159,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   // initiate unique procedures
   ue_required_sibs.assign(&required_sibs[0], &required_sibs[NOF_REQUIRED_SIBS]);
-
   running   = true;
   initiated = true;
 }
@@ -1764,6 +1768,9 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       cap.feature_group_inds_present = true;
       cap.feature_group_inds.from_number(args.feature_group);
 
+      ue_eutra_cap_v1280_ies_s* ue_eutra_cap_v1280_ies;
+      ue_eutra_cap_v1360_ies_s* ue_eutra_cap_v1360_ies;
+      ue_eutra_cap_v1450_ies_s* ue_eutra_cap_v1450_ies;
       if (args.release > 8) {
         ue_eutra_cap_v920_ies_s cap_v920;
 
@@ -1919,6 +1926,64 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
             .non_crit_ext.non_crit_ext_present = true;
         cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
             .non_crit_ext.non_crit_ext = cap_v1250;
+        // 12.50
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 12.60
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 12.70
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+      }
+      // Release 13
+      if (args.release > 12) {
+        // 12.80
+        ue_eutra_cap_v1280_ies =
+            &cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+                 .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+        ue_eutra_cap_v1280_ies->non_crit_ext_present = true;
+        // 13.10
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext_present = true;
+        // 13.20
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 13.30
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 13.40
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 13.50
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present =
+            true;
+      }
+      // Release 14
+      if (args.release > 13) {
+        // 13.60
+        ue_eutra_cap_v1360_ies =
+            &ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+        ue_eutra_cap_v1360_ies->non_crit_ext_present = true;
+        // 14.30
+        ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext_present = true;
+        // 14.40
+        ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 14.50
+        ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+      }
+      // Release 15
+      if (args.release > 14) {
+        ue_eutra_cap_v1450_ies = &ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext;
+        // 14.60
+        ue_eutra_cap_v1450_ies->non_crit_ext_present = true;
+
+        irat_params_nr_r15_s irat_params_nr_r15;
+        irat_params_nr_r15.en_dc_r15_present                     = true;
+        irat_params_nr_r15.supported_band_list_en_dc_r15_present = true;
+
+        supported_band_nr_r15_s supported_band_nr_r15;
+        supported_band_nr_r15.band_nr_r15 = 78;
+
+        irat_params_nr_r15.supported_band_list_en_dc_r15.push_back(supported_band_nr_r15);
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15_present = true;
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15         = irat_params_nr_r15;
       }
 
       // Pack caps and copy to cap info
@@ -1930,11 +1995,48 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.resize(cap_len);
       memcpy(info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.data(), buf, cap_len);
       rat_idx++;
+
+    }
+#ifdef HAVE_5GNR
+    else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra_nr && has_nr_dc()) {
+      info->ue_cap_rat_container_list[rat_idx] = get_eutra_nr_capabilities();
+      rrc_log->info("Including EUTRA-NR capabilities in UE Capability Info (%d B)\n",
+                    info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
+      rat_idx++;
+    } else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::nr && has_nr_dc()) {
+      info->ue_cap_rat_container_list[rat_idx] = get_nr_capabilities();
+      rrc_log->info("Including NR capabilities in UE Capability Info (%d B)\n",
+                    info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
+      rat_idx++;
+    }
+#endif
+    else {
+      rrc_log->error("RAT Type of UE Cap request not supported or not configured\n");
     }
   }
-
   // resize container back to the actually filled items
   info->ue_cap_rat_container_list.resize(rat_idx);
+
+#ifdef HAVE_5GNR
+  if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext_present) {
+    if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext_present) {
+      if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext.non_crit_ext_present) {
+        if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present) {
+          if (enquiry.crit_exts.c1()
+                  .ue_cap_enquiry_r8()
+                  .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present) {
+            if (enquiry.crit_exts.c1()
+                    .ue_cap_enquiry_r8()
+                    .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+                    .requested_freq_bands_nr_mrdc_r15_present) {
+              rrc_log->debug("Requested Freq Bands NR MRDC R15 present\n");
+            }
+          }
+        }
+      }
+    }
+  }
+#endif
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
@@ -2565,5 +2667,36 @@ void rrc::set_rrc_default()
 
 const std::string rrc::rb_id_str[] =
     {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
+// Helpers for nr communicaiton
+
+asn1::rrc::ue_cap_rat_container_s rrc::get_eutra_nr_capabilities()
+{
+  srslte::byte_buffer_t             caps_buf;
+  asn1::rrc::ue_cap_rat_container_s cap;
+#ifdef HAVE_5GNR
+  rrc_nr->get_eutra_nr_capabilities(&caps_buf);
+#else
+  rrc_log->error("Not able to access get_eutra_nr_capabilities function\n");
+#endif
+  cap.rat_type = asn1::rrc::rat_type_e::eutra_nr;
+  cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
+  memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);
+  return cap;
+}
+
+asn1::rrc::ue_cap_rat_container_s rrc::get_nr_capabilities()
+{
+  srslte::byte_buffer_t             caps_buf;
+  asn1::rrc::ue_cap_rat_container_s cap;
+#ifdef HAVE_5GNR
+  rrc_nr->get_nr_capabilities(&caps_buf);
+#else
+  rrc_log->error("Not able to access get_nr_capabilities function\n");
+#endif
+  cap.rat_type = asn1::rrc::rat_type_e::nr;
+  cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
+  memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);
+  return cap;
+}
 
 } // namespace srsue

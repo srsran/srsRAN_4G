@@ -233,7 +233,11 @@ public:
     nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
     pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
   }
+#ifdef HAVE_5GNR
+  void init() { rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, nullptr, {}); }
+#else
   void init() { rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
+#endif
 
   void run_tti(uint32_t tti_)
   {

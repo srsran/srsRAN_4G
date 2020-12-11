@@ -41,6 +41,7 @@ struct rrc_nr_metrics_t {};
 class rrc_nr final : public rrc_interface_phy_nr,
                      public rrc_interface_pdcp,
                      public rrc_interface_rlc,
+                     public rrc_nr_interface_rrc,
                      public srslte::timer_callback
 {
 public:
@@ -84,6 +85,10 @@ public:
   void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) final;
   void write_pdu_pcch(srslte::unique_byte_buffer_t pdu) final;
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
+
+  // RRC (LTE) interface
+  void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
+  void get_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
 
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);

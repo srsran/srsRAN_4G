@@ -167,6 +167,9 @@ private:
   srslte::rlc                rlc;
   srslte::pdcp               pdcp;
   srsue::rrc                 rrc;
+#ifdef HAVE_5GNR
+  srsue::rrc_nr rrc_nr;
+#endif
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
 };

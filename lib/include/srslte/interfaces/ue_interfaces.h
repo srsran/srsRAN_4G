@@ -260,6 +260,13 @@ public:
   virtual void enable_encryption(uint32_t                   lcid,
                                  srslte::srslte_direction_t direction = srslte::srslte_direction_t::DIRECTION_TXRX) = 0;
 };
+// RRC NR interface for RRC (LTE)
+class rrc_nr_interface_rrc
+{
+public:
+  virtual void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps) = 0;
+  virtual void get_nr_capabilities(srslte::byte_buffer_t* nr_cap)              = 0;
+};
 
 // PDCP interface for RLC
 class pdcp_interface_rlc
