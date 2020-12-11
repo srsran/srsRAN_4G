@@ -946,6 +946,8 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   log->info_hex(payload, total_len, "%s Tx PDU SN=%d (%d B)\n", RB_NAME, header.sn, total_len);
   log->debug("%s\n", rlc_amd_pdu_header_to_string(header).c_str());
   debug_state();
+
+  tx_byte_count += buffer_ptr->N_bytes;
   return total_len;
 }
 

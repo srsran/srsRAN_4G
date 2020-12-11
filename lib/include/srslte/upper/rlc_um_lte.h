@@ -65,7 +65,8 @@ private:
     uint32_t vt_us = 0; // Send state. SN to be assigned for next PDU.
 
     // Metrics
-    srslte::rolling_average<float> mean_pdu_latency_us;
+    uint64_t                        tx_byte_count = 0;
+    srslte::rolling_average<double> mean_pdu_latency_us;
 
     void debug_state();
   };

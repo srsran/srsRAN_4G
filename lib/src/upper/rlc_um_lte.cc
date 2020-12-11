@@ -208,6 +208,7 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
   log->info_hex(payload, pdu->N_bytes, "%s Tx PDU SN=%d (%d B)\n", rb_name.c_str(), header.sn, pdu->N_bytes);
 
   debug_state();
+  tx_byte_count += pdu->N_bytes;
 
   return pdu->N_bytes;
 }
