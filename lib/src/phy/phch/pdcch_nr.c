@@ -12,6 +12,7 @@
 
 #include "srslte/phy/phch/pdcch_nr.h"
 #include "srslte/phy/fec/polar/polar_chanalloc.h"
+#include "srslte/phy/fec/polar/polar_interleaver.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
@@ -316,7 +317,7 @@ static uint32_t pdcch_nr_cp(const srslte_pdcch_nr_t*     q,
   return count;
 }
 
-uint32_t pdcch_nr_c_init(const srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_msg)
+static uint32_t pdcch_nr_c_init(const srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_msg)
 {
   uint32_t n_id = (dci_msg->search_space == srslte_search_space_type_ue && q->coreset.dmrs_scrambling_id_present)
                       ? q->coreset.dmrs_scrambling_id
@@ -340,21 +341,26 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   }
 
   // Calculate...
-  q->K = dci_msg->nof_bits + 24U;                              // Payload size including CRC
-  q->M = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
-  q->E = q->M * 2;                                             // Number of Rate-Matched bits
+  q->K           = dci_msg->nof_bits + 24U;                              // Payload size including CRC
+  q->M           = (1U << dci_msg->location.L) * (SRSLTE_NRE - 3U) * 6U; // Number of RE
+  q->E           = q->M * 2;                                             // Number of Rate-Matched bits
+  uint32_t cinit = pdcch_nr_c_init(q, dci_msg);                          // Pseudo-random sequence initiation
 
   // Get polar code
   if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
-  PDCCH_INFO_TX("K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
+  PDCCH_INFO_TX("K=%d; E=%d; M=%d; n=%d; cinit=%08x;\n", q->K, q->E, q->M, q->code.n, cinit);
+
+  // Set first L bits to ones, c will have an offset of 24 bits
+  uint8_t* c = q->c;
+  srslte_bit_unpack(UINT32_MAX, &c, 24U);
 
   // Copy DCI message
-  srslte_vec_u8_copy(q->c, dci_msg->payload, dci_msg->nof_bits);
+  srslte_vec_u8_copy(c, dci_msg->payload, dci_msg->nof_bits);
 
   // Append CRC
-  srslte_crc_attach(&q->crc24c, q->c, dci_msg->nof_bits);
+  srslte_crc_attach(&q->crc24c, q->c, q->K);
 
   PDCCH_INFO_TX("Append CRC %06x\n", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
 
@@ -364,16 +370,22 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   srslte_bit_unpack(dci_msg->rnti, &ptr, 16);
 
   // Scramble CRC with RNTI
-  srslte_vec_xor_bbb(unpacked_rnti, &q->c[q->K - 16], &q->c[q->K - 16], 16);
+  srslte_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
 
-  // Print c
+  // Interleave
+  uint8_t c_prime[SRSLTE_POLAR_INTERLEAVER_K_MAX_IL];
+  srslte_polar_interleaver_run_u8(c, c_prime, q->K, true);
+
+  // Print c and c_prime (after interleaving)
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_TX("c=");
-    srslte_vec_fprint_hex(stdout, q->c, q->K);
+    srslte_vec_fprint_hex(stdout, c, q->K);
+    PDCCH_INFO_TX("c_prime=");
+    srslte_vec_fprint_hex(stdout, c_prime, q->K);
   }
 
   // Allocate channel
-  srslte_polar_chanalloc_tx(q->c, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+  srslte_polar_chanalloc_tx(c_prime, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
   // Encode bits
   if (srslte_polar_encoder_encode(&q->encoder, q->allocated, q->d, q->code.n) < SRSLTE_SUCCESS) {
@@ -383,14 +395,14 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   // Print d
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_TX("d=");
-    srslte_vec_fprint_byte(stdout, q->d, q->K);
+    srslte_vec_fprint_byte(stdout, q->d, q->code.N);
   }
 
   // Rate matching
   srslte_polar_rm_tx(&q->rm, q->d, q->f, q->code.n, q->E, q->K, PDCCH_NR_POLAR_RM_IBIL);
 
   // Scrambling
-  srslte_sequence_apply_bit(q->f, q->f, q->E, pdcch_nr_c_init(q, dci_msg));
+  srslte_sequence_apply_bit(q->f, q->f, q->E, cinit);
 
   // Modulation
   srslte_mod_modulate(&q->modem_table, q->f, q->symbols, q->E);
@@ -509,12 +521,22 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   }
 
   // De-allocate channel
-  srslte_polar_chanalloc_rx(q->allocated, q->c, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+  uint8_t c_prime[SRSLTE_POLAR_INTERLEAVER_K_MAX_IL];
+  srslte_polar_chanalloc_rx(q->allocated, c_prime, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+
+  // Set first L bits to ones, c will have an offset of 24 bits
+  uint8_t* c = q->c;
+  srslte_bit_unpack(UINT32_MAX, &c, 24U);
+
+  // De-interleave
+  srslte_polar_interleaver_run_u8(c_prime, c, q->K, false);
 
   // Print c
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    PDCCH_INFO_RX("c_prime=");
+    srslte_vec_fprint_hex(stdout, c_prime, q->K);
     PDCCH_INFO_RX("c=");
-    srslte_vec_fprint_hex(stdout, q->c, q->K);
+    srslte_vec_fprint_hex(stdout, c, q->K);
   }
 
   // Unpack RNTI
@@ -523,21 +545,21 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   srslte_bit_unpack(dci_msg->rnti, &ptr, 16);
 
   // De-Scramble CRC with RNTI
-  ptr = &q->c[q->K - 24];
-  srslte_vec_xor_bbb(unpacked_rnti, &q->c[q->K - 16], &q->c[q->K - 16], 16);
+  srslte_vec_xor_bbb(unpacked_rnti, &c[q->K - 16], &c[q->K - 16], 16);
 
   // Check CRC
-  uint32_t checksum1 = srslte_crc_checksum(&q->crc24c, q->c, dci_msg->nof_bits);
+  ptr                = &c[q->K - 24];
+  uint32_t checksum1 = srslte_crc_checksum(&q->crc24c, q->c, q->K);
   uint32_t checksum2 = srslte_bit_pack(&ptr, 24);
   res->crc           = checksum1 == checksum2;
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     PDCCH_INFO_RX("CRC={%06x, %06x}; msg=", checksum1, checksum2);
-    srslte_vec_fprint_hex(stdout, q->c, dci_msg->nof_bits);
+    srslte_vec_fprint_hex(stdout, c, dci_msg->nof_bits);
   }
 
   // Copy DCI message
-  srslte_vec_u8_copy(dci_msg->payload, q->c, dci_msg->nof_bits);
+  srslte_vec_u8_copy(dci_msg->payload, c, dci_msg->nof_bits);
 
   if (q->meas_time_en) {
     gettimeofday(&t[2], NULL);
