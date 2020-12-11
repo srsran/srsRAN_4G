@@ -2516,6 +2516,16 @@ uint32_t rrc::get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id)
   return 0;
 }
 
+bool rrc::has_nr_dc()
+{
+  bool has_nr_dc = false;
+#ifdef HAVE_5GNR
+  if (args.release >= 15)
+    has_nr_dc = true;
+#endif
+  return has_nr_dc;
+}
+
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
 {
   gw->add_mch_port(lcid, port);

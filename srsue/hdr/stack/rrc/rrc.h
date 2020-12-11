@@ -110,10 +110,13 @@ public:
   bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
   void     paging_completed(bool outcome) final;
-#ifdef HAVE_5GNR
+  bool     has_nr_dc();
+  
   // NR interface
+#ifdef HAVE_5GNR
   void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
 #endif
+
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;

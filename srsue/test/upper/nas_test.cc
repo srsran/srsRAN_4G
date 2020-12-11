@@ -128,6 +128,7 @@ public:
   void     enable_capabilities() {}
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) { return 0; }
   void     paging_completed(bool outcome) {}
+  bool     has_nr_dc() { return false; }
 
 private:
   nas*         nas_ptr;
