@@ -65,10 +65,12 @@ void rrc::ue::get_metrics(rrc_ue_metrics_t& ue_metrics) const
   ue_metrics.state      = state;
   const auto& drb_list  = bearer_list.get_established_drbs();
   const auto& erab_list = bearer_list.get_erabs();
-  ue_metrics.drb_qci_map.resize(drb_list.size());
+  ue_metrics.drb_qci_map.reserve(drb_list.size());
   for (size_t i = 0; i < drb_list.size(); ++i) {
-    ue_metrics.drb_qci_map[i] =
-        std::make_pair(drb_list[i].lc_ch_id, erab_list.at(drb_list[i].eps_bearer_id).qos_params.qci);
+    auto erab_it = erab_list.find(drb_list[i].eps_bearer_id);
+    if (erab_it != erab_list.end()) {
+      ue_metrics.drb_qci_map.push_back(std::make_pair(drb_list[i].lc_ch_id, erab_it->second.qos_params.qci));
+    }
   }
 }
 
