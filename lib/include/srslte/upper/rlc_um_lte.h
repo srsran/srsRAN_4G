@@ -13,7 +13,6 @@
 #ifndef SRSLTE_RLC_UM_LTE_H
 #define SRSLTE_RLC_UM_LTE_H
 
-#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -65,9 +64,6 @@ private:
     uint32_t vt_us = 0; // Send state. SN to be assigned for next PDU.
 
     // Metrics
-#ifdef ENABLE_TIMESTAMP
-    srslte::rolling_average<double> mean_pdu_latency_us;
-#endif
     void debug_state();
   };
 
