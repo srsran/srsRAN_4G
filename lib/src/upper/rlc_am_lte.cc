@@ -838,7 +838,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->msg += to_move;
     if (tx_sdu->N_bytes == 0) {
 #ifdef ENABLE_TIMESTAMP
-      long latency_us = tx_sdu->get_latency_us();
+      long latency_us = tx_sdu->get_latency_us().count();
       mean_pdu_latency_us.push(latency_us);
       log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %ld/%ld us\n",
                  RB_NAME,
@@ -886,7 +886,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->msg += to_move;
     if (tx_sdu->N_bytes == 0) {
 #ifdef ENABLE_TIMESTAMP
-      long latency_us = tx_sdu->get_latency_us();
+      long latency_us = tx_sdu->get_latency_us().count();
       mean_pdu_latency_us.push(latency_us);
       log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %ld/%ld us\n",
                  RB_NAME,

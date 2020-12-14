@@ -139,8 +139,9 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     if (tx_sdu->N_bytes == 0) {
-      log->debug(
-          "%s Complete SDU scheduled for tx. Stack latency: %ld us\n", rb_name.c_str(), tx_sdu->get_latency_us());
+      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+                 rb_name.c_str(),
+                 tx_sdu->get_latency_us().count());
       tx_sdu.reset();
       header.si = rlc_nr_si_field_t::last_segment;
     } else {
@@ -163,8 +164,9 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     if (tx_sdu->N_bytes == 0) {
-      log->debug(
-          "%s Complete SDU scheduled for tx. Stack latency: %ld us\n", rb_name.c_str(), tx_sdu->get_latency_us());
+      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+                 rb_name.c_str(),
+                 tx_sdu->get_latency_us().count());
       tx_sdu.reset();
       header.si = rlc_nr_si_field_t::full_sdu;
     } else {

@@ -113,7 +113,7 @@ void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
 *******************************************************************************/
 void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  log.info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
+  log.info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us().count());
   dl_tput_bytes += pdu->N_bytes;
   if (!if_up) {
     log.warning("TUN/TAP not up - dropping gw RX message\n");
@@ -137,8 +137,11 @@ void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if (pdu->N_bytes > 2) {
-    log.info_hex(
-        pdu->msg, pdu->N_bytes, "RX MCH PDU (%d B). Stack latency: %ld us\n", pdu->N_bytes, pdu->get_latency_us());
+    log.info_hex(pdu->msg,
+                 pdu->N_bytes,
+                 "RX MCH PDU (%d B). Stack latency: %ld us\n",
+                 pdu->N_bytes,
+                 pdu->get_latency_us().count());
     dl_tput_bytes += pdu->N_bytes;
 
     // Hack to drop initial 2 bytes

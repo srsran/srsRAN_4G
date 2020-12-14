@@ -18,6 +18,7 @@
 *******************************************************************************/
 
 #include "srslte/adt/span.h"
+#include <chrono>
 #include <memory>
 #include <stdint.h>
 #include <string.h>
@@ -104,9 +105,6 @@ public:
   byte_buffer_t() : N_bytes(0)
   {
     bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-#ifdef ENABLE_TIMESTAMP
-    timestamp_is_set = false;
-#endif
     msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     next = NULL;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
@@ -144,24 +142,23 @@ public:
   }
   uint32_t get_headroom() { return msg - buffer; }
   // Returns the remaining space from what is reported to be the length of msg
-  uint32_t get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
-  long     get_latency_us()
+  uint32_t                  get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
+  std::chrono::microseconds get_latency_us()
   {
 #ifdef ENABLE_TIMESTAMP
-    if (!timestamp_is_set)
-      return 0;
-    gettimeofday(&timestamp[2], NULL);
-    get_time_interval(timestamp);
-    return timestamp[0].tv_usec + timestamp[0].tv_sec * 1000000;
+    if (!timestamp_is_set) {
+      return std::chrono::microseconds{0};
+    }
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - tp);
 #else
-    return 0;
+    return std::chrono::microseconds{0};
 #endif
   }
 
   void set_timestamp()
   {
 #ifdef ENABLE_TIMESTAMP
-    gettimeofday(&timestamp[1], NULL);
+    tp               = std::chrono::high_resolution_clock::now();
     timestamp_is_set = true;
 #endif
   }
@@ -174,8 +171,8 @@ public:
 
 private:
 #ifdef ENABLE_TIMESTAMP
-  struct timeval timestamp[3];
-  bool           timestamp_is_set;
+  std::chrono::high_resolution_clock::time_point tp;
+  bool                                           timestamp_is_set = false;
 #endif
   byte_buffer_t* next;
 };
