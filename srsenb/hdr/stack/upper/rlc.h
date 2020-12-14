@@ -11,6 +11,7 @@
  */
 
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/rlc.h"
 #include <map>
@@ -36,6 +37,7 @@ public:
             srslte::timer_handler* timers_,
             srslte::log_ref        log_h);
   void stop();
+  void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
 
   // rlc_interface_rrc
   void clear_buffer(uint16_t rnti);
