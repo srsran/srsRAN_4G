@@ -132,8 +132,8 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
-    log->error(
-        "TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
+    log->info(
+        "%s Tx PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
   unique_byte_buffer_t buf;
@@ -145,7 +145,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
                buf->get_latency_us().count());
     log->info_hex(payload,
                   pdu_size,
-                  "TX %s, %s PDU, queue size=%d, bytes=%d",
+                  "%s Tx %s PDU, queue size=%d, bytes=%d",
                   rrc->get_rb_name(lcid).c_str(),
                   srslte::to_string(rlc_mode_t::tm).c_str(),
                   ul_queue.size(),
