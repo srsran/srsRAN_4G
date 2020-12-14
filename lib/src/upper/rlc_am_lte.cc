@@ -844,6 +844,8 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
                  RB_NAME,
                  latency_us,
                  (long)mean_pdu_latency_us.value());
+#else
+      log->debug("%s Complete SDU scheduled for tx.\n", rb_name.c_str());
 #endif
       tx_sdu.reset();
     }
@@ -890,6 +892,8 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
                  RB_NAME,
                  latency_us,
                  (long)mean_pdu_latency_us.value());
+#else
+      log->debug("%s Complete SDU scheduled for tx.\n", rb_name.c_str());
 #endif
       tx_sdu.reset();
     }
@@ -951,7 +955,6 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   log->debug("%s\n", rlc_amd_pdu_header_to_string(header).c_str());
   debug_state();
 
-  tx_byte_count += buffer_ptr->N_bytes;
   return total_len;
 }
 
