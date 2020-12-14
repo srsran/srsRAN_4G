@@ -67,7 +67,11 @@ public:
 
   enum direction_t { Rx = 0, Tx };
   template <class T>
-  void log_rrc_message(const std::string& source, direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
+  void log_rrc_message(const std::string&           source,
+                       direction_t                  dir,
+                       const srslte::byte_buffer_t* pdu,
+                       const T&                     msg,
+                       const std::string&           msg_type);
 
   // PHY interface
   void in_sync() final;
