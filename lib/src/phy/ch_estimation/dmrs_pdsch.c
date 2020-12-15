@@ -453,7 +453,7 @@ static uint32_t srslte_dmrs_pdsch_seed(const srslte_carrier_nr_t*     carrier,
     n_id = dmrs_cfg->scrambling_id1;
   }
 
-  return (uint32_t)(((((SRSLTE_MAX_NSYMB * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17UL) +
+  return (uint32_t)(((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17UL) +
                      (2UL * carrier->id + n_scid)) &
                     (uint64_t)INT32_MAX);
 }
@@ -485,6 +485,8 @@ void srslte_dmrs_pdsch_free(srslte_dmrs_pdsch_t* q)
   if (q->temp) {
     free(q->temp);
   }
+
+  SRSLTE_MEM_ZERO(q, srslte_dmrs_pdsch_t, 1);
 }
 
 int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_nr_t* carrier)
