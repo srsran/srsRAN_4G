@@ -12,7 +12,9 @@
 
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/bundled/fmt/core.h"
 #include <cmath>
+#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 #include <stdio.h>
 
 namespace asn1 {
@@ -1513,13 +1515,11 @@ json_writer::json_writer() : ident(""), sep(NONE) {}
 
 void json_writer::write_fieldname(const std::string& fieldname)
 {
-  if (sep == COMMA) {
-    ss << ",\n" << ident;
-  } else if (sep == NEWLINE) {
-    ss << "\n" << ident;
-  }
+  constexpr static const char* septable[] = {",\n", "\n", ""};
+
+  fmt::format_to(buffer, "{}{}", septable[sep], sep != NONE ? ident : "");
   if (not fieldname.empty()) {
-    ss << "\"" << fieldname << "\": ";
+    fmt::format_to(buffer, "\"{}\": ", fieldname);
   }
   sep = NONE;
 }
@@ -1527,7 +1527,7 @@ void json_writer::write_fieldname(const std::string& fieldname)
 void json_writer::write_str(const std::string& fieldname, const std::string& value)
 {
   write_fieldname(fieldname);
-  ss << "\"" << value << "\"";
+  fmt::format_to(buffer, "\"{}\"", value);
   sep = COMMA;
 }
 void json_writer::write_str(const std::string& value)
@@ -1538,7 +1538,7 @@ void json_writer::write_str(const std::string& value)
 void json_writer::write_int(const std::string& fieldname, int64_t value)
 {
   write_fieldname(fieldname);
-  ss << value;
+  fmt::format_to(buffer, "{}", value);
   sep = COMMA;
 }
 void json_writer::write_int(int64_t value)
@@ -1549,7 +1549,7 @@ void json_writer::write_int(int64_t value)
 void json_writer::write_bool(const std::string& fieldname, bool value)
 {
   write_fieldname(fieldname);
-  ss << (value ? "true" : "false");
+  fmt::format_to(buffer, "{}", value ? "true" : "false");
   sep = COMMA;
 }
 void json_writer::write_bool(bool value)
@@ -1560,7 +1560,7 @@ void json_writer::write_bool(bool value)
 void json_writer::write_null(const std::string& fieldname)
 {
   write_fieldname(fieldname);
-  ss << "null";
+  fmt::format_to(buffer, "null");
   sep = COMMA;
 }
 void json_writer::write_null()
@@ -1571,33 +1571,34 @@ void json_writer::write_null()
 void json_writer::start_obj(const std::string& fieldname)
 {
   write_fieldname(fieldname);
-  ss << "{";
+  fmt::format_to(buffer, "{{");
   ident += "  ";
   sep = NEWLINE;
 }
 void json_writer::end_obj()
 {
   ident.erase(ident.size() - 2, 2);
-  ss << "\n" << ident << "}";
+  fmt::format_to(buffer, "\n{}}}", ident);
   sep = COMMA;
 }
+
 void json_writer::start_array(const std::string& fieldname)
 {
   write_fieldname(fieldname);
-  ss << "[";
+  fmt::format_to(buffer, "[");
   ident += "  ";
   sep = NEWLINE;
 }
 void json_writer::end_array()
 {
   ident.erase(ident.size() - 2, 2);
-  ss << "\n" << ident << "]";
+  fmt::format_to(buffer, "\n{}]", ident);
   sep = COMMA;
 }
 
 std::string json_writer::to_string() const
 {
-  return ss.str();
+  return std::string(buffer.data(), buffer.size());
 }
 
 } // namespace asn1
