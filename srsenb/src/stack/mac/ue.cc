@@ -94,15 +94,6 @@ void ue::reset()
       srslte_softbuffer_tx_reset(&buffer);
     }
   }
-
-  for (auto& cc_buffers : pending_buffers) {
-    for (auto& harq_buffer : cc_buffers) {
-      if (harq_buffer) {
-        pdus.deallocate(harq_buffer);
-        harq_buffer = nullptr;
-      }
-    }
-  }
 }
 
 /**
@@ -121,12 +112,6 @@ uint32_t ue::allocate_cc_buffers(const uint32_t num_cc)
     softbuffer_rx.back().resize(nof_rx_harq_proc);
     for (auto& buffer : softbuffer_rx.back()) {
       srslte_softbuffer_rx_init(&buffer, nof_prb);
-    }
-
-    pending_buffers.emplace_back();
-    pending_buffers.back().resize(nof_rx_harq_proc);
-    for (auto& buffer : pending_buffers.back()) {
-      buffer = nullptr;
     }
 
     // Create and init Tx buffers for Pcell
@@ -176,20 +161,14 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
   return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
-uint8_t* ue::request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len)
+uint8_t* ue::request_buffer(const uint32_t len)
 {
-  uint8_t* ret = nullptr;
   if (len > 0) {
-    if (!pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-      ret                                                      = pdus.request(len);
-      pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = ret;
-    } else {
-      log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
-    }
+    return pdus.request(len);
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
+    return nullptr;
   }
-  return ret;
 }
 
 bool ue::process_pdus()
@@ -314,25 +293,21 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   Debug("MAC PDU processed\n");
 }
 
-void ue::deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti)
+void ue::deallocate_pdu(const uint8_t* pdu_ptr)
 {
-  if (pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-    pdus.deallocate(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc));
-    pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
+  if (pdu_ptr) {
+    pdus.deallocate(pdu_ptr);
   } else {
-    srslte::console(
-        "Error deallocating buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
+    Error("Error deallocating PDU: null ptr\n");
   }
 }
 
-void ue::push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len)
+void ue::push_pdu(const uint8_t* pdu_ptr, uint32_t len)
 {
-  if (pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-    pdus.push(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc), len);
-    pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
+  if (pdu_ptr && len > 0) {
+    pdus.push(pdu_ptr, len);
   } else {
-    srslte::console(
-        "Error pushing buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
+    Error("Error pushing PDU: ptr=%p, len=%d\n", pdu_ptr, len);
   }
 }
 

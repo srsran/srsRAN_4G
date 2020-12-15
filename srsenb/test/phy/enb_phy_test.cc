@@ -289,6 +289,7 @@ private:
   CALLBACK(ta_info);
   CALLBACK(ack_info);
   CALLBACK(crc_info);
+  CALLBACK(push_pdu);
   CALLBACK(get_dl_sched);
   CALLBACK(get_mch_sched);
   CALLBACK(get_ul_sched);
@@ -489,6 +490,13 @@ public:
 
     log_h.info("Received UL ACK tti=%d; rnti=0x%x; cc=%d; ack=%d;\n", tti, rnti, cc_idx, crc_res);
     notify_crc_info();
+
+    return 0;
+  }
+  int push_pdu(uint32_t tti, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) override
+  {
+    log_h.info("Received push_pdu tti=%d; rnti=0x%x; ack=%d;\n", tti, rnti, crc_res);
+    notify_push_pdu();
 
     return 0;
   }

@@ -160,6 +160,9 @@ public:
   /**
    * Informs MAC about a received PUSCH transmission for given RNTI, TTI and eNb Cell/carrier.
    *
+   * This function does not deallocate the uplink buffer. The function push_pdu() must be called after this
+   * to inform the MAC that the uplink buffer can be discarded or pushed to the stack
+   *
    * @param tti the given TTI
    * @param rnti the UE identifier in the eNb
    * @param cc_idx the eNb Cell/Carrier identifier
@@ -168,6 +171,18 @@ public:
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) = 0;
+
+  /**
+   * Pushes an uplink PDU through the stack if crc_res==true or discards it if crc_res==false
+   *
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param pdu_ptr pointer to the uplink buffer
+   * @param nof_bytes the number of grants carrierd by the PUSCH message
+   * @param crc_res the CRC check, set to true if the message was decoded succesfully
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) = 0;
 
   virtual int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res)                = 0;
   virtual int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) = 0;

@@ -320,24 +320,28 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   ue_db[rnti]->set_tti(tti_rx);
   ue_db[rnti]->metrics_rx(crc, nof_bytes);
 
-  std::array<int, SRSLTE_MAX_CARRIERS> enb_ue_cc_map = scheduler.get_enb_ue_cc_map(rnti);
-  if (enb_ue_cc_map[enb_cc_idx] < 0) {
-    Error("User rnti=0x%x is not activated for carrier %d\n", rnti, enb_cc_idx);
+  // Scheduler uses eNB's CC mapping
+  return scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);
+}
+
+int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc)
+{
+  srslte::rwlock_read_guard lock(rwlock);
+
+  if (not check_ue_exists(rnti)) {
     return SRSLTE_ERROR;
   }
-  uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
 
   // push the pdu through the queue if received correctly
   if (crc) {
     Info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->push_pdu(ue_cc_idx, tti_rx, nof_bytes);
+    ue_db[rnti]->push_pdu(pdu_ptr, nof_bytes);
     stack_task_queue.push([this]() { process_pdus(); });
   } else {
-    ue_db[rnti]->deallocate_pdu(ue_cc_idx, tti_rx);
+    Debug("Discarting PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
+    ue_db[rnti]->deallocate_pdu(pdu_ptr);
   }
-
-  // Scheduler uses eNB's CC mapping
-  return scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);
+  return SRSLTE_SUCCESS;
 }
 
 int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)
@@ -894,8 +898,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
             if (sched_result.pusch[n].current_tx_nb == 0) {
               srslte_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
             }
-            phy_ul_sched_res->pusch[n].data =
-                ue_db[rnti]->request_buffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul, sched_result.pusch[i].tbs);
+            phy_ul_sched_res->pusch[n].data = ue_db[rnti]->request_buffer(sched_result.pusch[i].tbs);
             phy_ul_sched_res->nof_grants++;
             n++;
           } else {

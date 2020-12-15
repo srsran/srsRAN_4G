@@ -81,6 +81,10 @@ public:
   {
     return mac.crc_info(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
   }
+  int push_pdu(uint32_t tti, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) final
+  {
+    return mac.push_pdu(tti, rnti, pdu_ptr, nof_bytes, crc_res);
+  }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) final { return mac.get_dl_sched(tti, dl_sched_res); }
   int get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) final
   {

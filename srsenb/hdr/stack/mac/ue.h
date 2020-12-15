@@ -71,10 +71,10 @@ public:
   srslte_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
 
   bool     process_pdus();
-  uint8_t* request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len);
+  uint8_t* request_buffer(const uint32_t len);
   void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel) override;
-  void     push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len);
-  void     deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti);
+  void     push_pdu(const uint8_t* pdu_ptr, uint32_t len);
+  void     deallocate_pdu(const uint8_t* pdu_ptr);
 
   void metrics_read(mac_ue_metrics_t* metrics_);
   void metrics_rx(bool crc, uint32_t tbs);
@@ -117,9 +117,6 @@ private:
   typedef std::vector<srslte_softbuffer_rx_t>
                                        cc_softbuffer_rx_list_t; ///< List of Rx softbuffers for all HARQ processes of one carrier
   std::vector<cc_softbuffer_rx_list_t> softbuffer_rx;           ///< List of softbuffer lists for Rx
-
-  typedef std::vector<uint8_t*> cc_buffer_ptr_t; ///< List of buffer pointers for RX HARQ processes of one carrier
-  std::vector<cc_buffer_ptr_t>  pending_buffers; ///< List of buffer pointer list for Rx
 
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
   std::vector<std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> >
