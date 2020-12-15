@@ -41,9 +41,20 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   stack     = stack_;
   args      = args_;
 
+  running                = true;
+  fake_measurement_timer = task_sched.get_unique_timer();
+}
+
+void rrc_nr::stop()
+{
+  running = false;
+}
+
+void rrc_nr::init_core_less()
+{
   log_h->info("Creating dummy DRB on LCID=%d\n", args.coreless.drb_lcid);
   srslte::rlc_config_t rlc_cnfg = srslte::rlc_config_t::default_rlc_um_nr_config(6);
-  // rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
+  rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
 
   srslte::pdcp_config_t pdcp_cnfg{args.coreless.drb_lcid,
                                   srslte::PDCP_RB_IS_DRB,
@@ -53,22 +64,32 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
                                   srslte::pdcp_t_reordering_t::ms500,
                                   srslte::pdcp_discard_timer_t ::ms100};
 
-  // pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
-
-  running = true;
+  pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
+  return;
 }
-
-void rrc_nr::stop()
-{
-  running = false;
-}
-
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 
 // Timeout callback interface
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
   log_h->debug("[NR] Handling Timer Expired\n");
+  if (timeout_id == fake_measurement_timer.id()) {
+    log_h->debug("[NR] Triggered Fake Measurement\n");
+
+    phy_meas_nr_t              fake_meas = {};
+    std::vector<phy_meas_nr_t> phy_meas_nr;
+    fake_meas.rsrp     = -60.0;
+    fake_meas.rsrq     = -60.0;
+    fake_meas.cfo_hz   = 1.0;
+    fake_meas.arfcn_nr = 632256;
+    fake_meas.pci_nr   = 500;
+    phy_meas_nr.push_back(fake_meas);
+    rrc_eutra->new_cell_meas_nr(phy_meas_nr);
+
+    auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+    fake_measurement_timer.set(10, timer_expire_func);
+    fake_measurement_timer.run();
+  }
 }
 
 void rrc_nr::srslte_rrc_log(const char* str) {}
@@ -244,6 +265,10 @@ void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
   log_h->debug("[NR] Measuring phy cell %d \n", carrier_freq_r15);
+  // Start timer for fake measurements
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  fake_measurement_timer.set(10, timer_expire_func);
+  fake_measurement_timer.run();
 }
 
 // RLC interface

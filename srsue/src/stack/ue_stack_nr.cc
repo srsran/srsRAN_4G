@@ -84,7 +84,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_args.coreless.drb_lcid = 4;
   rrc_args.coreless.ip_addr  = "192.168.1.3";
   rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, nullptr, task_sched.get_timer_handler(), this, rrc_args);
-
+  rrc->init_core_less();
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
 

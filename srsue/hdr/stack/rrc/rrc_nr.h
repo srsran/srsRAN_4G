@@ -59,6 +59,7 @@ public:
             const rrc_nr_args_t&        args_);
 
   void stop();
+  void init_core_less();
 
   void get_metrics(rrc_nr_metrics_t& m);
 
@@ -119,6 +120,8 @@ private:
   stack_interface_rrc*        stack     = nullptr;
 
   srslte::log_ref log_h;
+
+  srslte::timer_handler::unique_timer fake_measurement_timer;
 
   /// RRC states (3GPP 38.331 v15.5.1 Sec 4.2.1)
   enum rrc_nr_state_t {
