@@ -736,8 +736,7 @@ template <typename IntType>
 SRSASN_CODE pack_length(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned)
 {
   if (ub >= ASN_64K) {
-    IntType len = n - lb;
-    return pack_length(bref, len, aligned);
+    return pack_length(bref, n, aligned);
   }
   return pack_constrained_whole_number(bref, n, lb, ub, aligned);
 }
@@ -756,7 +755,7 @@ SRSASN_CODE unpack_length(IntType& n, cbit_ref& bref, IntType lb, IntType ub, bo
   if (ub >= ASN_64K) {
     uint32_t    len;
     SRSASN_CODE ret = unpack_length(len, bref, aligned);
-    n               = len + lb;
+    n               = len;
     return ret;
   }
   return unpack_constrained_whole_number(n, bref, lb, ub, aligned);
