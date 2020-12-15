@@ -28,7 +28,7 @@ ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   mac.reset(new mac_nr(&task_sched));
   pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
   rlc.reset(new srslte::rlc("RLC"));
-  rrc.reset(new rrc_nr());
+  rrc.reset(new rrc_nr(&task_sched));
 
   // setup logging for pool, RLC and PDCP
   pool_log->set_level(srslte::LOG_LEVEL_ERROR);
@@ -83,7 +83,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_args.log_hex_limit     = args.log.rrc_hex_limit;
   rrc_args.coreless.drb_lcid = 4;
   rrc_args.coreless.ip_addr  = "192.168.1.3";
-  rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, task_sched.get_timer_handler(), this, rrc_args);
+  rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, nullptr, task_sched.get_timer_handler(), this, rrc_args);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);

@@ -84,8 +84,12 @@ void rrc::rrc_meas::update_phy()
         rrc_ptr->phy->set_cells_to_meas(obj.meas_obj.meas_obj_eutra().carrier_freq, neighbour_pcis);
         break;
       }
-      case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15:
-        // Todo NR
+#ifdef HAVE_5GNR
+      case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15: {
+        rrc_ptr->rrc_nr->phy_set_cells_to_meas(obj.meas_obj.meas_obj_nr_r15().carrier_freq_r15);
+        break;
+      }
+#endif
       default:
         log_h->error("Not supported\n");
         break;

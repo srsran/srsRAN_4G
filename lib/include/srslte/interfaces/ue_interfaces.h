@@ -151,7 +151,7 @@ typedef struct {
 } phy_meas_nr_t;
 
 // RRC interface for RRC NR
-class rrc_interface_rrc_nr
+class rrc_eutra_interface_rrc_nr
 {
 public:
   virtual void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas) = 0;
@@ -266,6 +266,7 @@ class rrc_nr_interface_rrc
 public:
   virtual void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps) = 0;
   virtual void get_nr_capabilities(srslte::byte_buffer_t* nr_cap)              = 0;
+  virtual void phy_set_cells_to_meas(uint32_t carrier_freq_r15)                = 0;
 };
 
 // PDCP interface for RLC

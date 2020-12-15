@@ -21,9 +21,10 @@ int rrc_nr_cap_request_test()
   srslte::log_ref rrc_log("RRC");
   rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log->set_hex_limit(-1);
-
-  rrc_nr                rrc_nr;
-  srslte::byte_buffer_t caps;
+  srslte::task_scheduler    task_sched{512, 0, 100};
+  srslte::task_sched_handle task_sched_handle(&task_sched);
+  rrc_nr                    rrc_nr(task_sched_handle);
+  srslte::byte_buffer_t     caps;
   rrc_nr.get_eutra_nr_capabilities(&caps);
   rrc_nr.get_nr_capabilities(&caps);
   return SRSLTE_SUCCESS;

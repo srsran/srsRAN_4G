@@ -18,30 +18,32 @@ namespace srsue {
 
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
-rrc_nr::rrc_nr() : log_h("RRC") {}
+rrc_nr::rrc_nr(srslte::task_sched_handle task_sched_) : log_h("RRC"), task_sched(task_sched_) {}
 
 rrc_nr::~rrc_nr() = default;
 
-void rrc_nr::init(phy_interface_rrc_nr*  phy_,
-                  mac_interface_rrc_nr*  mac_,
-                  rlc_interface_rrc*     rlc_,
-                  pdcp_interface_rrc*    pdcp_,
-                  gw_interface_rrc*      gw_,
-                  srslte::timer_handler* timers_,
-                  stack_interface_rrc*   stack_,
-                  const rrc_nr_args_t&   args_)
+void rrc_nr::init(phy_interface_rrc_nr*       phy_,
+                  mac_interface_rrc_nr*       mac_,
+                  rlc_interface_rrc*          rlc_,
+                  pdcp_interface_rrc*         pdcp_,
+                  gw_interface_rrc*           gw_,
+                  rrc_eutra_interface_rrc_nr* rrc_eutra_,
+                  srslte::timer_handler*      timers_,
+                  stack_interface_rrc*        stack_,
+                  const rrc_nr_args_t&        args_)
 {
-  phy    = phy_;
-  rlc    = rlc_;
-  pdcp   = pdcp_;
-  gw     = gw_;
-  timers = timers_;
-  stack  = stack_;
-  args   = args_;
+  phy       = phy_;
+  rlc       = rlc_;
+  pdcp      = pdcp_;
+  gw        = gw_;
+  rrc_eutra = rrc_eutra_;
+  timers    = timers_;
+  stack     = stack_;
+  args      = args_;
 
   log_h->info("Creating dummy DRB on LCID=%d\n", args.coreless.drb_lcid);
   srslte::rlc_config_t rlc_cnfg = srslte::rlc_config_t::default_rlc_um_nr_config(6);
-  rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
+  // rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
 
   srslte::pdcp_config_t pdcp_cnfg{args.coreless.drb_lcid,
                                   srslte::PDCP_RB_IS_DRB,
@@ -51,7 +53,7 @@ void rrc_nr::init(phy_interface_rrc_nr*  phy_,
                                   srslte::pdcp_t_reordering_t::ms500,
                                   srslte::pdcp_discard_timer_t ::ms100};
 
-  pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
+  // pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
 
   running = true;
 }
@@ -64,7 +66,10 @@ void rrc_nr::stop()
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 
 // Timeout callback interface
-void rrc_nr::timer_expired(uint32_t timeout_id) {}
+void rrc_nr::timer_expired(uint32_t timeout_id)
+{
+  log_h->debug("[NR] Handling Timer Expired\n");
+}
 
 void rrc_nr::srslte_rrc_log(const char* str) {}
 
@@ -234,6 +239,11 @@ void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
   nr_caps_pdu->N_bytes = bref.distance_bytes();
   log_h->debug_hex(nr_caps_pdu->msg, nr_caps_pdu->N_bytes, "NR capabilities (%u B)\n", nr_caps_pdu->N_bytes);
   return;
+};
+
+void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
+{
+  log_h->debug("[NR] Measuring phy cell %d \n", carrier_freq_r15);
 }
 
 // RLC interface

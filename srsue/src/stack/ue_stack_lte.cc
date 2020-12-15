@@ -32,7 +32,7 @@ ue_stack_lte::ue_stack_lte() :
   mac("MAC", &task_sched),
   rrc(this, &task_sched),
 #ifdef HAVE_5GNR
-  rrc_nr(),
+  rrc_nr(&task_sched),
 #endif
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
@@ -122,6 +122,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 #ifdef HAVE_5GNR
+  rrc_nr.init(nullptr, nullptr, nullptr, nullptr, gw, &rrc, task_sched.get_timer_handler(), nullptr, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 #else
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, args.rrc);

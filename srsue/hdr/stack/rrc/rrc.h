@@ -63,7 +63,7 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_mac,
             public rrc_interface_pdcp,
 #ifdef HAVE_5GNR
-            public rrc_interface_rrc_nr,
+            public rrc_eutra_interface_rrc_nr,
 #endif
             public rrc_interface_rlc,
             public srslte::timer_callback

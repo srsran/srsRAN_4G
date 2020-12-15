@@ -45,17 +45,18 @@ class rrc_nr final : public rrc_interface_phy_nr,
                      public srslte::timer_callback
 {
 public:
-  rrc_nr();
+  rrc_nr(srslte::task_sched_handle task_sched_);
   ~rrc_nr();
 
-  void init(phy_interface_rrc_nr*  phy_,
-            mac_interface_rrc_nr*  mac_,
-            rlc_interface_rrc*     rlc_,
-            pdcp_interface_rrc*    pdcp_,
-            gw_interface_rrc*      gw_,
-            srslte::timer_handler* timers_,
-            stack_interface_rrc*   stack_,
-            const rrc_nr_args_t&   args_);
+  void init(phy_interface_rrc_nr*       phy_,
+            mac_interface_rrc_nr*       mac_,
+            rlc_interface_rrc*          rlc_,
+            pdcp_interface_rrc*         pdcp_,
+            gw_interface_rrc*           gw_,
+            rrc_eutra_interface_rrc_nr* rrc_eutra_,
+            srslte::timer_handler*      timers_,
+            stack_interface_rrc*        stack_,
+            const rrc_nr_args_t&        args_);
 
   void stop();
 
@@ -93,11 +94,13 @@ public:
   // RRC (LTE) interface
   void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
   void get_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
+  void phy_set_cells_to_meas(uint32_t carrier_freq_r15);
 
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
 
 private:
+  srslte::task_sched_handle task_sched;
   struct cmd_msg_t {
     enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
     srslte::unique_byte_buffer_t pdu;
@@ -109,10 +112,11 @@ private:
 
   phy_interface_rrc_nr* phy = nullptr;
   //  mac_interface_rrc*    mac   = nullptr;
-  rlc_interface_rrc*   rlc   = nullptr;
-  pdcp_interface_rrc*  pdcp  = nullptr;
-  gw_interface_rrc*    gw    = nullptr;
-  stack_interface_rrc* stack = nullptr;
+  rlc_interface_rrc*          rlc       = nullptr;
+  pdcp_interface_rrc*         pdcp      = nullptr;
+  gw_interface_rrc*           gw        = nullptr;
+  rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
+  stack_interface_rrc*        stack     = nullptr;
 
   srslte::log_ref log_h;
 
