@@ -107,7 +107,8 @@ typedef struct SRSLTE_API {
  */
 typedef struct SRSLTE_API {
   /// UE identifier
-  uint16_t rnti;
+  uint16_t           rnti;
+  srslte_rnti_type_t rnti_type;
 
   /// Time domain resources
   uint32_t                    k0;

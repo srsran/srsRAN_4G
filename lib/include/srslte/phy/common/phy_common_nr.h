@@ -146,6 +146,18 @@ typedef enum SRSLTE_API {
 } srslte_mcs_table_t;
 
 /**
+ * @brief RNTI types
+ */
+typedef enum SRSLTE_API {
+  srslte_rnti_type_c = 0,
+  srslte_rnti_type_p,
+  srslte_rnti_type_si,
+  srslte_rnti_type_ra,
+  srslte_rnti_type_tc,
+  srslte_rnti_type_cs,
+} srslte_rnti_type_t;
+
+/**
  * @brief DCI formats
  * @remark Described in TS 38.212 V15.9.0 Section 7.3.1 DCI formats
  */

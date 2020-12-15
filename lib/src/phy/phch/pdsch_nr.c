@@ -168,100 +168,9 @@ void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q)
   if (q->evm_buffer != NULL) {
     srslte_evm_free(q->evm_buffer);
   }
-}
 
-/**
- * @brief copies a number of countiguous Resource Elements
- * @param sf_symbols slot symbols in frequency domain
- * @param symbols resource elements
- * @param count number of resource elements to copy
- * @param put Direction, symbols are copied into sf_symbols if put is true, otherwise sf_symbols are copied into symbols
- */
-static void srslte_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, bool put)
-{
-  if (put) {
-    srslte_vec_cf_copy(sf_symbols, symbols, count);
-  } else {
-    srslte_vec_cf_copy(symbols, sf_symbols, count);
-  }
-}
-
-static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*       q,
-                                              const srslte_pdsch_grant_nr_t* grant,
-                                              cf_t*                          symbols,
-                                              cf_t*                          sf_symbols,
-                                              bool                           put)
-{
-  uint32_t count = 0;
-  uint32_t delta = 0;
-
-  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (grant->prb_idx[i]) {
-      for (uint32_t j = 0; j < SRSLTE_NRE; j += 2) {
-        if (put) {
-          sf_symbols[i * SRSLTE_NRE + delta + j + 1] = symbols[count++];
-        } else {
-          symbols[count++] = sf_symbols[i * SRSLTE_NRE + delta + j + 1];
-        }
-      }
-    }
-  }
-
-  return count;
-}
-
-static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*       q,
-                                              const srslte_pdsch_grant_nr_t* grant,
-                                              cf_t*                          symbols,
-                                              cf_t*                          sf_symbols,
-                                              bool                           put)
-{
-  uint32_t count = 0;
-  uint32_t delta = 0;
-
-  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
-    if (grant->prb_idx[i]) {
-      // Copy RE before first pilot pair
-      if (delta > 0) {
-        srslte_pdsch_re_cp(&sf_symbols[i * SRSLTE_NRE], &symbols[count], delta, put);
-        count += delta;
-      }
-
-      // Copy RE between pilot pairs
-      srslte_pdsch_re_cp(&sf_symbols[i * SRSLTE_NRE + delta + 2], &symbols[count], 4, put);
-      count += 4;
-
-      // Copy RE after second pilot
-      srslte_pdsch_re_cp(&sf_symbols[(i + 1) * SRSLTE_NRE - 4 + delta], &symbols[count], 4 - delta, put);
-      count += 4 - delta;
-    }
-  }
-
-  return count;
-}
-
-static uint32_t srslte_pdsch_nr_cp_dmrs(const srslte_pdsch_nr_t*       q,
-                                        const srslte_pdsch_cfg_nr_t*   cfg,
-                                        const srslte_pdsch_grant_nr_t* grant,
-                                        cf_t*                          symbols,
-                                        cf_t*                          sf_symbols,
-                                        bool                           put)
-{
-  uint32_t count = 0;
-
-  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_pdsch_mapping_type_A ? &cfg->dmrs_cfg_typeA : &cfg->dmrs_cfg_typeB;
-
-  switch (dmrs_cfg->type) {
-    case srslte_dmrs_pdsch_type_1:
-      count = srslte_pdsch_nr_cp_dmrs_type1(q, grant, symbols, sf_symbols, put);
-      break;
-    case srslte_dmrs_pdsch_type_2:
-      count = srslte_pdsch_nr_cp_dmrs_type2(q, grant, symbols, sf_symbols, put);
-      break;
-  }
-
-  return count;
+  // Make sure whole structure is fill with zeros
+  SRSLTE_MEM_ZERO(q, srslte_pdsch_nr_t, 1);
 }
 
 static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*       q,
@@ -340,13 +249,12 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*       q,
       dmrs_l_count++;
     }
 
+    // Skip DMRS symbol
     if (l == dmrs_l_idx[dmrs_l_count]) {
-      count += srslte_pdsch_nr_cp_dmrs(
-          q, cfg, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
-    } else {
-      count +=
-          srslte_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
+      continue;
     }
+
+    count += srslte_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
   }
 
   return count;
@@ -400,7 +308,7 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
   }
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("b=");
+    INFO("b=");
     srslte_vec_fprint_b(stdout, q->b[tb->cw_idx], tb->nof_bits);
   }
 
@@ -416,7 +324,7 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
   srslte_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], tb->nof_bits);
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("d=");
+    INFO("d=");
     srslte_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
 
@@ -471,7 +379,16 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*             q,
   // ... Not implemented
 
   // 7.3.1.6 Mapping from virtual to physical resource blocks
-  srslte_pdsch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
+  int n = srslte_pdsch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
+  if (n < SRSLTE_SUCCESS) {
+    ERROR("Putting NR PDSCH resources\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (n != grant->tb[0].nof_re) {
+    ERROR("Unmatched number of RE (%d != %d)\n", n, grant->tb[0].nof_re);
+    return SRSLTE_ERROR;
+  }
 
   if (q->meas_time_en) {
     gettimeofday(&t[2], NULL);

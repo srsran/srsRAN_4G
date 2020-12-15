@@ -111,18 +111,18 @@ typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
 static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
                                         srslte_dci_format_nr_t     dci_format,
                                         srslte_search_space_type_t search_space_type,
-                                        uint16_t                   rnti)
+                                        srslte_rnti_type_t         rnti_type)
 {
   // Non-implemented parameters
   bool               sps_config_mcs_table_present = false;
   srslte_mcs_table_t sps_config_mcs_table         = srslte_mcs_table_64qam;
-  bool               is_cs_rnti                   = false;
   bool               is_pdcch_sps                 = false;
 
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256', and
   // - the PDSCH is scheduled by a PDCCH with DCI format 1_1 with
   // - CRC scrambled by C-RNTI
-  if (mcs_table == srslte_mcs_table_256qam && dci_format == srslte_dci_format_nr_1_1 && SRSLTE_RNTI_ISUSER(rnti)) {
+  if (mcs_table == srslte_mcs_table_256qam && dci_format == srslte_dci_format_nr_1_1 &&
+      rnti_type == srslte_rnti_type_c) {
     return ra_nr_table_1;
   }
 
@@ -131,7 +131,7 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   // the PDSCH is scheduled by a PDCCH in a UE-specific search space with
   // CRC scrambled by C - RNTI
   if (mcs_table == srslte_mcs_table_qam64LowSE && search_space_type == srslte_search_space_type_ue &&
-      SRSLTE_RNTI_ISUSER(rnti)) {
+      rnti_type == srslte_rnti_type_c) {
     return ra_nr_table_3;
   }
 
@@ -140,7 +140,7 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   //   - if the PDSCH is scheduled by a PDCCH with DCI format 1_1 with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
   if (!sps_config_mcs_table_present && mcs_table == srslte_mcs_table_256qam &&
-      ((dci_format == srslte_dci_format_nr_1_1 && is_cs_rnti) || (!is_pdcch_sps))) {
+      ((dci_format == srslte_dci_format_nr_1_1 && rnti_type == srslte_rnti_type_c) || (!is_pdcch_sps))) {
     return ra_nr_table_2;
   }
 
@@ -148,7 +148,7 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   //   - if the PDSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
   if (sps_config_mcs_table_present && sps_config_mcs_table == srslte_mcs_table_qam64LowSE &&
-      (is_cs_rnti || is_pdcch_sps)) {
+      (rnti_type == srslte_rnti_type_cs || is_pdcch_sps)) {
     return ra_nr_table_3;
   }
 
@@ -159,10 +159,10 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
 double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
                                srslte_dci_format_nr_t     dci_format,
                                srslte_search_space_type_t search_space_type,
-                               uint16_t                   rnti,
+                               srslte_rnti_type_t         rnti_type,
                                uint32_t                   mcs_idx)
 {
-  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti);
+  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
 
   switch (table) {
     case ra_nr_table_1:
@@ -181,10 +181,10 @@ double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
 srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
                                        srslte_dci_format_nr_t     dci_format,
                                        srslte_search_space_type_t search_space_type,
-                                       uint16_t                   rnti,
+                                       srslte_rnti_type_t         rnti_type,
                                        uint32_t                   mcs_idx)
 {
-  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti);
+  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
 
   switch (table) {
     case ra_nr_table_1:
@@ -323,14 +323,14 @@ int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
 
   // Get target Rate
   double R = srslte_ra_nr_R_from_mcs(
-      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
+      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
   if (!isnormal(R)) {
     return SRSLTE_ERROR;
   }
 
   // Get modulation
   srslte_mod_t m = srslte_ra_nr_mod_from_mcs(
-      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
+      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
   if (m >= SRSLTE_MOD_NITEMS) {
     return SRSLTE_ERROR;
   }

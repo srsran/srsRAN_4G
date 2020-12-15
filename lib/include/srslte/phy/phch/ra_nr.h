@@ -33,6 +33,36 @@ extern "C" {
 #endif
 
 /**
+ * @brief Determines target rate
+ * @param mcs_table Configured MCS table
+ * @param dci_format DCI format used for the grant
+ * @param search_space_type Search space type
+ * @param rnti_type RNTI type
+ * @param mcs_idx Desired Modulation Coding Scheme (MCS) index
+ * @return The target rate if provided information is valid. Otherwise, it returns NAN
+ */
+SRSLTE_API double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
+                                          srslte_dci_format_nr_t     dci_format,
+                                          srslte_search_space_type_t search_space_type,
+                                          srslte_rnti_type_t         rnti_type,
+                                          uint32_t                   mcs_idx);
+
+/**
+ * @brief Determines target rate
+ * @param mcs_table Configured MCS table
+ * @param dci_format DCI format used for the grant
+ * @param search_space_type Search space type
+ * @param rnti_type RNTI type
+ * @param mcs_idx Desired Modulation Coding Scheme (MCS) index
+ * @return The selected modulation if provided information is valid. Otherwise, it returns SRSLTE_MOD_NITEMS
+ */
+SRSLTE_API srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
+                                                  srslte_dci_format_nr_t     dci_format,
+                                                  srslte_search_space_type_t search_space_type,
+                                                  srslte_rnti_type_t         rnti_type,
+                                                  uint32_t                   mcs_idx);
+
+/**
  * @brief Determines the number of resource elements available for a given PDSCH transmission
  * @param pdsch_cfg PDSCH configuration provided by higher layers
  * @param grant The given PDSCH transmission grant

@@ -229,7 +229,7 @@ void srslte_ofdm_free_(srslte_ofdm_t* q)
   if (q->window_offset_buffer) {
     free(q->window_offset_buffer);
   }
-  bzero(q, sizeof(srslte_ofdm_t));
+  SRSLTE_MEM_ZERO(q, srslte_ofdm_t, 1);
 }
 
 int srslte_ofdm_rx_init(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t* out_buffer, uint32_t max_prb)

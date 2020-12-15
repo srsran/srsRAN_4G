@@ -17,14 +17,6 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/pdsch_cfg_nr.h"
 
-typedef enum SRSLTE_API {
-  srslte_rnti_type_c = 0,
-  srslte_rnti_type_p,
-  srslte_rnti_type_si,
-  srslte_rnti_type_ra,
-  srslte_rnti_type_tc,
-} srslte_rnti_type_t;
-
 typedef struct SRSLTE_API {
   srslte_dci_location_t      location;
   srslte_search_space_type_t search_space;

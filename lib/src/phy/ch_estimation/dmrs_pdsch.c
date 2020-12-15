@@ -414,12 +414,6 @@ int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, uint32_t ma
 
 int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_pdsch_grant_nr_t* grant)
 {
-  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_pdsch_mapping_type_A ? &cfg->dmrs_cfg_typeA : &cfg->dmrs_cfg_typeB;
-
-  // Get number of frequency domain resource elements used for DMRS
-  int nof_sc = dmrs_cfg->type == srslte_dmrs_pdsch_type_1 ? 6 : 4;
-
   // Get number of symbols used for DMRS
   uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
   int      ret                                    = srslte_dmrs_pdsch_get_symbols_idx(cfg, grant, symbols);
@@ -428,7 +422,7 @@ int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_p
     return SRSLTE_ERROR;
   }
 
-  return nof_sc * ret;
+  return SRSLTE_NRE * ret;
 }
 
 static uint32_t srslte_dmrs_pdsch_seed(const srslte_carrier_nr_t*     carrier,
@@ -739,29 +733,11 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
     }
 
     if (symbols[symbol_idx] == l) {
-      switch (dmrs_cfg->type) {
-
-        case srslte_dmrs_pdsch_type_1:
-          for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
-            if (i % 2 != delta) {
-              chest_res->ce[0][0][count] = ce[i];
-              count++;
-            }
-          }
-          break;
-        case srslte_dmrs_pdsch_type_2:
-          for (uint32_t i = 0; i < nof_re_x_symbol; i++) {
-            if ((i % 6 != delta) && (i % 6 != delta + 1)) {
-              chest_res->ce[0][0][count] = ce[i];
-              count++;
-            }
-          }
-          break;
-      }
-    } else {
-      srslte_vec_cf_copy(&chest_res->ce[0][0][count], ce, nof_re_x_symbol);
-      count += nof_re_x_symbol;
+      continue;
     }
+
+    srslte_vec_cf_copy(&chest_res->ce[0][0][count], ce, nof_re_x_symbol);
+    count += nof_re_x_symbol;
   }
   // Set other values in the estimation result
   chest_res->nof_re = count;

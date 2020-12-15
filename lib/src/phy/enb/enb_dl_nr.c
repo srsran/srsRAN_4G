@@ -98,7 +98,7 @@ void srslte_enb_dl_nr_free(srslte_enb_dl_nr_t* q)
 
   srslte_pdcch_nr_free(&q->pdcch);
 
-  memset(q, 0, sizeof(srslte_enb_dl_nr_t));
+  SRSLTE_MEM_ZERO(q, srslte_enb_dl_nr_t, 1);
 }
 
 int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_t* carrier)

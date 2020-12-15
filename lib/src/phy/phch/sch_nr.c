@@ -362,6 +362,11 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  if (!tb->softbuffer.tx) {
+    ERROR("Error: Missing Tx softbuffer\n");
+    return SRSLTE_ERROR;
+  }
+
   const uint8_t* input_ptr  = data;
   uint8_t*       output_ptr = e_bits;
 
@@ -402,7 +407,7 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
   // Calculate TB CRC
   uint32_t checksum_tb = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("Encode: ");
+    INFO("tb=");
     srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
   }
 
@@ -437,7 +442,7 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
       }
 
       if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-        printf("CB %d:", r);
+        INFO("cb%d=", r);
         srslte_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
       }
 
@@ -456,6 +461,11 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
 
       // Encode code block
       srslte_ldpc_encoder_encode(cfg.encoder, q->temp_cb, rm_buffer, cfg.Kr);
+
+      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+        INFO("encoded=");
+        srslte_vec_fprint_b(stdout, rm_buffer, cfg.encoder->liftN - 2 * cfg.encoder->ls);
+      }
     }
 
     // Skip block
