@@ -735,6 +735,10 @@ template SRSASN_CODE unpack_unconstrained_whole_number<uint64_t>(uint64_t& n, cb
 template <typename IntType>
 SRSASN_CODE pack_length(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned)
 {
+  if (ub >= ASN_64K) {
+    IntType len = n - lb;
+    return pack_length(bref, len, aligned);
+  }
   return pack_constrained_whole_number(bref, n, lb, ub, aligned);
 }
 template SRSASN_CODE pack_length<uint8_t>(bit_ref& bref, uint8_t n, uint8_t lb, uint8_t ub, bool aligned);
@@ -749,6 +753,12 @@ template SRSASN_CODE pack_length<int64_t>(bit_ref& bref, int64_t n, int64_t lb, 
 template <typename IntType>
 SRSASN_CODE unpack_length(IntType& n, cbit_ref& bref, IntType lb, IntType ub, bool aligned)
 {
+  if (ub >= ASN_64K) {
+    uint32_t    len;
+    SRSASN_CODE ret = unpack_length(len, bref, aligned);
+    n               = len + lb;
+    return ret;
+  }
   return unpack_constrained_whole_number(n, bref, lb, ub, aligned);
 }
 template SRSASN_CODE unpack_length<uint8_t>(uint8_t& n, cbit_ref& bref, uint8_t lb, uint8_t ub, bool aligned);
