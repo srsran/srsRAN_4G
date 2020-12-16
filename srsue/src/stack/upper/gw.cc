@@ -38,7 +38,7 @@ int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw
   log.set_level(args.log.gw_level);
   log.set_hex_limit(args.log.gw_hex_limit);
 
-  gettimeofday(&metrics_time[1], NULL);
+  metrics_tp = std::chrono::high_resolution_clock::now();
 
   // MBSFN
   mbsfn_sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -86,16 +86,14 @@ void gw::stop()
 
 void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
 {
-  gettimeofday(&metrics_time[2], NULL);
-  get_time_interval(metrics_time);
+  std::chrono::duration<double> secs = std::chrono::high_resolution_clock::now() - metrics_tp;
 
-  double secs                   = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec * 1e-6;
-  double dl_tput_mbps_real_time = (dl_tput_bytes * 8 / (double)1e6) / secs;
-  double ul_tput_mbps_real_time = (ul_tput_bytes * 8 / (double)1e6) / secs;
+  double dl_tput_mbps_real_time = (dl_tput_bytes * 8 / (double)1e6) / secs.count();
+  double ul_tput_mbps_real_time = (ul_tput_bytes * 8 / (double)1e6) / secs.count();
 
   // Use the provided TTI counter to compute rate for metrics interface
-  m.dl_tput_mbps = (dl_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
-  m.ul_tput_mbps = (ul_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
+  m.dl_tput_mbps = (nof_tti > 0) ? ((dl_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+  m.ul_tput_mbps = (nof_tti > 0) ? ((ul_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
 
   log.info("gw_rx_rate_mbps=%4.2f (real=%4.2f), gw_tx_rate_mbps=%4.2f (real=%4.2f)\n",
            m.dl_tput_mbps,
@@ -103,7 +101,8 @@ void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
            m.ul_tput_mbps,
            ul_tput_mbps_real_time);
 
-  memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
+  // reset counters and store time
+  metrics_tp    = std::chrono::high_resolution_clock::now();
   dl_tput_bytes = 0;
   ul_tput_bytes = 0;
 }
