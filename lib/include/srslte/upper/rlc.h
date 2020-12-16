@@ -102,7 +102,7 @@ private:
   bsr_callback_t bsr_callback = nullptr;
 
   // Timer needed for metrics calculation
-  struct timeval metrics_time[3] = {};
+  std::chrono::high_resolution_clock::time_point metrics_tp;
 
   bool valid_lcid(uint32_t lcid);
   bool valid_lcid_mrb(uint32_t lcid);

@@ -22,7 +22,6 @@ namespace srslte {
 rlc::rlc(const char* logname) : rlc_log(logname)
 {
   pool = byte_buffer_pool::get_instance();
-  bzero(metrics_time, sizeof(metrics_time));
   pthread_rwlock_init(&rwlock, NULL);
 }
 
@@ -56,7 +55,6 @@ void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
   timers       = timers_;
   default_lcid = lcid_;
 
-  gettimeofday(&metrics_time[1], NULL);
   reset_metrics();
 
   // create default RLC_TM bearer for SRB0
@@ -82,6 +80,8 @@ void rlc::reset_metrics()
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     it->second->reset_metrics();
   }
+
+  metrics_tp = std::chrono::high_resolution_clock::now();
 }
 
 void rlc::stop()
@@ -96,20 +96,23 @@ void rlc::stop()
 
 void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
 {
-  gettimeofday(&metrics_time[2], NULL);
-  get_time_interval(metrics_time);
-  double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec * 1e-6;
+  std::chrono::duration<double> secs = std::chrono::high_resolution_clock::now() - metrics_tp;
 
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
 
+    rlc_log->info("rx_rate_mbps: lcid=%d metrics.num_rx_pdu_bytes=%ld nof_tti=%d\n",
+                  it->first,
+                  metrics.num_rx_pdu_bytes,
+                  nof_tti);
+
     // Rx/Tx rate based on real time
-    double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs;
-    double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs;
+    double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs.count();
+    double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs.count();
 
     // Rx/Tx rate based on number of TTIs
-    double rx_rate_mbps = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
-    double tx_rate_mbps = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0);
+    double rx_rate_mbps = (nof_tti > 0) ? ((metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+    double tx_rate_mbps = (nof_tti > 0) ? ((metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
 
     rlc_log->info("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)\n",
                   it->first,
@@ -125,11 +128,10 @@ void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
     rlc_log->info("MCH_LCID=%d, rx_rate_mbps=%4.2f\n",
                   it->first,
-                  (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs);
+                  (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs.count());
     m.bearer[it->first] = metrics;
   }
 
-  memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
   reset_metrics();
 }
 
@@ -143,6 +145,8 @@ void rlc::reestablish()
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     it->second->reestablish();
   }
+
+  reset_metrics();
 }
 
 // Reestablish a specific RLC bearer
