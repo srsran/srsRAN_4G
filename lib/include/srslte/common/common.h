@@ -155,12 +155,20 @@ public:
 #endif
   }
 
+  std::chrono::high_resolution_clock::time_point get_timestamp() { return tp; }
+
   void set_timestamp()
   {
 #ifdef ENABLE_TIMESTAMP
     tp               = std::chrono::high_resolution_clock::now();
     timestamp_is_set = true;
 #endif
+  }
+
+  void set_timestamp(std::chrono::high_resolution_clock::time_point tp_)
+  {
+    tp               = tp_;
+    timestamp_is_set = true;
   }
 
   void append_bytes(uint8_t* buf, uint32_t size)
