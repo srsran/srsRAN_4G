@@ -679,11 +679,13 @@ void rrc::cell_selection_proc::then(const srslte::proc_result_t<cs_result_t>& pr
 {
   Info("Completed with %s.\n", proc_result.is_success() ? "success" : "failure");
   // Inform Connection Request Procedure
-  if (rrc_ptr->conn_req_proc.is_busy()) {
-    rrc_ptr->conn_req_proc.trigger(proc_result);
-  } else if (rrc_ptr->connection_reest.is_busy()) {
-    rrc_ptr->connection_reest.trigger(proc_result);
-  }
+  rrc_ptr->task_sched.defer_task([this, proc_result]() {
+    if (rrc_ptr->conn_req_proc.is_busy()) {
+      rrc_ptr->conn_req_proc.trigger(proc_result);
+    } else if (rrc_ptr->connection_reest.is_busy()) {
+      rrc_ptr->connection_reest.trigger(proc_result);
+    }
+  });
 }
 
 /**************************************
