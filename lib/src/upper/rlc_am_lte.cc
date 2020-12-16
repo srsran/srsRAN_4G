@@ -99,6 +99,9 @@ uint32_t rlc_am_lte::get_bearer()
 
 rlc_bearer_metrics_t rlc_am_lte::get_metrics()
 {
+  // update values that aren't calculated on the fly
+  metrics.rx_latency_ms     = rx.get_sdu_rx_latency_ms();
+  metrics.rx_buffered_bytes = rx.get_rx_buffered_bytes();
   return metrics;
 }
 
@@ -1255,6 +1258,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
     return;
 #endif
   }
+  pdu.buf->set_timestamp();
 
   // check available space for payload
   if (nof_bytes > pdu.buf->get_tailroom()) {
@@ -1459,7 +1463,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
             rx_sdu.reset();
             goto exit;
           }
-
+          // store timestamp of the first segment when starting to assemble SDUs
+          if (rx_sdu->N_bytes == 0) {
+            rx_sdu->set_timestamp(rx_window[vr_r].buf->get_timestamp());
+          }
           memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
           rx_sdu->N_bytes += len;
 
@@ -1467,7 +1474,9 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
           rx_window[vr_r].buf->N_bytes -= len;
 
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", RB_NAME, rx_sdu->N_bytes);
-          rx_sdu->set_timestamp();
+          sdu_rx_latency_ms.push(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                     std::chrono::high_resolution_clock::now() - rx_sdu->get_timestamp())
+                                     .count());
           parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
           parent->metrics.num_rx_sdus++;
 
@@ -1498,6 +1507,10 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
     len = rx_window[vr_r].buf->N_bytes;
     log->debug_hex(rx_window[vr_r].buf->msg, len, "Handling last segment of length %d B of SN=%d\n", len, vr_r);
     if (rx_sdu->get_tailroom() >= len) {
+      // store timestamp of the first segment when starting to assemble SDUs
+      if (rx_sdu->N_bytes == 0) {
+        rx_sdu->set_timestamp(rx_window[vr_r].buf->get_timestamp());
+      }
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
       rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
     } else {
@@ -1511,7 +1524,9 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 
     if (rlc_am_end_aligned(rx_window[vr_r].header.fi)) {
       log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", RB_NAME, rx_sdu->N_bytes);
-      rx_sdu->set_timestamp();
+      sdu_rx_latency_ms.push(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 std::chrono::high_resolution_clock::now() - rx_sdu->get_timestamp())
+                                 .count());
       parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
       parent->metrics.num_rx_sdus++;
 
@@ -1591,6 +1606,26 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
     }
     pthread_mutex_unlock(&mutex);
   }
+}
+
+uint32_t rlc_am_lte::rlc_am_lte_rx::get_rx_buffered_bytes()
+{
+  uint32_t buff_size = 0;
+  pthread_mutex_lock(&mutex);
+  for (const auto& pdu : rx_window) {
+    buff_size += pdu.second.buf->N_bytes;
+  }
+  pthread_mutex_unlock(&mutex);
+  return buff_size;
+}
+
+uint32_t rlc_am_lte::rlc_am_lte_rx::get_sdu_rx_latency_ms()
+{
+  uint32_t latency = 0;
+  pthread_mutex_lock(&mutex);
+  latency = sdu_rx_latency_ms.value();
+  pthread_mutex_unlock(&mutex);
+  return latency;
 }
 
 /**

@@ -183,11 +183,6 @@ private:
 
     // Mutexes
     pthread_mutex_t mutex;
-
-    // Metrics
-#ifdef ENABLE_TIMESTAMP
-    srslte::rolling_average<double> mean_pdu_latency_us;
-#endif
   };
 
   // Receiver sub-class
@@ -203,7 +198,8 @@ private:
 
     void write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
-    uint32_t get_num_rx_bytes();
+    uint32_t get_rx_buffered_bytes(); // returns sum of PDUs in rx_window
+    uint32_t get_sdu_rx_latency_ms();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
@@ -264,6 +260,8 @@ private:
      ***************************************************************************/
 
     srslte::timer_handler::unique_timer reordering_timer;
+
+    srslte::rolling_average<double> sdu_rx_latency_ms;
   };
 
   // Common variables needed/provided by parent class
