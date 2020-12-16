@@ -25,7 +25,22 @@ namespace {
 /// Bearer container metrics.
 DECLARE_METRIC("bearer_id", metric_bearer_id, uint32_t, "");
 DECLARE_METRIC("qci", metric_qci, uint32_t, "");
-DECLARE_METRIC_SET("bearer_container", mset_bearer_container, metric_bearer_id, metric_qci);
+DECLARE_METRIC("dl_total_bytes", metric_dl_total_bytes, uint64_t, "");
+DECLARE_METRIC("ul_total_bytes", metric_ul_total_bytes, uint64_t, "");
+DECLARE_METRIC("dl_latency", metric_dl_latency, float, "");
+DECLARE_METRIC("ul_latency", metric_ul_latency, float, "");
+DECLARE_METRIC("dl_buffered_bytes", metric_dl_buffered_bytes, uint32_t, "");
+DECLARE_METRIC("ul_buffered_bytes", metric_ul_buffered_bytes, uint32_t, "");
+DECLARE_METRIC_SET("bearer_container",
+                   mset_bearer_container,
+                   metric_bearer_id,
+                   metric_qci,
+                   metric_dl_total_bytes,
+                   metric_ul_total_bytes,
+                   metric_dl_latency,
+                   metric_ul_latency,
+                   metric_dl_buffered_bytes,
+                   metric_ul_buffered_bytes);
 
 /// UE container metrics.
 DECLARE_METRIC("ue_rnti", metric_ue_rnti, uint32_t, "");
@@ -108,6 +123,14 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
     auto& bearer_container = bearer_list.back();
     bearer_container.write<metric_bearer_id>(drb.first);
     bearer_container.write<metric_qci>(drb.second);
+    // RLC bearer metrics.
+    if (drb.first >= SRSLTE_N_RADIO_BEARERS) {
+      continue;
+    }
+    const auto& rlc_bearer = m.stack.rlc.ues[i].bearer;
+    bearer_container.write<metric_dl_total_bytes>(rlc_bearer[drb.first].num_tx_sdu_bytes);
+    bearer_container.write<metric_ul_total_bytes>(rlc_bearer[drb.first].num_rx_sdu_bytes);
+    bearer_container.write<metric_dl_latency>(rlc_bearer[drb.first].sdu_tx_latency_us / 1e6);
   }
 }
 
@@ -118,6 +141,9 @@ static bool has_valid_metric_ranges(const enb_metrics_t& m, unsigned index)
     return false;
   }
   if (index >= m.stack.mac.ues.size()) {
+    return false;
+  }
+  if (index >= m.stack.rlc.ues.size()) {
     return false;
   }
 
