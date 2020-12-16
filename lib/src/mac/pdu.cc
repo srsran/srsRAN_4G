@@ -565,13 +565,13 @@ bool sch_subh::is_var_len_ce()
 
 uint16_t sch_subh::get_c_rnti()
 {
-  return (uint16_t)payload[0] << 8 | payload[1];
+  return le16toh((uint16_t)payload[0] << 8 | payload[1]);
 }
 
 uint64_t sch_subh::get_con_res_id()
 {
-  return ((uint64_t)payload[5]) | (((uint64_t)payload[4]) << 8) | (((uint64_t)payload[3]) << 16) |
-         (((uint64_t)payload[2]) << 24) | (((uint64_t)payload[1]) << 32) | (((uint64_t)payload[0]) << 40);
+  return le64toh(((uint64_t)payload[5]) | (((uint64_t)payload[4]) << 8) | (((uint64_t)payload[3]) << 16) |
+                 (((uint64_t)payload[2]) << 24) | (((uint64_t)payload[1]) << 32) | (((uint64_t)payload[0]) << 40));
 }
 
 float sch_subh::get_phr()
@@ -711,6 +711,7 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], ul_sch_lcid format)
 
 bool sch_subh::set_c_rnti(uint16_t crnti)
 {
+  crnti = htole32(crnti);
   if (((sch_pdu*)parent)->has_space_ce(2)) {
     w_payload_ce[0] = (uint8_t)((crnti & 0xff00) >> 8);
     w_payload_ce[1] = (uint8_t)((crnti & 0x00ff));
@@ -724,6 +725,7 @@ bool sch_subh::set_c_rnti(uint16_t crnti)
 }
 bool sch_subh::set_con_res_id(uint64_t con_res_id)
 {
+  con_res_id = htole64(con_res_id);
   if (((sch_pdu*)parent)->has_space_ce(6)) {
     w_payload_ce[0] = (uint8_t)((con_res_id & 0xff0000000000) >> 40);
     w_payload_ce[1] = (uint8_t)((con_res_id & 0x00ff00000000) >> 32);

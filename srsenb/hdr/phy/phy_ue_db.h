@@ -284,6 +284,14 @@ public:
   bool is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
+   * Asserts a given eNb cell is part of the given RNTI
+   * @param rnti identifier of the UE
+   * @param enb_cc_idx eNb cell/carrier index
+   * @return It returns true if the cell is part of the UE, othwerwise it returns false
+   */
+  bool ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
    * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier
    *
    * @param rnti identifier of the UE
@@ -330,7 +338,7 @@ public:
    * @param dci carries the Transport Block and required scheduling information
    *
    */
-  void set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci);
+  bool set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci);
 
   /**
    * Fills the Uplink Control Information (UCI) configuration and returns true/false idicating if UCI bits are required.
@@ -339,14 +347,14 @@ public:
    * @param rnti is the UE identifier
    * @param aperiodic_cqi_request indicates if aperiodic CQI was requested
    * @param uci_cfg brings the UCI configuration
-   * @return true if UCI decoding is required and false otherwise
+   * @return 1 if UCI decoding is required, 0 if not, -1 if error
    */
-  bool fill_uci_cfg(uint32_t          tti,
-                    uint32_t          enb_cc_idx,
-                    uint16_t          rnti,
-                    bool              aperiodic_cqi_request,
-                    bool              is_pusch_available,
-                    srslte_uci_cfg_t& uci_cfg);
+  int fill_uci_cfg(uint32_t          tti,
+                   uint32_t          enb_cc_idx,
+                   uint16_t          rnti,
+                   bool              aperiodic_cqi_request,
+                   bool              is_pusch_available,
+                   srslte_uci_cfg_t& uci_cfg);
 
   /**
    * Sends the decoded Uplink Control Information by PUCCH or PUSCH to MAC

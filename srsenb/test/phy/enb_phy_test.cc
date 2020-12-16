@@ -1288,7 +1288,7 @@ public:
     radio = unique_dummy_radio_t(
         new dummy_radio(args.nof_enb_cells * args.cell.nof_ports, args.cell.nof_prb, args.log_level));
 
-    /// Create Dummy Stack isntance
+    /// Create Dummy Stack instance
     stack = unique_dummy_stack_t(new dummy_stack(phy_cfg, phy_rrc_cfg, args.log_level, args.rnti));
     stack->set_active_cell_list(args.ue_cell_list);
 

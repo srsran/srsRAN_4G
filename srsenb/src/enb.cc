@@ -14,6 +14,7 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
+#include "srslte/common/enb_events.h"
 #include "srslte/radio/radio_null.h"
 #ifdef HAVE_5GNR
 #include "srsenb/hdr/phy/vnf_phy_nr.h"
@@ -46,7 +47,6 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   log->info("%s", get_build_string().c_str());
 
   // Validate arguments
-  rrc_cfg_t rrc_cfg = {};
   if (parse_args(args_, rrc_cfg)) {
     srslte::console("Error processing arguments.\n");
     return SRSLTE_ERROR;
@@ -145,6 +145,11 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 
+  // Now that everything is setup, log sector start events.
+  for (unsigned i = 0, e = rrc_cfg.cell_list.size(); i != e; ++i) {
+    event_logger::get().log_sector_start(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id);
+  }
+
   if (ret == SRSLTE_SUCCESS) {
     srslte::console("\n==== eNodeB started ===\n");
     srslte::console("Type <t> to view trace\n");
@@ -152,6 +157,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     // if any of the layers failed to start, make sure the rest is stopped in a controlled manner
     stop();
   }
+
   return ret;
 }
 
@@ -171,15 +177,20 @@ void enb::stop()
       radio->stop();
     }
 
+    // Now that everything is teared down, log sector stop events.
+    for (unsigned i = 0, e = rrc_cfg.cell_list.size(); i != e; ++i) {
+      event_logger::get().log_sector_stop(i, rrc_cfg.cell_list[i].pci, rrc_cfg.cell_list[i].cell_id);
+    }
+
     started = false;
   }
 }
 
-int enb::parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg)
+int enb::parse_args(const all_args_t& args_, rrc_cfg_t& _rrc_cfg)
 {
   // set member variable
   args = args_;
-  return enb_conf_sections::parse_cfg_files(&args, &rrc_cfg, &phy_cfg);
+  return enb_conf_sections::parse_cfg_files(&args, &_rrc_cfg, &phy_cfg);
 }
 
 void enb::start_plot()

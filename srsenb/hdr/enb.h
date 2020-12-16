@@ -29,6 +29,7 @@
 
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/rrc/rrc_config.h"
 
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
@@ -81,6 +82,10 @@ struct general_args_t {
   float       metrics_period_secs;
   bool        metrics_csv_enable;
   std::string metrics_csv_filename;
+  bool        report_json_enable;
+  std::string report_json_filename;
+  bool        alarms_log_enable;
+  std::string alarms_filename;
   bool        print_buffer_state;
   std::string eia_pref_list;
   std::string eea_pref_list;
@@ -129,11 +134,6 @@ private:
 
   int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg);
 
-  // eNB components
-  std::unique_ptr<enb_stack_base>     stack;
-  std::unique_ptr<srslte::radio_base> radio;
-  std::unique_ptr<enb_phy_base>       phy;
-
   srslte::logger* logger = nullptr;
   srslte::log_ref log; // Own logger for eNB
 
@@ -145,6 +145,12 @@ private:
   bool       started = false;
 
   phy_cfg_t phy_cfg = {};
+  rrc_cfg_t rrc_cfg = {};
+
+  // eNB components
+  std::unique_ptr<enb_stack_base>     stack = nullptr;
+  std::unique_ptr<srslte::radio_base> radio = nullptr;
+  std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
   srslte::LOG_LEVEL_ENUM level(std::string l);
 

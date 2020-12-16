@@ -15,6 +15,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srslte/asn1/rrc_utils.h"
+#include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
 
 using namespace asn1::rrc;
@@ -305,6 +306,9 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
     parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+
+  // Log event.
+  event_logger::get().log_rrc_connected(static_cast<unsigned>(s1ap_cause.value));
 }
 
 void rrc::ue::send_connection_reject()
@@ -642,6 +646,9 @@ void rrc::ue::send_connection_release()
   }
 
   send_dl_dcch(&dl_dcch_msg);
+
+  // Log rrc release event.
+  event_logger::get().log_rrc_disconnect(static_cast<unsigned>(rel_ies.release_cause));
 }
 
 /*

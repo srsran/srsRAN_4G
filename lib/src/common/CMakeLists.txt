@@ -8,6 +8,7 @@
 
 
 set(SOURCES arch_select.cc
+            enb_events.cc
             backtrace.c
             buffer_pool.cc
             crash_handler.c
