@@ -300,11 +300,7 @@ int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_b
       return 0;
     }
   }
-  int len = build_data_pdu(std::move(pdu), payload, nof_bytes);
-  if (len > 0) {
-    parent->metrics.sdu_tx_latency_us = mean_pdu_latency_us.value();
-  }
-  return len;
+  return build_data_pdu(std::move(pdu), payload, nof_bytes);
 }
 
 } // namespace srslte
