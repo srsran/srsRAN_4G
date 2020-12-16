@@ -689,7 +689,6 @@ IntType unconstrained_whole_number_length(IntType n)
 template <typename IntType>
 SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool aligned)
 {
-  // TODO: Test
   uint32_t len = unconstrained_whole_number_length(n);
   if (aligned) {
     HANDLE_CODE(bref.align_bytes_zero());
@@ -699,11 +698,8 @@ SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool align
   return SRSASN_SUCCESS;
 }
 template <typename IntType>
-SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, cbit_ref& bref, bool aligned)
+SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, cbit_ref& bref, uint32_t len, bool aligned)
 {
-  // TODO: Test
-  uint32_t len;
-  HANDLE_CODE(unpack_length(len, bref, aligned));
   if (aligned) {
     HANDLE_CODE(bref.align_bytes());
   }
@@ -715,18 +711,21 @@ template SRSASN_CODE pack_unconstrained_whole_number<int8_t>(bit_ref& bref, int8
 template SRSASN_CODE pack_unconstrained_whole_number<int16_t>(bit_ref& bref, int16_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<int32_t>(bit_ref& bref, int32_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<int64_t>(bit_ref& bref, int64_t n, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int8_t>(int8_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int16_t>(int16_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int32_t>(int32_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int64_t>(int64_t& n, cbit_ref& bref, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int8_t>(int8_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int16_t>(int16_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int32_t>(int32_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int64_t>(int64_t& n, cbit_ref& bref, uint32_t len, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint8_t>(bit_ref& bref, uint8_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint16_t>(bit_ref& bref, uint16_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint32_t>(bit_ref& bref, uint32_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint64_t>(bit_ref& bref, uint64_t n, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint8_t>(uint8_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint16_t>(uint16_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint32_t>(uint32_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint64_t>(uint64_t& n, cbit_ref& bref, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<uint8_t>(uint8_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE
+unpack_unconstrained_whole_number<uint16_t>(uint16_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE
+unpack_unconstrained_whole_number<uint32_t>(uint32_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE
+unpack_unconstrained_whole_number<uint64_t>(uint64_t& n, cbit_ref& bref, uint32_t len, bool aligned);
 
 /*********************
    varlength_packing
@@ -882,6 +881,7 @@ SRSASN_CODE pack_integer(bit_ref& bref, IntType n, IntType lb, IntType ub, bool 
     //    }
     HANDLE_CODE(pack_constrained_whole_number(bref, n, (IntType)lb, (IntType)ub, aligned));
   } else {
+    // See X.691 - 12.2.6
     if (not within_bounds or (not lower_bounded and not upper_bounded)) {
       HANDLE_CODE(pack_length(bref, unconstrained_whole_number_length(n), aligned));
       HANDLE_CODE(pack_unconstrained_whole_number(bref, n, aligned));
@@ -939,10 +939,11 @@ SRSASN_CODE unpack_integer(IntType& n, cbit_ref& bref, IntType lb, IntType ub, b
     // TODO: Check if we are in the indefinite length case, and pack length prefix if needed
     HANDLE_CODE(unpack_constrained_whole_number(n, bref, (IntType)lb, (IntType)ub, aligned));
   } else {
+    // See X.691 - 12.2.6
     if (not within_bounds or (not lower_bounded and not upper_bounded)) {
       uint32_t len;
       HANDLE_CODE(unpack_length(len, bref, aligned));
-      HANDLE_CODE(unpack_unconstrained_whole_number(n, bref, aligned)); // TODO
+      HANDLE_CODE(unpack_unconstrained_whole_number(n, bref, len, aligned));
     } else {
       // pack as semi-constrained
       // TODO
