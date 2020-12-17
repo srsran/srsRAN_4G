@@ -847,17 +847,6 @@ using affected_carrier_freq_list_v1310_l = dyn_array<affected_carrier_freq_v1310
 // DRB-CountInfoListExt-r15 ::= SEQUENCE (SIZE (1..4)) OF DRB-CountInfo
 using drb_count_info_list_ext_r15_l = dyn_array<drb_count_info_s>;
 
-// FailureReportSCG-v12d0 ::= SEQUENCE
-struct fail_report_scg_v12d0_s {
-  bool                           meas_result_neigh_cells_v12d0_present = false;
-  meas_result_list2_eutra_v9e0_l meas_result_neigh_cells_v12d0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // IDC-SubframePattern-r11 ::= CHOICE
 struct idc_sf_pattern_r11_c {
   struct sf_pattern_tdd_r11_c_ {
@@ -1998,18 +1987,6 @@ struct rstd_inter_freq_info_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCGFailureInformation-v12d0-IEs ::= SEQUENCE
-struct scg_fail_info_v12d0_ies_s {
-  bool                    fail_report_scg_v12d0_present = false;
-  bool                    non_crit_ext_present          = false;
-  fail_report_scg_v12d0_s fail_report_scg_v12d0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // SL-CommTxResourceReq-r12 ::= SEQUENCE
 struct sl_comm_tx_res_req_r12_s {
   bool                    carrier_freq_r12_present = false;
@@ -2223,6 +2200,18 @@ struct mbms_interest_ind_v1310_ies_s {
   bool                          non_crit_ext_present      = false;
   mbms_service_list_r13_l       mbms_services_r13;
   mbms_interest_ind_v1540_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MeasReportAppLayer-v1590-IEs ::= SEQUENCE
+struct meas_report_app_layer_v1590_ies_s {
+  bool          late_non_crit_ext_present = false;
+  bool          non_crit_ext_present      = false;
+  dyn_octstring late_non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2583,8 +2572,20 @@ struct registered_mme_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCGFailureInformation-v1310-IEs ::= SEQUENCE
-struct scg_fail_info_v1310_ies_s {
+// SCGFailureInformation-v12d0a-IEs ::= SEQUENCE
+struct scg_fail_info_v12d0a_ies_s {
+  bool          late_non_crit_ext_present = false;
+  bool          non_crit_ext_present      = false;
+  dyn_octstring late_non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCGFailureInformationNR-v1590-IEs ::= SEQUENCE
+struct scg_fail_info_nr_v1590_ies_s {
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -2991,19 +2992,20 @@ struct mbms_interest_ind_r11_ies_s {
 
 // MeasReportAppLayer-r15-IEs ::= SEQUENCE
 struct meas_report_app_layer_r15_ies_s {
-  struct service_type_opts {
+  struct service_type_r15_opts {
     enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
     std::string to_string() const;
   };
-  typedef enumerated<service_type_opts> service_type_e_;
+  typedef enumerated<service_type_r15_opts> service_type_r15_e_;
 
   // member variables
-  bool                       meas_report_app_layer_container_r15_present = false;
-  bool                       service_type_present                        = false;
-  bool                       non_crit_ext_present                        = false;
-  bounded_octstring<1, 8000> meas_report_app_layer_container_r15;
-  service_type_e_            service_type;
+  bool                              meas_report_app_layer_container_r15_present = false;
+  bool                              service_type_r15_present                    = false;
+  bool                              non_crit_ext_present                        = false;
+  bounded_octstring<1, 8000>        meas_report_app_layer_container_r15;
+  service_type_r15_e_               service_type_r15;
+  meas_report_app_layer_v1590_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3188,10 +3190,10 @@ struct rrc_conn_setup_complete_r8_ies_s {
 
 // SCGFailureInformation-r12-IEs ::= SEQUENCE
 struct scg_fail_info_r12_ies_s {
-  bool                      fail_report_scg_r12_present = false;
-  bool                      non_crit_ext_present        = false;
-  fail_report_scg_r12_s     fail_report_scg_r12;
-  scg_fail_info_v1310_ies_s non_crit_ext;
+  bool                       fail_report_scg_r12_present = false;
+  bool                       non_crit_ext_present        = false;
+  fail_report_scg_r12_s      fail_report_scg_r12;
+  scg_fail_info_v12d0a_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3201,9 +3203,10 @@ struct scg_fail_info_r12_ies_s {
 
 // SCGFailureInformationNR-r15-IEs ::= SEQUENCE
 struct scg_fail_info_nr_r15_ies_s {
-  bool                     fail_report_scg_nr_r15_present = false;
-  bool                     non_crit_ext_present           = false;
-  fail_report_scg_nr_r15_s fail_report_scg_nr_r15;
+  bool                         fail_report_scg_nr_r15_present = false;
+  bool                         non_crit_ext_present           = false;
+  fail_report_scg_nr_r15_s     fail_report_scg_nr_r15;
+  scg_fail_info_nr_v1590_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

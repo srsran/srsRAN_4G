@@ -337,6 +337,18 @@ struct rrc_conn_setup_v8a0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
+// RRCEarlyDataComplete-v1590-IEs ::= SEQUENCE
+struct rrc_early_data_complete_v1590_ies_s {
+  bool          late_non_crit_ext_present = false;
+  bool          non_crit_ext_present      = false;
+  dyn_octstring late_non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RedirectedCarrierInfo-r15-IEs ::= CHOICE
 struct redirected_carrier_info_r15_ies_c {
   struct types_opts {
@@ -513,17 +525,18 @@ struct rrc_conn_setup_r8_ies_s {
 
 // RRCEarlyDataComplete-r15-IEs ::= SEQUENCE
 struct rrc_early_data_complete_r15_ies_s {
-  bool                              ded_info_nas_r15_present                = false;
-  bool                              extended_wait_time_r15_present          = false;
-  bool                              idle_mode_mob_ctrl_info_r15_present     = false;
-  bool                              idle_mode_mob_ctrl_info_ext_r15_present = false;
-  bool                              redirected_carrier_info_r15_present     = false;
-  bool                              non_crit_ext_present                    = false;
-  dyn_octstring                     ded_info_nas_r15;
-  uint16_t                          extended_wait_time_r15 = 1;
-  idle_mode_mob_ctrl_info_s         idle_mode_mob_ctrl_info_r15;
-  idle_mode_mob_ctrl_info_v9e0_s    idle_mode_mob_ctrl_info_ext_r15;
-  redirected_carrier_info_r15_ies_c redirected_carrier_info_r15;
+  bool                                ded_info_nas_r15_present                = false;
+  bool                                extended_wait_time_r15_present          = false;
+  bool                                idle_mode_mob_ctrl_info_r15_present     = false;
+  bool                                idle_mode_mob_ctrl_info_ext_r15_present = false;
+  bool                                redirected_carrier_info_r15_present     = false;
+  bool                                non_crit_ext_present                    = false;
+  dyn_octstring                       ded_info_nas_r15;
+  uint16_t                            extended_wait_time_r15 = 1;
+  idle_mode_mob_ctrl_info_s           idle_mode_mob_ctrl_info_r15;
+  idle_mode_mob_ctrl_info_v9e0_s      idle_mode_mob_ctrl_info_ext_r15;
+  redirected_carrier_info_r15_ies_c   redirected_carrier_info_r15;
+  rrc_early_data_complete_v1590_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

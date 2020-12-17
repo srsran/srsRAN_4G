@@ -9777,10 +9777,10 @@ void spucch_cfg_r15_c::to_json(json_writer& j) const
       if (c.two_ant_port_activ_spucch_format1a1b_r15_present) {
         j.write_str("twoAntennaPortActivatedSPUCCH-Format1a1b-r15", "true");
       }
-      j.write_fieldname("twoAntennaPortActivatedSPUCCH-Format3-r15");
+      j.write_fieldname("dummy");
       j.start_obj();
       j.start_array("n3SPUCCH-AN-List-r15");
-      for (const auto& e1 : c.two_ant_port_activ_spucch_format3_r15.n3_spucch_an_list_r15) {
+      for (const auto& e1 : c.dummy.n3_spucch_an_list_r15) {
         j.write_int(e1);
       }
       j.end_array();
@@ -9804,8 +9804,7 @@ SRSASN_CODE spucch_cfg_r15_c::pack(bit_ref& bref) const
       if (c.spucch_set_r15_present) {
         HANDLE_CODE(pack_dyn_seq_of(bref, c.spucch_set_r15, 1, 4));
       }
-      HANDLE_CODE(pack_dyn_seq_of(
-          bref, c.two_ant_port_activ_spucch_format3_r15.n3_spucch_an_list_r15, 1, 4, integer_packer<uint16_t>(0, 549)));
+      HANDLE_CODE(pack_dyn_seq_of(bref, c.dummy.n3_spucch_an_list_r15, 1, 4, integer_packer<uint16_t>(0, 549)));
       break;
     default:
       log_invalid_choice_id(type_, "spucch_cfg_r15_c");
@@ -9827,8 +9826,7 @@ SRSASN_CODE spucch_cfg_r15_c::unpack(cbit_ref& bref)
       if (c.spucch_set_r15_present) {
         HANDLE_CODE(unpack_dyn_seq_of(c.spucch_set_r15, bref, 1, 4));
       }
-      HANDLE_CODE(unpack_dyn_seq_of(
-          c.two_ant_port_activ_spucch_format3_r15.n3_spucch_an_list_r15, bref, 1, 4, integer_packer<uint16_t>(0, 549)));
+      HANDLE_CODE(unpack_dyn_seq_of(c.dummy.n3_spucch_an_list_r15, bref, 1, 4, integer_packer<uint16_t>(0, 549)));
       break;
     default:
       log_invalid_choice_id(type_, "spucch_cfg_r15_c");
@@ -9842,8 +9840,7 @@ bool spucch_cfg_r15_c::operator==(const spucch_cfg_r15_c& other) const
          (not c.spucch_set_r15_present or c.spucch_set_r15 == other.c.spucch_set_r15) and
          c.two_ant_port_activ_spucch_format1a1b_r15_present ==
              other.c.two_ant_port_activ_spucch_format1a1b_r15_present and
-         c.two_ant_port_activ_spucch_format3_r15.n3_spucch_an_list_r15 ==
-             other.c.two_ant_port_activ_spucch_format3_r15.n3_spucch_an_list_r15;
+         c.dummy.n3_spucch_an_list_r15 == other.c.dummy.n3_spucch_an_list_r15;
 }
 
 // SRS-CC-SetIndex-r14 ::= SEQUENCE
@@ -15742,6 +15739,81 @@ bool phys_cfg_ded_stti_r15_c::operator==(const phys_cfg_ded_stti_r15_c& other) c
          (not c.short_tti_r15_present or c.short_tti_r15 == other.c.short_tti_r15);
 }
 
+// SPUCCH-Config-v1550 ::= CHOICE
+void spucch_cfg_v1550_c::set(types::options e)
+{
+  type_ = e;
+}
+void spucch_cfg_v1550_c::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      j.write_fieldname("setup");
+      j.start_obj();
+      j.write_fieldname("twoAntennaPortActivatedSPUCCH-Format3-v1550");
+      j.start_obj();
+      j.start_array("n3SPUCCH-AN-List-v1550");
+      for (const auto& e1 : c.two_ant_port_activ_spucch_format3_v1550.n3_spucch_an_list_v1550) {
+        j.write_int(e1);
+      }
+      j.end_array();
+      j.end_obj();
+      j.end_obj();
+      break;
+    default:
+      log_invalid_choice_id(type_, "spucch_cfg_v1550_c");
+  }
+  j.end_obj();
+}
+SRSASN_CODE spucch_cfg_v1550_c::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(pack_dyn_seq_of(bref,
+                                  c.two_ant_port_activ_spucch_format3_v1550.n3_spucch_an_list_v1550,
+                                  1,
+                                  4,
+                                  integer_packer<uint16_t>(0, 549)));
+      break;
+    default:
+      log_invalid_choice_id(type_, "spucch_cfg_v1550_c");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE spucch_cfg_v1550_c::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(unpack_dyn_seq_of(c.two_ant_port_activ_spucch_format3_v1550.n3_spucch_an_list_v1550,
+                                    bref,
+                                    1,
+                                    4,
+                                    integer_packer<uint16_t>(0, 549)));
+      break;
+    default:
+      log_invalid_choice_id(type_, "spucch_cfg_v1550_c");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+bool spucch_cfg_v1550_c::operator==(const spucch_cfg_v1550_c& other) const
+{
+  return type() == other.type() and c.two_ant_port_activ_spucch_format3_v1550.n3_spucch_an_list_v1550 ==
+                                        other.c.two_ant_port_activ_spucch_format3_v1550.n3_spucch_an_list_v1550;
+}
+
 // SRS-TPC-PDCCH-Config-r14 ::= CHOICE
 void srs_tpc_pdcch_cfg_r14_c::set(types::options e)
 {
@@ -17257,6 +17329,7 @@ SRSASN_CODE phys_cfg_ded_s::pack(bit_ref& bref) const
     group_flags[10] |= ul_pwr_ctrl_ded_v1530.is_present();
     group_flags[10] |= semi_static_cfi_cfg_r15.is_present();
     group_flags[10] |= blind_pdsch_repeat_cfg_r15.is_present();
+    group_flags[11] |= spucch_cfg_v1550.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -17593,6 +17666,14 @@ SRSASN_CODE phys_cfg_ded_s::pack(bit_ref& bref) const
         HANDLE_CODE(blind_pdsch_repeat_cfg_r15->pack(bref));
       }
     }
+    if (group_flags[11]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(spucch_cfg_v1550.is_present(), 1));
+      if (spucch_cfg_v1550.is_present()) {
+        HANDLE_CODE(spucch_cfg_v1550->pack(bref));
+      }
+    }
   }
   return SRSASN_SUCCESS;
 }
@@ -17642,7 +17723,7 @@ SRSASN_CODE phys_cfg_ded_s::unpack(cbit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(11);
+    ext_groups_unpacker_guard group_flags(12);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -18119,6 +18200,16 @@ SRSASN_CODE phys_cfg_ded_s::unpack(cbit_ref& bref)
         HANDLE_CODE(blind_pdsch_repeat_cfg_r15->unpack(bref));
       }
     }
+    if (group_flags[11]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool spucch_cfg_v1550_present;
+      HANDLE_CODE(bref.unpack(spucch_cfg_v1550_present, 1));
+      spucch_cfg_v1550.set_present(spucch_cfg_v1550_present);
+      if (spucch_cfg_v1550.is_present()) {
+        HANDLE_CODE(spucch_cfg_v1550->unpack(bref));
+      }
+    }
   }
   return SRSASN_SUCCESS;
 }
@@ -18484,6 +18575,10 @@ void phys_cfg_ded_s::to_json(json_writer& j) const
     if (blind_pdsch_repeat_cfg_r15.is_present()) {
       j.write_fieldname("blindPDSCH-Repetition-Config-r15");
       blind_pdsch_repeat_cfg_r15->to_json(j);
+    }
+    if (spucch_cfg_v1550.is_present()) {
+      j.write_fieldname("spucch-Config-v1550");
+      spucch_cfg_v1550->to_json(j);
     }
   }
   j.end_obj();

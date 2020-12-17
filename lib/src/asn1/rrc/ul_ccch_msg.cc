@@ -279,6 +279,43 @@ SRSASN_CODE init_ue_id_minus5_gc_c::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
+// RRCEarlyDataRequest-v1590-IEs ::= SEQUENCE
+SRSASN_CODE rrc_early_data_request_v1590_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_request_v1590_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_early_data_request_v1590_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
 // ReestabUE-Identity ::= SEQUENCE
 SRSASN_CODE reestab_ue_id_s::pack(bit_ref& bref) const
 {
@@ -728,6 +765,9 @@ SRSASN_CODE rrc_early_data_request_r15_ies_s::pack(bit_ref& bref) const
   HANDLE_CODE(s_tmsi_r15.pack(bref));
   HANDLE_CODE(establishment_cause_r15.pack(bref));
   HANDLE_CODE(ded_info_nas_r15.pack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -738,6 +778,9 @@ SRSASN_CODE rrc_early_data_request_r15_ies_s::unpack(cbit_ref& bref)
   HANDLE_CODE(s_tmsi_r15.unpack(bref));
   HANDLE_CODE(establishment_cause_r15.unpack(bref));
   HANDLE_CODE(ded_info_nas_r15.unpack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -750,15 +793,14 @@ void rrc_early_data_request_r15_ies_s::to_json(json_writer& j) const
   j.write_str("dedicatedInfoNAS-r15", ded_info_nas_r15.to_string());
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
 
 std::string rrc_early_data_request_r15_ies_s::establishment_cause_r15_opts::to_string() const
 {
-  static const char* options[] = {"mo-Data-r15", "delayTolerantAccess-r15"};
+  static const char* options[] = {"mo-Data", "delayTolerantAccess"};
   return convert_enum_idx(options, 2, value, "rrc_early_data_request_r15_ies_s::establishment_cause_r15_e_");
 }
 

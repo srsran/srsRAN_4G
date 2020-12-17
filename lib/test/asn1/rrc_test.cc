@@ -259,7 +259,7 @@ int test_bcch_dl_sch_msg2()
   sib_type1_s& sib1 = bcch_msg.msg.c1().sib_type1();
   TESTASSERT(not sib1.p_max_present);
   TESTASSERT(sib1.sched_info_list.size() == 1);
-  TESTASSERT(sib1.sched_info_list[0].si_periodicity.value == sched_info_s::si_periodicity_e_::rf16);
+  TESTASSERT(sib1.sched_info_list[0].si_periodicity.value == si_periodicity_r12_e::rf16);
   TESTASSERT(sib1.sched_info_list[0].sib_map_info.size() == 1);
   TESTASSERT(sib1.sched_info_list[0].sib_map_info[0] == sib_type_e::sib_type13_v920);
 

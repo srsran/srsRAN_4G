@@ -134,6 +134,27 @@ struct carrier_freq_nb_r13_s {
   void        to_json(json_writer& j) const;
 };
 
+// CarrierFreq-NB-v1550 ::= SEQUENCE
+struct carrier_freq_nb_v1550_s {
+  struct carrier_freq_offset_v1550_opts {
+    enum options { v_minus8dot5, v_minus4dot5, v3dot5, v7dot5, nulltype } value;
+    typedef float number_type;
+
+    std::string to_string() const;
+    float       to_number() const;
+    std::string to_number_string() const;
+  };
+  typedef enumerated<carrier_freq_offset_v1550_opts> carrier_freq_offset_v1550_e_;
+
+  // member variables
+  carrier_freq_offset_v1550_e_ carrier_freq_offset_v1550;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // DL-AM-RLC-NB-r13 ::= SEQUENCE
 struct dl_am_rlc_nb_r13_s {
   bool enable_status_report_sn_gap_r13_present = false;
@@ -478,6 +499,8 @@ struct dl_carrier_cfg_ded_nb_r13_s {
   nrs_pwr_offset_non_anchor_v1330_e_ nrs_pwr_offset_non_anchor_v1330;
   // group 1
   copy_ptr<dl_gap_cfg_nb_v1530_s> dl_gap_non_anchor_v1530;
+  // group 2
+  copy_ptr<carrier_freq_nb_v1550_s> dl_carrier_freq_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1565,6 +1588,8 @@ struct as_cfg_nb_s {
   fixed_bitstring<16>      source_ue_id_r13;
   carrier_freq_nb_r13_s    source_dl_carrier_freq_r13;
   // ...
+  // group 0
+  copy_ptr<carrier_freq_nb_v1550_s> source_dl_carrier_freq_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2834,6 +2859,35 @@ struct nprach_params_tdd_nb_r15_s {
   void        to_json(json_writer& j) const;
 };
 
+// NPRACH-ParametersTDD-NB-v1550 ::= SEQUENCE
+struct nprach_params_tdd_nb_v1550_s {
+  struct max_num_preamb_attempt_ce_v1550_opts {
+    enum options { n3, n4, n5, n6, n7, n8, n10, spare1, nulltype } value;
+    typedef uint8_t number_type;
+
+    std::string to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<max_num_preamb_attempt_ce_v1550_opts> max_num_preamb_attempt_ce_v1550_e_;
+  struct num_repeats_per_preamb_attempt_v1550_opts {
+    enum options { n1, n2, n4, n8, n16, n32, n64, n128, n256, n512, n1024, nulltype } value;
+    typedef uint16_t number_type;
+
+    std::string to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<num_repeats_per_preamb_attempt_v1550_opts> num_repeats_per_preamb_attempt_v1550_e_;
+
+  // member variables
+  max_num_preamb_attempt_ce_v1550_e_      max_num_preamb_attempt_ce_v1550;
+  num_repeats_per_preamb_attempt_v1550_e_ num_repeats_per_preamb_attempt_v1550;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // PagingWeight-NB-r14 ::= ENUMERATED
 struct paging_weight_nb_r14_opts {
   enum options { w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15, w16, nulltype } value;
@@ -3097,6 +3151,8 @@ struct dl_carrier_cfg_common_nb_r14_s {
   // ...
   // group 0
   copy_ptr<dl_gap_cfg_nb_v1530_s> dl_gap_non_anchor_v1530;
+  // group 1
+  copy_ptr<carrier_freq_nb_v1550_s> dl_carrier_freq_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3133,6 +3189,9 @@ using nprach_params_list_fmt2_nb_r15_l = dyn_array<nprach_params_fmt2_nb_r15_s>;
 
 // NPRACH-ParametersListTDD-NB-r15 ::= SEQUENCE (SIZE (1..3)) OF NPRACH-ParametersTDD-NB-r15
 using nprach_params_list_tdd_nb_r15_l = dyn_array<nprach_params_tdd_nb_r15_s>;
+
+// NPRACH-ParametersListTDD-NB-v1550 ::= SEQUENCE (SIZE (1..3)) OF NPRACH-ParametersTDD-NB-v1550
+using nprach_params_list_tdd_nb_v1550_l = dyn_array<nprach_params_tdd_nb_v1550_s>;
 
 // PCCH-Config-NB-r14 ::= SEQUENCE
 struct pcch_cfg_nb_r14_s {
@@ -3419,6 +3478,8 @@ struct inter_freq_carrier_freq_info_nb_r13_s {
   // group 2
   copy_ptr<nsss_rrm_cfg_nb_r15_s>                 nsss_rrm_cfg_r15;
   copy_ptr<inter_freq_neigh_cell_list_nb_v1530_l> inter_freq_neigh_cell_list_v1530;
+  // group 3
+  copy_ptr<carrier_freq_nb_v1550_s> dl_carrier_freq_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3523,19 +3584,19 @@ struct nprach_cfg_sib_nb_v1530_s {
       std::string to_string() const;
     };
     typedef enumerated<nprach_preamb_format_r15_opts> nprach_preamb_format_r15_e_;
-    struct num_repeats_per_preamb_attempt_r15_opts {
+    struct dummy_opts {
       enum options { n1, n2, n4, n8, n16, n32, n64, n128, n256, n512, n1024, nulltype } value;
       typedef uint16_t number_type;
 
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    typedef enumerated<num_repeats_per_preamb_attempt_r15_opts> num_repeats_per_preamb_attempt_r15_e_;
+    typedef enumerated<dummy_opts> dummy_e_;
 
     // member variables
-    nprach_preamb_format_r15_e_           nprach_preamb_format_r15;
-    num_repeats_per_preamb_attempt_r15_e_ num_repeats_per_preamb_attempt_r15;
-    nprach_params_list_tdd_nb_r15_l       nprach_params_list_tdd_r15;
+    nprach_preamb_format_r15_e_     nprach_preamb_format_r15;
+    dummy_e_                        dummy;
+    nprach_params_list_tdd_nb_r15_l nprach_params_list_tdd_r15;
   };
   struct fmt2_params_r15_s_ {
     bool                             nprach_params_list_fmt2_r15_present     = false;
@@ -3557,6 +3618,21 @@ struct nprach_cfg_sib_nb_v1530_s {
   tdd_params_r15_s_  tdd_params_r15;
   fmt2_params_r15_s_ fmt2_params_r15;
   edt_params_r15_s_  edt_params_r15;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// NPRACH-ConfigSIB-NB-v1550 ::= SEQUENCE
+struct nprach_cfg_sib_nb_v1550_s {
+  struct tdd_params_v1550_s_ {
+    nprach_params_list_tdd_nb_v1550_l nprach_params_list_tdd_v1550;
+  };
+
+  // member variables
+  tdd_params_v1550_s_ tdd_params_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4120,6 +4196,8 @@ struct rr_cfg_common_sib_nb_r13_s {
   copy_ptr<nprach_cfg_sib_nb_v1530_s> nprach_cfg_v1530;
   copy_ptr<dl_gap_cfg_nb_v1530_s>     dl_gap_v1530;
   copy_ptr<wus_cfg_nb_r15_s>          wus_cfg_r15;
+  // group 3
+  copy_ptr<nprach_cfg_sib_nb_v1550_s> nprach_cfg_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -5652,6 +5730,18 @@ struct rrc_conn_reest_nb_v1430_ies_s {
   void        to_json(json_writer& j) const;
 };
 
+// RRCEarlyDataComplete-NB-v1590-IEs ::= SEQUENCE
+struct rrc_early_data_complete_nb_v1590_ies_s {
+  bool          late_non_crit_ext_present = false;
+  bool          non_crit_ext_present      = false;
+  dyn_octstring late_non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RedirectedCarrierInfo-NB-r13 ::= CarrierFreq-NB-r13
 typedef carrier_freq_nb_r13_s redirected_carrier_info_nb_r13_s;
 
@@ -5746,15 +5836,16 @@ struct rrc_conn_setup_nb_r13_ies_s {
 
 // RRCEarlyDataComplete-NB-r15-IEs ::= SEQUENCE
 struct rrc_early_data_complete_nb_r15_ies_s {
-  bool                               ded_info_nas_r15_present                = false;
-  bool                               extended_wait_time_r15_present          = false;
-  bool                               redirected_carrier_info_r15_present     = false;
-  bool                               redirected_carrier_info_ext_r15_present = false;
-  bool                               non_crit_ext_present                    = false;
-  dyn_octstring                      ded_info_nas_r15;
-  uint16_t                           extended_wait_time_r15 = 1;
-  redirected_carrier_info_nb_r13_s   redirected_carrier_info_r15;
-  redirected_carrier_info_nb_v1430_s redirected_carrier_info_ext_r15;
+  bool                                   ded_info_nas_r15_present                = false;
+  bool                                   extended_wait_time_r15_present          = false;
+  bool                                   redirected_carrier_info_r15_present     = false;
+  bool                                   redirected_carrier_info_ext_r15_present = false;
+  bool                                   non_crit_ext_present                    = false;
+  dyn_octstring                          ded_info_nas_r15;
+  uint16_t                               extended_wait_time_r15 = 1;
+  redirected_carrier_info_nb_r13_s       redirected_carrier_info_r15;
+  redirected_carrier_info_nb_v1430_s     redirected_carrier_info_ext_r15;
+  rrc_early_data_complete_nb_v1590_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -6240,12 +6331,40 @@ struct dl_ccch_msg_nb_s {
   void        to_json(json_writer& j) const;
 };
 
+// RRCConnectionRelease-NB-v15b0-IEs ::= SEQUENCE
+struct rrc_conn_release_nb_v15b0_ies_s {
+  bool no_last_cell_upd_r15_present = false;
+  bool non_crit_ext_present         = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// RedirectedCarrierInfo-NB-v1550 ::= CarrierFreq-NB-v1550
+typedef carrier_freq_nb_v1550_s redirected_carrier_info_nb_v1550_s;
+
+// RRCConnectionRelease-NB-v1550-IEs ::= SEQUENCE
+struct rrc_conn_release_nb_v1550_ies_s {
+  bool                               redirected_carrier_info_v1550_present = false;
+  bool                               non_crit_ext_present                  = false;
+  redirected_carrier_info_nb_v1550_s redirected_carrier_info_v1550;
+  rrc_conn_release_nb_v15b0_ies_s    non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RRCConnectionRelease-NB-v1530-IEs ::= SEQUENCE
 struct rrc_conn_release_nb_v1530_ies_s {
-  bool    drb_continue_rohc_r15_present       = false;
-  bool    next_hop_chaining_count_r15_present = false;
-  bool    non_crit_ext_present                = false;
-  uint8_t next_hop_chaining_count_r15         = 0;
+  bool                            drb_continue_rohc_r15_present       = false;
+  bool                            next_hop_chaining_count_r15_present = false;
+  bool                            non_crit_ext_present                = false;
+  uint8_t                         next_hop_chaining_count_r15         = 0;
+  rrc_conn_release_nb_v1550_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -8234,22 +8353,35 @@ struct rrc_conn_setup_complete_nb_s {
   void        to_json(json_writer& j) const;
 };
 
+// RRCEarlyDataRequest-NB-v1590-IEs ::= SEQUENCE
+struct rrc_early_data_request_nb_v1590_ies_s {
+  bool          late_non_crit_ext_present = false;
+  bool          non_crit_ext_present      = false;
+  dyn_octstring late_non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RRCEarlyDataRequest-NB-r15-IEs ::= SEQUENCE
 struct rrc_early_data_request_nb_r15_ies_s {
   struct establishment_cause_r15_opts {
-    enum options { mo_data_r15, mo_exception_data_r15, delay_tolerant_access_r15, spare1, nulltype } value;
+    enum options { mo_data, mo_exception_data, delay_tolerant_access, spare1, nulltype } value;
 
     std::string to_string() const;
   };
   typedef enumerated<establishment_cause_r15_opts> establishment_cause_r15_e_;
 
   // member variables
-  bool                       cqi_npdcch_r15_present = false;
-  bool                       non_crit_ext_present   = false;
-  s_tmsi_s                   s_tmsi_r15;
-  establishment_cause_r15_e_ establishment_cause_r15;
-  cqi_npdcch_nb_r14_e        cqi_npdcch_r15;
-  dyn_octstring              ded_info_nas_r15;
+  bool                                  cqi_npdcch_r15_present = false;
+  bool                                  non_crit_ext_present   = false;
+  s_tmsi_s                              s_tmsi_r15;
+  establishment_cause_r15_e_            establishment_cause_r15;
+  cqi_npdcch_nb_r14_e                   cqi_npdcch_r15;
+  dyn_octstring                         ded_info_nas_r15;
+  rrc_early_data_request_nb_v1590_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

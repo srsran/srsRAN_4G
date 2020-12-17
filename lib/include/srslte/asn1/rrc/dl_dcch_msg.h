@@ -283,6 +283,16 @@ struct sl_tx_pool_to_add_mod_r14_s {
   void        to_json(json_writer& j) const;
 };
 
+// SubframeAssignment-r15 ::= ENUMERATED
+struct sf_assign_r15_opts {
+  enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6, nulltype } value;
+  typedef uint8_t number_type;
+
+  std::string to_string() const;
+  uint8_t     to_number() const;
+};
+typedef enumerated<sf_assign_r15_opts> sf_assign_r15_e;
+
 // UplinkPowerControlCommonPSCell-r12 ::= SEQUENCE
 struct ul_pwr_ctrl_common_ps_cell_r12_s {
   struct delta_f_pucch_format3_r12_opts {
@@ -644,15 +654,42 @@ using sl_tx_pool_to_add_mod_list_v2x_r14_l = dyn_array<sl_tx_pool_to_add_mod_r14
 // SL-TxPoolToReleaseListV2X-r14 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..8)
 using sl_tx_pool_to_release_list_v2x_r14_l = bounded_array<uint8_t, 8>;
 
-// SubframeAssignment-r15 ::= ENUMERATED
-struct sf_assign_r15_opts {
-  enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6, nulltype } value;
-  typedef uint8_t number_type;
+// TDM-PatternConfig-r15 ::= CHOICE
+struct tdm_pattern_cfg_r15_c {
+  struct setup_s_ {
+    sf_assign_r15_e sf_assign_r15;
+    uint8_t         harq_offset_r15 = 0;
+  };
+  typedef setup_e types;
 
-  std::string to_string() const;
-  uint8_t     to_number() const;
+  // choice methods
+  tdm_pattern_cfg_r15_c() = default;
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  // getters
+  setup_s_& setup()
+  {
+    assert_choice_type("setup", type_.to_string(), "TDM-PatternConfig-r15");
+    return c;
+  }
+  const setup_s_& setup() const
+  {
+    assert_choice_type("setup", type_.to_string(), "TDM-PatternConfig-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
+
+private:
+  types    type_;
+  setup_s_ c;
 };
-typedef enumerated<sf_assign_r15_opts> sf_assign_r15_e;
 
 // TunnelConfigLWIP-r13 ::= SEQUENCE
 struct tunnel_cfg_lwip_r13_s {
@@ -918,41 +955,6 @@ struct rrc_conn_recfg_v1510_ies_s {
     types    type_;
     setup_s_ c;
   };
-  struct tdm_pattern_cfg_r15_c_ {
-    struct setup_s_ {
-      sf_assign_r15_e sf_assign_r15;
-      uint8_t         harq_offset_r15 = 0;
-    };
-    typedef setup_e types;
-
-    // choice methods
-    tdm_pattern_cfg_r15_c_() = default;
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    setup_s_& setup()
-    {
-      assert_choice_type("setup", type_.to_string(), "tdm-PatternConfig-r15");
-      return c;
-    }
-    const setup_s_& setup() const
-    {
-      assert_choice_type("setup", type_.to_string(), "tdm-PatternConfig-r15");
-      return c;
-    }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
-
-  private:
-    types    type_;
-    setup_s_ c;
-  };
 
   // member variables
   bool                       nr_cfg_r15_present               = false;
@@ -965,7 +967,7 @@ struct rrc_conn_recfg_v1510_ies_s {
   uint32_t                   sk_counter_r15 = 0;
   dyn_octstring              nr_radio_bearer_cfg1_r15;
   dyn_octstring              nr_radio_bearer_cfg2_r15;
-  tdm_pattern_cfg_r15_c_     tdm_pattern_cfg_r15;
+  tdm_pattern_cfg_r15_c      tdm_pattern_cfg_r15;
   rrc_conn_recfg_v1530_ies_s non_crit_ext;
 
   // sequence methods
@@ -1519,6 +1521,17 @@ struct rrc_conn_recfg_v1430_ies_s {
   void        to_json(json_writer& j) const;
 };
 
+// RRCConnectionRelease-v15b0-IEs ::= SEQUENCE
+struct rrc_conn_release_v15b0_ies_s {
+  bool no_last_cell_upd_r15_present = false;
+  bool non_crit_ext_present         = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RadioResourceConfigDedicated-v1370 ::= SEQUENCE
 struct rr_cfg_ded_v1370_s {
   bool                 phys_cfg_ded_v1370_present = false;
@@ -1554,6 +1567,12 @@ struct scg_cfg_part_scg_r12_s {
   // group 3
   copy_ptr<scell_group_to_release_list_r15_l> scell_group_to_release_list_scg_r15;
   copy_ptr<scell_group_to_add_mod_list_r15_l> scell_group_to_add_mod_list_scg_r15;
+  // group 4
+  copy_ptr<meas_cfg_s>            meas_cfg_sn_r15;
+  copy_ptr<tdm_pattern_cfg_r15_c> tdm_pattern_cfg_ne_dc_r15;
+  // group 5
+  bool   p_max_eutra_r15_present = false;
+  int8_t p_max_eutra_r15         = -30;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1677,7 +1696,7 @@ struct rrc_inactive_cfg_r15_s {
   bool                       ran_notif_area_info_r15_present     = false;
   bool                       periodic_rnau_timer_r15_present     = false;
   bool                       next_hop_chaining_count_r15_present = false;
-  bool                       non_crit_ext_present                = false;
+  bool                       dummy_present                       = false;
   fixed_bitstring<40>        full_i_rnti_r15;
   fixed_bitstring<24>        short_i_rnti_r15;
   ran_paging_cycle_r15_e_    ran_paging_cycle_r15;
@@ -1729,9 +1748,10 @@ struct rrc_conn_recfg_v1370_ies_s {
 
 // RRCConnectionRelease-v1540-IEs ::= SEQUENCE
 struct rrc_conn_release_v1540_ies_s {
-  bool    wait_time_present    = false;
-  bool    non_crit_ext_present = false;
-  uint8_t wait_time            = 1;
+  bool                         wait_time_present    = false;
+  bool                         non_crit_ext_present = false;
+  uint8_t                      wait_time            = 1;
+  rrc_conn_release_v15b0_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3161,16 +3181,16 @@ struct other_cfg_r9_s {
   };
   struct meas_cfg_app_layer_r15_c_ {
     struct setup_s_ {
-      struct service_type_opts {
+      struct service_type_r15_opts {
         enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
         std::string to_string() const;
       };
-      typedef enumerated<service_type_opts> service_type_e_;
+      typedef enumerated<service_type_r15_opts> service_type_r15_e_;
 
       // member variables
       bounded_octstring<1, 1000> meas_cfg_app_layer_container_r15;
-      service_type_e_            service_type;
+      service_type_r15_e_        service_type_r15;
     };
     typedef setup_e types;
 

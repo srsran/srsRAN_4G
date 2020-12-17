@@ -4419,7 +4419,7 @@ private:
 // SPUCCH-Config-r15 ::= CHOICE
 struct spucch_cfg_r15_c {
   struct setup_s_ {
-    struct two_ant_port_activ_spucch_format3_r15_s_ {
+    struct dummy_s_ {
       using n3_spucch_an_list_r15_l_ = bounded_array<uint16_t, 4>;
 
       // member variables
@@ -4427,10 +4427,10 @@ struct spucch_cfg_r15_c {
     };
 
     // member variables
-    bool                                     spucch_set_r15_present                           = false;
-    bool                                     two_ant_port_activ_spucch_format1a1b_r15_present = false;
-    spucch_set_r15_l                         spucch_set_r15;
-    two_ant_port_activ_spucch_format3_r15_s_ two_ant_port_activ_spucch_format3_r15;
+    bool             spucch_set_r15_present                           = false;
+    bool             two_ant_port_activ_spucch_format1a1b_r15_present = false;
+    spucch_set_r15_l spucch_set_r15;
+    dummy_s_         dummy;
   };
   typedef setup_e types;
 
@@ -7170,6 +7170,52 @@ private:
   setup_s_ c;
 };
 
+// SPUCCH-Config-v1550 ::= CHOICE
+struct spucch_cfg_v1550_c {
+  struct setup_s_ {
+    struct two_ant_port_activ_spucch_format3_v1550_s_ {
+      using n3_spucch_an_list_v1550_l_ = bounded_array<uint16_t, 4>;
+
+      // member variables
+      n3_spucch_an_list_v1550_l_ n3_spucch_an_list_v1550;
+    };
+
+    // member variables
+    two_ant_port_activ_spucch_format3_v1550_s_ two_ant_port_activ_spucch_format3_v1550;
+  };
+  typedef setup_e types;
+
+  // choice methods
+  spucch_cfg_v1550_c() = default;
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const spucch_cfg_v1550_c& other) const;
+  bool        operator!=(const spucch_cfg_v1550_c& other) const { return not(*this == other); }
+  // getters
+  setup_s_& setup()
+  {
+    assert_choice_type("setup", type_.to_string(), "SPUCCH-Config-v1550");
+    return c;
+  }
+  const setup_s_& setup() const
+  {
+    assert_choice_type("setup", type_.to_string(), "SPUCCH-Config-v1550");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
+
+private:
+  types    type_;
+  setup_s_ c;
+};
+
 // SRS-TPC-PDCCH-Config-r14 ::= CHOICE
 struct srs_tpc_pdcch_cfg_r14_c {
   struct setup_s_ {
@@ -8423,6 +8469,8 @@ struct phys_cfg_ded_s {
   copy_ptr<ul_pwr_ctrl_ded_v1530_s>       ul_pwr_ctrl_ded_v1530;
   copy_ptr<semi_static_cfi_cfg_r15_c_>    semi_static_cfi_cfg_r15;
   copy_ptr<blind_pdsch_repeat_cfg_r15_c_> blind_pdsch_repeat_cfg_r15;
+  // group 11
+  copy_ptr<spucch_cfg_v1550_c> spucch_cfg_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

@@ -36,6 +36,18 @@ struct ca_bw_class_r10_opts {
 };
 typedef enumerated<ca_bw_class_r10_opts, true> ca_bw_class_r10_e;
 
+// UECapabilityEnquiry-v1560-IEs ::= SEQUENCE
+struct ue_cap_enquiry_v1560_ies_s {
+  bool          requested_cap_common_r15_present = false;
+  bool          non_crit_ext_present             = false;
+  dyn_octstring requested_cap_common_r15;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // BandIndication-r14 ::= SEQUENCE
 struct band_ind_r14_s {
   bool              ca_bw_class_ul_r14_present = false;
@@ -49,14 +61,28 @@ struct band_ind_r14_s {
   void        to_json(json_writer& j) const;
 };
 
+// UECapabilityEnquiry-v1550-IEs ::= SEQUENCE
+struct ue_cap_enquiry_v1550_ies_s {
+  bool                       requested_cap_nr_r15_present = false;
+  bool                       non_crit_ext_present         = false;
+  dyn_octstring              requested_cap_nr_r15;
+  ue_cap_enquiry_v1560_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // BandCombination-r14 ::= SEQUENCE (SIZE (1..64)) OF BandIndication-r14
 using band_combination_r14_l = dyn_array<band_ind_r14_s>;
 
 // UECapabilityEnquiry-v1530-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v1530_ies_s {
-  bool request_stti_spt_cap_r15_present = false;
-  bool eutra_nr_only_r15_present        = false;
-  bool non_crit_ext_present             = false;
+  bool                       request_stti_spt_cap_r15_present = false;
+  bool                       eutra_nr_only_r15_present        = false;
+  bool                       non_crit_ext_present             = false;
+  ue_cap_enquiry_v1550_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1121,8 +1147,8 @@ struct mimo_ca_params_per_bo_bc_v1430_s {
   void        to_json(json_writer& j) const;
 };
 
-// RetuningTimeInfo-r14 ::= SEQUENCE
-struct retuning_time_info_r14_s {
+// SRS-CapabilityPerBandPair-r14 ::= SEQUENCE
+struct srs_cap_per_band_pair_r14_s {
   struct retuning_info_s_ {
     struct rf_retuning_time_dl_r14_opts {
       enum options {
@@ -1208,16 +1234,16 @@ struct ul_minus256_qam_per_cc_info_r14_s {
 // BandParameters-v1430 ::= SEQUENCE
 struct band_params_v1430_s {
   using ul_minus256_qam_per_cc_info_list_r14_l_ = dyn_array<ul_minus256_qam_per_cc_info_r14_s>;
-  using retuning_time_info_band_list_r14_l_     = dyn_array<retuning_time_info_r14_s>;
+  using srs_cap_per_band_pair_list_r14_l_       = dyn_array<srs_cap_per_band_pair_r14_s>;
 
   // member variables
   bool                                    band_params_dl_v1430_present                 = false;
   bool                                    ul_minus256_qam_r14_present                  = false;
   bool                                    ul_minus256_qam_per_cc_info_list_r14_present = false;
-  bool                                    retuning_time_info_band_list_r14_present     = false;
+  bool                                    srs_cap_per_band_pair_list_r14_present       = false;
   mimo_ca_params_per_bo_bc_v1430_s        band_params_dl_v1430;
   ul_minus256_qam_per_cc_info_list_r14_l_ ul_minus256_qam_per_cc_info_list_r14;
-  retuning_time_info_band_list_r14_l_     retuning_time_info_band_list_r14;
+  srs_cap_per_band_pair_list_r14_l_       srs_cap_per_band_pair_list_r14;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1334,6 +1360,45 @@ struct band_combination_params_v1470_s {
   bool                     srs_max_simul_ccs_r14_present = false;
   band_param_list_v1470_l_ band_param_list_v1470;
   uint8_t                  srs_max_simul_ccs_r14 = 1;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SRS-CapabilityPerBandPair-v14b0 ::= SEQUENCE
+struct srs_cap_per_band_pair_v14b0_s {
+  bool srs_flex_timing_r14_present  = false;
+  bool srs_harq_ref_cfg_r14_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// BandParameters-v14b0 ::= SEQUENCE
+struct band_params_v14b0_s {
+  using srs_cap_per_band_pair_list_v14b0_l_ = dyn_array<srs_cap_per_band_pair_v14b0_s>;
+
+  // member variables
+  bool                                srs_cap_per_band_pair_list_v14b0_present = false;
+  srs_cap_per_band_pair_list_v14b0_l_ srs_cap_per_band_pair_list_v14b0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// BandCombinationParameters-v14b0 ::= SEQUENCE
+struct band_combination_params_v14b0_s {
+  using band_param_list_v14b0_l_ = dyn_array<band_params_v14b0_s>;
+
+  // member variables
+  bool                     band_param_list_v14b0_present = false;
+  band_param_list_v14b0_l_ band_param_list_v14b0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1636,12 +1701,23 @@ struct feature_set_ul_r15_s {
   void        to_json(json_writer& j) const;
 };
 
+// FeatureSetDL-v1550 ::= SEQUENCE
+struct feature_set_dl_v1550_s {
+  bool dl_minus1024_qam_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // FeatureSetsEUTRA-r15 ::= SEQUENCE
 struct feature_sets_eutra_r15_s {
   using feature_sets_dl_r15_l_        = dyn_array<feature_set_dl_r15_s>;
   using feature_sets_dl_per_cc_r15_l_ = dyn_array<feature_set_dl_per_cc_r15_s>;
   using feature_sets_ul_r15_l_        = dyn_array<feature_set_ul_r15_s>;
   using feature_sets_ul_per_cc_r15_l_ = dyn_array<feature_set_ul_per_cc_r15_s>;
+  using feature_sets_dl_v1550_l_      = dyn_array<feature_set_dl_v1550_s>;
 
   // member variables
   bool                          ext                                = false;
@@ -1654,6 +1730,8 @@ struct feature_sets_eutra_r15_s {
   feature_sets_ul_r15_l_        feature_sets_ul_r15;
   feature_sets_ul_per_cc_r15_l_ feature_sets_ul_per_cc_r15;
   // ...
+  // group 0
+  copy_ptr<feature_sets_dl_v1550_l_> feature_sets_dl_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3024,6 +3102,30 @@ struct rf_params_v1470_s {
   void        to_json(json_writer& j) const;
 };
 
+// SupportedBandCombination-v14b0 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v14b0
+using supported_band_combination_v14b0_l = dyn_array<band_combination_params_v14b0_s>;
+
+// SupportedBandCombinationAdd-v14b0 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v14b0
+using supported_band_combination_add_v14b0_l = dyn_array<band_combination_params_v14b0_s>;
+
+// SupportedBandCombinationReduced-v14b0 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v14b0
+using supported_band_combination_reduced_v14b0_l = dyn_array<band_combination_params_v14b0_s>;
+
+// RF-Parameters-v14b0 ::= SEQUENCE
+struct rf_params_v14b0_s {
+  bool                                       supported_band_combination_v14b0_present         = false;
+  bool                                       supported_band_combination_add_v14b0_present     = false;
+  bool                                       supported_band_combination_reduced_v14b0_present = false;
+  supported_band_combination_v14b0_l         supported_band_combination_v14b0;
+  supported_band_combination_add_v14b0_l     supported_band_combination_add_v14b0;
+  supported_band_combination_reduced_v14b0_l supported_band_combination_reduced_v14b0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // SupportedBandCombination-v1530 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1530
 using supported_band_combination_v1530_l = dyn_array<band_combination_params_v1530_s>;
 
@@ -3209,6 +3311,42 @@ struct sl_params_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
+// NeighCellSI-AcquisitionParameters-v15a0 ::= SEQUENCE
+struct neigh_cell_si_acquisition_params_v15a0_s {
+  bool eutra_cgi_report_nedc_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PhyLayerParameters-v1540 ::= SEQUENCE
+struct phy_layer_params_v1540_s {
+  struct stti_spt_cap_v1540_s_ {};
+
+  // member variables
+  bool                  stti_spt_cap_v1540_present                      = false;
+  bool                  crs_im_tm1_to_tm9_one_rx_port_v1540_present     = false;
+  bool                  cch_im_ref_rec_type_a_one_rx_port_v1540_present = false;
+  stti_spt_cap_v1540_s_ stti_spt_cap_v1540;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PhyLayerParameters-v1550 ::= SEQUENCE
+struct phy_layer_params_v1550_s {
+  bool dmrs_overhead_reduction_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // EUTRA-5GC-Parameters-r15 ::= SEQUENCE
 struct eutra_minus5_gc_params_r15_s {
   bool eutra_minus5_gc_r15_present                           = false;
@@ -3218,6 +3356,166 @@ struct eutra_minus5_gc_params_r15_s {
   bool ims_voice_over_mcg_bearer_eutra_minus5_gc_r15_present = false;
   bool inactive_state_r15_present                            = false;
   bool reflective_qos_r15_present                            = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-CapabilityAddXDD-Mode-v15a0 ::= SEQUENCE
+struct ue_eutra_cap_add_xdd_mode_v15a0_s {
+  bool                                     phy_layer_params_v1530_present = false;
+  bool                                     phy_layer_params_v1540_present = false;
+  bool                                     phy_layer_params_v1550_present = false;
+  phy_layer_params_v1530_s                 phy_layer_params_v1530;
+  phy_layer_params_v1540_s                 phy_layer_params_v1540;
+  phy_layer_params_v1550_s                 phy_layer_params_v1550;
+  neigh_cell_si_acquisition_params_v15a0_s neigh_cell_si_acquisition_params_v15a0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// IRAT-ParametersNR-v1570 ::= SEQUENCE
+struct irat_params_nr_v1570_s {
+  bool ss_sinr_meas_nr_fr1_r15_present = false;
+  bool ss_sinr_meas_nr_fr2_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PDCP-ParametersNR-v1560 ::= SEQUENCE
+struct pdcp_params_nr_v1560_s {
+  bool ims_vo_nr_pdcp_scg_ngendc_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// RF-Parameters-v1570 ::= SEQUENCE
+struct rf_params_v1570_s {
+  struct dl_minus1024_qam_scaling_factor_r15_opts {
+    enum options { v1, v1dot2, v1dot25, nulltype } value;
+    typedef float number_type;
+
+    std::string to_string() const;
+    float       to_number() const;
+    std::string to_number_string() const;
+  };
+  typedef enumerated<dl_minus1024_qam_scaling_factor_r15_opts> dl_minus1024_qam_scaling_factor_r15_e_;
+
+  // member variables
+  dl_minus1024_qam_scaling_factor_r15_e_ dl_minus1024_qam_scaling_factor_r15;
+  uint8_t                                dl_minus1024_qam_total_weighted_layers_r15 = 0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-Capability-v15a0-IEs ::= SEQUENCE
+struct ue_eutra_cap_v15a0_ies_s {
+  bool                                     eutra_minus5_gc_params_r15_present = false;
+  bool                                     fdd_add_ue_eutra_cap_v15a0_present = false;
+  bool                                     tdd_add_ue_eutra_cap_v15a0_present = false;
+  bool                                     non_crit_ext_present               = false;
+  neigh_cell_si_acquisition_params_v15a0_s neigh_cell_si_acquisition_params_v15a0;
+  eutra_minus5_gc_params_r15_s             eutra_minus5_gc_params_r15;
+  ue_eutra_cap_add_xdd_mode_v15a0_s        fdd_add_ue_eutra_cap_v15a0;
+  ue_eutra_cap_add_xdd_mode_v15a0_s        tdd_add_ue_eutra_cap_v15a0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// IRAT-ParametersNR-v1560 ::= SEQUENCE
+struct irat_params_nr_v1560_s {
+  bool ng_en_dc_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// NeighCellSI-AcquisitionParameters-v1550 ::= SEQUENCE
+struct neigh_cell_si_acquisition_params_v1550_s {
+  bool eutra_cgi_report_endc_r15_present      = false;
+  bool utra_geran_cgi_report_endc_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-Capability-v1570-IEs ::= SEQUENCE
+struct ue_eutra_cap_v1570_ies_s {
+  bool                     rf_params_v1570_present      = false;
+  bool                     irat_params_nr_v1570_present = false;
+  bool                     non_crit_ext_present         = false;
+  rf_params_v1570_s        rf_params_v1570;
+  irat_params_nr_v1570_s   irat_params_nr_v1570;
+  ue_eutra_cap_v15a0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-CapabilityAddXDD-Mode-v1560 ::= SEQUENCE
+struct ue_eutra_cap_add_xdd_mode_v1560_s {
+  pdcp_params_nr_v1560_s pdcp_params_nr_v1560;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MAC-Parameters-v1550 ::= SEQUENCE
+struct mac_params_v1550_s {
+  bool elcid_support_r15_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-Capability-v1560-IEs ::= SEQUENCE
+struct ue_eutra_cap_v1560_ies_s {
+  bool                              applied_cap_filt_common_r15_present = false;
+  bool                              non_crit_ext_present                = false;
+  pdcp_params_nr_v1560_s            pdcp_params_nr_v1560;
+  irat_params_nr_v1560_s            irat_params_nr_v1560;
+  dyn_octstring                     applied_cap_filt_common_r15;
+  ue_eutra_cap_add_xdd_mode_v1560_s fdd_add_ue_eutra_cap_v1560;
+  ue_eutra_cap_add_xdd_mode_v1560_s tdd_add_ue_eutra_cap_v1560;
+  ue_eutra_cap_v1570_ies_s          non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-CapabilityAddXDD-Mode-v1550 ::= SEQUENCE
+struct ue_eutra_cap_add_xdd_mode_v1550_s {
+  bool                                     neigh_cell_si_acquisition_params_v1550_present = false;
+  neigh_cell_si_acquisition_params_v1550_s neigh_cell_si_acquisition_params_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3246,15 +3544,12 @@ struct other_params_v1540_s {
   void        to_json(json_writer& j) const;
 };
 
-// PhyLayerParameters-v1540 ::= SEQUENCE
-struct phy_layer_params_v1540_s {
-  struct stti_spt_cap_v1540_s_ {};
-
-  // member variables
-  bool                  stti_spt_cap_v1540_present                      = false;
-  bool                  crs_im_tm1_to_tm9_one_rx_port_v1540_present     = false;
-  bool                  cch_im_ref_rec_type_a_one_rx_port_v1540_present = false;
-  stti_spt_cap_v1540_s_ stti_spt_cap_v1540;
+// SL-Parameters-v1540 ::= SEQUENCE
+struct sl_params_v1540_s {
+  bool sl_minus64_qam_rx_r15_present            = false;
+  bool sl_rate_matching_tbs_scaling_r15_present = false;
+  bool sl_low_t2min_r15_present                 = false;
+  bool v2x_sensing_report_mode3_r15_present     = false;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3262,12 +3557,16 @@ struct phy_layer_params_v1540_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-Parameters-v1540 ::= SEQUENCE
-struct sl_params_v1540_s {
-  bool sl_minus64_qam_rx_r15_present            = false;
-  bool sl_rate_matching_tbs_scaling_r15_present = false;
-  bool sl_low_t2min_r15_present                 = false;
-  bool v2x_sensing_report_mode3_r15_present     = false;
+// UE-EUTRA-Capability-v1550-IEs ::= SEQUENCE
+struct ue_eutra_cap_v1550_ies_s {
+  bool                                     neigh_cell_si_acquisition_params_v1550_present = false;
+  bool                                     non_crit_ext_present                           = false;
+  neigh_cell_si_acquisition_params_v1550_s neigh_cell_si_acquisition_params_v1550;
+  phy_layer_params_v1550_s                 phy_layer_params_v1550;
+  mac_params_v1550_s                       mac_params_v1550;
+  ue_eutra_cap_add_xdd_mode_v1550_s        fdd_add_ue_eutra_cap_v1550;
+  ue_eutra_cap_add_xdd_mode_v1550_s        tdd_add_ue_eutra_cap_v1550;
+  ue_eutra_cap_v1560_ies_s                 non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3367,6 +3666,7 @@ struct ue_eutra_cap_v1540_ies_s {
   ue_eutra_cap_add_xdd_mode_v1540_s tdd_add_ue_eutra_cap_v1540;
   sl_params_v1540_s                 sl_params_v1540;
   irat_params_nr_v1540_s            irat_params_nr_v1540;
+  ue_eutra_cap_v1550_ies_s          non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3388,8 +3688,8 @@ struct ue_eutra_cap_add_xdd_mode_v1530_s {
 
 // MeasParameters-v1520 ::= SEQUENCE
 struct meas_params_v1520_s {
-  bool               meas_gap_patterns_v1520_present = false;
-  fixed_bitstring<8> meas_gap_patterns_v1520;
+  bool               meas_gap_patterns_r15_present = false;
+  fixed_bitstring<8> meas_gap_patterns_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3761,6 +4061,16 @@ struct pdcp_params_v1430_s {
   void        to_json(json_writer& j) const;
 };
 
+// PhyLayerParameters-v14a0 ::= SEQUENCE
+struct phy_layer_params_v14a0_s {
+  bool ssp10_tdd_only_r14_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RLC-Parameters-v1430 ::= SEQUENCE
 struct rlc_params_v1430_s {
   bool extended_poll_byte_r14_present = false;
@@ -3787,6 +4097,18 @@ struct ue_eutra_cap_v1440_ies_s {
   lwa_params_v1440_s       lwa_params_v1440;
   mac_params_v1440_s       mac_params_v1440;
   ue_eutra_cap_v1450_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-Capability-v14b0-IEs ::= SEQUENCE
+struct ue_eutra_cap_v14b0_ies_s {
+  bool              rf_params_v14b0_present = false;
+  bool              non_crit_ext_present    = false;
+  rf_params_v14b0_s rf_params_v14b0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3944,6 +4266,18 @@ struct ue_eutra_cap_v1430_ies_s {
   void        to_json(json_writer& j) const;
 };
 
+// UE-EUTRA-Capability-v14a0-IEs ::= SEQUENCE
+struct ue_eutra_cap_v14a0_ies_s {
+  bool                     non_crit_ext_present = false;
+  phy_layer_params_v14a0_s phy_layer_params_v14a0;
+  ue_eutra_cap_v14b0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // CE-Parameters-v1350 ::= SEQUENCE
 struct ce_params_v1350_s {
   bool unicast_freq_hop_r13_present = false;
@@ -3976,6 +4310,7 @@ struct ue_eutra_cap_v1470_ies_s {
   mbms_params_v1470_s      mbms_params_v1470;
   phy_layer_params_v1470_s phy_layer_params_v1470;
   rf_params_v1470_s        rf_params_v1470;
+  ue_eutra_cap_v14a0_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4007,8 +4342,8 @@ struct ue_eutra_cap_v1350_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// UE-EUTRA-Capability-v13x0-IEs ::= SEQUENCE
-struct ue_eutra_cap_v13x0_ies_s {
+// UE-EUTRA-Capability-v13e0a-IEs ::= SEQUENCE
+struct ue_eutra_cap_v13e0a_ies_s {
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -4059,10 +4394,10 @@ struct ue_eutra_cap_v1340_ies_s {
 
 // UE-EUTRA-Capability-v1390-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1390_ies_s {
-  bool                     rf_params_v1390_present = false;
-  bool                     non_crit_ext_present    = false;
-  rf_params_v1390_s        rf_params_v1390;
-  ue_eutra_cap_v13x0_ies_s non_crit_ext;
+  bool                      rf_params_v1390_present = false;
+  bool                      non_crit_ext_present    = false;
+  rf_params_v1390_s         rf_params_v1390;
+  ue_eutra_cap_v13e0a_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

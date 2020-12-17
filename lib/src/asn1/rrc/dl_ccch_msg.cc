@@ -835,6 +835,43 @@ void rrc_conn_setup_v8a0_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// RRCEarlyDataComplete-v1590-IEs ::= SEQUENCE
+SRSASN_CODE rrc_early_data_complete_v1590_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_complete_v1590_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_early_data_complete_v1590_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
 // RedirectedCarrierInfo-r15-IEs ::= CHOICE
 void redirected_carrier_info_r15_ies_c::destroy_()
 {
@@ -1202,6 +1239,9 @@ SRSASN_CODE rrc_early_data_complete_r15_ies_s::pack(bit_ref& bref) const
   if (redirected_carrier_info_r15_present) {
     HANDLE_CODE(redirected_carrier_info_r15.pack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -1229,6 +1269,9 @@ SRSASN_CODE rrc_early_data_complete_r15_ies_s::unpack(cbit_ref& bref)
   if (redirected_carrier_info_r15_present) {
     HANDLE_CODE(redirected_carrier_info_r15.unpack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -1255,8 +1298,7 @@ void rrc_early_data_complete_r15_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }

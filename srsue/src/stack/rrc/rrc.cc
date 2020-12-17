@@ -174,11 +174,11 @@ void rrc::get_metrics(rrc_metrics_t& m)
   // Save strongest cells metrics
   for (auto& c : meas_cells) {
     phy_meas_t meas = {};
-    meas.cfo_hz                            = c->get_cfo_hz();
-    meas.earfcn                            = c->get_earfcn();
-    meas.rsrq                              = c->get_rsrq();
-    meas.rsrp                              = c->get_rsrp();
-    meas.pci                               = c->get_pci();
+    meas.cfo_hz     = c->get_cfo_hz();
+    meas.earfcn     = c->get_earfcn();
+    meas.rsrq       = c->get_rsrq();
+    meas.rsrp       = c->get_rsrp();
+    meas.pci        = c->get_pci();
     m.neighbour_cells.push_back(meas);
   }
 }
@@ -1248,7 +1248,7 @@ void rrc::handle_sib1()
 
   // Print SIB scheduling info
   for (uint32_t i = 0; i < sib1->sched_info_list.size(); ++i) {
-    sched_info_s::si_periodicity_e_ p = sib1->sched_info_list[i].si_periodicity;
+    si_periodicity_r12_e p = sib1->sched_info_list[i].si_periodicity;
     for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size(); ++j) {
       sib_type_e t = sib1->sched_info_list[i].sib_map_info[j];
       rrc_log->debug("SIB scheduling info, sib_type=%d, si_periodicity=%d\n", t.to_number(), p.to_number());
@@ -1258,8 +1258,8 @@ void rrc::handle_sib1()
   // Set TDD Config
   if (sib1->tdd_cfg_present) {
     srslte_tdd_config_t tdd_config = {};
-    tdd_config.sf_config = sib1->tdd_cfg.sf_assign.to_number();
-    tdd_config.ss_config = sib1->tdd_cfg.special_sf_patterns.to_number();
+    tdd_config.sf_config           = sib1->tdd_cfg.sf_assign.to_number();
+    tdd_config.ss_config           = sib1->tdd_cfg.special_sf_patterns.to_number();
     phy->set_config_tdd(tdd_config);
   }
 }

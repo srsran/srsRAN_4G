@@ -170,6 +170,42 @@ std::string carrier_freq_nb_r13_s::carrier_freq_offset_r13_opts::to_number_strin
   return convert_enum_idx(options, 21, value, "carrier_freq_nb_r13_s::carrier_freq_offset_r13_e_");
 }
 
+// CarrierFreq-NB-v1550 ::= SEQUENCE
+SRSASN_CODE carrier_freq_nb_v1550_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(carrier_freq_offset_v1550.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE carrier_freq_nb_v1550_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(carrier_freq_offset_v1550.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void carrier_freq_nb_v1550_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("carrierFreqOffset-v1550", carrier_freq_offset_v1550.to_string());
+  j.end_obj();
+}
+
+std::string carrier_freq_nb_v1550_s::carrier_freq_offset_v1550_opts::to_string() const
+{
+  static const char* options[] = {"v-8dot5", "v-4dot5", "v3dot5", "v7dot5"};
+  return convert_enum_idx(options, 4, value, "carrier_freq_nb_v1550_s::carrier_freq_offset_v1550_e_");
+}
+float carrier_freq_nb_v1550_s::carrier_freq_offset_v1550_opts::to_number() const
+{
+  static const float options[] = {-8.5, -4.5, 3.5, 7.5};
+  return map_enum_number(options, 4, value, "carrier_freq_nb_v1550_s::carrier_freq_offset_v1550_e_");
+}
+std::string carrier_freq_nb_v1550_s::carrier_freq_offset_v1550_opts::to_number_string() const
+{
+  static const char* options[] = {"-8.5", "-4.5", "3.5", "7.5"};
+  return convert_enum_idx(options, 4, value, "carrier_freq_nb_v1550_s::carrier_freq_offset_v1550_e_");
+}
+
 // DL-AM-RLC-NB-r13 ::= SEQUENCE
 SRSASN_CODE dl_am_rlc_nb_r13_s::pack(bit_ref& bref) const
 {
@@ -491,6 +527,7 @@ SRSASN_CODE dl_carrier_cfg_ded_nb_r13_s::pack(bit_ref& bref) const
     ext_groups_packer_guard group_flags;
     group_flags[0] |= nrs_pwr_offset_non_anchor_v1330_present;
     group_flags[1] |= dl_gap_non_anchor_v1530.is_present();
+    group_flags[2] |= dl_carrier_freq_v1550.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -507,6 +544,14 @@ SRSASN_CODE dl_carrier_cfg_ded_nb_r13_s::pack(bit_ref& bref) const
       HANDLE_CODE(bref.pack(dl_gap_non_anchor_v1530.is_present(), 1));
       if (dl_gap_non_anchor_v1530.is_present()) {
         HANDLE_CODE(dl_gap_non_anchor_v1530->pack(bref));
+      }
+    }
+    if (group_flags[2]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(dl_carrier_freq_v1550.is_present(), 1));
+      if (dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(dl_carrier_freq_v1550->pack(bref));
       }
     }
   }
@@ -535,7 +580,7 @@ SRSASN_CODE dl_carrier_cfg_ded_nb_r13_s::unpack(cbit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(2);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -554,6 +599,16 @@ SRSASN_CODE dl_carrier_cfg_ded_nb_r13_s::unpack(cbit_ref& bref)
       dl_gap_non_anchor_v1530.set_present(dl_gap_non_anchor_v1530_present);
       if (dl_gap_non_anchor_v1530.is_present()) {
         HANDLE_CODE(dl_gap_non_anchor_v1530->unpack(bref));
+      }
+    }
+    if (group_flags[2]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool dl_carrier_freq_v1550_present;
+      HANDLE_CODE(bref.unpack(dl_carrier_freq_v1550_present, 1));
+      dl_carrier_freq_v1550.set_present(dl_carrier_freq_v1550_present);
+      if (dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(dl_carrier_freq_v1550->unpack(bref));
       }
     }
   }
@@ -589,6 +644,10 @@ void dl_carrier_cfg_ded_nb_r13_s::to_json(json_writer& j) const
     if (dl_gap_non_anchor_v1530.is_present()) {
       j.write_fieldname("dl-GapNonAnchor-v1530");
       dl_gap_non_anchor_v1530->to_json(j);
+    }
+    if (dl_carrier_freq_v1550.is_present()) {
+      j.write_fieldname("dl-CarrierFreq-v1550");
+      dl_carrier_freq_v1550->to_json(j);
     }
   }
   j.end_obj();
@@ -3202,6 +3261,20 @@ SRSASN_CODE as_cfg_nb_s::pack(bit_ref& bref) const
   HANDLE_CODE(source_ue_id_r13.pack(bref));
   HANDLE_CODE(source_dl_carrier_freq_r13.pack(bref));
 
+  if (ext) {
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= source_dl_carrier_freq_v1550.is_present();
+    group_flags.pack(bref);
+
+    if (group_flags[0]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(source_dl_carrier_freq_v1550.is_present(), 1));
+      if (source_dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(source_dl_carrier_freq_v1550->pack(bref));
+      }
+    }
+  }
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE as_cfg_nb_s::unpack(cbit_ref& bref)
@@ -3212,6 +3285,21 @@ SRSASN_CODE as_cfg_nb_s::unpack(cbit_ref& bref)
   HANDLE_CODE(source_ue_id_r13.unpack(bref));
   HANDLE_CODE(source_dl_carrier_freq_r13.unpack(bref));
 
+  if (ext) {
+    ext_groups_unpacker_guard group_flags(1);
+    group_flags.unpack(bref);
+
+    if (group_flags[0]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool source_dl_carrier_freq_v1550_present;
+      HANDLE_CODE(bref.unpack(source_dl_carrier_freq_v1550_present, 1));
+      source_dl_carrier_freq_v1550.set_present(source_dl_carrier_freq_v1550_present);
+      if (source_dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(source_dl_carrier_freq_v1550->unpack(bref));
+      }
+    }
+  }
   return SRSASN_SUCCESS;
 }
 void as_cfg_nb_s::to_json(json_writer& j) const
@@ -3224,6 +3312,12 @@ void as_cfg_nb_s::to_json(json_writer& j) const
   j.write_str("sourceUE-Identity-r13", source_ue_id_r13.to_string());
   j.write_fieldname("sourceDl-CarrierFreq-r13");
   source_dl_carrier_freq_r13.to_json(j);
+  if (ext) {
+    if (source_dl_carrier_freq_v1550.is_present()) {
+      j.write_fieldname("sourceDL-CarrierFreq-v1550");
+      source_dl_carrier_freq_v1550->to_json(j);
+    }
+  }
   j.end_obj();
 }
 
@@ -5690,6 +5784,51 @@ uint8_t nprach_params_tdd_nb_r15_s::nprach_params_r15_s_::nprach_num_cbra_start_
       options, 16, value, "nprach_params_tdd_nb_r15_s::nprach_params_r15_s_::nprach_num_cbra_start_subcarriers_r15_e_");
 }
 
+// NPRACH-ParametersTDD-NB-v1550 ::= SEQUENCE
+SRSASN_CODE nprach_params_tdd_nb_v1550_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(max_num_preamb_attempt_ce_v1550.pack(bref));
+  HANDLE_CODE(num_repeats_per_preamb_attempt_v1550.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE nprach_params_tdd_nb_v1550_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(max_num_preamb_attempt_ce_v1550.unpack(bref));
+  HANDLE_CODE(num_repeats_per_preamb_attempt_v1550.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void nprach_params_tdd_nb_v1550_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("maxNumPreambleAttemptCE-v1550", max_num_preamb_attempt_ce_v1550.to_string());
+  j.write_str("numRepetitionsPerPreambleAttempt-v1550", num_repeats_per_preamb_attempt_v1550.to_string());
+  j.end_obj();
+}
+
+std::string nprach_params_tdd_nb_v1550_s::max_num_preamb_attempt_ce_v1550_opts::to_string() const
+{
+  static const char* options[] = {"n3", "n4", "n5", "n6", "n7", "n8", "n10", "spare1"};
+  return convert_enum_idx(options, 8, value, "nprach_params_tdd_nb_v1550_s::max_num_preamb_attempt_ce_v1550_e_");
+}
+uint8_t nprach_params_tdd_nb_v1550_s::max_num_preamb_attempt_ce_v1550_opts::to_number() const
+{
+  static const uint8_t options[] = {3, 4, 5, 6, 7, 8, 10};
+  return map_enum_number(options, 7, value, "nprach_params_tdd_nb_v1550_s::max_num_preamb_attempt_ce_v1550_e_");
+}
+
+std::string nprach_params_tdd_nb_v1550_s::num_repeats_per_preamb_attempt_v1550_opts::to_string() const
+{
+  static const char* options[] = {"n1", "n2", "n4", "n8", "n16", "n32", "n64", "n128", "n256", "n512", "n1024"};
+  return convert_enum_idx(options, 11, value, "nprach_params_tdd_nb_v1550_s::num_repeats_per_preamb_attempt_v1550_e_");
+}
+uint16_t nprach_params_tdd_nb_v1550_s::num_repeats_per_preamb_attempt_v1550_opts::to_number() const
+{
+  static const uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024};
+  return map_enum_number(options, 11, value, "nprach_params_tdd_nb_v1550_s::num_repeats_per_preamb_attempt_v1550_e_");
+}
+
 // PagingWeight-NB-r14 ::= ENUMERATED
 std::string paging_weight_nb_r14_opts::to_string() const
 {
@@ -5854,6 +5993,7 @@ SRSASN_CODE dl_carrier_cfg_common_nb_r14_s::pack(bit_ref& bref) const
   if (ext) {
     ext_groups_packer_guard group_flags;
     group_flags[0] |= dl_gap_non_anchor_v1530.is_present();
+    group_flags[1] |= dl_carrier_freq_v1550.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -5862,6 +6002,14 @@ SRSASN_CODE dl_carrier_cfg_common_nb_r14_s::pack(bit_ref& bref) const
       HANDLE_CODE(bref.pack(dl_gap_non_anchor_v1530.is_present(), 1));
       if (dl_gap_non_anchor_v1530.is_present()) {
         HANDLE_CODE(dl_gap_non_anchor_v1530->pack(bref));
+      }
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(dl_carrier_freq_v1550.is_present(), 1));
+      if (dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(dl_carrier_freq_v1550->pack(bref));
       }
     }
   }
@@ -5888,7 +6036,7 @@ SRSASN_CODE dl_carrier_cfg_common_nb_r14_s::unpack(cbit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(1);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -5899,6 +6047,16 @@ SRSASN_CODE dl_carrier_cfg_common_nb_r14_s::unpack(cbit_ref& bref)
       dl_gap_non_anchor_v1530.set_present(dl_gap_non_anchor_v1530_present);
       if (dl_gap_non_anchor_v1530.is_present()) {
         HANDLE_CODE(dl_gap_non_anchor_v1530->unpack(bref));
+      }
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool dl_carrier_freq_v1550_present;
+      HANDLE_CODE(bref.unpack(dl_carrier_freq_v1550_present, 1));
+      dl_carrier_freq_v1550.set_present(dl_carrier_freq_v1550_present);
+      if (dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(dl_carrier_freq_v1550->unpack(bref));
       }
     }
   }
@@ -5930,6 +6088,10 @@ void dl_carrier_cfg_common_nb_r14_s::to_json(json_writer& j) const
     if (dl_gap_non_anchor_v1530.is_present()) {
       j.write_fieldname("dl-GapNonAnchor-v1530");
       dl_gap_non_anchor_v1530->to_json(j);
+    }
+    if (dl_carrier_freq_v1550.is_present()) {
+      j.write_fieldname("dl-CarrierFreq-v1550");
+      dl_carrier_freq_v1550->to_json(j);
     }
   }
   j.end_obj();
@@ -6637,6 +6799,7 @@ SRSASN_CODE inter_freq_carrier_freq_info_nb_r13_s::pack(bit_ref& bref) const
     group_flags[1] |= ce_authorisation_offset_r14_present;
     group_flags[2] |= nsss_rrm_cfg_r15.is_present();
     group_flags[2] |= inter_freq_neigh_cell_list_v1530.is_present();
+    group_flags[3] |= dl_carrier_freq_v1550.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -6669,6 +6832,14 @@ SRSASN_CODE inter_freq_carrier_freq_info_nb_r13_s::pack(bit_ref& bref) const
       }
       if (inter_freq_neigh_cell_list_v1530.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_neigh_cell_list_v1530, 1, 16));
+      }
+    }
+    if (group_flags[3]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(dl_carrier_freq_v1550.is_present(), 1));
+      if (dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(dl_carrier_freq_v1550->pack(bref));
       }
     }
   }
@@ -6706,7 +6877,7 @@ SRSASN_CODE inter_freq_carrier_freq_info_nb_r13_s::unpack(cbit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(3);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -6743,6 +6914,16 @@ SRSASN_CODE inter_freq_carrier_freq_info_nb_r13_s::unpack(cbit_ref& bref)
       }
       if (inter_freq_neigh_cell_list_v1530.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_neigh_cell_list_v1530, bref, 1, 16));
+      }
+    }
+    if (group_flags[3]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool dl_carrier_freq_v1550_present;
+      HANDLE_CODE(bref.unpack(dl_carrier_freq_v1550_present, 1));
+      dl_carrier_freq_v1550.set_present(dl_carrier_freq_v1550_present);
+      if (dl_carrier_freq_v1550.is_present()) {
+        HANDLE_CODE(dl_carrier_freq_v1550->unpack(bref));
       }
     }
   }
@@ -6804,6 +6985,10 @@ void inter_freq_carrier_freq_info_nb_r13_s::to_json(json_writer& j) const
         e1.to_json(j);
       }
       j.end_array();
+    }
+    if (dl_carrier_freq_v1550.is_present()) {
+      j.write_fieldname("dl-CarrierFreq-v1550");
+      dl_carrier_freq_v1550->to_json(j);
     }
   }
   j.end_obj();
@@ -7051,7 +7236,7 @@ SRSASN_CODE nprach_cfg_sib_nb_v1530_s::pack(bit_ref& bref) const
 
   if (tdd_params_r15_present) {
     HANDLE_CODE(tdd_params_r15.nprach_preamb_format_r15.pack(bref));
-    HANDLE_CODE(tdd_params_r15.num_repeats_per_preamb_attempt_r15.pack(bref));
+    HANDLE_CODE(tdd_params_r15.dummy.pack(bref));
     HANDLE_CODE(pack_dyn_seq_of(bref, tdd_params_r15.nprach_params_list_tdd_r15, 1, 3));
   }
   if (fmt2_params_r15_present) {
@@ -7083,7 +7268,7 @@ SRSASN_CODE nprach_cfg_sib_nb_v1530_s::unpack(cbit_ref& bref)
 
   if (tdd_params_r15_present) {
     HANDLE_CODE(tdd_params_r15.nprach_preamb_format_r15.unpack(bref));
-    HANDLE_CODE(tdd_params_r15.num_repeats_per_preamb_attempt_r15.unpack(bref));
+    HANDLE_CODE(tdd_params_r15.dummy.unpack(bref));
     HANDLE_CODE(unpack_dyn_seq_of(tdd_params_r15.nprach_params_list_tdd_r15, bref, 1, 3));
   }
   if (fmt2_params_r15_present) {
@@ -7114,7 +7299,7 @@ void nprach_cfg_sib_nb_v1530_s::to_json(json_writer& j) const
     j.write_fieldname("tdd-Parameters-r15");
     j.start_obj();
     j.write_str("nprach-PreambleFormat-r15", tdd_params_r15.nprach_preamb_format_r15.to_string());
-    j.write_str("numRepetitionsPerPreambleAttempt-r15", tdd_params_r15.num_repeats_per_preamb_attempt_r15.to_string());
+    j.write_str("dummy", tdd_params_r15.dummy.to_string());
     j.start_array("nprach-ParametersListTDD-r15");
     for (const auto& e1 : tdd_params_r15.nprach_params_list_tdd_r15) {
       e1.to_json(j);
@@ -7171,17 +7356,42 @@ std::string nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::nprach_preamb_format_r
       options, 5, value, "nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::nprach_preamb_format_r15_e_");
 }
 
-std::string nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::num_repeats_per_preamb_attempt_r15_opts::to_string() const
+std::string nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::dummy_opts::to_string() const
 {
   static const char* options[] = {"n1", "n2", "n4", "n8", "n16", "n32", "n64", "n128", "n256", "n512", "n1024"};
-  return convert_enum_idx(
-      options, 11, value, "nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::num_repeats_per_preamb_attempt_r15_e_");
+  return convert_enum_idx(options, 11, value, "nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::dummy_e_");
 }
-uint16_t nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::num_repeats_per_preamb_attempt_r15_opts::to_number() const
+uint16_t nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::dummy_opts::to_number() const
 {
   static const uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024};
-  return map_enum_number(
-      options, 11, value, "nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::num_repeats_per_preamb_attempt_r15_e_");
+  return map_enum_number(options, 11, value, "nprach_cfg_sib_nb_v1530_s::tdd_params_r15_s_::dummy_e_");
+}
+
+// NPRACH-ConfigSIB-NB-v1550 ::= SEQUENCE
+SRSASN_CODE nprach_cfg_sib_nb_v1550_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(pack_dyn_seq_of(bref, tdd_params_v1550.nprach_params_list_tdd_v1550, 1, 3));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE nprach_cfg_sib_nb_v1550_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(unpack_dyn_seq_of(tdd_params_v1550.nprach_params_list_tdd_v1550, bref, 1, 3));
+
+  return SRSASN_SUCCESS;
+}
+void nprach_cfg_sib_nb_v1550_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("tdd-Parameters-v1550");
+  j.start_obj();
+  j.start_array("nprach-ParametersListTDD-v1550");
+  for (const auto& e1 : tdd_params_v1550.nprach_params_list_tdd_v1550) {
+    e1.to_json(j);
+  }
+  j.end_array();
+  j.end_obj();
+  j.end_obj();
 }
 
 // NPRACH-ProbabilityAnchor-NB-r14 ::= SEQUENCE
@@ -8301,6 +8511,7 @@ SRSASN_CODE rr_cfg_common_sib_nb_r13_s::pack(bit_ref& bref) const
     group_flags[2] |= nprach_cfg_v1530.is_present();
     group_flags[2] |= dl_gap_v1530.is_present();
     group_flags[2] |= wus_cfg_r15.is_present();
+    group_flags[3] |= nprach_cfg_v1550.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -8335,6 +8546,14 @@ SRSASN_CODE rr_cfg_common_sib_nb_r13_s::pack(bit_ref& bref) const
         HANDLE_CODE(wus_cfg_r15->pack(bref));
       }
     }
+    if (group_flags[3]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(nprach_cfg_v1550.is_present(), 1));
+      if (nprach_cfg_v1550.is_present()) {
+        HANDLE_CODE(nprach_cfg_v1550->pack(bref));
+      }
+    }
   }
   return SRSASN_SUCCESS;
 }
@@ -8355,7 +8574,7 @@ SRSASN_CODE rr_cfg_common_sib_nb_r13_s::unpack(cbit_ref& bref)
   HANDLE_CODE(ul_pwr_ctrl_common_r13.unpack(bref));
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(3);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -8398,6 +8617,16 @@ SRSASN_CODE rr_cfg_common_sib_nb_r13_s::unpack(cbit_ref& bref)
       }
       if (wus_cfg_r15.is_present()) {
         HANDLE_CODE(wus_cfg_r15->unpack(bref));
+      }
+    }
+    if (group_flags[3]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool nprach_cfg_v1550_present;
+      HANDLE_CODE(bref.unpack(nprach_cfg_v1550_present, 1));
+      nprach_cfg_v1550.set_present(nprach_cfg_v1550_present);
+      if (nprach_cfg_v1550.is_present()) {
+        HANDLE_CODE(nprach_cfg_v1550->unpack(bref));
       }
     }
   }
@@ -8444,6 +8673,10 @@ void rr_cfg_common_sib_nb_r13_s::to_json(json_writer& j) const
     if (wus_cfg_r15.is_present()) {
       j.write_fieldname("wus-Config-r15");
       wus_cfg_r15->to_json(j);
+    }
+    if (nprach_cfg_v1550.is_present()) {
+      j.write_fieldname("nprach-Config-v1550");
+      nprach_cfg_v1550->to_json(j);
     }
   }
   j.end_obj();
@@ -11827,6 +12060,43 @@ void rrc_conn_reest_nb_v1430_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// RRCEarlyDataComplete-NB-v1590-IEs ::= SEQUENCE
+SRSASN_CODE rrc_early_data_complete_nb_v1590_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_complete_nb_v1590_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_early_data_complete_nb_v1590_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
 // RedirectedCarrierInfo-NB-v1430 ::= SEQUENCE
 SRSASN_CODE redirected_carrier_info_nb_v1430_s::pack(bit_ref& bref) const
 {
@@ -12045,6 +12315,9 @@ SRSASN_CODE rrc_early_data_complete_nb_r15_ies_s::pack(bit_ref& bref) const
   if (redirected_carrier_info_ext_r15_present) {
     HANDLE_CODE(redirected_carrier_info_ext_r15.pack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -12068,6 +12341,9 @@ SRSASN_CODE rrc_early_data_complete_nb_r15_ies_s::unpack(cbit_ref& bref)
   if (redirected_carrier_info_ext_r15_present) {
     HANDLE_CODE(redirected_carrier_info_ext_r15.unpack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -12090,8 +12366,7 @@ void rrc_early_data_complete_nb_r15_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -13191,6 +13466,78 @@ void dl_ccch_msg_nb_s::to_json(json_writer& j) const
   j.end_array();
 }
 
+// RRCConnectionRelease-NB-v15b0-IEs ::= SEQUENCE
+SRSASN_CODE rrc_conn_release_nb_v15b0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(no_last_cell_upd_r15_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_conn_release_nb_v15b0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(no_last_cell_upd_r15_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void rrc_conn_release_nb_v15b0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (no_last_cell_upd_r15_present) {
+    j.write_str("noLastCellUpdate-r15", "true");
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// RRCConnectionRelease-NB-v1550-IEs ::= SEQUENCE
+SRSASN_CODE rrc_conn_release_nb_v1550_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(redirected_carrier_info_v1550_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (redirected_carrier_info_v1550_present) {
+    HANDLE_CODE(redirected_carrier_info_v1550.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_conn_release_nb_v1550_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(redirected_carrier_info_v1550_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (redirected_carrier_info_v1550_present) {
+    HANDLE_CODE(redirected_carrier_info_v1550.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_conn_release_nb_v1550_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (redirected_carrier_info_v1550_present) {
+    j.write_fieldname("redirectedCarrierInfo-v1550");
+    redirected_carrier_info_v1550.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
 // RRCConnectionRelease-NB-v1530-IEs ::= SEQUENCE
 SRSASN_CODE rrc_conn_release_nb_v1530_ies_s::pack(bit_ref& bref) const
 {
@@ -13200,6 +13547,9 @@ SRSASN_CODE rrc_conn_release_nb_v1530_ies_s::pack(bit_ref& bref) const
 
   if (next_hop_chaining_count_r15_present) {
     HANDLE_CODE(pack_integer(bref, next_hop_chaining_count_r15, (uint8_t)0u, (uint8_t)7u));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -13212,6 +13562,9 @@ SRSASN_CODE rrc_conn_release_nb_v1530_ies_s::unpack(cbit_ref& bref)
 
   if (next_hop_chaining_count_r15_present) {
     HANDLE_CODE(unpack_integer(next_hop_chaining_count_r15, bref, (uint8_t)0u, (uint8_t)7u));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -13227,8 +13580,7 @@ void rrc_conn_release_nb_v1530_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -18027,6 +18379,43 @@ std::string rrc_conn_setup_complete_nb_s::crit_exts_c_::types_opts::to_string() 
   return convert_enum_idx(options, 2, value, "rrc_conn_setup_complete_nb_s::crit_exts_c_::types");
 }
 
+// RRCEarlyDataRequest-NB-v1590-IEs ::= SEQUENCE
+SRSASN_CODE rrc_early_data_request_nb_v1590_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_request_nb_v1590_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_early_data_request_nb_v1590_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
 // RRCEarlyDataRequest-NB-r15-IEs ::= SEQUENCE
 SRSASN_CODE rrc_early_data_request_nb_r15_ies_s::pack(bit_ref& bref) const
 {
@@ -18039,6 +18428,9 @@ SRSASN_CODE rrc_early_data_request_nb_r15_ies_s::pack(bit_ref& bref) const
     HANDLE_CODE(cqi_npdcch_r15.pack(bref));
   }
   HANDLE_CODE(ded_info_nas_r15.pack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -18053,6 +18445,9 @@ SRSASN_CODE rrc_early_data_request_nb_r15_ies_s::unpack(cbit_ref& bref)
     HANDLE_CODE(cqi_npdcch_r15.unpack(bref));
   }
   HANDLE_CODE(ded_info_nas_r15.unpack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -18068,15 +18463,14 @@ void rrc_early_data_request_nb_r15_ies_s::to_json(json_writer& j) const
   j.write_str("dedicatedInfoNAS-r15", ded_info_nas_r15.to_string());
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
 
 std::string rrc_early_data_request_nb_r15_ies_s::establishment_cause_r15_opts::to_string() const
 {
-  static const char* options[] = {"mo-Data-r15", "mo-ExceptionData-r15", "delayTolerantAccess-r15", "spare1"};
+  static const char* options[] = {"mo-Data", "mo-ExceptionData", "delayTolerantAccess", "spare1"};
   return convert_enum_idx(options, 4, value, "rrc_early_data_request_nb_r15_ies_s::establishment_cause_r15_e_");
 }
 
