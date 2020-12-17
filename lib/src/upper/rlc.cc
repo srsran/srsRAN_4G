@@ -392,8 +392,10 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   rlc_common* rlc_entity = nullptr;
 
   if (cnfg.rlc_mode != rlc_mode_t::tm and rlc_array.find(lcid) != rlc_array.end()) {
-    // RLC entity already exists. Recreating it.
-    rlc_array.erase(lcid);
+    if (rlc_array[lcid]->get_mode() != cnfg.rlc_mode) {
+      rlc_log->info("Switching RLC entity type. Recreating it.\n");
+      rlc_array.erase(lcid);
+    }
   }
 
   if (not valid_lcid(lcid)) {
