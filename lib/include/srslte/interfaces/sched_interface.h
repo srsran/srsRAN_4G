@@ -67,6 +67,8 @@ public:
     /* pusch configuration */
     srslte_pusch_hopping_cfg_t pusch_hopping_cfg;
     float                      target_ul_sinr;
+    bool                       enable_phr_handling;
+    bool                       enable_64qam;
 
     /* prach configuration */
     uint32_t prach_config;
@@ -78,7 +80,6 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift;
-    bool     enable_64qam;
 
     // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
     int nrb_pucch;

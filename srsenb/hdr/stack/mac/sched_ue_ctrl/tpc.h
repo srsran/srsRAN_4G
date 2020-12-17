@@ -33,12 +33,13 @@ class tpc
 public:
   static constexpr int PHR_NEG_NOF_PRB = 1;
 
-  tpc(uint32_t cell_nof_prb, float target_snr_dB_ = -1.0) :
+  tpc(uint32_t cell_nof_prb, float target_snr_dB_ = -1.0, bool phr_handling_flag_ = false) :
     nof_prb(cell_nof_prb),
     target_snr_dB(target_snr_dB_),
     snr_avg(0.1, target_snr_dB_),
     win_pusch_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS),
-    win_pucch_tpc_values(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS)
+    win_pucch_tpc_values(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS),
+    phr_handling_flag(phr_handling_flag_)
   {
     max_prbs_cached = nof_prb;
   }
@@ -52,11 +53,13 @@ public:
     pusch_phr_flag = false;
 
     // compute and cache the max nof UL PRBs that avoids overflowing PHR
-    max_prbs_cached = PHR_NEG_NOF_PRB;
-    for (int n = nof_prb; n > PHR_NEG_NOF_PRB; --n) {
-      if (last_phr >= 10 * log10(n)) {
-        max_prbs_cached = n;
-        break;
+    if (phr_handling_flag) {
+      max_prbs_cached = PHR_NEG_NOF_PRB;
+      for (int n = nof_prb; n > PHR_NEG_NOF_PRB; --n) {
+        if (last_phr >= 10 * log10(n)) {
+          max_prbs_cached = n;
+          break;
+        }
       }
     }
   }
@@ -178,6 +181,7 @@ private:
 
   uint32_t nof_prb;
   float    target_snr_dB;
+  bool     phr_handling_flag;
 
   // PHR-related variables
   int      last_phr        = undefined_phr;
