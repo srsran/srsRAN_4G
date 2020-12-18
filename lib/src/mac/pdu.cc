@@ -956,7 +956,7 @@ std::string sch_subh::to_string()
           ss << "CON_RES: id=0x" << std::hex << get_con_res_id() << std::dec;
           break;
         case dl_sch_lcid::TA_CMD:
-          ss << "TA: ta=" << get_ta_cmd();
+          ss << "TA: ta=" << std::to_string(get_ta_cmd());
           break;
         case dl_sch_lcid::SCELL_ACTIVATION_4_OCTET:
         case dl_sch_lcid::SCELL_ACTIVATION:
