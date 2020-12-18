@@ -148,9 +148,9 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
 #ifdef ENABLE_TIMESTAMP
       auto latency_us = tx_sdu->get_latency_us().count();
       mean_pdu_latency_us.push(latency_us);
-      log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %ld/%ld us\n",
+      log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us\n",
                  rb_name.c_str(),
-                 latency_us,
+                 (uint64_t)latency_us,
                  (long)mean_pdu_latency_us.value());
 #else
       log->debug("%s Complete SDU scheduled for tx.\n", rb_name.c_str());
@@ -187,9 +187,9 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
 #ifdef ENABLE_TIMESTAMP
       auto latency_us = tx_sdu->get_latency_us().count();
       mean_pdu_latency_us.push(latency_us);
-      log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %ld/%ld us\n",
+      log->debug("%s Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us\n",
                  rb_name.c_str(),
-                 latency_us,
+                 (uint64_t)latency_us,
                  (long)mean_pdu_latency_us.value());
 #else
       log->debug("%s Complete SDU scheduled for tx.\n", rb_name.c_str());

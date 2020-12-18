@@ -27,7 +27,6 @@
 #include "upper/s1ap.h"
 
 #include "enb_stack_base.h"
-#include "srsenb/hdr/enb.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
 

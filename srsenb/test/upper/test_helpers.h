@@ -209,6 +209,7 @@ public:
 namespace test_helpers {
 
 int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args);
+int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_args_t& args);
 
 template <typename ASN1Type>
 bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
