@@ -130,7 +130,8 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
     const auto& rlc_bearer = m.stack.rlc.ues[i].bearer;
     bearer_container.write<metric_dl_total_bytes>(rlc_bearer[drb.first].num_tx_sdu_bytes);
     bearer_container.write<metric_ul_total_bytes>(rlc_bearer[drb.first].num_rx_sdu_bytes);
-    bearer_container.write<metric_dl_latency>(rlc_bearer[drb.first].sdu_tx_latency_us / 1e6);
+    bearer_container.write<metric_ul_latency>(rlc_bearer[drb.first].rx_latency_ms / 1e3);
+    bearer_container.write<metric_ul_buffered_bytes>(rlc_bearer[drb.first].rx_buffered_bytes);
   }
 }
 
