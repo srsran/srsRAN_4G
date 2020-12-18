@@ -101,11 +101,6 @@ void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
 
-    rlc_log->info("rx_rate_mbps: lcid=%d metrics.num_rx_pdu_bytes=%ld nof_tti=%d\n",
-                  it->first,
-                  metrics.num_rx_pdu_bytes,
-                  nof_tti);
-
     // Rx/Tx rate based on real time
     double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs.count();
     double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs.count();
