@@ -70,9 +70,10 @@ public:
               uint32_t         n_cce_,
               uint32_t         max_retx);
   void new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, tti_point tti_tx_dl, int* mcs, int* tbs, uint32_t n_cce_);
-  int  set_ack(uint32_t tb_idx, bool ack);
+  int       set_ack(uint32_t tb_idx, bool ack);
   rbgmask_t get_rbgmask() const;
   bool      has_pending_retx(uint32_t tb_idx, tti_point tti_tx_dl) const;
+  bool      has_pending_retx(tti_point tti_tx_dl) const;
   int       get_tbs(uint32_t tb_idx) const;
   uint32_t  get_n_cce() const;
   void      reset_pending_data();
@@ -111,6 +112,7 @@ public:
 
   harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs);
   void reset();
+  void new_tti(tti_point tti_rx);
 
   size_t                           nof_dl_harqs() const { return dl_harqs.size(); }
   size_t                           nof_ul_harqs() const { return ul_harqs.size(); }
@@ -154,7 +156,8 @@ public:
 private:
   dl_harq_proc* get_oldest_dl_harq(tti_point tti_tx_dl);
 
-  srslte::log_ref log_h;
+  srslte::log_ref                            log_h;
+  std::array<tti_point, SRSLTE_FDD_NOF_HARQ> last_ttis;
 
   std::vector<dl_harq_proc> dl_harqs;
   std::vector<ul_harq_proc> ul_harqs;
