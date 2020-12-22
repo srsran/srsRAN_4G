@@ -266,7 +266,9 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
 #endif // LV_HAVE_AVX2
   }
 
-  float scaling_factor = isnormal(args->decoder_scaling_factor) ? args->decoder_scaling_factor : 0.75f;
+  // If the scaling factor is not provided use a default value that allows decoding all possible combinations of nPRB
+  // and MCS indexes for all possible MCS tables
+  float scaling_factor = isnormal(args->decoder_scaling_factor) ? args->decoder_scaling_factor : 0.8f;
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
