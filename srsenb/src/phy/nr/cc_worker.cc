@@ -118,6 +118,12 @@ bool cc_worker::work_dl()
     ERROR("Error loading default grant\n");
     return false;
   }
+
+  if (srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg, &pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error loading number of DMRS CDM groups\n");
+    return false;
+  }
+
   pdsch_grant.nof_layers = enb_dl.carrier.max_mimo_layers;
   pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
   pdsch_grant.rnti       = 0x1234;

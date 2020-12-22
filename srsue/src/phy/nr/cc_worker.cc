@@ -74,6 +74,15 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
     return false;
   }
 
+  srslte_coreset_t coreset  = {};
+  coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
+  coreset.duration          = 2;
+
+  if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset) < SRSLTE_SUCCESS) {
+    ERROR("Error setting carrier\n");
+    return false;
+  }
+
   return true;
 }
 
@@ -108,6 +117,12 @@ bool cc_worker::work_dl()
     ERROR("Error loading default grant\n");
     return false;
   }
+
+  if (srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg, &pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error loading number of DMRS CDM groups\n");
+    return false;
+  }
+
   pdsch_grant.nof_layers = ue_dl.carrier.max_mimo_layers;
   pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
   pdsch_grant.rnti       = 0x1234;

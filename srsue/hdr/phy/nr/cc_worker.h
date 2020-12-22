@@ -53,7 +53,7 @@ public:
     args.dl.nof_max_prb            = 100;
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.measure_time     = true;
-    args.dl.pdsch.sch.disable_simd = true;
+    args.dl.pdsch.sch.disable_simd = false;
   }
 };
 
