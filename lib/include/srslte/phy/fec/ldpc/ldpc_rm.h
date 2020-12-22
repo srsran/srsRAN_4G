@@ -133,8 +133,7 @@ SRSLTE_API int srslte_ldpc_rm_rx_init_s(srslte_ldpc_rm_t* q);
  * \param[in] rv          Redundancy version 0,1,2,3.
  * \param[in] mod_type    Modulation type.
  * \param[in] Nref        Size of limited buffer.
- * \param[out] output The rate-dematched codeword resulting from the rate-dematching
- *    operation.
+ * \return An integer: 0 if the function executes correctly, -1 otherwise.
  */
 SRSLTE_API int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
                                    const int16_t*           input,

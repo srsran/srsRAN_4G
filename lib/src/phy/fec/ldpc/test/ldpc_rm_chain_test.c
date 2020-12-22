@@ -35,6 +35,7 @@
  *  - **-B \<number\>** Number of codewords in a batch.(Default 100).
  *  - **-N \<number\>** Max number of simulated batches.(Default 10000).
  *  - **-E \<number\>** Minimum number of errors for a significant simulation.(Default 100).
+ *  - **-w \<number\>** Rate-matching aware encoding/decoding [(0 or 1)]
  */
 
 #include <stdio.h>
@@ -54,11 +55,12 @@
 static srslte_basegraph_t base_graph = BG1;     /*!< \brief Base Graph (BG1 or BG2). */
 static uint32_t           lift_size  = 2;       /*!< \brief Lifting Size. */
 static uint32_t           rm_length  = 0;       /*!< \brief Codeword length after rate matching. */
-static uint32_t           F          = 22 - 5;  /*!< \brief Number of filler bits in each CBS. */
+static uint32_t           F          = 0;       /*!< \brief Number of filler bits in each CBS. */
 static uint8_t            rv         = 0;       /*!< \brief Redundancy version {0-3}. */
 static srslte_mod_t mod_type = SRSLTE_MOD_BPSK; /*!< \brief Modulation type: BPSK, QPSK, QAM16, QAM64, QAM256 = 4 */
 static uint32_t     Nref     = 0;               /*!< \brief Limited buffer size. */
 static float        snr      = 0;               /*!< \brief Signal-to-Noise Ratio [dB]. */
+static uint8_t            rm_aware = 1; /*!< \brief Flag rate matching aware encoding/decoding (1 to enable). */
 
 static int finalK = 0; /*!< \brief Number of uncoded bits (message length, including punctured and filler bits). */
 static int finalN = 0; /*!< \brief Number of coded bits (codeword length). */
@@ -74,7 +76,7 @@ static int req_errors  = 100;   /*!< \brief Minimum number of errors for a signi
 void usage(char* prog)
 {
 
-  printf("Usage: %s [-bX] [-lX] [-eX] [-fX] [-rX] [-mX] [-MX] [sX]\n", prog);
+  printf("Usage: %s [-bX] [-lX] [-eX] [-fX] [-rX] [-mX] [-MX] [-wX] [-sX]\n", prog);
   printf("\t-b Base Graph [(1 or 2) Default %d]\n", base_graph + 1);
   printf("\t-l Lifting Size [Default %d]\n", lift_size);
   printf("\t-e Word length after rate matching [Default %d (no rate matching i.e. E = N - F)]\n", rm_length);
@@ -86,6 +88,7 @@ void usage(char* prog)
   printf("\t-B Number of codewords in a batch. [Default %d]\n", batch_size);
   printf("\t-N Max number of simulated batches. [Default %d]\n", max_n_batch);
   printf("\t-E Minimum number of errors for a significant simulation. [Default %d]\n", req_errors);
+  printf("\t-w Rate-matching aware encoding/decoding [(0 or 1) Default = %d (normal buffer Nref = N)]\n", rm_aware);
 }
 
 /*!
@@ -94,7 +97,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt = 0;
-  while ((opt = getopt(argc, argv, "b:l:e:f:r:m:M:s:B:N:E:")) != -1) {
+  while ((opt = getopt(argc, argv, "b:l:e:f:r:m:w:M:s:B:N:E:")) != -1) {
     switch (opt) {
       case 'b':
         base_graph = (int)strtol(optarg, NULL, 10) - 1;
@@ -116,6 +119,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'M':
         Nref = (uint32_t)strtol(optarg, NULL, 10);
+        break;
+      case 'w':
+        rm_aware = (uint8_t)strtol(optarg, NULL, 10);
         break;
       case 's':
         snr = (float)strtod(optarg, NULL);
@@ -338,6 +344,15 @@ int main(int argc, char** argv)
   int8_t inf7   = (1U << 6U) - 1;
   float  gain_c = inf7 * noise_std_dev / 8 / (1 / noise_std_dev + 2);
 
+  // RM aware LDPC Encoding
+  // compute the number of symbols that we need to encode/decode: at least (rm_length + F) if rm_length +F < N,
+  unsigned int n_useful_symbols_enc = finalN;
+  unsigned int n_useful_symbols_dec = finalN;
+  if (rm_aware > 0) {
+    n_useful_symbols_enc = (rm_length + F); // if n_useful_symbols > N, the encoder set n_useful_symbols = finalN;
+    n_useful_symbols_dec = (rm_length + F); // if n_useful_symbols > N, the encoder set n_useful_symbols = finalN;
+  }
+
   printf("\nBatch:\n  ");
 
   while (((n_error_words_f < req_errors) || (n_error_words_s < req_errors) || (n_error_words_c < req_errors)) &&
@@ -363,7 +378,8 @@ int main(int argc, char** argv)
 
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_encoder_encode(&encoder, messages_true + j * finalK, codewords + j * finalN, finalK);
+      srslte_ldpc_encoder_encode_rm(
+          &encoder, messages_true + j * finalK, codewords + j * finalN, finalK, n_useful_symbols_enc);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -425,12 +441,11 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_f(&decoder_f, symbols + j * finalN, messages_sim_f + j * finalK, finalN);
+      srslte_ldpc_decoder_decode_f(&decoder_f, symbols + j * finalN, messages_sim_f + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     elapsed_time_dec_f += t[0].tv_sec + 1e-6 * t[0].tv_usec;
-
     for (i = 0; i < batch_size; i++) {
       for (j = 0; j < finalK; j++) {
         i_bit = i * finalK + j;
@@ -465,7 +480,8 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_s(&decoder_s, symbols_s + j * finalN, messages_sim_s + j * finalK, finalN);
+      srslte_ldpc_decoder_decode_s(
+          &decoder_s, symbols_s + j * finalN, messages_sim_s + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -504,7 +520,8 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(&decoder_c, symbols_c + j * finalN, messages_sim_c + j * finalK, finalN);
+      srslte_ldpc_decoder_decode_rm_c(
+          &decoder_c, symbols_c + j * finalN, messages_sim_c + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -526,7 +543,7 @@ int main(int argc, char** argv)
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
       srslte_ldpc_decoder_decode_rm_c(
-          &decoder_c_flood, symbols_c + j * finalN, messages_sim_c_flood + j * finalK, finalN);
+          &decoder_c_flood, symbols_c + j * finalN, messages_sim_c_flood + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -548,7 +565,8 @@ int main(int argc, char** argv)
     // Recover messages
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
-      srslte_ldpc_decoder_decode_rm_c(&decoder_avx, symbols_c + j * finalN, messages_sim_avx + j * finalK, finalN);
+      srslte_ldpc_decoder_decode_rm_c(
+          &decoder_avx, symbols_c + j * finalN, messages_sim_avx + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
@@ -570,7 +588,7 @@ int main(int argc, char** argv)
     gettimeofday(&t[1], NULL);
     for (j = 0; j < batch_size; j++) {
       srslte_ldpc_decoder_decode_rm_c(
-          &decoder_avx_flood, symbols_c + j * finalN, messages_sim_avx_flood + j * finalK, finalN);
+          &decoder_avx_flood, symbols_c + j * finalN, messages_sim_avx_flood + j * finalK, n_useful_symbols_dec);
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);

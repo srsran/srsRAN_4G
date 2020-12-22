@@ -34,7 +34,9 @@
 
 #define SRSLTE_LDPC_BG1_MAX_LEN_CB 8448 /*!< \brief Maximum code block size for LDPC BG1 */
 #define SRSLTE_LDPC_BG2_MAX_LEN_CB 3840 /*!< \brief Maximum code block size for LDPC BG2 */
-#define SRSLTE_LDPC_MAX_LEN_CB SRSLTE_MAX(SRSLTE_LDPC_BG1_MAX_LEN_CB, SRSLTE_LDPC_BG2_MAX_LEN_CB)
+#define SRSLTE_LDPC_MAX_LEN_CB                                                                                         \
+  SRSLTE_MAX(SRSLTE_LDPC_BG1_MAX_LEN_CB,                                                                               \
+             SRSLTE_LDPC_BG2_MAX_LEN_CB) /*!< \brief Maximum code block size for LDPC BG1 or BG2 */
 
 #define BG1Nfull 68 /*!< \brief Number of variable nodes in BG1. */
 #define BG1N 66     /*!< \brief Number of variable nodes in BG1 after puncturing. */
