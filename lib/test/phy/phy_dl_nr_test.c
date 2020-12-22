@@ -259,8 +259,9 @@ int main(int argc, char** argv)
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }
-  pdsch_grant.nof_layers = carrier.max_mimo_layers;
-  pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
+  pdsch_grant.nof_layers                       = carrier.max_mimo_layers;
+  pdsch_grant.dci_format                       = srslte_dci_format_nr_1_0;
+  pdsch_grant.nof_dmrs_cdm_groups_without_data = 1;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;

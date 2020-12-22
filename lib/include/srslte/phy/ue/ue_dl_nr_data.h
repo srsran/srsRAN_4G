@@ -58,6 +58,17 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocat
 SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      m,
                                                              srslte_dmrs_pdsch_typeA_pos_t dmrs_typeA_pos,
                                                              srslte_pdsch_grant_nr_t*      grant);
+/**
+ * @brief Calculates the number of PDSCH-DMRS CDM groups without data for DCI format 1_0
+ *
+ * @remark Defined by TS 38.214 V15.10.0 5.1.6.1.3 CSI-RS for mobility
+ *
+ * @param pdsch_cfg PDSCH NR configuration by upper layers
+ * @param[out] grant Provides grant pointer to fill
+ * @return Returns SRSLTE_SUCCESS if the provided data is valid, otherwise it returns SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                                                           srslte_pdsch_grant_nr_t*     grant);
 
 #ifdef __cplusplus
 }

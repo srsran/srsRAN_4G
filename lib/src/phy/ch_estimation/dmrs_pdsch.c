@@ -201,8 +201,7 @@ static int srslte_dmrs_pdsch_put_symbol(srslte_dmrs_pdsch_t*           q,
     }
 
     // Get contiguous pilots
-    pilot_count += srslte_dmrs_put_pilots(
-        q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, &symbols[prb_start * SRSLTE_NRE]);
+    pilot_count += srslte_dmrs_put_pilots(q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols);
 
     // Reset counter
     prb_count = 0;
@@ -317,6 +316,12 @@ static int srslte_dmrs_pdsch_get_symbols_idx_mapping_type_A_double(const srslte_
     return SRSLTE_ERROR;
   }
 
+  // According to Table 7.4.1.1.2-4, the additional position 3 is invalid.
+  if (dmrs_cfg->additional_pos == srslte_dmrs_pdsch_add_pos_3) {
+    ERROR("Invalid additional DMRS (%d)\n", dmrs_cfg->additional_pos);
+    return SRSLTE_ERROR;
+  }
+
   // l0 = 3 if the higher-layer parameter dmrs-TypeA-Position is equal to 'pos3' and l0 = 2 otherwise
   int l0 = (dmrs_cfg->typeA_pos == srslte_dmrs_pdsch_typeA_pos_3) ? 3 : 2;
 
@@ -414,6 +419,19 @@ int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, uint32_t ma
 
 int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_pdsch_grant_nr_t* grant)
 {
+  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
+      grant->mapping == srslte_pdsch_mapping_type_A ? &cfg->dmrs_cfg_typeA : &cfg->dmrs_cfg_typeB;
+
+  if (grant->nof_dmrs_cdm_groups_without_data < 1 || grant->nof_dmrs_cdm_groups_without_data > 3) {
+    ERROR("Invalid number if DMRS CDM groups without data (%d). Valid values: 1, 2 , 3\n",
+          grant->nof_dmrs_cdm_groups_without_data);
+    return SRSLTE_ERROR;
+  }
+
+  // Get number of frequency domain resource elements used for DMRS
+  int nof_sc = SRSLTE_MIN(
+      SRSLTE_NRE, grant->nof_dmrs_cdm_groups_without_data * (dmrs_cfg->type == srslte_dmrs_pdsch_type_1 ? 6 : 4));
+
   // Get number of symbols used for DMRS
   uint32_t symbols[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS] = {};
   int      ret                                    = srslte_dmrs_pdsch_get_symbols_idx(cfg, grant, symbols);
@@ -422,7 +440,7 @@ int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_p
     return SRSLTE_ERROR;
   }
 
-  return SRSLTE_NRE * ret;
+  return nof_sc * ret;
 }
 
 static uint32_t srslte_dmrs_pdsch_seed(const srslte_carrier_nr_t*     carrier,
@@ -733,11 +751,34 @@ int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
     }
 
     if (symbols[symbol_idx] == l) {
-      continue;
-    }
+      switch (dmrs_cfg->type) {
 
-    srslte_vec_cf_copy(&chest_res->ce[0][0][count], ce, nof_re_x_symbol);
-    count += nof_re_x_symbol;
+        case srslte_dmrs_pdsch_type_1:
+          // Skip if there is no data to read
+          if (grant->nof_dmrs_cdm_groups_without_data != 1) {
+            continue;
+          }
+          for (uint32_t i = 1; i < nof_re_x_symbol; i += 2) {
+            chest_res->ce[0][0][count] = ce[i];
+            count++;
+          }
+          break;
+        case srslte_dmrs_pdsch_type_2:
+          // Skip if there is no data to read
+          if (grant->nof_dmrs_cdm_groups_without_data != 1 && grant->nof_dmrs_cdm_groups_without_data != 2) {
+            continue;
+          }
+          for (uint32_t i = grant->nof_dmrs_cdm_groups_without_data * 2; i < nof_re_x_symbol; i += 6) {
+            uint32_t nof_re = (3 - grant->nof_dmrs_cdm_groups_without_data) * 2;
+            srslte_vec_cf_copy(&chest_res->ce[0][0][count], &ce[i], nof_re);
+            count += nof_re;
+          }
+          break;
+      }
+    } else {
+      srslte_vec_cf_copy(&chest_res->ce[0][0][count], ce, nof_re_x_symbol);
+      count += nof_re_x_symbol;
+    }
   }
   // Set other values in the estimation result
   chest_res->nof_re = count;

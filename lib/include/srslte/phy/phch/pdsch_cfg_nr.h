@@ -119,6 +119,10 @@ typedef struct SRSLTE_API {
   /// Frequency domain resources
   bool prb_idx[SRSLTE_MAX_PRB_NR];
 
+  /// Number of DMRS groups without data
+  /// Described in TS 38.214 Section 5.1.6.2
+  uint32_t nof_dmrs_cdm_groups_without_data;
+
   /// Spatial resources
   uint32_t nof_layers;
 

@@ -216,9 +216,10 @@ static int run_test(srslte_dmrs_pdsch_t*           dmrs_pdsch,
 
   srslte_dl_slot_cfg_t slot_cfg = {};
   for (slot_cfg.idx = 0; slot_cfg.idx < SRSLTE_NSLOTS_PER_FRAME_NR(dmrs_pdsch->carrier.numerology); slot_cfg.idx++) {
-    srslte_dmrs_pdsch_put_sf(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols);
+    TESTASSERT(srslte_dmrs_pdsch_put_sf(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols) == SRSLTE_SUCCESS);
 
-    srslte_dmrs_pdsch_estimate(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols, chest_res);
+    TESTASSERT(srslte_dmrs_pdsch_estimate(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols, chest_res) ==
+               SRSLTE_SUCCESS);
 
     float mse = 0.0f;
     for (uint32_t i = 0; i < chest_res->nof_re; i++) {
@@ -294,6 +295,12 @@ int main(int argc, char** argv)
           srslte_dmrs_pdsch_len_t max_len_begin = srslte_dmrs_pdsch_len_1;
           srslte_dmrs_pdsch_len_t max_len_end   = srslte_dmrs_pdsch_len_2;
 
+          // Only single DMRS symbols can have additional positions 2 and 3
+          if (pdsch_cfg.dmrs_cfg_typeA.additional_pos == srslte_dmrs_pdsch_add_pos_2 ||
+              pdsch_cfg.dmrs_cfg_typeA.additional_pos == srslte_dmrs_pdsch_add_pos_3) {
+            max_len_end = srslte_dmrs_pdsch_len_1;
+          }
+
           for (pdsch_cfg.dmrs_cfg_typeA.length = max_len_begin; pdsch_cfg.dmrs_cfg_typeA.length <= max_len_end;
                pdsch_cfg.dmrs_cfg_typeA.length++) {
 
@@ -303,28 +310,32 @@ int main(int argc, char** argv)
                 grant.prb_idx[i] = (i < bw);
               }
 
-              // Load default type A grant
-              srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &grant);
+              for (grant.nof_dmrs_cdm_groups_without_data = 1; grant.nof_dmrs_cdm_groups_without_data <= 3;
+                   grant.nof_dmrs_cdm_groups_without_data++) {
 
-              // Copy configuration
-              pdsch_cfg.dmrs_cfg_typeB = pdsch_cfg.dmrs_cfg_typeA;
+                // Load default type A grant
+                srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &grant);
 
-              int n = run_test(&dmrs_pdsch, &pdsch_cfg, &grant, sf_symbols, &chest_dl_res);
+                // Copy configuration
+                pdsch_cfg.dmrs_cfg_typeB = pdsch_cfg.dmrs_cfg_typeA;
 
-              if (n == SRSLTE_SUCCESS) {
-                test_passed++;
-              } else {
-                const srslte_pdsch_dmrs_cfg_t* dmrs_cfg = grant.mapping == srslte_pdsch_mapping_type_A
-                                                              ? &pdsch_cfg.dmrs_cfg_typeA
-                                                              : &pdsch_cfg.dmrs_cfg_typeB;
+                int n = run_test(&dmrs_pdsch, &pdsch_cfg, &grant, sf_symbols, &chest_dl_res);
 
-                char str[64] = {};
-                srslte_dmrs_pdsch_cfg_to_str(dmrs_cfg, str, 64);
+                if (n == SRSLTE_SUCCESS) {
+                  test_passed++;
+                } else {
+                  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg = grant.mapping == srslte_pdsch_mapping_type_A
+                                                                ? &pdsch_cfg.dmrs_cfg_typeA
+                                                                : &pdsch_cfg.dmrs_cfg_typeB;
 
-                ERROR("Test %d failed. %s.\n", test_counter, str);
+                  char str[64] = {};
+                  srslte_dmrs_pdsch_cfg_to_str(dmrs_cfg, str, 64);
+
+                  ERROR("Test %d failed. %s.\n", test_counter, str);
+                }
+
+                test_counter++;
               }
-
-              test_counter++;
             }
           }
         }

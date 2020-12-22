@@ -168,9 +168,129 @@ void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q)
   if (q->evm_buffer != NULL) {
     srslte_evm_free(q->evm_buffer);
   }
+}
 
-  // Make sure whole structure is fill with zeros
-  SRSLTE_MEM_ZERO(q, srslte_pdsch_nr_t, 1);
+/**
+ * @brief copies a number of countiguous Resource Elements
+ * @param sf_symbols slot symbols in frequency domain
+ * @param symbols resource elements
+ * @param count number of resource elements to copy
+ * @param put Direction, symbols are copied into sf_symbols if put is true, otherwise sf_symbols are copied into symbols
+ */
+static void srslte_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, bool put)
+{
+  if (put) {
+    srslte_vec_cf_copy(sf_symbols, symbols, count);
+  } else {
+    srslte_vec_cf_copy(symbols, sf_symbols, count);
+  }
+}
+
+/*
+ * As a RB is 12 RE wide, positions marked as 1 will be used for the 1st CDM group, and the same with group 2:
+ *
+ *  +---+---+---+---+---+---+---+---+---+---+---+---+
+ *  | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 2 |
+ *  +---+---+---+---+---+---+---+---+---+---+---+---+
+ *  -- k -->
+ *
+ * If the number of DMRS CDM groups without data is set to:
+ * - 1, data is mapped in RE marked as 2
+ * - Otherwise, no data is mapped in this symbol
+ */
+static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*       q,
+                                              const srslte_pdsch_grant_nr_t* grant,
+                                              cf_t*                          symbols,
+                                              cf_t*                          sf_symbols,
+                                              bool                           put)
+{
+  uint32_t count = 0;
+  uint32_t delta = 0;
+
+  if (grant->nof_dmrs_cdm_groups_without_data != 1) {
+    return count;
+  }
+
+  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
+    if (grant->prb_idx[i]) {
+      for (uint32_t j = 0; j < SRSLTE_NRE; j += 2) {
+        if (put) {
+          sf_symbols[i * SRSLTE_NRE + delta + j + 1] = symbols[count++];
+        } else {
+          symbols[count++] = sf_symbols[i * SRSLTE_NRE + delta + j + 1];
+        }
+      }
+    }
+  }
+
+  return count;
+}
+
+/*
+ * As a RB is 12 RE wide, positions marked as 1 will be used for the 1st CDM group, and the same with groups 2 and 3:
+ *
+ *  +---+---+---+---+---+---+---+---+---+---+---+---+
+ *  | 1 | 1 | 2 | 2 | 3 | 3 | 1 | 1 | 2 | 2 | 3 | 3 |
+ *  +---+---+---+---+---+---+---+---+---+---+---+---+
+ *  -- k -->
+ *
+ * If the number of DMRS CDM groups without data is set to:
+ * - 1, data is mapped in RE marked as 2 and 3
+ * - 2, data is mapped in RE marked as 3
+ * - otherwise, no data is mapped in this symbol
+ */
+static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*       q,
+                                              const srslte_pdsch_grant_nr_t* grant,
+                                              cf_t*                          symbols,
+                                              cf_t*                          sf_symbols,
+                                              bool                           put)
+{
+  uint32_t count = 0;
+
+  if (grant->nof_dmrs_cdm_groups_without_data != 1 && grant->nof_dmrs_cdm_groups_without_data != 2) {
+    return count;
+  }
+
+  uint32_t re_offset = (grant->nof_dmrs_cdm_groups_without_data == 1) ? 2 : 4;
+  uint32_t re_count  = (grant->nof_dmrs_cdm_groups_without_data == 1) ? 4 : 2;
+
+  for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
+    if (grant->prb_idx[i]) {
+      // Copy RE between pilot pairs
+      srslte_pdsch_re_cp(&sf_symbols[i * SRSLTE_NRE + re_offset], &symbols[count], re_count, put);
+      count += re_count;
+
+      // Copy RE after second pilot
+      srslte_pdsch_re_cp(&sf_symbols[(i + 1) * SRSLTE_NRE - re_count], &symbols[count], re_count, put);
+      count += re_count;
+    }
+  }
+
+  return count;
+}
+
+static uint32_t srslte_pdsch_nr_cp_dmrs(const srslte_pdsch_nr_t*       q,
+                                        const srslte_pdsch_cfg_nr_t*   cfg,
+                                        const srslte_pdsch_grant_nr_t* grant,
+                                        cf_t*                          symbols,
+                                        cf_t*                          sf_symbols,
+                                        bool                           put)
+{
+  uint32_t count = 0;
+
+  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
+      grant->mapping == srslte_pdsch_mapping_type_A ? &cfg->dmrs_cfg_typeA : &cfg->dmrs_cfg_typeB;
+
+  switch (dmrs_cfg->type) {
+    case srslte_dmrs_pdsch_type_1:
+      count = srslte_pdsch_nr_cp_dmrs_type1(q, grant, symbols, sf_symbols, put);
+      break;
+    case srslte_dmrs_pdsch_type_2:
+      count = srslte_pdsch_nr_cp_dmrs_type2(q, grant, symbols, sf_symbols, put);
+      break;
+  }
+
+  return count;
 }
 
 static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*       q,
@@ -236,8 +356,8 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*       q,
     return SRSLTE_ERROR;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("dmrs_l_idx=");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("dmrs_l_idx=");
     srslte_vec_fprint_i(stdout, (int32_t*)dmrs_l_idx, nof_dmrs_symbols);
   }
 
@@ -249,12 +369,13 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*       q,
       dmrs_l_count++;
     }
 
-    // Skip DMRS symbol
     if (l == dmrs_l_idx[dmrs_l_count]) {
-      continue;
+      count += srslte_pdsch_nr_cp_dmrs(
+          q, cfg, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
+    } else {
+      count +=
+          srslte_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
     }
-
-    count += srslte_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
   }
 
   return count;
@@ -276,6 +397,20 @@ static int srslte_pdsch_nr_get(const srslte_pdsch_nr_t*       q,
                                cf_t*                          sf_symbols)
 {
   return srslte_pdsch_nr_cp(q, cfg, grant, symbols, sf_symbols, false);
+}
+
+static uint32_t
+pdsch_nr_cinit(const srslte_carrier_nr_t* carrier, const srslte_pdsch_cfg_nr_t* cfg, uint16_t rnti, uint32_t cw_idx)
+{
+  uint32_t n_id = carrier->id;
+  if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
+    n_id = cfg->scambling_id;
+  }
+  uint32_t cinit = (((uint32_t)rnti) << 15U) + (cw_idx << 14U) + n_id;
+
+  INFO("PDSCH: RNTI=%d (0x%x); nid=%d; cinit=%d (0x%x);\n", rnti, rnti, n_id, cinit, cinit);
+
+  return cinit;
 }
 
 static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
@@ -307,24 +442,20 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*           q,
     return SRSLTE_ERROR;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("b=");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("b=");
     srslte_vec_fprint_b(stdout, q->b[tb->cw_idx], tb->nof_bits);
   }
 
   // 7.3.1.1 Scrambling
-  uint32_t n_id = q->carrier.id;
-  if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
-    n_id = cfg->scambling_id;
-  }
-  uint32_t cinit = ((uint32_t)rnti << 15U) + (tb->cw_idx << 14U) + n_id;
+  uint32_t cinit = pdsch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx);
   srslte_sequence_apply_bit(q->b[tb->cw_idx], q->b[tb->cw_idx], tb->nof_bits, cinit);
 
   // 7.3.1.2 Modulation
   srslte_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], tb->nof_bits);
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("d=");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("d=");
     srslte_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
 
@@ -422,8 +553,8 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*           q,
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("d=");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("d=");
     srslte_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
 
@@ -444,15 +575,10 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*           q,
   }
 
   // Descrambling
-  uint32_t n_id = q->carrier.id;
-  if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
-    n_id = cfg->scambling_id;
-  }
-  uint32_t cinit = ((uint32_t)rnti << 15U) + (tb->cw_idx << 14U) + n_id;
-  srslte_sequence_apply_c(llr, llr, tb->nof_bits, cinit);
+  srslte_sequence_apply_c(llr, llr, tb->nof_bits, pdsch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("b=");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("b=");
     srslte_vec_fprint_b(stdout, q->b[tb->cw_idx], tb->nof_bits);
   }
 
@@ -501,10 +627,10 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*             q,
     return SRSLTE_ERROR;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    INFO("ce=");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("ce=");
     srslte_vec_fprint_c(stdout, channel->ce[0][0], nof_re);
-    INFO("x=");
+    DEBUG("x=");
     srslte_vec_fprint_c(stdout, q->x[0], nof_re);
   }
 

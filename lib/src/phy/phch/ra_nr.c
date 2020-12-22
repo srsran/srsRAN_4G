@@ -303,6 +303,11 @@ uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32
     S = 1.0;
   }
 
+  if (nof_layers == 0) {
+    ERROR("Incorrect number of layers (%d). Setting to 1.\n", nof_layers);
+    nof_layers = 1;
+  }
+
   // 2) Intermediate number of information bits (N info ) is obtained by N inf o = N RE · R · Q m · υ .
   uint32_t n_info = (uint32_t)(N_re * S * R * Qm * nof_layers);
 

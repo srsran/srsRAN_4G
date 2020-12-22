@@ -19,7 +19,7 @@
 #include <getopt.h>
 
 static srslte_carrier_nr_t carrier = {
-    0,                 // cell_id
+    1,                 // cell_id
     0,                 // numerology
     SRSLTE_MAX_PRB_NR, // nof_prb
     0,                 // start
@@ -30,6 +30,7 @@ static uint32_t                n_prb       = 0;  // Set to 0 for steering
 static uint32_t                mcs         = 30; // Set to 30 for steering
 static srslte_pdsch_cfg_nr_t   pdsch_cfg   = {};
 static srslte_pdsch_grant_nr_t pdsch_grant = {};
+static uint16_t                rnti        = 0x1234;
 
 void usage(char* prog)
 {
@@ -85,14 +86,14 @@ int main(int argc, char** argv)
   cf_t*    sf_symbols[SRSLTE_MAX_LAYERS_NR] = {};
 
   // Set default PDSCH configuration
-  pdsch_cfg.sch_cfg.mcs_table       = srslte_mcs_table_64qam;
+  pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_64qam;
 
   if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
     goto clean_exit;
   }
 
   srslte_pdsch_nr_args_t pdsch_args = {};
-  pdsch_args.sch.disable_simd       = true;
+  pdsch_args.sch.disable_simd       = false;
   pdsch_args.measure_evm            = true;
 
   if (srslte_pdsch_nr_init_enb(&pdsch_tx, &pdsch_args) < SRSLTE_SUCCESS) {
@@ -155,8 +156,16 @@ int main(int argc, char** argv)
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }
+
+  // Load number of DMRS CDM groups without data
+  if (srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg, &pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error loading number of DMRS CDM groups without data\n");
+    goto clean_exit;
+  }
+
   pdsch_grant.nof_layers = carrier.max_mimo_layers;
   pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
+  pdsch_grant.rnti       = rnti;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;

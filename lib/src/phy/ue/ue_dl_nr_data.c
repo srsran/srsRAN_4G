@@ -130,3 +130,28 @@ int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      
 
   return SRSLTE_SUCCESS;
 }
+
+int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                                                srslte_pdsch_grant_nr_t*     grant)
+{
+  if (pdsch_cfg == NULL || grant == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
+      grant->mapping == srslte_pdsch_mapping_type_A ? &pdsch_cfg->dmrs_cfg_typeA : &pdsch_cfg->dmrs_cfg_typeB;
+
+  /* According to TS 38.214 V15.10.0 5.1.6.1.3 CSI-RS for mobility:
+   * When receiving PDSCH scheduled by DCI format 1_0, the UE shall assume the number of DM-RS CDM groups without data
+   * is 1 which corresponds to CDM group 0 for the case of PDSCH with allocation duration of 2 symbols, and the UE shall
+   * assume that the number of DM-RS CDM groups without data is 2 which corresponds to CDM group {0,1} for all other
+   * cases.
+   */
+  if (dmrs_cfg->length == srslte_dmrs_pdsch_len_2) {
+    grant->nof_dmrs_cdm_groups_without_data = 1;
+  } else {
+    grant->nof_dmrs_cdm_groups_without_data = 2;
+  }
+
+  return SRSLTE_SUCCESS;
+}
