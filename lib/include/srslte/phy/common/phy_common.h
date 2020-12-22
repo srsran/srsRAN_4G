@@ -453,7 +453,7 @@ SRSLTE_API float srslte_coderate(uint32_t tbs, uint32_t nof_re);
 
 SRSLTE_API char* srslte_cp_string(srslte_cp_t cp);
 
-SRSLTE_API srslte_mod_t srslte_str2mod(char* mod_str);
+SRSLTE_API srslte_mod_t srslte_str2mod(const char* mod_str);
 
 SRSLTE_API char* srslte_mod_string(srslte_mod_t mod);
 

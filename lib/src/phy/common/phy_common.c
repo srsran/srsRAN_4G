@@ -86,14 +86,14 @@ void srslte_cell_fprint(FILE* stream, srslte_cell_t* cell, uint32_t sfn)
 
 // TDD uplink-downlink configurations.
 // TS 36.211 v8.9.0 Table 4.2-2.
-static const srslte_tdd_sf_t tdd_sf[SRSLTE_MAX_TDD_SF_CONFIGS][SRSLTE_NOF_SF_X_FRAME] =
-  {{D, S, U, U, U, D, S, U, U, U},
-   {D, S, U, U, D, D, S, U, U, D},
-   {D, S, U, D, D, D, S, U, D, D},
-   {D, S, U, U, U, D, D, D, D, D},
-   {D, S, U, U, D, D, D, D, D, D},
-   {D, S, U, D, D, D, D, D, D, D},
-   {D, S, U, U, U, D, S, U, U, D}};
+static const srslte_tdd_sf_t tdd_sf[SRSLTE_MAX_TDD_SF_CONFIGS][SRSLTE_NOF_SF_X_FRAME] = {
+    {D, S, U, U, U, D, S, U, U, U},
+    {D, S, U, U, D, D, S, U, U, D},
+    {D, S, U, D, D, D, S, U, D, D},
+    {D, S, U, U, U, D, D, D, D, D},
+    {D, S, U, U, D, D, D, D, D, D},
+    {D, S, U, D, D, D, D, D, D, D},
+    {D, S, U, U, U, D, S, U, U, D}};
 
 #undef D
 #undef U
@@ -128,17 +128,16 @@ uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t s
 
 // Number of DwPTS / GP / UpPTS symbols per subframe.
 // TS 36.211 v13.13.0 Table 4.2-2.
-static const uint32_t tdd_nof_sf_symbols[SRSLTE_MAX_TDD_SS_CONFIGS][3] =
-  {{3, 10, 1},
-   {9, 4, 1},
-   {10, 3, 1},
-   {11, 2, 1},
-   {12, 1, 1},
-   {3, 9, 2},
-   {9, 3, 2},
-   {10, 2, 2},
-   {11, 1, 1},
-   {6, 6, 2}};
+static const uint32_t tdd_nof_sf_symbols[SRSLTE_MAX_TDD_SS_CONFIGS][3] = {{3, 10, 1},
+                                                                          {9, 4, 1},
+                                                                          {10, 3, 1},
+                                                                          {11, 2, 1},
+                                                                          {12, 1, 1},
+                                                                          {3, 9, 2},
+                                                                          {9, 3, 2},
+                                                                          {10, 2, 2},
+                                                                          {11, 1, 1},
+                                                                          {6, 6, 2}};
 
 uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config)
 {
@@ -209,13 +208,18 @@ bool srslte_N_id_1_isvalid(uint32_t N_id_1)
   }
 }
 
-srslte_mod_t srslte_str2mod(char* mod_str)
+srslte_mod_t srslte_str2mod(const char* str)
 {
-  int i = 0;
+  char mod_str[7] = {};
 
-  /* Upper case */
-  while (mod_str[i] &= (~' '), mod_str[++i])
-    ;
+  // Convert letters to upper case
+  for (uint32_t i = 0; str[i] != '\0' && i < 6; i++) {
+    char c = str[i];
+    if (c >= 'a' && c <= 'z') {
+      c &= (~' ');
+    }
+    mod_str[i] = c;
+  }
 
   if (!strcmp(mod_str, "QPSK")) {
     return SRSLTE_MOD_QPSK;
@@ -857,7 +861,7 @@ const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feedback_mode_t
 srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char* str)
 {
 #define MAX_STR_LEN (8)
-  int  i       = 0;
+  int  i                 = 0;
   char str2[MAX_STR_LEN] = {};
 
   // Copy string in local buffer
