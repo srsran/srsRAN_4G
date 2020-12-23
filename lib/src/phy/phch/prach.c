@@ -408,6 +408,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     }
 
     uint32_t preamble_format   = srslte_prach_get_preamble_format(cfg->config_idx);
+    p->is_nr                   = cfg->is_nr;
     p->config_idx              = cfg->config_idx;
     p->f                       = preamble_format;
     p->rsi                     = cfg->root_seq_idx;
@@ -513,7 +514,10 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters N_ifft_ul=%d; config_idx=%d; root_seq_idx=%d;\n",
+          N_ifft_ul,
+          cfg->config_idx,
+          cfg->root_seq_idx);
   }
 
   return ret;
@@ -527,7 +531,7 @@ int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset
     uint32_t N_rb_ul = srslte_nof_prb(p->N_ifft_ul);
     uint32_t k_0     = freq_offset * N_RB_SC - N_rb_ul * N_RB_SC / 2 + p->N_ifft_ul / 2;
     uint32_t K       = DELTA_F / DELTA_F_RA;
-    uint32_t begin   = PHI + (K * k_0) + (K / 2);
+    uint32_t begin   = PHI + (K * k_0) + (p->is_nr ? 1 : (K / 2));
 
     if (6 + freq_offset > N_rb_ul) {
       ERROR("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", freq_offset, N_rb_ul);
