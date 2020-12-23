@@ -14,7 +14,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/ue.h"
-#include "swappable_log.h"
+#include "swappable_sink.h"
 #include "ttcn3_syssim.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -114,26 +114,20 @@ int main(int argc, char** argv)
   ttcn3_dut_args_t dut_args = {};
   all_args_t       ue_args  = parse_args(&dut_args, argc, argv);
 
-  // Setup logging.
-  srslog::sink* log_file_sink = srslog::create_file_sink(dut_args.log_filename);
-  if (!log_file_sink) {
+  // Create a swappable sink, install it and use it as the default one.
+  if (!srslog::install_custom_sink(swappable_sink::name(),
+                                   std::unique_ptr<swappable_sink>(new swappable_sink(
+                                       dut_args.log_filename, srslog::get_default_log_formatter())))) {
     return SRSLTE_ERROR;
   }
-  srslog::log_channel* file_chan = srslog::create_log_channel("file_channel", *log_file_sink);
-  if (!file_chan) {
+  auto* default_sink = srslog::find_sink(swappable_sink::name());
+  if (!default_sink) {
     return SRSLTE_ERROR;
   }
-  srslog::sink* stdout_sink = srslog::create_stdout_sink();
-  if (!stdout_sink) {
-    return SRSLTE_ERROR;
-  }
-  srslog::log_channel* stdout_chan = srslog::create_log_channel("stdout_channel", *stdout_sink);
-  if (!stdout_chan) {
-    return SRSLTE_ERROR;
-  }
+  srslog::set_default_sink(*default_sink);
 
-  swappable_log          file_wrapper(std::unique_ptr<srslte::srslog_wrapper>(new srslte::srslog_wrapper(*file_chan)));
-  srslte::srslog_wrapper stdout_wrapper(*stdout_chan);
+  srslte::srslog_wrapper file_wrapper(srslog::fetch_log_channel("file_channel"));
+  srslte::srslog_wrapper stdout_wrapper(srslog::fetch_log_channel("stdout_channel", srslog::fetch_stdout_sink(), {}));
 
   // Start the log backend.
   srslog::init();

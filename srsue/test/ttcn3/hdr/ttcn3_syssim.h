@@ -17,7 +17,6 @@
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
-#include "swappable_log.h"
 #include "ttcn3_common.h"
 #include "ttcn3_drb_interface.h"
 #include "ttcn3_ip_ctrl_interface.h"
@@ -39,7 +38,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public srslte::pdu_queue::process_callback
 {
 public:
-  ttcn3_syssim(swappable_log& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
+  ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
 
   ~ttcn3_syssim();
 
@@ -211,7 +210,7 @@ private:
 
   // Logging stuff
   srslte::logger&    logger_stdout;
-  swappable_log&     logger_file;
+  srslte::logger&    logger_file;
   srslte::logger*    logger = nullptr;
   srslte::log_ref    log;
   srslte::log_filter ut_log;
@@ -252,7 +251,7 @@ private:
   // For events/actions that need to be carried out in a specific TTI
   typedef std::queue<move_task_t>                task_queue_t;
   typedef std::map<const uint32_t, task_queue_t> tti_action_map_t;
-  tti_action_map_t                              tti_actions;
+  tti_action_map_t                               tti_actions;
 
   // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct
   class syssim_cell_t
