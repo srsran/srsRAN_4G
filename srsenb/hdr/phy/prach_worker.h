@@ -37,7 +37,8 @@ public:
             const srslte_prach_cfg_t& prach_cfg_,
             stack_interface_phy_lte*  mac,
             srslte::log*              log_h,
-            int                       priority);
+            int                       priority,
+            uint32_t                  nof_workers);
   int  new_tti(uint32_t tti, cf_t* buffer);
   void set_max_prach_offset_us(float delay_us);
   void stop();
@@ -86,6 +87,7 @@ private:
   bool                     running             = false;
   uint32_t                 nof_sf              = 0;
   uint32_t                 sf_cnt              = 0;
+  uint32_t                 nof_workers         = 0;
 
   void run_thread() final;
   int  run_tti(sf_buffer* b);
@@ -105,14 +107,15 @@ public:
             const srslte_prach_cfg_t& prach_cfg_,
             stack_interface_phy_lte*  mac,
             srslte::log*              log_h,
-            int                       priority)
+            int                       priority,
+            uint32_t                  nof_workers_x_cc)
   {
     // Create PRACH worker if required
     while (cc_idx >= prach_vec.size()) {
       prach_vec.push_back(std::unique_ptr<prach_worker>(new prach_worker(prach_vec.size())));
     }
 
-    prach_vec[cc_idx]->init(cell_, prach_cfg_, mac, log_h, priority);
+    prach_vec[cc_idx]->init(cell_, prach_cfg_, mac, log_h, priority, nof_workers_x_cc);
   }
 
   void set_max_prach_offset_us(float delay_us)

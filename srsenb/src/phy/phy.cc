@@ -132,7 +132,13 @@ int phy::init(const phy_args_t&            args,
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
     prach_cfg.root_seq_idx = cfg.phy_cell_cfg[cc].root_seq_idx;
-    prach.init(cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, log_h.get(), PRACH_WORKER_THREAD_PRIO);
+    prach.init(cc,
+               cfg.phy_cell_cfg[cc].cell,
+               prach_cfg,
+               stack_,
+               log_h.get(),
+               PRACH_WORKER_THREAD_PRIO,
+               args.nof_prach_threads);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 

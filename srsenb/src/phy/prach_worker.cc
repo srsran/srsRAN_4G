@@ -19,12 +19,14 @@ int prach_worker::init(const srslte_cell_t&      cell_,
                        const srslte_prach_cfg_t& prach_cfg_,
                        stack_interface_phy_lte*  stack_,
                        srslte::log*              log_h_,
-                       int                       priority)
+                       int                       priority,
+                       uint32_t                  nof_workers_)
 {
-  log_h     = log_h_;
-  stack     = stack_;
-  prach_cfg = prach_cfg_;
-  cell      = cell_;
+  log_h       = log_h_;
+  stack       = stack_;
+  prach_cfg   = prach_cfg_;
+  cell        = cell_;
+  nof_workers = nof_workers_;
 
   max_prach_offset_us = 50;
 
@@ -41,7 +43,10 @@ int prach_worker::init(const srslte_cell_t&      cell_,
 
   nof_sf = (uint32_t)ceilf(prach.T_tot * 1000);
 
-  start(priority);
+  if (nof_workers > 0) {
+    start(priority);
+  }
+
   initiated = true;
 
   sf_cnt = 0;
@@ -66,7 +71,10 @@ void prach_worker::stop()
   running      = false;
   sf_buffer* s = nullptr;
   pending_buffers.push(s);
-  wait_thread_finish();
+
+  if (nof_workers > 0) {
+    wait_thread_finish();
+  }
 
   srslte_prach_free(&prach);
 }
@@ -106,7 +114,13 @@ int prach_worker::new_tti(uint32_t tti_rx, cf_t* buffer_rx)
     sf_cnt++;
     if (sf_cnt == nof_sf) {
       sf_cnt = 0;
-      pending_buffers.push(current_buffer);
+      if (nof_workers == 0) {
+        run_tti(current_buffer);
+        current_buffer->reset();
+        buffer_pool.deallocate(current_buffer);
+      } else {
+        pending_buffers.push(current_buffer);
+      }
     }
   }
   return 0;

@@ -189,6 +189,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.pusch_meas_evm", bpo::value<bool>(&args->phy.pusch_meas_evm)->default_value(false), "Enable/Disable PUSCH EVM measure")
     ("expert.tx_amplitude", bpo::value<float>(&args->phy.tx_amplitude)->default_value(0.6), "Transmit amplitude factor")
     ("expert.nof_phy_threads", bpo::value<uint32_t>(&args->phy.nof_phy_threads)->default_value(3), "Number of PHY threads")
+    ("expert.nof_prach_threads", bpo::value<uint32_t>(&args->phy.nof_prach_threads)->default_value(1), "Number of PRACH workers per carrier. Only 1 or 0 is supported")
     ("expert.max_prach_offset_us", bpo::value<float>(&args->phy.max_prach_offset_us)->default_value(30), "Maximum allowed RACH offset (in us)")
     ("expert.equalizer_mode", bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
     ("expert.estimator_fil_w", bpo::value<float>(&args->phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
@@ -304,6 +305,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
               args->stack.mac.sched.max_nof_ctrl_symbols);
       exit(1);
     }
+  }
+
+  // Check PRACH workers
+  if (args->phy.nof_prach_threads > 1) {
+    fprintf(stderr,
+            "nof_prach_workers = %d. Value is not supported, only 0 or 1 are allowed\n",
+            args->phy.nof_prach_threads);
+    exit(1);
   }
 
   // Convert eNB Id
