@@ -234,6 +234,7 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
 
 void phy::cmd_cell_gain(uint32_t cell_id, float gain_db)
 {
+  Info("set_cell_gain: cell_id=%d, gain_db=%.2f\n", cell_id, gain_db);
   workers_common.set_cell_gain(cell_id, gain_db);
 }
 
