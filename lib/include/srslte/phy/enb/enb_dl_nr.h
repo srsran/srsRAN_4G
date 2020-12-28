@@ -37,9 +37,9 @@ typedef struct SRSLTE_API {
 
   srslte_ofdm_t fft[SRSLTE_MAX_PORTS];
 
-  cf_t*               sf_symbols[SRSLTE_MAX_PORTS];
-  srslte_pdsch_nr_t   pdsch;
-  srslte_dmrs_pdsch_t dmrs;
+  cf_t*             sf_symbols[SRSLTE_MAX_PORTS];
+  srslte_pdsch_nr_t pdsch;
+  srslte_dmrs_sch_t dmrs;
 
   srslte_pdcch_nr_t pdcch;
 } srslte_enb_dl_nr_t;
@@ -64,17 +64,17 @@ SRSLTE_API int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,
                                           const srslte_dci_location_t* dci_location,
                                           uint16_t                     rnti);
 
-SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,
-                                          const srslte_dl_slot_cfg_t*    slot,
-                                          const srslte_pdsch_cfg_nr_t*   cfg,
-                                          const srslte_pdsch_grant_nr_t* grant,
-                                          uint8_t*                       data[SRSLTE_MAX_TB]);
+SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*          q,
+                                          const srslte_dl_slot_cfg_t*  slot,
+                                          const srslte_sch_cfg_nr_t*   cfg,
+                                          const srslte_sch_grant_nr_t* grant,
+                                          uint8_t*                     data[SRSLTE_MAX_TB]);
 
-SRSLTE_API int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*      q,
-                                           const srslte_pdsch_cfg_nr_t*   cfg,
-                                           const srslte_pdsch_grant_nr_t* grant,
-                                           char*                          str,
-                                           uint32_t                       str_len);
+SRSLTE_API int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*    q,
+                                           const srslte_sch_cfg_nr_t*   cfg,
+                                           const srslte_sch_grant_nr_t* grant,
+                                           char*                        str,
+                                           uint32_t                     str_len);
 
 #ifdef __cplusplus
 }

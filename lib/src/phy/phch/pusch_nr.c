@@ -9,11 +9,11 @@
  * the distribution.
  *
  */
-#include "srslte/phy/phch/pdsch_nr.h"
+#include "srslte/phy/phch/pusch_nr.h"
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 
-int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args)
+int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
     if (srslte_modem_table_lte(&q->modem_tables[mod], mod) < SRSLTE_SUCCESS) {
@@ -28,13 +28,13 @@ int pdsch_nr_init_common(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* arg
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args)
+int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (pdsch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
+  if (pusch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -46,13 +46,13 @@ int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t*
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args)
+int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (pdsch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
+  if (pusch_nr_init_common(q, args) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -74,7 +74,7 @@ int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, const srslte_carrier_nr_t* carrier)
+int srslte_pusch_nr_set_carrier(srslte_pusch_nr_t* q, const srslte_carrier_nr_t* carrier)
 {
   // Set carrier
   q->carrier = *carrier;
@@ -137,7 +137,7 @@ int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, const srslte_carrier_nr_t*
   return SRSLTE_SUCCESS;
 }
 
-void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q)
+void srslte_pusch_nr_free(srslte_pusch_nr_t* q)
 {
   if (q == NULL) {
     return;
@@ -177,7 +177,7 @@ void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q)
  * @param count number of resource elements to copy
  * @param put Direction, symbols are copied into sf_symbols if put is true, otherwise sf_symbols are copied into symbols
  */
-static void srslte_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, bool put)
+static void srslte_pusch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, bool put)
 {
   if (put) {
     srslte_vec_cf_copy(sf_symbols, symbols, count);
@@ -198,7 +198,7 @@ static void srslte_pdsch_re_cp(cf_t* sf_symbols, cf_t* symbols, uint32_t count, 
  * - 1, data is mapped in RE marked as 2
  * - Otherwise, no data is mapped in this symbol
  */
-static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*     q,
+static uint32_t srslte_pusch_nr_cp_dmrs_type1(const srslte_pusch_nr_t*     q,
                                               const srslte_sch_grant_nr_t* grant,
                                               cf_t*                        symbols,
                                               cf_t*                        sf_symbols,
@@ -239,7 +239,7 @@ static uint32_t srslte_pdsch_nr_cp_dmrs_type1(const srslte_pdsch_nr_t*     q,
  * - 2, data is mapped in RE marked as 3
  * - otherwise, no data is mapped in this symbol
  */
-static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*     q,
+static uint32_t srslte_pusch_nr_cp_dmrs_type2(const srslte_pusch_nr_t*     q,
                                               const srslte_sch_grant_nr_t* grant,
                                               cf_t*                        symbols,
                                               cf_t*                        sf_symbols,
@@ -257,11 +257,11 @@ static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*     q,
   for (uint32_t i = 0; i < q->carrier.nof_prb; i++) {
     if (grant->prb_idx[i]) {
       // Copy RE between pilot pairs
-      srslte_pdsch_re_cp(&sf_symbols[i * SRSLTE_NRE + re_offset], &symbols[count], re_count, put);
+      srslte_pusch_re_cp(&sf_symbols[i * SRSLTE_NRE + re_offset], &symbols[count], re_count, put);
       count += re_count;
 
       // Copy RE after second pilot
-      srslte_pdsch_re_cp(&sf_symbols[(i + 1) * SRSLTE_NRE - re_count], &symbols[count], re_count, put);
+      srslte_pusch_re_cp(&sf_symbols[(i + 1) * SRSLTE_NRE - re_count], &symbols[count], re_count, put);
       count += re_count;
     }
   }
@@ -269,7 +269,7 @@ static uint32_t srslte_pdsch_nr_cp_dmrs_type2(const srslte_pdsch_nr_t*     q,
   return count;
 }
 
-static uint32_t srslte_pdsch_nr_cp_dmrs(const srslte_pdsch_nr_t*     q,
+static uint32_t srslte_pusch_nr_cp_dmrs(const srslte_pusch_nr_t*     q,
                                         const srslte_sch_cfg_nr_t*   cfg,
                                         const srslte_sch_grant_nr_t* grant,
                                         cf_t*                        symbols,
@@ -283,17 +283,17 @@ static uint32_t srslte_pdsch_nr_cp_dmrs(const srslte_pdsch_nr_t*     q,
 
   switch (dmrs_cfg->type) {
     case srslte_dmrs_sch_type_1:
-      count = srslte_pdsch_nr_cp_dmrs_type1(q, grant, symbols, sf_symbols, put);
+      count = srslte_pusch_nr_cp_dmrs_type1(q, grant, symbols, sf_symbols, put);
       break;
     case srslte_dmrs_sch_type_2:
-      count = srslte_pdsch_nr_cp_dmrs_type2(q, grant, symbols, sf_symbols, put);
+      count = srslte_pusch_nr_cp_dmrs_type2(q, grant, symbols, sf_symbols, put);
       break;
   }
 
   return count;
 }
 
-static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*     q,
+static uint32_t srslte_pusch_nr_cp_clean(const srslte_pusch_nr_t*     q,
                                          const srslte_sch_grant_nr_t* grant,
                                          cf_t*                        symbols,
                                          cf_t*                        sf_symbols,
@@ -339,7 +339,7 @@ static uint32_t srslte_pdsch_nr_cp_clean(const srslte_pdsch_nr_t*     q,
   return count;
 }
 
-static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*     q,
+static int srslte_pusch_nr_cp(const srslte_pusch_nr_t*     q,
                               const srslte_sch_cfg_nr_t*   cfg,
                               const srslte_sch_grant_nr_t* grant,
                               cf_t*                        symbols,
@@ -370,37 +370,37 @@ static int srslte_pdsch_nr_cp(const srslte_pdsch_nr_t*     q,
     }
 
     if (l == dmrs_l_idx[dmrs_l_count]) {
-      count += srslte_pdsch_nr_cp_dmrs(
+      count += srslte_pusch_nr_cp_dmrs(
           q, cfg, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
     } else {
       count +=
-          srslte_pdsch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
+          srslte_pusch_nr_cp_clean(q, grant, &symbols[count], &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], put);
     }
   }
 
   return count;
 }
 
-static int srslte_pdsch_nr_put(const srslte_pdsch_nr_t*     q,
+static int srslte_pusch_nr_put(const srslte_pusch_nr_t*     q,
                                const srslte_sch_cfg_nr_t*   cfg,
                                const srslte_sch_grant_nr_t* grant,
                                cf_t*                        symbols,
                                cf_t*                        sf_symbols)
 {
-  return srslte_pdsch_nr_cp(q, cfg, grant, symbols, sf_symbols, true);
+  return srslte_pusch_nr_cp(q, cfg, grant, symbols, sf_symbols, true);
 }
 
-static int srslte_pdsch_nr_get(const srslte_pdsch_nr_t*     q,
+static int srslte_pusch_nr_get(const srslte_pusch_nr_t*     q,
                                const srslte_sch_cfg_nr_t*   cfg,
                                const srslte_sch_grant_nr_t* grant,
                                cf_t*                        symbols,
                                cf_t*                        sf_symbols)
 {
-  return srslte_pdsch_nr_cp(q, cfg, grant, symbols, sf_symbols, false);
+  return srslte_pusch_nr_cp(q, cfg, grant, symbols, sf_symbols, false);
 }
 
 static uint32_t
-pdsch_nr_cinit(const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_nr_t* cfg, uint16_t rnti, uint32_t cw_idx)
+pusch_nr_cinit(const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_nr_t* cfg, uint16_t rnti, uint32_t cw_idx)
 {
   uint32_t n_id = carrier->id;
   if (cfg->scrambling_id_present && SRSLTE_RNTI_ISUSER(rnti)) {
@@ -408,12 +408,12 @@ pdsch_nr_cinit(const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_nr_t* cf
   }
   uint32_t cinit = (((uint32_t)rnti) << 15U) + (cw_idx << 14U) + n_id;
 
-  INFO("PDSCH: RNTI=%d (0x%x); nid=%d; cinit=%d (0x%x);\n", rnti, rnti, n_id, cinit, cinit);
+  INFO("PUSCH: RNTI=%d (0x%x); nid=%d; cinit=%d (0x%x);\n", rnti, rnti, n_id, cinit, cinit);
 
   return cinit;
 }
 
-static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*         q,
+static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*         q,
                                            const srslte_sch_cfg_nr_t* cfg,
                                            const srslte_sch_tb_t*     tb,
                                            const uint8_t*             data,
@@ -437,7 +437,7 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*         q,
   }
 
   // Encode SCH
-  if (srslte_dlsch_nr_encode(&q->sch, &cfg->sch_cfg, tb, data, q->b[tb->cw_idx]) < SRSLTE_SUCCESS) {
+  if (srslte_ulsch_nr_encode(&q->sch, &cfg->sch_cfg, tb, data, q->b[tb->cw_idx]) < SRSLTE_SUCCESS) {
     ERROR("Error in DL-SCH encoding\n");
     return SRSLTE_ERROR;
   }
@@ -448,7 +448,7 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*         q,
   }
 
   // 7.3.1.1 Scrambling
-  uint32_t cinit = pdsch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx);
+  uint32_t cinit = pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx);
   srslte_sequence_apply_bit(q->b[tb->cw_idx], q->b[tb->cw_idx], tb->nof_bits, cinit);
 
   // 7.3.1.2 Modulation
@@ -462,7 +462,7 @@ static inline int pdsch_nr_encode_codeword(srslte_pdsch_nr_t*         q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*           q,
+int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
                            const srslte_sch_cfg_nr_t*   cfg,
                            const srslte_sch_grant_nr_t* grant,
                            uint8_t*                     data[SRSLTE_MAX_TB],
@@ -490,7 +490,7 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*           q,
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
-    if (pdsch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb], grant->rnti) < SRSLTE_SUCCESS) {
+    if (pusch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb], grant->rnti) < SRSLTE_SUCCESS) {
       ERROR("Error encoding TB %d\n", tb);
       return SRSLTE_ERROR;
     }
@@ -510,9 +510,9 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*           q,
   // ... Not implemented
 
   // 7.3.1.6 Mapping from virtual to physical resource blocks
-  int n = srslte_pdsch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
+  int n = srslte_pusch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
   if (n < SRSLTE_SUCCESS) {
-    ERROR("Putting NR PDSCH resources\n");
+    ERROR("Putting NR PUSCH resources\n");
     return SRSLTE_ERROR;
   }
 
@@ -530,10 +530,10 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*           q,
   return SRSLTE_SUCCESS;
 }
 
-static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*         q,
+static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
                                            const srslte_sch_cfg_nr_t* cfg,
                                            const srslte_sch_tb_t*     tb,
-                                           srslte_pdsch_res_nr_t*     res,
+                                           srslte_pusch_res_nr_t*     res,
                                            uint16_t                   rnti)
 {
   // Early return if TB is not enabled
@@ -575,7 +575,7 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*         q,
   }
 
   // Descrambling
-  srslte_sequence_apply_c(llr, llr, tb->nof_bits, pdsch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
+  srslte_sequence_apply_c(llr, llr, tb->nof_bits, pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx));
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
     DEBUG("b=");
@@ -583,7 +583,7 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*         q,
   }
 
   // Decode SCH
-  if (srslte_dlsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
+  if (srslte_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
     ERROR("Error in DL-SCH encoding\n");
     return SRSLTE_ERROR;
   }
@@ -591,12 +591,12 @@ static inline int pdsch_nr_decode_codeword(srslte_pdsch_nr_t*         q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*           q,
+int srslte_pusch_nr_decode(srslte_pusch_nr_t*           q,
                            const srslte_sch_cfg_nr_t*   cfg,
                            const srslte_sch_grant_nr_t* grant,
                            srslte_chest_dl_res_t*       channel,
                            cf_t*                        sf_symbols[SRSLTE_MAX_PORTS],
-                           srslte_pdsch_res_nr_t        data[SRSLTE_MAX_TB])
+                           srslte_pusch_res_nr_t        data[SRSLTE_MAX_TB])
 {
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
@@ -621,7 +621,7 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*           q,
   }
 
   // Demapping from virtual to physical resource blocks
-  uint32_t nof_re_get = srslte_pdsch_nr_get(q, cfg, grant, q->x[0], sf_symbols[0]);
+  uint32_t nof_re_get = srslte_pusch_nr_get(q, cfg, grant, q->x[0], sf_symbols[0]);
   if (nof_re_get != nof_re) {
     ERROR("Inconsistent number of RE (%d!=%d)\n", nof_re_get, nof_re);
     return SRSLTE_ERROR;
@@ -651,7 +651,7 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*           q,
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
-    if (pdsch_nr_decode_codeword(q, cfg, &grant->tb[tb], &data[tb], grant->rnti) < SRSLTE_SUCCESS) {
+    if (pusch_nr_decode_codeword(q, cfg, &grant->tb[tb], &data[tb], grant->rnti) < SRSLTE_SUCCESS) {
       ERROR("Error encoding TB %d\n", tb);
       return SRSLTE_ERROR;
     }
@@ -666,7 +666,7 @@ int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*           q,
   return SRSLTE_SUCCESS;
 }
 
-static uint32_t srslte_pdsch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
+static uint32_t srslte_pusch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
                                            const srslte_sch_grant_nr_t* grant,
                                            char*                        str,
                                            uint32_t                     str_len)
@@ -701,17 +701,17 @@ static uint32_t srslte_pdsch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
   return len;
 }
 
-uint32_t srslte_pdsch_nr_rx_info(const srslte_pdsch_nr_t*     q,
+uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
                                  const srslte_sch_cfg_nr_t*   cfg,
                                  const srslte_sch_grant_nr_t* grant,
-                                 const srslte_pdsch_res_nr_t  res[SRSLTE_MAX_CODEWORDS],
+                                 const srslte_pusch_res_nr_t  res[SRSLTE_MAX_CODEWORDS],
                                  char*                        str,
                                  uint32_t                     str_len)
 {
 
   uint32_t len = 0;
 
-  len += srslte_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+  len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
 
   if (q->evm_buffer != NULL) {
     len = srslte_print_check(str, str_len, len, ",evm={", 0);
@@ -750,7 +750,7 @@ uint32_t srslte_pdsch_nr_rx_info(const srslte_pdsch_nr_t*     q,
   return len;
 }
 
-uint32_t srslte_pdsch_nr_tx_info(const srslte_pdsch_nr_t*     q,
+uint32_t srslte_pusch_nr_tx_info(const srslte_pusch_nr_t*     q,
                                  const srslte_sch_cfg_nr_t*   cfg,
                                  const srslte_sch_grant_nr_t* grant,
                                  char*                        str,
@@ -759,7 +759,7 @@ uint32_t srslte_pdsch_nr_tx_info(const srslte_pdsch_nr_t*     q,
 
   uint32_t len = 0;
 
-  len += srslte_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+  len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
 
   if (q->meas_time_en) {
     len = srslte_print_check(str, str_len, len, ", t=%d us\n", q->meas_time_us);

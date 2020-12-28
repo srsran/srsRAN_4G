@@ -108,10 +108,63 @@ static const uint32_t ra_nr_tbs_table[RA_NR_TBS_SIZE_TABLE] = {
 
 typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
 
-static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
-                                        srslte_dci_format_nr_t     dci_format,
-                                        srslte_search_space_type_t search_space_type,
-                                        srslte_rnti_type_t         rnti_type)
+static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srslte_mcs_table_t         mcs_table,
+                                                          srslte_dci_format_nr_t     dci_format,
+                                                          srslte_search_space_type_t search_space_type,
+                                                          srslte_rnti_type_t         rnti_type)
+{
+  // Non-implemented parameters
+  bool               mcs_c_rnti             = false;
+  srslte_mcs_table_t configured_grant_table = srslte_mcs_table_64qam;
+
+  // - if mcs-Table in pusch-Config is set to 'qam256', and
+  // - PUSCH is scheduled by a PDCCH with DCI format 0_1 with
+  // - CRC scrambled by C-RNTI or SP-CSI-RNTI,
+  if (mcs_table == srslte_mcs_table_256qam && dci_format == srslte_dci_format_nr_0_1 &&
+      (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_sp_csi)) {
+    return ra_nr_table_2;
+  }
+
+  // - the UE is not configured with MCS-C-RNTI,
+  // - mcs-Table in pusch-Config is set to 'qam64LowSE', and the
+  // - PUSCH is scheduled by a PDCCH in a UE-specific search space with
+  // - CRC scrambled by C-RNTI or SP-CSI-RNTI,
+  if (!mcs_c_rnti && mcs_table == srslte_mcs_table_qam64LowSE && dci_format != srslte_dci_format_nr_rar &&
+      search_space_type == srslte_search_space_type_ue &&
+      (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_sp_csi)) {
+    return ra_nr_table_3;
+  }
+
+  // - the UE is configured with MCS-C-RNTI, and
+  // - the PUSCH is scheduled by a PDCCH with
+  // - CRC scrambled by MCS-C-RNTI,
+  if (mcs_c_rnti && dci_format != srslte_dci_format_nr_rar && rnti_type == srslte_rnti_type_mcs_crnti) {
+    return ra_nr_table_3;
+  }
+
+  // - mcs-Table in configuredGrantConfig is set to 'qam256',
+  //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
+  //   - if PUSCH is transmitted with configured grant
+  if (configured_grant_table == srslte_mcs_table_256qam &&
+      (rnti_type == srslte_rnti_type_cs || dci_format == srslte_dci_format_nr_cg)) {
+    return ra_nr_table_2;
+  }
+
+  // - mcs-Table in configuredGrantConfig is set to 'qam64LowSE'
+  //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
+  //   - if PUSCH is transmitted with configured grant,
+  if (configured_grant_table == srslte_mcs_table_qam64LowSE &&
+      (rnti_type == srslte_rnti_type_cs || dci_format == srslte_dci_format_nr_cg)) {
+    return ra_nr_table_3;
+  }
+
+  return ra_nr_table_1;
+}
+
+static ra_nr_table_t ra_nr_select_table_pdsch(srslte_mcs_table_t         mcs_table,
+                                              srslte_dci_format_nr_t     dci_format,
+                                              srslte_search_space_type_t search_space_type,
+                                              srslte_rnti_type_t         rnti_type)
 {
   // Non-implemented parameters
   bool               sps_config_mcs_table_present = false;
@@ -154,6 +207,21 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
 
   // else
   return ra_nr_table_1;
+}
+
+static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
+                                        srslte_dci_format_nr_t     dci_format,
+                                        srslte_search_space_type_t search_space_type,
+                                        srslte_rnti_type_t         rnti_type)
+{
+
+  // Check if it is a PUSCH transmission
+  if (dci_format == srslte_dci_format_nr_0_0 || dci_format == srslte_dci_format_nr_0_1 ||
+      dci_format == srslte_dci_format_nr_rar || dci_format == srslte_dci_format_nr_cg) {
+    return ra_nr_select_table_pusch_noprecoding(mcs_table, dci_format, search_space_type, rnti_type);
+  }
+
+  return ra_nr_select_table_pdsch(mcs_table, dci_format, search_space_type, rnti_type);
 }
 
 double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
@@ -200,13 +268,13 @@ srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
   return SRSLTE_MOD_NITEMS;
 }
 
-int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_grant_nr_t* grant)
+int srslte_ra_dl_nr_slot_nof_re(const srslte_sch_cfg_nr_t* pdsch_cfg, const srslte_sch_grant_nr_t* grant)
 {
   // the number of symbols of the PDSCH allocation within the slot
   int n_sh_symb = grant->L;
 
   // the number of REs for DM-RS per PRB in the scheduled duration
-  int n_prb_dmrs = srslte_dmrs_pdsch_get_N_prb(pdsch_cfg, grant);
+  int n_prb_dmrs = srslte_dmrs_sch_get_N_prb(pdsch_cfg, grant);
   if (n_prb_dmrs < SRSLTE_SUCCESS) {
     ERROR("Invalid number of DMRS RE\n");
     return SRSLTE_ERROR;
@@ -319,10 +387,10 @@ uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32
   return ra_nr_tbs_from_n_info4(n_info, R);
 }
 
-int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                         const srslte_pdsch_grant_nr_t* grant,
-                         uint32_t                       mcs_idx,
-                         srslte_sch_tb_t*               tb)
+int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
+                         const srslte_sch_grant_nr_t* grant,
+                         uint32_t                     mcs_idx,
+                         srslte_sch_tb_t*             tb)
 {
   uint32_t cw_idx = 0;
 

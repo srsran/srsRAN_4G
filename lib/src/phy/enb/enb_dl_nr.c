@@ -66,7 +66,7 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
     srslte_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
   }
 
-  if (srslte_dmrs_pdsch_init(&q->dmrs, false) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_sch_init(&q->dmrs, false) < SRSLTE_SUCCESS) {
     ERROR("Error DMRS\n");
     return SRSLTE_ERROR;
   }
@@ -94,7 +94,7 @@ void srslte_enb_dl_nr_free(srslte_enb_dl_nr_t* q)
   }
 
   srslte_pdsch_nr_free(&q->pdsch);
-  srslte_dmrs_pdsch_free(&q->dmrs);
+  srslte_dmrs_sch_free(&q->dmrs);
 
   srslte_pdcch_nr_free(&q->pdcch);
 
@@ -107,7 +107,7 @@ int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_
     return SRSLTE_ERROR;
   }
 
-  if (srslte_dmrs_pdsch_set_carrier(&q->dmrs, carrier) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_sch_set_carrier(&q->dmrs, carrier) < SRSLTE_SUCCESS) {
     ERROR("Error DMRS\n");
     return SRSLTE_ERROR;
   }
@@ -213,14 +213,14 @@ int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,
-                               const srslte_dl_slot_cfg_t*    slot,
-                               const srslte_pdsch_cfg_nr_t*   cfg,
-                               const srslte_pdsch_grant_nr_t* grant,
-                               uint8_t*                       data[SRSLTE_MAX_TB])
+int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*          q,
+                               const srslte_dl_slot_cfg_t*  slot,
+                               const srslte_sch_cfg_nr_t*   cfg,
+                               const srslte_sch_grant_nr_t* grant,
+                               uint8_t*                     data[SRSLTE_MAX_TB])
 {
 
-  if (srslte_dmrs_pdsch_put_sf(&q->dmrs, slot, cfg, grant, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_sch_put_sf(&q->dmrs, slot, cfg, grant, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -231,11 +231,11 @@ int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*            q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*      q,
-                                const srslte_pdsch_cfg_nr_t*   cfg,
-                                const srslte_pdsch_grant_nr_t* grant,
-                                char*                          str,
-                                uint32_t                       str_len)
+int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*    q,
+                                const srslte_sch_cfg_nr_t*   cfg,
+                                const srslte_sch_grant_nr_t* grant,
+                                char*                        str,
+                                uint32_t                     str_len)
 {
   int len = 0;
 

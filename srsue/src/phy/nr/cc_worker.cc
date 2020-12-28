@@ -107,13 +107,12 @@ uint32_t cc_worker::get_buffer_len()
 
 bool cc_worker::work_dl()
 {
-  srslte_pdsch_grant_nr_t                                 pdsch_grant = {};
-  srslte_pdsch_cfg_nr_t                                   pdsch_cfg   = phy_state->cfg.pdsch;
+  srslte_sch_grant_nr_t                                   pdsch_grant = {};
+  srslte_sch_cfg_nr_t                                     pdsch_cfg   = phy_state->cfg.pdsch;
   std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res   = {};
 
   // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &pdsch_grant) <
-      SRSLTE_SUCCESS) {
+  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     return false;
   }

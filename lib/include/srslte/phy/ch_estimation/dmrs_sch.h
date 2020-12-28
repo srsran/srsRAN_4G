@@ -10,11 +10,11 @@
  *
  */
 
-#ifndef SRSLTE_DMRS_PDSCH_H
-#define SRSLTE_DMRS_PDSCH_H
+#ifndef SRSLTE_DMRS_SCH_H
+#define SRSLTE_DMRS_SCH_H
 
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 #include "srslte/srslte.h"
 #include <stdint.h>
 
@@ -22,18 +22,18 @@
 extern "C" {
 #endif
 
-#define SRSLTE_DMRS_PDSCH_MAX_SYMBOLS 4
+#define SRSLTE_DMRS_SCH_MAX_SYMBOLS 4
 
 /**
  * @brief PDSCH DMRS estimator object
  *
  * @note The DMRS PDSCH object has to be initialised and the carrier parameters needs to be set.
  *
- * @see srslte_dmrs_pdsch_init
- * @see srslte_dmrs_pdsch_set_carrier
- * @see srslte_dmrs_pdsch_free
- * @see srslte_dmrs_pdsch_put_sf
- * @see srslte_dmrs_pdsch_estimate
+ * @see srslte_dmrs_sch_init
+ * @see srslte_dmrs_sch_set_carrier
+ * @see srslte_dmrs_sch_free
+ * @see srslte_dmrs_sch_put_sf
+ * @see srslte_dmrs_sch_estimate
  */
 typedef struct {
   bool is_ue;
@@ -47,7 +47,7 @@ typedef struct {
   cf_t*    pilot_estimates; /// Pilots least squares estimates
   cf_t*    temp;            /// Temporal data vector of size SRSLTE_NRE * carrier.nof_prb
 
-} srslte_dmrs_pdsch_t;
+} srslte_dmrs_sch_t;
 
 /**
  * @brief Computes the symbol indexes carrying DMRS and stores them in symbols_idx
@@ -56,9 +56,9 @@ typedef struct {
  * @param symbols_idx is the destination pointer where the symbols indexes are stored
  * @return It returns the number of symbols if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
  */
-SRSLTE_API int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                                                 const srslte_pdsch_grant_nr_t* grant,
-                                                 uint32_t symbols_idx[SRSLTE_DMRS_PDSCH_MAX_SYMBOLS]);
+SRSLTE_API int srslte_dmrs_sch_get_symbols_idx(const srslte_sch_cfg_nr_t*   pdsch_cfg,
+                                               const srslte_sch_grant_nr_t* grant,
+                                               uint32_t                     symbols_idx[SRSLTE_DMRS_SCH_MAX_SYMBOLS]);
 
 /**
  * @brief Computes the sub-carrier indexes carrying DMRS
@@ -69,7 +69,7 @@ SRSLTE_API int srslte_dmrs_pdsch_get_symbols_idx(const srslte_pdsch_cfg_nr_t*   
  *
  * @return It returns the number of sub-carriers if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
  */
-SRSLTE_API int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx);
+SRSLTE_API int srslte_dmrs_sch_get_sc_idx(const srslte_dmrs_sch_cfg_t* cfg, uint32_t max_count, uint32_t* sc_idx);
 
 /**
  * @brief Calculates the number of resource elements taken by a PDSCH-DMRS for a given PDSCH transmission
@@ -77,7 +77,7 @@ SRSLTE_API int srslte_dmrs_pdsch_get_sc_idx(const srslte_pdsch_dmrs_cfg_t* cfg, 
  * @param grant PDSCH information provided by a DCI
  * @return it returns the number of resource elements if the configuration is valid, otherwise it returns SRSLTE_ERROR
  */
-SRSLTE_API int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, const srslte_pdsch_grant_nr_t* grant);
+SRSLTE_API int srslte_dmrs_sch_get_N_prb(const srslte_sch_cfg_nr_t* cfg, const srslte_sch_grant_nr_t* grant);
 
 /**
  * @brief Stringifies the PDSCH DMRS configuration
@@ -89,7 +89,7 @@ SRSLTE_API int srslte_dmrs_pdsch_get_N_prb(const srslte_pdsch_cfg_nr_t* cfg, con
  * @return It returns the number of characters written in the vector if no error occurs, otherwise it returns
  * SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_dmrs_pdsch_cfg_to_str(const srslte_pdsch_dmrs_cfg_t* cfg, char* msg, uint32_t max_len);
+SRSLTE_API int srslte_dmrs_sch_cfg_to_str(const srslte_dmrs_sch_cfg_t* cfg, char* msg, uint32_t max_len);
 
 /**
  * @brief Initialises DMRS PDSCH object
@@ -98,14 +98,14 @@ SRSLTE_API int srslte_dmrs_pdsch_cfg_to_str(const srslte_pdsch_dmrs_cfg_t* cfg, 
  * @param is_ue indicates whethe the object is for a UE (in this case, it shall initialise as an estimator)
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_pdsch_init(srslte_dmrs_pdsch_t* q, bool is_ue);
+SRSLTE_API int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_ue);
 
 /**
  * @brief Frees DMRS PDSCH object
  *
  * @param q DMRS PDSCH object
  */
-SRSLTE_API void srslte_dmrs_pdsch_free(srslte_dmrs_pdsch_t* q);
+SRSLTE_API void srslte_dmrs_sch_free(srslte_dmrs_sch_t* q);
 
 /**
  * @brief Sets the carrier configuration. if the PDSCH DMRS object is configured as UE, it will resize internal buffers
@@ -116,7 +116,7 @@ SRSLTE_API void srslte_dmrs_pdsch_free(srslte_dmrs_pdsch_t* q);
  *
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslte_carrier_nr_t* carrier);
+SRSLTE_API int srslte_dmrs_sch_set_carrier(srslte_dmrs_sch_t* q, const srslte_carrier_nr_t* carrier);
 
 /**
  * @brief Puts PDSCH DMRS into a given resource grid
@@ -129,11 +129,11 @@ SRSLTE_API int srslte_dmrs_pdsch_set_carrier(srslte_dmrs_pdsch_t* q, const srslt
  *
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*           q,
-                                        const srslte_dl_slot_cfg_t*    slot_cfg,
-                                        const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                                        const srslte_pdsch_grant_nr_t* grant,
-                                        cf_t*                          sf_symbols);
+SRSLTE_API int srslte_dmrs_sch_put_sf(srslte_dmrs_sch_t*           q,
+                                      const srslte_dl_slot_cfg_t*  slot_cfg,
+                                      const srslte_sch_cfg_nr_t*   pdsch_cfg,
+                                      const srslte_sch_grant_nr_t* grant,
+                                      cf_t*                        sf_symbols);
 
 /**
  * @brief Estimates the channel for PDSCH from the DMRS
@@ -149,15 +149,15 @@ SRSLTE_API int srslte_dmrs_pdsch_put_sf(srslte_dmrs_pdsch_t*           q,
  *
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_pdsch_estimate(srslte_dmrs_pdsch_t*           q,
-                                          const srslte_dl_slot_cfg_t*    slot_cfg,
-                                          const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                                          const srslte_pdsch_grant_nr_t* grant,
-                                          const cf_t*                    sf_symbols,
-                                          srslte_chest_dl_res_t*         chest_res);
+SRSLTE_API int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
+                                        const srslte_dl_slot_cfg_t*  slot_cfg,
+                                        const srslte_sch_cfg_nr_t*   pdsch_cfg,
+                                        const srslte_sch_grant_nr_t* grant,
+                                        const cf_t*                  sf_symbols,
+                                        srslte_chest_dl_res_t*       chest_res);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SRSLTE_DMRS_PDSCH_H
+#endif // SRSLTE_DMRS_SCH_H

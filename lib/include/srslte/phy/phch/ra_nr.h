@@ -26,7 +26,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,8 +68,7 @@ SRSLTE_API srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs
  * @param grant The given PDSCH transmission grant
  * @return The number of resource elements if the provided configuration is valid, otherwise SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                                           const srslte_pdsch_grant_nr_t* grant);
+SRSLTE_API int srslte_ra_dl_nr_slot_nof_re(const srslte_sch_cfg_nr_t* pdsch_cfg, const srslte_sch_grant_nr_t* grant);
 
 /**
  * @brief Calculates shared channel TBS
@@ -82,10 +81,10 @@ SRSLTE_API int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t*   pdsch_
  */
 SRSLTE_API uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32_t nof_layers);
 
-SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                                    const srslte_pdsch_grant_nr_t* grant,
-                                    uint32_t                       mcs_idx,
-                                    srslte_sch_tb_t*               tb);
+SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
+                                    const srslte_sch_grant_nr_t* grant,
+                                    uint32_t                     mcs_idx,
+                                    srslte_sch_tb_t*             tb);
 
 #ifdef __cplusplus
 }

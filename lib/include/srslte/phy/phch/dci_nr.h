@@ -15,7 +15,7 @@
 
 #include "dci.h"
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 
 typedef struct SRSLTE_API {
   srslte_dci_location_t      location;

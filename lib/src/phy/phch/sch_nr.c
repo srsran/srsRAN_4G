@@ -65,10 +65,10 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
-int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
-                             const srslte_sch_cfg_t*     sch_cfg,
-                             const srslte_sch_tb_t*      tb,
-                             srslte_sch_nr_common_cfg_t* cfg)
+int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
+                           const srslte_sch_cfg_t*     sch_cfg,
+                           const srslte_sch_tb_t*      tb,
+                           srslte_sch_nr_common_cfg_t* cfg)
 {
 
   if (!sch_cfg || !tb || !cfg) {
@@ -357,14 +357,14 @@ void srslte_sch_nr_free(srslte_sch_nr_t* q)
   srslte_ldpc_rm_rx_free_c(&q->rx_rm);
 }
 
-int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* pdsch_cfg,
-                           const srslte_sch_tb_t*  tb,
-                           const uint8_t*          data,
-                           uint8_t*                e_bits)
+static inline int sch_nr_encode(srslte_sch_nr_t*        q,
+                                const srslte_sch_cfg_t* sch_cfg,
+                                const srslte_sch_tb_t*  tb,
+                                const uint8_t*          data,
+                                uint8_t*                e_bits)
 {
   // Pointer protection
-  if (!q || !pdsch_cfg || !tb || !data || !e_bits) {
+  if (!q || !sch_cfg || !tb || !data || !e_bits) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -377,7 +377,7 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
   uint8_t*       output_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_dlsch_nr_fill_cfg(q, pdsch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -500,12 +500,12 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* sch_cfg,
-                           const srslte_sch_tb_t*  tb,
-                           int8_t*                 e_bits,
-                           uint8_t*                data,
-                           bool*                   crc_ok)
+int sch_nr_decode(srslte_sch_nr_t*        q,
+                  const srslte_sch_cfg_t* sch_cfg,
+                  const srslte_sch_tb_t*  tb,
+                  int8_t*                 e_bits,
+                  uint8_t*                data,
+                  bool*                   crc_ok)
 {
   // Pointer protection
   if (!q || !sch_cfg || !tb || !data || !e_bits || !crc_ok) {
@@ -515,7 +515,7 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
   int8_t* input_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_dlsch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -653,6 +653,44 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
   }
 
   return SRSLTE_SUCCESS;
+}
+
+int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* pdsch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           const uint8_t*          data,
+                           uint8_t*                e_bits)
+{
+  return sch_nr_encode(q, pdsch_cfg, tb, data, e_bits);
+}
+
+int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* sch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           int8_t*                 e_bits,
+                           uint8_t*                data,
+                           bool*                   crc_ok)
+{
+  return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
+}
+
+int srslte_ulsch_nr_encode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* pdsch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           const uint8_t*          data,
+                           uint8_t*                e_bits)
+{
+  return sch_nr_encode(q, pdsch_cfg, tb, data, e_bits);
+}
+
+int srslte_ulsch_nr_decode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* sch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           int8_t*                 e_bits,
+                           uint8_t*                data,
+                           bool*                   crc_ok)
+{
+  return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
 }
 
 int srslte_sch_nr_tb_info(const srslte_sch_tb_t* tb, char* str, uint32_t str_len)

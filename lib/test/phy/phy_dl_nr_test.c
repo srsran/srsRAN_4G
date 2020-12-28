@@ -28,12 +28,12 @@ static srslte_carrier_nr_t carrier = {
 
 };
 
-static uint32_t                n_prb       = 0;  // Set to 0 for steering
-static uint32_t                mcs         = 30; // Set to 30 for steering
-static srslte_pdsch_cfg_nr_t   pdsch_cfg   = {};
-static srslte_pdsch_grant_nr_t pdsch_grant = {};
-static uint16_t                rnti        = 0x1234;
-static uint32_t                nof_slots   = 10;
+static uint32_t              n_prb       = 0;  // Set to 0 for steering
+static uint32_t              mcs         = 30; // Set to 30 for steering
+static srslte_sch_cfg_nr_t   pdsch_cfg   = {};
+static srslte_sch_grant_nr_t pdsch_grant = {};
+static uint16_t              rnti        = 0x1234;
+static uint32_t              nof_slots   = 10;
 
 void usage(char* prog)
 {
@@ -254,8 +254,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &pdsch_grant) <
-      SRSLTE_SUCCESS) {
+  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }

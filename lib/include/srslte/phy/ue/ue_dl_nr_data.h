@@ -24,7 +24,7 @@
 #define SRSLTE_UE_DL_NR_DATA_H
 
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +41,7 @@ extern "C" {
  * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
  */
 SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocation_t* pdsch_alloc,
-                                                      srslte_pdsch_grant_nr_t*         grant);
+                                                      srslte_sch_grant_nr_t*           grant);
 
 /**
  * @brief Calculates the PDSCH time resource default A and stores it in the provided PDSCH NR grant. This can be used by
@@ -55,9 +55,9 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocat
  * @param[out] grant PDSCH mapping type
  * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      m,
-                                                             srslte_dmrs_pdsch_typeA_pos_t dmrs_typeA_pos,
-                                                             srslte_pdsch_grant_nr_t*      grant);
+SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                    m,
+                                                             srslte_dmrs_sch_typeA_pos_t dmrs_typeA_pos,
+                                                             srslte_sch_grant_nr_t*      grant);
 /**
  * @brief Calculates the number of PDSCH-DMRS CDM groups without data for DCI format 1_0
  *
@@ -67,8 +67,8 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t           
  * @param[out] grant Provides grant pointer to fill
  * @return Returns SRSLTE_SUCCESS if the provided data is valid, otherwise it returns SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                                                                           srslte_pdsch_grant_nr_t*     grant);
+SRSLTE_API int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_sch_cfg_nr_t* pdsch_cfg,
+                                                                           srslte_sch_grant_nr_t*     grant);
 
 #ifdef __cplusplus
 }

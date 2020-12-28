@@ -36,7 +36,7 @@ typedef struct {
 } phy_nr_args_t;
 
 typedef struct {
-  srslte_pdsch_cfg_nr_t pdsch;
+  srslte_sch_cfg_nr_t pdsch;
 } phy_nr_cfg_t;
 
 class phy_nr_state

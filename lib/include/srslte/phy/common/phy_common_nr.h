@@ -128,7 +128,7 @@ typedef enum SRSLTE_API {
  * @brief PDSCH mapping type
  * @remark Described in TS 38.331 V15.10.0 Section PDSCH-TimeDomainResourceAllocationList
  */
-typedef enum SRSLTE_API { srslte_pdsch_mapping_type_A = 0, srslte_pdsch_mapping_type_B } srslte_pdsch_mapping_type_t;
+typedef enum SRSLTE_API { srslte_sch_mapping_type_A = 0, srslte_sch_mapping_type_B } srslte_sch_mapping_type_t;
 
 typedef enum SRSLTE_API {
   srslte_search_space_type_common = 0,
@@ -155,6 +155,8 @@ typedef enum SRSLTE_API {
   srslte_rnti_type_ra,
   srslte_rnti_type_tc,
   srslte_rnti_type_cs,
+  srslte_rnti_type_sp_csi,
+  srslte_rnti_type_mcs_crnti,
 } srslte_rnti_type_t;
 
 /**
@@ -170,7 +172,9 @@ typedef enum SRSLTE_API {
   srslte_dci_format_nr_2_1, ///< @brief Notifying a group of UEs of the PRB(s) and OFDM symbol(s) where UE may assume no
                             ///< transmission is intended for the UE
   srslte_dci_format_nr_2_2, ///< @brief Transmission of TPC commands for PUCCH and PUSCH
-  srslte_dci_format_nr_2_3  ///< @brief Transmission of a group of TPC commands for SRS transmissions by one or more UEs
+  srslte_dci_format_nr_2_3, ///< @brief Transmission of a group of TPC commands for SRS transmissions by one or more UEs
+  srslte_dci_format_nr_rar, ///< @brief Scheduling a transmission of PUSCH from RAR
+  srslte_dci_format_nr_cg   ///< @brief Scheduling of PUSCH using a configured grant
 } srslte_dci_format_nr_t;
 
 /**
@@ -287,7 +291,7 @@ SRSLTE_API uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset);
  * @param mapping_type Mapping type
  * @return Constant string with PDSCH mapping type
  */
-SRSLTE_API const char* srslte_pdsch_mapping_type_to_str(srslte_pdsch_mapping_type_t mapping_type);
+SRSLTE_API const char* srslte_sch_mapping_type_to_str(srslte_sch_mapping_type_t mapping_type);
 
 /**
  * @brief Get the MCS table string

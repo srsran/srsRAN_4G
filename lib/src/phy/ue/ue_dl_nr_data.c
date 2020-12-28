@@ -55,7 +55,7 @@ static int srslte_ue_dl_nr_pdsch_time_resource_hl_B(uint32_t sliv, uint32_t* S, 
   return SRSLTE_ERROR;
 }
 
-int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocation_t* pdsch_alloc, srslte_pdsch_grant_nr_t* grant)
+int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocation_t* pdsch_alloc, srslte_sch_grant_nr_t* grant)
 {
 
   if (pdsch_alloc == NULL || grant == NULL) {
@@ -65,16 +65,16 @@ int srslte_ue_dl_nr_pdsch_time_resource_hl(const srslte_pdsch_allocation_t* pdsc
   grant->k0      = pdsch_alloc->k0;
   grant->mapping = pdsch_alloc->mapping_type;
 
-  if (pdsch_alloc->mapping_type == srslte_pdsch_mapping_type_A) {
+  if (pdsch_alloc->mapping_type == srslte_sch_mapping_type_A) {
     return srslte_ue_dl_nr_pdsch_time_resource_hl_A(pdsch_alloc->sliv, &grant->S, &grant->L);
   }
 
   return srslte_ue_dl_nr_pdsch_time_resource_hl_B(pdsch_alloc->sliv, &grant->S, &grant->L);
 }
 
-int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      m,
-                                                  srslte_dmrs_pdsch_typeA_pos_t dmrs_typeA_pos,
-                                                  srslte_pdsch_grant_nr_t*      grant)
+int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                    m,
+                                                  srslte_dmrs_sch_typeA_pos_t dmrs_typeA_pos,
+                                                  srslte_sch_grant_nr_t*      grant)
 {
   if (grant == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -89,23 +89,23 @@ int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      
   grant->k0 = 0;
 
   // Select PDSCH mapping
-  static srslte_pdsch_mapping_type_t pdsch_mapping_lut[16] = {srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_A,
-                                                              srslte_pdsch_mapping_type_B,
-                                                              srslte_pdsch_mapping_type_B};
-  grant->mapping                                           = pdsch_mapping_lut[m];
+  static srslte_sch_mapping_type_t pdsch_mapping_lut[16] = {srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_A,
+                                                            srslte_sch_mapping_type_B,
+                                                            srslte_sch_mapping_type_B};
+  grant->mapping                                         = pdsch_mapping_lut[m];
 
   static uint32_t S_pos2[16] = {2, 2, 2, 2, 2, 9, 4, 5, 5, 9, 12, 1, 1, 2, 4, 8};
   static uint32_t L_pos2[16] = {12, 10, 9, 7, 5, 4, 4, 7, 2, 2, 2, 13, 6, 4, 7, 4};
@@ -115,11 +115,11 @@ int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      
   // Select start symbol (S) and length (L)
   switch (dmrs_typeA_pos) {
 
-    case srslte_dmrs_pdsch_typeA_pos_2:
+    case srslte_dmrs_sch_typeA_pos_2:
       grant->S = S_pos2[m];
       grant->L = L_pos2[m];
       break;
-    case srslte_dmrs_pdsch_typeA_pos_3:
+    case srslte_dmrs_sch_typeA_pos_3:
       grant->S = S_pos3[m];
       grant->L = L_pos3[m];
       break;
@@ -131,15 +131,15 @@ int srslte_ue_dl_nr_pdsch_time_resource_default_A(uint32_t                      
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_pdsch_cfg_nr_t* pdsch_cfg,
-                                                                srslte_pdsch_grant_nr_t*     grant)
+int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_sch_cfg_nr_t* pdsch_cfg,
+                                                                srslte_sch_grant_nr_t*     grant)
 {
   if (pdsch_cfg == NULL || grant == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  const srslte_pdsch_dmrs_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_pdsch_mapping_type_A ? &pdsch_cfg->dmrs_cfg_typeA : &pdsch_cfg->dmrs_cfg_typeB;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
+      grant->mapping == srslte_sch_mapping_type_A ? &pdsch_cfg->dmrs_typeA : &pdsch_cfg->dmrs_typeB;
 
   /* According to TS 38.214 V15.10.0 5.1.6.1.3 CSI-RS for mobility:
    * When receiving PDSCH scheduled by DCI format 1_0, the UE shall assume the number of DM-RS CDM groups without data
@@ -147,7 +147,7 @@ int srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_pds
    * assume that the number of DM-RS CDM groups without data is 2 which corresponds to CDM group {0,1} for all other
    * cases.
    */
-  if (dmrs_cfg->length == srslte_dmrs_pdsch_len_2) {
+  if (dmrs_cfg->length == srslte_dmrs_sch_len_2) {
     grant->nof_dmrs_cdm_groups_without_data = 1;
   } else {
     grant->nof_dmrs_cdm_groups_without_data = 2;

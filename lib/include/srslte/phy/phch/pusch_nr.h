@@ -10,16 +10,8 @@
  *
  */
 
-/******************************************************************************
- *  File:         pdsch_nr.h
- *
- *  Description:  Physical downlink shared channel for NR
- *
- *  Reference:    3GPP TS 38.211 V15.8.0 Sec. 7.3.1
- *****************************************************************************/
-
-#ifndef SRSLTE_PDSCH_NR_H
-#define SRSLTE_PDSCH_NR_H
+#ifndef SRSLTE_PUSCH_NR_H
+#define SRSLTE_PUSCH_NR_H
 
 #include "srslte/config.h"
 #include "srslte/phy/ch_estimation/dmrs_sch.h"
@@ -29,13 +21,13 @@
 #include "srslte/phy/scrambling/scrambling.h"
 
 /**
- * @brief PDSCH encoder and decoder initialization arguments
+ * @brief PUSCH encoder and decoder initialization arguments
  */
 typedef struct SRSLTE_API {
   srslte_sch_nr_args_t sch;
   bool                 measure_evm;
   bool                 measure_time;
-} srslte_pdsch_nr_args_t;
+} srslte_pusch_nr_args_t;
 
 /**
  * @brief PDSCH NR object
@@ -53,7 +45,7 @@ typedef struct SRSLTE_API {
   srslte_evm_buffer_t* evm_buffer;
   bool                 meas_time_en;
   uint32_t             meas_time_us;
-} srslte_pdsch_nr_t;
+} srslte_pusch_nr_t;
 
 /**
  *
@@ -62,40 +54,40 @@ typedef struct {
   uint8_t* payload;
   bool     crc;
   float    evm;
-} srslte_pdsch_res_nr_t;
+} srslte_pusch_res_nr_t;
 
-SRSLTE_API int srslte_pdsch_nr_init_enb(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args);
+SRSLTE_API int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args);
 
-SRSLTE_API int srslte_pdsch_nr_init_ue(srslte_pdsch_nr_t* q, const srslte_pdsch_nr_args_t* args);
+SRSLTE_API int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args);
 
-SRSLTE_API void srslte_pdsch_nr_free(srslte_pdsch_nr_t* q);
+SRSLTE_API void srslte_pusch_nr_free(srslte_pusch_nr_t* q);
 
-SRSLTE_API int srslte_pdsch_nr_set_carrier(srslte_pdsch_nr_t* q, const srslte_carrier_nr_t* carrier);
+SRSLTE_API int srslte_pusch_nr_set_carrier(srslte_pusch_nr_t* q, const srslte_carrier_nr_t* carrier);
 
-SRSLTE_API int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*           q,
+SRSLTE_API int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
                                       const srslte_sch_cfg_nr_t*   cfg,
                                       const srslte_sch_grant_nr_t* grant,
                                       uint8_t*                     data[SRSLTE_MAX_TB],
                                       cf_t*                        sf_symbols[SRSLTE_MAX_PORTS]);
 
-SRSLTE_API int srslte_pdsch_nr_decode(srslte_pdsch_nr_t*           q,
+SRSLTE_API int srslte_pusch_nr_decode(srslte_pusch_nr_t*           q,
                                       const srslte_sch_cfg_nr_t*   cfg,
                                       const srslte_sch_grant_nr_t* grant,
                                       srslte_chest_dl_res_t*       channel,
                                       cf_t*                        sf_symbols[SRSLTE_MAX_PORTS],
-                                      srslte_pdsch_res_nr_t        data[SRSLTE_MAX_TB]);
+                                      srslte_pusch_res_nr_t        data[SRSLTE_MAX_TB]);
 
-SRSLTE_API uint32_t srslte_pdsch_nr_rx_info(const srslte_pdsch_nr_t*     q,
+SRSLTE_API uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
                                             const srslte_sch_cfg_nr_t*   cfg,
                                             const srslte_sch_grant_nr_t* grant,
-                                            const srslte_pdsch_res_nr_t* res,
+                                            const srslte_pusch_res_nr_t* res,
                                             char*                        str,
                                             uint32_t                     str_len);
 
-SRSLTE_API uint32_t srslte_pdsch_nr_tx_info(const srslte_pdsch_nr_t*     q,
+SRSLTE_API uint32_t srslte_pusch_nr_tx_info(const srslte_pusch_nr_t*     q,
                                             const srslte_sch_cfg_nr_t*   cfg,
                                             const srslte_sch_grant_nr_t* grant,
                                             char*                        str,
                                             uint32_t                     str_len);
 
-#endif // SRSLTE_PDSCH_NR_H
+#endif // SRSLTE_PUSCH_NR_H
