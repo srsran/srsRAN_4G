@@ -1068,7 +1068,18 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   }
 
   // Set padding to zeros (if any)
-  bzero(ptr, (rem_len - (ptr - init_ptr)) * sizeof(uint8_t));
+  int32_t payload_len = ptr - init_ptr;
+  int32_t pad_len     = rem_len - payload_len;
+  if (pad_len < 0) {
+    if (log_h) {
+      log_h->error("Error packing RAR PDU (payload_len=%d, rem_len=%d)\n", payload_len, rem_len);
+    } else {
+      srslte::console("Error packing RAR PDU (payload_len=%d, rem_len=%d)\n", payload_len, rem_len);
+    }
+    return false;
+  } else {
+    bzero(ptr, pad_len * sizeof(uint8_t));
+  }
 
   return true;
 }
