@@ -28,7 +28,6 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 mac::mac(srslte::ext_task_sched_handle task_sched_) :
-  rar_pdu_msg(sched_interface::MAX_RAR_LIST),
   rar_payload(),
   common_buffers(SRSLTE_MAX_CARRIERS),
   task_sched(task_sched_)
@@ -821,12 +820,12 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
 
 uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                            uint32_t                               nof_grants,
-                           int                                    rar_idx,
+                           uint32_t                               rar_idx,
                            uint32_t                               pdu_len,
                            uint32_t                               tti)
 {
   uint8_t grant_buffer[64] = {};
-  if (pdu_len < rar_payload_len) {
+  if (pdu_len < rar_payload_len && rar_idx < rar_pdu_msg.size()) {
     srslte::rar_pdu* pdu = &rar_pdu_msg[rar_idx];
     rar_payload[rar_idx].clear();
     pdu->init_tx(&rar_payload[rar_idx], pdu_len);
@@ -842,7 +841,7 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
     pdu->write_packet(rar_payload[rar_idx].msg);
     return rar_payload[rar_idx].msg;
   } else {
-    Error("Assembling RAR: pdu_len > rar_payload_len (%d>%d)\n", pdu_len, rar_payload_len);
+    Error("Assembling RAR: rar_idx=%d, pdu_len > rar_payload_len (%d>%d)\n", rar_idx, pdu_len, rar_payload_len);
     return nullptr;
   }
 }

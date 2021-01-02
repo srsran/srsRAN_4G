@@ -140,12 +140,12 @@ private:
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               nof_grants,
-                        int                                    rar_idx,
+                        uint32_t                               rar_idx,
                         uint32_t                               pdu_len,
                         uint32_t                               tti);
 
   const static int             rar_payload_len = 128;
-  std::vector<srslte::rar_pdu> rar_pdu_msg;
+  std::array<srslte::rar_pdu, sched_interface::MAX_RAR_LIST> rar_pdu_msg;
   srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
 
   const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
