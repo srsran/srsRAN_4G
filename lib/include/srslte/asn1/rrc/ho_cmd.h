@@ -49,8 +49,8 @@ struct scg_cfg_v13c0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCG-Config-v12x0-IEs ::= SEQUENCE
-struct scg_cfg_v12x0_ies_s {
+// SCG-Config-v12i0a-IEs ::= SEQUENCE
+struct scg_cfg_v12i0a_ies_s {
   bool                late_non_crit_ext_present = false;
   bool                non_crit_ext_present      = false;
   dyn_octstring       late_non_crit_ext;
@@ -67,7 +67,26 @@ struct scg_cfg_r12_ies_s {
   bool                   scg_radio_cfg_r12_present = false;
   bool                   non_crit_ext_present      = false;
   scg_cfg_part_scg_r12_s scg_radio_cfg_r12;
-  scg_cfg_v12x0_ies_s    non_crit_ext;
+  scg_cfg_v12i0a_ies_s   non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// AS-Config-v1550 ::= SEQUENCE
+struct as_cfg_v1550_s {
+  struct tdm_pattern_cfg_r15_s_ {
+    sf_assign_r15_e sf_assign_r15;
+    uint8_t         harq_offset_r15 = 0;
+  };
+
+  // member variables
+  bool                   tdm_pattern_cfg_r15_present = false;
+  bool                   p_max_eutra_r15_present     = false;
+  tdm_pattern_cfg_r15_s_ tdm_pattern_cfg_r15;
+  int8_t                 p_max_eutra_r15 = -30;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -84,6 +103,14 @@ struct as_cfg_nr_r15_s {
   dyn_octstring source_rb_cfg_sn_nr_r15;
   dyn_octstring source_other_cfg_sn_nr_r15;
 
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// AS-ConfigNR-v1570 ::= SEQUENCE
+struct as_cfg_nr_v1570_s {
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);
@@ -197,6 +224,10 @@ struct as_cfg_s {
   copy_ptr<scg_cfg_r12_s> source_cfg_scg_r12;
   // group 3
   copy_ptr<as_cfg_nr_r15_s> as_cfg_nr_r15;
+  // group 4
+  copy_ptr<as_cfg_v1550_s> as_cfg_v1550;
+  // group 5
+  copy_ptr<as_cfg_nr_v1570_s> as_cfg_nr_v1570;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

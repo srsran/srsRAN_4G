@@ -22,6 +22,7 @@
 #ifndef SRSLTE_RLC_AM_LTE_H
 #define SRSLTE_RLC_AM_LTE_H
 
+#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -206,7 +207,8 @@ private:
 
     void write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
-    uint32_t get_num_rx_bytes();
+    uint32_t get_rx_buffered_bytes(); // returns sum of PDUs in rx_window
+    uint32_t get_sdu_rx_latency_ms();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
@@ -267,6 +269,8 @@ private:
      ***************************************************************************/
 
     srslte::timer_handler::unique_timer reordering_timer;
+
+    srslte::rolling_average<double> sdu_rx_latency_ms;
   };
 
   // Common variables needed/provided by parent class

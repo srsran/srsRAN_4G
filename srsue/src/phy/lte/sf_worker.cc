@@ -277,7 +277,7 @@ void sf_worker::reset_uci(srslte_uci_data_t* uci_data)
 
 void sf_worker::update_measurements()
 {
-  std::vector<rrc_interface_phy_lte::phy_meas_t> serving_cells = {};
+  std::vector<phy_meas_t> serving_cells = {};
   for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
     cf_t* rssi_power_buffer = nullptr;
     // Setting rssi_power_buffer to nullptr disables RSSI update. Do it only by worker 0

@@ -65,6 +65,7 @@ public:
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override;
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) override;
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) override;
+  int push_pdu(uint32_t tti, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) override;
 
   int  get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res) override;
   int  get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res) override;
@@ -98,7 +99,7 @@ public:
 
   bool process_pdus();
 
-  void get_metrics(std::vector<mac_metrics_t>& metrics);
+  void get_metrics(mac_metrics_t& metrics);
   void write_mcch(const srslte::sib2_mbms_t* sib2_,
                   const srslte::sib13_t*     sib13_,
                   const srslte::mcch_msg_t*  mcch_,
@@ -179,6 +180,9 @@ private:
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap = nullptr;
+
+  // Number of rach preambles detected for a cc.
+  std::vector<uint32_t> detected_rachs;
 };
 
 } // namespace srsenb

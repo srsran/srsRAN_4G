@@ -112,7 +112,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
     m.ues.resize(users.size());
     size_t count = 0;
     for (auto& ue : users) {
-      m.ues[count++].state = ue.second->get_state();
+      ue.second->get_metrics(m.ues[count++]);
     }
   }
 }
@@ -340,6 +340,56 @@ void rrc::release_erabs(uint32_t                              rnti,
     }
   }
   return;
+}
+
+void rrc::modify_erabs(uint16_t                                 rnti,
+                       const asn1::s1ap::erab_modify_request_s& msg,
+                       std::vector<uint16_t>*                   erabs_modified,
+                       std::vector<uint16_t>*                   erabs_failed_to_modify)
+{
+  rrc_log->info("Modifying E-RABs for 0x%x\n", rnti);
+  auto user_it = users.find(rnti);
+
+  if (user_it == users.end()) {
+    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    return;
+  }
+
+  // Iterate over bearers
+  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value.size(); i++) {
+    const asn1::s1ap::erab_to_be_modified_item_bearer_mod_req_s& erab_to_mod =
+        msg.protocol_ies.erab_to_be_modified_list_bearer_mod_req.value[i]
+            .value.erab_to_be_modified_item_bearer_mod_req();
+
+    uint32_t                            erab_id    = erab_to_mod.erab_id;
+    asn1::s1ap::erab_level_qos_params_s qos_params = erab_to_mod.erab_level_qos_params;
+
+    bool ret = modify_ue_erab(rnti, erab_id, qos_params, &erab_to_mod.nas_pdu);
+    if (ret) {
+      erabs_modified->push_back(erab_to_mod.erab_id);
+    } else {
+      erabs_failed_to_modify->push_back(erab_to_mod.erab_id);
+    }
+  }
+
+  return;
+}
+
+bool rrc::modify_ue_erab(uint16_t                                   rnti,
+                         uint8_t                                    erab_id,
+                         const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                         const asn1::unbounded_octstring<true>*     nas_pdu)
+{
+  rrc_log->info("Modifying E-RAB for 0x%x. E-RAB Id %d\n", rnti, erab_id);
+  auto user_it = users.find(rnti);
+
+  if (user_it == users.end()) {
+    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    return false;
+  }
+
+  bool ret = user_it->second->modify_erab(erab_id, qos_params, nas_pdu);
+  return ret;
 }
 
 /*******************************************************************************
@@ -621,11 +671,12 @@ void rrc::config_mac()
     item.si_window_ms        = cfg.sib1.si_win_len.to_number();
     item.prach_rar_window =
         cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
-    item.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-    item.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
-    item.enable_64qam      = cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
-    item.initial_dl_cqi    = cfg.cell_list[ccidx].initial_dl_cqi;
-    item.target_ul_sinr    = cfg.cell_list[ccidx].target_ul_sinr_db;
+    item.prach_freq_offset   = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
+    item.maxharq_msg3tx      = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
+    item.enable_64qam        = cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+    item.initial_dl_cqi      = cfg.cell_list[ccidx].initial_dl_cqi;
+    item.target_ul_sinr      = cfg.cell_list[ccidx].target_ul_sinr_db;
+    item.enable_phr_handling = cfg.cell_list[ccidx].enable_phr_handling;
 
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);

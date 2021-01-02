@@ -141,19 +141,35 @@ struct phy_cell_t {
   float    cfo_hz;
 };
 
+// Measurement object from phy
+typedef struct {
+  float    rsrp;
+  float    rsrq;
+  float    cfo_hz;
+  uint32_t earfcn;
+  uint32_t pci;
+} phy_meas_t;
+
+typedef struct {
+  float    rsrp;
+  float    rsrq;
+  float    sinr;
+  float    cfo_hz;
+  uint32_t arfcn_nr;
+  uint32_t pci_nr;
+} phy_meas_nr_t;
+
+// RRC interface for RRC NR
+class rrc_interface_rrc_nr
+{
+public:
+  virtual void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas) = 0;
+};
+
 // RRC interface for PHY
 class rrc_interface_phy_lte
 {
 public:
-  // Measurement object from phy
-  typedef struct {
-    float    rsrp;
-    float    rsrq;
-    float    cfo_hz;
-    uint32_t earfcn;
-    uint32_t pci;
-  } phy_meas_t;
-
   virtual void in_sync()                                          = 0;
   virtual void out_of_sync()                                      = 0;
   virtual void new_cell_meas(const std::vector<phy_meas_t>& meas) = 0;

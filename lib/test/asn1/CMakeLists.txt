@@ -18,16 +18,20 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_executable(s1ap_test s1ap_test.cc)
-target_link_libraries(s1ap_test srslte_common srslte_asn1 s1ap_asn1)
-add_test(s1ap_test s1ap_test)
+add_executable(s1ap_asn1_test s1ap_test.cc)
+target_link_libraries(s1ap_asn1_test srslte_common srslte_asn1 s1ap_asn1)
+add_test(s1ap_asn1_test s1ap_asn1_test)
 
 add_executable(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test.cc)
 target_link_libraries(srslte_asn1_rrc_mcch_test rrc_asn1 srslte_common)
 add_test(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test)
 
 add_executable(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test.cc)
+if (ENABLE_5GNR)
+target_link_libraries(srslte_asn1_rrc_meas_test rrc_asn1 rrc_nr_asn1 srslte_common)
+else()
 target_link_libraries(srslte_asn1_rrc_meas_test rrc_asn1 srslte_common)
+endif(ENABLE_5GNR)
 add_test(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test)
 
 add_executable(srslte_asn1_rrc_ul_dcch_test srslte_asn1_rrc_ul_dcch_test.cc)
@@ -55,6 +59,10 @@ target_link_libraries(rrc_asn1_test rrc_asn1 asn1_utils srslte_common)
 add_test(rrc_asn1_test rrc_asn1_test)
 
 if (ENABLE_5GNR)
+    add_executable(rrc_nr_asn1_test rrc_nr_test.cc)
+    target_link_libraries(rrc_nr_asn1_test rrc_nr_asn1 asn1_utils srslte_common)
+    add_test(rrc_nr_asn1_test rrc_nr_asn1_test)
+
     add_executable(ngap_asn1_test ngap_test.cc)
     target_link_libraries(ngap_asn1_test ngap_nr_asn1 srslte_common)
     add_test(ngap_asn1_test ngap_asn1_test)

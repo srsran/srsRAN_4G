@@ -67,8 +67,8 @@ void scg_cfg_v13c0_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// SCG-Config-v12x0-IEs ::= SEQUENCE
-SRSASN_CODE scg_cfg_v12x0_ies_s::pack(bit_ref& bref) const
+// SCG-Config-v12i0a-IEs ::= SEQUENCE
+SRSASN_CODE scg_cfg_v12i0a_ies_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
@@ -82,7 +82,7 @@ SRSASN_CODE scg_cfg_v12x0_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE scg_cfg_v12x0_ies_s::unpack(cbit_ref& bref)
+SRSASN_CODE scg_cfg_v12i0a_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -96,7 +96,7 @@ SRSASN_CODE scg_cfg_v12x0_ies_s::unpack(cbit_ref& bref)
 
   return SRSASN_SUCCESS;
 }
-void scg_cfg_v12x0_ies_s::to_json(json_writer& j) const
+void scg_cfg_v12i0a_ies_s::to_json(json_writer& j) const
 {
   j.start_obj();
   if (late_non_crit_ext_present) {
@@ -152,6 +152,53 @@ void scg_cfg_r12_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// AS-Config-v1550 ::= SEQUENCE
+SRSASN_CODE as_cfg_v1550_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(tdm_pattern_cfg_r15_present, 1));
+  HANDLE_CODE(bref.pack(p_max_eutra_r15_present, 1));
+
+  if (tdm_pattern_cfg_r15_present) {
+    HANDLE_CODE(tdm_pattern_cfg_r15.sf_assign_r15.pack(bref));
+    HANDLE_CODE(pack_integer(bref, tdm_pattern_cfg_r15.harq_offset_r15, (uint8_t)0u, (uint8_t)9u));
+  }
+  if (p_max_eutra_r15_present) {
+    HANDLE_CODE(pack_integer(bref, p_max_eutra_r15, (int8_t)-30, (int8_t)33));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE as_cfg_v1550_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(tdm_pattern_cfg_r15_present, 1));
+  HANDLE_CODE(bref.unpack(p_max_eutra_r15_present, 1));
+
+  if (tdm_pattern_cfg_r15_present) {
+    HANDLE_CODE(tdm_pattern_cfg_r15.sf_assign_r15.unpack(bref));
+    HANDLE_CODE(unpack_integer(tdm_pattern_cfg_r15.harq_offset_r15, bref, (uint8_t)0u, (uint8_t)9u));
+  }
+  if (p_max_eutra_r15_present) {
+    HANDLE_CODE(unpack_integer(p_max_eutra_r15, bref, (int8_t)-30, (int8_t)33));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void as_cfg_v1550_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (tdm_pattern_cfg_r15_present) {
+    j.write_fieldname("tdm-PatternConfig-r15");
+    j.start_obj();
+    j.write_str("subframeAssignment-r15", tdm_pattern_cfg_r15.sf_assign_r15.to_string());
+    j.write_int("harq-Offset-r15", tdm_pattern_cfg_r15.harq_offset_r15);
+    j.end_obj();
+  }
+  if (p_max_eutra_r15_present) {
+    j.write_int("p-MaxEUTRA-r15", p_max_eutra_r15);
+  }
+  j.end_obj();
+}
+
 // AS-ConfigNR-r15 ::= SEQUENCE
 SRSASN_CODE as_cfg_nr_r15_s::pack(bit_ref& bref) const
 {
@@ -201,6 +248,22 @@ void as_cfg_nr_r15_s::to_json(json_writer& j) const
   if (source_other_cfg_sn_nr_r15_present) {
     j.write_str("sourceOtherConfigSN-NR-r15", source_other_cfg_sn_nr_r15.to_string());
   }
+  j.end_obj();
+}
+
+// AS-ConfigNR-v1570 ::= SEQUENCE
+SRSASN_CODE as_cfg_nr_v1570_s::pack(bit_ref& bref) const
+{
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE as_cfg_nr_v1570_s::unpack(cbit_ref& bref)
+{
+  return SRSASN_SUCCESS;
+}
+void as_cfg_nr_v1570_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("sourceSCG-ConfiguredNR-r15", "true");
   j.end_obj();
 }
 
@@ -443,6 +506,8 @@ SRSASN_CODE as_cfg_s::pack(bit_ref& bref) const
     group_flags[1] |= source_scell_cfg_list_r10.is_present();
     group_flags[2] |= source_cfg_scg_r12.is_present();
     group_flags[3] |= as_cfg_nr_r15.is_present();
+    group_flags[4] |= as_cfg_v1550.is_present();
+    group_flags[5] |= as_cfg_nr_v1570.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -478,6 +543,22 @@ SRSASN_CODE as_cfg_s::pack(bit_ref& bref) const
         HANDLE_CODE(as_cfg_nr_r15->pack(bref));
       }
     }
+    if (group_flags[4]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(as_cfg_v1550.is_present(), 1));
+      if (as_cfg_v1550.is_present()) {
+        HANDLE_CODE(as_cfg_v1550->pack(bref));
+      }
+    }
+    if (group_flags[5]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(as_cfg_nr_v1570.is_present(), 1));
+      if (as_cfg_nr_v1570.is_present()) {
+        HANDLE_CODE(as_cfg_nr_v1570->pack(bref));
+      }
+    }
   }
   return SRSASN_SUCCESS;
 }
@@ -495,7 +576,7 @@ SRSASN_CODE as_cfg_s::unpack(cbit_ref& bref)
   HANDLE_CODE(unpack_integer(source_dl_carrier_freq, bref, (uint32_t)0u, (uint32_t)65535u));
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(4);
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -535,6 +616,26 @@ SRSASN_CODE as_cfg_s::unpack(cbit_ref& bref)
       as_cfg_nr_r15.set_present(as_cfg_nr_r15_present);
       if (as_cfg_nr_r15.is_present()) {
         HANDLE_CODE(as_cfg_nr_r15->unpack(bref));
+      }
+    }
+    if (group_flags[4]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool as_cfg_v1550_present;
+      HANDLE_CODE(bref.unpack(as_cfg_v1550_present, 1));
+      as_cfg_v1550.set_present(as_cfg_v1550_present);
+      if (as_cfg_v1550.is_present()) {
+        HANDLE_CODE(as_cfg_v1550->unpack(bref));
+      }
+    }
+    if (group_flags[5]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool as_cfg_nr_v1570_present;
+      HANDLE_CODE(bref.unpack(as_cfg_nr_v1570_present, 1));
+      as_cfg_nr_v1570.set_present(as_cfg_nr_v1570_present);
+      if (as_cfg_nr_v1570.is_present()) {
+        HANDLE_CODE(as_cfg_nr_v1570->unpack(bref));
       }
     }
   }
@@ -579,6 +680,14 @@ void as_cfg_s::to_json(json_writer& j) const
     if (as_cfg_nr_r15.is_present()) {
       j.write_fieldname("as-ConfigNR-r15");
       as_cfg_nr_r15->to_json(j);
+    }
+    if (as_cfg_v1550.is_present()) {
+      j.write_fieldname("as-Config-v1550");
+      as_cfg_v1550->to_json(j);
+    }
+    if (as_cfg_nr_v1570.is_present()) {
+      j.write_fieldname("as-ConfigNR-v1570");
+      as_cfg_nr_v1570->to_json(j);
     }
   }
   j.end_obj();

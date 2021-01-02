@@ -240,8 +240,8 @@ uint32_t rrc_nr::generate_sibs()
   for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
     uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
 
-    msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info_r15();
-    auto& sib_list = msg[msg_index].msg.c1().sys_info().crit_exts.sys_info_r15().sib_type_and_info;
+    msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info();
+    auto& sib_list = msg[msg_index].msg.c1().sys_info().crit_exts.sys_info().sib_type_and_info;
 
     for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].sib_map_info.size(); ++mapping) {
       uint32_t sibidx = sched_info[sched_info_elem].sib_map_info[mapping].type; // SIB2 == 0

@@ -47,6 +47,7 @@ public:
   void        activity_timer_expired();
 
   rrc_state_t get_state();
+  void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
 
   void send_connection_setup();
   void send_connection_reest(uint8_t ncc);
@@ -75,6 +76,9 @@ public:
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
   bool release_erabs();
   bool release_erab(uint32_t erab_id);
+  bool modify_erab(uint16_t                                   erab_id,
+                   const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                   const asn1::unbounded_octstring<true>*     nas_pdu);
 
   // handover
   void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);

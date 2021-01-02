@@ -32,7 +32,11 @@ target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy rrc_
 add_test(rrc_reconfig_test rrc_reconfig_test)
 
 add_executable(rrc_meas_test rrc_meas_test.cc)
-target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1)
+if (ENABLE_5GNR)
+  target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
+else (ENABLE_5GNR)
+  target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1)
+endif(ENABLE_5GNR)
 add_test(rrc_meas_test rrc_meas_test)
 
 add_executable(nas_test nas_test.cc)
@@ -48,7 +52,11 @@ target_link_libraries(rrc_phy_ctrl_test srslte_common srsue_rrc)
 add_test(rrc_phy_ctrl_test rrc_phy_ctrl_test)
 
 add_executable(rrc_cell_test rrc_cell_test.cc)
-target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1)
+if (ENABLE_5GNR)
+  target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
+else (ENABLE_5GNR)
+  target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1)
+endif(ENABLE_5GNR)
 add_test(rrc_cell_test rrc_cell_test)
 
 ########################################################################

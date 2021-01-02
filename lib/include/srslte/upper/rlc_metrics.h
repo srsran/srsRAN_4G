@@ -34,13 +34,17 @@ typedef struct {
   uint64_t num_tx_sdu_bytes;
   uint64_t num_rx_sdu_bytes;
   uint32_t num_lost_sdus; //< Count dropped SDUs at Tx due to bearer inactivity or empty buffer
+  uint64_t rx_latency_ms; //< Average time in ms from first RLC segment to full SDU
 
   // PDU metrics
   uint32_t num_tx_pdus;
   uint32_t num_rx_pdus;
   uint64_t num_tx_pdu_bytes;
   uint64_t num_rx_pdu_bytes;
-  uint32_t num_lost_pdus;    //< Lost PDUs registered at Rx
+  uint32_t num_lost_pdus; //< Lost PDUs registered at Rx
+
+  // misc metrics
+  uint32_t rx_buffered_bytes; //< sum of payload of PDUs buffered in rx_window
 } rlc_bearer_metrics_t;
 
 typedef struct {

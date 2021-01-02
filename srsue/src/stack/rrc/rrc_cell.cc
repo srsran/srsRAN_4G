@@ -33,7 +33,7 @@ meas_cell::meas_cell(const phy_cell_t& phy_cell_, srslte::unique_timer timer) : 
   phy_cell = phy_cell_;
 }
 
-srslte::plmn_id_t meas_cell::get_plmn(uint32_t idx) const
+srslte::plmn_id_t meas_cell_eutra::get_plmn(uint32_t idx) const
 {
   if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
     return srslte::make_plmn_id_t(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
@@ -42,7 +42,7 @@ srslte::plmn_id_t meas_cell::get_plmn(uint32_t idx) const
   }
 }
 
-void meas_cell::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
+void meas_cell_eutra::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
 {
   sib1           = sib1_;
   has_valid_sib1 = true;
@@ -55,17 +55,17 @@ void meas_cell::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
   }
 }
 
-void meas_cell::set_sib2(const asn1::rrc::sib_type2_s& sib2_)
+void meas_cell_eutra::set_sib2(const asn1::rrc::sib_type2_s& sib2_)
 {
   sib2           = sib2_;
   has_valid_sib2 = true;
 }
-void meas_cell::set_sib3(const asn1::rrc::sib_type3_s& sib3_)
+void meas_cell_eutra::set_sib3(const asn1::rrc::sib_type3_s& sib3_)
 {
   sib3           = sib3_;
   has_valid_sib3 = true;
 }
-void meas_cell::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
+void meas_cell_eutra::set_sib13(const asn1::rrc::sib_type13_r9_s& sib13_)
 {
   sib13           = sib13_;
   has_valid_sib13 = true;
@@ -103,7 +103,23 @@ bool meas_cell::has_sib(uint32_t index) const
   return false;
 }
 
-std::string meas_cell::to_string() const
+#ifdef HAVE_5GNR
+std::string meas_cell_nr::to_string() const
+{
+  char buf[256];
+  snprintf(buf,
+           256,
+           "{cell_id: 0x%x, pci: %d, dl_arfcn_nr: %d, rsrp=%+.1f, cfo=%+.1f}",
+           get_cell_id(),
+           get_pci(),
+           get_earfcn(),
+           get_rsrp(),
+           get_cfo_hz());
+  return std::string{buf};
+}
+#endif
+
+std::string meas_cell_eutra::to_string() const
 {
   char buf[256];
   snprintf(buf,
@@ -117,7 +133,7 @@ std::string meas_cell::to_string() const
   return std::string{buf};
 }
 
-bool meas_cell::has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const
+bool meas_cell_eutra::has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const
 {
   if (has_valid_sib1) {
     for (const auto& e : sib1.cell_access_related_info.plmn_id_list) {
@@ -129,7 +145,7 @@ bool meas_cell::has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const
   return false;
 }
 
-uint16_t meas_cell::get_mcc() const
+uint16_t meas_cell_eutra::get_mcc() const
 {
   uint16_t mcc;
   if (has_valid_sib1) {
@@ -142,7 +158,7 @@ uint16_t meas_cell::get_mcc() const
   return 0;
 }
 
-uint16_t meas_cell::get_mnc() const
+uint16_t meas_cell_eutra::get_mnc() const
 {
   uint16_t mnc;
   if (has_valid_sib1) {
@@ -160,21 +176,22 @@ uint16_t meas_cell::get_mnc() const
 /*********************************************
  *           Neighbour Cell List
  ********************************************/
-
-meas_cell_list::meas_cell_list(srslte::task_sched_handle task_sched_) :
-  serv_cell(new meas_cell(task_sched_.get_unique_timer())),
+template <class T>
+meas_cell_list<T>::meas_cell_list(srslte::task_sched_handle task_sched_) :
+  serv_cell(new T(task_sched_.get_unique_timer())),
   task_sched(task_sched_)
 {}
 
-meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
+template <class T>
+T* meas_cell_list<T>::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
 {
   auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_meas_cell& cell) {
     return cell->equals(earfcn, pci);
   });
   return it != neighbour_cells.end() ? it->get() : nullptr;
 }
-
-const meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
+template <class T>
+const T* meas_cell_list<T>::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
 {
   auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_meas_cell& cell) {
     return cell->equals(earfcn, pci);
@@ -183,19 +200,20 @@ const meas_cell* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
+template <class T>
+bool meas_cell_list<T>::add_meas_cell(const phy_meas_t& meas)
 {
   phy_cell_t phy_cell = {};
   phy_cell.earfcn     = meas.earfcn;
   phy_cell.pci        = meas.pci;
-  unique_meas_cell c  = unique_meas_cell(new meas_cell(phy_cell, task_sched.get_unique_timer()));
+  unique_meas_cell c  = unique_meas_cell(new T(phy_cell, task_sched.get_unique_timer()));
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
   c.get()->set_cfo(meas.cfo_hz);
   return add_meas_cell(std::move(c));
 }
-
-bool meas_cell_list::add_meas_cell(unique_meas_cell cell)
+template <class T>
+bool meas_cell_list<T>::add_meas_cell(unique_meas_cell cell)
 {
   bool ret = add_neighbour_cell_unsorted(std::move(cell));
   if (ret) {
@@ -203,8 +221,8 @@ bool meas_cell_list::add_meas_cell(unique_meas_cell cell)
   }
   return ret;
 }
-
-bool meas_cell_list::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
+template <class T>
+bool meas_cell_list<T>::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
 {
   // Make sure cell is valid
   if (!new_cell->is_valid()) {
@@ -219,7 +237,7 @@ bool meas_cell_list::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
   }
 
   // If cell exists, update RSRP value
-  meas_cell* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
+  T* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
   if (existing_cell != nullptr) {
     if (std::isnormal(new_cell.get()->get_rsrp())) {
       existing_cell->set_rsrp(new_cell.get()->get_rsrp());
@@ -243,8 +261,8 @@ bool meas_cell_list::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
   neighbour_cells.push_back(std::move(new_cell));
   return true;
 }
-
-void meas_cell_list::rem_last_neighbour()
+template <class T>
+void meas_cell_list<T>::rem_last_neighbour()
 {
   if (not neighbour_cells.empty()) {
     unique_meas_cell& c = neighbour_cells.back();
@@ -252,8 +270,8 @@ void meas_cell_list::rem_last_neighbour()
     neighbour_cells.pop_back();
   }
 }
-
-meas_cell_list::unique_meas_cell meas_cell_list::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
+template <class T>
+typename meas_cell_list<T>::unique_meas_cell meas_cell_list<T>::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
 {
   auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_meas_cell& cell) {
     return cell->equals(earfcn, pci);
@@ -267,7 +285,8 @@ meas_cell_list::unique_meas_cell meas_cell_list::remove_neighbour_cell(uint32_t 
 }
 
 // Sort neighbour cells by decreasing order of RSRP
-void meas_cell_list::sort_neighbour_cells()
+template <class T>
+void meas_cell_list<T>::sort_neighbour_cells()
 {
   std::sort(std::begin(neighbour_cells),
             std::end(neighbour_cells),
@@ -275,8 +294,8 @@ void meas_cell_list::sort_neighbour_cells()
 
   log_neighbour_cells();
 }
-
-void meas_cell_list::log_neighbour_cells() const
+template <class T>
+void meas_cell_list<T>::log_neighbour_cells() const
 {
   if (not neighbour_cells.empty()) {
     const int32_t MAX_STR_LEN          = 512;
@@ -298,7 +317,8 @@ void meas_cell_list::log_neighbour_cells() const
 }
 
 //! Called by main RRC thread to remove neighbours from which measurements have not been received in a while
-void meas_cell_list::clean_neighbours()
+template <class T>
+void meas_cell_list<T>::clean_neighbours()
 {
   for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
     if (it->get()->timer.is_expired()) {
@@ -309,8 +329,8 @@ void meas_cell_list::clean_neighbours()
     }
   }
 }
-
-std::string meas_cell_list::print_neighbour_cells() const
+template <class T>
+std::string meas_cell_list<T>::print_neighbour_cells() const
 {
   if (neighbour_cells.empty()) {
     return "";
@@ -323,8 +343,8 @@ std::string meas_cell_list::print_neighbour_cells() const
   s += neighbour_cells.back()->to_string();
   return s;
 }
-
-std::set<uint32_t> meas_cell_list::get_neighbour_pcis(uint32_t earfcn) const
+template <class T>
+std::set<uint32_t> meas_cell_list<T>::get_neighbour_pcis(uint32_t earfcn) const
 {
   std::set<uint32_t> pcis = {};
   for (const unique_meas_cell& cell : neighbour_cells) {
@@ -334,21 +354,21 @@ std::set<uint32_t> meas_cell_list::get_neighbour_pcis(uint32_t earfcn) const
   }
   return pcis;
 }
-
-bool meas_cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
+template <class T>
+bool meas_cell_list<T>::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
 {
   return get_neighbour_cell_handle(earfcn, pci) != nullptr;
 }
-
-meas_cell* meas_cell_list::find_cell(uint32_t earfcn, uint32_t pci)
+template <class T>
+T* meas_cell_list<T>::find_cell(uint32_t earfcn, uint32_t pci)
 {
   if (serving_cell().phy_cell.pci == pci and serving_cell().phy_cell.earfcn == earfcn) {
     return &serving_cell();
   }
   return get_neighbour_cell_handle(earfcn, pci);
 }
-
-int meas_cell_list::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
+template <class T>
+int meas_cell_list<T>::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
 {
   // don't update neighbor cell list unless serving cell changes
   if (phy_cell.pci == serving_cell().get_pci() && phy_cell.earfcn == serving_cell().get_earfcn()) {
@@ -376,12 +396,13 @@ int meas_cell_list::set_serving_cell(phy_cell_t phy_cell, bool discard_serving)
   return SRSLTE_SUCCESS;
 }
 
-bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&                            meas,
-                                           const std::function<void(meas_cell&, const phy_meas_t&)>& filter_meas)
+template <class T>
+bool meas_cell_list<T>::process_new_cell_meas(const std::vector<phy_meas_t>&                    meas,
+                                              const std::function<void(T&, const phy_meas_t&)>& filter_meas)
 {
   bool neighbour_added = false;
   for (const auto& m : meas) {
-    meas_cell* c = nullptr;
+    T* c = nullptr;
 
     // Get serving_cell handle if it's the serving cell
     bool is_serving_cell = m.earfcn == 0 or is_same_cell(m, serving_cell());
@@ -413,5 +434,10 @@ bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&       
   }
   return neighbour_added;
 }
+
+template class meas_cell_list<meas_cell_eutra>;
+#ifdef HAVE_5GNR
+template class meas_cell_list<meas_cell_nr>;
+#endif
 
 } // namespace srsue

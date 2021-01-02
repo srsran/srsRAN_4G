@@ -51,6 +51,35 @@ struct bcch_bch_msg_s {
   void        to_json(json_writer& j) const;
 };
 
+// SIB-Type-v12j0 ::= ENUMERATED
+struct sib_type_v12j0_opts {
+  enum options {
+    sib_type19_v1250,
+    sib_type20_v1310,
+    sib_type21_v1430,
+    sib_type24_v1530,
+    sib_type25_v1530,
+    sib_type26_v1530,
+    spare10,
+    spare9,
+    spare8,
+    spare7,
+    spare6,
+    spare5,
+    spare4,
+    spare3,
+    spare2,
+    spare1,
+    // ...
+    nulltype
+  } value;
+  typedef uint8_t number_type;
+
+  std::string to_string() const;
+  uint8_t     to_number() const;
+};
+typedef enumerated<sib_type_v12j0_opts, true> sib_type_v12j0_e;
+
 // NS-PmaxValue-v10l0 ::= SEQUENCE
 struct ns_pmax_value_v10l0_s {
   bool     add_spec_emission_v10l0_present = false;
@@ -61,6 +90,9 @@ struct ns_pmax_value_v10l0_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
+
+// SIB-MappingInfo-v12j0 ::= SEQUENCE (SIZE (1..31)) OF SIB-Type-v12j0
+using sib_map_info_v12j0_l = bounded_array<sib_type_v12j0_e, 31>;
 
 // InterFreqCarrierFreqInfo-v1360 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1360_s {
@@ -81,6 +113,28 @@ struct ns_pmax_value_r10_s {
   bool    add_pmax_r10_present = false;
   int8_t  add_pmax_r10         = -30;
   uint8_t add_spec_emission    = 1;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SchedulingInfo-v12j0 ::= SEQUENCE
+struct sched_info_v12j0_s {
+  bool                 sib_map_info_v12j0_present = false;
+  sib_map_info_v12j0_l sib_map_info_v12j0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SchedulingInfoExt-r12 ::= SEQUENCE
+struct sched_info_ext_r12_s {
+  si_periodicity_r12_e si_periodicity_r12;
+  sib_map_info_v12j0_l sib_map_info_r12;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -133,6 +187,12 @@ using pci_list_cdma2000_l = bounded_array<uint16_t, 16>;
 // PhysCellIdListCDMA2000-v920 ::= SEQUENCE (SIZE (0..24)) OF INTEGER (0..511)
 using pci_list_cdma2000_v920_l = bounded_array<uint16_t, 24>;
 
+// SchedulingInfoList-v12j0 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo-v12j0
+using sched_info_list_v12j0_l = dyn_array<sched_info_v12j0_s>;
+
+// SchedulingInfoListExt-r12 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfoExt-r12
+using sched_info_list_ext_r12_l = dyn_array<sched_info_ext_r12_s>;
+
 // SystemInformationBlockType2-v13c0-IEs ::= SEQUENCE
 struct sib_type2_v13c0_ies_s {
   bool                       ul_pwr_ctrl_common_v13c0_present = false;
@@ -175,6 +235,18 @@ struct multi_band_info_v9e0_s {
 // MultiBandInfoList-v10j0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-r10
 using multi_band_info_list_v10j0_l = dyn_array<ns_pmax_list_r10_l>;
 
+// NS-PmaxValueNR-r15 ::= SEQUENCE
+struct ns_pmax_value_nr_r15_s {
+  bool    add_pmax_nr_r15_present  = false;
+  int8_t  add_pmax_nr_r15          = -30;
+  uint8_t add_spec_emission_nr_r15 = 0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // NeighCellCDMA2000-r11 ::= SEQUENCE
 struct neigh_cell_cdma2000_r11_s {
   using neigh_freq_info_list_r11_l_ = dyn_array<neigh_cells_per_bandclass_cdma2000_r11_s>;
@@ -214,6 +286,20 @@ struct neigh_cells_per_bandclass_cdma2000_v920_s {
 struct redist_neigh_cell_r13_s {
   uint16_t pci_r13                = 0;
   uint8_t  redist_factor_cell_r13 = 1;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType1-v12j0-IEs ::= SEQUENCE
+struct sib_type1_v12j0_ies_s {
+  bool                      sched_info_list_v12j0_present   = false;
+  bool                      sched_info_list_ext_r12_present = false;
+  bool                      non_crit_ext_present            = false;
+  sched_info_list_v12j0_l   sched_info_list_v12j0;
+  sched_info_list_ext_r12_l sched_info_list_ext_r12;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -341,17 +427,8 @@ struct inter_freq_neigh_cell_info_s {
 // MultiBandInfoList-v9e0 ::= SEQUENCE (SIZE (1..8)) OF MultiBandInfo-v9e0
 using multi_band_info_list_v9e0_l = dyn_array<multi_band_info_v9e0_s>;
 
-// NS-PmaxValueNR-r15 ::= SEQUENCE
-struct ns_pmax_value_nr_r15_s {
-  bool    add_pmax_nr_r15_present  = false;
-  int8_t  add_pmax_nr_r15          = -30;
-  uint8_t add_spec_emission_nr_r15 = 0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
+// NS-PmaxListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValueNR-r15
+using ns_pmax_list_nr_r15_l = dyn_array<ns_pmax_value_nr_r15_s>;
 
 // NeighCellsPerBandclassListCDMA2000 ::= SEQUENCE (SIZE (1..16)) OF NeighCellsPerBandclassCDMA2000
 using neigh_cells_per_bandclass_list_cdma2000_l = dyn_array<neigh_cells_per_bandclass_cdma2000_s>;
@@ -422,6 +499,19 @@ using redist_neigh_cell_list_r13_l = dyn_array<redist_neigh_cell_r13_s>;
 
 // SL-SyncConfigListNFreq-r13 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfigNFreq-r13
 using sl_sync_cfg_list_nfreq_r13_l = dyn_array<sl_sync_cfg_nfreq_r13_s>;
+
+// SystemInformationBlockType1-v10x0-IEs ::= SEQUENCE
+struct sib_type1_v10x0_ies_s {
+  bool                  late_non_crit_ext_present = false;
+  bool                  non_crit_ext_present      = false;
+  dyn_octstring         late_non_crit_ext;
+  sib_type1_v12j0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
 
 // SystemInformationBlockType2-v10m0-IEs ::= SEQUENCE
 struct sib_type2_v10m0_ies_s {
@@ -568,8 +658,11 @@ using mbms_sai_list_r11_l = dyn_array<uint32_t>;
 // MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..64)
 using multi_band_info_list_l = bounded_array<uint8_t, 8>;
 
-// NS-PmaxListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValueNR-r15
-using ns_pmax_list_nr_r15_l = dyn_array<ns_pmax_value_nr_r15_s>;
+// MultiBandNsPmaxListNR-1-v1550 ::= SEQUENCE (SIZE (1..31)) OF NS-PmaxListNR-r15
+using multi_band_ns_pmax_list_nr_minus1_v1550_l = dyn_array<ns_pmax_list_nr_r15_l>;
+
+// MultiBandNsPmaxListNR-v1550 ::= SEQUENCE (SIZE (1..32)) OF NS-PmaxListNR-r15
+using multi_band_ns_pmax_list_nr_v1550_l = dyn_array<ns_pmax_list_nr_r15_l>;
 
 // NeighCellCDMA2000 ::= SEQUENCE
 struct neigh_cell_cdma2000_s {
@@ -707,6 +800,7 @@ struct sib_type1_v10l0_ies_s {
   bool                         non_crit_ext_present               = false;
   ns_pmax_list_v10l0_l         freq_band_info_v10l0;
   multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
+  sib_type1_v10x0_ies_s        non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -803,11 +897,15 @@ struct carrier_freq_nr_r15_s {
   int8_t                        q_rx_lev_min_sul_r15 = -70;
   int8_t                        p_max_nr_r15         = -30;
   ns_pmax_list_nr_r15_l         ns_pmax_list_nr_r15;
-  int8_t                        q_qual_min_r15               = -34;
+  int8_t                        q_qual_min_r15               = -43;
   bool                          derive_ssb_idx_from_cell_r15 = false;
   uint8_t                       max_rs_idx_cell_qual_r15     = 1;
   thres_list_nr_r15_s           thresh_rs_idx_r15;
   // ...
+  // group 0
+  copy_ptr<multi_band_ns_pmax_list_nr_minus1_v1550_l> multi_band_ns_pmax_list_nr_v1550;
+  copy_ptr<multi_band_ns_pmax_list_nr_v1550_l>        multi_band_ns_pmax_list_nr_sul_v1550;
+  copy_ptr<ssb_to_measure_r15_c>                      ssb_to_measure_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1234,7 +1332,7 @@ struct mbsfn_area_info_r9_s {
     mcch_mod_period_v1430_e_    mcch_mod_period_v1430;
   };
   struct subcarrier_spacing_mbms_r14_opts {
-    enum options { khz_minus7dot5, khz_minus1dot25, nulltype } value;
+    enum options { khz7dot5, khz1dot25, nulltype } value;
     typedef float number_type;
 
     std::string to_string() const;
@@ -2976,14 +3074,16 @@ struct sib_type26_r15_s {
   bool                              sync_freq_list_r15_present           = false;
   bool                              slss_tx_multi_freq_r15_present       = false;
   bool                              v2x_freq_sel_cfg_list_r15_present    = false;
-  bool                              thresh_s_rssi_cbr_r14_present        = false;
+  bool                              thresh_s_rssi_cbr_r15_present        = false;
   sl_inter_freq_info_list_v2x_r14_l v2x_inter_freq_info_list_r15;
   sl_cbr_pppp_tx_cfg_list_r15_l     cbr_pssch_tx_cfg_list_r15;
   sl_v2x_packet_dupl_cfg_r15_s      v2x_packet_dupl_cfg_r15;
   sl_v2x_sync_freq_list_r15_l       sync_freq_list_r15;
   sl_v2x_freq_sel_cfg_list_r15_l    v2x_freq_sel_cfg_list_r15;
-  uint8_t                           thresh_s_rssi_cbr_r14 = 0;
+  uint8_t                           thresh_s_rssi_cbr_r15 = 0;
   // ...
+  bool          late_non_crit_ext_present = false;
+  dyn_octstring late_non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

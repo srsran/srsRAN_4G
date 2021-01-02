@@ -22,14 +22,13 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
+#include "srslte/srslog/bundled/fmt/format.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <map>
-#include <sstream>
-#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -1310,6 +1309,8 @@ private:
     JsonWriter
 *******************/
 
+using json_buffer = fmt::basic_memory_buffer<char, 2048>;
+
 class json_writer
 {
 public:
@@ -1330,9 +1331,9 @@ public:
   std::string to_string() const;
 
 private:
-  std::stringstream ss;
-  std::string       ident;
-  enum separator_t { COMMA, NEWLINE, NONE };
+  json_buffer buffer;
+  std::string ident;
+  enum separator_t { COMMA = 0, NEWLINE, NONE };
   separator_t sep;
 };
 

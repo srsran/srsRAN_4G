@@ -744,6 +744,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     parse_default_field(cell_cfg.initial_dl_cqi, cellroot, "initial_dl_cqi", 5u);
     parse_default_field(cell_cfg.meas_cfg.meas_gap_period, cellroot, "meas_gap_period", 0u);
     HANDLEPARSERCODE(parse_default_field(cell_cfg.target_ul_sinr_db, cellroot, "target_ul_sinr", -1));
+    HANDLEPARSERCODE(parse_default_field(cell_cfg.enable_phr_handling, cellroot, "enable_phr_handling", false));
 
     if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));

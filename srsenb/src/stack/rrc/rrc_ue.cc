@@ -24,6 +24,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
 #include "srslte/asn1/rrc_utils.h"
+#include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
 
 using namespace asn1::rrc;
@@ -67,6 +68,20 @@ rrc::ue::~ue() {}
 rrc_state_t rrc::ue::get_state()
 {
   return state;
+}
+
+void rrc::ue::get_metrics(rrc_ue_metrics_t& ue_metrics) const
+{
+  ue_metrics.state      = state;
+  const auto& drb_list  = bearer_list.get_established_drbs();
+  const auto& erab_list = bearer_list.get_erabs();
+  ue_metrics.drb_qci_map.reserve(drb_list.size());
+  for (size_t i = 0; i < drb_list.size(); ++i) {
+    auto erab_it = erab_list.find(drb_list[i].eps_bearer_id);
+    if (erab_it != erab_list.end()) {
+      ue_metrics.drb_qci_map.push_back(std::make_pair(drb_list[i].lc_ch_id, erab_it->second.qos_params.qci));
+    }
+  }
 }
 
 void rrc::ue::set_activity()
@@ -300,6 +315,9 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
     parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+
+  // Log event.
+  event_logger::get().log_rrc_connected(static_cast<unsigned>(s1ap_cause.value));
 }
 
 void rrc::ue::send_connection_reject()
@@ -637,6 +655,9 @@ void rrc::ue::send_connection_release()
   }
 
   send_dl_dcch(&dl_dcch_msg);
+
+  // Log rrc release event.
+  event_logger::get().log_rrc_disconnect(static_cast<unsigned>(rel_ies.release_cause));
 }
 
 /*
@@ -824,6 +845,17 @@ bool rrc::ue::release_erabs()
 bool rrc::ue::release_erab(uint32_t erab_id)
 {
   return bearer_list.release_erab(erab_id);
+}
+
+bool rrc::ue::modify_erab(uint16_t                                   erab_id,
+                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                          const asn1::unbounded_octstring<true>*     nas_pdu)
+{
+  bool ret = bearer_list.modify_erab(erab_id, qos_params, nas_pdu);
+  if (ret) {
+    send_connection_reconf(nullptr, false);
+  }
+  return ret;
 }
 
 void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
@@ -1046,13 +1078,12 @@ void rrc::ue::apply_reconf_phy_config(const rrc_conn_recfg_r8_ies_s& reconfig_r8
             // Get corresponding eNB CC index
             scell_phy_rrc_ded.enb_cc_idx = ue_cc->cell_common->enb_cc_idx;
 
+            // Append to PHY RRC config dedicated which will be applied further down
+            phy_rrc_dedicated_list[scell.scell_idx_r10] = scell_phy_rrc_ded;
             srslte::set_phy_cfg_t_enable_64qam(
                 &phy_rrc_dedicated_list[scell.scell_idx_r10].phy_cfg,
                 ue_capabilities.support_ul_64qam and
                     parent->cfg.sibs[1].sib2().rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
-
-            // Append to PHY RRC config dedicated which will be applied further down
-            phy_rrc_dedicated_list[scell.scell_idx_r10] = scell_phy_rrc_ded;
           }
         }
       }

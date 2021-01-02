@@ -585,27 +585,27 @@ struct lc_ch_cfg_s {
     types    type_;
     setup_e_ c;
   };
-  struct chl_access_prio_r15_c_ {
+  struct ch_access_prio_r15_c_ {
     typedef setup_e types;
 
     // choice methods
-    chl_access_prio_r15_c_() = default;
+    ch_access_prio_r15_c_() = default;
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
-    bool        operator==(const chl_access_prio_r15_c_& other) const;
-    bool        operator!=(const chl_access_prio_r15_c_& other) const { return not(*this == other); }
+    bool        operator==(const ch_access_prio_r15_c_& other) const;
+    bool        operator!=(const ch_access_prio_r15_c_& other) const { return not(*this == other); }
     // getters
     uint8_t& setup()
     {
-      assert_choice_type("setup", type_.to_string(), "channellAccessPriority-r15");
+      assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
       return c;
     }
     const uint8_t& setup() const
     {
-      assert_choice_type("setup", type_.to_string(), "channellAccessPriority-r15");
+      assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
       return c;
     }
     uint8_t& set_setup()
@@ -638,7 +638,7 @@ struct lc_ch_cfg_s {
   bool                               lch_cell_restrict_r15_present = false;
   copy_ptr<allowed_tti_lens_r15_c_>  allowed_tti_lens_r15;
   copy_ptr<lc_ch_sr_restrict_r15_c_> lc_ch_sr_restrict_r15;
-  copy_ptr<chl_access_prio_r15_c_>   chl_access_prio_r15;
+  copy_ptr<ch_access_prio_r15_c_>    ch_access_prio_r15;
   fixed_bitstring<32>                lch_cell_restrict_r15;
 
   // sequence methods
@@ -872,8 +872,8 @@ struct crs_assist_info_r13_s {
 
 // CRS-AssistanceInfo-r15 ::= SEQUENCE
 struct crs_assist_info_r15_s {
-  bool     crs_intf_mitig_enabled_minus15_present = false;
-  uint16_t pci_r15                                = 0;
+  bool     crs_intf_mitig_enabled_r15_present = false;
+  uint16_t pci_r15                            = 0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2256,7 +2256,7 @@ struct drb_to_add_mod_s {
   // group 4
   bool                           lc_ch_id_r15_present = false;
   copy_ptr<rlc_cfg_v1530_c>      rlc_cfg_v1530;
-  copy_ptr<rlc_bearer_cfg_r15_c> rlc_bearer_cfg_dupl_r15;
+  copy_ptr<rlc_bearer_cfg_r15_c> rlc_bearer_cfg_secondary_r15;
   uint8_t                        lc_ch_id_r15 = 32;
 
   // sequence methods
@@ -3293,8 +3293,10 @@ struct srb_to_add_mod_s {
   bool                           pdcp_ver_change_r15_present = false;
   bool                           srb_id_v1530_present        = false;
   copy_ptr<rlc_cfg_v1530_c>      rlc_cfg_v1530;
-  copy_ptr<rlc_bearer_cfg_r15_c> rlc_bearer_cfg_dupl_r15;
+  copy_ptr<rlc_bearer_cfg_r15_c> rlc_bearer_cfg_secondary_r15;
   uint8_t                        srb_id_v1530 = 4;
+  // group 1
+  copy_ptr<rlc_cfg_v1510_s> rlc_cfg_v1560;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4289,11 +4291,11 @@ struct sps_cfg_v1540_s {
   void        to_json(json_writer& j) const;
 };
 
-// SRB-ToAddModExtList-r15 ::= SEQUENCE (SIZE (1)) OF SRB-ToAddMod
-using srb_to_add_mod_ext_list_r15_l = std::array<srb_to_add_mod_s, 1>;
-
 // SRB-ToAddModList ::= SEQUENCE (SIZE (1..2)) OF SRB-ToAddMod
 using srb_to_add_mod_list_l = dyn_array<srb_to_add_mod_s>;
+
+// SRB-ToAddModListExt-r15 ::= SEQUENCE (SIZE (1)) OF SRB-ToAddMod
+using srb_to_add_mod_list_ext_r15_l = std::array<srb_to_add_mod_s, 1>;
 
 // RadioResourceConfigDedicated ::= SEQUENCE
 struct rr_cfg_ded_s {
@@ -4335,20 +4337,18 @@ struct rr_cfg_ded_s {
   };
   struct crs_intf_mitig_cfg_r15_c_ {
     struct setup_c_ {
-      struct crs_intf_mitig_num_prbs_r15_opts {
+      struct crs_intf_mitig_num_prbs_opts {
         enum options { n6, n24, nulltype } value;
         typedef uint8_t number_type;
 
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      typedef enumerated<crs_intf_mitig_num_prbs_r15_opts> crs_intf_mitig_num_prbs_r15_e_;
+      typedef enumerated<crs_intf_mitig_num_prbs_opts> crs_intf_mitig_num_prbs_e_;
       struct types_opts {
-        enum options { crs_intf_mitig_enabled_minus15, crs_intf_mitig_num_prbs_r15, nulltype } value;
-        typedef int8_t number_type;
+        enum options { crs_intf_mitig_enabled, crs_intf_mitig_num_prbs, nulltype } value;
 
         std::string to_string() const;
-        int8_t      to_number() const;
       };
       typedef enumerated<types_opts> types;
 
@@ -4360,25 +4360,25 @@ struct rr_cfg_ded_s {
       SRSASN_CODE unpack(cbit_ref& bref);
       void        to_json(json_writer& j) const;
       // getters
-      crs_intf_mitig_num_prbs_r15_e_& crs_intf_mitig_num_prbs_r15()
+      crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs()
       {
-        assert_choice_type("crs-IntfMitigNumPRBs-r15", type_.to_string(), "setup");
+        assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
         return c;
       }
-      const crs_intf_mitig_num_prbs_r15_e_& crs_intf_mitig_num_prbs_r15() const
+      const crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs() const
       {
-        assert_choice_type("crs-IntfMitigNumPRBs-r15", type_.to_string(), "setup");
+        assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
         return c;
       }
-      crs_intf_mitig_num_prbs_r15_e_& set_crs_intf_mitig_num_prbs_r15()
+      crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs()
       {
-        set(types::crs_intf_mitig_num_prbs_r15);
+        set(types::crs_intf_mitig_num_prbs);
         return c;
       }
 
     private:
-      types                          type_;
-      crs_intf_mitig_num_prbs_r15_e_ c;
+      types                      type_;
+      crs_intf_mitig_num_prbs_e_ c;
     };
     typedef setup_e types;
 
@@ -4441,9 +4441,9 @@ struct rr_cfg_ded_s {
   // group 5
   copy_ptr<sps_cfg_v1430_s> sps_cfg_v1430;
   // group 6
-  bool                                    srb_to_release_ext_list_r15_present = false;
-  copy_ptr<srb_to_add_mod_ext_list_r15_l> srb_to_add_mod_ext_list_r15;
-  uint8_t                                 srb_to_release_ext_list_r15 = 4;
+  bool                                    srb_to_release_list_ext_r15_present = false;
+  copy_ptr<srb_to_add_mod_list_ext_r15_l> srb_to_add_mod_list_ext_r15;
+  uint8_t                                 srb_to_release_list_ext_r15 = 4;
   copy_ptr<sps_cfg_v1530_s>               sps_cfg_v1530;
   copy_ptr<crs_intf_mitig_cfg_r15_c_>     crs_intf_mitig_cfg_r15;
   copy_ptr<neigh_cells_crs_info_r15_c>    neigh_cells_crs_info_r15;
@@ -6132,7 +6132,7 @@ struct phys_cfg_ded_scell_r10_s {
   // group 7
   copy_ptr<phys_cfg_ded_stti_r15_c>       phys_cfg_ded_stti_r15;
   copy_ptr<pdsch_cfg_ded_v1530_s>         pdsch_cfg_ded_v1530;
-  copy_ptr<cqi_report_cfg_v1530_s>        cqi_report_cfg_v1530;
+  copy_ptr<cqi_report_cfg_v1530_s>        dummy;
   copy_ptr<cqi_report_cfg_scell_r15_s>    cqi_report_cfg_scell_r15;
   copy_ptr<cqi_short_cfg_scell_r15_c>     cqi_short_cfg_scell_r15;
   copy_ptr<csi_rs_cfg_v1530_s>            csi_rs_cfg_v1530;
@@ -6141,6 +6141,8 @@ struct phys_cfg_ded_scell_r10_s {
   copy_ptr<pusch_cfg_ded_scell_v1530_s>   pusch_cfg_ded_v1530;
   copy_ptr<semi_static_cfi_cfg_r15_c_>    semi_static_cfi_cfg_r15;
   copy_ptr<blind_pdsch_repeat_cfg_r15_c_> blind_pdsch_repeat_cfg_r15;
+  // group 8
+  copy_ptr<spucch_cfg_v1550_c> spucch_cfg_v1550;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -6465,7 +6467,9 @@ struct drb_to_add_mod_scg_r12_s {
   bool                           lc_ch_id_scg_r15_present = false;
   uint8_t                        lc_ch_id_scg_r15         = 32;
   copy_ptr<rlc_cfg_v1530_c>      rlc_cfg_v1530;
-  copy_ptr<rlc_bearer_cfg_r15_c> rlc_bearer_cfg_dupl_r15;
+  copy_ptr<rlc_bearer_cfg_r15_c> rlc_bearer_cfg_secondary_r15;
+  // group 2
+  copy_ptr<rlc_cfg_v1510_s> rlc_cfg_v1560;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -6693,6 +6697,8 @@ struct rr_cfg_ded_scg_r12_s {
   // group 1
   copy_ptr<srb_to_add_mod_list_l>     srb_to_add_mod_list_scg_r15;
   copy_ptr<srb_to_release_list_r15_l> srb_to_release_list_scg_r15;
+  // group 2
+  copy_ptr<drb_to_release_list_r15_l> drb_to_release_list_scg_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

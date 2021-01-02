@@ -2036,6 +2036,27 @@ struct wus_cfg_r15_s {
   void        to_json(json_writer& j) const;
 };
 
+// WUS-Config-v1560 ::= SEQUENCE
+struct wus_cfg_v1560_s {
+  struct pwr_boost_r15_opts {
+    enum options { db0, db1dot8, db3, db4dot8, nulltype } value;
+    typedef float number_type;
+
+    std::string to_string() const;
+    float       to_number() const;
+    std::string to_number_string() const;
+  };
+  typedef enumerated<pwr_boost_r15_opts> pwr_boost_r15_e_;
+
+  // member variables
+  pwr_boost_r15_e_ pwr_boost_r15;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // RadioResourceConfigCommonSIB ::= SEQUENCE
 struct rr_cfg_common_sib_s {
   bool                 ext = false;
@@ -2075,6 +2096,8 @@ struct rr_cfg_common_sib_s {
   copy_ptr<high_speed_cfg_v1530_s> high_speed_cfg_v1530;
   // group 6
   copy_ptr<ul_pwr_ctrl_common_v1530_s> ul_pwr_ctrl_common_v1540;
+  // group 7
+  copy_ptr<wus_cfg_v1560_s> wus_cfg_v1560;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

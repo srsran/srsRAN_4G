@@ -85,6 +85,14 @@ public:
   bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
   bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;
+  void modify_erabs(uint16_t                                 rnti,
+                    const asn1::s1ap::erab_modify_request_s& msg,
+                    std::vector<uint16_t>*                   erabs_modified,
+                    std::vector<uint16_t>*                   erabs_failed_to_modify) override;
+  bool modify_ue_erab(uint16_t                                   rnti,
+                      uint8_t                                    erab_id,
+                      const asn1::s1ap::erab_level_qos_params_s& qos_params,
+                      const asn1::unbounded_octstring<true>*     nas_pdu);
   bool release_erabs(uint32_t rnti) override;
   void release_erabs(uint32_t                              rnti,
                      const asn1::s1ap::erab_release_cmd_s& msg,

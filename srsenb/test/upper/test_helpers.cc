@@ -32,6 +32,25 @@ srslte::LOG_LEVEL_ENUM log_level;
 
 namespace test_helpers {
 
+int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_args_t& args)
+{
+  *rrc_cfg                  = {};
+  args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
+  args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
+  args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
+  srslte::logmap::get("TEST")->debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
+
+  args.enb.enb_id = 0x19B;
+  TESTASSERT(srslte::string_to_mcc("001", &args.stack.s1ap.mcc));
+  TESTASSERT(srslte::string_to_mnc("01", &args.stack.s1ap.mnc));
+  args.general.eia_pref_list = "EIA2, EIA1, EIA0";
+  args.general.eea_pref_list = "EEA0, EEA2, EEA1";
+
+  args.general.rrc_inactivity_timer = 60000;
+
+  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, phy_cfg);
+}
+
 int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
 {
   args                      = {};

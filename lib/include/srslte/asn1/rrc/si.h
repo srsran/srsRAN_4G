@@ -239,20 +239,18 @@ struct sib_type1_v1540_ies_s {
 // SystemInformationBlockType1-v1530-IEs ::= SEQUENCE
 struct sib_type1_v1530_ies_s {
   struct crs_intf_mitig_cfg_r15_c_ {
-    struct crs_intf_mitig_num_prbs_r15_opts {
+    struct crs_intf_mitig_num_prbs_opts {
       enum options { n6, n24, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    typedef enumerated<crs_intf_mitig_num_prbs_r15_opts> crs_intf_mitig_num_prbs_r15_e_;
+    typedef enumerated<crs_intf_mitig_num_prbs_opts> crs_intf_mitig_num_prbs_e_;
     struct types_opts {
-      enum options { crs_intf_mitig_enabled_minus15, crs_intf_mitig_num_prbs_r15, nulltype } value;
-      typedef int8_t number_type;
+      enum options { crs_intf_mitig_enabled, crs_intf_mitig_num_prbs, nulltype } value;
 
       std::string to_string() const;
-      int8_t      to_number() const;
     };
     typedef enumerated<types_opts> types;
 
@@ -264,25 +262,25 @@ struct sib_type1_v1530_ies_s {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    crs_intf_mitig_num_prbs_r15_e_& crs_intf_mitig_num_prbs_r15()
+    crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs()
     {
-      assert_choice_type("crs-IntfMitigNumPRBs-r15", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "crs-IntfMitigConfig-r15");
       return c;
     }
-    const crs_intf_mitig_num_prbs_r15_e_& crs_intf_mitig_num_prbs_r15() const
+    const crs_intf_mitig_num_prbs_e_& crs_intf_mitig_num_prbs() const
     {
-      assert_choice_type("crs-IntfMitigNumPRBs-r15", type_.to_string(), "crs-IntfMitigConfig-r15");
+      assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "crs-IntfMitigConfig-r15");
       return c;
     }
-    crs_intf_mitig_num_prbs_r15_e_& set_crs_intf_mitig_num_prbs_r15()
+    crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs()
     {
-      set(types::crs_intf_mitig_num_prbs_r15);
+      set(types::crs_intf_mitig_num_prbs);
       return c;
     }
 
   private:
-    types                          type_;
-    crs_intf_mitig_num_prbs_r15_e_ c;
+    types                      type_;
+    crs_intf_mitig_num_prbs_e_ c;
   };
   struct cell_barred_crs_r15_opts {
     enum options { barred, not_barred, nulltype } value;
@@ -356,6 +354,16 @@ struct cell_sel_info_ce1_v1360_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
+
+// SI-Periodicity-r12 ::= ENUMERATED
+struct si_periodicity_r12_opts {
+  enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype } value;
+  typedef uint16_t number_type;
+
+  std::string to_string() const;
+  uint16_t    to_number() const;
+};
+typedef enumerated<si_periodicity_r12_opts> si_periodicity_r12_e;
 
 // SystemInformationBlockType1-v1450-IEs ::= SEQUENCE
 struct sib_type1_v1450_ies_s {
@@ -1174,18 +1182,8 @@ struct ue_timers_and_consts_s {
 
 // SchedulingInfo ::= SEQUENCE
 struct sched_info_s {
-  struct si_periodicity_opts {
-    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype } value;
-    typedef uint16_t number_type;
-
-    std::string to_string() const;
-    uint16_t    to_number() const;
-  };
-  typedef enumerated<si_periodicity_opts> si_periodicity_e_;
-
-  // member variables
-  si_periodicity_e_ si_periodicity;
-  sib_map_info_l    sib_map_info;
+  si_periodicity_r12_e si_periodicity;
+  sib_map_info_l       sib_map_info;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

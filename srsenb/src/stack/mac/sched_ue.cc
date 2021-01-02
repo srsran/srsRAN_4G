@@ -236,6 +236,9 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
   if (current_tti != tti_rx) {
     current_tti = tti_rx;
     lch_handler.new_tti();
+    for (auto& cc : carriers) {
+      cc.harq_ent.new_tti(tti_rx);
+    }
   }
   int ue_cc_idx = enb_ue_cc_idx_map[enb_cc_idx];
   if (ue_cc_idx >= 0) {
@@ -1332,7 +1335,7 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   ue_cc_idx(ue_cc_idx_),
   last_tti(current_tti),
   harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
-  tpc_fsm(cell_cfg_.nof_prb(), cell_cfg_.cfg.target_ul_sinr)
+  tpc_fsm(cell_cfg_.nof_prb(), cell_cfg_.cfg.target_ul_sinr, cell_cfg_.cfg.enable_phr_handling)
 {
   dl_cqi_rx = false;
   dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
@@ -1510,7 +1513,7 @@ int cc_sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbo
 {
   auto compute_tbs_approx = [this, nof_ctrl_symbols](uint32_t nof_prb) {
     uint32_t nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, nof_prb, nof_ctrl_symbols);
-    int      mcs, tbs;
+    int      mcs;
     if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
       return alloc_tbs_dl(nof_prb, nof_re, 0, &mcs);
     }
@@ -1532,7 +1535,7 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
   auto compute_tbs_approx = [this](uint32_t nof_prb) {
     const uint32_t N_srs  = 0;
     uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
-    int            mcs, tbs;
+    int            mcs;
     if (fixed_mcs_ul < 0) {
       return alloc_tbs_ul(nof_prb, nof_re, 0, &mcs);
     }

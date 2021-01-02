@@ -191,6 +191,18 @@ private:
   void destroy_();
 };
 
+// RRCEarlyDataRequest-v1590-IEs ::= SEQUENCE
+struct rrc_early_data_request_v1590_ies_s {
+  bool          late_non_crit_ext_present = false;
+  bool          non_crit_ext_present      = false;
+  dyn_octstring late_non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // ReestabUE-Identity ::= SEQUENCE
 struct reestab_ue_id_s {
   fixed_bitstring<16> c_rnti;
@@ -428,17 +440,18 @@ struct rrc_conn_resume_request_r13_ies_s {
 // RRCEarlyDataRequest-r15-IEs ::= SEQUENCE
 struct rrc_early_data_request_r15_ies_s {
   struct establishment_cause_r15_opts {
-    enum options { mo_data_r15, delay_tolerant_access_r15, nulltype } value;
+    enum options { mo_data, delay_tolerant_access, nulltype } value;
 
     std::string to_string() const;
   };
   typedef enumerated<establishment_cause_r15_opts> establishment_cause_r15_e_;
 
   // member variables
-  bool                       non_crit_ext_present = false;
-  s_tmsi_s                   s_tmsi_r15;
-  establishment_cause_r15_e_ establishment_cause_r15;
-  dyn_octstring              ded_info_nas_r15;
+  bool                               non_crit_ext_present = false;
+  s_tmsi_s                           s_tmsi_r15;
+  establishment_cause_r15_e_         establishment_cause_r15;
+  dyn_octstring                      ded_info_nas_r15;
+  rrc_early_data_request_v1590_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

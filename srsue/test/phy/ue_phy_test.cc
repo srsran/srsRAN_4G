@@ -22,6 +22,7 @@
 #include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
+#include <srslte/interfaces/ue_interfaces.h>
 #include <srslte/phy/utils/random.h>
 #include <srslte/srslog/srslog.h>
 #include <srslte/srslte.h>
@@ -92,7 +93,7 @@ private:
 
     void in_sync() override { notify_in_sync(); }
     void out_of_sync() override { notify_out_of_sync(); }
-    void new_cell_meas(const std::vector<phy_meas_t>& meas) override
+    void new_cell_meas(const std::vector<srsue::phy_meas_t>& meas) override
     {
       for (auto& m : meas) {
         notify_new_phy_meas();

@@ -78,6 +78,9 @@ public:
                 const asn1::unbounded_octstring<true>*             nas_pdu);
   bool release_erab(uint8_t erab_id);
   void release_erabs();
+  bool modify_erab(uint8_t                                    erab_id,
+                   const asn1::s1ap::erab_level_qos_params_s& qos,
+                   const asn1::unbounded_octstring<true>*     nas_pdu);
 
   // Methods to apply bearer updates
   void add_gtpu_bearer(gtpu_interface_rrc* gtpu, uint32_t erab_id);

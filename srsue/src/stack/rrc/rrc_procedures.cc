@@ -91,7 +91,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_cell_t& new_ce
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
   if (not rrc_ptr->meas_cells.add_meas_cell(
-          unique_cell_t(new meas_cell(new_cell, rrc_ptr->task_sched.get_unique_timer())))) {
+          unique_cell_t(new meas_cell_eutra(new_cell, rrc_ptr->task_sched.get_unique_timer())))) {
     Error("Could not add new found cell\n");
     return proc_outcome_t::error;
   }
@@ -561,7 +561,7 @@ proc_outcome_t rrc::cell_selection_proc::start_next_cell_selection()
   // If serving is not available, use the stored information (known neighbours) to find the strongest
   // cell that meets the selection criteria.
   for (; neigh_index < meas_cells->nof_neighbours(); ++neigh_index) {
-    const meas_cell& neigh_cell = meas_cells->at(neigh_index);
+    const meas_cell_eutra& neigh_cell = meas_cells->at(neigh_index);
 
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * meas_cells[i]->plmn_equals(selected_plmn_id) && */
@@ -607,7 +607,7 @@ proc_outcome_t rrc::cell_selection_proc::react(const bool& cell_selection_result
   return start_next_cell_selection();
 }
 
-srslte::proc_outcome_t rrc::cell_selection_proc::start_phy_cell_selection(const meas_cell& cell)
+srslte::proc_outcome_t rrc::cell_selection_proc::start_phy_cell_selection(const meas_cell_eutra& cell)
 {
   if (not is_same_cell(cell, meas_cells->serving_cell())) {
     rrc_ptr->set_serving_cell(cell.phy_cell, discard_serving);
@@ -688,11 +688,13 @@ void rrc::cell_selection_proc::then(const srslte::proc_result_t<cs_result_t>& pr
 {
   Info("Completed with %s.\n", proc_result.is_success() ? "success" : "failure");
   // Inform Connection Request Procedure
-  if (rrc_ptr->conn_req_proc.is_busy()) {
-    rrc_ptr->conn_req_proc.trigger(proc_result);
-  } else if (rrc_ptr->connection_reest.is_busy()) {
-    rrc_ptr->connection_reest.trigger(proc_result);
-  }
+  rrc_ptr->task_sched.defer_task([this, proc_result]() {
+    if (rrc_ptr->conn_req_proc.is_busy()) {
+      rrc_ptr->conn_req_proc.trigger(proc_result);
+    } else if (rrc_ptr->connection_reest.is_busy()) {
+      rrc_ptr->connection_reest.trigger(proc_result);
+    }
+  });
 }
 
 /**************************************
@@ -1556,7 +1558,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
                                                                  : rrc_ptr->meas_cells.serving_cell().get_earfcn();
 
   // Target cell shall be either serving cell (intra-cell HO) or neighbour cell
-  meas_cell* cell_to_ho = rrc_ptr->meas_cells.find_cell(target_earfcn, mob_ctrl_info->target_pci);
+  meas_cell_eutra* cell_to_ho = rrc_ptr->meas_cells.find_cell(target_earfcn, mob_ctrl_info->target_pci);
   if (cell_to_ho != nullptr) {
     target_cell = cell_to_ho->phy_cell;
   } else {

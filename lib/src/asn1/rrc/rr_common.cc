@@ -3633,6 +3633,42 @@ uint16_t wus_cfg_r15_s::time_offset_e_drx_long_r15_opts::to_number() const
   return map_enum_number(options, 2, value, "wus_cfg_r15_s::time_offset_e_drx_long_r15_e_");
 }
 
+// WUS-Config-v1560 ::= SEQUENCE
+SRSASN_CODE wus_cfg_v1560_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(pwr_boost_r15.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE wus_cfg_v1560_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(pwr_boost_r15.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void wus_cfg_v1560_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("powerBoost-r15", pwr_boost_r15.to_string());
+  j.end_obj();
+}
+
+std::string wus_cfg_v1560_s::pwr_boost_r15_opts::to_string() const
+{
+  static const char* options[] = {"dB0", "dB1dot8", "dB3", "dB4dot8"};
+  return convert_enum_idx(options, 4, value, "wus_cfg_v1560_s::pwr_boost_r15_e_");
+}
+float wus_cfg_v1560_s::pwr_boost_r15_opts::to_number() const
+{
+  static const float options[] = {0.0, 1.8, 3.0, 4.8};
+  return map_enum_number(options, 4, value, "wus_cfg_v1560_s::pwr_boost_r15_e_");
+}
+std::string wus_cfg_v1560_s::pwr_boost_r15_opts::to_number_string() const
+{
+  static const char* options[] = {"0", "1.8", "3", "4.8"};
+  return convert_enum_idx(options, 4, value, "wus_cfg_v1560_s::pwr_boost_r15_e_");
+}
+
 // RadioResourceConfigCommonSIB ::= SEQUENCE
 SRSASN_CODE rr_cfg_common_sib_s::pack(bit_ref& bref) const
 {
@@ -3668,6 +3704,7 @@ SRSASN_CODE rr_cfg_common_sib_s::pack(bit_ref& bref) const
     group_flags[5] |= wus_cfg_r15.is_present();
     group_flags[5] |= high_speed_cfg_v1530.is_present();
     group_flags[6] |= ul_pwr_ctrl_common_v1540.is_present();
+    group_flags[7] |= wus_cfg_v1560.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
@@ -3770,6 +3807,14 @@ SRSASN_CODE rr_cfg_common_sib_s::pack(bit_ref& bref) const
         HANDLE_CODE(ul_pwr_ctrl_common_v1540->pack(bref));
       }
     }
+    if (group_flags[7]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(wus_cfg_v1560.is_present(), 1));
+      if (wus_cfg_v1560.is_present()) {
+        HANDLE_CODE(wus_cfg_v1560->pack(bref));
+      }
+    }
   }
   return SRSASN_SUCCESS;
 }
@@ -3788,7 +3833,7 @@ SRSASN_CODE rr_cfg_common_sib_s::unpack(cbit_ref& bref)
   HANDLE_CODE(ul_cp_len.unpack(bref));
 
   if (ext) {
-    ext_groups_unpacker_guard group_flags(7);
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -3927,6 +3972,16 @@ SRSASN_CODE rr_cfg_common_sib_s::unpack(cbit_ref& bref)
         HANDLE_CODE(ul_pwr_ctrl_common_v1540->unpack(bref));
       }
     }
+    if (group_flags[7]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool wus_cfg_v1560_present;
+      HANDLE_CODE(bref.unpack(wus_cfg_v1560_present, 1));
+      wus_cfg_v1560.set_present(wus_cfg_v1560_present);
+      if (wus_cfg_v1560.is_present()) {
+        HANDLE_CODE(wus_cfg_v1560->unpack(bref));
+      }
+    }
   }
   return SRSASN_SUCCESS;
 }
@@ -4024,6 +4079,10 @@ void rr_cfg_common_sib_s::to_json(json_writer& j) const
     if (ul_pwr_ctrl_common_v1540.is_present()) {
       j.write_fieldname("uplinkPowerControlCommon-v1540");
       ul_pwr_ctrl_common_v1540->to_json(j);
+    }
+    if (wus_cfg_v1560.is_present()) {
+      j.write_fieldname("wus-Config-v1560");
+      wus_cfg_v1560->to_json(j);
     }
   }
   j.end_obj();

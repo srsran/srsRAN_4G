@@ -20,18 +20,26 @@
 
 set(SOURCES ttcn3_ue.cc ttcn3_syssim.cc)
 add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc ${SOURCES})
-target_link_libraries(ttcn3_dut srsue_stack
-                                srsue_upper
-                                srsue_rrc
-                                srslte_upper
-                                srslte_common
-                                srslte_mac
-                                srslte_phy
-                                srslte_radio
-                                srslte_upper
-                                srsue_phy
-                                srsue_mac
-                                rrc_asn1
-                                sctp
-                                ${Boost_LIBRARIES})
+
+set(LINK_LIBRARIES srsue_stack
+                    srsue_upper
+                    srsue_rrc
+                    srslte_upper
+                    srslte_common
+                    srslte_mac
+                    srslte_phy
+                    srslte_radio
+                    srslte_upper
+                    srsue_phy
+                    srsue_mac
+                    rrc_asn1
+                    sctp
+${Boost_LIBRARIES})
+
+if (ENABLE_5GNR)
+    set(LINK_LIBRARIES ${LINK_LIBRARIES} rrc_nr_asn1)
+endif (ENABLE_5GNR)
+
+target_link_libraries(ttcn3_dut ${LINK_LIBRARIES})
+
 include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)

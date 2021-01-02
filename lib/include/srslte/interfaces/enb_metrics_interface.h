@@ -36,10 +36,15 @@
 
 namespace srsenb {
 
+struct rlc_metrics_t {
+  std::vector<srslte::rlc_metrics_t> ues;
+};
+
 struct stack_metrics_t {
-  std::vector<mac_metrics_t> mac;
-  rrc_metrics_t              rrc;
-  s1ap_metrics_t             s1ap;
+  mac_metrics_t  mac;
+  rrc_metrics_t  rrc;
+  rlc_metrics_t  rlc;
+  s1ap_metrics_t s1ap;
 };
 
 struct enb_metrics_t {

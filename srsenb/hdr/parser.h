@@ -28,6 +28,7 @@
 #include <iostream>
 #include <libconfig.h++>
 #include <list>
+#include <sstream>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>

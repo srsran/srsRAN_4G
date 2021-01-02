@@ -21,7 +21,9 @@
 
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/bundled/fmt/core.h"
 #include <cmath>
+#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 #include <stdio.h>
 
 namespace asn1 {
@@ -696,7 +698,6 @@ IntType unconstrained_whole_number_length(IntType n)
 template <typename IntType>
 SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool aligned)
 {
-  // TODO: Test
   uint32_t len = unconstrained_whole_number_length(n);
   if (aligned) {
     HANDLE_CODE(bref.align_bytes_zero());
@@ -706,11 +707,8 @@ SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool align
   return SRSASN_SUCCESS;
 }
 template <typename IntType>
-SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, cbit_ref& bref, bool aligned)
+SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, cbit_ref& bref, uint32_t len, bool aligned)
 {
-  // TODO: Test
-  uint32_t len;
-  HANDLE_CODE(unpack_length(len, bref, aligned));
   if (aligned) {
     HANDLE_CODE(bref.align_bytes());
   }
@@ -722,18 +720,21 @@ template SRSASN_CODE pack_unconstrained_whole_number<int8_t>(bit_ref& bref, int8
 template SRSASN_CODE pack_unconstrained_whole_number<int16_t>(bit_ref& bref, int16_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<int32_t>(bit_ref& bref, int32_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<int64_t>(bit_ref& bref, int64_t n, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int8_t>(int8_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int16_t>(int16_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int32_t>(int32_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<int64_t>(int64_t& n, cbit_ref& bref, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int8_t>(int8_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int16_t>(int16_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int32_t>(int32_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<int64_t>(int64_t& n, cbit_ref& bref, uint32_t len, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint8_t>(bit_ref& bref, uint8_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint16_t>(bit_ref& bref, uint16_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint32_t>(bit_ref& bref, uint32_t n, bool aligned);
 template SRSASN_CODE pack_unconstrained_whole_number<uint64_t>(bit_ref& bref, uint64_t n, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint8_t>(uint8_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint16_t>(uint16_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint32_t>(uint32_t& n, cbit_ref& bref, bool aligned);
-template SRSASN_CODE unpack_unconstrained_whole_number<uint64_t>(uint64_t& n, cbit_ref& bref, bool aligned);
+template SRSASN_CODE unpack_unconstrained_whole_number<uint8_t>(uint8_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE
+unpack_unconstrained_whole_number<uint16_t>(uint16_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE
+unpack_unconstrained_whole_number<uint32_t>(uint32_t& n, cbit_ref& bref, uint32_t len, bool aligned);
+template SRSASN_CODE
+unpack_unconstrained_whole_number<uint64_t>(uint64_t& n, cbit_ref& bref, uint32_t len, bool aligned);
 
 /*********************
    varlength_packing
@@ -742,6 +743,9 @@ template SRSASN_CODE unpack_unconstrained_whole_number<uint64_t>(uint64_t& n, cb
 template <typename IntType>
 SRSASN_CODE pack_length(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned)
 {
+  if (ub >= ASN_64K) {
+    return pack_length(bref, n, aligned);
+  }
   return pack_constrained_whole_number(bref, n, lb, ub, aligned);
 }
 template SRSASN_CODE pack_length<uint8_t>(bit_ref& bref, uint8_t n, uint8_t lb, uint8_t ub, bool aligned);
@@ -756,6 +760,12 @@ template SRSASN_CODE pack_length<int64_t>(bit_ref& bref, int64_t n, int64_t lb, 
 template <typename IntType>
 SRSASN_CODE unpack_length(IntType& n, cbit_ref& bref, IntType lb, IntType ub, bool aligned)
 {
+  if (ub >= ASN_64K) {
+    uint32_t    len;
+    SRSASN_CODE ret = unpack_length(len, bref, aligned);
+    n               = len;
+    return ret;
+  }
   return unpack_constrained_whole_number(n, bref, lb, ub, aligned);
 }
 template SRSASN_CODE unpack_length<uint8_t>(uint8_t& n, cbit_ref& bref, uint8_t lb, uint8_t ub, bool aligned);
@@ -880,6 +890,7 @@ SRSASN_CODE pack_integer(bit_ref& bref, IntType n, IntType lb, IntType ub, bool 
     //    }
     HANDLE_CODE(pack_constrained_whole_number(bref, n, (IntType)lb, (IntType)ub, aligned));
   } else {
+    // See X.691 - 12.2.6
     if (not within_bounds or (not lower_bounded and not upper_bounded)) {
       HANDLE_CODE(pack_length(bref, unconstrained_whole_number_length(n), aligned));
       HANDLE_CODE(pack_unconstrained_whole_number(bref, n, aligned));
@@ -937,10 +948,11 @@ SRSASN_CODE unpack_integer(IntType& n, cbit_ref& bref, IntType lb, IntType ub, b
     // TODO: Check if we are in the indefinite length case, and pack length prefix if needed
     HANDLE_CODE(unpack_constrained_whole_number(n, bref, (IntType)lb, (IntType)ub, aligned));
   } else {
+    // See X.691 - 12.2.6
     if (not within_bounds or (not lower_bounded and not upper_bounded)) {
       uint32_t len;
       HANDLE_CODE(unpack_length(len, bref, aligned));
-      HANDLE_CODE(unpack_unconstrained_whole_number(n, bref, aligned)); // TODO
+      HANDLE_CODE(unpack_unconstrained_whole_number(n, bref, len, aligned));
     } else {
       // pack as semi-constrained
       // TODO
@@ -1522,13 +1534,11 @@ json_writer::json_writer() : ident(""), sep(NONE) {}
 
 void json_writer::write_fieldname(const std::string& fieldname)
 {
-  if (sep == COMMA) {
-    ss << ",\n" << ident;
-  } else if (sep == NEWLINE) {
-    ss << "\n" << ident;
-  }
+  constexpr static const char* septable[] = {",\n", "\n", ""};
+
+  fmt::format_to(buffer, "{}{}", septable[sep], sep != NONE ? ident : "");
   if (not fieldname.empty()) {
-    ss << "\"" << fieldname << "\": ";
+    fmt::format_to(buffer, "\"{}\": ", fieldname);
   }
   sep = NONE;
 }
@@ -1536,7 +1546,7 @@ void json_writer::write_fieldname(const std::string& fieldname)
 void json_writer::write_str(const std::string& fieldname, const std::string& value)
 {
   write_fieldname(fieldname);
-  ss << "\"" << value << "\"";
+  fmt::format_to(buffer, "\"{}\"", value);
   sep = COMMA;
 }
 void json_writer::write_str(const std::string& value)
@@ -1547,7 +1557,7 @@ void json_writer::write_str(const std::string& value)
 void json_writer::write_int(const std::string& fieldname, int64_t value)
 {
   write_fieldname(fieldname);
-  ss << value;
+  fmt::format_to(buffer, "{}", value);
   sep = COMMA;
 }
 void json_writer::write_int(int64_t value)
@@ -1558,7 +1568,7 @@ void json_writer::write_int(int64_t value)
 void json_writer::write_bool(const std::string& fieldname, bool value)
 {
   write_fieldname(fieldname);
-  ss << (value ? "true" : "false");
+  fmt::format_to(buffer, "{}", value ? "true" : "false");
   sep = COMMA;
 }
 void json_writer::write_bool(bool value)
@@ -1569,7 +1579,7 @@ void json_writer::write_bool(bool value)
 void json_writer::write_null(const std::string& fieldname)
 {
   write_fieldname(fieldname);
-  ss << "null";
+  fmt::format_to(buffer, "null");
   sep = COMMA;
 }
 void json_writer::write_null()
@@ -1580,33 +1590,34 @@ void json_writer::write_null()
 void json_writer::start_obj(const std::string& fieldname)
 {
   write_fieldname(fieldname);
-  ss << "{";
+  fmt::format_to(buffer, "{{");
   ident += "  ";
   sep = NEWLINE;
 }
 void json_writer::end_obj()
 {
   ident.erase(ident.size() - 2, 2);
-  ss << "\n" << ident << "}";
+  fmt::format_to(buffer, "\n{}}}", ident);
   sep = COMMA;
 }
+
 void json_writer::start_array(const std::string& fieldname)
 {
   write_fieldname(fieldname);
-  ss << "[";
+  fmt::format_to(buffer, "[");
   ident += "  ";
   sep = NEWLINE;
 }
 void json_writer::end_array()
 {
   ident.erase(ident.size() - 2, 2);
-  ss << "\n" << ident << "]";
+  fmt::format_to(buffer, "\n{}]", ident);
   sep = COMMA;
 }
 
 std::string json_writer::to_string() const
 {
-  return ss.str();
+  return std::string(buffer.data(), buffer.size());
 }
 
 } // namespace asn1

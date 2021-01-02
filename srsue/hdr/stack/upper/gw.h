@@ -93,7 +93,7 @@ private:
 
   uint32_t       ul_tput_bytes = 0;
   uint32_t       dl_tput_bytes = 0;
-  struct timeval metrics_time[3];
+  std::chrono::high_resolution_clock::time_point metrics_tp; // stores time when last metrics have been taken
 
   void run_thread();
   int  init_if(char* err_str);

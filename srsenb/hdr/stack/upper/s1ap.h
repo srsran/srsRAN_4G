@@ -148,6 +148,7 @@ private:
   bool handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg);
   bool handle_erabsetuprequest(const asn1::s1ap::erab_setup_request_s& msg);
   bool handle_erabreleasecommand(const asn1::s1ap::erab_release_cmd_s& msg);
+  bool handle_erabmodifyrequest(const asn1::s1ap::erab_modify_request_s& msg);
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
   // bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
@@ -201,6 +202,8 @@ private:
     bool send_erab_setup_response(const asn1::s1ap::erab_setup_resp_s& res_);
     bool send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
                                     const std::vector<uint16_t>& erabs_failed_to_release);
+    bool send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_released,
+                                   const std::vector<uint16_t>& erabs_failed_to_release);
     bool was_uectxtrelease_requested() const { return release_requested; }
 
     ue_ctxt_t ctxt      = {};

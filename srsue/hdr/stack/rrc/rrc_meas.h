@@ -60,6 +60,8 @@ private:
     float rsrq;
   } phy_quant_t;
 
+  typedef enum { eutra, inter_rat } report_type_t;
+
   class var_meas_cfg;
 
   class var_meas_report_list
@@ -75,17 +77,29 @@ private:
                                 const uint32_t            carrier_freq,
                                 const report_cfg_eutra_s& report_cfg,
                                 const cell_triggered_t&   cell_triggered_list);
+
+    void set_measId(const uint32_t                measId,
+                    const uint32_t                carrier_freq,
+                    const report_cfg_inter_rat_s& report_cfg,
+                    const cell_triggered_t&       cell_triggered_list);
+
     void             upd_measId(const uint32_t measId, const cell_triggered_t& cell_triggered_list);
     cell_triggered_t get_measId_cells(const uint32_t measId);
 
   private:
+    void generate_report_eutra(meas_results_s* report, const uint32_t measId);
+#ifdef HAVE_5GNR
+    void generate_report_interrat(meas_results_s* report, const uint32_t measId);
+#endif
     class var_meas_report
     {
     public:
+      report_type_t                       report_type         = eutra;
       uint32_t                            carrier_freq        = 0;
       uint8_t                             nof_reports_sent    = 0;
       cell_triggered_t                    cell_triggered_list = {};
-      report_cfg_eutra_s                  report_cfg          = {};
+      report_cfg_eutra_s                  report_cfg_eutra    = {};
+      report_cfg_inter_rat_s              report_cfg_inter    = {};
       srslte::timer_handler::unique_timer periodic_timer      = {};
     };
     var_meas_cfg*                       meas_cfg = nullptr;
@@ -108,10 +122,7 @@ private:
     void                             ho_reest_finish(const uint32_t src_earfcn, const uint32_t dst_earfcn);
     bool parse_meas_config(const meas_cfg_s* meas_config, bool is_ho_reest, uint32_t src_earfcn);
     void eval_triggers();
-    void eval_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj, meas_cell* serv_cell, float Ofs, float Ocs);
     void report_triggers();
-    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
-
   private:
     void remove_varmeas_report(const uint32_t meas_id);
 
@@ -123,7 +134,7 @@ private:
     void measId_addmod(const meas_id_to_add_mod_list_l& list);
     void quantity_config(const quant_cfg_s& cfg);
     void log_debug_trigger_value_eutra(const eutra_event_s::event_id_c_& e);
-
+    void log_debug_trigger_value_interrat(const report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_& e);
     static bool is_rsrp(report_cfg_eutra_s::trigger_quant_opts::options q);
     
     // Helpers
@@ -133,6 +144,26 @@ private:
     void reportConfig_addmod_eutra(const report_cfg_to_add_mod_s& l);
     void reportConfig_addmod_interrat(const report_cfg_to_add_mod_s& l);
     bool reportConfig_addmod_to_reportConfigList(const report_cfg_to_add_mod_s& l);
+
+    void eval_triggers_eutra(uint32_t            meas_id,
+                             report_cfg_eutra_s& report_cfg,
+                             meas_obj_eutra_s&   meas_obj,
+                             meas_cell_eutra*    serv_cell,
+                             float               Ofs,
+                             float               Ocs);
+    void report_triggers_eutra(uint32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
+    void report_triggers_eutra_check_new(int32_t meas_id, report_cfg_eutra_s& report_cfg, meas_obj_eutra_s& meas_obj);
+    void report_triggers_eutra_check_leaving(int32_t meas_id, report_cfg_eutra_s& report_cfg);
+    void report_triggers_eutra_removing_trigger(int32_t meas_id);
+#ifdef HAVE_5GNR
+    void eval_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
+    void report_triggers_interrat_nr(uint32_t meas_id, report_cfg_inter_rat_s& report_cfg, meas_obj_nr_r15_s& meas_obj);
+    void report_triggers_interrat_check_new(int32_t                 meas_id,
+                                            report_cfg_inter_rat_s& report_cfg,
+                                            meas_obj_nr_r15_s&      meas_obj);
+    void report_triggers_interrat_check_leaving(int32_t meas_id, report_cfg_inter_rat_s& report_cfg);
+    void report_triggers_interrat_removing_trigger(int32_t meas_id);
+#endif
 
     class cell_trigger_state
     {
@@ -158,6 +189,10 @@ private:
     // It is safe to use [] operator in this double-map because all members are uint32_t
     std::map<uint32_t, std::map<uint32_t, cell_trigger_state> > trigger_state;
 
+#ifdef HAVE_5GNR
+    std::map<uint32_t, std::map<uint32_t, cell_trigger_state> > trigger_state_nr;
+#endif
+
     var_meas_report_list* meas_report = nullptr;
     srslte::log_ref       log_h;
     rrc*                  rrc_ptr = nullptr;
@@ -172,6 +207,8 @@ private:
   // Static functions
   static uint8_t value_to_range(const report_cfg_eutra_s::trigger_quant_opts::options q, float value);
   static float   range_to_value(const report_cfg_eutra_s::trigger_quant_opts::options q, const uint8_t range);
+  static uint8_t value_to_range_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const float value);
+  static float   range_to_value_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const uint8_t range);
   static uint8_t offset_val(const meas_obj_eutra_s& meas_obj);
   static asn1::dyn_array<cells_to_add_mod_s>::iterator find_pci_in_meas_obj(meas_obj_eutra_s& meas_obj, uint32_t pci);
 };

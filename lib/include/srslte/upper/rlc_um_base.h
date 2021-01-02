@@ -22,6 +22,7 @@
 #ifndef SRSLTE_RLC_UM_BASE_H
 #define SRSLTE_RLC_UM_BASE_H
 
+#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -93,6 +94,7 @@ protected:
     byte_buffer_pool* pool = nullptr;
     srslte::log_ref   log;
     std::string       rb_name;
+    rlc_um_base*      parent = nullptr;
 
     rlc_config_t cfg = {};
 
@@ -102,6 +104,11 @@ protected:
 
     // Mutexes
     std::mutex mutex;
+
+    // Metrics
+#ifdef ENABLE_TIMESTAMP
+    srslte::rolling_average<double> mean_pdu_latency_us;
+#endif
 
     virtual int build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes) = 0;
 

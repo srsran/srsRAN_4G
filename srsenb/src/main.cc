@@ -41,7 +41,9 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
+#include "srsenb/hdr/metrics_json.h"
 #include "srsenb/hdr/metrics_stdout.h"
+#include "srslte/common/enb_events.h"
 
 using namespace std;
 using namespace srsenb;
@@ -200,6 +202,10 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.equalizer_mode", bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
     ("expert.estimator_fil_w", bpo::value<float>(&args->phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
     ("expert.lte_sample_rates", bpo::value<bool>(&use_standard_lte_rates)->default_value(false), "Whether to use default LTE sample rates instead of shorter variants.")
+    ("expert.report_json_enable",  bpo::value<bool>(&args->general.report_json_enable)->default_value(true), "Write eNB report to JSON file")
+    ("expert.report_json_filename", bpo::value<string>(&args->general.report_json_filename)->default_value("/tmp/enb_report.json"), "Report JSON filename")
+    ("expert.alarms_log_enable",  bpo::value<bool>(&args->general.alarms_log_enable)->default_value(true), "Log alarms")
+    ("expert.alarms_filename", bpo::value<string>(&args->general.alarms_filename)->default_value("/tmp/enb_alarms.log"), "Alarms filename")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(30000), "Inactivity timer in ms.")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
@@ -487,6 +493,11 @@ int main(int argc, char* argv[])
   }
   srslte::srslog_wrapper log_wrapper(*chan);
 
+  // Alarms log channel creation.
+  srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
+  srslog::log_channel& alarms_channel = srslog::fetch_log_channel("alarms", alarm_sink, {"ALRM", '\0', false});
+  alarms_channel.set_enabled(args.general.alarms_log_enable);
+
   // Start the log backend.
   srslog::init();
 
@@ -495,6 +506,17 @@ int main(int argc, char* argv[])
   srslte::log_args(argc, argv, "ENB");
 
   srslte::check_scaling_governor(args.rf.device_name);
+
+  // Set up the JSON log channel used by metrics and events.
+  srslog::sink& json_sink =
+      srslog::fetch_file_sink(args.general.report_json_filename, 0, srslog::create_json_formatter());
+  srslog::log_channel& json_channel = srslog::fetch_log_channel("JSON_channel", json_sink, {});
+  json_channel.set_enabled(args.general.report_json_enable);
+
+  // Configure the event logger just before starting the eNB class.
+  if (args.general.report_json_enable) {
+    event_logger::configure(json_channel);
+  }
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb};
@@ -512,6 +534,12 @@ int main(int argc, char* argv[])
   if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_handle(enb.get());
+  }
+
+  srsenb::metrics_json json_metrics(json_channel);
+  if (args.general.report_json_enable) {
+    metricshub.add_listener(&json_metrics);
+    json_metrics.set_handle(enb.get());
   }
 
   // create input thread

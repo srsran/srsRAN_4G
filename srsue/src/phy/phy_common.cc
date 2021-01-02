@@ -609,12 +609,12 @@ void phy_common::update_cfo_measurement(uint32_t cc_idx, float cfo_hz)
   avg_cfo_hz[cc_idx] = SRSLTE_VEC_EMA(cfo_hz, avg_cfo_hz[cc_idx], args->snr_ema_coeff);
 }
 
-void phy_common::update_measurements(uint32_t                                        cc_idx,
-                                     srslte_chest_dl_res_t                           chest_res,
-                                     srslte_dl_sf_cfg_t                              sf_cfg_dl,
-                                     float                                           tx_crs_power,
-                                     std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
-                                     cf_t*                                           rssi_power_buffer)
+void phy_common::update_measurements(uint32_t                 cc_idx,
+                                     srslte_chest_dl_res_t    chest_res,
+                                     srslte_dl_sf_cfg_t       sf_cfg_dl,
+                                     float                    tx_crs_power,
+                                     std::vector<phy_meas_t>& serving_cells,
+                                     cf_t*                    rssi_power_buffer)
 {
   bool insync = true;
   {
@@ -740,7 +740,7 @@ void phy_common::update_measurements(uint32_t                                   
     // Prepare measurements for serving cells
     bool active = cell_state.is_configured(cc_idx);
     if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
-      rrc_interface_phy_lte::phy_meas_t meas = {};
+      phy_meas_t meas = {};
       meas.rsrp                              = avg_rsrp_dbm[cc_idx];
       meas.rsrq                              = avg_rsrq_db[cc_idx];
       meas.cfo_hz                            = avg_cfo_hz[cc_idx];

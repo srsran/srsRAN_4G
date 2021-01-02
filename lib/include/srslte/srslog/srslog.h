@@ -61,6 +61,10 @@ fetch_log_channel(const std::string& id, sink& s, log_channel_config config);
 /// NOTE: Deprecated, use fetch_log_channel instead.
 log_channel* create_log_channel(const std::string& id, sink& s);
 
+///
+/// Logger management functions.
+///
+
 namespace detail {
 
 /// Internal helper functions.
@@ -68,10 +72,6 @@ detail::any* fetch_logger(const std::string& id, detail::any&& logger);
 detail::any* find_logger(const std::string& id);
 
 } // namespace detail
-
-///
-/// Logger management functions.
-///
 
 /// Finds a logger with the specified id string and type in the repository. On
 /// success returns a pointer to the requested logger, otherwise nullptr.
@@ -143,12 +143,29 @@ inline T* create_logger(const std::string& id, Args&&... args)
 }
 
 ///
+/// Formatter management functions.
+///
+
+/// Installs the specified formatter to be used as the default one by new sinks.
+/// The initial default formatter formats plain text.
+void set_default_log_formatter(std::unique_ptr<log_formatter> f);
+
+/// Returns the instance of the default formatter being used.
+std::unique_ptr<log_formatter> get_default_log_formatter();
+
+/// Creates a new instance of a plain text formatter.
+std::unique_ptr<log_formatter> create_text_formatter();
+
+/// Creates a new instance of a JSON formatter.
+std::unique_ptr<log_formatter> create_json_formatter();
+
+///
 /// Sink management functions.
 ///
 
 /// Installs the specified sink to be used as the default one by new log
 /// channels and loggers.
-/// The initial default sink writes to stdout.
+/// The initial default sink writes to stdout with a text formatter.
 void set_default_sink(sink& s);
 
 /// Returns the instance of the default sink being used.
@@ -158,18 +175,35 @@ sink& get_default_sink();
 /// success returns a pointer to the requested sink, otherwise nullptr.
 sink* find_sink(const std::string& id);
 
-/// Returns an instance of a sink that writes to the stdout stream.
-sink& fetch_stdout_sink();
+/// Returns an instance of a sink that writes to the stdout stream. You may use
+/// different ids if you need to create multiple stdout sinks with different
+/// formatters.
+sink& fetch_stdout_sink(
+    const std::string& id = "stdout",
+    std::unique_ptr<log_formatter> f = get_default_log_formatter());
 
-/// Returns an instance of a sink that writes to the stderr stream.
-sink& fetch_stderr_sink();
+/// Returns an instance of a sink that writes to the stderr stream. You may use
+/// different ids if you need to create multiple stderr sinks with different
+/// formatters.
+sink& fetch_stderr_sink(
+    const std::string& id = "stderr",
+    std::unique_ptr<log_formatter> f = get_default_log_formatter());
 
 /// Returns an instance of a sink that writes into a file in the specified path.
 /// Specifying a max_size value different to zero will make the sink create a
 /// new file each time the current file exceeds this value. The units of
 /// max_size are bytes.
-/// NOTE: Any '#' characters in the id will get removed.
-sink& fetch_file_sink(const std::string& path, size_t max_size = 0);
+/// NOTE: Any '#' characters in the path will get removed.
+sink& fetch_file_sink(
+    const std::string& path,
+    size_t max_size = 0,
+    std::unique_ptr<log_formatter> f = get_default_log_formatter());
+
+/// Installs a custom user defined sink in the framework getting associated to
+/// the specified id. Returns true on success, otherwise false.
+/// WARNING: This function is an advanced feature and users should really know
+/// what they are doing when using it.
+bool install_custom_sink(const std::string& id, std::unique_ptr<sink> s);
 
 /// Creates a new sink that writes into the a file in the specified path and
 /// registers it into a sink repository so that it can be later retrieved in

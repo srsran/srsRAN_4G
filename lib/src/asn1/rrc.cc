@@ -123,13 +123,8 @@ int8_t sl_tx_pwr_r14_c::types_opts::to_number() const
 
 std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types_opts::to_string() const
 {
-  static const char* options[] = {"crs-IntfMitigEnabled-15", "crs-IntfMitigNumPRBs-r15"};
+  static const char* options[] = {"crs-IntfMitigEnabled", "crs-IntfMitigNumPRBs"};
   return convert_enum_idx(options, 2, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types");
-}
-int8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types_opts::to_number() const
-{
-  static const int8_t options[] = {-15};
-  return map_enum_number(options, 1, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types");
 }
 
 std::string sl_offset_ind_r12_c::types_opts::to_string() const
@@ -243,6 +238,12 @@ std::string sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::types_op
 {
   static const char* options[] = {"additionalSpectrumEmission-r14", "additionalSpectrumEmission-v1440"};
   return convert_enum_idx(options, 2, value, "sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::types");
+}
+
+std::string ssb_to_measure_r15_c::types_opts::to_string() const
+{
+  static const char* options[] = {"shortBitmap-r15", "mediumBitmap-r15", "longBitmap-r15"};
+  return convert_enum_idx(options, 3, value, "ssb_to_measure_r15_c::types");
 }
 
 std::string
@@ -1072,13 +1073,8 @@ std::string rr_cfg_ded_s::mac_main_cfg_c_::types_opts::to_string() const
 
 std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types_opts::to_string() const
 {
-  static const char* options[] = {"crs-IntfMitigEnabled-15", "crs-IntfMitigNumPRBs-r15"};
+  static const char* options[] = {"crs-IntfMitigEnabled", "crs-IntfMitigNumPRBs"};
   return convert_enum_idx(options, 2, value, "rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types");
-}
-int8_t rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types_opts::to_number() const
-{
-  static const int8_t options[] = {-15};
-  return map_enum_number(options, 1, value, "rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types");
 }
 
 std::string redirected_carrier_info_r15_ies_c::types_opts::to_string() const
@@ -1203,100 +1199,6 @@ std::string phys_cfg_ded_scell_r10_s::semi_static_cfi_cfg_r15_c_::setup_c_::type
 {
   static const char* options[] = {"cfi-Config-r15", "cfi-PatternConfig-r15"};
   return convert_enum_idx(options, 2, value, "phys_cfg_ded_scell_r10_s::semi_static_cfi_cfg_r15_c_::setup_c_::types");
-}
-
-std::string drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"split-r12", "scg-r12"};
-  return convert_enum_idx(options, 2, value, "drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types");
-}
-
-std::string ip_address_r13_c::types_opts::to_string() const
-{
-  static const char* options[] = {"ipv4-r13", "ipv6-r13"};
-  return convert_enum_idx(options, 2, value, "ip_address_r13_c::types");
-}
-uint8_t ip_address_r13_c::types_opts::to_number() const
-{
-  static const uint8_t options[] = {4, 6};
-  return map_enum_number(options, 2, value, "ip_address_r13_c::types");
-}
-
-std::string security_cfg_ho_v1530_s::handov_type_v1530_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"intra5GC-r15", "fivegc-ToEPC-r15", "epc-To5GC-r15"};
-  return convert_enum_idx(options, 3, value, "security_cfg_ho_v1530_s::handov_type_v1530_c_::types");
-}
-
-std::string rach_skip_r14_s::target_ta_r14_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"ta0-r14", "mcg-PTAG-r14", "scg-PTAG-r14", "mcg-STAG-r14", "scg-STAG-r14"};
-  return convert_enum_idx(options, 5, value, "rach_skip_r14_s::target_ta_r14_c_::types");
-}
-uint8_t rach_skip_r14_s::target_ta_r14_c_::types_opts::to_number() const
-{
-  static const uint8_t options[] = {0};
-  return map_enum_number(options, 1, value, "rach_skip_r14_s::target_ta_r14_c_::types");
-}
-
-std::string sl_disc_tx_ref_carrier_ded_r13_c::types_opts::to_string() const
-{
-  static const char* options[] = {"pCell", "sCell"};
-  return convert_enum_idx(options, 2, value, "sl_disc_tx_ref_carrier_ded_r13_c::types");
-}
-
-std::string sl_disc_tx_res_r13_c::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-r13", "ue-Selected-r13"};
-  return convert_enum_idx(options, 2, value, "sl_disc_tx_res_r13_c::setup_c_::types");
-}
-
-std::string rclwi_cfg_r13_s::cmd_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"steerToWLAN-r13", "steerToLTE-r13"};
-  return convert_enum_idx(options, 2, value, "rclwi_cfg_r13_s::cmd_c_::types");
-}
-
-std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-r14", "ue-Selected-r14"};
-  return convert_enum_idx(options, 2, value, "sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types");
-}
-
-std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-v1530", "ue-Selected-v1530"};
-  return convert_enum_idx(options, 2, value, "sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types");
-}
-
-std::string ran_notif_area_info_r15_c::types_opts::to_string() const
-{
-  static const char* options[] = {"cellList-r15", "ran-AreaConfigList-r15"};
-  return convert_enum_idx(options, 2, value, "ran_notif_area_info_r15_c::types");
-}
-
-std::string sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-r12", "ue-Selected-r12"};
-  return convert_enum_idx(options, 2, value, "sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types");
-}
-
-std::string sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-v1310", "ue-Selected-v1310"};
-  return convert_enum_idx(options, 2, value, "sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types");
-}
-
-std::string sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-r12", "ue-Selected-r12"};
-  return convert_enum_idx(options, 2, value, "sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types");
-}
-
-std::string sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"scheduled-r13", "ue-Selected-r13"};
-  return convert_enum_idx(options, 2, value, "sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types");
 }
 
 std::string meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types_opts::to_string() const
@@ -1443,6 +1345,23 @@ std::string report_cfg_inter_rat_s::trigger_type_c_::types_opts::to_string() con
   return convert_enum_idx(options, 2, value, "report_cfg_inter_rat_s::trigger_type_c_::types");
 }
 
+std::string drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"split-r12", "scg-r12"};
+  return convert_enum_idx(options, 2, value, "drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types");
+}
+
+std::string ip_address_r13_c::types_opts::to_string() const
+{
+  static const char* options[] = {"ipv4-r13", "ipv6-r13"};
+  return convert_enum_idx(options, 2, value, "ip_address_r13_c::types");
+}
+uint8_t ip_address_r13_c::types_opts::to_number() const
+{
+  static const uint8_t options[] = {4, 6};
+  return map_enum_number(options, 2, value, "ip_address_r13_c::types");
+}
+
 std::string meas_obj_to_add_mod_s::meas_obj_c_::types_opts::to_string() const
 {
   static const char* options[] = {"measObjectEUTRA",
@@ -1481,16 +1400,16 @@ uint16_t meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types_opts::to_number()
   return 0;
 }
 
-std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types_opts::to_string() const
-{
-  static const char* options[] = {"fdd-r13", "tdd-r13"};
-  return convert_enum_idx(options, 2, value, "prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types");
-}
-
 std::string report_cfg_to_add_mod_s::report_cfg_c_::types_opts::to_string() const
 {
   static const char* options[] = {"reportConfigEUTRA", "reportConfigInterRAT"};
   return convert_enum_idx(options, 2, value, "report_cfg_to_add_mod_s::report_cfg_c_::types");
+}
+
+std::string security_cfg_ho_v1530_s::handov_type_v1530_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"intra5GC-r15", "fivegc-ToEPC-r15", "epc-To5GC-r15"};
+  return convert_enum_idx(options, 3, value, "security_cfg_ho_v1530_s::handov_type_v1530_c_::types");
 }
 
 std::string meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types_opts::to_string() const
@@ -1507,6 +1426,83 @@ uint8_t meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::typ
   static const uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   return map_enum_number(
       options, 21, value, "meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types");
+}
+
+std::string rach_skip_r14_s::target_ta_r14_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"ta0-r14", "mcg-PTAG-r14", "scg-PTAG-r14", "mcg-STAG-r14", "scg-STAG-r14"};
+  return convert_enum_idx(options, 5, value, "rach_skip_r14_s::target_ta_r14_c_::types");
+}
+uint8_t rach_skip_r14_s::target_ta_r14_c_::types_opts::to_number() const
+{
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "rach_skip_r14_s::target_ta_r14_c_::types");
+}
+
+std::string sl_disc_tx_ref_carrier_ded_r13_c::types_opts::to_string() const
+{
+  static const char* options[] = {"pCell", "sCell"};
+  return convert_enum_idx(options, 2, value, "sl_disc_tx_ref_carrier_ded_r13_c::types");
+}
+
+std::string sl_disc_tx_res_r13_c::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-r13", "ue-Selected-r13"};
+  return convert_enum_idx(options, 2, value, "sl_disc_tx_res_r13_c::setup_c_::types");
+}
+
+std::string rclwi_cfg_r13_s::cmd_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"steerToWLAN-r13", "steerToLTE-r13"};
+  return convert_enum_idx(options, 2, value, "rclwi_cfg_r13_s::cmd_c_::types");
+}
+
+std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-r14", "ue-Selected-r14"};
+  return convert_enum_idx(options, 2, value, "sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types");
+}
+
+std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-v1530", "ue-Selected-v1530"};
+  return convert_enum_idx(options, 2, value, "sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types");
+}
+
+std::string ran_notif_area_info_r15_c::types_opts::to_string() const
+{
+  static const char* options[] = {"cellList-r15", "ran-AreaConfigList-r15"};
+  return convert_enum_idx(options, 2, value, "ran_notif_area_info_r15_c::types");
+}
+
+std::string sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-r12", "ue-Selected-r12"};
+  return convert_enum_idx(options, 2, value, "sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types");
+}
+
+std::string sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-v1310", "ue-Selected-v1310"};
+  return convert_enum_idx(options, 2, value, "sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types");
+}
+
+std::string sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-r12", "ue-Selected-r12"};
+  return convert_enum_idx(options, 2, value, "sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types");
+}
+
+std::string sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"scheduled-r13", "ue-Selected-r13"};
+  return convert_enum_idx(options, 2, value, "sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types");
+}
+
+std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types_opts::to_string() const
+{
+  static const char* options[] = {"fdd-r13", "tdd-r13"};
+  return convert_enum_idx(options, 2, value, "prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types");
 }
 
 std::string rrc_conn_release_v920_ies_s::cell_info_list_r9_c_::types_opts::to_string() const
@@ -4666,6 +4662,40 @@ std::string visited_cell_info_r12_s::visited_cell_id_r12_c_::types_opts::to_stri
   return convert_enum_idx(options, 2, value, "visited_cell_info_r12_s::visited_cell_id_r12_c_::types");
 }
 
+// FailureReportSCG-v12d0 ::= SEQUENCE
+SRSASN_CODE fail_report_scg_v12d0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(meas_result_neigh_cells_v12d0_present, 1));
+
+  if (meas_result_neigh_cells_v12d0_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, meas_result_neigh_cells_v12d0, 1, 8));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE fail_report_scg_v12d0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(meas_result_neigh_cells_v12d0_present, 1));
+
+  if (meas_result_neigh_cells_v12d0_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(meas_result_neigh_cells_v12d0, bref, 1, 8));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void fail_report_scg_v12d0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (meas_result_neigh_cells_v12d0_present) {
+    j.start_array("measResultNeighCells-v12d0");
+    for (const auto& e1 : meas_result_neigh_cells_v12d0) {
+      e1.to_json(j);
+    }
+    j.end_array();
+  }
+  j.end_obj();
+}
+
 std::string idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types_opts::to_string() const
 {
   static const char* options[] = {"subframeConfig0-r11", "subframeConfig1-5-r11", "subframeConfig6-r11"};
@@ -4706,6 +4736,44 @@ uint8_t rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types_opts::to_numbe
 {
   static const uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   return map_enum_number(options, 21, value, "rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types");
+}
+
+// SCGFailureInformation-v12d0b-IEs ::= SEQUENCE
+SRSASN_CODE scg_fail_info_v12d0b_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(fail_report_scg_v12d0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (fail_report_scg_v12d0_present) {
+    HANDLE_CODE(fail_report_scg_v12d0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE scg_fail_info_v12d0b_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(fail_report_scg_v12d0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (fail_report_scg_v12d0_present) {
+    HANDLE_CODE(fail_report_scg_v12d0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void scg_fail_info_v12d0b_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (fail_report_scg_v12d0_present) {
+    j.write_fieldname("failureReportSCG-v12d0");
+    fail_report_scg_v12d0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
 }
 
 std::string meas_results_s::meas_result_neigh_cells_c_::types_opts::to_string() const
@@ -5037,10 +5105,302 @@ band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_
       options, 3, value, "band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::types");
 }
 
+// MIMO-WeightedLayersCapabilities-r13 ::= SEQUENCE
+SRSASN_CODE mimo_weighted_layers_cap_r13_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rel_weight_four_layers_r13_present, 1));
+  HANDLE_CODE(bref.pack(rel_weight_eight_layers_r13_present, 1));
+
+  HANDLE_CODE(rel_weight_two_layers_r13.pack(bref));
+  if (rel_weight_four_layers_r13_present) {
+    HANDLE_CODE(rel_weight_four_layers_r13.pack(bref));
+  }
+  if (rel_weight_eight_layers_r13_present) {
+    HANDLE_CODE(rel_weight_eight_layers_r13.pack(bref));
+  }
+  HANDLE_CODE(pack_integer(bref, total_weighted_layers_r13, (uint8_t)2u, (uint8_t)128u));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mimo_weighted_layers_cap_r13_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rel_weight_four_layers_r13_present, 1));
+  HANDLE_CODE(bref.unpack(rel_weight_eight_layers_r13_present, 1));
+
+  HANDLE_CODE(rel_weight_two_layers_r13.unpack(bref));
+  if (rel_weight_four_layers_r13_present) {
+    HANDLE_CODE(rel_weight_four_layers_r13.unpack(bref));
+  }
+  if (rel_weight_eight_layers_r13_present) {
+    HANDLE_CODE(rel_weight_eight_layers_r13.unpack(bref));
+  }
+  HANDLE_CODE(unpack_integer(total_weighted_layers_r13, bref, (uint8_t)2u, (uint8_t)128u));
+
+  return SRSASN_SUCCESS;
+}
+void mimo_weighted_layers_cap_r13_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("relWeightTwoLayers-r13", rel_weight_two_layers_r13.to_string());
+  if (rel_weight_four_layers_r13_present) {
+    j.write_str("relWeightFourLayers-r13", rel_weight_four_layers_r13.to_string());
+  }
+  if (rel_weight_eight_layers_r13_present) {
+    j.write_str("relWeightEightLayers-r13", rel_weight_eight_layers_r13.to_string());
+  }
+  j.write_int("totalWeightedLayers-r13", total_weighted_layers_r13);
+  j.end_obj();
+}
+
+std::string mimo_weighted_layers_cap_r13_s::rel_weight_two_layers_r13_opts::to_string() const
+{
+  static const char* options[] = {"v1", "v1dot25", "v1dot5", "v1dot75", "v2", "v2dot5", "v3", "v4"};
+  return convert_enum_idx(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_two_layers_r13_e_");
+}
+float mimo_weighted_layers_cap_r13_s::rel_weight_two_layers_r13_opts::to_number() const
+{
+  static const float options[] = {1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0};
+  return map_enum_number(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_two_layers_r13_e_");
+}
+std::string mimo_weighted_layers_cap_r13_s::rel_weight_two_layers_r13_opts::to_number_string() const
+{
+  static const char* options[] = {"1", "1.25", "1.5", "1.75", "2", "2.5", "3", "4"};
+  return convert_enum_idx(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_two_layers_r13_e_");
+}
+
+std::string mimo_weighted_layers_cap_r13_s::rel_weight_four_layers_r13_opts::to_string() const
+{
+  static const char* options[] = {"v1", "v1dot25", "v1dot5", "v1dot75", "v2", "v2dot5", "v3", "v4"};
+  return convert_enum_idx(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_four_layers_r13_e_");
+}
+float mimo_weighted_layers_cap_r13_s::rel_weight_four_layers_r13_opts::to_number() const
+{
+  static const float options[] = {1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0};
+  return map_enum_number(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_four_layers_r13_e_");
+}
+std::string mimo_weighted_layers_cap_r13_s::rel_weight_four_layers_r13_opts::to_number_string() const
+{
+  static const char* options[] = {"1", "1.25", "1.5", "1.75", "2", "2.5", "3", "4"};
+  return convert_enum_idx(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_four_layers_r13_e_");
+}
+
+std::string mimo_weighted_layers_cap_r13_s::rel_weight_eight_layers_r13_opts::to_string() const
+{
+  static const char* options[] = {"v1", "v1dot25", "v1dot5", "v1dot75", "v2", "v2dot5", "v3", "v4"};
+  return convert_enum_idx(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_eight_layers_r13_e_");
+}
+float mimo_weighted_layers_cap_r13_s::rel_weight_eight_layers_r13_opts::to_number() const
+{
+  static const float options[] = {1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0};
+  return map_enum_number(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_eight_layers_r13_e_");
+}
+std::string mimo_weighted_layers_cap_r13_s::rel_weight_eight_layers_r13_opts::to_number_string() const
+{
+  static const char* options[] = {"1", "1.25", "1.5", "1.75", "2", "2.5", "3", "4"};
+  return convert_enum_idx(options, 8, value, "mimo_weighted_layers_cap_r13_s::rel_weight_eight_layers_r13_e_");
+}
+
+// MIMO-UE-Parameters-v13e0 ::= SEQUENCE
+SRSASN_CODE mimo_ue_params_v13e0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(mimo_weighted_layers_cap_r13_present, 1));
+
+  if (mimo_weighted_layers_cap_r13_present) {
+    HANDLE_CODE(mimo_weighted_layers_cap_r13.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mimo_ue_params_v13e0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(mimo_weighted_layers_cap_r13_present, 1));
+
+  if (mimo_weighted_layers_cap_r13_present) {
+    HANDLE_CODE(mimo_weighted_layers_cap_r13.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void mimo_ue_params_v13e0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (mimo_weighted_layers_cap_r13_present) {
+    j.write_fieldname("mimo-WeightedLayersCapabilities-r13");
+    mimo_weighted_layers_cap_r13.to_json(j);
+  }
+  j.end_obj();
+}
+
+// MeasResult3EUTRA-r15 ::= SEQUENCE
+SRSASN_CODE meas_result3_eutra_r15_s::pack(bit_ref& bref) const
+{
+  bref.pack(ext, 1);
+  HANDLE_CODE(bref.pack(meas_result_serving_cell_r15_present, 1));
+  HANDLE_CODE(bref.pack(meas_result_neigh_cell_list_r15_present, 1));
+
+  HANDLE_CODE(pack_integer(bref, carrier_freq_r15, (uint32_t)0u, (uint32_t)262143u));
+  if (meas_result_serving_cell_r15_present) {
+    HANDLE_CODE(meas_result_serving_cell_r15.pack(bref));
+  }
+  if (meas_result_neigh_cell_list_r15_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, meas_result_neigh_cell_list_r15, 1, 8));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE meas_result3_eutra_r15_s::unpack(cbit_ref& bref)
+{
+  bref.unpack(ext, 1);
+  HANDLE_CODE(bref.unpack(meas_result_serving_cell_r15_present, 1));
+  HANDLE_CODE(bref.unpack(meas_result_neigh_cell_list_r15_present, 1));
+
+  HANDLE_CODE(unpack_integer(carrier_freq_r15, bref, (uint32_t)0u, (uint32_t)262143u));
+  if (meas_result_serving_cell_r15_present) {
+    HANDLE_CODE(meas_result_serving_cell_r15.unpack(bref));
+  }
+  if (meas_result_neigh_cell_list_r15_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(meas_result_neigh_cell_list_r15, bref, 1, 8));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void meas_result3_eutra_r15_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_int("carrierFreq-r15", carrier_freq_r15);
+  if (meas_result_serving_cell_r15_present) {
+    j.write_fieldname("measResultServingCell-r15");
+    meas_result_serving_cell_r15.to_json(j);
+  }
+  if (meas_result_neigh_cell_list_r15_present) {
+    j.start_array("measResultNeighCellList-r15");
+    for (const auto& e1 : meas_result_neigh_cell_list_r15) {
+      e1.to_json(j);
+    }
+    j.end_array();
+  }
+  j.end_obj();
+}
+
+// MeasResultSCG-FailureMRDC-r15 ::= SEQUENCE
+SRSASN_CODE meas_result_scg_fail_mrdc_r15_s::pack(bit_ref& bref) const
+{
+  bref.pack(ext, 1);
+  HANDLE_CODE(pack_dyn_seq_of(bref, meas_result_freq_list_eutra_r15, 1, 8));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE meas_result_scg_fail_mrdc_r15_s::unpack(cbit_ref& bref)
+{
+  bref.unpack(ext, 1);
+  HANDLE_CODE(unpack_dyn_seq_of(meas_result_freq_list_eutra_r15, bref, 1, 8));
+
+  return SRSASN_SUCCESS;
+}
+void meas_result_scg_fail_mrdc_r15_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.start_array("measResultFreqListEUTRA-r15");
+  for (const auto& e1 : meas_result_freq_list_eutra_r15) {
+    e1.to_json(j);
+  }
+  j.end_array();
+  j.end_obj();
+}
+
+// PhyLayerParameters-v13e0 ::= SEQUENCE
+SRSASN_CODE phy_layer_params_v13e0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(mimo_ue_params_v13e0.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE phy_layer_params_v13e0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(mimo_ue_params_v13e0.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void phy_layer_params_v13e0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("mimo-UE-Parameters-v13e0");
+  mimo_ue_params_v13e0.to_json(j);
+  j.end_obj();
+}
+
 std::string mbms_params_v1470_s::mbms_max_bw_r14_c_::types_opts::to_string() const
 {
   static const char* options[] = {"implicitValue", "explicitValue"};
   return convert_enum_idx(options, 2, value, "mbms_params_v1470_s::mbms_max_bw_r14_c_::types");
+}
+
+// UE-EUTRA-Capability-v13e0b-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v13e0b_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(phy_layer_params_v13e0.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v13e0b_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(phy_layer_params_v13e0.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v13e0b_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("phyLayerParameters-v13e0");
+  phy_layer_params_v13e0.to_json(j);
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// SCG-Config-v12i0b-IEs ::= SEQUENCE
+SRSASN_CODE scg_cfg_v12i0b_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(scg_radio_cfg_v12i0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (scg_radio_cfg_v12i0_present) {
+    HANDLE_CODE(scg_radio_cfg_v12i0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE scg_cfg_v12i0b_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(scg_radio_cfg_v12i0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (scg_radio_cfg_v12i0_present) {
+    HANDLE_CODE(scg_radio_cfg_v12i0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void scg_cfg_v12i0b_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (scg_radio_cfg_v12i0_present) {
+    j.write_fieldname("scg-RadioConfig-v12i0");
+    scg_radio_cfg_v12i0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
 }
 
 std::string scg_cfg_r12_s::crit_exts_c_::c1_c_::types_opts::to_string() const

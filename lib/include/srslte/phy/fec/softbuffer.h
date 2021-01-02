@@ -32,6 +32,7 @@
 #define SRSLTE_SOFTBUFFER_H
 
 #include "srslte/config.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

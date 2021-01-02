@@ -137,12 +137,12 @@ private:
   bool                   is_serv_cell_suitable() const;
   bool                   is_sib_acq_required() const;
   srslte::proc_outcome_t set_proc_complete();
-  srslte::proc_outcome_t start_phy_cell_selection(const meas_cell& cell);
+  srslte::proc_outcome_t start_phy_cell_selection(const meas_cell_eutra& cell);
   srslte::proc_outcome_t start_sib_acquisition();
 
   // consts
-  rrc*            rrc_ptr;
-  meas_cell_list* meas_cells;
+  rrc*                             rrc_ptr;
+  meas_cell_list<meas_cell_eutra>* meas_cells;
 
   // state variables
   enum class search_state_t { cell_selection, serv_cell_camp, cell_config, cell_search };

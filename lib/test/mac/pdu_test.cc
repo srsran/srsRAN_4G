@@ -993,6 +993,31 @@ int mac_sch_pdu_unpack_test2()
   return SRSLTE_SUCCESS;
 }
 
+// Unpacking of PDU containing Timing Advance (TA) CE
+int mac_sch_pdu_unpack_test3()
+{
+  static uint8_t tv[] = {0x3d, 0x1f, 0x1f, 0x00};
+
+  srslte::sch_pdu pdu(20, srslte::log_ref{"MAC"});
+  pdu.init_rx(sizeof(tv), false);
+  pdu.parse_packet(tv);
+
+  TESTASSERT(pdu.nof_subh() == 2);
+  while (pdu.next()) {
+    if (!pdu.get()->is_sdu() && pdu.get()->dl_sch_ce_type() == srslte::dl_sch_lcid::TA_CMD) {
+      TESTASSERT(pdu.get()->get_ta_cmd() == 31);
+    }
+  }
+
+  std::cout << pdu.to_string() << std::endl;
+
+#if HAVE_PCAP
+  pcap_handle->write_dl_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
 int mac_slsch_pdu_unpack_test1()
 {
   // SL-SCH PDU captures from UXM 5G CV2X
@@ -1049,6 +1074,7 @@ int main(int argc, char** argv)
 
   TESTASSERT(mac_sch_pdu_unpack_test1() == SRSLTE_SUCCESS);
   TESTASSERT(mac_sch_pdu_unpack_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_sch_pdu_unpack_test3() == SRSLTE_SUCCESS);
 
   TESTASSERT(mac_slsch_pdu_unpack_test1() == SRSLTE_SUCCESS);
 

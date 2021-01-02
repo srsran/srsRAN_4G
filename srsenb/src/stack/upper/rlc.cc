@@ -52,6 +52,16 @@ void rlc::stop()
   pthread_rwlock_destroy(&rwlock);
 }
 
+void rlc::get_metrics(rlc_metrics_t& m, const uint32_t nof_tti)
+{
+  m.ues.resize(users.size());
+  size_t count = 0;
+  for (auto& user : users) {
+    user.second.rlc->get_metrics(m.ues[count], nof_tti);
+    count++;
+  }
+}
+
 void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);

@@ -71,6 +71,9 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_phy_lte,
             public rrc_interface_mac,
             public rrc_interface_pdcp,
+#ifdef HAVE_5GNR
+            public rrc_interface_rrc_nr,
+#endif
             public rrc_interface_rlc,
             public srslte::timer_callback
 {
@@ -116,7 +119,10 @@ public:
   bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
   void     paging_completed(bool outcome) final;
-
+#ifdef HAVE_5GNR
+  // NR interface
+  void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
+#endif
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
@@ -151,6 +157,10 @@ protected:
   bool has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
   bool is_serving_cell(uint32_t earfcn, uint32_t pci) const;
   int  start_cell_select();
+
+#ifdef HAVE_5GNR
+  bool has_neighbour_cell_nr(uint32_t earfcn, uint32_t pci) const;
+#endif
 
 private:
   typedef struct {
@@ -243,8 +253,12 @@ private:
   std::unique_ptr<rrc_meas> measurements;
 
   // List of strongest neighbour cell
-  using unique_cell_t = std::unique_ptr<meas_cell>;
-  meas_cell_list meas_cells;
+  using unique_cell_t = std::unique_ptr<meas_cell_eutra>;
+  meas_cell_list<meas_cell_eutra> meas_cells;
+
+#ifdef HAVE_5GNR
+  meas_cell_list<meas_cell_nr> meas_cells_nr;
+#endif
 
   bool                     initiated                  = false;
   asn1::rrc::reest_cause_e m_reest_cause              = asn1::rrc::reest_cause_e::nulltype;
@@ -258,11 +272,23 @@ private:
   std::set<uint32_t> get_cells(const uint32_t earfcn);
   float              get_cell_rsrp(const uint32_t earfcn, const uint32_t pci);
   float              get_cell_rsrq(const uint32_t earfcn, const uint32_t pci);
-  meas_cell*         get_serving_cell();
+  meas_cell_eutra*   get_serving_cell();
+
+#ifdef HAVE_5GNR
+  std::set<uint32_t> get_cells_nr(const uint32_t arfcn_nr);
+  float              get_cell_rsrp_nr(const uint32_t arfcn_nr, const uint32_t pci_nr);
+  float              get_cell_rsrq_nr(const uint32_t arfcn_nr, const uint32_t pci_nr);
+#endif
 
   void                                          process_cell_meas();
   void                                          process_new_cell_meas(const std::vector<phy_meas_t>& meas);
   srslte::block_queue<std::vector<phy_meas_t> > cell_meas_q;
+
+#ifdef HAVE_5GNR
+  void                                             process_cell_meas_nr();
+  void                                             process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
+  srslte::block_queue<std::vector<phy_meas_nr_t> > cell_meas_nr_q;
+#endif 
 
   // Cell selection/reselection functions/variables
   typedef struct {

@@ -171,12 +171,12 @@ public:
    */
   uint32_t get_ul_earfcn(uint32_t dl_earfcn);
 
-  void update_measurements(uint32_t                                        cc_idx,
-                           srslte_chest_dl_res_t                           chest_res,
-                           srslte_dl_sf_cfg_t                              sf_cfg_dl,
-                           float                                           tx_crs_power,
-                           std::vector<rrc_interface_phy_lte::phy_meas_t>& serving_cells,
-                           cf_t*                                           rssi_power_buffer = nullptr);
+  void update_measurements(uint32_t                 cc_idx,
+                           srslte_chest_dl_res_t    chest_res,
+                           srslte_dl_sf_cfg_t       sf_cfg_dl,
+                           float                    tx_crs_power,
+                           std::vector<phy_meas_t>& serving_cells,
+                           cf_t*                    rssi_power_buffer = nullptr);
 
   void update_cfo_measurement(uint32_t cc_idx, float cfo_hz);
 
@@ -206,7 +206,7 @@ public:
 
   void neighbour_cells_reset(uint32_t cc_idx) { avg_rsrp_neigh[cc_idx] = NAN; }
 
-  void set_neighbour_cells(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas)
+  void set_neighbour_cells(uint32_t cc_idx, const std::vector<phy_meas_t>& meas)
   {
     // Add RSRP in the linear domain and average
     float total_rsrp = 0;

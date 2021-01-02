@@ -46,8 +46,8 @@ public:
   void init(process_callback* callback, log_ref log_h_);
 
   uint8_t* request(uint32_t len);
-  void     deallocate(uint8_t* pdu);
-  void     push(uint8_t* ptr, uint32_t len, channel_t channel = DCH);
+  void     deallocate(const uint8_t* pdu);
+  void     push(const uint8_t* ptr, uint32_t len, channel_t channel = DCH);
 
   bool process_pdus();
 

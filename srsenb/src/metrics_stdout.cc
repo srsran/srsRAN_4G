@@ -98,37 +98,35 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
 
   for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
     // make sure we have stats for MAC and PHY layer too
-    if (metrics.stack.mac.size() == 0 || metrics.phy.size() == 0 || i > metrics.stack.mac.size() ||
-        i > metrics.phy.size()) {
+    if (i >= metrics.stack.mac.ues.size() || i >= metrics.phy.size()) {
       break;
     }
-
-    if (metrics.stack.mac[i].tx_errors > metrics.stack.mac[i].tx_pkts) {
-      printf("tx caution errors %d > %d\n", metrics.stack.mac[i].tx_errors, metrics.stack.mac[i].tx_pkts);
+    if (metrics.stack.mac.ues[i].tx_errors > metrics.stack.mac.ues[i].tx_pkts) {
+      printf("tx caution errors %d > %d\n", metrics.stack.mac.ues[i].tx_errors, metrics.stack.mac.ues[i].tx_pkts);
     }
-    if (metrics.stack.mac[i].rx_errors > metrics.stack.mac[i].rx_pkts) {
-      printf("rx caution errors %d > %d\n", metrics.stack.mac[i].rx_errors, metrics.stack.mac[i].rx_pkts);
+    if (metrics.stack.mac.ues[i].rx_errors > metrics.stack.mac.ues[i].rx_pkts) {
+      printf("rx caution errors %d > %d\n", metrics.stack.mac.ues[i].rx_errors, metrics.stack.mac.ues[i].rx_pkts);
     }
 
-    cout << int_to_hex_string(metrics.stack.mac[i].rnti, 4) << " ";
-    cout << float_to_string(SRSLTE_MAX(0.1, metrics.stack.mac[i].dl_cqi), 1, 3);
-    cout << float_to_string(metrics.stack.mac[i].dl_ri, 1, 4);
+    cout << int_to_hex_string(metrics.stack.mac.ues[i].rnti, 4) << " ";
+    cout << float_to_string(SRSLTE_MAX(0.1, metrics.stack.mac.ues[i].dl_cqi), 1, 3);
+    cout << float_to_string(metrics.stack.mac.ues[i].dl_ri, 1, 4);
     if (not isnan(metrics.phy[i].dl.mcs)) {
       cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].dl.mcs), 1, 4);
     } else {
       cout << float_to_string(0, 2, 4);
     }
-    if (metrics.stack.mac[i].tx_brate > 0) {
+    if (metrics.stack.mac.ues[i].tx_brate > 0) {
       cout << float_to_eng_string(
-          SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].tx_brate / (metrics.stack.mac[i].nof_tti * 1e-3)), 1);
+          SRSLTE_MAX(0.1, (float)metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
     } else {
       cout << float_to_string(0, 1, 6) << "";
     }
-    cout << std::setw(5) << metrics.stack.mac[i].tx_pkts - metrics.stack.mac[i].tx_errors;
-    cout << std::setw(5) << metrics.stack.mac[i].tx_errors;
-    if (metrics.stack.mac[i].tx_pkts > 0 && metrics.stack.mac[i].tx_errors) {
+    cout << std::setw(5) << metrics.stack.mac.ues[i].tx_pkts - metrics.stack.mac.ues[i].tx_errors;
+    cout << std::setw(5) << metrics.stack.mac.ues[i].tx_errors;
+    if (metrics.stack.mac.ues[i].tx_pkts > 0 && metrics.stack.mac.ues[i].tx_errors) {
       cout << float_to_string(
-                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].tx_errors / metrics.stack.mac[i].tx_pkts), 1, 4)
+                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].tx_errors / metrics.stack.mac.ues[i].tx_pkts), 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1, 4) << "%";
@@ -141,29 +139,29 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 1, 4);
     }
 
-    cout << float_to_string(metrics.stack.mac[i].phr, 2, 5);
+    cout << float_to_string(metrics.stack.mac.ues[i].phr, 2, 5);
     if (not isnan(metrics.phy[i].ul.mcs)) {
       cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.mcs), 1, 4);
     } else {
       cout << float_to_string(0, 1, 4);
     }
-    if (metrics.stack.mac[i].rx_brate > 0) {
+    if (metrics.stack.mac.ues[i].rx_brate > 0) {
       cout << float_to_eng_string(
-          SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].rx_brate / (metrics.stack.mac[i].nof_tti * 1e-3)), 1);
+          SRSLTE_MAX(0.1, (float)metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3)), 1);
     } else {
       cout << float_to_string(0, 1) << "";
     }
-    cout << std::setw(5) << metrics.stack.mac[i].rx_pkts - metrics.stack.mac[i].rx_errors;
-    cout << std::setw(5) << metrics.stack.mac[i].rx_errors;
+    cout << std::setw(5) << metrics.stack.mac.ues[i].rx_pkts - metrics.stack.mac.ues[i].rx_errors;
+    cout << std::setw(5) << metrics.stack.mac.ues[i].rx_errors;
 
-    if (metrics.stack.mac[i].rx_pkts > 0 && metrics.stack.mac[i].rx_errors > 0) {
+    if (metrics.stack.mac.ues[i].rx_pkts > 0 && metrics.stack.mac.ues[i].rx_errors > 0) {
       cout << float_to_string(
-                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].rx_errors / metrics.stack.mac[i].rx_pkts), 1, 4)
+                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac.ues[i].rx_errors / metrics.stack.mac.ues[i].rx_pkts), 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1, 4) << "%";
     }
-    cout << float_to_eng_string(metrics.stack.mac[i].ul_buffer, 2);
+    cout << float_to_eng_string(metrics.stack.mac.ues[i].ul_buffer, 2);
     cout << endl;
   }
 

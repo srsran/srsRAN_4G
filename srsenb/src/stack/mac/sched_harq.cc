@@ -215,6 +215,11 @@ bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, tti_point tti_tx_dl) const
   return (tti_tx_dl >= to_tx_dl_ack(tti)) and has_pending_retx_common(tb_idx);
 }
 
+bool dl_harq_proc::has_pending_retx(tti_point tti_tx_dl) const
+{
+  return has_pending_retx(0, tti_tx_dl) or has_pending_retx(1, tti_tx_dl);
+}
+
 int dl_harq_proc::get_tbs(uint32_t tb_idx) const
 {
   return last_tbs[tb_idx];
@@ -323,6 +328,11 @@ void harq_entity::reset()
   }
 }
 
+void harq_entity::new_tti(tti_point tti_rx)
+{
+  last_ttis[tti_rx.to_uint() % last_ttis.size()] = tti_rx;
+}
+
 dl_harq_proc* harq_entity::get_empty_dl_harq(tti_point tti_tx_dl)
 {
   if (not is_async) {
@@ -391,7 +401,8 @@ dl_harq_proc* harq_entity::get_oldest_dl_harq(tti_point tti_tx_dl)
   int      oldest_idx = -1;
   uint32_t oldest_tti = 0;
   for (const dl_harq_proc& h : dl_harqs) {
-    if (h.has_pending_retx(0, tti_tx_dl) or h.has_pending_retx(1, tti_tx_dl)) {
+    tti_point ack_tti_rx = h.get_tti() + FDD_HARQ_DELAY_DL_MS;
+    if (h.has_pending_retx(tti_tx_dl) and (last_ttis[ack_tti_rx.to_uint() % last_ttis.size()] == ack_tti_rx)) {
       uint32_t x = tti_tx_dl - h.get_tti();
       if (x > oldest_tti) {
         oldest_idx = h.get_id();

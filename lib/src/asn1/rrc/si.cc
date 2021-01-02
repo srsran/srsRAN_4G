@@ -458,10 +458,10 @@ void sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::to_json(json_writer& j) c
 {
   j.start_obj();
   switch (type_) {
-    case types::crs_intf_mitig_enabled_minus15:
+    case types::crs_intf_mitig_enabled:
       break;
-    case types::crs_intf_mitig_num_prbs_r15:
-      j.write_str("crs-IntfMitigNumPRBs-r15", c.to_string());
+    case types::crs_intf_mitig_num_prbs:
+      j.write_str("crs-IntfMitigNumPRBs", c.to_string());
       break;
     default:
       log_invalid_choice_id(type_, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_");
@@ -472,9 +472,9 @@ SRSASN_CODE sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::pack(bit_ref& bref
 {
   type_.pack(bref);
   switch (type_) {
-    case types::crs_intf_mitig_enabled_minus15:
+    case types::crs_intf_mitig_enabled:
       break;
-    case types::crs_intf_mitig_num_prbs_r15:
+    case types::crs_intf_mitig_num_prbs:
       HANDLE_CODE(c.pack(bref));
       break;
     default:
@@ -489,9 +489,9 @@ SRSASN_CODE sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::unpack(cbit_ref& b
   e.unpack(bref);
   set(e);
   switch (type_) {
-    case types::crs_intf_mitig_enabled_minus15:
+    case types::crs_intf_mitig_enabled:
       break;
-    case types::crs_intf_mitig_num_prbs_r15:
+    case types::crs_intf_mitig_num_prbs:
       HANDLE_CODE(c.unpack(bref));
       break;
     default:
@@ -501,17 +501,17 @@ SRSASN_CODE sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::unpack(cbit_ref& b
   return SRSASN_SUCCESS;
 }
 
-std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_opts::to_string() const
+std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_opts::to_string() const
 {
   static const char* options[] = {"n6", "n24"};
   return convert_enum_idx(
-      options, 2, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_e_");
+      options, 2, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_e_");
 }
-uint8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_opts::to_number() const
+uint8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_opts::to_number() const
 {
   static const uint8_t options[] = {6, 24};
   return map_enum_number(
-      options, 2, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_e_");
+      options, 2, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_e_");
 }
 
 std::string sib_type1_v1530_ies_s::cell_barred_crs_r15_opts::to_string() const
@@ -590,6 +590,18 @@ void cell_sel_info_ce1_v1360_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_int("delta-RxLevMinCE1-v1360", delta_rx_lev_min_ce1_v1360);
   j.end_obj();
+}
+
+// SI-Periodicity-r12 ::= ENUMERATED
+std::string si_periodicity_r12_opts::to_string() const
+{
+  static const char* options[] = {"rf8", "rf16", "rf32", "rf64", "rf128", "rf256", "rf512"};
+  return convert_enum_idx(options, 7, value, "si_periodicity_r12_e");
+}
+uint16_t si_periodicity_r12_opts::to_number() const
+{
+  static const uint16_t options[] = {8, 16, 32, 64, 128, 256, 512};
+  return map_enum_number(options, 7, value, "si_periodicity_r12_e");
 }
 
 // SystemInformationBlockType1-v1450-IEs ::= SEQUENCE
@@ -2479,17 +2491,6 @@ void sched_info_s::to_json(json_writer& j) const
   }
   j.end_array();
   j.end_obj();
-}
-
-std::string sched_info_s::si_periodicity_opts::to_string() const
-{
-  static const char* options[] = {"rf8", "rf16", "rf32", "rf64", "rf128", "rf256", "rf512"};
-  return convert_enum_idx(options, 7, value, "sched_info_s::si_periodicity_e_");
-}
-uint16_t sched_info_s::si_periodicity_opts::to_number() const
-{
-  static const uint16_t options[] = {8, 16, 32, 64, 128, 256, 512};
-  return map_enum_number(options, 7, value, "sched_info_s::si_periodicity_e_");
 }
 
 // SystemInformationBlockType1-v920-IEs ::= SEQUENCE

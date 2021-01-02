@@ -179,6 +179,54 @@ float rrc::rrc_meas::range_to_value(const report_cfg_eutra_s::trigger_quant_opts
   return val;
 }
 
+// For thresholds, the actual value is (field value – 156) dBm, except for field value 127, in which case the actual
+// value is infinity.
+float rrc::rrc_meas::range_to_value_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const uint8_t range)
+{
+  float val = 0;
+  switch (type) {
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15:
+      if (range == 127)
+        val = std::numeric_limits<float>::infinity();
+      else {
+        val = -156 + (float)range;
+      }
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15:
+      val = -87 + (float)range / 2;
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15:
+      val = -46 + (float)range / 2;
+      break;
+    default:
+      break;
+  }
+  return val;
+}
+
+uint8_t rrc::rrc_meas::value_to_range_nr(const asn1::rrc::thres_nr_r15_c::types_opts::options type, const float value)
+{
+  uint8_t range = 0;
+  switch (type) {
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15:
+      if (value == std::numeric_limits<float>::infinity()) {
+        range = 127;
+      } else {
+        range = (uint8_t)(value + 156);
+      }
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15:
+      range = (uint8_t)(2 * (value + 87));
+      break;
+    case asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15:
+      range = (uint8_t)(2 * (value + 46));
+      break;
+    default:
+      break;
+  }
+  return range;
+}
+
 uint8_t rrc::rrc_meas::offset_val(const meas_obj_eutra_s& meas_obj)
 {
   return meas_obj.offset_freq_present ? meas_obj.offset_freq.to_number() : 0;
@@ -203,30 +251,13 @@ void rrc::rrc_meas::var_meas_report_list::init(rrc* rrc_ptr_)
   rrc_ptr = rrc_ptr_;
 }
 
-/* Generate report procedure 5.5.5 */
-void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
+void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* report, const uint32_t measId)
 {
-  meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+  meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
   if (serv_cell == nullptr) {
     log_h->warning("MEAS:  Serving cell not set when evaluating triggers\n");
     return;
   }
-
-  ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_c1().set_meas_report_r8();
-
-  meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
-
-  report->meas_id = (uint8_t)measId;
-  report->meas_result_pcell.rsrp_result =
-      value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrp, serv_cell->get_rsrp());
-  report->meas_result_pcell.rsrq_result =
-      value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrq, serv_cell->get_rsrq());
-
-  log_h->info("MEAS:  Generate report MeasId=%d, Pcell rsrp=%f rsrq=%f\n",
-              report->meas_id,
-              serv_cell->get_rsrp(),
-              serv_cell->get_rsrq());
 
   meas_result_list_eutra_l& neigh_list = report->meas_result_neigh_cells.set_meas_result_list_eutra();
   var_meas_report&          var_meas   = varMeasReportList.at(measId);
@@ -250,19 +281,19 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
                   rrc_ptr->get_cell_rsrq(var_meas.carrier_freq, cell.pci));
       continue;
     }
-    if (neigh_list.size() <= var_meas.report_cfg.max_report_cells) {
+    if (neigh_list.size() <= var_meas.report_cfg_eutra.max_report_cells) {
       float rsrp_value = rrc_ptr->get_cell_rsrp(var_meas.carrier_freq, cell.pci);
       float rsrq_value = rrc_ptr->get_cell_rsrq(var_meas.carrier_freq, cell.pci);
 
       meas_result_eutra_s rc = {};
       // Set quantity to report
-      switch (var_meas.report_cfg.report_quant.value) {
+      switch (var_meas.report_cfg_eutra.report_quant.value) {
         case report_cfg_eutra_s::report_quant_opts::both:
           rc.meas_result.rsrp_result_present = true;
           rc.meas_result.rsrq_result_present = true;
           break;
         case report_cfg_eutra_s::report_quant_opts::same_as_trigger_quant:
-          switch (var_meas.report_cfg.trigger_quant.value) {
+          switch (var_meas.report_cfg_eutra.trigger_quant.value) {
             case report_cfg_eutra_s::trigger_quant_opts::rsrp:
               rc.meas_result.rsrp_result_present = true;
               break;
@@ -300,8 +331,8 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
   // if the numberOfReportsSent as defined within the VarMeasReportList for this measId is less than the
   // reportAmount as defined within the corresponding reportConfig for this measId (also includes case where amount is
   // infinity)
-  if (var_meas.nof_reports_sent < var_meas.report_cfg.report_amount.to_number() ||
-      var_meas.report_cfg.report_amount.to_number() == -1) {
+  if (var_meas.nof_reports_sent < var_meas.report_cfg_eutra.report_amount.to_number() ||
+      var_meas.report_cfg_eutra.report_amount.to_number() == -1) {
     // start the periodical reporting timer with the value of reportInterval as defined within the corresponding
     // reportConfig for this measId
     if (var_meas.periodic_timer.is_valid()) {
@@ -312,11 +343,142 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
       var_meas.periodic_timer.clear();
     }
     // else if the triggerType is set to ‘periodical’:
-    if (var_meas.report_cfg.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types::periodical) {
+    if (var_meas.report_cfg_eutra.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types::periodical) {
       // remove the entry within the VarMeasReportList for this measId
       remove_varmeas_report(measId);
       meas_cfg->remove_measId(measId);
     }
+  }
+}
+#ifdef HAVE_5GNR
+void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_s* report, const uint32_t measId)
+{
+
+  meas_result_cell_list_nr_r15_l& neigh_list = report->meas_result_neigh_cells.set_meas_result_neigh_cell_list_nr_r15();
+
+  var_meas_report& var_meas = varMeasReportList.at(measId);
+
+  // sort cells by RSRP
+  std::sort(
+      var_meas.cell_triggered_list.begin(), var_meas.cell_triggered_list.end(), [this](phy_cell_t a, phy_cell_t b) {
+        return rrc_ptr->get_cell_rsrq_nr(a.earfcn, a.pci) > rrc_ptr->get_cell_rsrq_nr(b.earfcn, b.pci);
+      });
+
+  // set the measResultNeighCells to include the best neighbouring cells up to maxReportCells in accordance with
+  // the following
+
+  for (auto& cell : var_meas.cell_triggered_list) {
+
+    if (neigh_list.size() <= var_meas.report_cfg_inter.max_report_cells) {
+      meas_result_cell_nr_r15_s rc = {};
+
+      float rsrp_value = rrc_ptr->get_cell_rsrp_nr(var_meas.carrier_freq, cell.pci);
+      float rsrq_value = rrc_ptr->get_cell_rsrq_nr(var_meas.carrier_freq, cell.pci);
+      // float sinr_value = rrc_pts->get_cell_sinr_nr(var_meas.carrier_freq, cell.pci); TODO
+      rc.pci_r15 = (uint16_t)cell.pci;
+
+      // Set quantity to report
+      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_rsrp == true) {
+        rc.meas_result_cell_r15.rsrp_result_r15_present = true;
+        rc.meas_result_cell_r15.rsrp_result_r15 =
+            value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15, rsrp_value);
+      }
+      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_rsrq == true) {
+        rc.meas_result_cell_r15.rsrq_result_r15_present = true;
+        rc.meas_result_cell_r15.rsrq_result_r15 =
+            value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrq_r15, rsrq_value);
+      }
+      if (var_meas.report_cfg_inter.report_quant_cell_nr_r15->ss_sinr == true) {
+        rc.meas_result_cell_r15.rs_sinr_result_r15_present = true;
+        rc.meas_result_cell_r15.rs_sinr_result_r15 =
+            value_to_range_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_sinr_r15, 1.0);
+      }
+
+      log_h->info("MEAS:  Adding to report neighbour=%d, pci=%d, earfcn=%d, rsrp=%+.1f, rsrq=%+.1f\n",
+                  neigh_list.size(),
+                  rc.pci_r15,
+                  var_meas.carrier_freq,
+                  rsrp_value,
+                  rsrq_value);
+
+      neigh_list.push_back(rc);
+    }
+  }
+  report->meas_result_neigh_cells_present = neigh_list.size() > 0;
+
+  var_meas.nof_reports_sent++;
+  if (var_meas.periodic_timer.is_valid()) {
+    var_meas.periodic_timer.stop();
+  }
+
+  // if the numberOfReportsSent as defined within the VarMeasReportList for this measId is less than the
+  // reportAmount as defined within the corresponding reportConfig for this measId (also includes case where amount is
+  // infinity)
+  if (var_meas.nof_reports_sent < var_meas.report_cfg_inter.report_amount.to_number() ||
+      var_meas.report_cfg_inter.report_amount.to_number() == -1) {
+    // start the periodical reporting timer with the value of reportInterval as defined within the corresponding
+    // reportConfig for this measId
+    if (var_meas.periodic_timer.is_valid()) {
+      var_meas.periodic_timer.run();
+    }
+  } else {
+    if (var_meas.periodic_timer.is_valid()) {
+      var_meas.periodic_timer.clear();
+    }
+    // else if the triggerType is set to ‘periodical’:
+    if (var_meas.report_cfg_inter.trigger_type.type().value ==
+        report_cfg_inter_rat_s::trigger_type_c_::types::periodical) {
+      // remove the entry within the VarMeasReportList for this measId
+      remove_varmeas_report(measId);
+      meas_cfg->remove_measId(measId);
+    }
+  }
+}
+#endif
+/* Generate report procedure 5.5.5 */
+void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
+{
+  meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
+  if (serv_cell == nullptr) {
+    log_h->warning("MEAS:  Serving cell not set when evaluating triggers\n");
+    return;
+  }
+
+  ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_c1().set_meas_report_r8();
+
+  meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
+
+  report->meas_id = (uint8_t)measId;
+  report->meas_result_pcell.rsrp_result =
+      value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrp, serv_cell->get_rsrp());
+  report->meas_result_pcell.rsrq_result =
+      value_to_range(report_cfg_eutra_s::trigger_quant_opts::rsrq, serv_cell->get_rsrq());
+
+  log_h->info("MEAS:  Generate report MeasId=%d, Pcell rsrp=%f rsrq=%f\n",
+              report->meas_id,
+              serv_cell->get_rsrp(),
+              serv_cell->get_rsrq());
+
+  meas_result_list_eutra_l& neigh_list = report->meas_result_neigh_cells.set_meas_result_list_eutra();
+  var_meas_report&          var_meas   = varMeasReportList.at(measId);
+
+  switch (var_meas.report_type) {
+    case eutra: {
+      log_h->debug("MEAS: Generate EUTRA report\n");
+      generate_report_eutra(report, measId);
+      break;
+    }
+#ifdef HAVE_5GNR
+    case inter_rat: {
+      log_h->debug("MEAS: Generate INTER RAT NR report\n");
+      generate_report_interrat(report, measId);
+      break;
+    }
+#endif
+    default:
+      log_h->debug("MEAS: Not supported\n");
+      break;
   }
 
   // Send to lower layers
@@ -362,7 +524,31 @@ void rrc::rrc_meas::var_meas_report_list::set_measId(const uint32_t            m
     varMeasReportList.at(measId).periodic_timer = rrc_ptr->task_sched.get_unique_timer();
     varMeasReportList.at(measId).periodic_timer.set(report_cfg.report_interv.to_number());
   }
-  varMeasReportList.at(measId).report_cfg       = std::move(report_cfg);
+  varMeasReportList.at(measId).report_cfg_eutra = std::move(report_cfg);
+  varMeasReportList.at(measId).carrier_freq     = carrier_freq;
+  varMeasReportList.at(measId).nof_reports_sent = 0;
+  upd_measId(measId, cell_triggered_list);
+}
+
+void rrc::rrc_meas::var_meas_report_list::set_measId(const uint32_t                measId,
+                                                     const uint32_t                carrier_freq,
+                                                     const report_cfg_inter_rat_s& report_cfg,
+                                                     const cell_triggered_t&       cell_triggered_list)
+{
+  // Create entry if it doesn't exist.
+  if (!varMeasReportList.count(measId)) {
+    varMeasReportList[measId].nof_reports_sent = 0;
+  }
+
+  // The ReportInterval is applicable if the UE performs periodical reporting (i.e. when reportAmount exceeds 1), for
+  // triggerType ‘event’ as well as for triggerType ‘periodical’
+  if (!varMeasReportList.at(measId).periodic_timer.is_valid() &&
+      (report_cfg.report_amount.to_number() > 1 || report_cfg.report_amount.to_number() == -1)) {
+    varMeasReportList.at(measId).periodic_timer = rrc_ptr->task_sched.get_unique_timer();
+    varMeasReportList.at(measId).periodic_timer.set(report_cfg.report_interv.to_number());
+  }
+  varMeasReportList.at(measId).report_type      = inter_rat;
+  varMeasReportList.at(measId).report_cfg_inter = std::move(report_cfg);
   varMeasReportList.at(measId).carrier_freq     = carrier_freq;
   varMeasReportList.at(measId).nof_reports_sent = 0;
   upd_measId(measId, cell_triggered_list);
@@ -384,94 +570,197 @@ cell_triggered_t rrc::rrc_meas::var_meas_report_list::get_measId_cells(const uin
   }
 }
 
+void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra_check_new(int32_t             meas_id,
+                                                                  report_cfg_eutra_s& report_cfg,
+                                                                  meas_obj_eutra_s&   meas_obj)
+{
+  bool             new_cell_trigger     = false;
+  cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
+  for (auto& cell : trigger_state[meas_id]) {
+    if (cell.second.is_enter_equal(report_cfg.trigger_type.event().time_to_trigger.to_number())) {
+      // Do not add if already exists
+      if (std::find_if(cells_triggered_list.begin(), cells_triggered_list.end(), [&cell](const phy_cell_t& c) {
+            return cell.first == c.pci;
+          }) == cells_triggered_list.end()) {
+        cells_triggered_list.push_back({cell.first, meas_obj.carrier_freq});
+        new_cell_trigger = true;
+      }
+    }
+  }
+
+  if (new_cell_trigger) {
+
+    // include a measurement reporting entry within the VarMeasReportList for this measId (nof_reports reset
+    // inside) include the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
+    meas_report->set_measId(meas_id, meas_obj.carrier_freq, report_cfg, cells_triggered_list);
+
+    // initiate the measurement reporting procedure, as specified in 5.5.5;
+    meas_report->generate_report(meas_id);
+  }
+}
+
+void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra_check_leaving(int32_t meas_id, report_cfg_eutra_s& report_cfg)
+{
+  // if the triggerType is set to ‘event’ and if the leaving condition applicable for this event is fulfilled ...
+  cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
+
+  // remove the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
+  auto it = cells_triggered_list.begin();
+  while (it != cells_triggered_list.end()) {
+    if (trigger_state[meas_id][it->pci].is_exit_equal(report_cfg.trigger_type.event().time_to_trigger.to_number())) {
+      it = cells_triggered_list.erase(it);
+      meas_report->upd_measId(meas_id, cells_triggered_list);
+
+      // if reportOnLeave is set to TRUE for the corresponding reporting configuration
+      if (report_cfg.trigger_type.event().event_id.type() == eutra_event_s::event_id_c_::types::event_a3 &&
+          report_cfg.trigger_type.event().event_id.event_a3().report_on_leave) {
+        // initiate the measurement reporting procedure, as specified in 5.5.5;
+        meas_report->generate_report(meas_id);
+      }
+
+      // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
+      if (cells_triggered_list.empty()) {
+        remove_varmeas_report(meas_id);
+      }
+    } else {
+      it++;
+    }
+  }
+}
+
+void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra_removing_trigger(int32_t meas_id)
+{
+  meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
+  if (serv_cell == nullptr) {
+    log_h->warning("MEAS:  Serving cell not set when reporting triggers\n");
+    return;
+  }
+  uint32_t serving_pci = serv_cell->get_pci();
+
+  // remove all cells in the cellsTriggeredList that are no neighbor cells anymore
+  cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
+  auto             it                   = cells_triggered_list.begin();
+  while (it != cells_triggered_list.end()) {
+    if (not rrc_ptr->has_neighbour_cell(it->earfcn, it->pci) and it->pci != serving_pci) {
+      log_h->debug("MEAS:  Removing unknown PCI=%d from event trigger list\n", it->pci);
+      it = cells_triggered_list.erase(it);
+      meas_report->upd_measId(meas_id, cells_triggered_list);
+
+      // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
+      if (cells_triggered_list.empty()) {
+        remove_varmeas_report(meas_id);
+      }
+    } else {
+      it++;
+    }
+  }
+}
+
 void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra(uint32_t            meas_id,
                                                         report_cfg_eutra_s& report_cfg,
                                                         meas_obj_eutra_s&   meas_obj)
 {
   if (report_cfg.trigger_type.type() == report_cfg_eutra_s::trigger_type_c_::types::event) {
     // if the triggerType is set to ‘event’ and if the entry condition applicable for this event,
-    {
-      bool             new_cell_trigger     = false;
-      cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
-      for (auto& cell : trigger_state[meas_id]) {
-        if (cell.second.is_enter_equal(report_cfg.trigger_type.event().time_to_trigger.to_number())) {
-          // Do not add if already exists
-          if (std::find_if(cells_triggered_list.begin(), cells_triggered_list.end(), [&cell](const phy_cell_t& c) {
-                return cell.first == c.pci;
-              }) == cells_triggered_list.end()) {
-            cells_triggered_list.push_back({cell.first, meas_obj.carrier_freq});
-            new_cell_trigger = true;
-          }
-        }
+    report_triggers_eutra_check_new(meas_id, report_cfg, meas_obj);
+    report_triggers_eutra_check_leaving(meas_id, report_cfg);
+    report_triggers_eutra_removing_trigger(meas_id);
+  }
+}
+
+#ifdef HAVE_5GNR
+void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_check_new(int32_t                 meas_id,
+                                                                     report_cfg_inter_rat_s& report_cfg,
+                                                                     meas_obj_nr_r15_s&      meas_obj)
+{
+  bool             new_cell_trigger     = false;
+  cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
+  for (auto& cell : trigger_state_nr[meas_id]) {
+    if (cell.second.is_enter_equal(report_cfg.trigger_type.event().time_to_trigger.to_number())) {
+      // Do not add if already exists
+      if (std::find_if(cells_triggered_list.begin(), cells_triggered_list.end(), [&cell](const phy_cell_t& c) {
+            return cell.first == c.pci;
+          }) == cells_triggered_list.end()) {
+        cells_triggered_list.push_back({cell.first, meas_obj.carrier_freq_r15});
+        new_cell_trigger = true;
       }
+    }
+  }
 
-      if (new_cell_trigger) {
+  if (new_cell_trigger) {
+    // include a measurement reporting entry within the VarMeasReportList for this measId (nof_reports reset
+    // inside) include the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
+    meas_report->set_measId(meas_id, meas_obj.carrier_freq_r15, report_cfg, cells_triggered_list);
 
-        // include a measurement reporting entry within the VarMeasReportList for this measId (nof_reports reset
-        // inside) include the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
-        meas_report->set_measId(meas_id, meas_obj.carrier_freq, report_cfg, cells_triggered_list);
+    // initiate the measurement reporting procedure, as specified in 5.5.5;
+    meas_report->generate_report(meas_id);
+  }
 
+}
+void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_check_leaving(int32_t                 meas_id,
+                                                                         report_cfg_inter_rat_s& report_cfg)
+{
+  // if the triggerType is set to ‘event’ and if the leaving condition applicable for this event is fulfilled ...
+  cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
+
+  // remove the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
+  auto it = cells_triggered_list.begin();
+  while (it != cells_triggered_list.end()) {
+    if (trigger_state_nr[meas_id][it->pci].is_exit_equal(report_cfg.trigger_type.event().time_to_trigger.to_number())) {
+      it = cells_triggered_list.erase(it);
+      meas_report->upd_measId(meas_id, cells_triggered_list);
+
+      // if reportOnLeave is set to TRUE for the corresponding reporting configuration
+      if (report_cfg.trigger_type.event().event_id.type() ==
+              report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::types_opts::options::event_b1_nr_r15 &&
+          report_cfg.trigger_type.event().event_id.event_b1_nr_r15().report_on_leave_r15 == true) {
         // initiate the measurement reporting procedure, as specified in 5.5.5;
         meas_report->generate_report(meas_id);
       }
-    }
-    {
-      // if the triggerType is set to ‘event’ and if the leaving condition applicable for this event is fulfilled ...
-      cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
 
-      // remove the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
-      auto it = cells_triggered_list.begin();
-      while (it != cells_triggered_list.end()) {
-        if (trigger_state[meas_id][it->pci].is_exit_equal(
-                report_cfg.trigger_type.event().time_to_trigger.to_number())) {
-          it = cells_triggered_list.erase(it);
-          meas_report->upd_measId(meas_id, cells_triggered_list);
-
-          // if reportOnLeave is set to TRUE for the corresponding reporting configuration
-          if (report_cfg.trigger_type.event().event_id.type() == eutra_event_s::event_id_c_::types::event_a3 &&
-              report_cfg.trigger_type.event().event_id.event_a3().report_on_leave) {
-            // initiate the measurement reporting procedure, as specified in 5.5.5;
-            meas_report->generate_report(meas_id);
-          }
-
-          // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
-          if (cells_triggered_list.empty()) {
-            remove_varmeas_report(meas_id);
-          }
-        } else {
-          it++;
-        }
+      // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
+      if (cells_triggered_list.empty()) {
+        remove_varmeas_report(meas_id);
       }
-    }
-    {
-      meas_cell* serv_cell = rrc_ptr->get_serving_cell();
-      if (serv_cell == nullptr) {
-        log_h->warning("MEAS:  Serving cell not set when reporting triggers\n");
-        return;
-      }
-      uint32_t serving_pci = serv_cell->get_pci();
-
-      // remove all cells in the cellsTriggeredList that are no neighbor cells anymore
-      cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
-      auto             it                   = cells_triggered_list.begin();
-      while (it != cells_triggered_list.end()) {
-        if (not rrc_ptr->has_neighbour_cell(it->earfcn, it->pci) and it->pci != serving_pci) {
-          log_h->debug("MEAS:  Removing unknown PCI=%d from event trigger list\n", it->pci);
-          it = cells_triggered_list.erase(it);
-          meas_report->upd_measId(meas_id, cells_triggered_list);
-
-          // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
-          if (cells_triggered_list.empty()) {
-            remove_varmeas_report(meas_id);
-          }
-        } else {
-          it++;
-        }
-      }
+    } else {
+      it++;
     }
   }
 }
 
+void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_removing_trigger(int32_t meas_id)
+{
+  // remove all cells in the cellsTriggeredList that are no neighbor cells anymore
+  cell_triggered_t cells_triggered_list = meas_report->get_measId_cells(meas_id);
+  auto             it                   = cells_triggered_list.begin();
+  while (it != cells_triggered_list.end()) {
+    if (not rrc_ptr->has_neighbour_cell_nr(it->earfcn, it->pci)) {
+      log_h->debug("MEAS:  Removing unknown PCI=%d from event trigger list\n", it->pci);
+      it = cells_triggered_list.erase(it);
+      meas_report->upd_measId(meas_id, cells_triggered_list);
+
+      // if the cellsTriggeredList defined within the VarMeasReportList for this measId is empty:
+      if (cells_triggered_list.empty()) {
+        remove_varmeas_report(meas_id);
+      }
+    } else {
+      it++;
+    }
+  }
+}
+
+void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_nr(uint32_t                meas_id,
+                                                              report_cfg_inter_rat_s& report_cfg,
+                                                              meas_obj_nr_r15_s&      meas_obj)
+{
+  if (report_cfg.trigger_type.type() == report_cfg_inter_rat_s::trigger_type_c_::types::event) {
+    // if the triggerType is set to ‘event’ and if the entry condition applicable for this event,
+    report_triggers_interrat_check_new(meas_id, report_cfg, meas_obj);
+    report_triggers_interrat_check_leaving(meas_id, report_cfg);
+    report_triggers_interrat_removing_trigger(meas_id);
+  }
+}
+#endif
 void rrc::rrc_meas::var_meas_cfg::report_triggers()
 {
   // for each measId included in the measIdList within VarMeasConfig
@@ -484,10 +773,27 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
 
     report_cfg_to_add_mod_s& report_cfg = reportConfigList.at(m.second.report_cfg_id);
     meas_obj_to_add_mod_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id);
+
+    log_h->debug("MEAS:  Calculating reports for MeasId=%d, ObjectId=%d (Type %s), ReportId=%d (Type %s)\n",
+                 m.first,
+                 m.second.meas_obj_id,
+                 report_cfg.report_cfg.type().to_string().c_str(),
+                 m.second.report_cfg_id,
+                 meas_obj.meas_obj.type().to_string().c_str());
+
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       report_triggers_eutra(m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra());
-    } else {
+    }
+#ifdef HAVE_5GNR
+    else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+             report_cfg.report_cfg.type().value ==
+                 report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat) {
+      report_triggers_interrat_nr(
+          m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
+    }
+#endif
+    else {
       log_h->error("Unsupported combination of measurement object type %s and report config type %s \n",
                    meas_obj.meas_obj.type().to_string().c_str(),
                    report_cfg.report_cfg.type().to_string().c_str());
@@ -508,7 +814,7 @@ bool rrc::rrc_meas::var_meas_cfg::is_rsrp(report_cfg_eutra_s::trigger_quant_opts
 void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_id,
                                                       report_cfg_eutra_s& report_cfg,
                                                       meas_obj_eutra_s&   meas_obj,
-                                                      meas_cell*          serv_cell,
+                                                      meas_cell_eutra*    serv_cell,
                                                       float               Ofs,
                                                       float               Ocs)
 {
@@ -633,10 +939,58 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
   }
 }
 
+#ifdef HAVE_5GNR
+void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t                meas_id,
+                                                            report_cfg_inter_rat_s& report_cfg,
+                                                            meas_obj_nr_r15_s&      meas_obj)
+{
+  if (!(report_cfg.trigger_type.type() == report_cfg_inter_rat_s::trigger_type_c_::types::event)) {
+    log_h->error("Unsupported trigger type for interrat nr eval\n");
+    return;
+  }
+
+  report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_ event_id = report_cfg.trigger_type.event().event_id;
+
+  double hyst = (double)report_cfg.trigger_type.event().hysteresis;
+
+  auto cells = rrc_ptr->get_cells_nr(meas_obj.carrier_freq_r15);
+
+  for (auto& pci : cells) {
+    float thresh          = 0.0;
+    bool  enter_condition = false;
+    bool  exit_condition  = false;
+    float Mn              = 0.0;
+
+    log_h->debug(
+        "MEAS:  eventId=%s, pci=%d, earfcn=%d\n", event_id.type().to_string().c_str(), pci, meas_obj.carrier_freq_r15);
+
+    if (event_id.event_b1_nr_r15().b1_thres_nr_r15.type().value == thres_nr_r15_c::types::nr_rsrp_r15) {
+      Mn     = rrc_ptr->get_cell_rsrp_nr(meas_obj.carrier_freq_r15, pci);
+      thresh = range_to_value_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15,
+                                 event_id.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15());
+    } else {
+      log_h->warning("Other threshold values are not supported yet!\n");
+    }
+
+    enter_condition = Mn - hyst > thresh;
+    exit_condition  = Mn + hyst < thresh;
+
+    trigger_state_nr[meas_id][pci].event_condition(enter_condition, exit_condition);
+
+    log_h->debug("MEAS (NR):  eventId=%s, Mn=%.2f, hyst=%.2f, Thresh=%.2f, enter_condition=%d, exit_condition=%d\n",
+                 event_id.type().to_string().c_str(),
+                 Mn,
+                 hyst,
+                 thresh,
+                 enter_condition,
+                 exit_condition);
+  }
+}
+#endif
 /* Evaluate event trigger conditions for each cell 5.5.4 */
 void rrc::rrc_meas::var_meas_cfg::eval_triggers()
 {
-  meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+  meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
 
   if (serv_cell == nullptr) {
     log_h->warning("MEAS:  Serving cell not set when evaluating triggers\n");
@@ -665,15 +1019,33 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
       log_h->error("MEAS:  Computing report triggers. MeasId=%d has invalid report or object settings\n", m.first);
       continue;
     }
-    log_h->debug("MEAS:  Calculating trigger for MeasId=%d, ObjectId=%d, ReportId=%d\n",
+
+    report_cfg_to_add_mod_s& report_cfg = reportConfigList.at(m.second.report_cfg_id);
+    meas_obj_to_add_mod_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id);
+
+    log_h->debug("MEAS:  Calculating trigger for MeasId=%d, ObjectId=%d (Type %s), ReportId=%d (Type %s)\n",
                  m.first,
                  m.second.meas_obj_id,
-                 m.second.report_cfg_id);
+                 report_cfg.report_cfg.type().to_string().c_str(),
+                 m.second.report_cfg_id,
+                 meas_obj.meas_obj.type().to_string().c_str());
 
-    report_cfg_eutra_s& report_cfg = reportConfigList.at(m.second.report_cfg_id).report_cfg.report_cfg_eutra();
-    meas_obj_eutra_s&   meas_obj   = measObjectsList.at(m.second.meas_obj_id).meas_obj.meas_obj_eutra();
-
-    eval_triggers_eutra(m.first, report_cfg, meas_obj, serv_cell, Ofs, Ocs);
+    if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
+        report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
+      eval_triggers_eutra(
+          m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra(), serv_cell, Ofs, Ocs);
+    }
+#ifdef HAVE_5GNR
+    else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+             report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
+      eval_triggers_interrat_nr(
+          m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
+#endif
+    else {
+      log_h->error("Unsupported combination of measurement object type %s and report config type %s \n",
+                   meas_obj.meas_obj.type().to_string().c_str(),
+                   report_cfg.report_cfg.type().to_string().c_str());
+    }
   }
 }
 
@@ -938,8 +1310,6 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_nr_r15(const meas_obj_to_add
   meas_obj_nr_r15_s cfg_obj = l.meas_obj.meas_obj_nr_r15();
   measObjectsList.at(l.meas_obj_id).meas_obj_id = l.meas_obj_id;
   meas_obj_nr_r15_s& local_obj = measObjectsList.at(l.meas_obj_id).meas_obj.meas_obj_nr_r15();
-
-
   // if an entry with the matching measObjectId exists in the measObjectList within the VarMeasConfig
   if (entry_exists) {
     // Update carrier frequency0
@@ -1071,9 +1441,7 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod_interrat(const report_cfg_
               report_cfg.trigger_type.event().event_id.type().to_string().c_str(),
               report_cfg.trigger_type.event().time_to_trigger.to_number(),
               report_cfg.report_interv.to_number());
-  if (entry_exists) {
-    // TODO Debug
-  }
+  log_debug_trigger_value_interrat(report_cfg.trigger_type.event().event_id);
 }
 
 // perform the reporting configuration addition/ modification procedure as specified in 5.5.2.7
@@ -1089,6 +1457,25 @@ void rrc::rrc_meas::var_meas_cfg::reportConfig_addmod(const report_cfg_to_add_mo
         break;
       default:
         log_h->error("MEAS: Unsupported reportConfig type: %s\n", l.report_cfg.type().to_string().c_str());
+        break;
+    }
+  }
+}
+
+// Warning: Use for Test debug purposes only. Assumes thresholds in RSRP
+void rrc::rrc_meas::var_meas_cfg::log_debug_trigger_value_interrat(
+    const report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_& e)
+{
+  if (log_h->get_level() == LOG_LEVEL_DEBUG) {
+    switch (e.type()) {
+      case report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::types_opts::event_b1_nr_r15: {
+        log_h->debug("MEAS:   B1-NR-R15-threashold (%d)=%.1f dBm\n",
+                     e.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15(),
+                    range_to_value_nr(asn1::rrc::thres_nr_r15_c::types_opts::options::nr_rsrp_r15, e.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15()));
+        break;
+      }
+      default:
+        log_h->debug("MEAS:     Unsupported inter rat trigger type %s\n", e.type().to_string().c_str());
         break;
     }
   }
@@ -1232,10 +1619,10 @@ bool rrc::rrc_meas::var_meas_cfg::parse_meas_config(const meas_cfg_s* cfg, bool 
     }
   }
 
-  // According to 5.5.6.1, if the new configuration after a HO/Reest does not configure the target frequency, we need to
-  // swap frequencies with source
+  // According to 5.5.6.1, if the new configuration after a HO/Reest does not configure the target frequency, we need
+  // to swap frequencies with source
   if (is_ho_reest) {
-    meas_cell* serv_cell = rrc_ptr->get_serving_cell();
+    meas_cell_eutra* serv_cell = rrc_ptr->get_serving_cell();
     if (serv_cell) {
       // Check if the target frequency is configured
       uint32_t target_earfcn = serv_cell->get_earfcn();

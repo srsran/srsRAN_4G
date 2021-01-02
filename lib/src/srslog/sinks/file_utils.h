@@ -94,7 +94,7 @@ public:
   explicit operator bool() const { return handle; }
 
   /// Returns the handle of the underlying file.
-  std::FILE* get_handle() { return handle; }
+  std::FILE* get_handle() const { return handle; }
 
   /// Returns the path of the file.
   const std::string& get_path() const { return path; }
@@ -110,8 +110,8 @@ public:
       return {};
     }
 
-    return format_error(fmt::format("Unable to create log file \"{}\"", path),
-                        errno);
+    return format_error(
+        fmt::format("Unable to create log file \"{}\"", new_path), errno);
   }
 
   /// Writes the provided memory buffer into an open file, otherwise does
@@ -121,9 +121,10 @@ public:
     if (handle &&
         std::fwrite(buffer.data(), sizeof(char), buffer.size(), handle) !=
             buffer.size()) {
+      auto err_str = format_error(
+          fmt::format("Unable to write log file \"{}\"", path), errno);
       close();
-      return format_error(fmt::format("Unable to write log file \"{}\"", path),
-                          errno);
+      return err_str;
     }
 
     return {};
@@ -133,10 +134,11 @@ public:
   detail::error_string flush()
   {
     if (handle && ::fflush(handle) == EOF) {
-      close();
-      return format_error(
+      auto err_str = format_error(
           fmt::format("Error encountered while flushing log file \"{}\"", path),
           errno);
+      close();
+      return err_str;
     }
 
     return {};

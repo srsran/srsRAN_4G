@@ -123,7 +123,7 @@ public:
 
   // Interface from scell::intra_measure for providing neighbour cell measurements
   void cell_meas_reset(uint32_t cc_idx) override;
-  void new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas) override;
+  void new_cell_meas(uint32_t cc_idx, const std::vector<phy_meas_t>& meas) override;
 
 private:
   void reset();

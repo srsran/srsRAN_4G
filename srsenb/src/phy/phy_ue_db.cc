@@ -399,6 +399,11 @@ void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, boo
   cell_info.state = (activate) ? cell_state_secondary_active : cell_state_secondary_inactive;
 }
 
+bool phy_ue_db::ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  return _assert_enb_cc(rnti, enb_cc_idx) == SRSLTE_SUCCESS;
+}
+
 bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -449,16 +454,16 @@ srslte_dci_cfg_t phy_ue_db::get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx
   return _get_rnti_config(rnti, enb_cc_idx).dl_cfg.dci;
 }
 
-void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci)
+bool phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
   // Assert rnti and cell exits and it is active
   if (_assert_active_enb_cc(dci.rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
-    return;
+    return false;
   }
 
-  common_ue& ue        = ue_db[dci.rnti];
+  common_ue& ue        = ue_db.at(dci.rnti);
   uint32_t   ue_cc_idx = _get_ue_cc_idx(dci.rnti, enb_cc_idx);
 
   srslte_pdsch_ack_cc_t& pdsch_ack_cc = ue.pdsch_ack[tti].cc[ue_cc_idx];
@@ -482,14 +487,15 @@ void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_
       pdsch_ack_m.value[tb_idx] = 2;
     }
   }
+  return true;
 }
 
-bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
-                             uint32_t          enb_cc_idx,
-                             uint16_t          rnti,
-                             bool              aperiodic_cqi_request,
-                             bool              is_pusch_available,
-                             srslte_uci_cfg_t& uci_cfg)
+int phy_ue_db::fill_uci_cfg(uint32_t          tti,
+                            uint32_t          enb_cc_idx,
+                            uint16_t          rnti,
+                            bool              aperiodic_cqi_request,
+                            bool              is_pusch_available,
+                            srslte_uci_cfg_t& uci_cfg)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -498,12 +504,12 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
 
   // Assert Cell List configuration
   if (_assert_cell_list_cfg() != SRSLTE_SUCCESS) {
-    return false;
+    return -1;
   }
 
   // Assert eNb Cell/Carrier for the given RNTI
   if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
-    return false;
+    return -1;
   }
 
   // Get the eNb cell/carrier index with lowest serving cell index (ue_cc_idx) that has an available grant.
@@ -512,17 +518,17 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
 
   // There is a PUSCH grant available for the provided RNTI in at least one serving cell and this call is for PUCCH
   if (pusch_grant_available and not is_pusch_available) {
-    return false;
+    return 0;
   }
 
   // There is a PUSCH grant and enb_cc_idx with lowest ue_cc_idx with a grant
   if (pusch_grant_available and uci_enb_cc_id != enb_cc_idx) {
-    return false;
+    return 0;
   }
 
   // No PUSCH grant for this TTI and cell and no enb_cc_idx is not the PCell
   if (not pusch_grant_available and _get_ue_cc_idx(rnti, enb_cc_idx) != 0) {
-    return false;
+    return 0;
   }
 
   common_ue&               ue           = ue_db.at(rnti);
@@ -573,7 +579,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   uci_required |= (srslte_uci_cfg_total_ack(&uci_cfg) > 0);
 
   // Return whether UCI needs to be decoded
-  return uci_required;
+  return uci_required ? 1 : 0;
 }
 
 void phy_ue_db::send_uci_data(uint32_t                  tti,

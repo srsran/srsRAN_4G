@@ -1733,6 +1733,148 @@ struct sc_mcch_msg_r13_s {
   void        to_json(json_writer& j) const;
 };
 
+// FailureReportSCG-v12d0 ::= SEQUENCE
+struct fail_report_scg_v12d0_s {
+  bool                           meas_result_neigh_cells_v12d0_present = false;
+  meas_result_list2_eutra_v9e0_l meas_result_neigh_cells_v12d0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCGFailureInformation-v12d0b-IEs ::= SEQUENCE
+struct scg_fail_info_v12d0b_ies_s {
+  bool                    fail_report_scg_v12d0_present = false;
+  bool                    non_crit_ext_present          = false;
+  fail_report_scg_v12d0_s fail_report_scg_v12d0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MIMO-WeightedLayersCapabilities-r13 ::= SEQUENCE
+struct mimo_weighted_layers_cap_r13_s {
+  struct rel_weight_two_layers_r13_opts {
+    enum options { v1, v1dot25, v1dot5, v1dot75, v2, v2dot5, v3, v4, nulltype } value;
+    typedef float number_type;
+
+    std::string to_string() const;
+    float       to_number() const;
+    std::string to_number_string() const;
+  };
+  typedef enumerated<rel_weight_two_layers_r13_opts> rel_weight_two_layers_r13_e_;
+  struct rel_weight_four_layers_r13_opts {
+    enum options { v1, v1dot25, v1dot5, v1dot75, v2, v2dot5, v3, v4, nulltype } value;
+    typedef float number_type;
+
+    std::string to_string() const;
+    float       to_number() const;
+    std::string to_number_string() const;
+  };
+  typedef enumerated<rel_weight_four_layers_r13_opts> rel_weight_four_layers_r13_e_;
+  struct rel_weight_eight_layers_r13_opts {
+    enum options { v1, v1dot25, v1dot5, v1dot75, v2, v2dot5, v3, v4, nulltype } value;
+    typedef float number_type;
+
+    std::string to_string() const;
+    float       to_number() const;
+    std::string to_number_string() const;
+  };
+  typedef enumerated<rel_weight_eight_layers_r13_opts> rel_weight_eight_layers_r13_e_;
+
+  // member variables
+  bool                           rel_weight_four_layers_r13_present  = false;
+  bool                           rel_weight_eight_layers_r13_present = false;
+  rel_weight_two_layers_r13_e_   rel_weight_two_layers_r13;
+  rel_weight_four_layers_r13_e_  rel_weight_four_layers_r13;
+  rel_weight_eight_layers_r13_e_ rel_weight_eight_layers_r13;
+  uint8_t                        total_weighted_layers_r13 = 2;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MIMO-UE-Parameters-v13e0 ::= SEQUENCE
+struct mimo_ue_params_v13e0_s {
+  bool                           mimo_weighted_layers_cap_r13_present = false;
+  mimo_weighted_layers_cap_r13_s mimo_weighted_layers_cap_r13;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MeasResult3EUTRA-r15 ::= SEQUENCE
+struct meas_result3_eutra_r15_s {
+  bool                     ext                                     = false;
+  bool                     meas_result_serving_cell_r15_present    = false;
+  bool                     meas_result_neigh_cell_list_r15_present = false;
+  uint32_t                 carrier_freq_r15                        = 0;
+  meas_result_eutra_s      meas_result_serving_cell_r15;
+  meas_result_list_eutra_l meas_result_neigh_cell_list_r15;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MeasResultList3EUTRA-r15 ::= SEQUENCE (SIZE (1..8)) OF MeasResult3EUTRA-r15
+using meas_result_list3_eutra_r15_l = dyn_array<meas_result3_eutra_r15_s>;
+
+// MeasResultSCG-FailureMRDC-r15 ::= SEQUENCE
+struct meas_result_scg_fail_mrdc_r15_s {
+  bool                          ext = false;
+  meas_result_list3_eutra_r15_l meas_result_freq_list_eutra_r15;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PhyLayerParameters-v13e0 ::= SEQUENCE
+struct phy_layer_params_v13e0_s {
+  mimo_ue_params_v13e0_s mimo_ue_params_v13e0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// UE-EUTRA-Capability-v13e0b-IEs ::= SEQUENCE
+struct ue_eutra_cap_v13e0b_ies_s {
+  bool                     non_crit_ext_present = false;
+  phy_layer_params_v13e0_s phy_layer_params_v13e0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCG-Config-v12i0b-IEs ::= SEQUENCE
+struct scg_cfg_v12i0b_ies_s {
+  bool                     scg_radio_cfg_v12i0_present = false;
+  bool                     non_crit_ext_present        = false;
+  scg_cfg_part_scg_v12f0_s scg_radio_cfg_v12i0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // CSI-RS-TriggeredList-r12 ::= SEQUENCE (SIZE (1..96)) OF INTEGER (1..96)
 using csi_rs_triggered_list_r12_l = dyn_array<uint8_t>;
 

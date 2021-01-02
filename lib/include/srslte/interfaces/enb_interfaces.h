@@ -169,6 +169,9 @@ public:
   /**
    * Informs MAC about a received PUSCH transmission for given RNTI, TTI and eNb Cell/carrier.
    *
+   * This function does not deallocate the uplink buffer. The function push_pdu() must be called after this
+   * to inform the MAC that the uplink buffer can be discarded or pushed to the stack
+   *
    * @param tti the given TTI
    * @param rnti the UE identifier in the eNb
    * @param cc_idx the eNb Cell/Carrier identifier
@@ -177,6 +180,18 @@ public:
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) = 0;
+
+  /**
+   * Pushes an uplink PDU through the stack if crc_res==true or discards it if crc_res==false
+   *
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param pdu_ptr pointer to the uplink buffer
+   * @param nof_bytes the number of grants carrierd by the PUSCH message
+   * @param crc_res the CRC check, set to true if the message was decoded succesfully
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) = 0;
 
   virtual int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res)                = 0;
   virtual int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) = 0;
@@ -419,6 +434,10 @@ public:
   virtual bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) = 0;
   virtual bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)    = 0;
   virtual bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)        = 0;
+  virtual void modify_erabs(uint16_t                                 rnti,
+                            const asn1::s1ap::erab_modify_request_s& msg,
+                            std::vector<uint16_t>*                   erabs_modified,
+                            std::vector<uint16_t>*                   erabs_failed_to_modify)                       = 0;
   virtual bool release_erabs(uint32_t rnti)                                                      = 0;
   virtual void release_erabs(uint32_t                              rnti,
                              const asn1::s1ap::erab_release_cmd_s& msg,

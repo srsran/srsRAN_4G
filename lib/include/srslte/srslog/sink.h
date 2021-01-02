@@ -24,6 +24,8 @@
 
 #include "srslte/srslog/detail/support/error_string.h"
 #include "srslte/srslog/detail/support/memory_buffer.h"
+#include "srslte/srslog/formatter.h"
+#include <cassert>
 
 namespace srslog {
 
@@ -32,13 +34,25 @@ namespace srslog {
 class sink
 {
 public:
+  explicit sink(std::unique_ptr<log_formatter> f) : formatter(std::move(f))
+  {
+    assert(formatter && "Invalid formatter");
+  }
+
   virtual ~sink() = default;
+
+  /// Returns the formatter used by this sink.
+  log_formatter& get_formatter() { return *formatter; }
+  const log_formatter& get_formatter() const { return *formatter; }
 
   /// Writes the provided memory buffer into the sink.
   virtual detail::error_string write(detail::memory_buffer buffer) = 0;
 
   /// Flushes any buffered contents to the backing store.
   virtual detail::error_string flush() = 0;
+
+private:
+  std::unique_ptr<log_formatter> formatter;
 };
 
 } // namespace srslog

@@ -294,6 +294,23 @@ void bearer_cfg_handler::release_erabs()
   }
 }
 
+bool bearer_cfg_handler::modify_erab(uint8_t                                    erab_id,
+                                     const asn1::s1ap::erab_level_qos_params_s& qos,
+                                     const asn1::unbounded_octstring<true>*     nas_pdu)
+{
+  log_h->info("Modifying E-RAB %d\n", erab_id);
+  std::map<uint8_t, erab_t>::iterator erab_it = erabs.find(erab_id);
+  if (erab_it == erabs.end()) {
+    log_h->error("Could not find E-RAB to modify\n");
+    return false;
+  }
+  auto     address  = erab_it->second.address;
+  uint32_t teid_out = erab_it->second.teid_out;
+  release_erab(erab_id);
+  add_erab(erab_id, qos, address, teid_out, nas_pdu);
+  return true;
+}
+
 void bearer_cfg_handler::add_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);

@@ -89,7 +89,7 @@ ue::~ue()
 
 void ue::reset()
 {
-  metrics      = {};
+  ue_metrics   = {};
   nof_failures = 0;
 
   for (auto cc : softbuffer_rx) {
@@ -101,15 +101,6 @@ void ue::reset()
   for (auto cc : softbuffer_tx) {
     for (auto buffer : cc) {
       srslte_softbuffer_tx_reset(&buffer);
-    }
-  }
-
-  for (auto& cc_buffers : pending_buffers) {
-    for (auto& harq_buffer : cc_buffers) {
-      if (harq_buffer) {
-        pdus.deallocate(harq_buffer);
-        harq_buffer = nullptr;
-      }
     }
   }
 }
@@ -130,12 +121,6 @@ uint32_t ue::allocate_cc_buffers(const uint32_t num_cc)
     softbuffer_rx.back().resize(nof_rx_harq_proc);
     for (auto& buffer : softbuffer_rx.back()) {
       srslte_softbuffer_rx_init(&buffer, nof_prb);
-    }
-
-    pending_buffers.emplace_back();
-    pending_buffers.back().resize(nof_rx_harq_proc);
-    for (auto& buffer : pending_buffers.back()) {
-      buffer = nullptr;
     }
 
     // Create and init Tx buffers for Pcell
@@ -185,20 +170,14 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
   return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
-uint8_t* ue::request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len)
+uint8_t* ue::request_buffer(const uint32_t len)
 {
-  uint8_t* ret = nullptr;
   if (len > 0) {
-    if (!pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-      ret                                                      = pdus.request(len);
-      pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = ret;
-    } else {
-      log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
-    }
+    return pdus.request(len);
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
+    return nullptr;
   }
-  return ret;
 }
 
 bool ue::process_pdus()
@@ -323,25 +302,21 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   Debug("MAC PDU processed\n");
 }
 
-void ue::deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti)
+void ue::deallocate_pdu(const uint8_t* pdu_ptr)
 {
-  if (pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-    pdus.deallocate(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc));
-    pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
+  if (pdu_ptr) {
+    pdus.deallocate(pdu_ptr);
   } else {
-    srslte::console(
-        "Error deallocating buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
+    Error("Error deallocating PDU: null ptr\n");
   }
 }
 
-void ue::push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len)
+void ue::push_pdu(const uint8_t* pdu_ptr, uint32_t len)
 {
-  if (pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-    pdus.push(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc), len);
-    pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
+  if (pdu_ptr && len > 0) {
+    pdus.push(pdu_ptr, len);
   } else {
-    srslte::console(
-        "Error pushing buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
+    Error("Error pushing PDU: ptr=%p, len=%d\n", pdu_ptr, len);
   }
 }
 
@@ -528,70 +503,75 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
 }
 
 /******* METRICS interface ***************/
-void ue::metrics_read(mac_metrics_t* metrics_)
+void ue::metrics_read(mac_ue_metrics_t* metrics_)
 {
-  metrics.rnti      = rnti;
-  metrics.ul_buffer = sched->get_ul_buffer(rnti);
-  metrics.dl_buffer = sched->get_dl_buffer(rnti);
+  ue_metrics.rnti      = rnti;
+  ue_metrics.ul_buffer = sched->get_ul_buffer(rnti);
+  ue_metrics.dl_buffer = sched->get_dl_buffer(rnti);
 
-  memcpy(metrics_, &metrics, sizeof(mac_metrics_t));
+  // set PCell sector id
+  std::array<int, SRSLTE_MAX_CARRIERS> cc_list = sched->get_enb_ue_cc_map(rnti);
+  auto                                 it      = std::find(cc_list.begin(), cc_list.end(), 0);
+  ue_metrics.cc_idx                            = std::distance(cc_list.begin(), it);
+
+  *metrics_ = ue_metrics;
 
   phr_counter    = 0;
   dl_cqi_counter = 0;
-  metrics        = {};
+  ue_metrics     = {};
 }
 
 void ue::metrics_phr(float phr)
 {
-  metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
+  ue_metrics.phr = SRSLTE_VEC_CMA(phr, ue_metrics.phr, phr_counter);
   phr_counter++;
 }
 
 void ue::metrics_dl_ri(uint32_t dl_ri)
 {
-  if (metrics.dl_ri == 0.0f) {
-    metrics.dl_ri = (float)dl_ri + 1.0f;
+  if (ue_metrics.dl_ri == 0.0f) {
+    ue_metrics.dl_ri = (float)dl_ri + 1.0f;
   } else {
-    metrics.dl_ri = SRSLTE_VEC_EMA((float)dl_ri + 1.0f, metrics.dl_ri, 0.5f);
+    ue_metrics.dl_ri = SRSLTE_VEC_EMA((float)dl_ri + 1.0f, ue_metrics.dl_ri, 0.5f);
   }
   dl_ri_counter++;
 }
 
 void ue::metrics_dl_pmi(uint32_t dl_ri)
 {
-  metrics.dl_pmi = SRSLTE_VEC_CMA((float)dl_ri, metrics.dl_pmi, dl_pmi_counter);
+  ue_metrics.dl_pmi = SRSLTE_VEC_CMA((float)dl_ri, ue_metrics.dl_pmi, dl_pmi_counter);
   dl_pmi_counter++;
 }
 
 void ue::metrics_dl_cqi(uint32_t dl_cqi)
 {
-  metrics.dl_cqi = SRSLTE_VEC_CMA((float)dl_cqi, metrics.dl_cqi, dl_cqi_counter);
+  ue_metrics.dl_cqi = SRSLTE_VEC_CMA((float)dl_cqi, ue_metrics.dl_cqi, dl_cqi_counter);
   dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)
 {
   if (crc) {
-    metrics.rx_brate += tbs * 8;
+    ue_metrics.rx_brate += tbs * 8;
   } else {
-    metrics.rx_errors++;
+    ue_metrics.rx_errors++;
   }
-  metrics.rx_pkts++;
+  ue_metrics.rx_pkts++;
 }
 
 void ue::metrics_tx(bool crc, uint32_t tbs)
 {
   if (crc) {
-    metrics.tx_brate += tbs * 8;
+    ue_metrics.tx_brate += tbs * 8;
   } else {
-    metrics.tx_errors++;
+    ue_metrics.tx_errors++;
   }
-  metrics.tx_pkts++;
+  ue_metrics.tx_pkts++;
 }
 
 void ue::metrics_cnt()
 {
-  metrics.nof_tti++;
+  ue_metrics.nof_tti++;
 }
 
 void ue::tic()

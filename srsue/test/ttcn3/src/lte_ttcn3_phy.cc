@@ -348,10 +348,10 @@ void lte_ttcn3_phy::radio_failure()
 void lte_ttcn3_phy::run_tti()
 {
   // send report for all cells stronger than non-suitable cell RS
-  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas;
+  std::vector<phy_meas_t> phy_meas;
   for (auto& cell : cells) {
     if (cell.power >= NON_SUITABLE_CELL_RS_EPRE) {
-      rrc_interface_phy_lte::phy_meas_t m = {};
+      phy_meas_t m = {};
       m.pci                               = cell.info.id;
       m.earfcn                            = cell.earfcn;
       m.rsrp                              = cell.power;

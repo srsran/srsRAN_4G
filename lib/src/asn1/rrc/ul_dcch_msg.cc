@@ -230,7 +230,7 @@ void rrc_conn_setup_complete_v1540_ies_s::to_json(json_writer& j) const
 {
   j.start_obj();
   if (gummei_type_v1540_present) {
-    j.write_str("gummei-Type-v1540", "mappedFrom5G");
+    j.write_str("gummei-Type-v1540", "mappedFrom5G-v1540");
   }
   if (guami_type_r15_present) {
     j.write_str("guami-Type-r15", guami_type_r15.to_string());
@@ -2170,40 +2170,6 @@ void ue_info_resp_v1250_ies_s::to_json(json_writer& j) const
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
     non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// FailureReportSCG-v12d0 ::= SEQUENCE
-SRSASN_CODE fail_report_scg_v12d0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(meas_result_neigh_cells_v12d0_present, 1));
-
-  if (meas_result_neigh_cells_v12d0_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, meas_result_neigh_cells_v12d0, 1, 8));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE fail_report_scg_v12d0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(meas_result_neigh_cells_v12d0_present, 1));
-
-  if (meas_result_neigh_cells_v12d0_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(meas_result_neigh_cells_v12d0, bref, 1, 8));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void fail_report_scg_v12d0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (meas_result_neigh_cells_v12d0_present) {
-    j.start_array("measResultNeighCells-v12d0");
-    for (const auto& e1 : meas_result_neigh_cells_v12d0) {
-      e1.to_json(j);
-    }
-    j.end_array();
   }
   j.end_obj();
 }
@@ -4419,44 +4385,6 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::unpack(cbit_ref&
   return SRSASN_SUCCESS;
 }
 
-// SCGFailureInformation-v12d0-IEs ::= SEQUENCE
-SRSASN_CODE scg_fail_info_v12d0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(fail_report_scg_v12d0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (fail_report_scg_v12d0_present) {
-    HANDLE_CODE(fail_report_scg_v12d0.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE scg_fail_info_v12d0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(fail_report_scg_v12d0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (fail_report_scg_v12d0_present) {
-    HANDLE_CODE(fail_report_scg_v12d0.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void scg_fail_info_v12d0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (fail_report_scg_v12d0_present) {
-    j.write_fieldname("failureReportSCG-v12d0");
-    fail_report_scg_v12d0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
-  }
-  j.end_obj();
-}
-
 // SL-CommTxResourceReq-r12 ::= SEQUENCE
 SRSASN_CODE sl_comm_tx_res_req_r12_s::pack(bit_ref& bref) const
 {
@@ -5075,6 +5003,43 @@ void mbms_interest_ind_v1310_ies_s::to_json(json_writer& j) const
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
     non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// MeasReportAppLayer-v1590-IEs ::= SEQUENCE
+SRSASN_CODE meas_report_app_layer_v1590_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE meas_report_app_layer_v1590_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void meas_report_app_layer_v1590_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
   }
   j.end_obj();
 }
@@ -6128,8 +6093,8 @@ void registered_mme_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// SCGFailureInformation-v1310-IEs ::= SEQUENCE
-SRSASN_CODE scg_fail_info_v1310_ies_s::pack(bit_ref& bref) const
+// SCGFailureInformation-v12d0a-IEs ::= SEQUENCE
+SRSASN_CODE scg_fail_info_v12d0a_ies_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
@@ -6140,7 +6105,7 @@ SRSASN_CODE scg_fail_info_v1310_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE scg_fail_info_v1310_ies_s::unpack(cbit_ref& bref)
+SRSASN_CODE scg_fail_info_v12d0a_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -6151,7 +6116,44 @@ SRSASN_CODE scg_fail_info_v1310_ies_s::unpack(cbit_ref& bref)
 
   return SRSASN_SUCCESS;
 }
-void scg_fail_info_v1310_ies_s::to_json(json_writer& j) const
+void scg_fail_info_v12d0a_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// SCGFailureInformationNR-v1590-IEs ::= SEQUENCE
+SRSASN_CODE scg_fail_info_nr_v1590_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE scg_fail_info_nr_v1590_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void scg_fail_info_nr_v1590_ies_s::to_json(json_writer& j) const
 {
   j.start_obj();
   if (late_non_crit_ext_present) {
@@ -7225,14 +7227,17 @@ void mbms_interest_ind_r11_ies_s::to_json(json_writer& j) const
 SRSASN_CODE meas_report_app_layer_r15_ies_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(bref.pack(meas_report_app_layer_container_r15_present, 1));
-  HANDLE_CODE(bref.pack(service_type_present, 1));
+  HANDLE_CODE(bref.pack(service_type_r15_present, 1));
   HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
 
   if (meas_report_app_layer_container_r15_present) {
     HANDLE_CODE(meas_report_app_layer_container_r15.pack(bref));
   }
-  if (service_type_present) {
-    HANDLE_CODE(service_type.pack(bref));
+  if (service_type_r15_present) {
+    HANDLE_CODE(service_type_r15.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -7240,14 +7245,17 @@ SRSASN_CODE meas_report_app_layer_r15_ies_s::pack(bit_ref& bref) const
 SRSASN_CODE meas_report_app_layer_r15_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_report_app_layer_container_r15_present, 1));
-  HANDLE_CODE(bref.unpack(service_type_present, 1));
+  HANDLE_CODE(bref.unpack(service_type_r15_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
 
   if (meas_report_app_layer_container_r15_present) {
     HANDLE_CODE(meas_report_app_layer_container_r15.unpack(bref));
   }
-  if (service_type_present) {
-    HANDLE_CODE(service_type.unpack(bref));
+  if (service_type_r15_present) {
+    HANDLE_CODE(service_type_r15.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -7258,21 +7266,20 @@ void meas_report_app_layer_r15_ies_s::to_json(json_writer& j) const
   if (meas_report_app_layer_container_r15_present) {
     j.write_str("measReportAppLayerContainer-r15", meas_report_app_layer_container_r15.to_string());
   }
-  if (service_type_present) {
-    j.write_str("serviceType", service_type.to_string());
+  if (service_type_r15_present) {
+    j.write_str("serviceType-r15", service_type_r15.to_string());
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
 
-std::string meas_report_app_layer_r15_ies_s::service_type_opts::to_string() const
+std::string meas_report_app_layer_r15_ies_s::service_type_r15_opts::to_string() const
 {
   static const char* options[] = {"qoe", "qoemtsi", "spare6", "spare5", "spare4", "spare3", "spare2", "spare1"};
-  return convert_enum_idx(options, 8, value, "meas_report_app_layer_r15_ies_s::service_type_e_");
+  return convert_enum_idx(options, 8, value, "meas_report_app_layer_r15_ies_s::service_type_r15_e_");
 }
 
 // ProximityIndication-r9-IEs ::= SEQUENCE
@@ -7736,6 +7743,9 @@ SRSASN_CODE scg_fail_info_nr_r15_ies_s::pack(bit_ref& bref) const
   if (fail_report_scg_nr_r15_present) {
     HANDLE_CODE(fail_report_scg_nr_r15.pack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -7746,6 +7756,9 @@ SRSASN_CODE scg_fail_info_nr_r15_ies_s::unpack(cbit_ref& bref)
 
   if (fail_report_scg_nr_r15_present) {
     HANDLE_CODE(fail_report_scg_nr_r15.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -7759,8 +7772,7 @@ void scg_fail_info_nr_r15_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -8573,9 +8585,6 @@ void fail_info_r15_s::to_json(json_writer& j) const
     j.write_fieldname("failedLogicalChannelInfo-r15");
     failed_lc_ch_info_r15.to_json(j);
   }
-  j.write_fieldname("nonCriticalExtension");
-  j.start_obj();
-  j.end_obj();
   j.end_obj();
 }
 

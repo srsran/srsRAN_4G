@@ -624,6 +624,162 @@ bool ss_rssi_meas_r15_s::operator==(const ss_rssi_meas_r15_s& other) const
   return meas_slots_r15 == other.meas_slots_r15 and end_symbol_r15 == other.end_symbol_r15;
 }
 
+// SSB-ToMeasure-r15 ::= CHOICE
+void ssb_to_measure_r15_c::destroy_()
+{
+  switch (type_) {
+    case types::short_bitmap_r15:
+      c.destroy<fixed_bitstring<4> >();
+      break;
+    case types::medium_bitmap_r15:
+      c.destroy<fixed_bitstring<8> >();
+      break;
+    case types::long_bitmap_r15:
+      c.destroy<fixed_bitstring<64> >();
+      break;
+    default:
+      break;
+  }
+}
+void ssb_to_measure_r15_c::set(types::options e)
+{
+  destroy_();
+  type_ = e;
+  switch (type_) {
+    case types::short_bitmap_r15:
+      c.init<fixed_bitstring<4> >();
+      break;
+    case types::medium_bitmap_r15:
+      c.init<fixed_bitstring<8> >();
+      break;
+    case types::long_bitmap_r15:
+      c.init<fixed_bitstring<64> >();
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "ssb_to_measure_r15_c");
+  }
+}
+ssb_to_measure_r15_c::ssb_to_measure_r15_c(const ssb_to_measure_r15_c& other)
+{
+  type_ = other.type();
+  switch (type_) {
+    case types::short_bitmap_r15:
+      c.init(other.c.get<fixed_bitstring<4> >());
+      break;
+    case types::medium_bitmap_r15:
+      c.init(other.c.get<fixed_bitstring<8> >());
+      break;
+    case types::long_bitmap_r15:
+      c.init(other.c.get<fixed_bitstring<64> >());
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "ssb_to_measure_r15_c");
+  }
+}
+ssb_to_measure_r15_c& ssb_to_measure_r15_c::operator=(const ssb_to_measure_r15_c& other)
+{
+  if (this == &other) {
+    return *this;
+  }
+  set(other.type());
+  switch (type_) {
+    case types::short_bitmap_r15:
+      c.set(other.c.get<fixed_bitstring<4> >());
+      break;
+    case types::medium_bitmap_r15:
+      c.set(other.c.get<fixed_bitstring<8> >());
+      break;
+    case types::long_bitmap_r15:
+      c.set(other.c.get<fixed_bitstring<64> >());
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "ssb_to_measure_r15_c");
+  }
+
+  return *this;
+}
+void ssb_to_measure_r15_c::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::short_bitmap_r15:
+      j.write_str("shortBitmap-r15", c.get<fixed_bitstring<4> >().to_string());
+      break;
+    case types::medium_bitmap_r15:
+      j.write_str("mediumBitmap-r15", c.get<fixed_bitstring<8> >().to_string());
+      break;
+    case types::long_bitmap_r15:
+      j.write_str("longBitmap-r15", c.get<fixed_bitstring<64> >().to_string());
+      break;
+    default:
+      log_invalid_choice_id(type_, "ssb_to_measure_r15_c");
+  }
+  j.end_obj();
+}
+SRSASN_CODE ssb_to_measure_r15_c::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::short_bitmap_r15:
+      HANDLE_CODE(c.get<fixed_bitstring<4> >().pack(bref));
+      break;
+    case types::medium_bitmap_r15:
+      HANDLE_CODE(c.get<fixed_bitstring<8> >().pack(bref));
+      break;
+    case types::long_bitmap_r15:
+      HANDLE_CODE(c.get<fixed_bitstring<64> >().pack(bref));
+      break;
+    default:
+      log_invalid_choice_id(type_, "ssb_to_measure_r15_c");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ssb_to_measure_r15_c::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::short_bitmap_r15:
+      HANDLE_CODE(c.get<fixed_bitstring<4> >().unpack(bref));
+      break;
+    case types::medium_bitmap_r15:
+      HANDLE_CODE(c.get<fixed_bitstring<8> >().unpack(bref));
+      break;
+    case types::long_bitmap_r15:
+      HANDLE_CODE(c.get<fixed_bitstring<64> >().unpack(bref));
+      break;
+    default:
+      log_invalid_choice_id(type_, "ssb_to_measure_r15_c");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+bool ssb_to_measure_r15_c::operator==(const ssb_to_measure_r15_c& other) const
+{
+  if (type_ != other.type_) {
+    return false;
+  }
+  switch (type_) {
+    case types::short_bitmap_r15:
+      return c.get<fixed_bitstring<4> >() == other.c.get<fixed_bitstring<4> >();
+    case types::medium_bitmap_r15:
+      return c.get<fixed_bitstring<8> >() == other.c.get<fixed_bitstring<8> >();
+    case types::long_bitmap_r15:
+      return c.get<fixed_bitstring<64> >() == other.c.get<fixed_bitstring<64> >();
+    default:
+      return true;
+  }
+  return true;
+}
+
 // ThresholdListNR-r15 ::= SEQUENCE
 SRSASN_CODE thres_list_nr_r15_s::pack(bit_ref& bref) const
 {
@@ -761,210 +917,6 @@ void carrier_freq_cdma2000_s::to_json(json_writer& j) const
 bool carrier_freq_cdma2000_s::operator==(const carrier_freq_cdma2000_s& other) const
 {
   return band_class == other.band_class and arfcn == other.arfcn;
-}
-
-// RACH-ConfigDedicated ::= SEQUENCE
-SRSASN_CODE rach_cfg_ded_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, ra_preamb_idx, (uint8_t)0u, (uint8_t)63u));
-  HANDLE_CODE(pack_integer(bref, ra_prach_mask_idx, (uint8_t)0u, (uint8_t)15u));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rach_cfg_ded_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(ra_preamb_idx, bref, (uint8_t)0u, (uint8_t)63u));
-  HANDLE_CODE(unpack_integer(ra_prach_mask_idx, bref, (uint8_t)0u, (uint8_t)15u));
-
-  return SRSASN_SUCCESS;
-}
-void rach_cfg_ded_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("ra-PreambleIndex", ra_preamb_idx);
-  j.write_int("ra-PRACH-MaskIndex", ra_prach_mask_idx);
-  j.end_obj();
-}
-
-// RACH-Skip-r14 ::= SEQUENCE
-SRSASN_CODE rach_skip_r14_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ul_cfg_info_r14_present, 1));
-
-  HANDLE_CODE(target_ta_r14.pack(bref));
-  if (ul_cfg_info_r14_present) {
-    HANDLE_CODE(pack_integer(bref, ul_cfg_info_r14.nof_conf_ul_processes_r14, (uint8_t)1u, (uint8_t)8u));
-    HANDLE_CODE(ul_cfg_info_r14.ul_sched_interv_r14.pack(bref));
-    HANDLE_CODE(pack_integer(bref, ul_cfg_info_r14.ul_start_sf_r14, (uint8_t)0u, (uint8_t)9u));
-    HANDLE_CODE(ul_cfg_info_r14.ul_grant_r14.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rach_skip_r14_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ul_cfg_info_r14_present, 1));
-
-  HANDLE_CODE(target_ta_r14.unpack(bref));
-  if (ul_cfg_info_r14_present) {
-    HANDLE_CODE(unpack_integer(ul_cfg_info_r14.nof_conf_ul_processes_r14, bref, (uint8_t)1u, (uint8_t)8u));
-    HANDLE_CODE(ul_cfg_info_r14.ul_sched_interv_r14.unpack(bref));
-    HANDLE_CODE(unpack_integer(ul_cfg_info_r14.ul_start_sf_r14, bref, (uint8_t)0u, (uint8_t)9u));
-    HANDLE_CODE(ul_cfg_info_r14.ul_grant_r14.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void rach_skip_r14_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("targetTA-r14");
-  target_ta_r14.to_json(j);
-  if (ul_cfg_info_r14_present) {
-    j.write_fieldname("ul-ConfigInfo-r14");
-    j.start_obj();
-    j.write_int("numberOfConfUL-Processes-r14", ul_cfg_info_r14.nof_conf_ul_processes_r14);
-    j.write_str("ul-SchedInterval-r14", ul_cfg_info_r14.ul_sched_interv_r14.to_string());
-    j.write_int("ul-StartSubframe-r14", ul_cfg_info_r14.ul_start_sf_r14);
-    j.write_str("ul-Grant-r14", ul_cfg_info_r14.ul_grant_r14.to_string());
-    j.end_obj();
-  }
-  j.end_obj();
-}
-
-void rach_skip_r14_s::target_ta_r14_c_::destroy_() {}
-void rach_skip_r14_s::target_ta_r14_c_::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-}
-rach_skip_r14_s::target_ta_r14_c_::target_ta_r14_c_(const rach_skip_r14_s::target_ta_r14_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::ta0_r14:
-      break;
-    case types::mcg_ptag_r14:
-      break;
-    case types::scg_ptag_r14:
-      break;
-    case types::mcg_stag_r14:
-      c.init(other.c.get<uint8_t>());
-      break;
-    case types::scg_stag_r14:
-      c.init(other.c.get<uint8_t>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
-  }
-}
-rach_skip_r14_s::target_ta_r14_c_&
-rach_skip_r14_s::target_ta_r14_c_::operator=(const rach_skip_r14_s::target_ta_r14_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::ta0_r14:
-      break;
-    case types::mcg_ptag_r14:
-      break;
-    case types::scg_ptag_r14:
-      break;
-    case types::mcg_stag_r14:
-      c.set(other.c.get<uint8_t>());
-      break;
-    case types::scg_stag_r14:
-      c.set(other.c.get<uint8_t>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
-  }
-
-  return *this;
-}
-void rach_skip_r14_s::target_ta_r14_c_::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::ta0_r14:
-      break;
-    case types::mcg_ptag_r14:
-      break;
-    case types::scg_ptag_r14:
-      break;
-    case types::mcg_stag_r14:
-      j.write_int("mcg-STAG-r14", c.get<uint8_t>());
-      break;
-    case types::scg_stag_r14:
-      j.write_int("scg-STAG-r14", c.get<uint8_t>());
-      break;
-    default:
-      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
-  }
-  j.end_obj();
-}
-SRSASN_CODE rach_skip_r14_s::target_ta_r14_c_::pack(bit_ref& bref) const
-{
-  type_.pack(bref);
-  switch (type_) {
-    case types::ta0_r14:
-      break;
-    case types::mcg_ptag_r14:
-      break;
-    case types::scg_ptag_r14:
-      break;
-    case types::mcg_stag_r14:
-      HANDLE_CODE(pack_integer(bref, c.get<uint8_t>(), (uint8_t)1u, (uint8_t)3u));
-      break;
-    case types::scg_stag_r14:
-      HANDLE_CODE(pack_integer(bref, c.get<uint8_t>(), (uint8_t)1u, (uint8_t)3u));
-      break;
-    default:
-      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rach_skip_r14_s::target_ta_r14_c_::unpack(cbit_ref& bref)
-{
-  types e;
-  e.unpack(bref);
-  set(e);
-  switch (type_) {
-    case types::ta0_r14:
-      break;
-    case types::mcg_ptag_r14:
-      break;
-    case types::scg_ptag_r14:
-      break;
-    case types::mcg_stag_r14:
-      HANDLE_CODE(unpack_integer(c.get<uint8_t>(), bref, (uint8_t)1u, (uint8_t)3u));
-      break;
-    case types::scg_stag_r14:
-      HANDLE_CODE(unpack_integer(c.get<uint8_t>(), bref, (uint8_t)1u, (uint8_t)3u));
-      break;
-    default:
-      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_string() const
-{
-  static const char* options[] = {"sf2", "sf5", "sf10"};
-  return convert_enum_idx(options, 3, value, "rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_");
-}
-uint8_t rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_number() const
-{
-  static const uint8_t options[] = {2, 5, 10};
-  return map_enum_number(options, 3, value, "rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_");
 }
 
 // MeasCSI-RS-Config-r12 ::= SEQUENCE
@@ -1379,29 +1331,6 @@ bool csg_allowed_report_cells_r9_s::operator==(const csg_allowed_report_cells_r9
 {
   return pci_range_utra_fdd_list_r9_present == other.pci_range_utra_fdd_list_r9_present and
          (not pci_range_utra_fdd_list_r9_present or pci_range_utra_fdd_list_r9 == other.pci_range_utra_fdd_list_r9);
-}
-
-// CarrierFreqGERAN ::= SEQUENCE
-SRSASN_CODE carrier_freq_geran_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, arfcn, (uint16_t)0u, (uint16_t)1023u));
-  HANDLE_CODE(band_ind.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE carrier_freq_geran_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(arfcn, bref, (uint16_t)0u, (uint16_t)1023u));
-  HANDLE_CODE(band_ind.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void carrier_freq_geran_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("arfcn", arfcn);
-  j.write_str("bandIndicator", band_ind.to_string());
-  j.end_obj();
 }
 
 // MeasCycleSCell-r10 ::= ENUMERATED
@@ -2373,36 +2302,6 @@ bool meas_sf_pattern_cfg_neigh_r10_c::operator==(const meas_sf_pattern_cfg_neigh
          (not c.meas_sf_cell_list_r10_present or c.meas_sf_cell_list_r10 == other.c.meas_sf_cell_list_r10);
 }
 
-// MobilityControlInfo-v10l0 ::= SEQUENCE
-SRSASN_CODE mob_ctrl_info_v10l0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(add_spec_emission_v10l0_present, 1));
-
-  if (add_spec_emission_v10l0_present) {
-    HANDLE_CODE(pack_integer(bref, add_spec_emission_v10l0, (uint16_t)33u, (uint16_t)288u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mob_ctrl_info_v10l0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(add_spec_emission_v10l0_present, 1));
-
-  if (add_spec_emission_v10l0_present) {
-    HANDLE_CODE(unpack_integer(add_spec_emission_v10l0, bref, (uint16_t)33u, (uint16_t)288u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mob_ctrl_info_v10l0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (add_spec_emission_v10l0_present) {
-    j.write_int("additionalSpectrumEmission-v10l0", add_spec_emission_v10l0);
-  }
-  j.end_obj();
-}
-
 // PhysCellIdGERAN ::= SEQUENCE
 SRSASN_CODE pci_geran_s::pack(bit_ref& bref) const
 {
@@ -2599,6 +2498,20 @@ SRSASN_CODE rs_cfg_ssb_nr_r15_s::pack(bit_ref& bref) const
   HANDLE_CODE(meas_timing_cfg_r15.pack(bref));
   HANDLE_CODE(subcarrier_spacing_ssb_r15.pack(bref));
 
+  if (ext) {
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= ssb_to_measure_r15.is_present();
+    group_flags.pack(bref);
+
+    if (group_flags[0]) {
+      varlength_field_pack_guard varlen_scope(bref, false);
+
+      HANDLE_CODE(bref.pack(ssb_to_measure_r15.is_present(), 1));
+      if (ssb_to_measure_r15.is_present()) {
+        HANDLE_CODE(ssb_to_measure_r15->pack(bref));
+      }
+    }
+  }
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE rs_cfg_ssb_nr_r15_s::unpack(cbit_ref& bref)
@@ -2607,6 +2520,21 @@ SRSASN_CODE rs_cfg_ssb_nr_r15_s::unpack(cbit_ref& bref)
   HANDLE_CODE(meas_timing_cfg_r15.unpack(bref));
   HANDLE_CODE(subcarrier_spacing_ssb_r15.unpack(bref));
 
+  if (ext) {
+    ext_groups_unpacker_guard group_flags(1);
+    group_flags.unpack(bref);
+
+    if (group_flags[0]) {
+      varlength_field_unpack_guard varlen_scope(bref, false);
+
+      bool ssb_to_measure_r15_present;
+      HANDLE_CODE(bref.unpack(ssb_to_measure_r15_present, 1));
+      ssb_to_measure_r15.set_present(ssb_to_measure_r15_present);
+      if (ssb_to_measure_r15.is_present()) {
+        HANDLE_CODE(ssb_to_measure_r15->unpack(bref));
+      }
+    }
+  }
   return SRSASN_SUCCESS;
 }
 void rs_cfg_ssb_nr_r15_s::to_json(json_writer& j) const
@@ -2615,12 +2543,20 @@ void rs_cfg_ssb_nr_r15_s::to_json(json_writer& j) const
   j.write_fieldname("measTimingConfig-r15");
   meas_timing_cfg_r15.to_json(j);
   j.write_str("subcarrierSpacingSSB-r15", subcarrier_spacing_ssb_r15.to_string());
+  if (ext) {
+    if (ssb_to_measure_r15.is_present()) {
+      j.write_fieldname("ssb-ToMeasure-r15");
+      ssb_to_measure_r15->to_json(j);
+    }
+  }
   j.end_obj();
 }
 bool rs_cfg_ssb_nr_r15_s::operator==(const rs_cfg_ssb_nr_r15_s& other) const
 {
   return ext == other.ext and meas_timing_cfg_r15 == other.meas_timing_cfg_r15 and
-         subcarrier_spacing_ssb_r15 == other.subcarrier_spacing_ssb_r15;
+         subcarrier_spacing_ssb_r15 == other.subcarrier_spacing_ssb_r15 and
+         (not ext or (ssb_to_measure_r15.is_present() == other.ssb_to_measure_r15.is_present() and
+                      (not ssb_to_measure_r15.is_present() or *ssb_to_measure_r15 == *other.ssb_to_measure_r15)));
 }
 
 std::string rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
@@ -2632,6 +2568,62 @@ uint8_t rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_number() const
 {
   static const uint8_t options[] = {15, 30, 120, 240};
   return map_enum_number(options, 4, value, "rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_");
+}
+
+void rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::set(types::options e)
+{
+  type_ = e;
+}
+void rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      j.write_fieldname("setup");
+      c.to_json(j);
+      break;
+    default:
+      log_invalid_choice_id(type_, "rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_");
+  }
+  j.end_obj();
+}
+SRSASN_CODE rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(c.pack(bref));
+      break;
+    default:
+      log_invalid_choice_id(type_, "rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(c.unpack(bref));
+      break;
+    default:
+      log_invalid_choice_id(type_, "rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+bool rs_cfg_ssb_nr_r15_s::ssb_to_measure_r15_c_::operator==(const ssb_to_measure_r15_c_& other) const
+{
+  return type() == other.type() and c == other.c;
 }
 
 // RSRQ-RangeConfig-r12 ::= CHOICE
@@ -3399,62 +3391,6 @@ SRSASN_CODE wlan_name_list_cfg_r15_c::unpack(cbit_ref& bref)
 bool wlan_name_list_cfg_r15_c::operator==(const wlan_name_list_cfg_r15_c& other) const
 {
   return type() == other.type() and c == other.c;
-}
-
-// LoggedMeasurementConfiguration-v1530-IEs ::= SEQUENCE
-SRSASN_CODE logged_meas_cfg_v1530_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(bt_name_list_r15_present, 1));
-  HANDLE_CODE(bref.pack(wlan_name_list_r15_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (bt_name_list_r15_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, bt_name_list_r15, 1, 4));
-  }
-  if (wlan_name_list_r15_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, wlan_name_list_r15, 1, 4));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE logged_meas_cfg_v1530_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(bt_name_list_r15_present, 1));
-  HANDLE_CODE(bref.unpack(wlan_name_list_r15_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (bt_name_list_r15_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(bt_name_list_r15, bref, 1, 4));
-  }
-  if (wlan_name_list_r15_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(wlan_name_list_r15, bref, 1, 4));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void logged_meas_cfg_v1530_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (bt_name_list_r15_present) {
-    j.start_array("bt-NameList-r15");
-    for (const auto& e1 : bt_name_list_r15) {
-      j.write_str(e1.to_string());
-    }
-    j.end_array();
-  }
-  if (wlan_name_list_r15_present) {
-    j.start_array("wlan-NameList-r15");
-    for (const auto& e1 : wlan_name_list_r15) {
-      j.write_str(e1.to_string());
-    }
-    j.end_array();
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
-  }
-  j.end_obj();
 }
 
 // MeasGapConfigPerCC-r14 ::= SEQUENCE
@@ -5440,14 +5376,14 @@ void eutra_event_s::event_id_c_::to_json(json_writer& j) const
       j.write_fieldname("eventH1-r15");
       j.start_obj();
       j.write_int("h1-ThresholdOffset-r15", c.get<event_h1_r15_s_>().h1_thres_offset_r15);
-      j.write_int("h1-Hysteresis-15", c.get<event_h1_r15_s_>().h1_hysteresis_minus15);
+      j.write_int("h1-Hysteresis-r15", c.get<event_h1_r15_s_>().h1_hysteresis_r15);
       j.end_obj();
       break;
     case types::event_h2_r15:
       j.write_fieldname("eventH2-r15");
       j.start_obj();
       j.write_int("h2-ThresholdOffset-r15", c.get<event_h2_r15_s_>().h2_thres_offset_r15);
-      j.write_int("h2-Hysteresis-15", c.get<event_h2_r15_s_>().h2_hysteresis_minus15);
+      j.write_int("h2-Hysteresis-r15", c.get<event_h2_r15_s_>().h2_hysteresis_r15);
       j.end_obj();
       break;
     default:
@@ -5503,12 +5439,12 @@ SRSASN_CODE eutra_event_s::event_id_c_::pack(bit_ref& bref) const
     case types::event_h1_r15: {
       varlength_field_pack_guard varlen_scope(bref, false);
       HANDLE_CODE(pack_integer(bref, c.get<event_h1_r15_s_>().h1_thres_offset_r15, (uint16_t)0u, (uint16_t)300u));
-      HANDLE_CODE(pack_integer(bref, c.get<event_h1_r15_s_>().h1_hysteresis_minus15, (uint8_t)1u, (uint8_t)16u));
+      HANDLE_CODE(pack_integer(bref, c.get<event_h1_r15_s_>().h1_hysteresis_r15, (uint8_t)1u, (uint8_t)16u));
     } break;
     case types::event_h2_r15: {
       varlength_field_pack_guard varlen_scope(bref, false);
       HANDLE_CODE(pack_integer(bref, c.get<event_h2_r15_s_>().h2_thres_offset_r15, (uint16_t)0u, (uint16_t)300u));
-      HANDLE_CODE(pack_integer(bref, c.get<event_h2_r15_s_>().h2_hysteresis_minus15, (uint8_t)1u, (uint8_t)16u));
+      HANDLE_CODE(pack_integer(bref, c.get<event_h2_r15_s_>().h2_hysteresis_r15, (uint8_t)1u, (uint8_t)16u));
     } break;
     default:
       log_invalid_choice_id(type_, "eutra_event_s::event_id_c_");
@@ -5566,12 +5502,12 @@ SRSASN_CODE eutra_event_s::event_id_c_::unpack(cbit_ref& bref)
     case types::event_h1_r15: {
       varlength_field_unpack_guard varlen_scope(bref, false);
       HANDLE_CODE(unpack_integer(c.get<event_h1_r15_s_>().h1_thres_offset_r15, bref, (uint16_t)0u, (uint16_t)300u));
-      HANDLE_CODE(unpack_integer(c.get<event_h1_r15_s_>().h1_hysteresis_minus15, bref, (uint8_t)1u, (uint8_t)16u));
+      HANDLE_CODE(unpack_integer(c.get<event_h1_r15_s_>().h1_hysteresis_r15, bref, (uint8_t)1u, (uint8_t)16u));
     } break;
     case types::event_h2_r15: {
       varlength_field_unpack_guard varlen_scope(bref, false);
       HANDLE_CODE(unpack_integer(c.get<event_h2_r15_s_>().h2_thres_offset_r15, bref, (uint16_t)0u, (uint16_t)300u));
-      HANDLE_CODE(unpack_integer(c.get<event_h2_r15_s_>().h2_hysteresis_minus15, bref, (uint8_t)1u, (uint8_t)16u));
+      HANDLE_CODE(unpack_integer(c.get<event_h2_r15_s_>().h2_hysteresis_r15, bref, (uint8_t)1u, (uint8_t)16u));
     } break;
     default:
       log_invalid_choice_id(type_, "eutra_event_s::event_id_c_");
@@ -5613,10 +5549,10 @@ bool eutra_event_s::event_id_c_::operator==(const event_id_c_& other) const
       return c.get<event_v2_r14_s_>().v2_thres_r14 == other.c.get<event_v2_r14_s_>().v2_thres_r14;
     case types::event_h1_r15:
       return c.get<event_h1_r15_s_>().h1_thres_offset_r15 == other.c.get<event_h1_r15_s_>().h1_thres_offset_r15 and
-             c.get<event_h1_r15_s_>().h1_hysteresis_minus15 == other.c.get<event_h1_r15_s_>().h1_hysteresis_minus15;
+             c.get<event_h1_r15_s_>().h1_hysteresis_r15 == other.c.get<event_h1_r15_s_>().h1_hysteresis_r15;
     case types::event_h2_r15:
       return c.get<event_h2_r15_s_>().h2_thres_offset_r15 == other.c.get<event_h2_r15_s_>().h2_thres_offset_r15 and
-             c.get<event_h2_r15_s_>().h2_hysteresis_minus15 == other.c.get<event_h2_r15_s_>().h2_hysteresis_minus15;
+             c.get<event_h2_r15_s_>().h2_hysteresis_r15 == other.c.get<event_h2_r15_s_>().h2_hysteresis_r15;
     default:
       return true;
   }
@@ -7531,30 +7467,6 @@ std::string report_cfg_inter_rat_s::report_sftd_meas_r15_opts::to_string() const
   return convert_enum_idx(options, 2, value, "report_cfg_inter_rat_s::report_sftd_meas_r15_e_");
 }
 
-// CellGlobalIdEUTRA ::= SEQUENCE
-SRSASN_CODE cell_global_id_eutra_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(plmn_id.pack(bref));
-  HANDLE_CODE(cell_id.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE cell_global_id_eutra_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(plmn_id.unpack(bref));
-  HANDLE_CODE(cell_id.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void cell_global_id_eutra_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("plmn-Identity");
-  plmn_id.to_json(j);
-  j.write_str("cellIdentity", cell_id.to_string());
-  j.end_obj();
-}
-
 // MeasIdToAddMod ::= SEQUENCE
 SRSASN_CODE meas_id_to_add_mod_s::pack(bit_ref& bref) const
 {
@@ -8642,157 +8554,6 @@ bool report_cfg_to_add_mod_s::report_cfg_c_::operator==(const report_cfg_c_& oth
   return true;
 }
 
-// CarrierBandwidthEUTRA ::= SEQUENCE
-SRSASN_CODE carrier_bw_eutra_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ul_bw_present, 1));
-
-  HANDLE_CODE(dl_bw.pack(bref));
-  if (ul_bw_present) {
-    HANDLE_CODE(ul_bw.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE carrier_bw_eutra_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ul_bw_present, 1));
-
-  HANDLE_CODE(dl_bw.unpack(bref));
-  if (ul_bw_present) {
-    HANDLE_CODE(ul_bw.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void carrier_bw_eutra_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_str("dl-Bandwidth", dl_bw.to_string());
-  if (ul_bw_present) {
-    j.write_str("ul-Bandwidth", ul_bw.to_string());
-  }
-  j.end_obj();
-}
-
-std::string carrier_bw_eutra_s::dl_bw_opts::to_string() const
-{
-  static const char* options[] = {"n6",
-                                  "n15",
-                                  "n25",
-                                  "n50",
-                                  "n75",
-                                  "n100",
-                                  "spare10",
-                                  "spare9",
-                                  "spare8",
-                                  "spare7",
-                                  "spare6",
-                                  "spare5",
-                                  "spare4",
-                                  "spare3",
-                                  "spare2",
-                                  "spare1"};
-  return convert_enum_idx(options, 16, value, "carrier_bw_eutra_s::dl_bw_e_");
-}
-uint8_t carrier_bw_eutra_s::dl_bw_opts::to_number() const
-{
-  static const uint8_t options[] = {6, 15, 25, 50, 75, 100};
-  return map_enum_number(options, 6, value, "carrier_bw_eutra_s::dl_bw_e_");
-}
-
-std::string carrier_bw_eutra_s::ul_bw_opts::to_string() const
-{
-  static const char* options[] = {"n6",
-                                  "n15",
-                                  "n25",
-                                  "n50",
-                                  "n75",
-                                  "n100",
-                                  "spare10",
-                                  "spare9",
-                                  "spare8",
-                                  "spare7",
-                                  "spare6",
-                                  "spare5",
-                                  "spare4",
-                                  "spare3",
-                                  "spare2",
-                                  "spare1"};
-  return convert_enum_idx(options, 16, value, "carrier_bw_eutra_s::ul_bw_e_");
-}
-uint8_t carrier_bw_eutra_s::ul_bw_opts::to_number() const
-{
-  static const uint8_t options[] = {6, 15, 25, 50, 75, 100};
-  return map_enum_number(options, 6, value, "carrier_bw_eutra_s::ul_bw_e_");
-}
-
-// CarrierFreqEUTRA ::= SEQUENCE
-SRSASN_CODE carrier_freq_eutra_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ul_carrier_freq_present, 1));
-
-  HANDLE_CODE(pack_integer(bref, dl_carrier_freq, (uint32_t)0u, (uint32_t)65535u));
-  if (ul_carrier_freq_present) {
-    HANDLE_CODE(pack_integer(bref, ul_carrier_freq, (uint32_t)0u, (uint32_t)65535u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE carrier_freq_eutra_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ul_carrier_freq_present, 1));
-
-  HANDLE_CODE(unpack_integer(dl_carrier_freq, bref, (uint32_t)0u, (uint32_t)65535u));
-  if (ul_carrier_freq_present) {
-    HANDLE_CODE(unpack_integer(ul_carrier_freq, bref, (uint32_t)0u, (uint32_t)65535u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void carrier_freq_eutra_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("dl-CarrierFreq", dl_carrier_freq);
-  if (ul_carrier_freq_present) {
-    j.write_int("ul-CarrierFreq", ul_carrier_freq);
-  }
-  j.end_obj();
-}
-
-// CarrierFreqEUTRA-v9e0 ::= SEQUENCE
-SRSASN_CODE carrier_freq_eutra_v9e0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ul_carrier_freq_v9e0_present, 1));
-
-  HANDLE_CODE(pack_integer(bref, dl_carrier_freq_v9e0, (uint32_t)0u, (uint32_t)262143u));
-  if (ul_carrier_freq_v9e0_present) {
-    HANDLE_CODE(pack_integer(bref, ul_carrier_freq_v9e0, (uint32_t)0u, (uint32_t)262143u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE carrier_freq_eutra_v9e0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ul_carrier_freq_v9e0_present, 1));
-
-  HANDLE_CODE(unpack_integer(dl_carrier_freq_v9e0, bref, (uint32_t)0u, (uint32_t)262143u));
-  if (ul_carrier_freq_v9e0_present) {
-    HANDLE_CODE(unpack_integer(ul_carrier_freq_v9e0, bref, (uint32_t)0u, (uint32_t)262143u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void carrier_freq_eutra_v9e0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("dl-CarrierFreq-v9e0", dl_carrier_freq_v9e0);
-  if (ul_carrier_freq_v9e0_present) {
-    j.write_int("ul-CarrierFreq-v9e0", ul_carrier_freq_v9e0);
-  }
-  j.end_obj();
-}
-
 // MeasGapConfigDensePRS-r15 ::= CHOICE
 void meas_gap_cfg_dense_prs_r15_c::set(types::options e)
 {
@@ -9395,79 +9156,6 @@ uint8_t meas_scale_factor_r12_opts::to_number() const
   return map_enum_number(options, 2, value, "meas_scale_factor_r12_e");
 }
 
-// MobilityControlInfoV2X-r14 ::= SEQUENCE
-SRSASN_CODE mob_ctrl_info_v2x_r14_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(v2x_comm_tx_pool_exceptional_r14_present, 1));
-  HANDLE_CODE(bref.pack(v2x_comm_rx_pool_r14_present, 1));
-  HANDLE_CODE(bref.pack(v2x_comm_sync_cfg_r14_present, 1));
-  HANDLE_CODE(bref.pack(cbr_mob_tx_cfg_list_r14_present, 1));
-
-  if (v2x_comm_tx_pool_exceptional_r14_present) {
-    HANDLE_CODE(v2x_comm_tx_pool_exceptional_r14.pack(bref));
-  }
-  if (v2x_comm_rx_pool_r14_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, v2x_comm_rx_pool_r14, 1, 16));
-  }
-  if (v2x_comm_sync_cfg_r14_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, v2x_comm_sync_cfg_r14, 1, 16));
-  }
-  if (cbr_mob_tx_cfg_list_r14_present) {
-    HANDLE_CODE(cbr_mob_tx_cfg_list_r14.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mob_ctrl_info_v2x_r14_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(v2x_comm_tx_pool_exceptional_r14_present, 1));
-  HANDLE_CODE(bref.unpack(v2x_comm_rx_pool_r14_present, 1));
-  HANDLE_CODE(bref.unpack(v2x_comm_sync_cfg_r14_present, 1));
-  HANDLE_CODE(bref.unpack(cbr_mob_tx_cfg_list_r14_present, 1));
-
-  if (v2x_comm_tx_pool_exceptional_r14_present) {
-    HANDLE_CODE(v2x_comm_tx_pool_exceptional_r14.unpack(bref));
-  }
-  if (v2x_comm_rx_pool_r14_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(v2x_comm_rx_pool_r14, bref, 1, 16));
-  }
-  if (v2x_comm_sync_cfg_r14_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(v2x_comm_sync_cfg_r14, bref, 1, 16));
-  }
-  if (cbr_mob_tx_cfg_list_r14_present) {
-    HANDLE_CODE(cbr_mob_tx_cfg_list_r14.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mob_ctrl_info_v2x_r14_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (v2x_comm_tx_pool_exceptional_r14_present) {
-    j.write_fieldname("v2x-CommTxPoolExceptional-r14");
-    v2x_comm_tx_pool_exceptional_r14.to_json(j);
-  }
-  if (v2x_comm_rx_pool_r14_present) {
-    j.start_array("v2x-CommRxPool-r14");
-    for (const auto& e1 : v2x_comm_rx_pool_r14) {
-      e1.to_json(j);
-    }
-    j.end_array();
-  }
-  if (v2x_comm_sync_cfg_r14_present) {
-    j.start_array("v2x-CommSyncConfig-r14");
-    for (const auto& e1 : v2x_comm_sync_cfg_r14) {
-      e1.to_json(j);
-    }
-    j.end_array();
-  }
-  if (cbr_mob_tx_cfg_list_r14_present) {
-    j.write_fieldname("cbr-MobilityTxConfigList-r14");
-    cbr_mob_tx_cfg_list_r14.to_json(j);
-  }
-  j.end_obj();
-}
-
 // QuantityConfig ::= SEQUENCE
 SRSASN_CODE quant_cfg_s::pack(bit_ref& bref) const
 {
@@ -9679,6 +9367,210 @@ bool quant_cfg_s::operator==(const quant_cfg_s& other) const
            (not quant_cfg_wlan_r13.is_present() or *quant_cfg_wlan_r13 == *other.quant_cfg_wlan_r13) and
            quant_cfg_nr_list_r15.is_present() == other.quant_cfg_nr_list_r15.is_present() and
            (not quant_cfg_nr_list_r15.is_present() or *quant_cfg_nr_list_r15 == *other.quant_cfg_nr_list_r15)));
+}
+
+// RACH-ConfigDedicated ::= SEQUENCE
+SRSASN_CODE rach_cfg_ded_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(pack_integer(bref, ra_preamb_idx, (uint8_t)0u, (uint8_t)63u));
+  HANDLE_CODE(pack_integer(bref, ra_prach_mask_idx, (uint8_t)0u, (uint8_t)15u));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rach_cfg_ded_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(unpack_integer(ra_preamb_idx, bref, (uint8_t)0u, (uint8_t)63u));
+  HANDLE_CODE(unpack_integer(ra_prach_mask_idx, bref, (uint8_t)0u, (uint8_t)15u));
+
+  return SRSASN_SUCCESS;
+}
+void rach_cfg_ded_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_int("ra-PreambleIndex", ra_preamb_idx);
+  j.write_int("ra-PRACH-MaskIndex", ra_prach_mask_idx);
+  j.end_obj();
+}
+
+// RACH-Skip-r14 ::= SEQUENCE
+SRSASN_CODE rach_skip_r14_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ul_cfg_info_r14_present, 1));
+
+  HANDLE_CODE(target_ta_r14.pack(bref));
+  if (ul_cfg_info_r14_present) {
+    HANDLE_CODE(pack_integer(bref, ul_cfg_info_r14.nof_conf_ul_processes_r14, (uint8_t)1u, (uint8_t)8u));
+    HANDLE_CODE(ul_cfg_info_r14.ul_sched_interv_r14.pack(bref));
+    HANDLE_CODE(pack_integer(bref, ul_cfg_info_r14.ul_start_sf_r14, (uint8_t)0u, (uint8_t)9u));
+    HANDLE_CODE(ul_cfg_info_r14.ul_grant_r14.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rach_skip_r14_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ul_cfg_info_r14_present, 1));
+
+  HANDLE_CODE(target_ta_r14.unpack(bref));
+  if (ul_cfg_info_r14_present) {
+    HANDLE_CODE(unpack_integer(ul_cfg_info_r14.nof_conf_ul_processes_r14, bref, (uint8_t)1u, (uint8_t)8u));
+    HANDLE_CODE(ul_cfg_info_r14.ul_sched_interv_r14.unpack(bref));
+    HANDLE_CODE(unpack_integer(ul_cfg_info_r14.ul_start_sf_r14, bref, (uint8_t)0u, (uint8_t)9u));
+    HANDLE_CODE(ul_cfg_info_r14.ul_grant_r14.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rach_skip_r14_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("targetTA-r14");
+  target_ta_r14.to_json(j);
+  if (ul_cfg_info_r14_present) {
+    j.write_fieldname("ul-ConfigInfo-r14");
+    j.start_obj();
+    j.write_int("numberOfConfUL-Processes-r14", ul_cfg_info_r14.nof_conf_ul_processes_r14);
+    j.write_str("ul-SchedInterval-r14", ul_cfg_info_r14.ul_sched_interv_r14.to_string());
+    j.write_int("ul-StartSubframe-r14", ul_cfg_info_r14.ul_start_sf_r14);
+    j.write_str("ul-Grant-r14", ul_cfg_info_r14.ul_grant_r14.to_string());
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+void rach_skip_r14_s::target_ta_r14_c_::destroy_() {}
+void rach_skip_r14_s::target_ta_r14_c_::set(types::options e)
+{
+  destroy_();
+  type_ = e;
+}
+rach_skip_r14_s::target_ta_r14_c_::target_ta_r14_c_(const rach_skip_r14_s::target_ta_r14_c_& other)
+{
+  type_ = other.type();
+  switch (type_) {
+    case types::ta0_r14:
+      break;
+    case types::mcg_ptag_r14:
+      break;
+    case types::scg_ptag_r14:
+      break;
+    case types::mcg_stag_r14:
+      c.init(other.c.get<uint8_t>());
+      break;
+    case types::scg_stag_r14:
+      c.init(other.c.get<uint8_t>());
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
+  }
+}
+rach_skip_r14_s::target_ta_r14_c_&
+rach_skip_r14_s::target_ta_r14_c_::operator=(const rach_skip_r14_s::target_ta_r14_c_& other)
+{
+  if (this == &other) {
+    return *this;
+  }
+  set(other.type());
+  switch (type_) {
+    case types::ta0_r14:
+      break;
+    case types::mcg_ptag_r14:
+      break;
+    case types::scg_ptag_r14:
+      break;
+    case types::mcg_stag_r14:
+      c.set(other.c.get<uint8_t>());
+      break;
+    case types::scg_stag_r14:
+      c.set(other.c.get<uint8_t>());
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
+  }
+
+  return *this;
+}
+void rach_skip_r14_s::target_ta_r14_c_::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::ta0_r14:
+      break;
+    case types::mcg_ptag_r14:
+      break;
+    case types::scg_ptag_r14:
+      break;
+    case types::mcg_stag_r14:
+      j.write_int("mcg-STAG-r14", c.get<uint8_t>());
+      break;
+    case types::scg_stag_r14:
+      j.write_int("scg-STAG-r14", c.get<uint8_t>());
+      break;
+    default:
+      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
+  }
+  j.end_obj();
+}
+SRSASN_CODE rach_skip_r14_s::target_ta_r14_c_::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::ta0_r14:
+      break;
+    case types::mcg_ptag_r14:
+      break;
+    case types::scg_ptag_r14:
+      break;
+    case types::mcg_stag_r14:
+      HANDLE_CODE(pack_integer(bref, c.get<uint8_t>(), (uint8_t)1u, (uint8_t)3u));
+      break;
+    case types::scg_stag_r14:
+      HANDLE_CODE(pack_integer(bref, c.get<uint8_t>(), (uint8_t)1u, (uint8_t)3u));
+      break;
+    default:
+      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rach_skip_r14_s::target_ta_r14_c_::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::ta0_r14:
+      break;
+    case types::mcg_ptag_r14:
+      break;
+    case types::scg_ptag_r14:
+      break;
+    case types::mcg_stag_r14:
+      HANDLE_CODE(unpack_integer(c.get<uint8_t>(), bref, (uint8_t)1u, (uint8_t)3u));
+      break;
+    case types::scg_stag_r14:
+      HANDLE_CODE(unpack_integer(c.get<uint8_t>(), bref, (uint8_t)1u, (uint8_t)3u));
+      break;
+    default:
+      log_invalid_choice_id(type_, "rach_skip_r14_s::target_ta_r14_c_");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+
+std::string rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_string() const
+{
+  static const char* options[] = {"sf2", "sf5", "sf10"};
+  return convert_enum_idx(options, 3, value, "rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_");
+}
+uint8_t rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_number() const
+{
+  static const uint8_t options[] = {2, 5, 10};
+  return map_enum_number(options, 3, value, "rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_");
 }
 
 // MeasConfig ::= SEQUENCE
@@ -10327,6 +10219,363 @@ SRSASN_CODE meas_cfg_s::height_thresh_ref_r15_c_::unpack(cbit_ref& bref)
       return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
+}
+
+// CarrierFreqGERAN ::= SEQUENCE
+SRSASN_CODE carrier_freq_geran_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(pack_integer(bref, arfcn, (uint16_t)0u, (uint16_t)1023u));
+  HANDLE_CODE(band_ind.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE carrier_freq_geran_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(unpack_integer(arfcn, bref, (uint16_t)0u, (uint16_t)1023u));
+  HANDLE_CODE(band_ind.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void carrier_freq_geran_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_int("arfcn", arfcn);
+  j.write_str("bandIndicator", band_ind.to_string());
+  j.end_obj();
+}
+
+// MobilityControlInfo-v10l0 ::= SEQUENCE
+SRSASN_CODE mob_ctrl_info_v10l0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(add_spec_emission_v10l0_present, 1));
+
+  if (add_spec_emission_v10l0_present) {
+    HANDLE_CODE(pack_integer(bref, add_spec_emission_v10l0, (uint16_t)33u, (uint16_t)288u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mob_ctrl_info_v10l0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(add_spec_emission_v10l0_present, 1));
+
+  if (add_spec_emission_v10l0_present) {
+    HANDLE_CODE(unpack_integer(add_spec_emission_v10l0, bref, (uint16_t)33u, (uint16_t)288u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void mob_ctrl_info_v10l0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (add_spec_emission_v10l0_present) {
+    j.write_int("additionalSpectrumEmission-v10l0", add_spec_emission_v10l0);
+  }
+  j.end_obj();
+}
+
+// LoggedMeasurementConfiguration-v1530-IEs ::= SEQUENCE
+SRSASN_CODE logged_meas_cfg_v1530_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(bt_name_list_r15_present, 1));
+  HANDLE_CODE(bref.pack(wlan_name_list_r15_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (bt_name_list_r15_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, bt_name_list_r15, 1, 4));
+  }
+  if (wlan_name_list_r15_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, wlan_name_list_r15, 1, 4));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE logged_meas_cfg_v1530_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(bt_name_list_r15_present, 1));
+  HANDLE_CODE(bref.unpack(wlan_name_list_r15_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (bt_name_list_r15_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(bt_name_list_r15, bref, 1, 4));
+  }
+  if (wlan_name_list_r15_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(wlan_name_list_r15, bref, 1, 4));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void logged_meas_cfg_v1530_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (bt_name_list_r15_present) {
+    j.start_array("bt-NameList-r15");
+    for (const auto& e1 : bt_name_list_r15) {
+      j.write_str(e1.to_string());
+    }
+    j.end_array();
+  }
+  if (wlan_name_list_r15_present) {
+    j.start_array("wlan-NameList-r15");
+    for (const auto& e1 : wlan_name_list_r15) {
+      j.write_str(e1.to_string());
+    }
+    j.end_array();
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// CellGlobalIdEUTRA ::= SEQUENCE
+SRSASN_CODE cell_global_id_eutra_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(plmn_id.pack(bref));
+  HANDLE_CODE(cell_id.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE cell_global_id_eutra_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(plmn_id.unpack(bref));
+  HANDLE_CODE(cell_id.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void cell_global_id_eutra_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("plmn-Identity");
+  plmn_id.to_json(j);
+  j.write_str("cellIdentity", cell_id.to_string());
+  j.end_obj();
+}
+
+// CarrierBandwidthEUTRA ::= SEQUENCE
+SRSASN_CODE carrier_bw_eutra_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ul_bw_present, 1));
+
+  HANDLE_CODE(dl_bw.pack(bref));
+  if (ul_bw_present) {
+    HANDLE_CODE(ul_bw.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE carrier_bw_eutra_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ul_bw_present, 1));
+
+  HANDLE_CODE(dl_bw.unpack(bref));
+  if (ul_bw_present) {
+    HANDLE_CODE(ul_bw.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void carrier_bw_eutra_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("dl-Bandwidth", dl_bw.to_string());
+  if (ul_bw_present) {
+    j.write_str("ul-Bandwidth", ul_bw.to_string());
+  }
+  j.end_obj();
+}
+
+std::string carrier_bw_eutra_s::dl_bw_opts::to_string() const
+{
+  static const char* options[] = {"n6",
+                                  "n15",
+                                  "n25",
+                                  "n50",
+                                  "n75",
+                                  "n100",
+                                  "spare10",
+                                  "spare9",
+                                  "spare8",
+                                  "spare7",
+                                  "spare6",
+                                  "spare5",
+                                  "spare4",
+                                  "spare3",
+                                  "spare2",
+                                  "spare1"};
+  return convert_enum_idx(options, 16, value, "carrier_bw_eutra_s::dl_bw_e_");
+}
+uint8_t carrier_bw_eutra_s::dl_bw_opts::to_number() const
+{
+  static const uint8_t options[] = {6, 15, 25, 50, 75, 100};
+  return map_enum_number(options, 6, value, "carrier_bw_eutra_s::dl_bw_e_");
+}
+
+std::string carrier_bw_eutra_s::ul_bw_opts::to_string() const
+{
+  static const char* options[] = {"n6",
+                                  "n15",
+                                  "n25",
+                                  "n50",
+                                  "n75",
+                                  "n100",
+                                  "spare10",
+                                  "spare9",
+                                  "spare8",
+                                  "spare7",
+                                  "spare6",
+                                  "spare5",
+                                  "spare4",
+                                  "spare3",
+                                  "spare2",
+                                  "spare1"};
+  return convert_enum_idx(options, 16, value, "carrier_bw_eutra_s::ul_bw_e_");
+}
+uint8_t carrier_bw_eutra_s::ul_bw_opts::to_number() const
+{
+  static const uint8_t options[] = {6, 15, 25, 50, 75, 100};
+  return map_enum_number(options, 6, value, "carrier_bw_eutra_s::ul_bw_e_");
+}
+
+// CarrierFreqEUTRA ::= SEQUENCE
+SRSASN_CODE carrier_freq_eutra_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ul_carrier_freq_present, 1));
+
+  HANDLE_CODE(pack_integer(bref, dl_carrier_freq, (uint32_t)0u, (uint32_t)65535u));
+  if (ul_carrier_freq_present) {
+    HANDLE_CODE(pack_integer(bref, ul_carrier_freq, (uint32_t)0u, (uint32_t)65535u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE carrier_freq_eutra_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ul_carrier_freq_present, 1));
+
+  HANDLE_CODE(unpack_integer(dl_carrier_freq, bref, (uint32_t)0u, (uint32_t)65535u));
+  if (ul_carrier_freq_present) {
+    HANDLE_CODE(unpack_integer(ul_carrier_freq, bref, (uint32_t)0u, (uint32_t)65535u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void carrier_freq_eutra_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_int("dl-CarrierFreq", dl_carrier_freq);
+  if (ul_carrier_freq_present) {
+    j.write_int("ul-CarrierFreq", ul_carrier_freq);
+  }
+  j.end_obj();
+}
+
+// CarrierFreqEUTRA-v9e0 ::= SEQUENCE
+SRSASN_CODE carrier_freq_eutra_v9e0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ul_carrier_freq_v9e0_present, 1));
+
+  HANDLE_CODE(pack_integer(bref, dl_carrier_freq_v9e0, (uint32_t)0u, (uint32_t)262143u));
+  if (ul_carrier_freq_v9e0_present) {
+    HANDLE_CODE(pack_integer(bref, ul_carrier_freq_v9e0, (uint32_t)0u, (uint32_t)262143u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE carrier_freq_eutra_v9e0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ul_carrier_freq_v9e0_present, 1));
+
+  HANDLE_CODE(unpack_integer(dl_carrier_freq_v9e0, bref, (uint32_t)0u, (uint32_t)262143u));
+  if (ul_carrier_freq_v9e0_present) {
+    HANDLE_CODE(unpack_integer(ul_carrier_freq_v9e0, bref, (uint32_t)0u, (uint32_t)262143u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void carrier_freq_eutra_v9e0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_int("dl-CarrierFreq-v9e0", dl_carrier_freq_v9e0);
+  if (ul_carrier_freq_v9e0_present) {
+    j.write_int("ul-CarrierFreq-v9e0", ul_carrier_freq_v9e0);
+  }
+  j.end_obj();
+}
+
+// MobilityControlInfoV2X-r14 ::= SEQUENCE
+SRSASN_CODE mob_ctrl_info_v2x_r14_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(v2x_comm_tx_pool_exceptional_r14_present, 1));
+  HANDLE_CODE(bref.pack(v2x_comm_rx_pool_r14_present, 1));
+  HANDLE_CODE(bref.pack(v2x_comm_sync_cfg_r14_present, 1));
+  HANDLE_CODE(bref.pack(cbr_mob_tx_cfg_list_r14_present, 1));
+
+  if (v2x_comm_tx_pool_exceptional_r14_present) {
+    HANDLE_CODE(v2x_comm_tx_pool_exceptional_r14.pack(bref));
+  }
+  if (v2x_comm_rx_pool_r14_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, v2x_comm_rx_pool_r14, 1, 16));
+  }
+  if (v2x_comm_sync_cfg_r14_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, v2x_comm_sync_cfg_r14, 1, 16));
+  }
+  if (cbr_mob_tx_cfg_list_r14_present) {
+    HANDLE_CODE(cbr_mob_tx_cfg_list_r14.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mob_ctrl_info_v2x_r14_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(v2x_comm_tx_pool_exceptional_r14_present, 1));
+  HANDLE_CODE(bref.unpack(v2x_comm_rx_pool_r14_present, 1));
+  HANDLE_CODE(bref.unpack(v2x_comm_sync_cfg_r14_present, 1));
+  HANDLE_CODE(bref.unpack(cbr_mob_tx_cfg_list_r14_present, 1));
+
+  if (v2x_comm_tx_pool_exceptional_r14_present) {
+    HANDLE_CODE(v2x_comm_tx_pool_exceptional_r14.unpack(bref));
+  }
+  if (v2x_comm_rx_pool_r14_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(v2x_comm_rx_pool_r14, bref, 1, 16));
+  }
+  if (v2x_comm_sync_cfg_r14_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(v2x_comm_sync_cfg_r14, bref, 1, 16));
+  }
+  if (cbr_mob_tx_cfg_list_r14_present) {
+    HANDLE_CODE(cbr_mob_tx_cfg_list_r14.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void mob_ctrl_info_v2x_r14_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (v2x_comm_tx_pool_exceptional_r14_present) {
+    j.write_fieldname("v2x-CommTxPoolExceptional-r14");
+    v2x_comm_tx_pool_exceptional_r14.to_json(j);
+  }
+  if (v2x_comm_rx_pool_r14_present) {
+    j.start_array("v2x-CommRxPool-r14");
+    for (const auto& e1 : v2x_comm_rx_pool_r14) {
+      e1.to_json(j);
+    }
+    j.end_array();
+  }
+  if (v2x_comm_sync_cfg_r14_present) {
+    j.start_array("v2x-CommSyncConfig-r14");
+    for (const auto& e1 : v2x_comm_sync_cfg_r14) {
+      e1.to_json(j);
+    }
+    j.end_array();
+  }
+  if (cbr_mob_tx_cfg_list_r14_present) {
+    j.write_fieldname("cbr-MobilityTxConfigList-r14");
+    cbr_mob_tx_cfg_list_r14.to_json(j);
+  }
+  j.end_obj();
 }
 
 // MobilityControlInfo ::= SEQUENCE
@@ -12465,14 +12714,14 @@ SRSASN_CODE cgi_info_nr_r15_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(plmn_id_info_list_r15_present, 1));
-  HANDLE_CODE(bref.pack(freq_band_list_minus15_present, 1));
+  HANDLE_CODE(bref.pack(freq_band_list_r15_present, 1));
   HANDLE_CODE(bref.pack(no_sib1_r15_present, 1));
 
   if (plmn_id_info_list_r15_present) {
     HANDLE_CODE(pack_dyn_seq_of(bref, plmn_id_info_list_r15, 1, 12));
   }
-  if (freq_band_list_minus15_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, freq_band_list_minus15, 1, 32, integer_packer<uint16_t>(1, 1024)));
+  if (freq_band_list_r15_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, freq_band_list_r15, 1, 32, integer_packer<uint16_t>(1, 1024)));
   }
   if (no_sib1_r15_present) {
     HANDLE_CODE(pack_integer(bref, no_sib1_r15.ssb_subcarrier_offset_r15, (uint8_t)0u, (uint8_t)15u));
@@ -12485,14 +12734,14 @@ SRSASN_CODE cgi_info_nr_r15_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(plmn_id_info_list_r15_present, 1));
-  HANDLE_CODE(bref.unpack(freq_band_list_minus15_present, 1));
+  HANDLE_CODE(bref.unpack(freq_band_list_r15_present, 1));
   HANDLE_CODE(bref.unpack(no_sib1_r15_present, 1));
 
   if (plmn_id_info_list_r15_present) {
     HANDLE_CODE(unpack_dyn_seq_of(plmn_id_info_list_r15, bref, 1, 12));
   }
-  if (freq_band_list_minus15_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(freq_band_list_minus15, bref, 1, 32, integer_packer<uint16_t>(1, 1024)));
+  if (freq_band_list_r15_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(freq_band_list_r15, bref, 1, 32, integer_packer<uint16_t>(1, 1024)));
   }
   if (no_sib1_r15_present) {
     HANDLE_CODE(unpack_integer(no_sib1_r15.ssb_subcarrier_offset_r15, bref, (uint8_t)0u, (uint8_t)15u));
@@ -12511,9 +12760,9 @@ void cgi_info_nr_r15_s::to_json(json_writer& j) const
     }
     j.end_array();
   }
-  if (freq_band_list_minus15_present) {
-    j.start_array("frequencyBandList-15");
-    for (const auto& e1 : freq_band_list_minus15) {
+  if (freq_band_list_r15_present) {
+    j.start_array("frequencyBandList-r15");
+    for (const auto& e1 : freq_band_list_r15) {
       j.write_int(e1);
     }
     j.end_array();

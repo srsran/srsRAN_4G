@@ -72,6 +72,7 @@ private:
      ***************************************************************************/
     uint32_t vt_us = 0; // Send state. SN to be assigned for next PDU.
 
+    // Metrics
     void debug_state();
   };
 

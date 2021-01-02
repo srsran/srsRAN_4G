@@ -267,6 +267,7 @@ private:
   bool phy_config_dedicated_enabled = false;
 
   tti_point                current_tti;
+  std::array<tti_point, 4> last_ttis;
   std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
   std::vector<int>         enb_ue_cc_idx_map;
 };

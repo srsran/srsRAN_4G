@@ -374,6 +374,10 @@ bool retx_test()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
+  // check buffered bytes at receiver, 3 PDUs with one 1 B each (SN=0 has been delivered already)
+  rlc_bearer_metrics_t metrics = rlc2.get_metrics();
+  assert(metrics.rx_buffered_bytes == 3);
+
   // Step timers until reordering timeout expires
   int cnt = 5;
   while (cnt--) {

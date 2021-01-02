@@ -1068,7 +1068,7 @@ void sync::cell_meas_reset(uint32_t cc_idx)
   worker_com->neighbour_cells_reset(cc_idx);
 }
 
-void sync::new_cell_meas(uint32_t cc_idx, const std::vector<rrc_interface_phy_lte::phy_meas_t>& meas)
+void sync::new_cell_meas(uint32_t cc_idx, const std::vector<phy_meas_t>& meas)
 {
   // Pass measurements to phy_common for SINR estimation
   worker_com->set_neighbour_cells(cc_idx, meas);

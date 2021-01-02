@@ -29,12 +29,7 @@ rlc_um_base::rlc_um_base(srslte::log_ref            log_,
                          srsue::pdcp_interface_rlc* pdcp_,
                          srsue::rrc_interface_rlc*  rrc_,
                          srslte::timer_handler*     timers_) :
-  log(log_),
-  lcid(lcid_),
-  pdcp(pdcp_),
-  rrc(rrc_),
-  timers(timers_),
-  pool(byte_buffer_pool::get_instance())
+  log(log_), lcid(lcid_), pdcp(pdcp_), rrc(rrc_), timers(timers_), pool(byte_buffer_pool::get_instance())
 {}
 
 rlc_um_base::~rlc_um_base() {}
@@ -211,7 +206,9 @@ rlc_um_base::rlc_um_base_rx::~rlc_um_base_rx() {}
  * Tx subclass implementation (base)
  ***************************************************************************/
 
-rlc_um_base::rlc_um_base_tx::rlc_um_base_tx(rlc_um_base* parent_) : log(parent_->log), pool(parent_->pool) {}
+rlc_um_base::rlc_um_base_tx::rlc_um_base_tx(rlc_um_base* parent_) :
+  log(parent_->log), pool(parent_->pool), parent(parent_)
+{}
 
 rlc_um_base::rlc_um_base_tx::~rlc_um_base_tx() {}
 

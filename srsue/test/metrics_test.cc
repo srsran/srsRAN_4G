@@ -61,7 +61,7 @@ public:
 
     // random neighbour cells
     if (rand() % 2 == 0) {
-      rrc_interface_phy_lte::phy_meas_t neighbor = {};
+      phy_meas_t neighbor = {};
       neighbor.pci                               = 8;
       neighbor.rsrp                              = -33;
       m->stack.rrc.neighbour_cells.push_back(neighbor);

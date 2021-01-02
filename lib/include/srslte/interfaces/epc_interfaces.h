@@ -72,6 +72,11 @@ public:
                                              uint32_t               mme_ue_s1ap_id,
                                              std::vector<uint16_t>  erabs_to_release,
                                              struct sctp_sndrcvinfo enb_sri)                 = 0;
+  virtual bool     send_erab_modify_request(uint32_t                     enb_ue_s1ap_id,
+                                            uint32_t                     mme_ue_s1ap_id,
+                                            std::map<uint16_t, uint16_t> erabs_to_modify,
+                                            srslte::byte_buffer_t*       nas_msg,
+                                            struct sctp_sndrcvinfo       enb_sri)                  = 0;
   virtual bool     send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                                uint32_t               mme_ue_s1ap_id,
                                                srslte::byte_buffer_t* nas_msg,

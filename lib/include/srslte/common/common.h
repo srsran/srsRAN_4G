@@ -27,6 +27,7 @@
 *******************************************************************************/
 
 #include "srslte/adt/span.h"
+#include <chrono>
 #include <memory>
 #include <stdint.h>
 #include <string.h>
@@ -91,7 +92,7 @@
 
 namespace srslte {
 
-//#define ENABLE_TIMESTAMP
+#define ENABLE_TIMESTAMP
 
 /******************************************************************************
  * Byte and Bit buffers
@@ -113,9 +114,6 @@ public:
   byte_buffer_t() : N_bytes(0)
   {
     bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-#ifdef ENABLE_TIMESTAMP
-    timestamp_is_set = false;
-#endif
     msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     next = NULL;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
@@ -153,26 +151,33 @@ public:
   }
   uint32_t get_headroom() { return msg - buffer; }
   // Returns the remaining space from what is reported to be the length of msg
-  uint32_t get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
-  long     get_latency_us()
+  uint32_t                  get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
+  std::chrono::microseconds get_latency_us()
   {
 #ifdef ENABLE_TIMESTAMP
-    if (!timestamp_is_set)
-      return 0;
-    gettimeofday(&timestamp[2], NULL);
-    get_time_interval(timestamp);
-    return timestamp[0].tv_usec;
+    if (!timestamp_is_set) {
+      return std::chrono::microseconds{0};
+    }
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - tp);
 #else
-    return 0;
+    return std::chrono::microseconds{0};
 #endif
   }
+
+  std::chrono::high_resolution_clock::time_point get_timestamp() { return tp; }
 
   void set_timestamp()
   {
 #ifdef ENABLE_TIMESTAMP
-    gettimeofday(&timestamp[1], NULL);
+    tp               = std::chrono::high_resolution_clock::now();
     timestamp_is_set = true;
 #endif
+  }
+
+  void set_timestamp(std::chrono::high_resolution_clock::time_point tp_)
+  {
+    tp               = tp_;
+    timestamp_is_set = true;
   }
 
   void append_bytes(uint8_t* buf, uint32_t size)
@@ -183,8 +188,8 @@ public:
 
 private:
 #ifdef ENABLE_TIMESTAMP
-  struct timeval timestamp[3];
-  bool           timestamp_is_set;
+  std::chrono::high_resolution_clock::time_point tp;
+  bool                                           timestamp_is_set = false;
 #endif
   byte_buffer_t* next;
 };
@@ -272,7 +277,7 @@ typedef std::unique_ptr<byte_buffer_t, byte_buffer_deleter> unique_byte_buffer_t
 /// Utilities to create a span out of a byte_buffer.
 ///
 
-using byte_span = span<uint8_t>;
+using byte_span       = span<uint8_t>;
 using const_byte_span = span<const uint8_t>;
 
 inline byte_span make_span(byte_buffer_t& b)
@@ -293,6 +298,25 @@ inline byte_span make_span(unique_byte_buffer_t& b)
 inline const_byte_span make_span(const unique_byte_buffer_t& b)
 {
   return const_byte_span{b->msg, b->N_bytes};
+}
+
+// helper functions
+inline const char* enum_to_text(const char* const array[], uint32_t nof_types, uint32_t enum_val)
+{
+  return enum_val >= nof_types ? "" : array[enum_val];
+}
+
+template <class ItemType>
+ItemType enum_to_number(ItemType* array, uint32_t nof_types, uint32_t enum_val)
+{
+  return enum_val >= nof_types ? -1 : array[enum_val];
+}
+
+enum class srslte_rat_t { lte, nr, nulltype };
+inline std::string to_string(const srslte_rat_t& type)
+{
+  constexpr static const char* options[] = {"LTE", "NR"};
+  return enum_to_text(options, (uint32_t)srslte_rat_t::nulltype, (uint32_t)type);
 }
 
 } // namespace srslte

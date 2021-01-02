@@ -178,7 +178,7 @@ void intra_measure::measure_proc()
   }
 
   // Initialise empty neighbour cell list
-  std::vector<rrc_interface_phy_lte::phy_meas_t> neighbour_cells = {};
+  std::vector<phy_meas_t> neighbour_cells = {};
 
   new_cell_itf->cell_meas_reset(cc_idx);
 
@@ -195,12 +195,12 @@ void intra_measure::measure_proc()
     srslte_refsignal_dl_sync_run(&refsignal_dl_sync, search_buffer, intra_freq_meas_len_ms * current_sflen);
 
     if (refsignal_dl_sync.found) {
-      rrc_interface_phy_lte::phy_meas_t m = {};
-      m.pci                               = cell.id;
-      m.earfcn                            = current_earfcn;
-      m.rsrp                              = refsignal_dl_sync.rsrp_dBfs - rx_gain_offset_db;
-      m.rsrq                              = refsignal_dl_sync.rsrq_dB;
-      m.cfo_hz                            = refsignal_dl_sync.cfo_Hz;
+      phy_meas_t m = {};
+      m.pci        = cell.id;
+      m.earfcn     = current_earfcn;
+      m.rsrp       = refsignal_dl_sync.rsrp_dBfs - rx_gain_offset_db;
+      m.rsrq       = refsignal_dl_sync.rsrq_dB;
+      m.cfo_hz     = refsignal_dl_sync.cfo_Hz;
       neighbour_cells.push_back(m);
 
       Info("INTRA: Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "

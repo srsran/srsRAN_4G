@@ -141,20 +141,20 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
-    log->error(
-        "TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
+    log->info(
+        "%s Tx PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
   unique_byte_buffer_t buf;
   if (ul_queue.try_read(&buf)) {
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
-    log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+    log->debug("%s Complete SDU scheduled for tx. Stack latency: %" PRIu64 " us\n",
                rrc->get_rb_name(lcid).c_str(),
-               buf->get_latency_us());
+               (uint64_t)buf->get_latency_us().count());
     log->info_hex(payload,
                   pdu_size,
-                  "TX %s, %s PDU, queue size=%d, bytes=%d",
+                  "%s Tx %s PDU, queue size=%d, bytes=%d",
                   rrc->get_rb_name(lcid).c_str(),
                   srslte::to_string(rlc_mode_t::tm).c_str(),
                   ul_queue.size(),

@@ -75,8 +75,8 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
     // Sum up rates for all UEs
     float dl_rate_sum = 0.0, ul_rate_sum = 0.0;
     for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
-      dl_rate_sum += metrics.stack.mac[i].tx_brate / (metrics.stack.mac[i].nof_tti * 1e-3);
-      ul_rate_sum += metrics.stack.mac[i].rx_brate / (metrics.stack.mac[i].nof_tti * 1e-3);
+      dl_rate_sum += metrics.stack.mac.ues[i].tx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3);
+      ul_rate_sum += metrics.stack.mac.ues[i].rx_brate / (metrics.stack.mac.ues[i].nof_tti * 1e-3);
     }
 
     // DL rate

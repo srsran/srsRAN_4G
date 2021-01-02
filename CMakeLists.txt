@@ -349,9 +349,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
 
-  if(NOT WIN32)
+  # Do not hide symbols in debug mode so backtraces can display function info.
+  if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN_CXX)
-  endif(NOT WIN32)
+    endif(NOT WIN32)
+  endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   if(FORCE_32BIT)
     ADD_C_COMPILER_FLAG_IF_AVAILABLE("-m32" HAVE_WNO_UNUSED_BUT_SET_VARIABLE)
@@ -439,9 +442,12 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "no SIMD instructions found")
   endif(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
 
-  if(NOT WIN32)
+  # Do not hide symbols in debug mode so backtraces can display function info.
+  if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    if(NOT WIN32)
       ADD_C_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN_C)
-  endif(NOT WIN32)
+    endif(NOT WIN32)
+  endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   if (ENABLE_ASAN AND ENABLE_MSAN)
     message(FATAL_ERROR "ASAN and MSAN cannot be enabled at the same time.")
@@ -476,7 +482,7 @@ if("Ninja" STREQUAL ${CMAKE_GENERATOR})
 endif()
 
 # Add -Werror to C/C++ flags for newer compilers
-if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()

@@ -21,24 +21,12 @@
 
 #include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/log_channel.h"
-#include "srslte/srslog/sink.h"
+#include "test_dummies.h"
 #include "testing_helpers.h"
 
 using namespace srslog;
 
 namespace {
-
-/// A Dummy implementation of a sink.
-class sink_dummy : public sink
-{
-public:
-  detail::error_string write(detail::memory_buffer buffer) override
-  {
-    return {};
-  }
-
-  detail::error_string flush() override { return {}; }
-};
 
 /// A Spy implementation of a log backend. Tests can query if the push method
 /// has been invoked.
@@ -47,11 +35,7 @@ class backend_spy : public detail::log_backend
 public:
   void start() override {}
 
-  void push(detail::log_entry&& entry) override
-  {
-    std::string result = fmt::vsprintf(entry.fmtstring, std::move(entry.store));
-    ++count;
-  }
+  void push(detail::log_entry&& entry) override { ++count; }
 
   bool is_running() const override { return true; }
 
@@ -90,7 +74,7 @@ when_tracing_with_complete_event_then_one_event_is_generated(backend_spy& spy)
 
 int main()
 {
-  sink_dummy s;
+  test_dummies::sink_dummy s;
   backend_spy backend;
   log_channel c("test", s, backend);
 
