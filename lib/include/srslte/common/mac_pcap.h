@@ -19,9 +19,9 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/pcap.h"
 #include "srslte/common/threads.h"
+#include <mutex>
 #include <stdint.h>
 #include <thread>
-
 namespace srslte {
 class mac_pcap : srslte::thread
 {
@@ -71,6 +71,7 @@ private:
     unique_byte_buffer_t pdu;
   } pcap_pdu_t;
   block_queue<pcap_pdu_t> queue;
+  std::mutex              mutex;
 
   void write_pdu(pcap_pdu_t& pdu);
   void run_thread() final;

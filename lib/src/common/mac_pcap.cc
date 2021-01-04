@@ -26,17 +26,24 @@ mac_pcap::~mac_pcap()
 
 void mac_pcap::enable(bool enable_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   running = enable_;
 }
 
 uint32_t mac_pcap::open(const char* filename, uint32_t ue_id_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (pcap_file != nullptr) {
     log->error("PCAP writer already running. Close first.\n");
     return SRSLTE_ERROR;
   }
 
   pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, filename);
+  if (pcap_file == nullptr) {
+    log->error("Couldn't open file to write PCAP\n");
+    return SRSLTE_ERROR;
+  }
+
   ue_id     = ue_id_;
   running   = true;
 
@@ -48,21 +55,27 @@ uint32_t mac_pcap::open(const char* filename, uint32_t ue_id_)
 
 uint32_t mac_pcap::close()
 {
-  if (running == false || pcap_file == nullptr) {
-    return SRSLTE_ERROR;
-  }
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (running == false || pcap_file == nullptr) {
+      return SRSLTE_ERROR;
+    }
 
-  // tell writer thread to stop
-  running = false;
-  pcap_pdu_t pdu = {};
-  queue.push(std::move(pdu));
+    // tell writer thread to stop
+    running        = false;
+    pcap_pdu_t pdu = {};
+    queue.push(std::move(pdu));
+  }
 
   wait_thread_finish();
 
   // close file handle
-  srslte::console("Saving MAC PCAP file\n");
-  LTE_PCAP_Close(pcap_file);
-  pcap_file = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    srslte::console("Saving MAC PCAP file\n");
+    LTE_PCAP_Close(pcap_file);
+    pcap_file = nullptr;
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -79,11 +92,15 @@ void mac_pcap::run_thread()
   // blocking write until stopped
   while (running) {
     pcap_pdu_t pdu = queue.wait_pop();
-    write_pdu(pdu);
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      write_pdu(pdu);
+    }
   }
 
   // write remainder of queue
-  pcap_pdu_t pdu = {};
+  std::lock_guard<std::mutex> lock(mutex);
+  pcap_pdu_t                  pdu = {};
   while (queue.try_pop(&pdu)) {
     write_pdu(pdu);
   }
@@ -91,9 +108,11 @@ void mac_pcap::run_thread()
 
 void mac_pcap::set_ue_id(uint16_t ue_id_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   ue_id = ue_id_;
 }
 
+// Function called from PHY worker context, locking not needed as PDU queue is thread-safe
 void mac_pcap::pack_and_queue(uint8_t* payload,
                               uint32_t payload_len,
                               uint32_t reTX,
