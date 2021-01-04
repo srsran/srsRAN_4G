@@ -112,7 +112,7 @@ int phy::init(const phy_args_t&            args,
   {
     log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
     log_h->init("PHY", logger, true);
-    log_h->set_level(args.log.phy_lib_level);
+    log_h->set_level(args.log.phy_level);
     log_h->set_hex_limit(args.log.phy_hex_limit);
   }
 
