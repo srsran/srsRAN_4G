@@ -475,7 +475,7 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->tpc_fsm.set_snr(snr);
+    c->tpc_fsm.set_snr(snr, ul_ch_code);
     c->ul_cqi        = srslte_cqi_from_snr(snr);
     c->ul_cqi_tti_rx = tti_rx;
   } else {
@@ -1404,7 +1404,7 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 
 void cc_sched_ue::finish_tti(tti_point tti_rx)
 {
-  last_tti = tti_point{tti_rx};
+  last_tti = tti_rx;
 
   // reset PIDs with pending data or blocked
   harq_ent.reset_pending_data(last_tti);
