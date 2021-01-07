@@ -22,7 +22,7 @@ class sched_time_rr final : public sched_base
   const static int MAX_RBG = 25;
 
 public:
-  sched_time_rr(const sched_cell_params_t& cell_params_);
+  sched_time_rr(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args);
   void sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) override;
   void sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) override;
 

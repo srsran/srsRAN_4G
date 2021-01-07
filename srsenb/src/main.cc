@@ -133,6 +133,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     /* Scheduling section */
     ("scheduler.policy", bpo::value<string>(&args->stack.mac.sched.sched_policy)->default_value("time_pf"), "DL and UL data scheduling policy (E.g. time_rr, time_pf)")
+    ("scheduler.policy_args", bpo::value<string>(&args->stack.mac.sched.sched_policy_args)->default_value("2"), "Scheduler policy-specific arguments")
     ("scheduler.pdsch_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_mcs)->default_value(-1), "Optional fixed PDSCH MCS (ignores reported CQIs if specified)")
     ("scheduler.pdsch_max_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_max_mcs)->default_value(-1), "Optional PDSCH MCS limit")
     ("scheduler.pusch_mcs", bpo::value<int>(&args->stack.mac.sched.pusch_mcs)->default_value(-1), "Optional fixed PUSCH MCS (ignores reported CQIs if specified)")

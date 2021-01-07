@@ -16,9 +16,12 @@ namespace srsenb {
 
 using srslte::tti_point;
 
-sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_)
+sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args)
 {
   cc_cfg = &cell_params_;
+  if (not sched_args.sched_policy_args.empty()) {
+    fairness_coeff = std::stof(sched_args.sched_policy_args);
+  }
 }
 
 void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
@@ -36,7 +39,7 @@ void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_s
   for (auto& u : ue_db) {
     auto it = ue_history_db.find(u.first);
     if (it == ue_history_db.end()) {
-      it = ue_history_db.insert(std::make_pair(u.first, ue_ctxt{u.first})).first;
+      it = ue_history_db.insert(std::make_pair(u.first, ue_ctxt{u.first, fairness_coeff})).first;
     }
     it->second.new_tti(*cc_cfg, u.second, tti_sched);
     if (it->second.dl_newtx_h != nullptr or it->second.dl_retx_h != nullptr) {
@@ -162,7 +165,7 @@ void sched_time_pf::ue_ctxt::new_tti(const sched_cell_params_t& cell, sched_ue& 
     // calculate DL PF priority
     float r = ue.get_expected_dl_bitrate(ue_cc_idx) / 8;
     float R = dl_avg_rate();
-    dl_prio = (R != 0) ? r / R : (r == 0 ? 0 : std::numeric_limits<float>::max());
+    dl_prio = (R != 0) ? pow(r, fairness_coeff) / R : (r == 0 ? 0 : std::numeric_limits<float>::max());
   }
 
   // Calculate UL priority
@@ -177,24 +180,24 @@ void sched_time_pf::ue_ctxt::new_tti(const sched_cell_params_t& cell, sched_ue& 
   }
 }
 
-void sched_time_pf::ue_ctxt::save_dl_alloc(uint32_t alloc_bytes, float alpha)
+void sched_time_pf::ue_ctxt::save_dl_alloc(uint32_t alloc_bytes, float exp_avg_alpha)
 {
-  if (dl_nof_samples < 1 / alpha) {
+  if (dl_nof_samples < 1 / exp_avg_alpha) {
     // fast start
     dl_avg_rate_ = dl_avg_rate_ + (alloc_bytes - dl_avg_rate_) / (dl_nof_samples + 1);
   } else {
-    dl_avg_rate_ = (1 - alpha) * dl_avg_rate_ + (alpha)*alloc_bytes;
+    dl_avg_rate_ = (1 - exp_avg_alpha) * dl_avg_rate_ + (exp_avg_alpha)*alloc_bytes;
   }
   dl_nof_samples++;
 }
 
-void sched_time_pf::ue_ctxt::save_ul_alloc(uint32_t alloc_bytes, float alpha)
+void sched_time_pf::ue_ctxt::save_ul_alloc(uint32_t alloc_bytes, float exp_avg_alpha)
 {
-  if (ul_nof_samples < 1 / alpha) {
+  if (ul_nof_samples < 1 / exp_avg_alpha) {
     // fast start
     ul_avg_rate_ = ul_avg_rate_ + (alloc_bytes - ul_avg_rate_) / (ul_nof_samples + 1);
   } else {
-    ul_avg_rate_ = (1 - alpha) * ul_avg_rate_ + (alpha)*alloc_bytes;
+    ul_avg_rate_ = (1 - exp_avg_alpha) * ul_avg_rate_ + (exp_avg_alpha)*alloc_bytes;
   }
   ul_nof_samples++;
 }

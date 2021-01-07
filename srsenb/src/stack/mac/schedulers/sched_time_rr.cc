@@ -15,7 +15,7 @@
 
 namespace srsenb {
 
-sched_time_rr::sched_time_rr(const sched_cell_params_t& cell_params_)
+sched_time_rr::sched_time_rr(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args)
 {
   cc_cfg = &cell_params_;
 }
@@ -65,9 +65,13 @@ void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue&           user     = iter->second;
+    sched_ue& user      = iter->second;
+    int       ue_cc_idx = user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx);
+    if (ue_cc_idx < 0) {
+      continue;
+    }
     const dl_harq_proc* h        = get_dl_newtx_harq(user, tti_sched);
-    rbg_interval        req_rbgs = user.get_required_dl_rbgs(user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx));
+    rbg_interval        req_rbgs = user.get_required_dl_rbgs(ue_cc_idx);
     // Check if there is an empty harq for the newtx
     if (h == nullptr or req_rbgs.stop() == 0) {
       continue;

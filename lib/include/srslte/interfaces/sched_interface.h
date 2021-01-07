@@ -46,6 +46,7 @@ public:
 
   struct sched_args_t {
     std::string sched_policy         = "time_pf";
+    std::string sched_policy_args    = "2";
     int         pdsch_mcs            = -1;
     int         pdsch_max_mcs        = 28;
     int         pusch_mcs            = -1;

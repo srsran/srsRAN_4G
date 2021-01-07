@@ -23,19 +23,20 @@ class sched_time_pf final : public sched_base
   using ue_cit_t = std::map<uint16_t, sched_ue>::const_iterator;
 
 public:
-  sched_time_pf(const sched_cell_params_t& cell_params_);
+  sched_time_pf(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args);
   void sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) override;
   void sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) override;
 
 private:
   void new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched);
 
-  const sched_cell_params_t* cc_cfg = nullptr;
+  const sched_cell_params_t* cc_cfg         = nullptr;
+  float                      fairness_coeff = 1;
 
   srslte::tti_point current_tti_rx;
 
   struct ue_ctxt {
-    ue_ctxt(uint16_t rnti_) : rnti(rnti_) {}
+    ue_ctxt(uint16_t rnti_, float fairness_coeff_) : rnti(rnti_), fairness_coeff(fairness_coeff_) {}
     float    dl_avg_rate() const { return dl_nof_samples == 0 ? 0 : dl_avg_rate_; }
     float    ul_avg_rate() const { return ul_nof_samples == 0 ? 0 : ul_avg_rate_; }
     uint32_t dl_count() const { return dl_nof_samples; }
@@ -45,6 +46,7 @@ private:
     void     save_ul_alloc(uint32_t alloc_bytes, float alpha);
 
     const uint16_t rnti;
+    const float    fairness_coeff;
 
     int                 ue_cc_idx  = 0;
     float               dl_prio    = 0;
