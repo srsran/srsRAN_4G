@@ -11,6 +11,7 @@ set(FEC_SOURCES
         crc.c
         softbuffer.c)
 
+add_subdirectory(block)
 add_subdirectory(convolutional)
 add_subdirectory(ldpc)
 add_subdirectory(polar)

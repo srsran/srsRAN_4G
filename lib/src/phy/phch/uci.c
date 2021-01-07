@@ -20,6 +20,7 @@
 #include <strings.h>
 
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/fec/block/block.h"
 #include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/convolutional/convcoder.h"
 #include "srslte/phy/fec/convolutional/rm_conv.h"
@@ -30,7 +31,7 @@
 #include "srslte/phy/utils/vector.h"
 
 /* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
-static uint8_t M_basis_seq[SRSLTE_UCI_M_BASIS_SEQ_LEN][SRSLTE_UCI_MAX_ACK_SR_BITS] = {
+static uint8_t M_basis_seq[SRSLTE_FEC_BLOCK_SIZE][SRSLTE_UCI_MAX_ACK_SR_BITS] = {
     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1}, {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},
     {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1}, {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1}, {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1},
     {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1}, {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1}, {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1},
@@ -43,30 +44,6 @@ static uint8_t M_basis_seq[SRSLTE_UCI_M_BASIS_SEQ_LEN][SRSLTE_UCI_MAX_ACK_SR_BIT
     {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0}, {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0}, {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
-
-static inline bool encode_M_basis_seq_u16(uint16_t w, uint32_t bit_idx)
-{
-  /// Table 5.2.2.6.4-1: Basis sequence for (32, O) code compressed in uint16_t types
-  const uint16_t M_basis_seq_b[SRSLTE_UCI_M_BASIS_SEQ_LEN] = {
-      0b10000000011, 0b11000000111, 0b11101001001, 0b10100001101, 0b10010001111, 0b10111010011, 0b11101010101,
-      0b10110011001, 0b11010011011, 0b11001011101, 0b11011100101, 0b10101100111, 0b11110101001, 0b11010101011,
-      0b10010110001, 0b11011110011, 0b01001110111, 0b00100111001, 0b00011111011, 0b00001100001, 0b10001000101,
-      0b11000001011, 0b10110010001, 0b11100010111, 0b01111011111, 0b10011100011, 0b01100101101, 0b01110101111,
-      0b00101110101, 0b00111111101, 0b11111111111, 0b00000000001,
-  };
-
-  // Apply mask
-  uint16_t d = (uint16_t)w & M_basis_seq_b[bit_idx % SRSLTE_UCI_M_BASIS_SEQ_LEN];
-
-  // Compute parity
-  d ^= (uint16_t)(d >> 8U);
-  d ^= (uint16_t)(d >> 4U);
-  d &= 0xf;
-  d = (0x6996U >> d) & 1U;
-
-  // Return false if 0, otherwise it returns true
-  return (d != 0);
-}
 
 static uint8_t M_basis_seq_pucch[20][13] = {
     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
@@ -182,88 +159,6 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
   }
 }
 
-void srslte_uci_encode_m_basis_bits(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len)
-{
-  // Limit number of input bits
-  input_len = SRSLTE_MIN(input_len, SRSLTE_UCI_MAX_ACK_SR_BITS);
-
-  // Pack input bits
-  uint16_t w = 0;
-  for (uint32_t i = 0; i < input_len; i++) {
-    w |= (input[i] & 1U) << i;
-  }
-
-  // Encode bits
-  for (uint32_t i = 0; i < SRSLTE_MIN(output_len, SRSLTE_UCI_M_BASIS_SEQ_LEN); i++) {
-    output[i] = encode_M_basis_seq_u16(w, i);
-  }
-
-  // Avoid repeating operation by copying repeated sequence
-  for (uint32_t i = SRSLTE_UCI_M_BASIS_SEQ_LEN; i < output_len; i++) {
-    output[i] = output[i % SRSLTE_UCI_M_BASIS_SEQ_LEN];
-  }
-}
-
-int32_t srslte_uci_decode_m_basis_bits(const int16_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
-{
-  int32_t  max_corr = 0; ///< Stores maximum correlation
-  uint16_t max_data = 0; ///< Stores the word for maximum correlation
-
-  // Return invalid inputs if data is not provided
-  if (!llr || !data) {
-    ERROR("Invalid inputs\n");
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  // Return invalid inputs if not enough LLR are provided
-  if (nof_llr < SRSLTE_UCI_M_BASIS_SEQ_LEN) {
-    ERROR("Not enough LLR bits are provided %d. Required %d;\n", nof_llr, SRSLTE_UCI_M_BASIS_SEQ_LEN);
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  // Limit data to maximum
-  data_len = SRSLTE_MIN(data_len, SRSLTE_UCI_MAX_ACK_SR_BITS);
-
-  // Brute force all possible sequences
-  uint16_t max_guess = (1 << data_len); ///< Maximum guess bit combination
-  for (uint16_t guess = 0; guess < max_guess; guess++) {
-    int32_t corr = 0;
-
-    /// Compute correlation for the number of LLR
-    bool early_termination = false;
-    for (uint32_t i = 0; i < nof_llr && !early_termination; i++) {
-      // Encode guess word
-      bool d = encode_M_basis_seq_u16(guess, i);
-
-      // Correlate
-      corr += (int32_t)(d ? llr[i] : -llr[i]);
-
-      // Limit correlation to half range
-      corr = SRSLTE_MIN(corr, INT32_MAX / 2);
-
-      /// Early terminates if at least SRSLTE_UCI_M_BASIS_SEQ_LEN/4 LLR processed and negative correlation
-      early_termination |= (i > SRSLTE_UCI_M_BASIS_SEQ_LEN / 4) && (corr < 0);
-
-      /// Early terminates if the correlation overflows
-      early_termination |= (corr < -INT32_MAX / 2);
-    }
-
-    // Take decision
-    if (corr > max_corr) {
-      max_corr = corr;
-      max_data = guess;
-    }
-  }
-
-  // Unpack
-  for (uint32_t i = 0; i < data_len; i++) {
-    data[i] = (uint8_t)((max_data >> i) & 1U);
-  }
-
-  // Return correlation
-  return max_corr;
-}
-
 void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)
 {
   uint8_t word[11];
@@ -275,7 +170,7 @@ void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)
     for (uint32_t w = 0; w < nwords; w++) {
       uint8_t* ptr = word;
       srslte_bit_unpack(w, &ptr, i + 1);
-      srslte_uci_encode_m_basis_bits(word, i + 1, &q->cqi_table[i][32 * w], SRSLTE_UCI_M_BASIS_SEQ_LEN);
+      srslte_block_encode(word, i + 1, &q->cqi_table[i][32 * w], SRSLTE_FEC_BLOCK_SIZE);
       for (int j = 0; j < 32; j++) {
         q->cqi_table_s[i][32 * w + j] = 2 * q->cqi_table[i][32 * w + j] - 1;
       }
@@ -829,8 +724,8 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
 
   int16_t  llr_acc[32] = {}; ///< LLR accumulator
   uint32_t nof_acc =
-      (nof_bits == 1) ? Qm : (nof_bits == 2) ? Qm * 3 : SRSLTE_UCI_M_BASIS_SEQ_LEN; ///< Number of required LLR
-  uint32_t count_acc = 0;                                                           ///< LLR counter
+      (nof_bits == 1) ? Qm : (nof_bits == 2) ? Qm * 3 : SRSLTE_FEC_BLOCK_SIZE; ///< Number of required LLR
+  uint32_t count_acc = 0;                                                      ///< LLR counter
 
   for (uint32_t i = 0; i < Qprime; i++) {
     if (is_ri) {
@@ -875,7 +770,7 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
       break;
     default:
       // For more than 2 bits...
-      corr = srslte_uci_decode_m_basis_bits(llr_acc, SRSLTE_UCI_M_BASIS_SEQ_LEN, data, nof_bits);
+      corr = srslte_block_decode_i16(llr_acc, SRSLTE_FEC_BLOCK_SIZE, data, nof_bits);
   }
 
   if (valid) {

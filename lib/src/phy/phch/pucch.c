@@ -10,6 +10,7 @@
  *
  */
 
+#include "srslte/phy/fec/block/block.h"
 #include "srslte/srslte.h"
 #include <assert.h>
 #include <complex.h>
@@ -639,7 +640,7 @@ static int decode_signal_format3(srslte_pucch_t*     q,
 
     srslte_scrambling_s_offset(seq, q->llr, 0, SRSLTE_PUCCH3_NOF_BITS);
 
-    return (int)srslte_uci_decode_m_basis_bits(q->llr, SRSLTE_PUCCH3_NOF_BITS, bits, SRSLTE_UCI_MAX_ACK_SR_BITS);
+    return (int)srslte_block_decode_i16(q->llr, SRSLTE_PUCCH3_NOF_BITS, bits, SRSLTE_UCI_MAX_ACK_SR_BITS);
   } else {
     ERROR("Error modulating PUCCH3 bits: rnti not set\n");
     return SRSLTE_ERROR;
@@ -699,7 +700,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
       temp[k] = (uint8_t)(uci_data->scheduling_request ? 1 : 0);
       k++;
     }
-    srslte_uci_encode_m_basis_bits(temp, k, pucch_bits, SRSLTE_PUCCH3_NOF_BITS);
+    srslte_block_encode(temp, k, pucch_bits, SRSLTE_PUCCH3_NOF_BITS);
   }
   return SRSLTE_SUCCESS;
 }
