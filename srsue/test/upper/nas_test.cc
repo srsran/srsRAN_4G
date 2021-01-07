@@ -335,6 +335,7 @@ int mme_attach_request_test()
       ret = SRSLTE_SUCCESS;
     }
     // ensure buffers are deleted before pool cleanup
+    gw.stop();
   }
 
   byte_buffer_pool::get_instance()->cleanup();
