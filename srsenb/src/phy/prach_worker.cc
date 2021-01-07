@@ -128,6 +128,7 @@ int prach_worker::new_tti(uint32_t tti_rx, cf_t* buffer_rx)
 
 int prach_worker::run_tti(sf_buffer* b)
 {
+  uint32_t prach_nof_det = 0;
   if (srslte_prach_tti_opportunity(&prach, b->tti, -1)) {
     // Detect possible PRACHs
     if (srslte_prach_detect_offset(&prach,

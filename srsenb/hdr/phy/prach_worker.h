@@ -45,7 +45,7 @@ public:
 
 private:
   uint32_t cc_idx             = 0;
-  uint32_t prach_nof_det      = 0;
+
   uint32_t prach_indices[165] = {};
   float    prach_offsets[165] = {};
   float    prach_p2avg[165]   = {};
