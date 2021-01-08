@@ -99,20 +99,24 @@ public:
 
   void push(uint8_t* block) noexcept
   {
-    // auto t = time_prof(push_telapsed);
     std::lock_guard<std::mutex> lock(mutex);
     stack.push(block);
   }
 
   uint8_t* try_pop() noexcept
   {
-    // auto t = time_prof(pop_telapsed);
     std::lock_guard<std::mutex> lock(mutex);
     uint8_t*                    block = stack.try_pop();
     return block;
   }
 
   bool is_empty() const noexcept { return stack.is_empty(); }
+
+  size_t size() const noexcept
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return stack.size();
+  }
 
   void clear()
   {
@@ -121,23 +125,37 @@ public:
   }
 
 private:
-  memblock_stack stack;
-  std::mutex     mutex;
+  memblock_stack     stack;
+  mutable std::mutex mutex;
 };
 
-template <typename T>
-class single_thread_obj_pool
+/**
+ * Non thread-safe object pool. Memory management is automatically handled. Relevant methods:
+ * - ::make(...) - create an object whose memory is automatically managed by the pool. The object dtor returns the
+ *                 allocated memory back to the pool
+ * - ::reserve(N) - prereserve memory slots for faster object creation
+ * @tparam T object type
+ */
+template <typename T, bool ThreadSafe = true>
+class obj_pool
 {
-public:
   /// single-thread obj pool deleter
   struct obj_deleter {
-    explicit obj_deleter(single_thread_obj_pool<T>* pool_) : pool(pool_) {}
-    void                       operator()(void* block) { pool->stack.push(static_cast<uint8_t*>(block)); }
-    single_thread_obj_pool<T>* pool;
+    explicit obj_deleter(obj_pool<T, ThreadSafe>* pool_) : pool(pool_) {}
+    void                     operator()(void* block) { pool->stack.push(static_cast<uint8_t*>(block)); }
+    obj_pool<T, ThreadSafe>* pool;
   };
+
+  // memory stack type derivation (thread safe or not)
+  using stack_type = typename std::conditional<ThreadSafe, mutexed_memblock_stack, memblock_stack>::type;
+
+  // memory stack to cache allocate memory chunks
+  stack_type stack;
+
+public:
   using obj_ptr = std::unique_ptr<T, obj_deleter>;
 
-  ~single_thread_obj_pool()
+  ~obj_pool()
   {
     uint8_t* block = stack.try_pop();
     while (block != nullptr) {
@@ -146,7 +164,7 @@ public:
     }
   }
 
-  /// allocate object
+  /// create new object with given arguments. If no memory is pre-reserved in the pool, malloc is called.
   template <typename... Args>
   obj_ptr make(Args&&... args)
   {
@@ -158,6 +176,7 @@ public:
     return obj_ptr(reinterpret_cast<T*>(block), obj_deleter(this));
   }
 
+  /// Pre-reserve N memory chunks for future object allocations
   void reserve(size_t N)
   {
     for (size_t i = 0; i < N; ++i) {
@@ -166,12 +185,11 @@ public:
   }
 
   size_t capacity() const { return stack.size(); }
-
-private:
-  memblock_stack stack;
 };
 template <typename T>
-using unique_pool_obj = typename single_thread_obj_pool<T>::obj_ptr;
+using unique_pool_obj = typename obj_pool<T, false>::obj_ptr;
+template <typename T>
+using unique_mutexed_pool_obj = typename obj_pool<T, true>::obj_ptr;
 
 } // namespace srslte
 

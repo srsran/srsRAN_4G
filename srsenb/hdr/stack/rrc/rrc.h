@@ -192,7 +192,7 @@ private:
 
   std::mutex paging_mutex;
 
-  srslte::single_thread_obj_pool<ue> ue_pool;
+  srslte::obj_pool<ue, false> ue_pool;
 };
 
 } // namespace srsenb
