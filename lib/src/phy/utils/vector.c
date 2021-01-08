@@ -226,6 +226,21 @@ void srslte_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len)
   memcpy(dst, src, sizeof(uint8_t) * len);
 }
 
+void srslte_vec_i8_copy(int8_t* dst, const int8_t* src, uint32_t len)
+{
+  memcpy(dst, src, sizeof(int8_t) * len);
+}
+
+void srslte_vec_i16_copy(int16_t* dst, const int16_t* src, uint32_t len)
+{
+  memcpy(dst, src, sizeof(int16_t) * len);
+}
+
+void srslte_vec_u16_copy(uint16_t* dst, const uint16_t* src, uint32_t len)
+{
+  memcpy(dst, src, sizeof(uint16_t) * len);
+}
+
 void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size)
 {
 #ifndef LV_HAVE_SSE
