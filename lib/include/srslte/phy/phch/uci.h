@@ -39,8 +39,6 @@ typedef struct SRSLTE_API {
   uint8_t          tmp_cqi[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
   uint8_t          encoded_cqi[3 * SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
   int16_t          encoded_cqi_s[3 * SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
-  uint8_t*         cqi_table[11];
-  int16_t*         cqi_table_s[11];
 } srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {

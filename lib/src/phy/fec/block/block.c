@@ -58,15 +58,23 @@ static inline uint8_t encode_M_basis_seq_u16(uint16_t w, uint32_t bit_idx)
 }
 
 #if USE_LUT
-static block_llr_t M_basis_seq_b_lut[1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS][SRSLTE_FEC_BLOCK_SIZE];
+// Encoded unpacked table
+static uint8_t block_unpacked_lut[1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS][SRSLTE_FEC_BLOCK_SIZE];
 
-// Initialization function, as the table does not change, it can be initialised as constructor
+// LLR signed table
+static block_llr_t block_llr_lut[1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS][SRSLTE_FEC_BLOCK_SIZE];
+
+// Initialization function, as the table is read-only after initialization, it can be initialised from constructor
 __attribute__((constructor)) static void srslte_block_init()
 {
   for (uint32_t word = 0; word < (1U << SRSLTE_FEC_BLOCK_MAX_NOF_BITS); word++) {
     for (uint32_t i = 0; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
-      // Encode guess word
-      M_basis_seq_b_lut[word][i] = encode_M_basis_seq_u16(word, i) * 2 - 1;
+      uint8_t e = encode_M_basis_seq_u16(word, i);
+      // Encoded unpacked byte
+      block_unpacked_lut[word][i] = e;
+
+      // Encoded LLR
+      block_llr_lut[word][i] = (block_llr_t)e * 2 - 1;
     }
   }
 }
@@ -74,16 +82,28 @@ __attribute__((constructor)) static void srslte_block_init()
 
 void srslte_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len)
 {
+  if (!input || !output) {
+    ERROR("Invalid inputs\n");
+    return;
+  }
+
   // Limit number of input bits
   input_len = SRSLTE_MIN(input_len, SRSLTE_FEC_BLOCK_MAX_NOF_BITS);
 
-  // Pack input bits
+  // Pack input bits (reversed)
   uint16_t w = 0;
   for (uint32_t i = 0; i < input_len; i++) {
     w |= (input[i] & 1U) << i;
   }
 
   // Encode bits
+#if USE_LUT
+  uint32_t i = 0;
+  for (; i < output_len / SRSLTE_FEC_BLOCK_SIZE; i++) {
+    srslte_vec_u8_copy(&output[i * SRSLTE_FEC_BLOCK_SIZE], block_unpacked_lut[w], SRSLTE_FEC_BLOCK_SIZE);
+  }
+  srslte_vec_u8_copy(&output[i * SRSLTE_FEC_BLOCK_SIZE], block_unpacked_lut[w], output_len % SRSLTE_FEC_BLOCK_SIZE);
+#else  // USE_LUT
   for (uint32_t i = 0; i < SRSLTE_MIN(output_len, SRSLTE_FEC_BLOCK_SIZE); i++) {
     output[i] = encode_M_basis_seq_u16(w, i);
   }
@@ -92,9 +112,10 @@ void srslte_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* outp
   for (uint32_t i = SRSLTE_FEC_BLOCK_SIZE; i < output_len; i++) {
     output[i] = output[i % SRSLTE_FEC_BLOCK_SIZE];
   }
+#endif // USE_LUT
 }
 
-static int32_t srslte_block_decode(const block_llr_t llr[SRSLTE_FEC_BLOCK_SIZE], uint8_t* data, uint32_t data_len)
+static int32_t block_decode(const block_llr_t* llr, uint8_t* data, uint32_t data_len)
 {
   int32_t  max_corr = 0; //< Stores maximum correlation
   uint32_t max_data = 0; //< Stores the word for maximum correlation
@@ -108,11 +129,9 @@ static int32_t srslte_block_decode(const block_llr_t llr[SRSLTE_FEC_BLOCK_SIZE],
     int32_t corr = 0;
 #if USE_LUT
     // Load sequence from LUT
-    block_llr_t* sequence = M_basis_seq_b_lut[guess];
-
     // Dot product
     for (uint32_t i = 0; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
-      corr += llr[i] * sequence[i];
+      corr += llr[i] * block_llr_lut[guess][i];
     }
 #else
     for (uint32_t i = 0; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
@@ -128,7 +147,7 @@ static int32_t srslte_block_decode(const block_llr_t llr[SRSLTE_FEC_BLOCK_SIZE],
     }
   }
 
-  // Unpack
+  // Bit unpack (reversed)
   for (uint32_t i = 0; i < data_len; i++) {
     data[i] = (uint8_t)((max_data >> i) & 1U);
   }
@@ -139,7 +158,7 @@ static int32_t srslte_block_decode(const block_llr_t llr[SRSLTE_FEC_BLOCK_SIZE],
 
 int32_t srslte_block_decode_i8(const int8_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
 {
-  block_llr_t llr_[SRSLTE_FEC_BLOCK_SIZE];
+  block_llr_t llr_[SRSLTE_FEC_BLOCK_SIZE] = {};
 
   // Return invalid inputs if data is not provided
   if (!llr || !data) {
@@ -147,29 +166,17 @@ int32_t srslte_block_decode_i8(const int8_t* llr, uint32_t nof_llr, uint8_t* dat
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  // Return invalid inputs if not enough LLR are provided
-  if (nof_llr < SRSLTE_FEC_BLOCK_SIZE) {
-    ERROR("Not enough LLR bits are provided %d. Required %d;\n", nof_llr, SRSLTE_FEC_BLOCK_SIZE);
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  // Load the minimum of LLRs
-  uint32_t i = 0;
-  for (; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
-    llr_[i] = (block_llr_t)llr[i];
-  }
-
-  // Combine the rest of LLRs
-  for (; i < nof_llr; i++) {
+  // Accumulate all copies of the 32-length sequence
+  for (uint32_t i = 0; i < nof_llr; i++) {
     llr_[i % SRSLTE_FEC_BLOCK_SIZE] += (block_llr_t)llr[i];
   }
 
-  return srslte_block_decode(llr_, data, data_len);
+  return block_decode(llr_, data, data_len);
 }
 
 int32_t srslte_block_decode_i16(const int16_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
 {
-  block_llr_t llr_[SRSLTE_FEC_BLOCK_SIZE];
+  block_llr_t llr_[SRSLTE_FEC_BLOCK_SIZE] = {};
 
   // Return invalid inputs if data is not provided
   if (!llr || !data) {
@@ -177,22 +184,12 @@ int32_t srslte_block_decode_i16(const int16_t* llr, uint32_t nof_llr, uint8_t* d
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  // Return invalid inputs if not enough LLR are provided
-  if (nof_llr < SRSLTE_FEC_BLOCK_SIZE) {
-    ERROR("Not enough LLR bits are provided %d. Required %d;\n", nof_llr, SRSLTE_FEC_BLOCK_SIZE);
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  // Load the minimum of LLRs
+  // Accumulate all copies of the 32-length sequence
   uint32_t i = 0;
-  for (; i < SRSLTE_FEC_BLOCK_SIZE; i++) {
-    llr_[i] = (block_llr_t)llr[i];
+  for (; i < nof_llr / SRSLTE_FEC_BLOCK_SIZE; i++) {
+    srslte_vec_sum_sss(&llr[i * SRSLTE_FEC_BLOCK_SIZE], llr_, llr_, SRSLTE_FEC_BLOCK_SIZE);
   }
+  srslte_vec_sum_sss(&llr[i * SRSLTE_FEC_BLOCK_SIZE], llr_, llr_, nof_llr % SRSLTE_FEC_BLOCK_SIZE);
 
-  // Combine the rest of LLRs
-  for (; i < nof_llr; i++) {
-    llr_[i % SRSLTE_FEC_BLOCK_SIZE] += (block_llr_t)llr[i];
-  }
-
-  return srslte_block_decode(llr_, data, data_len);
+  return block_decode(llr_, data, data_len);
 }

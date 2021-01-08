@@ -21,7 +21,6 @@
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/fec/block/block.h"
-#include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/convolutional/convcoder.h"
 #include "srslte/phy/fec/convolutional/rm_conv.h"
 #include "srslte/phy/fec/crc.h"
@@ -30,21 +29,7 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-/* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
-static uint8_t M_basis_seq[SRSLTE_FEC_BLOCK_SIZE][SRSLTE_UCI_MAX_ACK_SR_BITS] = {
-    {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1}, {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},
-    {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1}, {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1}, {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1},
-    {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1}, {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1}, {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1},
-    {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1}, {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1}, {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1},
-    {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1}, {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1}, {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1},
-    {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1}, {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0}, {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0},
-    {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0}, {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0}, {1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1},
-    {1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1}, {1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1}, {1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1},
-    {1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0}, {1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1}, {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0},
-    {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0}, {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0}, {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-};
-
+/* Table 5.2.3.3-1: Basis sequences for (20, A) code */
 static uint8_t M_basis_seq_pucch[20][13] = {
     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
     {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1}, {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1},
@@ -159,37 +144,6 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
   }
 }
 
-void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)
-{
-  uint8_t word[11];
-
-  for (int i = 0; i < 11; i++) {
-    uint32_t nwords   = (1 << (i + 1));
-    q->cqi_table[i]   = srslte_vec_u8_malloc(nwords * 32);
-    q->cqi_table_s[i] = srslte_vec_i16_malloc(nwords * 32);
-    for (uint32_t w = 0; w < nwords; w++) {
-      uint8_t* ptr = word;
-      srslte_bit_unpack(w, &ptr, i + 1);
-      srslte_block_encode(word, i + 1, &q->cqi_table[i][32 * w], SRSLTE_FEC_BLOCK_SIZE);
-      for (int j = 0; j < 32; j++) {
-        q->cqi_table_s[i][32 * w + j] = 2 * q->cqi_table[i][32 * w + j] - 1;
-      }
-    }
-  }
-}
-
-void cqi_pusch_pregen_free(srslte_uci_cqi_pusch_t* q)
-{
-  for (int i = 0; i < 11; i++) {
-    if (q->cqi_table[i]) {
-      free(q->cqi_table[i]);
-    }
-    if (q->cqi_table_s[i]) {
-      free(q->cqi_table_s[i]);
-    }
-  }
-}
-
 int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t* q)
 {
   if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
@@ -200,16 +154,12 @@ int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t* q)
     return SRSLTE_ERROR;
   }
 
-  cqi_pusch_pregen(q);
-
   return SRSLTE_SUCCESS;
 }
 
 void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t* q)
 {
   srslte_viterbi_free(&q->viterbi);
-
-  cqi_pusch_pregen_free(q);
 }
 
 static uint32_t Q_prime_cqi(srslte_pusch_cfg_t* cfg, uint32_t O, float beta, uint32_t Q_prime_ri)
@@ -244,48 +194,19 @@ uint32_t srslte_qprime_cqi_ext(uint32_t L_prb, uint32_t nof_symbols, uint32_t tb
  */
 int encode_cqi_short(srslte_uci_cqi_pusch_t* q, uint8_t* data, uint32_t nof_bits, uint8_t* q_bits, uint32_t Q)
 {
-  if (nof_bits <= 11 && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
-    uint8_t* ptr = data;
-    uint32_t w   = srslte_bit_pack(&ptr, nof_bits);
-
-    for (int i = 0; i < Q; i++) {
-      q_bits[i] = q->cqi_table[nof_bits - 1][w * 32 + (i % 32)];
-    }
+  if (nof_bits <= SRSLTE_FEC_BLOCK_MAX_NOF_BITS && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
+    srslte_block_encode(data, nof_bits, q_bits, Q);
     return SRSLTE_SUCCESS;
-  } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
   }
+  return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
 // For decoding the block-encoded CQI we use ML decoding
 int decode_cqi_short(srslte_uci_cqi_pusch_t* q, int16_t* q_bits, uint32_t Q, uint8_t* data, uint32_t nof_bits)
 {
-  if (nof_bits <= 11 && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
-    // Accumulate all copies of the 32-length sequence
-    if (Q > 32) {
-      int i = 1;
-      for (; i < Q / 32; i++) {
-        srslte_vec_sum_sss(&q_bits[i * 32], q_bits, q_bits, 32);
-      }
-      srslte_vec_sum_sss(&q_bits[i * 32], q_bits, q_bits, Q % 32);
-    }
-
-    uint32_t max_w    = 0;
-    int32_t  max_corr = INT32_MIN;
-    for (uint32_t w = 0; w < (1 << nof_bits); w++) {
-
-      // Calculate correlation with pregenerated word and select maximum
-      int32_t corr = srslte_vec_dot_prod_sss(&q->cqi_table_s[nof_bits - 1][w * 32], q_bits, SRSLTE_MIN(32, Q));
-      if (corr > max_corr) {
-        max_corr = corr;
-        max_w    = w;
-      }
-    }
-    // Convert word to bits again
-    uint8_t* ptr = data;
-    srslte_bit_unpack(max_w, &ptr, nof_bits);
-
-    INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
+  if (nof_bits <= SRSLTE_FEC_BLOCK_MAX_NOF_BITS && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
+    int32_t max_corr = srslte_block_decode_i16(q_bits, Q, data, nof_bits);
+    INFO("Decoded CQI: corr=%d\n", max_corr);
     return SRSLTE_SUCCESS;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -566,12 +487,15 @@ encode_ack_long(const uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_pri
     return 0;
   }
 
+  // Encoded bits
+  uint8_t q[SRSLTE_FEC_BLOCK_SIZE] = {};
+
+  // Encode
+  srslte_block_encode(data, O_ack, q, SRSLTE_FEC_BLOCK_SIZE);
+
+  // Convert to UCI bits
   for (uint32_t i = 0; i < Q_ack; i++) {
-    uint32_t q_i = 0;
-    for (uint32_t n = 0; n < O_ack; n++) {
-      q_i = (q_i + (data[n] * M_basis_seq[i % 32][n])) % 2;
-    }
-    q_encoded_bits[i].type = q_i ? UCI_BIT_1 : UCI_BIT_0;
+    q_encoded_bits[i].type = q[i % SRSLTE_FEC_BLOCK_SIZE] ? UCI_BIT_1 : UCI_BIT_0;
   }
 
   return Q_ack;
