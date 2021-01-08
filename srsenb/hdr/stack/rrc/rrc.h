@@ -17,6 +17,7 @@
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srslte/adt/mem_pool.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
@@ -148,9 +149,9 @@ private:
   std::unique_ptr<enb_cell_common_list> cell_common_list;
 
   // state
-  std::unique_ptr<freq_res_common_list>          cell_res_list;
-  std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
-  std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
+  std::unique_ptr<freq_res_common_list>            cell_res_list;
+  std::map<uint16_t, srslte::unique_pool_obj<ue> > users; // NOTE: has to have fixed addr
+  std::map<uint32_t, asn1::rrc::paging_record_s>   pending_paging;
 
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);
@@ -190,6 +191,8 @@ private:
   void rem_user_thread(uint16_t rnti);
 
   std::mutex paging_mutex;
+
+  srslte::single_thread_obj_pool<ue> ue_pool;
 };
 
 } // namespace srsenb

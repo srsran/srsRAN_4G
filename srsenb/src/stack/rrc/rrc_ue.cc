@@ -347,18 +347,18 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                             old_rnti);
 
       // Cancel Handover in Target eNB if on-going
-      parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
+      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
 
       // Recover security setup
       const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-      ue_security_cfg                  = parent->users[old_rnti]->ue_security_cfg;
+      ue_security_cfg                  = parent->users.at(old_rnti)->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
 
       // send reestablishment and restore bearer configuration
-      send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
+      send_connection_reest(parent->users.at(old_rnti)->ue_security_cfg.get_ncc());
 
       // Get PDCP entity state (required when using RLC AM)
-      for (const auto& erab_pair : parent->users[old_rnti]->bearer_list.get_erabs()) {
+      for (const auto& erab_pair : parent->users.at(old_rnti)->bearer_list.get_erabs()) {
         uint16_t lcid              = erab_pair.second.id - 2;
         old_reest_pdcp_state[lcid] = {};
         parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
@@ -374,9 +374,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       }
 
       // Make sure UE capabilities are copied over to new RNTI
-      eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
-      eutra_capabilities_unpacked = parent->users[old_rnti]->eutra_capabilities_unpacked;
-      ue_capabilities             = parent->users[old_rnti]->ue_capabilities;
+      eutra_capabilities          = parent->users.at(old_rnti)->eutra_capabilities;
+      eutra_capabilities_unpacked = parent->users.at(old_rnti)->eutra_capabilities_unpacked;
+      ue_capabilities             = parent->users.at(old_rnti)->ue_capabilities;
       if (parent->rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
         asn1::json_writer js{};
         eutra_capabilities.to_json(js);
@@ -448,7 +448,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
 
   // Reestablish current DRBs during ConnectionReconfiguration
-  for (const auto& erab_pair : parent->users[old_reest_rnti]->bearer_list.get_erabs()) {
+  for (const auto& erab_pair : parent->users.at(old_reest_rnti)->bearer_list.get_erabs()) {
     const bearer_cfg_handler::erab_t& erab = erab_pair.second;
     bearer_list.add_erab(erab.id, erab.qos_params, erab.address, erab.teid_out, nullptr);
   }
