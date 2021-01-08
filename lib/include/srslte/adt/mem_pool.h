@@ -39,6 +39,7 @@ public:
     // printf("head: %ld\n", (long)head);
     node* next = ::new (block) node(head);
     head       = next;
+    count++;
   }
 
   uint8_t* try_pop() noexcept
@@ -48,10 +49,13 @@ public:
     }
     node* last_head = head;
     head            = head->prev;
+    count--;
     return (uint8_t*)last_head;
   }
 
   bool is_empty() const { return head == nullptr; }
+
+  size_t size() const { return count; }
 
   void clear() { head = nullptr; }
 
@@ -62,7 +66,8 @@ private:
     explicit node(node* prev_) : prev(prev_) {}
   };
 
-  node* head = nullptr;
+  node*  head  = nullptr;
+  size_t count = 0;
 };
 
 /// memblock stack that mutexes pushing/popping
@@ -130,8 +135,16 @@ public:
     void                       operator()(void* block) { pool->stack.push(static_cast<uint8_t*>(block)); }
     single_thread_obj_pool<T>* pool;
   };
-
   using obj_ptr = std::unique_ptr<T, obj_deleter>;
+
+  ~single_thread_obj_pool()
+  {
+    uint8_t* block = stack.try_pop();
+    while (block != nullptr) {
+      delete[] block;
+      block = stack.try_pop();
+    }
+  }
 
   /// allocate object
   template <typename... Args>
@@ -151,6 +164,8 @@ public:
       stack.push(new uint8_t[sizeof(T)]);
     }
   }
+
+  size_t capacity() const { return stack.size(); }
 
 private:
   memblock_stack stack;

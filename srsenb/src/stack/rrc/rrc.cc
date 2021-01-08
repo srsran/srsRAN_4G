@@ -31,7 +31,7 @@ namespace srsenb {
 rrc::rrc(srslte::task_sched_handle task_sched_) : rrc_log("RRC"), task_sched(task_sched_)
 {
   pending_paging.clear();
-  ue_pool.reserve(10);
+  ue_pool.reserve(16);
 }
 
 rrc::~rrc() {}
@@ -151,7 +151,10 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
     bool rnti_added = true;
     if (rnti != SRSLTE_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
-      auto p     = users.insert(std::make_pair(rnti, ue_pool.make(this, rnti, sched_ue_cfg)));
+      auto p = users.insert(std::make_pair(rnti, ue_pool.make(this, rnti, sched_ue_cfg)));
+      if (ue_pool.capacity() <= 4) {
+        task_sched.defer_task([this]() { ue_pool.reserve(16); });
+      }
       rnti_added = p.second and p.first->second->is_allocated();
     }
     if (rnti_added) {
