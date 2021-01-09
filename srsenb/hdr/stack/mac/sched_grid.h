@@ -27,7 +27,16 @@ enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 
 //! Result of alloc attempt
 struct alloc_outcome_t {
-  enum result_enum { SUCCESS, DCI_COLLISION, RB_COLLISION, ERROR, NOF_RB_INVALID, PUCCH_COLLISION, MEASGAP_COLLISION };
+  enum result_enum {
+    SUCCESS,
+    DCI_COLLISION,
+    RB_COLLISION,
+    ERROR,
+    NOF_RB_INVALID,
+    PUCCH_COLLISION,
+    MEASGAP_COLLISION,
+    ALREADY_ALLOC
+  };
   result_enum result = ERROR;
   alloc_outcome_t()  = default;
   alloc_outcome_t(result_enum e) : result(e) {}

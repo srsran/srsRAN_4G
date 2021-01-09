@@ -123,7 +123,8 @@ uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
   alloc_outcome_t code = alloc_outcome_t::ERROR;
   if (ue_ctxt.ul_h != nullptr and ue_ctxt.ul_h->has_pending_retx()) {
     code = try_ul_retx_alloc(*tti_sched, ue, *ue_ctxt.ul_h);
-  } else if (ue_ctxt.ul_h != nullptr) {
+  } else if (ue_ctxt.ul_h != nullptr and not tti_sched->is_ul_alloc(ue_ctxt.rnti)) {
+    // Note: h->is_empty check is required, in case CA allocated a small UL grant for UCI
     uint32_t pending_data = ue.get_pending_ul_new_data(tti_sched->get_tti_tx_ul(), ue_ctxt.ue_cc_idx);
     // Check if there is a empty harq, and data to transmit
     if (pending_data == 0) {

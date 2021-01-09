@@ -36,6 +36,8 @@ const char* alloc_outcome_t::to_string() const
       return "pucch_collision";
     case MEASGAP_COLLISION:
       return "measgap_collision";
+    case ALREADY_ALLOC:
+      return "already allocated";
   }
   return "unknown error";
 }
@@ -758,14 +760,16 @@ bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, tti_point
 
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
-  if (is_dl_alloc(user->get_rnti())) {
-    Warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
-    return alloc_outcome_t::ERROR;
-  }
   if (data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
     Warning("SCHED: Maximum number of DL allocations reached\n");
     return alloc_outcome_t::ERROR;
   }
+
+  if (is_dl_alloc(user->get_rnti())) {
+    Warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
+    return alloc_outcome_t::ALREADY_ALLOC;
+  }
+
   auto* cc = user->find_ue_carrier(cc_cfg->enb_cc_idx);
   if (cc == nullptr or cc->cc_state() != cc_st::active) {
     return alloc_outcome_t::ERROR;
@@ -824,14 +828,15 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
 
 alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs)
 {
-  // Check whether user was already allocated
-  if (is_ul_alloc(user->get_rnti())) {
-    log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
-    return alloc_outcome_t::ERROR;
-  }
   if (ul_data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
     Warning("SCHED: Maximum number of UL allocations reached\n");
     return alloc_outcome_t::ERROR;
+  }
+
+  // Check whether user was already allocated
+  if (is_ul_alloc(user->get_rnti())) {
+    log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
+    return alloc_outcome_t::ALREADY_ALLOC;
   }
 
   // Check if there is no collision with measGap
