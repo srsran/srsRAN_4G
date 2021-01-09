@@ -15,8 +15,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "srslte/common/backtrace.h"
 #include "srslte/common/crash_handler.h"
+
+#if HAVE_BACKWARD
+#include "srslte/common/backward.hpp"
+using namespace backward;
+void srslte_debug_handle_crash(int argc, char** argv)
+{
+  backward::SignalHandling sh;
+}
+#else // HAVE_BACKWARD
+#include "srslte/common/backtrace.h"
 #include "srslte/version.h"
 
 const static char crash_file_name[] = "./srsLTE.backtrace.crash";
@@ -65,3 +74,5 @@ void srslte_debug_handle_crash(int argc, char** argv)
   signal(SIGFPE, crash_handler);
   signal(SIGPIPE, crash_handler);
 }
+
+#endif // HAVE_BACKWARD

@@ -269,6 +269,17 @@ if (ENABLE_TTCN3)
   message(STATUS "Building with TTCN3 binaries")
 endif (ENABLE_TTCN3)
 
+# Backward-cpp
+find_package(Backward)
+if(Backward_FOUND)
+  if(BACKWARD_HAS_EXTERNAL_LIBRARIES)
+    add_definitions(-DHAVE_BACKWARD)
+    message(STATUS "Building with backward-cpp support")
+  else (BACKWARD_HAS_EXTERNAL_LIBRARIES)
+    message(STATUS "Backward-cpp found, but external libraries are missing.")
+  endif()
+endif()
+
 ########################################################################
 # Install Dirs
 ########################################################################

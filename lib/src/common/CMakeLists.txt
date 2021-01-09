@@ -12,7 +12,7 @@ set(SOURCES arch_select.cc
             backtrace.c
             band_helper.cc
             buffer_pool.cc
-            crash_handler.c
+            crash_handler.cc
             gen_mch_tables.c
             liblte_security.cc
             log_filter.cc
@@ -47,8 +47,9 @@ add_dependencies(srslte_common gen_build_info)
 
 add_executable(arch_select arch_select.cc)
 
-target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS})
-target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES})
+target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${BACKWARD_INCLUDE_DIRS})
+target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES})
+target_compile_definitions(srslte_common PRIVATE ${BACKWARD_DEFINITIONS})
 
 INSTALL(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
 
