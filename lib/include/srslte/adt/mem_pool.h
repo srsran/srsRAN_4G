@@ -28,7 +28,7 @@ class memblock_stack
   };
 
 public:
-  const static size_t min_memblock_size = sizeof(node);
+  constexpr static size_t min_memblock_size() { return sizeof(node); }
 
   memblock_stack() = default;
 
@@ -135,18 +135,17 @@ private:
 };
 
 /**
- * Non thread-safe object pool. Memory management is automatically handled. Relevant methods:
+ * Pool specialized for big objects. Created objects are of same time, and are not contiguous in memory.
+ * Memory management of created objects is automatically handled. Relevant methods:
  * - ::make(...) - create an object whose memory is automatically managed by the pool. The object dtor returns the
  *                 allocated memory back to the pool
  * - ::reserve(N) - prereserve memory slots for faster object creation
  * @tparam T object type
+ * @tparam ThreadSafe if object pool is thread-safe or not
  */
 template <typename T, bool ThreadSafe = false>
 class obj_pool
 {
-  const static size_t memblock_size = sizeof(T) > memblock_stack::min_memblock_size ? sizeof(T)
-                                                                                    : memblock_stack::min_memblock_size;
-
   /// single-thread obj pool deleter
   struct obj_deleter {
     explicit obj_deleter(obj_pool<T, ThreadSafe>* pool_) : pool(pool_) {}
@@ -180,10 +179,7 @@ public:
   template <typename... Args>
   obj_ptr make(Args&&... args)
   {
-    uint8_t* block = stack.try_pop();
-    if (block == nullptr) {
-      block = new uint8_t[memblock_size];
-    }
+    uint8_t* block = allocate_node();
     new (block) T(std::forward<Args>(args)...);
     return obj_ptr(reinterpret_cast<T*>(block), obj_deleter(this));
   }
@@ -191,12 +187,24 @@ public:
   /// Pre-reserve N memory chunks for future object allocations
   void reserve(size_t N)
   {
+    static const size_t blocksize = std::max(sizeof(T), memblock_stack::min_memblock_size());
     for (size_t i = 0; i < N; ++i) {
-      stack.push(new uint8_t[memblock_size]);
+      stack.push(new uint8_t[blocksize]);
     }
   }
 
   size_t capacity() const { return stack.size(); }
+
+private:
+  uint8_t* allocate_node()
+  {
+    static const size_t blocksize = std::max(sizeof(T), memblock_stack::min_memblock_size());
+    uint8_t*            block     = stack.try_pop();
+    if (block == nullptr) {
+      block = new uint8_t[blocksize];
+    }
+    return block;
+  }
 };
 template <typename T>
 using mutexed_pool_obj = obj_pool<T, true>;
