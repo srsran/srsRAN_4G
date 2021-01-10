@@ -13,12 +13,23 @@
 #ifndef SRSLTE_MEM_POOL_H
 #define SRSLTE_MEM_POOL_H
 
+#include <cstdint>
+#include <memory>
+#include <mutex>
+
 namespace srslte {
 
 /// Stores provided mem blocks in a stack in an non-owning manner. Not thread-safe
 class memblock_stack
 {
+  struct node {
+    node* prev;
+    explicit node(node* prev_) : prev(prev_) {}
+  };
+
 public:
+  const static size_t min_memblock_size = sizeof(node);
+
   memblock_stack() = default;
 
   memblock_stack(const memblock_stack&) = delete;
@@ -60,12 +71,6 @@ public:
   void clear() { head = nullptr; }
 
 private:
-  struct node {
-    node* prev;
-
-    explicit node(node* prev_) : prev(prev_) {}
-  };
-
   node*  head  = nullptr;
   size_t count = 0;
 };
@@ -136,13 +141,20 @@ private:
  * - ::reserve(N) - prereserve memory slots for faster object creation
  * @tparam T object type
  */
-template <typename T, bool ThreadSafe = true>
+template <typename T, bool ThreadSafe = false>
 class obj_pool
 {
+  const static size_t memblock_size = sizeof(T) > memblock_stack::min_memblock_size ? sizeof(T)
+                                                                                    : memblock_stack::min_memblock_size;
+
   /// single-thread obj pool deleter
   struct obj_deleter {
     explicit obj_deleter(obj_pool<T, ThreadSafe>* pool_) : pool(pool_) {}
-    void                     operator()(void* block) { pool->stack.push(static_cast<uint8_t*>(block)); }
+    void operator()(void* block)
+    {
+      static_cast<T*>(block)->~T();
+      pool->stack.push(static_cast<uint8_t*>(block));
+    }
     obj_pool<T, ThreadSafe>* pool;
   };
 
@@ -170,7 +182,7 @@ public:
   {
     uint8_t* block = stack.try_pop();
     if (block == nullptr) {
-      block = new uint8_t[sizeof(T)];
+      block = new uint8_t[memblock_size];
     }
     new (block) T(std::forward<Args>(args)...);
     return obj_ptr(reinterpret_cast<T*>(block), obj_deleter(this));
@@ -180,12 +192,15 @@ public:
   void reserve(size_t N)
   {
     for (size_t i = 0; i < N; ++i) {
-      stack.push(new uint8_t[sizeof(T)]);
+      stack.push(new uint8_t[memblock_size]);
     }
   }
 
   size_t capacity() const { return stack.size(); }
 };
+template <typename T>
+using mutexed_pool_obj = obj_pool<T, true>;
+
 template <typename T>
 using unique_pool_obj = typename obj_pool<T, false>::obj_ptr;
 template <typename T>

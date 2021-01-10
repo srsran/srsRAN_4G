@@ -37,3 +37,7 @@ add_test(observer_test observer_test)
 add_executable(bounded_vector_test bounded_vector_test.cc)
 target_link_libraries(bounded_vector_test srslte_common)
 add_test(bounded_vector_test bounded_vector_test)
+
+add_executable(mem_pool_test mem_pool_test.cc)
+target_link_libraries(mem_pool_test srslte_common)
+add_test(mem_pool_test mem_pool_test)
