@@ -741,7 +741,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
     break;
   }
   if (ret.first != alloc_outcome_t::SUCCESS) {
-    log_h->warning("SCHED: Failed to allocate RAR due to lack of RBs\n");
+    log_h->info("SCHED: Failed to allocate RAR due to lack of RBs\n");
   }
   return ret;
 }
