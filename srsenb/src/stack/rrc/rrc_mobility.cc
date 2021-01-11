@@ -573,8 +573,8 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st& s, 
   }
 
   // Disable DRBs
-  parent_fsm()->rrc_ue->mac_ctrl->set_drb_activation(false);
-  parent_fsm()->rrc_ue->mac_ctrl->update_mac(mac_controller::proc_stage_t::other);
+  parent_fsm()->rrc_ue->mac_ctrl.set_drb_activation(false);
+  parent_fsm()->rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
 
   /* Send HO Command to UE */
   if (not parent_fsm()->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
@@ -681,7 +681,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_ue_cfg.rr_cfg);
   rrc_ue->apply_rlc_rb_updates(rrc_ue->current_ue_cfg.rr_cfg);
   // Update MAC
-  rrc_ue->mac_ctrl->handle_target_enb_ho_cmd(recfg_r8, rrc_ue->ue_capabilities);
+  rrc_ue->mac_ctrl.handle_target_enb_ho_cmd(recfg_r8, rrc_ue->ue_capabilities);
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
 
@@ -763,7 +763,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   rrc_ue->current_ue_cfg.meas_cfg = ho_prep.as_cfg.source_meas_cfg;
 
   // Save source UE MAC configuration as a base
-  rrc_ue->mac_ctrl->handle_ho_prep(ho_prep);
+  rrc_ue->mac_ctrl.handle_ho_prep(ho_prep);
 
   return true;
 }
@@ -861,7 +861,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   rrc_conn_recfg_r8_ies_s& reconf_r8 = dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   // Apply changes to the MAC scheduler
-  f->rrc_ue->mac_ctrl->handle_intraenb_ho_cmd(reconf_r8, f->rrc_ue->ue_capabilities);
+  f->rrc_ue->mac_ctrl.handle_intraenb_ho_cmd(reconf_r8, f->rrc_ue->ue_capabilities);
 
   f->rrc_ue->apply_setup_phy_common(f->rrc_enb->cfg.sibs[1].sib2().rr_cfg_common, false);
   f->rrc_ue->apply_reconf_phy_config(reconf_r8, false);
@@ -885,7 +885,7 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     rrc_enb->rlc->reestablish(rrc_ue->rnti);
 
     // Change PCell in MAC/Scheduler
-    rrc_ue->mac_ctrl->handle_crnti_ce(ev.temp_crnti);
+    rrc_ue->mac_ctrl.handle_crnti_ce(ev.temp_crnti);
 
     // finally apply new phy changes
     rrc_enb->phy->set_config(rrc_ue->rnti, rrc_ue->phy_rrc_dedicated_list);

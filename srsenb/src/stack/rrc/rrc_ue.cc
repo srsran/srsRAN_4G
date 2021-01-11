@@ -37,9 +37,9 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   ue_cell_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
   bearer_list(rnti_, parent->cfg),
-  ue_security_cfg(parent->cfg)
+  ue_security_cfg(parent->cfg),
+  mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
 {
-  mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
 
   // Allocate cell and PUCCH resources
   if (ue_cell_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
@@ -277,7 +277,7 @@ void rrc::ue::send_connection_setup()
   fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
 
   // Apply ConnectionSetup Configuration to MAC scheduler
-  mac_ctrl->handle_con_setup(setup_r8);
+  mac_ctrl.handle_con_setup(setup_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   apply_pdcp_srb_updates(setup_r8.rr_cfg_ded);
@@ -307,7 +307,7 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   memcpy(pdu->msg, msg_r8->ded_info_nas.data(), pdu->N_bytes);
 
   // Signal MAC scheduler that configuration was successful
-  mac_ctrl->handle_con_setup_complete();
+  mac_ctrl.handle_con_setup_complete();
 
   asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
   s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
@@ -324,7 +324,7 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
 void rrc::ue::send_connection_reject()
 {
-  mac_ctrl->handle_con_reject();
+  mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
@@ -421,7 +421,7 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   reest_r8.next_hop_chaining_count = ncc;
 
   // Apply ConnectionReest Configuration to MAC scheduler
-  mac_ctrl->handle_con_reest(reest_r8);
+  mac_ctrl.handle_con_reest(reest_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   apply_pdcp_srb_updates(rr_cfg);
@@ -451,7 +451,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->s1ap->user_mod(old_reest_rnti, rnti);
 
   // Signal MAC scheduler that configuration was successful
-  mac_ctrl->handle_con_reest_complete();
+  mac_ctrl.handle_con_reest_complete();
 
   // Activate security for SRB1
   parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
@@ -473,7 +473,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
 
 void rrc::ue::send_connection_reest_rej()
 {
-  mac_ctrl->handle_con_reject();
+  mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
@@ -520,7 +520,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
   apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
 
   // UE MAC scheduler updates
-  mac_ctrl->handle_con_reconf(recfg_r8, ue_capabilities);
+  mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
 
   // Reuse same PDU
   if (pdu != nullptr) {
@@ -546,7 +546,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   }
 
   // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
-  mac_ctrl->handle_con_reconf_complete();
+  mac_ctrl.handle_con_reconf_complete();
 
   // If performing handover, signal its completion
   mobility_handler->trigger(*msg);

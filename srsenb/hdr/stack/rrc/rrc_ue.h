@@ -13,6 +13,7 @@
 #ifndef SRSLTE_RRC_UE_H
 #define SRSLTE_RRC_UE_H
 
+#include "mac_controller.h"
 #include "rrc.h"
 
 namespace srsenb {
@@ -132,8 +133,8 @@ private:
   bearer_cfg_handler   bearer_list;
   security_cfg_handler ue_security_cfg;
 
-  class mac_controller;
-  std::unique_ptr<mac_controller> mac_ctrl;
+  // controllers
+  mac_controller mac_ctrl;
 
   ///< Helper to access a cell cfg based on ue_cc_idx
   enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);

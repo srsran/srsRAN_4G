@@ -11,8 +11,8 @@
  */
 
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_utils.h"
-#include "srslte/interfaces/sched_interface.h"
 
 namespace srsenb {
 
@@ -75,11 +75,20 @@ void ue_cfg_apply_capabilities(ue_cfg_t& ue_cfg, const rrc_cfg_t& rrc_cfg, const
  *  MAC Controller class
  **************************/
 
-rrc::ue::mac_controller::mac_controller(rrc::ue* rrc_ue_, const ue_cfg_t& sched_ue_cfg) :
+mac_controller::mac_controller(uint16_t                    rnti_,
+                               const ue_cell_ded_list&     ue_cell_list_,
+                               const bearer_cfg_handler&   bearer_list_,
+                               const rrc_cfg_t&            rrc_cfg_,
+                               mac_interface_rrc*          mac_,
+                               const enb_cell_common_list& cell_common_list_,
+                               const ue_cfg_t&             sched_ue_cfg) :
   log_h("RRC"),
-  rrc_ue(rrc_ue_),
-  rrc_cfg(&rrc_ue_->parent->cfg),
-  mac(rrc_ue_->parent->mac),
+  rnti(rnti_),
+  ue_cell_list(ue_cell_list_),
+  bearer_list(bearer_list_),
+  rrc_cfg(&rrc_cfg_),
+  mac(mac_),
+  cell_common_list(cell_common_list_),
   current_sched_ue_cfg(sched_ue_cfg)
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
@@ -90,28 +99,28 @@ rrc::ue::mac_controller::mac_controller(rrc::ue* rrc_ue_, const ue_cfg_t& sched_
   }
 }
 
-int rrc::ue::mac_controller::handle_con_setup(const asn1::rrc::rrc_conn_setup_r8_ies_s& conn_setup)
+int mac_controller::handle_con_setup(const asn1::rrc::rrc_conn_setup_r8_ies_s& conn_setup)
 {
   return apply_basic_conn_cfg(conn_setup.rr_cfg_ded);
 }
 
-int rrc::ue::mac_controller::handle_con_reest(const asn1::rrc::rrc_conn_reest_r8_ies_s& conn_reest)
+int mac_controller::handle_con_reest(const asn1::rrc::rrc_conn_reest_r8_ies_s& conn_reest)
 {
   return apply_basic_conn_cfg(conn_reest.rr_cfg_ded);
 }
 
 //! Called when ConnectionSetup or Reestablishment is rejected (e.g. no MME connection)
-void rrc::ue::mac_controller::handle_con_reject()
+void mac_controller::handle_con_reject()
 {
   if (not crnti_set) {
     crnti_set = true;
     // Need to schedule ConRes CE for UE to see the Reject message
-    mac->ue_set_crnti(rrc_ue->rnti, rrc_ue->rnti, &current_sched_ue_cfg);
+    mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
   }
 }
 
 /// Called in case of intra-eNB Handover to activate the new PCell for the reception of the RRC Reconf Complete message
-int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
+int mac_controller::handle_crnti_ce(uint32_t temp_crnti)
 {
   // Change PCell and add SCell configurations to MAC/Scheduler
   current_sched_ue_cfg = next_sched_ue_cfg;
@@ -129,12 +138,12 @@ int rrc::ue::mac_controller::handle_crnti_ce(uint32_t temp_crnti)
     current_sched_ue_cfg.ue_bearers[i] = next_sched_ue_cfg.ue_bearers[i];
   }
 
-  return mac->ue_set_crnti(temp_crnti, rrc_ue->rnti, &current_sched_ue_cfg);
+  return mac->ue_set_crnti(temp_crnti, rnti, &current_sched_ue_cfg);
 }
 
-int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg)
+int mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg)
 {
-  const auto* pcell = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const auto* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   // Set static config params
   current_sched_ue_cfg.maxharq_tx       = rrc_cfg->mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
@@ -173,32 +182,32 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
 
   // Configure MAC
   // In case of RRC Connection Setup/Reest message (Msg4), we need to resolve the contention by sending a ConRes CE
-  mac->phy_config_enabled(rrc_ue->rnti, false);
+  mac->phy_config_enabled(rnti, false);
   crnti_set = true;
-  return mac->ue_set_crnti(rrc_ue->rnti, rrc_ue->rnti, &current_sched_ue_cfg);
+  return mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
 }
 
-void rrc::ue::mac_controller::handle_con_setup_complete()
+void mac_controller::handle_con_setup_complete()
 {
   // Acknowledge Dedicated Configuration
-  mac->phy_config_enabled(rrc_ue->rnti, true);
+  mac->phy_config_enabled(rnti, true);
 }
 
-void rrc::ue::mac_controller::handle_con_reest_complete()
+void mac_controller::handle_con_reest_complete()
 {
   // Acknowledge Dedicated Configuration
-  mac->phy_config_enabled(rrc_ue->rnti, true);
+  mac->phy_config_enabled(rnti, true);
 }
 
-void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                                const srslte::rrc_ue_capabilities_t&      uecaps)
+void mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                       const srslte::rrc_ue_capabilities_t&      uecaps)
 {
   ue_cfg_apply_conn_reconf(current_sched_ue_cfg, conn_recfg, *rrc_cfg);
 
   // Store MAC updates that are applied once RRCReconfigurationComplete is received
   next_sched_ue_cfg = current_sched_ue_cfg;
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->ue_cell_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, ue_cell_list);
 
   // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
   set_drb_activation(false);
@@ -207,7 +216,7 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
   update_mac(proc_stage_t::config_tx);
 }
 
-void rrc::ue::mac_controller::handle_con_reconf_complete()
+void mac_controller::handle_con_reconf_complete()
 {
   current_sched_ue_cfg = next_sched_ue_cfg;
 
@@ -218,10 +227,10 @@ void rrc::ue::mac_controller::handle_con_reconf_complete()
   update_mac(proc_stage_t::config_complete);
 }
 
-void rrc::ue::mac_controller::apply_current_bearers_cfg()
+void mac_controller::apply_current_bearers_cfg()
 {
   // Configure DRBs
-  const drb_to_add_mod_list_l& drbs = rrc_ue->bearer_list.get_established_drbs();
+  const drb_to_add_mod_list_l& drbs = bearer_list.get_established_drbs();
   for (const drb_to_add_mod_s& drb : drbs) {
     auto& bcfg     = current_sched_ue_cfg.ue_bearers[drb.lc_ch_id];
     bcfg           = {};
@@ -237,34 +246,34 @@ void rrc::ue::mac_controller::apply_current_bearers_cfg()
   }
 }
 
-void rrc::ue::mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                                       const srslte::rrc_ue_capabilities_t&      uecaps)
+void mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                              const srslte::rrc_ue_capabilities_t&      uecaps)
 {
   ue_cfg_apply_conn_reconf(current_sched_ue_cfg, conn_recfg, *rrc_cfg);
 
   next_sched_ue_cfg = current_sched_ue_cfg;
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->ue_cell_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, ue_cell_list);
 
   // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
   set_drb_activation(false);
 
   // Apply changes to MAC scheduler
-  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
-  mac->phy_config_enabled(rrc_ue->rnti, false);
+  mac->ue_cfg(rnti, &current_sched_ue_cfg);
+  mac->phy_config_enabled(rnti, false);
 }
 
-void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
-                                                     const srslte::rrc_ue_capabilities_t&      uecaps)
+void mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8_ies_s& conn_recfg,
+                                            const srslte::rrc_ue_capabilities_t&      uecaps)
 {
   next_sched_ue_cfg = current_sched_ue_cfg;
   next_sched_ue_cfg.supported_cc_list.resize(1);
   next_sched_ue_cfg.supported_cc_list[0].active = true;
   next_sched_ue_cfg.supported_cc_list[0].enb_cc_idx =
-      rrc_ue->parent->cell_common_list->get_pci(conn_recfg.mob_ctrl_info.target_pci)->enb_cc_idx;
+      cell_common_list.get_pci(conn_recfg.mob_ctrl_info.target_pci)->enb_cc_idx;
   ue_cfg_apply_conn_reconf(next_sched_ue_cfg, conn_recfg, *rrc_cfg);
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
-  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, rrc_ue->ue_cell_list);
+  ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, ue_cell_list);
 
   // Freeze SCells
   // NOTE: this avoids that the UE receives an HOCmd retx from target cell and do an incorrect RLC-level concatenation
@@ -281,7 +290,7 @@ void rrc::ue::mac_controller::handle_intraenb_ho_cmd(const asn1::rrc::rrc_conn_r
   update_mac(mac_controller::config_tx);
 }
 
-void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep)
+void mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep)
 {
   // TODO: Apply configuration in ho_prep as a base
   if (ho_prep.as_cfg.source_rr_cfg.srb_to_add_mod_list_present) {
@@ -289,28 +298,28 @@ void rrc::ue::mac_controller::handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ie
   }
 }
 
-void rrc::ue::mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
+void mac_controller::set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask)
 {
   for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {
     current_sched_ue_cfg.supported_cc_list[i].active = scell_mask[i];
   }
 }
 
-void rrc::ue::mac_controller::set_drb_activation(bool active)
+void mac_controller::set_drb_activation(bool active)
 {
-  for (const drb_to_add_mod_s& drb : rrc_ue->bearer_list.get_established_drbs()) {
+  for (const drb_to_add_mod_s& drb : bearer_list.get_established_drbs()) {
     current_sched_ue_cfg.ue_bearers[drb.drb_id + rb_id_t::RB_ID_SRB2].direction =
         active ? sched_interface::ue_bearer_cfg_t::BOTH : sched_interface::ue_bearer_cfg_t::IDLE;
   }
 }
 
-void rrc::ue::mac_controller::update_mac(proc_stage_t stage)
+void mac_controller::update_mac(proc_stage_t stage)
 {
   // Apply changes to MAC scheduler
-  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
+  mac->ue_cfg(rnti, &current_sched_ue_cfg);
   if (stage != proc_stage_t::other) {
     // Acknowledge Dedicated Configuration
-    mac->phy_config_enabled(rrc_ue->rnti, stage == proc_stage_t::config_complete);
+    mac->phy_config_enabled(rnti, stage == proc_stage_t::config_complete);
   }
 }
 
