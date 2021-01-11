@@ -53,6 +53,7 @@ int mac_rar_pdu_unpack_test1()
   std::cout << rar_pdu_msg.to_string() << std::endl;
 
   TESTASSERT(not rar_pdu_msg.has_backoff());
+  TESTASSERT(rar_pdu_msg.nof_subh() == 1);
   while (rar_pdu_msg.next()) {
     TESTASSERT(rar_pdu_msg.get()->get_rapid() == RAPID_TV1);
     TESTASSERT(rar_pdu_msg.get()->get_ta_cmd() == TA_CMD_TV1);
@@ -69,6 +70,7 @@ int mac_rar_pdu_unpack_test2()
   rar_pdu_msg.parse_packet(rar_pdu_tv2);
   std::cout << rar_pdu_msg.to_string() << std::endl;
 
+  TESTASSERT(rar_pdu_msg.nof_subh() == 2);
   TESTASSERT(rar_pdu_msg.has_backoff());
   TESTASSERT(rar_pdu_msg.get_backoff() == BACKOFF_IND_TV2);
   while (rar_pdu_msg.next()) {
@@ -78,6 +80,24 @@ int mac_rar_pdu_unpack_test2()
       TESTASSERT(rar_pdu_msg.get()->get_temp_crnti() == CRNTI);
     }
   }
+
+  return SRSLTE_SUCCESS;
+}
+
+// Malformed RAR PDU with two RAPIDs but incomplete content
+int mac_rar_pdu_unpack_test3()
+{
+  // The last byte of the malformed RAR PDU is byte 11 (0x1a), we need to add 3 more bytes to the array to please ASAN
+  // though
+  uint8_t rar_pdu[]   = {0xd5, 0x4e, 0x02, 0x80, 0x1a, 0x0c, 0x00, 0x47, 0x00, 0x00, 0x1a, 0xff, 0xff, 0xff};
+  uint8_t rar_pdu_len = 11;
+
+  srslte::rar_pdu rar_pdu_msg;
+  rar_pdu_msg.init_rx(rar_pdu_len); // only pass the 11 valid bytes
+  TESTASSERT(rar_pdu_msg.parse_packet(rar_pdu) != SRSLTE_SUCCESS);
+  TESTASSERT(rar_pdu_msg.nof_subh() == 0);
+
+  std::cout << rar_pdu_msg.to_string() << std::endl;
 
   return SRSLTE_SUCCESS;
 }
@@ -1044,6 +1064,7 @@ int main(int argc, char** argv)
 
   TESTASSERT(mac_rar_pdu_unpack_test1() == SRSLTE_SUCCESS);
   TESTASSERT(mac_rar_pdu_unpack_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(mac_rar_pdu_unpack_test3() == SRSLTE_SUCCESS);
   TESTASSERT(mac_rar_pdu_pack_test1() == SRSLTE_SUCCESS);
   TESTASSERT(mac_rar_pdu_pack_test2() == SRSLTE_SUCCESS);
 
