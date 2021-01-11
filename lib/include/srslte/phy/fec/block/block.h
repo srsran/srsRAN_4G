@@ -31,7 +31,7 @@
  * @brief Encodes unpacked data using Reed–Muller code block channel coding.
  *
  * @remark Described by 3GPP 36.212 section 5.2.3.3 for 4G/LTE
- * @remark Described by 3GPP 38.212 section 5.3.3.3 for 5G/LTE
+ * @remark Described by 3GPP 38.212 section 5.3.3.3 for 5G/NR
  *
  * @param[in] input provides unpacked bits to encode
  * @param[in] input_len number of bits to encode, the maximum number of bits is SRSLTE_FEC_BLOCK_MAX_NOF_BITS
