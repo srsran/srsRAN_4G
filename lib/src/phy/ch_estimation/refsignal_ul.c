@@ -19,6 +19,7 @@
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/common/sequence.h"
+#include "srslte/phy/common/zc_sequence.h"
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/phch/pucch.h"
 #include "srslte/phy/utils/debug.h"
@@ -106,13 +107,6 @@ static int generate_n_prs(srslte_refsignal_ul_t* q)
   return SRSLTE_SUCCESS;
 }
 
-void srslte_refsignal_r_uv_arg_1prb(float* arg, uint32_t u)
-{
-  for (int i = 0; i < SRSLTE_NRE; i++) {
-    arg[i] = phi_M_sc_12[u][i] * M_PI / 4;
-  }
-}
-
 static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t* q)
 {
   srslte_sequence_t seq;
@@ -128,44 +122,6 @@ static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t* q)
   }
   srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
-}
-
-/** Initializes srslte_refsignal_ul_t object according to 3GPP 36.211 5.5
- *
- */
-int srslte_refsignal_ul_init(srslte_refsignal_ul_t* q, uint32_t max_prb)
-{
-
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
-
-  if (q != NULL) {
-
-    ret = SRSLTE_ERROR;
-
-    bzero(q, sizeof(srslte_refsignal_ul_t));
-
-    // Allocate temporal buffer for computing signal argument
-    q->tmp_arg = srslte_vec_f_malloc(SRSLTE_NRE * max_prb);
-    if (!q->tmp_arg) {
-      perror("malloc");
-      goto free_and_exit;
-    }
-
-    ret = SRSLTE_SUCCESS;
-  }
-free_and_exit:
-  if (ret == SRSLTE_ERROR) {
-    srslte_refsignal_ul_free(q);
-  }
-  return ret;
-}
-
-void srslte_refsignal_ul_free(srslte_refsignal_ul_t* q)
-{
-  if (q->tmp_arg) {
-    free(q->tmp_arg);
-  }
-  bzero(q, sizeof(srslte_refsignal_ul_t));
 }
 
 /** Initializes srslte_refsignal_ul_t object according to 3GPP 36.211 5.5
@@ -203,53 +159,6 @@ int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t* q, srslte_cell_t cell)
     ret = SRSLTE_SUCCESS;
   }
   return ret;
-}
-
-static void arg_r_uv_2prb(float* arg, uint32_t u)
-{
-  for (int i = 0; i < 2 * SRSLTE_NRE; i++) {
-    arg[i] = phi_M_sc_24[u][i] * M_PI / 4;
-  }
-}
-
-uint32_t srslte_refsignal_get_q(uint32_t u, uint32_t v, uint32_t N_sz)
-{
-  float q;
-  float q_hat;
-  float n_sz = (float)N_sz;
-
-  q_hat = n_sz * (u + 1) / 31;
-  if ((((uint32_t)(2 * q_hat)) % 2) == 0) {
-    q = q_hat + 0.5 + v;
-  } else {
-    q = q_hat + 0.5 - v;
-  }
-  return (uint32_t)q;
-}
-
-static void arg_r_uv_mprb(float* arg, uint32_t M_sc, uint32_t u, uint32_t v)
-{
-  int32_t N_sz = srslte_prime_lower_than(M_sc); // N_zc - Zadoff Chu Sequence Length
-  if (N_sz > 0) {
-    float q    = srslte_refsignal_get_q(u, v, N_sz);
-    float n_sz = (float)N_sz;
-    for (uint32_t i = 0; i < M_sc; i++) {
-      float m = (float)(i % N_sz);
-      arg[i]  = -M_PI * q * m * (m + 1) / n_sz;
-    }
-  }
-}
-
-/* Computes argument of r_u_v signal */
-static void compute_r_uv_arg(srslte_refsignal_ul_t* q, uint32_t nof_prb, uint32_t u, uint32_t v)
-{
-  if (nof_prb == 1) {
-    srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u);
-  } else if (nof_prb == 2) {
-    arg_r_uv_2prb(q->tmp_arg, u);
-  } else {
-    arg_r_uv_mprb(q->tmp_arg, SRSLTE_NRE * nof_prb, u, v);
-  }
 }
 
 /* Calculates alpha according to 5.5.2.1.1 of 36.211 */
@@ -312,7 +221,9 @@ static void compute_r(srslte_refsignal_ul_t*             q,
                       srslte_refsignal_dmrs_pusch_cfg_t* cfg,
                       uint32_t                           nof_prb,
                       uint32_t                           ns,
-                      uint32_t                           delta_ss)
+                      uint32_t                           delta_ss,
+                      float                              alpha,
+                      cf_t*                              sequence)
 {
   // Get group hopping number u
   uint32_t f_gh = 0;
@@ -328,7 +239,7 @@ static void compute_r(srslte_refsignal_ul_t*             q,
   }
 
   // Compute signal argument
-  compute_r_uv_arg(q, nof_prb, u, v);
+  srslte_zc_sequence_generate_lte(u, v, alpha, nof_prb, sequence);
 }
 
 int srslte_refsignal_dmrs_pusch_pregen_init(srslte_refsignal_ul_dmrs_pregen_t* pregen, uint32_t max_prb)
@@ -429,16 +340,10 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t*             q,
     ret = SRSLTE_ERROR;
 
     for (uint32_t ns = 2 * sf_idx; ns < 2 * (sf_idx + 1); ns++) {
-
-      compute_r(q, cfg, nof_prb, ns, cfg->delta_ss);
-
       // Add cyclic prefix alpha
       float alpha = pusch_alpha(q, cfg, cyclic_shift_for_dmrs, ns);
 
-      // Do complex exponential and adjust amplitude
-      for (int i = 0; i < SRSLTE_NRE * nof_prb; i++) {
-        r_pusch[(ns % 2) * SRSLTE_NRE * nof_prb + i] = cexpf(I * (q->tmp_arg[i] + alpha * i));
-      }
+      compute_r(q, cfg, nof_prb, ns, cfg->delta_ss, alpha, &r_pusch[(ns % 2) * SRSLTE_NRE * nof_prb]);
     }
     ret = 0;
   }
@@ -543,8 +448,6 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t* q,
       }
       uint32_t u = (f_gh + (q->cell.id % 30)) % 30;
 
-      srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u);
-
       for (uint32_t m = 0; m < N_rs; m++) {
         uint32_t n_oc = 0;
 
@@ -585,14 +488,15 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t* q,
             ERROR("DMRS Generator: Unsupported format %d\n", cfg->format);
             return SRSLTE_ERROR;
         }
-        cf_t z_m = 1.0;
+
+        cf_t* r_sequence = &r_pucch[(ns % 2) * SRSLTE_NRE * N_rs + m * SRSLTE_NRE];
+        srslte_zc_sequence_generate_lte(u, 0, alpha, 1, r_sequence);
+
+        cf_t z_m = cexpf(I * w[m]);
         if (m == 1) {
-          z_m = z_m_1;
+          z_m *= z_m_1;
         }
-        for (uint32_t n = 0; n < SRSLTE_NRE; n++) {
-          r_pucch[(ns % 2) * SRSLTE_NRE * N_rs + m * SRSLTE_NRE + n] =
-              z_m * cexpf(I * (w[m] + q->tmp_arg[n] + alpha * n));
-        }
+        srslte_vec_sc_prod_ccc(r_sequence, z_m, r_sequence, SRSLTE_NRE);
       }
     }
     ret = SRSLTE_SUCCESS;
@@ -972,13 +876,8 @@ int srslte_refsignal_srs_gen(srslte_refsignal_ul_t*             q,
     uint32_t M_sc = srslte_refsignal_srs_M_sc(q, cfg);
     for (uint32_t ns = 2 * sf_idx; ns < 2 * (sf_idx + 1); ns++) {
 
-      compute_r(q, pusch_cfg, M_sc / SRSLTE_NRE, ns, 0);
       float alpha = 2 * M_PI * cfg->n_srs / 8;
-
-      // Do complex exponential and adjust amplitude
-      for (int i = 0; i < M_sc; i++) {
-        r_srs[(ns % 2) * M_sc + i] = cexpf(I * (q->tmp_arg[i] + alpha * i));
-      }
+      compute_r(q, pusch_cfg, M_sc / SRSLTE_NRE, ns, 0, alpha, &r_srs[(ns % 2) * M_sc]);
     }
     ret = SRSLTE_SUCCESS;
   }

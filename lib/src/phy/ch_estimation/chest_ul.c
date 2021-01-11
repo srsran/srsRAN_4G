@@ -46,12 +46,6 @@ int srslte_chest_ul_init(srslte_chest_ul_t* q, uint32_t max_prb)
   if (q != NULL) {
     bzero(q, sizeof(srslte_chest_ul_t));
 
-    ret = srslte_refsignal_ul_init(&q->dmrs_signal, max_prb);
-    if (ret != SRSLTE_SUCCESS) {
-      ERROR("Error initializing CSR signal (%d)\n", ret);
-      goto clean_exit;
-    }
-
     q->tmp_noise = srslte_vec_cf_malloc(MAX_REFS_SF);
     if (!q->tmp_noise) {
       perror("malloc");
@@ -110,7 +104,6 @@ void srslte_chest_ul_free(srslte_chest_ul_t* q)
 {
   srslte_refsignal_dmrs_pusch_pregen_free(&q->dmrs_signal, &q->dmrs_pregen);
 
-  srslte_refsignal_ul_free(&q->dmrs_signal);
   if (q->tmp_noise) {
     free(q->tmp_noise);
   }

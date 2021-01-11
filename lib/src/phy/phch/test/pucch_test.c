@@ -172,10 +172,6 @@ int main(int argc, char** argv)
     ERROR("Error setting C-RNTI\n");
     goto quit;
   }
-  if (srslte_refsignal_ul_init(&dmrs, cell.nof_prb)) {
-    ERROR("Error creating PDSCH object\n");
-    exit(-1);
-  }
   if (srslte_refsignal_ul_set_cell(&dmrs, cell)) {
     ERROR("Error creating PDSCH object\n");
     exit(-1);
@@ -325,7 +321,6 @@ int main(int argc, char** argv)
 quit:
   srslte_pucch_free(&pucch_ue);
   srslte_pucch_free(&pucch_enb);
-  srslte_refsignal_ul_free(&dmrs);
   srslte_chest_ul_free(&chest);
   srslte_chest_ul_res_free(&chest_res);
   srslte_channel_awgn_free(&awgn);

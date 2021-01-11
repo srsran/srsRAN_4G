@@ -70,11 +70,6 @@ int srs_test_context_init(srs_test_context_t* q)
 {
   q->sf_size = SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, cell.cp);
 
-  // Initiate UL ref signals
-  if (srslte_refsignal_ul_init(&q->refsignal_ul, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
-  }
-
   // Set cell
   if (srslte_refsignal_ul_set_cell(&q->refsignal_ul, cell) != SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
@@ -111,7 +106,6 @@ int srs_test_context_init(srs_test_context_t* q)
 
 void srs_test_context_free(srs_test_context_t* q)
 {
-  srslte_refsignal_ul_free(&q->refsignal_ul);
   srslte_refsignal_srs_pregen_free(&q->refsignal_ul, &q->srs_pregen);
   srslte_chest_ul_free(&q->chest_ul);
   srslte_chest_ul_res_free(&q->chest_ul_res);

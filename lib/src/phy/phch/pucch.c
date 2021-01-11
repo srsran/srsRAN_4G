@@ -25,6 +25,7 @@
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/common/sequence.h"
+#include "srslte/phy/common/zc_sequence.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/phch/pucch.h"
@@ -289,9 +290,6 @@ uci_mod_bits(srslte_pucch_t* q, srslte_ul_sf_cfg_t* sf, srslte_pucch_cfg_t* cfg,
   return SRSLTE_SUCCESS;
 }
 
-// Declare this here, since we can not include refsignal_ul.h
-void srslte_refsignal_r_uv_arg_1prb(float* arg, uint32_t u);
-
 /* 3GPP 36211 Table 5.5.2.2.2-1: Demodulation reference signal location for different PUCCH formats. */
 static const uint32_t pucch_symbol_format1_cpnorm[4]   = {0, 1, 5, 6};
 static const uint32_t pucch_symbol_format1_cpext[4]    = {0, 1, 4, 5};
@@ -491,21 +489,22 @@ static int encode_signal_format12(srslte_pucch_t*     q,
     }
     uint32_t u = (f_gh + (q->cell.id % 30)) % 30;
 
-    srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u);
     uint32_t N_sf_widx = N_sf == 3 ? 1 : 0;
     for (uint32_t m = 0; m < N_sf; m++) {
-      uint32_t l     = get_pucch_symbol(m, cfg->format, q->cell.cp);
-      float    alpha = 0;
+      // Calculate sequence z pointer for this symbol m
+      cf_t* z_m = &z[(ns % 2) * N_sf_0 * SRSLTE_PUCCH_N_SEQ + m * SRSLTE_PUCCH_N_SEQ];
+
+      // Get symbol index
+      uint32_t l   = get_pucch_symbol(m, cfg->format, q->cell.cp);
+      cf_t     w_m = 1.0;
       if (cfg->format >= SRSLTE_PUCCH_FORMAT_2) {
-        alpha = srslte_pucch_alpha_format2(q->n_cs_cell, cfg, ns, l);
-        for (uint32_t n = 0; n < SRSLTE_PUCCH_N_SEQ; n++) {
-          z[(ns % 2) * N_sf * SRSLTE_PUCCH_N_SEQ + m * SRSLTE_PUCCH_N_SEQ + n] =
-              q->d[(ns % 2) * N_sf + m] * cexpf(I * (q->tmp_arg[n] + alpha * n));
-        }
+        float alpha = srslte_pucch_alpha_format2(q->n_cs_cell, cfg, ns, l);
+        srslte_zc_sequence_generate_lte(u, 0, alpha, SRSLTE_PUCCH_N_SEQ / SRSLTE_NRE, z_m);
+        w_m = q->d[(ns % 2) * N_sf + m];
       } else {
         uint32_t n_prime_ns = 0;
         uint32_t n_oc       = 0;
-        alpha      = srslte_pucch_alpha_format1(q->n_cs_cell, cfg, q->cell.cp, true, ns, l, &n_oc, &n_prime_ns);
+        float    alpha = srslte_pucch_alpha_format1(q->n_cs_cell, cfg, q->cell.cp, true, ns, l, &n_oc, &n_prime_ns);
         float S_ns = 0;
         if (n_prime_ns % 2) {
           S_ns = M_PI / 2;
@@ -517,12 +516,12 @@ static int encode_signal_format12(srslte_pucch_t*     q,
               n_oc,
               n_prime_ns,
               cfg->n_rb_2);
-
-        for (uint32_t n = 0; n < SRSLTE_PUCCH_N_SEQ; n++) {
-          z[(ns % 2) * N_sf_0 * SRSLTE_PUCCH_N_SEQ + m * SRSLTE_PUCCH_N_SEQ + n] =
-              q->d[0] * cexpf(I * (w_n_oc[N_sf_widx][n_oc % 3][m] + q->tmp_arg[n] + alpha * n + S_ns));
-        }
+        srslte_zc_sequence_generate_lte(u, 0, alpha, SRSLTE_PUCCH_N_SEQ / SRSLTE_NRE, z_m);
+        w_m = q->d[0] * cexpf(I * (w_n_oc[N_sf_widx][n_oc % 3][m] + S_ns));
       }
+
+      // Apply w_m
+      srslte_vec_sc_prod_ccc(z_m, w_m, z_m, SRSLTE_PUCCH_N_SEQ);
     }
   }
   return SRSLTE_SUCCESS;

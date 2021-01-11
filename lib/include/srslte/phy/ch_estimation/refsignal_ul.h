@@ -26,8 +26,6 @@
 #include "srslte/phy/phch/pucch_cfg.h"
 #include "srslte/phy/phch/pusch_cfg.h"
 
-#include "srslte/phy/ch_estimation/ul_rs_tables.h"
-
 #define SRSLTE_NOF_GROUPS_U 30
 #define SRSLTE_NOF_SEQUENCES_U 2
 #define SRSLTE_NOF_DELTA_SS 30
@@ -66,8 +64,6 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
-  float* tmp_arg;
-
   uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB];
   uint32_t n_prs_pusch[SRSLTE_NOF_DELTA_SS][SRSLTE_NSLOTS_X_FRAME]; // We precompute n_prs needed for cyclic shift alpha
                                                                     // at srslte_refsignal_dl_init()
@@ -85,13 +81,7 @@ typedef struct {
   cf_t* r[SRSLTE_NOF_SF_X_FRAME];
 } srslte_refsignal_srs_pregen_t;
 
-SRSLTE_API int srslte_refsignal_ul_init(srslte_refsignal_ul_t* q, uint32_t max_prb);
-
 SRSLTE_API int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t* q, srslte_cell_t cell);
-
-SRSLTE_API void srslte_refsignal_ul_free(srslte_refsignal_ul_t* q);
-
-SRSLTE_API void srslte_refsignal_r_uv_arg_1prb(float* arg, uint32_t u);
 
 SRSLTE_API uint32_t srslte_refsignal_dmrs_N_rs(srslte_pucch_format_t format, srslte_cp_t cp);
 
@@ -190,7 +180,5 @@ SRSLTE_API uint32_t srslte_refsignal_srs_rb_start_cs(uint32_t bw_cfg, uint32_t n
 SRSLTE_API uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg, uint32_t nof_prb);
 
 SRSLTE_API uint32_t srslte_refsignal_srs_M_sc(srslte_refsignal_ul_t* q, srslte_refsignal_srs_cfg_t* cfg);
-
-SRSLTE_API uint32_t srslte_refsignal_get_q(uint32_t u, uint32_t v, uint32_t N_sz);
 
 #endif // SRSLTE_REFSIGNAL_UL_H
