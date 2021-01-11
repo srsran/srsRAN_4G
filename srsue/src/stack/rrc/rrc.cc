@@ -1973,6 +1973,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
         ue_eutra_cap_v1450_ies = &ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext;
         // 14.60
         ue_eutra_cap_v1450_ies->non_crit_ext_present = true;
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext_present = true;
 
         irat_params_nr_r15_s irat_params_nr_r15;
         irat_params_nr_r15.en_dc_r15_present                     = true;
