@@ -273,7 +273,7 @@ int srslte_refsignal_dmrs_pusch_pregen(srslte_refsignal_ul_t*             q,
   for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
     for (uint32_t cs = 0; cs < SRSLTE_NOF_CSHIFT; cs++) {
       if (pregen->r[cs][sf_idx]) {
-        for (uint32_t n = 0; n <= q->cell.nof_prb; n++) {
+        for (uint32_t n = 1; n <= q->cell.nof_prb; n++) {
           if (srslte_dft_precoding_valid_prb(n)) {
             if (pregen->r[cs][sf_idx][n]) {
               if (srslte_refsignal_dmrs_pusch_gen(q, cfg, n, sf_idx, cs, pregen->r[cs][sf_idx][n])) {
