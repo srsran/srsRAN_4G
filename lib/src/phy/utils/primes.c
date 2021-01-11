@@ -31,7 +31,7 @@ int srslte_prime_greater_than(uint32_t n)
 {
   for (uint32_t i = 0; i < NOF_PRIME_NUMBERS; i++) {
     if (prime_numbers[i] > n) {
-      return n;
+      return prime_numbers[i];
     }
   }
 
@@ -47,7 +47,7 @@ int srslte_prime_lower_than(uint32_t n)
 
   for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
     if (prime_numbers[i] < n) {
-      return n;
+      return prime_numbers[i];
     }
   }
 
