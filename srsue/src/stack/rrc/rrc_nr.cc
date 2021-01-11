@@ -254,6 +254,10 @@ void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
   band_nr.ue_pwr_class         = band_nr_s::ue_pwr_class_opts::pc3;
   nr_cap.rf_params.supported_band_list_nr.push_back(band_nr);
 
+  nr_cap.rlc_params_present                  = true;
+  nr_cap.rlc_params.um_with_short_sn_present = true;
+  nr_cap.rlc_params.um_with_long_sn_present  = true;
+
   // Pack nr_caps
   asn1::bit_ref bref(nr_caps_pdu->msg, nr_caps_pdu->get_tailroom());
   nr_cap.pack(bref);
