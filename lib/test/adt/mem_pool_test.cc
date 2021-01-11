@@ -19,17 +19,31 @@ public:
   C() { default_ctor_counter++; }
   ~C() { dtor_counter++; }
 
+  void* operator new(size_t sz);
+  void  operator delete(void* ptr)noexcept;
+
   static int default_ctor_counter;
   static int dtor_counter;
 };
 int C::default_ctor_counter = 0;
 int C::dtor_counter         = 0;
 
+srslte::big_obj_pool<C> pool;
+
+void* C::operator new(size_t sz)
+{
+  return pool.allocate_node(sz);
+}
+
+void C::operator delete(void* ptr)noexcept
+{
+  pool.deallocate_node(ptr);
+}
+
 int test_nontrivial_obj_pool()
 {
   // No object creation on reservation
   {
-    srslte::obj_pool<C> pool;
     pool.reserve(10);
   }
   TESTASSERT(C::default_ctor_counter == 0);
@@ -37,10 +51,10 @@ int test_nontrivial_obj_pool()
 
   // default Ctor/Dtor are correctly called
   {
-    srslte::obj_pool<C> pool;
+    pool.clear();
     pool.reserve(10);
 
-    srslte::unique_pool_obj<C> c = pool.make();
+    std::unique_ptr<C> c(new C{});
   }
   TESTASSERT(C::default_ctor_counter == 1);
   TESTASSERT(C::dtor_counter == 1);
@@ -49,11 +63,11 @@ int test_nontrivial_obj_pool()
   C::default_ctor_counter = 0;
   C::dtor_counter         = 0;
   {
-    srslte::obj_pool<C> pool;
+    pool.clear();
     pool.reserve(10);
 
-    srslte::unique_pool_obj<C> c  = pool.make();
-    srslte::unique_pool_obj<C> c2 = std::move(c);
+    std::unique_ptr<C> c(new C{});
+    auto               c2 = std::move(c);
   }
   TESTASSERT(C::default_ctor_counter == 1);
   TESTASSERT(C::dtor_counter == 1);

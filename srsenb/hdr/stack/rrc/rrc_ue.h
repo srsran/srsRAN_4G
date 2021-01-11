@@ -94,6 +94,11 @@ public:
 
   bool is_csfb = false;
 
+  void* operator new(size_t sz);
+  void* operator new[](size_t sz) = delete;
+  void  operator delete(void* ptr)noexcept;
+  void  operator delete[](void* ptr) = delete;
+
 private:
   // args
   srslte::byte_buffer_pool*           pool = nullptr;

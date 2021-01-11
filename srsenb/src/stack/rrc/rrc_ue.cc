@@ -14,6 +14,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
+#include "srslte/adt/mem_pool.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
@@ -55,6 +56,16 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 }
 
 rrc::ue::~ue() {}
+
+void* rrc::ue::operator new(size_t sz)
+{
+  assert(sz == sizeof(ue));
+  return rrc::ue_pool.allocate_node(sz);
+}
+void rrc::ue::operator delete(void* ptr)noexcept
+{
+  rrc::ue_pool.deallocate_node(ptr);
+}
 
 rrc_state_t rrc::ue::get_state()
 {

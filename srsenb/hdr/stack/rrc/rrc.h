@@ -149,9 +149,9 @@ private:
   std::unique_ptr<enb_cell_common_list> cell_common_list;
 
   // state
-  std::unique_ptr<freq_res_common_list>            cell_res_list;
-  std::map<uint16_t, srslte::unique_pool_obj<ue> > users; // NOTE: has to have fixed addr
-  std::map<uint32_t, asn1::rrc::paging_record_s>   pending_paging;
+  std::unique_ptr<freq_res_common_list>          cell_res_list;
+  std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
+  std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
 
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);
@@ -192,7 +192,7 @@ private:
 
   std::mutex paging_mutex;
 
-  srslte::obj_pool<ue, false> ue_pool;
+  static srslte::big_obj_pool<ue, false> ue_pool;
 };
 
 } // namespace srsenb

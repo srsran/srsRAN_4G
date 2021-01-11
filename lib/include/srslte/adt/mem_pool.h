@@ -13,6 +13,7 @@
 #ifndef SRSLTE_MEM_POOL_H
 #define SRSLTE_MEM_POOL_H
 
+#include <cassert>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -135,28 +136,17 @@ private:
 };
 
 /**
- * Pool specialized for big objects. Created objects are of same time, and are not contiguous in memory.
- * Memory management of created objects is automatically handled. Relevant methods:
- * - ::make(...) - create an object whose memory is automatically managed by the pool. The object dtor returns the
- *                 allocated memory back to the pool
+ * Pool specialized for big objects. Created objects are not contiguous in memory.
+ * Relevant methods:
+ * - ::allocate_node(sz) - allocate memory of sizeof(T), or reuse memory already present in cache
+ * - ::deallocate_node(void* p) - return memory addressed by p back to the pool to be cached.
  * - ::reserve(N) - prereserve memory slots for faster object creation
- * @tparam T object type
+ * @tparam ObjSize object memory size
  * @tparam ThreadSafe if object pool is thread-safe or not
  */
 template <typename T, bool ThreadSafe = false>
-class obj_pool
+class big_obj_pool
 {
-  /// single-thread obj pool deleter
-  struct obj_deleter {
-    explicit obj_deleter(obj_pool<T, ThreadSafe>* pool_) : pool(pool_) {}
-    void operator()(void* block)
-    {
-      static_cast<T*>(block)->~T();
-      pool->stack.push(static_cast<uint8_t*>(block));
-    }
-    obj_pool<T, ThreadSafe>* pool;
-  };
-
   // memory stack type derivation (thread safe or not)
   using stack_type = typename std::conditional<ThreadSafe, mutexed_memblock_stack, memblock_stack>::type;
 
@@ -164,24 +154,25 @@ class obj_pool
   stack_type stack;
 
 public:
-  using obj_ptr = std::unique_ptr<T, obj_deleter>;
+  ~big_obj_pool() { clear(); }
 
-  ~obj_pool()
+  /// alloc new object space. If no memory is pre-reserved in the pool, malloc is called.
+  void* allocate_node(size_t sz)
   {
-    uint8_t* block = stack.try_pop();
-    while (block != nullptr) {
-      delete[] block;
-      block = stack.try_pop();
+    assert(sz == sizeof(T));
+    static const size_t blocksize = std::max(sizeof(T), memblock_stack::min_memblock_size());
+    uint8_t*            block     = stack.try_pop();
+    if (block == nullptr) {
+      block = new uint8_t[blocksize];
     }
+    return block;
   }
 
-  /// create new object with given arguments. If no memory is pre-reserved in the pool, malloc is called.
-  template <typename... Args>
-  obj_ptr make(Args&&... args)
+  void deallocate_node(void* p)
   {
-    uint8_t* block = allocate_node();
-    new (block) T(std::forward<Args>(args)...);
-    return obj_ptr(reinterpret_cast<T*>(block), obj_deleter(this));
+    if (p != nullptr) {
+      stack.push(static_cast<uint8_t*>(p));
+    }
   }
 
   /// Pre-reserve N memory chunks for future object allocations
@@ -195,24 +186,15 @@ public:
 
   size_t capacity() const { return stack.size(); }
 
-private:
-  uint8_t* allocate_node()
+  void clear()
   {
-    static const size_t blocksize = std::max(sizeof(T), memblock_stack::min_memblock_size());
-    uint8_t*            block     = stack.try_pop();
-    if (block == nullptr) {
-      block = new uint8_t[blocksize];
+    uint8_t* block = stack.try_pop();
+    while (block != nullptr) {
+      delete[] block;
+      block = stack.try_pop();
     }
-    return block;
   }
 };
-template <typename T>
-using mutexed_pool_obj = obj_pool<T, true>;
-
-template <typename T>
-using unique_pool_obj = typename obj_pool<T, false>::obj_ptr;
-template <typename T>
-using unique_mutexed_pool_obj = typename obj_pool<T, true>::obj_ptr;
 
 } // namespace srslte
 

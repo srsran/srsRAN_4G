@@ -151,9 +151,9 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
     bool rnti_added = true;
     if (rnti != SRSLTE_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
-      auto p = users.insert(std::make_pair(rnti, ue_pool.make(this, rnti, sched_ue_cfg)));
+      auto p = users.insert(std::make_pair(rnti, std::unique_ptr<ue>{new ue(this, rnti, sched_ue_cfg)}));
       if (ue_pool.capacity() <= 4) {
-        task_sched.defer_task([this]() { ue_pool.reserve(16); });
+        task_sched.defer_task([]() { rrc::ue_pool.reserve(16); });
       }
       rnti_added = p.second and p.first->second->is_allocated();
     }
@@ -961,5 +961,8 @@ void rrc::tti_clock()
     }
   }
 }
+
+// definition of rrc static member
+srslte::big_obj_pool<rrc::ue, false> rrc::ue_pool;
 
 } // namespace srsenb
