@@ -546,6 +546,20 @@ TEST(srslte_vec_sc_prod_cfc, MALLOC(cf_t, x); MALLOC(cf_t, z); cf_t gold; float 
      free(x);
      free(z);)
 
+TEST(srslte_vec_sc_prod_fcc, MALLOC(float, x); MALLOC(cf_t, z); cf_t gold; float h = RANDOM_CF();
+
+     for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
+
+     TEST_CALL(srslte_vec_sc_prod_fcc(x, h, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] * h;
+           mse += cabsf(gold - z[i]);
+         }
+
+     free(x);
+     free(z);)
+
 TEST(
     srslte_vec_div_ccc, MALLOC(cf_t, x); MALLOC(cf_t, y); MALLOC(cf_t, z);
 
@@ -879,6 +893,10 @@ int main(int argc, char** argv)
 
     passed[func_count][size_count] =
         test_srslte_vec_sc_prod_cfc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] =
+        test_srslte_vec_sc_prod_fcc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     passed[func_count][size_count] =

@@ -42,6 +42,8 @@ SRSLTE_API void srslte_vec_sub_fff_simd(const float* x, const float* y, float* z
 /* SIMD Vector Scalar Product */
 SRSLTE_API void srslte_vec_sc_prod_cfc_simd(const cf_t* x, const float h, cf_t* y, const int len);
 
+SRSLTE_API void srslte_vec_sc_prod_fcc_simd(const float* x, const cf_t h, cf_t* y, const int len);
+
 SRSLTE_API void srslte_vec_sc_prod_fff_simd(const float* x, const float h, float* z, const int len);
 
 SRSLTE_API void srslte_vec_sc_prod_ccc_simd(const cf_t* x, const cf_t h, cf_t* z, const int len);

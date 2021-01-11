@@ -139,6 +139,7 @@ SRSLTE_API void srslte_vec_sub_bbb(const int8_t* x, const int8_t* y, int8_t* z, 
 
 /* scalar product */
 SRSLTE_API void srslte_vec_sc_prod_cfc(const cf_t* x, const float h, cf_t* z, const uint32_t len);
+SRSLTE_API void srslte_vec_sc_prod_fcc(const float* x, const cf_t h, cf_t* z, const uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_ccc(const cf_t* x, const cf_t h, cf_t* z, const uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_fff(const float* x, const float h, float* z, const uint32_t len);
 

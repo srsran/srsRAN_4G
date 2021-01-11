@@ -87,6 +87,11 @@ void srslte_vec_sc_prod_cfc(const cf_t* x, const float h, cf_t* z, const uint32_
   srslte_vec_sc_prod_cfc_simd(x, h, z, len);
 }
 
+void srslte_vec_sc_prod_fcc(const float* x, const cf_t h, cf_t* z, const uint32_t len)
+{
+  srslte_vec_sc_prod_fcc_simd(x, h, z, len);
+}
+
 // Chest UL
 void srslte_vec_sc_prod_ccc(const cf_t* x, const cf_t h, cf_t* z, const uint32_t len)
 {
