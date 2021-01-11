@@ -90,7 +90,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
       // empty RBGs were found
       code = tti_sched->alloc_dl_user(&ue, newtx_mask, ue_ctxt.dl_newtx_h->get_id());
       if (code == alloc_outcome_t::SUCCESS) {
-        return ue_ctxt.dl_newtx_h->get_tbs(0) + ue_ctxt.dl_newtx_h->get_tbs(1);
+        return ue.get_expected_dl_bitrate(ue_ctxt.ue_cc_idx, newtx_mask.count()) * tti_duration_ms / 8;
       }
     }
   }
@@ -120,10 +120,21 @@ void sched_time_pf::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
 
 uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* tti_sched)
 {
-  alloc_outcome_t code = alloc_outcome_t::ERROR;
-  if (ue_ctxt.ul_h != nullptr and ue_ctxt.ul_h->has_pending_retx()) {
-    code = try_ul_retx_alloc(*tti_sched, ue, *ue_ctxt.ul_h);
-  } else if (ue_ctxt.ul_h != nullptr and not tti_sched->is_ul_alloc(ue_ctxt.rnti)) {
+  if (ue_ctxt.ul_h == nullptr) {
+    // In case the UL HARQ could not be allocated (e.g. meas gap occurrence)
+    return 0;
+  }
+  if (tti_sched->is_ul_alloc(ue_ctxt.rnti)) {
+    // NOTE: An UL grant could have been previously allocated for UCI
+    return ue_ctxt.ul_h->get_pending_data();
+  }
+
+  alloc_outcome_t code;
+  uint32_t        estim_tbs_bytes = 0;
+  if (ue_ctxt.ul_h->has_pending_retx()) {
+    code            = try_ul_retx_alloc(*tti_sched, ue, *ue_ctxt.ul_h);
+    estim_tbs_bytes = code == alloc_outcome_t::SUCCESS ? ue_ctxt.ul_h->get_pending_data() : 0;
+  } else {
     // Note: h->is_empty check is required, in case CA allocated a small UL grant for UCI
     uint32_t pending_data = ue.get_pending_ul_new_data(tti_sched->get_tti_tx_ul(), ue_ctxt.ue_cc_idx);
     // Check if there is a empty harq, and data to transmit
@@ -135,12 +146,15 @@ uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
     if (alloc.empty()) {
       return 0;
     }
-    code = tti_sched->alloc_ul_user(&ue, alloc);
+    code            = tti_sched->alloc_ul_user(&ue, alloc);
+    estim_tbs_bytes = code == alloc_outcome_t::SUCCESS
+                          ? ue.get_expected_ul_bitrate(ue_ctxt.ue_cc_idx, alloc.length()) * tti_duration_ms / 8
+                          : 0;
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
     log_h->info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x\n", ue.get_rnti());
   }
-  return code == alloc_outcome_t::SUCCESS ? ue_ctxt.ul_h->get_pending_data() : 0;
+  return estim_tbs_bytes;
 }
 
 /*****************************************************************

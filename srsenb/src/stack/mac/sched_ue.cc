@@ -1011,13 +1011,14 @@ uint32_t sched_ue::get_pending_dl_rlc_data() const
   return pending_data;
 }
 
-uint32_t sched_ue::get_expected_dl_bitrate(uint32_t ue_cc_idx) const
+uint32_t sched_ue::get_expected_dl_bitrate(uint32_t ue_cc_idx, int nof_rbgs) const
 {
-  const cc_sched_ue* cc = &carriers[ue_cc_idx];
+  const cc_sched_ue* cc       = &carriers[ue_cc_idx];
+  auto*              cell_cfg = carriers[ue_cc_idx].get_cell_cfg();
+  uint32_t nof_prbs_alloc = nof_rbgs < 0 ? cell_cfg->nof_prb() : std::min(nof_rbgs * cell_cfg->P, cell_cfg->nof_prb());
 
-  auto*    cell_cfg = carriers[ue_cc_idx].get_cell_cfg();
   uint32_t nof_re =
-      srslte_ra_dl_approx_nof_re(&cell_cfg->cfg.cell, cell_cfg->nof_prb(), cell_cfg->sched_cfg->max_nof_ctrl_symbols);
+      srslte_ra_dl_approx_nof_re(&cell_cfg->cfg.cell, nof_prbs_alloc, cell_cfg->sched_cfg->max_nof_ctrl_symbols);
   float max_coderate = srslte_cqi_to_coderate(std::min(cc->dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
 
   // Inverse of srslte_coderate(tbs, nof_re)
@@ -1025,13 +1026,14 @@ uint32_t sched_ue::get_expected_dl_bitrate(uint32_t ue_cc_idx) const
   return tbs / tti_duration_ms;
 }
 
-uint32_t sched_ue::get_expected_ul_bitrate(uint32_t ue_cc_idx) const
+uint32_t sched_ue::get_expected_ul_bitrate(uint32_t ue_cc_idx, int nof_prbs) const
 {
-  const cc_sched_ue* cc = &carriers[ue_cc_idx];
+  const cc_sched_ue* cc             = &carriers[ue_cc_idx];
+  uint32_t           nof_prbs_alloc = nof_prbs < 0 ? cell.nof_prb : nof_prbs;
 
   uint32_t N_srs        = 0;
   uint32_t nof_symb     = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
-  uint32_t nof_re       = nof_symb * cell.nof_prb * SRSLTE_NRE;
+  uint32_t nof_re       = nof_symb * nof_prbs_alloc * SRSLTE_NRE;
   float    max_coderate = srslte_cqi_to_coderate(std::min(cc->ul_cqi + 1u, 15u), false);
 
   // Inverse of srslte_coderate(tbs, nof_re)
