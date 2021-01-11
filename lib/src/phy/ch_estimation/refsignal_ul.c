@@ -22,6 +22,7 @@
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/phch/pucch.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/primes.h"
 #include "srslte/phy/utils/vector.h"
 
 // n_dmrs_2 table 5.5.2.1.1-1 from 36.211
@@ -204,17 +205,6 @@ int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t* q, srslte_cell_t cell)
   return ret;
 }
 
-static uint32_t largest_prime_lower_than(uint32_t x)
-{
-  /* get largest prime n_zc<len */
-  for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-    if (prime_numbers[i] < x) {
-      return prime_numbers[i];
-    }
-  }
-  return 0;
-}
-
 static void arg_r_uv_2prb(float* arg, uint32_t u)
 {
   for (int i = 0; i < 2 * SRSLTE_NRE; i++) {
@@ -239,8 +229,7 @@ uint32_t srslte_refsignal_get_q(uint32_t u, uint32_t v, uint32_t N_sz)
 
 static void arg_r_uv_mprb(float* arg, uint32_t M_sc, uint32_t u, uint32_t v)
 {
-
-  uint32_t N_sz = largest_prime_lower_than(M_sc);
+  int32_t N_sz = srslte_prime_lower_than(M_sc); // N_zc - Zadoff Chu Sequence Length
   if (N_sz > 0) {
     float q    = srslte_refsignal_get_q(u, v, N_sz);
     float n_sz = (float)N_sz;

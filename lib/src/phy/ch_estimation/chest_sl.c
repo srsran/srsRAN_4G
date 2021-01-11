@@ -20,6 +20,7 @@
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/primes.h"
 #include "srslte/phy/utils/vector.h"
 
 static int chest_sl_init(srslte_chest_sl_t* q, uint32_t nof_cyclic_shift_seq)
@@ -120,13 +121,12 @@ static int chest_sl_psbch_gen(srslte_chest_sl_t* q)
     u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
   }
 
-  int32_t N_zc = prime_numbers[0]; // N_zc - Zadoff Chu Sequence Length
-  for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-    if (prime_numbers[i] < q->M_sc_rs) {
-      N_zc = prime_numbers[i];
-      break;
-    }
+  int32_t N_zc = srslte_prime_lower_than(q->M_sc_rs); // N_zc - Zadoff Chu Sequence Length
+  if (N_zc < SRSLTE_SUCCESS) {
+    ERROR("Could not find prime number\n");
+    return SRSLTE_ERROR;
   }
+
   for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
     q->q[j]    = srslte_refsignal_get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
     float n_sz = (float)N_zc;
@@ -358,11 +358,10 @@ static int chest_sl_pscch_gen(srslte_chest_sl_t* q, uint32_t cyclic_shift)
       }
       break;
     default:
-      for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-        if (prime_numbers[i] < q->M_sc_rs) {
-          N_zc = prime_numbers[i];
-          break;
-        }
+      N_zc = srslte_prime_lower_than(q->M_sc_rs); // N_zc - Zadoff Chu Sequence Length
+      if (N_zc < SRSLTE_SUCCESS) {
+        ERROR("Could not find prime number\n");
+        return SRSLTE_ERROR;
       }
       for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
         q->q[j]    = srslte_refsignal_get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
@@ -585,11 +584,10 @@ static int chest_sl_pssch_gen(srslte_chest_sl_t* q)
       }
       break;
     default:
-      for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-        if (prime_numbers[i] < q->M_sc_rs) {
-          N_zc = prime_numbers[i];
-          break;
-        }
+      N_zc = srslte_prime_lower_than(q->M_sc_rs); // N_zc - Zadoff Chu Sequence Length
+      if (N_zc < SRSLTE_SUCCESS) {
+        ERROR("Could not find prime number\n");
+        return SRSLTE_ERROR;
       }
       for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
         q->q[j]    = srslte_refsignal_get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
