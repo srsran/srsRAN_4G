@@ -226,6 +226,9 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
         parent->rrc_log->warning("Received MeasReport but no mobility configuration is available\n");
       }
       break;
+    case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
+      handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9());
+      break;
     default:
       parent->rrc_log->error("Msg: %s not supported\n", ul_dcch_msg.msg.c1().type().to_string().c_str());
       break;
@@ -320,6 +323,16 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
   // Log event.
   event_logger::get().log_rrc_connected(static_cast<unsigned>(s1ap_cause.value));
+
+  // 2> if the UE has radio link failure or handover failure information available
+  if (msg->crit_exts.type().value == c1_or_crit_ext_opts::c1 and
+      msg->crit_exts.c1().type().value ==
+          rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types_opts::rrc_conn_setup_complete_r8) {
+    const auto& complete_r8 = msg->crit_exts.c1().rrc_conn_setup_complete_r8();
+    if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present) {
+      rlf_info_pending = true;
+    }
+  }
 }
 
 void rrc::ue::send_connection_reject()
@@ -468,6 +481,15 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->rem_user_thread(old_reest_rnti);
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
+
+  // 2> if the UE has radio link failure or handover failure information available
+  if (msg->crit_exts.type().value == rrc_conn_reest_complete_s::crit_exts_c_::types_opts::rrc_conn_reest_complete_r8) {
+    const auto& complete_r8 = msg->crit_exts.rrc_conn_reest_complete_r8();
+    if (complete_r8.non_crit_ext.rlf_info_available_r9_present) {
+      rlf_info_pending = true;
+    }
+  }
+
   send_connection_reconf(std::move(pdu));
 }
 
@@ -550,6 +572,37 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 
   // If performing handover, signal its completion
   mobility_handler->trigger(*msg);
+
+  // 2> if the UE has radio link failure or handover failure information available
+  const auto& complete_r8 = msg->crit_exts.rrc_conn_recfg_complete_r8();
+  if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present or rlf_info_pending) {
+    rlf_info_pending = false;
+    send_ue_info_req();
+  }
+}
+
+void rrc::ue::send_ue_info_req()
+{
+  dl_dcch_msg_s msg;
+  auto&         req_r9      = msg.msg.set_c1().set_ue_info_request_r9();
+  req_r9.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+
+  auto& req              = req_r9.crit_exts.set_c1().set_ue_info_request_r9();
+  req.rlf_report_req_r9  = true;
+  req.rach_report_req_r9 = true;
+
+  send_dl_dcch(&msg);
+}
+
+void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg)
+{
+  auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
+  if (resp_r9.rlf_report_r9_present) {
+    // TODO: Handle RLF-Report
+  }
+  if (resp_r9.rach_report_r9_present) {
+    // TODO: Handle RACH-Report
+  }
 }
 
 /*

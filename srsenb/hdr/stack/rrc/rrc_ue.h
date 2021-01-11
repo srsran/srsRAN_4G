@@ -49,6 +49,8 @@ public:
   void send_connection_reconf(srslte::unique_byte_buffer_t sdu = {}, bool phy_cfg_updated = true);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
+  void send_ue_info_req();
+
   void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
@@ -61,6 +63,7 @@ public:
   bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
   void handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg);
   bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
+  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg);
 
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 
@@ -121,6 +124,7 @@ private:
   rrc_state_t                                  state                = RRC_STATE_IDLE;
   uint16_t                                     old_reest_rnti       = SRSLTE_INVALID_RNTI;
   std::map<uint16_t, srslte::pdcp_lte_state_t> old_reest_pdcp_state = {};
+  bool                                         rlf_info_pending     = false;
 
   asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
   bool                                       eutra_capabilities_unpacked = false;
