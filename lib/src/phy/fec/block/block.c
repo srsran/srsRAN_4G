@@ -14,14 +14,6 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-// Use carry-less multiplication for parity check calculation only if AVX2 is available
-#ifdef LV_HAVE_AVX2
-#include <immintrin.h>
-#define USE_CARRYLESS_MULT 1
-#else
-#define USE_CARRYLESS_MULT 0
-#endif // LV_HAVE_AVX2
-
 // The following MACRO enables/disables LUT for the decoder
 #define USE_LUT 1
 
@@ -42,17 +34,11 @@ static inline uint8_t encode_M_basis_seq_u16(uint16_t w, uint32_t bit_idx)
   // Apply mask
   uint64_t d = w & M_basis_seq_b[bit_idx % SRSLTE_FEC_BLOCK_SIZE];
 
-#if USE_CARRYLESS_MULT
-  // Compute parity using carry-less multiplication
-  const __m128i temp = _mm_clmulepi64_si128(_mm_set_epi64x(0, d), _mm_set_epi64x(0, 0xffffUL << 17UL), 0);
-  d                  = _mm_extract_epi32(temp, 1);
-#else
   // Compute parity using Bit Twiddling
   d ^= d >> 8UL;
   d ^= d >> 4UL;
   d &= 0xFUL;
   d = (0x6996U >> d);
-#endif
 
   return (uint8_t)(d & 1UL);
 }
