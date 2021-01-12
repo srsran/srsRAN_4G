@@ -161,7 +161,7 @@ void ra_proc::state_pdcch_setup()
     ra_tti  = info.tti_ra;
     ra_rnti = 1 + (ra_tti % 10) + (10 * info.f_id);
     rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d\n", sel_preamble, ra_rnti, info.tti_ra, info.f_id);
-    srslte::console("Random Access Transmission: seq=%d, ra-rnti=0x%x\n", sel_preamble, ra_rnti);
+    srslte::console("Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble, info.tti_ra, ra_rnti);
     rar_window_st   = ra_tti + 3;
     rntis->rar_rnti = ra_rnti;
     state           = RESPONSE_RECEPTION;
