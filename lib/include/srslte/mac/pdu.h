@@ -456,7 +456,7 @@ private:
 class rar_pdu : public pdu<rar_subh>
 {
 public:
-  rar_pdu(uint32_t max_rars = 16, srslte::log_ref log_ = {});
+  rar_pdu(uint32_t max_rars = 16, srslte::log_ref log_ = srslte::logmap::get("MAC"));
 
   void    set_backoff(uint8_t bi);
   bool    has_backoff();
