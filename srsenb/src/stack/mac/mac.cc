@@ -838,12 +838,17 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
         pdu->get()->set_sched_grant(grant_buffer);
       }
     }
-    pdu->write_packet(rar_payload[rar_idx].msg);
-    return rar_payload[rar_idx].msg;
-  } else {
-    Error("Assembling RAR: rar_idx=%d, pdu_len > rar_payload_len (%d>%d)\n", rar_idx, pdu_len, rar_payload_len);
-    return nullptr;
+    if (pdu->write_packet(rar_payload[rar_idx].msg)) {
+      return rar_payload[rar_idx].msg;
+    }
   }
+
+  Error("Assembling RAR: rar_idx=%d, pdu_len=%d, rar_payload_len=%d, nof_grants=%d\n",
+        rar_idx,
+        pdu_len,
+        rar_payload_len,
+        nof_grants);
+  return nullptr;
 }
 
 int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
