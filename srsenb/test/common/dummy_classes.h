@@ -94,6 +94,7 @@ public:
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override { return true; }
   void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override {}
   void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override {}
+  void ue_erab_release_complete(uint16_t rnti, const asn1::s1ap::erab_release_resp_s& res) override {}
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,

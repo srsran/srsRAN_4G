@@ -416,6 +416,16 @@ void s1ap::ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_re
   u->send_erab_setup_response(res);
 }
 
+void s1ap::ue_erab_release_complete(uint16_t rnti, const asn1::s1ap::erab_release_resp_s& res)
+{
+  ue* u = users.find_ue_rnti(rnti);
+  if (u == nullptr) {
+    s1ap_log->error("rnti 0x%x not found\n", rnti);
+    return;
+  }
+  u->send_erab_release_response(res);
+}
+
 // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
 //{
 
@@ -575,6 +585,8 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_ho_request(msg.value.ho_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::erab_release_cmd:
+      return handle_erab_release_cmd(msg.value.erab_release_cmd());
     default:
       s1ap_log->error("Unhandled initiating message: %s\n", msg.value.type().to_string().c_str());
   }
@@ -705,6 +717,32 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 
   // Setup UE ctxt in RRC
   return rrc->setup_ue_erabs(u->ctxt.rnti, msg);
+}
+
+bool s1ap::handle_erab_release_cmd(const erab_release_cmd_s& msg)
+{
+  s1ap_log->info("Received ERABReleaseCommand\n");
+  if (msg.ext) {
+    s1ap_log->warning("Not handling S1AP message extension\n");
+  }
+  ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  if (u == nullptr) {
+    return false;
+  }
+
+  if (msg.protocol_ies.nas_pdu_present) {
+    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+    if (pdu == nullptr) {
+      s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
+      return false;
+    }
+    memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
+    pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
+    rrc->write_dl_info(u->ctxt.rnti, std::move(pdu));
+  }
+
+  // Release E-RABs
+  return rrc->release_erabs(u->ctxt.rnti, msg);
 }
 
 bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
@@ -1154,6 +1192,25 @@ bool s1ap::ue::send_erab_setup_response(const erab_setup_resp_s& res_)
   res.protocol_ies.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABSetupResponse");
+}
+
+bool s1ap::ue::send_erab_release_response(const asn1::s1ap::erab_release_resp_s& res_)
+{
+  if (not s1ap_ptr->mme_connected) {
+    return false;
+  }
+
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE);
+  erab_release_resp_s& res = tx_pdu.successful_outcome().value.erab_release_resp();
+
+  res = res_;
+
+  // Fill in the MME and eNB IDs
+  res.protocol_ies.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+  res.protocol_ies.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABReleaseResponse");
 }
 
 bool s1ap::ue::send_initial_ctxt_setup_failure()

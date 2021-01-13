@@ -316,6 +316,19 @@ bool rrc::release_erabs(uint32_t rnti)
   return ret;
 }
 
+bool rrc::release_erabs(uint32_t rnti, const asn1::s1ap::erab_release_cmd_s& msg)
+{
+  rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
+  auto user_it = users.find(rnti);
+
+  if (user_it == users.end()) {
+    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    return false;
+  }
+
+  return user_it->second->release_erabs(msg.protocol_ies.erab_to_be_released_list.value);
+}
+
 /*******************************************************************************
   Paging functions
   These functions use a different mutex because access different shared variables

@@ -424,6 +424,7 @@ public:
   virtual bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)    = 0;
   virtual bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)        = 0;
   virtual bool release_erabs(uint32_t rnti)                                                      = 0;
+  virtual bool release_erabs(uint32_t rnti, const asn1::s1ap::erab_release_cmd_s& msg)           = 0;
   virtual void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id)      = 0;
 
   /**
@@ -482,6 +483,7 @@ public:
   virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)              = 0;
   virtual void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) = 0;
   virtual void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)         = 0;
+  virtual void ue_erab_release_complete(uint16_t rnti, const asn1::s1ap::erab_release_resp_s& res)     = 0;
   virtual bool is_mme_connected()                                                                      = 0;
 
   /**

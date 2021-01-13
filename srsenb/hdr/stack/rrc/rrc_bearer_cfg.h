@@ -85,6 +85,7 @@ public:
 
   // Methods to apply bearer updates
   void add_gtpu_bearer(gtpu_interface_rrc* gtpu, uint32_t erab_id);
+  void rem_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id);
   void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   const std::map<uint8_t, erab_t>&                get_erabs() const { return erabs; }

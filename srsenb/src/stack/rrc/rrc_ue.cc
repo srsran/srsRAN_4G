@@ -978,6 +978,47 @@ bool rrc::ue::release_erabs()
   return true;
 }
 
+bool rrc::ue::release_erabs(const asn1::s1ap::erab_list_l& e)
+{
+  asn1::s1ap::erab_release_resp_s res;
+  const auto& erabs = bearer_list.get_erabs();
+
+  for (const auto& item : e) {
+    auto& erab = item.value.erab_item();
+    if (erab.ext) {
+      parent->rrc_log->warning("Not handling E-RABToBeReleasedList extensions\n");
+    }
+    if (erab.ie_exts_present) {
+      parent->rrc_log->warning("Not handling E-RABToBeReleasedList extensions\n");
+    }
+
+    bearer_list.rem_gtpu_bearer(parent->gtpu, erab.erab_id);
+    bearer_list.release_erab(erab.erab_id);
+
+    if (!erabs.count(erab.erab_id)) {
+      // Successful release
+      res.protocol_ies.erab_release_list_bearer_rel_comp_present = true;
+      res.protocol_ies.erab_release_list_bearer_rel_comp.value.push_back({});
+      auto& erab_c = res.protocol_ies.erab_release_list_bearer_rel_comp.value.back();
+      erab_c.load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE_ITEM_BEARER_REL_COMP);
+      erab_c.value.erab_release_item_bearer_rel_comp().erab_id = erab.erab_id;
+    } else {
+      // Failed release
+      res.protocol_ies.erab_failed_to_release_list_present = true;
+      res.protocol_ies.erab_failed_to_release_list.value.push_back({});
+      auto& erab_f                     = res.protocol_ies.erab_failed_to_release_list.value.back();
+      erab_f.load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+      erab_f.value.erab_item().erab_id = erab.erab_id;
+      erab_f.value.erab_item().cause.set_radio_network().value =
+          asn1::s1ap::cause_radio_network_opts::unknown_erab_id;
+    }
+  }
+
+  parent->s1ap->ue_erab_release_complete(rnti, res);
+
+  return true;
+}
+
 void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
 {
   asn1::s1ap::erab_setup_resp_s res;
