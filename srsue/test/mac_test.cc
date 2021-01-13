@@ -2097,7 +2097,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
 
         // Step to contention resolution. Make sure timer does not start until Msg3 is transmitted
         // and restarts on every retx
-        for (int k = 0; k < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; k++) {
+        for (int k = 0; k < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 2; k++) {
           stack->run_tti(tti);
           TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
           tti++;
@@ -2115,6 +2115,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       }
 
       if (test.nof_msg3_retx == test.rach_cfg.max_harq_msg3_tx) {
+        stack->run_tti(tti); // RNTI will be reset for next TTI
         TESTASSERT(mac->get_dl_sched_rnti(tti) != temp_rnti);
         break;
       }
@@ -2164,6 +2165,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
 
   // RA procedure should be completed here
   if (test.check_ra_successful) {
+    stack->run_tti(tti);
     stack->run_tti(tti);
     TESTASSERT(phy->get_crnti() == (test.crnti ? test.crnti : test.temp_rnti));
     TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
@@ -2218,6 +2220,9 @@ int mac_random_access_test()
   set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);
 
+  uint32 tti = 0;
+  stack.run_tti(tti++); // make sure MAC/PRACH config is applied
+
   // generate config for LCIDs in different LCGs than CCCH
   std::vector<logical_channel_config_t> lcids;
   logical_channel_config_t              config = {};
@@ -2238,8 +2243,6 @@ int mac_random_access_test()
   mac.set_contention_id(contention_id);
   rlc.write_sdu(0, 6);   // UL-CCCH with Msg3
   rlc.write_sdu(3, 100); // DRB data on other LCG
-
-  uint32 tti = 0;
 
   // Structure that defines the test to be executed
   struct ra_test my_test           = {};
@@ -2339,6 +2342,7 @@ int mac_random_access_test()
   my_test.check_ra_successful      = false;
   my_test.send_valid_ul_grant      = false;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
+  stack.run_tti(tti++); // need to wait until complete RA result is signalled
   TESTASSERT(!rrc.ho_finish_successful);
   TESTASSERT(rrc.rach_problem == 2);
 
@@ -2358,6 +2362,7 @@ int mac_random_access_test()
   my_test.msg4_enable         = true;
   my_test.send_valid_ul_grant = true;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
+  stack.run_tti(tti++); // need to wait until complete RA result is signalled
   TESTASSERT(rrc.ho_finish_successful);
 
   // Test 9: Test non-Contention based HO. Used in HO but preamble is given by the network. In addition to checking

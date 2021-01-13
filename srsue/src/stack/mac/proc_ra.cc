@@ -55,6 +55,8 @@ void ra_proc::init(phy_interface_mac_lte*               phy_h_,
   rrc        = rrc_;
   task_sched = task_sched_;
 
+  task_queue = task_sched->make_task_queue();
+
   time_alignment_timer        = time_alignment_timer_;
   contention_resolution_timer = task_sched->get_unique_timer();
 
@@ -80,16 +82,16 @@ void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
   pcap = pcap_;
 }
 
-/* Sets a new configuration. The configuration is applied by initialization() function */
+// RRC calls to set a new PRACH configuration.
+// The configuration is applied by initialization() function.
 void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg_)
 {
-  std::unique_lock<std::mutex> ul(mutex);
-  new_cfg = rach_cfg_;
+  rach_cfg = rach_cfg_;
 }
 
+// RRC might also call this to set additional params during mobility
 void ra_proc::set_config_ded(uint32_t preamble_index, uint32_t prach_mask)
 {
-  std::unique_lock<std::mutex> ul(mutex);
   next_preamble_idx     = preamble_index;
   next_prach_mask       = prach_mask;
   noncontention_enabled = true;
@@ -98,10 +100,6 @@ void ra_proc::set_config_ded(uint32_t preamble_index, uint32_t prach_mask)
 /* Reads the configuration and configures internal variables */
 void ra_proc::read_params()
 {
-  mutex.lock();
-  rach_cfg = new_cfg;
-  mutex.unlock();
-
   // Read initialization parameters
   if (noncontention_enabled) {
     preambleIndex         = next_preamble_idx;
@@ -128,7 +126,7 @@ void ra_proc::read_params()
  */
 void ra_proc::step(uint32_t tti_)
 {
-  switch (state) {
+  switch (state.load()) {
     case IDLE:
       break;
     case PDCCH_SETUP:
@@ -160,8 +158,9 @@ void ra_proc::state_pdcch_setup()
   if (info.is_transmitted) {
     ra_tti  = info.tti_ra;
     ra_rnti = 1 + (ra_tti % 10) + (10 * info.f_id);
-    rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d\n", sel_preamble, ra_rnti, info.tti_ra, info.f_id);
-    srslte::console("Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble, info.tti_ra, ra_rnti);
+    rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d\n", sel_preamble.load(), ra_rnti, info.tti_ra, info.f_id);
+    srslte::console(
+        "Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble.load(), info.tti_ra, ra_rnti);
     rar_window_st   = ra_tti + 3;
     rntis->rar_rnti = ra_rnti;
     state           = RESPONSE_RECEPTION;
@@ -314,7 +313,7 @@ void ra_proc::resource_selection()
   }
 
   rDebug("Selected preambleIndex=%d maskIndex=%d GroupA=%d, GroupB=%d\n",
-         sel_preamble,
+         sel_preamble.load(),
          sel_maskIndex,
          rach_cfg.nof_groupA_preambles,
          nof_groupB_preambles);
@@ -326,12 +325,11 @@ void ra_proc::resource_selection()
 /* Preamble transmission as defined in 5.1.3 */
 void ra_proc::preamble_transmission()
 {
-
   received_target_power_dbm = rach_cfg.iniReceivedTargetPower + delta_preamble_db +
                               (preambleTransmissionCounter - 1) * rach_cfg.powerRampingStep;
 
   phy_h->prach_send(sel_preamble, sel_maskIndex - 1, received_target_power_dbm);
-  rntis->rar_rnti        = 0;
+  rntis->rar_rnti        = SRSLTE_INVALID_RNTI;
   ra_tti                 = 0;
   rar_received           = false;
   backoff_interval_start = -1;
@@ -385,8 +383,10 @@ void ra_proc::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_inte
   }
 }
 
-/* Called upon the successful decoding of a TB addressed to RA-RNTI.
- * Processes the reception of a RAR as defined in 5.1.4
+/* Called from PHY worker upon the successful decoding of a TB addressed to RA-RNTI.
+ * We extract the most relevant and time critical details from the RAR PDU,
+ * as definied in 5.1.4 and then defer the handling of the RA state machine to be
+ * executed on the Stack thread.
  */
 void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 {
@@ -394,10 +394,12 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
     pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, tti, cc_idx);
   }
 
-  rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
-
   rar_pdu_msg.init_rx(rar_grant_nbytes);
-  rar_pdu_msg.parse_packet(rar_pdu_buffer);
+  if (rar_pdu_msg.parse_packet(rar_pdu_buffer) != SRSLTE_SUCCESS) {
+    rError("Error decoding RAR PDU\n");
+  }
+
+  rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
 
   // Set Backoff parameter
   if (rar_pdu_msg.has_backoff()) {
@@ -417,24 +419,21 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
       // TODO: Indicate received target power
       // phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
 
-      uint8_t grant[srslte::rar_subh::RAR_GRANT_LEN];
+      uint8_t grant[srslte::rar_subh::RAR_GRANT_LEN] = {};
       rar_pdu_msg.get()->get_sched_grant(grant);
 
-      rntis->rar_rnti = 0;
+      rntis->rar_rnti = SRSLTE_INVALID_RNTI;
       phy_h->set_rar_grant(grant, rar_pdu_msg.get()->get_temp_crnti());
 
       current_ta = rar_pdu_msg.get()->get_ta_cmd();
 
       rInfo("RAPID=%d, TA=%d, T-CRNTI=0x%x\n",
-            sel_preamble,
+            sel_preamble.load(),
             rar_pdu_msg.get()->get_ta_cmd(),
             rar_pdu_msg.get()->get_temp_crnti());
 
-      if (preambleIndex > 0) {
-        // Preamble selected by Network
-        complete();
-      } else {
-        // Preamble selected by UE MAC
+      // Perform actions when preamble was selected by UE MAC
+      if (preambleIndex <= 0) {
         mux_unit->msg3_prepare();
         rntis->temp_rnti = rar_pdu_msg.get()->get_temp_crnti();
 
@@ -446,7 +445,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
           // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
           if (transmitted_crnti) {
-            rInfo("Appending C-RNTI MAC CE 0x%x in next transmission\n", transmitted_crnti);
+            rInfo("Appending C-RNTI MAC CE 0x%x in next transmission\n", transmitted_crnti.load());
             mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
           }
         }
@@ -454,8 +453,13 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
         // Save transmitted UE contention id, as defined by higher layers
         transmitted_contention_id = rntis->contention_id;
 
-        rDebug("Waiting for Contention Resolution\n");
-        state = CONTENTION_RESOLUTION;
+        task_queue.push([this]() {
+          rDebug("Waiting for Contention Resolution\n");
+          state = CONTENTION_RESOLUTION;
+        });
+      } else {
+        // Preamble selected by Network, defer result handling
+        task_queue.push([this]() { complete(); });
       }
     } else {
       if (rar_pdu_msg.get()->has_rapid()) {
@@ -549,9 +553,22 @@ void ra_proc::timer_expired(uint32_t timer_id)
 }
 
 /* Function called by MAC when a Contention Resolution ID CE is received.
- * Performs the actions defined in 5.1.5 for Temporal C-RNTI Contention Resolution
+ * Since this is called from within a PHY worker thread, we enqueue the handling,
+ * check that the contention resolution IDs match and return so the DL TB can be acked.
+ *
+ * The RA-related actions are scheduled to be executed on the Stack thread,
+ * even if we realize later that we have received that in a wrong state.
  */
 bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
+{
+  task_queue.push([this, rx_contention_id]() { contention_resolution_id_received_unsafe(rx_contention_id); });
+  return (transmitted_contention_id == rx_contention_id);
+}
+
+/*
+ * Performs the actions defined in 5.1.5 for Temporal C-RNTI Contention Resolution
+ */
+bool ra_proc::contention_resolution_id_received_unsafe(uint64_t rx_contention_id)
 {
   bool uecri_successful = false;
 
@@ -571,7 +588,7 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
     complete();
   } else {
     rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%" PRIx64 " != 0x%" PRIx64 ")\n",
-          transmitted_contention_id,
+          transmitted_contention_id.load(),
           rx_contention_id);
 
     // Discard MAC PDU
@@ -584,17 +601,21 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
   return uecri_successful;
 }
 
+// Called from PHY worker context, defer actions therefore.
 void ra_proc::pdcch_to_crnti(bool is_new_uplink_transmission)
 {
-  // TS 36.321 Section 5.1.5
-  rDebug("PDCCH to C-RNTI received %s new UL transmission\n", is_new_uplink_transmission ? "with" : "without");
-  if ((!started_by_pdcch && is_new_uplink_transmission) || started_by_pdcch) {
-    rDebug("PDCCH for C-RNTI received\n");
-    contention_resolution_timer.stop();
-    complete();
-  }
+  task_queue.push([this, is_new_uplink_transmission]() {
+    // TS 36.321 Section 5.1.5
+    rDebug("PDCCH to C-RNTI received %s new UL transmission\n", is_new_uplink_transmission ? "with" : "without");
+    if ((!started_by_pdcch && is_new_uplink_transmission) || started_by_pdcch) {
+      rDebug("PDCCH for C-RNTI received\n");
+      contention_resolution_timer.stop();
+      complete();
+    }
+  });
 }
 
+// Called from the Stack thread
 void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
 {
   if (state != RESPONSE_RECEPTION) {
@@ -611,13 +632,19 @@ void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
 // Restart timer at each Msg3 HARQ retransmission (5.1.5)
 void ra_proc::harq_retx()
 {
-  rInfo("Restarting ContentionResolutionTimer=%d ms\n", contention_resolution_timer.duration());
-  contention_resolution_timer.run();
+  task_queue.push([this]() {
+    rInfo("Restarting ContentionResolutionTimer=%d ms\n", contention_resolution_timer.duration());
+    contention_resolution_timer.run();
+  });
 }
 
+// Called from PHY worker thread
 void ra_proc::harq_max_retx()
 {
-  Warning("Contention Resolution is considered not successful. Stopping PDCCH Search and going to Response Error\n");
-  response_error();
+  task_queue.push([this]() {
+    Warning("Contention Resolution is considered not successful. Stopping PDCCH Search and going to Response Error\n");
+    response_error();
+  });
 }
+
 } // namespace srsue

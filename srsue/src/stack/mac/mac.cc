@@ -306,7 +306,8 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
       return SRSLTE_SIRNTI;
     }
   }
-  if (ra_window_start > 0 && ra_window_length > 0 && is_in_window(tti, &ra_window_start, &ra_window_length)) {
+  if (uernti.rar_rnti && ra_window_start > 0 && ra_window_length > 0 &&
+      is_in_window(tti, &ra_window_start, &ra_window_length)) {
     Debug("SCHED: Searching RAR-RNTI=0x%x, tti=%d\n", uernti.rar_rnti, tti);
     return uernti.rar_rnti;
   }
