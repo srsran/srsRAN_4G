@@ -326,7 +326,7 @@ bool rrc::release_erabs(uint32_t rnti, const asn1::s1ap::erab_release_cmd_s& msg
     return false;
   }
 
-  return user_it->second->release_erabs(msg.protocol_ies.erab_to_be_released_list.value);
+  return user_it->second->release_erabs(msg);
 }
 
 /*******************************************************************************

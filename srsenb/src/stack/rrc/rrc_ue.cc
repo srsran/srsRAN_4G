@@ -668,6 +668,35 @@ void rrc::ue::send_connection_reconf_new_bearer()
   }
 }
 
+void rrc::ue::send_connection_reconf_rem_bearer(const asn1::unbounded_octstring<true>* nas_pdu)
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
+  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+
+  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
+
+  // Setup new bearer
+  apply_pdcp_srb_updates();
+  apply_pdcp_drb_updates();
+  apply_rlc_rb_updates();
+
+  if (nas_pdu != nullptr and nas_pdu->size() > 0) {
+    conn_reconf->ded_info_nas_list_present = true;
+    conn_reconf->ded_info_nas_list.resize(conn_reconf->rr_cfg_ded.drb_to_release_list.size());
+    // Add NAS PDU
+    for (uint32_t idx = 0; idx < conn_reconf->rr_cfg_ded.drb_to_release_list.size(); idx++) {
+      conn_reconf->ded_info_nas_list[idx].resize(nas_pdu->size());
+      memcpy(conn_reconf->ded_info_nas_list[idx].data(), nas_pdu->data(), nas_pdu->size());
+    }
+  }
+
+  if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
+    send_dl_dcch(&dl_dcch_msg);
+  }
+}
+
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
@@ -978,12 +1007,12 @@ bool rrc::ue::release_erabs()
   return true;
 }
 
-bool rrc::ue::release_erabs(const asn1::s1ap::erab_list_l& e)
+bool rrc::ue::release_erabs(const asn1::s1ap::erab_release_cmd_s& msg)
 {
   asn1::s1ap::erab_release_resp_s res;
   const auto& erabs = bearer_list.get_erabs();
 
-  for (const auto& item : e) {
+  for (const auto& item : msg.protocol_ies.erab_to_be_released_list.value) {
     auto& erab = item.value.erab_item();
     if (erab.ext) {
       parent->rrc_log->warning("Not handling E-RABToBeReleasedList extensions\n");
@@ -1015,6 +1044,8 @@ bool rrc::ue::release_erabs(const asn1::s1ap::erab_list_l& e)
   }
 
   parent->s1ap->ue_erab_release_complete(rnti, res);
+  const asn1::unbounded_octstring<true>* nas_pdu = msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr;
+  send_connection_reconf_rem_bearer(nas_pdu);
 
   return true;
 }
@@ -1503,7 +1534,9 @@ void rrc::ue::apply_rlc_rb_updates()
     parent->rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
   }
   if (bearer_list.get_pending_rem_drbs().size() > 0) {
-    parent->rrc_log->error("Removing DRBs not currently supported\n");
+    for (uint8_t drb_id : bearer_list.get_pending_rem_drbs()) {
+      parent->rlc->del_bearer(rnti, drb_id + 2);
+    }
   }
   for (const drb_to_add_mod_s& drb : bearer_list.get_pending_addmod_drbs()) {
     if (not drb.rlc_cfg_present) {

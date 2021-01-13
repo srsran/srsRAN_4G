@@ -729,7 +729,7 @@ bool s1ap::handle_erab_release_cmd(const erab_release_cmd_s& msg)
   if (u == nullptr) {
     return false;
   }
-
+  
   if (msg.protocol_ies.nas_pdu_present) {
     srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
     if (pdu == nullptr) {

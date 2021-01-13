@@ -55,6 +55,7 @@ public:
   void send_connection_reest_rej();
   void send_connection_reconf(srslte::unique_byte_buffer_t sdu);
   void send_connection_reconf_new_bearer();
+  void send_connection_reconf_rem_bearer(const asn1::unbounded_octstring<true>* nas_pdu);
   void send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
@@ -76,7 +77,7 @@ public:
 
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
   bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
-  bool release_erabs(const asn1::s1ap::erab_list_l& e);
+  bool release_erabs(const asn1::s1ap::erab_release_cmd_s& msg);
   bool release_erabs();
 
   // handover
