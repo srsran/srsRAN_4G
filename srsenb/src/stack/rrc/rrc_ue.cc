@@ -39,23 +39,26 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   bearer_list(rnti_, parent->cfg),
   ue_security_cfg(parent->cfg),
   mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
-{
+{}
 
+rrc::ue::~ue() {}
+
+int rrc::ue::init()
+{
   // Allocate cell and PUCCH resources
-  if (ue_cell_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
-    return;
+  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx) == nullptr) {
+    return SRSLTE_ERROR;
   }
 
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
-  activity_timer = outer_rrc->task_sched.get_unique_timer();
+  activity_timer = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   mobility_handler.reset(new rrc_mobility(this));
+  return SRSLTE_SUCCESS;
 }
-
-rrc::ue::~ue() {}
 
 void* rrc::ue::operator new(size_t sz)
 {

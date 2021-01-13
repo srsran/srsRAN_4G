@@ -61,7 +61,7 @@ public:
   void tti_clock();
 
   // rrc_interface_mac
-  void     add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
+  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
   void     upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
   void     set_activity_user(uint16_t rnti) override;
   bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;

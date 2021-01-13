@@ -525,11 +525,15 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.supported_cc_list[0].dl_cfg.tm      = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
+      ue_rem(rnti);
       return;
     }
 
     // Register new user in RRC
-    rrc_h->add_user(rnti, ue_cfg);
+    if (rrc_h->add_user(rnti, ue_cfg) == SRSLTE_ERROR) {
+      ue_rem(rnti);
+      return;
+    }
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);

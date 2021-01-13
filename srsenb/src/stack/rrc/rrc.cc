@@ -144,27 +144,25 @@ uint32_t rrc::get_nof_users()
 void rrc::max_retx_attempted(uint16_t rnti) {}
 
 // This function is called from PRACH worker (can wait)
-void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
+int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    bool rnti_added = true;
     if (rnti != SRSLTE_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
-      auto p = users.insert(std::make_pair(rnti, std::unique_ptr<ue>{new ue(this, rnti, sched_ue_cfg)}));
+      std::unique_ptr<ue> u{new ue(this, rnti, sched_ue_cfg)};
+      if (not u->init()) {
+        rrc_log->error("Adding user rnti=0x%x - Failed to allocate user resources\n", rnti);
+        return SRSLTE_ERROR;
+      }
       if (ue_pool.capacity() <= 4) {
         task_sched.defer_task([]() { rrc::ue_pool.reserve(16); });
       }
-      rnti_added = p.second and p.first->second->is_allocated();
+      users.insert(std::make_pair(rnti, std::move(u)));
     }
-    if (rnti_added) {
-      rlc->add_user(rnti);
-      pdcp->add_user(rnti);
-      rrc_log->info("Added new user rnti=0x%x\n", rnti);
-    } else {
-      mac->bearer_ue_rem(rnti, 0);
-      rrc_log->error("Adding user rnti=0x%x - Failed to allocate user resources\n", rnti);
-    }
+    rlc->add_user(rnti);
+    pdcp->add_user(rnti);
+    rrc_log->info("Added new user rnti=0x%x\n", rnti);
   } else {
     rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
   }
@@ -181,6 +179,7 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       teid_in = gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1);
     }
   }
+  return SRSLTE_SUCCESS;
 }
 
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a

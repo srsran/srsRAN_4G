@@ -25,6 +25,7 @@ public:
 
   ue(rrc* outer_rrc, uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg);
   ~ue();
+  int  init();
   bool is_connected();
   bool is_idle();
 
