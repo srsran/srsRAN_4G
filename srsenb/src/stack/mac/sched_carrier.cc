@@ -362,6 +362,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
   }
 
   log_dl_cc_results(log_h, enb_cc_idx, cc_result->dl_sched_result);
+  log_phich_cc_results(log_h, enb_cc_idx, cc_result->ul_sched_result);
 
   return *cc_result;
 }

@@ -903,10 +903,6 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
   if (h->has_pending_phich()) {
     phich_list.phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
     phich_list.rnti  = user->get_rnti();
-    log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
-                 user->get_rnti(),
-                 phich_list.phich == phich_t::ACK ? "ACK" : "NACK");
-
     ul_sf_result->nof_phich_elems++;
     return true;
   }
@@ -923,7 +919,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_interval prb_range = prb_interval::rbgs_to_prbs(bc_alloc.rbg_range, cc_cfg->P);
+    prb_interval prb_range = prb_interval::rbgs_to_prbs(bc_alloc.rbg_range, cc_cfg->nof_prb());
     int          tbs       = generate_format1a(prb_range, bc_alloc.req_bytes, bc_alloc.rv, bc_alloc.rnti, &bc->dci);
 
     // Setup BC/Paging processes
@@ -990,7 +986,7 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_interval prb_range = prb_interval::rbgs_to_prbs(rar_alloc.alloc_data.rbg_range, cc_cfg->P);
+    prb_interval prb_range = prb_interval::rbgs_to_prbs(rar_alloc.alloc_data.rbg_range, cc_cfg->nof_prb());
     int tbs = generate_format1a(prb_range, rar_alloc.alloc_data.req_bytes, 0, rar_alloc.alloc_data.rnti, &rar->dci);
     if (tbs <= 0) {
       log_h->warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=%s, dci=(%d,%d)\n",

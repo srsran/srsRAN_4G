@@ -59,14 +59,14 @@ void fill_dl_cc_result_info(custom_mem_buffer& strbuf, const dl_sched_data_t& da
     return;
   }
   const char* prefix = strbuf.size() > 0 ? " | " : "";
-  fmt::format_to(strbuf, "{}rnti={:0x}: [", prefix, data.dci.rnti);
+  fmt::format_to(strbuf, "{}rnti=0x{:0x}: [", prefix, data.dci.rnti);
   bool ces_found = false;
   for (uint32_t i = 0; i < data.nof_pdu_elems[0]; ++i) {
     const auto& pdu          = data.pdu[0][i];
     prefix                   = (ces_found) ? " | " : "";
     srslte::dl_sch_lcid lcid = static_cast<srslte::dl_sch_lcid>(pdu.lcid);
     if (srslte::is_mac_ce(lcid)) {
-      fmt::format_to(strbuf, "{}MAC CE \"{}\"", prefix, srslte::to_string_short(lcid));
+      fmt::format_to(strbuf, "{}CE \"{}\"", prefix, srslte::to_string_short(lcid));
       ces_found = true;
     }
   }
@@ -79,7 +79,7 @@ void fill_dl_cc_result_debug(custom_mem_buffer& strbuf, const dl_sched_data_t& d
     return;
   }
   fmt::format_to(strbuf,
-                 "  > rnti={:0x}, tbs={}, f={}, mcs={}: [",
+                 "  > rnti=0x{:0x}, tbs={}, f={}, mcs={}: [",
                  data.dci.rnti,
                  data.tbs[0],
                  to_string_short(data.dci.format),
@@ -90,9 +90,9 @@ void fill_dl_cc_result_debug(custom_mem_buffer& strbuf, const dl_sched_data_t& d
       const char*         prefix = (i == 0) ? "" : " | ";
       srslte::dl_sch_lcid lcid   = static_cast<srslte::dl_sch_lcid>(pdu.lcid);
       if (srslte::is_mac_ce(lcid)) {
-        fmt::format_to(strbuf, "{}MAC CE \"{}\"", prefix, srslte::to_string_short(lcid));
+        fmt::format_to(strbuf, "{}CE \"{}\"", prefix, srslte::to_string_short(lcid));
       } else {
-        fmt::format_to(strbuf, "{}MAC SDU lcid={}, tb={}, len={} B", prefix, pdu.lcid, tb, pdu.nbytes);
+        fmt::format_to(strbuf, "{}SDU lcid={}, tb={}, len={} B", prefix, pdu.lcid, tb, pdu.nbytes);
       }
     }
   }
@@ -115,21 +115,35 @@ void log_dl_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_i
   }
   if (strbuf.size() != 0) {
     if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
-      log_h->debug("SCHED: MAC LCID allocs cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      log_h->debug("SCHED: DL MAC PDU payload cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
     } else {
-      log_h->info("SCHED: MAC CE allocs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      log_h->info("SCHED: DL MAC CEs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
     }
   }
 }
 
-rbg_interval rbg_interval::prbs_to_rbgs(const prb_interval& prbs, uint32_t P)
+void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::ul_sched_res_t& result)
 {
-  return rbg_interval{srslte::ceil_div(prbs.start(), P), srslte::ceil_div(prbs.stop(), P)};
+  using phich_t = sched_interface::ul_sched_phich_t;
+  if (log_h->get_level() < srslte::LOG_LEVEL_INFO) {
+    return;
+  }
+  custom_mem_buffer strbuf;
+  for (uint32_t i = 0; i < result.nof_phich_elems; ++i) {
+    const phich_t& phich  = result.phich[i];
+    const char*    prefix = strbuf.size() > 0 ? " | " : "";
+    const char*    val    = phich.phich == phich_t::ACK ? "ACK" : "NACK";
+    fmt::format_to(strbuf, "{}rnti=0x{:0x}, val={}", prefix, phich.rnti, val);
+  }
+  if (strbuf.size() != 0) {
+    log_h->debug("SCHED: Allocated PHICHs, cc=%d: [%s]", enb_cc_idx, fmt::to_string(strbuf).c_str());
+  }
 }
 
-prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P)
+prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb)
 {
-  return prb_interval{rbgs.start() * P, rbgs.stop() * P};
+  uint32_t P = srslte_ra_type0_P(cell_nof_prb);
+  return prb_interval{rbgs.start() * P, std::min(rbgs.stop() * P, cell_nof_prb)};
 }
 
 rbg_interval rbg_interval::rbgmask_to_rbgs(const rbgmask_t& mask)

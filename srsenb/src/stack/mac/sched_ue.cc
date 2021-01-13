@@ -48,22 +48,6 @@ uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_
   return (uint32_t)tbs / 8U;
 }
 
-/**
- * Count number of PRBs present in a DL RBG mask
- * @param bitmask DL RBG mask
- * @return number of prbs
- */
-uint32_t count_prb_per_tb(const sched_cell_params_t& cell_params, const rbgmask_t& bitmask)
-{
-  uint32_t nof_prb = 0;
-  for (uint32_t i = 0; i < bitmask.size(); i++) {
-    if (bitmask.test(i)) {
-      nof_prb += std::min(cell_params.cfg.cell.nof_prb - (i * cell_params.P), cell_params.P);
-    }
-  }
-  return nof_prb;
-}
-
 } // namespace sched_utils
 
 bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sched_interface::ue_cfg_t::cc_cfg_t& rhs)
@@ -505,7 +489,7 @@ std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* da
                                                       uint32_t                tb)
 {
   srslte_dci_dl_t* dci     = &data->dci;
-  uint32_t         nof_prb = sched_utils::count_prb_per_tb(*carriers[ue_cc_idx].get_cell_cfg(), user_mask);
+  uint32_t         nof_prb = count_prb_per_tb(user_mask);
   auto             ret     = compute_mcs_and_tbs(ue_cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
   int              mcs     = ret.first;
   int              tbs     = ret.second;
@@ -572,14 +556,12 @@ int sched_ue::generate_format1(uint32_t                          pid,
     dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
     dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
     rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
-    uint32_t     P        = srslte_ra_type0_P(15);
-    prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, P);
-    uint32_t     L_crb =
-        SRSLTE_MIN(sched_utils::count_prb_per_tb(*carriers[ue_cc_idx].get_cell_cfg(), user_mask), cell.nof_prb);
-    uint32_t RB_start    = prb_int.start();
-    dci->type2_alloc.riv = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
-    dci->format          = SRSLTE_DCI_FORMAT1A;
-    if (prb_int.length() != P * user_mask.count()) {
+    prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
+    uint32_t     L_crb    = prb_int.length();
+    uint32_t     RB_start = prb_int.start();
+    dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
+    dci->format           = SRSLTE_DCI_FORMAT1A;
+    if (L_crb != cell_nof_rbg_to_prb(user_mask.size())) {
       // This happens if Type0 was using distributed allocation
       Warning("SCHED: Can't use distributed RA due to DCI size ambiguity\n");
     }
