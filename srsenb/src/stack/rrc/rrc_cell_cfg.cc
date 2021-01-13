@@ -137,8 +137,8 @@ cell_res_common* freq_res_common_list::get_earfcn(uint32_t earfcn)
  ************************/
 
 ue_cell_ded_list::ue_cell_ded_list(const rrc_cfg_t&            cfg_,
-                             freq_res_common_list&       cell_res_list_,
-                             const enb_cell_common_list& enb_common_list) :
+                                   freq_res_common_list&       cell_res_list_,
+                                   const enb_cell_common_list& enb_common_list) :
   cfg(cfg_), cell_res_list(cell_res_list_), common_list(enb_common_list)
 {
   cell_list.reserve(common_list.nof_cells());
@@ -223,18 +223,22 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
       log_h->error("Failed to allocate SR resources for PCell\n");
       return false;
     }
-    if (cfg.cell_list.size() == 2) {
-      // Allocate resources for Format1b CS (will be optional PUCCH3/CS)
-      if (not alloc_pucch_cs_resources()) {
-        log_h->error("Error allocating PUCCH Format1b CS resource for SCell\n");
-        return false;
-      }
-    }
 
     ue_cell_ded* cell     = get_ue_cc_idx(UE_PCELL_CC_IDX);
     cell->meas_gap_period = cell->cell_common->cell_cfg.meas_cfg.meas_gap_period;
     cell->meas_gap_offset = pucch_res->next_measgap_offset;
     pucch_res->next_measgap_offset += 6;
+  } else {
+    if (ue_cc_idx == 1 and not n_pucch_cs_present) {
+      // Allocate resources for Format1b CS (will be optional PUCCH3/CS)
+      if (not alloc_pucch_cs_resources()) {
+        log_h->error("Error allocating PUCCH Format1b CS resource for SCell\n");
+        return false;
+      }
+    } else {
+      // if nof CA cells > 1, the Format1b CS is not required
+      dealloc_pucch_cs_resources();
+    }
   }
   if (not alloc_cqi_resources(ue_cc_idx, cfg.cqi_cfg.period)) {
     log_h->error("Failed to allocate CQIresources for cell ue_cc_idx=%d\n", ue_cc_idx);
@@ -524,7 +528,6 @@ bool ue_cell_ded_list::alloc_pucch_cs_resources()
 
   const sib_type2_s& sib2      = cell->cell_common->sib2;
   const uint16_t     N_pucch_1 = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
-  const uint32_t     max_cce   = srslte_max_cce(cfg.cell.nof_prb);
   // Loop through all available resources
   for (uint32_t i = 0; i < cell_res_common::N_PUCCH_MAX_RES; i++) {
     if (!pucch_res->n_pucch_cs_used[i] && (i <= N_pucch_1 && i != sr_res.sr_N_pucch)) {
