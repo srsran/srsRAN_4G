@@ -151,7 +151,7 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
     if (rnti != SRSLTE_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
       std::unique_ptr<ue> u{new ue(this, rnti, sched_ue_cfg)};
-      if (not u->init()) {
+      if (u->init() != SRSLTE_SUCCESS) {
         rrc_log->error("Adding user rnti=0x%x - Failed to allocate user resources\n", rnti);
         return SRSLTE_ERROR;
       }
