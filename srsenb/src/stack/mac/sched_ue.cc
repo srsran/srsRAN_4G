@@ -20,7 +20,6 @@
 #include "srslte/srslte.h"
 
 using srslte::tti_interval;
-using srslte::tti_point;
 
 namespace srsenb {
 
@@ -29,31 +28,6 @@ namespace srsenb {
  ******************************************************/
 
 #define MAC_MIN_ALLOC_SIZE 5
-
-namespace sched_utils {
-
-/// Obtains TB size *in bytes* for a given MCS and nof allocated prbs
-uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_alt, bool is_ul)
-{
-  int tbs_idx = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
-  if (tbs_idx < SRSLTE_SUCCESS) {
-    tbs_idx = 0;
-  }
-
-  int tbs = srslte_ra_tbs_from_idx((uint32_t)tbs_idx, nof_alloc_prb);
-  if (tbs < SRSLTE_SUCCESS) {
-    tbs = 0;
-  }
-
-  return (uint32_t)tbs / 8U;
-}
-
-} // namespace sched_utils
-
-bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sched_interface::ue_cfg_t::cc_cfg_t& rhs)
-{
-  return lhs.enb_cc_idx == rhs.enb_cc_idx and lhs.active == rhs.active;
-}
 
 template <typename YType, typename Callable, typename ErrorDetect>
 std::tuple<int, YType, int, YType>
@@ -189,7 +163,7 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
     log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
   }
 
-  check_ue_cfg_correctness();
+  check_ue_cfg_correctness(cfg);
 }
 
 void sched_ue::reset()
@@ -218,35 +192,6 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
   int ue_cc_idx = enb_ue_cc_idx_map[enb_cc_idx];
   if (ue_cc_idx >= 0) {
     carriers.at(ue_cc_idx).tpc_fsm.new_tti();
-  }
-}
-
-/// sanity check the UE CC configuration
-void sched_ue::check_ue_cfg_correctness() const
-{
-  using cc_t             = sched::ue_cfg_t::cc_cfg_t;
-  const auto& cc_list    = cfg.supported_cc_list;
-  bool        has_scells = std::count_if(cc_list.begin(), cc_list.end(), [](const cc_t& c) { return c.active; }) > 1;
-
-  if (has_scells) {
-    // In case of CA, CQI configs must exist and cannot collide in the PUCCH
-    for (uint32_t i = 0; i < cc_list.size(); ++i) {
-      const auto& cc1 = cc_list[i];
-      if (not cc1.active) {
-        continue;
-      }
-      if (not cc1.dl_cfg.cqi_report.periodic_configured and not cc1.dl_cfg.cqi_report.aperiodic_configured) {
-        log_h->warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
-      } else if (cc1.dl_cfg.cqi_report.periodic_configured) {
-        for (uint32_t j = i + 1; j < cc_list.size(); ++j) {
-          if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
-              cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
-            log_h->warning(
-                "SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.\n", i, j);
-          }
-        }
-      }
-    }
   }
 }
 
@@ -629,8 +574,7 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   } else {
     // Fixed MCS
     mcs       = carriers[ue_cc_idx].fixed_mcs_dl;
-    tbs_bytes = sched_utils::get_tbs_bytes(
-        (uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
+    tbs_bytes = get_tbs_bytes((uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
   }
 
   if (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start() and mcs < 28) {
@@ -770,7 +714,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
 
     if (mcs >= 0) {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
+      tbs = get_tbs_bytes(mcs, alloc.length(), false, true);
     } else {
       // dynamic mcs
       uint32_t req_bytes = get_pending_ul_new_data(tti_tx_ul, ue_cc_idx);
@@ -808,7 +752,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   } else {
     // retx
     h->new_retx(tti_tx_ul, &mcs, nullptr, alloc);
-    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.length()) / 8;
+    tbs = get_tbs_bytes(mcs, alloc.length(), false, true);
   }
 
   if (tbs >= 0) {
@@ -980,17 +924,10 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
   return {min_data, max_data};
 }
 
-/**
- * Get pending RLC DL data in RLC buffers. Header sizes not accounted
- * @return
- */
+/// Get pending RLC DL data in RLC buffers. Header sizes not accounted
 uint32_t sched_ue::get_pending_dl_rlc_data() const
 {
-  uint32_t pending_data = 0;
-  for (int i = 0; i < sched_interface::MAX_LC; i++) {
-    pending_data += lch_handler.get_dl_tx_total(i);
-  }
-  return pending_data;
+  return lch_handler.get_dl_tx_total();
 }
 
 uint32_t sched_ue::get_expected_dl_bitrate(uint32_t ue_cc_idx, int nof_rbgs) const
@@ -1403,30 +1340,9 @@ void cc_sched_ue::finish_tti(tti_point tti_rx)
   }
 }
 
-/* Find lowest DCI aggregation level supported by the UE spectral efficiency */
 uint32_t cc_sched_ue::get_aggr_level(uint32_t nof_bits)
 {
-  uint32_t l            = 0;
-  float    max_coderate = srslte_cqi_to_coderate(dl_cqi, cfg->use_tbs_index_alt);
-  float    coderate     = 99;
-  float    factor       = 1.5;
-  uint32_t l_max        = 3;
-  if (cell_params->nof_prb() == 6) {
-    factor = 1.0;
-    l_max  = 2;
-  }
-  l_max = SRSLTE_MIN(max_aggr_level, l_max);
-  do {
-    coderate = srslte_pdcch_coderate(nof_bits, l);
-    l++;
-  } while (l < l_max && factor * coderate > max_coderate);
-  Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
-        dl_cqi,
-        l,
-        nof_bits,
-        coderate,
-        max_coderate);
-  return l;
+  return srsenb::get_aggr_level(nof_bits, dl_cqi, max_aggr_level, cell_params->nof_prb(), cfg->use_tbs_index_alt);
 }
 
 /* In this scheduler we tend to use all the available bandwidth and select the MCS
@@ -1463,8 +1379,7 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
   // Avoid the unusual case n_prb=1, mcs=6 tbs=328 (used in voip)
   if (nof_prb == 1 && sel_mcs == 6) {
     sel_mcs--;
-    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs, cfg->use_tbs_index_alt, is_ul);
-    tbs_bytes        = srslte_ra_tbs_from_idx(tbs_idx, nof_prb) / 8;
+    tbs_bytes = get_tbs_bytes(sel_mcs, nof_prb, cfg->use_tbs_index_alt, is_ul);
   }
 
   if (mcs != nullptr && tbs_bytes >= 0) {
@@ -1492,7 +1407,7 @@ int cc_sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbo
     if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
       return alloc_tbs_dl(nof_prb, nof_re, 0, &mcs);
     }
-    return srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, cfg->use_tbs_index_alt, false), nof_prb) / 8;
+    return (int)get_tbs_bytes(fixed_mcs_dl, nof_prb, cfg->use_tbs_index_alt, false);
   };
 
   std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
@@ -1514,7 +1429,7 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
     if (fixed_mcs_ul < 0) {
       return alloc_tbs_ul(nof_prb, nof_re, 0, &mcs);
     }
-    return srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, false, true), nof_prb) / 8;
+    return (int)get_tbs_bytes(fixed_mcs_ul, nof_prb, false, true);
   };
 
   // find nof prbs that lead to a tbs just above req_bytes

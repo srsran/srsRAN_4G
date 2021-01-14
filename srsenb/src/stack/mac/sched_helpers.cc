@@ -15,10 +15,12 @@
 #include "srslte/srslog/bundled/fmt/format.h"
 #include <array>
 
-#define Info(fmt, ...) srslte::logmap::get("MAC")->error(fmt, ##__VA_ARGS__)
-#define Error(fmt, ...) srslte::logmap::get("MAC")->error(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) mac_log->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) mac_log->error(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
+
+srslte::log_ref mac_log{"MAC"};
 
 using dl_sched_res_t    = sched_interface::dl_sched_res_t;
 using dl_sched_data_t   = sched_interface::dl_sched_data_t;
@@ -292,6 +294,71 @@ void generate_cce_location(srslte_regs_t*   regs_,
     location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
     location->nof_loc[l]++;
   }
+}
+
+/*******************************************************
+ *            DCI-specific helper functions
+ *******************************************************/
+
+uint32_t
+get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32_t cell_nof_prb, bool use_tbs_index_alt)
+{
+  uint32_t l            = 0;
+  float    max_coderate = srslte_cqi_to_coderate(dl_cqi, use_tbs_index_alt);
+  float    coderate;
+  float    factor = 1.5;
+  uint32_t l_max  = 3;
+  if (cell_nof_prb == 6) {
+    factor = 1.0;
+    l_max  = 2;
+  }
+  l_max = SRSLTE_MIN(max_aggr_lvl, l_max);
+
+  do {
+    coderate = srslte_pdcch_coderate(nof_bits, l);
+    l++;
+  } while (l < l_max && factor * coderate > max_coderate);
+
+  mac_log->debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
+                 dl_cqi,
+                 l,
+                 nof_bits,
+                 coderate,
+                 max_coderate);
+  return l;
+}
+
+/// sanity check the UE CC configuration
+int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
+{
+  using cc_t             = sched_interface::ue_cfg_t::cc_cfg_t;
+  const auto& cc_list    = ue_cfg.supported_cc_list;
+  bool        has_scells = std::count_if(cc_list.begin(), cc_list.end(), [](const cc_t& c) { return c.active; }) > 1;
+  int         ret        = SRSLTE_SUCCESS;
+
+  if (has_scells) {
+    // In case of CA, CQI configs must exist and cannot collide in the PUCCH
+    for (uint32_t i = 0; i < cc_list.size(); ++i) {
+      const auto& cc1 = cc_list[i];
+      if (not cc1.active) {
+        continue;
+      }
+      if (not cc1.dl_cfg.cqi_report.periodic_configured and not cc1.dl_cfg.cqi_report.aperiodic_configured) {
+        mac_log->warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
+        ret = SRSLTE_ERROR;
+      } else if (cc1.dl_cfg.cqi_report.periodic_configured) {
+        for (uint32_t j = i + 1; j < cc_list.size(); ++j) {
+          if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
+              cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
+            mac_log->warning(
+                "SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.\n", i, j);
+            ret = SRSLTE_ERROR;
+          }
+        }
+      }
+    }
+  }
+  return ret;
 }
 
 } // namespace srsenb

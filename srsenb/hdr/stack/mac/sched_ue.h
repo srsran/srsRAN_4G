@@ -202,7 +202,6 @@ public:
   bool pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
 
 private:
-  void check_ue_cfg_correctness() const;
   bool is_sr_triggered();
 
   std::pair<int, int> allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
