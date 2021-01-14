@@ -15,12 +15,12 @@
 #include "srslte/srslog/bundled/fmt/format.h"
 #include <array>
 
-#define Info(fmt, ...) mac_log->error(fmt, ##__VA_ARGS__)
-#define Error(fmt, ...) mac_log->error(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) srslte::logmap::get("MAC")->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) srslte::logmap::get("MAC")->info(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) srslte::logmap::get("MAC")->warning(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) srslte::logmap::get("MAC")->error(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
-
-srslte::log_ref mac_log{"MAC"};
 
 using dl_sched_res_t    = sched_interface::dl_sched_res_t;
 using dl_sched_data_t   = sched_interface::dl_sched_data_t;
@@ -303,6 +303,8 @@ void generate_cce_location(srslte_regs_t*   regs_,
 uint32_t
 get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32_t cell_nof_prb, bool use_tbs_index_alt)
 {
+  static srslte::log_ref cached_log = srslte::logmap::get("MAC");
+
   uint32_t l            = 0;
   float    max_coderate = srslte_cqi_to_coderate(dl_cqi, use_tbs_index_alt);
   float    coderate;
@@ -319,14 +321,18 @@ get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32
     l++;
   } while (l < l_max && factor * coderate > max_coderate);
 
-  mac_log->debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
-                 dl_cqi,
-                 l,
-                 nof_bits,
-                 coderate,
-                 max_coderate);
+  cached_log->debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
+                    dl_cqi,
+                    l,
+                    nof_bits,
+                    coderate,
+                    max_coderate);
   return l;
 }
+
+/*******************************************************
+ *          sched_interface helper functions
+ *******************************************************/
 
 /// sanity check the UE CC configuration
 int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
@@ -344,13 +350,13 @@ int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
         continue;
       }
       if (not cc1.dl_cfg.cqi_report.periodic_configured and not cc1.dl_cfg.cqi_report.aperiodic_configured) {
-        mac_log->warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
+        Warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
         ret = SRSLTE_ERROR;
       } else if (cc1.dl_cfg.cqi_report.periodic_configured) {
         for (uint32_t j = i + 1; j < cc_list.size(); ++j) {
           if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
               cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
-            mac_log->warning(
+            Warning(
                 "SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.\n", i, j);
             ret = SRSLTE_ERROR;
           }
@@ -359,6 +365,22 @@ int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
     }
   }
   return ret;
+}
+
+const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir)
+{
+  switch (dir) {
+    case sched_interface::ue_bearer_cfg_t::IDLE:
+      return "idle";
+    case sched_interface::ue_bearer_cfg_t::BOTH:
+      return "bi-dir";
+    case sched_interface::ue_bearer_cfg_t::DL:
+      return "DL";
+    case sched_interface::ue_bearer_cfg_t::UL:
+      return "UL";
+    default:
+      return "unrecognized direction";
+  }
 }
 
 } // namespace srsenb

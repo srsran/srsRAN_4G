@@ -87,8 +87,6 @@ private:
   cc_st             cc_state_ = cc_st::idle;
 };
 
-const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
-
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
  * higher layers and mac threads.
  */
@@ -257,7 +255,6 @@ private:
   bool phy_config_dedicated_enabled = false;
 
   tti_point                current_tti;
-  std::array<tti_point, 4> last_ttis;
   std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
   std::vector<int>         enb_ue_cc_idx_map;
 };

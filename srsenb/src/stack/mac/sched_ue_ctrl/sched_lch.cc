@@ -11,7 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_lch.h"
-#include "srsenb/hdr/stack/mac/sched_common.h"
+#include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/log_helper.h"
 
 namespace srsenb {
@@ -53,22 +53,6 @@ uint32_t get_ul_mac_sdu_size_with_overhead(uint32_t rlc_pdu_bytes)
  *         Logical Channel Management
  *
  *******************************************************/
-
-const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir)
-{
-  switch (dir) {
-    case sched_interface::ue_bearer_cfg_t::IDLE:
-      return "idle";
-    case sched_interface::ue_bearer_cfg_t::BOTH:
-      return "bi-dir";
-    case sched_interface::ue_bearer_cfg_t::DL:
-      return "DL";
-    case sched_interface::ue_bearer_cfg_t::UL:
-      return "UL";
-    default:
-      return "unrecognized direction";
-  }
-}
 
 void lch_ue_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
 {

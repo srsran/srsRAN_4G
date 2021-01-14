@@ -151,6 +151,8 @@ void log_dl_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_i
 /// Logs PHICH contents
 void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::ul_sched_res_t& result);
 
+const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
+
 } // namespace srsenb
 
 #endif // SRSLTE_SCHED_HELPERS_H
