@@ -578,7 +578,8 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   }
 
   if (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start() and mcs < 28) {
-    log_h->warning("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SBR0 PDU segmentation\n");
+    log_h->info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation\n");
+    // Note: This is not a warning, because the srb0 buffer can be updated after the ue sched decision
   }
 
   return {mcs, tbs_bytes};

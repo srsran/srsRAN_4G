@@ -47,7 +47,7 @@ public:
                const sched_interface::cell_cfg_t&   cfg_,
                const sched_interface::sched_args_t& sched_args);
   // convenience getters
-  uint32_t prb_to_rbg(uint32_t nof_prbs) const { return (nof_prbs + (P - 1)) / P; }
+  uint32_t prb_to_rbg(uint32_t nof_prbs) const { return srslte::ceil_div(nof_prbs, P); }
   uint32_t nof_prb() const { return cfg.cell.nof_prb; }
 
   uint32_t                                       enb_cc_idx = 0;
