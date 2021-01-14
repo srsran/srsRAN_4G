@@ -152,7 +152,7 @@ private:
 
     // TX SDU buffers
     byte_buffer_queue    tx_sdu_queue;
-    unique_byte_buffer_t tx_sdu = nullptr;
+    unique_byte_buffer_t tx_sdu;
 
     bool tx_enabled = false;
 
