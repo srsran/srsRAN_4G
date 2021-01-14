@@ -272,6 +272,18 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   return true;
 }
 
+ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)
+{
+  ue_cce_locations_table dci_locations;
+  // Generate allowed CCE locations
+  for (int cfi = 0; cfi < SRSLTE_NOF_CFI; cfi++) {
+    for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
+      generate_cce_location(cell_cfg.regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+    }
+  }
+  return dci_locations;
+}
+
 void generate_cce_location(srslte_regs_t*   regs_,
                            sched_dci_cce_t* location,
                            uint32_t         cfi,

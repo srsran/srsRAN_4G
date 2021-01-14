@@ -20,6 +20,7 @@
 
 #include "sched_ue_ctrl/sched_harq.h"
 #include "sched_ue_ctrl/sched_lch.h"
+#include "sched_ue_ctrl/sched_ue_cell.h"
 #include "sched_ue_ctrl/tpc.h"
 #include <bitset>
 #include <deque>
@@ -74,9 +75,6 @@ struct cc_sched_ue {
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
   tpc      tpc_fsm;
-
-  // Allowed DCI locations per per CFI and per subframe
-  std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
 
 private:
   // config
@@ -190,8 +188,8 @@ public:
                        int                               explicit_mcs = -1,
                        uci_pusch_t                       uci_type     = UCI_PUSCH_NONE);
 
-  srslte_dci_format_t get_dci_format();
-  sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);
+  srslte_dci_format_t    get_dci_format();
+  const sched_dci_cce_t* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
 
   cc_sched_ue*                     find_ue_carrier(uint32_t enb_cc_idx);
   size_t                           nof_carriers_configured() const { return carriers.size(); }
@@ -243,11 +241,10 @@ private:
                        const rbgmask_t&                  user_mask);
 
   /* Args */
-  ue_cfg_t                                cfg  = {};
-  srslte_cell_t                           cell = {};
-  srslte::log_ref                         log_h;
-  const std::vector<sched_cell_params_t>* cell_params_list = nullptr;
-  const sched_cell_params_t*              main_cc_params   = nullptr;
+  ue_cfg_t                   cfg  = {};
+  srslte_cell_t              cell = {};
+  mutable srslte::log_ref    log_h;
+  const sched_cell_params_t* main_cc_params = nullptr;
 
   /* Buffer states */
   bool           sr = false;
@@ -261,7 +258,8 @@ private:
 
   tti_point                current_tti;
   std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
-  std::vector<int>         enb_ue_cc_idx_map;
+
+  std::vector<sched_ue_cell> cells; ///< List of eNB cells that may be configured/activated/deactivated for the UE
 };
 
 using sched_ue_list = std::map<uint16_t, sched_ue>;

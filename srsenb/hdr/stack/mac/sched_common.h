@@ -61,6 +61,8 @@ public:
   uint32_t                                       nof_rbgs         = 0;
 };
 
+using ue_cce_locations_table = std::array<std::array<sched_dci_cce_t, SRSLTE_NOF_SF_X_FRAME>, SRSLTE_NOF_CFI>;
+
 //! Bitmask used for CCE allocations
 using pdcch_mask_t = srslte::bounded_bitset<sched_interface::max_cce, true>;
 

@@ -69,9 +69,9 @@ int test_pdcch_one_ue()
         sched_ue.get_locations(ENB_CC_IDX, pdcch_grid_t::MAX_CFI, to_tx_dl(tti_rx).sf_idx())->nof_loc[aggr_idx];
 
     // allocate DL user
-    uint32_t                 prev_cfi = pdcch.get_cfi();
-    srsenb::sched_dci_cce_t* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
-    uint32_t                 prev_nof_cce_locs = dci_cce->nof_loc[aggr_idx];
+    uint32_t                       prev_cfi = pdcch.get_cfi();
+    const srsenb::sched_dci_cce_t* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
+    uint32_t                       prev_nof_cce_locs = dci_cce->nof_loc[aggr_idx];
 
     TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, aggr_idx, &sched_ue));
     TESTASSERT(pdcch.nof_allocs() == 1);

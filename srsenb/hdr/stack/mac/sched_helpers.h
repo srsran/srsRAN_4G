@@ -100,6 +100,8 @@ inline uint32_t count_prb_per_tb(const rbgmask_t& bitmask)
   return nof_prb;
 }
 
+ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
+
 /**
  * Generate possible CCE locations a user can use to allocate DCIs
  * @param regs Regs data for the given cell configuration

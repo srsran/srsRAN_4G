@@ -101,8 +101,11 @@ sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC"))
 
 void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_)
 {
-  rnti             = rnti_;
-  cell_params_list = &cell_list_params_;
+  rnti = rnti_;
+  cells.reserve(cell_list_params_.size());
+  for (auto& c : cell_list_params_) {
+    cells.emplace_back(rnti_, c);
+  }
   Info("SCHED: Added user rnti=0x%x\n", rnti);
 }
 
@@ -117,7 +120,7 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
       Warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0\n");
     }
     // setup primary cc
-    main_cc_params = &(*cell_params_list)[primary_cc_idx];
+    main_cc_params = cells[primary_cc_idx].cell_cfg;
     cell           = main_cc_params->cfg.cell;
     max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
   }
@@ -129,6 +132,11 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
   // update bearer cfgs
   lch_handler.set_cfg(cfg_);
 
+  // update ue cells
+  for (auto& c : cells) {
+    c.set_ue_cfg(cfg);
+  }
+
   // in case carriers have been removed
   while (carriers.size() > cfg.supported_cc_list.size()) {
     // TODO: distinguish cell deactivation from reconfiguration
@@ -136,18 +144,15 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
   }
   // in case carriers have been added or modified
   bool scell_activation_state_changed = false;
-  enb_ue_cc_idx_map.clear();
-  enb_ue_cc_idx_map.resize(cell_params_list->size(), -1);
   for (uint32_t ue_idx = 0; ue_idx < cfg.supported_cc_list.size(); ++ue_idx) {
-    auto& cc_cfg                         = cfg.supported_cc_list[ue_idx];
-    enb_ue_cc_idx_map[cc_cfg.enb_cc_idx] = ue_idx;
+    auto& cc_cfg = cfg.supported_cc_list[ue_idx];
 
     if (ue_idx >= prev_supported_cc_list.size()) {
       // New carrier needs to be added
-      carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti);
+      carriers.emplace_back(cfg, *cells[cc_cfg.enb_cc_idx].cell_cfg, rnti, ue_idx, current_tti);
     } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
       // One carrier was added in the place of another
-      carriers[ue_idx] = cc_sched_ue{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti};
+      carriers[ue_idx] = cc_sched_ue{cfg, *cells[cc_cfg.enb_cc_idx].cell_cfg, rnti, ue_idx, current_tti};
       if (ue_idx == 0) {
         log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cc_cfg.enb_cc_idx);
       }
@@ -189,7 +194,7 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
       cc.harq_ent.new_tti(tti_rx);
     }
   }
-  int ue_cc_idx = enb_ue_cc_idx_map[enb_cc_idx];
+  int ue_cc_idx = cells[enb_cc_idx].get_ue_cc_idx();
   if (ue_cc_idx >= 0) {
     carriers.at(ue_cc_idx).tpc_fsm.new_tti();
   }
@@ -1124,13 +1129,13 @@ srslte_dci_format_t sched_ue::get_dci_format()
   return ret;
 }
 
-sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx)
+const sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx) const
 {
   if (cfi > 0 && cfi <= 3) {
-    return &carriers[get_active_cell_index(enb_cc_idx).second].dci_locations[cfi - 1][sf_idx];
+    return &cells[enb_cc_idx].dci_locations[cfi - 1][sf_idx];
   } else {
     Error("SCHED: Invalid CFI=%d\n", cfi);
-    return &carriers[get_active_cell_index(enb_cc_idx).second].dci_locations[0][sf_idx];
+    return &cells[enb_cc_idx].dci_locations[0][sf_idx];
   }
 }
 
@@ -1153,7 +1158,7 @@ std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
 
 int sched_ue::enb_to_ue_cc_idx(uint32_t enb_cc_idx) const
 {
-  return enb_ue_cc_idx_map[enb_cc_idx];
+  return cells.at(enb_cc_idx).get_ue_cc_idx();
 }
 
 float diff_coderate_maxcoderate(int      mcs,
@@ -1243,13 +1248,6 @@ cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
   // set fixed mcs
   fixed_mcs_dl = cell_params->sched_cfg->pdsch_mcs;
   fixed_mcs_ul = cell_params->sched_cfg->pusch_mcs;
-
-  // Generate allowed CCE locations
-  for (int cfi = 0; cfi < 3; cfi++) {
-    for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
-      generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
-    }
-  }
 }
 
 void cc_sched_ue::reset()
