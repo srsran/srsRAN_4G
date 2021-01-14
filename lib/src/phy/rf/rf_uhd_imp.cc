@@ -111,17 +111,21 @@ static const std::chrono::milliseconds RF_UHD_IMP_ASYNCH_MSG_SLEEP_MS = std::chr
 static const uint32_t RF_UHD_IMP_MAX_RX_TRIALS = 100;
 
 struct rf_uhd_handler_t {
+  size_t id;
+
   std::string                            devname;
   std::shared_ptr<rf_uhd_safe_interface> uhd = nullptr;
 
-  srslte_rf_info_t info;
-  size_t           rx_nof_samples      = 0;
-  size_t           tx_nof_samples      = 0;
-  double           tx_rate             = 1.92e6;
-  double           rx_rate             = 1.92e6;
-  bool             dynamic_master_rate = true;
-  uint32_t         nof_rx_channels     = 0;
-  uint32_t         nof_tx_channels     = 0;
+  srslte_rf_info_t                        info;
+  size_t                                  rx_nof_samples      = 0;
+  size_t                                  tx_nof_samples      = 0;
+  double                                  tx_rate             = 1.92e6;
+  double                                  rx_rate             = 1.92e6;
+  bool                                    dynamic_master_rate = true;
+  uint32_t                                nof_rx_channels     = 0;
+  uint32_t                                nof_tx_channels     = 0;
+  std::array<double, SRSLTE_MAX_CHANNELS> tx_freq             = {};
+  std::array<double, SRSLTE_MAX_CHANNELS> rx_freq             = {};
 
   srslte_rf_error_handler_t    uhd_error_handler     = nullptr;
   void*                        uhd_error_handler_arg = nullptr;
@@ -142,6 +146,10 @@ struct rf_uhd_handler_t {
   std::condition_variable async_cvar;
 #endif /* HAVE_ASYNC_THREAD */
 };
+
+// Store UHD Handler instances as shared pointer to avoid new/delete
+static std::map<size_t, std::shared_ptr<rf_uhd_handler_t> > rf_uhd_map;
+static size_t                                               uhd_handler_counter = 0;
 
 #if UHD_VERSION < 31100
 static void (*handler)(const char*);
@@ -277,10 +285,8 @@ static void* async_thread(void* h)
 }
 #endif
 
-static inline void uhd_free(rf_uhd_handler_t* h)
+static inline void uhd_free(rf_uhd_handler_t* handler)
 {
-  rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
-
   // NULL handler, return
   if (handler == nullptr) {
     return;
@@ -294,7 +300,8 @@ static inline void uhd_free(rf_uhd_handler_t* h)
   }
 #endif
 
-  delete handler;
+  // Erase element from MAP
+  rf_uhd_map.erase(handler->id);
 }
 
 void rf_uhd_suppress_stdout(void* h)
@@ -453,6 +460,7 @@ const char* rf_uhd_devname(void* h)
 bool rf_uhd_rx_wait_lo_locked(void* h)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+  Debug("Waiting for Rx LO Locked");
 
   // wait for clock source to lock
   std::string sensor_name = "lo_locked";
@@ -519,7 +527,15 @@ int rf_uhd_stop_rx_stream(void* h)
   rf_uhd_handler_t*            handler = (rf_uhd_handler_t*)h;
   std::unique_lock<std::mutex> lock(handler->rx_mutex);
 
-  return rf_uhd_stop_rx_stream_unsafe(handler);
+  if (rf_uhd_stop_rx_stream_unsafe(handler) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  // Make sure the Rx stream is flushed
+  lock.unlock(); // Flush has its own lock
+  rf_uhd_flush_buffer(h);
+
+  return SRSLTE_SUCCESS;
 }
 
 void rf_uhd_flush_buffer(void* h)
@@ -560,21 +576,8 @@ int rf_uhd_open(char* args, void** h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
-int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
+static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels)
 {
-  // Check valid handler pointer
-  if (h == nullptr) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  if (nof_channels > SRSLTE_MAX_CHANNELS) {
-    ERROR("Error opening UHD: maximum number of channels exceeded (%d>%d)", nof_channels, SRSLTE_MAX_CHANNELS);
-    return SRSLTE_ERROR;
-  }
-
-  rf_uhd_handler_t* handler = new rf_uhd_handler_t;
-  *h                        = handler;
-
   // Disable fast-path (U/L/O) messages
   setenv("UHD_LOG_FASTPATH_DISABLE", "1", 0);
 
@@ -676,6 +679,32 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   }
   handler->current_master_clock = device_addr.cast("master_clock_rate", 0.0);
 
+  // Parse default frequencies
+  for (uint32_t i = 0; i < nof_channels; i++) {
+    // Parse Tx frequency
+    if (i == 0 and device_addr.has_key("tx_freq")) {
+      handler->tx_freq[i] = device_addr.cast("tx_freq", handler->tx_freq[i]);
+      device_addr.pop("tx_freq");
+    } else {
+      std::string key = "tx_freq" + std::to_string(i);
+      if (device_addr.has_key(key)) {
+        handler->tx_freq[i] = device_addr.cast(key, handler->tx_freq[i]);
+        device_addr.pop(key);
+      }
+    }
+
+    // Parse Rx frequency
+    if (i == 0 and device_addr.has_key("rx_freq")) {
+      handler->rx_freq[i] = device_addr.cast("rx_freq", handler->rx_freq[i]);
+    } else {
+      std::string key = "rx_freq" + std::to_string(i);
+      if (device_addr.has_key(key)) {
+        handler->rx_freq[i] = device_addr.cast("rx_freq" + std::to_string(i), handler->rx_freq[i]);
+        device_addr.pop(key);
+      }
+    }
+  }
+
   // Set dynamic master clock rate configuration
   if (device_addr.has_key("type")) {
     handler->dynamic_master_rate = RH_UHD_IMP_FIX_MASTER_CLOCK_RATE_DEVICE_LIST.count(device_addr["type"]) == 0;
@@ -706,7 +735,6 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   // Make USRP
   if (handler->uhd->usrp_make(device_addr, nof_channels) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
-    uhd_free(handler);
     return SRSLTE_ERROR;
   }
 
@@ -777,6 +805,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   handler->nof_rx_channels = nof_channels;
   handler->nof_tx_channels = nof_channels;
 
+  // Set default Tx/Rx rates
   if (handler->uhd->set_rx_rate(handler->rx_rate) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSLTE_ERROR;
@@ -786,6 +815,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     return SRSLTE_ERROR;
   }
 
+  // Reset timestamps
   if (nof_channels > 1 and clock_src != "gpsdo") {
     handler->uhd->set_time_unknown_pps(uhd::time_spec_t());
   }
@@ -798,6 +828,27 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   if (handler->uhd->get_tx_stream(handler->tx_nof_samples) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSLTE_ERROR;
+  }
+
+  // Tune LOs if the default frequency is provided
+  bool require_wait_rx_lock = false;
+  for (uint32_t i = 0; i < nof_channels; i++) {
+    if (std::isnormal(handler->rx_freq[i])) {
+      if (handler->uhd->set_rx_freq(i, handler->rx_freq[i], handler->rx_freq[i]) != UHD_ERROR_NONE) {
+        print_usrp_error(handler);
+        return SRSLTE_ERROR;
+      }
+      rf_uhd_rx_wait_lo_locked(handler);
+      require_wait_rx_lock = true;
+    }
+  }
+  for (uint32_t i = 0; i < nof_channels; i++) {
+    if (std::isnormal(handler->tx_freq[i])) {
+      if (handler->uhd->set_tx_freq(i, handler->tx_freq[i], handler->tx_freq[i]) != UHD_ERROR_NONE) {
+        print_usrp_error(handler);
+        return SRSLTE_ERROR;
+      }
+    }
   }
 
   // Populate RF device info
@@ -832,6 +883,37 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   return SRSLTE_SUCCESS;
 }
 
+int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
+{
+  // Check valid handler pointer
+  if (h == nullptr) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (nof_channels > SRSLTE_MAX_CHANNELS) {
+    ERROR("Error opening UHD: maximum number of channels exceeded (%d>%d)", nof_channels, SRSLTE_MAX_CHANNELS);
+    return SRSLTE_ERROR;
+  }
+
+  // Create UHD handler
+  rf_uhd_map[uhd_handler_counter] = std::make_shared<rf_uhd_handler_t>();
+  rf_uhd_handler_t* handler       = rf_uhd_map[uhd_handler_counter].get();
+  handler->id                     = uhd_handler_counter;
+  uhd_handler_counter++;
+  *h = handler;
+
+  // Initialise UHD handler
+  if (uhd_init(handler, args, nof_channels) < SRSLTE_SUCCESS) {
+    ERROR("uhd_init failed, freeing...");
+    // Free/Close UHD handler properly
+    uhd_free(handler);
+    *h = nullptr;
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int rf_uhd_close(void* h)
 {
   // Makes sure Tx is ended
@@ -852,7 +934,7 @@ int rf_uhd_close(void* h)
 static inline void rf_uhd_set_master_clock_rate_unsafe(rf_uhd_handler_t* handler, double rate)
 {
   // Set master clock rate if it is allowed and change is required
-  if (handler->dynamic_master_rate && handler->current_master_clock != rate) {
+  if (handler->dynamic_master_rate and handler->current_master_clock != rate) {
     if (handler->uhd->set_master_clock_rate(rate) != UHD_ERROR_NONE) {
       print_usrp_error(handler);
     }
@@ -1078,44 +1160,61 @@ srslte_rf_info_t* rf_uhd_get_info(void* h)
 
   return info;
 }
+static bool rf_uhd_set_freq_ch(rf_uhd_handler_t* handler, uint32_t ch, double& freq, bool is_tx)
+{
+  double& curr_freq = (is_tx) ? handler->tx_freq[ch] : handler->rx_freq[ch];
+
+  // Skip if frequency is unchanged
+  if (round(freq) == round(curr_freq)) {
+    return false;
+  }
+
+  // Set frequency
+  if (is_tx) {
+    if (handler->uhd->set_tx_freq(ch, freq, curr_freq) != UHD_ERROR_NONE) {
+      print_usrp_error(handler);
+    }
+  } else {
+    if (handler->uhd->set_rx_freq(ch, freq, curr_freq) != UHD_ERROR_NONE) {
+      print_usrp_error(handler);
+    }
+  }
+  return true;
+}
 
 double rf_uhd_set_rx_freq(void* h, uint32_t ch, double freq)
 {
+  bool require_rx_wait_lo_locked = false;
+
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   if (ch < handler->nof_rx_channels) {
-    if (handler->uhd->set_rx_freq(ch, freq, freq) != UHD_ERROR_NONE) {
-      print_usrp_error(handler);
-      return SRSLTE_ERROR;
-    }
+    require_rx_wait_lo_locked |= rf_uhd_set_freq_ch(handler, ch, freq, false);
   } else {
     for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
-      if (handler->uhd->set_rx_freq(i, freq, freq) != UHD_ERROR_NONE) {
-        print_usrp_error(handler);
-        return SRSLTE_ERROR;
-      }
+      require_rx_wait_lo_locked |= rf_uhd_set_freq_ch(handler, i, freq, false);
     }
   }
-  rf_uhd_rx_wait_lo_locked(handler);
-  return freq;
+
+  // wait for LO Locked
+  if (require_rx_wait_lo_locked) {
+    rf_uhd_rx_wait_lo_locked(handler);
+  }
+
+  return handler->rx_freq[ch % handler->nof_rx_channels];
 }
 
 double rf_uhd_set_tx_freq(void* h, uint32_t ch, double freq)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   if (ch < handler->nof_tx_channels) {
-    if (handler->uhd->set_tx_freq(ch, freq, freq) != UHD_ERROR_NONE) {
-      print_usrp_error(handler);
-      return SRSLTE_ERROR;
-    }
+    rf_uhd_set_freq_ch(handler, ch, freq, true);
   } else {
     for (uint32_t i = 0; i < handler->nof_tx_channels; i++) {
-      if (handler->uhd->set_tx_freq(i, freq, freq) != UHD_ERROR_NONE) {
-        print_usrp_error(handler);
-        return SRSLTE_ERROR;
-      }
+      rf_uhd_set_freq_ch(handler, i, freq, true);
     }
   }
-  return freq;
+
+  return handler->tx_freq[ch % handler->nof_tx_channels];
 }
 
 void rf_uhd_get_time(void* h, time_t* secs, double* frac_secs)
