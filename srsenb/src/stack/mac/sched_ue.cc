@@ -425,33 +425,32 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
  * @param ue_cc_idx
  * @return pair with allocated tbs and mcs
  */
-std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
-                                                      dl_harq_proc*           h,
-                                                      const rbgmask_t&        user_mask,
-                                                      tti_point               tti_tx_dl,
-                                                      uint32_t                ue_cc_idx,
-                                                      uint32_t                cfi,
-                                                      uint32_t                tb)
+tbs_info sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
+                                           dl_harq_proc*           h,
+                                           const rbgmask_t&        user_mask,
+                                           tti_point               tti_tx_dl,
+                                           uint32_t                ue_cc_idx,
+                                           uint32_t                cfi,
+                                           uint32_t                tb)
 {
   srslte_dci_dl_t* dci     = &data->dci;
   uint32_t         nof_prb = count_prb_per_tb(user_mask);
-  auto             ret     = compute_mcs_and_tbs(ue_cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
-  int              mcs     = ret.first;
-  int              tbs     = ret.second;
+  tbs_info         tb_info = compute_mcs_and_tbs(ue_cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
 
   // Allocate MAC PDU (subheaders, CEs, and SDUS)
-  int rem_tbs = tbs;
+  int rem_tbs = tb_info.tbs_bytes;
   rem_tbs -= allocate_mac_ces(data, lch_handler, rem_tbs, ue_cc_idx);
   rem_tbs -= allocate_mac_sdus(data, lch_handler, rem_tbs, tb);
 
   // Allocate DL UE Harq
-  if (rem_tbs != tbs) {
-    h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce, get_ue_cfg().maxharq_tx);
+  if (rem_tbs != tb_info.tbs_bytes) {
+    h->new_tx(
+        user_mask, tb, tti_tx_dl, tb_info.mcs, tb_info.tbs_bytes, data->dci.location.ncce, get_ue_cfg().maxharq_tx);
   } else {
     Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
   }
 
-  return {tbs, mcs};
+  return tb_info;
 }
 
 int sched_ue::generate_dl_dci_format(uint32_t                          pid,
@@ -492,9 +491,6 @@ int sched_ue::generate_format1(uint32_t                          pid,
   dl_harq_proc*    h   = &carriers[ue_cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci = &data->dci;
 
-  int mcs = 0;
-  int tbs = 0;
-
   // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
   // Common SS when spaces collide
   if (cell.nof_prb == 15 && carriers.size() > 1) {
@@ -516,28 +512,27 @@ int sched_ue::generate_format1(uint32_t                          pid,
     dci->format                  = SRSLTE_DCI_FORMAT1;
   }
 
+  tbs_info tbinfo;
   if (h->is_empty(0)) {
-    auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, 0);
-    tbs      = ret.first;
-    mcs      = ret.second;
+    tbinfo = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, 0);
   } else {
-    h->new_retx(user_mask, 0, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
-    Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
+    h->new_retx(user_mask, 0, tti_tx_dl, &tbinfo.mcs, &tbinfo.tbs_bytes, data->dci.location.ncce);
+    Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", tbinfo.mcs, tbinfo.tbs_bytes);
   }
 
-  if (tbs > 0) {
+  if (tbinfo.tbs_bytes > 0) {
     dci->rnti          = rnti;
     dci->pid           = h->get_id();
     dci->ue_cc_idx     = ue_cc_idx;
-    dci->tb[0].mcs_idx = (uint32_t)mcs;
+    dci->tb[0].mcs_idx = (uint32_t)tbinfo.mcs;
     dci->tb[0].rv      = get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
     dci->tpc_pucch = carriers[ue_cc_idx].tpc_fsm.encode_pucch_tpc();
-    data->tbs[0]   = (uint32_t)tbs;
+    data->tbs[0]   = (uint32_t)tbinfo.tbs_bytes;
     data->tbs[1]   = 0;
   }
-  return tbs;
+  return tbinfo.tbs_bytes;
 }
 
 /**
@@ -549,13 +544,12 @@ int sched_ue::generate_format1(uint32_t                          pid,
  * @param dci contains the RBG mask, and alloc type
  * @return pair with MCS and TBS (in bytes)
  */
-std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_idx,
-                                                  tti_point              tti_tx_dl,
-                                                  uint32_t               nof_alloc_prbs,
-                                                  uint32_t               cfi,
-                                                  const srslte_dci_dl_t& dci)
+tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_idx,
+                                       tti_point              tti_tx_dl,
+                                       uint32_t               nof_alloc_prbs,
+                                       uint32_t               cfi,
+                                       const srslte_dci_dl_t& dci)
 {
-  int                        mcs = 0, tbs_bytes = 0;
   srslte::interval<uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
 
   // Calculate exact number of RE for this PRB allocation
@@ -567,22 +561,14 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   uint32_t nof_re = srslte_ra_dl_grant_nof_re(&carriers[ue_cc_idx].get_cell_cfg()->cfg.cell, &dl_sf, &grant);
 
   // Compute MCS+TBS
-  // Use a higher MCS for the Msg4 to fit in the 6 PRB case
-  if (carriers[ue_cc_idx].fixed_mcs_dl < 0 or not carriers[ue_cc_idx].dl_cqi_rx) {
-    // Dynamic MCS
-    tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.stop(), &mcs);
-  } else {
-    // Fixed MCS
-    mcs       = carriers[ue_cc_idx].fixed_mcs_dl;
-    tbs_bytes = get_tbs_bytes((uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
-  }
+  tbs_info tb = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.stop());
 
-  if (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.start() and mcs < 28) {
+  if (tb.tbs_bytes > 0 and tb.tbs_bytes < (int)req_bytes.start()) {
     log_h->info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation\n");
     // Note: This is not a warning, because the srb0 buffer can be updated after the ue sched decision
   }
 
-  return {mcs, tbs_bytes};
+  return tb;
 }
 
 // Generates a Format2a dci
@@ -626,27 +612,24 @@ int sched_ue::generate_format2a(uint32_t                          pid,
   }
 
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    int mcs = 0;
-    int tbs = 0;
+    tbs_info tbinfo;
 
     if (!h->is_empty(tb)) {
-      h->new_retx(user_mask, tb, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
+      h->new_retx(user_mask, tb, tti_tx_dl, &tbinfo.mcs, &tbinfo.tbs_bytes, data->dci.location.ncce);
     } else if (tb_en[tb] && no_retx) {
-      auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, tb);
-      tbs      = ret.first;
-      mcs      = ret.second;
+      tbinfo = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, tb);
     }
 
     /* Fill DCI TB dedicated fields */
-    if (tbs > 0 && tb_en[tb]) {
-      dci->tb[tb].mcs_idx = (uint32_t)mcs;
+    if (tbinfo.tbs_bytes > 0 && tb_en[tb]) {
+      dci->tb[tb].mcs_idx = (uint32_t)tbinfo.mcs;
       dci->tb[tb].rv      = get_rvidx(h->nof_retx(tb));
       if (!SRSLTE_DCI_IS_TB_EN(dci->tb[tb])) {
         dci->tb[tb].rv = 2;
       }
       dci->tb[tb].ndi    = h->get_ndi(tb);
       dci->tb[tb].cw_idx = tb;
-      data->tbs[tb]      = (uint32_t)tbs;
+      data->tbs[tb]      = (uint32_t)tbinfo.tbs_bytes;
     } else {
       SRSLTE_DCI_TB_DISABLE(dci->tb[tb]);
       data->tbs[tb] = 0;
@@ -704,8 +687,9 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   data->needs_pdcch = needs_pdcch;
   dci->location     = dci_pos;
 
-  int mcs = (explicit_mcs >= 0) ? explicit_mcs : carriers[ue_cc_idx].fixed_mcs_ul;
-  int tbs = 0;
+  tbs_info tbinfo;
+  tbinfo.mcs       = (explicit_mcs >= 0) ? explicit_mcs : carriers[ue_cc_idx].fixed_mcs_ul;
+  tbinfo.tbs_bytes = 0;
 
   bool is_newtx = h->is_empty(0);
   if (is_newtx) {
@@ -714,15 +698,15 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     // If Msg3 set different nof retx
     nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
 
-    if (mcs >= 0) {
-      tbs = get_tbs_bytes(mcs, alloc.length(), false, true);
+    if (tbinfo.mcs >= 0) {
+      tbinfo.tbs_bytes = get_tbs_bytes(tbinfo.mcs, alloc.length(), false, true);
     } else {
       // dynamic mcs
       uint32_t req_bytes = get_pending_ul_new_data(tti_tx_ul, ue_cc_idx);
       uint32_t N_srs     = 0;
       uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
       uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
-      tbs                = carriers[ue_cc_idx].alloc_tbs_ul(alloc.length(), nof_re, req_bytes, &mcs);
+      tbinfo             = carriers[ue_cc_idx].alloc_tbs_ul(alloc.length(), nof_re, req_bytes);
 
       // Reduce MCS to fit UCI if transmitted in this grant
       if (uci_type != UCI_PUSCH_NONE) {
@@ -731,33 +715,33 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         // Add the RE for ACK
         if (uci_type == UCI_PUSCH_ACK || uci_type == UCI_PUSCH_ACK_CQI) {
           float beta = srslte_sch_beta_ack(cfg.uci_offset.I_offset_ack);
-          nof_uci_re += srslte_qprime_ack_ext(alloc.length(), nof_symb, 8 * tbs, carriers.size(), beta);
+          nof_uci_re += srslte_qprime_ack_ext(alloc.length(), nof_symb, 8 * tbinfo.tbs_bytes, carriers.size(), beta);
         }
         // Add the RE for CQI report (RI reports are transmitted on CQI slots. We do a conservative estimate here)
         if (uci_type == UCI_PUSCH_CQI || uci_type == UCI_PUSCH_ACK_CQI || cqi_request) {
           float beta = srslte_sch_beta_cqi(cfg.uci_offset.I_offset_cqi);
-          nof_uci_re += srslte_qprime_cqi_ext(alloc.length(), nof_symb, 8 * tbs, beta);
+          nof_uci_re += srslte_qprime_cqi_ext(alloc.length(), nof_symb, 8 * tbinfo.tbs_bytes, beta);
         }
         // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
         if (nof_re >= nof_uci_re) {
-          tbs = carriers[ue_cc_idx].alloc_tbs_ul(alloc.length(), nof_re - nof_uci_re, req_bytes, &mcs);
+          tbinfo = carriers[ue_cc_idx].alloc_tbs_ul(alloc.length(), nof_re - nof_uci_re, req_bytes);
         }
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
     }
-    h->new_tx(tti_tx_ul, mcs, tbs, alloc, nof_retx);
+    h->new_tx(tti_tx_ul, tbinfo.mcs, tbinfo.tbs_bytes, alloc, nof_retx);
     // Un-trigger the SR if data is allocated
-    if (tbs > 0) {
+    if (tbinfo.tbs_bytes > 0) {
       unset_sr();
     }
   } else {
     // retx
-    h->new_retx(tti_tx_ul, &mcs, nullptr, alloc);
-    tbs = get_tbs_bytes(mcs, alloc.length(), false, true);
+    h->new_retx(tti_tx_ul, &tbinfo.mcs, nullptr, alloc);
+    tbinfo.tbs_bytes = get_tbs_bytes(tbinfo.mcs, alloc.length(), false, true);
   }
 
-  if (tbs >= 0) {
-    data->tbs           = tbs;
+  if (tbinfo.tbs_bytes >= 0) {
+    data->tbs           = tbinfo.tbs_bytes;
     data->current_tx_nb = h->nof_retx(0);
     dci->rnti           = rnti;
     dci->format         = SRSLTE_DCI_FORMAT0;
@@ -771,7 +755,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
 
     // If there are no RE available for ULSCH but there is UCI to transmit, allocate PUSCH becuase
     // resources have been reserved already and in CA it will be used to ACK other carriers
-    if (tbs == 0 && (cqi_request || uci_type != UCI_PUSCH_NONE)) {
+    if (tbinfo.tbs_bytes == 0 && (cqi_request || uci_type != UCI_PUSCH_NONE)) {
       // 8.6.1 and 8.6.2 36.213 second paragraph
       dci->cqi_request = true;
       dci->tb.mcs_idx  = 29;
@@ -782,21 +766,21 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       if (alloc.length() > 4) {
         alloc.set(alloc.start(), alloc.start() + 4);
       }
-    } else if (tbs > 0) {
+    } else if (tbinfo.tbs_bytes > 0) {
       dci->tb.rv = get_rvidx(h->nof_retx(0));
       if (!is_newtx && data->needs_pdcch) {
         dci->tb.mcs_idx = 28 + dci->tb.rv;
       } else {
-        dci->tb.mcs_idx = mcs;
+        dci->tb.mcs_idx = tbinfo.mcs;
       }
-    } else if (tbs == 0) {
+    } else if (tbinfo.tbs_bytes == 0) {
       log_h->warning("SCHED: No space for ULSCH while allocating format0. Discarding grant.\n");
     } else {
       log_h->error("SCHED: Unkown error while allocating format0\n");
     }
   }
 
-  return tbs;
+  return tbinfo.tbs_bytes;
 }
 
 /*******************************************************
@@ -1349,8 +1333,9 @@ uint32_t cc_sched_ue::get_aggr_level(uint32_t nof_bits)
 /* In this scheduler we tend to use all the available bandwidth and select the MCS
  * that approximates the minimum between the capacity and the requested rate
  */
-int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs)
+tbs_info cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul)
 {
+  tbs_info ret;
   uint32_t sel_mcs = 0;
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
@@ -1383,32 +1368,53 @@ int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes
     tbs_bytes = get_tbs_bytes(sel_mcs, nof_prb, cfg->use_tbs_index_alt, is_ul);
   }
 
-  if (mcs != nullptr && tbs_bytes >= 0) {
-    *mcs = (int)sel_mcs;
+  ret.tbs_bytes = tbs_bytes;
+  if (ret.tbs_bytes >= 0) {
+    ret.mcs = (int)sel_mcs;
   }
 
-  return tbs_bytes;
+  return ret;
 }
 
-int cc_sched_ue::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
+tbs_info cc_sched_ue::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes)
 {
-  return alloc_tbs(nof_prb, nof_re, req_bytes, false, mcs);
+  tbs_info ret;
+
+  // Use a higher MCS for the Msg4 to fit in the 6 PRB case
+  if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
+    // Dynamic MCS
+    ret = alloc_tbs(nof_prb, nof_re, req_bytes, false);
+  } else {
+    // Fixed MCS
+    ret.mcs       = fixed_mcs_dl;
+    ret.tbs_bytes = get_tbs_bytes((uint32_t)fixed_mcs_dl, nof_prb, cfg->use_tbs_index_alt, false);
+  }
+  return ret;
 }
 
-int cc_sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
+tbs_info cc_sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs)
 {
-  return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
+  tbs_info ret;
+  int      mcs = explicit_mcs >= 0 ? explicit_mcs : fixed_mcs_ul;
+
+  if (mcs < 0) {
+    // Dynamic MCS
+    ret = alloc_tbs(nof_prb, nof_re, req_bytes, true);
+  } else {
+    // Fixed MCS
+    ret.mcs       = mcs;
+    ret.tbs_bytes = get_tbs_bytes((uint32_t)mcs, nof_prb, false, true);
+  }
+
+  return ret;
 }
 
 int cc_sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
 {
   auto compute_tbs_approx = [this, nof_ctrl_symbols](uint32_t nof_prb) {
     uint32_t nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, nof_prb, nof_ctrl_symbols);
-    int      mcs;
-    if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
-      return alloc_tbs_dl(nof_prb, nof_re, 0, &mcs);
-    }
-    return (int)get_tbs_bytes(fixed_mcs_dl, nof_prb, cfg->use_tbs_index_alt, false);
+    tbs_info tb     = alloc_tbs_dl(nof_prb, nof_re, 0);
+    return tb.tbs_bytes;
   };
 
   std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
@@ -1426,11 +1432,7 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
   auto compute_tbs_approx = [this](uint32_t nof_prb) {
     const uint32_t N_srs  = 0;
     uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
-    int            mcs;
-    if (fixed_mcs_ul < 0) {
-      return alloc_tbs_ul(nof_prb, nof_re, 0, &mcs);
-    }
-    return (int)get_tbs_bytes(fixed_mcs_ul, nof_prb, false, true);
+    return alloc_tbs_ul(nof_prb, nof_re, 0).tbs_bytes;
   };
 
   // find nof prbs that lead to a tbs just above req_bytes

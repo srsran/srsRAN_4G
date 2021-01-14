@@ -29,6 +29,11 @@ namespace srsenb {
 typedef enum { UCI_PUSCH_NONE = 0, UCI_PUSCH_CQI, UCI_PUSCH_ACK, UCI_PUSCH_ACK_CQI } uci_pusch_t;
 enum class cc_st { active, idle, activating, deactivating };
 
+struct tbs_info {
+  int tbs_bytes = -1;
+  int mcs       = 0;
+};
+
 struct cc_sched_ue {
   const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
 
@@ -42,9 +47,9 @@ struct cc_sched_ue {
   void finish_tti(srslte::tti_point tti_rx);
 
   uint32_t                   get_aggr_level(uint32_t nof_bits);
-  int                        alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
-  int                        alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
-  int                        alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
+  tbs_info                   alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul);
+  tbs_info                   alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes);
+  tbs_info                   alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs = -1);
   int                        get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
@@ -202,19 +207,19 @@ public:
 private:
   bool is_sr_triggered();
 
-  std::pair<int, int> allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
-                                              dl_harq_proc*                     h,
-                                              const rbgmask_t&                  user_mask,
-                                              tti_point                         tti_tx_dl,
-                                              uint32_t                          ue_cc_idx,
-                                              uint32_t                          cfi,
-                                              uint32_t                          tb);
+  tbs_info allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
+                                   dl_harq_proc*                     h,
+                                   const rbgmask_t&                  user_mask,
+                                   tti_point                         tti_tx_dl,
+                                   uint32_t                          ue_cc_idx,
+                                   uint32_t                          cfi,
+                                   uint32_t                          tb);
 
-  std::pair<int, int> compute_mcs_and_tbs(uint32_t               ue_cc_idx,
-                                          tti_point              tti_tx_dl,
-                                          uint32_t               nof_alloc_prbs,
-                                          uint32_t               cfi,
-                                          const srslte_dci_dl_t& dci);
+  tbs_info compute_mcs_and_tbs(uint32_t               ue_cc_idx,
+                               tti_point              tti_tx_dl,
+                               uint32_t               nof_alloc_prbs,
+                               uint32_t               cfi,
+                               const srslte_dci_dl_t& dci);
 
   bool needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
 
