@@ -8,7 +8,7 @@
 
 add_subdirectory(schedulers)
 
-set(SOURCES mac.cc ue.cc sched.cc sched_carrier.cc sched_grid.cc sched_harq.cc sched_ue.cc
+set(SOURCES mac.cc ue.cc sched.cc sched_carrier.cc sched_grid.cc sched_ue_ctrl/sched_harq.cc sched_ue.cc
         sched_ue_ctrl/sched_lch.cc sched_helpers.cc)
 add_library(srsenb_mac STATIC ${SOURCES} $<TARGET_OBJECTS:mac_schedulers>)
 

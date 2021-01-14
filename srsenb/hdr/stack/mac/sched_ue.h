@@ -18,7 +18,7 @@
 #include <map>
 #include <vector>
 
-#include "sched_harq.h"
+#include "sched_ue_ctrl/sched_harq.h"
 #include "sched_ue_ctrl/sched_lch.h"
 #include "sched_ue_ctrl/tpc.h"
 #include <bitset>
