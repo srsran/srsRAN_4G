@@ -149,10 +149,10 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
 
     if (ue_idx >= prev_supported_cc_list.size()) {
       // New carrier needs to be added
-      carriers.emplace_back(cfg, *cells[cc_cfg.enb_cc_idx].cell_cfg, rnti, ue_idx, current_tti);
+      carriers.emplace_back(cfg, cells[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti);
     } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
       // One carrier was added in the place of another
-      carriers[ue_idx] = cc_sched_ue{cfg, *cells[cc_cfg.enb_cc_idx].cell_cfg, rnti, ue_idx, current_tti};
+      carriers[ue_idx] = cc_sched_ue{cfg, cells[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti};
       if (ue_idx == 0) {
         log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cc_cfg.enb_cc_idx);
       }
@@ -558,12 +558,7 @@ tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_idx,
   srslte::interval<uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
 
   // Calculate exact number of RE for this PRB allocation
-  srslte_pdsch_grant_t grant = {};
-  srslte_dl_sf_cfg_t   dl_sf = {};
-  dl_sf.cfi                  = cfi;
-  dl_sf.tti                  = tti_tx_dl.to_uint();
-  srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, carriers[ue_cc_idx].get_cell_cfg()->nof_prb());
-  uint32_t nof_re = srslte_ra_dl_grant_nof_re(&carriers[ue_cc_idx].get_cell_cfg()->cfg.cell, &dl_sf, &grant);
+  uint32_t nof_re = carriers[ue_cc_idx].get_cell_cfg()->get_dl_nof_res(tti_tx_dl, dci, cfi);
 
   // Compute MCS+TBS
   tbs_info tb = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.stop());
@@ -831,9 +826,8 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx)
   if (req_bytes == srslte::interval<uint32_t>{0, 0}) {
     return {0, 0};
   }
-  const auto* cellparams = carriers[ue_cc_idx].get_cell_cfg();
-  int         pending_prbs =
-      carriers[ue_cc_idx].get_required_prb_dl(req_bytes.start(), cellparams->sched_cfg->max_nof_ctrl_symbols);
+  const auto* cellparams   = carriers[ue_cc_idx].get_cell_cfg();
+  int         pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(to_tx_dl(current_tti), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
     log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
@@ -842,10 +836,10 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx)
                  req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
-  uint32_t min_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
-  pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.stop(), cellparams->sched_cfg->max_nof_ctrl_symbols);
-  pending_prbs = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
-  uint32_t max_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
+  uint32_t min_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
+  pending_prbs             = carriers[ue_cc_idx].get_required_prb_dl(to_tx_dl(current_tti), req_bytes.stop());
+  pending_prbs             = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
+  uint32_t max_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
 }
 
@@ -922,12 +916,9 @@ uint32_t sched_ue::get_pending_dl_rlc_data() const
 
 uint32_t sched_ue::get_expected_dl_bitrate(uint32_t ue_cc_idx, int nof_rbgs) const
 {
-  const cc_sched_ue* cc       = &carriers[ue_cc_idx];
-  auto*              cell_cfg = carriers[ue_cc_idx].get_cell_cfg();
-  uint32_t nof_prbs_alloc = nof_rbgs < 0 ? cell_cfg->nof_prb() : std::min(nof_rbgs * cell_cfg->P, cell_cfg->nof_prb());
-
-  uint32_t nof_re =
-      srslte_ra_dl_approx_nof_re(&cell_cfg->cfg.cell, nof_prbs_alloc, cell_cfg->sched_cfg->max_nof_ctrl_symbols);
+  const cc_sched_ue* cc     = &carriers[ue_cc_idx];
+  uint32_t           nof_re = cc->get_cell_cfg()->get_dl_lb_nof_re(
+      to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc->get_cell_cfg()->nof_prb()));
   float max_coderate = srslte_cqi_to_coderate(std::min(cc->dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
 
   // Inverse of srslte_coderate(tbs, nof_re)
@@ -1227,27 +1218,29 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint3
  ***********************************************************************************************/
 
 cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
-                         const sched_cell_params_t&       cell_cfg_,
+                         const sched_ue_cell&             cell_ue_,
                          uint16_t                         rnti_,
                          uint32_t                         ue_cc_idx_,
                          tti_point                        current_tti) :
-  cell_params(&cell_cfg_),
+  cell_ue(&cell_ue_),
   rnti(rnti_),
-  log_h(srslte::logmap::get("MAC ")),
+  log_h(srslte::logmap::get("MAC")),
   ue_cc_idx(ue_cc_idx_),
   last_tti(current_tti),
   harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
-  tpc_fsm(cell_cfg_.nof_prb(), cell_cfg_.cfg.target_ul_sinr, cell_cfg_.cfg.enable_phr_handling)
+  tpc_fsm(cell_ue_.cell_cfg->nof_prb(),
+          cell_ue_.cell_cfg->cfg.target_ul_sinr,
+          cell_ue_.cell_cfg->cfg.enable_phr_handling)
 {
   dl_cqi_rx = false;
-  dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
+  dl_cqi    = (ue_cc_idx == 0) ? cell_ue_.cell_cfg->cfg.initial_dl_cqi : 0;
   set_cfg(cfg_);
 
-  max_aggr_level = cell_params->sched_cfg->max_aggr_level >= 0 ? cell_params->sched_cfg->max_aggr_level : 3;
+  max_aggr_level = cell_ue->cell_cfg->sched_cfg->max_aggr_level >= 0 ? cell_ue->cell_cfg->sched_cfg->max_aggr_level : 3;
 
   // set fixed mcs
-  fixed_mcs_dl = cell_params->sched_cfg->pdsch_mcs;
-  fixed_mcs_ul = cell_params->sched_cfg->pusch_mcs;
+  fixed_mcs_dl = cell_ue->cell_cfg->sched_cfg->pdsch_mcs;
+  fixed_mcs_ul = cell_ue->cell_cfg->sched_cfg->pusch_mcs;
 }
 
 void cc_sched_ue::reset()
@@ -1269,12 +1262,13 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   cfg_tti = last_tti;
 
   // set max mcs
-  max_mcs_ul = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28u;
-  if (cell_params->cfg.enable_64qam) {
+  max_mcs_ul = get_cell_cfg()->sched_cfg->pusch_max_mcs >= 0 ? get_cell_cfg()->sched_cfg->pusch_max_mcs : 28u;
+  if (get_cell_cfg()->cfg.enable_64qam) {
     const uint32_t max_64qam_mcs[] = {20, 24, 28};
     max_mcs_ul                     = std::min(max_mcs_ul, max_64qam_mcs[(size_t)cfg->support_ul64qam]);
   }
-  max_mcs_dl = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? std::min(cell_params->sched_cfg->pdsch_max_mcs, 28) : 28u;
+  max_mcs_dl =
+      get_cell_cfg()->sched_cfg->pdsch_max_mcs >= 0 ? std::min(get_cell_cfg()->sched_cfg->pdsch_max_mcs, 28) : 28u;
   if (cfg->use_tbs_index_alt) {
     max_mcs_dl = std::min(max_mcs_dl, 27u);
   }
@@ -1325,7 +1319,7 @@ void cc_sched_ue::finish_tti(tti_point tti_rx)
 
 uint32_t cc_sched_ue::get_aggr_level(uint32_t nof_bits)
 {
-  return srsenb::get_aggr_level(nof_bits, dl_cqi, max_aggr_level, cell_params->nof_prb(), cfg->use_tbs_index_alt);
+  return srsenb::get_aggr_level(nof_bits, dl_cqi, max_aggr_level, get_cell_cfg()->nof_prb(), cfg->use_tbs_index_alt);
 }
 
 /* In this scheduler we tend to use all the available bandwidth and select the MCS
@@ -1407,16 +1401,16 @@ tbs_info cc_sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t r
   return ret;
 }
 
-int cc_sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
+int cc_sched_ue::get_required_prb_dl(tti_point tti_tx_dl, uint32_t req_bytes)
 {
-  auto compute_tbs_approx = [this, nof_ctrl_symbols](uint32_t nof_prb) {
-    uint32_t nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, nof_prb, nof_ctrl_symbols);
+  auto compute_tbs_approx = [tti_tx_dl, this](uint32_t nof_prb) {
+    uint32_t nof_re = cell_ue->cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
     tbs_info tb     = alloc_tbs_dl(nof_prb, nof_re, 0);
     return tb.tbs_bytes;
   };
 
   std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
-      1u, cell_params->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+      1u, get_cell_cfg()->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
   int      upper_tbs  = std::get<3>(ret);
   uint32_t upper_nprb = std::get<2>(ret);
   return (upper_tbs < 0) ? 0 : ((upper_tbs < (int)req_bytes) ? -1 : upper_nprb);
@@ -1429,17 +1423,17 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
   }
   auto compute_tbs_approx = [this](uint32_t nof_prb) {
     const uint32_t N_srs  = 0;
-    uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
+    uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(get_cell_cfg()->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
     return alloc_tbs_ul(nof_prb, nof_re, 0).tbs_bytes;
   };
 
   // find nof prbs that lead to a tbs just above req_bytes
   int                                      target_tbs = req_bytes + 4;
-  uint32_t                                 max_prbs   = std::min(tpc_fsm.max_ul_prbs(), cell_params->nof_prb());
+  uint32_t                                 max_prbs   = std::min(tpc_fsm.max_ul_prbs(), get_cell_cfg()->nof_prb());
   std::tuple<uint32_t, int, uint32_t, int> ret =
       false_position_method(1u, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
   uint32_t req_prbs = std::get<2>(ret);
-  while (!srslte_dft_precoding_valid_prb(req_prbs) && req_prbs < cell_params->nof_prb()) {
+  while (!srslte_dft_precoding_valid_prb(req_prbs) && req_prbs < get_cell_cfg()->nof_prb()) {
     req_prbs++;
   }
   return req_prbs;

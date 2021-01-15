@@ -12,8 +12,13 @@
 
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_ue_cell.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include <numeric>
 
 namespace srsenb {
+
+/*******************************************************
+ *                sched_ue_cell
+ *******************************************************/
 
 sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg_) :
   rnti(rnti_), cell_cfg(&cell_cfg_), dci_locations(generate_cce_location_table(rnti_, cell_cfg_))

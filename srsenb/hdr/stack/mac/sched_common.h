@@ -47,8 +47,10 @@ public:
                const sched_interface::cell_cfg_t&   cfg_,
                const sched_interface::sched_args_t& sched_args);
   // convenience getters
-  uint32_t prb_to_rbg(uint32_t nof_prbs) const { return srslte::ceil_div(nof_prbs, P); }
+  uint32_t nof_prbs_to_rbgs(uint32_t nof_prbs) const { return srslte::ceil_div(nof_prbs, P); }
   uint32_t nof_prb() const { return cfg.cell.nof_prb; }
+  uint32_t get_dl_lb_nof_re(tti_point tti_tx_dl, uint32_t nof_prbs_alloc) const;
+  uint32_t get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dci_dl_t& dci, uint32_t cfi) const;
 
   uint32_t                                       enb_cc_idx = 0;
   sched_interface::cell_cfg_t                    cfg        = {};
@@ -59,6 +61,16 @@ public:
   std::array<uint32_t, 3>                        nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
   uint32_t                                       P                = 0;
   uint32_t                                       nof_rbgs         = 0;
+
+  using dl_nof_re_table = srslte::bounded_vector<
+      std::array<std::array<std::array<uint32_t, SRSLTE_NOF_CFI>, SRSLTE_NOF_SLOTS_PER_SF>, SRSLTE_NOF_SF_X_FRAME>,
+      SRSLTE_MAX_PRB>;
+  using dl_lb_nof_re_table = std::array<srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB>, SRSLTE_NOF_SF_X_FRAME>;
+
+  /// Table of nof REs
+  dl_nof_re_table nof_re_table;
+  /// Cached computation of Lower bound of nof REs
+  dl_lb_nof_re_table nof_re_lb_table;
 };
 
 using ue_cce_locations_table = std::array<std::array<sched_dci_cce_t, SRSLTE_NOF_SF_X_FRAME>, SRSLTE_NOF_CFI>;

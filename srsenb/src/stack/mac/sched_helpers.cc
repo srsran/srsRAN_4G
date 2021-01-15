@@ -183,6 +183,54 @@ prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_
  *                 Sched Params
  *******************************************************/
 
+sched_cell_params_t::dl_nof_re_table generate_nof_re_table(const srslte_cell_t& cell)
+{
+  sched_cell_params_t::dl_nof_re_table table(cell.nof_prb);
+
+  srslte_dl_sf_cfg_t dl_sf    = {};
+  dl_sf.sf_type               = SRSLTE_SF_NORM;
+  dl_sf.tdd_config.configured = false;
+
+  for (uint32_t cfi = 0; cfi < SRSLTE_NOF_CFI; ++cfi) {
+    dl_sf.cfi = cfi + 1;
+    for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; ++sf_idx) {
+      dl_sf.tti = sf_idx;
+      for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+        for (uint32_t n = 0; n < cell.nof_prb; ++n) {
+          table[n][sf_idx][s][cfi] = ra_re_x_prb(&cell, &dl_sf, s, n);
+        }
+      }
+    }
+  }
+  return table;
+}
+
+sched_cell_params_t::dl_lb_nof_re_table get_lb_nof_re_x_prb(const sched_cell_params_t::dl_nof_re_table& table)
+{
+  sched_cell_params_t::dl_lb_nof_re_table ret;
+  for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; ++sf_idx) {
+    ret[sf_idx].resize(table.size());
+    srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec(table.size());
+    for (uint32_t p = 0; p < table.size(); ++p) {
+      for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+        re_prb_vec[p] += table[p][sf_idx][s][SRSLTE_NOF_CFI - 1];
+      }
+    }
+    srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec2(re_prb_vec);
+    ret[sf_idx][0] = *std::min_element(re_prb_vec2.begin(), re_prb_vec2.end());
+    for (uint32_t p = 1; p < table.size(); ++p) {
+      std::transform(re_prb_vec2.begin(),
+                     re_prb_vec2.end() - 1,
+                     re_prb_vec.begin() + p,
+                     re_prb_vec2.begin(),
+                     std::plus<uint32_t>());
+      re_prb_vec2.pop_back();
+      ret[sf_idx][p] = *std::min_element(re_prb_vec2.begin(), re_prb_vec2.end());
+    }
+  }
+  return ret;
+}
+
 void sched_cell_params_t::regs_deleter::operator()(srslte_regs_t* p)
 {
   if (p != nullptr) {
@@ -269,7 +317,47 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   P        = srslte_ra_type0_P(cfg.cell.nof_prb);
   nof_rbgs = srslte::ceil_div(cfg.cell.nof_prb, P);
 
+  nof_re_table    = generate_nof_re_table(cfg.cell);
+  nof_re_lb_table = get_lb_nof_re_x_prb(nof_re_table);
+
   return true;
+}
+
+uint32_t sched_cell_params_t::get_dl_lb_nof_re(tti_point tti_tx_dl, uint32_t nof_prbs_alloc) const
+{
+  assert(nof_prbs_alloc <= nof_prb());
+  if (nof_prbs_alloc == 0) {
+    return 0;
+  }
+  uint32_t sf_idx = tti_tx_dl.sf_idx();
+  uint32_t nof_re = nof_re_lb_table[sf_idx][nof_prbs_alloc - 1];
+
+  // sanity check
+  assert(nof_re <= srslte_ra_dl_approx_nof_re(&cfg.cell, nof_prbs_alloc, SRSLTE_NOF_CFI));
+  return nof_re;
+}
+
+uint32_t
+sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dci_dl_t& dci, uint32_t cfi) const
+{
+  srslte_pdsch_grant_t grant = {};
+  srslte_dl_sf_cfg_t   dl_sf = {};
+  dl_sf.cfi                  = cfi;
+  dl_sf.tti                  = tti_tx_dl.to_uint();
+  srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, nof_prb());
+
+  uint32_t nof_re = 0;
+  for (uint32_t p = 0; p < nof_prb(); ++p) {
+    for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+      if (grant.prb_idx[s][p]) {
+        nof_re += nof_re_table[p][tti_tx_dl.sf_idx()][s][cfi - 1];
+      }
+    }
+  }
+
+  // sanity check
+  assert(nof_re == srslte_ra_dl_grant_nof_re(&cfg.cell, &dl_sf, &grant));
+  return nof_re;
 }
 
 ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)

@@ -100,6 +100,12 @@ inline uint32_t count_prb_per_tb(const rbgmask_t& bitmask)
   return nof_prb;
 }
 
+inline uint32_t count_prb_per_tb_approx(uint32_t nof_rbgs, uint32_t cell_nof_prb)
+{
+  uint32_t P = srslte_ra_type0_P(cell_nof_prb);
+  return std::min(nof_rbgs * P, cell_nof_prb);
+}
+
 ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
 
 /**

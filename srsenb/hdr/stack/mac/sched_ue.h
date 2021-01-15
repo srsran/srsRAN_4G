@@ -39,7 +39,7 @@ struct cc_sched_ue {
   const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
 
   cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
-              const sched_cell_params_t&       cell_cfg_,
+              const sched_ue_cell&             cell_ue_,
               uint16_t                         rnti_,
               uint32_t                         ue_cc_idx,
               srslte::tti_point                current_tti);
@@ -51,9 +51,9 @@ struct cc_sched_ue {
   tbs_info                   alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul);
   tbs_info                   alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes);
   tbs_info                   alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs = -1);
-  int                        get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
+  int                        get_required_prb_dl(tti_point tti_tx_dl, uint32_t req_bytes);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
-  const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
+  const sched_cell_params_t* get_cell_cfg() const { return cell_ue->cell_cfg; }
   uint32_t                   get_ue_cc_idx() const { return ue_cc_idx; }
   void                       set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi);
   int                        cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs);
@@ -79,8 +79,8 @@ struct cc_sched_ue {
 private:
   // config
   srslte::log_ref                  log_h;
-  const sched_interface::ue_cfg_t* cfg         = nullptr;
-  const sched_cell_params_t*       cell_params = nullptr;
+  const sched_interface::ue_cfg_t* cfg     = nullptr;
+  const sched_ue_cell*             cell_ue = nullptr;
   uint16_t                         rnti;
   uint32_t                         ue_cc_idx = 0;
   srslte::tti_point                cfg_tti;
