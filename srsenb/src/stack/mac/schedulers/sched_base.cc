@@ -83,7 +83,7 @@ int get_ue_cc_idx_if_pdsch_enabled(const sched_ue& user, sf_sched* tti_sched)
   }
   uint32_t cell_idx = p.second;
   // Do not allow allocations when PDSCH is deactivated
-  if (not user.pdsch_enabled(srslte::tti_point(tti_sched->get_tti_rx()), tti_sched->get_enb_cc_idx())) {
+  if (not user.pdsch_enabled(tti_sched->get_tti_rx(), tti_sched->get_enb_cc_idx())) {
     return -1;
   }
   return cell_idx;
@@ -117,7 +117,7 @@ int get_ue_cc_idx_if_pusch_enabled(const sched_ue& user, sf_sched* tti_sched, bo
   }
   uint32_t cell_idx = p.second;
   // Do not allow allocations when PDSCH is deactivated
-  if (not user.pusch_enabled(srslte::tti_point(tti_sched->get_tti_rx()), tti_sched->get_enb_cc_idx(), needs_pdcch)) {
+  if (not user.pusch_enabled(tti_sched->get_tti_rx(), tti_sched->get_enb_cc_idx(), needs_pdcch)) {
     return -1;
   }
   return cell_idx;
@@ -167,8 +167,7 @@ alloc_outcome_t try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_ha
   }
 
   // Avoid measGaps accounting for PDCCH
-  srslte::tti_point tti_rx{tti_sched.get_tti_rx()};
-  if (not ue.pusch_enabled(tti_rx, tti_sched.get_enb_cc_idx(), true)) {
+  if (not ue.pusch_enabled(tti_sched.get_tti_rx(), tti_sched.get_enb_cc_idx(), true)) {
     return alloc_outcome_t::MEASGAP_COLLISION;
   }
   uint32_t nof_prbs = alloc.length();

@@ -21,7 +21,10 @@ namespace srsenb {
  *******************************************************/
 
 sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg_) :
-  cell_cfg(&cell_cfg_), dci_locations(generate_cce_location_table(rnti_, cell_cfg_))
+  cell_cfg(&cell_cfg_),
+  dci_locations(generate_cce_location_table(rnti_, cell_cfg_)),
+  harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
+  tpc_fsm(cell_cfg->nof_prb(), cell_cfg->cfg.target_ul_sinr, cell_cfg->cfg.enable_phr_handling)
 {}
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
@@ -32,6 +35,17 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
       ue_cc_idx = i;
     }
   }
+}
+
+void sched_ue_cell::reset()
+{
+  harq_ent.reset();
+}
+
+void sched_ue_cell::finish_tti(tti_point tti_rx)
+{
+  // reset PIDs with pending data or blocked
+  harq_ent.reset_pending_data(tti_rx);
 }
 
 } // namespace srsenb

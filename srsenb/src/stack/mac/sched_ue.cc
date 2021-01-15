@@ -190,13 +190,15 @@ void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)
   if (current_tti != tti_rx) {
     current_tti = tti_rx;
     lch_handler.new_tti();
-    for (auto& cc : carriers) {
-      cc.harq_ent.new_tti(tti_rx);
+    for (auto& cc : cells) {
+      if (cc.configured()) {
+        cc.harq_ent.new_tti(tti_rx);
+      }
     }
   }
-  int ue_cc_idx = cells[enb_cc_idx].get_ue_cc_idx();
-  if (ue_cc_idx >= 0) {
-    carriers.at(ue_cc_idx).tpc_fsm.new_tti();
+
+  if (cells[enb_cc_idx].configured()) {
+    cells[enb_cc_idx].tpc_fsm.new_tti();
   }
 }
 
@@ -238,7 +240,7 @@ void sched_ue::ul_buffer_add(uint8_t lcid, uint32_t bytes)
 
 void sched_ue::ul_phr(int phr)
 {
-  carriers[0].tpc_fsm.set_phr(phr);
+  cells[carriers[0].get_cell_cfg()->enb_cc_idx].tpc_fsm.set_phr(phr);
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
@@ -346,7 +348,7 @@ int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_id
   int          tbs_acked = -1;
   cc_sched_ue* c         = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    std::pair<uint32_t, int> p2 = c->harq_ent.set_ack_info(tti_rx, tb_idx, ack);
+    std::pair<uint32_t, int> p2 = cells[enb_cc_idx].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
     tbs_acked                   = p2.second;
     if (tbs_acked > 0) {
       Debug(
@@ -364,7 +366,7 @@ void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    int ret = c->harq_ent.set_ul_crc(tti_rx, 0, crc_res);
+    int ret = cells[enb_cc_idx].harq_ent.set_ul_crc(tti_rx, 0, crc_res);
     if (ret < 0) {
       log_h->warning("Received UL CRC for invalid tti_rx=%d\n", (int)tti_rx.to_uint());
     }
@@ -409,7 +411,7 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
 {
   cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
   if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->tpc_fsm.set_snr(snr, ul_ch_code);
+    cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
     c->ul_cqi        = srslte_cqi_from_snr(snr);
     c->ul_cqi_tti_rx = tti_rx;
   } else {
@@ -506,7 +508,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
                                const rbgmask_t&                  user_mask)
 {
   uint32_t         ue_cc_idx = cells[enb_cc_idx].get_ue_cc_idx();
-  dl_harq_proc*    h         = &carriers[ue_cc_idx].harq_ent.dl_harq_procs()[pid];
+  dl_harq_proc*    h         = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci       = &data->dci;
 
   // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
@@ -546,7 +548,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
     dci->tb[0].rv      = get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
-    dci->tpc_pucch = carriers[ue_cc_idx].tpc_fsm.encode_pucch_tpc();
+    dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
     data->tbs[0]   = (uint32_t)tbinfo.tbs_bytes;
     data->tbs[1]   = 0;
   }
@@ -595,7 +597,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
                                 const rbgmask_t&                  user_mask)
 {
   uint32_t      ue_cc_idx            = cells[enb_cc_idx].get_ue_cc_idx();
-  dl_harq_proc* h                    = &carriers[ue_cc_idx].harq_ent.dl_harq_procs()[pid];
+  dl_harq_proc* h                    = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
   bool          tb_en[SRSLTE_MAX_TB] = {false};
 
   srslte_dci_dl_t* dci         = &data->dci;
@@ -657,7 +659,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
   dci->rnti      = rnti;
   dci->ue_cc_idx = ue_cc_idx;
   dci->pid       = h->get_id();
-  dci->tpc_pucch = carriers[ue_cc_idx].tpc_fsm.encode_pucch_tpc();
+  dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
 
   int ret = data->tbs[0] + data->tbs[1];
   return ret;
@@ -767,7 +769,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     dci->tb.ndi         = h->get_ndi(0);
     dci->cqi_request    = cqi_request;
     dci->freq_hop_fl    = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
-    dci->tpc_pusch      = carriers[ue_cc_idx].tpc_fsm.encode_pusch_tpc();
+    dci->tpc_pusch      = cells[enb_cc_idx].tpc_fsm.encode_pusch_tpc();
 
     dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.length(), alloc.start(), cell.nof_prb);
 
@@ -969,7 +971,7 @@ uint32_t sched_ue::get_expected_ul_bitrate(uint32_t enb_cc_idx, int nof_prbs) co
 uint32_t sched_ue::get_pending_ul_old_data(uint32_t enb_cc_idx)
 {
   uint32_t pending_data = 0;
-  for (auto& h : carriers[enb_to_ue_cc_idx(enb_cc_idx)].harq_ent.ul_harq_procs()) {
+  for (auto& h : cells[enb_cc_idx].harq_ent.ul_harq_procs()) {
     pending_data += h.get_pending_data();
   }
   return pending_data;
@@ -979,8 +981,10 @@ uint32_t sched_ue::get_pending_ul_old_data(uint32_t enb_cc_idx)
 uint32_t sched_ue::get_pending_ul_old_data()
 {
   uint32_t pending_ul_data = 0;
-  for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
-    pending_ul_data += get_pending_ul_old_data(carriers[cc_idx].get_cell_cfg()->enb_cc_idx);
+  for (uint32_t i = 0; i < cells.size(); ++i) {
+    if (cells[i].configured()) {
+      pending_ul_data += get_pending_ul_old_data(i);
+    }
   }
   return pending_ul_data;
 }
@@ -1020,8 +1024,8 @@ uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_c
         return 512;
       }
     }
-    for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
-      if (needs_cqi(tti_tx_ul.to_uint(), carriers[cc_idx].get_cell_cfg()->enb_cc_idx)) {
+    for (uint32_t i = 0; i < cells.size(); ++i) {
+      if (cells[i].configured() and needs_cqi(tti_tx_ul.to_uint(), i)) {
         return 128;
       }
     }
@@ -1061,8 +1065,8 @@ bool sched_ue::is_sr_triggered()
 dl_harq_proc* sched_ue::get_pending_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_idx)
 {
   uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
-    return carriers[ue_cc_idx].harq_ent.get_pending_dl_harq(tti_tx_dl);
+  if (cells[enb_cc_idx].configured() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
+    return cells[enb_cc_idx].harq_ent.get_pending_dl_harq(tti_tx_dl);
   }
   return nullptr;
 }
@@ -1070,8 +1074,8 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc
 dl_harq_proc* sched_ue::get_empty_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_idx)
 {
   uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
-    return carriers[ue_cc_idx].harq_ent.get_empty_dl_harq(tti_tx_dl);
+  if (cells[enb_cc_idx].configured() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
+    return cells[enb_cc_idx].harq_ent.get_empty_dl_harq(tti_tx_dl);
   }
   return nullptr;
 }
@@ -1079,16 +1083,15 @@ dl_harq_proc* sched_ue::get_empty_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_i
 ul_harq_proc* sched_ue::get_ul_harq(tti_point tti_tx_ul, uint32_t enb_cc_idx)
 {
   uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
-    return carriers[ue_cc_idx].harq_ent.get_ul_harq(tti_tx_ul);
+  if (cells[enb_cc_idx].configured() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
+    return cells[enb_cc_idx].harq_ent.get_ul_harq(tti_tx_ul);
   }
   return nullptr;
 }
 
 const dl_harq_proc& sched_ue::get_dl_harq(uint32_t idx, uint32_t enb_cc_idx) const
 {
-  uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  return carriers[ue_cc_idx].harq_ent.dl_harq_procs()[idx];
+  return cells[enb_cc_idx].harq_ent.dl_harq_procs()[idx];
 }
 
 std::pair<bool, uint32_t> sched_ue::get_active_cell_index(uint32_t enb_cc_idx) const
@@ -1247,19 +1250,11 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint3
  ***********************************************************************************************/
 
 cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
-                         const sched_ue_cell&             cell_ue_,
+                         sched_ue_cell&                   cell_ue_,
                          uint16_t                         rnti_,
                          uint32_t                         ue_cc_idx_,
                          tti_point                        current_tti) :
-  cell_ue(&cell_ue_),
-  rnti(rnti_),
-  log_h(srslte::logmap::get("MAC")),
-  ue_cc_idx(ue_cc_idx_),
-  last_tti(current_tti),
-  harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC),
-  tpc_fsm(cell_ue_.cell_cfg->nof_prb(),
-          cell_ue_.cell_cfg->cfg.target_ul_sinr,
-          cell_ue_.cell_cfg->cfg.enable_phr_handling)
+  cell_ue(&cell_ue_), rnti(rnti_), log_h(srslte::logmap::get("MAC")), ue_cc_idx(ue_cc_idx_), last_tti(current_tti)
 {
   dl_cqi_rx = false;
   dl_cqi    = (ue_cc_idx == 0) ? cell_ue_.cell_cfg->cfg.initial_dl_cqi : 0;
@@ -1282,7 +1277,7 @@ void cc_sched_ue::reset()
   dl_cqi_tti_rx = tti_point{};
   ul_cqi        = 1;
   ul_cqi_tti_rx = tti_point{};
-  harq_ent.reset();
+  cell_ue->reset();
 }
 
 void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
@@ -1332,9 +1327,7 @@ void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 void cc_sched_ue::finish_tti(tti_point tti_rx)
 {
   last_tti = tti_rx;
-
-  // reset PIDs with pending data or blocked
-  harq_ent.reset_pending_data(last_tti);
+  cell_ue->finish_tti(tti_rx);
 
   // Check if cell state needs to be updated
   if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {
@@ -1457,8 +1450,8 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
   };
 
   // find nof prbs that lead to a tbs just above req_bytes
-  int                                      target_tbs = req_bytes + 4;
-  uint32_t                                 max_prbs   = std::min(tpc_fsm.max_ul_prbs(), get_cell_cfg()->nof_prb());
+  int      target_tbs = req_bytes + 4;
+  uint32_t max_prbs   = std::min(cell_ue->tpc_fsm.max_ul_prbs(), get_cell_cfg()->nof_prb());
   std::tuple<uint32_t, int, uint32_t, int> ret =
       false_position_method(1u, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
   uint32_t req_prbs = std::get<2>(ret);

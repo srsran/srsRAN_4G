@@ -18,7 +18,6 @@
 #include <map>
 #include <vector>
 
-#include "sched_ue_ctrl/sched_harq.h"
 #include "sched_ue_ctrl/sched_lch.h"
 #include "sched_ue_ctrl/sched_ue_cell.h"
 #include "sched_ue_ctrl/tpc.h"
@@ -36,10 +35,8 @@ struct tbs_info {
 };
 
 struct cc_sched_ue {
-  const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
-
   cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
-              const sched_ue_cell&             cell_ue_,
+              sched_ue_cell&                   cell_ue_,
               uint16_t                         rnti_,
               uint32_t                         ue_cc_idx,
               srslte::tti_point                current_tti);
@@ -59,8 +56,6 @@ struct cc_sched_ue {
   int                        cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs);
   cc_st                      cc_state() const { return cc_state_; }
 
-  harq_entity harq_ent;
-
   uint32_t  dl_ri = 0;
   tti_point dl_ri_tti_rx{};
   uint32_t  dl_pmi = 0;
@@ -74,13 +69,12 @@ struct cc_sched_ue {
   uint32_t max_mcs_dl = 28, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
-  tpc      tpc_fsm;
 
 private:
   // config
   srslte::log_ref                  log_h;
   const sched_interface::ue_cfg_t* cfg     = nullptr;
-  const sched_ue_cell*             cell_ue = nullptr;
+  sched_ue_cell*                   cell_ue = nullptr;
   uint16_t                         rnti;
   uint32_t                         ue_cc_idx = 0;
   srslte::tti_point                cfg_tti;
