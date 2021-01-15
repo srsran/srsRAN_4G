@@ -34,8 +34,6 @@ public:
       }
       assert(lcid == 1);
       notified_counts[pdcp_sn] += 1;
-      // std::cout << "Notified " << notified_counts[tx_count] << "Tx count" << tx_count << "nof_bytes" << nof_bytes
-      //          << std::endl;
     }
   }
 };
@@ -141,6 +139,7 @@ int two_pdus_notify_test()
 
   sta_buf->N_bytes = srslte::rlc_am_write_status_pdu(&s1, sta_buf->msg);
   rlc.write_pdu(sta_buf->msg, sta_buf->N_bytes);
+  TESTASSERT(pdcp.notified_counts.size() == 0);
 
   // Feed ack of PDU2 to RLC
   srslte::rlc_status_pdu_t s2;
@@ -403,10 +402,14 @@ int two_sdus_out_of_order_ack_notify_test()
 
   // Intentionally do not write first ack to RLC
 
-  // Feed ack of PDU2 to RLC
+  // Ack of PDU2 to RLC, with PDU1 with NACK
+  srslte::rlc_status_nack_t nack = {};
+  nack.nack_sn                   = 1;
+
   srslte::rlc_status_pdu_t s2;
-  s2.ack_sn = 2;
-  s2.N_nack = 0;
+  s2.ack_sn   = 2;
+  s2.N_nack   = 1;
+  s2.nacks[0] = nack;
 
   // Write second ack
   sta_buf->N_bytes = srslte::rlc_am_write_status_pdu(&s2, sta_buf->msg);
@@ -472,6 +475,7 @@ int two_pdus_out_of_order_ack_notify_test()
 
   sta_buf->N_bytes = srslte::rlc_am_write_status_pdu(&s1, sta_buf->msg);
   rlc.write_pdu(sta_buf->msg, sta_buf->N_bytes);
+  TESTASSERT(pdcp.notified_counts.size() == 0);
 
   // Feed ack of PDU2 to RLC
   srslte::rlc_status_pdu_t s2;

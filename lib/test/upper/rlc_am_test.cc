@@ -57,7 +57,16 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& tx_count) {}
+  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
+  {
+    for (uint32_t pdcp_sn : pdcp_sn_vec) {
+      if (notified_counts.find(pdcp_sn) == notified_counts.end()) {
+        notified_counts[pdcp_sn] = 0;
+      }
+      assert(lcid == 1);
+      notified_counts[pdcp_sn] += 1;
+    }
+  }
 
   // RRC interface
   void        max_retx_attempted() {}
@@ -66,6 +75,8 @@ public:
   unique_byte_buffer_t sdus[10];
   int                  n_sdus;
   rlc_pcap*            pcap;
+
+  std::map<uint32_t, uint32_t> notified_counts; // Map of PDCP SNs to number of notifications
 };
 
 class ul_writer : public thread
@@ -114,14 +125,14 @@ private:
 
 int basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
 {
-
   // Push 5 SDUs into RLC1
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
-    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
-    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]             = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]->msg[0]     = i; // Write the index into the buffer
+    sdu_bufs[i]->N_bytes    = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->md.pdcp_sn = i; // PDCP SN for notifications
     rlc->write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -182,9 +193,13 @@ int basic_test()
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
-  for (int i = 0; i < tester.n_sdus; i++) {
+  // Check PDCP notifications
+  std::cout << tester.notified_counts.size() << std::endl;
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (uint16_t i = 0; i < tester.n_sdus; i++) {
     TESTASSERT(tester.sdus[i]->N_bytes == 1);
     TESTASSERT(*(tester.sdus[i]->msg) == i);
+    TESTASSERT(tester.notified_counts[i] == 1);
   }
 
   // Check statistics
@@ -213,9 +228,10 @@ int concat_test()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
-    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
-    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]             = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]->msg[0]     = i; // Write the index into the buffer
+    sdu_bufs[i]->N_bytes    = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->md.pdcp_sn = i; // PDCP SN for notifications
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -253,6 +269,14 @@ int concat_test()
     TESTASSERT(*(tester.sdus[i]->msg) == i);
   }
 
+  // Check PDCP notifications
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (uint16_t i = 0; i < tester.n_sdus; i++) {
+    TESTASSERT(tester.sdus[i]->N_bytes == 1);
+    TESTASSERT(*(tester.sdus[i]->msg) == i);
+    TESTASSERT(tester.notified_counts[i] == 1);
+  }
+
   // Check statistics
   TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
 
@@ -283,7 +307,8 @@ int segment_test(bool in_seq_rx)
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;  // PDCP SN for notifications
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -329,6 +354,13 @@ int segment_test(bool in_seq_rx)
 
     // Write status PDU to RLC1
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+    // Check all notification of ack'ed PDUs
+    TESTASSERT(tester.notified_counts.size() == 5);
+    for (int i = 0; i < NBUFS; i++) {
+      auto not_it = tester.notified_counts.find(i);
+      TESTASSERT(not_it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    }
   }
 
   TESTASSERT(0 == rlc2.get_buffer_state());
@@ -367,9 +399,10 @@ int retx_test()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
-    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
-    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]             = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]->msg[0]     = i; // Write the index into the buffer
+    sdu_bufs[i]->N_bytes    = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->md.pdcp_sn = i; // PDCP SN for notifications
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -422,6 +455,17 @@ int retx_test()
 
   TESTASSERT(3 == rlc1.get_buffer_state()); // 2 byte header + 1 byte payload
 
+  // Check notifications of ack'ed PDUs
+  TESTASSERT(tester.notified_counts.size() == 4);
+  for (int i = 0; i < NBUFS; i++) {
+    auto not_it = tester.notified_counts.find(i);
+    if (i != 1) {
+      TESTASSERT(not_it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    } else {
+      TESTASSERT(not_it == tester.notified_counts.end());
+    }
+  }
+
   // Read the retx PDU from RLC1
   byte_buffer_t retx;
   len          = rlc1.read_pdu(retx.msg, 3); // 2 byte header + 1 byte payload
@@ -436,6 +480,33 @@ int retx_test()
       return -1;
     if (*(tester.sdus[i]->msg) != i)
       return -1;
+  }
+
+  // Step timers until poll Retx timeout expires
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Get status report of RETX PDU
+  buffer_state = rlc2.get_buffer_state();
+  TESTASSERT(2 == buffer_state);
+  len                = rlc2.read_pdu(status_buf.msg, buffer_state); // provide exactly the reported buffer state
+  status_buf.N_bytes = len;
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // 1 packet was lost.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 4.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check all notification of ack'ed PDUs
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (int i = 0; i < NBUFS; i++) {
+    auto not_it = tester.notified_counts.find(i);
+    TESTASSERT(not_it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
   }
 
   return 0;
@@ -482,8 +553,7 @@ int segment_retx_test()
   TESTASSERT(rlc1.get_buffer_state() == 0);
 
   // Step timers until poll Retx timeout expires
-  int cnt = 5;
-  while (cnt--) {
+  for (int cnt = 0; cnt < 5; cnt++) {
     timers.step_all();
   }
 
@@ -506,12 +576,20 @@ int segment_retx_test()
   len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
   status_buf.N_bytes = len;
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // 1 packet was lost.
+  TESTASSERT(status_check.ack_sn == 1); // Delivered up to SN 0.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
+  // Make sure no notifications yet
+  TESTASSERT(tester.notified_counts.size() == 0);
+
   // Step timers again until poll Retx timeout expires
-  cnt = 5;
-  while (cnt--) {
+  for (int cnt = 0; cnt < 5; cnt++) {
     timers.step_all();
   }
 
@@ -531,6 +609,16 @@ int segment_retx_test()
   len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
   status_buf.N_bytes = len;
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // 1 packet was lost.
+  TESTASSERT(status_check.ack_sn == 2); // Delivered up to SN 0.
+
+  // Make sure SDU was notified
+  TESTASSERT(tester.notified_counts.size() == 1);
+  TESTASSERT(tester.notified_counts.find(0) != tester.notified_counts.end() && tester.notified_counts[0] == 1);
 
   TESTASSERT(tester.n_sdus == nof_sdus);
   for (int i = 0; i < tester.n_sdus; i++) {
@@ -573,7 +661,8 @@ int resegment_test_1()
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -595,8 +684,7 @@ int resegment_test_1()
   }
 
   // Step timers until reordering timeout expires
-  int cnt = 5;
-  while (cnt--) {
+  for (int cnt = 0; cnt < 5; cnt++) {
     timers.step_all();
   }
 
@@ -607,10 +695,28 @@ int resegment_test_1()
   len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
   status_buf.N_bytes = len;
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // 1 packet was lost.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   TESTASSERT(12 == rlc1.get_buffer_state()); // 2 byte header + 10 data
+
+  // Check notifications
+  rrc_log1->debug("%ld\n", tester.notified_counts.size());
+  TESTASSERT(tester.notified_counts.size() == 4);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    if (i != 1) {
+      TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    } else {
+      TESTASSERT(it == tester.notified_counts.end());
+    }
+  }
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
@@ -621,6 +727,22 @@ int resegment_test_1()
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
   TESTASSERT(9 == rlc1.get_buffer_state());
+
+  // Step timers to get status report
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf         = {};
+  len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  status_buf.N_bytes = len;
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // 1 packet was lost.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
 
   // Read the remaining segment
   byte_buffer_t retx2;
@@ -639,12 +761,37 @@ int resegment_test_1()
         return -1;
   }
 
+  // Step timers to get status report
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf         = {};
+  len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  status_buf.N_bytes = len;
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check notifications
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+  }
+
   return 0;
 }
 
 int resegment_test_2()
 {
-
   // SDUs:              |  10  |  10  |  10  |  10  |  10  |
   // PDUs:              | 5 |  10  |     20     |  10  | 5 |
   // Retx PDU segments:            |  10  |  10 |
@@ -671,7 +818,8 @@ int resegment_test_2()
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;  // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -694,8 +842,7 @@ int resegment_test_2()
   }
 
   // Step timers until reordering timeout expires
-  int cnt = 5;
-  while (cnt--) {
+  for (int cnt = 0; cnt < 5; cnt++) {
     timers.step_all();
   }
 
@@ -705,10 +852,27 @@ int resegment_test_2()
   byte_buffer_t status_buf;
   status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   TESTASSERT(25 == rlc1.get_buffer_state()); // 4 byte header + 20 data
+
+  // Check notifications
+  TESTASSERT(tester.notified_counts.size() == 2);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    if (i == 0 || i == 4) {
+      TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    } else {
+      TESTASSERT(it == tester.notified_counts.end());
+    }
+  }
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
@@ -735,12 +899,33 @@ int resegment_test_2()
         return -1;
   }
 
+  // Step timers until reordering timeout expires
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  TESTASSERT(tester.notified_counts.size() == 5);
+
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+  }
   return 0;
 }
 
 int resegment_test_3()
 {
-
   // SDUs:              |  10  |  10  |  10  |  10  |  10  |
   // PDUs:              | 5 | 5|      20     |  10  |  10  |
   // Retx PDU segments:        |  10  |  10  |
@@ -766,7 +951,8 @@ int resegment_test_3()
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -789,8 +975,7 @@ int resegment_test_3()
   }
 
   // Step timers until reordering timeout expires
-  int cnt = 5;
-  while (cnt--) {
+  for (int cnt = 0; cnt < 5; cnt++) {
     timers.step_all();
   }
 
@@ -800,8 +985,25 @@ int resegment_test_3()
   byte_buffer_t status_buf;
   status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check notifications
+  TESTASSERT(tester.notified_counts.size() == 3);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    if (i == 0 || i == 3 || i == 4) {
+      TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    } else {
+      TESTASSERT(it == tester.notified_counts.end());
+    }
+  }
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
@@ -826,6 +1028,29 @@ int resegment_test_3()
         return -1;
   }
 
+  // Get status from RLC 2
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check final notifications
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+  }
   return 0;
 }
 
@@ -856,7 +1081,8 @@ int resegment_test_4()
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -890,8 +1116,24 @@ int resegment_test_4()
   byte_buffer_t status_buf;
   status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  TESTASSERT(tester.notified_counts.size() == 2);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    if (i == 0 || i == 4) {
+      TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    } else {
+      TESTASSERT(it == tester.notified_counts.end());
+    }
+  }
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
@@ -918,6 +1160,29 @@ int resegment_test_4()
         return -1;
   }
 
+  // Get status from RLC 2
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check final notifications
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+  }
   return 0;
 }
 
@@ -948,7 +1213,8 @@ int resegment_test_5()
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -982,8 +1248,17 @@ int resegment_test_5()
   byte_buffer_t status_buf;
   status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check notifications
+  TESTASSERT(tester.notified_counts.size() == 0);
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
@@ -1008,6 +1283,30 @@ int resegment_test_5()
     for (int j = 0; j < 10; j++)
       if (tester.sdus[i]->msg[j] != j)
         return -1;
+  }
+
+  // Get status from RLC 2
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check final notifications
+  TESTASSERT(tester.notified_counts.size() == 5);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
   }
 
   return 0;
@@ -1041,14 +1340,16 @@ int resegment_test_6()
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->N_bytes    = 10; // Give each buffer a size of 10 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
   for (int i = 3; i < 9; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int j = 0; j < 54; j++)
       sdu_bufs[i]->msg[j] = j;
-    sdu_bufs[i]->N_bytes = 54;
+    sdu_bufs[i]->N_bytes    = 54;
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -1086,10 +1387,27 @@ int resegment_test_6()
   len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
   status_buf.N_bytes = len;
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1);
+  TESTASSERT(status_check.ack_sn == 5);
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   TESTASSERT(278 == rlc1.get_buffer_state());
+
+  // Check notifications
+  TESTASSERT(tester.notified_counts.size() == 4);
+  for (int i = 0; i < 5; i++) {
+    auto it = tester.notified_counts.find(i);
+    if (i == 0 || i == 1 || i == 2 || i == 8) {
+      TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
+    } else {
+      TESTASSERT(it == tester.notified_counts.end());
+    }
+  }
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
@@ -1124,6 +1442,30 @@ int resegment_test_6()
       if (tester.sdus[i]->msg[j] != j)
         return -1;
     }
+  }
+
+  // Get status from RLC 2
+  for (int cnt = 0; cnt < 5; cnt++) {
+    timers.step_all();
+  }
+
+  // Read status PDU from RLC2
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+
+  // Check final notifications
+  TESTASSERT(tester.notified_counts.size() == 9);
+  for (int i = 0; i < 9; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
   }
 
   return 0;
@@ -1169,7 +1511,8 @@ int resegment_test_7()
     for (uint32_t j = 0; j < sdu_size; j++) {
       sdu_bufs[i]->msg[j] = i;
     }
-    sdu_bufs[i]->N_bytes = sdu_size; // Give each buffer a size of 15 bytes
+    sdu_bufs[i]->N_bytes    = sdu_size; // Give each buffer a size of 15 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -1231,6 +1574,12 @@ int resegment_test_7()
   byte_buffer_t status_buf;
   status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 #if HAVE_PCAP
@@ -1238,6 +1587,9 @@ int resegment_test_7()
 #endif
 
   TESTASSERT(15 == rlc1.get_buffer_state());
+
+  // Check notifications
+  TESTASSERT(tester.notified_counts.size() == 0);
 
   // second round of retx, forcing resegmentation
   byte_buffer_t retx2[4];
@@ -1265,6 +1617,12 @@ int resegment_test_7()
   TESTASSERT(rlc2.get_buffer_state());
   status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
 
+  // Assert status is correct
+  status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 0); // all packets delivered.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 #if HAVE_PCAP
@@ -1284,6 +1642,13 @@ int resegment_test_7()
       if (tester.sdus[i]->msg[j] != i)
         return -1;
     }
+  }
+
+  // Check final notifications
+  TESTASSERT(tester.notified_counts.size() == 2);
+  for (int i = 0; i < 2; i++) {
+    auto it = tester.notified_counts.find(i);
+    TESTASSERT(it != tester.notified_counts.end() && tester.notified_counts[i] == 1);
   }
 
 #if HAVE_PCAP
@@ -1333,7 +1698,8 @@ int resegment_test_8()
     for (uint32_t j = 0; j < sdu_size; j++) {
       sdu_bufs[i]->msg[j] = i;
     }
-    sdu_bufs[i]->N_bytes = sdu_size; // Give each buffer a size of 15 bytes
+    sdu_bufs[i]->N_bytes    = sdu_size; // Give each buffer a size of 30 bytes
+    sdu_bufs[i]->md.pdcp_sn = i;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 

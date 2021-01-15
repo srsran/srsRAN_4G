@@ -1049,8 +1049,8 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       if (tx_window.count(i) > 0) {
         it = tx_window.find(i);
         if (it != tx_window.end()) {
+          update_notification_ack_info(it->second, notify_info_vec);
           if (update_vt_a) {
-            update_notification_ack_info(it->second, notify_info_vec);
             tx_window.erase(it);
             vt_a  = (vt_a + 1) % MOD;
             vt_ms = (vt_ms + 1) % MOD;
@@ -1079,13 +1079,18 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
                                                              std::vector<uint32_t>&  notify_info_vec)
 {
   // Notify PDCP of the number of bytes succesfully delivered
-  uint32_t notified_bytes = 0;
-  uint32_t nof_bytes      = 0;
-  uint32_t pdcp_sn        = 0;
+  uint32_t total_acked_bytes = 0;
+  uint32_t nof_bytes         = 0;
+  uint32_t pdcp_sn           = 0;
   for (uint32_t pdcp_notify_it = 0; pdcp_notify_it < tx_pdu.header.N_li; pdcp_notify_it++) {
     nof_bytes = tx_pdu.header.li[pdcp_notify_it];
     pdcp_sn   = tx_pdu.pdcp_tx_counts[pdcp_notify_it];
+    if (undelivered_sdu_info_queue.find(pdcp_sn) == undelivered_sdu_info_queue.end()) {
+      log->debug("Could not find notification info, perhaps SDU was already ACK'ed.\n");
+      continue;
+    }
     undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
+    total_acked_bytes += nof_bytes;
     if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
       undelivered_sdu_info_queue.erase(pdcp_sn);
       notify_info_vec.push_back(pdcp_sn);
@@ -1093,7 +1098,11 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
     }
   }
   pdcp_sn   = tx_pdu.pdcp_tx_counts[tx_pdu.header.N_li];
-  nof_bytes = tx_pdu.buf->N_bytes - notified_bytes; // Notify last SDU
+  nof_bytes = tx_pdu.buf->N_bytes - total_acked_bytes; // Notify last SDU
+  if (undelivered_sdu_info_queue.find(pdcp_sn) == undelivered_sdu_info_queue.end()) {
+    log->debug("Could not find notification info, perhaps SDU was already ACK'ed.\n");
+    return;
+  }
   undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
   if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
     undelivered_sdu_info_queue.erase(pdcp_sn);
@@ -1438,7 +1447,6 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
   // Check if we already have a segment from the same PDU
   it = rx_segments.find(header.sn);
   if (rx_segments.end() != it) {
-
     if (header.p) {
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
       do_status = true;
@@ -1451,7 +1459,6 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
     }
 
   } else {
-
     // Create new PDU segment list and write to rx_segments
     rlc_amd_rx_pdu_segments_t pdu;
     pdu.segments.push_back(std::move(segment));
