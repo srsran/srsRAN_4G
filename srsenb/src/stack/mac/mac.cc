@@ -907,7 +907,11 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
               srslte_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
             }
             phy_ul_sched_res->pusch[n].data = ue_db[rnti]->request_buffer(sched_result.pusch[i].tbs);
-            phy_ul_sched_res->nof_grants++;
+            if (phy_ul_sched_res->pusch[n].data) {
+              phy_ul_sched_res->nof_grants++;
+            } else {
+              Error("Grant for rnti=0x%x could not be allocated due to lack of buffers\n", rnti);
+            }
             n++;
           } else {
             Warning("Invalid UL scheduling result. User 0x%x does not exist\n", rnti);
