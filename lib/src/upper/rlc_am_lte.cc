@@ -1050,28 +1050,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
         it = tx_window.find(i);
         if (it != tx_window.end()) {
           if (update_vt_a) {
-            // Notify PDCP of the number of bytes succesfully delivered
-            uint32_t notified_bytes = 0;
-            uint32_t nof_bytes      = 0;
-            uint32_t pdcp_sn        = 0;
-            for (uint32_t pdcp_notify_it = 0; pdcp_notify_it < it->second.header.N_li; pdcp_notify_it++) {
-              nof_bytes = it->second.header.li[pdcp_notify_it];
-              pdcp_sn   = it->second.pdcp_tx_counts[pdcp_notify_it];
-              undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
-              if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
-                undelivered_sdu_info_queue.erase(pdcp_sn);
-                notify_info_vec.push_back(pdcp_sn);
-                log->debug("Reporting to PDCP: TX COUNT=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
-              }
-            }
-            pdcp_sn   = it->second.pdcp_tx_counts[it->second.header.N_li];
-            nof_bytes = it->second.buf->N_bytes - notified_bytes; // Notify last SDU
-            undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
-            if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
-              undelivered_sdu_info_queue.erase(pdcp_sn);
-              notify_info_vec.push_back(pdcp_sn);
-              log->debug("Reporting to PDCP: TX COUNT=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
-            }
+            update_notification_ack_info(it->second, notify_info_vec);
             tx_window.erase(it);
             vt_a  = (vt_a + 1) % MOD;
             vt_ms = (vt_ms + 1) % MOD;
@@ -1089,6 +1068,38 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   debug_state();
 
   pthread_mutex_unlock(&mutex);
+}
+
+/*
+ * Helper function to detect whether a PDU has been fully ack'ed and the PDCP needs to be notified about it
+ * @tx_pdu: RLC PDU that was ack'ed.
+ * @notify_info_vec: Vector which will keep track of the PDCP PDU SNs that have been fully ack'ed.
+ */
+void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu,
+                                                             std::vector<uint32_t>&  notify_info_vec)
+{
+  // Notify PDCP of the number of bytes succesfully delivered
+  uint32_t notified_bytes = 0;
+  uint32_t nof_bytes      = 0;
+  uint32_t pdcp_sn        = 0;
+  for (uint32_t pdcp_notify_it = 0; pdcp_notify_it < tx_pdu.header.N_li; pdcp_notify_it++) {
+    nof_bytes = tx_pdu.header.li[pdcp_notify_it];
+    pdcp_sn   = tx_pdu.pdcp_tx_counts[pdcp_notify_it];
+    undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
+    if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
+      undelivered_sdu_info_queue.erase(pdcp_sn);
+      notify_info_vec.push_back(pdcp_sn);
+      log->debug("Reporting to PDCP: PDCP SN=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
+    }
+  }
+  pdcp_sn   = tx_pdu.pdcp_tx_counts[tx_pdu.header.N_li];
+  nof_bytes = tx_pdu.buf->N_bytes - notified_bytes; // Notify last SDU
+  undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
+  if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
+    undelivered_sdu_info_queue.erase(pdcp_sn);
+    notify_info_vec.push_back(pdcp_sn);
+    log->debug("Reporting to PDCP: PDCP SN=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
+  }
 }
 
 void rlc_am_lte::rlc_am_lte_tx::debug_state()

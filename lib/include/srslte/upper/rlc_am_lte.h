@@ -124,10 +124,11 @@ private:
     void set_bsr_callback(bsr_callback_t callback);
 
   private:
-    int build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
-    int build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-    int build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
-    int build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int  build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
+    int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
+    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu, std::vector<uint32_t>& notify_info_vec);
 
     void debug_state();
 
