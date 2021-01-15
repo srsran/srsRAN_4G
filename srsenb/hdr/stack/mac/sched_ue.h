@@ -132,33 +132,33 @@ public:
    * Custom functions
    *******************************************************/
 
-  const dl_harq_proc&       get_dl_harq(uint32_t idx, uint32_t cc_idx) const;
+  const dl_harq_proc&       get_dl_harq(uint32_t idx, uint32_t enb_cc_idx) const;
   uint16_t                  get_rnti() const { return rnti; }
   std::pair<bool, uint32_t> get_active_cell_index(uint32_t enb_cc_idx) const;
   const ue_cfg_t&           get_ue_cfg() const { return cfg; }
-  uint32_t                  get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits);
+  uint32_t                  get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits);
   void                      ul_buffer_add(uint8_t lcid, uint32_t bytes);
 
   /*******************************************************
    * Functions used by scheduler metric objects
    *******************************************************/
 
-  uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
+  uint32_t get_required_prb_ul(uint32_t enb_cc_idx, uint32_t req_bytes);
 
-  rbg_interval               get_required_dl_rbgs(uint32_t ue_cc_idx);
-  srslte::interval<uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
+  rbg_interval               get_required_dl_rbgs(uint32_t enb_cc_idx);
+  srslte::interval<uint32_t> get_requested_dl_bytes(uint32_t enb_cc_idx);
   uint32_t                   get_pending_dl_rlc_data() const;
-  uint32_t                   get_expected_dl_bitrate(uint32_t ue_cc_idx, int nof_rbgs = -1) const;
+  uint32_t                   get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs = -1) const;
 
-  uint32_t get_pending_ul_data_total(tti_point tti_tx_ul, int this_ue_cc_idx);
-  uint32_t get_pending_ul_new_data(tti_point tti_tx_ul, int this_ue_cc_idx);
+  uint32_t get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_cc_idx);
+  uint32_t get_pending_ul_new_data(tti_point tti_tx_ul, int this_enb_cc_idx);
   uint32_t get_pending_ul_old_data();
-  uint32_t get_pending_ul_old_data(uint32_t cc_idx);
-  uint32_t get_expected_ul_bitrate(uint32_t ue_cc_idx, int nof_prbs = -1) const;
+  uint32_t get_pending_ul_old_data(uint32_t enb_cc_idx);
+  uint32_t get_expected_ul_bitrate(uint32_t enb_cc_idx, int nof_prbs = -1) const;
 
-  dl_harq_proc* get_pending_dl_harq(tti_point tti_tx_dl, uint32_t cc_idx);
-  dl_harq_proc* get_empty_dl_harq(tti_point tti_tx_dl, uint32_t cc_idx);
-  ul_harq_proc* get_ul_harq(tti_point tti_tx_ul, uint32_t ue_cc_idx);
+  dl_harq_proc* get_pending_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_idx);
+  dl_harq_proc* get_empty_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_idx);
+  ul_harq_proc* get_ul_harq(tti_point tti_tx_ul, uint32_t enb_cc_idx);
 
   /*******************************************************
    * Functions used by the scheduler carrier object
@@ -176,12 +176,12 @@ public:
   int generate_dl_dci_format(uint32_t                          pid,
                              sched_interface::dl_sched_data_t* data,
                              tti_point                         tti_tx_dl,
-                             uint32_t                          ue_cc_idx,
+                             uint32_t                          enb_cc_idx,
                              uint32_t                          cfi,
                              const rbgmask_t&                  user_mask);
   int generate_format0(sched_interface::ul_sched_data_t* data,
                        tti_point                         tti_tx_ul,
-                       uint32_t                          cc_idx,
+                       uint32_t                          enb_cc_idx,
                        prb_interval                      alloc,
                        bool                              needs_pdcch,
                        srslte_dci_location_t             cce_range,
@@ -209,34 +209,34 @@ private:
                                    dl_harq_proc*                     h,
                                    const rbgmask_t&                  user_mask,
                                    tti_point                         tti_tx_dl,
-                                   uint32_t                          ue_cc_idx,
+                                   uint32_t                          enb_cc_idx,
                                    uint32_t                          cfi,
                                    uint32_t                          tb);
 
-  tbs_info compute_mcs_and_tbs(uint32_t               ue_cc_idx,
+  tbs_info compute_mcs_and_tbs(uint32_t               enb_cc_idx,
                                tti_point              tti_tx_dl,
                                uint32_t               nof_alloc_prbs,
                                uint32_t               cfi,
                                const srslte_dci_dl_t& dci);
 
-  bool needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
+  bool needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send = false);
 
   int generate_format1(uint32_t                          pid,
                        sched_interface::dl_sched_data_t* data,
                        tti_point                         tti_tx_dl,
-                       uint32_t                          ue_cc_idx,
+                       uint32_t                          enb_cc_idx,
                        uint32_t                          cfi,
                        const rbgmask_t&                  user_mask);
   int generate_format2a(uint32_t                          pid,
                         sched_interface::dl_sched_data_t* data,
                         tti_point                         tti_tx_dl,
-                        uint32_t                          cc_idx,
+                        uint32_t                          enb_cc_idx,
                         uint32_t                          cfi,
                         const rbgmask_t&                  user_mask);
   int generate_format2(uint32_t                          pid,
                        sched_interface::dl_sched_data_t* data,
                        tti_point                         tti_tx_dl,
-                       uint32_t                          cc_idx,
+                       uint32_t                          enb_cc_idx,
                        uint32_t                          cfi,
                        const rbgmask_t&                  user_mask);
 

@@ -79,7 +79,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
     }
   }
   if (code != alloc_outcome_t::DCI_COLLISION and ue_ctxt.dl_newtx_h != nullptr) {
-    rbg_interval req_rbgs = ue.get_required_dl_rbgs(ue_ctxt.ue_cc_idx);
+    rbg_interval req_rbgs = ue.get_required_dl_rbgs(cc_cfg->enb_cc_idx);
     // Check if there is an empty harq for the newtx
     if (req_rbgs.stop() == 0) {
       return 0;
@@ -90,7 +90,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
       // empty RBGs were found
       code = tti_sched->alloc_dl_user(&ue, newtx_mask, ue_ctxt.dl_newtx_h->get_id());
       if (code == alloc_outcome_t::SUCCESS) {
-        return ue.get_expected_dl_bitrate(ue_ctxt.ue_cc_idx, newtx_mask.count()) * tti_duration_ms / 8;
+        return ue.get_expected_dl_bitrate(cc_cfg->enb_cc_idx, newtx_mask.count()) * tti_duration_ms / 8;
       }
     }
   }
@@ -136,19 +136,19 @@ uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
     estim_tbs_bytes = code == alloc_outcome_t::SUCCESS ? ue_ctxt.ul_h->get_pending_data() : 0;
   } else {
     // Note: h->is_empty check is required, in case CA allocated a small UL grant for UCI
-    uint32_t pending_data = ue.get_pending_ul_new_data(tti_sched->get_tti_tx_ul(), ue_ctxt.ue_cc_idx);
+    uint32_t pending_data = ue.get_pending_ul_new_data(tti_sched->get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     // Check if there is a empty harq, and data to transmit
     if (pending_data == 0) {
       return 0;
     }
-    uint32_t     pending_rb = ue.get_required_prb_ul(ue_ctxt.ue_cc_idx, pending_data);
+    uint32_t     pending_rb = ue.get_required_prb_ul(cc_cfg->enb_cc_idx, pending_data);
     prb_interval alloc      = find_contiguous_ul_prbs(pending_rb, tti_sched->get_ul_mask());
     if (alloc.empty()) {
       return 0;
     }
     code            = tti_sched->alloc_ul_user(&ue, alloc);
     estim_tbs_bytes = code == alloc_outcome_t::SUCCESS
-                          ? ue.get_expected_ul_bitrate(ue_ctxt.ue_cc_idx, alloc.length()) * tti_duration_ms / 8
+                          ? ue.get_expected_ul_bitrate(cc_cfg->enb_cc_idx, alloc.length()) * tti_duration_ms / 8
                           : 0;
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
@@ -178,7 +178,7 @@ void sched_time_pf::ue_ctxt::new_tti(const sched_cell_params_t& cell, sched_ue& 
   dl_newtx_h = get_dl_newtx_harq(ue, tti_sched);
   if (dl_retx_h != nullptr or dl_newtx_h != nullptr) {
     // calculate DL PF priority
-    float r = ue.get_expected_dl_bitrate(ue_cc_idx) / 8;
+    float r = ue.get_expected_dl_bitrate(cell.enb_cc_idx) / 8;
     float R = dl_avg_rate();
     dl_prio = (R != 0) ? r / pow(R, fairness_coeff) : (r == 0 ? 0 : std::numeric_limits<float>::max());
   }
@@ -189,7 +189,7 @@ void sched_time_pf::ue_ctxt::new_tti(const sched_cell_params_t& cell, sched_ue& 
     ul_h = get_ul_newtx_harq(ue, tti_sched);
   }
   if (ul_h != nullptr) {
-    float r = ue.get_expected_ul_bitrate(ue_cc_idx) / 8;
+    float r = ue.get_expected_ul_bitrate(cell.enb_cc_idx) / 8;
     float R = ul_avg_rate();
     ul_prio = (R != 0) ? r / pow(R, fairness_coeff) : (r == 0 ? 0 : std::numeric_limits<float>::max());
   }

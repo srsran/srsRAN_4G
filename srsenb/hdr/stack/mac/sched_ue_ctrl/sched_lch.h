@@ -95,10 +95,7 @@ uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,
  * @param total_tbs available space in bytes for allocations
  * @return number of bytes allocated
  */
-uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data,
-                          lch_ue_manager&                   lch_handler,
-                          uint32_t                          total_tbs,
-                          uint32_t                          ue_cc_idx);
+uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data, lch_ue_manager& lch_handler, uint32_t total_tbs);
 
 } // namespace srsenb
 

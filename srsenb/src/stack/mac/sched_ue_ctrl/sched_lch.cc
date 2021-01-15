@@ -350,15 +350,8 @@ uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,
   return total_tbs - rem_tbs;
 }
 
-uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data,
-                          lch_ue_manager&                   lch_handler,
-                          uint32_t                          total_tbs,
-                          uint32_t                          ue_cc_idx)
+uint32_t allocate_mac_ces(sched_interface::dl_sched_data_t* data, lch_ue_manager& lch_handler, uint32_t total_tbs)
 {
-  if (ue_cc_idx != 0) {
-    return 0;
-  }
-
   int rem_tbs = total_tbs;
   while (not lch_handler.pending_ces.empty() and data->nof_pdu_elems[0] < sched_interface::MAX_RLC_PDU_LIST) {
     int toalloc = srslte::ce_total_size(lch_handler.pending_ces.front());

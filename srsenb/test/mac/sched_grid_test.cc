@@ -20,11 +20,11 @@ const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count(
 const uint32_t                PCell_IDX = 0;
 const std::array<uint32_t, 6> prb_list  = {6, 15, 25, 50, 75, 100};
 
-uint32_t get_aggr_level(sched_ue& sched_ue, uint32_t ue_cc_idx, const std::vector<sched_cell_params_t>& cell_params)
+uint32_t get_aggr_level(sched_ue& sched_ue, uint32_t enb_cc_idx, const std::vector<sched_cell_params_t>& cell_params)
 {
   srslte_dci_format_t dci_format = sched_ue.get_dci_format();
-  uint32_t nof_dci_bits = srslte_dci_format_sizeof(&cell_params[ue_cc_idx].cfg.cell, nullptr, nullptr, dci_format);
-  uint32_t aggr_level   = sched_ue.get_aggr_level(ue_cc_idx, nof_dci_bits);
+  uint32_t nof_dci_bits = srslte_dci_format_sizeof(&cell_params[enb_cc_idx].cfg.cell, nullptr, nullptr, dci_format);
+  uint32_t aggr_level   = sched_ue.get_aggr_level(enb_cc_idx, nof_dci_bits);
   return aggr_level;
 }
 
