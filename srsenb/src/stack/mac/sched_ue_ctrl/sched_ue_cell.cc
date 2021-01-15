@@ -21,7 +21,7 @@ namespace srsenb {
  *******************************************************/
 
 sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg_) :
-  rnti(rnti_), cell_cfg(&cell_cfg_), dci_locations(generate_cce_location_table(rnti_, cell_cfg_))
+  cell_cfg(&cell_cfg_), dci_locations(generate_cce_location_table(rnti_, cell_cfg_))
 {}
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)

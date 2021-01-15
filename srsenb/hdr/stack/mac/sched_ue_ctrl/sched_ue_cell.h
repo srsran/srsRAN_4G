@@ -34,7 +34,6 @@ struct sched_ue_cell {
   const ue_cce_locations_table dci_locations;
 
 private:
-  uint16_t                         rnti      = SRSLTE_INVALID_RNTI;
   const sched_interface::ue_cfg_t* ue_cfg    = nullptr;
   int                              ue_cc_idx = -1;
 };
