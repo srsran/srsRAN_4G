@@ -11,6 +11,7 @@
  */
 
 #include "srslte/common/test_common.h"
+#include "srslte/phy/ch_estimation/dmrs_pucch.h"
 #include "srslte/phy/phch/pucch_nr.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
@@ -47,7 +48,7 @@ static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_co
           for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= 11;
                resource.initial_cyclic_shift++) {
             for (uint32_t m_cs = 0; m_cs <= 6; m_cs += 2) {
-              TESTASSERT(srslte_pucch_nr_format0_put(pucch, &carrier, cfg, &slot, &resource, m_cs, slot_symbols) ==
+              TESTASSERT(srslte_pucch_nr_format0_encode(pucch, &carrier, cfg, &slot, &resource, m_cs, slot_symbols) ==
                          SRSLTE_SUCCESS);
 
               // Measure PUCCH format 0 for all possible values of m_cs
@@ -65,6 +66,66 @@ static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_co
                   TESTASSERT(fabsf(measure.epre - 1) < 0.001);
                   TESTASSERT(fabsf(measure.rsrp - 0) < 0.1);
                   TESTASSERT(fabsf(measure.norm_corr - 0) < 0.1);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
+                              const srslte_pucch_nr_common_cfg_t* cfg,
+                              srslte_chest_ul_res_t*              chest_res,
+                              cf_t*                               slot_symbols)
+{
+  srslte_dl_slot_cfg_t               slot     = {};
+  srslte_pucch_nr_resource_format1_t resource = {};
+
+  for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
+    for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
+         resource.starting_prb += starting_prb_stride) {
+      for (resource.nof_symbols = 4; resource.nof_symbols <= 14; resource.nof_symbols++) {
+        for (resource.start_symbol_idx = 0;
+             resource.start_symbol_idx <= SRSLTE_NSYMB_PER_SLOT_NR - resource.nof_symbols;
+             resource.start_symbol_idx += starting_symbol_stride) {
+          for (resource.time_domain_occ = 0; resource.time_domain_occ <= 6; resource.time_domain_occ++) {
+            for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= 11;
+                 resource.initial_cyclic_shift++) {
+              for (uint32_t nof_bits = 1; nof_bits <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS; nof_bits++) {
+                for (uint32_t word = 0; word < (1U << nof_bits); word++) {
+                  // Generate bits
+                  uint8_t b[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS] = {};
+                  for (uint32_t i = 0; i < nof_bits; i++) {
+                    b[i] = (word >> i) & 1U;
+                  }
+
+                  // Encode PUCCH
+                  TESTASSERT(srslte_pucch_nr_format1_encode(
+                                 pucch, &carrier, cfg, &slot, &resource, b, nof_bits, slot_symbols) == SRSLTE_SUCCESS);
+
+                  // Put DMRS
+                  TESTASSERT(srslte_dmrs_pucch_format1_put(pucch, &carrier, cfg, &slot, &resource, slot_symbols) ==
+                             SRSLTE_SUCCESS);
+
+                  // Estimate channel
+                  TESTASSERT(srslte_dmrs_pucch_format1_estimate(
+                                 pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSLTE_SUCCESS);
+
+                  // Decode PUCCH
+                  uint8_t b_rx[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS];
+                  TESTASSERT(srslte_pucch_nr_format1_decode(
+                                 pucch, &carrier, cfg, &slot, &resource, chest_res, slot_symbols, b_rx, nof_bits) ==
+                             SRSLTE_SUCCESS);
+
+                  // Check received bits
+                  for (uint32_t i = 0; i < nof_bits; i++) {
+                    TESTASSERT(b[i] == b_rx[i]);
+                  }
                 }
               }
             }
@@ -111,9 +172,10 @@ int main(int argc, char** argv)
   int ret = SRSLTE_ERROR;
   parse_args(argc, argv);
 
-  uint32_t          nof_re    = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR;
-  cf_t*             slot_symb = srslte_vec_cf_malloc(nof_re);
-  srslte_pucch_nr_t pucch     = {};
+  uint32_t              nof_re    = carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR;
+  cf_t*                 slot_symb = srslte_vec_cf_malloc(nof_re);
+  srslte_pucch_nr_t     pucch     = {};
+  srslte_chest_ul_res_t chest_res = {};
 
   if (slot_symb == NULL) {
     ERROR("Alloc\n");
@@ -125,9 +187,22 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
+  if (srslte_chest_ul_res_init(&chest_res, carrier.nof_prb)) {
+    ERROR("Chest UL\n");
+    goto clean_exit;
+  }
+
   srslte_pucch_nr_common_cfg_t common_cfg = {};
+
+  // Test Format 0
   if (test_pucch_format0(&pucch, &common_cfg, slot_symb) < SRSLTE_SUCCESS) {
     ERROR("Failed PUCCH format 0\n");
+    goto clean_exit;
+  }
+
+  // Test Format 1
+  if (test_pucch_format1(&pucch, &common_cfg, &chest_res, slot_symb) < SRSLTE_SUCCESS) {
+    ERROR("Failed PUCCH format 1\n");
     goto clean_exit;
   }
 
@@ -138,6 +213,7 @@ clean_exit:
   }
 
   srslte_pucch_nr_free(&pucch);
+  srslte_chest_ul_res_free(&chest_res);
 
   if (ret == SRSLTE_SUCCESS) {
     printf("Test passed!\n");
