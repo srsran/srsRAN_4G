@@ -729,17 +729,6 @@ bool s1ap::handle_erab_release_cmd(const erab_release_cmd_s& msg)
   if (u == nullptr) {
     return false;
   }
-  
-  if (msg.protocol_ies.nas_pdu_present) {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
-    if (pdu == nullptr) {
-      s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
-      return false;
-    }
-    memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
-    pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
-    rrc->write_dl_info(u->ctxt.rnti, std::move(pdu));
-  }
 
   // Release E-RABs
   return rrc->release_erabs(u->ctxt.rnti, msg);
