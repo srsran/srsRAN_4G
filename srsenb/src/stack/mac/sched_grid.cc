@@ -52,9 +52,9 @@ cc_sched_result* sf_sched_result::new_cc(uint32_t enb_cc_idx)
 
 bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 {
-  for (uint32_t i = 0; i < enb_cc_list.size(); ++i) {
-    for (uint32_t j = 0; j < enb_cc_list[i].ul_sched_result.nof_dci_elems; ++j) {
-      if (enb_cc_list[i].ul_sched_result.pusch[j].dci.rnti == rnti) {
+  for (const auto& cc : enb_cc_list) {
+    for (uint32_t j = 0; j < cc.ul_sched_result.nof_dci_elems; ++j) {
+      if (cc.ul_sched_result.pusch[j].dci.rnti == rnti) {
         return true;
       }
     }
@@ -63,9 +63,9 @@ bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 }
 bool sf_sched_result::is_dl_alloc(uint16_t rnti) const
 {
-  for (uint32_t i = 0; i < enb_cc_list.size(); ++i) {
-    for (uint32_t j = 0; j < enb_cc_list[i].dl_sched_result.nof_data_elems; ++j) {
-      if (enb_cc_list[i].dl_sched_result.data[j].dci.rnti == rnti) {
+  for (const auto& cc : enb_cc_list) {
+    for (uint32_t j = 0; j < cc.dl_sched_result.nof_data_elems; ++j) {
+      if (cc.dl_sched_result.data[j].dci.rnti == rnti) {
         return true;
       }
     }
@@ -456,7 +456,7 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
-  uint32_t            aggr_idx   = user->find_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+  uint32_t            aggr_idx   = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
   alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user);
 
   return ret;
@@ -477,7 +477,7 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, boo
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
     uint32_t nof_bits = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0);
-    uint32_t aggr_idx = user->find_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+    uint32_t aggr_idx = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",

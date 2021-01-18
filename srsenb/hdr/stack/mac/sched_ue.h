@@ -27,7 +27,6 @@
 namespace srsenb {
 
 typedef enum { UCI_PUSCH_NONE = 0, UCI_PUSCH_CQI, UCI_PUSCH_ACK, UCI_PUSCH_ACK_CQI } uci_pusch_t;
-enum class cc_st { active, idle, activating, deactivating };
 
 struct tbs_info {
   int tbs_bytes = -1;
@@ -35,14 +34,9 @@ struct tbs_info {
 };
 
 struct cc_sched_ue {
-  cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
-              sched_ue_cell&                   cell_ue_,
-              uint16_t                         rnti_,
-              uint32_t                         ue_cc_idx,
-              srslte::tti_point                current_tti);
+  cc_sched_ue(const sched_interface::ue_cfg_t& cfg_, sched_ue_cell& cell_ue_, uint16_t rnti_, uint32_t ue_cc_idx);
   void reset();
   void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
-  void finish_tti(srslte::tti_point tti_rx);
 
   uint32_t                   get_aggr_level(uint32_t nof_bits);
   tbs_info                   alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul);
@@ -52,23 +46,7 @@ struct cc_sched_ue {
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_ue->cell_cfg; }
   uint32_t                   get_ue_cc_idx() const { return ue_cc_idx; }
-  void                       set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi);
   int                        cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs);
-  cc_st                      cc_state() const { return cc_state_; }
-
-  uint32_t  dl_ri = 0;
-  tti_point dl_ri_tti_rx{};
-  uint32_t  dl_pmi = 0;
-  tti_point dl_pmi_tti_rx{};
-  uint32_t  dl_cqi = 1;
-  tti_point dl_cqi_tti_rx{0};
-  uint32_t  ul_cqi = 1;
-  tti_point ul_cqi_tti_rx{};
-  bool      dl_cqi_rx = false;
-
-  uint32_t max_mcs_dl = 28, max_mcs_ul = 28;
-  uint32_t max_aggr_level = 3;
-  int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
 private:
   // config
@@ -78,10 +56,6 @@ private:
   uint16_t                         rnti;
   uint32_t                         ue_cc_idx = 0;
   srslte::tti_point                cfg_tti;
-
-  // state
-  srslte::tti_point last_tti;
-  cc_st             cc_state_ = cc_st::idle;
 };
 
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
@@ -185,7 +159,7 @@ public:
   srslte_dci_format_t    get_dci_format();
   const sched_dci_cce_t* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
 
-  cc_sched_ue*                     find_ue_carrier(uint32_t enb_cc_idx);
+  sched_ue_cell*                   find_ue_carrier(uint32_t enb_cc_idx);
   size_t                           nof_carriers_configured() const { return carriers.size(); }
   std::bitset<SRSLTE_MAX_CARRIERS> scell_activation_mask() const;
   int                              enb_to_ue_cc_idx(uint32_t enb_cc_idx) const;

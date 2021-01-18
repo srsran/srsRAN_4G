@@ -104,7 +104,7 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
   rnti = rnti_;
   cells.reserve(cell_list_params_.size());
   for (auto& c : cell_list_params_) {
-    cells.emplace_back(rnti_, c);
+    cells.emplace_back(rnti_, c, current_tti);
   }
   Info("SCHED: Added user rnti=0x%x\n", rnti);
 }
@@ -149,10 +149,10 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
 
     if (ue_idx >= prev_supported_cc_list.size()) {
       // New carrier needs to be added
-      carriers.emplace_back(cfg, cells[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti);
+      carriers.emplace_back(cfg, cells[cc_cfg.enb_cc_idx], rnti, ue_idx);
     } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
       // One carrier was added in the place of another
-      carriers[ue_idx] = cc_sched_ue{cfg, cells[cc_cfg.enb_cc_idx], rnti, ue_idx, current_tti};
+      carriers[ue_idx] = cc_sched_ue{cfg, cells[cc_cfg.enb_cc_idx], rnti, ue_idx};
       if (ue_idx == 0) {
         log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cc_cfg.enb_cc_idx);
       }
@@ -160,8 +160,8 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
       // The SCell internal configuration may have changed
       carriers[ue_idx].set_cfg(cfg);
     }
-    scell_activation_state_changed |= ue_idx > 0 and (carriers[ue_idx].cc_state() == cc_st::activating or
-                                                      carriers[ue_idx].cc_state() == cc_st::deactivating);
+    scell_activation_state_changed |= ue_idx > 0 and (cells[cc_cfg.enb_cc_idx].cc_state() == cc_st::activating or
+                                                      cells[cc_cfg.enb_cc_idx].cc_state() == cc_st::deactivating);
   }
   if (scell_activation_state_changed) {
     lch_handler.pending_ces.emplace_back(srslte::dl_sch_lcid::SCELL_ACTIVATION);
@@ -222,8 +222,10 @@ void sched_ue::rem_bearer(uint32_t lc_id)
 
 void sched_ue::phy_config_enabled(tti_point tti_rx, bool enabled)
 {
-  for (cc_sched_ue& c : carriers) {
-    c.dl_cqi_tti_rx = tti_rx;
+  for (sched_ue_cell& c : cells) {
+    if (c.configured()) {
+      c.dl_cqi_tti_rx = tti_rx;
+    }
   }
   phy_config_dedicated_enabled = enabled;
 }
@@ -345,9 +347,8 @@ bool sched_ue::pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_p
 
 int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
-  int          tbs_acked = -1;
-  cc_sched_ue* c         = find_ue_carrier(enb_cc_idx);
-  if (c != nullptr and c->cc_state() != cc_st::idle) {
+  int tbs_acked = -1;
+  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     std::pair<uint32_t, int> p2 = cells[enb_cc_idx].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
     tbs_acked                   = p2.second;
     if (tbs_acked > 0) {
@@ -364,8 +365,7 @@ int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_id
 
 void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 {
-  cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
-  if (c != nullptr and c->cc_state() != cc_st::idle) {
+  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     int ret = cells[enb_cc_idx].harq_ent.set_ul_crc(tti_rx, 0, crc_res);
     if (ret < 0) {
       log_h->warning("Received UL CRC for invalid tti_rx=%d\n", (int)tti_rx.to_uint());
@@ -377,10 +377,9 @@ void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 
 void sched_ue::set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri)
 {
-  cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
-  if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->dl_ri        = ri;
-    c->dl_ri_tti_rx = tti_rx;
+  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
+    cells[enb_cc_idx].dl_ri        = ri;
+    cells[enb_cc_idx].dl_ri_tti_rx = tti_rx;
   } else {
     log_h->warning("Received DL RI for invalid cell index %d\n", enb_cc_idx);
   }
@@ -388,10 +387,9 @@ void sched_ue::set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri)
 
 void sched_ue::set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t pmi)
 {
-  cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
-  if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->dl_pmi        = pmi;
-    c->dl_pmi_tti_rx = tti_rx;
+  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
+    cells[enb_cc_idx].dl_pmi        = pmi;
+    cells[enb_cc_idx].dl_pmi_tti_rx = tti_rx;
   } else {
     log_h->warning("Received DL PMI for invalid cell index %d\n", enb_cc_idx);
   }
@@ -399,9 +397,8 @@ void sched_ue::set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t pmi)
 
 void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 {
-  cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
-  if (c != nullptr and c->cc_state() != cc_st::idle) {
-    c->set_dl_cqi(tti_rx, cqi);
+  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
+    cells[enb_cc_idx].set_dl_cqi(tti_rx, cqi);
   } else {
     log_h->warning("Received DL CQI for invalid enb cell index %d\n", enb_cc_idx);
   }
@@ -409,11 +406,10 @@ void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
 
 void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code)
 {
-  cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
-  if (c != nullptr and c->cc_state() != cc_st::idle) {
+  if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     cells[enb_cc_idx].tpc_fsm.set_snr(snr, ul_ch_code);
-    c->ul_cqi        = srslte_cqi_from_snr(snr);
-    c->ul_cqi_tti_rx = tti_rx;
+    cells[enb_cc_idx].ul_cqi        = srslte_cqi_from_snr(snr);
+    cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
   } else {
     log_h->warning("Received SNR info for invalid cell index %d\n", enb_cc_idx);
   }
@@ -606,7 +602,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
 
   bool no_retx = true;
 
-  if (carriers[ue_cc_idx].dl_ri == 0) {
+  if (cells[enb_cc_idx].dl_ri == 0) {
     if (h->is_empty(1)) {
       /* One layer, tb1 buffer is empty, send tb0 only */
       tb_en[0] = true;
@@ -677,12 +673,11 @@ int sched_ue::generate_format2(uint32_t                          pid,
   int ret = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
-  uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  data->dci.format   = SRSLTE_DCI_FORMAT2;
+  data->dci.format = SRSLTE_DCI_FORMAT2;
   if ((SRSLTE_DCI_IS_TB_EN(data->dci.tb[0]) + SRSLTE_DCI_IS_TB_EN(data->dci.tb[1])) == 1) {
-    data->dci.pinfo = (uint8_t)(carriers[ue_cc_idx].dl_pmi + 1) % (uint8_t)5;
+    data->dci.pinfo = (uint8_t)(cells[enb_cc_idx].dl_pmi + 1) % (uint8_t)5;
   } else {
-    data->dci.pinfo = (uint8_t)(carriers[ue_cc_idx].dl_pmi & 1u);
+    data->dci.pinfo = (uint8_t)(cells[enb_cc_idx].dl_pmi & 1u);
   }
 
   return ret;
@@ -708,7 +703,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   dci->location     = dci_pos;
 
   tbs_info tbinfo;
-  tbinfo.mcs       = (explicit_mcs >= 0) ? explicit_mcs : carriers[ue_cc_idx].fixed_mcs_ul;
+  tbinfo.mcs       = (explicit_mcs >= 0) ? explicit_mcs : cells[enb_cc_idx].fixed_mcs_ul;
   tbinfo.tbs_bytes = 0;
 
   bool is_newtx = h->is_empty(0);
@@ -819,7 +814,7 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send)
   bool ret = false;
   if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period &&
       lch_handler.has_pending_dl_txs()) {
-    uint32_t interval = srslte_tti_interval(tti, carriers[enb_to_ue_cc_idx(enb_cc_idx)].dl_cqi_tti_rx.to_uint());
+    uint32_t interval = srslte_tti_interval(tti, cells[enb_cc_idx].dl_cqi_tti_rx.to_uint());
     bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
       uint32_t interval_sent = srslte_tti_interval(tti, cqi_request_tti);
@@ -854,7 +849,7 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
     // Cannot fit allocation in given PRBs
     log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
                  "Consider increasing initial CQI value.\n",
-                 carriers[ue_cc_idx].dl_cqi,
+                 cells[enb_cc_idx].dl_cqi,
                  req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
@@ -892,7 +887,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
     log_h->error("SRB0 must always be activated for DL\n");
     return {};
   }
-  if (carriers[ue_cc_idx].cc_state() != cc_st::active) {
+  if (cells[enb_cc_idx].cc_state() != cc_st::active) {
     return {};
   }
 
@@ -941,10 +936,10 @@ uint32_t sched_ue::get_pending_dl_rlc_data() const
 
 uint32_t sched_ue::get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs) const
 {
-  const cc_sched_ue* cc     = &carriers[cells.at(enb_cc_idx).get_ue_cc_idx()];
-  uint32_t           nof_re = cc->get_cell_cfg()->get_dl_lb_nof_re(
-      to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc->get_cell_cfg()->nof_prb()));
-  float max_coderate = srslte_cqi_to_coderate(std::min(cc->dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
+  auto&    cc = cells[enb_cc_idx];
+  uint32_t nof_re =
+      cc.cell_cfg->get_dl_lb_nof_re(to_tx_dl(current_tti), count_prb_per_tb_approx(nof_rbgs, cc.cell_cfg->nof_prb()));
+  float max_coderate = srslte_cqi_to_coderate(std::min(cc.dl_cqi + 1u, 15u), cfg.use_tbs_index_alt);
 
   // Inverse of srslte_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -953,13 +948,12 @@ uint32_t sched_ue::get_expected_dl_bitrate(uint32_t enb_cc_idx, int nof_rbgs) co
 
 uint32_t sched_ue::get_expected_ul_bitrate(uint32_t enb_cc_idx, int nof_prbs) const
 {
-  const cc_sched_ue* cc             = &carriers[cells.at(enb_cc_idx).get_ue_cc_idx()];
-  uint32_t           nof_prbs_alloc = nof_prbs < 0 ? cell.nof_prb : nof_prbs;
+  uint32_t nof_prbs_alloc = nof_prbs < 0 ? cell.nof_prb : nof_prbs;
 
   uint32_t N_srs        = 0;
   uint32_t nof_symb     = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
   uint32_t nof_re       = nof_symb * nof_prbs_alloc * SRSLTE_NRE;
-  float    max_coderate = srslte_cqi_to_coderate(std::min(cc->ul_cqi + 1u, 15u), false);
+  float    max_coderate = srslte_cqi_to_coderate(std::min(cells[enb_cc_idx].ul_cqi + 1u, 15u), false);
 
   // Inverse of srslte_coderate(tbs, nof_re)
   uint32_t tbs = max_coderate * nof_re - 24;
@@ -992,7 +986,6 @@ uint32_t sched_ue::get_pending_ul_old_data()
 uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_cc_idx)
 {
   static constexpr uint32_t lbsr_size = 4, sbsr_size = 2;
-  uint32_t                  this_ue_cc_idx = enb_to_ue_cc_idx(this_enb_cc_idx);
 
   // Note: If there are no active bearers, scheduling requests are also ignored.
   uint32_t pending_data = 0;
@@ -1013,14 +1006,16 @@ uint32_t sched_ue::get_pending_ul_data_total(tti_point tti_tx_ul, int this_enb_c
     if (is_sr_triggered() and this_enb_cc_idx >= 0) {
       // Check if this_cc_idx is the carrier with highest CQI
       uint32_t max_cqi = 0, max_cc_idx = 0;
-      for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
-        uint32_t sum_cqi = carriers[cc_idx].dl_cqi + carriers[cc_idx].ul_cqi;
-        if (carriers[cc_idx].cc_state() == cc_st::active and sum_cqi > max_cqi) {
-          max_cqi    = sum_cqi;
-          max_cc_idx = cc_idx;
+      for (uint32_t cc = 0; cc < cells.size(); ++cc) {
+        if (cells[cc].configured()) {
+          uint32_t sum_cqi = cells[cc].dl_cqi + cells[cc].ul_cqi;
+          if (cells[cc].cc_state() == cc_st::active and sum_cqi > max_cqi) {
+            max_cqi    = sum_cqi;
+            max_cc_idx = cc;
+          }
         }
       }
-      if (max_cc_idx == this_ue_cc_idx) {
+      if ((int)max_cc_idx == this_enb_cc_idx) {
         return 512;
       }
     }
@@ -1064,8 +1059,7 @@ bool sched_ue::is_sr_triggered()
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_idx)
 {
-  uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  if (cells[enb_cc_idx].configured() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
+  if (cells[enb_cc_idx].cc_state() == cc_st::active) {
     return cells[enb_cc_idx].harq_ent.get_pending_dl_harq(tti_tx_dl);
   }
   return nullptr;
@@ -1073,8 +1067,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc
 
 dl_harq_proc* sched_ue::get_empty_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_idx)
 {
-  uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  if (cells[enb_cc_idx].configured() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
+  if (cells[enb_cc_idx].cc_state() == cc_st::active) {
     return cells[enb_cc_idx].harq_ent.get_empty_dl_harq(tti_tx_dl);
   }
   return nullptr;
@@ -1082,8 +1075,7 @@ dl_harq_proc* sched_ue::get_empty_dl_harq(tti_point tti_tx_dl, uint32_t enb_cc_i
 
 ul_harq_proc* sched_ue::get_ul_harq(tti_point tti_tx_ul, uint32_t enb_cc_idx)
 {
-  uint32_t ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  if (cells[enb_cc_idx].configured() and carriers[ue_cc_idx].cc_state() == cc_st::active) {
+  if (cells[enb_cc_idx].cc_state() == cc_st::active) {
     return cells[enb_cc_idx].harq_ent.get_ul_harq(tti_tx_ul);
   }
   return nullptr;
@@ -1102,7 +1094,7 @@ std::pair<bool, uint32_t> sched_ue::get_active_cell_index(uint32_t enb_cc_idx) c
       [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& u) { return u.enb_cc_idx == enb_cc_idx and u.active; });
   if (it != cfg.supported_cc_list.end()) {
     uint32_t ue_cc_idx = std::distance(cfg.supported_cc_list.begin(), it);
-    return {carriers[ue_cc_idx].cc_state() == cc_st::active, ue_cc_idx};
+    return {cells[enb_cc_idx].cc_state() == cc_st::active, ue_cc_idx};
   }
   return {false, std::numeric_limits<uint32_t>::max()};
 }
@@ -1115,12 +1107,8 @@ uint32_t sched_ue::get_aggr_level(uint32_t enb_cc_idx, uint32_t nof_bits)
 
 void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)
 {
-  cc_sched_ue* c = find_ue_carrier(enb_cc_idx);
-
-  if (c != nullptr) {
-    // Check that scell state needs to change
-    c->finish_tti(tti_rx);
-  }
+  // Check that scell state needs to change
+  cells[enb_cc_idx].finish_tti(tti_rx);
 }
 
 srslte_dci_format_t sched_ue::get_dci_format()
@@ -1162,17 +1150,16 @@ const sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi
   }
 }
 
-cc_sched_ue* sched_ue::find_ue_carrier(uint32_t enb_cc_idx)
+sched_ue_cell* sched_ue::find_ue_carrier(uint32_t enb_cc_idx)
 {
-  int ue_cc_idx = enb_to_ue_cc_idx(enb_cc_idx);
-  return ue_cc_idx >= 0 ? &carriers[ue_cc_idx] : nullptr;
+  return cells[enb_cc_idx].configured() ? &cells[enb_cc_idx] : nullptr;
 }
 
 std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
 {
   std::bitset<SRSLTE_MAX_CARRIERS> ret{0};
   for (size_t i = 1; i < carriers.size(); ++i) {
-    if (carriers[i].cc_state() == cc_st::active) {
+    if (cells[carriers[i].get_cell_cfg()->enb_cc_idx].cc_state() == cc_st::active) {
       ret[i] = true;
     }
   }
@@ -1207,13 +1194,13 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint3
   int      max_mcs;
   float    max_coderate;
   if (is_ul) {
-    max_mcs      = max_mcs_ul;
+    max_mcs      = cell_ue->max_mcs_ul;
     max_Qm       = cfg->support_ul64qam == ul64qam_cap::enabled ? 6 : 4;
-    max_coderate = srslte_cqi_to_coderate(std::min(ul_cqi + 1u, 15u), false);
+    max_coderate = srslte_cqi_to_coderate(std::min(cell_ue->ul_cqi + 1u, 15u), false);
   } else {
-    max_mcs      = max_mcs_dl;
+    max_mcs      = cell_ue->max_mcs_dl;
     max_Qm       = cfg->use_tbs_index_alt ? 8 : 6;
-    max_coderate = srslte_cqi_to_coderate(std::min(dl_cqi + 1u, 15u), cfg->use_tbs_index_alt);
+    max_coderate = srslte_cqi_to_coderate(std::min(cell_ue->dl_cqi + 1u, 15u), cfg->use_tbs_index_alt);
   }
 
   // function with sign-flip at solution
@@ -1252,96 +1239,26 @@ int cc_sched_ue::cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint3
 cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
                          sched_ue_cell&                   cell_ue_,
                          uint16_t                         rnti_,
-                         uint32_t                         ue_cc_idx_,
-                         tti_point                        current_tti) :
-  cell_ue(&cell_ue_), rnti(rnti_), log_h(srslte::logmap::get("MAC")), ue_cc_idx(ue_cc_idx_), last_tti(current_tti)
+                         uint32_t                         ue_cc_idx_) :
+  cell_ue(&cell_ue_), rnti(rnti_), log_h(srslte::logmap::get("MAC")), ue_cc_idx(ue_cc_idx_)
 {
-  dl_cqi_rx = false;
-  dl_cqi    = (ue_cc_idx == 0) ? cell_ue_.cell_cfg->cfg.initial_dl_cqi : 0;
   set_cfg(cfg_);
-
-  max_aggr_level = cell_ue->cell_cfg->sched_cfg->max_aggr_level >= 0 ? cell_ue->cell_cfg->sched_cfg->max_aggr_level : 3;
-
-  // set fixed mcs
-  fixed_mcs_dl = cell_ue->cell_cfg->sched_cfg->pdsch_mcs;
-  fixed_mcs_ul = cell_ue->cell_cfg->sched_cfg->pusch_mcs;
 }
 
 void cc_sched_ue::reset()
 {
-  dl_ri         = 0;
-  dl_ri_tti_rx  = tti_point{};
-  dl_pmi        = 0;
-  dl_pmi_tti_rx = tti_point{};
-  dl_cqi        = 1;
-  dl_cqi_tti_rx = tti_point{};
-  ul_cqi        = 1;
-  ul_cqi_tti_rx = tti_point{};
   cell_ue->reset();
 }
 
 void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
-  cfg     = &cfg_;
-  cfg_tti = last_tti;
-
-  // set max mcs
-  max_mcs_ul = get_cell_cfg()->sched_cfg->pusch_max_mcs >= 0 ? get_cell_cfg()->sched_cfg->pusch_max_mcs : 28u;
-  if (get_cell_cfg()->cfg.enable_64qam) {
-    const uint32_t max_64qam_mcs[] = {20, 24, 28};
-    max_mcs_ul                     = std::min(max_mcs_ul, max_64qam_mcs[(size_t)cfg->support_ul64qam]);
-  }
-  max_mcs_dl =
-      get_cell_cfg()->sched_cfg->pdsch_max_mcs >= 0 ? std::min(get_cell_cfg()->sched_cfg->pdsch_max_mcs, 28) : 28u;
-  if (cfg->use_tbs_index_alt) {
-    max_mcs_dl = std::min(max_mcs_dl, 27u);
-  }
-
-  if (ue_cc_idx == 0) {
-    // PCell is always active
-    cc_state_ = cc_st::active;
-  } else {
-    switch (cc_state()) {
-      case cc_st::activating:
-      case cc_st::active:
-        if (not cfg->supported_cc_list[ue_cc_idx].active) {
-          cc_state_ = cc_st::deactivating;
-          log_h->info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
-        }
-        break;
-      case cc_st::deactivating:
-      case cc_st::idle:
-        if (cfg->supported_cc_list[ue_cc_idx].active) {
-          cc_state_ = cc_st::activating;
-          dl_cqi_rx = false;
-          dl_cqi    = 0;
-          log_h->info("SCHED: Activating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
-        }
-        break;
-      default:
-        break;
-    }
-  }
-}
-
-void cc_sched_ue::finish_tti(tti_point tti_rx)
-{
-  last_tti = tti_rx;
-  cell_ue->finish_tti(tti_rx);
-
-  // Check if cell state needs to be updated
-  if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {
-    // wait for all ACKs to be received before completely deactivating SCell
-    if (last_tti > to_tx_dl_ack(cfg_tti)) {
-      cc_state_ = cc_st::idle;
-      reset();
-    }
-  }
+  cfg = &cfg_;
 }
 
 uint32_t cc_sched_ue::get_aggr_level(uint32_t nof_bits)
 {
-  return srsenb::get_aggr_level(nof_bits, dl_cqi, max_aggr_level, get_cell_cfg()->nof_prb(), cfg->use_tbs_index_alt);
+  return srsenb::get_aggr_level(
+      nof_bits, cell_ue->dl_cqi, cell_ue->max_aggr_level, get_cell_cfg()->nof_prb(), cfg->use_tbs_index_alt);
 }
 
 /* In this scheduler we tend to use all the available bandwidth and select the MCS
@@ -1367,8 +1284,9 @@ tbs_info cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_
     if (req_mcs >= 0 and req_mcs < (int)sel_mcs) {
       uint32_t max_Qm = (is_ul) ? (cfg->support_ul64qam == sched_interface::ue_cfg_t::ul64qam_cap::enabled ? 6 : 4)
                                 : (cfg->use_tbs_index_alt ? 8 : 6);
-      float max_coderate = (is_ul) ? srslte_cqi_to_coderate(std::min(ul_cqi + 1u, 15u), false)
-                                   : srslte_cqi_to_coderate(std::min(dl_cqi + 1u, 15u), cfg->use_tbs_index_alt);
+      float max_coderate = (is_ul)
+                               ? srslte_cqi_to_coderate(std::min(cell_ue->ul_cqi + 1u, 15u), false)
+                               : srslte_cqi_to_coderate(std::min(cell_ue->dl_cqi + 1u, 15u), cfg->use_tbs_index_alt);
       if (diff_coderate_maxcoderate(req_mcs, nof_prb, nof_re, max_Qm, max_coderate, cfg->use_tbs_index_alt, is_ul) <
           0) {
         sel_mcs   = req_mcs;
@@ -1395,13 +1313,13 @@ tbs_info cc_sched_ue::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t r
   tbs_info ret;
 
   // Use a higher MCS for the Msg4 to fit in the 6 PRB case
-  if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
+  if (cell_ue->fixed_mcs_dl < 0 or not cell_ue->dl_cqi_rx) {
     // Dynamic MCS
     ret = alloc_tbs(nof_prb, nof_re, req_bytes, false);
   } else {
     // Fixed MCS
-    ret.mcs       = fixed_mcs_dl;
-    ret.tbs_bytes = get_tbs_bytes((uint32_t)fixed_mcs_dl, nof_prb, cfg->use_tbs_index_alt, false);
+    ret.mcs       = cell_ue->fixed_mcs_dl;
+    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell_ue->fixed_mcs_dl, nof_prb, cfg->use_tbs_index_alt, false);
   }
   return ret;
 }
@@ -1409,7 +1327,7 @@ tbs_info cc_sched_ue::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t r
 tbs_info cc_sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs)
 {
   tbs_info ret;
-  int      mcs = explicit_mcs >= 0 ? explicit_mcs : fixed_mcs_ul;
+  int      mcs = explicit_mcs >= 0 ? explicit_mcs : cell_ue->fixed_mcs_ul;
 
   if (mcs < 0) {
     // Dynamic MCS
@@ -1459,18 +1377,6 @@ uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
     req_prbs++;
   }
   return req_prbs;
-}
-
-void cc_sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
-{
-  dl_cqi        = dl_cqi_;
-  dl_cqi_tti_rx = tti_rx;
-  dl_cqi_rx     = dl_cqi_rx or dl_cqi > 0;
-  if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_rx) {
-    // Wait for SCell to receive a positive CQI before activating it
-    cc_state_ = cc_st::active;
-    log_h->info("SCHED: SCell index=%d is now active\n", ue_cc_idx);
-  }
 }
 
 } // namespace srsenb
