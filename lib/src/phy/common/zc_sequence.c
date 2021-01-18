@@ -267,9 +267,15 @@ static void zc_sequence_generate(uint32_t M_zc, float alpha, const cf_t* tmp_arg
 
 int srslte_zc_sequence_generate_lte(uint32_t u, uint32_t v, float alpha, uint32_t nof_prb, cf_t* sequence)
 {
-
+  // Check inputs
   if (sequence == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Check U and V
+  if (u >= SRSLTE_ZC_SEQUENCE_NOF_GROUPS || v >= SRSLTE_ZC_SEQUENCE_NOF_BASE) {
+    ERROR("Invalid u (%d) or v (%d)\n", u, v);
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
   // Calculate number of samples
@@ -293,6 +299,12 @@ int srslte_zc_sequence_generate_nr(uint32_t u, uint32_t v, float alpha, uint32_t
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  // Check U and V
+  if (u >= SRSLTE_ZC_SEQUENCE_NOF_GROUPS || v >= SRSLTE_ZC_SEQUENCE_NOF_BASE) {
+    ERROR("Invalid u (%d) or v (%d)\n", u, v);
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
+  }
+
   // Calculate number of samples
   uint32_t M_zc = (m * SRSLTE_NRE) >> delta;
 
@@ -305,4 +317,73 @@ int srslte_zc_sequence_generate_nr(uint32_t u, uint32_t v, float alpha, uint32_t
   zc_sequence_generate(M_zc, alpha, sequence, sequence);
 
   return SRSLTE_SUCCESS;
+}
+
+int srslte_zc_sequence_lut_init_nr(srslte_zc_sequence_lut_t* q,
+                                   uint32_t                  m,
+                                   uint32_t                  delta,
+                                   float*                    alphas,
+                                   uint32_t                  nof_alphas)
+{
+  if (q == NULL || alphas == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Set all structure to zero
+  SRSLTE_MEM_ZERO(q, srslte_zc_sequence_lut_t, 1);
+
+  // Calculate number of samples
+  q->M_zc       = (m * SRSLTE_NRE) >> delta;
+  q->nof_alphas = nof_alphas;
+
+  for (uint32_t u = 0; u < SRSLTE_ZC_SEQUENCE_NOF_GROUPS; u++) {
+    for (uint32_t v = 0; v < SRSLTE_ZC_SEQUENCE_NOF_BASE; v++) {
+      // Allocate sequence
+      q->sequence[u][v] = srslte_vec_cf_malloc(nof_alphas * q->M_zc);
+      if (q->sequence[u][v] == NULL) {
+        ERROR("Malloc\n");
+        return SRSLTE_ERROR;
+      }
+
+      // Generate a sequence for each alpha
+      for (uint32_t alpha_idx = 0; alpha_idx < nof_alphas; alpha_idx++) {
+        if (srslte_zc_sequence_generate_nr(u, v, alphas[alpha_idx], m, delta, &q->sequence[u][v][alpha_idx * q->M_zc]) <
+            SRSLTE_SUCCESS) {
+          ERROR("Generating sequence\n");
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+void srslte_zc_sequence_lut_free(srslte_zc_sequence_lut_t* q)
+{
+  for (uint32_t u = 0; u < SRSLTE_ZC_SEQUENCE_NOF_GROUPS; u++) {
+    for (uint32_t v = 0; v < SRSLTE_ZC_SEQUENCE_NOF_BASE; v++) {
+      if (q->sequence[u][v] != NULL) {
+        free(q->sequence[u][v]);
+      }
+    }
+  }
+  SRSLTE_MEM_ZERO(q, srslte_zc_sequence_lut_t, 1);
+}
+
+const cf_t* srslte_zc_sequence_lut_get(const srslte_zc_sequence_lut_t* q, uint32_t u, uint32_t v, uint32_t alpha_idx)
+{
+  if (q == NULL) {
+    return NULL;
+  }
+
+  if (u >= SRSLTE_ZC_SEQUENCE_NOF_GROUPS) {
+    return NULL;
+  }
+
+  if (v >= SRSLTE_ZC_SEQUENCE_NOF_BASE) {
+    return NULL;
+  }
+
+  return &q->sequence[u][v][alpha_idx * q->M_zc];
 }
