@@ -43495,6 +43495,14 @@ std::string poll_byte_opts::to_string() const
       "spare4",  "spare3",  "spare2",  "spare1"};
   return convert_enum_idx(options, 64, value, "poll_byte_e");
 }
+int32_t poll_byte_opts::to_number() const
+{
+  static const int32_t options[] = {1,     2,     5,     8,     10,    15,    25,    50,    75,    100,   125,
+                                    250,   375,   500,   750,   1000,  1250,  1500,  2000,  3000,  4000,  4500,
+                                    5000,  5500,  6000,  6500,  7000,  7500,  8000,  9000,  10000, 11000, 12000,
+                                    13000, 14000, 15000, 16000, 17000, 18000, 20000, 25000, 30000, 40000, -1};
+  return map_enum_number(options, 44, value, "poll_byte_e");
+}
 
 // PollPDU ::= ENUMERATED
 std::string poll_pdu_opts::to_string() const

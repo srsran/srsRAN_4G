@@ -20011,8 +20011,10 @@ struct poll_byte_opts {
     spare1,
     nulltype
   } value;
+  typedef int32_t number_type;
 
   std::string to_string() const;
+  int32_t     to_number() const;
 };
 typedef enumerated<poll_byte_opts> poll_byte_e;
 
