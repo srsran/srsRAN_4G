@@ -579,7 +579,10 @@ struct lte_band lte_bands[SRSLTE_NOF_LTE_BANDS] = {
     {68, 753, 67536, 132672, 55, SRSLTE_BAND_GEO_AREA_EMEA},
     {69, 2570, 67836, 0, 0, SRSLTE_BAND_GEO_AREA_EMEA},
     {70, 1995, 68336, 132972, 300, SRSLTE_BAND_GEO_AREA_NAR},
-    {71, 0, 68586, 133122, 0, SRSLTE_BAND_GEO_AREA_NAR} // dummy band to bound band 70 earfcn
+    {71, 0, 68586, 133122, 0, SRSLTE_BAND_GEO_AREA_NAR}, // dummy band to bound band 70 earfcn
+    {86, 728, 70366, 134002, 30, SRSLTE_BAND_GEO_AREA_NAR}, // <- Placeholder band for band 87
+    {87, 420, 70546, 134182, 10, SRSLTE_BAND_GEO_AREA_EMEA},
+    {88, 422, 70596, 134232, 10, SRSLTE_BAND_GEO_AREA_EMEA} // band to bound band 87 earfcn
 };
 
 int srslte_str2mimotype(char* mimo_type_str, srslte_tx_scheme_t* type)
