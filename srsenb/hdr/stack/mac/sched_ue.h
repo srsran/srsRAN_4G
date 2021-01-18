@@ -28,36 +28,6 @@ namespace srsenb {
 
 typedef enum { UCI_PUSCH_NONE = 0, UCI_PUSCH_CQI, UCI_PUSCH_ACK, UCI_PUSCH_ACK_CQI } uci_pusch_t;
 
-struct tbs_info {
-  int tbs_bytes = -1;
-  int mcs       = 0;
-};
-
-struct cc_sched_ue {
-  cc_sched_ue(const sched_interface::ue_cfg_t& cfg_, sched_ue_cell& cell_ue_, uint16_t rnti_, uint32_t ue_cc_idx);
-  void reset();
-  void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
-
-  uint32_t                   get_aggr_level(uint32_t nof_bits);
-  tbs_info                   alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul);
-  tbs_info                   alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes);
-  tbs_info                   alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs = -1);
-  int                        get_required_prb_dl(tti_point tti_tx_dl, uint32_t req_bytes);
-  uint32_t                   get_required_prb_ul(uint32_t req_bytes);
-  const sched_cell_params_t* get_cell_cfg() const { return cell_ue->cell_cfg; }
-  uint32_t                   get_ue_cc_idx() const { return ue_cc_idx; }
-  int                        cqi_to_tbs(uint32_t nof_prb, uint32_t nof_re, bool is_ul, uint32_t* mcs);
-
-private:
-  // config
-  srslte::log_ref                  log_h;
-  const sched_interface::ue_cfg_t* cfg     = nullptr;
-  sched_ue_cell*                   cell_ue = nullptr;
-  uint16_t                         rnti;
-  uint32_t                         ue_cc_idx = 0;
-  srslte::tti_point                cfg_tti;
-};
-
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
  * higher layers and mac threads.
  */
@@ -160,7 +130,7 @@ public:
   const sched_dci_cce_t* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
 
   sched_ue_cell*                   find_ue_carrier(uint32_t enb_cc_idx);
-  size_t                           nof_carriers_configured() const { return carriers.size(); }
+  size_t                           nof_carriers_configured() const { return cfg.supported_cc_list.size(); }
   std::bitset<SRSLTE_MAX_CARRIERS> scell_activation_mask() const;
   int                              enb_to_ue_cc_idx(uint32_t enb_cc_idx) const;
 
@@ -224,9 +194,7 @@ private:
 
   bool phy_config_dedicated_enabled = false;
 
-  tti_point                current_tti;
-  std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
-
+  tti_point                  current_tti;
   std::vector<sched_ue_cell> cells; ///< List of eNB cells that may be configured/activated/deactivated for the UE
 };
 

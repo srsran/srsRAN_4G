@@ -21,6 +21,11 @@ namespace srsenb {
 
 enum class cc_st { active, idle, activating, deactivating };
 
+struct tbs_info {
+  int tbs_bytes = -1;
+  int mcs       = 0;
+};
+
 struct sched_ue_cell {
   using ue_cc_cfg                      = sched_interface::ue_cfg_t::cc_cfg_t;
   const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
@@ -36,7 +41,8 @@ struct sched_ue_cell {
   bool             configured() const { return ue_cc_idx >= 0; }
   int              get_ue_cc_idx() const { return ue_cc_idx; }
   const ue_cc_cfg* get_ue_cc_cfg() const { return configured() ? &ue_cfg->supported_cc_list[ue_cc_idx] : nullptr; }
-  cc_st            cc_state() const { return cc_state_; }
+  const sched_interface::ue_cfg_t* get_ue_cfg() const { return configured() ? ue_cfg : nullptr; }
+  cc_st                            cc_state() const { return cc_state_; }
 
   const uint16_t rnti;
 
@@ -75,10 +81,23 @@ private:
   int                              ue_cc_idx = -1;
 
   // state
-  tti_point         current_tti;
-  srslte::tti_point last_tti;
-  cc_st             cc_state_ = cc_st::idle;
+  tti_point current_tti;
+  cc_st     cc_state_ = cc_st::idle;
 };
+
+/*************************************************************
+ *                    TBS/MCS derivation
+ ************************************************************/
+
+/// Compute TBS and MCS based on cell state and grant
+tbs_info cqi_to_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, bool is_ul);
+
+tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes);
+tbs_info
+alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs = -1);
+
+int      get_required_prb_dl(const sched_ue_cell& cell, tti_point tti_tx_dl, uint32_t req_bytes);
+uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes);
 
 } // namespace srsenb
 
