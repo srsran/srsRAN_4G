@@ -35,13 +35,17 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
 {
-  cfg_tti   = current_tti;
-  ue_cfg    = &ue_cfg_;
-  ue_cc_idx = -1;
+  cfg_tti            = current_tti;
+  ue_cfg             = &ue_cfg_;
+  int prev_ue_cc_idx = ue_cc_idx;
+  ue_cc_idx          = -1;
   for (size_t i = 0; i < ue_cfg_.supported_cc_list.size(); ++i) {
     if (ue_cfg_.supported_cc_list[i].enb_cc_idx == cell_cfg->enb_cc_idx) {
       ue_cc_idx = i;
     }
+  }
+  if (ue_cc_idx < 0 and prev_ue_cc_idx < 0) {
+    return;
   }
 
   // set max mcs
@@ -70,14 +74,14 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
     switch (cc_state()) {
       case cc_st::activating:
       case cc_st::active:
-        if (not ue_cfg->supported_cc_list[ue_cc_idx].active) {
+        if (ue_cc_idx < 0 or not ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::deactivating;
           log_h->info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
         }
         break;
       case cc_st::deactivating:
       case cc_st::idle:
-        if (ue_cfg->supported_cc_list[ue_cc_idx].active) {
+        if (ue_cc_idx > 0 and ue_cfg->supported_cc_list[ue_cc_idx].active) {
           reset();
           cc_state_ = cc_st::activating;
           dl_cqi    = 0;
