@@ -774,7 +774,6 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   if (cc == nullptr or cc->cc_state() != cc_st::active) {
     return alloc_outcome_t::ERROR;
   }
-  uint32_t ue_cc_idx = cc->get_ue_cc_idx();
   if (not user->pdsch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx)) {
     return alloc_outcome_t::MEASGAP_COLLISION;
   }
@@ -791,8 +790,9 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   }
 
   // Check if there is space in the PUCCH for HARQ ACKs
-  const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
-  std::bitset<SRSLTE_MAX_CARRIERS> scells = user->scell_activation_mask();
+  const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
+  std::bitset<SRSLTE_MAX_CARRIERS> scells    = user->scell_activation_mask();
+  uint32_t                         ue_cc_idx = cc->get_ue_cc_idx();
   if (user->nof_carriers_configured() > 1 and (ue_cc_idx == 0 or scells[ue_cc_idx]) and
       is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
     bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());

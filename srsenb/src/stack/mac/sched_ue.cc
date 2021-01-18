@@ -78,7 +78,7 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
   for (auto& c : cells) {
     c.set_ue_cfg(cfg);
     scell_activation_state_changed |=
-        c.get_ue_cc_idx() > 0 and (c.cc_state() == cc_st::activating or c.cc_state() == cc_st::deactivating);
+        c.is_scell() and (c.cc_state() == cc_st::activating or c.cc_state() == cc_st::deactivating);
   }
   if (prev_supported_cc_list.empty() or prev_supported_cc_list[0].enb_cc_idx != cfg.supported_cc_list[0].enb_cc_idx) {
     log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cfg.supported_cc_list[0].enb_cc_idx);
@@ -361,7 +361,7 @@ tbs_info sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
 
   // Allocate MAC PDU (subheaders, CEs, and SDUS)
   int rem_tbs = tb_info.tbs_bytes;
-  if (cells[enb_cc_idx].get_ue_cc_idx() == 0) {
+  if (cells[enb_cc_idx].is_pcell()) {
     rem_tbs -= allocate_mac_ces(data, lch_handler, rem_tbs);
   }
   rem_tbs -= allocate_mac_sdus(data, lch_handler, rem_tbs, tb);
@@ -756,7 +756,7 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send)
  */
 rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
 {
-  assert(cells[enb_cc_idx].get_ue_cc_idx() >= 0);
+  assert(cells[enb_cc_idx].configured());
   const auto*                cellparams = cells[enb_cc_idx].cell_cfg;
   srslte::interval<uint32_t> req_bytes  = get_requested_dl_bytes(enb_cc_idx);
   if (req_bytes == srslte::interval<uint32_t>{0, 0}) {
@@ -795,8 +795,7 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
  */
 srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
 {
-  assert(cells.at(enb_cc_idx).get_ue_cc_idx() >= 0);
-  uint32_t ue_cc_idx = cells[enb_cc_idx].get_ue_cc_idx();
+  assert(cells.at(enb_cc_idx).configured());
 
   /* Set Maximum boundary */
   // Ensure there is space for ConRes and RRC Setup
@@ -814,7 +813,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
 
   srb0_data = lch_handler.get_dl_tx_total_with_overhead(0);
   // Add pending CEs
-  if (ue_cc_idx == 0) {
+  if (cells[enb_cc_idx].is_pcell()) {
     if (srb0_data == 0 and not lch_handler.pending_ces.empty() and
         lch_handler.pending_ces.front() == srslte::dl_sch_lcid::CON_RES_ID) {
       // Wait for SRB0 data to be available for Msg4 before scheduling the ConRes CE
@@ -1006,13 +1005,8 @@ const dl_harq_proc& sched_ue::get_dl_harq(uint32_t idx, uint32_t enb_cc_idx) con
 
 std::pair<bool, uint32_t> sched_ue::get_active_cell_index(uint32_t enb_cc_idx) const
 {
-  auto it = std::find_if(
-      cfg.supported_cc_list.begin(),
-      cfg.supported_cc_list.end(),
-      [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& u) { return u.enb_cc_idx == enb_cc_idx and u.active; });
-  if (it != cfg.supported_cc_list.end()) {
-    uint32_t ue_cc_idx = std::distance(cfg.supported_cc_list.begin(), it);
-    return {cells[enb_cc_idx].cc_state() == cc_st::active, ue_cc_idx};
+  if (cells[enb_cc_idx].configured()) {
+    return {cells[enb_cc_idx].cc_state() == cc_st::active, cells[enb_cc_idx].get_ue_cc_idx()};
   }
   return {false, std::numeric_limits<uint32_t>::max()};
 }
@@ -1077,7 +1071,7 @@ std::bitset<SRSLTE_MAX_CARRIERS> sched_ue::scell_activation_mask() const
 {
   std::bitset<SRSLTE_MAX_CARRIERS> ret{0};
   for (size_t i = 0; i < cells.size(); ++i) {
-    if (cells[i].cc_state() == cc_st::active and cells[i].get_ue_cc_idx() > 0) {
+    if (cells[i].cc_state() == cc_st::active and cells[i].is_scell()) {
       ret[cells[i].get_ue_cc_idx()] = true;
     }
   }

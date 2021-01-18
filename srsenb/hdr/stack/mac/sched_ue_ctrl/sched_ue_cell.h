@@ -40,6 +40,8 @@ struct sched_ue_cell {
 
   bool             configured() const { return ue_cc_idx >= 0; }
   int              get_ue_cc_idx() const { return ue_cc_idx; }
+  bool             is_pcell() const { return ue_cc_idx == 0; }
+  bool             is_scell() const { return ue_cc_idx > 0; }
   const ue_cc_cfg* get_ue_cc_cfg() const { return configured() ? &ue_cfg->supported_cc_list[ue_cc_idx] : nullptr; }
   const sched_interface::ue_cfg_t* get_ue_cfg() const { return configured() ? ue_cfg : nullptr; }
   cc_st                            cc_state() const { return cc_state_; }
