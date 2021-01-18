@@ -412,7 +412,7 @@ int uci_nr_encode(srslte_uci_nr_t*             q,
 }
 
 // Implements TS 38.212 Table 6.3.1.4-1: Total rate matching output sequence length Etot
-static int uci_nr_pucch_E_tot(const srslte_pucch_nr_cfg_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg)
+static int uci_nr_pucch_E_tot(const srslte_pucch_nr_resource_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg)
 {
   if (pucch_cfg == NULL || uci_cfg == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -453,7 +453,7 @@ static int uci_nr_pucch_E_tot(const srslte_pucch_nr_cfg_t* pucch_cfg, const srsl
 
 // Implements TS 38.212 Table 6.3.1.4.1-1: Rate matching output sequence length E UCI
 static int
-uci_nr_pucch_E_uci(const srslte_pucch_nr_cfg_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg, uint32_t E_tot)
+uci_nr_pucch_E_uci(const srslte_pucch_nr_resource_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg, uint32_t E_tot)
 {
   if (uci_cfg->o_csi1 != 0 && uci_cfg->o_csi2) {
     ERROR("Simultaneous CSI part 1 and CSI part 2 is not implemented\n");
@@ -463,19 +463,19 @@ uci_nr_pucch_E_uci(const srslte_pucch_nr_cfg_t* pucch_cfg, const srslte_uci_cfg_
   return E_tot;
 }
 
-int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*             q,
-                               const srslte_pucch_nr_cfg_t* pucch_cfg,
-                               const srslte_uci_cfg_nr_t*   uci_cfg,
-                               const srslte_uci_value_nr_t* value,
-                               uint8_t*                     o)
+int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
+                               const srslte_pucch_nr_resource_t* pucch_resource_cfg,
+                               const srslte_uci_cfg_nr_t*        uci_cfg,
+                               const srslte_uci_value_nr_t*      value,
+                               uint8_t*                          o)
 {
 
-  int E_tot = uci_nr_pucch_E_tot(pucch_cfg, uci_cfg);
+  int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
-  int E_uci = uci_nr_pucch_E_uci(pucch_cfg, uci_cfg, E_tot);
+  int E_uci = uci_nr_pucch_E_uci(pucch_resource_cfg, uci_cfg, E_tot);
   if (E_uci < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }

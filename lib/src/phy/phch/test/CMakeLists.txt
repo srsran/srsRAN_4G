@@ -614,6 +614,10 @@ endif(RF_FOUND)
 # NR
 ########################################################################
 
+add_executable(pucch_nr_test pucch_nr_test.c)
+target_link_libraries(pucch_nr_test srslte_phy)
+add_test(pucch_nr_test pucch_nr_test)
+
 add_executable(sch_nr_test sch_nr_test.c)
 target_link_libraries(sch_nr_test srslte_phy)
 add_test(sch_nr_test sch_nr_test -m 0 -p 1)

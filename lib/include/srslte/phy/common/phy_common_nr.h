@@ -37,7 +37,7 @@ extern "C" {
 /**
  * @brief Defines the maximum numerology supported. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NR_MAX_NUMEROLOGY 4
+#define SRSLTE_NR_MAX_NUMEROLOGY 4U
 
 /**
  * @brief Defines the symbol duration, including cyclic prefix

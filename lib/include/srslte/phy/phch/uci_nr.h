@@ -71,10 +71,10 @@ SRSLTE_API void srslte_uci_nr_free(srslte_uci_nr_t* q);
  * @param[out] o Output encoded bits
  * @return Number of encoded bits if encoding is successful, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*             q,
-                                          const srslte_pucch_nr_cfg_t* pucch_cfg,
-                                          const srslte_uci_cfg_nr_t*   uci_cfg,
-                                          const srslte_uci_value_nr_t* value,
-                                          uint8_t*                     o);
+SRSLTE_API int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
+                                          const srslte_pucch_nr_resource_t* pucch_resource,
+                                          const srslte_uci_cfg_nr_t*        uci_cfg,
+                                          const srslte_uci_value_nr_t*      value,
+                                          uint8_t*                          o);
 
 #endif // SRSLTE_UCI_NR_H
