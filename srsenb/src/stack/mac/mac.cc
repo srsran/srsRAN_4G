@@ -334,11 +334,11 @@ int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32
   // push the pdu through the queue if received correctly
   if (crc) {
     Info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->push_pdu(pdu_ptr, nof_bytes);
+    ue_db[rnti]->push_pdu(tti_rx, pdu_ptr, nof_bytes);
     stack_task_queue.push([this]() { process_pdus(); });
   } else {
     Debug("Discarting PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->deallocate_pdu(pdu_ptr);
+    ue_db[rnti]->deallocate_pdu(tti_rx, pdu_ptr);
   }
   return SRSLTE_SUCCESS;
 }
@@ -906,7 +906,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
             if (sched_result.pusch[n].current_tx_nb == 0) {
               srslte_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
             }
-            phy_ul_sched_res->pusch[n].data = ue_db[rnti]->request_buffer(sched_result.pusch[i].tbs);
+            phy_ul_sched_res->pusch[n].data = ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].tbs);
             if (phy_ul_sched_res->pusch[n].data) {
               phy_ul_sched_res->nof_grants++;
             } else {
