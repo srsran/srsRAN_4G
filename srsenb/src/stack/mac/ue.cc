@@ -44,6 +44,7 @@ ue::ue(uint16_t                 rnti_,
   pdus(128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
+  rx_used_buffers(nof_cells_),
   ta_fsm(this)
 {
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
@@ -92,6 +93,15 @@ void ue::reset()
   for (auto cc : softbuffer_tx) {
     for (auto buffer : cc) {
       srslte_softbuffer_tx_reset(&buffer);
+    }
+  }
+
+  for (auto& rx_buffers_cc : rx_used_buffers) {
+    for (auto& ptr : rx_buffers_cc) {
+      if (ptr) {
+        pdus.deallocate(ptr);
+        ptr = nullptr;
+      }
     }
   }
 }
@@ -161,19 +171,19 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
   return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
-uint8_t* ue::request_buffer(uint32_t tti, const uint32_t len)
+uint8_t* ue::request_buffer(uint32_t tti, uint32_t cc_idx, const uint32_t len)
 {
   uint8_t* pdu = nullptr;
   if (len > 0) {
     pdu = pdus.request(len);
     if (pdu) {
       // Deallocate oldest buffer if we didn't deallocate it
-      if (rx_used_buffers[tti] != nullptr) {
-        pdus.deallocate(rx_used_buffers[tti]);
-        rx_used_buffers[tti] = nullptr;
+      if (rx_used_buffers.at(cc_idx)[tti] != nullptr) {
+        pdus.deallocate(rx_used_buffers.at(cc_idx)[tti]);
+        rx_used_buffers.at(cc_idx)[tti] = nullptr;
         log_h->warning("buffers: RX PDU of rnti=0x%x and pid=%d wasn't deallocated\n", rnti, tti % nof_rx_harq_proc);
       }
-      rx_used_buffers[tti] = pdu;
+      rx_used_buffers.at(cc_idx)[tti] = pdu;
       log_h->info("RX PDU saved for pid=%d\n", tti % nof_rx_harq_proc);
     } else {
       log_h->error("buffers: Requesting buffer from pool\n");
@@ -306,35 +316,33 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   Debug("MAC PDU processed\n");
 }
 
-void ue::deallocate_pdu(uint32_t tti, const uint8_t* pdu_ptr)
+void ue::deallocate_pdu(uint32_t tti, uint32_t cc_idx)
 {
-  if (pdu_ptr) {
-    if (rx_used_buffers[tti] == pdu_ptr) {
-      rx_used_buffers[tti] = nullptr;
-    } else {
-      Warning("buffers: Unexpected RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d\n", rnti, tti % nof_rx_harq_proc);
-    }
-    pdus.deallocate(pdu_ptr);
+  if (rx_used_buffers.at(cc_idx)[tti] != nullptr) {
+    pdus.deallocate(rx_used_buffers.at(cc_idx)[tti]);
+    rx_used_buffers.at(cc_idx)[tti] = nullptr;
   } else {
-    Error("Error deallocating PDU: null ptr\n");
+    Warning("buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
+            rnti,
+            tti % nof_rx_harq_proc,
+            cc_idx);
   }
 }
 
-void ue::push_pdu(uint32_t tti, const uint8_t* pdu_ptr, uint32_t len)
+void ue::push_pdu(uint32_t tti, uint32_t cc_idx, uint32_t len)
 {
-  if (pdu_ptr) {
-    if (rx_used_buffers[tti] == pdu_ptr) {
-      rx_used_buffers[tti] = nullptr;
-    } else {
-      Warning("buffers: Unexpected RX PDU pointer in push_pdu for rnti=0x%x pid=%d\n", rnti, tti % nof_rx_harq_proc);
-    }
+  if (rx_used_buffers.at(cc_idx)[tti] != nullptr) {
     if (len > 0) {
-      pdus.push(pdu_ptr, len);
+      pdus.push(rx_used_buffers.at(cc_idx)[tti], len);
     } else {
       Error("Error pushing PDU: null length\n");
     }
+    rx_used_buffers.at(cc_idx)[tti] = nullptr;
   } else {
-    Error("Error pushing PDU: null pointer\n");
+    Warning("buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
+            rnti,
+            tti % nof_rx_harq_proc,
+            cc_idx);
   }
 }
 

@@ -72,10 +72,10 @@ public:
   srslte_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
 
   bool     process_pdus();
-  uint8_t* request_buffer(uint32_t tti, const uint32_t len);
+  uint8_t* request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len);
   void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel) override;
-  void     push_pdu(uint32_t tti, const uint8_t* pdu_ptr, uint32_t len);
-  void     deallocate_pdu(uint32_t tti, const uint8_t* pdu_ptr);
+  void     push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len);
+  void     deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx);
 
   void metrics_read(mac_ue_metrics_t* metrics_);
   void metrics_rx(bool crc, uint32_t tbs);
@@ -124,7 +124,7 @@ private:
       tx_payload_buffer;
 
   // Save 2 buffers per HARQ process
-  srslte::circular_array<uint8_t*, 2 * SRSLTE_FDD_NOF_HARQ> rx_used_buffers;
+  std::vector<srslte::circular_array<uint8_t*, 2 * SRSLTE_FDD_NOF_HARQ> > rx_used_buffers;
 
   srslte::block_queue<uint32_t> pending_ta_commands;
   ta                            ta_fsm;
