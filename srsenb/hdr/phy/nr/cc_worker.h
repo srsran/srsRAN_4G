@@ -54,6 +54,7 @@ public:
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.measure_time     = true;
     args.dl.pdsch.sch.disable_simd = true;
+    cfg.pdsch.sch_cfg.mcs_table    = srslte_mcs_table_256qam;
   }
 };
 
