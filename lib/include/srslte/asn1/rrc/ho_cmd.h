@@ -142,6 +142,13 @@ struct scg_cfg_r12_s {
         set(types::scg_cfg_r12);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types             type_;
@@ -151,9 +158,6 @@ struct scg_cfg_r12_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -163,24 +167,23 @@ struct scg_cfg_r12_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
@@ -459,6 +462,13 @@ struct ho_cmd_s {
         set(types::ho_cmd_r8);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types           type_;
@@ -468,9 +478,6 @@ struct ho_cmd_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -480,24 +487,23 @@ struct ho_cmd_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
@@ -563,31 +569,6 @@ struct ho_prep_info_v1320_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// HandoverPreparationInformation-v13c0-IEs ::= SEQUENCE
-struct ho_prep_info_v13c0_ies_s {
-  bool           as_cfg_v13c0_present = false;
-  bool           non_crit_ext_present = false;
-  as_cfg_v13c0_s as_cfg_v13c0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// HandoverPreparationInformation-v10x0-IEs ::= SEQUENCE
-struct ho_prep_info_v10x0_ies_s {
-  bool                     late_non_crit_ext_present = false;
-  bool                     non_crit_ext_present      = false;
-  dyn_octstring            late_non_crit_ext;
-  ho_prep_info_v13c0_ies_s non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // HandoverPreparationInformation-v1250-IEs ::= SEQUENCE
 struct ho_prep_info_v1250_ies_s {
   bool                     ue_supported_earfcn_r12_present = false;
@@ -596,19 +577,6 @@ struct ho_prep_info_v1250_ies_s {
   uint32_t                 ue_supported_earfcn_r12         = 0;
   as_cfg_v1250_s           as_cfg_v1250;
   ho_prep_info_v1320_ies_s non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// HandoverPreparationInformation-v10j0-IEs ::= SEQUENCE
-struct ho_prep_info_v10j0_ies_s {
-  bool                     as_cfg_v10j0_present = false;
-  bool                     non_crit_ext_present = false;
-  as_cfg_v10j0_s           as_cfg_v10j0;
-  ho_prep_info_v10x0_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -635,19 +603,6 @@ struct ho_prep_info_v9e0_ies_s {
   bool                     non_crit_ext_present = false;
   as_cfg_v9e0_s            as_cfg_v9e0;
   ho_prep_info_v1130_ies_s non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// HandoverPreparationInformation-v9j0-IEs ::= SEQUENCE
-struct ho_prep_info_v9j0_ies_s {
-  bool                     late_non_crit_ext_present = false;
-  bool                     non_crit_ext_present      = false;
-  dyn_octstring            late_non_crit_ext;
-  ho_prep_info_v10j0_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -832,6 +787,13 @@ struct ho_prep_info_s {
         set(types::ho_prep_info_r8);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                 type_;
@@ -841,9 +803,6 @@ struct ho_prep_info_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -853,28 +812,78 @@ struct ho_prep_info_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
   crit_exts_c_ crit_exts;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v13c0-IEs ::= SEQUENCE
+struct ho_prep_info_v13c0_ies_s {
+  bool           as_cfg_v13c0_present = false;
+  bool           non_crit_ext_present = false;
+  as_cfg_v13c0_s as_cfg_v13c0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v10x0-IEs ::= SEQUENCE
+struct ho_prep_info_v10x0_ies_s {
+  bool                     late_non_crit_ext_present = false;
+  bool                     non_crit_ext_present      = false;
+  dyn_octstring            late_non_crit_ext;
+  ho_prep_info_v13c0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v10j0-IEs ::= SEQUENCE
+struct ho_prep_info_v10j0_ies_s {
+  bool                     as_cfg_v10j0_present = false;
+  bool                     non_crit_ext_present = false;
+  as_cfg_v10j0_s           as_cfg_v10j0;
+  ho_prep_info_v10x0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v9j0-IEs ::= SEQUENCE
+struct ho_prep_info_v9j0_ies_s {
+  bool                     late_non_crit_ext_present = false;
+  bool                     non_crit_ext_present      = false;
+  dyn_octstring            late_non_crit_ext;
+  ho_prep_info_v10j0_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -909,6 +918,7 @@ struct var_meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "speedStatePars");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);

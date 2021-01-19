@@ -2953,32 +2953,11 @@ void rlc_cfg_v1530_c::set(types::options e)
 void rlc_cfg_v1530_c::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      j.write_fieldname("setup");
-      j.start_obj();
-      j.write_str("rlc-OutOfOrderDelivery-r15", "true");
-      j.end_obj();
-      break;
-    default:
-      log_invalid_choice_id(type_, "rlc_cfg_v1530_c");
-  }
   j.end_obj();
 }
 SRSASN_CODE rlc_cfg_v1530_c::pack(bit_ref& bref) const
 {
   type_.pack(bref);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      break;
-    default:
-      log_invalid_choice_id(type_, "rlc_cfg_v1530_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE rlc_cfg_v1530_c::unpack(cbit_ref& bref)
@@ -2986,15 +2965,6 @@ SRSASN_CODE rlc_cfg_v1530_c::unpack(cbit_ref& bref)
   types e;
   e.unpack(bref);
   set(e);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      break;
-    default:
-      log_invalid_choice_id(type_, "rlc_cfg_v1530_c");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
   return SRSASN_SUCCESS;
 }
 bool rlc_cfg_v1530_c::operator==(const rlc_cfg_v1530_c& other) const
@@ -13486,88 +13456,6 @@ uint8_t ant_info_ded_v10i0_s::max_layers_mimo_r10_opts::to_number() const
   return map_enum_number(options, 3, value, "ant_info_ded_v10i0_s::max_layers_mimo_r10_e_");
 }
 
-// PUCCH-ConfigDedicated-v13c0 ::= SEQUENCE
-SRSASN_CODE pucch_cfg_ded_v13c0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(ch_sel_v13c0.n1_pucch_an_cs_v13c0.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE pucch_cfg_ded_v13c0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(ch_sel_v13c0.n1_pucch_an_cs_v13c0.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void pucch_cfg_ded_v13c0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("channelSelection-v13c0");
-  j.start_obj();
-  j.write_fieldname("n1PUCCH-AN-CS-v13c0");
-  ch_sel_v13c0.n1_pucch_an_cs_v13c0.to_json(j);
-  j.end_obj();
-  j.end_obj();
-}
-
-void pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::set(types::options e)
-{
-  type_ = e;
-}
-void pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      j.write_fieldname("setup");
-      j.start_obj();
-      j.start_array("n1PUCCH-AN-CS-ListP1-v13c0");
-      for (const auto& e1 : c.n1_pucch_an_cs_list_p1_v13c0) {
-        j.write_int(e1);
-      }
-      j.end_array();
-      j.end_obj();
-      break;
-    default:
-      log_invalid_choice_id(type_, "pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_");
-  }
-  j.end_obj();
-}
-SRSASN_CODE pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::pack(bit_ref& bref) const
-{
-  type_.pack(bref);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      HANDLE_CODE(pack_dyn_seq_of(bref, c.n1_pucch_an_cs_list_p1_v13c0, 2, 4, integer_packer<uint16_t>(0, 2047)));
-      break;
-    default:
-      log_invalid_choice_id(type_, "pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::unpack(cbit_ref& bref)
-{
-  types e;
-  e.unpack(bref);
-  set(e);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      HANDLE_CODE(unpack_dyn_seq_of(c.n1_pucch_an_cs_list_p1_v13c0, bref, 2, 4, integer_packer<uint16_t>(0, 2047)));
-      break;
-    default:
-      log_invalid_choice_id(type_, "pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
 // RadioResourceConfigDedicatedSCell-r10 ::= SEQUENCE
 SRSASN_CODE rr_cfg_ded_scell_r10_s::pack(bit_ref& bref) const
 {
@@ -13779,82 +13667,6 @@ bool rr_cfg_ded_scell_r10_s::operator==(const rr_cfg_ded_scell_r10_s& other) con
            (not sps_cfg_v1530.is_present() or *sps_cfg_v1530 == *other.sps_cfg_v1530)));
 }
 
-// PhysicalConfigDedicatedSCell-v13c0 ::= SEQUENCE
-SRSASN_CODE phys_cfg_ded_scell_v13c0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pucch_scell_v13c0.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE phys_cfg_ded_scell_v13c0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(pucch_scell_v13c0.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void phys_cfg_ded_scell_v13c0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("pucch-SCell-v13c0");
-  pucch_scell_v13c0.to_json(j);
-  j.end_obj();
-}
-
-void phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::set(types::options e)
-{
-  type_ = e;
-}
-void phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      j.write_fieldname("setup");
-      j.start_obj();
-      j.write_fieldname("pucch-ConfigDedicated-v13c0");
-      c.pucch_cfg_ded_v13c0.to_json(j);
-      j.end_obj();
-      break;
-    default:
-      log_invalid_choice_id(type_, "phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_");
-  }
-  j.end_obj();
-}
-SRSASN_CODE phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::pack(bit_ref& bref) const
-{
-  type_.pack(bref);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      HANDLE_CODE(c.pucch_cfg_ded_v13c0.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::unpack(cbit_ref& bref)
-{
-  types e;
-  e.unpack(bref);
-  set(e);
-  switch (type_) {
-    case types::release:
-      break;
-    case types::setup:
-      HANDLE_CODE(c.pucch_cfg_ded_v13c0.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
 // SCellToAddModExt-r13 ::= SEQUENCE
 SRSASN_CODE scell_to_add_mod_ext_r13_s::pack(bit_ref& bref) const
 {
@@ -13930,56 +13742,86 @@ void scell_to_add_mod_ext_r13_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// RadioResourceConfigDedicatedSCell-v13c0 ::= SEQUENCE
-SRSASN_CODE rr_cfg_ded_scell_v13c0_s::pack(bit_ref& bref) const
+// PUCCH-ConfigDedicated-v13c0 ::= SEQUENCE
+SRSASN_CODE pucch_cfg_ded_v13c0_s::pack(bit_ref& bref) const
 {
-  HANDLE_CODE(phys_cfg_ded_scell_v13c0.pack(bref));
+  HANDLE_CODE(ch_sel_v13c0.n1_pucch_an_cs_v13c0.pack(bref));
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rr_cfg_ded_scell_v13c0_s::unpack(cbit_ref& bref)
+SRSASN_CODE pucch_cfg_ded_v13c0_s::unpack(cbit_ref& bref)
 {
-  HANDLE_CODE(phys_cfg_ded_scell_v13c0.unpack(bref));
+  HANDLE_CODE(ch_sel_v13c0.n1_pucch_an_cs_v13c0.unpack(bref));
 
   return SRSASN_SUCCESS;
 }
-void rr_cfg_ded_scell_v13c0_s::to_json(json_writer& j) const
+void pucch_cfg_ded_v13c0_s::to_json(json_writer& j) const
 {
   j.start_obj();
-  j.write_fieldname("physicalConfigDedicatedSCell-v13c0");
-  phys_cfg_ded_scell_v13c0.to_json(j);
+  j.write_fieldname("channelSelection-v13c0");
+  j.start_obj();
+  j.write_fieldname("n1PUCCH-AN-CS-v13c0");
+  ch_sel_v13c0.n1_pucch_an_cs_v13c0.to_json(j);
+  j.end_obj();
   j.end_obj();
 }
 
-// SCellToAddMod-v13c0 ::= SEQUENCE
-SRSASN_CODE scell_to_add_mod_v13c0_s::pack(bit_ref& bref) const
+void pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::set(types::options e)
 {
-  HANDLE_CODE(bref.pack(rr_cfg_ded_scell_v13c0_present, 1));
-
-  if (rr_cfg_ded_scell_v13c0_present) {
-    HANDLE_CODE(rr_cfg_ded_scell_v13c0.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
+  type_ = e;
 }
-SRSASN_CODE scell_to_add_mod_v13c0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rr_cfg_ded_scell_v13c0_present, 1));
-
-  if (rr_cfg_ded_scell_v13c0_present) {
-    HANDLE_CODE(rr_cfg_ded_scell_v13c0.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void scell_to_add_mod_v13c0_s::to_json(json_writer& j) const
+void pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  if (rr_cfg_ded_scell_v13c0_present) {
-    j.write_fieldname("radioResourceConfigDedicatedSCell-v13c0");
-    rr_cfg_ded_scell_v13c0.to_json(j);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      j.write_fieldname("setup");
+      j.start_obj();
+      j.start_array("n1PUCCH-AN-CS-ListP1-v13c0");
+      for (const auto& e1 : c.n1_pucch_an_cs_list_p1_v13c0) {
+        j.write_int(e1);
+      }
+      j.end_array();
+      j.end_obj();
+      break;
+    default:
+      log_invalid_choice_id(type_, "pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_");
   }
   j.end_obj();
+}
+SRSASN_CODE pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(pack_dyn_seq_of(bref, c.n1_pucch_an_cs_list_p1_v13c0, 2, 4, integer_packer<uint16_t>(0, 2047)));
+      break;
+    default:
+      log_invalid_choice_id(type_, "pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(unpack_dyn_seq_of(c.n1_pucch_an_cs_list_p1_v13c0, bref, 2, 4, integer_packer<uint16_t>(0, 2047)));
+      break;
+    default:
+      log_invalid_choice_id(type_, "pucch_cfg_ded_v13c0_s::ch_sel_v13c0_s_::n1_pucch_an_cs_v13c0_c_");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
 }
 
 // DRB-ToAddModSCG-r12 ::= SEQUENCE
@@ -14573,37 +14415,6 @@ std::string scell_to_add_mod_r10_s::scell_state_r15_opts::to_string() const
   return convert_enum_idx(options, 2, value, "scell_to_add_mod_r10_s::scell_state_r15_e_");
 }
 
-// SCellToAddMod-v10l0 ::= SEQUENCE
-SRSASN_CODE scell_to_add_mod_v10l0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rr_cfg_common_scell_v10l0_present, 1));
-
-  if (rr_cfg_common_scell_v10l0_present) {
-    HANDLE_CODE(rr_cfg_common_scell_v10l0.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE scell_to_add_mod_v10l0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rr_cfg_common_scell_v10l0_present, 1));
-
-  if (rr_cfg_common_scell_v10l0_present) {
-    HANDLE_CODE(rr_cfg_common_scell_v10l0.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void scell_to_add_mod_v10l0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rr_cfg_common_scell_v10l0_present) {
-    j.write_fieldname("radioResourceConfigCommonSCell-v10l0");
-    rr_cfg_common_scell_v10l0.to_json(j);
-  }
-  j.end_obj();
-}
-
 // SCellToAddModExt-v1370 ::= SEQUENCE
 SRSASN_CODE scell_to_add_mod_ext_v1370_s::pack(bit_ref& bref) const
 {
@@ -14703,27 +14514,6 @@ std::string scell_to_add_mod_ext_v1430_s::scell_state_r15_opts::to_string() cons
 {
   static const char* options[] = {"activated", "dormant"};
   return convert_enum_idx(options, 2, value, "scell_to_add_mod_ext_v1430_s::scell_state_r15_e_");
-}
-
-// RadioResourceConfigDedicated-v13c0 ::= SEQUENCE
-SRSASN_CODE rr_cfg_ded_v13c0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(phys_cfg_ded_v13c0.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rr_cfg_ded_v13c0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(phys_cfg_ded_v13c0.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void rr_cfg_ded_v13c0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("physicalConfigDedicated-v13c0");
-  phys_cfg_ded_v13c0.to_json(j);
-  j.end_obj();
 }
 
 // RadioResourceConfigDedicatedSCG-r12 ::= SEQUENCE
@@ -14891,6 +14681,186 @@ void rr_cfg_ded_scg_r12_s::to_json(json_writer& j) const
       j.end_array();
     }
   }
+  j.end_obj();
+}
+
+// PhysicalConfigDedicatedSCell-v13c0 ::= SEQUENCE
+SRSASN_CODE phys_cfg_ded_scell_v13c0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(pucch_scell_v13c0.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE phys_cfg_ded_scell_v13c0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(pucch_scell_v13c0.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void phys_cfg_ded_scell_v13c0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("pucch-SCell-v13c0");
+  pucch_scell_v13c0.to_json(j);
+  j.end_obj();
+}
+
+void phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::set(types::options e)
+{
+  type_ = e;
+}
+void phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      j.write_fieldname("setup");
+      j.start_obj();
+      j.write_fieldname("pucch-ConfigDedicated-v13c0");
+      c.pucch_cfg_ded_v13c0.to_json(j);
+      j.end_obj();
+      break;
+    default:
+      log_invalid_choice_id(type_, "phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_");
+  }
+  j.end_obj();
+}
+SRSASN_CODE phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(c.pucch_cfg_ded_v13c0.pack(bref));
+      break;
+    default:
+      log_invalid_choice_id(type_, "phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::release:
+      break;
+    case types::setup:
+      HANDLE_CODE(c.pucch_cfg_ded_v13c0.unpack(bref));
+      break;
+    default:
+      log_invalid_choice_id(type_, "phys_cfg_ded_scell_v13c0_s::pucch_scell_v13c0_c_");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+
+// RadioResourceConfigDedicatedSCell-v13c0 ::= SEQUENCE
+SRSASN_CODE rr_cfg_ded_scell_v13c0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(phys_cfg_ded_scell_v13c0.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rr_cfg_ded_scell_v13c0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(phys_cfg_ded_scell_v13c0.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void rr_cfg_ded_scell_v13c0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("physicalConfigDedicatedSCell-v13c0");
+  phys_cfg_ded_scell_v13c0.to_json(j);
+  j.end_obj();
+}
+
+// SCellToAddMod-v13c0 ::= SEQUENCE
+SRSASN_CODE scell_to_add_mod_v13c0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rr_cfg_ded_scell_v13c0_present, 1));
+
+  if (rr_cfg_ded_scell_v13c0_present) {
+    HANDLE_CODE(rr_cfg_ded_scell_v13c0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE scell_to_add_mod_v13c0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rr_cfg_ded_scell_v13c0_present, 1));
+
+  if (rr_cfg_ded_scell_v13c0_present) {
+    HANDLE_CODE(rr_cfg_ded_scell_v13c0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void scell_to_add_mod_v13c0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rr_cfg_ded_scell_v13c0_present) {
+    j.write_fieldname("radioResourceConfigDedicatedSCell-v13c0");
+    rr_cfg_ded_scell_v13c0.to_json(j);
+  }
+  j.end_obj();
+}
+
+// SCellToAddMod-v10l0 ::= SEQUENCE
+SRSASN_CODE scell_to_add_mod_v10l0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rr_cfg_common_scell_v10l0_present, 1));
+
+  if (rr_cfg_common_scell_v10l0_present) {
+    HANDLE_CODE(rr_cfg_common_scell_v10l0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE scell_to_add_mod_v10l0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rr_cfg_common_scell_v10l0_present, 1));
+
+  if (rr_cfg_common_scell_v10l0_present) {
+    HANDLE_CODE(rr_cfg_common_scell_v10l0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void scell_to_add_mod_v10l0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rr_cfg_common_scell_v10l0_present) {
+    j.write_fieldname("radioResourceConfigCommonSCell-v10l0");
+    rr_cfg_common_scell_v10l0.to_json(j);
+  }
+  j.end_obj();
+}
+
+// RadioResourceConfigDedicated-v13c0 ::= SEQUENCE
+SRSASN_CODE rr_cfg_ded_v13c0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(phys_cfg_ded_v13c0.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rr_cfg_ded_v13c0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(phys_cfg_ded_v13c0.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void rr_cfg_ded_v13c0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("physicalConfigDedicated-v13c0");
+  phys_cfg_ded_v13c0.to_json(j);
   j.end_obj();
 }
 

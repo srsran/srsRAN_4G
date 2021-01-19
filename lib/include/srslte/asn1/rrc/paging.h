@@ -265,9 +265,6 @@ struct pcch_msg_type_c {
 
   // choice methods
   pcch_msg_type_c() = default;
-  pcch_msg_type_c(const pcch_msg_type_c& other);
-  pcch_msg_type_c& operator=(const pcch_msg_type_c& other);
-  ~pcch_msg_type_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -277,24 +274,23 @@ struct pcch_msg_type_c {
   c1_c_& c1()
   {
     assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
-    return c.get<c1_c_>();
+    return c;
   }
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
-    return c.get<c1_c_>();
+    return c;
   }
   c1_c_& set_c1()
   {
     set(types::c1);
-    return c.get<c1_c_>();
+    return c;
   }
+  void set_msg_class_ext() { set(types::msg_class_ext); }
 
 private:
-  types                  type_;
-  choice_buffer_t<c1_c_> c;
-
-  void destroy_();
+  types type_;
+  c1_c_ c;
 };
 
 // PCCH-Message ::= SEQUENCE
@@ -363,6 +359,13 @@ struct ue_paging_coverage_info_s {
         set(types::ue_paging_coverage_info_r13);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                             type_;
@@ -372,9 +375,6 @@ struct ue_paging_coverage_info_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -384,24 +384,23 @@ struct ue_paging_coverage_info_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
@@ -484,6 +483,13 @@ struct ue_radio_paging_info_s {
         set(types::ue_radio_paging_info_r12);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                          type_;
@@ -493,9 +499,6 @@ struct ue_radio_paging_info_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -505,24 +508,23 @@ struct ue_radio_paging_info_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables

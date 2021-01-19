@@ -71,6 +71,7 @@ struct sl_tx_pwr_r14_c {
     assert_choice_type("txPower-r14", type_.to_string(), "SL-TxPower-r14");
     return c;
   }
+  void    set_minusinfinity_r14() { set(types::minusinfinity_r14); }
   int8_t& set_tx_pwr_r14()
   {
     set(types::tx_pwr_r14);
@@ -918,6 +919,7 @@ struct sl_disc_res_pool_r12_s {
           set(types::rsrp_based_r12);
           return c;
         }
+        void set_random_r12() { set(types::random_r12); }
 
       private:
         types                 type_;
@@ -976,6 +978,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "discPeriod-v1310");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -1010,6 +1013,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "rxParamsAddNeighFreq-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1073,6 +1077,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1112,6 +1117,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-v1370");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1397,11 +1403,14 @@ struct sl_disc_tx_res_inter_freq_r13_c {
     assert_choice_type("discTxPoolCommon-r13", type_.to_string(), "SL-DiscTxResourcesInterFreq-r13");
     return c;
   }
+  void                        set_acquire_si_from_carrier_r13() { set(types::acquire_si_from_carrier_r13); }
   sl_disc_tx_pool_list_r12_l& set_disc_tx_pool_common_r13()
   {
     set(types::disc_tx_pool_common_r13);
     return c;
   }
+  void set_request_ded_r13() { set(types::request_ded_r13); }
+  void set_no_tx_on_carrier_r13() { set(types::no_tx_on_carrier_r13); }
 
 private:
   types                      type_;

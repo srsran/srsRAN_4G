@@ -263,6 +263,7 @@ struct sib_type1_v1530_ies_s {
       assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "crs-IntfMitigConfig-r15");
       return c;
     }
+    void                        set_crs_intf_mitig_enabled() { set(types::crs_intf_mitig_enabled); }
     crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs()
     {
       set(types::crs_intf_mitig_num_prbs);
@@ -336,9 +337,12 @@ struct cell_access_related_info_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// CellSelectionInfoCE1-v1360 ::= SEQUENCE
-struct cell_sel_info_ce1_v1360_s {
-  int8_t delta_rx_lev_min_ce1_v1360 = -8;
+// SystemInformationBlockType1-v1450-IEs ::= SEQUENCE
+struct sib_type1_v1450_ies_s {
+  bool                  tdd_cfg_v1450_present = false;
+  bool                  non_crit_ext_present  = false;
+  tdd_cfg_v1450_s       tdd_cfg_v1450;
+  sib_type1_v1530_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -346,22 +350,9 @@ struct cell_sel_info_ce1_v1360_s {
   void        to_json(json_writer& j) const;
 };
 
-// SI-Periodicity-r12 ::= ENUMERATED
-struct si_periodicity_r12_opts {
-  enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype } value;
-  typedef uint16_t number_type;
-
-  std::string to_string() const;
-  uint16_t    to_number() const;
-};
-typedef enumerated<si_periodicity_r12_opts> si_periodicity_r12_e;
-
-// SystemInformationBlockType1-v1450-IEs ::= SEQUENCE
-struct sib_type1_v1450_ies_s {
-  bool                  tdd_cfg_v1450_present = false;
-  bool                  non_crit_ext_present  = false;
-  tdd_cfg_v1450_s       tdd_cfg_v1450;
-  sib_type1_v1530_ies_s non_crit_ext;
+// CellSelectionInfoCE1-v1360 ::= SEQUENCE
+struct cell_sel_info_ce1_v1360_s {
+  int8_t delta_rx_lev_min_ce1_v1360 = -8;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1039,6 +1030,16 @@ struct cell_sel_info_v920_s {
 
 // PLMN-InfoList-r15 ::= SEQUENCE (SIZE (1..6)) OF PLMN-Info-r15
 using plmn_info_list_r15_l = dyn_array<plmn_info_r15_s>;
+
+// SI-Periodicity-r12 ::= ENUMERATED
+struct si_periodicity_r12_opts {
+  enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, nulltype } value;
+  typedef uint16_t number_type;
+
+  std::string to_string() const;
+  uint16_t    to_number() const;
+};
+typedef enumerated<si_periodicity_r12_opts> si_periodicity_r12_e;
 
 // SIB-MappingInfo ::= SEQUENCE (SIZE (0..31)) OF SIB-Type
 using sib_map_info_l = bounded_array<sib_type_e, 31>;

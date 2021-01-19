@@ -142,9 +142,6 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
 
   // choice methods
   bcch_dl_sch_msg_type_mbms_r14_c() = default;
-  bcch_dl_sch_msg_type_mbms_r14_c(const bcch_dl_sch_msg_type_mbms_r14_c& other);
-  bcch_dl_sch_msg_type_mbms_r14_c& operator=(const bcch_dl_sch_msg_type_mbms_r14_c& other);
-  ~bcch_dl_sch_msg_type_mbms_r14_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -154,24 +151,23 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
   c1_c_& c1()
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-MBMS-r14");
-    return c.get<c1_c_>();
+    return c;
   }
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-MBMS-r14");
-    return c.get<c1_c_>();
+    return c;
   }
   c1_c_& set_c1()
   {
     set(types::c1);
-    return c.get<c1_c_>();
+    return c;
   }
+  void set_msg_class_ext() { set(types::msg_class_ext); }
 
 private:
-  types                  type_;
-  choice_buffer_t<c1_c_> c;
-
-  void destroy_();
+  types type_;
+  c1_c_ c;
 };
 
 // BCCH-DL-SCH-Message-MBMS ::= SEQUENCE
@@ -183,6 +179,9 @@ struct bcch_dl_sch_msg_mbms_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
+
+// ThresholdEUTRA-v1250 ::= INTEGER (0..97)
+typedef uint8_t thres_eutra_v1250;
 
 // MBMS-SessionInfo-r9 ::= SEQUENCE
 struct mbms_session_info_r9_s {
@@ -498,9 +497,6 @@ struct mcch_msg_type_c {
 
     // choice methods
     later_c_() = default;
-    later_c_(const later_c_& other);
-    later_c_& operator=(const later_c_& other);
-    ~later_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -510,24 +506,23 @@ struct mcch_msg_type_c {
     c2_c_& c2()
     {
       assert_choice_type("c2", type_.to_string(), "later");
-      return c.get<c2_c_>();
+      return c;
     }
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "later");
-      return c.get<c2_c_>();
+      return c;
     }
     c2_c_& set_c2()
     {
       set(types::c2);
-      return c.get<c2_c_>();
+      return c;
     }
+    void set_msg_class_ext() { set(types::msg_class_ext); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c2_c_> c;
-
-    void destroy_();
+    types type_;
+    c2_c_ c;
   };
   struct types_opts {
     enum options { c1, later, nulltype } value;
@@ -1609,6 +1604,7 @@ struct sc_mcch_msg_type_r13_c {
         set(types::scptm_cfg_br_r14);
         return c;
       }
+      void set_spare() { set(types::spare); }
 
     private:
       types              type_;
@@ -1625,9 +1621,6 @@ struct sc_mcch_msg_type_r13_c {
 
     // choice methods
     msg_class_ext_c_() = default;
-    msg_class_ext_c_(const msg_class_ext_c_& other);
-    msg_class_ext_c_& operator=(const msg_class_ext_c_& other);
-    ~msg_class_ext_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -1637,24 +1630,23 @@ struct sc_mcch_msg_type_r13_c {
     c2_c_& c2()
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
-      return c.get<c2_c_>();
+      return c;
     }
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
-      return c.get<c2_c_>();
+      return c;
     }
     c2_c_& set_c2()
     {
       set(types::c2);
-      return c.get<c2_c_>();
+      return c;
     }
+    void set_msg_class_ext_future_r14() { set(types::msg_class_ext_future_r14); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c2_c_> c;
-
-    void destroy_();
+    types type_;
+    c2_c_ c;
   };
   struct types_opts {
     enum options { c1, msg_class_ext, nulltype } value;
@@ -1728,18 +1720,6 @@ struct sc_mcch_msg_r13_s {
 struct fail_report_scg_v12d0_s {
   bool                           meas_result_neigh_cells_v12d0_present = false;
   meas_result_list2_eutra_v9e0_l meas_result_neigh_cells_v12d0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SCGFailureInformation-v12d0b-IEs ::= SEQUENCE
-struct scg_fail_info_v12d0b_ies_s {
-  bool                    fail_report_scg_v12d0_present = false;
-  bool                    non_crit_ext_present          = false;
-  fail_report_scg_v12d0_s fail_report_scg_v12d0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1843,10 +1823,11 @@ struct phy_layer_params_v13e0_s {
   void        to_json(json_writer& j) const;
 };
 
-// UE-EUTRA-Capability-v13e0b-IEs ::= SEQUENCE
-struct ue_eutra_cap_v13e0b_ies_s {
-  bool                     non_crit_ext_present = false;
-  phy_layer_params_v13e0_s phy_layer_params_v13e0;
+// SCGFailureInformation-v12d0b-IEs ::= SEQUENCE
+struct scg_fail_info_v12d0b_ies_s {
+  bool                    fail_report_scg_v12d0_present = false;
+  bool                    non_crit_ext_present          = false;
+  fail_report_scg_v12d0_s fail_report_scg_v12d0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1854,11 +1835,10 @@ struct ue_eutra_cap_v13e0b_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCG-Config-v12i0b-IEs ::= SEQUENCE
-struct scg_cfg_v12i0b_ies_s {
-  bool                     scg_radio_cfg_v12i0_present = false;
-  bool                     non_crit_ext_present        = false;
-  scg_cfg_part_scg_v12f0_s scg_radio_cfg_v12i0;
+// UE-EUTRA-Capability-v13e0b-IEs ::= SEQUENCE
+struct ue_eutra_cap_v13e0b_ies_s {
+  bool                     non_crit_ext_present = false;
+  phy_layer_params_v13e0_s phy_layer_params_v13e0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2233,6 +2213,18 @@ struct sbcch_sl_bch_msg_v2x_r14_s {
   void        to_json(json_writer& j) const;
 };
 
+// SCG-Config-v12i0b-IEs ::= SEQUENCE
+struct scg_cfg_v12i0b_ies_s {
+  bool                     scg_radio_cfg_v12i0_present = false;
+  bool                     non_crit_ext_present        = false;
+  scg_cfg_part_scg_v12f0_s scg_radio_cfg_v12i0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // SCG-ConfigInfo-v1530-IEs ::= SEQUENCE
 struct scg_cfg_info_v1530_ies_s {
   bool                      drb_to_add_mod_list_scg_r15_present = false;
@@ -2379,6 +2371,13 @@ struct scg_cfg_info_r12_s {
         set(types::scg_cfg_info_r12);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                  type_;
@@ -2388,9 +2387,6 @@ struct scg_cfg_info_r12_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -2400,24 +2396,23 @@ struct scg_cfg_info_r12_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables

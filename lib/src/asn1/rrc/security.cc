@@ -548,67 +548,9 @@ void security_mode_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void security_mode_cmd_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void security_mode_cmd_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_cmd_s::crit_exts_c_");
-  }
-}
-security_mode_cmd_s::crit_exts_c_::crit_exts_c_(const security_mode_cmd_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_cmd_s::crit_exts_c_");
-  }
-}
-security_mode_cmd_s::crit_exts_c_&
-security_mode_cmd_s::crit_exts_c_::operator=(const security_mode_cmd_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_cmd_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void security_mode_cmd_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -616,7 +558,7 @@ void security_mode_cmd_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -630,7 +572,7 @@ SRSASN_CODE security_mode_cmd_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -647,7 +589,7 @@ SRSASN_CODE security_mode_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -882,67 +824,9 @@ void security_mode_complete_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void security_mode_complete_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::security_mode_complete_r8:
-      c.destroy<security_mode_complete_r8_ies_s>();
-      break;
-    default:
-      break;
-  }
-}
 void security_mode_complete_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::security_mode_complete_r8:
-      c.init<security_mode_complete_r8_ies_s>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_complete_s::crit_exts_c_");
-  }
-}
-security_mode_complete_s::crit_exts_c_::crit_exts_c_(const security_mode_complete_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::security_mode_complete_r8:
-      c.init(other.c.get<security_mode_complete_r8_ies_s>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_complete_s::crit_exts_c_");
-  }
-}
-security_mode_complete_s::crit_exts_c_&
-security_mode_complete_s::crit_exts_c_::operator=(const security_mode_complete_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::security_mode_complete_r8:
-      c.set(other.c.get<security_mode_complete_r8_ies_s>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_complete_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void security_mode_complete_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -950,7 +834,7 @@ void security_mode_complete_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::security_mode_complete_r8:
       j.write_fieldname("securityModeComplete-r8");
-      c.get<security_mode_complete_r8_ies_s>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -964,7 +848,7 @@ SRSASN_CODE security_mode_complete_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::security_mode_complete_r8:
-      HANDLE_CODE(c.get<security_mode_complete_r8_ies_s>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -981,7 +865,7 @@ SRSASN_CODE security_mode_complete_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::security_mode_complete_r8:
-      HANDLE_CODE(c.get<security_mode_complete_r8_ies_s>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1016,67 +900,9 @@ void security_mode_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void security_mode_fail_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::security_mode_fail_r8:
-      c.destroy<security_mode_fail_r8_ies_s>();
-      break;
-    default:
-      break;
-  }
-}
 void security_mode_fail_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::security_mode_fail_r8:
-      c.init<security_mode_fail_r8_ies_s>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_fail_s::crit_exts_c_");
-  }
-}
-security_mode_fail_s::crit_exts_c_::crit_exts_c_(const security_mode_fail_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::security_mode_fail_r8:
-      c.init(other.c.get<security_mode_fail_r8_ies_s>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_fail_s::crit_exts_c_");
-  }
-}
-security_mode_fail_s::crit_exts_c_&
-security_mode_fail_s::crit_exts_c_::operator=(const security_mode_fail_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::security_mode_fail_r8:
-      c.set(other.c.get<security_mode_fail_r8_ies_s>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "security_mode_fail_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void security_mode_fail_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1084,7 +910,7 @@ void security_mode_fail_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::security_mode_fail_r8:
       j.write_fieldname("securityModeFailure-r8");
-      c.get<security_mode_fail_r8_ies_s>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -1098,7 +924,7 @@ SRSASN_CODE security_mode_fail_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::security_mode_fail_r8:
-      HANDLE_CODE(c.get<security_mode_fail_r8_ies_s>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1115,7 +941,7 @@ SRSASN_CODE security_mode_fail_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::security_mode_fail_r8:
-      HANDLE_CODE(c.get<security_mode_fail_r8_ies_s>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;

@@ -511,66 +511,9 @@ void ue_cap_enquiry_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ue_cap_enquiry_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ue_cap_enquiry_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_cap_enquiry_s::crit_exts_c_");
-  }
-}
-ue_cap_enquiry_s::crit_exts_c_::crit_exts_c_(const ue_cap_enquiry_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_cap_enquiry_s::crit_exts_c_");
-  }
-}
-ue_cap_enquiry_s::crit_exts_c_& ue_cap_enquiry_s::crit_exts_c_::operator=(const ue_cap_enquiry_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_cap_enquiry_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ue_cap_enquiry_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -578,7 +521,7 @@ void ue_cap_enquiry_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -592,7 +535,7 @@ SRSASN_CODE ue_cap_enquiry_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -609,7 +552,7 @@ SRSASN_CODE ue_cap_enquiry_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -985,66 +928,9 @@ void ue_cap_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ue_cap_info_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ue_cap_info_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_cap_info_s::crit_exts_c_");
-  }
-}
-ue_cap_info_s::crit_exts_c_::crit_exts_c_(const ue_cap_info_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_cap_info_s::crit_exts_c_");
-  }
-}
-ue_cap_info_s::crit_exts_c_& ue_cap_info_s::crit_exts_c_::operator=(const ue_cap_info_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_cap_info_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ue_cap_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1052,7 +938,7 @@ void ue_cap_info_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -1066,7 +952,7 @@ SRSASN_CODE ue_cap_info_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1083,7 +969,7 @@ SRSASN_CODE ue_cap_info_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -8440,9 +8326,6 @@ SRSASN_CODE phy_layer_params_v1540_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(crs_im_tm1_to_tm9_one_rx_port_v1540_present, 1));
   HANDLE_CODE(bref.pack(cch_im_ref_rec_type_a_one_rx_port_v1540_present, 1));
 
-  if (stti_spt_cap_v1540_present) {
-  }
-
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE phy_layer_params_v1540_s::unpack(cbit_ref& bref)
@@ -8450,9 +8333,6 @@ SRSASN_CODE phy_layer_params_v1540_s::unpack(cbit_ref& bref)
   HANDLE_CODE(bref.unpack(stti_spt_cap_v1540_present, 1));
   HANDLE_CODE(bref.unpack(crs_im_tm1_to_tm9_one_rx_port_v1540_present, 1));
   HANDLE_CODE(bref.unpack(cch_im_ref_rec_type_a_one_rx_port_v1540_present, 1));
-
-  if (stti_spt_cap_v1540_present) {
-  }
 
   return SRSASN_SUCCESS;
 }
@@ -10614,28 +10494,6 @@ uint16_t pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_opts::to_number(
   return map_enum_number(options, 14, value, "pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_e_");
 }
 
-// PhyLayerParameters-v14a0 ::= SEQUENCE
-SRSASN_CODE phy_layer_params_v14a0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ssp10_tdd_only_r14_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE phy_layer_params_v14a0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ssp10_tdd_only_r14_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void phy_layer_params_v14a0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (ssp10_tdd_only_r14_present) {
-    j.write_str("ssp10-TDD-Only-r14", "supported");
-  }
-  j.end_obj();
-}
-
 // RLC-Parameters-v1430 ::= SEQUENCE
 SRSASN_CODE rlc_params_v1430_s::pack(bit_ref& bref) const
 {
@@ -10719,44 +10577,6 @@ void ue_eutra_cap_v1440_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v14b0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v14b0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v14b0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v14b0_present) {
-    HANDLE_CODE(rf_params_v14b0.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v14b0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v14b0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v14b0_present) {
-    HANDLE_CODE(rf_params_v14b0.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v14b0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v14b0_present) {
-    j.write_fieldname("rf-Parameters-v14b0");
-    rf_params_v14b0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-CapabilityAddXDD-Mode-v1430 ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1430_s::pack(bit_ref& bref) const
 {
@@ -10798,124 +10618,6 @@ void ue_eutra_cap_add_xdd_mode_v1430_s::to_json(json_writer& j) const
     mmtel_params_r14.to_json(j);
   }
   j.end_obj();
-}
-
-// MBMS-Parameters-v1470 ::= SEQUENCE
-SRSASN_CODE mbms_params_v1470_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(mbms_scaling_factor1dot25_r14_present, 1));
-  HANDLE_CODE(bref.pack(mbms_scaling_factor7dot5_r14_present, 1));
-
-  HANDLE_CODE(mbms_max_bw_r14.pack(bref));
-  if (mbms_scaling_factor1dot25_r14_present) {
-    HANDLE_CODE(mbms_scaling_factor1dot25_r14.pack(bref));
-  }
-  if (mbms_scaling_factor7dot5_r14_present) {
-    HANDLE_CODE(mbms_scaling_factor7dot5_r14.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mbms_params_v1470_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(mbms_scaling_factor1dot25_r14_present, 1));
-  HANDLE_CODE(bref.unpack(mbms_scaling_factor7dot5_r14_present, 1));
-
-  HANDLE_CODE(mbms_max_bw_r14.unpack(bref));
-  if (mbms_scaling_factor1dot25_r14_present) {
-    HANDLE_CODE(mbms_scaling_factor1dot25_r14.unpack(bref));
-  }
-  if (mbms_scaling_factor7dot5_r14_present) {
-    HANDLE_CODE(mbms_scaling_factor7dot5_r14.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mbms_params_v1470_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("mbms-MaxBW-r14");
-  mbms_max_bw_r14.to_json(j);
-  if (mbms_scaling_factor1dot25_r14_present) {
-    j.write_str("mbms-ScalingFactor1dot25-r14", mbms_scaling_factor1dot25_r14.to_string());
-  }
-  if (mbms_scaling_factor7dot5_r14_present) {
-    j.write_str("mbms-ScalingFactor7dot5-r14", mbms_scaling_factor7dot5_r14.to_string());
-  }
-  j.end_obj();
-}
-
-void mbms_params_v1470_s::mbms_max_bw_r14_c_::set(types::options e)
-{
-  type_ = e;
-}
-void mbms_params_v1470_s::mbms_max_bw_r14_c_::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::implicit_value:
-      break;
-    case types::explicit_value:
-      j.write_int("explicitValue", c);
-      break;
-    default:
-      log_invalid_choice_id(type_, "mbms_params_v1470_s::mbms_max_bw_r14_c_");
-  }
-  j.end_obj();
-}
-SRSASN_CODE mbms_params_v1470_s::mbms_max_bw_r14_c_::pack(bit_ref& bref) const
-{
-  type_.pack(bref);
-  switch (type_) {
-    case types::implicit_value:
-      break;
-    case types::explicit_value:
-      HANDLE_CODE(pack_integer(bref, c, (uint8_t)2u, (uint8_t)20u));
-      break;
-    default:
-      log_invalid_choice_id(type_, "mbms_params_v1470_s::mbms_max_bw_r14_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mbms_params_v1470_s::mbms_max_bw_r14_c_::unpack(cbit_ref& bref)
-{
-  types e;
-  e.unpack(bref);
-  set(e);
-  switch (type_) {
-    case types::implicit_value:
-      break;
-    case types::explicit_value:
-      HANDLE_CODE(unpack_integer(c, bref, (uint8_t)2u, (uint8_t)20u));
-      break;
-    default:
-      log_invalid_choice_id(type_, "mbms_params_v1470_s::mbms_max_bw_r14_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_string() const
-{
-  static const char* options[] = {"n3", "n6", "n9", "n12"};
-  return convert_enum_idx(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
-}
-uint8_t mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_number() const
-{
-  static const uint8_t options[] = {3, 6, 9, 12};
-  return map_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
-}
-
-std::string mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_string() const
-{
-  static const char* options[] = {"n1", "n2", "n3", "n4"};
-  return convert_enum_idx(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_");
-}
-uint8_t mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_number() const
-{
-  static const uint8_t options[] = {1, 2, 3, 4};
-  return map_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_");
 }
 
 // Other-Parameters-v1360 ::= SEQUENCE
@@ -11199,41 +10901,6 @@ uint8_t ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_opts::to_number() const
   return map_enum_number(options, 6, value, "ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_e_");
 }
 
-// UE-EUTRA-Capability-v14a0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v14a0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  HANDLE_CODE(phy_layer_params_v14a0.pack(bref));
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v14a0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  HANDLE_CODE(phy_layer_params_v14a0.unpack(bref));
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v14a0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("phyLayerParameters-v14a0");
-  phy_layer_params_v14a0.to_json(j);
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // CE-Parameters-v1350 ::= SEQUENCE
 SRSASN_CODE ce_params_v1350_s::pack(bit_ref& bref) const
 {
@@ -11299,95 +10966,6 @@ void ue_eutra_cap_v1360_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v1470-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v1470_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(mbms_params_v1470_present, 1));
-  HANDLE_CODE(bref.pack(phy_layer_params_v1470_present, 1));
-  HANDLE_CODE(bref.pack(rf_params_v1470_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (mbms_params_v1470_present) {
-    HANDLE_CODE(mbms_params_v1470.pack(bref));
-  }
-  if (phy_layer_params_v1470_present) {
-    HANDLE_CODE(phy_layer_params_v1470.pack(bref));
-  }
-  if (rf_params_v1470_present) {
-    HANDLE_CODE(rf_params_v1470.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v1470_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(mbms_params_v1470_present, 1));
-  HANDLE_CODE(bref.unpack(phy_layer_params_v1470_present, 1));
-  HANDLE_CODE(bref.unpack(rf_params_v1470_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (mbms_params_v1470_present) {
-    HANDLE_CODE(mbms_params_v1470.unpack(bref));
-  }
-  if (phy_layer_params_v1470_present) {
-    HANDLE_CODE(phy_layer_params_v1470.unpack(bref));
-  }
-  if (rf_params_v1470_present) {
-    HANDLE_CODE(rf_params_v1470.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v1470_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (mbms_params_v1470_present) {
-    j.write_fieldname("mbms-Parameters-v1470");
-    mbms_params_v1470.to_json(j);
-  }
-  if (phy_layer_params_v1470_present) {
-    j.write_fieldname("phyLayerParameters-v1470");
-    phy_layer_params_v1470.to_json(j);
-  }
-  if (rf_params_v1470_present) {
-    j.write_fieldname("rf-Parameters-v1470");
-    rf_params_v1470.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// CE-Parameters-v1380 ::= SEQUENCE
-SRSASN_CODE ce_params_v1380_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(tm6_ce_mode_a_r13_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ce_params_v1380_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(tm6_ce_mode_a_r13_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void ce_params_v1380_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (tm6_ce_mode_a_r13_present) {
-    j.write_str("tm6-CE-ModeA-r13", "supported");
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-Capability-v1350-IEs ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_v1350_ies_s::pack(bit_ref& bref) const
 {
@@ -11429,75 +11007,6 @@ void ue_eutra_cap_v1350_ies_s::to_json(json_writer& j) const
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
     non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v13e0a-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v13e0a_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v13e0a_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v13e0a_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// CE-Parameters-v1370 ::= SEQUENCE
-SRSASN_CODE ce_params_v1370_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(tm9_ce_mode_a_r13_present, 1));
-  HANDLE_CODE(bref.pack(tm9_ce_mode_b_r13_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ce_params_v1370_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(tm9_ce_mode_a_r13_present, 1));
-  HANDLE_CODE(bref.unpack(tm9_ce_mode_b_r13_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void ce_params_v1370_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (tm9_ce_mode_a_r13_present) {
-    j.write_str("tm9-CE-ModeA-r13", "supported");
-  }
-  if (tm9_ce_mode_b_r13_present) {
-    j.write_str("tm9-CE-ModeB-r13", "supported");
   }
   j.end_obj();
 }
@@ -11578,70 +11087,6 @@ void ue_eutra_cap_v1340_ies_s::to_json(json_writer& j) const
     j.write_fieldname("nonCriticalExtension");
     non_crit_ext.to_json(j);
   }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v1390-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v1390_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v1390_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v1390_present) {
-    HANDLE_CODE(rf_params_v1390.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v1390_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v1390_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v1390_present) {
-    HANDLE_CODE(rf_params_v1390.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v1390_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v1390_present) {
-    j.write_fieldname("rf-Parameters-v1390");
-    rf_params_v1390.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-CapabilityAddXDD-Mode-v1380 ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1380_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(ce_params_v1380.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1380_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(ce_params_v1380.unpack(bref));
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_add_xdd_mode_v1380_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("ce-Parameters-v1380");
-  ce_params_v1380.to_json(j);
   j.end_obj();
 }
 
@@ -11870,61 +11315,6 @@ void ue_eutra_cap_v1330_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v1380-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v1380_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v1380_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v1380_present) {
-    HANDLE_CODE(rf_params_v1380.pack(bref));
-  }
-  HANDLE_CODE(ce_params_v1380.pack(bref));
-  HANDLE_CODE(fdd_add_ue_eutra_cap_v1380.pack(bref));
-  HANDLE_CODE(tdd_add_ue_eutra_cap_v1380.pack(bref));
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v1380_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v1380_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v1380_present) {
-    HANDLE_CODE(rf_params_v1380.unpack(bref));
-  }
-  HANDLE_CODE(ce_params_v1380.unpack(bref));
-  HANDLE_CODE(fdd_add_ue_eutra_cap_v1380.unpack(bref));
-  HANDLE_CODE(tdd_add_ue_eutra_cap_v1380.unpack(bref));
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v1380_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v1380_present) {
-    j.write_fieldname("rf-Parameters-v1380");
-    rf_params_v1380.to_json(j);
-  }
-  j.write_fieldname("ce-Parameters-v1380");
-  ce_params_v1380.to_json(j);
-  j.write_fieldname("fdd-Add-UE-EUTRA-Capabilities-v1380");
-  fdd_add_ue_eutra_cap_v1380.to_json(j);
-  j.write_fieldname("tdd-Add-UE-EUTRA-Capabilities-v1380");
-  tdd_add_ue_eutra_cap_v1380.to_json(j);
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-CapabilityAddXDD-Mode-v1320 ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1320_s::pack(bit_ref& bref) const
 {
@@ -11964,37 +11354,6 @@ void ue_eutra_cap_add_xdd_mode_v1320_s::to_json(json_writer& j) const
   if (scptm_params_r13_present) {
     j.write_fieldname("scptm-Parameters-r13");
     scptm_params_r13.to_json(j);
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-CapabilityAddXDD-Mode-v1370 ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1370_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ce_params_v1370_present, 1));
-
-  if (ce_params_v1370_present) {
-    HANDLE_CODE(ce_params_v1370.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1370_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ce_params_v1370_present, 1));
-
-  if (ce_params_v1370_present) {
-    HANDLE_CODE(ce_params_v1370.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_add_xdd_mode_v1370_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (ce_params_v1370_present) {
-    j.write_fieldname("ce-Parameters-v1370");
-    ce_params_v1370.to_json(j);
   }
   j.end_obj();
 }
@@ -12423,73 +11782,6 @@ void ue_eutra_cap_v1320_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v1370-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v1370_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ce_params_v1370_present, 1));
-  HANDLE_CODE(bref.pack(fdd_add_ue_eutra_cap_v1370_present, 1));
-  HANDLE_CODE(bref.pack(tdd_add_ue_eutra_cap_v1370_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (ce_params_v1370_present) {
-    HANDLE_CODE(ce_params_v1370.pack(bref));
-  }
-  if (fdd_add_ue_eutra_cap_v1370_present) {
-    HANDLE_CODE(fdd_add_ue_eutra_cap_v1370.pack(bref));
-  }
-  if (tdd_add_ue_eutra_cap_v1370_present) {
-    HANDLE_CODE(tdd_add_ue_eutra_cap_v1370.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v1370_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ce_params_v1370_present, 1));
-  HANDLE_CODE(bref.unpack(fdd_add_ue_eutra_cap_v1370_present, 1));
-  HANDLE_CODE(bref.unpack(tdd_add_ue_eutra_cap_v1370_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (ce_params_v1370_present) {
-    HANDLE_CODE(ce_params_v1370.unpack(bref));
-  }
-  if (fdd_add_ue_eutra_cap_v1370_present) {
-    HANDLE_CODE(fdd_add_ue_eutra_cap_v1370.unpack(bref));
-  }
-  if (tdd_add_ue_eutra_cap_v1370_present) {
-    HANDLE_CODE(tdd_add_ue_eutra_cap_v1370.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v1370_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (ce_params_v1370_present) {
-    j.write_fieldname("ce-Parameters-v1370");
-    ce_params_v1370.to_json(j);
-  }
-  if (fdd_add_ue_eutra_cap_v1370_present) {
-    j.write_fieldname("fdd-Add-UE-EUTRA-Capabilities-v1370");
-    fdd_add_ue_eutra_cap_v1370.to_json(j);
-  }
-  if (tdd_add_ue_eutra_cap_v1370_present) {
-    j.write_fieldname("tdd-Add-UE-EUTRA-Capabilities-v1370");
-    tdd_add_ue_eutra_cap_v1370.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-CapabilityAddXDD-Mode-v1310 ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1310_s::pack(bit_ref& bref) const
 {
@@ -12561,70 +11853,6 @@ void phy_layer_params_v1280_s::to_json(json_writer& j) const
   j.start_obj();
   if (alt_tbs_indices_r12_present) {
     j.write_str("alternativeTBS-Indices-r12", "supported");
-  }
-  j.end_obj();
-}
-
-// RF-Parameters-v12b0 ::= SEQUENCE
-SRSASN_CODE rf_params_v12b0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(max_layers_mimo_ind_r12_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rf_params_v12b0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(max_layers_mimo_ind_r12_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void rf_params_v12b0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (max_layers_mimo_ind_r12_present) {
-    j.write_str("maxLayersMIMO-Indication-r12", "supported");
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v12x0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v12x0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v12x0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v12x0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -12911,49 +12139,6 @@ void ue_eutra_cap_v1280_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v12b0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v12b0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v12b0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v12b0_present) {
-    HANDLE_CODE(rf_params_v12b0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v12b0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v12b0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v12b0_present) {
-    HANDLE_CODE(rf_params_v12b0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v12b0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v12b0_present) {
-    j.write_fieldname("rf-Parameters-v12b0");
-    rf_params_v12b0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // MeasParameters-v1250 ::= SEQUENCE
 SRSASN_CODE meas_params_v1250_s::pack(bit_ref& bref) const
 {
@@ -13012,92 +12197,6 @@ void meas_params_v1250_s::to_json(json_writer& j) const
   }
   if (csi_rs_discovery_signals_meas_r12_present) {
     j.write_str("csi-RS-DiscoverySignalsMeas-r12", "supported");
-  }
-  j.end_obj();
-}
-
-// Other-Parameters-v11d0 ::= SEQUENCE
-SRSASN_CODE other_params_v11d0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(in_dev_coex_ind_ul_ca_r11_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE other_params_v11d0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(in_dev_coex_ind_ul_ca_r11_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void other_params_v11d0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (in_dev_coex_ind_ul_ca_r11_present) {
-    j.write_str("inDeviceCoexInd-UL-CA-r11", "supported");
-  }
-  j.end_obj();
-}
-
-// RF-Parameters-v10j0 ::= SEQUENCE
-SRSASN_CODE rf_params_v10j0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(multi_ns_pmax_r10_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rf_params_v10j0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(multi_ns_pmax_r10_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void rf_params_v10j0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (multi_ns_pmax_r10_present) {
-    j.write_str("multiNS-Pmax-r10", "supported");
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v11x0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v11x0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v11x0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v11x0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -13250,99 +12349,6 @@ void ue_based_netw_perf_meas_params_v1250_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_str("loggedMBSFNMeasurements-r12", "supported");
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v10j0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v10j0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v10j0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v10j0_present) {
-    HANDLE_CODE(rf_params_v10j0.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v10j0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v10j0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v10j0_present) {
-    HANDLE_CODE(rf_params_v10j0.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v10j0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v10j0_present) {
-    j.write_fieldname("rf-Parameters-v10j0");
-    rf_params_v10j0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v11d0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v11d0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v11d0_present, 1));
-  HANDLE_CODE(bref.pack(other_params_v11d0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v11d0_present) {
-    HANDLE_CODE(rf_params_v11d0.pack(bref));
-  }
-  if (other_params_v11d0_present) {
-    HANDLE_CODE(other_params_v11d0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v11d0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v11d0_present, 1));
-  HANDLE_CODE(bref.unpack(other_params_v11d0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v11d0_present) {
-    HANDLE_CODE(rf_params_v11d0.unpack(bref));
-  }
-  if (other_params_v11d0_present) {
-    HANDLE_CODE(other_params_v11d0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v11d0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v11d0_present) {
-    j.write_fieldname("rf-Parameters-v11d0");
-    rf_params_v11d0.to_json(j);
-  }
-  if (other_params_v11d0_present) {
-    j.write_fieldname("otherParameters-v11d0");
-    other_params_v11d0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
   j.end_obj();
 }
 
@@ -13503,90 +12509,6 @@ void meas_params_v11a0_s::to_json(json_writer& j) const
   j.start_obj();
   if (benefits_from_interruption_r11_present) {
     j.write_str("benefitsFromInterruption-r11", "true");
-  }
-  j.end_obj();
-}
-
-// RF-Parameters-v10f0 ::= SEQUENCE
-SRSASN_CODE rf_params_v10f0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(modified_mpr_behavior_r10_present, 1));
-
-  if (modified_mpr_behavior_r10_present) {
-    HANDLE_CODE(modified_mpr_behavior_r10.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE rf_params_v10f0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(modified_mpr_behavior_r10_present, 1));
-
-  if (modified_mpr_behavior_r10_present) {
-    HANDLE_CODE(modified_mpr_behavior_r10.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void rf_params_v10f0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (modified_mpr_behavior_r10_present) {
-    j.write_str("modifiedMPR-Behavior-r10", modified_mpr_behavior_r10.to_string());
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v10i0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v10i0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v10i0_present, 1));
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v10i0_present) {
-    HANDLE_CODE(rf_params_v10i0.pack(bref));
-  }
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v10i0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v10i0_present, 1));
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v10i0_present) {
-    HANDLE_CODE(rf_params_v10i0.unpack(bref));
-  }
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v10i0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v10i0_present) {
-    j.write_fieldname("rf-Parameters-v10i0");
-    rf_params_v10i0.to_json(j);
-  }
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -13788,72 +12710,6 @@ void ue_eutra_cap_v1250_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// OTDOA-PositioningCapabilities-r10 ::= SEQUENCE
-SRSASN_CODE otdoa_positioning_cap_r10_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(inter_freq_rstd_meas_r10_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE otdoa_positioning_cap_r10_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(inter_freq_rstd_meas_r10_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void otdoa_positioning_cap_r10_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_str("otdoa-UE-Assisted-r10", "supported");
-  if (inter_freq_rstd_meas_r10_present) {
-    j.write_str("interFreqRSTD-Measurement-r10", "supported");
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v10f0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v10f0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v10f0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v10f0_present) {
-    HANDLE_CODE(rf_params_v10f0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v10f0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v10f0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v10f0_present) {
-    HANDLE_CODE(rf_params_v10f0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v10f0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v10f0_present) {
-    j.write_fieldname("rf-Parameters-v10f0");
-    rf_params_v10f0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-Capability-v11a0-IEs ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_v11a0_ies_s::pack(bit_ref& bref) const
 {
@@ -13926,22 +12782,6 @@ void ue_eutra_cap_add_xdd_mode_v1180_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_fieldname("mbms-Parameters-r11");
   mbms_params_r11.to_json(j);
-  j.end_obj();
-}
-
-// IRAT-ParametersUTRA-v9h0 ::= SEQUENCE
-SRSASN_CODE irat_params_utra_v9h0_s::pack(bit_ref& bref) const
-{
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE irat_params_utra_v9h0_s::unpack(cbit_ref& bref)
-{
-  return SRSASN_SUCCESS;
-}
-void irat_params_utra_v9h0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_str("mfbi-UTRA-r9", "supported");
   j.end_obj();
 }
 
@@ -14077,49 +12917,6 @@ void phy_layer_params_v1170_s::to_json(json_writer& j) const
   j.start_obj();
   if (inter_band_tdd_ca_with_different_cfg_r11_present) {
     j.write_str("interBandTDD-CA-WithDifferentConfig-r11", inter_band_tdd_ca_with_different_cfg_r11.to_string());
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v10c0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v10c0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(otdoa_positioning_cap_r10_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (otdoa_positioning_cap_r10_present) {
-    HANDLE_CODE(otdoa_positioning_cap_r10.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v10c0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(otdoa_positioning_cap_r10_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (otdoa_positioning_cap_r10_present) {
-    HANDLE_CODE(otdoa_positioning_cap_r10.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v10c0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (otdoa_positioning_cap_r10_present) {
-    j.write_fieldname("otdoa-PositioningCapabilities-r10");
-    otdoa_positioning_cap_r10.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -14306,60 +13103,6 @@ void ue_eutra_cap_v1170_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v9h0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v9h0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(inter_rat_params_utra_v9h0_present, 1));
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (inter_rat_params_utra_v9h0_present) {
-    HANDLE_CODE(inter_rat_params_utra_v9h0.pack(bref));
-  }
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v9h0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(inter_rat_params_utra_v9h0_present, 1));
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (inter_rat_params_utra_v9h0_present) {
-    HANDLE_CODE(inter_rat_params_utra_v9h0.unpack(bref));
-  }
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v9h0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (inter_rat_params_utra_v9h0_present) {
-    j.write_fieldname("interRAT-ParametersUTRA-v9h0");
-    inter_rat_params_utra_v9h0.to_json(j);
-  }
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-CapabilityAddXDD-Mode-v1130 ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1130_s::pack(bit_ref& bref) const
 {
@@ -14449,29 +13192,25 @@ void irat_params_utra_tdd_v1020_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// PhyLayerParameters-v9d0 ::= SEQUENCE
-SRSASN_CODE phy_layer_params_v9d0_s::pack(bit_ref& bref) const
+// OTDOA-PositioningCapabilities-r10 ::= SEQUENCE
+SRSASN_CODE otdoa_positioning_cap_r10_s::pack(bit_ref& bref) const
 {
-  HANDLE_CODE(bref.pack(tm5_fdd_r9_present, 1));
-  HANDLE_CODE(bref.pack(tm5_tdd_r9_present, 1));
+  HANDLE_CODE(bref.pack(inter_freq_rstd_meas_r10_present, 1));
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_layer_params_v9d0_s::unpack(cbit_ref& bref)
+SRSASN_CODE otdoa_positioning_cap_r10_s::unpack(cbit_ref& bref)
 {
-  HANDLE_CODE(bref.unpack(tm5_fdd_r9_present, 1));
-  HANDLE_CODE(bref.unpack(tm5_tdd_r9_present, 1));
+  HANDLE_CODE(bref.unpack(inter_freq_rstd_meas_r10_present, 1));
 
   return SRSASN_SUCCESS;
 }
-void phy_layer_params_v9d0_s::to_json(json_writer& j) const
+void otdoa_positioning_cap_r10_s::to_json(json_writer& j) const
 {
   j.start_obj();
-  if (tm5_fdd_r9_present) {
-    j.write_str("tm5-FDD-r9", "supported");
-  }
-  if (tm5_tdd_r9_present) {
-    j.write_str("tm5-TDD-r9", "supported");
+  j.write_str("otdoa-UE-Assisted-r10", "supported");
+  if (inter_freq_rstd_meas_r10_present) {
+    j.write_str("interFreqRSTD-Measurement-r10", "supported");
   }
   j.end_obj();
 }
@@ -14563,190 +13302,6 @@ void ue_eutra_cap_v1130_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v9e0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v9e0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(rf_params_v9e0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (rf_params_v9e0_present) {
-    HANDLE_CODE(rf_params_v9e0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v9e0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(rf_params_v9e0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (rf_params_v9e0_present) {
-    HANDLE_CODE(rf_params_v9e0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v9e0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rf_params_v9e0_present) {
-    j.write_fieldname("rf-Parameters-v9e0");
-    rf_params_v9e0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// IRAT-ParametersCDMA2000-1XRTT-v920 ::= SEQUENCE
-SRSASN_CODE irat_params_cdma2000_minus1_xrtt_v920_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(e_csfb_conc_ps_mob1_xrtt_r9_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE irat_params_cdma2000_minus1_xrtt_v920_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(e_csfb_conc_ps_mob1_xrtt_r9_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void irat_params_cdma2000_minus1_xrtt_v920_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_str("e-CSFB-1XRTT-r9", "supported");
-  if (e_csfb_conc_ps_mob1_xrtt_r9_present) {
-    j.write_str("e-CSFB-ConcPS-Mob1XRTT-r9", "supported");
-  }
-  j.end_obj();
-}
-
-// IRAT-ParametersUTRA-v920 ::= SEQUENCE
-SRSASN_CODE irat_params_utra_v920_s::pack(bit_ref& bref) const
-{
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE irat_params_utra_v920_s::unpack(cbit_ref& bref)
-{
-  return SRSASN_SUCCESS;
-}
-void irat_params_utra_v920_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_str("e-RedirectionUTRA-r9", "supported");
-  j.end_obj();
-}
-
-// IRAT-ParametersUTRA-v9c0 ::= SEQUENCE
-SRSASN_CODE irat_params_utra_v9c0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(voice_over_ps_hs_utra_fdd_r9_present, 1));
-  HANDLE_CODE(bref.pack(voice_over_ps_hs_utra_tdd128_r9_present, 1));
-  HANDLE_CODE(bref.pack(srvcc_from_utra_fdd_to_utra_fdd_r9_present, 1));
-  HANDLE_CODE(bref.pack(srvcc_from_utra_fdd_to_geran_r9_present, 1));
-  HANDLE_CODE(bref.pack(srvcc_from_utra_tdd128_to_utra_tdd128_r9_present, 1));
-  HANDLE_CODE(bref.pack(srvcc_from_utra_tdd128_to_geran_r9_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE irat_params_utra_v9c0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(voice_over_ps_hs_utra_fdd_r9_present, 1));
-  HANDLE_CODE(bref.unpack(voice_over_ps_hs_utra_tdd128_r9_present, 1));
-  HANDLE_CODE(bref.unpack(srvcc_from_utra_fdd_to_utra_fdd_r9_present, 1));
-  HANDLE_CODE(bref.unpack(srvcc_from_utra_fdd_to_geran_r9_present, 1));
-  HANDLE_CODE(bref.unpack(srvcc_from_utra_tdd128_to_utra_tdd128_r9_present, 1));
-  HANDLE_CODE(bref.unpack(srvcc_from_utra_tdd128_to_geran_r9_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void irat_params_utra_v9c0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (voice_over_ps_hs_utra_fdd_r9_present) {
-    j.write_str("voiceOverPS-HS-UTRA-FDD-r9", "supported");
-  }
-  if (voice_over_ps_hs_utra_tdd128_r9_present) {
-    j.write_str("voiceOverPS-HS-UTRA-TDD128-r9", "supported");
-  }
-  if (srvcc_from_utra_fdd_to_utra_fdd_r9_present) {
-    j.write_str("srvcc-FromUTRA-FDD-ToUTRA-FDD-r9", "supported");
-  }
-  if (srvcc_from_utra_fdd_to_geran_r9_present) {
-    j.write_str("srvcc-FromUTRA-FDD-ToGERAN-r9", "supported");
-  }
-  if (srvcc_from_utra_tdd128_to_utra_tdd128_r9_present) {
-    j.write_str("srvcc-FromUTRA-TDD128-ToUTRA-TDD128-r9", "supported");
-  }
-  if (srvcc_from_utra_tdd128_to_geran_r9_present) {
-    j.write_str("srvcc-FromUTRA-TDD128-ToGERAN-r9", "supported");
-  }
-  j.end_obj();
-}
-
-// NeighCellSI-AcquisitionParameters-r9 ::= SEQUENCE
-SRSASN_CODE neigh_cell_si_acquisition_params_r9_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(intra_freq_si_acquisition_for_ho_r9_present, 1));
-  HANDLE_CODE(bref.pack(inter_freq_si_acquisition_for_ho_r9_present, 1));
-  HANDLE_CODE(bref.pack(utran_si_acquisition_for_ho_r9_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE neigh_cell_si_acquisition_params_r9_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(intra_freq_si_acquisition_for_ho_r9_present, 1));
-  HANDLE_CODE(bref.unpack(inter_freq_si_acquisition_for_ho_r9_present, 1));
-  HANDLE_CODE(bref.unpack(utran_si_acquisition_for_ho_r9_present, 1));
-
-  return SRSASN_SUCCESS;
-}
-void neigh_cell_si_acquisition_params_r9_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (intra_freq_si_acquisition_for_ho_r9_present) {
-    j.write_str("intraFreqSI-AcquisitionForHO-r9", "supported");
-  }
-  if (inter_freq_si_acquisition_for_ho_r9_present) {
-    j.write_str("interFreqSI-AcquisitionForHO-r9", "supported");
-  }
-  if (utran_si_acquisition_for_ho_r9_present) {
-    j.write_str("utran-SI-AcquisitionForHO-r9", "supported");
-  }
-  j.end_obj();
-}
-
-// PhyLayerParameters ::= SEQUENCE
-SRSASN_CODE phy_layer_params_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(ue_tx_ant_sel_supported, 1));
-  HANDLE_CODE(bref.pack(ue_specific_ref_sigs_supported, 1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE phy_layer_params_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(ue_tx_ant_sel_supported, 1));
-  HANDLE_CODE(bref.unpack(ue_specific_ref_sigs_supported, 1));
-
-  return SRSASN_SUCCESS;
-}
-void phy_layer_params_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_bool("ue-TxAntennaSelectionSupported", ue_tx_ant_sel_supported);
-  j.write_bool("ue-SpecificRefSigsSupported", ue_specific_ref_sigs_supported);
-  j.end_obj();
-}
-
 // UE-EUTRA-Capability-v1090-IEs ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_v1090_ies_s::pack(bit_ref& bref) const
 {
@@ -14782,49 +13337,6 @@ void ue_eutra_cap_v1090_ies_s::to_json(json_writer& j) const
   if (rf_params_v1090_present) {
     j.write_fieldname("rf-Parameters-v1090");
     rf_params_v1090.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-Capability-v9d0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v9d0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(phy_layer_params_v9d0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (phy_layer_params_v9d0_present) {
-    HANDLE_CODE(phy_layer_params_v9d0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v9d0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(phy_layer_params_v9d0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (phy_layer_params_v9d0_present) {
-    HANDLE_CODE(phy_layer_params_v9d0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v9d0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (phy_layer_params_v9d0_present) {
-    j.write_fieldname("phyLayerParameters-v9d0");
-    phy_layer_params_v9d0.to_json(j);
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
@@ -15030,152 +13542,6 @@ void ue_eutra_cap_v1060_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v9c0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v9c0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(inter_rat_params_utra_v9c0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (inter_rat_params_utra_v9c0_present) {
-    HANDLE_CODE(inter_rat_params_utra_v9c0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v9c0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(inter_rat_params_utra_v9c0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (inter_rat_params_utra_v9c0_present) {
-    HANDLE_CODE(inter_rat_params_utra_v9c0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v9c0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (inter_rat_params_utra_v9c0_present) {
-    j.write_fieldname("interRAT-ParametersUTRA-v9c0");
-    inter_rat_params_utra_v9c0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// UE-EUTRA-CapabilityAddXDD-Mode-r9 ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_add_xdd_mode_r9_s::pack(bit_ref& bref) const
-{
-  bref.pack(ext, 1);
-  HANDLE_CODE(bref.pack(phy_layer_params_r9_present, 1));
-  HANDLE_CODE(bref.pack(feature_group_inds_r9_present, 1));
-  HANDLE_CODE(bref.pack(feature_group_ind_rel9_add_r9_present, 1));
-  HANDLE_CODE(bref.pack(inter_rat_params_geran_r9_present, 1));
-  HANDLE_CODE(bref.pack(inter_rat_params_utra_r9_present, 1));
-  HANDLE_CODE(bref.pack(inter_rat_params_cdma2000_r9_present, 1));
-  HANDLE_CODE(bref.pack(neigh_cell_si_acquisition_params_r9_present, 1));
-
-  if (phy_layer_params_r9_present) {
-    HANDLE_CODE(phy_layer_params_r9.pack(bref));
-  }
-  if (feature_group_inds_r9_present) {
-    HANDLE_CODE(feature_group_inds_r9.pack(bref));
-  }
-  if (feature_group_ind_rel9_add_r9_present) {
-    HANDLE_CODE(feature_group_ind_rel9_add_r9.pack(bref));
-  }
-  if (inter_rat_params_geran_r9_present) {
-    HANDLE_CODE(inter_rat_params_geran_r9.pack(bref));
-  }
-  if (inter_rat_params_utra_r9_present) {
-    HANDLE_CODE(inter_rat_params_utra_r9.pack(bref));
-  }
-  if (inter_rat_params_cdma2000_r9_present) {
-    HANDLE_CODE(inter_rat_params_cdma2000_r9.pack(bref));
-  }
-  if (neigh_cell_si_acquisition_params_r9_present) {
-    HANDLE_CODE(neigh_cell_si_acquisition_params_r9.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_add_xdd_mode_r9_s::unpack(cbit_ref& bref)
-{
-  bref.unpack(ext, 1);
-  HANDLE_CODE(bref.unpack(phy_layer_params_r9_present, 1));
-  HANDLE_CODE(bref.unpack(feature_group_inds_r9_present, 1));
-  HANDLE_CODE(bref.unpack(feature_group_ind_rel9_add_r9_present, 1));
-  HANDLE_CODE(bref.unpack(inter_rat_params_geran_r9_present, 1));
-  HANDLE_CODE(bref.unpack(inter_rat_params_utra_r9_present, 1));
-  HANDLE_CODE(bref.unpack(inter_rat_params_cdma2000_r9_present, 1));
-  HANDLE_CODE(bref.unpack(neigh_cell_si_acquisition_params_r9_present, 1));
-
-  if (phy_layer_params_r9_present) {
-    HANDLE_CODE(phy_layer_params_r9.unpack(bref));
-  }
-  if (feature_group_inds_r9_present) {
-    HANDLE_CODE(feature_group_inds_r9.unpack(bref));
-  }
-  if (feature_group_ind_rel9_add_r9_present) {
-    HANDLE_CODE(feature_group_ind_rel9_add_r9.unpack(bref));
-  }
-  if (inter_rat_params_geran_r9_present) {
-    HANDLE_CODE(inter_rat_params_geran_r9.unpack(bref));
-  }
-  if (inter_rat_params_utra_r9_present) {
-    HANDLE_CODE(inter_rat_params_utra_r9.unpack(bref));
-  }
-  if (inter_rat_params_cdma2000_r9_present) {
-    HANDLE_CODE(inter_rat_params_cdma2000_r9.unpack(bref));
-  }
-  if (neigh_cell_si_acquisition_params_r9_present) {
-    HANDLE_CODE(neigh_cell_si_acquisition_params_r9.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_add_xdd_mode_r9_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (phy_layer_params_r9_present) {
-    j.write_fieldname("phyLayerParameters-r9");
-    phy_layer_params_r9.to_json(j);
-  }
-  if (feature_group_inds_r9_present) {
-    j.write_str("featureGroupIndicators-r9", feature_group_inds_r9.to_string());
-  }
-  if (feature_group_ind_rel9_add_r9_present) {
-    j.write_str("featureGroupIndRel9Add-r9", feature_group_ind_rel9_add_r9.to_string());
-  }
-  if (inter_rat_params_geran_r9_present) {
-    j.write_fieldname("interRAT-ParametersGERAN-r9");
-    inter_rat_params_geran_r9.to_json(j);
-  }
-  if (inter_rat_params_utra_r9_present) {
-    j.write_fieldname("interRAT-ParametersUTRA-r9");
-    inter_rat_params_utra_r9.to_json(j);
-  }
-  if (inter_rat_params_cdma2000_r9_present) {
-    j.write_fieldname("interRAT-ParametersCDMA2000-r9");
-    inter_rat_params_cdma2000_r9.to_json(j);
-  }
-  if (neigh_cell_si_acquisition_params_r9_present) {
-    j.write_fieldname("neighCellSI-AcquisitionParameters-r9");
-    neigh_cell_si_acquisition_params_r9.to_json(j);
-  }
-  j.end_obj();
-}
-
 // UE-EUTRA-Capability-v1020-IEs ::= SEQUENCE
 SRSASN_CODE ue_eutra_cap_v1020_ies_s::pack(bit_ref& bref) const
 {
@@ -15301,72 +13667,6 @@ void ue_eutra_cap_v1020_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// UE-EUTRA-Capability-v9a0-IEs ::= SEQUENCE
-SRSASN_CODE ue_eutra_cap_v9a0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(feature_group_ind_rel9_add_r9_present, 1));
-  HANDLE_CODE(bref.pack(fdd_add_ue_eutra_cap_r9_present, 1));
-  HANDLE_CODE(bref.pack(tdd_add_ue_eutra_cap_r9_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (feature_group_ind_rel9_add_r9_present) {
-    HANDLE_CODE(feature_group_ind_rel9_add_r9.pack(bref));
-  }
-  if (fdd_add_ue_eutra_cap_r9_present) {
-    HANDLE_CODE(fdd_add_ue_eutra_cap_r9.pack(bref));
-  }
-  if (tdd_add_ue_eutra_cap_r9_present) {
-    HANDLE_CODE(tdd_add_ue_eutra_cap_r9.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ue_eutra_cap_v9a0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(feature_group_ind_rel9_add_r9_present, 1));
-  HANDLE_CODE(bref.unpack(fdd_add_ue_eutra_cap_r9_present, 1));
-  HANDLE_CODE(bref.unpack(tdd_add_ue_eutra_cap_r9_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (feature_group_ind_rel9_add_r9_present) {
-    HANDLE_CODE(feature_group_ind_rel9_add_r9.unpack(bref));
-  }
-  if (fdd_add_ue_eutra_cap_r9_present) {
-    HANDLE_CODE(fdd_add_ue_eutra_cap_r9.unpack(bref));
-  }
-  if (tdd_add_ue_eutra_cap_r9_present) {
-    HANDLE_CODE(tdd_add_ue_eutra_cap_r9.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ue_eutra_cap_v9a0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (feature_group_ind_rel9_add_r9_present) {
-    j.write_str("featureGroupIndRel9Add-r9", feature_group_ind_rel9_add_r9.to_string());
-  }
-  if (fdd_add_ue_eutra_cap_r9_present) {
-    j.write_fieldname("fdd-Add-UE-EUTRA-Capabilities-r9");
-    fdd_add_ue_eutra_cap_r9.to_json(j);
-  }
-  if (tdd_add_ue_eutra_cap_r9_present) {
-    j.write_fieldname("tdd-Add-UE-EUTRA-Capabilities-r9");
-    tdd_add_ue_eutra_cap_r9.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // CSG-ProximityIndicationParameters-r9 ::= SEQUENCE
 SRSASN_CODE csg_proximity_ind_params_r9_s::pack(bit_ref& bref) const
 {
@@ -15399,6 +13699,29 @@ void csg_proximity_ind_params_r9_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// IRAT-ParametersCDMA2000-1XRTT-v920 ::= SEQUENCE
+SRSASN_CODE irat_params_cdma2000_minus1_xrtt_v920_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(e_csfb_conc_ps_mob1_xrtt_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE irat_params_cdma2000_minus1_xrtt_v920_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(e_csfb_conc_ps_mob1_xrtt_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void irat_params_cdma2000_minus1_xrtt_v920_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("e-CSFB-1XRTT-r9", "supported");
+  if (e_csfb_conc_ps_mob1_xrtt_r9_present) {
+    j.write_str("e-CSFB-ConcPS-Mob1XRTT-r9", "supported");
+  }
+  j.end_obj();
+}
+
 // IRAT-ParametersGERAN-v920 ::= SEQUENCE
 SRSASN_CODE irat_params_geran_v920_s::pack(bit_ref& bref) const
 {
@@ -15422,6 +13745,54 @@ void irat_params_geran_v920_s::to_json(json_writer& j) const
   }
   if (e_redirection_geran_r9_present) {
     j.write_str("e-RedirectionGERAN-r9", "supported");
+  }
+  j.end_obj();
+}
+
+// IRAT-ParametersUTRA-v920 ::= SEQUENCE
+SRSASN_CODE irat_params_utra_v920_s::pack(bit_ref& bref) const
+{
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE irat_params_utra_v920_s::unpack(cbit_ref& bref)
+{
+  return SRSASN_SUCCESS;
+}
+void irat_params_utra_v920_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("e-RedirectionUTRA-r9", "supported");
+  j.end_obj();
+}
+
+// NeighCellSI-AcquisitionParameters-r9 ::= SEQUENCE
+SRSASN_CODE neigh_cell_si_acquisition_params_r9_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(intra_freq_si_acquisition_for_ho_r9_present, 1));
+  HANDLE_CODE(bref.pack(inter_freq_si_acquisition_for_ho_r9_present, 1));
+  HANDLE_CODE(bref.pack(utran_si_acquisition_for_ho_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE neigh_cell_si_acquisition_params_r9_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(intra_freq_si_acquisition_for_ho_r9_present, 1));
+  HANDLE_CODE(bref.unpack(inter_freq_si_acquisition_for_ho_r9_present, 1));
+  HANDLE_CODE(bref.unpack(utran_si_acquisition_for_ho_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void neigh_cell_si_acquisition_params_r9_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (intra_freq_si_acquisition_for_ho_r9_present) {
+    j.write_str("intraFreqSI-AcquisitionForHO-r9", "supported");
+  }
+  if (inter_freq_si_acquisition_for_ho_r9_present) {
+    j.write_str("interFreqSI-AcquisitionForHO-r9", "supported");
+  }
+  if (utran_si_acquisition_for_ho_r9_present) {
+    j.write_str("utran-SI-AcquisitionForHO-r9", "supported");
   }
   j.end_obj();
 }
@@ -15527,6 +13898,29 @@ uint8_t access_stratum_release_opts::to_number() const
 {
   static const uint8_t options[] = {8, 9, 10, 11, 12, 13, 14, 15};
   return map_enum_number(options, 8, value, "access_stratum_release_e");
+}
+
+// PhyLayerParameters ::= SEQUENCE
+SRSASN_CODE phy_layer_params_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ue_tx_ant_sel_supported, 1));
+  HANDLE_CODE(bref.pack(ue_specific_ref_sigs_supported, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE phy_layer_params_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ue_tx_ant_sel_supported, 1));
+  HANDLE_CODE(bref.unpack(ue_specific_ref_sigs_supported, 1));
+
+  return SRSASN_SUCCESS;
+}
+void phy_layer_params_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_bool("ue-TxAntennaSelectionSupported", ue_tx_ant_sel_supported);
+  j.write_bool("ue-SpecificRefSigsSupported", ue_specific_ref_sigs_supported);
+  j.end_obj();
 }
 
 // UE-EUTRA-Capability-v920-IEs ::= SEQUENCE
@@ -15760,6 +14154,1492 @@ void ue_eutra_cap_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// PhyLayerParameters-v14a0 ::= SEQUENCE
+SRSASN_CODE phy_layer_params_v14a0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ssp10_tdd_only_r14_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE phy_layer_params_v14a0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ssp10_tdd_only_r14_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void phy_layer_params_v14a0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (ssp10_tdd_only_r14_present) {
+    j.write_str("ssp10-TDD-Only-r14", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v14b0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v14b0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v14b0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v14b0_present) {
+    HANDLE_CODE(rf_params_v14b0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v14b0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v14b0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v14b0_present) {
+    HANDLE_CODE(rf_params_v14b0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v14b0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v14b0_present) {
+    j.write_fieldname("rf-Parameters-v14b0");
+    rf_params_v14b0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// MBMS-Parameters-v1470 ::= SEQUENCE
+SRSASN_CODE mbms_params_v1470_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(mbms_scaling_factor1dot25_r14_present, 1));
+  HANDLE_CODE(bref.pack(mbms_scaling_factor7dot5_r14_present, 1));
+
+  HANDLE_CODE(mbms_max_bw_r14.pack(bref));
+  if (mbms_scaling_factor1dot25_r14_present) {
+    HANDLE_CODE(mbms_scaling_factor1dot25_r14.pack(bref));
+  }
+  if (mbms_scaling_factor7dot5_r14_present) {
+    HANDLE_CODE(mbms_scaling_factor7dot5_r14.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mbms_params_v1470_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(mbms_scaling_factor1dot25_r14_present, 1));
+  HANDLE_CODE(bref.unpack(mbms_scaling_factor7dot5_r14_present, 1));
+
+  HANDLE_CODE(mbms_max_bw_r14.unpack(bref));
+  if (mbms_scaling_factor1dot25_r14_present) {
+    HANDLE_CODE(mbms_scaling_factor1dot25_r14.unpack(bref));
+  }
+  if (mbms_scaling_factor7dot5_r14_present) {
+    HANDLE_CODE(mbms_scaling_factor7dot5_r14.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void mbms_params_v1470_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("mbms-MaxBW-r14");
+  mbms_max_bw_r14.to_json(j);
+  if (mbms_scaling_factor1dot25_r14_present) {
+    j.write_str("mbms-ScalingFactor1dot25-r14", mbms_scaling_factor1dot25_r14.to_string());
+  }
+  if (mbms_scaling_factor7dot5_r14_present) {
+    j.write_str("mbms-ScalingFactor7dot5-r14", mbms_scaling_factor7dot5_r14.to_string());
+  }
+  j.end_obj();
+}
+
+void mbms_params_v1470_s::mbms_max_bw_r14_c_::set(types::options e)
+{
+  type_ = e;
+}
+void mbms_params_v1470_s::mbms_max_bw_r14_c_::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::implicit_value:
+      break;
+    case types::explicit_value:
+      j.write_int("explicitValue", c);
+      break;
+    default:
+      log_invalid_choice_id(type_, "mbms_params_v1470_s::mbms_max_bw_r14_c_");
+  }
+  j.end_obj();
+}
+SRSASN_CODE mbms_params_v1470_s::mbms_max_bw_r14_c_::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::implicit_value:
+      break;
+    case types::explicit_value:
+      HANDLE_CODE(pack_integer(bref, c, (uint8_t)2u, (uint8_t)20u));
+      break;
+    default:
+      log_invalid_choice_id(type_, "mbms_params_v1470_s::mbms_max_bw_r14_c_");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mbms_params_v1470_s::mbms_max_bw_r14_c_::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::implicit_value:
+      break;
+    case types::explicit_value:
+      HANDLE_CODE(unpack_integer(c, bref, (uint8_t)2u, (uint8_t)20u));
+      break;
+    default:
+      log_invalid_choice_id(type_, "mbms_params_v1470_s::mbms_max_bw_r14_c_");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+
+std::string mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_string() const
+{
+  static const char* options[] = {"n3", "n6", "n9", "n12"};
+  return convert_enum_idx(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
+}
+uint8_t mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_number() const
+{
+  static const uint8_t options[] = {3, 6, 9, 12};
+  return map_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
+}
+
+std::string mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_string() const
+{
+  static const char* options[] = {"n1", "n2", "n3", "n4"};
+  return convert_enum_idx(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_");
+}
+uint8_t mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_number() const
+{
+  static const uint8_t options[] = {1, 2, 3, 4};
+  return map_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_");
+}
+
+// UE-EUTRA-Capability-v14a0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v14a0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(phy_layer_params_v14a0.pack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v14a0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(phy_layer_params_v14a0.unpack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v14a0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("phyLayerParameters-v14a0");
+  phy_layer_params_v14a0.to_json(j);
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v1470-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v1470_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(mbms_params_v1470_present, 1));
+  HANDLE_CODE(bref.pack(phy_layer_params_v1470_present, 1));
+  HANDLE_CODE(bref.pack(rf_params_v1470_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (mbms_params_v1470_present) {
+    HANDLE_CODE(mbms_params_v1470.pack(bref));
+  }
+  if (phy_layer_params_v1470_present) {
+    HANDLE_CODE(phy_layer_params_v1470.pack(bref));
+  }
+  if (rf_params_v1470_present) {
+    HANDLE_CODE(rf_params_v1470.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v1470_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(mbms_params_v1470_present, 1));
+  HANDLE_CODE(bref.unpack(phy_layer_params_v1470_present, 1));
+  HANDLE_CODE(bref.unpack(rf_params_v1470_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (mbms_params_v1470_present) {
+    HANDLE_CODE(mbms_params_v1470.unpack(bref));
+  }
+  if (phy_layer_params_v1470_present) {
+    HANDLE_CODE(phy_layer_params_v1470.unpack(bref));
+  }
+  if (rf_params_v1470_present) {
+    HANDLE_CODE(rf_params_v1470.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v1470_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (mbms_params_v1470_present) {
+    j.write_fieldname("mbms-Parameters-v1470");
+    mbms_params_v1470.to_json(j);
+  }
+  if (phy_layer_params_v1470_present) {
+    j.write_fieldname("phyLayerParameters-v1470");
+    phy_layer_params_v1470.to_json(j);
+  }
+  if (rf_params_v1470_present) {
+    j.write_fieldname("rf-Parameters-v1470");
+    rf_params_v1470.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// CE-Parameters-v1380 ::= SEQUENCE
+SRSASN_CODE ce_params_v1380_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(tm6_ce_mode_a_r13_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ce_params_v1380_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(tm6_ce_mode_a_r13_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void ce_params_v1380_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (tm6_ce_mode_a_r13_present) {
+    j.write_str("tm6-CE-ModeA-r13", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v13e0a-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v13e0a_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v13e0a_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v13e0a_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// CE-Parameters-v1370 ::= SEQUENCE
+SRSASN_CODE ce_params_v1370_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(tm9_ce_mode_a_r13_present, 1));
+  HANDLE_CODE(bref.pack(tm9_ce_mode_b_r13_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ce_params_v1370_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(tm9_ce_mode_a_r13_present, 1));
+  HANDLE_CODE(bref.unpack(tm9_ce_mode_b_r13_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void ce_params_v1370_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (tm9_ce_mode_a_r13_present) {
+    j.write_str("tm9-CE-ModeA-r13", "supported");
+  }
+  if (tm9_ce_mode_b_r13_present) {
+    j.write_str("tm9-CE-ModeB-r13", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v1390-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v1390_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v1390_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v1390_present) {
+    HANDLE_CODE(rf_params_v1390.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v1390_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v1390_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v1390_present) {
+    HANDLE_CODE(rf_params_v1390.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v1390_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v1390_present) {
+    j.write_fieldname("rf-Parameters-v1390");
+    rf_params_v1390.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-CapabilityAddXDD-Mode-v1380 ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1380_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(ce_params_v1380.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1380_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(ce_params_v1380.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_add_xdd_mode_v1380_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_fieldname("ce-Parameters-v1380");
+  ce_params_v1380.to_json(j);
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v1380-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v1380_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v1380_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v1380_present) {
+    HANDLE_CODE(rf_params_v1380.pack(bref));
+  }
+  HANDLE_CODE(ce_params_v1380.pack(bref));
+  HANDLE_CODE(fdd_add_ue_eutra_cap_v1380.pack(bref));
+  HANDLE_CODE(tdd_add_ue_eutra_cap_v1380.pack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v1380_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v1380_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v1380_present) {
+    HANDLE_CODE(rf_params_v1380.unpack(bref));
+  }
+  HANDLE_CODE(ce_params_v1380.unpack(bref));
+  HANDLE_CODE(fdd_add_ue_eutra_cap_v1380.unpack(bref));
+  HANDLE_CODE(tdd_add_ue_eutra_cap_v1380.unpack(bref));
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v1380_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v1380_present) {
+    j.write_fieldname("rf-Parameters-v1380");
+    rf_params_v1380.to_json(j);
+  }
+  j.write_fieldname("ce-Parameters-v1380");
+  ce_params_v1380.to_json(j);
+  j.write_fieldname("fdd-Add-UE-EUTRA-Capabilities-v1380");
+  fdd_add_ue_eutra_cap_v1380.to_json(j);
+  j.write_fieldname("tdd-Add-UE-EUTRA-Capabilities-v1380");
+  tdd_add_ue_eutra_cap_v1380.to_json(j);
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-CapabilityAddXDD-Mode-v1370 ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1370_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ce_params_v1370_present, 1));
+
+  if (ce_params_v1370_present) {
+    HANDLE_CODE(ce_params_v1370.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1370_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ce_params_v1370_present, 1));
+
+  if (ce_params_v1370_present) {
+    HANDLE_CODE(ce_params_v1370.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_add_xdd_mode_v1370_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (ce_params_v1370_present) {
+    j.write_fieldname("ce-Parameters-v1370");
+    ce_params_v1370.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v1370-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v1370_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ce_params_v1370_present, 1));
+  HANDLE_CODE(bref.pack(fdd_add_ue_eutra_cap_v1370_present, 1));
+  HANDLE_CODE(bref.pack(tdd_add_ue_eutra_cap_v1370_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (ce_params_v1370_present) {
+    HANDLE_CODE(ce_params_v1370.pack(bref));
+  }
+  if (fdd_add_ue_eutra_cap_v1370_present) {
+    HANDLE_CODE(fdd_add_ue_eutra_cap_v1370.pack(bref));
+  }
+  if (tdd_add_ue_eutra_cap_v1370_present) {
+    HANDLE_CODE(tdd_add_ue_eutra_cap_v1370.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v1370_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ce_params_v1370_present, 1));
+  HANDLE_CODE(bref.unpack(fdd_add_ue_eutra_cap_v1370_present, 1));
+  HANDLE_CODE(bref.unpack(tdd_add_ue_eutra_cap_v1370_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (ce_params_v1370_present) {
+    HANDLE_CODE(ce_params_v1370.unpack(bref));
+  }
+  if (fdd_add_ue_eutra_cap_v1370_present) {
+    HANDLE_CODE(fdd_add_ue_eutra_cap_v1370.unpack(bref));
+  }
+  if (tdd_add_ue_eutra_cap_v1370_present) {
+    HANDLE_CODE(tdd_add_ue_eutra_cap_v1370.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v1370_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (ce_params_v1370_present) {
+    j.write_fieldname("ce-Parameters-v1370");
+    ce_params_v1370.to_json(j);
+  }
+  if (fdd_add_ue_eutra_cap_v1370_present) {
+    j.write_fieldname("fdd-Add-UE-EUTRA-Capabilities-v1370");
+    fdd_add_ue_eutra_cap_v1370.to_json(j);
+  }
+  if (tdd_add_ue_eutra_cap_v1370_present) {
+    j.write_fieldname("tdd-Add-UE-EUTRA-Capabilities-v1370");
+    tdd_add_ue_eutra_cap_v1370.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// RF-Parameters-v12b0 ::= SEQUENCE
+SRSASN_CODE rf_params_v12b0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(max_layers_mimo_ind_r12_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rf_params_v12b0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(max_layers_mimo_ind_r12_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void rf_params_v12b0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (max_layers_mimo_ind_r12_present) {
+    j.write_str("maxLayersMIMO-Indication-r12", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v12x0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v12x0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v12x0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v12x0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v12b0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v12b0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v12b0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v12b0_present) {
+    HANDLE_CODE(rf_params_v12b0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v12b0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v12b0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v12b0_present) {
+    HANDLE_CODE(rf_params_v12b0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v12b0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v12b0_present) {
+    j.write_fieldname("rf-Parameters-v12b0");
+    rf_params_v12b0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// Other-Parameters-v11d0 ::= SEQUENCE
+SRSASN_CODE other_params_v11d0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(in_dev_coex_ind_ul_ca_r11_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE other_params_v11d0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(in_dev_coex_ind_ul_ca_r11_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void other_params_v11d0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (in_dev_coex_ind_ul_ca_r11_present) {
+    j.write_str("inDeviceCoexInd-UL-CA-r11", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v11x0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v11x0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v11x0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v11x0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v11d0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v11d0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v11d0_present, 1));
+  HANDLE_CODE(bref.pack(other_params_v11d0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v11d0_present) {
+    HANDLE_CODE(rf_params_v11d0.pack(bref));
+  }
+  if (other_params_v11d0_present) {
+    HANDLE_CODE(other_params_v11d0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v11d0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v11d0_present, 1));
+  HANDLE_CODE(bref.unpack(other_params_v11d0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v11d0_present) {
+    HANDLE_CODE(rf_params_v11d0.unpack(bref));
+  }
+  if (other_params_v11d0_present) {
+    HANDLE_CODE(other_params_v11d0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v11d0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v11d0_present) {
+    j.write_fieldname("rf-Parameters-v11d0");
+    rf_params_v11d0.to_json(j);
+  }
+  if (other_params_v11d0_present) {
+    j.write_fieldname("otherParameters-v11d0");
+    other_params_v11d0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// RF-Parameters-v10f0 ::= SEQUENCE
+SRSASN_CODE rf_params_v10f0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(modified_mpr_behavior_r10_present, 1));
+
+  if (modified_mpr_behavior_r10_present) {
+    HANDLE_CODE(modified_mpr_behavior_r10.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rf_params_v10f0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(modified_mpr_behavior_r10_present, 1));
+
+  if (modified_mpr_behavior_r10_present) {
+    HANDLE_CODE(modified_mpr_behavior_r10.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rf_params_v10f0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (modified_mpr_behavior_r10_present) {
+    j.write_str("modifiedMPR-Behavior-r10", modified_mpr_behavior_r10.to_string());
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v10i0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v10i0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v10i0_present, 1));
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v10i0_present) {
+    HANDLE_CODE(rf_params_v10i0.pack(bref));
+  }
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v10i0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v10i0_present, 1));
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v10i0_present) {
+    HANDLE_CODE(rf_params_v10i0.unpack(bref));
+  }
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v10i0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v10i0_present) {
+    j.write_fieldname("rf-Parameters-v10i0");
+    rf_params_v10i0.to_json(j);
+  }
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v10f0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v10f0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v10f0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v10f0_present) {
+    HANDLE_CODE(rf_params_v10f0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v10f0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v10f0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v10f0_present) {
+    HANDLE_CODE(rf_params_v10f0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v10f0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v10f0_present) {
+    j.write_fieldname("rf-Parameters-v10f0");
+    rf_params_v10f0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v10c0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v10c0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(otdoa_positioning_cap_r10_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (otdoa_positioning_cap_r10_present) {
+    HANDLE_CODE(otdoa_positioning_cap_r10.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v10c0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(otdoa_positioning_cap_r10_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (otdoa_positioning_cap_r10_present) {
+    HANDLE_CODE(otdoa_positioning_cap_r10.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v10c0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (otdoa_positioning_cap_r10_present) {
+    j.write_fieldname("otdoa-PositioningCapabilities-r10");
+    otdoa_positioning_cap_r10.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// RF-Parameters-v10j0 ::= SEQUENCE
+SRSASN_CODE rf_params_v10j0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(multi_ns_pmax_r10_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rf_params_v10j0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(multi_ns_pmax_r10_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void rf_params_v10j0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (multi_ns_pmax_r10_present) {
+    j.write_str("multiNS-Pmax-r10", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v10j0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v10j0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v10j0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v10j0_present) {
+    HANDLE_CODE(rf_params_v10j0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v10j0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v10j0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v10j0_present) {
+    HANDLE_CODE(rf_params_v10j0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v10j0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v10j0_present) {
+    j.write_fieldname("rf-Parameters-v10j0");
+    rf_params_v10j0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// IRAT-ParametersUTRA-v9h0 ::= SEQUENCE
+SRSASN_CODE irat_params_utra_v9h0_s::pack(bit_ref& bref) const
+{
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE irat_params_utra_v9h0_s::unpack(cbit_ref& bref)
+{
+  return SRSASN_SUCCESS;
+}
+void irat_params_utra_v9h0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("mfbi-UTRA-r9", "supported");
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v9h0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v9h0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(inter_rat_params_utra_v9h0_present, 1));
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (inter_rat_params_utra_v9h0_present) {
+    HANDLE_CODE(inter_rat_params_utra_v9h0.pack(bref));
+  }
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v9h0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(inter_rat_params_utra_v9h0_present, 1));
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (inter_rat_params_utra_v9h0_present) {
+    HANDLE_CODE(inter_rat_params_utra_v9h0.unpack(bref));
+  }
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v9h0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (inter_rat_params_utra_v9h0_present) {
+    j.write_fieldname("interRAT-ParametersUTRA-v9h0");
+    inter_rat_params_utra_v9h0.to_json(j);
+  }
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// PhyLayerParameters-v9d0 ::= SEQUENCE
+SRSASN_CODE phy_layer_params_v9d0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(tm5_fdd_r9_present, 1));
+  HANDLE_CODE(bref.pack(tm5_tdd_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE phy_layer_params_v9d0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(tm5_fdd_r9_present, 1));
+  HANDLE_CODE(bref.unpack(tm5_tdd_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void phy_layer_params_v9d0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (tm5_fdd_r9_present) {
+    j.write_str("tm5-FDD-r9", "supported");
+  }
+  if (tm5_tdd_r9_present) {
+    j.write_str("tm5-TDD-r9", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v9e0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v9e0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(rf_params_v9e0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (rf_params_v9e0_present) {
+    HANDLE_CODE(rf_params_v9e0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v9e0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(rf_params_v9e0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (rf_params_v9e0_present) {
+    HANDLE_CODE(rf_params_v9e0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v9e0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (rf_params_v9e0_present) {
+    j.write_fieldname("rf-Parameters-v9e0");
+    rf_params_v9e0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// IRAT-ParametersUTRA-v9c0 ::= SEQUENCE
+SRSASN_CODE irat_params_utra_v9c0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(voice_over_ps_hs_utra_fdd_r9_present, 1));
+  HANDLE_CODE(bref.pack(voice_over_ps_hs_utra_tdd128_r9_present, 1));
+  HANDLE_CODE(bref.pack(srvcc_from_utra_fdd_to_utra_fdd_r9_present, 1));
+  HANDLE_CODE(bref.pack(srvcc_from_utra_fdd_to_geran_r9_present, 1));
+  HANDLE_CODE(bref.pack(srvcc_from_utra_tdd128_to_utra_tdd128_r9_present, 1));
+  HANDLE_CODE(bref.pack(srvcc_from_utra_tdd128_to_geran_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE irat_params_utra_v9c0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(voice_over_ps_hs_utra_fdd_r9_present, 1));
+  HANDLE_CODE(bref.unpack(voice_over_ps_hs_utra_tdd128_r9_present, 1));
+  HANDLE_CODE(bref.unpack(srvcc_from_utra_fdd_to_utra_fdd_r9_present, 1));
+  HANDLE_CODE(bref.unpack(srvcc_from_utra_fdd_to_geran_r9_present, 1));
+  HANDLE_CODE(bref.unpack(srvcc_from_utra_tdd128_to_utra_tdd128_r9_present, 1));
+  HANDLE_CODE(bref.unpack(srvcc_from_utra_tdd128_to_geran_r9_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void irat_params_utra_v9c0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (voice_over_ps_hs_utra_fdd_r9_present) {
+    j.write_str("voiceOverPS-HS-UTRA-FDD-r9", "supported");
+  }
+  if (voice_over_ps_hs_utra_tdd128_r9_present) {
+    j.write_str("voiceOverPS-HS-UTRA-TDD128-r9", "supported");
+  }
+  if (srvcc_from_utra_fdd_to_utra_fdd_r9_present) {
+    j.write_str("srvcc-FromUTRA-FDD-ToUTRA-FDD-r9", "supported");
+  }
+  if (srvcc_from_utra_fdd_to_geran_r9_present) {
+    j.write_str("srvcc-FromUTRA-FDD-ToGERAN-r9", "supported");
+  }
+  if (srvcc_from_utra_tdd128_to_utra_tdd128_r9_present) {
+    j.write_str("srvcc-FromUTRA-TDD128-ToUTRA-TDD128-r9", "supported");
+  }
+  if (srvcc_from_utra_tdd128_to_geran_r9_present) {
+    j.write_str("srvcc-FromUTRA-TDD128-ToGERAN-r9", "supported");
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v9d0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v9d0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(phy_layer_params_v9d0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (phy_layer_params_v9d0_present) {
+    HANDLE_CODE(phy_layer_params_v9d0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v9d0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(phy_layer_params_v9d0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (phy_layer_params_v9d0_present) {
+    HANDLE_CODE(phy_layer_params_v9d0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v9d0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (phy_layer_params_v9d0_present) {
+    j.write_fieldname("phyLayerParameters-v9d0");
+    phy_layer_params_v9d0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v9c0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v9c0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(inter_rat_params_utra_v9c0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (inter_rat_params_utra_v9c0_present) {
+    HANDLE_CODE(inter_rat_params_utra_v9c0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v9c0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(inter_rat_params_utra_v9c0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (inter_rat_params_utra_v9c0_present) {
+    HANDLE_CODE(inter_rat_params_utra_v9c0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v9c0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (inter_rat_params_utra_v9c0_present) {
+    j.write_fieldname("interRAT-ParametersUTRA-v9c0");
+    inter_rat_params_utra_v9c0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-CapabilityAddXDD-Mode-r9 ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_add_xdd_mode_r9_s::pack(bit_ref& bref) const
+{
+  bref.pack(ext, 1);
+  HANDLE_CODE(bref.pack(phy_layer_params_r9_present, 1));
+  HANDLE_CODE(bref.pack(feature_group_inds_r9_present, 1));
+  HANDLE_CODE(bref.pack(feature_group_ind_rel9_add_r9_present, 1));
+  HANDLE_CODE(bref.pack(inter_rat_params_geran_r9_present, 1));
+  HANDLE_CODE(bref.pack(inter_rat_params_utra_r9_present, 1));
+  HANDLE_CODE(bref.pack(inter_rat_params_cdma2000_r9_present, 1));
+  HANDLE_CODE(bref.pack(neigh_cell_si_acquisition_params_r9_present, 1));
+
+  if (phy_layer_params_r9_present) {
+    HANDLE_CODE(phy_layer_params_r9.pack(bref));
+  }
+  if (feature_group_inds_r9_present) {
+    HANDLE_CODE(feature_group_inds_r9.pack(bref));
+  }
+  if (feature_group_ind_rel9_add_r9_present) {
+    HANDLE_CODE(feature_group_ind_rel9_add_r9.pack(bref));
+  }
+  if (inter_rat_params_geran_r9_present) {
+    HANDLE_CODE(inter_rat_params_geran_r9.pack(bref));
+  }
+  if (inter_rat_params_utra_r9_present) {
+    HANDLE_CODE(inter_rat_params_utra_r9.pack(bref));
+  }
+  if (inter_rat_params_cdma2000_r9_present) {
+    HANDLE_CODE(inter_rat_params_cdma2000_r9.pack(bref));
+  }
+  if (neigh_cell_si_acquisition_params_r9_present) {
+    HANDLE_CODE(neigh_cell_si_acquisition_params_r9.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_add_xdd_mode_r9_s::unpack(cbit_ref& bref)
+{
+  bref.unpack(ext, 1);
+  HANDLE_CODE(bref.unpack(phy_layer_params_r9_present, 1));
+  HANDLE_CODE(bref.unpack(feature_group_inds_r9_present, 1));
+  HANDLE_CODE(bref.unpack(feature_group_ind_rel9_add_r9_present, 1));
+  HANDLE_CODE(bref.unpack(inter_rat_params_geran_r9_present, 1));
+  HANDLE_CODE(bref.unpack(inter_rat_params_utra_r9_present, 1));
+  HANDLE_CODE(bref.unpack(inter_rat_params_cdma2000_r9_present, 1));
+  HANDLE_CODE(bref.unpack(neigh_cell_si_acquisition_params_r9_present, 1));
+
+  if (phy_layer_params_r9_present) {
+    HANDLE_CODE(phy_layer_params_r9.unpack(bref));
+  }
+  if (feature_group_inds_r9_present) {
+    HANDLE_CODE(feature_group_inds_r9.unpack(bref));
+  }
+  if (feature_group_ind_rel9_add_r9_present) {
+    HANDLE_CODE(feature_group_ind_rel9_add_r9.unpack(bref));
+  }
+  if (inter_rat_params_geran_r9_present) {
+    HANDLE_CODE(inter_rat_params_geran_r9.unpack(bref));
+  }
+  if (inter_rat_params_utra_r9_present) {
+    HANDLE_CODE(inter_rat_params_utra_r9.unpack(bref));
+  }
+  if (inter_rat_params_cdma2000_r9_present) {
+    HANDLE_CODE(inter_rat_params_cdma2000_r9.unpack(bref));
+  }
+  if (neigh_cell_si_acquisition_params_r9_present) {
+    HANDLE_CODE(neigh_cell_si_acquisition_params_r9.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_add_xdd_mode_r9_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (phy_layer_params_r9_present) {
+    j.write_fieldname("phyLayerParameters-r9");
+    phy_layer_params_r9.to_json(j);
+  }
+  if (feature_group_inds_r9_present) {
+    j.write_str("featureGroupIndicators-r9", feature_group_inds_r9.to_string());
+  }
+  if (feature_group_ind_rel9_add_r9_present) {
+    j.write_str("featureGroupIndRel9Add-r9", feature_group_ind_rel9_add_r9.to_string());
+  }
+  if (inter_rat_params_geran_r9_present) {
+    j.write_fieldname("interRAT-ParametersGERAN-r9");
+    inter_rat_params_geran_r9.to_json(j);
+  }
+  if (inter_rat_params_utra_r9_present) {
+    j.write_fieldname("interRAT-ParametersUTRA-r9");
+    inter_rat_params_utra_r9.to_json(j);
+  }
+  if (inter_rat_params_cdma2000_r9_present) {
+    j.write_fieldname("interRAT-ParametersCDMA2000-r9");
+    inter_rat_params_cdma2000_r9.to_json(j);
+  }
+  if (neigh_cell_si_acquisition_params_r9_present) {
+    j.write_fieldname("neighCellSI-AcquisitionParameters-r9");
+    neigh_cell_si_acquisition_params_r9.to_json(j);
+  }
+  j.end_obj();
+}
+
+// UE-EUTRA-Capability-v9a0-IEs ::= SEQUENCE
+SRSASN_CODE ue_eutra_cap_v9a0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(feature_group_ind_rel9_add_r9_present, 1));
+  HANDLE_CODE(bref.pack(fdd_add_ue_eutra_cap_r9_present, 1));
+  HANDLE_CODE(bref.pack(tdd_add_ue_eutra_cap_r9_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (feature_group_ind_rel9_add_r9_present) {
+    HANDLE_CODE(feature_group_ind_rel9_add_r9.pack(bref));
+  }
+  if (fdd_add_ue_eutra_cap_r9_present) {
+    HANDLE_CODE(fdd_add_ue_eutra_cap_r9.pack(bref));
+  }
+  if (tdd_add_ue_eutra_cap_r9_present) {
+    HANDLE_CODE(tdd_add_ue_eutra_cap_r9.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_eutra_cap_v9a0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(feature_group_ind_rel9_add_r9_present, 1));
+  HANDLE_CODE(bref.unpack(fdd_add_ue_eutra_cap_r9_present, 1));
+  HANDLE_CODE(bref.unpack(tdd_add_ue_eutra_cap_r9_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (feature_group_ind_rel9_add_r9_present) {
+    HANDLE_CODE(feature_group_ind_rel9_add_r9.unpack(bref));
+  }
+  if (fdd_add_ue_eutra_cap_r9_present) {
+    HANDLE_CODE(fdd_add_ue_eutra_cap_r9.unpack(bref));
+  }
+  if (tdd_add_ue_eutra_cap_r9_present) {
+    HANDLE_CODE(tdd_add_ue_eutra_cap_r9.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ue_eutra_cap_v9a0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (feature_group_ind_rel9_add_r9_present) {
+    j.write_str("featureGroupIndRel9Add-r9", feature_group_ind_rel9_add_r9.to_string());
+  }
+  if (fdd_add_ue_eutra_cap_r9_present) {
+    j.write_fieldname("fdd-Add-UE-EUTRA-Capabilities-r9");
+    fdd_add_ue_eutra_cap_r9.to_json(j);
+  }
+  if (tdd_add_ue_eutra_cap_r9_present) {
+    j.write_fieldname("tdd-Add-UE-EUTRA-Capabilities-r9");
+    tdd_add_ue_eutra_cap_r9.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
 // UERadioAccessCapabilityInformation-r8-IEs ::= SEQUENCE
 SRSASN_CODE ue_radio_access_cap_info_r8_ies_s::pack(bit_ref& bref) const
 {
@@ -15810,67 +15690,9 @@ void ue_radio_access_cap_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ue_radio_access_cap_info_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ue_radio_access_cap_info_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_radio_access_cap_info_s::crit_exts_c_");
-  }
-}
-ue_radio_access_cap_info_s::crit_exts_c_::crit_exts_c_(const ue_radio_access_cap_info_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_radio_access_cap_info_s::crit_exts_c_");
-  }
-}
-ue_radio_access_cap_info_s::crit_exts_c_&
-ue_radio_access_cap_info_s::crit_exts_c_::operator=(const ue_radio_access_cap_info_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_radio_access_cap_info_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ue_radio_access_cap_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -15878,7 +15700,7 @@ void ue_radio_access_cap_info_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -15892,7 +15714,7 @@ SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -15909,7 +15731,7 @@ SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;

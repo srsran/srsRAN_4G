@@ -527,6 +527,7 @@ struct lc_ch_cfg_s {
       assert_choice_type("setup", type_.to_string(), "allowedTTI-Lengths-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -566,6 +567,7 @@ struct lc_ch_cfg_s {
       assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Restriction-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -599,6 +601,7 @@ struct lc_ch_cfg_s {
       assert_choice_type("setup", type_.to_string(), "channelAccessPriority-r15");
       return c;
     }
+    void     set_release() { set(types::release); }
     uint8_t& set_setup()
     {
       set(types::setup);
@@ -986,6 +989,7 @@ struct pdcp_cfg_s {
       assert_choice_type("rohc", type_.to_string(), "headerCompression");
       return c;
     }
+    void     set_not_used() { set(types::not_used); }
     rohc_s_& set_rohc()
     {
       set(types::rohc);
@@ -1087,6 +1091,7 @@ struct pdcp_cfg_s {
       assert_choice_type("setup", type_.to_string(), "ul-DataSplitThreshold-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -1210,6 +1215,7 @@ struct pdcp_cfg_s {
       assert_choice_type("setup", type_.to_string(), "statusFeedback-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1275,6 +1281,7 @@ struct pdcp_cfg_s {
       assert_choice_type("setup", type_.to_string(), "ul-LWA-Config-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1325,6 +1332,7 @@ struct pdcp_cfg_s {
       assert_choice_type("rohc-r14", type_.to_string(), "uplinkOnlyHeaderCompression-r14");
       return c;
     }
+    void         set_not_used_r14() { set(types::not_used_r14); }
     rohc_r14_s_& set_rohc_r14()
     {
       set(types::rohc_r14);
@@ -1392,6 +1400,7 @@ struct pdcp_cfg_s {
       assert_choice_type("setup", type_.to_string(), "pdcp-DuplicationConfig-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1532,6 +1541,7 @@ struct rlc_bearer_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "RLC-BearerConfig-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1702,6 +1712,7 @@ struct rlc_cfg_v1430_c {
     assert_choice_type("setup", type_.to_string(), "RLC-Config-v1430");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1738,25 +1749,11 @@ struct rlc_cfg_v1530_c {
   bool        operator==(const rlc_cfg_v1530_c& other) const;
   bool        operator!=(const rlc_cfg_v1530_c& other) const { return not(*this == other); }
   // getters
-  setup_s_& setup()
-  {
-    assert_choice_type("setup", type_.to_string(), "RLC-Config-v1530");
-    return c;
-  }
-  const setup_s_& setup() const
-  {
-    assert_choice_type("setup", type_.to_string(), "RLC-Config-v1530");
-    return c;
-  }
-  setup_s_& set_setup()
-  {
-    set(types::setup);
-    return c;
-  }
+  void set_release() { set(types::release); }
+  void set_setup() { set(types::setup); }
 
 private:
-  types    type_;
-  setup_s_ c;
+  types type_;
 };
 
 // SPS-ConfigSL-r14 ::= SEQUENCE
@@ -1866,6 +1863,7 @@ struct sps_cfg_ul_c {
         assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r12");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -1988,6 +1986,7 @@ struct sps_cfg_ul_c {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2067,6 +2066,7 @@ struct sps_cfg_ul_stti_r15_c {
         assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r15");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -2163,6 +2163,7 @@ struct sps_cfg_ul_stti_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL-STTI-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2684,6 +2685,7 @@ struct drx_cfg_c {
     assert_choice_type("setup", type_.to_string(), "DRX-Config");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3003,6 +3005,7 @@ struct sps_cfg_dl_c {
         assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r10");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -3052,6 +3055,7 @@ struct sps_cfg_dl_c {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3116,6 +3120,7 @@ struct sps_cfg_dl_stti_r15_c {
         assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r15");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -3158,6 +3163,7 @@ struct sps_cfg_dl_stti_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL-STTI-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3228,6 +3234,7 @@ struct srb_to_add_mod_s {
       set(types::explicit_value);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types     type_;
@@ -3266,6 +3273,7 @@ struct srb_to_add_mod_s {
       set(types::explicit_value);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types       type_;
@@ -3387,6 +3395,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "phr-Config");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3445,6 +3454,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "dualConnectivityPHR");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3489,6 +3499,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3578,6 +3589,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "eDRX-Config-CycleStartOffset-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_c_& set_setup()
     {
       set(types::setup);
@@ -3609,6 +3621,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "drx-Config-r13");
       return c;
     }
+    void           set_release() { set(types::release); }
     drx_cfg_r13_s& set_setup()
     {
       set(types::setup);
@@ -3644,6 +3657,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "skipUplinkTx-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3678,6 +3692,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3753,6 +3768,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "shortTTI-AndSPT-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3826,6 +3842,7 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "dormantStateTimers-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3907,6 +3924,7 @@ struct meas_sf_pattern_pcell_r10_c {
     assert_choice_type("setup", type_.to_string(), "MeasSubframePatternPCell-r10");
     return c;
   }
+  void                   set_release() { set(types::release); }
   meas_sf_pattern_r10_c& set_setup()
   {
     set(types::setup);
@@ -3950,6 +3968,7 @@ struct naics_assist_info_r12_c {
     assert_choice_type("setup", type_.to_string(), "NAICS-AssistanceInfo-r12");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3983,6 +4002,7 @@ struct neigh_cells_crs_info_r11_c {
     assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r11");
     return c;
   }
+  void                        set_release() { set(types::release); }
   crs_assist_info_list_r11_l& set_setup()
   {
     set(types::setup);
@@ -4018,6 +4038,7 @@ struct neigh_cells_crs_info_r13_c {
     assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r13");
     return c;
   }
+  void                        set_release() { set(types::release); }
   crs_assist_info_list_r13_l& set_setup()
   {
     set(types::setup);
@@ -4053,6 +4074,7 @@ struct neigh_cells_crs_info_r15_c {
     assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r15");
     return c;
   }
+  void                        set_release() { set(types::release); }
   crs_assist_info_list_r15_l& set_setup()
   {
     set(types::setup);
@@ -4117,6 +4139,7 @@ struct rlf_timers_and_consts_r13_c {
     assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4201,6 +4224,7 @@ struct rlf_timers_and_consts_r9_c {
     assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r9");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4321,6 +4345,7 @@ struct rr_cfg_ded_s {
       set(types::explicit_value);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types          type_;
@@ -4361,6 +4386,7 @@ struct rr_cfg_ded_s {
         assert_choice_type("crs-IntfMitigNumPRBs", type_.to_string(), "setup");
         return c;
       }
+      void                        set_crs_intf_mitig_enabled() { set(types::crs_intf_mitig_enabled); }
       crs_intf_mitig_num_prbs_e_& set_crs_intf_mitig_num_prbs()
       {
         set(types::crs_intf_mitig_num_prbs);
@@ -4391,6 +4417,7 @@ struct rr_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "crs-IntfMitigConfig-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_c_& set_setup()
     {
       set(types::setup);
@@ -4491,6 +4518,7 @@ struct pdcch_candidate_reductions_laa_ul_r14_c {
     assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductionsLAA-UL-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4601,6 +4629,7 @@ struct aul_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "AUL-Config-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4642,6 +4671,7 @@ struct cqi_report_periodic_scell_r15_c {
         assert_choice_type("setup", type_.to_string(), "csi-SubframePatternDormant-r15");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -4770,6 +4800,7 @@ struct cqi_report_periodic_scell_r15_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodicSCell-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4939,6 +4970,7 @@ struct srs_ul_cfg_ded_aperiodic_v1430_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -5111,6 +5143,7 @@ struct cqi_short_cfg_scell_r15_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ShortConfigSCell-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -5333,6 +5366,7 @@ struct laa_scell_cfg_v1430_s {
       assert_choice_type("setup", type_.to_string(), "crossCarrierSchedulingConfig-UL-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5427,6 +5461,7 @@ struct pucch_cfg_ded_v1370_s {
       assert_choice_type("setup", type_.to_string(), "pucch-Format-v1370");
       return c;
     }
+    void                      set_release() { set(types::release); }
     pucch_format3_conf_r13_s& set_setup()
     {
       set(types::setup);
@@ -5503,6 +5538,7 @@ struct pusch_cfg_ded_scell_v1530_s {
       assert_choice_type("setup", type_.to_string(), "uci-OnPUSCH-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5566,6 +5602,7 @@ struct sched_request_cfg_scell_r13_c {
     assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfigSCell-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -5638,6 +5675,7 @@ struct tpc_pdcch_cfg_scell_r13_c {
     assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-ConfigSCell-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -5793,6 +5831,7 @@ struct phys_cfg_ded_scell_r10_s {
       assert_choice_type("setup", type_.to_string(), "pucch-SCell");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5854,6 +5893,7 @@ struct phys_cfg_ded_scell_r10_s {
       assert_choice_type("setup", type_.to_string(), "must-Config-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5945,6 +5985,7 @@ struct phys_cfg_ded_scell_r10_s {
       assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_c_& set_setup()
     {
       set(types::setup);
@@ -6049,6 +6090,7 @@ struct phys_cfg_ded_scell_r10_s {
       assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6172,6 +6214,7 @@ struct phys_cfg_ded_scell_v1370_s {
       assert_choice_type("setup", type_.to_string(), "pucch-SCell-v1370");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6217,6 +6260,61 @@ struct ant_info_ded_v10i0_s {
   bool        operator!=(const ant_info_ded_v10i0_s& other) const { return not(*this == other); }
 };
 
+// RadioResourceConfigDedicatedSCell-r10 ::= SEQUENCE
+struct rr_cfg_ded_scell_r10_s {
+  bool                     ext                            = false;
+  bool                     phys_cfg_ded_scell_r10_present = false;
+  phys_cfg_ded_scell_r10_s phys_cfg_ded_scell_r10;
+  // ...
+  // group 0
+  copy_ptr<mac_main_cfg_scell_r11_s> mac_main_cfg_scell_r11;
+  // group 1
+  copy_ptr<naics_assist_info_r12_c> naics_info_r12;
+  // group 2
+  copy_ptr<neigh_cells_crs_info_r13_c> neigh_cells_crs_info_scell_r13;
+  // group 3
+  copy_ptr<phys_cfg_ded_scell_v1370_s> phys_cfg_ded_scell_v1370;
+  // group 4
+  bool                                 crs_intf_mitig_enabled_r15_present = false;
+  bool                                 crs_intf_mitig_enabled_r15         = false;
+  copy_ptr<neigh_cells_crs_info_r15_c> neigh_cells_crs_info_r15;
+  copy_ptr<sps_cfg_v1530_s>            sps_cfg_v1530;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const rr_cfg_ded_scell_r10_s& other) const;
+  bool        operator!=(const rr_cfg_ded_scell_r10_s& other) const { return not(*this == other); }
+};
+
+// SCellToAddModExt-r13 ::= SEQUENCE
+struct scell_to_add_mod_ext_r13_s {
+  struct cell_identif_r13_s_ {
+    uint16_t pci_r13             = 0;
+    uint32_t dl_carrier_freq_r13 = 0;
+  };
+
+  // member variables
+  bool                      cell_identif_r13_present        = false;
+  bool                      rr_cfg_common_scell_r13_present = false;
+  bool                      rr_cfg_ded_scell_r13_present    = false;
+  bool                      ant_info_ded_scell_r13_present  = false;
+  uint8_t                   scell_idx_r13                   = 1;
+  cell_identif_r13_s_       cell_identif_r13;
+  rr_cfg_common_scell_r10_s rr_cfg_common_scell_r13;
+  rr_cfg_ded_scell_r10_s    rr_cfg_ded_scell_r13;
+  ant_info_ded_v10i0_s      ant_info_ded_scell_r13;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCellToAddModListExt-r13 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-r13
+using scell_to_add_mod_list_ext_r13_l = dyn_array<scell_to_add_mod_ext_r13_s>;
+
 // PUCCH-ConfigDedicated-v13c0 ::= SEQUENCE
 struct pucch_cfg_ded_v13c0_s {
   struct ch_sel_v13c0_s_ {
@@ -6247,6 +6345,7 @@ struct pucch_cfg_ded_v13c0_s {
         assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v13c0");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -6264,128 +6363,6 @@ struct pucch_cfg_ded_v13c0_s {
 
   // member variables
   ch_sel_v13c0_s_ ch_sel_v13c0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// RadioResourceConfigDedicatedSCell-r10 ::= SEQUENCE
-struct rr_cfg_ded_scell_r10_s {
-  bool                     ext                            = false;
-  bool                     phys_cfg_ded_scell_r10_present = false;
-  phys_cfg_ded_scell_r10_s phys_cfg_ded_scell_r10;
-  // ...
-  // group 0
-  copy_ptr<mac_main_cfg_scell_r11_s> mac_main_cfg_scell_r11;
-  // group 1
-  copy_ptr<naics_assist_info_r12_c> naics_info_r12;
-  // group 2
-  copy_ptr<neigh_cells_crs_info_r13_c> neigh_cells_crs_info_scell_r13;
-  // group 3
-  copy_ptr<phys_cfg_ded_scell_v1370_s> phys_cfg_ded_scell_v1370;
-  // group 4
-  bool                                 crs_intf_mitig_enabled_r15_present = false;
-  bool                                 crs_intf_mitig_enabled_r15         = false;
-  copy_ptr<neigh_cells_crs_info_r15_c> neigh_cells_crs_info_r15;
-  copy_ptr<sps_cfg_v1530_s>            sps_cfg_v1530;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        operator==(const rr_cfg_ded_scell_r10_s& other) const;
-  bool        operator!=(const rr_cfg_ded_scell_r10_s& other) const { return not(*this == other); }
-};
-
-// PhysicalConfigDedicatedSCell-v13c0 ::= SEQUENCE
-struct phys_cfg_ded_scell_v13c0_s {
-  struct pucch_scell_v13c0_c_ {
-    struct setup_s_ {
-      pucch_cfg_ded_v13c0_s pucch_cfg_ded_v13c0;
-    };
-    typedef setup_e types;
-
-    // choice methods
-    pucch_scell_v13c0_c_() = default;
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    setup_s_& setup()
-    {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
-      return c;
-    }
-    const setup_s_& setup() const
-    {
-      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
-      return c;
-    }
-    setup_s_& set_setup()
-    {
-      set(types::setup);
-      return c;
-    }
-
-  private:
-    types    type_;
-    setup_s_ c;
-  };
-
-  // member variables
-  pucch_scell_v13c0_c_ pucch_scell_v13c0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SCellToAddModExt-r13 ::= SEQUENCE
-struct scell_to_add_mod_ext_r13_s {
-  struct cell_identif_r13_s_ {
-    uint16_t pci_r13             = 0;
-    uint32_t dl_carrier_freq_r13 = 0;
-  };
-
-  // member variables
-  bool                      cell_identif_r13_present        = false;
-  bool                      rr_cfg_common_scell_r13_present = false;
-  bool                      rr_cfg_ded_scell_r13_present    = false;
-  bool                      ant_info_ded_scell_r13_present  = false;
-  uint8_t                   scell_idx_r13                   = 1;
-  cell_identif_r13_s_       cell_identif_r13;
-  rr_cfg_common_scell_r10_s rr_cfg_common_scell_r13;
-  rr_cfg_ded_scell_r10_s    rr_cfg_ded_scell_r13;
-  ant_info_ded_v10i0_s      ant_info_ded_scell_r13;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// RadioResourceConfigDedicatedSCell-v13c0 ::= SEQUENCE
-struct rr_cfg_ded_scell_v13c0_s {
-  phys_cfg_ded_scell_v13c0_s phys_cfg_ded_scell_v13c0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SCellToAddModListExt-r13 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-r13
-using scell_to_add_mod_list_ext_r13_l = dyn_array<scell_to_add_mod_ext_r13_s>;
-
-// SCellToAddMod-v13c0 ::= SEQUENCE
-struct scell_to_add_mod_v13c0_s {
-  bool                     rr_cfg_ded_scell_v13c0_present = false;
-  rr_cfg_ded_scell_v13c0_s rr_cfg_ded_scell_v13c0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -6427,6 +6404,7 @@ struct drb_to_add_mod_scg_r12_s {
       assert_choice_type("scg-r12", type_.to_string(), "drb-Type-r12");
       return c;
     }
+    void        set_split_r12() { set(types::split_r12); }
     scg_r12_s_& set_scg_r12()
     {
       set(types::scg_r12);
@@ -6493,12 +6471,6 @@ struct rr_cfg_common_scell_v10l0_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCellToAddModList-v13c0 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-v13c0
-using scell_to_add_mod_list_v13c0_l = dyn_array<scell_to_add_mod_v13c0_s>;
-
-// SCellToAddModListExt-v13c0 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddMod-v13c0
-using scell_to_add_mod_list_ext_v13c0_l = dyn_array<scell_to_add_mod_v13c0_s>;
-
 // DRB-ToAddModListSCG-r12 ::= SEQUENCE (SIZE (1..11)) OF DRB-ToAddModSCG-r12
 using drb_to_add_mod_list_scg_r12_l = dyn_array<drb_to_add_mod_scg_r12_s>;
 
@@ -6560,6 +6532,7 @@ struct rlf_timers_and_consts_scg_r12_c {
     assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstantsSCG-r12");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -6614,17 +6587,6 @@ struct scell_to_add_mod_r10_s {
   bool        operator!=(const scell_to_add_mod_r10_s& other) const { return not(*this == other); }
 };
 
-// SCellToAddMod-v10l0 ::= SEQUENCE
-struct scell_to_add_mod_v10l0_s {
-  bool                        rr_cfg_common_scell_v10l0_present = false;
-  rr_cfg_common_scell_v10l0_s rr_cfg_common_scell_v10l0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // SCellToAddModExt-v1370 ::= SEQUENCE
 struct scell_to_add_mod_ext_v1370_s {
   bool                        rr_cfg_common_scell_v1370_present = false;
@@ -6663,16 +6625,6 @@ struct scell_to_add_mod_ext_v1430_s {
 // SRB-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..2)) OF INTEGER (1..2)
 using srb_to_release_list_r15_l = bounded_array<uint8_t, 2>;
 
-// RadioResourceConfigDedicated-v13c0 ::= SEQUENCE
-struct rr_cfg_ded_v13c0_s {
-  phys_cfg_ded_v13c0_s phys_cfg_ded_v13c0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // RadioResourceConfigDedicatedSCG-r12 ::= SEQUENCE
 struct rr_cfg_ded_scg_r12_s {
   bool                            ext                                   = false;
@@ -6700,14 +6652,109 @@ struct rr_cfg_ded_scg_r12_s {
 // SCellToAddModList-r10 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-r10
 using scell_to_add_mod_list_r10_l = dyn_array<scell_to_add_mod_r10_s>;
 
-// SCellToAddModList-v10l0 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-v10l0
-using scell_to_add_mod_list_v10l0_l = dyn_array<scell_to_add_mod_v10l0_s>;
-
 // SCellToAddModListExt-v1370 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-v1370
 using scell_to_add_mod_list_ext_v1370_l = dyn_array<scell_to_add_mod_ext_v1370_s>;
 
 // SCellToAddModListExt-v1430 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-v1430
 using scell_to_add_mod_list_ext_v1430_l = dyn_array<scell_to_add_mod_ext_v1430_s>;
+
+// PhysicalConfigDedicatedSCell-v13c0 ::= SEQUENCE
+struct phys_cfg_ded_scell_v13c0_s {
+  struct pucch_scell_v13c0_c_ {
+    struct setup_s_ {
+      pucch_cfg_ded_v13c0_s pucch_cfg_ded_v13c0;
+    };
+    typedef setup_e types;
+
+    // choice methods
+    pucch_scell_v13c0_c_() = default;
+    void        set(types::options e = types::nulltype);
+    types       type() const { return type_; }
+    SRSASN_CODE pack(bit_ref& bref) const;
+    SRSASN_CODE unpack(cbit_ref& bref);
+    void        to_json(json_writer& j) const;
+    // getters
+    setup_s_& setup()
+    {
+      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
+      return c;
+    }
+    const setup_s_& setup() const
+    {
+      assert_choice_type("setup", type_.to_string(), "pucch-SCell-v13c0");
+      return c;
+    }
+    void      set_release() { set(types::release); }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
+
+  private:
+    types    type_;
+    setup_s_ c;
+  };
+
+  // member variables
+  pucch_scell_v13c0_c_ pucch_scell_v13c0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// RadioResourceConfigDedicatedSCell-v13c0 ::= SEQUENCE
+struct rr_cfg_ded_scell_v13c0_s {
+  phys_cfg_ded_scell_v13c0_s phys_cfg_ded_scell_v13c0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCellToAddMod-v13c0 ::= SEQUENCE
+struct scell_to_add_mod_v13c0_s {
+  bool                     rr_cfg_ded_scell_v13c0_present = false;
+  rr_cfg_ded_scell_v13c0_s rr_cfg_ded_scell_v13c0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCellToAddModList-v13c0 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-v13c0
+using scell_to_add_mod_list_v13c0_l = dyn_array<scell_to_add_mod_v13c0_s>;
+
+// SCellToAddModListExt-v13c0 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddMod-v13c0
+using scell_to_add_mod_list_ext_v13c0_l = dyn_array<scell_to_add_mod_v13c0_s>;
+
+// SCellToAddMod-v10l0 ::= SEQUENCE
+struct scell_to_add_mod_v10l0_s {
+  bool                        rr_cfg_common_scell_v10l0_present = false;
+  rr_cfg_common_scell_v10l0_s rr_cfg_common_scell_v10l0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// RadioResourceConfigDedicated-v13c0 ::= SEQUENCE
+struct rr_cfg_ded_v13c0_s {
+  phys_cfg_ded_v13c0_s phys_cfg_ded_v13c0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCellToAddModList-v10l0 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-v10l0
+using scell_to_add_mod_list_v10l0_l = dyn_array<scell_to_add_mod_v10l0_s>;
 
 // Cell-ToAddMod-r12 ::= SEQUENCE
 struct cell_to_add_mod_r12_s {

@@ -284,47 +284,6 @@ struct tdd_cfg_v1130_s {
   bool        operator!=(const tdd_cfg_v1130_s& other) const { return not(*this == other); }
 };
 
-// UplinkPowerControlCommon-v1310 ::= SEQUENCE
-struct ul_pwr_ctrl_common_v1310_s {
-  struct delta_f_pucch_format4_r13_opts {
-    enum options {
-      delta_f16,
-      delta_f15,
-      delta_f14,
-      delta_f13,
-      delta_f12,
-      delta_f11,
-      delta_f10,
-      spare1,
-      nulltype
-    } value;
-    typedef uint8_t number_type;
-
-    std::string to_string() const;
-    uint8_t     to_number() const;
-  };
-  typedef enumerated<delta_f_pucch_format4_r13_opts> delta_f_pucch_format4_r13_e_;
-  struct delta_f_pucch_format5_minus13_opts {
-    enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1, nulltype } value;
-    typedef uint8_t number_type;
-
-    std::string to_string() const;
-    uint8_t     to_number() const;
-  };
-  typedef enumerated<delta_f_pucch_format5_minus13_opts> delta_f_pucch_format5_minus13_e_;
-
-  // member variables
-  bool                             delta_f_pucch_format4_r13_present     = false;
-  bool                             delta_f_pucch_format5_minus13_present = false;
-  delta_f_pucch_format4_r13_e_     delta_f_pucch_format4_r13;
-  delta_f_pucch_format5_minus13_e_ delta_f_pucch_format5_minus13;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // PRACH-ParametersCE-r13 ::= SEQUENCE
 struct prach_params_ce_r13_s {
   struct prach_start_sf_r13_opts {
@@ -713,6 +672,7 @@ struct delta_flist_spucch_r15_c {
     assert_choice_type("setup", type_.to_string(), "DeltaFList-SPUCCH-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1874,6 +1834,7 @@ struct srs_ul_cfg_common_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigCommon");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2431,6 +2392,47 @@ struct rr_cfg_common_scell_r10_s {
   void        to_json(json_writer& j) const;
   bool        operator==(const rr_cfg_common_scell_r10_s& other) const;
   bool        operator!=(const rr_cfg_common_scell_r10_s& other) const { return not(*this == other); }
+};
+
+// UplinkPowerControlCommon-v1310 ::= SEQUENCE
+struct ul_pwr_ctrl_common_v1310_s {
+  struct delta_f_pucch_format4_r13_opts {
+    enum options {
+      delta_f16,
+      delta_f15,
+      delta_f14,
+      delta_f13,
+      delta_f12,
+      delta_f11,
+      delta_f10,
+      spare1,
+      nulltype
+    } value;
+    typedef uint8_t number_type;
+
+    std::string to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<delta_f_pucch_format4_r13_opts> delta_f_pucch_format4_r13_e_;
+  struct delta_f_pucch_format5_minus13_opts {
+    enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1, nulltype } value;
+    typedef uint8_t number_type;
+
+    std::string to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<delta_f_pucch_format5_minus13_opts> delta_f_pucch_format5_minus13_e_;
+
+  // member variables
+  bool                             delta_f_pucch_format4_r13_present     = false;
+  bool                             delta_f_pucch_format5_minus13_present = false;
+  delta_f_pucch_format4_r13_e_     delta_f_pucch_format4_r13;
+  delta_f_pucch_format5_minus13_e_ delta_f_pucch_format5_minus13;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
 };
 
 // PRACH-Config-v1310 ::= SEQUENCE

@@ -721,6 +721,7 @@ struct bt_name_list_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "BT-NameListConfig-r15");
     return c;
   }
+  void                set_release() { set(types::release); }
   bt_name_list_r15_l& set_setup()
   {
     set(types::setup);
@@ -955,6 +956,7 @@ struct meas_ds_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "MeasDS-Config-r12");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1342,6 +1344,7 @@ struct meas_gap_cfg_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfig");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1420,6 +1423,7 @@ struct meas_sf_pattern_cfg_neigh_r10_c {
     assert_choice_type("setup", type_.to_string(), "MeasSubframePatternConfigNeigh-r10");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1511,6 +1515,7 @@ struct rmtc_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "RMTC-Config-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1555,6 +1560,7 @@ struct rs_cfg_ssb_nr_r15_s {
       assert_choice_type("setup", type_.to_string(), "ssb-ToMeasure-r15");
       return c;
     }
+    void                  set_release() { set(types::release); }
     ssb_to_measure_r15_c& set_setup()
     {
       set(types::setup);
@@ -1606,6 +1612,7 @@ struct rsrq_range_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "RSRQ-RangeConfig-r12");
     return c;
   }
+  void    set_release() { set(types::release); }
   int8_t& set_setup()
   {
     set(types::setup);
@@ -1962,6 +1969,7 @@ struct ul_delay_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "UL-DelayConfig-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2027,6 +2035,7 @@ struct wlan_name_list_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "WLAN-NameListConfig-r15");
     return c;
   }
+  void                  set_release() { set(types::release); }
   wlan_name_list_r15_l& set_setup()
   {
     set(types::setup);
@@ -2110,6 +2119,7 @@ struct meas_obj_eutra_s {
       assert_choice_type("setup", type_.to_string(), "t312-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -2232,6 +2242,7 @@ struct meas_obj_nr_r15_s {
       assert_choice_type("setup", type_.to_string(), "bandNR-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     uint16_t& set_setup()
     {
       set(types::setup);
@@ -2926,6 +2937,7 @@ struct report_cfg_eutra_s {
       assert_choice_type("setup", type_.to_string(), "alternativeTimeToTrigger-r12");
       return c;
     }
+    void               set_release() { set(types::release); }
     time_to_trigger_e& set_setup()
     {
       set(types::setup);
@@ -2975,6 +2987,7 @@ struct report_cfg_eutra_s {
       assert_choice_type("setup", type_.to_string(), "rs-sinr-Config-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3491,6 +3504,7 @@ struct report_cfg_inter_rat_s {
       assert_choice_type("setup", type_.to_string(), "b2-Threshold1-v1250");
       return c;
     }
+    void    set_release() { set(types::release); }
     int8_t& set_setup()
     {
       set(types::setup);
@@ -4491,6 +4505,7 @@ struct meas_gap_cfg_dense_prs_r15_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfigDensePRS-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4530,6 +4545,7 @@ struct meas_gap_cfg_per_cc_list_r14_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfigPerCC-List-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4577,6 +4593,7 @@ struct meas_gap_sharing_cfg_r14_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapSharingConfig-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4715,6 +4732,9 @@ struct rach_skip_r14_s {
       assert_choice_type("scg-STAG-r14", type_.to_string(), "targetTA-r14");
       return c.get<uint8_t>();
     }
+    void     set_ta0_r14() { set(types::ta0_r14); }
+    void     set_mcg_ptag_r14() { set(types::mcg_ptag_r14); }
+    void     set_scg_ptag_r14() { set(types::scg_ptag_r14); }
     uint8_t& set_mcg_stag_r14()
     {
       set(types::mcg_stag_r14);
@@ -4793,6 +4813,7 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "speedStatePars");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -4824,6 +4845,7 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "measScaleFactor-r12");
       return c;
     }
+    void                     set_release() { set(types::release); }
     meas_scale_factor_r12_e& set_setup()
     {
       set(types::setup);
@@ -4855,6 +4877,7 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "heightThreshRef-r15");
       return c;
     }
+    void     set_release() { set(types::release); }
     uint8_t& set_setup()
     {
       set(types::setup);
@@ -4929,17 +4952,6 @@ struct meas_cfg_s {
 struct carrier_freq_geran_s {
   uint16_t         arfcn = 0;
   band_ind_geran_e band_ind;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// MobilityControlInfo-v10l0 ::= SEQUENCE
-struct mob_ctrl_info_v10l0_s {
-  bool     add_spec_emission_v10l0_present = false;
-  uint16_t add_spec_emission_v10l0         = 33;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -6572,6 +6584,13 @@ struct meas_report_s {
         set(types::meas_report_r8);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                type_;
@@ -6581,9 +6600,6 @@ struct meas_report_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -6593,28 +6609,38 @@ struct meas_report_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
   crit_exts_c_ crit_exts;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MobilityControlInfo-v10l0 ::= SEQUENCE
+struct mob_ctrl_info_v10l0_s {
+  bool     add_spec_emission_v10l0_present = false;
+  uint16_t add_spec_emission_v10l0         = 33;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

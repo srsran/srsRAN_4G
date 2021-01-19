@@ -455,9 +455,6 @@ struct private_ie_id_c {
 
   // choice methods
   private_ie_id_c() = default;
-  private_ie_id_c(const private_ie_id_c& other);
-  private_ie_id_c& operator=(const private_ie_id_c& other);
-  ~private_ie_id_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -467,24 +464,23 @@ struct private_ie_id_c {
   uint32_t& local()
   {
     assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
-    return c.get<uint32_t>();
+    return c;
   }
   const uint32_t& local() const
   {
     assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
-    return c.get<uint32_t>();
+    return c;
   }
   uint32_t& set_local()
   {
     set(types::local);
-    return c.get<uint32_t>();
+    return c;
   }
+  void set_global() { set(types::global); }
 
 private:
-  types               type_;
-  pod_choice_buffer_t c;
-
-  void destroy_();
+  types    type_;
+  uint32_t c;
 };
 
 // PrivateIE-Field{S1AP-PRIVATE-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PRIVATE-IES}}
@@ -878,6 +874,7 @@ struct area_scope_of_mdt_c {
     set(types::tabased);
     return c.get<ta_based_mdt_s>();
   }
+  void             set_plmn_wide() { set(types::plmn_wide); }
   tai_based_mdt_s& set_tai_based()
   {
     set(types::tai_based);
@@ -18304,6 +18301,7 @@ struct so_ntransfer_request_container_c {
     assert_choice_type("failureEventReporting", type_.to_string(), "SONtransferRequestContainer");
     return c.get<fail_event_report_c>();
   }
+  void                              set_cell_load_report() { set(types::cell_load_report); }
   multi_cell_load_report_request_s& set_multi_cell_load_report()
   {
     set(types::multi_cell_load_report);
@@ -18433,11 +18431,14 @@ struct so_ntransfer_resp_container_c {
     set(types::event_triggered_cell_load_report);
     return c.get<event_triggered_cell_load_report_resp_s>();
   }
+  void                    set_horeport() { set(types::horeport); }
   cell_activation_resp_s& set_eutran_cell_activation()
   {
     set(types::eutran_cell_activation);
     return c.get<cell_activation_resp_s>();
   }
+  void set_energy_savings_ind() { set(types::energy_savings_ind); }
+  void set_fail_event_report() { set(types::fail_event_report); }
 
 private:
   types type_;

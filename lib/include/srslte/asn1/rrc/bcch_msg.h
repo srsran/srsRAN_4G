@@ -42,97 +42,6 @@ struct bcch_bch_msg_s {
   void        to_json(json_writer& j) const;
 };
 
-// SIB-Type-v12j0 ::= ENUMERATED
-struct sib_type_v12j0_opts {
-  enum options {
-    sib_type19_v1250,
-    sib_type20_v1310,
-    sib_type21_v1430,
-    sib_type24_v1530,
-    sib_type25_v1530,
-    sib_type26_v1530,
-    spare10,
-    spare9,
-    spare8,
-    spare7,
-    spare6,
-    spare5,
-    spare4,
-    spare3,
-    spare2,
-    spare1,
-    // ...
-    nulltype
-  } value;
-  typedef uint8_t number_type;
-
-  std::string to_string() const;
-  uint8_t     to_number() const;
-};
-typedef enumerated<sib_type_v12j0_opts, true> sib_type_v12j0_e;
-
-// NS-PmaxValue-v10l0 ::= SEQUENCE
-struct ns_pmax_value_v10l0_s {
-  bool     add_spec_emission_v10l0_present = false;
-  uint16_t add_spec_emission_v10l0         = 33;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SIB-MappingInfo-v12j0 ::= SEQUENCE (SIZE (1..31)) OF SIB-Type-v12j0
-using sib_map_info_v12j0_l = bounded_array<sib_type_v12j0_e, 31>;
-
-// InterFreqCarrierFreqInfo-v1360 ::= SEQUENCE
-struct inter_freq_carrier_freq_info_v1360_s {
-  bool                      cell_sel_info_ce1_v1360_present = false;
-  cell_sel_info_ce1_v1360_s cell_sel_info_ce1_v1360;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// NS-PmaxList-v10l0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValue-v10l0
-using ns_pmax_list_v10l0_l = dyn_array<ns_pmax_value_v10l0_s>;
-
-// NS-PmaxValue-r10 ::= SEQUENCE
-struct ns_pmax_value_r10_s {
-  bool    add_pmax_r10_present = false;
-  int8_t  add_pmax_r10         = -30;
-  uint8_t add_spec_emission    = 1;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SchedulingInfo-v12j0 ::= SEQUENCE
-struct sched_info_v12j0_s {
-  bool                 sib_map_info_v12j0_present = false;
-  sib_map_info_v12j0_l sib_map_info_v12j0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SchedulingInfoExt-r12 ::= SEQUENCE
-struct sched_info_ext_r12_s {
-  si_periodicity_r12_e si_periodicity_r12;
-  sib_map_info_v12j0_l sib_map_info_r12;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // BandClassInfoCDMA2000 ::= SEQUENCE
 struct band_class_info_cdma2000_s {
   bool                 ext                     = false;
@@ -148,15 +57,6 @@ struct band_class_info_cdma2000_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
-
-// InterFreqCarrierFreqList-v13a0 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1360
-using inter_freq_carrier_freq_list_v13a0_l = dyn_array<inter_freq_carrier_freq_info_v1360_s>;
-
-// MultiBandInfoList-v10l0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-v10l0
-using multi_band_info_list_v10l0_l = dyn_array<ns_pmax_list_v10l0_l>;
-
-// NS-PmaxList-r10 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValue-r10
-using ns_pmax_list_r10_l = dyn_array<ns_pmax_value_r10_s>;
 
 // NeighCellsPerBandclassCDMA2000-r11 ::= SEQUENCE
 struct neigh_cells_per_bandclass_cdma2000_r11_s {
@@ -178,53 +78,20 @@ using pci_list_cdma2000_l = bounded_array<uint16_t, 16>;
 // PhysCellIdListCDMA2000-v920 ::= SEQUENCE (SIZE (0..24)) OF INTEGER (0..511)
 using pci_list_cdma2000_v920_l = bounded_array<uint16_t, 24>;
 
-// SchedulingInfoList-v12j0 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo-v12j0
-using sched_info_list_v12j0_l = dyn_array<sched_info_v12j0_s>;
-
-// SchedulingInfoListExt-r12 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfoExt-r12
-using sched_info_list_ext_r12_l = dyn_array<sched_info_ext_r12_s>;
-
-// SystemInformationBlockType2-v13c0-IEs ::= SEQUENCE
-struct sib_type2_v13c0_ies_s {
-  bool                       ul_pwr_ctrl_common_v13c0_present = false;
-  bool                       non_crit_ext_present             = false;
-  ul_pwr_ctrl_common_v1310_s ul_pwr_ctrl_common_v13c0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // BandClassListCDMA2000 ::= SEQUENCE (SIZE (1..32)) OF BandClassInfoCDMA2000
 using band_class_list_cdma2000_l = dyn_array<band_class_info_cdma2000_s>;
 
-// InterFreqCarrierFreqInfo-v10l0 ::= SEQUENCE
-struct inter_freq_carrier_freq_info_v10l0_s {
-  bool                         freq_band_info_v10l0_present       = false;
-  bool                         multi_band_info_list_v10l0_present = false;
-  ns_pmax_list_v10l0_l         freq_band_info_v10l0;
-  multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
+// NS-PmaxValue-r10 ::= SEQUENCE
+struct ns_pmax_value_r10_s {
+  bool    add_pmax_r10_present = false;
+  int8_t  add_pmax_r10         = -30;
+  uint8_t add_spec_emission    = 1;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
-
-// MultiBandInfo-v9e0 ::= SEQUENCE
-struct multi_band_info_v9e0_s {
-  bool     freq_band_ind_v9e0_present = false;
-  uint16_t freq_band_ind_v9e0         = 65;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// MultiBandInfoList-v10j0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-r10
-using multi_band_info_list_v10j0_l = dyn_array<ns_pmax_list_r10_l>;
 
 // NS-PmaxValueNR-r15 ::= SEQUENCE
 struct ns_pmax_value_nr_r15_s {
@@ -277,47 +144,6 @@ struct neigh_cells_per_bandclass_cdma2000_v920_s {
 struct redist_neigh_cell_r13_s {
   uint16_t pci_r13                = 0;
   uint8_t  redist_factor_cell_r13 = 1;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType1-v12j0-IEs ::= SEQUENCE
-struct sib_type1_v12j0_ies_s {
-  bool                      sched_info_list_v12j0_present   = false;
-  bool                      sched_info_list_ext_r12_present = false;
-  bool                      non_crit_ext_present            = false;
-  sched_info_list_v12j0_l   sched_info_list_v12j0;
-  sched_info_list_ext_r12_l sched_info_list_ext_r12;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType2-v10n0-IEs ::= SEQUENCE
-struct sib_type2_v10n0_ies_s {
-  bool                  late_non_crit_ext_present = false;
-  bool                  non_crit_ext_present      = false;
-  dyn_octstring         late_non_crit_ext;
-  sib_type2_v13c0_ies_s non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType5-v13a0-IEs ::= SEQUENCE
-struct sib_type5_v13a0_ies_s {
-  bool                                 late_non_crit_ext_present                  = false;
-  bool                                 inter_freq_carrier_freq_list_v13a0_present = false;
-  bool                                 non_crit_ext_present                       = false;
-  dyn_octstring                        late_non_crit_ext;
-  inter_freq_carrier_freq_list_v13a0_l inter_freq_carrier_freq_list_v13a0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -391,19 +217,6 @@ struct cell_resel_params_cdma2000_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqCarrierFreqInfo-v10j0 ::= SEQUENCE
-struct inter_freq_carrier_freq_info_v10j0_s {
-  bool                         freq_band_info_r10_present         = false;
-  bool                         multi_band_info_list_v10j0_present = false;
-  ns_pmax_list_r10_l           freq_band_info_r10;
-  multi_band_info_list_v10j0_l multi_band_info_list_v10j0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // InterFreqNeighCellInfo ::= SEQUENCE
 struct inter_freq_neigh_cell_info_s {
   uint16_t         pci = 0;
@@ -415,8 +228,8 @@ struct inter_freq_neigh_cell_info_s {
   void        to_json(json_writer& j) const;
 };
 
-// MultiBandInfoList-v9e0 ::= SEQUENCE (SIZE (1..8)) OF MultiBandInfo-v9e0
-using multi_band_info_list_v9e0_l = dyn_array<multi_band_info_v9e0_s>;
+// NS-PmaxList-r10 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValue-r10
+using ns_pmax_list_r10_l = dyn_array<ns_pmax_value_r10_s>;
 
 // NS-PmaxListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValueNR-r15
 using ns_pmax_list_nr_r15_l = dyn_array<ns_pmax_value_nr_r15_s>;
@@ -490,56 +303,6 @@ using redist_neigh_cell_list_r13_l = dyn_array<redist_neigh_cell_r13_s>;
 
 // SL-SyncConfigListNFreq-r13 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfigNFreq-r13
 using sl_sync_cfg_list_nfreq_r13_l = dyn_array<sl_sync_cfg_nfreq_r13_s>;
-
-// SystemInformationBlockType1-v10x0-IEs ::= SEQUENCE
-struct sib_type1_v10x0_ies_s {
-  bool                  late_non_crit_ext_present = false;
-  bool                  non_crit_ext_present      = false;
-  dyn_octstring         late_non_crit_ext;
-  sib_type1_v12j0_ies_s non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType2-v10m0-IEs ::= SEQUENCE
-struct sib_type2_v10m0_ies_s {
-  struct freq_info_v10l0_s_ {
-    uint16_t add_spec_emission_v10l0 = 33;
-  };
-  using multi_band_info_list_v10l0_l_ = bounded_array<uint16_t, 8>;
-
-  // member variables
-  bool                          freq_info_v10l0_present            = false;
-  bool                          multi_band_info_list_v10l0_present = false;
-  bool                          non_crit_ext_present               = false;
-  freq_info_v10l0_s_            freq_info_v10l0;
-  multi_band_info_list_v10l0_l_ multi_band_info_list_v10l0;
-  sib_type2_v10n0_ies_s         non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType5-v10l0-IEs ::= SEQUENCE
-struct sib_type5_v10l0_ies_s {
-  using inter_freq_carrier_freq_list_v10l0_l_ = dyn_array<inter_freq_carrier_freq_info_v10l0_s>;
-
-  // member variables
-  bool                                  inter_freq_carrier_freq_list_v10l0_present = false;
-  bool                                  non_crit_ext_present                       = false;
-  inter_freq_carrier_freq_list_v10l0_l_ inter_freq_carrier_freq_list_v10l0;
-  sib_type5_v13a0_ies_s                 non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 
 // SystemTimeInfoCDMA2000 ::= SEQUENCE
 struct sys_time_info_cdma2000_s {
@@ -624,19 +387,6 @@ struct uac_barr_per_cat_r15_s {
 // InterFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
 using inter_freq_black_cell_list_l = dyn_array<pci_range_s>;
 
-// InterFreqCarrierFreqInfo-v9e0 ::= SEQUENCE
-struct inter_freq_carrier_freq_info_v9e0_s {
-  bool                        dl_carrier_freq_v9e0_present      = false;
-  bool                        multi_band_info_list_v9e0_present = false;
-  uint32_t                    dl_carrier_freq_v9e0              = 65536;
-  multi_band_info_list_v9e0_l multi_band_info_list_v9e0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // InterFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF InterFreqNeighCellInfo
 using inter_freq_neigh_cell_list_l = dyn_array<inter_freq_neigh_cell_info_s>;
 
@@ -646,8 +396,8 @@ using inter_freq_neigh_hsdn_cell_list_r15_l = dyn_array<pci_range_s>;
 // MBMS-SAI-List-r11 ::= SEQUENCE (SIZE (1..64)) OF INTEGER (0..65535)
 using mbms_sai_list_r11_l = dyn_array<uint32_t>;
 
-// MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..64)
-using multi_band_info_list_l = bounded_array<uint8_t, 8>;
+// MultiBandInfoList-v10j0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-r10
+using multi_band_info_list_v10j0_l = dyn_array<ns_pmax_list_r10_l>;
 
 // MultiBandNsPmaxListNR-1-v1550 ::= SEQUENCE (SIZE (1..31)) OF NS-PmaxListNR-r15
 using multi_band_ns_pmax_list_nr_minus1_v1550_l = dyn_array<ns_pmax_list_nr_r15_l>;
@@ -712,6 +462,7 @@ struct params_cdma2000_r11_s {
       set(types::explicit_value);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types                    type_;
@@ -784,65 +535,8 @@ struct sl_disc_cfg_other_inter_freq_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SystemInformationBlockType1-v10l0-IEs ::= SEQUENCE
-struct sib_type1_v10l0_ies_s {
-  bool                         freq_band_info_v10l0_present       = false;
-  bool                         multi_band_info_list_v10l0_present = false;
-  bool                         non_crit_ext_present               = false;
-  ns_pmax_list_v10l0_l         freq_band_info_v10l0;
-  multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
-  sib_type1_v10x0_ies_s        non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType2-v9i0-IEs ::= SEQUENCE
-struct sib_type2_v9i0_ies_s {
-  bool          non_crit_ext_present = false;
-  bool          dummy_present        = false;
-  dyn_octstring non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType5-v10j0-IEs ::= SEQUENCE
-struct sib_type5_v10j0_ies_s {
-  using inter_freq_carrier_freq_list_v10j0_l_ = dyn_array<inter_freq_carrier_freq_info_v10j0_s>;
-
-  // member variables
-  bool                                  inter_freq_carrier_freq_list_v10j0_present = false;
-  bool                                  non_crit_ext_present                       = false;
-  inter_freq_carrier_freq_list_v10j0_l_ inter_freq_carrier_freq_list_v10j0;
-  sib_type5_v10l0_ies_s                 non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // UAC-BarringPerCatList-r15 ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat-r15
 using uac_barr_per_cat_list_r15_l = dyn_array<uac_barr_per_cat_r15_s>;
-
-// CarrierFreqInfoUTRA-FDD-v8h0 ::= SEQUENCE
-struct carrier_freq_info_utra_fdd_v8h0_s {
-  using multi_band_info_list_l_ = bounded_array<uint8_t, 8>;
-
-  // member variables
-  bool                    multi_band_info_list_present = false;
-  multi_band_info_list_l_ multi_band_info_list;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
 
 // CarrierFreqNR-r15 ::= SEQUENCE
 struct carrier_freq_nr_r15_s {
@@ -1135,6 +829,19 @@ struct inter_freq_carrier_freq_info_r12_s {
   void        to_json(json_writer& j) const;
 };
 
+// InterFreqCarrierFreqInfo-v10j0 ::= SEQUENCE
+struct inter_freq_carrier_freq_info_v10j0_s {
+  bool                         freq_band_info_r10_present         = false;
+  bool                         multi_band_info_list_v10j0_present = false;
+  ns_pmax_list_r10_l           freq_band_info_r10;
+  multi_band_info_list_v10j0_l multi_band_info_list_v10j0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // InterFreqCarrierFreqInfo-v1250 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1250_s {
   bool   reduced_meas_performance_r12_present       = false;
@@ -1175,13 +882,10 @@ struct inter_freq_carrier_freq_info_v1350_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqCarrierFreqInfo-v1530 ::= SEQUENCE
-struct inter_freq_carrier_freq_info_v1530_s {
-  bool                                  inter_freq_neigh_hsdn_cell_list_r15_present = false;
-  bool                                  cell_sel_info_ce_v1530_present              = false;
-  bool                                  hsdn_ind_r15                                = false;
-  inter_freq_neigh_hsdn_cell_list_r15_l inter_freq_neigh_hsdn_cell_list_r15;
-  cell_sel_info_ce_v1530_s              cell_sel_info_ce_v1530;
+// InterFreqCarrierFreqInfo-v1360 ::= SEQUENCE
+struct inter_freq_carrier_freq_info_v1360_s {
+  bool                      cell_sel_info_ce1_v1360_present = false;
+  cell_sel_info_ce1_v1360_s cell_sel_info_ce1_v1360;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1189,10 +893,13 @@ struct inter_freq_carrier_freq_info_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqCarrierFreqInfo-v8h0 ::= SEQUENCE
-struct inter_freq_carrier_freq_info_v8h0_s {
-  bool                   multi_band_info_list_present = false;
-  multi_band_info_list_l multi_band_info_list;
+// InterFreqCarrierFreqInfo-v1530 ::= SEQUENCE
+struct inter_freq_carrier_freq_info_v1530_s {
+  bool                                  inter_freq_neigh_hsdn_cell_list_r15_present = false;
+  bool                                  cell_sel_info_ce_v1530_present              = false;
+  bool                                  hsdn_ind_r15                                = false;
+  inter_freq_neigh_hsdn_cell_list_r15_l inter_freq_neigh_hsdn_cell_list_r15;
+  cell_sel_info_ce_v1530_s              cell_sel_info_ce_v1530;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1412,6 +1119,7 @@ struct sib8_per_plmn_r11_s {
       set(types::explicit_value);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types                 type_;
@@ -1468,64 +1176,6 @@ struct sl_pppp_tx_cfg_idx_r15_s {
   uint8_t                     cbr_cfg_idx_r15        = 0;
   tx_cfg_idx_list_r15_l_      tx_cfg_idx_list_r15;
   mcs_pssch_range_list_r15_l_ mcs_pssch_range_list_r15;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType1-v10j0-IEs ::= SEQUENCE
-struct sib_type1_v10j0_ies_s {
-  bool                         freq_band_info_r10_present         = false;
-  bool                         multi_band_info_list_v10j0_present = false;
-  bool                         non_crit_ext_present               = false;
-  ns_pmax_list_r10_l           freq_band_info_r10;
-  multi_band_info_list_v10j0_l multi_band_info_list_v10j0;
-  sib_type1_v10l0_ies_s        non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType2-v9e0-IEs ::= SEQUENCE
-struct sib_type2_v9e0_ies_s {
-  bool                 ul_carrier_freq_v9e0_present = false;
-  bool                 non_crit_ext_present         = false;
-  uint32_t             ul_carrier_freq_v9e0         = 65536;
-  sib_type2_v9i0_ies_s non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType3-v10l0-IEs ::= SEQUENCE
-struct sib_type3_v10l0_ies_s {
-  bool                         freq_band_info_v10l0_present       = false;
-  bool                         multi_band_info_list_v10l0_present = false;
-  bool                         non_crit_ext_present               = false;
-  ns_pmax_list_v10l0_l         freq_band_info_v10l0;
-  multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType5-v9e0-IEs ::= SEQUENCE
-struct sib_type5_v9e0_ies_s {
-  using inter_freq_carrier_freq_list_v9e0_l_ = dyn_array<inter_freq_carrier_freq_info_v9e0_s>;
-
-  // member variables
-  bool                                 inter_freq_carrier_freq_list_v9e0_present = false;
-  bool                                 non_crit_ext_present                      = false;
-  inter_freq_carrier_freq_list_v9e0_l_ inter_freq_carrier_freq_list_v9e0;
-  sib_type5_v10j0_ies_s                non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2278,83 +1928,6 @@ struct sl_disc_cfg_remote_ue_r13_s {
 // SL-SyncConfigList-r12 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfig-r12
 using sl_sync_cfg_list_r12_l = dyn_array<sl_sync_cfg_r12_s>;
 
-// SystemInformationBlockType1-v9e0-IEs ::= SEQUENCE
-struct sib_type1_v9e0_ies_s {
-  bool                        freq_band_ind_v9e0_present        = false;
-  bool                        multi_band_info_list_v9e0_present = false;
-  bool                        non_crit_ext_present              = false;
-  uint16_t                    freq_band_ind_v9e0                = 65;
-  multi_band_info_list_v9e0_l multi_band_info_list_v9e0;
-  sib_type1_v10j0_ies_s       non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType2-v8h0-IEs ::= SEQUENCE
-struct sib_type2_v8h0_ies_s {
-  using multi_band_info_list_l_ = bounded_array<uint8_t, 8>;
-
-  // member variables
-  bool                    multi_band_info_list_present = false;
-  bool                    non_crit_ext_present         = false;
-  multi_band_info_list_l_ multi_band_info_list;
-  sib_type2_v9e0_ies_s    non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType3-v10j0-IEs ::= SEQUENCE
-struct sib_type3_v10j0_ies_s {
-  bool                         freq_band_info_r10_present         = false;
-  bool                         multi_band_info_list_v10j0_present = false;
-  bool                         non_crit_ext_present               = false;
-  ns_pmax_list_r10_l           freq_band_info_r10;
-  multi_band_info_list_v10j0_l multi_band_info_list_v10j0;
-  sib_type3_v10l0_ies_s        non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType5-v8h0-IEs ::= SEQUENCE
-struct sib_type5_v8h0_ies_s {
-  using inter_freq_carrier_freq_list_v8h0_l_ = dyn_array<inter_freq_carrier_freq_info_v8h0_s>;
-
-  // member variables
-  bool                                 inter_freq_carrier_freq_list_v8h0_present = false;
-  bool                                 non_crit_ext_present                      = false;
-  inter_freq_carrier_freq_list_v8h0_l_ inter_freq_carrier_freq_list_v8h0;
-  sib_type5_v9e0_ies_s                 non_crit_ext;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType6-v8h0-IEs ::= SEQUENCE
-struct sib_type6_v8h0_ies_s {
-  using carrier_freq_list_utra_fdd_v8h0_l_ = dyn_array<carrier_freq_info_utra_fdd_v8h0_s>;
-
-  // member variables
-  bool                               carrier_freq_list_utra_fdd_v8h0_present = false;
-  bool                               non_crit_ext_present                    = false;
-  carrier_freq_list_utra_fdd_v8h0_l_ carrier_freq_list_utra_fdd_v8h0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // UAC-AC1-SelectAssistInfo-r15 ::= ENUMERATED
 struct uac_ac1_select_assist_info_r15_opts {
   enum options { a, b, c, nulltype } value;
@@ -2388,19 +1961,6 @@ struct sib_pos_r15_s {
   dyn_octstring assist_data_sib_elem_r15;
   dyn_octstring late_non_crit_ext;
   // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SystemInformationBlockType1-v8h0-IEs ::= SEQUENCE
-struct sib_type1_v8h0_ies_s {
-  bool                   multi_band_info_list_present = false;
-  bool                   non_crit_ext_present         = false;
-  multi_band_info_list_l multi_band_info_list;
-  sib_type1_v9e0_ies_s   non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4311,9 +3871,6 @@ struct sys_info_s {
 
       // choice methods
       crit_exts_future_r15_c_() = default;
-      crit_exts_future_r15_c_(const crit_exts_future_r15_c_& other);
-      crit_exts_future_r15_c_& operator=(const crit_exts_future_r15_c_& other);
-      ~crit_exts_future_r15_c_() { destroy_(); }
       void        set(types::options e = types::nulltype);
       types       type() const { return type_; }
       SRSASN_CODE pack(bit_ref& bref) const;
@@ -4323,24 +3880,23 @@ struct sys_info_s {
       pos_sys_info_r15_ies_s& pos_sys_info_r15()
       {
         assert_choice_type("posSystemInformation-r15", type_.to_string(), "criticalExtensionsFuture-r15");
-        return c.get<pos_sys_info_r15_ies_s>();
+        return c;
       }
       const pos_sys_info_r15_ies_s& pos_sys_info_r15() const
       {
         assert_choice_type("posSystemInformation-r15", type_.to_string(), "criticalExtensionsFuture-r15");
-        return c.get<pos_sys_info_r15_ies_s>();
+        return c;
       }
       pos_sys_info_r15_ies_s& set_pos_sys_info_r15()
       {
         set(types::pos_sys_info_r15);
-        return c.get<pos_sys_info_r15_ies_s>();
+        return c;
       }
+      void set_crit_exts_future() { set(types::crit_exts_future); }
 
     private:
-      types                                   type_;
-      choice_buffer_t<pos_sys_info_r15_ies_s> c;
-
-      void destroy_();
+      types                  type_;
+      pos_sys_info_r15_ies_s c;
     };
     struct types_opts {
       enum options { sys_info_r8, crit_exts_future_r15, nulltype } value;
@@ -4478,9 +4034,6 @@ struct bcch_dl_sch_msg_type_c {
 
   // choice methods
   bcch_dl_sch_msg_type_c() = default;
-  bcch_dl_sch_msg_type_c(const bcch_dl_sch_msg_type_c& other);
-  bcch_dl_sch_msg_type_c& operator=(const bcch_dl_sch_msg_type_c& other);
-  ~bcch_dl_sch_msg_type_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4490,24 +4043,23 @@ struct bcch_dl_sch_msg_type_c {
   c1_c_& c1()
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType");
-    return c.get<c1_c_>();
+    return c;
   }
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType");
-    return c.get<c1_c_>();
+    return c;
   }
   c1_c_& set_c1()
   {
     set(types::c1);
-    return c.get<c1_c_>();
+    return c;
   }
+  void set_msg_class_ext() { set(types::msg_class_ext); }
 
 private:
-  types                  type_;
-  choice_buffer_t<c1_c_> c;
-
-  void destroy_();
+  types type_;
+  c1_c_ c;
 };
 
 // BCCH-DL-SCH-Message ::= SEQUENCE
@@ -4597,9 +4149,6 @@ struct bcch_dl_sch_msg_type_br_r13_c {
 
   // choice methods
   bcch_dl_sch_msg_type_br_r13_c() = default;
-  bcch_dl_sch_msg_type_br_r13_c(const bcch_dl_sch_msg_type_br_r13_c& other);
-  bcch_dl_sch_msg_type_br_r13_c& operator=(const bcch_dl_sch_msg_type_br_r13_c& other);
-  ~bcch_dl_sch_msg_type_br_r13_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4609,24 +4158,23 @@ struct bcch_dl_sch_msg_type_br_r13_c {
   c1_c_& c1()
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-BR-r13");
-    return c.get<c1_c_>();
+    return c;
   }
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-BR-r13");
-    return c.get<c1_c_>();
+    return c;
   }
   c1_c_& set_c1()
   {
     set(types::c1);
-    return c.get<c1_c_>();
+    return c;
   }
+  void set_msg_class_ext() { set(types::msg_class_ext); }
 
 private:
-  types                  type_;
-  choice_buffer_t<c1_c_> c;
-
-  void destroy_();
+  types type_;
+  c1_c_ c;
 };
 
 // BCCH-DL-SCH-Message-BR ::= SEQUENCE
@@ -4743,6 +4291,448 @@ struct sib_type1_mbms_r14_s {
   pdsch_cfg_common_s                   pdsch_cfg_common_r14;
   sib_type13_r9_s                      sib_type13_r14;
   cell_access_related_info_list_r14_l_ cell_access_related_info_list_r14;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// CarrierFreqInfoUTRA-FDD-v8h0 ::= SEQUENCE
+struct carrier_freq_info_utra_fdd_v8h0_s {
+  using multi_band_info_list_l_ = bounded_array<uint8_t, 8>;
+
+  // member variables
+  bool                    multi_band_info_list_present = false;
+  multi_band_info_list_l_ multi_band_info_list;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// NS-PmaxValue-v10l0 ::= SEQUENCE
+struct ns_pmax_value_v10l0_s {
+  bool     add_spec_emission_v10l0_present = false;
+  uint16_t add_spec_emission_v10l0         = 33;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// NS-PmaxList-v10l0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValue-v10l0
+using ns_pmax_list_v10l0_l = dyn_array<ns_pmax_value_v10l0_s>;
+
+// MultiBandInfoList-v10l0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-v10l0
+using multi_band_info_list_v10l0_l = dyn_array<ns_pmax_list_v10l0_l>;
+
+// InterFreqCarrierFreqInfo-v10l0 ::= SEQUENCE
+struct inter_freq_carrier_freq_info_v10l0_s {
+  bool                         freq_band_info_v10l0_present       = false;
+  bool                         multi_band_info_list_v10l0_present = false;
+  ns_pmax_list_v10l0_l         freq_band_info_v10l0;
+  multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..64)
+using multi_band_info_list_l = bounded_array<uint8_t, 8>;
+
+// InterFreqCarrierFreqInfo-v8h0 ::= SEQUENCE
+struct inter_freq_carrier_freq_info_v8h0_s {
+  bool                   multi_band_info_list_present = false;
+  multi_band_info_list_l multi_band_info_list;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MultiBandInfo-v9e0 ::= SEQUENCE
+struct multi_band_info_v9e0_s {
+  bool     freq_band_ind_v9e0_present = false;
+  uint16_t freq_band_ind_v9e0         = 65;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MultiBandInfoList-v9e0 ::= SEQUENCE (SIZE (1..8)) OF MultiBandInfo-v9e0
+using multi_band_info_list_v9e0_l = dyn_array<multi_band_info_v9e0_s>;
+
+// InterFreqCarrierFreqInfo-v9e0 ::= SEQUENCE
+struct inter_freq_carrier_freq_info_v9e0_s {
+  bool                        dl_carrier_freq_v9e0_present      = false;
+  bool                        multi_band_info_list_v9e0_present = false;
+  uint32_t                    dl_carrier_freq_v9e0              = 65536;
+  multi_band_info_list_v9e0_l multi_band_info_list_v9e0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// InterFreqCarrierFreqList-v13a0 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1360
+using inter_freq_carrier_freq_list_v13a0_l = dyn_array<inter_freq_carrier_freq_info_v1360_s>;
+
+// SIB-Type-v12j0 ::= ENUMERATED
+struct sib_type_v12j0_opts {
+  enum options {
+    sib_type19_v1250,
+    sib_type20_v1310,
+    sib_type21_v1430,
+    sib_type24_v1530,
+    sib_type25_v1530,
+    sib_type26_v1530,
+    spare10,
+    spare9,
+    spare8,
+    spare7,
+    spare6,
+    spare5,
+    spare4,
+    spare3,
+    spare2,
+    spare1,
+    // ...
+    nulltype
+  } value;
+  typedef uint8_t number_type;
+
+  std::string to_string() const;
+  uint8_t     to_number() const;
+};
+typedef enumerated<sib_type_v12j0_opts, true> sib_type_v12j0_e;
+
+// SIB-MappingInfo-v12j0 ::= SEQUENCE (SIZE (1..31)) OF SIB-Type-v12j0
+using sib_map_info_v12j0_l = bounded_array<sib_type_v12j0_e, 31>;
+
+// SchedulingInfo-v12j0 ::= SEQUENCE
+struct sched_info_v12j0_s {
+  bool                 sib_map_info_v12j0_present = false;
+  sib_map_info_v12j0_l sib_map_info_v12j0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SchedulingInfoExt-r12 ::= SEQUENCE
+struct sched_info_ext_r12_s {
+  si_periodicity_r12_e si_periodicity_r12;
+  sib_map_info_v12j0_l sib_map_info_r12;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SchedulingInfoList-v12j0 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo-v12j0
+using sched_info_list_v12j0_l = dyn_array<sched_info_v12j0_s>;
+
+// SchedulingInfoListExt-r12 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfoExt-r12
+using sched_info_list_ext_r12_l = dyn_array<sched_info_ext_r12_s>;
+
+// SystemInformationBlockType1-v12j0-IEs ::= SEQUENCE
+struct sib_type1_v12j0_ies_s {
+  bool                      sched_info_list_v12j0_present   = false;
+  bool                      sched_info_list_ext_r12_present = false;
+  bool                      non_crit_ext_present            = false;
+  sched_info_list_v12j0_l   sched_info_list_v12j0;
+  sched_info_list_ext_r12_l sched_info_list_ext_r12;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType1-v10x0-IEs ::= SEQUENCE
+struct sib_type1_v10x0_ies_s {
+  bool                  late_non_crit_ext_present = false;
+  bool                  non_crit_ext_present      = false;
+  dyn_octstring         late_non_crit_ext;
+  sib_type1_v12j0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType1-v10l0-IEs ::= SEQUENCE
+struct sib_type1_v10l0_ies_s {
+  bool                         freq_band_info_v10l0_present       = false;
+  bool                         multi_band_info_list_v10l0_present = false;
+  bool                         non_crit_ext_present               = false;
+  ns_pmax_list_v10l0_l         freq_band_info_v10l0;
+  multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
+  sib_type1_v10x0_ies_s        non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType1-v10j0-IEs ::= SEQUENCE
+struct sib_type1_v10j0_ies_s {
+  bool                         freq_band_info_r10_present         = false;
+  bool                         multi_band_info_list_v10j0_present = false;
+  bool                         non_crit_ext_present               = false;
+  ns_pmax_list_r10_l           freq_band_info_r10;
+  multi_band_info_list_v10j0_l multi_band_info_list_v10j0;
+  sib_type1_v10l0_ies_s        non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType1-v9e0-IEs ::= SEQUENCE
+struct sib_type1_v9e0_ies_s {
+  bool                        freq_band_ind_v9e0_present        = false;
+  bool                        multi_band_info_list_v9e0_present = false;
+  bool                        non_crit_ext_present              = false;
+  uint16_t                    freq_band_ind_v9e0                = 65;
+  multi_band_info_list_v9e0_l multi_band_info_list_v9e0;
+  sib_type1_v10j0_ies_s       non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType1-v8h0-IEs ::= SEQUENCE
+struct sib_type1_v8h0_ies_s {
+  bool                   multi_band_info_list_present = false;
+  bool                   non_crit_ext_present         = false;
+  multi_band_info_list_l multi_band_info_list;
+  sib_type1_v9e0_ies_s   non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType2-v13c0-IEs ::= SEQUENCE
+struct sib_type2_v13c0_ies_s {
+  bool                       ul_pwr_ctrl_common_v13c0_present = false;
+  bool                       non_crit_ext_present             = false;
+  ul_pwr_ctrl_common_v1310_s ul_pwr_ctrl_common_v13c0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType2-v10n0-IEs ::= SEQUENCE
+struct sib_type2_v10n0_ies_s {
+  bool                  late_non_crit_ext_present = false;
+  bool                  non_crit_ext_present      = false;
+  dyn_octstring         late_non_crit_ext;
+  sib_type2_v13c0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType2-v10m0-IEs ::= SEQUENCE
+struct sib_type2_v10m0_ies_s {
+  struct freq_info_v10l0_s_ {
+    uint16_t add_spec_emission_v10l0 = 33;
+  };
+  using multi_band_info_list_v10l0_l_ = bounded_array<uint16_t, 8>;
+
+  // member variables
+  bool                          freq_info_v10l0_present            = false;
+  bool                          multi_band_info_list_v10l0_present = false;
+  bool                          non_crit_ext_present               = false;
+  freq_info_v10l0_s_            freq_info_v10l0;
+  multi_band_info_list_v10l0_l_ multi_band_info_list_v10l0;
+  sib_type2_v10n0_ies_s         non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType2-v9i0-IEs ::= SEQUENCE
+struct sib_type2_v9i0_ies_s {
+  bool          non_crit_ext_present = false;
+  bool          dummy_present        = false;
+  dyn_octstring non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType2-v9e0-IEs ::= SEQUENCE
+struct sib_type2_v9e0_ies_s {
+  bool                 ul_carrier_freq_v9e0_present = false;
+  bool                 non_crit_ext_present         = false;
+  uint32_t             ul_carrier_freq_v9e0         = 65536;
+  sib_type2_v9i0_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType2-v8h0-IEs ::= SEQUENCE
+struct sib_type2_v8h0_ies_s {
+  using multi_band_info_list_l_ = bounded_array<uint8_t, 8>;
+
+  // member variables
+  bool                    multi_band_info_list_present = false;
+  bool                    non_crit_ext_present         = false;
+  multi_band_info_list_l_ multi_band_info_list;
+  sib_type2_v9e0_ies_s    non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType3-v10l0-IEs ::= SEQUENCE
+struct sib_type3_v10l0_ies_s {
+  bool                         freq_band_info_v10l0_present       = false;
+  bool                         multi_band_info_list_v10l0_present = false;
+  bool                         non_crit_ext_present               = false;
+  ns_pmax_list_v10l0_l         freq_band_info_v10l0;
+  multi_band_info_list_v10l0_l multi_band_info_list_v10l0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType3-v10j0-IEs ::= SEQUENCE
+struct sib_type3_v10j0_ies_s {
+  bool                         freq_band_info_r10_present         = false;
+  bool                         multi_band_info_list_v10j0_present = false;
+  bool                         non_crit_ext_present               = false;
+  ns_pmax_list_r10_l           freq_band_info_r10;
+  multi_band_info_list_v10j0_l multi_band_info_list_v10j0;
+  sib_type3_v10l0_ies_s        non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType5-v13a0-IEs ::= SEQUENCE
+struct sib_type5_v13a0_ies_s {
+  bool                                 late_non_crit_ext_present                  = false;
+  bool                                 inter_freq_carrier_freq_list_v13a0_present = false;
+  bool                                 non_crit_ext_present                       = false;
+  dyn_octstring                        late_non_crit_ext;
+  inter_freq_carrier_freq_list_v13a0_l inter_freq_carrier_freq_list_v13a0;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType5-v10l0-IEs ::= SEQUENCE
+struct sib_type5_v10l0_ies_s {
+  using inter_freq_carrier_freq_list_v10l0_l_ = dyn_array<inter_freq_carrier_freq_info_v10l0_s>;
+
+  // member variables
+  bool                                  inter_freq_carrier_freq_list_v10l0_present = false;
+  bool                                  non_crit_ext_present                       = false;
+  inter_freq_carrier_freq_list_v10l0_l_ inter_freq_carrier_freq_list_v10l0;
+  sib_type5_v13a0_ies_s                 non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType5-v10j0-IEs ::= SEQUENCE
+struct sib_type5_v10j0_ies_s {
+  using inter_freq_carrier_freq_list_v10j0_l_ = dyn_array<inter_freq_carrier_freq_info_v10j0_s>;
+
+  // member variables
+  bool                                  inter_freq_carrier_freq_list_v10j0_present = false;
+  bool                                  non_crit_ext_present                       = false;
+  inter_freq_carrier_freq_list_v10j0_l_ inter_freq_carrier_freq_list_v10j0;
+  sib_type5_v10l0_ies_s                 non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType5-v9e0-IEs ::= SEQUENCE
+struct sib_type5_v9e0_ies_s {
+  using inter_freq_carrier_freq_list_v9e0_l_ = dyn_array<inter_freq_carrier_freq_info_v9e0_s>;
+
+  // member variables
+  bool                                 inter_freq_carrier_freq_list_v9e0_present = false;
+  bool                                 non_crit_ext_present                      = false;
+  inter_freq_carrier_freq_list_v9e0_l_ inter_freq_carrier_freq_list_v9e0;
+  sib_type5_v10j0_ies_s                non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType5-v8h0-IEs ::= SEQUENCE
+struct sib_type5_v8h0_ies_s {
+  using inter_freq_carrier_freq_list_v8h0_l_ = dyn_array<inter_freq_carrier_freq_info_v8h0_s>;
+
+  // member variables
+  bool                                 inter_freq_carrier_freq_list_v8h0_present = false;
+  bool                                 non_crit_ext_present                      = false;
+  inter_freq_carrier_freq_list_v8h0_l_ inter_freq_carrier_freq_list_v8h0;
+  sib_type5_v9e0_ies_s                 non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SystemInformationBlockType6-v8h0-IEs ::= SEQUENCE
+struct sib_type6_v8h0_ies_s {
+  using carrier_freq_list_utra_fdd_v8h0_l_ = dyn_array<carrier_freq_info_utra_fdd_v8h0_s>;
+
+  // member variables
+  bool                               carrier_freq_list_utra_fdd_v8h0_present = false;
+  bool                               non_crit_ext_present                    = false;
+  carrier_freq_list_utra_fdd_v8h0_l_ carrier_freq_list_utra_fdd_v8h0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
