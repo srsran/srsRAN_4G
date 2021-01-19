@@ -15,7 +15,7 @@
 #include "srslte/phy/utils/vector.h"
 
 // Implements TS 38.211 table 6.4.1.3.1.1-1: Number of DM-RS symbols and the corresponding N_PUCCH...
-static uint32_t dmrs_pucch_format1_n_pucch(const srslte_pucch_nr_resource_format1_t* resource, uint32_t m_prime)
+static uint32_t dmrs_pucch_format1_n_pucch(const srslte_pucch_nr_resource_t* resource, uint32_t m_prime)
 {
   if (resource->intra_slot_hopping) {
     if (m_prime == 0) {
@@ -84,12 +84,12 @@ static uint32_t dmrs_pucch_format1_n_pucch(const srslte_pucch_nr_resource_format
   return 0;
 }
 
-int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*                  q,
-                                  const srslte_carrier_nr_t*                carrier,
-                                  const srslte_pucch_nr_common_cfg_t*       cfg,
-                                  const srslte_dl_slot_cfg_t*               slot,
-                                  const srslte_pucch_nr_resource_format1_t* resource,
-                                  cf_t*                                     slot_symbols)
+int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
+                                  const srslte_carrier_nr_t*          carrier,
+                                  const srslte_pucch_nr_common_cfg_t* cfg,
+                                  const srslte_dl_slot_cfg_t*         slot,
+                                  const srslte_pucch_nr_resource_t*   resource,
+                                  cf_t*                               slot_symbols)
 {
 
   if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL) {
@@ -151,13 +151,13 @@ int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*                  q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*                  q,
-                                       const srslte_carrier_nr_t*                carrier,
-                                       const srslte_pucch_nr_common_cfg_t*       cfg,
-                                       const srslte_dl_slot_cfg_t*               slot,
-                                       const srslte_pucch_nr_resource_format1_t* resource,
-                                       const cf_t*                               slot_symbols,
-                                       srslte_chest_ul_res_t*                    res)
+int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
+                                       const srslte_carrier_nr_t*          carrier,
+                                       const srslte_pucch_nr_common_cfg_t* cfg,
+                                       const srslte_dl_slot_cfg_t*         slot,
+                                       const srslte_pucch_nr_resource_t*   resource,
+                                       const cf_t*                         slot_symbols,
+                                       srslte_chest_ul_res_t*              res)
 {
 
   if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL) {

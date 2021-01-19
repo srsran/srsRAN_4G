@@ -15,9 +15,10 @@
 
 #include "srslte/phy/fec/crc.h"
 #include "srslte/phy/fec/polar/polar_code.h"
+#include "srslte/phy/fec/polar/polar_decoder.h"
 #include "srslte/phy/fec/polar/polar_encoder.h"
 #include "srslte/phy/fec/polar/polar_rm.h"
-#include "srslte/phy/phch/pucch_nr.h"
+#include "srslte/phy/phch/pucch_cfg_nr.h"
 #include "uci_cfg.h"
 #include "uci_cfg_nr.h"
 #include <stdbool.h>
@@ -28,12 +29,9 @@ typedef struct {
 } srslte_uci_nr_args_t;
 
 typedef struct {
-
-} srslte_uci_nr_cfg_t;
-
-typedef struct {
   srslte_polar_rm_t      rm;
   srslte_polar_encoder_t encoder;
+  srslte_polar_decoder_t decoder;
   srslte_crc_t           crc6;
   srslte_crc_t           crc11;
   srslte_polar_code_t    code;

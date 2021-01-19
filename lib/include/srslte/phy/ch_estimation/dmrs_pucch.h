@@ -27,12 +27,12 @@
  * @param[out] slot_symbols Resource grid of the given slot
  * @return SRSLTE_SUCCESS if successful, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*                  q,
-                                             const srslte_carrier_nr_t*                carrier,
-                                             const srslte_pucch_nr_common_cfg_t*       cfg,
-                                             const srslte_dl_slot_cfg_t*               slot,
-                                             const srslte_pucch_nr_resource_format1_t* resource,
-                                             cf_t*                                     slot_symbols);
+SRSLTE_API int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
+                                             const srslte_carrier_nr_t*          carrier,
+                                             const srslte_pucch_nr_common_cfg_t* cfg,
+                                             const srslte_dl_slot_cfg_t*         slot,
+                                             const srslte_pucch_nr_resource_t*   resource,
+                                             cf_t*                               slot_symbols);
 
 /**
  * @brief Estimates NR-PUCCH format 1 resource elements from their DMRS in the provided resource grid
@@ -45,12 +45,12 @@ SRSLTE_API int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*           
  * @param[out] res UL Channel estimator result
  * @return SRSLTE_SUCCESS if successful, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*                  q,
-                                                  const srslte_carrier_nr_t*                carrier,
-                                                  const srslte_pucch_nr_common_cfg_t*       cfg,
-                                                  const srslte_dl_slot_cfg_t*               slot,
-                                                  const srslte_pucch_nr_resource_format1_t* resource,
-                                                  const cf_t*                               slot_symbols,
-                                                  srslte_chest_ul_res_t*                    res);
+SRSLTE_API int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
+                                                  const srslte_carrier_nr_t*          carrier,
+                                                  const srslte_pucch_nr_common_cfg_t* cfg,
+                                                  const srslte_dl_slot_cfg_t*         slot,
+                                                  const srslte_pucch_nr_resource_t*   resource,
+                                                  const cf_t*                         slot_symbols,
+                                                  srslte_chest_ul_res_t*              res);
 
 #endif // SRSLTE_DMRS_PUCCH_H

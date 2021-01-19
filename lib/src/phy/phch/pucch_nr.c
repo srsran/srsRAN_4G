@@ -90,64 +90,6 @@ int srslte_pucch_nr_alpha_idx(const srslte_carrier_nr_t*          carrier,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pucch_nr_format0_resource_valid(const srslte_pucch_nr_resource_format0_t* resource)
-{
-  if (resource == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  if (resource->nof_symbols != 1 && resource->nof_symbols != 2) {
-    ERROR("Invalid number of symbols (%d)\n", resource->nof_symbols);
-    return SRSLTE_ERROR;
-  }
-
-  if (resource->initial_cyclic_shift > 11) {
-    ERROR("Invalid initial cyclic shift (%d)\n", resource->initial_cyclic_shift);
-    return SRSLTE_ERROR;
-  }
-
-  if (resource->start_symbol_idx > 13) {
-    ERROR("Invalid initial start symbol idx (%d)\n", resource->start_symbol_idx);
-    return SRSLTE_ERROR;
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
-int srslte_pucch_nr_format1_resource_valid(const srslte_pucch_nr_resource_format1_t* resource)
-{
-  if (resource == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  if (resource->nof_symbols < 4 || resource->nof_symbols > 14) {
-    ERROR("Invalid number of symbols (%d)\n", resource->nof_symbols);
-    return SRSLTE_ERROR;
-  }
-
-  if (resource->initial_cyclic_shift > 11) {
-    ERROR("Invalid initial cyclic shift (%d)\n", resource->initial_cyclic_shift);
-    return SRSLTE_ERROR;
-  }
-
-  if (resource->start_symbol_idx > 10) {
-    ERROR("Invalid initial start symbol idx (%d)\n", resource->start_symbol_idx);
-    return SRSLTE_ERROR;
-  }
-
-  if (resource->time_domain_occ > 6) {
-    ERROR("Invalid time domain occ (%d)\n", resource->time_domain_occ);
-    return SRSLTE_ERROR;
-  }
-
-  if (resource->intra_slot_hopping) {
-    ERROR("Intra-slot hopping is not implemented\n");
-    return SRSLTE_ERROR;
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 // TS 38.211 Table 6.3.2.4.1-2: Orthogonal sequences for PUCCH format 1
 static uint32_t
     pucch_nr_format1_rho[SRSLTE_PUCCH_NR_FORMAT1_N_MAX][SRSLTE_PUCCH_NR_FORMAT1_N_MAX][SRSLTE_PUCCH_NR_FORMAT1_N_MAX] =
@@ -159,10 +101,19 @@ static uint32_t
          {{}, {}, {}, {}, {}, {0, 5, 4, 3, 2, 1}, {0, 5, 3, 1, 6, 4, 2}},
          {{}, {}, {}, {}, {}, {}, {0, 6, 5, 4, 3, 2, 1}}};
 
-int srslte_pucch_nr_init(srslte_pucch_nr_t* q)
+int srslte_pucch_nr_init(srslte_pucch_nr_t* q, const srslte_pucch_nr_args_t* args)
 {
-  if (q == NULL) {
+  if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Make sure object is zeroed
+  SRSLTE_MEM_ZERO(q, srslte_pucch_nr_t, 1);
+
+  // Save maximum number of PRB
+  q->max_prb = SRSLTE_MAX_PRB_NR;
+  if (args->max_nof_prb != 0) {
+    q->max_prb = args->max_nof_prb;
   }
 
   // Initialise ZC sequences for 1PRB
@@ -193,6 +144,19 @@ int srslte_pucch_nr_init(srslte_pucch_nr_t* q)
     }
   }
 
+  if (srslte_uci_nr_init(&q->uci, &args->uci) < SRSLTE_SUCCESS) {
+    ERROR("Initiating UCI encoder/decoder\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Allocate encoded bits b
+  uint32_t max_encoded_bits = q->max_prb * SRSLTE_NRE * 2 * SRSLTE_NSYMB_PER_SLOT_NR; // Assumes QPSK (Qm = 2)
+  q->b                      = srslte_vec_u8_malloc(max_encoded_bits);
+  if (q->b == NULL) {
+    ERROR("Malloc\n");
+    return SRSLTE_ERROR;
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -207,6 +171,10 @@ void srslte_pucch_nr_free(srslte_pucch_nr_t* q)
   srslte_modem_table_free(&q->bpsk);
   srslte_modem_table_free(&q->qpsk);
 
+  if (q->b != NULL) {
+    free(q->b);
+  }
+
   SRSLTE_MEM_ZERO(q, srslte_pucch_nr_t, 1);
 }
 
@@ -214,7 +182,7 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
                                    const srslte_carrier_nr_t*          carrier,
                                    const srslte_pucch_nr_common_cfg_t* cfg,
                                    const srslte_dl_slot_cfg_t*         slot,
-                                   srslte_pucch_nr_resource_format0_t* resource,
+                                   srslte_pucch_nr_resource_t*         resource,
                                    uint32_t                            m_cs,
                                    cf_t*                               slot_symbols)
 {
@@ -264,7 +232,7 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
                                     const srslte_carrier_nr_t*          carrier,
                                     const srslte_pucch_nr_common_cfg_t* cfg,
                                     const srslte_dl_slot_cfg_t*         slot,
-                                    srslte_pucch_nr_resource_format0_t* resource,
+                                    srslte_pucch_nr_resource_t*         resource,
                                     uint32_t                            m_cs,
                                     const cf_t*                         slot_symbols,
                                     srslte_pucch_nr_measure_t*          measure)
@@ -333,7 +301,7 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
 }
 
 // Implements TS 38.211 table 6.3.2.4.1-1 Number of PUCCH symbols and the corresponding N_PUC...
-static uint32_t pucch_nr_format1_n_pucch(const srslte_pucch_nr_resource_format1_t* resource, uint32_t m_prime)
+static uint32_t pucch_nr_format1_n_pucch(const srslte_pucch_nr_resource_t* resource, uint32_t m_prime)
 {
   if (resource->intra_slot_hopping) {
     if (m_prime == 0) {
@@ -369,14 +337,14 @@ cf_t srslte_pucch_nr_format1_w(const srslte_pucch_nr_t* q, uint32_t n_pucch, uin
   return q->format1_w_i_m[i][n_pucch - 1][m];
 }
 
-int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*                  q,
-                                   const srslte_carrier_nr_t*                carrier,
-                                   const srslte_pucch_nr_common_cfg_t*       cfg,
-                                   const srslte_dl_slot_cfg_t*               slot,
-                                   const srslte_pucch_nr_resource_format1_t* resource,
-                                   uint8_t*                                  b,
-                                   uint32_t                                  nof_bits,
-                                   cf_t*                                     slot_symbols)
+int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
+                                   const srslte_carrier_nr_t*          carrier,
+                                   const srslte_pucch_nr_common_cfg_t* cfg,
+                                   const srslte_dl_slot_cfg_t*         slot,
+                                   const srslte_pucch_nr_resource_t*   resource,
+                                   uint8_t*                            b,
+                                   uint32_t                            nof_bits,
+                                   cf_t*                               slot_symbols)
 {
   uint32_t m_cs = 0;
 
@@ -450,21 +418,17 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*                  q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                        q,
-                                   const srslte_carrier_nr_t*                carrier,
-                                   const srslte_pucch_nr_common_cfg_t*       cfg,
-                                   const srslte_dl_slot_cfg_t*               slot,
-                                   const srslte_pucch_nr_resource_format1_t* resource,
-                                   srslte_chest_ul_res_t*                    chest_res,
-                                   cf_t*                                     slot_symbols,
-                                   uint8_t                                   b[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS],
-                                   uint32_t                                  nof_bits)
+int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
+                                   const srslte_carrier_nr_t*          carrier,
+                                   const srslte_pucch_nr_common_cfg_t* cfg,
+                                   const srslte_dl_slot_cfg_t*         slot,
+                                   const srslte_pucch_nr_resource_t*   resource,
+                                   srslte_chest_ul_res_t*              chest_res,
+                                   cf_t*                               slot_symbols,
+                                   uint8_t                             b[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS],
+                                   uint32_t                            nof_bits)
 {
   uint32_t m_cs = 0;
-
-  if (carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || b == NULL || slot_symbols == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
 
   if (srslte_pucch_nr_format1_resource_valid(resource) < SRSLTE_SUCCESS) {
     ERROR("Invalid PUCCH format 1 resource\n");
@@ -531,6 +495,42 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                        q,
   // Hard decision
   for (uint32_t i = 0; i < nof_bits; i++) {
     b[i] = llr[i] > 0.0f ? 1 : 0;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
+                                        const srslte_carrier_nr_t*          carrier,
+                                        const srslte_pucch_nr_common_cfg_t* cfg,
+                                        const srslte_dl_slot_cfg_t*         slot,
+                                        const srslte_pucch_nr_resource_t*   resource,
+                                        const srslte_uci_cfg_nr_t*          uci_cfg,
+                                        const srslte_uci_value_nr_t*        uci_value,
+                                        cf_t*                               slot_symbols)
+{
+  if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL ||
+      uci_value == NULL || slot_symbols == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (srslte_uci_nr_encode_pucch(&q->uci, resource, uci_cfg, uci_value, q->b) < SRSLTE_SUCCESS) {
+    ERROR("Error encoding UCI\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Encode PUCCH
+  switch (resource->format) {
+    case SRSLTE_PUCCH_NR_FORMAT_2:
+      break;
+    case SRSLTE_PUCCH_NR_FORMAT_3:
+    case SRSLTE_PUCCH_NR_FORMAT_4:
+      ERROR("Not implemented\n");
+      return SRSLTE_ERROR;
+    default:
+    case SRSLTE_PUCCH_NR_FORMAT_ERROR:
+      ERROR("Invalid format\n");
+      return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;

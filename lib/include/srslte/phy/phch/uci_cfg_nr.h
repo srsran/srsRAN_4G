@@ -16,7 +16,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SRSLTE_UCI_NR_MAX_ACK_BITS 10
+#define SRSLTE_UCI_NR_MAX_ACK_BITS 360
 #define SRSLTE_UCI_NR_MAX_SR_BITS 10
 #define SRSLTE_UCI_NR_MAX_CSI1_BITS 10
 #define SRSLTE_UCI_NR_MAX_CSI2_BITS 10

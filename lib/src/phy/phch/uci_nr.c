@@ -14,13 +14,15 @@
 #include "srslte/phy/fec/block/block.h"
 #include "srslte/phy/fec/polar/polar_chanalloc.h"
 #include "srslte/phy/phch/uci_cfg.h"
+#include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/vector.h"
 
 // TS 38.212 section 5.2.1 Polar coding: The value of A is no larger than 1706.
-#define UCI_NR_MAX_A 1906U
+#define UCI_NR_MAX_A 1706U
 #define UCI_NR_MAX_L 11U
 #define UCI_NR_POLAR_MAX 2048U
 #define UCI_NR_POLAR_RM_IBIL 0
+#define UCI_NR_BLOCK_CORR_THRESHOLD 0.5f
 
 int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
 {
@@ -29,13 +31,20 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
   }
 
   srslte_polar_encoder_type_t polar_encoder_type = SRSLTE_POLAR_ENCODER_PIPELINED;
+  srslte_polar_decoder_type_t polar_decoder_type = SRSLTE_POLAR_DECODER_SSC_C;
 #ifdef LV_HAVE_AVX2
   if (!args->disable_simd) {
     polar_encoder_type = SRSLTE_POLAR_ENCODER_AVX2;
+    polar_decoder_type = SRSLTE_POLAR_DECODER_SSC_C_AVX2;
   }
 #endif // LV_HAVE_AVX2
 
   if (srslte_polar_encoder_init(&q->encoder, polar_encoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
+    ERROR("Initialising polar encoder\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (srslte_polar_decoder_init(&q->decoder, polar_decoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
     ERROR("Initialising polar encoder\n");
     return SRSLTE_ERROR;
   }
@@ -91,6 +100,7 @@ void srslte_uci_nr_free(srslte_uci_nr_t* q)
   }
 
   srslte_polar_encoder_free(&q->encoder);
+  srslte_polar_decoder_free(&q->decoder);
 
   if (q->bit_sequence != NULL) {
     free(q->bit_sequence);
@@ -108,8 +118,7 @@ void srslte_uci_nr_free(srslte_uci_nr_t* q)
   SRSLTE_MEM_ZERO(q, srslte_uci_nr_t, 1);
 }
 
-static int
-uci_nr_sequence_generation_ack_sr(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value_nr_t* value, uint8_t* sequence)
+static int uci_nr_pack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value_nr_t* value, uint8_t* sequence)
 {
   int A = 0;
 
@@ -124,12 +133,62 @@ uci_nr_sequence_generation_ack_sr(const srslte_uci_cfg_nr_t* cfg, const srslte_u
   return A;
 }
 
-static int
-uci_nr_sequence_generation(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value_nr_t* value, uint8_t* sequence)
+static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const uint8_t* sequence, srslte_uci_value_nr_t* value)
+{
+  int A = 0;
+
+  // Append ACK bits
+  srslte_vec_u8_copy(value->ack, &sequence[A], cfg->o_ack);
+  A += cfg->o_ack;
+
+  // Append SR bits
+  srslte_vec_u8_copy(value->sr, &sequence[A], cfg->o_sr);
+  A += cfg->o_sr;
+
+  return A;
+}
+
+static int uci_nr_A(const srslte_uci_cfg_nr_t* cfg)
 {
   // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
   if (cfg->o_csi1 == 0 && cfg->o_csi2 == 0) {
-    return uci_nr_sequence_generation_ack_sr(cfg, value, sequence);
+    return cfg->o_ack + cfg->o_sr;
+  }
+
+  // 6.3.1.1.2 CSI only
+  if (cfg->o_ack == 0 && cfg->o_sr == 0) {
+    ERROR("CSI only are not implemented\n");
+    return SRSLTE_ERROR;
+  }
+
+  // 6.3.1.1.3 HARQ-ACK/SR and CSI
+  ERROR("HARQ-ACK/SR and CSI encoding are not implemented\n");
+  return SRSLTE_ERROR;
+}
+
+static int uci_nr_packing(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value_nr_t* value, uint8_t* sequence)
+{
+  // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
+  if (cfg->o_csi1 == 0 && cfg->o_csi2 == 0) {
+    return uci_nr_pack_ack_sr(cfg, value, sequence);
+  }
+
+  // 6.3.1.1.2 CSI only
+  if (cfg->o_ack == 0 && cfg->o_sr == 0) {
+    ERROR("CSI only are not implemented\n");
+    return SRSLTE_ERROR;
+  }
+
+  // 6.3.1.1.3 HARQ-ACK/SR and CSI
+  ERROR("HARQ-ACK/SR and CSI encoding are not implemented\n");
+  return SRSLTE_ERROR;
+}
+
+static int uci_nr_unpacking(const srslte_uci_cfg_nr_t* cfg, const uint8_t* sequence, srslte_uci_value_nr_t* value)
+{
+  // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
+  if (cfg->o_csi1 == 0 && cfg->o_csi2 == 0) {
+    return uci_nr_unpack_ack_sr(cfg, sequence, value);
   }
 
   // 6.3.1.1.2 CSI only
@@ -307,10 +366,40 @@ uci_nr_encode_3_11_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, uint3
   return E;
 }
 
+static int uci_nr_decode_3_11_bit(srslte_uci_nr_t*           q,
+                                  const srslte_uci_cfg_nr_t* cfg,
+                                  uint32_t                   A,
+                                  const int8_t*              llr,
+                                  uint32_t                   E,
+                                  bool*                      decoded_ok)
+{
+  // Check E for avoiding zero division
+  if (E < 1) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Compute average LLR power
+  float pwr = sqrtf(srslte_vec_avg_power_bf(llr, E));
+  if (!isnormal(pwr)) {
+    return SRSLTE_ERROR;
+  }
+
+  // Decode
+  float corr = (float)srslte_block_decode_i8(llr, E, q->bit_sequence, A);
+
+  // Normalise correlation
+  corr /= sqrtf(pwr) * E;
+
+  // Take decoded decision with threshold
+  *decoded_ok = (corr > UCI_NR_BLOCK_CORR_THRESHOLD);
+
+  return SRSLTE_SUCCESS;
+}
+
 #define CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
 
 static int
-uci_nr_encode_11_1906_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, uint32_t A, uint8_t* o, uint32_t E_uci)
+uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, uint32_t A, uint8_t* o, uint32_t E_uci)
 {
   // If ( A ≥ 360 and E ≥ 1088 ) or if A ≥ 1013 , I seg = 1 ; otherwise I seg = 0
   uint32_t I_seg = 0;
@@ -342,7 +431,7 @@ uci_nr_encode_11_1906_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
   for (uint32_t r = 0, s = 0; r < C; r++) {
     uint32_t k = 0;
 
-    // Suffix A_prime - A zeros for the first CB only
+    // Prefix (A_prime - A) zeros for the first CB only
     if (r == 0) {
       for (uint32_t i = 0; i < (A_prime - A); i++) {
         q->c[k++] = 0;
@@ -372,18 +461,92 @@ uci_nr_encode_11_1906_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
   return E_uci;
 }
 
-int uci_nr_encode(srslte_uci_nr_t*             q,
-                  const srslte_uci_cfg_nr_t*   uci_cfg,
-                  const srslte_uci_value_nr_t* uci_value,
-                  uint8_t*                     o,
-                  uint32_t                     E_uci)
+static int uci_nr_decode_11_1706_bit(srslte_uci_nr_t*           q,
+                                     const srslte_uci_cfg_nr_t* cfg,
+                                     uint32_t                   A,
+                                     const int8_t*              llr,
+                                     uint32_t                   E_uci,
+                                     bool*                      decoded_ok)
+{
+  *decoded_ok = true;
+
+  // If ( A ≥ 360 and E ≥ 1088 ) or if A ≥ 1013 , I seg = 1 ; otherwise I seg = 0
+  uint32_t I_seg = 0;
+  if ((A >= 360 && E_uci >= 1088) || A >= 1013) {
+    I_seg = 1;
+  }
+
+  // Select CRC
+  srslte_crc_t* crc = &q->crc6;
+  if (A >= 20) {
+    crc = &q->crc11;
+  }
+
+  // Segmentation
+  uint32_t C = 1;
+  if (I_seg == 1) {
+    C = 2;
+  }
+  uint32_t A_prime = CEIL(A, C) * C;
+
+  // Get polar code
+  uint32_t K_r = A_prime / C + crc->order;
+  uint32_t E_r = E_uci / C;
+  if (srslte_polar_code_get(&q->code, K_r, E_r, 9U) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  // Write codeword
+  for (uint32_t r = 0, s = 0; r < C; r++) {
+    uint32_t k = 0;
+
+    // Undo rate matching
+    int8_t* d = (int8_t*)q->d;
+    srslte_polar_rm_rx_c(&q->rm, &llr[E_r * r], d, q->code.n, E_r, K_r, UCI_NR_POLAR_RM_IBIL);
+
+    // Decode bits
+    if (srslte_polar_decoder_decode_c(&q->decoder, d, q->allocated, q->code.n, q->code.F_set, q->code.F_set_size) <
+        SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
+
+    // Undo channel allocation
+    srslte_polar_chanalloc_rx(q->allocated, q->c, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+
+    //
+    uint8_t* ptr       = &q->c[q->code.K - crc->order];
+    uint32_t checksum1 = srslte_crc_checksum(crc, q->c, q->code.K);
+    uint32_t checksum2 = srslte_bit_pack(&ptr, crc->order);
+    (*decoded_ok)      = ((*decoded_ok) && (checksum1 == checksum2));
+
+    // Prefix (A_prime - A) zeros for the first CB only
+    if (r == 0) {
+      for (uint32_t i = 0; i < (A_prime - A); i++) {
+        k++;
+      }
+    }
+
+    // Load codeword bits
+    while (k < A_prime / C) {
+      q->bit_sequence[s++] = q->c[k++];
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static int uci_nr_encode(srslte_uci_nr_t*             q,
+                         const srslte_uci_cfg_nr_t*   uci_cfg,
+                         const srslte_uci_value_nr_t* uci_value,
+                         uint8_t*                     o,
+                         uint32_t                     E_uci)
 {
   if (q == NULL || uci_cfg == NULL || uci_value == NULL || o == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   // 6.3.1.1 UCI bit sequence generation
-  int A = uci_nr_sequence_generation(uci_cfg, uci_value, q->bit_sequence);
+  int A = uci_nr_packing(uci_cfg, uci_value, q->bit_sequence);
   if (A < SRSLTE_SUCCESS) {
     ERROR("Generating bit sequence");
     return SRSLTE_ERROR;
@@ -400,15 +563,58 @@ int uci_nr_encode(srslte_uci_nr_t*             q,
   }
 
   // 5.3.3.3 Encoding of other small block lengths
-  if (A <= 11) {
+  if (A <= SRSLTE_FEC_BLOCK_MAX_NOF_BITS) {
     return uci_nr_encode_3_11_bit(q, uci_cfg, A, o, E_uci);
   }
 
+  // Encoding of other sizes up to 1906
   if (A < UCI_NR_MAX_A) {
-    return uci_nr_encode_11_1906_bit(q, uci_cfg, A, o, E_uci);
+    return uci_nr_encode_11_1706_bit(q, uci_cfg, A, o, E_uci);
   }
 
   return SRSLTE_ERROR;
+}
+
+static int uci_nr_decode(srslte_uci_nr_t*           q,
+                         const srslte_uci_cfg_nr_t* uci_cfg,
+                         const int8_t*              llr,
+                         uint32_t                   E_uci,
+                         srslte_uci_value_nr_t*     uci_value)
+{
+  if (q == NULL || uci_cfg == NULL || uci_value == NULL || llr == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // 6.3.1.1 UCI bit sequence generation
+  int A = uci_nr_A(uci_cfg);
+  if (A < SRSLTE_SUCCESS) {
+    ERROR("Error getting number of bits\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Decode LLR
+  if (A == 1) {
+    ERROR("Not implemented\n");
+  } else if (A == 2) {
+    ERROR("Not implemented\n");
+  } else if (A <= 11) {
+    if (uci_nr_decode_3_11_bit(q, uci_cfg, A, llr, E_uci, &uci_value->valid) < SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
+  } else if (A < UCI_NR_MAX_A) {
+    if (uci_nr_decode_11_1706_bit(q, uci_cfg, A, llr, E_uci, &uci_value->valid) < SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
+  } else {
+    ERROR("Invalid number of bits (A=%d)\n", A);
+  }
+
+  // Unpack bits
+  if (uci_nr_unpacking(uci_cfg, q->bit_sequence, uci_value) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
 }
 
 // Implements TS 38.212 Table 6.3.1.4-1: Total rate matching output sequence length Etot
@@ -418,8 +624,15 @@ static int uci_nr_pucch_E_tot(const srslte_pucch_nr_resource_t* pucch_cfg, const
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  switch (pucch_cfg->format) {
+  // Compute total number of bits
+  uint32_t nof_bits = uci_cfg->o_sr + uci_cfg->o_ack + uci_cfg->o_csi1 + uci_cfg->o_csi2;
 
+  switch (pucch_cfg->format) {
+    case SRSLTE_PUCCH_NR_FORMAT_1:
+      if (nof_bits <= 2) {
+        return nof_bits;
+      }
+      break;
     case SRSLTE_PUCCH_NR_FORMAT_2:
       if (uci_cfg->modulation == SRSLTE_MOD_QPSK) {
         return (int)(16 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
@@ -481,4 +694,24 @@ int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
   }
 
   return uci_nr_encode(q, uci_cfg, value, o, E_uci);
+}
+
+int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
+                               const srslte_pucch_nr_resource_t* pucch_resource_cfg,
+                               const srslte_uci_cfg_nr_t*        uci_cfg,
+                               const int8_t*                     llr,
+                               srslte_uci_value_nr_t*            value)
+{
+
+  int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
+  if (E_tot < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  int E_uci = uci_nr_pucch_E_uci(pucch_resource_cfg, uci_cfg, E_tot);
+  if (E_uci < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  return uci_nr_decode(q, uci_cfg, llr, E_uci, value);
 }

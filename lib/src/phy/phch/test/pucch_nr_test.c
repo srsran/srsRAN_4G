@@ -36,7 +36,7 @@ static uint32_t starting_symbol_stride = 4;
 static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_common_cfg_t* cfg, cf_t* slot_symbols)
 {
   srslte_dl_slot_cfg_t               slot     = {};
-  srslte_pucch_nr_resource_format0_t resource = {};
+  srslte_pucch_nr_resource_t         resource = {};
 
   for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
@@ -84,7 +84,7 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
                               cf_t*                               slot_symbols)
 {
   srslte_dl_slot_cfg_t               slot     = {};
-  srslte_pucch_nr_resource_format1_t resource = {};
+  srslte_pucch_nr_resource_t         resource = {};
 
   for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
@@ -182,7 +182,8 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_pucch_nr_init(&pucch) < SRSLTE_SUCCESS) {
+  srslte_pucch_nr_args_t pucch_args = {};
+  if (srslte_pucch_nr_init(&pucch, &pucch_args) < SRSLTE_SUCCESS) {
     ERROR("PUCCH init\n");
     goto clean_exit;
   }
