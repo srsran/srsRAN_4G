@@ -493,7 +493,7 @@ public:
 
     return 0;
   }
-  int push_pdu(uint32_t tti, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) override
+  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override
   {
     log_h.info("Received push_pdu tti=%d; rnti=0x%x; ack=%d;\n", tti, rnti, crc_res);
     notify_push_pdu();
