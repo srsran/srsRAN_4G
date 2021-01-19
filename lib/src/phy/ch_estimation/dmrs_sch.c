@@ -706,6 +706,26 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
     }
   }
 
+  float rsrp = 0.0f;
+  float epre = 0.0f;
+  for (uint32_t i = 0; i < nof_symbols; i++) {
+    cf_t corr =
+        srslte_vec_acc_cc(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol) / nof_pilots_x_symbol;
+    rsrp += __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+    epre += srslte_vec_avg_power_cf(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol);
+  }
+  rsrp /= nof_symbols;
+  epre /= nof_symbols;
+  rsrp = SRSLTE_MIN(rsrp, epre);
+
+  chest_res->rsrp     = rsrp;
+  chest_res->rsrp_dbm = srslte_convert_power_to_dB(chest_res->rsrp);
+
+  chest_res->noise_estimate     = epre - rsrp;
+  chest_res->noise_estimate_dbm = srslte_convert_power_to_dB(chest_res->noise_estimate);
+
+  chest_res->snr_db = chest_res->rsrp_dbm - chest_res->noise_estimate_dbm;
+
   // Perform measurements here
   // ...
 
