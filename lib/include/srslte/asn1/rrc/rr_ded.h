@@ -505,7 +505,7 @@ struct lc_ch_cfg_s {
       bool short_tti_r15 = false;
       bool sf_tti_r15    = false;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     allowed_tti_lens_r15_c_() = default;
@@ -545,7 +545,7 @@ struct lc_ch_cfg_s {
       std::string to_string() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     lc_ch_sr_restrict_r15_c_() = default;
@@ -579,7 +579,7 @@ struct lc_ch_cfg_s {
     setup_e_ c;
   };
   struct ch_access_prio_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ch_access_prio_r15_c_() = default;
@@ -1069,7 +1069,7 @@ struct pdcp_cfg_s {
       uint32_t    to_number() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     ul_data_split_thres_r13_c_() = default;
@@ -1193,7 +1193,7 @@ struct pdcp_cfg_s {
       status_pdu_periodicity_type2_r13_e_  status_pdu_periodicity_type2_r13;
       status_pdu_periodicity_offset_r13_e_ status_pdu_periodicity_offset_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     status_feedback_r13_c_() = default;
@@ -1259,7 +1259,7 @@ struct pdcp_cfg_s {
       bool                           ul_lwa_drb_via_wlan_r14             = false;
       ul_lwa_data_split_thres_r14_e_ ul_lwa_data_split_thres_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ul_lwa_cfg_r14_c_() = default;
@@ -1378,7 +1378,7 @@ struct pdcp_cfg_s {
       // member variables
       pdcp_dupl_r15_e_ pdcp_dupl_r15;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pdcp_dupl_cfg_r15_c_() = default;
@@ -1519,7 +1519,7 @@ struct rlc_bearer_cfg_r15_c {
     lc_ch_id_cfg_r15_c_ lc_ch_id_cfg_r15;
     lc_ch_cfg_s         lc_ch_cfg_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlc_bearer_cfg_r15_c() = default;
@@ -1690,7 +1690,7 @@ struct rlc_cfg_v1430_c {
   struct setup_s_ {
     poll_byte_r14_e poll_byte_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlc_cfg_v1430_c() = default;
@@ -1737,7 +1737,7 @@ struct rlc_cfg_v1510_s {
 // RLC-Config-v1530 ::= CHOICE
 struct rlc_cfg_v1530_c {
   struct setup_s_ {};
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlc_cfg_v1530_c() = default;
@@ -1841,7 +1841,7 @@ struct sps_cfg_ul_c {
         int8_t p0_nominal_pusch_persistent_sf_set2_r12 = -126;
         int8_t p0_ue_pusch_persistent_sf_set2_r12      = -8;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       p0_persistent_sf_set2_r12_c_() = default;
@@ -1964,7 +1964,7 @@ struct sps_cfg_ul_c {
     bool        operator==(const setup_s_& other) const;
     bool        operator!=(const setup_s_& other) const { return not(*this == other); }
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sps_cfg_ul_c() = default;
@@ -2044,7 +2044,7 @@ struct sps_cfg_ul_stti_r15_c {
         int8_t p0_nominal_spusch_persistent_sf_set2_r15 = -126;
         int8_t p0_ue_spusch_persistent_sf_set2_r15      = -8;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       p0_persistent_sf_set2_r15_c_() = default;
@@ -2141,7 +2141,7 @@ struct sps_cfg_ul_stti_r15_c {
     total_num_pusch_sps_stti_ul_repeats_r15_e_       total_num_pusch_sps_stti_ul_repeats_r15;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sps_cfg_ul_stti_r15_c() = default;
@@ -2665,7 +2665,7 @@ struct drx_cfg_c {
     long_drx_cycle_start_offset_c_ long_drx_cycle_start_offset;
     short_drx_s_                   short_drx;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   drx_cfg_c() = default;
@@ -2983,7 +2983,7 @@ struct sps_cfg_dl_c {
       struct setup_s_ {
         n1_pucch_an_persistent_list_l n1_pucch_an_persistent_list_p1_r10;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       two_ant_port_activ_r10_c_() = default;
@@ -3033,7 +3033,7 @@ struct sps_cfg_dl_c {
     bool        operator==(const setup_s_& other) const;
     bool        operator!=(const setup_s_& other) const { return not(*this == other); }
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sps_cfg_dl_c() = default;
@@ -3100,7 +3100,7 @@ struct sps_cfg_dl_stti_r15_c {
       struct setup_s_ {
         n1_spucch_an_persistent_list_r15_l n1_spucch_an_persistent_list_p1_r15;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       two_ant_port_activ_r15_c_() = default;
@@ -3143,7 +3143,7 @@ struct sps_cfg_dl_stti_r15_c {
     tpc_pdcch_cfg_c                          tpc_pdcch_cfg_pucch_sps_r15;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sps_cfg_dl_stti_r15_c() = default;
@@ -3375,7 +3375,7 @@ struct mac_main_cfg_s {
       prohibit_phr_timer_e_ prohibit_phr_timer;
       dl_pathloss_change_e_ dl_pathloss_change;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     phr_cfg_c_() = default;
@@ -3434,7 +3434,7 @@ struct mac_main_cfg_s {
       // member variables
       phr_mode_other_cg_r12_e_ phr_mode_other_cg_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     dual_connect_phr_c_() = default;
@@ -3479,7 +3479,7 @@ struct mac_main_cfg_s {
       // member variables
       lc_ch_sr_prohibit_timer_r12_e_ lc_ch_sr_prohibit_timer_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     lc_ch_sr_cfg_r12_c_() = default;
@@ -3569,7 +3569,7 @@ struct mac_main_cfg_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     edrx_cfg_cycle_start_offset_r13_c_() = default;
@@ -3601,7 +3601,7 @@ struct mac_main_cfg_s {
     setup_c_ c;
   };
   struct drx_cfg_r13_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     drx_cfg_r13_c_() = default;
@@ -3637,7 +3637,7 @@ struct mac_main_cfg_s {
       bool skip_ul_tx_sps_r14_present     = false;
       bool skip_ul_tx_dynamic_r14_present = false;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     skip_ul_tx_r14_c_() = default;
@@ -3672,7 +3672,7 @@ struct mac_main_cfg_s {
     struct setup_s_ {
       data_inactivity_timer_r14_e data_inactivity_timer_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     data_inactivity_timer_cfg_r14_c_() = default;
@@ -3748,7 +3748,7 @@ struct mac_main_cfg_s {
       proc_timeline_r15_e_      proc_timeline_r15;
       uint8_t                   ssr_prohibit_timer_r15 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     short_tti_and_spt_r15_c_() = default;
@@ -3822,7 +3822,7 @@ struct mac_main_cfg_s {
       scell_hibernation_timer_r15_e_          scell_hibernation_timer_r15;
       dormant_scell_deactivation_timer_r15_e_ dormant_scell_deactivation_timer_r15;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     dormant_state_timers_r15_c_() = default;
@@ -3904,7 +3904,7 @@ struct mac_main_cfg_s {
 
 // MeasSubframePatternPCell-r10 ::= CHOICE
 struct meas_sf_pattern_pcell_r10_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_sf_pattern_pcell_r10_c() = default;
@@ -3946,7 +3946,7 @@ struct naics_assist_info_r12_c {
     neigh_cells_to_add_mod_list_r12_l neigh_cells_to_add_mod_list_r12;
     p_a_e                             serv_cellp_a_r12;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   naics_assist_info_r12_c() = default;
@@ -3982,7 +3982,7 @@ private:
 
 // NeighCellsCRS-Info-r11 ::= CHOICE
 struct neigh_cells_crs_info_r11_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   neigh_cells_crs_info_r11_c() = default;
@@ -4016,7 +4016,7 @@ private:
 
 // NeighCellsCRS-Info-r13 ::= CHOICE
 struct neigh_cells_crs_info_r13_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   neigh_cells_crs_info_r13_c() = default;
@@ -4052,7 +4052,7 @@ private:
 
 // NeighCellsCRS-Info-r15 ::= CHOICE
 struct neigh_cells_crs_info_r15_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   neigh_cells_crs_info_r15_c() = default;
@@ -4119,7 +4119,7 @@ struct rlf_timers_and_consts_r13_c {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlf_timers_and_consts_r13_c() = default;
@@ -4204,7 +4204,7 @@ struct rlf_timers_and_consts_r9_c {
     n311_r9_e_ n311_r9;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlf_timers_and_consts_r9_c() = default;
@@ -4397,7 +4397,7 @@ struct rr_cfg_ded_s {
       types                      type_;
       crs_intf_mitig_num_prbs_e_ c;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     crs_intf_mitig_cfg_r15_c_() = default;
@@ -4496,7 +4496,7 @@ struct pdcch_candidate_reductions_laa_ul_r14_c {
     pdcch_candidate_reduction_value_r14_e pdcch_candidate_reduction_al4_r14;
     pdcch_candidate_reduction_value_r14_e pdcch_candidate_reduction_al5_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   pdcch_candidate_reductions_laa_ul_r14_c() = default;
@@ -4607,7 +4607,7 @@ struct aul_cfg_r15_c {
     uint8_t                                  sf_offset_cot_sharing_r15 = 2;
     contention_win_size_timer_r15_e_         contention_win_size_timer_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   aul_cfg_r15_c() = default;
@@ -4649,7 +4649,7 @@ struct cqi_report_periodic_scell_r15_c {
         meas_sf_pattern_r10_c csi_meas_sf_set1_r15;
         meas_sf_pattern_r10_c csi_meas_sf_set2_r15;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       csi_sf_pattern_dormant_r15_c_() = default;
@@ -4778,7 +4778,7 @@ struct cqi_report_periodic_scell_r15_c {
     csi_sf_pattern_dormant_r15_c_ csi_sf_pattern_dormant_r15;
     cqi_format_ind_dormant_r15_c_ cqi_format_ind_dormant_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_periodic_scell_r15_c() = default;
@@ -4948,7 +4948,7 @@ struct srs_ul_cfg_ded_aperiodic_v1430_c {
     bool    srs_sf_ind_r14_present = false;
     uint8_t srs_sf_ind_r14         = 1;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_aperiodic_v1430_c() = default;
@@ -5121,7 +5121,7 @@ struct cqi_short_cfg_scell_r15_c {
     uint16_t                    ri_cfg_idx_short_r15             = 0;
     cqi_format_ind_short_r15_c_ cqi_format_ind_short_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_short_cfg_scell_r15_c() = default;
@@ -5344,7 +5344,7 @@ struct laa_scell_cfg_v1430_s {
     struct setup_s_ {
       cross_carrier_sched_cfg_laa_ul_r14_s cross_carrier_sched_cfg_laa_ul_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     cross_carrier_sched_cfg_ul_r14_c_() = default;
@@ -5439,7 +5439,7 @@ struct pdsch_cfg_ded_scell_v1430_s {
 // PUCCH-ConfigDedicated-v1370 ::= SEQUENCE
 struct pucch_cfg_ded_v1370_s {
   struct pucch_format_v1370_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pucch_format_v1370_c_() = default;
@@ -5516,7 +5516,7 @@ struct pusch_cfg_ded_scell_v1530_s {
     struct setup_s_ {
       uint8_t beta_offset_aul_r15 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     uci_on_pusch_r15_c_() = default;
@@ -5580,7 +5580,7 @@ struct sched_request_cfg_scell_r13_c {
     uint8_t              sr_cfg_idx_r13                  = 0;
     dsr_trans_max_r13_e_ dsr_trans_max_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sched_request_cfg_scell_r13_c() = default;
@@ -5653,7 +5653,7 @@ struct tpc_pdcch_cfg_scell_r13_c {
   struct setup_s_ {
     tpc_idx_c tpc_idx_pucch_scell_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   tpc_pdcch_cfg_scell_r13_c() = default;
@@ -5809,7 +5809,7 @@ struct phys_cfg_ded_scell_r10_s {
       pusch_cfg_ded_r13_s           pusch_cfg_ded_r13;
       ul_pwr_ctrl_ded_scell_v1310_s ul_pwr_ctrl_ded_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pucch_scell_c_() = default;
@@ -5871,7 +5871,7 @@ struct phys_cfg_ded_scell_r10_s {
       k_max_r14_e_    k_max_r14;
       p_a_must_r14_e_ p_a_must_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     must_cfg_r14_c_() = default;
@@ -5963,7 +5963,7 @@ struct phys_cfg_ded_scell_r10_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     semi_static_cfi_cfg_r15_c_() = default;
@@ -6068,7 +6068,7 @@ struct phys_cfg_ded_scell_r10_s {
       mcs_restrict_sf_pdsch_repeats_r15_e_           mcs_restrict_sf_pdsch_repeats_r15;
       mcs_restrict_slot_subslot_pdsch_repeats_r15_e_ mcs_restrict_slot_subslot_pdsch_repeats_r15;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     blind_pdsch_repeat_cfg_r15_c_() = default;
@@ -6192,7 +6192,7 @@ struct phys_cfg_ded_scell_v1370_s {
       bool                  pucch_cfg_ded_v1370_present = false;
       pucch_cfg_ded_v1370_s pucch_cfg_ded_v1370;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pucch_scell_v1370_c_() = default;
@@ -6325,7 +6325,7 @@ struct pucch_cfg_ded_v13c0_s {
         // member variables
         n1_pucch_an_cs_list_p1_v13c0_l_ n1_pucch_an_cs_list_p1_v13c0;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       n1_pucch_an_cs_v13c0_c_() = default;
@@ -6512,7 +6512,7 @@ struct rlf_timers_and_consts_scg_r12_c {
     n314_r12_e_ n314_r12;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlf_timers_and_consts_scg_r12_c() = default;
@@ -6664,7 +6664,7 @@ struct phys_cfg_ded_scell_v13c0_s {
     struct setup_s_ {
       pucch_cfg_ded_v13c0_s pucch_cfg_ded_v13c0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pucch_scell_v13c0_c_() = default;

@@ -905,7 +905,7 @@ struct drx_cfg_nb_r13_c {
     uint16_t                    drx_start_offset_r13 = 0;
     drx_ul_retx_timer_r13_e_    drx_ul_retx_timer_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   drx_cfg_nb_r13_c() = default;
@@ -1065,7 +1065,7 @@ struct sr_sps_bsr_cfg_nb_r15_c {
     fixed_bitstring<16>                 semi_persist_sched_c_rnti_r15;
     semi_persist_sched_interv_ul_r15_e_ semi_persist_sched_interv_ul_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sr_sps_bsr_cfg_nb_r15_c() = default;
@@ -1105,7 +1105,7 @@ struct sr_without_harq_ack_cfg_nb_r15_c {
     uint8_t                sr_prohibit_timer_r15         = 0;
     sr_nprach_res_nb_r15_s sr_nprach_res_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sr_without_harq_ack_cfg_nb_r15_c() = default;
@@ -1267,7 +1267,7 @@ struct mac_main_cfg_nb_r13_s {
       // member variables
       lc_ch_sr_prohibit_timer_r13_e_ lc_ch_sr_prohibit_timer_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     lc_ch_sr_cfg_r13_c_() = default;
@@ -1302,7 +1302,7 @@ struct mac_main_cfg_nb_r13_s {
     struct setup_s_ {
       data_inactivity_timer_r14_e data_inactivity_timer_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     data_inactivity_timer_cfg_r14_c_() = default;
@@ -1484,7 +1484,7 @@ struct rlf_timers_and_consts_nb_r13_c {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rlf_timers_and_consts_nb_r13_c() = default;
@@ -1819,7 +1819,7 @@ struct mib_nb_s {
 };
 
 // BCCH-BCH-MessageType-NB ::= MasterInformationBlock-NB
-typedef mib_nb_s bcch_bch_msg_type_nb_s;
+using bcch_bch_msg_type_nb_s = mib_nb_s;
 
 // BCCH-BCH-Message-NB ::= SEQUENCE
 struct bcch_bch_msg_nb_s {
@@ -2192,7 +2192,7 @@ struct mib_tdd_nb_r15_s {
 };
 
 // BCCH-BCH-MessageType-TDD-NB-r15 ::= MasterInformationBlock-TDD-NB-r15
-typedef mib_tdd_nb_r15_s bcch_bch_msg_type_tdd_nb_r15_s;
+using bcch_bch_msg_type_tdd_nb_r15_s = mib_tdd_nb_r15_s;
 
 // BCCH-BCH-Message-TDD-NB ::= SEQUENCE
 struct bcch_bch_msg_tdd_nb_s {
@@ -5758,7 +5758,7 @@ struct rrc_early_data_complete_nb_v1590_ies_s {
 };
 
 // RedirectedCarrierInfo-NB-r13 ::= CarrierFreq-NB-r13
-typedef carrier_freq_nb_r13_s redirected_carrier_info_nb_r13_s;
+using redirected_carrier_info_nb_r13_s = carrier_freq_nb_r13_s;
 
 // RedirectedCarrierInfo-NB-v1430 ::= SEQUENCE
 struct redirected_carrier_info_nb_v1430_s {
@@ -5908,7 +5908,7 @@ struct rrc_conn_reest_nb_s {
       types                       type_;
       rrc_conn_reest_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5990,7 +5990,7 @@ struct rrc_conn_reject_nb_s {
       types                        type_;
       rrc_conn_reject_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6071,7 +6071,7 @@ struct rrc_conn_setup_nb_s {
       types                       type_;
       rrc_conn_setup_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6344,7 +6344,7 @@ struct rrc_conn_release_nb_v15b0_ies_s {
 };
 
 // RedirectedCarrierInfo-NB-v1550 ::= CarrierFreq-NB-v1550
-typedef carrier_freq_nb_v1550_s redirected_carrier_info_nb_v1550_s;
+using redirected_carrier_info_nb_v1550_s = carrier_freq_nb_v1550_s;
 
 // RRCConnectionRelease-NB-v1550-IEs ::= SEQUENCE
 struct rrc_conn_release_nb_v1550_ies_s {
@@ -6517,7 +6517,7 @@ struct dl_info_transfer_nb_s {
       types                         type_;
       dl_info_transfer_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6599,7 +6599,7 @@ struct rrc_conn_recfg_nb_s {
       types                       type_;
       rrc_conn_recfg_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6681,7 +6681,7 @@ struct rrc_conn_release_nb_s {
       types                         type_;
       rrc_conn_release_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6763,7 +6763,7 @@ struct rrc_conn_resume_nb_s {
       types                        type_;
       rrc_conn_resume_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6845,7 +6845,7 @@ struct ue_cap_enquiry_nb_s {
       types                       type_;
       ue_cap_enquiry_nb_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -7339,7 +7339,7 @@ struct ho_prep_info_nb_s {
       types                 type_;
       ho_prep_info_nb_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -9101,7 +9101,7 @@ struct ue_paging_coverage_info_nb_s {
       types                            type_;
       ue_paging_coverage_info_nb_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -9221,7 +9221,7 @@ struct ue_radio_access_cap_info_nb_s {
       types                             type_;
       ue_radio_access_cap_info_nb_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -9315,7 +9315,7 @@ struct ue_radio_paging_info_nb_s {
       types                         type_;
       ue_radio_paging_info_nb_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

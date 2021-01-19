@@ -371,7 +371,7 @@ struct ue_paging_coverage_info_s {
       types                             type_;
       ue_paging_coverage_info_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -495,7 +495,7 @@ struct ue_radio_paging_info_s {
       types                          type_;
       ue_radio_paging_info_r12_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

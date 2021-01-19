@@ -308,7 +308,7 @@ struct security_mode_cmd_s {
       types                      type_;
       security_mode_cmd_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

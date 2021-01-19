@@ -699,7 +699,7 @@ using alt_ttt_cells_to_add_mod_list_r12_l = dyn_array<alt_ttt_cells_to_add_mod_r
 
 // BT-NameListConfig-r15 ::= CHOICE
 struct bt_name_list_cfg_r15_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   bt_name_list_cfg_r15_c() = default;
@@ -934,7 +934,7 @@ struct meas_ds_cfg_r12_c {
     meas_csi_rs_to_add_mod_list_r12_l meas_csi_rs_to_add_mod_list_r12;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_ds_cfg_r12_c() = default;
@@ -1324,7 +1324,7 @@ struct meas_gap_cfg_c {
     // member variables
     gap_offset_c_ gap_offset;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_cfg_c() = default;
@@ -1401,7 +1401,7 @@ struct meas_sf_pattern_cfg_neigh_r10_c {
     meas_sf_pattern_r10_c   meas_sf_pattern_neigh_r10;
     meas_sf_cell_list_r10_l meas_sf_cell_list_r10;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_sf_pattern_cfg_neigh_r10_c() = default;
@@ -1493,7 +1493,7 @@ struct rmtc_cfg_r13_c {
     meas_dur_r13_e_    meas_dur_r13;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rmtc_cfg_r13_c() = default;
@@ -1538,7 +1538,7 @@ struct rs_cfg_ssb_nr_r15_s {
   };
   typedef enumerated<subcarrier_spacing_ssb_r15_opts> subcarrier_spacing_ssb_r15_e_;
   struct ssb_to_measure_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ssb_to_measure_r15_c_() = default;
@@ -1590,7 +1590,7 @@ struct rs_cfg_ssb_nr_r15_s {
 
 // RSRQ-RangeConfig-r12 ::= CHOICE
 struct rsrq_range_cfg_r12_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rsrq_range_cfg_r12_c() = default;
@@ -1947,7 +1947,7 @@ struct ul_delay_cfg_r13_c {
     // member variables
     delay_thres_r13_e_ delay_thres_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   ul_delay_cfg_r13_c() = default;
@@ -2013,7 +2013,7 @@ using wlan_id_list_r13_l = dyn_array<wlan_ids_r12_s>;
 
 // WLAN-NameListConfig-r15 ::= CHOICE
 struct wlan_name_list_cfg_r15_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   wlan_name_list_cfg_r15_c() = default;
@@ -2097,7 +2097,7 @@ struct meas_obj_eutra_s {
       uint16_t    to_number() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     t312_r12_c_() = default;
@@ -2220,7 +2220,7 @@ struct meas_obj_geran_s {
 struct meas_obj_nr_r15_s {
   using cells_for_which_to_report_sftd_r15_l_ = bounded_array<uint16_t, 3>;
   struct band_nr_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     band_nr_r15_c_() = default;
@@ -2825,7 +2825,7 @@ struct eutra_event_s {
 // ReportConfigEUTRA ::= SEQUENCE
 struct report_cfg_eutra_s {
   struct trigger_type_c_ {
-    typedef eutra_event_s event_s_;
+    using event_s_ = eutra_event_s;
     struct periodical_s_ {
       struct purpose_opts {
         enum options { report_strongest_cells, report_cgi, nulltype } value;
@@ -2915,7 +2915,7 @@ struct report_cfg_eutra_s {
   };
   typedef enumerated<report_amount_opts> report_amount_e_;
   struct alt_time_to_trigger_r12_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     alt_time_to_trigger_r12_c_() = default;
@@ -2965,7 +2965,7 @@ struct report_cfg_eutra_s {
       uint8_t               a5_thres2_r13               = 0;
       report_quant_v1310_e_ report_quant_v1310;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     rs_sinr_cfg_r13_c_() = default;
@@ -3482,7 +3482,7 @@ struct report_cfg_inter_rat_s {
   };
   typedef enumerated<report_amount_opts> report_amount_e_;
   struct b2_thres1_v1250_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     b2_thres1_v1250_c_() = default;
@@ -4485,7 +4485,7 @@ struct meas_gap_cfg_dense_prs_r15_c {
     // member variables
     gap_offset_dense_prs_r15_c_ gap_offset_dense_prs_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_cfg_dense_prs_r15_c() = default;
@@ -4525,7 +4525,7 @@ struct meas_gap_cfg_per_cc_list_r14_c {
     meas_gap_cfg_to_rem_list_r14_l     meas_gap_cfg_to_rem_list_r14;
     meas_gap_cfg_to_add_mod_list_r14_l meas_gap_cfg_to_add_mod_list_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_cfg_per_cc_list_r14_c() = default;
@@ -4573,7 +4573,7 @@ struct meas_gap_sharing_cfg_r14_c {
     // member variables
     meas_gap_sharing_scheme_r14_e_ meas_gap_sharing_scheme_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_sharing_cfg_r14_c() = default;
@@ -4793,7 +4793,7 @@ struct meas_cfg_s {
       mob_state_params_s          mob_state_params;
       speed_state_scale_factors_s time_to_trigger_sf;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     speed_state_pars_c_() = default;
@@ -4825,7 +4825,7 @@ struct meas_cfg_s {
     setup_s_ c;
   };
   struct meas_scale_factor_r12_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     meas_scale_factor_r12_c_() = default;
@@ -4857,7 +4857,7 @@ struct meas_cfg_s {
     meas_scale_factor_r12_e c;
   };
   struct height_thresh_ref_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     height_thresh_ref_r15_c_() = default;
@@ -6596,7 +6596,7 @@ struct meas_report_s {
       types                type_;
       meas_report_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

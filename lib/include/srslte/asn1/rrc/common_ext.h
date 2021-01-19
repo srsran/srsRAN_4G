@@ -958,7 +958,7 @@ struct sl_disc_res_pool_r12_s {
       uint8_t     to_number() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     disc_period_v1310_c_() = default;
@@ -993,7 +993,7 @@ struct sl_disc_res_pool_r12_s {
     struct setup_s_ {
       pci_list_r13_l pci_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     rx_params_add_neigh_freq_r13_c_() = default;
@@ -1057,7 +1057,7 @@ struct sl_disc_res_pool_r12_s {
       int8_t          ref_sig_pwr      = -60;
       uint8_t         sync_cfg_idx_r13 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     tx_params_add_neigh_freq_r13_c_() = default;
@@ -1097,7 +1097,7 @@ struct sl_disc_res_pool_r12_s {
       // member variables
       freq_info_v1370_s_ freq_info_v1370;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     tx_params_add_neigh_freq_v1370_c_() = default;

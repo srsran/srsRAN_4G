@@ -154,7 +154,7 @@ struct scg_cfg_r12_s {
       types             type_;
       scg_cfg_r12_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -474,7 +474,7 @@ struct ho_cmd_s {
       types           type_;
       ho_cmd_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -799,7 +799,7 @@ struct ho_prep_info_s {
       types                 type_;
       ho_prep_info_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -898,7 +898,7 @@ struct var_meas_cfg_s {
       mob_state_params_s          mob_state_params;
       speed_state_scale_factors_s time_to_trigger_sf;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     speed_state_pars_c_() = default;

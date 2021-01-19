@@ -595,7 +595,7 @@ struct sl_disc_tx_res_r13_c {
 
     void destroy_();
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sl_disc_tx_res_r13_c() = default;
@@ -639,7 +639,7 @@ struct tdm_pattern_cfg_r15_c {
     sf_assign_r15_e sf_assign_r15;
     uint8_t         harq_offset_r15 = 0;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   tdm_pattern_cfg_r15_c() = default;
@@ -895,7 +895,7 @@ struct rrc_conn_recfg_v1510_ies_s {
       dyn_octstring nr_secondary_cell_group_cfg_r15;
       int8_t        p_max_eutra_r15 = -30;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     nr_cfg_r15_c_() = default;
@@ -1086,7 +1086,7 @@ struct sl_v2x_cfg_ded_r14_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     comm_tx_res_r14_c_() = default;
@@ -1184,7 +1184,7 @@ struct sl_v2x_cfg_ded_r14_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     comm_tx_res_v1530_c_() = default;
@@ -1248,7 +1248,7 @@ struct lwa_cfg_r13_c {
   struct setup_s_ {
     lwa_cfg_r13_s lwa_cfg_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   lwa_cfg_r13_c() = default;
@@ -1285,7 +1285,7 @@ struct lwip_cfg_r13_c {
   struct setup_s_ {
     lwip_cfg_r13_s lwip_cfg_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   lwip_cfg_r13_c() = default;
@@ -1392,7 +1392,7 @@ struct rclwi_cfg_r13_c {
   struct setup_s_ {
     rclwi_cfg_r13_s rclwi_cfg_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rclwi_cfg_r13_c() = default;
@@ -1659,7 +1659,7 @@ struct scg_cfg_r12_c {
     scg_cfg_part_mcg_r12_s_ scg_cfg_part_mcg_r12;
     scg_cfg_part_scg_r12_s  scg_cfg_part_scg_r12;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   scg_cfg_r12_c() = default;
@@ -1768,7 +1768,7 @@ struct sl_comm_cfg_r12_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     comm_tx_res_r12_c_() = default;
@@ -1871,7 +1871,7 @@ struct sl_comm_cfg_r12_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     comm_tx_res_v1310_c_() = default;
@@ -1998,7 +1998,7 @@ struct sl_disc_cfg_r12_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_tx_res_r12_c_() = default;
@@ -2033,7 +2033,7 @@ struct sl_disc_cfg_r12_s {
     struct setup_s_ {
       sl_tf_idx_pair_list_r12b_l disc_tf_idx_list_r12b;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_tf_idx_list_v1260_c_() = default;
@@ -2124,7 +2124,7 @@ struct sl_disc_cfg_r12_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_tx_res_ps_r13_c_() = default;
@@ -2164,7 +2164,7 @@ struct sl_disc_cfg_r12_s {
       sl_disc_tx_ref_carrier_ded_r13_c          disc_tx_ref_carrier_ded_r13;
       sl_disc_tx_info_inter_freq_list_add_r13_s disc_tx_info_inter_freq_list_add_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_tx_inter_freq_info_r13_c_() = default;
@@ -2196,7 +2196,7 @@ struct sl_disc_cfg_r12_s {
     setup_s_ c;
   };
   struct disc_rx_gap_cfg_r13_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_rx_gap_cfg_r13_c_() = default;
@@ -2228,7 +2228,7 @@ struct sl_disc_cfg_r12_s {
     sl_gap_cfg_r13_s c;
   };
   struct disc_tx_gap_cfg_r13_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_tx_gap_cfg_r13_c_() = default;
@@ -2260,7 +2260,7 @@ struct sl_disc_cfg_r12_s {
     sl_gap_cfg_r13_s c;
   };
   struct disc_sys_info_to_report_cfg_r13_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     disc_sys_info_to_report_cfg_r13_c_() = default;
@@ -2354,7 +2354,7 @@ struct rrc_conn_recfg_v1250_ies_s {
       wlan_offload_cfg_r12_s wlan_offload_cfg_ded_r12;
       t350_r12_e_            t350_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     wlan_offload_info_r12_c_() = default;
@@ -2549,7 +2549,7 @@ struct idc_cfg_r11_s {
     autonomous_denial_validity_r11_e_ autonomous_denial_validity_r11;
   };
   struct idc_ind_mrdc_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     idc_ind_mrdc_r15_c_() = default;
@@ -2644,7 +2644,7 @@ struct pwr_pref_ind_cfg_r11_c {
     // member variables
     pwr_pref_ind_timer_r11_e_ pwr_pref_ind_timer_r11;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   pwr_pref_ind_cfg_r11_c() = default;
@@ -2848,7 +2848,7 @@ struct other_cfg_r9_s {
       // member variables
       delay_budget_report_prohibit_timer_r14_e_ delay_budget_report_prohibit_timer_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     delay_budget_report_cfg_r14_c_() = default;
@@ -2913,7 +2913,7 @@ struct other_cfg_r9_s {
       bool                    rlm_report_rep_mpdcch_r14_present = false;
       rlm_report_timer_r14_e_ rlm_report_timer_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     rlm_report_cfg_r14_c_() = default;
@@ -2977,7 +2977,7 @@ struct other_cfg_r9_s {
       // member variables
       overheat_ind_prohibit_timer_r14_e_ overheat_ind_prohibit_timer_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     overheat_assist_cfg_r14_c_() = default;
@@ -3021,7 +3021,7 @@ struct other_cfg_r9_s {
       bounded_octstring<1, 1000> meas_cfg_app_layer_container_r15;
       service_type_r15_e_        service_type_r15;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     meas_cfg_app_layer_r15_c_() = default;
@@ -5085,7 +5085,7 @@ struct counter_check_s {
       types                  type_;
       counter_check_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5188,7 +5188,7 @@ struct dl_info_transfer_s {
 
       void destroy_();
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5272,7 +5272,7 @@ struct ho_from_eutra_prep_request_s {
       types                               type_;
       ho_from_eutra_prep_request_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5356,7 +5356,7 @@ struct logged_meas_cfg_r10_s {
       types                     type_;
       logged_meas_cfg_r10_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5458,7 +5458,7 @@ struct mob_from_eutra_cmd_s {
 
       void destroy_();
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5542,7 +5542,7 @@ struct rn_recfg_r10_s {
       types              type_;
       rn_recfg_r10_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5630,7 +5630,7 @@ struct rrc_conn_recfg_s {
       types                   type_;
       rrc_conn_recfg_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5714,7 +5714,7 @@ struct rrc_conn_release_s {
       types                     type_;
       rrc_conn_release_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5798,7 +5798,7 @@ struct rrc_conn_resume_r13_s {
       types                     type_;
       rrc_conn_resume_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -5882,7 +5882,7 @@ struct ue_info_request_r9_s {
       types                    type_;
       ue_info_request_r9_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -6272,7 +6272,7 @@ struct scg_cfg_v13c0_c {
     bool                     scg_cfg_part_scg_v13c0_present = false;
     scg_cfg_part_scg_v13c0_s scg_cfg_part_scg_v13c0;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   scg_cfg_v13c0_c() = default;
@@ -6367,7 +6367,7 @@ struct scg_cfg_v12f0_c {
     bool                     scg_cfg_part_scg_v12f0_present = false;
     scg_cfg_part_scg_v12f0_s scg_cfg_part_scg_v12f0;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   scg_cfg_v12f0_c() = default;

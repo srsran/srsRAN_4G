@@ -2949,7 +2949,7 @@ struct plmn_id_info_s {
 };
 
 // RangeToBestCell ::= Q-OffsetRange
-typedef q_offset_range_e range_to_best_cell_e;
+using range_to_best_cell_e = q_offset_range_e;
 
 // SI-RequestResources ::= SEQUENCE
 struct si_request_res_s {

@@ -233,7 +233,7 @@ struct ue_cap_enquiry_s {
       types                   type_;
       ue_cap_enquiry_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -414,7 +414,7 @@ struct ue_cap_info_s {
       types                type_;
       ue_cap_info_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -652,10 +652,10 @@ struct ca_mimo_params_dl_r13_s {
 };
 
 // BandParametersDL-r13 ::= CA-MIMO-ParametersDL-r13
-typedef ca_mimo_params_dl_r13_s band_params_dl_r13_s;
+using band_params_dl_r13_s = ca_mimo_params_dl_r13_s;
 
 // BandParametersUL-r13 ::= CA-MIMO-ParametersUL-r10
-typedef ca_mimo_params_ul_r10_s band_params_ul_r13_s;
+using band_params_ul_r13_s = ca_mimo_params_ul_r10_s;
 
 // BandParameters-r13 ::= SEQUENCE
 struct band_params_r13_s {
@@ -5757,7 +5757,7 @@ struct ue_radio_access_cap_info_s {
       types                             type_;
       ue_radio_access_cap_info_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

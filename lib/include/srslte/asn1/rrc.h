@@ -56,7 +56,7 @@ struct mib_mbms_r14_s {
 };
 
 // BCCH-BCH-MessageType-MBMS-r14 ::= MasterInformationBlock-MBMS-r14
-typedef mib_mbms_r14_s bcch_bch_msg_type_mbms_r14_s;
+using bcch_bch_msg_type_mbms_r14_s = mib_mbms_r14_s;
 
 // BCCH-BCH-Message-MBMS ::= SEQUENCE
 struct bcch_bch_msg_mbms_s {
@@ -69,7 +69,7 @@ struct bcch_bch_msg_mbms_s {
 };
 
 // SystemInformation-MBMS-r14 ::= SystemInformation
-typedef sys_info_s sys_info_mbms_r14_s;
+using sys_info_mbms_r14_s = sys_info_s;
 
 // BCCH-DL-SCH-MessageType-MBMS-r14 ::= CHOICE
 struct bcch_dl_sch_msg_type_mbms_r14_c {
@@ -181,7 +181,7 @@ struct bcch_dl_sch_msg_mbms_s {
 };
 
 // ThresholdEUTRA-v1250 ::= INTEGER (0..97)
-typedef uint8_t thres_eutra_v1250;
+using thres_eutra_v1250 = uint8_t;
 
 // MBMS-SessionInfo-r9 ::= SEQUENCE
 struct mbms_session_info_r9_s {
@@ -2188,7 +2188,7 @@ using meas_result_serv_cell_list_scg_ext_r13_l = dyn_array<meas_result_serv_cell
 using meas_result_serv_cell_list_scg_r12_l = dyn_array<meas_result_serv_cell_scg_r12_s>;
 
 // SBCCH-SL-BCH-MessageType ::= MasterInformationBlock-SL
-typedef mib_sl_s sbcch_sl_bch_msg_type_s;
+using sbcch_sl_bch_msg_type_s = mib_sl_s;
 
 // SBCCH-SL-BCH-Message ::= SEQUENCE
 struct sbcch_sl_bch_msg_s {
@@ -2201,7 +2201,7 @@ struct sbcch_sl_bch_msg_s {
 };
 
 // SBCCH-SL-BCH-MessageType-V2X-r14 ::= MasterInformationBlock-SL-V2X-r14
-typedef mib_sl_v2x_r14_s sbcch_sl_bch_msg_type_v2x_r14_s;
+using sbcch_sl_bch_msg_type_v2x_r14_s = mib_sl_v2x_r14_s;
 
 // SBCCH-SL-BCH-Message-V2X-r14 ::= SEQUENCE
 struct sbcch_sl_bch_msg_v2x_r14_s {
@@ -2383,7 +2383,7 @@ struct scg_cfg_info_r12_s {
       types                  type_;
       scg_cfg_info_r12_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -3073,7 +3073,7 @@ using var_meas_report_list_l = dyn_array<var_meas_report_s>;
 using var_meas_report_list_r12_l = dyn_array<var_meas_report_s>;
 
 // VarMobilityHistoryReport-r12 ::= VisitedCellInfoList-r12
-typedef visited_cell_info_list_r12_l var_mob_history_report_r12_l;
+using var_mob_history_report_r12_l = visited_cell_info_list_r12_l;
 
 // VarRLF-Report-r10 ::= SEQUENCE
 struct var_rlf_report_r10_s {
@@ -3110,7 +3110,7 @@ struct var_short_inactive_mac_input_r15_s {
 };
 
 // VarShortMAC-Input-NB-r13 ::= VarShortMAC-Input
-typedef var_short_mac_input_s var_short_mac_input_nb_r13_s;
+using var_short_mac_input_nb_r13_s = var_short_mac_input_s;
 
 // VarShortResumeMAC-Input-r13 ::= SEQUENCE
 struct var_short_resume_mac_input_r13_s {
@@ -3126,7 +3126,7 @@ struct var_short_resume_mac_input_r13_s {
 };
 
 // VarShortResumeMAC-Input-NB-r13 ::= VarShortResumeMAC-Input-r13
-typedef var_short_resume_mac_input_r13_s var_short_resume_mac_input_nb_r13_s;
+using var_short_resume_mac_input_nb_r13_s = var_short_resume_mac_input_r13_s;
 
 // VarWLAN-MobilityConfig ::= SEQUENCE
 struct var_wlan_mob_cfg_s {

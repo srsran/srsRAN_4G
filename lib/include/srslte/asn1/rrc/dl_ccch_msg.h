@@ -590,7 +590,7 @@ struct rrc_conn_reest_s {
       types                   type_;
       rrc_conn_reest_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -723,7 +723,7 @@ struct rrc_conn_reject_s {
       types                    type_;
       rrc_conn_reject_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -810,7 +810,7 @@ struct rrc_conn_setup_s {
       types                   type_;
       rrc_conn_setup_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

@@ -593,7 +593,7 @@ struct mrdc_assist_info_r15_s {
 };
 
 // MobilityHistoryReport-r12 ::= VisitedCellInfoList-r12
-typedef visited_cell_info_list_r12_l mob_history_report_r12_l;
+using mob_history_report_r12_l = visited_cell_info_list_r12_l;
 
 // RRCConnectionReconfigurationComplete-v1430-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1430_ies_s {
@@ -3539,7 +3539,7 @@ struct in_dev_coex_ind_r11_s {
       types                     type_;
       in_dev_coex_ind_r11_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -3622,7 +3622,7 @@ struct inter_freq_rstd_meas_ind_r10_s {
       types                              type_;
       inter_freq_rstd_meas_ind_r10_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -3705,7 +3705,7 @@ struct mbms_count_resp_r10_s {
       types                     type_;
       mbms_count_resp_r10_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -3788,7 +3788,7 @@ struct mbms_interest_ind_r11_s {
       types                       type_;
       mbms_interest_ind_r11_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -3920,7 +3920,7 @@ struct proximity_ind_r9_s {
       types                  type_;
       proximity_ind_r9_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4003,7 +4003,7 @@ struct rn_recfg_complete_r10_s {
       types                       type_;
       rn_recfg_complete_r10_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4237,7 +4237,7 @@ struct rrc_conn_setup_complete_s {
       types                            type_;
       rrc_conn_setup_complete_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4321,7 +4321,7 @@ struct scg_fail_info_r12_s {
       types                   type_;
       scg_fail_info_r12_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4404,7 +4404,7 @@ struct scg_fail_info_nr_r15_s {
       types                      type_;
       scg_fail_info_nr_r15_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4487,7 +4487,7 @@ struct sidelink_ue_info_r12_s {
       types                      type_;
       sidelink_ue_info_r12_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4570,7 +4570,7 @@ struct ueassist_info_r11_s {
       types                   type_;
       ueassist_info_r11_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4653,7 +4653,7 @@ struct ue_info_resp_r9_s {
       types                 type_;
       ue_info_resp_r9_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4737,7 +4737,7 @@ struct ul_ho_prep_transfer_s {
       types                        type_;
       ul_ho_prep_transfer_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4820,7 +4820,7 @@ struct ul_info_transfer_s {
       types                     type_;
       ul_info_transfer_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4903,7 +4903,7 @@ struct ul_info_transfer_mrdc_r15_s {
       types                           type_;
       ul_info_transfer_mrdc_r15_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
@@ -4986,7 +4986,7 @@ struct wlan_conn_status_report_r13_s {
       types                             type_;
       wlan_conn_status_report_r13_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;

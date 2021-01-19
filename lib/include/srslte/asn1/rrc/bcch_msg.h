@@ -30,7 +30,7 @@ namespace rrc {
  ******************************************************************************/
 
 // BCCH-BCH-MessageType ::= MasterInformationBlock
-typedef mib_s bcch_bch_msg_type_s;
+using bcch_bch_msg_type_s = mib_s;
 
 // BCCH-BCH-Message ::= SEQUENCE
 struct bcch_bch_msg_s {
@@ -3844,8 +3844,8 @@ private:
 
 // SystemInformation-r8-IEs ::= SEQUENCE
 struct sys_info_r8_ies_s {
-  typedef sib_info_item_c sib_type_and_info_item_c_;
-  using sib_type_and_info_l_ = dyn_array<sib_type_and_info_item_c_>;
+  using sib_type_and_info_item_c_ = sib_info_item_c;
+  using sib_type_and_info_l_      = dyn_array<sib_type_and_info_item_c_>;
 
   // member variables
   bool                 non_crit_ext_present = false;
@@ -4073,10 +4073,10 @@ struct bcch_dl_sch_msg_s {
 };
 
 // SystemInformation-BR-r13 ::= SystemInformation
-typedef sys_info_s sys_info_br_r13_s;
+using sys_info_br_r13_s = sys_info_s;
 
 // SystemInformationBlockType1-BR-r13 ::= SystemInformationBlockType1
-typedef sib_type1_s sib_type1_br_r13_s;
+using sib_type1_br_r13_s = sib_type1_s;
 
 // BCCH-DL-SCH-MessageType-BR-r13 ::= CHOICE
 struct bcch_dl_sch_msg_type_br_r13_c {
@@ -4741,7 +4741,7 @@ struct sib_type6_v8h0_ies_s {
 };
 
 // SystemInformationBlockType16-NB-r13 ::= SystemInformationBlockType16-r11
-typedef sib_type16_r11_s sib_type16_nb_r13_s;
+using sib_type16_nb_r13_s = sib_type16_r11_s;
 
 } // namespace rrc
 } // namespace asn1

@@ -650,7 +650,7 @@ struct delta_flist_spucch_r15_c {
     delta_f_subslot_spucch_tbcc_format4_r15_e_ delta_f_subslot_spucch_tbcc_format4_r15;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   delta_flist_spucch_r15_c() = default;
@@ -1812,7 +1812,7 @@ struct srs_ul_cfg_common_c {
     srs_sf_cfg_e_ srs_sf_cfg;
     bool          ack_nack_srs_simul_tx = false;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_common_c() = default;
