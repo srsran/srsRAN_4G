@@ -1380,7 +1380,8 @@ void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* pucch_res
 
   if (pucch_res) {
     if (isnormal(cfg->threshold_dmrs_detection)) {
-      n = srslte_print_check(str, str_len, n, ", dmrs_corr=%.3f", pucch_res->dmrs_correlation);
+      n = srslte_print_check(
+          str, str_len, n, ", dmrs_corr=%.3f, snr=%.1f dB", pucch_res->dmrs_correlation, pucch_res->snr_db);
     }
 
     n = srslte_print_check(str, str_len, n, ", corr=%.3f", pucch_res->correlation);

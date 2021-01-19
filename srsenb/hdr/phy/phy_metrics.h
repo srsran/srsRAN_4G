@@ -19,11 +19,13 @@ namespace srsenb {
 
 struct ul_metrics_t {
   float n;
-  float sinr;
+  float pusch_sinr;
+  float pucch_sinr;
   float rssi;
   float turbo_iters;
   float mcs;
   int   n_samples;
+  int   n_samples_pucch;
 };
 
 struct dl_metrics_t {

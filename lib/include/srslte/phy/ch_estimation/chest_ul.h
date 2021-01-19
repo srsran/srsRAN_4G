@@ -41,6 +41,10 @@ typedef struct SRSLTE_API {
   uint32_t nof_re;
   float    noise_estimate;
   float    noise_estimate_dbm;
+  float    rsrp;
+  float    rsrp_dBfs;
+  float    epre;
+  float    epre_dBfs;
   float    snr;
   float    snr_db;
   float    cfo;

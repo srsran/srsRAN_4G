@@ -285,11 +285,14 @@ uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
       m->dl.mcs         = SRSLTE_VEC_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
       m->dl.n_samples += m_->dl.n_samples;
       m->ul.n           = SRSLTE_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
-      m->ul.sinr        = SRSLTE_VEC_PMA(m->ul.sinr, m->ul.n_samples, m_->ul.sinr, m_->ul.n_samples);
+      m->ul.pusch_sinr  = SRSLTE_VEC_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
+      m->ul.pucch_sinr =
+          SRSLTE_VEC_PMA(m->ul.pucch_sinr, m->ul.n_samples_pucch, m_->ul.pucch_sinr, m_->ul.n_samples_pucch);
       m->ul.mcs         = SRSLTE_VEC_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);
       m->ul.rssi        = SRSLTE_VEC_PMA(m->ul.rssi, m->ul.n_samples, m_->ul.rssi, m_->ul.n_samples);
       m->ul.turbo_iters = SRSLTE_VEC_PMA(m->ul.turbo_iters, m->ul.n_samples, m_->ul.turbo_iters, m_->ul.n_samples);
       m->ul.n_samples += m_->ul.n_samples;
+      m->ul.n_samples_pucch += m_->ul.n_samples_pucch;
     }
   }
   return cnt;

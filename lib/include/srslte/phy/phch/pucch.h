@@ -83,6 +83,7 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_uci_value_t uci_data;
   float              dmrs_correlation;
+  float              snr_db;
   float              correlation;
   bool               detected;
 

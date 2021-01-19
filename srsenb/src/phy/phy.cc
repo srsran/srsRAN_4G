@@ -215,10 +215,12 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
       metrics[j].dl.mcs += metrics_tmp[j].dl.n_samples * metrics_tmp[j].dl.mcs;
 
       metrics[j].ul.n_samples += metrics_tmp[j].ul.n_samples;
+      metrics[j].ul.n_samples_pucch += metrics_tmp[j].ul.n_samples_pucch;
       metrics[j].ul.mcs += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.mcs;
       metrics[j].ul.n += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.n;
       metrics[j].ul.rssi += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.rssi;
-      metrics[j].ul.sinr += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.sinr;
+      metrics[j].ul.pusch_sinr += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.pusch_sinr;
+      metrics[j].ul.pucch_sinr += metrics_tmp[j].ul.n_samples_pucch * metrics_tmp[j].ul.pucch_sinr;
       metrics[j].ul.turbo_iters += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.turbo_iters;
     }
   }
@@ -227,7 +229,8 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
     metrics[j].ul.mcs /= metrics[j].ul.n_samples;
     metrics[j].ul.n /= metrics[j].ul.n_samples;
     metrics[j].ul.rssi /= metrics[j].ul.n_samples;
-    metrics[j].ul.sinr /= metrics[j].ul.n_samples;
+    metrics[j].ul.pusch_sinr /= metrics[j].ul.n_samples;
+    metrics[j].ul.pucch_sinr /= metrics[j].ul.n_samples_pucch;
     metrics[j].ul.turbo_iters /= metrics[j].ul.n_samples;
   }
 }

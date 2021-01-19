@@ -388,7 +388,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi
   return SRSLTE_SUCCESS;
 }
 
-int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr)
+int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr, ul_channel_t ch)
 {
   log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
@@ -397,7 +397,7 @@ int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr
     return SRSLTE_ERROR;
   }
 
-  return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, 0);
+  return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, (uint32_t)ch);
 }
 
 int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)

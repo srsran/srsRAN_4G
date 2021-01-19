@@ -83,8 +83,8 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
-    cout << "------DL--------------------------------UL------------------------------------" << endl;
-    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  snr  phr mcs brate   ok  nok  (%)   bsr" << endl;
+    cout << "------DL-------------------------------UL--------------------------------------------" << endl;
+    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  pusch pucch phr mcs brate   ok  nok  (%)   bsr" << endl;
   }
 
   for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
@@ -122,13 +122,20 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     } else {
       cout << float_to_string(0, 1, 4) << "%";
     }
-    cout << " ";
+    cout << "  ";
 
-    if (not isnan(metrics.phy[i].ul.sinr)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.sinr), 2, 4);
+    if (not isnan(metrics.phy[i].ul.pusch_sinr)) {
+      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.pusch_sinr), 2, 5);
     } else {
-      cout << float_to_string(0, 1, 4);
+      cout << float_to_string(0, 2, 5);
     }
+
+    if (not isnan(metrics.phy[i].ul.pucch_sinr)) {
+      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.pucch_sinr), 2, 5);
+    } else {
+      cout << float_to_string(0, 2, 5);
+    }
+    cout << " ";
 
     cout << float_to_string(metrics.stack.mac.ues[i].phr, 2, 5);
     if (not isnan(metrics.phy[i].ul.mcs)) {

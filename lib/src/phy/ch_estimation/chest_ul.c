@@ -11,6 +11,7 @@
  */
 
 #include <complex.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -392,23 +393,46 @@ int srslte_chest_ul_estimate_pusch(srslte_chest_ul_t*     q,
   return 0;
 }
 
+static float
+estimate_noise_pilots_pucch(srslte_chest_ul_t* q, cf_t* ce, uint32_t n_rs, uint32_t n_prb[SRSLTE_NOF_SLOTS_PER_SF])
+{
+
+  float power = 0;
+  for (int ns = 0; ns < SRSLTE_NOF_SLOTS_PER_SF; ns++) {
+    for (int i = 0; i < n_rs; i++) {
+      // All CE are the same, so pick the first symbol of the first slot always and compare with the noisy estimates
+      power += srslte_chest_estimate_noise_pilots(
+          &q->pilot_estimates[(i + ns * n_rs) * SRSLTE_NRE],
+          &ce[SRSLTE_RE_IDX(q->cell.nof_prb, ns * SRSLTE_CP_NSYMB(q->cell.cp), n_prb[ns] * SRSLTE_NRE)],
+          q->tmp_noise,
+          SRSLTE_NRE);
+    }
+  }
+
+  power /= (SRSLTE_NOF_SLOTS_PER_SF * n_rs);
+
+  if (q->smooth_filter_len == 3) {
+    // Calibrated for filter length 3
+    float w = q->smooth_filter[0];
+    float a = 7.419 * w * w + 0.1117 * w - 0.005387;
+    return (power / (a * 0.8));
+  } else {
+    return power;
+  }
+}
+
 int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
                                    srslte_ul_sf_cfg_t*    sf,
                                    srslte_pucch_cfg_t*    cfg,
                                    cf_t*                  input,
                                    srslte_chest_ul_res_t* res)
 {
-  if (!q->dmrs_signal_configured) {
-    ERROR("Error must call srslte_chest_ul_set_cfg() before using the UL estimator\n");
-    return SRSLTE_ERROR;
-  }
-
   int n_rs = srslte_refsignal_dmrs_N_rs(cfg->format, q->cell.cp);
   if (!n_rs) {
     ERROR("Error computing N_rs\n");
     return SRSLTE_ERROR;
   }
-  int nrefs_sf = SRSLTE_NRE * n_rs * 2;
+  int nrefs_sf = SRSLTE_NRE * n_rs * SRSLTE_NOF_SLOTS_PER_SF;
 
   /* Get references from the input signal */
   srslte_refsignal_dmrs_pucch_get(&q->dmrs_signal, cfg, input, q->pilot_recv_signal);
@@ -446,8 +470,29 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
     srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
   }
 
-  if (cfg->meas_ta_en && n_rs > 0) {
-    float ta_err = 0.0;
+  // Measure power
+  float rsrp_avg = 0.0f;
+  for (int ns = 0; ns < SRSLTE_NOF_SLOTS_PER_SF; ns++) {
+    for (int i = 0; i < n_rs; i++) {
+      cf_t corr = srslte_vec_acc_cc(q->pilot_estimates, SRSLTE_NOF_SLOTS_PER_SF * SRSLTE_NRE * n_rs) / (SRSLTE_NRE);
+      rsrp_avg += __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+    }
+  }
+  rsrp_avg /= SRSLTE_NOF_SLOTS_PER_SF * n_rs;
+  float epre = srslte_vec_avg_power_cf(q->pilot_estimates, SRSLTE_NOF_SLOTS_PER_SF * SRSLTE_NRE * n_rs);
+
+  // RSRP shall not be greater than EPRE
+  rsrp_avg = SRSLTE_MIN(rsrp_avg, epre);
+
+  // Set EPRE and RSRP
+  res->epre      = epre;
+  res->epre_dBfs = srslte_convert_power_to_dB(res->epre);
+  res->rsrp      = rsrp_avg;
+  res->rsrp_dBfs = srslte_convert_power_to_dB(res->rsrp);
+
+  // Estimate time alignment
+  if (cfg->meas_ta_en) {
+    float ta_err = 0.0f;
     for (int ns = 0; ns < SRSLTE_NOF_SLOTS_PER_SF; ns++) {
       for (int i = 0; i < n_rs; i++) {
         ta_err += srslte_vec_estimate_frequency(&q->pilot_estimates[(i + ns * n_rs) * SRSLTE_NRE], SRSLTE_NRE) /
@@ -467,6 +512,8 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
   }
 
   if (res->ce != NULL) {
+    uint32_t n_prb[2] = {};
+
     /* TODO: Currently averaging entire slot, performance good enough? */
     for (int ns = 0; ns < 2; ns++) {
       // Average all slot
@@ -490,14 +537,31 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
                                   q->smooth_filter_len);
 
       // Determine n_prb
-      uint32_t n_prb = srslte_pucch_n_prb(&q->cell, cfg, ns);
+      n_prb[ns] = srslte_pucch_n_prb(&q->cell, cfg, ns);
 
       // copy estimates to slot
       for (int i = 0; i < SRSLTE_CP_NSYMB(q->cell.cp); i++) {
-        memcpy(&res->ce[SRSLTE_RE_IDX(q->cell.nof_prb, i + ns * SRSLTE_CP_NSYMB(q->cell.cp), n_prb * SRSLTE_NRE)],
-               &q->pilot_recv_signal[ns * n_rs * SRSLTE_NRE],
-               sizeof(cf_t) * SRSLTE_NRE);
+        srslte_vec_cf_copy(
+            &res->ce[SRSLTE_RE_IDX(q->cell.nof_prb, i + ns * SRSLTE_CP_NSYMB(q->cell.cp), n_prb[ns] * SRSLTE_NRE)],
+            &q->pilot_recv_signal[ns * n_rs * SRSLTE_NRE],
+            SRSLTE_NRE);
       }
+    }
+
+    // Estimate noise/interference
+    res->noise_estimate = estimate_noise_pilots_pucch(q, res->ce, n_rs, n_prb);
+    if (fpclassify(res->noise_estimate) == FP_ZERO) {
+      res->noise_estimate = FLT_MIN;
+    }
+    res->noise_estimate_dbm = srslte_convert_power_to_dBm(res->noise_estimate);
+
+    // Estimate SINR
+    if (isnormal(res->noise_estimate)) {
+      res->snr    = res->rsrp / res->noise_estimate;
+      res->snr_db = srslte_convert_power_to_dB(res->snr);
+    } else {
+      res->snr    = NAN;
+      res->snr_db = NAN;
     }
   }
 

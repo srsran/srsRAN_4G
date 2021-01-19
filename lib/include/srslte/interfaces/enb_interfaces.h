@@ -123,6 +123,8 @@ public:
    */
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) = 0;
 
+  typedef enum { PUSCH = 0, PUCCH, SRS } ul_channel_t;
+
   /**
    * PHY callback for giving MAC the SNR in dB of an UL transmission for a given RNTI at a given carrier
    *
@@ -130,9 +132,10 @@ public:
    * @param rnti The UE identifier in the eNb
    * @param cc_idx The eNb Cell/Carrier where the UL transmission was received
    * @param snr_db The actual SNR of the received signal
+   * @param ch Indicates uplink channel (PUSCH, PUCCH or SRS)
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
-  virtual int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) = 0;
+  virtual int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) = 0;
 
   /**
    * PHY callback for giving MAC the Time Aligment information in microseconds of a given RNTI during a TTI processing

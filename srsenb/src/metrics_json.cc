@@ -100,8 +100,8 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
   if (m.stack.mac.ues[i].tx_pkts > 0 && m.stack.mac.ues[i].tx_errors > 0) {
     ue.write<metric_dl_bler>(std::max(0.1f, (float)100 * m.stack.mac.ues[i].tx_errors / m.stack.mac.ues[i].tx_pkts));
   }
-  if (!std::isnan(m.phy[i].ul.sinr)) {
-    ue.write<metric_ul_snr>(std::max(0.1f, m.phy[i].ul.sinr));
+  if (!std::isnan(m.phy[i].ul.pusch_sinr)) {
+    ue.write<metric_ul_snr>(std::max(0.1f, m.phy[i].ul.pusch_sinr));
   }
   if (!std::isnan(m.phy[i].ul.mcs)) {
     ue.write<metric_ul_mcs>(std::max(0.1f, m.phy[i].ul.mcs));
