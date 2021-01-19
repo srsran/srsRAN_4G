@@ -322,15 +322,19 @@ void ue::deallocate_pdu(uint32_t tti, const uint8_t* pdu_ptr)
 
 void ue::push_pdu(uint32_t tti, const uint8_t* pdu_ptr, uint32_t len)
 {
-  if (pdu_ptr && len > 0) {
+  if (pdu_ptr) {
     if (rx_used_buffers[tti] == pdu_ptr) {
       rx_used_buffers[tti] = nullptr;
     } else {
       Warning("buffers: Unexpected RX PDU pointer in push_pdu for rnti=0x%x pid=%d\n", rnti, tti % nof_rx_harq_proc);
     }
-    pdus.push(pdu_ptr, len);
+    if (len > 0) {
+      pdus.push(pdu_ptr, len);
+    } else {
+      Error("Error pushing PDU: null length\n");
+    }
   } else {
-    Error("Error pushing PDU: ptr=%p, len=%d\n", pdu_ptr, len);
+    Error("Error pushing PDU: null pointer\n");
   }
 }
 
