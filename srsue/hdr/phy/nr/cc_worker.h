@@ -71,6 +71,8 @@ public:
 
   bool work_dl();
 
+  int read_pdsch_d(cf_t* pdsch_d);
+
 private:
   srslte_dl_slot_cfg_t                dl_slot_cfg = {};
   uint32_t                            cc_idx      = 0;

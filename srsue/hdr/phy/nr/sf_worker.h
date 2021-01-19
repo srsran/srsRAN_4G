@@ -49,6 +49,8 @@ public:
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
   void     set_tti(uint32_t tti);
+  int      read_pdsch_d(cf_t* pdsch_d);
+  void     start_plot();
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */

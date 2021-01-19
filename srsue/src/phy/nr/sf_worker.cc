@@ -21,6 +21,18 @@
 
 #include "srsue/hdr/phy/nr/sf_worker.h"
 
+#ifdef ENABLE_GUI
+#include "srsgui/srsgui.h"
+#include <semaphore.h>
+
+static void      init_plots(srsue::nr::sf_worker* worker);
+static pthread_t plot_thread;
+static sem_t     plot_sem;
+static int       plot_worker_id = -1;
+#else
+#pragma message "Compiling without srsGUI support"
+#endif
+
 namespace srsue {
 namespace nr {
 sf_worker::sf_worker(phy_nr_state* phy_state_, srslte::log* log) : phy_state(phy_state_), log_h(log)
@@ -67,7 +79,83 @@ void sf_worker::work_imp()
   for (auto& w : cc_workers) {
     w->work_dl();
   }
+
+  /* Tell the plotting thread to draw the plots */
+#ifdef ENABLE_GUI
+  if ((int)get_id() == plot_worker_id) {
+    sem_post(&plot_sem);
+  }
+#endif
+}
+
+int sf_worker::read_pdsch_d(cf_t* pdsch_d)
+{
+  return cc_workers[0]->read_pdsch_d(pdsch_d);
+}
+
+void sf_worker::start_plot()
+{
+#ifdef ENABLE_GUI
+  if (plot_worker_id == -1) {
+    plot_worker_id = get_id();
+    srslte::console("Starting NR plot for worker_id=%d\n", plot_worker_id);
+    init_plots(this);
+  } else {
+    srslte::console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
+  }
+#else
+  srslte::console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in sf_worker.cc)\n");
+#endif
 }
 
 } // namespace nr
 } // namespace srsue
+
+#ifdef ENABLE_GUI
+extern plot_scatter_t pconst_nr;
+extern bool           pconst_nr_ready;
+#define SCATTER_PDSCH_PLOT_LEN 4000
+static cf_t tmp_pconst_nr[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+extern bool plot_quit;
+
+static void* plot_thread_run(void* arg)
+{
+  auto worker = (srsue::nr::sf_worker*)arg;
+  sleep(1);
+  int readed_pdsch_re = 0;
+  while (!plot_quit) {
+    sem_wait(&plot_sem);
+
+    if (readed_pdsch_re < SCATTER_PDSCH_PLOT_LEN) {
+      int n = worker->read_pdsch_d(&tmp_pconst_nr[readed_pdsch_re]);
+      readed_pdsch_re += n;
+    } else {
+      if (readed_pdsch_re > 0 and pconst_nr_ready) {
+        plot_scatter_setNewData(&pconst_nr, tmp_pconst_nr, readed_pdsch_re);
+      }
+      readed_pdsch_re = 0;
+    }
+  }
+  return nullptr;
+}
+
+static void init_plots(srsue::nr::sf_worker* worker)
+{
+  if (sem_init(&plot_sem, 0, 0)) {
+    perror("sem_init");
+    exit(-1);
+  }
+
+  pthread_attr_t     attr;
+  struct sched_param param = {};
+  param.sched_priority     = 0;
+  pthread_attr_init(&attr);
+  pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+  pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+  pthread_attr_setschedparam(&attr, &param);
+  if (pthread_create(&plot_thread, &attr, plot_thread_run, worker)) {
+    perror("pthread_create");
+    exit(-1);
+  }
+}
+#endif

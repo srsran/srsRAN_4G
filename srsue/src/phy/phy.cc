@@ -441,6 +441,9 @@ void phy::set_crnti(uint16_t rnti)
 void phy::start_plot()
 {
   lte_workers[0]->start_plot();
+  if (args.nof_nr_carriers > 0) {
+    nr_workers[0]->start_plot();
+  }
 }
 
 void phy::enable_pregen_signals(bool enable)
