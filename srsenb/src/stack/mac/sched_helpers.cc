@@ -216,7 +216,8 @@ sched_cell_params_t::dl_lb_nof_re_table get_lb_nof_re_x_prb(const sched_cell_par
         re_prb_vec[p] += table[p][sf_idx][s][SRSLTE_NOF_CFI - 1];
       }
     }
-    srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec2(re_prb_vec);
+    srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec2(re_prb_vec.size());
+    std::copy(re_prb_vec.begin(), re_prb_vec.end(), re_prb_vec2.begin());
     ret[sf_idx][0] = *std::min_element(re_prb_vec2.begin(), re_prb_vec2.end());
     for (uint32_t p = 1; p < table.size(); ++p) {
       std::transform(re_prb_vec2.begin(),
