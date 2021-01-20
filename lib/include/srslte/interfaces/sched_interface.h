@@ -31,7 +31,7 @@ public:
 
   const static int MAX_SIB_PAYLOAD_LEN = 2048;
   const static int MAX_SIBS            = 16;
-  const static int MAX_LC              = 6;
+  const static int MAX_LC              = 10;
   const static int MAX_LC_GROUP        = 4;
   const static int MAX_DATA_LIST       = 32;
   const static int MAX_RAR_LIST        = 8;
