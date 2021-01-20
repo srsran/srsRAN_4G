@@ -143,6 +143,22 @@ void sched_ue_cell::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
  *                    TBS/MCS derivation
  ************************************************************/
 
+/**
+ * Implementation of false position method to iteratively find zero of given monotonic discrete function
+ * @tparam YType type of y axis
+ * @tparam Callable callable with interface "YType function(int)"
+ * @tparam ErrorDetect callable with interface "bool function(YType)"
+ * @param x1 min x value of input interval
+ * @param x2 max x value of input interval
+ * @param y0 target y value
+ * @param f monotonic function "YType f(int)" that crosses zero within [x1, x2]
+ * @param is_error returns true if an error has been detected
+ * @return solution of false position. It contains the interval when "f(x)" crossed y0. In case,
+ *         - f(x2) <= y0 -> return is tuple(x2, y2, x2, y2)
+ *         - f(x1) >= y0 -> return is tuple(x1, x1, x1, x1)
+ *         - x' in ]x1, x2[, such that f(x') < y0 and f(x'+1) > y0 -> return is tuple(x', f(x'), x'+1, f(x'+1))
+ *         - x' in ]x1, x2[, such that f(x') == y0 -> return is tuple(x', f(x'), x', f(x'))
+ */
 template <typename YType, typename Callable, typename ErrorDetect>
 std::tuple<int, YType, int, YType>
 false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDetect& is_error)
