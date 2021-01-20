@@ -374,7 +374,7 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
       // Inform MAC about the CRC result
       phy->stack->crc_info(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
       // Push PDU buffer
-      phy->stack->push_pdu(tti_rx, rnti, grants[i].data, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
+      phy->stack->push_pdu(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
       // Logging
       if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         char str[512];
