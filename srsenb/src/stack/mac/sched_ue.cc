@@ -452,13 +452,15 @@ tbs_info sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
     h->new_tx(
         user_mask, tb, tti_tx_dl, tb_info.mcs, tb_info.tbs_bytes, data->dci.location.ncce, get_ue_cfg().maxharq_tx);
   } else {
+    // Note: At this point, the allocation of bytes to a TB should not fail, unless the RLC buffers have been
+    //       emptied by another allocated tb_idx.
     uint32_t pending_bytes = lch_handler.get_dl_tx_total();
     if (pending_bytes > 0) {
       Warning("SCHED: Failed to allocate DL TB with tb_idx=%d, tbs=%d, pid=%d. Pending DL buffer data=%d\n",
               tb,
               rem_tbs,
               h->get_id(),
-              lch_handler.get_dl_tx_total());
+              pending_bytes);
     } else {
       Info("SCHED: DL TB tb_idx=%d, tbs=%d, pid=%d did not get allocated.\n", tb, rem_tbs, h->get_id());
     }
