@@ -173,6 +173,11 @@ bool basic_test()
 
   assert(0 == rlc2.get_buffer_state());
 
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.ack_sn == 5); // 5 is the last SN that was not received.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
@@ -225,7 +230,21 @@ bool concat_test()
   // Write PDU into RLC2
   rlc2.write_pdu(pdu_buf.msg, pdu_buf.N_bytes);
 
-  // No status report as we haven't crossed polling thresholds
+  // Check status report
+  TESTASSERT(2 == rlc2.get_buffer_state());
+  byte_buffer_t status_buf;
+  len                = rlc2.read_pdu(status_buf.msg, 2);
+  status_buf.N_bytes = len;
+
+  TESTASSERT(0 == rlc2.get_buffer_state());
+
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.ack_sn == 1); // 1 is the last SN that was not received.
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   assert(tester.n_sdus == 5);
   for (int i = 0; i < tester.n_sdus; i++) {
@@ -301,6 +320,11 @@ bool segment_test(bool in_seq_rx)
     byte_buffer_t status_buf;
     len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
     status_buf.N_bytes = len;
+
+    // Assert status is correct
+    rlc_status_pdu_t status_check = {};
+    rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+    TESTASSERT(status_check.ack_sn == n_pdus); // n_pdus (8) is the last SN that was not received.
 
     // Write status PDU to RLC1
     rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
@@ -383,6 +407,16 @@ bool retx_test()
   len                = rlc2.read_pdu(status_buf.msg, buffer_state); // provide exactly the reported buffer state
   status_buf.N_bytes = len;
 
+  // Assert all bytes for status PDU were read
+  buffer_state = rlc2.get_buffer_state();
+  TESTASSERT(0 == buffer_state);
+
+  // Assert status is correct
+  rlc_status_pdu_t status_check = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
+  TESTASSERT(status_check.N_nack == 1); // 1 packet was lost.
+  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 4.
+
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
@@ -433,7 +467,7 @@ bool segment_retx_test()
   for (uint32_t i = 0; i < nof_sdus; i++) {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
     sdu_bufs[i]->msg[0]  = i;  // Write the index into the buffer
-    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
