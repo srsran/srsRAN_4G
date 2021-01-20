@@ -115,25 +115,24 @@ void sf_worker::start_plot()
 extern plot_scatter_t pconst_nr;
 extern bool           pconst_nr_ready;
 #define SCATTER_PDSCH_PLOT_LEN 4000
-static cf_t tmp_pconst_nr[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+static cf_t tmp_pconst_nr[SRSLTE_NSYMB_PER_SLOT_NR * SRSLTE_NRE * SRSLTE_MAX_PRB_NR] = {};
 extern bool plot_quit;
 
 static void* plot_thread_run(void* arg)
 {
   auto worker = (srsue::nr::sf_worker*)arg;
-  sleep(1);
-  int readed_pdsch_re = 0;
+  int  pdsch_re_count = 0;
   while (!plot_quit) {
     sem_wait(&plot_sem);
 
-    if (readed_pdsch_re < SCATTER_PDSCH_PLOT_LEN) {
-      int n = worker->read_pdsch_d(&tmp_pconst_nr[readed_pdsch_re]);
-      readed_pdsch_re += n;
+    if (pdsch_re_count < SCATTER_PDSCH_PLOT_LEN) {
+      int n = worker->read_pdsch_d(&tmp_pconst_nr[pdsch_re_count]);
+      pdsch_re_count += n;
     } else {
-      if (readed_pdsch_re > 0 and pconst_nr_ready) {
-        plot_scatter_setNewData(&pconst_nr, tmp_pconst_nr, readed_pdsch_re);
+      if (pdsch_re_count > 0 and pconst_nr_ready) {
+        plot_scatter_setNewData(&pconst_nr, tmp_pconst_nr, pdsch_re_count);
       }
-      readed_pdsch_re = 0;
+      pdsch_re_count = 0;
     }
   }
   return nullptr;

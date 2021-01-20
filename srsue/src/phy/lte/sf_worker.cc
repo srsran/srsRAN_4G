@@ -39,6 +39,7 @@ static void      init_plots(srsue::lte::sf_worker* worker);
 static pthread_t plot_thread;
 static sem_t     plot_sem;
 static int       plot_worker_id = -1;
+static bool      plot_nr_enable = false;
 #else
 #pragma message "Compiling without srsGUI support"
 #endif
@@ -294,6 +295,7 @@ void sf_worker::start_plot()
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
+    plot_nr_enable = phy->args->nof_nr_carriers > 0;
     srslte::console("Starting plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
@@ -386,8 +388,10 @@ static void* plot_thread_run(void* arg)
   plot_scatter_setXAxisScale(&pconst_nr, -4, 4);
   plot_scatter_setYAxisScale(&pconst_nr, -4, 4);
 
-  plot_scatter_addToWindowGrid(&pconst_nr, (char*)"srsue", 0, row_count++);
-  pconst_nr_ready = true;
+  if (plot_nr_enable) {
+    plot_scatter_addToWindowGrid(&pconst_nr, (char*)"srsue", 0, row_count++);
+    pconst_nr_ready = true;
+  }
 
 #if CFO_PLOT_LEN > 0
   plot_real_init(&pcfo);
