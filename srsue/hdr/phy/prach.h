@@ -30,7 +30,6 @@ public:
   void  init(uint32_t max_prb, srslte::log* log_h);
   void  stop();
   bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
-  void  reset_cfg();
   bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
   bool  is_ready_to_send(uint32_t current_tti, uint32_t current_pci);
   bool  is_pending() const;
