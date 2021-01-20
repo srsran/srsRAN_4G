@@ -507,7 +507,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
     uint32_t     RB_start = prb_int.start();
     dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
     dci->format           = SRSLTE_DCI_FORMAT1A;
-    if (L_crb != cell_nof_rbg_to_prb(user_mask.size())) {
+    if (L_crb != count_prb_per_tb(user_mask)) {
       // This happens if Type0 was using distributed allocation
       Warning("SCHED: Can't use distributed RA due to DCI size ambiguity\n");
     }
