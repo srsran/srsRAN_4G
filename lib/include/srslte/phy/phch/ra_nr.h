@@ -26,11 +26,8 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common_nr.h"
+#include "srslte/phy/phch/dci_nr.h"
 #include "srslte/phy/phch/phch_cfg_nr.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * @brief Determines target rate
@@ -85,9 +82,22 @@ SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
                                     const srslte_sch_grant_nr_t* grant,
                                     uint32_t                     mcs_idx,
                                     srslte_sch_tb_t*             tb);
-
-#ifdef __cplusplus
-}
-#endif
+/**
+ * @brief Converts an unpacked DL DCI message to a PDSCH grant structure.
+ * Implements the procedures defined in Section 5 of 38.214 to compute the resource allocation (5.1.2)
+ * and modulation order, target rate, redundancy version and TBS (5.1.3)
+ *
+ * Note: Only TypeA PDSCH mapping type is supported
+ *
+ * @param carrier Carrier information struct
+ * @param pdsch_cfg PDSCH configuration indicated by higher layers
+ * @param dci_dl DCI downlink (format 1_0 or 1_1)
+ * @param pdsch_grant Generated PDSCH grant
+ * @return 0 on success, -1 on error
+ */
+SRSLTE_API int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t* carrier,
+                                            const srslte_sch_cfg_nr_t* pdsch_cfg,
+                                            const srslte_dci_dl_nr_t*  dci_dl,
+                                            srslte_sch_grant_nr_t*     pdsch_grant);
 
 #endif // SRSLTE_RA_NR_H

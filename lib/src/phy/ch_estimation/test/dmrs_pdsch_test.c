@@ -12,7 +12,7 @@
 
 #include "srslte/common/test_common.h"
 #include "srslte/phy/ch_estimation/dmrs_sch.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/srslte.h"
 #include <complex.h>
 #include <stdio.h>
@@ -312,7 +312,7 @@ int main(int argc, char** argv)
                    grant.nof_dmrs_cdm_groups_without_data++) {
 
                 // Load default type A grant
-                srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &grant);
+                srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &grant);
 
                 // Copy configuration
                 pdsch_cfg.dmrs_typeB = pdsch_cfg.dmrs_typeA;

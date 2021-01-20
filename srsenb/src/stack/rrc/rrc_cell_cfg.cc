@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
+#include "srslte/phy/utils/vector.h"
 
 using namespace asn1::rrc;
 

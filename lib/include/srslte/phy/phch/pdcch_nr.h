@@ -22,7 +22,6 @@
 #define SRSLTE_PDCCH_NR_H
 
 #include "dci_nr.h"
-#include "srslte/config.h"
 #include "srslte/phy/ch_estimation/dmrs_pdcch.h"
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/fec/crc.h"
@@ -30,6 +29,8 @@
 #include "srslte/phy/fec/polar/polar_decoder.h"
 #include "srslte/phy/fec/polar/polar_encoder.h"
 #include "srslte/phy/fec/polar/polar_rm.h"
+#include "srslte/phy/modem/evm.h"
+#include "srslte/phy/modem/modem_table.h"
 
 /**
  * @brief PDCCH configuration initialization arguments

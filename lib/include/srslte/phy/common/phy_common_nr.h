@@ -132,6 +132,10 @@ typedef enum SRSLTE_API { srslte_sch_mapping_type_A = 0, srslte_sch_mapping_type
 
 typedef enum SRSLTE_API {
   srslte_search_space_type_common = 0,
+  srslte_search_space_type_common_0,
+  srslte_search_space_type_common_0A,
+  srslte_search_space_type_common_1,
+  srslte_search_space_type_common_2,
   srslte_search_space_type_ue,
 } srslte_search_space_type_t;
 

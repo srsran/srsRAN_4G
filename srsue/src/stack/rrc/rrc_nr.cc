@@ -181,8 +181,8 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   band_combination_v1540_s       band_combination_v1540;
 
   band_params_v1540_s band_params_a;
-  band_params_a.srs_tx_switch_present       = true;
-  band_params_a.srs_carrier_switch_present  = false;
+  band_params_a.srs_tx_switch_present      = true;
+  band_params_a.srs_carrier_switch_present = false;
   band_params_a.srs_tx_switch.supported_srs_tx_port_switch =
       band_params_v1540_s::srs_tx_switch_s_::supported_srs_tx_port_switch_opts::not_supported;
   band_combination_v1540.band_list_v1540.push_back(band_params_a);

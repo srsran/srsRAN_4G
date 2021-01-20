@@ -11,6 +11,13 @@
  */
 
 #include "srslte/phy/ch_estimation/dmrs_pdcch.h"
+#include "srslte/phy/ch_estimation/chest_common.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/utils/convolution.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include <complex.h>
+#include <math.h>
 
 /// @brief Every frequency resource is 6 Resource blocks, every resource block carries 3 pilots. So 18 possible pilots
 /// per frequency resource.

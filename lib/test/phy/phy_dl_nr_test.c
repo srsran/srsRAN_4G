@@ -11,9 +11,9 @@
  */
 
 #include "srslte/phy/enb/enb_dl_nr.h"
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/ue/ue_dl_nr.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
@@ -95,14 +95,22 @@ int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
     return SRSLTE_ERROR;
   }
 
+  // Hard-coded values
+  dci_dl->format       = srslte_dci_format_nr_1_0;
+  dci_dl->rnti_type    = srslte_rnti_type_c;
+  dci_dl->location     = *dci_location;
+  dci_dl->search_space = *search_space;
+  dci_dl->rnti         = rnti;
+
   // Put actual DCI
-  if (srslte_enb_dl_nr_pdcch_put(enb_dl, slot, search_space, dci_dl, dci_location, rnti) < SRSLTE_SUCCESS) {
+  if (srslte_enb_dl_nr_pdcch_put(enb_dl, slot, dci_dl) < SRSLTE_SUCCESS) {
     ERROR("Error putting PDCCH\n");
     return SRSLTE_ERROR;
   }
 
   // Put PDSCH transmission
-  if (srslte_enb_dl_nr_pdsch_put(enb_dl, slot, &pdsch_cfg, &pdsch_grant, data_tx) < SRSLTE_SUCCESS) {
+  pdsch_cfg.grant = pdsch_grant;
+  if (srslte_enb_dl_nr_pdsch_put(enb_dl, slot, &pdsch_cfg, data_tx) < SRSLTE_SUCCESS) {
     ERROR("Error putting PDSCH\n");
     return SRSLTE_ERROR;
   }
@@ -131,7 +139,8 @@ int work_ue_dl(srslte_ue_dl_nr_t*     ue_dl,
     return SRSLTE_ERROR;
   }
 
-  if (srslte_ue_dl_nr_pdsch_get(ue_dl, slot, &pdsch_cfg, &pdsch_grant, pdsch_res) < SRSLTE_SUCCESS) {
+  pdsch_cfg.grant = pdsch_grant;
+  if (srslte_ue_dl_nr_decode_pdsch(ue_dl, slot, &pdsch_cfg, pdsch_res) < SRSLTE_SUCCESS) {
     ERROR("Error decoding\n");
     return SRSLTE_ERROR;
   }
@@ -254,7 +263,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }

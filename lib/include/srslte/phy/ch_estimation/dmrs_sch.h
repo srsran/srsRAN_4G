@@ -13,14 +13,10 @@
 #ifndef SRSLTE_DMRS_SCH_H
 #define SRSLTE_DMRS_SCH_H
 
+#include "srslte/phy/ch_estimation/chest_dl.h"
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/phch_cfg_nr.h"
-#include "srslte/srslte.h"
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define SRSLTE_DMRS_SCH_MAX_SYMBOLS 4
 
@@ -155,9 +151,5 @@ SRSLTE_API int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
                                         const srslte_sch_grant_nr_t* grant,
                                         const cf_t*                  sf_symbols,
                                         srslte_chest_dl_res_t*       chest_res);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SRSLTE_DMRS_SCH_H

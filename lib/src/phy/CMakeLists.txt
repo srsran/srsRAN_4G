@@ -41,6 +41,6 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
         $<TARGET_OBJECTS:srslte_enb>
         )
 
-add_library(srslte_phy STATIC ${srslte_srcs})
+add_library(srslte_phy STATIC ${srslte_srcs} )
 target_link_libraries(srslte_phy pthread m ${FFT_LIBRARIES})
 INSTALL(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})

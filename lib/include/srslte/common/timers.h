@@ -20,6 +20,7 @@
 #ifndef SRSLTE_TIMERS_H
 #define SRSLTE_TIMERS_H
 
+#include "srslte/phy/utils/debug.h"
 #include <algorithm>
 #include <functional>
 #include <limits>
@@ -29,8 +30,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <vector>
-
-#include "srslte/srslte.h"
 
 namespace srslte {
 

@@ -20,10 +20,6 @@
 #include "srslte/phy/phch/pdcch_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct SRSLTE_API {
   srslte_pdsch_nr_args_t pdsch;
   srslte_pdcch_nr_args_t pdcch;
@@ -71,21 +67,16 @@ SRSLTE_API int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*           q,
                                            srslte_dci_dl_nr_t*          dci_dl_list,
                                            uint32_t                     nof_dci_msg);
 
-SRSLTE_API int srslte_ue_dl_nr_pdsch_get(srslte_ue_dl_nr_t*           q,
-                                         const srslte_dl_slot_cfg_t*  slot,
-                                         const srslte_sch_cfg_nr_t*   cfg,
-                                         const srslte_sch_grant_nr_t* grant,
-                                         srslte_pdsch_res_nr_t*       res);
+SRSLTE_API int srslte_ue_dl_nr_decode_pdsch(srslte_ue_dl_nr_t*          q,
+                                            const srslte_dl_slot_cfg_t* slot,
+                                            const srslte_sch_cfg_nr_t*  cfg,
+                                            srslte_pdsch_res_nr_t*      res);
 
 SRSLTE_API int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*     q,
                                           const srslte_sch_cfg_nr_t*   cfg,
-                                          const srslte_sch_grant_nr_t* grant,
                                           const srslte_pdsch_res_nr_t  res[SRSLTE_MAX_CODEWORDS],
                                           char*                        str,
                                           uint32_t                     str_len);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SRSLTE_UE_DL_NR_H

@@ -24,10 +24,6 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/sch_cfg_nr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief PDSCH DMRS type
  */
@@ -100,7 +96,7 @@ typedef struct SRSLTE_API {
   /// (SLIV). The network configures the field so that the allocation does not cross the slot boundary
   uint32_t sliv;
 
-} srslte_pdsch_allocation_t;
+} srslte_pdsch_time_ra_t;
 
 /**
  * @brief PDSCH grant information provided by the Downlink Control Information (DCI)
@@ -119,6 +115,7 @@ typedef struct SRSLTE_API {
 
   /// Frequency domain resources
   bool prb_idx[SRSLTE_MAX_PRB_NR];
+  uint32_t nof_prb;
 
   /// Number of DMRS groups without data
   /// Described in TS 38.214 Section 5.1.6.2
@@ -153,15 +150,18 @@ typedef struct SRSLTE_API {
 
   srslte_dmrs_sch_cfg_t dmrs_typeA;
   srslte_dmrs_sch_cfg_t dmrs_typeB;
+  srslte_sch_grant_nr_t grant;
+
+  bool pdsch_time_is_default; ///< Set to true if pdsch_time_ra contains the configuration from pdsch-ConfigCommon or
+                              ///< pdsch-Config
+  srslte_pdsch_time_ra_t pdsch_time_ra[SRSLTE_MAX_NOF_DL_ALLOCATION];
+
+  bool rbg_size_cfg_1; ///< RBG size configuration (1 or 2)
 
   srslte_sch_cfg_t sch_cfg; ///< Common shared channel parameters
 
   /// Uplink params
   bool enable_transform_precoder;
 } srslte_sch_cfg_nr_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SRSLTE_PHCH_CFG_NR_H

@@ -28,7 +28,11 @@ typedef struct SRSLTE_API {
 } srslte_dci_msg_nr_t;
 
 typedef struct SRSLTE_API {
-  srslte_rnti_type_t rnti_type;
+  uint16_t               rnti;
+  srslte_rnti_type_t     rnti_type;
+  srslte_dci_format_nr_t format;
+  srslte_dci_location_t  location;
+  srslte_search_space_t  search_space;
 
   // Common fields
   uint32_t freq_domain_assigment; ///< Frequency domain resource assignment
@@ -55,6 +59,11 @@ typedef struct SRSLTE_API {
   uint32_t sii; ///< System information indicator
 
 } srslte_dci_dl_nr_t;
+
+SRSLTE_API int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
+                                  const srslte_coreset_t*    coreset,
+                                  const srslte_dci_dl_nr_t*  dci,
+                                  srslte_dci_msg_nr_t*       msg);
 
 SRSLTE_API SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
                                                           const srslte_coreset_t*    coreset,

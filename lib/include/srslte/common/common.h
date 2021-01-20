@@ -22,6 +22,7 @@
 #include <memory>
 #include <stdint.h>
 #include <string.h>
+#include <sys/time.h>
 
 /*******************************************************************************
                               DEFINES
@@ -74,8 +75,6 @@
 #define pool_allocate (srslte::allocate_unique_buffer(*pool))
 #define pool_allocate_blocking (srslte::allocate_unique_buffer(*pool, true))
 #endif
-
-#include "srslte/srslte.h"
 
 /*******************************************************************************
                               TYPEDEFS

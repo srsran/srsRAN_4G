@@ -11,6 +11,8 @@
  */
 
 #include "srslte/common/mac_pcap.h"
+#include "srslte/config.h"
+#include "srslte/phy/common/phy_common.h"
 #include <stdint.h>
 
 namespace srslte {
@@ -44,8 +46,8 @@ uint32_t mac_pcap::open(const char* filename, uint32_t ue_id_)
     return SRSLTE_ERROR;
   }
 
-  ue_id     = ue_id_;
-  running   = true;
+  ue_id   = ue_id_;
+  running = true;
 
   // start writer thread
   start();

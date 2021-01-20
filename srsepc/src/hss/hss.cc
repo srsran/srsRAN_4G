@@ -11,6 +11,7 @@
  */
 #include "srsepc/hdr/hss/hss.h"
 #include "srslte/common/security.h"
+#include <arpa/inet.h>
 #include <inttypes.h> // for printing uint64_t
 #include <iomanip>
 #include <sstream>

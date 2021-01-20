@@ -17,6 +17,7 @@
 #include "srslte/asn1/rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
+#include "srslte/phy/common/phy_common.h"
 #include <array>
 
 namespace srsenb {

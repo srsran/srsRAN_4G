@@ -20,7 +20,6 @@
 #define SRSLTE_METRICS_HUB_H
 
 #include "srslte/common/threads.h"
-#include "srslte/srslte.h"
 #include <chrono>
 #include <mutex>
 #include <thread>

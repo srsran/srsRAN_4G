@@ -19,6 +19,7 @@
 #define SRSLTE_PDCP_INTERFACE_TYPES_H
 
 #include "srslte/common/security.h"
+#include <math.h>
 #include <stdint.h>
 
 namespace srslte {
@@ -119,7 +120,7 @@ public:
     t_reordering(t_reordering_),
     discard_timer(discard_timer_)
   {
-    hdr_len_bytes = ceil((float)sn_len / 8);
+    hdr_len_bytes = ceilf((float)sn_len / 8);
   }
 
   uint8_t              bearer_id     = 1;

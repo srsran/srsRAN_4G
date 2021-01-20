@@ -26,10 +26,6 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/phch/phch_cfg_nr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Calculates the PUSCH time resource default A and stores it in the provided PUSCH NR grant.
  *
@@ -54,8 +50,5 @@ SRSLTE_API int srslte_ue_ul_nr_pdsch_time_resource_default_A(uint32_t m, srslte_
 SRSLTE_API int srslte_ue_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srslte_sch_cfg_nr_t* cfg,
                                                                            srslte_sch_grant_nr_t*     grant);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SRSLTE_UE_UL_DATA_H

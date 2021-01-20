@@ -12,6 +12,8 @@
 
 #include "srslte/asn1/s1ap.h"
 #include "srslte/common/test_common.h"
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 using namespace asn1;
 using namespace asn1::s1ap;

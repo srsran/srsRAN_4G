@@ -12,6 +12,7 @@
 
 #include "srsepc/hdr/spgw/gtpc.h"
 #include <algorithm>
+#include <arpa/inet.h>
 #include <cstring>
 #include <fcntl.h>
 #include <inttypes.h> // for printing uint64_t

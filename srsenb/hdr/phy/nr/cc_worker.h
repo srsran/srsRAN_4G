@@ -23,6 +23,7 @@
 #define SRSENB_NR_CC_WORKER_H
 
 #include "srslte/common/log.h"
+#include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/phy/enb/enb_dl_nr.h"
 #include <array>
 #include <vector>
@@ -69,9 +70,12 @@ public:
   cf_t*    get_rx_buffer(uint32_t antenna_idx);
   uint32_t get_buffer_len();
 
-  bool work_dl();
+  bool work_dl(const srslte_dl_slot_cfg_t& dl_slot_cfg, stack_interface_phy_nr::dl_sched_t& dl_grants);
 
 private:
+  int encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants);
+  int encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants);
+
   srslte_dl_slot_cfg_t                dl_slot_cfg = {};
   uint32_t                            cc_idx      = 0;
   std::array<cf_t*, SRSLTE_MAX_PORTS> tx_buffer   = {};
@@ -80,10 +84,6 @@ private:
   phy_nr_state*                       phy_state;
   srslte_enb_dl_nr_t                  enb_dl = {};
   srslte::log*                        log_h  = nullptr;
-
-  // Temporal attributes
-  srslte_softbuffer_tx_t softbuffer_tx = {};
-  std::vector<uint8_t>   data;
 };
 
 } // namespace nr

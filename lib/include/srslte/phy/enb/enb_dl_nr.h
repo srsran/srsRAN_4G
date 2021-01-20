@@ -18,10 +18,6 @@
 #include "srslte/phy/phch/pdcch_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct SRSLTE_API {
   srslte_pdsch_nr_args_t pdsch;
   srslte_pdcch_nr_args_t pdcch;
@@ -57,27 +53,17 @@ SRSLTE_API int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q);
 
 SRSLTE_API void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q);
 
-SRSLTE_API int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*          q,
-                                          const srslte_dl_slot_cfg_t*  slot_cfg,
-                                          const srslte_search_space_t* search_space,
-                                          const srslte_dci_dl_nr_t*    dci_dl,
-                                          const srslte_dci_location_t* dci_location,
-                                          uint16_t                     rnti);
+SRSLTE_API int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*         q,
+                                          const srslte_dl_slot_cfg_t* slot_cfg,
+                                          const srslte_dci_dl_nr_t*   dci_dl);
 
-SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*          q,
-                                          const srslte_dl_slot_cfg_t*  slot,
-                                          const srslte_sch_cfg_nr_t*   cfg,
-                                          const srslte_sch_grant_nr_t* grant,
-                                          uint8_t*                     data[SRSLTE_MAX_TB]);
+SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*         q,
+                                          const srslte_dl_slot_cfg_t* slot,
+                                          const srslte_sch_cfg_nr_t*  cfg,
+                                          uint8_t*                    data[SRSLTE_MAX_TB]);
 
-SRSLTE_API int srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t*    q,
-                                           const srslte_sch_cfg_nr_t*   cfg,
-                                           const srslte_sch_grant_nr_t* grant,
-                                           char*                        str,
-                                           uint32_t                     str_len);
+SRSLTE_API int
+srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t* q, const srslte_sch_cfg_nr_t* cfg, char* str, uint32_t str_len);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SRSLTE_ENB_DL_NR_H

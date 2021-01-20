@@ -11,6 +11,7 @@
  */
 
 #include "srslte/phy/ch_estimation/dmrs_sch.h"
+#include "srslte/phy/common/sequence.h"
 #include <srslte/phy/utils/debug.h>
 
 #define SRSLTE_DMRS_SCH_TYPEA_SINGLE_DURATION_MIN 3

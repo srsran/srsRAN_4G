@@ -35,6 +35,34 @@ static int dci_nr_format_1_0_freq_resource_size(const srslte_carrier_nr_t* carri
   return (int)ceil(log2(N_DL_BWP_RB * (N_DL_BWP_RB + 1) / 2.0));
 }
 
+int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
+                       const srslte_coreset_t*    coreset,
+                       const srslte_dci_dl_nr_t*  dci,
+                       srslte_dci_msg_nr_t*       msg)
+{
+  // Copy DCI MSG fields
+  msg->location     = dci->location;
+  msg->search_space = dci->search_space.type;
+  msg->rnti_type    = dci->rnti_type;
+  msg->rnti         = dci->rnti;
+  msg->format       = dci->format;
+
+  // Pack DCI
+  switch (msg->format) {
+    case srslte_dci_format_nr_1_0:
+      if (srslte_dci_nr_format_1_0_pack(carrier, coreset, dci, msg) < SRSLTE_SUCCESS) {
+        ERROR("Error packing DL DCI\n");
+        return SRSLTE_ERROR;
+      }
+      break;
+    default:
+      ERROR("Unsupported DCI format %d\n", msg->format);
+      return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
                                   const srslte_coreset_t*    coreset,
                                   const srslte_dci_dl_nr_t*  dci,

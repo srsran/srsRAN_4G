@@ -23,7 +23,7 @@
 #define SRSLTE_NR_CC_WORKER_H
 
 #include "srslte/common/log.h"
-#include "srslte/phy/ue/ue_dl_nr.h"
+#include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy_common.h"
 #include <array>
 #include <vector>
@@ -84,6 +84,13 @@ private:
   // Temporal attributes
   srslte_softbuffer_rx_t softbuffer_rx = {};
   std::vector<uint8_t>   data;
+
+  // Current rnti
+  uint16_t rnti = 0;
+
+  // Current coreset and search space
+  srslte_coreset_t      coreset      = {};
+  srslte_search_space_t search_space = {};
 };
 
 } // namespace nr

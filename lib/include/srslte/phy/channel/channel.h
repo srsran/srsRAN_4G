@@ -13,12 +13,14 @@
 #ifndef SRSLTE_CHANNEL_H
 #define SRSLTE_CHANNEL_H
 
+#include "ch_awgn.h"
 #include "delay.h"
 #include "fading.h"
 #include "hst.h"
 #include "rlf.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/phy/common/phy_common.h"
 #include <memory>
-#include <srslte/common/log_filter.h>
 #include <string>
 
 namespace srslte {

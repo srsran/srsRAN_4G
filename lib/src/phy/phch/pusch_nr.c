@@ -11,6 +11,9 @@
  */
 #include "srslte/phy/phch/pusch_nr.h"
 #include "srslte/phy/common/phy_common_nr.h"
+#include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/phch/ra_nr.h"
 
 int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)

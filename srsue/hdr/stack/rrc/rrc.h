@@ -114,7 +114,7 @@ public:
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
   void     paging_completed(bool outcome) final;
   bool     has_nr_dc();
-  
+
   // NR interface
 #ifdef HAVE_5GNR
   void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);

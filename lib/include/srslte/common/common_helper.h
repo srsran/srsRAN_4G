@@ -20,6 +20,7 @@
 
 #include "srslte/common/logmap.h"
 #include <fstream>
+#include <sstream>
 #include <thread>
 
 namespace srslte {

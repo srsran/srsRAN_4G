@@ -12,6 +12,7 @@
 
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/utils/debug.h"
 
 typedef struct {
@@ -450,6 +451,48 @@ int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
   tb->nof_re   = N_re * grant->nof_layers;
   tb->nof_bits = tb->nof_re * Qm;
   tb->enabled  = true;
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t* carrier,
+                                 const srslte_sch_cfg_nr_t* pdsch_cfg,
+                                 const srslte_dci_dl_nr_t*  dci_dl,
+                                 srslte_sch_grant_nr_t*     pdsch_grant)
+{
+  // Time domain resource allocation
+  if (srslte_ra_dl_nr_time(
+          pdsch_cfg, dci_dl->rnti_type, dci_dl->search_space.type, dci_dl->time_domain_assigment, pdsch_grant) <
+      SRSLTE_SUCCESS) {
+    ERROR("Error computing time domain resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Frequency domain resource allocation
+  if (srslte_ra_dl_nr_freq(carrier, pdsch_cfg, dci_dl, pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error computing time domain resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+
+  //???
+  if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(pdsch_cfg, pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error loading number of DMRS CDM groups\n");
+    return SRSLTE_ERROR;
+  }
+
+  pdsch_grant->nof_layers = 1;
+  pdsch_grant->dci_format = dci_dl->format;
+  pdsch_grant->rnti       = dci_dl->rnti;
+
+  for (uint32_t i = 0; i < carrier->nof_prb; i++) {
+    pdsch_grant->prb_idx[i] = true;
+  }
+
+  // Compute TB size
+  if (srslte_ra_nr_fill_tb(pdsch_cfg, pdsch_grant, dci_dl->mcs, &pdsch_grant->tb[0]) < SRSLTE_SUCCESS) {
+    ERROR("Error filing tb\n");
+    return SRSLTE_ERROR;
+  }
 
   return SRSLTE_SUCCESS;
 }

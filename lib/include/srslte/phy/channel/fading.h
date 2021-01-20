@@ -13,8 +13,11 @@
 #ifndef SRSLTE_FADING_H
 #define SRSLTE_FADING_H
 
+#include "srslte/config.h"
+#include "srslte/phy/common/timestamp.h"
+#include "srslte/phy/dft/dft.h"
 #include <inttypes.h>
-#include <srslte/srslte.h>
+#include <stdint.h>
 
 #define SRSLTE_CHANNEL_FADING_MAXTAPS 9
 #define SRSLTE_CHANNEL_FADING_NTERMS 16

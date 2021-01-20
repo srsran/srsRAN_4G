@@ -13,6 +13,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/s3g.h"
+#include "srslte/config.h"
 
 #ifdef HAVE_MBEDTLS
 #include "mbedtls/md5.h"

@@ -23,6 +23,8 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/ch_estimation/dmrs_sch.h"
+#include "srslte/phy/modem/evm.h"
+#include "srslte/phy/modem/modem_table.h"
 #include "srslte/phy/phch/phch_cfg_nr.h"
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/sch_nr.h"

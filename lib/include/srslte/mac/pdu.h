@@ -15,6 +15,7 @@
 
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/logmap.h"
+#include <sstream>
 #include <stdint.h>
 #include <stdio.h>
 #include <vector>

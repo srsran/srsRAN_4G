@@ -11,12 +11,14 @@
  */
 
 #include "srslte/phy/phch/pdsch_nr.h"
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
+#include <complex.h>
 #include <getopt.h>
+#include <math.h>
 
 static srslte_carrier_nr_t carrier = {
     1,                 // cell_id
@@ -151,13 +153,13 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }
 
   // Load number of DMRS CDM groups without data
-  if (srslte_ue_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(&pdsch_cfg, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading number of DMRS CDM groups without data\n");
     goto clean_exit;
   }

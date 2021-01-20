@@ -10,9 +10,9 @@
  *
  */
 
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/sch_nr.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include <getopt.h>
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }

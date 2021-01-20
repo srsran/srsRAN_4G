@@ -16,6 +16,7 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
+#include <complex.h>
 #include <getopt.h>
 
 static srslte_carrier_nr_t carrier = {

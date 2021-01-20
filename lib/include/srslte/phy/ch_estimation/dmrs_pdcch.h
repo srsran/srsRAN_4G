@@ -14,12 +14,9 @@
 #define SRSLTE_DMRS_PDCCH_H
 
 #include "srslte/phy/common/phy_common_nr.h"
+#include "srslte/phy/phch/dci_nr.h"
+#include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/resampling/resampler.h"
-#include "srslte/srslte.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * @brief Puts in the resource grid the DeModulation Reference Signals for decoding PDCCH.
@@ -181,9 +178,5 @@ SRSLTE_API int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t
 SRSLTE_API int srslte_dmrs_pdcch_get_ce(const srslte_dmrs_pdcch_estimator_t* q,
                                         const srslte_dci_location_t*         location,
                                         srslte_dmrs_pdcch_ce_t*              ce);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SRSLTE_DMRS_PDCCH_H

@@ -15,6 +15,7 @@
 
 #include "srslte/common/common.h"
 #include "srslte/common/logmap.h"
+#include "srslte/config.h"
 #include <memory>
 #include <stdint.h>
 #include <vector>

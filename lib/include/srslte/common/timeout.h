@@ -20,7 +20,7 @@
 #ifndef SRSLTE_TIMEOUT_H
 #define SRSLTE_TIMEOUT_H
 
-#include "srslte/srslte.h"
+#include "srslte/phy/utils/debug.h"
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/time.h>

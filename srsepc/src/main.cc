@@ -21,6 +21,7 @@
 #include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/signal_handler.h"
 #include "srslte/srslog/srslog.h"
+#include "srslte/srslte.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <signal.h>

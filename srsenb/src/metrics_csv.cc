@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/metrics_csv.h"
+#include "srslte/phy/utils/vector.h"
 
 #include <float.h>
 #include <iomanip>
