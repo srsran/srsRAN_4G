@@ -940,6 +940,10 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
     }
     phy_ul_sched_res->nof_phich = sched_result.nof_phich_elems;
   }
+  // clear old buffers from all users
+  for (auto& u : ue_db) {
+    u.second->clear_old_buffers(tti_tx_ul);
+  }
   return SRSLTE_SUCCESS;
 }
 
