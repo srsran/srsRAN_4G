@@ -168,15 +168,15 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
   return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
-uint8_t* ue::request_buffer(uint32_t tti, uint32_t cc_idx, const uint32_t len)
+uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
 {
   uint8_t* pdu = nullptr;
   if (len > 0) {
     // Deallocate oldest buffer if we didn't deallocate it
-    if (!rx_used_buffers.at(cc_idx).count(tti)) {
+    if (!rx_used_buffers.at(ue_cc_idx).count(tti)) {
       pdu = pdus.request(len);
       if (pdu) {
-        rx_used_buffers.at(cc_idx).emplace(tti, pdu);
+        rx_used_buffers.at(ue_cc_idx).emplace(tti, pdu);
       } else {
         Error("UE buffers: Requesting buffer from pool\n");
       }
@@ -327,33 +327,33 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   Debug("MAC PDU processed\n");
 }
 
-void ue::deallocate_pdu(uint32_t tti, uint32_t cc_idx)
+void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
-  if (rx_used_buffers.at(cc_idx).count(tti)) {
-    pdus.deallocate(rx_used_buffers.at(cc_idx).at(tti));
-    rx_used_buffers.at(cc_idx).erase(tti);
+  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
+    pdus.deallocate(rx_used_buffers.at(ue_cc_idx).at(tti));
+    rx_used_buffers.at(ue_cc_idx).erase(tti);
   } else {
     Warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
             rnti,
             tti % nof_rx_harq_proc,
-            cc_idx);
+            ue_cc_idx);
   }
 }
 
-void ue::push_pdu(uint32_t tti, uint32_t cc_idx, uint32_t len)
+void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
-  if (rx_used_buffers.at(cc_idx).count(tti)) {
+  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
     if (len > 0) {
-      pdus.push(rx_used_buffers.at(cc_idx).at(tti), len);
+      pdus.push(rx_used_buffers.at(ue_cc_idx).at(tti), len);
     } else {
       Error("Error pushing PDU: null length\n");
     }
-    rx_used_buffers.at(cc_idx).erase(tti);
+    rx_used_buffers.at(ue_cc_idx).erase(tti);
   } else {
     Warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
             rnti,
             tti % nof_rx_harq_proc,
-            cc_idx);
+            ue_cc_idx);
   }
 }
 
