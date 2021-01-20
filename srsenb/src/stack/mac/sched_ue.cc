@@ -498,7 +498,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
 
   // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
   // Common SS when spaces collide
-  if (cell.nof_prb == 15 && carriers.size() > 1) {
+  if (cell.nof_prb == 15 && cells.size() > 1) {
     dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
     dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
     rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
