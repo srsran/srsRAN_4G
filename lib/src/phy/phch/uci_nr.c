@@ -682,7 +682,6 @@ int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
                                const srslte_uci_value_nr_t*      value,
                                uint8_t*                          o)
 {
-
   int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
@@ -702,7 +701,6 @@ int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                const int8_t*                     llr,
                                srslte_uci_value_nr_t*            value)
 {
-
   int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;

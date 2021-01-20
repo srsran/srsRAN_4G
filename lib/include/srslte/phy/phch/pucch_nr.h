@@ -13,14 +13,11 @@
 #ifndef SRSLTE_PUCCH_NR_H
 #define SRSLTE_PUCCH_NR_H
 
-#include "srslte/config.h"
+#include "srslte/phy/ch_estimation/chest_ul.h"
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/common/zc_sequence.h"
 #include "srslte/phy/modem/modem_table.h"
 #include "srslte/phy/phch/uci_nr.h"
-#include <srslte/srslte.h>
-#include <stdbool.h>
-#include <stdint.h>
 
 /**
  * @brief Maximum number of symbols (without DMRS) that NR-PUCCH format 1 can transmit
@@ -109,8 +106,8 @@ SRSLTE_API int srslte_pucch_nr_alpha_idx(const srslte_carrier_nr_t*          car
 /**
  * @brief Encode and writes NR-PUCCH format 0 in the resource grid
  * @remark Described in TS 38.211 clause 6.3.2.3 PUCCH format 0
- * @param[in] q NR-PUCCH encoder/decoder object
- * @param[in] carrier Carrier configuration
+ * @param[in,out] q NR-PUCCH encoder/decoder object
+ * @param[in] carrier Serving cell and Uplink BWP configuration
  * @param[in] cfg PUCCH common configuration
  * @param[in] slot slot configuration
  * @param[in] resource PUCCH format 0 resource
@@ -128,8 +125,8 @@ SRSLTE_API int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*          
 
 /**
  * @brief Measures PUCCH format 0 in the resource grid
- * @param[in] q NR-PUCCH encoder/decoder object
- * @param[in] carrier Carrier configuration
+ * @param[in,out] q NR-PUCCH encoder/decoder object
+ * @param[in] carrier Serving cell and Uplink BWP configuration
  * @param[in] cfg PUCCH common configuration
  * @param[in] slot slot configuration
  * @param[in] resource PUCCH format 0 resource
@@ -150,7 +147,7 @@ SRSLTE_API int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*         
 /**
  * @brief Get NR-PUCCH orthogonal sequence w
  * @remark Defined by TS 38.211 Table 6.3.2.4.1-2: Orthogonal sequences ... for PUCCH format 1
- * @param[in] q NR-PUCCH encoder/decoder object
+ * @param[in,out] q NR-PUCCH encoder/decoder object
  * @param[in] n_pucch Number of PUCCH symbols
  * @param[in] i sequence index
  * @param m OFDM symbol index
@@ -161,8 +158,8 @@ SRSLTE_API cf_t srslte_pucch_nr_format1_w(const srslte_pucch_nr_t* q, uint32_t n
 /**
  * @brief Encodes and puts NR-PUCCH format 1 in the resource grid
  * @remark Described in TS 38.211 clause 6.3.2.4 PUCCH format 1
- * @param[in] q NR-PUCCH encoder/decoder object
- * @param[in] carrier Carrier configuration
+ * @param[in,out] q NR-PUCCH encoder/decoder object
+ * @param[in] carrier Serving cell and Uplink BWP configuration
  * @param[in] cfg PUCCH common configuration
  * @param[in] slot slot configuration
  * @param[in] resource PUCCH format 1 resource
@@ -182,11 +179,11 @@ SRSLTE_API int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*          
 
 /**
  * @brief Decodes NR-PUCCH format 1
- * @param[in] q NR-PUCCH encoder/decoder object
- * @param[in] carrier Carrier configuration
+ * @param[in,out] q NR-PUCCH encoder/decoder object
+ * @param[in] carrier Serving cell and Uplink BWP configuration
  * @param[in] cfg PUCCH common configuration
  * @param[in] slot slot configuration
- * @param[in] resource PUCCH format 1 resource
+ * @param[in] resource PUCCH format 2-4 resource
  * @param[in] chest_res Channel estimator result
  * @param[in] slot_symbols Resource grid of the given slot
  * @param[out] b Bits to decode
@@ -202,5 +199,49 @@ SRSLTE_API int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                
                                               cf_t*                               slot_symbols,
                                               uint8_t  b[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS],
                                               uint32_t nof_bits);
+
+/**
+ * @brief Encoder NR-PUCCH formats 2, 3 and 4. The NR-PUCCH format is selected by resource->format.
+ * @param[in,out] q NR-PUCCH encoder/decoder object
+ * @param[in] carrier Serving cell and Uplink BWP configuration
+ * @param[in] cfg PUCCH common configuration
+ * @param[in] slot slot configuration
+ * @param[in] resource PUCCH format 1 resource
+ * @param[in] uci_cfg Uplink Control Information configuration
+ * @param[in] uci_value Uplink Control Information data
+ * @param[out] slot_symbols Resource grid of the given slot
+ * @return SRSLTE_SUCCESS if successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
+                                                   const srslte_carrier_nr_t*          carrier,
+                                                   const srslte_pucch_nr_common_cfg_t* cfg,
+                                                   const srslte_dl_slot_cfg_t*         slot,
+                                                   const srslte_pucch_nr_resource_t*   resource,
+                                                   const srslte_uci_cfg_nr_t*          uci_cfg,
+                                                   const srslte_uci_value_nr_t*        uci_value,
+                                                   cf_t*                               slot_symbols);
+
+/**
+ * @brief Decode NR-PUCCH format 2, 3, and 4. The NR-PUCCH format is selected by resource->format.
+ * @param q[in,out] q NR-PUCCH encoder/decoder
+ * @param[in] carrier Serving cell and Uplink BWP configuration
+ * @param[in] cfg PUCCH common configuration
+ * @param[in] slot slot configuration
+ * @param[in] resource PUCCH format 2-4 resource
+ * @param[in] uci_cfg Uplink Control Information configuration
+ * @param[in] chest_res Channel estimator result
+ * @param[in] slot_symbols Resource grid of the given slot
+ * @param[out] uci_value Uplink Control Information data
+ * @return SRSLTE_SUCCESS if successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
+                                                   const srslte_carrier_nr_t*          carrier,
+                                                   const srslte_pucch_nr_common_cfg_t* cfg,
+                                                   const srslte_dl_slot_cfg_t*         slot,
+                                                   const srslte_pucch_nr_resource_t*   resource,
+                                                   const srslte_uci_cfg_nr_t*          uci_cfg,
+                                                   srslte_chest_ul_res_t*              chest_res,
+                                                   cf_t*                               slot_symbols,
+                                                   srslte_uci_value_nr_t*              uci_value);
 
 #endif // SRSLTE_PUCCH_NR_H

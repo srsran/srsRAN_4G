@@ -75,4 +75,22 @@ SRSLTE_API int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
                                           const srslte_uci_value_nr_t*      value,
                                           uint8_t*                          o);
 
+/**
+ * @brief Decoder UCI bits
+ *
+ * @attention Compatible only with PUCCH formats 2, 3 and 4
+ *
+ * @param[in,out] q NR-UCI object
+ * @param[in] pucch_resource_cfg
+ * @param[in] uci_cfg
+ * @param[in] llr
+ * @param[out] value
+ * @return SRSLTE_SUCCESSFUL if it is successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
+                                          const srslte_pucch_nr_resource_t* pucch_resource_cfg,
+                                          const srslte_uci_cfg_nr_t*        uci_cfg,
+                                          const int8_t*                     llr,
+                                          srslte_uci_value_nr_t*            value);
+
 #endif // SRSLTE_UCI_NR_H

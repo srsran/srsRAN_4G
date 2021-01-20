@@ -14,11 +14,12 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/common/zc_sequence.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include <complex.h>
-#include <srslte/srslte.h>
 
 int srslte_pucch_nr_group_sequence(const srslte_carrier_nr_t*          carrier,
                                    const srslte_pucch_nr_common_cfg_t* cfg,
@@ -500,6 +501,25 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
   return SRSLTE_SUCCESS;
 }
 
+static int pucch_nr_format2_encode(srslte_pucch_nr_t*                  q,
+                                   const srslte_carrier_nr_t*          carrier,
+                                   const srslte_pucch_nr_common_cfg_t* cfg,
+                                   const srslte_dl_slot_cfg_t*         slot,
+                                   const srslte_pucch_nr_resource_t*   resource,
+                                   const srslte_uci_cfg_nr_t*          uci_cfg,
+                                   cf_t*                               slot_symbols)
+{
+  // Validate configuration
+  if (srslte_pucch_nr_format2_resource_valid(resource) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  // Implement encode here
+  // ...
+
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
                                         const srslte_carrier_nr_t*          carrier,
                                         const srslte_pucch_nr_common_cfg_t* cfg,
@@ -509,20 +529,22 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
                                         const srslte_uci_value_nr_t*        uci_value,
                                         cf_t*                               slot_symbols)
 {
+  // Validate input pointers
   if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL ||
       uci_value == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  // Encode PUCCH message
   if (srslte_uci_nr_encode_pucch(&q->uci, resource, uci_cfg, uci_value, q->b) < SRSLTE_SUCCESS) {
     ERROR("Error encoding UCI\n");
     return SRSLTE_ERROR;
   }
 
-  // Encode PUCCH
+  // Modulate PUCCH
   switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_2:
-      break;
+      return pucch_nr_format2_encode(q, carrier, cfg, slot, resource, uci_cfg, slot_symbols);
     case SRSLTE_PUCCH_NR_FORMAT_3:
     case SRSLTE_PUCCH_NR_FORMAT_4:
       ERROR("Not implemented\n");
@@ -530,7 +552,65 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
     default:
     case SRSLTE_PUCCH_NR_FORMAT_ERROR:
       ERROR("Invalid format\n");
+  }
+
+  return SRSLTE_ERROR;
+}
+
+static int pucch_nr_format2_decode(srslte_pucch_nr_t*                  q,
+                                   const srslte_carrier_nr_t*          carrier,
+                                   const srslte_pucch_nr_common_cfg_t* cfg,
+                                   const srslte_dl_slot_cfg_t*         slot,
+                                   const srslte_pucch_nr_resource_t*   resource,
+                                   srslte_chest_ul_res_t*              chest_res,
+                                   cf_t*                               slot_symbols,
+                                   int8_t*                             llr)
+{
+  // Validate configuration
+  if (srslte_pucch_nr_format2_resource_valid(resource) < SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  // Implement decode here
+  // ...
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
+                                        const srslte_carrier_nr_t*          carrier,
+                                        const srslte_pucch_nr_common_cfg_t* cfg,
+                                        const srslte_dl_slot_cfg_t*         slot,
+                                        const srslte_pucch_nr_resource_t*   resource,
+                                        const srslte_uci_cfg_nr_t*          uci_cfg,
+                                        srslte_chest_ul_res_t*              chest_res,
+                                        cf_t*                               slot_symbols,
+                                        srslte_uci_value_nr_t*              uci_value)
+{
+  // Validate input pointers
+  if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || uci_cfg == NULL ||
+      chest_res == NULL || uci_value == NULL || slot_symbols == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Demodulate PUCCH message
+  int8_t* llr = (int8_t*)q->b;
+  switch (resource->format) {
+    case SRSLTE_PUCCH_NR_FORMAT_2:
+      return pucch_nr_format2_decode(q, carrier, cfg, slot, resource, chest_res, slot_symbols, llr);
+    case SRSLTE_PUCCH_NR_FORMAT_3:
+    case SRSLTE_PUCCH_NR_FORMAT_4:
+      ERROR("Not implemented\n");
       return SRSLTE_ERROR;
+    default:
+    case SRSLTE_PUCCH_NR_FORMAT_ERROR:
+      ERROR("Invalid format\n");
+  }
+
+  // Decode PUCCH message
+  if (srslte_uci_nr_decode_pucch(&q->uci, resource, uci_cfg, llr, uci_value) < SRSLTE_SUCCESS) {
+    ERROR("Error encoding UCI\n");
+    return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;

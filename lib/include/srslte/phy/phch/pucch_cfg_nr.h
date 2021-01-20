@@ -83,4 +83,11 @@ SRSLTE_API int srslte_pucch_nr_format0_resource_valid(const srslte_pucch_nr_reso
  */
 SRSLTE_API int srslte_pucch_nr_format1_resource_valid(const srslte_pucch_nr_resource_t* resource);
 
+/**
+ * @brief Validates a PUCCH format 2 resource configuration provided by upper layers
+ * @param resource Resource configuration to validate
+ * @return SRSLTE_SUCCESS if valid, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_pucch_nr_format2_resource_valid(const srslte_pucch_nr_resource_t* resource);
+
 #endif // SRSLTE_PUCCH_CFG_NR_H

@@ -80,3 +80,32 @@ int srslte_pucch_nr_format1_resource_valid(const srslte_pucch_nr_resource_t* res
 
   return SRSLTE_SUCCESS;
 }
+
+int srslte_pucch_nr_format2_resource_valid(const srslte_pucch_nr_resource_t* resource)
+{
+  if (resource == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (resource->format != SRSLTE_PUCCH_NR_FORMAT_2) {
+    ERROR("Invalid format (%d)\n", resource->format);
+    return SRSLTE_ERROR;
+  }
+
+  if (resource->nof_symbols < 1 || resource->nof_symbols > 2) {
+    ERROR("Invalid number of symbols (%d)\n", resource->nof_symbols);
+    return SRSLTE_ERROR;
+  }
+
+  if (resource->nof_prb < 1 || resource->nof_prb > 16) {
+    ERROR("Invalid number of prb (%d)\n", resource->nof_prb);
+    return SRSLTE_ERROR;
+  }
+
+  if (resource->start_symbol_idx > 13) {
+    ERROR("Invalid initial start symbol idx (%d)\n", resource->start_symbol_idx);
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
