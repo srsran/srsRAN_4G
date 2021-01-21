@@ -61,7 +61,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
 
   // Update carrier state
   if (ue_cc_idx == 0) {
-    if (cc_state() == cc_st::idle) {
+    if (cc_state() != cc_st::active) {
       reset();
       // PCell is always active
       cc_state_ = cc_st::active;
@@ -102,7 +102,7 @@ void sched_ue_cell::new_tti(tti_point tti_rx)
   if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {
     // wait for all ACKs to be received before completely deactivating SCell
     if (current_tti > to_tx_dl_ack(cfg_tti)) {
-      cc_state_ = cc_st::idle;
+      enter_idle_st();
     }
   }
 }
@@ -118,7 +118,6 @@ void sched_ue_cell::reset()
   dl_cqi_rx     = false;
   ul_cqi        = 1;
   ul_cqi_tti_rx = tti_point{};
-  harq_ent.reset();
 }
 
 void sched_ue_cell::finish_tti(tti_point tti_rx)
@@ -137,6 +136,12 @@ void sched_ue_cell::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
     cc_state_ = cc_st::active;
     log_h->info("SCHED: SCell index=%d is now active\n", ue_cc_idx);
   }
+}
+
+void sched_ue_cell::enter_idle_st()
+{
+  cc_state_ = cc_st::idle;
+  harq_ent.reset();
 }
 
 /*************************************************************
