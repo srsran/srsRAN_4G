@@ -13,6 +13,7 @@
 #ifndef SRSLTE_RRC_NR_UTILS_H
 #define SRSLTE_RRC_NR_UTILS_H
 
+#include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
 #include "srslte/interfaces/rlc_interface_types.h"
 #include "srslte/interfaces/rrc_interface_types.h"
@@ -28,6 +29,7 @@ struct plmn_id_s;
 struct sib1_s;
 struct rlc_cfg_c;
 struct pdcp_cfg_s;
+struct lc_ch_cfg_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -40,6 +42,10 @@ namespace srslte {
 plmn_id_t make_plmn_id_t(const asn1::rrc_nr::plmn_id_s& asn1_type);
 void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 
+/***************************
+ *      MAC Config
+ **************************/
+logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const asn1::rrc_nr::lc_ch_cfg_s& asn1_type);
 /***************************
  *      RLC Config
  **************************/

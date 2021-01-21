@@ -125,8 +125,8 @@ private:
   bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
 
-  phy_interface_rrc_nr* phy = nullptr;
-  //  mac_interface_rrc*    mac   = nullptr;
+  phy_interface_rrc_nr*       phy       = nullptr;
+  mac_interface_rrc_nr*       mac       = nullptr;
   rlc_interface_rrc*          rlc       = nullptr;
   pdcp_interface_rrc*         pdcp      = nullptr;
   gw_interface_rrc*           gw        = nullptr;

@@ -21,23 +21,10 @@
 #include "proc_phr.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
+#include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/mac/pdu.h"
 #include <mutex>
-
-/* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */
-
-typedef struct {
-  uint8_t  lcid;
-  uint8_t  lcg;
-  int32_t  Bj;
-  int32_t  PBR; // in kByte/s, -1 sets to infinity
-  uint32_t bucket_size;
-  uint32_t BSD;
-  uint32_t priority;
-  int      sched_len;  // scheduled upper layer payload for this LCID
-  int      buffer_len; // outstanding bytes for this LCID
-} logical_channel_config_t;
 
 namespace srsue {
 
@@ -65,7 +52,7 @@ public:
 
   void append_crnti_ce_next_tx(uint16_t crnti);
 
-  void setup_lcid(const logical_channel_config_t& config);
+  void setup_lcid(const srslte::logical_channel_config_t& config);
 
   void print_logical_channel_state(const std::string& info);
 
@@ -73,11 +60,11 @@ private:
   bool has_logical_channel(const uint32_t& lcid);
   bool pdu_move_to_msg3(uint32_t pdu_sz);
   uint32_t allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu, int max_sdu_sz);
-  bool sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
+  bool     sched_sdu(srslte::logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
 
   const static int MAX_NOF_SUBHEADERS = 20;
 
-  std::vector<logical_channel_config_t> logical_channels;
+  std::vector<srslte::logical_channel_config_t> logical_channels;
 
   // Mutex for exclusive access
   std::mutex mutex;

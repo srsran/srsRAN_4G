@@ -25,7 +25,7 @@ set(LINK_LIBRARIES srsue_stack
 ${Boost_LIBRARIES})
 
 if (ENABLE_5GNR)
-    set(LINK_LIBRARIES ${LINK_LIBRARIES} rrc_nr_asn1)
+    set(LINK_LIBRARIES ${LINK_LIBRARIES} rrc_nr_asn1 srsue_mac_nr srslte_mac)
 endif (ENABLE_5GNR)
 
 target_link_libraries(ttcn3_dut ${LINK_LIBRARIES})

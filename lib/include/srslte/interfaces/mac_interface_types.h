@@ -20,6 +20,23 @@ namespace srslte {
 /***************************
  *      MAC Config
  **************************/
+
+/* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */
+
+class logical_channel_config_t
+{
+public:
+  uint8_t  lcid;
+  uint8_t  lcg;
+  int32_t  Bj;
+  int32_t  PBR; // in kByte/s, -1 sets to infinity
+  uint32_t bucket_size;
+  uint32_t BSD;
+  uint32_t priority;
+  int      sched_len;  // scheduled upper layer payload for this LCID
+  int      buffer_len; // outstanding bytes for this LCID
+};
+
 struct bsr_cfg_t {
   int periodic_timer;
   int retx_timer;

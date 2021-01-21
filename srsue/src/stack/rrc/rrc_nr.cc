@@ -43,6 +43,7 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   rlc       = rlc_;
   pdcp      = pdcp_;
   gw        = gw_;
+  mac       = mac_;
   rrc_eutra = rrc_eutra_;
   timers    = timers_;
   stack     = stack_;
@@ -484,29 +485,58 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   // Setup RLC
   rlc->add_bearer(lc_ch_id, rlc_cfg);
 
-  uint8_t log_chan_group       = 0;
-  uint8_t priority             = 1;
-  int     prioritized_bit_rate = -1;
-  int     bucket_size_duration = -1;
-
   if (rlc_bearer_cfg.mac_lc_ch_cfg_present == true && rlc_bearer_cfg.mac_lc_ch_cfg.ul_specific_params_present) {
-    lc_ch_cfg_s::ul_specific_params_s_ ul_specific_params = rlc_bearer_cfg.mac_lc_ch_cfg.ul_specific_params;
-
-    if (ul_specific_params.lc_ch_group_present) {
-      log_chan_group = ul_specific_params.lc_ch_group;
-    } else {
-      log_h->warning("LCG not present, setting to 0\n");
-    }
-    priority             = ul_specific_params.prio;
-    prioritized_bit_rate = ul_specific_params.prioritised_bit_rate.to_number();
-    bucket_size_duration = ul_specific_params.bucket_size_dur.to_number();
-    // TODO Setup MAC @andre
-    // mac->setup_lcid(lc_ch_id, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
+    logical_channel_config_t logical_channel_cfg;
+    logical_channel_cfg = srslte::make_mac_logical_channel_cfg_t(lc_ch_id, rlc_bearer_cfg.mac_lc_ch_cfg);
+    mac->setup_lcid(logical_channel_cfg);
   }
   return true;
 }
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
+
+  if (mac_cell_group_cfg.sched_request_cfg_present) {
+    sr_cfg_t sr_cfg;
+    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
+      if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() > 1) {
+        log_h->warning("Only handling 1 scheduling request index to add\n");
+        sr_cfg.dsr_transmax = mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[1].sr_trans_max;
+        mac->set_config(sr_cfg);
+      }
+    }
+
+    if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list_present) {
+      log_h->warning("Not handling sched request to release list\n");
+    }
+  }
+  if (mac_cell_group_cfg.sched_request_cfg_present)
+
+    if (mac_cell_group_cfg.bsr_cfg_present) {
+      log_h->debug("Handling MAC BSR config\n");
+      srslte::bsr_cfg_t bsr_cfg;
+      bsr_cfg.periodic_timer = mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.to_number();
+      bsr_cfg.retx_timer     = mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.to_number();
+      mac->set_config(bsr_cfg);
+    }
+
+  if (mac_cell_group_cfg.tag_cfg_present) {
+    log_h->warning("Not handling tag cfg in MAC cell group config\n");
+  }
+
+  if (mac_cell_group_cfg.phr_cfg_present) {
+    log_h->warning("Not handling phr cfg in MAC cell group config\n");
+  }
+
+  if (mac_cell_group_cfg.skip_ul_tx_dynamic) {
+    log_h->warning("Not handling phr cfg in skip_ul_tx_dynamic cell group config\n");
+  }
+  return true;
+}
+
+bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
+{
+  // TODO Setup PHY @andre and @phy interface?
+  log_h->warning("Not handling SP Cell config\n");
   return true;
 }
 
@@ -519,6 +549,9 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
   }
   if (cell_group_cfg.mac_cell_group_cfg_present == true) {
     apply_mac_cell_group(cell_group_cfg.mac_cell_group_cfg);
+  }
+  if (cell_group_cfg.phys_cell_group_cfg_present == true) {
+    log_h->warning("Not handling physical cell group config\n");
   }
   if (cell_group_cfg.sp_cell_cfg_present) {
     // apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg);

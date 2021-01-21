@@ -16,6 +16,7 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_nr_pcap.h"
+#include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
 #include "srslte/mac/mac_nr_pdu.h"
 #include "srsue/hdr/stack/mac/mux.h"
@@ -57,12 +58,15 @@ public:
 
   void get_metrics(mac_metrics_t* metrics);
 
+  /******** Interface for RRC (RRC -> MAC) ****************/
+  void setup_lcid(const srslte::logical_channel_config_t& config);
+  void set_config(const srslte::bsr_cfg_t& bsr_cfg);
+  void set_config(const srslte::sr_cfg_t& sr_cfg);
+
   /// stack interface
   void process_pdus();
 
 private:
-  void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
-  void setup_lcid(const logical_channel_config_t& config);
 
   void handle_pdu(srslte::unique_byte_buffer_t pdu);
   void get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr::tx_request_t* tx_request);

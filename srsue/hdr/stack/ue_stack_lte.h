@@ -23,6 +23,7 @@
 #include <string>
 
 #include "mac/mac.h"
+#include "mac/mac_nr.h"
 #include "rrc/rrc.h"
 #include "srslte/radio/radio.h"
 #include "srslte/upper/pdcp.h"
@@ -168,6 +169,7 @@ private:
   srslte::pdcp               pdcp;
   srsue::rrc                 rrc;
 #ifdef HAVE_5GNR
+  srsue::mac_nr mac_nr;
   srsue::rrc_nr rrc_nr;
 #endif
   srsue::nas                 nas;

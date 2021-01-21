@@ -14,6 +14,7 @@
 #define SRSLTE_UE_NR_INTERFACES_H
 
 #include "srslte/common/interfaces_common.h"
+#include "srslte/interfaces/mac_interface_types.h"
 #include <string>
 
 namespace srsue {
@@ -54,7 +55,12 @@ public:
 };
 
 class mac_interface_rrc_nr
-{};
+{
+public:
+  virtual void setup_lcid(const srslte::logical_channel_config_t& config) = 0;
+  virtual void set_config(const srslte::bsr_cfg_t& bsr_cfg)               = 0;
+  virtual void set_config(const srslte::sr_cfg_t& sr_cfg)                 = 0;
+};
 
 class phy_interface_mac_nr
 {

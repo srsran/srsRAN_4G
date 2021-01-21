@@ -50,6 +50,22 @@ void to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg)
   std::copy(&cfg.mnc[0], &cfg.mnc[cfg.nof_mnc_digits], &asn1_type->mnc[0]);
 }
 
+logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_ch_cfg_s& asn1_type)
+{
+  logical_channel_config_t logical_channel_config = {};
+  logical_channel_config.lcid                     = lcid;
+
+  if (asn1_type.ul_specific_params.lc_ch_group_present) {
+    logical_channel_config.lcg = asn1_type.ul_specific_params.lc_ch_group;
+  }
+  logical_channel_config.priority    = asn1_type.ul_specific_params.prio;
+  logical_channel_config.PBR         = asn1_type.ul_specific_params.prioritised_bit_rate.to_number();
+  logical_channel_config.BSD         = asn1_type.ul_specific_params.bucket_size_dur.to_number();
+  logical_channel_config.bucket_size = logical_channel_config.PBR * logical_channel_config.BSD;
+
+  return logical_channel_config;
+}
+
 rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
 {
   rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();

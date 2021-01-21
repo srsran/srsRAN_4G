@@ -196,19 +196,7 @@ void mac_nr::timer_expired(uint32_t timer_id)
   // not implemented
 }
 
-void mac_nr::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
-{
-  logical_channel_config_t config = {};
-  config.lcid                     = lcid;
-  config.lcg                      = lcg;
-  config.priority                 = priority;
-  config.PBR                      = PBR_x_tti;
-  config.BSD                      = BSD;
-  config.bucket_size              = config.PBR * config.BSD;
-  setup_lcid(config);
-}
-
-void mac_nr::setup_lcid(const logical_channel_config_t& config)
+void mac_nr::setup_lcid(const srslte::logical_channel_config_t& config)
 {
   Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d\n",
        config.lcid,
@@ -219,6 +207,18 @@ void mac_nr::setup_lcid(const logical_channel_config_t& config)
        config.bucket_size);
   // mux_unit.setup_lcid(config);
   // bsr_procedure.setup_lcid(config.lcid, config.lcg, config.priority);
+}
+
+void mac_nr::set_config(const srslte::bsr_cfg_t& bsr_cfg)
+{
+  Info("BSR config periodic timer %d retx timer %d\n", bsr_cfg.periodic_timer, bsr_cfg.retx_timer);
+  Warning("Not handling BSR config yet\n");
+}
+
+void mac_nr::set_config(const srslte::sr_cfg_t& sr_cfg)
+{
+  Info("Scheduling Request Config DSR tansmax %d\n", sr_cfg.dsr_transmax);
+  Warning("Not Scheduling Request Config yet\n");
 }
 
 void mac_nr::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]) {}
