@@ -223,6 +223,10 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     log_h->error("QCI=%d not configured\n", qos.qci);
     return SRSLTE_ERROR;
   }
+  if (lcid < 3 or lcid > 10) {
+    log_h->error("DRB logical channel ids must be within 3 and 10\n");
+    return SRSLTE_ERROR;
+  }
 
   erabs[erab_id].id         = erab_id;
   erabs[erab_id].qos_params = qos;
