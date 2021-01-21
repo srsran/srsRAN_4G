@@ -124,6 +124,7 @@ private:
   std::vector<std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> >
       tx_payload_buffer;
 
+  std::mutex                                 rx_buffers_mutex;
   std::vector<std::map<uint32_t, uint8_t*> > rx_used_buffers;
 
   srslte::block_queue<uint32_t> pending_ta_commands;

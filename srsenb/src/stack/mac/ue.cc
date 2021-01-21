@@ -77,11 +77,14 @@ ue::~ue()
       srslte_softbuffer_tx_free(&buffer);
     }
   }
-  for (auto& rx_buffers_cc : rx_used_buffers) {
-    for (auto& q : rx_buffers_cc) {
-      pdus.deallocate(q.second);
+  {
+    std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+    for (auto& rx_buffers_cc : rx_used_buffers) {
+      for (auto& q : rx_buffers_cc) {
+        pdus.deallocate(q.second);
+      }
+      rx_buffers_cc.clear();
     }
-    rx_buffers_cc.clear();
   }
 }
 
@@ -170,6 +173,7 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
 {
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   uint8_t* pdu = nullptr;
   if (len > 0) {
     // Deallocate oldest buffer if we didn't deallocate it
@@ -191,11 +195,17 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
 
 void ue::clear_old_buffers(uint32_t tti)
 {
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+
   // remove old buffers
   for (auto& rx_buffer_cc : rx_used_buffers) {
     for (auto it = rx_buffer_cc.begin(); it != rx_buffer_cc.end();) {
-      if (srslte_tti_interval(tti, it->first) > 20) {
-        Warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d\n", it->first, rnti, tti);
+      if (srslte_tti_interval(tti, it->first) > 20 && srslte_tti_interval(tti, it->first) < 500) {
+        Warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d\n",
+                it->first,
+                rnti,
+                tti,
+                srslte_tti_interval(tti, it->first));
         pdus.deallocate(it->second);
         it = rx_buffer_cc.erase(it);
       } else {
@@ -329,6 +339,8 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 
 void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+
   if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
     pdus.deallocate(rx_used_buffers.at(ue_cc_idx).at(tti));
     rx_used_buffers.at(ue_cc_idx).erase(tti);
@@ -342,6 +354,7 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 
 void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
     if (len > 0) {
       pdus.push(rx_used_buffers.at(ue_cc_idx).at(tti), len);
