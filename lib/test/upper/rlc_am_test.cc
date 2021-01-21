@@ -394,8 +394,7 @@ bool retx_test()
   assert(metrics.rx_buffered_bytes == 3);
 
   // Step timers until reordering timeout expires
-  int cnt = 5;
-  while (cnt--) {
+  for (int cnt = 0; cnt < 5; cnt++) {
     timers.step_all();
   }
 
