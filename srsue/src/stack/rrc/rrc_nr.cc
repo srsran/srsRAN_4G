@@ -12,6 +12,7 @@
 
 #include "srsue/hdr/stack/rrc/rrc_nr.h"
 #include "srslte/common/security.h"
+#include "srsue/hdr/stack/upper/usim.h"
 
 #define Error(fmt, ...) rrc_ptr->log_h->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define Warning(fmt, ...) rrc_ptr->log_h->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -35,6 +36,7 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
                   pdcp_interface_rrc*         pdcp_,
                   gw_interface_rrc*           gw_,
                   rrc_eutra_interface_rrc_nr* rrc_eutra_,
+                  usim_interface_rrc_nr*      usim_,
                   srslte::timer_handler*      timers_,
                   stack_interface_rrc*        stack_,
                   const rrc_nr_args_t&        args_)
@@ -45,6 +47,7 @@ void rrc_nr::init(phy_interface_rrc_nr*       phy_,
   gw        = gw_;
   mac       = mac_;
   rrc_eutra = rrc_eutra_;
+  usim      = usim_;
   timers    = timers_;
   stack     = stack_;
   args      = args_;
@@ -368,8 +371,12 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
   }
 
   log_rrc_message("RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
-  if (not conn_recfg_proc.launch(
-          endc_release_and_add_r15, rrc_recfg, cell_group_cfg, sk_counter_r15, radio_bearer_cfg)) {
+  if (not conn_recfg_proc.launch(endc_release_and_add_r15,
+                                 rrc_recfg,
+                                 cell_group_cfg,
+                                 sk_counter_r15_present,
+                                 sk_counter_r15,
+                                 radio_bearer_cfg)) {
     log_h->error("Unable to launch NR RRC configuration procedure\n");
     return false;
   } else {
@@ -436,6 +443,11 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
   fake_measurement_timer.run();
 }
 
+void rrc_nr::configure_sk_counter(uint16_t sk_counter)
+{
+  log_h->info("[NR] Configure new SK counter %d. Update Key for secondary gnb\n", sk_counter);
+  usim->generate_nr_context(sk_counter, &sec_cfg);
+}
 bool rrc_nr::is_config_pending()
 {
   if (conn_recfg_proc.is_busy()) {
@@ -600,6 +612,14 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
 bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 {
+
+  // TODO derive correct keys
+  if (security_cfg.key_to_use_present) {
+    if (security_cfg.key_to_use.value != security_cfg_s::key_to_use_opts::options::secondary) {
+      log_h->warning("Only secondary key supported yet\n");
+    }
+  }
+
   if (security_cfg.security_algorithm_cfg_present) {
     switch (security_cfg.security_algorithm_cfg.ciphering_algorithm) {
       case ciphering_algorithm_e::nea0:
@@ -638,11 +658,8 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
           break;
       }
     }
+    usim->update_nr_context(&sec_cfg);
   }
-  // TODO derive correct keys
-  if (security_cfg.key_to_use_present) {
-  }
-  // TODO derive correct keys
 
   // Apply security config for all known NR lcids
   for (auto& lcid : lcid_rb) {
@@ -676,8 +693,9 @@ rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* paren
 
 proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool                       endc_release_and_add_r15,
                                                           const asn1::rrc_nr::rrc_recfg_s& rrc_recfg,
-                                                          const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
-                                                          const uint32_t                          sk_counter_r15,
+                                                          const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg,
+                                                          bool                                  sk_counter_r15_present,
+                                                          const uint32_t                        sk_counter_r15,
                                                           const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg)
 {
   Info("Starting...\n");
@@ -685,6 +703,11 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool            
   Info("Applying Cell Group Cfg\n");
   if (!rrc_ptr->apply_cell_group_cfg(cell_group_cfg)) {
     return proc_outcome_t::error;
+  }
+
+  if (sk_counter_r15_present) {
+    Info("Applying Cell Group Cfg\n");
+    rrc_ptr->configure_sk_counter((uint16_t)sk_counter_r15);
   }
 
   Info("Applying Radio Bearer Cfg\n");

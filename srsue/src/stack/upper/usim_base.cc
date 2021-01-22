@@ -175,10 +175,10 @@ void usim_base::generate_as_keys(uint8_t* k_asme_, uint32_t count_ul, srslte::as
   k_enb_ctx.is_first_ncc = true;
 
   log->debug_hex(k_enb_ctx.k_enb.data(), 32, "Initial K_eNB");
-  log->debug_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "K_RRC_enc");
-  log->debug_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "K_RRC_enc");
   log->debug_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "K_RRC_int");
-  log->debug_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "K_RRC_int");
+  log->debug_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "K_RRC_enc");
+  log->debug_hex(sec_cfg->k_up_int.data(), sec_cfg->k_up_int.size(), "K_UP_int");
+  log->debug_hex(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "K_UP_enc");
 }
 
 void usim_base::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
@@ -263,6 +263,50 @@ void usim_base::restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx
   *as_ctx   = old_as_ctx;
   k_enb_ctx = old_k_enb_ctx;
   return;
+}
+
+/*
+ *  NR RRC Interface
+ */
+
+void usim_base::generate_nr_context(uint16_t sk_counter, srslte::as_security_config_t* sec_cfg)
+{
+  if (!initiated) {
+    log->error("USIM not initiated!\n");
+    return;
+  }
+  log->info("Generating Keys. SCG Counter %d\n", sk_counter);
+
+  srslte::security_generate_sk_gnb(k_enb_ctx.k_enb.data(), k_gnb_ctx.sk_gnb.data(), sk_counter);
+  log->info_hex(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
+  update_nr_context(sec_cfg);
+}
+
+void usim_base::update_nr_context(srslte::as_security_config_t* sec_cfg)
+{
+  if (!initiated) {
+    log->error("USIM not initiated!\n");
+    return;
+  }
+  log->info_hex(k_gnb_ctx.sk_gnb.data(), 32, "k_sk_gnb");
+  // Generate K_rrc_enc and K_rrc_int
+  security_generate_k_nr_rrc(k_gnb_ctx.sk_gnb.data(),
+                             sec_cfg->cipher_algo,
+                             sec_cfg->integ_algo,
+                             sec_cfg->k_rrc_enc.data(),
+                             sec_cfg->k_rrc_int.data());
+
+  // Generate K_up_enc and K_up_int
+  security_generate_k_nr_up(k_gnb_ctx.sk_gnb.data(),
+                            sec_cfg->cipher_algo,
+                            sec_cfg->integ_algo,
+                            sec_cfg->k_up_enc.data(),
+                            sec_cfg->k_up_int.data());
+
+  log->debug_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "NR K_RRC_int");
+  log->debug_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "NR K_RRC_enc");
+  log->debug_hex(sec_cfg->k_up_int.data(), sec_cfg->k_up_int.size(), "NR K_UP_int");
+  log->debug_hex(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "NR K_UP_enc");
 }
 
 } // namespace srsue

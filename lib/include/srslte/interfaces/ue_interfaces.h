@@ -280,6 +280,13 @@ public:
   virtual bool is_config_pending()                                               = 0;
 };
 
+class usim_interface_rrc_nr
+{
+public:
+  virtual void generate_nr_context(uint16_t sk_counter, srslte::as_security_config_t* sec_cfg) = 0;
+  virtual void update_nr_context(srslte::as_security_config_t* sec_cfg)                        = 0;
+};
+
 // PDCP interface for RLC
 class pdcp_interface_rlc
 {

@@ -55,6 +55,7 @@ public:
             pdcp_interface_rrc*         pdcp_,
             gw_interface_rrc*           gw_,
             rrc_eutra_interface_rrc_nr* rrc_eutra_,
+            usim_interface_rrc_nr*      usim_,
             srslte::timer_handler*      timers_,
             stack_interface_rrc*        stack_,
             const rrc_nr_args_t&        args_);
@@ -110,6 +111,7 @@ public:
                            uint32_t            sk_counter_r15,
                            bool                nr_radio_bearer_cfg1_r15_present,
                            asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
+  void configure_sk_counter(uint16_t sk_counter);
   bool is_config_pending();
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
@@ -131,6 +133,7 @@ private:
   pdcp_interface_rrc*         pdcp      = nullptr;
   gw_interface_rrc*           gw        = nullptr;
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
+  usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
 
   srslte::log_ref log_h;
@@ -185,6 +188,7 @@ private:
     srslte::proc_outcome_t init(const bool                              endc_release_and_add_r15,
                                 const asn1::rrc_nr::rrc_recfg_s&        rrc_recfg,
                                 const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
+                                bool                                    sk_counter_r15_present,
                                 const uint32_t                          sk_counter_r15,
                                 const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
     srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }

@@ -60,6 +60,10 @@ struct k_enb_context_t {
   uint32_t ncc;
 };
 
+struct k_gnb_context_t {
+  as_key_t sk_gnb;
+};
+
 struct as_security_config_t {
   as_key_t                    k_rrc_int;
   as_key_t                    k_rrc_enc;

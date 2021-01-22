@@ -125,7 +125,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 #ifdef HAVE_5GNR
   mac_nr_args_t mac_nr_args;
   mac_nr.init(mac_nr_args, nullptr, &rlc);
-  rrc_nr.init(nullptr, &mac_nr, &rlc, &pdcp, gw, &rrc, task_sched.get_timer_handler(), nullptr, args.rrc_nr);
+  rrc_nr.init(
+      nullptr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 #else
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, args.rrc);
