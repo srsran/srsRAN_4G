@@ -276,6 +276,115 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_rrc(uint8*                         
   return (err);
 }
 
+LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_rrc(uint8*                                      k_gnb,
+                                                    LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                                    LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                                    uint8*                                      k_rrc_enc,
+                                                    uint8*                                      k_rrc_int)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8             s[7];
+
+  if (k_gnb != NULL && k_rrc_enc != NULL && k_rrc_int != NULL) {
+    // Construct S for KRRCenc
+    s[0] = 0x69;       // FC
+    s[1] = 0x03;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = enc_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KRRCenc
+    sha256(k_gnb, 32, s, 7, k_rrc_enc, 0);
+
+    // Construct S for KRRCint
+    s[0] = 0x69;       // FC
+    s[1] = 0x04;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = int_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KRRCint
+    sha256(k_gnb, 32, s, 7, k_rrc_int, 0);
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+
+LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_up(uint8*                                      k_gnb,
+                                                   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                                   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                                   uint8*                                      k_up_enc,
+                                                   uint8*                                      k_up_int)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8             s[7];
+
+  if (k_gnb != NULL && k_up_enc != NULL && k_up_int != NULL) {
+    // Construct S for KUPenc
+    s[0] = 0x69;       // FC
+    s[1] = 0x05;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = enc_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KUPenc
+    sha256(k_gnb, 32, s, 7, k_up_enc, 0);
+
+    // Construct S for KUPint
+    s[0] = 0x69;       // FC
+    s[1] = 0x06;       // P0
+    s[2] = 0x00;       // First byte of L0
+    s[3] = 0x01;       // Second byte of L0
+    s[4] = int_alg_id; // P1
+    s[5] = 0x00;       // First byte of L1
+    s[6] = 0x01;       // Second byte of L1
+
+    // Derive KUPint
+    sha256(k_gnb, 32, s, 7, k_up_int, 0);
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+
+/*********************************************************************
+    Name: liblte_security_generate_sk_gnb
+
+    Description: Derivation of S-KeNB or S-KgNB for dual connectivity.
+
+    Document Reference: 33.401 v10.0.0 Annex A.15
+*********************************************************************/
+
+LIBLTE_ERROR_ENUM liblte_security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_counter)
+{
+
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8             s[5];
+
+  if (k_enb != NULL && sk_gnb != NULL) {
+    // Construct S for sk_gnb
+    s[0] = 0x1C;                      // FC
+    s[1] = (scg_counter >> 8) & 0xFF; // first byte of P0
+    s[2] = scg_counter & 0xFF;        // second byte of P0
+    s[3] = 0x00;                      // First byte of L0
+    s[4] = 0x02;                      // Second byte of L0
+
+    // Derive sk_gnb
+    sha256(k_enb, 32, s, 5, sk_gnb, 0);
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
 /*********************************************************************
     Name: liblte_security_generate_k_up
 
