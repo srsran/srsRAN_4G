@@ -88,7 +88,7 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
 
   // Check for TAC match
   bool tac_match = false;
-  for (uint8_t tac : enb_ctx.tacs) {
+  for (uint16_t tac : enb_ctx.tacs) {
     if (m_s1ap->get_tac() == tac) {
       tac_match = true;
       break;
