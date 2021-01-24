@@ -66,7 +66,30 @@ cell_info_common_list::cell_info_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     cell_access->cell_id.from_number((cfg.enb_id << 8u) + new_cell->cell_cfg.cell_id);
     cell_access->tac.from_number(new_cell->cell_cfg.tac);
     // Update DL EARFCN
-    new_cell->sib1.freq_band_ind = (uint8_t)srslte_band_get_band(new_cell->cell_cfg.dl_earfcn);
+    uint8_t freq_band_ind = (uint8_t)srslte_band_get_band(new_cell->cell_cfg.dl_earfcn);
+    if (freq_band_ind <= 64) {
+        new_cell->sib1.freq_band_ind = freq_band_ind;
+    } else {
+        new_cell->sib1.freq_band_ind = 64;
+        new_cell->sib1.non_crit_ext_present = true;
+        new_cell->sib1.non_crit_ext.late_non_crit_ext_present = true;
+
+        // prepare buffer
+        uint8_t byte_buf1[16];
+        asn1::bit_ref bref_in1(&byte_buf1[0], sizeof(byte_buf1));
+
+        // create extension struct and encode it
+        asn1::rrc::sib_type1_v8h0_ies_s sib1_v8h0_ies;
+        sib1_v8h0_ies.non_crit_ext_present = true;
+        sib1_v8h0_ies.non_crit_ext.freq_band_ind_v9e0_present = true;
+        sib1_v8h0_ies.non_crit_ext.freq_band_ind_v9e0 = freq_band_ind;
+        sib1_v8h0_ies.pack(bref_in1);
+
+        // copy encoded data to non_crit_ext.late_non_crit_ext octet string
+        new_cell->sib1.non_crit_ext.late_non_crit_ext.resize(bref_in1.distance_bytes());
+        memcpy(new_cell->sib1.non_crit_ext.late_non_crit_ext.data(), byte_buf1, bref_in1.distance_bytes());
+
+    }
 
     // Set Cell SIB2
     // update PRACH root seq index for this cell
@@ -74,7 +97,28 @@ cell_info_common_list::cell_info_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     new_cell->sib2.rr_cfg_common.prach_cfg.root_seq_idx = new_cell->cell_cfg.root_seq_idx;
     // update carrier freq
     if (new_cell->sib2.freq_info.ul_carrier_freq_present) {
-      new_cell->sib2.freq_info.ul_carrier_freq = new_cell->cell_cfg.ul_earfcn;
+        uint32_t ul_earfcn = new_cell->cell_cfg.ul_earfcn;
+        if (ul_earfcn <= 65535) {
+            new_cell->sib2.freq_info.ul_carrier_freq = ul_earfcn;
+        } else {
+            new_cell->sib2.freq_info.ul_carrier_freq = 65535;
+            new_cell->sib2.late_non_crit_ext_present = true;
+
+            // prepare buffer
+            uint8_t byte_buf2[16];
+            asn1::bit_ref bref_in2(&byte_buf2[0], sizeof(byte_buf2));
+
+            // create extension struct and encode it
+            asn1::rrc::sib_type2_v8h0_ies_s sib2_v8h0_ies;
+            sib2_v8h0_ies.non_crit_ext_present = true;
+            sib2_v8h0_ies.non_crit_ext.ul_carrier_freq_v9e0_present = true;
+            sib2_v8h0_ies.non_crit_ext.ul_carrier_freq_v9e0 = ul_earfcn;
+            sib2_v8h0_ies.pack(bref_in2);
+
+            // copy encoded data to late_non_crit_ext octet string
+            new_cell->sib2.late_non_crit_ext.resize(bref_in2.distance_bytes());
+            memcpy(new_cell->sib2.late_non_crit_ext.data(), byte_buf2, bref_in2.distance_bytes());
+        }
     }
   }
 
