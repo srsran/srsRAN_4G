@@ -517,6 +517,10 @@ typedef struct {
   std::vector<uint32_t> dl_earfcn_list = {3400}; // vectorized version of dl_earfcn that gets populated during init
   std::map<uint32_t, uint32_t> ul_earfcn_map;    // Map linking DL EARFCN and UL EARFCN
 
+  std::string           dl_nr_arfcn      = "632628"; // comma-separated list of DL NR ARFCNs
+  std::vector<uint32_t> dl_nr_arfcn_list = {
+      632628}; // vectorized version of dl_nr_arfcn that gets populated during init
+
   float dl_freq = -1.0f;
   float ul_freq = -1.0f;
 

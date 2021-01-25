@@ -199,19 +199,21 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   band_param_eutra.set_eutra();
   band_param_eutra.eutra().ca_bw_class_dl_eutra_present = true;
   band_param_eutra.eutra().ca_bw_class_ul_eutra_present = true;
-  band_param_eutra.eutra().band_eutra                   = 1;
+  band_param_eutra.eutra().band_eutra                   = 1; // TODO: this also needs to be set here?
   band_param_eutra.eutra().ca_bw_class_dl_eutra         = asn1::rrc_nr::ca_bw_class_eutra_opts::options::a;
   band_param_eutra.eutra().ca_bw_class_ul_eutra         = asn1::rrc_nr::ca_bw_class_eutra_opts::options::a;
   band_combination.band_list.push_back(band_param_eutra);
 
-  struct band_params_c band_param_nr;
-  band_param_nr.set_nr();
-  band_param_nr.nr().ca_bw_class_dl_nr_present = true;
-  band_param_nr.nr().ca_bw_class_ul_nr_present = true;
-  band_param_nr.nr().band_nr                   = 78;
-  band_param_nr.nr().ca_bw_class_dl_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
-  band_param_nr.nr().ca_bw_class_ul_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
-  band_combination.band_list.push_back(band_param_nr);
+  for (const auto& band : args.supported_bands) {
+    struct band_params_c band_param_nr;
+    band_param_nr.set_nr();
+    band_param_nr.nr().ca_bw_class_dl_nr_present = true;
+    band_param_nr.nr().ca_bw_class_ul_nr_present = true;
+    band_param_nr.nr().band_nr                   = band;
+    band_param_nr.nr().ca_bw_class_dl_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
+    band_param_nr.nr().ca_bw_class_ul_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
+    band_combination.band_list.push_back(band_param_nr);
+  }
 
   mrdc_cap.rf_params_mrdc.supported_band_combination_list.push_back(band_combination);
   mrdc_cap.rf_params_mrdc.supported_band_combination_list_present = true;
@@ -226,10 +228,12 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   band_info_eutra.band_info_eutra().band_eutra                   = 1;
   mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_eutra);
 
-  freq_band_info_c band_info_nr;
-  band_info_nr.set_band_info_nr();
-  band_info_nr.band_info_nr().band_nr = 78;
-  mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_nr);
+  for (const auto& band : args.supported_bands) {
+    freq_band_info_c band_info_nr;
+    band_info_nr.set_band_info_nr();
+    band_info_nr.band_info_nr().band_nr = band;
+    mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_nr);
+  }
 
   mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt_present = true;
 
@@ -387,18 +391,19 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
 
 void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
 {
-
   struct ue_nr_cap_s nr_cap;
 
   nr_cap.access_stratum_release = access_stratum_release_opts::rel15;
   // PDCP
   nr_cap.pdcp_params.max_num_rohc_context_sessions = pdcp_params_s::max_num_rohc_context_sessions_opts::cs2;
 
-  band_nr_s band_nr;
-  band_nr.band_nr              = 78;
-  band_nr.ue_pwr_class_present = true;
-  band_nr.ue_pwr_class         = band_nr_s::ue_pwr_class_opts::pc3;
-  nr_cap.rf_params.supported_band_list_nr.push_back(band_nr);
+  for (const auto& band : args.supported_bands) {
+    band_nr_s band_nr;
+    band_nr.band_nr              = band;
+    band_nr.ue_pwr_class_present = true;
+    band_nr.ue_pwr_class         = band_nr_s::ue_pwr_class_opts::pc3;
+    nr_cap.rf_params.supported_band_list_nr.push_back(band_nr);
+  }
 
   nr_cap.rlc_params_present                  = true;
   nr_cap.rlc_params.um_with_short_sn_present = true;

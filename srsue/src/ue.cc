@@ -12,6 +12,7 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/build_info.h"
+#include "srslte/common/band_helper.h"
 #include "srslte/common/string_helpers.h"
 #include "srslte/radio/radio.h"
 #include "srslte/radio/radio_null.h"
@@ -242,6 +243,32 @@ int ue::parse_args(const all_args_t& args_)
     args.phy.ul_earfcn_map.clear();
     for (size_t i = 0; i < SRSLTE_MIN(ul_earfcn_list.size(), args.phy.dl_earfcn_list.size()); i++) {
       args.phy.ul_earfcn_map[args.phy.dl_earfcn_list[i]] = ul_earfcn_list[i];
+    }
+  }
+
+  srslte_band_helper bands_helper;
+
+  // populate NR DL ARFCNs
+  if (args.phy.nof_nr_carriers > 0) {
+    if (not args.phy.dl_nr_arfcn.empty()) {
+      // Parse list
+      srslte::string_parse_list(args.phy.dl_nr_arfcn, ',', args.phy.dl_nr_arfcn_list);
+
+      // Populates supported bands
+      for (uint32_t& arfcn : args.phy.dl_nr_arfcn_list) {
+        std::vector<uint32_t> bands = bands_helper.get_bands_nr(arfcn);
+        for (const auto& band : bands) {
+          // make sure we don't add duplicates
+          if (std::find(args.stack.rrc_nr.supported_bands.begin(), args.stack.rrc_nr.supported_bands.end(), band) ==
+              args.stack.rrc_nr.supported_bands.end()) {
+            args.stack.rrc_nr.supported_bands.push_back(band);
+          }
+        }
+      }
+    } else {
+      log.error("Error: dl_nr_arfcn list is empty\n");
+      srslte::console("Error: dl_nr_arfcn list is empty\n");
+      return SRSLTE_ERROR;
     }
   }
 

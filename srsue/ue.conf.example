@@ -5,12 +5,13 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: Downlink EARFCN code.
+# dl_earfcn:   Downlink EARFCN code.
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
 # Optional parameters: 
+# dl_nr_arfcn:        Downlink NR ARFCN for EN-DC
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn
 # nof_carriers:       Number of carriers
@@ -29,6 +30,7 @@
 #####################################################################
 [rf]
 dl_earfcn = 3350
+#dl_nr_arfcn = 632628
 freq_offset = 0
 tx_gain = 80
 #rx_gain = 40
