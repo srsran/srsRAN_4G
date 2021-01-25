@@ -16,3 +16,6 @@ target_link_libraries(thread_test
         srslte_common)
 add_test(thread_test thread_test)
 
+add_executable(band_helper_test band_helper_test.cc)
+target_link_libraries(band_helper_test srslte_common)
+add_test(band_helper_test band_helper_test)
