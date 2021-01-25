@@ -12,16 +12,14 @@
 
 #include "srslte/common/test_common.h"
 #include "srslte/phy/ch_estimation/dmrs_pucch.h"
+#include "srslte/phy/channel/ch_awgn.h"
 #include "srslte/phy/phch/pucch_nr.h"
 #include "srslte/phy/phch/ra_ul_nr.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <strings.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 static srslte_carrier_nr_t carrier = {
@@ -32,10 +30,12 @@ static srslte_carrier_nr_t carrier = {
     1  // max_mimo_layers
 };
 
-static uint32_t        starting_prb_stride    = 4;
-static uint32_t        starting_symbol_stride = 4;
-static srslte_random_t random_gen             = NULL;
-static int             format                 = -1;
+static uint32_t              starting_prb_stride    = 4;
+static uint32_t              starting_symbol_stride = 4;
+static srslte_random_t       random_gen             = NULL;
+static int                   format                 = -1;
+static float                 snr_db                 = 30.0f;
+static srslte_channel_awgn_t awgn                   = {};
 
 static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_common_cfg_t* cfg, cf_t* slot_symbols)
 {
@@ -122,9 +122,17 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
                   TESTASSERT(srslte_dmrs_pucch_format1_put(pucch, &carrier, cfg, &slot, &resource, slot_symbols) ==
                              SRSLTE_SUCCESS);
 
+                  // Apply AWGN
+                  srslte_channel_awgn_run_c(
+                      &awgn, slot_symbols, slot_symbols, carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR);
+
                   // Estimate channel
                   TESTASSERT(srslte_dmrs_pucch_format1_estimate(
                                  pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSLTE_SUCCESS);
+
+                  TESTASSERT(fabsf(chest_res->rsrp_dBfs - 0.0f) < 3.0f);
+                  TESTASSERT(fabsf(chest_res->epre_dBfs - 0.0f) < 3.0f);
+                  TESTASSERT(fabsf(chest_res->snr_db - snr_db) < 10.0f);
 
                   // Decode PUCCH
                   uint8_t b_rx[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS];
@@ -199,15 +207,19 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
                            SRSLTE_SUCCESS);
 
                 // Put DMRS
-                //              TESTASSERT(srslte_dmrs_pucch_format1_put(pucch, &carrier, cfg, &slot, &resource,
-                //              slot_symbols) ==
-                //                         SRSLTE_SUCCESS);
+                TESTASSERT(srslte_dmrs_pucch_format2_put(pucch, &carrier, cfg, &slot, &resource, slot_symbols) ==
+                           SRSLTE_SUCCESS);
+
+                // Apply AWGN
+                srslte_channel_awgn_run_c(
+                    &awgn, slot_symbols, slot_symbols, carrier.nof_prb * SRSLTE_NRE * SRSLTE_NSYMB_PER_SLOT_NR);
 
                 // Estimate channel
-                //              TESTASSERT(srslte_dmrs_pucch_format1_estimate(
-                //                             pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) ==
-                //                             SRSLTE_SUCCESS);
-                srslte_chest_ul_res_set_identity(chest_res);
+                TESTASSERT(srslte_dmrs_pucch_format2_estimate(
+                               pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSLTE_SUCCESS);
+                TESTASSERT(fabsf(chest_res->rsrp_dBfs - 0.0f) < 3.0f);
+                TESTASSERT(fabsf(chest_res->epre_dBfs - 0.0f) < 3.0f);
+                TESTASSERT(fabsf(chest_res->snr_db - snr_db) < 10.0f);
 
                 // Decode PUCCH
                 srslte_uci_value_nr_t uci_value_rx = {};
@@ -238,13 +250,14 @@ static void usage(char* prog)
   printf("\t-c cell id [Default %d]\n", carrier.id);
   printf("\t-n nof_prb [Default %d]\n", carrier.nof_prb);
   printf("\t-f format [Default %d]\n", format);
+  printf("\t-s SNR in dB [Default %.2f]\n", snr_db);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "cnfv")) != -1) {
+  while ((opt = getopt(argc, argv, "cnfsv")) != -1) {
     switch (opt) {
       case 'c':
         carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -254,6 +267,9 @@ static void parse_args(int argc, char** argv)
         break;
       case 'f':
         format = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 's':
+        snr_db = strtof(argv[optind], NULL);
         break;
       case 'v':
         srslte_verbose++;
@@ -297,6 +313,16 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
+  if (srslte_channel_awgn_init(&awgn, 1234) < SRSLTE_SUCCESS) {
+    ERROR("AWGN init\n");
+    goto clean_exit;
+  }
+
+  if (srslte_channel_awgn_set_n0(&awgn, -snr_db) < SRSLTE_SUCCESS) {
+    ERROR("AWGN set N0\n");
+    goto clean_exit;
+  }
+
   srslte_pucch_nr_common_cfg_t common_cfg = {};
 
   // Test Format 0
@@ -331,7 +357,7 @@ clean_exit:
 
   srslte_pucch_nr_free(&pucch);
   srslte_chest_ul_res_free(&chest_res);
-
+  srslte_channel_awgn_free(&awgn);
   srslte_random_free(random_gen);
 
   if (ret == SRSLTE_SUCCESS) {

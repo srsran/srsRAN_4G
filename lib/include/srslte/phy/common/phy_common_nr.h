@@ -23,7 +23,7 @@ extern "C" {
 /**
  * @brief Defines the number of symbols per slot. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NSYMB_PER_SLOT_NR 14
+#define SRSLTE_NSYMB_PER_SLOT_NR 14U
 
 /**
  * @brief Defines the resource grid size in physical resource elements (frequency and time domain)

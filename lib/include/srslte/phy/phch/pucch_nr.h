@@ -54,6 +54,7 @@ typedef struct SRSLTE_API {
   srslte_uci_nr_t      uci;
   uint8_t*             b;
   cf_t*                d;
+  cf_t*                ce;
 } srslte_pucch_nr_t;
 
 /**

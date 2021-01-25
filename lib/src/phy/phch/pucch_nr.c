@@ -165,6 +165,13 @@ int srslte_pucch_nr_init(srslte_pucch_nr_t* q, const srslte_pucch_nr_args_t* arg
     return SRSLTE_ERROR;
   }
 
+  // Allocate temporal channel estimates
+  q->ce = srslte_vec_cf_malloc(max_encoded_bits / 2);
+  if (q->ce == NULL) {
+    ERROR("Malloc\n");
+    return SRSLTE_ERROR;
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -185,6 +192,10 @@ void srslte_pucch_nr_free(srslte_pucch_nr_t* q)
   }
   if (q->d != NULL) {
     free(q->d);
+  }
+
+  if (q->ce != NULL) {
+    free(q->ce);
   }
 
   SRSLTE_MEM_ZERO(q, srslte_pucch_nr_t, 1);
@@ -582,14 +593,26 @@ static int pucch_nr_format2_decode(srslte_pucch_nr_t*                  q,
   uint32_t k_end   = (resource->starting_prb + resource->nof_prb) * SRSLTE_NRE;
   for (uint32_t l = l_start, i = 0; l < l_end; l++) {
     cf_t* symbol_ptr = &slot_symbols[l * carrier->nof_prb * SRSLTE_NRE];
+    cf_t* ce_ptr     = &chest_res->ce[l * carrier->nof_prb * SRSLTE_NRE];
     for (uint32_t k = k_start; k < k_end; k += 3) {
-      q->d[i++] = symbol_ptr[k];
-      q->d[i++] = symbol_ptr[k + 2];
+      q->d[i]  = symbol_ptr[k];
+      q->ce[i] = ce_ptr[k];
+      i++;
+      q->d[i]  = symbol_ptr[k + 2];
+      q->ce[i] = ce_ptr[k + 2];
+      i++;
     }
   }
 
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("d=");
+    srslte_vec_fprint_c(stdout, q->d, resource->nof_symbols * resource->nof_prb * (SRSLTE_NRE - 4));
+    INFO("ce=");
+    srslte_vec_fprint_c(stdout, q->ce, resource->nof_symbols * resource->nof_prb * (SRSLTE_NRE - 4));
+  }
+
   // Equalise
-  if (srslte_predecoding_single(q->d, chest_res->ce, q->d, NULL, E, 1.0f, chest_res->noise_estimate) < SRSLTE_SUCCESS) {
+  if (srslte_predecoding_single(q->d, q->ce, q->d, NULL, E, 1.0f, chest_res->noise_estimate) < SRSLTE_SUCCESS) {
     ERROR("Error Pre-decoding\n");
     return SRSLTE_ERROR;
   }

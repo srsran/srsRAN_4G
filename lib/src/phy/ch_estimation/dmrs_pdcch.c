@@ -31,9 +31,8 @@
 
 static uint32_t dmrs_pdcch_get_cinit(uint32_t slot_idx, uint32_t symbol_idx, uint32_t n_id)
 {
-  return (uint32_t)(
-      ((1UL << 17UL) * (SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL) + 2UL * n_id) %
-      INT32_MAX);
+  return SRSLTE_SEQUENCE_MOD((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17U) +
+                             2UL * n_id);
 }
 
 static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_carrier_nr_t*   carrier,
