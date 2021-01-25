@@ -14,6 +14,7 @@
 #define SRSUE_RRC_NR_H
 
 #include "srslte/asn1/rrc_nr.h"
+#include "srslte/asn1/rrc_nr_utils.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/nr_common_interface_types.h"
@@ -153,6 +154,29 @@ private:
   srslte::timer_handler* timers = nullptr;
 
   std::string get_rb_name(uint32_t lcid) final { return srslte::to_string((srslte::rb_id_nr_t)lcid); }
+
+  typedef enum { Srb = 0, Drb } rb_type_t;
+  typedef struct {
+    uint32_t  rb_id;
+    rb_type_t rb_type;
+  } rb_t;
+
+  bool     add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid);
+  uint32_t get_lcid_for_rbid(uint32_t rdid);
+
+  std::map<uint32_t, rb_t> lcid_rb; // Map of lcid to radio bearer (type and rb id)
+
+  std::map<uint32_t, uint32_t> drb_eps_bearer_id; // Map of drb id to eps_bearer_id
+
+  bool apply_cell_group_cfg(const asn1::rrc_nr::cell_group_cfg_s& cell_group_cfg);
+  bool apply_radio_bearer_cfg(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
+  bool apply_rlc_add_mod(const asn1::rrc_nr::rlc_bearer_cfg_s& rlc_bearer_cfg);
+  bool apply_mac_cell_group(const asn1::rrc_nr::mac_cell_group_cfg_s& mac_cell_group_cfg);
+  bool apply_sp_cell_cfg(const asn1::rrc_nr::sp_cell_cfg_s& sp_cell_cfg);
+  bool apply_drb_add_mod(const asn1::rrc_nr::drb_to_add_mod_s& drb_cfg);
+  bool apply_security_cfg(const asn1::rrc_nr::security_cfg_s& security_cfg);
+
+  srslte::as_security_config_t sec_cfg;
 
   class connection_reconf_no_ho_proc
   {
