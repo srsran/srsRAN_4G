@@ -32,12 +32,13 @@ void usage(char* prog)
   printf("\t-l crc_length [Default %d]\n", crc_length);
   printf("\t-p crc_poly (Hex) [Default 0x%x]\n", crc_poly);
   printf("\t-s seed [Default 0=time]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "nlps")) != -1) {
+  while ((opt = getopt(argc, argv, "nlpsv")) != -1) {
     switch (opt) {
       case 'n':
         num_bits = (int)strtol(argv[optind], NULL, 10);
@@ -50,6 +51,9 @@ void parse_args(int argc, char** argv)
         break;
       case 's':
         seed = (uint32_t)strtoul(argv[optind], NULL, 0);
+        break;
+      case 'v':
+        srslte_verbose++;
         break;
       default:
         usage(argv[0]);
@@ -83,6 +87,11 @@ int main(int argc, char** argv)
     data[i] = rand() % 2;
   }
 
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    INFO("data=");
+    srslte_vec_fprint_b(stdout, data, num_bits);
+  }
+
   // Initialize CRC params and tables
   if (srslte_crc_init(&crc_p, crc_poly, crc_length)) {
     exit(-1);
@@ -90,6 +99,8 @@ int main(int argc, char** argv)
 
   // generate CRC word
   crc_word = srslte_crc_checksum(&crc_p, data, num_bits);
+
+  INFO("checksum=%x\n", crc_word);
 
   free(data);
 
