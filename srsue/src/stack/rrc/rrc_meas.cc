@@ -73,6 +73,9 @@ void rrc::rrc_meas::update_phy()
 {
   std::list<meas_obj_to_add_mod_s> objects = meas_cfg.get_active_objects();
   rrc_ptr->phy->meas_stop();
+#ifdef HAVE_5GNR
+  rrc_ptr->rrc_nr->phy_meas_stop();
+#endif
   for (const auto& obj : objects) {
     switch (obj.meas_obj.type().value) {
       case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra: {

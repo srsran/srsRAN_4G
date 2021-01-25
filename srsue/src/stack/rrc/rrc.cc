@@ -421,6 +421,13 @@ void rrc::process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas)
 
   bool neighbour_added = meas_cells_nr.process_new_cell_meas(meas_lte, filter);
 }
+
+void rrc::nr_rrc_con_reconfig_complete(bool status)
+{
+  if (conn_recfg_proc.is_busy()) {
+    conn_recfg_proc.trigger(status);
+  }
+}
 #endif
 
 /* This function is called from a PHY worker thus must return very quickly.
@@ -752,6 +759,62 @@ void rrc::timer_expired(uint32_t timeout_id)
   }
 }
 
+#ifdef HAVE_5GNR
+bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
+{
+  if (!(rx_recfg.non_crit_ext_present && rx_recfg.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext_present)) {
+    return true;
+  }
+
+  const asn1::rrc::rrc_conn_recfg_v1510_ies_s* rrc_conn_recfg_v1510_ies =
+      &rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+
+  if (!rrc_conn_recfg_v1510_ies->nr_cfg_r15_present) {
+    return true;
+  }
+
+  bool                endc_release_and_add_r15                = false;
+  bool                nr_secondary_cell_group_cfg_r15_present = false;
+  asn1::dyn_octstring nr_secondary_cell_group_cfg_r15;
+  bool                sk_counter_r15_present           = false;
+  uint32_t            sk_counter_r15                   = 0;
+  bool                nr_radio_bearer_cfg1_r15_present = false;
+  asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
+
+  endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
+
+  if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present == true) {
+    nr_secondary_cell_group_cfg_r15_present = true;
+    nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+  }
+
+  if (rrc_conn_recfg_v1510_ies->sk_counter_r15_present) {
+    sk_counter_r15_present = true;
+    sk_counter_r15         = rrc_conn_recfg_v1510_ies->sk_counter_r15;
+  }
+
+  if (rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15_present) {
+    nr_radio_bearer_cfg1_r15_present = true;
+    nr_radio_bearer_cfg1_r15         = rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15;
+  }
+
+  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
+                                     nr_secondary_cell_group_cfg_r15_present,
+                                     nr_secondary_cell_group_cfg_r15,
+                                     sk_counter_r15_present,
+                                     sk_counter_r15,
+                                     nr_radio_bearer_cfg1_r15_present,
+                                     nr_radio_bearer_cfg1_r15);
+}
+#endif
 /*******************************************************************************
  *
  *
@@ -934,14 +997,31 @@ void rrc::send_security_mode_complete()
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::send_rrc_con_reconfig_complete()
+void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
 {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
   ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
+  rrc_conn_recfg_complete_r8_ies_s* rrc_conn_recfg_complete_r8 =
+      &ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
 
+  if (contains_nr_complete == true) {
+    rrc_log->debug("Preparing RRC Connection Reconfig Complete with NR Complete\n");
+
+    rrc_conn_recfg_complete_r8->non_crit_ext_present                                                     = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext_present                                        = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present              = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+
+    rrc_conn_recfg_complete_v1430_ies_s* rrc_conn_recfg_complete_v1430_ies =
+        &rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+
+    rrc_conn_recfg_complete_v1430_ies->non_crit_ext_present                     = true;
+    rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15_present = true;
+    rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15.from_string("00");
+  }
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 

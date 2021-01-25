@@ -118,6 +118,7 @@ public:
   // NR interface
 #ifdef HAVE_5GNR
   void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
+  void nr_rrc_con_reconfig_complete(bool status);
 #endif
 
   // PHY interface
@@ -358,7 +359,7 @@ private:
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
   void send_security_mode_complete();
-  void send_rrc_con_reconfig_complete();
+  void send_rrc_con_reconfig_complete(bool contains_nr_complete = false);
 
   // Parsers
   void process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -415,6 +416,10 @@ private:
   void set_phy_default();
   void set_mac_default();
   void set_rrc_default();
+
+#ifdef HAVE_5GNR
+  bool nr_reconfiguration_proc(const asn1::rrc::rrc_conn_recfg_r8_ies_s& rx_recfg);
+#endif
 
   // Helpers for nr communicaiton
   asn1::rrc::ue_cap_rat_container_s get_eutra_nr_capabilities();

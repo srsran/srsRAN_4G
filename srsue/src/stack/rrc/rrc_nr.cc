@@ -12,13 +12,19 @@
 
 #include "srsue/hdr/stack/rrc/rrc_nr.h"
 
-using namespace asn1::rrc_nr;
+#define Error(fmt, ...) rrc_ptr->log_h->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Warning(fmt, ...) rrc_ptr->log_h->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Info(fmt, ...) rrc_ptr->log_h->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Debug(fmt, ...) rrc_ptr->log_h->debug("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
+using namespace asn1::rrc_nr;
+using namespace asn1;
+using namespace srslte;
 namespace srsue {
 
 const char* rrc_nr::rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
-rrc_nr::rrc_nr(srslte::task_sched_handle task_sched_) : log_h("RRC"), task_sched(task_sched_) {}
+rrc_nr::rrc_nr(srslte::task_sched_handle task_sched_) : log_h("RRC"), task_sched(task_sched_), conn_recfg_proc(this) {}
 
 rrc_nr::~rrc_nr() = default;
 
@@ -113,6 +119,29 @@ void rrc_nr::log_rrc_message(const std::string&           source,
                      (dir == Rx) ? "Rx" : "Tx",
                      msg_type.c_str(),
                      pdu->N_bytes);
+    log_h->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
+  }
+}
+
+template <class T>
+void rrc_nr::log_rrc_message(const std::string& source,
+                             direction_t        dir,
+                             dyn_octstring      oct,
+                             const T&           msg,
+                             const std::string& msg_type)
+{
+  if (log_h->get_level() == srslte::LOG_LEVEL_INFO) {
+    log_h->info("%s - %s %s (%d B)\n", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), oct.size());
+  } else if (log_h->get_level() >= srslte::LOG_LEVEL_DEBUG) {
+    asn1::json_writer json_writer;
+    msg.to_json(json_writer);
+    log_h->debug_hex(oct.data(),
+                     oct.size(),
+                     "%s - %s %s (%d B)\n",
+                     source.c_str(),
+                     (dir == Rx) ? "Rx" : "Tx",
+                     msg_type.c_str(),
+                     oct.size());
     log_h->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
   }
 }
@@ -250,6 +279,79 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   return;
 }
 
+bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
+                                 bool                nr_secondary_cell_group_cfg_r15_present,
+                                 asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
+                                 bool                sk_counter_r15_present,
+                                 uint32_t            sk_counter_r15,
+                                 bool                nr_radio_bearer_cfg1_r15_present,
+                                 asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
+{
+
+  // sanity check only for now
+  if (nr_secondary_cell_group_cfg_r15_present == false || sk_counter_r15_present == false ||
+      nr_radio_bearer_cfg1_r15_present == false) {
+    log_h->error("RRC NR Reconfiguration failed sanity check failed\n");
+    return false;
+  }
+
+  rrc_recfg_s        rrc_recfg;
+  cell_group_cfg_s   cell_group_cfg;
+  radio_bearer_cfg_s radio_bearer_cfg;
+  asn1::SRSASN_CODE  err;
+
+  cbit_ref bref(nr_secondary_cell_group_cfg_r15.data(), nr_secondary_cell_group_cfg_r15.size());
+
+  err = rrc_recfg.unpack(bref);
+  if (err != asn1::SRSASN_SUCCESS) {
+    log_h->error("Could not unpack NR reconfiguration message.\n");
+    return false;
+  }
+
+  log_rrc_message(
+      "RRC NR Reconfiguration", Rx, nr_secondary_cell_group_cfg_r15, rrc_recfg, "NR Secondary Cell Group Cfg R15");
+
+  if (rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg) {
+    if (rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true) {
+      cbit_ref bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
+                     rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
+
+      err = cell_group_cfg.unpack(bref0);
+      if (err != asn1::SRSASN_SUCCESS) {
+        log_h->error("Could not unpack cell group message message.\n");
+        return false;
+      }
+
+      log_rrc_message("RRC NR Reconfiguration",
+                      Rx,
+                      rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group,
+                      cell_group_cfg,
+                      "Secondary Cell Group Config");
+    } else {
+      log_h->error("Reconfiguration does not contain Secondary Cell Group Config\n");
+      return false;
+    }
+  }
+
+  cbit_ref bref1(nr_radio_bearer_cfg1_r15.data(), nr_radio_bearer_cfg1_r15.size());
+
+  err = radio_bearer_cfg.unpack(bref1);
+  if (err != asn1::SRSASN_SUCCESS) {
+    log_h->error("Could not unpack radio bearer config.\n");
+    return false;
+  }
+
+  log_rrc_message("RRC NR Reconfiguration", Rx, nr_radio_bearer_cfg1_r15, radio_bearer_cfg, "Radio Bearer Config R15");
+  if (not conn_recfg_proc.launch(
+          endc_release_and_add_r15, rrc_recfg, cell_group_cfg, sk_counter_r15, radio_bearer_cfg)) {
+    log_h->error("Unable to launch NR RRC configuration procedure\n");
+    return false;
+  } else {
+    callback_list.add_proc(conn_recfg_proc);
+  }
+  return true;
+}
+
 void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
 {
 
@@ -291,6 +393,14 @@ void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
   return;
 };
 
+void rrc_nr::phy_meas_stop()
+{
+  // possbile race condition for fake_measurement timer, which might be set at the same moment as stopped => fix with
+  // phy integration
+  log_h->debug("[NR] Stopping fake measurements\n");
+  fake_measurement_timer.stop();
+}
+
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
   log_h->debug("[NR] Measuring phy cell %d \n", carrier_freq_r15);
@@ -300,11 +410,57 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
   fake_measurement_timer.run();
 }
 
+bool rrc_nr::is_config_pending()
+{
+  if (conn_recfg_proc.is_busy()) {
+    return true;
+  }
+  return false;
+}
+
 // RLC interface
 void rrc_nr::max_retx_attempted() {}
 
 // STACK interface
 void rrc_nr::cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell)
 {}
+
+/* Procedures */
+rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr* parent_) : rrc_ptr(parent_) {}
+
+proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool                       endc_release_and_add_r15,
+                                                          const asn1::rrc_nr::rrc_recfg_s& rrc_recfg,
+                                                          const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
+                                                          const uint32_t                          sk_counter_r15,
+                                                          const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg)
+{
+  Info("Starting...\n");
+
+  return proc_outcome_t::success;
+}
+
+proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::react(const bool& config_complete)
+{
+  if (not config_complete) {
+    Error("Failed to config PHY\n");
+    return proc_outcome_t::error;
+  }
+
+  rrc_ptr->rrc_eutra->nr_rrc_con_reconfig_complete(true);
+
+  Info("Reconfig NR return successful\n");
+  return proc_outcome_t::success;
+}
+
+void rrc_nr::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
+{
+  if (result.is_success()) {
+    Info("Finished %s successfully\n", name());
+    return;
+  }
+
+  // Section 5.3.5.5 - Reconfiguration failure
+  // rrc_ptr->con_reconfig_failed();
+}
 
 } // namespace srsue

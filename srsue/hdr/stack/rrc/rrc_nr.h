@@ -74,7 +74,12 @@ public:
                        const srslte::byte_buffer_t* pdu,
                        const T&                     msg,
                        const std::string&           msg_type);
-
+  template <class T>
+  void log_rrc_message(const std::string&  source,
+                       direction_t         dir,
+                       asn1::dyn_octstring oct,
+                       const T&            msg,
+                       const std::string&  msg_type);
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
@@ -95,8 +100,16 @@ public:
   // RRC (LTE) interface
   void get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
   void get_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps);
+  void phy_meas_stop();
   void phy_set_cells_to_meas(uint32_t carrier_freq_r15);
-
+  bool rrc_reconfiguration(bool                endc_release_and_add_r15,
+                           bool                nr_secondary_cell_group_cfg_r15_present,
+                           asn1::dyn_octstring nr_secondary_cell_group_cfg_r15,
+                           bool                sk_counter_r15_present,
+                           uint32_t            sk_counter_r15,
+                           bool                nr_radio_bearer_cfg1_r15_present,
+                           asn1::dyn_octstring nr_radio_bearer_cfg1_r15);
+  bool is_config_pending();
   // STACK interface
   void cell_search_completed(const rrc_interface_phy_lte::cell_search_ret_t& cs_ret, const phy_cell_t& found_cell);
 
@@ -140,6 +153,32 @@ private:
   srslte::timer_handler* timers = nullptr;
 
   std::string get_rb_name(uint32_t lcid) final { return srslte::to_string((srslte::rb_id_nr_t)lcid); }
+
+  class connection_reconf_no_ho_proc
+  {
+  public:
+    explicit connection_reconf_no_ho_proc(rrc_nr* parent_);
+    srslte::proc_outcome_t init(const bool                              endc_release_and_add_r15,
+                                const asn1::rrc_nr::rrc_recfg_s&        rrc_recfg,
+                                const asn1::rrc_nr::cell_group_cfg_s&   cell_group_cfg,
+                                const uint32_t                          sk_counter_r15,
+                                const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg);
+    srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+    static const char*     name() { return "NR Connection Reconfiguration"; }
+    srslte::proc_outcome_t react(const bool& config_complete);
+    void                   then(const srslte::proc_state_t& result);
+
+  private:
+    // const
+    rrc_nr* rrc_ptr;
+
+    asn1::rrc_nr::rrc_recfg_s      rrc_recfg;
+    asn1::rrc_nr::cell_group_cfg_s cell_group_cfg;
+  };
+
+  srslte::proc_t<connection_reconf_no_ho_proc> conn_recfg_proc;
+
+  srslte::proc_manager_list_t callback_list;
 };
 
 } // namespace srsue

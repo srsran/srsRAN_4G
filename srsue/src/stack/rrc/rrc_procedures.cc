@@ -972,15 +972,25 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
       return proc_outcome_t::error;
     }
   }
-
-  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside apply_scell_config()
-  // Note that apply_scell_config() calls set_scell() and set_config() which run in the background.
+  // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside
+  // apply_scell_config() Note that apply_scell_config() calls set_scell() and set_config() which run in the
+  // background.
   rrc_ptr->apply_scell_config(&rx_recfg, true);
 
   if (!rrc_ptr->measurements->parse_meas_config(
           &rx_recfg, rrc_ptr->reestablishment_successful, rrc_ptr->connection_reest.get()->get_source_earfcn())) {
     return proc_outcome_t::error;
   }
+
+  // Apply NR config
+#ifdef HAVE_5GNR
+  bool rtn = rrc_ptr->nr_reconfiguration_proc(rx_recfg);
+  if (rtn == false) {
+    rrc_ptr->rrc_log->error("Can not launch NR RRC Reconfiguration procedure\n");
+    return proc_outcome_t::error;
+  }
+  has_5g_nr_reconfig = true;
+#endif
 
   // No phy config was scheduled, run config completion immediately
   if (rrc_ptr->phy_ctrl->is_config_pending()) {
@@ -1001,7 +1011,18 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
     return proc_outcome_t::yield;
   }
 
-  rrc_ptr->send_rrc_con_reconfig_complete();
+#ifdef HAVE_5GNR
+  // in case there is rrc_nr to configure, wait for rrc nr configuration
+  if (has_5g_nr_reconfig == true && rrc_ptr->rrc_nr->is_config_pending()) {
+    return proc_outcome_t::yield;
+  }
+#endif
+
+  if (has_5g_nr_reconfig == true) {
+    rrc_ptr->send_rrc_con_reconfig_complete(true);
+  } else {
+    rrc_ptr->send_rrc_con_reconfig_complete();
+  }
 
   srslte::unique_byte_buffer_t nas_pdu;
   for (auto& pdu : rx_recfg.ded_info_nas_list) {
@@ -1021,12 +1042,16 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
 
 void rrc::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
 {
+  // Reset 5G NR reconfig variable
+  has_5g_nr_reconfig = false;
+
   if (result.is_success()) {
     rrc_ptr->rrc_log->info("Finished %s successfully\n", name());
     return;
   }
 
   // Section 5.3.5.5 - Reconfiguration failure
+  // TODO: if RRC NR configuration this also need to be signaled via LTE
   rrc_ptr->con_reconfig_failed();
 }
 
