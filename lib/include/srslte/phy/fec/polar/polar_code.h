@@ -381,7 +381,7 @@ static inline const uint16_t* get_blk_interleaver(uint8_t n)
       return blk_interleaver_10;
       break;
     default:
-      ERROR("Wrong code_size_log\n");
+      ERROR("Wrong code_size_log (%d)\n", n);
       return NULL;
   }
 }
