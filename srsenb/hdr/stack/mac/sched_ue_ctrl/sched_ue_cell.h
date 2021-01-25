@@ -33,7 +33,7 @@ struct sched_ue_cell {
   sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg_, tti_point current_tti);
   void set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_);
   void new_tti(tti_point tti_rx);
-  void reset();
+  void clear_feedback();
   void finish_tti(tti_point tti_rx);
 
   void set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_);

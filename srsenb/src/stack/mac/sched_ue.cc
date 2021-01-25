@@ -35,10 +35,7 @@ namespace srsenb {
  *
  *******************************************************/
 
-sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC"))
-{
-  reset();
-}
+sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC")) {}
 
 void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_)
 {
@@ -89,22 +86,6 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
   }
 
   check_ue_cfg_correctness(cfg);
-}
-
-void sched_ue::reset()
-{
-  cfg                          = {};
-  sr                           = false;
-  phy_config_dedicated_enabled = false;
-  cqi_request_tti              = 0;
-  for (auto& cc : cells) {
-    cc.reset();
-  }
-
-  // erase all bearers
-  for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
-    lch_handler.config_lcid(i, {});
-  }
 }
 
 void sched_ue::new_subframe(tti_point tti_rx, uint32_t enb_cc_idx)

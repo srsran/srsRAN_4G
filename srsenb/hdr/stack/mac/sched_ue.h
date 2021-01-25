@@ -38,7 +38,6 @@ class sched_ue
 
 public:
   sched_ue();
-  void reset();
   void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
   void new_subframe(tti_point tti_rx, uint32_t enb_cc_idx);
 

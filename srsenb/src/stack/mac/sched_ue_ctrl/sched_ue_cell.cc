@@ -31,6 +31,7 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   current_tti(current_tti_)
 {
   max_aggr_level = cell_cfg->sched_cfg->max_aggr_level >= 0 ? cell_cfg->sched_cfg->max_aggr_level : 3;
+  clear_feedback();
 }
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
@@ -59,16 +60,16 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
     max_mcs_dl = std::min(max_mcs_dl, 27u);
   }
 
+  // If new cell configuration, clear Cell HARQs
+  if (ue_cc_idx != prev_ue_cc_idx) {
+    clear_feedback();
+    harq_ent.reset();
+  }
+
   // Update carrier state
   if (ue_cc_idx == 0) {
-    if (cc_state() != cc_st::active) {
-      reset();
-      // PCell is always active
-      cc_state_ = cc_st::active;
-
-      // set initial DL CQI
-      dl_cqi = cell_cfg->cfg.initial_dl_cqi;
-    }
+    // PCell is always active
+    cc_state_ = cc_st::active;
   } else {
     // SCell case
     switch (cc_state()) {
@@ -82,7 +83,6 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
       case cc_st::deactivating:
       case cc_st::idle:
         if (ue_cc_idx > 0 and ue_cfg->supported_cc_list[ue_cc_idx].active) {
-          reset();
           cc_state_ = cc_st::activating;
           dl_cqi    = 0;
           log_h->info("SCHED: Activating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
@@ -102,18 +102,20 @@ void sched_ue_cell::new_tti(tti_point tti_rx)
   if (ue_cc_idx > 0 and cc_state_ == cc_st::deactivating) {
     // wait for all ACKs to be received before completely deactivating SCell
     if (current_tti > to_tx_dl_ack(cfg_tti)) {
-      enter_idle_st();
+      cc_state_ = cc_st::idle;
+      clear_feedback();
+      harq_ent.reset();
     }
   }
 }
 
-void sched_ue_cell::reset()
+void sched_ue_cell::clear_feedback()
 {
   dl_ri         = 0;
   dl_ri_tti_rx  = tti_point{};
   dl_pmi        = 0;
   dl_pmi_tti_rx = tti_point{};
-  dl_cqi        = 1;
+  dl_cqi        = ue_cc_idx == 0 ? cell_cfg->cfg.initial_dl_cqi : 1;
   dl_cqi_tti_rx = tti_point{};
   dl_cqi_rx     = false;
   ul_cqi        = 1;
@@ -122,7 +124,7 @@ void sched_ue_cell::reset()
 
 void sched_ue_cell::finish_tti(tti_point tti_rx)
 {
-  // reset PIDs with pending data or blocked
+  // clear_feedback PIDs with pending data or blocked
   harq_ent.reset_pending_data(tti_rx);
 }
 
@@ -136,12 +138,6 @@ void sched_ue_cell::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
     cc_state_ = cc_st::active;
     log_h->info("SCHED: SCell index=%d is now active\n", ue_cc_idx);
   }
-}
-
-void sched_ue_cell::enter_idle_st()
-{
-  cc_state_ = cc_st::idle;
-  harq_ent.reset();
 }
 
 /*************************************************************
