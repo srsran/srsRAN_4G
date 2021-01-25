@@ -138,6 +138,7 @@ private:
 
   srslte::log_ref log_h;
 
+  uint32_t                            fake_measurement_carrier_freq_r15;
   srslte::timer_handler::unique_timer fake_measurement_timer;
 
   /// RRC states (3GPP 38.331 v15.5.1 Sec 4.2.1)

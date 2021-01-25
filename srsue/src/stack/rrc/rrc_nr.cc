@@ -92,7 +92,7 @@ void rrc_nr::timer_expired(uint32_t timeout_id)
     fake_meas.rsrp     = -60.0;
     fake_meas.rsrq     = -60.0;
     fake_meas.cfo_hz   = 1.0;
-    fake_meas.arfcn_nr = 632256;
+    fake_meas.arfcn_nr = fake_measurement_carrier_freq_r15;
     fake_meas.pci_nr   = 500;
     phy_meas_nr.push_back(fake_meas);
     rrc_eutra->new_cell_meas_nr(phy_meas_nr);
@@ -439,6 +439,7 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
   log_h->debug("[NR] Measuring phy cell %d \n", carrier_freq_r15);
   // Start timer for fake measurements
   auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  fake_measurement_carrier_freq_r15 = carrier_freq_r15;
   fake_measurement_timer.set(10, timer_expire_func);
   fake_measurement_timer.run();
 }
