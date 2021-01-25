@@ -53,6 +53,7 @@ typedef struct SRSLTE_API {
   srslte_modem_table_t qpsk;
   srslte_uci_nr_t      uci;
   uint8_t*             b;
+  cf_t*                d;
 } srslte_pucch_nr_t;
 
 /**

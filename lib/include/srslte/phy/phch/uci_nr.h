@@ -29,7 +29,8 @@ typedef struct {
 } srslte_uci_nr_args_t;
 
 typedef struct {
-  srslte_polar_rm_t      rm;
+  srslte_polar_rm_t      rm_tx;
+  srslte_polar_rm_t      rm_rx;
   srslte_polar_encoder_t encoder;
   srslte_polar_decoder_t decoder;
   srslte_crc_t           crc6;
@@ -40,6 +41,12 @@ typedef struct {
   uint8_t*               allocated;    ///< Polar code intermediate
   uint8_t*               d;            ///< Polar code encoded intermediate
 } srslte_uci_nr_t;
+
+/**
+ * @brief Calculates in advance how many CRC bits will be appended for a given amount of UCI bits (A)
+ * @param A Number of UCI bits to transmit
+ */
+SRSLTE_API uint32_t srslte_uci_nr_crc_len(uint32_t A);
 
 /**
  * @brief Initialises NR-UCI encoder/decoder object
@@ -90,7 +97,7 @@ SRSLTE_API int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
 SRSLTE_API int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                           const srslte_pucch_nr_resource_t* pucch_resource_cfg,
                                           const srslte_uci_cfg_nr_t*        uci_cfg,
-                                          const int8_t*                     llr,
+                                          int8_t*                           llr,
                                           srslte_uci_value_nr_t*            value);
 
 #endif // SRSLTE_UCI_NR_H

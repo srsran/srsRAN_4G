@@ -96,7 +96,7 @@ int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (srslte_pucch_nr_format1_resource_valid(resource) < SRSLTE_SUCCESS) {
+  if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
     ERROR("Invalid PUCCH format 1 resource\n");
     return SRSLTE_ERROR;
   }
@@ -164,7 +164,7 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (srslte_pucch_nr_format1_resource_valid(resource) < SRSLTE_SUCCESS) {
+  if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
     ERROR("Invalid PUCCH format 1 resource\n");
     return SRSLTE_ERROR;
   }
@@ -278,4 +278,102 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
   }
 
   return SRSLTE_SUCCESS;
+}
+
+int srslte_dmrs_pucch_format_3_4_get_symbol_idx(const srslte_pucch_nr_resource_t* resource,
+                                                uint32_t idx[SRSLTE_DMRS_PUCCH_FORMAT_3_4_MAX_NSYMB])
+{
+  if (resource == NULL || idx == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  int count = 0;
+
+  switch (resource->nof_symbols) {
+    case 4:
+      if (resource->intra_slot_hopping) {
+        idx[count++] = 0;
+        idx[count++] = 2;
+      } else {
+        idx[count++] = 1;
+      }
+      break;
+    case 5:
+      idx[count++] = 0;
+      idx[count++] = 3;
+      break;
+    case 6:
+    case 7:
+      idx[count++] = 1;
+      idx[count++] = 4;
+      break;
+    case 8:
+      idx[count++] = 1;
+      idx[count++] = 5;
+      break;
+    case 9:
+      idx[count++] = 1;
+      idx[count++] = 6;
+      break;
+    case 10:
+      if (resource->additional_dmrs) {
+        idx[count++] = 1;
+        idx[count++] = 3;
+        idx[count++] = 6;
+        idx[count++] = 8;
+      } else {
+        idx[count++] = 2;
+        idx[count++] = 7;
+      }
+      break;
+    case 11:
+      if (resource->additional_dmrs) {
+        idx[count++] = 1;
+        idx[count++] = 3;
+        idx[count++] = 6;
+        idx[count++] = 9;
+      } else {
+        idx[count++] = 2;
+        idx[count++] = 7;
+      }
+      break;
+    case 12:
+      if (resource->additional_dmrs) {
+        idx[count++] = 1;
+        idx[count++] = 4;
+        idx[count++] = 7;
+        idx[count++] = 10;
+      } else {
+        idx[count++] = 2;
+        idx[count++] = 8;
+      }
+      break;
+    case 13:
+      if (resource->additional_dmrs) {
+        idx[count++] = 1;
+        idx[count++] = 4;
+        idx[count++] = 7;
+        idx[count++] = 11;
+      } else {
+        idx[count++] = 2;
+        idx[count++] = 9;
+      }
+      break;
+    case 14:
+      if (resource->additional_dmrs) {
+        idx[count++] = 1;
+        idx[count++] = 5;
+        idx[count++] = 8;
+        idx[count++] = 12;
+      } else {
+        idx[count++] = 3;
+        idx[count++] = 10;
+      }
+      break;
+    default:
+      ERROR("Invalid case (%d)\n", resource->nof_symbols);
+      return SRSLTE_ERROR;
+  }
+
+  return count;
 }

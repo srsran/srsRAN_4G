@@ -17,6 +17,18 @@
 #include "srslte/phy/ch_estimation/chest_ul.h"
 #include "srslte/phy/phch/pucch_nr.h"
 
+#define SRSLTE_DMRS_PUCCH_FORMAT_3_4_MAX_NSYMB 4
+
+/**
+ * @brief Computes the symbol indexes carrying DMRS for NR-PUCCH formats 3 and 4
+ * @remark Implements TS 38.211 Table 6.4.1.3.3.2-1: DM-RS positions for PUCCH format 3 and 4.
+ * @param[in] resource Provides the format 3 or 4 resource
+ * @param[out] idx Destination data for storing the symbol indexes
+ * @return The number of DMRS symbols if the resource is valid, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_dmrs_pucch_format_3_4_get_symbol_idx(const srslte_pucch_nr_resource_t* resource,
+                                                           uint32_t idx[SRSLTE_DMRS_PUCCH_FORMAT_3_4_MAX_NSYMB]);
+
 /**
  * @brief Puts NR-PUCCH format 1 DMRS in the provided resource grid
  * @param[in] q NR-PUCCH encoder/decoder object

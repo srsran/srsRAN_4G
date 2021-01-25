@@ -17,12 +17,21 @@
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/vector.h"
 
+#define UCI_NR_INFO_TX(...) INFO("UCI-NR Tx: " __VA_ARGS__)
+#define UCI_NR_INFO_RX(...) INFO("UCI-NR Rx: " __VA_ARGS__)
+
 // TS 38.212 section 5.2.1 Polar coding: The value of A is no larger than 1706.
 #define UCI_NR_MAX_A 1706U
 #define UCI_NR_MAX_L 11U
 #define UCI_NR_POLAR_MAX 2048U
 #define UCI_NR_POLAR_RM_IBIL 0
+#define UCI_NR_PUCCH_POLAR_N_MAX 10
 #define UCI_NR_BLOCK_CORR_THRESHOLD 0.5f
+
+uint32_t srslte_uci_nr_crc_len(uint32_t A)
+{
+  return (A <= 11) ? 0 : (A < 20) ? 6 : 11;
+}
 
 int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
 {
@@ -39,6 +48,11 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
   }
 #endif // LV_HAVE_AVX2
 
+  if (srslte_polar_code_init(&q->code)) {
+    ERROR("Initialising polar code\n");
+    return SRSLTE_ERROR;
+  }
+
   if (srslte_polar_encoder_init(&q->encoder, polar_encoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
     ERROR("Initialising polar encoder\n");
     return SRSLTE_ERROR;
@@ -49,7 +63,12 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
     return SRSLTE_ERROR;
   }
 
-  if (srslte_polar_rm_tx_init(&q->rm) < SRSLTE_SUCCESS) {
+  if (srslte_polar_rm_tx_init(&q->rm_tx) < SRSLTE_SUCCESS) {
+    ERROR("Initialising polar RM\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (srslte_polar_rm_rx_init_c(&q->rm_rx) < SRSLTE_SUCCESS) {
     ERROR("Initialising polar RM\n");
     return SRSLTE_ERROR;
   }
@@ -99,8 +118,11 @@ void srslte_uci_nr_free(srslte_uci_nr_t* q)
     return;
   }
 
+  srslte_polar_code_free(&q->code);
   srslte_polar_encoder_free(&q->encoder);
   srslte_polar_decoder_free(&q->decoder);
+  srslte_polar_rm_tx_free(&q->rm_tx);
+  srslte_polar_rm_rx_free_c(&q->rm_rx);
 
   if (q->bit_sequence != NULL) {
     free(q->bit_sequence);
@@ -130,6 +152,11 @@ static int uci_nr_pack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_v
   srslte_vec_u8_copy(&sequence[A], value->sr, cfg->o_sr);
   A += cfg->o_sr;
 
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_TX("Packed UCI bits: ");
+    srslte_vec_fprint_byte(stdout, sequence, A);
+  }
+
   return A;
 }
 
@@ -144,6 +171,11 @@ static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const uint8_t* s
   // Append SR bits
   srslte_vec_u8_copy(value->sr, &sequence[A], cfg->o_sr);
   A += cfg->o_sr;
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_RX("Unpacked UCI bits: ");
+    srslte_vec_fprint_byte(stdout, sequence, A);
+  }
 
   return A;
 }
@@ -356,11 +388,11 @@ static int uci_nr_encode_2bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg
 static int
 uci_nr_encode_3_11_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, uint32_t A, uint8_t* o, uint32_t E)
 {
-  uint8_t encoded[SRSLTE_FEC_BLOCK_SIZE] = {};
-  srslte_block_encode(q->bit_sequence, A, encoded, SRSLTE_FEC_BLOCK_SIZE);
+  srslte_block_encode(q->bit_sequence, A, o, E);
 
-  for (uint32_t i = 0; i < E; i++) {
-    o[i] = (encoded[i % SRSLTE_FEC_BLOCK_SIZE] == 0) ? UCI_BIT_0 : UCI_BIT_1;
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_TX("Block encoded UCI bits; o=");
+    srslte_vec_fprint_b(stdout, o, E);
   }
 
   return E;
@@ -382,6 +414,11 @@ static int uci_nr_decode_3_11_bit(srslte_uci_nr_t*           q,
   float pwr = sqrtf(srslte_vec_avg_power_bf(llr, E));
   if (!isnormal(pwr)) {
     return SRSLTE_ERROR;
+  }
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_RX("Block decoding NR-UCI llr=");
+    srslte_vec_fprint_bs(stdout, llr, E);
   }
 
   // Decode
@@ -408,10 +445,8 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
   }
 
   // Select CRC
-  srslte_crc_t* crc = &q->crc6;
-  if (A >= 20) {
-    crc = &q->crc11;
-  }
+  uint32_t      L   = srslte_uci_nr_crc_len(A);
+  srslte_crc_t* crc = (L == 6) ? &q->crc6 : &q->crc11;
 
   // Segmentation
   uint32_t C = 1;
@@ -421,9 +456,9 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
   uint32_t A_prime = CEIL(A, C) * C;
 
   // Get polar code
-  uint32_t K_r = A_prime / C + crc->order;
+  uint32_t K_r = A_prime / C + L;
   uint32_t E_r = E_uci / C;
-  if (srslte_polar_code_get(&q->code, K_r, E_r, 9U) < SRSLTE_SUCCESS) {
+  if (srslte_polar_code_get(&q->code, K_r, E_r, UCI_NR_PUCCH_POLAR_N_MAX) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -445,9 +480,20 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
 
     // Attach CRC
     srslte_crc_attach(crc, q->c, A_prime / C);
+    UCI_NR_INFO_TX("Attaching %d/%d CRC%d=%02lx\n", r, C, L, srslte_crc_checksum_get(crc));
+
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_TX("Polar cb %d/%d c=", r, C);
+      srslte_vec_fprint_byte(stdout, q->c, K_r);
+    }
 
     // Allocate channel
     srslte_polar_chanalloc_tx(q->c, q->allocated, q->code.N, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
+
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_TX("Polar alloc %d/%d ", r, C);
+      srslte_vec_fprint_byte(stdout, q->allocated, q->code.N);
+    }
 
     // Encode bits
     if (srslte_polar_encoder_encode(&q->encoder, q->allocated, q->d, q->code.n) < SRSLTE_SUCCESS) {
@@ -455,7 +501,12 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
     }
 
     // Rate matching
-    srslte_polar_rm_tx(&q->rm, q->d, &o[E_r * r], q->code.n, E_r, K_r, UCI_NR_POLAR_RM_IBIL);
+    srslte_polar_rm_tx(&q->rm_tx, q->d, &o[E_r * r], q->code.n, E_r, K_r, UCI_NR_POLAR_RM_IBIL);
+
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_TX("Polar cw %d/%d ", r, C);
+      srslte_vec_fprint_byte(stdout, &o[E_r * r], q->code.N);
+    }
   }
 
   return E_uci;
@@ -464,7 +515,7 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
 static int uci_nr_decode_11_1706_bit(srslte_uci_nr_t*           q,
                                      const srslte_uci_cfg_nr_t* cfg,
                                      uint32_t                   A,
-                                     const int8_t*              llr,
+                                     int8_t*                    llr,
                                      uint32_t                   E_uci,
                                      bool*                      decoded_ok)
 {
@@ -477,10 +528,8 @@ static int uci_nr_decode_11_1706_bit(srslte_uci_nr_t*           q,
   }
 
   // Select CRC
-  srslte_crc_t* crc = &q->crc6;
-  if (A >= 20) {
-    crc = &q->crc11;
-  }
+  uint32_t      L   = srslte_uci_nr_crc_len(A);
+  srslte_crc_t* crc = (L == 6) ? &q->crc6 : &q->crc11;
 
   // Segmentation
   uint32_t C = 1;
@@ -490,19 +539,29 @@ static int uci_nr_decode_11_1706_bit(srslte_uci_nr_t*           q,
   uint32_t A_prime = CEIL(A, C) * C;
 
   // Get polar code
-  uint32_t K_r = A_prime / C + crc->order;
+  uint32_t K_r = A_prime / C + L;
   uint32_t E_r = E_uci / C;
-  if (srslte_polar_code_get(&q->code, K_r, E_r, 9U) < SRSLTE_SUCCESS) {
+  if (srslte_polar_code_get(&q->code, K_r, E_r, UCI_NR_PUCCH_POLAR_N_MAX) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
+  }
+
+  // Negate all LLR
+  for (uint32_t i = 0; i < E_r; i++) {
+    llr[i] *= -1;
   }
 
   // Write codeword
   for (uint32_t r = 0, s = 0; r < C; r++) {
     uint32_t k = 0;
 
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_RX("Polar LLR %d/%d ", r, C);
+      srslte_vec_fprint_bs(stdout, &llr[E_r * r], q->code.N);
+    }
+
     // Undo rate matching
     int8_t* d = (int8_t*)q->d;
-    srslte_polar_rm_rx_c(&q->rm, &llr[E_r * r], d, q->code.n, E_r, K_r, UCI_NR_POLAR_RM_IBIL);
+    srslte_polar_rm_rx_c(&q->rm_rx, &llr[E_r * r], d, E_r, q->code.n, K_r, UCI_NR_POLAR_RM_IBIL);
 
     // Decode bits
     if (srslte_polar_decoder_decode_c(&q->decoder, d, q->allocated, q->code.n, q->code.F_set, q->code.F_set_size) <
@@ -510,14 +569,25 @@ static int uci_nr_decode_11_1706_bit(srslte_uci_nr_t*           q,
       return SRSLTE_ERROR;
     }
 
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_RX("Polar alloc %d/%d ", r, C);
+      srslte_vec_fprint_byte(stdout, q->allocated, q->code.N);
+    }
+
     // Undo channel allocation
     srslte_polar_chanalloc_rx(q->allocated, q->c, q->code.K, q->code.nPC, q->code.K_set, q->code.PC_set);
 
-    //
-    uint8_t* ptr       = &q->c[q->code.K - crc->order];
-    uint32_t checksum1 = srslte_crc_checksum(crc, q->c, q->code.K);
-    uint32_t checksum2 = srslte_bit_pack(&ptr, crc->order);
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_RX("Polar cb %d/%d c=", r, C);
+      srslte_vec_fprint_byte(stdout, q->c, K_r);
+    }
+
+    // Calculate checksum
+    uint8_t* ptr       = &q->c[A_prime / C];
+    uint32_t checksum1 = srslte_crc_checksum(crc, q->c, A_prime / C);
+    uint32_t checksum2 = srslte_bit_pack(&ptr, L);
     (*decoded_ok)      = ((*decoded_ok) && (checksum1 == checksum2));
+    UCI_NR_INFO_RX("Checking %d/%d CRC%d={%02x,%02x}\n", r, C, L, checksum1, checksum2);
 
     // Prefix (A_prime - A) zeros for the first CB only
     if (r == 0) {
@@ -577,7 +647,7 @@ static int uci_nr_encode(srslte_uci_nr_t*             q,
 
 static int uci_nr_decode(srslte_uci_nr_t*           q,
                          const srslte_uci_cfg_nr_t* uci_cfg,
-                         const int8_t*              llr,
+                         int8_t*                    llr,
                          uint32_t                   E_uci,
                          srslte_uci_value_nr_t*     uci_value)
 {
@@ -624,20 +694,9 @@ static int uci_nr_pucch_E_tot(const srslte_pucch_nr_resource_t* pucch_cfg, const
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  // Compute total number of bits
-  uint32_t nof_bits = uci_cfg->o_sr + uci_cfg->o_ack + uci_cfg->o_csi1 + uci_cfg->o_csi2;
-
   switch (pucch_cfg->format) {
-    case SRSLTE_PUCCH_NR_FORMAT_1:
-      if (nof_bits <= 2) {
-        return nof_bits;
-      }
-      break;
     case SRSLTE_PUCCH_NR_FORMAT_2:
-      if (uci_cfg->modulation == SRSLTE_MOD_QPSK) {
-        return (int)(16 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
-      }
-      break;
+      return (int)(16 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
     case SRSLTE_PUCCH_NR_FORMAT_3:
       if (uci_cfg->modulation == SRSLTE_MOD_QPSK) {
         return (int)(24 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
@@ -684,11 +743,13 @@ int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
 {
   int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
+    ERROR("Error calculating number of bits\n");
     return SRSLTE_ERROR;
   }
 
   int E_uci = uci_nr_pucch_E_uci(pucch_resource_cfg, uci_cfg, E_tot);
   if (E_uci < SRSLTE_SUCCESS) {
+    ERROR("Error calculating number of bits\n");
     return SRSLTE_ERROR;
   }
 
@@ -698,7 +759,7 @@ int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
 int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                const srslte_pucch_nr_resource_t* pucch_resource_cfg,
                                const srslte_uci_cfg_nr_t*        uci_cfg,
-                               const int8_t*                     llr,
+                               int8_t*                           llr,
                                srslte_uci_value_nr_t*            value)
 {
   int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);

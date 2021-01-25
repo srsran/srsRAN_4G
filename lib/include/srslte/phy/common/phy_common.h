@@ -64,7 +64,7 @@ extern "C" {
 #define SRSLTE_LTE_CRC24B 0X1800063
 #define SRSLTE_LTE_CRC24C 0X1B2B117
 #define SRSLTE_LTE_CRC16 0x11021
-#define SRSLTE_LTE_CRC11 0x621
+#define SRSLTE_LTE_CRC11 0xE21
 #define SRSLTE_LTE_CRC8 0x19B
 #define SRSLTE_LTE_CRC6 0x61
 
@@ -274,7 +274,7 @@ typedef enum SRSLTE_API { SRSLTE_MIMO_DECODER_ZF, SRSLTE_MIMO_DECODER_MMSE } srs
  * \brief Types of modulations and associated modulation order.
  */
 typedef enum SRSLTE_API {
-  SRSLTE_MOD_BPSK = 0, /*!< \brief pi/2-BPSK. */
+  SRSLTE_MOD_BPSK = 0, /*!< \brief BPSK. */
   SRSLTE_MOD_QPSK,     /*!< \brief QPSK. */
   SRSLTE_MOD_16QAM,    /*!< \brief QAM16. */
   SRSLTE_MOD_64QAM,    /*!< \brief QAM64. */

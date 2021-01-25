@@ -13,7 +13,9 @@
 #include "srslte/common/test_common.h"
 #include "srslte/phy/ch_estimation/dmrs_pucch.h"
 #include "srslte/phy/phch/pucch_nr.h"
+#include "srslte/phy/phch/ra_ul_nr.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,13 +32,16 @@ static srslte_carrier_nr_t carrier = {
     1  // max_mimo_layers
 };
 
-static uint32_t starting_prb_stride    = 4;
-static uint32_t starting_symbol_stride = 4;
+static uint32_t        starting_prb_stride    = 4;
+static uint32_t        starting_symbol_stride = 4;
+static srslte_random_t random_gen             = NULL;
+static int             format                 = -1;
 
 static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_common_cfg_t* cfg, cf_t* slot_symbols)
 {
-  srslte_dl_slot_cfg_t               slot     = {};
-  srslte_pucch_nr_resource_t         resource = {};
+  srslte_dl_slot_cfg_t       slot     = {};
+  srslte_pucch_nr_resource_t resource = {};
+  resource.format                     = SRSLTE_PUCCH_NR_FORMAT_0;
 
   for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
@@ -83,18 +88,23 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
                               srslte_chest_ul_res_t*              chest_res,
                               cf_t*                               slot_symbols)
 {
-  srslte_dl_slot_cfg_t               slot     = {};
-  srslte_pucch_nr_resource_t         resource = {};
+  srslte_dl_slot_cfg_t       slot     = {};
+  srslte_pucch_nr_resource_t resource = {};
+  resource.format                     = SRSLTE_PUCCH_NR_FORMAT_1;
 
   for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
          resource.starting_prb += starting_prb_stride) {
-      for (resource.nof_symbols = 4; resource.nof_symbols <= 14; resource.nof_symbols++) {
+      for (resource.nof_symbols = SRSLTE_PUCCH_NR_FORMAT1_MIN_NSYMB;
+           resource.nof_symbols <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NSYMB;
+           resource.nof_symbols++) {
         for (resource.start_symbol_idx = 0;
-             resource.start_symbol_idx <= SRSLTE_NSYMB_PER_SLOT_NR - resource.nof_symbols;
+             resource.start_symbol_idx <=
+             SRSLTE_MIN(SRSLTE_PUCCH_NR_FORMAT1_MAX_STARTSYMB, SRSLTE_NSYMB_PER_SLOT_NR - resource.nof_symbols);
              resource.start_symbol_idx += starting_symbol_stride) {
-          for (resource.time_domain_occ = 0; resource.time_domain_occ <= 6; resource.time_domain_occ++) {
-            for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= 11;
+          for (resource.time_domain_occ = 0; resource.time_domain_occ <= SRSLTE_PUCCH_NR_FORMAT1_MAX_TOCC;
+               resource.time_domain_occ++) {
+            for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= SRSLTE_PUCCH_NR_FORMAT1_MAX_CS;
                  resource.initial_cyclic_shift++) {
               for (uint32_t nof_bits = 1; nof_bits <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS; nof_bits++) {
                 for (uint32_t word = 0; word < (1U << nof_bits); word++) {
@@ -138,24 +148,112 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
   return SRSLTE_SUCCESS;
 }
 
+static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
+                              const srslte_pucch_nr_common_cfg_t* cfg,
+                              srslte_chest_ul_res_t*              chest_res,
+                              cf_t*                               slot_symbols)
+{
+  srslte_dl_slot_cfg_t       slot     = {};
+  srslte_pucch_nr_resource_t resource = {};
+  resource.format                     = SRSLTE_PUCCH_NR_FORMAT_2;
+
+  for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
+
+    for (resource.nof_symbols = SRSLTE_PUCCH_NR_FORMAT2_MIN_NSYMB;
+         resource.nof_symbols <= SRSLTE_PUCCH_NR_FORMAT2_MAX_NSYMB;
+         resource.nof_symbols++) {
+
+      for (resource.start_symbol_idx = 0;
+           resource.start_symbol_idx <=
+           SRSLTE_MIN(SRSLTE_PUCCH_NR_FORMAT2_MAX_STARTSYMB, SRSLTE_NSYMB_PER_SLOT_NR - resource.nof_symbols);
+           resource.start_symbol_idx += starting_symbol_stride) {
+
+        // Maximum code rate is reserved
+        for (resource.max_code_rate = 0; resource.max_code_rate < SRSLTE_PUCCH_NR_MAX_CODE_RATE;
+             resource.max_code_rate++) {
+
+          srslte_uci_cfg_nr_t uci_cfg = {};
+
+          for (uci_cfg.o_ack = 12; uci_cfg.o_ack <= SRSLTE_UCI_NR_MAX_ACK_BITS; uci_cfg.o_ack++) {
+            srslte_uci_value_nr_t uci_value = {};
+
+            // Skip case if not enough PRB are used
+            int min_nof_prb = srslte_ra_ul_nr_pucch_format_2_3_min_prb(&resource, &uci_cfg);
+            TESTASSERT(min_nof_prb > SRSLTE_SUCCESS);
+
+            for (resource.nof_prb = min_nof_prb;
+                 resource.nof_prb < SRSLTE_MIN(carrier.nof_prb, SRSLTE_PUCCH_NR_FORMAT2_MAX_NPRB);
+                 resource.nof_prb++) {
+
+              for (resource.starting_prb = 0; resource.starting_prb < (carrier.nof_prb - resource.nof_prb);
+                   resource.starting_prb += starting_prb_stride) {
+
+                // Generate ACKs
+                for (uint32_t i = 0; i < uci_cfg.o_ack; i++) {
+                  uci_value.ack[i] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 1);
+                }
+
+                // Encode PUCCH
+                TESTASSERT(srslte_pucch_nr_format_2_3_4_encode(
+                               pucch, &carrier, cfg, &slot, &resource, &uci_cfg, &uci_value, slot_symbols) ==
+                           SRSLTE_SUCCESS);
+
+                // Put DMRS
+                //              TESTASSERT(srslte_dmrs_pucch_format1_put(pucch, &carrier, cfg, &slot, &resource,
+                //              slot_symbols) ==
+                //                         SRSLTE_SUCCESS);
+
+                // Estimate channel
+                //              TESTASSERT(srslte_dmrs_pucch_format1_estimate(
+                //                             pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) ==
+                //                             SRSLTE_SUCCESS);
+                srslte_chest_ul_res_set_identity(chest_res);
+
+                // Decode PUCCH
+                srslte_uci_value_nr_t uci_value_rx = {};
+                TESTASSERT(
+                    srslte_pucch_nr_format_2_3_4_decode(
+                        pucch, &carrier, cfg, &slot, &resource, &uci_cfg, chest_res, slot_symbols, &uci_value_rx) ==
+                    SRSLTE_SUCCESS);
+
+                TESTASSERT(uci_value_rx.valid == true);
+
+                // Check received ACKs
+                for (uint32_t i = 0; i < uci_cfg.o_ack; i++) {
+                  TESTASSERT(uci_value.ack[i] == uci_value_rx.ack[i]);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
 static void usage(char* prog)
 {
   printf("Usage: %s [csNnv]\n", prog);
   printf("\t-c cell id [Default %d]\n", carrier.id);
   printf("\t-n nof_prb [Default %d]\n", carrier.nof_prb);
+  printf("\t-f format [Default %d]\n", format);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "cnv")) != -1) {
+  while ((opt = getopt(argc, argv, "cnfv")) != -1) {
     switch (opt) {
       case 'c':
         carrier.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
         carrier.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'f':
+        format = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
@@ -177,6 +275,12 @@ int main(int argc, char** argv)
   srslte_pucch_nr_t     pucch     = {};
   srslte_chest_ul_res_t chest_res = {};
 
+  random_gen = srslte_random_init(0x1234);
+  if (random_gen == NULL) {
+    ERROR("Random init\n");
+    goto clean_exit;
+  }
+
   if (slot_symb == NULL) {
     ERROR("Alloc\n");
     goto clean_exit;
@@ -196,15 +300,27 @@ int main(int argc, char** argv)
   srslte_pucch_nr_common_cfg_t common_cfg = {};
 
   // Test Format 0
-  if (test_pucch_format0(&pucch, &common_cfg, slot_symb) < SRSLTE_SUCCESS) {
-    ERROR("Failed PUCCH format 0\n");
-    goto clean_exit;
+  if (format < 0 || format == 0) {
+    if (test_pucch_format0(&pucch, &common_cfg, slot_symb) < SRSLTE_SUCCESS) {
+      ERROR("Failed PUCCH format 0\n");
+      goto clean_exit;
+    }
   }
 
   // Test Format 1
-  if (test_pucch_format1(&pucch, &common_cfg, &chest_res, slot_symb) < SRSLTE_SUCCESS) {
-    ERROR("Failed PUCCH format 1\n");
-    goto clean_exit;
+  if (format < 0 || format == 1) {
+    if (test_pucch_format1(&pucch, &common_cfg, &chest_res, slot_symb) < SRSLTE_SUCCESS) {
+      ERROR("Failed PUCCH format 1\n");
+      goto clean_exit;
+    }
+  }
+
+  // Test Format 2
+  if (format < 0 || format == 2) {
+    if (test_pucch_format2(&pucch, &common_cfg, &chest_res, slot_symb) < SRSLTE_SUCCESS) {
+      ERROR("Failed PUCCH format 2\n");
+      goto clean_exit;
+    }
   }
 
   ret = SRSLTE_SUCCESS;
@@ -215,6 +331,8 @@ clean_exit:
 
   srslte_pucch_nr_free(&pucch);
   srslte_chest_ul_res_free(&chest_res);
+
+  srslte_random_free(random_gen);
 
   if (ret == SRSLTE_SUCCESS) {
     printf("Test passed!\n");

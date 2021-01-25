@@ -13,6 +13,7 @@
 #ifndef SRSLTE_UCI_CFG_NR_H
 #define SRSLTE_UCI_CFG_NR_H
 
+#include "srslte/phy/common/phy_common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -27,6 +28,7 @@ typedef struct SRSLTE_API {
   uint32_t     o_csi1;     ///< Number of CSI1 report number of bits
   uint32_t     o_csi2;     ///< Number of CSI2 report number of bits
   srslte_mod_t modulation; ///< Modulation
+  uint16_t     rnti;       ///< RNTI
 } srslte_uci_cfg_nr_t;
 
 typedef struct SRSLTE_API {
