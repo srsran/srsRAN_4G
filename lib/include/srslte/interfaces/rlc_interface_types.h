@@ -216,7 +216,7 @@ public:
     } else if (sn_size == 12) {
       cnfg.um_nr.sn_field_length = rlc_um_nr_sn_size_t::size12bits;
       cnfg.um_nr.UM_Window_Size  = 2048;
-      cnfg.um_nr.mod             = 64;
+      cnfg.um_nr.mod             = 4096;
     } else {
       return {};
     }

@@ -13,10 +13,13 @@
 #include "srslte/asn1/rrc_nr_utils.h"
 #include "srslte/asn1/rrc_nr.h"
 #include "srslte/config.h"
+#include "srslte/interfaces/pdcp_interface_types.h"
+#include "srslte/interfaces/rlc_interface_types.h"
 #include <algorithm>
 
 namespace srslte {
 
+using namespace asn1::rrc_nr;
 /***************************
  *        PLMN ID
  **************************/
@@ -45,6 +48,82 @@ void to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg)
   std::copy(&cfg.mcc[0], &cfg.mcc[3], &asn1_type->mcc[0]);
   asn1_type->mnc.resize(cfg.nof_mnc_digits);
   std::copy(&cfg.mnc[0], &cfg.mnc[cfg.nof_mnc_digits], &asn1_type->mnc[0]);
+}
+
+rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
+{
+  rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
+  rlc_cfg.rat = srslte_rat_t::nr;
+  switch (asn1_type.type().value) {
+    case rlc_cfg_c::types_opts::am:
+      break;
+    case rlc_cfg_c::types_opts::um_bi_dir:
+    case rlc_cfg_c::types_opts::um_uni_dir_dl:
+    case rlc_cfg_c::types_opts::um_uni_dir_ul:
+      rlc_cfg.rlc_mode              = rlc_mode_t::um;
+      rlc_cfg.um_nr.t_reassembly_ms = asn1_type.um_bi_dir().dl_um_rlc.t_reassembly.value;
+      rlc_cfg.um_nr.sn_field_length = (rlc_um_nr_sn_size_t)asn1_type.um_bi_dir().dl_um_rlc.sn_field_len.value;
+      rlc_cfg.um_nr.mod             = (rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 64 : 4096;
+      rlc_cfg.um_nr.UM_Window_Size  = (rlc_cfg.um_nr.sn_field_length == rlc_um_nr_sn_size_t::size6bits) ? 32 : 2048;
+      break;
+    default:
+      break;
+  }
+  return rlc_cfg;
+}
+
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const pdcp_cfg_s& pdcp_cfg)
+{
+  // TODO: complete config processing
+  // TODO: check if is drb_cfg.pdcp_cfg.drb_present if not return Error
+  // TODO: different pdcp sn size for ul and dl
+  pdcp_discard_timer_t discard_timer = pdcp_discard_timer_t::infinity;
+  if (pdcp_cfg.drb.discard_timer_present) {
+    switch (pdcp_cfg.drb.discard_timer.to_number()) {
+      case 10:
+        discard_timer = pdcp_discard_timer_t::ms10;
+        break;
+      case 100:
+        discard_timer = pdcp_discard_timer_t::ms100;
+        break;
+      default:
+        discard_timer = pdcp_discard_timer_t::infinity;
+        break;
+    }
+  }
+
+  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::ms500;
+  if (pdcp_cfg.t_reordering_present) {
+    switch (pdcp_cfg.t_reordering.to_number()) {
+      case 0:
+        t_reordering = pdcp_t_reordering_t::ms0;
+        break;
+      default:
+        t_reordering = pdcp_t_reordering_t::ms500;
+    }
+  }
+
+  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  if (pdcp_cfg.drb.pdcp_sn_size_dl_present) {
+    switch (pdcp_cfg.drb.pdcp_sn_size_dl.value) {
+      case pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::options::len12bits:
+        sn_len = srslte::PDCP_SN_LEN_12;
+        break;
+      case pdcp_cfg_s::drb_s_::pdcp_sn_size_dl_opts::options::len18bits:
+        sn_len = srslte::PDCP_SN_LEN_18;
+      default:
+        break;
+    }
+  }
+
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_DRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    sn_len,
+                    t_reordering,
+                    discard_timer);
+  return cfg;
 }
 
 } // namespace srslte

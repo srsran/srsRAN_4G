@@ -13,6 +13,8 @@
 #ifndef SRSLTE_RRC_NR_UTILS_H
 #define SRSLTE_RRC_NR_UTILS_H
 
+#include "srslte/interfaces/pdcp_interface_types.h"
+#include "srslte/interfaces/rlc_interface_types.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
 
@@ -24,6 +26,8 @@ namespace rrc_nr {
 
 struct plmn_id_s;
 struct sib1_s;
+struct rlc_cfg_c;
+struct pdcp_cfg_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -35,6 +39,16 @@ namespace srslte {
 
 plmn_id_t make_plmn_id_t(const asn1::rrc_nr::plmn_id_s& asn1_type);
 void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
+
+/***************************
+ *      RLC Config
+ **************************/
+rlc_config_t make_rlc_config_t(const asn1::rrc_nr::rlc_cfg_c& asn1_type);
+
+/***************************
+ *      PDCP Config
+ **************************/
+pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc_nr::pdcp_cfg_s& pdcp_cfg);
 
 } // namespace srslte
 
