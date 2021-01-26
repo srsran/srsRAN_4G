@@ -15689,6 +15689,9 @@ SRSASN_CODE sib_type2_s::pack(bit_ref& bref) const
       varlength_field_pack_guard varlen_scope(bref, false);
 
       HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+      if (late_non_crit_ext_present) {
+        HANDLE_CODE(late_non_crit_ext.pack(bref));
+      }
     }
     if (group_flags[1]) {
       varlength_field_pack_guard varlen_scope(bref, false);
@@ -15829,6 +15832,9 @@ SRSASN_CODE sib_type2_s::unpack(cbit_ref& bref)
       varlength_field_unpack_guard varlen_scope(bref, false);
 
       HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+      if (late_non_crit_ext_present) {
+        HANDLE_CODE(late_non_crit_ext.unpack(bref));
+      }
     }
     if (group_flags[1]) {
       varlength_field_unpack_guard varlen_scope(bref, false);
