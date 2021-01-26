@@ -74,3 +74,25 @@ srslte_mcs_table_t srslte_mcs_table_from_str(const char* str)
   }
   return srslte_mcs_table_N;
 }
+
+#define PHY_COMMON_NR_NOF_VALID_SYMB_SZ 10U
+
+static const uint32_t phy_common_nr_valid_symbol_sz[PHY_COMMON_NR_NOF_VALID_SYMB_SZ] =
+    {128, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096};
+
+uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb)
+{
+  uint32_t nof_re = nof_prb * SRSLTE_NRE;
+
+  if (nof_re == 0) {
+    return 0;
+  }
+
+  for (uint32_t i = 0; i < PHY_COMMON_NR_NOF_VALID_SYMB_SZ; i++) {
+    if (phy_common_nr_valid_symbol_sz[i] > nof_re) {
+      return phy_common_nr_valid_symbol_sz[i];
+    }
+  }
+
+  return 0;
+}

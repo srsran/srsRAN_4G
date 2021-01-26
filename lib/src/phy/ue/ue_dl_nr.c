@@ -138,7 +138,11 @@ int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t*
 
   if (carrier->nof_prb != q->carrier.nof_prb) {
     for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
-      srslte_ofdm_rx_set_prb(&q->fft[i], SRSLTE_CP_NORM, carrier->nof_prb);
+      srslte_ofdm_cfg_t cfg = {};
+      cfg.nof_prb           = carrier->nof_prb;
+      cfg.symbol_sz         = srslte_min_symbol_sz_rb(carrier->nof_prb);
+      cfg.cp                = SRSLTE_CP_NORM;
+      srslte_ofdm_rx_init_cfg(&q->fft[i], &cfg);
     }
   }
 

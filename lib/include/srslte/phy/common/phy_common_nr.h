@@ -311,6 +311,14 @@ SRSLTE_API const char* srslte_mcs_table_to_str(srslte_mcs_table_t mcs_table);
  */
 SRSLTE_API srslte_mcs_table_t srslte_mcs_table_from_str(const char* str);
 
+/**
+ * @brief Computes the minimum valid symbol size for a given amount of PRB
+ * @attention The valid FFT sizes are radix 2 and radix 3 between 128 to 4096 points.
+ * @param nof_prb Number of PRB
+ * @return The minimum valid FFT size if the number of PRB is in range, 0 otherwise
+ */
+SRSLTE_API uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb);
+
 #ifdef __cplusplus
 }
 #endif

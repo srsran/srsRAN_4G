@@ -276,15 +276,11 @@ int srslte_ofdm_tx_init(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t*
 
 int srslte_ofdm_tx_init_cfg(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg)
 {
-  bzero(q, sizeof(srslte_ofdm_t));
-
   return ofdm_init_mbsfn_(q, cfg, SRSLTE_DFT_BACKWARD);
 }
 
 int srslte_ofdm_rx_init_cfg(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg)
 {
-  bzero(q, sizeof(srslte_ofdm_t));
-
   return ofdm_init_mbsfn_(q, cfg, SRSLTE_DFT_FORWARD);
 }
 
