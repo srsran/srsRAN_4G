@@ -27,6 +27,10 @@ worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
 bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
 {
+  // Set carrier attributes
+  phy_state.carrier.id      = 0;
+  phy_state.carrier.nof_prb = common->args->nr_nof_prb;
+
   // Set NR arguments
   phy_state.args.nof_carriers   = common->args->nof_nr_carriers;
   phy_state.args.dl.nof_max_prb = common->args->nr_nof_prb;
@@ -50,17 +54,30 @@ bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    auto w = new sf_worker(&phy_state, (srslte::log*)log_vec[i].get());
+    auto w = new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get());
     pool.init_worker(i, w, prio, common->args->worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
 
-    srslte_carrier_nr_t c = {};
-    c.nof_prb             = phy_state.args.dl.nof_max_prb;
-    c.max_mimo_layers     = 1;
-
-    if (not w->set_carrier_unlocked(0, &c)) {
+    if (not w->set_carrier_unlocked(0, &phy_state.carrier)) {
       return false;
     }
+  }
+
+  // Initialise PRACH
+  auto* prach_log = new srslte::log_filter;
+  prach_log->init("NR-PRACH", logger, false);
+  prach_log->set_level(common->args->log.phy_level);
+  prach_log->set_hex_limit(common->args->log.phy_hex_limit);
+  log_vec.push_back(std::unique_ptr<srslte::log_filter>(prach_log));
+  prach_buffer.init(phy_state.args.dl.nof_max_prb, prach_log);
+
+  // Set PRACH hard-coded cell
+  srslte_cell_t cell = {};
+  cell.nof_prb       = 50;
+  cell.id            = phy_state.carrier.id;
+  if (not prach_buffer.set_cell(cell, phy_state.cfg.prach)) {
+    prach_log->error("Setting PRACH cell\n");
+    return false;
   }
 
   return true;
@@ -73,12 +90,21 @@ void worker_pool::start_worker(sf_worker* w)
 
 sf_worker* worker_pool::wait_worker(uint32_t tti)
 {
-  return (sf_worker*)pool.wait_worker(tti);
-}
+  sf_worker* worker = (sf_worker*)pool.wait_worker(tti);
 
-sf_worker* worker_pool::wait_worker_id(uint32_t id)
-{
-  return (sf_worker*)pool.wait_worker_id(id);
+  // Prepare PRACH, send always sequence 0
+  prach_buffer.prepare_to_send(0);
+
+  // Generate PRACH if ready
+  if (prach_buffer.is_ready_to_send(tti, phy_state.carrier.id)) {
+    uint32_t nof_prach_sf       = 0;
+    float    prach_target_power = 0.0f;
+    cf_t*    prach_ptr          = prach_buffer.generate(0.0f, &nof_prach_sf, &prach_target_power);
+    worker->set_prach(prach_ptr, prach_target_power);
+    log_vec.front().get()->info("tti=%d; Sending PRACH\n", tti);
+  }
+
+  return worker;
 }
 
 void worker_pool::stop()

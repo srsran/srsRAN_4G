@@ -133,7 +133,8 @@ bool cc_worker::work_dl()
   }
 
   if (nof_found_dci < 1) {
-    ERROR("Error DCI not found");
+    //    ERROR("Error DCI not found");
+    return true;
   }
 
   dci_dl.rnti   = 0x1234;

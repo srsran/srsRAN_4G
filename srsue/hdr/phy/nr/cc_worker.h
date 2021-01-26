@@ -38,23 +38,41 @@ typedef struct {
 
 typedef struct {
   srslte_sch_cfg_nr_t pdsch;
+  srslte_prach_cfg_t  prach;
 } phy_nr_cfg_t;
 
 class phy_nr_state
 {
 public:
-  phy_nr_args_t args = {};
-  phy_nr_cfg_t  cfg  = {};
+  srslte_carrier_nr_t carrier = {};
+  phy_nr_args_t       args    = {};
+  phy_nr_cfg_t        cfg     = {};
 
   phy_nr_state()
   {
+    carrier.id              = 0;
+    carrier.nof_prb         = 100;
+    carrier.max_mimo_layers = 1;
+
+    // Default arguments
     args.nof_carriers              = 1;
     args.dl.nof_rx_antennas        = 1;
     args.dl.nof_max_prb            = 100;
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.measure_time     = true;
     args.dl.pdsch.sch.disable_simd = false;
-    cfg.pdsch.sch_cfg.mcs_table    = srslte_mcs_table_256qam;
+
+    // Default PDSCH configuration
+    cfg.pdsch.sch_cfg.mcs_table = srslte_mcs_table_256qam;
+
+    // Default PRACH configuration
+    cfg.prach.is_nr            = true;
+    cfg.prach.config_idx       = 16;
+    cfg.prach.root_seq_idx     = 1;
+    cfg.prach.freq_offset      = 0;
+    cfg.prach.zero_corr_zone   = 0;
+    cfg.prach.num_ra_preambles = 64;
+    cfg.prach.hs_flag          = false;
   }
 };
 

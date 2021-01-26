@@ -537,10 +537,34 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
 void phy_common::worker_end(void*                   tx_sem_id,
                             bool                    tx_enable,
                             srslte::rf_buffer_t&    buffer,
-                            srslte::rf_timestamp_t& tx_time)
+                            srslte::rf_timestamp_t& tx_time,
+                            bool                    is_nr)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
+
+  // If this is for NR, save Tx buffers...
+  if (is_nr) {
+    nr_tx_buffer       = buffer;
+    nr_tx_buffer_ready = true;
+    semaphore.release();
+    return;
+  }
+
+  // ... otherwise, append NR base-band from saved buffer if available
+  if (nr_tx_buffer_ready) {
+    // Load NR carrier base-band
+    for (uint32_t i = 0; i < args->nof_nr_carriers * args->nof_rx_ant; i++) {
+      uint32 channel_idx = args->nof_lte_carriers * args->nof_rx_ant + i;
+      buffer.set(channel_idx, nr_tx_buffer.get(i));
+    }
+
+    // Remove NR buffer flag
+    nr_tx_buffer_ready = false;
+
+    // Make sure it transmits in this TTI
+    tx_enable = true;
+  }
 
   // Add Time Alignment
   tx_time.sub((double)ta.get_sec());

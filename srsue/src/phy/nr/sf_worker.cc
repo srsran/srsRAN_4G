@@ -35,7 +35,8 @@ static int       plot_worker_id = -1;
 
 namespace srsue {
 namespace nr {
-sf_worker::sf_worker(phy_nr_state* phy_state_, srslte::log* log) : phy_state(phy_state_), log_h(log)
+sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log) :
+  phy_state(phy_state_), phy(phy_), log_h(log)
 {
   for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, log, phy_state);
@@ -76,11 +77,35 @@ void sf_worker::set_tti(uint32_t tti)
 
 void sf_worker::work_imp()
 {
+  srslte::rf_buffer_t    tx_buffer = {};
+  srslte::rf_timestamp_t dummy_ts  = {};
+
+  // Perform DL processing
   for (auto& w : cc_workers) {
     w->work_dl();
   }
 
-  /* Tell the plotting thread to draw the plots */
+  // Check if PRACH is available
+  if (prach_ptr != nullptr) {
+    // PRACH is available, set buffer, transmit and return
+    tx_buffer.set(0, prach_ptr);
+
+    // Transmit NR PRACH
+    phy->worker_end(this, false, tx_buffer, dummy_ts, true);
+
+    // Reset PRACH pointer
+    prach_ptr = nullptr;
+
+    return;
+  }
+
+  // Perform UL processing
+  // ...
+
+  // Always call worker_end before returning
+  phy->worker_end(this, false, tx_buffer, dummy_ts, true);
+
+  // Tell the plotting thread to draw the plots
 #ifdef ENABLE_GUI
   if ((int)get_id() == plot_worker_id) {
     sem_post(&plot_sem);
@@ -108,6 +133,12 @@ void sf_worker::start_plot()
 #endif
 }
 
+void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
+{
+  prach_ptr   = prach_ptr_;
+  prach_power = prach_power_;
+}
+
 } // namespace nr
 } // namespace srsue
 
@@ -120,7 +151,7 @@ extern bool plot_quit;
 
 static void* plot_thread_run(void* arg)
 {
-  auto worker = (srsue::nr::sf_worker*)arg;
+  auto worker         = (srsue::nr::sf_worker*)arg;
   int  pdsch_re_count = 0;
   while (!plot_quit) {
     sem_wait(&plot_sem);

@@ -171,7 +171,7 @@ void sf_worker::work_imp()
 
   srslte::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
-    phy->worker_end(this, false, tx_signal_ptr, tx_time);
+    phy->worker_end(this, false, tx_signal_ptr, tx_time, false);
     return;
   }
 
@@ -243,7 +243,7 @@ void sf_worker::work_imp()
   }
 
   // Call worker_end to transmit the signal
-  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, tx_time);
+  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, tx_time, false);
 
   if (rx_signal_ok) {
     update_measurements();

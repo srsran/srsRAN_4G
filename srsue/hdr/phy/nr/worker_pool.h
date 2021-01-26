@@ -24,6 +24,7 @@
 
 #include "sf_worker.h"
 #include "srslte/common/thread_pool.h"
+#include "srsue/hdr/phy/prach.h"
 
 namespace srsue {
 namespace nr {
@@ -37,6 +38,7 @@ private:
   srslte::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
   phy_nr_state                             phy_state;
+  prach                                    prach_buffer;
 
 public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
@@ -44,7 +46,6 @@ public:
   worker_pool(uint32_t max_workers);
   bool       init(phy_common* common, srslte::logger* logger, int prio);
   sf_worker* wait_worker(uint32_t tti);
-  sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);
   void       stop();
 };

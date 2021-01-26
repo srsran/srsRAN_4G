@@ -40,7 +40,7 @@ namespace nr {
 class sf_worker final : public srslte::thread_pool::worker
 {
 public:
-  sf_worker(phy_nr_state* phy_state_, srslte::log* log);
+  sf_worker(phy_common* phy, phy_nr_state* phy_state_, srslte::log* log);
   ~sf_worker() = default;
 
   bool set_carrier_unlocked(uint32_t cc_idx, const srslte_carrier_nr_t* carrier_);
@@ -52,14 +52,20 @@ public:
   int      read_pdsch_d(cf_t* pdsch_d);
   void     start_plot();
 
+  void set_prach(cf_t* prach_ptr, float prach_power);
+
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp() override;
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
+  phy_common*   phy       = nullptr;
   phy_nr_state* phy_state = nullptr;
   srslte::log*  log_h     = nullptr;
+
+  cf_t* prach_ptr   = nullptr;
+  float prach_power = 0;
 };
 
 } // namespace nr

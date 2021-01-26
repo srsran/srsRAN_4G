@@ -496,15 +496,17 @@ void sync::run_camping_in_sync_state(lte::sf_worker*      lte_worker,
     }
   }
 
+  // Start NR worker only if present
+  if (nr_worker != nullptr) {
+    // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
+    nr_worker->set_tti(tti);
+    worker_com->semaphore.push(nr_worker);
+    nr_worker_pool->start_worker(nr_worker);
+  }
+
   // Start LTE worker
   worker_com->semaphore.push(lte_worker);
   lte_worker_pool->start_worker(lte_worker);
-
-  // Start NR worker only if present
-  if (nr_worker != nullptr) {
-    nr_worker->set_tti(tti);
-    nr_worker_pool->start_worker(nr_worker);
-  }
 }
 void sync::run_camping_state()
 {
@@ -849,7 +851,7 @@ bool sync::set_frequency()
 
     for (uint32_t i = 0; i < worker_com->args->nof_nr_carriers; i++) {
       radio_h->set_rx_freq(i + worker_com->args->nof_lte_carriers, worker_com->args->nr_freq_hz);
-      //      radio_h->set_tx_freq(0, set_ul_freq);
+      radio_h->set_tx_freq(i + worker_com->args->nof_lte_carriers, worker_com->args->nr_freq_hz);
     }
 
     ul_dl_factor = (float)(set_ul_freq / set_dl_freq);
