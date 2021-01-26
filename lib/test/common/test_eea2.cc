@@ -15,6 +15,7 @@
 #include <stdlib.h>
 
 #include "srslte/common/liblte_security.h"
+#include "srslte/common/test_common.h"
 #include "srslte/srslte.h"
 
 /*
@@ -39,7 +40,7 @@ int32 arrcmp(uint8_t const* const a, uint8_t const* const b, uint32 len)
  * Document Reference: 33.401 V13.1.0 Annex C.1
  */
 
-void test_set_1()
+int test_set_1()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -58,24 +59,25 @@ void test_set_1()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_2()
+int test_set_2()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -102,24 +104,25 @@ void test_set_2()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_3()
+int test_set_3()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -140,24 +143,25 @@ void test_set_3()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_4()
+int test_set_4()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -188,24 +192,25 @@ void test_set_4()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_5()
+int test_set_5()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -240,24 +245,25 @@ void test_set_5()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_6()
+int test_set_6()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -337,11 +343,11 @@ void test_set_6()
          len_bits,
          (int)t[0].tv_usec / 100,
          (float)100 * len_bits / t[0].tv_usec);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   gettimeofday(&t[1], NULL);
@@ -354,17 +360,18 @@ void test_set_6()
          len_bits,
          (int)t[0].tv_usec / 100,
          (float)100 * len_bits / t[0].tv_usec);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
 // set len_bitsgth to multiple of 8 respectively 128
-void test_set_1_block_size()
+int test_set_1_block_size()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -383,25 +390,26 @@ void test_set_1_block_size()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp == 0);
+  TESTASSERT(err_cmp == 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
 // inserted bit flip in msg[0]
-void test_set_1_invalid()
+int test_set_1_invalid()
 {
   LIBLTE_ERROR_ENUM err_lte = LIBLTE_ERROR_INVALID_INPUTS;
   int32             err_cmp = 0;
@@ -420,21 +428,22 @@ void test_set_1_invalid()
 
   // encryption
   err_lte = liblte_security_encryption_eea2(key, count, bearer, direction, msg, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(ct, out, len_bytes);
-  assert(err_cmp != 0);
+  TESTASSERT(err_cmp != 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea2(key, count, bearer, direction, ct, len_bits, out);
-  assert(err_lte == LIBLTE_SUCCESS);
+  TESTASSERT(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
   err_cmp = arrcmp(msg, out, len_bytes);
-  assert(err_cmp != 0);
+  TESTASSERT(err_cmp != 0);
 
   free(out);
+  return SRSLTE_SUCCESS;
 }
 
 /*
@@ -443,12 +452,12 @@ void test_set_1_invalid()
 
 int main(int argc, char* argv[])
 {
-  test_set_1();
-  test_set_2();
-  test_set_3();
-  test_set_4();
-  test_set_5();
-  test_set_6();
-  test_set_1_block_size();
-  test_set_1_invalid();
+  TESTASSERT(test_set_1() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_2() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_3() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_4() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_5() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_6() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_1_block_size() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_1_invalid() == SRSLTE_SUCCESS);
 }

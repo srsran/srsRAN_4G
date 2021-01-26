@@ -14,6 +14,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
+#include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"
@@ -26,21 +27,12 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
-#include <assert.h>
 #include <iostream>
 
 using namespace srsue;
 using namespace asn1::rrc;
 
 #define LCID 1
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 uint8_t auth_request_pdu[] = {0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4, 0xce, 0xd9,
                               0x86, 0xfb, 0xe5, 0xce, 0x9b, 0x62, 0x5e, 0x10, 0x67, 0x57, 0xb3, 0xc2,

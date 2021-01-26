@@ -19,7 +19,6 @@
 #include "srslte/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/mac/mux.h"
-#include <assert.h>
 #include <iostream>
 #include <string.h>
 

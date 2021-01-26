@@ -9,6 +9,7 @@
 include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)
 
 add_executable(rapidjson_test rapidjson_test.cc)
+target_link_libraries(rapidjson_test srslte_common)
 add_test(rapidjson_test rapidjson_test)
 
 add_executable(ttcn3_if_handler_test ttcn3_if_handler_test.cc)

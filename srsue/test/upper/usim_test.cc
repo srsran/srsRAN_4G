@@ -11,8 +11,8 @@
  */
 
 #include "srslte/common/log_filter.h"
+#include "srslte/common/test_common.h"
 #include "srsue/hdr/stack/upper/usim.h"
-#include <assert.h>
 #include <iostream>
 
 using namespace srsue;
@@ -69,5 +69,5 @@ int main(int argc, char** argv)
   srsue::usim usim(&usim_log);
   usim.init(&args);
 
-  assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
+  TESTASSERT(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }
