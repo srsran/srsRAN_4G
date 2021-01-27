@@ -24,8 +24,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/**
+ * @brief NR-UCI Encoder/decoder initialization arguments
+ */
 typedef struct {
-  bool disable_simd;
+  bool  disable_simd;         ///< Disable Polar code SIMD
+  float block_code_threshold; ///< Set normalised block code threshold (receiver only)
 } srslte_uci_nr_args_t;
 
 typedef struct {
@@ -40,10 +44,20 @@ typedef struct {
   uint8_t*               c;            ///< UCI code-block prior encoding or after decoding
   uint8_t*               allocated;    ///< Polar code intermediate
   uint8_t*               d;            ///< Polar code encoded intermediate
+  float                  block_code_threshold;
 } srslte_uci_nr_t;
 
 /**
+ * @brief Calculates the number of bits carried by PUCCH formats 2, 3 and 4 from the PUCCH resource
+ * @remark Defined in TS 38.212 Table 6.3.1.4-1: Total rate matching output sequence length Etot
+ * @param resource PUCCH format 2, 3 or 4 Resource provided by upper layers
+ * @return The number of bits if the provided resource is valid, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_uci_nr_pucch_format_2_3_4_E(const srslte_pucch_nr_resource_t* resource);
+
+/**
  * @brief Calculates in advance how many CRC bits will be appended for a given amount of UCI bits (A)
+ * @remark Defined in TS 38.212 section 6.3.1.2 Code block segmentation and CRC attachment
  * @param A Number of UCI bits to transmit
  */
 SRSLTE_API uint32_t srslte_uci_nr_crc_len(uint32_t A);

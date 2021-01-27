@@ -26,7 +26,7 @@
 #define UCI_NR_POLAR_MAX 2048U
 #define UCI_NR_POLAR_RM_IBIL 0
 #define UCI_NR_PUCCH_POLAR_N_MAX 10
-#define UCI_NR_BLOCK_CORR_THRESHOLD 0.5f
+#define UCI_NR_BLOCK_DEFAULT_CORR_THRESHOLD 0.5f
 
 uint32_t srslte_uci_nr_crc_len(uint32_t A)
 {
@@ -107,6 +107,12 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
   if (q->d == NULL) {
     ERROR("Error malloc\n");
     return SRSLTE_ERROR;
+  }
+
+  if (isnormal(args->block_code_threshold)) {
+    q->block_code_threshold = args->block_code_threshold;
+  } else {
+    q->block_code_threshold = UCI_NR_BLOCK_DEFAULT_CORR_THRESHOLD;
   }
 
   return SRSLTE_SUCCESS;
@@ -410,25 +416,38 @@ static int uci_nr_decode_3_11_bit(srslte_uci_nr_t*           q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  // Compute average LLR power
-  float pwr = sqrtf(srslte_vec_avg_power_bf(llr, E));
-  if (!isnormal(pwr)) {
+  if (A == 11 && E <= 16) {
+    ERROR("NR-UCI Impossible to decode A=%d; E=%d\n", A, E);
     return SRSLTE_ERROR;
   }
 
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    UCI_NR_INFO_RX("Block decoding NR-UCI llr=");
-    srslte_vec_fprint_bs(stdout, llr, E);
+  // Compute average LLR power
+  float pwr = srslte_vec_avg_power_bf(llr, E);
+  if (!isnormal(pwr)) {
+    return SRSLTE_ERROR;
   }
 
   // Decode
   float corr = (float)srslte_block_decode_i8(llr, E, q->bit_sequence, A);
 
   // Normalise correlation
-  corr /= sqrtf(pwr) * E;
+  float norm_corr = corr / (sqrtf(pwr) * E);
 
   // Take decoded decision with threshold
-  *decoded_ok = (corr > UCI_NR_BLOCK_CORR_THRESHOLD);
+  *decoded_ok = (corr > q->block_code_threshold);
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_RX("Block decoding NR-UCI llr=");
+    srslte_vec_fprint_bs(stdout, llr, E);
+    UCI_NR_INFO_RX("Block decoding NR-UCI A=%d; E=%d; pwr=%f; corr=%f; norm=%f; thr=%f; %s\n",
+                   A,
+                   E,
+                   pwr,
+                   corr,
+                   norm_corr,
+                   q->block_code_threshold,
+                   *decoded_ok ? "OK" : "KO");
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -687,38 +706,31 @@ static int uci_nr_decode(srslte_uci_nr_t*           q,
   return SRSLTE_SUCCESS;
 }
 
-// Implements TS 38.212 Table 6.3.1.4-1: Total rate matching output sequence length Etot
-static int uci_nr_pucch_E_tot(const srslte_pucch_nr_resource_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg)
+int srslte_uci_nr_pucch_format_2_3_4_E(const srslte_pucch_nr_resource_t* resource)
 {
-  if (pucch_cfg == NULL || uci_cfg == NULL) {
+  if (resource == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  switch (pucch_cfg->format) {
+  switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_2:
-      return (int)(16 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
+      return (int)(16 * resource->nof_symbols * resource->nof_prb);
     case SRSLTE_PUCCH_NR_FORMAT_3:
-      if (uci_cfg->modulation == SRSLTE_MOD_QPSK) {
-        return (int)(24 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
+      if (!resource->enable_pi_bpsk) {
+        return (int)(24 * resource->nof_symbols * resource->nof_prb);
       }
-      if (uci_cfg->modulation == SRSLTE_MOD_BPSK) {
-        return (int)(12 * pucch_cfg->nof_symbols * pucch_cfg->nof_prb);
-      }
-      break;
+      return (int)(12 * resource->nof_symbols * resource->nof_prb);
     case SRSLTE_PUCCH_NR_FORMAT_4:
-      if (pucch_cfg->occ_lenth != 1 && pucch_cfg->occ_lenth != 2) {
-        ERROR("Invalid spreading factor (%d)\n", pucch_cfg->occ_lenth);
+      if (resource->occ_lenth != 1 && resource->occ_lenth != 2) {
+        ERROR("Invalid spreading factor (%d)\n", resource->occ_lenth);
         return SRSLTE_ERROR;
       }
-      if (uci_cfg->modulation == SRSLTE_MOD_QPSK) {
-        return (int)(24 * pucch_cfg->nof_symbols / pucch_cfg->occ_lenth);
+      if (!resource->enable_pi_bpsk) {
+        return (int)(24 * resource->nof_symbols / resource->occ_lenth);
       }
-      if (uci_cfg->modulation == SRSLTE_MOD_BPSK) {
-        return (int)(12 * pucch_cfg->nof_symbols / pucch_cfg->occ_lenth);
-      }
-      break;
+      return (int)(12 * resource->nof_symbols / resource->occ_lenth);
     default:
-      return SRSLTE_ERROR;
+      ERROR("Invalid case\n");
   }
   return SRSLTE_ERROR;
 }
@@ -741,7 +753,7 @@ int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
                                const srslte_uci_value_nr_t*      value,
                                uint8_t*                          o)
 {
-  int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
+  int E_tot = srslte_uci_nr_pucch_format_2_3_4_E(pucch_resource_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
     ERROR("Error calculating number of bits\n");
     return SRSLTE_ERROR;
@@ -762,7 +774,7 @@ int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                int8_t*                           llr,
                                srslte_uci_value_nr_t*            value)
 {
-  int E_tot = uci_nr_pucch_E_tot(pucch_resource_cfg, uci_cfg);
+  int E_tot = srslte_uci_nr_pucch_format_2_3_4_E(pucch_resource_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }

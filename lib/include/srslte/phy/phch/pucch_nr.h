@@ -24,11 +24,6 @@
  */
 #define SRSLTE_PUCCH_NR_FORMAT1_N_MAX 7
 
-/**
- * @brief Maximum number of bit that NR-PUCCH format 1 can carry
- */
-#define SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS 2
-
 typedef struct SRSLTE_API {
   srslte_uci_nr_args_t uci;
   uint32_t             max_nof_prb;

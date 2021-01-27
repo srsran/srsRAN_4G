@@ -380,7 +380,7 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
     return SRSLTE_SUCCESS;
   }
 
-  if (nof_bits > 2) {
+  if (nof_bits > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS) {
     ERROR("Invalid number of bits (%d)\n", nof_bits);
     return SRSLTE_ERROR;
   }
@@ -458,7 +458,7 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
     return SRSLTE_SUCCESS;
   }
 
-  if (nof_bits > 2) {
+  if (nof_bits > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS) {
     ERROR("Invalid number of bits (%d)\n", nof_bits);
     return SRSLTE_ERROR;
   }
@@ -544,7 +544,7 @@ static int pucch_nr_format2_encode(srslte_pucch_nr_t*                  q,
   }
 
   // Calculate number of encoded symbols
-  uint32_t E = 16 * resource->nof_symbols * resource->nof_prb;
+  uint32_t E = srslte_uci_nr_pucch_format_2_3_4_E(resource);
 
   // 6.3.2.5.1 Scrambling
   uint32_t cinit = pucch_nr_format2_cinit(cfg, uci_cfg);
@@ -584,7 +584,7 @@ static int pucch_nr_format2_decode(srslte_pucch_nr_t*                  q,
   }
 
   // Calculate number of encoded symbols
-  uint32_t E = 16 * resource->nof_symbols * resource->nof_prb;
+  uint32_t E = srslte_uci_nr_pucch_format_2_3_4_E(resource);
 
   // Undo mapping to physical resources
   uint32_t l_start = resource->start_symbol_idx;

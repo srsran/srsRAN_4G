@@ -34,7 +34,7 @@ static uint32_t              starting_prb_stride    = 4;
 static uint32_t              starting_symbol_stride = 4;
 static srslte_random_t       random_gen             = NULL;
 static int                   format                 = -1;
-static float                 snr_db                 = 30.0f;
+static float                 snr_db                 = 20.0f;
 static srslte_channel_awgn_t awgn                   = {};
 
 static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_common_cfg_t* cfg, cf_t* slot_symbols)
@@ -176,14 +176,19 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
            SRSLTE_MIN(SRSLTE_PUCCH_NR_FORMAT2_MAX_STARTSYMB, SRSLTE_NSYMB_PER_SLOT_NR - resource.nof_symbols);
            resource.start_symbol_idx += starting_symbol_stride) {
 
-        // Maximum code rate is reserved
-        for (resource.max_code_rate = 0; resource.max_code_rate < SRSLTE_PUCCH_NR_MAX_CODE_RATE;
-             resource.max_code_rate++) {
+        srslte_uci_cfg_nr_t uci_cfg = {};
 
-          srslte_uci_cfg_nr_t uci_cfg = {};
+        for (uci_cfg.o_ack = SRSLTE_PUCCH_NR_FORMAT2_MIN_NOF_BITS; uci_cfg.o_ack <= SRSLTE_UCI_NR_MAX_ACK_BITS;
+             uci_cfg.o_ack++) {
+          srslte_uci_value_nr_t uci_value = {};
 
-          for (uci_cfg.o_ack = 12; uci_cfg.o_ack <= SRSLTE_UCI_NR_MAX_ACK_BITS; uci_cfg.o_ack++) {
-            srslte_uci_value_nr_t uci_value = {};
+          // Maximum code rate is reserved
+          uint32_t max_code_rate_end = SRSLTE_PUCCH_NR_MAX_CODE_RATE;
+          if (uci_cfg.o_ack == 11) {
+            max_code_rate_end = SRSLTE_PUCCH_NR_MAX_CODE_RATE - 1;
+          }
+
+          for (resource.max_code_rate = 0; resource.max_code_rate < max_code_rate_end; resource.max_code_rate++) {
 
             // Skip case if not enough PRB are used
             int min_nof_prb = srslte_ra_ul_nr_pucch_format_2_3_min_prb(&resource, &uci_cfg);
@@ -217,9 +222,13 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
                 // Estimate channel
                 TESTASSERT(srslte_dmrs_pucch_format2_estimate(
                                pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSLTE_SUCCESS);
+                INFO("RSRP=%+.2f; EPRE=%+.2f; SNR=%+.2f;\n",
+                     chest_res->rsrp_dBfs,
+                     chest_res->epre_dBfs,
+                     chest_res->snr_db);
                 TESTASSERT(fabsf(chest_res->rsrp_dBfs - 0.0f) < 3.0f);
                 TESTASSERT(fabsf(chest_res->epre_dBfs - 0.0f) < 3.0f);
-                TESTASSERT(fabsf(chest_res->snr_db - snr_db) < 10.0f);
+                TESTASSERT(fabsf(chest_res->snr_db - snr_db) < 20.0f);
 
                 // Decode PUCCH
                 srslte_uci_value_nr_t uci_value_rx = {};
