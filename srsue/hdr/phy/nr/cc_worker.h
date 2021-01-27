@@ -37,8 +37,9 @@ typedef struct {
 } phy_nr_args_t;
 
 typedef struct {
-  srslte_sch_cfg_nr_t pdsch;
-  srslte_prach_cfg_t  prach;
+  srslte_sch_cfg_nr_t         pdsch;
+  srslte_prach_cfg_t          prach;
+  srslte_ue_dl_nr_pdcch_cfg_t pdcch;
 } phy_nr_cfg_t;
 
 class phy_nr_state
@@ -50,7 +51,7 @@ public:
 
   phy_nr_state()
   {
-    carrier.id              = 0;
+    carrier.id              = 500;
     carrier.nof_prb         = 100;
     carrier.max_mimo_layers = 1;
 
@@ -73,6 +74,52 @@ public:
     cfg.prach.zero_corr_zone   = 0;
     cfg.prach.num_ra_preambles = 64;
     cfg.prach.hs_flag          = false;
+
+    // commonControlResourceSet
+    //    controlResourceSetId: 1
+    //    frequencyDomainResources: ff0000000000
+    //    duration: 1
+    //    cce-REG-MappingType: nonInterleaved (1)
+    //        nonInterleaved: NULL
+    //    precoderGranularity: sameAsREG-bundle (0)
+    cfg.pdcch.coreset[1].coreset_id           = 1;
+    cfg.pdcch.coreset[1].precoder_granularity = srslte_coreset_precoder_granularity_reg_bundle;
+    cfg.pdcch.coreset[1].duration             = 1;
+    cfg.pdcch.coreset[1].mapping_type         = srslte_coreset_mapping_type_non_interleaved;
+    for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      cfg.pdcch.coreset[1].freq_resources[i] = (i < 8);
+    }
+    cfg.pdcch.coreset_present[1] = true;
+
+    // SearchSpace
+    //    searchSpaceId: 1
+    //    controlResourceSetId: 1
+    //    monitoringSlotPeriodicityAndOffset: sl1 (0)
+    //        sl1: NULL
+    //    monitoringSymbolsWithinSlot: 8000 [bit length 14, 2 LSB pad bits, 1000 0000  0000 00.. decimal value 8192]
+    //    nrofCandidates
+    //        aggregationLevel1: n0 (0)
+    //        aggregationLevel2: n0 (0)
+    //        aggregationLevel4: n1 (1)
+    //        aggregationLevel8: n0 (0)
+    //        aggregationLevel16: n0 (0)
+    //    searchSpaceType: common (0)
+    //        common
+    //            dci-Format0-0-AndFormat1-0
+    cfg.pdcch.search_space[1].id                = 1;
+    cfg.pdcch.search_space[1].coreset_id        = 1;
+    cfg.pdcch.search_space[1].nof_candidates[0] = 0;
+    cfg.pdcch.search_space[1].nof_candidates[1] = 0;
+    cfg.pdcch.search_space[1].nof_candidates[2] = 1;
+    cfg.pdcch.search_space[1].nof_candidates[3] = 0;
+    cfg.pdcch.search_space[1].nof_candidates[4] = 0;
+    cfg.pdcch.search_space[1].type              = srslte_search_space_type_common;
+    cfg.pdcch.search_space_present[1]           = true;
+
+    // ra-SearchSpace: 1
+    cfg.pdcch.ra_rnti                 = 0x16; //< Supposed to be deduced from PRACH configuration
+    cfg.pdcch.ra_search_space_id      = 1;
+    cfg.pdcch.ra_search_space_present = true;
   }
 };
 
@@ -108,10 +155,6 @@ private:
 
   // Current rnti
   uint16_t rnti = 0;
-
-  // Current coreset and search space
-  srslte_coreset_t      coreset      = {};
-  srslte_search_space_t search_space = {};
 };
 
 } // namespace nr

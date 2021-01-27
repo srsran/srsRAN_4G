@@ -35,7 +35,7 @@ static srslte_sch_grant_nr_t pdsch_grant = {};
 static uint16_t              rnti        = 0x1234;
 static uint32_t              nof_slots   = 10;
 
-void usage(char* prog)
+static void usage(char* prog)
 {
   printf("Usage: %s [pTL] \n", prog);
   printf("\t-P Number of BWP (Carrier) PRB [Default %d]\n", carrier.nof_prb);
@@ -48,7 +48,7 @@ void usage(char* prog)
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-int parse_args(int argc, char** argv)
+static int parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "PpmnTLv")) != -1) {
@@ -83,12 +83,12 @@ int parse_args(int argc, char** argv)
   return SRSLTE_SUCCESS;
 }
 
-int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
-                srslte_dl_slot_cfg_t*  slot,
-                srslte_search_space_t* search_space,
-                srslte_dci_dl_nr_t*    dci_dl,
-                srslte_dci_location_t* dci_location,
-                uint8_t**              data_tx)
+static int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
+                       srslte_dl_slot_cfg_t*  slot,
+                       srslte_search_space_t* search_space,
+                       srslte_dci_dl_nr_t*    dci_dl,
+                       srslte_dci_location_t* dci_location,
+                       uint8_t**              data_tx)
 {
   if (srslte_enb_dl_nr_base_zero(enb_dl) < SRSLTE_SUCCESS) {
     ERROR("Error setting base to zero\n");
@@ -120,15 +120,12 @@ int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
   return SRSLTE_SUCCESS;
 }
 
-int work_ue_dl(srslte_ue_dl_nr_t*     ue_dl,
-               srslte_dl_slot_cfg_t*  slot,
-               srslte_search_space_t* search_space,
-               srslte_pdsch_res_nr_t* pdsch_res)
+static int work_ue_dl(srslte_ue_dl_nr_t* ue_dl, srslte_dl_slot_cfg_t* slot, srslte_pdsch_res_nr_t* pdsch_res)
 {
   srslte_ue_dl_nr_estimate_fft(ue_dl, slot);
 
   srslte_dci_dl_nr_t dci_dl_rx     = {};
-  int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(ue_dl, search_space, slot, rnti, &dci_dl_rx, 1);
+  int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(ue_dl, slot, rnti, &dci_dl_rx, 1);
   if (nof_found_dci < SRSLTE_SUCCESS) {
     ERROR("Error decoding\n");
     return SRSLTE_ERROR;
@@ -192,18 +189,22 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
+  srslte_ue_dl_nr_pdcch_cfg_t pdcch_cfg = {};
+
   // Configure CORESET
-  srslte_coreset_t coreset = {};
-  coreset.duration         = 2;
+  srslte_coreset_t* coreset    = &pdcch_cfg.coreset[0];
+  pdcch_cfg.coreset_present[0] = true;
+  coreset->duration            = 2;
   for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
-    coreset.freq_resources[i] = i < carrier.nof_prb / 6;
+    coreset->freq_resources[i] = i < carrier.nof_prb / 6;
   }
 
   // Configure Search Space
-  srslte_search_space_t search_space = {};
-  search_space.type                  = srslte_search_space_type_ue;
+  srslte_search_space_t* search_space = &pdcch_cfg.search_space[0];
+  pdcch_cfg.search_space_present[0]   = true;
+  search_space->type                  = srslte_search_space_type_ue;
   for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    search_space.nof_candidates[L] = srslte_pdcch_nr_max_candidates_coreset(&coreset, L);
+    search_space->nof_candidates[L] = srslte_pdcch_nr_max_candidates_coreset(coreset, L);
   }
 
   if (srslte_ue_dl_nr_init(&ue_dl, &buffer, &ue_dl_args)) {
@@ -221,7 +222,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset)) {
+  if (srslte_ue_dl_nr_set_config(&ue_dl, &pdcch_cfg)) {
     ERROR("Error setting CORESET\n");
     goto clean_exit;
   }
@@ -231,7 +232,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_enb_dl_nr_set_coreset(&enb_dl, &coreset)) {
+  if (srslte_enb_dl_nr_set_coreset(&enb_dl, coreset)) {
     ERROR("Error setting CORESET\n");
     goto clean_exit;
   }
@@ -315,7 +316,7 @@ int main(int argc, char** argv)
         uint32_t L                                                          = 0;
         uint32_t ncce_candidates[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
         int      nof_candidates =
-            srslte_pdcch_nr_locations_coreset(&coreset, &search_space, rnti, L, slot.idx, ncce_candidates);
+            srslte_pdcch_nr_locations_coreset(coreset, search_space, rnti, L, slot.idx, ncce_candidates);
         if (nof_candidates < SRSLTE_SUCCESS) {
           ERROR("Error getting PDCCH candidates\n");
           goto clean_exit;
@@ -330,7 +331,7 @@ int main(int argc, char** argv)
         srslte_dci_dl_nr_t dci_dl = {};
 
         gettimeofday(&t[1], NULL);
-        if (work_gnb_dl(&enb_dl, &slot, &search_space, &dci_dl, &dci_location, data_tx) < SRSLTE_ERROR) {
+        if (work_gnb_dl(&enb_dl, &slot, search_space, &dci_dl, &dci_location, data_tx) < SRSLTE_ERROR) {
           ERROR("Error running eNb DL\n");
           goto clean_exit;
         }
@@ -344,7 +345,7 @@ int main(int argc, char** argv)
         }
 
         gettimeofday(&t[1], NULL);
-        if (work_ue_dl(&ue_dl, &slot, &search_space, pdsch_res) < SRSLTE_SUCCESS) {
+        if (work_ue_dl(&ue_dl, &slot, pdsch_res) < SRSLTE_SUCCESS) {
           ERROR("Error running UE DL\n");
           goto clean_exit;
         }

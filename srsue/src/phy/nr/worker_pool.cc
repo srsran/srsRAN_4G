@@ -28,7 +28,7 @@ worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
 {
   // Set carrier attributes
-  phy_state.carrier.id      = 0;
+  phy_state.carrier.id      = 500;
   phy_state.carrier.nof_prb = common->args->nr_nof_prb;
 
   // Set NR arguments

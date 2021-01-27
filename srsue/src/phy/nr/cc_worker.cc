@@ -73,10 +73,7 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
     return false;
   }
 
-  coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
-  coreset.duration          = 2;
-
-  if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset) < SRSLTE_SUCCESS) {
+  if (srslte_ue_dl_nr_set_config(&ue_dl, &phy_state->cfg.pdcch) < SRSLTE_SUCCESS) {
     ERROR("Error setting carrier");
     return false;
   }
@@ -117,16 +114,14 @@ bool cc_worker::work_dl()
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
   // Set rnti
-  rnti = 0x1234;
+  rnti = phy_state->cfg.pdcch.ra_rnti;
 
-  // Configure Search space
-  search_space.type = srslte_search_space_type_ue;
-  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    search_space.nof_candidates[L] = srslte_pdcch_nr_max_candidates_coreset(&coreset, L);
-  }
+  //  if (dl_slot_cfg.idx % 10 ==1) {
+  //    printf("a=");srslte_vec_fprint_c(stdout, rx_buffer[0], 512);
+  //  }
 
-  srslte_dci_dl_nr_t dci_dl_rx = {};
-  int nof_found_dci            = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &search_space, &dl_slot_cfg, rnti, &dci_dl_rx, 1);
+  srslte_dci_dl_nr_t dci_dl_rx     = {};
+  int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &dl_slot_cfg, rnti, &dci_dl_rx, 1);
   if (nof_found_dci < SRSLTE_SUCCESS) {
     ERROR("Error decoding");
     return SRSLTE_ERROR;
@@ -135,6 +130,12 @@ bool cc_worker::work_dl()
   if (nof_found_dci < 1) {
     //    ERROR("Error DCI not found");
     return true;
+  }
+
+  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    char str[512];
+    srslte_dci_nr_to_str(&dci_dl_rx, str, sizeof(str));
+    log_h->info("PDCCH: cc=%d, %s", cc_idx, str);
   }
 
   dci_dl.rnti   = 0x1234;

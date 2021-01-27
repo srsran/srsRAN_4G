@@ -52,8 +52,17 @@ int srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], co
     return SRSLTE_ERROR;
   }
 
-  q->nof_rx_antennas     = args->nof_rx_antennas;
-  q->pdcch_dmrs_corr_thr = args->pdcch_dmrs_corr_thr;
+  q->nof_rx_antennas = args->nof_rx_antennas;
+  if (isnormal(args->pdcch_dmrs_corr_thr)) {
+    q->pdcch_dmrs_corr_thr = args->pdcch_dmrs_corr_thr;
+  } else {
+    q->pdcch_dmrs_corr_thr = UE_DL_NR_PDCCH_CORR_DEFAULT_THR;
+  }
+  if (isnormal(args->pdcch_dmrs_epre_thr)) {
+    q->pdcch_dmrs_epre_thr = args->pdcch_dmrs_epre_thr;
+  } else {
+    q->pdcch_dmrs_epre_thr = UE_DL_NR_PDCCH_EPRE_DEFAULT_THR;
+  }
 
   if (srslte_pdsch_nr_init_ue(&q->pdsch, &args->pdsch) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
@@ -110,14 +119,17 @@ void srslte_ue_dl_nr_free(srslte_ue_dl_nr_t* q)
   srslte_chest_dl_res_free(&q->chest);
   srslte_pdsch_nr_free(&q->pdsch);
   srslte_dmrs_sch_free(&q->dmrs_pdsch);
-  srslte_dmrs_pdcch_estimator_free(&q->dmrs_pdcch);
+
+  for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_CORESET; i++) {
+    srslte_dmrs_pdcch_estimator_free(&q->dmrs_pdcch[i]);
+  }
   srslte_pdcch_nr_free(&q->pdcch);
 
   if (q->pdcch_ce) {
     free(q->pdcch_ce);
   }
 
-  memset(q, 0, sizeof(srslte_ue_dl_nr_t));
+  SRSLTE_MEM_ZERO(q, srslte_ue_dl_nr_t, 1);
 }
 
 int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t* carrier)
@@ -151,20 +163,22 @@ int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t*
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ue_dl_nr_set_coreset(srslte_ue_dl_nr_t* q, const srslte_coreset_t* coreset)
+int srslte_ue_dl_nr_set_config(srslte_ue_dl_nr_t* q, const srslte_ue_dl_nr_pdcch_cfg_t* cfg)
 {
-  if (q == NULL || coreset == NULL) {
+  if (q == NULL || cfg == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  q->coreset = *coreset;
+  // Copy new configuration
+  q->cfg = *cfg;
 
-  if (srslte_dmrs_pdcch_estimator_init(&q->dmrs_pdcch, &q->carrier, &q->coreset) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
-  }
-
-  if (srslte_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, &q->coreset) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  // iterate over all possible CORESET and initialise/update the present ones
+  for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_CORESET; i++) {
+    if (cfg->coreset_present[i]) {
+      if (srslte_dmrs_pdcch_estimator_init(&q->dmrs_pdcch[i], &q->carrier, &cfg->coreset[i]) < SRSLTE_SUCCESS) {
+        return SRSLTE_ERROR;
+      }
+    }
   }
 
   return SRSLTE_SUCCESS;
@@ -181,15 +195,23 @@ void srslte_ue_dl_nr_estimate_fft(srslte_ue_dl_nr_t* q, const srslte_dl_slot_cfg
     srslte_ofdm_rx_sf(&q->fft[i]);
   }
 
-  // Estimate PDCCH channel
-  srslte_dmrs_pdcch_estimate(&q->dmrs_pdcch, slot_cfg, q->sf_symbols[0]);
+  // Estimate PDCCH channel for every configured CORESET
+  for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_CORESET; i++) {
+    if (q->cfg.coreset_present[i]) {
+      srslte_dmrs_pdcch_estimate(&q->dmrs_pdcch[i], slot_cfg, q->sf_symbols[0]);
+    }
+  }
 }
 
-static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t* q, srslte_dci_msg_nr_t* dci_msg, srslte_pdcch_nr_res_t* pdcch_res)
+static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
+                                  srslte_dci_msg_nr_t*   dci_msg,
+                                  srslte_pdcch_nr_res_t* pdcch_res,
+                                  uint32_t               coreset_id)
 {
   srslte_dmrs_pdcch_measure_t m = {};
 
-  if (srslte_dmrs_pdcch_get_measure(&q->dmrs_pdcch, &dci_msg->location, &m) < SRSLTE_SUCCESS) {
+  // Measures the PDCCH transmission DMRS
+  if (srslte_dmrs_pdcch_get_measure(&q->dmrs_pdcch[coreset_id], &dci_msg->location, &m) < SRSLTE_SUCCESS) {
     ERROR("Error getting measure location L=%d, ncce=%d\n", dci_msg->location.L, dci_msg->location.ncce);
     return SRSLTE_ERROR;
   }
@@ -201,39 +223,29 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t* q, srslte_dci_msg_nr_t* dci
   }
 
   // Compare EPRE with threshold
-  {
-    float thr = q->pdcch_dmrs_epre_thr;
-    if (!isnormal(thr)) {
-      thr = UE_DL_NR_PDCCH_EPRE_DEFAULT_THR; //< Load default threshold if not provided
-    }
-    if (m.epre_dBfs < thr) {
-      INFO("Discarded PDCCH candidate L=%d;ncce=%d; EPRE is too weak (%.1f<%.1f);\n",
-           dci_msg->location.L,
-           dci_msg->location.ncce,
-           m.epre_dBfs,
-           thr);
-      return SRSLTE_SUCCESS;
-    }
+  if (m.epre_dBfs < q->pdcch_dmrs_epre_thr) {
+    INFO("Discarded PDCCH candidate L=%d;ncce=%d; EPRE is too weak (%.1f<%.1f);\n",
+         dci_msg->location.L,
+         dci_msg->location.ncce,
+         m.epre_dBfs,
+         q->pdcch_dmrs_epre_thr);
+    return SRSLTE_SUCCESS;
   }
 
   // Compare DMRS correlation with threshold
-  {
-    float thr = q->pdcch_dmrs_corr_thr;
-    if (!isnormal(thr)) {
-      thr = UE_DL_NR_PDCCH_CORR_DEFAULT_THR; //< Load default threshold if not provided
-    }
-    if (m.norm_corr < thr) {
-      INFO("Discarded PDCCH candidate L=%d;ncce=%d; Correlation is too low (%.1f<%.1f);\n",
-           dci_msg->location.L,
-           dci_msg->location.ncce,
-           m.norm_corr,
-           thr);
-      return SRSLTE_SUCCESS;
-    }
+  if (m.norm_corr < q->pdcch_dmrs_corr_thr) {
+    INFO("Discarded PDCCH candidate L=%d;ncce=%d; Correlation is too low (%.1f<%.1f); EPRE=%+.2f; RSRP=%+.2f;\n",
+         dci_msg->location.L,
+         dci_msg->location.ncce,
+         m.norm_corr,
+         q->pdcch_dmrs_corr_thr,
+         m.epre_dBfs,
+         m.rsrp_dBfs);
+    return SRSLTE_SUCCESS;
   }
 
   // Extract PDCCH channel estimates
-  if (srslte_dmrs_pdcch_get_ce(&q->dmrs_pdcch, &dci_msg->location, q->pdcch_ce) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_pdcch_get_ce(&q->dmrs_pdcch[coreset_id], &dci_msg->location, q->pdcch_ce) < SRSLTE_SUCCESS) {
     ERROR("Error extracting PDCCH DMRS\n");
     return SRSLTE_ERROR;
   }
@@ -247,21 +259,43 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t* q, srslte_dci_msg_nr_t* dci
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*           q,
-                                const srslte_search_space_t* search_space,
-                                const srslte_dl_slot_cfg_t*  slot_cfg,
-                                uint16_t                     rnti,
-                                srslte_dci_dl_nr_t*          dci_dl_list,
-                                uint32_t                     nof_dci_msg)
+static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*          q,
+                                   const srslte_dl_slot_cfg_t* slot_cfg,
+                                   uint32_t                    search_space_id,
+                                   uint16_t                    rnti,
+                                   srslte_rnti_type_t          rnti_type,
+                                   srslte_dci_dl_nr_t*         dci_dl_list,
+                                   uint32_t                    nof_dci_msg)
 {
+  // Check inputs
+  if (q == NULL || slot_cfg == NULL || dci_dl_list == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Select Search space
+  srslte_search_space_t* search_space = &q->cfg.search_space[search_space_id];
+
+  // Select CORESET
+  uint32_t coreset_id = search_space->coreset_id;
+  if (coreset_id >= SRSLTE_UE_DL_NR_MAX_NOF_CORESET || !q->cfg.coreset_present[coreset_id]) {
+    ERROR("CORESET %d is not present in search space %d\n", search_space->coreset_id, search_space->id);
+    return SRSLTE_ERROR;
+  }
+  srslte_coreset_t* coreset = &q->cfg.coreset[search_space->coreset_id];
+
+  // Set CORESET in PDCCH decoder
+  if (srslte_pdcch_nr_set_carrier(&q->pdcch, &q->carrier, coreset) < SRSLTE_SUCCESS) {
+    ERROR("Setting carrier and CORESETºn");
+    return SRSLTE_ERROR;
+  }
+
   uint32_t count = 0;
 
   // Hard-coded values
   srslte_dci_format_nr_t dci_format = srslte_dci_format_nr_1_0;
-  srslte_rnti_type_t     rnti_type  = srslte_rnti_type_c;
 
   // Calculate number of DCI bits
-  int dci_nof_bits = srslte_dci_nr_format_1_0_sizeof(&q->carrier, &q->coreset, rnti_type);
+  int dci_nof_bits = srslte_dci_nr_format_1_0_sizeof(&q->carrier, coreset, rnti_type);
   if (dci_nof_bits <= SRSLTE_SUCCESS) {
     ERROR("Error DCI size\n");
     return SRSLTE_ERROR;
@@ -271,8 +305,7 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*           q,
   for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR && count < nof_dci_msg; L++) {
     // Calculate possible PDCCH DCI candidates
     uint32_t candidates[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
-    int      nof_candidates =
-        srslte_pdcch_nr_locations_coreset(&q->coreset, search_space, rnti, L, slot_cfg->idx, candidates);
+    int nof_candidates = srslte_pdcch_nr_locations_coreset(coreset, search_space, rnti, L, slot_cfg->idx, candidates);
     if (nof_candidates < SRSLTE_SUCCESS) {
       ERROR("Error calculating DCI candidate location\n");
       return SRSLTE_ERROR;
@@ -290,12 +323,12 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*           q,
       dci_msg.nof_bits            = (uint32_t)dci_nof_bits;
 
       srslte_pdcch_nr_res_t res = {};
-      if (ue_dl_nr_find_dci_ncce(q, &dci_msg, &res) < SRSLTE_SUCCESS) {
+      if (ue_dl_nr_find_dci_ncce(q, &dci_msg, &res, coreset_id) < SRSLTE_SUCCESS) {
         return SRSLTE_ERROR;
       }
 
       if (res.crc) {
-        if (srslte_dci_nr_format_1_0_unpack(&q->carrier, &q->coreset, &dci_msg, &dci_dl_list[count]) < SRSLTE_SUCCESS) {
+        if (srslte_dci_nr_format_1_0_unpack(&q->carrier, coreset, &dci_msg, &dci_dl_list[count]) < SRSLTE_SUCCESS) {
           ERROR("Error unpacking DCI\n");
           return SRSLTE_ERROR;
         }
@@ -307,6 +340,55 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*           q,
   }
 
   return (int)count;
+}
+
+int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*          q,
+                                const srslte_dl_slot_cfg_t* slot_cfg,
+                                uint16_t                    rnti,
+                                srslte_dci_dl_nr_t*         dci_dl_list,
+                                uint32_t                    nof_dci_msg)
+{
+  int count = 0;
+
+  // Check inputs
+  if (q == NULL || slot_cfg == NULL || dci_dl_list == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // If the UE looks for a RAR and RA search space is provided, search for it
+  if (q->cfg.ra_search_space_present && rnti == q->cfg.ra_rnti) {
+    // Check if the RA search space is valid
+    uint32_t ra_ss_id = q->cfg.ra_search_space_id;
+    if (ra_ss_id >= SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE || !q->cfg.search_space_present[ra_ss_id]) {
+      ERROR("Invalid RA Search Space ID (%d)", ra_ss_id);
+      return SRSLTE_ERROR;
+    }
+
+    // Find DCIs in the RA search space
+    return ue_dl_nr_find_dl_dci_ss(
+        q, slot_cfg, ra_ss_id, rnti, srslte_rnti_type_ra, &dci_dl_list[count], nof_dci_msg - count);
+  }
+
+  // Iterate all possible search spaces
+  for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE && count < nof_dci_msg; i++) {
+    // Skip search space if not present
+    if (!q->cfg.search_space_present[i]) {
+      continue;
+    }
+
+    // Find DCIs in the selected search space
+    int ret =
+        ue_dl_nr_find_dl_dci_ss(q, slot_cfg, i, rnti, srslte_rnti_type_c, &dci_dl_list[count], nof_dci_msg - count);
+    if (ret < SRSLTE_SUCCESS) {
+      ERROR("Error searching DCI");
+      return SRSLTE_ERROR;
+    }
+
+    // Count the found DCIs
+    count += ret;
+  }
+
+  return count;
 }
 
 int srslte_ue_dl_nr_decode_pdsch(srslte_ue_dl_nr_t*          q,

@@ -242,8 +242,9 @@ typedef struct SRSLTE_API {
  * @brief CORESET parameters as defined in TS 38.331 V15.10.0 - ControlResourceSet
  */
 typedef struct SRSLTE_API {
-  srslte_coreset_mapping_type_t mapping_type;
   uint32_t                      id;
+  uint32_t                      coreset_id;
+  srslte_coreset_mapping_type_t mapping_type;
   uint32_t                      duration;
   bool                          freq_resources[SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE];
   srslte_coreset_bundle_size_t  interleaver_size;
@@ -261,6 +262,7 @@ typedef struct SRSLTE_API {
  */
 typedef struct SRSLTE_API {
   uint32_t                   id;
+  uint32_t                   coreset_id;
   uint32_t                   duration; // in slots
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];

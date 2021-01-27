@@ -187,6 +187,7 @@ int main(int argc, char** argv)
 
             // Init MSG
             srslte_dci_msg_nr_t dci_msg = {};
+            dci_msg.format              = srslte_dci_format_nr_1_0;
             dci_msg.rnti_type           = srslte_rnti_type_c;
             dci_msg.location.L          = aggregation_level;
             dci_msg.location.ncce       = dci_locations[ncce_idx];
