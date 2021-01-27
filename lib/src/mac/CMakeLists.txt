@@ -9,7 +9,7 @@
 SET(SOURCES pdu.cc pdu_queue.cc)
 
 if (ENABLE_5GNR)
-    set(SOURCES ${SOURCES} mac_sch_pdu_nr.cc)
+    set(SOURCES ${SOURCES} mac_sch_pdu_nr.cc mac_rar_pdu_nr.cc)
 endif(ENABLE_5GNR)
 
 add_library(srslte_mac STATIC ${SOURCES})

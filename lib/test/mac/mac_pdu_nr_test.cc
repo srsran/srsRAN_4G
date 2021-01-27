@@ -12,21 +12,15 @@
 
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/test_common.h"
 #include "srslte/config.h"
+#include "srslte/mac/mac_rar_pdu_nr.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
 
 #include <array>
 #include <iostream>
 #include <memory>
 #include <vector>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 #define PCAP 0
 #define PCAP_CRNTI (0x1001)
@@ -255,6 +249,88 @@ int mac_dl_sch_pdu_unpack_test6()
 
   srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2));
+  TESTASSERT(pdu.get_num_subpdus() == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
+int mac_rar_pdu_unpack_test7()
+{
+  // MAC PDU with RAR PDU with single RAPID=0
+  // rapid=0
+  // ta=180
+  // ul_grant:
+  //   hopping_flag=0
+  //   riv=0x1
+  //   time_domain_rsc=1
+  //   mcs=4
+  //   tpc_command=3
+  //   csi_request=0
+  // tc-rnti=0x4616
+
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | R |T=1|        RAPID=0        |  Octet 1
+  // |              RAR              |  Octet 2-8
+  const uint32_t tv_rapid                                       = 0;
+  const uint32_t tv_ta                                          = 180;
+  const uint16_t tv_tcrnti                                      = 0x4616;
+  const uint8_t  tv_msg3_grant[mac_rar_subpdu_nr::UL_GRANT_NBITS] = {
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00}; // unpacked UL grant
+
+  uint8_t mac_dl_rar_pdu[] = {0x40, 0x05, 0xa0, 0x00, 0x11, 0x46, 0x46, 0x16, 0x00, 0x00, 0x00};
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_ra_rnti(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu), 0x0016, true, PCAP_TTI);
+  }
+
+  srslte::mac_rar_pdu_nr pdu;
+  TESTASSERT(pdu.unpack(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu)) == true);
+
+  std::cout << pdu.to_string() << std::endl;
+
+  TESTASSERT(pdu.get_num_subpdus() == 1);
+
+  mac_rar_subpdu_nr subpdu = pdu.get_subpdu(0);
+  TESTASSERT(subpdu.has_rapid() == true);
+  TESTASSERT(subpdu.has_backoff() == false);
+  TESTASSERT(subpdu.get_temp_crnti() == tv_tcrnti);
+  TESTASSERT(subpdu.get_ta() == tv_ta);
+  TESTASSERT(subpdu.get_rapid() == tv_rapid);
+
+  std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> msg3_grant;
+  subpdu.get_ul_grant(msg3_grant);
+  TESTASSERT(memcmp(msg3_grant.data(), tv_msg3_grant, msg3_grant.size()) == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
+int mac_rar_pdu_unpack_test8()
+{
+  // Malformed MAC PDU, says it has RAR PDU but is too short to include MAC RAR
+
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | E |T=1|        RAPID=0        |  Octet 1
+  // |            RAR_fragment       |  Octet 2
+  uint8_t mac_dl_rar_pdu[] = {0x40, 0x05};
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_ra_rnti(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu), 0x0016, true, PCAP_TTI);
+  }
+
+  // unpacking should fail
+  srslte::mac_rar_pdu_nr pdu;
+  TESTASSERT(pdu.unpack(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu)) == false);
+  TESTASSERT(pdu.get_num_subpdus() == 0);
+
+  // Malformed PDU with reserved bits set
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | E |T=0| R | R |      BI       |  Octet 1
+  uint8_t mac_dl_rar_pdu2[] = {0x10};
+  TESTASSERT(pdu.unpack(mac_dl_rar_pdu2, sizeof(mac_dl_rar_pdu2)) == false);
   TESTASSERT(pdu.get_num_subpdus() == 0);
 
   return SRSLTE_SUCCESS;
@@ -495,6 +571,16 @@ int main(int argc, char** argv)
 
   if (mac_dl_sch_pdu_unpack_test6()) {
     fprintf(stderr, "mac_dl_sch_pdu_unpack_test6() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_rar_pdu_unpack_test7()) {
+    fprintf(stderr, "mac_rar_pdu_unpack_test7() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_rar_pdu_unpack_test8()) {
+    fprintf(stderr, "mac_rar_pdu_unpack_test8() failed.\n");
     return SRSLTE_ERROR;
   }
 
