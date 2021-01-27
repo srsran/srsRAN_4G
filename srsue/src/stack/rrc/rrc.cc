@@ -1001,10 +1001,10 @@ void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
 {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
-  ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
+  ul_dcch_msg_s                     ul_dcch_msg;
   rrc_conn_recfg_complete_r8_ies_s* rrc_conn_recfg_complete_r8 =
       &ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
+  ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
 
   if (contains_nr_complete == true) {
     rrc_log->debug("Preparing RRC Connection Reconfig Complete with NR Complete\n");
