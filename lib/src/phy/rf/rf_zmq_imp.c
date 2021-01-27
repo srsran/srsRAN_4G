@@ -286,10 +286,8 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     }
 
     for (int i = 0; i < handler->nof_channels; i++) {
-      char rx_port[RF_PARAM_LEN] = {};
-      char tx_port[RF_PARAM_LEN] = {};
-
       // rx_port
+      char rx_port[RF_PARAM_LEN] = {};
       parse_string(args, "rx_port", i, rx_port);
 
       // rx_freq
@@ -297,7 +295,11 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       parse_double(args, "rx_freq", i, &rx_freq);
       rx_opts.frequency_mhz = (uint32_t)(rx_freq / 1e6);
 
+      // rx_offset
+      parse_int32(args, "rx_offset", i, &rx_opts.sample_offset);
+
       // tx_port
+      char tx_port[RF_PARAM_LEN] = {};
       parse_string(args, "tx_port", i, tx_port);
 
       // tx_freq

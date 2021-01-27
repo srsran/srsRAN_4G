@@ -108,6 +108,7 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     q->sample_format      = opts.sample_format;
     q->frequency_mhz      = opts.frequency_mhz;
     q->fail_on_disconnect = opts.fail_on_disconnect;
+    q->sample_offset      = opts.sample_offset;
 
     if (opts.socket_type == ZMQ_SUB) {
       zmq_setsockopt(q->sock, ZMQ_SUBSCRIBE, "", 0);
@@ -199,6 +200,27 @@ int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples)
   if (q->sample_format != ZMQ_TYPE_FC32) {
     dst_buffer = q->temp_buffer_convert;
     sample_sz  = 2 * sizeof(short);
+  }
+
+  // If the read needs to be delayed
+  while (q->sample_offset > 0) {
+    uint32_t n_offset = SRSLTE_MIN(q->sample_offset, NBYTES2NSAMPLES(ZMQ_MAX_BUFFER_SIZE));
+    srslte_vec_zero(q->temp_buffer, n_offset);
+    int n = srslte_ringbuffer_write(&q->ringbuffer, q->temp_buffer, (int)(n_offset * sample_sz));
+    if (n < SRSLTE_SUCCESS) {
+      return n;
+    }
+    q->sample_offset -= n_offset;
+  }
+
+  // If the read needs to be advanced
+  while (q->sample_offset < 0) {
+    uint32_t n_offset = SRSLTE_MIN(-q->sample_offset, NBYTES2NSAMPLES(ZMQ_MAX_BUFFER_SIZE));
+    int n = srslte_ringbuffer_read_timed(&q->ringbuffer, q->temp_buffer, (int)(n_offset * sample_sz), ZMQ_TIMEOUT_MS);
+    if (n < SRSLTE_SUCCESS) {
+      return n;
+    }
+    q->sample_offset += n_offset;
   }
 
   int n = srslte_ringbuffer_read_timed(&q->ringbuffer, dst_buffer, sample_sz * nsamples, ZMQ_TIMEOUT_MS);
