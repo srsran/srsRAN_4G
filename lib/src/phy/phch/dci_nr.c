@@ -179,6 +179,13 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   uint8_t*           y         = msg->payload;
   srslte_rnti_type_t rnti_type = msg->rnti_type;
 
+  // Copy DCI MSG fields
+  dci->location          = msg->location;
+  dci->search_space.type = msg->search_space;
+  dci->rnti_type         = msg->rnti_type;
+  dci->rnti              = msg->rnti;
+  dci->format            = msg->format;
+
   if (msg->nof_bits != srslte_dci_nr_format_1_0_sizeof(carrier, coreset, rnti_type)) {
     ERROR("Invalid number of bits %d, expected %d\n",
           msg->nof_bits,
@@ -378,4 +385,94 @@ int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
   }
 
   return count;
+}
+
+static int dci_nr_format_1_0_to_str(const srslte_dci_dl_nr_t* dci, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  // Print format
+  len = srslte_print_check(str, str_len, len, "L=%d cce=%d dci=1_0 ", dci->location.L, dci->location.ncce);
+
+  if (dci->rnti_type == srslte_rnti_type_p) {
+    len = srslte_print_check(str, str_len, len, "smi=%d sm=%d ", dci->smi, dci->sm);
+  }
+
+  // Frequency domain resource assignment
+  len = srslte_print_check(str, str_len, len, "f_alloc=0x%x ", dci->freq_domain_assigment);
+
+  // Time domain resource assignment – 4 bits
+  len = srslte_print_check(str, str_len, len, "t_alloc=0x%x ", dci->time_domain_assigment);
+
+  // VRB-to-PRB mapping – 1 bit
+  len = srslte_print_check(str, str_len, len, "vrb_to_prb_map=%d ", dci->vrb_to_prb_mapping);
+
+  // Modulation and coding scheme – 5 bits
+  len = srslte_print_check(str, str_len, len, "mcs=%d ", dci->mcs);
+
+  // TB scaling – 2 bits
+  if (dci->rnti_type == srslte_rnti_type_p || dci->rnti_type == srslte_rnti_type_ra) {
+    len = srslte_print_check(str, str_len, len, "tb_scaling=%d ", dci->tb_scaling);
+  }
+
+  // New data indicator – 1 bit
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "ndi=%d ", dci->ndi);
+  }
+
+  // Redundancy version – 2 bits
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_si ||
+      dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "rv=%d ", dci->rv);
+  }
+
+  // HARQ process number – 4 bits
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "harq_id=%d ", dci->harq_feedback);
+  }
+
+  // System information indicator – 1 bit
+  if (dci->rnti_type == srslte_rnti_type_si) {
+    len = srslte_print_check(str, str_len, len, "sii=%d ", dci->sii);
+  }
+
+  // Downlink assignment index – 2 bits
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "sii=%d ", dci->sii);
+  }
+
+  // TPC command for scheduled PUCCH – 2 bits
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "pucch_tpc=%d ", dci->tpc);
+  }
+
+  // PUCCH resource indicator – 3 bits
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "pucch_res=%d ", dci->pucch_resource);
+  }
+
+  // PDSCH-to-HARQ_feedback timing indicator – 3 bits
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    len = srslte_print_check(str, str_len, len, "harq_feedback=%d ", dci->harq_feedback);
+  }
+
+  // Reserved bits ...
+  if (dci->rnti_type == srslte_rnti_type_p || dci->rnti_type == srslte_rnti_type_si ||
+      dci->rnti_type == srslte_rnti_type_ra) {
+    len = srslte_print_check(str, str_len, len, "reserved=0x%x ", dci->reserved);
+  }
+
+  return len;
+}
+
+int srslte_dci_nr_to_str(const srslte_dci_dl_nr_t* dci, char* str, uint32_t str_len)
+{
+  // Pack DCI
+  switch (dci->format) {
+    case srslte_dci_format_nr_1_0:
+      return dci_nr_format_1_0_to_str(dci, str, str_len);
+    default:; // Do nothing
+  }
+
+  return srslte_print_check(str, str_len, 0, "unknown");
 }

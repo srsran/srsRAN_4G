@@ -79,4 +79,6 @@ SRSLTE_API int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrie
                                                srslte_dci_msg_nr_t*       msg,
                                                srslte_dci_dl_nr_t*        dci);
 
+SRSLTE_API int srslte_dci_nr_to_str(const srslte_dci_dl_nr_t* dci, char* str, uint32_t str_len);
+
 #endif // SRSLTE_DCI_NR_H
