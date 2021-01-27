@@ -1031,7 +1031,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
       // Setup GW
       char* err_str = nullptr;
-      if (gw->setup_if_addr(rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
+      if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
+                            rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
                             LIBLTE_MME_PDN_TYPE_IPV4,
                             ip_addr,
                             nullptr,
@@ -1063,7 +1064,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                       act_def_eps_bearer_context_req.pdn_addr.addr[7]);
       // Setup GW
       char* err_str = nullptr;
-      if (gw->setup_if_addr(rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
+      if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
+                            rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
                             LIBLTE_MME_PDN_TYPE_IPV6,
                             0,
                             ipv6_if_id,
@@ -1113,7 +1115,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                       act_def_eps_bearer_context_req.pdn_addr.addr[11]);
 
       char* err_str = nullptr;
-      if (gw->setup_if_addr(rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
+      if (gw->setup_if_addr(act_def_eps_bearer_context_req.eps_bearer_id,
+                            rrc->get_lcid_for_eps_bearer(act_def_eps_bearer_context_req.eps_bearer_id),
                             LIBLTE_MME_PDN_TYPE_IPV4V6,
                             ip_addr,
                             ipv6_if_id,

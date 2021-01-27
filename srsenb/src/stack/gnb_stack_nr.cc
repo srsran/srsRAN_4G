@@ -86,7 +86,8 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   m_gw->init(args.coreless.gw_args, logger, this);
   char* err_str = nullptr;
-  if (m_gw->setup_if_addr(args.coreless.drb_lcid,
+  if (m_gw->setup_if_addr(5,
+                          args.coreless.drb_lcid,
                           LIBLTE_MME_PDN_TYPE_IPV4,
                           htonl(inet_addr(args.coreless.ip_addr.c_str())),
                           nullptr,

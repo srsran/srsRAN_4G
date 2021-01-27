@@ -604,8 +604,8 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
     log_h->error("CN associtaion type not supported %s ", drb_cfg.cn_assoc.type().to_string().c_str());
     return false;
   }
-
-  drb_eps_bearer_id[drb_cfg.drb_id] = drb_cfg.cn_assoc.eps_bearer_id();
+  uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
+  drb_eps_bearer_id[drb_cfg.drb_id] = eps_bearer_id;
 
   if (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl_present && drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul_present &&
       (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul.to_number() != drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number())) {
@@ -615,7 +615,7 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
   srslte::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
-
+  gw->update_lcid(eps_bearer_id, lcid);
   return true;
 }
 

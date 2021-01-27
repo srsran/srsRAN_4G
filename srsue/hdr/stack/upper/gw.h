@@ -51,7 +51,12 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // NAS interface
-  int  setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
+  int  setup_if_addr(uint32_t eps_bearer_id,
+                     uint32_t lcid,
+                     uint8_t  pdn_type,
+                     uint32_t ip_addr,
+                     uint8_t* ipv6_if_addr,
+                     char*    err_str);
   int  apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                    const uint8_t&                                 lcid,
                                    const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
@@ -59,6 +64,7 @@ public:
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
+  int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid);
 
 private:
   static const int GW_THREAD_PRIO = -1;
@@ -79,6 +85,8 @@ private:
   uint32_t     default_lcid = 0;
 
   srslog::basic_logger& logger;
+  
+  std::map<uint32_t, uint32_t> eps_lcid; // Mapping between eps bearer ID and LCID
 
   uint32_t current_ip_addr = 0;
   uint8_t  current_if_id[8];

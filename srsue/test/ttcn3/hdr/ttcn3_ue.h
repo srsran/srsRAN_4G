@@ -51,7 +51,13 @@ public:
   void add_mch_port(uint32_t lcid, uint32_t port);
   void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  int  setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str);
+  int  setup_if_addr(uint32_t eps_bearer_id,
+                     uint32_t lcid,
+                     uint8_t  pdn_type,
+                     uint32_t ip_addr,
+                     uint8_t* ipv6_if_id,
+                     char*    err_str);
+  int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid);
 
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const uint8_t&                                 lcid,

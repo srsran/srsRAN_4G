@@ -181,9 +181,18 @@ void ttcn3_ue::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   }
 }
 void ttcn3_ue::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-int  ttcn3_ue::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str)
+int  ttcn3_ue::setup_if_addr(uint32_t eps_bearer_id,
+                            uint32_t lcid,
+                            uint8_t  pdn_type,
+                            uint32_t ip_addr,
+                            uint8_t* ipv6_if_id,
+                            char*    err_str)
 {
   return 0;
+}
+int ttcn3_ue::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
+{
+  return SRSLTE_SUCCESS;
 }
 
 int ttcn3_ue::apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,

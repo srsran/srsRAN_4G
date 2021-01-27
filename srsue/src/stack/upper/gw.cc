@@ -167,7 +167,12 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str)
+int gw::setup_if_addr(uint32_t eps_bearer_id,
+                      uint32_t lcid,
+                      uint8_t  pdn_type,
+                      uint32_t ip_addr,
+                      uint8_t* ipv6_if_addr,
+                      char*    err_str)
 {
   int err;
   if (pdn_type == LIBLTE_MME_PDN_TYPE_IPV4 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6) {
@@ -183,11 +188,32 @@ int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t
     }
   }
 
+  eps_lcid[eps_bearer_id] = lcid;
   default_lcid = lcid;
   tft_matcher.set_default_lcid(lcid);
 
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
+  return SRSLTE_SUCCESS;
+}
+
+int gw::update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid)
+{
+  auto it = eps_lcid.find(eps_bearer_id);
+  if (it != eps_lcid.end()) {
+    uint32_t old_lcid = eps_lcid[eps_bearer_id];
+    logger.debug("Found EPS bearer %d. Update old lcid %d to new lcid %d", eps_bearer_id, old_lcid, new_lcid);
+    eps_lcid[eps_bearer_id] = new_lcid;
+    if (old_lcid == default_lcid) {
+      logger.debug("Defaulting new lcid %d", new_lcid);
+      default_lcid = new_lcid;
+      tft_matcher.set_default_lcid(new_lcid);
+    }
+    // TODO: update need filters if not the default lcid
+  } else {
+    logger.error("Did not found EPS bearer %d for updating LCID.", eps_bearer_id);
+    return SRSLTE_ERROR;
+  }
   return SRSLTE_SUCCESS;
 }
 

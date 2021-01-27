@@ -31,6 +31,10 @@ add_executable(nas_test nas_test.cc)
 target_link_libraries(nas_test srsue_upper srslte_upper srslte_phy rrc_asn1)
 add_test(nas_test nas_test)
 
+add_executable(gw_test gw_test.cc)
+target_link_libraries(gw_test srsue_upper srslte_upper srslte_phy)
+add_test(gw_test gw_test)
+
 add_executable(tft_test tft_test.cc)
 target_link_libraries(tft_test srsue_upper srslte_upper srslte_phy)
 add_test(tft_test tft_test)
