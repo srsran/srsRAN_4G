@@ -15,8 +15,8 @@
 
 namespace srsenb {
 
-pdcp::pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger) :
-  task_sched(task_sched_), logger(logger), pool(srslte::byte_buffer_pool::get_instance())
+pdcp::pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger_) :
+  task_sched(task_sched_), logger(logger_), pool(srslte::byte_buffer_pool::get_instance())
 {}
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
@@ -139,15 +139,24 @@ void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   }
 }
 
-void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, uint32_t pdcp_sn)
 {
   if (users.count(rnti)) {
     if (rnti != SRSLTE_MRNTI) {
+      // TODO: Handle PDCP SN coming from GTPU
       users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
     } else {
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }
   }
+}
+
+std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint16_t rnti, uint32_t lcid)
+{
+  if (users.count(rnti)) {
+    return users[rnti].pdcp->get_buffered_pdus(lcid);
+  }
+  return {};
 }
 
 void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)

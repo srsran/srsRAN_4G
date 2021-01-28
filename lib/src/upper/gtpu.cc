@@ -81,10 +81,15 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
     // E
     if (header->flags & GTPU_FLAGS_EXTENDED_HDR) {
       *ptr = header->next_ext_hdr_type;
+      ptr++;
+      for (size_t i = 0; i < header->ext_buffer.size(); ++i) {
+        *ptr = header->ext_buffer[i];
+        ptr++;
+      }
     } else {
       *ptr = 0;
+      ptr++;
     }
-    ptr++;
   }
   return true;
 }
@@ -126,6 +131,14 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte:
 
     header->next_ext_hdr_type = *ptr;
     ptr++;
+
+    if ((header->flags & GTPU_FLAGS_EXTENDED_HDR) && (header->next_ext_hdr_type == 0b11000000)) {
+      header->ext_buffer.resize(4);
+      for (size_t i = 0; i < 4; ++i) {
+        header->ext_buffer[i] = *ptr;
+        ptr++;
+      }
+    }
   } else {
     pdu->msg += GTPU_BASE_HEADER_LEN;
     pdu->N_bytes -= GTPU_BASE_HEADER_LEN;

@@ -115,6 +115,8 @@ public:
   virtual void get_bearer_state(pdcp_lte_state_t* state)       = 0;
   virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;
 
+  virtual std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() = 0;
+
   // COUNT, HFN and SN helpers
   uint32_t HFN(uint32_t count);
   uint32_t SN(uint32_t count);

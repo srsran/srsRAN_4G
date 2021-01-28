@@ -57,15 +57,16 @@ namespace srslte {
 #define GTPU_MSG_END_MARKER 254
 #define GTPU_MSG_DATA_PDU 255
 
-typedef struct {
-  uint8_t  flags;
-  uint8_t  message_type;
-  uint16_t length;
-  uint32_t teid;
-  uint16_t seq_number;
-  uint8_t  n_pdu;
-  uint8_t  next_ext_hdr_type;
-} gtpu_header_t;
+struct gtpu_header_t {
+  uint8_t              flags             = 0;
+  uint8_t              message_type      = 0;
+  uint16_t             length            = 0;
+  uint32_t             teid              = 0;
+  uint16_t             seq_number        = 0;
+  uint8_t              n_pdu             = 0;
+  uint8_t              next_ext_hdr_type = 0;
+  std::vector<uint8_t> ext_buffer;
+};
 
 bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log_ref gtpu_log);
 bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log_ref gtpu_log);

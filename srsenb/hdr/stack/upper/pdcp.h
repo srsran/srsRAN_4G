@@ -38,7 +38,7 @@ public:
   void reset(uint16_t rnti) override;
   void add_user(uint16_t rnti) override;
   void rem_user(uint16_t rnti) override;
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override;
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, uint32_t pdcp_sn = -1) override;
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override;
   void del_bearer(uint16_t rnti, uint32_t lcid) override;
   void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t cfg_sec) override;
@@ -47,6 +47,9 @@ public:
   bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override;
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override;
   void reestablish(uint16_t rnti) override;
+
+  // pdcp_interface_gtpu
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp

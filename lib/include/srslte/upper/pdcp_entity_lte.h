@@ -60,6 +60,8 @@ public:
   void get_bearer_state(pdcp_lte_state_t* state) override;
   void set_bearer_state(const pdcp_lte_state_t& state) override;
 
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() override;
+
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;

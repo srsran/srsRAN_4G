@@ -238,6 +238,14 @@ bool pdcp::set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state
   return true;
 }
 
+std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint32_t lcid)
+{
+  if (not valid_lcid(lcid)) {
+    return {};
+  }
+  return pdcp_array[lcid]->get_buffered_pdus();
+}
+
 /*******************************************************************************
   RLC interface
 *******************************************************************************/

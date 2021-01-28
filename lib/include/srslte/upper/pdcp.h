@@ -57,6 +57,9 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) override;
   void write_pdu_pcch(unique_byte_buffer_t sdu) override;
 
+  // eNB-only methods
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint32_t lcid);
+
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;

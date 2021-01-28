@@ -371,4 +371,9 @@ void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state)
   st = state;
 }
 
+std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()
+{
+  return {};
+}
+
 } // namespace srslte

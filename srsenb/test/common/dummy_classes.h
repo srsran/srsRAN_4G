@@ -61,7 +61,7 @@ public:
   void reset(uint16_t rnti) override {}
   void add_user(uint16_t rnti) override {}
   void rem_user(uint16_t rnti) override {}
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override {}
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, uint32_t pdcp_sn) override {}
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override {}
   void del_bearer(uint16_t rnti, uint32_t lcid) override {}
   void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg_) override {}
@@ -124,10 +124,14 @@ public:
 class gtpu_dummy : public gtpu_interface_rrc
 {
 public:
-  uint32_t add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out) override { return 0; }
-  void     rem_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
-  void     rem_user(uint16_t rnti) override {}
+  uint32_t
+  add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props) override
+  {
+    return 0;
+  }
+  void rem_bearer(uint16_t rnti, uint32_t lcid) override {}
+  void mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
+  void rem_user(uint16_t rnti) override {}
 };
 
 } // namespace srsenb
