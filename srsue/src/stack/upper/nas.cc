@@ -290,11 +290,6 @@ bool nas::disable_data()
  */
 void nas::start_attach_request(srslte::establishment_cause_t cause_)
 {
-  if (rrc->is_connected()) {
-    logger.info("RRC is connected. Aborting attach reuqest %s.", to_string(cause_).c_str());
-    return;
-  }
-
   logger.info("Attach Request with cause %s.", to_string(cause_).c_str());
 
   if (state.get_state() != emm_state_t::state_t::deregistered) {
@@ -318,9 +313,16 @@ void nas::start_attach_request(srslte::establishment_cause_t cause_)
   }
 
   // Start attach request
-  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool);
+  if (msg == nullptr) {
+    logger.warning("Couldn't allocate buffer for Attach request.\n");
+    return;
+  }
+
   gen_attach_request(msg);
-  if (!rrc->is_connected()) {
+  if (rrc->is_connected()) {
+    rrc->write_sdu(std::move(msg));
+  } else {
     logger.debug("Initiating RRC Connection");
     if (not rrc->connection_request(cause_, std::move(msg))) {
       logger.error("Error starting RRC connection");
