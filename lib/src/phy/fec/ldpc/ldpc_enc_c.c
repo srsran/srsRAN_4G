@@ -135,9 +135,10 @@ void encode_high_rate_case1(void* q_, uint8_t* output)
   }
 }
 
-void encode_high_rate_case2(srslte_ldpc_encoder_t* q, uint8_t* output)
+void encode_high_rate_case2(void* q_, uint8_t* output)
 {
-  uint8_t(*aux)[q->ls] = q->ptr;
+  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;
   int i  = 0;
@@ -164,9 +165,10 @@ void encode_high_rate_case2(srslte_ldpc_encoder_t* q, uint8_t* output)
   }
 }
 
-void encode_high_rate_case3(srslte_ldpc_encoder_t* q, uint8_t* output)
+void encode_high_rate_case3(void* q_, uint8_t* output)
 {
-  uint8_t(*aux)[q->ls] = q->ptr;
+  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;
   int i  = 0;
@@ -193,9 +195,10 @@ void encode_high_rate_case3(srslte_ldpc_encoder_t* q, uint8_t* output)
   }
 }
 
-void encode_high_rate_case4(srslte_ldpc_encoder_t* q, uint8_t* output)
+void encode_high_rate_case4(void* q_, uint8_t* output)
 {
-  uint8_t(*aux)[q->ls] = q->ptr;
+  srslte_ldpc_encoder_t* q = (srslte_ldpc_encoder_t*)q_;
+  uint8_t(*aux)[q->ls]     = q->ptr;
 
   int ls = q->ls;
   int k  = 0;

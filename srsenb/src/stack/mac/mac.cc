@@ -37,7 +37,6 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 mac::mac(srslte::ext_task_sched_handle task_sched_) :
-  rar_pdu_msg(sched_interface::MAX_RAR_LIST),
   rar_payload(),
   common_buffers(SRSLTE_MAX_CARRIERS),
   task_sched(task_sched_)
@@ -333,7 +332,7 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
   return scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);
 }
 
-int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc)
+int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc)
 {
   srslte::rwlock_read_guard lock(rwlock);
 
@@ -341,14 +340,21 @@ int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32
     return SRSLTE_ERROR;
   }
 
+  std::array<int, SRSLTE_MAX_CARRIERS> enb_ue_cc_map = scheduler.get_enb_ue_cc_map(rnti);
+  if (enb_ue_cc_map[enb_cc_idx] < 0) {
+    Error("User rnti=0x%x is not activated for carrier %d\n", rnti, enb_cc_idx);
+    return SRSLTE_ERROR;
+  }
+  uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
+
   // push the pdu through the queue if received correctly
   if (crc) {
     Info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->push_pdu(pdu_ptr, nof_bytes);
+    ue_db[rnti]->push_pdu(tti_rx, ue_cc_idx, nof_bytes);
     stack_task_queue.push([this]() { process_pdus(); });
   } else {
     Debug("Discarting PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
-    ue_db[rnti]->deallocate_pdu(pdu_ptr);
+    ue_db[rnti]->deallocate_pdu(tti_rx, ue_cc_idx);
   }
   return SRSLTE_SUCCESS;
 }
@@ -398,7 +404,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi
   return SRSLTE_SUCCESS;
 }
 
-int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr)
+int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr, ul_channel_t ch)
 {
   log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
@@ -407,7 +413,7 @@ int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr
     return SRSLTE_ERROR;
   }
 
-  return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, 0);
+  return scheduler.ul_snr_info(tti_rx, rnti, enb_cc_idx, snr, (uint32_t)ch);
 }
 
 int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
@@ -535,11 +541,15 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.supported_cc_list[0].dl_cfg.tm      = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
+      ue_rem(rnti);
       return;
     }
 
     // Register new user in RRC
-    rrc_h->add_user(rnti, ue_cfg);
+    if (rrc_h->add_user(rnti, ue_cfg) == SRSLTE_ERROR) {
+      ue_rem(rnti);
+      return;
+    }
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
@@ -660,6 +670,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
       // Assemble PDU
       dl_sched_res->pdsch[n].data[0] = assemble_rar(sched_result.rar[i].msg3_grant.data(),
+                                                    enb_cc_idx,
                                                     sched_result.rar[i].msg3_grant.size(),
                                                     i,
                                                     sched_result.rar[i].tbs,
@@ -829,16 +840,17 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
 }
 
 uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
+                           uint32_t                               enb_cc_idx,
                            uint32_t                               nof_grants,
-                           int                                    rar_idx,
+                           uint32_t                               rar_idx,
                            uint32_t                               pdu_len,
                            uint32_t                               tti)
 {
   uint8_t grant_buffer[64] = {};
-  if (pdu_len < rar_payload_len) {
+  if (pdu_len < rar_payload_len && rar_idx < rar_pdu_msg.size()) {
     srslte::rar_pdu* pdu = &rar_pdu_msg[rar_idx];
-    rar_payload[rar_idx].clear();
-    pdu->init_tx(&rar_payload[rar_idx], pdu_len);
+    rar_payload[enb_cc_idx][rar_idx].clear();
+    pdu->init_tx(&rar_payload[enb_cc_idx][rar_idx], pdu_len);
     for (uint32_t i = 0; i < nof_grants; i++) {
       srslte_dci_rar_pack(&grants[i].grant, grant_buffer);
       if (pdu->new_subh()) {
@@ -848,12 +860,17 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
         pdu->get()->set_sched_grant(grant_buffer);
       }
     }
-    pdu->write_packet(rar_payload[rar_idx].msg);
-    return rar_payload[rar_idx].msg;
-  } else {
-    Error("Assembling RAR: pdu_len > rar_payload_len (%d>%d)\n", pdu_len, rar_payload_len);
-    return nullptr;
+    if (pdu->write_packet(rar_payload[enb_cc_idx][rar_idx].msg)) {
+      return rar_payload[enb_cc_idx][rar_idx].msg;
+    }
   }
+
+  Error("Assembling RAR: rar_idx=%d, pdu_len=%d, rar_payload_len=%d, nof_grants=%d\n",
+        rar_idx,
+        pdu_len,
+        rar_payload_len,
+        nof_grants);
+  return nullptr;
 }
 
 int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
@@ -907,8 +924,13 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
             if (sched_result.pusch[n].current_tx_nb == 0) {
               srslte_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
             }
-            phy_ul_sched_res->pusch[n].data = ue_db[rnti]->request_buffer(sched_result.pusch[i].tbs);
-            phy_ul_sched_res->nof_grants++;
+            phy_ul_sched_res->pusch[n].data =
+                ue_db[rnti]->request_buffer(tti_tx_ul, sched_result.pusch[i].dci.ue_cc_idx, sched_result.pusch[i].tbs);
+            if (phy_ul_sched_res->pusch[n].data) {
+              phy_ul_sched_res->nof_grants++;
+            } else {
+              Error("Grant for rnti=0x%x could not be allocated due to lack of buffers\n", rnti);
+            }
             n++;
           } else {
             Warning("Invalid UL scheduling result. User 0x%x does not exist\n", rnti);
@@ -928,6 +950,10 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
       phy_ul_sched_res->phich[i].rnti = sched_result.phich[i].rnti;
     }
     phy_ul_sched_res->nof_phich = sched_result.nof_phich_elems;
+  }
+  // clear old buffers from all users
+  for (auto& u : ue_db) {
+    u.second->clear_old_buffers(tti_tx_ul);
   }
   return SRSLTE_SUCCESS;
 }

@@ -227,9 +227,10 @@ void sch_pdu::parse_packet(uint8_t* ptr)
     if (n_sub >= 0) {
       subheaders[nof_subheaders - 1].set_payload_size(n_sub);
     } else {
-      ERROR("Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
       if (log_h) {
-        log_h->info_hex(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
+        log_h->warning_hex(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
+      } else {
+        srslte::console("Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
       }
 
       // reset PDU
@@ -1026,7 +1027,7 @@ uint8_t sch_subh::phr_report_table(float phr_value)
 
 std::string rar_pdu::to_string()
 {
-  std::string msg("MAC PDU for RAR. ");
+  std::string msg("MAC PDU for RAR: ");
   msg += pdu::to_string();
   return msg;
 }
@@ -1077,7 +1078,18 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   }
 
   // Set padding to zeros (if any)
-  bzero(ptr, (rem_len - (ptr - init_ptr)) * sizeof(uint8_t));
+  int32_t payload_len = ptr - init_ptr;
+  int32_t pad_len     = rem_len - payload_len;
+  if (pad_len < 0) {
+    if (log_h) {
+      log_h->warning("Error packing RAR PDU (payload_len=%d, rem_len=%d)\n", payload_len, rem_len);
+    } else {
+      srslte::console("Error packing RAR PDU (payload_len=%d, rem_len=%d)\n", payload_len, rem_len);
+    }
+    return false;
+  } else {
+    bzero(ptr, pad_len * sizeof(uint8_t));
+  }
 
   return true;
 }
@@ -1093,7 +1105,7 @@ std::string rar_subh::to_string()
 
   char tmp[16];
   srslte_vec_sprint_hex(tmp, sizeof(tmp), grant, RAR_GRANT_LEN);
-  ss << tmp << "\n";
+  ss << tmp;
 
   return ss.str();
 }

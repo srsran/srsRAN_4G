@@ -78,10 +78,6 @@ int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
       ERROR("Error creating PUSCH object\n");
       goto clean_exit;
     }
-    if (srslte_refsignal_ul_init(&q->signals, max_prb)) {
-      ERROR("Error initiating srslte_refsignal_ul\n");
-      goto clean_exit;
-    }
     q->refsignal = srslte_vec_cf_malloc(2 * SRSLTE_NRE * max_prb);
     if (!q->refsignal) {
       perror("malloc");
@@ -115,7 +111,6 @@ void srslte_ue_ul_free(srslte_ue_ul_t* q)
     srslte_pucch_free(&q->pucch);
 
     srslte_cfo_free(&q->cfo);
-    srslte_refsignal_ul_free(&q->signals);
 
     if (q->sf_symbols) {
       free(q->sf_symbols);

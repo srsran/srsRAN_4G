@@ -54,6 +54,7 @@ typedef struct {
 
 typedef struct SRSLTE_API {
   // Parameters from higher layers (extracted from SIB2)
+  bool     is_nr;
   uint32_t config_idx;
   uint32_t f;            // preamble format
   uint32_t rsi;          // rootSequenceIndex
@@ -124,6 +125,7 @@ typedef enum SRSLTE_API {
 } srslte_prach_sfn_t;
 
 typedef struct {
+  bool                is_nr; // Set to true if NR
   uint32_t            config_idx;
   uint32_t            root_seq_idx;
   uint32_t            zero_corr_zone;
@@ -175,21 +177,6 @@ SRSLTE_API uint32_t srslte_prach_nof_f_idx_tdd(uint32_t config_idx, uint32_t tdd
 SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, srslte_prach_sf_config_t* sf_config);
 
 SRSLTE_API int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul);
-
-SRSLTE_API int srslte_prach_set_cell_fdd(srslte_prach_t* p,
-                                         uint32_t        N_ifft_ul,
-                                         uint32_t        config_idx,
-                                         uint32_t        root_seq_index,
-                                         bool            high_speed_flag,
-                                         uint32_t        zero_corr_zone_config);
-
-SRSLTE_API int srslte_prach_set_cell_tdd(srslte_prach_t*      p,
-                                         uint32_t             N_ifft_ul,
-                                         uint32_t             config_idx,
-                                         uint32_t             root_seq_index,
-                                         bool                 high_speed_flag,
-                                         uint32_t             zero_corr_zone_config,
-                                         srslte_tdd_config_t* tdd_config);
 
 SRSLTE_API int srslte_prach_set_cfg(srslte_prach_t* p, srslte_prach_cfg_t* cfg, uint32_t nof_prb);
 

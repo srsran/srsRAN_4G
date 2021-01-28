@@ -21,6 +21,8 @@
 
 #include "srslte/upper/gtpu.h"
 #include "srslte/common/int_helpers.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 namespace srslte {
 

@@ -88,7 +88,7 @@ int srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], co
     srslte_ofdm_rx_init_cfg(&q->fft[i], &fft_cfg);
   }
 
-  if (srslte_dmrs_pdsch_init(&q->dmrs_pdsch, true) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_sch_init(&q->dmrs_pdsch, true) < SRSLTE_SUCCESS) {
     ERROR("Error DMRS\n");
     return SRSLTE_ERROR;
   }
@@ -118,7 +118,7 @@ void srslte_ue_dl_nr_free(srslte_ue_dl_nr_t* q)
 
   srslte_chest_dl_res_free(&q->chest);
   srslte_pdsch_nr_free(&q->pdsch);
-  srslte_dmrs_pdsch_free(&q->dmrs_pdsch);
+  srslte_dmrs_sch_free(&q->dmrs_pdsch);
   srslte_dmrs_pdcch_estimator_free(&q->dmrs_pdcch);
   srslte_pdcch_nr_free(&q->pdcch);
 
@@ -135,7 +135,7 @@ int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t*
     return SRSLTE_ERROR;
   }
 
-  if (srslte_dmrs_pdsch_set_carrier(&q->dmrs_pdsch, carrier) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_sch_set_carrier(&q->dmrs_pdsch, carrier) < SRSLTE_SUCCESS) {
     ERROR("Error DMRS\n");
     return SRSLTE_ERROR;
   }
@@ -314,36 +314,34 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*           q,
   return (int)count;
 }
 
-int srslte_ue_dl_nr_pdsch_get(srslte_ue_dl_nr_t*             q,
-                              const srslte_dl_slot_cfg_t*    slot,
-                              const srslte_pdsch_cfg_nr_t*   cfg,
-                              const srslte_pdsch_grant_nr_t* grant,
-                              srslte_pdsch_res_nr_t*         res)
+int srslte_ue_dl_nr_decode_pdsch(srslte_ue_dl_nr_t*          q,
+                                 const srslte_dl_slot_cfg_t* slot,
+                                 const srslte_sch_cfg_nr_t*  cfg,
+                                 srslte_pdsch_res_nr_t*      res)
 {
 
-  if (srslte_dmrs_pdsch_estimate(&q->dmrs_pdsch, slot, cfg, grant, q->sf_symbols[0], &q->chest) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_sch_estimate(&q->dmrs_pdsch, slot, cfg, &cfg->grant, q->sf_symbols[0], &q->chest) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
-  if (srslte_pdsch_nr_decode(&q->pdsch, cfg, grant, &q->chest, q->sf_symbols, res) < SRSLTE_SUCCESS) {
+  if (srslte_pdsch_nr_decode(&q->pdsch, cfg, &cfg->grant, &q->chest, q->sf_symbols, res) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     char str[512];
-    srslte_ue_dl_nr_pdsch_info(q, cfg, grant, res, str, sizeof(str));
+    srslte_ue_dl_nr_pdsch_info(q, cfg, res, str, sizeof(str));
     INFO("PDSCH: %s\n", str);
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*       q,
-                               const srslte_pdsch_cfg_nr_t*   cfg,
-                               const srslte_pdsch_grant_nr_t* grant,
-                               const srslte_pdsch_res_nr_t*   res,
-                               char*                          str,
-                               uint32_t                       str_len)
+int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*     q,
+                               const srslte_sch_cfg_nr_t*   cfg,
+                               const srslte_pdsch_res_nr_t* res,
+                               char*                        str,
+                               uint32_t                     str_len)
 {
   int len = 0;
 
@@ -351,7 +349,7 @@ int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*       q,
   // ...
 
   // Append PDSCH info
-  len += srslte_pdsch_nr_rx_info(&q->pdsch, cfg, grant, res, &str[len], str_len - len);
+  len += srslte_pdsch_nr_rx_info(&q->pdsch, cfg, &cfg->grant, res, &str[len], str_len - len);
 
   return len;
 }

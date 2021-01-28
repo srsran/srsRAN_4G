@@ -507,71 +507,6 @@ uint8_t tdd_cfg_v1130_s::special_sf_patterns_v1130_opts::to_number() const
   return map_enum_number(options, 2, value, "tdd_cfg_v1130_s::special_sf_patterns_v1130_e_");
 }
 
-// UplinkPowerControlCommon-v1310 ::= SEQUENCE
-SRSASN_CODE ul_pwr_ctrl_common_v1310_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(delta_f_pucch_format4_r13_present, 1));
-  HANDLE_CODE(bref.pack(delta_f_pucch_format5_minus13_present, 1));
-
-  if (delta_f_pucch_format4_r13_present) {
-    HANDLE_CODE(delta_f_pucch_format4_r13.pack(bref));
-  }
-  if (delta_f_pucch_format5_minus13_present) {
-    HANDLE_CODE(delta_f_pucch_format5_minus13.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ul_pwr_ctrl_common_v1310_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(delta_f_pucch_format4_r13_present, 1));
-  HANDLE_CODE(bref.unpack(delta_f_pucch_format5_minus13_present, 1));
-
-  if (delta_f_pucch_format4_r13_present) {
-    HANDLE_CODE(delta_f_pucch_format4_r13.unpack(bref));
-  }
-  if (delta_f_pucch_format5_minus13_present) {
-    HANDLE_CODE(delta_f_pucch_format5_minus13.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ul_pwr_ctrl_common_v1310_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (delta_f_pucch_format4_r13_present) {
-    j.write_str("deltaF-PUCCH-Format4-r13", delta_f_pucch_format4_r13.to_string());
-  }
-  if (delta_f_pucch_format5_minus13_present) {
-    j.write_str("deltaF-PUCCH-Format5-13", delta_f_pucch_format5_minus13.to_string());
-  }
-  j.end_obj();
-}
-
-std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_string() const
-{
-  static const char* options[] = {
-      "deltaF16", "deltaF15", "deltaF14", "deltaF13", "deltaF12", "deltaF11", "deltaF10", "spare1"};
-  return convert_enum_idx(options, 8, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_");
-}
-uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_number() const
-{
-  static const uint8_t options[] = {16, 15, 14, 13, 12, 11, 10};
-  return map_enum_number(options, 7, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_");
-}
-
-std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_opts::to_string() const
-{
-  static const char* options[] = {
-      "deltaF13", "deltaF12", "deltaF11", "deltaF10", "deltaF9", "deltaF8", "deltaF7", "spare1"};
-  return convert_enum_idx(options, 8, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_");
-}
-uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_opts::to_number() const
-{
-  static const uint8_t options[] = {13, 12, 11, 10, 9, 8, 7};
-  return map_enum_number(options, 7, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_");
-}
-
 // PRACH-ParametersCE-r13 ::= SEQUENCE
 SRSASN_CODE prach_params_ce_r13_s::pack(bit_ref& bref) const
 {
@@ -5134,6 +5069,71 @@ uint8_t rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_opts::to_number() const
 {
   static const uint8_t options[] = {2, 4, 5};
   return map_enum_number(options, 3, value, "rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_e_");
+}
+
+// UplinkPowerControlCommon-v1310 ::= SEQUENCE
+SRSASN_CODE ul_pwr_ctrl_common_v1310_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(delta_f_pucch_format4_r13_present, 1));
+  HANDLE_CODE(bref.pack(delta_f_pucch_format5_minus13_present, 1));
+
+  if (delta_f_pucch_format4_r13_present) {
+    HANDLE_CODE(delta_f_pucch_format4_r13.pack(bref));
+  }
+  if (delta_f_pucch_format5_minus13_present) {
+    HANDLE_CODE(delta_f_pucch_format5_minus13.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ul_pwr_ctrl_common_v1310_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(delta_f_pucch_format4_r13_present, 1));
+  HANDLE_CODE(bref.unpack(delta_f_pucch_format5_minus13_present, 1));
+
+  if (delta_f_pucch_format4_r13_present) {
+    HANDLE_CODE(delta_f_pucch_format4_r13.unpack(bref));
+  }
+  if (delta_f_pucch_format5_minus13_present) {
+    HANDLE_CODE(delta_f_pucch_format5_minus13.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ul_pwr_ctrl_common_v1310_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (delta_f_pucch_format4_r13_present) {
+    j.write_str("deltaF-PUCCH-Format4-r13", delta_f_pucch_format4_r13.to_string());
+  }
+  if (delta_f_pucch_format5_minus13_present) {
+    j.write_str("deltaF-PUCCH-Format5-13", delta_f_pucch_format5_minus13.to_string());
+  }
+  j.end_obj();
+}
+
+std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_string() const
+{
+  static const char* options[] = {
+      "deltaF16", "deltaF15", "deltaF14", "deltaF13", "deltaF12", "deltaF11", "deltaF10", "spare1"};
+  return convert_enum_idx(options, 8, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_");
+}
+uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_number() const
+{
+  static const uint8_t options[] = {16, 15, 14, 13, 12, 11, 10};
+  return map_enum_number(options, 7, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_");
+}
+
+std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_opts::to_string() const
+{
+  static const char* options[] = {
+      "deltaF13", "deltaF12", "deltaF11", "deltaF10", "deltaF9", "deltaF8", "deltaF7", "spare1"};
+  return convert_enum_idx(options, 8, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_");
+}
+uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_opts::to_number() const
+{
+  static const uint8_t options[] = {13, 12, 11, 10, 9, 8, 7};
+  return map_enum_number(options, 7, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_");
 }
 
 // PRACH-Config-v1310 ::= SEQUENCE

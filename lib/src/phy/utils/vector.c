@@ -96,6 +96,11 @@ void srslte_vec_sc_prod_cfc(const cf_t* x, const float h, cf_t* z, const uint32_
   srslte_vec_sc_prod_cfc_simd(x, h, z, len);
 }
 
+void srslte_vec_sc_prod_fcc(const float* x, const cf_t h, cf_t* z, const uint32_t len)
+{
+  srslte_vec_sc_prod_fcc_simd(x, h, z, len);
+}
+
 // Chest UL
 void srslte_vec_sc_prod_ccc(const cf_t* x, const cf_t h, cf_t* z, const uint32_t len)
 {
@@ -233,6 +238,21 @@ void srslte_vec_f_copy(float* dst, const float* src, uint32_t len)
 void srslte_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len)
 {
   memcpy(dst, src, sizeof(uint8_t) * len);
+}
+
+void srslte_vec_i8_copy(int8_t* dst, const int8_t* src, uint32_t len)
+{
+  memcpy(dst, src, sizeof(int8_t) * len);
+}
+
+void srslte_vec_i16_copy(int16_t* dst, const int16_t* src, uint32_t len)
+{
+  memcpy(dst, src, sizeof(int16_t) * len);
+}
+
+void srslte_vec_u16_copy(uint16_t* dst, const uint16_t* src, uint32_t len)
+{
+  memcpy(dst, src, sizeof(uint16_t) * len);
 }
 
 void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size)
@@ -511,6 +531,28 @@ float srslte_vec_avg_power_cf(const cf_t* x, const uint32_t len)
 }
 
 float srslte_vec_avg_power_sf(const int16_t* x, const uint32_t len)
+{
+  // Accumulator
+  float acc = 0.0f;
+
+  for (uint32_t i = 0; i < len; i++) {
+    // Read value and typecast to float
+    float t = (float)x[i];
+
+    // Square value
+    acc += t * t;
+  }
+
+  // Do average
+  if (len) {
+    acc /= len;
+  }
+
+  // Return accumulated value
+  return acc;
+}
+
+float srslte_vec_avg_power_bf(const int8_t* x, const uint32_t len)
 {
   // Accumulator
   float acc = 0.0f;

@@ -572,38 +572,6 @@ void cell_access_related_info_r14_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// CellSelectionInfoCE1-v1360 ::= SEQUENCE
-SRSASN_CODE cell_sel_info_ce1_v1360_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, delta_rx_lev_min_ce1_v1360, (int8_t)-8, (int8_t)-1));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE cell_sel_info_ce1_v1360_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(delta_rx_lev_min_ce1_v1360, bref, (int8_t)-8, (int8_t)-1));
-
-  return SRSASN_SUCCESS;
-}
-void cell_sel_info_ce1_v1360_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("delta-RxLevMinCE1-v1360", delta_rx_lev_min_ce1_v1360);
-  j.end_obj();
-}
-
-// SI-Periodicity-r12 ::= ENUMERATED
-std::string si_periodicity_r12_opts::to_string() const
-{
-  static const char* options[] = {"rf8", "rf16", "rf32", "rf64", "rf128", "rf256", "rf512"};
-  return convert_enum_idx(options, 7, value, "si_periodicity_r12_e");
-}
-uint16_t si_periodicity_r12_opts::to_number() const
-{
-  static const uint16_t options[] = {8, 16, 32, 64, 128, 256, 512};
-  return map_enum_number(options, 7, value, "si_periodicity_r12_e");
-}
-
 // SystemInformationBlockType1-v1450-IEs ::= SEQUENCE
 SRSASN_CODE sib_type1_v1450_ies_s::pack(bit_ref& bref) const
 {
@@ -644,6 +612,26 @@ void sib_type1_v1450_ies_s::to_json(json_writer& j) const
     j.write_fieldname("nonCriticalExtension");
     non_crit_ext.to_json(j);
   }
+  j.end_obj();
+}
+
+// CellSelectionInfoCE1-v1360 ::= SEQUENCE
+SRSASN_CODE cell_sel_info_ce1_v1360_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(pack_integer(bref, delta_rx_lev_min_ce1_v1360, (int8_t)-8, (int8_t)-1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE cell_sel_info_ce1_v1360_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(unpack_integer(delta_rx_lev_min_ce1_v1360, bref, (int8_t)-8, (int8_t)-1));
+
+  return SRSASN_SUCCESS;
+}
+void cell_sel_info_ce1_v1360_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_int("delta-RxLevMinCE1-v1360", delta_rx_lev_min_ce1_v1360);
   j.end_obj();
 }
 
@@ -2178,6 +2166,18 @@ void cell_sel_info_v920_s::to_json(json_writer& j) const
     j.write_int("q-QualMinOffset-r9", q_qual_min_offset_r9);
   }
   j.end_obj();
+}
+
+// SI-Periodicity-r12 ::= ENUMERATED
+std::string si_periodicity_r12_opts::to_string() const
+{
+  static const char* options[] = {"rf8", "rf16", "rf32", "rf64", "rf128", "rf256", "rf512"};
+  return convert_enum_idx(options, 7, value, "si_periodicity_r12_e");
+}
+uint16_t si_periodicity_r12_opts::to_number() const
+{
+  static const uint16_t options[] = {8, 16, 32, 64, 128, 256, 512};
+  return map_enum_number(options, 7, value, "si_periodicity_r12_e");
 }
 
 // SystemInformationBlockType1-v1130-IEs ::= SEQUENCE

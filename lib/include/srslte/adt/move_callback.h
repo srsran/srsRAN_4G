@@ -92,7 +92,7 @@ public:
   R    call(void* src, Args&&... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
-    ::new (dest) FunT{std::move(*static_cast<FunT*>(src))};
+    ::new (dest) FunT(std::move(*static_cast<FunT*>(src)));
     static_cast<FunT*>(src)->~FunT();
   }
   void dtor(void* src) const final { static_cast<FunT*>(src)->~FunT(); }
@@ -149,7 +149,7 @@ public:
     using FunT = typename std::decay<T>::type;
     static const task_details::smallbuffer_table_t<FunT, R, Args...> small_oper_table{};
     oper_ptr = &small_oper_table;
-    ::new (&buffer) FunT{std::forward<T>(function)};
+    ::new (&buffer) FunT(std::forward<T>(function));
   }
 
   //! Called when T capture does not fit the move_callback buffer

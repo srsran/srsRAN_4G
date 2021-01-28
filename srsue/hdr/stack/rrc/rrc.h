@@ -72,7 +72,7 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_mac,
             public rrc_interface_pdcp,
 #ifdef HAVE_5GNR
-            public rrc_interface_rrc_nr,
+            public rrc_eutra_interface_rrc_nr,
 #endif
             public rrc_interface_rlc,
             public srslte::timer_callback
@@ -88,7 +88,10 @@ public:
             nas_interface_rrc*     nas_,
             usim_interface_rrc*    usim_,
             gw_interface_rrc*      gw_,
-            const rrc_args_t&      args_);
+#ifdef HAVE_5GNR
+            rrc_nr_interface_rrc* rrc_nr_,
+#endif
+            const rrc_args_t& args_);
 
   void stop();
 
@@ -119,10 +122,14 @@ public:
   bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
   void     paging_completed(bool outcome) final;
-#ifdef HAVE_5GNR
+  bool     has_nr_dc();
+
   // NR interface
+#ifdef HAVE_5GNR
   void new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
+  void nr_rrc_con_reconfig_complete(bool status);
 #endif
+
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
@@ -185,7 +192,9 @@ private:
   nas_interface_rrc*        nas  = nullptr;
   usim_interface_rrc*       usim = nullptr;
   gw_interface_rrc*         gw   = nullptr;
-
+#ifdef HAVE_5GNR
+  rrc_nr_interface_rrc* rrc_nr = nullptr;
+#endif
   srslte::unique_byte_buffer_t dedicated_info_nas;
 
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
@@ -359,7 +368,7 @@ private:
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
   void send_security_mode_complete();
-  void send_rrc_con_reconfig_complete();
+  void send_rrc_con_reconfig_complete(bool contains_nr_complete = false);
 
   // Parsers
   void process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -408,6 +417,7 @@ private:
   void     add_drb(const asn1::rrc::drb_to_add_mod_s& drb_cnfg);
   void     release_drb(uint32_t drb_id);
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id);
+  uint32_t get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id);
   void     add_mrb(uint32_t lcid, uint32_t port);
 
   // Helpers for setting default values
@@ -415,6 +425,14 @@ private:
   void set_phy_default();
   void set_mac_default();
   void set_rrc_default();
+
+#ifdef HAVE_5GNR
+  bool nr_reconfiguration_proc(const asn1::rrc::rrc_conn_recfg_r8_ies_s& rx_recfg);
+#endif
+
+  // Helpers for nr communicaiton
+  asn1::rrc::ue_cap_rat_container_s get_eutra_nr_capabilities();
+  asn1::rrc::ue_cap_rat_container_s get_nr_capabilities();
 };
 
 } // namespace srsue

@@ -20,6 +20,9 @@
  */
 
 #include "srslte/phy/channel/hst.h"
+#include "srslte/phy/utils/vector.h"
+#include <math.h>
+#include <strings.h>
 
 int srslte_channel_hst_init(srslte_channel_hst_t* q, float fd_hz, float period_d, float init_time_s)
 {

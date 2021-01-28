@@ -144,7 +144,7 @@ int phy::init(const phy_args_t& args_)
   {
     log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
     log_h->init("PHY", logger, true);
-    log_h->set_level(args.log.phy_lib_level);
+    log_h->set_level(args.log.phy_level);
     log_h->set_hex_limit(args.log.phy_hex_limit);
   }
 
@@ -450,6 +450,9 @@ void phy::set_crnti(uint16_t rnti)
 void phy::start_plot()
 {
   lte_workers[0]->start_plot();
+  if (args.nof_nr_carriers > 0) {
+    nr_workers[0]->start_plot();
+  }
 }
 
 void phy::enable_pregen_signals(bool enable)
@@ -475,18 +478,15 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
 
   Info("Setting configuration\n");
 
-  // The PRACH shall be re-configured only if:
+  // The PRACH configuration shall be updated only if:
   // - The new configuration belongs to the primary cell
   // - The PRACH configuration is present
-  // - The PRACH configuration has changed
-  bool reconfigure_prach = !cc_idx && config_.prach_cfg_present && (prach_cfg != config_.prach_cfg);
-
-  if (reconfigure_prach) {
-    prach_buffer.reset_cfg();
+  if (!cc_idx && config_.prach_cfg_present) {
+    prach_cfg = config_.prach_cfg;
   }
 
   // Apply configuration after the worker is finished to avoid race conditions
-  cmd_worker.add_cmd([this, config_, cc_idx, reconfigure_prach]() {
+  cmd_worker.add_cmd([this, config_, cc_idx]() {
     log_h->info("Setting new PHY configuration cc_idx=%d...\n", cc_idx);
     for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_cell is not protected so run when worker is finished
@@ -497,13 +497,10 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
       }
     }
     log_h->info("Finished setting new PHY configuration cc_idx=%d\n", cc_idx);
-    if (reconfigure_prach) {
-      // Reconfigure PRACH parameters only if configuration is different
-      prach_cfg = config_.prach_cfg;
-      log_h->info("Setting new PRACH configuration...\n");
-      configure_prach_params();
-      log_h->info("Finished setting new PRACH configuration.\n");
-    }
+
+    // It is up to the PRACH component to detect whether the cell or the configuration have changed to reconfigure
+    configure_prach_params();
+
     stack->set_config_complete(true);
   });
   return true;

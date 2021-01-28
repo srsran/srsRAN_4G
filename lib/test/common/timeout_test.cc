@@ -19,7 +19,10 @@
  *
  */
 
+extern "C" {
 #include "srslte/common/timeout.h"
+#include "srslte/config.h"
+}
 #include <pthread.h>
 #include <stdio.h>
 

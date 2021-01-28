@@ -1340,6 +1340,29 @@ void srslte_vec_sc_prod_cfc_simd(const cf_t* x, const float h, cf_t* z, const in
   }
 }
 
+void srslte_vec_sc_prod_fcc_simd(const float* x, const cf_t h, cf_t* z, const int len)
+{
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  const simd_cf_t tap = srslte_simd_cf_set1(h);
+
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      srslte_simd_cfi_store(&z[i], srslte_simd_cf_mul(tap, srslte_simd_f_load(&x[i])));
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      srslte_simd_cfi_storeu(&z[i], srslte_simd_cf_mul(tap, srslte_simd_f_loadu(&x[i])));
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = x[i] * h;
+  }
+}
+
 uint32_t srslte_vec_max_fi_simd(const float* x, const int len)
 {
   int i = 0;

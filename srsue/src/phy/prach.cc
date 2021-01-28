@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/phy/prach.h"
 #include "srslte/common/log.h"
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
 
@@ -92,11 +93,6 @@ void prach::stop()
   mem_initiated = false;
 }
 
-void prach::reset_cfg()
-{
-  cell_initiated = false;
-}
-
 bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 {
   if (!mem_initiated) {
@@ -104,8 +100,7 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
     return false;
   }
 
-  // TODO: Check if other PRACH parameters changed
-  if (cell.id == cell_.id && cell_initiated) {
+  if (cell.id == cell_.id && cell_initiated && prach_cfg == cfg) {
     return true;
   }
 
@@ -119,7 +114,8 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
     return false;
   }
 
-  Info("PRACH: configIdx=%d, rootSequence=%d, zeroCorrelationConfig=%d, freqOffset=%d\n",
+  Info("PRACH: cell.id=%d, configIdx=%d, rootSequence=%d, zeroCorrelationConfig=%d, freqOffset=%d\n",
+       cell.id,
        prach_cfg.config_idx,
        prach_cfg.root_seq_idx,
        prach_cfg.zero_corr_zone,
@@ -134,6 +130,8 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
   len             = prach_obj.N_seq + prach_obj.N_cp;
   transmitted_tti = -1;
   cell_initiated  = true;
+
+  log_h->info("Finished setting new PRACH configuration.\n");
 
   return true;
 }

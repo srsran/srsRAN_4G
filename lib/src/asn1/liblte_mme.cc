@@ -2631,14 +2631,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (ue_network_cap != NULL && ie_ptr != NULL) {
-    if (ue_network_cap->uea_present && (ue_network_cap->ucs2_present || ue_network_cap->uia_present) &&
-        (ue_network_cap->lpp_present || ue_network_cap->lcs_present || ue_network_cap->onexsrvcc_present ||
-         ue_network_cap->nf_present)) {
-      **ie_ptr = 5;
-    } else if (ue_network_cap->uea_present && (ue_network_cap->ucs2_present || ue_network_cap->uia_present)) {
-      **ie_ptr = 4;
-    } else if (ue_network_cap->uea_present) {
-      **ie_ptr = 3;
+    if (ue_network_cap->dc_nr_present) {
+      **ie_ptr = 7;
     } else {
       **ie_ptr = 2;
     }
@@ -2661,34 +2655,16 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK
     **ie_ptr |= ue_network_cap->eia[6] << 1;
     **ie_ptr |= ue_network_cap->eia[7];
     *ie_ptr += 1;
-    if (ue_network_cap->uea_present) {
-      **ie_ptr = ue_network_cap->uea[0] << 7;
-      **ie_ptr |= ue_network_cap->uea[1] << 6;
-      **ie_ptr |= ue_network_cap->uea[2] << 5;
-      **ie_ptr |= ue_network_cap->uea[3] << 4;
-      **ie_ptr |= ue_network_cap->uea[4] << 3;
-      **ie_ptr |= ue_network_cap->uea[5] << 2;
-      **ie_ptr |= ue_network_cap->uea[6] << 1;
-      **ie_ptr |= ue_network_cap->uea[7];
-      *ie_ptr += 1;
-    }
-    if (ue_network_cap->ucs2_present || ue_network_cap->uia_present) {
-      **ie_ptr = ue_network_cap->ucs2 << 7;
-      **ie_ptr |= ue_network_cap->uia[1] << 6;
-      **ie_ptr |= ue_network_cap->uia[2] << 5;
-      **ie_ptr |= ue_network_cap->uia[3] << 4;
-      **ie_ptr |= ue_network_cap->uia[4] << 3;
-      **ie_ptr |= ue_network_cap->uia[5] << 2;
-      **ie_ptr |= ue_network_cap->uia[6] << 1;
-      **ie_ptr |= ue_network_cap->uia[7];
-      *ie_ptr += 1;
-    }
-    if (ue_network_cap->lpp_present || ue_network_cap->lcs_present || ue_network_cap->onexsrvcc_present ||
-        ue_network_cap->nf_present) {
-      **ie_ptr = ue_network_cap->lpp << 3;
-      **ie_ptr |= ue_network_cap->lcs << 2;
-      **ie_ptr |= ue_network_cap->onexsrvcc << 1;
-      **ie_ptr |= ue_network_cap->nf;
+
+    if (ue_network_cap->dc_nr_present) {
+      // skip empty caps
+      for (int i = 0; i < 4; i++) {
+        **ie_ptr = 0;
+        *ie_ptr += 1;
+      }
+
+      // set dcnr bit
+      **ie_ptr = ue_network_cap->dc_nr << 4;
       *ie_ptr += 1;
     }
 
@@ -5083,6 +5059,43 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
     if (attach_req->old_guti_type_present) {
       *msg_ptr = LIBLTE_MME_GUTI_TYPE_IEI << 4;
       liblte_mme_pack_guti_type_ie(attach_req->old_guti_type, 0, &msg_ptr);
+      msg_ptr++;
+    }
+
+    if (attach_req->additional_security_cap_present) {
+      *msg_ptr = LIBLTE_MME_ADDITIONAL_SECURITY_CAP_IEI;
+      msg_ptr++;
+      *msg_ptr = 0x4; // Length
+      msg_ptr++;
+
+      // Pack same capabilities that are used for EUTRA
+      *msg_ptr = attach_req->ue_network_cap.eea[0] << 7;
+      *msg_ptr |= attach_req->ue_network_cap.eea[1] << 6;
+      *msg_ptr |= attach_req->ue_network_cap.eea[2] << 5;
+      *msg_ptr |= attach_req->ue_network_cap.eea[3] << 4;
+      *msg_ptr |= attach_req->ue_network_cap.eea[4] << 3;
+      *msg_ptr |= attach_req->ue_network_cap.eea[5] << 2;
+      *msg_ptr |= attach_req->ue_network_cap.eea[6] << 1;
+      *msg_ptr |= attach_req->ue_network_cap.eea[7];
+      msg_ptr++;
+
+      // 0x00 (5G-EA8=0, 5G-EA9=0, 5G-EA10=0, 5G-EA11=0, 5G-EA12=0, 5G-EA13=0, 5G-EA14=0, 5G-EA15=0)
+      *msg_ptr = 0x00;
+      msg_ptr++;
+
+      // Pack same integrity caps
+      *msg_ptr = attach_req->ue_network_cap.eia[0] << 7;
+      *msg_ptr |= attach_req->ue_network_cap.eia[1] << 6;
+      *msg_ptr |= attach_req->ue_network_cap.eia[2] << 5;
+      *msg_ptr |= attach_req->ue_network_cap.eia[3] << 4;
+      *msg_ptr |= attach_req->ue_network_cap.eia[4] << 3;
+      *msg_ptr |= attach_req->ue_network_cap.eia[5] << 2;
+      *msg_ptr |= attach_req->ue_network_cap.eia[6] << 1;
+      *msg_ptr |= attach_req->ue_network_cap.eia[7];
+      msg_ptr++;
+
+      // 0x00 (5G-IA8=0, 5G-IA9=0, 5G-IA10=0, 5G-IA11=0, 5G-IA12=0, 5G-IA13=0, 5G-IA14=0, 5G-IA15=0)
+      *msg_ptr = 0x00;
       msg_ptr++;
     }
 

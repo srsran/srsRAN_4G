@@ -30,6 +30,20 @@ sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* lo
     cc_worker* w = new cc_worker(i, log, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
+
+  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSLTE_SUCCESS) {
+    ERROR("Error init soft-buffer\n");
+    return;
+  }
+  data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
+  srslte_vec_u8_zero(data.data(), SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
+  snprintf((char*)data.data(), SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8, "hello world!");
+}
+
+sf_worker::~sf_worker()
+{
+  srslte_softbuffer_tx_free(&softbuffer_tx);
 }
 
 bool sf_worker::set_carrier_unlocked(uint32_t cc_idx, const srslte_carrier_nr_t* carrier_)
@@ -83,8 +97,35 @@ void sf_worker::work_imp()
     }
   }
 
+  // Configure user
+  phy_state->cfg.pdsch.rbg_size_cfg_1        = false;
+  phy_state->cfg.pdsch.pdsch_time_is_default = true;
+
+  // Fill grant (this comes from the scheduler)
+  srslte_dl_slot_cfg_t               dl_cfg = {};
+  stack_interface_phy_nr::dl_sched_t grants = {};
+
+  grants.nof_grants                = 1;
+  grants.pdsch[0].data[0]          = data.data();
+  grants.pdsch[0].softbuffer_tx[0] = &softbuffer_tx;
+  srslte_softbuffer_tx_reset(&softbuffer_tx);
+
+  grants.pdsch[0].dci.rnti   = 0x1234;
+  grants.pdsch[0].dci.format = srslte_dci_format_nr_1_0;
+
+  grants.pdsch[0].dci.freq_domain_assigment = 0x1FFF;
+  grants.pdsch[0].dci.time_domain_assigment = 0;
+  grants.pdsch[0].dci.mcs                   = 27;
+
+  grants.pdsch[0].dci.search_space.type = srslte_search_space_type_ue;
+  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+    grants.pdsch[0].dci.search_space.nof_candidates[L] = 1;
+  }
+  grants.pdsch[0].dci.location.L    = 0;
+  grants.pdsch[0].dci.location.ncce = 0;
+
   for (auto& w : cc_workers) {
-    w->work_dl();
+    w->work_dl(dl_cfg, grants);
   }
 
   phy->worker_end(this, tx_buffer, dummy_ts, true);

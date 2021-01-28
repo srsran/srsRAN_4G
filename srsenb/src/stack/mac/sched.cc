@@ -267,7 +267,7 @@ std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
       rnti,
       [this, &ret](sched_ue& ue) {
         for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
-          const cc_sched_ue* cc_ue = ue.find_ue_carrier(enb_cc_idx);
+          const sched_ue_cell* cc_ue = ue.find_ue_carrier(enb_cc_idx);
           if (cc_ue != nullptr) {
             ret[enb_cc_idx] = cc_ue->get_ue_cc_idx();
           }

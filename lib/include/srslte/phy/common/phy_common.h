@@ -73,7 +73,9 @@ extern "C" {
 #define SRSLTE_LTE_CRC24B 0X1800063
 #define SRSLTE_LTE_CRC24C 0X1B2B117
 #define SRSLTE_LTE_CRC16 0x11021
+#define SRSLTE_LTE_CRC11 0xE21
 #define SRSLTE_LTE_CRC8 0x19B
+#define SRSLTE_LTE_CRC6 0x61
 
 #define SRSLTE_MAX_MBSFN_AREA_IDS 256
 #define SRSLTE_PMCH_RV 0
@@ -281,7 +283,7 @@ typedef enum SRSLTE_API { SRSLTE_MIMO_DECODER_ZF, SRSLTE_MIMO_DECODER_MMSE } srs
  * \brief Types of modulations and associated modulation order.
  */
 typedef enum SRSLTE_API {
-  SRSLTE_MOD_BPSK = 0, /*!< \brief pi/2-BPSK. */
+  SRSLTE_MOD_BPSK = 0, /*!< \brief BPSK. */
   SRSLTE_MOD_QPSK,     /*!< \brief QPSK. */
   SRSLTE_MOD_16QAM,    /*!< \brief QAM16. */
   SRSLTE_MOD_64QAM,    /*!< \brief QAM64. */
@@ -462,7 +464,7 @@ SRSLTE_API float srslte_coderate(uint32_t tbs, uint32_t nof_re);
 
 SRSLTE_API char* srslte_cp_string(srslte_cp_t cp);
 
-SRSLTE_API srslte_mod_t srslte_str2mod(char* mod_str);
+SRSLTE_API srslte_mod_t srslte_str2mod(const char* mod_str);
 
 SRSLTE_API char* srslte_mod_string(srslte_mod_t mod);
 

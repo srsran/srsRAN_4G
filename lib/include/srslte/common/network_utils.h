@@ -26,10 +26,14 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 
+#include <arpa/inet.h>
 #include <functional>
 #include <map>
 #include <mutex>
+#include <netinet/in.h>
 #include <netinet/sctp.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <queue>
 #include <sys/socket.h>
 #include <sys/types.h>

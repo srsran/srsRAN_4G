@@ -19,29 +19,27 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "srslte/phy/fec/crc.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 
-void gen_crc_table(srslte_crc_t* h)
+static void gen_crc_table(srslte_crc_t* h)
 {
+  uint32_t pad        = (h->order < 8) ? (8 - h->order) : 0;
+  uint32_t ord        = h->order + pad - 8;
+  uint32_t polynom    = h->polynom << pad;
+  uint32_t crchighbit = h->crchighbit << pad;
 
-  int      i, j, ord = (h->order - 8);
-  uint64_t bit, crc;
-
-  for (i = 0; i < 256; i++) {
-    crc = ((uint64_t)i) << ord;
-    for (j = 0; j < 8; j++) {
-      bit = crc & h->crchighbit;
-      crc <<= 1;
-      if (bit)
-        crc ^= h->polynom;
+  for (uint32_t i = 0; i < 256; i++) {
+    uint64_t crc = ((uint64_t)i) << ord;
+    for (uint32_t j = 0; j < 8; j++) {
+      bool bit = crc & crchighbit;
+      crc <<= 1U;
+      if (bit) {
+        crc ^= polynom;
+      }
     }
-    h->table[i] = crc & h->crcmask;
+    h->table[i] = (crc >> pad) & h->crcmask;
   }
 }
 
@@ -81,12 +79,6 @@ int srslte_crc_init(srslte_crc_t* h, uint32_t crc_poly, int crc_order)
   // Compute bit masks for whole CRC and CRC high bit
   h->crcmask    = ((((uint64_t)1 << (h->order - 1)) - 1) << 1) | 1;
   h->crchighbit = (uint64_t)1 << (h->order - 1);
-
-  // check parameters
-  if (h->order % 8 != 0) {
-    ERROR("ERROR(invalid order=%d, it must be 8, 16, 24 or 32.\n", h->order);
-    return -1;
-  }
 
   if (srslte_crc_set_init(h, h->crcinit)) {
     ERROR("Error setting CRC init word\n");

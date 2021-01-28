@@ -24,7 +24,7 @@
 
 namespace srsenb {
 
-sched_time_rr::sched_time_rr(const sched_cell_params_t& cell_params_)
+sched_time_rr::sched_time_rr(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args)
 {
   cc_cfg = &cell_params_;
 }
@@ -74,9 +74,12 @@ void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue&           user     = iter->second;
+    sched_ue& user = iter->second;
+    if (user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx) < 0) {
+      continue;
+    }
     const dl_harq_proc* h        = get_dl_newtx_harq(user, tti_sched);
-    rbg_interval        req_rbgs = user.get_required_dl_rbgs(user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx));
+    rbg_interval        req_rbgs = user.get_required_dl_rbgs(cc_cfg->enb_cc_idx);
     // Check if there is an empty harq for the newtx
     if (h == nullptr or req_rbgs.stop() == 0) {
       continue;
@@ -143,13 +146,12 @@ void sched_time_rr::sched_ul_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     if (h == nullptr) {
       continue;
     }
-    uint32_t ue_cc_idx    = user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx);
-    uint32_t pending_data = user.get_pending_ul_new_data(tti_sched->get_tti_tx_ul(), ue_cc_idx);
+    uint32_t pending_data = user.get_pending_ul_new_data(tti_sched->get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     // Check if there is a empty harq, and data to transmit
     if (pending_data == 0) {
       continue;
     }
-    uint32_t     pending_rb = user.get_required_prb_ul(ue_cc_idx, pending_data);
+    uint32_t     pending_rb = user.get_required_prb_ul(cc_cfg->enb_cc_idx, pending_data);
     prb_interval alloc      = find_contiguous_ul_prbs(pending_rb, tti_sched->get_ul_mask());
     if (alloc.empty()) {
       continue;

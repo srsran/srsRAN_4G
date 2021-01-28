@@ -45,6 +45,8 @@ const char* alloc_outcome_t::to_string() const
       return "pucch_collision";
     case MEASGAP_COLLISION:
       return "measgap_collision";
+    case ALREADY_ALLOC:
+      return "already allocated";
   }
   return "unknown error";
 }
@@ -59,9 +61,9 @@ cc_sched_result* sf_sched_result::new_cc(uint32_t enb_cc_idx)
 
 bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 {
-  for (uint32_t i = 0; i < enb_cc_list.size(); ++i) {
-    for (uint32_t j = 0; j < enb_cc_list[i].ul_sched_result.nof_dci_elems; ++j) {
-      if (enb_cc_list[i].ul_sched_result.pusch[j].dci.rnti == rnti) {
+  for (const auto& cc : enb_cc_list) {
+    for (uint32_t j = 0; j < cc.ul_sched_result.nof_dci_elems; ++j) {
+      if (cc.ul_sched_result.pusch[j].dci.rnti == rnti) {
         return true;
       }
     }
@@ -70,9 +72,9 @@ bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
 }
 bool sf_sched_result::is_dl_alloc(uint16_t rnti) const
 {
-  for (uint32_t i = 0; i < enb_cc_list.size(); ++i) {
-    for (uint32_t j = 0; j < enb_cc_list[i].dl_sched_result.nof_data_elems; ++j) {
-      if (enb_cc_list[i].dl_sched_result.data[j].dci.rnti == rnti) {
+  for (const auto& cc : enb_cc_list) {
+    for (uint32_t j = 0; j < cc.dl_sched_result.nof_data_elems; ++j) {
+      if (cc.dl_sched_result.data[j].dci.rnti == rnti) {
         return true;
       }
     }
@@ -463,7 +465,7 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
-  uint32_t            aggr_idx   = user->find_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+  uint32_t            aggr_idx   = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
   alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user);
 
   return ret;
@@ -484,7 +486,7 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, boo
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
     uint32_t nof_bits = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0);
-    uint32_t aggr_idx = user->find_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+    uint32_t aggr_idx = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
@@ -748,7 +750,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
     break;
   }
   if (ret.first != alloc_outcome_t::SUCCESS) {
-    log_h->warning("SCHED: Failed to allocate RAR due to lack of RBs\n");
+    log_h->info("SCHED: Failed to allocate RAR due to lack of RBs\n");
   }
   return ret;
 }
@@ -767,28 +769,29 @@ bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, tti_point
 
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
-  if (is_dl_alloc(user->get_rnti())) {
-    Warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
-    return alloc_outcome_t::ERROR;
-  }
   if (data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
     Warning("SCHED: Maximum number of DL allocations reached\n");
     return alloc_outcome_t::ERROR;
   }
+
+  if (is_dl_alloc(user->get_rnti())) {
+    Warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
+    return alloc_outcome_t::ALREADY_ALLOC;
+  }
+
   auto* cc = user->find_ue_carrier(cc_cfg->enb_cc_idx);
   if (cc == nullptr or cc->cc_state() != cc_st::active) {
     return alloc_outcome_t::ERROR;
   }
-  uint32_t ue_cc_idx = cc->get_ue_cc_idx();
   if (not user->pdsch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx)) {
     return alloc_outcome_t::MEASGAP_COLLISION;
   }
 
   // Check if allocation would cause segmentation
-  const dl_harq_proc& h = user->get_dl_harq(pid, ue_cc_idx);
+  const dl_harq_proc& h = user->get_dl_harq(pid, cc_cfg->enb_cc_idx);
   if (h.is_empty()) {
     // It is newTx
-    rbg_interval r = user->get_required_dl_rbgs(ue_cc_idx);
+    rbg_interval r = user->get_required_dl_rbgs(cc_cfg->enb_cc_idx);
     if (r.start() > user_mask.count()) {
       log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
       return alloc_outcome_t::NOF_RB_INVALID;
@@ -796,15 +799,16 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   }
 
   // Check if there is space in the PUCCH for HARQ ACKs
-  const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
-  std::bitset<SRSLTE_MAX_CARRIERS> scells = user->scell_activation_mask();
+  const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
+  std::bitset<SRSLTE_MAX_CARRIERS> scells    = user->scell_activation_mask();
+  uint32_t                         ue_cc_idx = cc->get_ue_cc_idx();
   if (user->nof_carriers_configured() > 1 and (ue_cc_idx == 0 or scells[ue_cc_idx]) and
       is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
     bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
     if (not has_pusch_grant) {
       // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
       prb_interval alloc = {};
-      uint32_t     L     = user->get_required_prb_ul(ue_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+      uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
       tti_alloc.find_ul_alloc(L, &alloc);
       bool ul_alloc_success = alloc.length() > 0 and alloc_ul_user(user, alloc);
       if (ue_cc_idx != 0 and not ul_alloc_success) {
@@ -833,14 +837,15 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
 
 alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs)
 {
-  // Check whether user was already allocated
-  if (is_ul_alloc(user->get_rnti())) {
-    log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
-    return alloc_outcome_t::ERROR;
-  }
   if (ul_data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
     Warning("SCHED: Maximum number of UL allocations reached\n");
     return alloc_outcome_t::ERROR;
+  }
+
+  // Check whether user was already allocated
+  if (is_ul_alloc(user->get_rnti())) {
+    log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
+    return alloc_outcome_t::ALREADY_ALLOC;
   }
 
   // Check if there is no collision with measGap
@@ -870,7 +875,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
 {
   // check whether adaptive/non-adaptive retx/newtx
   ul_alloc_t::type_t alloc_type;
-  ul_harq_proc*      h = user->get_ul_harq(get_tti_tx_ul(), user->get_active_cell_index(cc_cfg->enb_cc_idx).second);
+  ul_harq_proc*      h        = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
   bool               has_retx = h->has_pending_retx();
   if (has_retx) {
     if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
@@ -899,18 +904,13 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
     // user does not support this carrier
     return false;
   }
-  uint32_t cell_index = p.second;
 
-  ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
+  ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
 
   /* Indicate PHICH acknowledgment if needed */
   if (h->has_pending_phich()) {
     phich_list.phich = h->pop_pending_phich() ? phich_t::ACK : phich_t::NACK;
     phich_list.rnti  = user->get_rnti();
-    log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
-                 user->get_rnti(),
-                 phich_list.phich == phich_t::ACK ? "ACK" : "NACK");
-
     ul_sf_result->nof_phich_elems++;
     return true;
   }
@@ -927,7 +927,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_interval prb_range = prb_interval::rbgs_to_prbs(bc_alloc.rbg_range, cc_cfg->P);
+    prb_interval prb_range = prb_interval::rbgs_to_prbs(bc_alloc.rbg_range, cc_cfg->nof_prb());
     int          tbs       = generate_format1a(prb_range, bc_alloc.req_bytes, bc_alloc.rv, bc_alloc.rnti, &bc->dci);
 
     // Setup BC/Paging processes
@@ -994,7 +994,7 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_interval prb_range = prb_interval::rbgs_to_prbs(rar_alloc.alloc_data.rbg_range, cc_cfg->P);
+    prb_interval prb_range = prb_interval::rbgs_to_prbs(rar_alloc.alloc_data.rbg_range, cc_cfg->nof_prb());
     int tbs = generate_format1a(prb_range, rar_alloc.alloc_data.req_bytes, 0, rar_alloc.alloc_data.rnti, &rar->dci);
     if (tbs <= 0) {
       log_h->warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=%s, dci=(%d,%d)\n",
@@ -1044,13 +1044,12 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
       continue;
     }
     sched_ue*           user        = &ue_it->second;
-    uint32_t            cell_index  = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
-    uint32_t            data_before = user->get_requested_dl_bytes(cell_index).stop();
-    const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cell_index);
+    uint32_t            data_before = user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop();
+    const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cc_cfg->enb_cc_idx);
     bool                is_newtx    = dl_harq.is_empty();
 
     int tbs = user->generate_dl_dci_format(
-        data_alloc.pid, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
+        data_alloc.pid, data, get_tti_tx_dl(), cc_cfg->enb_cc_idx, tti_alloc.get_cfi(), data_alloc.user_mask);
 
     if (tbs <= 0) {
       log_h->warning("SCHED: DL %s failed rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
@@ -1059,7 +1058,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
                      data_alloc.pid,
                      data_alloc.user_mask.to_hex().c_str(),
                      tbs,
-                     user->get_requested_dl_bytes(cell_index).stop());
+                     user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop());
       continue;
     }
 
@@ -1075,7 +1074,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
                 dl_harq.nof_retx(0) + dl_harq.nof_retx(1),
                 tbs,
                 data_before,
-                user->get_requested_dl_bytes(cell_index).stop());
+                user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop());
 
     dl_result->nof_data_elems++;
   }
@@ -1179,8 +1178,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     if (ue_it == ue_list.end()) {
       continue;
     }
-    sched_ue* user       = &ue_it->second;
-    uint32_t  cell_index = user->get_active_cell_index(cc_cfg->enb_cc_idx).second;
+    sched_ue* user = &ue_it->second;
 
     srslte_dci_location_t cce_range = {0, 0};
     if (ul_alloc.needs_pdcch()) {
@@ -1191,18 +1189,18 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     uci_pusch_t uci_type = is_uci_included(this, *cc_results, user, cc_cfg->enb_cc_idx);
 
     /* Generate DCI Format1A */
-    uint32_t total_data_before = user->get_pending_ul_data_total(get_tti_tx_ul(), cell_index);
+    uint32_t total_data_before = user->get_pending_ul_data_total(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     int      tbs               = user->generate_format0(pusch,
                                      get_tti_tx_ul(),
-                                     cell_index,
+                                     cc_cfg->enb_cc_idx,
                                      ul_alloc.alloc,
                                      ul_alloc.needs_pdcch(),
                                      cce_range,
                                      ul_alloc.msg3_mcs,
                                      uci_type);
 
-    ul_harq_proc* h                 = user->get_ul_harq(get_tti_tx_ul(), cell_index);
-    uint32_t      new_pending_bytes = user->get_pending_ul_new_data(get_tti_tx_ul(), cell_index);
+    ul_harq_proc* h                 = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
+    uint32_t      new_pending_bytes = user->get_pending_ul_new_data(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     // Allow TBS=0 in case of UCI-only PUSCH
     if (tbs < 0 || (tbs == 0 && pusch->dci.tb.mcs_idx != 29)) {
       log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=%s, bsr=%d\n",
@@ -1262,9 +1260,8 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   for (uint32_t i = 0; i < cc_result->ul_sched_result.nof_phich_elems; ++i) {
     auto& phich = phich_list[i];
     if (phich.phich == phich_t::NACK) {
-      auto&         ue        = ue_db[phich.rnti];
-      int           ue_cc_idx = ue.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx);
-      ul_harq_proc* h         = (ue_cc_idx >= 0) ? ue.get_ul_harq(get_tti_tx_ul(), ue_cc_idx) : nullptr;
+      auto&         ue = ue_db[phich.rnti];
+      ul_harq_proc* h  = ue.get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
       if (not is_ul_alloc(ue.get_rnti()) and h != nullptr and not h->is_empty()) {
         // There was a missed UL harq retx. Halt+Resume the HARQ
         phich.phich = phich_t::ACK;

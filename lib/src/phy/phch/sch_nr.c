@@ -29,12 +29,15 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
+#define SCH_INFO_TX(...) INFO("SCH Tx: " __VA_ARGS__)
+#define SCH_INFO_RX(...) INFO("SCH Rx: " __VA_ARGS__)
+
 srslte_basegraph_t srslte_sch_nr_select_basegraph(uint32_t tbs, double R)
 {
   // if A ≤ 292 , or if A ≤ 3824 and R ≤ 0.67 , or if R ≤ 0 . 25 , LDPC base graph 2 is used;
   // otherwise, LDPC base graph 1 is used
   srslte_basegraph_t bg = BG1;
-  if ((tbs <= 292) || (tbs <= 292 && R <= 0.67) || (R <= 0.25)) {
+  if ((tbs <= 292) || (tbs <= 3824 && R <= 0.67) || (R <= 0.25)) {
     bg = BG2;
   }
 
@@ -71,10 +74,10 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
-int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
-                             const srslte_sch_cfg_t*     sch_cfg,
-                             const srslte_sch_tb_t*      tb,
-                             srslte_sch_nr_common_cfg_t* cfg)
+int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
+                           const srslte_sch_cfg_t*     sch_cfg,
+                           const srslte_sch_tb_t*      tb,
+                           srslte_sch_nr_common_cfg_t* cfg)
 {
 
   if (!sch_cfg || !tb || !cfg) {
@@ -119,10 +122,11 @@ int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
 
   // Calculate Nref
   uint32_t N_re_lbrm = 156 * sch_nr_n_prb_lbrm(q->carrier.nof_prb);
-  double   R_lbrm    = 948.0 / 1024.0;
+  double   TCR_lbrm  = 948.0 / 1024.0;
   uint32_t Qm_lbrm   = (sch_cfg->mcs_table == srslte_mcs_table_256qam) ? 8 : 6;
-  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, R_lbrm, Qm_lbrm, q->carrier.max_mimo_layers);
-  cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * 2.0 / 3.0));
+  uint32_t TBS_LRBM  = srslte_ra_nr_tbs(N_re_lbrm, 1.0, TCR_lbrm, Qm_lbrm, q->carrier.max_mimo_layers);
+  double   R         = 2.0 / 3.0;
+  cfg->Nref          = ceil(TBS_LRBM / (cbsegm.C * R));
 
   // Calculate number of code blocks after applying CBGTI... not implemented, activate all CB
   for (uint32_t r = 0; r < cbsegm.C; r++) {
@@ -271,7 +275,9 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
 #endif // LV_HAVE_AVX2
   }
 
-  float scaling_factor = isnormal(args->decoder_scaling_factor) ? args->decoder_scaling_factor : 0.75f;
+  // If the scaling factor is not provided use a default value that allows decoding all possible combinations of nPRB
+  // and MCS indexes for all possible MCS tables
+  float scaling_factor = isnormal(args->decoder_scaling_factor) ? args->decoder_scaling_factor : 0.8f;
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
@@ -360,22 +366,27 @@ void srslte_sch_nr_free(srslte_sch_nr_t* q)
   srslte_ldpc_rm_rx_free_c(&q->rx_rm);
 }
 
-int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* pdsch_cfg,
-                           const srslte_sch_tb_t*  tb,
-                           const uint8_t*          data,
-                           uint8_t*                e_bits)
+static inline int sch_nr_encode(srslte_sch_nr_t*        q,
+                                const srslte_sch_cfg_t* sch_cfg,
+                                const srslte_sch_tb_t*  tb,
+                                const uint8_t*          data,
+                                uint8_t*                e_bits)
 {
   // Pointer protection
-  if (!q || !pdsch_cfg || !tb || !data || !e_bits) {
+  if (!q || !sch_cfg || !tb || !data || !e_bits) {
     return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (!tb->softbuffer.tx) {
+    ERROR("Error: Missing Tx softbuffer\n");
+    return SRSLTE_ERROR;
   }
 
   const uint8_t* input_ptr  = data;
   uint8_t*       output_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_dlsch_nr_fill_cfg(q, pdsch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -410,8 +421,8 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
 
   // Calculate TB CRC
   uint32_t checksum_tb = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
-  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    printf("Encode: ");
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+    DEBUG("tb=");
     srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
   }
 
@@ -439,14 +450,14 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
         // Append TB CRC
         uint8_t* ptr = &q->temp_cb[cb_len];
         srslte_bit_unpack(checksum_tb, &ptr, cfg.L_tb);
-        INFO("CB %d: appending TB CRC=%06x\n", r, checksum_tb);
+        SCH_INFO_TX("CB %d: appending TB CRC=%06x\n", r, checksum_tb);
       } else {
         // Copy payload
         srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
       }
 
-      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-        printf("CB %d:", r);
+      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+        DEBUG("cb%d=", r);
         srslte_vec_fprint_byte(stdout, input_ptr, cb_len / 8);
       }
 
@@ -455,7 +466,7 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
       // Attach code block CRC if required
       if (cfg.L_cb) {
         srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
-        INFO("CB %d: CRC=%06x\n", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
+        SCH_INFO_TX("CB %d: CRC=%06x\n", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
       }
 
       // Insert filler bits
@@ -465,6 +476,11 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
 
       // Encode code block
       srslte_ldpc_encoder_encode(cfg.encoder, q->temp_cb, rm_buffer, cfg.Kr);
+
+      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+        DEBUG("encoded=");
+        srslte_vec_fprint_b(stdout, rm_buffer, cfg.encoder->liftN - 2 * cfg.encoder->ls);
+      }
     }
 
     // Skip block
@@ -477,15 +493,15 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
     j++;
 
     // LDPC Rate matching
-    INFO("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
-         r,
-         E,
-         cfg.F,
-         cfg.bg == BG1 ? 1 : 2,
-         cfg.Z,
-         tb->rv,
-         cfg.Qm,
-         cfg.Nref);
+    SCH_INFO_TX("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
+                r,
+                E,
+                cfg.F,
+                cfg.bg == BG1 ? 1 : 2,
+                cfg.Z,
+                tb->rv,
+                cfg.Qm,
+                cfg.Nref);
     srslte_ldpc_rm_tx(&q->tx_rm, rm_buffer, output_ptr, E, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
     output_ptr += E;
   }
@@ -493,12 +509,12 @@ int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
-                           const srslte_sch_cfg_t* sch_cfg,
-                           const srslte_sch_tb_t*  tb,
-                           int8_t*                 e_bits,
-                           uint8_t*                data,
-                           bool*                   crc_ok)
+int sch_nr_decode(srslte_sch_nr_t*        q,
+                  const srslte_sch_cfg_t* sch_cfg,
+                  const srslte_sch_tb_t*  tb,
+                  int8_t*                 e_bits,
+                  uint8_t*                data,
+                  bool*                   crc_ok)
 {
   // Pointer protection
   if (!q || !sch_cfg || !tb || !data || !e_bits || !crc_ok) {
@@ -508,7 +524,7 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
   int8_t* input_ptr = e_bits;
 
   srslte_sch_nr_common_cfg_t cfg = {};
-  if (srslte_dlsch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_fill_cfg(q, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -547,7 +563,7 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
       if (decoded) {
         cb_ok++;
       }
-      INFO("RM CB %d: Disabled, CRC %s ... Skipping\n", r, decoded ? "OK" : "KO");
+      SCH_INFO_RX("RM CB %d: Disabled, CRC %s ... Skipping\n", r, decoded ? "OK" : "KO");
       continue;
     }
 
@@ -557,21 +573,21 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
 
     // Skip CB if it has a matched CRC
     if (decoded) {
-      INFO("RM CB %d: CRC OK ... Skipping\n", r);
+      SCH_INFO_RX("RM CB %d: CRC OK ... Skipping\n", r);
       cb_ok++;
       continue;
     }
 
     // LDPC Rate matching
-    INFO("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
-         r,
-         E,
-         cfg.F,
-         cfg.bg == BG1 ? 1 : 2,
-         cfg.Z,
-         tb->rv,
-         cfg.Qm,
-         cfg.Nref);
+    SCH_INFO_RX("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
+                r,
+                E,
+                cfg.F,
+                cfg.bg == BG1 ? 1 : 2,
+                cfg.Z,
+                tb->rv,
+                cfg.Qm,
+                cfg.Nref);
     srslte_ldpc_rm_rx_c(&q->rx_rm, input_ptr, rm_buffer, E, cfg.F, cfg.bg, cfg.Z, tb->rv, tb->mod, cfg.Nref);
 
     // Decode
@@ -585,12 +601,12 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
       uint32_t checksum2           = srslte_bit_pack(&ptr, cfg.L_cb);
       tb->softbuffer.rx->cb_crc[r] = (checksum1 == checksum2);
 
-      INFO("CB %d/%d: CRC={%06x, %06x} ... %s\n",
-           r,
-           cfg.C,
-           checksum1,
-           checksum2,
-           tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
+      SCH_INFO_RX("CB %d/%d: CRC={%06x, %06x} ... %s\n",
+                  r,
+                  cfg.C,
+                  checksum1,
+                  checksum2,
+                  tb->softbuffer.rx->cb_crc[r] ? "OK" : "KO");
     } else {
       tb->softbuffer.rx->cb_crc[r] = true;
     }
@@ -620,11 +636,10 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
       srslte_vec_u8_copy(output_ptr, tb->softbuffer.rx->data[r], cb_len / 8);
       output_ptr += cb_len / 8;
 
-      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-        printf("CB %d:", r);
+      if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+        DEBUG("CB %d:", r);
         srslte_vec_fprint_byte(stdout, tb->softbuffer.rx->data[r], cb_len / 8);
       }
-
       if (r == cfg.C - 1) {
         uint8_t  tb_crc_unpacked[24] = {};
         uint8_t* tb_crc_unpacked_ptr = tb_crc_unpacked;
@@ -637,9 +652,9 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
     uint32_t checksum1 = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
     *crc_ok            = (checksum1 == checksum2);
 
-    INFO("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
-    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-      printf("Decode: ");
+    SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
+      DEBUG("Decode: ");
       srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
     }
   } else {
@@ -647,6 +662,44 @@ int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
   }
 
   return SRSLTE_SUCCESS;
+}
+
+int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* pdsch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           const uint8_t*          data,
+                           uint8_t*                e_bits)
+{
+  return sch_nr_encode(q, pdsch_cfg, tb, data, e_bits);
+}
+
+int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* sch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           int8_t*                 e_bits,
+                           uint8_t*                data,
+                           bool*                   crc_ok)
+{
+  return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
+}
+
+int srslte_ulsch_nr_encode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* pdsch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           const uint8_t*          data,
+                           uint8_t*                e_bits)
+{
+  return sch_nr_encode(q, pdsch_cfg, tb, data, e_bits);
+}
+
+int srslte_ulsch_nr_decode(srslte_sch_nr_t*        q,
+                           const srslte_sch_cfg_t* sch_cfg,
+                           const srslte_sch_tb_t*  tb,
+                           int8_t*                 e_bits,
+                           uint8_t*                data,
+                           bool*                   crc_ok)
+{
+  return sch_nr_decode(q, sch_cfg, tb, e_bits, data, crc_ok);
 }
 
 int srslte_sch_nr_tb_info(const srslte_sch_tb_t* tb, char* str, uint32_t str_len)

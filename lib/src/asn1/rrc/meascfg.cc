@@ -10244,36 +10244,6 @@ void carrier_freq_geran_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// MobilityControlInfo-v10l0 ::= SEQUENCE
-SRSASN_CODE mob_ctrl_info_v10l0_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(add_spec_emission_v10l0_present, 1));
-
-  if (add_spec_emission_v10l0_present) {
-    HANDLE_CODE(pack_integer(bref, add_spec_emission_v10l0, (uint16_t)33u, (uint16_t)288u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mob_ctrl_info_v10l0_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(add_spec_emission_v10l0_present, 1));
-
-  if (add_spec_emission_v10l0_present) {
-    HANDLE_CODE(unpack_integer(add_spec_emission_v10l0, bref, (uint16_t)33u, (uint16_t)288u));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mob_ctrl_info_v10l0_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (add_spec_emission_v10l0_present) {
-    j.write_int("additionalSpectrumEmission-v10l0", add_spec_emission_v10l0);
-  }
-  j.end_obj();
-}
-
 // LoggedMeasurementConfiguration-v1530-IEs ::= SEQUENCE
 SRSASN_CODE logged_meas_cfg_v1530_ies_s::pack(bit_ref& bref) const
 {
@@ -14700,66 +14670,9 @@ void meas_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void meas_report_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void meas_report_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "meas_report_s::crit_exts_c_");
-  }
-}
-meas_report_s::crit_exts_c_::crit_exts_c_(const meas_report_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "meas_report_s::crit_exts_c_");
-  }
-}
-meas_report_s::crit_exts_c_& meas_report_s::crit_exts_c_::operator=(const meas_report_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "meas_report_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void meas_report_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -14767,7 +14680,7 @@ void meas_report_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -14781,7 +14694,7 @@ SRSASN_CODE meas_report_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -14798,7 +14711,7 @@ SRSASN_CODE meas_report_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -14895,4 +14808,34 @@ SRSASN_CODE meas_report_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
       return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
+}
+
+// MobilityControlInfo-v10l0 ::= SEQUENCE
+SRSASN_CODE mob_ctrl_info_v10l0_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(add_spec_emission_v10l0_present, 1));
+
+  if (add_spec_emission_v10l0_present) {
+    HANDLE_CODE(pack_integer(bref, add_spec_emission_v10l0, (uint16_t)33u, (uint16_t)288u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE mob_ctrl_info_v10l0_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(add_spec_emission_v10l0_present, 1));
+
+  if (add_spec_emission_v10l0_present) {
+    HANDLE_CODE(unpack_integer(add_spec_emission_v10l0, bref, (uint16_t)33u, (uint16_t)288u));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void mob_ctrl_info_v10l0_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (add_spec_emission_v10l0_present) {
+    j.write_int("additionalSpectrumEmission-v10l0", add_spec_emission_v10l0);
+  }
+  j.end_obj();
 }

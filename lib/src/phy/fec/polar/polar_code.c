@@ -113,8 +113,9 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
     case 10:
       // iil = false
       if (K < 18 || (K > 25 && K < 31) || K > 1023) {
-        ERROR("Codeblock length (K) not supported for uplink transmission, choose K > 17 and K < 1024, "
-              "excluding 31 > K > 25\n");
+        ERROR("Codeblock length (K=%d) not supported for uplink transmission, choose K > 17 and K < 1024, "
+              "excluding 31 > K > 25\n",
+              K);
         return -1;
       }
       break;

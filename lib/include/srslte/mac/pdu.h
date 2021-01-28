@@ -24,6 +24,7 @@
 
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/logmap.h"
+#include <sstream>
 #include <stdint.h>
 #include <stdio.h>
 #include <vector>
@@ -227,7 +228,7 @@ public:
   void add_sdu(uint32_t sdu_sz) { buffer_tx->N_bytes += sdu_sz; }
 
   // Section 6.1.2
-  void parse_packet(uint8_t* ptr)
+  uint32_t parse_packet(uint8_t* ptr)
   {
     uint8_t* init_ptr = ptr;
     nof_subheaders    = 0;
@@ -239,19 +240,35 @@ public:
       }
 
       if (ret && ((ptr - init_ptr) >= (int32_t)pdu_len)) {
-        // stop processing last subheader indicates another one but all bytes are consume
+        // stop processing last subheader indicates another one but all bytes are consumed
         nof_subheaders = 0;
-        INFO("Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
         if (log_h) {
-          log_h->info_hex(
+          log_h->warning_hex(
               init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
+        } else {
+          srslte::console("Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
         }
+        return SRSLTE_ERROR;
       }
     } while (ret && (nof_subheaders + 1) < (int)max_subheaders && ((int32_t)pdu_len > (ptr - init_ptr)));
 
     for (int i = 0; i < nof_subheaders; i++) {
       subheaders[i].read_payload(&ptr);
+
+      // stop processing if we read payload beyond the PDU length
+      if ((ptr - init_ptr) > (int32_t)pdu_len) {
+        nof_subheaders = 0;
+
+        if (log_h) {
+          log_h->warning_hex(
+              init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
+        } else {
+          srslte::console("Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
+        }
+        return SRSLTE_ERROR;
+      }
     }
+    return SRSLTE_SUCCESS;
   }
 
 protected:
@@ -449,7 +466,7 @@ private:
 class rar_pdu : public pdu<rar_subh>
 {
 public:
-  rar_pdu(uint32_t max_rars = 16, srslte::log_ref log_ = {});
+  rar_pdu(uint32_t max_rars = 16, srslte::log_ref log_ = srslte::logmap::get("MAC"));
 
   void    set_backoff(uint8_t bi);
   bool    has_backoff();

@@ -76,9 +76,9 @@ public:
   {
     return mac.cqi_info(tti, rnti, cc_idx, cqi_value);
   }
-  int snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t cc_idx, float snr_db) final
+  int snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) final
   {
-    return mac.snr_info(tti_rx, rnti, cc_idx, snr_db);
+    return mac.snr_info(tti_rx, rnti, cc_idx, snr_db, ch);
   }
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override { return mac.ta_info(tti, rnti, ta_us); }
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) final
@@ -89,9 +89,9 @@ public:
   {
     return mac.crc_info(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
   }
-  int push_pdu(uint32_t tti, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) final
+  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) final
   {
-    return mac.push_pdu(tti, rnti, pdu_ptr, nof_bytes, crc_res);
+    return mac.push_pdu(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
   }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) final { return mac.get_dl_sched(tti, dl_sched_res); }
   int get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) final

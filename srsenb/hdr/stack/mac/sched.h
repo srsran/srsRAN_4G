@@ -23,7 +23,6 @@
 #define SRSENB_SCHEDULER_H
 
 #include "sched_grid.h"
-#include "sched_harq.h"
 #include "sched_ue.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/enb_interfaces.h"

@@ -708,7 +708,7 @@ using alt_ttt_cells_to_add_mod_list_r12_l = dyn_array<alt_ttt_cells_to_add_mod_r
 
 // BT-NameListConfig-r15 ::= CHOICE
 struct bt_name_list_cfg_r15_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   bt_name_list_cfg_r15_c() = default;
@@ -730,6 +730,7 @@ struct bt_name_list_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "BT-NameListConfig-r15");
     return c;
   }
+  void                set_release() { set(types::release); }
   bt_name_list_r15_l& set_setup()
   {
     set(types::setup);
@@ -942,7 +943,7 @@ struct meas_ds_cfg_r12_c {
     meas_csi_rs_to_add_mod_list_r12_l meas_csi_rs_to_add_mod_list_r12;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_ds_cfg_r12_c() = default;
@@ -964,6 +965,7 @@ struct meas_ds_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "MeasDS-Config-r12");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1331,7 +1333,7 @@ struct meas_gap_cfg_c {
     // member variables
     gap_offset_c_ gap_offset;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_cfg_c() = default;
@@ -1351,6 +1353,7 @@ struct meas_gap_cfg_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfig");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1407,7 +1410,7 @@ struct meas_sf_pattern_cfg_neigh_r10_c {
     meas_sf_pattern_r10_c   meas_sf_pattern_neigh_r10;
     meas_sf_cell_list_r10_l meas_sf_cell_list_r10;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_sf_pattern_cfg_neigh_r10_c() = default;
@@ -1429,6 +1432,7 @@ struct meas_sf_pattern_cfg_neigh_r10_c {
     assert_choice_type("setup", type_.to_string(), "MeasSubframePatternConfigNeigh-r10");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1498,7 +1502,7 @@ struct rmtc_cfg_r13_c {
     meas_dur_r13_e_    meas_dur_r13;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rmtc_cfg_r13_c() = default;
@@ -1520,6 +1524,7 @@ struct rmtc_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "RMTC-Config-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1542,7 +1547,7 @@ struct rs_cfg_ssb_nr_r15_s {
   };
   typedef enumerated<subcarrier_spacing_ssb_r15_opts> subcarrier_spacing_ssb_r15_e_;
   struct ssb_to_measure_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ssb_to_measure_r15_c_() = default;
@@ -1564,6 +1569,7 @@ struct rs_cfg_ssb_nr_r15_s {
       assert_choice_type("setup", type_.to_string(), "ssb-ToMeasure-r15");
       return c;
     }
+    void                  set_release() { set(types::release); }
     ssb_to_measure_r15_c& set_setup()
     {
       set(types::setup);
@@ -1593,7 +1599,7 @@ struct rs_cfg_ssb_nr_r15_s {
 
 // RSRQ-RangeConfig-r12 ::= CHOICE
 struct rsrq_range_cfg_r12_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   rsrq_range_cfg_r12_c() = default;
@@ -1615,6 +1621,7 @@ struct rsrq_range_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "RSRQ-RangeConfig-r12");
     return c;
   }
+  void    set_release() { set(types::release); }
   int8_t& set_setup()
   {
     set(types::setup);
@@ -1949,7 +1956,7 @@ struct ul_delay_cfg_r13_c {
     // member variables
     delay_thres_r13_e_ delay_thres_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   ul_delay_cfg_r13_c() = default;
@@ -1971,6 +1978,7 @@ struct ul_delay_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "UL-DelayConfig-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2014,7 +2022,7 @@ using wlan_id_list_r13_l = dyn_array<wlan_ids_r12_s>;
 
 // WLAN-NameListConfig-r15 ::= CHOICE
 struct wlan_name_list_cfg_r15_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   wlan_name_list_cfg_r15_c() = default;
@@ -2036,6 +2044,7 @@ struct wlan_name_list_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "WLAN-NameListConfig-r15");
     return c;
   }
+  void                  set_release() { set(types::release); }
   wlan_name_list_r15_l& set_setup()
   {
     set(types::setup);
@@ -2097,7 +2106,7 @@ struct meas_obj_eutra_s {
       uint16_t    to_number() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     t312_r12_c_() = default;
@@ -2119,6 +2128,7 @@ struct meas_obj_eutra_s {
       assert_choice_type("setup", type_.to_string(), "t312-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -2219,7 +2229,7 @@ struct meas_obj_geran_s {
 struct meas_obj_nr_r15_s {
   using cells_for_which_to_report_sftd_r15_l_ = bounded_array<uint16_t, 3>;
   struct band_nr_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     band_nr_r15_c_() = default;
@@ -2241,6 +2251,7 @@ struct meas_obj_nr_r15_s {
       assert_choice_type("setup", type_.to_string(), "bandNR-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     uint16_t& set_setup()
     {
       set(types::setup);
@@ -2823,7 +2834,7 @@ struct eutra_event_s {
 // ReportConfigEUTRA ::= SEQUENCE
 struct report_cfg_eutra_s {
   struct trigger_type_c_ {
-    typedef eutra_event_s event_s_;
+    using event_s_ = eutra_event_s;
     struct periodical_s_ {
       struct purpose_opts {
         enum options { report_strongest_cells, report_cgi, nulltype } value;
@@ -2913,7 +2924,7 @@ struct report_cfg_eutra_s {
   };
   typedef enumerated<report_amount_opts> report_amount_e_;
   struct alt_time_to_trigger_r12_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     alt_time_to_trigger_r12_c_() = default;
@@ -2935,6 +2946,7 @@ struct report_cfg_eutra_s {
       assert_choice_type("setup", type_.to_string(), "alternativeTimeToTrigger-r12");
       return c;
     }
+    void               set_release() { set(types::release); }
     time_to_trigger_e& set_setup()
     {
       set(types::setup);
@@ -2962,7 +2974,7 @@ struct report_cfg_eutra_s {
       uint8_t               a5_thres2_r13               = 0;
       report_quant_v1310_e_ report_quant_v1310;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     rs_sinr_cfg_r13_c_() = default;
@@ -2984,6 +2996,7 @@ struct report_cfg_eutra_s {
       assert_choice_type("setup", type_.to_string(), "rs-sinr-Config-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3478,7 +3491,7 @@ struct report_cfg_inter_rat_s {
   };
   typedef enumerated<report_amount_opts> report_amount_e_;
   struct b2_thres1_v1250_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     b2_thres1_v1250_c_() = default;
@@ -3500,6 +3513,7 @@ struct report_cfg_inter_rat_s {
       assert_choice_type("setup", type_.to_string(), "b2-Threshold1-v1250");
       return c;
     }
+    void    set_release() { set(types::release); }
     int8_t& set_setup()
     {
       set(types::setup);
@@ -4480,7 +4494,7 @@ struct meas_gap_cfg_dense_prs_r15_c {
     // member variables
     gap_offset_dense_prs_r15_c_ gap_offset_dense_prs_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_cfg_dense_prs_r15_c() = default;
@@ -4500,6 +4514,7 @@ struct meas_gap_cfg_dense_prs_r15_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfigDensePRS-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4519,7 +4534,7 @@ struct meas_gap_cfg_per_cc_list_r14_c {
     meas_gap_cfg_to_rem_list_r14_l     meas_gap_cfg_to_rem_list_r14;
     meas_gap_cfg_to_add_mod_list_r14_l meas_gap_cfg_to_add_mod_list_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_cfg_per_cc_list_r14_c() = default;
@@ -4539,6 +4554,7 @@ struct meas_gap_cfg_per_cc_list_r14_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfigPerCC-List-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4566,7 +4582,7 @@ struct meas_gap_sharing_cfg_r14_c {
     // member variables
     meas_gap_sharing_scheme_r14_e_ meas_gap_sharing_scheme_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   meas_gap_sharing_cfg_r14_c() = default;
@@ -4586,6 +4602,7 @@ struct meas_gap_sharing_cfg_r14_c {
     assert_choice_type("setup", type_.to_string(), "MeasGapSharingConfig-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4724,6 +4741,9 @@ struct rach_skip_r14_s {
       assert_choice_type("scg-STAG-r14", type_.to_string(), "targetTA-r14");
       return c.get<uint8_t>();
     }
+    void     set_ta0_r14() { set(types::ta0_r14); }
+    void     set_mcg_ptag_r14() { set(types::mcg_ptag_r14); }
+    void     set_scg_ptag_r14() { set(types::scg_ptag_r14); }
     uint8_t& set_mcg_stag_r14()
     {
       set(types::mcg_stag_r14);
@@ -4782,7 +4802,7 @@ struct meas_cfg_s {
       mob_state_params_s          mob_state_params;
       speed_state_scale_factors_s time_to_trigger_sf;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     speed_state_pars_c_() = default;
@@ -4802,6 +4822,7 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "speedStatePars");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -4813,7 +4834,7 @@ struct meas_cfg_s {
     setup_s_ c;
   };
   struct meas_scale_factor_r12_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     meas_scale_factor_r12_c_() = default;
@@ -4833,6 +4854,7 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "measScaleFactor-r12");
       return c;
     }
+    void                     set_release() { set(types::release); }
     meas_scale_factor_r12_e& set_setup()
     {
       set(types::setup);
@@ -4844,7 +4866,7 @@ struct meas_cfg_s {
     meas_scale_factor_r12_e c;
   };
   struct height_thresh_ref_r15_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     height_thresh_ref_r15_c_() = default;
@@ -4864,6 +4886,7 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "heightThreshRef-r15");
       return c;
     }
+    void     set_release() { set(types::release); }
     uint8_t& set_setup()
     {
       set(types::setup);
@@ -4938,17 +4961,6 @@ struct meas_cfg_s {
 struct carrier_freq_geran_s {
   uint16_t         arfcn = 0;
   band_ind_geran_e band_ind;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// MobilityControlInfo-v10l0 ::= SEQUENCE
-struct mob_ctrl_info_v10l0_s {
-  bool     add_spec_emission_v10l0_present = false;
-  uint16_t add_spec_emission_v10l0         = 33;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -6581,18 +6593,22 @@ struct meas_report_s {
         set(types::meas_report_r8);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                type_;
       meas_report_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -6602,28 +6618,38 @@ struct meas_report_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
   crit_exts_c_ crit_exts;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MobilityControlInfo-v10l0 ::= SEQUENCE
+struct mob_ctrl_info_v10l0_s {
+  bool     add_spec_emission_v10l0_present = false;
+  uint16_t add_spec_emission_v10l0         = 33;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

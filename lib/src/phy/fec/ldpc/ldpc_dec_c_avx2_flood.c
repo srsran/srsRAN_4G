@@ -199,7 +199,8 @@ void* create_ldpc_dec_c_avx2_flood(uint8_t bgN, uint8_t bgM, uint16_t ls, float 
   vp->hrr = hrr;
   vp->ls  = ls;
 
-  vp->scaling_fctr = _mm256_set1_epi16((uint16_t)(scaling_fctr * F2I));
+  // correction > 1/16 to compensate the scaling error (2^16-1)/2^16 incurred in _mm256_scalei_epi8
+  vp->scaling_fctr = _mm256_set1_epi16((uint16_t)((scaling_fctr + 0.00001525879) * F2I));
 
   return vp;
 }

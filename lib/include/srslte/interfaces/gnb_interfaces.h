@@ -22,6 +22,8 @@
 #ifndef SRSLTE_GNB_INTERFACES_H
 #define SRSLTE_GNB_INTERFACES_H
 
+#include "srslte/srslte.h"
+
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
@@ -219,7 +221,35 @@ public:
   virtual void process_pdus() = 0;
 };
 
-class stack_interface_phy_nr : public srslte::stack_interface_phy_nr
+class mac_interface_phy_nr
+{
+public:
+  const static int MAX_GRANTS = 64;
+
+  /**
+   * DL grant structure per UE
+   */
+  struct dl_sched_grant_t {
+    srslte_dci_dl_nr_t      dci                          = {};
+    uint8_t*                data[SRSLTE_MAX_TB]          = {};
+    srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB] = {};
+  };
+
+  /**
+   * DL Scheduling result per cell/carrier
+   */
+  typedef struct {
+    dl_sched_grant_t pdsch[MAX_GRANTS]; //< DL Grants
+    uint32_t         nof_grants;        //< Number of DL grants
+  } dl_sched_t;
+
+  /**
+   * List of DL scheduling results, one entry per cell/carrier
+   */
+  typedef std::vector<dl_sched_t> dl_sched_list_t;
+};
+
+class stack_interface_phy_nr : public mac_interface_phy_nr, public srslte::stack_interface_phy_nr
 {
 public:
   struct rx_data_ind_t {
@@ -231,9 +261,6 @@ public:
   virtual int sf_indication(const uint32_t tti)        = 0;
   virtual int rx_data_indication(rx_data_ind_t& grant) = 0;
 };
-
-class mac_interface_phy_nr
-{};
 
 } // namespace srsenb
 

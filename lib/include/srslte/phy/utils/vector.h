@@ -116,6 +116,9 @@ SRSLTE_API void srslte_vec_u32_zero(uint32_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len);
 SRSLTE_API void srslte_vec_f_copy(float* dst, const float* src, uint32_t len);
 SRSLTE_API void srslte_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len);
+SRSLTE_API void srslte_vec_i8_copy(int8_t* dst, const int8_t* src, uint32_t len);
+SRSLTE_API void srslte_vec_u16_copy(uint16_t* dst, const uint16_t* src, uint32_t len);
+SRSLTE_API void srslte_vec_i16_copy(int16_t* dst, const int16_t* src, uint32_t len);
 
 /* print vectors */
 SRSLTE_API void srslte_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);
@@ -145,6 +148,7 @@ SRSLTE_API void srslte_vec_sub_bbb(const int8_t* x, const int8_t* y, int8_t* z, 
 
 /* scalar product */
 SRSLTE_API void srslte_vec_sc_prod_cfc(const cf_t* x, const float h, cf_t* z, const uint32_t len);
+SRSLTE_API void srslte_vec_sc_prod_fcc(const float* x, const cf_t h, cf_t* z, const uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_ccc(const cf_t* x, const cf_t h, cf_t* z, const uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_fff(const float* x, const float h, float* z, const uint32_t len);
 
@@ -199,6 +203,7 @@ SRSLTE_API void srslte_vec_conj_cc(const cf_t* x, cf_t* y, const uint32_t len);
 /* average vector power */
 SRSLTE_API float srslte_vec_avg_power_cf(const cf_t* x, const uint32_t len);
 SRSLTE_API float srslte_vec_avg_power_sf(const int16_t* x, const uint32_t len);
+SRSLTE_API float srslte_vec_avg_power_bf(const int8_t* x, const uint32_t len);
 
 /* Correlation between complex vectors x and y */
 SRSLTE_API float srslte_vec_corr_ccc(const cf_t* x, cf_t* y, const uint32_t len);

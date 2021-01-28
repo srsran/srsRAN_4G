@@ -21,6 +21,7 @@
 
 #include "srslte/common/test_common.h"
 #include "srslte/phy/phch/pdcch_nr.h"
+#include "srslte/phy/utils/random.h"
 #include <getopt.h>
 
 static srslte_carrier_nr_t carrier = {

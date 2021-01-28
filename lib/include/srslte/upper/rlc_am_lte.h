@@ -135,7 +135,7 @@ private:
 
     bool retx_queue_has_sn(uint32_t sn);
     int  required_buffer_size(rlc_amd_retx_t retx);
-    void retransmit_random_pdu();
+    void retransmit_pdu();
 
     // Helpers
     bool poll_required();

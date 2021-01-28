@@ -92,27 +92,25 @@ int get_ue_cc_idx_if_pdsch_enabled(const sched_ue& user, sf_sched* tti_sched)
   }
   uint32_t cell_idx = p.second;
   // Do not allow allocations when PDSCH is deactivated
-  if (not user.pdsch_enabled(srslte::tti_point(tti_sched->get_tti_rx()), tti_sched->get_enb_cc_idx())) {
+  if (not user.pdsch_enabled(tti_sched->get_tti_rx(), tti_sched->get_enb_cc_idx())) {
     return -1;
   }
   return cell_idx;
 }
 const dl_harq_proc* get_dl_retx_harq(sched_ue& user, sf_sched* tti_sched)
 {
-  int ue_cc_idx = get_ue_cc_idx_if_pdsch_enabled(user, tti_sched);
-  if (ue_cc_idx < 0) {
+  if (get_ue_cc_idx_if_pdsch_enabled(user, tti_sched) < 0) {
     return nullptr;
   }
-  dl_harq_proc* h = user.get_pending_dl_harq(tti_sched->get_tti_tx_dl(), ue_cc_idx);
+  dl_harq_proc* h = user.get_pending_dl_harq(tti_sched->get_tti_tx_dl(), tti_sched->get_enb_cc_idx());
   return h;
 }
 const dl_harq_proc* get_dl_newtx_harq(sched_ue& user, sf_sched* tti_sched)
 {
-  int ue_cc_idx = get_ue_cc_idx_if_pdsch_enabled(user, tti_sched);
-  if (ue_cc_idx < 0) {
+  if (get_ue_cc_idx_if_pdsch_enabled(user, tti_sched) < 0) {
     return nullptr;
   }
-  return user.get_empty_dl_harq(tti_sched->get_tti_tx_dl(), ue_cc_idx);
+  return user.get_empty_dl_harq(tti_sched->get_tti_tx_dl(), tti_sched->get_enb_cc_idx());
 }
 
 int get_ue_cc_idx_if_pusch_enabled(const sched_ue& user, sf_sched* tti_sched, bool needs_pdcch)
@@ -128,27 +126,25 @@ int get_ue_cc_idx_if_pusch_enabled(const sched_ue& user, sf_sched* tti_sched, bo
   }
   uint32_t cell_idx = p.second;
   // Do not allow allocations when PDSCH is deactivated
-  if (not user.pusch_enabled(srslte::tti_point(tti_sched->get_tti_rx()), tti_sched->get_enb_cc_idx(), needs_pdcch)) {
+  if (not user.pusch_enabled(tti_sched->get_tti_rx(), tti_sched->get_enb_cc_idx(), needs_pdcch)) {
     return -1;
   }
   return cell_idx;
 }
 const ul_harq_proc* get_ul_retx_harq(sched_ue& user, sf_sched* tti_sched)
 {
-  int ue_cc_idx = get_ue_cc_idx_if_pusch_enabled(user, tti_sched, false);
-  if (ue_cc_idx < 0) {
+  if (get_ue_cc_idx_if_pusch_enabled(user, tti_sched, false) < 0) {
     return nullptr;
   }
-  const ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_tx_ul(), ue_cc_idx);
+  const ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_tx_ul(), tti_sched->get_enb_cc_idx());
   return h->has_pending_retx() ? h : nullptr;
 }
 const ul_harq_proc* get_ul_newtx_harq(sched_ue& user, sf_sched* tti_sched)
 {
-  int ue_cc_idx = get_ue_cc_idx_if_pusch_enabled(user, tti_sched, true);
-  if (ue_cc_idx < 0) {
+  if (get_ue_cc_idx_if_pusch_enabled(user, tti_sched, true) < 0) {
     return nullptr;
   }
-  const ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_tx_ul(), ue_cc_idx);
+  const ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_tx_ul(), tti_sched->get_enb_cc_idx());
   return h->is_empty() ? h : nullptr;
 }
 
@@ -180,8 +176,7 @@ alloc_outcome_t try_ul_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const ul_ha
   }
 
   // Avoid measGaps accounting for PDCCH
-  srslte::tti_point tti_rx{tti_sched.get_tti_rx()};
-  if (not ue.pusch_enabled(tti_rx, tti_sched.get_enb_cc_idx(), true)) {
+  if (not ue.pusch_enabled(tti_sched.get_tti_rx(), tti_sched.get_enb_cc_idx(), true)) {
     return alloc_outcome_t::MEASGAP_COLLISION;
   }
   uint32_t nof_prbs = alloc.length();

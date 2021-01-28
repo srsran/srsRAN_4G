@@ -53,6 +53,7 @@ ue::ue(uint16_t                 rnti_,
   pdus(128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
+  rx_used_buffers(nof_cells_),
   ta_fsm(this)
 {
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
@@ -83,6 +84,15 @@ ue::~ue()
   for (auto cc : softbuffer_tx) {
     for (auto buffer : cc) {
       srslte_softbuffer_tx_free(&buffer);
+    }
+  }
+  {
+    std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+    for (auto& rx_buffers_cc : rx_used_buffers) {
+      for (auto& q : rx_buffers_cc) {
+        pdus.deallocate(q.second);
+      }
+      rx_buffers_cc.clear();
     }
   }
 }
@@ -170,13 +180,47 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
   return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
-uint8_t* ue::request_buffer(const uint32_t len)
+uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
 {
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+  uint8_t* pdu = nullptr;
   if (len > 0) {
-    return pdus.request(len);
+    // Deallocate oldest buffer if we didn't deallocate it
+    if (!rx_used_buffers.at(ue_cc_idx).count(tti)) {
+      pdu = pdus.request(len);
+      if (pdu) {
+        rx_used_buffers.at(ue_cc_idx).emplace(tti, pdu);
+      } else {
+        Error("UE buffers: Requesting buffer from pool\n");
+      }
+    } else {
+      Error("UE buffers: buffer for tti=%d already allocated\n", tti);
+    }
   } else {
-    log_h->warning("Requesting buffer for zero bytes\n");
-    return nullptr;
+    Error("UE buffers: Requesting buffer for zero bytes\n");
+  }
+  return pdu;
+}
+
+void ue::clear_old_buffers(uint32_t tti)
+{
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+
+  // remove old buffers
+  for (auto& rx_buffer_cc : rx_used_buffers) {
+    for (auto it = rx_buffer_cc.begin(); it != rx_buffer_cc.end();) {
+      if (srslte_tti_interval(tti, it->first) > 20 && srslte_tti_interval(tti, it->first) < 500) {
+        Warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d\n",
+                it->first,
+                rnti,
+                tti,
+                srslte_tti_interval(tti, it->first));
+        pdus.deallocate(it->second);
+        it = rx_buffer_cc.erase(it);
+      } else {
+        ++it;
+      }
+    }
   }
 }
 
@@ -302,21 +346,36 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   Debug("MAC PDU processed\n");
 }
 
-void ue::deallocate_pdu(const uint8_t* pdu_ptr)
+void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
-  if (pdu_ptr) {
-    pdus.deallocate(pdu_ptr);
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+
+  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
+    pdus.deallocate(rx_used_buffers.at(ue_cc_idx).at(tti));
+    rx_used_buffers.at(ue_cc_idx).erase(tti);
   } else {
-    Error("Error deallocating PDU: null ptr\n");
+    Warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
+            rnti,
+            tti % nof_rx_harq_proc,
+            ue_cc_idx);
   }
 }
 
-void ue::push_pdu(const uint8_t* pdu_ptr, uint32_t len)
+void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
-  if (pdu_ptr && len > 0) {
-    pdus.push(pdu_ptr, len);
+  std::unique_lock<std::mutex> lock(rx_buffers_mutex);
+  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
+    if (len > 0) {
+      pdus.push(rx_used_buffers.at(ue_cc_idx).at(tti), len);
+    } else {
+      Error("Error pushing PDU: null length\n");
+    }
+    rx_used_buffers.at(ue_cc_idx).erase(tti);
   } else {
-    Error("Error pushing PDU: ptr=%p, len=%d\n", pdu_ptr, len);
+    Warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
+            rnti,
+            tti % nof_rx_harq_proc,
+            ue_cc_idx);
   }
 }
 

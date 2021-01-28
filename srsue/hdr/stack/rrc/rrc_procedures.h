@@ -215,6 +215,7 @@ private:
   // const
   rrc* rrc_ptr;
   // args
+  bool                               has_5g_nr_reconfig = false;
   asn1::rrc::rrc_conn_recfg_r8_ies_s rx_recfg;
 };
 

@@ -44,10 +44,11 @@
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 
-void       init_plots(srsue::lte::sf_worker* worker);
-pthread_t  plot_thread;
-sem_t      plot_sem;
-static int plot_worker_id = -1;
+static void      init_plots(srsue::lte::sf_worker* worker);
+static pthread_t plot_thread;
+static sem_t     plot_sem;
+static int       plot_worker_id = -1;
+static bool      plot_nr_enable = false;
 #else
 #pragma message "Compiling without srsGUI support"
 #endif
@@ -303,6 +304,7 @@ void sf_worker::start_plot()
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
+    plot_nr_enable = phy->args->nof_nr_carriers > 0;
     srslte::console("Starting plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
@@ -341,6 +343,8 @@ float sf_worker::get_cfo()
 #ifdef ENABLE_GUI
 plot_real_t    pce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
 plot_scatter_t pconst;
+plot_scatter_t pconst_nr;
+bool           pconst_nr_ready = false;
 #define SCATTER_PDSCH_BUFFER_LEN (20 * 6 * SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM))
 #define SCATTER_PDSCH_PLOT_LEN 4000
 float tmp_plot[SCATTER_PDSCH_BUFFER_LEN];
@@ -361,7 +365,7 @@ static uint32_t    isync = 0;
 static float       sync_buffer[SYNC_PLOT_LEN];
 #endif /* SYNC_PLOT_LEN > 0 */
 
-void* plot_thread_run(void* arg)
+static void* plot_thread_run(void* arg)
 {
   auto     worker    = (srsue::lte::sf_worker*)arg;
   uint32_t row_count = 0;
@@ -382,11 +386,21 @@ void* plot_thread_run(void* arg)
   row_count = worker->get_rx_nof_antennas();
 
   plot_scatter_init(&pconst);
-  plot_scatter_setTitle(&pconst, (char*)"PDSCH - Equalized Symbols");
+  plot_scatter_setTitle(&pconst, (char*)"LTE - PDSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pconst, -4, 4);
   plot_scatter_setYAxisScale(&pconst, -4, 4);
 
-  plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, row_count);
+  plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, row_count++);
+
+  plot_scatter_init(&pconst_nr);
+  plot_scatter_setTitle(&pconst_nr, (char*)"NR - PDSCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pconst_nr, -4, 4);
+  plot_scatter_setYAxisScale(&pconst_nr, -4, 4);
+
+  if (plot_nr_enable) {
+    plot_scatter_addToWindowGrid(&pconst_nr, (char*)"srsue", 0, row_count++);
+    pconst_nr_ready = true;
+  }
 
 #if CFO_PLOT_LEN > 0
   plot_real_init(&pcfo);

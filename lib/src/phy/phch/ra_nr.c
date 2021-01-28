@@ -21,6 +21,7 @@
 
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/utils/debug.h"
 
 typedef struct {
@@ -117,21 +118,74 @@ static const uint32_t ra_nr_tbs_table[RA_NR_TBS_SIZE_TABLE] = {
 
 typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
 
-static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
-                                        srslte_dci_format_nr_t     dci_format,
-                                        srslte_search_space_type_t search_space_type,
-                                        uint16_t                   rnti)
+static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srslte_mcs_table_t         mcs_table,
+                                                          srslte_dci_format_nr_t     dci_format,
+                                                          srslte_search_space_type_t search_space_type,
+                                                          srslte_rnti_type_t         rnti_type)
+{
+  // Non-implemented parameters
+  bool               mcs_c_rnti             = false;
+  srslte_mcs_table_t configured_grant_table = srslte_mcs_table_64qam;
+
+  // - if mcs-Table in pusch-Config is set to 'qam256', and
+  // - PUSCH is scheduled by a PDCCH with DCI format 0_1 with
+  // - CRC scrambled by C-RNTI or SP-CSI-RNTI,
+  if (mcs_table == srslte_mcs_table_256qam && dci_format == srslte_dci_format_nr_0_1 &&
+      (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_sp_csi)) {
+    return ra_nr_table_2;
+  }
+
+  // - the UE is not configured with MCS-C-RNTI,
+  // - mcs-Table in pusch-Config is set to 'qam64LowSE', and the
+  // - PUSCH is scheduled by a PDCCH in a UE-specific search space with
+  // - CRC scrambled by C-RNTI or SP-CSI-RNTI,
+  if (!mcs_c_rnti && mcs_table == srslte_mcs_table_qam64LowSE && dci_format != srslte_dci_format_nr_rar &&
+      search_space_type == srslte_search_space_type_ue &&
+      (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_sp_csi)) {
+    return ra_nr_table_3;
+  }
+
+  // - the UE is configured with MCS-C-RNTI, and
+  // - the PUSCH is scheduled by a PDCCH with
+  // - CRC scrambled by MCS-C-RNTI,
+  if (mcs_c_rnti && dci_format != srslte_dci_format_nr_rar && rnti_type == srslte_rnti_type_mcs_crnti) {
+    return ra_nr_table_3;
+  }
+
+  // - mcs-Table in configuredGrantConfig is set to 'qam256',
+  //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
+  //   - if PUSCH is transmitted with configured grant
+  if (configured_grant_table == srslte_mcs_table_256qam &&
+      (rnti_type == srslte_rnti_type_cs || dci_format == srslte_dci_format_nr_cg)) {
+    return ra_nr_table_2;
+  }
+
+  // - mcs-Table in configuredGrantConfig is set to 'qam64LowSE'
+  //   - if PUSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
+  //   - if PUSCH is transmitted with configured grant,
+  if (configured_grant_table == srslte_mcs_table_qam64LowSE &&
+      (rnti_type == srslte_rnti_type_cs || dci_format == srslte_dci_format_nr_cg)) {
+    return ra_nr_table_3;
+  }
+
+  return ra_nr_table_1;
+}
+
+static ra_nr_table_t ra_nr_select_table_pdsch(srslte_mcs_table_t         mcs_table,
+                                              srslte_dci_format_nr_t     dci_format,
+                                              srslte_search_space_type_t search_space_type,
+                                              srslte_rnti_type_t         rnti_type)
 {
   // Non-implemented parameters
   bool               sps_config_mcs_table_present = false;
   srslte_mcs_table_t sps_config_mcs_table         = srslte_mcs_table_64qam;
-  bool               is_cs_rnti                   = false;
   bool               is_pdcch_sps                 = false;
 
   // - the higher layer parameter mcs-Table given by PDSCH-Config is set to 'qam256', and
   // - the PDSCH is scheduled by a PDCCH with DCI format 1_1 with
   // - CRC scrambled by C-RNTI
-  if (mcs_table == srslte_mcs_table_256qam && dci_format == srslte_dci_format_nr_1_1 && SRSLTE_RNTI_ISUSER(rnti)) {
+  if (mcs_table == srslte_mcs_table_256qam && dci_format == srslte_dci_format_nr_1_1 &&
+      rnti_type == srslte_rnti_type_c) {
     return ra_nr_table_1;
   }
 
@@ -140,7 +194,7 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   // the PDSCH is scheduled by a PDCCH in a UE-specific search space with
   // CRC scrambled by C - RNTI
   if (mcs_table == srslte_mcs_table_qam64LowSE && search_space_type == srslte_search_space_type_ue &&
-      SRSLTE_RNTI_ISUSER(rnti)) {
+      rnti_type == srslte_rnti_type_c) {
     return ra_nr_table_3;
   }
 
@@ -149,7 +203,7 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   //   - if the PDSCH is scheduled by a PDCCH with DCI format 1_1 with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
   if (!sps_config_mcs_table_present && mcs_table == srslte_mcs_table_256qam &&
-      ((dci_format == srslte_dci_format_nr_1_1 && is_cs_rnti) || (!is_pdcch_sps))) {
+      ((dci_format == srslte_dci_format_nr_1_1 && rnti_type == srslte_rnti_type_c) || (!is_pdcch_sps))) {
     return ra_nr_table_2;
   }
 
@@ -157,7 +211,7 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   //   - if the PDSCH is scheduled by a PDCCH with CRC scrambled by CS-RNTI or
   //   - if the PDSCH is scheduled without corresponding PDCCH transmission using SPS-Config,
   if (sps_config_mcs_table_present && sps_config_mcs_table == srslte_mcs_table_qam64LowSE &&
-      (is_cs_rnti || is_pdcch_sps)) {
+      (rnti_type == srslte_rnti_type_cs || is_pdcch_sps)) {
     return ra_nr_table_3;
   }
 
@@ -165,13 +219,28 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
   return ra_nr_table_1;
 }
 
+static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
+                                        srslte_dci_format_nr_t     dci_format,
+                                        srslte_search_space_type_t search_space_type,
+                                        srslte_rnti_type_t         rnti_type)
+{
+
+  // Check if it is a PUSCH transmission
+  if (dci_format == srslte_dci_format_nr_0_0 || dci_format == srslte_dci_format_nr_0_1 ||
+      dci_format == srslte_dci_format_nr_rar || dci_format == srslte_dci_format_nr_cg) {
+    return ra_nr_select_table_pusch_noprecoding(mcs_table, dci_format, search_space_type, rnti_type);
+  }
+
+  return ra_nr_select_table_pdsch(mcs_table, dci_format, search_space_type, rnti_type);
+}
+
 double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
                                srslte_dci_format_nr_t     dci_format,
                                srslte_search_space_type_t search_space_type,
-                               uint16_t                   rnti,
+                               srslte_rnti_type_t         rnti_type,
                                uint32_t                   mcs_idx)
 {
-  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti);
+  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
 
   switch (table) {
     case ra_nr_table_1:
@@ -190,10 +259,10 @@ double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
 srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
                                        srslte_dci_format_nr_t     dci_format,
                                        srslte_search_space_type_t search_space_type,
-                                       uint16_t                   rnti,
+                                       srslte_rnti_type_t         rnti_type,
                                        uint32_t                   mcs_idx)
 {
-  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti);
+  ra_nr_table_t table = ra_nr_select_table(mcs_table, dci_format, search_space_type, rnti_type);
 
   switch (table) {
     case ra_nr_table_1:
@@ -209,13 +278,13 @@ srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
   return SRSLTE_MOD_NITEMS;
 }
 
-int srslte_ra_dl_nr_slot_nof_re(const srslte_pdsch_cfg_nr_t* pdsch_cfg, const srslte_pdsch_grant_nr_t* grant)
+int srslte_ra_dl_nr_slot_nof_re(const srslte_sch_cfg_nr_t* pdsch_cfg, const srslte_sch_grant_nr_t* grant)
 {
   // the number of symbols of the PDSCH allocation within the slot
   int n_sh_symb = grant->L;
 
   // the number of REs for DM-RS per PRB in the scheduled duration
-  int n_prb_dmrs = srslte_dmrs_pdsch_get_N_prb(pdsch_cfg, grant);
+  int n_prb_dmrs = srslte_dmrs_sch_get_N_prb(pdsch_cfg, grant);
   if (n_prb_dmrs < SRSLTE_SUCCESS) {
     ERROR("Invalid number of DMRS RE\n");
     return SRSLTE_ERROR;
@@ -312,6 +381,11 @@ uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32
     S = 1.0;
   }
 
+  if (nof_layers == 0) {
+    ERROR("Incorrect number of layers (%d). Setting to 1.\n", nof_layers);
+    nof_layers = 1;
+  }
+
   // 2) Intermediate number of information bits (N info ) is obtained by N inf o = N RE · R · Q m · υ .
   uint32_t n_info = (uint32_t)(N_re * S * R * Qm * nof_layers);
 
@@ -323,23 +397,23 @@ uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32
   return ra_nr_tbs_from_n_info4(n_info, R);
 }
 
-int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
-                         const srslte_pdsch_grant_nr_t* grant,
-                         uint32_t                       mcs_idx,
-                         srslte_sch_tb_t*               tb)
+int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
+                         const srslte_sch_grant_nr_t* grant,
+                         uint32_t                     mcs_idx,
+                         srslte_sch_tb_t*             tb)
 {
   uint32_t cw_idx = 0;
 
   // Get target Rate
   double R = srslte_ra_nr_R_from_mcs(
-      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
+      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
   if (!isnormal(R)) {
     return SRSLTE_ERROR;
   }
 
   // Get modulation
   srslte_mod_t m = srslte_ra_nr_mod_from_mcs(
-      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti, mcs_idx);
+      pdsch_cfg->sch_cfg.mcs_table, grant->dci_format, grant->dci_search_space, grant->rnti_type, mcs_idx);
   if (m >= SRSLTE_MOD_NITEMS) {
     return SRSLTE_ERROR;
   }
@@ -386,6 +460,48 @@ int srslte_ra_nr_fill_tb(const srslte_pdsch_cfg_nr_t*   pdsch_cfg,
   tb->nof_re   = N_re * grant->nof_layers;
   tb->nof_bits = tb->nof_re * Qm;
   tb->enabled  = true;
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t* carrier,
+                                 const srslte_sch_cfg_nr_t* pdsch_cfg,
+                                 const srslte_dci_dl_nr_t*  dci_dl,
+                                 srslte_sch_grant_nr_t*     pdsch_grant)
+{
+  // Time domain resource allocation
+  if (srslte_ra_dl_nr_time(
+          pdsch_cfg, dci_dl->rnti_type, dci_dl->search_space.type, dci_dl->time_domain_assigment, pdsch_grant) <
+      SRSLTE_SUCCESS) {
+    ERROR("Error computing time domain resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Frequency domain resource allocation
+  if (srslte_ra_dl_nr_freq(carrier, pdsch_cfg, dci_dl, pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error computing time domain resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+
+  //???
+  if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(pdsch_cfg, pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error loading number of DMRS CDM groups\n");
+    return SRSLTE_ERROR;
+  }
+
+  pdsch_grant->nof_layers = 1;
+  pdsch_grant->dci_format = dci_dl->format;
+  pdsch_grant->rnti       = dci_dl->rnti;
+
+  for (uint32_t i = 0; i < carrier->nof_prb; i++) {
+    pdsch_grant->prb_idx[i] = true;
+  }
+
+  // Compute TB size
+  if (srslte_ra_nr_fill_tb(pdsch_cfg, pdsch_grant, dci_dl->mcs, &pdsch_grant->tb[0]) < SRSLTE_SUCCESS) {
+    ERROR("Error filing tb\n");
+    return SRSLTE_ERROR;
+  }
 
   return SRSLTE_SUCCESS;
 }

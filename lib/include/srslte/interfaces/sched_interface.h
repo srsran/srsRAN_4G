@@ -40,7 +40,7 @@ public:
 
   const static int MAX_SIB_PAYLOAD_LEN = 2048;
   const static int MAX_SIBS            = 16;
-  const static int MAX_LC              = 6;
+  const static int MAX_LC              = 11;
   const static int MAX_LC_GROUP        = 4;
   const static int MAX_DATA_LIST       = 32;
   const static int MAX_RAR_LIST        = 8;
@@ -55,6 +55,7 @@ public:
 
   struct sched_args_t {
     std::string sched_policy         = "time_pf";
+    std::string sched_policy_args    = "2";
     int         pdsch_mcs            = -1;
     int         pdsch_max_mcs        = 28;
     int         pusch_mcs            = -1;

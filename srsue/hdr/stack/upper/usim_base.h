@@ -63,7 +63,7 @@ public:
   std::string reader;
 };
 
-class usim_base : public usim_interface_nas, public usim_interface_rrc
+class usim_base : public usim_interface_nas, public usim_interface_rrc, public usim_interface_rrc_nr
 {
 public:
   usim_base(srslte::log* log_);
@@ -101,6 +101,10 @@ public:
   void store_keys_before_ho(const srslte::as_security_config_t& as_ctx) final;
   void restore_keys_from_failed_ho(srslte::as_security_config_t* as_ctx) final;
 
+  // NR RRC interface
+  void generate_nr_context(uint16_t sk_counter, srslte::as_security_config_t* sec_cfg) final;
+  void update_nr_context(srslte::as_security_config_t* sec_cfg) final;
+
   // Helpers
   std::string         get_mcc_str(const uint8_t* imsi_vec);
   virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) = 0;
@@ -129,6 +133,7 @@ protected:
 
   // Current K_eNB context (K_eNB, NH and NCC)
   srslte::k_enb_context_t k_enb_ctx = {};
+  srslte::k_gnb_context_t k_gnb_ctx = {};
 
   // Helpers to restore security context if HO fails
   srslte::k_enb_context_t      old_k_enb_ctx = {};

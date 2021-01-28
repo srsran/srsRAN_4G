@@ -20,8 +20,7 @@
  */
 
 #include "srsue/hdr/phy/nr/cc_worker.h"
-#include "srslte/phy/phch/ra_nr.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
+#include "srslte/srslte.h"
 
 namespace srsue {
 namespace nr {
@@ -74,6 +73,18 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
     return false;
   }
 
+  coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
+  coreset.duration          = 2;
+
+  if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset) < SRSLTE_SUCCESS) {
+    ERROR("Error setting carrier\n");
+    return false;
+  }
+
+  // Set default PDSCH config
+  phy_state->cfg.pdsch.rbg_size_cfg_1        = false;
+  phy_state->cfg.pdsch.pdsch_time_is_default = true;
+
   return true;
 }
 
@@ -98,36 +109,50 @@ uint32_t cc_worker::get_buffer_len()
 
 bool cc_worker::work_dl()
 {
-  srslte_pdsch_grant_nr_t                                 pdsch_grant = {};
-  srslte_pdsch_cfg_nr_t                                   pdsch_cfg   = phy_state->cfg.pdsch;
+  srslte_dci_dl_nr_t                                      dci_dl      = {};
+  srslte_sch_cfg_nr_t                                     pdsch_cfg   = phy_state->cfg.pdsch;
   std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res   = {};
 
-  // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &pdsch_grant) <
-      SRSLTE_SUCCESS) {
-    ERROR("Error loading default grant\n");
-    return false;
-  }
-  pdsch_grant.nof_layers = ue_dl.carrier.max_mimo_layers;
-  pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
-  pdsch_grant.rnti       = 0x1234;
-
-  for (uint32_t i = 0; i < ue_dl.carrier.nof_prb; i++) {
-    pdsch_grant.prb_idx[i] = true;
-  }
-
-  if (srslte_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, 27, &pdsch_grant.tb[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error filing tb\n");
-    return false;
-  }
-
-  pdsch_res[0].payload            = data.data();
-  pdsch_grant.tb[0].softbuffer.rx = &softbuffer_rx;
-  srslte_softbuffer_rx_reset(pdsch_grant.tb[0].softbuffer.rx);
-
+  // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
-  if (srslte_ue_dl_nr_pdsch_get(&ue_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_grant, pdsch_res.data()) < SRSLTE_SUCCESS) {
+  // Set rnti
+  rnti = 0x1234;
+
+  // Configure Search space
+  search_space.type = srslte_search_space_type_ue;
+  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
+    search_space.nof_candidates[L] = srslte_pdcch_nr_max_candidates_coreset(&coreset, L);
+  }
+
+  srslte_dci_dl_nr_t dci_dl_rx = {};
+  int nof_found_dci            = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &search_space, &dl_slot_cfg, rnti, &dci_dl_rx, 1);
+  if (nof_found_dci < SRSLTE_SUCCESS) {
+    ERROR("Error decoding\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (nof_found_dci < 1) {
+    ERROR("Error DCI not found\n");
+  }
+
+  dci_dl.rnti   = 0x1234;
+  dci_dl.format = srslte_dci_format_nr_1_0;
+
+  dci_dl.freq_domain_assigment = 0x1FFF;
+  dci_dl.time_domain_assigment = 0;
+  dci_dl.mcs                   = 27;
+
+  // Compute DL grant
+  if (srslte_ra_dl_dci_to_grant_nr(&ue_dl.carrier, &pdsch_cfg, &dci_dl, &pdsch_cfg.grant)) {
+    ERROR("Computing DL grant\n");
+  }
+
+  pdsch_res[0].payload                = data.data();
+  pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
+  srslte_softbuffer_rx_reset(pdsch_cfg.grant.tb[0].softbuffer.rx);
+
+  if (srslte_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSLTE_SUCCESS) {
     ERROR("Error decoding PDSCH\n");
     return false;
   }
@@ -135,11 +160,18 @@ bool cc_worker::work_dl()
   // Logging
   if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
     char str[512];
-    srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, &pdsch_grant, pdsch_res.data(), str, sizeof(str));
+    srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str, sizeof(str));
     log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
   }
 
   return true;
+}
+
+int cc_worker::read_pdsch_d(cf_t* pdsch_d)
+{
+  uint32_t nof_re = ue_dl.carrier.nof_prb * SRSLTE_NRE * 12;
+  srslte_vec_cf_copy(pdsch_d, ue_dl.pdsch.d[0], nof_re);
+  return nof_re;
 }
 
 } // namespace nr

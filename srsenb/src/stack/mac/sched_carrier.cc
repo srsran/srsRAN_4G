@@ -298,10 +298,10 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
 
   // Setup data scheduling algorithms
   if (cell_params_.sched_cfg->sched_policy == "time_rr") {
-    sched_algo.reset(new sched_time_rr{*cc_cfg});
+    sched_algo.reset(new sched_time_rr{*cc_cfg, *cell_params_.sched_cfg});
     log_h->info("Using time-domain RR scheduling policy for cc=%d\n", cc_cfg->enb_cc_idx);
   } else {
-    sched_algo.reset(new sched_time_pf{*cc_cfg});
+    sched_algo.reset(new sched_time_pf{*cc_cfg, *cell_params_.sched_cfg});
     log_h->info("Using time-domain PF scheduling policy for cc=%d\n", cc_cfg->enb_cc_idx);
   }
 
@@ -371,6 +371,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
   }
 
   log_dl_cc_results(log_h, enb_cc_idx, cc_result->dl_sched_result);
+  log_phich_cc_results(log_h, enb_cc_idx, cc_result->ul_sched_result);
 
   return *cc_result;
 }

@@ -394,10 +394,6 @@ int field_qci::parse(libconfig::Setting& root)
 {
   auto nof_qci = (uint32_t)root.getLength();
 
-  for (uint32_t i = 0; i < MAX_NOF_QCI; i++) {
-    cfg->configured = false;
-  }
-
   for (uint32_t i = 0; i < nof_qci; i++) {
     libconfig::Setting& q = root[i];
 

@@ -38,7 +38,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
   active_filters(0),
   log(log_)
 {
-  int idx = 0;
+  int      idx             = 0;
   uint32_t length_in_bytes = 0;
   uint32_t remaining_bits  = 0;
   while (idx < tft.filter_size) {
@@ -246,7 +246,7 @@ bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
     if (filter_contains(IPV6_REMOTE_ADDR_FLAG | IPV6_REMOTE_ADDR_LENGTH_FLAG)) {
       bool match = true;
       for (int i = 0; i < ipv6_remote_addr_length; i++) {
-        match &= ((ipv6_remote_addr[i] ^ ip6_pkt->daddr.__in6_u.__u6_addr8[i]) & ipv6_remote_addr_mask[i]) == 0;
+        match &= ((ipv6_remote_addr[i] ^ ip6_pkt->daddr.in6_u.u6_addr8[i]) & ipv6_remote_addr_mask[i]) == 0;
         if (!match) {
           return false;
         }

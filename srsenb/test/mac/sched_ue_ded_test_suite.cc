@@ -301,7 +301,9 @@ int test_ra(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& sf_out)
             for (uint32_t j = 0; j < dl_cc_res.data[i].nof_pdu_elems[0]; ++j) {
               if (dl_cc_res.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
                 // ConRes found
-                CONDERROR(dl_cc_res.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
+                CONDERROR(dl_cc_res.data[i].dci.format != SRSLTE_DCI_FORMAT1 and
+                              dl_cc_res.data[i].dci.format != SRSLTE_DCI_FORMAT1A,
+                          "ConRes must be format1/1a\n");
                 msg4_count++;
               }
             }

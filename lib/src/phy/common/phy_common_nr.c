@@ -44,12 +44,12 @@ uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset)
   return srslte_coreset_get_bw(coreset) * SRSLTE_NRE * coreset->duration;
 }
 
-const char* srslte_pdsch_mapping_type_to_str(srslte_pdsch_mapping_type_t mapping_type)
+const char* srslte_sch_mapping_type_to_str(srslte_sch_mapping_type_t mapping_type)
 {
   switch (mapping_type) {
-    case srslte_pdsch_mapping_type_A:
+    case srslte_sch_mapping_type_A:
       return "A";
-    case srslte_pdsch_mapping_type_B:
+    case srslte_sch_mapping_type_B:
       return "B";
     default:
       return "undefined";

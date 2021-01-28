@@ -80,6 +80,7 @@ struct sl_tx_pwr_r14_c {
     assert_choice_type("txPower-r14", type_.to_string(), "SL-TxPower-r14");
     return c;
   }
+  void    set_minusinfinity_r14() { set(types::minusinfinity_r14); }
   int8_t& set_tx_pwr_r14()
   {
     set(types::tx_pwr_r14);
@@ -927,6 +928,7 @@ struct sl_disc_res_pool_r12_s {
           set(types::rsrp_based_r12);
           return c;
         }
+        void set_random_r12() { set(types::random_r12); }
 
       private:
         types                 type_;
@@ -965,7 +967,7 @@ struct sl_disc_res_pool_r12_s {
       uint8_t     to_number() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     disc_period_v1310_c_() = default;
@@ -985,6 +987,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "discPeriod-v1310");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -999,7 +1002,7 @@ struct sl_disc_res_pool_r12_s {
     struct setup_s_ {
       pci_list_r13_l pci_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     rx_params_add_neigh_freq_r13_c_() = default;
@@ -1019,6 +1022,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "rxParamsAddNeighFreq-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1062,7 +1066,7 @@ struct sl_disc_res_pool_r12_s {
       int8_t          ref_sig_pwr      = -60;
       uint8_t         sync_cfg_idx_r13 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     tx_params_add_neigh_freq_r13_c_() = default;
@@ -1082,6 +1086,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1101,7 +1106,7 @@ struct sl_disc_res_pool_r12_s {
       // member variables
       freq_info_v1370_s_ freq_info_v1370;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     tx_params_add_neigh_freq_v1370_c_() = default;
@@ -1121,6 +1126,7 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-v1370");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1406,11 +1412,14 @@ struct sl_disc_tx_res_inter_freq_r13_c {
     assert_choice_type("discTxPoolCommon-r13", type_.to_string(), "SL-DiscTxResourcesInterFreq-r13");
     return c;
   }
+  void                        set_acquire_si_from_carrier_r13() { set(types::acquire_si_from_carrier_r13); }
   sl_disc_tx_pool_list_r12_l& set_disc_tx_pool_common_r13()
   {
     set(types::disc_tx_pool_common_r13);
     return c;
   }
+  void set_request_ded_r13() { set(types::request_ded_r13); }
+  void set_no_tx_on_carrier_r13() { set(types::no_tx_on_carrier_r13); }
 
 private:
   types                      type_;

@@ -464,9 +464,6 @@ struct private_ie_id_c {
 
   // choice methods
   private_ie_id_c() = default;
-  private_ie_id_c(const private_ie_id_c& other);
-  private_ie_id_c& operator=(const private_ie_id_c& other);
-  ~private_ie_id_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -476,24 +473,23 @@ struct private_ie_id_c {
   uint32_t& local()
   {
     assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
-    return c.get<uint32_t>();
+    return c;
   }
   const uint32_t& local() const
   {
     assert_choice_type("local", type_.to_string(), "PrivateIE-ID");
-    return c.get<uint32_t>();
+    return c;
   }
   uint32_t& set_local()
   {
     set(types::local);
-    return c.get<uint32_t>();
+    return c;
   }
+  void set_global() { set(types::global); }
 
 private:
-  types               type_;
-  pod_choice_buffer_t c;
-
-  void destroy_();
+  types    type_;
+  uint32_t c;
 };
 
 // PrivateIE-Field{S1AP-PRIVATE-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PRIVATE-IES}}
@@ -619,13 +615,13 @@ struct s1ap_protocol_ext_empty_o {
   static presence_e get_presence(const uint32_t& id);
 };
 // GUMMEI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o gummei_ext_ies_o;
+using gummei_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // PLMNidentity ::= OCTET STRING
-typedef fixed_octstring<3, true> plm_nid;
+using plm_nid = fixed_octstring<3, true>;
 
 // Additional-GUTI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o add_guti_ext_ies_o;
+using add_guti_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 template <class extT_>
 struct protocol_ext_container_item_s {
@@ -649,7 +645,7 @@ struct protocol_ext_container_empty_l {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
-typedef protocol_ext_container_empty_l gummei_ext_ies_container;
+using gummei_ext_ies_container = protocol_ext_container_empty_l;
 
 // GUMMEI ::= SEQUENCE
 struct gummei_s {
@@ -667,7 +663,7 @@ struct gummei_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l add_guti_ext_ies_container;
+using add_guti_ext_ies_container = protocol_ext_container_empty_l;
 
 // Additional-GUTI ::= SEQUENCE
 struct add_guti_s {
@@ -685,7 +681,7 @@ struct add_guti_s {
 };
 
 // AllocationAndRetentionPriority-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o alloc_and_retention_prio_ext_ies_o;
+using alloc_and_retention_prio_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // Pre-emptionCapability ::= ENUMERATED
 struct pre_emption_cap_opts {
@@ -703,7 +699,7 @@ struct pre_emption_vulnerability_opts {
 };
 typedef enumerated<pre_emption_vulnerability_opts> pre_emption_vulnerability_e;
 
-typedef protocol_ext_container_empty_l alloc_and_retention_prio_ext_ies_container;
+using alloc_and_retention_prio_ext_ies_container = protocol_ext_container_empty_l;
 
 // AllocationAndRetentionPriority ::= SEQUENCE
 struct alloc_and_retention_prio_s {
@@ -722,12 +718,12 @@ struct alloc_and_retention_prio_s {
 };
 
 // EUTRAN-CGI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o eutran_cgi_ext_ies_o;
+using eutran_cgi_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tai_ext_ies_o;
+using tai_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l eutran_cgi_ext_ies_container;
+using eutran_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
 // EUTRAN-CGI ::= SEQUENCE
 struct eutran_cgi_s {
@@ -744,7 +740,7 @@ struct eutran_cgi_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l tai_ext_ies_container;
+using tai_ext_ies_container = protocol_ext_container_empty_l;
 
 // TAI ::= SEQUENCE
 struct tai_s {
@@ -762,16 +758,16 @@ struct tai_s {
 };
 
 // CellBasedMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cell_based_mdt_ext_ies_o;
+using cell_based_mdt_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CellIdListforMDT ::= SEQUENCE (SIZE (1..32)) OF EUTRAN-CGI
 using cell_id_listfor_mdt_l = dyn_array<eutran_cgi_s>;
 
 // TABasedMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ta_based_mdt_ext_ies_o;
+using ta_based_mdt_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAIBasedMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tai_based_mdt_ext_ies_o;
+using tai_based_mdt_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAIListforMDT ::= SEQUENCE (SIZE (1..8)) OF TAI
 using tai_listfor_mdt_l = dyn_array<tai_s>;
@@ -779,7 +775,7 @@ using tai_listfor_mdt_l = dyn_array<tai_s>;
 // TAListforMDT ::= SEQUENCE (SIZE (1..8)) OF OCTET STRING (SIZE (2))
 using ta_listfor_mdt_l = bounded_array<fixed_octstring<2, true>, 8>;
 
-typedef protocol_ext_container_empty_l cell_based_mdt_ext_ies_container;
+using cell_based_mdt_ext_ies_container = protocol_ext_container_empty_l;
 
 // CellBasedMDT ::= SEQUENCE
 struct cell_based_mdt_s {
@@ -795,7 +791,7 @@ struct cell_based_mdt_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ta_based_mdt_ext_ies_container;
+using ta_based_mdt_ext_ies_container = protocol_ext_container_empty_l;
 
 // TABasedMDT ::= SEQUENCE
 struct ta_based_mdt_s {
@@ -811,7 +807,7 @@ struct ta_based_mdt_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l tai_based_mdt_ext_ies_container;
+using tai_based_mdt_ext_ies_container = protocol_ext_container_empty_l;
 
 // TAIBasedMDT ::= SEQUENCE
 struct tai_based_mdt_s {
@@ -887,6 +883,7 @@ struct area_scope_of_mdt_c {
     set(types::tabased);
     return c.get<ta_based_mdt_s>();
   }
+  void             set_plmn_wide() { set(types::plmn_wide); }
   tai_based_mdt_s& set_tai_based()
   {
     set(types::tai_based);
@@ -901,22 +898,22 @@ private:
 };
 
 // CellBasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cell_based_qmc_ext_ies_o;
+using cell_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CellIdListforQMC ::= SEQUENCE (SIZE (1..32)) OF EUTRAN-CGI
 using cell_id_listfor_qmc_l = dyn_array<eutran_cgi_s>;
 
 // PLMNAreaBasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o plmn_area_based_qmc_ext_ies_o;
+using plmn_area_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // PLMNListforQMC ::= SEQUENCE (SIZE (1..16)) OF OCTET STRING (SIZE (3))
 using plmn_listfor_qmc_l = bounded_array<fixed_octstring<3, true>, 16>;
 
 // TABasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ta_based_qmc_ext_ies_o;
+using ta_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAIBasedQMC-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tai_based_qmc_ext_ies_o;
+using tai_based_qmc_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAIListforQMC ::= SEQUENCE (SIZE (1..8)) OF TAI
 using tai_listfor_qmc_l = dyn_array<tai_s>;
@@ -924,7 +921,7 @@ using tai_listfor_qmc_l = dyn_array<tai_s>;
 // TAListforQMC ::= SEQUENCE (SIZE (1..8)) OF OCTET STRING (SIZE (2))
 using ta_listfor_qmc_l = bounded_array<fixed_octstring<2, true>, 8>;
 
-typedef protocol_ext_container_empty_l cell_based_qmc_ext_ies_container;
+using cell_based_qmc_ext_ies_container = protocol_ext_container_empty_l;
 
 // CellBasedQMC ::= SEQUENCE
 struct cell_based_qmc_s {
@@ -940,7 +937,7 @@ struct cell_based_qmc_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l plmn_area_based_qmc_ext_ies_container;
+using plmn_area_based_qmc_ext_ies_container = protocol_ext_container_empty_l;
 
 // PLMNAreaBasedQMC ::= SEQUENCE
 struct plmn_area_based_qmc_s {
@@ -956,7 +953,7 @@ struct plmn_area_based_qmc_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ta_based_qmc_ext_ies_container;
+using ta_based_qmc_ext_ies_container = protocol_ext_container_empty_l;
 
 // TABasedQMC ::= SEQUENCE
 struct ta_based_qmc_s {
@@ -972,7 +969,7 @@ struct ta_based_qmc_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l tai_based_qmc_ext_ies_container;
+using tai_based_qmc_ext_ies_container = protocol_ext_container_empty_l;
 
 // TAIBasedQMC ::= SEQUENCE
 struct tai_based_qmc_s {
@@ -1077,9 +1074,9 @@ private:
 };
 
 // CellIdentifierAndCELevelForCECapableUEs-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cell_id_and_ce_level_for_ce_capable_ues_ext_ies_o;
+using cell_id_and_ce_level_for_ce_capable_ues_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cell_id_and_ce_level_for_ce_capable_ues_ext_ies_container;
+using cell_id_and_ce_level_for_ce_capable_ues_ext_ies_container = protocol_ext_container_empty_l;
 
 // CellIdentifierAndCELevelForCECapableUEs ::= SEQUENCE
 struct cell_id_and_ce_level_for_ce_capable_ues_s {
@@ -1097,9 +1094,9 @@ struct cell_id_and_ce_level_for_ce_capable_ues_s {
 };
 
 // InformationForCECapableUEs-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o info_for_ce_capable_ues_ext_ies_o;
+using info_for_ce_capable_ues_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l info_for_ce_capable_ues_ext_ies_container;
+using info_for_ce_capable_ues_ext_ies_container = protocol_ext_container_empty_l;
 
 // AssistanceDataForCECapableUEs ::= SEQUENCE
 struct assist_data_for_ce_capable_ues_s {
@@ -1116,9 +1113,9 @@ struct assist_data_for_ce_capable_ues_s {
 };
 
 // RecommendedCellsForPagingItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o recommended_cells_for_paging_item_ext_ies_o;
+using recommended_cells_for_paging_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l recommended_cells_for_paging_item_ext_ies_container;
+using recommended_cells_for_paging_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // RecommendedCellItem ::= SEQUENCE
 struct recommended_cell_item_s {
@@ -1172,10 +1169,10 @@ struct recommended_cell_item_ies_o {
 using recommended_cell_list_l = bounded_array<protocol_ie_single_container_s<recommended_cell_item_ies_o>, 16>;
 
 // RecommendedCellsForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o recommended_cells_for_paging_ext_ies_o;
+using recommended_cells_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // AssistanceDataForRecommendedCells-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o assist_data_for_recommended_cells_ext_ies_o;
+using assist_data_for_recommended_cells_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // NextPagingAreaScope ::= ENUMERATED
 struct next_paging_area_scope_opts {
@@ -1186,9 +1183,9 @@ struct next_paging_area_scope_opts {
 typedef enumerated<next_paging_area_scope_opts, true> next_paging_area_scope_e;
 
 // PagingAttemptInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o paging_attempt_info_ext_ies_o;
+using paging_attempt_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l recommended_cells_for_paging_ext_ies_container;
+using recommended_cells_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
 // RecommendedCellsForPaging ::= SEQUENCE
 struct recommended_cells_for_paging_s {
@@ -1205,9 +1202,9 @@ struct recommended_cells_for_paging_s {
 };
 
 // AssistanceDataForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o assist_data_for_paging_ext_ies_o;
+using assist_data_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l assist_data_for_recommended_cells_ext_ies_container;
+using assist_data_for_recommended_cells_ext_ies_container = protocol_ext_container_empty_l;
 
 // AssistanceDataForRecommendedCells ::= SEQUENCE
 struct assist_data_for_recommended_cells_s {
@@ -1223,7 +1220,7 @@ struct assist_data_for_recommended_cells_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l paging_attempt_info_ext_ies_container;
+using paging_attempt_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // PagingAttemptInformation ::= SEQUENCE
 struct paging_attempt_info_s {
@@ -1242,7 +1239,7 @@ struct paging_attempt_info_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l assist_data_for_paging_ext_ies_container;
+using assist_data_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
 // AssistanceDataForPaging ::= SEQUENCE
 struct assist_data_for_paging_s {
@@ -1267,12 +1264,12 @@ struct assist_data_for_paging_s {
 using bplmns_l = bounded_array<fixed_octstring<3, true>, 6>;
 
 // COUNTValueExtended-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o count_value_extended_ext_ies_o;
+using count_value_extended_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // COUNTvaluePDCP-SNlength18-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o coun_tvalue_pdcp_snlen18_ext_ies_o;
+using coun_tvalue_pdcp_snlen18_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l count_value_extended_ext_ies_container;
+using count_value_extended_ext_ies_container = protocol_ext_container_empty_l;
 
 // COUNTValueExtended ::= SEQUENCE
 struct count_value_extended_s {
@@ -1290,9 +1287,9 @@ struct count_value_extended_s {
 };
 
 // COUNTvalue-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o coun_tvalue_ext_ies_o;
+using coun_tvalue_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l coun_tvalue_pdcp_snlen18_ext_ies_container;
+using coun_tvalue_pdcp_snlen18_ext_ies_container = protocol_ext_container_empty_l;
 
 // COUNTvaluePDCP-SNlength18 ::= SEQUENCE
 struct coun_tvalue_pdcp_snlen18_s {
@@ -1371,7 +1368,7 @@ struct bearers_subject_to_status_transfer_item_ext_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-typedef protocol_ext_container_empty_l coun_tvalue_ext_ies_container;
+using coun_tvalue_ext_ies_container = protocol_ext_container_empty_l;
 
 // COUNTvalue ::= SEQUENCE
 struct coun_tvalue_s {
@@ -1480,9 +1477,9 @@ struct bluetooth_meas_cfg_opts {
 typedef enumerated<bluetooth_meas_cfg_opts, true> bluetooth_meas_cfg_e;
 
 // BluetoothMeasurementConfiguration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o bluetooth_meas_cfg_ext_ies_o;
+using bluetooth_meas_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l bluetooth_meas_cfg_ext_ies_container;
+using bluetooth_meas_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // BluetoothMeasurementConfiguration ::= SEQUENCE
 struct bluetooth_meas_cfg_s {
@@ -1511,12 +1508,12 @@ struct bluetooth_meas_cfg_s {
 };
 
 // CancelledCellinEAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cancelled_cellin_eai_item_ext_ies_o;
+using cancelled_cellin_eai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CancelledCellinTAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cancelled_cellin_tai_item_ext_ies_o;
+using cancelled_cellin_tai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cancelled_cellin_eai_item_ext_ies_container;
+using cancelled_cellin_eai_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CancelledCellinEAI-Item ::= SEQUENCE
 struct cancelled_cellin_eai_item_s {
@@ -1533,7 +1530,7 @@ struct cancelled_cellin_eai_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l cancelled_cellin_tai_item_ext_ies_container;
+using cancelled_cellin_tai_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CancelledCellinTAI-Item ::= SEQUENCE
 struct cancelled_cellin_tai_item_s {
@@ -1557,15 +1554,15 @@ using cancelled_cellin_eai_l = dyn_array<cancelled_cellin_eai_item_s>;
 using cancelled_cellin_tai_l = dyn_array<cancelled_cellin_tai_item_s>;
 
 // CellID-Cancelled-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cell_id_cancelled_item_ext_ies_o;
+using cell_id_cancelled_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // EmergencyAreaID-Cancelled-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o emergency_area_id_cancelled_item_ext_ies_o;
+using emergency_area_id_cancelled_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAI-Cancelled-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tai_cancelled_item_ext_ies_o;
+using tai_cancelled_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cell_id_cancelled_item_ext_ies_container;
+using cell_id_cancelled_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CellID-Cancelled-Item ::= SEQUENCE
 struct cell_id_cancelled_item_s {
@@ -1582,7 +1579,7 @@ struct cell_id_cancelled_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l emergency_area_id_cancelled_item_ext_ies_container;
+using emergency_area_id_cancelled_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // EmergencyAreaID-Cancelled-Item ::= SEQUENCE
 struct emergency_area_id_cancelled_item_s {
@@ -1599,7 +1596,7 @@ struct emergency_area_id_cancelled_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l tai_cancelled_item_ext_ies_container;
+using tai_cancelled_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // TAI-Cancelled-Item ::= SEQUENCE
 struct tai_cancelled_item_s {
@@ -1699,12 +1696,12 @@ private:
 };
 
 // CompletedCellinEAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o completed_cellin_eai_item_ext_ies_o;
+using completed_cellin_eai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CompletedCellinTAI-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o completed_cellin_tai_item_ext_ies_o;
+using completed_cellin_tai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l completed_cellin_eai_item_ext_ies_container;
+using completed_cellin_eai_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CompletedCellinEAI-Item ::= SEQUENCE
 struct completed_cellin_eai_item_s {
@@ -1720,7 +1717,7 @@ struct completed_cellin_eai_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l completed_cellin_tai_item_ext_ies_container;
+using completed_cellin_tai_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CompletedCellinTAI-Item ::= SEQUENCE
 struct completed_cellin_tai_item_s {
@@ -1737,7 +1734,7 @@ struct completed_cellin_tai_item_s {
 };
 
 // CellID-Broadcast-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cell_id_broadcast_item_ext_ies_o;
+using cell_id_broadcast_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CompletedCellinEAI ::= SEQUENCE (SIZE (1..65535)) OF CompletedCellinEAI-Item
 using completed_cellin_eai_l = dyn_array<completed_cellin_eai_item_s>;
@@ -1746,12 +1743,12 @@ using completed_cellin_eai_l = dyn_array<completed_cellin_eai_item_s>;
 using completed_cellin_tai_l = dyn_array<completed_cellin_tai_item_s>;
 
 // EmergencyAreaID-Broadcast-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o emergency_area_id_broadcast_item_ext_ies_o;
+using emergency_area_id_broadcast_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAI-Broadcast-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tai_broadcast_item_ext_ies_o;
+using tai_broadcast_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cell_id_broadcast_item_ext_ies_container;
+using cell_id_broadcast_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CellID-Broadcast-Item ::= SEQUENCE
 struct cell_id_broadcast_item_s {
@@ -1767,7 +1764,7 @@ struct cell_id_broadcast_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l emergency_area_id_broadcast_item_ext_ies_container;
+using emergency_area_id_broadcast_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // EmergencyAreaID-Broadcast-Item ::= SEQUENCE
 struct emergency_area_id_broadcast_item_s {
@@ -1784,7 +1781,7 @@ struct emergency_area_id_broadcast_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l tai_broadcast_item_ext_ies_container;
+using tai_broadcast_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // TAI-Broadcast-Item ::= SEQUENCE
 struct tai_broadcast_item_s {
@@ -1884,9 +1881,9 @@ private:
 };
 
 // CGI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cgi_ext_ies_o;
+using cgi_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cgi_ext_ies_container;
+using cgi_ext_ies_container = protocol_ext_container_empty_l;
 
 // CGI ::= SEQUENCE
 struct cgi_s {
@@ -1917,9 +1914,9 @@ struct cn_type_opts {
 typedef enumerated<cn_type_opts, true, 1> cn_type_e;
 
 // CNTypeRestrictions-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cn_type_restricts_item_ext_ies_o;
+using cn_type_restricts_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cn_type_restricts_item_ext_ies_container;
+using cn_type_restricts_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CNTypeRestrictions-Item ::= SEQUENCE
 struct cn_type_restricts_item_s {
@@ -1940,9 +1937,9 @@ struct cn_type_restricts_item_s {
 using cn_type_restricts_l = dyn_array<cn_type_restricts_item_s>;
 
 // CSG-IdList-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o csg_id_list_item_ext_ies_o;
+using csg_id_list_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l csg_id_list_item_ext_ies_container;
+using csg_id_list_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CSG-IdList-Item ::= SEQUENCE
 struct csg_id_list_item_s {
@@ -1962,7 +1959,7 @@ struct csg_id_list_item_s {
 using csg_id_list_l = dyn_array<csg_id_list_item_s>;
 
 // CSGMembershipInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o csg_membership_info_ext_ies_o;
+using csg_membership_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CSGMembershipStatus ::= ENUMERATED
 struct csg_membership_status_opts {
@@ -1980,7 +1977,7 @@ struct cell_access_mode_opts {
 };
 typedef enumerated<cell_access_mode_opts, true> cell_access_mode_e;
 
-typedef protocol_ext_container_empty_l csg_membership_info_ext_ies_container;
+using csg_membership_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // CSGMembershipInfo ::= SEQUENCE
 struct csg_membership_info_s {
@@ -2323,9 +2320,9 @@ private:
 };
 
 // Cdma2000OneXSRVCCInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cdma2000_one_xsrvcc_info_ext_ies_o;
+using cdma2000_one_xsrvcc_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cdma2000_one_xsrvcc_info_ext_ies_container;
+using cdma2000_one_xsrvcc_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // Cdma2000OneXSRVCCInfo ::= SEQUENCE
 struct cdma2000_one_xsrvcc_info_s {
@@ -2666,9 +2663,9 @@ struct cell_size_opts {
 typedef enumerated<cell_size_opts, true> cell_size_e;
 
 // CellType-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o cell_type_ext_ies_o;
+using cell_type_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l cell_type_ext_ies_container;
+using cell_type_ext_ies_container = protocol_ext_container_empty_l;
 
 // CellType ::= SEQUENCE
 struct cell_type_s {
@@ -2740,12 +2737,12 @@ struct supported_tas_item_s {
 };
 
 // ConnectedengNBItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o connectedeng_nb_item_ext_ies_o;
+using connectedeng_nb_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // SupportedTAs ::= SEQUENCE (SIZE (1..256)) OF SupportedTAs-Item
 using supported_tas_l = dyn_array<supported_tas_item_s>;
 
-typedef protocol_ext_container_empty_l connectedeng_nb_item_ext_ies_container;
+using connectedeng_nb_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // ConnectedengNBItem ::= SEQUENCE
 struct connectedeng_nb_item_s {
@@ -2818,10 +2815,10 @@ struct gbr_qos_info_ext_ies_o {
 };
 
 // ScheduledCommunicationTime-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o sched_communication_time_ext_ies_o;
+using sched_communication_time_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // DL-CP-SecurityInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o dl_cp_security_info_ext_ies_o;
+using dl_cp_security_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // E-RABQoSParameters-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct erab_qos_params_ext_ies_o {
@@ -2903,7 +2900,7 @@ struct gbr_qos_info_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l sched_communication_time_ext_ies_container;
+using sched_communication_time_ext_ies_container = protocol_ext_container_empty_l;
 
 // ScheduledCommunicationTime ::= SEQUENCE
 struct sched_communication_time_s {
@@ -2925,7 +2922,7 @@ struct sched_communication_time_s {
 };
 
 // Subscription-Based-UE-DifferentiationInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o subscription_based_ue_differentiation_info_ext_ies_o;
+using subscription_based_ue_differentiation_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CE-ModeBRestricted ::= ENUMERATED
 struct ce_mode_brestricted_opts {
@@ -2935,7 +2932,7 @@ struct ce_mode_brestricted_opts {
 };
 typedef enumerated<ce_mode_brestricted_opts, true> ce_mode_brestricted_e;
 
-typedef protocol_ext_container_empty_l dl_cp_security_info_ext_ies_container;
+using dl_cp_security_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // DL-CP-SecurityInformation ::= SEQUENCE
 struct dl_cp_security_info_s {
@@ -3001,7 +2998,7 @@ struct enhanced_coverage_restricted_opts {
 };
 typedef enumerated<enhanced_coverage_restricted_opts, true> enhanced_coverage_restricted_e;
 
-typedef protocol_ext_container_empty_l subscription_based_ue_differentiation_info_ext_ies_container;
+using subscription_based_ue_differentiation_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // Subscription-Based-UE-DifferentiationInfo ::= SEQUENCE
 struct subscription_based_ue_differentiation_info_s {
@@ -3282,15 +3279,15 @@ private:
 };
 
 // Global-GNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o global_gnb_id_ext_ies_o;
+using global_gnb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // GlobalENB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o global_enb_id_ext_ies_o;
+using global_enb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // GNB-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o gnb_ext_ies_o;
+using gnb_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l global_enb_id_ext_ies_container;
+using global_enb_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // Global-ENB-ID ::= SEQUENCE
 struct global_enb_id_s {
@@ -3307,7 +3304,7 @@ struct global_enb_id_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l global_gnb_id_ext_ies_container;
+using global_gnb_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // Global-GNB-ID ::= SEQUENCE
 struct global_gnb_id_s {
@@ -3325,9 +3322,9 @@ struct global_gnb_id_s {
 };
 
 // NG-eNB-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ng_enb_ext_ies_o;
+using ng_enb_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l gnb_ext_ies_container;
+using gnb_ext_ies_container = protocol_ext_container_empty_l;
 
 // GNB ::= SEQUENCE
 struct gnb_s {
@@ -3343,7 +3340,7 @@ struct gnb_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ng_enb_ext_ies_container;
+using ng_enb_ext_ies_container = protocol_ext_container_empty_l;
 
 // NG-eNB ::= SEQUENCE
 struct ng_enb_s {
@@ -3360,7 +3357,7 @@ struct ng_enb_s {
 };
 
 // ContextatSource-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o contextat_source_ext_ies_o;
+using contextat_source_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // Global-RAN-NODE-ID ::= CHOICE
 struct global_ran_node_id_c {
@@ -3420,7 +3417,7 @@ private:
   void destroy_();
 };
 
-typedef protocol_ext_container_empty_l contextat_source_ext_ies_container;
+using contextat_source_ext_ies_container = protocol_ext_container_empty_l;
 
 // ContextatSource ::= SEQUENCE
 struct contextat_source_s {
@@ -3438,7 +3435,7 @@ struct contextat_source_s {
 };
 
 // CriticalityDiagnostics-IE-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o crit_diagnostics_ie_item_ext_ies_o;
+using crit_diagnostics_ie_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TypeOfError ::= ENUMERATED
 struct type_of_error_opts {
@@ -3448,7 +3445,7 @@ struct type_of_error_opts {
 };
 typedef enumerated<type_of_error_opts, true> type_of_error_e;
 
-typedef protocol_ext_container_empty_l crit_diagnostics_ie_item_ext_ies_container;
+using crit_diagnostics_ie_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // CriticalityDiagnostics-IE-Item ::= SEQUENCE
 struct crit_diagnostics_ie_item_s {
@@ -3467,7 +3464,7 @@ struct crit_diagnostics_ie_item_s {
 };
 
 // CriticalityDiagnostics-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o crit_diagnostics_ext_ies_o;
+using crit_diagnostics_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // CriticalityDiagnostics-IE-List ::= SEQUENCE (SIZE (1..256)) OF CriticalityDiagnostics-IE-Item
 using crit_diagnostics_ie_list_l = dyn_array<crit_diagnostics_ie_item_s>;
@@ -3480,7 +3477,7 @@ struct trigger_msg_opts {
 };
 typedef enumerated<trigger_msg_opts> trigger_msg_e;
 
-typedef protocol_ext_container_empty_l crit_diagnostics_ext_ies_container;
+using crit_diagnostics_ext_ies_container = protocol_ext_container_empty_l;
 
 // CriticalityDiagnostics ::= SEQUENCE
 struct crit_diagnostics_s {
@@ -3579,15 +3576,15 @@ struct deactiv_trace_s {
 using forbidden_lacs_l = dyn_array<fixed_octstring<2, true> >;
 
 // ForbiddenLAs-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o forbidden_las_item_ext_ies_o;
+using forbidden_las_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // ForbiddenTACs ::= SEQUENCE (SIZE (1..4096)) OF OCTET STRING (SIZE (2))
 using forbidden_tacs_l = dyn_array<fixed_octstring<2, true> >;
 
 // ForbiddenTAs-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o forbidden_tas_item_ext_ies_o;
+using forbidden_tas_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l forbidden_las_item_ext_ies_container;
+using forbidden_las_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // ForbiddenLAs-Item ::= SEQUENCE
 struct forbidden_las_item_s {
@@ -3604,7 +3601,7 @@ struct forbidden_las_item_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l forbidden_tas_item_ext_ies_container;
+using forbidden_tas_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // ForbiddenTAs-Item ::= SEQUENCE
 struct forbidden_tas_item_s {
@@ -3722,7 +3719,7 @@ struct ho_restrict_list_ext_ies_o {
 };
 
 // NRUESecurityCapabilities-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o nrue_security_cap_ext_ies_o;
+using nrue_security_cap_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // DLNASPDUDeliveryAckRequest ::= ENUMERATED
 struct dlnaspdu_delivery_ack_request_opts {
@@ -3777,7 +3774,7 @@ struct ho_restrict_list_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l nrue_security_cap_ext_ies_container;
+using nrue_security_cap_ext_ies_container = protocol_ext_container_empty_l;
 
 // NRUESecurityCapabilities ::= SEQUENCE
 struct nrue_security_cap_s {
@@ -4037,9 +4034,9 @@ struct dl_non_ueassociated_lp_pa_transport_s {
 };
 
 // E-RABDataForwardingItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_data_forwarding_item_ext_ies_o;
+using erab_data_forwarding_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_data_forwarding_item_ext_ies_container;
+using erab_data_forwarding_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABDataForwardingItem ::= SEQUENCE
 struct erab_data_forwarding_item_s {
@@ -4299,9 +4296,9 @@ using erab_ie_container_pair_list_l =
     dyn_seq_of<dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>, 1, 256>;
 
 // E-RABAdmittedItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_admitted_item_ext_ies_o;
+using erab_admitted_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_admitted_item_ext_ies_container;
+using erab_admitted_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABAdmittedItem ::= SEQUENCE
 struct erab_admitted_item_s {
@@ -4360,9 +4357,9 @@ struct erab_admitted_item_ies_o {
 };
 
 // E-RABFailedToResumeItemResumeReq-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_failed_to_resume_item_resume_req_ext_ies_o;
+using erab_failed_to_resume_item_resume_req_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_failed_to_resume_item_resume_req_ext_ies_container;
+using erab_failed_to_resume_item_resume_req_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABFailedToResumeItemResumeReq ::= SEQUENCE
 struct erab_failed_to_resume_item_resume_req_s {
@@ -4412,9 +4409,9 @@ struct erab_failed_to_resume_item_resume_req_ies_o {
 };
 
 // E-RABFailedToResumeItemResumeRes-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_failed_to_resume_item_resume_res_ext_ies_o;
+using erab_failed_to_resume_item_resume_res_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_failed_to_resume_item_resume_res_ext_ies_container;
+using erab_failed_to_resume_item_resume_res_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABFailedToResumeItemResumeRes ::= SEQUENCE
 struct erab_failed_to_resume_item_resume_res_s {
@@ -4464,9 +4461,9 @@ struct erab_failed_to_resume_item_resume_res_ies_o {
 };
 
 // E-RABFailedToSetupItemHOReqAckExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_failed_to_setup_item_ho_req_ack_ext_ies_o;
+using erab_failed_to_setup_item_ho_req_ack_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_failed_to_setup_item_ho_req_ack_ext_ies_container;
+using erab_failed_to_setup_item_ho_req_ack_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABFailedToSetupItemHOReqAck ::= SEQUENCE
 struct erab_failed_to_setup_item_ho_req_ack_s {
@@ -4524,9 +4521,9 @@ struct dl_forwarding_opts {
 typedef enumerated<dl_forwarding_opts, true> dl_forwarding_e;
 
 // E-RABInformationListItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_info_list_item_ext_ies_o;
+using erab_info_list_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_info_list_item_ext_ies_container;
+using erab_info_list_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABInformationListItem ::= SEQUENCE
 struct erab_info_list_item_s {
@@ -4580,9 +4577,9 @@ struct erab_info_list_ies_o {
 using erab_info_list_l = dyn_array<protocol_ie_single_container_s<erab_info_list_ies_o> >;
 
 // E-RABItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_item_ext_ies_o;
+using erab_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_item_ext_ies_container;
+using erab_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABItem ::= SEQUENCE
 struct erab_item_s {
@@ -4635,9 +4632,9 @@ struct erab_item_ies_o {
 using erab_list_l = dyn_array<protocol_ie_single_container_s<erab_item_ies_o> >;
 
 // E-RABModifyItemBearerModConfExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_modify_item_bearer_mod_conf_ext_ies_o;
+using erab_modify_item_bearer_mod_conf_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_modify_item_bearer_mod_conf_ext_ies_container;
+using erab_modify_item_bearer_mod_conf_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABModifyItemBearerModConf ::= SEQUENCE
 struct erab_modify_item_bearer_mod_conf_s {
@@ -4792,9 +4789,9 @@ struct erab_mod_confirm_s {
 };
 
 // E-RABUsageReportItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erabusage_report_item_ext_ies_o;
+using erabusage_report_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erabusage_report_item_ext_ies_container;
+using erabusage_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABUsageReportItem ::= SEQUENCE
 struct erabusage_report_item_s {
@@ -4846,18 +4843,18 @@ struct erabusage_report_item_ies_o {
 };
 
 // NR-CGI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o nr_cgi_ext_ies_o;
+using nr_cgi_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // E-RABNotToBeModifiedItemBearerModInd-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_not_to_be_modified_item_bearer_mod_ind_ext_ies_o;
+using erab_not_to_be_modified_item_bearer_mod_ind_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // E-RABToBeModifiedItemBearerModInd-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_to_be_modified_item_bearer_mod_ind_ext_ies_o;
+using erab_to_be_modified_item_bearer_mod_ind_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // E-RABUsageReportList ::= SEQUENCE (SIZE (1..2)) OF ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam}
 using erabusage_report_list_l = bounded_array<protocol_ie_single_container_s<erabusage_report_item_ies_o>, 2>;
 
-typedef protocol_ext_container_empty_l nr_cgi_ext_ies_container;
+using nr_cgi_ext_ies_container = protocol_ext_container_empty_l;
 
 // NR-CGI ::= SEQUENCE
 struct nr_cgi_s {
@@ -4875,10 +4872,10 @@ struct nr_cgi_s {
 };
 
 // PSCellInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ps_cell_info_ext_ies_o;
+using ps_cell_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // SecondaryRATDataUsageReportItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o secondary_rat_data_usage_report_item_ext_ies_o;
+using secondary_rat_data_usage_report_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // SecondaryRATType ::= ENUMERATED
 struct secondary_rat_type_opts {
@@ -4888,7 +4885,7 @@ struct secondary_rat_type_opts {
 };
 typedef enumerated<secondary_rat_type_opts, true, 1> secondary_rat_type_e;
 
-typedef protocol_ext_container_empty_l erab_not_to_be_modified_item_bearer_mod_ind_ext_ies_container;
+using erab_not_to_be_modified_item_bearer_mod_ind_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABNotToBeModifiedItemBearerModInd ::= SEQUENCE
 struct erab_not_to_be_modified_item_bearer_mod_ind_s {
@@ -4906,7 +4903,7 @@ struct erab_not_to_be_modified_item_bearer_mod_ind_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l erab_to_be_modified_item_bearer_mod_ind_ext_ies_container;
+using erab_to_be_modified_item_bearer_mod_ind_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABToBeModifiedItemBearerModInd ::= SEQUENCE
 struct erab_to_be_modified_item_bearer_mod_ind_s {
@@ -4924,7 +4921,7 @@ struct erab_to_be_modified_item_bearer_mod_ind_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ps_cell_info_ext_ies_container;
+using ps_cell_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // PSCellInformation ::= SEQUENCE
 struct ps_cell_info_s {
@@ -4940,7 +4937,7 @@ struct ps_cell_info_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l secondary_rat_data_usage_report_item_ext_ies_container;
+using secondary_rat_data_usage_report_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // SecondaryRATDataUsageReportItem ::= SEQUENCE
 struct secondary_rat_data_usage_report_item_s {
@@ -5058,7 +5055,7 @@ struct secondary_rat_data_usage_report_item_ies_o {
 };
 
 // Tunnel-Information-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tunnel_info_ext_ies_o;
+using tunnel_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // UserLocationInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct user_location_info_ext_ies_o {
@@ -5097,7 +5094,7 @@ struct user_location_info_ext_ies_o {
 using secondary_rat_data_usage_report_list_l =
     dyn_array<protocol_ie_single_container_s<secondary_rat_data_usage_report_item_ies_o> >;
 
-typedef protocol_ext_container_empty_l tunnel_info_ext_ies_container;
+using tunnel_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // TunnelInformation ::= SEQUENCE
 struct tunnel_info_s {
@@ -5245,9 +5242,9 @@ struct erab_mod_ind_s {
 };
 
 // E-RABModifyItemBearerModResExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_modify_item_bearer_mod_res_ext_ies_o;
+using erab_modify_item_bearer_mod_res_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_modify_item_bearer_mod_res_ext_ies_container;
+using erab_modify_item_bearer_mod_res_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABModifyItemBearerModRes ::= SEQUENCE
 struct erab_modify_item_bearer_mod_res_s {
@@ -5847,9 +5844,9 @@ struct erab_release_ind_s {
 };
 
 // E-RABReleaseItemBearerRelCompExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_release_item_bearer_rel_comp_ext_ies_o;
+using erab_release_item_bearer_rel_comp_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_release_item_bearer_rel_comp_ext_ies_container;
+using erab_release_item_bearer_rel_comp_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABReleaseItemBearerRelComp ::= SEQUENCE
 struct erab_release_item_bearer_rel_comp_s {
@@ -6008,9 +6005,9 @@ struct erab_release_resp_s {
 };
 
 // E-RABSetupItemBearerSUResExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_setup_item_bearer_su_res_ext_ies_o;
+using erab_setup_item_bearer_su_res_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_setup_item_bearer_su_res_ext_ies_container;
+using erab_setup_item_bearer_su_res_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABSetupItemBearerSURes ::= SEQUENCE
 struct erab_setup_item_bearer_su_res_s {
@@ -6061,9 +6058,9 @@ struct erab_setup_item_bearer_su_res_ies_o {
 };
 
 // E-RABSetupItemCtxtSUResExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_setup_item_ctxt_su_res_ext_ies_o;
+using erab_setup_item_ctxt_su_res_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_setup_item_ctxt_su_res_ext_ies_container;
+using erab_setup_item_ctxt_su_res_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABSetupItemCtxtSURes ::= SEQUENCE
 struct erab_setup_item_ctxt_su_res_s {
@@ -6654,9 +6651,9 @@ using erab_to_be_setup_list_ctxt_su_req_l =
     dyn_array<protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o> >;
 
 // E-RABToBeSwitchedDLItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_to_be_switched_dl_item_ext_ies_o;
+using erab_to_be_switched_dl_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_to_be_switched_dl_item_ext_ies_container;
+using erab_to_be_switched_dl_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABToBeSwitchedDLItem ::= SEQUENCE
 struct erab_to_be_switched_dl_item_s {
@@ -6707,9 +6704,9 @@ struct erab_to_be_switched_dl_item_ies_o {
 };
 
 // E-RABToBeSwitchedULItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o erab_to_be_switched_ul_item_ext_ies_o;
+using erab_to_be_switched_ul_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l erab_to_be_switched_ul_item_ext_ies_container;
+using erab_to_be_switched_ul_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // E-RABToBeSwitchedULItem ::= SEQUENCE
 struct erab_to_be_switched_ul_item_s {
@@ -6779,12 +6776,12 @@ struct ehrpd_multi_sector_load_report_resp_item_s {
 };
 
 // ENBX2ExtTLA-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o enbx2_ext_tla_ext_ies_o;
+using enbx2_ext_tla_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // ENBX2GTPTLAs ::= SEQUENCE (SIZE (1..16)) OF BIT STRING (SIZE (1..160,...))
 using enbx2_gtptlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 16>;
 
-typedef protocol_ext_container_empty_l enbx2_ext_tla_ext_ies_container;
+using enbx2_ext_tla_ext_ies_container = protocol_ext_container_empty_l;
 
 // ENBX2ExtTLA ::= SEQUENCE
 struct enbx2_ext_tla_s {
@@ -6812,7 +6809,7 @@ struct muting_availability_ind_opts {
 typedef enumerated<muting_availability_ind_opts, true> muting_availability_ind_e;
 
 // RLFReportInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o rlf_report_info_ext_ies_o;
+using rlf_report_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // ENBIndirectX2TransportLayerAddresses ::= SEQUENCE (SIZE (1..2)) OF BIT STRING (SIZE (1..160,...))
 using enb_indirect_x2_transport_layer_addresses_l = bounded_array<bounded_bitstring<1, 160, true, true>, 2>;
@@ -6821,12 +6818,12 @@ using enb_indirect_x2_transport_layer_addresses_l = bounded_array<bounded_bitstr
 using enbx2_ext_tlas_l = dyn_array<enbx2_ext_tla_s>;
 
 // Global-en-gNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o global_en_g_nb_id_ext_ies_o;
+using global_en_g_nb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // MutingPatternInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o muting_pattern_info_ext_ies_o;
+using muting_pattern_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l rlf_report_info_ext_ies_container;
+using rlf_report_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // RLFReportInformation ::= SEQUENCE
 struct rlf_report_info_s {
@@ -6885,18 +6882,18 @@ struct time_synchronisation_info_ext_ies_o {
 };
 
 // EN-DCSONeNBIdentification-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o en_dcso_nenb_identif_ext_ies_o;
+using en_dcso_nenb_identif_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // EN-DCSONengNBIdentification-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o en_dcso_neng_nb_identif_ext_ies_o;
+using en_dcso_neng_nb_identif_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // ENBX2TLAs ::= SEQUENCE (SIZE (1..2)) OF BIT STRING (SIZE (1..160,...))
 using enbx2_tlas_l = bounded_array<bounded_bitstring<1, 160, true, true>, 2>;
 
 // FiveGSTAI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o five_gstai_ext_ies_o;
+using five_gstai_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l global_en_g_nb_id_ext_ies_container;
+using global_en_g_nb_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // Global-en-gNB-ID ::= SEQUENCE
 struct global_en_g_nb_id_s {
@@ -6913,7 +6910,7 @@ struct global_en_g_nb_id_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l muting_pattern_info_ext_ies_container;
+using muting_pattern_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // MutingPatternInformation ::= SEQUENCE
 struct muting_pattern_info_s {
@@ -7024,7 +7021,7 @@ struct x2_tnl_cfg_info_ext_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-typedef protocol_ext_container_empty_l en_dcso_nenb_identif_ext_ies_container;
+using en_dcso_nenb_identif_ext_ies_container = protocol_ext_container_empty_l;
 
 // EN-DCSONeNBIdentification ::= SEQUENCE
 struct en_dcso_nenb_identif_s {
@@ -7041,7 +7038,7 @@ struct en_dcso_nenb_identif_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l en_dcso_neng_nb_identif_ext_ies_container;
+using en_dcso_neng_nb_identif_ext_ies_container = protocol_ext_container_empty_l;
 
 // EN-DCSONengNBIdentification ::= SEQUENCE
 struct en_dcso_neng_nb_identif_s {
@@ -7059,12 +7056,12 @@ struct en_dcso_neng_nb_identif_s {
 };
 
 // EN-DCTransferTypeReply-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o en_dc_transfer_type_reply_ext_ies_o;
+using en_dc_transfer_type_reply_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // EN-DCTransferTypeRequest-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o en_dc_transfer_type_request_ext_ies_o;
+using en_dc_transfer_type_request_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l five_gstai_ext_ies_container;
+using five_gstai_ext_ies_container = protocol_ext_container_empty_l;
 
 // FiveGSTAI ::= SEQUENCE
 struct five_gstai_s {
@@ -7176,7 +7173,7 @@ struct x2_tnl_cfg_info_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l en_dc_transfer_type_reply_ext_ies_container;
+using en_dc_transfer_type_reply_ext_ies_container = protocol_ext_container_empty_l;
 
 // EN-DCTransferTypeReply ::= SEQUENCE
 struct en_dc_transfer_type_reply_s {
@@ -7193,7 +7190,7 @@ struct en_dc_transfer_type_reply_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l en_dc_transfer_type_request_ext_ies_container;
+using en_dc_transfer_type_request_ext_ies_container = protocol_ext_container_empty_l;
 
 // EN-DCTransferTypeRequest ::= SEQUENCE
 struct en_dc_transfer_type_request_s {
@@ -7242,7 +7239,7 @@ struct son_info_request_opts {
 typedef enumerated<son_info_request_opts, true, 3> son_info_request_e;
 
 // EN-DCSONConfigurationTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o en_dcson_cfg_transfer_ext_ies_o;
+using en_dcson_cfg_transfer_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // EN-DCSONTransferType ::= CHOICE
 struct en_dcson_transfer_type_c {
@@ -7375,7 +7372,7 @@ private:
   void destroy_();
 };
 
-typedef protocol_ext_container_empty_l en_dcson_cfg_transfer_ext_ies_container;
+using en_dcson_cfg_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
 // EN-DCSONConfigurationTransfer ::= SEQUENCE
 struct en_dcson_cfg_transfer_s {
@@ -7395,9 +7392,9 @@ struct en_dcson_cfg_transfer_s {
 };
 
 // ENB-StatusTransfer-TransparentContainer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o enb_status_transfer_transparent_container_ext_ies_o;
+using enb_status_transfer_transparent_container_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l enb_status_transfer_transparent_container_ext_ies_container;
+using enb_status_transfer_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
 // ENB-StatusTransfer-TransparentContainer ::= SEQUENCE
 struct enb_status_transfer_transparent_container_s {
@@ -7414,12 +7411,12 @@ struct enb_status_transfer_transparent_container_s {
 };
 
 // S-TMSI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o s_tmsi_ext_ies_o;
+using s_tmsi_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // UL-CP-SecurityInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ul_cp_security_info_ext_ies_o;
+using ul_cp_security_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l s_tmsi_ext_ies_container;
+using s_tmsi_ext_ies_container = protocol_ext_container_empty_l;
 
 // S-TMSI ::= SEQUENCE
 struct s_tmsi_s {
@@ -7436,7 +7433,7 @@ struct s_tmsi_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ul_cp_security_info_ext_ies_container;
+using ul_cp_security_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // UL-CP-SecurityInformation ::= SEQUENCE
 struct ul_cp_security_info_s {
@@ -7534,9 +7531,9 @@ struct enbcp_relocation_ind_s {
 };
 
 // ListeningSubframePattern-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o listening_sf_pattern_ext_ies_o;
+using listening_sf_pattern_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l listening_sf_pattern_ext_ies_container;
+using listening_sf_pattern_ext_ies_container = protocol_ext_container_empty_l;
 
 // ListeningSubframePattern ::= SEQUENCE
 struct listening_sf_pattern_s {
@@ -7564,12 +7561,12 @@ struct listening_sf_pattern_s {
 };
 
 // SynchronisationInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o synchronisation_info_ext_ies_o;
+using synchronisation_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // SourceeNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o sourceenb_id_ext_ies_o;
+using sourceenb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l synchronisation_info_ext_ies_container;
+using synchronisation_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // SynchronisationInformation ::= SEQUENCE
 struct synchronisation_info_s {
@@ -7591,7 +7588,7 @@ struct synchronisation_info_s {
 };
 
 // TargeteNB-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o targetenb_id_ext_ies_o;
+using targetenb_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // SONConfigurationTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct son_cfg_transfer_ext_ies_o {
@@ -7637,7 +7634,7 @@ struct son_cfg_transfer_ext_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-typedef protocol_ext_container_empty_l sourceenb_id_ext_ies_container;
+using sourceenb_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // SourceeNB-ID ::= SEQUENCE
 struct sourceenb_id_s {
@@ -7652,7 +7649,7 @@ struct sourceenb_id_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l targetenb_id_ext_ies_container;
+using targetenb_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // TargeteNB-ID ::= SEQUENCE
 struct targetenb_id_s {
@@ -8022,12 +8019,12 @@ struct enb_cfg_upd_fail_s {
 };
 
 // LAI-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o lai_ext_ies_o;
+using lai_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // GERAN-Cell-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o geran_cell_id_ext_ies_o;
+using geran_cell_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l lai_ext_ies_container;
+using lai_ext_ies_container = protocol_ext_container_empty_l;
 
 // LAI ::= SEQUENCE
 struct lai_s {
@@ -8045,9 +8042,9 @@ struct lai_s {
 };
 
 // TargetRNC-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o target_rnc_id_ext_ies_o;
+using target_rnc_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l geran_cell_id_ext_ies_container;
+using geran_cell_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // GERAN-Cell-ID ::= SEQUENCE
 struct geran_cell_id_s {
@@ -8065,7 +8062,7 @@ struct geran_cell_id_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l target_rnc_id_ext_ies_container;
+using target_rnc_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // TargetRNC-ID ::= SEQUENCE
 struct target_rnc_id_s {
@@ -8160,9 +8157,9 @@ private:
 };
 
 // RIMTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o rim_transfer_ext_ies_o;
+using rim_transfer_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l rim_transfer_ext_ies_container;
+using rim_transfer_ext_ies_container = protocol_ext_container_empty_l;
 
 // RIMTransfer ::= SEQUENCE
 struct rim_transfer_s {
@@ -8465,7 +8462,7 @@ struct event_triggered_cell_load_report_resp_s {
 };
 
 // ExpectedUEActivityBehaviour-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o expected_ue_activity_behaviour_ext_ies_o;
+using expected_ue_activity_behaviour_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // SourceOfUEActivityBehaviourInformation ::= ENUMERATED
 struct source_of_ue_activity_behaviour_info_opts {
@@ -8475,7 +8472,7 @@ struct source_of_ue_activity_behaviour_info_opts {
 };
 typedef enumerated<source_of_ue_activity_behaviour_info_opts, true> source_of_ue_activity_behaviour_info_e;
 
-typedef protocol_ext_container_empty_l expected_ue_activity_behaviour_ext_ies_container;
+using expected_ue_activity_behaviour_ext_ies_container = protocol_ext_container_empty_l;
 
 // ExpectedUEActivityBehaviour ::= SEQUENCE
 struct expected_ue_activity_behaviour_s {
@@ -8507,9 +8504,9 @@ struct expected_ho_interv_opts {
 typedef enumerated<expected_ho_interv_opts, true> expected_ho_interv_e;
 
 // ExpectedUEBehaviour-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o expected_ue_behaviour_ext_ies_o;
+using expected_ue_behaviour_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l expected_ue_behaviour_ext_ies_container;
+using expected_ue_behaviour_ext_ies_container = protocol_ext_container_empty_l;
 
 // ExpectedUEBehaviour ::= SEQUENCE
 struct expected_ue_behaviour_s {
@@ -9125,9 +9122,9 @@ struct ho_prep_fail_s {
 };
 
 // MBSFN-ResultToLogInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o mbsfn_result_to_log_info_ext_ies_o;
+using mbsfn_result_to_log_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l mbsfn_result_to_log_info_ext_ies_container;
+using mbsfn_result_to_log_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // MBSFN-ResultToLogInfo ::= SEQUENCE
 struct mbsfn_result_to_log_info_s {
@@ -9154,7 +9151,7 @@ struct links_to_log_opts {
 typedef enumerated<links_to_log_opts, true> links_to_log_e;
 
 // LoggedMBSFNMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o logged_mbsfnmdt_ext_ies_o;
+using logged_mbsfnmdt_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // LoggingDuration ::= ENUMERATED
 struct logging_dur_opts {
@@ -9177,7 +9174,7 @@ struct logging_interv_opts {
 typedef enumerated<logging_interv_opts> logging_interv_e;
 
 // M3Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m3_cfg_ext_ies_o;
+using m3_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // M3period ::= ENUMERATED
 struct m3period_opts {
@@ -9202,7 +9199,7 @@ struct m3period_opts {
 typedef enumerated<m3period_opts, true, 7> m3period_e;
 
 // M4Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m4_cfg_ext_ies_o;
+using m4_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // M4period ::= ENUMERATED
 struct m4period_opts {
@@ -9215,7 +9212,7 @@ struct m4period_opts {
 typedef enumerated<m4period_opts, true> m4period_e;
 
 // M5Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m5_cfg_ext_ies_o;
+using m5_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // M5period ::= ENUMERATED
 struct m5period_opts {
@@ -9228,7 +9225,7 @@ struct m5period_opts {
 typedef enumerated<m5period_opts, true> m5period_e;
 
 // M6Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m6_cfg_ext_ies_o;
+using m6_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // M6delay-threshold ::= ENUMERATED
 struct m6delay_thres_opts {
@@ -9251,7 +9248,7 @@ struct m6report_interv_opts {
 typedef enumerated<m6report_interv_opts, true> m6report_interv_e;
 
 // M7Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m7_cfg_ext_ies_o;
+using m7_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // MBSFN-ResultToLog ::= SEQUENCE (SIZE (1..8)) OF MBSFN-ResultToLogInfo
 using mbsfn_result_to_log_l = dyn_array<mbsfn_result_to_log_info_s>;
@@ -9268,9 +9265,9 @@ typedef enumerated<wlan_meas_cfg_opts, true> wlan_meas_cfg_e;
 using wlan_meas_cfg_name_list_l = bounded_array<bounded_octstring<1, 32, true>, 4>;
 
 // WLANMeasurementConfiguration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o wlan_meas_cfg_ext_ies_o;
+using wlan_meas_cfg_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l logged_mbsfnmdt_ext_ies_container;
+using logged_mbsfnmdt_ext_ies_container = protocol_ext_container_empty_l;
 
 // LoggedMBSFNMDT ::= SEQUENCE
 struct logged_mbsfnmdt_s {
@@ -9290,12 +9287,12 @@ struct logged_mbsfnmdt_s {
 };
 
 // M1PeriodicReporting-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m1_periodic_report_ext_ies_o;
+using m1_periodic_report_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // M1ThresholdEventA2-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o m1_thres_event_a2_ext_ies_o;
+using m1_thres_event_a2_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l m3_cfg_ext_ies_container;
+using m3_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // M3Configuration ::= SEQUENCE
 struct m3_cfg_s {
@@ -9311,7 +9308,7 @@ struct m3_cfg_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l m4_cfg_ext_ies_container;
+using m4_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // M4Configuration ::= SEQUENCE
 struct m4_cfg_s {
@@ -9328,7 +9325,7 @@ struct m4_cfg_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l m5_cfg_ext_ies_container;
+using m5_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // M5Configuration ::= SEQUENCE
 struct m5_cfg_s {
@@ -9345,7 +9342,7 @@ struct m5_cfg_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l m6_cfg_ext_ies_container;
+using m6_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // M6Configuration ::= SEQUENCE
 struct m6_cfg_s {
@@ -9364,7 +9361,7 @@ struct m6_cfg_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l m7_cfg_ext_ies_container;
+using m7_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // M7Configuration ::= SEQUENCE
 struct m7_cfg_s {
@@ -9474,7 +9471,7 @@ struct report_interv_mdt_opts {
 };
 typedef enumerated<report_interv_mdt_opts> report_interv_mdt_e;
 
-typedef protocol_ext_container_empty_l wlan_meas_cfg_ext_ies_container;
+using wlan_meas_cfg_ext_ies_container = protocol_ext_container_empty_l;
 
 // WLANMeasurementConfiguration ::= SEQUENCE
 struct wlan_meas_cfg_s {
@@ -9626,7 +9623,7 @@ struct logged_mdt_ext_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-typedef protocol_ext_container_empty_l m1_periodic_report_ext_ies_container;
+using m1_periodic_report_ext_ies_container = protocol_ext_container_empty_l;
 
 // M1PeriodicReporting ::= SEQUENCE
 struct m1_periodic_report_s {
@@ -9651,7 +9648,7 @@ struct m1_report_trigger_opts {
 };
 typedef enumerated<m1_report_trigger_opts, true, 1> m1_report_trigger_e;
 
-typedef protocol_ext_container_empty_l m1_thres_event_a2_ext_ies_container;
+using m1_thres_event_a2_ext_ies_container = protocol_ext_container_empty_l;
 
 // M1ThresholdEventA2 ::= SEQUENCE
 struct m1_thres_event_a2_s {
@@ -10095,7 +10092,7 @@ struct request_type_ext_ies_o {
 };
 
 // SecurityContext-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o security_context_ext_ies_o;
+using security_context_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TraceActivation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct trace_activation_ext_ies_o {
@@ -10157,13 +10154,13 @@ struct trace_depth_opts {
 typedef enumerated<trace_depth_opts, true> trace_depth_e;
 
 // UE-Sidelink-Aggregate-MaximumBitrates-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ue_sidelink_aggregate_maximum_bitrates_ext_ies_o;
+using ue_sidelink_aggregate_maximum_bitrates_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // UESecurityCapabilities-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ue_security_cap_ext_ies_o;
+using ue_security_cap_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // V2XServicesAuthorized-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o v2xservices_authorized_ext_ies_o;
+using v2xservices_authorized_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // VehicleUE ::= ENUMERATED
 struct vehicle_ue_opts {
@@ -10221,7 +10218,7 @@ struct request_type_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l security_context_ext_ies_container;
+using security_context_ext_ies_container = protocol_ext_container_empty_l;
 
 // SecurityContext ::= SEQUENCE
 struct security_context_s {
@@ -10272,7 +10269,7 @@ struct trace_activation_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ue_security_cap_ext_ies_container;
+using ue_security_cap_ext_ies_container = protocol_ext_container_empty_l;
 
 // UESecurityCapabilities ::= SEQUENCE
 struct ue_security_cap_s {
@@ -10289,7 +10286,7 @@ struct ue_security_cap_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l ue_sidelink_aggregate_maximum_bitrates_ext_ies_container;
+using ue_sidelink_aggregate_maximum_bitrates_ext_ies_container = protocol_ext_container_empty_l;
 
 // UESidelinkAggregateMaximumBitrate ::= SEQUENCE
 struct ue_sidelink_aggregate_maximum_bitrate_s {
@@ -10313,7 +10310,7 @@ struct ueuser_plane_cio_tsupport_ind_opts {
 };
 typedef enumerated<ueuser_plane_cio_tsupport_ind_opts, true> ueuser_plane_cio_tsupport_ind_e;
 
-typedef protocol_ext_container_empty_l v2xservices_authorized_ext_ies_container;
+using v2xservices_authorized_ext_ies_container = protocol_ext_container_empty_l;
 
 // V2XServicesAuthorized ::= SEQUENCE
 struct v2xservices_authorized_s {
@@ -10688,9 +10685,9 @@ struct ho_request_ack_s {
 };
 
 // TargetNgRanNode-ID-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o target_ng_ran_node_id_ext_ies_o;
+using target_ng_ran_node_id_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l target_ng_ran_node_id_ext_ies_container;
+using target_ng_ran_node_id_ext_ies_container = protocol_ext_container_empty_l;
 
 // TargetNgRanNode-ID ::= SEQUENCE
 struct target_ng_ran_node_id_s {
@@ -11007,9 +11004,9 @@ private:
 };
 
 // RecommendedENBItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o recommended_enb_item_ext_ies_o;
+using recommended_enb_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l recommended_enb_item_ext_ies_container;
+using recommended_enb_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // RecommendedENBItem ::= SEQUENCE
 struct recommended_enb_item_s {
@@ -11061,12 +11058,12 @@ struct recommended_enb_item_ies_o {
 using recommended_enb_list_l = bounded_array<protocol_ie_single_container_s<recommended_enb_item_ies_o>, 16>;
 
 // RecommendedENBsForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o recommended_enbs_for_paging_ext_ies_o;
+using recommended_enbs_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // InformationOnRecommendedCellsAndENBsForPaging-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o info_on_recommended_cells_and_enbs_for_paging_ext_ies_o;
+using info_on_recommended_cells_and_enbs_for_paging_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l recommended_enbs_for_paging_ext_ies_container;
+using recommended_enbs_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
 // RecommendedENBsForPaging ::= SEQUENCE
 struct recommended_enbs_for_paging_s {
@@ -11082,7 +11079,7 @@ struct recommended_enbs_for_paging_s {
   void        to_json(json_writer& j) const;
 };
 
-typedef protocol_ext_container_empty_l info_on_recommended_cells_and_enbs_for_paging_ext_ies_container;
+using info_on_recommended_cells_and_enbs_for_paging_ext_ies_container = protocol_ext_container_empty_l;
 
 // InformationOnRecommendedCellsAndENBsForPaging ::= SEQUENCE
 struct info_on_recommended_cells_and_enbs_for_paging_s {
@@ -11750,12 +11747,12 @@ struct init_ue_msg_s {
 };
 
 // UE-associatedLogicalS1-ConnectionItemExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ue_associated_lc_s1_conn_item_ext_ies_o;
+using ue_associated_lc_s1_conn_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // TAIItemExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o tai_item_ext_ies_o;
+using tai_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l ue_associated_lc_s1_conn_item_ext_ies_container;
+using ue_associated_lc_s1_conn_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // UE-associatedLogicalS1-ConnectionItem ::= SEQUENCE
 struct ue_associated_lc_s1_conn_item_s {
@@ -11775,7 +11772,7 @@ struct ue_associated_lc_s1_conn_item_s {
 };
 
 // ServedDCNsItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o served_dcns_item_ext_ies_o;
+using served_dcns_item_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // ServedGUMMEIsItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 struct served_gummeis_item_ext_ies_o {
@@ -11818,7 +11815,7 @@ using served_mmecs_l = dyn_array<fixed_octstring<1, true> >;
 // ServedPLMNs ::= SEQUENCE (SIZE (1..32)) OF OCTET STRING (SIZE (3))
 using served_plmns_l = bounded_array<fixed_octstring<3, true>, 32>;
 
-typedef protocol_ext_container_empty_l tai_item_ext_ies_container;
+using tai_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // TAIItem ::= SEQUENCE
 struct tai_item_s {
@@ -11835,7 +11832,7 @@ struct tai_item_s {
 };
 
 // UE-S1AP-ID-pair-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o ue_s1ap_id_pair_ext_ies_o;
+using ue_s1ap_id_pair_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // UE-associatedLogicalS1-ConnectionItemRes ::= OBJECT SET OF S1AP-PROTOCOL-IES
 struct ue_associated_lc_s1_conn_item_res_o {
@@ -11898,7 +11895,7 @@ struct nb_io_t_paging_e_drx_cycle_opts {
 typedef enumerated<nb_io_t_paging_e_drx_cycle_opts, true> nb_io_t_paging_e_drx_cycle_e;
 
 // NB-IoT-Paging-eDRXInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o nb_io_t_paging_e_drx_info_ext_ies_o;
+using nb_io_t_paging_e_drx_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // NB-IoT-PagingTimeWindow ::= ENUMERATED
 struct nb_io_t_paging_time_win_opts {
@@ -11956,7 +11953,7 @@ struct paging_e_drx_cycle_opts {
 typedef enumerated<paging_e_drx_cycle_opts, true> paging_e_drx_cycle_e;
 
 // Paging-eDRXInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o paging_e_drx_info_ext_ies_o;
+using paging_e_drx_info_ext_ies_o = s1ap_protocol_ext_empty_o;
 
 // PagingTimeWindow ::= ENUMERATED
 struct paging_time_win_opts {
@@ -11976,7 +11973,7 @@ struct reset_all_opts {
 };
 typedef enumerated<reset_all_opts, true> reset_all_e;
 
-typedef protocol_ext_container_empty_l served_dcns_item_ext_ies_container;
+using served_dcns_item_ext_ies_container = protocol_ext_container_empty_l;
 
 // ServedDCNsItem ::= SEQUENCE
 struct served_dcns_item_s {
@@ -12044,7 +12041,7 @@ struct tai_item_ies_o {
 // TAIListforWarning ::= SEQUENCE (SIZE (1..65535)) OF TAI
 using tai_listfor_warning_l = dyn_array<tai_s>;
 
-typedef protocol_ext_container_empty_l ue_s1ap_id_pair_ext_ies_container;
+using ue_s1ap_id_pair_ext_ies_container = protocol_ext_container_empty_l;
 
 // UE-S1AP-ID-pair ::= SEQUENCE
 struct ue_s1ap_id_pair_s {
@@ -12164,7 +12161,7 @@ struct mme_relay_support_ind_opts {
 };
 typedef enumerated<mme_relay_support_ind_opts, true> mme_relay_support_ind_e;
 
-typedef protocol_ext_container_empty_l nb_io_t_paging_e_drx_info_ext_ies_container;
+using nb_io_t_paging_e_drx_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // NB-IoT-Paging-eDRXInformation ::= SEQUENCE
 struct nb_io_t_paging_e_drx_info_s {
@@ -12207,7 +12204,7 @@ private:
 // PWSfailedECGIList ::= SEQUENCE (SIZE (1..256)) OF EUTRAN-CGI
 using pw_sfailed_ecgi_list_l = dyn_array<eutran_cgi_s>;
 
-typedef protocol_ext_container_empty_l paging_e_drx_info_ext_ies_container;
+using paging_e_drx_info_ext_ies_container = protocol_ext_container_empty_l;
 
 // Paging-eDRXInformation ::= SEQUENCE
 struct paging_e_drx_info_s {
@@ -13679,7 +13676,7 @@ struct s1ap_private_ies_empty_o {
   };
 };
 // PrivateMessageIEs ::= OBJECT SET OF S1AP-PRIVATE-IES
-typedef s1ap_private_ies_empty_o private_msg_ies_o;
+using private_msg_ies_o = s1ap_private_ies_empty_o;
 
 // RerouteNASRequest-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 struct reroute_nas_request_ies_o {
@@ -16154,7 +16151,7 @@ struct private_ie_container_empty_l {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
-typedef private_ie_container_empty_l private_msg_ies_container;
+using private_msg_ies_container = private_ie_container_empty_l;
 
 // PrivateMessage ::= SEQUENCE
 struct private_msg_s {
@@ -18313,6 +18310,7 @@ struct so_ntransfer_request_container_c {
     assert_choice_type("failureEventReporting", type_.to_string(), "SONtransferRequestContainer");
     return c.get<fail_event_report_c>();
   }
+  void                              set_cell_load_report() { set(types::cell_load_report); }
   multi_cell_load_report_request_s& set_multi_cell_load_report()
   {
     set(types::multi_cell_load_report);
@@ -18442,11 +18440,14 @@ struct so_ntransfer_resp_container_c {
     set(types::event_triggered_cell_load_report);
     return c.get<event_triggered_cell_load_report_resp_s>();
   }
+  void                    set_horeport() { set(types::horeport); }
   cell_activation_resp_s& set_eutran_cell_activation()
   {
     set(types::eutran_cell_activation);
     return c.get<cell_activation_resp_s>();
   }
+  void set_energy_savings_ind() { set(types::energy_savings_ind); }
+  void set_fail_event_report() { set(types::fail_event_report); }
 
 private:
   types type_;
@@ -18571,9 +18572,9 @@ struct sourceenb_to_targetenb_transparent_container_s {
 };
 
 // TargeteNB-ToSourceeNB-TransparentContainer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
-typedef s1ap_protocol_ext_empty_o targetenb_to_sourceenb_transparent_container_ext_ies_o;
+using targetenb_to_sourceenb_transparent_container_ext_ies_o = s1ap_protocol_ext_empty_o;
 
-typedef protocol_ext_container_empty_l targetenb_to_sourceenb_transparent_container_ext_ies_container;
+using targetenb_to_sourceenb_transparent_container_ext_ies_container = protocol_ext_container_empty_l;
 
 // TargeteNB-ToSourceeNB-TransparentContainer ::= SEQUENCE
 struct targetenb_to_sourceenb_transparent_container_s {

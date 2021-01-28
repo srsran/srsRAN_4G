@@ -28,6 +28,7 @@
 #include "srsue/hdr/ue_metrics_interface.h"
 
 #include "rrc/rrc.h"
+#include "rrc/rrc_nr.h"
 #include "upper/gw.h"
 #include "upper/usim.h"
 
@@ -66,6 +67,7 @@ typedef struct {
   stack_log_args_t log;
   usim_args_t      usim;
   rrc_args_t       rrc;
+  rrc_nr_args_t    rrc_nr;
   std::string      ue_category_str;
   nas_args_t       nas;
   gw_args_t        gw;

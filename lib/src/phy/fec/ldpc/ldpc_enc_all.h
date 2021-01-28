@@ -117,17 +117,17 @@ void preprocess_systematic_bits_avx2(srslte_ldpc_encoder_t* q);
 void encode_high_rate_case1_avx2(void* o);
 
 /*! Computes the high-rate parity bits for BG1 and ls_index in {6} (SIMD-optimized version, LS <= \ref
- * SRSLTE_AVX2_B_SIZE). \param[in,out]  q  A pointer to an encoder.
+ * SRSLTE_AVX2_B_SIZE). \param[in,out]  o  A pointer to an encoder.
  */
 void encode_high_rate_case2_avx2(void* o);
 
 /*! Computes the high-rate parity bits for BG2 and ls_index in {0, 1, 2, 4, 5, 6} (SIMD-optimized version, LS <= \ref
- * SRSLTE_AVX2_B_SIZE). \param[in,out]  q  A pointer to an encoder.
+ * SRSLTE_AVX2_B_SIZE). \param[in,out]  o  A pointer to an encoder.
  */
 void encode_high_rate_case3_avx2(void* o);
 
 /*! Computes the high-rate parity bits for BG2 and ls_index in {3, 7} (SIMD-optimized version, LS <= \ref
- * SRSLTE_AVX2_B_SIZE). \param[in,out]  q  A pointer to an encoder.
+ * SRSLTE_AVX2_B_SIZE). \param[in,out]  o  A pointer to an encoder.
  */
 void encode_high_rate_case4_avx2(void* o);
 

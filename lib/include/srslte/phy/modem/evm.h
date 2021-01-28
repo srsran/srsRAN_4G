@@ -22,7 +22,8 @@
 #ifndef SRSLTE_EVM_H_
 #define SRSLTE_EVM_H_
 
-#include "srslte/config.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/modem/modem_table.h"
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"

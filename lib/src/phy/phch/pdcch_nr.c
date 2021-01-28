@@ -20,8 +20,12 @@
  */
 
 #include "srslte/phy/phch/pdcch_nr.h"
+#include "srslte/phy/common/sequence.h"
 #include "srslte/phy/fec/polar/polar_chanalloc.h"
 #include "srslte/phy/fec/polar/polar_interleaver.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 

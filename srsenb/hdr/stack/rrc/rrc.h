@@ -26,6 +26,7 @@
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srslte/adt/mem_pool.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
@@ -69,7 +70,7 @@ public:
   void tti_clock();
 
   // rrc_interface_mac
-  void     add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
+  int      add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
   void     upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
   void     set_activity_user(uint16_t rnti) override;
   bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
@@ -199,6 +200,8 @@ private:
   void rem_user_thread(uint16_t rnti);
 
   std::mutex paging_mutex;
+
+  static srslte::big_obj_pool<ue, false> ue_pool;
 };
 
 } // namespace srsenb

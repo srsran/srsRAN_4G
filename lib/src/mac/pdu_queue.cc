@@ -36,19 +36,21 @@ uint8_t* pdu_queue::request(uint32_t len)
     ERROR("Error request buffer of invalid size %d. Max bytes %d\n", len, MAX_PDU_LEN);
     return NULL;
   }
-  pdu_t* pdu = pool.allocate("pdu_queue::request", true);
-  if (!pdu) {
+  // This function must be non-blocking. In case we run out of buffers, it shall handle the error properly
+  pdu_t* pdu = pool.allocate("pdu_queue::request", false);
+  if (pdu) {
+    if ((void*)pdu->ptr != (void*)pdu) {
+      ERROR("Fatal error in memory alignment in struct pdu_queue::pdu_t\n");
+      exit(-1);
+    }
+    return pdu->ptr;
+  } else {
     if (log_h) {
       log_h->error("Not enough buffers for MAC PDU\n");
     }
     ERROR("Not enough buffers for MAC PDU\n");
+    return nullptr;
   }
-  if ((void*)pdu->ptr != (void*)pdu) {
-    ERROR("Fatal error in memory alignment in struct pdu_queue::pdu_t\n");
-    exit(-1);
-  }
-
-  return pdu->ptr;
 }
 
 void pdu_queue::deallocate(const uint8_t* pdu)

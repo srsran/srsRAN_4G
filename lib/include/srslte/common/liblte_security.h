@@ -146,6 +146,7 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
                                                 uint8*                                      k_up_enc,
                                                 uint8*                                      k_up_int);
 
+LIBLTE_ERROR_ENUM liblte_security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_counter);
 /*********************************************************************
     Name: liblte_security_128_eia2
 
@@ -335,5 +336,17 @@ liblte_security_milenage_f2345(uint8* k, uint8* op, uint8* rand, uint8* res, uin
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8* k, uint8* op, uint8* rand, uint8* ak);
+
+LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_rrc(uint8*                                      k_gnb,
+                                                    LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                                    LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                                    uint8*                                      k_rrc_enc,
+                                                    uint8*                                      k_rrc_int);
+
+LIBLTE_ERROR_ENUM liblte_security_generate_k_nr_up(uint8*                                      k_gnb,
+                                                   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                                   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                                   uint8*                                      k_up_enc,
+                                                   uint8*                                      k_up_int);
 
 #endif // SRSLTE_LIBLTE_SECURITY_H

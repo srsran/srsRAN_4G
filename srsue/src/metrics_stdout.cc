@@ -124,7 +124,11 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
 
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
     cout << std::setw(2) << r;
-    cout << std::setw(4) << metrics.phy.info[r].pci << std::setw(0);
+    if (metrics.phy.info[r].pci != UINT32_MAX) {
+      cout << std::setw(4) << metrics.phy.info[r].pci << std::setw(0);
+    } else {
+      cout << " n/a";
+    }
     cout << float_to_string(metrics.phy.ch[r].rsrp, 2);
     cout << float_to_string(metrics.phy.ch[r].pathloss, 2);
     cout << float_to_eng_string(metrics.phy.sync[r].cfo, 2);

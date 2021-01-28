@@ -22,19 +22,24 @@
 #ifndef SRSLTE_MAC_PCAP_H
 #define SRSLTE_MAC_PCAP_H
 
+#include "srslte/common/block_queue.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/common.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/pcap.h"
+#include "srslte/common/threads.h"
+#include <mutex>
 #include <stdint.h>
-
+#include <thread>
 namespace srslte {
-
-class mac_pcap
+class mac_pcap : srslte::thread
 {
 public:
   mac_pcap();
   ~mac_pcap();
   void enable(bool en);
-  void open(const char* filename, uint32_t ue_id = 0);
-  void close();
+  uint32_t open(const char* filename, uint32_t ue_id = 0);
+  uint32_t close();
 
   void set_ue_id(uint16_t ue_id);
 
@@ -55,18 +60,30 @@ public:
   void write_sl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint32_t reTX, uint32_t tti, uint8_t cc_idx);
 
 private:
-  bool     enable_write;
-  FILE*    pcap_file;
-  uint32_t ue_id;
-  void     pack_and_write(uint8_t* pdu,
-                          uint32_t pdu_len_bytes,
-                          uint32_t reTX,
-                          bool     crc_ok,
-                          uint8_t  cc_idx,
-                          uint32_t tti,
-                          uint16_t crnti_,
-                          uint8_t  direction,
-                          uint8_t  rnti_type);
+  srslte::byte_buffer_pool* pool = nullptr;
+  srslte::log_ref           log;
+  bool                      running   = false;
+  FILE*                     pcap_file = nullptr;
+  uint32_t                  ue_id     = 0;
+  void                      pack_and_queue(uint8_t* pdu,
+                                           uint32_t pdu_len_bytes,
+                                           uint32_t reTX,
+                                           bool     crc_ok,
+                                           uint8_t  cc_idx,
+                                           uint32_t tti,
+                                           uint16_t crnti_,
+                                           uint8_t  direction,
+                                           uint8_t  rnti_type);
+
+  typedef struct {
+    MAC_Context_Info_t   context;
+    unique_byte_buffer_t pdu;
+  } pcap_pdu_t;
+  block_queue<pcap_pdu_t> queue;
+  std::mutex              mutex;
+
+  void write_pdu(pcap_pdu_t& pdu);
+  void run_thread() final;
 };
 
 } // namespace srslte

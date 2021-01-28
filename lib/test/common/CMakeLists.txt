@@ -58,6 +58,7 @@ add_executable(timeout_test timeout_test.cc)
 target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(bcd_helpers_test bcd_helpers_test.cc)
+target_link_libraries(bcd_helpers_test srslte_common)
 
 add_executable(stack_procedure_test stack_procedure_test.cc)
 add_test(stack_procedure_test stack_procedure_test)

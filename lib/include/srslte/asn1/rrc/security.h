@@ -309,18 +309,18 @@ struct security_mode_cmd_s {
         set(types::security_mode_cmd_r8);
         return c;
       }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                      type_;
       security_mode_cmd_r8_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -330,24 +330,23 @@ struct security_mode_cmd_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
@@ -418,9 +417,6 @@ struct security_mode_complete_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -430,24 +426,23 @@ struct security_mode_complete_s {
     security_mode_complete_r8_ies_s& security_mode_complete_r8()
     {
       assert_choice_type("securityModeComplete-r8", type_.to_string(), "criticalExtensions");
-      return c.get<security_mode_complete_r8_ies_s>();
+      return c;
     }
     const security_mode_complete_r8_ies_s& security_mode_complete_r8() const
     {
       assert_choice_type("securityModeComplete-r8", type_.to_string(), "criticalExtensions");
-      return c.get<security_mode_complete_r8_ies_s>();
+      return c;
     }
     security_mode_complete_r8_ies_s& set_security_mode_complete_r8()
     {
       set(types::security_mode_complete_r8);
-      return c.get<security_mode_complete_r8_ies_s>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                                            type_;
-    choice_buffer_t<security_mode_complete_r8_ies_s> c;
-
-    void destroy_();
+    types                           type_;
+    security_mode_complete_r8_ies_s c;
   };
 
   // member variables
@@ -472,9 +467,6 @@ struct security_mode_fail_s {
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -484,24 +476,23 @@ struct security_mode_fail_s {
     security_mode_fail_r8_ies_s& security_mode_fail_r8()
     {
       assert_choice_type("securityModeFailure-r8", type_.to_string(), "criticalExtensions");
-      return c.get<security_mode_fail_r8_ies_s>();
+      return c;
     }
     const security_mode_fail_r8_ies_s& security_mode_fail_r8() const
     {
       assert_choice_type("securityModeFailure-r8", type_.to_string(), "criticalExtensions");
-      return c.get<security_mode_fail_r8_ies_s>();
+      return c;
     }
     security_mode_fail_r8_ies_s& set_security_mode_fail_r8()
     {
       set(types::security_mode_fail_r8);
-      return c.get<security_mode_fail_r8_ies_s>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                                        type_;
-    choice_buffer_t<security_mode_fail_r8_ies_s> c;
-
-    void destroy_();
+    types                       type_;
+    security_mode_fail_r8_ies_s c;
   };
 
   // member variables

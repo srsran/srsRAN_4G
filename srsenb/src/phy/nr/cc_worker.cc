@@ -20,10 +20,7 @@
  */
 
 #include "srsenb/hdr/phy/nr/cc_worker.h"
-#include "srslte/common/common.h"
-#include "srslte/phy/enb/enb_dl_nr.h"
-#include "srslte/phy/phch/ra_nr.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
+#include "srslte/srslte.h"
 
 namespace srsenb {
 namespace nr {
@@ -44,21 +41,11 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state
     ERROR("Error initiating UE DL NR\n");
     return;
   }
-
-  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
-    return;
-  }
-  data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
-  srslte_vec_u8_zero(data.data(), SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
-  snprintf((char*)data.data(), SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8, "hello world!");
 }
 
 cc_worker::~cc_worker()
 {
   srslte_enb_dl_nr_free(&enb_dl);
-  srslte_softbuffer_tx_free(&softbuffer_tx);
   for (cf_t* p : rx_buffer) {
     if (p != nullptr) {
       free(p);
@@ -74,6 +61,16 @@ cc_worker::~cc_worker()
 bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
 {
   if (srslte_enb_dl_nr_set_carrier(&enb_dl, carrier) < SRSLTE_SUCCESS) {
+    ERROR("Error setting carrier\n");
+    return false;
+  }
+
+  srslte_coreset_t coreset  = {};
+  coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
+  coreset.duration          = 2;
+
+  if (srslte_enb_dl_nr_set_coreset(&enb_dl, &coreset) < SRSLTE_SUCCESS) {
+    ERROR("Error setting coreset\n");
     return false;
   }
 
@@ -108,45 +105,74 @@ uint32_t cc_worker::get_buffer_len()
   return tx_buffer.size();
 }
 
-bool cc_worker::work_dl()
+int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
-  srslte_pdsch_grant_nr_t pdsch_grant = {};
-  srslte_pdsch_cfg_nr_t   pdsch_cfg   = phy_state->cfg.pdsch;
-  // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &pdsch_grant) <
-      SRSLTE_SUCCESS) {
-    ERROR("Error loading default grant\n");
-    return false;
-  }
-  pdsch_grant.nof_layers = enb_dl.carrier.max_mimo_layers;
-  pdsch_grant.dci_format = srslte_dci_format_nr_1_0;
-  pdsch_grant.rnti       = 0x1234;
+  for (uint32_t i = 0; i < nof_grants; i++) {
 
-  for (uint32_t i = 0; i < enb_dl.carrier.nof_prb; i++) {
-    pdsch_grant.prb_idx[i] = true;
-  }
+    // Get PHY config for UE
+    // ...
 
-  if (srslte_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, 27, &pdsch_grant.tb[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error filing tb\n");
-    return false;
+    // Put actual DCI
+    if (srslte_enb_dl_nr_pdcch_put(&enb_dl, &dl_slot_cfg, &grants[i].dci) < SRSLTE_SUCCESS) {
+      ERROR("Error putting PDCCH\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      log_h->info("PDCCH: cc=%d, ...\n", cc_idx);
+    }
   }
 
-  uint8_t* data2[SRSLTE_MAX_TB]   = {data.data(), data.data()};
-  pdsch_grant.tb[0].softbuffer.tx = &softbuffer_tx;
-  srslte_softbuffer_tx_reset(pdsch_grant.tb[0].softbuffer.tx);
+  return SRSLTE_SUCCESS;
+}
 
-  if (srslte_enb_dl_nr_pdsch_put(&enb_dl, &dl_slot_cfg, &pdsch_cfg, &pdsch_grant, data2) < SRSLTE_SUCCESS) {
-    ERROR("Error decoding PDSCH\n");
-    return false;
+int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants)
+{
+  for (uint32_t i = 0; i < nof_grants; i++) {
+
+    // Get PHY config for UE
+    // ...
+    srslte_sch_cfg_nr_t pdsch_cfg = phy_state->cfg.pdsch;
+
+    // Compute DL grant
+    if (srslte_ra_dl_dci_to_grant_nr(&enb_dl.carrier, &pdsch_cfg, &grants[i].dci, &pdsch_cfg.grant)) {
+      ERROR("Computing DL grant\n");
+    }
+
+    // Set soft buffer
+    for (uint32_t j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
+      pdsch_cfg.grant.tb[j].softbuffer.tx = grants[i].softbuffer_tx[j];
+    }
+
+    if (srslte_enb_dl_nr_pdsch_put(&enb_dl, &dl_slot_cfg, &pdsch_cfg, grants[i].data) < SRSLTE_SUCCESS) {
+      ERROR("Error putting PDSCH\n");
+      return false;
+    }
+
+    // Logging
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      char str[512];
+      srslte_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, str, sizeof(str));
+      log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
+    }
   }
 
-  // Logging
-  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-    char str[512];
-    srslte_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, &pdsch_grant, str, sizeof(str));
-    log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
+  return SRSLTE_SUCCESS;
+}
+
+bool cc_worker::work_dl(const srslte_dl_slot_cfg_t& dl_sf_cfg, stack_interface_phy_nr::dl_sched_t& dl_grants)
+{
+  // Reset resource grid
+  if (srslte_enb_dl_nr_base_zero(&enb_dl) < SRSLTE_SUCCESS) {
+    ERROR("Error setting base to zero\n");
+    return SRSLTE_ERROR;
   }
 
+  // Put DL grants to resource grid. PDSCH data will be encoded as well.
+  encode_pdcch_dl(dl_grants.pdsch, dl_grants.nof_grants);
+  encode_pdsch(dl_grants.pdsch, dl_grants.nof_grants);
+
+  // Generate signal
   srslte_enb_dl_nr_gen_signal(&enb_dl);
 
   return true;

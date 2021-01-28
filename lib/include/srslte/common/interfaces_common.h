@@ -23,6 +23,7 @@
 #define SRSLTE_INTERFACES_COMMON_H
 
 #include "srslte/common/security.h"
+#include "srslte/phy/common/phy_common.h"
 #include <string>
 
 namespace srslte {

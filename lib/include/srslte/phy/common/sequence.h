@@ -34,6 +34,8 @@
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
 
+#define SRSLTE_SEQUENCE_MOD(X) ((X) & (uint32_t)INT32_MAX)
+
 typedef struct SRSLTE_API {
   uint32_t x1;
   uint32_t x2;
@@ -70,6 +72,8 @@ SRSLTE_API void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_
 SRSLTE_API void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed);
 
 SRSLTE_API void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed);
+
+SRSLTE_API void srslte_sequence_apply_bit_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed);
 
 SRSLTE_API int srslte_sequence_pbch(srslte_sequence_t* seq, srslte_cp_t cp, uint32_t cell_id);
 

@@ -32,7 +32,7 @@ extern "C" {
 /**
  * @brief Defines the number of symbols per slot. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NSYMB_PER_SLOT_NR 14
+#define SRSLTE_NSYMB_PER_SLOT_NR 14U
 
 /**
  * @brief Defines the resource grid size in physical resource elements (frequency and time domain)
@@ -46,7 +46,7 @@ extern "C" {
 /**
  * @brief Defines the maximum numerology supported. Defined by TS 38.211 v15.8.0 Table 4.3.2-1.
  */
-#define SRSLTE_NR_MAX_NUMEROLOGY 4
+#define SRSLTE_NR_MAX_NUMEROLOGY 4U
 
 /**
  * @brief Defines the symbol duration, including cyclic prefix
@@ -137,10 +137,14 @@ typedef enum SRSLTE_API {
  * @brief PDSCH mapping type
  * @remark Described in TS 38.331 V15.10.0 Section PDSCH-TimeDomainResourceAllocationList
  */
-typedef enum SRSLTE_API { srslte_pdsch_mapping_type_A = 0, srslte_pdsch_mapping_type_B } srslte_pdsch_mapping_type_t;
+typedef enum SRSLTE_API { srslte_sch_mapping_type_A = 0, srslte_sch_mapping_type_B } srslte_sch_mapping_type_t;
 
 typedef enum SRSLTE_API {
   srslte_search_space_type_common = 0,
+  srslte_search_space_type_common_0,
+  srslte_search_space_type_common_0A,
+  srslte_search_space_type_common_1,
+  srslte_search_space_type_common_2,
   srslte_search_space_type_ue,
 } srslte_search_space_type_t;
 
@@ -155,6 +159,20 @@ typedef enum SRSLTE_API {
 } srslte_mcs_table_t;
 
 /**
+ * @brief RNTI types
+ */
+typedef enum SRSLTE_API {
+  srslte_rnti_type_c = 0,
+  srslte_rnti_type_p,
+  srslte_rnti_type_si,
+  srslte_rnti_type_ra,
+  srslte_rnti_type_tc,
+  srslte_rnti_type_cs,
+  srslte_rnti_type_sp_csi,
+  srslte_rnti_type_mcs_crnti,
+} srslte_rnti_type_t;
+
+/**
  * @brief DCI formats
  * @remark Described in TS 38.212 V15.9.0 Section 7.3.1 DCI formats
  */
@@ -167,7 +185,9 @@ typedef enum SRSLTE_API {
   srslte_dci_format_nr_2_1, ///< @brief Notifying a group of UEs of the PRB(s) and OFDM symbol(s) where UE may assume no
                             ///< transmission is intended for the UE
   srslte_dci_format_nr_2_2, ///< @brief Transmission of TPC commands for PUCCH and PUSCH
-  srslte_dci_format_nr_2_3  ///< @brief Transmission of a group of TPC commands for SRS transmissions by one or more UEs
+  srslte_dci_format_nr_2_3, ///< @brief Transmission of a group of TPC commands for SRS transmissions by one or more UEs
+  srslte_dci_format_nr_rar, ///< @brief Scheduling a transmission of PUSCH from RAR
+  srslte_dci_format_nr_cg   ///< @brief Scheduling of PUSCH using a configured grant
 } srslte_dci_format_nr_t;
 
 /**
@@ -284,7 +304,7 @@ SRSLTE_API uint32_t srslte_coreset_get_sz(const srslte_coreset_t* coreset);
  * @param mapping_type Mapping type
  * @return Constant string with PDSCH mapping type
  */
-SRSLTE_API const char* srslte_pdsch_mapping_type_to_str(srslte_pdsch_mapping_type_t mapping_type);
+SRSLTE_API const char* srslte_sch_mapping_type_to_str(srslte_sch_mapping_type_t mapping_type);
 
 /**
  * @brief Get the MCS table string

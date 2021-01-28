@@ -38,13 +38,8 @@ const int tbs_format1c_table[32] = {40,  56,   72,   120,  136,  144,  176,  208
                                     296, 328,  336,  392,  488,  552,  600,  632,  696,  776, 840,
                                     904, 1000, 1064, 1128, 1224, 1288, 1384, 1480, 1608, 1736};
 
-/**********
- * STATIC FUNCTIONS
- *
- **********/
-
 /* Returns the number of RE in a PRB in a slot and subframe */
-static uint32_t ra_re_x_prb(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, uint32_t slot, uint32_t prb_idx)
+uint32_t ra_re_x_prb(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, uint32_t slot, uint32_t prb_idx)
 {
 
   uint32_t subframe         = sf->tti % 10;

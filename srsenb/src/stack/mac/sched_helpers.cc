@@ -24,7 +24,9 @@
 #include "srslte/srslog/bundled/fmt/format.h"
 #include <array>
 
-#define Info(fmt, ...) srslte::logmap::get("MAC")->error(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) srslte::logmap::get("MAC")->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) srslte::logmap::get("MAC")->info(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) srslte::logmap::get("MAC")->warning(fmt, ##__VA_ARGS__)
 #define Error(fmt, ...) srslte::logmap::get("MAC")->error(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
@@ -68,14 +70,14 @@ void fill_dl_cc_result_info(custom_mem_buffer& strbuf, const dl_sched_data_t& da
     return;
   }
   const char* prefix = strbuf.size() > 0 ? " | " : "";
-  fmt::format_to(strbuf, "{}rnti={:0x}: [", prefix, data.dci.rnti);
+  fmt::format_to(strbuf, "{}rnti=0x{:0x}: [", prefix, data.dci.rnti);
   bool ces_found = false;
   for (uint32_t i = 0; i < data.nof_pdu_elems[0]; ++i) {
     const auto& pdu          = data.pdu[0][i];
     prefix                   = (ces_found) ? " | " : "";
     srslte::dl_sch_lcid lcid = static_cast<srslte::dl_sch_lcid>(pdu.lcid);
     if (srslte::is_mac_ce(lcid)) {
-      fmt::format_to(strbuf, "{}MAC CE \"{}\"", prefix, srslte::to_string_short(lcid));
+      fmt::format_to(strbuf, "{}CE \"{}\"", prefix, srslte::to_string_short(lcid));
       ces_found = true;
     }
   }
@@ -88,7 +90,7 @@ void fill_dl_cc_result_debug(custom_mem_buffer& strbuf, const dl_sched_data_t& d
     return;
   }
   fmt::format_to(strbuf,
-                 "  > rnti={:0x}, tbs={}, f={}, mcs={}: [",
+                 "  > rnti=0x{:0x}, tbs={}, f={}, mcs={}: [",
                  data.dci.rnti,
                  data.tbs[0],
                  to_string_short(data.dci.format),
@@ -99,9 +101,9 @@ void fill_dl_cc_result_debug(custom_mem_buffer& strbuf, const dl_sched_data_t& d
       const char*         prefix = (i == 0) ? "" : " | ";
       srslte::dl_sch_lcid lcid   = static_cast<srslte::dl_sch_lcid>(pdu.lcid);
       if (srslte::is_mac_ce(lcid)) {
-        fmt::format_to(strbuf, "{}MAC CE \"{}\"", prefix, srslte::to_string_short(lcid));
+        fmt::format_to(strbuf, "{}CE \"{}\"", prefix, srslte::to_string_short(lcid));
       } else {
-        fmt::format_to(strbuf, "{}MAC SDU lcid={}, tb={}, len={} B", prefix, pdu.lcid, tb, pdu.nbytes);
+        fmt::format_to(strbuf, "{}SDU lcid={}, tb={}, len={} B", prefix, pdu.lcid, tb, pdu.nbytes);
       }
     }
   }
@@ -124,21 +126,35 @@ void log_dl_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_i
   }
   if (strbuf.size() != 0) {
     if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
-      log_h->debug("SCHED: MAC LCID allocs cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      log_h->debug("SCHED: DL MAC PDU payload cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
     } else {
-      log_h->info("SCHED: MAC CE allocs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      log_h->info("SCHED: DL MAC CEs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
     }
   }
 }
 
-rbg_interval rbg_interval::prbs_to_rbgs(const prb_interval& prbs, uint32_t P)
+void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::ul_sched_res_t& result)
 {
-  return rbg_interval{srslte::ceil_div(prbs.start(), P), srslte::ceil_div(prbs.stop(), P)};
+  using phich_t = sched_interface::ul_sched_phich_t;
+  if (log_h->get_level() < srslte::LOG_LEVEL_INFO) {
+    return;
+  }
+  custom_mem_buffer strbuf;
+  for (uint32_t i = 0; i < result.nof_phich_elems; ++i) {
+    const phich_t& phich  = result.phich[i];
+    const char*    prefix = strbuf.size() > 0 ? " | " : "";
+    const char*    val    = phich.phich == phich_t::ACK ? "ACK" : "NACK";
+    fmt::format_to(strbuf, "{}rnti=0x{:0x}, val={}", prefix, phich.rnti, val);
+  }
+  if (strbuf.size() != 0) {
+    log_h->debug("SCHED: Allocated PHICHs, cc=%d: [%s]", enb_cc_idx, fmt::to_string(strbuf).c_str());
+  }
 }
 
-prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t P)
+prb_interval prb_interval::rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb)
 {
-  return prb_interval{rbgs.start() * P, rbgs.stop() * P};
+  uint32_t P = srslte_ra_type0_P(cell_nof_prb);
+  return prb_interval{rbgs.start() * P, std::min(rbgs.stop() * P, cell_nof_prb)};
 }
 
 rbg_interval rbg_interval::rbgmask_to_rbgs(const rbgmask_t& mask)
@@ -175,6 +191,55 @@ prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_
 /*******************************************************
  *                 Sched Params
  *******************************************************/
+
+sched_cell_params_t::dl_nof_re_table generate_nof_re_table(const srslte_cell_t& cell)
+{
+  sched_cell_params_t::dl_nof_re_table table(cell.nof_prb);
+
+  srslte_dl_sf_cfg_t dl_sf    = {};
+  dl_sf.sf_type               = SRSLTE_SF_NORM;
+  dl_sf.tdd_config.configured = false;
+
+  for (uint32_t cfi = 0; cfi < SRSLTE_NOF_CFI; ++cfi) {
+    dl_sf.cfi = cfi + 1;
+    for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; ++sf_idx) {
+      dl_sf.tti = sf_idx;
+      for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+        for (uint32_t n = 0; n < cell.nof_prb; ++n) {
+          table[n][sf_idx][s][cfi] = ra_re_x_prb(&cell, &dl_sf, s, n);
+        }
+      }
+    }
+  }
+  return table;
+}
+
+sched_cell_params_t::dl_lb_nof_re_table get_lb_nof_re_x_prb(const sched_cell_params_t::dl_nof_re_table& table)
+{
+  sched_cell_params_t::dl_lb_nof_re_table ret;
+  for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; ++sf_idx) {
+    ret[sf_idx].resize(table.size());
+    srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec(table.size());
+    for (uint32_t p = 0; p < table.size(); ++p) {
+      for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+        re_prb_vec[p] += table[p][sf_idx][s][SRSLTE_NOF_CFI - 1];
+      }
+    }
+    srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec2(re_prb_vec.size());
+    std::copy(re_prb_vec.begin(), re_prb_vec.end(), re_prb_vec2.begin());
+    ret[sf_idx][0] = *std::min_element(re_prb_vec2.begin(), re_prb_vec2.end());
+    for (uint32_t p = 1; p < table.size(); ++p) {
+      std::transform(re_prb_vec2.begin(),
+                     re_prb_vec2.end() - 1,
+                     re_prb_vec.begin() + p,
+                     re_prb_vec2.begin(),
+                     std::plus<uint32_t>());
+      re_prb_vec2.pop_back();
+      ret[sf_idx][p] = *std::min_element(re_prb_vec2.begin(), re_prb_vec2.end());
+    }
+  }
+  return ret;
+}
 
 void sched_cell_params_t::regs_deleter::operator()(srslte_regs_t* p)
 {
@@ -262,7 +327,59 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   P        = srslte_ra_type0_P(cfg.cell.nof_prb);
   nof_rbgs = srslte::ceil_div(cfg.cell.nof_prb, P);
 
+  nof_re_table    = generate_nof_re_table(cfg.cell);
+  nof_re_lb_table = get_lb_nof_re_x_prb(nof_re_table);
+
   return true;
+}
+
+uint32_t sched_cell_params_t::get_dl_lb_nof_re(tti_point tti_tx_dl, uint32_t nof_prbs_alloc) const
+{
+  assert(nof_prbs_alloc <= nof_prb());
+  if (nof_prbs_alloc == 0) {
+    return 0;
+  }
+  uint32_t sf_idx = tti_tx_dl.sf_idx();
+  uint32_t nof_re = nof_re_lb_table[sf_idx][nof_prbs_alloc - 1];
+
+  // sanity check
+  assert(nof_re <= srslte_ra_dl_approx_nof_re(&cfg.cell, nof_prbs_alloc, SRSLTE_NOF_CFI));
+  return nof_re;
+}
+
+uint32_t
+sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dci_dl_t& dci, uint32_t cfi) const
+{
+  srslte_pdsch_grant_t grant = {};
+  srslte_dl_sf_cfg_t   dl_sf = {};
+  dl_sf.cfi                  = cfi;
+  dl_sf.tti                  = tti_tx_dl.to_uint();
+  srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, nof_prb());
+
+  uint32_t nof_re = 0;
+  for (uint32_t p = 0; p < nof_prb(); ++p) {
+    for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+      if (grant.prb_idx[s][p]) {
+        nof_re += nof_re_table[p][tti_tx_dl.sf_idx()][s][cfi - 1];
+      }
+    }
+  }
+
+  // sanity check
+  assert(nof_re == srslte_ra_dl_grant_nof_re(&cfg.cell, &dl_sf, &grant));
+  return nof_re;
+}
+
+ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)
+{
+  ue_cce_locations_table dci_locations;
+  // Generate allowed CCE locations
+  for (int cfi = 0; cfi < SRSLTE_NOF_CFI; cfi++) {
+    for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
+      generate_cce_location(cell_cfg.regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+    }
+  }
+  return dci_locations;
 }
 
 void generate_cce_location(srslte_regs_t*   regs_,
@@ -286,6 +403,93 @@ void generate_cce_location(srslte_regs_t*   regs_,
     uint32_t l                                   = loc[i].L;
     location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
     location->nof_loc[l]++;
+  }
+}
+
+/*******************************************************
+ *            DCI-specific helper functions
+ *******************************************************/
+
+uint32_t
+get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32_t cell_nof_prb, bool use_tbs_index_alt)
+{
+  static srslte::log_ref cached_log = srslte::logmap::get("MAC");
+
+  uint32_t l            = 0;
+  float    max_coderate = srslte_cqi_to_coderate(dl_cqi, use_tbs_index_alt);
+  float    coderate;
+  float    factor = 1.5;
+  uint32_t l_max  = 3;
+  if (cell_nof_prb == 6) {
+    factor = 1.0;
+    l_max  = 2;
+  }
+  l_max = SRSLTE_MIN(max_aggr_lvl, l_max);
+
+  do {
+    coderate = srslte_pdcch_coderate(nof_bits, l);
+    l++;
+  } while (l < l_max && factor * coderate > max_coderate);
+
+  cached_log->debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
+                    dl_cqi,
+                    l,
+                    nof_bits,
+                    coderate,
+                    max_coderate);
+  return l;
+}
+
+/*******************************************************
+ *          sched_interface helper functions
+ *******************************************************/
+
+/// sanity check the UE CC configuration
+int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
+{
+  using cc_t             = sched_interface::ue_cfg_t::cc_cfg_t;
+  const auto& cc_list    = ue_cfg.supported_cc_list;
+  bool        has_scells = std::count_if(cc_list.begin(), cc_list.end(), [](const cc_t& c) { return c.active; }) > 1;
+  int         ret        = SRSLTE_SUCCESS;
+
+  if (has_scells) {
+    // In case of CA, CQI configs must exist and cannot collide in the PUCCH
+    for (uint32_t i = 0; i < cc_list.size(); ++i) {
+      const auto& cc1 = cc_list[i];
+      if (not cc1.active) {
+        continue;
+      }
+      if (not cc1.dl_cfg.cqi_report.periodic_configured and not cc1.dl_cfg.cqi_report.aperiodic_configured) {
+        Warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
+        ret = SRSLTE_ERROR;
+      } else if (cc1.dl_cfg.cqi_report.periodic_configured) {
+        for (uint32_t j = i + 1; j < cc_list.size(); ++j) {
+          if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
+              cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
+            Warning(
+                "SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.\n", i, j);
+            ret = SRSLTE_ERROR;
+          }
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir)
+{
+  switch (dir) {
+    case sched_interface::ue_bearer_cfg_t::IDLE:
+      return "idle";
+    case sched_interface::ue_bearer_cfg_t::BOTH:
+      return "bi-dir";
+    case sched_interface::ue_bearer_cfg_t::DL:
+      return "DL";
+    case sched_interface::ue_bearer_cfg_t::UL:
+      return "UL";
+    default:
+      return "unrecognized direction";
   }
 }
 

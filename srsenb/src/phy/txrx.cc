@@ -192,6 +192,11 @@ void txrx::run_thread()
     lte_worker->set_time(tti, tx_worker_cnt, timestamp);
     tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
 
+    // Trigger prach worker execution
+    for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {
+      prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
+    }
+
     // Launch NR worker only if available
     if (nr_worker != nullptr) {
       nr_worker->set_tti(tti);
@@ -202,11 +207,6 @@ void txrx::run_thread()
     // Trigger phy worker execution
     worker_com->semaphore.push(lte_worker);
     lte_workers->start_worker(lte_worker);
-
-    // Trigger prach worker execution
-    for (uint32_t cc = 0; cc < worker_com->get_nof_carriers_lte(); cc++) {
-      prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
-    }
 
     // Advance stack in time
     stack->tti_clock();

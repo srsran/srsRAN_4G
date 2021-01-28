@@ -208,7 +208,7 @@ struct csi_rs_cfg_nzp_r11_s {
       struct setup_s_ {
         mbsfn_sf_cfg_list_l sf_cfg_list;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       mbsfn_sf_cfg_list_r11_c_() = default;
@@ -230,6 +230,7 @@ struct csi_rs_cfg_nzp_r11_s {
         assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-r11");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -251,7 +252,7 @@ struct csi_rs_cfg_nzp_r11_s {
     struct setup_s_ {
       mbsfn_sf_cfg_list_v1430_l sf_cfg_list_v1430;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     mbsfn_sf_cfg_list_v1430_c_() = default;
@@ -273,6 +274,7 @@ struct csi_rs_cfg_nzp_r11_s {
       assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-v1430");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -400,7 +402,7 @@ struct csi_rs_cfg_nzp_emimo_r13_c {
     nzp_res_cfg_list_r13_l_ nzp_res_cfg_list_r13;
     cdm_type_r13_e_         cdm_type_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_nzp_emimo_r13_c() = default;
@@ -422,6 +424,7 @@ struct csi_rs_cfg_nzp_emimo_r13_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigNZP-EMIMO-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -511,7 +514,7 @@ struct csi_rs_cfg_bf_v1430_s {
 
 // CSI-RS-ConfigEMIMO2-r14 ::= CHOICE
 struct csi_rs_cfg_emimo2_r14_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_emimo2_r14_c() = default;
@@ -533,6 +536,7 @@ struct csi_rs_cfg_emimo2_r14_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO2-r14");
     return c;
   }
+  void                 set_release() { set(types::release); }
   csi_rs_cfg_bf_r14_s& set_setup()
   {
     set(types::setup);
@@ -753,7 +757,7 @@ struct cri_report_cfg_r13_c {
     uint16_t cri_cfg_idx_r13          = 0;
     uint16_t cri_cfg_idx2_r13         = 0;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cri_report_cfg_r13_c() = default;
@@ -775,6 +779,7 @@ struct cri_report_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "CRI-ReportConfig-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -794,7 +799,7 @@ struct csi_rs_cfg_emimo_hybrid_r14_c {
     uint16_t                periodicity_offset_idx_r14         = 0;
     csi_rs_cfg_emimo2_r14_c emimo_type2_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_emimo_hybrid_r14_c() = default;
@@ -816,6 +821,7 @@ struct csi_rs_cfg_emimo_hybrid_r14_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-Hybrid-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -887,7 +893,7 @@ struct csi_rs_cfg_emimo_r13_c {
 
     void destroy_();
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_emimo_r13_c() = default;
@@ -909,6 +915,7 @@ struct csi_rs_cfg_emimo_r13_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_c_& set_setup()
   {
     set(types::setup);
@@ -980,7 +987,7 @@ struct csi_rs_cfg_emimo_v1430_c {
 
     void destroy_();
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_emimo_v1430_c() = default;
@@ -1002,6 +1009,7 @@ struct csi_rs_cfg_emimo_v1430_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-v1430");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_c_& set_setup()
   {
     set(types::setup);
@@ -1073,7 +1081,7 @@ struct csi_rs_cfg_emimo_v1480_c {
 
     void destroy_();
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_emimo_v1480_c() = default;
@@ -1095,6 +1103,7 @@ struct csi_rs_cfg_emimo_v1480_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-v1480");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_c_& set_setup()
   {
     set(types::setup);
@@ -1130,7 +1139,7 @@ struct csi_rs_cfg_emimo_v1530_c {
   private:
     csi_rs_cfg_non_precoded_v1530_s c;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_emimo_v1530_c() = default;
@@ -1152,6 +1161,7 @@ struct csi_rs_cfg_emimo_v1530_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-v1530");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_c_& set_setup()
   {
     set(types::setup);
@@ -1260,7 +1270,7 @@ struct cqi_report_periodic_proc_ext_r11_s {
       uint16_t cqi_pmi_cfg_idx2_r11    = 0;
       uint16_t ri_cfg_idx2_r11         = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     csi_cfg_idx_r11_c_() = default;
@@ -1282,6 +1292,7 @@ struct cqi_report_periodic_proc_ext_r11_s {
       assert_choice_type("setup", type_.to_string(), "csi-ConfigIndex-r11");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -1369,7 +1380,7 @@ struct csi_im_cfg_ext_r12_s {
 struct csi_process_r11_s {
   struct csi_im_cfg_id_list_r12_c_ {
     using setup_l_ = bounded_array<uint8_t, 2>;
-    typedef setup_e types;
+    using types    = setup_e;
 
     // choice methods
     csi_im_cfg_id_list_r12_c_() = default;
@@ -1391,6 +1402,7 @@ struct csi_process_r11_s {
       assert_choice_type("setup", type_.to_string(), "csi-IM-ConfigIdList-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_l_& set_setup()
     {
       set(types::setup);
@@ -1402,7 +1414,7 @@ struct csi_process_r11_s {
     setup_l_ c;
   };
   struct cqi_report_aperiodic_proc2_r12_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     cqi_report_aperiodic_proc2_r12_c_() = default;
@@ -1424,6 +1436,7 @@ struct csi_process_r11_s {
       assert_choice_type("setup", type_.to_string(), "cqi-ReportAperiodicProc2-r12");
       return c;
     }
+    void                             set_release() { set(types::release); }
     cqi_report_aperiodic_proc_r11_s& set_setup()
     {
       set(types::setup);
@@ -1435,7 +1448,7 @@ struct csi_process_r11_s {
     cqi_report_aperiodic_proc_r11_s c;
   };
   struct cqi_report_aperiodic_proc_v1310_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     cqi_report_aperiodic_proc_v1310_c_() = default;
@@ -1457,6 +1470,7 @@ struct csi_process_r11_s {
       assert_choice_type("setup", type_.to_string(), "cqi-ReportAperiodicProc-v1310");
       return c;
     }
+    void                               set_release() { set(types::release); }
     cqi_report_aperiodic_proc_v1310_s& set_setup()
     {
       set(types::setup);
@@ -1468,7 +1482,7 @@ struct csi_process_r11_s {
     cqi_report_aperiodic_proc_v1310_s c;
   };
   struct cqi_report_aperiodic_proc2_v1310_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     cqi_report_aperiodic_proc2_v1310_c_() = default;
@@ -1490,6 +1504,7 @@ struct csi_process_r11_s {
       assert_choice_type("setup", type_.to_string(), "cqi-ReportAperiodicProc2-v1310");
       return c;
     }
+    void                               set_release() { set(types::release); }
     cqi_report_aperiodic_proc_v1310_s& set_setup()
     {
       set(types::setup);
@@ -1608,7 +1623,7 @@ struct cqi_report_aperiodic_r10_c {
     cqi_report_mode_aperiodic_e  cqi_report_mode_aperiodic_r10;
     aperiodic_csi_trigger_r10_s_ aperiodic_csi_trigger_r10;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_aperiodic_r10_c() = default;
@@ -1630,6 +1645,7 @@ struct cqi_report_aperiodic_r10_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportAperiodic-r10");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1663,7 +1679,7 @@ struct cqi_report_aperiodic_v1250_c {
     // member variables
     aperiodic_csi_trigger_v1250_s_ aperiodic_csi_trigger_v1250;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_aperiodic_v1250_c() = default;
@@ -1685,6 +1701,7 @@ struct cqi_report_aperiodic_v1250_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportAperiodic-v1250");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -1716,7 +1733,7 @@ struct cqi_report_aperiodic_v1310_c {
         fixed_bitstring<32> trigger5_sf_set_ind_r13;
         fixed_bitstring<32> trigger6_sf_set_ind_r13;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       aperiodic_csi_trigger2_r13_c_() = default;
@@ -1738,6 +1755,7 @@ struct cqi_report_aperiodic_v1310_c {
         assert_choice_type("setup", type_.to_string(), "aperiodicCSI-Trigger2-r13");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -1755,7 +1773,7 @@ struct cqi_report_aperiodic_v1310_c {
     aperiodic_csi_trigger_v1310_s_ aperiodic_csi_trigger_v1310;
     aperiodic_csi_trigger2_r13_c_  aperiodic_csi_trigger2_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_aperiodic_v1310_c() = default;
@@ -1777,6 +1795,7 @@ struct cqi_report_aperiodic_v1310_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportAperiodic-v1310");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2039,7 +2058,7 @@ struct cqi_report_periodic_r10_c {
         uint16_t cqi_pmi_cfg_idx2_r10    = 0;
         uint16_t ri_cfg_idx2_r10         = 0;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       csi_cfg_idx_r10_c_() = default;
@@ -2061,6 +2080,7 @@ struct cqi_report_periodic_r10_c {
         assert_choice_type("setup", type_.to_string(), "csi-ConfigIndex-r10");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -2085,7 +2105,7 @@ struct cqi_report_periodic_r10_c {
     bool                           simul_ack_nack_and_cqi = false;
     csi_cfg_idx_r10_c_             csi_cfg_idx_r10;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_periodic_r10_c() = default;
@@ -2107,6 +2127,7 @@ struct cqi_report_periodic_r10_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodic-r10");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2236,7 +2257,7 @@ struct spdcch_elems_r15_c {
     rate_matching_mode_r15_e_                rate_matching_mode_r15;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   spdcch_elems_r15_c() = default;
@@ -2258,6 +2279,7 @@ struct spdcch_elems_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPDCCH-Elements-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2298,7 +2320,7 @@ struct spucch_elems_r15_c {
     uint8_t                          n4max_coderate_multi_res_slot_pucch_r15    = 0;
     uint8_t                          n4max_coderate_multi_res_subslot_pucch_r15 = 0;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   spucch_elems_r15_c() = default;
@@ -2320,6 +2342,7 @@ struct spucch_elems_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPUCCH-Elements-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -2393,7 +2416,7 @@ private:
 
 // ZeroTxPowerCSI-RS-Conf-r12 ::= CHOICE
 struct zero_tx_pwr_csi_rs_conf_r12_c {
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   zero_tx_pwr_csi_rs_conf_r12_c() = default;
@@ -2415,6 +2438,7 @@ struct zero_tx_pwr_csi_rs_conf_r12_c {
     assert_choice_type("setup", type_.to_string(), "ZeroTxPowerCSI-RS-Conf-r12");
     return c;
   }
+  void                      set_release() { set(types::release); }
   zero_tx_pwr_csi_rs_r12_s& set_setup()
   {
     set(types::setup);
@@ -2433,7 +2457,7 @@ struct cqi_report_cfg_r10_s {
       meas_sf_pattern_r10_c csi_meas_sf_set1_r10;
       meas_sf_pattern_r10_c csi_meas_sf_set2_r10;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     csi_sf_pattern_cfg_r10_c_() = default;
@@ -2455,6 +2479,7 @@ struct cqi_report_cfg_r10_s {
       assert_choice_type("setup", type_.to_string(), "csi-SubframePatternConfig-r10");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -2503,7 +2528,7 @@ struct cqi_report_cfg_v1250_s {
     struct setup_s_ {
       fixed_bitstring<10> csi_meas_sf_sets_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     csi_sf_pattern_cfg_r12_c_() = default;
@@ -2525,6 +2550,7 @@ struct cqi_report_cfg_v1250_s {
       assert_choice_type("setup", type_.to_string(), "csi-SubframePatternConfig-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -2624,7 +2650,7 @@ struct csi_rs_cfg_r10_s {
       uint8_t                sf_cfg_r10  = 0;
       int8_t                 p_c_r10     = -8;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     csi_rs_r10_c_() = default;
@@ -2646,6 +2672,7 @@ struct csi_rs_cfg_r10_s {
       assert_choice_type("setup", type_.to_string(), "csi-RS-r10");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -2680,7 +2707,7 @@ struct csi_rs_cfg_v1250_s {
       // member variables
       zero_tx_pwr_csi_rs_list_r12_l_ zero_tx_pwr_csi_rs_list_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ds_zero_tx_pwr_csi_rs_r12_c_() = default;
@@ -2702,6 +2729,7 @@ struct csi_rs_cfg_v1250_s {
       assert_choice_type("setup", type_.to_string(), "ds-ZeroTxPowerCSI-RS-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -2847,7 +2875,7 @@ struct epdcch_set_cfg_r11_s {
     bounded_bitstring<4, 38> res_block_assign_r11;
   };
   struct csi_rs_cfg_zp_id2_r12_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     csi_rs_cfg_zp_id2_r12_c_() = default;
@@ -2869,6 +2897,7 @@ struct epdcch_set_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "csi-RS-ConfigZPId2-r12");
       return c;
     }
+    void     set_release() { set(types::release); }
     uint8_t& set_setup()
     {
       set(types::setup);
@@ -2880,7 +2909,7 @@ struct epdcch_set_cfg_r11_s {
     uint8_t c;
   };
   struct num_prb_pairs_v1310_c_ {
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     num_prb_pairs_v1310_c_() = default;
@@ -2891,6 +2920,9 @@ struct epdcch_set_cfg_r11_s {
     void        to_json(json_writer& j) const;
     bool        operator==(const num_prb_pairs_v1310_c_& other) const;
     bool        operator!=(const num_prb_pairs_v1310_c_& other) const { return not(*this == other); }
+    // getters
+    void set_release() { set(types::release); }
+    void set_setup() { set(types::setup); }
 
   private:
     types type_;
@@ -3002,7 +3034,7 @@ struct epdcch_set_cfg_r11_s {
       mpdcch_num_repeat_r13_e_    mpdcch_num_repeat_r13;
       uint8_t                     mpdcch_nb_r13 = 1;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     mpdcch_cfg_r13_c_() = default;
@@ -3024,6 +3056,7 @@ struct epdcch_set_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "mpdcch-config-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3129,7 +3162,7 @@ struct enable256_qam_r14_c {
 
     void destroy_();
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   enable256_qam_r14_c() = default;
@@ -3151,6 +3184,7 @@ struct enable256_qam_r14_c {
     assert_choice_type("setup", type_.to_string(), "Enable256QAM-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_c_& set_setup()
   {
     set(types::setup);
@@ -3177,7 +3211,7 @@ struct pdsch_re_map_qcl_cfg_r11_s {
       struct setup_s_ {
         mbsfn_sf_cfg_list_l sf_cfg_list;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       mbsfn_sf_cfg_list_r11_c_() = default;
@@ -3199,6 +3233,7 @@ struct pdsch_re_map_qcl_cfg_r11_s {
         assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-r11");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -3229,7 +3264,7 @@ struct pdsch_re_map_qcl_cfg_r11_s {
     struct setup_s_ {
       mbsfn_sf_cfg_list_v1430_l sf_cfg_list_v1430;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     mbsfn_sf_cfg_list_v1430_c_() = default;
@@ -3251,6 +3286,7 @@ struct pdsch_re_map_qcl_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-v1430");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3292,7 +3328,7 @@ struct pdsch_re_map_qcl_cfg_r11_s {
       uint8_t                   csi_rs_cfg_zp_id_v1530      = 1;
       uint8_t                   qcl_csi_rs_cfg_nzp_id_v1530 = 1;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     codeword_one_cfg_v1530_c_() = default;
@@ -3314,6 +3350,7 @@ struct pdsch_re_map_qcl_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "codewordOneConfig-v1530");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -3380,7 +3417,7 @@ struct tpc_pdcch_cfg_c {
     fixed_bitstring<16> tpc_rnti;
     tpc_idx_c           tpc_idx;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   tpc_pdcch_cfg_c() = default;
@@ -3402,6 +3439,7 @@ struct tpc_pdcch_cfg_c {
     assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-Config");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3691,7 +3729,7 @@ struct ant_info_ded_stti_r15_c {
     bool                        slot_subslot_pdsch_tx_div_minus2_layer_r15 = false;
     bool                        slot_subslot_pdsch_tx_div_minus4_layer_r15 = false;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   ant_info_ded_stti_r15_c() = default;
@@ -3713,6 +3751,7 @@ struct ant_info_ded_stti_r15_c {
     assert_choice_type("setup", type_.to_string(), "AntennaInfoDedicatedSTTI-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3775,7 +3814,7 @@ struct cqi_report_cfg_r15_c {
     cqi_report_cfg_v1430_s             cqi_report_cfg_v1430;
     alt_cqi_table_minus1024_qam_r15_e_ alt_cqi_table_minus1024_qam_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_cfg_r15_c() = default;
@@ -3797,6 +3836,7 @@ struct cqi_report_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportConfig-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3840,6 +3880,7 @@ struct cqi_report_periodic_c {
         assert_choice_type("subbandCQI", type_.to_string(), "cqi-FormatIndicatorPeriodic");
         return c;
       }
+      void            set_wideband_cqi() { set(types::wideband_cqi); }
       subband_cqi_s_& set_subband_cqi()
       {
         set(types::subband_cqi);
@@ -3859,7 +3900,7 @@ struct cqi_report_periodic_c {
     uint16_t                   ri_cfg_idx             = 0;
     bool                       simul_ack_nack_and_cqi = false;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   cqi_report_periodic_c() = default;
@@ -3879,6 +3920,7 @@ struct cqi_report_periodic_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodic");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3902,7 +3944,7 @@ struct csi_rs_cfg_r15_c {
     csi_rs_cfg_v1310_s csi_rs_cfg_v1310;
     csi_rs_cfg_v1430_s csi_rs_cfg_v1430;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   csi_rs_cfg_r15_c() = default;
@@ -3924,6 +3966,7 @@ struct csi_rs_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-Config-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -3944,7 +3987,7 @@ using csi_rs_cfg_nzp_to_release_list_r15_l = bounded_array<uint8_t, 24>;
 // CSI-RS-ConfigZP-ApList-r14 ::= CHOICE
 struct csi_rs_cfg_zp_ap_list_r14_c {
   using setup_l_ = dyn_array<csi_rs_cfg_zp_r11_s>;
-  typedef setup_e types;
+  using types    = setup_e;
 
   // choice methods
   csi_rs_cfg_zp_ap_list_r14_c() = default;
@@ -3966,6 +4009,7 @@ struct csi_rs_cfg_zp_ap_list_r14_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigZP-ApList-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_l_& set_setup()
   {
     set(types::setup);
@@ -3989,7 +4033,7 @@ struct dmrs_cfg_r11_c {
     uint16_t scrambling_id_r11  = 0;
     uint16_t scrambling_id2_r11 = 0;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   dmrs_cfg_r11_c() = default;
@@ -4011,6 +4055,7 @@ struct dmrs_cfg_r11_c {
     assert_choice_type("setup", type_.to_string(), "DMRS-Config-r11");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4124,7 +4169,7 @@ struct eimta_main_cfg_r12_c {
     eimta_cmd_periodicity_r12_e_ eimta_cmd_periodicity_r12;
     fixed_bitstring<10>          eimta_cmd_sf_set_r12;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   eimta_main_cfg_r12_c() = default;
@@ -4146,6 +4191,7 @@ struct eimta_main_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "EIMTA-MainConfig-r12");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4172,7 +4218,7 @@ struct eimta_main_cfg_serv_cell_r12_c {
       struct setup_s_ {
         mbsfn_sf_cfg_list_l sf_cfg_list_r12;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       mbsfn_sf_cfg_list_v1250_c_() = default;
@@ -4194,6 +4240,7 @@ struct eimta_main_cfg_serv_cell_r12_c {
         assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-v1250");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -4210,7 +4257,7 @@ struct eimta_main_cfg_serv_cell_r12_c {
     eimta_harq_ref_cfg_r12_e_  eimta_harq_ref_cfg_r12;
     mbsfn_sf_cfg_list_v1250_c_ mbsfn_sf_cfg_list_v1250;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   eimta_main_cfg_serv_cell_r12_c() = default;
@@ -4232,6 +4279,7 @@ struct eimta_main_cfg_serv_cell_r12_c {
     assert_choice_type("setup", type_.to_string(), "EIMTA-MainConfigServCell-r12");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4321,7 +4369,7 @@ struct pucch_format3_conf_r13_s {
       // member variables
       n3_pucch_an_list_p1_r13_l_ n3_pucch_an_list_p1_r13;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     two_ant_port_activ_pucch_format3_r13_c_() = default;
@@ -4343,6 +4391,7 @@ struct pucch_format3_conf_r13_s {
       assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivatedPUCCH-Format3-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -4392,7 +4441,7 @@ struct spdcch_cfg_r15_c {
     spdcch_l1_reuse_ind_r15_e_ spdcch_l1_reuse_ind_r15;
     spdcch_set_r15_l           spdcch_set_cfg_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   spdcch_cfg_r15_c() = default;
@@ -4414,6 +4463,7 @@ struct spdcch_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPDCCH-Config-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4441,7 +4491,7 @@ struct spucch_cfg_r15_c {
     spucch_set_r15_l spucch_set_r15;
     dummy_s_         dummy;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   spucch_cfg_r15_c() = default;
@@ -4463,6 +4513,7 @@ struct spucch_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPUCCH-Config-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4624,7 +4675,7 @@ struct sched_request_cfg_v1530_c {
     uint8_t                          sr_cfg_idx_subslot_r15 = 0;
     dssr_trans_max_r15_e_            dssr_trans_max_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sched_request_cfg_v1530_c() = default;
@@ -4646,6 +4697,7 @@ struct sched_request_cfg_v1530_c {
     assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfig-v1530");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4713,7 +4765,7 @@ struct slot_or_subslot_pdsch_cfg_r15_c {
     res_alloc_r15_e_                  res_alloc_r15;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   slot_or_subslot_pdsch_cfg_r15_c() = default;
@@ -4735,6 +4787,7 @@ struct slot_or_subslot_pdsch_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "SlotOrSubslotPDSCH-Config-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4778,7 +4831,7 @@ struct slot_or_subslot_pusch_cfg_r15_c {
     bool                                ul_dmrs_ifdma_slot_or_subslot_r15 = false;
     // ...
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   slot_or_subslot_pusch_cfg_r15_c() = default;
@@ -4800,6 +4853,7 @@ struct slot_or_subslot_pusch_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "SlotOrSubslotPUSCH-Config-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -4828,7 +4882,7 @@ struct tdd_pusch_up_pts_r14_c {
     bool                    dmrs_less_up_pts_cfg_r14_present = false;
     sym_pusch_up_pts_r14_e_ sym_pusch_up_pts_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   tdd_pusch_up_pts_r14_c() = default;
@@ -4848,6 +4902,7 @@ struct tdd_pusch_up_pts_r14_c {
     assert_choice_type("setup", type_.to_string(), "TDD-PUSCH-UpPTS-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -5047,7 +5102,7 @@ struct ant_info_ded_s {
       std::string to_string() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     ue_tx_ant_sel_c_() = default;
@@ -5067,6 +5122,7 @@ struct ant_info_ded_s {
       assert_choice_type("setup", type_.to_string(), "ue-TransmitAntennaSelection");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -5125,7 +5181,7 @@ struct ant_info_ded_r10_s {
       std::string to_string() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     ue_tx_ant_sel_c_() = default;
@@ -5147,6 +5203,7 @@ struct ant_info_ded_r10_s {
       assert_choice_type("setup", type_.to_string(), "ue-TransmitAntennaSelection");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -5237,6 +5294,7 @@ struct ant_info_ded_v1530_c {
       assert_choice_type("ue-TxAntennaSelection-SRS-2T4R-NrOfPairs-r15", type_.to_string(), "setup");
       return c;
     }
+    void set_ue_tx_ant_sel_srs_minus1_t4_r_cfg_r15() { set(types::ue_tx_ant_sel_srs_minus1_t4_r_cfg_r15); }
     ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_& set_ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15()
     {
       set(types::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15);
@@ -5247,7 +5305,7 @@ struct ant_info_ded_v1530_c {
     types                                            type_;
     ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_ c;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   ant_info_ded_v1530_c() = default;
@@ -5267,6 +5325,7 @@ struct ant_info_ded_v1530_c {
     assert_choice_type("setup", type_.to_string(), "AntennaInfoDedicated-v1530");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_c_& set_setup()
   {
     set(types::setup);
@@ -5505,7 +5564,7 @@ struct epdcch_cfg_r11_s {
         struct setup_s_ {
           meas_sf_pattern_r10_c sf_pattern_r11;
         };
-        typedef setup_e types;
+        using types = setup_e;
 
         // choice methods
         sf_pattern_cfg_r11_c_() = default;
@@ -5527,6 +5586,7 @@ struct epdcch_cfg_r11_s {
           assert_choice_type("setup", type_.to_string(), "subframePatternConfig-r11");
           return c;
         }
+        void      set_release() { set(types::release); }
         setup_s_& set_setup()
         {
           set(types::setup);
@@ -5548,7 +5608,7 @@ struct epdcch_cfg_r11_s {
       epdcch_set_cfg_to_release_list_r11_l set_cfg_to_release_list_r11;
       epdcch_set_cfg_to_add_mod_list_r11_l set_cfg_to_add_mod_list_r11;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     cfg_r11_c_() = default;
@@ -5570,6 +5630,7 @@ struct epdcch_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "config-r11");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5601,7 +5662,7 @@ struct pdcch_candidate_reductions_r13_c {
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al4_r13;
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al5_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   pdcch_candidate_reductions_r13_c() = default;
@@ -5623,6 +5684,7 @@ struct pdcch_candidate_reductions_r13_c {
     assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductions-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -5800,7 +5862,7 @@ struct pucch_cfg_ded_s {
       repeat_factor_e_ repeat_factor;
       uint16_t         n1_pucch_an_rep = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ack_nack_repeat_c_() = default;
@@ -5820,6 +5882,7 @@ struct pucch_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "ackNackRepetition");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5865,7 +5928,7 @@ struct pucch_cfg_ded_r13_s {
       repeat_factor_r13_e_ repeat_factor_r13;
       uint16_t             n1_pucch_an_rep_r13 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ack_nack_repeat_r13_c_() = default;
@@ -5887,6 +5950,7 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "ackNackRepetition-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -5913,7 +5977,7 @@ struct pucch_cfg_ded_r13_s {
           // member variables
           n3_pucch_an_list_p1_r13_l_ n3_pucch_an_list_p1_r13;
         };
-        typedef setup_e types;
+        using types = setup_e;
 
         // choice methods
         two_ant_port_activ_pucch_format3_r13_c_() = default;
@@ -5935,6 +5999,7 @@ struct pucch_cfg_ded_r13_s {
           assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivatedPUCCH-Format3-r13");
           return c;
         }
+        void      set_release() { set(types::release); }
         setup_s_& set_setup()
         {
           set(types::setup);
@@ -5962,7 +6027,7 @@ struct pucch_cfg_ded_r13_s {
           n1_pucch_an_cs_list_r13_l_ n1_pucch_an_cs_list_r13;
           dummy1_l_                  dummy1;
         };
-        typedef setup_e types;
+        using types = setup_e;
 
         // choice methods
         n1_pucch_an_cs_r13_c_() = default;
@@ -5984,6 +6049,7 @@ struct pucch_cfg_ded_r13_s {
           assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-r13");
           return c;
         }
+        void      set_release() { set(types::release); }
         setup_s_& set_setup()
         {
           set(types::setup);
@@ -6110,7 +6176,7 @@ struct pucch_cfg_ded_r13_s {
       uint16_t npucch_id_r13   = 0;
       uint16_t n1_pucch_an_r13 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     npucch_param_r13_c_() = default;
@@ -6132,6 +6198,7 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "nPUCCH-Param-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6146,7 +6213,7 @@ struct pucch_cfg_ded_r13_s {
     struct setup_s_ {
       uint16_t nka_pucch_an_r13 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     nka_pucch_param_r13_c_() = default;
@@ -6168,6 +6235,7 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "nkaPUCCH-Param-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6287,7 +6355,7 @@ struct pucch_cfg_ded_r13_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pucch_num_repeat_ce_r13_c_() = default;
@@ -6309,6 +6377,7 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "pucch-NumRepetitionCE-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_c_& set_setup()
     {
       set(types::setup);
@@ -6363,7 +6432,7 @@ struct pucch_cfg_ded_v1020_s {
           // member variables
           n1_pucch_an_cs_list_r10_l_ n1_pucch_an_cs_list_r10;
         };
-        typedef setup_e types;
+        using types = setup_e;
 
         // choice methods
         n1_pucch_an_cs_r10_c_() = default;
@@ -6383,6 +6452,7 @@ struct pucch_cfg_ded_v1020_s {
           assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-r10");
           return c;
         }
+        void      set_release() { set(types::release); }
         setup_s_& set_setup()
         {
           set(types::setup);
@@ -6479,7 +6549,7 @@ struct pucch_cfg_ded_v1130_s {
       // member variables
       n1_pucch_an_cs_list_p1_r11_l_ n1_pucch_an_cs_list_p1_r11;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     n1_pucch_an_cs_v1130_c_() = default;
@@ -6499,6 +6569,7 @@ struct pucch_cfg_ded_v1130_s {
       assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v1130");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6514,7 +6585,7 @@ struct pucch_cfg_ded_v1130_s {
       uint16_t npucch_id_r11   = 0;
       uint16_t n1_pucch_an_r11 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     npucch_param_r11_c_() = default;
@@ -6534,6 +6605,7 @@ struct pucch_cfg_ded_v1130_s {
       assert_choice_type("setup", type_.to_string(), "nPUCCH-Param-r11");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6563,7 +6635,7 @@ struct pucch_cfg_ded_v1250_s {
     struct setup_s_ {
       uint16_t nka_pucch_an_r12 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     nka_pucch_param_r12_c_() = default;
@@ -6583,6 +6655,7 @@ struct pucch_cfg_ded_v1250_s {
       assert_choice_type("setup", type_.to_string(), "nkaPUCCH-Param-r12");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6650,7 +6723,7 @@ struct pusch_cfg_ded_r13_s {
       uint16_t npusch_id_r13    = 0;
       uint16_t ndmrs_csh_id_r13 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pusch_dmrs_r11_c_() = default;
@@ -6672,6 +6745,7 @@ struct pusch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "pusch-DMRS-r11");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6701,7 +6775,7 @@ struct pusch_cfg_ded_r13_s {
       uint8_t               beta_offset_cqi_idx_sf_set2_r13          = 0;
       beta_offset_mc_r12_s_ beta_offset_mc_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     uci_on_pusch_c_() = default;
@@ -6723,6 +6797,7 @@ struct pusch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "uciOnPUSCH");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6785,7 +6860,7 @@ struct pusch_cfg_ded_v1130_s {
       uint16_t npusch_id_r11    = 0;
       uint16_t ndmrs_csh_id_r11 = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     pusch_dmrs_r11_c_() = default;
@@ -6807,6 +6882,7 @@ struct pusch_cfg_ded_v1130_s {
       assert_choice_type("setup", type_.to_string(), "pusch-DMRS-r11");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6846,7 +6922,7 @@ struct pusch_cfg_ded_v1250_s {
       uint8_t               beta_offset_cqi_idx_sf_set2_r12 = 0;
       beta_offset_mc_r12_s_ beta_offset_mc_r12;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     uci_on_pusch_c_() = default;
@@ -6866,6 +6942,7 @@ struct pusch_cfg_ded_v1250_s {
       assert_choice_type("setup", type_.to_string(), "uciOnPUSCH");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6909,7 +6986,7 @@ struct pusch_cfg_ded_v1530_s {
       bool   offset_ce_mode_b_r15_present = false;
       int8_t offset_ce_mode_b_r15         = -1;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ce_pusch_flex_start_prb_alloc_cfg_r15_c_() = default;
@@ -6929,6 +7006,7 @@ struct pusch_cfg_ded_v1530_s {
       assert_choice_type("setup", type_.to_string(), "ce-PUSCH-FlexibleStartPRB-AllocConfig-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -6946,7 +7024,7 @@ struct pusch_cfg_ded_v1530_s {
       uint8_t six_tone_cyclic_shift_r15      = 0;
       uint8_t three_tone_cyclic_shift_r15    = 0;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     ce_pusch_sub_prb_cfg_r15_c_() = default;
@@ -6966,6 +7044,7 @@ struct pusch_cfg_ded_v1530_s {
       assert_choice_type("setup", type_.to_string(), "ce-PUSCH-SubPRB-Config-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -7070,7 +7149,7 @@ struct pusch_enhance_cfg_r14_c {
     uint8_t                        pusch_hop_offset_pusch_enh_r14         = 1;
     interv_ul_hop_pusch_enh_r14_c_ interv_ul_hop_pusch_enh_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   pusch_enhance_cfg_r14_c() = default;
@@ -7090,6 +7169,7 @@ struct pusch_enhance_cfg_r14_c {
     assert_choice_type("setup", type_.to_string(), "PUSCH-EnhancementsConfig-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7146,7 +7226,7 @@ struct phys_cfg_ded_stti_r15_c {
     bool                                 short_processing_time_r15 = false;
     short_tti_r15_s                      short_tti_r15;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   phys_cfg_ded_stti_r15_c() = default;
@@ -7168,6 +7248,7 @@ struct phys_cfg_ded_stti_r15_c {
     assert_choice_type("setup", type_.to_string(), "PhysicalConfigDedicatedSTTI-r15");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7192,7 +7273,7 @@ struct spucch_cfg_v1550_c {
     // member variables
     two_ant_port_activ_spucch_format3_v1550_s_ two_ant_port_activ_spucch_format3_v1550;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   spucch_cfg_v1550_c() = default;
@@ -7214,6 +7295,7 @@ struct spucch_cfg_v1550_c {
     assert_choice_type("setup", type_.to_string(), "SPUCCH-Config-v1550");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7237,7 +7319,7 @@ struct srs_tpc_pdcch_cfg_r14_c {
     uint8_t                   field_type_format3_b_r14   = 1;
     srs_cc_set_idxlist_r14_l_ srs_cc_set_idxlist_r14;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_tpc_pdcch_cfg_r14_c() = default;
@@ -7259,6 +7341,7 @@ struct srs_tpc_pdcch_cfg_r14_c {
     assert_choice_type("setup", type_.to_string(), "SRS-TPC-PDCCH-Config-r14");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7287,7 +7370,7 @@ struct sched_request_cfg_c {
     uint8_t          sr_cfg_idx       = 0;
     dsr_trans_max_e_ dsr_trans_max;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   sched_request_cfg_c() = default;
@@ -7307,6 +7390,7 @@ struct sched_request_cfg_c {
     assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfig");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7366,7 +7450,7 @@ struct srs_ul_cfg_ded_c {
     uint8_t         tx_comb              = 0;
     cyclic_shift_e_ cyclic_shift;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_c() = default;
@@ -7388,6 +7472,7 @@ struct srs_ul_cfg_ded_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicated");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7439,7 +7524,7 @@ struct srs_ul_cfg_ded_v1310_c {
     cyclic_shift_v1310_e_ cyclic_shift_v1310;
     tx_comb_num_r13_e_    tx_comb_num_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_v1310_c() = default;
@@ -7461,6 +7546,7 @@ struct srs_ul_cfg_ded_v1310_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicated-v1310");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7483,7 +7569,7 @@ struct srs_ul_cfg_ded_aperiodic_r10_c {
         srs_cfg_ap_r10_s srs_cfg_ap_dci_format1a2b2c_r10;
         // ...
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       srs_activ_ap_r10_c_() = default;
@@ -7505,6 +7591,7 @@ struct srs_ul_cfg_ded_aperiodic_r10_c {
         assert_choice_type("setup", type_.to_string(), "srs-ActivateAp-r10");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -7523,7 +7610,7 @@ struct srs_ul_cfg_ded_aperiodic_r10_c {
     srs_cfg_ap_dci_format4_r10_l_ srs_cfg_ap_dci_format4_r10;
     srs_activ_ap_r10_c_           srs_activ_ap_r10;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_aperiodic_r10_c() = default;
@@ -7545,6 +7632,7 @@ struct srs_ul_cfg_ded_aperiodic_r10_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-r10");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7567,7 +7655,7 @@ struct srs_ul_cfg_ded_aperiodic_v1310_c {
         srs_cfg_ap_v1310_s srs_cfg_ap_dci_format0_v1310;
         srs_cfg_ap_v1310_s srs_cfg_ap_dci_format1a2b2c_v1310;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       srs_activ_ap_v1310_c_() = default;
@@ -7589,6 +7677,7 @@ struct srs_ul_cfg_ded_aperiodic_v1310_c {
         assert_choice_type("setup", type_.to_string(), "srs-ActivateAp-v1310");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -7606,7 +7695,7 @@ struct srs_ul_cfg_ded_aperiodic_v1310_c {
     srs_cfg_ap_dci_format4_v1310_l_ srs_cfg_ap_dci_format4_v1310;
     srs_activ_ap_v1310_c_           srs_activ_ap_v1310;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_aperiodic_v1310_c() = default;
@@ -7628,6 +7717,7 @@ struct srs_ul_cfg_ded_aperiodic_v1310_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1310");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7656,7 +7746,7 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
         srs_cfg_ap_r13_s srs_cfg_ap_dci_format0_r13;
         srs_cfg_ap_r13_s srs_cfg_ap_dci_format1a2b2c_r13;
       };
-      typedef setup_e types;
+      using types = setup_e;
 
       // choice methods
       srs_activ_ap_r13_c_() = default;
@@ -7678,6 +7768,7 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
         assert_choice_type("setup", type_.to_string(), "srs-ActivateAp-r13");
         return c;
       }
+      void      set_release() { set(types::release); }
       setup_s_& set_setup()
       {
         set(types::setup);
@@ -7697,7 +7788,7 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
     srs_cfg_ap_dci_format4_r13_l_ srs_cfg_ap_dci_format4_r13;
     srs_activ_ap_r13_c_           srs_activ_ap_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c() = default;
@@ -7719,6 +7810,7 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodicUpPTsExt-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7786,7 +7878,7 @@ struct srs_ul_cfg_ded_up_pts_ext_r13_c {
     srs_ant_port_e        srs_ant_port_r13;
     tx_comb_num_r13_e_    tx_comb_num_r13;
   };
-  typedef setup_e types;
+  using types = setup_e;
 
   // choice methods
   srs_ul_cfg_ded_up_pts_ext_r13_c() = default;
@@ -7808,6 +7900,7 @@ struct srs_ul_cfg_ded_up_pts_ext_r13_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedUpPTsExt-r13");
     return c;
   }
+  void      set_release() { set(types::release); }
   setup_s_& set_setup()
   {
     set(types::setup);
@@ -7884,7 +7977,7 @@ struct ul_pwr_ctrl_ded_v1250_s {
       alpha_r12_e         alpha_sf_set2_r12;
       int8_t              p0_ue_pusch_sf_set2_r12 = -8;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     set2_pwr_ctrl_param_c_() = default;
@@ -7906,6 +7999,7 @@ struct ul_pwr_ctrl_ded_v1250_s {
       assert_choice_type("setup", type_.to_string(), "set2PowerControlParameter");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -7976,6 +8070,7 @@ struct phys_cfg_ded_s {
       set(types::explicit_value);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types          type_;
@@ -8012,6 +8107,7 @@ struct phys_cfg_ded_s {
       set(types::explicit_value_r10);
       return c;
     }
+    void set_default_value() { set(types::default_value); }
 
   private:
     types              type_;
@@ -8021,7 +8117,7 @@ struct phys_cfg_ded_s {
     struct setup_s_ {
       uint8_t add_spec_emission_pcell_r10 = 1;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     add_spec_emission_ca_r10_c_() = default;
@@ -8041,6 +8137,7 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "additionalSpectrumEmissionCA-r10");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -8058,7 +8155,7 @@ struct phys_cfg_ded_s {
       std::string to_string() const;
     };
     typedef enumerated<setup_opts> setup_e_;
-    typedef setup_e                types;
+    using types = setup_e;
 
     // choice methods
     ce_mode_r13_c_() = default;
@@ -8078,6 +8175,7 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "ce-Mode-r13");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_e_& set_setup()
     {
       set(types::setup);
@@ -8090,7 +8188,7 @@ struct phys_cfg_ded_s {
   };
   struct type_a_srs_tpc_pdcch_group_r14_c_ {
     using setup_l_ = dyn_array<srs_tpc_pdcch_cfg_r14_c>;
-    typedef setup_e types;
+    using types    = setup_e;
 
     // choice methods
     type_a_srs_tpc_pdcch_group_r14_c_() = default;
@@ -8110,6 +8208,7 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "typeA-SRS-TPC-PDCCH-Group-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_l_& set_setup()
     {
       set(types::setup);
@@ -8145,7 +8244,7 @@ struct phys_cfg_ded_s {
       k_max_r14_e_    k_max_r14;
       p_a_must_r14_e_ p_a_must_r14;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     must_cfg_r14_c_() = default;
@@ -8165,6 +8264,7 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "must-Config-r14");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);
@@ -8236,7 +8336,7 @@ struct phys_cfg_ded_s {
 
       void destroy_();
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     semi_static_cfi_cfg_r15_c_() = default;
@@ -8256,6 +8356,7 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_c_& set_setup()
     {
       set(types::setup);
@@ -8338,7 +8439,7 @@ struct phys_cfg_ded_s {
       mcs_restrict_sf_pdsch_repeats_r15_e_           mcs_restrict_sf_pdsch_repeats_r15;
       mcs_restrict_slot_subslot_pdsch_repeats_r15_e_ mcs_restrict_slot_subslot_pdsch_repeats_r15;
     };
-    typedef setup_e types;
+    using types = setup_e;
 
     // choice methods
     blind_pdsch_repeat_cfg_r15_c_() = default;
@@ -8358,6 +8459,7 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
       return c;
     }
+    void      set_release() { set(types::release); }
     setup_s_& set_setup()
     {
       set(types::setup);

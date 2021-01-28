@@ -65,7 +65,9 @@ void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cel
 
   search_buffer = srslte_vec_cf_malloc(intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB));
 
-  if (srslte_ringbuffer_init(&ring_buffer, sizeof(cf_t) * intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
+  // Initialise buffer for the maximum number of PRB
+  uint32_t max_required_bytes = (uint32_t)sizeof(cf_t) * intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB);
+  if (srslte_ringbuffer_init(&ring_buffer, max_required_bytes)) {
     return;
   }
 
@@ -136,6 +138,10 @@ void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
       }
       break;
     case internal_state::receive:
+      // As nbytes might not match the sub-frame size, make sure that buffer does not overflow
+      nbytes = SRSLTE_MIN(srslte_ringbuffer_space(&ring_buffer), nbytes);
+
+      // Try writing in the buffer
       if (srslte_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
         Warning("INTRA: Error writing to ringbuffer (EARFCN=%d)\n", current_earfcn);
 

@@ -40,6 +40,10 @@ ue_stack_lte::ue_stack_lte() :
   rlc("RLC"),
   mac("MAC", &task_sched),
   rrc(this, &task_sched),
+#ifdef HAVE_5GNR
+  mac_nr(&task_sched),
+  rrc_nr(&task_sched),
+#endif
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
   thread("STACK"),
@@ -127,7 +131,15 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
+#ifdef HAVE_5GNR
+  mac_nr_args_t mac_nr_args;
+  mac_nr.init(mac_nr_args, nullptr, &rlc);
+  rrc_nr.init(
+      nullptr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
+#else
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, args.rrc);
+#endif
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);

@@ -77,17 +77,12 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  srslte_refsignal_ul_t             refs;
-  srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg;
-  cf_t*                             signal = NULL;
-  int                               ret    = -1;
+  srslte_refsignal_ul_t             refs      = {};
+  srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg = {};
+  cf_t*                             signal    = NULL;
+  int                               ret       = -1;
 
   parse_args(argc, argv);
-
-  if (srslte_refsignal_ul_init(&refs, cell.nof_prb)) {
-    ERROR("Error initializing UL reference signal\n");
-    goto do_exit;
-  }
 
   if (srslte_refsignal_ul_set_cell(&refs, cell)) {
     ERROR("Error initializing UL reference signal\n");
@@ -163,8 +158,6 @@ do_exit:
   if (signal) {
     free(signal);
   }
-
-  srslte_refsignal_ul_free(&refs);
 
   if (!ret) {
     printf("OK\n");

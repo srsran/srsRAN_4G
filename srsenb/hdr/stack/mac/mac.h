@@ -61,11 +61,11 @@ public:
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value) override;
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value) override;
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value) override;
-  int snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr) override;
+  int snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr, ul_channel_t ch) override;
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override;
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) override;
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) override;
-  int push_pdu(uint32_t tti, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) override;
+  int push_pdu(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) override;
 
   int  get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res) override;
   int  get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res) override;
@@ -148,14 +148,15 @@ private:
   void                                      prealloc_ue(uint32_t nof_ue);
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
+                        uint32_t                               enb_cc_idx,
                         uint32_t                               nof_grants,
-                        int                                    rar_idx,
+                        uint32_t                               rar_idx,
                         uint32_t                               pdu_len,
                         uint32_t                               tti);
 
   const static int             rar_payload_len = 128;
-  std::vector<srslte::rar_pdu> rar_pdu_msg;
-  srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
+  std::array<srslte::rar_pdu, sched_interface::MAX_RAR_LIST> rar_pdu_msg;
+  srslte::byte_buffer_t rar_payload[SRSLTE_MAX_CARRIERS][sched_interface::MAX_RAR_LIST];
 
   const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
 

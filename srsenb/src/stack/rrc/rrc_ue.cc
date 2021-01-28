@@ -23,6 +23,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srsenb/hdr/stack/rrc/ue_rr_cfg.h"
+#include "srslte/adt/mem_pool.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
@@ -45,25 +46,38 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   ue_cell_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
   bearer_list(rnti_, parent->cfg),
-  ue_security_cfg(parent->cfg)
-{
-  mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
+  ue_security_cfg(parent->cfg),
+  mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
+{}
 
+rrc::ue::~ue() {}
+
+int rrc::ue::init()
+{
   // Allocate cell and PUCCH resources
-  if (ue_cell_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
-    return;
+  if (ue_cell_list.add_cell(mac_ctrl.get_ue_sched_cfg().supported_cc_list[0].enb_cc_idx) == nullptr) {
+    return SRSLTE_ERROR;
   }
 
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common, true);
 
-  activity_timer = outer_rrc->task_sched.get_unique_timer();
+  activity_timer = parent->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
 
   mobility_handler.reset(new rrc_mobility(this));
+  return SRSLTE_SUCCESS;
 }
 
-rrc::ue::~ue() {}
+void* rrc::ue::operator new(size_t sz)
+{
+  assert(sz == sizeof(ue));
+  return rrc::ue_pool.allocate_node(sz);
+}
+void rrc::ue::operator delete(void* ptr)noexcept
+{
+  rrc::ue_pool.deallocate_node(ptr);
+}
 
 rrc_state_t rrc::ue::get_state()
 {
@@ -224,6 +238,9 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
         parent->rrc_log->warning("Received MeasReport but no mobility configuration is available\n");
       }
       break;
+    case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
+      handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9());
+      break;
     default:
       parent->rrc_log->error("Msg: %s not supported\n", ul_dcch_msg.msg.c1().type().to_string().c_str());
       break;
@@ -275,7 +292,7 @@ void rrc::ue::send_connection_setup()
   fill_rr_cfg_ded_setup(rr_cfg, parent->cfg, ue_cell_list);
 
   // Apply ConnectionSetup Configuration to MAC scheduler
-  mac_ctrl->handle_con_setup(setup_r8);
+  mac_ctrl.handle_con_setup(setup_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   apply_pdcp_srb_updates(setup_r8.rr_cfg_ded);
@@ -305,7 +322,7 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   memcpy(pdu->msg, msg_r8->ded_info_nas.data(), pdu->N_bytes);
 
   // Signal MAC scheduler that configuration was successful
-  mac_ctrl->handle_con_setup_complete();
+  mac_ctrl.handle_con_setup_complete();
 
   asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
   s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
@@ -318,11 +335,21 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
   // Log event.
   event_logger::get().log_rrc_connected(static_cast<unsigned>(s1ap_cause.value));
+
+  // 2> if the UE has radio link failure or handover failure information available
+  if (msg->crit_exts.type().value == c1_or_crit_ext_opts::c1 and
+      msg->crit_exts.c1().type().value ==
+          rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types_opts::rrc_conn_setup_complete_r8) {
+    const auto& complete_r8 = msg->crit_exts.c1().rrc_conn_setup_complete_r8();
+    if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present) {
+      rlf_info_pending = true;
+    }
+  }
 }
 
 void rrc::ue::send_connection_reject()
 {
-  mac_ctrl->handle_con_reject();
+  mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
@@ -356,18 +383,18 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                             old_rnti);
 
       // Cancel Handover in Target eNB if on-going
-      parent->users[old_rnti]->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
+      parent->users.at(old_rnti)->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{});
 
       // Recover security setup
       const enb_cell_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-      ue_security_cfg                  = parent->users[old_rnti]->ue_security_cfg;
+      ue_security_cfg                  = parent->users.at(old_rnti)->ue_security_cfg;
       ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
 
       // send reestablishment and restore bearer configuration
-      send_connection_reest(parent->users[old_rnti]->ue_security_cfg.get_ncc());
+      send_connection_reest(parent->users.at(old_rnti)->ue_security_cfg.get_ncc());
 
       // Get PDCP entity state (required when using RLC AM)
-      for (const auto& erab_pair : parent->users[old_rnti]->bearer_list.get_erabs()) {
+      for (const auto& erab_pair : parent->users.at(old_rnti)->bearer_list.get_erabs()) {
         uint16_t lcid              = erab_pair.second.id - 2;
         old_reest_pdcp_state[lcid] = {};
         parent->pdcp->get_bearer_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
@@ -383,9 +410,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       }
 
       // Make sure UE capabilities are copied over to new RNTI
-      eutra_capabilities          = parent->users[old_rnti]->eutra_capabilities;
-      eutra_capabilities_unpacked = parent->users[old_rnti]->eutra_capabilities_unpacked;
-      ue_capabilities             = parent->users[old_rnti]->ue_capabilities;
+      eutra_capabilities          = parent->users.at(old_rnti)->eutra_capabilities;
+      eutra_capabilities_unpacked = parent->users.at(old_rnti)->eutra_capabilities_unpacked;
+      ue_capabilities             = parent->users.at(old_rnti)->ue_capabilities;
       if (parent->rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
         asn1::json_writer js{};
         eutra_capabilities.to_json(js);
@@ -419,7 +446,7 @@ void rrc::ue::send_connection_reest(uint8_t ncc)
   reest_r8.next_hop_chaining_count = ncc;
 
   // Apply ConnectionReest Configuration to MAC scheduler
-  mac_ctrl->handle_con_reest(reest_r8);
+  mac_ctrl.handle_con_reest(reest_r8);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   apply_pdcp_srb_updates(rr_cfg);
@@ -449,7 +476,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->s1ap->user_mod(old_reest_rnti, rnti);
 
   // Signal MAC scheduler that configuration was successful
-  mac_ctrl->handle_con_reest_complete();
+  mac_ctrl.handle_con_reest_complete();
 
   // Activate security for SRB1
   parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
@@ -457,7 +484,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
 
   // Reestablish current DRBs during ConnectionReconfiguration
-  for (const auto& erab_pair : parent->users[old_reest_rnti]->bearer_list.get_erabs()) {
+  for (const auto& erab_pair : parent->users.at(old_reest_rnti)->bearer_list.get_erabs()) {
     const bearer_cfg_handler::erab_t& erab = erab_pair.second;
     bearer_list.add_erab(erab.id, erab.qos_params, erab.address, erab.teid_out, nullptr);
   }
@@ -466,12 +493,21 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->rem_user_thread(old_reest_rnti);
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
+
+  // 2> if the UE has radio link failure or handover failure information available
+  if (msg->crit_exts.type().value == rrc_conn_reest_complete_s::crit_exts_c_::types_opts::rrc_conn_reest_complete_r8) {
+    const auto& complete_r8 = msg->crit_exts.rrc_conn_reest_complete_r8();
+    if (complete_r8.non_crit_ext.rlf_info_available_r9_present) {
+      rlf_info_pending = true;
+    }
+  }
+
   send_connection_reconf(std::move(pdu));
 }
 
 void rrc::ue::send_connection_reest_rej()
 {
-  mac_ctrl->handle_con_reject();
+  mac_ctrl.handle_con_reject();
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
@@ -518,7 +554,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
   apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
 
   // UE MAC scheduler updates
-  mac_ctrl->handle_con_reconf(recfg_r8, ue_capabilities);
+  mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
 
   // Reuse same PDU
   if (pdu != nullptr) {
@@ -544,10 +580,41 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   }
 
   // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
-  mac_ctrl->handle_con_reconf_complete();
+  mac_ctrl.handle_con_reconf_complete();
 
   // If performing handover, signal its completion
   mobility_handler->trigger(*msg);
+
+  // 2> if the UE has radio link failure or handover failure information available
+  const auto& complete_r8 = msg->crit_exts.rrc_conn_recfg_complete_r8();
+  if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present or rlf_info_pending) {
+    rlf_info_pending = false;
+    send_ue_info_req();
+  }
+}
+
+void rrc::ue::send_ue_info_req()
+{
+  dl_dcch_msg_s msg;
+  auto&         req_r9      = msg.msg.set_c1().set_ue_info_request_r9();
+  req_r9.rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+
+  auto& req              = req_r9.crit_exts.set_c1().set_ue_info_request_r9();
+  req.rlf_report_req_r9  = true;
+  req.rach_report_req_r9 = true;
+
+  send_dl_dcch(&msg);
+}
+
+void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg)
+{
+  auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
+  if (resp_r9.rlf_report_r9_present) {
+    // TODO: Handle RLF-Report
+  }
+  if (resp_r9.rach_report_r9_present) {
+    // TODO: Handle RACH-Report
+  }
 }
 
 /*

@@ -65,7 +65,7 @@ struct mib_mbms_r14_s {
 };
 
 // BCCH-BCH-MessageType-MBMS-r14 ::= MasterInformationBlock-MBMS-r14
-typedef mib_mbms_r14_s bcch_bch_msg_type_mbms_r14_s;
+using bcch_bch_msg_type_mbms_r14_s = mib_mbms_r14_s;
 
 // BCCH-BCH-Message-MBMS ::= SEQUENCE
 struct bcch_bch_msg_mbms_s {
@@ -78,7 +78,7 @@ struct bcch_bch_msg_mbms_s {
 };
 
 // SystemInformation-MBMS-r14 ::= SystemInformation
-typedef sys_info_s sys_info_mbms_r14_s;
+using sys_info_mbms_r14_s = sys_info_s;
 
 // BCCH-DL-SCH-MessageType-MBMS-r14 ::= CHOICE
 struct bcch_dl_sch_msg_type_mbms_r14_c {
@@ -151,9 +151,6 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
 
   // choice methods
   bcch_dl_sch_msg_type_mbms_r14_c() = default;
-  bcch_dl_sch_msg_type_mbms_r14_c(const bcch_dl_sch_msg_type_mbms_r14_c& other);
-  bcch_dl_sch_msg_type_mbms_r14_c& operator=(const bcch_dl_sch_msg_type_mbms_r14_c& other);
-  ~bcch_dl_sch_msg_type_mbms_r14_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -163,24 +160,23 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
   c1_c_& c1()
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-MBMS-r14");
-    return c.get<c1_c_>();
+    return c;
   }
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-MBMS-r14");
-    return c.get<c1_c_>();
+    return c;
   }
   c1_c_& set_c1()
   {
     set(types::c1);
-    return c.get<c1_c_>();
+    return c;
   }
+  void set_msg_class_ext() { set(types::msg_class_ext); }
 
 private:
-  types                  type_;
-  choice_buffer_t<c1_c_> c;
-
-  void destroy_();
+  types type_;
+  c1_c_ c;
 };
 
 // BCCH-DL-SCH-Message-MBMS ::= SEQUENCE
@@ -192,6 +188,9 @@ struct bcch_dl_sch_msg_mbms_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
+
+// ThresholdEUTRA-v1250 ::= INTEGER (0..97)
+using thres_eutra_v1250 = uint8_t;
 
 // MBMS-SessionInfo-r9 ::= SEQUENCE
 struct mbms_session_info_r9_s {
@@ -507,9 +506,6 @@ struct mcch_msg_type_c {
 
     // choice methods
     later_c_() = default;
-    later_c_(const later_c_& other);
-    later_c_& operator=(const later_c_& other);
-    ~later_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -519,24 +515,23 @@ struct mcch_msg_type_c {
     c2_c_& c2()
     {
       assert_choice_type("c2", type_.to_string(), "later");
-      return c.get<c2_c_>();
+      return c;
     }
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "later");
-      return c.get<c2_c_>();
+      return c;
     }
     c2_c_& set_c2()
     {
       set(types::c2);
-      return c.get<c2_c_>();
+      return c;
     }
+    void set_msg_class_ext() { set(types::msg_class_ext); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c2_c_> c;
-
-    void destroy_();
+    types type_;
+    c2_c_ c;
   };
   struct types_opts {
     enum options { c1, later, nulltype } value;
@@ -1618,6 +1613,7 @@ struct sc_mcch_msg_type_r13_c {
         set(types::scptm_cfg_br_r14);
         return c;
       }
+      void set_spare() { set(types::spare); }
 
     private:
       types              type_;
@@ -1634,9 +1630,6 @@ struct sc_mcch_msg_type_r13_c {
 
     // choice methods
     msg_class_ext_c_() = default;
-    msg_class_ext_c_(const msg_class_ext_c_& other);
-    msg_class_ext_c_& operator=(const msg_class_ext_c_& other);
-    ~msg_class_ext_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -1646,24 +1639,23 @@ struct sc_mcch_msg_type_r13_c {
     c2_c_& c2()
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
-      return c.get<c2_c_>();
+      return c;
     }
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
-      return c.get<c2_c_>();
+      return c;
     }
     c2_c_& set_c2()
     {
       set(types::c2);
-      return c.get<c2_c_>();
+      return c;
     }
+    void set_msg_class_ext_future_r14() { set(types::msg_class_ext_future_r14); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c2_c_> c;
-
-    void destroy_();
+    types type_;
+    c2_c_ c;
   };
   struct types_opts {
     enum options { c1, msg_class_ext, nulltype } value;
@@ -1737,18 +1729,6 @@ struct sc_mcch_msg_r13_s {
 struct fail_report_scg_v12d0_s {
   bool                           meas_result_neigh_cells_v12d0_present = false;
   meas_result_list2_eutra_v9e0_l meas_result_neigh_cells_v12d0;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// SCGFailureInformation-v12d0b-IEs ::= SEQUENCE
-struct scg_fail_info_v12d0b_ies_s {
-  bool                    fail_report_scg_v12d0_present = false;
-  bool                    non_crit_ext_present          = false;
-  fail_report_scg_v12d0_s fail_report_scg_v12d0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1852,10 +1832,11 @@ struct phy_layer_params_v13e0_s {
   void        to_json(json_writer& j) const;
 };
 
-// UE-EUTRA-Capability-v13e0b-IEs ::= SEQUENCE
-struct ue_eutra_cap_v13e0b_ies_s {
-  bool                     non_crit_ext_present = false;
-  phy_layer_params_v13e0_s phy_layer_params_v13e0;
+// SCGFailureInformation-v12d0b-IEs ::= SEQUENCE
+struct scg_fail_info_v12d0b_ies_s {
+  bool                    fail_report_scg_v12d0_present = false;
+  bool                    non_crit_ext_present          = false;
+  fail_report_scg_v12d0_s fail_report_scg_v12d0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1863,11 +1844,10 @@ struct ue_eutra_cap_v13e0b_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCG-Config-v12i0b-IEs ::= SEQUENCE
-struct scg_cfg_v12i0b_ies_s {
-  bool                     scg_radio_cfg_v12i0_present = false;
-  bool                     non_crit_ext_present        = false;
-  scg_cfg_part_scg_v12f0_s scg_radio_cfg_v12i0;
+// UE-EUTRA-Capability-v13e0b-IEs ::= SEQUENCE
+struct ue_eutra_cap_v13e0b_ies_s {
+  bool                     non_crit_ext_present = false;
+  phy_layer_params_v13e0_s phy_layer_params_v13e0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2217,7 +2197,7 @@ using meas_result_serv_cell_list_scg_ext_r13_l = dyn_array<meas_result_serv_cell
 using meas_result_serv_cell_list_scg_r12_l = dyn_array<meas_result_serv_cell_scg_r12_s>;
 
 // SBCCH-SL-BCH-MessageType ::= MasterInformationBlock-SL
-typedef mib_sl_s sbcch_sl_bch_msg_type_s;
+using sbcch_sl_bch_msg_type_s = mib_sl_s;
 
 // SBCCH-SL-BCH-Message ::= SEQUENCE
 struct sbcch_sl_bch_msg_s {
@@ -2230,11 +2210,23 @@ struct sbcch_sl_bch_msg_s {
 };
 
 // SBCCH-SL-BCH-MessageType-V2X-r14 ::= MasterInformationBlock-SL-V2X-r14
-typedef mib_sl_v2x_r14_s sbcch_sl_bch_msg_type_v2x_r14_s;
+using sbcch_sl_bch_msg_type_v2x_r14_s = mib_sl_v2x_r14_s;
 
 // SBCCH-SL-BCH-Message-V2X-r14 ::= SEQUENCE
 struct sbcch_sl_bch_msg_v2x_r14_s {
   sbcch_sl_bch_msg_type_v2x_r14_s msg;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// SCG-Config-v12i0b-IEs ::= SEQUENCE
+struct scg_cfg_v12i0b_ies_s {
+  bool                     scg_radio_cfg_v12i0_present = false;
+  bool                     non_crit_ext_present        = false;
+  scg_cfg_part_scg_v12f0_s scg_radio_cfg_v12i0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2388,18 +2380,22 @@ struct scg_cfg_info_r12_s {
         set(types::scg_cfg_info_r12);
         return c;
       }
+      void set_spare7() { set(types::spare7); }
+      void set_spare6() { set(types::spare6); }
+      void set_spare5() { set(types::spare5); }
+      void set_spare4() { set(types::spare4); }
+      void set_spare3() { set(types::spare3); }
+      void set_spare2() { set(types::spare2); }
+      void set_spare1() { set(types::spare1); }
 
     private:
       types                  type_;
       scg_cfg_info_r12_ies_s c;
     };
-    typedef c1_or_crit_ext_e types;
+    using types = c1_or_crit_ext_e;
 
     // choice methods
     crit_exts_c_() = default;
-    crit_exts_c_(const crit_exts_c_& other);
-    crit_exts_c_& operator=(const crit_exts_c_& other);
-    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -2409,24 +2405,23 @@ struct scg_cfg_info_r12_s {
     c1_c_& c1()
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
-      return c.get<c1_c_>();
+      return c;
     }
     c1_c_& set_c1()
     {
       set(types::c1);
-      return c.get<c1_c_>();
+      return c;
     }
+    void set_crit_exts_future() { set(types::crit_exts_future); }
 
   private:
-    types                  type_;
-    choice_buffer_t<c1_c_> c;
-
-    void destroy_();
+    types type_;
+    c1_c_ c;
   };
 
   // member variables
@@ -3087,7 +3082,7 @@ using var_meas_report_list_l = dyn_array<var_meas_report_s>;
 using var_meas_report_list_r12_l = dyn_array<var_meas_report_s>;
 
 // VarMobilityHistoryReport-r12 ::= VisitedCellInfoList-r12
-typedef visited_cell_info_list_r12_l var_mob_history_report_r12_l;
+using var_mob_history_report_r12_l = visited_cell_info_list_r12_l;
 
 // VarRLF-Report-r10 ::= SEQUENCE
 struct var_rlf_report_r10_s {
@@ -3124,7 +3119,7 @@ struct var_short_inactive_mac_input_r15_s {
 };
 
 // VarShortMAC-Input-NB-r13 ::= VarShortMAC-Input
-typedef var_short_mac_input_s var_short_mac_input_nb_r13_s;
+using var_short_mac_input_nb_r13_s = var_short_mac_input_s;
 
 // VarShortResumeMAC-Input-r13 ::= SEQUENCE
 struct var_short_resume_mac_input_r13_s {
@@ -3140,7 +3135,7 @@ struct var_short_resume_mac_input_r13_s {
 };
 
 // VarShortResumeMAC-Input-NB-r13 ::= VarShortResumeMAC-Input-r13
-typedef var_short_resume_mac_input_r13_s var_short_resume_mac_input_nb_r13_s;
+using var_short_resume_mac_input_nb_r13_s = var_short_resume_mac_input_r13_s;
 
 // VarWLAN-MobilityConfig ::= SEQUENCE
 struct var_wlan_mob_cfg_s {

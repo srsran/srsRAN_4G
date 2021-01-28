@@ -68,12 +68,6 @@ typedef struct SRSLTE_API {
   // Group Hopping Flag
   uint32_t* f_gh_pattern;
 
-  int32_t q[SRSLTE_SL_MAX_DMRS_SYMB];
-
-  float* r[SRSLTE_SL_MAX_DMRS_SYMB];
-
-  cf_t* r_uv[SRSLTE_SL_MAX_DMRS_SYMB];
-
   cf_t* r_sequence[SRSLTE_SL_MAX_DMRS_SYMB][SRSLTE_SL_MAX_PSCCH_NOF_DMRS_CYCLIC_SHIFTS];
 
   cf_t* r_sequence_rx[SRSLTE_SL_MAX_DMRS_SYMB];

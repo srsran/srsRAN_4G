@@ -22,7 +22,9 @@
 #ifndef SRSLTE_HST_H_
 #define SRSLTE_HST_H_
 
-#include <srslte/srslte.h>
+#include "srslte/config.h"
+#include "srslte/phy/common/timestamp.h"
+#include <stdint.h>
 
 typedef struct {
   // System parameters

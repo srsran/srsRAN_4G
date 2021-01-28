@@ -23,6 +23,7 @@
 #include "srsepc/hdr/mme/mme_gtpc.h"
 #include "srslte/upper/gtpu.h"
 #include <algorithm>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <inttypes.h> // for printing uint64_t
 #include <linux/if.h>

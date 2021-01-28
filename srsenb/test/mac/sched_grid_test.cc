@@ -29,11 +29,11 @@ const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count(
 const uint32_t                PCell_IDX = 0;
 const std::array<uint32_t, 6> prb_list  = {6, 15, 25, 50, 75, 100};
 
-uint32_t get_aggr_level(sched_ue& sched_ue, uint32_t ue_cc_idx, const std::vector<sched_cell_params_t>& cell_params)
+uint32_t get_aggr_level(sched_ue& sched_ue, uint32_t enb_cc_idx, const std::vector<sched_cell_params_t>& cell_params)
 {
   srslte_dci_format_t dci_format = sched_ue.get_dci_format();
-  uint32_t nof_dci_bits = srslte_dci_format_sizeof(&cell_params[ue_cc_idx].cfg.cell, nullptr, nullptr, dci_format);
-  uint32_t aggr_level   = sched_ue.get_aggr_level(ue_cc_idx, nof_dci_bits);
+  uint32_t nof_dci_bits = srslte_dci_format_sizeof(&cell_params[enb_cc_idx].cfg.cell, nullptr, nullptr, dci_format);
+  uint32_t aggr_level   = sched_ue.get_aggr_level(enb_cc_idx, nof_dci_bits);
   return aggr_level;
 }
 
@@ -78,9 +78,9 @@ int test_pdcch_one_ue()
         sched_ue.get_locations(ENB_CC_IDX, pdcch_grid_t::MAX_CFI, to_tx_dl(tti_rx).sf_idx())->nof_loc[aggr_idx];
 
     // allocate DL user
-    uint32_t                 prev_cfi = pdcch.get_cfi();
-    srsenb::sched_dci_cce_t* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
-    uint32_t                 prev_nof_cce_locs = dci_cce->nof_loc[aggr_idx];
+    uint32_t                       prev_cfi = pdcch.get_cfi();
+    const srsenb::sched_dci_cce_t* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
+    uint32_t                       prev_nof_cce_locs = dci_cce->nof_loc[aggr_idx];
 
     TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, aggr_idx, &sched_ue));
     TESTASSERT(pdcch.nof_allocs() == 1);

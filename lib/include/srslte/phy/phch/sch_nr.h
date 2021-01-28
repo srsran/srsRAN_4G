@@ -36,7 +36,7 @@
 #include "srslte/phy/fec/ldpc/ldpc_decoder.h"
 #include "srslte/phy/fec/ldpc/ldpc_encoder.h"
 #include "srslte/phy/fec/ldpc/ldpc_rm.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 
 #define SRSLTE_SCH_NR_MAX_NOF_CB_LDPC                                                                                  \
   ((SRSLTE_SLOT_MAX_NOF_BITS_NR + (SRSLTE_LDPC_BG2_MAX_LEN_CB - 1)) / SRSLTE_LDPC_BG2_MAX_LEN_CB)
@@ -119,17 +119,39 @@ SRSLTE_API srslte_basegraph_t srslte_sch_nr_select_basegraph(uint32_t tbs, doubl
  * @param cfg SCH object
  * @return
  */
-SRSLTE_API int srslte_dlsch_nr_fill_cfg(srslte_sch_nr_t*            q,
-                                        const srslte_sch_cfg_t*     sch_cfg,
-                                        const srslte_sch_tb_t*      tb,
-                                        srslte_sch_nr_common_cfg_t* cfg);
+SRSLTE_API int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
+                                      const srslte_sch_cfg_t*     sch_cfg,
+                                      const srslte_sch_tb_t*      tb,
+                                      srslte_sch_nr_common_cfg_t* cfg);
 
-SRSLTE_API int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* cfg);
+/**
+ * @brief Initialises an SCH object as transmitter
+ * @param q Points ats the SCH object
+ * @param args Provides static configuration arguments
+ * @return SRSLTE_SUCCESS if the initialization is successful, SRSLTE_ERROR otherwise
+ */
+SRSLTE_API int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args);
 
-SRSLTE_API int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* cfg);
+/**
+ * @brief Initialises an SCH object as receiver
+ * @param q Points ats the SCH object
+ * @param args Provides static configuration arguments
+ * @return SRSLTE_SUCCESS if the initialization is successful, SRSLTE_ERROR otherwise
+ */
+SRSLTE_API int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args);
 
+/**
+ * @brief Sets SCH object carrier attribute
+ * @param q Points ats the SCH object
+ * @param carrier Provides the NR carrier object
+ * @return SRSLTE_SUCCESS if the setting is successful, SRSLTE_ERROR otherwise
+ */
 SRSLTE_API int srslte_sch_nr_set_carrier(srslte_sch_nr_t* q, const srslte_carrier_nr_t* carrier);
 
+/**
+ * @brief Free allocated resources used by an SCH intance
+ * @param q Points ats the SCH object
+ */
 SRSLTE_API void srslte_sch_nr_free(srslte_sch_nr_t* q);
 
 SRSLTE_API int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
@@ -138,9 +160,20 @@ SRSLTE_API int srslte_dlsch_nr_encode(srslte_sch_nr_t*        q,
                                       const uint8_t*          data,
                                       uint8_t*                e_bits);
 
-SRSLTE_API int srslte_sch_nr_decoder_set_carrier(srslte_sch_nr_t* q, const srslte_carrier_nr_t* carrier);
-
 SRSLTE_API int srslte_dlsch_nr_decode(srslte_sch_nr_t*        q,
+                                      const srslte_sch_cfg_t* sch_cfg,
+                                      const srslte_sch_tb_t*  tb,
+                                      int8_t*                 e_bits,
+                                      uint8_t*                data,
+                                      bool*                   crc_ok);
+
+SRSLTE_API int srslte_ulsch_nr_encode(srslte_sch_nr_t*        q,
+                                      const srslte_sch_cfg_t* cfg,
+                                      const srslte_sch_tb_t*  tb,
+                                      const uint8_t*          data,
+                                      uint8_t*                e_bits);
+
+SRSLTE_API int srslte_ulsch_nr_decode(srslte_sch_nr_t*        q,
                                       const srslte_sch_cfg_t* sch_cfg,
                                       const srslte_sch_tb_t*  tb,
                                       int8_t*                 e_bits,

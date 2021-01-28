@@ -344,7 +344,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Notify MAC of RL status
   if (snr_db >= PUSCH_RL_SNR_DB_TH) {
     // Notify MAC UL channel quality
-    phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
+    phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db, mac_interface_phy_lte::PUSCH);
 
     // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
     if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and not std::isinf(enb_ul.chest_res.ta_us)) {
@@ -383,7 +383,7 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
       // Inform MAC about the CRC result
       phy->stack->crc_info(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
       // Push PDU buffer
-      phy->stack->push_pdu(tti_rx, rnti, grants[i].data, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
+      phy->stack->push_pdu(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
       // Logging
       if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         char str[512];
@@ -418,6 +418,7 @@ int cc_worker::decode_pucch()
 
         if (pucch_res.detected and pucch_res.ta_valid) {
           phy->stack->ta_info(tti_rx, rnti, pucch_res.ta_us);
+          phy->stack->snr_info(tti_rx, rnti, cc_idx, pucch_res.snr_db, mac_interface_phy_lte::PUCCH);
         }
 
         // Logging
@@ -426,6 +427,9 @@ int cc_worker::decode_pucch()
           srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, sizeof(str));
           log_h->info("PUCCH: cc=%d; %s\n", cc_idx, str);
         }
+
+        // Save metrics
+        ue_db[rnti]->metrics_ul_pucch(pucch_res.snr_db);
       }
     }
   }
@@ -624,10 +628,16 @@ void cc_worker::ue::metrics_dl(uint32_t mcs)
 void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters)
 {
   metrics.ul.mcs         = SRSLTE_VEC_CMA((float)mcs, metrics.ul.mcs, metrics.ul.n_samples);
-  metrics.ul.sinr        = SRSLTE_VEC_CMA((float)sinr, metrics.ul.sinr, metrics.ul.n_samples);
+  metrics.ul.pusch_sinr  = SRSLTE_VEC_CMA((float)sinr, metrics.ul.pusch_sinr, metrics.ul.n_samples);
   metrics.ul.rssi        = SRSLTE_VEC_CMA((float)rssi, metrics.ul.rssi, metrics.ul.n_samples);
   metrics.ul.turbo_iters = SRSLTE_VEC_CMA((float)turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);
   metrics.ul.n_samples++;
+}
+
+void cc_worker::ue::metrics_ul_pucch(float sinr)
+{
+  metrics.ul.pucch_sinr = SRSLTE_VEC_CMA((float)sinr, metrics.ul.pucch_sinr, metrics.ul.n_samples_pucch);
+  metrics.ul.n_samples_pucch++;
 }
 
 int cc_worker::read_ce_abs(float* ce_abs)

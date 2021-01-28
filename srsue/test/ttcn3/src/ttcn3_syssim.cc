@@ -27,6 +27,7 @@
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
+#include "swappable_sink.h"
 #include "ttcn3_common.h"
 #include "ttcn3_drb_interface.h"
 #include "ttcn3_ip_ctrl_interface.h"
@@ -37,7 +38,7 @@
 #include "ttcn3_ut_interface.h"
 #include <functional>
 
-ttcn3_syssim::ttcn3_syssim(swappable_log& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_) :
+ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_) :
   log{"SS  "},
   mac_msg_ul(20, ss_mac_log),
   mac_msg_dl(20, ss_mac_log),
@@ -404,11 +405,14 @@ void ttcn3_syssim::tc_start(const char* name)
   if (args.log.filename == "stdout") {
     logger = &logger_stdout;
   } else {
-    // Create a new log wrapper that writes to the new test case file and swap it with the old one.
-    const std::string&   file_tc_name = get_filename_with_tc_name(local_args.log.filename, run_id, tc_name);
-    srslog::sink*        s            = srslog::create_file_sink(file_tc_name);
-    srslog::log_channel* c            = srslog::create_log_channel(file_tc_name, *s);
-    logger_file.swap_log(std::unique_ptr<srslte::srslog_wrapper>(new srslte::srslog_wrapper(*c)));
+    const std::string& file_tc_name = get_filename_with_tc_name(local_args.log.filename, run_id, tc_name);
+    auto*              swp_sink     = srslog::find_sink(swappable_sink::name());
+    if (!swp_sink) {
+      log->error("Unable to find the swappable sink\n");
+      srslte::console("Unable to find the swappable sink\n");
+      return;
+    }
+    static_cast<swappable_sink*>(swp_sink)->swap_sink(file_tc_name);
     logger = &logger_file;
   }
 

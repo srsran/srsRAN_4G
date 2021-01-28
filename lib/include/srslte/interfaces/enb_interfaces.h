@@ -132,6 +132,8 @@ public:
    */
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) = 0;
 
+  typedef enum { PUSCH = 0, PUCCH, SRS } ul_channel_t;
+
   /**
    * PHY callback for giving MAC the SNR in dB of an UL transmission for a given RNTI at a given carrier
    *
@@ -139,9 +141,10 @@ public:
    * @param rnti The UE identifier in the eNb
    * @param cc_idx The eNb Cell/Carrier where the UL transmission was received
    * @param snr_db The actual SNR of the received signal
+   * @param ch Indicates uplink channel (PUSCH, PUCCH or SRS)
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
-  virtual int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) = 0;
+  virtual int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db, ul_channel_t ch) = 0;
 
   /**
    * PHY callback for giving MAC the Time Aligment information in microseconds of a given RNTI during a TTI processing
@@ -186,12 +189,12 @@ public:
    *
    * @param tti the given TTI
    * @param rnti the UE identifier in the eNb
-   * @param pdu_ptr pointer to the uplink buffer
+   * @param enb_cc_idx the eNb Cell/Carrier identifier
    * @param nof_bytes the number of grants carrierd by the PUSCH message
    * @param crc_res the CRC check, set to true if the message was decoded succesfully
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
-  virtual int push_pdu(uint32_t tti_rx, uint16_t rnti, const uint8_t* pdu_ptr, uint32_t nof_bytes, bool crc_res) = 0;
+  virtual int push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) = 0;
 
   virtual int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res)                = 0;
   virtual int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) = 0;
@@ -409,7 +412,7 @@ class rrc_interface_mac
 {
 public:
   /* Radio Link failure */
-  virtual void add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) = 0;
+  virtual int  add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) = 0;
   virtual void upd_user(uint16_t new_rnti, uint16_t old_rnti)                        = 0;
   virtual void set_activity_user(uint16_t rnti)                                      = 0;
   virtual bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len)            = 0;

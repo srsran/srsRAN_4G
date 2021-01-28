@@ -23,6 +23,7 @@
 #define SRSLTE_CONFIG_FILE_H
 
 #include "common.h"
+#include "srslte/phy/common/phy_common.h"
 #include <fstream>
 #include <pwd.h>
 #include <sys/types.h>

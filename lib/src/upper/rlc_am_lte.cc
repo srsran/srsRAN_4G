@@ -418,9 +418,9 @@ int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
     goto unlock_and_exit;
   }
 
-  // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit random PDU
+  // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
   if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty()) {
-    retransmit_random_pdu();
+    retransmit_pdu();
   }
 
   // RETX if required
@@ -444,11 +444,11 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
   pthread_mutex_lock(&mutex);
   if (poll_retx_timer.is_valid() && poll_retx_timer.id() == timeout_id) {
     log->debug("%s Poll reTx timer expired after %dms\n", RB_NAME, poll_retx_timer.duration());
-    // Section 5.2.2.3 in TS 36.311, schedule random PDU for retransmission if
+    // Section 5.2.2.3 in TS 36.311, schedule PDU for retransmission if
     // (a) both tx and retx buffer are empty, or
     // (b) no new data PDU can be transmitted (tx window is full)
     if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
-      retransmit_random_pdu();
+      retransmit_pdu();
     }
   }
   pthread_mutex_unlock(&mutex);
@@ -458,12 +458,11 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
   }
 }
 
-void rlc_am_lte::rlc_am_lte_tx::retransmit_random_pdu()
+void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu()
 {
   if (not tx_window.empty()) {
-    // randomly select PDU in tx window for retransmission
+    // select PDU in tx window for retransmission
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
-    std::advance(it, rand() % tx_window.size());
     log->info("%s Schedule SN=%d for reTx.\n", RB_NAME, it->first);
     rlc_amd_retx_t retx = {};
     retx.is_segment     = false;
@@ -1679,13 +1678,13 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
 
   // We don't use segment NACKs - just NACK the full PDU
   uint32_t i = vr_r;
-  while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE) {
-    if (rx_window.find(i) == rx_window.end()) {
+  while (RX_MOD_BASE(i) <= RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE) {
+    if (rx_window.find(i) != rx_window.end() || i == vr_ms) {
+      // only update ACK_SN if this SN has been received, or if we reached the maximum possible SN
+      status->ack_sn = i;
+    } else {
       status->nacks[status->N_nack].nack_sn = i;
       status->N_nack++;
-    } else {
-      // only update ACK_SN if this SN has been received
-      status->ack_sn = i;
     }
 
     // make sure we don't exceed grant size

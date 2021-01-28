@@ -121,7 +121,7 @@ int phy::init(const phy_args_t&            args,
   {
     log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
     log_h->init("PHY", logger, true);
-    log_h->set_level(args.log.phy_lib_level);
+    log_h->set_level(args.log.phy_level);
     log_h->set_hex_limit(args.log.phy_hex_limit);
   }
 
@@ -141,7 +141,13 @@ int phy::init(const phy_args_t&            args,
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
     prach_cfg.root_seq_idx = cfg.phy_cell_cfg[cc].root_seq_idx;
-    prach.init(cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, log_h.get(), PRACH_WORKER_THREAD_PRIO);
+    prach.init(cc,
+               cfg.phy_cell_cfg[cc].cell,
+               prach_cfg,
+               stack_,
+               log_h.get(),
+               PRACH_WORKER_THREAD_PRIO,
+               args.nof_prach_threads);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
@@ -218,10 +224,12 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
       metrics[j].dl.mcs += metrics_tmp[j].dl.n_samples * metrics_tmp[j].dl.mcs;
 
       metrics[j].ul.n_samples += metrics_tmp[j].ul.n_samples;
+      metrics[j].ul.n_samples_pucch += metrics_tmp[j].ul.n_samples_pucch;
       metrics[j].ul.mcs += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.mcs;
       metrics[j].ul.n += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.n;
       metrics[j].ul.rssi += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.rssi;
-      metrics[j].ul.sinr += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.sinr;
+      metrics[j].ul.pusch_sinr += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.pusch_sinr;
+      metrics[j].ul.pucch_sinr += metrics_tmp[j].ul.n_samples_pucch * metrics_tmp[j].ul.pucch_sinr;
       metrics[j].ul.turbo_iters += metrics_tmp[j].ul.n_samples * metrics_tmp[j].ul.turbo_iters;
     }
   }
@@ -230,13 +238,15 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
     metrics[j].ul.mcs /= metrics[j].ul.n_samples;
     metrics[j].ul.n /= metrics[j].ul.n_samples;
     metrics[j].ul.rssi /= metrics[j].ul.n_samples;
-    metrics[j].ul.sinr /= metrics[j].ul.n_samples;
+    metrics[j].ul.pusch_sinr /= metrics[j].ul.n_samples;
+    metrics[j].ul.pucch_sinr /= metrics[j].ul.n_samples_pucch;
     metrics[j].ul.turbo_iters /= metrics[j].ul.n_samples;
   }
 }
 
 void phy::cmd_cell_gain(uint32_t cell_id, float gain_db)
 {
+  Info("set_cell_gain: cell_id=%d, gain_db=%.2f\n", cell_id, gain_db);
   workers_common.set_cell_gain(cell_id, gain_db);
 }
 

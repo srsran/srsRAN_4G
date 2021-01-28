@@ -26,6 +26,7 @@
 #include "srslte/asn1/rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
+#include "srslte/phy/common/phy_common.h"
 #include <array>
 
 namespace srsenb {
@@ -39,7 +40,7 @@ struct rrc_cfg_sr_t {
 };
 
 typedef struct {
-  bool                                          configured;
+  bool                                          configured = false;
   asn1::rrc::lc_ch_cfg_s::ul_specific_params_s_ lc_cfg;
   asn1::rrc::pdcp_cfg_s                         pdcp_cfg;
   asn1::rrc::rlc_cfg_c                          rlc_cfg;

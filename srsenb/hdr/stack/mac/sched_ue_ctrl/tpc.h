@@ -36,30 +36,36 @@ namespace srsenb {
  */
 class tpc
 {
-  static constexpr int   undefined_phr = std::numeric_limits<int>::max();
-  static constexpr float null_snr      = std::numeric_limits<float>::max();
+  static constexpr int      undefined_phr  = std::numeric_limits<int>::max();
+  static constexpr float    null_snr       = std::numeric_limits<float>::max();
+  static constexpr uint32_t nof_ul_ch_code = 2;
 
 public:
-  static constexpr int PHR_NEG_NOF_PRB = 1;
+  static constexpr uint32_t PUSCH_CODE = 0, PUCCH_CODE = 1;
+  static constexpr int      PHR_NEG_NOF_PRB = 1;
 
-  tpc(uint32_t cell_nof_prb, float target_snr_dB_ = -1.0, bool phr_handling_flag_ = false) :
+  explicit tpc(uint32_t cell_nof_prb, float target_snr_dB_ = -1.0, bool phr_handling_flag_ = false) :
     nof_prb(cell_nof_prb),
     target_snr_dB(target_snr_dB_),
-    snr_avg(0.1, target_snr_dB_),
-    win_pusch_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS),
-    win_pucch_tpc_values(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS),
+    snr_estim_list({ul_ch_snr_estim{target_snr_dB_}, ul_ch_snr_estim{target_snr_dB_}}),
     phr_handling_flag(phr_handling_flag_)
   {
     max_prbs_cached = nof_prb;
   }
   void set_cfg(float target_snr_dB_) { target_snr_dB = target_snr_dB_; }
 
-  void set_snr(float snr) { pending_snr = snr; }
+  void set_snr(float snr, uint32_t ul_ch_code)
+  {
+    if (ul_ch_code < nof_ul_ch_code) {
+      snr_estim_list[ul_ch_code].pending_snr = snr;
+    }
+  }
   void set_phr(int phr_)
   {
-    last_phr       = phr_;
-    pucch_phr_flag = false;
-    pusch_phr_flag = false;
+    last_phr = phr_;
+    for (auto& ch_snr : snr_estim_list) {
+      ch_snr.phr_flag = false;
+    }
 
     // compute and cache the max nof UL PRBs that avoids overflowing PHR
     if (phr_handling_flag) {
@@ -75,30 +81,27 @@ public:
 
   void new_tti()
   {
-    if (target_snr_dB < 0) {
-      pending_pusch_delta = 0;
-      pending_pucch_delta = 0;
-      return;
-    }
+    for (auto& ch_snr : snr_estim_list) {
+      if (target_snr_dB < 0) {
+        ch_snr.pending_delta = 0;
+        continue;
+      }
 
-    // Enqueue pending SNR measurement
-    if (pending_snr == null_snr) {
-      last_snr_sample_count++;
-      acc_pusch_tpc_values += win_pusch_tpc_values.oldest();
-      acc_pucch_tpc_values += win_pusch_tpc_values.oldest();
-    } else {
-      acc_pucch_tpc_values = 0;
-      acc_pusch_tpc_values = 0;
-      snr_avg.push(pending_snr, last_snr_sample_count);
-      last_snr_sample_count = 1;
-    }
-    pending_snr = null_snr;
+      // Enqueue pending UL Channel SNR measurement
+      if (ch_snr.pending_snr == null_snr) {
+        ch_snr.last_snr_sample_count++;
+        ch_snr.acc_tpc_values += ch_snr.win_tpc_values.oldest();
+      } else {
+        ch_snr.acc_tpc_values = 0;
+        ch_snr.snr_avg.push(ch_snr.pending_snr, ch_snr.last_snr_sample_count);
+        ch_snr.last_snr_sample_count = 1;
+      }
+      ch_snr.pending_snr = null_snr;
 
-    // Enqueue PUSCH/PUCCH TPC sent in last TTI (zero for both Delta_PUSCH/Delta_PUCCH=0 and TPC not sent)
-    win_pusch_tpc_values.push(pending_pusch_delta);
-    pending_pusch_delta = 0;
-    win_pucch_tpc_values.push(pending_pucch_delta);
-    pending_pucch_delta = 0;
+      // Enqueue PUSCH/PUCCH TPC sent in last TTI (zero for both Delta_PUSCH/Delta_PUCCH=0 and TPC not sent)
+      ch_snr.win_tpc_values.push(ch_snr.pending_delta);
+      ch_snr.pending_delta = 0;
+    }
   }
 
   /**
@@ -106,67 +109,14 @@ public:
    * @remark See TS 36.213 Section 5.1.1
    * @return accumulated TPC value {-1, 0, 1, 3}
    */
-  uint8_t encode_pusch_tpc()
-  {
-    assert(pending_pusch_delta == 0); // ensure called once per {cc,tti}
-    if (target_snr_dB < 0) {
-      // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
-      // unchanged
-      if (not pusch_phr_flag) {
-        pending_pusch_delta = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
-        pusch_phr_flag      = true;
-      }
-    } else {
-      // target SINR is finite and there is power headroom
-      float diff = target_snr_dB - snr_avg.value();
-      diff -= win_pusch_tpc_values.value() + acc_pusch_tpc_values;
-      int8_t diff_round = roundf(diff);
-      if (diff_round >= 1) {
-        pending_pusch_delta = diff_round > 3 ? 3 : 1;
-      } else if (diff_round <= -1) {
-        pending_pusch_delta = -1;
-      }
-      if (last_phr <= 0) {
-        // In case there is no headroom, forbid power increases
-        pending_pusch_delta = std::min(pending_pusch_delta, 0);
-      }
-    }
-    return encode_tpc_delta(pending_pusch_delta);
-  }
+  uint8_t encode_pusch_tpc() { return enconde_tpc(PUSCH_CODE); }
 
   /**
    * Called during DCI format1/2A/A encoding to set PUCCH TPC command
-   * Note: For now we use the same algorithm for PUCCH and PUSCH
    * @remark See TS 36.213 Section 5.1.2
    * @return accumulated TPC value {-1, 0, 1, 3}
    */
-  uint8_t encode_pucch_tpc()
-  {
-    assert(pending_pucch_delta == 0); // ensure called once per {cc,tti}
-    if (target_snr_dB < 0) {
-      // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
-      // unchanged
-      if (not pucch_phr_flag) {
-        pending_pucch_delta = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
-        pucch_phr_flag      = true;
-      }
-    } else {
-      // target SINR is finite and there is power headroom
-      float diff = target_snr_dB - snr_avg.value();
-      diff -= win_pucch_tpc_values.value() + acc_pucch_tpc_values;
-      int8_t diff_round = roundf(diff);
-      if (diff_round >= 1) {
-        pending_pucch_delta = diff_round > 3 ? 3 : 1;
-      } else if (diff_round <= -1) {
-        pending_pucch_delta = -1;
-      }
-      if (last_phr <= 0) {
-        // In case there is no headroom, forbid power increases
-        pending_pucch_delta = std::min(pending_pucch_delta, 0);
-      }
-    }
-    return encode_tpc_delta(pending_pucch_delta);
-  }
+  uint8_t encode_pucch_tpc() { return enconde_tpc(PUCCH_CODE); }
 
   uint32_t max_ul_prbs() const { return max_prbs_cached; }
 
@@ -187,6 +137,34 @@ private:
         return 1;
     }
   }
+  uint8_t enconde_tpc(uint32_t cc)
+  {
+    auto& ch_snr = snr_estim_list[cc];
+    assert(ch_snr.pending_delta == 0); // ensure called once per {cc,tti}
+    if (target_snr_dB < 0) {
+      // undefined target SINR case. Increase Tx power once per PHR, considering the number of allocable PRBs remains
+      // unchanged
+      if (not ch_snr.phr_flag) {
+        ch_snr.pending_delta = (max_prbs_cached == nof_prb) ? 1 : (last_phr < 0 ? -1 : 0);
+        ch_snr.phr_flag      = true;
+      }
+    } else {
+      // target SINR is finite and there is power headroom
+      float diff = target_snr_dB - ch_snr.snr_avg.value();
+      diff -= ch_snr.win_tpc_values.value() + ch_snr.acc_tpc_values;
+      int8_t diff_round = roundf(diff);
+      if (diff_round >= 1) {
+        ch_snr.pending_delta = diff_round > 3 ? 3 : 1;
+      } else if (diff_round <= -1) {
+        ch_snr.pending_delta = -1;
+      }
+      if (last_phr <= 0) {
+        // In case there is no headroom, forbid power increases
+        ch_snr.pending_delta = std::min(ch_snr.pending_delta, 0);
+      }
+    }
+    return encode_tpc_delta(ch_snr.pending_delta);
+  }
 
   uint32_t nof_prb;
   float    target_snr_dB;
@@ -195,17 +173,26 @@ private:
   // PHR-related variables
   int      last_phr        = undefined_phr;
   uint32_t max_prbs_cached = 100;
-  bool     pusch_phr_flag = false, pucch_phr_flag = false;
 
   // SNR estimation
-  srslte::exp_average_irreg_sampling<float> snr_avg;
-  float                                     pending_snr           = srslte::null_sliding_average<float>::null_value();
-  uint32_t                                  last_snr_sample_count = 1;
+  struct ul_ch_snr_estim {
+    // flag used in undefined target SINR case
+    bool phr_flag = false;
+    // pending new snr sample
+    float pending_snr = srslte::null_sliding_average<float>::null_value();
+    // SNR average estimation with irregular sample spacing
+    uint32_t                                  last_snr_sample_count = 1; // jump in spacing
+    srslte::exp_average_irreg_sampling<float> snr_avg;
+    // Accumulation of past TPC commands
+    srslte::sliding_sum<int> win_tpc_values;
+    int                      pending_delta  = 0;
+    int                      acc_tpc_values = 0;
 
-  // Accumulation of past TPC commands
-  srslte::sliding_sum<int> win_pusch_tpc_values, win_pucch_tpc_values;
-  int                      pending_pusch_delta = 0, pending_pucch_delta = 0;
-  int                      acc_pusch_tpc_values = 0, acc_pucch_tpc_values = 0;
+    explicit ul_ch_snr_estim(float target_ul_snr = -1) :
+      snr_avg(0.1, target_ul_snr), win_tpc_values(FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)
+    {}
+  };
+  std::array<ul_ch_snr_estim, nof_ul_ch_code> snr_estim_list;
 };
 
 } // namespace srsenb

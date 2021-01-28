@@ -375,7 +375,8 @@ int update_ldpc_soft_bits_c_avx2(void* p, int i_layer, const int8_t (*these_var_
 
 /*!
  * Returns the decoded message (hard bits) from the current soft bits (optimized 8-bit version, LS <= \ref
- * SRSLTE_AVX2_B_SIZE). \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
+ * SRSLTE_AVX2_B_SIZE).
+ * \param[in]  p       A pointer to the decoder registers (an ldpc_regs_c_avx2 structure).
  * \param[out] message A pointer to the decoded message.
  * \param[in]  liftK   The length of the decoded message.
  * \return An integer: 0 if the function executes correctly, -1 otherwise.
@@ -384,7 +385,8 @@ int extract_ldpc_message_c_avx2(void* p, uint8_t* message, uint16_t liftK);
 
 /*!
  * Creates the registers used by the optimized 8-bit-based implementation of the LDPC decoder (LS > \ref
- * SRSLTE_AVX2_B_SIZE). \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
+ * SRSLTE_AVX2_B_SIZE).
+ * \param[in] bgN          Codeword length. \param[in] bgM          Number of check nodes.
  * \param[in] ls           Lifting size. \param[in] scaling_fctr Scaling factor of the normalized min-sum algorithm.
  * \return A pointer to the created registers (an ldpc_regs_c_avx2long structure).
  */

@@ -494,66 +494,9 @@ void paging_s::to_json(json_writer& j) const
 }
 
 // PCCH-MessageType ::= CHOICE
-void pcch_msg_type_c::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void pcch_msg_type_c::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::msg_class_ext:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "pcch_msg_type_c");
-  }
-}
-pcch_msg_type_c::pcch_msg_type_c(const pcch_msg_type_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::msg_class_ext:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "pcch_msg_type_c");
-  }
-}
-pcch_msg_type_c& pcch_msg_type_c::operator=(const pcch_msg_type_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::msg_class_ext:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "pcch_msg_type_c");
-  }
-
-  return *this;
 }
 void pcch_msg_type_c::to_json(json_writer& j) const
 {
@@ -561,7 +504,7 @@ void pcch_msg_type_c::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::msg_class_ext:
       break;
@@ -575,7 +518,7 @@ SRSASN_CODE pcch_msg_type_c::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::msg_class_ext:
       break;
@@ -592,7 +535,7 @@ SRSASN_CODE pcch_msg_type_c::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::msg_class_ext:
       break;
@@ -708,67 +651,9 @@ void ue_paging_coverage_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ue_paging_coverage_info_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ue_paging_coverage_info_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_paging_coverage_info_s::crit_exts_c_");
-  }
-}
-ue_paging_coverage_info_s::crit_exts_c_::crit_exts_c_(const ue_paging_coverage_info_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_paging_coverage_info_s::crit_exts_c_");
-  }
-}
-ue_paging_coverage_info_s::crit_exts_c_&
-ue_paging_coverage_info_s::crit_exts_c_::operator=(const ue_paging_coverage_info_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_paging_coverage_info_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ue_paging_coverage_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -776,7 +661,7 @@ void ue_paging_coverage_info_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -790,7 +675,7 @@ SRSASN_CODE ue_paging_coverage_info_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -807,7 +692,7 @@ SRSASN_CODE ue_paging_coverage_info_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1004,67 +889,9 @@ void ue_radio_paging_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ue_radio_paging_info_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ue_radio_paging_info_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_radio_paging_info_s::crit_exts_c_");
-  }
-}
-ue_radio_paging_info_s::crit_exts_c_::crit_exts_c_(const ue_radio_paging_info_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_radio_paging_info_s::crit_exts_c_");
-  }
-}
-ue_radio_paging_info_s::crit_exts_c_&
-ue_radio_paging_info_s::crit_exts_c_::operator=(const ue_radio_paging_info_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ue_radio_paging_info_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ue_radio_paging_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1072,7 +899,7 @@ void ue_radio_paging_info_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -1086,7 +913,7 @@ SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1103,7 +930,7 @@ SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;

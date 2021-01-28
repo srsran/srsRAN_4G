@@ -24,15 +24,7 @@
 
 #include "dci.h"
 #include "srslte/phy/common/phy_common_nr.h"
-#include "srslte/phy/phch/pdsch_cfg_nr.h"
-
-typedef enum SRSLTE_API {
-  srslte_rnti_type_c = 0,
-  srslte_rnti_type_p,
-  srslte_rnti_type_si,
-  srslte_rnti_type_ra,
-  srslte_rnti_type_tc,
-} srslte_rnti_type_t;
+#include "srslte/phy/phch/phch_cfg_nr.h"
 
 typedef struct SRSLTE_API {
   srslte_dci_location_t      location;
@@ -45,7 +37,11 @@ typedef struct SRSLTE_API {
 } srslte_dci_msg_nr_t;
 
 typedef struct SRSLTE_API {
-  srslte_rnti_type_t rnti_type;
+  uint16_t               rnti;
+  srslte_rnti_type_t     rnti_type;
+  srslte_dci_format_nr_t format;
+  srslte_dci_location_t  location;
+  srslte_search_space_t  search_space;
 
   // Common fields
   uint32_t freq_domain_assigment; ///< Frequency domain resource assignment
@@ -72,6 +68,11 @@ typedef struct SRSLTE_API {
   uint32_t sii; ///< System information indicator
 
 } srslte_dci_dl_nr_t;
+
+SRSLTE_API int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
+                                  const srslte_coreset_t*    coreset,
+                                  const srslte_dci_dl_nr_t*  dci,
+                                  srslte_dci_msg_nr_t*       msg);
 
 SRSLTE_API SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
                                                           const srslte_coreset_t*    coreset,

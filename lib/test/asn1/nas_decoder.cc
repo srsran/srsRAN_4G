@@ -21,6 +21,7 @@
 
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/common.h"
+#include "srslte/phy/common/phy_common.h"
 
 #include <fstream>
 #include <iostream>

@@ -213,6 +213,7 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
       ERROR("Error estimating PUCCH DMRS\n");
       return SRSLTE_ERROR;
     }
+    pucch_res.snr_db = q->chest_res.snr_db;
 
     ret = srslte_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);
     if (ret < SRSLTE_SUCCESS) {

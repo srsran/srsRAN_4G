@@ -19,13 +19,13 @@
  *
  */
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/security.h"
+#include "srslte/common/test_common.h"
 #include "srslte/srslte.h"
 
 /*
@@ -36,7 +36,7 @@
  *
  */
 
-void test_set_1()
+int test_set_1()
 {
   uint8_t  key[]     = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint32_t count     = 0x0;
@@ -57,16 +57,17 @@ void test_set_1()
     if (mac[i] != expected_mac[i]) {
       failed = true;
     }
-    assert(mac[i] == expected_mac[i]);
+    TESTASSERT(mac[i] == expected_mac[i]);
   }
   if (failed == true) {
     printf("Test Set 1: Failed\n");
   } else {
     printf("Test Set 1: Success\n");
   }
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_2()
+int test_set_2()
 {
   uint8_t  key[]     = {0x47, 0x05, 0x41, 0x25, 0x56, 0x1e, 0xb2, 0xdd, 0xa9, 0x40, 0x59, 0xda, 0x05, 0x09, 0x78, 0x50};
   uint32_t count     = 0x561eb2dd;
@@ -87,16 +88,17 @@ void test_set_2()
     if (mac[i] != expected_mac[i]) {
       failed = true;
     }
-    assert(mac[i] == expected_mac[i]);
+    TESTASSERT(mac[i] == expected_mac[i]);
   }
   if (failed == true) {
     printf("Test Set 2: Failed\n");
   } else {
     printf("Test Set 2: Success\n");
   }
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_3()
+int test_set_3()
 {
   uint8_t  key[]     = {0xc9, 0xe6, 0xce, 0xc4, 0x60, 0x7c, 0x72, 0xdb, 0x00, 0x0a, 0xef, 0xa8, 0x83, 0x85, 0xab, 0x0a};
   uint32_t count     = 0xa94059da;
@@ -121,16 +123,17 @@ void test_set_3()
     if (mac[i] != expected_mac[i]) {
       failed = true;
     }
-    assert(mac[i] == expected_mac[i]);
+    TESTASSERT(mac[i] == expected_mac[i]);
   }
   if (failed == true) {
     printf("Test Set 3: Failed\n");
   } else {
     printf("Test Set 3: Success\n");
   }
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_4()
+int test_set_4()
 {
   uint8_t  key[]     = {0xc8, 0xa4, 0x82, 0x62, 0xd0, 0xc2, 0xe2, 0xba, 0xc4, 0xb9, 0x6e, 0xf7, 0x7e, 0x80, 0xca, 0x59};
   uint32_t count     = 0x05097850;
@@ -165,16 +168,17 @@ void test_set_4()
     if (mac[i] != expected_mac[i]) {
       failed = true;
     }
-    assert(mac[i] == expected_mac[i]);
+    TESTASSERT(mac[i] == expected_mac[i]);
   }
   if (failed == true) {
     printf("Test Set 4: Failed\n");
   } else {
     printf("Test Set 4: Success\n");
   }
+  return SRSLTE_SUCCESS;
 }
 
-void test_set_5()
+int test_set_5()
 {
   uint8_t  key[]     = {0x6b, 0x8b, 0x08, 0xee, 0x79, 0xe0, 0xb5, 0x98, 0x2d, 0x6d, 0x12, 0x8e, 0xa9, 0xf2, 0x20, 0xcb};
   uint32_t count     = 0x561eb2dd;
@@ -234,20 +238,22 @@ void test_set_5()
     if (mac[i] != expected_mac[i]) {
       failed = true;
     }
-    assert(mac[i] == expected_mac[i]);
+    TESTASSERT(mac[i] == expected_mac[i]);
   }
   if (failed == true) {
     printf("Test Set 5: Failed\n");
   } else {
     printf("Test Set 5: Success\n");
   }
+  return SRSLTE_SUCCESS;
 }
 
 int main(int argc, char* argv[])
 {
-  test_set_1();
-  test_set_2();
-  test_set_3();
-  test_set_4();
-  test_set_5();
+  TESTASSERT(test_set_1() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_2() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_3() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_4() == SRSLTE_SUCCESS);
+  TESTASSERT(test_set_5() == SRSLTE_SUCCESS);
+  return SRSLTE_SUCCESS;
 }

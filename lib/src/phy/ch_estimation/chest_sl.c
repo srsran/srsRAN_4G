@@ -26,7 +26,7 @@
 #include <string.h>
 
 #include "srslte/phy/ch_estimation/chest_sl.h"
-#include "srslte/phy/ch_estimation/refsignal_ul.h"
+#include "srslte/phy/common/zc_sequence.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
@@ -38,18 +38,6 @@ static int chest_sl_init(srslte_chest_sl_t* q, uint32_t nof_cyclic_shift_seq)
   srslte_interp_linear_vector_init(&q->lin_vec_sl, SRSLTE_MAX_PRB * SRSLTE_NRE);
 
   for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
-    q->r[i] = srslte_vec_f_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
-    if (!q->r[i]) {
-      ERROR("Error allocating memory");
-      return SRSLTE_ERROR;
-    }
-
-    q->r_uv[i] = srslte_vec_cf_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
-    if (!q->r_uv[i]) {
-      ERROR("Error allocating memory");
-      return SRSLTE_ERROR;
-    }
-
     for (int j = 0; j < nof_cyclic_shift_seq; j++) {
       q->r_sequence[i][j] = srslte_vec_cf_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
       if (!q->r_sequence[i][j]) {
@@ -129,29 +117,6 @@ static int chest_sl_psbch_gen(srslte_chest_sl_t* q)
     u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
   }
 
-  int32_t N_zc = prime_numbers[0]; // N_zc - Zadoff Chu Sequence Length
-  for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-    if (prime_numbers[i] < q->M_sc_rs) {
-      N_zc = prime_numbers[i];
-      break;
-    }
-  }
-  for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-    q->q[j]    = srslte_refsignal_get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
-    float n_sz = (float)N_zc;
-    for (uint32_t i = 0; i < q->M_sc_rs; i++) {
-      float m    = (float)(i % N_zc);
-      q->r[j][i] = -M_PI * q->q[j] * m * (m + 1) / n_sz;
-    }
-  }
-
-  // Do complex exponential and adjust amplitude, 36.211 Section 5.5.1
-  for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-    for (int i = 0; i < q->M_sc_rs; i++) {
-      q->r_uv[j][i] = cexpf(I * (q->r[j][i] + q->alpha[0] * i));
-    }
-  }
-
   // w - Orthogonal Sequence, 36.211 Section 9.8
   if (q->cell.tm <= SRSLTE_SIDELINK_TM2) {
     if (q->cell.N_sl_id % 2) {
@@ -175,9 +140,13 @@ static int chest_sl_psbch_gen(srslte_chest_sl_t* q)
   }
 
   for (int j = 0; j < q->nof_dmrs_symbols; j++) {
-    for (int i = 0; i < q->M_sc_rs; i++) {
-      q->r_sequence[j][0][i] = q->w[j] * q->r_uv[j][i];
-    }
+    cf_t* seq = q->r_sequence[j][0];
+
+    // Generate R_uv sequences
+    srslte_zc_sequence_generate_lte(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, q->alpha[0], q->M_sc_rs / SRSLTE_NRE, seq);
+
+    // Apply w
+    srslte_vec_sc_prod_ccc(seq, q->w[j], seq, q->M_sc_rs);
   }
 
   return SRSLTE_SUCCESS;
@@ -350,47 +319,6 @@ static int chest_sl_pscch_gen(srslte_chest_sl_t* q, uint32_t cyclic_shift)
     u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
   }
 
-  int32_t N_zc = 0; // N_zc - Zadoff Chu Sequence Length
-  switch (q->M_sc_rs / SRSLTE_NRE) {
-    case 1:
-      for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        for (int i = 0; i < SRSLTE_NRE; i++) {
-          q->r[j][i] = phi_M_sc_12[u[j]][i] * M_PI / 4;
-        }
-      }
-      break;
-    case 2:
-      for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        for (int i = 0; i < q->M_sc_rs; i++) {
-          q->r[j][i] = phi_M_sc_24[u[j]][i] * M_PI / 4;
-        }
-      }
-      break;
-    default:
-      for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-        if (prime_numbers[i] < q->M_sc_rs) {
-          N_zc = prime_numbers[i];
-          break;
-        }
-      }
-      for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        q->q[j]    = srslte_refsignal_get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
-        float n_sz = (float)N_zc;
-        for (uint32_t i = 0; i < q->M_sc_rs; i++) {
-          float m    = (float)(i % N_zc);
-          q->r[j][i] = -M_PI * q->q[j] * m * (m + 1) / n_sz;
-        }
-      }
-      break;
-  }
-
-  // Do complex exponential and adjust amplitude, 36.211 Section 5.5.1
-  for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-    for (int i = 0; i < q->M_sc_rs; i++) {
-      q->r_uv[j][i] = cexpf(I * (q->r[j][i] + q->alpha[0] * i));
-    }
-  }
-
   // w - Orthogonal Sequence, 36.211 Section 9.8
   if (q->cell.tm <= SRSLTE_SIDELINK_TM2) {
     q->w[0] = 1;
@@ -403,9 +331,13 @@ static int chest_sl_pscch_gen(srslte_chest_sl_t* q, uint32_t cyclic_shift)
   }
 
   for (int j = 0; j < q->nof_dmrs_symbols; j++) {
-    for (int i = 0; i < q->M_sc_rs; i++) {
-      q->r_sequence[j][cyclic_shift / 3][i] = q->w[j] * q->r_uv[j][i];
-    }
+    cf_t* seq = q->r_sequence[j][cyclic_shift / 3];
+
+    // Generate R_uv sequences
+    srslte_zc_sequence_generate_lte(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, q->alpha[0], q->M_sc_rs / SRSLTE_NRE, seq);
+
+    // Apply w
+    srslte_vec_sc_prod_ccc(seq, q->w[j], seq, q->M_sc_rs);
   }
 
   return SRSLTE_SUCCESS;
@@ -577,47 +509,6 @@ static int chest_sl_pssch_gen(srslte_chest_sl_t* q)
     }
   }
 
-  int32_t N_zc = 0; // N_zc - Zadoff Chu Sequence Length
-  switch (q->M_sc_rs / SRSLTE_NRE) {
-    case 1:
-      for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        for (int i = 0; i < SRSLTE_NRE; i++) {
-          q->r[j][i] = phi_M_sc_12[u[j]][i] * M_PI / 4;
-        }
-      }
-      break;
-    case 2:
-      for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        for (int i = 0; i < q->M_sc_rs; i++) {
-          q->r[j][i] = phi_M_sc_24[u[j]][i] * M_PI / 4;
-        }
-      }
-      break;
-    default:
-      for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
-        if (prime_numbers[i] < q->M_sc_rs) {
-          N_zc = prime_numbers[i];
-          break;
-        }
-      }
-      for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        q->q[j]    = srslte_refsignal_get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
-        float n_sz = (float)N_zc;
-        for (uint32_t i = 0; i < q->M_sc_rs; i++) {
-          float m    = (float)(i % N_zc);
-          q->r[j][i] = -M_PI * q->q[j] * m * (m + 1) / n_sz;
-        }
-      }
-      break;
-  }
-
-  // Do complex exponential and adjust amplitude, 36.211 Section 5.5.1
-  for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-    for (int i = 0; i < q->M_sc_rs; i++) {
-      q->r_uv[j][i] = cexpf(I * (q->r[j][i] + q->alpha[0] * i));
-    }
-  }
-
   // w - Orthogonal Sequence, 36.211 Section 9.8
   if (q->cell.tm <= SRSLTE_SIDELINK_TM2) {
     if (q->chest_sl_cfg.N_x_id % 2 == 0) {
@@ -643,9 +534,13 @@ static int chest_sl_pssch_gen(srslte_chest_sl_t* q)
   }
 
   for (int j = 0; j < q->nof_dmrs_symbols; j++) {
-    for (int i = 0; i < q->M_sc_rs; i++) {
-      q->r_sequence[j][0][i] = q->w[j] * q->r_uv[j][i];
-    }
+    cf_t* seq = q->r_sequence[j][0];
+
+    // Generate R_uv sequences
+    srslte_zc_sequence_generate_lte(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, q->alpha[0], q->M_sc_rs / SRSLTE_NRE, seq);
+
+    // Apply w
+    srslte_vec_sc_prod_ccc(seq, q->w[j], seq, q->M_sc_rs);
   }
 
   return SRSLTE_SUCCESS;
@@ -1258,12 +1153,6 @@ void srslte_chest_sl_free(srslte_chest_sl_t* q)
     srslte_interp_linear_vector_free(&q->lin_vec_sl);
 
     for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
-      if (q->r[i]) {
-        free(q->r[i]);
-      }
-      if (q->r_uv[i]) {
-        free(q->r_uv[i]);
-      }
       for (int j = 0; j < SRSLTE_SL_MAX_PSCCH_NOF_DMRS_CYCLIC_SHIFTS; j++) {
         if (q->r_sequence[i][j]) {
           free(q->r_sequence[i][j]);

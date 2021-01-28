@@ -19,8 +19,8 @@
  *
  */
 
+#include "srslte/common/test_common.h"
 #include "ttcn3_helpers.h"
-#include <assert.h>
 #include <iostream>
 #include <srsue/test/ttcn3/hdr/ttcn3_helpers.h>
 #include <stdio.h>
@@ -73,20 +73,21 @@ int SYSTEM_CTRL_CNF_test()
   return 0;
 }
 
-void pretty_print(std::string json)
+int pretty_print(std::string json)
 {
   Document document;
   if (document.Parse((char*)json.c_str()).HasParseError()) {
     fprintf(stderr, "Error parsing incoming data. Exiting\n");
     exit(-1);
   }
-  assert(document.IsObject());
+  TESTASSERT(document.IsObject() == true);
 
   // Pretty-print
   StringBuffer               buffer;
   PrettyWriter<StringBuffer> writer(buffer);
   document.Accept(writer);
   printf("%s\n", (char*)buffer.GetString());
+  return SRSLTE_SUCCESS;
 }
 
 // UDP v4 test

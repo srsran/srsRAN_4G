@@ -48,6 +48,8 @@ extern "C" {
 
 #include "srslte/phy/ch_estimation/chest_dl.h"
 #include "srslte/phy/ch_estimation/chest_ul.h"
+#include "srslte/phy/ch_estimation/dmrs_pdcch.h"
+#include "srslte/phy/ch_estimation/dmrs_sch.h"
 #include "srslte/phy/ch_estimation/refsignal_dl.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 #include "srslte/phy/ch_estimation/wiener_dl.h"
@@ -79,6 +81,7 @@ extern "C" {
 
 #include "srslte/phy/modem/demod_hard.h"
 #include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/evm.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/modem/modem_table.h"
 
@@ -88,9 +91,11 @@ extern "C" {
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/phch/cqi.h"
 #include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/dci_nr.h"
 #include "srslte/phy/phch/pbch.h"
 #include "srslte/phy/phch/pcfich.h"
 #include "srslte/phy/phch/pdcch.h"
+#include "srslte/phy/phch/pdcch_nr.h"
 #include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/phch/phich.h"
 #include "srslte/phy/phch/prach.h"
@@ -99,6 +104,8 @@ extern "C" {
 #include "srslte/phy/phch/pusch.h"
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/phch/ra_dl.h"
+#include "srslte/phy/phch/ra_dl_nr.h"
+#include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/ra_ul.h"
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/sch.h"
@@ -106,11 +113,13 @@ extern "C" {
 
 #include "srslte/phy/ue/ue_cell_search.h"
 #include "srslte/phy/ue/ue_dl.h"
+#include "srslte/phy/ue/ue_dl_nr.h"
 #include "srslte/phy/ue/ue_mib.h"
 #include "srslte/phy/ue/ue_sync.h"
 #include "srslte/phy/ue/ue_ul.h"
 
 #include "srslte/phy/enb/enb_dl.h"
+#include "srslte/phy/enb/enb_dl_nr.h"
 #include "srslte/phy/enb/enb_ul.h"
 
 #include "srslte/phy/scrambling/scrambling.h"

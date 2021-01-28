@@ -19,9 +19,9 @@
  *
  */
 
+#include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/sch_nr.h"
-#include "srslte/phy/ue/ue_dl_nr_data.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include <getopt.h>
@@ -35,10 +35,10 @@ static srslte_carrier_nr_t carrier = {
     1                  // max_mimo_layers
 };
 
-static uint32_t                n_prb       = 0;  // Set to 0 for steering
-static uint32_t                mcs         = 30; // Set to 30 for steering
-static srslte_pdsch_cfg_nr_t   pdsch_cfg   = {};
-static srslte_pdsch_grant_nr_t pdsch_grant = {};
+static uint32_t              n_prb       = 0;  // Set to 0 for steering
+static uint32_t              mcs         = 30; // Set to 30 for steering
+static srslte_sch_cfg_nr_t   pdsch_cfg   = {};
+static srslte_sch_grant_nr_t pdsch_grant = {};
 
 void usage(char* prog)
 {
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
   uint8_t* data_rx = srslte_vec_u8_malloc(1024 * 1024);
 
   // Set default PDSCH configuration
-  pdsch_cfg.sch_cfg.mcs_table       = srslte_mcs_table_64qam;
+  pdsch_cfg.sch_cfg.mcs_table = srslte_mcs_table_64qam;
 
   if (parse_args(argc, argv) < SRSLTE_SUCCESS) {
     goto clean_exit;
@@ -141,8 +141,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ue_dl_nr_pdsch_time_resource_default_A(0, pdsch_cfg.dmrs_cfg_typeA.typeA_pos, &pdsch_grant) <
-      SRSLTE_SUCCESS) {
+  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }

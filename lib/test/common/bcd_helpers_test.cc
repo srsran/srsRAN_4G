@@ -20,7 +20,7 @@
  */
 
 #include "srslte/common/bcd_helpers.h"
-#include <assert.h>
+#include "srslte/common/test_common.h"
 
 using namespace srslte;
 
@@ -33,15 +33,15 @@ int main(int argc, char** argv)
 
   // String to code
 
-  assert(string_to_mcc(mcc_str, &mcc));
-  assert(mcc == 0xF001);
+  TESTASSERT(string_to_mcc(mcc_str, &mcc));
+  TESTASSERT(mcc == 0xF001);
 
-  assert(string_to_mnc(mnc_str, &mnc));
-  assert(mnc == 0xF001);
+  TESTASSERT(string_to_mnc(mnc_str, &mnc));
+  TESTASSERT(mnc == 0xF001);
 
   mnc_str = "01";
-  assert(string_to_mnc(mnc_str, &mnc));
-  assert(mnc == 0xFF01);
+  TESTASSERT(string_to_mnc(mnc_str, &mnc));
+  TESTASSERT(mnc == 0xFF01);
 
   // Code to string
 
@@ -50,13 +50,14 @@ int main(int argc, char** argv)
   mcc     = 0xF001;
   mnc     = 0xF001;
 
-  assert(mcc_to_string(mcc, &mcc_str));
-  assert(mcc_str.compare("001") == 0);
+  TESTASSERT(mcc_to_string(mcc, &mcc_str));
+  TESTASSERT(mcc_str.compare("001") == 0);
 
-  assert(mnc_to_string(mnc, &mnc_str));
-  assert(mnc_str.compare("001") == 0);
+  TESTASSERT(mnc_to_string(mnc, &mnc_str));
+  TESTASSERT(mnc_str.compare("001") == 0);
 
   mnc = 0xFF01;
-  assert(mnc_to_string(mnc, &mnc_str));
-  assert(mnc_str.compare("01") == 0);
+  TESTASSERT(mnc_to_string(mnc, &mnc_str));
+  TESTASSERT(mnc_str.compare("01") == 0);
+  return SRSLTE_SUCCESS;
 }

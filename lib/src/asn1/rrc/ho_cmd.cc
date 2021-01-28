@@ -288,66 +288,9 @@ void scg_cfg_r12_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void scg_cfg_r12_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void scg_cfg_r12_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "scg_cfg_r12_s::crit_exts_c_");
-  }
-}
-scg_cfg_r12_s::crit_exts_c_::crit_exts_c_(const scg_cfg_r12_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "scg_cfg_r12_s::crit_exts_c_");
-  }
-}
-scg_cfg_r12_s::crit_exts_c_& scg_cfg_r12_s::crit_exts_c_::operator=(const scg_cfg_r12_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "scg_cfg_r12_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void scg_cfg_r12_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -355,7 +298,7 @@ void scg_cfg_r12_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -369,7 +312,7 @@ SRSASN_CODE scg_cfg_r12_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -386,7 +329,7 @@ SRSASN_CODE scg_cfg_r12_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1402,66 +1345,9 @@ void ho_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ho_cmd_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ho_cmd_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ho_cmd_s::crit_exts_c_");
-  }
-}
-ho_cmd_s::crit_exts_c_::crit_exts_c_(const ho_cmd_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ho_cmd_s::crit_exts_c_");
-  }
-}
-ho_cmd_s::crit_exts_c_& ho_cmd_s::crit_exts_c_::operator=(const ho_cmd_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ho_cmd_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ho_cmd_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1469,7 +1355,7 @@ void ho_cmd_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -1483,7 +1369,7 @@ SRSASN_CODE ho_cmd_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1500,7 +1386,7 @@ SRSASN_CODE ho_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -1782,86 +1668,6 @@ void ho_prep_info_v1320_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// HandoverPreparationInformation-v13c0-IEs ::= SEQUENCE
-SRSASN_CODE ho_prep_info_v13c0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(as_cfg_v13c0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (as_cfg_v13c0_present) {
-    HANDLE_CODE(as_cfg_v13c0.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_prep_info_v13c0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(as_cfg_v13c0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (as_cfg_v13c0_present) {
-    HANDLE_CODE(as_cfg_v13c0.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ho_prep_info_v13c0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (as_cfg_v13c0_present) {
-    j.write_fieldname("as-Config-v13c0");
-    as_cfg_v13c0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
-  }
-  j.end_obj();
-}
-
-// HandoverPreparationInformation-v10x0-IEs ::= SEQUENCE
-SRSASN_CODE ho_prep_info_v10x0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_prep_info_v10x0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ho_prep_info_v10x0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
 // HandoverPreparationInformation-v1250-IEs ::= SEQUENCE
 SRSASN_CODE ho_prep_info_v1250_ies_s::pack(bit_ref& bref) const
 {
@@ -1908,49 +1714,6 @@ void ho_prep_info_v1250_ies_s::to_json(json_writer& j) const
   if (as_cfg_v1250_present) {
     j.write_fieldname("as-Config-v1250");
     as_cfg_v1250.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// HandoverPreparationInformation-v10j0-IEs ::= SEQUENCE
-SRSASN_CODE ho_prep_info_v10j0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(as_cfg_v10j0_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (as_cfg_v10j0_present) {
-    HANDLE_CODE(as_cfg_v10j0.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_prep_info_v10j0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(as_cfg_v10j0_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (as_cfg_v10j0_present) {
-    HANDLE_CODE(as_cfg_v10j0.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ho_prep_info_v10j0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (as_cfg_v10j0_present) {
-    j.write_fieldname("as-Config-v10j0");
-    as_cfg_v10j0.to_json(j);
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
@@ -2037,48 +1800,6 @@ void ho_prep_info_v9e0_ies_s::to_json(json_writer& j) const
   if (as_cfg_v9e0_present) {
     j.write_fieldname("as-Config-v9e0");
     as_cfg_v9e0.to_json(j);
-  }
-  if (non_crit_ext_present) {
-    j.write_fieldname("nonCriticalExtension");
-    non_crit_ext.to_json(j);
-  }
-  j.end_obj();
-}
-
-// HandoverPreparationInformation-v9j0-IEs ::= SEQUENCE
-SRSASN_CODE ho_prep_info_v9j0_ies_s::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.pack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ho_prep_info_v9j0_ies_s::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
-
-  if (late_non_crit_ext_present) {
-    HANDLE_CODE(late_non_crit_ext.unpack(bref));
-  }
-  if (non_crit_ext_present) {
-    HANDLE_CODE(non_crit_ext.unpack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-void ho_prep_info_v9j0_ies_s::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (late_non_crit_ext_present) {
-    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
@@ -2382,66 +2103,9 @@ void ho_prep_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void ho_prep_info_s::crit_exts_c_::destroy_()
-{
-  switch (type_) {
-    case types::c1:
-      c.destroy<c1_c_>();
-      break;
-    default:
-      break;
-  }
-}
 void ho_prep_info_s::crit_exts_c_::set(types::options e)
 {
-  destroy_();
   type_ = e;
-  switch (type_) {
-    case types::c1:
-      c.init<c1_c_>();
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ho_prep_info_s::crit_exts_c_");
-  }
-}
-ho_prep_info_s::crit_exts_c_::crit_exts_c_(const ho_prep_info_s::crit_exts_c_& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::c1:
-      c.init(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ho_prep_info_s::crit_exts_c_");
-  }
-}
-ho_prep_info_s::crit_exts_c_& ho_prep_info_s::crit_exts_c_::operator=(const ho_prep_info_s::crit_exts_c_& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::c1:
-      c.set(other.c.get<c1_c_>());
-      break;
-    case types::crit_exts_future:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ho_prep_info_s::crit_exts_c_");
-  }
-
-  return *this;
 }
 void ho_prep_info_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -2449,7 +2113,7 @@ void ho_prep_info_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::c1:
       j.write_fieldname("c1");
-      c.get<c1_c_>().to_json(j);
+      c.to_json(j);
       break;
     case types::crit_exts_future:
       break;
@@ -2463,7 +2127,7 @@ SRSASN_CODE ho_prep_info_s::crit_exts_c_::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().pack(bref));
+      HANDLE_CODE(c.pack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -2480,7 +2144,7 @@ SRSASN_CODE ho_prep_info_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::c1:
-      HANDLE_CODE(c.get<c1_c_>().unpack(bref));
+      HANDLE_CODE(c.unpack(bref));
       break;
     case types::crit_exts_future:
       break;
@@ -2577,6 +2241,171 @@ SRSASN_CODE ho_prep_info_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
       return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
+}
+
+// HandoverPreparationInformation-v13c0-IEs ::= SEQUENCE
+SRSASN_CODE ho_prep_info_v13c0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(as_cfg_v13c0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (as_cfg_v13c0_present) {
+    HANDLE_CODE(as_cfg_v13c0.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ho_prep_info_v13c0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(as_cfg_v13c0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (as_cfg_v13c0_present) {
+    HANDLE_CODE(as_cfg_v13c0.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ho_prep_info_v13c0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (as_cfg_v13c0_present) {
+    j.write_fieldname("as-Config-v13c0");
+    as_cfg_v13c0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// HandoverPreparationInformation-v10x0-IEs ::= SEQUENCE
+SRSASN_CODE ho_prep_info_v10x0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ho_prep_info_v10x0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ho_prep_info_v10x0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// HandoverPreparationInformation-v10j0-IEs ::= SEQUENCE
+SRSASN_CODE ho_prep_info_v10j0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(as_cfg_v10j0_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (as_cfg_v10j0_present) {
+    HANDLE_CODE(as_cfg_v10j0.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ho_prep_info_v10j0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(as_cfg_v10j0_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (as_cfg_v10j0_present) {
+    HANDLE_CODE(as_cfg_v10j0.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ho_prep_info_v10j0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (as_cfg_v10j0_present) {
+    j.write_fieldname("as-Config-v10j0");
+    as_cfg_v10j0.to_json(j);
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
+// HandoverPreparationInformation-v9j0-IEs ::= SEQUENCE
+SRSASN_CODE ho_prep_info_v9j0_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ho_prep_info_v9j0_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void ho_prep_info_v9j0_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
 }
 
 // VarMeasConfig ::= SEQUENCE

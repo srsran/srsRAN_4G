@@ -41,7 +41,7 @@ class sf_worker final : public srslte::thread_pool::worker
 {
 public:
   sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log);
-  ~sf_worker() = default;
+  ~sf_worker();
 
   bool set_carrier_unlocked(uint32_t cc_idx, const srslte_carrier_nr_t* carrier_);
 
@@ -60,6 +60,10 @@ private:
   phy_common*   phy       = nullptr;
   phy_nr_state* phy_state = nullptr;
   srslte::log*  log_h     = nullptr;
+
+  // Temporal attributes
+  srslte_softbuffer_tx_t softbuffer_tx = {};
+  std::vector<uint8_t>   data;
 };
 
 } // namespace nr

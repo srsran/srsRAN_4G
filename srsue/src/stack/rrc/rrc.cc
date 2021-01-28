@@ -108,7 +108,10 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               const rrc_args_t&      args_)
+#ifdef HAVE_5GNR
+               rrc_nr_interface_rrc* rrc_nr_,
+#endif
+               const rrc_args_t& args_)
 {
   pool = byte_buffer_pool::get_instance();
   phy  = phy_;
@@ -118,7 +121,9 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   nas  = nas_;
   usim = usim_;
   gw   = gw_;
-
+#ifdef HAVE_5GNR
+  rrc_nr = rrc_nr_;
+#endif
   args = args_;
 
   auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
@@ -163,7 +168,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   // initiate unique procedures
   ue_required_sibs.assign(&required_sibs[0], &required_sibs[NOF_REQUIRED_SIBS]);
-
   running   = true;
   initiated = true;
 }
@@ -425,6 +429,13 @@ void rrc::process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas)
   rrc_log->debug("MEAS:  Processing measurement of %zd cells\n", meas.size());
 
   bool neighbour_added = meas_cells_nr.process_new_cell_meas(meas_lte, filter);
+}
+
+void rrc::nr_rrc_con_reconfig_complete(bool status)
+{
+  if (conn_recfg_proc.is_busy()) {
+    conn_recfg_proc.trigger(status);
+  }
 }
 #endif
 
@@ -757,6 +768,62 @@ void rrc::timer_expired(uint32_t timeout_id)
   }
 }
 
+#ifdef HAVE_5GNR
+bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
+{
+  if (!(rx_recfg.non_crit_ext_present && rx_recfg.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present &&
+        rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext_present)) {
+    return true;
+  }
+
+  const asn1::rrc::rrc_conn_recfg_v1510_ies_s* rrc_conn_recfg_v1510_ies =
+      &rx_recfg.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+
+  if (!rrc_conn_recfg_v1510_ies->nr_cfg_r15_present) {
+    return true;
+  }
+
+  bool                endc_release_and_add_r15                = false;
+  bool                nr_secondary_cell_group_cfg_r15_present = false;
+  asn1::dyn_octstring nr_secondary_cell_group_cfg_r15;
+  bool                sk_counter_r15_present           = false;
+  uint32_t            sk_counter_r15                   = 0;
+  bool                nr_radio_bearer_cfg1_r15_present = false;
+  asn1::dyn_octstring nr_radio_bearer_cfg1_r15;
+
+  endc_release_and_add_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().endc_release_and_add_r15;
+
+  if (rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15_present == true) {
+    nr_secondary_cell_group_cfg_r15_present = true;
+    nr_secondary_cell_group_cfg_r15 = rrc_conn_recfg_v1510_ies->nr_cfg_r15.setup().nr_secondary_cell_group_cfg_r15;
+  }
+
+  if (rrc_conn_recfg_v1510_ies->sk_counter_r15_present) {
+    sk_counter_r15_present = true;
+    sk_counter_r15         = rrc_conn_recfg_v1510_ies->sk_counter_r15;
+  }
+
+  if (rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15_present) {
+    nr_radio_bearer_cfg1_r15_present = true;
+    nr_radio_bearer_cfg1_r15         = rrc_conn_recfg_v1510_ies->nr_radio_bearer_cfg1_r15;
+  }
+
+  return rrc_nr->rrc_reconfiguration(endc_release_and_add_r15,
+                                     nr_secondary_cell_group_cfg_r15_present,
+                                     nr_secondary_cell_group_cfg_r15,
+                                     sk_counter_r15_present,
+                                     sk_counter_r15,
+                                     nr_radio_bearer_cfg1_r15_present,
+                                     nr_radio_bearer_cfg1_r15);
+}
+#endif
 /*******************************************************************************
  *
  *
@@ -939,14 +1006,31 @@ void rrc::send_security_mode_complete()
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::send_rrc_con_reconfig_complete()
+void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
 {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
   ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
+  rrc_conn_recfg_complete_r8_ies_s* rrc_conn_recfg_complete_r8 =
+      &ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
 
+  if (contains_nr_complete == true) {
+    rrc_log->debug("Preparing RRC Connection Reconfig Complete with NR Complete\n");
+
+    rrc_conn_recfg_complete_r8->non_crit_ext_present                                                     = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext_present                                        = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present              = true;
+    rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+
+    rrc_conn_recfg_complete_v1430_ies_s* rrc_conn_recfg_complete_v1430_ies =
+        &rrc_conn_recfg_complete_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+
+    rrc_conn_recfg_complete_v1430_ies->non_crit_ext_present                     = true;
+    rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15_present = true;
+    rrc_conn_recfg_complete_v1430_ies->non_crit_ext.scg_cfg_resp_nr_r15.from_string("00");
+  }
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
@@ -1773,6 +1857,9 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       cap.feature_group_inds_present = true;
       cap.feature_group_inds.from_number(args.feature_group);
 
+      ue_eutra_cap_v1280_ies_s* ue_eutra_cap_v1280_ies;
+      ue_eutra_cap_v1360_ies_s* ue_eutra_cap_v1360_ies;
+      ue_eutra_cap_v1450_ies_s* ue_eutra_cap_v1450_ies;
       if (args.release > 8) {
         ue_eutra_cap_v920_ies_s cap_v920;
 
@@ -1928,6 +2015,65 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
             .non_crit_ext.non_crit_ext_present = true;
         cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
             .non_crit_ext.non_crit_ext = cap_v1250;
+        // 12.50
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 12.60
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 12.70
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+      }
+      // Release 13
+      if (args.release > 12) {
+        // 12.80
+        ue_eutra_cap_v1280_ies =
+            &cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+                 .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+        ue_eutra_cap_v1280_ies->non_crit_ext_present = true;
+        // 13.10
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext_present = true;
+        // 13.20
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 13.30
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 13.40
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 13.50
+        ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present =
+            true;
+      }
+      // Release 14
+      if (args.release > 13) {
+        // 13.60
+        ue_eutra_cap_v1360_ies =
+            &ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+        ue_eutra_cap_v1360_ies->non_crit_ext_present = true;
+        // 14.30
+        ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext_present = true;
+        // 14.40
+        ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        // 14.50
+        ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+      }
+      // Release 15
+      if (args.release > 14) {
+        ue_eutra_cap_v1450_ies = &ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext;
+        // 14.60
+        ue_eutra_cap_v1450_ies->non_crit_ext_present              = true;
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext_present = true;
+
+        irat_params_nr_r15_s irat_params_nr_r15;
+        irat_params_nr_r15.en_dc_r15_present                     = true;
+        irat_params_nr_r15.supported_band_list_en_dc_r15_present = true;
+
+        supported_band_nr_r15_s supported_band_nr_r15;
+        supported_band_nr_r15.band_nr_r15 = 78;
+
+        irat_params_nr_r15.supported_band_list_en_dc_r15.push_back(supported_band_nr_r15);
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15_present = true;
+        ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15         = irat_params_nr_r15;
       }
 
       // Pack caps and copy to cap info
@@ -1939,11 +2085,48 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.resize(cap_len);
       memcpy(info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.data(), buf, cap_len);
       rat_idx++;
+
+    }
+#ifdef HAVE_5GNR
+    else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra_nr && has_nr_dc()) {
+      info->ue_cap_rat_container_list[rat_idx] = get_eutra_nr_capabilities();
+      rrc_log->info("Including EUTRA-NR capabilities in UE Capability Info (%d B)\n",
+                    info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
+      rat_idx++;
+    } else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::nr && has_nr_dc()) {
+      info->ue_cap_rat_container_list[rat_idx] = get_nr_capabilities();
+      rrc_log->info("Including NR capabilities in UE Capability Info (%d B)\n",
+                    info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
+      rat_idx++;
+    }
+#endif
+    else {
+      rrc_log->error("RAT Type of UE Cap request not supported or not configured\n");
     }
   }
-
   // resize container back to the actually filled items
   info->ue_cap_rat_container_list.resize(rat_idx);
+
+#ifdef HAVE_5GNR
+  if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext_present) {
+    if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext_present) {
+      if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext.non_crit_ext_present) {
+        if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present) {
+          if (enquiry.crit_exts.c1()
+                  .ue_cap_enquiry_r8()
+                  .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present) {
+            if (enquiry.crit_exts.c1()
+                    .ue_cap_enquiry_r8()
+                    .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+                    .requested_freq_bands_nr_mrdc_r15_present) {
+              rrc_log->debug("Requested Freq Bands NR MRDC R15 present\n");
+            }
+          }
+        }
+      }
+    }
+  }
+#endif
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
@@ -2483,24 +2666,38 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   }
   mac->setup_lcid(lcid, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
 
-  drbs[lcid] = drb_cnfg;
-  drb_up     = true;
-  rrc_log->info("Added radio bearer %s (LCID=%d)\n", get_rb_name(lcid).c_str(), lcid);
+  drbs[drb_cnfg.drb_id] = drb_cnfg;
+  drb_up                = true;
+  rrc_log->info("Added DRB Id %d (LCID=%d)\n", drb_cnfg.drb_id, lcid);
 }
 
 void rrc::release_drb(uint32_t drb_id)
 {
-  uint32_t lcid = RB_ID_SRB2 + drb_id;
-
   if (drbs.find(drb_id) != drbs.end()) {
-    rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
-    drbs.erase(lcid);
+    rrc_log->info("Releasing DRB Id %d\n", drb_id);
+    drbs.erase(drb_id);
   } else {
-    rrc_log->error("Couldn't release radio bearer %s. Doesn't exist.\n", get_rb_name(lcid).c_str());
+    rrc_log->error("Couldn't release DRB Id %d. Doesn't exist.\n", drb_id);
   }
 }
 
 uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
+{
+  // check if this bearer id exists and return it's LCID
+  uint32_t lcid                        = 0;
+  uint32_t drb_id                      = 0;
+  drb_id                               = get_drb_id_for_eps_bearer(eps_bearer_id);
+  asn1::rrc::drb_to_add_mod_s drb_cnfg = drbs[drb_id];
+  if (drb_cnfg.lc_ch_id_present) {
+    lcid = drb_cnfg.lc_ch_id;
+  } else {
+    lcid = RB_ID_SRB2 + drb_cnfg.drb_id;
+    rrc_log->warning("LCID not present, using %d\n", lcid);
+  }
+  return lcid;
+}
+
+uint32_t rrc::get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id)
 {
   // check if this bearer id exists and return it's LCID
   for (auto& drb : drbs) {
@@ -2509,6 +2706,16 @@ uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
     }
   }
   return 0;
+}
+
+bool rrc::has_nr_dc()
+{
+  bool has_nr_dc = false;
+#ifdef HAVE_5GNR
+  if (args.release >= 15)
+    has_nr_dc = true;
+#endif
+  return has_nr_dc;
 }
 
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
@@ -2550,5 +2757,36 @@ void rrc::set_rrc_default()
 
 const std::string rrc::rb_id_str[] =
     {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
+// Helpers for nr communicaiton
+
+asn1::rrc::ue_cap_rat_container_s rrc::get_eutra_nr_capabilities()
+{
+  srslte::byte_buffer_t             caps_buf;
+  asn1::rrc::ue_cap_rat_container_s cap;
+#ifdef HAVE_5GNR
+  rrc_nr->get_eutra_nr_capabilities(&caps_buf);
+#else
+  rrc_log->error("Not able to access get_eutra_nr_capabilities function\n");
+#endif
+  cap.rat_type = asn1::rrc::rat_type_e::eutra_nr;
+  cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
+  memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);
+  return cap;
+}
+
+asn1::rrc::ue_cap_rat_container_s rrc::get_nr_capabilities()
+{
+  srslte::byte_buffer_t             caps_buf;
+  asn1::rrc::ue_cap_rat_container_s cap;
+#ifdef HAVE_5GNR
+  rrc_nr->get_nr_capabilities(&caps_buf);
+#else
+  rrc_log->error("Not able to access get_nr_capabilities function\n");
+#endif
+  cap.rat_type = asn1::rrc::rat_type_e::nr;
+  cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
+  memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);
+  return cap;
+}
 
 } // namespace srsue

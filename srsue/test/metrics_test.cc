@@ -54,6 +54,7 @@ public:
     m->stack.mac[0].rx_brate  = 200;
     m->stack.mac[0].nof_tti   = 1;
 
+    m->phy.info[1].pci        = UINT32_MAX;
     m->stack.mac[1].rx_pkts   = 100;
     m->stack.mac[1].rx_errors = 100;
     m->stack.mac[1].rx_brate  = 150;

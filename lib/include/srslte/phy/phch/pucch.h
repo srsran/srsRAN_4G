@@ -81,7 +81,6 @@ typedef struct SRSLTE_API {
   cf_t     d[SRSLTE_PUCCH_MAX_BITS / 2];
   uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB];
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];
-  float    tmp_arg[SRSLTE_PUCCH_N_SEQ];
 
   cf_t* z;
   cf_t* z_tmp;
@@ -92,6 +91,7 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_uci_value_t uci_data;
   float              dmrs_correlation;
+  float              snr_db;
   float              correlation;
   bool               detected;
 

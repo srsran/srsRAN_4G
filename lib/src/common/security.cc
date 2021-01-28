@@ -22,6 +22,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/s3g.h"
+#include "srslte/config.h"
 
 #ifdef HAVE_MBEDTLS
 #include "mbedtls/md5.h"
@@ -99,6 +100,37 @@ uint8_t security_generate_k_up(uint8_t*                    k_enb,
                                        (LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM)int_alg_id,
                                        k_up_enc,
                                        k_up_int);
+}
+
+uint8_t security_generate_k_nr_rrc(uint8_t*                    k_gnb,
+                                   CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                   INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                   uint8_t*                    k_rrc_enc,
+                                   uint8_t*                    k_rrc_int)
+{
+  return liblte_security_generate_k_nr_rrc(k_gnb,
+                                           (LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM)enc_alg_id,
+                                           (LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM)int_alg_id,
+                                           k_rrc_enc,
+                                           k_rrc_int);
+}
+
+uint8_t security_generate_k_nr_up(uint8_t*                    k_gnb,
+                                  CIPHERING_ALGORITHM_ID_ENUM enc_alg_id,
+                                  INTEGRITY_ALGORITHM_ID_ENUM int_alg_id,
+                                  uint8_t*                    k_up_enc,
+                                  uint8_t*                    k_up_int)
+{
+  return liblte_security_generate_k_nr_up(k_gnb,
+                                          (LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM)enc_alg_id,
+                                          (LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM)int_alg_id,
+                                          k_up_enc,
+                                          k_up_int);
+}
+
+uint8_t security_generate_sk_gnb(uint8_t* k_enb, uint8_t* sk_gnb, uint16_t scg_count)
+{
+  return liblte_security_generate_sk_gnb(k_enb, sk_gnb, scg_count);
 }
 
 /******************************************************************************

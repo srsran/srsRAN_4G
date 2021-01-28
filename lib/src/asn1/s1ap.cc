@@ -44,53 +44,16 @@ std::string presence_opts::to_string() const
 }
 
 // PrivateIE-ID ::= CHOICE
-void private_ie_id_c::destroy_() {}
 void private_ie_id_c::set(types::options e)
 {
-  destroy_();
   type_ = e;
-}
-private_ie_id_c::private_ie_id_c(const private_ie_id_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::local:
-      c.init(other.c.get<uint32_t>());
-      break;
-    case types::global:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "private_ie_id_c");
-  }
-}
-private_ie_id_c& private_ie_id_c::operator=(const private_ie_id_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::local:
-      c.set(other.c.get<uint32_t>());
-      break;
-    case types::global:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "private_ie_id_c");
-  }
-
-  return *this;
 }
 void private_ie_id_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
     case types::local:
-      j.write_int("local", c.get<uint32_t>());
+      j.write_int("local", c);
       break;
     case types::global:
       break;
@@ -104,7 +67,7 @@ SRSASN_CODE private_ie_id_c::pack(bit_ref& bref) const
   type_.pack(bref);
   switch (type_) {
     case types::local:
-      HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)65535u, false, true));
+      HANDLE_CODE(pack_integer(bref, c, (uint32_t)0u, (uint32_t)65535u, false, true));
       break;
     case types::global:
       break;
@@ -121,7 +84,7 @@ SRSASN_CODE private_ie_id_c::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::local:
-      HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)65535u, false, true));
+      HANDLE_CODE(unpack_integer(c, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
       break;
     case types::global:
       break;
