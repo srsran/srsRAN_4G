@@ -641,6 +641,7 @@ int main(int argc, char* argv[])
     return SRSLTE_ERROR;
   }
   srslte::srslog_wrapper log_wrapper(*chan);
+  srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
   srslog::init();
@@ -651,7 +652,7 @@ int main(int argc, char* argv[])
   srslte::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance
-  srsue::ue ue;
+  srsue::ue ue(*log_sink);
   if (ue.init(args, &log_wrapper)) {
     ue.stop();
     return SRSLTE_SUCCESS;

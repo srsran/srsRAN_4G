@@ -18,7 +18,7 @@ using namespace srslte;
 
 namespace srsue {
 
-usim::usim(srslte::log* log_) : usim_base(log_) {}
+usim::usim(srslog::basic_logger& logger) : usim_base(logger) {}
 
 int usim::init(usim_args_t* args)
 {
@@ -36,7 +36,7 @@ int usim::init(usim_args_t* args)
   if (32 == args->k.length()) {
     str_to_hex(args->k, k);
   } else {
-    log->error("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
+    logger.error("Invalid length for K: %zu should be %d", args->k.length(), 32);
     srslte::console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
   }
 
@@ -46,14 +46,14 @@ int usim::init(usim_args_t* args)
         str_to_hex(args->op, op);
         compute_opc(k, op, opc);
       } else {
-        log->error("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+        logger.error("Invalid length for OP: %zu should be %d", args->op.length(), 32);
         srslte::console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
       }
     } else {
       if (32 == args->opc.length()) {
         str_to_hex(args->opc, opc);
       } else {
-        log->error("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+        logger.error("Invalid length for OPc: %zu should be %d", args->opc.length(), 32);
         srslte::console("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
       }
     }
@@ -66,7 +66,7 @@ int usim::init(usim_args_t* args)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
+    logger.error("Invalid length for IMSI: %zu should be %d", args->imsi.length(), 15);
     srslte::console("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
   }
 
@@ -77,7 +77,7 @@ int usim::init(usim_args_t* args)
       imei += imei_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    logger.error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
     srslte::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
   }
 

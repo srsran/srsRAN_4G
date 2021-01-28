@@ -18,12 +18,7 @@ using namespace srslte;
 namespace srsue {
 
 ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
-  logger(logger_),
-  thread("STACK"),
-  task_sched(64, 2, 64),
-  rlc_log("RLC"),
-  pdcp_log("PDCP"),
-  pool_log("POOL")
+  logger(logger_), thread("STACK"), task_sched(64, 2, 64), rlc_log("RLC"), pdcp_log("PDCP"), pool_log("POOL")
 {
   mac.reset(new mac_nr(&task_sched));
   pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
@@ -165,7 +160,7 @@ void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
     std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
         [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
     if (not ret.first) {
-      pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
+      pdcp_log->warning("GW SDU with lcid=%d was discarded.", lcid);
     }
   }
 }

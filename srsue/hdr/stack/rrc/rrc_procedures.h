@@ -12,6 +12,7 @@
 
 #include "phy_controller.h"
 #include "srslte/common/log.h"
+#include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include <map>
 #include <string>
@@ -77,8 +78,8 @@ private:
   void start_si_acquire();
 
   // conts
-  rrc*            rrc_ptr;
-  srslte::log_ref log_h;
+  rrc*                  rrc_ptr;
+  srslog::basic_logger& logger;
 
   // state
   srslte::timer_handler::unique_timer si_acq_timeout, si_acq_retry_timer;
@@ -95,8 +96,8 @@ public:
   static const char*     name() { return "Serving Cell Configuration"; }
 
 private:
-  rrc*            rrc_ptr;
-  srslte::log_ref log_h;
+  rrc*                  rrc_ptr;
+  srslog::basic_logger& logger;
 
   srslte::proc_outcome_t launch_sib_acquire();
 
@@ -159,8 +160,8 @@ public:
 
 private:
   // consts
-  rrc*            rrc_ptr;
-  srslte::log_ref log_h;
+  rrc*                  rrc_ptr;
+  srslog::basic_logger& logger;
 
   // state variables
   found_plmn_t                                                    found_plmns[MAX_FOUND_PLMNS];
@@ -180,8 +181,8 @@ public:
 
 private:
   // const
-  rrc*            rrc_ptr;
-  srslte::log_ref log_h;
+  rrc*                  rrc_ptr;
+  srslog::basic_logger& logger;
   // args
   srslte::establishment_cause_t cause;
   srslte::unique_byte_buffer_t  dedicated_info_nas;
@@ -225,9 +226,9 @@ public:
 
 private:
   // args
-  rrc*                rrc_ptr;
-  srslte::log_ref     log_h;
-  asn1::rrc::paging_s paging;
+  rrc*                  rrc_ptr;
+  srslog::basic_logger& logger;
+  asn1::rrc::paging_s   paging;
 
   // vars
   uint32_t paging_idx = 0;

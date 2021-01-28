@@ -33,7 +33,7 @@ static inline uint16_t to_uint16(const uint8_t* a)
 class pcsc_usim : public usim_base
 {
 public:
-  pcsc_usim(srslte::log* log_);
+  explicit pcsc_usim(srslog::basic_logger& logger);
   ~pcsc_usim();
   int  init(usim_args_t* args);
   void stop();
@@ -57,10 +57,10 @@ private:
   class scard
   {
   public:
-    scard() : log(NULL){};
+    explicit scard(srslog::basic_logger& logger) : logger(logger) {}
     ~scard(){};
 
-    int  init(usim_args_t* args, srslte::log* log_);
+    int  init(usim_args_t* args);
     void deinit();
 
     int select_file(unsigned short file_id, unsigned char* buf, size_t* buf_len);
@@ -171,12 +171,12 @@ private:
 #define SCARD_CHV1_OFFSET 13
 #define SCARD_CHV1_FLAG 0x80
 
-    SCARDCONTEXT  scard_context;
-    SCARDHANDLE   scard_handle;
-    long unsigned scard_protocol;
-    sim_types_t   sim_type;
-    bool          pin1_needed;
-    srslte::log*  log;
+    SCARDCONTEXT          scard_context;
+    SCARDHANDLE           scard_handle;
+    long unsigned         scard_protocol;
+    sim_types_t           sim_type;
+    bool                  pin1_needed;
+    srslog::basic_logger& logger;
   };
 
   scard sc;

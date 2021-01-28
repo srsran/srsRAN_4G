@@ -23,6 +23,7 @@
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/lte/worker_pool.h"
 #include "srsue/hdr/phy/nr/worker_pool.h"
@@ -67,8 +68,17 @@ private:
 class phy final : public ue_lte_phy_base, public srslte::thread
 {
 public:
-  explicit phy(srslte::logger* logger_) :
-    logger(logger_), lte_workers(MAX_WORKERS), nr_workers(MAX_WORKERS), common(), thread("PHY"){};
+  explicit phy(srslte::logger* logger_, srslog::sink& log_sink) :
+    logger(logger_),
+    log_sink(log_sink),
+    logger_phy(srslog::fetch_basic_logger("PHY", log_sink)),
+    logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB", log_sink)),
+    lte_workers(MAX_WORKERS),
+    nr_workers(MAX_WORKERS),
+    common(logger_phy),
+    sfsync(logger_phy, logger_phy_lib),
+    prach_buffer(logger_phy),
+    thread("PHY"){};
   ~phy() final { stop(); }
 
   // Init defined in base class
@@ -173,10 +183,11 @@ private:
 
   srslte::radio_interface_phy* radio  = nullptr;
   srslte::logger*              logger = nullptr;
+  srslog::sink&                log_sink;
 
-  std::unique_ptr<srslte::log_filter> log_h         = nullptr;
-  std::unique_ptr<srslte::log_filter> log_phy_lib_h = nullptr;
-  srsue::stack_interface_phy_lte*     stack         = nullptr;
+  srslog::basic_logger&           logger_phy;
+  srslog::basic_logger&           logger_phy_lib;
+  srsue::stack_interface_phy_lte* stack = nullptr;
 
   lte::worker_pool lte_workers;
   nr::worker_pool  nr_workers;

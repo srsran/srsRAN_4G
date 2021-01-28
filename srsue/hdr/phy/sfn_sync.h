@@ -15,6 +15,7 @@
 
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
 namespace srsue {
@@ -24,13 +25,12 @@ class sfn_sync
 {
 public:
   typedef enum { IDLE, SFN_FOUND, SFX0_FOUND, SFN_NOFOUND, ERROR } ret_code;
-  sfn_sync() = default;
+  explicit sfn_sync(srslog::basic_logger& logger) : logger(logger) {}
   ~sfn_sync();
   void     init(srslte_ue_sync_t*    ue_sync,
                 const phy_args_t*    phy_args_,
                 srslte::rf_buffer_t& buffer,
                 uint32_t             buffer_max_samples_,
-                srslte::log*         log_h,
                 uint32_t             nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
   void     reset();
   bool     set_cell(srslte_cell_t cell);
@@ -47,14 +47,14 @@ public:
 private:
   const static int SFN_SYNC_NOF_SUBFRAMES = 100;
 
-  const phy_args_t*   phy_args           = nullptr;
-  uint32_t            cnt                = 0;
-  uint32_t            timeout            = 0;
-  srslte::log*        log_h              = nullptr;
-  srslte_ue_sync_t*   ue_sync            = nullptr;
-  srslte::rf_buffer_t mib_buffer         = {};
-  uint32_t            buffer_max_samples = 0;
-  srslte_ue_mib_t     ue_mib             = {};
+  const phy_args_t*     phy_args = nullptr;
+  uint32_t              cnt      = 0;
+  uint32_t              timeout  = 0;
+  srslog::basic_logger& logger;
+  srslte_ue_sync_t*     ue_sync            = nullptr;
+  srslte::rf_buffer_t   mib_buffer         = {};
+  uint32_t              buffer_max_samples = 0;
+  srslte_ue_mib_t       ue_mib             = {};
 };
 
 }; // namespace srsue

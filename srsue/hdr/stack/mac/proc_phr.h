@@ -16,6 +16,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <stdint.h>
 
 /* Power headroom report procedure */
@@ -25,8 +26,8 @@ namespace srsue {
 class phr_proc : public srslte::timer_callback
 {
 public:
-  phr_proc();
-  void init(phy_interface_mac_lte* phy_h, srslte::log_ref log_h_, srslte::ext_task_sched_handle* task_sched_);
+  explicit phr_proc(srslog::basic_logger& logger);
+  void init(phy_interface_mac_lte* phy_h, srslte::ext_task_sched_handle* task_sched_);
   void set_config(srslte::phr_cfg_t& cfg);
   void step();
   void reset();
@@ -40,7 +41,7 @@ public:
 private:
   bool pathloss_changed();
 
-  srslte::log_ref                log_h;
+  srslog::basic_logger&          logger;
   phy_interface_mac_lte*         phy_h;
   srslte::ext_task_sched_handle* task_sched;
   srslte::phr_cfg_t              phr_cfg;

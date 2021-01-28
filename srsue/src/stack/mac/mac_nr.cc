@@ -18,9 +18,7 @@ using namespace asn1::rrc;
 namespace srsue {
 
 mac_nr::mac_nr(srslte::ext_task_sched_handle task_sched_) :
-  pool(srslte::byte_buffer_pool::get_instance()),
-  log_h("MAC"),
-  task_sched(task_sched_)
+  pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC"), task_sched(task_sched_)
 {
   tx_buffer  = srslte::allocate_unique_buffer(*pool);
   rlc_buffer = srslte::allocate_unique_buffer(*pool);
@@ -65,7 +63,7 @@ void mac_nr::stop()
 // Implement Section 5.9
 void mac_nr::reset()
 {
-  Info("Resetting MAC\n");
+  Info("Resetting MAC");
 }
 
 void mac_nr::run_tti(const uint32_t tti)
@@ -73,7 +71,7 @@ void mac_nr::run_tti(const uint32_t tti)
   log_h->step(tti);
 
   // Step all procedures
-  Debug("Running MAC tti=%d\n", tti);
+  Debug("Running MAC tti=%d", tti);
 }
 
 uint16_t mac_nr::get_ul_sched_rnti(uint32_t tti)
@@ -167,11 +165,11 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
     // Add SDU if RLC has something to tx
     if (pdu_len > 0) {
       rlc_buffer->N_bytes = pdu_len;
-      log_h->info_hex(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC\n", rlc_buffer->N_bytes);
+      log_h->info_hex(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
 
       // add to MAC PDU and pack
       if (tx_pdu.add_sdu(args.drb_lcid, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
-        log_h->error("Error packing MAC PDU\n");
+        log_h->error("Error packing MAC PDU");
       }
     } else {
       break;
@@ -181,7 +179,7 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
   // Pack PDU
   tx_pdu.pack();
 
-  log_h->info_hex(tx_buffer->msg, tx_buffer->N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer->N_bytes);
+  log_h->info_hex(tx_buffer->msg, tx_buffer->N_bytes, "Generated MAC PDU (%d B)", tx_buffer->N_bytes);
 
   tx_request->data   = tx_buffer->msg;
   tx_request->tb_len = tx_buffer->N_bytes;
@@ -198,7 +196,7 @@ void mac_nr::timer_expired(uint32_t timer_id)
 
 void mac_nr::setup_lcid(const srslte::logical_channel_config_t& config)
 {
-  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d\n",
+  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d",
        config.lcid,
        config.lcg,
        config.priority,
@@ -211,14 +209,14 @@ void mac_nr::setup_lcid(const srslte::logical_channel_config_t& config)
 
 void mac_nr::set_config(const srslte::bsr_cfg_t& bsr_cfg)
 {
-  Info("BSR config periodic timer %d retx timer %d\n", bsr_cfg.periodic_timer, bsr_cfg.retx_timer);
-  Warning("Not handling BSR config yet\n");
+  Info("BSR config periodic timer %d retx timer %d", bsr_cfg.periodic_timer, bsr_cfg.retx_timer);
+  Warning("Not handling BSR config yet");
 }
 
 void mac_nr::set_config(const srslte::sr_cfg_t& sr_cfg)
 {
-  Info("Scheduling Request Config DSR tansmax %d\n", sr_cfg.dsr_transmax);
-  Warning("Not Scheduling Request Config yet\n");
+  Info("Scheduling Request Config DSR tansmax %d", sr_cfg.dsr_transmax);
+  Warning("Not Scheduling Request Config yet");
 }
 
 void mac_nr::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]) {}
@@ -237,14 +235,14 @@ void mac_nr::process_pdus()
 
 void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
 {
-  log_h->info_hex(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)\n", pdu->N_bytes);
+  log_h->info_hex(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
   rx_pdu.init_rx();
   rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
     srslte::mac_nr_sch_subpdu subpdu = rx_pdu.get_subpdu(i);
-    log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
+    log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
                 i,
                 rx_pdu.get_num_subpdus(),
                 subpdu.get_lcid(),

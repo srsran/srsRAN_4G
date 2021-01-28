@@ -10,10 +10,10 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include <pthread.h>
 #include <string.h>
@@ -28,9 +28,14 @@ namespace srsue {
 
 mac::mac(const char* logname, ext_task_sched_handle task_sched_) :
   log_h(srslte::logmap::get(logname)),
+  logger(srslog::fetch_basic_logger(logname)),
   mch_msg(10, log_h),
-  mux_unit(log_h),
-  demux_unit(log_h),
+  mux_unit(log_h, logger),
+  demux_unit(log_h, logger),
+  ra_procedure(logger),
+  sr_procedure(logger),
+  bsr_procedure(logger),
+  phr_procedure(logger),
   pcap(nullptr),
   task_sched(task_sched_)
 {
@@ -67,16 +72,16 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
   // Create Stack task dispatch queue
   stack_task_dispatch_queue = task_sched.make_task_queue();
 
-  bsr_procedure.init(&sr_procedure, rlc_h, log_h, &task_sched);
-  phr_procedure.init(phy_h, log_h, &task_sched);
+  bsr_procedure.init(&sr_procedure, rlc_h, &task_sched);
+  phr_procedure.init(phy_h, &task_sched);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
   demux_unit.init(phy_h, rlc_h, this, &timer_alignment);
-  ra_procedure.init(phy_h, rrc, log_h, &uernti, &timer_alignment, &mux_unit, &task_sched);
-  sr_procedure.init(&ra_procedure, phy_h, rrc, log_h);
+  ra_procedure.init(phy_h, rrc, &uernti, &timer_alignment, &mux_unit, &task_sched);
+  sr_procedure.init(&ra_procedure, phy_h, rrc);
 
   // Create UL/DL unique HARQ pointers
-  ul_harq.at(PCELL_CC_IDX)->init(log_h, &uernti, &ra_procedure, &mux_unit);
-  dl_harq.at(PCELL_CC_IDX)->init(log_h, &uernti, &demux_unit);
+  ul_harq.at(PCELL_CC_IDX)->init(&uernti, &ra_procedure, &mux_unit);
+  dl_harq.at(PCELL_CC_IDX)->init(&uernti, &demux_unit);
 
   reset();
 
@@ -120,7 +125,7 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
   if (cc_idx < SRSLTE_MAX_CARRIERS) {
     if (enable and ul_harq.at(cc_idx) == nullptr) {
       ul_harq_entity_ptr ul = ul_harq_entity_ptr(new ul_harq_entity(cc_idx));
-      ul->init(log_h, &uernti, &ra_procedure, &mux_unit);
+      ul->init(&uernti, &ra_procedure, &mux_unit);
       ul->set_config(ul_harq_cfg);
 
       if (pcap != nullptr) {
@@ -132,7 +137,7 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 
     if (enable and dl_harq.at(cc_idx) == nullptr) {
       dl_harq_entity_ptr dl = dl_harq_entity_ptr(new dl_harq_entity(cc_idx));
-      dl->init(log_h, &uernti, &demux_unit);
+      dl->init(&uernti, &demux_unit);
 
       if (pcap != nullptr) {
         dl->start_pcap(pcap);
@@ -148,7 +153,7 @@ void mac::reset()
 {
   bzero(&metrics, sizeof(mac_metrics_t));
 
-  Info("Resetting MAC\n");
+  Info("Resetting MAC");
 
   timer_alignment.stop();
 
@@ -188,11 +193,12 @@ void mac::reset()
 void mac::run_tti(const uint32_t tti)
 {
   log_h->step(tti);
+  logger.set_context(tti);
 
   /* Warning: Here order of invocation of procedures is important!! */
 
   // Step all procedures (must follow this order)
-  Debug("Running MAC tti=%d\n", tti);
+  Debug("Running MAC tti=%d", tti);
   mux_unit.step();
   bsr_procedure.step(tti);
   sr_procedure.step(tti);
@@ -216,7 +222,7 @@ void mac::bcch_start_rx(int si_window_start_, int si_window_length_)
     si_window_length = 0;
     si_window_start  = 0;
   }
-  Info("SCHED: Searching for DL dci for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
+  Info("SCHED: Searching for DL dci for SI-RNTI window_st=%d, window_len=%d", si_window_start, si_window_length);
 }
 
 void mac::bcch_stop_rx()
@@ -302,25 +308,25 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
           return SRSLTE_INVALID_RNTI;
         }
       }
-      Debug("SCHED: Searching SI-RNTI, tti=%d, window start=%d, length=%d\n", tti, si_window_start, si_window_length);
+      Debug("SCHED: Searching SI-RNTI, tti=%d, window start=%d, length=%d", tti, si_window_start, si_window_length);
       return SRSLTE_SIRNTI;
     }
   }
   if (uernti.rar_rnti && ra_window_start > 0 && ra_window_length > 0 &&
       is_in_window(tti, &ra_window_start, &ra_window_length)) {
-    Debug("SCHED: Searching RAR-RNTI=0x%x, tti=%d\n", uernti.rar_rnti, tti);
+    Debug("SCHED: Searching RAR-RNTI=0x%x, tti=%d", uernti.rar_rnti, tti);
     return uernti.rar_rnti;
   }
   if (uernti.temp_rnti && !uernti.crnti) {
-    Debug("SCHED: Searching Temp-RNTI=0x%x\n", uernti.temp_rnti);
+    Debug("SCHED: Searching Temp-RNTI=0x%x", uernti.temp_rnti);
     return uernti.temp_rnti;
   }
   if (uernti.crnti) {
-    Debug("SCHED: Searching C-RNTI=0x%x\n", uernti.crnti);
+    Debug("SCHED: Searching C-RNTI=0x%x", uernti.crnti);
     return uernti.crnti;
   }
   if (p_window_start > 0) {
-    Debug("SCHED: Searching P-RNTI\n");
+    Debug("SCHED: Searching P-RNTI");
     return SRSLTE_PRNTI;
   }
 
@@ -339,10 +345,10 @@ void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
     auto p = stack_task_dispatch_queue.try_push(std::bind(
         [this](srslte::unique_byte_buffer_t& buf) { rlc_h->write_pdu_bcch_bch(std::move(buf)); }, std::move(buf)));
     if (not p.first) {
-      Warning("Failed to dispatch rlc::write_pdu_bcch_bch task to stack\n");
+      Warning("Failed to dispatch rlc::write_pdu_bcch_bch task to stack");
     }
   } else {
-    log_h->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
+    logger.error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()");
   }
 
   if (pcap) {
@@ -363,7 +369,7 @@ void mac::mch_decoded(uint32_t len, bool crc)
           uint8_t  lcid;
           if (mch_msg.get()->get_next_mch_sched_info(&lcid, &stop)) {
             phy_h->set_mch_period_stop(stop);
-            Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", lcid, stop, phy_h->get_current_tti());
+            Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d ", lcid, stop, phy_h->get_current_tti());
           }
         }
       }
@@ -400,10 +406,10 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
       auto ret = stack_task_dispatch_queue.try_push(std::bind(
           [this](srslte::unique_byte_buffer_t& pdu) { rlc_h->write_pdu_pcch(std::move(pdu)); }, std::move(pdu)));
       if (not ret.first) {
-        Warning("Failed to dispatch rlc::write_pdu_pcch task to stack\n");
+        Warning("Failed to dispatch rlc::write_pdu_pcch task to stack");
       }
     } else {
-      log_h->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
+      logger.error("Fatal error: Out of buffers from the pool in write_pdu_pcch()");
     }
 
     if (pcap) {
@@ -413,7 +419,7 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
 
     // Assert DL HARQ entity
     if (dl_harq.at(cc_idx) == nullptr) {
-      Error("HARQ entity %d has not been created\n", cc_idx);
+      Error("HARQ entity %d has not been created", cc_idx);
       return;
     }
 
@@ -443,7 +449,7 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
 
     bzero(action, sizeof(mac_interface_phy_lte::tb_action_dl_t));
     if (grant.tb[0].tbs > pch_payload_buffer_sz) {
-      Error("Received dci for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.tb[0].tbs, pch_payload_buffer_sz);
+      Error("Received dci for PCH (%d bytes) exceeds buffer (%d bytes)", grant.tb[0].tbs, int(pch_payload_buffer_sz));
       action->tb[0].enabled = false;
     } else {
       action->tb[0].enabled       = true;
@@ -459,14 +465,14 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
     }
     // Assert DL HARQ entity
     if (dl_harq.at(cc_idx) == nullptr) {
-      Error("HARQ entity %d has not been created\n", cc_idx);
+      Error("HARQ entity %d has not been created", cc_idx);
       return;
     }
 
     dl_harq.at(cc_idx)->new_grant_dl(grant, action);
   } else {
     /* Discard */
-    Info("Discarding dci in CC %d, RNTI=0x%x\n", cc_idx, grant.rnti);
+    Info("Discarding dci in CC %d, RNTI=0x%x", cc_idx, grant.rnti);
   }
 }
 
@@ -480,7 +486,7 @@ void mac::process_pdus()
     }
   });
   if (not ret.first) {
-    Warning("Failed to dispatch mac::%s task to stack thread\n", __func__);
+    Warning("Failed to dispatch mac::%s task to stack thread", __func__);
   }
 }
 
@@ -517,7 +523,7 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
 
   // Assert UL HARQ entity
   if (ul_harq.at(cc_idx) == nullptr) {
-    Error("HARQ entity %d has not been created\n", cc_idx);
+    Error("HARQ entity %d has not been created", cc_idx);
     return;
   }
 
@@ -557,10 +563,10 @@ void mac::setup_timers(int time_alignment_timer)
 void mac::timer_expired(uint32_t timer_id)
 {
   if (timer_id == timer_alignment.id()) {
-    Info("Time Alignment Timer expired\n");
+    Info("Time Alignment Timer expired");
     timer_alignment_expire();
   } else {
-    Warning("Received callback from unknown timer_id=%d\n", timer_id);
+    Warning("Received callback from unknown timer_id=%d", timer_id);
   }
 }
 
@@ -599,13 +605,13 @@ void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
 // Only reset SR config
 void mac::set_config(sr_cfg_t& sr_cfg)
 {
-  Info("Setting SR configuration\n");
+  Info("Setting SR configuration");
   sr_procedure.set_config(sr_cfg);
 }
 
 void mac::set_config(mac_cfg_t& mac_cfg)
 {
-  Info("Setting configuration\n");
+  Info("Setting configuration");
   // Set configuration for each module in MAC
   bsr_procedure.set_config(mac_cfg.bsr_cfg);
   phr_procedure.set_config(mac_cfg.phr_cfg);
@@ -634,7 +640,7 @@ void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_t
 
 void mac::setup_lcid(const logical_channel_config_t& config)
 {
-  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d\n",
+  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d",
        config.lcid,
        config.lcg,
        config.priority,
@@ -681,7 +687,7 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
     dl_avg_ret /= dl_avg_ret_count;
   }
 
-  Info("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f\n",
+  Info("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f",
        rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
        dl_avg_ret,
        tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,

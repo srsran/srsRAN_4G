@@ -30,7 +30,7 @@ class dl_harq_entity
 public:
   dl_harq_entity(uint8_t cc_idx_);
 
-  bool init(srslte::log_ref log_h, mac_interface_rrc::ue_rnti_t* rntis, demux* demux_unit);
+  bool init(mac_interface_rrc::ue_rnti_t* rntis, demux* demux_unit);
   void reset();
   void start_pcap(srslte::mac_pcap* pcap_);
 
@@ -78,9 +78,9 @@ private:
 
       std::mutex mutex;
 
-      bool            is_initiated;
-      dl_harq_entity* harq_entity;
-      srslte::log_ref log_h;
+      bool                  is_initiated;
+      dl_harq_entity*       harq_entity;
+      srslog::basic_logger& logger;
 
       bool is_first_tb;
       bool is_new_transmission;
@@ -110,7 +110,7 @@ private:
   std::vector<dl_harq_process>  proc;
   dl_harq_process               bcch_proc;
   demux*                        demux_unit = nullptr;
-  srslte::log_ref               log_h;
+  srslog::basic_logger&         logger;
   srslte::mac_pcap*             pcap                = nullptr;
   mac_interface_rrc::ue_rnti_t* rntis               = nullptr;
   uint16_t                      last_temporal_crnti = 0;
@@ -121,7 +121,7 @@ private:
   uint8_t  cc_idx       = 0;
 };
 
-typedef std::unique_ptr<dl_harq_entity> dl_harq_entity_ptr;
+typedef std::unique_ptr<dl_harq_entity>                     dl_harq_entity_ptr;
 typedef std::array<dl_harq_entity_ptr, SRSLTE_MAX_CARRIERS> dl_harq_entity_vector;
 
 } // namespace srsue

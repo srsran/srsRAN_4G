@@ -167,7 +167,6 @@ public:
     running = false;
     wait_thread_finish();
   }
-  srslte::log_ref         stack_log{"STCK"};
   pdcp_interface_gw*      pdcp    = nullptr;
   srsue::nas*             nas     = nullptr;
   bool                    running = false;
@@ -218,7 +217,7 @@ int security_command_test()
   args.using_op = true;
 
   // init USIM
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
 
   {
@@ -274,7 +273,7 @@ int mme_attach_request_test()
   rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
 
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim_args_t args;
   args.mode = "soft";
   args.algo = "xor";
@@ -358,7 +357,7 @@ int esm_info_request_test()
   args.op   = "63BFA50EE6523365FF14C1F45F88737D";
 
   // init USIM
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
 
   srslte::byte_buffer_pool* pool;
@@ -410,7 +409,7 @@ int dedicated_eps_bearer_test()
   args.op   = "63BFA50EE6523365FF14C1F45F88737D";
 
   // init USIM
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
@@ -475,6 +474,19 @@ int main(int argc, char** argv)
   srslog::log_channel*   chan     = srslog::create_log_channel("mme_attach_request_test", log_sink);
   srslte::srslog_wrapper log_wrapper(*chan);
   g_logger = &log_wrapper;
+
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(100000);
+  auto& nas_logger = srslog::fetch_basic_logger("NAS", false);
+  nas_logger.set_level(srslog::basic_levels::debug);
+  nas_logger.set_hex_dump_max_size(100000);
+  auto& usim_logger = srslog::fetch_basic_logger("USIM", false);
+  usim_logger.set_level(srslog::basic_levels::debug);
+  usim_logger.set_hex_dump_max_size(100000);
+  auto& gw_logger = srslog::fetch_basic_logger("GW", false);
+  gw_logger.set_level(srslog::basic_levels::debug);
+  gw_logger.set_hex_dump_max_size(100000);
 
   // Start the log backend.
   srslog::init();

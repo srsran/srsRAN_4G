@@ -25,16 +25,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger_phy.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger_phy.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger_phy.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger_phy.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 
@@ -48,22 +48,18 @@ static void srslte_phy_handler(phy_logger_level_t log_level, void* ctx, char* st
 
 void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
 {
-  if (log_phy_lib_h) {
-    switch (log_level) {
-      case LOG_LEVEL_INFO_S:
-        log_phy_lib_h->info(" %s", str);
-        break;
-      case LOG_LEVEL_DEBUG_S:
-        log_phy_lib_h->debug(" %s", str);
-        break;
-      case LOG_LEVEL_ERROR_S:
-        log_phy_lib_h->error(" %s", str);
-        break;
-      default:
-        break;
-    }
-  } else {
-    printf("[PHY_LIB]: %s\n", str);
+  switch (log_level) {
+    case LOG_LEVEL_INFO_S:
+      logger_phy_lib.info(" %s", str);
+      break;
+    case LOG_LEVEL_DEBUG_S:
+      logger_phy_lib.debug(" %s", str);
+      break;
+    case LOG_LEVEL_ERROR_S:
+      logger_phy_lib.error(" %s", str);
+      break;
+    default:
+      break;
   }
 }
 
@@ -123,21 +119,16 @@ int phy::init(const phy_args_t& args_)
   }
 
   // Add PHY lib log
-  if (srslte::log::get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
-    log_phy_lib_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    log_phy_lib_h->init("PHY_LIB", logger, true);
-    log_phy_lib_h->set_level(args.log.phy_lib_level);
-    log_phy_lib_h->set_hex_limit(args.log.phy_hex_limit);
+  auto lib_log_level = srslog::str_to_basic_level(args.log.phy_lib_level);
+  logger_phy_lib.set_level(lib_log_level);
+  logger_phy_lib.set_hex_dump_max_size(args.log.phy_hex_limit);
+  if (lib_log_level != srslog::basic_levels::none) {
     srslte_phy_log_register_handler(this, srslte_phy_handler);
   }
 
   // set default logger
-  {
-    log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    log_h->init("PHY", logger, true);
-    log_h->set_level(args.log.phy_level);
-    log_h->set_hex_limit(args.log.phy_hex_limit);
-  }
+  logger_phy.set_level(srslog::str_to_basic_level(args.log.phy_level));
+  logger_phy.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   if (!check_args(args)) {
     return false;
@@ -152,24 +143,16 @@ int phy::init(const phy_args_t& args_)
 void phy::run_thread()
 {
   std::unique_lock<std::mutex> lock(config_mutex);
-  prach_buffer.init(SRSLTE_MAX_PRB, log_h.get());
-  common.init(&args, log_h.get(), radio, stack, &sfsync);
+  prach_buffer.init(SRSLTE_MAX_PRB);
+  common.init(&args, radio, stack, &sfsync);
 
   // Initialise workers
-  lte_workers.init(&common, logger, WORKERS_THREAD_PRIO);
+  lte_workers.init(&common, log_sink, WORKERS_THREAD_PRIO);
   nr_workers.init(&common, logger, WORKERS_THREAD_PRIO);
 
   // Warning this must be initialized after all workers have been added to the pool
-  sfsync.init(radio,
-              stack,
-              &prach_buffer,
-              &lte_workers,
-              &nr_workers,
-              &common,
-              log_h.get(),
-              log_phy_lib_h.get(),
-              SF_RECV_THREAD_PRIO,
-              args.sync_cpu_affinity);
+  sfsync.init(
+      radio, stack, &prach_buffer, &lte_workers, &nr_workers, &common, SF_RECV_THREAD_PRIO, args.sync_cpu_affinity);
 
   // Disable UL signal pregeneration until the attachment
   enable_pregen_signals(false);
@@ -250,12 +233,12 @@ void phy::set_activation_deactivation_scell(uint32_t cmd, uint32_t tti)
 
 void phy::configure_prach_params()
 {
-  Debug("Configuring PRACH parameters\n");
+  Debug("Configuring PRACH parameters");
 
   prach_cfg.tdd_config = tdd_config;
 
   if (!prach_buffer.set_cell(selected_cell, prach_cfg)) {
-    Error("Configuring PRACH parameters\n");
+    Error("Configuring PRACH parameters");
   }
 }
 
@@ -325,7 +308,7 @@ bool phy::cell_select(phy_cell_t cell)
     });
     return true;
   } else {
-    log_h->warning("Could not start Cell Selection procedure\n");
+    logger_phy.warning("Could not start Cell Selection procedure");
     return false;
   }
 }
@@ -344,7 +327,7 @@ bool phy::cell_search()
       stack->cell_search_complete(ret, found_cell);
     });
   } else {
-    log_h->warning("Could not start Cell Search procedure\n");
+    logger_phy.warning("Could not start Cell Search procedure");
   }
   return true;
 }
@@ -370,7 +353,7 @@ void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_p
   common.ta.set_base_sec(ta_base_sec);
   common.reset_radio();
   if (!prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm)) {
-    Error("Preparing PRACH to send\n");
+    Error("Preparing PRACH to send");
   }
 }
 
@@ -388,12 +371,12 @@ void phy::radio_overflow()
 void phy::radio_failure()
 {
   // TODO: handle failure
-  Error("Radio failure.\n");
+  Error("Radio failure.");
 }
 
 void phy::reset()
 {
-  Info("Resetting PHY...\n");
+  Info("Resetting PHY...");
   common.ta.set_base_sec(0);
   common.reset();
 }
@@ -407,7 +390,7 @@ void phy::sr_send()
 {
   common.sr_enabled     = true;
   common.sr_last_tx_tti = -1;
-  Debug("sr_send(): sr_enabled=%d, last_tx_tti=%d\n", common.sr_enabled, common.sr_last_tx_tti);
+  Debug("sr_send(): sr_enabled=%d, last_tx_tti=%d", common.sr_enabled, common.sr_last_tx_tti);
 }
 
 int phy::sr_last_tx_tti()
@@ -424,7 +407,7 @@ void phy::set_crnti(uint16_t rnti)
 {
   // set_crnti() is an operation that takes time, run in background worker
   cmd_worker.add_cmd([this, rnti]() {
-    log_h->info("Configuring sequences for C-RNTI=0x%x...\n", rnti);
+    logger_phy.info("Configuring sequences for C-RNTI=0x%x...", rnti);
     for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_crnti is not protected so run when worker is finished
       lte::sf_worker* w = lte_workers.wait_worker_id(i);
@@ -433,7 +416,7 @@ void phy::set_crnti(uint16_t rnti)
         w->release();
       }
     }
-    log_h->info("Finished configuring sequences for C-RNTI=0x%x.\n", rnti);
+    logger_phy.info("Finished configuring sequences for C-RNTI=0x%x.", rnti);
   });
 }
 
@@ -467,7 +450,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
     return false;
   }
 
-  Info("Setting configuration\n");
+  Info("Setting configuration");
 
   // The PRACH configuration shall be updated only if:
   // - The new configuration belongs to the primary cell
@@ -478,7 +461,7 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
 
   // Apply configuration after the worker is finished to avoid race conditions
   cmd_worker.add_cmd([this, config_, cc_idx]() {
-    log_h->info("Setting new PHY configuration cc_idx=%d...\n", cc_idx);
+    logger_phy.info("Setting new PHY configuration cc_idx=%d...", cc_idx);
     for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_cell is not protected so run when worker is finished
       lte::sf_worker* w = lte_workers.wait_worker_id(i);
@@ -487,11 +470,10 @@ bool phy::set_config(srslte::phy_cfg_t config_, uint32_t cc_idx)
         w->release();
       }
     }
-    log_h->info("Finished setting new PHY configuration cc_idx=%d\n", cc_idx);
+    logger_phy.info("Finished setting new PHY configuration cc_idx=%d", cc_idx);
 
     // It is up to the PRACH component to detect whether the cell or the configuration have changed to reconfigure
     configure_prach_params();
-
     stack->set_config_complete(true);
   });
   return true;
@@ -505,7 +487,7 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   }
 
   if (cc_idx == 0) {
-    log_h->error("Received SCell configuration for invalid cc_idx=0\n");
+    logger_phy.error("Received SCell configuration for invalid cc_idx=0");
     return false;
   }
 
@@ -518,7 +500,7 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
 
   // First of all check validity of parameters
   if (!srslte_cell_isvalid(&cell_info)) {
-    log_h->error("Received SCell configuration for an invalid cell\n");
+    logger_phy.error("Received SCell configuration for an invalid cell");
     return false;
   }
 
@@ -538,7 +520,7 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
   // Component carrier index zero should be reserved for PCell
   // Send configuration to workers
   cmd_worker.add_cmd([this, cell_info, cc_idx, earfcn, earfcn_is_different]() {
-    log_h->info("Setting new SCell configuration cc_idx=%d, earfcn=%d...\n", cc_idx, earfcn);
+    logger_phy.info("Setting new SCell configuration cc_idx=%d, earfcn=%d...", cc_idx, earfcn);
     for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
       // set_cell is not protected so run when worker is finished
       lte::sf_worker* w = lte_workers.wait_worker_id(i);
@@ -559,7 +541,7 @@ bool phy::set_scell(srslte_cell_t cell_info, uint32_t cc_idx, uint32_t earfcn)
     // Set secondary serving cell synchronization
     sfsync.scell_sync_set(cc_idx, cell_info);
 
-    log_h->info("Finished setting new SCell configuration cc_idx=%d, earfcn=%d\n", cc_idx, earfcn);
+    logger_phy.info("Finished setting new SCell configuration cc_idx=%d, earfcn=%d", cc_idx, earfcn);
 
     stack->set_scell_complete(true);
   });
@@ -591,7 +573,7 @@ void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
 void phy::set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs)
 {
   if (nof_cfgs > 1) {
-    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", nof_cfgs);
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported", nof_cfgs);
   }
   if (nof_cfgs > 0) {
     common.mbsfn_config.mbsfn_subfr_cnfg = cfg_list[0];
@@ -603,7 +585,7 @@ void phy::set_config_mbsfn_sib13(const srslte::sib13_t& sib13)
 {
   common.mbsfn_config.mbsfn_notification_cnfg = sib13.notif_cfg;
   if (sib13.nof_mbsfn_area_info > 1) {
-    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13.nof_mbsfn_area_info);
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported", sib13.nof_mbsfn_area_info);
   }
   if (sib13.nof_mbsfn_area_info > 0) {
     common.mbsfn_config.mbsfn_area_info = sib13.mbsfn_area_info_list[0];

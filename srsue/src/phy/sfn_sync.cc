@@ -14,16 +14,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 
@@ -36,10 +36,8 @@ void sfn_sync::init(srslte_ue_sync_t*    ue_sync_,
                     const phy_args_t*    phy_args_,
                     srslte::rf_buffer_t& buffer,
                     uint32_t             buffer_max_samples_,
-                    srslte::log*         log_h_,
                     uint32_t             nof_subframes)
 {
-  log_h    = log_h_;
   ue_sync  = ue_sync_;
   phy_args = phy_args_;
   timeout  = nof_subframes;
@@ -49,14 +47,14 @@ void sfn_sync::init(srslte_ue_sync_t*    ue_sync_,
 
   // MIB decoder uses a single receiver antenna in logical channel 0
   if (srslte_ue_mib_init(&ue_mib, buffer.get(0), SRSLTE_MAX_PRB)) {
-    Error("SYNC:  Initiating UE MIB decoder\n");
+    Error("SYNC:  Initiating UE MIB decoder");
   }
 }
 
 bool sfn_sync::set_cell(srslte_cell_t cell_)
 {
   if (srslte_ue_mib_set_cell(&ue_mib, cell_)) {
-    Error("SYNC:  Setting cell: initiating ue_mib\n");
+    Error("SYNC:  Setting cell: initiating ue_mib");
     return false;
   }
   reset();
@@ -76,7 +74,7 @@ sfn_sync::ret_code sfn_sync::run_subframe(srslte_cell_t*                        
 {
   int ret = srslte_ue_sync_zerocopy(ue_sync, mib_buffer.to_cf_t(), buffer_max_samples);
   if (ret < 0) {
-    Error("SYNC:  Error calling ue_sync_get_buffer.\n");
+    Error("SYNC:  Error calling ue_sync_get_buffer.");
     return ERROR;
   }
 
@@ -86,7 +84,7 @@ sfn_sync::ret_code sfn_sync::run_subframe(srslte_cell_t*                        
       return ret2;
     }
   } else {
-    Info("SYNC:  Waiting for PSS while trying to decode MIB (%d/%d)\n", cnt, timeout);
+    Info("SYNC:  Waiting for PSS while trying to decode MIB (%d/%d)", cnt, timeout);
   }
 
   cnt++;
@@ -135,19 +133,19 @@ sfn_sync::ret_code sfn_sync::decode_mib(srslte_cell_t*                          
 
           // Check if SNR is below the minimum threshold
           if (ue_mib.chest_res.snr_db < phy_args->in_sync_snr_db_th) {
-            Info("SYNC:  MIB decoded, SNR is too low (%+.1f < %+.1f)\n",
+            Info("SYNC:  MIB decoded, SNR is too low (%+.1f < %+.1f)",
                  ue_mib.chest_res.snr_db,
                  phy_args->in_sync_snr_db_th);
             return SFN_NOFOUND;
           }
 
-          Info("SYNC:  DONE, SNR=%.1f dB, TTI=%d, sfn_offset=%d\n", ue_mib.chest_res.snr_db, *tti_cnt, sfn_offset);
+          Info("SYNC:  DONE, SNR=%.1f dB, TTI=%d, sfn_offset=%d", ue_mib.chest_res.snr_db, *tti_cnt, sfn_offset);
         }
 
         reset();
         return SFN_FOUND;
       case SRSLTE_UE_MIB_NOTFOUND:
-        Info("SYNC:  Found PSS but could not decode MIB. SNR=%.1f dB (%d/%d)\n", ue_mib.chest_res.snr_db, cnt, timeout);
+        Info("SYNC:  Found PSS but could not decode MIB. SNR=%.1f dB (%d/%d)", ue_mib.chest_res.snr_db, cnt, timeout);
         return SFN_NOFOUND;
     }
   }

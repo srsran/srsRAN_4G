@@ -105,10 +105,8 @@ uint8_t ipv6_unmatched_packet_lport[] = {
 
 int tft_filter_test_ipv6_combined()
 {
-  srslte::log_filter log1("TFT");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
+  srslog::basic_logger&        logger = srslog::fetch_basic_logger("TFT");
+  srslte::byte_buffer_pool*    pool   = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2, ip_msg3, ip_msg4, ip_msg5;
   ip_msg1 = allocate_unique_buffer(*pool);
   ip_msg2 = allocate_unique_buffer(*pool);
@@ -119,27 +117,27 @@ int tft_filter_test_ipv6_combined()
   // Set IP test message
   ip_msg1->N_bytes = sizeof(ipv6_matched_packet);
   memcpy(ip_msg1->msg, ipv6_matched_packet, sizeof(ipv6_matched_packet));
-  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IPv6 test message - match\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IPv6 test message - match");
 
   // Set IP test message
   ip_msg2->N_bytes = sizeof(ipv6_unmatched_packet_tcp);
   memcpy(ip_msg2->msg, ipv6_unmatched_packet_tcp, sizeof(ipv6_unmatched_packet_tcp));
-  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IPv6 test message - unmatched tcp\n");
+  logger.info(ip_msg2->msg, ip_msg2->N_bytes, "IPv6 test message - unmatched tcp");
 
   // Set IP test message
   ip_msg3->N_bytes = sizeof(ipv6_unmatched_packet_daddr);
   memcpy(ip_msg3->msg, ipv6_unmatched_packet_daddr, sizeof(ipv6_unmatched_packet_daddr));
-  log1.info_hex(ip_msg3->msg, ip_msg3->N_bytes, "IPv6 test message - unmatched daddr\n");
+  logger.info(ip_msg3->msg, ip_msg3->N_bytes, "IPv6 test message - unmatched daddr");
 
   // Set IP test message
   ip_msg4->N_bytes = sizeof(ipv6_unmatched_packet_rport);
   memcpy(ip_msg4->msg, ipv6_unmatched_packet_rport, sizeof(ipv6_unmatched_packet_rport));
-  log1.info_hex(ip_msg4->msg, ip_msg4->N_bytes, "IPv6 test message - unmatched rport\n");
+  logger.info(ip_msg4->msg, ip_msg4->N_bytes, "IPv6 test message - unmatched rport");
 
   // Set IP test message
   ip_msg5->N_bytes = sizeof(ipv6_unmatched_packet_lport);
   memcpy(ip_msg5->msg, ipv6_unmatched_packet_lport, sizeof(ipv6_unmatched_packet_lport));
-  log1.info_hex(ip_msg5->msg, ip_msg5->N_bytes, "IPv6 test message - unmatched lport\n");
+  logger.info(ip_msg5->msg, ip_msg5->N_bytes, "IPv6 test message - unmatched lport");
 
   // Packet filter
   LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
@@ -150,7 +148,7 @@ int tft_filter_test_ipv6_combined()
   packet_filter.filter_size     = sizeof(ipv6_filter);
   memcpy(packet_filter.filter, ipv6_filter, sizeof(ipv6_filter));
 
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, &log1);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, logger);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -165,9 +163,7 @@ int tft_filter_test_ipv6_combined()
 
 int tft_filter_test_single_local_port()
 {
-  srslte::log_filter log1("TFT");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
@@ -184,12 +180,12 @@ int tft_filter_test_single_local_port()
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
   memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
-  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IP test message");
 
   // Set IP test message
   ip_msg2->N_bytes = ip_message_len2;
   memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len1);
-  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+  logger.info(ip_msg2->msg, ip_msg2->N_bytes, "IP test message");
 
   // Packet filter
   LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
@@ -200,7 +196,7 @@ int tft_filter_test_single_local_port()
   packet_filter.filter_size     = 3;
   memcpy(packet_filter.filter, filter_message, 3);
 
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, &log1);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, logger);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -212,9 +208,7 @@ int tft_filter_test_single_local_port()
 
 int tft_filter_test_single_remote_port()
 {
-  srslte::log_filter log1("TFT");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
@@ -231,12 +225,12 @@ int tft_filter_test_single_remote_port()
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
   memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
-  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IP test message");
 
   // Set IP test message
   ip_msg2->N_bytes = ip_message_len2;
   memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len1);
-  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+  logger.info(ip_msg2->msg, ip_msg2->N_bytes, "IP test message");
 
   // Packet filter
   LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
@@ -247,7 +241,7 @@ int tft_filter_test_single_remote_port()
   packet_filter.filter_size     = 3;
   memcpy(packet_filter.filter, filter_message, 3);
 
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, &log1);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, logger);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -259,9 +253,7 @@ int tft_filter_test_single_remote_port()
 
 int tft_filter_test_ipv4_local_addr()
 {
-  srslte::log_filter log1("TFT");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
@@ -281,12 +273,12 @@ int tft_filter_test_ipv4_local_addr()
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
   memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
-  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IP test message");
 
   // Set IP test message
   ip_msg2->N_bytes = ip_message_len2;
   memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len2);
-  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IP test message");
 
   // Packet filter
   LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
@@ -297,7 +289,7 @@ int tft_filter_test_ipv4_local_addr()
   packet_filter.filter_size     = filter_size;
   memcpy(packet_filter.filter, filter_message, filter_size);
 
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, &log1);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, logger);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -309,9 +301,7 @@ int tft_filter_test_ipv4_local_addr()
 
 int tft_filter_test_ipv4_remote_addr()
 {
-  srslte::log_filter log1("TFT");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
@@ -330,12 +320,12 @@ int tft_filter_test_ipv4_remote_addr()
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
   memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
-  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IP test message");
 
   // Set IP test message
   ip_msg2->N_bytes = ip_message_len2;
   memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len2);
-  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+  logger.info(ip_msg2->msg, ip_msg2->N_bytes, "IP test message");
 
   // Packet filter
   LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
@@ -346,7 +336,7 @@ int tft_filter_test_ipv4_remote_addr()
   packet_filter.filter_size     = filter_size;
   memcpy(packet_filter.filter, filter_message, filter_size);
 
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, &log1);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, logger);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -358,9 +348,7 @@ int tft_filter_test_ipv4_remote_addr()
 
 int tft_filter_test_ipv4_tos()
 {
-  srslte::log_filter log1("TFT");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
@@ -380,12 +368,12 @@ int tft_filter_test_ipv4_tos()
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
   memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
-  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+  logger.info(ip_msg1->msg, ip_msg1->N_bytes, "IP test message");
 
   // Set IP test message
   ip_msg2->N_bytes = ip_message_len2;
   memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len2);
-  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+  logger.info(ip_msg2->msg, ip_msg2->N_bytes, "IP test message");
 
   // Packet filter
   LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
@@ -396,7 +384,7 @@ int tft_filter_test_ipv4_tos()
   packet_filter.filter_size     = filter_size;
   memcpy(packet_filter.filter, filter_message, filter_size);
 
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, &log1);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, LCID, packet_filter, logger);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -408,6 +396,11 @@ int tft_filter_test_ipv4_tos()
 
 int main(int argc, char** argv)
 {
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT", false);
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(128);
+  srslog::init();
+
   srslte::byte_buffer_pool::get_instance();
   if (tft_filter_test_single_local_port()) {
     return -1;

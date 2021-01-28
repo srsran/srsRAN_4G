@@ -25,6 +25,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 
 #include <map>
 #include <math.h>
@@ -175,7 +176,7 @@ private:
   stack_interface_rrc*      stack = nullptr;
   srslte::task_sched_handle task_sched;
   srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           rrc_log;
+  srslog::basic_logger&     logger;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;
   rlc_interface_rrc*        rlc  = nullptr;
@@ -288,7 +289,7 @@ private:
   void                                             process_cell_meas_nr();
   void                                             process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas);
   srslte::block_queue<std::vector<phy_meas_nr_t> > cell_meas_nr_q;
-#endif 
+#endif
 
   // Cell selection/reselection functions/variables
   typedef struct {

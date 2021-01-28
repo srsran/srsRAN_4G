@@ -18,6 +18,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/mac/pdu_queue.h"
+#include "srslte/srslog/srslog.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */
 
@@ -33,7 +34,7 @@ public:
 class demux : public srslte::pdu_queue::process_callback
 {
 public:
-  demux(srslte::log_ref log_h_);
+  demux(srslte::log_ref log_h_, srslog::basic_logger& logger);
   void init(phy_interface_mac_common*            phy_h_,
             rlc_interface_mac*                   rlc,
             mac_interface_demux*                 mac,
@@ -62,6 +63,7 @@ private:
 
   // args
   srslte::log_ref           log_h;
+  srslog::basic_logger&     logger;
   phy_interface_mac_common* phy_h = nullptr;
   rlc_interface_mac*        rlc   = nullptr;
   mac_interface_demux*      mac   = nullptr;

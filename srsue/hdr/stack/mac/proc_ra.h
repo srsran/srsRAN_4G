@@ -31,13 +31,12 @@ namespace srsue {
 class ra_proc : public srslte::timer_callback
 {
 public:
-  ra_proc() : rar_pdu_msg(20){};
+  explicit ra_proc(srslog::basic_logger& logger) : rar_pdu_msg(20), logger(logger) {}
 
   ~ra_proc();
 
   void init(phy_interface_mac_lte*               phy_h,
             rrc_interface_mac*                   rrc_,
-            srslte::log_ref                      log_h,
             mac_interface_rrc::ue_rnti_t*        rntis,
             srslte::timer_handler::unique_timer* time_alignment_timer_,
             mux*                                 mux_unit,
@@ -137,7 +136,7 @@ private:
   void read_params();
 
   phy_interface_mac_lte*                phy_h = nullptr;
-  srslte::log_ref                       log_h;
+  srslog::basic_logger&                 logger;
   mux*                                  mux_unit   = nullptr;
   srslte::mac_pcap*                     pcap       = nullptr;
   rrc_interface_mac*                    rrc        = nullptr;

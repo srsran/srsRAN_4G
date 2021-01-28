@@ -35,11 +35,11 @@ meas_obj_to_add_mod_s* find_meas_obj_map(std::map<uint32_t, meas_obj_to_add_mod_
 class rrc::rrc_meas
 {
 public:
-  rrc_meas() : meas_cfg(&meas_report_list), meas_report_list(&meas_cfg), log_h(srslte::logmap::get("RRC")) {}
+  rrc_meas() : meas_cfg(&meas_report_list), meas_report_list(&meas_cfg), logger(srslog::fetch_basic_logger("RRC")) {}
   void init(rrc* rrc_ptr);
   void reset();
   bool parse_meas_config(const rrc_conn_recfg_r8_ies_s* meas_config, bool is_ho_reest = false, uint32_t src_earfcn = 0);
-  void  ho_reest_actions(const uint32_t src_earfcn, const uint32_t dst_earfcn);
+  void ho_reest_actions(const uint32_t src_earfcn, const uint32_t dst_earfcn);
   void run_tti();
   void update_phy();
   float rsrp_filter(const float new_value, const float avg_value);
@@ -58,16 +58,16 @@ private:
   class var_meas_report_list
   {
   public:
-    var_meas_report_list(var_meas_cfg* meas_cfg_) : meas_cfg(meas_cfg_), log_h(srslte::logmap::get("RRC")) {}
-    void             init(rrc* rrc);
-    void             generate_report(const uint32_t measId);
-    void             remove_all_varmeas_reports();
-    void             remove_varmeas_report(const uint32_t measId);
-    bool             is_timer_expired(const uint32_t measId);
-    void             set_measId(const uint32_t            measId,
-                                const uint32_t            carrier_freq,
-                                const report_cfg_eutra_s& report_cfg,
-                                const cell_triggered_t&   cell_triggered_list);
+    var_meas_report_list(var_meas_cfg* meas_cfg_) : meas_cfg(meas_cfg_), logger(srslog::fetch_basic_logger("RRC")) {}
+    void init(rrc* rrc);
+    void generate_report(const uint32_t measId);
+    void remove_all_varmeas_reports();
+    void remove_varmeas_report(const uint32_t measId);
+    bool is_timer_expired(const uint32_t measId);
+    void set_measId(const uint32_t            measId,
+                    const uint32_t            carrier_freq,
+                    const report_cfg_eutra_s& report_cfg,
+                    const cell_triggered_t&   cell_triggered_list);
 
     void set_measId(const uint32_t                measId,
                     const uint32_t                carrier_freq,
@@ -94,7 +94,7 @@ private:
       srslte::timer_handler::unique_timer periodic_timer      = {};
     };
     var_meas_cfg*                       meas_cfg = nullptr;
-    srslte::log_ref                     log_h;
+    srslog::basic_logger&               logger;
     rrc*                                rrc_ptr = nullptr;
     std::map<uint32_t, var_meas_report> varMeasReportList;
   };
@@ -104,7 +104,9 @@ private:
   class var_meas_cfg
   {
   public:
-    var_meas_cfg(var_meas_report_list* meas_report_) : meas_report(meas_report_), log_h(srslte::logmap::get("RRC")) {}
+    var_meas_cfg(var_meas_report_list* meas_report_) :
+      meas_report(meas_report_), logger(srslog::fetch_basic_logger("RRC"))
+    {}
     void                             init(rrc* rrc);
     void                             reset();
     phy_quant_t                      get_filter_a();
@@ -114,6 +116,7 @@ private:
     bool parse_meas_config(const meas_cfg_s* meas_config, bool is_ho_reest, uint32_t src_earfcn);
     void eval_triggers();
     void report_triggers();
+
   private:
     void remove_varmeas_report(const uint32_t meas_id);
 
@@ -127,7 +130,7 @@ private:
     void log_debug_trigger_value_eutra(const eutra_event_s::event_id_c_& e);
     void log_debug_trigger_value_interrat(const report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_& e);
     static bool is_rsrp(report_cfg_eutra_s::trigger_quant_opts::options q);
-    
+
     // Helpers
     void measObject_addmod_eutra(const meas_obj_to_add_mod_s& l);
     void measObject_addmod_nr_r15(const meas_obj_to_add_mod_s& l);
@@ -185,15 +188,15 @@ private:
 #endif
 
     var_meas_report_list* meas_report = nullptr;
-    srslte::log_ref       log_h;
+    srslog::basic_logger& logger;
     rrc*                  rrc_ptr = nullptr;
   };
 
-  std::mutex           meas_cfg_mutex;
-  var_meas_cfg         meas_cfg;
-  var_meas_report_list meas_report_list;
-  srslte::log_ref      log_h;
-  rrc*                 rrc_ptr = nullptr;
+  std::mutex            meas_cfg_mutex;
+  var_meas_cfg          meas_cfg;
+  var_meas_report_list  meas_report_list;
+  srslog::basic_logger& logger;
+  rrc*                  rrc_ptr = nullptr;
 
   // Static functions
   static uint8_t value_to_range(const report_cfg_eutra_s::trigger_quant_opts::options q, float value);

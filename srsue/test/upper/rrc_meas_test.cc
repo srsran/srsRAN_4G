@@ -489,6 +489,7 @@ int meas_obj_test()
   srslte::log_ref log1("RRC_MEAS");
   log1->set_level(srslte::LOG_LEVEL_DEBUG);
   log1->set_hex_limit(-1);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
   printf("======    Object Configuration Testing    ===============\n");
@@ -506,7 +507,7 @@ int meas_obj_test()
   rrc_conn_recfg.meas_cfg_present        = true;
   meas_cfg_s& meas_cfg                   = rrc_conn_recfg.meas_cfg;
 
-  log1->info("Test1: Remove non-existing measObject, reportConfig and measId\n");
+  rrc_meas_logger.info("Test1: Remove non-existing measObject, reportConfig and measId");
   meas_cfg = {};
   meas_cfg.meas_id_to_rem_list.push_back(3);
   meas_cfg.meas_obj_to_rem_list.push_back(3);
@@ -518,7 +519,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-  log1->info("Test2: Add measId pointing to non-existing measObject or reportConfig\n");
+  rrc_meas_logger.info("Test2: Add measId pointing to non-existing measObject or reportConfig");
   meas_cfg               = {};
   meas_id_to_add_mod_s m = {};
   m.meas_obj_id          = 1;
@@ -531,7 +532,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-  log1->info("Test3: Add meaObject and report of unsupported type. Setup a supported report for later use\n");
+  rrc_meas_logger.info("Test3: Add meaObject and report of unsupported type. Setup a supported report for later use");
   meas_cfg                  = {};
   meas_obj_to_add_mod_s obj = {};
   obj.meas_obj.set_meas_obj_utra();
@@ -560,7 +561,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-  log1->info("Test4: Add 2 measObjects and 2 measId both pointing to the same measObject \n");
+  rrc_meas_logger.info("Test4: Add 2 measObjects and 2 measId both pointing to the same measObject ");
   meas_cfg = {};
   for (int i = 0; i < 2; i++) {
     m               = {};
@@ -596,7 +597,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_freq_started(100));
   TESTASSERT(rrctest.phytest.meas_nof_cells(100) == 0);
 
-  log1->info("Test5: Add existing objects and measId. Now add measId for 2nd cell\n");
+  rrc_meas_logger.info("Test5: Add existing objects and measId. Now add measId for 2nd cell");
   meas_cfg        = {};
   m               = {};
   m.meas_obj_id   = 2; // same object
@@ -627,7 +628,7 @@ int meas_obj_test()
   }
 
   // Reconfigure 2nd object only, we should see 8 cells now
-  log1->info("Test6: Add 1 cell to 1st object. Mixed add/mod and removal command.\n");
+  rrc_meas_logger.info("Test6: Add 1 cell to 1st object. Mixed add/mod and removal command.");
   meas_cfg                                  = {};
   meas_cfg.meas_obj_to_add_mod_list_present = true;
 
@@ -681,7 +682,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 23));  // was added
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 24));  // was added
 
-  log1->info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them\n");
+  rrc_meas_logger.info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them");
   std::vector<phy_meas_t> phy_meas = {};
   phy_meas.push_back({0, 0, 0.0f, 1, 31});
   phy_meas.push_back({-1, 0, 0.0f, 1, 32});
@@ -717,13 +718,13 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 24));  // was added
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 31));
 
-  log1->info("Test8: Simulate a Release (reset() call) make sure resets correctly\n");
+  rrc_meas_logger.info("Test8: Simulate a Release (reset() call) make sure resets correctly");
   rrctest.init();
   rrctest.run_tti(1);
   rrctest.connect();
   rrctest.run_tti(1);
 
-  log1->info("Test9: Config removal\n");
+  rrc_meas_logger.info("Test9: Config removal");
   meas_cfg = {};
   meas_cfg.meas_obj_to_rem_list.push_back(1);
   meas_cfg.meas_obj_to_rem_list.push_back(2);
@@ -916,6 +917,7 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
   log1->set_hex_limit(-1);
   rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log->set_hex_limit(-1);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
   printf("============       Report Testing  A1      ===============\n");
@@ -947,20 +949,20 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 
   // Entering condition during half timeToTrigger, should not trigger measurement
   for (int i = 0; i < ttt_iters / 2; i++) {
-    log1->info("Report %d/%d enter condition is true\n", i, ttt_iters / 2);
+    rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters / 2);
     enter_condition(rrctest, event_id, hyst, 0, {1, 2});
     // Check doesn't generate measurement report
     TESTASSERT(!rrctest.get_meas_res(meas_res));
   }
 
-  log1->info("Report leaving enter condition\n");
+  rrc_meas_logger.info("Report leaving enter condition");
   // Not satisfy entering condition for 1 TTI
   middle_condition(rrctest, event_id, hyst, 0, {1});
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
   // Should go again all timeToTrigger, should not trigger measurement until end
   for (int i = 0; i < ttt_iters; i++) {
-    log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+    rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
     enter_condition(rrctest, event_id, hyst, 0, {1, 2});
     if (i < ttt_iters - 1) {
       // Check doesn't generate measurement report
@@ -980,14 +982,14 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
     // Trigger again entering condition for the same cell it shouldn't trigger a new report, just keep sending the
     // periodic reports without restarting counter
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
       enter_condition(rrctest, event_id, hyst, 0, {1});
     }
     // Do not expect report if timer not expired
     TESTASSERT(!rrctest.get_meas_res(meas_res));
     // Wait to generate all reports
     for (int i = 0; i < report_amount.to_number() - 1; i++) {
-      log1->info("Testing report %d/%d\n", i, report_amount.to_number());
+      rrc_meas_logger.info("Testing report %d/%d", i, report_amount.to_number());
       int interval = report_interv.to_number();
       if (i == 0) {
         // already stepped these iterations
@@ -998,7 +1000,7 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
           // Exit the enter condition in the last one, should still send the last report
           middle_condition(rrctest, event_id, hyst, 0, {1});
         } else {
-          log1->info("Stepping timer %d/%d\n", j, interval);
+          rrc_meas_logger.info("Stepping timer %d/%d", j, interval);
           rrctest.run_tti(1);
         }
         if (j < interval - 1) {
@@ -1017,7 +1019,7 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
     }
     // Trigger again condition
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
       enter_condition(rrctest, event_id, hyst, 0, {1});
     }
     // Do not expect report
@@ -1025,14 +1027,14 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 
     // Leaving condition for timeToTrigger
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d leaving condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d leaving condition is true", i, ttt_iters);
       exit_condition(rrctest, event_id, hyst, 0, {1});
       // Check doesn't generate measurement report
       TESTASSERT(!rrctest.get_meas_res(meas_res));
     }
     // Trigger again condition
     for (int i = 0; i < ttt_iters; i++) {
-      log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+      rrc_meas_logger.info("Report %d/%d enter condition is true", i, ttt_iters);
       enter_condition(rrctest, event_id, hyst, 0, {1});
     }
     // Expect report
@@ -1046,12 +1048,12 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 // Test A3-event reporting and management of report amount and interval
 int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 {
-
   srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
   log1->set_level(srslte::LOG_LEVEL_DEBUG);
   log1->set_hex_limit(-1);
   rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log->set_hex_limit(-1);
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
   printf("============       Report Testing A3       ===============\n");
@@ -1084,14 +1086,14 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 
   meas_results_s meas_res = {};
 
-  log1->info("Test no-enter condition and no trigger report \n");
+  rrc_meas_logger.info("Test no-enter condition and no trigger report ");
   no_condition(rrctest, {0}, {1});
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
   no_condition(rrctest, {0, 1}, {1, 0});
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
-  log1->info("Test enter condition triggers report. 1 neighbour cell in enter + 1 in exit \n");
+  rrc_meas_logger.info("Test enter condition triggers report. 1 neighbour cell in enter + 1 in exit ");
   float              offset = 0.5 * event_id.event_a3().a3_offset;
   std::vector<float> rsrp   = {};
   rsrp.push_back(-60 + offset + 0.5 * hyst + (float)1e-2);
@@ -1110,11 +1112,11 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
              81 + (hyst + a3_offset) / 2);
 
   // Next iteration in entering state does not trigger another report
-  log1->info("Test enter condition for the same cell does not trigger report\n");
+  rrc_meas_logger.info("Test enter condition for the same cell does not trigger report");
   rrctest.run_tti(1);
   TESTASSERT(!rrctest.get_meas_res(meas_res));
 
-  log1->info("Test enter condition for different earfcn triggers report\n");
+  rrc_meas_logger.info("Test enter condition for different earfcn triggers report");
   enter_condition(rrctest, event_id, hyst, 2, {1, 3});
   TESTASSERT(rrctest.get_meas_res(meas_res));
   TESTASSERT(meas_res.meas_id == 2);
@@ -1127,7 +1129,7 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
              81 + (hyst + a3_offset) / 2);
 
   // if a new cell enters conditions then expect another report
-  log1->info("Test a new cell enter condition triggers report\n");
+  rrc_meas_logger.info("Test a new cell enter condition triggers report");
   enter_condition(rrctest, event_id, hyst, 1, {1, 3});
   TESTASSERT(rrctest.get_meas_res(meas_res));
   TESTASSERT(meas_res.meas_id == 1);
@@ -1141,14 +1143,14 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
              81 + (hyst + a3_offset) / 2);
 
   // cell pci=0 exists condition
-  log1->info("Test exit condition\n");
+  rrc_meas_logger.info("Test exit condition");
   exit_condition(rrctest, event_id, hyst, 1, {1, 0});
   if (report_on_leave) {
     TESTASSERT(rrctest.get_meas_res(meas_res));
   }
 
   // 2 enters again, now expect report again
-  log1->info("Test trigger again the cell that exited\n");
+  rrc_meas_logger.info("Test trigger again the cell that exited");
   enter_condition(rrctest, event_id, hyst, 1, {1, 0});
   TESTASSERT(rrctest.get_meas_res(meas_res));
   TESTASSERT(meas_res.meas_id == 1);
@@ -1187,56 +1189,62 @@ int meas_obj_inter_rat_nr_test()
 
   obj.meas_obj_id = 2;
   obj.meas_obj.set_meas_obj_nr_r15();
-  obj.meas_obj.meas_obj_nr_r15().ext = true;
+  obj.meas_obj.meas_obj_nr_r15().ext              = true;
   obj.meas_obj.meas_obj_nr_r15().carrier_freq_r15 = 631680;
   obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.periodicity_and_offset_r15.set_sf20_r15();
-  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15 = asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::options::sf1;
-  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15 = asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::options::khz30;
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.meas_timing_cfg_r15.ssb_dur_r15 =
+      asn1::rrc::mtc_ssb_nr_r15_s::ssb_dur_r15_opts::options::sf1;
+  obj.meas_obj.meas_obj_nr_r15().rs_cfg_ssb_r15.subcarrier_spacing_ssb_r15 =
+      asn1::rrc::rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::options::khz30;
   obj.meas_obj.meas_obj_nr_r15().quant_cfg_set_r15 = 1;
   obj.meas_obj.meas_obj_nr_r15().band_nr_r15.reset(new asn1::rrc::meas_obj_nr_r15_s::band_nr_r15_c_{});
   obj.meas_obj.meas_obj_nr_r15().band_nr_r15->set_setup() = 78;
 
   meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
 
-  obj = {};
+  obj             = {};
   obj.meas_obj_id = 1;
   obj.meas_obj.set_meas_obj_eutra();
-  obj.meas_obj.meas_obj_eutra().carrier_freq = 300;
-  obj.meas_obj.meas_obj_eutra().allowed_meas_bw = asn1::rrc::allowed_meas_bw_opts::options::mbw100;
+  obj.meas_obj.meas_obj_eutra().carrier_freq       = 300;
+  obj.meas_obj.meas_obj_eutra().allowed_meas_bw    = asn1::rrc::allowed_meas_bw_opts::options::mbw100;
   obj.meas_obj.meas_obj_eutra().presence_ant_port1 = true;
-  obj.meas_obj.meas_obj_eutra().neigh_cell_cfg.from_number(01); 
-  
+  obj.meas_obj.meas_obj_eutra().neigh_cell_cfg.from_number(01);
+
   meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
   meas_cfg.meas_obj_to_add_mod_list_present = true;
 
-  report_cfg_to_add_mod_s rep               = {};
-  rep.report_cfg_id                         = 1;
+  report_cfg_to_add_mod_s rep = {};
+  rep.report_cfg_id           = 1;
   rep.report_cfg.set_report_cfg_inter_rat();
   rep.report_cfg.report_cfg_inter_rat().ext = true;
   rep.report_cfg.report_cfg_inter_rat().trigger_type.set_event();
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.set_event_b1_nr_r15();
-  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().b1_thres_nr_r15.set_nr_rsrp_r15();
+  rep.report_cfg.report_cfg_inter_rat()
+      .trigger_type.event()
+      .event_id.event_b1_nr_r15()
+      .b1_thres_nr_r15.set_nr_rsrp_r15();
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().b1_thres_nr_r15.nr_rsrp_r15() =
       56;
   rep.report_cfg.report_cfg_inter_rat().trigger_type.event().event_id.event_b1_nr_r15().report_on_leave_r15 = true;
-  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().hysteresis = 0;
-  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().time_to_trigger = asn1::rrc::time_to_trigger_opts::options::ms100; 
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().hysteresis                                     = 0;
+  rep.report_cfg.report_cfg_inter_rat().trigger_type.event().time_to_trigger =
+      asn1::rrc::time_to_trigger_opts::options::ms100;
   rep.report_cfg.report_cfg_inter_rat().max_report_cells = 8;
-  rep.report_cfg.report_cfg_inter_rat().report_interv = asn1::rrc::report_interv_opts::options::ms120;
-  rep.report_cfg.report_cfg_inter_rat().report_amount = asn1::rrc::report_cfg_inter_rat_s::report_amount_opts::r1;
+  rep.report_cfg.report_cfg_inter_rat().report_interv    = asn1::rrc::report_interv_opts::options::ms120;
+  rep.report_cfg.report_cfg_inter_rat().report_amount    = asn1::rrc::report_cfg_inter_rat_s::report_amount_opts::r1;
   rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15.reset(new asn1::rrc::report_quant_nr_r15_s{});
   rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_rsrp = true;
   rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_rsrq = true;
-  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_sinr = true; 
+  rep.report_cfg.report_cfg_inter_rat().report_quant_cell_nr_r15->ss_sinr = true;
 
   meas_cfg.report_cfg_to_add_mod_list.push_back(rep);
   meas_cfg.report_cfg_to_add_mod_list_present = true;
 
   meas_cfg.meas_id_to_add_mod_list_present = true;
-  meas_id_to_add_mod_s meas = {};
-  meas.meas_id = 1;
-  meas.meas_obj_id = 2;
-  meas.report_cfg_id = 1;
+  meas_id_to_add_mod_s meas                = {};
+  meas.meas_id                             = 1;
+  meas.meas_obj_id                         = 2;
+  meas.report_cfg_id                       = 1;
   meas_cfg.meas_id_to_add_mod_list.push_back(meas);
 
   // Just test it doesn't crash
@@ -1251,7 +1259,7 @@ int meas_obj_inter_rat_nr_test()
   int ttt_iters = 100 + 1; // 100 ms
 
   for (int i = 0; i < ttt_iters; i++) {
-    log1->info("Report %d/%d enter condition is true\n", i, ttt_iters);
+    srslog::fetch_basic_logger("RRC_MEAS").info("Report %d/%d enter condition is true", i, ttt_iters);
     rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
   }
 
@@ -1261,6 +1269,15 @@ int meas_obj_inter_rat_nr_test()
 
 int main(int argc, char** argv)
 {
+  auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS", false);
+  rrc_meas_logger.set_level(srslog::basic_levels::debug);
+  rrc_meas_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
+
   TESTASSERT(cell_select_test() == SRSLTE_SUCCESS);
   TESTASSERT(meas_obj_test() == SRSLTE_SUCCESS);
   TESTASSERT(meas_obj_inter_rat_nr_test() == SRSLTE_SUCCESS);

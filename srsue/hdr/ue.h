@@ -28,6 +28,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
+#include "srslte/srslog/srslog.h"
 #include "stack/ue_stack_base.h"
 
 #include "ue_metrics_interface.h"
@@ -83,7 +84,7 @@ typedef struct {
 class ue : public ue_metrics_interface
 {
 public:
-  ue();
+  ue(srslog::sink& log_sink);
   ~ue();
 
   int  init(const all_args_t& args_, srslte::logger* logger_);
@@ -105,8 +106,9 @@ private:
   std::unique_ptr<gw>                 gw_inst;
 
   // Generic logger members
-  srslte::logger*    logger = nullptr;
-  srslte::log_filter log; // Own logger for UE
+  srslte::logger*       old_logger = nullptr;
+  srslog::sink&         log_sink;
+  srslog::basic_logger& logger;
 
   all_args_t                args;
   srslte::byte_buffer_pool* pool = nullptr;

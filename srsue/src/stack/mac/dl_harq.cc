@@ -10,10 +10,10 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/dl_harq.h"
 #include "srslte/common/log.h"
@@ -23,12 +23,13 @@
 
 namespace srsue {
 
-dl_harq_entity::dl_harq_entity(uint8_t cc_idx_) : proc(SRSLTE_MAX_HARQ_PROC), cc_idx(cc_idx_) {}
+dl_harq_entity::dl_harq_entity(uint8_t cc_idx_) :
+  proc(SRSLTE_MAX_HARQ_PROC), logger(srslog::fetch_basic_logger("MAC")), cc_idx(cc_idx_)
+{}
 
-bool dl_harq_entity::init(srslte::log_ref log_h_, mac_interface_rrc::ue_rnti_t* rntis_, demux* demux_unit_)
+bool dl_harq_entity::init(mac_interface_rrc::ue_rnti_t* rntis_, demux* demux_unit_)
 {
   demux_unit = demux_unit_;
-  log_h      = log_h_;
   rntis      = rntis_;
 
   for (uint32_t i = 0; i < SRSLTE_MAX_HARQ_PROC; i++) {
@@ -53,7 +54,7 @@ void dl_harq_entity::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
       proc_ptr = &bcch_proc;
     } else {
       if (grant.pid >= SRSLTE_MAX_HARQ_PROC) {
-        Error("Invalid PID: %d\n", grant.pid);
+        Error("Invalid PID: %d", grant.pid);
         return;
       }
       proc_ptr = &proc[grant.pid];
@@ -62,11 +63,11 @@ void dl_harq_entity::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
     if (grant.rnti == rntis->temp_rnti && last_temporal_crnti != rntis->temp_rnti) {
       last_temporal_crnti = rntis->temp_rnti;
       proc_ptr->reset_ndi();
-      Info("Considering NDI in pid=%d to be toggled for first Temporal C-RNTI\n", grant.pid);
+      Info("Considering NDI in pid=%d to be toggled for first Temporal C-RNTI", grant.pid);
     }
     proc_ptr->new_grant_dl(grant, action);
   } else {
-    Error("SPS not supported\n");
+    Error("SPS not supported");
   }
 }
 
@@ -76,7 +77,7 @@ void dl_harq_entity::tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, boo
     bcch_proc.tb_decoded(grant, ack);
   } else {
     if (grant.pid >= SRSLTE_MAX_HARQ_PROC) {
-      Error("Invalid PID: %d\n", grant.pid);
+      Error("Invalid PID: %d", grant.pid);
       return;
     }
     proc[grant.pid].tb_decoded(grant, ack);
@@ -159,7 +160,7 @@ bool dl_harq_entity::dl_harq_process::is_sps()
   return false;
 }
 
-dl_harq_entity::dl_harq_process::dl_tb_process::dl_tb_process()
+dl_harq_entity::dl_harq_process::dl_tb_process::dl_tb_process() : logger(srslog::fetch_basic_logger("MAC"))
 {
   is_initiated = false;
   ack          = false;
@@ -178,7 +179,7 @@ dl_harq_entity::dl_harq_process::dl_tb_process::~dl_tb_process()
 bool dl_harq_entity::dl_harq_process::dl_tb_process::init(int pid, dl_harq_entity* parent, uint32_t tb_idx)
 {
   if (srslte_softbuffer_rx_init(&softbuffer, 110)) {
-    Error("Error initiating soft buffer\n");
+    Error("Error initiating soft buffer");
     return false;
   }
 
@@ -194,7 +195,6 @@ bool dl_harq_entity::dl_harq_process::dl_tb_process::init(int pid, dl_harq_entit
   is_first_tb  = true;
   is_initiated = true;
   harq_entity  = parent;
-  log_h        = harq_entity->log_h;
   return true;
 }
 
@@ -249,7 +249,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
   // If this is a new transmission or the size of the TB has changed
   if (is_new_transmission || (cur_grant.tb[tid].tbs != grant.tb[tid].tbs)) {
     if (!is_new_transmission) {
-      Debug("DL PID %d: Size of dci changed during a retransmission %d!=%d\n",
+      Debug("DL PID %d: Size of dci changed during a retransmission %d!=%d",
             pid,
             cur_grant.tb[tid].tbs,
             grant.tb[tid].tbs);
@@ -268,7 +268,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
     cur_grant = grant;
 
     if (payload_buffer_ptr) {
-      Warning("DL PID %d: Allocating buffer already allocated. Deallocating.\n", pid);
+      Warning("DL PID %d: Allocating buffer already allocated. Deallocating.", pid);
       if (!is_bcch) {
         harq_entity->demux_unit->deallocate(payload_buffer_ptr);
       }
@@ -283,7 +283,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
 
     action->tb[tid].payload = payload_buffer_ptr;
     if (!action->tb[tid].payload) {
-      Error("Can't get a buffer for TBS=%d\n", cur_grant.tb[tid].tbs);
+      Error("Can't get a buffer for TBS=%d", cur_grant.tb[tid].tbs);
       return;
     }
 
@@ -291,7 +291,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
     action->tb[tid].rv            = cur_grant.tb[tid].rv;
     action->tb[tid].softbuffer.rx = &softbuffer;
   } else {
-    Info("DL PID %d: Received duplicate TB%d. Discarding and retransmitting ACK (n_retx=%d, reset=%s)\n",
+    Info("DL PID %d: Received duplicate TB%d. Discarding and retransmitting ACK (n_retx=%d, reset=%s)",
          pid,
          tid,
          n_retx,
@@ -316,7 +316,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
           harq_entity->pcap->write_dl_sirnti(
               payload_buffer_ptr, cur_grant.tb[tid].tbs, ack, cur_grant.tti, harq_entity->cc_idx);
         }
-        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.tb[tid].tbs);
+        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)", cur_grant.tb[tid].tbs);
         harq_entity->demux_unit->push_pdu_bcch(payload_buffer_ptr, cur_grant.tb[tid].tbs);
       } else {
         if (harq_entity->pcap) {
@@ -324,14 +324,14 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
               payload_buffer_ptr, cur_grant.tb[tid].tbs, cur_grant.rnti, ack, cur_grant.tti, harq_entity->cc_idx);
         }
         if (cur_grant.rnti == harq_entity->rntis->temp_rnti) {
-          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n", cur_grant.tb[tid].tbs);
+          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)", cur_grant.tb[tid].tbs);
           harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.tb[tid].tbs);
 
           // If T-CRNTI, update ack value with result from contention resolution
           *ack_ptr = harq_entity->demux_unit->get_uecrid_successful();
 
         } else {
-          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.tb[tid].tbs);
+          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit", cur_grant.tb[tid].tbs);
           harq_entity->demux_unit->push_pdu(payload_buffer_ptr, cur_grant.tb[tid].tbs, grant.tti);
 
           // Compute average number of retransmissions per packet
@@ -345,7 +345,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
 
     payload_buffer_ptr = NULL;
 
-    Info("DL %d (TB %d):  %s tbs=%d, rv=%d, ack=%s, ndi=%d\n",
+    Info("DL %d (TB %d):  %s tbs=%d, rv=%d, ack=%s, ndi=%d",
          pid,
          tid,
          is_new_transmission ? "newTX" : "reTX ",
@@ -377,7 +377,7 @@ bool dl_harq_entity::dl_harq_process::dl_tb_process::calc_is_new_transmission(
     is_new_transmission = false;
   }
 
-  Debug("Set HARQ for %stransmission\n", is_new_transmission ? "new " : "re");
+  Debug("Set HARQ for %stransmission", is_new_transmission ? "new " : "re");
 
   return is_new_transmission;
 }

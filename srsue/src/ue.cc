@@ -31,10 +31,11 @@ using namespace srslte;
 
 namespace srsue {
 
-ue::ue() : logger(nullptr)
+ue::ue(srslog::sink& log_sink) :
+  old_logger(nullptr), log_sink(log_sink), logger(srslog::fetch_basic_logger("UE", log_sink, false))
 {
   // print build info
-  std::cout << std::endl << get_build_string() << std::endl;
+  std::cout << std::endl << get_build_string() << std::endl << std::endl;
   pool = byte_buffer_pool::get_instance();
 }
 
@@ -45,13 +46,12 @@ ue::~ue()
 
 int ue::init(const all_args_t& args_, srslte::logger* logger_)
 {
-  int ret = SRSLTE_SUCCESS;
-  logger  = logger_;
+  int ret    = SRSLTE_SUCCESS;
+  old_logger = logger_;
 
   // Init UE log
-  log.init("UE  ", logger);
-  log.set_level(srslte::LOG_LEVEL_INFO);
-  log.info("%s", get_build_string().c_str());
+  logger.set_level(srslog::basic_levels::info);
+  logger.info("%s", get_build_string().c_str());
 
   // Validate arguments
   if (parse_args(args_)) {
@@ -61,7 +61,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Instantiate layers and stack together our UE
   if (args.stack.type == "lte") {
-    std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte());
+    std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte(log_sink));
     if (!lte_stack) {
       srslte::console("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;
@@ -73,13 +73,13 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy(logger));
+    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy(old_logger, log_sink));
     if (!lte_phy) {
       srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(old_logger));
     if (!lte_radio) {
       srslte::console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
@@ -97,12 +97,12 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       ret = SRSLTE_ERROR;
     }
 
-    if (lte_stack->init(args.stack, logger, lte_phy.get(), gw_ptr.get())) {
+    if (lte_stack->init(args.stack, old_logger, lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
 
-    if (gw_ptr->init(args.gw, logger, lte_stack.get())) {
+    if (gw_ptr->init(args.gw, old_logger, lte_stack.get())) {
       srslte::console("Error initializing GW.\n");
       ret = SRSLTE_ERROR;
     }
@@ -113,11 +113,11 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     phy     = std::move(lte_phy);
     radio   = std::move(lte_radio);
   } else if (args.stack.type == "nr") {
-    log.info("Initializing NR stack.\n");
+    logger.info("Initializing NR stack");
 #ifdef HAVE_5GNR
-    std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(logger));
-    std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null(logger));
-    std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr(logger));
+    std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(old_logger));
+    std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null(old_logger));
+    std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr(old_logger));
     std::unique_ptr<gw>                 gw_ptr(new gw());
 
     // Init layers
@@ -136,7 +136,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    if (gw_ptr->init(args.gw, logger, nr_stack.get())) {
+    if (gw_ptr->init(args.gw, old_logger, nr_stack.get())) {
       srslte::console("Error initializing GW.\n");
       return SRSLTE_ERROR;
     }
@@ -148,7 +148,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     radio   = std::move(nr_radio);
 #else
     srslte::console("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
-    log.error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
+    logger.error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.");
 #endif
   } else {
     srslte::console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
@@ -172,20 +172,20 @@ int ue::parse_args(const all_args_t& args_)
   // carry out basic sanity checks
   if (args.stack.rrc.mbms_service_id > -1) {
     if (!args.phy.interpolate_subframe_enabled) {
-      log.error("interpolate_subframe_enabled = %d, While using MBMS, "
-                "please set interpolate_subframe_enabled to true\n",
-                args.phy.interpolate_subframe_enabled);
+      logger.error("interpolate_subframe_enabled = %d, While using MBMS, "
+                   "please set interpolate_subframe_enabled to true",
+                   args.phy.interpolate_subframe_enabled);
       return SRSLTE_ERROR;
     }
     if (args.phy.nof_phy_threads > 2) {
-      log.error("nof_phy_threads = %d, While using MBMS, please set "
-                "number of phy threads to 1 or 2\n",
-                args.phy.nof_phy_threads);
+      logger.error("nof_phy_threads = %d, While using MBMS, please set "
+                   "number of phy threads to 1 or 2",
+                   args.phy.nof_phy_threads);
       return SRSLTE_ERROR;
     }
     if ((0 == args.phy.snr_estim_alg.find("refs"))) {
-      log.error("snr_estim_alg = refs, While using MBMS, please set "
-                "algorithm to pss or empty \n");
+      logger.error("snr_estim_alg = refs, While using MBMS, please set "
+                   "algorithm to pss or empty");
       return SRSLTE_ERROR;
     }
   }
@@ -210,8 +210,8 @@ int ue::parse_args(const all_args_t& args_)
 
   // replicate some RF parameter to make them available to PHY
   args.phy.nof_lte_carriers = args.rf.nof_carriers - args.phy.nof_nr_carriers;
-  args.phy.nof_rx_ant   = args.rf.nof_antennas;
-  args.phy.agc_enable   = args.rf.rx_gain < 0.0f;
+  args.phy.nof_rx_ant       = args.rf.nof_antennas;
+  args.phy.agc_enable       = args.rf.rx_gain < 0.0f;
 
   // populate DL EARFCN list
   if (not args.phy.dl_earfcn.empty()) {
@@ -229,7 +229,7 @@ int ue::parse_args(const all_args_t& args_)
       }
     }
   } else {
-    log.error("Error: dl_earfcn list is empty\n");
+    logger.error("Error: dl_earfcn list is empty");
     srslte::console("Error: dl_earfcn list is empty\n");
     return SRSLTE_ERROR;
   }
@@ -266,7 +266,7 @@ int ue::parse_args(const all_args_t& args_)
         }
       }
     } else {
-      log.error("Error: dl_nr_arfcn list is empty\n");
+      logger.error("Error: dl_nr_arfcn list is empty");
       srslte::console("Error: dl_nr_arfcn list is empty\n");
       return SRSLTE_ERROR;
     }
@@ -345,7 +345,7 @@ std::string ue::get_build_info()
 std::string ue::get_build_string()
 {
   std::stringstream ss;
-  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << ".";
   return ss.str();
 }
 

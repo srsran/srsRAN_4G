@@ -21,13 +21,13 @@ namespace srsue {
 tft_packet_filter_t::tft_packet_filter_t(uint8_t                                eps_bearer_id_,
                                          uint8_t                                lcid_,
                                          const LIBLTE_MME_PACKET_FILTER_STRUCT& tft,
-                                         srslte::log*                           log_) :
+                                         srslog::basic_logger&                  logger) :
   eps_bearer_id(eps_bearer_id_),
   lcid(lcid_),
   id(tft.id),
   eval_precedence(tft.eval_precedence),
   active_filters(0),
-  log(log_)
+  logger(logger)
 {
   int      idx             = 0;
   uint32_t length_in_bytes = 0;
@@ -160,7 +160,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
         break;
 
       default:
-        log->error("ERROR: wrong type: 0x%02x\n", filter_type);
+        logger.error("ERROR: wrong type: 0x%02x", filter_type);
         return;
     }
   }
@@ -383,7 +383,7 @@ uint8_t tft_pdu_matcher::check_tft_filter_match(const srslte::unique_byte_buffer
     bool match = filter_pair.second.match(pdu);
     if (match) {
       lcid = filter_pair.second.lcid;
-      log->debug("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
+      logger.debug("Found filter match -- EPS bearer Id %d, LCID %d", filter_pair.second.eps_bearer_id, lcid);
       break;
     }
   }
@@ -398,17 +398,17 @@ int tft_pdu_matcher::apply_traffic_flow_template(const uint8_t&                 
   switch (tft->tft_op_code) {
     case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
-        log->info("New packet filter for TFT\n");
-        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], log);
+        logger.info("New packet filter for TFT");
+        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], logger);
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
-          log->error("Error inserting TFT Packet Filter\n");
+          logger.error("Error inserting TFT Packet Filter");
           return SRSLTE_ERROR_CANT_START;
         }
       }
       break;
     default:
-      log->error("Unhandled TFT OP code\n");
+      logger.error("Unhandled TFT OP code");
       return SRSLTE_ERROR_CANT_START;
   }
   return SRSLTE_SUCCESS;

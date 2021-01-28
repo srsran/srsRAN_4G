@@ -19,16 +19,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 /* This is to visualize the channel response */
 #ifdef ENABLE_GUI
@@ -48,14 +48,13 @@ static bool      plot_nr_enable = false;
 namespace srsue {
 namespace lte {
 
-sf_worker::sf_worker(uint32_t max_prb, phy_common* phy_, srslte::log* log_h_)
+sf_worker::sf_worker(uint32_t max_prb, phy_common* phy_, srslog::basic_logger& logger) : logger(logger)
 {
-  phy   = phy_;
-  log_h = log_h_;
+  phy = phy_;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t r = 0; r < phy->args->nof_lte_carriers; r++) {
-    cc_workers.push_back(new cc_worker(r, max_prb, phy, log_h));
+    cc_workers.push_back(new cc_worker(r, max_prb, phy, logger));
   }
 }
 
@@ -75,11 +74,11 @@ bool sf_worker::set_cell_unlocked(uint32_t cc_idx, srslte_cell_t cell_)
 {
   if (cc_idx < cc_workers.size()) {
     if (!cc_workers[cc_idx]->set_cell_unlocked(cell_)) {
-      Error("Setting cell for cc=%d\n", cc_idx);
+      Error("Setting cell for cc=%d", cc_idx);
       return false;
     }
   } else {
-    Error("Setting cell for cc=%d; Not enough CC workers (%zd);\n", cc_idx, cc_workers.size());
+    Error("Setting cell for cc=%d; Not enough CC workers (%zd);", cc_idx, cc_workers.size());
   }
 
   if (cc_idx == 0) {
@@ -113,7 +112,7 @@ void sf_worker::set_tti(uint32_t tti_)
     cc_worker->set_tti(tti);
   }
 
-  log_h->step(tti);
+  logger.set_context(tti);
 }
 
 void sf_worker::set_tx_time(const srslte::rf_timestamp_t& tx_time_)
@@ -163,7 +162,7 @@ void sf_worker::set_config_unlocked(uint32_t cc_idx, srslte::phy_cfg_t phy_cfg)
       cc_workers[0]->upd_config_dci_unlocked(phy_cfg.dl_cfg.dci);
     }
   } else {
-    Error("Setting config for cc=%d; Invalid cc_idx\n", cc_idx);
+    Error("Setting config for cc=%d; Invalid cc_idx", cc_idx);
   }
 }
 

@@ -51,7 +51,7 @@ class ue_stack_lte final : public ue_stack_base,
                            public srslte::thread
 {
 public:
-  ue_stack_lte();
+  explicit ue_stack_lte(srslog::sink& log_sink);
   ~ue_stack_lte();
 
   std::string get_type() final;
@@ -138,15 +138,21 @@ private:
   srslte::tti_point current_tti;
 
   // UE stack logging
-  srslte::logger* logger = nullptr;
-  srslte::log_ref stack_log{"STCK"}; ///< our own log filter
-  srslte::log_ref mac_log{"MAC"};
-  srslte::log_ref rlc_log{"RLC"};
-  srslte::log_ref pdcp_log{"PDCP"};
-  srslte::log_ref rrc_log{"RRC"};
-  srslte::log_ref usim_log{"USIM"};
-  srslte::log_ref nas_log{"NAS"};
-  srslte::log_ref pool_log{"POOL"};
+  srslte::logger*       logger = nullptr;
+  srslte::log_ref       mac_log{"MAC"};
+  srslte::log_ref       rlc_log{"RLC"};
+  srslte::log_ref       pdcp_log{"PDCP"};
+  srslte::log_ref       rrc_log{"RRC"};
+  srslte::log_ref       usim_log{"USIM"};
+  srslte::log_ref       nas_log{"NAS"};
+  srslte::log_ref       pool_log{"POOL"};
+  srslog::basic_logger& stack_logger;
+  srslog::basic_logger& mac_logger;
+  srslog::basic_logger& rlc_logger;
+  srslog::basic_logger& pdcp_logger;
+  srslog::basic_logger& rrc_logger;
+  srslog::basic_logger& usim_logger;
+  srslog::basic_logger& nas_logger;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

@@ -70,8 +70,8 @@ private:
   std::unique_ptr<ue_stack_lte>  stack;
 
   // Generic logger members
-  srslte::logger*    logger = nullptr;
-  srslte::log_filter log; // Own logger for UE
+  srslte::logger*       old_logger = nullptr;
+  srslog::basic_logger& logger;
 
   test_loop_mode_state_t                                         test_loop_mode = TEST_LOOP_INACTIVE;
   srslte::timer_handler::unique_timer                            pdu_delay_timer;

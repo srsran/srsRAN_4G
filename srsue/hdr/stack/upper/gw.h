@@ -21,6 +21,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "tft_packet_filter.h"
 #include <net/if.h>
 
@@ -50,10 +51,10 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // NAS interface
-  int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
-  int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
-                                  const uint8_t&                                 lcid,
-                                  const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
+  int  setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
+  int  apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
+                                   const uint8_t&                                 lcid,
+                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
   void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms);
 
   // RRC interface
@@ -62,9 +63,9 @@ public:
 private:
   static const int GW_THREAD_PRIO = -1;
 
-  stack_interface_gw*       stack  = nullptr;
-  srslte::byte_buffer_pool* pool   = nullptr;
-  srslte::logger*           logger = nullptr;
+  stack_interface_gw*       stack      = nullptr;
+  srslte::byte_buffer_pool* pool       = nullptr;
+  srslte::logger*           old_logger = nullptr;
 
   gw_args_t args = {};
 
@@ -77,13 +78,13 @@ private:
   bool         if_up        = false;
   uint32_t     default_lcid = 0;
 
-  srslte::log_filter log;
+  srslog::basic_logger& logger;
 
   uint32_t current_ip_addr = 0;
   uint8_t  current_if_id[8];
 
-  uint32_t       ul_tput_bytes = 0;
-  uint32_t       dl_tput_bytes = 0;
+  uint32_t                                       ul_tput_bytes = 0;
+  uint32_t                                       dl_tput_bytes = 0;
   std::chrono::high_resolution_clock::time_point metrics_tp; // stores time when last metrics have been taken
 
   void run_thread();
@@ -99,7 +100,7 @@ private:
   uint32_t           mbsfn_ports[SRSLTE_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
 
   // TFT
-  tft_pdu_matcher    tft_matcher;
+  tft_pdu_matcher tft_matcher;
 };
 
 } // namespace srsue

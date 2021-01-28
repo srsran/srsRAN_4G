@@ -33,7 +33,7 @@ namespace lte {
 class sf_worker : public srslte::thread_pool::worker
 {
 public:
-  sf_worker(uint32_t max_prb, phy_common* phy, srslte::log* log);
+  sf_worker(uint32_t max_prb, phy_common* phy_, srslog::basic_logger& logger);
   virtual ~sf_worker();
 
   void reset_cell_unlocked(uint32_t cc_idx);
@@ -79,7 +79,7 @@ private:
 
   phy_common* phy = nullptr;
 
-  srslte::log* log_h = nullptr;
+  srslog::basic_logger& logger;
 
   srslte_cell_t       cell = {};
   std::mutex          cell_mutex;

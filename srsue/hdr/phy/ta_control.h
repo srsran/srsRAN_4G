@@ -22,18 +22,13 @@ namespace srsue {
 class ta_control
 {
 private:
-  srslte::log*       log_h = nullptr;
-  mutable std::mutex mutex;
-  uint32_t           next_base_nta    = 0;
-  float              next_base_sec    = 0.0f;
+  srslog::basic_logger& logger;
+  mutable std::mutex    mutex;
+  uint32_t              next_base_nta = 0;
+  float                 next_base_sec = 0.0f;
 
 public:
-  /**
-   * Sets the logging instance
-   *
-   * @param loh_h_ logging instance pointer
-   */
-  void set_logger(srslte::log* log_h_) { log_h = log_h_; }
+  ta_control(srslog::basic_logger& logger) : logger(logger) {}
 
   /**
    * Sets the next base time in seconds, discarding previous changes.
@@ -50,10 +45,7 @@ public:
     // Update base in nta
     next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSLTE_LTE_TS));
 
-    // Log information information if available
-    if (log_h) {
-      log_h->info("PHY:   Set TA base: n_ta: %d, ta_usec: %.1f\n", next_base_nta, next_base_sec * 1e6f);
-    }
+    logger.info("PHY:   Set TA base: n_ta: %d, ta_usec: %.1f", next_base_nta, next_base_sec * 1e6f);
   }
 
   /**
@@ -71,13 +63,10 @@ public:
     // Update base in nta
     next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSLTE_LTE_TS));
 
-    // Log information information if available
-    if (log_h) {
-      log_h->info("PHY:   Set TA: ta_delta_usec: %.1f, n_ta: %d, ta_usec: %.1f\n",
-                  ta_delta_sec * 1e6f,
-                  next_base_nta,
-                  next_base_sec * 1e6f);
-    }
+    logger.info("PHY:   Set TA: ta_delta_usec: %.1f, n_ta: %d, ta_usec: %.1f",
+                ta_delta_sec * 1e6f,
+                next_base_nta,
+                next_base_sec * 1e6f);
   }
 
   /**
@@ -95,11 +84,7 @@ public:
     // Update base in seconds
     next_base_sec = static_cast<float>(next_base_nta) * SRSLTE_LTE_TS;
 
-    // Log information information if available
-    if (log_h) {
-      log_h->info(
-          "PHY:   Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, next_base_nta, next_base_sec * 1e6f);
-    }
+    logger.info("PHY:   Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f", ta_cmd, next_base_nta, next_base_sec * 1e6f);
   }
 
   /**
@@ -117,10 +102,7 @@ public:
     // Update base in seconds
     next_base_sec = static_cast<float>(next_base_nta) * SRSLTE_LTE_TS;
 
-    // Log information information if available
-    if (log_h) {
-      log_h->info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, next_base_nta, next_base_sec * 1e6f);
-    }
+    logger.info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f", ta_cmd, next_base_nta, next_base_sec * 1e6f);
   }
 
   /**

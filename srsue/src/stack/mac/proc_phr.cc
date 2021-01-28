@@ -10,10 +10,10 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_phr.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -22,17 +22,16 @@
 
 namespace srsue {
 
-phr_proc::phr_proc()
+phr_proc::phr_proc(srslog::basic_logger& logger) : logger(logger)
 {
   initiated        = false;
   last_pathloss_db = 0;
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::log_ref log_h_, srslte::ext_task_sched_handle* task_sched_)
+void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::ext_task_sched_handle* task_sched_)
 {
   phy_h      = phy_h_;
-  log_h      = log_h_;
   task_sched = task_sched_;
   initiated  = true;
 
@@ -63,13 +62,13 @@ void phr_proc::set_config(srslte::phr_cfg_t& cfg)
       timer_periodic.set(phr_cfg.periodic_timer, [this](uint32_t tid) { timer_expired(tid); });
       timer_periodic.run();
       phr_is_triggered = true;
-      Info("PHR:   Configured timer periodic %d ms\n", phr_cfg.periodic_timer);
+      Info("PHR:   Configured timer periodic %d ms", phr_cfg.periodic_timer);
     }
 
     if (phr_cfg.prohibit_timer > 0) {
       timer_prohibit.set(phr_cfg.prohibit_timer, [this](uint32_t tid) { timer_expired(tid); });
       timer_prohibit.run();
-      Info("PHR:   Configured timer prohibit %d ms\n", phr_cfg.prohibit_timer);
+      Info("PHR:   Configured timer prohibit %d ms", phr_cfg.prohibit_timer);
       phr_is_triggered = true;
     }
   }
@@ -102,21 +101,21 @@ void phr_proc::start_periodic_timer()
 void phr_proc::timer_expired(uint32_t timer_id)
 {
   if (!phr_cfg.enabled) {
-    Warning("PHR:   %s timer triggered but PHR has been disabled\n",
+    Warning("PHR:   %s timer triggered but PHR has been disabled",
             timer_id == timer_periodic.id() ? "Periodic" : "Prohibit");
     return;
   }
   if (timer_id == timer_periodic.id()) {
     timer_periodic.run();
-    Debug("PHR:   Triggered by timer periodic (timer expired).\n");
+    Debug("PHR:   Triggered by timer periodic (timer expired).");
     phr_is_triggered = true;
   } else if (timer_id == timer_prohibit.id()) {
     if (pathloss_changed()) {
-      Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d (timer expired)\n", last_pathloss_db);
+      Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d (timer expired)", last_pathloss_db);
       phr_is_triggered = true;
     }
   } else {
-    log_h->warning("Received timer callback from unknown timer_id=%d\n", timer_id);
+    logger.warning("Received timer callback from unknown timer_id=%d", timer_id);
   }
 }
 
@@ -124,7 +123,7 @@ void phr_proc::step()
 {
   if (phr_cfg.enabled && initiated) {
     if (pathloss_changed() && timer_prohibit.is_expired()) {
-      Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d\n", last_pathloss_db);
+      Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d", last_pathloss_db);
       phr_is_triggered = true;
     }
   }
@@ -138,7 +137,7 @@ bool phr_proc::generate_phr_on_ul_grant(float* phr)
       *phr = phy_h->get_phr();
     }
 
-    Debug("PHR:   Generating PHR=%f\n", phr ? *phr : 0.0);
+    Debug("PHR:   Generating PHR=%f", phr ? *phr : 0.0);
 
     timer_periodic.run();
     timer_prohibit.run();

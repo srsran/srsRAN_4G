@@ -38,13 +38,13 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state
   }
 
   if (srslte_ue_dl_nr_init(&ue_dl, buffer_c, &phy_state_->args.dl) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating UE DL NR\n");
+    ERROR("Error initiating UE DL NR");
     return;
   }
 
   if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     return;
   }
   data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
@@ -69,7 +69,7 @@ cc_worker::~cc_worker()
 bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
 {
   if (srslte_ue_dl_nr_set_carrier(&ue_dl, carrier) < SRSLTE_SUCCESS) {
-    ERROR("Error setting carrier\n");
+    ERROR("Error setting carrier");
     return false;
   }
 
@@ -77,7 +77,7 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
   coreset.duration          = 2;
 
   if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset) < SRSLTE_SUCCESS) {
-    ERROR("Error setting carrier\n");
+    ERROR("Error setting carrier");
     return false;
   }
 
@@ -109,9 +109,9 @@ uint32_t cc_worker::get_buffer_len()
 
 bool cc_worker::work_dl()
 {
-  srslte_dci_dl_nr_t                                      dci_dl      = {};
-  srslte_sch_cfg_nr_t                                     pdsch_cfg   = phy_state->cfg.pdsch;
-  std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res   = {};
+  srslte_dci_dl_nr_t                                      dci_dl    = {};
+  srslte_sch_cfg_nr_t                                     pdsch_cfg = phy_state->cfg.pdsch;
+  std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res = {};
 
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
@@ -128,12 +128,12 @@ bool cc_worker::work_dl()
   srslte_dci_dl_nr_t dci_dl_rx = {};
   int nof_found_dci            = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &search_space, &dl_slot_cfg, rnti, &dci_dl_rx, 1);
   if (nof_found_dci < SRSLTE_SUCCESS) {
-    ERROR("Error decoding\n");
+    ERROR("Error decoding");
     return SRSLTE_ERROR;
   }
 
   if (nof_found_dci < 1) {
-    ERROR("Error DCI not found\n");
+    ERROR("Error DCI not found");
   }
 
   dci_dl.rnti   = 0x1234;
@@ -145,7 +145,7 @@ bool cc_worker::work_dl()
 
   // Compute DL grant
   if (srslte_ra_dl_dci_to_grant_nr(&ue_dl.carrier, &pdsch_cfg, &dci_dl, &pdsch_cfg.grant)) {
-    ERROR("Computing DL grant\n");
+    ERROR("Computing DL grant");
   }
 
   pdsch_res[0].payload                = data.data();
@@ -153,7 +153,7 @@ bool cc_worker::work_dl()
   srslte_softbuffer_rx_reset(pdsch_cfg.grant.tb[0].softbuffer.rx);
 
   if (srslte_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSLTE_SUCCESS) {
-    ERROR("Error decoding PDSCH\n");
+    ERROR("Error decoding PDSCH");
     return false;
   }
 
@@ -161,7 +161,7 @@ bool cc_worker::work_dl()
   if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
     char str[512];
     srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str, sizeof(str));
-    log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
+    log_h->info("PDSCH: cc=%d, %s", cc_idx, str);
   }
 
   return true;

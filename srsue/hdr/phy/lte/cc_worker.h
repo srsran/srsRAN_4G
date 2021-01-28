@@ -23,7 +23,7 @@ namespace lte {
 class cc_worker
 {
 public:
-  cc_worker(uint32_t cc_idx, uint32_t max_prb, phy_common* phy, srslte::log* log);
+  cc_worker(uint32_t cc_idx, uint32_t max_prb, phy_common* phy, srslog::basic_logger& logger);
   ~cc_worker();
 
   /* Functions used by main PHY thread */
@@ -86,8 +86,8 @@ private:
   uint32_t get_wideband_cqi();
 
   /* Common objects */
-  phy_common*  phy   = nullptr;
-  srslte::log* log_h = nullptr;
+  phy_common*           phy = nullptr;
+  srslog::basic_logger& logger;
 
   srslte_cell_t      cell      = {};
   srslte_dl_sf_cfg_t sf_cfg_dl = {};

@@ -87,13 +87,13 @@ private:
         state = STATE_IN_SYNCH;
         break;
       case SRSLTE_SYNC_FOUND_NOSPACE:
-        ERROR("No space error\n");
+        ERROR("No space error");
         break;
       case SRSLTE_SYNC_NOFOUND:
         // Ignore
         break;
       case SRSLTE_SYNC_ERROR:
-        ERROR("Error finding PSS\n");
+        ERROR("Error finding PSS");
         break;
     }
 
@@ -117,7 +117,7 @@ public:
     // Initialise Find PSS object
     if (srslte_sync_init(&find_pss, 2 * SRSLTE_SF_LEN_MAX, 2 * SRSLTE_SF_LEN_MAX, SRSLTE_SYMBOL_SZ_MAX) !=
         SRSLTE_SUCCESS) {
-      ERROR("Initiating Synchronizer\n");
+      ERROR("Initiating Synchronizer");
     }
   }
 
@@ -136,7 +136,7 @@ public:
 
     // Resize Sync object
     if (srslte_sync_resize(&find_pss, 2 * sf_len, 2 * sf_len, symbol_sz) != SRSLTE_SUCCESS) {
-      ERROR("Error setting cell sync find\n");
+      ERROR("Error setting cell sync find");
     }
 
     // Configure

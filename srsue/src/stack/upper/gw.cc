@@ -25,29 +25,33 @@
 
 namespace srsue {
 
-gw::gw() : thread("GW"), pool(srslte::byte_buffer_pool::get_instance()), tft_matcher(&log) {}
+gw::gw() :
+  thread("GW"),
+  pool(srslte::byte_buffer_pool::get_instance()),
+  logger(srslog::fetch_basic_logger("GW", false)),
+  tft_matcher(logger)
+{}
 
 int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack_)
 {
   stack      = stack_;
-  logger     = logger_;
+  old_logger = logger_;
   args       = args_;
   run_enable = true;
 
-  log.init("GW  ", logger);
-  log.set_level(args.log.gw_level);
-  log.set_hex_limit(args.log.gw_hex_limit);
+  logger.set_level(srslog::str_to_basic_level(args.log.gw_level));
+  logger.set_hex_dump_max_size(args.log.gw_hex_limit);
 
   metrics_tp = std::chrono::high_resolution_clock::now();
 
   // MBSFN
   mbsfn_sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (mbsfn_sock_fd < 0) {
-    log.error("Failed to create MBSFN sink socket\n");
+    logger.error("Failed to create MBSFN sink socket");
     return SRSLTE_ERROR;
   }
   if (fcntl(mbsfn_sock_fd, F_SETFL, O_NONBLOCK)) {
-    log.error("Failed to set non-blocking MBSFN sink socket\n");
+    logger.error("Failed to set non-blocking MBSFN sink socket");
     return SRSLTE_ERROR;
   }
 
@@ -95,11 +99,11 @@ void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
   m.dl_tput_mbps = (nof_tti > 0) ? ((dl_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
   m.ul_tput_mbps = (nof_tti > 0) ? ((ul_tput_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
 
-  log.info("gw_rx_rate_mbps=%4.2f (real=%4.2f), gw_tx_rate_mbps=%4.2f (real=%4.2f)\n",
-           m.dl_tput_mbps,
-           dl_tput_mbps_real_time,
-           m.ul_tput_mbps,
-           ul_tput_mbps_real_time);
+  logger.info("gw_rx_rate_mbps=%4.2f (real=%4.2f), gw_tx_rate_mbps=%4.2f (real=%4.2f)",
+              m.dl_tput_mbps,
+              dl_tput_mbps_real_time,
+              m.ul_tput_mbps,
+              ul_tput_mbps_real_time);
 
   // reset counters and store time
   metrics_tp    = std::chrono::high_resolution_clock::now();
@@ -112,23 +116,23 @@ void gw::get_metrics(gw_metrics_t& m, const uint32_t nof_tti)
 *******************************************************************************/
 void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  log.info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us().count());
+  logger.info(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us", pdu->get_latency_us().count());
   dl_tput_bytes += pdu->N_bytes;
   if (!if_up) {
-    log.warning("TUN/TAP not up - dropping gw RX message\n");
+    logger.warning("TUN/TAP not up - dropping gw RX message");
   } else if (pdu->N_bytes < 20) {
     // Packet not large enough to hold IPv4 Header
-    log.warning("Packet to small to hold IPv4 header. Dropping packet with %d B\n", pdu->N_bytes);
+    logger.warning("Packet to small to hold IPv4 header. Dropping packet with %d B", pdu->N_bytes);
   } else {
     // Only handle IPv4 and IPv6 packets
     struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
     if (ip_pkt->version == 4 || ip_pkt->version == 6) {
       int n = write(tun_fd, pdu->msg, pdu->N_bytes);
       if (n > 0 && (pdu->N_bytes != (uint32_t)n)) {
-        log.warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
+        logger.warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.", pdu->N_bytes, n);
       }
     } else {
-      log.error("Unsupported IP version. Dropping packet with %d B\n", pdu->N_bytes);
+      logger.error("Unsupported IP version. Dropping packet with %d B", pdu->N_bytes);
     }
   }
 }
@@ -136,11 +140,11 @@ void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if (pdu->N_bytes > 2) {
-    log.info_hex(pdu->msg,
-                 pdu->N_bytes,
-                 "RX MCH PDU (%d B). Stack latency: %ld us\n",
-                 pdu->N_bytes,
-                 pdu->get_latency_us().count());
+    logger.info(pdu->msg,
+                pdu->N_bytes,
+                "RX MCH PDU (%d B). Stack latency: %ld us",
+                pdu->N_bytes,
+                pdu->get_latency_us().count());
     dl_tput_bytes += pdu->N_bytes;
 
     // Hack to drop initial 2 bytes
@@ -150,11 +154,11 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     memcpy(&dst_addr.s_addr, &pdu->msg[16], 4);
 
     if (!if_up) {
-      log.warning("TUN/TAP not up - dropping gw RX message\n");
+      logger.warning("TUN/TAP not up - dropping gw RX message");
     } else {
       int n = write(tun_fd, pdu->msg, pdu->N_bytes);
       if (n > 0 && (pdu->N_bytes != (uint32_t)n)) {
-        log.warning("DL TUN/TAP write failure\n");
+        logger.warning("DL TUN/TAP write failure");
       }
     }
   }
@@ -196,7 +200,7 @@ int gw::apply_traffic_flow_template(const uint8_t&                              
 
 void gw::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms)
 {
-  log.error("UE test loop mode not supported\n");
+  logger.error("UE test loop mode not supported");
 }
 
 /*******************************************************************************
@@ -219,14 +223,14 @@ void gw::run_thread()
 
   srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
   if (!pdu) {
-    log.error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
+    logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
     return;
   }
 
   const static uint32_t REGISTER_WAIT_TOUT = 40, SERVICE_WAIT_TOUT = 40; // 4 sec
   uint32_t              register_wait = 0, service_wait = 0;
 
-  log.info("GW IP packet receiver thread run_enable\n");
+  logger.info("GW IP packet receiver thread run_enable");
 
   running = true;
   while (run_enable) {
@@ -234,14 +238,14 @@ void gw::run_thread()
     if (SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET > idx) {
       N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {
-      log.error("GW pdu buffer full - gw receive thread exiting.\n");
+      logger.error("GW pdu buffer full - gw receive thread exiting.");
       srslte::console("GW pdu buffer full - gw receive thread exiting.\n");
       break;
     }
-    log.debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
+    logger.debug("Read %d bytes from TUN fd=%d, idx=%d", N_bytes, tun_fd, idx);
 
     if (N_bytes <= 0) {
-      log.error("Failed to read from TUN interface - gw receive thread exiting.\n");
+      logger.error("Failed to read from TUN interface - gw receive thread exiting.");
       srslte::console("Failed to read from TUN interface - gw receive thread exiting.\n");
       break;
     }
@@ -256,19 +260,19 @@ void gw::run_thread()
     } else if (ip_pkt->version == 6) {
       pkt_len = ntohs(ip6_pkt->payload_len) + 40;
     } else {
-      log.error_hex(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.\n");
+      logger.error(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.");
       continue;
     }
-    log.debug("IPv%d packet total length: %d Bytes\n", ip_pkt->version, pkt_len);
+    logger.debug("IPv%d packet total length: %d Bytes", int(ip_pkt->version), pkt_len);
 
     // Check if entire packet was received
     if (pkt_len == pdu->N_bytes) {
-      log.info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
+      logger.info(pdu->msg, pdu->N_bytes, "TX PDU");
 
       // Make sure UE is attached
       while (run_enable && !stack->is_registered() && register_wait < REGISTER_WAIT_TOUT) {
         if (!register_wait) {
-          log.info("UE is not attached, waiting for NAS attach (%d/%d)\n", register_wait, REGISTER_WAIT_TOUT);
+          logger.info("UE is not attached, waiting for NAS attach (%d/%d)", register_wait, REGISTER_WAIT_TOUT);
         }
         usleep(100000);
         register_wait++;
@@ -283,8 +287,8 @@ void gw::run_thread()
       // Wait for service request if necessary
       while (run_enable && !stack->is_lcid_enabled(default_lcid) && service_wait < SERVICE_WAIT_TOUT) {
         if (!service_wait) {
-          log.info(
-              "UE does not have service, waiting for NAS service request (%d/%d)\n", service_wait, SERVICE_WAIT_TOUT);
+          logger.info(
+              "UE does not have service, waiting for NAS service request (%d/%d)", service_wait, SERVICE_WAIT_TOUT);
           stack->start_service_request();
         }
         usleep(100000);
@@ -306,7 +310,7 @@ void gw::run_thread()
         do {
           pdu = srslte::allocate_unique_buffer(*pool);
           if (!pdu) {
-            log.error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
+            logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
             usleep(100000);
           }
         } while (!pdu);
@@ -314,11 +318,11 @@ void gw::run_thread()
       }
     } else {
       idx += N_bytes;
-      log.debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.\n", ip_pkt->tot_len, pdu->N_bytes);
+      logger.debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.", ip_pkt->tot_len, pdu->N_bytes);
     }
   }
   running = false;
-  log.info("GW IP receiver thread exiting.\n");
+  logger.info("GW IP receiver thread exiting.");
 }
 
 /**************************/
@@ -337,22 +341,22 @@ int gw::init_if(char* err_str)
     netns_fd = open(netns.c_str(), O_RDONLY);
     if (netns_fd == -1) {
       err_str = strerror(errno);
-      log.error("Failed to find netns %s (%s): %s\n", args.netns.c_str(), netns.c_str(), err_str);
+      logger.error("Failed to find netns %s (%s): %s", args.netns.c_str(), netns.c_str(), err_str);
       return SRSLTE_ERROR_CANT_START;
     }
     if (setns(netns_fd, CLONE_NEWNET) == -1) {
       err_str = strerror(errno);
-      log.error("Failed to change netns: %s\n", err_str);
+      logger.error("Failed to change netns: %s", err_str);
       return SRSLTE_ERROR_CANT_START;
     }
   }
 
   // Construct the TUN device
   tun_fd = open("/dev/net/tun", O_RDWR);
-  log.info("TUN file descriptor = %d\n", tun_fd);
+  logger.info("TUN file descriptor = %d", tun_fd);
   if (0 > tun_fd) {
     err_str = strerror(errno);
-    log.error("Failed to open TUN device: %s\n", err_str);
+    logger.error("Failed to open TUN device: %s", err_str);
     return SRSLTE_ERROR_CANT_START;
   }
 
@@ -363,7 +367,7 @@ int gw::init_if(char* err_str)
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ - 1] = 0;
   if (0 > ioctl(tun_fd, TUNSETIFF, &ifr)) {
     err_str = strerror(errno);
-    log.error("Failed to set TUN device name: %s\n", err_str);
+    logger.error("Failed to set TUN device name: %s", err_str);
     close(tun_fd);
     return SRSLTE_ERROR_CANT_START;
   }
@@ -372,14 +376,14 @@ int gw::init_if(char* err_str)
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (0 > ioctl(sock, SIOCGIFFLAGS, &ifr)) {
     err_str = strerror(errno);
-    log.error("Failed to bring up socket: %s\n", err_str);
+    logger.error("Failed to bring up socket: %s", err_str);
     close(tun_fd);
     return SRSLTE_ERROR_CANT_START;
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if (0 > ioctl(sock, SIOCSIFFLAGS, &ifr)) {
     err_str = strerror(errno);
-    log.error("Failed to set socket flags: %s\n", err_str);
+    logger.error("Failed to set socket flags: %s", err_str);
     close(tun_fd);
     return SRSLTE_ERROR_CANT_START;
   }
@@ -388,10 +392,10 @@ int gw::init_if(char* err_str)
   struct in6_addr in6p;
   char            addr_str[INET6_ADDRSTRLEN];
   if (find_ipv6_addr(&in6p)) {
-    log.debug("Found link-local IPv6 address: %s\n", inet_ntop(AF_INET6, &in6p, addr_str, INET6_ADDRSTRLEN));
+    logger.debug("Found link-local IPv6 address: %s", inet_ntop(AF_INET6, &in6p, addr_str, INET6_ADDRSTRLEN));
     del_ipv6_addr(&in6p);
   } else {
-    log.warning("Could not find link-local IPv6 address.\n");
+    logger.warning("Could not find link-local IPv6 address.");
   }
   if_up = true;
 
@@ -403,7 +407,7 @@ int gw::setup_if_addr4(uint32_t ip_addr, char* err_str)
   if (ip_addr != current_ip_addr) {
     if (!if_up) {
       if (init_if(err_str)) {
-        log.error("init_if failed\n");
+        logger.error("init_if failed");
         return SRSLTE_ERROR_CANT_START;
       }
     }
@@ -414,7 +418,7 @@ int gw::setup_if_addr4(uint32_t ip_addr, char* err_str)
     ((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr = htonl(ip_addr);
     if (0 > ioctl(sock, SIOCSIFADDR, &ifr)) {
       err_str = strerror(errno);
-      log.debug("Failed to set socket address: %s\n", err_str);
+      logger.debug("Failed to set socket address: %s", err_str);
       close(tun_fd);
       return SRSLTE_ERROR_CANT_START;
     }
@@ -422,7 +426,7 @@ int gw::setup_if_addr4(uint32_t ip_addr, char* err_str)
     ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(args.tun_dev_netmask.c_str());
     if (0 > ioctl(sock, SIOCSIFNETMASK, &ifr)) {
       err_str = strerror(errno);
-      log.debug("Failed to set socket netmask: %s\n", err_str);
+      logger.debug("Failed to set socket netmask: %s", err_str);
       close(tun_fd);
       return SRSLTE_ERROR_CANT_START;
     }
@@ -447,7 +451,7 @@ int gw::setup_if_addr6(uint8_t* ipv6_if_id, char* err_str)
   if (!match) {
     if (!if_up) {
       if (init_if(err_str)) {
-        log.error("init_if failed\n");
+        logger.error("init_if failed");
         return SRSLTE_ERROR_CANT_START;
       }
     }
@@ -457,7 +461,7 @@ int gw::setup_if_addr6(uint8_t* ipv6_if_id, char* err_str)
     ifr.ifr_addr.sa_family = AF_INET6;
 
     if (inet_pton(AF_INET6, "fe80::", (void*)&sai.sin6_addr) <= 0) {
-      log.error("Bad address\n");
+      logger.error("Bad address");
       return SRSLTE_ERROR_CANT_START;
     }
 
@@ -472,7 +476,7 @@ int gw::setup_if_addr6(uint8_t* ipv6_if_id, char* err_str)
 
     if (ioctl(sock, SIOCSIFADDR, &ifr6) < 0) {
       err_str = strerror(errno);
-      log.error("Could not set IPv6 Link local address. Error %s\n", err_str);
+      logger.error("Could not set IPv6 Link local address. Error %s", err_str);
       return SRSLTE_ERROR_CANT_START;
     }
 
@@ -499,19 +503,19 @@ bool gw::find_ipv6_addr(struct in6_addr* in6_out)
     char             buf[1024];
   } req;
 
-  log.debug("Trying to obtain IPv6 addr of %s interface\n", args.tun_dev_name.c_str());
+  logger.debug("Trying to obtain IPv6 addr of %s interface", args.tun_dev_name.c_str());
 
   // Get Interface Index
   if_index = if_nametoindex(args.tun_dev_name.c_str());
   if (if_index == 0) {
-    log.error("Could not find interface index\n");
+    logger.error("Could not find interface index");
     goto err_out;
   }
 
   // Open NETLINK socket
   fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
   if (fd < 0) {
-    log.error("Error openning NETLINK socket -- %s\n", strerror(errno));
+    logger.error("Error openning NETLINK socket -- %s", strerror(errno));
     goto err_out;
   }
 
@@ -532,18 +536,18 @@ bool gw::find_ipv6_addr(struct in6_addr* in6_out)
   // Time to send and recv the message from kernel
   n = send(fd, &req, req.n.nlmsg_len, 0);
   if (n < 0) {
-    log.error("Error sending NETLINK message to kernel -- %s", strerror(errno));
+    logger.error("Error sending NETLINK message to kernel -- %s", strerror(errno));
     goto err_out;
   }
 
   n = recv(fd, buf, sizeof(buf), 0);
   if (n < 0) {
-    log.error("Error receiving from NETLINK socket\n");
+    logger.error("Error receiving from NETLINK socket");
     goto err_out;
   }
 
   if (n == 0) {
-    log.error("Nothing received from NETLINK Socket\n");
+    logger.error("Nothing received from NETLINK Socket");
     goto err_out;
   }
 
@@ -552,14 +556,14 @@ bool gw::find_ipv6_addr(struct in6_addr* in6_out)
 
     // Chack NL message type
     if (nlmp->nlmsg_type == NLMSG_DONE) {
-      log.error("Reach end of NETLINK message without finding IPv6 address.\n");
+      logger.error("Reach end of NETLINK message without finding IPv6 address.");
       goto err_out;
     }
     if (nlmp->nlmsg_type == NLMSG_ERROR) {
-      log.error("NLMSG_ERROR in NETLINK reply\n");
+      logger.error("NLMSG_ERROR in NETLINK reply");
       goto err_out;
     }
-    log.debug("NETLINK message type %d\n", nlmp->nlmsg_type);
+    logger.debug("NETLINK message type %d", nlmp->nlmsg_type);
 
     // Get IFA message
     rtmp      = (struct ifaddrmsg*)NLMSG_DATA(nlmp);
@@ -603,14 +607,14 @@ void gw::del_ipv6_addr(struct in6_addr* in6p)
   // Get Interface Index
   if_index = if_nametoindex(args.tun_dev_name.c_str());
   if (if_index == 0) {
-    log.error("Could not find interface index\n");
+    logger.error("Could not find interface index");
     goto out;
   }
 
   // Open netlink socket
   fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
   if (fd < 0) {
-    log.error("Error openning NETLINK socket -- %s\n", strerror(errno));
+    logger.error("Error openning NETLINK socket -- %s", strerror(errno));
     goto out;
   }
 
@@ -635,7 +639,7 @@ void gw::del_ipv6_addr(struct in6_addr* in6p)
 
   status = send(fd, &req, req.n.nlmsg_len, 0);
   if (status < 0) {
-    log.error("Error sending NETLINK message\n");
+    logger.error("Error sending NETLINK message");
     goto out;
   }
 

@@ -47,7 +47,14 @@ class sync : public srslte::thread,
              public scell::intra_measure::meas_itf
 {
 public:
-  sync() : thread("SYNC"), sf_buffer(sync_nof_rx_subframes), dummy_buffer(sync_nof_rx_subframes){};
+  sync(srslog::basic_logger& phy_logger, srslog::basic_logger& phy_lib_logger) :
+    thread("SYNC"),
+    search_p(phy_logger),
+    sfn_p(phy_logger),
+    phy_logger(phy_logger),
+    phy_lib_logger(phy_lib_logger),
+    sf_buffer(sync_nof_rx_subframes),
+    dummy_buffer(sync_nof_rx_subframes){};
   ~sync();
 
   void init(srslte::radio_interface_phy* radio_,
@@ -56,8 +63,6 @@ public:
             lte::worker_pool*            _lte_workers_pool,
             nr::worker_pool*             _nr_workers_pool,
             phy_common*                  _worker_com,
-            srslte::log*                 _log_h,
-            srslte::log*                 _log_phy_lib_h,
             uint32_t                     prio,
             int                          sync_cpu_affinity = -1);
   void stop();
@@ -198,9 +203,9 @@ private:
   std::vector<std::unique_ptr<scell::intra_measure> > intra_freq_meas;
 
   // Pointers to other classes
-  stack_interface_phy_lte*     stack            = nullptr;
-  srslte::log*                 log_h            = nullptr;
-  srslte::log*                 log_phy_lib_h    = nullptr;
+  stack_interface_phy_lte*     stack = nullptr;
+  srslog::basic_logger&        phy_logger;
+  srslog::basic_logger&        phy_lib_logger;
   lte::worker_pool*            lte_worker_pool  = nullptr;
   nr::worker_pool*             nr_worker_pool   = nullptr;
   srslte::radio_interface_phy* radio_h          = nullptr;

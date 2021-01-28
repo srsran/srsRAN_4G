@@ -19,10 +19,8 @@ namespace scell {
  * Secondary cell receiver
  */
 
-void scell_recv::init(srslte::log* _log_h, uint32_t max_sf_window)
+void scell_recv::init(uint32_t max_sf_window)
 {
-  log_h           = _log_h;
-
   // and a separate ue_sync instance
 
   uint32_t max_fft_sz  = (uint32_t)srslte_symbol_sz(100);
@@ -30,13 +28,13 @@ void scell_recv::init(srslte::log* _log_h, uint32_t max_sf_window)
 
   sf_buffer[0] = srslte_vec_cf_malloc(max_sf_size);
   if (!sf_buffer[0]) {
-    log_h->error("Error allocating %d samples for scell\n", max_sf_size);
+    logger.error("Error allocating %d samples for scell", max_sf_size);
     return;
   }
 
   // do this different we don't need all this search window.
   if (srslte_sync_init(&sync_find, max_sf_window * max_sf_size, 5 * max_sf_size, max_fft_sz)) {
-    log_h->error("Error initiating sync_find\n");
+    logger.error("Error initiating sync_find");
     return;
   }
   srslte_sync_set_sss_algorithm(&sync_find, SSS_FULL);
@@ -80,14 +78,14 @@ scell_recv::find_cells(const cf_t* input_buffer, const srslte_cell_t serving_cel
 
   if (fft_sz != current_fft_sz) {
     if (srslte_sync_resize(&sync_find, nof_sf * sf_len, 5 * sf_len, fft_sz)) {
-      log_h->error("Error resizing sync nof_sf=%d, sf_len=%d, fft_sz=%d\n", nof_sf, sf_len, fft_sz);
+      logger.error("Error resizing sync nof_sf=%d, sf_len=%d, fft_sz=%d", nof_sf, sf_len, fft_sz);
       return found_cell_ids;
     }
     current_fft_sz = fft_sz;
   }
 
-  uint32_t peak_idx  = 0;
-  int      cell_id   = 0;
+  uint32_t peak_idx = 0;
+  int      cell_id  = 0;
 
   for (uint32_t n_id_2 = 0; n_id_2 < 3; n_id_2++) {
 
@@ -109,7 +107,7 @@ scell_recv::find_cells(const cf_t* input_buffer, const srslte_cell_t serving_cel
       for (uint32_t sf5_cnt = 0; sf5_cnt < nof_sf / 5; sf5_cnt++) {
         sync_res = srslte_sync_find(&sync_find, input_buffer, sf5_cnt * 5 * sf_len, &peak_idx);
         if (sync_res == SRSLTE_SYNC_ERROR) {
-          log_h->error("INTRA: Error calling sync_find()\n");
+          logger.error("INTRA: Error calling sync_find()");
           return found_cell_ids;
         }
 
@@ -126,8 +124,8 @@ scell_recv::find_cells(const cf_t* input_buffer, const srslte_cell_t serving_cel
           sss_detected = true;
         }
 
-        log_h->debug("INTRA: n_id_2=%d, cnt=%d/%d, sync_res=%d, cell_id=%d, sf_idx=%d, peak_idx=%d, peak_value=%f, "
-                     "sss_detected=%d\n",
+        logger.debug("INTRA: n_id_2=%d, cnt=%d/%d, sync_res=%d, cell_id=%d, sf_idx=%d, peak_idx=%d, peak_value=%f, "
+                     "sss_detected=%d",
                      n_id_2,
                      sf5_cnt,
                      nof_sf / 5,
@@ -143,7 +141,7 @@ scell_recv::find_cells(const cf_t* input_buffer, const srslte_cell_t serving_cel
       if (sync_res == SRSLTE_SYNC_FOUND && sss_detected && cell_id >= 0) {
         // We have found a new cell, add to the list
         found_cell_ids.insert((uint32_t)cell_id);
-        log_h->debug("INTRA: Detected new cell_id=%d using PSS/SSS\n", cell_id);
+        logger.debug("INTRA: Detected new cell_id=%d using PSS/SSS", cell_id);
       }
     }
   }

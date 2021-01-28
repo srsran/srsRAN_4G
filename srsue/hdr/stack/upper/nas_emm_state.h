@@ -14,6 +14,7 @@
 #define SRSUE_NAS_EMM_STATE_H
 
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <atomic>
 #include <string>
 
@@ -80,7 +81,7 @@ private:
   std::atomic<state_t>    state{state_t::null}; // The GW might require to know the NAS state from another thread
   deregistered_substate_t deregistered_substate = deregistered_substate_t::null;
   registered_substate_t   registered_substate   = registered_substate_t::null;
-  srslte::log_ref         nas_log{"NAS"};
+  srslog::basic_logger&   logger                = srslog::fetch_basic_logger("NAS");
 };
 
 const char* emm_state_text(emm_state_t::state_t type);

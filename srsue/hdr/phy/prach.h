@@ -16,6 +16,7 @@
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include <bitset>
 
@@ -24,10 +25,10 @@ namespace srsue {
 class prach
 {
 public:
-  prach() = default;
+  prach(srslog::basic_logger& logger) : logger(logger) {}
   ~prach() { stop(); }
 
-  void  init(uint32_t max_prb, srslte::log* log_h);
+  void  init(uint32_t max_prb);
   void  stop();
   bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
   bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
@@ -55,7 +56,7 @@ private:
   static constexpr unsigned max_fs        = 12;
   static constexpr unsigned max_preambles = 64;
 
-  srslte::log*                                         log_h            = nullptr;
+  srslog::basic_logger&                                logger;
   srslte_prach_t                                       prach_obj        = {};
   srslte_cell_t                                        cell             = {};
   srslte_cfo_t                                         cfo_h            = {};

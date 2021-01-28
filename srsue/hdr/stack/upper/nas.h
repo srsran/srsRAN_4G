@@ -22,6 +22,7 @@
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/stack/upper/nas_emm_state.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
@@ -73,7 +74,7 @@ public:
 
 private:
   srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           nas_log;
+  srslog::basic_logger&     logger;
   rrc_interface_nas*        rrc  = nullptr;
   usim_interface_nas*       usim = nullptr;
   gw_interface_nas*         gw   = nullptr;
@@ -158,7 +159,7 @@ private:
 
   // Airplane mode simulation
   typedef enum { DISABLED = 0, ENABLED } airplane_mode_state_t;
-  airplane_mode_state_t airplane_mode_state = {};
+  airplane_mode_state_t               airplane_mode_state = {};
   srslte::timer_handler::unique_timer airplane_mode_sim_timer;
 
   // PCAP
