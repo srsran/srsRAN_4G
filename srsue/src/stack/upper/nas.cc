@@ -136,7 +136,7 @@ void nas::run_tti()
       // TODO Make sure cell selection is finished after transitioning from another state (if required)
       // Make sure the RRC is finished transitioning to RRC Idle
       if (reattach_timer.is_running()) {
-        logger.debug("Waiting for reatach timer to expire to attach again.");
+        logger.debug("Waiting for re-attach timer to expire to attach again.");
         return;
       }
       switch (state.get_deregistered_substate()) {
@@ -1481,7 +1481,9 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
     case emm_state_t::state_t::registered:
       // send accept and leave state
       send_detach_accept();
-      enter_emm_deregistered(emm_state_t::deregistered_substate_t::plmn_search);
+
+      // TODO: add parsing and correct handling of EMM cause for detach (Sec. 5.5.2.3.2)
+      enter_emm_deregistered(emm_state_t::deregistered_substate_t::null);
 
       // schedule reattach if required
       if (detach_request.detach_type.type_of_detach == LIBLTE_MME_TOD_DL_REATTACH_REQUIRED) {
