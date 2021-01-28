@@ -24,10 +24,15 @@
 
 namespace srsenb {
 
-enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE))
+enb::enb(srslog::sink& log_sink) :
+  started(false),
+  log_sink(log_sink),
+  enb_log(srslog::fetch_basic_logger("ENB", log_sink, false)),
+  pool(srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE))
 {
+
   // print build info
-  std::cout << std::endl << get_build_string() << std::endl;
+  std::cout << std::endl << get_build_string() << std::endl << std::endl;
 }
 
 enb::~enb()
@@ -42,9 +47,8 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Init eNB log
   srslte::logmap::set_default_logger(logger);
-  log = srslte::logmap::get("ENB");
-  log->set_level(srslte::LOG_LEVEL_INFO);
-  log->info("%s", get_build_string().c_str());
+  enb_log.set_level(srslog::basic_levels::info);
+  enb_log.info("%s", get_build_string().c_str());
 
   // Validate arguments
   if (parse_args(args_, rrc_cfg)) {
@@ -58,7 +62,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Create layers
   if (args.stack.type == "lte") {
-    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger));
+    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger, log_sink));
     if (!lte_stack) {
       srslte::console("Error creating eNB stack.\n");
       return SRSLTE_ERROR;
@@ -70,7 +74,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(logger));
+    std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(log_sink));
     if (!lte_phy) {
       srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
@@ -139,7 +143,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     radio = std::move(nr_radio);
 #else
     srslte::console("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
-    log->error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
+    enb_log.error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.");
 #endif
   }
 
@@ -251,7 +255,7 @@ std::string enb::get_build_info()
 std::string enb::get_build_string()
 {
   std::stringstream ss;
-  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << ".";
   return ss.str();
 }
 

@@ -28,7 +28,8 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(srslte::task_sched_handle task_sched_) : rrc_log("RRC"), task_sched(task_sched_)
+rrc::rrc(srslte::task_sched_handle task_sched_) :
+  rrc_log("RRC"), logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_)
 {
   pending_paging.clear();
   ue_pool.reserve(16);
@@ -72,14 +73,14 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   uint32_t t310 = cfg.sibs[1].sib2().ue_timers_and_consts.t310.to_number();
   uint32_t t311 = cfg.sibs[1].sib2().ue_timers_and_consts.t311.to_number();
   uint32_t n310 = cfg.sibs[1].sib2().ue_timers_and_consts.n310.to_number();
-  rrc_log->info("T310 %d, T311 %d, N310 %d \n", t310, t311, n310);
+  logger.info("T310 %d, T311 %d, N310 %d", t310, t311, n310);
   if (cfg.inactivity_timeout_ms < t310 + t311 + n310) {
     srslte::console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
                     "This may break the UE's re-establishment procedure.\n");
-    rrc_log->warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
-                     "re-establishment procedure.\n");
+    logger.warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
+                   "re-establishment procedure.");
   }
-  rrc_log->info("Inactivity timeout: %d ms\n", cfg.inactivity_timeout_ms);
+  logger.info("Inactivity timeout: %d ms", cfg.inactivity_timeout_ms);
 
   running = true;
 }
@@ -152,7 +153,7 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       // only non-eMBMS RNTIs are present in user map
       std::unique_ptr<ue> u{new ue(this, rnti, sched_ue_cfg)};
       if (u->init() != SRSLTE_SUCCESS) {
-        rrc_log->error("Adding user rnti=0x%x - Failed to allocate user resources\n", rnti);
+        logger.error("Adding user rnti=0x%x - Failed to allocate user resources", rnti);
         return SRSLTE_ERROR;
       }
       if (ue_pool.capacity() <= 4) {
@@ -162,9 +163,9 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
     }
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
-    rrc_log->info("Added new user rnti=0x%x\n", rnti);
+    logger.info("Added new user rnti=0x%x", rnti);
   } else {
-    rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
+    logger.error("Adding user rnti=0x%x (already exists)", rnti);
   }
 
   if (rnti == SRSLTE_MRNTI) {
@@ -238,7 +239,7 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
 
     user_it->second->send_dl_dcch(&dl_dcch_msg, std::move(sdu));
   } else {
-    rrc_log->error("Rx SDU for unknown rnti=0x%x\n", rnti);
+    logger.error("Rx SDU for unknown rnti=0x%x", rnti);
   }
 }
 
@@ -250,11 +251,11 @@ void rrc::release_complete(uint16_t rnti)
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  rrc_log->info("Adding initial context for 0x%x\n", rnti);
+  logger.info("Adding initial context for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
@@ -264,11 +265,11 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
 
 bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)
 {
-  rrc_log->info("Modifying context for 0x%x\n", rnti);
+  logger.info("Modifying context for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
@@ -277,11 +278,11 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
 
 bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
 {
-  rrc_log->info("Setting up erab(s) for 0x%x\n", rnti);
+  logger.info("Setting up erab(s) for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
@@ -298,11 +299,11 @@ bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& 
 
 bool rrc::release_erabs(uint32_t rnti)
 {
-  rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
+  logger.info("Releasing E-RABs for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
@@ -315,11 +316,11 @@ void rrc::release_erabs(uint32_t                              rnti,
                         std::vector<uint16_t>*                erabs_released,
                         std::vector<uint16_t>*                erabs_failed_to_release)
 {
-  rrc_log->info("Releasing E-RAB for 0x%x\n", rnti);
+  logger.info("Releasing E-RAB for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return;
   }
 
@@ -341,11 +342,11 @@ void rrc::modify_erabs(uint16_t                                 rnti,
                        std::vector<uint16_t>*                   erabs_modified,
                        std::vector<uint16_t>*                   erabs_failed_to_modify)
 {
-  rrc_log->info("Modifying E-RABs for 0x%x\n", rnti);
+  logger.info("Modifying E-RABs for 0x%x", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return;
   }
 
@@ -374,11 +375,11 @@ bool rrc::modify_ue_erab(uint16_t                                   rnti,
                          const asn1::s1ap::erab_level_qos_params_s& qos_params,
                          const asn1::unbounded_octstring<true>*     nas_pdu)
 {
-  rrc_log->info("Modifying E-RAB for 0x%x. E-RAB Id %d\n", rnti, erab_id);
+  logger.info("Modifying E-RAB for 0x%x. E-RAB Id %d", rnti, erab_id);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
-    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    logger.warning("Unrecognised rnti: 0x%x", rnti);
     return false;
   }
 
@@ -396,7 +397,7 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
 {
   std::lock_guard<std::mutex> lock(paging_mutex);
   if (pending_paging.count(ueid) > 0) {
-    rrc_log->warning("Received Paging for UEID=%d but not yet transmitted\n", ueid);
+    logger.warning("Received Paging for UEID=%d but not yet transmitted", ueid);
     return;
   }
 
@@ -428,7 +429,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
   if (tti == paging_tti) {
     *payload_len = byte_buf_paging.N_bytes;
-    rrc_log->debug("Sending paging to extra carriers. Payload len=%d, TTI=%d\n", *payload_len, tti);
+    logger.debug("Sending paging to extra carriers. Payload len=%d, TTI=%d", *payload_len, tti);
     return true;
   } else {
     paging_tti = INVALID_TTI;
@@ -470,7 +471,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
       int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
       if (sf_idx < 0) {
-        rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
+        logger.error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d", Ns, i_s, ueid);
         continue;
       }
 
@@ -479,7 +480,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
         paging_rec->paging_record_list.push_back(u);
         ue_to_remove.push_back(ueid);
         n++;
-        rrc_log->info("Assembled paging for ue_id=%d, tti=%d\n", ueid, tti);
+        logger.info("Assembled paging for ue_id=%d, tti=%d", ueid, tti);
       }
     }
 
@@ -492,7 +493,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
     byte_buf_paging.clear();
     asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.get_tailroom());
     if (pcch_msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      rrc_log->error("Failed to pack PCCH\n");
+      logger.error("Failed to pack PCCH");
       return false;
     }
     byte_buf_paging.N_bytes = (uint32_t)bref.distance_bytes();
@@ -501,10 +502,10 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
     if (payload_len) {
       *payload_len = byte_buf_paging.N_bytes;
     }
-    rrc_log->info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes, nbits=%d\n",
-                  paging_rec->paging_record_list.size(),
-                  byte_buf_paging.N_bytes,
-                  N_bits);
+    logger.info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes, nbits=%d",
+                paging_rec->paging_record_list.size(),
+                byte_buf_paging.N_bytes,
+                N_bits);
     log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg, pcch_msg.msg.c1().type().to_string());
 
     paging_tti = tti; // Store paging tti for other carriers
@@ -535,7 +536,7 @@ void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_st
 {
   auto ue_it = users.find(rnti);
   if (ue_it == users.end()) {
-    rrc_log->warning("rnti=0x%x does not exist\n", rnti);
+    logger.warning("rnti=0x%x does not exist", rnti);
     return;
   }
   ue_it->second->mobility_handler->trigger(erabs);
@@ -554,7 +555,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
     asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
     if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
-      rrc_log->error("Failed to unpack UL-CCCH message\n");
+      logger.error("Failed to unpack UL-CCCH message");
       return;
     }
 
@@ -566,18 +567,18 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
         if (user_it != users.end()) {
           user_it->second->handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
         } else {
-          rrc_log->error("Received ConnectionSetup for rnti=0x%x without context\n", rnti);
+          logger.error("Received ConnectionSetup for rnti=0x%x without context", rnti);
         }
         break;
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request:
         if (user_it != users.end()) {
           user_it->second->handle_rrc_con_reest_req(&ul_ccch_msg.msg.c1().rrc_conn_reest_request());
         } else {
-          rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context.\n", rnti);
+          logger.error("Received ConnectionReestablishment for rnti=0x%x without context.", rnti);
         }
         break;
       default:
-        rrc_log->error("UL CCCH message not recognised\n");
+        logger.error("UL CCCH message not recognised");
         break;
     }
   }
@@ -591,7 +592,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
     if (user_it != users.end()) {
       user_it->second->parse_ul_dcch(lcid, std::move(pdu));
     } else {
-      rrc_log->error("Processing %s: Unknown rnti=0x%x\n", srsenb::to_string((rb_id_t)lcid), rnti);
+      logger.error("Processing %s: Unknown rnti=0x%x", srsenb::to_string((rb_id_t)lcid), rnti);
     }
   }
 }
@@ -599,10 +600,10 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
 ///< User mutex must be hold by caller
 void rrc::process_release_complete(uint16_t rnti)
 {
-  rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
+  logger.info("Received Release Complete rnti=0x%x", rnti);
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
+    logger.error("Received ReleaseComplete for unknown rnti=0x%x", rnti);
     return;
   }
   ue* u = user_it->second.get();
@@ -622,7 +623,7 @@ void rrc::rem_user(uint16_t rnti)
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
     srslte::console("Disconnecting rnti=0x%x.\n", rnti);
-    rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
+    logger.info("Disconnecting rnti=0x%x.", rnti);
 
     /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
      */
@@ -634,9 +635,9 @@ void rrc::rem_user(uint16_t rnti)
     pdcp->rem_user(rnti);
 
     users.erase(rnti);
-    rrc_log->info("Removed user rnti=0x%x\n", rnti);
+    logger.info("Removed user rnti=0x%x", rnti);
   } else {
-    rrc_log->error("Removing user rnti=0x%x (does not exist)\n", rnti);
+    logger.error("Removing user rnti=0x%x (does not exist)", rnti);
   }
 }
 
@@ -673,7 +674,7 @@ void rrc::config_mac()
     item.enable_phr_handling = cfg.cell_list[ccidx].enable_phr_handling;
 
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
-    rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);
+    logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
 
     // Copy base cell configuration
     item.cell = cfg.cell;
@@ -687,7 +688,7 @@ void rrc::config_mac()
         return e.cell_id == scellitem.cell_id;
       });
       if (it == cfg.cell_list.end()) {
-        rrc_log->warning("Secondary cell 0x%x not configured\n", scellitem.cell_id);
+        logger.warning("Secondary cell 0x%x not configured", scellitem.cell_id);
         continue;
       }
       sched_interface::cell_cfg_t::scell_cfg_t scellcfg;
@@ -755,7 +756,7 @@ uint32_t rrc::generate_sibs()
       srslte::unique_byte_buffer_t sib_buffer = srslte::allocate_unique_buffer(*pool);
       asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-        rrc_log->error("Failed to pack SIB message %d\n", msg_index);
+        logger.error("Failed to pack SIB message %d", msg_index);
       }
       sib_buffer->N_bytes = bref.distance_bytes();
       cell_ctxt->sib_buffer.push_back(std::move(sib_buffer));
@@ -845,9 +846,9 @@ void rrc::configure_mbsfn_sibs()
   uint16_t mbms_mcs = cfg.mbms_mcs;
   if (mbms_mcs > 28) {
     mbms_mcs = 28; // TS 36.213, Table 8.6.1-1
-    rrc_log->warning("PMCH data MCS too high, setting it to 28\n");
+    logger.warning("PMCH data MCS too high, setting it to 28");
   }
-  rrc_log->debug("PMCH data MCS=%d\n", mbms_mcs);
+  logger.debug("PMCH data MCS=%d", mbms_mcs);
   pmch_item->data_mcs         = mbms_mcs;
   pmch_item->mch_sched_period = srslte::pmch_info_t::mch_sched_period_t::rf64;
   pmch_item->sf_alloc_end     = 64 * 6;
@@ -896,10 +897,10 @@ int rrc::pack_mcch()
   uint16_t mbms_mcs = cfg.mbms_mcs;
   if (mbms_mcs > 28) {
     mbms_mcs = 28; // TS 36.213, Table 8.6.1-1
-    rrc_log->warning("PMCH data MCS too high, setting it to 28\n");
+    logger.warning("PMCH data MCS too high, setting it to 28");
   }
 
-  rrc_log->debug("PMCH data MCS=%d\n", mbms_mcs);
+  logger.debug("PMCH data MCS=%d", mbms_mcs);
   pmch_item->pmch_cfg_r9.data_mcs_r9         = mbms_mcs;
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
   pmch_item->pmch_cfg_r9.sf_alloc_end_r9     = 64 * 6;
@@ -923,13 +924,13 @@ void rrc::tti_clock()
   while (rx_pdu_queue.try_pop(&p)) {
     // print Rx PDU
     if (p.pdu != nullptr) {
-      rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
+      logger.info(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
     }
 
     // check if user exists
     auto user_it = users.find(p.rnti);
     if (user_it == users.end()) {
-      rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
+      logger.warning("Discarding PDU for removed rnti=0x%x", p.rnti);
       continue;
     }
 
@@ -952,10 +953,10 @@ void rrc::tti_clock()
         user_it->second->set_activity();
         break;
       case LCID_EXIT:
-        rrc_log->info("Exiting thread\n");
+        logger.info("Exiting thread");
         break;
       default:
-        rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
+        logger.error("Rx PDU with invalid bearer id: %d", p.lcid);
         break;
     }
   }

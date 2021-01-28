@@ -88,7 +88,6 @@ protected:
   int ue_db_access(uint16_t rnti, Func, const char* func_name = nullptr);
 
   // args
-  srslte::log_ref                  log_h;
   rrc_interface_mac*               rrc       = nullptr;
   sched_args_t                     sched_cfg = {};
   std::vector<sched_cell_params_t> sched_cell_params;

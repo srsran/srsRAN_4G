@@ -18,6 +18,7 @@
 
 #include "../phy_common.h"
 #include "cc_worker.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
 namespace srsenb {
@@ -26,9 +27,9 @@ namespace lte {
 class sf_worker : public srslte::thread_pool::worker
 {
 public:
-  sf_worker() = default;
+  sf_worker(srslog::basic_logger& logger) : logger(logger) {}
   ~sf_worker();
-  void init(phy_common* phy, srslte::log* log_h);
+  void init(phy_common* phy);
 
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
   void  set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::rf_timestamp_t& tx_time_);
@@ -53,11 +54,11 @@ private:
   void work_imp() final;
 
   /* Common objects */
-  srslte::log* log_h     = nullptr;
-  phy_common*  phy       = nullptr;
-  bool         initiated = false;
-  bool         running   = false;
-  std::mutex   work_mutex;
+  srslog::basic_logger& logger;
+  phy_common*           phy       = nullptr;
+  bool                  initiated = false;
+  bool                  running   = false;
+  std::mutex            work_mutex;
 
   uint32_t               tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
   uint32_t               t_rx = 0, t_tx_dl = 0, t_tx_ul = 0;

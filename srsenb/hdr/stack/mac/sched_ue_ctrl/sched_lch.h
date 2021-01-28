@@ -16,6 +16,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/mac/pdu.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -25,6 +26,7 @@ class lch_ue_manager
   constexpr static uint32_t MAX_LC       = sched_interface::MAX_LC;
 
 public:
+  lch_ue_manager() : logger(srslog::fetch_basic_logger("MAC")) {}
   void set_cfg(const sched_interface::ue_cfg_t& cfg_);
   void new_tti();
 
@@ -72,7 +74,7 @@ private:
   int alloc_tx_bytes(uint8_t lcid, int rem_bytes);
 
   size_t                                           prio_idx = 0;
-  srslte::log_ref                                  log_h{"MAC"};
+  srslog::basic_logger&                            logger;
   std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
   std::array<int, 4>                               lcg_bsr = {};
 };

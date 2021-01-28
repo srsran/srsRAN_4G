@@ -15,6 +15,7 @@
 
 #include "sched_common.h"
 #include "srslte/common/log.h"
+#include "srslte/srslog/srslog.h"
 #include <map>
 #include <vector>
 
@@ -180,7 +181,7 @@ private:
   /* Args */
   ue_cfg_t                   cfg  = {};
   srslte_cell_t              cell = {};
-  mutable srslte::log_ref    log_h;
+  srslog::basic_logger&      logger;
   const sched_cell_params_t* main_cc_params = nullptr;
 
   /* Buffer states */

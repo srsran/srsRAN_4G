@@ -30,8 +30,7 @@ namespace srsenb {
 
 void harq_proc::init(uint32_t id_)
 {
-  log_h = srslte::logmap::get("MAC ");
-  id    = id_;
+  id = id_;
 }
 
 void harq_proc::reset(uint32_t tb_idx)
@@ -78,17 +77,19 @@ tti_point harq_proc::get_tti() const
 int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
 {
   if (is_empty(tb_idx)) {
-    log_h->warning("Received ACK for inactive harq\n");
+    srslog::fetch_basic_logger("MAC").warning("Received ACK for inactive harq");
     return SRSLTE_ERROR;
   }
   ack_state[tb_idx] = ack_;
-  log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
+  srslog::fetch_basic_logger("MAC").debug(
+      "ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
-    Info("SCHED: discarding TB=%d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n",
-         tb_idx,
-         id,
-         tti.to_uint(),
-         max_retx);
+    srslog::fetch_basic_logger("MAC").info(
+        "SCHED: discarding TB=%d pid=%d, tti=%d, maximum number of retx exceeded (%d)",
+        tb_idx,
+        id,
+        tti.to_uint(),
+        max_retx);
     active[tb_idx] = false;
   } else if (ack_) {
     active[tb_idx] = false;
@@ -294,8 +295,7 @@ uint32_t ul_harq_proc::get_pending_data() const
  *   Harq Entity
  *******************/
 
-harq_entity::harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs) :
-  dl_harqs(nof_dl_harqs), ul_harqs(nof_ul_harqs), log_h(srslte::logmap::get("MAC "))
+harq_entity::harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs) : dl_harqs(nof_dl_harqs), ul_harqs(nof_ul_harqs)
 {
   for (uint32_t i = 0; i < dl_harqs.size(); ++i) {
     dl_harqs[i].init(i);

@@ -17,6 +17,7 @@
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/log.h"
+#include "srslte/srslog/srslog.h"
 #include <deque>
 #include <vector>
 
@@ -99,6 +100,8 @@ public:
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
+  pdcch_grid_t() : logger(srslog::fetch_basic_logger("MAC")) {}
+
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(tti_point tti_rx_);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
@@ -147,7 +150,7 @@ private:
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
-  srslte::log_ref            log_h;
+  srslog::basic_logger&      logger;
 
   // tti vars
   tti_point                   tti_rx;
@@ -164,6 +167,8 @@ public:
     alloc_outcome_t outcome;
     rbg_interval    rbg_range;
   };
+
+  sf_grid_t() : logger(srslog::fetch_basic_logger("MAC")) {}
 
   void            init(const sched_cell_params_t& cell_params_);
   void            new_tti(tti_point tti_rx);
@@ -185,7 +190,7 @@ private:
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
-  srslte::log_ref            log_h;
+  srslog::basic_logger&      logger;
   uint32_t                   nof_rbgs = 0;
   uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
 
@@ -305,7 +310,7 @@ private:
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
-  srslte::log_ref            log_h;
+  srslog::basic_logger&      logger;
   sf_sched_result*           cc_results; ///< Results of other CCs for the same Subframe
   prbmask_t                  pucch_mask;
 

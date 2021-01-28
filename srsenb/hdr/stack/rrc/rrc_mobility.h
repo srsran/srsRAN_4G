@@ -33,7 +33,7 @@ public:
   };
   struct ho_cancel_ev {};
 
-  explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
+  rrc_mobility(srsenb::rrc::ue* outer_ue);
 
   bool fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
@@ -50,9 +50,9 @@ public:
 
 private:
   // helper methods
-  bool update_ue_var_meas_cfg(uint32_t                src_earfcn,
+  bool update_ue_var_meas_cfg(uint32_t               src_earfcn,
                               const enb_cell_common& target_pcell,
-                              asn1::rrc::meas_cfg_s*  diff_meas_cfg);
+                              asn1::rrc::meas_cfg_s* diff_meas_cfg);
 
   // Handover from source cell
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
@@ -60,7 +60,7 @@ private:
 
   // Handover to target cell
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
-                                   const enb_cell_common&   target_cell,
+                                   const enb_cell_common&    target_cell,
                                    uint32_t                  src_dl_earfcn,
                                    uint32_t                  src_pci);
   bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
@@ -68,7 +68,7 @@ private:
   rrc::ue*                  rrc_ue  = nullptr;
   rrc*                      rrc_enb = nullptr;
   srslte::byte_buffer_pool* pool    = nullptr;
-  srslte::log_ref           rrc_log;
+  srslog::basic_logger&     logger;
 
   // vars
   asn1::rrc::meas_cfg_s                current_meas_cfg;
@@ -92,7 +92,7 @@ private:
   struct intraenb_ho_st {
     const enb_cell_common* target_cell     = nullptr;
     const enb_cell_common* source_cell     = nullptr;
-    uint16_t                last_temp_crnti = SRSLTE_INVALID_RNTI;
+    uint16_t               last_temp_crnti = SRSLTE_INVALID_RNTI;
 
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };

@@ -13,6 +13,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/upper/rlc.h"
 #include <map>
 
@@ -31,11 +32,9 @@ namespace srsenb {
 class rlc : public rlc_interface_mac, public rlc_interface_rrc, public rlc_interface_pdcp
 {
 public:
-  void init(pdcp_interface_rlc*    pdcp_,
-            rrc_interface_rlc*     rrc_,
-            mac_interface_rlc*     mac_,
-            srslte::timer_handler* timers_,
-            srslte::log_ref        log_h);
+  explicit rlc(srslog::basic_logger& logger) : logger(logger) {}
+  void
+       init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc* mac_, srslte::timer_handler* timers_);
   void stop();
   void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
 
@@ -92,7 +91,7 @@ private:
   mac_interface_rlc*        mac;
   pdcp_interface_rlc*       pdcp;
   rrc_interface_rlc*        rrc;
-  srslte::log_ref           log_h;
+  srslog::basic_logger&     logger;
   srslte::byte_buffer_pool* pool;
   srslte::timer_handler*    timers;
 };

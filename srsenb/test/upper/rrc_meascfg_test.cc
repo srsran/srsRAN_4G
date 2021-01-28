@@ -240,8 +240,8 @@ int test_correct_meascfg_calculation()
     freq_res_common_list freq_res{cfg};
 
     // measConfig only includes earfcns of active carriers for a given pcell
-    meas_cfg_s               cell_meas_cfg;
-    ue_cell_ded_list         ue_cell_list{cfg, freq_res, cell_list};
+    meas_cfg_s       cell_meas_cfg;
+    ue_cell_ded_list ue_cell_list{cfg, freq_res, cell_list};
     ue_cell_list.set_cells({0});
     TESTASSERT(fill_meascfg_enb_cfg(cell_meas_cfg, ue_cell_list));
     const auto& measobjs = cell_meas_cfg.meas_obj_to_add_mod_list;
@@ -297,9 +297,9 @@ int test_minimize_meascfg_reordering()
   TESTASSERT(cell_list.get_cc_idx(0)->scells.size() == 1);
   TESTASSERT(cell_list.get_cc_idx(0)->scells[0] == cell_list.get_cc_idx(1));
   TESTASSERT(cell_list.get_cc_idx(1)->scells.empty());
-  freq_res_common_list     freq_res{cfg1};
-  ue_cell_ded_list            ue_cell_list1{cfg1, freq_res, cell_list};
-  ue_cell_ded_list            ue_cell_list2{cfg1, freq_res, cell_list};
+  freq_res_common_list freq_res{cfg1};
+  ue_cell_ded_list     ue_cell_list1{cfg1, freq_res, cell_list};
+  ue_cell_ded_list     ue_cell_list2{cfg1, freq_res, cell_list};
 
   meas_cfg_s mcfg1{}, mcfg2{};
   ue_cell_list1.set_cells({0, 1});
@@ -327,15 +327,22 @@ int test_minimize_meascfg_reordering()
 int main(int argc, char** argv)
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  auto& logger = srslog::fetch_basic_logger("RRC", false);
+  logger.set_level(srslog::basic_levels::info);
+  srslog::init();
 
   if (argc < 3) {
     argparse::usage(argv[0]);
     return -1;
   }
   argparse::parse_args(argc, argv);
+
   TESTASSERT(test_correct_meascfg_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
   TESTASSERT(test_minimize_meascfg_reordering() == 0);
+
+  srslog::flush();
+
   srslte::console("Success\n");
 
   return 0;

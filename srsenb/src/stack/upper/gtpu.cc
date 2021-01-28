@@ -22,7 +22,7 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu() : m1u(this), gtpu_log("GTPU") {}
+gtpu::gtpu(srslog::basic_logger& logger) : m1u(this), gtpu_log("GTPU"), logger(logger) {}
 
 int gtpu::init(std::string                  gtp_bind_addr_,
                std::string                  mme_addr_,
@@ -43,17 +43,17 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   // Set up socket
   fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd < 0) {
-    gtpu_log->error("Failed to create socket\n");
+    logger.error("Failed to create socket");
     return SRSLTE_ERROR;
   }
   int enable = 1;
 #if defined(SO_REUSEADDR)
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-    gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
+    logger.error("setsockopt(SO_REUSEADDR) failed");
 #endif
 #if defined(SO_REUSEPORT)
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
-    gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
+    logger.error("setsockopt(SO_REUSEPORT) failed");
 #endif
 
   struct sockaddr_in bindaddr;
@@ -64,8 +64,8 @@ int gtpu::init(std::string                  gtp_bind_addr_,
 
   if (bind(fd, (struct sockaddr*)&bindaddr, sizeof(struct sockaddr_in))) {
     snprintf(errbuf, sizeof(errbuf), "%s", strerror(errno));
-    gtpu_log->error("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
-    srslte::console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
+    logger.error("Failed to bind on address %s, port %d: %s", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
+    srslte::console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), int(GTPU_PORT), errbuf);
     return SRSLTE_ERROR;
   }
 
@@ -91,21 +91,21 @@ void gtpu::stop()
 // gtpu_interface_pdcp
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
+  logger.info(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
   // Check valid IP version
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
   if (ip_pkt->version != 4 && ip_pkt->version != 6) {
-    gtpu_log->error("Invalid IP version to SPGW\n");
+    logger.error("Invalid IP version to SPGW");
     return;
   }
   if (ip_pkt->version == 4) {
     if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
-      gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
+      logger.error("IP Len and PDU N_bytes mismatch");
     }
-    gtpu_log->debug("Tx S1-U PDU -- IP version %d, Total length %d\n", ip_pkt->version, ntohs(ip_pkt->tot_len));
-    gtpu_log->debug("Tx S1-U PDU -- IP src addr %s\n", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
-    gtpu_log->debug("Tx S1-U PDU -- IP dst addr %s\n", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
+    logger.debug("Tx S1-U PDU -- IP version %d, Total length %d", int(ip_pkt->version), ntohs(ip_pkt->tot_len));
+    logger.debug("Tx S1-U PDU -- IP src addr %s", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
+    logger.debug("Tx S1-U PDU -- IP dst addr %s", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
   }
 
   gtpu_header_t header;
@@ -120,7 +120,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   servaddr.sin_port        = htons(GTPU_PORT);
 
   if (!gtpu_write_header(&header, pdu.get(), gtpu_log)) {
-    gtpu_log->error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x\n", header.flags, header.message_type);
+    logger.error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x", header.flags, header.message_type);
     return;
   }
   if (sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) < 0) {
@@ -129,21 +129,17 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
 }
 
 /* Warning: This function is called before calling gtpu::init() during MCCH initialization.
- * If access to any element created in init (such as gtpu_log) is required, it must be considered
- * the case of it being NULL.
  */
 uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out)
 {
   // Allocate a TEID for the incoming tunnel
   uint32_t teid_in = allocate_teidin(rnti, lcid);
-  if (gtpu_log) {
-    gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n",
-                   rnti,
-                   lcid,
-                   addr,
-                   teid_out,
-                   teid_in);
-  }
+  logger.info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x",
+              rnti,
+              lcid,
+              addr,
+              teid_out,
+              teid_in);
 
   // Initialize maps if it's a new RNTI
   if (rnti_bearers.count(rnti) == 0) {
@@ -163,7 +159,7 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
 
 void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 {
-  gtpu_log->info("Removing bearer for rnti: 0x%x, lcid: %d\n", rnti, lcid);
+  logger.info("Removing bearer for rnti: 0x%x, lcid: %d", rnti, lcid);
 
   // Remove from TEID from map
   free_teidin(rnti, lcid);
@@ -186,14 +182,14 @@ void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 
 void gtpu::mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti)
 {
-  gtpu_log->info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x\n", old_rnti, new_rnti);
+  logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
   if (rnti_bearers.count(new_rnti) != 0) {
-    gtpu_log->error("New rnti already exists, aborting.\n");
+    logger.error("New rnti already exists, aborting.");
     return;
   }
   if (rnti_bearers.count(old_rnti) == 0) {
-    gtpu_log->error("Old rnti does not exist, aborting.\n");
+    logger.error("Old rnti does not exist, aborting.");
     return;
   }
 
@@ -226,7 +222,7 @@ void gtpu::rem_user(uint16_t rnti)
 
 void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
-  gtpu_log->debug("Received %d bytes from S1-U interface\n", pdu->N_bytes);
+  logger.debug("Received %d bytes from S1-U interface", pdu->N_bytes);
   pdu->set_timestamp();
 
   gtpu_header_t header;
@@ -254,38 +250,37 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       bool user_exists = (rnti_bearers.count(rnti) > 0);
 
       if (not user_exists) {
-        gtpu_log->error("Unrecognized TEID In=%d for DL PDU. Dropping packet\n", header.teid);
+        logger.error("Unrecognized TEID In=%d for DL PDU. Dropping packet", header.teid);
         return;
       }
 
       if (lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
-        gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
+        logger.error("Invalid LCID for DL PDU: %d - dropping packet", lcid);
         return;
       }
 
-      gtpu_log->info_hex(
-          pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
+      logger.info(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
       struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
       if (ip_pkt->version != 4 && ip_pkt->version != 6) {
-        gtpu_log->error("Invalid IP version to SPGW\n");
+        logger.error("Invalid IP version to SPGW");
         return;
       }
 
       if (ip_pkt->version == 4) {
         if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
-          gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
+          logger.error("IP Len and PDU N_bytes mismatch");
         }
-        gtpu_log->debug("Rx S1-U PDU -- IP version %d, Total length %d\n", ip_pkt->version, ntohs(ip_pkt->tot_len));
-        gtpu_log->debug("Rx S1-U PDU -- IP src addr %s\n", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
-        gtpu_log->debug("Rx S1-U PDU -- IP dst addr %s\n", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
+        logger.debug("Rx S1-U PDU -- IP version %d, Total length %d", int(ip_pkt->version), ntohs(ip_pkt->tot_len));
+        logger.debug("Rx S1-U PDU -- IP src addr %s", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
+        logger.debug("Rx S1-U PDU -- IP dst addr %s", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
       }
       pdcp->write_sdu(rnti, lcid, std::move(pdu));
     } break;
     case GTPU_MSG_END_MARKER: {
       rnti_lcid_t rnti_lcid = teidin_to_rntilcid(header.teid);
       uint16_t    rnti      = rnti_lcid.rnti;
-      gtpu_log->info("Received GTPU End Marker for rnti=0x%x.\n", rnti);
+      logger.info("Received GTPU End Marker for rnti=0x%x.", rnti);
       break;
     }
     default:
@@ -303,7 +298,7 @@ void gtpu::handle_gtpu_m1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
  ***************************************************************************/
 void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
 {
-  gtpu_log->info("TX GTPU Error Indication. Seq: %d, Error TEID: %d\n", tx_seq, err_teid);
+  logger.info("TX GTPU Error Indication. Seq: %d, Error TEID: %d", tx_seq, err_teid);
 
   gtpu_header_t        header = {};
   unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
@@ -333,7 +328,7 @@ void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
  ***************************************************************************/
 void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 {
-  gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
+  logger.info("TX GTPU Echo Response, Seq: %d", seq);
 
   gtpu_header_t        header = {};
   unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
@@ -364,12 +359,12 @@ uint32_t gtpu::allocate_teidin(uint16_t rnti, uint16_t lcid)
 {
   uint32_t teid_in = ++next_teid_in;
   if (teidin_to_rntilcid_map.count(teid_in) != 0) {
-    gtpu_log->error("TEID In already exists\n");
+    logger.error("TEID In already exists");
     return 0;
   }
   rnti_lcid_t rnti_lcid           = {rnti, lcid};
   teidin_to_rntilcid_map[teid_in] = rnti_lcid;
-  gtpu_log->debug("TEID In=%d added\n", teid_in);
+  logger.debug("TEID In=%d added", teid_in);
   return teid_in;
 }
 
@@ -378,7 +373,7 @@ void gtpu::free_teidin(uint16_t rnti, uint16_t lcid)
   for (std::map<uint32_t, rnti_lcid_t>::iterator it = teidin_to_rntilcid_map.begin();
        it != teidin_to_rntilcid_map.end();) {
     if (it->second.rnti == rnti && it->second.lcid == lcid) {
-      gtpu_log->debug("TEID In=%d erased\n", it->first);
+      logger.debug("TEID In=%d erased", it->first);
       it = teidin_to_rntilcid_map.erase(it);
     } else {
       it++;
@@ -391,7 +386,7 @@ void gtpu::free_teidin(uint16_t rnti)
   for (std::map<uint32_t, rnti_lcid_t>::iterator it = teidin_to_rntilcid_map.begin();
        it != teidin_to_rntilcid_map.end();) {
     if (it->second.rnti == rnti) {
-      gtpu_log->debug("TEID In=%d erased\n", it->first);
+      logger.debug("TEID In=%d erased", it->first);
       it = teidin_to_rntilcid_map.erase(it);
     } else {
       it++;
@@ -403,7 +398,7 @@ gtpu::rnti_lcid_t gtpu::teidin_to_rntilcid(uint32_t teidin)
 {
   rnti_lcid_t rnti_lcid = {};
   if (teidin_to_rntilcid_map.count(teidin) == 0) {
-    gtpu_log->error("TEID=%d In does not exist.\n", teidin);
+    logger.error("TEID=%d In does not exist.", teidin);
     return rnti_lcid;
   }
   rnti_lcid.rnti = teidin_to_rntilcid_map[teidin].rnti;
@@ -420,7 +415,7 @@ uint32_t gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid)
     }
   }
   if (teidin == 0) {
-    gtpu_log->error("Could not find TEID. RNTI=0x%x, LCID=%d.\n", rnti, lcid);
+    logger.error("Could not find TEID. RNTI=0x%x, LCID=%d.", rnti, lcid);
   }
   return teidin;
 }
@@ -448,7 +443,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   struct sockaddr_in bindaddr = {};
   m1u_sd                      = socket(AF_INET, SOCK_DGRAM, 0);
   if (m1u_sd < 0) {
-    gtpu_log->error("Failed to create M1-U sink socket\n");
+    logger.error("Failed to create M1-U sink socket");
     return false;
   }
 
@@ -457,7 +452,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   bindaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Multicast sockets require bind to INADDR_ANY
   bindaddr.sin_port        = htons(GTPU_PORT + 1);
   if (bind(m1u_sd, (struct sockaddr*)&bindaddr, sizeof(bindaddr)) < 0) {
-    gtpu_log->error("Failed to bind multicast socket\n");
+    logger.error("Failed to bind multicast socket");
     return false;
   }
 
@@ -466,11 +461,11 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   mreq.imr_multiaddr.s_addr = inet_addr(m1u_multiaddr.c_str()); // Multicast address of the service
   mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());   // Address of the IF the socket will listen to.
   if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
-    gtpu_log->error("Register musticast group for M1-U\n");
-    gtpu_log->error("M1-U infterface IP: %s, M1-U Multicast Address %s\n", m1u_if_addr.c_str(), m1u_multiaddr.c_str());
+    logger.error("Register musticast group for M1-U");
+    logger.error("M1-U infterface IP: %s, M1-U Multicast Address %s", m1u_if_addr.c_str(), m1u_multiaddr.c_str());
     return false;
   }
-  gtpu_log->info("M1-U initialized\n");
+  logger.info("M1-U initialized");
 
   initiated    = true;
   lcid_counter = 1;
@@ -483,7 +478,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
 
 void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
-  gtpu_log->debug("Received %d bytes from M1-U interface\n", pdu->N_bytes);
+  logger.debug("Received %d bytes from M1-U interface", pdu->N_bytes);
 
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, gtpu_log);

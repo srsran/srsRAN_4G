@@ -16,6 +16,7 @@
 #include "sched_sim_ue.h"
 #include "sched_test_utils.h"
 #include "srsenb/hdr/stack/mac/sched.h"
+#include "srslte/srslog/srslog.h"
 #include <random>
 
 namespace srsenb {
@@ -78,6 +79,7 @@ public:
     std::vector<sched_interface::ul_sched_res_t> ul_sched_result;
   };
 
+  common_sched_tester() : logger(srslog::fetch_basic_logger("TEST")) {}
   ~common_sched_tester() override = default;
 
   const ue_cfg_t* get_current_ue_cfg(uint16_t rnti) const;
@@ -95,8 +97,8 @@ public:
   int run_ue_ded_tests_and_update_ctxt(const sf_output_res_t& sf_out);
 
   // args
-  sim_sched_args sim_args0; ///< arguments used to generate TTI events
-  srslte::log*   tester_log = nullptr;
+  sim_sched_args        sim_args0; ///< arguments used to generate TTI events
+  srslog::basic_logger& logger;
 
   // tti specific params
   tti_info_t tti_info;

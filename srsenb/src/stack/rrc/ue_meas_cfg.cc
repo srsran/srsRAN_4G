@@ -22,7 +22,6 @@ namespace srsenb {
  *          measObjToAddMod
  **********************************/
 
-
 bool is_same_earfcn(const meas_obj_t& lhs, const meas_obj_t& rhs)
 {
   int freq1 = srslte::get_carrier_freq(lhs);
@@ -247,7 +246,7 @@ meas_gap_cfg_c make_measgap(const meas_obj_list& measobjs, const ue_cell_ded& pc
     case 0: // no meas gaps configured
       break;
     default:
-      srslte::logmap::get("RRC")->error("Error setting measurement gap.\n");
+      srslog::fetch_basic_logger("RRC").error("Error setting measurement gap.");
   }
   return meas_gap;
 }
@@ -285,8 +284,8 @@ bool apply_meas_gap_updates(const meas_gap_cfg_c& src_gaps,
           }
           break;
         default:
-          srslte::logmap::get("RRC")->warning("MeasGap of type %s not supported\n",
-                                              target_offset.type().to_string().c_str());
+          srslog::fetch_basic_logger("RRC").warning("MeasGap of type %s not supported",
+                                                    target_offset.type().to_string().c_str());
       }
     }
   }
@@ -319,7 +318,7 @@ bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const ue_cell_ded_list& ue_cell_l
   const ue_cell_ded* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   assert(pcell != nullptr);
   const enb_cell_common* pcell_cfg     = pcell->cell_common;
-  const auto&             pcell_meascfg = pcell_cfg->cell_cfg.meas_cfg;
+  const auto&            pcell_meascfg = pcell_cfg->cell_cfg.meas_cfg;
 
   // Add PCell+Scells to measObjToAddModList
   // NOTE: sort by EARFCN to avoid unnecessary reconfigurations of measObjToAddModList
@@ -327,11 +326,9 @@ bool fill_meascfg_enb_cfg(meas_cfg_s& meascfg, const ue_cell_ded_list& ue_cell_l
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cell_list.nof_cells(); ++ue_cc_idx) {
     sorted_ue_cells[ue_cc_idx] = ue_cell_list.get_ue_cc_idx(ue_cc_idx);
   }
-  std::sort(sorted_ue_cells.begin(),
-            sorted_ue_cells.end(),
-            [](const ue_cell_ded* cc1, const ue_cell_ded* cc2) {
-              return cc1->get_dl_earfcn() < cc2->get_dl_earfcn();
-            });
+  std::sort(sorted_ue_cells.begin(), sorted_ue_cells.end(), [](const ue_cell_ded* cc1, const ue_cell_ded* cc2) {
+    return cc1->get_dl_earfcn() < cc2->get_dl_earfcn();
+  });
   for (auto* cc : sorted_ue_cells) {
     add_meas_obj(meascfg.meas_obj_to_add_mod_list, cc->get_dl_earfcn());
   }
@@ -393,16 +390,16 @@ bool compute_diff_meascfg(const meas_cfg_s& current_meascfg, const meas_cfg_s& t
   return set_meascfg_presence_flags(diff_meascfg);
 }
 
-bool apply_meascfg_updates(meas_cfg_s&                     meascfg,
-                           meas_cfg_s&                     current_meascfg,
+bool apply_meascfg_updates(meas_cfg_s&             meascfg,
+                           meas_cfg_s&             current_meascfg,
                            const ue_cell_ded_list& ue_cell_list,
-                           int                             prev_earfcn,
-                           int                             prev_pci)
+                           int                     prev_earfcn,
+                           int                     prev_pci)
 {
   meascfg = {};
 
   const ue_cell_ded* pcell         = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  uint32_t                   target_earfcn = pcell->get_dl_earfcn();
+  uint32_t           target_earfcn = pcell->get_dl_earfcn();
 
   if (static_cast<uint32_t>(prev_pci) == pcell->get_pci() and static_cast<uint32_t>(prev_earfcn) == target_earfcn) {
     // Shortcut: No PCell change -> no measConfig updates

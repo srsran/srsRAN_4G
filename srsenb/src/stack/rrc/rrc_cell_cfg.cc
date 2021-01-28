@@ -140,7 +140,7 @@ cell_res_common* freq_res_common_list::get_earfcn(uint32_t earfcn)
 ue_cell_ded_list::ue_cell_ded_list(const rrc_cfg_t&            cfg_,
                                    freq_res_common_list&       cell_res_list_,
                                    const enb_cell_common_list& enb_common_list) :
-  cfg(cfg_), cell_res_list(cell_res_list_), common_list(enb_common_list)
+  logger(srslog::fetch_basic_logger("RRC")), cfg(cfg_), cell_res_list(cell_res_list_), common_list(enb_common_list)
 {
   cell_list.reserve(common_list.nof_cells());
 }
@@ -174,12 +174,12 @@ ue_cell_ded* ue_cell_ded_list::add_cell(uint32_t enb_cc_idx)
 {
   const enb_cell_common* cell_common = common_list.get_cc_idx(enb_cc_idx);
   if (cell_common == nullptr) {
-    log_h->error("cell with enb_cc_idx=%d does not exist.\n", enb_cc_idx);
+    logger.error("cell with enb_cc_idx=%d does not exist.", enb_cc_idx);
     return nullptr;
   }
   ue_cell_ded* ret = get_enb_cc_idx(enb_cc_idx);
   if (ret != nullptr) {
-    log_h->error("UE already registered cell %d\n", enb_cc_idx);
+    logger.error("UE already registered cell %d", enb_cc_idx);
     return nullptr;
   }
 
@@ -221,7 +221,7 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
   // Allocate CQI, SR, and PUCCH CS resources. If failure, do not add new cell
   if (ue_cc_idx == UE_PCELL_CC_IDX) {
     if (not alloc_sr_resources(cfg.sr_cfg.period)) {
-      log_h->error("Failed to allocate SR resources for PCell\n");
+      logger.error("Failed to allocate SR resources for PCell");
       return false;
     }
 
@@ -233,7 +233,7 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
     if (ue_cc_idx == 1 and not n_pucch_cs_present) {
       // Allocate resources for Format1b CS (will be optional PUCCH3/CS)
       if (not alloc_pucch_cs_resources()) {
-        log_h->error("Error allocating PUCCH Format1b CS resource for SCell\n");
+        logger.error("Error allocating PUCCH Format1b CS resource for SCell");
         return false;
       }
     } else {
@@ -242,7 +242,7 @@ bool ue_cell_ded_list::alloc_cell_resources(uint32_t ue_cc_idx)
     }
   }
   if (not alloc_cqi_resources(ue_cc_idx, cfg.cqi_cfg.period)) {
-    log_h->error("Failed to allocate CQIresources for cell ue_cc_idx=%d\n", ue_cc_idx);
+    logger.error("Failed to allocate CQIresources for cell ue_cc_idx=%d", ue_cc_idx);
     return false;
   }
 
@@ -293,7 +293,7 @@ bool ue_cell_ded_list::set_cells(const std::vector<uint32_t>& enb_cc_idxs)
     uint32_t               enb_cc_idx  = enb_cc_idxs[ue_cc_idx];
     const enb_cell_common* cell_common = common_list.get_cc_idx(enb_cc_idx);
     if (cell_common == nullptr) {
-      log_h->error("cell with enb_cc_idx=%d does not exist.\n", enb_cc_idx);
+      logger.error("cell with enb_cc_idx=%d does not exist.", enb_cc_idx);
       break;
     }
     auto* prev_cell_common = cell_list[ue_cc_idx].cell_common;
@@ -305,7 +305,7 @@ bool ue_cell_ded_list::set_cells(const std::vector<uint32_t>& enb_cc_idxs)
     dealloc_cqi_resources(ue_cc_idx);
     cell_list[ue_cc_idx] = ue_cell_ded{ue_cc_idx, *cell_common};
     if (not alloc_cqi_resources(ue_cc_idx, cfg.cqi_cfg.period)) {
-      log_h->error("Failed to allocate CQI resources for cell ue_cc_idx=%d\n", ue_cc_idx);
+      logger.error("Failed to allocate CQI resources for cell ue_cc_idx=%d", ue_cc_idx);
       break;
     }
   }
@@ -324,11 +324,11 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
 {
   ue_cell_ded* cell = get_ue_cc_idx(ue_cc_idx);
   if (cell == nullptr) {
-    log_h->error("The user cell ue_cc_idx=%d has not been allocated\n", ue_cc_idx);
+    logger.error("The user cell ue_cc_idx=%d has not been allocated", ue_cc_idx);
     return false;
   }
   if (cell->cqi_res_present) {
-    log_h->error("The user cqi resources for cell ue_cc_idx=%d are already allocated\n", ue_cc_idx);
+    logger.error("The user cqi resources for cell ue_cc_idx=%d are already allocated", ue_cc_idx);
     return false;
   }
 
@@ -352,7 +352,7 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
     }
   }
   if (pucch_res->cqi_sched.nof_users[i_min][j_min] > max_users) {
-    log_h->error("Not enough PUCCH resources to allocate Scheduling Request\n");
+    logger.error("Not enough PUCCH resources to allocate Scheduling Request");
     return false;
   }
 
@@ -361,7 +361,7 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
   // Compute I_sr
   if (period != 2 && period != 5 && period != 10 && period != 20 && period != 40 && period != 80 && period != 160 &&
       period != 32 && period != 64 && period != 128) {
-    log_h->error("Invalid CQI Report period %d ms\n", period);
+    logger.error("Invalid CQI Report period %d ms", period);
     return false;
   }
   if (cfg.cqi_cfg.sf_mapping[j_min] < period) {
@@ -381,7 +381,7 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
       }
     }
   } else {
-    log_h->error("Allocating CQI: invalid sf_idx=%d for period=%d\n", cfg.cqi_cfg.sf_mapping[j_min], period);
+    logger.error("Allocating CQI: invalid sf_idx=%d for period=%d", cfg.cqi_cfg.sf_mapping[j_min], period);
     return false;
   }
 
@@ -399,7 +399,7 @@ bool ue_cell_ded_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period)
 
   pucch_res->cqi_sched.nof_users[i_min][j_min]++;
 
-  log_h->info("Allocated CQI resources for ue_cc_idx=%d, time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
+  logger.info("Allocated CQI resources for ue_cc_idx=%d, time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d",
               ue_cc_idx,
               i_min,
               j_min,
@@ -417,10 +417,10 @@ bool ue_cell_ded_list::dealloc_cqi_resources(uint32_t ue_cc_idx)
 
   if (pucch_res->cqi_sched.nof_users[c->cqi_res.prb_idx][c->cqi_res.sf_idx] > 0) {
     pucch_res->cqi_sched.nof_users[c->cqi_res.prb_idx][c->cqi_res.sf_idx]--;
-    log_h->info("Deallocated CQI resources for time-frequency slot (%d, %d)\n", c->cqi_res.prb_idx, c->cqi_res.sf_idx);
+    logger.info("Deallocated CQI resources for time-frequency slot (%d, %d)", c->cqi_res.prb_idx, c->cqi_res.sf_idx);
   } else {
-    log_h->warning(
-        "Removing CQI resources: no users in time-frequency slot (%d, %d)\n", c->cqi_res.prb_idx, c->cqi_res.sf_idx);
+    logger.warning(
+        "Removing CQI resources: no users in time-frequency slot (%d, %d)", c->cqi_res.prb_idx, c->cqi_res.sf_idx);
   }
   c->cqi_res_present = false;
   return true;
@@ -430,11 +430,11 @@ bool ue_cell_ded_list::alloc_sr_resources(uint32_t period)
 {
   ue_cell_ded* cell = get_ue_cc_idx(UE_PCELL_CC_IDX);
   if (cell == nullptr) {
-    log_h->error("The user cell pcell has not been allocated\n");
+    logger.error("The user cell pcell has not been allocated");
     return false;
   }
   if (sr_res_present) {
-    log_h->error("The user sr resources are already allocated\n");
+    logger.error("The user sr resources are already allocated");
     return false;
   }
 
@@ -457,19 +457,19 @@ bool ue_cell_ded_list::alloc_sr_resources(uint32_t period)
   }
 
   if (pucch_res->sr_sched.nof_users[i_min][j_min] > max_users) {
-    log_h->error("Not enough PUCCH resources to allocate Scheduling Request\n");
+    logger.error("Not enough PUCCH resources to allocate Scheduling Request");
     return false;
   }
 
   // Compute I_sr
   if (period != 5 && period != 10 && period != 20 && period != 40 && period != 80) {
-    log_h->error("Invalid SchedulingRequest period %d ms\n", period);
+    logger.error("Invalid SchedulingRequest period %d ms", period);
     return false;
   }
   if (cfg.sr_cfg.sf_mapping[j_min] < period) {
     sr_res.sr_I = period - 5 + cfg.sr_cfg.sf_mapping[j_min];
   } else {
-    log_h->error("Allocating SR: invalid sf_idx=%d for period=%d\n", cfg.sr_cfg.sf_mapping[j_min], period);
+    logger.error("Allocating SR: invalid sf_idx=%d for period=%d", cfg.sr_cfg.sf_mapping[j_min], period);
     return false;
   }
 
@@ -485,7 +485,7 @@ bool ue_cell_ded_list::alloc_sr_resources(uint32_t period)
   sr_res.sr_sched_sf_idx  = j_min;
   sr_res_present          = true;
 
-  log_h->info("Allocated SR resources in time-freq slot (%d, %d), sf_cfg_idx=%d\n",
+  logger.info("Allocated SR resources in time-freq slot (%d, %d), sf_cfg_idx=%d",
               sr_res.sr_sched_sf_idx,
               sr_res.sr_sched_prb_idx,
               cfg.sr_cfg.sf_mapping[sr_res.sr_sched_sf_idx]);
@@ -499,13 +499,13 @@ bool ue_cell_ded_list::dealloc_sr_resources()
     if (pucch_res->sr_sched.nof_users[sr_res.sr_sched_prb_idx][sr_res.sr_sched_sf_idx] > 0) {
       pucch_res->sr_sched.nof_users[sr_res.sr_sched_prb_idx][sr_res.sr_sched_sf_idx]--;
     } else {
-      log_h->warning("Removing SR resources: no users in time-frequency slot (%d, %d)\n",
+      logger.warning("Removing SR resources: no users in time-frequency slot (%d, %d)",
                      sr_res.sr_sched_prb_idx,
                      sr_res.sr_sched_sf_idx);
     }
-    log_h->info(
-        "Deallocated SR resources for time-frequency slot (%d, %d)\n", sr_res.sr_sched_prb_idx, sr_res.sr_sched_sf_idx);
-    log_h->debug("Remaining SR allocations for slot (%d, %d): %d\n",
+    logger.info(
+        "Deallocated SR resources for time-frequency slot (%d, %d)", sr_res.sr_sched_prb_idx, sr_res.sr_sched_sf_idx);
+    logger.debug("Remaining SR allocations for slot (%d, %d): %d",
                  sr_res.sr_sched_prb_idx,
                  sr_res.sr_sched_sf_idx,
                  pucch_res->sr_sched.nof_users[sr_res.sr_sched_prb_idx][sr_res.sr_sched_sf_idx]);
@@ -519,11 +519,11 @@ bool ue_cell_ded_list::alloc_pucch_cs_resources()
 {
   ue_cell_ded* cell = get_ue_cc_idx(UE_PCELL_CC_IDX);
   if (cell == nullptr) {
-    log_h->error("The user cell pcell has not been allocated\n");
+    logger.error("The user cell pcell has not been allocated");
     return false;
   }
   if (n_pucch_cs_present) {
-    log_h->error("The user sr resources are already allocated\n");
+    logger.error("The user sr resources are already allocated");
     return false;
   }
 
@@ -536,11 +536,11 @@ bool ue_cell_ded_list::alloc_pucch_cs_resources()
       pucch_res->n_pucch_cs_used[i] = true;
       n_pucch_cs_idx                = i;
       n_pucch_cs_present            = true;
-      log_h->info("Allocated N_pucch_cs=%d\n", n_pucch_cs_idx);
+      logger.info("Allocated N_pucch_cs=%d", n_pucch_cs_idx);
       return true;
     }
   }
-  log_h->warning("Could not allocated N_pucch_cs\n");
+  logger.warning("Could not allocated N_pucch_cs");
   return false;
 }
 
@@ -549,7 +549,7 @@ bool ue_cell_ded_list::dealloc_pucch_cs_resources()
   if (n_pucch_cs_present) {
     pucch_res->n_pucch_cs_used[n_pucch_cs_idx] = false;
     n_pucch_cs_present                         = false;
-    log_h->info("Deallocated N_pucch_cs=%d\n", n_pucch_cs_idx);
+    logger.info("Deallocated N_pucch_cs=%d", n_pucch_cs_idx);
     return true;
   }
   return false;

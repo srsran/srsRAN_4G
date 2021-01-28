@@ -15,10 +15,8 @@
 
 namespace srsenb {
 
-pdcp::pdcp(srslte::task_sched_handle task_sched_, const char* logname) :
-  task_sched(task_sched_),
-  log_h(logname),
-  pool(srslte::byte_buffer_pool::get_instance())
+pdcp::pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger) :
+  task_sched(task_sched_), logger(logger), pool(srslte::byte_buffer_pool::get_instance())
 {}
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
@@ -39,7 +37,7 @@ void pdcp::stop()
 void pdcp::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
-    srslte::pdcp* obj = new srslte::pdcp(task_sched, log_h->get_service_name().c_str());
+    srslte::pdcp* obj = new srslte::pdcp(task_sched, logger.id().c_str());
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
@@ -184,17 +182,17 @@ void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_buff
 
 void pdcp::user_interface_rrc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void pdcp::user_interface_rrc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
 {
-  ERROR("Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
 std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)

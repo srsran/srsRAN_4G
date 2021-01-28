@@ -64,7 +64,7 @@ private:
   int  apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg);
   void apply_current_bearers_cfg();
 
-  srslte::log_ref             log_h;
+  srslog::basic_logger&       logger;
   uint16_t                    rnti;
   const ue_cell_ded_list&     ue_cell_list;
   const bearer_cfg_handler&   bearer_list;

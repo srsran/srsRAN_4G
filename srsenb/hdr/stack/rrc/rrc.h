@@ -26,6 +26,7 @@
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <map>
 #include <queue>
 
@@ -45,7 +46,7 @@ class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_s1ap
 {
 public:
-  rrc(srslte::task_sched_handle task_sched_);
+  explicit rrc(srslte::task_sched_handle task_sched_);
   ~rrc();
 
   void init(const rrc_cfg_t&       cfg_,
@@ -121,14 +122,14 @@ public:
                        const std::string&      msg_type)
   {
     static const char* dir_str[] = {"Rx", "Tx", "S1AP Tx", "S1AP Rx"};
-    if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-      rrc_log->info("%s - %s %s (%zd B)\n", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
-    } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
+    if (logger.info.enabled()) {
+      logger.info("%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
+    } else if (logger.debug.enabled()) {
       asn1::json_writer json_writer;
       msg.to_json(json_writer);
-      rrc_log->debug_hex(
-          pdu.data(), pdu.size(), "%s - %s %s (%zd B)\n", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
-      rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
+      logger.debug(
+          pdu.data(), pdu.size(), "%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
+      logger.debug("Content:\n%s", json_writer.to_string().c_str());
     }
   }
 
@@ -144,6 +145,7 @@ private:
   gtpu_interface_rrc*       gtpu = nullptr;
   s1ap_interface_rrc*       s1ap = nullptr;
   srslte::log_ref           rrc_log;
+  srslog::basic_logger&     logger;
 
   // derived params
   std::unique_ptr<enb_cell_common_list> cell_common_list;

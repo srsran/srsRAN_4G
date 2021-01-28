@@ -62,10 +62,11 @@ class backend_spy : public detail::log_backend
 public:
   void start() override {}
 
-  void push(detail::log_entry&& entry) override
+  bool push(detail::log_entry&& entry) override
   {
     e = std::move(entry);
     ++count;
+    return true;
   }
 
   bool is_running() const override { return true; }

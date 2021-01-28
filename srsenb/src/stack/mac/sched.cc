@@ -17,10 +17,11 @@
 #include "srsenb/hdr/stack/mac/sched_carrier.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
 #define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)
-#define Error(fmt, ...) srslte::logmap::get("MAC ")->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) srslog::fetch_basic_logger("MAC").error(fmt, ##__VA_ARGS__)
 
 using srslte::tti_point;
 
@@ -32,7 +33,7 @@ namespace srsenb {
  *
  *******************************************************/
 
-sched::sched() : log_h(srslte::logmap::get("MAC")) {}
+sched::sched() {}
 
 sched::~sched() {}
 
@@ -120,7 +121,7 @@ int sched::ue_rem(uint16_t rnti)
   if (ue_db.count(rnti) > 0) {
     ue_db.erase(rnti);
   } else {
-    Error("User rnti=0x%x not found\n", rnti);
+    Error("User rnti=0x%x not found", rnti);
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
@@ -365,9 +366,9 @@ int sched::ue_db_access(uint16_t rnti, Func f, const char* func_name)
     f(it->second);
   } else {
     if (func_name != nullptr) {
-      Error("User rnti=0x%x not found. Failed to call %s.\n", rnti, func_name);
+      Error("User rnti=0x%x not found. Failed to call %s.", rnti, func_name);
     } else {
-      Error("User rnti=0x%x not found.\n", rnti);
+      Error("User rnti=0x%x not found.", rnti);
     }
     return SRSLTE_ERROR;
   }

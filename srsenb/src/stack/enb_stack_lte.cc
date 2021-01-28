@@ -20,14 +20,23 @@ using namespace srslte;
 
 namespace srsenb {
 
-enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
-  task_sched(512, 0, 128),
-  logger(logger_),
-  pdcp(&task_sched, "PDCP"),
+enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   thread("STACK"),
-  mac(&task_sched),
-  s1ap(&task_sched),
-  rrc(&task_sched)
+  mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
+  rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP", log_sink, false)),
+  rrc_logger(srslog::fetch_basic_logger("RRC", log_sink, false)),
+  s1ap_logger(srslog::fetch_basic_logger("S1AP", log_sink, false)),
+  gtpu_logger(srslog::fetch_basic_logger("GTPU", log_sink, false)),
+  stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
+  task_sched(512, 0, 128),
+  pdcp(&task_sched, pdcp_logger),
+  mac(&task_sched, mac_logger),
+  rlc(rlc_logger),
+  gtpu(gtpu_logger),
+  s1ap(&task_sched, s1ap_logger),
+  rrc(&task_sched),
+  logger(logger_)
 {
   enb_task_queue  = task_sched.make_task_queue();
   mme_task_queue  = task_sched.make_task_queue();
@@ -66,21 +75,35 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"MAC ", logger, true}});
   mac_log->set_level(args.log.mac_level);
   mac_log->set_hex_limit(args.log.mac_hex_limit);
+  mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
+  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
 
   // Init logs
   rlc_log->set_level(args.log.rlc_level);
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
   pdcp_log->set_level(args.log.pdcp_level);
+  pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
   rrc_log->set_level(args.log.rrc_level);
+  rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   gtpu_log->set_level(args.log.gtpu_level);
+  gtpu_logger.set_level(srslog::str_to_basic_level(args.log.gtpu_level));
   s1ap_log->set_level(args.log.s1ap_level);
+  s1ap_logger.set_level(srslog::str_to_basic_level(args.log.s1ap_level));
   stack_log->set_level(args.log.stack_level);
+  stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
 
   rlc_log->set_hex_limit(args.log.rlc_hex_limit);
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
+  pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
   rrc_log->set_hex_limit(args.log.rrc_hex_limit);
+  rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
   gtpu_log->set_hex_limit(args.log.gtpu_hex_limit);
+  gtpu_logger.set_hex_dump_max_size(args.log.gtpu_hex_limit);
   s1ap_log->set_hex_limit(args.log.s1ap_hex_limit);
+  s1ap_logger.set_hex_dump_max_size(args.log.s1ap_hex_limit);
   stack_log->set_hex_limit(args.log.stack_hex_limit);
+  stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
 
   // Set up pcap and trace
   if (args.mac_pcap.enable) {
@@ -100,11 +123,11 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // Init all layers
   mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, mac_log);
-  rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler(), rlc_log);
+  rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler());
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
   if (s1ap.init(args.s1ap, &rrc, this) != SRSLTE_SUCCESS) {
-    stack_log->error("Couldn't initialize S1AP\n");
+    stack_logger.error("Couldn't initialize S1AP");
     return SRSLTE_ERROR;
   }
   if (gtpu.init(args.s1ap.gtp_bind_addr,
@@ -114,7 +137,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
                 &pdcp,
                 this,
                 args.embms.enable)) {
-    stack_log->error("Couldn't initialize GTPU\n");
+    stack_logger.error("Couldn't initialize GTPU");
     return SRSLTE_ERROR;
   }
 

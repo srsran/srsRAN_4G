@@ -31,9 +31,9 @@ public:
 
   void start() override { worker.start(); }
 
-  void push(detail::log_entry&& entry) override
+  bool push(detail::log_entry&& entry) override
   {
-    queue.push(std::move(entry));
+    return queue.push(std::move(entry));
   }
 
   bool is_running() const override { return worker.is_running(); }

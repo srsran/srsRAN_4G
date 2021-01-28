@@ -17,16 +17,21 @@
 #include "test_helpers.h"
 #include <iostream>
 
-int test_erab_setup(bool qci_exists)
+int test_erab_setup(srslte::log_sink_spy& spy, bool qci_exists)
 {
   printf("\n===== TEST: test_erab_setup()  =====\n");
-  srslte::scoped_log<srslte::test_log_filter> rrc_log("RRC ");
-  srslte::task_scheduler                      task_sched;
-  srslte::unique_byte_buffer_t                pdu;
+
+  srslte::task_scheduler       task_sched;
+  srslte::unique_byte_buffer_t pdu;
 
   srsenb::all_args_t args;
   rrc_cfg_t          cfg;
   TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
+
+  spy.reset_counters();
+  auto& logger = srslog::fetch_basic_logger("RRC", false);
+  logger.set_hex_dump_max_size(1024);
+  logger.set_level(srslog::basic_levels::info);
 
   srsenb::rrc                       rrc{&task_sched};
   mac_dummy                         mac;
@@ -35,8 +40,6 @@ int test_erab_setup(bool qci_exists)
   phy_dummy                         phy;
   test_dummies::s1ap_mobility_dummy s1ap;
   gtpu_dummy                        gtpu;
-  rrc_log->set_level(srslte::LOG_LEVEL_INFO);
-  rrc_log->set_hex_limit(1024);
   rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
 
   uint16_t                  rnti = 0x46;
@@ -46,13 +49,13 @@ int test_erab_setup(bool qci_exists)
   ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
   rrc.add_user(rnti, ue_cfg);
 
-  rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+  // mute all the startup log
+  logger.set_level(srslog::basic_levels::none);
 
   // Do all the handshaking until the first RRC Connection Reconf
   test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
 
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(1024);
+  logger.set_level(srslog::basic_levels::debug);
 
   // MME sends 2nd ERAB Setup request for DRB2 (QCI exists in config)
   uint8_t drb2_erab_setup_request_ok[] = {
@@ -90,10 +93,10 @@ int test_erab_setup(bool qci_exists)
   if (qci_exists) {
     // NOTE: It does not add DRB1/ERAB-ID=5 bc that bearer already existed
     TESTASSERT(s1ap.added_erab_ids.size() == 1);
-    TESTASSERT(rrc_log->error_counter == 0);
+    TESTASSERT(spy.get_error_counter() == 0);
   } else {
     TESTASSERT(s1ap.added_erab_ids.empty());
-    TESTASSERT(rrc_log->error_counter > 0);
+    TESTASSERT(spy.get_error_counter() > 0);
   }
 
   return SRSLTE_SUCCESS;
@@ -101,15 +104,31 @@ int test_erab_setup(bool qci_exists)
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srslte::log_sink_spy::name(),
+          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSLTE_ERROR;
+  }
+
+  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  if (!spy) {
+    return SRSLTE_ERROR;
+  }
+  srslog::set_default_sink(*spy);
+
+  // Start the log backend.
+  srslog::init();
 
   if (argc < 3) {
     argparse::usage(argv[0]);
     return -1;
   }
   argparse::parse_args(argc, argv);
-  TESTASSERT(test_erab_setup(true) == SRSLTE_SUCCESS);
-  TESTASSERT(test_erab_setup(false) == SRSLTE_SUCCESS);
+  TESTASSERT(test_erab_setup(*spy, true) == SRSLTE_SUCCESS);
+  TESTASSERT(test_erab_setup(*spy, false) == SRSLTE_SUCCESS);
+
+  srslog::flush();
 
   printf("\nSuccess\n");
 

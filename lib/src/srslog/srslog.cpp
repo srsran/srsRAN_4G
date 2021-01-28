@@ -201,7 +201,10 @@ void srslog::flush()
   cmd.flush_cmd = std::unique_ptr<detail::flush_backend_cmd>(
       new detail::flush_backend_cmd{completion_flag, std::move(sinks)});
 
-  instance.get_backend().push(std::move(cmd));
+  // Make sure the flush command gets into the backend, otherwise we will be
+  // stuck waiting forever for the command to succeed.
+  while (!instance.get_backend().push(std::move(cmd))) {
+  }
 
   // Block the caller thread until we are signaled that the flush is completed.
   while (!completion_flag) {

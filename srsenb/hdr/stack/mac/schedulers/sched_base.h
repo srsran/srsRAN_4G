@@ -29,7 +29,7 @@ public:
   virtual void sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) = 0;
 
 protected:
-  srslte::log_ref log_h = srslte::logmap::get("MAC");
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");
 };
 
 /**************** Helper methods ****************/

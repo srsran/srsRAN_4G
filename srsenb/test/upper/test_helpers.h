@@ -216,7 +216,7 @@ bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
 {
   asn1::cbit_ref bref{pdu.data(), (uint32_t)pdu.size()};
   if (asn1obj.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    srslte::logmap::get("TEST")->error("Failed to unpack ASN1 type\n");
+    srslog::fetch_basic_logger("TEST").error("Failed to unpack ASN1 type");
     return false;
   }
   return true;

@@ -28,6 +28,7 @@
 #include "srslte/common/network_utils.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
+#include "srslte/srslog/srslog.h"
 #include <unordered_map>
 
 namespace srsenb {
@@ -48,14 +49,14 @@ public:
   static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
-  s1ap(srslte::task_sched_handle task_sched_);
+  s1ap(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger);
   int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interface_s1ap_lte* stack_);
   void stop();
   void get_metrics(s1ap_metrics_t& m);
 
   // RRC interface
   void
-  initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override;
+       initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override;
   void initial_ue(uint16_t                              rnti,
                   asn1::s1ap::rrc_establishment_cause_e cause,
                   srslte::unique_byte_buffer_t          pdu,
@@ -84,7 +85,7 @@ public:
 
   // Stack interface
   bool
-  handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srslte::s1ap_pcap* pcap_);
 
 private:
@@ -98,7 +99,7 @@ private:
   // args
   rrc_interface_s1ap*               rrc = nullptr;
   s1ap_args_t                       args;
-  srslte::log_ref                   s1ap_log;
+  srslog::basic_logger&             logger;
   srslte::byte_buffer_pool*         pool  = nullptr;
   srsenb::stack_interface_s1ap_lte* stack = nullptr;
   srslte::task_sched_handle         task_sched;
@@ -158,7 +159,7 @@ private:
       struct ts1_reloc_prep_expired {};
       ho_prep_proc_t(s1ap::ue* ue_);
       srslte::proc_outcome_t
-      init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+                             init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
       srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
       srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
       srslte::proc_outcome_t react(const asn1::s1ap::ho_prep_fail_s& msg);
@@ -206,8 +207,8 @@ private:
     //! TS 36.413, Section 8.4.6 - eNB Status Transfer procedure
 
     // args
-    s1ap*           s1ap_ptr;
-    srslte::log_ref s1ap_log;
+    s1ap*                 s1ap_ptr;
+    srslog::basic_logger& logger;
 
     // state
     bool                 release_requested = false;

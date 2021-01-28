@@ -22,6 +22,7 @@
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/mac/pdu_queue.h"
+#include "srslte/srslog/srslog.h"
 #include "ta.h"
 #include <pthread.h>
 #include <vector>
@@ -38,6 +39,7 @@ public:
      rlc_interface_mac*       rlc,
      phy_interface_stack_lte* phy_,
      srslte::log_ref          log_,
+     srslog::basic_logger&    logger,
      uint32_t                 nof_cells_,
      uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
      uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
@@ -139,6 +141,7 @@ private:
   rrc_interface_mac*       rrc = nullptr;
   phy_interface_stack_lte* phy = nullptr;
   srslte::log_ref          log_h;
+  srslog::basic_logger&    logger;
   sched_interface*         sched = nullptr;
 
   // Mutexes

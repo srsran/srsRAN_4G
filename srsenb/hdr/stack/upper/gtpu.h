@@ -18,6 +18,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
 #ifndef SRSENB_GTPU_H
@@ -28,7 +29,7 @@ namespace srsenb {
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
 public:
-  gtpu();
+  explicit gtpu(srslog::basic_logger& logger);
 
   int  init(std::string               gtp_bind_addr_,
             std::string               mme_addr_,
@@ -63,12 +64,13 @@ private:
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu* pdcp = nullptr;
   srslte::log_ref              gtpu_log;
+  srslog::basic_logger&        logger;
 
   // Class to create
   class m1u_handler
   {
   public:
-    explicit m1u_handler(gtpu* gtpu_) : parent(gtpu_) {}
+    explicit m1u_handler(gtpu* gtpu_) : parent(gtpu_), logger(parent->logger) {}
     ~m1u_handler();
     m1u_handler(const m1u_handler&) = delete;
     m1u_handler(m1u_handler&&)      = delete;
@@ -78,11 +80,12 @@ private:
     void         handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
 
   private:
-    gtpu*                parent = nullptr;
-    pdcp_interface_gtpu* pdcp   = nullptr;
-    srslte::log_ref      gtpu_log;
-    std::string          m1u_multiaddr;
-    std::string          m1u_if_addr;
+    gtpu*                 parent = nullptr;
+    pdcp_interface_gtpu*  pdcp   = nullptr;
+    srslte::log_ref       gtpu_log;
+    srslog::basic_logger& logger;
+    std::string           m1u_multiaddr;
+    std::string           m1u_if_addr;
 
     bool initiated    = false;
     int  m1u_sd       = -1;

@@ -41,6 +41,7 @@
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -111,7 +112,7 @@ struct rrc_cfg_t;
 class enb : public enb_metrics_interface, enb_command_interface
 {
 public:
-  enb();
+  enb(srslog::sink& log_sink);
 
   virtual ~enb();
 
@@ -134,8 +135,9 @@ private:
 
   int parse_args(const all_args_t& args_, rrc_cfg_t& rrc_cfg);
 
-  srslte::logger* logger = nullptr;
-  srslte::log_ref log; // Own logger for eNB
+  srslte::logger*       logger = nullptr;
+  srslog::sink&         log_sink;
+  srslog::basic_logger& enb_log;
 
   srslte::log_filter pool_log;
 

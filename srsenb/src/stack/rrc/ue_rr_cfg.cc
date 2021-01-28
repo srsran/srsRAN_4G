@@ -36,7 +36,7 @@ namespace srsenb {
 srb_to_add_mod_s* add_srb(srb_to_add_mod_list_l& srbs, uint8_t srb_id)
 {
   if (srb_id > 2 or srb_id == 0) {
-    srslte::logmap::get("RRC")->error("Invalid SRB id=%d\n", srb_id);
+    srslog::fetch_basic_logger("RRC").error("Invalid SRB id=%d", srb_id);
     return nullptr;
   }
 
@@ -105,7 +105,7 @@ int16_t get_ri(uint32_t m_ri)
       ri_idx = 805 - N_offset_ri;
       break;
     default:
-      srslte::logmap::get("RRC")->error("Allocating RI: invalid m_ri=%d\n", m_ri);
+      srslog::fetch_basic_logger("RRC").error("Allocating RI: invalid m_ri=%d", m_ri);
       return -1;
   }
 
@@ -135,7 +135,7 @@ int fill_cqi_report_setup(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg, c
   if (cqi_rep.cqi_report_periodic_present) {
     const ue_cell_ded* pcell = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
     if (pcell == nullptr or not pcell->cqi_res_present) {
-      srslte::logmap::get("RRC")->warning("PCell CQI resources haven\'t been allocated yet\n");
+      srslog::fetch_basic_logger("RRC").warning("PCell CQI resources haven\'t been allocated yet");
       return SRSLTE_ERROR;
     }
     auto& cqi_periodic             = cqi_rep.cqi_report_periodic.setup();
@@ -173,7 +173,7 @@ void fill_cqi_report_reconf(cqi_report_cfg_s& cqi_rep, const rrc_cfg_t& enb_cfg,
         cqi_setup.ri_cfg_idx_present = true;
         cqi_setup.ri_cfg_idx         = ri_idx;
       } else {
-        srslte::logmap::get("RRC")->warning("Warning: Configured wrong M_ri parameter.\n");
+        srslog::fetch_basic_logger("RRC").warning("Warning: Configured wrong M_ri parameter.");
       }
     }
   }

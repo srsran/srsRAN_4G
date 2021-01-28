@@ -16,6 +16,7 @@
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -154,10 +155,14 @@ inline bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sch
 int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg);
 
 /// Logs DL MAC PDU contents
-void log_dl_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::dl_sched_res_t& result);
+void log_dl_cc_results(srslog::basic_logger&                  logger,
+                       uint32_t                               enb_cc_idx,
+                       const sched_interface::dl_sched_res_t& result);
 
 /// Logs PHICH contents
-void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::ul_sched_res_t& result);
+void log_phich_cc_results(srslog::basic_logger&                  logger,
+                          uint32_t                               enb_cc_idx,
+                          const sched_interface::ul_sched_res_t& result);
 
 const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
 

@@ -48,34 +48,38 @@ ue_stats_t                     ue_tot_stats;
  *     Logging     *
  *******************/
 
-class sched_test_log final : public srslte::test_log_filter
+/// RAII style class that prints the test diagnostic info on destruction.
+class sched_diagnostic_printer
 {
 public:
-  sched_test_log() : srslte::test_log_filter("TEST") { exit_on_error = true; }
-  ~sched_test_log() override { log_diagnostics(); }
+  explicit sched_diagnostic_printer(srslte::log_sink_spy& s) : s(s) {}
 
-  void log_diagnostics() override
+  ~sched_diagnostic_printer()
   {
-    info("UE stats:\n");
-    info("all: {DL/UL RBs: %" PRIu32 "/%" PRIu32 ", DL/UL bitrates: %0.2f/%0.2f Mbps}\n",
-         ue_tot_stats.nof_dl_rbs,
-         ue_tot_stats.nof_ul_rbs,
-         ue_tot_stats.nof_dl_bytes * 8 * 0.001 / ue_tot_stats.nof_ttis,
-         ue_tot_stats.nof_ul_bytes * 8 * 0.001 / ue_tot_stats.nof_ttis);
-    for (auto& e : ue_stats) {
-      info("0x%x: {DL/UL RBs: %" PRIu32 "/%" PRIu32 ", DL/UL bitrates: %0.2f/%0.2f Mbps}\n",
-           e.first,
-           e.second.nof_dl_rbs,
-           e.second.nof_ul_rbs,
-           e.second.nof_dl_bytes * 8 * 0.001 / e.second.nof_ttis,
-           e.second.nof_ul_bytes * 8 * 0.001 / e.second.nof_ttis);
+    auto& logger = srslog::fetch_basic_logger("TEST");
+    logger.info("UE stats:");
+    logger.info("all: {DL/UL RBs: %" PRIu32 "/%" PRIu32 ", DL/UL bitrates: %0.2f/%0.2f Mbps}",
+                ue_tot_stats.nof_dl_rbs,
+                ue_tot_stats.nof_ul_rbs,
+                ue_tot_stats.nof_dl_bytes * 8 * 0.001 / ue_tot_stats.nof_ttis,
+                ue_tot_stats.nof_ul_bytes * 8 * 0.001 / ue_tot_stats.nof_ttis);
+    for (const auto& e : ue_stats) {
+      logger.info("0x%x: {DL/UL RBs: %" PRIu32 "/%" PRIu32 ", DL/UL bitrates: %0.2f/%0.2f Mbps}",
+                  e.first,
+                  e.second.nof_dl_rbs,
+                  e.second.nof_ul_rbs,
+                  e.second.nof_dl_bytes * 8 * 0.001 / e.second.nof_ttis,
+                  e.second.nof_ul_bytes * 8 * 0.001 / e.second.nof_ttis);
     }
-    info("Number of assertion warnings: %u\n", warn_counter);
-    info("Number of assertion errors: %u\n", error_counter);
-    info("This was the seed: %u\n", seed);
+    logger.info("Number of assertion warnings: %u", s.get_warning_counter());
+    logger.info("Number of assertion errors: %u", s.get_error_counter());
+    logger.info("This was the seed: %u", seed);
+    srslog::flush();
   }
+
+private:
+  srslte::log_sink_spy& s;
 };
-srslte::scoped_log<sched_test_log> log_global{};
 
 /*******************
  *     Dummies     *
@@ -164,10 +168,10 @@ int sched_tester::test_harqs()
     uint16_t                    rnti = data.dci.rnti;
     const srsenb::dl_harq_proc& h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
     CONDERROR(h.get_tti() != srsenb::to_tx_dl(tti_rx),
-              "The scheduled DL harq pid=%d does not a valid tti=%u\n",
+              "The scheduled DL harq pid=%d does not a valid tti=%u",
               h_id,
               srsenb::to_tx_dl(tti_rx).to_uint());
-    CONDERROR(h.get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result\n");
+    CONDERROR(h.get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result");
   }
 
   /* Check PHICH allocations */
@@ -175,20 +179,20 @@ int sched_tester::test_harqs()
     const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
     const auto* h     = ue_db[phich.rnti].get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
-    CONDERROR(not hprev.has_pending_phich(), "Alloc PHICH did not have any pending ack\n");
+    CONDERROR(not hprev.has_pending_phich(), "Alloc PHICH did not have any pending ack");
     bool maxretx_flag = hprev.nof_retx(0) + 1 >= hprev.max_nof_retx();
     if (phich.phich == sched_interface::ul_sched_phich_t::ACK) {
       // The harq can be either ACKed or Resumed
       if (not hprev.is_empty()) {
         // In case it was resumed
-        CONDERROR(h == nullptr or h->is_empty(), "Cannot resume empty UL harq\n");
+        CONDERROR(h == nullptr or h->is_empty(), "Cannot resume empty UL harq");
         for (uint32_t j = 0; j < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++j) {
           auto& pusch = tti_info.ul_sched_result[CARRIER_IDX].pusch[j];
-          CONDERROR(pusch.dci.rnti == phich.rnti, "Cannot send PHICH::ACK for same harq that got UL grant.\n");
+          CONDERROR(pusch.dci.rnti == phich.rnti, "Cannot send PHICH::ACK for same harq that got UL grant.");
         }
       }
     } else {
-      CONDERROR(h->get_pending_data() == 0 and !maxretx_flag, "NACKed harq has no pending data\n");
+      CONDERROR(h->get_pending_data() == 0 and !maxretx_flag, "NACKed harq has no pending data");
     }
   }
 
@@ -285,7 +289,6 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_offset   = std::uniform_int_distribution<uint32_t>{
       0, sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period}(srsenb::get_rand_gen());
   sim_gen.sim_args.start_tti = 0;
-  sim_gen.sim_args.sim_log   = log_global.get();
   sim_gen.sim_args.sched_args.pdsch_mcs =
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
   sim_gen.sim_args.sched_args.pusch_mcs =
@@ -326,9 +329,29 @@ int main()
   srsenb::set_randseed(seed);
   printf("This is the chosen seed: %u\n", seed);
 
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srslte::log_sink_spy::name(),
+          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSLTE_ERROR;
+  }
+
+  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  if (!spy) {
+    return SRSLTE_ERROR;
+  }
+
+  auto& mac_log = srslog::fetch_basic_logger("MAC");
+  mac_log.set_level(srslog::basic_levels::info);
+  auto& test_log = srslog::fetch_basic_logger("TEST", *spy, false);
+  test_log.set_level(srslog::basic_levels::info);
+
+  // Start the log backend.
+  srslog::init();
+
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;
 
+  sched_diagnostic_printer printer(*spy);
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
     sched_sim_events sim = rand_sim_params(nof_ttis);

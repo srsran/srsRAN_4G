@@ -17,10 +17,12 @@
 
 using namespace srsenb;
 const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
-uint32_t       rlc_overhead(uint32_t lcid)
+
+uint32_t rlc_overhead(uint32_t lcid)
 {
   return lcid == 0 ? 0 : 3;
 }
+
 uint32_t add_rlc_overhead(uint32_t lcid, uint32_t rlc_payload_size)
 {
   return rlc_payload_size + (rlc_payload_size == 0 ? 0 : rlc_overhead(lcid));
@@ -190,9 +192,17 @@ int main()
 {
   srsenb::set_randseed(seed);
   srslte::console("This is the chosen seed: %u\n", seed);
-  srslte::logmap::get("TEST")->set_level(srslte::LOG_LEVEL_INFO);
+
+  auto& test_log = srslog::fetch_basic_logger("TEST", false);
+  test_log.set_level(srslog::basic_levels::info);
+
+  // Start the log backend.
+  srslog::init();
 
   TESTASSERT(test_lc_ch_pbr_infinity() == SRSLTE_SUCCESS);
   TESTASSERT(test_lc_ch_pbr_finite() == SRSLTE_SUCCESS);
+
+  srslog::flush();
+
   srslte::console("Success\n");
 }

@@ -165,7 +165,7 @@ static bool when_invalid_id_with_valid_type_is_passed_then_no_logger_is_found()
 }
 
 /// Dummy logger type
-enum class dummy_levels { error, LAST };
+enum class dummy_levels { none, error, LAST };
 struct dummy_logger_channels {
   log_channel& error;
 };

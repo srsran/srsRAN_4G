@@ -35,7 +35,6 @@ public:
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) final;
 
 private:
-  srslte::log_ref           m_log{"SDAP"};
   gtpu_interface_sdap_nr*   m_gtpu = nullptr;
   pdcp_interface_sdap_nr*   m_pdcp = nullptr;
   srsue::gw_interface_pdcp* m_gw   = nullptr;

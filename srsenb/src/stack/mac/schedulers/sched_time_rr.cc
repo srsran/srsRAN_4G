@@ -52,7 +52,7 @@ void sched_time_rr::sched_dl_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched
     }
     alloc_outcome_t code = try_dl_retx_alloc(*tti_sched, user, *h);
     if (code == alloc_outcome_t::DCI_COLLISION) {
-      log_h->info("SCHED: Couldn't find space in PDCCH for DL retx for rnti=0x%x\n", user.get_rnti());
+      logger.info("SCHED: Couldn't find space in PDCCH for DL retx for rnti=0x%x", user.get_rnti());
     }
   }
 }
@@ -81,7 +81,7 @@ void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
       // empty RBGs were found
       alloc_outcome_t code = tti_sched->alloc_dl_user(&user, newtx_mask, h->get_id());
       if (code == alloc_outcome_t::DCI_COLLISION) {
-        log_h->info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x\n", user.get_rnti());
+        logger.info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x", user.get_rnti());
       }
     }
   }
@@ -118,7 +118,7 @@ void sched_time_rr::sched_ul_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched
     }
     alloc_outcome_t code = try_ul_retx_alloc(*tti_sched, user, *h);
     if (code == alloc_outcome_t::DCI_COLLISION) {
-      log_h->info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x\n", user.get_rnti());
+      logger.info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x", user.get_rnti());
     }
   }
 }
@@ -149,7 +149,7 @@ void sched_time_rr::sched_ul_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     }
     alloc_outcome_t ret = tti_sched->alloc_ul_user(&user, alloc);
     if (ret == alloc_outcome_t::DCI_COLLISION) {
-      log_h->info("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x\n", user.get_rnti());
+      logger.info("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x", user.get_rnti());
     }
   }
 }

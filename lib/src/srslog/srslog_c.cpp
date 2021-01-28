@@ -145,6 +145,8 @@ const char* srslog_get_logger_id(srslog_logger* log)
 static basic_levels convert_c_enum_to_basic_levels(srslog_log_levels lvl)
 {
   switch (lvl) {
+    case srslog_lvl_none:
+      return basic_levels::none;
     case srslog_lvl_debug:
       return basic_levels::debug;
     case srslog_lvl_info:
@@ -156,7 +158,7 @@ static basic_levels convert_c_enum_to_basic_levels(srslog_log_levels lvl)
   }
 
   assert(false && "Invalid enum value");
-  return basic_levels::error;
+  return basic_levels::none;
 }
 
 void srslog_set_logger_level(srslog_logger* log, srslog_log_levels lvl)

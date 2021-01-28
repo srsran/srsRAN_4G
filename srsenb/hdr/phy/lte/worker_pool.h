@@ -30,10 +30,6 @@ namespace lte {
 
 class worker_pool
 {
-
-private:
-  std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
-
   srslte::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
 
@@ -42,7 +38,7 @@ public:
   uint32_t   get_nof_workers() { return (uint32_t)workers.size(); }
 
   worker_pool(uint32_t max_workers);
-  bool       init(const phy_args_t& args, phy_common* common, srslte::logger* logger, int prio);
+  bool       init(const phy_args_t& args, phy_common* common, srslog::sink& log_sink, int prio);
   sf_worker* wait_worker(uint32_t tti);
   sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);

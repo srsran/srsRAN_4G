@@ -119,7 +119,6 @@ void pdcch_grid_t::alloc_tree_t::reset()
 void pdcch_grid_t::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg = &cell_params_;
-  log_h  = srslte::logmap::get("MAC ");
 
   // init alloc trees
   alloc_trees.reserve(cc_cfg->sched_cfg->max_nof_ctrl_symbols);
@@ -174,7 +173,7 @@ bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_u
   if (not success) {
     // DCI allocation failed. go back to original CFI
     if (get_cfi() != first_cfi and not set_cfi(first_cfi)) {
-      log_h->error("SCHED: Failed to return back to original PDCCH state\n");
+      logger.error("SCHED: Failed to return back to original PDCCH state");
     }
     return false;
   }
@@ -275,7 +274,7 @@ bool pdcch_grid_t::add_tree_node_leaves(alloc_tree_t&          tree,
 bool pdcch_grid_t::set_cfi(uint32_t cfi)
 {
   if (cfi < cc_cfg->sched_cfg->min_nof_ctrl_symbols or cfi > cc_cfg->sched_cfg->max_nof_ctrl_symbols) {
-    srslte::logmap::get("MAC")->error("Invalid CFI value. Defaulting to current CFI.\n");
+    logger.error("Invalid CFI value. Defaulting to current CFI.");
     return false;
   }
 
@@ -379,7 +378,6 @@ std::string pdcch_grid_t::result_to_string(bool verbose) const
 void sf_grid_t::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg    = &cell_params_;
-  log_h     = srslte::logmap::get("MAC ");
   nof_rbgs  = cc_cfg->nof_rbgs;
   si_n_rbg  = srslte::ceil_div(4, cc_cfg->P);
   rar_n_rbg = srslte::ceil_div(3, cc_cfg->P);
@@ -413,8 +411,8 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, 
   // Allocate DCI in PDCCH
   if (not pdcch_alloc.alloc_dci(alloc_type, aggr_idx, user)) {
     if (user != nullptr) {
-      if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
-        log_h->debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s\n",
+      if (logger.debug.enabled()) {
+        logger.debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s",
                      user->get_rnti(),
                      pdcch_alloc.result_to_string(true).c_str());
       }
@@ -437,7 +435,7 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_typ
 
   if (alloc_type != alloc_type_t::DL_RAR and alloc_type != alloc_type_t::DL_BC and
       alloc_type != alloc_type_t::DL_PCCH) {
-    log_h->error("SCHED: DL control allocations must be RAR/BC/PDCCH\n");
+    logger.error("SCHED: DL control allocations must be RAR/BC/PDCCH");
     return {alloc_outcome_t::ERROR, range};
   }
   // Setup range starting from left
@@ -479,8 +477,8 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, boo
     uint32_t nof_bits = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0);
     uint32_t aggr_idx = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
-      if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
-        log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
+      if (logger.debug.enabled()) {
+        logger.debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s",
                      user->get_rnti(),
                      pdcch_alloc.result_to_string(true).c_str());
       }
@@ -503,7 +501,7 @@ bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
 {
   bool ret = true;
   if (strict and (ul_mask & prbmask).any()) {
-    log_h->error("There was a collision in UL channel. current mask=0x%s, new alloc mask=0x%s\n",
+    logger.error("There was a collision in UL channel. current mask=0x%s, new alloc mask=0x%s",
                  ul_mask.to_hex().c_str(),
                  prbmask.to_hex().c_str());
     ret = false;
@@ -551,7 +549,7 @@ bool sf_grid_t::find_ul_alloc(uint32_t L, prb_interval* alloc) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-sf_sched::sf_sched() : log_h(srslte::logmap::get("MAC")) {}
+sf_sched::sf_sched() : logger(srslog::fetch_basic_logger("MAC")) {}
 
 void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
@@ -586,7 +584,7 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
     reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
-    log_h->debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s\n",
+    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
                  to_tx_ul(tti_rx).to_uint(),
                  prach_mask.to_hex().c_str());
   }
@@ -653,11 +651,11 @@ alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t
   uint32_t    rv      = get_rvidx(sib_ntx);
   ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
   if (not ret.first) {
-    Warning("SCHED: Could not allocate SIB=%d, L=%d, len=%d, cause=%s\n",
-            sib_idx + 1,
-            aggr_lvl,
-            sib_len,
-            ret.first.to_string());
+    logger.warning("SCHED: Could not allocate SIB=%d, L=%d, len=%d, cause=%s",
+                   sib_idx + 1,
+                   aggr_lvl,
+                   sib_len,
+                   ret.first.to_string());
     return ret.first;
   }
 
@@ -673,13 +671,13 @@ alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t
 alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload)
 {
   if (bc_allocs.size() >= sched_interface::MAX_BC_LIST) {
-    Warning("SCHED: Maximum number of Broadcast allocations reached\n");
+    logger.warning("SCHED: Maximum number of Broadcast allocations reached");
     return alloc_outcome_t::ERROR;
   }
   ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, paging_payload, SRSLTE_PRNTI);
   if (not ret.first) {
-    Warning(
-        "SCHED: Could not allocate Paging with payload length=%d, cause=%s\n", paging_payload, ret.first.to_string());
+    logger.warning(
+        "SCHED: Could not allocate Paging with payload length=%d, cause=%s", paging_payload, ret.first.to_string());
     return ret.first;
   }
 
@@ -695,7 +693,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
   const uint32_t                       msg3_grant_size = 3;
   std::pair<alloc_outcome_t, uint32_t> ret             = {alloc_outcome_t::ERROR, 0};
   if (rar_allocs.size() >= sched_interface::MAX_RAR_LIST) {
-    Warning("SCHED: Maximum number of RAR allocations per TTI reached.\n");
+    logger.warning("SCHED: Maximum number of RAR allocations per TTI reached.");
     return ret;
   }
 
@@ -720,7 +718,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
     }
     // if any other error, return
     if (ret.first != alloc_outcome_t::SUCCESS) {
-      log_h->warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
+      logger.warning("SCHED: Could not allocate RAR for L=%d, cause=%s", aggr_lvl, ret.first.to_string());
       return ret;
     }
 
@@ -741,7 +739,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
     break;
   }
   if (ret.first != alloc_outcome_t::SUCCESS) {
-    log_h->info("SCHED: Failed to allocate RAR due to lack of RBs\n");
+    logger.info("SCHED: Failed to allocate RAR due to lack of RBs");
   }
   return ret;
 }
@@ -761,12 +759,12 @@ bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, tti_point
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
   if (data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
-    Warning("SCHED: Maximum number of DL allocations reached\n");
+    logger.warning("SCHED: Maximum number of DL allocations reached");
     return alloc_outcome_t::ERROR;
   }
 
   if (is_dl_alloc(user->get_rnti())) {
-    Warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
+    logger.warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x", user->get_rnti());
     return alloc_outcome_t::ALREADY_ALLOC;
   }
 
@@ -784,7 +782,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
     // It is newTx
     rbg_interval r = user->get_required_dl_rbgs(cc_cfg->enb_cc_idx);
     if (r.start() > user_mask.count()) {
-      log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
+      logger.warning("The number of RBGs allocated to rnti=0x%x will force segmentation", user->get_rnti());
       return alloc_outcome_t::NOF_RB_INVALID;
     }
   }
@@ -829,13 +827,13 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
 alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs)
 {
   if (ul_data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
-    Warning("SCHED: Maximum number of UL allocations reached\n");
+    logger.warning("SCHED: Maximum number of UL allocations reached");
     return alloc_outcome_t::ERROR;
   }
 
   // Check whether user was already allocated
   if (is_ul_alloc(user->get_rnti())) {
-    log_h->warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x\n", user->get_rnti());
+    logger.warning("SCHED: Attempt to assign multiple ul_harq_proc to the same user rnti=0x%x", user->get_rnti());
     return alloc_outcome_t::ALREADY_ALLOC;
   }
 
@@ -884,7 +882,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
 bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result)
 {
   if (ul_sf_result->nof_phich_elems >= sched_interface::MAX_PHICH_LIST) {
-    Warning("SCHED: Maximum number of PHICH allocations has been reached\n");
+    logger.warning("SCHED: Maximum number of PHICH allocations has been reached");
     return false;
   }
   using phich_t    = sched_interface::ul_sched_phich_t;
@@ -924,7 +922,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     // Setup BC/Paging processes
     if (bc_alloc.alloc_type == alloc_type_t::DL_BC) {
       if (tbs <= (int)bc_alloc.req_bytes) {
-        log_h->warning("SCHED: Error SIB%d, rbgs=(%d,%d), dci=(%d,%d), len=%d\n",
+        logger.warning("SCHED: Error SIB%d, rbgs=(%d,%d), dci=(%d,%d), len=%d",
                        bc_alloc.sib_idx + 1,
                        bc_alloc.rbg_range.start(),
                        bc_alloc.rbg_range.stop(),
@@ -939,7 +937,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       bc->type  = sched_interface::dl_sched_bc_t::BCCH;
       bc->tbs   = (uint32_t)bc_alloc.req_bytes;
 
-      log_h->debug("SCHED: SIB%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d\n",
+      logger.debug("SCHED: SIB%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d",
                    bc_alloc.sib_idx + 1,
                    bc_alloc.rbg_range.start(),
                    bc_alloc.rbg_range.stop(),
@@ -952,7 +950,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     } else {
       // Paging
       if (tbs <= 0) {
-        log_h->warning("SCHED: Error Paging, rbgs=%s, dci=(%d,%d)\n",
+        logger.warning("SCHED: Error Paging, rbgs=%s, dci=(%d,%d)",
                        bc_alloc.rbg_range.to_string().c_str(),
                        bc->dci.location.L,
                        bc->dci.location.ncce);
@@ -963,7 +961,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       bc->type = sched_interface::dl_sched_bc_t::PCCH;
       bc->tbs  = (uint32_t)tbs;
 
-      log_h->info("SCHED: PCH, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d\n",
+      logger.info("SCHED: PCH, rbgs=%s, dci=(%d,%d), tbs=%d, mcs=%d",
                   bc_alloc.rbg_range.to_string().c_str(),
                   bc->dci.location.L,
                   bc->dci.location.ncce,
@@ -988,7 +986,7 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     prb_interval prb_range = prb_interval::rbgs_to_prbs(rar_alloc.alloc_data.rbg_range, cc_cfg->nof_prb());
     int tbs = generate_format1a(prb_range, rar_alloc.alloc_data.req_bytes, 0, rar_alloc.alloc_data.rnti, &rar->dci);
     if (tbs <= 0) {
-      log_h->warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=%s, dci=(%d,%d)\n",
+      logger.warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=%s, dci=(%d,%d)",
                      rar_alloc.alloc_data.rnti,
                      rar_alloc.alloc_data.rbg_range.to_string().c_str(),
                      rar->dci.location.L,
@@ -1004,8 +1002,8 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     for (uint32_t i = 0; i < rar->msg3_grant.size(); ++i) {
       const auto& msg3_grant    = rar->msg3_grant[i];
       uint16_t    expected_rnti = msg3_grant.data.temp_crnti;
-      log_h->info("SCHED: RAR, temp_crnti=0x%x, ra-rnti=%d, rbgs=%s, dci=(%d,%d), rar_grant_rba=%d, "
-                  "rar_grant_mcs=%d\n",
+      logger.info("SCHED: RAR, temp_crnti=0x%x, ra-rnti=%d, rbgs=%s, dci=(%d,%d), rar_grant_rba=%d, "
+                  "rar_grant_mcs=%d",
                   expected_rnti,
                   rar_alloc.alloc_data.rnti,
                   rar_alloc.alloc_data.rbg_range.to_string().c_str(),
@@ -1043,7 +1041,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
         data_alloc.pid, data, get_tti_tx_dl(), cc_cfg->enb_cc_idx, tti_alloc.get_cfi(), data_alloc.user_mask);
 
     if (tbs <= 0) {
-      log_h->warning("SCHED: DL %s failed rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
+      logger.warning("SCHED: DL %s failed rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d",
                      is_newtx ? "tx" : "retx",
                      user->get_rnti(),
                      data_alloc.pid,
@@ -1054,7 +1052,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     }
 
     // Print Resulting DL Allocation
-    log_h->info("SCHED: DL %s rnti=0x%x, cc=%d, pid=%d, mask=0x%s, dci=(%d,%d), n_rtx=%d, tbs=%d, buffer=%d/%d\n",
+    logger.info("SCHED: DL %s rnti=0x%x, cc=%d, pid=%d, mask=0x%s, dci=(%d,%d), n_rtx=%d, tbs=%d, buffer=%d/%d",
                 !is_newtx ? "retx" : "tx",
                 user->get_rnti(),
                 cc_cfg->enb_cc_idx,
@@ -1194,7 +1192,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     uint32_t      new_pending_bytes = user->get_pending_ul_new_data(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
     // Allow TBS=0 in case of UCI-only PUSCH
     if (tbs < 0 || (tbs == 0 && pusch->dci.tb.mcs_idx != 29)) {
-      log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=%s, bsr=%d\n",
+      logger.warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=%s, bsr=%d",
                      ul_alloc.type == ul_alloc_t::MSG3 ? "Msg3" : "UL",
                      ul_alloc.is_retx() ? "retx" : "tx",
                      user->get_rnti(),
@@ -1208,7 +1206,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
 
     // Print Resulting UL Allocation
     uint32_t old_pending_bytes = user->get_pending_ul_old_data();
-    log_h->info("SCHED: %s %s rnti=0x%x, cc=%d, pid=%d, dci=(%d,%d), prb=%s, n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
+    logger.info("SCHED: %s %s rnti=0x%x, cc=%d, pid=%d, dci=(%d,%d), prb=%s, n_rtx=%d, tbs=%d, bsr=%d (%d-%d)",
                 ul_alloc.is_msg3() ? "Msg3" : "UL",
                 ul_alloc.is_retx() ? "retx" : "tx",
                 user->get_rnti(),
@@ -1236,7 +1234,7 @@ alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_s
 
   alloc_outcome_t ret = alloc_ul(user, msg3_alloc, sf_sched::ul_alloc_t::MSG3, rargrant.grant.trunc_mcs);
   if (not ret) {
-    log_h->warning("SCHED: Could not allocate msg3 within %s\n", msg3_alloc.to_string().c_str());
+    logger.warning("SCHED: Could not allocate msg3 within %s", msg3_alloc.to_string().c_str());
   }
   return ret;
 }
@@ -1256,7 +1254,7 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
       if (not is_ul_alloc(ue.get_rnti()) and h != nullptr and not h->is_empty()) {
         // There was a missed UL harq retx. Halt+Resume the HARQ
         phich.phich = phich_t::ACK;
-        log_h->debug("SCHED: rnti=0x%x UL harq pid=%d is being resumed\n", ue.get_rnti(), h->get_id());
+        logger.debug("SCHED: rnti=0x%x UL harq pid=%d is being resumed", ue.get_rnti(), h->get_id());
       }
     }
   }
@@ -1314,16 +1312,16 @@ int sf_sched::generate_format1a(prb_interval     prb_range,
     }
   }
   if (i == 28) {
-    Error("Can't allocate Format 1A for TBS=%d\n", tbs);
+    logger.error("Can't allocate Format 1A for TBS=%d", tbs);
     return -1;
   }
 
-  Debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d\n",
-        srslte_ra_tbs_from_idx(mcs, 2),
-        srslte_ra_tbs_from_idx(mcs, 3),
-        tbs_bytes,
-        tbs,
-        mcs);
+  logger.debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d",
+               srslte_ra_tbs_from_idx(mcs, 2),
+               srslte_ra_tbs_from_idx(mcs, 3),
+               tbs_bytes,
+               tbs,
+               mcs);
 
   dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
   dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;

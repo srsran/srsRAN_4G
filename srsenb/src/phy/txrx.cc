@@ -20,22 +20,22 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 
 namespace srsenb {
 
-txrx::txrx() : thread("TXRX")
+txrx::txrx(srslog::basic_logger& logger) : thread("TXRX"), logger(logger)
 {
   /* Do nothing */
 }
@@ -46,12 +46,10 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
                 nr::worker_pool*             nr_workers_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
-                srslte::log*                 log_h_,
                 uint32_t                     prio_)
 {
   stack         = stack_;
   radio_h       = radio_h_;
-  log_h         = log_h_;
   lte_workers   = lte_workers_;
   nr_workers    = nr_workers_;
   worker_com    = worker_com_;
@@ -110,7 +108,7 @@ void txrx::run_thread()
     ul_channel->set_srate(static_cast<uint32_t>(samp_rate));
   }
 
-  log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n", worker_com->get_nof_prb(0), sf_len);
+  logger.info("Starting RX/TX thread nof_prb=%d, sf_len=%d", worker_com->get_nof_prb(0), sf_len);
 
   // Set TTI so that first TX is at tti=0
   tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
@@ -118,10 +116,7 @@ void txrx::run_thread()
   // Main loop
   while (running) {
     tti = TTI_ADD(tti, 1);
-
-    if (log_h) {
-      log_h->step(tti);
-    }
+    logger.set_context(tti);
 
     lte::sf_worker* lte_worker = nullptr;
     if (worker_com->get_nof_carriers_lte() > 0) {
@@ -173,7 +168,7 @@ void txrx::run_thread()
     // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
     timestamp.add(FDD_HARQ_DELAY_UL_MS * 1e-3);
 
-    Debug("Setting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n",
+    Debug("Setting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d",
           tti,
           tx_worker_cnt,
           timestamp.get(0).full_secs,

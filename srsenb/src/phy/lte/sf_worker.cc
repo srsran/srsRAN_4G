@@ -18,16 +18,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 
@@ -64,31 +64,30 @@ namespace lte {
 FILE* f;
 #endif
 
-void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
+void sf_worker::init(phy_common* phy_)
 {
-  phy   = phy_;
-  log_h = log_h_;
+  phy = phy_;
 
   // Initialise each component carrier workers
   for (uint32_t i = 0; i < phy->get_nof_carriers_lte(); i++) {
     // Create pointer
-    auto q = new cc_worker();
+    auto q = new cc_worker(logger);
 
     // Initialise
-    q->init(phy, log_h, i);
+    q->init(phy, i);
 
     // Create unique pointer
     cc_workers.push_back(std::unique_ptr<cc_worker>(q));
   }
 
   if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->get_nof_prb(0))) {
-    ERROR("Error initiating soft buffer\n");
+    ERROR("Error initiating soft buffer");
     exit(-1);
   }
 
   srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
-  Info("Worker %d configured cell %d PRB\n", get_id(), phy->get_nof_prb(0));
+  Info("Worker %d configured cell %d PRB", get_id(), phy->get_nof_prb(0));
 
   initiated = true;
   running   = true;
@@ -188,9 +187,9 @@ void sf_worker::work_imp()
 
   stack_interface_phy_lte* stack = phy->stack;
 
-  log_h->step(tti_rx);
+  logger.set_context(tti_rx);
 
-  Debug("Worker %d running\n", get_id());
+  Debug("Worker %d running", get_id());
 
   // Configure UL subframe
   ul_sf.tti = tti_rx;
@@ -206,14 +205,14 @@ void sf_worker::work_imp()
   // Get DL scheduling for the TX TTI from MAC
   if (sf_type == SRSLTE_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, dl_grants) < 0) {
-      Error("Getting DL scheduling from MAC\n");
+      Error("Getting DL scheduling from MAC");
       phy->worker_end(this, tx_buffer, tx_time);
       return;
     }
   } else {
     dl_grants[0].cfi = mbsfn_cfg.non_mbsfn_region_length;
     if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants)) {
-      Error("Getting MCH packets from MAC\n");
+      Error("Getting MCH packets from MAC");
       phy->worker_end(this, tx_buffer, tx_time);
       return;
     }
@@ -225,7 +224,7 @@ void sf_worker::work_imp()
 
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants_tx) < 0) {
-    Error("Getting UL scheduling from MAC\n");
+    Error("Getting UL scheduling from MAC");
     phy->worker_end(this, tx_buffer, tx_time);
     return;
   }
@@ -248,7 +247,7 @@ void sf_worker::work_imp()
   phy->set_ul_grants(t_tx_ul, ul_grants_tx);
   phy->set_ul_grants(t_rx, ul_grants);
 
-  Debug("Sending to radio\n");
+  Debug("Sending to radio");
   tx_buffer.set_nof_samples(SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)));
   phy->worker_end(this, tx_buffer, tx_time);
 

@@ -15,6 +15,7 @@
 
 #include "sched.h"
 #include "schedulers/sched_base.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -50,7 +51,7 @@ private:
 
   // args
   const sched_cell_params_t*    cc_cfg = nullptr;
-  srslte::log_ref               log_h;
+  srslog::basic_logger&         logger;
   rrc_interface_mac*            rrc   = nullptr;
   std::map<uint16_t, sched_ue>* ue_db = nullptr;
   const uint32_t                enb_cc_idx;
@@ -114,7 +115,7 @@ public:
 
 private:
   // args
-  srslte::log_ref               log_h;
+  srslog::basic_logger&         logger;
   const sched_cell_params_t*    cc_cfg = nullptr;
   std::map<uint16_t, sched_ue>* ue_db  = nullptr;
 

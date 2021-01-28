@@ -18,13 +18,24 @@
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
 class security_cfg_handler
 {
 public:
-  explicit security_cfg_handler(const rrc_cfg_t& cfg_) : cfg(&cfg_) {}
+  explicit security_cfg_handler(const rrc_cfg_t& cfg_) : cfg(&cfg_), logger(srslog::fetch_basic_logger("RRC")) {}
+  security_cfg_handler& operator=(const security_cfg_handler& other)
+  {
+    cfg                   = other.cfg;
+    k_enb_present         = other.k_enb_present;
+    security_capabilities = other.security_capabilities;
+    std::copy(other.k_enb, other.k_enb + 32, k_enb);
+    sec_cfg = other.sec_cfg;
+    ncc     = other.ncc;
+    return *this;
+  }
 
   bool set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
   void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
@@ -40,7 +51,7 @@ public:
 private:
   void generate_as_keys();
 
-  srslte::log_ref               log_h{"RRC"};
+  srslog::basic_logger&         logger;
   const rrc_cfg_t*              cfg                   = nullptr;
   bool                          k_enb_present         = false;
   asn1::s1ap::ue_security_cap_s security_capabilities = {};
@@ -84,9 +95,9 @@ public:
   std::map<uint8_t, erab_t>                erabs;
 
 private:
-  srslte::log_ref  log_h{"RRC"};
-  uint16_t         rnti = 0;
-  const rrc_cfg_t* cfg  = nullptr;
+  srslog::basic_logger& logger;
+  uint16_t              rnti = 0;
+  const rrc_cfg_t*      cfg  = nullptr;
 
   // last cfg
   asn1::rrc::drb_to_add_mod_list_l current_drbs;

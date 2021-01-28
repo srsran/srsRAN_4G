@@ -24,6 +24,7 @@
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/srslog/srslog.h"
 #include "ta.h"
 #include "ue.h"
 #include <vector>
@@ -33,7 +34,7 @@ namespace srsenb {
 class mac final : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc
 {
 public:
-  mac(srslte::ext_task_sched_handle task_sched_);
+  mac(srslte::ext_task_sched_handle task_sched_, srslog::basic_logger& logger);
   ~mac();
   bool init(const mac_args_t&        args_,
             const cell_list_t&       cells_,
@@ -105,6 +106,8 @@ private:
   uint16_t allocate_ue();
 
   std::mutex rnti_mutex;
+
+  srslog::basic_logger& logger;
 
   // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
   // access for different TTIs

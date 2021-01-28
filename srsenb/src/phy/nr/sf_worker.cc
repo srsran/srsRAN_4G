@@ -23,17 +23,17 @@
 
 namespace srsenb {
 namespace nr {
-sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log) :
-  phy(phy_), phy_state(phy_state_), log_h(log)
+sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslog::basic_logger& logger) :
+  phy(phy_), phy_state(phy_state_), logger(logger)
 {
   for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
-    cc_worker* w = new cc_worker(i, log, phy_state);
+    cc_worker* w = new cc_worker(i, logger, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
 
   if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     return;
   }
   data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
@@ -80,7 +80,7 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_tti(uint32_t tti)
 {
-  log_h->step(tti);
+  logger.set_context(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
   }

@@ -128,7 +128,7 @@ int test_pdcch_one_ue()
     TESTASSERT(pdcch_result[1]->total_mask == (pdcch_result[0]->current_mask | pdcch_result[1]->current_mask));
     TESTASSERT(std::count(dci_locs, dci_locs + nof_dci_locs, pdcch_result[0]->dci_pos.ncce) > 0);
 
-    srslte::logmap::get("TEST")->info("PDCCH alloc result: %s\n", pdcch.result_to_string(true).c_str());
+    srslog::fetch_basic_logger("TEST").info("PDCCH alloc result: %s", pdcch.result_to_string(true).c_str());
   }
   TESTASSERT(tti_counter == nof_ttis);
 
@@ -139,8 +139,16 @@ int main()
 {
   srsenb::set_randseed(seed);
   printf("This is the chosen seed: %u\n", seed);
-  srslte::logmap::get("TEST")->set_level(srslte::LOG_LEVEL_INFO);
+
+  auto& test_log = srslog::fetch_basic_logger("TEST", false);
+  test_log.set_level(srslog::basic_levels::info);
+
+  // Start the log backend.
+  srslog::init();
 
   TESTASSERT(test_pdcch_one_ue() == SRSLTE_SUCCESS);
+
+  srslog::flush();
+
   printf("Success\n");
 }

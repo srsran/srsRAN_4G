@@ -29,7 +29,7 @@ int parse_default_cfg_phy(rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_cfg, srsenb::all_ar
   args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
   args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
   args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
-  srslte::logmap::get("TEST")->debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
+  srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args.enb_files.sib_config.c_str());
 
   args.enb.enb_id = 0x19B;
   TESTASSERT(srslte::string_to_mcc("001", &args.stack.s1ap.mcc));
@@ -49,7 +49,7 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
   args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
   args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
-  srslte::logmap::get("TEST")->debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
+  srslog::fetch_basic_logger("TEST").debug("sib file path=%s", args.enb_files.sib_config.c_str());
 
   args.enb.enb_id    = 0x19B;
   args.enb.dl_earfcn = 3400;

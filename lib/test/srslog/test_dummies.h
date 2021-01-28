@@ -88,7 +88,7 @@ class backend_dummy : public srslog::detail::log_backend
 public:
   void start() override {}
 
-  void push(srslog::detail::log_entry&& entry) override {}
+  bool push(srslog::detail::log_entry&& entry) override { return true; }
 
   bool is_running() const override { return true; }
 };

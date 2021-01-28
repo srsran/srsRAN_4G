@@ -78,7 +78,7 @@ struct sched_ue_cell {
 private:
   void enter_idle_st();
 
-  srslte::log_ref log_h{"MAC"};
+  srslog::basic_logger& logger;
 
   const sched_interface::ue_cfg_t* ue_cfg = nullptr;
   tti_point                        cfg_tti;

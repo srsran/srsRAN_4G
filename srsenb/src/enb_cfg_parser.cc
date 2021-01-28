@@ -127,7 +127,7 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
   data->carrier_freqs_info_list.resize((uint32_t)root.getLength());
   data->carrier_freqs_info_list_present = data->carrier_freqs_info_list.size() > 0;
   if (data->carrier_freqs_info_list.size() > ASN1_RRC_MAX_GNFG) {
-    ERROR("CarrierFreqsInfoGERAN cannot have more than %d entries\n", ASN1_RRC_MAX_GNFG);
+    ERROR("CarrierFreqsInfoGERAN cannot have more than %d entries", ASN1_RRC_MAX_GNFG);
     return -1;
   }
   for (uint32_t i = 0; i < data->carrier_freqs_info_list.size(); i++) {
@@ -147,27 +147,27 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     field_asn1_bitstring_number<asn1::fixed_bitstring<8>, uint8_t> ncc_permitted(
         "ncc_permitted", &data->carrier_freqs_info_list[i].common_info.ncc_permitted);
     if (ncc_permitted.parse(root[i])) {
-      ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_lsit=%d\n", i);
+      ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_lsit=%d", i);
       return -1;
     }
 
     int q_rx_lev_min = 0;
     if (!root[i].lookupValue("q_rx_lev_min", q_rx_lev_min)) {
-      ERROR("Missing field `q_rx_lev_min` in carrier_freqs_info_list=%d\n", i);
+      ERROR("Missing field `q_rx_lev_min` in carrier_freqs_info_list=%d", i);
       return -1;
     }
     data->carrier_freqs_info_list[i].common_info.q_rx_lev_min = q_rx_lev_min;
 
     int thresh_x_high = 0;
     if (!root[i].lookupValue("thresh_x_high", thresh_x_high)) {
-      ERROR("Missing field `thresh_x_high` in carrier_freqs_info_list=%d\n", i);
+      ERROR("Missing field `thresh_x_high` in carrier_freqs_info_list=%d", i);
       return -1;
     }
     data->carrier_freqs_info_list[i].common_info.thresh_x_high = thresh_x_high;
 
     int thresh_x_low = 0;
     if (!root[i].lookupValue("thresh_x_low", thresh_x_low)) {
-      ERROR("Missing field `thresh_x_low` in carrier_freqs_info_list=%d\n", i);
+      ERROR("Missing field `thresh_x_low` in carrier_freqs_info_list=%d", i);
       return -1;
     }
     data->carrier_freqs_info_list[i].common_info.thresh_x_low = thresh_x_low;
@@ -180,7 +180,7 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     field_asn1_enum_str<asn1::rrc::band_ind_geran_e> band_ind("band_ind",
                                                               &data->carrier_freqs_info_list[i].carrier_freqs.band_ind);
     if (band_ind.parse(root[i])) {
-      ERROR("Error parsing `band_ind` in carrier_freqs_info_list=%d\n", i);
+      ERROR("Error parsing `band_ind` in carrier_freqs_info_list=%d", i);
       return -1;
     }
 
@@ -435,7 +435,7 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["ul_um"])) {
-        ERROR("Error can't find sn_field_length in section ul_um\n");
+        ERROR("Error can't find sn_field_length in section ul_um");
       }
     }
 
@@ -450,12 +450,12 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["dl_um"])) {
-        ERROR("Error can't find sn_field_length in section dl_um\n");
+        ERROR("Error can't find sn_field_length in section dl_um");
       }
 
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &um_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_um"])) {
-        ERROR("Error can't find t_reordering in section dl_um\n");
+        ERROR("Error can't find t_reordering in section dl_um");
       }
     }
 
@@ -465,23 +465,23 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
       if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
-        ERROR("Error can't find t_poll_retx in section ul_am\n");
+        ERROR("Error can't find t_poll_retx in section ul_am");
       }
 
       field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
       if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
-        ERROR("Error can't find poll_pdu in section ul_am\n");
+        ERROR("Error can't find poll_pdu in section ul_am");
       }
 
       field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
       if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
-        ERROR("Error can't find poll_byte in section ul_am\n");
+        ERROR("Error can't find poll_byte in section ul_am");
       }
 
       field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh",
                                                                              &am_rlc->max_retx_thres);
       if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
-        ERROR("Error can't find max_retx_thresh in section ul_am\n");
+        ERROR("Error can't find max_retx_thresh in section ul_am");
       }
     }
 
@@ -490,12 +490,12 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
-        ERROR("Error can't find t_reordering in section dl_am\n");
+        ERROR("Error can't find t_reordering in section dl_am");
       }
 
       field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
       if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
-        ERROR("Error can't find t_status_prohibit in section dl_am\n");
+        ERROR("Error can't find t_status_prohibit in section dl_am");
       }
     }
 
@@ -509,7 +509,7 @@ int field_qci::parse(libconfig::Setting& root)
 
     parser::field<uint8> priority("priority", &lc_cfg->prio);
     if (priority.parse(q["logical_channel_config"])) {
-      ERROR("Error can't find logical_channel_config in section priority\n");
+      ERROR("Error can't find logical_channel_config in section priority");
     }
 
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_> prioritised_bit_rate(
@@ -521,7 +521,7 @@ int field_qci::parse(libconfig::Setting& root)
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_> bucket_size_duration(
         "bucket_size_duration", &lc_cfg->bucket_size_dur);
     if (bucket_size_duration.parse(q["logical_channel_config"])) {
-      ERROR("Error can't find bucket_size_duration in section logical_channel_config\n");
+      ERROR("Error can't find bucket_size_duration in section logical_channel_config");
     }
 
     parser::field<uint8> log_chan_group("log_chan_group", &lc_cfg->lc_ch_group);
@@ -538,15 +538,15 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
 {
   /* Transmission mode config section */
   if (args_->enb.transmission_mode < 1 || args_->enb.transmission_mode > 4) {
-    ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.\n", args_->enb.transmission_mode);
+    ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.", args_->enb.transmission_mode);
     return SRSLTE_ERROR;
   } else if (args_->enb.transmission_mode == 1 && args_->enb.nof_ports > 1) {
-    ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.\n",
+    ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.",
           args_->enb.nof_ports,
           args_->enb.transmission_mode);
     return SRSLTE_ERROR;
   } else if (args_->enb.transmission_mode > 1 && args_->enb.nof_ports != 2) {
-    ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).\n",
+    ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).",
           args_->enb.nof_ports,
           args_->enb.transmission_mode);
     return SRSLTE_ERROR;
@@ -576,7 +576,7 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
       rrc_cfg_->antenna_info.codebook_subset_restrict.n2_tx_ant_tm4().from_number(0b111111);
       break;
     default:
-      ERROR("Unsupported transmission mode %d\n", rrc_cfg_->antenna_info.tx_mode.to_number());
+      ERROR("Unsupported transmission mode %d", rrc_cfg_->antenna_info.tx_mode.to_number());
       return SRSLTE_ERROR;
   }
 
@@ -758,12 +758,12 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     for (auto it2 = it + 1; it2 != rrc_cfg->cell_list.end(); it2++) {
       // Check RF port is not repeated
       if (it->rf_port == it2->rf_port) {
-        ERROR("Repeated RF port for multiple cells\n");
+        ERROR("Repeated RF port for multiple cells");
       }
 
       // Check cell ID is not repeated
       if (it->cell_id == it2->cell_id) {
-        ERROR("Repeated Cell identifier\n");
+        ERROR("Repeated Cell identifier");
       }
     }
   }
@@ -886,20 +886,20 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     auto& cfg = rrc_cfg_->cell_list.at(0);
     if (args_->enb.dl_earfcn > 0) {
       cfg.dl_earfcn = args_->enb.dl_earfcn;
-      ERROR("Force DL EARFCN for cell PCI=%d to %d\n", cfg.pci, cfg.dl_earfcn);
+      ERROR("Force DL EARFCN for cell PCI=%d to %d", cfg.pci, cfg.dl_earfcn);
     }
     if (args_->rf.dl_freq > 0) {
       cfg.dl_freq_hz = args_->rf.dl_freq;
-      ERROR("Force DL freq for cell PCI=%d to %f MHz\n", cfg.pci, cfg.dl_freq_hz / 1e6f);
+      ERROR("Force DL freq for cell PCI=%d to %f MHz", cfg.pci, cfg.dl_freq_hz / 1e6f);
     }
     if (args_->rf.ul_freq > 0) {
       cfg.ul_freq_hz = args_->rf.ul_freq;
-      ERROR("Force UL freq for cell PCI=%d to %f MHz\n", cfg.pci, cfg.ul_freq_hz / 1e6f);
+      ERROR("Force UL freq for cell PCI=%d to %f MHz", cfg.pci, cfg.ul_freq_hz / 1e6f);
     }
   } else {
     // If more than one cell is defined, single EARFCN or DL freq will be ignored
     if (args_->enb.dl_earfcn > 0 || args_->rf.dl_freq > 0) {
-      INFO("Multiple cells defined in rr.conf. Ignoring single EARFCN and/or frequency config.\n");
+      INFO("Multiple cells defined in rr.conf. Ignoring single EARFCN and/or frequency config.");
     }
   }
 
@@ -943,10 +943,10 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
                                   rrc_cfg_->cell_list.end(),
                                   [scell_it](const cell_cfg_t& c) { return scell_it->cell_id == c.cell_id; });
       if (cell_it == rrc_cfg_->cell_list.end()) {
-        ERROR("Scell with cell_id=0x%x is not present in rr.conf. Ignoring it.\n", scell_it->cell_id);
+        ERROR("Scell with cell_id=0x%x is not present in rr.conf. Ignoring it.", scell_it->cell_id);
         scell_it = cfg.scell_list.erase(scell_it);
       } else if (cell_it->cell_id == cfg.cell_id) {
-        ERROR("A cell cannot have an scell with the same cell_id=0x%x\n", cfg.cell_id);
+        ERROR("A cell cannot have an scell with the same cell_id=0x%x", cfg.cell_id);
         return SRSLTE_ERROR;
       } else {
         scell_it++;
@@ -960,7 +960,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     auto collision_it = std::find_if(it + 1, rrc_cfg_->cell_list.end(), is_pss_collision);
     if (collision_it != rrc_cfg_->cell_list.end()) {
       ERROR("The cells pci1=%d and pci2=%d will have the same PSS. Consider changing one of the cells' PCI values, "
-            "otherwise a UE may fail to correctly detect and distinguish them\n",
+            "otherwise a UE may fail to correctly detect and distinguish them",
             it->pci,
             collision_it->pci);
     }
@@ -1013,7 +1013,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   uint32_t n310                     = rrc_cfg_->sibs[1].sib2().ue_timers_and_consts.n310.to_number();
   uint32_t min_rrc_inactivity_timer = t310 + t311 + n310 + 50;
   if (args_->general.rrc_inactivity_timer < min_rrc_inactivity_timer) {
-    ERROR("rrc_inactivity_timer=%d is too low. Consider setting it to a value equal or above %d\n",
+    ERROR("rrc_inactivity_timer=%d is too low. Consider setting it to a value equal or above %d",
           args_->general.rrc_inactivity_timer,
           min_rrc_inactivity_timer);
   }
@@ -1022,7 +1022,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 
   // Check number of control symbols
   if (args_->stack.mac.sched.min_nof_ctrl_symbols > args_->stack.mac.sched.max_nof_ctrl_symbols) {
-    ERROR("Invalid minimum number of control symbols %d. Setting it to 1.\n",
+    ERROR("Invalid minimum number of control symbols %d. Setting it to 1.",
           args_->stack.mac.sched.min_nof_ctrl_symbols);
     args_->stack.mac.sched.min_nof_ctrl_symbols = 1;
   }
@@ -1538,7 +1538,7 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
   cell_access->plmn_id_list.resize(1);
   srslte::plmn_id_t plmn;
   if (plmn.from_string(mcc_str + mnc_str) == SRSLTE_ERROR) {
-    ERROR("Could not convert %s to a plmn_id\n", (mcc_str + mnc_str).c_str());
+    ERROR("Could not convert %s to a plmn_id", (mcc_str + mnc_str).c_str());
     return -1;
   }
   srslte::to_asn1(&cell_access->plmn_id_list[0].plmn_id, plmn);

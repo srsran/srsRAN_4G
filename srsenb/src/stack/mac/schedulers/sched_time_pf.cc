@@ -95,7 +95,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
     }
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
-    log_h->info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x\n", ue.get_rnti());
+    logger.info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x", ue.get_rnti());
   }
   return 0;
 }
@@ -152,7 +152,7 @@ uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
                           : 0;
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
-    log_h->info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x\n", ue.get_rnti());
+    logger.info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x", ue.get_rnti());
   }
   return estim_tbs_bytes;
 }

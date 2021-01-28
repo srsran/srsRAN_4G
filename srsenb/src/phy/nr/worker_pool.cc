@@ -25,23 +25,16 @@ namespace nr {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
-bool worker_pool::init(const phy_args_t& args, phy_common* common, srslte::logger* logger, int prio)
+bool worker_pool::init(const phy_args_t& args, phy_common* common, srslog::sink& log_sink, int prio)
 {
-  // Create logs
-  // Create array of pointers to phy_logs
-  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    auto* mylog = new srslte::log_filter;
-    char  tmp[16];
-    sprintf(tmp, "PHY%d", i);
-    mylog->init(tmp, logger, true);
-    mylog->set_level(args.log.phy_level);
-    mylog->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::unique_ptr<srslte::log_filter>(mylog));
-  }
-
   // Add workers to workers pool and start threads
+  srslog::basic_levels log_level = srslog::str_to_basic_level(args.log.phy_level);
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    auto w = new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get());
+    auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}", i), log_sink);
+    log.set_level(log_level);
+    log.set_hex_dump_max_size(args.log.phy_hex_limit);
+
+    auto w = new sf_worker(common, &phy_state, log);
     pool.init_worker(i, w, prio);
     workers.push_back(std::unique_ptr<sf_worker>(w));
 

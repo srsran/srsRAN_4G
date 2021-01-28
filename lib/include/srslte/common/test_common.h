@@ -20,6 +20,8 @@
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
+#include <atomic>
 #include <cstdio>
 
 namespace srslte {
@@ -80,6 +82,65 @@ public:
 
   bool     exit_on_error = false;
   uint32_t error_counter = 0, warn_counter = 0;
+};
+
+/// This custom sink intercepts log messages to count error and warning log entries.
+class log_sink_spy : public srslog::sink
+{
+public:
+  explicit log_sink_spy(std::unique_ptr<srslog::log_formatter> f) :
+    srslog::sink(std::move(f)), s(srslog::get_default_sink())
+  {
+    error_counter.store(0);
+    warning_counter.store(0);
+  }
+
+  /// Identifier of this custom sink.
+  static const char* name() { return "log_sink_spy"; }
+
+  /// Returns the number of log entries tagged as errors.
+  unsigned get_error_counter() const
+  {
+    // Flush to make sure all entries have been processed by the backend.
+    srslog::flush();
+    return error_counter.load();
+  }
+
+  /// Returns the number of log entries tagged as warnings.
+  unsigned get_warning_counter() const
+  {
+    // Flush to make sure all entries have been processed by the backend.
+    srslog::flush();
+    return warning_counter.load();
+  }
+
+  /// Resets the counters back to 0.
+  void reset_counters()
+  {
+    // Flush to make sure all entries have been processed by the backend.
+    srslog::flush();
+    error_counter.store(0);
+    warning_counter.store(0);
+  }
+
+  srslog::detail::error_string write(srslog::detail::memory_buffer buffer) override
+  {
+    std::string entry(buffer.data(), buffer.size());
+    if (entry.find("[E]") != std::string::npos) {
+      error_counter.fetch_add(1);
+    } else if (entry.find("[W]") != std::string::npos) {
+      warning_counter.fetch_add(1);
+    }
+
+    return s.write(buffer);
+  }
+
+  srslog::detail::error_string flush() override { return s.flush(); }
+
+private:
+  srslog::sink&         s;
+  std::atomic<unsigned> error_counter;
+  std::atomic<unsigned> warning_counter;
 };
 
 // specialization of test_log_filter to store last logged message

@@ -28,6 +28,7 @@ ue::ue(uint16_t                 rnti_,
        rlc_interface_mac*       rlc_,
        phy_interface_stack_lte* phy_,
        srslte::log_ref          log_,
+       srslog::basic_logger&    logger,
        uint32_t                 nof_cells_,
        uint32_t                 nof_rx_harq_proc_,
        uint32_t                 nof_tx_harq_proc_) :
@@ -38,6 +39,7 @@ ue::ue(uint16_t                 rnti_,
   rlc(rlc_),
   phy(phy_),
   log_h(log_),
+  logger(logger),
   mac_msg_dl(20, log_),
   mch_mac_msg_dl(10, log_),
   mac_msg_ul(20, log_),
@@ -143,12 +145,12 @@ void ue::start_pcap(srslte::mac_pcap* pcap_)
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti)
 {
   if ((size_t)ue_cc_idx >= softbuffer_rx.size()) {
-    ERROR("UE CC Index (%d/%zd) out-of-range\n", ue_cc_idx, softbuffer_rx.size());
+    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, softbuffer_rx.size());
     return nullptr;
   }
 
   if ((size_t)nof_rx_harq_proc > softbuffer_rx.at(ue_cc_idx).size()) {
-    ERROR("HARQ process index (%d/%zd) out-of-range\n", nof_rx_harq_proc, softbuffer_rx.at(ue_cc_idx).size());
+    ERROR("HARQ process index (%d/%zd) out-of-range", nof_rx_harq_proc, softbuffer_rx.at(ue_cc_idx).size());
     return nullptr;
   }
 
@@ -159,12 +161,12 @@ srslte_softbuffer_tx_t*
 ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
 {
   if ((size_t)ue_cc_idx >= softbuffer_tx.size()) {
-    ERROR("UE CC Index (%d/%zd) out-of-range\n", ue_cc_idx, softbuffer_tx.size());
+    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, softbuffer_tx.size());
     return nullptr;
   }
 
   if ((size_t)nof_tx_harq_proc > softbuffer_tx.at(ue_cc_idx).size()) {
-    ERROR("HARQ process index (%d/%zd) out-of-range\n", harq_process, softbuffer_tx.at(ue_cc_idx).size());
+    ERROR("HARQ process index (%d/%zd) out-of-range", harq_process, softbuffer_tx.at(ue_cc_idx).size());
     return nullptr;
   }
 
@@ -174,7 +176,7 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  uint8_t* pdu = nullptr;
+  uint8_t*                     pdu = nullptr;
   if (len > 0) {
     // Deallocate oldest buffer if we didn't deallocate it
     if (!rx_used_buffers.at(ue_cc_idx).count(tti)) {
@@ -182,13 +184,13 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
       if (pdu) {
         rx_used_buffers.at(ue_cc_idx).emplace(tti, pdu);
       } else {
-        Error("UE buffers: Requesting buffer from pool\n");
+        logger.error("UE buffers: Requesting buffer from pool");
       }
     } else {
-      Error("UE buffers: buffer for tti=%d already allocated\n", tti);
+      logger.error("UE buffers: buffer for tti=%d already allocated", tti);
     }
   } else {
-    Error("UE buffers: Requesting buffer for zero bytes\n");
+    logger.error("UE buffers: Requesting buffer for zero bytes");
   }
   return pdu;
 }
@@ -201,11 +203,11 @@ void ue::clear_old_buffers(uint32_t tti)
   for (auto& rx_buffer_cc : rx_used_buffers) {
     for (auto it = rx_buffer_cc.begin(); it != rx_buffer_cc.end();) {
       if (srslte_tti_interval(tti, it->first) > 20 && srslte_tti_interval(tti, it->first) < 500) {
-        Warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d\n",
-                it->first,
-                rnti,
-                tti,
-                srslte_tti_interval(tti, it->first));
+        logger.warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d",
+                       it->first,
+                       rnti,
+                       tti,
+                       srslte_tti_interval(tti, it->first));
         pdus.deallocate(it->second);
         it = rx_buffer_cc.erase(it);
       } else {
@@ -236,7 +238,7 @@ uint32_t ue::set_ta(int ta_)
     uint32_t ta_cmd = (uint32_t)(ta_value + 31);
     pending_ta_commands.try_push(ta_cmd);
     nof_cmd++;
-    Info("Added TA CMD: rnti=0x%x, ta=%d, ta_value=%d, ta_cmd=%d\n", rnti, ta_, ta_value, ta_cmd);
+    logger.info("Added TA CMD: rnti=0x%x, ta=%d, ta_value=%d, ta_cmd=%d", rnti, ta_, ta_value, ta_cmd);
   } while (ta_value <= -31 || ta_value >= 32);
   return nof_cmd;
 }
@@ -249,7 +251,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   mac_msg_ul.init_rx(nof_bytes, true);
   mac_msg_ul.parse_packet(pdu);
 
-  Info("0x%x %s\n", rnti, mac_msg_ul.to_string().c_str());
+  logger.info("0x%x %s", rnti, mac_msg_ul.to_string().c_str());
 
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
@@ -275,7 +277,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
         }
         if (sum == 0) {
           route_pdu = false;
-          Debug("Received all zero PDU\n");
+          logger.debug("Received all zero PDU");
         }
       }
 
@@ -292,7 +294,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
       // Indicate RRC about successful activity if valid RLC message is received
       if (mac_msg_ul.get()->get_payload_size() > 64) { // do not count RLC status messages only
         rrc->set_activity_user(rnti);
-        log_h->debug("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+        logger.debug("UL activity rnti=0x%x, n_bytes=%d", rnti, nof_bytes);
       }
 
       if ((int)mac_msg_ul.get()->get_payload_size() > most_data) {
@@ -310,7 +312,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
             ue_cri_ptr[nbytes - i - 1] = pkt_ptr[i];
           }
         } else {
-          Error("Received CCCH UL message of invalid size=%d bytes\n", mac_msg_ul.get()->get_payload_size());
+          logger.error("Received CCCH UL message of invalid size=%d bytes", mac_msg_ul.get()->get_payload_size());
         }
       }
     }
@@ -331,10 +333,10 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   if (!bsr_received && lcid_most_data > 2) {
     // Add BSR to the LCID for which most data was received
     sched->ul_buffer_add(rnti, lcid_most_data, 256);
-    Debug("BSR not received. Giving extra dci\n");
+    logger.debug("BSR not received. Giving extra dci");
   }
 
-  Debug("MAC PDU processed\n");
+  logger.debug("MAC PDU processed");
 }
 
 void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
@@ -345,10 +347,10 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
     pdus.deallocate(rx_used_buffers.at(ue_cc_idx).at(tti));
     rx_used_buffers.at(ue_cc_idx).erase(tti);
   } else {
-    Warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
-            rnti,
-            tti % nof_rx_harq_proc,
-            ue_cc_idx);
+    logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d",
+                   rnti,
+                   tti % nof_rx_harq_proc,
+                   ue_cc_idx);
   }
 }
 
@@ -359,14 +361,14 @@ void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
     if (len > 0) {
       pdus.push(rx_used_buffers.at(ue_cc_idx).at(tti), len);
     } else {
-      Error("Error pushing PDU: null length\n");
+      logger.error("Error pushing PDU: null length");
     }
     rx_used_buffers.at(ue_cc_idx).erase(tti);
   } else {
-    Warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d\n",
-            rnti,
-            tti % nof_rx_harq_proc,
-            ue_cc_idx);
+    logger.warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d",
+                   rnti,
+                   tti % nof_rx_harq_proc,
+                   ue_cc_idx);
   }
 }
 
@@ -390,14 +392,14 @@ bool ue::process_ce(srslte::sch_subh* subh)
         rrc->upd_user(rnti, old_rnti);
         rnti = old_rnti;
       } else {
-        Error("Updating user C-RNTI: rnti=0x%x already released\n", old_rnti);
+        logger.error("Updating user C-RNTI: rnti=0x%x already released", old_rnti);
       }
       break;
     case srslte::ul_sch_lcid::TRUNC_BSR:
     case srslte::ul_sch_lcid::SHORT_BSR:
       idx = subh->get_bsr(buff_size_idx, buff_size_bytes);
       if (idx == -1) {
-        Error("Invalid Index Passed to lc groups\n");
+        logger.error("Invalid Index Passed to lc groups");
         break;
       }
       // Indicate BSR to scheduler
@@ -414,7 +416,7 @@ bool ue::process_ce(srslte::sch_subh* subh)
     case srslte::ul_sch_lcid::PADDING:
       break;
     default:
-      Error("CE:    Invalid lcid=0x%x\n", (int)subh->ul_sch_ce_type());
+      logger.error("CE:    Invalid lcid=0x%x", (int)subh->ul_sch_ce_type());
       break;
   }
   return is_bsr;
@@ -434,13 +436,13 @@ void ue::allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t total_sdu_le
     int n       = 1;
     while (sdu_len >= min_sdu_len && n > 0) { // minimum size is a single RLC AM status PDU (2 Byte)
       if (pdu->new_subh()) {                  // there is space for a new subheader
-        log_h->debug("SDU:   set_sdu(), lcid=%d, sdu_len=%d, sdu_space=%d\n", lcid, sdu_len, sdu_space);
+        logger.debug("SDU:   set_sdu(), lcid=%d, sdu_len=%d, sdu_space=%d", lcid, sdu_len, sdu_space);
         n = pdu->get()->set_sdu(lcid, sdu_len, this);
         if (n > 0) { // new SDU could be added
           sdu_len -= n;
-          log_h->debug("SDU:   rnti=0x%x, lcid=%d, nbytes=%d, rem_len=%d\n", rnti, lcid, n, sdu_len);
+          logger.debug("SDU:   rnti=0x%x, lcid=%d, nbytes=%d, rem_len=%d", rnti, lcid, n, sdu_len);
         } else {
-          Debug("Could not add SDU lcid=%d nbytes=%d, space=%d\n", lcid, sdu_len, sdu_space);
+          logger.debug("Could not add SDU lcid=%d nbytes=%d, space=%d", lcid, sdu_len, sdu_space);
           pdu->del_subh();
         }
       } else {
@@ -458,19 +460,19 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
         uint32_t ta_cmd = 31;
         pending_ta_commands.try_pop(&ta_cmd);
         if (!pdu->get()->set_ta_cmd(ta_cmd)) {
-          Error("CE:    Setting TA CMD CE\n");
+          logger.error("CE:    Setting TA CMD CE");
         }
       } else {
-        Error("CE:    Setting TA CMD CE. No space for a subheader\n");
+        logger.error("CE:    Setting TA CMD CE. No space for a subheader");
       }
       break;
     case srslte::dl_sch_lcid::CON_RES_ID:
       if (pdu->new_subh()) {
         if (!pdu->get()->set_con_res_id(conres_id)) {
-          Error("CE:    Setting Contention Resolution ID CE\n");
+          logger.error("CE:    Setting Contention Resolution ID CE");
         }
       } else {
-        Error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
+        logger.error("CE:    Setting Contention Resolution ID CE. No space for a subheader");
       }
       break;
     case srslte::dl_sch_lcid::SCELL_ACTIVATION:
@@ -481,14 +483,14 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           allocate_cc_buffers(active_scell_list.size() - 1);
         } else {
-          Error("CE:    Setting SCell Activation CE\n");
+          logger.error("CE:    Setting SCell Activation CE");
         }
       } else {
-        Error("CE:    Setting SCell Activation CE. No space for a subheader\n");
+        logger.error("CE:    Setting SCell Activation CE. No space for a subheader");
       }
       break;
     default:
-      Error("CE:    Allocating CE=0x%x. Not supported\n", lcid);
+      logger.error("CE:    Allocating CE=0x%x. Not supported", lcid);
       break;
   }
 }
@@ -514,10 +516,10 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
         }
       }
       ret = mac_msg_dl.write_packet(log_h);
-      Info("0x%x %s\n", rnti, mac_msg_dl.to_string().c_str());
+      logger.info("0x%x %s", rnti, mac_msg_dl.to_string().c_str());
     } else {
-      log_h->error(
-          "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d\n", ue_cc_idx, harq_pid, tb_idx);
+      logger.error(
+          "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d", ue_cc_idx, harq_pid, tb_idx);
     }
   } else {
     std::cout << "Error ue not configured (must call config() first" << std::endl;

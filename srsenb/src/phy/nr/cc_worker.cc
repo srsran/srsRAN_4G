@@ -24,8 +24,8 @@
 
 namespace srsenb {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), log_h(log)
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& logger, phy_nr_state* phy_state_) :
+  cc_idx(cc_idx_), phy_state(phy_state_), logger(logger)
 {
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
@@ -38,7 +38,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state
   }
 
   if (srslte_enb_dl_nr_init(&enb_dl, buffer_c, &phy_state_->args.dl)) {
-    ERROR("Error initiating UE DL NR\n");
+    ERROR("Error initiating UE DL NR");
     return;
   }
 }
@@ -61,7 +61,7 @@ cc_worker::~cc_worker()
 bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
 {
   if (srslte_enb_dl_nr_set_carrier(&enb_dl, carrier) < SRSLTE_SUCCESS) {
-    ERROR("Error setting carrier\n");
+    ERROR("Error setting carrier");
     return false;
   }
 
@@ -70,7 +70,7 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
   coreset.duration          = 2;
 
   if (srslte_enb_dl_nr_set_coreset(&enb_dl, &coreset) < SRSLTE_SUCCESS) {
-    ERROR("Error setting coreset\n");
+    ERROR("Error setting coreset");
     return false;
   }
 
@@ -114,12 +114,12 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants,
 
     // Put actual DCI
     if (srslte_enb_dl_nr_pdcch_put(&enb_dl, &dl_slot_cfg, &grants[i].dci) < SRSLTE_SUCCESS) {
-      ERROR("Error putting PDCCH\n");
+      ERROR("Error putting PDCCH");
       return SRSLTE_ERROR;
     }
 
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-      log_h->info("PDCCH: cc=%d, ...\n", cc_idx);
+    if (logger.info.enabled()) {
+      logger.info("PDCCH: cc=%d, ...", cc_idx);
     }
   }
 
@@ -136,7 +136,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
 
     // Compute DL grant
     if (srslte_ra_dl_dci_to_grant_nr(&enb_dl.carrier, &pdsch_cfg, &grants[i].dci, &pdsch_cfg.grant)) {
-      ERROR("Computing DL grant\n");
+      ERROR("Computing DL grant");
     }
 
     // Set soft buffer
@@ -145,15 +145,15 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
     }
 
     if (srslte_enb_dl_nr_pdsch_put(&enb_dl, &dl_slot_cfg, &pdsch_cfg, grants[i].data) < SRSLTE_SUCCESS) {
-      ERROR("Error putting PDSCH\n");
+      ERROR("Error putting PDSCH");
       return false;
     }
 
     // Logging
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    if (logger.info.enabled()) {
       char str[512];
       srslte_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, str, sizeof(str));
-      log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
+      logger.info("PDSCH: cc=%d, %s", cc_idx, str);
     }
   }
 
@@ -164,7 +164,7 @@ bool cc_worker::work_dl(const srslte_dl_slot_cfg_t& dl_sf_cfg, stack_interface_p
 {
   // Reset resource grid
   if (srslte_enb_dl_nr_base_zero(&enb_dl) < SRSLTE_SUCCESS) {
-    ERROR("Error setting base to zero\n");
+    ERROR("Error setting base to zero");
     return SRSLTE_ERROR;
   }
 

@@ -76,11 +76,11 @@ void lch_ue_manager::new_tti()
 void lch_ue_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg)
 {
   if (lc_id >= sched_interface::MAX_LC) {
-    Warning("Adding bearer with invalid logical channel id=%d\n", lc_id);
+    logger.warning("Adding bearer with invalid logical channel id=%d", lc_id);
     return;
   }
   if (bearer_cfg.group >= sched_interface::MAX_LC_GROUP) {
-    Warning("Adding bearer with invalid logical channel group id=%d\n", bearer_cfg.group);
+    logger.warning("Adding bearer with invalid logical channel group id=%d", bearer_cfg.group);
     return;
   }
 
@@ -96,42 +96,42 @@ void lch_ue_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_beare
       lch[lc_id].bucket_size = lch[lc_id].cfg.bsd * lch[lc_id].cfg.pbr;
       lch[lc_id].Bj          = 0;
     }
-    Info("SCHED: bearer configured: lc_id=%d, mode=%s, prio=%d\n",
-         lc_id,
-         to_string(lch[lc_id].cfg.direction),
-         lch[lc_id].cfg.priority);
+    logger.info("SCHED: bearer configured: lc_id=%d, mode=%s, prio=%d",
+                lc_id,
+                to_string(lch[lc_id].cfg.direction),
+                lch[lc_id].cfg.priority);
   }
 }
 
 void lch_ue_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
 {
   if (lcg_id >= sched_interface::MAX_LC_GROUP) {
-    Warning("The provided logical channel group id=%d is not valid\n", lcg_id);
+    logger.warning("The provided logical channel group id=%d is not valid", lcg_id);
     return;
   }
   lcg_bsr[lcg_id] = bsr;
-  Debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s\n", bsr, lcg_id, get_bsr_text().c_str());
+  logger.debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s", bsr, lcg_id, get_bsr_text().c_str());
 }
 
 void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
 {
   if (lcid >= sched_interface::MAX_LC) {
-    Warning("The provided lcid=%d is not valid\n", lcid);
+    logger.warning("The provided lcid=%d is not valid", lcid);
     return;
   }
   lcg_bsr[lch[lcid].cfg.group] += bytes;
-  Debug("SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s\n", bytes, lch[lcid].cfg.group, get_bsr_text().c_str());
+  logger.debug("SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, lch[lcid].cfg.group, get_bsr_text().c_str());
 }
 
 void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
 {
   if (lcid >= sched_interface::MAX_LC) {
-    Warning("The provided lcid=%d is not valid\n", lcid);
+    logger.warning("The provided lcid=%d is not valid", lcid);
     return;
   }
   lch[lcid].buf_retx = retx_queue;
   lch[lcid].buf_tx   = tx_queue;
-  Debug("SCHED: DL lcid=%d buffer_state=%d,%d\n", lcid, tx_queue, retx_queue);
+  logger.debug("SCHED: DL lcid=%d buffer_state=%d,%d", lcid, tx_queue, retx_queue);
 }
 
 int lch_ue_manager::get_max_prio_lcid() const

@@ -17,6 +17,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -54,8 +55,6 @@ protected:
   srslte::tti_point               tti;
   int                             last_mcs[SRSLTE_MAX_TB];
   int                             last_tbs[SRSLTE_MAX_TB];
-
-  srslte::log_ref log_h;
 };
 
 class dl_harq_proc : public harq_proc
@@ -70,7 +69,7 @@ public:
               uint32_t         n_cce_,
               uint32_t         max_retx);
   void new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, tti_point tti_tx_dl, int* mcs, int* tbs, uint32_t n_cce_);
-  int       set_ack(uint32_t tb_idx, bool ack);
+  int  set_ack(uint32_t tb_idx, bool ack);
   rbgmask_t get_rbgmask() const;
   bool      has_pending_retx(uint32_t tb_idx, tti_point tti_tx_dl) const;
   bool      has_pending_retx(tti_point tti_tx_dl) const;
@@ -111,6 +110,7 @@ public:
   static const bool is_async = ASYNC_DL_SCHED;
 
   harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs);
+
   void reset();
   void new_tti(tti_point tti_rx);
 
@@ -156,7 +156,6 @@ public:
 private:
   dl_harq_proc* get_oldest_dl_harq(tti_point tti_tx_dl);
 
-  srslte::log_ref                            log_h;
   std::array<tti_point, SRSLTE_FDD_NOF_HARQ> last_ttis;
 
   std::vector<dl_harq_proc> dl_harqs;

@@ -24,16 +24,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  phy_log.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  phy_log.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  phy_log.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  phy_log.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 using namespace asn1::rrc;
@@ -48,27 +48,30 @@ static void srslte_phy_handler(phy_logger_level_t log_level, void* ctx, char* st
 
 void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
 {
-  if (log_phy_lib_h) {
-    switch (log_level) {
-      case LOG_LEVEL_INFO_S:
-        log_phy_lib_h->info(" %s", str);
-        break;
-      case LOG_LEVEL_DEBUG_S:
-        log_phy_lib_h->debug(" %s", str);
-        break;
-      case LOG_LEVEL_ERROR_S:
-        log_phy_lib_h->error(" %s", str);
-        break;
-      default:
-        break;
-    }
-  } else {
-    printf("[PHY_LIB]: %s\n", str);
+  switch (log_level) {
+    case LOG_LEVEL_INFO_S:
+      phy_lib_log.info(" %s", str);
+      break;
+    case LOG_LEVEL_DEBUG_S:
+      phy_lib_log.debug(" %s", str);
+      break;
+    case LOG_LEVEL_ERROR_S:
+      phy_lib_log.error(" %s", str);
+      break;
+    default:
+      break;
   }
 }
 
-phy::phy(srslte::logger* logger_) :
-  logger(logger_), lte_workers(MAX_WORKERS), nr_workers(MAX_WORKERS), workers_common(), nof_workers(0)
+phy::phy(srslog::sink& log_sink) :
+  log_sink(log_sink),
+  phy_log(srslog::fetch_basic_logger("PHY", log_sink)),
+  phy_lib_log(srslog::fetch_basic_logger("PHY_LIB", log_sink)),
+  lte_workers(MAX_WORKERS),
+  nr_workers(MAX_WORKERS),
+  workers_common(),
+  nof_workers(0),
+  tx_rx(phy_log)
 {}
 
 phy::~phy()
@@ -99,22 +102,18 @@ int phy::init(const phy_args_t&            args,
 {
   mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE);
 
-  // Add PHY lib log
-  if (srslte::log::get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
-    log_phy_lib_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    log_phy_lib_h->init("PHY_LIB", logger, true);
-    log_phy_lib_h->set_level(args.log.phy_lib_level);
-    log_phy_lib_h->set_hex_limit(args.log.phy_hex_limit);
+  // Add PHY lib log.
+  srslog::basic_levels log_lvl = srslog::str_to_basic_level(args.log.phy_lib_level);
+
+  phy_lib_log.set_level(log_lvl);
+  phy_lib_log.set_hex_dump_max_size(args.log.phy_hex_limit);
+  if (log_lvl != srslog::basic_levels::none) {
     srslte_phy_log_register_handler(this, srslte_phy_handler);
   }
 
-  // Create default log
-  {
-    log_h = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
-    log_h->init("PHY", logger, true);
-    log_h->set_level(args.log.phy_level);
-    log_h->set_hex_limit(args.log.phy_hex_limit);
-  }
+  // Create default log.
+  phy_log.set_level(log_lvl);
+  phy_log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
   radio       = radio_;
   nof_workers = args.nof_phy_threads;
@@ -126,24 +125,19 @@ int phy::init(const phy_args_t&            args,
   parse_common_config(cfg);
 
   // Add workers to workers pool and start threads
-  lte_workers.init(args, &workers_common, logger, WORKERS_THREAD_PRIO);
-  nr_workers.init(args, &workers_common, logger, WORKERS_THREAD_PRIO);
+  lte_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
+  nr_workers.init(args, &workers_common, log_sink, WORKERS_THREAD_PRIO);
 
   // For each carrier, initialise PRACH worker
   for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
     prach_cfg.root_seq_idx = cfg.phy_cell_cfg[cc].root_seq_idx;
-    prach.init(cc,
-               cfg.phy_cell_cfg[cc].cell,
-               prach_cfg,
-               stack_,
-               log_h.get(),
-               PRACH_WORKER_THREAD_PRIO,
-               args.nof_prach_threads);
+    prach.init(
+        cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, phy_log, PRACH_WORKER_THREAD_PRIO, args.nof_prach_threads);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(stack_, radio, &lte_workers, &nr_workers, &workers_common, &prach, log_h.get(), SF_RECV_THREAD_PRIO);
+  tx_rx.init(stack_, radio, &lte_workers, &nr_workers, &workers_common, &prach, SF_RECV_THREAD_PRIO);
 
   initialized = true;
 
@@ -237,7 +231,7 @@ void phy::get_metrics(std::vector<phy_metrics_t>& metrics)
 
 void phy::cmd_cell_gain(uint32_t cell_id, float gain_db)
 {
-  Info("set_cell_gain: cell_id=%d, gain_db=%.2f\n", cell_id, gain_db);
+  Info("set_cell_gain: cell_id=%d, gain_db=%.2f", cell_id, gain_db);
   workers_common.set_cell_gain(cell_id, gain_db);
 }
 
@@ -272,10 +266,10 @@ void phy::configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, con
 {
   if (sib2->mbsfn_sf_cfg_list_present) {
     if (sib2->nof_mbsfn_sf_cfg == 0) {
-      Warning("SIB2 does not have any MBSFN config although it was set as present\n");
+      Warning("SIB2 does not have any MBSFN config although it was set as present");
     } else {
       if (sib2->nof_mbsfn_sf_cfg > 1) {
-        Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->nof_mbsfn_sf_cfg);
+        Warning("SIB2 has %d MBSFN subframe configs - only 1 supported", sib2->nof_mbsfn_sf_cfg);
       }
       mbsfn_config.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
     }
@@ -287,7 +281,7 @@ void phy::configure_mbsfn(srslte::sib2_mbms_t* sib2, srslte::sib13_t* sib13, con
   mbsfn_config.mbsfn_notification_cnfg = sib13->notif_cfg;
   if (sib13->nof_mbsfn_area_info > 0) {
     if (sib13->nof_mbsfn_area_info > 1) {
-      Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->nof_mbsfn_area_info);
+      Warning("SIB13 has %d MBSFN area info elements - only 1 supported", sib13->nof_mbsfn_area_info);
     }
     mbsfn_config.mbsfn_area_info = sib13->mbsfn_area_info_list[0];
   }

@@ -480,19 +480,13 @@ int main(int argc, char* argv[])
   srslte_debug_handle_crash(argc, argv);
   parse_args(&args, argc, argv);
 
-  // Setup logging.
-  log_sink = (args.log.filename == "stdout")
-                 ? srslog::create_stdout_sink()
-                 : srslog::create_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size));
-  if (!log_sink) {
-    return SRSLTE_ERROR;
-  }
+  // Setup the default log sink.
+  srslog::set_default_sink(
+      (args.log.filename == "stdout")
+          ? srslog::fetch_stdout_sink()
+          : srslog::fetch_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size)));
 
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
-  if (!chan) {
-    return SRSLTE_ERROR;
-  }
-  srslte::srslog_wrapper log_wrapper(*chan);
+  srslte::srslog_wrapper log_wrapper(srslog::fetch_log_channel("main_channel"));
 
   // Alarms log channel creation.
   srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
@@ -520,7 +514,7 @@ int main(int argc, char* argv[])
   }
 
   // Create eNB
-  unique_ptr<srsenb::enb> enb{new srsenb::enb};
+  unique_ptr<srsenb::enb> enb{new srsenb::enb(srslog::get_default_sink())};
   if (enb->init(args, &log_wrapper) != SRSLTE_SUCCESS) {
     enb->stop();
     return SRSLTE_ERROR;

@@ -129,7 +129,7 @@ uint32_t phy_ue_db::_get_uci_enb_cc_idx(uint32_t tti, uint16_t rnti) const
 inline int phy_ue_db::_assert_rnti(uint16_t rnti) const
 {
   if (not ue_db.count(rnti)) {
-    ERROR("Trying to access RNTI 0x%X, it does not exist.\n", rnti);
+    ERROR("Trying to access RNTI 0x%X, it does not exist.", rnti);
     return SRSLTE_ERROR;
   }
 
@@ -233,7 +233,7 @@ inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb
 
   // Make sure the C-RNTI exists and the cell/carrier is configured
   if (_assert_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
-    ERROR("Trying to access cell/carrier %d in RNTI 0x%X. It is not active.\n", enb_cc_idx, rnti);
+    ERROR("Trying to access cell/carrier %d in RNTI 0x%X. It is not active.", enb_cc_idx, rnti);
     return default_cfg;
   }
 
@@ -383,7 +383,7 @@ void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, boo
 
   // If scell is default only complain
   if (activate and cell_info.state == cell_state_none) {
-    ERROR("RNTI 0x%X SCell %d has received an activation MAC command but it was not configured\n", rnti, ue_cc_idx);
+    ERROR("RNTI 0x%X SCell %d has received an activation MAC command but it was not configured", rnti, ue_cc_idx);
     return;
   }
   // Set scell state
@@ -659,7 +659,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
           pmi_value = uci_value.cqi.subband_hl.pmi;
           break;
         default:
-          ERROR("CQI type=%d not implemented for PMI\n", uci_cfg.cqi.type);
+          ERROR("CQI type=%d not implemented for PMI", uci_cfg.cqi.type);
           break;
       }
       stack->pmi_info(tti, rnti, cqi_cc_idx, pmi_value);
