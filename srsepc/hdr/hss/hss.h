@@ -23,6 +23,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <cstddef>
 #include <fstream>
 #include <map>
@@ -68,7 +69,7 @@ class hss : public hss_interface_nas
 public:
   static hss* get_instance(void);
   static void cleanup(void);
-  int         init(hss_args_t* hss_args, srslte::log_filter* hss_log);
+  int         init(hss_args_t* hss_args);
   void        stop(void);
 
   virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
@@ -111,7 +112,7 @@ private:
   std::string db_file;
 
   /*Logs*/
-  srslte::log_filter* m_hss_log;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("HSS");
 
   uint16_t mcc;
   uint16_t mnc;

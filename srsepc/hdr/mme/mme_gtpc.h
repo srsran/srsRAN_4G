@@ -37,7 +37,7 @@ public:
 
   static mme_gtpc* get_instance();
 
-  bool init(srslte::log_filter* mme_gtpc_log);
+  bool init();
   bool send_s11_pdu(const srslte::gtpc_pdu& pdu);
   void handle_s11_pdu(srslte::byte_buffer_t* msg);
 
@@ -56,8 +56,8 @@ public:
 private:
   mme_gtpc() = default;
 
-  srslte::log_filter* m_mme_gtpc_log;
-  s1ap*               m_s1ap;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("MME GTPC");
+  s1ap*                 m_s1ap;
 
   uint32_t                            m_next_ctrl_teid;
   std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;

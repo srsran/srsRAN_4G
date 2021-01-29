@@ -24,6 +24,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
+#include "srslte/srslog/srslog.h"
 #include <cstddef>
 #include <queue>
 
@@ -60,11 +61,7 @@ class spgw : public srslte::thread
 public:
   static spgw* get_instance(void);
   static void  cleanup(void);
-  int          init(spgw_args_t*                           args,
-                    srslte::log_ref                        gtpu_log,
-                    srslte::log_filter*                    gtpc_log,
-                    srslte::log_filter*                    spgw_log,
-                    const std::map<std::string, uint64_t>& ip_to_imsi);
+  int          init(spgw_args_t* args, srslte::log_ref gtpu_log, const std::map<std::string, uint64_t>& ip_to_imsi);
   void         stop();
   void         run_thread();
 
@@ -85,7 +82,7 @@ private:
   gtpu* m_gtpu;
 
   // Logs
-  srslte::log_filter* m_spgw_log;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("SPGW");
 };
 
 } // namespace srsepc

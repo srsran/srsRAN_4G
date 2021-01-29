@@ -15,6 +15,7 @@
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <set>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -26,11 +27,7 @@ class spgw::gtpc : public gtpc_interface_gtpu
 public:
   gtpc();
   virtual ~gtpc();
-  int  init(spgw_args_t*                           args,
-            spgw*                                  spgw,
-            gtpu_interface_gtpc*                   gtpu,
-            srslte::log_filter*                    gtpc_log,
-            const std::map<std::string, uint64_t>& ip_to_imsi);
+  int init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, const std::map<std::string, uint64_t>& ip_to_imsi);
   void stop();
 
   int init_s11(spgw_args_t* args);
@@ -85,7 +82,7 @@ public:
   std::set<uint32_t>                 m_ue_ip_addr_pool;
   std::map<uint64_t, struct in_addr> m_imsi_to_ip;
 
-  srslte::log_filter*       m_gtpc_log;
+  srslog::basic_logger&     m_logger = srslog::fetch_basic_logger("SPGW GTPC");
   srslte::byte_buffer_pool* m_pool;
 };
 

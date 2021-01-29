@@ -43,8 +43,8 @@ private:
   s1ap_ctx_mngmt_proc();
   virtual ~s1ap_ctx_mngmt_proc();
 
-  s1ap*               m_s1ap;
-  srslte::log_filter* m_s1ap_log;
+  s1ap*                 m_s1ap;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
   s1ap_args_t m_s1ap_args;
 

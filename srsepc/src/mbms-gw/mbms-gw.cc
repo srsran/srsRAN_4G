@@ -71,16 +71,16 @@ int mbms_gw::init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log)
   err = init_sgi_mb_if(args);
   if (err != SRSLTE_SUCCESS) {
     srslte::console("Error initializing SGi-MB.\n");
-    m_mbms_gw_log->error("Error initializing SGi-MB.\n");
+    m_logger.error("Error initializing SGi-MB.");
     return SRSLTE_ERROR_CANT_START;
   }
   err = init_m1_u(args);
   if (err != SRSLTE_SUCCESS) {
     srslte::console("Error initializing SGi-MB.\n");
-    m_mbms_gw_log->error("Error initializing SGi-MB.\n");
+    m_logger.error("Error initializing SGi-MB.");
     return SRSLTE_ERROR_CANT_START;
   }
-  m_mbms_gw_log->info("MBMS GW Initiated\n");
+  m_logger.info("MBMS GW Initiated");
   srslte::console("MBMS GW Initiated\n");
   return SRSLTE_SUCCESS;
 }
@@ -90,7 +90,7 @@ void mbms_gw::stop()
   if (m_running) {
     if (m_sgi_mb_up) {
       close(m_sgi_mb_if);
-      m_mbms_gw_log->info("Closed SGi-MB interface\n");
+      m_logger.info("Closed SGi-MB interface");
     }
     m_running = false;
     thread_cancel();
@@ -109,9 +109,9 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
 
   // Construct the TUN device
   m_sgi_mb_if = open("/dev/net/tun", O_RDWR);
-  m_mbms_gw_log->info("TUN file descriptor = %d\n", m_sgi_mb_if);
+  m_logger.info("TUN file descriptor = %d", m_sgi_mb_if);
   if (m_sgi_mb_if < 0) {
-    m_mbms_gw_log->error("Failed to open TUN device: %s\n", strerror(errno));
+    m_logger.error("Failed to open TUN device: %s", strerror(errno));
     return SRSLTE_ERROR_CANT_START;
   }
 
@@ -123,23 +123,23 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ - 1] = '\0';
 
   if (ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0) {
-    m_mbms_gw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
+    m_logger.error("Failed to set TUN device name: %s", strerror(errno));
     close(m_sgi_mb_if);
     return SRSLTE_ERROR_CANT_START;
   } else {
-    m_mbms_gw_log->debug("Set TUN device name: %s\n", args->sgi_mb_if_name.c_str());
+    m_logger.debug("Set TUN device name: %s", args->sgi_mb_if_name.c_str());
   }
 
   // Bring up the interface
   int sgi_mb_sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sgi_mb_sock < 0) {
-    m_mbms_gw_log->error("Failed to bring up socket: %s\n", strerror(errno));
+    m_logger.error("Failed to bring up socket: %s", strerror(errno));
     close(m_sgi_mb_if);
     return SRSLTE_ERROR_CANT_START;
   }
 
   if (ioctl(sgi_mb_sock, SIOCGIFFLAGS, &ifr) < 0) {
-    m_mbms_gw_log->error("Failed to bring up interface: %s\n", strerror(errno));
+    m_logger.error("Failed to bring up interface: %s", strerror(errno));
     close(m_sgi_mb_if);
     close(sgi_mb_sock);
     return SRSLTE_ERROR_CANT_START;
@@ -147,7 +147,7 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
 
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if (ioctl(sgi_mb_sock, SIOCSIFFLAGS, &ifr) < 0) {
-    m_mbms_gw_log->error("Failed to set socket flags: %s\n", strerror(errno));
+    m_logger.error("Failed to set socket flags: %s", strerror(errno));
     close(sgi_mb_sock);
     close(m_sgi_mb_if);
     return SRSLTE_ERROR_CANT_START;
@@ -160,8 +160,8 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
   addr->sin_port           = 0;
 
   if (ioctl(sgi_mb_sock, SIOCSIFADDR, &ifr) < 0) {
-    m_mbms_gw_log->error(
-        "Failed to set TUN interface IP. Address: %s, Error: %s\n", args->sgi_mb_if_addr.c_str(), strerror(errno));
+    m_logger.error(
+        "Failed to set TUN interface IP. Address: %s, Error: %s", args->sgi_mb_if_addr.c_str(), strerror(errno));
     close(m_sgi_mb_if);
     close(sgi_mb_sock);
     return SRSLTE_ERROR_CANT_START;
@@ -170,7 +170,7 @@ int mbms_gw::init_sgi_mb_if(mbms_gw_args_t* args)
   ifr.ifr_netmask.sa_family                                = AF_INET;
   ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(args->sgi_mb_if_mask.c_str());
   if (ioctl(sgi_mb_sock, SIOCSIFNETMASK, &ifr) < 0) {
-    m_mbms_gw_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
+    m_logger.error("Failed to set TUN interface Netmask. Error: %s", strerror(errno));
     close(m_sgi_mb_if);
     close(sgi_mb_sock);
     return SRSLTE_ERROR_CANT_START;
@@ -187,7 +187,7 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   struct sockaddr_in addr;
   m_m1u = socket(AF_INET, SOCK_DGRAM, 0);
   if (m_m1u < 0) {
-    m_mbms_gw_log->error("Failed to open socket: %s\n", strerror(errno));
+    m_logger.error("Failed to open socket: %s", strerror(errno));
     return SRSLTE_ERROR_CANT_START;
   }
   m_m1u_up = true;
@@ -195,10 +195,10 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   /* set no loopback */
   char loopch = 0;
   if (setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_LOOP, (char*)&loopch, sizeof(char)) < 0) {
-    m_mbms_gw_log->error("Failed to disable loopback: %s\n", strerror(errno));
+    m_logger.error("Failed to disable loopback: %s", strerror(errno));
     return SRSLTE_ERROR_CANT_START;
   } else {
-    m_mbms_gw_log->debug("Loopback disabled\n");
+    m_logger.debug("Loopback disabled");
   }
 
   /* Set local interface for outbound multicast packets*/
@@ -206,7 +206,7 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   struct in_addr local_if;
   local_if.s_addr = inet_addr(args->m1u_multi_if.c_str());
   if (setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr)) < 0) {
-    m_mbms_gw_log->error("Error %s setting multicast interface %s.\n", strerror(errno), args->m1u_multi_if.c_str());
+    m_logger.error("Error %s setting multicast interface %s.", strerror(errno), args->m1u_multi_if.c_str());
     return SRSLTE_ERROR_CANT_START;
   } else {
     printf("Multicast interface specified. Address: %s\n", args->m1u_multi_if.c_str());
@@ -222,7 +222,7 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   m_m1u_multi_addr.sin_family      = AF_INET;
   m_m1u_multi_addr.sin_port        = htons(GTPU_RX_PORT + 1);
   m_m1u_multi_addr.sin_addr.s_addr = inet_addr(args->m1u_multi_addr.c_str());
-  m_mbms_gw_log->info("Initialized M1-U\n");
+  m_logger.info("Initialized M1-U");
 
   return SRSLTE_SUCCESS;
 }
@@ -243,7 +243,7 @@ void mbms_gw::run_thread()
     } while (n == -1 && errno == EAGAIN);
 
     if (n < 0) {
-      m_mbms_gw_log->error("Error reading from TUN interface. Error: %s\n", strerror(errno));
+      m_logger.error("Error reading from TUN interface. Error: %s", strerror(errno));
     } else {
       msg->N_bytes = n;
       handle_sgi_md_pdu(msg);
@@ -266,14 +266,14 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
 
   // Sanity Check IP packet
   if (msg->N_bytes < 20) {
-    m_mbms_gw_log->error("IPv4 min len: %d, drop msg len %d\n", 20, msg->N_bytes);
+    m_logger.error("IPv4 min len: %d, drop msg len %d", 20, msg->N_bytes);
     return;
   }
 
   // IP Headers
   struct iphdr* iph = (struct iphdr*)msg->msg;
   if (iph->version != 4) {
-    m_mbms_gw_log->info("IPv6 not supported yet.\n");
+    m_logger.info("IPv6 not supported yet.");
     return;
   }
 
@@ -286,7 +286,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   if (n < 0) {
     srslte::console("Error writing to M1-U socket.\n");
   } else {
-    m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
+    m_logger.debug("Sent %d Bytes", msg->N_bytes);
   }
 }
 

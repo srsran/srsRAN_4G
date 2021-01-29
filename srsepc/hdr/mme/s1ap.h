@@ -27,6 +27,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/s1ap_pcap.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <arpa/inet.h>
 #include <map>
 #include <netinet/sctp.h>
@@ -49,7 +50,7 @@ public:
   static void  cleanup();
 
   int  enb_listen();
-  int  init(s1ap_args_t s1ap_args, srslte::log_filter* s1ap_log, srslte::log_filter* nas_log);
+  int  init(s1ap_args_t s1ap_args);
   void stop();
 
   int get_s1_mme();
@@ -86,9 +87,8 @@ public:
   uint32_t         allocate_m_tmsi(uint64_t imsi);
   virtual uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
 
-  s1ap_args_t         m_s1ap_args;
-  srslte::log_filter* m_s1ap_log;
-  srslte::log_filter* m_nas_log;
+  s1ap_args_t           m_s1ap_args;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
   s1ap_mngmt_proc*      m_s1ap_mngmt_proc;
   s1ap_nas_transport*   m_s1ap_nas_transport;

@@ -45,14 +45,10 @@ spgw::gtpc::~gtpc()
 int spgw::gtpc::init(spgw_args_t*                           args,
                      spgw*                                  spgw,
                      gtpu_interface_gtpc*                   gtpu,
-                     srslte::log_filter*                    gtpc_log,
                      const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   int err;
   m_pool = srslte::byte_buffer_pool::get_instance();
-
-  // Init log
-  m_gtpc_log = gtpc_log;
 
   // Init interfaces
   m_spgw = spgw;
@@ -75,7 +71,7 @@ int spgw::gtpc::init(spgw_args_t*                           args,
   // Limit paging queue
   m_max_paging_queue = args->max_paging_queue;
 
-  m_gtpc_log->info("SPGW S11 Initialized.\n");
+  m_logger.info("SPGW S11 Initialized.");
   srslte::console("SPGW S11 Initialized.\n");
   return 0;
 }
@@ -84,7 +80,7 @@ void spgw::gtpc::stop()
 {
   std::map<uint32_t, spgw_tunnel_ctx*>::iterator it = m_teid_to_tunnel_ctx.begin();
   while (it != m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->info("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
+    m_logger.info("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "", it->second->imsi);
     srslte::console("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
     delete it->second;
     m_teid_to_tunnel_ctx.erase(it++);
@@ -99,12 +95,12 @@ int spgw::gtpc::init_s11(spgw_args_t* args)
   char      mme_addr_name[]  = "@mme_s11";
 
   // Logs
-  m_gtpc_log->info("Initializing SPGW S11 interface.\n");
+  m_logger.info("Initializing SPGW S11 interface.");
 
   // Open Socket
   m_s11 = socket(AF_UNIX, SOCK_DGRAM, 0);
   if (m_s11 < 0) {
-    m_gtpc_log->error("Error opening UNIX socket. Error %s\n", strerror(errno));
+    m_logger.error("Error opening UNIX socket. Error %s", strerror(errno));
     return SRSLTE_ERROR_CANT_START;
   }
 
@@ -122,7 +118,7 @@ int spgw::gtpc::init_s11(spgw_args_t* args)
 
   // Bind socket to address
   if (bind(m_s11, (const struct sockaddr*)&m_spgw_addr, sizeof(m_spgw_addr)) == -1) {
-    m_gtpc_log->error("Error binding UNIX socket. Error %s\n", strerror(errno));
+    m_logger.error("Error binding UNIX socket. Error %s", strerror(errno));
     return SRSLTE_ERROR_CANT_START;
   }
   return SRSLTE_SUCCESS;
@@ -130,16 +126,16 @@ int spgw::gtpc::init_s11(spgw_args_t* args)
 
 bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 {
-  m_gtpc_log->debug("SPGW Sending S11 PDU! N_Bytes: %zd\n", sizeof(pdu));
+  m_logger.debug("SPGW Sending S11 PDU! N_Bytes: %zd", sizeof(pdu));
 
   // TODO add serialization code here
   // Send S11 message to MME
   int n = sendto(m_s11, &pdu, sizeof(pdu), 0, (const sockaddr*)&m_mme_addr, sizeof(m_mme_addr));
   if (n < 0) {
-    m_gtpc_log->error("Error sending to socket. Error %s", strerror(errno));
+    m_logger.error("Error sending to socket. Error %s", strerror(errno));
     return false;
   } else {
-    m_gtpc_log->debug("SPGW S11 Sent %d Bytes.\n", n);
+    m_logger.debug("SPGW S11 Sent %d Bytes.", n);
   }
   return true;
 }
@@ -149,7 +145,7 @@ void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
   // TODO add deserialization code here
   srslte::gtpc_pdu* pdu = (srslte::gtpc_pdu*)msg->msg;
   srslte::console("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
-  m_gtpc_log->debug("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
+  m_logger.debug("Received GTP-C PDU. Message type: %s", srslte::gtpc_msg_type_to_str(pdu->header.type));
   switch (pdu->header.type) {
     case srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST:
       handle_create_session_request(pdu->choice.create_session_request);
@@ -171,14 +167,14 @@ void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
                                                            pdu->choice.downlink_data_notification_failure_indication);
       break;
     default:
-      m_gtpc_log->error("Unhandled GTP-C message type\n");
+      m_logger.error("Unhandled GTP-C message type");
   }
   return;
 }
 
 void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_session_request& cs_req)
 {
-  m_gtpc_log->info("SPGW Received Create Session Request\n");
+  m_logger.info("SPGW Received Create Session Request");
   spgw_tunnel_ctx_t* tunnel_ctx;
   int                default_bearer_id = 5;
   // Check if IMSI has active GTP-C and/or GTP-U
@@ -189,7 +185,7 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
     srslte::console("SPGW: Deleted previous context.\n");
   }
 
-  m_gtpc_log->info("Creating new GTP-C context\n");
+  m_logger.info("Creating new GTP-C context");
   tunnel_ctx = create_gtpc_ctx(cs_req);
 
   // Create session response message
@@ -223,7 +219,7 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   cs_resp->paa.pdn_type     = srslte::GTPC_PDN_TYPE_IPV4;
   cs_resp->paa.ipv4_present = true;
   cs_resp->paa.ipv4         = tunnel_ctx->ue_ipv4;
-  m_gtpc_log->info("Sending Create Session Response\n");
+  m_logger.info("Sending Create Session Response");
 
   // Send Create session response to MME
   send_s11_pdu(cs_resp_pdu);
@@ -233,13 +229,13 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
 void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header&                mb_req_hdr,
                                               const struct srslte::gtpc_modify_bearer_request& mb_req)
 {
-  m_gtpc_log->info("Received Modified Bearer Request\n");
+  m_logger.info("Received Modified Bearer Request");
 
   // Get control tunnel info from mb_req PDU
   uint32_t                                         ctrl_teid = mb_req_hdr.teid;
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
   if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->warning("Could not find TEID %d to modify\n", ctrl_teid);
+    m_logger.warning("Could not find TEID %d to modify", ctrl_teid);
     return;
   }
   spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
@@ -248,22 +244,21 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   tunnel_ctx->dw_user_fteid.teid = mb_req.eps_bearer_context_to_modify.s1_u_enb_f_teid.teid;
   tunnel_ctx->dw_user_fteid.ipv4 = mb_req.eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4;
   // Set up actual tunnel
-  m_gtpc_log->info("Setting Up GTP-U tunnel. Tunnel info: \n");
+  m_logger.info("Setting Up GTP-U tunnel. Tunnel info: ");
   struct in_addr addr;
   addr.s_addr = tunnel_ctx->ue_ipv4;
-  m_gtpc_log->info("IMSI: %015" PRIu64 ", UE IP: %s \n", tunnel_ctx->imsi, inet_ntoa(addr));
-  m_gtpc_log->info("S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x\n",
-                   tunnel_ctx->up_ctrl_fteid.teid,
-                   tunnel_ctx->dw_ctrl_fteid.teid);
-  m_gtpc_log->info("S-GW Rx Ctrl IP (NA), MME Rx Ctrl IP (NA)\n");
+  m_logger.info("IMSI: %015" PRIu64 ", UE IP: %s ", tunnel_ctx->imsi, inet_ntoa(addr));
+  m_logger.info(
+      "S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x", tunnel_ctx->up_ctrl_fteid.teid, tunnel_ctx->dw_ctrl_fteid.teid);
+  m_logger.info("S-GW Rx Ctrl IP (NA), MME Rx Ctrl IP (NA)");
 
   struct in_addr addr2;
   addr2.s_addr = tunnel_ctx->up_user_fteid.ipv4;
-  m_gtpc_log->info("S-GW Rx User TEID 0x%x, S-GW Rx User IP %s\n", tunnel_ctx->up_user_fteid.teid, inet_ntoa(addr2));
+  m_logger.info("S-GW Rx User TEID 0x%x, S-GW Rx User IP %s", tunnel_ctx->up_user_fteid.teid, inet_ntoa(addr2));
 
   struct in_addr addr3;
   addr3.s_addr = tunnel_ctx->dw_user_fteid.ipv4;
-  m_gtpc_log->info("eNB Rx User TEID 0x%x, eNB Rx User IP %s\n", tunnel_ctx->dw_user_fteid.teid, inet_ntoa(addr3));
+  m_logger.info("eNB Rx User TEID 0x%x, eNB Rx User IP %s", tunnel_ctx->dw_user_fteid.teid, inet_ntoa(addr3));
 
   // Setup IP to F-TEID map
   m_gtpu->modify_gtpu_tunnel(tunnel_ctx->ue_ipv4, tunnel_ctx->dw_user_fteid, tunnel_ctx->up_ctrl_fteid.teid);
@@ -271,7 +266,7 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   // Mark paging as done & send queued packets
   if (tunnel_ctx->paging_pending == true) {
     tunnel_ctx->paging_pending = false;
-    m_gtpc_log->debug("Modify Bearer Request received after Downling Data Notification was sent\n");
+    m_logger.debug("Modify Bearer Request received after Downling Data Notification was sent");
     srslte::console("Modify Bearer Request received after Downling Data Notification was sent\n");
     m_gtpu->send_all_queued_packets(tunnel_ctx->dw_user_fteid, tunnel_ctx->paging_queue);
   }
@@ -303,7 +298,7 @@ void spgw::gtpc::handle_delete_session_request(const srslte::gtpc_header&       
   uint32_t                                         ctrl_teid = header.teid;
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
   if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->warning("Could not find TEID 0x%x to delete session\n", ctrl_teid);
+    m_logger.warning("Could not find TEID 0x%x to delete session", ctrl_teid);
     return;
   }
   spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
@@ -320,7 +315,7 @@ void spgw::gtpc::handle_release_access_bearers_request(const srslte::gtpc_header
   uint32_t                                         ctrl_teid = header.teid;
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
   if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->warning("Could not find TEID 0x%x to release bearers\n", ctrl_teid);
+    m_logger.warning("Could not find TEID 0x%x to release bearers", ctrl_teid);
     return;
   }
   spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
@@ -333,7 +328,7 @@ void spgw::gtpc::handle_release_access_bearers_request(const srslte::gtpc_header
 
 bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
 {
-  m_gtpc_log->debug("Sending Downlink Notification Request\n");
+  m_logger.debug("Sending Downlink Notification Request");
 
   struct srslte::gtpc_pdu dl_not_pdu;
   std::memset(&dl_not_pdu, 0, sizeof(dl_not_pdu));
@@ -343,14 +338,14 @@ bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
   // Find MME Ctrl TEID
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(spgw_ctr_teid);
   if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->warning("Could not find TEID 0x%x to send downlink notification.\n", spgw_ctr_teid);
+    m_logger.warning("Could not find TEID 0x%x to send downlink notification.", spgw_ctr_teid);
     return false;
   }
   spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
 
   // Check if there is no Paging already pending.
   if (tunnel_ctx->paging_pending == true) {
-    m_gtpc_log->debug("UE Downlink Data Notification still pending.\n");
+    m_logger.debug("UE Downlink Data Notification still pending.");
     return false;
   }
 
@@ -376,13 +371,13 @@ void spgw::gtpc::handle_downlink_data_notification_acknowledge(
     const srslte::gtpc_header&                                 header,
     const srslte::gtpc_downlink_data_notification_acknowledge& not_ack)
 {
-  m_gtpc_log->debug("Handling downlink data notification acknowledge\n");
+  m_logger.debug("Handling downlink data notification acknowledge");
 
   // Find tunel ctxt
   uint32_t                                         ctrl_teid = header.teid;
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
   if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->warning("Could not find TEID 0x%x to handle notification acknowldge\n", ctrl_teid);
+    m_logger.warning("Could not find TEID 0x%x to handle notification acknowldge", ctrl_teid);
     return;
   }
   spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
@@ -390,11 +385,11 @@ void spgw::gtpc::handle_downlink_data_notification_acknowledge(
       not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UE_ALREADY_RE_ATTACHED ||
       not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UNABLE_TO_PAGE_UE ||
       not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UNABLE_TO_PAGE_UE_DUE_TO_SUSPENSION) {
-    m_gtpc_log->warning("Downlink Data Notification Acknowledge indicates failure.\n");
+    m_logger.warning("Downlink Data Notification Acknowledge indicates failure.");
     free_all_queued_packets(tunnel_ctx);
     tunnel_ctx->paging_pending = false;
   } else if (not_ack.cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED) {
-    m_gtpc_log->warning("Invalid cause in Downlink Data Notification Acknowledge.\n");
+    m_logger.warning("Invalid cause in Downlink Data Notification Acknowledge.");
     free_all_queued_packets(tunnel_ctx);
     tunnel_ctx->paging_pending = false;
   }
@@ -405,12 +400,12 @@ void spgw::gtpc::handle_downlink_data_notification_failure_indication(
     const srslte::gtpc_header&                                        header,
     const srslte::gtpc_downlink_data_notification_failure_indication& not_fail)
 {
-  m_gtpc_log->debug("Handling downlink data notification failure indication\n");
+  m_logger.debug("Handling downlink data notification failure indication");
   // Find tunel ctxt
   uint32_t                                         ctrl_teid = header.teid;
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
   if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->warning("Could not find TEID 0x%x to handle notification failure indication\n", ctrl_teid);
+    m_logger.warning("Could not find TEID 0x%x to handle notification failure indication", ctrl_teid);
     return;
   }
 
@@ -418,10 +413,9 @@ void spgw::gtpc::handle_downlink_data_notification_failure_indication(
   if (not_fail.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UE_NOT_RESPONDING ||
       not_fail.cause.cause_value == srslte::GTPC_CAUSE_VALUE_SERVICE_DENIED ||
       not_fail.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UE_ALREADY_RE_ATTACHED) {
-    m_gtpc_log->debug("Downlink Data Notification failure indication cause: %d.\n", not_fail.cause.cause_value);
+    m_logger.debug("Downlink Data Notification failure indication cause: %d.", not_fail.cause.cause_value);
   } else {
-    m_gtpc_log->warning("Invalid cause in Downlink Data Notification Failure Indication %d\n",
-                        not_fail.cause.cause_value);
+    m_logger.warning("Invalid cause in Downlink Data Notification Failure Indication %d", not_fail.cause.cause_value);
   }
   free_all_queued_packets(tunnel_ctx);
   tunnel_ctx->paging_pending = false;
@@ -471,7 +465,7 @@ bool spgw::gtpc::delete_gtpc_ctx(uint32_t ctrl_teid)
 {
   spgw_tunnel_ctx_t* tunnel_ctx;
   if (!m_teid_to_tunnel_ctx.count(ctrl_teid)) {
-    m_gtpc_log->error("Could not find GTP context to delete.\n");
+    m_logger.error("Could not find GTP context to delete.");
     return false;
   }
   tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
@@ -495,23 +489,22 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
 {
   spgw_tunnel_ctx_t* tunnel_ctx;
   if (!m_teid_to_tunnel_ctx.count(ctrl_teid)) {
-    m_gtpc_log->error("Could not find GTP context to queue.\n");
+    m_logger.error("Could not find GTP context to queue.");
     goto pkt_discard;
   }
   tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
   if (!tunnel_ctx->paging_pending) {
-    m_gtpc_log->error("Paging not pending. Not queueing packet\n");
+    m_logger.error("Paging not pending. Not queueing packet");
     goto pkt_discard;
   }
 
   if (tunnel_ctx->paging_queue.size() < m_max_paging_queue) {
     tunnel_ctx->paging_queue.push(msg);
-    m_gtpc_log->debug(
-        "Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi, tunnel_ctx->paging_queue.size());
+    m_logger.debug(
+        "Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd", tunnel_ctx->imsi, tunnel_ctx->paging_queue.size());
   } else {
-    m_gtpc_log->debug("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n",
-                      tunnel_ctx->imsi,
-                      tunnel_ctx->paging_queue.size());
+    m_logger.debug(
+        "Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd", tunnel_ctx->imsi, tunnel_ctx->paging_queue.size());
     goto pkt_discard;
   }
   return true;
@@ -524,12 +517,12 @@ pkt_discard:
 bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
 {
   if (!tunnel_ctx->paging_pending) {
-    m_gtpc_log->warning("Freeing queue with paging not pending.\n");
+    m_logger.warning("Freeing queue with paging not pending.");
   }
 
   while (!tunnel_ctx->paging_queue.empty()) {
     srslte::byte_buffer_t* pkt = tunnel_ctx->paging_queue.front();
-    m_gtpc_log->debug("Dropping packet. Bytes %d\n", pkt->N_bytes);
+    m_logger.debug("Dropping packet. Bytes %d", pkt->N_bytes);
     m_pool->deallocate(pkt);
     tunnel_ctx->paging_queue.pop();
   }
@@ -542,9 +535,9 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
 
   // check for collision w/our ip address
   if (iter != ip_to_imsi.end()) {
-    m_gtpc_log->error("SPGW: static ip addr %s for imsi %015" PRIu64 ", is reserved for the epc tun interface\n",
-                      iter->first.c_str(),
-                      iter->second);
+    m_logger.error("SPGW: static ip addr %s for imsi %015" PRIu64 ", is reserved for the epc tun interface",
+                   iter->first.c_str(),
+                   iter->second);
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
@@ -553,8 +546,8 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
     struct in_addr in_addr;
     in_addr.s_addr = inet_addr(iter->first.c_str());
     if (!m_imsi_to_ip.insert(std::make_pair(iter->second, in_addr)).second) {
-      m_gtpc_log->error(
-          "SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.\n", iter->second, iter->first.c_str());
+      m_logger.error(
+          "SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.", iter->second, iter->first.c_str());
       return SRSLTE_ERROR_OUT_OF_BOUNDS;
     }
   }
@@ -567,12 +560,12 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
 
     std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(inet_ntoa(ue_addr));
     if (iter != ip_to_imsi.end()) {
-      m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is reserved for imsi %015" PRIu64 ", not adding to pool\n",
-                        iter->first.c_str(),
-                        iter->second);
+      m_logger.debug("SPGW: init_ue_ip ue ip addr %s is reserved for imsi %015" PRIu64 ", not adding to pool",
+                     iter->first.c_str(),
+                     iter->second);
     } else {
       m_ue_ip_addr_pool.insert(ue_addr.s_addr);
-      m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is added to pool\n", inet_ntoa(ue_addr));
+      m_logger.debug("SPGW: init_ue_ip ue ip addr %s is added to pool", inet_ntoa(ue_addr));
     }
   }
   return SRSLTE_SUCCESS;
@@ -585,15 +578,15 @@ in_addr_t spgw::gtpc::get_new_ue_ipv4(uint64_t imsi)
   std::map<uint64_t, struct in_addr>::const_iterator iter = m_imsi_to_ip.find(imsi);
   if (iter != m_imsi_to_ip.end()) {
     ue_addr = iter->second;
-    m_gtpc_log->info("SPGW: get_new_ue_ipv4 static ip addr %s\n", inet_ntoa(ue_addr));
+    m_logger.info("SPGW: get_new_ue_ipv4 static ip addr %s", inet_ntoa(ue_addr));
   } else {
     if (m_ue_ip_addr_pool.empty()) {
-      m_gtpc_log->error("SPGW: ue address pool is empty\n");
+      m_logger.error("SPGW: ue address pool is empty");
       ue_addr.s_addr = 0;
     } else {
       ue_addr.s_addr = *m_ue_ip_addr_pool.begin();
       m_ue_ip_addr_pool.erase(ue_addr.s_addr);
-      m_gtpc_log->info("SPGW: get_new_ue_ipv4 pool ip addr %s\n", inet_ntoa(ue_addr));
+      m_logger.info("SPGW: get_new_ue_ipv4 pool ip addr %s", inet_ntoa(ue_addr));
     }
   }
   return ue_addr.s_addr;

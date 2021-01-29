@@ -56,17 +56,10 @@ void spgw::cleanup()
   pthread_mutex_unlock(&spgw_instance_mutex);
 }
 
-int spgw::init(spgw_args_t*                           args,
-               srslte::log_ref                        gtpu_log,
-               srslte::log_filter*                    gtpc_log,
-               srslte::log_filter*                    spgw_log,
-               const std::map<std::string, uint64_t>& ip_to_imsi)
+int spgw::init(spgw_args_t* args, srslte::log_ref gtpu_log, const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   int err;
   m_pool = srslte::byte_buffer_pool::get_instance();
-
-  // Init log
-  m_spgw_log = spgw_log;
 
   // Init GTP-U
   if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != SRSLTE_SUCCESS) {
@@ -75,12 +68,12 @@ int spgw::init(spgw_args_t*                           args,
   }
 
   // Init GTP-C
-  if (m_gtpc->init(args, this, m_gtpu, gtpc_log, ip_to_imsi) != SRSLTE_SUCCESS) {
+  if (m_gtpc->init(args, this, m_gtpu, ip_to_imsi) != SRSLTE_SUCCESS) {
     srslte::console("Could not initialize the S1-U interface.\n");
     return SRSLTE_ERROR_CANT_START;
   }
 
-  m_spgw_log->info("SP-GW Initialized.\n");
+  m_logger.info("SP-GW Initialized.");
   srslte::console("SP-GW Initialized.\n");
   return SRSLTE_SUCCESS;
 }
@@ -131,7 +124,7 @@ void spgw::run_thread()
 
     int n = select(max_fd + 1, &set, NULL, NULL, NULL);
     if (n == -1) {
-      m_spgw_log->error("Error from select\n");
+      m_logger.error("Error from select");
     } else if (n) {
       if (FD_ISSET(sgi, &set)) {
         /*
@@ -142,25 +135,25 @@ void spgw::run_thread()
          * procedure fails (see handle_downlink_data_notification_acknowledgment and
          * handle_downlink_data_notification_failure)
          */
-        m_spgw_log->debug("Message received at SPGW: SGi Message\n");
+        m_logger.debug("Message received at SPGW: SGi Message");
         sgi_msg          = m_pool->allocate("spgw::run_thread::sgi_msg");
         sgi_msg->N_bytes = read(sgi, sgi_msg->msg, buf_len);
         m_gtpu->handle_sgi_pdu(sgi_msg);
       }
       if (FD_ISSET(s1u, &set)) {
-        m_spgw_log->debug("Message received at SPGW: S1-U Message\n");
+        m_logger.debug("Message received at SPGW: S1-U Message");
         socklen_t addrlen = sizeof(src_addr_in);
         s1u_msg->N_bytes  = recvfrom(s1u, s1u_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
         m_gtpu->handle_s1u_pdu(s1u_msg);
       }
       if (FD_ISSET(s11, &set)) {
-        m_spgw_log->debug("Message received at SPGW: S11 Message\n");
+        m_logger.debug("Message received at SPGW: S11 Message");
         socklen_t addrlen = sizeof(src_addr_un);
         s11_msg->N_bytes  = recvfrom(s11, s11_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
         m_gtpc->handle_s11_pdu(s11_msg);
       }
     } else {
-      m_spgw_log->debug("No data from select.\n");
+      m_logger.debug("No data from select.");
     }
   }
   m_pool->deallocate(s1u_msg);

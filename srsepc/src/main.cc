@@ -391,14 +391,14 @@ int main(int argc, char* argv[])
     return SRSLTE_ERROR;
   }
   srslte::srslog_wrapper log_wrapper(*chan);
+  srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
   srslog::init();
 
   if (args.log_args.filename != "stdout") {
-    log_wrapper.log_char("\n\n");
-    log_wrapper.log_char(get_build_string().c_str());
-    log_wrapper.log_char("\n---  Software Radio Systems EPC log ---\n\n");
+    auto& epc_logger = srslog::fetch_basic_logger("EPC", false);
+    epc_logger.info("\n\n%s\n---  Software Radio Systems EPC log ---\n\n", get_build_string().c_str());
   }
 
   srslte::logmap::set_default_logger(&log_wrapper);
@@ -408,50 +408,71 @@ int main(int argc, char* argv[])
   nas_log.init("NAS ", &log_wrapper);
   nas_log.set_level(level(args.log_args.nas_level));
   nas_log.set_hex_limit(args.log_args.nas_hex_limit);
+  auto& nas_logger = srslog::fetch_basic_logger("NAS", false);
+  nas_logger.set_level(srslog::str_to_basic_level(args.log_args.nas_level));
+  nas_logger.set_hex_dump_max_size(args.log_args.nas_hex_limit);
 
   srslte::log_filter s1ap_log;
   s1ap_log.init("S1AP", &log_wrapper);
   s1ap_log.set_level(level(args.log_args.s1ap_level));
   s1ap_log.set_hex_limit(args.log_args.s1ap_hex_limit);
+  auto& s1ap_logger = srslog::fetch_basic_logger("S1AP", false);
+  s1ap_logger.set_level(srslog::str_to_basic_level(args.log_args.s1ap_level));
+  s1ap_logger.set_hex_dump_max_size(args.log_args.s1ap_hex_limit);
 
   srslte::log_filter mme_gtpc_log;
   mme_gtpc_log.init("MME GTPC", &log_wrapper);
   mme_gtpc_log.set_level(level(args.log_args.mme_gtpc_level));
   mme_gtpc_log.set_hex_limit(args.log_args.mme_gtpc_hex_limit);
+  auto& mme_gtpc_logger = srslog::fetch_basic_logger("MME GTPC", false);
+  mme_gtpc_logger.set_level(srslog::str_to_basic_level(args.log_args.mme_gtpc_level));
+  mme_gtpc_logger.set_hex_dump_max_size(args.log_args.mme_gtpc_hex_limit);
 
   srslte::log_filter hss_log;
   hss_log.init("HSS ", &log_wrapper);
   hss_log.set_level(level(args.log_args.hss_level));
   hss_log.set_hex_limit(args.log_args.hss_hex_limit);
+  auto& hss_logger = srslog::fetch_basic_logger("HSS", false);
+  hss_logger.set_level(srslog::str_to_basic_level(args.log_args.hss_level));
+  hss_logger.set_hex_dump_max_size(args.log_args.hss_hex_limit);
 
   srslte::log_filter spgw_gtpc_log;
   spgw_gtpc_log.init("SPGW GTPC", &log_wrapper);
   spgw_gtpc_log.set_level(level(args.log_args.spgw_gtpc_level));
   spgw_gtpc_log.set_hex_limit(args.log_args.spgw_gtpc_hex_limit);
+  auto& spgw_gtpc_logger = srslog::fetch_basic_logger("SPGW GTPC", false);
+  spgw_gtpc_logger.set_level(srslog::str_to_basic_level(args.log_args.spgw_gtpc_level));
+  spgw_gtpc_logger.set_hex_dump_max_size(args.log_args.spgw_gtpc_hex_limit);
 
   srslte::log_ref gtpu_log{"GTPU"};
   gtpu_log->set_level(level(args.log_args.mme_gtpc_level));
   gtpu_log->set_hex_limit(args.log_args.mme_gtpc_hex_limit);
+  auto& gtpu_logger = srslog::fetch_basic_logger("GTPU", false);
+  gtpu_logger.set_level(srslog::str_to_basic_level(args.log_args.gtpu_level));
+  gtpu_logger.set_hex_dump_max_size(args.log_args.gtpu_hex_limit);
 
   srslte::log_filter spgw_log;
   spgw_log.init("SPGW", &log_wrapper);
   spgw_log.set_level(level(args.log_args.spgw_level));
   spgw_log.set_hex_limit(args.log_args.spgw_hex_limit);
+  auto& spgw_logger = srslog::fetch_basic_logger("SPGW", false);
+  spgw_logger.set_level(srslog::str_to_basic_level(args.log_args.spgw_level));
+  spgw_logger.set_hex_dump_max_size(args.log_args.spgw_hex_limit);
 
   hss* hss = hss::get_instance();
-  if (hss->init(&args.hss_args, &hss_log)) {
+  if (hss->init(&args.hss_args)) {
     cout << "Error initializing HSS" << endl;
     exit(1);
   }
 
   mme* mme = mme::get_instance();
-  if (mme->init(&args.mme_args, &nas_log, &s1ap_log, &mme_gtpc_log)) {
+  if (mme->init(&args.mme_args)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }
 
   spgw* spgw = spgw::get_instance();
-  if (spgw->init(&args.spgw_args, gtpu_log, &spgw_gtpc_log, &spgw_log, hss->get_ip_to_imsi())) {
+  if (spgw->init(&args.spgw_args, gtpu_log, hss->get_ip_to_imsi())) {
     cout << "Error initializing SP-GW" << endl;
     exit(1);
   }

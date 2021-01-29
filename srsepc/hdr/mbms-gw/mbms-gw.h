@@ -24,6 +24,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include <cstddef>
 
@@ -73,6 +74,7 @@ private:
   bool                      m_running;
   srslte::byte_buffer_pool* m_pool;
   srslte::log_ref           m_mbms_gw_log;
+  srslog::basic_logger&     m_logger = srslog::fetch_basic_logger("MBMS");
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

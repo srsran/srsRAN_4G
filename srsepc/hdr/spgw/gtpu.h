@@ -18,6 +18,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <cstddef>
 #include <queue>
 
@@ -63,6 +64,8 @@ public:
                                                              // UE is attached without an active user-plane
                                                              // for downlink notifications.
 
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("GTPU");
+  //:TODO: remove this once srslte common code loggers have been upgraded.
   srslte::log_ref m_gtpu_log;
 
 private:

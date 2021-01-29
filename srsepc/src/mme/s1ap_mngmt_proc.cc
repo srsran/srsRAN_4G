@@ -52,7 +52,6 @@ void s1ap_mngmt_proc::cleanup(void)
 void s1ap_mngmt_proc::init(void)
 {
   m_s1ap      = s1ap::get_instance();
-  m_s1ap_log  = m_s1ap->m_s1ap_log;
   m_s1mme     = m_s1ap->get_s1_mme();
   m_s1ap_args = m_s1ap->m_s1ap_args;
 }
@@ -61,18 +60,18 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
                                               struct sctp_sndrcvinfo*               enb_sri)
 {
   srslte::console("Received S1 Setup Request.\n");
-  m_s1ap_log->info("Received S1 Setup Request.\n");
+  m_logger.info("Received S1 Setup Request.");
 
   enb_ctx_t enb_ctx = {};
 
   if (!unpack_s1_setup_request(msg, &enb_ctx)) {
-    m_s1ap_log->error("Malformed S1 Setup Request\n");
+    m_logger.error("Malformed S1 Setup Request");
     return false;
   }
 
   // Store SCTP sendrecv info
   memcpy(&enb_ctx.sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-  m_s1ap_log->debug("eNB SCTP association Id: %d\n", enb_sri->sinfo_assoc_id);
+  m_logger.debug("eNB SCTP association Id: %d", enb_sri->sinfo_assoc_id);
 
   // Log S1 Setup Request Info
   m_s1ap->print_enb_ctx_info(std::string("S1 Setup Request"), enb_ctx);
@@ -89,18 +88,18 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
   // Check matching PLMNs
   if (enb_ctx.plmn != m_s1ap->get_plmn()) {
     srslte::console("Sending S1 Setup Failure - Unknown PLMN\n");
-    m_s1ap_log->warning("Sending S1 Setup Failure - Unknown PLMN\n");
+    m_logger.warning("Sending S1 Setup Failure - Unknown PLMN");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unknown_plmn, enb_sri);
   } else if (!tac_match) {
     srslte::console("Sending S1 Setup Failure - No matching TAC\n");
-    m_s1ap_log->warning("Sending S1 Setup Failure - No matching TAC\n");
+    m_logger.warning("Sending S1 Setup Failure - No matching TAC");
     send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unspecified, enb_sri);
   } else {
     enb_ctx_t* enb_ptr = m_s1ap->find_enb_ctx(enb_ctx.enb_id);
     if (enb_ptr != nullptr) {
       // eNB already registered
       // TODO replace enb_ctx
-      m_s1ap_log->warning("eNB Already registered\n");
+      m_logger.warning("eNB Already registered");
     } else {
       // new eNB
       m_s1ap->add_new_enb_ctx(enb_ctx, enb_sri);
@@ -108,7 +107,7 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request
 
     send_s1_setup_response(m_s1ap_args, enb_sri);
     srslte::console("Sending S1 Setup Response\n");
-    m_s1ap_log->info("Sending S1 Setup Response\n");
+    m_logger.info("Sending S1 Setup Response");
   }
   return true;
 }
@@ -185,7 +184,7 @@ bool s1ap_mngmt_proc::send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options
 
 bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_sndrcvinfo* enb_sri)
 {
-  m_s1ap_log->debug("Sending S1 Setup Response\n");
+  m_logger.debug("Sending S1 Setup Response");
 
   s1ap_pdu_t tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
@@ -219,9 +218,9 @@ bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_
   s1_resp.relative_mme_capacity.value = 255;
 
   if (!m_s1ap->s1ap_tx_pdu(tx_pdu, enb_sri)) {
-    m_s1ap_log->error("Error sending S1 Setup Response.\n");
+    m_logger.error("Error sending S1 Setup Response.");
   } else {
-    m_s1ap_log->debug("S1 Setup Response sent\n");
+    m_logger.debug("S1 Setup Response sent");
   }
   return true;
 }
