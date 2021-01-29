@@ -54,10 +54,17 @@ struct rlc_amd_retx_t {
   uint32_t so_end;
 };
 
-struct pdcp_sdu_info_t {
+struct rlc_sn_info_t {
   uint32_t sn;
-  uint32_t acked_bytes;
-  uint32_t total_bytes;
+  bool     is_acked;
+};
+
+struct pdcp_sdu_info_t {
+  uint32_t                   sn;
+  bool                       fully_txed;       // Boolean indicating if the SDU is fully transmitted.
+  uint32_t                   acked_bytes;      // For metrics
+  uint32_t                   total_bytes;      // For metrics
+  std::vector<rlc_sn_info_t> rlc_sn_info_list; // List of RLC PDUs in transit and whether they have been acked or not.
 };
 
 class rlc_am_lte : public rlc_common

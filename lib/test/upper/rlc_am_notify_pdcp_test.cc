@@ -357,8 +357,8 @@ int rtxed_sdu_notify_test()
   return SRSLTE_SUCCESS;
 }
 
-// Test out of order ACK for SDU.
-// Two sdus are transmitted, and ack arrives out of order
+// Test out of order ACK for PDUs.
+// Two PDDs are transmitted for one SDU, and ack arrives out of order
 int two_sdus_out_of_order_ack_notify_test()
 {
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
@@ -395,16 +395,9 @@ int two_sdus_out_of_order_ack_notify_test()
   pdu2_buf->N_bytes = rlc.read_pdu(pdu2_buf->msg, 4); // 2 bytes for header + 2 for payload
   TESTASSERT(0 == rlc.get_buffer_state());
 
-  // Feed ack of PDU1 to RLC
-  srslte::rlc_status_pdu_t s1;
-  s1.ack_sn = 1;
-  s1.N_nack = 0;
-
-  // Intentionally do not write first ack to RLC
-
   // Ack of PDU2 to RLC, with PDU1 with NACK
   srslte::rlc_status_nack_t nack = {};
-  nack.nack_sn                   = 1;
+  nack.nack_sn                   = 0;
 
   srslte::rlc_status_pdu_t s2;
   s2.ack_sn   = 2;
@@ -415,18 +408,22 @@ int two_sdus_out_of_order_ack_notify_test()
   sta_buf->N_bytes = srslte::rlc_am_write_status_pdu(&s2, sta_buf->msg);
   rlc.write_pdu(sta_buf->msg, sta_buf->N_bytes);
 
-  // Check PDCP notifications
-  TESTASSERT(pdcp.notified_counts.size() == 1);
-  TESTASSERT(pdcp.notified_counts.find(10) != pdcp.notified_counts.end());
-  TESTASSERT(pdcp.notified_counts[10] == 1);
+  // Check PDCP notifications. No notification should be available yet.
+  TESTASSERT(pdcp.notified_counts.size() == 0);
 
-  // Write first ack (out of order)
+  // Ack all of PDUs to RLC
+  srslte::rlc_status_pdu_t s1;
+  s1.ack_sn = 2;
+  s1.N_nack = 0;
+
+  // Write ack for all PDUs
   sta_buf->N_bytes = srslte::rlc_am_write_status_pdu(&s1, sta_buf->msg);
   rlc.write_pdu(sta_buf->msg, sta_buf->N_bytes);
 
   // Check PDCP notifications
   TESTASSERT(pdcp.notified_counts.size() == 1);
   TESTASSERT(pdcp.notified_counts.find(10) != pdcp.notified_counts.end());
+  std::cout << pdcp.notified_counts[10] << std::endl;
   TESTASSERT(pdcp.notified_counts[10] == 1);
   return SRSLTE_SUCCESS;
 }
@@ -497,10 +494,11 @@ int main(int argc, char** argv)
 {
   srslte::byte_buffer_pool::get_instance();
   TESTASSERT(simple_sdu_notify_test() == SRSLTE_SUCCESS);
-  TESTASSERT(two_pdus_notify_test() == SRSLTE_SUCCESS);
   TESTASSERT(two_sdus_notify_test() == SRSLTE_SUCCESS);
   TESTASSERT(three_sdus_notify_test() == SRSLTE_SUCCESS);
+  TESTASSERT(two_pdus_notify_test() == SRSLTE_SUCCESS);
   TESTASSERT(rtxed_sdu_notify_test() == SRSLTE_SUCCESS);
+  TESTASSERT(two_pdus_out_of_order_ack_notify_test() == SRSLTE_SUCCESS);
   TESTASSERT(two_sdus_out_of_order_ack_notify_test() == SRSLTE_SUCCESS);
   srslte::byte_buffer_pool::cleanup();
   return SRSLTE_SUCCESS;

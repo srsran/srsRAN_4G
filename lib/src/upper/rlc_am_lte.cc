@@ -384,10 +384,13 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
   if (info_count != 0) {
     log->error("PDCP SDU info alreay exists\n");
     return SRSLTE_ERROR;
-  } else if (undelivered_sdu_info_queue.size() >= pdcp_info_queue_capacity) {
+  }
+
+  if (undelivered_sdu_info_queue.size() >= pdcp_info_queue_capacity) {
     log->error("PDCP SDU info exceeds maximum queue capacity\n");
     return SRSLTE_ERROR;
   }
+
   undelivered_sdu_info_queue[info.sn] = info;
   return SRSLTE_SUCCESS;
 }
@@ -858,8 +861,10 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     pdcp_tx_counts[0] = tx_sdu->md.pdcp_sn;
+    undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].rlc_sn_info_list.push_back({header.sn, false});
     if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx.\n", RB_NAME);
+      undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {
@@ -898,8 +903,10 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
     pdcp_tx_counts[header.N_li] = tx_sdu->md.pdcp_sn;
+    undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].rlc_sn_info_list.push_back({header.sn, false});
     if (tx_sdu->N_bytes == 0) {
-      log->debug("%s Complete SDU scheduled for tx.\n", RB_NAME);
+      log->debug("%s Complete SDU scheduled for tx. PDCP SN=%d\n", RB_NAME, tx_sdu->md.pdcp_sn);
+      undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {
@@ -1081,33 +1088,33 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
   // Notify PDCP of the number of bytes succesfully delivered
   uint32_t total_acked_bytes = 0;
   uint32_t nof_bytes         = 0;
-  uint32_t pdcp_sn           = 0;
-  for (uint32_t pdcp_notify_it = 0; pdcp_notify_it < tx_pdu.header.N_li; pdcp_notify_it++) {
-    nof_bytes = tx_pdu.header.li[pdcp_notify_it];
-    pdcp_sn   = tx_pdu.pdcp_tx_counts[pdcp_notify_it];
-    if (undelivered_sdu_info_queue.find(pdcp_sn) == undelivered_sdu_info_queue.end()) {
-      log->debug("Could not find notification info, perhaps SDU was already ACK'ed.\n");
-      continue;
+
+  // Iterate over all undelivered SDUs
+  for (auto& info_it : undelivered_sdu_info_queue) {
+    // Iterate over all SNs that
+    uint32_t pdcp_sn = info_it.first;
+    auto&    info    = info_it.second;
+    for (auto& rlc_sn_info : info.rlc_sn_info_list) {
+      // Mark this SN as acked, if necessary
+      if (rlc_sn_info.is_acked == false && rlc_sn_info.sn == tx_pdu.header.sn) {
+        rlc_sn_info.is_acked = true;
+      }
     }
-    undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
-    total_acked_bytes += nof_bytes;
-    if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
-      undelivered_sdu_info_queue.erase(pdcp_sn);
-      notify_info_vec.push_back(pdcp_sn);
-      log->debug("Reporting to PDCP: PDCP SN=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
+    // Check wether the SDU was fully acked
+    if (info.fully_txed) {
+      // Iterate over all SNs that
+      bool fully_acked = std::all_of(info.rlc_sn_info_list.begin(),
+                                     info.rlc_sn_info_list.end(),
+                                     [](rlc_sn_info_t rlc_sn_info) { return rlc_sn_info.is_acked; });
+      if (fully_acked) {
+        notify_info_vec.push_back(pdcp_sn);
+      }
     }
   }
-  pdcp_sn   = tx_pdu.pdcp_tx_counts[tx_pdu.header.N_li];
-  nof_bytes = tx_pdu.buf->N_bytes - total_acked_bytes; // Notify last SDU
-  if (undelivered_sdu_info_queue.find(pdcp_sn) == undelivered_sdu_info_queue.end()) {
-    log->debug("Could not find notification info, perhaps SDU was already ACK'ed.\n");
-    return;
-  }
-  undelivered_sdu_info_queue[pdcp_sn].acked_bytes += nof_bytes;
-  if (undelivered_sdu_info_queue[pdcp_sn].acked_bytes >= undelivered_sdu_info_queue[pdcp_sn].total_bytes) {
-    undelivered_sdu_info_queue.erase(pdcp_sn);
-    notify_info_vec.push_back(pdcp_sn);
-    log->debug("Reporting to PDCP: PDCP SN=%d, nof_bytes=%d\n", pdcp_sn, nof_bytes);
+
+  // Remove all SDUs that were fully acked
+  for (uint32_t acked_pdcp_sn : notify_info_vec) {
+    undelivered_sdu_info_queue.erase(acked_pdcp_sn);
   }
 }
 
