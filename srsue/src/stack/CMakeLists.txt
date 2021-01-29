@@ -14,6 +14,7 @@ set(SOURCES ue_stack_lte.cc)
 add_library(srsue_stack STATIC ${SOURCES})
 
 if(ENABLE_5GNR)
+    add_subdirectory(mac_nr)
     set(SOURCES ue_stack_nr.cc)
     add_library(srsue_nr_stack STATIC ${SOURCES})
 endif()

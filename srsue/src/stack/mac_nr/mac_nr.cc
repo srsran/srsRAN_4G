@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsue/hdr/stack/mac/mac_nr.h"
+#include "srsue/hdr/stack/mac_nr/mac_nr.h"
 #include "srslte/common/log_helper.h"
 
 using namespace asn1::rrc;

@@ -23,7 +23,7 @@
 #include <string>
 
 #include "mac/mac.h"
-#include "mac/mac_nr.h"
+#include "mac_nr/mac_nr.h"
 #include "rrc/rrc.h"
 #include "srslte/radio/radio.h"
 #include "srslte/upper/pdcp.h"
