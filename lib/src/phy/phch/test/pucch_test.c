@@ -131,10 +131,10 @@ int test_uci_cqi_pucch(void)
 
 int main(int argc, char** argv)
 {
-  srslte_pucch_t        pucch_ue  = {};
-  srslte_pucch_t        pucch_enb = {};
-  srslte_pucch_cfg_t    pucch_cfg = {};
-  srslte_refsignal_ul_t dmrs;
+  srslte_pucch_t        pucch_ue   = {};
+  srslte_pucch_t        pucch_enb  = {};
+  srslte_pucch_cfg_t    pucch_cfg  = {};
+  srslte_refsignal_ul_t dmrs       = {};
   cf_t*                 sf_symbols = NULL;
   cf_t                  pucch_dmrs[2 * SRSLTE_NRE * 3];
   int                   ret       = -1;
@@ -214,7 +214,6 @@ int main(int argc, char** argv)
     for (uint32_t d = 1; d <= 3; d++) {
       for (uint32_t ncs = 0; ncs < 8; ncs += d) {
         for (uint32_t n_pucch = 1; n_pucch < 130; n_pucch += 50) {
-
           struct timeval t[3];
 
           pucch_cfg.delta_pucch_shift = d;
