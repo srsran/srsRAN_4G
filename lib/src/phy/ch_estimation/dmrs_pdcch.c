@@ -444,7 +444,7 @@ int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
   measure->epre   = epre / (float)q->coreset.duration;
   measure->cfo_hz = cfo / (2.0f * (float)M_PI * Ts);
   measure->sync_error_us =
-      (float)SRSLTE_SUBC_SPACING_NR(q->carrier.numerology) * sync_err / (4.0e-6f * (float)q->coreset.duration);
+      sync_err / (4.0e-6f * (float)q->coreset.duration * SRSLTE_SUBC_SPACING_NR(q->carrier.numerology));
 
   measure->rsrp_dBfs = srslte_convert_power_to_dB(measure->rsrp);
   measure->epre_dBfs = srslte_convert_power_to_dB(measure->epre);
