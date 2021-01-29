@@ -154,6 +154,7 @@ int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t*
       cfg.nof_prb           = carrier->nof_prb;
       cfg.symbol_sz         = srslte_min_symbol_sz_rb(carrier->nof_prb);
       cfg.cp                = SRSLTE_CP_NORM;
+      cfg.keep_dc           = true;
       srslte_ofdm_rx_init_cfg(&q->fft[i], &cfg);
     }
   }
