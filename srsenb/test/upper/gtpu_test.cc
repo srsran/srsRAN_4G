@@ -120,13 +120,13 @@ int test_gtpu_direct_tunneling()
 {
   uint16_t           rnti = 0x46, rnti2 = 0x50;
   uint32_t           drb1         = 3;
-  uint32_t           mme_teidout1 = 1, mme_teidout2 = 2;
-  const char *       mme_addr_str = "127.0.0.1", *senb_addr_str = "127.0.1.1", *tenb_addr_str = "127.0.1.2";
-  struct sockaddr_in senb_sockaddr, mme_sockaddr, tenb_sockaddr;
+  uint32_t           sgw_teidout1 = 1, sgw_teidout2 = 2;
+  const char *       sgw_addr_str = "127.0.0.1", *senb_addr_str = "127.0.1.1", *tenb_addr_str = "127.0.1.2";
+  struct sockaddr_in senb_sockaddr, sgw_sockaddr, tenb_sockaddr;
   srslte::net_utils::set_sockaddr(&senb_sockaddr, senb_addr_str, GTPU_PORT);
-  srslte::net_utils::set_sockaddr(&mme_sockaddr, mme_addr_str, GTPU_PORT);
+  srslte::net_utils::set_sockaddr(&sgw_sockaddr, sgw_addr_str, GTPU_PORT);
   srslte::net_utils::set_sockaddr(&tenb_sockaddr, tenb_addr_str, GTPU_PORT);
-  uint32_t tenb_addr = ntohl(tenb_sockaddr.sin_addr.s_addr), mme_addr = ntohl(mme_sockaddr.sin_addr.s_addr);
+  uint32_t tenb_addr = ntohl(tenb_sockaddr.sin_addr.s_addr), sgw_addr = ntohl(sgw_sockaddr.sin_addr.s_addr);
 
   srslte::unique_byte_buffer_t pdu;
 
@@ -134,19 +134,19 @@ int test_gtpu_direct_tunneling()
   srsenb::gtpu senb_gtpu(srslog::fetch_basic_logger("GTPU1")), tenb_gtpu(srslog::fetch_basic_logger("GTPU2"));
   stack_tester senb_stack, tenb_stack;
   pdcp_tester  senb_pdcp, tenb_pdcp;
-  senb_gtpu.init(senb_addr_str, mme_addr_str, "", "", &senb_pdcp, &senb_stack, false);
-  tenb_gtpu.init(tenb_addr_str, mme_addr_str, "", "", &tenb_pdcp, &tenb_stack, false);
+  senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, &senb_stack, false);
+  tenb_gtpu.init(tenb_addr_str, sgw_addr_str, "", "", &tenb_pdcp, &tenb_stack, false);
 
   // create tunnels MME-SeNB and MME-TeNB
-  uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, mme_addr, mme_teidout1);
-  uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, mme_addr, mme_teidout2);
+  uint32_t senb_teid_in = senb_gtpu.add_bearer(rnti, drb1, sgw_addr, sgw_teidout1);
+  uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2);
 
   // Buffer PDUs in SeNB PDCP
   pdu          = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
   pdu->N_bytes = 10;
   for (size_t sn = 6; sn < 10; ++sn) {
     std::vector<uint8_t> data(10, sn);
-    pdu = encode_gtpu_packet(data, senb_teid_in, mme_sockaddr, senb_sockaddr);
+    pdu = encode_gtpu_packet(data, senb_teid_in, sgw_sockaddr, senb_sockaddr);
     // remove gtpu header
     pdu->N_bytes -= 8u;
     memcpy(pdu->msg, pdu->msg + 8u, pdu->N_bytes);
@@ -182,9 +182,9 @@ int test_gtpu_direct_tunneling()
 
   // TEST: verify that incoming DL data MME->SeNB is forwarded through SeNB->TeNB tunnel
   std::shuffle(data_vec.begin(), data_vec.end(), g);
-  pdu = encode_gtpu_packet(data_vec, senb_teid_in, mme_sockaddr, senb_sockaddr);
+  pdu = encode_gtpu_packet(data_vec, senb_teid_in, sgw_sockaddr, senb_sockaddr);
   encoded_data.assign(pdu->msg + 8u, pdu->msg + pdu->N_bytes);
-  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), mme_sockaddr);
+  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
   tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
   pdu_view = srslte::make_span(tenb_pdcp.last_sdu);
   TESTASSERT(pdu_view.size() == encoded_data.size() and
@@ -196,24 +196,24 @@ int test_gtpu_direct_tunneling()
   size_t N_pdus = std::uniform_int_distribution<size_t>{1, 30}(g);
   for (size_t i = 0; i < N_pdus; ++i) {
     std::fill(data_vec.begin(), data_vec.end(), i);
-    pdu = encode_gtpu_packet(data_vec, senb_teid_in, mme_sockaddr, tenb_sockaddr);
-    tenb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), mme_sockaddr);
+    pdu = encode_gtpu_packet(data_vec, senb_teid_in, sgw_sockaddr, tenb_sockaddr);
+    tenb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
     // The PDUs are being buffered
     TESTASSERT(tenb_pdcp.last_sdu == nullptr);
   }
   // PDUs coming from SeNB-TeNB tunnel are forwarded
   std::iota(data_vec.begin(), data_vec.end(), 0);
   std::shuffle(data_vec.begin(), data_vec.end(), g);
-  pdu = encode_gtpu_packet(data_vec, senb_teid_in, mme_sockaddr, senb_sockaddr);
+  pdu = encode_gtpu_packet(data_vec, senb_teid_in, sgw_sockaddr, senb_sockaddr);
   encoded_data.assign(pdu->msg + 8u, pdu->msg + pdu->N_bytes);
-  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), mme_sockaddr);
+  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
   tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
   TESTASSERT(tenb_pdcp.last_sdu->N_bytes == encoded_data.size() and
              memcmp(tenb_pdcp.last_sdu->msg, encoded_data.data(), encoded_data.size()) == 0);
   tenb_pdcp.clear();
   // EndMarker is forwarded via MME->SeNB->TeNB, and TeNB buffered PDUs are flushed
   pdu = encode_end_marker(senb_teid_in);
-  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), mme_sockaddr);
+  senb_gtpu.handle_gtpu_s1u_rx_packet(std::move(pdu), sgw_sockaddr);
   tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
   srslte::span<uint8_t> encoded_data2{tenb_pdcp.last_sdu->msg + 20u, tenb_pdcp.last_sdu->msg + 30u};
   TESTASSERT(std::all_of(encoded_data2.begin(), encoded_data2.end(), [N_pdus](uint8_t b) { return b == N_pdus - 1; }));
