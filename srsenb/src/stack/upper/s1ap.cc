@@ -59,6 +59,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                  
                                                       srslte::plmn_id_t            target_plmn_,
                                                       srslte::unique_byte_buffer_t rrc_container_)
 {
+  ho_cmd_msg  = nullptr;
   target_eci  = target_eci_;
   target_plmn = target_plmn_;
 
@@ -113,12 +114,6 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
     // TODO
   }
 
-  // Check for E-RABs subject to being forwarded
-  if (msg.protocol_ies.erab_subjectto_data_forwarding_list_present) {
-    procWarning("Not handling E-RABSubjecttoDataForwardingList");
-    // TODO
-  }
-
   // In case of intra-system Handover, Target to Source Transparent Container IE shall be encoded as
   // Target eNB to Source eNB Transparent Container IE
   asn1::cbit_ref bref(msg.protocol_ies.target_to_source_transparent_container.value.data(),
@@ -140,6 +135,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
   }
   memcpy(rrc_container->msg, container.rrc_container.data(), container.rrc_container.size());
   rrc_container->N_bytes = container.rrc_container.size();
+  ho_cmd_msg             = &msg;
 
   return srslte::proc_outcome_t::success;
 }
@@ -147,9 +143,9 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
 void s1ap::ue::ho_prep_proc_t::then(const srslte::proc_state_t& result)
 {
   if (result.is_error()) {
-    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, false, {});
+    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, false, *ho_cmd_msg, {});
   } else {
-    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, true, std::move(rrc_container));
+    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, true, *ho_cmd_msg, std::move(rrc_container));
     procInfo("Completed with success");
   }
 }
@@ -936,10 +932,10 @@ bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
   return sctp_send_s1ap_pdu(tx_pdu, SRSLTE_INVALID_RNTI, "HandoverFailure");
 }
 
-bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
-                           uint16_t                                      rnti,
-                           srslte::unique_byte_buffer_t                  ho_cmd,
-                           srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers)
+bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                           uint16_t                                       rnti,
+                           srslte::unique_byte_buffer_t                   ho_cmd,
+                           srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers)
 {
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
@@ -951,21 +947,26 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
   container.mme_ue_s1ap_id.value = msg.protocol_ies.mme_ue_s1ap_id.value.value;
   container.enb_ue_s1ap_id.value = ue_ptr->ctxt.enb_ue_s1ap_id;
 
-  // TODO: Add admitted E-RABs
-  for (uint32_t i = 0; i < msg.protocol_ies.erab_to_be_setup_list_ho_req.value.size(); ++i) {
-    const auto&                           erab      = msg.protocol_ies.erab_to_be_setup_list_ho_req.value[i];
-    const erab_to_be_setup_item_ho_req_s& erabsetup = erab.value.erab_to_be_setup_item_ho_req();
-    container.erab_admitted_list.value.push_back({});
-    container.erab_admitted_list.value.back().load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
-    auto& c                   = container.erab_admitted_list.value.back().value.erab_admitted_item();
-    c.erab_id                 = erabsetup.erab_id;
-    c.gtp_teid                = admitted_bearers[i];
+  // Add admitted E-RABs
+  container.erab_admitted_list.value.resize(admitted_bearers.size());
+  for (size_t i = 0; i < admitted_bearers.size(); ++i) {
+    container.erab_admitted_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
+    auto& c                   = container.erab_admitted_list.value[i].value.erab_admitted_item();
+    c                         = admitted_bearers[i];
     c.transport_layer_address = addr_to_asn1(args.gtp_bind_addr.c_str());
-    //    c.dl_transport_layer_address_present = true;
-    //    c.dl_transport_layer_address         = c.transport_layer_address;
-    //    c.ul_transport_layer_address_present = true;
-    //    c.ul_transport_layer_address         = c.transport_layer_address;
+
+    // If E-RAB is proposed for forward tunneling
+    if (c.dl_g_tp_teid_present) {
+      c.dl_transport_layer_address_present = true;
+      c.dl_transport_layer_address         = c.transport_layer_address;
+    }
+    if (c.ul_gtp_teid_present) {
+      c.ul_transport_layer_address_present = true;
+      c.ul_transport_layer_address         = c.transport_layer_address;
+    }
   }
+
+  // Pack transparent container
   asn1::s1ap::targetenb_to_sourceenb_transparent_container_s transparent_container;
   transparent_container.rrc_container.resize(ho_cmd->N_bytes);
   memcpy(transparent_container.rrc_container.data(), ho_cmd->msg, ho_cmd->N_bytes);
@@ -1636,8 +1637,16 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   /*** fill the transparent container ***/
   container.source_to_target_transparent_container_secondary_present = false;
   sourceenb_to_targetenb_transparent_container_s transparent_cntr;
-  transparent_cntr.erab_info_list_present               = false; // TODO: CHECK
+  transparent_cntr.erab_info_list_present               = true;  // TODO: CHECK
   transparent_cntr.subscriber_profile_idfor_rfp_present = false; // TODO: CHECK
+
+  // FIXME: Hardcoded ERABs
+  transparent_cntr.erab_info_list.resize(1);
+  transparent_cntr.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+  transparent_cntr.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
+  transparent_cntr.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
+  transparent_cntr.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
+      dl_forwarding_opts::dl_forwarding_proposed;
   // - set target cell ID
   target_plmn.to_s1ap_plmn_bytes(transparent_cntr.target_cell_id.plm_nid.data());
   transparent_cntr.target_cell_id.cell_id.from_number(target_eci); // [ENBID|CELLID|0]

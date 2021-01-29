@@ -75,9 +75,9 @@ public:
   } last_enb_status = {};
   std::vector<uint8_t> added_erab_ids;
   struct ho_req_ack {
-    uint16_t                                     rnti;
-    srslte::unique_byte_buffer_t                 ho_cmd_pdu;
-    std::vector<asn1::fixed_octstring<4, true> > admitted_bearers;
+    uint16_t                                      rnti;
+    srslte::unique_byte_buffer_t                  ho_cmd_pdu;
+    std::vector<asn1::s1ap::erab_admitted_item_s> admitted_bearers;
   } last_ho_req_ack;
 
   bool send_ho_required(uint16_t                     rnti,
@@ -93,10 +93,10 @@ public:
     last_enb_status = {true, rnti, bearer_status_list};
     return true;
   }
-  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
-                       uint16_t                                      rnti,
-                       srslte::unique_byte_buffer_t                  ho_cmd,
-                       srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) override
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                       uint16_t                                       rnti,
+                       srslte::unique_byte_buffer_t                   ho_cmd,
+                       srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
   {
     last_ho_req_ack.rnti       = rnti;
     last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);

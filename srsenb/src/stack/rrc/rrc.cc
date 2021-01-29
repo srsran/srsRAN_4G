@@ -527,9 +527,12 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
   Handover functions
 *******************************************************************************/
 
-void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container)
+void rrc::ho_preparation_complete(uint16_t                     rnti,
+                                  bool                         is_success,
+                                  const asn1::s1ap::ho_cmd_s&  msg,
+                                  srslte::unique_byte_buffer_t rrc_container)
 {
-  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, std::move(rrc_container));
+  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, msg, std::move(rrc_container));
 }
 
 void rrc::set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs)

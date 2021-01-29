@@ -64,14 +64,20 @@ class bearer_cfg_handler
 {
 public:
   struct erab_t {
+    struct gtpu_tunnel {
+      uint32_t teid_out = 0;
+      uint32_t teid_in  = 0;
+      uint32_t addr     = 0;
+    };
     uint8_t                                     id = 0;
     asn1::s1ap::erab_level_qos_params_s         qos_params;
     asn1::bounded_bitstring<1, 160, true, true> address;
     uint32_t                                    teid_out = 0;
     uint32_t                                    teid_in  = 0;
+    std::vector<gtpu_tunnel>                    tunnels;
   };
 
-  bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_);
+  bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_);
 
   int  add_erab(uint8_t                                            erab_id,
                 const asn1::s1ap::erab_level_qos_params_s&         qos,
@@ -85,8 +91,12 @@ public:
                    const asn1::unbounded_octstring<true>*     nas_pdu);
 
   // Methods to apply bearer updates
-  void add_gtpu_bearer(gtpu_interface_rrc* gtpu, uint32_t erab_id);
-  void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
+  void     add_gtpu_bearer(uint32_t erab_id);
+  uint32_t add_gtpu_bearer(uint32_t                                erab_id,
+                           uint32_t                                teid_out,
+                           uint32_t                                addr,
+                           const gtpu_interface_rrc::bearer_props* props = nullptr);
+  void     fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }
   const asn1::rrc::drb_to_add_mod_list_l& get_established_drbs() const { return current_drbs; }
@@ -98,6 +108,7 @@ private:
   srslog::basic_logger& logger;
   uint16_t              rnti = 0;
   const rrc_cfg_t*      cfg  = nullptr;
+  gtpu_interface_rrc*   gtpu = nullptr;
 
   // last cfg
   asn1::rrc::drb_to_add_mod_list_l current_drbs;

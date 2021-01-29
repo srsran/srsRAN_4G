@@ -92,7 +92,10 @@ public:
                      std::vector<uint16_t>*                erabs_released,
                      std::vector<uint16_t>*                erabs_failed_to_release) override;
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
-  void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
+  void ho_preparation_complete(uint16_t                     rnti,
+                               bool                         is_success,
+                               const asn1::s1ap::ho_cmd_s&  msg,
+                               srslte::unique_byte_buffer_t rrc_container) override;
   uint16_t
        start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                   const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override;

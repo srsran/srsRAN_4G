@@ -380,7 +380,9 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
  * @param is_success flag to whether an HandoverCommand or HandoverReject was received
  * @param container RRC container with HandoverCommand to send to UE
  */
-void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
+void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                         is_success,
+                                                           const asn1::s1ap::ho_cmd_s&  msg,
+                                                           srslte::unique_byte_buffer_t container)
 {
   if (not is_success) {
     log_h->info("Received S1AP HandoverFailure. Aborting Handover...");
@@ -405,7 +407,7 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
     return;
   }
 
-  trigger(rrchocmd.crit_exts.c1().ho_cmd_r8());
+  trigger(s1_source_ho_st::ho_cmd_msg{&msg, &rrchocmd.crit_exts.c1().ho_cmd_r8()});
 }
 
 bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
@@ -476,36 +478,6 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
                        true);
 }
 
-/**
- * TS 36.413, Section 8.4.6 - eNB Status Transfer
- * Description: Send "eNBStatusTransfer" message from source eNB to MME
- *              - Pass bearers' DL/UL HFN and PDCP SN to be put inside a transparent container
- */
-bool rrc::ue::rrc_mobility::start_enb_status_transfer()
-{
-  std::vector<s1ap_interface_rrc::bearer_status_info> s1ap_bearers;
-  s1ap_bearers.reserve(rrc_ue->bearer_list.get_erabs().size());
-
-  for (const auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
-    s1ap_interface_rrc::bearer_status_info b    = {};
-    uint8_t                                lcid = erab_pair.second.id - 2u;
-    b.erab_id                                   = erab_pair.second.id;
-    srslte::pdcp_lte_state_t pdcp_state         = {};
-    if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
-      Error("PDCP bearer lcid=%d for rnti=0x%x was not found", lcid, rrc_ue->rnti);
-      return false;
-    }
-    b.dl_hfn     = pdcp_state.tx_hfn;
-    b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
-    b.ul_hfn     = pdcp_state.rx_hfn;
-    b.pdcp_ul_sn = pdcp_state.next_pdcp_rx_sn;
-    s1ap_bearers.push_back(b);
-  }
-
-  Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer");
-  return rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers);
-}
-
 /*************************************
  *     rrc_mobility FSM methods
  *************************************/
@@ -534,11 +506,74 @@ bool rrc::ue::rrc_mobility::needs_intraenb_ho(idle_st& s, const ho_meas_report_e
  *   s1_source_ho subFSM methods
  *************************************/
 
-void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
+rrc::ue::rrc_mobility::s1_source_ho_st::s1_source_ho_st(rrc_mobility* parent_) :
+  base_t(parent_), rrc_enb(parent_->rrc_enb), rrc_ue(parent_->rrc_ue), logger(parent_->logger)
+{}
+
+/**
+ * TS 36.413, Section 8.4.6 - eNB Status Transfer
+ * @brief: Send "eNBStatusTransfer" message from source eNB to MME, and setup Forwarding GTPU tunnel
+ *         - PDCP provides the bearers' DL/UL HFN and COUNT to be put inside a transparent container
+ *         - The eNB sends eNBStatusTransfer to MME
+ *         - A GTPU forwarding tunnel is opened to forward buffered PDCP PDUs and incoming GTPU PDUs
+ */
+bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd)
 {
-  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
-  f->get_log()->info(
-      "Starting S1 Handover of rnti=0x%x to cellid=0x%x.", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
+  std::vector<s1ap_interface_rrc::bearer_status_info> s1ap_bearers;
+  s1ap_bearers.reserve(rrc_ue->bearer_list.get_erabs().size());
+
+  for (const auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
+    s1ap_interface_rrc::bearer_status_info b    = {};
+    uint8_t                                lcid = erab_pair.second.id - 2u;
+    b.erab_id                                   = erab_pair.second.id;
+    srslte::pdcp_lte_state_t pdcp_state         = {};
+    if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
+      Error("PDCP bearer lcid=%d for rnti=0x%x was not found", lcid, rrc_ue->rnti);
+      return false;
+    }
+    b.dl_hfn     = pdcp_state.tx_hfn;
+    b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
+    b.ul_hfn     = pdcp_state.rx_hfn;
+    b.pdcp_ul_sn = pdcp_state.next_pdcp_rx_sn;
+    s1ap_bearers.push_back(b);
+  }
+
+  Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer");
+  if (not rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers)) {
+    return false;
+  }
+
+  // Setup GTPU forwarding tunnel
+  if (s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list_present) {
+    const auto& fwd_erab_list = s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list.value;
+    const auto& erab_list     = rrc_ue->bearer_list.get_erabs();
+    for (const auto& e : fwd_erab_list) {
+      const auto& fwd_erab = e.value.erab_data_forwarding_item();
+      auto        it       = erab_list.find(fwd_erab.erab_id);
+      if (it == erab_list.end()) {
+        Warning("E-RAB id=%d subject to forwarding not found\n", fwd_erab.erab_id);
+        continue;
+      }
+      const bearer_cfg_handler::erab_t& erab = it->second;
+      if (fwd_erab.dl_g_tp_teid_present and fwd_erab.dl_transport_layer_address_present) {
+        gtpu_interface_rrc::bearer_props props;
+        props.forward_from_teidin_present = true;
+        props.forward_from_teidin         = erab.teid_in;
+        rrc_ue->bearer_list.add_gtpu_bearer(fwd_erab.erab_id,
+                                            fwd_erab.dl_g_tp_teid.to_number(),
+                                            fwd_erab.dl_transport_layer_address.to_number(),
+                                            &props);
+      }
+    }
+  }
+
+  return true;
+}
+
+void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_cmd::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
+{
+  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->rrc_ue->rnti, ev.target_eci);
+  f->get_log()->info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", f->rrc_ue->rnti, ev.target_eci);
   f->report = ev;
 
   bool success = f->parent_fsm()->start_ho_preparation(f->report.target_eci, f->report.meas_obj->meas_obj_id, false);
@@ -547,65 +582,74 @@ void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source
   }
 }
 
-void rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_r8_ies_s& ho_cmd)
+/**
+ * TS 36.413, Section 8.4.2 - Handover Resource Allocation
+ * @brief: Send "eNBStatusTransfer" message from source eNB to MME, and setup Forwarding GTPU tunnel
+ *         - PDCP provides the bearers' DL/UL HFN and COUNT to be put inside a transparent container
+ *         - The eNB sends eNBStatusTransfer to MME
+ *         - A GTPU forwarding tunnel is opened to forward buffered PDCP PDUs and incoming GTPU PDUs
+ */
+void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const ho_cmd_msg& ho_cmd)
 {
   /* unpack DL-DCCH message containing the RRCRonnectionReconf (with MobilityInfo) to be sent to the UE */
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   {
-    asn1::cbit_ref bref(&ho_cmd.ho_cmd_msg[0], ho_cmd.ho_cmd_msg.size());
+    asn1::cbit_ref bref(&ho_cmd.ho_cmd->ho_cmd_msg[0], ho_cmd.ho_cmd->ho_cmd_msg.size());
     if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      get_log()->warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.");
+      Warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.");
       trigger(ho_cancel_ev{});
       return;
     }
   }
   if (dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1 or
       dl_dcch_msg.msg.c1().type().value != dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg) {
-    get_log()->warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside");
+    Warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside");
     trigger(ho_cancel_ev{});
     return;
   }
   asn1::rrc::rrc_conn_recfg_s& reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
   if (not reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info_present) {
-    get_log()->warning("HandoverCommand is expected to have mobility control subfield");
+    Warning("HandoverCommand is expected to have mobility control subfield");
     trigger(ho_cancel_ev{});
     return;
   }
 
-  // Disable DRBs
-  parent_fsm()->rrc_ue->mac_ctrl.set_drb_activation(false);
-  parent_fsm()->rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
+  /* Enter Handover Execution */
+  // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
 
-  /* Send HO Command to UE */
-  if (not parent_fsm()->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
+  // Disable DRBs in the MAC, while Reconfiguration is taking place.
+  rrc_ue->mac_ctrl.set_drb_activation(false);
+  rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
+
+  // Send HO Command to UE
+  if (not rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
     trigger(ho_cancel_ev{});
     return;
+  }
+
+  /* Start S1AP eNBStatusTransfer Procedure */
+  if (not start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd)) {
+    trigger(ho_cancel_ev{});
   }
 }
 
 //! Called in Source ENB during S1-Handover when there was a Reestablishment Request
 void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev& ev)
 {
-  parent_fsm()->rrc_enb->s1ap->send_ho_cancel(parent_fsm()->rrc_ue->rnti);
-}
-
-void rrc::ue::rrc_mobility::s1_source_ho_st::status_transfer_st::enter(s1_source_ho_st* f)
-{
-  f->get_log()->info("HandoverCommand of rnti=0x%x handled successfully.", f->parent_fsm()->rrc_ue->rnti);
-
-  // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
-
-  /* Start S1AP eNBStatusTransfer Procedure */
-  if (not f->parent_fsm()->start_enb_status_transfer()) {
-    f->trigger(srslte::failure_ev{});
-  }
+  rrc_enb->s1ap->send_ho_cancel(rrc_ue->rnti);
 }
 
 /*************************************
  *   s1_target_ho state methods
  *************************************/
 
-void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req)
+/**
+ * @brief handle S1AP "HO Requested" message from the MME
+ *        - MME --> TeNB
+ * @param s initial state
+ * @param ho_req event with received message
+ */
+void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req)
 {
   const auto& rrc_container = ho_req.transparent_container->rrc_container;
 
@@ -685,12 +729,42 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
 
-  /* send S1AP HandoverRequestAcknowledge */
-  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
+  // Set admitted E-RABs
+  std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
   for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
     admitted_erabs.emplace_back();
-    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erabs.back().data());
+    asn1::s1ap::erab_admitted_item_s& admitted_erab = admitted_erabs.back();
+    admitted_erab.erab_id                           = erab.second.id;
+    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erab.gtp_teid.data());
+
+    // Establish GTPU Forwarding Paths
+    if (ho_req.transparent_container->erab_info_list_present) {
+      auto& lst = ho_req.transparent_container->erab_info_list;
+      auto  it  = std::find_if(
+          lst.begin(),
+          lst.end(),
+          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+            return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
+          });
+      if (it == lst.end()) {
+        continue;
+      }
+      auto& fwd_erab = it->value.erab_info_list_item();
+
+      if (fwd_erab.dl_forwarding_present and
+          fwd_erab.dl_forwarding.value == asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed) {
+        admitted_erab.dl_g_tp_teid_present = true;
+        gtpu_interface_rrc::bearer_props props;
+        props.flush_before_teidin_present = true;
+        props.flush_before_teidin         = erab.second.teid_in;
+        uint32_t dl_teid_in               = rrc_ue->bearer_list.add_gtpu_bearer(
+            erab.second.id, erab.second.teid_out, erab.second.address.to_number(), &props);
+        srslte::uint32_to_uint8(dl_teid_in, admitted_erabs.back().dl_g_tp_teid.data());
+      }
+    }
   }
+
+  // send S1AP HandoverRequestAcknowledge
   if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg, rrc_ue->rnti, std::move(ho_cmd_pdu), admitted_erabs)) {
     trigger(srslte::failure_ev{});
     return;
@@ -721,11 +795,12 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
       get_log()->warning("Data Forwarding of E-RABs not supported");
     }
 
+    // Create E-RAB and associated main GTPU tunnel
     uint32_t teid_out;
     srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     rrc_ue->bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr);
-    rrc_ue->bearer_list.add_gtpu_bearer(rrc_enb->gtpu, erab.erab_id);
+    rrc_ue->bearer_list.add_gtpu_bearer(erab.erab_id);
   }
 
   // Regenerate AS Keys
@@ -900,8 +975,7 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev)
 {
-  logger.info(
-      "User rnti=0x%x successfully handovered to cell_id=0x%x", rrc_ue->rnti, s.target_cell->cell_cfg.cell_id);
+  logger.info("User rnti=0x%x successfully handovered to cell_id=0x%x", rrc_ue->rnti, s.target_cell->cell_cfg.cell_id);
 }
 
 } // namespace srsenb

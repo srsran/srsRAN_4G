@@ -448,7 +448,10 @@ public:
    * @param is_success true if ho cmd was received
    * @param container TargeteNB RRCConnectionReconfiguration message with MobilityControlInfo
    */
-  virtual void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t container) = 0;
+  virtual void ho_preparation_complete(uint16_t                     rnti,
+                                       bool                         is_success,
+                                       const asn1::s1ap::ho_cmd_s&  msg,
+                                       srslte::unique_byte_buffer_t container) = 0;
   virtual uint16_t
                start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                           const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) = 0;
@@ -533,10 +536,10 @@ public:
 
   /* Acknowledge Handover Request message back to MME.
    * This message signals the completion of the HandoverPreparation from the TeNB point of view. */
-  virtual bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
-                               uint16_t                                      rnti,
-                               srslte::unique_byte_buffer_t                  ho_cmd,
-                               srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) = 0;
+  virtual bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                               uint16_t                                       rnti,
+                               srslte::unique_byte_buffer_t                   ho_cmd,
+                               srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) = 0;
 
   /**
    * Notify MME that Handover is complete

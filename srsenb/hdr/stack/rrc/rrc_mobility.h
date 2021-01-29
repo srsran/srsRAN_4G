@@ -37,7 +37,9 @@ public:
 
   bool fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
-  void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
+  void handle_ho_preparation_complete(bool                         is_success,
+                                      const asn1::s1ap::ho_cmd_s&  msg,
+                                      srslte::unique_byte_buffer_t container);
   bool is_ho_running() const { return not is_in_state<idle_st>(); }
 
   // S1-Handover
@@ -56,7 +58,6 @@ private:
 
   // Handover from source cell
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
-  bool start_enb_status_transfer();
 
   // Handover to target cell
   void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
@@ -99,32 +100,38 @@ private:
   struct s1_target_ho_st {};
   struct wait_recfg_comp {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
+    struct ho_cmd_msg {
+      const asn1::s1ap::ho_cmd_s*       s1ap_ho_cmd;
+      const asn1::rrc::ho_cmd_r8_ies_s* ho_cmd;
+    };
     ho_meas_report_ev report;
-    using ho_cmd_msg = asn1::rrc::ho_cmd_r8_ies_s;
 
-    struct wait_ho_req_ack_st {
+    struct wait_ho_cmd {
       void enter(s1_source_ho_st* f, const ho_meas_report_ev& ev);
     };
-    struct status_transfer_st {
-      void enter(s1_source_ho_st* f);
-    };
+    struct status_transfer_st {};
 
-    explicit s1_source_ho_st(rrc_mobility* parent_) : base_t(parent_) {}
+    explicit s1_source_ho_st(rrc_mobility* parent_);
 
   private:
-    void send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_msg& ho_cmd);
+    void handle_ho_cmd(wait_ho_cmd& s, const ho_cmd_msg& ho_cmd);
     void handle_ho_cancel(const ho_cancel_ev& ev);
+    bool start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd);
+
+    rrc*                  rrc_enb;
+    rrc::ue*              rrc_ue;
+    srslog::basic_logger& logger;
 
   protected:
     using fsm = s1_source_ho_st;
-    state_list<wait_ho_req_ack_st, status_transfer_st> states{this};
+    state_list<wait_ho_cmd, status_transfer_st> states{this};
     // clang-format off
     using transitions = transition_table<
     //           Start                 Target                   Event       Action                 Guard
     //      +-------------------+------------------+---------------------+-----------------------+---------------------+
     to_state<                     idle_st,            srslte::failure_ev                                               >,
     to_state<                     idle_st,            ho_cancel_ev,        &fsm::handle_ho_cancel                      >,
-         row< wait_ho_req_ack_st, status_transfer_st, ho_cmd_msg,          &fsm::send_ho_cmd                           >
+         row< wait_ho_cmd,        status_transfer_st, ho_cmd_msg,          &fsm::handle_ho_cmd                         >
     //      +-------------------+------------------+---------------------+-----------------------+---------------------+
     >;
     // clang-format on
@@ -137,7 +144,7 @@ private:
   // FSM transition handlers
   void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
   void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
-  void handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req);
+  void handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req);
   void handle_status_transfer(s1_target_ho_st& s, const status_transfer_ev& ev);
   void defer_recfg_complete(s1_target_ho_st& s, const recfg_complete_ev& ev);
   void handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev);
@@ -159,7 +166,7 @@ protected:
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   row< idle_st,         s1_source_ho_st,   ho_meas_report_ev,   nullptr,                      &fsm::needs_s1_ho        >,
   row< idle_st,         intraenb_ho_st,    ho_meas_report_ev,   nullptr,                      &fsm::needs_intraenb_ho  >,
-  row< idle_st,         s1_target_ho_st,   ho_req_rx_ev,        &fsm::handle_ho_req                                    >,
+  row< idle_st,         s1_target_ho_st,   ho_req_rx_ev,        &fsm::handle_ho_requested                                    >,
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   upd< intraenb_ho_st,                     user_crnti_upd_ev,   &fsm::handle_crnti_ce                                  >,
   row< intraenb_ho_st,  idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >,

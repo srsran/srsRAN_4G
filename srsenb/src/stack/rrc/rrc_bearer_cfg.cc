@@ -200,8 +200,8 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
  *      Bearer Handler
  ****************************/
 
-bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_) :
-  rnti(rnti_), cfg(&cfg_), logger(srslog::fetch_basic_logger("RRC"))
+bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
+  rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(srslog::fetch_basic_logger("RRC"))
 {}
 
 int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
@@ -308,17 +308,35 @@ bool bearer_cfg_handler::modify_erab(uint8_t                                    
   return true;
 }
 
-void bearer_cfg_handler::add_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
+void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
-  if (it != erabs.end()) {
-    erab_t& erab = it->second;
-    // Initialize ERAB in GTPU right-away. DRBs are only created during RRC setup/reconf
-    uint32_t addr_ = erab.address.to_number();
-    erab.teid_in   = gtpu->add_bearer(rnti, erab.id - 2, addr_, erab.teid_out);
-  } else {
+  if (it == erabs.end()) {
     logger.error("Adding erab_id=%d to GTPU", erab_id);
+    return;
   }
+  it->second.teid_in = add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
+}
+
+uint32_t bearer_cfg_handler::add_gtpu_bearer(uint32_t                                erab_id,
+                                             uint32_t                                teid_out,
+                                             uint32_t                                addr,
+                                             const gtpu_interface_rrc::bearer_props* props)
+{
+  auto it = erabs.find(erab_id);
+  if (it == erabs.end()) {
+    logger.error("Adding erab_id=%d to GTPU", erab_id);
+    return 0;
+  }
+
+  // Initialize ERAB tunnel in GTPU right-away. DRBs are only created during RRC setup/reconf
+  erab_t&             erab = it->second;
+  erab_t::gtpu_tunnel bearer;
+  bearer.teid_out = teid_out;
+  bearer.addr     = addr;
+  bearer.teid_in  = gtpu->add_bearer(rnti, erab.id - 2, addr, teid_out, props);
+  erab.tunnels.push_back(bearer);
+  return bearer.teid_in;
 }
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)

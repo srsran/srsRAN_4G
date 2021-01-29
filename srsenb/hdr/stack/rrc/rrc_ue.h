@@ -76,9 +76,6 @@ public:
                    const asn1::s1ap::erab_level_qos_params_s& qos_params,
                    const asn1::unbounded_octstring<true>*     nas_pdu);
 
-  // handover
-  void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
-
   void notify_s1ap_ue_ctxt_setup_complete();
   void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 

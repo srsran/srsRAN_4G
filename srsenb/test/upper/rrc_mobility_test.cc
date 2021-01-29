@@ -226,7 +226,7 @@ int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_para
 
   /* Test Case: HandoverPreparation has failed */
   if (test_params.fail_at == mobility_test_params::test_event::ho_prep_failure) {
-    tester.rrc.ho_preparation_complete(tester.rnti, false, nullptr);
+    tester.rrc.ho_preparation_complete(tester.rnti, false, {}, nullptr);
     //    TESTASSERT(spy.get_error_counter() == 1);
     TESTASSERT(not s1ap.last_enb_status.status_present);
     return SRSLTE_SUCCESS;
@@ -239,7 +239,7 @@ int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_para
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
   test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container);
   TESTASSERT(s1ap.last_enb_status.rnti != tester.rnti);
-  tester.rrc.ho_preparation_complete(tester.rnti, true, std::move(pdu));
+  tester.rrc.ho_preparation_complete(tester.rnti, true, asn1::s1ap::ho_cmd_s{}, std::move(pdu));
   TESTASSERT(s1ap.last_enb_status.status_present);
   TESTASSERT(spy.get_error_counter() == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;
@@ -282,6 +282,13 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
       0x5c, 0xe1, 0x86, 0x35, 0x39, 0x80, 0x0e, 0x06, 0xa4, 0x40, 0x0f, 0x22, 0x78};
   // 0a100b818000018000f3020800001580001406a402f00404f00014804a000000021231b6f83ea06f05e465141d39d0544c00025400200460000000100100c000000000020500041400670dfbc46606500f00080020800c14ca2d5ce1863539800e06a4400f2278
   container.rrc_container.resize(sizeof(ho_prep_container));
+  container.erab_info_list_present = true;
+  container.erab_info_list.resize(1);
+  container.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+  container.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
+      asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
   tester.rrc.start_ho_ue_resource_alloc(ho_req, container);
   tester.tic();

@@ -36,7 +36,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   pool(srslte::byte_buffer_pool::get_instance()),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   ue_cell_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
-  bearer_list(rnti_, parent->cfg),
+  bearer_list(rnti_, parent->cfg, outer_rrc->gtpu),
   ue_security_cfg(parent->cfg),
   mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
 {}
@@ -858,7 +858,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
     srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
     bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
-    bearer_list.add_gtpu_bearer(parent->gtpu, erab.erab_id);
+    bearer_list.add_gtpu_bearer(erab.erab_id);
   }
   return true;
 }
@@ -882,7 +882,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
     srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
-    bearer_list.add_gtpu_bearer(parent->gtpu, erab.erab_id);
+    bearer_list.add_gtpu_bearer(erab.erab_id);
   }
 
   // Work in progress
@@ -976,13 +976,6 @@ void rrc::ue::update_scells()
   }
 
   parent->logger.info("SCells activated for rnti=0x%x", rnti);
-}
-
-/********************** Handover **************************/
-
-void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
-{
-  mobility_handler->handle_ho_preparation_complete(is_success, std::move(container));
 }
 
 /********************** HELPERS ***************************/
