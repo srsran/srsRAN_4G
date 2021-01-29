@@ -66,7 +66,7 @@ public:
 
 int GTPU_PORT = 2152;
 
-srslte::unique_byte_buffer_t encode_gtpu_packet(srslte::span<uint8_t>     data,
+srslte::unique_byte_buffer_t encode_ipv4_packet(srslte::span<uint8_t>     data,
                                                 uint32_t                  teid,
                                                 const struct sockaddr_in& src_sockaddr_in,
                                                 const struct sockaddr_in& dest_sockaddr_in)
@@ -82,6 +82,16 @@ srslte::unique_byte_buffer_t encode_gtpu_packet(srslte::span<uint8_t>     data,
   pdu->N_bytes = sizeof(struct iphdr);
   memcpy(pdu->msg + pdu->N_bytes, data.data(), data.size());
   pdu->N_bytes += data.size();
+
+  return pdu;
+}
+
+srslte::unique_byte_buffer_t encode_gtpu_packet(srslte::span<uint8_t>     data,
+                                                uint32_t                  teid,
+                                                const struct sockaddr_in& src_sockaddr_in,
+                                                const struct sockaddr_in& dest_sockaddr_in)
+{
+  srslte::unique_byte_buffer_t pdu = encode_ipv4_packet(data, teid, src_sockaddr_in, dest_sockaddr_in);
 
   // header
   srslte::gtpu_header_t header;
@@ -146,10 +156,7 @@ int test_gtpu_direct_tunneling()
   pdu->N_bytes = 10;
   for (size_t sn = 6; sn < 10; ++sn) {
     std::vector<uint8_t> data(10, sn);
-    pdu = encode_gtpu_packet(data, senb_teid_in, sgw_sockaddr, senb_sockaddr);
-    // remove gtpu header
-    pdu->N_bytes -= 8u;
-    memcpy(pdu->msg, pdu->msg + 8u, pdu->N_bytes);
+    pdu = encode_ipv4_packet(data, senb_teid_in, sgw_sockaddr, senb_sockaddr);
     senb_pdcp.push_buffered_pdu(sn, std::move(pdu));
   }
 
