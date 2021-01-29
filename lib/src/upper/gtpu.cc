@@ -132,7 +132,7 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte:
     header->next_ext_hdr_type = *ptr;
     ptr++;
 
-    if ((header->flags & GTPU_FLAGS_EXTENDED_HDR) && (header->next_ext_hdr_type == 0b11000000)) {
+    if ((header->flags & GTPU_FLAGS_EXTENDED_HDR) && (header->next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER)) {
       header->ext_buffer.resize(4);
       for (size_t i = 0; i < 4; ++i) {
         header->ext_buffer[i] = *ptr;

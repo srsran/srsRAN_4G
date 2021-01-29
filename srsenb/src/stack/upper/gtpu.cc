@@ -128,7 +128,7 @@ void gtpu::send_pdu_to_tunnel(uint16_t                     rnti,
 
   if (pdcp_sn >= 0) {
     header.flags |= GTPU_FLAGS_EXTENDED_HDR;
-    header.next_ext_hdr_type = 0b11000000;
+    header.next_ext_hdr_type = GTPU_EXT_HEADER_PDCP_PDU_NUMBER;
     header.ext_buffer.resize(4u);
     header.ext_buffer[0] = 0x01u;
     header.ext_buffer[1] = (pdcp_sn >> 8u) & 0xffu;
