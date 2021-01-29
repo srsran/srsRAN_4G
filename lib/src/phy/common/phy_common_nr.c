@@ -96,3 +96,29 @@ uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb)
 
   return 0;
 }
+
+float srslte_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
+{
+  // l0 must be smaller than l1
+  if (l0 >= l1) {
+    return 0.0f;
+  }
+
+  // Count number of symbols in between
+  uint32_t count = l1 - l0;
+
+  // Compute at what symbol there is a longer CP
+  uint32_t cp_boundary = 7U << numerology;
+
+  // Select whether extra CP shall be added
+  uint32_t extra_cp = 0;
+  if (l0 < cp_boundary && l1 >= cp_boundary) {
+    extra_cp = 16;
+  }
+
+  // Compute reference FFT size
+  uint32_t N = (2048 + 144) * count + extra_cp;
+
+  // Return symbol distance in microseconds
+  return (N << numerology) * SRSLTE_LTE_TS;
+}

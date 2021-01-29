@@ -20,6 +20,7 @@
 typedef struct SRSLTE_API {
   srslte_dci_location_t      location;
   srslte_search_space_type_t search_space;
+  uint32_t                   coreset_id;
   uint8_t                    payload[50];
   srslte_rnti_type_t         rnti_type;
   uint32_t                   nof_bits;
@@ -28,11 +29,12 @@ typedef struct SRSLTE_API {
 } srslte_dci_msg_nr_t;
 
 typedef struct SRSLTE_API {
-  uint16_t               rnti;
-  srslte_rnti_type_t     rnti_type;
-  srslte_dci_format_nr_t format;
-  srslte_dci_location_t  location;
-  srslte_search_space_t  search_space;
+  uint16_t                   rnti;
+  srslte_rnti_type_t         rnti_type;
+  srslte_dci_format_nr_t     format;
+  srslte_dci_location_t      location;
+  srslte_search_space_type_t search_space;
+  uint32_t                   coreset_id;
 
   // Common fields
   uint32_t freq_domain_assigment; ///< Frequency domain resource assignment

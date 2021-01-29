@@ -37,17 +37,18 @@ typedef struct {
 } phy_nr_args_t;
 
 typedef struct {
-  srslte_sch_cfg_nr_t         pdsch;
-  srslte_prach_cfg_t          prach;
-  srslte_ue_dl_nr_pdcch_cfg_t pdcch;
+  srslte_pdsch_cfg_nr_t pdsch;
+  srslte_prach_cfg_t    prach;
+  srslte_ue_dl_nr_cfg_t pdcch;
 } phy_nr_cfg_t;
 
 class phy_nr_state
 {
 public:
-  srslte_carrier_nr_t carrier = {};
-  phy_nr_args_t       args    = {};
-  phy_nr_cfg_t        cfg     = {};
+  srslte_carrier_nr_t carrier   = {};
+  phy_nr_args_t       args      = {};
+  phy_nr_cfg_t        cfg       = {};
+  int32_t             test_rnti = 0x1234; // Fix PDSCH RNTI for testing
 
   phy_nr_state()
   {
@@ -106,20 +107,40 @@ public:
     //    searchSpaceType: common (0)
     //        common
     //            dci-Format0-0-AndFormat1-0
-    cfg.pdcch.search_space[1].id                = 1;
-    cfg.pdcch.search_space[1].coreset_id        = 1;
-    cfg.pdcch.search_space[1].nof_candidates[0] = 0;
-    cfg.pdcch.search_space[1].nof_candidates[1] = 0;
-    cfg.pdcch.search_space[1].nof_candidates[2] = 1;
-    cfg.pdcch.search_space[1].nof_candidates[3] = 0;
-    cfg.pdcch.search_space[1].nof_candidates[4] = 0;
-    cfg.pdcch.search_space[1].type              = srslte_search_space_type_common;
-    cfg.pdcch.search_space_present[1]           = true;
+    srslte_search_space_t search_space1 = {};
+    search_space1.id                    = 1;
+    search_space1.coreset_id            = 1;
+    search_space1.nof_candidates[0]     = 0;
+    search_space1.nof_candidates[1]     = 0;
+    search_space1.nof_candidates[2]     = 1;
+    search_space1.nof_candidates[3]     = 0;
+    search_space1.nof_candidates[4]     = 0;
+    search_space1.type                  = srslte_search_space_type_common_3;
+    cfg.pdcch.search_space[1]           = search_space1;
+    cfg.pdcch.search_space_present[1]   = true;
 
     // ra-SearchSpace: 1
     cfg.pdcch.ra_rnti                 = 0x16; //< Supposed to be deduced from PRACH configuration
-    cfg.pdcch.ra_search_space_id      = 1;
+    cfg.pdcch.ra_search_space         = search_space1;
+    cfg.pdcch.ra_search_space.type    = srslte_search_space_type_common_1;
     cfg.pdcch.ra_search_space_present = true;
+
+    // pdsch-ConfigCommon: setup (1)
+    //    setup
+    //        pdsch-TimeDomainAllocationList: 2 items
+    //            Item 0
+    //                PDSCH-TimeDomainResourceAllocation
+    //                    mappingType: typeA (0)
+    //                    startSymbolAndLength: 40
+    //            Item 1
+    //                PDSCH-TimeDomainResourceAllocation
+    //                    mappingType: typeA (0)
+    //                    startSymbolAndLength: 57
+    cfg.pdsch.common_pdsch_time_ra[0].mapping_type = srslte_sch_mapping_type_A;
+    cfg.pdsch.common_pdsch_time_ra[0].sliv         = 40;
+    cfg.pdsch.common_pdsch_time_ra[1].mapping_type = srslte_sch_mapping_type_A;
+    cfg.pdsch.common_pdsch_time_ra[1].sliv         = 57;
+    cfg.pdsch.nof_common_pdsch_time_ra             = 2;
   }
 };
 
@@ -152,9 +173,6 @@ private:
   // Temporal attributes
   srslte_softbuffer_rx_t softbuffer_rx = {};
   std::vector<uint8_t>   data;
-
-  // Current rnti
-  uint16_t rnti = 0;
 };
 
 } // namespace nr

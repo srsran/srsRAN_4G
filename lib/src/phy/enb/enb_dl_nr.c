@@ -57,7 +57,7 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
 
   srslte_ofdm_cfg_t fft_cfg = {};
   fft_cfg.nof_prb           = args->nof_max_prb;
-  fft_cfg.symbol_sz         = srslte_symbol_sz(args->nof_max_prb);
+  fft_cfg.symbol_sz         = srslte_min_symbol_sz_rb(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
@@ -118,8 +118,13 @@ int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_
   }
 
   if (carrier->nof_prb != q->carrier.nof_prb) {
+    srslte_ofdm_cfg_t fft_cfg = {};
+    fft_cfg.nof_prb           = carrier->nof_prb;
+    fft_cfg.symbol_sz         = srslte_min_symbol_sz_rb(carrier->nof_prb);
+
     for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
-      srslte_ofdm_tx_set_prb(&q->fft[i], SRSLTE_CP_NORM, carrier->nof_prb);
+      fft_cfg.in_buffer = q->sf_symbols[i];
+      srslte_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
     }
   }
 

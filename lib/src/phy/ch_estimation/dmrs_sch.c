@@ -12,6 +12,7 @@
 
 #include "srslte/phy/ch_estimation/dmrs_sch.h"
 #include "srslte/phy/common/sequence.h"
+#include <complex.h>
 #include <srslte/phy/utils/debug.h>
 
 #define SRSLTE_DMRS_SCH_TYPEA_SINGLE_DURATION_MIN 3
@@ -163,13 +164,12 @@ static int srslte_dmrs_sch_put_symbol(srslte_dmrs_sch_t*           q,
                                       uint32_t                     delta,
                                       cf_t*                        symbols)
 {
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &pdsch_cfg->dmrs_typeA : &pdsch_cfg->dmrs_typeB;
-  uint32_t prb_count        = 0; // Counts consecutive used PRB
-  uint32_t prb_start        = 0; // Start consecutive used PRB
-  uint32_t prb_skip         = 0; // Number of PRB to skip
-  uint32_t nof_pilots_x_prb = dmrs_cfg->type == srslte_dmrs_sch_type_1 ? 6 : 4;
-  uint32_t pilot_count      = 0;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg         = &pdsch_cfg->dmrs;
+  uint32_t                     prb_count        = 0; // Counts consecutive used PRB
+  uint32_t                     prb_start        = 0; // Start consecutive used PRB
+  uint32_t                     prb_skip         = 0; // Number of PRB to skip
+  uint32_t                     nof_pilots_x_prb = dmrs_cfg->type == srslte_dmrs_sch_type_1 ? 6 : 4;
+  uint32_t                     pilot_count      = 0;
 
   // Initialise sequence
   srslte_sequence_state_t sequence_state = {};
@@ -209,8 +209,7 @@ static int srslte_dmrs_sch_put_symbol(srslte_dmrs_sch_t*           q,
   }
 
   if (prb_count > 0) {
-    pilot_count += srslte_dmrs_put_pilots(
-        q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, &symbols[prb_start * SRSLTE_NRE]);
+    pilot_count += srslte_dmrs_put_pilots(q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols);
   }
 
   return pilot_count;
@@ -350,7 +349,7 @@ static int srslte_dmrs_sch_get_symbols_idx_mapping_type_A_double(const srslte_dm
   return count;
 }
 
-int srslte_dmrs_sch_get_symbols_idx(const srslte_sch_cfg_nr_t*   cfg,
+int srslte_dmrs_sch_get_symbols_idx(const srslte_dmrs_sch_cfg_t* dmrs_cfg,
                                     const srslte_sch_grant_nr_t* grant,
                                     uint32_t                     symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS])
 {
@@ -362,9 +361,6 @@ int srslte_dmrs_sch_get_symbols_idx(const srslte_sch_cfg_nr_t*   cfg,
   if (grant->mapping == srslte_sch_mapping_type_A) {
     ld = grant->S + grant->L;
   }
-
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &cfg->dmrs_typeA : &cfg->dmrs_typeB;
 
   switch (grant->mapping) {
     case srslte_sch_mapping_type_A:
@@ -417,11 +413,8 @@ int srslte_dmrs_sch_get_sc_idx(const srslte_dmrs_sch_cfg_t* cfg, uint32_t max_co
   return count;
 }
 
-int srslte_dmrs_sch_get_N_prb(const srslte_sch_cfg_nr_t* cfg, const srslte_sch_grant_nr_t* grant)
+int srslte_dmrs_sch_get_N_prb(const srslte_dmrs_sch_cfg_t* dmrs_cfg, const srslte_sch_grant_nr_t* grant)
 {
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &cfg->dmrs_typeA : &cfg->dmrs_typeB;
-
   if (grant->nof_dmrs_cdm_groups_without_data < 1 || grant->nof_dmrs_cdm_groups_without_data > 3) {
     ERROR("Invalid number if DMRS CDM groups without data (%d). Valid values: 1, 2 , 3\n",
           grant->nof_dmrs_cdm_groups_without_data);
@@ -434,7 +427,7 @@ int srslte_dmrs_sch_get_N_prb(const srslte_sch_cfg_nr_t* cfg, const srslte_sch_g
 
   // Get number of symbols used for DMRS
   uint32_t symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};
-  int      ret                                  = srslte_dmrs_sch_get_symbols_idx(cfg, grant, symbols);
+  int      ret                                  = srslte_dmrs_sch_get_symbols_idx(dmrs_cfg, grant, symbols);
   if (ret < SRSLTE_SUCCESS) {
     ERROR("Error getting PDSCH DMRS symbol indexes\n");
     return SRSLTE_ERROR;
@@ -449,8 +442,7 @@ static uint32_t srslte_dmrs_sch_seed(const srslte_carrier_nr_t*   carrier,
                                      uint32_t                     slot_idx,
                                      uint32_t                     symbol_idx)
 {
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &cfg->dmrs_typeA : &cfg->dmrs_typeB;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
 
   slot_idx = slot_idx % SRSLTE_NSLOTS_PER_FRAME_NR(carrier->numerology);
 
@@ -570,7 +562,7 @@ int srslte_dmrs_sch_put_sf(srslte_dmrs_sch_t*           q,
 
   // Get symbols indexes
   uint32_t symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};
-  int      nof_symbols                          = srslte_dmrs_sch_get_symbols_idx(pdsch_cfg, grant, symbols);
+  int      nof_symbols                          = srslte_dmrs_sch_get_symbols_idx(&pdsch_cfg->dmrs, grant, symbols);
   if (nof_symbols < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
@@ -595,8 +587,7 @@ static int srslte_dmrs_sch_get_symbol(srslte_dmrs_sch_t*           q,
                                       const cf_t*                  symbols,
                                       cf_t*                        least_square_estimates)
 {
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &pdsch_cfg->dmrs_typeA : &pdsch_cfg->dmrs_typeB;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg = &pdsch_cfg->dmrs;
 
   uint32_t prb_count        = 0; // Counts consecutive used PRB
   uint32_t prb_start        = 0; // Start consecutive used PRB
@@ -635,28 +626,16 @@ static int srslte_dmrs_sch_get_symbol(srslte_dmrs_sch_t*           q,
     }
 
     // Get contiguous pilots
-    pilot_count += srslte_dmrs_get_lse(q,
-                                       &sequence_state,
-                                       dmrs_cfg->type,
-                                       prb_start,
-                                       prb_count,
-                                       delta,
-                                       &symbols[prb_start * SRSLTE_NRE],
-                                       &least_square_estimates[pilot_count]);
+    pilot_count += srslte_dmrs_get_lse(
+        q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols, &least_square_estimates[pilot_count]);
 
     // Reset counter
     prb_count = 0;
   }
 
   if (prb_count > 0) {
-    pilot_count += srslte_dmrs_get_lse(q,
-                                       &sequence_state,
-                                       dmrs_cfg->type,
-                                       prb_start,
-                                       prb_count,
-                                       delta,
-                                       &symbols[prb_start * SRSLTE_NRE],
-                                       &least_square_estimates[pilot_count]);
+    pilot_count += srslte_dmrs_get_lse(
+        q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols, &least_square_estimates[pilot_count]);
   }
 
   return pilot_count;
@@ -675,15 +654,14 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &pdsch_cfg->dmrs_typeA : &pdsch_cfg->dmrs_typeB;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg = &pdsch_cfg->dmrs;
 
   cf_t*    ce        = q->temp;
   uint32_t symbol_sz = q->carrier.nof_prb * SRSLTE_NRE; // Symbol size in resource elements
 
   // Get symbols indexes
   uint32_t symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};
-  int      nof_symbols                          = srslte_dmrs_sch_get_symbols_idx(pdsch_cfg, grant, symbols);
+  int      nof_symbols                          = srslte_dmrs_sch_get_symbols_idx(&pdsch_cfg->dmrs, grant, symbols);
   if (nof_symbols <= SRSLTE_SUCCESS) {
     ERROR("Error getting symbol indexes\n");
     return SRSLTE_ERROR;
@@ -706,17 +684,19 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
     }
   }
 
-  float rsrp = 0.0f;
-  float epre = 0.0f;
+  // Perform Power measurements
+  float rsrp                              = 0.0f;
+  float epre                              = 0.0f;
+  cf_t  corr[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};
   for (uint32_t i = 0; i < nof_symbols; i++) {
-    cf_t corr =
+    corr[i] =
         srslte_vec_acc_cc(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol) / nof_pilots_x_symbol;
-    rsrp += __real__ corr * __real__ corr + __imag__ corr * __imag__ corr;
+    rsrp += __real__ corr[i] * __real__ corr[i] + __imag__ corr[i] * __imag__ corr[i];
     epre += srslte_vec_avg_power_cf(&q->pilot_estimates[nof_pilots_x_symbol * i], nof_pilots_x_symbol);
   }
   rsrp /= nof_symbols;
   epre /= nof_symbols;
-  rsrp = SRSLTE_MIN(rsrp, epre);
+  rsrp = SRSLTE_MIN(rsrp, epre - epre * 1e-7);
 
   chest_res->rsrp     = rsrp;
   chest_res->rsrp_dbm = srslte_convert_power_to_dB(chest_res->rsrp);
@@ -726,8 +706,17 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
 
   chest_res->snr_db = chest_res->rsrp_dbm - chest_res->noise_estimate_dbm;
 
-  // Perform measurements here
-  // ...
+  // Measure CFO if more than one symbol is used
+  float cfo_avg = 0.0;
+  for (uint32_t i = 0; i < nof_symbols - 1; i++) {
+    float time_diff  = srslte_symbol_distance_s(symbols[i], symbols[i + 1], q->carrier.numerology);
+    float phase_diff = cargf(corr[i + 1] * conjf(corr[i]));
+
+    if (isnormal(time_diff)) {
+      cfo_avg += phase_diff / (2.0f * M_PI * time_diff * (nof_symbols - 1));
+    }
+  }
+  chest_res->cfo = cfo_avg;
 
   // Average over time, only if more than one DMRS symbol
   for (uint32_t i = 1; i < nof_symbols; i++) {

@@ -99,7 +99,7 @@ static int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
   dci_dl->format       = srslte_dci_format_nr_1_0;
   dci_dl->rnti_type    = srslte_rnti_type_c;
   dci_dl->location     = *dci_location;
-  dci_dl->search_space = *search_space;
+  dci_dl->search_space = search_space->type;
   dci_dl->rnti         = rnti;
 
   // Put actual DCI
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srslte_ue_dl_nr_pdcch_cfg_t pdcch_cfg = {};
+  srslte_ue_dl_nr_cfg_t pdcch_cfg = {};
 
   // Configure CORESET
   srslte_coreset_t* coreset    = &pdcch_cfg.coreset[0];
@@ -264,7 +264,7 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs_typeA.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant\n");
     goto clean_exit;
   }

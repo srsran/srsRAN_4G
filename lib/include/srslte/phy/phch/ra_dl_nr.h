@@ -36,13 +36,15 @@
  * @param pdsch_cfg Flattened PDSCH configuration provided from higher layers
  * @param rnti_type Type of the RNTI of the corresponding DCI
  * @param ss_type Type of the SS for PDCCH
+ * @param coreset_id CORESET identifier associated with the PDCCH transmission
  * @param m Time domain resource assignment field value m provided in DCI
  * @param[out] Provides grant pointer to fill
  * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_ra_dl_nr_time(const srslte_sch_cfg_nr_t*       pdsch_cfg,
+SRSLTE_API int srslte_ra_dl_nr_time(const srslte_pdsch_cfg_nr_t*     cfg,
                                     const srslte_rnti_type_t         rnti_type,
                                     const srslte_search_space_type_t ss_type,
+                                    const uint32_t                   coreset_id,
                                     const uint8_t                    m,
                                     srslte_sch_grant_nr_t*           grant);
 
@@ -65,12 +67,12 @@ srslte_ra_dl_nr_time_default_A(uint32_t m, srslte_dmrs_sch_typeA_pos_t dmrs_type
  *
  * @remark Defined by TS 38.214 V15.10.0 5.1.6.1.3 CSI-RS for mobility
  *
- * @param pdsch_cfg PDSCH NR configuration by upper layers
+ * @param cfg PDSCH-DMRS NR configuration by upper layers
  * @param[out] grant Provides grant pointer to fill
  * @return Returns SRSLTE_SUCCESS if the provided data is valid, otherwise it returns SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_sch_cfg_nr_t* pdsch_cfg,
-                                                                           srslte_sch_grant_nr_t*     grant);
+SRSLTE_API int srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const srslte_dmrs_sch_cfg_t* cfg,
+                                                                           srslte_sch_grant_nr_t*       grant);
 
 /**
  * @brief Calculates the PDSCH frequency resource allocation and stores it in the provided PDSCH NR grant.
@@ -80,12 +82,11 @@ SRSLTE_API int srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const
  * @param cfg PDSCH NR configuration by upper layers
  * @param dci_dl Unpacked DCI used to schedule the PDSCH grant
  * @param[out] grant Provides grant pointer to fill
- * @return
+ * @return SRSLTE_SUCCESS if the provided data is valid, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t* carrier,
-                                    const srslte_sch_cfg_nr_t* cfg,
-                                    const srslte_dci_dl_nr_t*  dci_dl,
-                                    srslte_sch_grant_nr_t*     grant);
-
+SRSLTE_API int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*   carrier,
+                                    const srslte_pdsch_cfg_nr_t* cfg,
+                                    const srslte_dci_dl_nr_t*    dci_dl,
+                                    srslte_sch_grant_nr_t*       grant);
 
 #endif // SRSLTE_RA_DL_NR_H

@@ -139,7 +139,7 @@ static ra_nr_table_t ra_nr_select_table_pusch_noprecoding(srslte_mcs_table_t    
   // - the UE is configured with MCS-C-RNTI, and
   // - the PUSCH is scheduled by a PDCCH with
   // - CRC scrambled by MCS-C-RNTI,
-  if (mcs_c_rnti && dci_format != srslte_dci_format_nr_rar && rnti_type == srslte_rnti_type_mcs_crnti) {
+  if (mcs_c_rnti && dci_format != srslte_dci_format_nr_rar && rnti_type == srslte_rnti_type_mcs_c) {
     return ra_nr_table_3;
   }
 
@@ -275,7 +275,7 @@ int srslte_ra_dl_nr_slot_nof_re(const srslte_sch_cfg_nr_t* pdsch_cfg, const srsl
   int n_sh_symb = grant->L;
 
   // the number of REs for DM-RS per PRB in the scheduled duration
-  int n_prb_dmrs = srslte_dmrs_sch_get_N_prb(pdsch_cfg, grant);
+  int n_prb_dmrs = srslte_dmrs_sch_get_N_prb(&pdsch_cfg->dmrs, grant);
   if (n_prb_dmrs < SRSLTE_SUCCESS) {
     ERROR("Invalid number of DMRS RE\n");
     return SRSLTE_ERROR;
@@ -455,40 +455,79 @@ int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t* carrier,
-                                 const srslte_sch_cfg_nr_t* pdsch_cfg,
-                                 const srslte_dci_dl_nr_t*  dci_dl,
-                                 srslte_sch_grant_nr_t*     pdsch_grant)
+static int ra_dl_dmrs(const srslte_pdsch_cfg_nr_t* pdsch_hl_cfg,
+                      srslte_sch_grant_nr_t*       pdsch_grant,
+                      srslte_dmrs_sch_cfg_t*       dmrs_cfg)
 {
-  // Time domain resource allocation
-  if (srslte_ra_dl_nr_time(
-          pdsch_cfg, dci_dl->rnti_type, dci_dl->search_space.type, dci_dl->time_domain_assigment, pdsch_grant) <
-      SRSLTE_SUCCESS) {
+  const bool dedicated_dmrs_present = (pdsch_grant->mapping == srslte_sch_mapping_type_A)
+                                          ? pdsch_hl_cfg->dmrs_typeA_present
+                                          : pdsch_hl_cfg->dmrs_typeB_present;
+
+  if (pdsch_grant->dci_format == srslte_dci_format_nr_1_0 || !dedicated_dmrs_present) {
+
+    if (pdsch_grant->mapping == srslte_sch_mapping_type_A) {
+      // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
+      dmrs_cfg->additional_pos         = srslte_dmrs_sch_add_pos_2;
+      dmrs_cfg->type                   = srslte_dmrs_sch_type_1;
+      dmrs_cfg->length                 = srslte_dmrs_sch_len_1;
+      dmrs_cfg->scrambling_id0_present = false;
+      dmrs_cfg->scrambling_id1_present = false;
+
+      if (pdsch_grant->dci_format == srslte_dci_format_nr_1_0) {
+        if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(dmrs_cfg, pdsch_grant) < SRSLTE_SUCCESS) {
+          ERROR("Error loading number of DMRS CDM groups\n");
+          return SRSLTE_ERROR;
+        }
+      }
+
+      return SRSLTE_SUCCESS;
+    }
+
+    ERROR("Unsupported configuration\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_ERROR;
+}
+
+int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*   carrier,
+                                 const srslte_pdsch_cfg_nr_t* pdsch_hl_cfg,
+                                 const srslte_dci_dl_nr_t*    dci_dl,
+                                 srslte_sch_cfg_nr_t*         pdsch_cfg,
+                                 srslte_sch_grant_nr_t*       pdsch_grant)
+{
+  // 5.2.1.1 Resource allocation in time domain
+  if (srslte_ra_dl_nr_time(pdsch_hl_cfg,
+                           dci_dl->rnti_type,
+                           dci_dl->search_space,
+                           dci_dl->coreset_id,
+                           dci_dl->time_domain_assigment,
+                           pdsch_grant) < SRSLTE_SUCCESS) {
     ERROR("Error computing time domain resource allocation\n");
     return SRSLTE_ERROR;
   }
 
-  // Frequency domain resource allocation
-  if (srslte_ra_dl_nr_freq(carrier, pdsch_cfg, dci_dl, pdsch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error computing time domain resource allocation\n");
+  // 5.1.2.2 Resource allocation in frequency domain
+  if (srslte_ra_dl_nr_freq(carrier, pdsch_hl_cfg, dci_dl, pdsch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error computing frequency domain resource allocation\n");
     return SRSLTE_ERROR;
   }
 
-  //???
-  if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(pdsch_cfg, pdsch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error loading number of DMRS CDM groups\n");
-    return SRSLTE_ERROR;
-  }
+  // 5.1.2.3 Physical resource block (PRB) bundling
+  // ...
 
   pdsch_grant->nof_layers = 1;
   pdsch_grant->dci_format = dci_dl->format;
   pdsch_grant->rnti       = dci_dl->rnti;
+  pdsch_grant->rnti_type  = dci_dl->rnti_type;
 
-  for (uint32_t i = 0; i < carrier->nof_prb; i++) {
-    pdsch_grant->prb_idx[i] = true;
+  // 5.1.6.2 DM-RS reception procedure
+  if (ra_dl_dmrs(pdsch_hl_cfg, pdsch_grant, &pdsch_cfg->dmrs) < SRSLTE_SUCCESS) {
+    ERROR("Error selecting DMRS configuration");
+    return SRSLTE_ERROR;
   }
 
-  // Compute TB size
+  // 5.1.3 Modulation order, target code rate, redundancy version and transport block size determination
   if (srslte_ra_nr_fill_tb(pdsch_cfg, pdsch_grant, dci_dl->mcs, &pdsch_grant->tb[0]) < SRSLTE_SUCCESS) {
     ERROR("Error filing tb\n");
     return SRSLTE_ERROR;

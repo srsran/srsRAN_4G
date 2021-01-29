@@ -163,7 +163,7 @@ int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t*
   return SRSLTE_SUCCESS;
 }
 
-int srslte_ue_dl_nr_set_config(srslte_ue_dl_nr_t* q, const srslte_ue_dl_nr_pdcch_cfg_t* cfg)
+int srslte_ue_dl_nr_set_config(srslte_ue_dl_nr_t* q, const srslte_ue_dl_nr_cfg_t* cfg)
 {
   if (q == NULL || cfg == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -259,21 +259,18 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
   return SRSLTE_SUCCESS;
 }
 
-static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*          q,
-                                   const srslte_dl_slot_cfg_t* slot_cfg,
-                                   uint32_t                    search_space_id,
-                                   uint16_t                    rnti,
-                                   srslte_rnti_type_t          rnti_type,
-                                   srslte_dci_dl_nr_t*         dci_dl_list,
-                                   uint32_t                    nof_dci_msg)
+static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
+                                   const srslte_dl_slot_cfg_t*  slot_cfg,
+                                   const srslte_search_space_t* search_space,
+                                   uint16_t                     rnti,
+                                   srslte_rnti_type_t           rnti_type,
+                                   srslte_dci_dl_nr_t*          dci_dl_list,
+                                   uint32_t                     nof_dci_msg)
 {
   // Check inputs
   if (q == NULL || slot_cfg == NULL || dci_dl_list == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
-
-  // Select Search space
-  srslte_search_space_t* search_space = &q->cfg.search_space[search_space_id];
 
   // Select CORESET
   uint32_t coreset_id = search_space->coreset_id;
@@ -317,6 +314,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*          q,
       dci_msg.location.L          = L;
       dci_msg.location.ncce       = candidates[ncce_idx];
       dci_msg.search_space        = search_space->type;
+      dci_msg.coreset_id          = search_space->coreset_id;
       dci_msg.rnti_type           = rnti_type;
       dci_msg.rnti                = rnti;
       dci_msg.format              = dci_format;
@@ -357,16 +355,9 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*          q,
 
   // If the UE looks for a RAR and RA search space is provided, search for it
   if (q->cfg.ra_search_space_present && rnti == q->cfg.ra_rnti) {
-    // Check if the RA search space is valid
-    uint32_t ra_ss_id = q->cfg.ra_search_space_id;
-    if (ra_ss_id >= SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE || !q->cfg.search_space_present[ra_ss_id]) {
-      ERROR("Invalid RA Search Space ID (%d)", ra_ss_id);
-      return SRSLTE_ERROR;
-    }
-
     // Find DCIs in the RA search space
     return ue_dl_nr_find_dl_dci_ss(
-        q, slot_cfg, ra_ss_id, rnti, srslte_rnti_type_ra, &dci_dl_list[count], nof_dci_msg - count);
+        q, slot_cfg, &q->cfg.ra_search_space, rnti, srslte_rnti_type_ra, &dci_dl_list[count], nof_dci_msg - count);
   }
 
   // Iterate all possible search spaces
@@ -377,8 +368,8 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*          q,
     }
 
     // Find DCIs in the selected search space
-    int ret =
-        ue_dl_nr_find_dl_dci_ss(q, slot_cfg, i, rnti, srslte_rnti_type_c, &dci_dl_list[count], nof_dci_msg - count);
+    int ret = ue_dl_nr_find_dl_dci_ss(
+        q, slot_cfg, &q->cfg.search_space[i], rnti, srslte_rnti_type_c, &dci_dl_list[count], nof_dci_msg - count);
     if (ret < SRSLTE_SUCCESS) {
       ERROR("Error searching DCI");
       return SRSLTE_ERROR;
@@ -422,11 +413,11 @@ int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*     q,
 {
   int len = 0;
 
-  // Append channel estimator info
-  // ...
-
   // Append PDSCH info
   len += srslte_pdsch_nr_rx_info(&q->pdsch, cfg, &cfg->grant, res, &str[len], str_len - len);
+
+  // Append channel estimator info
+  len = srslte_print_check(str, str_len, len, ",SNR=%+.1f", q->chest.snr_db);
 
   return len;
 }

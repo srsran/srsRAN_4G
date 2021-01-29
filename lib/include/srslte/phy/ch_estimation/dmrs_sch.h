@@ -47,12 +47,12 @@ typedef struct {
 
 /**
  * @brief Computes the symbol indexes carrying DMRS and stores them in symbols_idx
- * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param dmrs_cfg DMRS configuration
  * @param grant PDSCH information provided by a DCI
  * @param symbols_idx is the destination pointer where the symbols indexes are stored
  * @return It returns the number of symbols if inputs are valid, otherwise, it returns SRSLTE_ERROR code.
  */
-SRSLTE_API int srslte_dmrs_sch_get_symbols_idx(const srslte_sch_cfg_nr_t*   pdsch_cfg,
+SRSLTE_API int srslte_dmrs_sch_get_symbols_idx(const srslte_dmrs_sch_cfg_t* dmrs_cfg,
                                                const srslte_sch_grant_nr_t* grant,
                                                uint32_t                     symbols_idx[SRSLTE_DMRS_SCH_MAX_SYMBOLS]);
 
@@ -69,11 +69,11 @@ SRSLTE_API int srslte_dmrs_sch_get_sc_idx(const srslte_dmrs_sch_cfg_t* cfg, uint
 
 /**
  * @brief Calculates the number of resource elements taken by a PDSCH-DMRS for a given PDSCH transmission
- * @param pdsch_cfg PDSCH configuration provided by upper layers
+ * @param dmrs_cfg PDSCH-DMRS configuration
  * @param grant PDSCH information provided by a DCI
  * @return it returns the number of resource elements if the configuration is valid, otherwise it returns SRSLTE_ERROR
  */
-SRSLTE_API int srslte_dmrs_sch_get_N_prb(const srslte_sch_cfg_nr_t* cfg, const srslte_sch_grant_nr_t* grant);
+SRSLTE_API int srslte_dmrs_sch_get_N_prb(const srslte_dmrs_sch_cfg_t* dmrs_cfg, const srslte_sch_grant_nr_t* grant);
 
 /**
  * @brief Stringifies the PDSCH DMRS configuration

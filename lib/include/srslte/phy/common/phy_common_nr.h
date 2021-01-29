@@ -130,14 +130,25 @@ typedef enum SRSLTE_API {
  */
 typedef enum SRSLTE_API { srslte_sch_mapping_type_A = 0, srslte_sch_mapping_type_B } srslte_sch_mapping_type_t;
 
+/**
+ * @brief Search spaces
+ * @remark Described in TS 38.213 V15.10.0 Section 10.1 UE procedure for determining physical downlink control channel
+ * assignment
+ */
 typedef enum SRSLTE_API {
-  srslte_search_space_type_common = 0,
-  srslte_search_space_type_common_0,
-  srslte_search_space_type_common_0A,
-  srslte_search_space_type_common_1,
-  srslte_search_space_type_common_2,
-  srslte_search_space_type_ue,
+  srslte_search_space_type_common_0 = 0, ///< configured by pdcch-ConfigSIB1 in MIB or by searchSpaceSIB1 in
+                                         ///< PDCCH-ConfigCommon or by searchSpaceZero in PDCCH-ConfigCommon
+  srslte_search_space_type_common_0A,    ///< configured by searchSpaceOtherSystemInformation in PDCCH-ConfigCommon
+  srslte_search_space_type_common_1,     ///< configured by ra-SearchSpace in PDCCH-ConfigCommon
+  srslte_search_space_type_common_2,     ///< configured by pagingSearchSpace in PDCCH-ConfigCommon
+  srslte_search_space_type_common_3,     ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = common
+  srslte_search_space_type_ue, ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = ue-Specific
 } srslte_search_space_type_t;
+
+/**
+ * @brief Helper macro to get if a search space type is common or not
+ */
+#define SRSLTE_SEARCH_SPACE_IS_COMMON(SS_TYPE) ((SS_TYPE) < srslte_search_space_type_ue)
 
 /**
  * @brief Indicates the MCS table the UE shall use for PDSCH and/or PUSCH without transform precoding
@@ -160,7 +171,7 @@ typedef enum SRSLTE_API {
   srslte_rnti_type_tc,
   srslte_rnti_type_cs,
   srslte_rnti_type_sp_csi,
-  srslte_rnti_type_mcs_crnti,
+  srslte_rnti_type_mcs_c,
 } srslte_rnti_type_t;
 
 /**
@@ -320,6 +331,17 @@ SRSLTE_API srslte_mcs_table_t srslte_mcs_table_from_str(const char* str);
  * @return The minimum valid FFT size if the number of PRB is in range, 0 otherwise
  */
 SRSLTE_API uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb);
+
+/**
+ * @brief Computes the time in seconds between two symbols in a slot
+ * @note l0 is expected to be smaller than l1
+ * @remark All symbol size reference and values are taken from TS 38.211 section 5.3 OFDM baseband signal generation
+ * @param l0 First symbol index within the slot
+ * @param l1 Second symbol index within the slot
+ * @param numerology NR Carrier numerology
+ * @return Returns the time in seconds between the two symbols if the condition above is satisfied, 0 seconds otherwise
+ */
+SRSLTE_API float srslte_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology);
 
 #ifdef __cplusplus
 }

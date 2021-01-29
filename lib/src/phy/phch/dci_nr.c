@@ -42,7 +42,8 @@ int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
 {
   // Copy DCI MSG fields
   msg->location     = dci->location;
-  msg->search_space = dci->search_space.type;
+  msg->search_space = dci->search_space;
+  msg->coreset_id   = dci->coreset_id;
   msg->rnti_type    = dci->rnti_type;
   msg->rnti         = dci->rnti;
   msg->format       = dci->format;
@@ -180,11 +181,12 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   srslte_rnti_type_t rnti_type = msg->rnti_type;
 
   // Copy DCI MSG fields
-  dci->location          = msg->location;
-  dci->search_space.type = msg->search_space;
-  dci->rnti_type         = msg->rnti_type;
-  dci->rnti              = msg->rnti;
-  dci->format            = msg->format;
+  dci->location     = msg->location;
+  dci->search_space = msg->search_space;
+  dci->coreset_id   = msg->coreset_id;
+  dci->rnti_type    = msg->rnti_type;
+  dci->rnti         = msg->rnti;
+  dci->format       = msg->format;
 
   if (msg->nof_bits != srslte_dci_nr_format_1_0_sizeof(carrier, coreset, rnti_type)) {
     ERROR("Invalid number of bits %d, expected %d\n",

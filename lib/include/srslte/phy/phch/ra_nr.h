@@ -95,9 +95,10 @@ SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
  * @param pdsch_grant Generated PDSCH grant
  * @return 0 on success, -1 on error
  */
-SRSLTE_API int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t* carrier,
-                                            const srslte_sch_cfg_nr_t* pdsch_cfg,
-                                            const srslte_dci_dl_nr_t*  dci_dl,
-                                            srslte_sch_grant_nr_t*     pdsch_grant);
+SRSLTE_API int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*   carrier,
+                                            const srslte_pdsch_cfg_nr_t* pdsch_cfg,
+                                            const srslte_dci_dl_nr_t*    dci_dl,
+                                            srslte_sch_cfg_nr_t*         cfg,
+                                            srslte_sch_grant_nr_t*       pdsch_grant);
 
 #endif // SRSLTE_RA_NR_H

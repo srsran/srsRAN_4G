@@ -79,8 +79,7 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
   }
 
   // Set default PDSCH config
-  phy_state->cfg.pdsch.rbg_size_cfg_1        = false;
-  phy_state->cfg.pdsch.pdsch_time_is_default = true;
+  phy_state->cfg.pdsch.rbg_size_cfg_1 = false;
 
   return true;
 }
@@ -106,64 +105,86 @@ uint32_t cc_worker::get_buffer_len()
 
 bool cc_worker::work_dl()
 {
-  srslte_dci_dl_nr_t                                      dci_dl    = {};
-  srslte_sch_cfg_nr_t                                     pdsch_cfg = phy_state->cfg.pdsch;
-  std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res = {};
+  srslte_pdsch_cfg_nr_t pdsch_hl_cfg = phy_state->cfg.pdsch;
 
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
-  // Set rnti
-  rnti = phy_state->cfg.pdcch.ra_rnti;
+  // Initialise grants
+  std::array<srslte_dci_dl_nr_t, 5> dci_dl_rx     = {};
+  uint32_t                          nof_found_dci = 0;
 
-  //  if (dl_slot_cfg.idx % 10 ==1) {
-  //    printf("a=");srslte_vec_fprint_c(stdout, rx_buffer[0], 512);
-  //  }
-
-  srslte_dci_dl_nr_t dci_dl_rx     = {};
-  int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &dl_slot_cfg, rnti, &dci_dl_rx, 1);
-  if (nof_found_dci < SRSLTE_SUCCESS) {
-    ERROR("Error decoding");
-    return SRSLTE_ERROR;
+  // Search for RA DCI
+  if (phy_state->cfg.pdcch.ra_search_space_present) {
+    int n_ra = srslte_ue_dl_nr_find_dl_dci(&ue_dl,
+                                           &dl_slot_cfg,
+                                           phy_state->cfg.pdcch.ra_rnti,
+                                           &dci_dl_rx[nof_found_dci],
+                                           (uint32_t)dci_dl_rx.size() - nof_found_dci);
+    if (n_ra < SRSLTE_SUCCESS) {
+      ERROR("Error decoding");
+      return false;
+    }
+    nof_found_dci += n_ra;
   }
 
-  if (nof_found_dci < 1) {
-    //    ERROR("Error DCI not found");
-    return true;
+  // Search for test RNTI
+  if (phy_state->test_rnti > 0) {
+    int n_test = srslte_ue_dl_nr_find_dl_dci(&ue_dl,
+                                             &dl_slot_cfg,
+                                             (uint16_t)phy_state->test_rnti,
+                                             &dci_dl_rx[nof_found_dci],
+                                             (uint32_t)dci_dl_rx.size() - nof_found_dci);
+    if (n_test < SRSLTE_SUCCESS) {
+      ERROR("Error decoding");
+      return false;
+    }
+    nof_found_dci += n_test;
   }
 
-  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-    char str[512];
-    srslte_dci_nr_to_str(&dci_dl_rx, str, sizeof(str));
-    log_h->info("PDCCH: cc=%d, %s", cc_idx, str);
-  }
+  // Notify MAC about PDCCH found grants
+  // ...
 
-  dci_dl.rnti   = 0x1234;
-  dci_dl.format = srslte_dci_format_nr_1_0;
+  // Iterate over all received grants
+  for (uint32_t i = 0; i < nof_found_dci; i++) {
+    // Select Received DCI
+    const srslte_dci_dl_nr_t* dci_dl = &dci_dl_rx[i];
 
-  dci_dl.freq_domain_assigment = 0x1FFF;
-  dci_dl.time_domain_assigment = 0;
-  dci_dl.mcs                   = 27;
+    // Log found DCI
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      std::array<char, 512> str;
+      srslte_dci_nr_to_str(dci_dl, str.data(), str.size());
+      log_h->info("PDCCH: cc=%d, %s", cc_idx, str.data());
+    }
 
-  // Compute DL grant
-  if (srslte_ra_dl_dci_to_grant_nr(&ue_dl.carrier, &pdsch_cfg, &dci_dl, &pdsch_cfg.grant)) {
-    ERROR("Computing DL grant");
-  }
+    // Compute DL grant
+    srslte_sch_cfg_nr_t pdsch_cfg = {};
+    if (srslte_ra_dl_dci_to_grant_nr(&ue_dl.carrier, &pdsch_hl_cfg, dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
+      ERROR("Computing DL grant");
+      return false;
+    }
 
-  pdsch_res[0].payload                = data.data();
-  pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
-  srslte_softbuffer_rx_reset(pdsch_cfg.grant.tb[0].softbuffer.rx);
+    // Initialise PDSCH Result
+    std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res = {};
+    pdsch_res[0].payload                                              = data.data();
+    pdsch_cfg.grant.tb[0].softbuffer.rx                               = &softbuffer_rx;
+    srslte_softbuffer_rx_reset(pdsch_cfg.grant.tb[0].softbuffer.rx);
 
-  if (srslte_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSLTE_SUCCESS) {
-    ERROR("Error decoding PDSCH");
-    return false;
-  }
+    // Decode actual PDSCH transmission
+    if (srslte_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSLTE_SUCCESS) {
+      ERROR("Error decoding PDSCH");
+      return false;
+    }
 
-  // Logging
-  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-    char str[512];
-    srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str, sizeof(str));
-    log_h->info("PDSCH: cc=%d, %s", cc_idx, str);
+    // Notify MAC about PDSCH decoding result
+    // ...
+
+    // Logging
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      std::array<char, 512> str;
+      srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str.data(), str.size());
+      log_h->info("PDSCH: cc=%d, %s", cc_idx, str.data());
+    }
   }
 
   return true;

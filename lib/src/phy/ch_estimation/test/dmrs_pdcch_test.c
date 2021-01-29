@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 
     for (coreset.duration = 1; coreset.duration <= 3; coreset.duration++) {
 
-      for (search_space.type = srslte_search_space_type_common; search_space.type <= srslte_search_space_type_ue;
+      for (search_space.type = srslte_search_space_type_common_0; search_space.type <= srslte_search_space_type_ue;
            search_space.type++) {
 
         for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {

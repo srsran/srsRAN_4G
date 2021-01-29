@@ -281,8 +281,7 @@ static uint32_t srslte_pusch_nr_cp_dmrs(const srslte_pusch_nr_t*     q,
 {
   uint32_t count = 0;
 
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &cfg->dmrs_typeA : &cfg->dmrs_typeB;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
 
   switch (dmrs_cfg->type) {
     case srslte_dmrs_sch_type_1:
@@ -354,7 +353,7 @@ static int srslte_pusch_nr_cp(const srslte_pusch_nr_t*     q,
   uint32_t dmrs_l_count                            = 0;
 
   // Get symbol indexes carrying DMRS
-  int32_t nof_dmrs_symbols = srslte_dmrs_sch_get_symbols_idx(cfg, grant, dmrs_l_idx);
+  int32_t nof_dmrs_symbols = srslte_dmrs_sch_get_symbols_idx(&cfg->dmrs, grant, dmrs_l_idx);
   if (nof_dmrs_symbols < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }

@@ -24,8 +24,8 @@
 
 namespace srsenb {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& logger, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), logger(logger)
+cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state_) :
+  cc_idx(cc_idx_), phy_state(phy_state_), log_h(log)
 {
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
@@ -118,8 +118,8 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants,
       return SRSLTE_ERROR;
     }
 
-    if (logger.info.enabled()) {
-      logger.info("PDCCH: cc=%d, ...", cc_idx);
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      log_h->info("PDCCH: cc=%d, ...", cc_idx);
     }
   }
 
@@ -132,10 +132,11 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
 
     // Get PHY config for UE
     // ...
-    srslte_sch_cfg_nr_t pdsch_cfg = phy_state->cfg.pdsch;
+    srslte_pdsch_cfg_nr_t pdsch_hl_cfg = {};
+    srslte_sch_cfg_nr_t   pdsch_cfg    = {};
 
     // Compute DL grant
-    if (srslte_ra_dl_dci_to_grant_nr(&enb_dl.carrier, &pdsch_cfg, &grants[i].dci, &pdsch_cfg.grant)) {
+    if (srslte_ra_dl_dci_to_grant_nr(&enb_dl.carrier, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant)) {
       ERROR("Computing DL grant");
     }
 
@@ -150,10 +151,10 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
     }
 
     // Logging
-    if (logger.info.enabled()) {
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
       char str[512];
       srslte_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, str, sizeof(str));
-      logger.info("PDSCH: cc=%d, %s", cc_idx, str);
+      log_h->info("PDSCH: cc=%d, %s", cc_idx, str);
     }
   }
 

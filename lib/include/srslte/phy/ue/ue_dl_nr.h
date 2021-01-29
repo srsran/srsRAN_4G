@@ -48,10 +48,10 @@ typedef struct SRSLTE_API {
   srslte_search_space_t search_space[SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
   bool                  search_space_present[SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE];
 
-  uint32_t ra_rnti; ///< Deduced from the PRACH configuration
-  uint32_t ra_search_space_id;
-  uint32_t ra_search_space_present;
-} srslte_ue_dl_nr_pdcch_cfg_t;
+  uint16_t              ra_rnti; ///< Needs to be deduced from the PRACH configuration
+  srslte_search_space_t ra_search_space;
+  bool                  ra_search_space_present;
+} srslte_ue_dl_nr_cfg_t;
 
 typedef struct SRSLTE_API {
   uint32_t max_prb;
@@ -59,8 +59,8 @@ typedef struct SRSLTE_API {
   float    pdcch_dmrs_corr_thr;
   float    pdcch_dmrs_epre_thr;
 
-  srslte_carrier_nr_t         carrier;
-  srslte_ue_dl_nr_pdcch_cfg_t cfg;
+  srslte_carrier_nr_t   carrier;
+  srslte_ue_dl_nr_cfg_t cfg;
 
   srslte_ofdm_t fft[SRSLTE_MAX_PORTS];
 
@@ -79,7 +79,7 @@ srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], const 
 
 SRSLTE_API int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t* carrier);
 
-SRSLTE_API int srslte_ue_dl_nr_set_config(srslte_ue_dl_nr_t* q, const srslte_ue_dl_nr_pdcch_cfg_t* cfg);
+SRSLTE_API int srslte_ue_dl_nr_set_config(srslte_ue_dl_nr_t* q, const srslte_ue_dl_nr_cfg_t* cfg);
 
 SRSLTE_API void srslte_ue_dl_nr_free(srslte_ue_dl_nr_t* q);
 

@@ -98,8 +98,7 @@ void sf_worker::work_imp()
   }
 
   // Configure user
-  phy_state->cfg.pdsch.rbg_size_cfg_1        = false;
-  phy_state->cfg.pdsch.pdsch_time_is_default = true;
+  phy_state->cfg.pdsch.rbg_size_cfg_1 = false;
 
   // Fill grant (this comes from the scheduler)
   srslte_dl_slot_cfg_t               dl_cfg = {};
@@ -117,10 +116,8 @@ void sf_worker::work_imp()
   grants.pdsch[0].dci.time_domain_assigment = 0;
   grants.pdsch[0].dci.mcs                   = 27;
 
-  grants.pdsch[0].dci.search_space.type = srslte_search_space_type_ue;
-  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    grants.pdsch[0].dci.search_space.nof_candidates[L] = 1;
-  }
+  grants.pdsch[0].dci.search_space  = srslte_search_space_type_ue;
+  grants.pdsch[0].dci.coreset_id    = 1;
   grants.pdsch[0].dci.location.L    = 0;
   grants.pdsch[0].dci.location.ncce = 0;
 
