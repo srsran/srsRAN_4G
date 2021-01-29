@@ -130,7 +130,7 @@ public:
   };
   std::map<uint16_t, std::map<uint32_t, lcid_cfg_t> > bearers;
 
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, uint32_t pdcp_sn) override
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn) override
   {
     last_sdu.rnti = rnti;
     last_sdu.lcid = lcid;

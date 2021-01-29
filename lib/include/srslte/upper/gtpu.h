@@ -57,6 +57,8 @@ namespace srslte {
 #define GTPU_MSG_END_MARKER 254
 #define GTPU_MSG_DATA_PDU 255
 
+#define GTPU_EXT_HEADER_PDCP_PDU_NUMBER 0b11000000
+
 struct gtpu_header_t {
   uint8_t              flags             = 0;
   uint8_t              message_type      = 0;

@@ -22,7 +22,12 @@ target_link_libraries(erab_setup_test srsenb_rrc rrc_asn1 s1ap_asn1 srslte_commo
 add_executable(rrc_meascfg_test rrc_meascfg_test.cc)
 target_link_libraries(rrc_meascfg_test test_helpers)
 
+add_executable(gtpu_test gtpu_test.cc)
+target_link_libraries(gtpu_test srslte_common s1ap_asn1 srsenb_upper srslte_upper ${SCTP_LIBRARIES})
+
 add_test(rrc_mobility_test rrc_mobility_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 add_test(erab_setup_test erab_setup_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 add_test(rrc_meascfg_test rrc_meascfg_test -i ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+add_test(plmn_test plmn_test)
+add_test(gtpu_test gtpu_test)
 

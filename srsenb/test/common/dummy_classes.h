@@ -55,13 +55,13 @@ public:
   void reestablish(uint16_t rnti) override {}
 };
 
-class pdcp_dummy : public pdcp_interface_rrc
+class pdcp_dummy : public pdcp_interface_rrc, public pdcp_interface_gtpu
 {
 public:
   void reset(uint16_t rnti) override {}
   void add_user(uint16_t rnti) override {}
   void rem_user(uint16_t rnti) override {}
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, uint32_t pdcp_sn) override {}
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn) override {}
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override {}
   void del_bearer(uint16_t rnti, uint32_t lcid) override {}
   void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg_) override {}
@@ -70,6 +70,10 @@ public:
   bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override { return true; }
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override { return true; }
   void reestablish(uint16_t rnti) override {}
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override
+  {
+    return {};
+  }
 };
 
 class s1ap_dummy : public s1ap_interface_rrc

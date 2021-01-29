@@ -41,11 +41,14 @@ public:
   void stop();
 
   // gtpu_interface_rrc
-  uint32_t
-       add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props) override;
-  void rem_bearer(uint16_t rnti, uint32_t lcid) override;
-  void mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
-  void rem_user(uint16_t rnti) override;
+  uint32_t add_bearer(uint16_t            rnti,
+                      uint32_t            lcid,
+                      uint32_t            addr,
+                      uint32_t            teid_out,
+                      const bearer_props* props = nullptr) override;
+  void     rem_bearer(uint16_t rnti, uint32_t lcid) override;
+  void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
+  void     rem_user(uint16_t rnti) override;
 
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
@@ -103,13 +106,15 @@ private:
   m1u_handler m1u;
 
   struct tunnel {
-    uint16_t rnti          = SRSLTE_INVALID_RNTI;
-    uint32_t lcid          = SRSENB_N_RADIO_BEARERS;
-    uint32_t teid_in       = 0;
-    uint32_t teid_out      = 0;
-    uint32_t spgw_addr     = 0;
-    uint32_t fwd_teid_in   = 0; ///< forward Rx SDUs to this TEID
-    uint32_t prior_teid_in = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
+    bool     fwd_teid_in_present   = false;
+    bool     prior_teid_in_present = false;
+    uint16_t rnti                  = SRSLTE_INVALID_RNTI;
+    uint32_t lcid                  = SRSENB_N_RADIO_BEARERS;
+    uint32_t teid_in               = 0;
+    uint32_t teid_out              = 0;
+    uint32_t spgw_addr             = 0;
+    uint32_t fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
+    uint32_t prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
     std::vector<srslte::unique_byte_buffer_t> buffer;
   };
   std::unordered_map<uint32_t, tunnel>                                           tunnels;
