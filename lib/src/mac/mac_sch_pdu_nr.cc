@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/mac/mac_nr_pdu.h"
+#include "srslte/mac/mac_sch_pdu_nr.h"
 
 namespace srslte {
 
-mac_nr_sch_subpdu::mac_nr_sch_subpdu(mac_nr_sch_pdu* parent_) : parent(parent_), log_h("MAC") {}
+mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), log_h("MAC") {}
 
-mac_nr_sch_subpdu::nr_lcid_sch_t mac_nr_sch_subpdu::get_type()
+mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
 {
   if (lcid >= 32) {
     return (nr_lcid_sch_t)lcid;
@@ -25,25 +25,25 @@ mac_nr_sch_subpdu::nr_lcid_sch_t mac_nr_sch_subpdu::get_type()
   return CCCH;
 }
 
-bool mac_nr_sch_subpdu::is_sdu()
+bool mac_sch_subpdu_nr::is_sdu()
 {
   // for UL-SCH LCID 52 is also valid for carrying SDUs
   return (lcid <= 32 || (parent->is_ulsch() && lcid == 52));
 }
 
 // returns false for all reserved values in Table 6.2.1-1 and 6.2.1-2
-bool mac_nr_sch_subpdu::is_valid_lcid()
+bool mac_sch_subpdu_nr::is_valid_lcid()
 {
   return (lcid <= 63 && ((parent->is_ulsch() && (lcid <= 32 || lcid >= 52)) || (lcid <= 32 || lcid >= 47)));
 }
 
-bool mac_nr_sch_subpdu::is_var_len_ce()
+bool mac_sch_subpdu_nr::is_var_len_ce()
 {
   return false;
 }
 
 // return length of PDU (or SRSLTE_ERROR otherwise)
-int32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
+int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
 {
   // Skip R, read F bit and LCID
   F_bit = (bool)(*ptr & 0x40) ? true : false;
@@ -75,7 +75,7 @@ int32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
   return header_length;
 }
 
-void mac_nr_sch_subpdu::set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
+void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
   lcid          = lcid_;
   sdu           = const_cast<uint8_t*>(payload_);
@@ -95,7 +95,7 @@ void mac_nr_sch_subpdu::set_sdu(const uint32_t lcid_, const uint8_t* payload_, c
   }
 }
 
-void mac_nr_sch_subpdu::set_padding(const uint32_t len_)
+void mac_sch_subpdu_nr::set_padding(const uint32_t len_)
 {
   lcid = PADDING;
   // 1 Byte R/LCID MAC subheader
@@ -104,7 +104,7 @@ void mac_nr_sch_subpdu::set_padding(const uint32_t len_)
 }
 
 // Section 6.1.2
-uint32_t mac_nr_sch_subpdu::write_subpdu(const uint8_t* start_)
+uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
 {
   uint8_t* ptr = const_cast<uint8_t*>(start_);
   *ptr         = (uint8_t)((F_bit ? 1 : 0) << 6) | ((uint8_t)lcid & 0x3f);
@@ -141,27 +141,27 @@ uint32_t mac_nr_sch_subpdu::write_subpdu(const uint8_t* start_)
   return ptr - start_;
 }
 
-uint32_t mac_nr_sch_subpdu::get_total_length()
+uint32_t mac_sch_subpdu_nr::get_total_length()
 {
   return (header_length + sdu_length);
 }
 
-uint32_t mac_nr_sch_subpdu::get_sdu_length()
+uint32_t mac_sch_subpdu_nr::get_sdu_length()
 {
   return sdu_length;
 }
 
-uint32_t mac_nr_sch_subpdu::get_lcid()
+uint32_t mac_sch_subpdu_nr::get_lcid()
 {
   return lcid;
 }
 
-uint8_t* mac_nr_sch_subpdu::get_sdu()
+uint8_t* mac_sch_subpdu_nr::get_sdu()
 {
   return sdu;
 }
 
-uint32_t mac_nr_sch_subpdu::sizeof_ce(uint32_t lcid, bool is_ul)
+uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
 {
   if (is_ul) {
     switch (lcid) {
@@ -193,16 +193,16 @@ uint32_t mac_nr_sch_subpdu::sizeof_ce(uint32_t lcid, bool is_ul)
   return 0;
 }
 
-inline bool mac_nr_sch_subpdu::is_ul_ccch()
+inline bool mac_sch_subpdu_nr::is_ul_ccch()
 {
   return (parent->is_ulsch() && (lcid == CCCH_SIZE_48 || lcid == CCCH_SIZE_64));
 }
 
-void mac_nr_sch_pdu::pack()
+void mac_sch_pdu_nr::pack()
 {
   // SDUs are written in place, only add padding if needed
   if (remaining_len) {
-    mac_nr_sch_subpdu padding_subpdu(this);
+    mac_sch_subpdu_nr padding_subpdu(this);
     padding_subpdu.set_padding(remaining_len);
     padding_subpdu.write_subpdu(buffer->msg + buffer->N_bytes);
 
@@ -213,17 +213,17 @@ void mac_nr_sch_pdu::pack()
   }
 }
 
-void mac_nr_sch_pdu::unpack(const uint8_t* payload, const uint32_t& len)
+void mac_sch_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
 {
   uint32_t offset = 0;
   while (offset < len) {
-    mac_nr_sch_subpdu sch_pdu(this);
+    mac_sch_subpdu_nr sch_pdu(this);
     if (sch_pdu.read_subheader(payload + offset) == SRSLTE_ERROR) {
       fprintf(stderr, "Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
       return;
     }
     offset += sch_pdu.get_total_length();
-    if (sch_pdu.get_lcid() == mac_nr_sch_subpdu::PADDING) {
+    if (sch_pdu.get_lcid() == mac_sch_subpdu_nr::PADDING) {
       // set SDU length to rest of PDU
       sch_pdu.set_padding(len - offset + 1); // One byte for Padding header will be substracted again
       // skip remaining bytes
@@ -236,22 +236,22 @@ void mac_nr_sch_pdu::unpack(const uint8_t* payload, const uint32_t& len)
   }
 }
 
-uint32_t mac_nr_sch_pdu::get_num_subpdus()
+uint32_t mac_sch_pdu_nr::get_num_subpdus()
 {
   return subpdus.size();
 }
 
-const mac_nr_sch_subpdu& mac_nr_sch_pdu::get_subpdu(const uint32_t& index)
+const mac_sch_subpdu_nr& mac_sch_pdu_nr::get_subpdu(const uint32_t& index)
 {
   return subpdus.at(index);
 }
 
-bool mac_nr_sch_pdu::is_ulsch()
+bool mac_sch_pdu_nr::is_ulsch()
 {
   return ulsch;
 }
 
-void mac_nr_sch_pdu::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_)
+void mac_sch_pdu_nr::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_)
 {
   buffer = buffer_;
   subpdus.clear();
@@ -260,7 +260,7 @@ void mac_nr_sch_pdu::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool uls
   ulsch         = ulsch_;
 }
 
-void mac_nr_sch_pdu::init_rx(bool ulsch_)
+void mac_sch_pdu_nr::init_rx(bool ulsch_)
 {
   buffer = nullptr;
   subpdus.clear();
@@ -269,9 +269,9 @@ void mac_nr_sch_pdu::init_rx(bool ulsch_)
   ulsch         = ulsch_;
 }
 
-uint32_t mac_nr_sch_pdu::size_header_sdu(const uint32_t lcid, const uint32_t nbytes)
+uint32_t mac_sch_pdu_nr::size_header_sdu(const uint32_t lcid, const uint32_t nbytes)
 {
-  if (ulsch && (lcid == mac_nr_sch_subpdu::CCCH_SIZE_48 || lcid == mac_nr_sch_subpdu::CCCH_SIZE_64)) {
+  if (ulsch && (lcid == mac_sch_subpdu_nr::CCCH_SIZE_48 || lcid == mac_sch_subpdu_nr::CCCH_SIZE_64)) {
     return 1;
   } else {
     if (nbytes < 256) {
@@ -282,12 +282,12 @@ uint32_t mac_nr_sch_pdu::size_header_sdu(const uint32_t lcid, const uint32_t nby
   }
 }
 
-uint32_t mac_nr_sch_pdu::get_remaing_len()
+uint32_t mac_sch_pdu_nr::get_remaing_len()
 {
   return remaining_len;
 }
 
-uint32_t mac_nr_sch_pdu::add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
+uint32_t mac_sch_pdu_nr::add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
   int header_size = size_header_sdu(lcid_, len_);
 
@@ -296,7 +296,7 @@ uint32_t mac_nr_sch_pdu::add_sdu(const uint32_t lcid_, const uint8_t* payload_, 
     return SRSLTE_ERROR;
   }
 
-  mac_nr_sch_subpdu sch_pdu(this);
+  mac_sch_subpdu_nr sch_pdu(this);
   sch_pdu.set_sdu(lcid_, payload_, len_);
   uint32_t length = sch_pdu.write_subpdu(buffer->msg + buffer->N_bytes);
 

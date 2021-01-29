@@ -222,7 +222,7 @@ int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
   ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
-    srslte::mac_nr_sch_subpdu subpdu = ue_rx_pdu.get_subpdu(i);
+    srslte::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
     log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
                 i,
                 ue_rx_pdu.get_num_subpdus(),

@@ -18,7 +18,7 @@
 #include "srslte/common/mac_nr_pcap.h"
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srslte/mac/mac_nr_pdu.h"
+#include "srslte/mac/mac_sch_pdu_nr.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
@@ -94,10 +94,10 @@ private:
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
   /// Rx buffer
-  srslte::mac_nr_sch_pdu rx_pdu;
+  srslte::mac_sch_pdu_nr rx_pdu;
 
   /// Tx buffer
-  srslte::mac_nr_sch_pdu       tx_pdu;
+  srslte::mac_sch_pdu_nr       tx_pdu;
   srslte::unique_byte_buffer_t tx_buffer  = nullptr;
   srslte::unique_byte_buffer_t rlc_buffer = nullptr;
 

@@ -13,7 +13,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_nr_pcap.h"
 #include "srslte/config.h"
-#include "srslte/mac/mac_nr_pdu.h"
+#include "srslte/mac/mac_sch_pdu_nr.h"
 
 #include <array>
 #include <iostream>
@@ -51,11 +51,11 @@ int mac_dl_sch_pdu_unpack_and_pack_test1()
     pcap_handle->write_dl_crnti(mac_dl_sch_pdu_1, sizeof(mac_dl_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu;
+  srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_1, sizeof(mac_dl_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 10);
   TESTASSERT(subpdu.get_sdu_length() == 8);
   TESTASSERT(subpdu.get_lcid() == 0);
@@ -63,7 +63,7 @@ int mac_dl_sch_pdu_unpack_and_pack_test1()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(mac_dl_sch_pdu_1));
 
   // Add SDU part of TV from above
@@ -103,10 +103,10 @@ int mac_dl_sch_pdu_unpack_test2()
     pcap_handle->write_dl_crnti(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu;
+  srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2));
   TESTASSERT(pdu.get_num_subpdus() == 1);
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 11);
   TESTASSERT(subpdu.get_sdu_length() == 8);
   TESTASSERT(subpdu.get_lcid() == 2);
@@ -133,7 +133,7 @@ int mac_dl_sch_pdu_pack_test3()
   // pack buffer
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, 1024);
 
   // Add SDU
@@ -171,7 +171,7 @@ int mac_dl_sch_pdu_pack_test4()
   // modify buffer (to be nulled during PDU packing
   tx_buffer.msg[4] = 0xaa;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, pdu_size);
 
   TESTASSERT(tx_pdu.get_remaing_len() == pdu_size);
@@ -211,7 +211,7 @@ int mac_dl_sch_pdu_pack_test5()
   byte_buffer_t  tx_buffer;
   tx_buffer.clear();
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, pdu_size);
 
   // Add SDU part of TV from above
@@ -253,7 +253,7 @@ int mac_dl_sch_pdu_unpack_test6()
     pcap_handle->write_dl_crnti(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu;
+  srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2));
   TESTASSERT(pdu.get_num_subpdus() == 0);
 
@@ -282,19 +282,19 @@ int mac_ul_sch_pdu_unpack_test1()
     pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 2);
 
   // First subpdu is C-RNTI CE
-  mac_nr_sch_subpdu subpdu0 = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu0 = pdu.get_subpdu(0);
   TESTASSERT(subpdu0.get_total_length() == 3);
   TESTASSERT(subpdu0.get_sdu_length() == 2);
-  TESTASSERT(subpdu0.get_lcid() == mac_nr_sch_subpdu::CRNTI);
+  TESTASSERT(subpdu0.get_lcid() == mac_sch_subpdu_nr::CRNTI);
   TESTASSERT(memcmp(subpdu0.get_sdu(), (uint8_t*)&ul_sch_crnti, sizeof(ul_sch_crnti)) == 0);
 
   // Second subpdu is UL-SCH
-  mac_nr_sch_subpdu subpdu1 = pdu.get_subpdu(1);
+  mac_sch_subpdu_nr subpdu1 = pdu.get_subpdu(1);
   TESTASSERT(subpdu1.get_total_length() == 7);
   TESTASSERT(subpdu1.get_sdu_length() == 4);
   TESTASSERT(subpdu1.get_lcid() == 3);
@@ -316,11 +316,11 @@ int mac_ul_sch_pdu_unpack_and_pack_test2()
     pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 9);
   TESTASSERT(subpdu.get_sdu_length() == 8);
   TESTASSERT(subpdu.get_lcid() == 0);
@@ -328,7 +328,7 @@ int mac_ul_sch_pdu_unpack_and_pack_test2()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(mac_ul_sch_pdu_1), true);
 
   // Add SDU part of TV from above
@@ -365,11 +365,11 @@ int mac_ul_sch_pdu_unpack_and_pack_test3()
     pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 12);
   TESTASSERT(subpdu.get_sdu_length() == 10);
   TESTASSERT(subpdu.get_lcid() == 2);
@@ -377,7 +377,7 @@ int mac_ul_sch_pdu_unpack_and_pack_test3()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(mac_ul_sch_pdu_1), true);
 
   // Add SDU part of TV from above
@@ -418,7 +418,7 @@ int mac_ul_sch_pdu_pack_test4()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(sdu) + 3, true);
 
   // Add SDU part of TV from above
@@ -454,7 +454,7 @@ int mac_ul_sch_pdu_unpack_test5()
     pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 0);
 
