@@ -25,9 +25,7 @@ namespace srsue {
 
 mux::mux(srslte::log_ref log_, srslog::basic_logger& logger) :
   pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_), logger(logger)
-{
-  msg3_flush();
-}
+{}
 
 void mux::init(rlc_interface_mac* rlc_, bsr_interface_mux* bsr_procedure_, phr_proc* phr_procedure_)
 {
