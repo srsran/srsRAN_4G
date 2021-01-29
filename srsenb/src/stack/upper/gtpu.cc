@@ -330,7 +330,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
         logger.info(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
         uint32_t pdcp_sn = -1;
         if (header.flags & GTPU_FLAGS_EXTENDED_HDR and header.next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
-          pdcp_sn = (header.ext_buffer[1] << 8u) + header.ext_buffer[0];
+          pdcp_sn = (header.ext_buffer[1] << 8u) + header.ext_buffer[2];
         }
         pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn);
       }

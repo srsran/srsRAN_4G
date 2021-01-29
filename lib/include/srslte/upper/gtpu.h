@@ -85,10 +85,6 @@ inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslte::log_ref gt
     gtpu_log->error("gtpu_header - Unhandled Protocol Type. Flags: 0x%x\n\n", header->flags);
     return false;
   }
-  if (header->flags & GTPU_FLAGS_EXTENDED_HDR) {
-    gtpu_log->error("gtpu_header - Unhandled Header Extensions. Flags: 0x%x\n\n", header->flags);
-    return false;
-  }
   if (header->flags & GTPU_FLAGS_PACKET_NUM) {
     gtpu_log->error("gtpu_header - Unhandled Packet Number. Flags: 0x%x\n\n", header->flags);
     return false;

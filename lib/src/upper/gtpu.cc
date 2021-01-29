@@ -17,6 +17,8 @@
 
 namespace srslte {
 
+const static size_t HEADER_PDCP_PDU_NUMBER_SIZE = 4;
+
 /****************************************************************************
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 29.281 v10.1.0 Section 5
@@ -43,6 +45,10 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
     }
     pdu->msg -= GTPU_EXTENDED_HEADER_LEN;
     pdu->N_bytes += GTPU_EXTENDED_HEADER_LEN;
+    if (header->next_ext_hdr_type > 0) {
+      pdu->msg -= header->ext_buffer.size();
+      pdu->N_bytes += header->ext_buffer.size();
+    }
   } else {
     if (pdu->get_headroom() < GTPU_BASE_HEADER_LEN) {
       gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
@@ -94,6 +100,27 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
   return true;
 }
 
+bool gtpu_read_ext_header(srslte::byte_buffer_t* pdu, uint8_t** ptr, gtpu_header_t* header, srslte::log_ref gtpu_log)
+{
+  if ((header->flags & GTPU_FLAGS_EXTENDED_HDR) == 0 or header->next_ext_hdr_type == 0) {
+    return true;
+  }
+
+  if (header->next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
+    pdu->msg += HEADER_PDCP_PDU_NUMBER_SIZE;
+    pdu->N_bytes -= HEADER_PDCP_PDU_NUMBER_SIZE;
+    header->ext_buffer.resize(HEADER_PDCP_PDU_NUMBER_SIZE);
+    for (size_t i = 0; i < HEADER_PDCP_PDU_NUMBER_SIZE; ++i) {
+      header->ext_buffer[i] = **ptr;
+      (*ptr)++;
+    }
+  } else {
+    gtpu_log->error("gtpu_read_header - Unhandled GTP-U Extension Header Type: 0x%x\n", header->next_ext_hdr_type);
+    return false;
+  }
+  return true;
+}
+
 bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log_ref gtpu_log)
 {
   uint8_t* ptr = pdu->msg;
@@ -105,6 +132,7 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte:
   uint8_to_uint16(ptr, &header->length);
   ptr += 2;
   uint8_to_uint32(ptr, &header->teid);
+  ptr += 4;
 
   // flags
   if (!gtpu_supported_flags_check(header, gtpu_log)) {
@@ -132,12 +160,8 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte:
     header->next_ext_hdr_type = *ptr;
     ptr++;
 
-    if ((header->flags & GTPU_FLAGS_EXTENDED_HDR) && (header->next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER)) {
-      header->ext_buffer.resize(4);
-      for (size_t i = 0; i < 4; ++i) {
-        header->ext_buffer[i] = *ptr;
-        ptr++;
-      }
+    if (not gtpu_read_ext_header(pdu, &ptr, header, gtpu_log)) {
+      return false;
     }
   } else {
     pdu->msg += GTPU_BASE_HEADER_LEN;
