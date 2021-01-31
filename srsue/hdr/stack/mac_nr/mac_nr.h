@@ -14,11 +14,11 @@
 #define SRSUE_MAC_NR_H
 
 #include "srslte/common/block_queue.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/mac_nr_pcap.h"
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
+#include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
@@ -71,13 +71,19 @@ private:
   void handle_pdu(srslte::unique_byte_buffer_t pdu);
   void get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr::tx_request_t* tx_request);
 
+  bool is_si_opportunity();
+  bool is_paging_opportunity();
+
+  bool     has_crnti();
+  uint16_t get_crnti();
+
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;
   rlc_interface_mac*            rlc = nullptr;
   srslte::ext_task_sched_handle task_sched;
 
   std::unique_ptr<srslte::mac_nr_pcap> pcap = nullptr;
-  srslte::log_ref                      log_h;
+  srslog::basic_logger&                logger;
   srslte::byte_buffer_pool*            pool = nullptr;
   mac_nr_args_t                        args = {};
 
