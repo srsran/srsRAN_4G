@@ -379,15 +379,13 @@ static void* plot_thread_run(void* arg)
   plot_scatter_setTitle(&pconst, (char*)"LTE - PDSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pconst, -4, 4);
   plot_scatter_setYAxisScale(&pconst, -4, 4);
-
   plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, row_count++);
 
-  plot_scatter_init(&pconst_nr);
-  plot_scatter_setTitle(&pconst_nr, (char*)"NR - PDSCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pconst_nr, -4, 4);
-  plot_scatter_setYAxisScale(&pconst_nr, -4, 4);
-
   if (plot_nr_enable) {
+    plot_scatter_init(&pconst_nr);
+    plot_scatter_setTitle(&pconst_nr, (char*)"NR - PDSCH - Equalized Symbols");
+    plot_scatter_setXAxisScale(&pconst_nr, -4, 4);
+    plot_scatter_setYAxisScale(&pconst_nr, -4, 4);
     plot_scatter_addToWindowGrid(&pconst_nr, (char*)"srsue", 0, row_count++);
     pconst_nr_ready = true;
   }
