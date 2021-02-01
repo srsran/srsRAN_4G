@@ -258,6 +258,29 @@ void mac_nr::set_config(const srslte::sr_cfg_t& sr_cfg)
   logger.warning("Not Scheduling Request Config yet");
 }
 
+void mac_nr::set_contention_id(uint64_t ue_identity)
+{
+  contention_id = ue_identity;
+}
+
+bool mac_nr::set_crnti(const uint16_t crnti_)
+{
+  if (is_valid_crnti(crnti_)) {
+    logger.info("Setting C-RNTI to 0x%X", crnti_);
+    crnti = crnti_;
+    return true;
+  } else {
+    logger.warning("Failed to set C-RNTI, 0x%X is not valid.", crnti_);
+    return false;
+  }
+}
+
+bool mac_nr::is_valid_crnti(const uint16_t crnti)
+{
+  // TS 38.321 15.3.0 Table 7.1-1
+  return (crnti >= 0x0001 && crnti <= 0xFFEF);
+}
+
 void mac_nr::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]) {}
 
 /**

@@ -58,10 +58,12 @@ public:
 
   void get_metrics(mac_metrics_t* metrics);
 
-  /******** Interface for RRC (RRC -> MAC) ****************/
+  /// Interface for RRC (RRC -> MAC)
   void setup_lcid(const srslte::logical_channel_config_t& config);
   void set_config(const srslte::bsr_cfg_t& bsr_cfg);
   void set_config(const srslte::sr_cfg_t& sr_cfg);
+  void set_contention_id(const uint64_t ue_identity);
+  bool set_crnti(const uint16_t crnti);
 
   /// stack interface
   void process_pdus();
@@ -76,6 +78,7 @@ private:
 
   bool     has_crnti();
   uint16_t get_crnti();
+  bool     is_valid_crnti(const uint16_t crnti);
 
   /// Interaction with rest of the stack
   phy_interface_mac_nr*         phy = nullptr;
@@ -89,7 +92,8 @@ private:
 
   bool started = false;
 
-  uint16_t crnti = 0xdead;
+  uint16_t crnti         = 0xdead;
+  uint64_t contention_id = 0;
 
   static constexpr uint32_t MIN_RLC_PDU_LEN =
       5; ///< minimum bytes that need to be available in a MAC PDU for attempting to add another RLC SDU
