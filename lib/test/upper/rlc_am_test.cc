@@ -194,7 +194,6 @@ int basic_test()
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   // Check PDCP notifications
-  std::cout << tester.notified_counts.size() << std::endl;
   TESTASSERT(tester.notified_counts.size() == 5);
   for (uint16_t i = 0; i < tester.n_sdus; i++) {
     TESTASSERT(tester.sdus[i]->N_bytes == 1);

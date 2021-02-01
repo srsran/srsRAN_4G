@@ -40,11 +40,10 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t                     header;
-  unique_byte_buffer_t                     buf;
-  uint32_t                                 retx_count;
-  bool                                     is_acked;
-  std::array<uint32_t, RLC_AM_WINDOW_SIZE> pdcp_tx_counts;
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
+  uint32_t             retx_count;
+  bool                 is_acked;
 };
 
 struct rlc_amd_retx_t {
@@ -62,8 +61,6 @@ struct rlc_sn_info_t {
 struct pdcp_sdu_info_t {
   uint32_t                   sn;
   bool                       fully_txed;       // Boolean indicating if the SDU is fully transmitted.
-  uint32_t                   acked_bytes;      // For metrics
-  uint32_t                   total_bytes;      // For metrics
   std::vector<rlc_sn_info_t> rlc_sn_info_list; // List of RLC PDUs in transit and whether they have been acked or not.
 };
 
