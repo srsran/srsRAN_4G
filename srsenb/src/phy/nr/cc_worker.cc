@@ -24,8 +24,8 @@
 
 namespace srsenb {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), log_h(log)
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, phy_nr_state* phy_state_) :
+  cc_idx(cc_idx_), phy_state(phy_state_), logger(log)
 {
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
@@ -108,7 +108,6 @@ uint32_t cc_worker::get_buffer_len()
 int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
-
     // Get PHY config for UE
     // ...
 
@@ -118,8 +117,8 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants,
       return SRSLTE_ERROR;
     }
 
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-      log_h->info("PDCCH: cc=%d, ...", cc_idx);
+    if (logger.info.enabled()) {
+      logger.info("PDCCH: cc=%d, ...", cc_idx);
     }
   }
 
@@ -129,7 +128,6 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_nr::dl_sched_grant_t* grants,
 int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
-
     // Get PHY config for UE
     // ...
     srslte_pdsch_cfg_nr_t pdsch_hl_cfg = {};
@@ -151,10 +149,10 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
     }
 
     // Logging
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    if (logger.info.enabled()) {
       char str[512];
       srslte_enb_dl_nr_pdsch_info(&enb_dl, &pdsch_cfg, str, sizeof(str));
-      log_h->info("PDSCH: cc=%d, %s", cc_idx, str);
+      logger.info("PDSCH: cc=%d, %s", cc_idx, str);
     }
   }
 

@@ -35,8 +35,8 @@ static int       plot_worker_id = -1;
 
 namespace srsue {
 namespace nr {
-sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log) :
-  phy_state(phy_state_), phy(phy_), log_h(log)
+sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslog::basic_logger& log) :
+  phy_state(phy_state_), phy(phy_), logger(log)
 {
   for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, log, phy_state);
@@ -69,7 +69,7 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_tti(uint32_t tti)
 {
-  log_h->step(tti);
+  logger.set_context(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
   }

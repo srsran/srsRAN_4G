@@ -147,7 +147,7 @@ public:
 class cc_worker
 {
 public:
-  cc_worker(uint32_t cc_idx, srslte::log* log, phy_nr_state* phy_state_);
+  cc_worker(uint32_t cc_idx, srslog::basic_logger& log, phy_nr_state* phy_state_);
   ~cc_worker();
 
   bool set_carrier(const srslte_carrier_nr_t* carrier);
@@ -168,7 +168,7 @@ private:
   uint32_t                            buffer_sz   = 0;
   phy_nr_state*                       phy_state   = nullptr;
   srslte_ue_dl_nr_t                   ue_dl       = {};
-  srslte::log*                        log_h       = nullptr;
+  srslog::basic_logger&               logger;
 
   // Temporal attributes
   srslte_softbuffer_rx_t softbuffer_rx = {};

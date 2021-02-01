@@ -24,8 +24,8 @@
 
 namespace srsue {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), log_h(log)
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, phy_nr_state* phy_state_) :
+  cc_idx(cc_idx_), phy_state(phy_state_), logger(log)
 {
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
@@ -151,10 +151,10 @@ bool cc_worker::work_dl()
     const srslte_dci_dl_nr_t* dci_dl = &dci_dl_rx[i];
 
     // Log found DCI
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    if (logger.info.enabled()) {
       std::array<char, 512> str;
       srslte_dci_nr_to_str(dci_dl, str.data(), str.size());
-      log_h->info("PDCCH: cc=%d, %s", cc_idx, str.data());
+      logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 
     // Compute DL grant
@@ -180,10 +180,10 @@ bool cc_worker::work_dl()
     // ...
 
     // Logging
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    if (logger.info.enabled()) {
       std::array<char, 512> str;
       srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str.data(), str.size());
-      log_h->info("PDSCH: cc=%d, %s", cc_idx, str.data());
+      logger.info("PDSCH: cc=%d, %s", cc_idx, str.data());
     }
   }
 

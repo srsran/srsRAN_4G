@@ -25,7 +25,7 @@ namespace nr {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
-bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
+bool worker_pool::init(phy_common* common, srslog::sink& log_sink, int prio)
 {
   // Set carrier attributes
   phy_state.carrier.id      = 500;
@@ -40,21 +40,13 @@ bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
     return true;
   }
 
-  // Create logs
-  // Create array of pointers to phy_logs
-  for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    auto* mylog = new srslte::log_filter;
-    char  tmp[16];
-    sprintf(tmp, "PHY%d", i);
-    mylog->init(tmp, logger, true);
-    mylog->set_level(common->args->log.phy_level);
-    mylog->set_hex_limit(common->args->log.phy_hex_limit);
-    log_vec.push_back(std::unique_ptr<srslte::log_filter>(mylog));
-  }
-
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    auto w = new sf_worker(common, &phy_state, (srslte::log*)log_vec[i].get());
+    auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}", i), log_sink);
+    log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
+    log.set_hex_dump_max_size(common->args->log.phy_hex_limit);
+
+    auto w = new sf_worker(common, &phy_state, log);
     pool.init_worker(i, w, prio, common->args->worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
 
@@ -64,19 +56,17 @@ bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
   }
 
   // Initialise PRACH
-  auto* prach_log = new srslte::log_filter;
-  prach_log->init("NR-PRACH", logger, false);
-  prach_log->set_level(common->args->log.phy_level);
-  prach_log->set_hex_limit(common->args->log.phy_hex_limit);
-  log_vec.push_back(std::unique_ptr<srslte::log_filter>(prach_log));
-  prach_buffer.init(phy_state.args.dl.nof_max_prb, prach_log);
+  auto& prach_log = srslog::fetch_basic_logger("NR-PRACH", log_sink);
+  prach_log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
+  prach_buffer = std::unique_ptr<prach>(new prach(prach_log));
+  prach_buffer->init(phy_state.args.dl.nof_max_prb);
 
   // Set PRACH hard-coded cell
   srslte_cell_t cell = {};
   cell.nof_prb       = 50;
   cell.id            = phy_state.carrier.id;
-  if (not prach_buffer.set_cell(cell, phy_state.cfg.prach)) {
-    prach_log->error("Setting PRACH cell\n");
+  if (not prach_buffer->set_cell(cell, phy_state.cfg.prach)) {
+    prach_log.error("Setting PRACH cell");
     return false;
   }
 
@@ -93,15 +83,14 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
   sf_worker* worker = (sf_worker*)pool.wait_worker(tti);
 
   // Prepare PRACH, send always sequence 0
-  prach_buffer.prepare_to_send(0);
+  prach_buffer->prepare_to_send(0);
 
   // Generate PRACH if ready
-  if (prach_buffer.is_ready_to_send(tti, phy_state.carrier.id)) {
+  if (prach_buffer->is_ready_to_send(tti, phy_state.carrier.id)) {
     uint32_t nof_prach_sf       = 0;
     float    prach_target_power = 0.0f;
-    cf_t*    prach_ptr          = prach_buffer.generate(0.0f, &nof_prach_sf, &prach_target_power);
+    cf_t*    prach_ptr          = prach_buffer->generate(0.0f, &nof_prach_sf, &prach_target_power);
     worker->set_prach(prach_ptr, prach_target_power);
-    log_vec.front().get()->info("tti=%d; Sending PRACH\n", tti);
   }
 
   return worker;
