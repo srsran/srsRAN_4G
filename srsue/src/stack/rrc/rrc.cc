@@ -937,7 +937,6 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
 
 void rrc::send_con_restablish_complete()
 {
-
   logger.debug("Preparing RRC Connection Reestablishment Complete");
   srslte::console("RRC Connected\n");
 
@@ -2532,7 +2531,7 @@ void rrc::handle_con_setup(const rrc_conn_setup_s& setup)
   state = RRC_STATE_CONNECTED;
   t300.stop();
   t302.stop();
-  srslte::console("RRC Connected");
+  srslte::console("RRC Connected\n");
 
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup.crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
