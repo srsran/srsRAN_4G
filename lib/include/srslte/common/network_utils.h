@@ -125,7 +125,7 @@ public:
   using sctp_recv_callback_t =
       std::function<void(srslte::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
 
-  rx_multisocket_handler(std::string name_, srslte::log_ref log_, int thread_prio = 65);
+  rx_multisocket_handler(std::string name_, srslog::basic_logger& logger, int thread_prio = 65);
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
@@ -152,7 +152,7 @@ private:
 
   // args
   std::string               name;
-  srslte::log_ref           log_h;
+  srslog::basic_logger&     logger;
   srslte::byte_buffer_pool* pool = nullptr;
 
   // state

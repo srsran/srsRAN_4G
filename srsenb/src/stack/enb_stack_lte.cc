@@ -116,7 +116,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   }
 
   // Init Rx socket handler
-  rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", stack_log));
+  rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", stack_logger));
 
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
