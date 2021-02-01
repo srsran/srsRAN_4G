@@ -64,11 +64,11 @@ class timer_handler
     bool set(uint32_t duration_)
     {
       if (duration_ > MAX_TIMER_DURATION) {
-        ERROR("Error: timer durations above %u are not supported\n", MAX_TIMER_DURATION);
+        ERROR("Error: timer durations above %u are not supported", MAX_TIMER_DURATION);
         return false;
       }
       if (not active) {
-        ERROR("Error: setting inactive timer id=%d\n", id());
+        ERROR("Error: setting inactive timer id=%d", id());
         return false;
       }
       duration = duration_;
@@ -92,7 +92,7 @@ class timer_handler
     {
       std::unique_lock<std::mutex> lock(parent->mutex);
       if (not active) {
-        ERROR("Error: calling run() for inactive timer id=%d\n", id());
+        ERROR("Error: calling run() for inactive timer id=%d", id());
         return;
       }
       timeout = parent->cur_time + duration;

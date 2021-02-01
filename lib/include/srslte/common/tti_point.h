@@ -30,7 +30,7 @@ struct tti_point {
       if (diff < 10240) {
         tti_val = 10240 - diff - 1;
       } else {
-        srslte::logmap::get("COMMON")->error("Invalid TTI point assigned\n");
+        srslog::fetch_basic_logger("COMMON").error("Invalid TTI point assigned");
       }
     }
   }

@@ -252,7 +252,7 @@ private:
     }                                                                                                                  \
   } while (0)
 
-#define TESTASSERT(cond) CONDERROR((not(cond)), "[%s][Line %d] Fail at \"%s\"\n", __FUNCTION__, __LINE__, (#cond))
+#define TESTASSERT(cond) CONDERROR((not(cond)), "[%s][Line %d] Fail at \"%s\"", __FUNCTION__, __LINE__, (#cond))
 
 #else // if C
 
