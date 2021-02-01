@@ -119,8 +119,8 @@ int test_eutra_nr_capabilities()
 
   TESTASSERT(test_pack_unpack_consistency(mrdc_cap) == SRSASN_SUCCESS);
 
-  srslte::logmap::get("RRC")->info_hex(
-      buffer, bref.distance_bytes(), "Packed cap struct (%d bytes):\n", bref.distance_bytes());
+  srslog::fetch_basic_logger("RRC").info(
+      buffer, bref.distance_bytes(), "Packed cap struct (%d bytes):", bref.distance_bytes());
 
   return SRSLTE_SUCCESS;
 }
@@ -177,7 +177,7 @@ int test_ue_rrc_reconfiguration()
   TESTASSERT(rrc_recfg.rrc_transaction_id == 0);
   json_writer jw;
   rrc_recfg.to_json(jw);
-  srslte::logmap::get("RRC")->info_long("RRC Reconfig: \n %s \n", jw.to_string().c_str());
+  srslog::fetch_basic_logger("RRC").info("RRC Reconfig: \n %s", jw.to_string().c_str());
 
   TESTASSERT(rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg);
   TESTASSERT(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true);
@@ -188,7 +188,7 @@ int test_ue_rrc_reconfiguration()
   TESTASSERT(cell_group_cfg.unpack(bref0) == SRSASN_SUCCESS);
   json_writer jw1;
   cell_group_cfg.to_json(jw1);
-  srslte::logmap::get("RRC")->info_long("RRC Secondary Cell Group: \n %s \n", jw1.to_string().c_str());
+  srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: \n %s", jw1.to_string().c_str());
   TESTASSERT(cell_group_cfg.cell_group_id == 1);
   TESTASSERT(cell_group_cfg.rlc_bearer_to_add_mod_list_present == true);
   TESTASSERT(cell_group_cfg.rlc_bearer_to_add_mod_list.size() == 1);
@@ -207,7 +207,7 @@ int test_radio_bearer_config()
   TESTASSERT(radio_bearer_cfg.unpack(bref) == SRSASN_SUCCESS);
   json_writer jw;
   radio_bearer_cfg.to_json(jw);
-  srslte::logmap::get("RRC")->info_long("RRC Bearer CFG Message: \n %s \n", jw.to_string().c_str());
+  srslog::fetch_basic_logger("RRC").info("RRC Bearer CFG Message: \n %s", jw.to_string().c_str());
   TESTASSERT(radio_bearer_cfg.drb_to_add_mod_list_present == true);
   TESTASSERT(radio_bearer_cfg.drb_to_add_mod_list.size() == 1);
   TESTASSERT(radio_bearer_cfg.security_cfg_present == true);
@@ -219,11 +219,22 @@ int test_radio_bearer_config()
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
 
   TESTASSERT(test_eutra_nr_capabilities() == 0);
   TESTASSERT(test_ue_mrdc_capabilities() == 0);
   TESTASSERT(test_ue_rrc_reconfiguration() == 0);
   TESTASSERT(test_radio_bearer_config() == 0);
+
+  srslog::flush();
 
   printf("Success\n");
   return 0;

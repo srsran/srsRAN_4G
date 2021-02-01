@@ -282,7 +282,7 @@ std::string log_filter::hex_string(const uint8_t* hex, int size)
     size = (size > hex_limit) ? hex_limit : size;
   }
   while (c < size) {
-    ss << "             " << std::setw(4) << static_cast<unsigned>(c) << ": ";
+    ss << "    " << std::setw(4) << static_cast<unsigned>(c) << ": ";
     int tmp = (size - c < 16) ? size - c : 16;
     for (int i = 0; i < tmp; i++) {
       ss << std::setw(2) << static_cast<unsigned>(hex[c++]) << " ";

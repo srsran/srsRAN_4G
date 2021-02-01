@@ -644,6 +644,13 @@ int test_big_integers()
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
+
   TESTASSERT(test_arrays() == 0);
   TESTASSERT(test_bit_ref() == 0);
   TESTASSERT(test_oct_string() == 0);
@@ -653,5 +660,8 @@ int main()
   TESTASSERT(test_enum() == 0);
   TESTASSERT(test_big_integers() == 0);
   //  TESTASSERT(test_json_writer()==0);
+
+  srslog::flush();
+
   printf("Success\n");
 }

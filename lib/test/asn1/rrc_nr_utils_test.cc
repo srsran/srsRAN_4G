@@ -33,7 +33,7 @@ int test_rlc_config()
   rlc_cfg_asn1.um_bi_dir().ul_um_rlc.sn_field_len         = asn1::rrc_nr::sn_field_len_um_e::size12;
   asn1::json_writer jw;
   rlc_cfg_asn1.to_json(jw);
-  logmap::get("RRC")->info_long("RLC NR Config: \n %s \n", jw.to_string().c_str());
+  srslog::fetch_basic_logger("RRC").info("RLC NR Config: \n %s", jw.to_string().c_str());
 
   rlc_config_t rlc_cfg = make_rlc_config_t(rlc_cfg_asn1);
   TESTASSERT(rlc_cfg.rat == srslte_rat_t::nr);
@@ -45,8 +45,19 @@ int test_rlc_config()
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
 
   TESTASSERT(test_rlc_config() == 0);
+
+  srslog::flush();
 
   printf("Success\n");
   return 0;

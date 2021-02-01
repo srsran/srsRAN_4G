@@ -13,14 +13,14 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
-#include "srslte/srslog/bundled/fmt/format.h"
+#include "srslte/srslog/srslog.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <map>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -53,10 +53,29 @@ struct static_max<arg1, arg2, others...> {
         logging
 ************************/
 
-void log_error(const char* format, ...);
-void log_warning(const char* format, ...);
-void log_info(const char* format, ...);
-void log_debug(const char* format, ...);
+template <typename... Args>
+void log_error(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("ASN1").error(format, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void log_warning(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("ASN1").warning(format, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void log_info(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("ASN1").info(format, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void log_debug(const char* format, Args&&... args)
+{
+  srslog::fetch_basic_logger("ASN1").debug(format, std::forward<Args>(args)...);
+}
 
 void warn_assert(bool cond, const char* filename, int lineno);
 void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
@@ -217,7 +236,7 @@ public:
   iterator erase(iterator it)
   {
     if (it < begin() or it >= end()) {
-      log_warning("Trying to access out-of-bounds iterator.\n");
+      log_warning("Trying to access out-of-bounds iterator.");
       return end();
     }
 
@@ -272,7 +291,7 @@ public:
   void push_back(const T& elem)
   {
     if (current_size >= MAX_N) {
-      log_error("Maximum size %d achieved for bounded_array.\n", MAX_N);
+      log_error("Maximum size %d achieved for bounded_array.", MAX_N);
       return;
     }
     data_[current_size++] = elem;
@@ -636,7 +655,7 @@ public:
   fixed_octstring<N, aligned>& from_string(const std::string& hexstr)
   {
     if (hexstr.size() != 2 * N) {
-      log_error("The provided hex string size is not valid (%zd!=2*%zd).\n", hexstr.size(), (size_t)N);
+      log_error("The provided hex string size is not valid (%zd!=2*%zd).", hexstr.size(), (size_t)N);
     } else {
       string_to_octstring(&octets_[0], hexstr);
     }
@@ -707,7 +726,7 @@ public:
   bounded_octstring<LB, UB, aligned>& from_string(const std::string& hexstr)
   {
     if (hexstr.size() > 2 * UB) {
-      log_error("The provided hex string size is not valid (%zd>2*%zd).\n", hexstr.size(), (size_t)UB);
+      log_error("The provided hex string size is not valid (%zd>2*%zd).", hexstr.size(), (size_t)UB);
     } else {
       resize(hexstr.size() / 2);
       string_to_octstring(&octets_[0], hexstr);
@@ -868,7 +887,8 @@ public:
   this_type&  from_string(const std::string& s)
   {
     if (s.size() < lb or s.size() > ub) {
-      log_error("The provided string size=%zd is not withing the bounds [%d, %d]\n", s.size(), lb, ub);
+      log_error(
+          "The provided string size=%zd is not withing the bounds [%d, %d]", s.size(), uint32_t(lb), uint32_t(ub));
     } else {
       resize(s.size());
       for (uint32_t i = 0; i < s.size(); ++i) {
@@ -884,7 +904,7 @@ public:
   {
     auto nof_bits_ = std::max((uint32_t)ceilf(log2(std::max(val, (uint64_t)1u))), LB);
     if (nof_bits_ > UB) {
-      log_error("The provided bitstring value %ld does not fit the bounds [%d, %d]\n", val, lb, ub);
+      log_error("The provided bitstring value %ld does not fit the bounds [%d, %d]", val, uint32_t(lb), uint32_t(ub));
       return *this;
     }
     resize(nof_bits_);
@@ -1357,17 +1377,17 @@ int test_pack_unpack_consistency(const Msg& msg)
 
   // unpack and last pack done for the same number of bits
   if (bref3.distance() != bref2.distance()) {
-    log_error("[%s][%d] .\n", __FILE__, __LINE__);
+    log_error("[%s][%d] .", __FILE__, __LINE__);
     return -1;
   }
 
   // ensure packed messages are the same
   if (bref3.distance() != bref.distance()) {
-    log_error("[%s][%d] .\n", __FILE__, __LINE__);
+    log_error("[%s][%d] .", __FILE__, __LINE__);
     return -1;
   }
   if (memcmp(buf, buf2, bref.distance_bytes()) != 0) {
-    log_error("[%s][%d] .\n", __FILE__, __LINE__);
+    log_error("[%s][%d] .", __FILE__, __LINE__);
     return -1;
   }
   return SRSASN_SUCCESS;

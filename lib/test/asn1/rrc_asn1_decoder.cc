@@ -113,6 +113,13 @@ int main(int argc, char** argv)
     return -1;
   }
 
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
+
   asn1::cbit_ref bref(rrc_msg, fsize);
   // TODO do other rrc messages and type
 

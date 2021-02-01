@@ -28,10 +28,6 @@ using namespace asn1::rrc;
 
 int rrc_conn_setup_test1()
 {
-  srslte::log_filter log1("RRC");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
-
   uint8_t  rrc_msg[]   = {0x60, 0x12, 0x98, 0x0b, 0xfd, 0xd2, 0x04, 0xfa, 0x18, 0x3e, 0xd5, 0xe6, 0xc2,
                        0x59, 0x90, 0xc1, 0xa6, 0x00, 0x01, 0x31, 0x40, 0x42, 0x50, 0x80, 0x00, 0xf8};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
@@ -81,9 +77,9 @@ int rrc_conn_setup_test1()
 // Only packing implemented
 int rrc_reestablishment_reject_test()
 {
-  srslte::log_filter log1("RRC");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(128);
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set(dl_ccch_msg_type_c::types::c1);
@@ -102,14 +98,21 @@ int rrc_reestablishment_reject_test()
   }
 
   int actual_len = bref.distance_bytes(rrc_msg);
-  log1.info_hex(rrc_msg, actual_len, "DL-CCCH message (%d/%zd B)\n", actual_len, sizeof(rrc_msg));
+  rrc_logger.info(rrc_msg, actual_len, "DL-CCCH message (%d/%zd B)", actual_len, sizeof(rrc_msg));
 
   return 0;
 }
 
 int main(int argc, char** argv)
 {
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
+
   TESTASSERT(rrc_conn_setup_test1() == 0);
   TESTASSERT(rrc_reestablishment_reject_test() == 0);
+
   return 0;
 }

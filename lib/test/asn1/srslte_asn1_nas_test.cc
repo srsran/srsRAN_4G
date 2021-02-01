@@ -12,6 +12,7 @@
 
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/srslog/srslog.h"
 #include <iostream>
 #include <memory>
 #include <srslte/common/buffer_pool.h>
@@ -28,9 +29,9 @@
 
 int nas_dedicated_eps_bearer_context_setup_request_test()
 {
-  srslte::log_filter log1("NAS");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  auto& nas_logger = srslog::fetch_basic_logger("NAS", false);
+  nas_logger.set_level(srslog::basic_levels::debug);
+  nas_logger.set_hex_dump_max_size(128);
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t tst_msg, out_msg;
@@ -47,7 +48,7 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
   // Unpack Activate Dedicated EPS bearer context setup request
   tst_msg->N_bytes = nas_message_len;
   memcpy(tst_msg->msg, nas_message, nas_message_len);
-  log1.info_hex(tst_msg->msg, tst_msg->N_bytes, "NAS Activate Dedicated EPS Bearer Context Request original message\n");
+  nas_logger.info(tst_msg->msg, tst_msg->N_bytes, "NAS Activate Dedicated EPS Bearer Context Request original message");
 
   // Test message type and protocol discriminator
   uint8_t pd, msg_type;
@@ -101,12 +102,21 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
   TESTASSERT(ded_bearer_req.packet_flow_id == 77); // Test flow id
 
   // NAS Activate Dedicated EPS Bearer Context Setup Request Pack Test (TODO)
+
+  srslog::flush();
   printf("Test NAS Activate Dedicated EPS Bearer Context Request successfull\n");
   return 0;
 }
 
 int main(int argc, char** argv)
 {
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
+
   int result = nas_dedicated_eps_bearer_context_setup_request_test();
+
   return result;
 }
