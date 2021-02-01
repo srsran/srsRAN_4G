@@ -59,11 +59,11 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
   {
+    assert(lcid == 1);
     for (uint32_t pdcp_sn : pdcp_sn_vec) {
       if (notified_counts.find(pdcp_sn) == notified_counts.end()) {
         notified_counts[pdcp_sn] = 0;
       }
-      assert(lcid == 1);
       notified_counts[pdcp_sn] += 1;
     }
   }
@@ -446,8 +446,9 @@ int retx_test()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // 1 packet was lost.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 4.
+  TESTASSERT(status_check.N_nack == 1);           // 1 packet was lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 1); // SN 1 was lost.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 4.
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
@@ -495,7 +496,7 @@ int retx_test()
   // Assert status is correct
   status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 0); // 1 packet was lost.
+  TESTASSERT(status_check.N_nack == 0); // No packet was lost.
   TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 4.
 
   // Write status PDU to RLC1
@@ -578,7 +579,7 @@ int segment_retx_test()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 0); // 1 packet was lost.
+  TESTASSERT(status_check.N_nack == 0); // No packet was lost.
   TESTASSERT(status_check.ack_sn == 1); // Delivered up to SN 0.
 
   // Write status PDU to RLC1
@@ -612,7 +613,7 @@ int segment_retx_test()
   // Assert status is correct
   status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 0); // 1 packet was lost.
+  TESTASSERT(status_check.N_nack == 0); // No packet was lost.
   TESTASSERT(status_check.ack_sn == 2); // Delivered up to SN 0.
 
   // Make sure SDU was notified
@@ -636,7 +637,7 @@ int resegment_test_1()
 {
   // SDUs:                |  10  |  10  |  10  |  10  |  10  |
   // PDUs:                |  10  |  10  |  10  |  10  |  10  |
-  // Retx PDU segments:                 | 5 | 5|
+  // Retx PDU segments:          | 5 | 5|
 
   rlc_am_tester tester;
   timer_handler timers(8);
@@ -697,8 +698,9 @@ int resegment_test_1()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // 1 packet was lost.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+  TESTASSERT(status_check.N_nack == 1);           // 1 packet was lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 1); // SN 1 was lost.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 5.
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
@@ -740,8 +742,9 @@ int resegment_test_1()
   // Assert status is correct
   status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // 1 packet was lost.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+  TESTASSERT(status_check.N_nack == 1);           // 1 packet was lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 1); // SN 1 was lost.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 5.
 
   // Read the remaining segment
   byte_buffer_t retx2;
@@ -854,7 +857,7 @@ int resegment_test_2()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
+  TESTASSERT(status_check.N_nack == 1); // One packet was lost.
   TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
 
   // Write status PDU to RLC1
@@ -987,8 +990,9 @@ int resegment_test_3()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+  TESTASSERT(status_check.N_nack == 1);           // One packet was lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 2); // SN 2 was lost.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 5.
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
@@ -1118,8 +1122,9 @@ int resegment_test_4()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+  TESTASSERT(status_check.N_nack == 1);           // one packet lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 2); // SN 2 was lost.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 5.
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
@@ -1250,8 +1255,9 @@ int resegment_test_5()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+  TESTASSERT(status_check.N_nack == 1);           // one packet was lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 2); // SN 2 was lost.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 5.
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
@@ -1389,7 +1395,8 @@ int resegment_test_6()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1);
+  TESTASSERT(status_check.N_nack == 1);           // One packet was lost.
+  TESTASSERT(status_check.nacks[0].nack_sn == 3); // SN 3 was lost.
   TESTASSERT(status_check.ack_sn == 5);
 
   // Write status PDU to RLC1
@@ -1576,8 +1583,9 @@ int resegment_test_7()
   // Assert status is correct
   rlc_status_pdu_t status_check = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_check);
-  TESTASSERT(status_check.N_nack == 1); // all packets delivered.
-  TESTASSERT(status_check.ack_sn == 5); // Delivered up to SN 5.
+  TESTASSERT(status_check.N_nack == 1);           // one packet dropped.
+  TESTASSERT(status_check.nacks[0].nack_sn == 2); // SN 2 dropped.
+  TESTASSERT(status_check.ack_sn == 5);           // Delivered up to SN 5.
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);

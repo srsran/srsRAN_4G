@@ -381,7 +381,7 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
   // Store SDU info
   uint32_t info_count = undelivered_sdu_info_queue.count(info.sn);
   if (info_count != 0) {
-    log->error("PDCP SDU info alreay exists\n");
+    log->error("PDCP SDU info already exists\n");
     return SRSLTE_ERROR;
   }
 
@@ -1080,7 +1080,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
 {
   // Iterate over all undelivered SDUs
   for (auto& info_it : undelivered_sdu_info_queue) {
-    // Iterate over all SNs that
+    // Iterate over all SNs that were TX'ed
     uint32_t pdcp_sn = info_it.first;
     auto&    info    = info_it.second;
     for (auto& rlc_sn_info : info.rlc_sn_info_list) {
