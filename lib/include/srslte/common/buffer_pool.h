@@ -167,11 +167,7 @@ public:
   static std::unique_ptr<byte_buffer_pool> instance;
   static byte_buffer_pool*                 get_instance(int capacity = -1);
   static void                              cleanup();
-  byte_buffer_pool(int capacity = -1)
-  {
-    log  = nullptr;
-    pool = new buffer_pool<byte_buffer_t>(capacity);
-  }
+  byte_buffer_pool(int capacity = -1) { pool = new buffer_pool<byte_buffer_t>(capacity); }
   byte_buffer_pool(const byte_buffer_pool& other) = delete;
   byte_buffer_pool& operator=(const byte_buffer_pool& other) = delete;
   ~byte_buffer_pool() { delete pool; }
