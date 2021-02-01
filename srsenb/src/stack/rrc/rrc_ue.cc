@@ -506,7 +506,9 @@ void rrc::ue::send_connection_reest_rej()
 /*
  * Connection Reconfiguration
  */
-void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_cfg_updated)
+void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t           pdu,
+                                     bool                                   phy_cfg_updated,
+                                     const asn1::unbounded_octstring<true>* nas_pdu)
 {
   parent->logger.debug("RRC state %d", state);
 
@@ -544,6 +546,17 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu, bool phy_
 
   // UE MAC scheduler updates
   mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
+
+  // Fill in NAS PDU - Only for RRC Connection Reconfiguration during E-RAB Release Command
+  if (nas_pdu != nullptr and nas_pdu->size() > 0 and !recfg_r8.ded_info_nas_list_present) {
+    recfg_r8.ded_info_nas_list_present = true;
+    recfg_r8.ded_info_nas_list.resize(recfg_r8.rr_cfg_ded.drb_to_release_list.size());
+    // Add NAS PDU
+    for (uint32_t idx = 0; idx < recfg_r8.rr_cfg_ded.drb_to_release_list.size(); idx++) {
+      recfg_r8.ded_info_nas_list[idx].resize(nas_pdu->size());
+      memcpy(recfg_r8.ded_info_nas_list[idx].data(), nas_pdu->data(), nas_pdu->size());
+    }
+  }
 
   // Reuse same PDU
   if (pdu != nullptr) {
@@ -932,6 +945,7 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
       res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
       res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.push_back({});
       auto& item                     = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
+      item.load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
       item.value.erab_item().erab_id = id;
       item.value.erab_item().cause.set_radio_network().value =
           asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
@@ -1206,7 +1220,9 @@ void rrc::ue::apply_rlc_rb_updates(const rr_cfg_ded_s& pending_rr_cfg)
     parent->rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
   }
   if (pending_rr_cfg.drb_to_release_list.size() > 0) {
-    parent->logger.error("Removing DRBs not currently supported");
+    for (uint8_t drb_id : pending_rr_cfg.drb_to_release_list) {
+      parent->rlc->del_bearer(rnti, drb_id + 2);
+    }
   }
   for (const drb_to_add_mod_s& drb : pending_rr_cfg.drb_to_add_mod_list) {
     if (not drb.rlc_cfg_present) {

@@ -334,6 +334,10 @@ void rrc::release_erabs(uint32_t                              rnti,
       erabs_failed_to_release->push_back(erab_to_release.erab_id);
     }
   }
+  const asn1::unbounded_octstring<true>* nas_pdu =
+      msg.protocol_ies.nas_pdu_present ? &msg.protocol_ies.nas_pdu.value : nullptr;
+  user_it->second->send_connection_reconf(nullptr, false, nas_pdu);
+
   return;
 }
 

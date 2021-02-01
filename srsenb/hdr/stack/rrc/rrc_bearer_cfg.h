@@ -96,6 +96,7 @@ public:
                            uint32_t                                teid_out,
                            uint32_t                                addr,
                            const gtpu_interface_rrc::bearer_props* props = nullptr);
+  void     rem_gtpu_bearer(gtpu_interface_rrc* gtpu, uint32_t erab_id);
   void     fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }

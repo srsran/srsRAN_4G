@@ -47,7 +47,9 @@ public:
   void send_connection_reject();
   void send_connection_release();
   void send_connection_reest_rej();
-  void send_connection_reconf(srslte::unique_byte_buffer_t sdu = {}, bool phy_cfg_updated = true);
+  void send_connection_reconf(srslte::unique_byte_buffer_t           sdu             = {},
+                              bool                                   phy_cfg_updated = true,
+                              const asn1::unbounded_octstring<true>* nas_pdu         = nullptr);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void send_ue_info_req();
