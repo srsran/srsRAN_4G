@@ -554,7 +554,10 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
   // TODO Setup PHY @andre and @phy interface?
-  log_h->warning("Not handling SP Cell config");
+  if (sp_cell_cfg.recfg_with_sync_present) {
+    const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
+    mac->set_crnti(recfg_with_sync.new_ue_id);
+  }
   return true;
 }
 
@@ -572,7 +575,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
     log_h->warning("Not handling physical cell group config");
   }
   if (cell_group_cfg.sp_cell_cfg_present) {
-    // apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg);
+    apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg);
   }
   return true;
 }
