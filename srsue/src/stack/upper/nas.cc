@@ -197,7 +197,7 @@ void nas::enter_emm_deregistered(emm_state_t::deregistered_substate_t substate)
 void nas::timer_expired(uint32_t timeout_id)
 {
   if (timeout_id == t3402.id()) {
-    logger.info("Timer T3402 expired: trying to attach again");
+    logger.warning("Timer T3402 expired: trying to attach again");
     attach_attempt_counter = 0; // Sec. 5.5.1.1
     enter_emm_deregistered(emm_state_t::deregistered_substate_t::plmn_search);
   } else if (timeout_id == t3410.id()) {
@@ -206,16 +206,16 @@ void nas::timer_expired(uint32_t timeout_id)
 
     srslte::console("Attach failed (attempt %d/%d)\n", attach_attempt_counter, max_attach_attempts);
     if (attach_attempt_counter < max_attach_attempts) {
-      logger.info("Timer T3410 expired after attach attempt %d/%d: starting T3411",
-                  attach_attempt_counter,
-                  max_attach_attempts);
+      logger.warning("Timer T3410 expired after attach attempt %d/%d: starting T3411",
+                     attach_attempt_counter,
+                     max_attach_attempts);
 
       // start T3411
       t3411.run();
       enter_emm_deregistered(emm_state_t::deregistered_substate_t::attempting_to_attach);
     } else {
       // maximum attach attempts reached
-      logger.info("Timer T3410 expired. Maximum attempts reached. Starting T3402");
+      logger.warning("Timer T3410 expired. Maximum attempts reached. Starting T3402");
       t3402.run();
       reset_security_context();
     }
@@ -223,7 +223,7 @@ void nas::timer_expired(uint32_t timeout_id)
     // In order to allow reattaching the UE, we switch into EMM_STATE_DEREGISTERED straight
     enter_emm_deregistered(emm_state_t::deregistered_substate_t::plmn_search);
   } else if (timeout_id == reattach_timer.id()) {
-    logger.info("Reattach timer expired: trying to attach again");
+    logger.warning("Reattach timer expired: trying to attach again");
     start_attach_request(srslte::establishment_cause_t::mo_sig);
   } else if (timeout_id == airplane_mode_sim_timer.id()) {
     if (airplane_mode_state == DISABLED) {
