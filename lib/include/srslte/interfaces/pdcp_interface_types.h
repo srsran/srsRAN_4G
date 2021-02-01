@@ -42,6 +42,18 @@ enum pdcp_dc_field_t {
 };
 static const char* pdcp_dc_field_text[PDCP_DC_FIELD_N_ITEMS] = {"Control PDU", "Data PDU"};
 
+enum pdcp_pdu_type_t {
+  PDCP_PDU_TYPE_STATUS_REPORT = 0,
+  PDCP_PDU_TYPE_INTERSPERSED_ROHC_FEEDBACK_PACKET,
+  PDCP_PDU_TYPE_LWA_STATUS_REPORT,
+  PDCP_PDU_TYPE_LWA_END_MARKER_PACKET,
+  PDCP_PDU_TYPE_N_ITEMS,
+};
+static const char* pdcp_pdu_type_text[PDCP_PDU_TYPE_N_ITEMS] = {"PDCP Report PDU",
+                                                                "Interspersed ROCH Feedback Packet",
+                                                                "LWA Status Report",
+                                                                "LWA End-marker Packet"};
+
 // Taken from PDCP-Config (TS 38.331 version 15.2.1)
 enum class pdcp_t_reordering_t {
   ms0    = 0,

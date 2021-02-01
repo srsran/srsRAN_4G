@@ -11,7 +11,9 @@
  */
 
 #include "srslte/upper/pdcp_entity_lte.h"
+#include "srslte/common/int_helpers.h"
 #include "srslte/common/security.h"
+#include <bitset>
 
 namespace srslte {
 
@@ -181,9 +183,10 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
 // RLC interface
 void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 {
-  // drop control PDUs
+  // Handle control PDUs
   if (is_drb() && is_control_pdu(pdu)) {
-    logger.info("Dropping PDCP control PDU");
+    logger.info("Handling PDCP control PDU");
+    handle_control_pdu(std::move(pdu));
     return;
   }
 
@@ -223,8 +226,22 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
   }
 }
 
+// Handle control PDU
+void pdcp_entity_lte::handle_control_pdu(unique_byte_buffer_t pdu)
+{
+  switch ((pdu->msg[0] >> 4) & 0x03) {
+    case PDCP_PDU_TYPE_STATUS_REPORT:
+      handle_status_report_pdu(std::move(pdu));
+      break;
+    default:
+      logger.warning("Unhandled control PDU");
+      return;
+  }
+  return;
+}
+
 /****************************************************************************
- * Rx data/control handler functions
+ * Rx data handler functions
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // SRBs (5.1.2.2)
@@ -333,7 +350,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
                  sn_diff_last_submit,
                  last_submit_diff_sn,
                  reordering_window);
-    return; // Discard
+    return;
   }
 
   if ((int32_t)(st.next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
@@ -368,6 +385,127 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   gw->write_pdu(lcid, std::move(pdu));
 }
 
+/****************************************************************************
+ * Control handler functions (Status Report)
+ * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.3
+ ***************************************************************************/
+
+// Section 5.3.1 transmit operation
+bool pdcp_entity_lte::send_status_report()
+{
+  // Check wether RCL AM is being used.
+  if (rlc->rb_is_um(lcid)) {
+    logger.error("Trying to send PDCP Status Report and RLC is not AM");
+    return false;
+  }
+
+  // Get First Missing Segment (FMS)
+  uint32_t fms = 0;
+  if (undelivered_sdus_queue.empty()) {
+    fms = st.next_pdcp_tx_sn;
+  } else {
+    fms = undelivered_sdus_queue.begin()->first;
+  }
+
+  logger.debug("PDCP Status report: FMS=%d", fms);
+
+  // Allocate Status Report PDU
+  unique_byte_buffer_t pdu = make_byte_buffer();
+
+  // Set control bit and type of PDU
+  pdu->msg[0] = ((uint8_t)PDCP_DC_FIELD_CONTROL_PDU << 7) | ((uint8_t)PDCP_PDU_TYPE_STATUS_REPORT << 4);
+
+  // Set FMS
+  switch (cfg.sn_len) {
+    case PDCP_SN_LEN_12:
+      pdu->msg[0]  = pdu->msg[0] | (0x0F & (fms >> 8));
+      pdu->msg[1]  = 0xFF & fms;
+      pdu->N_bytes = 2;
+      break;
+    case PDCP_SN_LEN_18:
+      pdu->msg[0]  = pdu->msg[0] | (0x03 & (fms >> 16));
+      pdu->msg[1]  = 0xFF & (fms >> 8);
+      pdu->msg[2]  = 0xFF & fms;
+      pdu->N_bytes = 3;
+      break;
+    default:
+      logger.error("Unsupported SN length for Status Report.");
+      return false;
+  }
+
+  // Add bitmap of missing PDUs, if necessary
+  if (not undelivered_sdus_queue.empty()) {
+    uint32_t byte_offset = 0;
+    for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end(); it++) {
+      uint32_t offset     = it->first - fms;
+      uint32_t bit_offset = offset % 8;
+      byte_offset         = offset / 8;
+      pdu->msg[pdu->N_bytes + byte_offset] |= 1 << (7 - bit_offset);
+    }
+    pdu->N_bytes += (byte_offset + 1);
+  }
+
+  // Write PDU to RLC
+  rlc->write_sdu(lcid, std::move(pdu));
+
+  return true;
+}
+
+// Section 5.3.2 receive operation
+void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
+{
+  uint32_t              fms;
+  std::vector<uint32_t> acked_sns;
+  uint32_t              bitmap_offset;
+
+  // Get FMS
+  switch (cfg.sn_len) {
+    case PDCP_SN_LEN_12: {
+      uint16_t tmp16;
+      uint8_to_uint16(pdu->msg, &tmp16);
+      fms           = tmp16 & 0x0FFF;
+      bitmap_offset = 2;
+      break;
+    }
+    case PDCP_SN_LEN_18: {
+      uint8_to_uint24(pdu->msg, &fms);
+      fms           = fms & 0x3FFF;
+      bitmap_offset = 3;
+      break;
+    }
+    default:
+      logger.error("Unsupported SN length for Status Report.");
+      return;
+  }
+
+  // Remove all SDUs with SN smaller than FMS
+  for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end();) {
+    if (it->first < fms) {
+      discard_timers_map.erase(it->first);
+      it = undelivered_sdus_queue.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
+  // Get acked SNs from bitmap
+  for (uint32_t i = 0; (i + bitmap_offset) < pdu->N_bytes; i++) {
+    std::bitset<8> bset{pdu->msg[bitmap_offset + i]};
+    for (uint8_t j = 0; j < 8; j++) {
+      if (bset[8 - j]) {
+        uint32_t acked_sn = fms + i * 8 + j;
+        acked_sns.push_back(acked_sn);
+      }
+    }
+  }
+
+  // Discard ACK'ed SDUs
+  for (uint32_t sn : acked_sns) {
+    logger.debug("Status report ACKed SN=%d.", sn);
+    undelivered_sdus_queue.erase(sn);
+    discard_timers_map.erase(sn);
+  }
+}
 /****************************************************************************
  * TX PDUs Queue Helper
  ***************************************************************************/

@@ -139,6 +139,8 @@ int run_all_tests()
 
 int main()
 {
+  srslog::init();
+
   if (run_all_tests() != SRSLTE_SUCCESS) {
     fprintf(stderr, "pdcp_lte_tests() failed\n");
     return SRSLTE_ERROR;

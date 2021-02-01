@@ -77,6 +77,10 @@ add_executable(pdcp_lte_test_discard_sdu pdcp_lte_test_discard_sdu.cc)
 target_link_libraries(pdcp_lte_test_discard_sdu srslte_upper srslte_common)
 add_test(pdcp_lte_test_discard_sdu pdcp_lte_test_discard_sdu)
 
+add_executable(pdcp_lte_test_status_report pdcp_lte_test_status_report.cc)
+target_link_libraries(pdcp_lte_test_status_report srslte_upper srslte_common)
+add_test(pdcp_lte_test_status_report pdcp_lte_test_status_report)
+
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################

@@ -64,6 +64,10 @@ public:
   // Getter for unacknowledged PDUs. Used for handover
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() override;
 
+  // Status report helper(s)
+  bool send_status_report();
+  void handle_status_report_pdu(srslte::unique_byte_buffer_t pdu);
+
   // Internal state getters/setters
   void get_bearer_state(pdcp_lte_state_t* state) override;
   void set_bearer_state(const pdcp_lte_state_t& state) override;
@@ -89,6 +93,7 @@ private:
   // TX Queue
   std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus_queue;
 
+  void handle_control_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu);
