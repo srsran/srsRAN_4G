@@ -28,8 +28,6 @@ using namespace std;
 
 namespace srsue {
 
-vnf_phy_nr::vnf_phy_nr(srslte::logger* logger_) : logger(logger_) {}
-
 vnf_phy_nr::~vnf_phy_nr()
 {
   stop();

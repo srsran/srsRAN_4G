@@ -117,7 +117,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 #ifdef HAVE_5GNR
     std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(old_logger));
     std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null(old_logger));
-    std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr(old_logger));
+    std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr);
     std::unique_ptr<gw>                 gw_ptr(new gw());
 
     // Init layers

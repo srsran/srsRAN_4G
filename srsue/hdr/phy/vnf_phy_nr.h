@@ -28,7 +28,7 @@ namespace srsue {
 class vnf_phy_nr : public srsue::ue_phy_base, public srsue::phy_interface_stack_nr
 {
 public:
-  vnf_phy_nr(srslte::logger* logger_);
+  vnf_phy_nr() = default;
   ~vnf_phy_nr();
 
   int init(const srsue::phy_args_t& args, srsue::stack_interface_phy_nr* stack_);
@@ -50,8 +50,6 @@ public:
   int tx_request(const tx_request_t& request);
 
 private:
-  srslte::logger* logger = nullptr;
-
   std::unique_ptr<srslte::srslte_basic_vnf> vnf;
 
   srsue::stack_interface_phy_nr* stack = nullptr;
