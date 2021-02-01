@@ -161,7 +161,6 @@ private:
   srslte::log_ref       rrc_log{"RRC"};
   srslte::log_ref       usim_log{"USIM"};
   srslte::log_ref       nas_log{"NAS"};
-  srslte::log_ref       pool_log{"POOL"};
   srslog::basic_logger& stack_logger;
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;
@@ -184,12 +183,12 @@ private:
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
 
   // stack components
-  srsue::mac                 mac;
-  srslte::mac_pcap           mac_pcap;
-  srslte::nas_pcap           nas_pcap;
-  srslte::rlc                rlc;
-  srslte::pdcp               pdcp;
-  srsue::rrc                 rrc;
+  srsue::mac       mac;
+  srslte::mac_pcap mac_pcap;
+  srslte::nas_pcap nas_pcap;
+  srslte::rlc      rlc;
+  srslte::pdcp     pdcp;
+  srsue::rrc       rrc;
 #ifdef HAVE_5GNR
   srsue::mac_nr mac_nr;
   srsue::rrc_nr rrc_nr;

@@ -18,7 +18,7 @@ using namespace srslte;
 namespace srsue {
 
 ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
-  logger(logger_), thread("STACK"), task_sched(64, 2, 64), rlc_log("RLC"), pdcp_log("PDCP"), pool_log("POOL")
+  logger(logger_), thread("STACK"), task_sched(64, 2, 64), rlc_log("RLC"), pdcp_log("PDCP")
 {
   mac.reset(new mac_nr(&task_sched));
   pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
@@ -26,8 +26,7 @@ ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   rrc.reset(new rrc_nr(&task_sched));
 
   // setup logging for pool, RLC and PDCP
-  pool_log->set_level(srslte::LOG_LEVEL_ERROR);
-  byte_buffer_pool::get_instance()->set_log(pool_log.get());
+  byte_buffer_pool::get_instance()->enable_logger(true);
 
   ue_task_queue   = task_sched.make_task_queue();
   sync_task_queue = task_sched.make_task_queue();

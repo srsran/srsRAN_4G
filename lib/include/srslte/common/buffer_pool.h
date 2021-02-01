@@ -26,6 +26,7 @@
 
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srslte {
 
@@ -164,8 +165,8 @@ class byte_buffer_pool
 public:
   // Singleton static methods
   static std::unique_ptr<byte_buffer_pool> instance;
-  static byte_buffer_pool* get_instance(int capacity = -1);
-  static void              cleanup();
+  static byte_buffer_pool*                 get_instance(int capacity = -1);
+  static void                              cleanup();
   byte_buffer_pool(int capacity = -1)
   {
     log  = nullptr;
@@ -178,7 +179,7 @@ public:
   {
     return pool->allocate(debug_name, blocking);
   }
-  void set_log(srslte::log* log) { this->log = log; }
+  void enable_logger(bool enabled) { print_to_log = enabled; }
   void deallocate(byte_buffer_t* b)
   {
     if (!b) {
@@ -186,26 +187,30 @@ public:
     }
     b->clear();
     if (!pool->deallocate(b)) {
-      if (log) {
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-        log->error("Deallocating PDU: Addr=0x%p, name=%s not found in pool\n", b, b->debug_name);
+      print_error("Error deallocating PDU: Addr=0x%p, name=%s not found in pool", (void*)b, b->debug_name);
 #else
-        log->error("Deallocating PDU: Addr=0x%p\n", b);
+      print_error("Error deallocating PDU: Addr=0x%p", (void*)b);
 #endif
-      } else {
-#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-        printf("Error deallocating PDU: Addr=0x%p, name=%s not found in pool\n", b, b->debug_name);
-#else
-        printf("Error deallocating PDU: Addr=0x%p\n", b);
-#endif
-      }
     }
     b = nullptr;
   }
   void print_all_buffers() { pool->print_all_buffers(); }
 
 private:
-  srslte::log*                log;
+  /// Formats and prints the input string and arguments into the configured output stream.
+  template <typename... Args>
+  void print_error(const char* str, Args&&... args)
+  {
+    if (print_to_log) {
+      srslog::fetch_basic_logger("POOL", false).error(str, std::forward<Args>(args)...);
+    } else {
+      fmt::printf(std::string(str) + "\n", std::forward<Args>(args)...);
+    }
+  }
+
+private:
+  bool                        print_to_log = false;
   buffer_pool<byte_buffer_t>* pool;
 };
 

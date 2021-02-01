@@ -62,9 +62,9 @@ public:
   void stop();
 
   // GW srsue stack_interface_gw dummy interface
-  bool is_registered(){return true;};
-  bool start_service_request(){return true;};
-  
+  bool is_registered() { return true; };
+  bool start_service_request() { return true; };
+
   bool get_metrics(stack_metrics_t* metrics);
   bool is_rrc_connected();
 
@@ -105,7 +105,6 @@ private:
   srslte::logger* logger = nullptr;
   srslte::log_ref rlc_log;
   srslte::log_ref pdcp_log;
-  srslte::log_ref pool_log;
 
   // stack components
   std::unique_ptr<mac_nr>       mac;

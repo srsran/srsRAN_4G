@@ -87,8 +87,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   // init own log
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
   stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
-  pool_log->set_level(srslte::LOG_LEVEL_WARNING);
-  byte_buffer_pool::get_instance()->set_log(pool_log.get());
+  byte_buffer_pool::get_instance()->enable_logger(true);
 
   // init layer logs
   srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
