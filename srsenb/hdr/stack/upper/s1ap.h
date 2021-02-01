@@ -81,9 +81,9 @@ public:
                        srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override;
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
   void send_ho_cancel(uint16_t rnti) override;
-  // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
   bool send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause);
+  bool send_ue_cap_info_indication(uint16_t rnti, srslte::unique_byte_buffer_t ue_radio_cap) override;
 
   // Stack interface
   bool
@@ -145,7 +145,6 @@ private:
   bool handle_erabmodifyrequest(const asn1::s1ap::erab_modify_request_s& msg);
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
-  // bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
   // handover
   bool handle_hopreparationfailure(const asn1::s1ap::ho_prep_fail_s& msg);
   bool handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg);
@@ -200,6 +199,7 @@ private:
     bool send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_released,
                                    const std::vector<uint16_t>& erabs_failed_to_release);
     bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
+    bool send_ue_cap_info_indication(srslte::unique_byte_buffer_t ue_radio_cap);
 
     bool was_uectxtrelease_requested() const { return release_requested; }
 

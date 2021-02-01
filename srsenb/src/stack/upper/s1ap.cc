@@ -404,11 +404,6 @@ void s1ap::ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_re
   u->send_erab_setup_response(res);
 }
 
-// void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
-//{
-
-//}
-
 bool s1ap::is_mme_connected()
 {
   return mme_connected;
@@ -1059,6 +1054,15 @@ bool s1ap::release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_succe
   return user_ptr->send_erab_release_indication(erabs_successfully_released);
 }
 
+bool s1ap::send_ue_cap_info_indication(uint16_t rnti, srslte::unique_byte_buffer_t ue_radio_cap)
+{
+  ue* user_ptr = users.find_ue_rnti(rnti);
+  if (user_ptr == nullptr) {
+    return false;
+  }
+  return user_ptr->send_ue_cap_info_indication(std::move(ue_radio_cap));
+}
+
 bool s1ap::send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause)
 {
   if (not mme_connected) {
@@ -1432,7 +1436,26 @@ bool s1ap::ue::send_erab_release_indication(const std::vector<uint16_t>& erabs_s
     container.erab_released_list.value[i].value.erab_item().erab_id = erabs_successfully_released[i];
   }
 
-  return true;
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E-RABReleaseIndication");
+}
+
+bool s1ap::ue::send_ue_cap_info_indication(srslte::unique_byte_buffer_t ue_radio_cap)
+{
+  if (not s1ap_ptr->mme_connected) {
+    return false;
+  }
+
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CAP_INFO_IND);
+  ue_cap_info_ind_ies_container& container = tx_pdu.init_msg().value.ue_cap_info_ind().protocol_ies;
+
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+
+  asn1::cbit_ref bref{ue_radio_cap->msg, ue_radio_cap->N_bytes};
+  container.ue_radio_cap.value.unpack(bref);
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UECapabilityInfoIndication");
 }
 
 /*********************
@@ -1472,38 +1495,6 @@ bool s1ap::send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_statu
 
   return u->send_enb_status_transfer_proc(bearer_status_list);
 }
-
-// bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
-//{
-//  srslte::byte_buffer_t msg;
-
-//  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-//  tx_pdu.ext          = false;
-//  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-//  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-//  init->procedureCode = LIBLTE_S1AP_PROC_ID_UPLINKNASTRANSPORT;
-//  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECAPABILITYINFOINDICATION;
-
-//  LIBLTE_S1AP_MESSAGE_UECAPABILITYINFOINDICATION_STRUCT *caps = &init->choice.UECapabilityInfoIndication;
-//  caps->ext                           = false;
-//  caps->mme_ue_s1ap_id.mme_ue_s1ap_id = ue_ctxt_map[rnti]->mme_ue_s1ap_id;
-//  caps->enb_ue_s1ap_id.ENB_UE_S1AP_ID = ue_ctxt_map[rnti]->enb_ue_s1ap_id;
-//  // TODO: caps->UERadioCapability.
-
-//  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-//  logger.info_hex(msg.msg, msg.N_bytes, "Sending UERadioCapabilityInfo for RNTI:0x%x", rnti);
-
-//  ssize_t n_sent = sctp_sendmsg(socket_fd, msg.msg, msg.N_bytes,
-//                                (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
-//                                htonl(PPID), 0, ue_ctxt_map[rnti]->stream_id, 0, 0);
-//  if(n_sent == -1) {
-//    logger.error("Failed to send UplinkNASTransport for RNTI:0x%x", rnti);
-//    return false;
-//  }
-
-//  return true;
-//}
 
 /*********************************************************
  *              s1ap::user_list class

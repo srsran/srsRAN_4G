@@ -676,8 +676,8 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       parent->logger.warning("Not handling UE capability information for RAT type %s",
                              msg_r8->ue_cap_rat_container_list[i].rat_type.to_string().c_str());
     } else {
-      asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(),
-                          msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size());
+      asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.data(),
+                          msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.size());
       if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
         parent->logger.error("Failed to unpack EUTRA capabilities message");
         return false;
@@ -691,15 +691,15 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
 
       parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
+
+      srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+      pdu->N_bytes                     = msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size();
+      memcpy(pdu->msg, msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), pdu->N_bytes);
+      parent->s1ap->send_ue_cap_info_indication(rnti, std::move(pdu));
     }
   }
 
   return true;
-
-  // TODO: Add liblte_rrc support for unpacking UE cap info and repacking into
-  //       inter-node UERadioAccessCapabilityInformation (36.331 v10.0.0 Section 10.2.2).
-  //       This is then passed to S1AP for transfer to EPC.
-  // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
 /*

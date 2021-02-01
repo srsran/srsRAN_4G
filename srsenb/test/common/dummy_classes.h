@@ -117,6 +117,10 @@ public:
   void send_ho_cancel(uint16_t rnti) override {}
 
   bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override { return true; }
+  bool send_ue_cap_info_indication(uint16_t rnti, const srslte::unique_byte_buffer_t ue_radio_cap) override
+  {
+    return true;
+  }
 };
 
 class phy_dummy : public phy_interface_rrc_lte
