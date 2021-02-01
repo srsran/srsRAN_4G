@@ -11,6 +11,7 @@
  */
 
 #include "srslte/phy/ue/ue_dl_nr.h"
+#include <complex.h>
 
 #define UE_DL_NR_PDCCH_CORR_DEFAULT_THR 0.5f
 #define UE_DL_NR_PDCCH_EPRE_DEFAULT_THR -10.0f
@@ -194,6 +195,17 @@ void srslte_ue_dl_nr_estimate_fft(srslte_ue_dl_nr_t* q, const srslte_dl_slot_cfg
   // OFDM demodulation
   for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
     srslte_ofdm_rx_sf(&q->fft[i]);
+  }
+
+  // Temporary symbol phase shift
+  uint32_t nof_re = SRSLTE_NRE * q->carrier.nof_prb;
+  for (uint32_t i = 0; i < 2; i++) {
+    for (uint32_t j = 0; j < 7; j++) {
+      srslte_vec_sc_prod_ccc(&q->sf_symbols[0][(i * 7 + j) * nof_re],
+                             cexpf(-I * (11.0f * j - 2.0f) * M_PI / 16),
+                             &q->sf_symbols[0][(i * 7 + j) * nof_re],
+                             nof_re);
+    }
   }
 
   // Estimate PDCCH channel for every configured CORESET
