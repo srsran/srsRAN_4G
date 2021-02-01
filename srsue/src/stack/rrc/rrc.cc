@@ -76,9 +76,7 @@ void rrc::log_rrc_message(const std::string    source,
                           const T&             msg,
                           const std::string&   msg_type)
 {
-  if (logger.info.enabled()) {
-    logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu->N_bytes);
-  } else if (logger.debug.enabled()) {
+  if (logger.debug.enabled()) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
     logger.debug(pdu->msg,
@@ -89,6 +87,8 @@ void rrc::log_rrc_message(const std::string    source,
                  msg_type.c_str(),
                  pdu->N_bytes);
     logger.debug("Content:\n%s", json_writer.to_string().c_str());
+  } else if (logger.info.enabled()) {
+    logger.info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu->N_bytes);
   }
 }
 
@@ -399,7 +399,6 @@ void rrc::process_cell_meas_nr()
 
 void rrc::process_new_cell_meas_nr(const std::vector<phy_meas_nr_t>& meas)
 {
-
   // Convert vector
   std::vector<phy_meas_t> meas_lte;
   for (const auto& m : meas) {
@@ -1870,7 +1869,6 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       }
 
       if (args.release > 9) {
-
         phy_layer_params_v1020_s phy_layer_params_v1020;
         phy_layer_params_v1020.two_ant_ports_for_pucch_r10_present             = false;
         phy_layer_params_v1020.tm9_with_minus8_tx_fdd_r10_present              = false;

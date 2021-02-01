@@ -125,14 +125,14 @@ public:
                        const std::string&      msg_type)
   {
     static const char* dir_str[] = {"Rx", "Tx", "S1AP Tx", "S1AP Rx"};
-    if (logger.info.enabled()) {
-      logger.info("%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
-    } else if (logger.debug.enabled()) {
+    if (logger.debug.enabled()) {
       asn1::json_writer json_writer;
       msg.to_json(json_writer);
       logger.debug(
           pdu.data(), pdu.size(), "%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
       logger.debug("Content:\n%s", json_writer.to_string().c_str());
+    } else if (logger.info.enabled()) {
+      logger.info("%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
     }
   }
 

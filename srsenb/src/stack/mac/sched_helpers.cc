@@ -103,16 +103,17 @@ void fill_dl_cc_result_debug(custom_mem_buffer& strbuf, const dl_sched_data_t& d
 
 void log_dl_cc_results(srslog::basic_logger& logger, uint32_t enb_cc_idx, const sched_interface::dl_sched_res_t& result)
 {
-  if (!logger.info.enabled()) {
+  if (!logger.info.enabled() && !logger.debug.enabled()) {
     return;
   }
+
   custom_mem_buffer strbuf;
   for (uint32_t i = 0; i < result.nof_data_elems; ++i) {
     const dl_sched_data_t& data = result.data[i];
-    if (logger.info.enabled()) {
-      fill_dl_cc_result_info(strbuf, data);
-    } else if (logger.debug.enabled()) {
+    if (logger.debug.enabled()) {
       fill_dl_cc_result_debug(strbuf, data);
+    } else {
+      fill_dl_cc_result_info(strbuf, data);
     }
   }
   if (strbuf.size() != 0) {
