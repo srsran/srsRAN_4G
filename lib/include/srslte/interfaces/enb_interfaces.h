@@ -551,6 +551,12 @@ public:
    * SeNB --> MME
    */
   virtual void send_ho_cancel(uint16_t rnti) = 0;
+
+  /**
+   * Called during release of a subset of eNB E-RABs. Send E-RAB RELEASE INDICATION to MME.
+   * SeNB --> MME
+   */
+  virtual bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

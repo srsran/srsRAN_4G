@@ -82,6 +82,8 @@ public:
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;
   void send_ho_cancel(uint16_t rnti) override;
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
+  bool release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released) override;
+  bool send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause);
 
   // Stack interface
   bool
@@ -197,6 +199,8 @@ private:
                                     const std::vector<uint16_t>& erabs_failed_to_release);
     bool send_erab_modify_response(const std::vector<uint16_t>& erabs_successfully_released,
                                    const std::vector<uint16_t>& erabs_failed_to_release);
+    bool send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released);
+
     bool was_uectxtrelease_requested() const { return release_requested; }
 
     ue_ctxt_t ctxt      = {};

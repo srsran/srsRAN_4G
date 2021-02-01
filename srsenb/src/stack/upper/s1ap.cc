@@ -533,6 +533,9 @@ bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
 
   if (rx_pdu.unpack(bref) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to unpack received PDU");
+    cause_c cause;
+    cause.set_protocol().value = cause_protocol_opts::transfer_syntax_error;
+    send_error_indication(SRSLTE_INVALID_RNTI, cause);
     return false;
   }
 
@@ -732,6 +735,13 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
   return true;
 }
 
+/**
+ * @brief eNB handles MME's message "E-RAB RELEASE COMMAND"
+ *        @remark TS 36.413, Section 8.2.3.2 - E-RAB Release - MME initiated (successful operation)
+ * @param erabs_successfully_released
+ * @param erabs_failed_to_release
+ * @return true if message was sent
+ */
 bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 {
   logger.info("Received ERABReleaseCommand");
@@ -1040,6 +1050,46 @@ void s1ap::send_ho_cancel(uint16_t rnti)
   sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverCancel");
 }
 
+bool s1ap::release_erabs(uint16_t rnti, const std::vector<uint16_t>& erabs_successfully_released)
+{
+  ue* user_ptr = users.find_ue_rnti(rnti);
+  if (user_ptr == nullptr) {
+    return false;
+  }
+  return user_ptr->send_erab_release_indication(erabs_successfully_released);
+}
+
+bool s1ap::send_error_indication(uint16_t rnti, const asn1::s1ap::cause_c& cause)
+{
+  if (not mme_connected) {
+    return false;
+  }
+
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERROR_IND);
+  auto& container = tx_pdu.init_msg().value.error_ind().protocol_ies;
+
+  if (rnti != SRSLTE_INVALID_RNTI) {
+    ue* user_ptr = users.find_ue_rnti(rnti);
+    if (user_ptr == nullptr) {
+      return false;
+    }
+    container.enb_ue_s1ap_id_present = true;
+    container.enb_ue_s1ap_id.value   = user_ptr->ctxt.enb_ue_s1ap_id;
+    container.mme_ue_s1ap_id_present = user_ptr->ctxt.mme_ue_s1ap_id_present;
+    if (user_ptr->ctxt.mme_ue_s1ap_id_present) {
+      container.mme_ue_s1ap_id.value = user_ptr->ctxt.mme_ue_s1ap_id;
+    }
+  }
+
+  container.s_tmsi_present = false;
+
+  container.cause_present = true;
+  container.cause.value   = cause;
+
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "Error Indication");
+}
+
 /*******************************************************************************
 /* S1AP message senders
 ********************************************************************************/
@@ -1268,6 +1318,13 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
 }
 
+/**
+ * @brief eNB sends MME to "E-RAB RELEASE RESPONSE"
+ *        @remark TS 36.413, Section 8.2.3.2 - E-RAB Release - MME initiated (successful operation)
+ * @param erabs_successfully_released
+ * @param erabs_failed_to_release
+ * @return true if message was sent
+ */
 bool s1ap::ue::send_erab_release_response(const std::vector<uint16_t>& erabs_successfully_released,
                                           const std::vector<uint16_t>& erabs_failed_to_release)
 {
@@ -1350,6 +1407,34 @@ bool s1ap::ue::send_erab_modify_response(const std::vector<uint16_t>& erabs_succ
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "E_RABReleaseResponse");
 }
+
+bool s1ap::ue::send_erab_release_indication(const std::vector<uint16_t>& erabs_successfully_released)
+{
+  if (not s1ap_ptr->mme_connected) {
+    return false;
+  }
+  if (not erabs_successfully_released.empty()) {
+    logger.error("Failed to initiate E-RAB RELEASE INDICATION procedure for user rnti=0x%x", ctxt.rnti);
+    return false;
+  }
+
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ERAB_RELEASE_IND);
+  erab_release_ind_ies_container& container = tx_pdu.init_msg().value.erab_release_ind().protocol_ies;
+
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
+
+  // Fill in which E-RABs were successfully released
+  container.erab_released_list.value.resize(erabs_successfully_released.size());
+  for (size_t i = 0; i < container.erab_released_list.value.size(); ++i) {
+    container.erab_released_list.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
+    container.erab_released_list.value[i].value.erab_item().erab_id = erabs_successfully_released[i];
+  }
+
+  return true;
+}
+
 /*********************
  * Handover Messages
  ********************/
@@ -1538,17 +1623,28 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
  */
 s1ap::ue* s1ap::find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id)
 {
-  ue* user_ptr = users.find_ue_enbid(enb_id);
-  if (user_ptr == nullptr) {
-    logger.warning("enb_ue_s1ap_id=%d not found - discarding message", enb_id);
-    return nullptr;
+  ue*     user_ptr = users.find_ue_enbid(enb_id);
+  cause_c cause;
+  if (user_ptr != nullptr) {
+    if (not user_ptr->ctxt.mme_ue_s1ap_id_present or user_ptr->ctxt.mme_ue_s1ap_id != mme_id) {
+      if (not user_ptr->ctxt.mme_ue_s1ap_id_present) {
+        user_ptr->ctxt.mme_ue_s1ap_id_present = true;
+        user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
+      }
+      return user_ptr;
+    } else {
+      logger.warning("MME UE S1AP ID=%d not found - discarding message", enb_id);
+      cause.set_radio_network().value = cause_radio_network_opts::unknown_mme_ue_s1ap_id;
+    }
+  } else {
+    logger.warning("ENB UE S1AP ID=%d not found - discarding message", enb_id);
+    cause.set_radio_network().value = users.find_ue_mmeid(mme_id) != nullptr
+                                          ? cause_radio_network_opts::unknown_enb_ue_s1ap_id
+                                          : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
   }
-  if (user_ptr->ctxt.mme_ue_s1ap_id_present and user_ptr->ctxt.mme_ue_s1ap_id != mme_id) {
-    logger.warning("MME_UE_S1AP_ID has changed - old:%d, new:%d", user_ptr->ctxt.mme_ue_s1ap_id, mme_id);
-  }
-  user_ptr->ctxt.mme_ue_s1ap_id_present = true;
-  user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
-  return user_ptr;
+  logger.warning("ENB UE S1AP ID=%d not found - discarding message", enb_id);
+  send_error_indication(SRSLTE_INVALID_RNTI, cause);
+  return nullptr;
 }
 
 std::string s1ap::get_cause(const cause_c& c)
