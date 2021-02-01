@@ -147,7 +147,6 @@ private:
   pdcp_interface_rrc*       pdcp = nullptr;
   gtpu_interface_rrc*       gtpu = nullptr;
   s1ap_interface_rrc*       s1ap = nullptr;
-  srslte::log_ref           rrc_log;
   srslog::basic_logger&     logger;
 
   // derived params

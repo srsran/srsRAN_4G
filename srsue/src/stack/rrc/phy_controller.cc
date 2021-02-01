@@ -24,7 +24,7 @@ std::string to_string(const phy_cell_t& cell)
 phy_controller::phy_controller(srsue::phy_interface_rrc_lte*                 phy_,
                                srslte::task_sched_handle                     task_sched_,
                                std::function<void(uint32_t, uint32_t, bool)> on_cell_selection) :
-  base_t(srslte::log_ref{"RRC"}),
+  base_t(srslog::fetch_basic_logger("RRC")),
   phy(phy_),
   task_sched(task_sched_),
   cell_selection_always_observer(std::move(on_cell_selection))
@@ -37,13 +37,13 @@ void phy_controller::in_sync()
 
 bool phy_controller::set_cell_config(const srslte::phy_cfg_t& config, uint32_t cc_idx)
 {
-  log_h->info("Setting PHY config for cc_idx=%d", cc_idx);
+  logger.info("Setting PHY config for cc_idx=%d", cc_idx);
   return set_cell_config(config, cc_idx, true);
 }
 
 void phy_controller::set_phy_to_default()
 {
-  log_h->info("Setting default PHY config (common and dedicated)");
+  logger.info("Setting default PHY config (common and dedicated)");
 
   srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults();
@@ -55,7 +55,7 @@ void phy_controller::set_phy_to_default()
 /// Apply default PHY config for all SCells as specified in TS 36.331 9.2.4
 void phy_controller::set_phy_to_default_dedicated()
 {
-  log_h->info("Setting default dedicated PHY config");
+  logger.info("Setting default dedicated PHY config");
 
   srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults_dedicated();
@@ -66,7 +66,7 @@ void phy_controller::set_phy_to_default_dedicated()
 
 void phy_controller::set_phy_to_default_pucch_srs()
 {
-  log_h->info("Setting default PHY config dedicated");
+  logger.info("Setting default PHY config dedicated");
 
   srslte::phy_cfg_t& default_cfg_ded = current_cells_cfg[0];
   default_cfg_ded.set_defaults_pucch_sr();
@@ -91,7 +91,7 @@ bool phy_controller::set_cell_config(const srslte::phy_cfg_t& cfg, uint32_t cc_i
 void phy_controller::set_config_complete()
 {
   if (nof_pending_configs == 0) {
-    log_h->warning("Received more phy config complete signals than the ones scheduled");
+    logger.warning("Received more phy config complete signals than the ones scheduled");
     return;
   }
   nof_pending_configs--;
@@ -104,12 +104,12 @@ void phy_controller::set_config_complete()
 bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer)
 {
   if (is_in_state<selecting_cell>()) {
-    log_h->warning("Failed to launch cell selection as it is already running");
+    logger.warning("Failed to launch cell selection as it is already running");
     return false;
   }
   trigger(cell_sel_cmd{phy_cell});
   if (not is_in_state<selecting_cell>()) {
-    log_h->warning("Failed to launch cell selection. Current state: %s", current_state_name().c_str());
+    logger.warning("Failed to launch cell selection. Current state: %s", current_state_name().c_str());
     return false;
   }
   cell_selection_notifier = std::move(observer);

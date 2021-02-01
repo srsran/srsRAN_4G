@@ -28,8 +28,7 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc(srslte::task_sched_handle task_sched_) :
-  rrc_log("RRC"), logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_)
+rrc::rrc(srslte::task_sched_handle task_sched_) : logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_)
 {
   pending_paging.clear();
   ue_pool.reserve(16);
@@ -865,7 +864,6 @@ void rrc::configure_mbsfn_sibs()
 
 int rrc::pack_mcch()
 {
-
   mcch.msg.set_c1();
   mbsfn_area_cfg_r9_s& area_cfg_r9      = mcch.msg.c1().mbsfn_area_cfg_r9();
   area_cfg_r9.common_sf_alloc_period_r9 = mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::rf64;

@@ -22,11 +22,11 @@
 #include <memory>
 #include <tuple>
 
-#define otherfsmDebug(f, fmt, ...) f->get_log()->debug("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
-#define otherfsmInfo(f, fmt, ...) f->get_log()->info("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+#define otherfsmDebug(f, fmt, ...) f->get_logger().debug("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+#define otherfsmInfo(f, fmt, ...) f->get_logger().info("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
 #define otherfsmWarning(f, fmt, ...)                                                                                   \
-  f->get_log()->warning("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
-#define otherfsmError(f, fmt, ...) f->get_log()->error("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+  f->get_logger().warning("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+#define otherfsmError(f, fmt, ...) f->get_logger().error("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
 
 #define fsmDebug(fmt, ...) otherfsmDebug(this, fmt, ##__VA_ARGS__)
 #define fsmInfo(fmt, ...) otherfsmInfo(this, fmt, ##__VA_ARGS__)
@@ -159,7 +159,7 @@ static auto get_state_recursive(FSM* f) -> disable_if_fsm_state<FSM, State, Stat
 //! Helper type for FSM state-related operations
 template <typename FSM, typename State>
 struct state_traits {
-  static_assert(FSM::template can_hold_state<State>(), "FSM type does not hold provided State\n");
+  static_assert(FSM::template can_hold_state<State>(), "FSM type does not hold provided State");
   using state_t   = State;
   using is_subfsm = std::integral_constant<bool, ::srslte::is_composite_fsm<State>::value>;
 
@@ -225,7 +225,7 @@ struct apply_first_guard_pass<FSM, type_list<First, Rows...> > {
       // Log Transition
       if (std::is_same<src_state, dest_state>::value) {
         otherfsmInfo(static_cast<typename FSM::derived_t*>(f),
-                     "Event \"%s\" triggered state \"%s\" update\n",
+                     "Event \"%s\" triggered state \"%s\" update",
                      get_type_name<event_type>().c_str(),
                      get_type_name<src_state>().c_str());
       } else {
@@ -250,7 +250,7 @@ struct apply_first_guard_pass<FSM, type_list<> > {
   {
     if (should_log_unhandled_event(&ev)) {
       otherfsmDebug(static_cast<typename FSM::derived_t*>(f),
-                    "unhandled event caught in state \"%s\": \"%s\"\n",
+                    "unhandled event caught in state \"%s\": \"%s\"",
                     get_type_name<SrcState>().c_str(),
                     get_type_name<Event>().c_str());
     }
@@ -385,7 +385,7 @@ public:
   struct state_list : public std::tuple<States...> {
     using tuple_base_t = std::tuple<States...>;
     using init_state_t = typename std::decay<decltype(std::get<0>(std::declval<tuple_base_t>()))>::type;
-    static_assert(not type_list_contains<Derived, States...>(), "An FSM cannot contain itself as state\n");
+    static_assert(not type_list_contains<Derived, States...>(), "An FSM cannot contain itself as state");
 
     template <typename... Args>
     state_list(base_fsm_t<Derived>* f, Args&&... args) : tuple_base_t(std::forward<Args>(args)...)
@@ -507,7 +507,7 @@ protected:
 public:
   static const bool is_nested = false;
 
-  explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
+  explicit fsm_t(srslog::basic_logger& logger) : logger(logger) {}
 
   // Push Events to FSM
   template <typename Ev>
@@ -527,9 +527,9 @@ public:
     return ret;
   }
 
-  void set_fsm_event_log_level(srslte::LOG_LEVEL_ENUM e) { fsm_event_log_level = e; }
+  void set_fsm_event_log_level(srslog::basic_levels lvl) { log_level = lvl; }
 
-  srslte::log_ref get_log() const { return log_h; }
+  srslog::basic_logger& get_logger() const { return logger; }
 
   bool is_trigger_locked() const { return trigger_locked; }
 
@@ -537,18 +537,18 @@ public:
   template <typename... Args>
   void log_fsm_activity(const char* format, Args&&... args)
   {
-    switch (fsm_event_log_level) {
-      case LOG_LEVEL_DEBUG:
-        log_h->debug(format, std::forward<Args>(args)...);
+    switch (log_level) {
+      case srslog::basic_levels::debug:
+        logger.debug(format, std::forward<Args>(args)...);
         break;
-      case LOG_LEVEL_INFO:
-        log_h->info(format, std::forward<Args>(args)...);
+      case srslog::basic_levels::info:
+        logger.info(format, std::forward<Args>(args)...);
         break;
-      case LOG_LEVEL_WARNING:
-        log_h->warning(format, std::forward<Args>(args)...);
+      case srslog::basic_levels::warning:
+        logger.warning(format, std::forward<Args>(args)...);
         break;
-      case LOG_LEVEL_ERROR:
-        log_h->error(format, std::forward<Args>(args)...);
+      case srslog::basic_levels::error:
+        logger.error(format, std::forward<Args>(args)...);
         break;
       default:
         break;
@@ -570,9 +570,9 @@ protected:
     pending_events.emplace_back(std::bind([this](Ev& e) { process_event(std::move(e)); }, std::move(e)));
   }
 
-  srslte::log_ref                            log_h;
-  srslte::LOG_LEVEL_ENUM                     fsm_event_log_level = LOG_LEVEL_INFO;
-  bool                                       trigger_locked      = false;
+  srslog::basic_logger&                      logger;
+  srslog::basic_levels                       log_level      = srslog::basic_levels::info;
+  bool                                       trigger_locked = false;
   std::deque<srslte::move_callback<void()> > pending_events;
 };
 
@@ -593,7 +593,7 @@ public:
 
   parent_t* parent_fsm() { return fsm_ptr; }
 
-  srslte::log_ref get_log() const { return parent_fsm()->get_log(); }
+  srslog::basic_logger& get_logger() const { return parent_fsm()->get_logger(); }
 
   // Push Events to root FSM
   template <typename Ev>
@@ -634,7 +634,7 @@ class proc_fsm_t : public fsm_t<Derived>
   using fsm_t<Derived>::derived;
 
 protected:
-  using fsm_t<Derived>::log_h;
+  using fsm_t<Derived>::logger;
 
 public:
   using base_t = proc_fsm_t<Derived, Result>;
@@ -650,14 +650,14 @@ public:
     void enter(Derived* f)
     {
       if (f->launch_counter > 0) {
-        f->log_h->warning(
-            "FSM \"%s\": No result was set for run no. %d\n", get_type_name<Derived>().c_str(), f->launch_counter);
+        f->logger.warning(
+            "FSM \"%s\": No result was set for run no. %d", get_type_name<Derived>().c_str(), f->launch_counter);
       }
     }
 
     void enter(Derived* f, const complete_ev& ev)
     {
-      f->log_h->info("FSM \"%s\": Finished run no. %d\n", get_type_name<Derived>().c_str(), f->launch_counter);
+      f->logger.info("FSM \"%s\": Finished run no. %d", get_type_name<Derived>().c_str(), f->launch_counter);
       f->last_result = ev.result;
       for (auto& func : f->listening_fsms) {
         func(ev);
@@ -668,11 +668,11 @@ public:
     void exit(Derived* f)
     {
       f->launch_counter++;
-      f->log_h->info("FSM \"%s\": Starting run no. %d\n", get_type_name<Derived>().c_str(), f->launch_counter);
+      f->logger.info("FSM \"%s\": Starting run no. %d", get_type_name<Derived>().c_str(), f->launch_counter);
     }
   };
 
-  explicit proc_fsm_t(srslte::log_ref log_) : fsm_t<Derived>(log_) {}
+  explicit proc_fsm_t(srslog::basic_logger& logger) : fsm_t<Derived>(logger) {}
 
   bool is_running() const { return not base_t::template is_in_state<idle_st>(); }
 
@@ -711,7 +711,7 @@ public:
   void enter(FSM* f, const Ev& ev)
   {
     if (proc_ptr->is_running()) {
-      f->get_log()->error("Unable to launch proc1\n");
+      f->get_logger().error("Unable to launch proc1");
       f->trigger(typename ProcFSM::complete_ev{false});
     }
     proc_ptr->trigger(srslte::proc_launch_ev<Ev>{ev});

@@ -516,6 +516,8 @@ int main(int argc, char** argv)
   logger.set_level(srslog::basic_levels::info);
   logger.set_hex_dump_max_size(1024);
 
+  srslog::init();
+
   using event = mobility_test_params::test_event;
 
   if (argc < 3) {

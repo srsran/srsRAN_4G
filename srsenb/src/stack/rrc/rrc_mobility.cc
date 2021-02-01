@@ -183,7 +183,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
  ************************************************************************************************/
 
 rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
-  base_t(outer_ue->parent->rrc_log),
+  base_t(outer_ue->parent->logger),
   rrc_ue(outer_ue),
   rrc_enb(outer_ue->parent),
   pool(outer_ue->pool),
@@ -385,7 +385,7 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                 
                                                            srslte::unique_byte_buffer_t container)
 {
   if (not is_success) {
-    log_h->info("Received S1AP HandoverFailure. Aborting Handover...");
+    logger.info("Received S1AP HandoverFailure. Aborting Handover...");
     trigger(srslte::failure_ev{});
     return;
   }
@@ -394,15 +394,15 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                 
   {
     asn1::cbit_ref bref(container->msg, container->N_bytes);
     if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      get_log()->warning("Unpacking of RRC HOCommand was unsuccessful");
-      get_log()->warning_hex(container->msg, container->N_bytes, "Received container:");
+      get_logger().warning("Unpacking of RRC HOCommand was unsuccessful");
+      get_logger().warning(container->msg, container->N_bytes, "Received container:");
       trigger(ho_cancel_ev{});
       return;
     }
   }
   if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
-    get_log()->warning("Only handling r8 Handover Commands");
+    get_logger().warning("Only handling r8 Handover Commands");
     trigger(ho_cancel_ev{});
     return;
   }
@@ -573,7 +573,7 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn
 void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_cmd::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
 {
   srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->rrc_ue->rnti, ev.target_eci);
-  f->get_log()->info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", f->rrc_ue->rnti, ev.target_eci);
+  f->get_logger().info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", f->rrc_ue->rnti, ev.target_eci);
   f->report = ev;
 
   bool success = f->parent_fsm()->start_ho_preparation(f->report.target_eci, f->report.meas_obj->meas_obj_id, false);
@@ -781,10 +781,10 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
   for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
     auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
     if (erab.ext) {
-      get_log()->warning("Not handling E-RABToBeSetupList extensions");
+      get_logger().warning("Not handling E-RABToBeSetupList extensions");
     }
     if (erab.transport_layer_address.length() > 32) {
-      get_log()->error("IPv6 addresses not currently supported");
+      get_logger().error("IPv6 addresses not currently supported");
       trigger(srslte::failure_ev{});
       return false;
     }
@@ -792,7 +792,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
     if (not erab.ie_exts_present or not erab.ie_exts.data_forwarding_not_possible_present or
         erab.ie_exts.data_forwarding_not_possible.ext.value !=
             asn1::s1ap::data_forwarding_not_possible_opts::data_forwarding_not_possible) {
-      get_log()->warning("Data Forwarding of E-RABs not supported");
+      get_logger().warning("Data Forwarding of E-RABs not supported");
     }
 
     // Create E-RAB and associated main GTPU tunnel
@@ -910,12 +910,12 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   target_cell      = f->rrc_enb->cell_common_list->get_cell_id(cell_id);
   source_cell      = f->rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common;
   if (target_cell == nullptr) {
-    f->log_h->error("The target cell_id=0x%x was not found in the list of eNB cells", cell_id);
+    f->logger.error("The target cell_id=0x%x was not found in the list of eNB cells", cell_id);
     f->trigger(srslte::failure_ev{});
     return;
   }
 
-  f->log_h->info("Starting intraeNB Handover of rnti=0x%x to 0x%x.", f->rrc_ue->rnti, meas_report.target_eci);
+  f->logger.info("Starting intraeNB Handover of rnti=0x%x to 0x%x.", f->rrc_ue->rnti, meas_report.target_eci);
 
   if (target_cell == nullptr) {
     f->trigger(srslte::failure_ev{});

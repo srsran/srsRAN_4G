@@ -16,8 +16,6 @@
 
 namespace srsue {
 
-srslte::log_ref test_log{"TEST"};
-
 struct cell_search_result_test {
   cell_search_result_test(phy_controller* phy_ctrl_) : phy_ctrl(phy_ctrl_) {}
 
@@ -27,8 +25,8 @@ struct cell_search_result_test {
     result         = result_;
 
     if (phy_ctrl->current_state_name() == "searching_cell" or phy_ctrl->is_trigger_locked()) {
-      phy_ctrl->get_log()->error(
-          "When caller is signalled with cell search result, cell search state cannot be active\n");
+      phy_ctrl->get_logger().error(
+          "When caller is signalled with cell search result, cell search state cannot be active");
       exit(1);
     }
   }
@@ -45,16 +43,16 @@ struct cell_select_result_test {
   {
     result = result_ ? 1 : 0;
     if (phy_ctrl->current_state_name() == "selecting_cell" or phy_ctrl->is_trigger_locked()) {
-      phy_ctrl->get_log()->error(
-          "When caller is signalled with cell select result, cell select state cannot be active\n");
+      phy_ctrl->get_logger().error(
+          "When caller is signalled with cell select result, cell select state cannot be active");
       exit(1);
     }
 
     // start a new cell selection right away
     if (counter++ < 1) {
       phy_cell_t new_cell = {};
-      new_cell.pci    = 3;
-      new_cell.earfcn = 3400;
+      new_cell.pci        = 3;
+      new_cell.earfcn     = 3400;
       phy_ctrl->start_cell_select(new_cell, *this);
     }
   }
@@ -193,9 +191,15 @@ int test_phy_cell_select_init_error_handling()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  auto& test_logger = srslog::fetch_basic_logger("TEST", false);
+  test_logger.set_level(srslog::basic_levels::info);
+  test_logger.set_hex_dump_max_size(-1);
+  auto& RRC_logger = srslog::fetch_basic_logger("RRC", false);
+  RRC_logger.set_level(srslog::basic_levels::info);
+  RRC_logger.set_hex_dump_max_size(-1);
+  srslog::init();
 
   TESTASSERT(srsue::test_phy_ctrl_fsm() == SRSLTE_SUCCESS);
   TESTASSERT(srsue::test_phy_cell_select_init_error_handling() == SRSLTE_SUCCESS);
-  srsue::test_log->info("Finished RRC PHY controller test successfully\n");
+  test_logger.info("Finished RRC PHY controller test successfully");
 }
