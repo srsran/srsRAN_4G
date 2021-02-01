@@ -18,7 +18,7 @@
 namespace srslte {
 
 mac_pcap::mac_pcap() :
-  pool(srslte::byte_buffer_pool::get_instance()), log(srslte::logmap::get("MAC")), thread("PCAP_WRITER")
+  pool(srslte::byte_buffer_pool::get_instance()), logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER")
 {}
 
 mac_pcap::~mac_pcap()
@@ -36,13 +36,13 @@ uint32_t mac_pcap::open(const char* filename, uint32_t ue_id_)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (pcap_file != nullptr) {
-    log->error("PCAP writer already running. Close first.\n");
+    logger.error("PCAP writer already running. Close first.");
     return SRSLTE_ERROR;
   }
 
   pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, filename);
   if (pcap_file == nullptr) {
-    log->error("Couldn't open file to write PCAP\n");
+    logger.error("Couldn't open file to write PCAP");
     return SRSLTE_ERROR;
   }
 
@@ -146,7 +146,7 @@ void mac_pcap::pack_and_queue(uint8_t* payload,
       pdu.pdu->N_bytes = payload_len;
       queue.push(std::move(pdu));
     } else {
-      log->info("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).\n", payload_len);
+      logger.info("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }
   }
 }
@@ -213,7 +213,7 @@ void mac_pcap::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len)
 
   // Size is limited by PDU buffer and MAC subheader (format 1 < 128 B)
   if (input_len > 128 - 7) {
-    log->error("PDU too large.\n");
+    logger.error("PDU too large.");
     return;
   }
 

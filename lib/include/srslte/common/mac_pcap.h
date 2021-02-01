@@ -28,7 +28,7 @@ class mac_pcap : srslte::thread
 public:
   mac_pcap();
   ~mac_pcap();
-  void enable(bool en);
+  void     enable(bool en);
   uint32_t open(const char* filename, uint32_t ue_id = 0);
   uint32_t close();
 
@@ -52,7 +52,7 @@ public:
 
 private:
   srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           log;
+  srslog::basic_logger&     logger;
   bool                      running   = false;
   FILE*                     pcap_file = nullptr;
   uint32_t                  ue_id     = 0;
