@@ -44,7 +44,7 @@ int vnf_phy_nr::init(const srsue::phy_args_t& args_, srsue::stack_interface_phy_
 int vnf_phy_nr::init(const srsue::phy_args_t& args_)
 {
   // create VNF
-  vnf         = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args_.vnf_args, logger, stack));
+  vnf         = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args_.vnf_args, stack));
   initialized = true;
   return SRSLTE_SUCCESS;
 }

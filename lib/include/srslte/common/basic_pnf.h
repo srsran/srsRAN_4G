@@ -19,6 +19,7 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <arpa/inet.h>
 #include <atomic>
 #include <errno.h>
@@ -74,7 +75,8 @@ public:
     rand_gen(RAND_SEED),
     rand_dist(MIN_TB_LEN, MAX_TB_LEN)
   {
-    log_h->set_level(srslte::LOG_LEVEL_WARNING);
+    logger.set_level(srslog::basic_levels::warning);
+    logger.set_hex_dump_max_size(-1);
   }
 
   ~srslte_basic_pnf() { stop(); };
@@ -314,7 +316,7 @@ private:
   {
     basic_vnf_api::msg_header_t* header = (basic_vnf_api::msg_header_t*)buffer;
 
-    log_h->debug("Received %s (%d B) in TTI\n", basic_vnf_api::msg_type_text[header->type], len);
+    logger.debug("Received %s (%d B) in TTI", basic_vnf_api::msg_type_text[header->type], len);
 
     switch (header->type) {
       case basic_vnf_api::SF_IND:
@@ -452,8 +454,8 @@ private:
           dl_ind.pdus[i].type   = tx_req->pdus[i].type;
           memcpy(dl_ind.pdus[i].data, tx_req->pdus[i].data, dl_ind.pdus[i].length);
           tot_bytes += dl_ind.pdus[i].length;
-          log_h->info_hex(
-              dl_ind.pdus[i].data, dl_ind.pdus[i].length, "Sending to UE a PDU (%d bytes)\n", dl_ind.pdus[i].length);
+          logger.info(
+              dl_ind.pdus[i].data, dl_ind.pdus[i].length, "Sending to UE a PDU (%d bytes)", dl_ind.pdus[i].length);
         }
       }
     } else {
@@ -470,7 +472,7 @@ private:
         tot_bytes = N_bytes;
       }
 
-      log_h->info_hex(dl_ind.pdus[0].data, N_bytes, "Sending to UE a TB (%d bytes)\n", N_bytes);
+      logger.info(dl_ind.pdus[0].data, N_bytes, "Sending to UE a TB (%d bytes)", N_bytes);
     }
 
     if (tot_bytes > 0 and tot_bytes < tb_size) {
@@ -510,7 +512,7 @@ private:
   std::string                  tx_thread_name = "TX_PNF", rx_thread_name = "RX_PNF";
   bool                         running = false;
   srslte::byte_buffer_pool*    pool    = srslte::byte_buffer_pool::get_instance();
-  srslte::log_ref              log_h{"PNF"};
+  srslog::basic_logger&        logger  = srslog::fetch_basic_logger("PNF", false);
 
   std::mutex                            mutex;
   std::atomic<std::uint32_t>            tti;

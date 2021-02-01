@@ -19,6 +19,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -35,7 +36,7 @@ namespace srslte {
 class srslte_basic_vnf : public thread
 {
 public:
-  srslte_basic_vnf(const vnf_args_t& args_, srslte::logger* logger_, stack_interface_phy_nr* stack_);
+  srslte_basic_vnf(const vnf_args_t& args_, stack_interface_phy_nr* stack_);
   ~srslte_basic_vnf();
 
   bool stop();
@@ -60,8 +61,7 @@ private:
   // helpers
   uint32_t calc_full_msg_len(const basic_vnf_api::tx_request_msg_t& msg);
 
-  srslte::logger*                 m_logger = nullptr;
-  srslte::log_ref                 log_h;
+  srslog::basic_logger&           logger      = srslog::fetch_basic_logger("VNF", false);
   srsenb::stack_interface_phy_nr* m_gnb_stack = nullptr;
   srsue::stack_interface_phy_nr*  m_ue_stack  = nullptr;
   srslte::byte_buffer_pool*       m_pool      = nullptr;
