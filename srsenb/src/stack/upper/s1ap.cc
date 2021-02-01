@@ -1617,11 +1617,11 @@ s1ap::ue* s1ap::find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id)
   ue*     user_ptr = users.find_ue_enbid(enb_id);
   cause_c cause;
   if (user_ptr != nullptr) {
-    if (not user_ptr->ctxt.mme_ue_s1ap_id_present or user_ptr->ctxt.mme_ue_s1ap_id != mme_id) {
-      if (not user_ptr->ctxt.mme_ue_s1ap_id_present) {
-        user_ptr->ctxt.mme_ue_s1ap_id_present = true;
-        user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
-      }
+    if (not user_ptr->ctxt.mme_ue_s1ap_id_present) {
+      user_ptr->ctxt.mme_ue_s1ap_id_present = true;
+      user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
+      return user_ptr;
+    } else if (user_ptr->ctxt.mme_ue_s1ap_id == mme_id) {
       return user_ptr;
     } else {
       logger.warning("MME UE S1AP ID=%d not found - discarding message", enb_id);
@@ -1633,7 +1633,6 @@ s1ap::ue* s1ap::find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id)
                                           ? cause_radio_network_opts::unknown_enb_ue_s1ap_id
                                           : cause_radio_network_opts::unknown_pair_ue_s1ap_id;
   }
-  logger.warning("ENB UE S1AP ID=%d not found - discarding message", enb_id);
   send_error_indication(SRSLTE_INVALID_RNTI, cause);
   return nullptr;
 }
