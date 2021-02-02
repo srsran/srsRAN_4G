@@ -75,7 +75,8 @@ uint16_t compute_mac_i(uint16_t                            crnti,
   }
   uint32_t N_bytes = bref.distance_bytes();
 
-  printf("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)", cellid, pci, crnti, N_bytes);
+  srslte::logmap::get("RRC")->info(
+      "Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)", cellid, pci, crnti, N_bytes);
 
   // Compute MAC-I
   switch (integ_algo) {
@@ -731,6 +732,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
 
   // Set admitted E-RABs
   std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
+  auto&                                         fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
   for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
     admitted_erabs.emplace_back();
     asn1::s1ap::erab_admitted_item_s& admitted_erab = admitted_erabs.back();
@@ -759,6 +761,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
         props.flush_before_teidin         = erab.second.teid_in;
         uint32_t dl_teid_in               = rrc_ue->bearer_list.add_gtpu_bearer(
             erab.second.id, erab.second.teid_out, erab.second.address.to_number(), &props);
+        fwd_tunnels.push_back(dl_teid_in);
         srslte::uint32_to_uint8(dl_teid_in, admitted_erabs.back().dl_g_tp_teid.data());
       }
     }
@@ -886,6 +889,11 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
                 drb_state.next_pdcp_tx_sn,
                 drb_state.next_pdcp_rx_sn);
     rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
+  }
+
+  // Enable forwarding of GTPU SDUs to PDCP
+  for (uint32_t teid : s.pending_tunnels) {
+    rrc_enb->gtpu->set_tunnel_status(teid, true);
   }
 
   // Check if there is any pending Reconfiguration Complete. If there is, self-trigger

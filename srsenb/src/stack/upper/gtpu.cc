@@ -160,7 +160,11 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
 
   if (props != nullptr) {
     if (props->flush_before_teidin_present) {
+      // GTPU should wait for the bearer ctxt to arrive before sending SDUs from DL tunnel to PDCP
+      new_tun.dl_enabled = false;
+      // GTPU should not forward SDUs from main tunnel until the SeNB-TeNB tunnel has been flushed
       tunnel& after_tun               = tunnels.at(props->flush_before_teidin);
+      after_tun.dl_enabled            = false;
       after_tun.prior_teid_in_present = true;
       after_tun.prior_teid_in         = teid_in;
     }
@@ -175,6 +179,22 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
   }
 
   return teid_in;
+}
+
+void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
+{
+  auto tun_it = tunnels.find(teidin);
+  if (tun_it == tunnels.end()) {
+    logger.warning("Setting TEID=%d status", teidin);
+    return;
+  }
+  tun_it->second.dl_enabled = dl_active;
+  if (dl_active) {
+    for (auto& sdu : tun_it->second.buffer) {
+      pdcp->write_sdu(tun_it->second.rnti, tun_it->second.lcid, std::move(sdu));
+    }
+    tun_it->second.buffer.clear();
+  }
 }
 
 void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
@@ -298,7 +318,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       if (rx_tun.fwd_teid_in_present) {
         tunnel& tx_tun = tunnels.at(rx_tun.fwd_teid_in);
         send_pdu_to_tunnel(tx_tun, std::move(pdu));
-      } else if (rx_tun.prior_teid_in_present) {
+      } else if (not rx_tun.dl_enabled) {
         rx_tun.buffer.push_back(std::move(pdu));
       } else {
         uint32_t pdcp_sn = -1;
@@ -328,6 +348,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
             for (srslte::unique_byte_buffer_t& sdu : new_tun.buffer) {
               pdcp->write_sdu(new_tun.rnti, new_tun.lcid, std::move(sdu));
             }
+            new_tun.dl_enabled            = true;
             new_tun.prior_teid_in_present = false;
             new_tun.buffer.clear();
           }
@@ -501,7 +522,7 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
   if (is_rx) {
     dir = "Rx";
     fmt::format_to(strbuf2, "{}:0x{:0x} > ", srslte::gtpu_ntoa(htonl(tun.spgw_addr)), tun.teid_in);
-    if (tun.prior_teid_in_present) {
+    if (not tun.dl_enabled) {
       fmt::format_to(strbuf2, "DL (buffered), ");
     } else if (tun.fwd_teid_in_present) {
       tunnel& tx_tun = tunnels.at(tun.fwd_teid_in);

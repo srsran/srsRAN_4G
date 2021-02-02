@@ -139,6 +139,7 @@ public:
   {
     return 0;
   }
+  void set_tunnel_status(uint32_t teidin, bool dl_active) override {}
   void rem_bearer(uint16_t rnti, uint32_t lcid) override {}
   void mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
   void rem_user(uint16_t rnti) override {}

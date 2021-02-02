@@ -478,6 +478,7 @@ public:
 
   virtual uint32_t
                add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props = nullptr) = 0;
+  virtual void set_tunnel_status(uint32_t teidin, bool dl_active)    = 0;
   virtual void rem_bearer(uint16_t rnti, uint32_t lcid)              = 0;
   virtual void mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) = 0;
   virtual void rem_user(uint16_t rnti)                               = 0;

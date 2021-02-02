@@ -46,6 +46,7 @@ public:
                       uint32_t            addr,
                       uint32_t            teid_out,
                       const bearer_props* props = nullptr) override;
+  void     set_tunnel_status(uint32_t teidin, bool dl_active) override;
   void     rem_bearer(uint16_t rnti, uint32_t lcid) override;
   void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
   void     rem_user(uint16_t rnti) override;
@@ -100,6 +101,7 @@ private:
   m1u_handler m1u;
 
   struct tunnel {
+    bool     dl_enabled            = true;
     bool     fwd_teid_in_present   = false;
     bool     prior_teid_in_present = false;
     uint16_t rnti                  = SRSLTE_INVALID_RNTI;

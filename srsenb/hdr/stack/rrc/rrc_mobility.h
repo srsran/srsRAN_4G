@@ -97,7 +97,9 @@ private:
 
     void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
-  struct s1_target_ho_st {};
+  struct s1_target_ho_st {
+    std::vector<uint32_t> pending_tunnels;
+  };
   struct wait_recfg_comp {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
     struct ho_cmd_msg {
@@ -166,7 +168,7 @@ protected:
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   row< idle_st,         s1_source_ho_st,   ho_meas_report_ev,   nullptr,                      &fsm::needs_s1_ho        >,
   row< idle_st,         intraenb_ho_st,    ho_meas_report_ev,   nullptr,                      &fsm::needs_intraenb_ho  >,
-  row< idle_st,         s1_target_ho_st,   ho_req_rx_ev,        &fsm::handle_ho_requested                                    >,
+  row< idle_st,         s1_target_ho_st,   ho_req_rx_ev,        &fsm::handle_ho_requested                              >,
   // +----------------+-------------------+---------------------+----------------------------+-------------------------+
   upd< intraenb_ho_st,                     user_crnti_upd_ev,   &fsm::handle_crnti_ce                                  >,
   row< intraenb_ho_st,  idle_st,           recfg_complete_ev,   &fsm::handle_recfg_complete                            >,
