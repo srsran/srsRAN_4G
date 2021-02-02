@@ -107,7 +107,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 #ifdef HAVE_5GNR
     std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr(logger));
     std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null(logger));
-    std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr(logger));
+    std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr);
 
     // Init layers
     if (nr_radio->init(args.rf, nullptr)) {

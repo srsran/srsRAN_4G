@@ -31,7 +31,7 @@ struct nr_phy_cfg_t {
 class vnf_phy_nr : public srsenb::enb_phy_base, public srsenb::phy_interface_stack_nr
 {
 public:
-  vnf_phy_nr(srslte::logger* logger_);
+  vnf_phy_nr() = default;
   ~vnf_phy_nr();
 
   int  init(const srsenb::phy_args_t& args, const nr_phy_cfg_t& cfg, srsenb::stack_interface_phy_nr* stack_);
@@ -53,8 +53,6 @@ public:
   }
 
 private:
-  srslte::logger* logger = nullptr;
-
   std::unique_ptr<srslte::srslte_basic_vnf> vnf = nullptr;
 
   bool initialized = false;
