@@ -90,7 +90,11 @@ void gtpu::stop()
 // gtpu_interface_pdcp
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  tunnel& tx_tun = tunnels[ue_teidin_db.at(rnti)[lcid][0]];
+  srslte::span<uint32_t> teids = get_lcid_teids(rnti, lcid);
+  if (teids.empty()) {
+    return;
+  }
+  tunnel& tx_tun = tunnels[teids[0]];
   log_message(tx_tun, false, srslte::make_span(pdu));
   send_pdu_to_tunnel(tx_tun, std::move(pdu));
 }
@@ -470,6 +474,17 @@ gtpu::tunnel* gtpu::get_tunnel(uint32_t teidin)
     return nullptr;
   }
   return &it->second;
+}
+
+srslte::span<uint32_t> gtpu::get_lcid_teids(uint16_t rnti, uint32_t lcid)
+{
+  auto ue_it = ue_teidin_db.find(rnti);
+  if (ue_it == ue_teidin_db.end() or lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS or
+      ue_it->second[lcid].empty()) {
+    logger.error("Could not find bearer rnti=0x%x, lcid=%d\n", rnti, lcid);
+    return {};
+  }
+  return ue_it->second[lcid];
 }
 
 void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn)

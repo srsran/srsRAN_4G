@@ -133,7 +133,8 @@ private:
    ***************************************************************************/
   uint32_t next_teid_in = 0;
 
-  tunnel* get_tunnel(uint32_t teidin);
+  tunnel*                get_tunnel(uint32_t teidin);
+  srslte::span<uint32_t> get_lcid_teids(uint16_t rnti, uint32_t lcid);
 
   void log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn = -1);
 };
