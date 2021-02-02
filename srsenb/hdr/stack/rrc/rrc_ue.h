@@ -66,7 +66,7 @@ public:
   bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
   void handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg);
   bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
-  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg);
+  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srslte::unique_byte_buffer_t pdu);
 
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 

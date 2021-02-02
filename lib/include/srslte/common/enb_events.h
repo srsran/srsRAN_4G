@@ -41,11 +41,14 @@ public:
   /// Logs into the underlying log channel the S1 context delete event.
   virtual void log_s1_ctx_delete(uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;
 
-  /// Logs into the underlying log channel the when a sector has been started.
+  /// Logs into the underlying log channel when a sector has been started.
   virtual void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
 
-  /// Logs into the underlying log channel the when a sector has been stopped.
+  /// Logs into the underlying log channel when a sector has been stopped.
   virtual void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
+
+  /// Logs into the underlying log channel a RLF event.
+  virtual void log_rlf(uint32_t cc_idx, const std::string& asn1, uint16_t rnti) = 0;
 };
 
 /// Singleton class to provide global access to the event_logger_interface interface.

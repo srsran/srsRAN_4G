@@ -167,8 +167,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   parent->log_rrc_message(
       srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
-  // reuse PDU
-  pdu->clear(); // TODO: name collision with byte_buffer reset
+  srslte::unique_byte_buffer_t original_pdu = std::move(pdu);
+  pdu                                       = srslte::allocate_unique_buffer(*pool);
 
   transaction_id = 0;
 
@@ -228,7 +228,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_info_resp_r9:
-      handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9());
+      handle_ue_info_resp(ul_dcch_msg.msg.c1().ue_info_resp_r9(), std::move(original_pdu));
       break;
     default:
       parent->logger.error("Msg: %s not supported", ul_dcch_msg.msg.c1().type().to_string().c_str());
@@ -607,11 +607,12 @@ void rrc::ue::send_ue_info_req()
   send_dl_dcch(&msg);
 }
 
-void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg)
+void rrc::ue::handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srslte::unique_byte_buffer_t pdu)
 {
   auto& resp_r9 = msg.crit_exts.c1().ue_info_resp_r9();
   if (resp_r9.rlf_report_r9_present) {
-    // TODO: Handle RLF-Report
+    std::string msg_str = asn1::octstring_to_string(pdu->msg, pdu->N_bytes);
+    event_logger::get().log_rlf(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx, msg_str, rnti);
   }
   if (resp_r9.rach_report_r9_present) {
     // TODO: Handle RACH-Report
@@ -944,7 +945,7 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
     } else {
       res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
       res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.push_back({});
-      auto& item                     = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
+      auto& item = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
       item.load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
       item.value.erab_item().erab_id = id;
       item.value.erab_item().cause.set_radio_network().value =
