@@ -190,8 +190,11 @@ void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
   }
   tun_it->second.dl_enabled = dl_active;
   if (dl_active) {
-    for (auto& sdu : tun_it->second.buffer) {
-      pdcp->write_sdu(tun_it->second.rnti, tun_it->second.lcid, std::move(sdu));
+    for (auto& sdu_it : tun_it->second.buffer) {
+      pdcp->write_sdu(tun_it->second.rnti,
+                      tun_it->second.lcid,
+                      std::move(sdu_it.second),
+                      sdu_it.first == undefined_pdcp_sn ? -1 : sdu_it.first);
     }
     tun_it->second.buffer.clear();
   }
@@ -318,14 +321,16 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       if (rx_tun.fwd_teid_in_present) {
         tunnel& tx_tun = tunnels.at(rx_tun.fwd_teid_in);
         send_pdu_to_tunnel(tx_tun, std::move(pdu));
-      } else if (not rx_tun.dl_enabled) {
-        rx_tun.buffer.push_back(std::move(pdu));
       } else {
-        uint32_t pdcp_sn = -1;
+        uint32_t pdcp_sn = undefined_pdcp_sn;
         if (header.flags & GTPU_FLAGS_EXTENDED_HDR and header.next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
           pdcp_sn = (header.ext_buffer[1] << 8u) + header.ext_buffer[2];
         }
-        pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn);
+        if (not rx_tun.dl_enabled) {
+          rx_tun.buffer.insert(std::make_pair(pdcp_sn, std::move(pdu)));
+        } else {
+          pdcp->write_sdu(rnti, lcid, std::move(pdu), pdcp_sn == undefined_pdcp_sn ? -1 : pdcp_sn);
+        }
       }
     } break;
     case GTPU_MSG_END_MARKER: {
@@ -345,12 +350,8 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
           tunnel& new_tun = tunnels.at(new_teidin);
           if (new_teidin != old_tun.teid_in and new_tun.prior_teid_in_present and
               new_tun.prior_teid_in == old_tun.teid_in) {
-            for (srslte::unique_byte_buffer_t& sdu : new_tun.buffer) {
-              pdcp->write_sdu(new_tun.rnti, new_tun.lcid, std::move(sdu));
-            }
-            new_tun.dl_enabled            = true;
             new_tun.prior_teid_in_present = false;
-            new_tun.buffer.clear();
+            set_tunnel_status(new_tun.teid_in, true);
           }
         }
       }

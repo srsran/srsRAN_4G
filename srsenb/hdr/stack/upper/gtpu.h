@@ -100,6 +100,7 @@ private:
   };
   m1u_handler m1u;
 
+  const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
   struct tunnel {
     bool     dl_enabled            = true;
     bool     fwd_teid_in_present   = false;
@@ -111,7 +112,7 @@ private:
     uint32_t spgw_addr             = 0;
     uint32_t fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
     uint32_t prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
-    std::vector<srslte::unique_byte_buffer_t> buffer;
+    std::multimap<uint32_t, srslte::unique_byte_buffer_t> buffer;
   };
   std::unordered_map<uint32_t, tunnel>                                           tunnels;
   std::map<uint16_t, std::array<std::vector<uint32_t>, SRSENB_N_RADIO_BEARERS> > ue_teidin_db;

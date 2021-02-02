@@ -183,8 +183,20 @@ int test_gtpu_direct_tunneling()
   std::vector<uint8_t>  encoded_data;
   srslte::span<uint8_t> pdu_view{};
 
+  // TEST: GTPU buffers incoming PDCP buffered SNs until the TEID is explicitly activated
+  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  TESTASSERT(tenb_pdcp.last_sdu == nullptr);
+  tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
+  TESTASSERT(tenb_pdcp.last_sdu == nullptr);
+  tenb_gtpu.set_tunnel_status(dl_tenb_teid_in, true);
+  pdu_view = srslte::make_span(tenb_pdcp.last_sdu);
+  TESTASSERT(std::count(pdu_view.begin() + PDU_HEADER_SIZE, pdu_view.end(), 7) == 10);
+  TESTASSERT(tenb_pdcp.last_rnti == rnti2);
+  TESTASSERT(tenb_pdcp.last_lcid == drb1);
+  TESTASSERT(tenb_pdcp.last_pdcp_sn == (int)7);
+
   // TEST: verify that PDCP buffered SNs have been forwarded through SeNB->TeNB tunnel
-  for (size_t sn = 6; sn < 10; ++sn) {
+  for (size_t sn = 8; sn < 10; ++sn) {
     tenb_gtpu.handle_gtpu_s1u_rx_packet(read_socket(tenb_stack.s1u_fd), senb_sockaddr);
     pdu_view = srslte::make_span(tenb_pdcp.last_sdu);
     TESTASSERT(std::count(pdu_view.begin() + PDU_HEADER_SIZE, pdu_view.end(), sn) == 10);
@@ -249,4 +261,7 @@ int main()
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
   srslte::logmap::set_default_hex_limit(100000);
   TESTASSERT(srsenb::test_gtpu_direct_tunneling() == SRSLTE_SUCCESS);
+
+  srslog::flush();
+  srslte::console("Success");
 }
