@@ -46,6 +46,9 @@ namespace srsue {
 
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
+#ifdef HAVE_5GNR
+                           public stack_interface_phy_nr,
+#endif
                            public stack_interface_gw,
                            public stack_interface_rrc,
                            public srslte::thread
@@ -78,7 +81,7 @@ public:
   void set_config_complete(bool status) final;
   void set_scell_complete(bool status) final;
 
-  // MAC Interface for PHY
+  // MAC Interface for EUTRA PHY
   uint16_t get_dl_sched_rnti(uint32_t tti) final { return mac.get_dl_sched_rnti(tti); }
   uint16_t get_ul_sched_rnti(uint32_t tti) final { return mac.get_ul_sched_rnti(tti); }
 
@@ -112,6 +115,19 @@ public:
   void set_mbsfn_config(uint32_t nof_mbsfn_services) final { mac.set_mbsfn_config(nof_mbsfn_services); }
 
   void run_tti(uint32_t tti, uint32_t tti_jump) final;
+
+#ifdef HAVE_5GNR
+  // MAC Interface for NR PHY
+  int  sf_indication(const uint32_t tti) final { return SRSLTE_SUCCESS; }
+  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
+
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final { mac_nr.new_grant_ul(cc_idx, grant); }
+
+  void run_tti(const uint32_t tti) final
+  {
+    // ignored, timing will be handled by EUTRA
+  }
+#endif
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
