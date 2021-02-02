@@ -119,7 +119,7 @@ Build Instructions
 
 For example, on Ubuntu, one can install the mandatory build dependencies with:
 ```
-sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
+sudo apt-get install build-essential cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 ```
 or on Fedora:
 ```
