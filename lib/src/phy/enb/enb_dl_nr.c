@@ -11,6 +11,7 @@
  */
 
 #include "srslte/phy/enb/enb_dl_nr.h"
+#include <complex.h>
 
 static int enb_dl_alloc_prb(srslte_enb_dl_nr_t* q, uint32_t new_nof_prb)
 {
@@ -153,6 +154,17 @@ void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q)
 {
   if (q == NULL) {
     return;
+  }
+
+  // Temporary symbol phase shift
+  uint32_t nof_re = SRSLTE_NRE * q->carrier.nof_prb;
+  for (uint32_t i = 0; i < 2; i++) {
+    for (uint32_t j = 0; j < 7; j++) {
+      srslte_vec_sc_prod_ccc(&q->sf_symbols[0][(i * 7 + j) * nof_re],
+                             cexpf(I * (11.0f * j - 2.0f) * M_PI / 16),
+                             &q->sf_symbols[0][(i * 7 + j) * nof_re],
+                             nof_re);
+    }
   }
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
