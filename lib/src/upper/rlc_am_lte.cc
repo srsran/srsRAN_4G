@@ -347,12 +347,16 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
 int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
 {
+  pthread_mutex_lock(&mutex);
+
   if (!tx_enabled) {
+    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
   if (sdu.get() == nullptr) {
     log->warning("NULL SDU pointer in write_sdu()\n");
+    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
@@ -375,13 +379,15 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
                      RB_NAME,
                      ret.error()->N_bytes,
                      tx_sdu_queue.size());
+    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
   // Store SDU info
   uint32_t info_count = undelivered_sdu_info_queue.count(info.sn);
   if (info_count != 0) {
-    log->error("PDCP SDU info already exists\n");
+    log->error("PDCP SDU info already exists. SN=%d\n", info.sn);
+    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
@@ -390,7 +396,9 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
                  undelivered_sdu_info_queue.size());
   }
 
+  log->debug("Adding SDU info for PDCP_SN=%d", info.sn);
   undelivered_sdu_info_queue[info.sn] = info;
+  pthread_mutex_unlock(&mutex);
   return SRSLTE_SUCCESS;
 }
 
@@ -412,6 +420,10 @@ int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   pthread_mutex_lock(&mutex);
 
   int pdu_size = 0;
+
+  if (not tx_enabled) {
+    goto unlock_and_exit;
+  }
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
   log->debug("tx_window size - %zu PDUs\n", tx_window.size());
@@ -856,7 +868,12 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
-    undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].rlc_sn_info_list.push_back({header.sn, false});
+    auto info_it = undelivered_sdu_info_queue.find(tx_sdu->md.pdcp_sn);
+    if (info_it == undelivered_sdu_info_queue.end()) {
+      log->error("Could not find PDCP SN in SDU info queue (segment). PDCP_SN=%d\n", tx_sdu->md.pdcp_sn);
+      return 0;
+    }
+    undelivered_sdu_info_queue.at(tx_sdu->md.pdcp_sn).rlc_sn_info_list.push_back({header.sn, false});
     if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx.\n", RB_NAME);
       undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
@@ -897,7 +914,12 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
-    undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].rlc_sn_info_list.push_back({header.sn, false});
+    auto info_it = undelivered_sdu_info_queue.find(tx_sdu->md.pdcp_sn);
+    if (info_it == undelivered_sdu_info_queue.end()) {
+      log->error("Could not find PDCP SN in SDU info queue. PDCP_SN=%d\n", tx_sdu->md.pdcp_sn);
+      return 0;
+    }
+    info_it->second.rlc_sn_info_list.push_back({header.sn, false});
     if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx. PDCP SN=%d\n", RB_NAME, tx_sdu->md.pdcp_sn);
       undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
@@ -966,6 +988,10 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
 
 void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
+  if (not tx_enabled) {
+    return;
+  }
+
   pthread_mutex_lock(&mutex);
 
   log->info_hex(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
@@ -1063,6 +1089,15 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   if (not notify_info_vec.empty()) {
     parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
+
+    // Remove all SDUs that were fully acked
+    for (uint32_t acked_pdcp_sn : notify_info_vec) {
+      log->debug("Erasing SDU info: PDCP_SN=%d\n", acked_pdcp_sn);
+      size_t erased = undelivered_sdu_info_queue.erase(acked_pdcp_sn);
+      if (erased == 0) {
+        log->error("Could not find info to erase: SN=%d\n", acked_pdcp_sn);
+      }
+    }
   }
 
   debug_state();
@@ -1078,6 +1113,10 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu,
                                                              std::vector<uint32_t>&  notify_info_vec)
 {
+  log->debug("Updating ACK info: RLC SN=%d, number of notified SDU=%ld, number of undelivered SDUs=%ld",
+             tx_pdu.header.sn,
+             notify_info_vec.size(),
+             undelivered_sdu_info_queue.size());
   // Iterate over all undelivered SDUs
   for (auto& info_it : undelivered_sdu_info_queue) {
     // Iterate over all SNs that were TX'ed
@@ -1090,20 +1129,15 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
       }
     }
     // Check wether the SDU was fully acked
-    if (info.fully_txed) {
-      // Iterate over all SNs that
-      bool fully_acked = std::all_of(info.rlc_sn_info_list.begin(),
+    if (info.fully_txed and not info.fully_acked) {
+      // Check if all SNs were ACK'ed
+      info.fully_acked = std::all_of(info.rlc_sn_info_list.begin(),
                                      info.rlc_sn_info_list.end(),
                                      [](rlc_sn_info_t rlc_sn_info) { return rlc_sn_info.is_acked; });
-      if (fully_acked) {
+      if (info.fully_acked) {
         notify_info_vec.push_back(pdcp_sn);
       }
     }
-  }
-
-  // Remove all SDUs that were fully acked
-  for (uint32_t acked_pdcp_sn : notify_info_vec) {
-    undelivered_sdu_info_queue.erase(acked_pdcp_sn);
   }
 }
 
@@ -1643,9 +1677,9 @@ bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
 
 void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
-  if (nof_bytes < 1)
+  if (nof_bytes < 1) {
     return;
-
+  }
   pthread_mutex_lock(&mutex);
 
   if (rlc_am_is_control_pdu(payload)) {
@@ -2241,6 +2275,28 @@ std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
     }
   }
   return ss.str();
+}
+
+std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue)
+{
+  std::string str = "\n";
+  for (const auto& info_it : info_queue) {
+    uint32_t    pdcp_sn = info_it.first;
+    auto        info    = info_it.second;
+    std::string tmp_str = fmt::format("\tPDCP_SN = {}, RLC_SNs = [", pdcp_sn);
+    for (auto rlc_sn_info : info.rlc_sn_info_list) {
+      std::string tmp_str2;
+      if (rlc_sn_info.is_acked) {
+        tmp_str2 = fmt::format("ACK={}, ", rlc_sn_info.sn);
+      } else {
+        tmp_str2 = fmt::format("NACK={}, ", rlc_sn_info.sn);
+      }
+      tmp_str += tmp_str2;
+    }
+    tmp_str += "]\n";
+    str += tmp_str;
+  }
+  return str;
 }
 
 std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header)

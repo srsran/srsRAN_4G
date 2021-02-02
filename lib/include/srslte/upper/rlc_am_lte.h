@@ -59,8 +59,10 @@ struct rlc_sn_info_t {
 };
 
 struct pdcp_sdu_info_t {
-  uint32_t                   sn;
-  bool                       fully_txed;       // Boolean indicating if the SDU is fully transmitted.
+  uint32_t sn;
+  bool     fully_txed;  // Boolean indicating if the SDU is fully transmitted.
+  bool     fully_acked; // Boolean indicating if the SDU is fully acked. This is only necessary temporarely to avoid
+                        // duplicate removal from the queue while processing the status report
   std::vector<rlc_sn_info_t> rlc_sn_info_list; // List of RLC PDUs in transit and whether they have been acked or not.
 };
 
@@ -187,8 +189,8 @@ private:
     srslte::timer_handler::unique_timer status_prohibit_timer;
 
     // SDU info for PDCP notifications
-    uint32_t                            pdcp_info_queue_capacity = 512;
-    std::map<uint32_t, pdcp_sdu_info_t> undelivered_sdu_info_queue;
+    uint32_t                            pdcp_info_queue_capacity   = 512;
+    std::map<uint32_t, pdcp_sdu_info_t> undelivered_sdu_info_queue = {};
 
     // Callback function for buffer status report
     bsr_callback_t bsr_callback;
@@ -316,6 +318,7 @@ uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
 bool        rlc_am_is_pdu_segment(uint8_t* payload);
+std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue);
 std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
 std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
 bool        rlc_am_start_aligned(const uint8_t fi);

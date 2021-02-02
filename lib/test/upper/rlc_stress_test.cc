@@ -85,7 +85,6 @@ typedef struct {
 
 void parse_args(stress_test_args_t* args, int argc, char* argv[])
 {
-
   // Command line only options
   bpo::options_description general("General options");
 
@@ -355,8 +354,8 @@ public:
 private:
   void run_thread()
   {
-    uint8_t           sn   = 0;
-    byte_buffer_pool* pool = byte_buffer_pool::get_instance();
+    uint16_t          pdcp_sn = 0;
+    byte_buffer_pool* pool    = byte_buffer_pool::get_instance();
     while (run_enable) {
       unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
       if (pdu == NULL) {
@@ -365,10 +364,11 @@ private:
         usleep(1000);
         continue;
       }
+      pdu->md.pdcp_sn = pdcp_sn & 0x0FFF; // 12-bit SN
       for (uint32_t i = 0; i < args.sdu_size; i++) {
-        pdu->msg[i] = sn;
+        pdu->msg[i] = pdcp_sn & 0xFF;
       }
-      sn++;
+      pdcp_sn++;
       pdu->N_bytes = args.sdu_size;
       rlc->write_sdu(lcid, std::move(pdu));
       if (args.sdu_gen_delay_usec > 0) {
