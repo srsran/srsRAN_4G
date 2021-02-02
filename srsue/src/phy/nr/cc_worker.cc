@@ -1,21 +1,12 @@
-/*
+/**
+ *
+ * \section COPYRIGHT
+ *
  * Copyright 2013-2020 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
- *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,13 +15,13 @@
 
 namespace srsue {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), logger(log)
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_state_) :
+  cc_idx(cc_idx_), phy(phy_state_), logger(log)
 {
   cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
 
   // Allocate buffers
-  buffer_sz = SRSLTE_SF_LEN_PRB(phy_state->args.dl.nof_max_prb) * 5;
+  buffer_sz = SRSLTE_SF_LEN_PRB(phy->args.dl.nof_max_prb) * 5;
   for (uint32_t i = 0; i < phy_state_->args.dl.nof_rx_antennas; i++) {
     rx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
     tx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
@@ -73,13 +64,13 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
     return false;
   }
 
-  if (srslte_ue_dl_nr_set_config(&ue_dl, &phy_state->cfg.pdcch) < SRSLTE_SUCCESS) {
+  if (srslte_ue_dl_nr_set_config(&ue_dl, &phy->cfg.pdcch) < SRSLTE_SUCCESS) {
     ERROR("Error setting carrier");
     return false;
   }
 
   // Set default PDSCH config
-  phy_state->cfg.pdsch.rbg_size_cfg_1 = false;
+  phy->cfg.pdsch.rbg_size_cfg_1 = false;
 
   return true;
 }
@@ -91,7 +82,7 @@ void cc_worker::set_tti(uint32_t tti)
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
 {
-  if (antenna_idx >= phy_state->args.dl.nof_rx_antennas) {
+  if (antenna_idx >= phy->args.dl.nof_rx_antennas) {
     return nullptr;
   }
 
@@ -105,7 +96,7 @@ uint32_t cc_worker::get_buffer_len()
 
 bool cc_worker::work_dl()
 {
-  srslte_pdsch_cfg_nr_t pdsch_hl_cfg = phy_state->cfg.pdsch;
+  srslte_pdsch_cfg_nr_t pdsch_hl_cfg = phy->cfg.pdsch;
 
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
@@ -115,10 +106,10 @@ bool cc_worker::work_dl()
   uint32_t                          nof_found_dci = 0;
 
   // Search for RA DCI
-  if (phy_state->cfg.pdcch.ra_search_space_present) {
+  if (phy->cfg.pdcch.ra_search_space_present) {
     int n_ra = srslte_ue_dl_nr_find_dl_dci(&ue_dl,
                                            &dl_slot_cfg,
-                                           phy_state->cfg.pdcch.ra_rnti,
+                                           phy->cfg.pdcch.ra_rnti,
                                            &dci_dl_rx[nof_found_dci],
                                            (uint32_t)dci_dl_rx.size() - nof_found_dci);
     if (n_ra < SRSLTE_SUCCESS) {
@@ -129,10 +120,10 @@ bool cc_worker::work_dl()
   }
 
   // Search for test RNTI
-  if (phy_state->test_rnti > 0) {
+  if (phy->test_rnti > 0) {
     int n_test = srslte_ue_dl_nr_find_dl_dci(&ue_dl,
                                              &dl_slot_cfg,
-                                             (uint16_t)phy_state->test_rnti,
+                                             (uint16_t)phy->test_rnti,
                                              &dci_dl_rx[nof_found_dci],
                                              (uint32_t)dci_dl_rx.size() - nof_found_dci);
     if (n_test < SRSLTE_SUCCESS) {
