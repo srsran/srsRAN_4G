@@ -108,9 +108,9 @@ private:
     };
     ho_meas_report_ev report;
 
-    struct wait_ho_cmd {
-      void enter(s1_source_ho_st* f, const ho_meas_report_ev& ev);
-    };
+    void enter(rrc_mobility* f, const ho_meas_report_ev& ev);
+
+    struct wait_ho_cmd {};
     struct status_transfer_st {};
 
     explicit s1_source_ho_st(rrc_mobility* parent_);

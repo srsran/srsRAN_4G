@@ -369,7 +369,6 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   buffer->N_bytes = bref.distance_bytes();
 
   bool success = rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, std::move(buffer));
-  Info("sent s1ap msg with HO Required");
   return success;
 }
 
@@ -571,15 +570,14 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn
   return true;
 }
 
-void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_cmd::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
+void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_meas_report_ev& ev)
 {
-  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->rrc_ue->rnti, ev.target_eci);
-  f->get_logger().info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", f->rrc_ue->rnti, ev.target_eci);
-  f->report = ev;
+  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", rrc_ue->rnti, ev.target_eci);
+  logger.info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", rrc_ue->rnti, ev.target_eci);
+  report = ev;
 
-  bool success = f->parent_fsm()->start_ho_preparation(f->report.target_eci, f->report.meas_obj->meas_obj_id, false);
-  if (not success) {
-    f->trigger(srslte::failure_ev{});
+  if (not parent_fsm()->start_ho_preparation(report.target_eci, report.meas_obj->meas_obj_id, false)) {
+    trigger(srslte::failure_ev{});
   }
 }
 

@@ -511,7 +511,6 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
     return false;
   }
 
-  logger.info(pdu->msg, pdu->N_bytes, "Received S1AP PDU");
   handle_s1ap_rx_pdu(pdu.get());
   return true;
 }
@@ -527,12 +526,13 @@ bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
 
   if (rx_pdu.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    logger.error("Failed to unpack received PDU");
+    logger.error(pdu->msg, pdu->N_bytes, "Failed to unpack received PDU");
     cause_c cause;
     cause.set_protocol().value = cause_protocol_opts::transfer_syntax_error;
     send_error_indication(SRSLTE_INVALID_RNTI, cause);
     return false;
   }
+  log_s1ap_msg(rx_pdu, srslte::make_span(*pdu), true);
 
   switch (rx_pdu.type().value) {
     case s1ap_pdu_c::types_opts::init_msg:
@@ -586,7 +586,6 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cmd:
       return handle_s1hocommand(msg.value.ho_cmd());
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cancel_ack:
-      logger.info("Received %s", msg.value.type().to_string().c_str());
       return true;
     default:
       logger.error("Unhandled successful outcome message: %s", msg.value.type().to_string().c_str());
@@ -609,7 +608,6 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
 
 bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 {
-  logger.info("Received S1SetupResponse");
   s1setupresponse = msg;
   mme_connected   = true;
   s1_setup_proc_t::s1setupresult res;
@@ -620,7 +618,6 @@ bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 
 bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
 {
-  logger.info("Received DownlinkNASTransport");
   if (msg.ext) {
     logger.warning("Not handling S1AP message extension");
   }
@@ -649,7 +646,6 @@ bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
 
 bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& msg)
 {
-  logger.info("Received InitialContextSetupRequest");
   if (msg.ext) {
     logger.warning("Not handling S1AP message extension");
   }
@@ -691,7 +687,6 @@ bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
 
 bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 {
-  logger.info("Received ERABSetupRequest");
   if (msg.ext) {
     logger.warning("Not handling S1AP message extension");
   }
@@ -706,7 +701,6 @@ bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 
 bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
 {
-  logger.info("Received ERABModifyRequest");
   std::vector<uint16_t> erab_successful_modified = {};
   std::vector<uint16_t> erab_failed_to_modify    = {};
 
@@ -739,7 +733,6 @@ bool s1ap::handle_erabmodifyrequest(const erab_modify_request_s& msg)
  */
 bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 {
-  logger.info("Received ERABReleaseCommand");
   std::vector<uint16_t> erab_successful_release = {};
   std::vector<uint16_t> erab_failed_to_release  = {};
 
@@ -765,7 +758,6 @@ bool s1ap::handle_erabreleasecommand(const erab_release_cmd_s& msg)
 
 bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 {
-  logger.info("Received UeContextModificationRequest");
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
@@ -798,7 +790,6 @@ bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 
 bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 {
-  logger.info("Received UEContextReleaseCommand");
   if (msg.ext) {
     logger.warning("Not handling S1AP message extension");
   }
@@ -845,7 +836,6 @@ bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
 
 bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
 {
-  logger.info("Received HO Preparation Failure");
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
@@ -856,7 +846,6 @@ bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
 
 bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
 {
-  logger.info("Received S1 HO Command");
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
@@ -872,9 +861,6 @@ bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
 bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
 {
   uint16_t rnti = SRSLTE_INVALID_RNTI;
-
-  logger.info("Received S1 HO Request");
-  srslte::console("Received S1 HO Request\n");
 
   auto on_scope_exit = srslte::make_scope_exit([this, &rnti, msg]() {
     // If rnti is not allocated successfully, remove from s1ap and send handover failure
@@ -990,9 +976,6 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
 
 bool s1ap::handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& msg)
 {
-  logger.info("Received S1 MMEStatusTransfer");
-  srslte::console("Received S1 MMEStatusTransfer\n");
-
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
     return false;
@@ -1452,8 +1435,8 @@ bool s1ap::ue::send_ue_cap_info_indication(srslte::unique_byte_buffer_t ue_radio
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
 
-  asn1::cbit_ref bref{ue_radio_cap->msg, ue_radio_cap->N_bytes};
-  container.ue_radio_cap.value.unpack(bref);
+  container.ue_radio_cap.value.resize(ue_radio_cap->N_bytes);
+  memcpy(container.ue_radio_cap.value.data(), ue_radio_cap->msg, ue_radio_cap->N_bytes);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UECapabilityInfoIndication");
 }
@@ -1802,6 +1785,28 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "ENBStatusTransfer");
+}
+
+void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srslte::const_span<uint8_t> sdu, bool is_rx)
+{
+  std::string msg_type;
+
+  switch (msg.type().value) {
+    case s1ap_pdu_c::types_opts::init_msg:
+      msg_type = msg.init_msg().value.type().to_string();
+      break;
+    case s1ap_pdu_c::types_opts::successful_outcome:
+      msg_type = msg.successful_outcome().value.type().to_string();
+      break;
+    case s1ap_pdu_c::types_opts::unsuccessful_outcome:
+      msg_type = msg.unsuccessful_outcome().value.type().to_string();
+      break;
+    default:
+      logger.warning("Unrecognized S1AP message type\n");
+      return;
+  }
+
+  logger.info(sdu.data(), sdu.size(), "%s S1AP SDU - %s", is_rx ? "Rx" : "Tx", msg_type.c_str());
 }
 
 } // namespace srsenb

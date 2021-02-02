@@ -676,28 +676,37 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     if (msg_r8->ue_cap_rat_container_list[i].rat_type != rat_type_e::eutra) {
       parent->logger.warning("Not handling UE capability information for RAT type %s",
                              msg_r8->ue_cap_rat_container_list[i].rat_type.to_string().c_str());
-    } else {
-      asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.data(),
-                          msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.size());
-      if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
-        parent->logger.error("Failed to unpack EUTRA capabilities message");
-        return false;
-      }
-      if (parent->logger.debug.enabled()) {
-        asn1::json_writer js{};
-        eutra_capabilities.to_json(js);
-        parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
-      }
-      eutra_capabilities_unpacked = true;
-      ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
-
-      parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
-
-      srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
-      pdu->N_bytes                     = msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size();
-      memcpy(pdu->msg, msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), pdu->N_bytes);
-      parent->s1ap->send_ue_cap_info_indication(rnti, std::move(pdu));
+      continue;
     }
+    asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.data(),
+                        msg_r8->ue_cap_rat_container_list[i].ue_cap_rat_container.size());
+    if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      parent->logger.error("Failed to unpack EUTRA capabilities message");
+      return false;
+    }
+    if (parent->logger.debug.enabled()) {
+      asn1::json_writer js{};
+      eutra_capabilities.to_json(js);
+      parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
+    }
+    eutra_capabilities_unpacked = true;
+    ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
+
+    parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
+  }
+
+  if (eutra_capabilities_unpacked) {
+    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+    asn1::bit_ref                bref2{pdu->msg, pdu->get_tailroom()};
+    msg->pack(bref2);
+    asn1::rrc::ue_radio_access_cap_info_s ue_rat_caps;
+    auto& dest = ue_rat_caps.crit_exts.set_c1().set_ue_radio_access_cap_info_r8().ue_radio_access_cap_info;
+    dest.resize(bref2.distance_bytes());
+    memcpy(dest.data(), pdu->msg, bref2.distance_bytes());
+    bref2 = asn1::bit_ref{pdu->msg, pdu->get_tailroom()};
+    ue_rat_caps.pack(bref2);
+    pdu->N_bytes = bref2.distance_bytes();
+    parent->s1ap->send_ue_cap_info_indication(rnti, std::move(pdu));
   }
 
   return true;

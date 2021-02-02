@@ -273,6 +273,7 @@ private:
 
   ue*         find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id);
   std::string get_cause(const asn1::s1ap::cause_c& c);
+  void        log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srslte::const_span<uint8_t> sdu, bool is_rx);
 
   srslte::proc_t<s1_setup_proc_t> s1setup_proc;
 };
