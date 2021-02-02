@@ -73,7 +73,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy(old_logger, log_sink));
+    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy(log_sink));
     if (!lte_phy) {
       srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;

@@ -373,7 +373,7 @@ public:
     sf_len = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
     // Initialise UE
-    phy = std::unique_ptr<srsue::phy>(new srsue::phy(&logger_, srslog::get_default_sink()));
+    phy = std::unique_ptr<srsue::phy>(new srsue::phy(srslog::get_default_sink()));
     phy->init(phy_args, &stack, &radio);
 
     // Initialise DL baseband buffers
