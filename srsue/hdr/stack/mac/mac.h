@@ -108,7 +108,6 @@ private:
   rlc_interface_mac*                         rlc_h = nullptr;
   rrc_interface_mac*                         rrc_h = nullptr;
   srslte::ext_task_sched_handle              task_sched;
-  srslte::log_ref                            log_h;
   srslog::basic_logger&                      logger;
   mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg = {};
 

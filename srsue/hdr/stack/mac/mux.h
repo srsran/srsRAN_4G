@@ -32,7 +32,7 @@ namespace srsue {
 class mux
 {
 public:
-  mux(srslte::log_ref log_, srslog::basic_logger& logger);
+  explicit mux(srslog::basic_logger& logger);
   ~mux(){};
   void reset();
   void init(rlc_interface_mac* rlc, bsr_interface_mux* bsr_procedure, phr_proc* phr_procedure_);
@@ -70,7 +70,6 @@ private:
   // Mutex for exclusive access
   std::mutex mutex;
 
-  srslte::log_ref       log_h;
   srslog::basic_logger& logger;
   rlc_interface_mac*    rlc              = nullptr;
   bsr_interface_mux*    bsr_procedure    = nullptr;

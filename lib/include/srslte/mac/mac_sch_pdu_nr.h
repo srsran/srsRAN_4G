@@ -16,6 +16,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/logmap.h"
 #include "srslte/config.h"
+#include "srslte/srslog/srslog.h"
 #include <memory>
 #include <stdint.h>
 #include <vector>
@@ -79,8 +80,8 @@ private:
   bool     F_bit         = false;
   uint8_t* sdu           = nullptr;
 
-  mac_sch_pdu_nr* parent = nullptr;
-  srslte::log_ref log_h;
+  mac_sch_pdu_nr*       parent = nullptr;
+  srslog::basic_logger& logger;
 };
 
 class mac_sch_pdu_nr

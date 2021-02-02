@@ -71,10 +71,8 @@ int mac_dl_sch_pdu_unpack_and_pack_test1()
     pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -140,10 +138,8 @@ int mac_dl_sch_pdu_pack_test3()
     pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -179,10 +175,8 @@ int mac_dl_sch_pdu_pack_test4()
     pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -224,10 +218,8 @@ int mac_dl_sch_pdu_pack_test5()
     pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -272,9 +264,9 @@ int mac_rar_pdu_unpack_test7()
   // |   |   |   |   |   |   |   |   |
   // | R |T=1|        RAPID=0        |  Octet 1
   // |              RAR              |  Octet 2-8
-  const uint32_t tv_rapid                                       = 0;
-  const uint32_t tv_ta                                          = 180;
-  const uint16_t tv_tcrnti                                      = 0x4616;
+  const uint32_t tv_rapid                                         = 0;
+  const uint32_t tv_ta                                            = 180;
+  const uint16_t tv_tcrnti                                        = 0x4616;
   const uint8_t  tv_msg3_grant[mac_rar_subpdu_nr::UL_GRANT_NBITS] = {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00}; // unpacked UL grant
@@ -418,10 +410,8 @@ int mac_ul_sch_pdu_unpack_and_pack_test2()
     pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -467,10 +457,8 @@ int mac_ul_sch_pdu_unpack_and_pack_test3()
     pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -507,10 +495,8 @@ int mac_ul_sch_pdu_pack_test4()
     pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -543,6 +529,12 @@ int main(int argc, char** argv)
   pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
   pcap_handle->open("mac_nr_pdu_test.pcap");
 #endif
+
+  auto& mac_logger = srslog::fetch_basic_logger("MAC", false);
+  mac_logger.set_level(srslog::basic_levels::debug);
+  mac_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
 
   if (mac_dl_sch_pdu_unpack_and_pack_test1()) {
     fprintf(stderr, "mac_dl_sch_pdu_unpack_and_pack_test1() failed.\n");

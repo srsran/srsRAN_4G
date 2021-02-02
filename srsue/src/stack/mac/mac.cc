@@ -27,11 +27,10 @@
 namespace srsue {
 
 mac::mac(const char* logname, ext_task_sched_handle task_sched_) :
-  log_h(srslte::logmap::get(logname)),
   logger(srslog::fetch_basic_logger(logname)),
-  mch_msg(10, log_h),
-  mux_unit(log_h, logger),
-  demux_unit(log_h, logger),
+  mch_msg(10, logger),
+  mux_unit(logger),
+  demux_unit(logger),
   ra_procedure(logger),
   sr_procedure(logger),
   bsr_procedure(logger),
@@ -192,7 +191,6 @@ void mac::reset()
 
 void mac::run_tti(const uint32_t tti)
 {
-  log_h->step(tti);
   logger.set_context(tti);
 
   /* Warning: Here order of invocation of procedures is important!! */
@@ -416,7 +414,6 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
       pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti, cc_idx);
     }
   } else {
-
     // Assert DL HARQ entity
     if (dl_harq.at(cc_idx) == nullptr) {
       Error("HARQ entity %d has not been created", cc_idx);
@@ -446,7 +443,6 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
   if (SRSLTE_RNTI_ISRAR(grant.rnti)) {
     ra_procedure.new_grant_dl(grant, action);
   } else if (grant.rnti == SRSLTE_PRNTI) {
-
     bzero(action, sizeof(mac_interface_phy_lte::tb_action_dl_t));
     if (grant.tb[0].tbs > pch_payload_buffer_sz) {
       Error("Received dci for PCH (%d bytes) exceeds buffer (%d bytes)", grant.tb[0].tbs, int(pch_payload_buffer_sz));

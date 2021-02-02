@@ -23,9 +23,7 @@
 
 namespace srsue {
 
-mux::mux(srslte::log_ref log_, srslog::basic_logger& logger) :
-  pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_), logger(logger)
-{}
+mux::mux(srslog::basic_logger& logger) : logger(logger), pdu_msg(MAX_NOF_SUBHEADERS, logger) {}
 
 void mux::init(rlc_interface_mac* rlc_, bsr_interface_mux* bsr_procedure_, phr_proc* phr_procedure_)
 {
@@ -287,7 +285,7 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   bsr_procedure->update_bsr_tti_end(&bsr);
 
   // Generate MAC PDU and save to buffer
-  uint8_t* ret = pdu_msg.write_packet(log_h);
+  uint8_t* ret = pdu_msg.write_packet(logger);
   Info("%s", pdu_msg.to_string().c_str());
   Debug("Assembled MAC PDU msg size %d/%d bytes", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
 

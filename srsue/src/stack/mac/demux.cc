@@ -21,8 +21,8 @@
 
 namespace srsue {
 
-demux::demux(log_ref log_h_, srslog::basic_logger& logger) :
-  log_h(log_h_), logger(logger), mac_msg(20, log_h_), mch_mac_msg(20, log_h_), pending_mac_msg(20, log_h_)
+demux::demux(srslog::basic_logger& logger) :
+  logger(logger), mac_msg(20, logger), mch_mac_msg(20, logger), pending_mac_msg(20, logger), pdus(logger)
 {}
 
 void demux::init(phy_interface_mac_common*            phy_,
@@ -34,7 +34,7 @@ void demux::init(phy_interface_mac_common*            phy_,
   rlc                  = rlc_;
   mac                  = mac_;
   time_alignment_timer = time_alignment_timer_;
-  pdus.init(this, log_h);
+  pdus.init(this);
 }
 
 void demux::reset()
@@ -119,7 +119,6 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
  */
 void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
 {
-
   // Process Real-Time PDUs
   process_sch_pdu_rt(buff, nof_bytes, tti);
 
@@ -174,7 +173,7 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
 
 void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes, uint32_t tti)
 {
-  srslte::sch_pdu mac_msg_rt(20, log_h);
+  srslte::sch_pdu mac_msg_rt(20, logger);
 
   mac_msg_rt.init_rx(nof_bytes);
   mac_msg_rt.parse_packet(buff);
@@ -232,7 +231,6 @@ void demux::process_mch_pdu(srslte::mch_pdu* mch_msg)
 {
   // disgarding headers that have already been processed
   while (mch_msg->next()) {
-
     if (srslte::mch_lcid::MCH_SCHED_INFO == mch_msg->get()->mch_ce_type()) {
       uint16_t stop;
       uint8_t  lcid;

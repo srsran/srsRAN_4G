@@ -47,9 +47,9 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_
   srb(srb_logger),
   drb(drb_logger),
   log{"SS  "},
-  mac_msg_ul(20, ss_mac_log),
-  mac_msg_dl(20, ss_mac_log),
-  pdus(128),
+  mac_msg_ul(20, ss_mac_logger),
+  mac_msg_dl(20, ss_mac_logger),
+  pdus(logger, 128),
   logger_stdout(logger_stdout_),
   logger_file(logger_file_),
   old_logger(&logger_file),
@@ -143,7 +143,7 @@ int ttcn3_syssim::init(const all_args_t& args_)
   }
 
   // Init common SS layers
-  pdus.init(this, log);
+  pdus.init(this);
 
   return SRSLTE_SUCCESS;
 }
@@ -360,7 +360,7 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
           }
 
           // Assemble entire MAC PDU
-          uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(log);
+          uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(logger);
           if (mac_pdu_ptr != nullptr) {
             if (force_lcid != -1 && lcid == 0) {
               if (has_single_sdu) {
@@ -1170,7 +1170,7 @@ void ttcn3_syssim::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   logger.info(sdu->msg, sdu->N_bytes, "Received SDU on LCID=%d", lcid);
 
-  uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(log);
+  uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(logger);
   logger.info(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU:");
 
   // Prepare MAC grant for CCCH

@@ -33,8 +33,10 @@ public:
     virtual void process_pdu(uint8_t* buff, uint32_t len, channel_t channel) = 0;
   };
 
-  pdu_queue(uint32_t pool_size = DEFAULT_POOL_SIZE) : pool(pool_size), callback(NULL) {}
-  void init(process_callback* callback, log_ref log_h_);
+  pdu_queue(srslog::basic_logger& logger, uint32_t pool_size = DEFAULT_POOL_SIZE) :
+    pool(pool_size), callback(NULL), logger(logger)
+  {}
+  void init(process_callback* callback);
 
   uint8_t* request(uint32_t len);
   void     deallocate(const uint8_t* pdu);
@@ -61,8 +63,8 @@ private:
   block_queue<pdu_t*> pdu_q;
   buffer_pool<pdu_t>  pool;
 
-  process_callback* callback;
-  log_ref           log_h;
+  process_callback*     callback;
+  srslog::basic_logger& logger;
 };
 
 } // namespace srslte

@@ -40,10 +40,10 @@ ue::ue(uint16_t                 rnti_,
   phy(phy_),
   log_h(log_),
   logger(logger),
-  mac_msg_dl(20, log_),
-  mch_mac_msg_dl(10, log_),
-  mac_msg_ul(20, log_),
-  pdus(128),
+  mac_msg_dl(20, logger),
+  mch_mac_msg_dl(10, logger),
+  mac_msg_ul(20, logger),
+  pdus(logger, 128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
   rx_used_buffers(nof_cells_),
@@ -59,7 +59,7 @@ ue::ue(uint16_t                 rnti_,
     }
   }
 
-  pdus.init(this, log_h);
+  pdus.init(this);
 
   // Allocate buffer for PCell
   allocate_cc_buffers();
@@ -515,7 +515,7 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
           allocate_ce(&mac_msg_dl, pdu[i].lcid);
         }
       }
-      ret = mac_msg_dl.write_packet(log_h);
+      ret = mac_msg_dl.write_packet(logger);
       logger.info("0x%x %s", rnti, mac_msg_dl.to_string().c_str());
     } else {
       logger.error(
@@ -550,7 +550,7 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
     }
   }
 
-  ret = mch_mac_msg_dl.write_packet(log_h);
+  ret = mch_mac_msg_dl.write_packet(logger);
   return ret;
 }
 

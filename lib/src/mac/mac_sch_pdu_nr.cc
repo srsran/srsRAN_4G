@@ -14,7 +14,9 @@
 
 namespace srslte {
 
-mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_), log_h("MAC") {}
+mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) :
+  parent(parent_), logger(srslog::fetch_basic_logger("MAC"))
+{}
 
 mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
 {
@@ -69,7 +71,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
     }
     sdu = (uint8_t*)ptr;
   } else {
-    log_h->warning("Invalid LCID (%d) in MAC PDU\n", lcid);
+    logger.warning("Invalid LCID (%d) in MAC PDU", lcid);
     return SRSLTE_ERROR;
   }
   return header_length;
@@ -85,7 +87,7 @@ void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, c
     F_bit      = false;
     sdu_length = sizeof_ce(lcid, parent->is_ulsch());
     if (len_ != static_cast<uint32_t>(sdu_length)) {
-      log_h->warning("Invalid SDU length of UL-SCH SDU (%d != %d)\n", len_, sdu_length);
+      logger.warning("Invalid SDU length of UL-SCH SDU (%d != %d)", len_, sdu_length);
     }
   }
 
@@ -124,7 +126,7 @@ uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
   } else if (header_length == 1) {
     // do nothing
   } else {
-    log_h->warning("Error while packing PDU. Unsupported header length (%d)\n", header_length);
+    logger.warning("Error while packing PDU. Unsupported header length (%d)", header_length);
   }
 
   // copy SDU payload
