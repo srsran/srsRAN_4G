@@ -90,41 +90,25 @@ void gtpu::stop()
 // gtpu_interface_pdcp
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  send_pdu_to_tunnel(rnti,
-                     lcid,
-                     std::move(pdu),
-                     tunnels[ue_teidin_db[rnti][lcid][0]].teid_out,
-                     tunnels[ue_teidin_db[rnti][lcid][0]].spgw_addr);
+  tunnel& tx_tun = tunnels[ue_teidin_db.at(rnti)[lcid][0]];
+  log_message(tx_tun, false, srslte::make_span(pdu));
+  send_pdu_to_tunnel(tx_tun, std::move(pdu));
 }
-void gtpu::send_pdu_to_tunnel(uint16_t                     rnti,
-                              uint32_t                     lcid,
-                              srslte::unique_byte_buffer_t pdu,
-                              uint32_t                     teidout,
-                              uint32_t                     spgw_addr,
-                              int                          pdcp_sn)
-{
-  logger.info(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
+void gtpu::send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, int pdcp_sn)
+{
   // Check valid IP version
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
   if (ip_pkt->version != 4 && ip_pkt->version != 6) {
     logger.error("Invalid IP version to SPGW");
     return;
   }
-  if (ip_pkt->version == 4) {
-    if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
-      logger.error("IP Len and PDU N_bytes mismatch");
-    }
-    logger.debug("Tx S1-U PDU -- IP version %d, Total length %d", int(ip_pkt->version), ntohs(ip_pkt->tot_len));
-    logger.debug("Tx S1-U PDU -- IP src addr %s", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
-    logger.debug("Tx S1-U PDU -- IP dst addr %s", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
-  }
 
   gtpu_header_t header;
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = pdu->N_bytes;
-  header.teid         = teidout;
+  header.teid         = tx_tun.teid_out;
 
   if (pdcp_sn >= 0) {
     header.flags |= GTPU_FLAGS_EXTENDED_HDR;
@@ -138,7 +122,7 @@ void gtpu::send_pdu_to_tunnel(uint16_t                     rnti,
 
   struct sockaddr_in servaddr;
   servaddr.sin_family      = AF_INET;
-  servaddr.sin_addr.s_addr = htonl(spgw_addr);
+  servaddr.sin_addr.s_addr = htonl(tx_tun.spgw_addr);
   servaddr.sin_port        = htons(GTPU_PORT);
 
   if (!gtpu_write_header(&header, pdu.get(), gtpu_log)) {
@@ -163,6 +147,13 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
 
   ue_teidin_db[rnti][lcid].push_back(teid_in);
 
+  logger.info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x",
+              rnti,
+              lcid,
+              addr,
+              teid_out,
+              teid_in);
+
   if (props != nullptr) {
     if (props->flush_before_teidin_present) {
       tunnel& after_tun               = tunnels.at(props->flush_before_teidin);
@@ -178,13 +169,6 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
       }
     }
   }
-
-  logger.info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x",
-              rnti,
-              lcid,
-              addr,
-              teid_out,
-              teid_in);
 
   return teid_in;
 }
@@ -296,38 +280,23 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       uint16_t rnti   = rx_tun.rnti;
       uint16_t lcid   = rx_tun.lcid;
 
+      log_message(rx_tun, true, srslte::make_span(pdu));
+
       if (lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
         logger.error("Invalid LCID for DL PDU: %d - dropping packet", lcid);
         return;
       }
-
       struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
       if (ip_pkt->version != 4 && ip_pkt->version != 6) {
-        logger.error("Invalid IP version to SPGW");
         return;
-      }
-
-      if (ip_pkt->version == 4) {
-        if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
-          logger.error("IP Len and PDU N_bytes mismatch");
-        }
-        logger.debug("Rx S1-U PDU -- IPv%d, src=%s, dst=%s, length=%d",
-                     int(ip_pkt->version),
-                     srslte::gtpu_ntoa(ip_pkt->saddr).c_str(),
-                     srslte::gtpu_ntoa(ip_pkt->daddr).c_str(),
-                     ntohs(ip_pkt->tot_len));
       }
 
       if (rx_tun.fwd_teid_in_present) {
         tunnel& tx_tun = tunnels.at(rx_tun.fwd_teid_in);
-        logger.info("Forwarding GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
-        send_pdu_to_tunnel(rnti, lcid, std::move(pdu), tx_tun.teid_out, tx_tun.spgw_addr);
+        send_pdu_to_tunnel(tx_tun, std::move(pdu));
       } else if (rx_tun.prior_teid_in_present) {
-        logger.info(
-            pdu->msg, pdu->N_bytes, "Buffering RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
         rx_tun.buffer.push_back(std::move(pdu));
       } else {
-        logger.info(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
         uint32_t pdcp_sn = -1;
         if (header.flags & GTPU_FLAGS_EXTENDED_HDR and header.next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
           pdcp_sn = (header.ext_buffer[1] << 8u) + header.ext_buffer[2];
@@ -396,8 +365,8 @@ int gtpu::create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in)
   // Get all buffered PDCP PDUs, and forward them through tx tunnel
   std::map<uint32_t, srslte::unique_byte_buffer_t> pdus = pdcp->get_buffered_pdus(rx_tun.rnti, rx_tun.lcid);
   for (auto& pdu_pair : pdus) {
-    send_pdu_to_tunnel(
-        rx_tun.rnti, rx_tun.lcid, std::move(pdu_pair.second), tx_tun.teid_out, tx_tun.spgw_addr, pdu_pair.first);
+    log_message(tx_tun, false, srslte::make_span(pdu_pair.second), pdu_pair.first);
+    send_pdu_to_tunnel(tx_tun, std::move(pdu_pair.second), pdu_pair.first);
   }
 
   return SRSLTE_SUCCESS;
@@ -501,6 +470,53 @@ gtpu::tunnel* gtpu::get_tunnel(uint32_t teidin)
     return nullptr;
   }
   return &it->second;
+}
+
+void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn)
+{
+  fmt::basic_memory_buffer<char, 1024> strbuf;
+  struct iphdr*                        ip_pkt = (struct iphdr*)pdu.data();
+  if (ip_pkt->version != 4 && ip_pkt->version != 6) {
+    logger.error("%s SDU with invalid IP version %s SPGW", is_rx ? "Received" : "Sending", is_rx ? "from" : "to");
+    return;
+  }
+
+  const char*        dir = "Tx";
+  fmt::memory_buffer strbuf2;
+  if (is_rx) {
+    dir = "Rx";
+    fmt::format_to(strbuf2, "{}:0x{:0x} > ", srslte::gtpu_ntoa(htonl(tun.spgw_addr)), tun.teid_in);
+    if (tun.prior_teid_in_present) {
+      fmt::format_to(strbuf2, "DL (buffered), ");
+    } else if (tun.fwd_teid_in_present) {
+      tunnel& tx_tun = tunnels.at(tun.fwd_teid_in);
+      fmt::format_to(strbuf2, "{}:0x{:0x} (forwarded), ", srslte::gtpu_ntoa(htonl(tx_tun.spgw_addr)), tx_tun.teid_in);
+    } else {
+      fmt::format_to(strbuf2, "DL, ");
+    }
+  } else {
+    if (pdcp_sn >= 0) {
+      fmt::format_to(strbuf2, "DL PDCP SDU SN={} ", pdcp_sn);
+    } else {
+      fmt::format_to(strbuf2, "UL ");
+    }
+    fmt::format_to(strbuf2, "> {}:0x{:0x}, ", srslte::gtpu_ntoa(htonl(tun.spgw_addr)), tun.teid_in);
+  }
+  fmt::format_to(strbuf,
+                 "{} S1-U SDU, {}rnti=0x{:0x}, lcid={}, n_bytes={}, IPv{}",
+                 dir,
+                 fmt::to_string(strbuf2),
+                 tun.rnti,
+                 tun.lcid,
+                 pdu.size(),
+                 (int)ip_pkt->version);
+  if (ip_pkt->version == 4) {
+    fmt::format_to(strbuf, " {} > {}", srslte::gtpu_ntoa(ip_pkt->saddr), srslte::gtpu_ntoa(ip_pkt->daddr));
+    if (ntohs(ip_pkt->tot_len) != pdu.size()) {
+      logger.error("IP Len and PDU N_bytes mismatch");
+    }
+  }
+  logger.info(pdu.data(), pdu.size(), fmt::to_string(strbuf));
 }
 
 /****************************************************************************

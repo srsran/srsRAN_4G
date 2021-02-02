@@ -61,12 +61,6 @@ private:
   static const int GTPU_PORT = 2152;
 
   void rem_tunnel(uint32_t teidin);
-  void send_pdu_to_tunnel(uint16_t                     rnti,
-                          uint32_t                     lcid,
-                          srslte::unique_byte_buffer_t pdu,
-                          uint32_t                     teidout,
-                          uint32_t                     spgw_addr,
-                          int                          pdcp_sn = -1);
 
   srslte::byte_buffer_pool* pool  = nullptr;
   stack_interface_gtpu_lte* stack = nullptr;
@@ -126,6 +120,8 @@ private:
   // Socket file descriptor
   int fd = -1;
 
+  void send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, int pdcp_sn = -1);
+
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
   void end_marker(uint32_t teidin);
@@ -138,6 +134,8 @@ private:
   uint32_t next_teid_in = 0;
 
   tunnel* get_tunnel(uint32_t teidin);
+
+  void log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn = -1);
 };
 
 } // namespace srsenb

@@ -136,12 +136,18 @@ int test_gtpu_direct_tunneling()
   srslte::net_utils::set_sockaddr(&senb_sockaddr, senb_addr_str, GTPU_PORT);
   srslte::net_utils::set_sockaddr(&sgw_sockaddr, sgw_addr_str, GTPU_PORT);
   srslte::net_utils::set_sockaddr(&tenb_sockaddr, tenb_addr_str, GTPU_PORT);
-  uint32_t tenb_addr = ntohl(tenb_sockaddr.sin_addr.s_addr), sgw_addr = ntohl(sgw_sockaddr.sin_addr.s_addr);
+  uint32_t tenb_addr = ntohl(tenb_sockaddr.sin_addr.s_addr);
+  uint32_t senb_addr = ntohl(senb_sockaddr.sin_addr.s_addr);
+  uint32_t sgw_addr  = ntohl(sgw_sockaddr.sin_addr.s_addr);
 
   srslte::unique_byte_buffer_t pdu;
 
   // Initiate layers
-  srsenb::gtpu senb_gtpu(srslog::fetch_basic_logger("GTPU1")), tenb_gtpu(srslog::fetch_basic_logger("GTPU2"));
+  srslog::basic_logger& logger1 = srslog::fetch_basic_logger("GTPU1");
+  logger1.set_hex_dump_max_size(2048);
+  srslog::basic_logger& logger2 = srslog::fetch_basic_logger("GTPU2");
+  logger2.set_hex_dump_max_size(2048);
+  srsenb::gtpu senb_gtpu(logger1), tenb_gtpu(logger2);
   stack_tester senb_stack, tenb_stack;
   pdcp_tester  senb_pdcp, tenb_pdcp;
   senb_gtpu.init(senb_addr_str, sgw_addr_str, "", "", &senb_pdcp, &senb_stack, false);
@@ -164,7 +170,7 @@ int test_gtpu_direct_tunneling()
   gtpu::bearer_props props;
   props.flush_before_teidin_present = true;
   props.flush_before_teidin         = tenb_teid_in;
-  uint32_t dl_tenb_teid_in          = tenb_gtpu.add_bearer(rnti2, drb1, 0, 0, &props);
+  uint32_t dl_tenb_teid_in          = tenb_gtpu.add_bearer(rnti2, drb1, senb_addr, 0, &props);
   props                             = {};
   props.forward_from_teidin_present = true;
   props.forward_from_teidin         = senb_teid_in;
