@@ -386,8 +386,8 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
   }
 
   if (undelivered_sdu_info_queue.size() >= pdcp_info_queue_capacity) {
-    log->error("PDCP SDU info exceeds maximum queue capacity\n");
-    return SRSLTE_ERROR;
+    log->warning("Undelivered PDCP SDU info queue is growing large. Queue size: %ld\n",
+                 undelivered_sdu_info_queue.size());
   }
 
   undelivered_sdu_info_queue[info.sn] = info;
