@@ -110,6 +110,7 @@ public:
     bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
     msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     next = NULL;
+    md   = {};
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
 #endif
