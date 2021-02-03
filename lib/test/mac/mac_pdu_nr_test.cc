@@ -523,6 +523,48 @@ int mac_ul_sch_pdu_unpack_test5()
   return SRSLTE_SUCCESS;
 }
 
+int mac_ul_sch_pdu_unpack_test6()
+{
+  // MAC PDU with UL-SCH: CRNTI, SE PHR, SBDR and padding
+
+  // CRNTI:4601 SE PHR:ph=63 pc=52 SBSR: lcg=6 bs=0 PAD: len=0
+  uint8_t tv[] = {0x3a, 0x46, 0x01, 0x39, 0x3f, 0x34, 0x3d, 0xc0, 0x3f};
+
+  if (pcap_handle) {
+    pcap_handle->write_ul_crnti_nr(tv, sizeof(tv), PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  srslte::mac_sch_pdu_nr pdu(true);
+  pdu.unpack(tv, sizeof(tv));
+  TESTASSERT(pdu.get_num_subpdus() == 4);
+
+  // 1st C-RNTI
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
+  TESTASSERT(subpdu.get_total_length() == 3);
+  TESTASSERT(subpdu.get_sdu_length() == 2);
+  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::CRNTI);
+  TESTASSERT(subpdu.get_c_rnti() == 0x4601);
+
+  // 2nd subPDU is SE PHR
+  subpdu = pdu.get_subpdu(1);
+  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SE_PHR);
+  TESTASSERT(subpdu.get_phr() == 63);
+  TESTASSERT(subpdu.get_pcmax() == 52);
+
+  // 3rd subPDU is SBSR
+  subpdu = pdu.get_subpdu(2);
+  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SHORT_BSR);
+  mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
+  TESTASSERT(sbsr.lcg_id == 6);
+  TESTASSERT(sbsr.buffer_size == 0);
+
+  // 4th is padding
+  subpdu = pdu.get_subpdu(3);
+  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if PCAP
@@ -598,6 +640,11 @@ int main(int argc, char** argv)
 
   if (mac_ul_sch_pdu_unpack_test5()) {
     fprintf(stderr, "mac_ul_sch_pdu_unpack_test5() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_ul_sch_pdu_unpack_test6()) {
+    fprintf(stderr, "mac_ul_sch_pdu_unpack_test6() failed.\n");
     return SRSLTE_ERROR;
   }
 

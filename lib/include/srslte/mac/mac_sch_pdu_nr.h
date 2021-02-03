@@ -42,6 +42,7 @@ public:
     LONG_TRUNC_BSR  = 0b111100,
     CCCH_SIZE_48    = 0b110100,
     CCCH_SIZE_64    = 0b000000,
+    SE_PHR          = 0b111001, // Single Entry PHR
 
     SHORT_BSR = 0b111101,
     LONG_BSR  = 0b111110,
@@ -63,6 +64,20 @@ public:
   uint32_t get_sdu_length();
   uint32_t get_lcid();
   uint8_t* get_sdu();
+  uint16_t get_c_rnti();
+
+  // both return the reported values as per TS 38.321, mapping to dB according to TS 38.133 Sec 10.1.17 not done here
+  uint8_t get_phr();
+  uint8_t get_pcmax();
+
+  // BSR
+  struct lcg_bsr_t {
+    uint8_t lcg_id;
+    uint8_t buffer_size;
+  };
+  lcg_bsr_t                               get_sbsr();
+  static const uint8_t                    max_num_lcg_lbsr = 8;
+  std::array<lcg_bsr_t, max_num_lcg_lbsr> get_lbsr();
 
   void set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
 

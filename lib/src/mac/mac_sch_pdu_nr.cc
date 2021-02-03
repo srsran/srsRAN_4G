@@ -163,6 +163,40 @@ uint8_t* mac_sch_subpdu_nr::get_sdu()
   return sdu;
 }
 
+uint16_t mac_sch_subpdu_nr::get_c_rnti()
+{
+  if (parent->is_ulsch() && lcid == CRNTI) {
+    return le16toh((uint16_t)sdu[0] << 8 | sdu[1]);
+  }
+  return 0;
+}
+
+uint8_t mac_sch_subpdu_nr::get_phr()
+{
+  if (parent->is_ulsch() && lcid == SE_PHR) {
+    return sdu[0] & 0x3f;
+  }
+  return 0;
+}
+
+uint8_t mac_sch_subpdu_nr::get_pcmax()
+{
+  if (parent->is_ulsch() && lcid == SE_PHR) {
+    return sdu[1] & 0x3f;
+  }
+  return 0;
+}
+
+mac_sch_subpdu_nr::lcg_bsr_t mac_sch_subpdu_nr::get_sbsr()
+{
+  lcg_bsr_t sbsr = {};
+  if (parent->is_ulsch() && lcid == SHORT_BSR) {
+    sbsr.lcg_id      = (sdu[0] & 0xe0) >> 5;
+    sbsr.buffer_size = sdu[0] & 0x1f;
+  }
+  return sbsr;
+}
+
 uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
 {
   if (is_ul) {
@@ -177,6 +211,8 @@ uint32_t mac_sch_subpdu_nr::sizeof_ce(uint32_t lcid, bool is_ul)
         return 1;
       case SHORT_BSR:
         return 1;
+      case SE_PHR:
+        return 2;
       case PADDING:
         return 0;
     }
