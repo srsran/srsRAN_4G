@@ -15,8 +15,9 @@
 
 #include "srslte/adt/detail/type_utils.h"
 #include "srslte/adt/move_callback.h"
-#include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <cstdio>
+#include <deque>
 #include <limits>
 #include <list>
 #include <memory>

@@ -15,7 +15,6 @@
 
 #include "basic_vnf_api.h"
 #include "common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"

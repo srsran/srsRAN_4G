@@ -13,8 +13,9 @@
 #ifndef SRSLTE_TIME_PROF_H
 #define SRSLTE_TIME_PROF_H
 
-#include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <chrono>
+#include <mutex>
 
 #ifdef ENABLE_TIMEPROF
 #define TPROF_ENABLE_DEFAULT true

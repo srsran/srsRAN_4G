@@ -11,6 +11,7 @@
  */
 
 #include "srslte/common/basic_vnf.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
 #include <algorithm>
 #include <chrono>

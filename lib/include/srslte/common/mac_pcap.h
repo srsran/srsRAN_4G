@@ -16,12 +16,12 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/pcap.h"
 #include "srslte/common/threads.h"
 #include <mutex>
 #include <stdint.h>
 #include <thread>
+
 namespace srslte {
 class mac_pcap : srslte::thread
 {

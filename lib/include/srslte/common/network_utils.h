@@ -14,7 +14,6 @@
 #define SRSLTE_RX_SOCKET_HANDLER_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 
 #include <arpa/inet.h>

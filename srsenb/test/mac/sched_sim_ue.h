@@ -17,6 +17,7 @@
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/srslog/srslog.h"
 #include <bitset>
+#include <map>
 
 namespace srsenb {
 

@@ -18,7 +18,6 @@
 #include "srslte/adt/choice_type.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include <arpa/inet.h>
 #include <atomic>

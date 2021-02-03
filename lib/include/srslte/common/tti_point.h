@@ -13,8 +13,9 @@
 #ifndef SRSLTE_TTI_POINT_H
 #define SRSLTE_TTI_POINT_H
 
-#include "logmap.h"
 #include "srslte/adt/interval.h"
+#include "srslte/common/common.h"
+#include "srslte/srslog/srslog.h"
 #include <cstdint>
 #include <limits>
 

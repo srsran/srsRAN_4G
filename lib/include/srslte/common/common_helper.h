@@ -18,7 +18,6 @@
 #ifndef SRSLTE_COMMON_HELPER_H
 #define SRSLTE_COMMON_HELPER_H
 
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include <fstream>
 #include <sstream>
