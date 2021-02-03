@@ -1029,39 +1029,22 @@ int srslte_ue_sync_set_tti_from_timestamp(srslte_ue_sync_t* q, srslte_timestamp_
   time_t t_cur = rx_timestamp->full_secs;
   DEBUG("t_cur=%ld\n", t_cur);
 
-  // time_t of reference UTC time on 1. Jan 1900 at 0:00
-  // If we put this date in https://www.epochconverter.com it returns a negative number
-  time_t t_ref = {0};
-#if 0
-  struct tm t = {0};
-  t.tm_year = 1900; // year-1900
-  t.tm_mday = 1;          // first of January
-  // t.tm_isdst = 0;        // Is DST on? 1 = yes, 0 = no, -1 = unknown
-  t_ref = mktime(&t);
-#endif
-
-  DEBUG("t_ref=%ld\n", t_ref);
-
+  // 3GPP Reference UTC time is 1. Jan 1900 at 0:00
+  // If we put this date in https://www.epochconverter.com it returns a negative number (-2208988800)
+  // as epoch time starts at 1. Jan 1970 at 0:00
+  uint64_t epoch_offset_3gpp = 2208988800;
+  
   static const uint32_t MSECS_PER_SEC = 1000;
-
-  DEBUG("diff=%f\n", difftime(t_cur, t_ref));
-
-  double time_diff_secs = difftime(t_cur, t_ref);
-
-  if (time_diff_secs < 0) {
-    fprintf(stderr, "Time diff between Rx timestamp and reference UTC is negative. Is the timestamp correct?\n");
-    return SRSLTE_ERROR;
-  }
-
-  DEBUG("time diff in s %f\n", time_diff_secs);
-
+  
+  uint64_t time_3gpp = t_cur + epoch_offset_3gpp;
+  
   // convert to ms and add fractional part
-  double time_diff_msecs = time_diff_secs * MSECS_PER_SEC + rx_timestamp->frac_secs;
-  DEBUG("time diff in ms %f\n", time_diff_msecs);
+  uint64_t time_3gpp_msecs = (time_3gpp_secs + rx_timestamp->frac_secs) * MSECS_PER_SEC;
+  DEBUG("rx time with 3gpp base in ms %lu\n", time_3gpp_msecs);
 
   // calculate SFN and SF index according to TS 36.331 Sec. 5.10.14
-  q->frame_number = ((uint32_t)floor(0.1 * (time_diff_msecs - q->sfn_offset))) % 1024;
-  q->sf_idx       = ((uint32_t)floor(time_diff_msecs - q->sfn_offset)) % 10;
+  q->frame_number = (uint32_t)(((uint64_t)floor(0.1 * (time_3gpp_msecs - q->sfn_offset))) % 1024);
+  q->sf_idx       = (uint32_t)(((uint64_t)floor(time_3gpp_msecs - q->sfn_offset)) % 10);
 
   return SRSLTE_SUCCESS;
 }
