@@ -947,7 +947,7 @@ int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
 
   srslte_timestamp_copy(&ts_next_rx_tmp, &ts_next_rx);
   
-  INFO("Next desired recv at %ld + %f\n", ts_next_rx_tmp.full, ts_next_rx_tmp.frac_secs);
+  INFO("Next desired recv at %ld + %f\n", ts_next_rx_tmp.full_secs, ts_next_rx_tmp.frac_secs);
 
   // get difference in time between second rx and now
   srslte_timestamp_sub(&ts_next_rx_tmp, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
