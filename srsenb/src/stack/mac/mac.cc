@@ -79,8 +79,13 @@ bool mac::init(const mac_args_t&        args_,
 
     reset();
 
-    // Pre-alloc UE objects for first attaching users
-    prealloc_ue(10);
+    try {
+      // Pre-alloc UE objects for first attaching users
+      prealloc_ue(10);
+    }catch(const std::bad_alloc& e){
+      perror("Error allocating data during the ue prealloc");
+      return false;
+    }
 
     detected_rachs.resize(cells.size());
 

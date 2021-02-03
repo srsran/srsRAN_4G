@@ -93,7 +93,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
     // Only init Stack if both radio and PHY could be initialized
     if (ret == SRSLTE_SUCCESS) {
-      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
+      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get()) != SRSLTE_SUCCESS) {
         srslte::console("Error initializing stack.\n");
         ret = SRSLTE_ERROR;
       }
