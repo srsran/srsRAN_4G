@@ -1036,7 +1036,7 @@ int srslte_ue_sync_set_tti_from_timestamp(srslte_ue_sync_t* q, srslte_timestamp_
   
   static const uint32_t MSECS_PER_SEC = 1000;
   
-  uint64_t time_3gpp = t_cur + epoch_offset_3gpp;
+  uint64_t time_3gpp_secs = t_cur + epoch_offset_3gpp;
   
   // convert to ms and add fractional part
   uint64_t time_3gpp_msecs = (time_3gpp_secs + rx_timestamp->frac_secs) * MSECS_PER_SEC;
