@@ -17,8 +17,11 @@
 
 namespace srslte {
 
-mac_pcap::mac_pcap() :
-  pool(srslte::byte_buffer_pool::get_instance()), logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER")
+mac_pcap::mac_pcap(srslte_rat_t rat_) :
+  pool(srslte::byte_buffer_pool::get_instance()),
+  logger(srslog::fetch_basic_logger("MAC")),
+  thread("PCAP_WRITER_" + to_string(rat_)),
+  rat(rat_)
 {}
 
 mac_pcap::~mac_pcap()
@@ -32,22 +35,36 @@ void mac_pcap::enable(bool enable_)
   running = enable_;
 }
 
-uint32_t mac_pcap::open(const char* filename, uint32_t ue_id_)
+uint32_t mac_pcap::open(std::string filename_, uint32_t ue_id_)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (pcap_file != nullptr) {
-    logger.error("PCAP writer already running. Close first.");
+    logger.error("PCAP writer for %s already running. Close first.", filename_.c_str());
     return SRSLTE_ERROR;
   }
 
-  pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, filename);
+  // set DLT for selected RAT
+  switch (rat) {
+    case srslte_rat_t::lte:
+      dlt = MAC_LTE_DLT;
+      break;
+    case srslte_rat_t::nr:
+      dlt = UDP_DLT;
+      break;
+    default:
+      logger.error("Error opening PCAP. Unsupported RAT selected.");
+      return SRSLTE_ERROR;
+  }
+
+  pcap_file = LTE_PCAP_Open(dlt, filename_.c_str());
   if (pcap_file == nullptr) {
-    logger.error("Couldn't open file to write PCAP");
+    logger.error("Couldn't open %s to write PCAP", filename_.c_str());
     return SRSLTE_ERROR;
   }
 
-  ue_id   = ue_id_;
-  running = true;
+  filename = filename_;
+  ue_id    = ue_id_;
+  running  = true;
 
   // start writer thread
   start();
@@ -74,7 +91,7 @@ uint32_t mac_pcap::close()
   // close file handle
   {
     std::lock_guard<std::mutex> lock(mutex);
-    srslte::console("Saving MAC PCAP file\n");
+    srslte::console("Saving %s MAC PCAP (DLT=%d) to %s\n", to_string(rat).c_str(), dlt, filename.c_str());
     LTE_PCAP_Close(pcap_file);
     pcap_file = nullptr;
   }
@@ -85,7 +102,16 @@ uint32_t mac_pcap::close()
 void mac_pcap::write_pdu(pcap_pdu_t& pdu)
 {
   if (pdu.pdu != nullptr) {
-    LTE_PCAP_MAC_WritePDU(pcap_file, &pdu.context, pdu.pdu->msg, pdu.pdu->N_bytes);
+    switch (rat) {
+      case srslte_rat_t::lte:
+        LTE_PCAP_MAC_WritePDU(pcap_file, &pdu.context, pdu.pdu->msg, pdu.pdu->N_bytes);
+        break;
+      case srslte_rat_t::nr:
+        NR_PCAP_MAC_WritePDU(pcap_file, &pdu.context_nr, pdu.pdu->msg, pdu.pdu->N_bytes);
+        break;
+      default:
+        logger.error("Error writing PDU to PCAP. Unsupported RAT selected.");
+    }
   }
 }
 
@@ -151,6 +177,39 @@ void mac_pcap::pack_and_queue(uint8_t* payload,
   }
 }
 
+// Function called from PHY worker context, locking not needed as PDU queue is thread-safe
+void mac_pcap::pack_and_queue_nr(uint8_t* payload,
+                                 uint32_t payload_len,
+                                 uint32_t tti,
+                                 uint16_t crnti,
+                                 uint8_t  harqid,
+                                 uint8_t  direction,
+                                 uint8_t  rnti_type)
+{
+  if (running && payload != nullptr) {
+    pcap_pdu_t pdu                     = {};
+    pdu.context_nr.radioType           = FDD_RADIO;
+    pdu.context_nr.direction           = direction;
+    pdu.context_nr.rntiType            = rnti_type;
+    pdu.context_nr.rnti                = crnti;
+    pdu.context_nr.ueid                = ue_id;
+    pdu.context_nr.harqid              = harqid;
+    pdu.context_nr.system_frame_number = tti / 10;
+    pdu.context_nr.sub_frame_number    = tti % 10;
+
+    // try to allocate PDU buffer
+    pdu.pdu = srslte::allocate_unique_buffer(*pool);
+    if (pdu.pdu != nullptr && pdu.pdu->get_tailroom() >= payload_len) {
+      // copy payload into PDU buffer
+      memcpy(pdu.pdu->msg, payload, payload_len);
+      pdu.pdu->N_bytes = payload_len;
+      queue.push(std::move(pdu));
+    } else {
+      logger.info("Dropping PDU in NR PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
+    }
+  }
+}
+
 void mac_pcap::write_dl_crnti(uint8_t* pdu,
                               uint32_t pdu_len_bytes,
                               uint16_t rnti,
@@ -204,6 +263,36 @@ void mac_pcap::write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, u
 void mac_pcap::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
   pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
+}
+
+void mac_pcap::write_dl_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, C_RNTI);
+}
+
+void mac_pcap::write_ul_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_UPLINK, C_RNTI);
+}
+
+void mac_pcap::write_dl_ra_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, RA_RNTI);
+}
+
+void mac_pcap::write_dl_bch_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, NO_RNTI);
+}
+
+void mac_pcap::write_dl_pch_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, P_RNTI);
+}
+
+void mac_pcap::write_dl_si_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, SI_RNTI);
 }
 
 void mac_pcap::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len)

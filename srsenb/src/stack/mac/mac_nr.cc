@@ -54,7 +54,7 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   log_h->set_hex_limit(args.log_hex_limit);
 
   if (args.pcap.enable) {
-    pcap = std::unique_ptr<srslte::mac_nr_pcap>(new srslte::mac_nr_pcap());
+    pcap = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
     pcap->open(args.pcap.filename);
   }
 
@@ -113,7 +113,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
         tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
 
         if (pcap) {
-          pcap->write_dl_si_rnti(sib.payload->msg, sib.payload->N_bytes, 0xffff, 0, tti);
+          pcap->write_dl_si_rnti_nr(sib.payload->msg, sib.payload->N_bytes, 0xffff, 0, tti);
         }
 
         tx_request.nof_pdus++;
@@ -152,11 +152,11 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
       tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
 
       if (pcap) {
-        pcap->write_dl_crnti(tx_request.pdus[tx_request.nof_pdus].data[0],
-                             tx_request.pdus[tx_request.nof_pdus].length,
-                             args.rnti,
-                             buffer_index,
-                             tti);
+        pcap->write_dl_crnti_nr(tx_request.pdus[tx_request.nof_pdus].data[0],
+                                tx_request.pdus[tx_request.nof_pdus].length,
+                                args.rnti,
+                                buffer_index,
+                                tti);
       }
 
       tx_request.nof_pdus++;
@@ -191,7 +191,7 @@ int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
   // push received PDU on queue
   if (rx_data.tb != nullptr) {
     if (pcap) {
-      pcap->write_ul_crnti(rx_data.tb->msg, rx_data.tb->N_bytes, rx_data.rnti, true, rx_data.tti);
+      pcap->write_ul_crnti_nr(rx_data.tb->msg, rx_data.tb->N_bytes, rx_data.rnti, true, rx_data.tti);
     }
     ue_rx_pdu_queue.push(std::move(rx_data.tb));
   }

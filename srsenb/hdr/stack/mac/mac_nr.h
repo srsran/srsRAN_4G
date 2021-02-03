@@ -15,7 +15,7 @@
 
 #include "srslte/common/block_queue.h"
 #include "srslte/common/logmap.h"
-#include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/mac_pcap.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
 
 #include "srsenb/hdr/stack/enb_stack_base.h"
@@ -81,7 +81,7 @@ private:
   rlc_interface_mac_nr*   rlc_h   = nullptr;
   rrc_interface_mac_nr*   rrc_h   = nullptr;
 
-  std::unique_ptr<srslte::mac_nr_pcap> pcap = nullptr;
+  std::unique_ptr<srslte::mac_pcap>    pcap = nullptr;
   srslte::log_ref                      log_h;
   srslte::byte_buffer_pool*            pool = nullptr;
   mac_nr_args_t                        args = {};

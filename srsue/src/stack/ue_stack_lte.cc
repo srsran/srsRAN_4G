@@ -46,7 +46,8 @@ ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
   nas(&task_sched),
   thread("STACK"),
   task_sched(512, 2, 64),
-  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
+  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD),
+  mac_pcap(srslte_rat_t::lte)
 {
   ue_task_queue  = task_sched.make_task_queue();
   gw_queue_id    = task_sched.make_task_queue();
@@ -118,8 +119,9 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 
   // Set up pcap
   if (args.pcap.enable) {
-    mac_pcap.open(args.pcap.filename.c_str());
-    mac.start_pcap(&mac_pcap);
+    if (mac_pcap.open(args.pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+      mac.start_pcap(&mac_pcap);
+    }
   }
   if (args.pcap.nas_enable) {
     nas_pcap.open(args.pcap.nas_filename.c_str());
@@ -141,7 +143,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
 #ifdef HAVE_5GNR
-  mac_nr_args_t mac_nr_args;
+  mac_nr_args_t mac_nr_args = {};
   mac_nr.init(mac_nr_args, nullptr, &rlc);
   rrc_nr.init(
       nullptr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);

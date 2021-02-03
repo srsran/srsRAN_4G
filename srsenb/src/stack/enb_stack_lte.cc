@@ -36,7 +36,8 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   gtpu(gtpu_logger),
   s1ap(&task_sched, s1ap_logger),
   rrc(&task_sched),
-  logger(logger_)
+  logger(logger_),
+  mac_pcap(srslte_rat_t::lte)
 {
   enb_task_queue  = task_sched.make_task_queue();
   mme_task_queue  = task_sched.make_task_queue();

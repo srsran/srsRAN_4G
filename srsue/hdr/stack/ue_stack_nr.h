@@ -28,7 +28,7 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/mac_pcap.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
@@ -111,8 +111,6 @@ private:
   std::unique_ptr<rrc_nr>       rrc;
   std::unique_ptr<srslte::rlc>  rlc;
   std::unique_ptr<srslte::pdcp> pdcp;
-
-  std::unique_ptr<srslte::mac_nr_pcap> mac_pcap;
 
   // RAT-specific interfaces
   phy_interface_stack_nr* phy = nullptr;

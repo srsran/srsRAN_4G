@@ -14,7 +14,7 @@
 #define SRSUE_MAC_NR_H
 
 #include "srslte/common/block_queue.h"
-#include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
@@ -85,7 +85,7 @@ private:
   rlc_interface_mac*            rlc = nullptr;
   srslte::ext_task_sched_handle task_sched;
 
-  std::unique_ptr<srslte::mac_nr_pcap> pcap = nullptr;
+  std::unique_ptr<srslte::mac_pcap>    pcap = nullptr;
   srslog::basic_logger&                logger;
   srslte::byte_buffer_pool*            pool = nullptr;
   mac_nr_args_t                        args = {};

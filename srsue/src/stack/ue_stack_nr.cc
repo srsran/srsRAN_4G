@@ -103,10 +103,6 @@ void ue_stack_nr::stop_impl()
   rlc->stop();
   pdcp->stop();
   mac->stop();
-
-  if (mac_pcap != nullptr) {
-    mac_pcap.reset();
-  }
 }
 
 bool ue_stack_nr::switch_on()

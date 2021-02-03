@@ -37,7 +37,7 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
 
   // Set up pcap
   if (args.pcap.enable) {
-    pcap.reset(new srslte::mac_nr_pcap());
+    pcap.reset(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
     pcap->open(args.pcap.filename.c_str());
   }
 
@@ -164,7 +164,7 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
         if (pcap) {
-          pcap->write_dl_crnti(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
+          pcap->write_dl_crnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
         }
         pdu_queue.push(std::move(grant.tb[i]));
       }
@@ -224,7 +224,7 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
   tx_request->tb_len = tx_buffer->N_bytes;
 
   if (pcap) {
-    pcap->write_ul_crnti(tx_request->data, tx_request->tb_len, grant.rnti, grant.pid, grant.tti);
+    pcap->write_ul_crnti_nr(tx_request->data, tx_request->tb_len, grant.rnti, grant.pid, grant.tti);
   }
 }
 
