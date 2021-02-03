@@ -14,6 +14,15 @@
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 
+static int dci_nr_format_0_0_freq_resource_size(const srslte_carrier_nr_t* carrier)
+{
+  if (carrier == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  return (int)ceil(log2(carrier->nof_prb * (carrier->nof_prb + 1) / 2.0));
+}
+
 static int dci_nr_format_1_0_freq_resource_size(const srslte_carrier_nr_t* carrier,
                                                 const srslte_coreset_t*    coreset0,
                                                 srslte_rnti_type_t         rnti_type)
@@ -62,6 +71,222 @@ int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
   }
 
   return SRSLTE_SUCCESS;
+}
+
+int srslte_dci_nr_format_0_0_pack(const srslte_carrier_nr_t* carrier,
+                                  const srslte_coreset_t*    coreset0,
+                                  const srslte_dci_ul_nr_t*  dci,
+                                  srslte_dci_msg_nr_t*       msg)
+{
+  uint32_t           trim                 = 0;     // hard-coded bit trimming
+  bool               enable_hopping       = false; // hard-coded PUSCH hopping
+  uint32_t           padding              = 0;     // Hard-coded padding
+  bool               supplementary_uplink = false; // Hard-coded supplementary Uplink
+  uint8_t*           y                    = msg->payload;
+  srslte_rnti_type_t rnti_type            = msg->rnti_type;
+
+  if (carrier == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  // Check RNTI type
+  if (rnti_type != srslte_rnti_type_c && rnti_type != srslte_rnti_type_cs && rnti_type != srslte_rnti_type_mcs_c) {
+    return SRSLTE_ERROR;
+  }
+
+  // Identifier for DCI formats – 1 bits
+  *y = 0;
+  y++;
+
+  // For PUSCH hopping with resource allocation type 1 N UL_hop MSB bits are used to indicate the frequency offset
+  int N_UL_hop = (enable_hopping) ? ((carrier->nof_prb < 50) ? 1 : 2) : 0;
+  srslte_bit_unpack(dci->frequency_offset, &y, N_UL_hop);
+
+  // Frequency domain resource assignment
+  int N = dci_nr_format_0_0_freq_resource_size(carrier);
+  if (N < SRSLTE_SUCCESS || N - N_UL_hop <= 0) {
+    return SRSLTE_ERROR;
+  }
+  srslte_bit_unpack(dci->freq_domain_assigment, &y, N - N_UL_hop - trim);
+
+  // Time domain resource assignment – 4 bits
+  srslte_bit_unpack(dci->time_domain_assigment, &y, 4);
+
+  // Frequency hopping flag – 1 bit
+  srslte_bit_unpack(dci->freq_hopping_flag, &y, 1);
+
+  // Modulation and coding scheme – 5 bits
+  srslte_bit_unpack(dci->mcs, &y, 5);
+
+  // New data indicator – 1 bit
+  srslte_bit_unpack(dci->ndi, &y, 1);
+
+  // Redundancy version – 2 bits
+  srslte_bit_unpack(dci->rv, &y, 2);
+
+  // HARQ process number – 4 bits
+  srslte_bit_unpack(dci->pid, &y, 4);
+
+  // TPC command for scheduled PUSCH – 2 bits
+  srslte_bit_unpack(dci->tpc, &y, 2);
+
+  // Padding goes here
+  for (uint32_t i = 0; i < padding; i++) {
+    *(y++) = 0;
+  }
+
+  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, othwerwise 0
+  if (supplementary_uplink) {
+    *(y++) = 0;
+  }
+
+  msg->nof_bits = srslte_dci_nr_format_0_0_sizeof(carrier, coreset0, rnti_type);
+  if (msg->nof_bits != y - msg->payload) {
+    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)\n", msg->nof_bits, (int)(y - msg->payload));
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_dci_nr_format_0_0_unpack(const srslte_carrier_nr_t* carrier,
+                                    const srslte_coreset_t*    coreset,
+                                    srslte_dci_msg_nr_t*       msg,
+                                    srslte_dci_ul_nr_t*        dci)
+{
+  uint32_t           trim                 = 0;     // hard-coded bit trimming
+  bool               enable_hopping       = false; // hard-coded PUSCH hopping
+  uint32_t           padding              = 0;     // Hard-coded padding
+  bool               supplementary_uplink = false; // Hard-coded supplementary Uplink
+  uint8_t*           y                    = msg->payload;
+  srslte_rnti_type_t rnti_type            = msg->rnti_type;
+
+  if (carrier == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  // Check RNTI type
+  if (rnti_type != srslte_rnti_type_c && rnti_type != srslte_rnti_type_cs && rnti_type != srslte_rnti_type_mcs_c) {
+    return SRSLTE_ERROR;
+  }
+
+  if (msg->nof_bits != srslte_dci_nr_format_0_0_sizeof(carrier, coreset, rnti_type)) {
+    ERROR("Invalid number of bits %d, expected %d\n",
+          msg->nof_bits,
+          srslte_dci_nr_format_0_0_sizeof(carrier, coreset, rnti_type));
+    return SRSLTE_ERROR;
+  }
+
+  // Identifier for DCI formats – 1 bits
+  if (*(y++) != 0) {
+    ERROR("Wrond DCI format\n");
+    return SRSLTE_ERROR;
+  }
+
+  // For PUSCH hopping with resource allocation type 1 N UL_hop MSB bits are used to indicate the frequency offset
+  int N_UL_hop          = (enable_hopping) ? ((carrier->nof_prb < 50) ? 1 : 2) : 0;
+  dci->frequency_offset = srslte_bit_pack(&y, N_UL_hop);
+
+  // Frequency domain resource assignment
+  int N = dci_nr_format_0_0_freq_resource_size(carrier);
+  if (N < SRSLTE_SUCCESS || N - N_UL_hop <= 0) {
+    return SRSLTE_ERROR;
+  }
+  dci->freq_domain_assigment = srslte_bit_pack(&y, N - N_UL_hop - trim);
+
+  // Time domain resource assignment – 4 bits
+  dci->time_domain_assigment = srslte_bit_pack(&y, 4);
+
+  // Frequency hopping flag – 1 bit
+  dci->freq_hopping_flag = srslte_bit_pack(&y, 1);
+
+  // Modulation and coding scheme – 5 bits
+  dci->mcs = srslte_bit_pack(&y, 5);
+
+  // New data indicator – 1 bit
+  dci->ndi = srslte_bit_pack(&y, 1);
+
+  // Redundancy version – 2 bits
+  dci->rv = srslte_bit_pack(&y, 2);
+
+  // HARQ process number – 4 bits
+  dci->pid = srslte_bit_pack(&y, 4);
+
+  // TPC command for scheduled PUSCH – 2 bits
+  dci->tpc = srslte_bit_pack(&y, 2);
+
+  // Padding goes here
+  for (uint32_t i = 0; i < padding; i++) {
+    y++;
+  }
+
+  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, othwerwise 0
+  if (supplementary_uplink) {
+    y++;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_dci_nr_format_0_0_sizeof(const srslte_carrier_nr_t* carrier,
+                                    const srslte_coreset_t*    coreset,
+                                    srslte_rnti_type_t         rnti_type)
+{
+  uint32_t trim                 = 0;     // hard-coded bit trimming
+  bool     enable_hopping       = false; // hard-coded PUSCH hopping
+  uint32_t padding              = 0;     // Hard-coded padding
+  bool     supplementary_uplink = false; // Hard-coded supplementary Uplink
+  int      count                = 0;
+
+  // Identifier for DCI formats – 1 bits
+  count++;
+
+  // For PUSCH hopping with resource allocation type 1 N UL_hop MSB bits are used to indicate the frequency offset
+  int N_UL_hop = (enable_hopping) ? ((carrier->nof_prb < 50) ? 1 : 2) : 0;
+  count += N_UL_hop;
+
+  // Frequency domain resource assignment
+  int N = dci_nr_format_0_0_freq_resource_size(carrier);
+  if (N < SRSLTE_SUCCESS || N - N_UL_hop <= 0) {
+    return SRSLTE_ERROR;
+  }
+  count += N - N_UL_hop - trim;
+
+  // Time domain resource assignment – 4 bits
+  count += 4;
+
+  // Frequency hopping flag – 1 bit
+  count += 1;
+
+  // Modulation and coding scheme – 5 bits
+  count += 5;
+
+  // New data indicator – 1 bit
+  count += 1;
+
+  // Redundancy version – 2 bits
+  count += 2;
+
+  // HARQ process number – 4 bits
+  count += 4;
+
+  // TPC command for scheduled PUSCH – 2 bits
+  count += 2;
+
+  // Padding goes here
+  count += padding;
+
+  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, othwerwise 0
+  if (supplementary_uplink) {
+    count++;
+  }
+
+  return count;
+}
+
+static int dci_nr_format_0_0_to_str(const srslte_dci_ul_nr_t* dci, char* str, uint32_t str_len)
+{
+  return SRSLTE_ERROR;
 }
 
 int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
@@ -198,11 +423,10 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   // Identifier for DCI formats – 1 bits
   if (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_tc) {
     // The value of this bit field is always set to 1, indicating a DL DCI format
-    if (*y != 1) {
+    if (*(y++) != 1) {
       ERROR("Wrond DCI format\n");
       return SRSLTE_ERROR;
     }
-    y++;
   }
 
   if (rnti_type == srslte_rnti_type_p) {
@@ -298,7 +522,7 @@ int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
                                     const srslte_coreset_t*    coreset,
                                     srslte_rnti_type_t         rnti_type)
 {
-  uint32_t count = 0;
+  int count = 0;
 
   // Identifier for DCI formats – 1 bits
   if (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_tc) {
@@ -467,7 +691,19 @@ static int dci_nr_format_1_0_to_str(const srslte_dci_dl_nr_t* dci, char* str, ui
   return len;
 }
 
-int srslte_dci_nr_to_str(const srslte_dci_dl_nr_t* dci, char* str, uint32_t str_len)
+int srslte_dci_ul_nr_to_str(const srslte_dci_ul_nr_t* dci, char* str, uint32_t str_len)
+{
+  // Pack DCI
+  switch (dci->format) {
+    case srslte_dci_format_nr_0_0:
+      return dci_nr_format_0_0_to_str(dci, str, str_len);
+    default:; // Do nothing
+  }
+
+  return srslte_print_check(str, str_len, 0, "unknown");
+}
+
+int srslte_dci_dl_nr_to_str(const srslte_dci_dl_nr_t* dci, char* str, uint32_t str_len)
 {
   // Pack DCI
   switch (dci->format) {

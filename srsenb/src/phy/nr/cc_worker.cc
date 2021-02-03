@@ -121,7 +121,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
   for (uint32_t i = 0; i < nof_grants; i++) {
     // Get PHY config for UE
     // ...
-    srslte_pdsch_cfg_nr_t pdsch_hl_cfg = {};
+    srslte_sch_hl_cfg_nr_t pdsch_hl_cfg = {};
     srslte_sch_cfg_nr_t   pdsch_cfg    = {};
 
     // Compute DL grant

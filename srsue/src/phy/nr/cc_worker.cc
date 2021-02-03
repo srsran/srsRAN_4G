@@ -96,7 +96,7 @@ uint32_t cc_worker::get_buffer_len()
 
 bool cc_worker::work_dl()
 {
-  srslte_pdsch_cfg_nr_t pdsch_hl_cfg = phy->cfg.pdsch;
+  srslte_sch_hl_cfg_nr_t pdsch_hl_cfg = phy->cfg.pdsch;
 
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
@@ -144,7 +144,7 @@ bool cc_worker::work_dl()
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srslte_dci_nr_to_str(dci_dl, str.data(), str.size());
+      srslte_dci_dl_nr_to_str(dci_dl, str.data(), str.size());
       logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
     }
 

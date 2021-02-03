@@ -13,6 +13,7 @@
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
 #include "srslte/phy/phch/ra_dl_nr.h"
+#include "srslte/phy/phch/ra_ul_nr.h"
 #include "srslte/phy/utils/debug.h"
 
 typedef struct {
@@ -215,7 +216,6 @@ static ra_nr_table_t ra_nr_select_table(srslte_mcs_table_t         mcs_table,
                                         srslte_search_space_type_t search_space_type,
                                         srslte_rnti_type_t         rnti_type)
 {
-
   // Check if it is a PUSCH transmission
   if (dci_format == srslte_dci_format_nr_0_0 || dci_format == srslte_dci_format_nr_0_1 ||
       dci_format == srslte_dci_format_nr_rar || dci_format == srslte_dci_format_nr_cg) {
@@ -455,16 +455,15 @@ int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
   return SRSLTE_SUCCESS;
 }
 
-static int ra_dl_dmrs(const srslte_pdsch_cfg_nr_t* pdsch_hl_cfg,
-                      srslte_sch_grant_nr_t*       pdsch_grant,
-                      srslte_dmrs_sch_cfg_t*       dmrs_cfg)
+static int ra_dl_dmrs(const srslte_sch_hl_cfg_nr_t* pdsch_hl_cfg,
+                      srslte_sch_grant_nr_t*        pdsch_grant,
+                      srslte_dmrs_sch_cfg_t*        dmrs_cfg)
 {
   const bool dedicated_dmrs_present = (pdsch_grant->mapping == srslte_sch_mapping_type_A)
-                                          ? pdsch_hl_cfg->dmrs_typeA_present
-                                          : pdsch_hl_cfg->dmrs_typeB_present;
+                                          ? pdsch_hl_cfg->dmrs_typeA.present
+                                          : pdsch_hl_cfg->dmrs_typeB.present;
 
   if (pdsch_grant->dci_format == srslte_dci_format_nr_1_0 || !dedicated_dmrs_present) {
-
     if (pdsch_grant->mapping == srslte_sch_mapping_type_A) {
       // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
       dmrs_cfg->additional_pos         = srslte_dmrs_sch_add_pos_2;
@@ -490,11 +489,11 @@ static int ra_dl_dmrs(const srslte_pdsch_cfg_nr_t* pdsch_hl_cfg,
   return SRSLTE_ERROR;
 }
 
-int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*   carrier,
-                                 const srslte_pdsch_cfg_nr_t* pdsch_hl_cfg,
-                                 const srslte_dci_dl_nr_t*    dci_dl,
-                                 srslte_sch_cfg_nr_t*         pdsch_cfg,
-                                 srslte_sch_grant_nr_t*       pdsch_grant)
+int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
+                                 const srslte_sch_hl_cfg_nr_t* pdsch_hl_cfg,
+                                 const srslte_dci_dl_nr_t*     dci_dl,
+                                 srslte_sch_cfg_nr_t*          pdsch_cfg,
+                                 srslte_sch_grant_nr_t*        pdsch_grant)
 {
   // 5.2.1.1 Resource allocation in time domain
   if (srslte_ra_dl_nr_time(pdsch_hl_cfg,
@@ -529,6 +528,52 @@ int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*   carrier,
 
   // 5.1.3 Modulation order, target code rate, redundancy version and transport block size determination
   if (srslte_ra_nr_fill_tb(pdsch_cfg, pdsch_grant, dci_dl->mcs, &pdsch_grant->tb[0]) < SRSLTE_SUCCESS) {
+    ERROR("Error filing tb\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
+                                 const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg,
+                                 const srslte_dci_ul_nr_t*     dci_ul,
+                                 srslte_sch_cfg_nr_t*          pusch_cfg,
+                                 srslte_sch_grant_nr_t*        pusch_grant)
+{
+  // 5.2.1.1 Resource allocation in time domain
+  if (srslte_ra_dl_nr_time(pusch_hl_cfg,
+                           dci_ul->rnti_type,
+                           dci_ul->search_space,
+                           dci_ul->coreset_id,
+                           dci_ul->time_domain_assigment,
+                           pusch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error computing time domain resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+
+  // 5.1.2.2 Resource allocation in frequency domain
+  if (srslte_ra_ul_nr_freq(carrier, pusch_hl_cfg, dci_ul, pusch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error computing frequency domain resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+
+  // 5.1.2.3 Physical resource block (PRB) bundling
+  // ...
+
+  pusch_grant->nof_layers = 1;
+  pusch_grant->dci_format = dci_ul->format;
+  pusch_grant->rnti       = dci_ul->rnti;
+  pusch_grant->rnti_type  = dci_ul->rnti_type;
+
+  // 5.1.6.2 DM-RS reception procedure
+  if (ra_dl_dmrs(pusch_hl_cfg, pusch_grant, &pusch_cfg->dmrs) < SRSLTE_SUCCESS) {
+    ERROR("Error selecting DMRS configuration");
+    return SRSLTE_ERROR;
+  }
+
+  // 5.1.3 Modulation order, target code rate, redundancy version and transport block size determination
+  if (srslte_ra_nr_fill_tb(pusch_cfg, pusch_grant, dci_ul->mcs, &pusch_grant->tb[0]) < SRSLTE_SUCCESS) {
     ERROR("Error filing tb\n");
     return SRSLTE_ERROR;
   }

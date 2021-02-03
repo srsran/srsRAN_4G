@@ -29,7 +29,7 @@ typedef struct {
 } phy_nr_args_t;
 
 typedef struct {
-  srslte_pdsch_cfg_nr_t pdsch;
+  srslte_sch_hl_cfg_nr_t pdsch;
   srslte_prach_cfg_t    prach;
   srslte_ue_dl_nr_cfg_t pdcch;
 } phy_nr_cfg_t;
@@ -128,11 +128,11 @@ public:
     //                PDSCH-TimeDomainResourceAllocation
     //                    mappingType: typeA (0)
     //                    startSymbolAndLength: 57
-    cfg.pdsch.common_pdsch_time_ra[0].mapping_type = srslte_sch_mapping_type_A;
-    cfg.pdsch.common_pdsch_time_ra[0].sliv         = 40;
-    cfg.pdsch.common_pdsch_time_ra[1].mapping_type = srslte_sch_mapping_type_A;
-    cfg.pdsch.common_pdsch_time_ra[1].sliv         = 57;
-    cfg.pdsch.nof_common_pdsch_time_ra             = 2;
+    cfg.pdsch.common_time_ra[0].mapping_type = srslte_sch_mapping_type_A;
+    cfg.pdsch.common_time_ra[0].sliv         = 40;
+    cfg.pdsch.common_time_ra[1].mapping_type = srslte_sch_mapping_type_A;
+    cfg.pdsch.common_time_ra[1].sliv         = 57;
+    cfg.pdsch.nof_common_time_ra             = 2;
   }
 };
 } // namespace nr

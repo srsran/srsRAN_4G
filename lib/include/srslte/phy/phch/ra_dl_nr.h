@@ -33,7 +33,7 @@
  * @remark Defined by TS 38.214 V15.10.0 section 5.1.2.1.1 Determination of the resource allocation table to be used for
  * PDSCH
  *
- * @param pdsch_cfg Flattened PDSCH configuration provided from higher layers
+ * @param cfg Flattened PDSCH configuration provided from higher layers
  * @param rnti_type Type of the RNTI of the corresponding DCI
  * @param ss_type Type of the SS for PDCCH
  * @param coreset_id CORESET identifier associated with the PDCCH transmission
@@ -41,7 +41,7 @@
  * @param[out] Provides grant pointer to fill
  * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_ra_dl_nr_time(const srslte_pdsch_cfg_nr_t*     cfg,
+SRSLTE_API int srslte_ra_dl_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
                                     const srslte_rnti_type_t         rnti_type,
                                     const srslte_search_space_type_t ss_type,
                                     const uint32_t                   coreset_id,
@@ -84,9 +84,9 @@ SRSLTE_API int srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(const
  * @param[out] grant Provides grant pointer to fill
  * @return SRSLTE_SUCCESS if the provided data is valid, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*   carrier,
-                                    const srslte_pdsch_cfg_nr_t* cfg,
-                                    const srslte_dci_dl_nr_t*    dci_dl,
-                                    srslte_sch_grant_nr_t*       grant);
+SRSLTE_API int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*    carrier,
+                                    const srslte_sch_hl_cfg_nr_t* cfg,
+                                    const srslte_dci_dl_nr_t*     dci_dl,
+                                    srslte_sch_grant_nr_t*        grant);
 
 #endif // SRSLTE_RA_DL_NR_H

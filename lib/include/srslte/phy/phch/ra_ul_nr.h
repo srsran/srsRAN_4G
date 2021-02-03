@@ -13,9 +13,58 @@
 #ifndef SRSLTE_RA_UL_NR_H
 #define SRSLTE_RA_UL_NR_H
 
+#include "dci_nr.h"
 #include "srslte/config.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 #include "srslte/phy/phch/pucch_cfg_nr.h"
 #include "uci_cfg_nr.h"
+
+/**
+ * @brief Calculates the PUSCH time resource allocation and stores it in the provided PUSCH NR grant.
+ *
+ * @remark Defined by TS 38.214 V15.10.0 section 6.1.2.1.1 Determination of the resource allocation table to be used for
+ * PUSCH
+ *
+ * @param cfg Flattened PUSCH configuration provided from higher layers
+ * @param rnti_type Type of the RNTI of the corresponding DCI
+ * @param ss_type Type of the SS for PDCCH
+ * @param coreset_id CORESET identifier associated with the PDCCH transmission
+ * @param m Time domain resource assignment field value m provided in DCI
+ * @param[out] Provides grant pointer to fill
+ * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
+                                    const srslte_rnti_type_t         rnti_type,
+                                    const srslte_search_space_type_t ss_type,
+                                    const uint32_t                   coreset_id,
+                                    const uint8_t                    m,
+                                    srslte_sch_grant_nr_t*           grant);
+
+/**
+ * @brief Calculates the PUSCH time resource default A and stores it in the provided PUSCH NR grant.
+ *
+ * @remark Defined by TS 38.214 V15.10.0 Table 6.1.2.1.1-2: Default PUSCH time domain resource allocation A for normal
+ * CP
+ *
+ * @param scs_cfg Sub-carrier spacing configuration for PUSCH (μ)
+ * @param m Time domain resource assignment field value m of the DCI
+ * @param[out] grant PUSCH grant
+ * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
+ */
+SRSLTE_API int
+srslte_ra_ul_nr_pdsch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srslte_sch_grant_nr_t* grant);
+
+/**
+ * @brief Calculates the number of PUSCH-DMRS CDM groups without data for DCI format 0_0
+ *
+ * @remark Defined by TS 38.214 V15.10.0 6.2.2 UE DM-RS transmission procedure
+ *
+ * @param cfg PUSCH NR configuration by upper layers
+ * @param[out] grant Provides grant pointer to fill
+ * @return Returns SRSLTE_SUCCESS if the provided data is valid, otherwise it returns SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srslte_sch_cfg_nr_t* cfg,
+                                                                           srslte_sch_grant_nr_t*     grant);
 
 /**
  * @brief Calculates the minimum number of PRB required for transmitting NR-PUCCH Format 2, 3 or 4
@@ -24,5 +73,20 @@
  */
 SRSLTE_API int srslte_ra_ul_nr_pucch_format_2_3_min_prb(const srslte_pucch_nr_resource_t* resource,
                                                         const srslte_uci_cfg_nr_t*        uci_cfg);
+
+/**
+ * @brief Calculates the PUSCH frequency resource allocation and stores it in the provided PUSCH NR grant.
+ *
+ * @remark Defined by TS 38.214 V15.10.0 section 5.1.2.2
+ * @param carrier Carrier information
+ * @param cfg PDSCH NR configuration by upper layers
+ * @param dci_dl Unpacked DCI used to schedule the PDSCH grant
+ * @param[out] grant Provides grant pointer to fill
+ * @return SRSLTE_SUCCESS if the provided data is valid, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_ra_ul_nr_freq(const srslte_carrier_nr_t*    carrier,
+                                    const srslte_sch_hl_cfg_nr_t* cfg,
+                                    const srslte_dci_ul_nr_t*     dci_ul,
+                                    srslte_sch_grant_nr_t*        grant);
 
 #endif // SRSLTE_RA_UL_NR_H

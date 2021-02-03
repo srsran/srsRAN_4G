@@ -10,20 +10,8 @@
  *
  */
 #include "srslte/phy/phch/ra_dl_nr.h"
+#include "ra_helper.h"
 #include "srslte/phy/utils/debug.h"
-
-static void compute_s_and_l(uint32_t N, uint32_t v, uint32_t* S, uint32_t* L)
-{
-  uint32_t low  = v % N;
-  uint32_t high = v / N;
-  if (high + 1 + low <= N) {
-    *S = low;
-    *L = high + 1;
-  } else {
-    *S = N - 1 - low;
-    *L = N - high + 1;
-  }
-}
 
 // Validate S and L combination for TypeA time domain resource allocation
 static bool check_time_ra_typeA(uint32_t* S, uint32_t* L)
@@ -108,7 +96,6 @@ int srslte_ra_dl_nr_time_default_A(uint32_t m, srslte_dmrs_sch_typeA_pos_t dmrs_
 
   // Select start symbol (S) and length (L)
   switch (dmrs_typeA_pos) {
-
     case srslte_dmrs_sch_typeA_pos_2:
       grant->S = S_pos2[m];
       grant->L = L_pos2[m];
@@ -125,23 +112,22 @@ int srslte_ra_dl_nr_time_default_A(uint32_t m, srslte_dmrs_sch_typeA_pos_t dmrs_
   return SRSLTE_SUCCESS;
 }
 
-void srslte_ra_dl_nr_time_hl(const srslte_pdsch_time_ra_t* hl_ra_cfg, srslte_sch_grant_nr_t* grant)
+static void ra_dl_nr_time_hl(const srslte_sch_time_ra_t* hl_ra_cfg, srslte_sch_grant_nr_t* grant)
 {
   // Compute S and L from SLIV from higher layers
-  compute_s_and_l(SRSLTE_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
+  ra_helper_compute_s_and_l(SRSLTE_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
-  grant->k0      = hl_ra_cfg->k0;
+  grant->k0      = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
 }
 
-int srslte_ra_dl_nr_time(const srslte_pdsch_cfg_nr_t*     cfg,
+int srslte_ra_dl_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
                          const srslte_rnti_type_t         rnti_type,
                          const srslte_search_space_type_t ss_type,
                          const uint32_t                   coreset_id,
                          const uint8_t                    m,
                          srslte_sch_grant_nr_t*           grant)
 {
-
   if (cfg == NULL || grant == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -161,8 +147,8 @@ int srslte_ra_dl_nr_time(const srslte_pdsch_cfg_nr_t*     cfg,
   } else if ((rnti_type == srslte_rnti_type_ra || rnti_type == srslte_rnti_type_tc) &&
              ss_type == srslte_search_space_type_common_1) {
     // Row 3
-    if (cfg->nof_common_pdsch_time_ra > 0) {
-      srslte_ra_dl_nr_time_hl(&cfg->common_pdsch_time_ra[m], grant);
+    if (cfg->nof_common_time_ra > 0) {
+      ra_dl_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
       // Note: Only Default A is supported, which corresponds SS/PBCH block and coreset mux pattern 1
       srslte_ra_dl_nr_time_default_A(m, cfg->typeA_pos, grant);
@@ -174,8 +160,8 @@ int srslte_ra_dl_nr_time(const srslte_pdsch_cfg_nr_t*     cfg,
               rnti_type == srslte_rnti_type_cs) &&
              SRSLTE_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id == 0) {
     // Row 5
-    if (cfg->nof_common_pdsch_time_ra > 0) {
-      srslte_ra_dl_nr_time_hl(&cfg->common_pdsch_time_ra[m], grant);
+    if (cfg->nof_common_time_ra > 0) {
+      ra_dl_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
       srslte_ra_dl_nr_time_default_A(m, cfg->typeA_pos, grant);
     }
@@ -183,10 +169,10 @@ int srslte_ra_dl_nr_time(const srslte_pdsch_cfg_nr_t*     cfg,
               rnti_type == srslte_rnti_type_cs) &&
              ((SRSLTE_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id != 0) || ss_type == srslte_search_space_type_ue)) {
     // Row 6
-    if (cfg->nof_pdsch_time_ra > 0) {
-      srslte_ra_dl_nr_time_hl(&cfg->pdsch_time_ra[m], grant);
-    } else if (cfg->nof_common_pdsch_time_ra > 0) {
-      srslte_ra_dl_nr_time_hl(&cfg->common_pdsch_time_ra[m], grant);
+    if (cfg->nof_dedicated_time_ra > 0) {
+      ra_dl_nr_time_hl(&cfg->dedicated_time_ra[m], grant);
+    } else if (cfg->nof_common_time_ra > 0) {
+      ra_dl_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
       srslte_ra_dl_nr_time_default_A(m, cfg->typeA_pos, grant);
     }
@@ -239,10 +225,10 @@ uint32_t srslte_ra_dl_nr_type0_P(uint32_t bwp_size, bool config_is_1)
   }
 }
 
-static int ra_freq_type0(const srslte_carrier_nr_t*   carrier,
-                         const srslte_pdsch_cfg_nr_t* cfg,
-                         const srslte_dci_dl_nr_t*    dci_dl,
-                         srslte_sch_grant_nr_t*       grant)
+static int ra_freq_type0(const srslte_carrier_nr_t*    carrier,
+                         const srslte_sch_hl_cfg_nr_t* cfg,
+                         const srslte_dci_dl_nr_t*     dci_dl,
+                         srslte_sch_grant_nr_t*        grant)
 {
   uint32_t P = srslte_ra_dl_nr_type0_P(carrier->nof_prb, cfg->rbg_size_cfg_1);
 
@@ -268,44 +254,11 @@ static int ra_freq_type0(const srslte_carrier_nr_t*   carrier,
   return 0;
 }
 
-static int
-ra_freq_type1(const srslte_carrier_nr_t* carrier, const srslte_dci_dl_nr_t* dci_dl, srslte_sch_grant_nr_t* grant)
+int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*    carrier,
+                         const srslte_sch_hl_cfg_nr_t* cfg,
+                         const srslte_dci_dl_nr_t*     dci_dl,
+                         srslte_sch_grant_nr_t*        grant)
 {
-
-  uint32_t riv        = dci_dl->freq_domain_assigment;
-  uint32_t N_bwp_size = carrier->nof_prb;
-
-  uint32_t start = 0;
-  uint32_t len   = 0;
-  compute_s_and_l(N_bwp_size, riv, &start, &len);
-
-  if (start + len > N_bwp_size) {
-    ERROR("RIV 0x%x for BWP size %d resulted in freq=%d:%d\n", riv, N_bwp_size, start, len);
-    return SRSLTE_ERROR;
-  }
-
-  for (uint32_t i = 0; i < start; i++) {
-    grant->prb_idx[i] = false;
-  }
-
-  for (uint32_t i = start; i < start + len; i++) {
-    grant->prb_idx[i] = true;
-  }
-
-  for (uint32_t i = start + len; i < SRSLTE_MAX_PRB_NR; i++) {
-    grant->prb_idx[i] = false;
-  }
-  grant->nof_prb = len;
-
-  return SRSLTE_SUCCESS;
-}
-
-int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*   carrier,
-                         const srslte_pdsch_cfg_nr_t* cfg,
-                         const srslte_dci_dl_nr_t*    dci_dl,
-                         srslte_sch_grant_nr_t*       grant)
-{
-
   if (cfg == NULL || grant == NULL || dci_dl == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -313,7 +266,7 @@ int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*   carrier,
   // RA scheme
   if (dci_dl->format == srslte_dci_format_nr_1_0) {
     // when the scheduling grant is received with DCI format 1_0 , then downlink resource allocation type 1 is used.
-    return ra_freq_type1(carrier, dci_dl, grant);
+    return ra_helper_freq_type1(carrier->nof_prb, dci_dl->freq_domain_assigment, grant);
   }
 
   ra_freq_type0(carrier, cfg, dci_dl, grant);

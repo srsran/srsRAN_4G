@@ -143,6 +143,7 @@ typedef enum SRSLTE_API {
   srslte_search_space_type_common_2,     ///< configured by pagingSearchSpace in PDCCH-ConfigCommon
   srslte_search_space_type_common_3,     ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = common
   srslte_search_space_type_ue, ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = ue-Specific
+  srslte_search_space_rar      ///< No search space associated, used for grants given by Random Access Response (RAR)
 } srslte_search_space_type_t;
 
 /**
