@@ -262,23 +262,27 @@ bool nas::is_registered()
  ******************************************************************************/
 bool nas::switch_on()
 {
+  logger.info("Switching on");
   state.set_deregistered(emm_state_t::deregistered_substate_t::plmn_search);
   return true;
 }
 
 bool nas::switch_off()
 {
+  logger.info("Switching off");
   detach_request(true);
   return true;
 }
 
 bool nas::enable_data()
 {
+  logger.info("Enabling data services");
   return switch_on();
 }
 
 bool nas::disable_data()
 {
+  logger.info("Disabling data services");
   detach_request(false);
   return true;
 }
