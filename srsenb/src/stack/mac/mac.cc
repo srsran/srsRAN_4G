@@ -79,13 +79,8 @@ bool mac::init(const mac_args_t&        args_,
 
     reset();
 
-    try {
-      // Pre-alloc UE objects for first attaching users
-      prealloc_ue(10);
-    }catch(const std::bad_alloc& e){
-      perror("Error allocating data during the ue prealloc");
-      return false;
-    }
+    // Pre-alloc UE objects for first attaching users
+    prealloc_ue(10);
 
     detected_rachs.resize(cells.size());
 
@@ -815,9 +810,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid    = current_lcid;
-      mch.pdu[0].nbytes  = bytes_received;
+      int bytes_received  = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid     = current_lcid;
+      mch.pdu[0].nbytes   = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSLTE_MRNTI;
       if (bytes_received) {
@@ -904,7 +899,6 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
       phy_ul_sched_res->nof_grants = 0;
       int n                        = 0;
       for (uint32_t i = 0; i < sched_result.nof_dci_elems; i++) {
-
         if (sched_result.pusch[i].tbs > 0) {
           // Get UE
           uint16_t rnti = sched_result.pusch[i].dci.rnti;

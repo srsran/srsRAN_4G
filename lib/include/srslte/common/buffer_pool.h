@@ -53,7 +53,11 @@ public:
     pthread_mutex_init(&mutex, nullptr);
     pthread_cond_init(&cv_not_empty, nullptr);
     for (uint32_t i = 0; i < nof_buffers; i++) {
-      buffer_t* b = new buffer_t;
+      buffer_t* b = new (std::nothrow) buffer_t;
+      if (!b) {
+        perror("Error allocating memory. Exiting...\n");
+        exit(-1);
+      }
       available.push(b);
     }
     capacity = nof_buffers;
