@@ -15,6 +15,7 @@
 
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/common.h"
+#include "srslte/interfaces/ue_nr_interfaces.h"
 #include "srslte/srslte.h"
 #include <array>
 #include <mutex>
@@ -38,10 +39,11 @@ typedef struct {
 class state
 {
 public:
-  srslte_carrier_nr_t carrier   = {};
-  phy_nr_args_t       args      = {};
-  phy_nr_cfg_t        cfg       = {};
-  int32_t             test_rnti = 0x1234; // Fix PDSCH RNTI for testing
+  mac_interface_phy_nr* stack     = nullptr;
+  srslte_carrier_nr_t   carrier   = {};
+  phy_nr_args_t         args      = {};
+  phy_nr_cfg_t          cfg       = {};
+  int32_t               test_rnti = 0x1234; // Fix PDSCH RNTI for testing
 
   state()
   {

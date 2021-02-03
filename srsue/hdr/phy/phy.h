@@ -86,6 +86,8 @@ public:
   // Init for LTE PHYs
   int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_) final;
 
+  int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_);
+
   void stop() final;
 
   void wait_initialize() final;
@@ -180,7 +182,7 @@ private:
   const static int SF_RECV_THREAD_PRIO = 0;
   const static int WORKERS_THREAD_PRIO = 2;
 
-  srslte::radio_interface_phy* radio  = nullptr;
+  srslte::radio_interface_phy* radio = nullptr;
   srslog::sink&                log_sink;
 
   srslog::basic_logger&           logger_phy;

@@ -97,6 +97,17 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       ret = SRSLTE_ERROR;
     }
 
+    srsue::phy_args_nr_t phy_args_nr = {};
+    phy_args_nr.nof_prb              = args.phy.nr_nof_prb;
+    phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
+    phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;
+    phy_args_nr.worker_cpu_mask      = args.phy.worker_cpu_mask;
+    phy_args_nr.log                  = args.phy.log;
+    if (lte_phy->init(phy_args_nr, lte_stack.get(), lte_radio.get())) {
+      srslte::console("Error initializing NR PHY.\n");
+      ret = SRSLTE_ERROR;
+    }
+
     if (lte_stack->init(args.stack, old_logger, lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;

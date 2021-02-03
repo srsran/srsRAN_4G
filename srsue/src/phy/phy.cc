@@ -106,6 +106,15 @@ int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::
   return SRSLTE_SUCCESS;
 }
 
+int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_)
+{
+  if (!nr_workers.init(args_, &common, stack_, log_sink, WORKERS_THREAD_PRIO)) {
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int phy::init(const phy_args_t& args_)
 {
   std::unique_lock<std::mutex> lock(config_mutex);
@@ -148,7 +157,6 @@ void phy::run_thread()
 
   // Initialise workers
   lte_workers.init(&common, log_sink, WORKERS_THREAD_PRIO);
-  nr_workers.init(&common, log_sink, WORKERS_THREAD_PRIO);
 
   // Warning this must be initialized after all workers have been added to the pool
   sfsync.init(

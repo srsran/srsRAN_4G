@@ -48,7 +48,6 @@ private:
 
   // Temporal attributes
   srslte_softbuffer_rx_t softbuffer_rx = {};
-  std::vector<uint8_t>   data;
 };
 
 } // namespace nr

@@ -16,15 +16,21 @@ namespace nr {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
-bool worker_pool::init(phy_common* common, srslog::sink& log_sink, int prio)
+bool worker_pool::init(const phy_args_nr_t&    args,
+                       phy_common*             common,
+                       stack_interface_phy_nr* stack_,
+                       srslog::sink&           log_sink,
+                       int                     prio)
 {
+  phy_state.stack = stack_;
+
   // Set carrier attributes
   phy_state.carrier.id      = 500;
-  phy_state.carrier.nof_prb = common->args->nr_nof_prb;
+  phy_state.carrier.nof_prb = args.nof_prb;
 
   // Set NR arguments
-  phy_state.args.nof_carriers   = common->args->nof_nr_carriers;
-  phy_state.args.dl.nof_max_prb = common->args->nr_nof_prb;
+  phy_state.args.nof_carriers   = args.nof_carriers;
+  phy_state.args.dl.nof_max_prb = args.nof_prb;
 
   // Skip init of workers if no NR carriers
   if (phy_state.args.nof_carriers == 0) {
@@ -32,13 +38,13 @@ bool worker_pool::init(phy_common* common, srslog::sink& log_sink, int prio)
   }
 
   // Add workers to workers pool and start threads
-  for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
+  for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
     auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}", i), log_sink);
-    log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
-    log.set_hex_dump_max_size(common->args->log.phy_hex_limit);
+    log.set_level(srslog::str_to_basic_level(args.log.phy_level));
+    log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
     auto w = new sf_worker(common, &phy_state, log);
-    pool.init_worker(i, w, prio, common->args->worker_cpu_mask);
+    pool.init_worker(i, w, prio, args.worker_cpu_mask);
     workers.push_back(std::unique_ptr<sf_worker>(w));
 
     if (not w->set_carrier_unlocked(0, &phy_state.carrier)) {

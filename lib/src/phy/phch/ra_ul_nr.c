@@ -173,7 +173,7 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
   // subcarrier spacing μ PUSCH is applied in addition to the K 2 value.
   if (ss_type == srslte_search_space_rar) {
     uint32_t delta[4] = {2, 3, 4, 6};
-    if (cfg->scs_cfg <= 4) {
+    if (cfg->scs_cfg >= 4) {
       ERROR("Invalid numerology");
       return SRSLTE_ERROR;
     }
