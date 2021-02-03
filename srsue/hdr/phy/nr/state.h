@@ -30,8 +30,9 @@ typedef struct {
 
 typedef struct {
   srslte_sch_hl_cfg_nr_t pdsch;
-  srslte_prach_cfg_t    prach;
-  srslte_ue_dl_nr_cfg_t pdcch;
+  srslte_sch_hl_cfg_nr_t pusch;
+  srslte_prach_cfg_t     prach;
+  srslte_ue_dl_nr_cfg_t  pdcch;
 } phy_nr_cfg_t;
 
 class state
@@ -130,9 +131,33 @@ public:
     //                    startSymbolAndLength: 57
     cfg.pdsch.common_time_ra[0].mapping_type = srslte_sch_mapping_type_A;
     cfg.pdsch.common_time_ra[0].sliv         = 40;
+    cfg.pdsch.common_time_ra[0].k            = 0;
     cfg.pdsch.common_time_ra[1].mapping_type = srslte_sch_mapping_type_A;
     cfg.pdsch.common_time_ra[1].sliv         = 57;
+    cfg.pdsch.common_time_ra[1].k            = 0;
     cfg.pdsch.nof_common_time_ra             = 2;
+
+    // pusch-ConfigCommon: setup (1)
+    //    setup
+    //        pusch-TimeDomainAllocationList: 2 items
+    //            Item 0
+    //                PUSCH-TimeDomainResourceAllocation
+    //                    k2: 4
+    //                    mappingType: typeA (0)
+    //                    startSymbolAndLength: 27
+    //            Item 1
+    //                PUSCH-TimeDomainResourceAllocation
+    //                    k2: 5
+    //                    mappingType: typeA (0)
+    //                    startSymbolAndLength: 27
+    //        p0-NominalWithGrant: -90dBm
+    cfg.pusch.common_time_ra[0].mapping_type = srslte_sch_mapping_type_A;
+    cfg.pusch.common_time_ra[0].sliv         = 27;
+    cfg.pusch.common_time_ra[0].k            = 4;
+    cfg.pusch.common_time_ra[1].mapping_type = srslte_sch_mapping_type_A;
+    cfg.pusch.common_time_ra[1].sliv         = 27;
+    cfg.pusch.common_time_ra[1].k            = 5;
+    cfg.pusch.nof_common_time_ra             = 2;
   }
 };
 } // namespace nr
