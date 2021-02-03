@@ -97,6 +97,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       ret = SRSLTE_ERROR;
     }
 
+#ifdef HAVE_5GNR
     srsue::phy_args_nr_t phy_args_nr = {};
     phy_args_nr.nof_prb              = args.phy.nr_nof_prb;
     phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
@@ -107,6 +108,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       srslte::console("Error initializing NR PHY.\n");
       ret = SRSLTE_ERROR;
     }
+#endif // HAVE_5GNR
 
     if (lte_stack->init(args.stack, old_logger, lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
