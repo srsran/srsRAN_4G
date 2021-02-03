@@ -639,9 +639,15 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
       }
     }
 
+    // Check if TB is all zeros
+    bool all_zeros = true;
+    for (uint32_t i = 0; i < tb->tbs && all_zeros; i++) {
+      all_zeros = (data[i] == 0);
+    }
+
     // Calculate TB CRC from packed data
     uint32_t checksum1 = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
-    *crc_ok            = (checksum1 == checksum2);
+    *crc_ok            = (checksum1 == checksum2 && !all_zeros);
 
     SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
