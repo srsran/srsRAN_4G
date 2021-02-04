@@ -39,6 +39,7 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     q->socket_type   = opts.socket_type;
     q->sample_format = opts.sample_format;
     q->frequency_mhz = opts.frequency_mhz;
+    q->sample_offset = opts.sample_offset;
 
     rf_zmq_info(q->id, "Binding transmitter: %s\n", sock_args);
 
@@ -178,6 +179,19 @@ int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
   int n;
 
   pthread_mutex_lock(&q->mutex);
+
+  if (q->sample_offset > 0) {
+    _rf_zmq_tx_baseband(q, q->zeros, (uint32_t)q->sample_offset);
+    q->sample_offset = 0;
+  } else if (q->sample_offset < 0) {
+    n = SRSLTE_MIN(-q->sample_offset, nsamples);
+    buffer += n;
+    nsamples -= n;
+    q->sample_offset += n;
+    if (nsamples == 0) {
+      return n;
+    }
+  }
 
   n = _rf_zmq_tx_baseband(q, buffer, nsamples);
 

@@ -307,6 +307,9 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       parse_double(args, "tx_freq", i, &tx_freq);
       tx_opts.frequency_mhz = (uint32_t)(tx_freq / 1e6);
 
+      // tx_offset
+      parse_int32(args, "tx_offset", i, &tx_opts.sample_offset);
+
       // fail_on_disconnect
       char tmp[RF_PARAM_LEN] = {};
       parse_string(args, "fail_on_disconnect", i, tmp);

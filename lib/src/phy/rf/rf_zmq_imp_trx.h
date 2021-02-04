@@ -42,6 +42,7 @@ typedef struct {
   cf_t*           zeros;
   void*           temp_buffer_convert;
   uint32_t        frequency_mhz;
+  int32_t         sample_offset;
 } rf_zmq_tx_t;
 
 typedef struct {
