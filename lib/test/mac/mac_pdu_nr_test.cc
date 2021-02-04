@@ -523,44 +523,85 @@ int mac_ul_sch_pdu_unpack_test5()
   return SRSLTE_SUCCESS;
 }
 
-int mac_ul_sch_pdu_unpack_test6()
+int mac_dl_sch_pdu_unpack_and_pack_test6()
 {
   // MAC PDU with UL-SCH: CRNTI, SE PHR, SBDR and padding
 
-  // CRNTI:4601 SE PHR:ph=63 pc=52 SBSR: lcg=6 bs=0 PAD: len=0
+  // CRNTI:0x4601 SE PHR:ph=63 pc=52 SBSR: lcg=6 bs=0 PAD: len=0
   uint8_t tv[] = {0x3a, 0x46, 0x01, 0x39, 0x3f, 0x34, 0x3d, 0xc0, 0x3f};
+
+  const uint16_t TV_CRNTI     = 0x4601;
+  const uint8_t  TV_PHR       = 63;
+  const uint8_t  TV_PC        = 52;
+  const uint8_t  TV_LCG       = 6;
+  const uint8_t  TV_BUFF_SIZE = 0;
 
   if (pcap_handle) {
     pcap_handle->write_ul_crnti_nr(tv, sizeof(tv), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_sch_pdu_nr pdu(true);
-  pdu.unpack(tv, sizeof(tv));
-  TESTASSERT(pdu.get_num_subpdus() == 4);
+  // Unpack TV
+  {
+    srslte::mac_sch_pdu_nr pdu_rx(true);
+    pdu_rx.unpack(tv, sizeof(tv));
+    TESTASSERT(pdu_rx.get_num_subpdus() == 4);
 
-  // 1st C-RNTI
-  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
-  TESTASSERT(subpdu.get_total_length() == 3);
-  TESTASSERT(subpdu.get_sdu_length() == 2);
-  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::CRNTI);
-  TESTASSERT(subpdu.get_c_rnti() == 0x4601);
+    // 1st C-RNTI
+    mac_sch_subpdu_nr subpdu = pdu_rx.get_subpdu(0);
+    TESTASSERT(subpdu.get_total_length() == 3);
+    TESTASSERT(subpdu.get_sdu_length() == 2);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::CRNTI);
+    TESTASSERT(subpdu.get_c_rnti() == TV_CRNTI);
 
-  // 2nd subPDU is SE PHR
-  subpdu = pdu.get_subpdu(1);
-  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SE_PHR);
-  TESTASSERT(subpdu.get_phr() == 63);
-  TESTASSERT(subpdu.get_pcmax() == 52);
+    // 2nd subPDU is SE PHR
+    subpdu = pdu_rx.get_subpdu(1);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SE_PHR);
+    TESTASSERT(subpdu.get_phr() == TV_PHR);
+    TESTASSERT(subpdu.get_pcmax() == TV_PC);
 
-  // 3rd subPDU is SBSR
-  subpdu = pdu.get_subpdu(2);
-  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SHORT_BSR);
-  mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
-  TESTASSERT(sbsr.lcg_id == 6);
-  TESTASSERT(sbsr.buffer_size == 0);
+    // 3rd subPDU is SBSR
+    subpdu = pdu_rx.get_subpdu(2);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SHORT_BSR);
+    mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
+    TESTASSERT(sbsr.lcg_id == TV_LCG);
+    TESTASSERT(sbsr.buffer_size == TV_BUFF_SIZE);
 
-  // 4th is padding
-  subpdu = pdu.get_subpdu(3);
-  TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+    // 4th is padding
+    subpdu = pdu_rx.get_subpdu(3);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+  }
+
+  // Let's pack the entire PDU again
+  {
+    byte_buffer_t          tx_buffer;
+    srslte::mac_sch_pdu_nr pdu_tx(true);
+
+    pdu_tx.init_tx(&tx_buffer, sizeof(tv), true); // same size as TV
+
+    TESTASSERT(pdu_tx.get_remaing_len() == 9);
+    TESTASSERT(pdu_tx.add_crnti_ce(TV_CRNTI) == SRSLTE_SUCCESS);
+
+    TESTASSERT(pdu_tx.get_remaing_len() == 6);
+    TESTASSERT(pdu_tx.add_se_phr_ce(TV_PHR, TV_PC) == SRSLTE_SUCCESS);
+
+    TESTASSERT(pdu_tx.get_remaing_len() == 3);
+    mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
+    sbsr.lcg_id                       = TV_LCG;
+    sbsr.buffer_size                  = TV_BUFF_SIZE;
+    TESTASSERT(pdu_tx.add_sbsr_ce(sbsr) == SRSLTE_SUCCESS);
+    TESTASSERT(pdu_tx.get_remaing_len() == 1);
+
+    // finish PDU packing
+    pdu_tx.pack();
+
+    // compare PDUs
+    TESTASSERT(tx_buffer.N_bytes == sizeof(tv));
+    TESTASSERT(memcmp(tx_buffer.msg, tv, tx_buffer.N_bytes) == 0);
+
+    if (pcap_handle) {
+      pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    }
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -643,8 +684,8 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  if (mac_ul_sch_pdu_unpack_test6()) {
-    fprintf(stderr, "mac_ul_sch_pdu_unpack_test6() failed.\n");
+  if (mac_dl_sch_pdu_unpack_and_pack_test6()) {
+    fprintf(stderr, "mac_dl_sch_pdu_unpack_and_pack_test6() failed.\n");
     return SRSLTE_ERROR;
   }
 
