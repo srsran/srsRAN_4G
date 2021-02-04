@@ -88,11 +88,10 @@ static uint32_t dmrs_pucch_format1_n_pucch(const srslte_pucch_nr_resource_t* res
 int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
                                   const srslte_carrier_nr_t*          carrier,
                                   const srslte_pucch_nr_common_cfg_t* cfg,
-                                  const srslte_dl_slot_cfg_t*         slot,
+                                  const srslte_slot_cfg_t*            slot,
                                   const srslte_pucch_nr_resource_t*   resource,
                                   cf_t*                               slot_symbols)
 {
-
   if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -155,12 +154,11 @@ int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
 int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
                                        const srslte_carrier_nr_t*          carrier,
                                        const srslte_pucch_nr_common_cfg_t* cfg,
-                                       const srslte_dl_slot_cfg_t*         slot,
+                                       const srslte_slot_cfg_t*            slot,
                                        const srslte_pucch_nr_resource_t*   resource,
                                        const cf_t*                         slot_symbols,
                                        srslte_chest_ul_res_t*              res)
 {
-
   if (q == NULL || carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || slot_symbols == NULL ||
       res == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -288,7 +286,7 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
 
 static uint32_t dmrs_pucch_format2_cinit(const srslte_carrier_nr_t*          carrier,
                                          const srslte_pucch_nr_common_cfg_t* cfg,
-                                         const srslte_dl_slot_cfg_t*         slot,
+                                         const srslte_slot_cfg_t*            slot,
                                          uint32_t                            l)
 {
   uint32_t n    = SRSLTE_SLOT_NR_MOD(slot->idx, carrier->numerology);
@@ -300,7 +298,7 @@ static uint32_t dmrs_pucch_format2_cinit(const srslte_carrier_nr_t*          car
 int srslte_dmrs_pucch_format2_put(const srslte_pucch_nr_t*            q,
                                   const srslte_carrier_nr_t*          carrier,
                                   const srslte_pucch_nr_common_cfg_t* cfg,
-                                  const srslte_dl_slot_cfg_t*         slot,
+                                  const srslte_slot_cfg_t*            slot,
                                   const srslte_pucch_nr_resource_t*   resource,
                                   cf_t*                               slot_symbols)
 {
@@ -341,7 +339,7 @@ int srslte_dmrs_pucch_format2_put(const srslte_pucch_nr_t*            q,
 int srslte_dmrs_pucch_format2_estimate(const srslte_pucch_nr_t*            q,
                                        const srslte_carrier_nr_t*          carrier,
                                        const srslte_pucch_nr_common_cfg_t* cfg,
-                                       const srslte_dl_slot_cfg_t*         slot,
+                                       const srslte_slot_cfg_t*            slot,
                                        const srslte_pucch_nr_resource_t*   resource,
                                        const cf_t*                         slot_symbols,
                                        srslte_chest_ul_res_t*              res)

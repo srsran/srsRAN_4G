@@ -84,7 +84,7 @@ static int parse_args(int argc, char** argv)
 }
 
 static int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
-                       srslte_dl_slot_cfg_t*  slot,
+                       srslte_slot_cfg_t*     slot,
                        srslte_search_space_t* search_space,
                        srslte_dci_dl_nr_t*    dci_dl,
                        srslte_dci_location_t* dci_location,
@@ -120,7 +120,7 @@ static int work_gnb_dl(srslte_enb_dl_nr_t*    enb_dl,
   return SRSLTE_SUCCESS;
 }
 
-static int work_ue_dl(srslte_ue_dl_nr_t* ue_dl, srslte_dl_slot_cfg_t* slot, srslte_pdsch_res_nr_t* pdsch_res)
+static int work_ue_dl(srslte_ue_dl_nr_t* ue_dl, srslte_slot_cfg_t* slot, srslte_pdsch_res_nr_t* pdsch_res)
 {
   srslte_ue_dl_nr_estimate_fft(ue_dl, slot);
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv)
   srslte_ue_dl_nr_t     ue_dl                    = {};
   srslte_pdsch_res_nr_t pdsch_res[SRSLTE_MAX_TB] = {};
   srslte_random_t       rand_gen                 = srslte_random_init(1234);
-  srslte_dl_slot_cfg_t  slot                     = {};
+  srslte_slot_cfg_t     slot                     = {};
   struct timeval        t[3]                     = {};
   uint64_t              pdsch_encode_us          = 0;
   uint64_t              pdsch_decode_us          = 0;
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  srslte_ue_dl_nr_cfg_t pdcch_cfg = {};
+  srslte_ue_dl_nr_pdcch_cfg_t pdcch_cfg = {};
 
   // Configure CORESET
   srslte_coreset_t* coreset    = &pdcch_cfg.coreset[0];
@@ -222,7 +222,7 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  if (srslte_ue_dl_nr_set_config(&ue_dl, &pdcch_cfg)) {
+  if (srslte_ue_dl_nr_set_pdcch_config(&ue_dl, &pdcch_cfg)) {
     ERROR("Error setting CORESET\n");
     goto clean_exit;
   }
@@ -290,7 +290,6 @@ int main(int argc, char** argv)
   for (slot.idx = 0; slot.idx < nof_slots; slot.idx++) {
     for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
       for (mcs = mcs_start; mcs < mcs_end; mcs++, slot_count++) {
-
         for (uint32_t n = 0; n < SRSLTE_MAX_PRB_NR; n++) {
           pdsch_grant.prb_idx[n] = (n < n_prb);
         }

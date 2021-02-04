@@ -97,12 +97,12 @@ int main(int argc, char** argv)
   pusch_args.sch.disable_simd       = false;
   pusch_args.measure_evm            = true;
 
-  if (srslte_pusch_nr_init_enb(&pusch_tx, &pusch_args) < SRSLTE_SUCCESS) {
+  if (srslte_pusch_nr_init_ue(&pusch_tx, &pusch_args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating PUSCH for Tx\n");
     goto clean_exit;
   }
 
-  if (srslte_pusch_nr_init_ue(&pusch_rx, &pusch_args) < SRSLTE_SUCCESS) {
+  if (srslte_pusch_nr_init_gnb(&pusch_rx, &pusch_args) < SRSLTE_SUCCESS) {
     ERROR("Error initiating SCH NR for Rx\n");
     goto clean_exit;
   }

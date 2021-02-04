@@ -241,7 +241,7 @@ double srslte_ra_nr_R_from_mcs(srslte_mcs_table_t         mcs_table,
     case ra_nr_table_3:
       return srslte_ra_nr_R_from_mcs_table3(mcs_idx) / 1024.0;
     default:
-      ERROR("Invalid table %d\n", table);
+      ERROR("Invalid table %d", table);
   }
 
   return NAN;
@@ -263,7 +263,7 @@ srslte_mod_t srslte_ra_nr_mod_from_mcs(srslte_mcs_table_t         mcs_table,
     case ra_nr_table_3:
       return srslte_ra_nr_modulation_from_mcs_table3(mcs_idx);
     default:
-      ERROR("Invalid table %d\n", table);
+      ERROR("Invalid table %d", table);
   }
 
   return SRSLTE_MOD_NITEMS;
@@ -277,7 +277,7 @@ int srslte_ra_dl_nr_slot_nof_re(const srslte_sch_cfg_nr_t* pdsch_cfg, const srsl
   // the number of REs for DM-RS per PRB in the scheduled duration
   int n_prb_dmrs = srslte_dmrs_sch_get_N_prb(&pdsch_cfg->dmrs, grant);
   if (n_prb_dmrs < SRSLTE_SUCCESS) {
-    ERROR("Invalid number of DMRS RE\n");
+    ERROR("Invalid number of DMRS RE");
     return SRSLTE_ERROR;
   }
 
@@ -373,7 +373,7 @@ uint32_t srslte_ra_nr_tbs(uint32_t N_re, double S, double R, uint32_t Qm, uint32
   }
 
   if (nof_layers == 0) {
-    ERROR("Incorrect number of layers (%d). Setting to 1.\n", nof_layers);
+    ERROR("Incorrect number of layers (%d). Setting to 1.", nof_layers);
     nof_layers = 1;
   }
 
@@ -434,7 +434,7 @@ int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
   // 1) The UE shall first determine the number of REs (N RE ) within the slot.
   int N_re = srslte_ra_dl_nr_slot_nof_re(pdsch_cfg, grant);
   if (N_re <= SRSLTE_SUCCESS) {
-    ERROR("Invalid number of RE\n");
+    ERROR("Invalid number of RE");
     return SRSLTE_ERROR;
   }
 
@@ -477,12 +477,15 @@ static int ra_dl_dmrs(const srslte_sch_hl_cfg_nr_t* pdsch_hl_cfg,
           ERROR("Error loading number of DMRS CDM groups\n");
           return SRSLTE_ERROR;
         }
+      } else {
+        ERROR("Invalid case");
+        return SRSLTE_ERROR;
       }
 
       return SRSLTE_SUCCESS;
     }
 
-    ERROR("Unsupported configuration\n");
+    ERROR("Unsupported configuration");
     return SRSLTE_ERROR;
   }
 
@@ -502,13 +505,13 @@ int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
                            dci_dl->coreset_id,
                            dci_dl->time_domain_assigment,
                            pdsch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error computing time domain resource allocation\n");
+    ERROR("Error computing time domain resource allocation");
     return SRSLTE_ERROR;
   }
 
   // 5.1.2.2 Resource allocation in frequency domain
   if (srslte_ra_dl_nr_freq(carrier, pdsch_hl_cfg, dci_dl, pdsch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error computing frequency domain resource allocation\n");
+    ERROR("Error computing frequency domain resource allocation");
     return SRSLTE_ERROR;
   }
 
@@ -528,8 +531,58 @@ int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
 
   // 5.1.3 Modulation order, target code rate, redundancy version and transport block size determination
   if (srslte_ra_nr_fill_tb(pdsch_cfg, pdsch_grant, dci_dl->mcs, &pdsch_grant->tb[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error filing tb\n");
+    ERROR("Error filing tb");
     return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static int
+ra_ul_dmrs(const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg, srslte_sch_grant_nr_t* pusch_grant, srslte_sch_cfg_nr_t* cfg)
+{
+  const bool dedicated_dmrs_present = (pusch_grant->mapping == srslte_sch_mapping_type_A)
+                                          ? pusch_hl_cfg->dmrs_typeA.present
+                                          : pusch_hl_cfg->dmrs_typeB.present;
+
+  if (pusch_grant->dci_format == srslte_dci_format_nr_0_0 || !dedicated_dmrs_present) {
+    if (pusch_grant->mapping == srslte_sch_mapping_type_A) {
+      // Absent default values are defined is TS 38.331 - DMRS-DownlinkConfig
+      cfg->dmrs.additional_pos         = srslte_dmrs_sch_add_pos_2;
+      cfg->dmrs.type                   = srslte_dmrs_sch_type_1;
+      cfg->dmrs.length                 = srslte_dmrs_sch_len_1;
+      cfg->dmrs.scrambling_id0_present = false;
+      cfg->dmrs.scrambling_id1_present = false;
+
+      if (pusch_grant->dci_format == srslte_dci_format_nr_0_0) {
+        if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(cfg, pusch_grant) < SRSLTE_SUCCESS) {
+          ERROR("Error loading number of DMRS CDM groups\n");
+          return SRSLTE_ERROR;
+        }
+      } else {
+        ERROR("Invalid case\n");
+        return SRSLTE_ERROR;
+      }
+
+      return SRSLTE_SUCCESS;
+    }
+
+    ERROR("Unsupported configuration");
+    return SRSLTE_ERROR;
+  }
+
+  if (pusch_grant->mapping == srslte_sch_mapping_type_A) {
+    cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeA.additional_pos;
+    cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeA.type;
+    cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeA.length;
+    cfg->dmrs.scrambling_id0_present = false;
+    cfg->dmrs.scrambling_id1_present = false;
+  } else {
+    cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeB.additional_pos;
+    cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeB.type;
+    cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeB.length;
+    cfg->dmrs.scrambling_id0_present = false;
+    cfg->dmrs.scrambling_id1_present = false;
   }
 
   return SRSLTE_SUCCESS;
@@ -548,13 +601,13 @@ int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
                            dci_ul->coreset_id,
                            dci_ul->time_domain_assigment,
                            pusch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error computing time domain resource allocation\n");
+    ERROR("Error computing time domain resource allocation");
     return SRSLTE_ERROR;
   }
 
   // 5.1.2.2 Resource allocation in frequency domain
   if (srslte_ra_ul_nr_freq(carrier, pusch_hl_cfg, dci_ul, pusch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error computing frequency domain resource allocation\n");
+    ERROR("Error computing frequency domain resource allocation");
     return SRSLTE_ERROR;
   }
 
@@ -567,14 +620,14 @@ int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
   pusch_grant->rnti_type  = dci_ul->rnti_type;
 
   // 5.1.6.2 DM-RS reception procedure
-  if (ra_dl_dmrs(pusch_hl_cfg, pusch_grant, &pusch_cfg->dmrs) < SRSLTE_SUCCESS) {
+  if (ra_ul_dmrs(pusch_hl_cfg, pusch_grant, pusch_cfg) < SRSLTE_SUCCESS) {
     ERROR("Error selecting DMRS configuration");
     return SRSLTE_ERROR;
   }
 
   // 5.1.3 Modulation order, target code rate, redundancy version and transport block size determination
   if (srslte_ra_nr_fill_tb(pusch_cfg, pusch_grant, dci_ul->mcs, &pusch_grant->tb[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error filing tb\n");
+    ERROR("Error filing tb");
     return SRSLTE_ERROR;
   }
 

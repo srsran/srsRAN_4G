@@ -44,6 +44,27 @@ static int dci_nr_format_1_0_freq_resource_size(const srslte_carrier_nr_t* carri
   return (int)ceil(log2(N_DL_BWP_RB * (N_DL_BWP_RB + 1) / 2.0));
 }
 
+bool srslte_dci_nr_format_1_0_valid(const srslte_dci_msg_nr_t* dci)
+{
+  // Check pointer
+  if (dci == NULL) {
+    return false;
+  }
+
+  // Wrong format
+  if (dci->format != srslte_dci_format_nr_1_0) {
+    return false;
+  }
+
+  // The format bit is only present for these RNTI
+  if (dci->rnti_type == srslte_rnti_type_c || dci->rnti_type == srslte_rnti_type_tc) {
+    return dci->payload[0] == 1;
+  }
+
+  // Otherwise, the message might be format 1_0
+  return true;
+}
+
 int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
                        const srslte_coreset_t*    coreset,
                        const srslte_dci_dl_nr_t*  dci,
@@ -61,12 +82,12 @@ int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
   switch (msg->format) {
     case srslte_dci_format_nr_1_0:
       if (srslte_dci_nr_format_1_0_pack(carrier, coreset, dci, msg) < SRSLTE_SUCCESS) {
-        ERROR("Error packing DL DCI\n");
+        ERROR("Error packing DL DCI");
         return SRSLTE_ERROR;
       }
       break;
     default:
-      ERROR("Unsupported DCI format %d\n", msg->format);
+      ERROR("Unsupported DCI format %d", msg->format);
       return SRSLTE_ERROR;
   }
 
@@ -80,7 +101,7 @@ int srslte_dci_nr_format_0_0_pack(const srslte_carrier_nr_t* carrier,
 {
   uint32_t           trim                 = 0;     // hard-coded bit trimming
   bool               enable_hopping       = false; // hard-coded PUSCH hopping
-  uint32_t           padding              = 0;     // Hard-coded padding
+  uint32_t           padding              = 8;     // Hard-coded padding
   bool               supplementary_uplink = false; // Hard-coded supplementary Uplink
   uint8_t*           y                    = msg->payload;
   srslte_rnti_type_t rnti_type            = msg->rnti_type;
@@ -142,7 +163,7 @@ int srslte_dci_nr_format_0_0_pack(const srslte_carrier_nr_t* carrier,
 
   msg->nof_bits = srslte_dci_nr_format_0_0_sizeof(carrier, coreset0, rnti_type);
   if (msg->nof_bits != y - msg->payload) {
-    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)\n", msg->nof_bits, (int)(y - msg->payload));
+    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
     return SRSLTE_ERROR;
   }
 
@@ -156,10 +177,18 @@ int srslte_dci_nr_format_0_0_unpack(const srslte_carrier_nr_t* carrier,
 {
   uint32_t           trim                 = 0;     // hard-coded bit trimming
   bool               enable_hopping       = false; // hard-coded PUSCH hopping
-  uint32_t           padding              = 0;     // Hard-coded padding
+  uint32_t           padding              = 8;     // Hard-coded padding
   bool               supplementary_uplink = false; // Hard-coded supplementary Uplink
   uint8_t*           y                    = msg->payload;
   srslte_rnti_type_t rnti_type            = msg->rnti_type;
+
+  // Copy DCI MSG fields
+  dci->location     = msg->location;
+  dci->search_space = msg->search_space;
+  dci->coreset_id   = msg->coreset_id;
+  dci->rnti_type    = msg->rnti_type;
+  dci->rnti         = msg->rnti;
+  dci->format       = msg->format;
 
   if (carrier == NULL) {
     return SRSLTE_ERROR;
@@ -167,11 +196,12 @@ int srslte_dci_nr_format_0_0_unpack(const srslte_carrier_nr_t* carrier,
 
   // Check RNTI type
   if (rnti_type != srslte_rnti_type_c && rnti_type != srslte_rnti_type_cs && rnti_type != srslte_rnti_type_mcs_c) {
+    ERROR("Unsupported %s", srslte_rnti_type_str(rnti_type));
     return SRSLTE_ERROR;
   }
 
   if (msg->nof_bits != srslte_dci_nr_format_0_0_sizeof(carrier, coreset, rnti_type)) {
-    ERROR("Invalid number of bits %d, expected %d\n",
+    ERROR("Invalid number of bits %d, expected %d",
           msg->nof_bits,
           srslte_dci_nr_format_0_0_sizeof(carrier, coreset, rnti_type));
     return SRSLTE_ERROR;
@@ -179,7 +209,7 @@ int srslte_dci_nr_format_0_0_unpack(const srslte_carrier_nr_t* carrier,
 
   // Identifier for DCI formats – 1 bits
   if (*(y++) != 0) {
-    ERROR("Wrond DCI format\n");
+    ERROR("Wrond DCI format");
     return SRSLTE_ERROR;
   }
 
@@ -234,7 +264,7 @@ int srslte_dci_nr_format_0_0_sizeof(const srslte_carrier_nr_t* carrier,
 {
   uint32_t trim                 = 0;     // hard-coded bit trimming
   bool     enable_hopping       = false; // hard-coded PUSCH hopping
-  uint32_t padding              = 0;     // Hard-coded padding
+  uint32_t padding              = 8;     // Hard-coded padding
   bool     supplementary_uplink = false; // Hard-coded supplementary Uplink
   int      count                = 0;
 
@@ -286,7 +316,37 @@ int srslte_dci_nr_format_0_0_sizeof(const srslte_carrier_nr_t* carrier,
 
 static int dci_nr_format_0_0_to_str(const srslte_dci_ul_nr_t* dci, char* str, uint32_t str_len)
 {
-  return SRSLTE_ERROR;
+  uint32_t len = 0;
+
+  // Print format
+  len = srslte_print_check(
+      str, str_len, len, "rnti=%04x L=%d cce=%d dci=0_0 ", dci->rnti, dci->location.L, dci->location.ncce);
+
+  // Frequency domain resource assignment
+  len = srslte_print_check(str, str_len, len, "f_alloc=0x%x ", dci->freq_domain_assigment);
+
+  // Time domain resource assignment – 4 bits
+  len = srslte_print_check(str, str_len, len, "t_alloc=0x%x ", dci->time_domain_assigment);
+
+  // Frequency hopping flag – 1 bit
+  len = srslte_print_check(str, str_len, len, "hop=%c ", dci->freq_hopping_flag == 0 ? 'n' : 'y');
+
+  // Modulation and coding scheme – 5 bits
+  len = srslte_print_check(str, str_len, len, "mcs=%d ", dci->mcs);
+
+  // New data indicator – 1 bit
+  len = srslte_print_check(str, str_len, len, "ndi=%d ", dci->ndi);
+
+  // Redundancy version – 2 bits
+  len = srslte_print_check(str, str_len, len, "rv=%d ", dci->rv);
+
+  // HARQ process number – 4 bits
+  len = srslte_print_check(str, str_len, len, "harq_id=%d ", dci->harq_feedback);
+
+  // TPC command for scheduled PUSCH – 2 bits
+  len = srslte_print_check(str, str_len, len, "tpc=%d ", dci->tpc);
+
+  return len;
 }
 
 int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
@@ -390,7 +450,7 @@ int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
 
   msg->nof_bits = srslte_dci_nr_format_1_0_sizeof(carrier, coreset, rnti_type);
   if (msg->nof_bits != y - msg->payload) {
-    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)\n", msg->nof_bits, (int)(y - msg->payload));
+    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
     return SRSLTE_ERROR;
   }
 
@@ -414,7 +474,7 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   dci->format       = msg->format;
 
   if (msg->nof_bits != srslte_dci_nr_format_1_0_sizeof(carrier, coreset, rnti_type)) {
-    ERROR("Invalid number of bits %d, expected %d\n",
+    ERROR("Invalid number of bits %d, expected %d",
           msg->nof_bits,
           srslte_dci_nr_format_1_0_sizeof(carrier, coreset, rnti_type));
     return SRSLTE_ERROR;
@@ -424,7 +484,7 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   if (rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_tc) {
     // The value of this bit field is always set to 1, indicating a DL DCI format
     if (*(y++) != 1) {
-      ERROR("Wrond DCI format\n");
+      ERROR("Wrond DCI format");
       return SRSLTE_ERROR;
     }
   }
@@ -511,7 +571,7 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   }
 
   if (msg->nof_bits != y - msg->payload) {
-    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)\n", msg->nof_bits, (int)(y - msg->payload));
+    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
     return SRSLTE_ERROR;
   }
 
@@ -618,7 +678,8 @@ static int dci_nr_format_1_0_to_str(const srslte_dci_dl_nr_t* dci, char* str, ui
   uint32_t len = 0;
 
   // Print format
-  len = srslte_print_check(str, str_len, len, "L=%d cce=%d dci=1_0 ", dci->location.L, dci->location.ncce);
+  len = srslte_print_check(
+      str, str_len, len, "rnti=%04x L=%d cce=%d dci=1_0 ", dci->rnti, dci->location.L, dci->location.ncce);
 
   if (dci->rnti_type == srslte_rnti_type_p) {
     len = srslte_print_check(str, str_len, len, "smi=%d sm=%d ", dci->smi, dci->sm);

@@ -108,6 +108,7 @@ extern "C" {
 #include "srslte/phy/ue/ue_mib.h"
 #include "srslte/phy/ue/ue_sync.h"
 #include "srslte/phy/ue/ue_ul.h"
+#include "srslte/phy/ue/ue_ul_nr.h"
 
 #include "srslte/phy/enb/enb_dl.h"
 #include "srslte/phy/enb/enb_dl_nr.h"

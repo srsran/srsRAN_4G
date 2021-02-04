@@ -185,9 +185,9 @@ int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*         q,
-                               const srslte_dl_slot_cfg_t* slot_cfg,
-                               const srslte_dci_dl_nr_t*   dci_dl)
+int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*       q,
+                               const srslte_slot_cfg_t*  slot_cfg,
+                               const srslte_dci_dl_nr_t* dci_dl)
 {
   if (q == NULL || slot_cfg == NULL || dci_dl == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -217,12 +217,11 @@ int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*         q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*         q,
-                               const srslte_dl_slot_cfg_t* slot,
-                               const srslte_sch_cfg_nr_t*  cfg,
-                               uint8_t*                    data[SRSLTE_MAX_TB])
+int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*        q,
+                               const srslte_slot_cfg_t*   slot,
+                               const srslte_sch_cfg_nr_t* cfg,
+                               uint8_t*                   data[SRSLTE_MAX_TB])
 {
-
   if (srslte_dmrs_sch_put_sf(&q->dmrs, slot, cfg, &cfg->grant, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }

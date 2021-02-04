@@ -70,7 +70,6 @@ int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
                            const srslte_sch_tb_t*      tb,
                            srslte_sch_nr_common_cfg_t* cfg)
 {
-
   if (!sch_cfg || !tb || !cfg) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -383,7 +382,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
 
   // Check encoder
   if (cfg.encoder == NULL) {
-    ERROR("Error: encoder for lifting size Z=%d not found\n", cfg.Z);
+    ERROR("Error: encoder for lifting size Z=%d not found (tbs=%d)\n", cfg.Z, tb->tbs);
     return SRSLTE_ERROR;
   }
 

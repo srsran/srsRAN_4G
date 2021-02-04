@@ -214,7 +214,7 @@ static int run_test(srslte_dmrs_sch_t*           dmrs_pdsch,
 {
   TESTASSERT(assert_cfg(pdsch_cfg, grant) == SRSLTE_SUCCESS);
 
-  srslte_dl_slot_cfg_t slot_cfg = {};
+  srslte_slot_cfg_t slot_cfg = {};
   for (slot_cfg.idx = 0; slot_cfg.idx < SRSLTE_NSLOTS_PER_FRAME_NR(dmrs_pdsch->carrier.numerology); slot_cfg.idx++) {
     TESTASSERT(srslte_dmrs_sch_put_sf(dmrs_pdsch, &slot_cfg, pdsch_cfg, grant, sf_symbols) == SRSLTE_SUCCESS);
 
@@ -289,7 +289,6 @@ int main(int argc, char** argv)
 
         for (pdsch_cfg.dmrs.additional_pos = add_pos_begin; pdsch_cfg.dmrs.additional_pos <= add_pos_end;
              pdsch_cfg.dmrs.additional_pos++) {
-
           srslte_dmrs_sch_len_t max_len_begin = srslte_dmrs_sch_len_1;
           srslte_dmrs_sch_len_t max_len_end   = srslte_dmrs_sch_len_2;
 
@@ -300,16 +299,13 @@ int main(int argc, char** argv)
           }
 
           for (pdsch_cfg.dmrs.length = max_len_begin; pdsch_cfg.dmrs.length <= max_len_end; pdsch_cfg.dmrs.length++) {
-
             for (uint32_t bw = 1; bw <= carrier.nof_prb; bw++) {
-
               for (uint32_t i = 0; i < carrier.nof_prb; i++) {
                 grant.prb_idx[i] = (i < bw);
               }
 
               for (grant.nof_dmrs_cdm_groups_without_data = 1; grant.nof_dmrs_cdm_groups_without_data <= 3;
                    grant.nof_dmrs_cdm_groups_without_data++) {
-
                 // Load default type A grant
                 srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &grant);
 

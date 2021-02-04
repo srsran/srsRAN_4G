@@ -91,7 +91,14 @@ void sf_worker::work_imp()
   }
 
   // Perform UL processing
-  // ...
+  for (auto& w : cc_workers) {
+    w->work_ul();
+  }
+
+  // Set Tx buffers
+  for (uint32_t i = 0; i < (uint32_t)cc_workers.size(); i++) {
+    tx_buffer.set(i, cc_workers[i]->get_tx_buffer(0));
+  }
 
   // Always call worker_end before returning
   phy->worker_end(this, false, tx_buffer, dummy_ts, true);

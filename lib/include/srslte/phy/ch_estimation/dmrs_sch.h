@@ -32,7 +32,7 @@
  * @see srslte_dmrs_sch_estimate
  */
 typedef struct {
-  bool is_ue;
+  bool is_rx;
 
   srslte_carrier_nr_t carrier;
 
@@ -91,10 +91,10 @@ SRSLTE_API int srslte_dmrs_sch_cfg_to_str(const srslte_dmrs_sch_cfg_t* cfg, char
  * @brief Initialises DMRS PDSCH object
  *
  * @param q DMRS PDSCH object
- * @param is_ue indicates whethe the object is for a UE (in this case, it shall initialise as an estimator)
+ * @param is_rx indicates whethe the object is used as receiver (in this case, it shall initialise as an estimator)
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
-SRSLTE_API int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_ue);
+SRSLTE_API int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_rx);
 
 /**
  * @brief Frees DMRS PDSCH object
@@ -126,7 +126,7 @@ SRSLTE_API int srslte_dmrs_sch_set_carrier(srslte_dmrs_sch_t* q, const srslte_ca
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
 SRSLTE_API int srslte_dmrs_sch_put_sf(srslte_dmrs_sch_t*           q,
-                                      const srslte_dl_slot_cfg_t*  slot_cfg,
+                                      const srslte_slot_cfg_t*     slot_cfg,
                                       const srslte_sch_cfg_nr_t*   pdsch_cfg,
                                       const srslte_sch_grant_nr_t* grant,
                                       cf_t*                        sf_symbols);
@@ -146,7 +146,7 @@ SRSLTE_API int srslte_dmrs_sch_put_sf(srslte_dmrs_sch_t*           q,
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
 SRSLTE_API int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
-                                        const srslte_dl_slot_cfg_t*  slot_cfg,
+                                        const srslte_slot_cfg_t*     slot_cfg,
                                         const srslte_sch_cfg_nr_t*   pdsch_cfg,
                                         const srslte_sch_grant_nr_t* grant,
                                         const cf_t*                  sf_symbols,

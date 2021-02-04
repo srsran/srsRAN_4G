@@ -91,6 +91,14 @@ typedef struct SRSLTE_API {
 
 } srslte_dci_ul_nr_t;
 
+/**
+ * @brief Indicates whether the provided DCI message format bit indicator belongs to DCI format 1_0 according according
+ * to the RNTI type. If invalid, the DCI message is likely to be format 0_0
+ * @param dci_msg Provides DCI format 1_0 message
+ * @return true if the DCI message is format 1_0, false otherwise
+ */
+SRSLTE_API bool srslte_dci_nr_format_1_0_valid(const srslte_dci_msg_nr_t* dci_msg);
+
 SRSLTE_API int srslte_dci_nr_pack(const srslte_carrier_nr_t* carrier,
                                   const srslte_coreset_t*    coreset,
                                   const srslte_dci_dl_nr_t*  dci,
@@ -100,9 +108,19 @@ SRSLTE_API int srslte_dci_nr_format_0_0_sizeof(const srslte_carrier_nr_t* carrie
                                                const srslte_coreset_t*    coreset,
                                                srslte_rnti_type_t         rnti_type);
 
-SRSLTE_API SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
-                                                          const srslte_coreset_t*    coreset,
-                                                          srslte_rnti_type_t         rnti_type);
+SRSLTE_API int srslte_dci_nr_format_0_0_pack(const srslte_carrier_nr_t* carrier,
+                                             const srslte_coreset_t*    coreset0,
+                                             const srslte_dci_ul_nr_t*  dci,
+                                             srslte_dci_msg_nr_t*       msg);
+
+SRSLTE_API int srslte_dci_nr_format_0_0_unpack(const srslte_carrier_nr_t* carrier,
+                                               const srslte_coreset_t*    coreset,
+                                               srslte_dci_msg_nr_t*       msg,
+                                               srslte_dci_ul_nr_t*        dci);
+
+SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
+                                               const srslte_coreset_t*    coreset,
+                                               srslte_rnti_type_t         rnti_type);
 
 SRSLTE_API int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
                                              const srslte_coreset_t*    coreset,
@@ -113,6 +131,8 @@ SRSLTE_API int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrie
                                                const srslte_coreset_t*    coreset,
                                                srslte_dci_msg_nr_t*       msg,
                                                srslte_dci_dl_nr_t*        dci);
+
+SRSLTE_API int srslte_dci_ul_nr_to_str(const srslte_dci_ul_nr_t* dci, char* str, uint32_t str_len);
 
 SRSLTE_API int srslte_dci_dl_nr_to_str(const srslte_dci_dl_nr_t* dci, char* str, uint32_t str_len);
 

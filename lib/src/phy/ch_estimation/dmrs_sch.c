@@ -77,7 +77,6 @@ static uint32_t srslte_dmrs_get_lse(srslte_dmrs_sch_t*       q,
   uint32_t count = 0;
 
   switch (dmrs_type) {
-
     case srslte_dmrs_sch_type_1:
       count = srslte_dmrs_get_pilots_type1(start_prb, nof_prb, delta, symbols, least_square_estimates);
       break;
@@ -85,7 +84,7 @@ static uint32_t srslte_dmrs_get_lse(srslte_dmrs_sch_t*       q,
       count = srslte_dmrs_get_pilots_type2(start_prb, nof_prb, delta, symbols, least_square_estimates);
       break;
     default:
-      ERROR("Unknown DMRS type.\n");
+      ERROR("Unknown DMRS type.");
   }
 
   // Generate sequence for the given pilots
@@ -143,7 +142,6 @@ static uint32_t srslte_dmrs_put_pilots(srslte_dmrs_sch_t*       q,
   srslte_sequence_state_gen_f(sequence_state, M_SQRT1_2, (float*)q->temp, count * 2);
 
   switch (dmrs_type) {
-
     case srslte_dmrs_sch_type_1:
       count = srslte_dmrs_put_pilots_type1(start_prb, nof_prb, delta, symbols, q->temp);
       break;
@@ -151,7 +149,7 @@ static uint32_t srslte_dmrs_put_pilots(srslte_dmrs_sch_t*       q,
       count = srslte_dmrs_put_pilots_type2(start_prb, nof_prb, delta, symbols, q->temp);
       break;
     default:
-      ERROR("Unknown DMRS type.\n");
+      ERROR("Unknown DMRS type.");
   }
 
   return count;
@@ -223,7 +221,7 @@ static int srslte_dmrs_sch_get_symbols_idx_mapping_type_A_single(const srslte_dm
   int count = 0;
 
   if (ld < SRSLTE_DMRS_SCH_TYPEA_SINGLE_DURATION_MIN) {
-    ERROR("Duration is below the minimum\n");
+    ERROR("Duration is below the minimum");
     return SRSLTE_ERROR;
   }
 
@@ -318,7 +316,7 @@ static int srslte_dmrs_sch_get_symbols_idx_mapping_type_A_double(const srslte_dm
 
   // According to Table 7.4.1.1.2-4, the additional position 3 is invalid.
   if (dmrs_cfg->additional_pos == srslte_dmrs_sch_add_pos_3) {
-    ERROR("Invalid additional DMRS (%d)\n", dmrs_cfg->additional_pos);
+    ERROR("Invalid additional DMRS (%d)", dmrs_cfg->additional_pos);
     return SRSLTE_ERROR;
   }
 
@@ -367,7 +365,7 @@ int srslte_dmrs_sch_get_symbols_idx(const srslte_dmrs_sch_cfg_t* dmrs_cfg,
       // The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal to 'pos2'
       if (dmrs_cfg->typeA_pos != srslte_dmrs_sch_typeA_pos_2 && dmrs_cfg->additional_pos == srslte_dmrs_sch_add_pos_3) {
         ERROR("The case dmrs-AdditionalPosition equals to 'pos3' is only supported when dmrs-TypeA-Position is equal "
-              "to 'pos2'\n");
+              "to 'pos2'");
         return SRSLTE_ERROR;
       }
 
@@ -375,7 +373,7 @@ int srslte_dmrs_sch_get_symbols_idx(const srslte_dmrs_sch_cfg_t* dmrs_cfg,
       // applicable when dmrs-TypeA-Position is equal to 'pos2
       if ((ld == 3 || ld == 4) && dmrs_cfg->typeA_pos != srslte_dmrs_sch_typeA_pos_2) {
         ERROR("For PDSCH mapping type A, ld = 3 and ld = 4 symbols in Tables 7.4.1.1.2-3 and 7.4.1.1.2-4 respectively "
-              "is only applicable when dmrs-TypeA-Position is equal to 'pos2\n");
+              "is only applicable when dmrs-TypeA-Position is equal to 'pos2");
         return SRSLTE_ERROR;
       }
 
@@ -384,7 +382,7 @@ int srslte_dmrs_sch_get_symbols_idx(const srslte_dmrs_sch_cfg_t* dmrs_cfg,
       }
       return srslte_dmrs_sch_get_symbols_idx_mapping_type_A_double(dmrs_cfg, ld, symbols);
     case srslte_sch_mapping_type_B:
-      ERROR("Error PDSCH mapping type B not supported\n");
+      ERROR("Error PDSCH mapping type B not supported");
       return SRSLTE_ERROR;
   }
 
@@ -416,7 +414,7 @@ int srslte_dmrs_sch_get_sc_idx(const srslte_dmrs_sch_cfg_t* cfg, uint32_t max_co
 int srslte_dmrs_sch_get_N_prb(const srslte_dmrs_sch_cfg_t* dmrs_cfg, const srslte_sch_grant_nr_t* grant)
 {
   if (grant->nof_dmrs_cdm_groups_without_data < 1 || grant->nof_dmrs_cdm_groups_without_data > 3) {
-    ERROR("Invalid number if DMRS CDM groups without data (%d). Valid values: 1, 2 , 3\n",
+    ERROR("Invalid number if DMRS CDM groups without data (%d). Valid values: 1, 2 , 3",
           grant->nof_dmrs_cdm_groups_without_data);
     return SRSLTE_ERROR;
   }
@@ -429,7 +427,7 @@ int srslte_dmrs_sch_get_N_prb(const srslte_dmrs_sch_cfg_t* dmrs_cfg, const srslt
   uint32_t symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};
   int      ret                                  = srslte_dmrs_sch_get_symbols_idx(dmrs_cfg, grant, symbols);
   if (ret < SRSLTE_SUCCESS) {
-    ERROR("Error getting PDSCH DMRS symbol indexes\n");
+    ERROR("Error getting PDSCH DMRS symbol indexes");
     return SRSLTE_ERROR;
   }
 
@@ -462,14 +460,14 @@ static uint32_t srslte_dmrs_sch_seed(const srslte_carrier_nr_t*   carrier,
                     (uint64_t)INT32_MAX);
 }
 
-int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_ue)
+int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_rx)
 {
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (is_ue) {
-    q->is_ue = true;
+  if (is_rx) {
+    q->is_rx = true;
   }
 
   return SRSLTE_SUCCESS;
@@ -509,13 +507,13 @@ int srslte_dmrs_sch_set_carrier(srslte_dmrs_sch_t* q, const srslte_carrier_nr_t*
 
     q->temp = srslte_vec_cf_malloc(q->max_nof_prb * SRSLTE_NRE);
     if (!q->temp) {
-      ERROR("malloc\n");
+      ERROR("malloc");
       return SRSLTE_ERROR;
     }
   }
 
   // If it is not UE, quit now
-  if (!q->is_ue) {
+  if (!q->is_rx) {
     return SRSLTE_SUCCESS;
   }
 
@@ -538,7 +536,7 @@ int srslte_dmrs_sch_set_carrier(srslte_dmrs_sch_t* q, const srslte_carrier_nr_t*
     // The maximum number of pilots is for Type 1
     q->pilot_estimates = srslte_vec_cf_malloc(SRSLTE_DMRS_SCH_MAX_SYMBOLS * q->max_nof_prb * SRSLTE_NRE / 2);
     if (!q->pilot_estimates) {
-      ERROR("malloc\n");
+      ERROR("malloc");
       return SRSLTE_ERROR;
     }
   }
@@ -547,7 +545,7 @@ int srslte_dmrs_sch_set_carrier(srslte_dmrs_sch_t* q, const srslte_carrier_nr_t*
 }
 
 int srslte_dmrs_sch_put_sf(srslte_dmrs_sch_t*           q,
-                           const srslte_dl_slot_cfg_t*  slot_cfg,
+                           const srslte_slot_cfg_t*     slot_cfg,
                            const srslte_sch_cfg_nr_t*   pdsch_cfg,
                            const srslte_sch_grant_nr_t* grant,
                            cf_t*                        sf_symbols)
@@ -642,7 +640,7 @@ static int srslte_dmrs_sch_get_symbol(srslte_dmrs_sch_t*           q,
 }
 
 int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
-                             const srslte_dl_slot_cfg_t*  slot_cfg,
+                             const srslte_slot_cfg_t*     slot_cfg,
                              const srslte_sch_cfg_nr_t*   pdsch_cfg,
                              const srslte_sch_grant_nr_t* grant,
                              const cf_t*                  sf_symbols,
@@ -663,7 +661,7 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
   uint32_t symbols[SRSLTE_DMRS_SCH_MAX_SYMBOLS] = {};
   int      nof_symbols                          = srslte_dmrs_sch_get_symbols_idx(&pdsch_cfg->dmrs, grant, symbols);
   if (nof_symbols <= SRSLTE_SUCCESS) {
-    ERROR("Error getting symbol indexes\n");
+    ERROR("Error getting symbol indexes");
     return SRSLTE_ERROR;
   }
 
@@ -679,7 +677,7 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
         q, pdsch_cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
 
     if (nof_pilots_x_symbol == 0) {
-      ERROR("Error, no pilots extracted (i=%d, l=%d)\n", i, l);
+      ERROR("Error, no pilots extracted (i=%d, l=%d)", i, l);
       return SRSLTE_ERROR;
     }
   }
@@ -733,7 +731,7 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
   if (dmrs_cfg->type == srslte_dmrs_sch_type_1) {
     // Prepare interpolator
     if (srslte_interp_linear_resize(&q->interpolator_type1, nof_pilots_x_symbol, 2) < SRSLTE_SUCCESS) {
-      ERROR("Resizing interpolator nof_pilots_x_symbol=%d; M=%d;\n", nof_pilots_x_symbol, 2);
+      ERROR("Resizing interpolator nof_pilots_x_symbol=%d; M=%d;", nof_pilots_x_symbol, 2);
       return SRSLTE_ERROR;
     }
 
@@ -743,7 +741,7 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
   } else {
     // Prepare interpolator
     if (srslte_interp_linear_resize(&q->interpolator_type2, nof_pilots_x_symbol, 3) < SRSLTE_SUCCESS) {
-      ERROR("Resizing interpolator nof_pilots_x_symbol=%d; M=%d;\n", nof_pilots_x_symbol, 3);
+      ERROR("Resizing interpolator nof_pilots_x_symbol=%d; M=%d;", nof_pilots_x_symbol, 3);
       return SRSLTE_ERROR;
     }
 
@@ -761,7 +759,6 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
 
     if (symbols[symbol_idx] == l) {
       switch (dmrs_cfg->type) {
-
         case srslte_dmrs_sch_type_1:
           // Skip if there is no data to read
           if (grant->nof_dmrs_cdm_groups_without_data != 1) {

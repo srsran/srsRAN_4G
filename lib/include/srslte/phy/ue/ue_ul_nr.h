@@ -23,7 +23,42 @@
 #ifndef SRSLTE_UE_UL_DATA_H
 #define SRSLTE_UE_UL_DATA_H
 
+#include "srslte/phy/ch_estimation/dmrs_sch.h"
 #include "srslte/phy/common/phy_common_nr.h"
+#include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/phch/phch_cfg_nr.h"
+#include "srslte/phy/phch/pusch_nr.h"
+
+typedef struct SRSLTE_API {
+  srslte_pusch_nr_args_t pusch;
+  uint32_t               nof_max_prb;
+} srslte_ue_ul_nr_args_t;
+
+typedef struct SRSLTE_API {
+  uint32_t max_prb;
+
+  srslte_carrier_nr_t carrier;
+
+  srslte_ofdm_t ifft;
+
+  cf_t*             sf_symbols[SRSLTE_MAX_PORTS];
+  srslte_pusch_nr_t pusch;
+  srslte_dmrs_sch_t dmrs;
+
+} srslte_ue_ul_nr_t;
+
+SRSLTE_API int srslte_ue_ul_nr_init(srslte_ue_ul_nr_t* q, cf_t* output, const srslte_ue_ul_nr_args_t* args);
+
+SRSLTE_API int srslte_ue_ul_nr_set_carrier(srslte_ue_ul_nr_t* q, const srslte_carrier_nr_t* carrier);
+
+SRSLTE_API int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*         q,
+                                            const srslte_slot_cfg_t*   slot_cfg,
+                                            const srslte_sch_cfg_nr_t* pusch_cfg,
+                                            uint8_t*                   data_);
+
+SRSLTE_API void srslte_ue_ul_nr_free(srslte_ue_ul_nr_t* q);
+
+SRSLTE_API int
+srslte_ue_ul_nr_pusch_info(const srslte_ue_ul_nr_t* q, const srslte_sch_cfg_nr_t* cfg, char* str, uint32_t str_len);
 
 #endif // SRSLTE_UE_UL_DATA_H

@@ -27,17 +27,27 @@ namespace nr {
 typedef struct {
   uint32_t               nof_carriers;
   srslte_ue_dl_nr_args_t dl;
+  srslte_ue_ul_nr_args_t ul;
 } phy_nr_args_t;
 
 typedef struct {
-  srslte_sch_hl_cfg_nr_t pdsch;
-  srslte_sch_hl_cfg_nr_t pusch;
-  srslte_prach_cfg_t     prach;
-  srslte_ue_dl_nr_cfg_t  pdcch;
+  srslte_sch_hl_cfg_nr_t      pdsch;
+  srslte_sch_hl_cfg_nr_t      pusch;
+  srslte_prach_cfg_t          prach;
+  srslte_ue_dl_nr_pdcch_cfg_t pdcch;
 } phy_nr_cfg_t;
 
 class state
 {
+private:
+  struct pending_grant_t {
+    bool                enable;
+    uint32_t            pid;
+    srslte_sch_cfg_nr_t sch_cfg;
+  };
+  srslte::circular_array<pending_grant_t, TTIMOD_SZ> pending_ul_grant = {};
+  mutable std::mutex                                 pending_ul_grant_mutex;
+
 public:
   mac_interface_phy_nr* stack     = nullptr;
   srslte_carrier_nr_t   carrier   = {};
@@ -58,6 +68,9 @@ public:
     args.dl.pdsch.measure_evm      = true;
     args.dl.pdsch.measure_time     = true;
     args.dl.pdsch.sch.disable_simd = false;
+    args.ul.nof_max_prb            = 100;
+    args.ul.pusch.measure_time     = true;
+    args.ul.pusch.sch.disable_simd = false;
 
     // Default PDSCH configuration
     cfg.pdsch.sch_cfg.mcs_table = srslte_mcs_table_256qam;
@@ -160,6 +173,106 @@ public:
     cfg.pusch.common_time_ra[1].sliv         = 27;
     cfg.pusch.common_time_ra[1].k            = 5;
     cfg.pusch.nof_common_time_ra             = 2;
+
+    // pusch-Config: setup (1)
+    //    setup
+    //        dmrs-UplinkForPUSCH-MappingTypeA: setup (1)
+    //            setup
+    //                dmrs-AdditionalPosition: pos1 (1)
+    //                transformPrecodingDisabled
+    cfg.pusch.dmrs_typeA.additional_pos = srslte_dmrs_sch_add_pos_1;
+    cfg.pusch.dmrs_typeA.present        = true;
+    //        pusch-PowerControl
+    //            msg3-Alpha: alpha1 (7)
+    //            p0-NominalWithoutGrant: -90dBm
+    //            p0-AlphaSets: 1 item
+    //                Item 0
+    //                    P0-PUSCH-AlphaSet
+    //                        p0-PUSCH-AlphaSetId: 0
+    //                        p0: 0dB
+    //                        alpha: alpha1 (7)
+    //            pathlossReferenceRSToAddModList: 1 item
+    //                Item 0
+    //                    PUSCH-PathlossReferenceRS
+    //                        pusch-PathlossReferenceRS-Id: 0
+    //                        referenceSignal: ssb-Index (0)
+    //                            ssb-Index: 0
+    //            sri-PUSCH-MappingToAddModList: 1 item
+    //                Item 0
+    //                    SRI-PUSCH-PowerControl
+    //                        sri-PUSCH-PowerControlId: 0
+    //                        sri-PUSCH-PathlossReferenceRS-Id: 0
+    //                        sri-P0-PUSCH-AlphaSetId: 0
+    //                        sri-PUSCH-ClosedLoopIndex: i0 (0)
+    //        resourceAllocation: resourceAllocationType1 (1)
+    //        uci-OnPUSCH: setup (1)
+    //            setup
+    //                betaOffsets: semiStatic (1)
+    //                    semiStatic
+    //                        betaOffsetACK-Index1: 9
+    //                        betaOffsetACK-Index2: 9
+    //                        betaOffsetACK-Index3: 9
+    //                        betaOffsetCSI-Part1-Index1: 6
+    //                        betaOffsetCSI-Part1-Index2: 6
+    //                        betaOffsetCSI-Part2-Index1: 6
+    //                        betaOffsetCSI-Part2-Index2: 6
+    //                scaling: f1 (3)
+  }
+
+  /**
+   * @brief Stores a received UL DCI into the pending UL grant list
+   * @param tti_rx The TTI in which the grant was received
+   * @param dci_ul The UL DCI message to store
+   */
+  void set_ul_pending_grant(uint32_t tti_rx, const srslte_dci_ul_nr_t& dci_ul)
+  {
+    // Convert UL DCI to grant
+    srslte_sch_cfg_nr_t pusch_cfg = {};
+    if (srslte_ra_ul_dci_to_grant_nr(&carrier, &cfg.pusch, &dci_ul, &pusch_cfg, &pusch_cfg.grant)) {
+      ERROR("Computing UL grant");
+      return;
+    }
+
+    // Calculate Transmit TTI
+    uint32_t tti_tx = TTI_ADD(tti_rx, pusch_cfg.grant.k);
+
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+
+    // Save entry
+    pending_grant_t& pending_grant = pending_ul_grant[tti_tx];
+    pending_grant.sch_cfg          = pusch_cfg;
+    pending_grant.pid              = dci_ul.pid;
+    pending_grant.enable           = true;
+  }
+
+  /**
+   * @brief Checks the UL pending grant list if there is any grant to transmit for the given transmit TTI
+   * @param tti_tx Current transmit TTI
+   * @param sch_cfg Provides the Shared Channel configuration for the PUSCH transmission
+   * @param pid Provides the HARQ process identifier
+   * @return true if there is a pending grant for the given TX tti, false otherwise
+   */
+  bool get_ul_pending_grant(uint32_t tti_tx, srslte_sch_cfg_nr_t& pusch_cfg, uint32_t& pid)
+  {
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+
+    // Select entry
+    pending_grant_t& pending_grant = pending_ul_grant[tti_tx];
+
+    // If the entry is not active, just return
+    if (!pending_grant.enable) {
+      return false;
+    }
+
+    // Load shared channel configuration
+    pusch_cfg = pending_grant.sch_cfg;
+
+    // Reset entry
+    pending_grant.enable = false;
+
+    return true;
   }
 };
 } // namespace nr

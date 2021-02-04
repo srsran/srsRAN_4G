@@ -109,8 +109,7 @@ typedef struct SRSLTE_API {
   srslte_rnti_type_t rnti_type;
 
   /// Time domain resources
-  uint32_t                  k0; // PDSCH only
-  uint32_t                  k2; // PUSCH only
+  uint32_t                  k; // k0 for PDSCH, k2 for PUSCH
   uint32_t                  S;
   uint32_t                  L;
   srslte_sch_mapping_type_t mapping;

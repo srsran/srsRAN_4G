@@ -471,7 +471,6 @@ int srslte_pdsch_nr_encode(srslte_pdsch_nr_t*           q,
                            uint8_t*                     data[SRSLTE_MAX_TB],
                            cf_t*                        sf_symbols[SRSLTE_MAX_PORTS])
 {
-
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -692,7 +691,7 @@ static uint32_t srslte_pdsch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
                            str_len,
                            len,
                            ",k0=%d,freq=%s,symb=%d:%d,mapping=%s",
-                           grant->k0,
+                           grant->k,
                            freq_str,
                            grant->S,
                            grant->L,
@@ -722,7 +721,6 @@ uint32_t srslte_pdsch_nr_rx_info(const srslte_pdsch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-
   uint32_t len = 0;
 
   len += srslte_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);
@@ -770,7 +768,6 @@ uint32_t srslte_pdsch_nr_tx_info(const srslte_pdsch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-
   uint32_t len = 0;
 
   len += srslte_pdsch_nr_grant_info(cfg, grant, &str[len], str_len - len);

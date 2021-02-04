@@ -228,7 +228,7 @@ typedef struct SRSLTE_API {
 
   /// Left for future parameters
   /// ...
-} srslte_dl_slot_cfg_t;
+} srslte_slot_cfg_t;
 
 /**
  * @brief Min number of OFDM symbols in a control resource set.
@@ -279,6 +279,13 @@ typedef struct SRSLTE_API {
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];
 } srslte_search_space_t;
+
+/**
+ * @brief Get the RNTI type name for NR
+ * @param rnti_type RNTI type name
+ * @return Constant string with the RNTI type name
+ */
+SRSLTE_API const char* srslte_rnti_type_str(srslte_rnti_type_t rnti_type);
 
 /**
  * @brief Calculates the bandwidth of a given CORESET in physical resource blocks (PRB) . This function uses the

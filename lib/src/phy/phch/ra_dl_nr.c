@@ -68,7 +68,7 @@ int srslte_ra_dl_nr_time_default_A(uint32_t m, srslte_dmrs_sch_typeA_pos_t dmrs_
   }
 
   // Select k0
-  grant->k0 = 0;
+  grant->k = 0;
 
   // Select PDSCH mapping
   static srslte_sch_mapping_type_t pdsch_mapping_lut[16] = {srslte_sch_mapping_type_A,
@@ -117,7 +117,7 @@ static void ra_dl_nr_time_hl(const srslte_sch_time_ra_t* hl_ra_cfg, srslte_sch_g
   // Compute S and L from SLIV from higher layers
   ra_helper_compute_s_and_l(SRSLTE_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
-  grant->k0      = hl_ra_cfg->k;
+  grant->k       = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
 }
 

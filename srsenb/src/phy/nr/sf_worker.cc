@@ -92,7 +92,7 @@ void sf_worker::work_imp()
   phy_state->cfg.pdsch.rbg_size_cfg_1 = false;
 
   // Fill grant (this comes from the scheduler)
-  srslte_dl_slot_cfg_t               dl_cfg = {};
+  srslte_slot_cfg_t                  dl_cfg = {};
   stack_interface_phy_nr::dl_sched_t grants = {};
 
   grants.nof_grants                = 1;

@@ -98,15 +98,15 @@ typedef struct SRSLTE_API {
 } srslte_csi_rs_nzp_resource_t;
 
 SRSLTE_API int srslte_csi_rs_nzp_put(const srslte_carrier_nr_t*          carrier,
-                                     const srslte_dl_slot_cfg_t*         slot_cfg,
+                                     const srslte_slot_cfg_t*            slot_cfg,
                                      const srslte_csi_rs_nzp_resource_t* resource,
                                      cf_t*                               grid);
 
 typedef struct SRSLTE_API {
-  float rsrp;
-  float rsrp_dB;
-  float epre;
-  float epre_dB;
+  float    rsrp;
+  float    rsrp_dB;
+  float    epre;
+  float    epre_dB;
   float    n0;
   float    n0_dB;
   float    snr_dB;
@@ -114,7 +114,7 @@ typedef struct SRSLTE_API {
 } srslte_csi_rs_measure_t;
 
 SRSLTE_API int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
-                                         const srslte_dl_slot_cfg_t*         slot_cfg,
+                                         const srslte_slot_cfg_t*            slot_cfg,
                                          const srslte_csi_rs_nzp_resource_t* resource,
                                          const cf_t*                         grid,
                                          srslte_csi_rs_measure_t*            measure);

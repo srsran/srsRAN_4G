@@ -60,7 +60,7 @@ int srslte_ra_ul_nr_pdsch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, 
 
   // Select mapping
   grant->mapping = ue_ul_default_A_lut[m].mapping;
-  grant->k2      = ue_ul_default_A_lut[m].K2 + j[scs_cfg];
+  grant->k       = ue_ul_default_A_lut[m].K2 + j[scs_cfg];
   grant->S       = ue_ul_default_A_lut[m].S;
   grant->L       = ue_ul_default_A_lut[m].L;
 
@@ -72,7 +72,7 @@ static void ra_ul_nr_time_hl(const srslte_sch_time_ra_t* hl_ra_cfg, srslte_sch_g
   // Compute S and L from SLIV from higher layers
   ra_helper_compute_s_and_l(SRSLTE_NSYMB_PER_SLOT_NR, hl_ra_cfg->sliv, &grant->S, &grant->L);
 
-  grant->k2      = hl_ra_cfg->k;
+  grant->k       = hl_ra_cfg->k;
   grant->mapping = hl_ra_cfg->mapping_type;
 }
 
@@ -177,7 +177,7 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
       ERROR("Invalid numerology");
       return SRSLTE_ERROR;
     }
-    grant->k2 += delta[cfg->scs_cfg];
+    grant->k += delta[cfg->scs_cfg];
   }
 
   // Validate S and L parameters

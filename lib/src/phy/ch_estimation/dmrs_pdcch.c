@@ -116,7 +116,7 @@ static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_carrier_nr_t*   ca
 
 int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
                           const srslte_coreset_t*      coreset,
-                          const srslte_dl_slot_cfg_t*  slot_cfg,
+                          const srslte_slot_cfg_t*     slot_cfg,
                           const srslte_dci_location_t* dci_location,
                           cf_t*                        sf_symbols)
 {
@@ -326,7 +326,7 @@ srslte_dmrs_pdcch_extract(srslte_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
 }
 
 int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
-                               const srslte_dl_slot_cfg_t*    slot_cfg,
+                               const srslte_slot_cfg_t*       slot_cfg,
                                const cf_t*                    sf_symbols)
 {
   if (q == NULL || sf_symbols == NULL) {

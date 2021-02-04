@@ -63,7 +63,7 @@ static int run_test(srslte_dmrs_pdcch_estimator_t* estimator,
                     cf_t*                          sf_symbols,
                     srslte_dmrs_pdcch_ce_t*        ce)
 {
-  srslte_dl_slot_cfg_t slot_cfg = {};
+  srslte_slot_cfg_t slot_cfg = {};
 
   srslte_dci_location_t dci_location = {};
   dci_location.L                     = aggregation_level;
@@ -142,10 +142,8 @@ int main(int argc, char** argv)
     }
 
     for (coreset.duration = 1; coreset.duration <= 3; coreset.duration++) {
-
       for (search_space.type = srslte_search_space_type_common_0; search_space.type <= srslte_search_space_type_ue;
            search_space.type++) {
-
         for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {
           uint32_t L                     = 1U << i;
           uint32_t nof_reg               = coreset.duration * nof_freq_resources * 6;
@@ -155,7 +153,6 @@ int main(int argc, char** argv)
 
         for (uint32_t aggregation_level = 0; aggregation_level < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR;
              aggregation_level++) {
-
           srslte_dmrs_pdcch_estimator_init(&estimator, &carrier, &coreset);
 
           if (run_test(&estimator, &coreset, &search_space, aggregation_level, sf_symbols, &pdcch_ce)) {

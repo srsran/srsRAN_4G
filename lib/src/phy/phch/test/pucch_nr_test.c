@@ -39,7 +39,7 @@ static srslte_channel_awgn_t awgn                   = {};
 
 static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_common_cfg_t* cfg, cf_t* slot_symbols)
 {
-  srslte_dl_slot_cfg_t       slot     = {};
+  srslte_slot_cfg_t          slot     = {};
   srslte_pucch_nr_resource_t resource = {};
   resource.format                     = SRSLTE_PUCCH_NR_FORMAT_0;
 
@@ -88,7 +88,7 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
                               srslte_chest_ul_res_t*              chest_res,
                               cf_t*                               slot_symbols)
 {
-  srslte_dl_slot_cfg_t       slot     = {};
+  srslte_slot_cfg_t          slot     = {};
   srslte_pucch_nr_resource_t resource = {};
   resource.format                     = SRSLTE_PUCCH_NR_FORMAT_1;
 
@@ -161,21 +161,18 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
                               srslte_chest_ul_res_t*              chest_res,
                               cf_t*                               slot_symbols)
 {
-  srslte_dl_slot_cfg_t       slot     = {};
+  srslte_slot_cfg_t          slot     = {};
   srslte_pucch_nr_resource_t resource = {};
   resource.format                     = SRSLTE_PUCCH_NR_FORMAT_2;
 
   for (slot.idx = 0; slot.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot.idx++) {
-
     for (resource.nof_symbols = SRSLTE_PUCCH_NR_FORMAT2_MIN_NSYMB;
          resource.nof_symbols <= SRSLTE_PUCCH_NR_FORMAT2_MAX_NSYMB;
          resource.nof_symbols++) {
-
       for (resource.start_symbol_idx = 0;
            resource.start_symbol_idx <=
            SRSLTE_MIN(SRSLTE_PUCCH_NR_FORMAT2_MAX_STARTSYMB, SRSLTE_NSYMB_PER_SLOT_NR - resource.nof_symbols);
            resource.start_symbol_idx += starting_symbol_stride) {
-
         srslte_uci_cfg_nr_t uci_cfg = {};
 
         for (uci_cfg.o_ack = SRSLTE_PUCCH_NR_FORMAT2_MIN_NOF_BITS; uci_cfg.o_ack <= SRSLTE_UCI_NR_MAX_ACK_BITS;
@@ -189,7 +186,6 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
           }
 
           for (resource.max_code_rate = 0; resource.max_code_rate < max_code_rate_end; resource.max_code_rate++) {
-
             // Skip case if not enough PRB are used
             int min_nof_prb = srslte_ra_ul_nr_pucch_format_2_3_min_prb(&resource, &uci_cfg);
             TESTASSERT(min_nof_prb > SRSLTE_SUCCESS);
@@ -197,10 +193,8 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
             for (resource.nof_prb = min_nof_prb;
                  resource.nof_prb < SRSLTE_MIN(carrier.nof_prb, SRSLTE_PUCCH_NR_FORMAT2_MAX_NPRB);
                  resource.nof_prb++) {
-
               for (resource.starting_prb = 0; resource.starting_prb < (carrier.nof_prb - resource.nof_prb);
                    resource.starting_prb += starting_prb_stride) {
-
                 // Generate ACKs
                 for (uint32_t i = 0; i < uci_cfg.o_ack; i++) {
                   uci_value.ack[i] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 1);

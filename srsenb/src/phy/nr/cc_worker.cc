@@ -122,7 +122,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
     // Get PHY config for UE
     // ...
     srslte_sch_hl_cfg_nr_t pdsch_hl_cfg = {};
-    srslte_sch_cfg_nr_t   pdsch_cfg    = {};
+    srslte_sch_cfg_nr_t    pdsch_cfg    = {};
 
     // Compute DL grant
     if (srslte_ra_dl_dci_to_grant_nr(&enb_dl.carrier, &pdsch_hl_cfg, &grants[i].dci, &pdsch_cfg, &pdsch_cfg.grant)) {
@@ -150,7 +150,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_nr::dl_sched_grant_t* grants, ui
   return SRSLTE_SUCCESS;
 }
 
-bool cc_worker::work_dl(const srslte_dl_slot_cfg_t& dl_sf_cfg, stack_interface_phy_nr::dl_sched_t& dl_grants)
+bool cc_worker::work_dl(const srslte_slot_cfg_t& dl_sf_cfg, stack_interface_phy_nr::dl_sched_t& dl_grants)
 {
   // Reset resource grid
   if (srslte_enb_dl_nr_base_zero(&enb_dl) < SRSLTE_SUCCESS) {

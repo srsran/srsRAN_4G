@@ -13,6 +13,30 @@
 #include "srslte/phy/common/phy_common_nr.h"
 #include <string.h>
 
+const char* srslte_rnti_type_str(srslte_rnti_type_t rnti_type)
+{
+  switch (rnti_type) {
+    case srslte_rnti_type_c:
+      return "C-RNTI";
+    case srslte_rnti_type_p:
+      return "P-RNTI";
+    case srslte_rnti_type_si:
+      return "SI-RNTI";
+    case srslte_rnti_type_ra:
+      return "RA-RNTI";
+    case srslte_rnti_type_tc:
+      return "TC-RNTI";
+    case srslte_rnti_type_cs:
+      return "CS-RNTI";
+    case srslte_rnti_type_sp_csi:
+      return "SP-CSI-RNTI";
+    case srslte_rnti_type_mcs_c:
+      return "MCS-C-RNTI";
+    default:; // Do nothing
+  }
+  return "unknown";
+}
+
 uint32_t srslte_coreset_get_bw(const srslte_coreset_t* coreset)
 {
   uint32_t prb_count = 0;

@@ -31,7 +31,7 @@ int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* arg
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
+int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -49,7 +49,7 @@ int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t*
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
+int srslte_pusch_nr_init_gnb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -470,7 +470,6 @@ int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
                            uint8_t*                     data[SRSLTE_MAX_TB],
                            cf_t*                        sf_symbols[SRSLTE_MAX_PORTS])
 {
-
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -680,8 +679,8 @@ static uint32_t srslte_pusch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
   len = srslte_print_check(str,
                            str_len,
                            len,
-                           ",k0=%d,S=%d,L=%d,mapping=%s",
-                           grant->k0,
+                           ",k2=%d,S=%d,L=%d,mapping=%s",
+                           grant->k,
                            grant->S,
                            grant->L,
                            srslte_sch_mapping_type_to_str(grant->mapping));
@@ -710,7 +709,6 @@ uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-
   uint32_t len = 0;
 
   len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
@@ -758,7 +756,6 @@ uint32_t srslte_pusch_nr_tx_info(const srslte_pusch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-
   uint32_t len = 0;
 
   len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
