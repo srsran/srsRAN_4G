@@ -32,7 +32,6 @@ inline void log_args(int argc, char* argv[], const std::string& service)
   for (int32_t i = 1; i < argc; i++) {
     s1 << argv[i] << " ";
   }
-  s1 << std::endl;
 
   srslog::fetch_basic_logger(service, false).set_level(srslog::basic_levels::info);
   srslog::fetch_basic_logger(service).info("%s", s1.str().c_str());
