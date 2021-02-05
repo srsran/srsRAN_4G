@@ -53,7 +53,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_sta
   // Initialise data with numbers
   tx_data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
   for (uint32_t i = 0; i < SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8; i++) {
-    tx_data[i] = i % 8;
+    tx_data[i] = i % 255U;
   }
 }
 
@@ -263,6 +263,7 @@ bool cc_worker::work_ul()
 
   // Notify MAC about PUSCH found grant
   // ...
+  srslte_softbuffer_tx_reset(&softbuffer_tx);
   pusch_cfg.grant.tb[0].softbuffer.tx = &softbuffer_tx;
 
   // Encode PUSCH transmission
