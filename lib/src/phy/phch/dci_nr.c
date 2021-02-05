@@ -163,7 +163,7 @@ int srslte_dci_nr_format_0_0_pack(const srslte_carrier_nr_t* carrier,
 
   msg->nof_bits = srslte_dci_nr_format_0_0_sizeof(carrier, coreset0, rnti_type);
   if (msg->nof_bits != y - msg->payload) {
-    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
+    ERROR("Unpacked bits read (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
     return SRSLTE_ERROR;
   }
 
@@ -450,7 +450,7 @@ int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
 
   msg->nof_bits = srslte_dci_nr_format_1_0_sizeof(carrier, coreset, rnti_type);
   if (msg->nof_bits != y - msg->payload) {
-    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
+    ERROR("Unpacked bits read (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
     return SRSLTE_ERROR;
   }
 
@@ -571,7 +571,7 @@ int srslte_dci_nr_format_1_0_unpack(const srslte_carrier_nr_t* carrier,
   }
 
   if (msg->nof_bits != y - msg->payload) {
-    ERROR("Unpacked bits readed (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
+    ERROR("Unpacked bits read (%d) do NOT match payload size (%d)", msg->nof_bits, (int)(y - msg->payload));
     return SRSLTE_ERROR;
   }
 

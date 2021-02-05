@@ -91,7 +91,7 @@ SRSLTE_API int srslte_dmrs_sch_cfg_to_str(const srslte_dmrs_sch_cfg_t* cfg, char
  * @brief Initialises DMRS PDSCH object
  *
  * @param q DMRS PDSCH object
- * @param is_rx indicates whethe the object is used as receiver (in this case, it shall initialise as an estimator)
+ * @param is_rx indicates whether the object is used as receiver (in this case, it shall initialise as an estimator)
  * @return it returns SRSLTE_ERROR code if an error occurs, otherwise it returns SRSLTE_SUCCESS
  */
 SRSLTE_API int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_rx);
