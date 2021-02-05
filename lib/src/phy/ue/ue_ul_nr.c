@@ -11,6 +11,7 @@
  */
 #include "srslte/phy/ue/ue_ul_nr.h"
 #include "srslte/phy/utils/debug.h"
+#include <complex.h>
 
 int srslte_ue_ul_nr_init(srslte_ue_ul_nr_t* q, cf_t* output, const srslte_ue_ul_nr_args_t* args)
 {
@@ -106,6 +107,17 @@ int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*         q,
   if (srslte_dmrs_sch_put_sf(&q->dmrs, slot_cfg, pusch_cfg, &pusch_cfg->grant, q->sf_symbols[0])) {
     ERROR("Putting DMRS");
     return SRSLTE_ERROR;
+  }
+
+  // Temporary symbol phase shift
+  uint32_t nof_re = SRSLTE_NRE * q->carrier.nof_prb;
+  for (uint32_t i = 0; i < 2; i++) {
+    for (uint32_t j = 0; j < 7; j++) {
+      srslte_vec_sc_prod_ccc(&q->sf_symbols[0][(i * 7 + j) * nof_re],
+                             cexpf(I * (11.0f * j - 2.0f) * M_PI / 16),
+                             &q->sf_symbols[0][(i * 7 + j) * nof_re],
+                             nof_re);
+    }
   }
 
   // Generate signal
