@@ -195,6 +195,9 @@ private:
 #endif
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
+
+  // Metrics helper
+  uint32_t ul_dropped_sdus = 0;
 };
 
 } // namespace srsue

@@ -240,6 +240,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
   // use stack thread to query metrics
   ue_task_queue.try_push([this]() {
     stack_metrics_t metrics{};
+    metrics.ul_dropped_sdus = ul_dropped_sdus;
     mac.get_metrics(metrics.mac);
     rlc.get_metrics(metrics.rlc, metrics.mac[0].nof_tti);
     nas.get_metrics(&metrics.nas);
@@ -277,7 +278,8 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   auto task = [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
   bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).first;
   if (not ret) {
-    pdcp_logger.warning("GW SDU with lcid=%d was discarded.", lcid);
+    pdcp_logger.info("GW SDU with lcid=%d was discarded.", lcid);
+    ul_dropped_sdus++;
   }
 }
 
