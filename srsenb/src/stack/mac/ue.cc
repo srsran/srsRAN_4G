@@ -54,7 +54,7 @@ ue::ue(uint16_t                 rnti_,
   for (auto& carrier_buffers : tx_payload_buffer) {
     for (auto& harq_buffers : carrier_buffers) {
       for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
-        tb_buffer = srslte::allocate_unique_buffer(*pool);
+        tb_buffer = srslte::make_byte_buffer();
       }
     }
   }

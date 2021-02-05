@@ -113,7 +113,7 @@ int rlc_um_nr_test1()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]          = srslte::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -124,7 +124,7 @@ int rlc_um_nr_test1()
   // Read 5 PDUs from RLC1 (1 byte each)
   unique_byte_buffer_t pdu_bufs[num_pdus];
   for (uint32_t i = 0; i < num_pdus; i++) {
-    pdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[i]          = srslte::make_byte_buffer();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, 4); // 3 bytes for header + payload
     pdu_bufs[i]->N_bytes = len;
 
@@ -164,7 +164,7 @@ int rlc_um_nr_test2(bool reverse_rx = false)
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srslte::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -182,7 +182,7 @@ int rlc_um_nr_test2(bool reverse_rx = false)
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srslte::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 25); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -232,7 +232,7 @@ int rlc_um_nr_test4()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srslte::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -251,7 +251,7 @@ int rlc_um_nr_test4()
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srslte::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 25); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
     num_pdus++;
@@ -308,7 +308,7 @@ int rlc_um_nr_test5(const uint32_t last_sn)
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srslte::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -326,7 +326,7 @@ int rlc_um_nr_test5(const uint32_t last_sn)
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srslte::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 25); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -375,7 +375,7 @@ int rlc_um_nr_test6()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srslte::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -393,7 +393,7 @@ int rlc_um_nr_test6()
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srslte::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 8); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -435,7 +435,7 @@ int rlc_um_nr_test7()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srslte::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -453,7 +453,7 @@ int rlc_um_nr_test7()
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srslte::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 8); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 
@@ -499,7 +499,7 @@ int rlc_um_nr_test8()
   byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[num_sdus];
   for (uint32_t i = 0; i < num_sdus; i++) {
-    sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i] = srslte::make_byte_buffer();
     // Write the index into the buffer
     for (uint32_t k = 0; k < sdu_size; ++k) {
       sdu_bufs[i]->msg[k] = i;
@@ -517,7 +517,7 @@ int rlc_um_nr_test8()
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
-    pdu_bufs[num_pdus]          = srslte::allocate_unique_buffer(*pool, true);
+    pdu_bufs[num_pdus]          = srslte::make_byte_buffer();
     int len                     = ctxt.rlc1.read_pdu(pdu_bufs[num_pdus]->msg, 8); // 3 bytes for header + payload
     pdu_bufs[num_pdus]->N_bytes = len;
 

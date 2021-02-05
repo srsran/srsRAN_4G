@@ -206,7 +206,7 @@ uint32_t rrc_nr::generate_sibs()
   mib_s&         mib = mib_msg.msg.set_mib();
   mib                = cfg.mib;
   {
-    srslte::unique_byte_buffer_t mib_buf = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t mib_buf = srslte::make_byte_buffer();
     asn1::bit_ref                bref(mib_buf->msg, mib_buf->get_tailroom());
     mib_msg.pack(bref);
     mib_buf->N_bytes = bref.distance_bytes();
@@ -240,7 +240,7 @@ uint32_t rrc_nr::generate_sibs()
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages + 1; msg_index++) {
-    srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t sib = srslte::make_byte_buffer();
     asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
     msg[msg_index].pack(bref);
     sib->N_bytes = bref.distance_bytes();
@@ -370,7 +370,7 @@ void rrc_nr::ue::send_connection_setup()
 void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu == nullptr) {
     parent->m_log->error("Allocating pdu\n");
   }

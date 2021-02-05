@@ -177,7 +177,7 @@ private:
     // Generate A number of MAC PDUs
     for (uint32_t i = 0; i < args.nof_pdu_tti; i++) {
       // Create PDU unique buffer
-      unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
+      unique_byte_buffer_t pdu = srslte::make_byte_buffer();
       if (!pdu) {
         printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
         exit(-1);
@@ -357,7 +357,7 @@ private:
     uint16_t          pdcp_sn = 0;
     byte_buffer_pool* pool    = byte_buffer_pool::get_instance();
     while (run_enable) {
-      unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
+      unique_byte_buffer_t pdu = srslte::make_byte_buffer();
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit

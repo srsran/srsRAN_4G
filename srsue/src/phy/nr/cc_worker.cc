@@ -212,7 +212,7 @@ bool cc_worker::work_dl()
     }
 
     // Get data buffer
-    srslte::unique_byte_buffer_t data = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+    srslte::unique_byte_buffer_t data = srslte::make_byte_buffer();
     data->N_bytes                     = pdsch_cfg.grant.tb[0].tbs / 8U;
 
     // Initialise PDSCH Result

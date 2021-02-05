@@ -406,7 +406,7 @@ void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
   logger.info("TX GTPU Error Indication. Seq: %d, Error TEID: %d", tx_seq, err_teid);
 
   gtpu_header_t        header = {};
-  unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu    = make_byte_buffer();
 
   // header
   header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
@@ -436,7 +436,7 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   logger.info("TX GTPU Echo Response, Seq: %d", seq);
 
   gtpu_header_t        header = {};
-  unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu    = make_byte_buffer();
 
   // header
   header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
@@ -466,7 +466,7 @@ void gtpu::end_marker(uint32_t teidin)
   tunnel& tunnel = tunnels.find(teidin)->second;
 
   gtpu_header_t        header = {};
-  unique_byte_buffer_t pdu    = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu    = make_byte_buffer();
 
   // header
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;

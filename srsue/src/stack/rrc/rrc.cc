@@ -1544,7 +1544,7 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  unique_byte_buffer_t pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdcp_buf = srslte::make_byte_buffer();
   if (not pdcp_buf.get()) {
     logger.error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().");
     return;
@@ -1576,7 +1576,7 @@ void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
 void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  unique_byte_buffer_t pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdcp_buf = srslte::make_byte_buffer();
   if (not pdcp_buf.get()) {
     logger.error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().");
     return;
@@ -1692,7 +1692,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
   switch (dl_dcch_msg.msg.c1().type().value) {
     case dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer:
-      pdu = srslte::allocate_unique_buffer(*pool, true);
+      pdu = srslte::make_byte_buffer();
       if (!pdu.get()) {
         logger.error("Fatal error: out of buffers in pool");
         return;

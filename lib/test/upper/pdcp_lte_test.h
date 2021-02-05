@@ -60,10 +60,7 @@ class pdcp_lte_test_helper
 {
 public:
   pdcp_lte_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg_, srslte::log_ref log) :
-    rlc(log),
-    rrc(log),
-    gw(log),
-    pdcp(&rlc, &rrc, &gw, &stack.task_sched, log, 0, cfg)
+    rlc(log), rrc(log), gw(log), pdcp(&rlc, &rrc, &gw, &stack.task_sched, log, 0, cfg)
   {
     pdcp.config_security(sec_cfg_);
     pdcp.enable_integrity(srslte::DIRECTION_TXRX);
@@ -105,10 +102,10 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
   init_state.next_pdcp_tx_sn          = pdcp->SN(count);
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
-  srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
   *sdu                             = *in_sdu;
   pdcp->write_sdu(std::move(sdu));
-  srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
   rlc->get_last_sdu(out_pdu);
 
   return out_pdu;

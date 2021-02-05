@@ -131,7 +131,7 @@ bool s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas* nas_ctx, uint1
   }
   m_logger.info(sec_ctx->k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)");
 
-  srslte::unique_byte_buffer_t nas_buffer = allocate_unique_buffer(*m_pool);
+  srslte::unique_byte_buffer_t nas_buffer = srslte::make_byte_buffer();
   if (emm_ctx->state == EMM_STATE_DEREGISTERED) {
     // Attach procedure initiated from an attach request
     srslte::console("Adding attach accept to Initial Context Setup Request\n");
@@ -189,7 +189,6 @@ bool s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(
   // Setup E-RABs
   for (const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_setup_item_ctxt_su_res_ies_o>& ie_container :
        in_ctxt_resp.protocol_ies.erab_setup_list_ctxt_su_res.value) {
-
     // Get E-RAB setup context item and E-RAB Id
     const asn1::s1ap::erab_setup_item_ctxt_su_res_s& erab_setup_item_ctxt =
         ie_container.value.erab_setup_item_ctxt_su_res();

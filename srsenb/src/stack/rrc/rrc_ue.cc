@@ -168,7 +168,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   srslte::unique_byte_buffer_t original_pdu = std::move(pdu);
-  pdu                                       = srslte::allocate_unique_buffer(*pool);
+  pdu                                       = srslte::make_byte_buffer();
 
   transaction_id = 0;
 
@@ -696,7 +696,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   }
 
   if (eutra_capabilities_unpacked) {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
     asn1::bit_ref                bref2{pdu->msg, pdu->get_tailroom()};
     msg->pack(bref2);
     asn1::rrc::ue_radio_access_cap_info_s ue_rat_caps;
@@ -1007,7 +1007,7 @@ void rrc::ue::update_scells()
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     if (dl_ccch_msg->pack(bref) != asn1::SRSASN_SUCCESS) {
@@ -1028,7 +1028,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
 {
   if (!pdu) {
-    pdu = srslte::allocate_unique_buffer(*pool);
+    pdu = srslte::make_byte_buffer();
   }
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());

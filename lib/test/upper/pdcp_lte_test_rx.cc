@@ -42,7 +42,6 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
 
   // Generate test message and encript/decript SDU.
   for (pdcp_test_event_t& event : events) {
-
     // Decript and integrity check the PDU
     pdcp_rx->write_pdu(std::move(event.pkt));
     for (uint32_t i = 0; i < event.ticks; ++i) {
@@ -54,7 +53,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   if (rb_type == srslte::PDCP_RB_IS_DRB) {
     TESTASSERT(gw_rx->rx_count == n_sdus_exp);
     if (n_sdus_exp > 0) {
-      srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+      srslte::unique_byte_buffer_t sdu_act = srslte::make_byte_buffer();
       gw_rx->get_last_pdu(sdu_act);
       TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
     }
@@ -62,7 +61,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   } else {
     TESTASSERT(rrc_rx->rx_count == n_sdus_exp);
     if (n_sdus_exp > 0) {
-      srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+      srslte::unique_byte_buffer_t sdu_act = srslte::make_byte_buffer();
       rrc_rx->get_last_pdu(sdu_act);
       TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
     }
@@ -77,9 +76,9 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
 int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 {
   // Test SDUs
-  srslte::unique_byte_buffer_t tst_sdu1 = allocate_unique_buffer(*pool); // SDU 1
+  srslte::unique_byte_buffer_t tst_sdu1 = srslte::make_byte_buffer(); // SDU 1
   tst_sdu1->append_bytes(sdu1, sizeof(sdu1));
-  srslte::unique_byte_buffer_t tst_sdu2 = allocate_unique_buffer(*pool); // SDU 2
+  srslte::unique_byte_buffer_t tst_sdu2 = srslte::make_byte_buffer(); // SDU 2
   tst_sdu2->append_bytes(sdu2, sizeof(sdu2));
 
   /*
@@ -159,12 +158,12 @@ int test_rx_control_pdu(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   std::vector<pdcp_test_event_t> pdu_vec;
 
   pdcp_test_event_t event;
-  event.pkt = allocate_unique_buffer(*pool);
+  event.pkt = srslte::make_byte_buffer();
   memcpy(event.pkt->msg, pdcp_status_report_long, sizeof(pdcp_status_report_long));
   event.pkt->N_bytes = sizeof(pdcp_status_report_long);
   pdu_vec.push_back(std::move(event));
 
-  srslte::unique_byte_buffer_t tst_sdu1 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t tst_sdu1 = srslte::make_byte_buffer();
 
   srslte::pdcp_lte_state_t test_init_state = {
       .next_pdcp_tx_sn = 0, .tx_hfn = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 32, .last_submitted_pdcp_rx_sn = 31};

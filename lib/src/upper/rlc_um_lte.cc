@@ -314,7 +314,7 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 
   // Write to rx window
   rlc_umd_pdu_t pdu = {};
-  pdu.buf           = allocate_unique_buffer(*pool);
+  pdu.buf           = make_byte_buffer();
   if (!pdu.buf) {
     log->error("Discarting packet: no space in buffer pool\n");
     return;
@@ -358,7 +358,7 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
 {
   if (!rx_sdu) {
-    rx_sdu = allocate_unique_buffer(*pool);
+    rx_sdu = make_byte_buffer();
     if (!rx_sdu) {
       log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
       return;
@@ -420,7 +420,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
           } else {
             pdcp->write_pdu(lcid, std::move(rx_sdu));
           }
-          rx_sdu = allocate_unique_buffer(*pool);
+          rx_sdu = make_byte_buffer();
           if (!rx_sdu) {
             log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
             return;
@@ -455,7 +455,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
             } else {
               pdcp->write_pdu(lcid, std::move(rx_sdu));
             }
-            rx_sdu = allocate_unique_buffer(*pool);
+            rx_sdu = make_byte_buffer();
             if (!rx_sdu) {
               log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
               return;
@@ -566,7 +566,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         } else {
           pdcp->write_pdu(lcid, std::move(rx_sdu));
         }
-        rx_sdu = allocate_unique_buffer(*pool);
+        rx_sdu = make_byte_buffer();
         if (!rx_sdu) {
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
           return;
@@ -628,7 +628,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         } else {
           pdcp->write_pdu(lcid, std::move(rx_sdu));
         }
-        rx_sdu = allocate_unique_buffer(*pool);
+        rx_sdu = make_byte_buffer();
         if (!rx_sdu) {
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
           return;

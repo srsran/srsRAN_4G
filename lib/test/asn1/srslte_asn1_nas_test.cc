@@ -35,8 +35,8 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t tst_msg, out_msg;
-  tst_msg = allocate_unique_buffer(*pool);
-  out_msg = allocate_unique_buffer(*pool);
+  tst_msg = srslte::make_byte_buffer();
+  out_msg = srslte::make_byte_buffer();
 
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT ded_bearer_req;
 

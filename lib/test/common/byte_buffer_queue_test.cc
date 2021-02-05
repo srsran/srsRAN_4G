@@ -24,10 +24,9 @@ typedef struct {
 
 void* write_thread(void* a)
 {
-  args_t*           args = (args_t*)a;
-  byte_buffer_pool* pool = byte_buffer_pool::get_instance();
+  args_t* args = (args_t*)a;
   for (uint32_t i = 0; i < NMSGS; i++) {
-    unique_byte_buffer_t b = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t b = srslte::make_byte_buffer();
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
     args->q->write(std::move(b));

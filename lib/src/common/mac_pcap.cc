@@ -165,7 +165,7 @@ void mac_pcap::pack_and_queue(uint8_t* payload,
     pdu.context.subFrameNumber = (uint16_t)(tti % 10);
 
     // try to allocate PDU buffer
-    pdu.pdu = srslte::allocate_unique_buffer(*pool);
+    pdu.pdu = srslte::make_byte_buffer();
     if (pdu.pdu != nullptr && pdu.pdu->get_tailroom() >= payload_len) {
       // copy payload into PDU buffer
       memcpy(pdu.pdu->msg, payload, payload_len);
@@ -198,7 +198,7 @@ void mac_pcap::pack_and_queue_nr(uint8_t* payload,
     pdu.context_nr.sub_frame_number    = tti % 10;
 
     // try to allocate PDU buffer
-    pdu.pdu = srslte::allocate_unique_buffer(*pool);
+    pdu.pdu = srslte::make_byte_buffer();
     if (pdu.pdu != nullptr && pdu.pdu->get_tailroom() >= payload_len) {
       // copy payload into PDU buffer
       memcpy(pdu.pdu->msg, payload, payload_len);

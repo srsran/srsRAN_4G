@@ -225,7 +225,7 @@ bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
 inline void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, srslte::const_byte_span msg)
 {
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
-  pdu                            = srslte::allocate_unique_buffer(*pool, true);
+  pdu                            = srslte::make_byte_buffer();
   memcpy(pdu->msg, msg.data(), msg.size());
   pdu->N_bytes = msg.size();
 }

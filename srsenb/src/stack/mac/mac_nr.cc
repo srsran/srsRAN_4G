@@ -22,14 +22,14 @@ namespace srsenb {
 
 mac_nr::mac_nr() : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
 {
-  bcch_bch_payload = srslte::allocate_unique_buffer(*pool);
+  bcch_bch_payload = srslte::make_byte_buffer();
 
   // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
   for (int i = 0; i < SRSLTE_FDD_NOF_HARQ; i++) {
-    ue_tx_buffer.emplace_back(srslte::allocate_unique_buffer(*pool));
+    ue_tx_buffer.emplace_back(srslte::make_byte_buffer());
   }
 
-  ue_rlc_buffer = srslte::allocate_unique_buffer(*pool);
+  ue_rlc_buffer = srslte::make_byte_buffer();
 }
 
 mac_nr::~mac_nr()
@@ -246,7 +246,7 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
       sib_info_t sib  = {};
       sib.index       = i;
       sib.periodicity = cell_cfg->sibs->period_rf;
-      sib.payload     = srslte::allocate_unique_buffer(*pool);
+      sib.payload     = srslte::make_byte_buffer();
       if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSLTE_SUCCESS) {
         log_h->error("Couldn't read SIB %d from RRC\n", sib.index);
       }

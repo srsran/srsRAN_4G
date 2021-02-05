@@ -197,10 +197,9 @@ bool nas::handle_imsi_attach_request_unknown_ue(uint32_t                        
                                                 const nas_init_t&                                     args,
                                                 const nas_if_t&                                       itf)
 {
-  nas*                      nas_ctx;
-  srslte::byte_buffer_t*    nas_tx;
-  srslte::byte_buffer_pool* pool       = srslte::byte_buffer_pool::get_instance();
-  auto&                     nas_logger = srslog::fetch_basic_logger("NAS");
+  nas*                   nas_ctx;
+  srslte::byte_buffer_t* nas_tx;
+  auto&                  nas_logger = srslog::fetch_basic_logger("NAS");
 
   // Interfaces
   s1ap_interface_nas* s1ap = itf.s1ap;
@@ -405,10 +404,9 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
                                               const nas_init_t&                                     args,
                                               const nas_if_t&                                       itf)
 {
-  bool                      msg_valid = false;
-  srslte::byte_buffer_t*    nas_tx;
-  srslte::byte_buffer_pool* pool       = srslte::byte_buffer_pool::get_instance();
-  auto&                     nas_logger = srslog::fetch_basic_logger("NAS");
+  bool                   msg_valid = false;
+  srslte::byte_buffer_t* nas_tx;
+  auto&                  nas_logger = srslog::fetch_basic_logger("NAS");
 
   emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
   ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;

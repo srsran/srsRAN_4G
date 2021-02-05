@@ -108,11 +108,11 @@ int tft_filter_test_ipv6_combined()
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("TFT");
   srslte::byte_buffer_pool*    pool   = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2, ip_msg3, ip_msg4, ip_msg5;
-  ip_msg1 = allocate_unique_buffer(*pool);
-  ip_msg2 = allocate_unique_buffer(*pool);
-  ip_msg3 = allocate_unique_buffer(*pool);
-  ip_msg4 = allocate_unique_buffer(*pool);
-  ip_msg5 = allocate_unique_buffer(*pool);
+  ip_msg1 = make_byte_buffer();
+  ip_msg2 = make_byte_buffer();
+  ip_msg3 = make_byte_buffer();
+  ip_msg4 = make_byte_buffer();
+  ip_msg5 = make_byte_buffer();
 
   // Set IP test message
   ip_msg1->N_bytes = sizeof(ipv6_matched_packet);
@@ -167,8 +167,8 @@ int tft_filter_test_single_local_port()
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
-  ip_msg1 = allocate_unique_buffer(*pool);
-  ip_msg2 = allocate_unique_buffer(*pool);
+  ip_msg1 = make_byte_buffer();
+  ip_msg2 = make_byte_buffer();
 
   // Filter length: 3 bytes
   // Filter type:   Single local port
@@ -212,8 +212,8 @@ int tft_filter_test_single_remote_port()
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
-  ip_msg1 = allocate_unique_buffer(*pool);
-  ip_msg2 = allocate_unique_buffer(*pool);
+  ip_msg1 = make_byte_buffer();
+  ip_msg2 = make_byte_buffer();
 
   // Filter length: 3 bytes
   // Filter type:   Single remote port
@@ -257,8 +257,8 @@ int tft_filter_test_ipv4_local_addr()
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
-  ip_msg1 = allocate_unique_buffer(*pool);
-  ip_msg2 = allocate_unique_buffer(*pool);
+  ip_msg1 = make_byte_buffer();
+  ip_msg2 = make_byte_buffer();
 
   // Filter length: 9 bytes
   // Filter type:   IPv4 local address
@@ -305,8 +305,8 @@ int tft_filter_test_ipv4_remote_addr()
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
-  ip_msg1 = allocate_unique_buffer(*pool);
-  ip_msg2 = allocate_unique_buffer(*pool);
+  ip_msg1 = make_byte_buffer();
+  ip_msg2 = make_byte_buffer();
 
   // Filter length: 5 bytes
   // Filter type:   IPv4 local address
@@ -352,8 +352,8 @@ int tft_filter_test_ipv4_tos()
 
   srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
-  ip_msg1 = allocate_unique_buffer(*pool);
-  ip_msg2 = allocate_unique_buffer(*pool);
+  ip_msg1 = make_byte_buffer();
+  ip_msg2 = make_byte_buffer();
 
   // Filter length: 3 bytes
   // Filter type:   Type of service

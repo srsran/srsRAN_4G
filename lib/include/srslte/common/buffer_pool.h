@@ -218,21 +218,6 @@ private:
   buffer_pool<mem_chunk> pool;
 };
 
-inline unique_byte_buffer_t allocate_unique_buffer(byte_buffer_pool& pool, bool blocking = false) noexcept
-{
-  return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t());
-}
-
-inline unique_byte_buffer_t
-allocate_unique_buffer(byte_buffer_pool& pool, const char* debug_name, bool blocking = false) noexcept
-{
-  std::unique_ptr<byte_buffer_t> buffer(new (std::nothrow) byte_buffer_t());
-  if (buffer == nullptr) {
-    srslog::fetch_basic_logger("POOL").error("Failed to allocate byte buffer in %s", debug_name);
-  }
-  return buffer;
-}
-
 inline unique_byte_buffer_t make_byte_buffer() noexcept
 {
   return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t());

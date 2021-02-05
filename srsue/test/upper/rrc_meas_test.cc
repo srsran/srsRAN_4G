@@ -135,7 +135,7 @@ public:
           get_dlsch_with_sys_info(dlsch_msg);
         }
 
-        pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+        pdu = srslte::make_byte_buffer();
         asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
         dlsch_msg.pack(bref);
         pdu->N_bytes = bref.distance_bytes();
@@ -304,7 +304,7 @@ public:
 
   void send_ccch_msg(dl_ccch_msg_s& dl_ccch_msg)
   {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg.pack(bref);
@@ -316,7 +316,7 @@ public:
 
   void send_dcch_msg(dl_dcch_msg_s& dl_dcch_msg)
   {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
     ;
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_dcch_msg.pack(bref);
@@ -371,11 +371,11 @@ public:
   mac_test mactest;
 
 private:
-  std::unique_ptr<pdcp_test> pdcptest;
-  std::unique_ptr<nas_test>  nastest;
+  std::unique_ptr<pdcp_test>   pdcptest;
+  std::unique_ptr<nas_test>    nastest;
   std::unique_ptr<rrc_nr_test> rrcnrtest;
-  uint32_t                   tti  = 0;
-  srslte::byte_buffer_pool*  pool = nullptr;
+  uint32_t                     tti  = 0;
+  srslte::byte_buffer_pool*    pool = nullptr;
 };
 
 // Test Cell select
@@ -911,7 +911,6 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
                         report_cfg_eutra_s::report_amount_e_ report_amount,
                         report_interv_e                      report_interv)
 {
-
   srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
   log1->set_level(srslte::LOG_LEVEL_DEBUG);
   log1->set_hex_limit(-1);

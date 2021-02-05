@@ -317,7 +317,7 @@ void nas::start_attach_request(srslte::establishment_cause_t cause_)
   }
 
   // Start attach request
-  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool);
+  unique_byte_buffer_t msg = srslte::make_byte_buffer();
   if (msg == nullptr) {
     logger.warning("Couldn't allocate buffer for Attach request.\n");
     return;
@@ -360,7 +360,7 @@ void nas::start_service_request(srslte::establishment_cause_t cause_)
   logger.info("NAS is already registered but RRC disconnected. Connecting now...");
 
   // Start service request
-  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t msg = srslte::make_byte_buffer();
   gen_service_request(msg);
   if (not rrc->connection_request(cause_, std::move(msg))) {
     logger.error("Error starting RRC connection");
@@ -1858,7 +1858,7 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
 
 void nas::send_security_mode_reject(uint8_t cause)
 {
-  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t msg = srslte::make_byte_buffer();
   if (!msg) {
     logger.error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().");
     return;
@@ -1879,7 +1879,7 @@ void nas::send_security_mode_reject(uint8_t cause)
  */
 void nas::send_attach_request()
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
@@ -1890,7 +1890,7 @@ void nas::send_attach_request()
 
 void nas::send_detach_request(bool switch_off)
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
@@ -1971,7 +1971,7 @@ void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& ep
                                                                  &attach_complete.esm_msg);
 
   // Pack entire message
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   liblte_mme_pack_attach_complete_msg(
       &attach_complete, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
   // Write NAS pcap
@@ -1994,7 +1994,7 @@ void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& ep
 
 void nas::send_detach_accept()
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in %s().", __FUNCTION__);
     return;
@@ -2019,7 +2019,7 @@ void nas::send_detach_accept()
 
 void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in send_authentication_response().");
     return;
@@ -2050,7 +2050,7 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
 
 void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param)
 {
-  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t msg = srslte::make_byte_buffer();
   if (!msg) {
     logger.error("Fatal Error: Couldn't allocate PDU in send_authentication_failure().");
     return;
@@ -2098,7 +2098,7 @@ void nas::send_identity_response(const uint8 id_type)
       return;
   }
 
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in send_identity_response().");
     return;
@@ -2122,7 +2122,7 @@ void nas::send_identity_response(const uint8 id_type)
 
 void nas::send_service_request()
 {
-  unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t msg = srslte::make_byte_buffer();
   if (!msg) {
     logger.error("Fatal Error: Couldn't allocate PDU in send_service_request().");
     return;
@@ -2170,7 +2170,6 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
 
   if (cfg.apn_user != "" && cfg.apn_user.length() < LIBLTE_STRING_LEN && cfg.apn_pass != "" &&
       cfg.apn_pass.length() < LIBLTE_STRING_LEN) {
-
     logger.debug("Including CHAP authentication for user %s in ESM info response", cfg.apn_user.c_str());
 
     // Generate CHAP challenge
@@ -2243,7 +2242,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
     esm_info_resp.protocol_cnfg_opts_present = false;
   }
 
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in %s.", __FUNCTION__);
     return;
@@ -2274,7 +2273,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
 void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
                                                             const uint8_t& eps_bearer_id)
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2308,7 +2307,7 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
 
 void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2342,7 +2341,7 @@ void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transact
 
 void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
 
@@ -2376,7 +2375,7 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
 
 void nas::send_activate_test_mode_complete()
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   if (liblte_mme_pack_activate_test_mode_complete_msg(
           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {
@@ -2401,7 +2400,7 @@ void nas::send_activate_test_mode_complete()
 
 void nas::send_close_ue_test_loop_complete()
 {
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   if (liblte_mme_pack_close_ue_test_loop_complete_msg(
           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {

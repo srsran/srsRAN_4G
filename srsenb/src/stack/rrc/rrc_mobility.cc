@@ -321,7 +321,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     hoprep_r8.ue_radio_access_cap_info.resize(1);
     hoprep_r8.ue_radio_access_cap_info[0].rat_type = asn1::rrc::rat_type_e::eutra;
 
-    srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t buffer = srslte::make_byte_buffer();
     asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
     if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
       logger.error("Failed to pack UE EUTRA Capability");
@@ -360,7 +360,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
                                  rrc_ue->ue_security_cfg.get_as_sec_cfg().k_rrc_int.data()));
 
   /*** pack HO Preparation Info into an RRC container buffer ***/
-  srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t buffer = srslte::make_byte_buffer();
   asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
   if (hoprep.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
     Error("Failed to pack HO preparation msg");
@@ -697,7 +697,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
       ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_chaining_count;
 
   /* Prepare Handover Command to be sent via S1AP */
-  srslte::unique_byte_buffer_t ho_cmd_pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t ho_cmd_pdu = srslte::make_byte_buffer();
   asn1::bit_ref                bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack HandoverCommand");

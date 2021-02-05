@@ -235,7 +235,7 @@ int security_command_test()
 
     // push auth request PDU to NAS to generate security context
     byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp  = srslte::make_byte_buffer();
     memcpy(tmp->msg, auth_request_pdu, sizeof(auth_request_pdu));
     tmp->N_bytes = sizeof(auth_request_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -244,7 +244,7 @@ int security_command_test()
     rrc_dummy.reset();
 
     // reuse buffer for security mode command
-    tmp = srslte::allocate_unique_buffer(*pool, true);
+    tmp = srslte::make_byte_buffer();
     memcpy(tmp->msg, sec_mode_command_pdu, sizeof(sec_mode_command_pdu));
     tmp->N_bytes = sizeof(sec_mode_command_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -316,7 +316,7 @@ int mme_attach_request_test()
 
     // finally push attach accept
     byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp  = srslte::make_byte_buffer();
     memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
     tmp->N_bytes = sizeof(attach_accept_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -374,7 +374,7 @@ int esm_info_request_test()
     nas.init(&usim, &rrc_dummy, &gw, cfg);
 
     // push ESM info request PDU to NAS to generate response
-    unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp = srslte::make_byte_buffer();
     memcpy(tmp->msg, esm_info_req_pdu, sizeof(esm_info_req_pdu));
     tmp->N_bytes = sizeof(esm_info_req_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -421,7 +421,7 @@ int dedicated_eps_bearer_test()
   nas.init(&usim, &rrc_dummy, &gw, cfg);
 
   // push dedicated EPS bearer PDU to NAS
-  unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
   tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -432,7 +432,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 0);
 
   // add default EPS beaerer
-  unique_byte_buffer_t attach_with_default_bearer = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t attach_with_default_bearer = srslte::make_byte_buffer();
   memcpy(attach_with_default_bearer->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
   attach_with_default_bearer->N_bytes = sizeof(attach_accept_pdu);
   nas.write_pdu(LCID, std::move(attach_with_default_bearer));
@@ -442,7 +442,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
   // push dedicated bearer activation and check that it was added
-  tmp = srslte::allocate_unique_buffer(*pool, true);
+  tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
   tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -450,7 +450,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 2);
 
   // tear-down dedicated bearer
-  tmp = srslte::allocate_unique_buffer(*pool, true);
+  tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
   tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -458,7 +458,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
   // try to tear-down dedicated bearer again
-  tmp = srslte::allocate_unique_buffer(*pool, true);
+  tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
   tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));

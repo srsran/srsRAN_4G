@@ -193,7 +193,7 @@ private:
       uint16_t tb_len = ((uint16_t)payload_ptr[0] << 8) | payload_ptr[1];
       payload_ptr += 2;
 
-      unique_byte_buffer_t sib = pool_allocate_blocking;
+      unique_byte_buffer_t sib = srslte::make_byte_buffer();
       memcpy(sib->msg, payload_ptr, tb_len);
       payload_ptr += tb_len;
       sib->N_bytes = tb_len;
@@ -694,7 +694,7 @@ private:
     uint16_t tb_len = ((uint16_t)payload_ptr[0] << 8) | payload_ptr[1];
     payload_ptr += 2;
 
-    unique_byte_buffer_t pch = pool_allocate_blocking;
+    unique_byte_buffer_t pch = srslte::make_byte_buffer();
     memcpy(pch->msg, payload_ptr, tb_len);
     payload_ptr += tb_len;
     pch->N_bytes = tb_len;

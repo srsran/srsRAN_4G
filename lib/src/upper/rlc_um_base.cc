@@ -294,7 +294,7 @@ int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_b
       return 0;
     }
 
-    pdu = allocate_unique_buffer(*pool);
+    pdu = make_byte_buffer();
     if (!pdu || pdu->N_bytes != 0) {
       log->error("Failed to allocate PDU buffer\n");
       return 0;

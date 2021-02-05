@@ -759,7 +759,7 @@ uint32_t rrc::generate_sibs()
 
     // Pack payload for all messages
     for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-      srslte::unique_byte_buffer_t sib_buffer = srslte::allocate_unique_buffer(*pool);
+      srslte::unique_byte_buffer_t sib_buffer = srslte::make_byte_buffer();
       asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         logger.error("Failed to pack SIB message %d", msg_index);

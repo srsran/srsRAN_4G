@@ -409,13 +409,11 @@ class recvfrom_pdu_task final : public rx_multisocket_handler::recv_task
 {
 public:
   using callback_t = std::function<void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from)>;
-  explicit recvfrom_pdu_task(srslte::byte_buffer_pool* pool_, srslog::basic_logger& logger, callback_t func_) :
-    pool(pool_), logger(logger), func(std::move(func_))
-  {}
+  explicit recvfrom_pdu_task(srslog::basic_logger& logger, callback_t func_) : logger(logger), func(std::move(func_)) {}
 
   bool operator()(int fd) override
   {
-    srslte::unique_byte_buffer_t pdu     = srslte::allocate_unique_buffer(*pool, "Rxsocket", true);
+    srslte::unique_byte_buffer_t pdu(new byte_buffer_t());
     sockaddr_in                  from    = {};
     socklen_t                    fromlen = sizeof(from);
 
@@ -435,9 +433,8 @@ public:
   }
 
 private:
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslog::basic_logger&     logger;
-  callback_t                func;
+  srslog::basic_logger& logger;
+  callback_t            func;
 };
 
 class sctp_recvmsg_pdu_task final : public rx_multisocket_handler::recv_task
@@ -452,7 +449,7 @@ public:
   bool operator()(int fd) override
   {
     // inside rx_sockets thread. Read socket
-    srslte::unique_byte_buffer_t pdu     = srslte::allocate_unique_buffer(*pool, "Rxsocket", true);
+    srslte::unique_byte_buffer_t pdu     = srslte::make_byte_buffer();
     sockaddr_in                  from    = {};
     socklen_t                    fromlen = sizeof(from);
     sctp_sndrcvinfo              sri     = {};
@@ -539,7 +536,7 @@ void rx_multisocket_handler::stop()
 bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recvfrom_callback_t pdu_task)
 {
   std::unique_ptr<srslte::rx_multisocket_handler::recv_task> task;
-  task.reset(new srslte::recvfrom_pdu_task(pool, logger, std::move(pdu_task)));
+  task.reset(new srslte::recvfrom_pdu_task(logger, std::move(pdu_task)));
   return add_socket_handler(fd, std::move(task));
 }
 

@@ -335,7 +335,7 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
 void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
 {
   // Send MIB to RLC
-  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = make_byte_buffer();
   if (buf != nullptr) {
     memcpy(buf->msg, payload, len);
     buf->N_bytes = len;
@@ -395,7 +395,7 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
     }
   } else if (grant.rnti == SRSLTE_PRNTI) {
     // Send PCH payload to RLC
-    unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
     if (pdu != nullptr) {
       memcpy(pdu->msg, pch_payload_buffer, grant.tb[0].tbs);
       pdu->N_bytes = grant.tb[0].tbs;

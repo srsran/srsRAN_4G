@@ -49,7 +49,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
 
   // Test if the number of RX packets
   TESTASSERT(gw_rx->rx_count == n_sdus_exp);
-  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu_act = srslte::make_byte_buffer();
   gw_rx->get_last_pdu(sdu_act);
   TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
   return 0;
@@ -62,9 +62,9 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
 int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 {
   // Test SDUs
-  srslte::unique_byte_buffer_t tst_sdu1 = allocate_unique_buffer(*pool); // SDU 1
+  srslte::unique_byte_buffer_t tst_sdu1 = srslte::make_byte_buffer(); // SDU 1
   tst_sdu1->append_bytes(sdu1, sizeof(sdu1));
-  srslte::unique_byte_buffer_t tst_sdu2 = allocate_unique_buffer(*pool); // SDU 2
+  srslte::unique_byte_buffer_t tst_sdu2 = srslte::make_byte_buffer(); // SDU 2
   tst_sdu2->append_bytes(sdu2, sizeof(sdu2));
 
   /*
@@ -134,12 +134,12 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 
     // First PDU
     pdcp_test_event_t event_pdu1;
-    event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu1.pkt = srslte::make_byte_buffer();
     event_pdu1.pkt->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
 
     // Second PDU
     pdcp_test_event_t event_pdu2;
-    event_pdu2.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu2.pkt = srslte::make_byte_buffer();
     event_pdu2.pkt->append_bytes(pdu2_count1_snlen12, sizeof(pdu2_count1_snlen12));
 
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)
@@ -158,12 +158,12 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 
     // First PDU
     pdcp_test_event_t event_pdu1;
-    event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu1.pkt = srslte::make_byte_buffer();
     event_pdu1.pkt->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
 
     // Second PDU
     pdcp_test_event_t event_pdu2;
-    event_pdu2.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu2.pkt = srslte::make_byte_buffer();
     event_pdu2.pkt->append_bytes(pdu2_count1_snlen18, sizeof(pdu2_count1_snlen18));
 
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)
@@ -182,7 +182,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 
     // First PDU
     pdcp_test_event_t event_pdu1;
-    event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu1.pkt = srslte::make_byte_buffer();
     event_pdu1.pkt->append_bytes(pdu2_count1_snlen12, sizeof(pdu2_count1_snlen12));
     event_pdu1.ticks = 500;
 
@@ -201,12 +201,12 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 
     // First PDU
     pdcp_test_event_t event_pdu1;
-    event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu1.pkt = srslte::make_byte_buffer();
     event_pdu1.pkt->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
 
     // Second PDU
     pdcp_test_event_t event_pdu2;
-    event_pdu2.pkt = srslte::allocate_unique_buffer(*pool);
+    event_pdu2.pkt = srslte::make_byte_buffer();
     event_pdu2.pkt->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
 
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)

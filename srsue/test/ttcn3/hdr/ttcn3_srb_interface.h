@@ -108,7 +108,7 @@ private:
     logger.info(payload, len, "Received CCCH RRC PDU");
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = pool_allocate_blocking;
+    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
@@ -128,7 +128,7 @@ private:
     logger.info(payload, len, "Received DCCH RRC PDU (lcid=%d)", lcid);
 
     // pack into byte buffer
-    unique_byte_buffer_t pdu = pool_allocate_blocking;
+    unique_byte_buffer_t pdu = srslte::make_byte_buffer();
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 

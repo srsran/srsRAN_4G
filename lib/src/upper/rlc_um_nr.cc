@@ -212,8 +212,7 @@ void rlc_um_nr::rlc_um_nr_tx::reset()
  ***************************************************************************/
 
 rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_rx(rlc_um_base* parent_) :
-  rlc_um_base_rx(parent_),
-  reassembly_timer(timers->get_unique_timer())
+  rlc_um_base_rx(parent_), reassembly_timer(timers->get_unique_timer())
 {}
 
 bool rlc_um_nr::rlc_um_nr_rx::configure(const rlc_config_t& cnfg_, std::string rb_name_)
@@ -329,7 +328,7 @@ unique_byte_buffer_t rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_strip_pdu_header(const r
                                                                          const uint8_t*                payload,
                                                                          const uint32_t                nof_bytes)
 {
-  unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t sdu = make_byte_buffer();
   if (!sdu) {
     log->error("Discarting packet: no space in buffer pool\n");
     return nullptr;

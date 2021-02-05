@@ -823,7 +823,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     return 0;
   }
 
-  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     srslte::console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
@@ -1346,7 +1346,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 
   // Write to rx window
   rlc_amd_rx_pdu_t pdu;
-  pdu.buf = srslte::allocate_unique_buffer(*pool, true);
+  pdu.buf = srslte::make_byte_buffer();
   if (pdu.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     srslte::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
@@ -1454,7 +1454,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
   }
 
   rlc_amd_rx_pdu_t segment;
-  segment.buf = srslte::allocate_unique_buffer(*pool, true);
+  segment.buf = srslte::make_byte_buffer();
   if (segment.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     srslte::console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
@@ -1521,7 +1521,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 {
   uint32_t len = 0;
   if (rx_sdu == NULL) {
-    rx_sdu = allocate_unique_buffer(*pool, true);
+    rx_sdu = srslte::make_byte_buffer();
     if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
       srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
@@ -1576,7 +1576,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
           parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
           parent->metrics.num_rx_sdus++;
 
-          rx_sdu = allocate_unique_buffer(*pool, true);
+          rx_sdu = srslte::make_byte_buffer();
           if (rx_sdu == nullptr) {
 #ifdef RLC_AM_BUFFER_DEBUG
             srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
@@ -1626,7 +1626,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
       parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
       parent->metrics.num_rx_sdus++;
 
-      rx_sdu = allocate_unique_buffer(*pool, true);
+      rx_sdu = srslte::make_byte_buffer();
       if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
         srslte::console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
@@ -1962,7 +1962,7 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
   log->debug("Finished header reconstruction of %zd segments\n", pdu->segments.size());
 
   // Copy data
-  unique_byte_buffer_t full_pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t full_pdu = srslte::make_byte_buffer();
   if (full_pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     srslte::console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");

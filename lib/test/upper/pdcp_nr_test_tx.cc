@@ -40,12 +40,12 @@ int test_tx(uint32_t                     n_packets,
   // Run test
   for (uint32_t i = 0; i < n_packets; ++i) {
     // Test SDU
-    srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp->write_sdu(std::move(sdu));
   }
 
-  srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_act = srslte::make_byte_buffer();
   rlc->get_last_sdu(pdu_act);
 
   TESTASSERT(rlc->rx_count == n_pdus_exp);
@@ -67,7 +67,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
   n_packets                                         = 1;
-  srslte::unique_byte_buffer_t pdu_exp_count0_len12 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count0_len12 = srslte::make_byte_buffer();
   pdu_exp_count0_len12->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
   TESTASSERT(test_tx(n_packets,
                      normal_init_state,
@@ -84,7 +84,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
    */
   n_packets                                            = 2049;
-  srslte::unique_byte_buffer_t pdu_exp_count2048_len12 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count2048_len12 = srslte::make_byte_buffer();
   pdu_exp_count2048_len12->append_bytes(pdu1_count2048_snlen12, sizeof(pdu1_count2048_snlen12));
   TESTASSERT(test_tx(n_packets,
                      normal_init_state,
@@ -101,7 +101,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
   n_packets                                            = 4097;
-  srslte::unique_byte_buffer_t pdu_exp_count4096_len12 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count4096_len12 = srslte::make_byte_buffer();
   pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
   TESTASSERT(test_tx(n_packets,
                      normal_init_state,
@@ -118,7 +118,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Output: PDCP Header {0x80, 0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
   n_packets                                         = 1;
-  srslte::unique_byte_buffer_t pdu_exp_count0_len18 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count0_len18 = srslte::make_byte_buffer();
   pdu_exp_count0_len18->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
   TESTASSERT(test_tx(n_packets,
                      normal_init_state,
@@ -135,7 +135,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Output: PDCP Header {0x82, 0x00, 0x00}, Ciphered Text {0x15, 0x01}, MAC-I {0xf4, 0xb0, 0xfc, 0xc5}
    */
   n_packets                                           = 131073;
-  srslte::unique_byte_buffer_t pdu_exp_sn131072_len18 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_sn131072_len18 = srslte::make_byte_buffer();
   pdu_exp_sn131072_len18->append_bytes(pdu1_count131072_snlen18, sizeof(pdu1_count131072_snlen18));
   TESTASSERT(test_tx(n_packets,
                      normal_init_state,
@@ -152,7 +152,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Output: PDCP Header {0x80, 0x00, 0x00}, Ciphered Text {0xc2, 0x47}, MAC-I {0xa8, 0xdd, 0xc0, 0x73}
    */
   n_packets                                              = 262145;
-  srslte::unique_byte_buffer_t pdu_exp_count262144_len18 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count262144_len18 = srslte::make_byte_buffer();
   pdu_exp_count262144_len18->append_bytes(pdu1_count262144_snlen18, sizeof(pdu1_count262144_snlen18));
   TESTASSERT(test_tx(n_packets,
                      normal_init_state,
@@ -168,7 +168,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Should print a warning and drop all packets after wraparound.
    */
   n_packets                                                  = 5;
-  srslte::unique_byte_buffer_t pdu_exp_count4294967295_len12 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count4294967295_len12 = srslte::make_byte_buffer();
   pdu_exp_count4294967295_len12->append_bytes(pdu1_count4294967295_snlen12, sizeof(pdu1_count4294967295_snlen12));
   TESTASSERT(test_tx(n_packets,
                      near_wraparound_init_state,
@@ -184,7 +184,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
    * Should print a warning and drop all packets after wraparound.
    */
   n_packets                                                  = 5;
-  srslte::unique_byte_buffer_t pdu_exp_count4294967295_len18 = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu_exp_count4294967295_len18 = srslte::make_byte_buffer();
   pdu_exp_count4294967295_len18->append_bytes(pdu1_count4294967295_snlen18, sizeof(pdu1_count4294967295_snlen18));
   TESTASSERT(test_tx(n_packets,
                      near_wraparound_init_state,

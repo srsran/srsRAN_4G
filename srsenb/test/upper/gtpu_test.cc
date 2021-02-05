@@ -71,7 +71,7 @@ srslte::unique_byte_buffer_t encode_ipv4_packet(srslte::span<uint8_t>     data,
                                                 const struct sockaddr_in& src_sockaddr_in,
                                                 const struct sockaddr_in& dest_sockaddr_in)
 {
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   struct iphdr ip_pkt;
   ip_pkt.version = 4;
@@ -106,7 +106,7 @@ srslte::unique_byte_buffer_t encode_gtpu_packet(srslte::span<uint8_t>     data,
 
 srslte::unique_byte_buffer_t encode_end_marker(uint32_t teid)
 {
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   // header
   srslte::gtpu_header_t header;
@@ -121,7 +121,7 @@ srslte::unique_byte_buffer_t encode_end_marker(uint32_t teid)
 
 srslte::unique_byte_buffer_t read_socket(int fd)
 {
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   pdu->N_bytes                     = read(fd, pdu->msg, pdu->get_tailroom());
   return pdu;
 }
@@ -158,7 +158,7 @@ int test_gtpu_direct_tunneling()
   uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2);
 
   // Buffer PDUs in SeNB PDCP
-  pdu          = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  pdu          = srslte::make_byte_buffer();
   pdu->N_bytes = 10;
   for (size_t sn = 6; sn < 10; ++sn) {
     std::vector<uint8_t> data(10, sn);

@@ -362,7 +362,7 @@ private:
     if (rf_out_queue != nullptr) {
       uint32_t len = sizeof(*msg) - sizeof(msg->pdus->data) + msg->pdus->length;
 
-      srslte::unique_byte_buffer_t tx = srslte::allocate_unique_buffer(*pool);
+      srslte::unique_byte_buffer_t tx = srslte::make_byte_buffer();
       memcpy(tx->msg, msg, len);
       rf_out_queue->push(std::move(tx));
     }

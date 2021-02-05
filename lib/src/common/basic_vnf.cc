@@ -185,7 +185,7 @@ int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
   }
 
   for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
-    dl_grant.tb[i] = srslte::allocate_unique_buffer(*m_pool);
+    dl_grant.tb[i] = srslte::make_byte_buffer();
     if (dl_grant.tb[i]->get_tailroom() >= msg->pdus[i].length) {
       memcpy(dl_grant.tb[i]->msg, msg->pdus[i].data, msg->pdus[i].length);
       dl_grant.tb[i]->N_bytes = msg->pdus[i].length;
@@ -237,7 +237,7 @@ int srslte_basic_vnf::handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg)
   // fill struct
   srsenb::stack_interface_phy_nr::rx_data_ind_t rx_data = {};
   rx_data.tti                                           = msg->sfn;
-  rx_data.tb                                            = srslte::allocate_unique_buffer(*m_pool);
+  rx_data.tb                                            = srslte::make_byte_buffer();
   if (rx_data.tb->get_tailroom() >= msg->pdus[0].length) {
     // copy actual data
     memcpy(rx_data.tb->msg, msg->pdus[0].data, msg->pdus[0].length);

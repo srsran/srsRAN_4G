@@ -128,7 +128,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
   }
 
   // Create a unique buffer out of transparent container to pass to RRC
-  rrc_container = srslte::allocate_unique_buffer(*s1ap_ptr->pool, false);
+  rrc_container = srslte::make_byte_buffer();
   if (rrc_container == nullptr) {
     procError("Fatal Error: Couldn't allocate buffer.");
     return srslte::proc_outcome_t::error;
@@ -633,7 +633,7 @@ bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
     logger.warning("Not handling SubscriberProfileIDforRFP");
   }
 
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu == nullptr) {
     logger.error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().");
     return false;
@@ -1547,7 +1547,7 @@ void s1ap::user_list::erase(ue* ue_ptr)
 
 bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
 {
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool, false);
+  srslte::unique_byte_buffer_t buf = srslte::make_byte_buffer();
   if (buf == nullptr) {
     logger.error("Fatal Error: Couldn't allocate buffer for %s.", procedure_name);
     return false;

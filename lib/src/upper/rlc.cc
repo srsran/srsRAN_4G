@@ -334,7 +334,7 @@ void rlc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
 void rlc::write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH TXSCH message received.");
-  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = make_byte_buffer();
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;

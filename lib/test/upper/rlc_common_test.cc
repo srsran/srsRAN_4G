@@ -101,7 +101,7 @@ int meas_obj_test()
 
   // Push 5 SDUs into RLC1
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]          = srslte::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     rlc1.write_sdu(lcid, std::move(sdu_bufs[i]));
@@ -116,7 +116,7 @@ int meas_obj_test()
 
   // Push again 5 SDUs, SN should start from 0
   for (int i = 0; i < NBUFS; i++) {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]          = srslte::make_byte_buffer();
     *sdu_bufs[i]->msg    = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     rlc1.write_sdu(lcid, std::move(sdu_bufs[i]));

@@ -189,7 +189,7 @@ int gw::setup_if_addr(uint32_t eps_bearer_id,
   }
 
   eps_lcid[eps_bearer_id] = lcid;
-  default_lcid = lcid;
+  default_lcid            = lcid;
   tft_matcher.set_default_lcid(lcid);
 
   // Setup a thread to receive packets from the TUN device
@@ -247,7 +247,7 @@ void gw::run_thread()
   uint32 idx     = 0;
   int32  N_bytes = 0;
 
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (!pdu) {
     logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
     return;
@@ -334,7 +334,7 @@ void gw::run_thread()
         ul_tput_bytes += pdu->N_bytes;
         stack->write_sdu(lcid, std::move(pdu));
         do {
-          pdu = srslte::allocate_unique_buffer(*pool);
+          pdu = srslte::make_byte_buffer();
           if (!pdu) {
             logger.error("Fatal Error: Couldn't allocate PDU in run_thread().");
             usleep(100000);
@@ -579,7 +579,6 @@ bool gw::find_ipv6_addr(struct in6_addr* in6_out)
 
   // Parse the reply
   for (nlmp = (struct nlmsghdr*)buf; NLMSG_OK(nlmp, n); nlmp = NLMSG_NEXT(nlmp, n)) {
-
     // Chack NL message type
     if (nlmp->nlmsg_type == NLMSG_DONE) {
       logger.error("Reach end of NETLINK message without finding IPv6 address.");

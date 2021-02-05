@@ -186,7 +186,7 @@ bool s1ap::s1ap_tx_pdu(const asn1::s1ap::s1ap_pdu_c& pdu, struct sctp_sndrcvinfo
 {
   m_logger.debug("Transmitting S1AP PDU. eNB SCTP association Id: %d", enb_sri->sinfo_assoc_id);
 
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*m_pool);
+  srslte::unique_byte_buffer_t buf = srslte::make_byte_buffer();
   if (buf == nullptr) {
     m_logger.error("Fatal Error: Couldn't allocate buffer for S1AP PDU.");
     return false;

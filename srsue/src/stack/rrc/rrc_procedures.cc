@@ -900,7 +900,6 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
   cs_ret = *e.value();
   // .. and SI acquisition
   if (rrc_ptr->phy->cell_is_camping()) {
-
     // Set default configurations
     rrc_ptr->set_phy_default();
     rrc_ptr->set_mac_default();
@@ -1024,7 +1023,7 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
 
   srslte::unique_byte_buffer_t nas_pdu;
   for (auto& pdu : rx_recfg.ded_info_nas_list) {
-    nas_pdu = srslte::allocate_unique_buffer(*rrc_ptr->pool);
+    nas_pdu = srslte::make_byte_buffer();
     if (nas_pdu.get()) {
       memcpy(nas_pdu->msg, pdu.data(), pdu.size());
       nas_pdu->N_bytes = pdu.size();
