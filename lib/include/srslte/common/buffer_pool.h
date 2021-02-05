@@ -13,6 +13,7 @@
 #ifndef SRSLTE_BUFFER_POOL_H
 #define SRSLTE_BUFFER_POOL_H
 
+#include "byte_buffer.h"
 #include <algorithm>
 #include <map>
 #include <pthread.h>
@@ -213,13 +214,6 @@ private:
   bool                        print_to_log = false;
   buffer_pool<byte_buffer_t>* pool;
 };
-
-inline void byte_buffer_deleter::operator()(byte_buffer_t* buf) const
-{
-  if (buf) {
-    pool->deallocate(buf);
-  }
-}
 
 inline unique_byte_buffer_t allocate_unique_buffer(byte_buffer_pool& pool, bool blocking = false)
 {

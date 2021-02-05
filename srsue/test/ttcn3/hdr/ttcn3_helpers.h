@@ -21,7 +21,7 @@
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h" // for stringify JSON
 #include "srslte/asn1/asn1_utils.h"
-#include "srslte/common/common.h"
+#include "srslte/common/byte_buffer.h"
 #include <algorithm>
 #include <assert.h>
 #include <bitset>
@@ -381,7 +381,6 @@ public:
         document["Common"]["TimingInfo"].HasMember("SubFrame") &&
         document["Common"]["TimingInfo"]["SubFrame"].HasMember("SFN") &&
         document["Common"]["TimingInfo"]["SubFrame"]["SFN"].HasMember("Number")) {
-
       timing.tti = document["Common"]["TimingInfo"]["SubFrame"]["SFN"]["Number"].GetInt() * 10;
 
       // check SF index only

@@ -192,8 +192,6 @@ private:
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
 
-  srslte::bit_buffer_t bit_buf;
-
   rrc_state_t      state = RRC_STATE_IDLE, last_state = RRC_STATE_IDLE;
   uint8_t          transaction_id = 0;
   srslte::s_tmsi_t ue_identity;

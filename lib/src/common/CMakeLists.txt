@@ -10,6 +10,7 @@
 set(SOURCES arch_select.cc
             enb_events.cc
             backtrace.c
+            byte_buffer.cc
             band_helper.cc
             buffer_pool.cc
             crash_handler.cc
