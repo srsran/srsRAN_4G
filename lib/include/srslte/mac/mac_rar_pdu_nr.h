@@ -15,6 +15,7 @@
 
 #include "srslte/common/common.h"
 #include "srslte/config.h"
+#include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/srslog/srslog.h"
 #include <memory>
 #include <stdint.h>
@@ -34,21 +35,20 @@ public:
   mac_rar_subpdu_nr(mac_rar_pdu_nr* parent_);
 
   // RAR content length in bits (38.321 Sec 6.2.3)
-  static const uint32_t UL_GRANT_NBITS   = 27;
+  static const uint32_t UL_GRANT_NBITS   = SRSLTE_RAR_UL_GRANT_NBITS;
   static const uint32_t TA_COMMAND_NBITS = 12;
 
   // getter
   bool     read_subpdu(const uint8_t* ptr);
   bool     has_more_subpdus();
   uint32_t get_total_length();
-  bool     has_rapid();
-  uint8_t  get_rapid();
-  uint16_t get_temp_crnti();
-  uint32_t get_ta();
-  void     get_ul_grant(std::array<uint8_t, UL_GRANT_NBITS>& grant);
-
-  bool    has_backoff();
-  uint8_t get_backoff();
+  bool                                has_rapid() const;
+  uint8_t                             get_rapid() const;
+  uint16_t                            get_temp_crnti() const;
+  uint32_t                            get_ta() const;
+  std::array<uint8_t, UL_GRANT_NBITS> get_ul_grant() const;
+  bool                                has_backoff() const;
+  uint8_t                             get_backoff() const;
 
   // setter
   uint32_t write_subpdu(const uint8_t* start_);
@@ -82,7 +82,10 @@ public:
   bool                     pack();
   bool                     unpack(const uint8_t* payload, const uint32_t& len);
   uint32_t                 get_num_subpdus();
+  // Returns reference to a single subPDU
   const mac_rar_subpdu_nr& get_subpdu(const uint32_t& index);
+  // Returns reference to all subPDUs
+  const std::vector<mac_rar_subpdu_nr>& get_subpdus();
 
   uint32_t get_remaining_len();
 

@@ -152,6 +152,11 @@ typedef enum SRSLTE_API {
 #define SRSLTE_SEARCH_SPACE_IS_COMMON(SS_TYPE) ((SS_TYPE) < srslte_search_space_type_ue)
 
 /**
+ * @brief RAR content length in bits (see TS 38.321 Sec 6.2.3)
+ */
+#define SRSLTE_RAR_UL_GRANT_NBITS (27)
+
+/**
  * @brief Indicates the MCS table the UE shall use for PDSCH and/or PUSCH without transform precoding
  */
 typedef enum SRSLTE_API {

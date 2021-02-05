@@ -291,8 +291,7 @@ int mac_rar_pdu_unpack_test7()
   TESTASSERT(subpdu.get_ta() == tv_ta);
   TESTASSERT(subpdu.get_rapid() == tv_rapid);
 
-  std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> msg3_grant;
-  subpdu.get_ul_grant(msg3_grant);
+  std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> msg3_grant = subpdu.get_ul_grant();
   TESTASSERT(memcmp(msg3_grant.data(), tv_msg3_grant, msg3_grant.size()) == 0);
 
   return SRSLTE_SUCCESS;

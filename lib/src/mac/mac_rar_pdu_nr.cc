@@ -91,27 +91,27 @@ uint32_t mac_rar_subpdu_nr::get_total_length()
   return (header_length + payload_length);
 }
 
-bool mac_rar_subpdu_nr::has_rapid()
+bool mac_rar_subpdu_nr::has_rapid() const
 {
   return (type == rar_subh_type_t::RAPID);
 }
 
-uint8_t mac_rar_subpdu_nr::get_rapid()
+uint8_t mac_rar_subpdu_nr::get_rapid() const
 {
   return rapid;
 }
 
-uint32_t mac_rar_subpdu_nr::get_ta()
+uint32_t mac_rar_subpdu_nr::get_ta() const
 {
   return ta;
 }
 
-uint16_t mac_rar_subpdu_nr::get_temp_crnti()
+uint16_t mac_rar_subpdu_nr::get_temp_crnti() const
 {
   return temp_crnti;
 }
 
-bool mac_rar_subpdu_nr::has_backoff()
+bool mac_rar_subpdu_nr::has_backoff() const
 {
   return (type == rar_subh_type_t::BACKOFF);
 }
@@ -121,9 +121,9 @@ void mac_rar_subpdu_nr::set_backoff(const uint8_t backoff_indicator_)
   backoff_indicator = backoff_indicator_;
 }
 
-void mac_rar_subpdu_nr::get_ul_grant(std::array<uint8_t, UL_GRANT_NBITS>& grant_)
+std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> mac_rar_subpdu_nr::get_ul_grant() const
 {
-  grant_ = ul_grant;
+  return ul_grant;
 }
 
 std::string mac_rar_subpdu_nr::to_string()
@@ -195,6 +195,11 @@ uint32_t mac_rar_pdu_nr::get_num_subpdus()
 const mac_rar_subpdu_nr& mac_rar_pdu_nr::get_subpdu(const uint32_t& index)
 {
   return subpdus.at(index);
+}
+
+const std::vector<mac_rar_subpdu_nr>& mac_rar_pdu_nr::get_subpdus()
+{
+  return subpdus;
 }
 
 uint32_t mac_rar_pdu_nr::get_remaining_len()
