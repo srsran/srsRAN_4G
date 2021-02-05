@@ -14,9 +14,7 @@
 
 namespace srslte {
 
-mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) :
-  parent(parent_), logger(srslog::fetch_basic_logger("MAC"))
-{}
+mac_sch_subpdu_nr::mac_sch_subpdu_nr(mac_sch_pdu_nr* parent_) : parent(parent_) {}
 
 mac_sch_subpdu_nr::nr_lcid_sch_t mac_sch_subpdu_nr::get_type()
 {
@@ -71,7 +69,7 @@ int32_t mac_sch_subpdu_nr::read_subheader(const uint8_t* ptr)
     }
     sdu = (uint8_t*)ptr;
   } else {
-    logger.warning("Invalid LCID (%d) in MAC PDU", lcid);
+    srslog::fetch_basic_logger("MAC").warning("Invalid LCID (%d) in MAC PDU", lcid);
     return SRSLTE_ERROR;
   }
   return header_length;
@@ -87,7 +85,7 @@ void mac_sch_subpdu_nr::set_sdu(const uint32_t lcid_, const uint8_t* payload_, c
     F_bit      = false;
     sdu_length = sizeof_ce(lcid, parent->is_ulsch());
     if (len_ != static_cast<uint32_t>(sdu_length)) {
-      logger.warning("Invalid SDU length of UL-SCH SDU (%d != %d)", len_, sdu_length);
+      srslog::fetch_basic_logger("MAC").warning("Invalid SDU length of UL-SCH SDU (%d != %d)", len_, sdu_length);
     }
   }
 
@@ -103,6 +101,39 @@ void mac_sch_subpdu_nr::set_padding(const uint32_t len_)
   // 1 Byte R/LCID MAC subheader
   sdu_length    = len_ - 1;
   header_length = 1;
+}
+
+// Turn a subPDU into a C-RNTI CE, error checking takes place in the caller
+void mac_sch_subpdu_nr::set_c_rnti(const uint16_t crnti_)
+{
+  lcid                  = CRNTI;
+  header_length         = 1;
+  sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
+  sdu                   = ce_write_buffer.data();
+  uint16_t crnti        = htole32(crnti_);
+  ce_write_buffer.at(0) = (uint8_t)((crnti & 0xff00) >> 8);
+  ce_write_buffer.at(1) = (uint8_t)((crnti & 0x00ff));
+}
+
+// Turn a subPDU into a single entry PHR CE, error checking takes place in the caller
+void mac_sch_subpdu_nr::set_se_phr(const uint8_t phr_, const uint8_t pcmax_)
+{
+  lcid                  = SE_PHR;
+  header_length         = 1;
+  sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
+  sdu                   = ce_write_buffer.data();
+  ce_write_buffer.at(0) = (uint8_t)(phr_ & 0x3f);
+  ce_write_buffer.at(1) = (uint8_t)(pcmax_ & 0x3f);
+}
+
+// Turn a subPDU into a single short BSR
+void mac_sch_subpdu_nr::set_sbsr(const lcg_bsr_t bsr_)
+{
+  lcid                  = SHORT_BSR;
+  header_length         = 1;
+  sdu_length            = sizeof_ce(lcid, parent->is_ulsch());
+  sdu                   = ce_write_buffer.data();
+  ce_write_buffer.at(0) = ((bsr_.lcg_id & 0x07) << 5) | (bsr_.buffer_size & 0x1f);
 }
 
 // Section 6.1.2
@@ -126,7 +157,7 @@ uint32_t mac_sch_subpdu_nr::write_subpdu(const uint8_t* start_)
   } else if (header_length == 1) {
     // do nothing
   } else {
-    logger.warning("Error while packing PDU. Unsupported header length (%d)", header_length);
+    srslog::fetch_basic_logger("MAC").warning("Error while packing PDU. Unsupported header length (%d)", header_length);
   }
 
   // copy SDU payload
@@ -238,7 +269,7 @@ inline bool mac_sch_subpdu_nr::is_ul_ccch()
 
 void mac_sch_pdu_nr::pack()
 {
-  // SDUs are written in place, only add padding if needed
+  // SDU and CEs are written in-place, only add padding if needed
   if (remaining_len) {
     mac_sch_subpdu_nr padding_subpdu(this);
     padding_subpdu.set_padding(remaining_len);
@@ -328,7 +359,6 @@ uint32_t mac_sch_pdu_nr::get_remaing_len()
 uint32_t mac_sch_pdu_nr::add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
   int header_size = size_header_sdu(lcid_, len_);
-
   if (header_size + len_ > remaining_len) {
     printf("Header and SDU exceed space in PDU (%d > %d).\n", header_size + len_, remaining_len);
     return SRSLTE_ERROR;
@@ -336,18 +366,45 @@ uint32_t mac_sch_pdu_nr::add_sdu(const uint32_t lcid_, const uint8_t* payload_, 
 
   mac_sch_subpdu_nr sch_pdu(this);
   sch_pdu.set_sdu(lcid_, payload_, len_);
-  uint32_t length = sch_pdu.write_subpdu(buffer->msg + buffer->N_bytes);
+  return add_sudpdu(sch_pdu);
+}
 
-  if (length != sch_pdu.get_total_length()) {
-    fprintf(stderr, "Error writing subPDU (Length error: %d != %d)\n", length, sch_pdu.get_total_length());
+uint32_t mac_sch_pdu_nr::add_crnti_ce(const uint16_t crnti)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_c_rnti(crnti);
+  return add_sudpdu(ce);
+}
+
+uint32_t mac_sch_pdu_nr::add_se_phr_ce(const uint8_t phr, const uint8_t pcmax)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_se_phr(phr, pcmax);
+  return add_sudpdu(ce);
+}
+
+uint32_t mac_sch_pdu_nr::add_sbsr_ce(const mac_sch_subpdu_nr::lcg_bsr_t bsr_)
+{
+  mac_sch_subpdu_nr ce(this);
+  ce.set_sbsr(bsr_);
+  return add_sudpdu(ce);
+}
+
+uint32_t mac_sch_pdu_nr::add_sudpdu(mac_sch_subpdu_nr& subpdu)
+{
+  uint32_t subpdu_len = subpdu.get_total_length();
+  if (subpdu_len > remaining_len) {
+    logger.warning("Not enough space to add subPDU to PDU (%d > %d)", subpdu_len, remaining_len);
     return SRSLTE_ERROR;
   }
 
-  // update length and advance payload pointer
-  buffer->N_bytes += length;
-  remaining_len -= length;
+  // Write subPDU straigt into provided buffer
+  subpdu.write_subpdu(buffer->msg + buffer->N_bytes);
 
-  subpdus.push_back(sch_pdu);
+  // adopt buffer variables
+  buffer->N_bytes += subpdu_len;
+  remaining_len -= subpdu_len;
+  subpdus.push_back(subpdu);
 
   return SRSLTE_SUCCESS;
 }

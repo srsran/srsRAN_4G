@@ -79,9 +79,12 @@ public:
   static const uint8_t                    max_num_lcg_lbsr = 8;
   std::array<lcg_bsr_t, max_num_lcg_lbsr> get_lbsr();
 
+  // setters
   void set_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
-
   void set_padding(const uint32_t len_);
+  void set_c_rnti(const uint16_t crnti_);
+  void set_se_phr(const uint8_t phr_, const uint8_t pcmax_);
+  void set_sbsr(const lcg_bsr_t bsr_);
 
   uint32_t write_subpdu(const uint8_t* start_);
 
@@ -95,14 +98,16 @@ private:
   bool     F_bit         = false;
   uint8_t* sdu           = nullptr;
 
+  static const uint8_t mac_ce_payload_len = 8 + 1;         // Long BSR has max. 9 octets (see sizeof_ce() too)
+  std::array<uint8_t, mac_ce_payload_len> ce_write_buffer; // Buffer for CE payload
+
   mac_sch_pdu_nr*       parent = nullptr;
-  srslog::basic_logger& logger;
 };
 
 class mac_sch_pdu_nr
 {
 public:
-  mac_sch_pdu_nr(bool ulsch_ = false) : ulsch(ulsch_) {}
+  mac_sch_pdu_nr(bool ulsch_ = false) : ulsch(ulsch_), logger(srslog::fetch_basic_logger("MAC")) {}
 
   void                     pack();
   void                     unpack(const uint8_t* payload, const uint32_t& len);
@@ -113,12 +118,19 @@ public:
   void init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool is_ulsch_ = false);
   void init_rx(bool ulsch_ = false);
 
+  // Add SDU or CEs to PDU
+  // All functions will return SRSLTE_SUCCESS on success, and SRSLE_ERROR otherwise
   uint32_t add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
+  uint32_t add_crnti_ce(const uint16_t crnti_);
+  uint32_t add_se_phr_ce(const uint8_t phr_, const uint8_t pcmax_);
+  uint32_t add_sbsr_ce(const mac_sch_subpdu_nr::lcg_bsr_t bsr_);
 
   uint32_t get_remaing_len();
 
 private:
   uint32_t size_header_sdu(const uint32_t lcid_, const uint32_t nbytes);
+  /// Private helper that adds a subPDU to the MAC PDU
+  uint32_t add_sudpdu(mac_sch_subpdu_nr& subpdu);
 
   bool                           ulsch = false;
   std::vector<mac_sch_subpdu_nr> subpdus;
@@ -126,6 +138,7 @@ private:
   byte_buffer_t* buffer        = nullptr;
   uint32_t       pdu_len       = 0;
   uint32_t       remaining_len = 0;
+  srslog::basic_logger& logger;
 };
 
 } // namespace srslte
