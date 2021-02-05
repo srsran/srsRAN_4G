@@ -162,6 +162,13 @@ public:
   iterator       end() { return msg + N_bytes; }
   const_iterator end() const { return msg + N_bytes; }
 
+  void* operator new(size_t sz);
+  void* operator new(size_t sz, const std::nothrow_t& nothrow_value) noexcept;
+  void* operator new(size_t sz, void* ptr) noexcept { return ptr; }
+  void* operator new[](size_t sz) = delete;
+  void  operator delete(void* ptr);
+  void  operator delete[](void* ptr) = delete;
+
 private:
   buffer_latency_calc tp;
 };
@@ -198,21 +205,12 @@ struct bit_buffer_t {
     N_bits = 0;
   }
   uint32_t get_headroom() { return msg - buffer; }
-
-private:
 };
 
 // Create a Managed Life-Time Byte Buffer
 class byte_buffer_pool;
-class byte_buffer_deleter
-{
-public:
-  explicit byte_buffer_deleter(byte_buffer_pool* pool_ = nullptr) : pool(pool_) {}
-  void              operator()(byte_buffer_t* buf) const;
-  byte_buffer_pool* pool;
-};
 
-using unique_byte_buffer_t = std::unique_ptr<byte_buffer_t, byte_buffer_deleter>;
+using unique_byte_buffer_t = std::unique_ptr<byte_buffer_t>;
 
 ///
 /// Utilities to create a span out of a byte_buffer.

@@ -73,9 +73,8 @@ private:
   spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request* cs_req);
   bool               delete_gtp_ctx(uint32_t ctrl_teid);
 
-  bool                      m_running;
-  srslte::byte_buffer_pool* m_pool;
-  mme_gtpc*                 m_mme_gtpc;
+  bool      m_running;
+  mme_gtpc* m_mme_gtpc;
 
   // GTP-C and GTP-U handlers
   gtpc* m_gtpc;

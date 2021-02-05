@@ -63,7 +63,6 @@ void mbms_gw::cleanup(void)
 int mbms_gw::init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log)
 {
   int err;
-  m_pool = srslte::byte_buffer_pool::get_instance();
 
   // Init log
   m_mbms_gw_log = mbms_gw_log;
@@ -232,7 +231,7 @@ void mbms_gw::run_thread()
   // Mark the thread as running
   m_running = true;
   srslte::byte_buffer_t* msg;
-  msg = m_pool->allocate();
+  msg = new srslte::byte_buffer_t();
 
   uint8_t seq = 0;
   while (m_running) {
@@ -249,7 +248,7 @@ void mbms_gw::run_thread()
       handle_sgi_md_pdu(msg);
     }
   }
-  m_pool->deallocate(msg);
+  delete msg;
   return;
 }
 

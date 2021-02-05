@@ -235,7 +235,7 @@ int reassmble_test()
   int            n_pdus     = 0;
   byte_buffer_t* pdu_bufs[max_n_pdus];
   for (int i = 0; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    pdu_bufs[i]          = new byte_buffer_t();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, (i == 0) ? sdu_len * 3 / 4 : sdu_len * 1.25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -260,7 +260,7 @@ int reassmble_test()
 
   // Read second batch of PDUs (use large grants)
   for (int i = n_pdus; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    pdu_bufs[i]          = new byte_buffer_t();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, sdu_len * 1.25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -327,7 +327,7 @@ int reassmble_test2()
   int            n_pdus     = 0;
   byte_buffer_t* pdu_bufs[max_n_pdus];
   for (int i = 0; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    pdu_bufs[i]          = new byte_buffer_t();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, (i == 0) ? sdu_len * .75 : sdu_len * .25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {
@@ -352,7 +352,7 @@ int reassmble_test2()
 
   // Read second batch of PDUs
   for (int i = n_pdus; i < max_n_pdus; i++) {
-    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    pdu_bufs[i]          = new byte_buffer_t();
     int len              = ctxt.rlc1.read_pdu(pdu_bufs[i]->msg, sdu_len * 1.25);
     pdu_bufs[i]->N_bytes = len;
     if (len) {

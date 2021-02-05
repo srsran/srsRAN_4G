@@ -15,11 +15,25 @@
 
 namespace srslte {
 
-void byte_buffer_deleter::operator()(byte_buffer_t* buf) const
+void* byte_buffer_t::operator new(size_t sz, const std::nothrow_t& nothrow_value) noexcept
 {
-  if (buf) {
-    pool->deallocate(buf);
+  assert(sz == sizeof(byte_buffer_t));
+  return byte_buffer_pool::get_instance()->allocate(nullptr, false);
+}
+
+void* byte_buffer_t::operator new(size_t sz)
+{
+  assert(sz == sizeof(byte_buffer_t));
+  void* ptr = byte_buffer_pool::get_instance()->allocate(nullptr, false);
+  if (ptr == nullptr) {
+    throw std::bad_alloc();
   }
+  return ptr;
+}
+
+void byte_buffer_t::operator delete(void* ptr)
+{
+  byte_buffer_pool::get_instance()->deallocate(ptr);
 }
 
 } // namespace srslte

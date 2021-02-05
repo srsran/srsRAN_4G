@@ -57,7 +57,6 @@ void s1ap_nas_transport::cleanup(void)
 void s1ap_nas_transport::init()
 {
   m_s1ap = s1ap::get_instance();
-  m_pool = srslte::byte_buffer_pool::get_instance();
 
   // Init NAS args
   m_nas_init.mcc          = m_s1ap->m_s1ap_args.mcc;
@@ -83,7 +82,7 @@ bool s1ap_nas_transport::handle_initial_ue_message(const asn1::s1ap::init_ue_msg
 {
   bool                   err, mac_valid;
   uint8_t                pd, msg_type, sec_hdr_type;
-  srslte::byte_buffer_t* nas_msg = m_pool->allocate();
+  srslte::byte_buffer_t* nas_msg = new srslte::byte_buffer_t();
   memcpy(nas_msg->msg, init_ue.protocol_ies.nas_pdu.value.data(), init_ue.protocol_ies.nas_pdu.value.size());
   nas_msg->N_bytes = init_ue.protocol_ies.nas_pdu.value.size();
 
@@ -125,7 +124,7 @@ bool s1ap_nas_transport::handle_initial_ue_message(const asn1::s1ap::init_ue_msg
       srslte::console("Unhandled Initial UE Message 0x%x \n", msg_type);
       err = false;
   }
-  m_pool->deallocate(nas_msg);
+  delete nas_msg;
   return err;
 }
 
@@ -151,7 +150,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
   sec_ctx_t* sec_ctx = &nas_ctx->m_sec_ctx;
 
   // Parse NAS message header
-  srslte::byte_buffer_t* nas_msg = m_pool->allocate();
+  srslte::byte_buffer_t* nas_msg = new srslte::byte_buffer_t();
   memcpy(nas_msg->msg, ul_xport.protocol_ies.nas_pdu.value.data(), ul_xport.protocol_ies.nas_pdu.value.size());
   nas_msg->N_bytes   = ul_xport.protocol_ies.nas_pdu.value.size();
   bool msg_encrypted = false;
@@ -166,7 +165,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
         sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT ||
         sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)) {
     m_logger.error("Unhandled security header type in Uplink NAS Transport: %d", sec_hdr_type);
-    m_pool->deallocate(nas_msg);
+    delete nas_msg;
     return false;
   }
   // Todo: Check on count mismatch of uplink count and do resync nas counter...
@@ -206,7 +205,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
         m_logger.warning(
             "Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d",
             mme_ue_s1ap_id);
-        m_pool->deallocate(nas_msg);
+        delete nas_msg;
         return false;
       }
     }
@@ -311,7 +310,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
     default:
       m_logger.warning("Unhandled NAS integrity protected message %s", liblte_nas_msg_type_to_string(msg_type));
       srslte::console("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));
-      m_pool->deallocate(nas_msg);
+      delete nas_msg;
       return false;
   }
 
@@ -320,7 +319,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_tr
   if (increase_ul_nas_cnt == true) {
     sec_ctx->ul_nas_count++;
   }
-  m_pool->deallocate(nas_msg);
+  delete nas_msg;
   return true;
 }
 

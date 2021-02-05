@@ -59,7 +59,6 @@ void spgw::cleanup()
 int spgw::init(spgw_args_t* args, srslte::log_ref gtpu_log, const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   int err;
-  m_pool = srslte::byte_buffer_pool::get_instance();
 
   // Init GTP-U
   if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != SRSLTE_SUCCESS) {
@@ -95,9 +94,9 @@ void spgw::run_thread()
 {
   // Mark the thread as running
   m_running = true;
-  srslte::byte_buffer_t *sgi_msg, *s1u_msg, *s11_msg;
-  s1u_msg = m_pool->allocate("spgw::run_thread::s1u");
-  s11_msg = m_pool->allocate("spgw::run_thread::s11");
+  srslte::unique_byte_buffer_t sgi_msg, s1u_msg, s11_msg;
+  s1u_msg = srslte::make_byte_buffer("spgw::run_thread::s1u");
+  s11_msg = srslte::make_byte_buffer("spgw::run_thread::s11");
 
   struct sockaddr_in src_addr_in;
   struct sockaddr_un src_addr_un;
@@ -113,7 +112,6 @@ void spgw::run_thread()
   int    max_fd = std::max(s1u, sgi);
   max_fd        = std::max(max_fd, s11);
   while (m_running) {
-
     s1u_msg->clear();
     s11_msg->clear();
 
@@ -136,28 +134,26 @@ void spgw::run_thread()
          * handle_downlink_data_notification_failure)
          */
         m_logger.debug("Message received at SPGW: SGi Message");
-        sgi_msg          = m_pool->allocate("spgw::run_thread::sgi_msg");
+        sgi_msg          = srslte::make_byte_buffer("spgw::run_thread::sgi_msg");
         sgi_msg->N_bytes = read(sgi, sgi_msg->msg, buf_len);
-        m_gtpu->handle_sgi_pdu(sgi_msg);
+        m_gtpu->handle_sgi_pdu(sgi_msg.get());
       }
       if (FD_ISSET(s1u, &set)) {
         m_logger.debug("Message received at SPGW: S1-U Message");
         socklen_t addrlen = sizeof(src_addr_in);
         s1u_msg->N_bytes  = recvfrom(s1u, s1u_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
-        m_gtpu->handle_s1u_pdu(s1u_msg);
+        m_gtpu->handle_s1u_pdu(s1u_msg.get());
       }
       if (FD_ISSET(s11, &set)) {
         m_logger.debug("Message received at SPGW: S11 Message");
         socklen_t addrlen = sizeof(src_addr_un);
         s11_msg->N_bytes  = recvfrom(s11, s11_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
-        m_gtpc->handle_s11_pdu(s11_msg);
+        m_gtpc->handle_s11_pdu(s11_msg.get());
       }
     } else {
       m_logger.debug("No data from select.");
     }
   }
-  m_pool->deallocate(s1u_msg);
-  m_pool->deallocate(s11_msg);
   return;
 }
 

@@ -67,9 +67,6 @@ public:
   srslog::basic_logger& m_logger = srslog::fetch_basic_logger("GTPU");
   //:TODO: remove this once srslte common code loggers have been upgraded.
   srslte::log_ref m_gtpu_log;
-
-private:
-  srslte::byte_buffer_pool* m_pool;
 };
 
 inline int spgw::gtpu::get_sgi()

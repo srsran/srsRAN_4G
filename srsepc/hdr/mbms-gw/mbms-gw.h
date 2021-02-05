@@ -71,10 +71,9 @@ private:
   uint16_t in_cksum(uint16_t* iphdr, int count);
 
   /* Members */
-  bool                      m_running;
-  srslte::byte_buffer_pool* m_pool;
-  srslte::log_ref           m_mbms_gw_log;
-  srslog::basic_logger&     m_logger = srslog::fetch_basic_logger("MBMS");
+  bool                  m_running;
+  srslte::log_ref       m_mbms_gw_log;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("MBMS");
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

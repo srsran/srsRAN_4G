@@ -89,8 +89,8 @@ void mme::stop()
 
 void mme::run_thread()
 {
-  srslte::byte_buffer_t* pdu = m_pool->allocate("mme::run_thread");
-  uint32_t               sz  = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer("mme::run_thread");
+  uint32_t                     sz  = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
 
   struct sockaddr_in     enb_addr;
   struct sctp_sndrcvinfo sri;
@@ -147,14 +147,14 @@ void mme::run_thread()
             // Received data
             pdu->N_bytes = rd_sz;
             m_s1ap_logger.info("Received S1AP msg. Size: %d", pdu->N_bytes);
-            m_s1ap->handle_s1ap_rx_pdu(pdu, &sri);
+            m_s1ap->handle_s1ap_rx_pdu(pdu.get(), &sri);
           }
         }
       }
       // Handle S11
       if (FD_ISSET(s11, &m_set)) {
         pdu->N_bytes = recvfrom(s11, pdu->msg, sz, 0, NULL, NULL);
-        m_mme_gtpc->handle_s11_pdu(pdu);
+        m_mme_gtpc->handle_s11_pdu(pdu.get());
       }
       // Handle NAS Timers
       for (std::vector<mme_timer_t>::iterator it = timers.begin(); it != timers.end();) {

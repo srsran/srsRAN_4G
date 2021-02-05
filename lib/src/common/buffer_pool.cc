@@ -15,12 +15,4 @@
 #include <stdio.h>
 #include <string>
 
-namespace srslte {
-
-byte_buffer_pool* byte_buffer_pool::get_instance(int capacity)
-{
-  static std::unique_ptr<byte_buffer_pool> instance(new byte_buffer_pool(capacity));
-  return instance.get();
-}
-
-} // namespace srslte
+namespace srslte {} // namespace srslte

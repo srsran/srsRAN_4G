@@ -35,7 +35,6 @@ namespace srsepc {
 
 spgw::gtpu::gtpu() : m_sgi_up(false), m_s1u_up(false)
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();
   return;
 }
 
@@ -244,7 +243,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
   return;
 
 pkt_discard_out:
-  m_pool->deallocate(msg);
+  delete msg;
   return;
 }
 
@@ -299,7 +298,7 @@ void spgw::gtpu::send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer
 
 out:
   m_logger.debug("Deallocating packet after sending S1-U message");
-  m_pool->deallocate(msg);
+  delete msg;
   return;
 }
 

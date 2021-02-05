@@ -167,31 +167,37 @@ private:
 
 class byte_buffer_pool
 {
+  using mem_chunk = typename std::aligned_storage<sizeof(byte_buffer_t), alignof(byte_buffer_t)>::type;
+
 public:
   // Singleton static methods
-  static byte_buffer_pool* get_instance(int capacity = -1);
+  static byte_buffer_pool* get_instance(int capacity = -1)
+  {
+    static std::unique_ptr<byte_buffer_pool> instance(new byte_buffer_pool(capacity));
+    return instance.get();
+  }
   byte_buffer_pool(int capacity = -1) : pool(capacity) {}
   byte_buffer_pool(const byte_buffer_pool& other) = delete;
+  byte_buffer_pool(byte_buffer_pool&& other)      = delete;
   byte_buffer_pool& operator=(const byte_buffer_pool& other) = delete;
-  byte_buffer_t*    allocate(const char* debug_name = nullptr, bool blocking = false)
+  byte_buffer_pool& operator=(byte_buffer_pool&& other) = delete;
+  void*             allocate(const char* debug_name = nullptr, bool blocking = false)
   {
     return pool.allocate(debug_name, blocking);
   }
   void enable_logger(bool enabled) { print_to_log = enabled; }
-  void deallocate(byte_buffer_t* b)
+  void deallocate(void* b)
   {
     if (!b) {
       return;
     }
-    b->clear();
-    if (!pool.deallocate(b)) {
+    if (!pool.deallocate(static_cast<mem_chunk*>(b))) {
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
       print_error("Error deallocating PDU: Addr=0x%p, name=%s not found in pool", (void*)b, b->debug_name);
 #else
       print_error("Error deallocating PDU: Addr=0x%p", (void*)b);
 #endif
     }
-    b = nullptr;
   }
   void print_all_buffers() { pool.print_all_buffers(); }
 
@@ -208,19 +214,37 @@ private:
   }
 
 private:
-  bool                       print_to_log = false;
-  buffer_pool<byte_buffer_t> pool;
+  bool                   print_to_log = false;
+  buffer_pool<mem_chunk> pool;
 };
 
-inline unique_byte_buffer_t allocate_unique_buffer(byte_buffer_pool& pool, bool blocking = false)
+inline unique_byte_buffer_t allocate_unique_buffer(byte_buffer_pool& pool, bool blocking = false) noexcept
 {
-  return unique_byte_buffer_t(pool.allocate(nullptr, blocking), byte_buffer_deleter(&pool));
+  return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t());
 }
 
 inline unique_byte_buffer_t
-allocate_unique_buffer(byte_buffer_pool& pool, const char* debug_name, bool blocking = false)
+allocate_unique_buffer(byte_buffer_pool& pool, const char* debug_name, bool blocking = false) noexcept
 {
-  return unique_byte_buffer_t(pool.allocate(debug_name, blocking), byte_buffer_deleter(&pool));
+  std::unique_ptr<byte_buffer_t> buffer(new (std::nothrow) byte_buffer_t());
+  if (buffer == nullptr) {
+    srslog::fetch_basic_logger("POOL").error("Failed to allocate byte buffer in %s", debug_name);
+  }
+  return buffer;
+}
+
+inline unique_byte_buffer_t make_byte_buffer() noexcept
+{
+  return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t());
+}
+
+inline unique_byte_buffer_t make_byte_buffer(const char* debug_ctxt) noexcept
+{
+  std::unique_ptr<byte_buffer_t> buffer(new (std::nothrow) byte_buffer_t());
+  if (buffer == nullptr) {
+    srslog::fetch_basic_logger("POOL").error("Failed to allocate byte buffer in %s", debug_ctxt);
+  }
+  return buffer;
 }
 
 } // namespace srslte

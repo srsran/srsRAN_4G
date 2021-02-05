@@ -510,7 +510,7 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
   return true;
 
 pkt_discard:
-  m_pool->deallocate(msg);
+  delete msg;
   return false;
 }
 
@@ -523,7 +523,7 @@ bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
   while (!tunnel_ctx->paging_queue.empty()) {
     srslte::byte_buffer_t* pkt = tunnel_ctx->paging_queue.front();
     m_logger.debug("Dropping packet. Bytes %d", pkt->N_bytes);
-    m_pool->deallocate(pkt);
+    delete pkt;
     tunnel_ctx->paging_queue.pop();
   }
   return true;

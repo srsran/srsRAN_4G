@@ -276,13 +276,13 @@ bool nas::handle_imsi_attach_request_unknown_ue(uint32_t                        
   s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
 
   // Pack NAS Authentication Request in Downlink NAS Transport msg
-  nas_tx = pool->allocate();
+  nas_tx = new srslte::byte_buffer_t();
   nas_ctx->pack_authentication_request(nas_tx);
 
   // Send reply to eNB
   s1ap->send_downlink_nas_transport(
       nas_ctx->m_ecm_ctx.enb_ue_s1ap_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id, nas_tx, nas_ctx->m_ecm_ctx.enb_sri);
-  pool->deallocate(nas_tx);
+  delete nas_tx;
 
   nas_logger.info("Downlink NAS: Sending Authentication Request");
   srslte::console("Downlink NAS: Sending Authentication Request\n");
@@ -387,11 +387,11 @@ bool nas::handle_guti_attach_request_unknown_ue(uint32_t                        
   s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
 
   // Send Identity Request
-  nas_tx = pool->allocate();
+  nas_tx = new srslte::byte_buffer_t();
   nas_ctx->pack_identity_request(nas_tx);
   s1ap->send_downlink_nas_transport(
       nas_ctx->m_ecm_ctx.enb_ue_s1ap_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id, nas_tx, nas_ctx->m_ecm_ctx.enb_sri);
-  pool->deallocate(nas_tx);
+  delete nas_tx;
 
   return true;
 }
@@ -465,7 +465,7 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
     nas_logger.info(sec_ctx->k_enb, 32, "Key eNodeB (k_enb)");
 
     // Send reply
-    nas_tx = pool->allocate();
+    nas_tx = new srslte::byte_buffer_t();
     if (ecm_ctx->eit) {
       srslte::console("Secure ESM information transfer requested.\n");
       nas_logger.info("Secure ESM information transfer requested.");
@@ -480,7 +480,7 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
       gtpc->send_create_session_request(emm_ctx->imsi);
     }
     sec_ctx->ul_nas_count++;
-    pool->deallocate(nas_tx);
+    delete nas_tx;
     return true;
   } else {
     if (emm_ctx->state != EMM_STATE_DEREGISTERED) {
@@ -539,12 +539,12 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
 
     // Restarting security context. Reseting eKSI to 0.
     sec_ctx->eksi = 0;
-    nas_tx        = pool->allocate();
+    nas_tx        = new srslte::byte_buffer_t();
     nas_ctx->pack_authentication_request(nas_tx);
 
     // Send reply to eNB
     s1ap->send_downlink_nas_transport(ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, nas_tx, *enb_sri);
-    pool->deallocate(nas_tx);
+    delete nas_tx;
     nas_logger.info("Downlink NAS: Sent Authentication Request");
     srslte::console("Downlink NAS: Sent Authentication Request\n");
     return true;
@@ -590,10 +590,10 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
-    srslte::byte_buffer_t* nas_tx = pool->allocate();
+    srslte::byte_buffer_t* nas_tx = new srslte::byte_buffer_t();
     nas_tmp.pack_service_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
     s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
-    pool->deallocate(nas_tx);
+    delete nas_tx;
     return true;
   }
 
@@ -605,10 +605,10 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
-    srslte::byte_buffer_t* nas_tx = pool->allocate();
+    srslte::byte_buffer_t* nas_tx = new srslte::byte_buffer_t();
     nas_tmp.pack_service_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
     s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
-    pool->deallocate(nas_tx);
+    delete nas_tx;
     return true;
   }
   emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
@@ -690,10 +690,10 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
     s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
     s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
-    srslte::byte_buffer_t* nas_tx = pool->allocate();
+    srslte::byte_buffer_t* nas_tx = new srslte::byte_buffer_t();
     nas_ctx->pack_service_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
     s1ap->send_downlink_nas_transport(ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, nas_tx, *enb_sri);
-    pool->deallocate(nas_tx);
+    delete nas_tx;
 
     srslte::console("Service Request -- Short MAC invalid. Sending service reject.\n");
     nas_logger.warning("Service Request -- Short MAC invalid. Sending service reject.");
@@ -796,10 +796,10 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
   nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
   nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
-  srslte::byte_buffer_t* nas_tx = pool->allocate();
+  srslte::byte_buffer_t* nas_tx = new srslte::byte_buffer_t();
   nas_tmp.pack_tracking_area_update_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
   s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
-  pool->deallocate(nas_tx);
+  delete nas_tx;
   return true;
 }
 
@@ -900,12 +900,12 @@ bool nas::handle_attach_request(srslte::byte_buffer_t* nas_rx)
     m_s1ap->add_nas_ctx_to_imsi_map(this);
 
     // Pack NAS Authentication Request in Downlink NAS Transport msg
-    srslte::byte_buffer_t* nas_tx = m_pool->allocate();
+    srslte::byte_buffer_t* nas_tx = new srslte::byte_buffer_t();
     pack_authentication_request(nas_tx);
 
     // Send reply to eNB
     m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
-    m_pool->deallocate(nas_tx);
+    delete nas_tx;
 
     m_logger.info("Downlink NAS: Sending Authentication Request");
     srslte::console("Downlink NAS: Sending Authentication Request\n");
@@ -942,7 +942,7 @@ bool nas::handle_authentication_response(srslte::byte_buffer_t* nas_rx)
     }
   }
 
-  nas_tx = m_pool->allocate();
+  nas_tx = new srslte::byte_buffer_t();
   if (!ue_valid) {
     // Authentication rejected
     srslte::console("UE Authentication Rejected.\n");
@@ -964,7 +964,7 @@ bool nas::handle_authentication_response(srslte::byte_buffer_t* nas_rx)
 
   // Send reply
   m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
-  m_pool->deallocate(nas_tx);
+  delete nas_tx;
   return true;
 }
 
@@ -985,7 +985,7 @@ bool nas::handle_security_mode_complete(srslte::byte_buffer_t* nas_rx)
   srslte::console("Security Mode Command Complete -- IMSI: %015" PRIu64 "\n", m_emm_ctx.imsi);
 
   // Check wether secure ESM information transfer is required
-  nas_tx = m_pool->allocate();
+  nas_tx = new srslte::byte_buffer_t();
   if (m_ecm_ctx.eit == true) {
     // Secure ESM information transfer is required
     srslte::console("Sending ESM information request\n");
@@ -1003,7 +1003,7 @@ bool nas::handle_security_mode_complete(srslte::byte_buffer_t* nas_rx)
     srslte::console("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
     m_gtpc->send_create_session_request(m_emm_ctx.imsi);
   }
-  m_pool->deallocate(nas_tx);
+  delete nas_tx;
   return true;
 }
 
@@ -1042,11 +1042,11 @@ bool nas::handle_attach_complete(srslte::byte_buffer_t* nas_rx)
         m_emm_ctx.imsi, act_bearer.eps_bearer_id, &m_esm_ctx[act_bearer.eps_bearer_id].enb_fteid);
 
     // Send reply to EMM Info to UE
-    nas_tx = m_pool->allocate();
+    nas_tx = new srslte::byte_buffer_t();
     pack_emm_information(nas_tx);
 
     m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
-    m_pool->deallocate(nas_tx);
+    delete nas_tx;
 
     srslte::console("Sending EMM Information\n");
     m_logger.info("Sending EMM Information");
@@ -1131,12 +1131,12 @@ bool nas::handle_identity_response(srslte::byte_buffer_t* nas_rx)
   m_s1ap->add_nas_ctx_to_imsi_map(this);
 
   // Pack NAS Authentication Request in Downlink NAS Transport msg
-  nas_tx = m_pool->allocate();
+  nas_tx = new srslte::byte_buffer_t();
   pack_authentication_request(nas_tx);
 
   // Send reply to eNB
   m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
-  m_pool->deallocate(nas_tx);
+  delete nas_tx;
 
   m_logger.info("Downlink NAS: Sent Authentication Request");
   srslte::console("Downlink NAS: Sent Authentication Request\n");
@@ -1153,12 +1153,12 @@ bool nas::handle_tracking_area_update_request(srslte::byte_buffer_t* nas_rx)
 
   /* TAU handling unsupported, therefore send TAU reject with cause IMPLICITLY DETACHED.
    * this will trigger full re-attach by the UE, instead of going to a TAU request loop */
-  nas_tx = pool->allocate();
+  nas_tx = new srslte::byte_buffer_t();
   // TODO we could enable integrity protection in some cases, but UE should comply anyway
   pack_tracking_area_update_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
   // Send reply
   m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
-  pool->deallocate(nas_tx);
+  delete nas_tx;
 
   return true;
 }
@@ -1210,13 +1210,13 @@ bool nas::handle_authentication_failure(srslte::byte_buffer_t* nas_rx)
       m_sec_ctx.eksi = (m_sec_ctx.eksi + 1) % 6;
 
       // Pack NAS Authentication Request in Downlink NAS Transport msg
-      nas_tx = m_pool->allocate();
+      nas_tx = new srslte::byte_buffer_t();
       pack_authentication_request(nas_tx);
 
       // Send reply to eNB
       m_s1ap->send_downlink_nas_transport(
           m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
-      m_pool->deallocate(nas_tx);
+      delete nas_tx;
 
       m_logger.info("Downlink NAS: Sent Authentication Request");
       srslte::console("Downlink NAS: Sent Authentication Request\n");
@@ -1228,7 +1228,6 @@ bool nas::handle_authentication_failure(srslte::byte_buffer_t* nas_rx)
 
 bool nas::handle_detach_request(srslte::byte_buffer_t* nas_msg)
 {
-
   srslte::console("Detach request -- IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
   m_logger.info("Detach request -- IMSI %015" PRIu64 "", m_emm_ctx.imsi);
   LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
