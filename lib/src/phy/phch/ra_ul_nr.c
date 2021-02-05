@@ -15,6 +15,7 @@
 #include "srslte/phy/ch_estimation/dmrs_pucch.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 typedef struct {
   srslte_sch_mapping_type_t mapping;
@@ -212,6 +213,24 @@ int srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const srslte_sch
   } else {
     grant->nof_dmrs_cdm_groups_without_data = 2;
   }
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ra_ul_nr_dmrs_power_offset(srslte_sch_grant_nr_t* grant)
+{
+  if (grant == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  float ratio_dB[3] = {0, -3, -4.77};
+
+  if (grant->nof_dmrs_cdm_groups_without_data < 1 || grant->nof_dmrs_cdm_groups_without_data > 3) {
+    ERROR("Invalid number of DMRS CDM groups without data (%d)", grant->nof_dmrs_cdm_groups_without_data);
+    return SRSLTE_ERROR;
+  }
+
+  grant->beta_dmrs = srslte_convert_dB_to_amplitude(-ratio_dB[grant->nof_dmrs_cdm_groups_without_data - 1]);
 
   return SRSLTE_SUCCESS;
 }

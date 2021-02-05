@@ -67,6 +67,16 @@ SRSLTE_API int srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(const
                                                                            srslte_sch_grant_nr_t*     grant);
 
 /**
+ * @brief Calculates the ratio of PUSCH EPRE to DM-RS EPRE
+ *
+ * @remark Defined by TS 38.214 V15.10.0 Table 6.2.2-1: The ratio of PUSCH EPRE to DM-RS EPRE
+ *
+ * @param[out] grant Provides grant pointer to fill
+ * @return Returns SRSLTE_SUCCESS if the provided data is valid, otherwise it returns SRSLTE_ERROR code
+ */
+SRSLTE_API int srslte_ra_ul_nr_dmrs_power_offset(srslte_sch_grant_nr_t* grant);
+
+/**
  * @brief Calculates the minimum number of PRB required for transmitting NR-PUCCH Format 2, 3 or 4
  * @remark Based in TS 38.213 9.2.5.1 UE procedure for multiplexing HARQ-ACK or CSI and SR in a PUCCH
  * @return The number of PRB if the provided configuration is valid, SRSLTE_ERROR code otherwise

@@ -59,7 +59,7 @@ typedef enum {
 } srslte_dmrs_sch_add_pos_t;
 
 /**
- * @brief Provides PDSCH DMRS configuration from higher layers
+ * @brief Provides PDSCH DMRS configuration
  * @remark Parameters described in TS 38.331 V15.10.0
  */
 typedef struct {
@@ -121,6 +121,10 @@ typedef struct SRSLTE_API {
   /// Number of DMRS groups without data
   /// Described in TS 38.214 Section 5.1.6.2
   uint32_t nof_dmrs_cdm_groups_without_data;
+
+  /// Linear DMRS power offset. Zero means unset and it is equivalent to one.
+  /// For PUSCH, see TS 38.214 Table 6.2.2-1 for more information
+  float beta_dmrs;
 
   /// Spatial resources
   uint32_t nof_layers;

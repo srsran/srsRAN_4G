@@ -71,6 +71,7 @@ static uint32_t srslte_dmrs_get_lse(srslte_dmrs_sch_t*       q,
                                     uint32_t                 start_prb,
                                     uint32_t                 nof_prb,
                                     uint32_t                 delta,
+                                    float                    amplitude,
                                     const cf_t*              symbols,
                                     cf_t*                    least_square_estimates)
 {
@@ -88,7 +89,7 @@ static uint32_t srslte_dmrs_get_lse(srslte_dmrs_sch_t*       q,
   }
 
   // Generate sequence for the given pilots
-  srslte_sequence_state_gen_f(sequence_state, M_SQRT1_2, (float*)q->temp, count * 2);
+  srslte_sequence_state_gen_f(sequence_state, amplitude, (float*)q->temp, count * 2);
 
   // Calculate least square estimates
   srslte_vec_prod_conj_ccc(least_square_estimates, q->temp, least_square_estimates, count);
@@ -134,12 +135,13 @@ static uint32_t srslte_dmrs_put_pilots(srslte_dmrs_sch_t*       q,
                                        uint32_t                 start_prb,
                                        uint32_t                 nof_prb,
                                        uint32_t                 delta,
+                                       float                    amplitude,
                                        cf_t*                    symbols)
 {
   uint32_t count = (dmrs_type == srslte_dmrs_sch_type_1) ? nof_prb * 6 : nof_prb * 4;
 
   // Generate sequence for the given pilots
-  srslte_sequence_state_gen_f(sequence_state, M_SQRT1_2, (float*)q->temp, count * 2);
+  srslte_sequence_state_gen_f(sequence_state, amplitude, (float*)q->temp, count * 2);
 
   switch (dmrs_type) {
     case srslte_dmrs_sch_type_1:
@@ -162,6 +164,12 @@ static int srslte_dmrs_sch_put_symbol(srslte_dmrs_sch_t*           q,
                                       uint32_t                     delta,
                                       cf_t*                        symbols)
 {
+  // Get signal amplitude
+  float amplitude = M_SQRT1_2;
+  if (isnormal(grant->beta_dmrs)) {
+    amplitude *= grant->beta_dmrs;
+  }
+
   const srslte_dmrs_sch_cfg_t* dmrs_cfg         = &pdsch_cfg->dmrs;
   uint32_t                     prb_count        = 0; // Counts consecutive used PRB
   uint32_t                     prb_start        = 0; // Start consecutive used PRB
@@ -200,14 +208,16 @@ static int srslte_dmrs_sch_put_symbol(srslte_dmrs_sch_t*           q,
     }
 
     // Get contiguous pilots
-    pilot_count += srslte_dmrs_put_pilots(q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols);
+    pilot_count +=
+        srslte_dmrs_put_pilots(q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, amplitude, symbols);
 
     // Reset counter
     prb_count = 0;
   }
 
   if (prb_count > 0) {
-    pilot_count += srslte_dmrs_put_pilots(q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols);
+    pilot_count +=
+        srslte_dmrs_put_pilots(q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, amplitude, symbols);
   }
 
   return pilot_count;
@@ -455,9 +465,8 @@ static uint32_t srslte_dmrs_sch_seed(const srslte_carrier_nr_t*   carrier,
     n_id = dmrs_cfg->scrambling_id1;
   }
 
-  return (uint32_t)(((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17UL) +
-                     (2UL * carrier->id + n_scid)) &
-                    (uint64_t)INT32_MAX);
+  return SRSLTE_SEQUENCE_MOD((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17UL) +
+                             (2UL * carrier->id + n_scid));
 }
 
 int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_rx)
@@ -585,6 +594,12 @@ static int srslte_dmrs_sch_get_symbol(srslte_dmrs_sch_t*           q,
                                       const cf_t*                  symbols,
                                       cf_t*                        least_square_estimates)
 {
+  // Get signal amplitude
+  float amplitude = M_SQRT1_2;
+  if (isnormal(grant->beta_dmrs)) {
+    amplitude /= grant->beta_dmrs;
+  }
+
   const srslte_dmrs_sch_cfg_t* dmrs_cfg = &pdsch_cfg->dmrs;
 
   uint32_t prb_count        = 0; // Counts consecutive used PRB
@@ -624,16 +639,30 @@ static int srslte_dmrs_sch_get_symbol(srslte_dmrs_sch_t*           q,
     }
 
     // Get contiguous pilots
-    pilot_count += srslte_dmrs_get_lse(
-        q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols, &least_square_estimates[pilot_count]);
+    pilot_count += srslte_dmrs_get_lse(q,
+                                       &sequence_state,
+                                       dmrs_cfg->type,
+                                       prb_start,
+                                       prb_count,
+                                       delta,
+                                       amplitude,
+                                       symbols,
+                                       &least_square_estimates[pilot_count]);
 
     // Reset counter
     prb_count = 0;
   }
 
   if (prb_count > 0) {
-    pilot_count += srslte_dmrs_get_lse(
-        q, &sequence_state, dmrs_cfg->type, prb_start, prb_count, delta, symbols, &least_square_estimates[pilot_count]);
+    pilot_count += srslte_dmrs_get_lse(q,
+                                       &sequence_state,
+                                       dmrs_cfg->type,
+                                       prb_start,
+                                       prb_count,
+                                       delta,
+                                       amplitude,
+                                       symbols,
+                                       &least_square_estimates[pilot_count]);
   }
 
   return pilot_count;

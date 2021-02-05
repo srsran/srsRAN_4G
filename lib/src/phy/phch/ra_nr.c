@@ -553,36 +553,41 @@ ra_ul_dmrs(const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg, srslte_sch_grant_nr_t* pu
       cfg->dmrs.length                 = srslte_dmrs_sch_len_1;
       cfg->dmrs.scrambling_id0_present = false;
       cfg->dmrs.scrambling_id1_present = false;
-
-      if (pusch_grant->dci_format == srslte_dci_format_nr_0_0) {
-        if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(cfg, pusch_grant) < SRSLTE_SUCCESS) {
-          ERROR("Error loading number of DMRS CDM groups\n");
-          return SRSLTE_ERROR;
-        }
-      } else {
-        ERROR("Invalid case\n");
-        return SRSLTE_ERROR;
-      }
-
-      return SRSLTE_SUCCESS;
+    } else {
+      ERROR("Unsupported configuration");
+      return SRSLTE_ERROR;
     }
+  } else {
+    if (pusch_grant->mapping == srslte_sch_mapping_type_A) {
+      cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeA.additional_pos;
+      cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeA.type;
+      cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeA.length;
+      cfg->dmrs.scrambling_id0_present = false;
+      cfg->dmrs.scrambling_id1_present = false;
+    } else {
+      cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeB.additional_pos;
+      cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeB.type;
+      cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeB.length;
+      cfg->dmrs.scrambling_id0_present = false;
+      cfg->dmrs.scrambling_id1_present = false;
+    }
+  }
 
-    ERROR("Unsupported configuration");
+  // Set number of DMRS CDM groups without data
+  if (pusch_grant->dci_format == srslte_dci_format_nr_0_0) {
+    if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(cfg, pusch_grant) < SRSLTE_SUCCESS) {
+      ERROR("Error loading number of DMRS CDM groups\n");
+      return SRSLTE_ERROR;
+    }
+  } else {
+    ERROR("Invalid case\n");
     return SRSLTE_ERROR;
   }
 
-  if (pusch_grant->mapping == srslte_sch_mapping_type_A) {
-    cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeA.additional_pos;
-    cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeA.type;
-    cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeA.length;
-    cfg->dmrs.scrambling_id0_present = false;
-    cfg->dmrs.scrambling_id1_present = false;
-  } else {
-    cfg->dmrs.additional_pos         = pusch_hl_cfg->dmrs_typeB.additional_pos;
-    cfg->dmrs.type                   = pusch_hl_cfg->dmrs_typeB.type;
-    cfg->dmrs.length                 = pusch_hl_cfg->dmrs_typeB.length;
-    cfg->dmrs.scrambling_id0_present = false;
-    cfg->dmrs.scrambling_id1_present = false;
+  // Set DMRS power offset Table 6.2.2-1: The ratio of PUSCH EPRE to DM-RS EPRE
+  if (srslte_ra_ul_nr_dmrs_power_offset(pusch_grant) < SRSLTE_SUCCESS) {
+    ERROR("Error setting DMRS power offset");
+    return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
