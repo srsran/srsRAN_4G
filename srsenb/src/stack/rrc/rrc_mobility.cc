@@ -18,6 +18,7 @@
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
+#include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
@@ -207,7 +208,7 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
 }
 
 //! Method called whenever the eNB receives a MeasReport from the UE. In normal situations, an HO procedure is started
-void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
+void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srslte::unique_byte_buffer_t pdu)
 {
   if (not is_in_state<idle_st>()) {
     Info("Received a MeasReport while UE is performing Handover. Ignoring...");
@@ -260,6 +261,11 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
       break;
     }
   }
+
+  event_logger::get().log_measurement_report(
+      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+      rrc_ue->rnti);
 }
 
 /**

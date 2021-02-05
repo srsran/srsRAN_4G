@@ -1185,7 +1185,8 @@ bool s1ap::ue::send_uectxtreleasecomplete()
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
 
   // Log event.
-  event_logger::get().log_s1_ctx_delete(ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
+  //:TODO: cc_idx not available
+  event_logger::get().log_s1_ctx_delete(0, ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
@@ -1219,7 +1220,8 @@ bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_s
   }
 
   // Log event.
-  event_logger::get().log_s1_ctx_create(ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
+  //:TODO: cc_idx not available
+  event_logger::get().log_s1_ctx_create(0, ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
 }

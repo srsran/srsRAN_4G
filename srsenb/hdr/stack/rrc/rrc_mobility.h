@@ -36,7 +36,7 @@ public:
   rrc_mobility(srsenb::rrc::ue* outer_ue);
 
   bool fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
-  void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
+  void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg, srslte::unique_byte_buffer_t pdu);
   void handle_ho_preparation_complete(bool                         is_success,
                                       const asn1::s1ap::ho_cmd_s&  msg,
                                       srslte::unique_byte_buffer_t container);

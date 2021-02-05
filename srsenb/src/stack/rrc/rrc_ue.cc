@@ -108,6 +108,10 @@ void rrc::ue::activity_timer_expired()
 
     if (parent->s1ap->user_exists(rnti)) {
       parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
+      event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                             static_cast<unsigned>(rrc_idle_transition_cause::timeout),
+                                             0,
+                                             rnti);
     } else {
       if (rnti != SRSLTE_MRNTI) {
         parent->rem_user_thread(rnti);
@@ -224,7 +228,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::meas_report:
       if (mobility_handler != nullptr) {
-        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report(), std::move(original_pdu));
       } else {
         parent->logger.warning("Received MeasReport but no mobility configuration is available");
       }
@@ -251,6 +255,10 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 {
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
+    event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                          asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                          static_cast<unsigned>(conn_request_result_t::error_mme_not_connected),
+                                          rnti);
     send_connection_reject();
     return;
   }
@@ -325,7 +333,10 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 
   // Log event.
-  event_logger::get().log_rrc_connected(static_cast<unsigned>(s1ap_cause.value));
+  event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                        asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                        static_cast<unsigned>(conn_request_result_t::success),
+                                        rnti);
 
   // 2> if the UE has radio link failure or handover failure information available
   if (msg->crit_exts.type().value == c1_or_crit_ext_opts::c1 and
@@ -354,6 +365,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
 {
   if (not parent->s1ap->is_mme_connected()) {
     parent->logger.error("MME isn't connected. Sending Connection Reject");
+    event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                          asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                          static_cast<unsigned>(conn_request_result_t::error_mme_not_connected),
+                                          rnti);
     send_connection_reject();
     return;
   }
@@ -415,6 +430,10 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       set_activity_timeout(UE_INACTIVITY_TIMEOUT);
     } else {
       parent->logger.error("Received ConnectionReestablishment for rnti=0x%x without context", old_rnti);
+      event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                            asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                            static_cast<unsigned>(conn_request_result_t::error_unknown_rnti),
+                                            rnti);
       send_connection_reest_rej();
     }
   } else {
@@ -484,6 +503,11 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->rem_user_thread(old_reest_rnti);
 
   state = RRC_STATE_REESTABLISHMENT_COMPLETE;
+
+  event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                        asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
+                                        0,
+                                        rnti);
 
   // 2> if the UE has radio link failure or handover failure information available
   if (msg->crit_exts.type().value == rrc_conn_reest_complete_s::crit_exts_c_::types_opts::rrc_conn_reest_complete_r8) {
@@ -737,7 +761,10 @@ void rrc::ue::send_connection_release()
   send_dl_dcch(&dl_dcch_msg);
 
   // Log rrc release event.
-  event_logger::get().log_rrc_disconnect(static_cast<unsigned>(rel_ies.release_cause));
+  event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                         static_cast<unsigned>(rrc_idle_transition_cause::release),
+                                         static_cast<unsigned>(rel_ies.release_cause),
+                                         rnti);
 }
 
 /*

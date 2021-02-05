@@ -53,7 +53,7 @@ DECLARE_METRIC("ul_mcs", metric_ul_mcs, float, "");
 DECLARE_METRIC("ul_bitrate", metric_ul_bitrate, float, "");
 DECLARE_METRIC("ul_bler", metric_ul_bler, float, "");
 DECLARE_METRIC("ul_phr", metric_ul_phr, float, "");
-DECLARE_METRIC("bsr", metric_bsr, int, "");
+DECLARE_METRIC("ul_bsr", metric_bsr, uint32_t, "");
 DECLARE_METRIC_LIST("bearer_list", mlist_bearers, std::vector<mset_bearer_container>);
 DECLARE_METRIC_SET("ue_container",
                    mset_ue_container,
@@ -78,10 +78,11 @@ DECLARE_METRIC_SET("sector_container", mset_sector_container, metric_sector_id, 
 
 /// Metrics root object.
 DECLARE_METRIC("type", metric_type_tag, std::string, "");
+DECLARE_METRIC("timestamp", metric_timestamp_tag, double, "");
 DECLARE_METRIC_LIST("sector_list", mlist_sector, std::vector<mset_sector_container>);
 
 /// Metrics context.
-using metric_context_t = srslog::build_context_type<metric_type_tag, mlist_sector>;
+using metric_context_t = srslog::build_context_type<metric_type_tag, metric_timestamp_tag, mlist_sector>;
 
 } // namespace
 
@@ -132,7 +133,15 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
     bearer_container.write<metric_ul_total_bytes>(rlc_bearer[drb.first].num_rx_sdu_bytes);
     bearer_container.write<metric_ul_latency>(rlc_bearer[drb.first].rx_latency_ms / 1e3);
     bearer_container.write<metric_ul_buffered_bytes>(rlc_bearer[drb.first].rx_buffered_bytes);
+    //:TODO: fill in dl_buffered_bytes and dl_latency
   }
+}
+
+/// Returns the current time in seconds with ms precision since UNIX epoch.
+static double get_time_stamp()
+{
+  auto tp = std::chrono::system_clock::now().time_since_epoch();
+  return std::chrono::duration_cast<std::chrono::milliseconds>(tp).count() * 1e-3;
 }
 
 /// Returns false if the input index is out of bounds in the metrics struct.
@@ -164,6 +173,7 @@ void metrics_json::set_metrics(const enb_metrics_t& m, const uint32_t period_use
 
   // Fill root object.
   ctx.write<metric_type_tag>("metrics");
+  ctx.write<metric_timestamp_tag>(get_time_stamp());
   auto& sector_list = ctx.get<mlist_sector>();
   sector_list.resize(m.stack.mac.cc_rach_counter.size());
 

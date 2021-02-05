@@ -58,6 +58,12 @@ public:
 
   void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
+  /// List of results for a connection request.
+  enum class conn_request_result_t { success, error_mme_not_connected, error_unknown_rnti };
+
+  /// Possible causes for the RRC to transition to the idle state.
+  enum class rrc_idle_transition_cause { release, timeout };
+
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
   void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu);
   void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_s* msg);
@@ -91,6 +97,8 @@ public:
   void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
   bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,
                     srslte::unique_byte_buffer_t    pdu = srslte::unique_byte_buffer_t());
+
+  void save_ul_message(srslte::unique_byte_buffer_t pdu) { last_ul_msg = std::move(pdu); }
 
   uint16_t rnti   = 0;
   rrc*     parent = nullptr;
@@ -137,6 +145,9 @@ private:
   ue_cell_ded_list     ue_cell_list;
   bearer_cfg_handler   bearer_list;
   security_cfg_handler ue_security_cfg;
+
+  /// Cached message of the last uplinl message.
+  srslte::unique_byte_buffer_t last_ul_msg;
 
   // controllers
   mac_controller mac_ctrl;

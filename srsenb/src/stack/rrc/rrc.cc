@@ -572,6 +572,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
     switch (ul_ccch_msg.msg.c1().type().value) {
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
         if (user_it != users.end()) {
+          user_it->second->save_ul_message(std::move(pdu));
           user_it->second->handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
         } else {
           logger.error("Received ConnectionSetup for rnti=0x%x without context", rnti);
@@ -579,6 +580,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
         break;
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request:
         if (user_it != users.end()) {
+          user_it->second->save_ul_message(std::move(pdu));
           user_it->second->handle_rrc_con_reest_req(&ul_ccch_msg.msg.c1().rrc_conn_reest_request());
         } else {
           logger.error("Received ConnectionReestablishment for rnti=0x%x without context.", rnti);
