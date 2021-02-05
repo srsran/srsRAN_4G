@@ -24,7 +24,6 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
             srslte::log_ref                     log)
 
 {
-
   srslte::pdcp_config_t cfg_rx = {1,
                                   srslte::PDCP_RB_IS_DRB,
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
@@ -41,7 +40,6 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
 
   // Generate test message and encript/decript SDU.
   for (pdcp_test_event_t& event : events) {
-
     // Decript and integrity check the PDU
     pdcp_rx->write_pdu(std::move(event.pkt));
     for (uint32_t i = 0; i < event.ticks; ++i) {
@@ -237,7 +235,5 @@ int main()
     fprintf(stderr, "pdcp_nr_tests_rx() failed\n");
     return SRSLTE_ERROR;
   }
-  srslte::byte_buffer_pool::cleanup();
-
   return SRSLTE_SUCCESS;
 }

@@ -75,7 +75,6 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
  */
 int test_tx_discard_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 {
-
   /*
    * TX Test 1: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
@@ -108,7 +107,6 @@ int main()
     fprintf(stderr, "pdcp_nr_tests() failed\n");
     return SRSLTE_ERROR;
   }
-  srslte::byte_buffer_pool::cleanup();
 
   return SRSLTE_SUCCESS;
 }

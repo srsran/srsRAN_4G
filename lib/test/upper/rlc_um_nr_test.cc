@@ -604,7 +604,5 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  byte_buffer_pool::get_instance()->cleanup();
-
   return SRSLTE_SUCCESS;
 }

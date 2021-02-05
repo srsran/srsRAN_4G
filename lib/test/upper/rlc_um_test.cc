@@ -435,28 +435,22 @@ int main(int argc, char** argv)
   if (meas_obj_test()) {
     return -1;
   }
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (loss_test()) {
     return -1;
   }
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (basic_mbsfn_test()) {
     return -1;
   }
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (reassmble_test()) {
     return -1;
   }
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (reassmble_test2()) {
     return -1;
   }
-  byte_buffer_pool::get_instance()->cleanup();
 
   TESTASSERT(pdu_pack_no_space_test() == 0);
-  byte_buffer_pool::get_instance()->cleanup();
 }

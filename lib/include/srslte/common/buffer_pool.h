@@ -169,16 +169,13 @@ class byte_buffer_pool
 {
 public:
   // Singleton static methods
-  static std::unique_ptr<byte_buffer_pool> instance;
-  static byte_buffer_pool*                 get_instance(int capacity = -1);
-  static void                              cleanup();
-  byte_buffer_pool(int capacity = -1) { pool = new buffer_pool<byte_buffer_t>(capacity); }
+  static byte_buffer_pool* get_instance(int capacity = -1);
+  byte_buffer_pool(int capacity = -1) : pool(capacity) {}
   byte_buffer_pool(const byte_buffer_pool& other) = delete;
   byte_buffer_pool& operator=(const byte_buffer_pool& other) = delete;
-  ~byte_buffer_pool() { delete pool; }
-  byte_buffer_t* allocate(const char* debug_name = nullptr, bool blocking = false)
+  byte_buffer_t*    allocate(const char* debug_name = nullptr, bool blocking = false)
   {
-    return pool->allocate(debug_name, blocking);
+    return pool.allocate(debug_name, blocking);
   }
   void enable_logger(bool enabled) { print_to_log = enabled; }
   void deallocate(byte_buffer_t* b)
@@ -187,7 +184,7 @@ public:
       return;
     }
     b->clear();
-    if (!pool->deallocate(b)) {
+    if (!pool.deallocate(b)) {
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
       print_error("Error deallocating PDU: Addr=0x%p, name=%s not found in pool", (void*)b, b->debug_name);
 #else
@@ -196,7 +193,7 @@ public:
     }
     b = nullptr;
   }
-  void print_all_buffers() { pool->print_all_buffers(); }
+  void print_all_buffers() { pool.print_all_buffers(); }
 
 private:
   /// Formats and prints the input string and arguments into the configured output stream.
@@ -211,8 +208,8 @@ private:
   }
 
 private:
-  bool                        print_to_log = false;
-  buffer_pool<byte_buffer_t>* pool;
+  bool                       print_to_log = false;
+  buffer_pool<byte_buffer_t> pool;
 };
 
 inline unique_byte_buffer_t allocate_unique_buffer(byte_buffer_pool& pool, bool blocking = false)

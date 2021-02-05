@@ -2060,73 +2060,61 @@ int main(int argc, char** argv)
     printf("basic_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (concat_test()) {
     printf("concat_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (segment_test(true)) {
     printf("segment_test with in-order PDU reception failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (segment_test(false)) {
     printf("segment_test with out-of-order PDU reception failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (retx_test()) {
     printf("retx_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (segment_retx_test()) {
     printf("segment_retx_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_1()) {
     printf("resegment_test_1 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_2()) {
     printf("resegment_test_2 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_3()) {
     printf("resegment_test_3 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_4()) {
     printf("resegment_test_4 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_5()) {
     printf("resegment_test_5 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_6()) {
     printf("resegment_test_6 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   rrc_log1->set_hex_limit(100);
   rrc_log2->set_hex_limit(100);
@@ -2134,13 +2122,11 @@ int main(int argc, char** argv)
     printf("resegment_test_7 failed\n");
     exit(-1);
   }
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_8()) {
     printf("resegment_test_8 failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
   rrc_log1->set_hex_limit(-1);
   rrc_log2->set_hex_limit(-1);
 
@@ -2148,25 +2134,21 @@ int main(int argc, char** argv)
     printf("reset_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (stop_test()) {
     printf("stop_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (resume_test()) {
     printf("resume_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   if (status_pdu_test()) {
     printf("status_pdu_test failed\n");
     exit(-1);
   };
-  byte_buffer_pool::get_instance()->cleanup();
 
   return 0;
 }

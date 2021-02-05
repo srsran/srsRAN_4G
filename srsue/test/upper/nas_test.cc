@@ -255,8 +255,6 @@ int security_command_test()
     }
   }
 
-  byte_buffer_pool::get_instance()->cleanup();
-
   return ret;
 }
 
@@ -333,8 +331,6 @@ int mme_attach_request_test()
     // ensure buffers are deleted before pool cleanup
     gw.stop();
   }
-
-  byte_buffer_pool::get_instance()->cleanup();
 
   return ret;
 }

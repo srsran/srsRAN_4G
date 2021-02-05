@@ -420,5 +420,4 @@ int main(int argc, char** argv)
   if (tft_filter_test_ipv6_combined()) {
     return -1;
   }
-  srslte::byte_buffer_pool::cleanup();
 }
