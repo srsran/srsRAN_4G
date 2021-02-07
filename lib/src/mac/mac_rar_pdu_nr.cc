@@ -130,7 +130,7 @@ std::string mac_rar_subpdu_nr::to_string()
 {
   std::stringstream ss;
   if (has_rapid()) {
-    ss << "RAPID: " << rapid << ", Temp C-RNTI: " << temp_crnti << ", TA: " << ta << ", UL Grant: ";
+    ss << "RAPID: " << rapid << ", Temp C-RNTI: " << std::hex << temp_crnti << ", TA: " << ta << ", UL Grant: ";
   } else {
     ss << "Backoff Indicator: " << backoff_indicator << " ";
   }

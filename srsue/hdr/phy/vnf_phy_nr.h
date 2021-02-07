@@ -47,9 +47,9 @@ public:
   void start_plot();
 
   // MAC interface
-  int tx_request(const tx_request_t& request);
+  int  tx_request(const tx_request_t& request);
   int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>) { return SRSLTE_SUCCESS; };
-  void send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power){};
+  void send_prach(const uint32_t preamble_idx, const int prach_occasion, const float target_power_dbm, const float ta_base_sec = 0.0f){};
 
 private:
   std::unique_ptr<srslte::srslte_basic_vnf> vnf;

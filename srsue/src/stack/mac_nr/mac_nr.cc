@@ -12,11 +12,12 @@
 
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
 #include "srslte/mac/mac_rar_pdu_nr.h"
+#include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 
 namespace srsue {
 
 mac_nr::mac_nr(srslte::ext_task_sched_handle task_sched_) :
-  task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC"))
+  task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC")), proc_ra(logger)
 {
   tx_buffer  = srslte::make_byte_buffer();
   rlc_buffer = srslte::make_byte_buffer();
@@ -72,7 +73,7 @@ void mac_nr::run_tti(const uint32_t tti)
 
 uint16_t mac_nr::get_ul_sched_rnti(const uint32_t tti)
 {
-  return crnti;
+  return c_rnti;
 }
 
 bool mac_nr::is_si_opportunity()
@@ -118,12 +119,12 @@ uint16_t mac_nr::get_dl_sched_rnti(const uint32_t tti)
 
 bool mac_nr::has_crnti()
 {
-  return crnti != SRSLTE_INVALID_RNTI;
+  return c_rnti != SRSLTE_INVALID_RNTI;
 }
 
 uint16_t mac_nr::get_crnti()
 {
-  return crnti;
+  return c_rnti;
 }
 
 void mac_nr::bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload)
@@ -184,7 +185,7 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
   // handle PDU
   if (SRSLTE_RNTI_ISRAR(grant.rnti)) { // TODO: replace with proc_ra->get_rar_rnti()
     // TODO: pass to RA proc
-    handle_rar_pdu(grant);
+    // handle_rar_pdu(grant);
   } else {
     // Push DL PDUs to queue for back-ground processing
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
@@ -196,27 +197,6 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 
   metrics[cc_idx].rx_pkts++;
   stack_task_dispatch_queue.push([this]() { process_pdus(); });
-}
-
-// Temporary helper until RA proc is complete
-void mac_nr::handle_rar_pdu(mac_nr_grant_dl_t& grant)
-{
-  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
-    if (grant.tb[i] != nullptr) {
-      srslte::mac_rar_pdu_nr pdu;
-      if (!pdu.unpack(grant.tb[i]->msg, grant.tb[i]->N_bytes)) {
-        logger.warning("Error unpacking RAR PDU");
-        return;
-      }
-      logger.info(pdu.to_string());
-
-      for (auto& subpdu : pdu.get_subpdus()) {
-        if (subpdu.has_rapid() && subpdu.get_rapid() == 0 /* selected preamble */) {
-          phy->set_ul_grant(subpdu.get_ul_grant());
-        }
-      }
-    }
-  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant)
@@ -303,21 +283,30 @@ void mac_nr::set_config(const srslte::sr_cfg_t& sr_cfg)
   logger.warning("Not Scheduling Request Config yet");
 }
 
+void mac_nr::set_config(const srslte::rach_nr_cfg_t& rach_cfg){
+  proc_ra.set_config(rach_cfg);
+}
+
 void mac_nr::set_contention_id(uint64_t ue_identity)
 {
   contention_id = ue_identity;
 }
 
-bool mac_nr::set_crnti(const uint16_t crnti_)
+bool mac_nr::set_crnti(const uint16_t c_rnti_)
 {
-  if (is_valid_crnti(crnti_)) {
-    logger.info("Setting C-RNTI to 0x%X", crnti_);
-    crnti = crnti_;
+  if (is_valid_crnti(c_rnti_)) {
+    logger.info("Setting C-RNTI to 0x%X", c_rnti_);
+    c_rnti = c_rnti_;
     return true;
   } else {
-    logger.warning("Failed to set C-RNTI, 0x%X is not valid.", crnti_);
+    logger.warning("Failed to set C-RNTI, 0x%X is not valid.", c_rnti_);
     return false;
   }
+}
+
+void mac_nr::start_ra_procedure()
+{
+  proc_ra.start_by_rrc();
 }
 
 bool mac_nr::is_valid_crnti(const uint16_t crnti)
@@ -359,6 +348,49 @@ void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
       rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
     }
   }
+}
+
+uint64_t mac_nr::get_contention_id()
+{
+  return 0xdeadbeef; // TODO when rebased on PR
+}
+
+uint16_t mac_nr::get_c_rnti()
+{
+  return c_rnti;
+}
+
+void mac_nr::set_c_rnti(uint64_t c_rnti_)
+{
+  c_rnti = c_rnti_;
+}
+
+// TODO same function as for mac_eutra
+bool mac_nr::is_in_window(uint32_t tti, int* start, int* len)
+{
+  uint32_t st = (uint32_t)*start;
+  uint32_t l  = (uint32_t)*len;
+
+  if (srslte_tti_interval(tti, st) < l + 5) {
+    if (tti > st) {
+      if (tti <= st + l) {
+        return true;
+      } else {
+        *start = 0;
+        *len   = 0;
+        return false;
+      }
+    } else {
+      if (tti <= (st + l) % 10240) {
+        return true;
+      } else {
+        *start = 0;
+        *len   = 0;
+        return false;
+      }
+    }
+  }
+  return false;
 }
 
 } // namespace srsue

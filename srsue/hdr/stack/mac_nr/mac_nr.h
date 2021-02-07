@@ -13,6 +13,8 @@
 #ifndef SRSUE_MAC_NR_H
 #define SRSUE_MAC_NR_H
 
+#include "mac_nr_interfaces.h"
+#include "proc_ra_nr.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/mac_interface_types.h"
@@ -30,7 +32,7 @@ struct mac_nr_args_t {
   uint32_t drb_lcid;
 };
 
-class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr
+class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_proc_ra_nr
 {
 public:
   mac_nr(srslte::ext_task_sched_handle task_sched_);
@@ -65,11 +67,29 @@ public:
   void setup_lcid(const srslte::logical_channel_config_t& config);
   void set_config(const srslte::bsr_cfg_t& bsr_cfg);
   void set_config(const srslte::sr_cfg_t& sr_cfg);
+  void set_config(const srslte::rach_nr_cfg_t& rach_cfg);
   void set_contention_id(const uint64_t ue_identity);
   bool set_crnti(const uint16_t crnti);
+  void start_ra_procedure();
+
+  /// procedure ra nr interface
+  uint64_t get_contention_id();
+  uint16_t get_c_rnti();
+  void set_c_rnti(uint64_t c_rnti_);
+
+  bool msg3_is_transmitted() { return true; }
+  void msg3_flush() {}
+  void msg3_prepare() {}
+  bool msg3_is_empty() { return true; }
 
   /// stack interface
   void process_pdus();
+
+  static bool is_in_window(uint32_t tti, int* start, int* len);
+
+  // PHY Interface
+  void prach_sent(const uint32_t tti);
+  void tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti);
 
 private:
   void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
@@ -97,7 +117,7 @@ private:
 
   bool started = false;
 
-  uint16_t crnti         = 0xdead;
+  uint16_t c_rnti        = SRSLTE_INVALID_RNTI;
   uint64_t contention_id = 0;
 
   static constexpr uint32_t MIN_RLC_PDU_LEN =
@@ -117,6 +137,9 @@ private:
   srslte::unique_byte_buffer_t rlc_buffer = nullptr;
 
   srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;
+
+  // MAC Uplink-related procedures
+  proc_ra_nr proc_ra;
 };
 
 } // namespace srsue

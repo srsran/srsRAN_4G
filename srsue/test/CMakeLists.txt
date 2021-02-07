@@ -9,6 +9,10 @@
 add_subdirectory(phy)
 add_subdirectory(upper)
 
+if (ENABLE_5GNR)
+  add_subdirectory(mac_nr)
+endif (ENABLE_5GNR)
+
 if (ENABLE_TTCN3)
   add_subdirectory(ttcn3)
 endif (ENABLE_TTCN3)

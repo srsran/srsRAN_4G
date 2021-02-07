@@ -95,11 +95,11 @@ public:
   // MAC informs PHY about UL grant included in RAR PDU
   virtual int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>) = 0;
 
-  // MAC instructs PHY to send a PRACH at the next given occasion
-  virtual void send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power) = 0;
-
   // MAC instructs PHY to transmit MAC TB at the given TTI
   virtual int tx_request(const tx_request_t& request) = 0;
+
+  /// Instruct PHY to send PRACH in the next occasion.
+  virtual void send_prach(const uint32_t prach_occasion, const int preamble_index, const float preamble_received_target_power, const float ta_base_sec = 0.0f) = 0;
 };
 
 class phy_interface_rrc_nr
