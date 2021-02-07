@@ -41,6 +41,7 @@ function(ldpc_unit_tests)
     add_test(NAME ${test_name}-LS${i} COMMAND ${test_command} -l${i}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
             )
+    set_tests_properties(${test_name}-LS${i} PROPERTIES LABELS "lib;nr;phy")
   endforeach()
 endfunction()
 
@@ -72,6 +73,7 @@ set(test_command ldpc_dec_test -b2)
 ldpc_unit_tests(${lifting_sizes})
 
 add_test(NAME LDPC-chain COMMAND ldpc_chain_test)
+set_tests_properties(LDPC-chain PROPERTIES LABELS "lib;nr;phy")
 
 ### Test LDPC Rate Matching UNIT tests
 set(mod_order
@@ -111,22 +113,26 @@ function(ldpc_rm_unit_tests)
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
+          set_tests_properties(${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} PROPERTIES LABELS "lib;nr;phy")
           math(EXPR M "${N} / 2")
           # Half size buffer
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
+          set_tests_properties(${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} PROPERTIES LABELS "lib;nr;phy")
           math(EXPR Div "2*${Ordval}")
           math(EXPR tmpN "${N} - (${N} % ${Div})")
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
+          set_tests_properties(${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} PROPERTIES LABELS "lib;nr;phy")
           math(EXPR M "${N}/ 2")
           # Half size buffer
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
+          set_tests_properties(${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} PROPERTIES LABELS "lib;nr;phy")
 
           math(EXPR Div "${Ordval}")
           math(EXPR tmpN "2*${N} - (2*${N} % ${Div})") #Half the rate
@@ -135,11 +141,13 @@ function(ldpc_rm_unit_tests)
 
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
+          set_tests_properties(${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} PROPERTIES LABELS "lib;nr;phy")
           math(EXPR M "${N}/ 2")
           # Half size buffer
           add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
+          set_tests_properties(${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} PROPERTIES LABELS "lib;nr;phy")
         endforeach()
       endforeach()
     endforeach()
@@ -151,3 +159,4 @@ set(test_command ldpc_rm_test)
 ldpc_rm_unit_tests(${lifting_sizes})
 
 add_test(NAME LDPC-RM-chain COMMAND ldpc_rm_chain_test -E 1 -B 1)
+set_tests_properties(LDPC-RM-chain PROPERTIES LABELS "lib;nr;phy")

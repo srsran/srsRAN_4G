@@ -92,6 +92,8 @@ add_test(pssch_test_tm2_p50_ext pssch_test -p 50 -m 9 -e)
 add_test(pssch_test_tm2_p75 pssch_test -p 75 -m 17)
 add_test(pssch_test_tm2_p100 pssch_test -p 100 -m 21)
 add_test(pssch_test_tm2_p100_ext pssch_test -p 100 -m 21 -e)
+set_tests_properties(pssch_test_tm2_p6 pssch_test_tm2_p15 pssch_test_tm2_p25 pssch_test_tm2_p50 pssch_test_tm2_p50_ext
+                     pssch_test_tm2_p75 pssch_test_tm2_p100 pssch_test_tm2_p100_ext PROPERTIES LABELS "lib;phy")
 
 # TM4 self tests
 add_test(pssch_test_tm4_p6 pssch_test -p 6 -t 4 -m 2)
@@ -100,6 +102,8 @@ add_test(pssch_test_tm4_p25 pssch_test -p 25 -t 4 -m 7)
 add_test(pssch_test_tm4_p50 pssch_test -p 50 -t 4 -m 9)
 add_test(pssch_test_tm4_p75 pssch_test -p 75 -t 4 -m 17)
 add_test(pssch_test_tm4_p100 pssch_test -p 100 -t 4 -m 21)
+set_tests_properties(pssch_test_tm4_p6 pssch_test_tm4_p15 pssch_test_tm4_p25 pssch_test_tm4_p50 pssch_test_tm4_p75
+                     pssch_test_tm4_p100 PROPERTIES LABELS "lib;phy")
 
 ########################################################################
 # PSCCH AND PSSCH FILE TEST

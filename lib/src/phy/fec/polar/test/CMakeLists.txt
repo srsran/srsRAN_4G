@@ -29,6 +29,7 @@ function(polar_tests_lite)
         add_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
                 COMMAND ${test_command} -s${S} -n${nval} -e${eval} -k${kval} -i${ival}
                 )
+        set_tests_properties(${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival} PROPERTIES LABELS "lib;nr;phy")
     endforeach()
 endfunction()
 
@@ -43,6 +44,7 @@ function(polar_tests)
             add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i0
                     )
+            set_tests_properties(${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0 PROPERTIES LABELS "lib;nr;phy")
         endforeach()
     endforeach()
 
@@ -55,6 +57,7 @@ function(polar_tests)
             add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
                     )
+            set_tests_properties(${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1 PROPERTIES LABELS "lib;nr;phy")
         endforeach()
     endforeach()
 
@@ -64,6 +67,7 @@ function(polar_tests)
             add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
                     )
+            set_tests_properties(${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1 PROPERTIES LABELS "lib;nr;phy")
         endforeach()
     endforeach()
 
@@ -91,3 +95,4 @@ polar_tests(101)
 add_executable(polar_interleaver_test polar_interleaver_test.c)
 target_link_libraries(polar_interleaver_test srslte_phy)
 add_test(polar_interleaver_test polar_interleaver_test)
+set_tests_properties(polar_interleaver_test PROPERTIES LABELS "lib;nr;phy")

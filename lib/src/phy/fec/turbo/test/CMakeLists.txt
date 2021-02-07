@@ -37,3 +37,6 @@ add_test(turbodecoder_test_known turbodecoder_test -n 1 -s 1 -k -e 0.5)
 add_executable(turbocoder_test turbocoder_test.c)
 target_link_libraries(turbocoder_test srslte_phy)
 add_test(turbocoder_test_all turbocoder_test)
+
+set_tests_properties(turbodecoder_test_504_1 turbodecoder_test_504_2 turbodecoder_test_6114_1_5
+                     turbodecoder_test_known turbocoder_test_all PROPERTIES LABELS "lib;phy")
