@@ -81,63 +81,58 @@ public:
   using iterator       = uint8_t*;
   using const_iterator = const uint8_t*;
 
-  uint32_t N_bytes;
+  uint32_t N_bytes = 0;
   uint8_t  buffer[SRSLTE_MAX_BUFFER_SIZE_BYTES];
-  uint8_t* msg;
+  uint8_t* msg = nullptr;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
   char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
 #endif
 
   struct buffer_metadata_t {
-    uint32_t pdcp_sn = 0;
+    uint32_t            pdcp_sn = 0;
+    buffer_latency_calc tp;
   } md;
 
-  byte_buffer_t() : N_bytes(0)
+  byte_buffer_t() : msg(&buffer[SRSLTE_BUFFER_HEADER_OFFSET])
   {
-    bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-    msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
 #endif
   }
-  byte_buffer_t(const byte_buffer_t& buf)
+  byte_buffer_t(const byte_buffer_t& buf) : msg(&buffer[SRSLTE_BUFFER_HEADER_OFFSET]), md(buf.md), N_bytes(buf.N_bytes)
   {
-    bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-    msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     // copy actual contents
-    md      = buf.md;
-    N_bytes = buf.N_bytes;
     memcpy(msg, buf.msg, N_bytes);
   }
+
   byte_buffer_t& operator=(const byte_buffer_t& buf)
   {
     // avoid self assignment
     if (&buf == this)
       return *this;
-    bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
     msg     = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     N_bytes = buf.N_bytes;
     md      = buf.md;
     memcpy(msg, buf.msg, N_bytes);
     return *this;
   }
+
   void clear()
   {
     msg     = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     N_bytes = 0;
     md      = {};
-    tp.clear();
   }
   uint32_t get_headroom() { return msg - buffer; }
   // Returns the remaining space from what is reported to be the length of msg
   uint32_t                  get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
-  std::chrono::microseconds get_latency_us() const { return tp.get_latency_us(); }
+  std::chrono::microseconds get_latency_us() const { return md.tp.get_latency_us(); }
 
-  std::chrono::high_resolution_clock::time_point get_timestamp() const { return tp.get_timestamp(); }
+  std::chrono::high_resolution_clock::time_point get_timestamp() const { return md.tp.get_timestamp(); }
 
-  void set_timestamp() { tp.set_timestamp(); }
+  void set_timestamp() { md.tp.set_timestamp(); }
 
-  void set_timestamp(std::chrono::high_resolution_clock::time_point tp_) { tp.set_timestamp(tp_); }
+  void set_timestamp(std::chrono::high_resolution_clock::time_point tp_) { md.tp.set_timestamp(tp_); }
 
   void append_bytes(uint8_t* buf, uint32_t size)
   {
@@ -159,24 +154,19 @@ public:
   void* operator new[](size_t sz) = delete;
   void  operator delete(void* ptr);
   void  operator delete[](void* ptr) = delete;
-
-private:
-  buffer_latency_calc tp;
 };
 
 struct bit_buffer_t {
-  uint32_t N_bits;
+  uint32_t N_bits = 0;
   uint8_t  buffer[SRSLTE_MAX_BUFFER_SIZE_BITS];
-  uint8_t* msg;
+  uint8_t* msg = nullptr;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
   char debug_name[128];
 #endif
 
-  bit_buffer_t() : N_bits(0) { msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET]; }
-  bit_buffer_t(const bit_buffer_t& buf)
+  bit_buffer_t() : msg(&buffer[SRSLTE_BUFFER_HEADER_OFFSET]) {}
+  bit_buffer_t(const bit_buffer_t& buf) : msg(&buffer[SRSLTE_BUFFER_HEADER_OFFSET]), N_bits(buf.N_bits)
   {
-    msg    = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-    N_bits = buf.N_bits;
     memcpy(msg, buf.msg, N_bits);
   }
   bit_buffer_t& operator=(const bit_buffer_t& buf)
