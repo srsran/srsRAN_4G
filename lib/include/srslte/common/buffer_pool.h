@@ -196,6 +196,7 @@ public:
       print_error("Error deallocating PDU: Addr=0x%p, name=%s not found in pool", (void*)b, b->debug_name);
 #else
       print_error("Error deallocating PDU: Addr=0x%p", (void*)b);
+      srslog::fetch_basic_logger("EPC").error("ERROR deallocating PDU: Addr=0x%p\n", (void*)b);
 #endif
     }
   }

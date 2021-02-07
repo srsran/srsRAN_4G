@@ -37,7 +37,7 @@ public:
   int get_sgi();
   int get_s1u();
 
-  void handle_sgi_pdu(srslte::byte_buffer_t* msg);
+  void handle_sgi_pdu(srslte::unique_byte_buffer_t msg);
   void handle_s1u_pdu(srslte::byte_buffer_t* msg);
   void send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer_t* msg);
 
@@ -46,8 +46,8 @@ public:
   virtual bool modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtp_fteid_t dw_user_fteid, uint32_t up_ctr_fteid);
   virtual bool delete_gtpu_tunnel(in_addr_t ue_ipv4);
   virtual bool delete_gtpc_tunnel(in_addr_t ue_ipv4);
-  virtual void send_all_queued_packets(srslte::gtp_fteid_t                 dw_user_fteid,
-                                       std::queue<srslte::byte_buffer_t*>& pkt_queue);
+  virtual void send_all_queued_packets(srslte::gtp_fteid_t                       dw_user_fteid,
+                                       std::queue<srslte::unique_byte_buffer_t>& pkt_queue);
 
   spgw*                m_spgw;
   gtpc_interface_gtpu* m_gtpc;

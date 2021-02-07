@@ -42,15 +42,15 @@ typedef struct {
 } spgw_args_t;
 
 typedef struct spgw_tunnel_ctx {
-  uint64_t                           imsi;
-  in_addr_t                          ue_ipv4;
-  uint8_t                            ebi;
-  srslte::gtp_fteid_t                up_ctrl_fteid;
-  srslte::gtp_fteid_t                up_user_fteid;
-  srslte::gtp_fteid_t                dw_ctrl_fteid;
-  srslte::gtp_fteid_t                dw_user_fteid;
-  bool                               paging_pending;
-  std::queue<srslte::byte_buffer_t*> paging_queue;
+  uint64_t                                 imsi;
+  in_addr_t                                ue_ipv4;
+  uint8_t                                  ebi;
+  srslte::gtp_fteid_t                      up_ctrl_fteid;
+  srslte::gtp_fteid_t                      up_user_fteid;
+  srslte::gtp_fteid_t                      dw_ctrl_fteid;
+  srslte::gtp_fteid_t                      dw_user_fteid;
+  bool                                     paging_pending;
+  std::queue<srslte::unique_byte_buffer_t> paging_queue;
 } spgw_tunnel_ctx_t;
 
 class spgw : public srslte::thread

@@ -55,8 +55,8 @@ public:
       const srslte::gtpc_header&                                        header,
       const srslte::gtpc_downlink_data_notification_failure_indication& not_fail);
 
-  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t* msg);
-  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid);
+  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::unique_byte_buffer_t msg) override;
+  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid) override;
 
   spgw_tunnel_ctx_t* create_gtpc_ctx(const srslte::gtpc_create_session_request& cs_req);
   bool               delete_gtpc_ctx(uint32_t ctrl_teid);

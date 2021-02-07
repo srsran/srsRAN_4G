@@ -136,7 +136,7 @@ void spgw::run_thread()
         m_logger.debug("Message received at SPGW: SGi Message");
         sgi_msg          = srslte::make_byte_buffer("spgw::run_thread::sgi_msg");
         sgi_msg->N_bytes = read(sgi, sgi_msg->msg, buf_len);
-        m_gtpu->handle_sgi_pdu(sgi_msg.get());
+        m_gtpu->handle_sgi_pdu(std::move(sgi_msg));
       }
       if (FD_ISSET(s1u, &set)) {
         m_logger.debug("Message received at SPGW: S1-U Message");

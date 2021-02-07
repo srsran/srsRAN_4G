@@ -229,9 +229,8 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
 void mbms_gw::run_thread()
 {
   // Mark the thread as running
-  m_running = true;
-  srslte::byte_buffer_t* msg;
-  msg = new srslte::byte_buffer_t();
+  m_running                        = true;
+  srslte::unique_byte_buffer_t msg = srslte::make_byte_buffer();
 
   uint8_t seq = 0;
   while (m_running) {
@@ -245,10 +244,9 @@ void mbms_gw::run_thread()
       m_logger.error("Error reading from TUN interface. Error: %s", strerror(errno));
     } else {
       msg->N_bytes = n;
-      handle_sgi_md_pdu(msg);
+      handle_sgi_md_pdu(msg.get());
     }
   }
-  delete msg;
   return;
 }
 

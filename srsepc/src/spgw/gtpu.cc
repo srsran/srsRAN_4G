@@ -186,7 +186,7 @@ int spgw::gtpu::init_s1u(spgw_args_t* args)
   return SRSLTE_SUCCESS;
 }
 
-void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
+void spgw::gtpu::handle_sgi_pdu(srslte::unique_byte_buffer_t msg)
 {
   bool usr_found = false;
   bool ctr_found = false;
@@ -227,24 +227,17 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
   // Handle SGi packet
   if (usr_found == false && ctr_found == false) {
     m_logger.debug("Packet for unknown UE.");
-    goto pkt_discard_out;
   } else if (usr_found == false && ctr_found == true) {
     m_logger.debug("Packet for attached UE that is not ECM connected.");
     m_logger.debug("Triggering Donwlink Notification Requset.");
     m_gtpc->send_downlink_data_notification(spgw_teid);
-    m_gtpc->queue_downlink_packet(spgw_teid, msg);
+    m_gtpc->queue_downlink_packet(spgw_teid, std::move(msg));
     return;
   } else if (usr_found == false && ctr_found == true) {
     m_logger.error("User plane tunnel found without a control plane tunnel present.");
-    goto pkt_discard_out;
   } else {
-    send_s1u_pdu(enb_fteid, msg);
+    send_s1u_pdu(enb_fteid, msg.get());
   }
-  return;
-
-pkt_discard_out:
-  delete msg;
-  return;
 }
 
 void spgw::gtpu::handle_s1u_pdu(srslte::byte_buffer_t* msg)
@@ -298,17 +291,16 @@ void spgw::gtpu::send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer
 
 out:
   m_logger.debug("Deallocating packet after sending S1-U message");
-  delete msg;
   return;
 }
 
-void spgw::gtpu::send_all_queued_packets(srslte::gtp_fteid_t                 dw_user_fteid,
-                                         std::queue<srslte::byte_buffer_t*>& pkt_queue)
+void spgw::gtpu::send_all_queued_packets(srslte::gtp_fteid_t                       dw_user_fteid,
+                                         std::queue<srslte::unique_byte_buffer_t>& pkt_queue)
 {
   m_logger.debug("Sending all queued packets");
   while (!pkt_queue.empty()) {
-    srslte::byte_buffer_t* msg = pkt_queue.front();
-    send_s1u_pdu(dw_user_fteid, msg);
+    srslte::unique_byte_buffer_t msg = std::move(pkt_queue.front());
+    send_s1u_pdu(dw_user_fteid, msg.get());
     pkt_queue.pop();
   }
   return;

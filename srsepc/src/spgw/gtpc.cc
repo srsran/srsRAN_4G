@@ -484,7 +484,7 @@ bool spgw::gtpc::delete_gtpc_ctx(uint32_t ctrl_teid)
 /*
  * Queueing functions
  */
-bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t* msg)
+bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::unique_byte_buffer_t msg)
 {
   spgw_tunnel_ctx_t* tunnel_ctx;
   if (!m_teid_to_tunnel_ctx.count(ctrl_teid)) {
@@ -498,7 +498,7 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
   }
 
   if (tunnel_ctx->paging_queue.size() < m_max_paging_queue) {
-    tunnel_ctx->paging_queue.push(msg);
+    tunnel_ctx->paging_queue.push(std::move(msg));
     m_logger.debug(
         "Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd", tunnel_ctx->imsi, tunnel_ctx->paging_queue.size());
   } else {
@@ -509,7 +509,6 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
   return true;
 
 pkt_discard:
-  delete msg;
   return false;
 }
 
@@ -520,9 +519,8 @@ bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
   }
 
   while (!tunnel_ctx->paging_queue.empty()) {
-    srslte::byte_buffer_t* pkt = tunnel_ctx->paging_queue.front();
+    srslte::unique_byte_buffer_t pkt = std::move(tunnel_ctx->paging_queue.front());
     m_logger.debug("Dropping packet. Bytes %d", pkt->N_bytes);
-    delete pkt;
     tunnel_ctx->paging_queue.pop();
   }
   return true;
