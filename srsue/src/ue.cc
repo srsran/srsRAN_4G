@@ -36,7 +36,6 @@ ue::ue(srslog::sink& log_sink) :
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl << std::endl;
-  pool = byte_buffer_pool::get_instance();
 }
 
 ue::~ue()

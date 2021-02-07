@@ -18,10 +18,7 @@
 namespace srslte {
 
 mac_pcap::mac_pcap(srslte_rat_t rat_) :
-  pool(srslte::byte_buffer_pool::get_instance()),
-  logger(srslog::fetch_basic_logger("MAC")),
-  thread("PCAP_WRITER_" + to_string(rat_)),
-  rat(rat_)
+  logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_" + to_string(rat_)), rat(rat_)
 {}
 
 mac_pcap::~mac_pcap()

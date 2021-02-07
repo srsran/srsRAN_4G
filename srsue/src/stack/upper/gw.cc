@@ -25,12 +25,7 @@
 
 namespace srsue {
 
-gw::gw() :
-  thread("GW"),
-  pool(srslte::byte_buffer_pool::get_instance()),
-  logger(srslog::fetch_basic_logger("GW", false)),
-  tft_matcher(logger)
-{}
+gw::gw() : thread("GW"), logger(srslog::fetch_basic_logger("GW", false)), tft_matcher(logger) {}
 
 int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack_)
 {

@@ -118,13 +118,13 @@ private:
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
-  srslog::basic_logger &mac_logger;
-  srslog::basic_logger &rlc_logger;
-  srslog::basic_logger &pdcp_logger;
-  srslog::basic_logger &rrc_logger;
-  srslog::basic_logger &s1ap_logger;
-  srslog::basic_logger &gtpu_logger;
-  srslog::basic_logger &stack_logger;
+  srslog::basic_logger& mac_logger;
+  srslog::basic_logger& rlc_logger;
+  srslog::basic_logger& pdcp_logger;
+  srslog::basic_logger& rrc_logger;
+  srslog::basic_logger& s1ap_logger;
+  srslog::basic_logger& gtpu_logger;
+  srslog::basic_logger& stack_logger;
 
   // task handling
   srslte::task_scheduler    task_sched;
@@ -142,8 +142,7 @@ private:
   srsenb::s1ap      s1ap;
   srslte::s1ap_pcap s1ap_pcap;
 
-  srslte::logger*           logger = nullptr;
-  srslte::byte_buffer_pool* pool   = nullptr;
+  srslte::logger* logger = nullptr;
 
   // Radio and PHY log are in enb.cc
   srslte::log_ref mac_log{"MAC"};

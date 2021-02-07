@@ -24,7 +24,6 @@ pthread_mutex_t mme_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 mme::mme() : m_running(false), thread("MME")
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();
   return;
 }
 

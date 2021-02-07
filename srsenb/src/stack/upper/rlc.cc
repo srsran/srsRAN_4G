@@ -25,8 +25,6 @@ void rlc::init(pdcp_interface_rlc*    pdcp_,
   mac    = mac_;
   timers = timers_;
 
-  pool = srslte::byte_buffer_pool::get_instance();
-
   pthread_rwlock_init(&rwlock, nullptr);
 }
 

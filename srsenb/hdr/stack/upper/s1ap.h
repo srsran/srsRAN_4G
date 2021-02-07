@@ -102,7 +102,6 @@ private:
   rrc_interface_s1ap*               rrc = nullptr;
   s1ap_args_t                       args;
   srslog::basic_logger&             logger;
-  srslte::byte_buffer_pool*         pool  = nullptr;
   srsenb::stack_interface_s1ap_lte* stack = nullptr;
   srslte::task_sched_handle         task_sched;
 

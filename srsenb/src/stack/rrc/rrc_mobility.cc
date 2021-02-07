@@ -184,11 +184,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
  ************************************************************************************************/
 
 rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
-  base_t(outer_ue->parent->logger),
-  rrc_ue(outer_ue),
-  rrc_enb(outer_ue->parent),
-  pool(outer_ue->pool),
-  logger(outer_ue->parent->logger)
+  base_t(outer_ue->parent->logger), rrc_ue(outer_ue), rrc_enb(outer_ue->parent), logger(outer_ue->parent->logger)
 {}
 
 //! Method to add Mobility Info to a RRC Connection Reconfiguration Message

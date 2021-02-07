@@ -22,10 +22,7 @@ namespace srsepc {
 s1ap*           s1ap::m_instance    = NULL;
 pthread_mutex_t s1ap_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-s1ap::s1ap() : m_s1mme(-1), m_next_mme_ue_s1ap_id(1), m_mme_gtpc(NULL), m_pool(NULL)
-{
-  return;
-}
+s1ap::s1ap() : m_s1mme(-1), m_next_mme_ue_s1ap_id(1), m_mme_gtpc(NULL) {}
 
 s1ap::~s1ap()
 {
@@ -54,8 +51,6 @@ void s1ap::cleanup(void)
 
 int s1ap::init(s1ap_args_t s1ap_args)
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();
-
   m_s1ap_args = s1ap_args;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
   m_next_m_tmsi = rand();

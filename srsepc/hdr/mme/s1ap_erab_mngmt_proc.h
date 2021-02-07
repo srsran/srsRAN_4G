@@ -53,8 +53,7 @@ private:
 
   s1ap_args_t m_s1ap_args;
 
-  mme_gtpc*                 m_mme_gtpc = nullptr;
-  srslte::byte_buffer_pool* m_pool     = nullptr;
+  mme_gtpc* m_mme_gtpc = nullptr;
 };
 
 } // namespace srsepc

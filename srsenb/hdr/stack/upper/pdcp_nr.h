@@ -100,12 +100,11 @@ private:
   };
 
   // args
-  pdcp_nr_args_t            m_args = {};
-  srslte::byte_buffer_pool* pool   = nullptr;
-  srslte::log_ref           m_log;
-  rlc_interface_pdcp_nr*    m_rlc  = nullptr;
-  rrc_interface_pdcp_nr*    m_rrc  = nullptr;
-  sdap_interface_pdcp_nr*   m_sdap = nullptr;
+  pdcp_nr_args_t          m_args = {};
+  srslte::log_ref         m_log;
+  rlc_interface_pdcp_nr*  m_rlc  = nullptr;
+  rrc_interface_pdcp_nr*  m_rrc  = nullptr;
+  sdap_interface_pdcp_nr* m_sdap = nullptr;
 
   std::map<uint32_t, user_interface> users;
 

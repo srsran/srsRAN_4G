@@ -89,12 +89,11 @@ private:
   std::map<uint32_t, user_interface> users;
   std::vector<mch_service_t>         mch_services;
 
-  mac_interface_rlc*        mac;
-  pdcp_interface_rlc*       pdcp;
-  rrc_interface_rlc*        rrc;
-  srslog::basic_logger&     logger;
-  srslte::byte_buffer_pool* pool;
-  srslte::timer_handler*    timers;
+  mac_interface_rlc*     mac;
+  pdcp_interface_rlc*    pdcp;
+  rrc_interface_rlc*     rrc;
+  srslog::basic_logger&  logger;
+  srslte::timer_handler* timers;
 };
 
 } // namespace srsenb

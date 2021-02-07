@@ -57,7 +57,6 @@ void s1ap_erab_mngmt_proc::init()
 {
   m_s1ap      = s1ap::get_instance();
   m_s1ap_args = m_s1ap->m_s1ap_args;
-  m_pool      = srslte::byte_buffer_pool::get_instance();
 }
 
 bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_ue_s1ap_id,

@@ -510,7 +510,6 @@ private:
   std::unique_ptr<std::thread> tx_thread, rx_thread;
   std::string                  tx_thread_name = "TX_PNF", rx_thread_name = "RX_PNF";
   bool                         running = false;
-  srslte::byte_buffer_pool*    pool    = srslte::byte_buffer_pool::get_instance();
   srslog::basic_logger&        logger  = srslog::fetch_basic_logger("PNF", false);
 
   std::mutex                            mutex;

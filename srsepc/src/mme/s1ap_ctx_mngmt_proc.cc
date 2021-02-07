@@ -58,7 +58,6 @@ void s1ap_ctx_mngmt_proc::init()
   m_s1ap      = s1ap::get_instance();
   m_mme_gtpc  = mme_gtpc::get_instance();
   m_s1ap_args = m_s1ap->m_s1ap_args;
-  m_pool      = srslte::byte_buffer_pool::get_instance();
 }
 
 bool s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas* nas_ctx, uint16_t erab_to_setup)

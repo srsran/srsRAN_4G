@@ -27,9 +27,7 @@ using namespace srslte;
 class ttcn3_drb_interface : public ttcn3_port_handler
 {
 public:
-  explicit ttcn3_drb_interface(srslog::basic_logger& logger) :
-    ttcn3_port_handler(logger), pool(byte_buffer_pool::get_instance())
-  {}
+  explicit ttcn3_drb_interface(srslog::basic_logger& logger) : ttcn3_port_handler(logger) {}
   ~ttcn3_drb_interface() = default;
 
   int init(ss_srb_interface* syssim_, std::string net_ip_, uint32_t net_port_)
@@ -133,7 +131,6 @@ private:
   }
 
   ss_srb_interface* syssim = nullptr;
-  byte_buffer_pool* pool   = nullptr;
 };
 
 #endif // SRSUE_TTCN3_DRB_INTERFACE_H

@@ -110,8 +110,7 @@ private:
   srslog::sink&         log_sink;
   srslog::basic_logger& logger;
 
-  all_args_t                args;
-  srslte::byte_buffer_pool* pool = nullptr;
+  all_args_t args;
 
   // Helper functions
   int parse_args(const all_args_t& args); // parse and validate arguments

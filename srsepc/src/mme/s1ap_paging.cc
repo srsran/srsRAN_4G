@@ -29,7 +29,6 @@ void s1ap_paging::init()
   m_s1ap      = s1ap::get_instance();
   m_mme       = mme::get_instance();
   m_s1ap_args = m_s1ap->m_s1ap_args;
-  m_pool      = srslte::byte_buffer_pool::get_instance();
 }
 
 bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)

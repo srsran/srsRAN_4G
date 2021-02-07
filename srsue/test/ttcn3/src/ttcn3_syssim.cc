@@ -53,7 +53,6 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_
   logger_stdout(logger_stdout_),
   logger_file(logger_file_),
   old_logger(&logger_file),
-  pool(byte_buffer_pool::get_instance()),
   ue(ue_),
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })

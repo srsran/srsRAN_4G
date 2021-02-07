@@ -45,8 +45,6 @@ mac::mac(const char* logname, ext_task_sched_handle task_sched_) :
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
   srslte_softbuffer_rx_init(&mch_softbuffer, 100);
 
-  pool = srslte::byte_buffer_pool::get_instance();
-
   // Keep initialising members
   bzero(&metrics, sizeof(mac_metrics_t));
   clear_rntis();

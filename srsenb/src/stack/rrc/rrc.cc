@@ -51,8 +51,6 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   gtpu = gtpu_;
   s1ap = s1ap_;
 
-  pool = srslte::byte_buffer_pool::get_instance();
-
   cfg = cfg_;
 
   if (cfg.sibs[12].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib13_v920 &&

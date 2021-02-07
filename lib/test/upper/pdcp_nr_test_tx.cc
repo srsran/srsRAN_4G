@@ -20,7 +20,6 @@ int test_tx(uint32_t                     n_packets,
             uint8_t                      pdcp_sn_len,
             uint64_t                     n_pdus_exp,
             srslte::unique_byte_buffer_t pdu_exp,
-            srslte::byte_buffer_pool*    pool,
             srslte::log_ref              log)
 {
   srslte::pdcp_config_t cfg = {1,
@@ -57,7 +56,7 @@ int test_tx(uint32_t                     n_packets,
  * TX Test: PDCP Entity with SN LEN = 12 and 18.
  * PDCP entity configured with EIA2 and EEA2
  */
-int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
+int test_tx_all(srslte::log_ref log)
 {
   uint64_t n_packets;
   /*
@@ -69,13 +68,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   n_packets                                         = 1;
   srslte::unique_byte_buffer_t pdu_exp_count0_len12 = srslte::make_byte_buffer();
   pdu_exp_count0_len12->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srslte::PDCP_SN_LEN_12,
-                     n_packets,
-                     std::move(pdu_exp_count0_len12),
-                     pool,
-                     log) == 0);
+  TESTASSERT(
+      test_tx(n_packets, normal_init_state, srslte::PDCP_SN_LEN_12, n_packets, std::move(pdu_exp_count0_len12), log) ==
+      0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
@@ -86,13 +81,10 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   n_packets                                            = 2049;
   srslte::unique_byte_buffer_t pdu_exp_count2048_len12 = srslte::make_byte_buffer();
   pdu_exp_count2048_len12->append_bytes(pdu1_count2048_snlen12, sizeof(pdu1_count2048_snlen12));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srslte::PDCP_SN_LEN_12,
-                     n_packets,
-                     std::move(pdu_exp_count2048_len12),
-                     pool,
-                     log) == 0);
+  TESTASSERT(
+      test_tx(
+          n_packets, normal_init_state, srslte::PDCP_SN_LEN_12, n_packets, std::move(pdu_exp_count2048_len12), log) ==
+      0);
 
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
@@ -103,13 +95,10 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   n_packets                                            = 4097;
   srslte::unique_byte_buffer_t pdu_exp_count4096_len12 = srslte::make_byte_buffer();
   pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srslte::PDCP_SN_LEN_12,
-                     n_packets,
-                     std::move(pdu_exp_count4096_len12),
-                     pool,
-                     log) == 0);
+  TESTASSERT(
+      test_tx(
+          n_packets, normal_init_state, srslte::PDCP_SN_LEN_12, n_packets, std::move(pdu_exp_count4096_len12), log) ==
+      0);
 
   /*
    * TX Test 4: PDCP Entity with SN LEN = 18
@@ -120,13 +109,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   n_packets                                         = 1;
   srslte::unique_byte_buffer_t pdu_exp_count0_len18 = srslte::make_byte_buffer();
   pdu_exp_count0_len18->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srslte::PDCP_SN_LEN_18,
-                     n_packets,
-                     std::move(pdu_exp_count0_len18),
-                     pool,
-                     log) == 0);
+  TESTASSERT(
+      test_tx(n_packets, normal_init_state, srslte::PDCP_SN_LEN_18, n_packets, std::move(pdu_exp_count0_len18), log) ==
+      0);
 
   /*
    * TX Test 5: PDCP Entity with SN LEN = 18
@@ -137,13 +122,10 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   n_packets                                           = 131073;
   srslte::unique_byte_buffer_t pdu_exp_sn131072_len18 = srslte::make_byte_buffer();
   pdu_exp_sn131072_len18->append_bytes(pdu1_count131072_snlen18, sizeof(pdu1_count131072_snlen18));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srslte::PDCP_SN_LEN_18,
-                     n_packets,
-                     std::move(pdu_exp_sn131072_len18),
-                     pool,
-                     log) == 0);
+  TESTASSERT(
+      test_tx(
+          n_packets, normal_init_state, srslte::PDCP_SN_LEN_18, n_packets, std::move(pdu_exp_sn131072_len18), log) ==
+      0);
 
   /*
    * TX Test 6: PDCP Entity with SN LEN = 18
@@ -154,13 +136,10 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
   n_packets                                              = 262145;
   srslte::unique_byte_buffer_t pdu_exp_count262144_len18 = srslte::make_byte_buffer();
   pdu_exp_count262144_len18->append_bytes(pdu1_count262144_snlen18, sizeof(pdu1_count262144_snlen18));
-  TESTASSERT(test_tx(n_packets,
-                     normal_init_state,
-                     srslte::PDCP_SN_LEN_18,
-                     n_packets,
-                     std::move(pdu_exp_count262144_len18),
-                     pool,
-                     log) == 0);
+  TESTASSERT(
+      test_tx(
+          n_packets, normal_init_state, srslte::PDCP_SN_LEN_18, n_packets, std::move(pdu_exp_count262144_len18), log) ==
+      0);
 
   /*
    * TX Test 7: PDCP Entity with SN LEN = 12
@@ -175,7 +154,6 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
                      srslte::PDCP_SN_LEN_12,
                      1,
                      std::move(pdu_exp_count4294967295_len12),
-                     pool,
                      log) == 0);
 
   /*
@@ -191,26 +169,25 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
                      srslte::PDCP_SN_LEN_18,
                      1,
                      std::move(pdu_exp_count4294967295_len18),
-                     pool,
                      log) == 0);
   return 0;
 }
 
 // Setup all tests
-int run_all_tests(srslte::byte_buffer_pool* pool)
+int run_all_tests()
 {
   // Setup log
   srslte::log_ref log("PDCP NR Test TX");
   log->set_level(srslte::LOG_LEVEL_DEBUG);
   log->set_hex_limit(128);
 
-  TESTASSERT(test_tx_all(pool, log) == 0);
+  TESTASSERT(test_tx_all(log) == 0);
   return 0;
 }
 
 int main()
 {
-  if (run_all_tests(srslte::byte_buffer_pool::get_instance()) != SRSLTE_SUCCESS) {
+  if (run_all_tests() != SRSLTE_SUCCESS) {
     fprintf(stderr, "pdcp_nr_tests_tx() failed\n");
     return SRSLTE_ERROR;
   }

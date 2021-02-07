@@ -66,10 +66,9 @@ private:
                                    uint32_t                  src_pci);
   bool apply_ho_prep_cfg(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep, const asn1::s1ap::ho_request_s& ho_req_msg);
 
-  rrc::ue*                  rrc_ue  = nullptr;
-  rrc*                      rrc_enb = nullptr;
-  srslte::byte_buffer_pool* pool    = nullptr;
-  srslog::basic_logger&     logger;
+  rrc::ue*              rrc_ue  = nullptr;
+  rrc*                  rrc_enb = nullptr;
+  srslog::basic_logger& logger;
 
   // vars
   asn1::rrc::meas_cfg_s                current_meas_cfg;

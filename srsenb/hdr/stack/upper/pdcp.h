@@ -107,7 +107,6 @@ private:
   gtpu_interface_pdcp*      gtpu;
   srslte::task_sched_handle task_sched;
   srslog::basic_logger&     logger;
-  srslte::byte_buffer_pool* pool;
 };
 
 } // namespace srsenb

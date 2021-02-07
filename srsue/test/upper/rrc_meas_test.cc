@@ -251,7 +251,6 @@ public:
   rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) :
     rrc(stack_, &stack_->task_sched), stack(stack_), mactest(this, &stack_->task_sched)
   {
-    pool      = srslte::byte_buffer_pool::get_instance();
     nastest   = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
     pdcptest  = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
     rrcnrtest = std::unique_ptr<rrc_nr_test>(new rrc_nr_test());
@@ -374,8 +373,7 @@ private:
   std::unique_ptr<pdcp_test>   pdcptest;
   std::unique_ptr<nas_test>    nastest;
   std::unique_ptr<rrc_nr_test> rrcnrtest;
-  uint32_t                     tti  = 0;
-  srslte::byte_buffer_pool*    pool = nullptr;
+  uint32_t                     tti = 0;
 };
 
 // Test Cell select

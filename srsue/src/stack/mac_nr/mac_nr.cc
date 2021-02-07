@@ -15,7 +15,7 @@
 namespace srsue {
 
 mac_nr::mac_nr(srslte::ext_task_sched_handle task_sched_) :
-  pool(srslte::byte_buffer_pool::get_instance()), task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC"))
+  task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC"))
 {
   tx_buffer  = srslte::make_byte_buffer();
   rlc_buffer = srslte::make_byte_buffer();

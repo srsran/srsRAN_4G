@@ -442,8 +442,8 @@ class sctp_recvmsg_pdu_task final : public rx_multisocket_handler::recv_task
 public:
   using callback_t = std::function<
       void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags)>;
-  explicit sctp_recvmsg_pdu_task(srslte::byte_buffer_pool* pool_, srslog::basic_logger& logger, callback_t func_) :
-    pool(pool_), logger(logger), func(std::move(func_))
+  explicit sctp_recvmsg_pdu_task(srslog::basic_logger& logger, callback_t func_) :
+    logger(logger), func(std::move(func_))
   {}
 
   bool operator()(int fd) override
@@ -479,9 +479,8 @@ public:
   }
 
 private:
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslog::basic_logger&     logger;
-  callback_t                func;
+  srslog::basic_logger& logger;
+  callback_t            func;
 };
 
 /***************************************************************
@@ -491,7 +490,6 @@ private:
 rx_multisocket_handler::rx_multisocket_handler(std::string name_, srslog::basic_logger& logger, int thread_prio) :
   thread(name_), name(std::move(name_)), logger(logger)
 {
-  pool = srslte::byte_buffer_pool::get_instance();
   // register control pipe fd
   if (pipe(pipefd) == -1) {
     rxSockInfo("Failed to open control pipe");
@@ -546,7 +544,7 @@ bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recvfrom_callback_t 
 bool rx_multisocket_handler::add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t pdu_task)
 {
   srslte::rx_multisocket_handler::task_callback_t task;
-  task.reset(new srslte::sctp_recvmsg_pdu_task(pool, logger, std::move(pdu_task)));
+  task.reset(new srslte::sctp_recvmsg_pdu_task(logger, std::move(pdu_task)));
   return add_socket_handler(fd, std::move(task));
 }
 

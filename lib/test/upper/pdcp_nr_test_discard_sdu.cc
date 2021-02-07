@@ -18,7 +18,6 @@
 int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
                         srslte::pdcp_discard_timer_t discard_timeout,
                         bool                         imediate_notify,
-                        srslte::byte_buffer_pool*    pool,
                         srslte::log_ref              log)
 {
   srslte::pdcp_config_t cfg = {1,
@@ -73,37 +72,37 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
  * TX Test: PDCP Entity with SN LEN = 12 and 18.
  * PDCP entity configured with EIA2 and EEA2
  */
-int test_tx_discard_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
+int test_tx_discard_all(srslte::log_ref log)
 {
   /*
    * TX Test 1: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, false, pool, log) == 0);
+  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, false, log) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  // TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, true, pool, log) == 0);
+  // TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, true, log) == 0);
   return 0;
 }
 
 // Setup all tests
-int run_all_tests(srslte::byte_buffer_pool* pool)
+int run_all_tests()
 {
   // Setup log
   srslte::log_ref log("PDCP NR Test");
   log->set_level(srslte::LOG_LEVEL_DEBUG);
   log->set_hex_limit(128);
 
-  TESTASSERT(test_tx_discard_all(pool, log) == 0);
+  TESTASSERT(test_tx_discard_all(log) == 0);
   return 0;
 }
 
 int main()
 {
-  if (run_all_tests(srslte::byte_buffer_pool::get_instance()) != SRSLTE_SUCCESS) {
+  if (run_all_tests() != SRSLTE_SUCCESS) {
     fprintf(stderr, "pdcp_nr_tests() failed\n");
     return SRSLTE_ERROR;
   }

@@ -175,7 +175,6 @@ private:
 
   stack_interface_rrc*      stack = nullptr;
   srslte::task_sched_handle task_sched;
-  srslte::byte_buffer_pool* pool = nullptr;
   srslog::basic_logger&     logger;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;

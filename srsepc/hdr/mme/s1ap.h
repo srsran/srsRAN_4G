@@ -125,8 +125,7 @@ private:
 
   static s1ap* m_instance;
 
-  uint32_t                  m_plmn;
-  srslte::byte_buffer_pool* m_pool;
+  uint32_t m_plmn;
 
   hss_interface_nas*                     m_hss;
   int                                    m_s1mme;

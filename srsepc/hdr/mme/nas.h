@@ -251,12 +251,11 @@ public:
   sec_ctx_t m_sec_ctx                   = {};
 
 private:
-  srslte::byte_buffer_pool* m_pool   = nullptr;
-  srslog::basic_logger&     m_logger = srslog::fetch_basic_logger("NAS");
-  gtpc_interface_nas*       m_gtpc   = nullptr;
-  s1ap_interface_nas*       m_s1ap   = nullptr;
-  hss_interface_nas*        m_hss    = nullptr;
-  mme_interface_nas*        m_mme    = nullptr;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("NAS");
+  gtpc_interface_nas*   m_gtpc   = nullptr;
+  s1ap_interface_nas*   m_s1ap   = nullptr;
+  hss_interface_nas*    m_hss    = nullptr;
+  mme_interface_nas*    m_mme    = nullptr;
 
   uint16_t    m_mcc       = 0;
   uint16_t    m_mnc       = 0;

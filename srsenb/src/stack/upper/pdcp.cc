@@ -16,7 +16,7 @@
 namespace srsenb {
 
 pdcp::pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger_) :
-  task_sched(task_sched_), logger(logger_), pool(srslte::byte_buffer_pool::get_instance())
+  task_sched(task_sched_), logger(logger_)
 {}
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)

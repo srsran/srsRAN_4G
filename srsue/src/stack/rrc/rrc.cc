@@ -104,7 +104,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 #endif
                const rrc_args_t& args_)
 {
-  pool = byte_buffer_pool::get_instance();
   phy  = phy_;
   mac  = mac_;
   rlc  = rlc_;

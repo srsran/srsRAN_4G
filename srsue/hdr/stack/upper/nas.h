@@ -73,11 +73,10 @@ public:
   void start_pcap(srslte::nas_pcap* pcap_) { pcap = pcap_; }
 
 private:
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslog::basic_logger&     logger;
-  rrc_interface_nas*        rrc  = nullptr;
-  usim_interface_nas*       usim = nullptr;
-  gw_interface_nas*         gw   = nullptr;
+  srslog::basic_logger& logger;
+  rrc_interface_nas*    rrc  = nullptr;
+  usim_interface_nas*   usim = nullptr;
+  gw_interface_nas*     gw   = nullptr;
 
   bool running = false;
 

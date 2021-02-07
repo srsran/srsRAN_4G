@@ -150,9 +150,8 @@ private:
   bool remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
   // args
-  std::string               name;
-  srslog::basic_logger&     logger;
-  srslte::byte_buffer_pool* pool = nullptr;
+  std::string           name;
+  srslog::basic_logger& logger;
 
   // state
   std::mutex                     socket_mutex;

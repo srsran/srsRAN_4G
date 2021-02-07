@@ -227,7 +227,6 @@ int s1ap::init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interf
   rrc   = rrc_;
   args  = args_;
   stack = stack_;
-  pool  = srslte::byte_buffer_pool::get_instance();
 
   build_tai_cgi();
 

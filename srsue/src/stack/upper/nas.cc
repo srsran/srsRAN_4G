@@ -36,7 +36,6 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas(srslte::task_sched_handle task_sched_) :
-  pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   task_sched(task_sched_),
   t3402(task_sched_.get_unique_timer()),

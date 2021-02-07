@@ -82,8 +82,7 @@ public:
   std::set<uint32_t>                 m_ue_ip_addr_pool;
   std::map<uint64_t, struct in_addr> m_imsi_to_ip;
 
-  srslog::basic_logger&     m_logger = srslog::fetch_basic_logger("SPGW GTPC");
-  srslte::byte_buffer_pool* m_pool;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("SPGW GTPC");
 };
 
 inline int spgw::gtpc::get_s11()

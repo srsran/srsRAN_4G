@@ -29,10 +29,7 @@ struct srslte_pnf_info_t {
 struct srslte_vnf_info_t {};
 
 srslte_basic_vnf::srslte_basic_vnf(const vnf_args_t& args_, stack_interface_phy_nr* stack_) :
-  m_args(args_),
-  thread("BASIC_VNF_P7"),
-  m_tx_req_msg(new basic_vnf_api::tx_request_msg_t),
-  m_pool(srslte::byte_buffer_pool::get_instance())
+  m_args(args_), thread("BASIC_VNF_P7"), m_tx_req_msg(new basic_vnf_api::tx_request_msg_t)
 {
   logger.set_level(srslog::str_to_basic_level(m_args.log_level));
   logger.set_hex_dump_max_size(m_args.log_hex_limit);

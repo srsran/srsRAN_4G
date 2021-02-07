@@ -63,9 +63,8 @@ private:
   s1ap*       m_s1ap;
   mme_gtpc*   m_mme_gtpc;
 
-  bool                      m_running;
-  srslte::byte_buffer_pool* m_pool;
-  fd_set                    m_set;
+  bool   m_running;
+  fd_set m_set;
 
   // Timer map
   std::vector<mme_timer_t> timers;

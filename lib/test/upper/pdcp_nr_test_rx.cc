@@ -20,7 +20,6 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
             uint8_t                             pdcp_sn_len,
             uint32_t                            n_sdus_exp,
             const srslte::unique_byte_buffer_t& sdu_exp,
-            srslte::byte_buffer_pool*           pool,
             srslte::log_ref                     log)
 
 {
@@ -59,7 +58,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
  * RX Test: PDCP Entity with SN LEN = 12 and 18.
  * PDCP entity configured with EIA2 and EEA2
  */
-int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
+int test_rx_all(srslte::log_ref log)
 {
   // Test SDUs
   srslte::unique_byte_buffer_t tst_sdu1 = srslte::make_byte_buffer(); // SDU 1
@@ -76,9 +75,9 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<uint32_t> test1_counts(2);                     // Test two packets
     std::iota(test1_counts.begin(), test1_counts.end(), 4095); // Starting at COUNT 4095
     std::vector<pdcp_test_event_t> test1_pdus =
-        gen_expected_pdus_vector(tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_12, sec_cfg, pool, log);
+        gen_expected_pdus_vector(tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_12, sec_cfg, log);
     pdcp_initial_state test1_init_state = {.tx_next = 4095, .rx_next = 4095, .rx_deliv = 4095, .rx_reord = 0};
-    TESTASSERT(test_rx(std::move(test1_pdus), test1_init_state, srslte::PDCP_SN_LEN_12, 2, tst_sdu1, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test1_pdus), test1_init_state, srslte::PDCP_SN_LEN_12, 2, tst_sdu1, log) == 0);
   }
   /*
    * RX Test 2: PDCP Entity with SN LEN = 12
@@ -90,10 +89,10 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<uint32_t> test2_counts(2);                           // Test two packets
     std::iota(test2_counts.begin(), test2_counts.end(), 4294967295); // Starting at COUNT 4294967295
     std::vector<pdcp_test_event_t> test2_pdus =
-        gen_expected_pdus_vector(tst_sdu1, test2_counts, srslte::PDCP_SN_LEN_12, sec_cfg, pool, log);
+        gen_expected_pdus_vector(tst_sdu1, test2_counts, srslte::PDCP_SN_LEN_12, sec_cfg, log);
     pdcp_initial_state test2_init_state = {
         .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
-    TESTASSERT(test_rx(std::move(test2_pdus), test2_init_state, srslte::PDCP_SN_LEN_12, 1, tst_sdu1, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test2_pdus), test2_init_state, srslte::PDCP_SN_LEN_12, 1, tst_sdu1, log) == 0);
   }
   /*
    * RX Test 3: PDCP Entity with SN LEN = 18
@@ -104,9 +103,9 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<uint32_t> test3_counts(2);                       // Test two packets
     std::iota(test3_counts.begin(), test3_counts.end(), 262144); // Starting at COUNT 262144
     std::vector<pdcp_test_event_t> test3_pdus =
-        gen_expected_pdus_vector(tst_sdu1, test3_counts, srslte::PDCP_SN_LEN_18, sec_cfg, pool, log);
+        gen_expected_pdus_vector(tst_sdu1, test3_counts, srslte::PDCP_SN_LEN_18, sec_cfg, log);
     pdcp_initial_state test3_init_state = {.tx_next = 262144, .rx_next = 262144, .rx_deliv = 262144, .rx_reord = 0};
-    TESTASSERT(test_rx(std::move(test3_pdus), test3_init_state, srslte::PDCP_SN_LEN_18, 2, tst_sdu1, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test3_pdus), test3_init_state, srslte::PDCP_SN_LEN_18, 2, tst_sdu1, log) == 0);
   }
 
   /*
@@ -118,10 +117,10 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<uint32_t> test4_counts(2);                           // Test two packets
     std::iota(test4_counts.begin(), test4_counts.end(), 4294967295); // Starting at COUNT 4294967295
     std::vector<pdcp_test_event_t> test4_pdus =
-        gen_expected_pdus_vector(tst_sdu1, test4_counts, srslte::PDCP_SN_LEN_18, sec_cfg, pool, log);
+        gen_expected_pdus_vector(tst_sdu1, test4_counts, srslte::PDCP_SN_LEN_18, sec_cfg, log);
     pdcp_initial_state test4_init_state = {
         .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
-    TESTASSERT(test_rx(std::move(test4_pdus), test4_init_state, srslte::PDCP_SN_LEN_18, 1, tst_sdu1, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test4_pdus), test4_init_state, srslte::PDCP_SN_LEN_18, 1, tst_sdu1, log) == 0);
   }
 
   /*
@@ -145,7 +144,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)
     test5_pdus.push_back(std::move(event_pdu2));
     test5_pdus.push_back(std::move(event_pdu1));
-    TESTASSERT(test_rx(std::move(test5_pdus), test5_init_state, srslte::PDCP_SN_LEN_12, 2, tst_sdu2, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test5_pdus), test5_init_state, srslte::PDCP_SN_LEN_12, 2, tst_sdu2, log) == 0);
   }
 
   /*
@@ -169,7 +168,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)
     test6_pdus.push_back(std::move(event_pdu2));
     test6_pdus.push_back(std::move(event_pdu1));
-    TESTASSERT(test_rx(std::move(test6_pdus), test6_init_state, srslte::PDCP_SN_LEN_18, 2, tst_sdu2, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test6_pdus), test6_init_state, srslte::PDCP_SN_LEN_18, 2, tst_sdu2, log) == 0);
   }
 
   /*
@@ -188,7 +187,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)
     test7_pdus.push_back(std::move(event_pdu1));
-    TESTASSERT(test_rx(std::move(test7_pdus), test7_init_state, srslte::PDCP_SN_LEN_12, 1, tst_sdu2, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test7_pdus), test7_init_state, srslte::PDCP_SN_LEN_12, 1, tst_sdu2, log) == 0);
   }
 
   /*
@@ -212,26 +211,26 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     // Write PDUs out of order (first the pdu with COUNT 1 and COUNT 0 after)
     test8_pdus.push_back(std::move(event_pdu1));
     test8_pdus.push_back(std::move(event_pdu2));
-    TESTASSERT(test_rx(std::move(test8_pdus), test8_init_state, srslte::PDCP_SN_LEN_12, 1, tst_sdu1, pool, log) == 0);
+    TESTASSERT(test_rx(std::move(test8_pdus), test8_init_state, srslte::PDCP_SN_LEN_12, 1, tst_sdu1, log) == 0);
   }
   return 0;
 }
 
 // Setup all tests
-int run_all_tests(srslte::byte_buffer_pool* pool)
+int run_all_tests()
 {
   // Setup log
   srslte::log_ref log("PDCP NR Test RX");
   log->set_level(srslte::LOG_LEVEL_DEBUG);
   log->set_hex_limit(128);
 
-  TESTASSERT(test_rx_all(pool, log) == 0);
+  TESTASSERT(test_rx_all(log) == 0);
   return 0;
 }
 
 int main()
 {
-  if (run_all_tests(srslte::byte_buffer_pool::get_instance()) != SRSLTE_SUCCESS) {
+  if (run_all_tests() != SRSLTE_SUCCESS) {
     fprintf(stderr, "pdcp_nr_tests_rx() failed\n");
     return SRSLTE_ERROR;
   }

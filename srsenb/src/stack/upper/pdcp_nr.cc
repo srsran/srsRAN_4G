@@ -15,8 +15,7 @@
 
 namespace srsenb {
 
-pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) :
-  task_sched(task_sched_), m_log(logname), pool(srslte::byte_buffer_pool::get_instance())
+pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) : task_sched(task_sched_), m_log(logname)
 {}
 
 void pdcp_nr::init(const pdcp_nr_args_t&   args_,

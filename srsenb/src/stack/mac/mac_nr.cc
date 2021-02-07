@@ -20,7 +20,7 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr() : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
+mac_nr::mac_nr() : log_h("MAC")
 {
   bcch_bch_payload = srslte::make_byte_buffer();
 

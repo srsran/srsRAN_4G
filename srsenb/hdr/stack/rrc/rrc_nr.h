@@ -106,9 +106,8 @@ public:
     // setters
 
   private:
-    srslte::byte_buffer_pool* pool = nullptr;
-    rrc_nr*                   parent;
-    uint16_t                  rnti;
+    rrc_nr*  parent;
+    uint16_t rnti;
 
     // state
     rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
@@ -128,9 +127,8 @@ private:
   ngap_interface_rrc_nr*  ngap = nullptr;
 
   // args
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           m_log;
-  srslte::timer_handler*    timers = nullptr;
+  srslte::log_ref        m_log;
+  srslte::timer_handler* timers = nullptr;
 
   // derived
   uint32_t slot_dur_ms = 0;

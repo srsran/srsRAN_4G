@@ -34,7 +34,6 @@ int gtpu::init(std::string                  gtp_bind_addr_,
   pdcp          = pdcp_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
-  pool          = byte_buffer_pool::get_instance();
   stack         = stack_;
 
   char errbuf[128] = {};

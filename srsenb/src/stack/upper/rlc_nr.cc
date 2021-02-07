@@ -15,7 +15,7 @@
 
 namespace srsenb {
 
-rlc_nr::rlc_nr(const char* logname) : m_log(logname), pool(srslte::byte_buffer_pool::get_instance()) {}
+rlc_nr::rlc_nr(const char* logname) : m_log(logname) {}
 
 void rlc_nr::init(pdcp_interface_rlc_nr* pdcp_,
                   rrc_interface_rlc_nr*  rrc_,

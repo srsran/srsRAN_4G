@@ -81,10 +81,9 @@ private:
   rlc_interface_mac_nr*   rlc_h   = nullptr;
   rrc_interface_mac_nr*   rrc_h   = nullptr;
 
-  std::unique_ptr<srslte::mac_pcap>    pcap = nullptr;
-  srslte::log_ref                      log_h;
-  srslte::byte_buffer_pool*            pool = nullptr;
-  mac_nr_args_t                        args = {};
+  std::unique_ptr<srslte::mac_pcap> pcap = nullptr;
+  srslte::log_ref                   log_h;
+  mac_nr_args_t                     args = {};
 
   bool started = false;
 

@@ -69,7 +69,6 @@ public:
   void process_pdus();
 
 private:
-
   void handle_pdu(srslte::unique_byte_buffer_t pdu);
   void get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr::tx_request_t* tx_request);
 
@@ -85,10 +84,9 @@ private:
   rlc_interface_mac*            rlc = nullptr;
   srslte::ext_task_sched_handle task_sched;
 
-  std::unique_ptr<srslte::mac_pcap>    pcap = nullptr;
-  srslog::basic_logger&                logger;
-  srslte::byte_buffer_pool*            pool = nullptr;
-  mac_nr_args_t                        args = {};
+  std::unique_ptr<srslte::mac_pcap> pcap = nullptr;
+  srslog::basic_logger&             logger;
+  mac_nr_args_t                     args = {};
 
   bool started = false;
 

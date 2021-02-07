@@ -139,8 +139,6 @@ private:
   srslog::sink&         log_sink;
   srslog::basic_logger& enb_log;
 
-  srslte::byte_buffer_pool* pool = nullptr;
-
   all_args_t args    = {};
   bool       started = false;
 

@@ -19,9 +19,7 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srslte::timer_handler* timers_) :
-  m_log("RRC"), pool(srslte::byte_buffer_pool::get_instance()), timers(timers_)
-{}
+rrc_nr::rrc_nr(srslte::timer_handler* timers_) : m_log("RRC"), timers(timers_) {}
 
 void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                   phy_interface_stack_nr* phy_,
@@ -333,8 +331,6 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_
 *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
 {
-  pool = srslte::byte_buffer_pool::get_instance();
-
   // setup periodic RRCSetup send
   rrc_setup_periodic_timer = parent->timers->get_unique_timer();
   rrc_setup_periodic_timer.set(5000, [this](uint32_t tid) {

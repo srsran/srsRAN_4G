@@ -43,8 +43,6 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   mme_task_queue  = task_sched.make_task_queue();
   gtpu_task_queue = task_sched.make_task_queue();
   // sync_queue is added in init()
-
-  pool = byte_buffer_pool::get_instance();
 }
 
 enb_stack_lte::~enb_stack_lte()

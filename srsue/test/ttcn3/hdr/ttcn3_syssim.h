@@ -231,8 +231,6 @@ private:
 
   all_args_t args = {};
 
-  srslte::byte_buffer_pool* pool = nullptr;
-
   // Simulator vars
   ttcn3_ue* ue      = nullptr;
   bool      running = false;

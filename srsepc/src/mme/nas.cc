@@ -23,7 +23,6 @@
 namespace srsepc {
 
 nas::nas(const nas_init_t& args, const nas_if_t& itf) :
-  m_pool(srslte::byte_buffer_pool::get_instance()),
   m_gtpc(itf.gtpc),
   m_s1ap(itf.s1ap),
   m_hss(itf.hss),
@@ -328,9 +327,8 @@ bool nas::handle_guti_attach_request_unknown_ue(uint32_t                        
                                                 const nas_if_t&                                       itf)
 
 {
-  nas*                      nas_ctx;
-  srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
-  srslte::byte_buffer_t*    nas_tx;
+  nas*                   nas_ctx;
+  srslte::byte_buffer_t* nas_tx;
 
   // Interfaces
   s1ap_interface_nas* s1ap = itf.s1ap;
@@ -566,7 +564,6 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
 
   bool                                  mac_valid = false;
   LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
-  srslte::byte_buffer_pool*             pool = srslte::byte_buffer_pool::get_instance();
 
   // Interfaces
   s1ap_interface_nas* s1ap = itf.s1ap;
@@ -771,8 +768,7 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
                                               const nas_init_t&       args,
                                               const nas_if_t&         itf)
 {
-  auto&                     nas_logger = srslog::fetch_basic_logger("NAS");
-  srslte::byte_buffer_pool* pool       = srslte::byte_buffer_pool::get_instance();
+  auto& nas_logger = srslog::fetch_basic_logger("NAS");
 
   nas_logger.info("Tracking Area Update Request -- S-TMSI 0x%x", m_tmsi);
   srslte::console("Tracking Area Update Request -- S-TMSI 0x%x\n", m_tmsi);
@@ -1146,8 +1142,7 @@ bool nas::handle_tracking_area_update_request(srslte::byte_buffer_t* nas_rx)
   srslte::console("Warning: Tracking Area Update Request messages not handled yet.\n");
   m_logger.warning("Warning: Tracking Area Update Request messages not handled yet.");
 
-  srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
-  srslte::byte_buffer_t*    nas_tx;
+  srslte::byte_buffer_t* nas_tx;
 
   /* TAU handling unsupported, therefore send TAU reject with cause IMPLICITLY DETACHED.
    * this will trigger full re-attach by the UE, instead of going to a TAU request loop */

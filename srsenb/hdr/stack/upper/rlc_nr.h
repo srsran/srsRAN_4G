@@ -79,12 +79,11 @@ private:
   };
 
   // args
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           m_log;
-  srslte::timer_handler*    timers = nullptr;
-  mac_interface_rlc_nr*     m_mac  = nullptr;
-  pdcp_interface_rlc_nr*    m_pdcp = nullptr;
-  rrc_interface_rlc_nr*     m_rrc  = nullptr;
+  srslte::log_ref        m_log;
+  srslte::timer_handler* timers = nullptr;
+  mac_interface_rlc_nr*  m_mac  = nullptr;
+  pdcp_interface_rlc_nr* m_pdcp = nullptr;
+  rrc_interface_rlc_nr*  m_rrc  = nullptr;
 
   // state
   std::map<uint32_t, user_interface> users;

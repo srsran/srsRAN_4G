@@ -25,10 +25,7 @@
 namespace srsenb {
 
 enb::enb(srslog::sink& log_sink) :
-  started(false),
-  log_sink(log_sink),
-  enb_log(srslog::fetch_basic_logger("ENB", log_sink, false)),
-  pool(srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE))
+  started(false), log_sink(log_sink), enb_log(srslog::fetch_basic_logger("ENB", log_sink, false))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl << std::endl;
@@ -55,7 +52,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  pool->enable_logger(true);
+  srslte::byte_buffer_pool::get_instance()->enable_logger(true);
 
   // Create layers
   if (args.stack.type == "lte") {

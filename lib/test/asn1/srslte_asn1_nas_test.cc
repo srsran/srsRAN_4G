@@ -33,7 +33,6 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
   nas_logger.set_level(srslog::basic_levels::debug);
   nas_logger.set_hex_dump_max_size(128);
 
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t tst_msg, out_msg;
   tst_msg = srslte::make_byte_buffer();
   out_msg = srslte::make_byte_buffer();

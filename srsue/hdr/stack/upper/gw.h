@@ -69,9 +69,8 @@ public:
 private:
   static const int GW_THREAD_PRIO = -1;
 
-  stack_interface_gw*       stack      = nullptr;
-  srslte::byte_buffer_pool* pool       = nullptr;
-  srslte::logger*           old_logger = nullptr;
+  stack_interface_gw* stack      = nullptr;
+  srslte::logger*     old_logger = nullptr;
 
   gw_args_t args = {};
 
@@ -85,7 +84,7 @@ private:
   uint32_t     default_lcid = 0;
 
   srslog::basic_logger& logger;
-  
+
   std::map<uint32_t, uint32_t> eps_lcid; // Mapping between eps bearer ID and LCID
 
   uint32_t current_ip_addr = 0;

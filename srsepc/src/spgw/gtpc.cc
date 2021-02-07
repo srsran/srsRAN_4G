@@ -48,7 +48,6 @@ int spgw::gtpc::init(spgw_args_t*                           args,
                      const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   int err;
-  m_pool = srslte::byte_buffer_pool::get_instance();
 
   // Init interfaces
   m_spgw = spgw;

@@ -63,7 +63,6 @@ private:
   srslog::basic_logger&           logger      = srslog::fetch_basic_logger("VNF", false);
   srsenb::stack_interface_phy_nr* m_gnb_stack = nullptr;
   srsue::stack_interface_phy_nr*  m_ue_stack  = nullptr;
-  srslte::byte_buffer_pool*       m_pool      = nullptr;
 
   std::unique_ptr<basic_vnf_api::tx_request_msg_t> m_tx_req_msg;
 

@@ -152,7 +152,6 @@ private:
 
   /* Queue to dispatch stack tasks */
   srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;
-  srslte::byte_buffer_pool*             pool = nullptr;
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap              = nullptr;

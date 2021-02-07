@@ -33,7 +33,6 @@ namespace srsenb {
 rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sched_ue_cfg) :
   parent(outer_rrc),
   rnti(rnti_),
-  pool(srslte::byte_buffer_pool::get_instance()),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   ue_cell_list(parent->cfg, *outer_rrc->cell_res_list, *outer_rrc->cell_common_list),
   bearer_list(rnti_, parent->cfg, outer_rrc->gtpu),

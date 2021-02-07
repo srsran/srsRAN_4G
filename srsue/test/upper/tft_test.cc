@@ -106,7 +106,6 @@ uint8_t ipv6_unmatched_packet_lport[] = {
 int tft_filter_test_ipv6_combined()
 {
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("TFT");
-  srslte::byte_buffer_pool*    pool   = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2, ip_msg3, ip_msg4, ip_msg5;
   ip_msg1 = make_byte_buffer();
   ip_msg2 = make_byte_buffer();
@@ -165,7 +164,6 @@ int tft_filter_test_single_local_port()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
   ip_msg2 = make_byte_buffer();
@@ -210,7 +208,6 @@ int tft_filter_test_single_remote_port()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
   ip_msg2 = make_byte_buffer();
@@ -255,7 +252,6 @@ int tft_filter_test_ipv4_local_addr()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
   ip_msg2 = make_byte_buffer();
@@ -303,7 +299,6 @@ int tft_filter_test_ipv4_remote_addr()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
   ip_msg2 = make_byte_buffer();
@@ -350,7 +345,6 @@ int tft_filter_test_ipv4_tos()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("TFT");
 
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
   ip_msg1 = make_byte_buffer();
   ip_msg2 = make_byte_buffer();

@@ -140,7 +140,6 @@ private:
   class ue;
   // args
   srslte::task_sched_handle task_sched;
-  srslte::byte_buffer_pool* pool = nullptr;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;
   rlc_interface_rrc*        rlc  = nullptr;

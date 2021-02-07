@@ -61,30 +61,29 @@ public:
   void write_dl_si_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
 
 private:
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslog::basic_logger&     logger;
-  bool                      running = false;
-  srslte_rat_t              rat     = srslte_rat_t::nulltype;
-  uint32_t                  dlt     = 0; // The DLT used for the PCAP file
-  std::string               filename;
-  FILE*                     pcap_file = nullptr;
-  uint32_t                  ue_id     = 0;
-  void                      pack_and_queue(uint8_t* payload,
-                                           uint32_t payload_len,
-                                           uint32_t reTX,
-                                           bool     crc_ok,
-                                           uint8_t  cc_idx,
-                                           uint32_t tti,
-                                           uint16_t crnti_,
-                                           uint8_t  direction,
-                                           uint8_t  rnti_type);
-  void                      pack_and_queue_nr(uint8_t* payload,
-                                              uint32_t payload_len,
-                                              uint32_t tti,
-                                              uint16_t crnti,
-                                              uint8_t  harqid,
-                                              uint8_t  direction,
-                                              uint8_t  rnti_type);
+  srslog::basic_logger& logger;
+  bool                  running = false;
+  srslte_rat_t          rat     = srslte_rat_t::nulltype;
+  uint32_t              dlt     = 0; // The DLT used for the PCAP file
+  std::string           filename;
+  FILE*                 pcap_file = nullptr;
+  uint32_t              ue_id     = 0;
+  void                  pack_and_queue(uint8_t* payload,
+                                       uint32_t payload_len,
+                                       uint32_t reTX,
+                                       bool     crc_ok,
+                                       uint8_t  cc_idx,
+                                       uint32_t tti,
+                                       uint16_t crnti_,
+                                       uint8_t  direction,
+                                       uint8_t  rnti_type);
+  void                  pack_and_queue_nr(uint8_t* payload,
+                                          uint32_t payload_len,
+                                          uint32_t tti,
+                                          uint16_t crnti,
+                                          uint8_t  harqid,
+                                          uint8_t  direction,
+                                          uint8_t  rnti_type);
 
   typedef struct {
     // Different PCAP context for both RATs

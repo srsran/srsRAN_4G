@@ -361,9 +361,6 @@ int esm_info_request_test()
   srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
 
-  srslte::byte_buffer_pool* pool;
-  pool = byte_buffer_pool::get_instance();
-
   {
     srsue::nas nas(&stack.task_sched);
     nas_args_t cfg;
@@ -412,8 +409,6 @@ int dedicated_eps_bearer_test()
   // init USIM
   srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
-
-  srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
   srsue::nas nas(&stack.task_sched);
   nas_args_t cfg        = {};

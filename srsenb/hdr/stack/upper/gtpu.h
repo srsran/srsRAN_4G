@@ -63,7 +63,6 @@ private:
 
   void rem_tunnel(uint32_t teidin);
 
-  srslte::byte_buffer_pool* pool  = nullptr;
   stack_interface_gtpu_lte* stack = nullptr;
 
   bool                         enable_mbsfn = false;

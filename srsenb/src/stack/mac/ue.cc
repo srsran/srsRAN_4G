@@ -49,7 +49,6 @@ ue::ue(uint16_t                 rnti_,
   rx_used_buffers(nof_cells_),
   ta_fsm(this)
 {
-  srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
   tx_payload_buffer.resize(nof_cells_);
   for (auto& carrier_buffers : tx_payload_buffer) {
     for (auto& harq_buffers : carrier_buffers) {
