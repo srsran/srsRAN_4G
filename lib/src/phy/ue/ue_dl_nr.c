@@ -509,3 +509,130 @@ int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*     q,
 
   return len;
 }
+
+// Implements TS 38.213 Table 9.1.3-1: Value of counter DAI in DCI format 1_0 and of counter DAI or total DAI DCI format
+// 1_1
+static uint32_t ue_dl_nr_V_DL_DAI(uint32_t dai)
+{
+  return dai + 1;
+}
+
+static int
+ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_pdsch_ack_nr_t* ack_info, uint8_t* o_ack)
+{
+  bool harq_ack_spatial_bundling =
+      ack_info->use_pusch ? cfg->harq_ack_spatial_bundling_pusch : cfg->harq_ack_spatial_bundling_pucch;
+
+  uint32_t m = 0; // PDCCH with DCI format 1_0 or DCI format 1_1 monitoring occasion index: lower index corresponds to
+                  // earlier PDCCH with DCI format 1_0 or DCI format 1_1 monitoring occasion
+  uint32_t j       = 0;
+  uint32_t V_temp  = 0;
+  uint32_t V_temp2 = 0;
+
+  uint32_t N_DL_cells = ack_info->nof_cc;  // number of serving cells configured by higher layers for the UE
+  uint32_t M          = ack_info->cc[0].M; // Set M to the number of PDCCH monitoring occasion(s)
+
+  // The following code follows the exact pseudo-code provided in TS 38.213 9.1.3.1 Type-2 HARQ-ACK codebook ...
+  while (m < M) {
+    uint32_t c = 0; // serving cell index: lower indexes correspond to lower RRC indexes of corresponding cell
+    while (c < N_DL_cells) {
+      // Get ACK information of serving cell c for the PDCH monitoring occasion m
+      const srslte_pdsch_ack_m_nr_t* ack = &ack_info->cc[c].m[m];
+
+      // Get DAI counter value
+      uint32_t V_DL_CDAI = ue_dl_nr_V_DL_DAI(ack->resource.v_dai_dl);
+      uint32_t V_DL_TDAI = ack->resource.dci_format_1_1 ? ue_dl_nr_V_DL_DAI(ack->resource.v_dai_dl) : UINT32_MAX;
+
+      // Get ACK values
+      uint32_t ack_tb0 = ack->value[0];
+      uint32_t ack_tb1 = ack->value[1];
+
+      // For a PDCCH monitoring occasion with DCI format 1_0 or DCI format 1_1 in the active DL BWP of a serving cell,
+      // when a UE receives a PDSCH with one transport block and the value of maxNrofCodeWordsScheduledByDCI is 2, the
+      // HARQ-ACK information is associated with the first transport block and the UE generates a NACK for the second
+      // transport block if harq-ACK-SpatialBundlingPUCCH is not provided and generates HARQ-ACK information with
+      // value of ACK for the second transport block if harq-ACK-SpatialBundlingPUCCH is provided.
+      if (cfg->max_cw_sched_dci_is_2 && ack->second_tb_present) {
+        ack_tb1 = harq_ack_spatial_bundling ? 1 : 0;
+      }
+
+      // if PDCCH monitoring occasion m is before an active DL BWP change on serving cell c or an active UL
+      // BWP change on the PCell and an active DL BWP change is not triggered by a DCI format 1_1 in PDCCH
+      // monitoring occasion m
+      if (ack->dl_bwp_changed || ack->ul_bwp_changed) {
+        c = c + 1;
+      } else {
+        if (ack->present) {
+          if (V_DL_CDAI <= V_temp) {
+            j = j + 1;
+          }
+
+          V_temp = V_DL_CDAI;
+
+          if (V_DL_TDAI == UINT32_MAX) {
+            V_temp2 = V_DL_CDAI;
+          } else {
+            V_temp2 = V_DL_TDAI;
+          }
+
+          // if harq-ACK-SpatialBundlingPUCCH is not provided and m is a monitoring occasion for PDCCH with DCI format
+          // 1_0 or DCI format 1_1 and the UE is configured by maxNrofCodeWordsScheduledByDCI with reception of two
+          // transport blocks for at least one configured DL BWP of at least one serving cell,
+          if (!harq_ack_spatial_bundling && cfg->max_cw_sched_dci_is_2) {
+            o_ack[8 * j + 2 * (V_DL_CDAI - 1) + 0] = ack_tb0;
+            o_ack[8 * j + 2 * (V_DL_CDAI - 1) + 1] = ack_tb1;
+          }
+          // elseif harq-ACK-SpatialBundlingPUCCH is provided to the UE and m is a monitoring occasion for
+          // PDCCH with DCI format 1_1 and the UE is configured by maxNrofCodeWordsScheduledByDCI with
+          // reception of two transport blocks in at least one configured DL BWP of a serving cell,
+          else if (harq_ack_spatial_bundling && ack->resource.dci_format_1_1 && cfg->max_cw_sched_dci_is_2) {
+            o_ack[4 * j + (V_DL_CDAI - 1)] = ack_tb0 & ack_tb1;
+          }
+          // else
+          else {
+            o_ack[4 * j + (V_DL_CDAI - 1)] = ack_tb0;
+          }
+        }
+        c = c + 1;
+      }
+    }
+    m = m + 1;
+  }
+  if (V_temp2 < V_temp) {
+    j = j + 1;
+  }
+
+  // if harq-ACK-SpatialBundlingPUCCH is not provided to the UE and the UE is configured by
+  // maxNrofCodeWordsScheduledByDCI with reception of two transport blocks for at least one configured DL BWP of a
+  // serving cell,
+  uint32_t O_ack = 4 * j + V_temp2;
+  if (!harq_ack_spatial_bundling && cfg->max_cw_sched_dci_is_2) {
+    O_ack = 2 * (4 * j + V_temp2);
+  }
+
+  // Implement here SPS PDSCH reception
+  // ...
+
+  return (int)O_ack;
+}
+
+int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
+                            const srslte_pdsch_ack_nr_t*          ack_info,
+                            uint8_t*                              uci_data)
+{
+  // Check inputs
+  if (cfg == NULL || ack_info == NULL || uci_data == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // According TS 38.213 9.1.2 Type-1 HARQ-ACK codebook determination
+  if (cfg->pdsch_harq_ack_codebook_semi_static) {
+    // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = semi-static.
+    ERROR("Type-1 HARQ-ACK codebook determination is NOT implemented");
+    return SRSLTE_ERROR;
+  }
+
+  // According TS 38.213 9.1.3 Type-2 HARQ-ACK codebook determination
+  // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = dynamic.
+  return ue_dl_nr_gen_ack_type2(cfg, ack_info, uci_data);
+}

@@ -522,6 +522,7 @@ int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
   pdsch_grant->dci_format = dci_dl->format;
   pdsch_grant->rnti       = dci_dl->rnti;
   pdsch_grant->rnti_type  = dci_dl->rnti_type;
+  pdsch_grant->tb[0].rv   = dci_dl->rv;
 
   // 5.1.6.2 DM-RS reception procedure
   if (ra_dl_dmrs(pdsch_hl_cfg, pdsch_grant, &pdsch_cfg->dmrs) < SRSLTE_SUCCESS) {

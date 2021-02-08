@@ -31,10 +31,11 @@ typedef struct {
 } phy_nr_args_t;
 
 typedef struct {
-  srslte_sch_hl_cfg_nr_t      pdsch;
-  srslte_sch_hl_cfg_nr_t      pusch;
-  srslte_prach_cfg_t          prach;
-  srslte_ue_dl_nr_pdcch_cfg_t pdcch;
+  srslte_sch_hl_cfg_nr_t         pdsch;
+  srslte_sch_hl_cfg_nr_t         pusch;
+  srslte_prach_cfg_t             prach;
+  srslte_ue_dl_nr_pdcch_cfg_t    pdcch;
+  srslte_ue_dl_nr_harq_ack_cfg_t harq_ack;
 } phy_nr_cfg_t;
 
 class state
@@ -83,6 +84,10 @@ public:
     cfg.prach.zero_corr_zone   = 0;
     cfg.prach.num_ra_preambles = 64;
     cfg.prach.hs_flag          = false;
+
+    // physicalCellGroupConfig
+    //    pdsch-HARQ-ACK-Codebook: dynamic (1)
+    cfg.harq_ack.pdsch_harq_ack_codebook_semi_static = false;
 
     // commonControlResourceSet
     //    controlResourceSetId: 1

@@ -58,6 +58,43 @@ typedef struct SRSLTE_API {
   bool                  ra_search_space_present;
 } srslte_ue_dl_nr_pdcch_cfg_t;
 
+typedef struct {
+  uint32_t v_dai_dl;
+  bool     dci_format_1_1;
+} srslte_pdsch_ack_resource_nr_t;
+
+typedef struct {
+  srslte_pdsch_ack_resource_nr_t resource;
+  uint32_t                       k;
+  uint8_t                        value[SRSLTE_MAX_CODEWORDS]; // 0/1 or 2 for DTX
+  bool present; // set to true if there is a PDSCH on serving cell c associated with PDCCH in PDCCH monitoring occasion
+                // m, or there is a PDCCH indicating SPS PDSCH release on serving cell c
+  bool dl_bwp_changed; // set to true if PDCCH monitoring occasion m is before an active DL BWP change on serving cell c
+  bool ul_bwp_changed; // set to true if an active UL BWP change on the PCell and an active DL BWP change is not
+                       // triggered by a DCI format 1_1 in PDCCH monitoring occasion m
+  bool second_tb_present; // set to true if two TB were detected in the PDCCH monitoring occasion m
+} srslte_pdsch_ack_m_nr_t;
+
+#define SRSLTE_UCI_NR_MAX_M 10
+
+typedef struct {
+  uint32_t                M;
+  srslte_pdsch_ack_m_nr_t m[SRSLTE_UCI_NR_MAX_M];
+} srslte_pdsch_ack_cc_nr_t;
+
+typedef struct {
+  srslte_pdsch_ack_cc_nr_t cc[SRSLTE_MAX_CARRIERS];
+  uint32_t                 nof_cc;
+  bool                     use_pusch; // Ser to true, if UCI bits are carried by PUSCH
+} srslte_pdsch_ack_nr_t;
+
+typedef struct SRSLTE_API {
+  bool harq_ack_spatial_bundling_pucch;     ///< Param harq-ACK-SpatialBundlingPUCCH, set to true if provided
+  bool harq_ack_spatial_bundling_pusch;     ///< Param harq-ACK-SpatialBundlingPUSCH, set to true if provided
+  bool pdsch_harq_ack_codebook_semi_static; ///< set to true for pdsch-HARQ-ACK-Codebook is set to semi-static
+  bool max_cw_sched_dci_is_2; ///< Param maxNrofCodeWordsScheduledByDCI, set to true if present and equal to 2
+} srslte_ue_dl_nr_harq_ack_cfg_t;
+
 typedef struct SRSLTE_API {
   uint32_t max_prb;
   uint32_t nof_rx_antennas;
@@ -115,5 +152,9 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*    q,
                                           const srslte_pdsch_res_nr_t res[SRSLTE_MAX_CODEWORDS],
                                           char*                       str,
                                           uint32_t                    str_len);
+
+SRSLTE_API int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
+                                       const srslte_pdsch_ack_nr_t*          ack_info,
+                                       uint8_t*                              uci_data);
 
 #endif // SRSLTE_UE_DL_NR_H
