@@ -74,13 +74,19 @@ public:
   void run_tti(uint32_t tti) final;
 
   // MAC interface for PHY
-  int sf_indication(const uint32_t tti)
+  uint16_t get_dl_sched_rnti(const uint32_t tti) { return mac->get_dl_sched_rnti(tti); }
+  uint16_t get_ul_sched_rnti(const uint32_t tti) { return mac->get_ul_sched_rnti(tti); }
+  int      sf_indication(const uint32_t tti)
   {
     run_tti(tti);
     return SRSLTE_SUCCESS;
   }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac->tb_decoded(cc_idx, grant); }
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final { mac->new_grant_ul(cc_idx, grant); }
+  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id)
+  {
+    mac->prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
+  }
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;

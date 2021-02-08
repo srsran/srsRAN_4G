@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
+#include "srslte/mac/mac_rar_pdu_nr.h"
 
 namespace srsue {
 
@@ -69,7 +70,7 @@ void mac_nr::run_tti(const uint32_t tti)
   logger.debug("Running MAC tti=%d", tti);
 }
 
-uint16_t mac_nr::get_ul_sched_rnti(uint32_t tti)
+uint16_t mac_nr::get_ul_sched_rnti(const uint32_t tti)
 {
   return crnti;
 }
@@ -85,7 +86,7 @@ bool mac_nr::is_paging_opportunity()
   return false;
 }
 
-uint16_t mac_nr::get_dl_sched_rnti(uint32_t tti)
+uint16_t mac_nr::get_dl_sched_rnti(const uint32_t tti)
 {
   // Priority: SI-RNTI, P-RNTI, RA-RNTI, Temp-RNTI, CRNTI
   if (is_si_opportunity()) {
@@ -141,6 +142,33 @@ int mac_nr::sf_indication(const uint32_t tti)
   return SRSLTE_SUCCESS;
 }
 
+void mac_nr::prach_sent(const uint32_t tti,
+                        const uint32_t s_id,
+                        const uint32_t t_id,
+                        const uint32_t f_id,
+                        const uint32_t ul_carrier_id)
+{
+  // TODO: indicate to RA proc
+}
+
+// This function handles all PCAP writing for a decoded DL TB
+void mac_nr::write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
+{
+  if (pcap) {
+    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
+      if (grant.tb[i] != nullptr) {
+        if (SRSLTE_RNTI_ISRAR(grant.rnti)) { // TODO: replace with proc_ra->get_rar_rnti()
+          pcap->write_dl_ra_rnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
+        } else if (grant.rnti == SRSLTE_PRNTI) {
+          pcap->write_dl_pch_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
+        } else {
+          pcap->write_dl_crnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
+        }
+      }
+    }
+  }
+}
+
 /**
  * \brief Called from PHY after decoding a TB
  *
@@ -151,27 +179,44 @@ int mac_nr::sf_indication(const uint32_t tti)
  */
 void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 {
-  if (SRSLTE_RNTI_ISRAR(grant.rnti)) {
-    // TODO: deliver to RA procedure
-  } else if (grant.rnti == SRSLTE_PRNTI) {
-    // Send PCH payload to RLC
-    // rlc->write_pdu_pcch(pch_payload_buffer, grant.tb[0].tbs);
+  write_pcap(cc_idx, grant);
 
-    if (pcap) {
-      // pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti);
-    }
+  // handle PDU
+  if (SRSLTE_RNTI_ISRAR(grant.rnti)) { // TODO: replace with proc_ra->get_rar_rnti()
+    // TODO: pass to RA proc
+    handle_rar_pdu(grant);
   } else {
+    // Push DL PDUs to queue for back-ground processing
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
-        if (pcap) {
-          pcap->write_dl_crnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
-        }
         pdu_queue.push(std::move(grant.tb[i]));
       }
     }
   }
+
   metrics[cc_idx].rx_pkts++;
   stack_task_dispatch_queue.push([this]() { process_pdus(); });
+}
+
+// Temporary helper until RA proc is complete
+void mac_nr::handle_rar_pdu(mac_nr_grant_dl_t& grant)
+{
+  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
+    if (grant.tb[i] != nullptr) {
+      srslte::mac_rar_pdu_nr pdu;
+      if (!pdu.unpack(grant.tb[i]->msg, grant.tb[i]->N_bytes)) {
+        logger.warning("Error unpacking RAR PDU");
+        return;
+      }
+      logger.info(pdu.to_string());
+
+      for (auto& subpdu : pdu.get_subpdus()) {
+        if (subpdu.has_rapid() && subpdu.get_rapid() == 0 /* selected preamble */) {
+          phy->set_ul_grant(subpdu.get_ul_grant());
+        }
+      }
+    }
+  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant)

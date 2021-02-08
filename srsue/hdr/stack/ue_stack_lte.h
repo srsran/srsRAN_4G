@@ -127,6 +127,11 @@ public:
   {
     // ignored, timing will be handled by EUTRA
   }
+
+  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) final
+  {
+    mac_nr.prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
+  }
 #endif
 
   // Interface for GW

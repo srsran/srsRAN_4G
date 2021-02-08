@@ -48,6 +48,8 @@ public:
 
   // MAC interface
   int tx_request(const tx_request_t& request);
+  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>) { return SRSLTE_SUCCESS; };
+  void send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power){};
 
 private:
   std::unique_ptr<srslte::srslte_basic_vnf> vnf;

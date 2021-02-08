@@ -40,22 +40,25 @@ public:
   void stop();
 
   void reset();
-
   void run_tti(const uint32_t tti);
-
-  uint16_t get_dl_sched_rnti(uint32_t tti);
-  uint16_t get_ul_sched_rnti(uint32_t tti);
 
   void bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload);
 
-  int sf_indication(const uint32_t tti);
+  /// Interface for PHY
+  uint16_t get_dl_sched_rnti(const uint32_t tti);
+  uint16_t get_ul_sched_rnti(const uint32_t tti);
 
+  int  sf_indication(const uint32_t tti);
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant);
-
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant);
+  void prach_sent(const uint32_t tti,
+                  const uint32_t s_id,
+                  const uint32_t t_id,
+                  const uint32_t f_id,
+                  const uint32_t ul_carrier_id);
 
+  /// Stack interface
   void timer_expired(uint32_t timer_id);
-
   void get_metrics(mac_metrics_t* metrics);
 
   /// Interface for RRC (RRC -> MAC)
@@ -69,8 +72,12 @@ public:
   void process_pdus();
 
 private:
+  void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
   void handle_pdu(srslte::unique_byte_buffer_t pdu);
   void get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr::tx_request_t* tx_request);
+
+  // temporary helper
+  void handle_rar_pdu(mac_nr_grant_dl_t& grant);
 
   bool is_si_opportunity();
   bool is_paging_opportunity();
