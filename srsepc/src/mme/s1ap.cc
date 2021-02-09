@@ -261,9 +261,12 @@ void s1ap::handle_initiating_message(const asn1::s1ap::init_msg_s& msg, struct s
       m_logger.info("Received UE Context Release Request Message.");
       m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(msg.value.ue_context_release_request(), enb_sri);
       break;
+    case init_msg_type_opts_t::ue_cap_info_ind:
+      m_logger.info("Ignoring UE capability Info Indication.");
+      break;
     default:
-      m_logger.error("Unhandled S1AP intiating message: %s", msg.value.type().to_string().c_str());
-      srslte::console("Unhandled S1APintiating message: %s\n", msg.value.type().to_string().c_str());
+      m_logger.error("Unhandled S1AP initiating message: %s", msg.value.type().to_string().c_str());
+      srslte::console("Unhandled S1APinitiating message: %s\n", msg.value.type().to_string().c_str());
   }
 }
 
