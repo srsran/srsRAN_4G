@@ -22,14 +22,14 @@ namespace {
 class null_event_logger : public event_logger_interface
 {
 public:
-  void log_rrc_connected(uint32_t cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) override {}
-  void log_rrc_disconnect(uint32_t cc_idx, unsigned reason, unsigned rrc_cause, uint16_t rnti) override {}
-  void log_s1_ctx_create(uint32_t cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
-  void log_s1_ctx_delete(uint32_t cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
+  void log_rrc_connected(uint32_t enb_cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) override {}
+  void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, unsigned rrc_cause, uint16_t rnti) override {}
+  void log_s1_ctx_create(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
+  void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
   void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
   void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
-  void log_measurement_report(uint32_t cc_idx, const std::string& asn1, uint16_t rnti) override {}
-  void log_rlf(uint32_t cc_idx, const std::string& asn1, uint16_t rnti) override {}
+  void log_measurement_report(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override {}
+  void log_rlf(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override {}
 };
 
 } // namespace
@@ -113,13 +113,13 @@ class logging_event_logger : public event_logger_interface
 public:
   explicit logging_event_logger(srslog::log_channel& c) : event_channel(c) {}
 
-  void log_rrc_connected(uint32_t cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) override
+  void log_rrc_connected(uint32_t enb_cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) override
   {
     rrc_connect_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("rrc_connect");
     ctx.get<mset_rrc_connect_event>().write<metric_rnti>(rnti);
     ctx.get<mset_rrc_connect_event>().write<metric_asn1_length>(asn1.size());
@@ -128,13 +128,13 @@ public:
     event_channel(ctx);
   }
 
-  void log_rrc_disconnect(uint32_t cc_idx, unsigned reason, unsigned rrc_cause, uint16_t rnti) override
+  void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, unsigned rrc_cause, uint16_t rnti) override
   {
     rrc_disconnect_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("rrc_disconnect");
     ctx.get<mset_rrc_disconnect_event>().write<metric_reason>(reason);
     ctx.get<mset_rrc_disconnect_event>().write<metric_rnti>(rnti);
@@ -142,14 +142,14 @@ public:
     event_channel(ctx);
   }
 
-  void log_s1_ctx_create(uint32_t cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override
+  void log_s1_ctx_create(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override
   {
     s1apctx_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     //:TODO: not available
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("s1_context_create");
     ctx.get<mset_s1apctx_event>().write<metric_ue_mme_id>(mme_id);
     ctx.get<mset_s1apctx_event>().write<metric_ue_enb_id>(enb_id);
@@ -157,14 +157,14 @@ public:
     event_channel(ctx);
   }
 
-  void log_s1_ctx_delete(uint32_t cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override
+  void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override
   {
     s1apctx_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
     //:TODO: not available
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("s1_context_delete");
     ctx.get<mset_s1apctx_event>().write<metric_ue_mme_id>(mme_id);
     ctx.get<mset_s1apctx_event>().write<metric_ue_enb_id>(enb_id);
@@ -198,13 +198,13 @@ public:
     event_channel(ctx);
   }
 
-  void log_measurement_report(uint32_t cc_idx, const std::string& asn1, uint16_t rnti) override
+  void log_measurement_report(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override
   {
     meas_report_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("measurement_report");
     ctx.get<mset_meas_report_event>().write<metric_asn1_length>(asn1.size());
     ctx.get<mset_meas_report_event>().write<metric_asn1_message>(asn1);
@@ -212,13 +212,13 @@ public:
     event_channel(ctx);
   }
 
-  void log_rlf(uint32_t cc_idx, const std::string& asn1, uint16_t rnti) override
+  void log_rlf(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) override
   {
     rlfctx_event_t ctx("");
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    ctx.write<metric_sector_id>(cc_idx);
+    ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("radio_link_failure");
     ctx.get<mset_rlfctx_event>().write<metric_asn1_length>(asn1.size());
     ctx.get<mset_rlfctx_event>().write<metric_asn1_message>(asn1);
