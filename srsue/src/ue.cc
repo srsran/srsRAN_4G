@@ -78,7 +78,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(old_logger));
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio);
     if (!lte_radio) {
       srslte::console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
@@ -128,7 +128,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     logger.info("Initializing NR stack");
 #ifdef HAVE_5GNR
     std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(old_logger));
-    std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null(old_logger));
+    std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null);
     std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr);
     std::unique_ptr<gw>                 gw_ptr(new gw());
 

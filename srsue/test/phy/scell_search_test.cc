@@ -480,11 +480,11 @@ int main(int argc, char** argv)
 
   if (earfcn_dl >= 0) {
     // Create radio log
-    radio_log = std::unique_ptr<srslte::log_filter>(new srslte::log_filter("Radio"));
-    radio_log->set_level(radio_log_level);
+    auto& radio_logger = srslog::fetch_basic_logger("RF", false);
+    radio_logger.set_level(srslog::str_to_basic_level(radio_log_level));
 
     // Create radio
-    radio = std::unique_ptr<srslte::radio>(new srslte::radio(radio_log.get()));
+    radio = std::unique_ptr<srslte::radio>(new srslte::radio);
 
     // Init radio
     srslte::rf_args_t radio_args = {};

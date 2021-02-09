@@ -62,7 +62,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio);
     if (!lte_radio) {
       srslte::console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
@@ -103,7 +103,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   } else if (args.stack.type == "nr") {
 #ifdef HAVE_5GNR
     std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr(logger));
-    std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null(logger));
+    std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null);
     std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr);
 
     // Init layers

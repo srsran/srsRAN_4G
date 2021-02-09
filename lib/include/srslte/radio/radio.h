@@ -43,8 +43,7 @@ namespace srslte {
 class radio : public radio_interface_phy, public srslte::radio_base
 {
 public:
-  radio(srslte::log_filter* log_h);
-  radio(srslte::logger* logger_h);
+  radio();
   ~radio();
 
   int         init(const rf_args_t& args_, phy_interface_radio* phy_) final;
@@ -90,9 +89,7 @@ private:
   std::vector<srslte_rf_info_t>                           rf_info     = {};
   std::vector<int32_t>                                    rx_offset_n = {};
   rf_metrics_t                                            rf_metrics  = {};
-  log_filter                                              log_local   = {};
-  log_filter*                                             log_h       = nullptr;
-  srslte::logger*                                         logger      = nullptr;
+  srslog::basic_logger&                                   logger      = srslog::fetch_basic_logger("RF", false);
   phy_interface_radio*                                    phy         = nullptr;
   cf_t*                                                   zeros       = nullptr;
   std::array<cf_t*, SRSLTE_MAX_CHANNELS>                  dummy_buffers;
