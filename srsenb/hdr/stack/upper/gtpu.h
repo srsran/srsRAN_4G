@@ -69,7 +69,6 @@ private:
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu* pdcp = nullptr;
-  srslte::log_ref              gtpu_log;
   srslog::basic_logger&        logger;
 
   // Class to create
@@ -88,7 +87,6 @@ private:
   private:
     gtpu*                 parent = nullptr;
     pdcp_interface_gtpu*  pdcp   = nullptr;
-    srslte::log_ref       gtpu_log;
     srslog::basic_logger& logger;
     std::string           m1u_multiaddr;
     std::string           m1u_if_addr;

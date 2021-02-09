@@ -60,12 +60,9 @@ void mbms_gw::cleanup(void)
   pthread_mutex_unlock(&mbms_gw_instance_mutex);
 }
 
-int mbms_gw::init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log)
+int mbms_gw::init(mbms_gw_args_t* args)
 {
   int err;
-
-  // Init log
-  m_mbms_gw_log = mbms_gw_log;
 
   err = init_sgi_mb_if(args);
   if (err != SRSLTE_SUCCESS) {
@@ -275,7 +272,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   }
 
   // Write GTP-U header into packet
-  if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
+  if (!srslte::gtpu_write_header(&header, msg, m_logger)) {
     srslte::console("Error writing GTP-U header on PDU\n");
   }
 

@@ -55,7 +55,7 @@ class mbms_gw : public srslte::thread
 public:
   static mbms_gw* get_instance(void);
   static void     cleanup(void);
-  int             init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log);
+  int             init(mbms_gw_args_t* args);
   void            stop();
   void            run_thread();
 
@@ -72,7 +72,6 @@ private:
 
   /* Members */
   bool                  m_running;
-  srslte::log_ref       m_mbms_gw_log;
   srslog::basic_logger& m_logger = srslog::fetch_basic_logger("MBMS");
 
   bool m_sgi_mb_up;

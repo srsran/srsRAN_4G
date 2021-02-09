@@ -43,12 +43,9 @@ spgw::gtpu::~gtpu()
   return;
 }
 
-int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_ref gtpu_log)
+int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc)
 {
   int err;
-
-  // Init log
-  m_gtpu_log = gtpu_log;
 
   // Store interfaces
   m_spgw = spgw;
@@ -243,7 +240,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::unique_byte_buffer_t msg)
 void spgw::gtpu::handle_s1u_pdu(srslte::byte_buffer_t* msg)
 {
   srslte::gtpu_header_t header;
-  srslte::gtpu_read_header(msg, &header, m_gtpu_log);
+  srslte::gtpu_read_header(msg, &header, m_logger);
 
   m_logger.debug("Received PDU from S1-U. Bytes=%d", msg->N_bytes);
   m_logger.debug("TEID 0x%x. Bytes=%d", header.teid, msg->N_bytes);
@@ -276,7 +273,7 @@ void spgw::gtpu::send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer
 
   // Write header into packet
   int n;
-  if (!srslte::gtpu_write_header(&header, msg, m_gtpu_log)) {
+  if (!srslte::gtpu_write_header(&header, msg, m_logger)) {
     m_logger.error("Error writing GTP-U header on PDU");
     goto out;
   }

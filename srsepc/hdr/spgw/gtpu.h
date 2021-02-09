@@ -29,7 +29,7 @@ class spgw::gtpu : public gtpu_interface_gtpc
 public:
   gtpu();
   virtual ~gtpu();
-  int  init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_ref gtpu_log);
+  int  init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc);
   void stop();
 
   int init_sgi(spgw_args_t* args);
@@ -65,8 +65,6 @@ public:
                                                              // for downlink notifications.
 
   srslog::basic_logger& m_logger = srslog::fetch_basic_logger("GTPU");
-  //:TODO: remove this once srslte common code loggers have been upgraded.
-  srslte::log_ref m_gtpu_log;
 };
 
 inline int spgw::gtpu::get_sgi()

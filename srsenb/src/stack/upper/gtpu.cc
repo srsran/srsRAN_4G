@@ -21,7 +21,7 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu(srslog::basic_logger& logger) : m1u(this), gtpu_log("GTPU"), logger(logger) {}
+gtpu::gtpu(srslog::basic_logger& logger) : m1u(this), logger(logger) {}
 
 int gtpu::init(std::string                  gtp_bind_addr_,
                std::string                  mme_addr_,
@@ -128,7 +128,7 @@ void gtpu::send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, 
   servaddr.sin_addr.s_addr = htonl(tx_tun.spgw_addr);
   servaddr.sin_port        = htons(GTPU_PORT);
 
-  if (!gtpu_write_header(&header, pdu.get(), gtpu_log)) {
+  if (!gtpu_write_header(&header, pdu.get(), logger)) {
     logger.error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x", header.flags, header.message_type);
     return;
   }
@@ -225,12 +225,12 @@ void gtpu::mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti)
   logger.info("Modifying bearer rnti. Old rnti: 0x%x, new rnti: 0x%x", old_rnti, new_rnti);
 
   if (ue_teidin_db.count(new_rnti) != 0) {
-    gtpu_log->error("New rnti already exists, aborting.\n");
+    logger.error("New rnti already exists, aborting.");
     return;
   }
   auto old_it = ue_teidin_db.find(old_rnti);
   if (old_it == ue_teidin_db.end()) {
-    gtpu_log->error("Old rnti does not exist, aborting.\n");
+    logger.error("Old rnti does not exist, aborting.");
     return;
   }
 
@@ -285,7 +285,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
   pdu->set_timestamp();
 
   gtpu_header_t header;
-  if (not gtpu_read_header(pdu.get(), &header, gtpu_log)) {
+  if (not gtpu_read_header(pdu.get(), &header, logger)) {
     return;
   }
 
@@ -416,7 +416,7 @@ void gtpu::error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid)
   header.n_pdu             = 0;
   header.next_ext_hdr_type = 0;
 
-  gtpu_write_header(&header, pdu.get(), gtpu_log);
+  gtpu_write_header(&header, pdu.get(), logger);
 
   struct sockaddr_in servaddr;
   servaddr.sin_family      = AF_INET;
@@ -446,7 +446,7 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   header.n_pdu             = 0;
   header.next_ext_hdr_type = 0;
 
-  gtpu_write_header(&header, pdu.get(), gtpu_log);
+  gtpu_write_header(&header, pdu.get(), logger);
 
   struct sockaddr_in servaddr;
   servaddr.sin_family      = AF_INET;
@@ -473,7 +473,7 @@ void gtpu::end_marker(uint32_t teidin)
   header.teid         = tunnel.teid_out;
   header.length       = 0;
 
-  gtpu_write_header(&header, pdu.get(), gtpu_log);
+  gtpu_write_header(&header, pdu.get(), logger);
 
   struct sockaddr_in servaddr = {};
   servaddr.sin_family         = AF_INET;
@@ -502,7 +502,7 @@ srslte::span<uint32_t> gtpu::get_lcid_teids(uint16_t rnti, uint32_t lcid)
   auto ue_it = ue_teidin_db.find(rnti);
   if (ue_it == ue_teidin_db.end() or lcid < SRSENB_N_SRB or lcid >= SRSENB_N_RADIO_BEARERS or
       ue_it->second[lcid].empty()) {
-    logger.error("Could not find bearer rnti=0x%x, lcid=%d\n", rnti, lcid);
+    logger.error("Could not find bearer rnti=0x%x, lcid=%d", rnti, lcid);
     return {};
   }
   return ue_it->second[lcid];
@@ -572,7 +572,6 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   m1u_multiaddr = std::move(m1u_multiaddr_);
   m1u_if_addr   = std::move(m1u_if_addr_);
   pdcp          = parent->pdcp;
-  gtpu_log      = parent->gtpu_log;
 
   // Set up sink socket
   struct sockaddr_in bindaddr = {};
@@ -616,7 +615,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   logger.debug("Received %d bytes from M1-U interface", pdu->N_bytes);
 
   gtpu_header_t header;
-  gtpu_read_header(pdu.get(), &header, gtpu_log);
+  gtpu_read_header(pdu.get(), &header, logger);
   pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
 }
 

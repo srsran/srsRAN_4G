@@ -61,7 +61,7 @@ class spgw : public srslte::thread
 public:
   static spgw* get_instance(void);
   static void  cleanup(void);
-  int          init(spgw_args_t* args, srslte::log_ref gtpu_log, const std::map<std::string, uint64_t>& ip_to_imsi);
+  int          init(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi);
   void         stop();
   void         run_thread();
 

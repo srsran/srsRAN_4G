@@ -98,7 +98,7 @@ srslte::unique_byte_buffer_t encode_gtpu_packet(srslte::span<uint8_t>     data,
   header.length                = pdu->N_bytes;
   header.teid                  = teid;
 
-  gtpu_write_header(&header, pdu.get(), srslte::log_ref("GTPU"));
+  gtpu_write_header(&header, pdu.get(), srslog::fetch_basic_logger("GTPU"));
   return pdu;
 }
 
@@ -113,7 +113,7 @@ srslte::unique_byte_buffer_t encode_end_marker(uint32_t teid)
   header.length                = 0;
   header.teid                  = teid;
 
-  gtpu_write_header(&header, pdu.get(), srslte::log_ref("GTPU"));
+  gtpu_write_header(&header, pdu.get(), srslog::fetch_basic_logger("GTPU"));
   return pdu;
 }
 
@@ -247,17 +247,16 @@ int test_gtpu_direct_tunneling()
 int main()
 {
   // Setup logging.
-  srslog::sink&          log_sink = srslog::fetch_stdout_sink();
-  srslog::log_channel*   chan     = srslog::create_log_channel("gtpu_test", log_sink);
-  srslte::srslog_wrapper log_wrapper(*chan);
+  auto& logger = srslog::fetch_basic_logger("GTPU", false);
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(-1);
 
   // Start the log backend.
   srslog::init();
 
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
-  srslte::logmap::set_default_hex_limit(100000);
   TESTASSERT(srsenb::test_gtpu_direct_tunneling() == SRSLTE_SUCCESS);
 
   srslog::flush();
+
   srslte::console("Success");
 }

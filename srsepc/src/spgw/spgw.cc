@@ -56,12 +56,12 @@ void spgw::cleanup()
   pthread_mutex_unlock(&spgw_instance_mutex);
 }
 
-int spgw::init(spgw_args_t* args, srslte::log_ref gtpu_log, const std::map<std::string, uint64_t>& ip_to_imsi)
+int spgw::init(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   int err;
 
   // Init GTP-U
-  if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != SRSLTE_SUCCESS) {
+  if (m_gtpu->init(args, this, m_gtpc) != SRSLTE_SUCCESS) {
     srslte::console("Could not initialize the SPGW's GTP-U.\n");
     return SRSLTE_ERROR_CANT_START;
   }

@@ -70,35 +70,35 @@ struct gtpu_header_t {
   std::vector<uint8_t> ext_buffer;
 };
 
-bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log_ref gtpu_log);
-bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log_ref gtpu_log);
+bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger);
+bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger);
 std::string gtpu_ntoa(uint32_t addr);
 
-inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslte::log_ref gtpu_log)
+inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslog::basic_logger& logger)
 {
   // flags
   if ((header->flags & GTPU_FLAGS_VERSION_MASK) != GTPU_FLAGS_VERSION_V1) {
-    gtpu_log->error("gtpu_header - Unhandled GTP-U Version. Flags: 0x%x\n", header->flags);
+    logger.error("gtpu_header - Unhandled GTP-U Version. Flags: 0x%x", header->flags);
     return false;
   }
   if (!(header->flags & GTPU_FLAGS_GTP_PROTOCOL)) {
-    gtpu_log->error("gtpu_header - Unhandled Protocol Type. Flags: 0x%x\n\n", header->flags);
+    logger.error("gtpu_header - Unhandled Protocol Type. Flags: 0x%x", header->flags);
     return false;
   }
   if (header->flags & GTPU_FLAGS_PACKET_NUM) {
-    gtpu_log->error("gtpu_header - Unhandled Packet Number. Flags: 0x%x\n\n", header->flags);
+    logger.error("gtpu_header - Unhandled Packet Number. Flags: 0x%x", header->flags);
     return false;
   }
   return true;
 }
 
-inline bool gtpu_supported_msg_type_check(gtpu_header_t* header, srslte::log_ref gtpu_log)
+inline bool gtpu_supported_msg_type_check(gtpu_header_t* header, srslog::basic_logger& logger)
 {
   // msg_tpye
   if (header->message_type != GTPU_MSG_DATA_PDU && header->message_type != GTPU_MSG_ECHO_REQUEST &&
       header->message_type != GTPU_MSG_ECHO_RESPONSE && header->message_type != GTPU_MSG_ERROR_INDICATION &&
       header->message_type != GTPU_MSG_END_MARKER) {
-    gtpu_log->error("gtpu_header - Unhandled message type: 0x%x\n", header->message_type);
+    logger.error("gtpu_header - Unhandled message type: 0x%x", header->message_type);
     return false;
   }
   return true;

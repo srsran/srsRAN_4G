@@ -67,7 +67,6 @@ string config_file;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
-
   string mbms_gw_name;
   string mbms_gw_sgi_mb_if_name;
   string mbms_gw_sgi_mb_if_addr;
@@ -216,7 +215,7 @@ int main(int argc, char* argv[])
   mbms_gw_logger.set_hex_dump_max_size(args.log_args.mbms_gw_hex_limit);
 
   mbms_gw* mbms_gw = mbms_gw::get_instance();
-  if (mbms_gw->init(&args.mbms_gw_args, mbms_gw_log)) {
+  if (mbms_gw->init(&args.mbms_gw_args)) {
     cout << "Error initializing MBMS-GW" << endl;
     exit(1);
   }
