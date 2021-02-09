@@ -66,6 +66,18 @@ logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_c
   return logical_channel_config;
 }
 
+rach_nr_cfg_t make_mac_rach_cfg(const rach_cfg_common_s& asn1_type)
+{
+  rach_nr_cfg_t rach_nr_cfg                = {};
+  rach_nr_cfg.powerRampingStep             = asn1_type.rach_cfg_generic.pwr_ramp_step.to_number();
+  rach_nr_cfg.ra_responseWindow            = asn1_type.rach_cfg_generic.ra_resp_win.to_number();
+  rach_nr_cfg.prach_ConfigurationIndex     = asn1_type.rach_cfg_generic.prach_cfg_idx;
+  rach_nr_cfg.PreambleReceivedTargetPower  = asn1_type.rach_cfg_generic.preamb_rx_target_pwr;
+  rach_nr_cfg.preambleTransMax             = asn1_type.rach_cfg_generic.preamb_trans_max.to_number();
+  rach_nr_cfg.ra_ContentionResolutionTimer = asn1_type.ra_contention_resolution_timer.to_number();
+  return rach_nr_cfg;
+};
+
 rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
 {
   rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();

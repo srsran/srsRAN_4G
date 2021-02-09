@@ -30,6 +30,7 @@ struct sib1_s;
 struct rlc_cfg_c;
 struct pdcp_cfg_s;
 struct lc_ch_cfg_s;
+struct rach_cfg_common_s;
 
 } // namespace rrc_nr
 } // namespace asn1
@@ -46,6 +47,7 @@ void      to_asn1(asn1::rrc_nr::plmn_id_s* asn1_type, const plmn_id_t& cfg);
  *      MAC Config
  **************************/
 logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const asn1::rrc_nr::lc_ch_cfg_s& asn1_type);
+rach_nr_cfg_t            make_mac_rach_cfg(const asn1::rrc_nr::rach_cfg_common_s& asn1_type);
 /***************************
  *      RLC Config
  **************************/

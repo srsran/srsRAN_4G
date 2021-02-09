@@ -42,6 +42,32 @@ int test_rlc_config()
   return SRSLTE_SUCCESS;
 }
 
+int test_mac_rach_common_config()
+{
+  asn1::rrc_nr::rach_cfg_common_s rach_common_config_asn1;
+  rach_common_config_asn1.ra_contention_resolution_timer =
+      asn1::rrc_nr::rach_cfg_common_s::ra_contention_resolution_timer_opts::sf64;
+  rach_common_config_asn1.rach_cfg_generic.ra_resp_win   = asn1::rrc_nr::rach_cfg_generic_s::ra_resp_win_opts::sl10;
+  rach_common_config_asn1.rach_cfg_generic.prach_cfg_idx = 160;
+  rach_common_config_asn1.rach_cfg_generic.preamb_rx_target_pwr = -110;
+  rach_common_config_asn1.rach_cfg_generic.pwr_ramp_step = asn1::rrc_nr::rach_cfg_generic_s::pwr_ramp_step_opts::db4;
+  rach_common_config_asn1.rach_cfg_generic.preamb_trans_max =
+      asn1::rrc_nr::rach_cfg_generic_s::preamb_trans_max_opts::n7;
+
+  asn1::json_writer jw;
+  rach_common_config_asn1.to_json(jw);
+  srslog::fetch_basic_logger("RRC").info("MAC NR RACH Common config: \n %s", jw.to_string().c_str());
+
+  rach_nr_cfg_t rach_nr_cfg = make_mac_rach_cfg(rach_common_config_asn1);
+  TESTASSERT(rach_nr_cfg.ra_responseWindow == 10);
+  TESTASSERT(rach_nr_cfg.ra_ContentionResolutionTimer == 64);
+  TESTASSERT(rach_nr_cfg.prach_ConfigurationIndex == 160);
+  TESTASSERT(rach_nr_cfg.PreambleReceivedTargetPower == -110);
+  TESTASSERT(rach_nr_cfg.preambleTransMax == 7);
+  TESTASSERT(rach_nr_cfg.powerRampingStep == 4);
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
@@ -55,7 +81,8 @@ int main()
   // Start the log backend.
   srslog::init();
 
-  TESTASSERT(test_rlc_config() == 0);
+  TESTASSERT(test_rlc_config() == SRSLTE_SUCCESS);
+  TESTASSERT(test_mac_rach_common_config() == SRSLTE_SUCCESS);
 
   srslog::flush();
 

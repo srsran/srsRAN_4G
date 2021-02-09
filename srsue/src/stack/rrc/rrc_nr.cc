@@ -558,6 +558,13 @@ bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
+    if(recfg_with_sync.sp_cell_cfg_common_present){
+      if(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present){
+        if(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present){
+          // mac->set_rach_common_config();
+        }
+      }
+    }
   }
   return true;
 }
