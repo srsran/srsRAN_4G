@@ -82,6 +82,7 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
       *ptr = header->n_pdu;
     } else {
       header->n_pdu = 0;
+      *ptr          = 0;
     }
     ptr++;
     // E

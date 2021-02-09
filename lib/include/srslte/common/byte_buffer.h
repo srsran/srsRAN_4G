@@ -99,6 +99,13 @@ public:
     bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
 #endif
   }
+  explicit byte_buffer_t(uint32_t size) : msg(&buffer[SRSLTE_BUFFER_HEADER_OFFSET]), N_bytes(size)
+  {
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
+#endif
+  }
+  byte_buffer_t(uint32_t size, uint8_t val) : byte_buffer_t(size) { std::fill(msg, msg + N_bytes, val); }
   byte_buffer_t(const byte_buffer_t& buf) : msg(&buffer[SRSLTE_BUFFER_HEADER_OFFSET]), md(buf.md), N_bytes(buf.N_bytes)
   {
     // copy actual contents
@@ -150,7 +157,6 @@ public:
 
   void* operator new(size_t sz);
   void* operator new(size_t sz, const std::nothrow_t& nothrow_value) noexcept;
-  void* operator new(size_t sz, void* ptr) noexcept { return ptr; }
   void* operator new[](size_t sz) = delete;
   void  operator delete(void* ptr);
   void  operator delete[](void* ptr) = delete;

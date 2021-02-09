@@ -73,15 +73,13 @@ srslte::unique_byte_buffer_t encode_ipv4_packet(srslte::span<uint8_t>     data,
 {
   srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
-  struct iphdr ip_pkt;
-  ip_pkt.version = 4;
-  ip_pkt.tot_len = htons(data.size() + sizeof(struct iphdr));
-  ip_pkt.saddr   = src_sockaddr_in.sin_addr.s_addr;
-  ip_pkt.daddr   = dest_sockaddr_in.sin_addr.s_addr;
-  memcpy(pdu->msg, &ip_pkt, sizeof(struct iphdr));
-  pdu->N_bytes = sizeof(struct iphdr);
-  memcpy(pdu->msg + pdu->N_bytes, data.data(), data.size());
-  pdu->N_bytes += data.size();
+  struct iphdr ip_pkt = {};
+  ip_pkt.version      = 4;
+  ip_pkt.tot_len      = htons(data.size() + sizeof(struct iphdr));
+  ip_pkt.saddr        = src_sockaddr_in.sin_addr.s_addr;
+  ip_pkt.daddr        = dest_sockaddr_in.sin_addr.s_addr;
+  pdu->append_bytes((uint8_t*)&ip_pkt, sizeof(struct iphdr));
+  pdu->append_bytes(data.data(), data.size());
 
   return pdu;
 }
@@ -94,11 +92,11 @@ srslte::unique_byte_buffer_t encode_gtpu_packet(srslte::span<uint8_t>     data,
   srslte::unique_byte_buffer_t pdu = encode_ipv4_packet(data, teid, src_sockaddr_in, dest_sockaddr_in);
 
   // header
-  srslte::gtpu_header_t header;
-  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
-  header.message_type = GTPU_MSG_DATA_PDU;
-  header.length       = pdu->N_bytes;
-  header.teid         = teid;
+  srslte::gtpu_header_t header = {};
+  header.flags                 = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type          = GTPU_MSG_DATA_PDU;
+  header.length                = pdu->N_bytes;
+  header.teid                  = teid;
 
   gtpu_write_header(&header, pdu.get(), srslte::log_ref("GTPU"));
   return pdu;
@@ -109,11 +107,11 @@ srslte::unique_byte_buffer_t encode_end_marker(uint32_t teid)
   srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 
   // header
-  srslte::gtpu_header_t header;
-  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
-  header.message_type = GTPU_MSG_END_MARKER;
-  header.length       = 0;
-  header.teid         = teid;
+  srslte::gtpu_header_t header = {};
+  header.flags                 = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type          = GTPU_MSG_END_MARKER;
+  header.length                = 0;
+  header.teid                  = teid;
 
   gtpu_write_header(&header, pdu.get(), srslte::log_ref("GTPU"));
   return pdu;
@@ -132,7 +130,7 @@ int test_gtpu_direct_tunneling()
   uint32_t           drb1         = 3;
   uint32_t           sgw_teidout1 = 1, sgw_teidout2 = 2;
   const char *       sgw_addr_str = "127.0.0.1", *senb_addr_str = "127.0.1.1", *tenb_addr_str = "127.0.1.2";
-  struct sockaddr_in senb_sockaddr, sgw_sockaddr, tenb_sockaddr;
+  struct sockaddr_in senb_sockaddr = {}, sgw_sockaddr = {}, tenb_sockaddr = {};
   srslte::net_utils::set_sockaddr(&senb_sockaddr, senb_addr_str, GTPU_PORT);
   srslte::net_utils::set_sockaddr(&sgw_sockaddr, sgw_addr_str, GTPU_PORT);
   srslte::net_utils::set_sockaddr(&tenb_sockaddr, tenb_addr_str, GTPU_PORT);
@@ -158,8 +156,6 @@ int test_gtpu_direct_tunneling()
   uint32_t tenb_teid_in = tenb_gtpu.add_bearer(rnti2, drb1, sgw_addr, sgw_teidout2);
 
   // Buffer PDUs in SeNB PDCP
-  pdu          = srslte::make_byte_buffer();
-  pdu->N_bytes = 10;
   for (size_t sn = 6; sn < 10; ++sn) {
     std::vector<uint8_t> data(10, sn);
     pdu = encode_ipv4_packet(data, senb_teid_in, sgw_sockaddr, senb_sockaddr);

@@ -223,6 +223,11 @@ inline unique_byte_buffer_t make_byte_buffer() noexcept
   return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t());
 }
 
+inline unique_byte_buffer_t make_byte_buffer(uint32_t size, uint8_t value) noexcept
+{
+  return std::unique_ptr<byte_buffer_t>(new (std::nothrow) byte_buffer_t(size, value));
+}
+
 inline unique_byte_buffer_t make_byte_buffer(const char* debug_ctxt) noexcept
 {
   std::unique_ptr<byte_buffer_t> buffer(new (std::nothrow) byte_buffer_t());

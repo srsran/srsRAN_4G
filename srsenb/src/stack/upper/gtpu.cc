@@ -475,12 +475,12 @@ void gtpu::end_marker(uint32_t teidin)
 
   gtpu_write_header(&header, pdu.get(), gtpu_log);
 
-  struct sockaddr_in servaddr;
-  servaddr.sin_family      = AF_INET;
-  servaddr.sin_addr.s_addr = htonl(tunnel.spgw_addr);
-  servaddr.sin_port        = htons(GTPU_PORT);
+  struct sockaddr_in servaddr = {};
+  servaddr.sin_family         = AF_INET;
+  servaddr.sin_addr.s_addr    = htonl(tunnel.spgw_addr);
+  servaddr.sin_port           = htons(GTPU_PORT);
 
-  sendto(fd, pdu->msg, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
 }
 
 /****************************************************************************
