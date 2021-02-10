@@ -204,6 +204,7 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   band_param_eutra.eutra().ca_bw_class_ul_eutra         = asn1::rrc_nr::ca_bw_class_eutra_opts::options::a;
   band_combination.band_list.push_back(band_param_eutra);
 
+  // TODO check if band is requested
   for (const auto& band : args.supported_bands) {
     struct band_params_c band_param_nr;
     band_param_nr.set_nr();
@@ -276,16 +277,17 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   feature_set_eutra.eutra().dl_set_eutra = 1;
   feature_set_eutra.eutra().ul_set_eutra = 1;
   feature_sets_per_band.push_back(feature_set_eutra);
-
   feature_set_combination.push_back(feature_sets_per_band);
 
-  feature_set_c feature_set_nr;
-  feature_set_nr.set_nr();
-  feature_set_nr.nr().dl_set_nr = 1;
-  feature_set_nr.nr().ul_set_nr = 1;
-  feature_sets_per_band.push_back(feature_set_nr);
-
-  feature_set_combination.push_back(feature_sets_per_band);
+  for (const auto& band : args.supported_bands) {
+    feature_sets_per_band.resize(0);
+    feature_set_c feature_set_nr;
+    feature_set_nr.set_nr();
+    feature_set_nr.nr().dl_set_nr = 1;
+    feature_set_nr.nr().ul_set_nr = 1;
+    feature_sets_per_band.push_back(feature_set_nr);
+    feature_set_combination.push_back(feature_sets_per_band);
+  }
 
   mrdc_cap.feature_set_combinations.push_back(feature_set_combination);
 
