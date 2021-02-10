@@ -72,17 +72,17 @@ class rlc_um_nr_test_context1
 {
 public:
   rlc_um_nr_test_context1() :
-    log1("RLC_UM_1"),
-    log2("RLC_UM_2"),
+    logger1(srslog::fetch_basic_logger("RLC_UM_1", false)),
+    logger2(srslog::fetch_basic_logger("RLC_UM_2", false)),
     timers(16),
-    rlc1(log1, 3, &tester, &tester, &timers),
-    rlc2(log2, 3, &tester, &tester, &timers)
+    rlc1(logger1, 3, &tester, &tester, &timers),
+    rlc2(logger2, 3, &tester, &tester, &timers)
   {
     // setup logging
-    log1->set_level(srslte::LOG_LEVEL_DEBUG);
-    log2->set_level(srslte::LOG_LEVEL_DEBUG);
-    log1->set_hex_limit(-1);
-    log2->set_hex_limit(-1);
+    logger1.set_level(srslog::basic_levels::debug);
+    logger1.set_hex_dump_max_size(-1);
+    logger2.set_level(srslog::basic_levels::debug);
+    logger2.set_hex_dump_max_size(-1);
 
     // configure RLC entities
     rlc_config_t cnfg = rlc_config_t::default_rlc_um_nr_config(6);
@@ -96,7 +96,8 @@ public:
     tester.set_expected_sdu_len(1);
   }
 
-  srslte::log_ref       log1, log2;
+  srslog::basic_logger& logger1;
+  srslog::basic_logger& logger2;
   srslte::timer_handler timers;
   rlc_um_tester         tester;
   rlc_um_nr             rlc1, rlc2;
@@ -560,6 +561,8 @@ int main(int argc, char** argv)
   pcap_handle = std::unique_ptr<srslte::mac_nr_pcap>(new srslte::mac_nr_pcap());
   pcap_handle->open("rlc_um_nr_test.pcap");
 #endif
+
+  srslog::init();
 
   if (rlc_um_nr_test1()) {
     fprintf(stderr, "rlc_um_nr_test1() failed.\n");

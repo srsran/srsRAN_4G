@@ -25,7 +25,10 @@ namespace srslte {
 class rlc_tm final : public rlc_common
 {
 public:
-  rlc_tm(srslte::log_ref log_, uint32_t lcid_, srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_);
+  rlc_tm(srslog::basic_logger&      logger,
+         uint32_t                   lcid_,
+         srsue::pdcp_interface_rlc* pdcp_,
+         srsue::rrc_interface_rlc*  rrc_);
   ~rlc_tm() override;
   bool configure(const rlc_config_t& cnfg) override;
   void stop() override;
@@ -53,7 +56,7 @@ public:
 
 private:
   byte_buffer_pool*          pool = nullptr;
-  srslte::log_ref            log;
+  srslog::basic_logger&      logger;
   uint32_t                   lcid = 0;
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;

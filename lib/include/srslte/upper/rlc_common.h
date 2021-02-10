@@ -282,7 +282,7 @@ private:
 
     // Do not block ever
     if (!rx_pdu_resume_queue.try_push(p)) {
-      srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
+      srslog::fetch_basic_logger("RLC").warning("Dropping SDUs while bearer suspended.");
       return;
     }
   }
@@ -292,7 +292,7 @@ private:
   {
     // Do not block ever
     if (not tx_sdu_resume_queue.try_push(std::move(sdu))) {
-      srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
+      srslog::fetch_basic_logger("RLC").warning("Dropping SDUs while bearer suspended.");
       return;
     }
   }

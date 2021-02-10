@@ -86,7 +86,7 @@ private:
   void reset_metrics();
 
   byte_buffer_pool*          pool = nullptr;
-  srslte::log_ref            rlc_log;
+  srslog::basic_logger&      logger;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srsue::rrc_interface_rlc*  rrc    = nullptr;
   srslte::timer_handler*     timers = nullptr;

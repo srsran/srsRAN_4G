@@ -69,7 +69,7 @@ struct pdcp_sdu_info_t {
 class rlc_am_lte : public rlc_common
 {
 public:
-  rlc_am_lte(srslte::log_ref            log_,
+  rlc_am_lte(srslog::basic_logger&      logger,
              uint32_t                   lcid_,
              srsue::pdcp_interface_rlc* pdcp_,
              srsue::rrc_interface_rlc*  rrc_,
@@ -146,9 +146,9 @@ private:
     bool poll_required();
     bool do_status();
 
-    rlc_am_lte*       parent = nullptr;
-    byte_buffer_pool* pool   = nullptr;
-    srslte::log_ref   log;
+    rlc_am_lte*           parent = nullptr;
+    byte_buffer_pool*     pool   = nullptr;
+    srslog::basic_logger& logger;
 
     /****************************************************************************
      * Configurable parameters
@@ -237,9 +237,9 @@ private:
     void print_rx_segments();
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu_t* segment);
 
-    rlc_am_lte*       parent = nullptr;
-    byte_buffer_pool* pool   = nullptr;
-    srslte::log_ref   log;
+    rlc_am_lte*           parent = nullptr;
+    byte_buffer_pool*     pool   = nullptr;
+    srslog::basic_logger& logger;
 
     /****************************************************************************
      * Configurable parameters
@@ -284,7 +284,7 @@ private:
 
   // Common variables needed/provided by parent class
   srsue::rrc_interface_rlc*  rrc = nullptr;
-  srslte::log_ref            log;
+  srslog::basic_logger&      logger;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srslte::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;

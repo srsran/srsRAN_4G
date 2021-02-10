@@ -34,17 +34,17 @@ class rlc_um_lte_test_context1
 {
 public:
   rlc_um_lte_test_context1() :
-    log1("RLC_UM_1"),
-    log2("RLC_UM_2"),
+    logger1(srslog::fetch_basic_logger("RLC_UM_1", false)),
+    logger2(srslog::fetch_basic_logger("RLC_UM_2", false)),
     timers(16),
-    rlc1(log1, 3, &tester, &tester, &timers),
-    rlc2(log2, 3, &tester, &tester, &timers)
+    rlc1(logger1, 3, &tester, &tester, &timers),
+    rlc2(logger2, 3, &tester, &tester, &timers)
   {
     // setup logging
-    log1->set_level(srslte::LOG_LEVEL_DEBUG);
-    log2->set_level(srslte::LOG_LEVEL_DEBUG);
-    log1->set_hex_limit(-1);
-    log2->set_hex_limit(-1);
+    logger1.set_level(srslog::basic_levels::debug);
+    logger1.set_hex_dump_max_size(-1);
+    logger2.set_level(srslog::basic_levels::debug);
+    logger2.set_hex_dump_max_size(-1);
 
     // configure RLC entities
     rlc_config_t cnfg = rlc_config_t::default_rlc_um_config(10);
@@ -58,7 +58,8 @@ public:
     tester.set_expected_sdu_len(1);
   }
 
-  srslte::log_ref       log1, log2;
+  srslog::basic_logger& logger1;
+  srslog::basic_logger& logger2;
   srslte::timer_handler timers;
   rlc_um_tester         tester;
   rlc_um_lte            rlc1, rlc2;
@@ -426,6 +427,8 @@ int pdu_pack_no_space_test()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   if (meas_obj_test()) {
     return -1;
   }

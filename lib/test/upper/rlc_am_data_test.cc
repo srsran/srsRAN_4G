@@ -143,9 +143,12 @@ int test4()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   TESTASSERT(test1() == SRSLTE_SUCCESS);
   TESTASSERT(test2() == SRSLTE_SUCCESS);
   TESTASSERT(test3() == SRSLTE_SUCCESS);
   TESTASSERT(test4() == SRSLTE_SUCCESS);
+
   return SRSLTE_SUCCESS;
 }

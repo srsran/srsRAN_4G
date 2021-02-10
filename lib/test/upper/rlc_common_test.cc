@@ -64,19 +64,20 @@ public:
 
 int meas_obj_test()
 {
-  srslte::log_ref log1("RLC_1");
-  srslte::log_ref log2("RLC_2");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log2->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  log2->set_hex_limit(-1);
+  auto& logger_rlc1 = srslog::fetch_basic_logger("RLC_1", false);
+  logger_rlc1.set_level(srslog::basic_levels::debug);
+  logger_rlc1.set_hex_dump_max_size(-1);
+  auto& logger_rlc2 = srslog::fetch_basic_logger("RLC_2", false);
+  logger_rlc2.set_level(srslog::basic_levels::debug);
+  logger_rlc2.set_hex_dump_max_size(-1);
+
   rlc_tester            tester;
   srslte::timer_handler timers(1);
 
   int len = 0;
 
-  rlc rlc1(log1->get_service_name().c_str());
-  rlc rlc2(log2->get_service_name().c_str());
+  rlc rlc1(logger_rlc1.id().c_str());
+  rlc rlc2(logger_rlc2.id().c_str());
 
   rlc1.init(&tester, &tester, &timers, 0);
   rlc2.init(&tester, &tester, &timers, 0);
@@ -195,6 +196,8 @@ int meas_obj_test()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   if (meas_obj_test()) {
     return -1;
   }
