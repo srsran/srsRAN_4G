@@ -225,6 +225,10 @@ bool cc_worker::work_dl()
     srslte::unique_byte_buffer_t data = srslte::make_byte_buffer();
     data->N_bytes                     = pdsch_cfg.grant.tb[0].tbs / 8U;
 
+    // Get soft-buffer from MAC
+    // ...
+    srslte_softbuffer_rx_reset(&softbuffer_rx);
+
     // Initialise PDSCH Result
     std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res = {};
     pdsch_res[0].payload                                              = data->buffer;

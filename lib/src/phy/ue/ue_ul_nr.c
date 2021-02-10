@@ -166,21 +166,31 @@ int srslte_ue_ul_nr_encode_pucch(srslte_ue_ul_nr_t*                  q,
   // Actual PUCCH encoding
   switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_0:
-      return ue_ul_nr_encode_pucch_format0(q, resource, uci_data);
+      if (ue_ul_nr_encode_pucch_format0(q, resource, uci_data) < SRSLTE_SUCCESS) {
+        return SRSLTE_ERROR;
+      }
     case SRSLTE_PUCCH_NR_FORMAT_1:
-      return ue_ul_nr_encode_pucch_format1(q, slot_cfg, cfg, resource, uci_data);
+      if (ue_ul_nr_encode_pucch_format1(q, slot_cfg, cfg, resource, uci_data) < SRSLTE_SUCCESS) {
+        return SRSLTE_ERROR;
+      }
     case SRSLTE_PUCCH_NR_FORMAT_2:
     case SRSLTE_PUCCH_NR_FORMAT_3:
     case SRSLTE_PUCCH_NR_FORMAT_4:
-      return srslte_pucch_nr_format_2_3_4_encode(
-          &q->pucch, &q->carrier, cfg, slot_cfg, resource, &uci_data->cfg, &uci_data->value, q->sf_symbols[0]);
+      if (srslte_pucch_nr_format_2_3_4_encode(
+              &q->pucch, &q->carrier, cfg, slot_cfg, resource, &uci_data->cfg, &uci_data->value, q->sf_symbols[0]) <
+          SRSLTE_SUCCESS) {
+        return SRSLTE_ERROR;
+      }
     case SRSLTE_PUCCH_NR_FORMAT_ERROR:
     default:
       ERROR("Invalid case");
       break;
   }
 
-  return SRSLTE_ERROR;
+  // Generate signal
+  srslte_ofdm_tx_sf(&q->ifft);
+
+  return SRSLTE_SUCCESS;
 }
 
 void srslte_ue_ul_nr_free(srslte_ue_ul_nr_t* q)
