@@ -4469,7 +4469,7 @@ int create_compact_pcm(uint16_t* pcm, int8_t (*positions)[MAX_CNCT], srslte_base
 
   ls_index = get_ls_index(ls);
   if (ls_index == VOID_LIFTSIZE) {
-    ERROR("Invalid lifting size %d\n", ls);
+    ERROR("Invalid lifting size %d", ls);
     return -1;
   }
   const uint16_t* tmp = get_cnct_matrix(bg, ls_index);

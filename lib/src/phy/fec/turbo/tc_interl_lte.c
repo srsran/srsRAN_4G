@@ -63,13 +63,13 @@ int srslte_tc_interl_LTE_gen_interl(srslte_tc_interl_t* h, uint32_t long_cb, uin
   uint64_t i, j;
 
   if (long_cb > h->max_long_cb) {
-    ERROR("Interleaver initiated for max_long_cb=%d\n", h->max_long_cb);
+    ERROR("Interleaver initiated for max_long_cb=%d", h->max_long_cb);
     return -1;
   }
 
   cb_table_idx = srslte_cbsegm_cbindex(long_cb);
   if (cb_table_idx == -1) {
-    ERROR("Can't find long_cb=%d in valid TC CB table\n", long_cb);
+    ERROR("Can't find long_cb=%d in valid TC CB table", long_cb);
     return -1;
   }
 

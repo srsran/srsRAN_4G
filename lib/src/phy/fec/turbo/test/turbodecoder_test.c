@@ -180,7 +180,7 @@ int main(int argc, char** argv)
   }
 
   if (srslte_tcod_init(&tcod, frame_length)) {
-    ERROR("Error initiating Turbo coder\n");
+    ERROR("Error initiating Turbo coder");
     exit(-1);
   }
 
@@ -190,7 +190,7 @@ int main(int argc, char** argv)
   // tdec_type = SRSLTE_TDEC_SSE_WINDOW;
 #endif
   if (srslte_tdec_init_manual(&tdec, frame_length, tdec_type)) {
-    ERROR("Error initiating Turbo decoder\n");
+    ERROR("Error initiating Turbo decoder");
     exit(-1);
   }
 
@@ -211,7 +211,6 @@ int main(int argc, char** argv)
     snr_points = 1;
   }
   for (i = 0; i < snr_points; i++) {
-
     mean_usec = 0;
     errors    = 0;
     frame_cnt = 0;

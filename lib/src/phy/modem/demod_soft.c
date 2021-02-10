@@ -214,7 +214,6 @@ void demod_16qam_lte_b_neon(const cf_t* symbols, int8_t* llr, int nsymbols)
   result1n = vdupq_n_s8(0);
   result2n = vdupq_n_s8(0);
   for (int i = 0; i < nsymbols / 8; i++) {
-
     symbol1 = vld1q_f32(symbolsPtr);
     symbolsPtr += 4;
     symbol2 = vld1q_f32(symbolsPtr);
@@ -448,7 +447,6 @@ void demod_64qam_lte_s_neon(const cf_t* symbols, short* llr, int nsymbols)
   int16x8_t result31 = vdupq_n_s16(0);
 
   for (int i = 0; i < nsymbols / 4; i++) {
-
     symbol1 = vld1q_f32(symbolsPtr);
     symbolsPtr += 4;
     symbol2 = vld1q_f32(symbolsPtr);
@@ -511,7 +509,6 @@ void demod_64qam_lte_b_neon(const cf_t* symbols, int8_t* llr, int nsymbols)
   int8x16_t   result31 = vdupq_n_s8(0);
 
   for (int i = 0; i < nsymbols / 8; i++) {
-
     symbol1 = vld1q_f32(symbolsPtr);
     symbolsPtr += 4;
     symbol2 = vld1q_f32(symbolsPtr);
@@ -878,7 +875,7 @@ int srslte_demod_soft_demodulate(srslte_mod_t modulation, const cf_t* symbols, f
       demod_256qam_lte(symbols, llr, nsymbols);
       break;
     default:
-      ERROR("Invalid modulation %d\n", modulation);
+      ERROR("Invalid modulation %d", modulation);
       return -1;
   }
   return 0;
@@ -903,7 +900,7 @@ int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, const cf_t* symbols,
       demod_256qam_lte_s(symbols, llr, nsymbols);
       break;
     default:
-      ERROR("Invalid modulation %d\n", modulation);
+      ERROR("Invalid modulation %d", modulation);
       return -1;
   }
   return 0;
@@ -928,7 +925,7 @@ int srslte_demod_soft_demodulate_b(srslte_mod_t modulation, const cf_t* symbols,
       demod_256qam_lte_b(symbols, llr, nsymbols);
       break;
     default:
-      ERROR("Invalid modulation %d\n", modulation);
+      ERROR("Invalid modulation %d", modulation);
       return -1;
   }
   return 0;

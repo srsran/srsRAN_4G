@@ -29,12 +29,11 @@ int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer, uint32_t max_prb)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_ue_mib_t));
 
     if (srslte_pbch_init(&q->pbch)) {
-      ERROR("Error initiating PBCH\n");
+      ERROR("Error initiating PBCH");
       goto clean_exit;
     }
 
@@ -45,15 +44,15 @@ int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer, uint32_t max_prb)
     }
 
     if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer, q->sf_symbols, max_prb)) {
-      ERROR("Error initializing FFT\n");
+      ERROR("Error initializing FFT");
       goto clean_exit;
     }
     if (srslte_chest_dl_init(&q->chest, max_prb, 1)) {
-      ERROR("Error initializing reference signal\n");
+      ERROR("Error initializing reference signal");
       goto clean_exit;
     }
     if (srslte_chest_dl_res_init(&q->chest_res, max_prb)) {
-      ERROR("Error initializing reference signal\n");
+      ERROR("Error initializing reference signal");
       goto clean_exit;
     }
     srslte_ue_mib_reset(q);
@@ -88,11 +87,11 @@ int srslte_ue_mib_set_cell(srslte_ue_mib_t* q, srslte_cell_t cell)
 
   if (q != NULL && cell.nof_ports <= SRSLTE_MAX_PORTS) {
     if (srslte_pbch_set_cell(&q->pbch, cell)) {
-      ERROR("Error initiating PBCH\n");
+      ERROR("Error initiating PBCH");
       return SRSLTE_ERROR;
     }
     if (srslte_ofdm_rx_set_prb(&q->fft, cell.cp, cell.nof_prb)) {
-      ERROR("Error initializing FFT\n");
+      ERROR("Error initializing FFT");
       return SRSLTE_ERROR;
     }
 
@@ -101,7 +100,7 @@ int srslte_ue_mib_set_cell(srslte_ue_mib_t* q, srslte_cell_t cell)
     }
 
     if (srslte_chest_dl_set_cell(&q->chest, cell)) {
-      ERROR("Error initializing reference signal\n");
+      ERROR("Error initializing reference signal");
       return SRSLTE_ERROR;
     }
     srslte_ue_mib_reset(q);
@@ -142,21 +141,21 @@ int srslte_ue_mib_decode(srslte_ue_mib_t* q,
   }
   /* Reset decoder if we missed a frame */
   if (q->frame_cnt > 8) {
-    INFO("Resetting PBCH decoder after %d frames\n", q->frame_cnt);
+    INFO("Resetting PBCH decoder after %d frames", q->frame_cnt);
     srslte_ue_mib_reset(q);
   }
 
   /* Decode PBCH */
   ret = srslte_pbch_decode(&q->pbch, &q->chest_res, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
-    ERROR("Error decoding PBCH (%d)\n", ret);
+    ERROR("Error decoding PBCH (%d)", ret);
   } else if (ret == 1) {
-    INFO("MIB decoded: %u, snr=%.1f dB\n", q->frame_cnt, q->chest_res.snr_db);
+    INFO("MIB decoded: %u, snr=%.1f dB", q->frame_cnt, q->chest_res.snr_db);
     srslte_ue_mib_reset(q);
     ret = SRSLTE_UE_MIB_FOUND;
   } else {
     ret = SRSLTE_UE_MIB_NOTFOUND;
-    INFO("MIB not decoded: %u, snr=%.1f dB\n", q->frame_cnt, q->chest_res.snr_db);
+    INFO("MIB not decoded: %u, snr=%.1f dB", q->frame_cnt, q->chest_res.snr_db);
     q->frame_cnt++;
   }
 
@@ -175,7 +174,7 @@ int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t* q,
 
   // Use 1st RF channel only to receive MIB
   if (srslte_ue_mib_init(&q->ue_mib, q->sf_buffer[0], SRSLTE_UE_MIB_NOF_PRB)) {
-    ERROR("Error initiating ue_mib\n");
+    ERROR("Error initiating ue_mib");
     return SRSLTE_ERROR;
   }
   // Configure ue_sync to receive all channels
@@ -197,11 +196,11 @@ int srslte_ue_mib_sync_set_cell(srslte_ue_mib_sync_t* q, srslte_cell_t cell)
   cell.nof_prb = SRSLTE_UE_MIB_NOF_PRB;
 
   if (srslte_ue_mib_set_cell(&q->ue_mib, cell)) {
-    ERROR("Error initiating ue_mib\n");
+    ERROR("Error initiating ue_mib");
     return SRSLTE_ERROR;
   }
   if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
-    ERROR("Error initiating ue_sync\n");
+    ERROR("Error initiating ue_sync");
     srslte_ue_mib_free(&q->ue_mib);
     return SRSLTE_ERROR;
   }
@@ -231,7 +230,6 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t* q,
                               uint32_t*             nof_tx_ports,
                               int*                  sfn_offset)
 {
-
   int      ret        = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t nof_frames = 0;
   int      mib_ret    = SRSLTE_UE_MIB_NOTFOUND;
@@ -246,7 +244,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t* q,
     mib_ret = SRSLTE_UE_MIB_NOTFOUND;
     ret     = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer, MIB_BUFFER_MAX_SAMPLES);
     if (ret < 0) {
-      ERROR("Error calling srslte_ue_sync_work()\n");
+      ERROR("Error calling srslte_ue_sync_work()");
       return -1;
     }
 
@@ -254,7 +252,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t* q,
       if (ret == 1) {
         mib_ret = srslte_ue_mib_decode(&q->ue_mib, bch_payload, nof_tx_ports, sfn_offset);
       } else {
-        DEBUG("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
+        DEBUG("Resetting PBCH decoder after %d frames", q->ue_mib.frame_cnt);
         srslte_ue_mib_reset(&q->ue_mib);
       }
       nof_frames++;

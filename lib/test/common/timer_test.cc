@@ -322,7 +322,7 @@ int timers_test5()
     timers.defer_callback(2, [&vals, string]() {
       vals.push_back(2);
       if (string != "test string") {
-        ERROR("string was not captured correctly\n");
+        ERROR("string was not captured correctly");
         exit(-1);
       }
     });

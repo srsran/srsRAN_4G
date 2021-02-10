@@ -116,19 +116,19 @@ int main(int argc, char** argv)
   srslte_dmrs_pdcch_ce_t* ce       = SRSLTE_MEM_ALLOC(srslte_dmrs_pdcch_ce_t, 1);
   cf_t*                   buffer   = srslte_vec_cf_malloc(grid_sz);
   if (rand_gen == NULL || ce == NULL || buffer == NULL) {
-    ERROR("Error malloc\n");
+    ERROR("Error malloc");
     goto clean_exit;
   }
 
   SRSLTE_MEM_ZERO(ce, srslte_dmrs_pdcch_ce_t, 1);
 
   if (srslte_pdcch_nr_init_tx(&pdcch_tx, &args) < SRSLTE_SUCCESS) {
-    ERROR("Error init\n");
+    ERROR("Error init");
     goto clean_exit;
   }
 
   if (srslte_pdcch_nr_init_rx(&pdcch_rx, &args) < SRSLTE_SUCCESS) {
-    ERROR("Error init\n");
+    ERROR("Error init");
     goto clean_exit;
   }
 
@@ -142,17 +142,16 @@ int main(int argc, char** argv)
     }
     for (coreset.duration = SRSLTE_CORESET_DURATION_MIN; coreset.duration <= SRSLTE_CORESET_DURATION_MAX;
          coreset.duration++) {
-
       srslte_search_space_t search_space = {};
       search_space.type                  = srslte_search_space_type_ue;
 
       if (srslte_pdcch_nr_set_carrier(&pdcch_tx, &carrier, &coreset) < SRSLTE_SUCCESS) {
-        ERROR("Error setting carrier\n");
+        ERROR("Error setting carrier");
         goto clean_exit;
       }
 
       if (srslte_pdcch_nr_set_carrier(&pdcch_rx, &carrier, &coreset) < SRSLTE_SUCCESS) {
-        ERROR("Error setting carrier\n");
+        ERROR("Error setting carrier");
         goto clean_exit;
       }
 
@@ -174,7 +173,7 @@ int main(int argc, char** argv)
           int n = srslte_pdcch_nr_locations_coreset(
               &coreset, &search_space, rnti, aggregation_level, slot_idx, dci_locations);
           if (n < SRSLTE_SUCCESS) {
-            ERROR("Error calculating locations in CORESET\n");
+            ERROR("Error calculating locations in CORESET");
             goto clean_exit;
           }
 
@@ -184,7 +183,6 @@ int main(int argc, char** argv)
           }
 
           for (uint32_t ncce_idx = 0; ncce_idx < n; ncce_idx++) {
-
             // Init MSG
             srslte_dci_msg_nr_t dci_msg = {};
             dci_msg.format              = srslte_dci_format_nr_1_0;
@@ -206,7 +204,7 @@ int main(int argc, char** argv)
             ce->noise_var = 0.0f;
 
             if (test(&pdcch_tx, &pdcch_rx, buffer, ce, &dci_msg) < SRSLTE_SUCCESS) {
-              ERROR("test failed\n");
+              ERROR("test failed");
               goto clean_exit;
             }
           }

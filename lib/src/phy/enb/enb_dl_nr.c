@@ -25,7 +25,7 @@ static int enb_dl_alloc_prb(srslte_enb_dl_nr_t* q, uint32_t new_nof_prb)
 
       q->sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(q->max_prb));
       if (q->sf_symbols[i] == NULL) {
-        ERROR("Malloc\n");
+        ERROR("Malloc");
         return SRSLTE_ERROR;
       }
     }
@@ -41,7 +41,7 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
   }
 
   if (args->nof_tx_antennas == 0) {
-    ERROR("Error invalid number of antennas (%d)\n", args->nof_tx_antennas);
+    ERROR("Error invalid number of antennas (%d)", args->nof_tx_antennas);
     return SRSLTE_ERROR;
   }
 
@@ -52,7 +52,7 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
   }
 
   if (enb_dl_alloc_prb(q, args->nof_max_prb) < SRSLTE_SUCCESS) {
-    ERROR("Error allocating\n");
+    ERROR("Error allocating");
     return SRSLTE_ERROR;
   }
 
@@ -68,12 +68,12 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
   }
 
   if (srslte_dmrs_sch_init(&q->dmrs, false) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pdcch_nr_init_tx(&q->pdcch, &args->pdcch) < SRSLTE_SUCCESS) {
-    ERROR("Error PDCCH\n");
+    ERROR("Error PDCCH");
     return SRSLTE_ERROR;
   }
 
@@ -109,12 +109,12 @@ int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_
   }
 
   if (srslte_dmrs_sch_set_carrier(&q->dmrs, carrier) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 
   if (enb_dl_alloc_prb(q, carrier->nof_prb) < SRSLTE_SUCCESS) {
-    ERROR("Error allocating\n");
+    ERROR("Error allocating");
     return SRSLTE_ERROR;
   }
 
@@ -195,24 +195,24 @@ int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*       q,
 
   // Put DMRS
   if (srslte_dmrs_pdcch_put(&q->carrier, &q->coreset, slot_cfg, &dci_dl->location, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error putting PDCCH DMRS\n");
+    ERROR("Error putting PDCCH DMRS");
     return SRSLTE_ERROR;
   }
 
   // Pack DCI
   srslte_dci_msg_nr_t dci_msg = {};
   if (srslte_dci_nr_pack(&q->carrier, &q->coreset, dci_dl, &dci_msg) < SRSLTE_SUCCESS) {
-    ERROR("Error packing DL DCI\n");
+    ERROR("Error packing DL DCI");
     return SRSLTE_ERROR;
   }
 
   // PDCCH Encode
   if (srslte_pdcch_nr_encode(&q->pdcch, &dci_msg, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error encoding PDCCH\n");
+    ERROR("Error encoding PDCCH");
     return SRSLTE_ERROR;
   }
 
-  INFO("DCI DL NR: L=%d; ncce=%d;\n", dci_dl->location.L, dci_dl->location.ncce);
+  INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->location.L, dci_dl->location.ncce);
 
   return SRSLTE_SUCCESS;
 }

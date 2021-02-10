@@ -99,7 +99,7 @@ uint32_t srslte_prach_nof_f_idx_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_conf
   if (config_idx < 64 && tdd_ul_dl_config < 7) {
     return prach_tdd_loc_table[config_idx][tdd_ul_dl_config].nof_elems;
   } else {
-    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
 }
@@ -109,7 +109,7 @@ uint32_t srslte_prach_f_id_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_config, u
   if (config_idx < 64 && tdd_ul_dl_config < 7) {
     return prach_tdd_loc_table[config_idx][tdd_ul_dl_config].elems[prach_idx].f;
   } else {
-    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
 }
@@ -121,9 +121,8 @@ uint32_t srslte_prach_f_ra_tdd(uint32_t config_idx,
                                uint32_t prach_offset,
                                uint32_t n_rb_ul)
 {
-
   if (config_idx >= 64 || tdd_ul_dl_config >= 7) {
-    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
   uint32_t f_ra = prach_tdd_loc_table[config_idx][tdd_ul_dl_config].elems[prach_idx].f;
@@ -160,7 +159,7 @@ bool srslte_prach_tti_opportunity_config_tdd(uint32_t  config_idx,
                                              uint32_t* prach_idx)
 {
   if (config_idx >= 64 || tdd_ul_dl_config >= 7) {
-    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
 
@@ -244,7 +243,6 @@ int srslte_prach_gen_seqs(srslte_prach_t* p)
 
   // Generate our 64 preamble sequences
   for (int i = 0; i < N_SEQS; i++) {
-
     if (v > v_max) {
       // Get a new root sequence
       if (4 == p->f) {
@@ -367,20 +365,20 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
     p->ifft_in  = srslte_vec_cf_malloc(fft_size_alloc);
     p->ifft_out = srslte_vec_cf_malloc(fft_size_alloc);
     if (srslte_dft_plan(&p->ifft, fft_size_alloc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
     srslte_dft_plan_set_mirror(&p->ifft, true);
     srslte_dft_plan_set_norm(&p->ifft, true);
 
     if (srslte_dft_plan(&p->fft, fft_size_alloc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
 
     p->signal_fft = srslte_vec_cf_malloc(fft_size_alloc);
     if (!p->signal_fft) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return -1;
     }
 
@@ -389,7 +387,7 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
 
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters");
   }
 
   return ret;
@@ -403,7 +401,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
   int ret = SRSLTE_ERROR;
   if (p != NULL && N_ifft_ul < 2049 && cfg->config_idx < 64 && cfg->root_seq_idx < MAX_ROOTS) {
     if (N_ifft_ul > p->max_N_ifft_ul) {
-      ERROR("PRACH: Error in set_cell(): N_ifft_ul must be lower or equal max_N_ifft_ul in init()\n");
+      ERROR("PRACH: Error in set_cell(): N_ifft_ul must be lower or equal max_N_ifft_ul in init()");
       return -1;
     }
 
@@ -433,7 +431,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
         p->N_zc = 139;
         p->N_cs = prach_Ncs_format4[p->zczc];
       } else {
-        ERROR("Invalid zeroCorrelationZoneConfig=%d for format4\n", p->zczc);
+        ERROR("Invalid zeroCorrelationZoneConfig=%d for format4", p->zczc);
         return SRSLTE_ERROR;
       }
     } else {
@@ -442,14 +440,14 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
         if (p->zczc < 15) {
           p->N_cs = prach_Ncs_restricted[p->zczc];
         } else {
-          ERROR("Invalid zeroCorrelationZoneConfig=%d for restricted set\n", p->zczc);
+          ERROR("Invalid zeroCorrelationZoneConfig=%d for restricted set", p->zczc);
           return SRSLTE_ERROR;
         }
       } else {
         if (p->zczc < 16) {
           p->N_cs = prach_Ncs_unrestricted[p->zczc];
         } else {
-          ERROR("Invalid zeroCorrelationZoneConfig=%d\n", p->zczc);
+          ERROR("Invalid zeroCorrelationZoneConfig=%d", p->zczc);
           return SRSLTE_ERROR;
         }
       }
@@ -492,11 +490,11 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     }*/
 
     if (srslte_dft_replan(&p->ifft, p->N_ifft_prach)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
     if (srslte_dft_replan(&p->fft, p->N_ifft_prach)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
 
@@ -514,7 +512,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters N_ifft_ul=%d; config_idx=%d; root_seq_idx=%d;\n",
+    ERROR("Invalid parameters N_ifft_ul=%d; config_idx=%d; root_seq_idx=%d;",
           N_ifft_ul,
           cfg->config_idx,
           cfg->root_seq_idx);
@@ -534,16 +532,12 @@ int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset
     uint32_t begin   = PHI + (K * k_0) + (p->is_nr ? 1 : (K / 2));
 
     if (6 + freq_offset > N_rb_ul) {
-      ERROR("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", freq_offset, N_rb_ul);
+      ERROR("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d", freq_offset, N_rb_ul);
       return ret;
     }
 
-    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n",
-          p->N_zc,
-          p->N_cp,
-          p->N_seq,
-          p->N_ifft_prach,
-          begin);
+    DEBUG(
+        "N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
 
     // Map dft-precoded sequence to ifft bins
     memset(p->ifft_in, 0, begin * sizeof(cf_t));
@@ -753,9 +747,8 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
 {
   int ret = SRSLTE_ERROR;
   if (p != NULL && signal != NULL && sig_len > 0 && indices != NULL) {
-
     if (sig_len < p->N_ifft_prach) {
-      ERROR("srslte_prach_detect: Signal length is %d and should be %d\n", sig_len, p->N_ifft_prach);
+      ERROR("srslte_prach_detect: Signal length is %d and should be %d", sig_len, p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
     int cancellation_idx = -2;

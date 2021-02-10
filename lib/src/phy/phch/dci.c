@@ -63,7 +63,7 @@ int srslte_dci_rar_to_ul_dci(srslte_cell_t* cell, srslte_dci_rar_grant_t* rar, s
   if (!rar->hopping_flag) {
     dci_ul->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
   } else {
-    ERROR("TODO: Frequency hopping in RAR not implemented\n");
+    ERROR("TODO: Frequency hopping in RAR not implemented");
     dci_ul->freq_hop_fl = 1;
   }
   uint32_t riv = rar->rba;
@@ -204,7 +204,6 @@ static uint32_t dci_format0_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t
 
 static uint32_t dci_format1_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
-
   uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 5 + HARQ_PID_LEN + 1 + 2 + 2 +
                (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
   if (cell->nof_prb > 10) {
@@ -410,7 +409,6 @@ static int dci_format0_pack(srslte_cell_t*      cell,
                             srslte_dci_ul_t*    dci,
                             srslte_dci_msg_t*   msg)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
   uint32_t n_ul_hop;
@@ -488,7 +486,6 @@ static int dci_format0_unpack(srslte_cell_t*      cell,
                               srslte_dci_msg_t*   msg,
                               srslte_dci_ul_t*    dci)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
   uint32_t n_ul_hop;
@@ -499,7 +496,7 @@ static int dci_format0_unpack(srslte_cell_t*      cell,
   }
 
   if (*y++ != 0) {
-    INFO("DCI message is Format1A\n");
+    INFO("DCI message is Format1A");
     return SRSLTE_ERROR;
   }
 
@@ -602,7 +599,7 @@ static int dci_format1_pack(srslte_cell_t*      cell,
       srslte_bit_unpack((uint32_t)dci->type1_alloc.vrb_bitmask, &y, alloc_size - (int)ceilf(log2f(P)) - 1);
       break;
     default:
-      ERROR("Format 1 accepts type0 or type1 resource allocation only\n");
+      ERROR("Format 1 accepts type0 or type1 resource allocation only");
       return SRSLTE_ERROR;
   }
   /* pack MCS */
@@ -626,7 +623,7 @@ static int dci_format1_pack(srslte_cell_t*      cell,
   msg->nof_bits = (y - msg->payload);
 
   if (msg->nof_bits != dci_format1_sizeof(cell, sf, cfg)) {
-    ERROR("Invalid message length for format 1 (Cross scheduling %s)\n", dci->cif_present ? "enabled" : "disabled");
+    ERROR("Invalid message length for format 1 (Cross scheduling %s)", dci->cif_present ? "enabled" : "disabled");
   }
 
   return SRSLTE_SUCCESS;
@@ -638,14 +635,13 @@ static int dci_format1_unpack(srslte_cell_t*      cell,
                               srslte_dci_msg_t*   msg,
                               srslte_dci_dl_t*    dci)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT1 message */
   uint32_t msg_len = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1);
   if (msg->nof_bits != msg_len) {
-    ERROR("Invalid message length (%d!=%d) for format 1\n", msg->nof_bits, msg_len);
+    ERROR("Invalid message length (%d!=%d) for format 1", msg->nof_bits, msg_len);
     return SRSLTE_ERROR;
   }
 
@@ -673,7 +669,7 @@ static int dci_format1_unpack(srslte_cell_t*      cell,
       dci->type1_alloc.vrb_bitmask = srslte_bit_pack(&y, alloc_size - (int)ceilf(log2f(P)) - 1);
       break;
     default:
-      ERROR("Format 1 accepts type0 or type1 resource allocation only\n");
+      ERROR("Format 1 accepts type0 or type1 resource allocation only");
       return SRSLTE_ERROR;
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
@@ -719,7 +715,7 @@ static int dci_format1As_pack(srslte_cell_t*      cell,
   *y++ = 1; // format differentiation
 
   if (dci->alloc_type != SRSLTE_RA_ALLOC_TYPE2) {
-    ERROR("Format 1A accepts type2 resource allocation only\n");
+    ERROR("Format 1A accepts type2 resource allocation only");
     return SRSLTE_ERROR;
   }
 
@@ -780,7 +776,6 @@ static int dci_format1As_unpack(srslte_cell_t*      cell,
                                 srslte_dci_msg_t*   msg,
                                 srslte_dci_dl_t*    dci)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
 
@@ -790,7 +785,7 @@ static int dci_format1As_unpack(srslte_cell_t*      cell,
   }
 
   if (*y++ != 1) {
-    INFO("DCI message is Format0\n");
+    INFO("DCI message is Format0");
     return SRSLTE_ERROR;
   }
 
@@ -883,7 +878,6 @@ static int dci_format1B_unpack(srslte_cell_t*      cell,
                                srslte_dci_msg_t*   msg,
                                srslte_dci_dl_t*    dci)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
 
@@ -937,7 +931,6 @@ static int dci_format1Cs_pack(srslte_cell_t*      cell,
                               srslte_dci_dl_t*    dci,
                               srslte_dci_msg_t*   msg)
 {
-
   uint32_t nof_prb = cell->nof_prb;
 
   /* pack bits */
@@ -948,7 +941,7 @@ static int dci_format1Cs_pack(srslte_cell_t*      cell,
   }
 
   if (dci->alloc_type != SRSLTE_RA_ALLOC_TYPE2 || dci->type2_alloc.mode != SRSLTE_RA_TYPE2_DIST) {
-    ERROR("Format 1C accepts distributed type2 resource allocation only\n");
+    ERROR("Format 1C accepts distributed type2 resource allocation only");
     return SRSLTE_ERROR;
   }
 
@@ -980,7 +973,7 @@ static int dci_format1Cs_unpack(srslte_cell_t*      cell,
   uint8_t* y = msg->payload;
 
   if (msg->nof_bits != srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1C)) {
-    ERROR("Invalid message length for format 1C\n");
+    ERROR("Invalid message length for format 1C");
     return SRSLTE_ERROR;
   }
 
@@ -1011,7 +1004,6 @@ static int dci_format1D_unpack(srslte_cell_t*      cell,
                                srslte_dci_msg_t*   msg,
                                srslte_dci_dl_t*    dci)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
 
@@ -1063,7 +1055,6 @@ static int dci_format2AB_pack(srslte_cell_t*      cell,
                               srslte_dci_dl_t*    dci,
                               srslte_dci_msg_t*   msg)
 {
-
   uint32_t nof_prb   = cell->nof_prb;
   uint32_t nof_ports = cell->nof_ports;
 
@@ -1091,7 +1082,7 @@ static int dci_format2AB_pack(srslte_cell_t*      cell,
       srslte_bit_unpack((uint32_t)dci->type1_alloc.vrb_bitmask, &y, alloc_size - (int)ceilf(log2f(P)) - 1);
       break;
     default:
-      ERROR("Format 1 accepts type0 or type1 resource allocation only\n");
+      ERROR("Format 1 accepts type0 or type1 resource allocation only");
       return SRSLTE_ERROR;
   }
 
@@ -1141,7 +1132,6 @@ static int dci_format2AB_unpack(srslte_cell_t*      cell,
                                 srslte_dci_msg_t*   msg,
                                 srslte_dci_dl_t*    dci)
 {
-
   /* pack bits */
   uint8_t* y = msg->payload;
 
@@ -1169,7 +1159,7 @@ static int dci_format2AB_unpack(srslte_cell_t*      cell,
       dci->type1_alloc.vrb_bitmask = srslte_bit_pack(&y, alloc_size - (int)ceilf(log2f(P)) - 1);
       break;
     default:
-      ERROR("Format2 accepts type0 or type1 resource allocation only\n");
+      ERROR("Format2 accepts type0 or type1 resource allocation only");
       return SRSLTE_ERROR;
   }
 
@@ -1260,7 +1250,7 @@ int srslte_dci_msg_pack_pdsch(srslte_cell_t*      cell,
       ret = dci_format2AB_pack(cell, sf, cfg, dci, msg);
       break;
     default:
-      ERROR("DCI pack pdsch: Invalid DCI format %s\n", srslte_dci_format_string(msg->format));
+      ERROR("DCI pack pdsch: Invalid DCI format %s", srslte_dci_format_string(msg->format));
   }
 
 #if SRSLTE_DCI_HEXDEBUG
@@ -1320,7 +1310,7 @@ int srslte_dci_msg_unpack_pdsch(srslte_cell_t*      cell,
     case SRSLTE_DCI_FORMAT2B:
       return dci_format2AB_unpack(cell, sf, cfg, msg, dci);
     default:
-      ERROR("DCI unpack pdsch: Invalid DCI format %s\n", srslte_dci_format_string(msg->format));
+      ERROR("DCI unpack pdsch: Invalid DCI format %s", srslte_dci_format_string(msg->format));
       return SRSLTE_ERROR;
   }
 }
@@ -1411,13 +1401,13 @@ int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uint32_t nCCE)
   if (L <= 3) {
     c->L = L;
   } else {
-    ERROR("Invalid L %d\n", L);
+    ERROR("Invalid L %d", L);
     return SRSLTE_ERROR;
   }
   if (nCCE <= 87) {
     c->ncce = nCCE;
   } else {
-    ERROR("Invalid nCCE %d\n", nCCE);
+    ERROR("Invalid nCCE %d", nCCE);
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;

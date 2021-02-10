@@ -130,7 +130,7 @@ void MAKE_CALL(run_tdec_iteration)(srslte_tdec_t* h, llr_t* input)
 
     h->n_iter++;
   } else {
-    ERROR("Error CB index not set (call srslte_tdec_new_cb() first\n");
+    ERROR("Error CB index not set (call srslte_tdec_new_cb() first");
   }
 }
 

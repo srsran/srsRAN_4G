@@ -125,13 +125,12 @@ static void mod_256qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits,
 /* Assumes packet bits as input */
 int srslte_mod_modulate_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
-
   if (!q->byte_tables_init) {
-    ERROR("Error need to initiated modem tables for packeted bits before calling srslte_mod_modulate_bytes()\n");
+    ERROR("Error need to initiated modem tables for packeted bits before calling srslte_mod_modulate_bytes()");
     return SRSLTE_ERROR;
   }
   if (nbits % q->nbits_x_symbol) {
-    ERROR("Error modulator expects number of bits (%d) to be multiple of %d\n", nbits, q->nbits_x_symbol);
+    ERROR("Error modulator expects number of bits (%d) to be multiple of %d", nbits, q->nbits_x_symbol);
     return -1;
   }
   switch (q->nbits_x_symbol) {
@@ -151,7 +150,7 @@ int srslte_mod_modulate_bytes(const srslte_modem_table_t* q, const uint8_t* bits
       mod_256qam_bytes(q, bits, symbols, nbits);
       break;
     default:
-      ERROR("srslte_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only\n");
+      ERROR("srslte_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only");
       return SRSLTE_ERROR;
   }
   return nbits / q->nbits_x_symbol;

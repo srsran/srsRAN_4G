@@ -104,9 +104,8 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
@@ -119,12 +118,12 @@ int base_init()
   }
 
   if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
-    ERROR("Error initializing UE DL\n");
+    ERROR("Error initializing UE DL");
     return -1;
   }
 
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-    ERROR("Error initializing UE DL\n");
+    ERROR("Error initializing UE DL");
     return -1;
   }
 
@@ -134,7 +133,7 @@ int base_init()
   srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb);
   srslte_softbuffer_rx_reset(&softbuffer_rx);
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
@@ -157,7 +156,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
   srslte_use_standard_symbol_size(false);
   if (base_init()) {
-    ERROR("Error initializing memory\n");
+    ERROR("Error initializing memory");
     exit(-1);
   }
 
@@ -170,7 +169,7 @@ int main(int argc, char** argv)
   ret = -1;
 
   srslte_filesource_read(&fsrc, input_buffer[0], flen);
-  INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
+  INFO("Reading %d samples sub-frame %d", flen, sf_idx);
 
   srslte_dl_sf_cfg_t dl_sf;
   ZERO_OBJECT(dl_sf);
@@ -184,10 +183,10 @@ int main(int argc, char** argv)
   ue_dl_cfg.chest_cfg.mbsfn_area_id = mbsfn_area_id;
 
   // Special configuration for MBSFN channel estimation
-  ue_dl_cfg.chest_cfg.filter_type          = SRSLTE_CHEST_FILTER_TRIANGLE;
-  ue_dl_cfg.chest_cfg.filter_coef[0]       = 0.1;
-  ue_dl_cfg.chest_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
-  ue_dl_cfg.chest_cfg.noise_alg            = SRSLTE_NOISE_ALG_PSS;
+  ue_dl_cfg.chest_cfg.filter_type    = SRSLTE_CHEST_FILTER_TRIANGLE;
+  ue_dl_cfg.chest_cfg.filter_coef[0] = 0.1;
+  ue_dl_cfg.chest_cfg.estimator_alg  = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
+  ue_dl_cfg.chest_cfg.noise_alg      = SRSLTE_NOISE_ALG_PSS;
 
   if ((ret = srslte_ue_dl_decode_fft_estimate(&ue_dl, &dl_sf, &ue_dl_cfg)) < 0) {
     return ret;

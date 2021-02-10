@@ -38,7 +38,7 @@ int srslte_nsss_synch_init(srslte_nsss_synch_t* q, uint32_t input_size, uint32_t
     q->corr_peak_threshold = 2.0;
 
     uint32_t buffer_size = SRSLTE_NSSS_CORR_FILTER_LEN + q->input_size + 1;
-    DEBUG("NSSS buffer size is %d samples.\n", buffer_size);
+    DEBUG("NSSS buffer size is %d samples.", buffer_size);
     q->tmp_input = srslte_vec_cf_malloc(buffer_size);
     if (!q->tmp_input) {
       fprintf(stderr, "Error allocating memory\n");
@@ -135,7 +135,7 @@ int srslte_nsss_synch_resize(srslte_nsss_synch_t* q, uint32_t fft_size)
 int srslte_nsss_corr_init(srslte_nsss_synch_t* q)
 {
   srslte_dft_plan_t plan;
-  float complex nsss_signal_pad[q->fft_size];
+  float complex     nsss_signal_pad[q->fft_size];
 
   // construct dft plan
   if (srslte_dft_plan(&plan, q->fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
@@ -161,7 +161,7 @@ int srslte_nsss_corr_init(srslte_nsss_synch_t* q)
 #endif
 
   // generate correlation sequences
-  DEBUG("Generating NSSS sequences\n");
+  DEBUG("Generating NSSS sequences");
   for (int i = 0; i < SRSLTE_NUM_PCI; i++) {
     float complex nsss_signal[SRSLTE_NSSS_TOT_LEN] = {};
     srslte_nsss_generate(nsss_signal, i);
@@ -234,7 +234,7 @@ int srslte_nsss_sync_find(srslte_nsss_synch_t* q,
     memcpy(q->tmp_input, input, q->input_size * sizeof(cf_t));
 
     if (*cell_id == SRSLTE_CELL_ID_UNKNOWN) {
-      DEBUG("N_id_ncell is not set. Perform exhaustive search on input.\n");
+      DEBUG("N_id_ncell is not set. Perform exhaustive search on input.");
 
       // brute-force: correlate with all possible sequences until cell is found
       for (int i = 0; i < SRSLTE_NUM_PCI; i++) {
@@ -251,7 +251,7 @@ int srslte_nsss_sync_find(srslte_nsss_synch_t* q,
       peak_value = q->peak_values[max_id];
 
     } else {
-      DEBUG("Current N_id_ncell is %d.\n", *cell_id);
+      DEBUG("Current N_id_ncell is %d.", *cell_id);
 
       // run correlation only for given id
       srslte_nsss_sync_find_pci(q, q->tmp_input, *cell_id);
@@ -319,7 +319,7 @@ void srslte_nsss_sync_find_pci(srslte_nsss_synch_t* q, cf_t* input, uint32_t cel
   int   sl_left           = srslte_vec_max_fi(q->conv_output_abs, sl_distance_left);
   float side_lobe_value   = SRSLTE_MAX(q->conv_output_abs[sl_right], q->conv_output_abs[sl_left]);
   q->peak_values[cell_id] = q->conv_output_abs[corr_peak_pos] / side_lobe_value;
-  DEBUG("NSSS n_id_ncell=%d at peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f\n",
+  DEBUG("NSSS n_id_ncell=%d at peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f",
         cell_id,
         corr_peak_pos,
         pl_ub,
@@ -332,7 +332,7 @@ void srslte_nsss_sync_find_pci(srslte_nsss_synch_t* q, cf_t* input, uint32_t cel
 #else
   // save max. absolute value
   q->peak_values[cell_id] = q->conv_output_abs[corr_peak_pos];
-  DEBUG("NSSS n_id_ncell=%d with peak=%f found at: %d\n", cell_id, q->peak_values[cell_id], corr_peak_pos);
+  DEBUG("NSSS n_id_ncell=%d with peak=%f found at: %d", cell_id, q->peak_values[cell_id], corr_peak_pos);
 #endif
 }
 
@@ -351,7 +351,7 @@ void srslte_nsss_generate(cf_t* signal, uint32_t cell_id)
         int n_prime = n % 131;
         int m       = n % 128;
 
-        float arg = (float)sign * 2.0 * M_PI * ((float)theta_f) * ((float)n);
+        float         arg = (float)sign * 2.0 * M_PI * ((float)theta_f) * ((float)n);
         float complex tmp1;
         __real__ tmp1 = cosf(arg);
         __imag__ tmp1 = sinf(arg);
@@ -365,7 +365,7 @@ void srslte_nsss_generate(cf_t* signal, uint32_t cell_id)
       }
     }
   } else {
-    DEBUG("Invalid n_id_ncell %d\n", cell_id);
+    DEBUG("Invalid n_id_ncell %d", cell_id);
   }
 }
 
@@ -381,7 +381,7 @@ void srslte_nsss_put_subframe(srslte_nsss_synch_t* q,
   // skip first 3 OFDM symbols over all PRBs completely
   int k = 3 * nof_prb * SRSLTE_NRE + nbiot_prb_offset * SRSLTE_NRE;
 
-  DEBUG("%d.9: Putting NSSS with theta_f=%d\n", nf, theta_f);
+  DEBUG("%d.9: Putting NSSS with theta_f=%d", nf, theta_f);
   for (int l = 0; l < SRSLTE_CP_NORM_SF_NSYMB - 3; l++) {
     memcpy(&subframe[k + SRSLTE_NSSS_NSC * l],
            &nsss[(theta_f * SRSLTE_NSSS_LEN) + (l * SRSLTE_NSSS_NSC)],

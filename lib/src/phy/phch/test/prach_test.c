@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     return -1;
   }
   if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
-    ERROR("Error initiating PRACH object\n");
+    ERROR("Error initiating PRACH object");
     return -1;
   }
 

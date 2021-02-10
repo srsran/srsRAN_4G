@@ -18,16 +18,16 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <strings.h>
-#include "srslte/srslte.h"
-#include <time.h>
 #include "srslte/phy/phch/prach.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/srslte.h"
+#include <strings.h>
+#include <time.h>
 char* input_file_name = NULL;
 #define PRACH_SRATE 1048750
 
 #define MAX_LEN 70176
-int offset                = -1;
+int      offset           = -1;
 uint32_t nof_prb          = 6;
 uint32_t preamble_format  = 0;
 uint32_t root_seq_idx     = 0;
@@ -40,7 +40,7 @@ bool test_successive_cancellation  = false;
 bool test_offset_calculation       = false;
 bool stagger_prach_power_and_phase = false;
 // this will work best with one or two simultaenous prach
-srslte_filesource_t    fsrc;
+srslte_filesource_t fsrc;
 
 void usage(char* prog)
 {
@@ -80,7 +80,7 @@ void parse_args(int argc, char** argv)
         input_file_name = argv[optind];
         break;
       case 'o':
-        offset =  (uint32_t)strtol(argv[optind], NULL, 10);
+        offset = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
         test_successive_cancellation = true;
@@ -101,8 +101,13 @@ void parse_args(int argc, char** argv)
   }
 }
 // this function staggers power and phase of the different PRACH signals for more realisitc testing
-void stagger_prach_powers(srslte_prach_t *prach, cf_t *preamble, cf_t* preamble_sum, int freq_offset, int n_seqs, int *offsets) {
-
+void stagger_prach_powers(srslte_prach_t* prach,
+                          cf_t*           preamble,
+                          cf_t*           preamble_sum,
+                          int             freq_offset,
+                          int             n_seqs,
+                          int*            offsets)
+{
   for (int seq_index = 0; seq_index < n_seqs; seq_index++) {
     srslte_prach_gen(prach, seq_index, freq_offset, preamble);
     if (seq_index == 0) {
@@ -148,12 +153,12 @@ int main(int argc, char** argv)
   memset(preamble_sum, 0, sizeof(cf_t) * MAX_LEN);
   int offsets[64];
   memset(offsets, 0, sizeof(int) * 64);
-  float t_offsets[64];
+  float              t_offsets[64];
   srslte_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
-  if(input_file_name) {
+  if (input_file_name) {
     if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-      ERROR("Error opening file %s\n", input_file_name);
+      ERROR("Error opening file %s", input_file_name);
       exit(-1);
     }
   }
@@ -166,14 +171,14 @@ int main(int argc, char** argv)
   prach_cfg.enable_successive_cancellation = test_successive_cancellation;
   prach_cfg.enable_freq_domain_offset_calc = freq_domain_offset_calc;
 
-  int  srate = srslte_sampling_freq_hz(nof_prb);
-  int  divisor = srate / PRACH_SRATE;
+  int srate   = srslte_sampling_freq_hz(nof_prb);
+  int divisor = srate / PRACH_SRATE;
   if (test_offset_calculation || test_successive_cancellation || stagger_prach_power_and_phase) {
     if (n_seqs > 6) {
       n_seqs = 6;
     }
-    prach_cfg.zero_corr_zone     = 0;
-    prach_cfg.num_ra_preambles   = 8;
+    prach_cfg.zero_corr_zone   = 0;
+    prach_cfg.num_ra_preambles = 8;
     printf("limiting number of preambles to 6\n");
     if (test_offset_calculation) {
       for (int i = 0; i < 6; i++) {
@@ -187,11 +192,11 @@ int main(int argc, char** argv)
   }
 
   if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
-    ERROR("Error initiating PRACH object\n");
+    ERROR("Error initiating PRACH object");
     return -1;
   }
 
-  uint32_t seq_index        = 0;
+  uint32_t seq_index = 0;
 
   uint32_t indices[64];
   uint32_t n_indices = 0;
@@ -212,7 +217,7 @@ int main(int argc, char** argv)
   }
 
   if (input_file_name) {
-    srslte_filesource_read(&fsrc, &preamble_sum[prach.N_cp],  prach.N_seq);
+    srslte_filesource_read(&fsrc, &preamble_sum[prach.N_cp], prach.N_seq);
   }
 
   uint32_t prach_len = prach.N_seq;
@@ -221,7 +226,7 @@ int main(int argc, char** argv)
   }
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  srslte_prach_detect_offset(&prach, 0, &preamble_sum[prach.N_cp], prach_len, indices, t_offsets , NULL, &n_indices);
+  srslte_prach_detect_offset(&prach, 0, &preamble_sum[prach.N_cp], prach_len, indices, t_offsets, NULL, &n_indices);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   printf("texec=%ld us\n", t[0].tv_usec);
@@ -232,7 +237,7 @@ int main(int argc, char** argv)
   }
   for (int i = 0; i < n_indices; i++) {
     if (test_offset_calculation) {
-      int error =  (int)(t_offsets[i] * srate) - offsets[i];
+      int error = (int)(t_offsets[i] * srate) - offsets[i];
       if (abs(error) > divisor) {
         printf("preamble %d has incorrect offset calculated as %d, should be %d\n",
                indices[i],
@@ -242,7 +247,7 @@ int main(int argc, char** argv)
       }
     }
   }
-  if (err){
+  if (err) {
     return -1;
   }
 

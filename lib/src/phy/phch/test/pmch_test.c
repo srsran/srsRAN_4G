@@ -160,11 +160,11 @@ int main(int argc, char** argv)
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffers_tx[i]) {
-      ERROR("Error allocating TX soft buffer\n");
+      ERROR("Error allocating TX soft buffer");
     }
 
     if (srslte_softbuffer_tx_init(softbuffers_tx[i], cell.nof_prb)) {
-      ERROR("Error initiating TX soft buffer\n");
+      ERROR("Error initiating TX soft buffer");
       goto quit;
     }
   }
@@ -180,12 +180,12 @@ int main(int argc, char** argv)
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffers_rx[i]) {
-      ERROR("Error allocating RX soft buffer\n");
+      ERROR("Error allocating RX soft buffer");
       goto quit;
     }
 
     if (srslte_softbuffer_rx_init(softbuffers_rx[i], cell.nof_prb)) {
-      ERROR("Error initiating RX soft buffer\n");
+      ERROR("Error initiating RX soft buffer");
       goto quit;
     }
   }
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
     tx_sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell.nof_prb));
     srslte_vec_cf_zero(tx_sf_symbols[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn[i], SRSLTE_CP_EXT, tx_slot_symbols[i], tx_sf_symbols[i], cell.nof_prb)) {
-      ERROR("Error creating iFFT object\n");
+      ERROR("Error creating iFFT object");
       exit(-1);
     }
 
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
     rx_sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell.nof_prb));
     srslte_vec_cf_zero(rx_sf_symbols[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_rx_init_mbsfn(&fft_mbsfn[i], SRSLTE_CP_EXT, rx_sf_symbols[i], rx_slot_symbols[i], cell.nof_prb)) {
-      ERROR("Error creating iFFT object\n");
+      ERROR("Error creating iFFT object");
       exit(-1);
     }
 
@@ -259,26 +259,26 @@ int main(int argc, char** argv)
     }
   }
 
-  INFO(" Global:\n");
-  INFO("         nof_prb=%d\n", cell.nof_prb);
-  INFO("       nof_ports=%d\n", cell.nof_ports);
-  INFO("              id=%d\n", cell.id);
-  INFO("              cp=%s\n", srslte_cp_string(cell.cp));
-  INFO("    phich_length=%d\n", (int)cell.phich_length);
-  INFO(" phich_resources=%d\n", (int)cell.phich_resources);
-  INFO("         nof_prb=%d\n", pmch_cfg.pdsch_cfg.grant.nof_prb);
-  INFO("          sf_idx=%d\n", subframe);
-  INFO("          nof_tb=%d\n", pmch_cfg.pdsch_cfg.grant.nof_tb);
+  INFO(" Global:");
+  INFO("         nof_prb=%d", cell.nof_prb);
+  INFO("       nof_ports=%d", cell.nof_ports);
+  INFO("              id=%d", cell.id);
+  INFO("              cp=%s", srslte_cp_string(cell.cp));
+  INFO("    phich_length=%d", (int)cell.phich_length);
+  INFO(" phich_resources=%d", (int)cell.phich_resources);
+  INFO("         nof_prb=%d", pmch_cfg.pdsch_cfg.grant.nof_prb);
+  INFO("          sf_idx=%d", subframe);
+  INFO("          nof_tb=%d", pmch_cfg.pdsch_cfg.grant.nof_tb);
 
-  INFO("         mcs.idx=0x%X\n", pmch_cfg.pdsch_cfg.grant.tb[0].mcs_idx);
-  INFO("         mcs.tbs=%d\n", pmch_cfg.pdsch_cfg.grant.tb[0].tbs);
-  INFO("         mcs.mod=%s\n", srslte_mod_string(pmch_cfg.pdsch_cfg.grant.tb[0].mod));
-  INFO("              rv=%d\n", pmch_cfg.pdsch_cfg.grant.tb[0].rv);
-  INFO("        nof_bits=%d\n", pmch_cfg.pdsch_cfg.grant.tb[0].nof_bits);
-  INFO("          nof_re=%d\n", pmch_cfg.pdsch_cfg.grant.nof_re);
+  INFO("         mcs.idx=0x%X", pmch_cfg.pdsch_cfg.grant.tb[0].mcs_idx);
+  INFO("         mcs.tbs=%d", pmch_cfg.pdsch_cfg.grant.tb[0].tbs);
+  INFO("         mcs.mod=%s", srslte_mod_string(pmch_cfg.pdsch_cfg.grant.tb[0].mod));
+  INFO("              rv=%d", pmch_cfg.pdsch_cfg.grant.tb[0].rv);
+  INFO("        nof_bits=%d", pmch_cfg.pdsch_cfg.grant.tb[0].nof_bits);
+  INFO("          nof_re=%d", pmch_cfg.pdsch_cfg.grant.nof_re);
 
   if (srslte_pmch_init(&pmch, cell.nof_prb, 1)) {
-    ERROR("Error creating PMCH object\n");
+    ERROR("Error creating PMCH object");
   }
   srslte_pmch_set_area_id(&pmch, mbsfn_area_id);
 
@@ -291,7 +291,7 @@ int main(int argc, char** argv)
   }
 
   if (srslte_pmch_encode(&pmch, &dl_sf, &pmch_cfg, data_tx[0], tx_slot_symbols)) {
-    ERROR("Error encoding PDSCH\n");
+    ERROR("Error encoding PDSCH");
     exit(-1);
   }
   gettimeofday(&t[2], NULL);
@@ -428,7 +428,6 @@ quit:
   } else {
     printf("Ok\n");
   }
-
 
   exit(ret);
 }

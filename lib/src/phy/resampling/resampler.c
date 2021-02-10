@@ -90,14 +90,14 @@ int srslte_resampler_fft_init(srslte_resampler_fft_t* q, srslte_resampler_mode_t
   int err =
       srslte_dft_plan_guru_c(&q->fft, input_fft_size, SRSLTE_DFT_FORWARD, q->in_buffer, q->out_buffer, 1, 1, 1, 1, 1);
   if (err != SRSLTE_SUCCESS) {
-    ERROR("Initialising DFT\n");
+    ERROR("Initialising DFT");
     return err;
   }
 
   err = srslte_dft_plan_guru_c(
       &q->ifft, output_fft_size, SRSLTE_DFT_BACKWARD, q->in_buffer, q->out_buffer, 1, 1, 1, 1, 1);
   if (err != SRSLTE_SUCCESS) {
-    ERROR("Initialising DFT\n");
+    ERROR("Initialising DFT");
     return err;
   }
 

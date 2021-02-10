@@ -187,7 +187,7 @@ int srslte_tdec_init_manual(srslte_tdec_t* h, uint32_t max_long_cb, srslte_tdec_
       break;
 #endif /* LV_HAVE_AVX2 */
     default:
-      ERROR("Error decoder %d not supported\n", dec_type);
+      ERROR("Error decoder %d not supported", dec_type);
       goto clean_and_exit;
   }
 
@@ -394,7 +394,7 @@ static int tdec_sb_idx(uint32_t long_cb)
     case 0:
       return AUTO_16_SSE;
   }
-  ERROR("Error in tdec_sb_idx() invalid nof_sb=%d\n", nof_sb);
+  ERROR("Error in tdec_sb_idx() invalid nof_sb=%d", nof_sb);
   return 0;
 }
 
@@ -427,7 +427,7 @@ static int tdec_sb_idx_8(uint32_t long_cb)
     case 0:
       return 10 + AUTO_16_SSE;
   }
-  ERROR("Error in tdec_sb_idx_8() invalid nof_sb=%d\n", nof_sb);
+  ERROR("Error in tdec_sb_idx_8() invalid nof_sb=%d", nof_sb);
   return 0;
 }
 
@@ -486,7 +486,6 @@ static void tdec_iteration_16(srslte_tdec_t* h, int16_t* input)
   h->current_inter_idx = interleaver_idx(h->nof_blocks16[h->current_dec]);
 
   if (h->current_llr_type == SRSLTE_TDEC_8) {
-
     h->current_inter_idx = interleaver_idx(h->nof_blocks8[h->current_dec]);
 
     if (!h->n_iter) {
@@ -502,7 +501,7 @@ static void tdec_iteration_16(srslte_tdec_t* h, int16_t* input)
 int srslte_tdec_new_cb(srslte_tdec_t* h, uint32_t long_cb)
 {
   if (long_cb > h->max_long_cb) {
-    ERROR("TDEC was initialized for max_long_cb=%d\n", h->max_long_cb);
+    ERROR("TDEC was initialized for max_long_cb=%d", h->max_long_cb);
     return -1;
   }
 
@@ -510,7 +509,7 @@ int srslte_tdec_new_cb(srslte_tdec_t* h, uint32_t long_cb)
   h->current_long_cb = long_cb;
   h->current_cbidx   = srslte_cbsegm_cbindex(long_cb);
   if (h->current_cbidx < 0) {
-    ERROR("Invalid CB length %d\n", long_cb);
+    ERROR("Invalid CB length %d", long_cb);
     return -1;
   }
   return 0;

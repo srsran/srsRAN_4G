@@ -66,7 +66,7 @@ void parse_args(int argc, char** argv)
             break;
           default:
             ERROR("Invalid modulation %d. Possible values: "
-                  "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n",
+                  "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)",
                   (int)strtol(argv[optind], NULL, 10));
             break;
         }
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
   /* initialize objects */
   if (srslte_modem_table_lte(&mod, modulation)) {
-    ERROR("Error initializing modem table\n");
+    ERROR("Error initializing modem table");
     exit(-1);
   }
 

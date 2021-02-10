@@ -282,7 +282,6 @@ char* srslte_cp_string(srslte_cp_t cp)
 /* Returns the new time advance N_ta_new as specified in Section 4.2.3 of 36.213 */
 uint32_t srslte_N_ta_new(uint32_t N_ta_old, uint32_t ta)
 {
-
   ta &= 63;
   int n_ta_new = N_ta_old + ((float)ta - 31) * 16;
   if (n_ta_new < 0) {
@@ -643,7 +642,7 @@ bool srslte_band_is_tdd(uint32_t band)
     i++;
   }
   if (i == SRSLTE_NOF_LTE_BANDS) {
-    ERROR("Invalid Band %d\n", band);
+    ERROR("Invalid Band %d", band);
     return false;
   }
   return lte_bands[i].ul_earfcn_offset == 0;
@@ -653,7 +652,7 @@ uint8_t srslte_band_get_band(uint32_t dl_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
-    ERROR("Invalid DL_EARFCN=%d\n", dl_earfcn);
+    ERROR("Invalid DL_EARFCN=%d", dl_earfcn);
   }
   i--;
   while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
@@ -666,7 +665,7 @@ double srslte_band_fd(uint32_t dl_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
-    ERROR("Invalid DL_EARFCN=%d\n", dl_earfcn);
+    ERROR("Invalid DL_EARFCN=%d", dl_earfcn);
   }
   i--;
   while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
@@ -679,7 +678,7 @@ double srslte_band_fu(uint32_t ul_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (ul_earfcn > lte_bands[i].ul_earfcn_offset) {
-    ERROR("Invalid UL_EARFCN=%d\n", ul_earfcn);
+    ERROR("Invalid UL_EARFCN=%d", ul_earfcn);
   }
   i--;
   while (i > 0 && (lte_bands[i].ul_earfcn_offset > ul_earfcn || lte_bands[i].ul_earfcn_offset == 0)) {
@@ -692,7 +691,7 @@ uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
-    ERROR("Invalid DL_EARFCN=%d\n", dl_earfcn);
+    ERROR("Invalid DL_EARFCN=%d", dl_earfcn);
   }
   i--;
   while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
@@ -719,14 +718,14 @@ int srslte_band_get_fd_band(uint32_t         band,
     i++;
   }
   if (i >= SRSLTE_NOF_LTE_BANDS - 1) {
-    ERROR("Error: Invalid band %d\n", band);
+    ERROR("Error: Invalid band %d", band);
     return SRSLTE_ERROR;
   }
   if (end_earfcn == -1) {
     end_earfcn = lte_bands[i + 1].dl_earfcn_offset - 1;
   } else {
     if (end_earfcn > lte_bands[i + 1].dl_earfcn_offset - 1) {
-      ERROR("Error: Invalid end earfcn %d. Max is %d\n", end_earfcn, lte_bands[i + 1].dl_earfcn_offset - 1);
+      ERROR("Error: Invalid end earfcn %d. Max is %d", end_earfcn, lte_bands[i + 1].dl_earfcn_offset - 1);
       return SRSLTE_ERROR;
     }
   }
@@ -734,7 +733,7 @@ int srslte_band_get_fd_band(uint32_t         band,
     start_earfcn = lte_bands[i].dl_earfcn_offset;
   } else {
     if (start_earfcn < lte_bands[i].dl_earfcn_offset) {
-      ERROR("Error: Invalid start earfcn %d. Min is %d\n", start_earfcn, lte_bands[i].dl_earfcn_offset);
+      ERROR("Error: Invalid start earfcn %d. Min is %d", start_earfcn, lte_bands[i].dl_earfcn_offset);
       return SRSLTE_ERROR;
     }
   }
@@ -794,11 +793,11 @@ uint32_t srslte_print_check(char* s, size_t max_len, uint32_t cur_len, const cha
       cur_len += ret;
     } else {
       // Formatting error detected
-      ERROR("Formatting error when printing string\n");
+      ERROR("Formatting error when printing string");
       exit(-1);
     }
   } else {
-    ERROR("Buffer full when printing string\n");
+    ERROR("Buffer full when printing string");
     exit(-1);
   }
   return cur_len;

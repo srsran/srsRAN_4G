@@ -165,7 +165,7 @@ int base_init()
     return -1;
   }
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
@@ -216,7 +216,7 @@ int main(int argc, char** argv)
     if (nread == SFLEN) {
       // do IFFT and channel estimation only on subframes that are known to contain NRS
       if (sf_idx == 0 || sf_idx == 4) {
-        INFO("%d.%d: Estimating channel.\n", frame_cnt, sf_idx);
+        INFO("%d.%d: Estimating channel.", frame_cnt, sf_idx);
         srslte_ofdm_rx_sf(&fft);
         // srslte_ofdm_set_normalize(&fft, true);
 
@@ -229,10 +229,10 @@ int main(int argc, char** argv)
       if (sf_idx == 0) {
         float noise_est = (do_chest) ? srslte_chest_dl_nbiot_get_noise_estimate(&chest) : 0.0;
         if (frame_cnt % 8 == 0) {
-          DEBUG("Reseting NPBCH decoder.\n");
+          DEBUG("Reseting NPBCH decoder.");
           srslte_npbch_decode_reset(&npbch);
         }
-        INFO("%d.0: Calling NPBCH decoder (noise_est=%.2f)\n", frame_cnt, noise_est);
+        INFO("%d.0: Calling NPBCH decoder (noise_est=%.2f)", frame_cnt, noise_est);
         ret = srslte_npbch_decode_nf(&npbch, fft_buffer, ce, noise_est, bch_payload, &nof_tx_ports, NULL, nf);
 
         if (ret == SRSLTE_SUCCESS) {
@@ -246,10 +246,10 @@ int main(int argc, char** argv)
 
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           if (do_chest) {
-            DEBUG("SAVED FILE npbch_rx_chest_on.bin: NPBCH with chest\n");
+            DEBUG("SAVED FILE npbch_rx_chest_on.bin: NPBCH with chest");
             srslte_vec_save_file("npbch_rx_chest_on.bin", npbch.d, npbch.nof_symbols * sizeof(cf_t));
           } else {
-            DEBUG("SAVED FILE npbch_rx_chest_off.bin: NPBCH without chest\n");
+            DEBUG("SAVED FILE npbch_rx_chest_off.bin: NPBCH without chest");
             srslte_vec_save_file("npbch_rx_chest_off.bin", npbch.d, npbch.nof_symbols * sizeof(cf_t));
           }
         }

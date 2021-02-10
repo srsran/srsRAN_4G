@@ -93,20 +93,19 @@ uint32_t prbset_to_bitmask()
 class test_enb
 {
 private:
-  srslte_enb_dl_t     enb_dl;
-  srslte::channel_ptr channel;
-  cf_t*               signal_buffer[SRSLTE_MAX_PORTS] = {};
-  srslte::log_filter  channel_log;
+  srslte_enb_dl_t       enb_dl;
+  srslte::channel_ptr   channel;
+  cf_t*                 signal_buffer[SRSLTE_MAX_PORTS] = {};
+  srslog::basic_logger& logger;
 
 public:
   test_enb(const srslte_cell_t& cell, const srslte::channel::args_t& channel_args) :
-    enb_dl(), channel_log("Channel pci=" + std::to_string(cell.id))
+    enb_dl(), logger(srslog::fetch_basic_logger("Channel pci=" + std::to_string(cell.id)))
   {
-    channel_log.set_level(channel_log_level);
+    logger.set_level(srslog::str_to_basic_level(channel_log_level));
 
-    channel = srslte::channel_ptr(new srslte::channel(channel_args, cell_base.nof_ports));
+    channel = srslte::channel_ptr(new srslte::channel(channel_args, cell_base.nof_ports, logger));
     channel->set_srate(srslte_sampling_freq_hz(cell.nof_prb));
-    channel->set_logger(&channel_log);
 
     // Allocate buffer for eNb
     for (uint32_t i = 0; i < cell_base.nof_ports; i++) {
@@ -137,7 +136,6 @@ public:
            cf_t*                         baseband_buffer,
            const srslte::rf_timestamp_t& ts)
   {
-
     int      ret    = SRSLTE_SUCCESS;
     uint32_t sf_len = SRSLTE_SF_LEN_PRB(enb_dl.cell.nof_prb);
 
@@ -382,7 +380,6 @@ static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& lis
   } else if (list_str == "none") {
     // Do nothing
   } else if (not list_str.empty()) {
-
     // Remove spaces from neightbour cell list
     list_str = srslte::string_remove_char(list_str, ' ');
 

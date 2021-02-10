@@ -47,7 +47,7 @@ int srslte_ue_ul_nr_init(srslte_ue_ul_nr_t* q, cf_t* output, const srslte_ue_ul_
   }
 
   if (srslte_dmrs_sch_init(&q->dmrs, false) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 

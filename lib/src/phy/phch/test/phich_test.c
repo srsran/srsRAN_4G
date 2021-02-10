@@ -68,7 +68,7 @@ void parse_args(int argc, char** argv)
         } else if (!strcmp(argv[optind], "2")) {
           phich_res = SRSLTE_PHICH_R_2;
         } else {
-          ERROR("Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
+          ERROR("Invalid phich ng factor %s. Setting to default.", argv[optind]);
         }
         break;
       case 'e':
@@ -127,7 +127,7 @@ int main(int argc, char** argv)
     max_cid = cell.id;
   }
   if (srslte_phich_init(&phich, 1)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     exit(-1);
   }
   while (cid <= max_cid) {
@@ -136,12 +136,12 @@ int main(int argc, char** argv)
     printf("Testing CellID=%d...\n", cid);
 
     if (srslte_regs_init(&regs, cell)) {
-      ERROR("Error initiating regs\n");
+      ERROR("Error initiating regs");
       exit(-1);
     }
 
     if (srslte_phich_set_cell(&phich, &regs, cell)) {
-      ERROR("Error creating PBCH object\n");
+      ERROR("Error creating PBCH object");
       exit(-1);
     }
 
@@ -149,7 +149,6 @@ int main(int argc, char** argv)
     ZERO_OBJECT(dl_sf);
 
     for (nsf = 0; nsf < 10; nsf++) {
-
       dl_sf.tti = nsf;
 
       srslte_phich_reset(&phich, slot_symbols);
@@ -159,7 +158,6 @@ int main(int argc, char** argv)
       /* Transmit all PHICH groups and sequence numbers */
       for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
         for (nseq = 0; nseq < max_nseq; nseq++) {
-
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
 
@@ -178,7 +176,6 @@ int main(int argc, char** argv)
       /* Receive all PHICH groups and sequence numbers */
       for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
         for (nseq = 0; nseq < max_nseq; nseq++) {
-
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
 
@@ -188,7 +185,7 @@ int main(int argc, char** argv)
             printf("Error decoding ACK\n");
             exit(-1);
           }
-          INFO("%d/%d, ack_tx: %d, ack_rx: %d, ns: %d, distance: %f\n",
+          INFO("%d/%d, ack_tx: %d, ack_rx: %d, ns: %d, distance: %f",
                ngroup,
                nseq,
                ack[ngroup][nseq],

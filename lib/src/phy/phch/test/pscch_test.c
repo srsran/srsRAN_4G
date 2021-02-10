@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 
   srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing sl_comm_resource_pool\n");
+    ERROR("Error initializing sl_comm_resource_pool");
     return SRSLTE_ERROR;
   }
 
@@ -104,12 +104,12 @@ int main(int argc, char** argv)
   // PSCCH
   srslte_pscch_t pscch;
   if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH init\n");
+    ERROR("Error in PSCCH init");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pscch_set_cell(&pscch, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH init\n");
+    ERROR("Error in PSCCH init");
     return SRSLTE_ERROR;
   }
 

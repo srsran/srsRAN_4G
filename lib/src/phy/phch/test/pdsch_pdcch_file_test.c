@@ -91,7 +91,7 @@ void parse_args(int argc, char** argv)
       case 'o':
         dci_format = srslte_dci_format_from_string(argv[optind]);
         if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-          ERROR("Error unsupported format %s\n", argv[optind]);
+          ERROR("Error unsupported format %s", argv[optind]);
           exit(-1);
         }
         break;
@@ -114,9 +114,8 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
@@ -129,17 +128,17 @@ int base_init()
   }
 
   if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
-    ERROR("Error initializing UE DL\n");
+    ERROR("Error initializing UE DL");
     return -1;
   }
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-    ERROR("Error initializing UE DL\n");
+    ERROR("Error initializing UE DL");
     return -1;
   }
 
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
@@ -164,7 +163,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (base_init()) {
-    ERROR("Error initializing memory\n");
+    ERROR("Error initializing memory");
     exit(-1);
   }
 
@@ -192,7 +191,7 @@ int main(int argc, char** argv)
   nof_frames = 0;
   do {
     srslte_filesource_read(&fsrc, input_buffer[0], flen);
-    INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
+    INFO("Reading %d samples sub-frame %d", flen, sf_idx);
 
     dl_sf.tti = sf_idx;
     ret       = srslte_ue_dl_find_and_decode(&ue_dl, &dl_sf, &ue_dl_cfg, &pdsch_cfg, data, acks);

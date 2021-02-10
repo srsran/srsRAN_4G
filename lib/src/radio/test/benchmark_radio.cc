@@ -362,7 +362,7 @@ static void* radio_thread_run(void* arg)
   if (capture) {
     for (uint32_t r = 0; r < nof_radios; r++) {
       snprintf(filename, 256, file_pattern.c_str(), r);
-      INFO("Opening filesink %s for radio %d\n", filename, r);
+      INFO("Opening filesink %s for radio %d", filename, r);
       if (srslte_filesink_init(&filesink[r], filename, SRSLTE_COMPLEX_FLOAT_BIN)) {
         ERROR("Initiating filesink for radio %d\n", r);
         goto clean_exit;
@@ -490,7 +490,7 @@ static void* radio_thread_run(void* arg)
         }
 
         delay_idx[r] += relative_delay;
-        INFO("Radio %d relative delay is %d sample in frame %d/%d (average %.1f)\n",
+        INFO("Radio %d relative delay is %d sample in frame %d/%d (average %.1f)",
              r,
              relative_delay,
              i + 1,
@@ -510,7 +510,7 @@ static void* radio_thread_run(void* arg)
         gap = (int32_t)round(srslte_timestamp_real(&ts_diff) * current_rate) - (int32_t)frame_size;
 
         if (gap != 0) {
-          INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f\n",
+          INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f",
                gap,
                i + 1,
                nof_frames,

@@ -99,10 +99,10 @@ uint32_t srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp)
     if (cp == SRSLTE_CP_NORM) {
       return SRSLTE_CP_NORM_SF_NSYMB;
     } else {
-      ERROR("Invalid CP\n");
+      ERROR("Invalid CP");
     }
   } else {
-    ERROR("Invalid TM\n");
+    ERROR("Invalid TM");
   }
   return 0; // Calling function may use return value for loop termination
 }

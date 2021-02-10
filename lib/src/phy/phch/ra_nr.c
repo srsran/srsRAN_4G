@@ -474,7 +474,7 @@ static int ra_dl_dmrs(const srslte_sch_hl_cfg_nr_t* pdsch_hl_cfg,
 
       if (pdsch_grant->dci_format == srslte_dci_format_nr_1_0) {
         if (srslte_ra_dl_nr_nof_dmrs_cdm_groups_without_data_format_1_0(dmrs_cfg, pdsch_grant) < SRSLTE_SUCCESS) {
-          ERROR("Error loading number of DMRS CDM groups\n");
+          ERROR("Error loading number of DMRS CDM groups");
           return SRSLTE_ERROR;
         }
       } else {
@@ -576,11 +576,11 @@ ra_ul_dmrs(const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg, srslte_sch_grant_nr_t* pu
   // Set number of DMRS CDM groups without data
   if (pusch_grant->dci_format == srslte_dci_format_nr_0_0) {
     if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(cfg, pusch_grant) < SRSLTE_SUCCESS) {
-      ERROR("Error loading number of DMRS CDM groups\n");
+      ERROR("Error loading number of DMRS CDM groups");
       return SRSLTE_ERROR;
     }
   } else {
-    ERROR("Invalid case\n");
+    ERROR("Invalid case");
     return SRSLTE_ERROR;
   }
 

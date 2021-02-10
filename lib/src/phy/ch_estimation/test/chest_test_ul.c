@@ -118,13 +118,13 @@ int main(int argc, char** argv)
   }
   printf("max_cid=%d, cid=%d, cell.id=%d\n", max_cid, cid, cell.id);
   if (srslte_chest_ul_init(&est, cell.nof_prb)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     goto do_exit;
   }
   while (cid <= max_cid) {
     cell.id = cid;
     if (srslte_chest_ul_set_cell(&est, cell)) {
-      ERROR("Error initializing equalizer\n");
+      ERROR("Error initializing equalizer");
       goto do_exit;
     }
 
@@ -133,7 +133,6 @@ int main(int argc, char** argv)
         for (int delta_ss = 29; delta_ss < SRSLTE_NOF_DELTA_SS; delta_ss++) {
           for (int cshift = 7; cshift < SRSLTE_NOF_CSHIFT; cshift++) {
             for (int t = 2; t < 3; t++) {
-
               /* Setup and pregen DMRS reference signals */
               srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg;
 
@@ -161,7 +160,6 @@ int main(int argc, char** argv)
 
               for (int sf_idx = 0; sf_idx < 10; sf_idx += 3) {
                 for (int cshift_dmrs = 0; cshift_dmrs < SRSLTE_NOF_CSHIFT; cshift_dmrs += 5) {
-
                   if (SRSLTE_VERBOSE_ISINFO()) {
                     printf("nof_prb: %d, ", nof_prb);
                     printf("cyclic_shift: %d, ", pusch_cfg.cyclic_shift);
@@ -210,7 +208,7 @@ int main(int argc, char** argv)
                     mse += cabsf(ce[i] - h[i]);
                   }
                   mse /= num_re;
-                  INFO("MSE: %f\n", mse);
+                  INFO("MSE: %f", mse);
                   if (mse > 4) {
                     goto do_exit;
                   }

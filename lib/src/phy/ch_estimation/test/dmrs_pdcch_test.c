@@ -156,7 +156,7 @@ int main(int argc, char** argv)
           srslte_dmrs_pdcch_estimator_init(&estimator, &carrier, &coreset);
 
           if (run_test(&estimator, &coreset, &search_space, aggregation_level, sf_symbols, &pdcch_ce)) {
-            ERROR("Test %d failed\n", test_counter);
+            ERROR("Test %d failed", test_counter);
           } else {
             test_passed++;
           }

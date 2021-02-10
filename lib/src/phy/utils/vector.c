@@ -356,7 +356,7 @@ void srslte_vec_sprint_hex(char* str, const uint32_t max_str_len, uint8_t* x, co
   nbytes = len / 8;
   // check that hex string fits in buffer (every byte takes 3 characters, plus brackets)
   if ((3 * (len / 8 + ((len % 8) ? 1 : 0))) + 2 >= max_str_len) {
-    ERROR("Buffer too small for printing hex string (max_str_len=%d, payload_len=%d).\n", max_str_len, len);
+    ERROR("Buffer too small for printing hex string (max_str_len=%d, payload_len=%d).", max_str_len, len);
     return;
   }
 

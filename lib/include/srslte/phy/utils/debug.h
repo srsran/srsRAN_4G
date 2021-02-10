@@ -48,7 +48,7 @@ SRSLTE_API extern int handler_registered;
 #define DEBUG(_fmt, ...)                                                                                               \
   do {                                                                                                                 \
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {                       \
-      fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__);                                                                \
+      fprintf(stdout, "[DEBUG]: " _fmt "\n", ##__VA_ARGS__);                                                           \
     } else {                                                                                                           \
       srslte_phy_log_print(LOG_LEVEL_DEBUG_S, _fmt, ##__VA_ARGS__);                                                    \
     }                                                                                                                  \
@@ -57,7 +57,7 @@ SRSLTE_API extern int handler_registered;
 #define INFO(_fmt, ...)                                                                                                \
   do {                                                                                                                 \
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {                        \
-      fprintf(stdout, "[INFO]: " _fmt, ##__VA_ARGS__);                                                                 \
+      fprintf(stdout, "[INFO]: " _fmt "\n", ##__VA_ARGS__);                                                            \
     } else {                                                                                                           \
       srslte_phy_log_print(LOG_LEVEL_INFO_S, _fmt, ##__VA_ARGS__);                                                     \
     }                                                                                                                  \

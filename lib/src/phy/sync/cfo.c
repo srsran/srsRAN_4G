@@ -77,7 +77,7 @@ int srslte_cfo_resize(srslte_cfo_t* h, uint32_t samples)
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
     h->nsamples = samples;
   } else {
-    ERROR("Error in cfo_resize(): nof_samples must be lower than initialized\n");
+    ERROR("Error in cfo_resize(): nof_samples must be lower than initialized");
     return SRSLTE_ERROR;
   }
 #endif /* SRSLTE_CFO_USE_EXP_TABLE */
@@ -90,7 +90,7 @@ void srslte_cfo_correct(srslte_cfo_t* h, const cf_t* input, cf_t* output, float 
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
-    DEBUG("CFO generating new table for frequency %.4fe-6\n", freq * 1e6);
+    DEBUG("CFO generating new table for frequency %.4fe-6", freq * 1e6);
   }
   srslte_vec_prod_ccc(h->cur_cexp, input, output, h->nsamples);
 #else  /* SRSLTE_CFO_USE_EXP_TABLE */
@@ -113,7 +113,7 @@ void srslte_cfo_correct_offset(srslte_cfo_t* h,
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
-    DEBUG("CFO generating new table for frequency %.4fe-6\n", freq * 1e6);
+    DEBUG("CFO generating new table for frequency %.4fe-6", freq * 1e6);
   }
   srslte_vec_prod_ccc(&h->cur_cexp[cexp_offset], input, output, nsamples);
 }

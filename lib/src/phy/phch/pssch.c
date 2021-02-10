@@ -40,57 +40,57 @@ int srslte_pssch_init(srslte_pssch_t* q, srslte_cell_sl_t cell, srslte_sl_comm_r
     if (cell.cp == SRSLTE_CP_NORM) {
       q->nof_data_symbols = SRSLTE_PSSCH_TM34_NUM_DATA_SYMBOLS;
     } else {
-      ERROR("Invalid CP for PSSCH, SL TM 3/4\n");
+      ERROR("Invalid CP for PSSCH, SL TM 3/4");
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
   } else {
-    ERROR("Invalid SL TM\n");
+    ERROR("Invalid SL TM");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   // Transport Block
   q->b = srslte_vec_u8_malloc(SRSLTE_SL_SCH_MAX_TB_LEN + SRSLTE_PSSCH_CRC_LEN);
   if (!q->b) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Transport Block CRC
   if (srslte_crc_init(&q->tb_crc, SRSLTE_LTE_CRC24A, SRSLTE_PSSCH_CRC_LEN)) {
-    ERROR("Error Transport Block CRC init\n");
+    ERROR("Error Transport Block CRC init");
     return SRSLTE_ERROR;
   }
   q->tb_crc_temp = srslte_vec_u8_malloc(SRSLTE_PSSCH_CRC_LEN);
   if (!q->tb_crc_temp) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Code Block Segmentation
   q->c_r = srslte_vec_u8_malloc(SRSLTE_TCOD_MAX_LEN_CB);
   if (!q->c_r) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   q->f_16 = srslte_vec_i16_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->f_16) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   q->c_r_bytes = srslte_vec_u8_malloc(SRSLTE_TCOD_MAX_LEN_CB / 8);
   if (!q->c_r_bytes) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Code Block CRC
   if (srslte_crc_init(&q->cb_crc, SRSLTE_LTE_CRC24B, SRSLTE_PSSCH_CRC_LEN)) {
-    ERROR("Error Code Block CRC init\n");
+    ERROR("Error Code Block CRC init");
     return SRSLTE_ERROR;
   }
   q->cb_crc_temp = srslte_vec_u8_malloc(SRSLTE_PSSCH_CRC_LEN);
   if (!q->cb_crc_temp) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
@@ -98,32 +98,32 @@ int srslte_pssch_init(srslte_pssch_t* q, srslte_cell_sl_t cell, srslte_sl_comm_r
   srslte_tcod_init(&q->tcod, SRSLTE_TCOD_MAX_LEN_CB);
   q->d_r = srslte_vec_u8_malloc(SRSLTE_PSSCH_MAX_CODED_BITS);
   if (!q->d_r) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_tdec_init(&q->tdec, SRSLTE_TCOD_MAX_LEN_CB);
   srslte_tdec_force_not_sb(&q->tdec);
   q->d_r_16 = srslte_vec_i16_malloc(SRSLTE_PSSCH_MAX_CODED_BITS);
   if (!q->d_r_16) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Rate Matching
   q->e_r = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->e_r) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   q->buff_b = srslte_vec_u8_malloc(SRSLTE_PSSCH_MAX_CODED_BITS);
   if (!q->buff_b) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_u8_zero(q->buff_b, SRSLTE_PSSCH_MAX_CODED_BITS);
   q->e_r_16 = srslte_vec_i16_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->e_r_16) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_rm_turbo_gentables();
@@ -131,19 +131,19 @@ int srslte_pssch_init(srslte_pssch_t* q, srslte_cell_sl_t cell, srslte_sl_comm_r
   // Code Block Concatenation
   q->f = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->f) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Interleaving
   q->f_bytes = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN / 8);
   if (!q->f_bytes) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   q->interleaver_lut = srslte_vec_u32_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->interleaver_lut) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_u32_zero(q->interleaver_lut, SRSLTE_MAX_CODEWORD_LEN);
@@ -151,37 +151,37 @@ int srslte_pssch_init(srslte_pssch_t* q, srslte_cell_sl_t cell, srslte_sl_comm_r
   // Scrambling
   q->codeword = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->codeword) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   q->codeword_bytes = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN / 8);
   if (!q->codeword_bytes) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Modulation
   q->symbols = srslte_vec_cf_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->symbols) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_cf_zero(q->symbols, SRSLTE_MAX_CODEWORD_LEN);
 
   q->bits_after_demod = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->bits_after_demod) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   q->bytes_after_demod = srslte_vec_u8_malloc(SRSLTE_MAX_CODEWORD_LEN / 8);
   if (!q->bytes_after_demod) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   for (int i = 0; i < SRSLTE_MOD_NITEMS; i++) {
     if (srslte_modem_table_lte(&q->mod[i], (srslte_mod_t)i)) {
-      ERROR("Error initiating modem tables\n");
+      ERROR("Error initiating modem tables");
       return SRSLTE_ERROR;
     }
   }
@@ -189,22 +189,22 @@ int srslte_pssch_init(srslte_pssch_t* q, srslte_cell_sl_t cell, srslte_sl_comm_r
   // Demodulation
   q->llr = srslte_vec_i16_malloc(SRSLTE_MAX_CODEWORD_LEN);
   if (!q->llr) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Transform Precoding
   q->scfdma_symbols = srslte_vec_cf_malloc(q->nof_data_symbols * SRSLTE_NRE * SRSLTE_MAX_PRB);
   if (!q->scfdma_symbols) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_precoding_init(&q->dft_precoder, SRSLTE_MAX_PRB, true)) {
-    ERROR("Error DFT precoder init\n");
+    ERROR("Error DFT precoder init");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_precoding_init(&q->idft_precoder, SRSLTE_MAX_PRB, false)) {
-    ERROR("Error in DFT precoder init\n");
+    ERROR("Error in DFT precoder init");
     return SRSLTE_ERROR;
   }
 
@@ -250,7 +250,7 @@ int srslte_pssch_set_cfg(srslte_pssch_t* q, srslte_pssch_cfg_t pssch_cfg)
 int srslte_pssch_encode(srslte_pssch_t* q, uint8_t* input, uint32_t input_len, cf_t* sf_buffer)
 {
   if (!input || input_len > q->sl_sch_tb_len) {
-    ERROR("Can't encode PSSCH, input too long (%d > %d)\n", input_len, q->sl_sch_tb_len);
+    ERROR("Can't encode PSSCH, input too long (%d > %d)", input_len, q->sl_sch_tb_len);
     return SRSLTE_ERROR;
   }
 
@@ -274,7 +274,6 @@ int srslte_pssch_encode(srslte_pssch_t* q, uint8_t* input, uint32_t input_len, c
   srslte_crc_attach(&q->tb_crc, q->b, q->sl_sch_tb_len);
 
   for (int r = 0; r < q->cb_segm.C; r++) {
-
     // Code block segmentation
     if (r < q->cb_segm.C2) {
       K_r = q->cb_segm.K2;
@@ -356,7 +355,7 @@ int srslte_pssch_encode(srslte_pssch_t* q, uint8_t* input, uint32_t input_len, c
 
   // RE mapping
   if (q->nof_tx_re != srslte_pssch_put(q, sf_buffer, q->scfdma_symbols)) {
-    ERROR("There was an error mapping the PSSCH symbols\n");
+    ERROR("There was an error mapping the PSSCH symbols");
     return SRSLTE_ERROR;
   }
 
@@ -366,13 +365,13 @@ int srslte_pssch_encode(srslte_pssch_t* q, uint8_t* input, uint32_t input_len, c
 int srslte_pssch_decode(srslte_pssch_t* q, cf_t* equalized_sf_syms, uint8_t* output, uint32_t output_len)
 {
   if (output_len < q->sl_sch_tb_len) {
-    ERROR("Can't decode PSSCH, provided buffer too small (%d < %d)\n", output_len, q->sl_sch_tb_len);
+    ERROR("Can't decode PSSCH, provided buffer too small (%d < %d)", output_len, q->sl_sch_tb_len);
     return SRSLTE_ERROR;
   }
 
   // RE extraction
   if (q->nof_tx_re != srslte_pssch_get(q, equalized_sf_syms, q->scfdma_symbols)) {
-    ERROR("There was an error getting the PSSCH symbols\n");
+    ERROR("There was an error getting the PSSCH symbols");
     return SRSLTE_ERROR;
   }
 
@@ -443,7 +442,6 @@ int srslte_pssch_decode(srslte_pssch_t* q, cf_t* equalized_sf_syms, uint8_t* out
     srslte_bit_unpack_vector(q->c_r_bytes, q->c_r, K_r);
 
     if (q->cb_segm.C > 1) {
-
       // Copy received crc to temp
       memcpy(q->cb_crc_temp, &q->c_r[(K_r - L)], sizeof(uint8_t) * L);
 
@@ -489,7 +487,6 @@ int srslte_pssch_put(srslte_pssch_t* q, cf_t* sf_buffer, cf_t* symbols)
   uint32_t k          = q->pssch_cfg.prb_start_idx * SRSLTE_NRE;
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); i++) {
     if (srslte_pssch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->cell.tm, i, q->cell.cp)) {
-
       if (q->cell.tm == SRSLTE_SIDELINK_TM1 || q->cell.tm == SRSLTE_SIDELINK_TM2) {
         if (q->pssch_cfg.nof_prb <= q->sl_comm_resource_pool.prb_num) {
           k = q->pssch_cfg.prb_start_idx * SRSLTE_NRE;

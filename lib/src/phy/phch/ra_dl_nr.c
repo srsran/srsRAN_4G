@@ -18,23 +18,23 @@ static bool check_time_ra_typeA(uint32_t* S, uint32_t* L)
 {
   // Check values using Table 5.1.2.1-1
   if (*S > 3) {
-    ERROR("S (%d) is out-of-range {0,1,2,3}\n", *S);
+    ERROR("S (%d) is out-of-range {0,1,2,3}", *S);
     return false;
   }
 
   if (*L < 3 || *L > 14) {
-    ERROR("L (%d) is out-of-range {3,...,14}\n", *L);
+    ERROR("L (%d) is out-of-range {3,...,14}", *L);
     return false;
   }
 
   uint32_t sum = *S + *L;
   if (sum < 3) {
-    ERROR("The sum of S (%d) and L (%d) is lower than 3\n", *S, *L);
+    ERROR("The sum of S (%d) and L (%d) is lower than 3", *S, *L);
     return false;
   }
 
   if (sum > 14) {
-    ERROR("The sum of S (%d) and L (%d) is greater than 14\n", *S, *L);
+    ERROR("The sum of S (%d) and L (%d) is greater than 14", *S, *L);
     return false;
   }
 
@@ -43,7 +43,7 @@ static bool check_time_ra_typeA(uint32_t* S, uint32_t* L)
 
 static bool check_time_ra_typeB(uint32_t* S, uint32_t* L)
 {
-  ERROR("Not implemented\n");
+  ERROR("Not implemented");
   return false;
 }
 
@@ -63,7 +63,7 @@ int srslte_ra_dl_nr_time_default_A(uint32_t m, srslte_dmrs_sch_typeA_pos_t dmrs_
   }
 
   if (m >= SRSLTE_MAX_NOF_DL_ALLOCATION) {
-    ERROR("m (%d) is out-of-range\n", m);
+    ERROR("m (%d) is out-of-range", m);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -105,7 +105,7 @@ int srslte_ra_dl_nr_time_default_A(uint32_t m, srslte_dmrs_sch_typeA_pos_t dmrs_
       grant->L = L_pos3[m];
       break;
     default:
-      ERROR("Undefined case (%d)\n", dmrs_typeA_pos);
+      ERROR("Undefined case (%d)", dmrs_typeA_pos);
       return SRSLTE_ERROR;
   }
 
@@ -133,7 +133,7 @@ int srslte_ra_dl_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
   }
 
   if (m >= SRSLTE_MAX_NOF_DL_ALLOCATION) {
-    ERROR("m (%d) is out-of-range\n", m);
+    ERROR("m (%d) is out-of-range", m);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -182,7 +182,7 @@ int srslte_ra_dl_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
 
   // Validate S and L parameters
   if (!srslte_ra_dl_nr_time_validate(grant)) {
-    ERROR("Invalid Time RA S=%d; L=%d; m=%d\n", grant->S, grant->L, m);
+    ERROR("Invalid Time RA S=%d; L=%d; m=%d", grant->S, grant->L, m);
     return SRSLTE_ERROR;
   }
 
@@ -270,6 +270,6 @@ int srslte_ra_dl_nr_freq(const srslte_carrier_nr_t*    carrier,
   }
 
   ra_freq_type0(carrier, cfg, dci_dl, grant);
-  ERROR("Only DCI Format 1_0 is supported\n");
+  ERROR("Only DCI Format 1_0 is supported");
   return SRSLTE_ERROR;
 }

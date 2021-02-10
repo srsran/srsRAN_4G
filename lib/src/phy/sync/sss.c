@@ -28,7 +28,6 @@ void generate_N_id_1_table(uint32_t table[30][30]);
 
 int srslte_sss_init(srslte_sss_t* q, uint32_t fft_size)
 {
-
   if (q != NULL && fft_size <= 2048) {
     uint32_t            N_id_2;
     srslte_sss_tables_t sss_tables;
@@ -61,7 +60,7 @@ int srslte_sss_resize(srslte_sss_t* q, uint32_t fft_size)
 {
   if (q != NULL && fft_size <= 2048) {
     if (fft_size > q->max_fft_size) {
-      ERROR("Error in sss_synch_resize(): fft_size must be lower than initialized\n");
+      ERROR("Error in sss_synch_resize(): fft_size must be lower than initialized");
       return SRSLTE_ERROR;
     }
     if (srslte_dft_replan(&q->dftp_input, fft_size)) {
@@ -84,7 +83,7 @@ void srslte_sss_free(srslte_sss_t* q)
 int srslte_sss_set_N_id_2(srslte_sss_t* q, uint32_t N_id_2)
 {
   if (!srslte_N_id_2_isvalid(N_id_2)) {
-    ERROR("Invalid N_id_2 %d\n", N_id_2);
+    ERROR("Invalid N_id_2 %d", N_id_2);
     return SRSLTE_ERROR;
   } else {
     q->N_id_2 = N_id_2;

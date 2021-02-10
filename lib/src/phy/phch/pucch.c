@@ -121,7 +121,6 @@ int srslte_pucch_set_cell(srslte_pucch_t* q, srslte_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL && srslte_cell_isvalid(&cell)) {
-
     if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
       q->cell = cell;
 
@@ -163,7 +162,7 @@ int srslte_pucch_set_rnti(srslte_pucch_t* q, uint16_t rnti)
     // If the sequence is not allocated generate
     q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
     if (!q->users[rnti_idx]) {
-      ERROR("Alocating PDSCH user\n");
+      ERROR("Alocating PDSCH user");
       return SRSLTE_ERROR;
     }
   } else if (q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id && !q->is_ue) {
@@ -178,7 +177,7 @@ int srslte_pucch_set_rnti(srslte_pucch_t* q, uint16_t rnti)
   for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
     if (srslte_sequence_pucch(
             &q->users[rnti_idx]->seq_f2[sf_idx], rnti, SRSLTE_NOF_SLOTS_PER_SF * sf_idx, q->cell.id)) {
-      ERROR("Error initializing PUCCH scrambling sequence\n");
+      ERROR("Error initializing PUCCH scrambling sequence");
       srslte_pucch_free_rnti(q, rnti);
       return SRSLTE_ERROR;
     }
@@ -230,13 +229,13 @@ static srslte_sequence_t* get_user_sequence(srslte_pucch_t* q, uint16_t rnti, ui
       return &q->users[rnti_idx]->seq_f2[sf_idx];
     } else {
       if (srslte_sequence_pucch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id)) {
-        ERROR("Error computing PUCCH Format 2 scrambling sequence\n");
+        ERROR("Error computing PUCCH Format 2 scrambling sequence");
         return NULL;
       }
       return &q->tmp_seq;
     }
   } else {
-    ERROR("Invalid RNTI=0x%x\n", rnti);
+    ERROR("Invalid RNTI=0x%x", rnti);
     return NULL;
   }
 }
@@ -268,7 +267,7 @@ uci_mod_bits(srslte_pucch_t* q, srslte_ul_sf_cfg_t* sf, srslte_pucch_cfg_t* cfg,
         srslte_scrambling_b_offset(seq, q->bits_scram, 0, SRSLTE_PUCCH2_NOF_BITS);
         srslte_mod_modulate(&q->mod, q->bits_scram, q->d, SRSLTE_PUCCH2_NOF_BITS);
       } else {
-        ERROR("Error modulating PUCCH2 bits: could not generate sequence\n");
+        ERROR("Error modulating PUCCH2 bits: could not generate sequence");
         return -1;
       }
       break;
@@ -279,12 +278,12 @@ uci_mod_bits(srslte_pucch_t* q, srslte_ul_sf_cfg_t* sf, srslte_pucch_cfg_t* cfg,
         srslte_scrambling_b_offset(seq, q->bits_scram, 0, SRSLTE_PUCCH3_NOF_BITS);
         srslte_mod_modulate(&q->mod, q->bits_scram, q->d, SRSLTE_PUCCH3_NOF_BITS);
       } else {
-        ERROR("Error modulating PUCCH3 bits: rnti not set\n");
+        ERROR("Error modulating PUCCH3 bits: rnti not set");
         return SRSLTE_ERROR;
       }
       break;
     default:
-      ERROR("PUCCH format %s not supported\n", srslte_pucch_format_text(cfg->format));
+      ERROR("PUCCH format %s not supported", srslte_pucch_format_text(cfg->format));
       return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
@@ -440,7 +439,7 @@ static int pucch_cp(srslte_pucch_t*     q,
           n_re += SRSLTE_NRE;
         }
       } else {
-        ERROR("Invalid PUCCH n_prb=%d\n", n_prb);
+        ERROR("Invalid PUCCH n_prb=%d", n_prb);
         return SRSLTE_ERROR;
       }
     }
@@ -468,7 +467,7 @@ static int encode_signal_format12(srslte_pucch_t*     q,
 {
   if (!signal_only) {
     if (uci_mod_bits(q, sf, cfg, bits)) {
-      ERROR("Error encoding PUCCH bits\n");
+      ERROR("Error encoding PUCCH bits");
       return SRSLTE_ERROR;
     }
   } else {
@@ -481,7 +480,7 @@ static int encode_signal_format12(srslte_pucch_t*     q,
   uint32_t sf_idx = sf->tti % SRSLTE_NOF_SF_X_FRAME;
   for (uint32_t ns = SRSLTE_NOF_SLOTS_PER_SF * sf_idx; ns < SRSLTE_NOF_SLOTS_PER_SF * (sf_idx + 1); ns++) {
     uint32_t N_sf = get_N_sf(cfg->format, ns % 2, sf->shortened);
-    DEBUG("ns=%d, N_sf=%d\n", ns, N_sf);
+    DEBUG("ns=%d, N_sf=%d", ns, N_sf);
     // Get group hopping number u
     uint32_t f_gh = 0;
     if (cfg->group_hopping_en) {
@@ -505,11 +504,11 @@ static int encode_signal_format12(srslte_pucch_t*     q,
         uint32_t n_prime_ns = 0;
         uint32_t n_oc       = 0;
         float    alpha = srslte_pucch_alpha_format1(q->n_cs_cell, cfg, q->cell.cp, true, ns, l, &n_oc, &n_prime_ns);
-        float S_ns = 0;
+        float    S_ns  = 0;
         if (n_prime_ns % 2) {
           S_ns = M_PI / 2;
         }
-        DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d, n_rb_2=%d\n",
+        DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d, n_rb_2=%d",
               __real__ q->d[0],
               __imag__ q->d[0],
               alpha,
@@ -536,7 +535,7 @@ static int encode_signal_format3(srslte_pucch_t*     q,
 {
   if (!signal_only) {
     if (uci_mod_bits(q, sf, cfg, bits)) {
-      ERROR("Error encoding PUCCH bits\n");
+      ERROR("Error encoding PUCCH bits");
       return SRSLTE_ERROR;
     }
   } else {
@@ -641,7 +640,7 @@ static int decode_signal_format3(srslte_pucch_t*     q,
 
     return (int)srslte_block_decode_i16(q->llr, SRSLTE_PUCCH3_NOF_BITS, bits, SRSLTE_UCI_MAX_ACK_SR_BITS);
   } else {
-    ERROR("Error modulating PUCCH3 bits: rnti not set\n");
+    ERROR("Error modulating PUCCH3 bits: rnti not set");
     return SRSLTE_ERROR;
   }
 
@@ -680,7 +679,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
       uint8_t buff[SRSLTE_CQI_MAX_BITS];
       int     uci_cqi_len = srslte_cqi_value_pack(&cfg->uci_cfg.cqi, &uci_data->cqi, buff);
       if (uci_cqi_len < 0) {
-        ERROR("Error encoding CQI\n");
+        ERROR("Error encoding CQI");
         return SRSLTE_ERROR;
       }
       srslte_uci_encode_cqi_pucch(buff, (uint32_t)uci_cqi_len, pucch_bits);
@@ -727,7 +726,7 @@ static bool decode_signal(srslte_pucch_t*     q,
       if (corr >= cfg->threshold_format1) {
         detected = true;
       }
-      DEBUG("format1 corr=%f, nof_re=%d, th=%f\n", corr, nof_re, cfg->threshold_format1);
+      DEBUG("format1 corr=%f, nof_re=%d, th=%f", corr, nof_re, cfg->threshold_format1);
       break;
     case SRSLTE_PUCCH_FORMAT_1A:
       detected = 0;
@@ -742,7 +741,7 @@ static bool decode_signal(srslte_pucch_t*     q,
         if (corr_max > cfg->threshold_format1) { // check with format1 in case ack+sr because ack only is binary
           detected = true;
         }
-        DEBUG("format1a b=%d, corr=%f, nof_re=%d\n", b, corr, nof_re);
+        DEBUG("format1a b=%d, corr=%f, nof_re=%d", b, corr, nof_re);
       }
       corr          = corr_max;
       pucch_bits[0] = b_max;
@@ -763,7 +762,7 @@ static bool decode_signal(srslte_pucch_t*     q,
           if (corr_max > cfg->threshold_format1) { // check with format1 in case ack+sr because ack only is binary
             detected = true;
           }
-          DEBUG("format1b b=%d, corr=%f, nof_re=%d\n", b, corr, nof_re);
+          DEBUG("format1b b=%d, corr=%f, nof_re=%d", b, corr, nof_re);
         }
       }
       corr          = corr_max;
@@ -794,7 +793,7 @@ static bool decode_signal(srslte_pucch_t*     q,
         }
         detected = true;
       } else {
-        ERROR("Decoding PUCCH2: could not generate sequence\n");
+        ERROR("Decoding PUCCH2: could not generate sequence");
         return -1;
       }
       break;
@@ -803,7 +802,7 @@ static bool decode_signal(srslte_pucch_t*     q,
       detected = corr > cfg->threshold_data_valid_format3;
       break;
     default:
-      ERROR("PUCCH format %d not implemented\n", cfg->format);
+      ERROR("PUCCH format %d not implemented", cfg->format);
       return SRSLTE_ERROR;
   }
   if (correlation) {
@@ -869,7 +868,7 @@ int srslte_pucch_encode(srslte_pucch_t*     q,
     }
 
     if (pucch_put(q, sf, cfg, q->z, sf_symbols) < 0) {
-      ERROR("Error putting PUCCH symbols\n");
+      ERROR("Error putting PUCCH symbols");
       return SRSLTE_ERROR;
     }
     ret = SRSLTE_SUCCESS;
@@ -892,18 +891,17 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && cfg != NULL && channel != NULL && data != NULL) {
-
     uint32_t nof_cqi_bits = srslte_cqi_size(&cfg->uci_cfg.cqi);
     uint32_t nof_uci_bits = cfg->uci_cfg.cqi.ri_len ? cfg->uci_cfg.cqi.ri_len : nof_cqi_bits;
 
     int nof_re = pucch_get(q, sf, cfg, sf_symbols, q->z_tmp);
     if (nof_re < 0) {
-      ERROR("Error getting PUCCH symbols\n");
+      ERROR("Error getting PUCCH symbols");
       return SRSLTE_ERROR;
     }
 
     if (pucch_get(q, sf, cfg, channel->ce, q->ce) < 0) {
-      ERROR("Error getting PUCCH symbols\n");
+      ERROR("Error getting PUCCH symbols");
       return SRSLTE_ERROR;
     }
 
@@ -962,7 +960,6 @@ char* srslte_pucch_format_text(srslte_pucch_format_t format)
   char* ret = NULL;
 
   switch (format) {
-
     case SRSLTE_PUCCH_FORMAT_1:
       ret = "Format 1";
       break;
@@ -997,7 +994,6 @@ char* srslte_pucch_format_text_short(srslte_pucch_format_t format)
   char* ret = NULL;
 
   switch (format) {
-
     case SRSLTE_PUCCH_FORMAT_1:
       ret = "1";
       break;
@@ -1033,7 +1029,6 @@ uint32_t srslte_pucch_nof_ack_format(srslte_pucch_format_t format)
   uint32_t ret = 0;
 
   switch (format) {
-
     case SRSLTE_PUCCH_FORMAT_1A:
     case SRSLTE_PUCCH_FORMAT_2A:
       ret = 1;
@@ -1159,7 +1154,6 @@ int srslte_pucch_collision(const srslte_cell_t* cell, const srslte_pucch_cfg_t* 
   uint32_t n_prime2 = 0;
 
   switch (cfg1->format) {
-
     case SRSLTE_PUCCH_FORMAT_1:
     case SRSLTE_PUCCH_FORMAT_1A:
     case SRSLTE_PUCCH_FORMAT_1B:
@@ -1284,7 +1278,7 @@ float srslte_pucch_alpha_format1(const uint32_t            n_cs_cell[SRSLTE_NSLO
     n_cs = (n_cs_cell[ns][l] + (n_prime * cfg->delta_pucch_shift + n_oc / n_oc_div) % N_prime) % SRSLTE_NRE;
   }
 
-  DEBUG("n_cs=%d, N_prime=%d, delta_pucch=%d, n_prime=%d, ns=%d, l=%d, ns_cs_cell=%d\n",
+  DEBUG("n_cs=%d, N_prime=%d, delta_pucch=%d, n_prime=%d, ns=%d, l=%d, ns_cs_cell=%d",
         n_cs,
         N_prime,
         cfg->delta_pucch_shift,
@@ -1319,7 +1313,7 @@ float srslte_pucch_alpha_format2(const uint32_t            n_cs_cell[SRSLTE_NSLO
   }
   uint32_t n_cs  = (n_cs_cell[ns][l] + n_prime) % SRSLTE_NRE;
   float    alpha = 2 * M_PI * (n_cs) / SRSLTE_NRE;
-  DEBUG("n_pucch: %d, ns: %d, l: %d, n_prime: %d, n_cs: %d, alpha=%f\n", cfg->n_pucch, ns, l, n_prime, n_cs, alpha);
+  DEBUG("n_pucch: %d, ns: %d, l: %d, n_prime: %d, n_cs: %d, alpha=%f", cfg->n_pucch, ns, l, n_prime, n_cs, alpha);
   return alpha;
 }
 

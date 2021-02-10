@@ -91,7 +91,7 @@ int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs)
           s->L_tb = 24; // 24 bit CRC always
           s->L_cb = 24; // 24 bit CRC always
           s->F    = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
-          INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
+          INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d",
                tbs,
                s->C,
                s->C1,
@@ -162,7 +162,6 @@ static int cbsegm_ldpc_select_ls(uint32_t Kp, uint32_t K_b, uint32_t* Z_c, uint8
 
     // If the lifting index is valid, save outputs and return
     if (i != VOID_LIFTSIZE) {
-
       if (i_ls) {
         *i_ls = i;
       }
@@ -262,7 +261,7 @@ static int srslte_cbsegm_ldpc(srslte_cbsegm_t* s, srslte_basegraph_t bg, uint32_
   s->K2     = 0;
   s->K2_idx = 0;
 
-  INFO("LDPC CB Segmentation: TBS: %d, C=%d, K=%d, F=%d, Bp=%d\n", tbs, s->C, s->K1, s->F, Bp);
+  INFO("LDPC CB Segmentation: TBS: %d, C=%d, K=%d, F=%d, Bp=%d", tbs, s->C, s->K1, s->F, Bp);
 
   return SRSLTE_SUCCESS;
 }

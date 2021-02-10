@@ -110,7 +110,7 @@ int test_dci_payload_size()
     for (j = 0; j < 5; j++) {
       x[j] = srslte_dci_format_sizeof(&cell_test, &dl_sf, &dci_cfg, formats[j]);
       if (x[j] != dci_sz[i][j]) {
-        ERROR("Invalid DCI payload size for %s and %d PRB. Is %d and should be %d\n",
+        ERROR("Invalid DCI payload size for %s and %d PRB. Is %d and should be %d",
               srslte_dci_format_string(formats[j]),
               n,
               x[j],
@@ -154,7 +154,6 @@ typedef struct {
 
 int main(int argc, char** argv)
 {
-
   srslte_chest_dl_res_t chest_dl_res;
   srslte_pdcch_t        pdcch_tx, pdcch_rx;
   testcase_dci_t        testcases[10];
@@ -191,25 +190,25 @@ int main(int argc, char** argv)
   }
 
   if (srslte_regs_init(&regs, cell)) {
-    ERROR("Error initiating regs\n");
+    ERROR("Error initiating regs");
     exit(-1);
   }
 
   if (srslte_pdcch_init_enb(&pdcch_tx, cell.nof_prb)) {
-    ERROR("Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object");
     exit(-1);
   }
   if (srslte_pdcch_set_cell(&pdcch_tx, &regs, cell)) {
-    ERROR("Error setting cell in PDCCH object\n");
+    ERROR("Error setting cell in PDCCH object");
     exit(-1);
   }
 
   if (srslte_pdcch_init_ue(&pdcch_rx, cell.nof_prb, nof_rx_ant)) {
-    ERROR("Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object");
     exit(-1);
   }
   if (srslte_pdcch_set_cell(&pdcch_rx, &regs, cell)) {
-    ERROR("Error setting cell in PDCCH object\n");
+    ERROR("Error setting cell in PDCCH object");
     exit(-1);
   }
 
@@ -302,14 +301,14 @@ int main(int argc, char** argv)
       }
 
       if (srslte_pdcch_encode(&pdcch_tx, &dl_sf, &testcases[i].dci_tx, slot_symbols)) {
-        ERROR("Error encoding DCI message\n");
+        ERROR("Error encoding DCI message");
         goto quit;
       }
     }
 
     /* Execute 'Rx' */
     if (srslte_pdcch_extract_llr(&pdcch_rx, &dl_sf, &chest_dl_res, slot_symbols)) {
-      ERROR("Error extracting LLRs\n");
+      ERROR("Error extracting LLRs");
       goto quit;
     }
 
@@ -318,11 +317,11 @@ int main(int argc, char** argv)
       testcases[i].dci_rx.format   = testcases[i].dci_format;
       testcases[i].dci_rx.location = testcases[i].dci_location;
       if (srslte_pdcch_decode_msg(&pdcch_rx, &dl_sf, &dci_cfg, &testcases[i].dci_rx)) {
-        ERROR("Error decoding DCI message\n");
+        ERROR("Error decoding DCI message");
         goto quit;
       }
       if (srslte_dci_msg_unpack_pdsch(&cell, &dl_sf, &dci_cfg, &testcases[i].dci_rx, &testcases[i].ra_dl_rx)) {
-        ERROR("Error unpacking DCI message\n");
+        ERROR("Error unpacking DCI message");
         goto quit;
       }
       if (testcases[i].dci_rx.rnti >= 1234 && testcases[i].dci_rx.rnti < 1234 + nof_dcis) {

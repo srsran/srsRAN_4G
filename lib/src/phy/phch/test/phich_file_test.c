@@ -87,7 +87,7 @@ void parse_args(int argc, char** argv)
         } else if (!strcmp(argv[optind], "2")) {
           cell.phich_resources = SRSLTE_PHICH_R_2;
         } else {
-          ERROR("Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
+          ERROR("Invalid phich ng factor %s. Setting to default.", argv[optind]);
         }
         break;
       case 'e':
@@ -118,9 +118,8 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
@@ -149,44 +148,43 @@ int base_init()
   }
 
   if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
   if (srslte_chest_dl_res_init(&chest_res, cell.nof_prb)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
   if (srslte_chest_dl_set_cell(&chest, cell)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
 
   if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, fft_buffer[0], cell.nof_prb)) {
-    ERROR("Error initializing FFT\n");
+    ERROR("Error initializing FFT");
     return -1;
   }
 
   if (srslte_regs_init(&regs, cell)) {
-    ERROR("Error initiating regs\n");
+    ERROR("Error initiating regs");
     return -1;
   }
 
   if (srslte_phich_init(&phich, 1)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     return -1;
   }
   if (srslte_phich_set_cell(&phich, &regs, cell)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     return -1;
   }
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
 void base_free()
 {
-
   srslte_filesource_free(&fsrc);
   if (fmatlab) {
     fclose(fmatlab);
@@ -220,7 +218,7 @@ int main(int argc, char** argv)
   max_nseq = SRSLTE_CP_ISNORM(cell.cp) ? SRSLTE_PHICH_NORM_NSEQUENCES : SRSLTE_PHICH_EXT_NSEQUENCES;
 
   if (base_init()) {
-    ERROR("Error initializing memory\n");
+    ERROR("Error initializing memory");
     exit(-1);
   }
 
@@ -245,12 +243,11 @@ int main(int argc, char** argv)
   /* Get channel estimates for each port */
   srslte_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
 
-  INFO("Decoding PHICH\n");
+  INFO("Decoding PHICH");
 
   /* Receive all PHICH groups and sequence numbers */
   for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
     for (nseq = 0; nseq < max_nseq; nseq++) {
-
       srslte_phich_resource_t resource;
       resource.ngroup = ngroup;
       resource.nseq   = nseq;
@@ -262,14 +259,14 @@ int main(int argc, char** argv)
         exit(-1);
       }
 
-      INFO("%d/%d, ack_rx: %d, ns: %d, distance: %f\n", ngroup, nseq, res.ack_value, numsubframe, res.distance);
+      INFO("%d/%d, ack_rx: %d, ns: %d, distance: %f", ngroup, nseq, res.ack_value, numsubframe, res.distance);
     }
   }
 
   base_free();
 
   if (n < 0) {
-    ERROR("Error decoding phich\n");
+    ERROR("Error decoding phich");
     exit(-1);
   } else if (n == 0) {
     printf("Could not decode phich\n");

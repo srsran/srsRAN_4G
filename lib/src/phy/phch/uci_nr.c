@@ -49,63 +49,63 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
 #endif // LV_HAVE_AVX2
 
   if (srslte_polar_code_init(&q->code)) {
-    ERROR("Initialising polar code\n");
+    ERROR("Initialising polar code");
     return SRSLTE_ERROR;
   }
 
   if (srslte_polar_encoder_init(&q->encoder, polar_encoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
-    ERROR("Initialising polar encoder\n");
+    ERROR("Initialising polar encoder");
     return SRSLTE_ERROR;
   }
 
   if (srslte_polar_decoder_init(&q->decoder, polar_decoder_type, NMAX_LOG) < SRSLTE_SUCCESS) {
-    ERROR("Initialising polar encoder\n");
+    ERROR("Initialising polar encoder");
     return SRSLTE_ERROR;
   }
 
   if (srslte_polar_rm_tx_init(&q->rm_tx) < SRSLTE_SUCCESS) {
-    ERROR("Initialising polar RM\n");
+    ERROR("Initialising polar RM");
     return SRSLTE_ERROR;
   }
 
   if (srslte_polar_rm_rx_init_c(&q->rm_rx) < SRSLTE_SUCCESS) {
-    ERROR("Initialising polar RM\n");
+    ERROR("Initialising polar RM");
     return SRSLTE_ERROR;
   }
 
   if (srslte_crc_init(&q->crc6, SRSLTE_LTE_CRC6, 6) < SRSLTE_SUCCESS) {
-    ERROR("Initialising CRC\n");
+    ERROR("Initialising CRC");
     return SRSLTE_ERROR;
   }
 
   if (srslte_crc_init(&q->crc11, SRSLTE_LTE_CRC11, 11) < SRSLTE_SUCCESS) {
-    ERROR("Initialising CRC\n");
+    ERROR("Initialising CRC");
     return SRSLTE_ERROR;
   }
 
   // Allocate bit sequence with space for the CRC
   q->bit_sequence = srslte_vec_u8_malloc(UCI_NR_MAX_A);
   if (q->bit_sequence == NULL) {
-    ERROR("Error malloc\n");
+    ERROR("Error malloc");
     return SRSLTE_ERROR;
   }
 
   // Allocate c with space for a and the CRC
   q->c = srslte_vec_u8_malloc(UCI_NR_MAX_A + UCI_NR_MAX_L);
   if (q->c == NULL) {
-    ERROR("Error malloc\n");
+    ERROR("Error malloc");
     return SRSLTE_ERROR;
   }
 
   q->allocated = srslte_vec_u8_malloc(UCI_NR_POLAR_MAX);
   if (q->allocated == NULL) {
-    ERROR("Error malloc\n");
+    ERROR("Error malloc");
     return SRSLTE_ERROR;
   }
 
   q->d = srslte_vec_u8_malloc(UCI_NR_POLAR_MAX);
   if (q->d == NULL) {
-    ERROR("Error malloc\n");
+    ERROR("Error malloc");
     return SRSLTE_ERROR;
   }
 
@@ -195,12 +195,12 @@ static int uci_nr_A(const srslte_uci_cfg_nr_t* cfg)
 
   // 6.3.1.1.2 CSI only
   if (cfg->o_ack == 0 && cfg->o_sr == 0) {
-    ERROR("CSI only are not implemented\n");
+    ERROR("CSI only are not implemented");
     return SRSLTE_ERROR;
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
-  ERROR("HARQ-ACK/SR and CSI encoding are not implemented\n");
+  ERROR("HARQ-ACK/SR and CSI encoding are not implemented");
   return SRSLTE_ERROR;
 }
 
@@ -213,12 +213,12 @@ static int uci_nr_packing(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value
 
   // 6.3.1.1.2 CSI only
   if (cfg->o_ack == 0 && cfg->o_sr == 0) {
-    ERROR("CSI only are not implemented\n");
+    ERROR("CSI only are not implemented");
     return SRSLTE_ERROR;
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
-  ERROR("HARQ-ACK/SR and CSI encoding are not implemented\n");
+  ERROR("HARQ-ACK/SR and CSI encoding are not implemented");
   return SRSLTE_ERROR;
 }
 
@@ -231,12 +231,12 @@ static int uci_nr_unpacking(const srslte_uci_cfg_nr_t* cfg, const uint8_t* seque
 
   // 6.3.1.1.2 CSI only
   if (cfg->o_ack == 0 && cfg->o_sr == 0) {
-    ERROR("CSI only are not implemented\n");
+    ERROR("CSI only are not implemented");
     return SRSLTE_ERROR;
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
-  ERROR("HARQ-ACK/SR and CSI encoding are not implemented\n");
+  ERROR("HARQ-ACK/SR and CSI encoding are not implemented");
   return SRSLTE_ERROR;
 }
 
@@ -291,7 +291,7 @@ static int uci_nr_encode_1bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg
       break;
     case SRSLTE_MOD_NITEMS:
     default:
-      ERROR("Invalid modulation\n");
+      ERROR("Invalid modulation");
       return SRSLTE_ERROR;
   }
 
@@ -306,7 +306,6 @@ static int uci_nr_encode_2bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg
   srslte_uci_bit_type_t c2 = ((q->bit_sequence[0] ^ q->bit_sequence[1]) == 0) ? UCI_BIT_0 : UCI_BIT_1;
 
   switch (cfg->modulation) {
-
     case SRSLTE_MOD_BPSK:
     case SRSLTE_MOD_QPSK:
       while (i < E) {
@@ -384,7 +383,7 @@ static int uci_nr_encode_2bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg
       break;
     case SRSLTE_MOD_NITEMS:
     default:
-      ERROR("Invalid modulation\n");
+      ERROR("Invalid modulation");
       return SRSLTE_ERROR;
   }
 
@@ -417,7 +416,7 @@ static int uci_nr_decode_3_11_bit(srslte_uci_nr_t*           q,
   }
 
   if (A == 11 && E <= 16) {
-    ERROR("NR-UCI Impossible to decode A=%d; E=%d\n", A, E);
+    ERROR("NR-UCI Impossible to decode A=%d; E=%d", A, E);
     return SRSLTE_ERROR;
   }
 
@@ -439,7 +438,7 @@ static int uci_nr_decode_3_11_bit(srslte_uci_nr_t*           q,
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     UCI_NR_INFO_RX("Block decoding NR-UCI llr=");
     srslte_vec_fprint_bs(stdout, llr, E);
-    UCI_NR_INFO_RX("Block decoding NR-UCI A=%d; E=%d; pwr=%f; corr=%f; norm=%f; thr=%f; %s\n",
+    UCI_NR_INFO_RX("Block decoding NR-UCI A=%d; E=%d; pwr=%f; corr=%f; norm=%f; thr=%f; %s",
                    A,
                    E,
                    pwr,
@@ -499,7 +498,7 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
 
     // Attach CRC
     srslte_crc_attach(crc, q->c, A_prime / C);
-    UCI_NR_INFO_TX("Attaching %d/%d CRC%d=%02lx\n", r, C, L, srslte_crc_checksum_get(crc));
+    UCI_NR_INFO_TX("Attaching %d/%d CRC%d=%02lx", r, C, L, srslte_crc_checksum_get(crc));
 
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
       UCI_NR_INFO_TX("Polar cb %d/%d c=", r, C);
@@ -606,7 +605,7 @@ static int uci_nr_decode_11_1706_bit(srslte_uci_nr_t*           q,
     uint32_t checksum1 = srslte_crc_checksum(crc, q->c, A_prime / C);
     uint32_t checksum2 = srslte_bit_pack(&ptr, L);
     (*decoded_ok)      = ((*decoded_ok) && (checksum1 == checksum2));
-    UCI_NR_INFO_RX("Checking %d/%d CRC%d={%02x,%02x}\n", r, C, L, checksum1, checksum2);
+    UCI_NR_INFO_RX("Checking %d/%d CRC%d={%02x,%02x}", r, C, L, checksum1, checksum2);
 
     // Prefix (A_prime - A) zeros for the first CB only
     if (r == 0) {
@@ -677,15 +676,15 @@ static int uci_nr_decode(srslte_uci_nr_t*           q,
   // 6.3.1.1 UCI bit sequence generation
   int A = uci_nr_A(uci_cfg);
   if (A < SRSLTE_SUCCESS) {
-    ERROR("Error getting number of bits\n");
+    ERROR("Error getting number of bits");
     return SRSLTE_ERROR;
   }
 
   // Decode LLR
   if (A == 1) {
-    ERROR("Not implemented\n");
+    ERROR("Not implemented");
   } else if (A == 2) {
-    ERROR("Not implemented\n");
+    ERROR("Not implemented");
   } else if (A <= 11) {
     if (uci_nr_decode_3_11_bit(q, uci_cfg, A, llr, E_uci, &uci_value->valid) < SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
@@ -695,7 +694,7 @@ static int uci_nr_decode(srslte_uci_nr_t*           q,
       return SRSLTE_ERROR;
     }
   } else {
-    ERROR("Invalid number of bits (A=%d)\n", A);
+    ERROR("Invalid number of bits (A=%d)", A);
   }
 
   // Unpack bits
@@ -722,7 +721,7 @@ int srslte_uci_nr_pucch_format_2_3_4_E(const srslte_pucch_nr_resource_t* resourc
       return (int)(12 * resource->nof_symbols * resource->nof_prb);
     case SRSLTE_PUCCH_NR_FORMAT_4:
       if (resource->occ_lenth != 1 && resource->occ_lenth != 2) {
-        ERROR("Invalid spreading factor (%d)\n", resource->occ_lenth);
+        ERROR("Invalid spreading factor (%d)", resource->occ_lenth);
         return SRSLTE_ERROR;
       }
       if (!resource->enable_pi_bpsk) {
@@ -730,7 +729,7 @@ int srslte_uci_nr_pucch_format_2_3_4_E(const srslte_pucch_nr_resource_t* resourc
       }
       return (int)(12 * resource->nof_symbols / resource->occ_lenth);
     default:
-      ERROR("Invalid case\n");
+      ERROR("Invalid case");
   }
   return SRSLTE_ERROR;
 }
@@ -740,7 +739,7 @@ static int
 uci_nr_pucch_E_uci(const srslte_pucch_nr_resource_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg, uint32_t E_tot)
 {
   if (uci_cfg->o_csi1 != 0 && uci_cfg->o_csi2) {
-    ERROR("Simultaneous CSI part 1 and CSI part 2 is not implemented\n");
+    ERROR("Simultaneous CSI part 1 and CSI part 2 is not implemented");
     return SRSLTE_ERROR;
   }
 
@@ -755,13 +754,13 @@ int srslte_uci_nr_encode_pucch(srslte_uci_nr_t*                  q,
 {
   int E_tot = srslte_uci_nr_pucch_format_2_3_4_E(pucch_resource_cfg);
   if (E_tot < SRSLTE_SUCCESS) {
-    ERROR("Error calculating number of bits\n");
+    ERROR("Error calculating number of bits");
     return SRSLTE_ERROR;
   }
 
   int E_uci = uci_nr_pucch_E_uci(pucch_resource_cfg, uci_cfg, E_tot);
   if (E_uci < SRSLTE_SUCCESS) {
-    ERROR("Error calculating number of bits\n");
+    ERROR("Error calculating number of bits");
     return SRSLTE_ERROR;
   }
 

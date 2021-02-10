@@ -120,17 +120,17 @@ int get_ref_res(srslte_nbiot_cell_t cell, int32_t* re_with_refs)
 
   // add all RE that contain NRS
   for (int p = 0; p < cell.nof_ports; p++) {
-    DEBUG("Adding NRS for port=%d n_id_ncell=%d\n", p, cell.n_id_ncell);
+    DEBUG("Adding NRS for port=%d n_id_ncell=%d", p, cell.n_id_ncell);
     uint32_t nof_syms = srslte_refsignal_dl_nbiot_nof_symbols(p);
     for (int l = 0; l < nof_syms; l++) {
       uint32_t nsymbol = srslte_refsignal_nrs_nsymbol(l);
-      DEBUG("  - adding NRS for symbol=%d\n", nsymbol);
+      DEBUG("  - adding NRS for symbol=%d", nsymbol);
 
       // two references per symbol
       for (int m = 0; m < SRSLTE_NBIOT_NUM_NRS_X_SYM_X_PORT; m++) {
         uint32_t fidx   = srslte_refsignal_dl_nbiot_fidx(cell, l, p, m);
         uint32_t re_idx = SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx);
-        DEBUG("    - adding NRS at re_idx=%d with fidx=%d\n", re_idx, fidx);
+        DEBUG("    - adding NRS at re_idx=%d with fidx=%d", re_idx, fidx);
         re_with_refs[num_ref] = re_idx;
         num_ref++;
       }
@@ -139,17 +139,17 @@ int get_ref_res(srslte_nbiot_cell_t cell, int32_t* re_with_refs)
 
   // add all RE that contain CRS
   for (int p = 0; p < cell.base.nof_ports; p++) {
-    DEBUG("Adding CRS for port=%d cell_id=%d\n", p, cell.base.id);
+    DEBUG("Adding CRS for port=%d cell_id=%d", p, cell.base.id);
     uint32_t nof_syms = srslte_refsignal_cs_nof_symbols(NULL, NULL, p);
     for (int l = 0; l < nof_syms; l++) {
       uint32_t nsymbol = srslte_refsignal_cs_nsymbol(l, cell.base.cp, p);
-      DEBUG("  - adding CRS for symbol=%d\n", nsymbol);
+      DEBUG("  - adding CRS for symbol=%d", nsymbol);
 
       // two references per symbol
       for (int m = 0; m < 2; m++) {
         uint32_t fidx   = ((srslte_refsignal_cs_v(p, l) + (cell.base.id % 6)) % 6) + m * 6;
         uint32_t re_idx = SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx);
-        DEBUG("    - adding CRS at re_idx=%d with fidx=%d\n", re_idx, fidx);
+        DEBUG("    - adding CRS at re_idx=%d with fidx=%d", re_idx, fidx);
         re_with_refs[num_ref] = re_idx;
         num_ref++;
       }
@@ -254,8 +254,8 @@ int coding_test(int argc, char** argv)
   srslte_ra_nbiot_dl_grant_t grant;
   srslte_npdsch_cfg_t        npdsch_cfg;
   srslte_npdsch_t            npdsch;
-  uint8_t*                   data    = NULL;
-  uint8_t*                   rx_data = NULL;
+  uint8_t*                   data                           = NULL;
+  uint8_t*                   rx_data                        = NULL;
   cf_t*                      ce[SRSLTE_MAX_PORTS]           = {NULL};
   cf_t*                      sf_symbols                     = NULL;
   cf_t*                      slot_symbols[SRSLTE_MAX_PORTS] = {NULL};
@@ -265,12 +265,12 @@ int coding_test(int argc, char** argv)
 
   // setup cell config for this test
   srslte_nbiot_cell_t cell = {};
-  cell.base.nof_prb   = 1;
-  cell.base.cp        = SRSLTE_CP_NORM;
-  cell.base.nof_ports = 1;
-  cell.nof_ports      = 1;
-  cell.mode           = SRSLTE_NBIOT_MODE_STANDALONE;
-  cell.n_id_ncell     = n_id_ncell;
+  cell.base.nof_prb        = 1;
+  cell.base.cp             = SRSLTE_CP_NORM;
+  cell.base.nof_ports      = 1;
+  cell.nof_ports           = 1;
+  cell.mode                = SRSLTE_NBIOT_MODE_STANDALONE;
+  cell.n_id_ncell          = n_id_ncell;
 
   if (!srslte_nbiot_cell_isvalid(&cell)) {
     printf("Cell is not properly configured\n");
@@ -397,7 +397,7 @@ int coding_test(int argc, char** argv)
 #endif
 
   if (SRSLTE_VERBOSE_ISDEBUG()) {
-    DEBUG("SAVED FILE npdsch_tx_sf.bin: transmitted subframe symbols\n");
+    DEBUG("SAVED FILE npdsch_tx_sf.bin: transmitted subframe symbols");
     srslte_vec_save_file("npdsch_tx_sf.bin", sf_symbols, SRSLTE_NBIOT_SFLEN * sizeof(cf_t));
   }
 

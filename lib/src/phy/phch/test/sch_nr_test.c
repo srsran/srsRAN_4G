@@ -97,22 +97,22 @@ int main(int argc, char** argv)
   srslte_sch_nr_args_t args = {};
   args.disable_simd         = false;
   if (srslte_sch_nr_init_tx(&sch_nr_tx, &args) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating SCH NR for Tx\n");
+    ERROR("Error initiating SCH NR for Tx");
     goto clean_exit;
   }
 
   if (srslte_sch_nr_init_rx(&sch_nr_rx, &args) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating SCH NR for Rx\n");
+    ERROR("Error initiating SCH NR for Rx");
     goto clean_exit;
   }
 
   if (srslte_sch_nr_set_carrier(&sch_nr_tx, &carrier)) {
-    ERROR("Error setting SCH NR carrier\n");
+    ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
   if (srslte_sch_nr_set_carrier(&sch_nr_rx, &carrier)) {
-    ERROR("Error setting SCH NR carrier\n");
+    ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
@@ -121,19 +121,19 @@ int main(int argc, char** argv)
 
   if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     goto clean_exit;
   }
 
   if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     goto clean_exit;
   }
 
   // Use grant default A time resources with m=0
   if (srslte_ra_dl_nr_time_default_A(0, pdsch_cfg.dmrs.typeA_pos, &pdsch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error loading default grant\n");
+    ERROR("Error loading default grant");
     goto clean_exit;
   }
   pdsch_grant.nof_layers = carrier.max_mimo_layers;
@@ -155,14 +155,13 @@ int main(int argc, char** argv)
 
   for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
     for (mcs = mcs_start; mcs < mcs_end; mcs++) {
-
       for (uint32_t n = 0; n < SRSLTE_MAX_PRB_NR; n++) {
         pdsch_grant.prb_idx[n] = (n < n_prb);
       }
 
       srslte_sch_tb_t tb = {};
       if (srslte_ra_nr_fill_tb(&pdsch_cfg, &pdsch_grant, mcs, &tb) < SRSLTE_SUCCESS) {
-        ERROR("Error filing tb\n");
+        ERROR("Error filing tb");
         goto clean_exit;
       }
 
@@ -173,7 +172,7 @@ int main(int argc, char** argv)
       tb.softbuffer.tx = &softbuffer_tx;
 
       if (srslte_dlsch_nr_encode(&sch_nr_tx, &pdsch_cfg.sch_cfg, &tb, data_tx, encoded) < SRSLTE_SUCCESS) {
-        ERROR("Error encoding\n");
+        ERROR("Error encoding");
         goto clean_exit;
       }
 
@@ -186,17 +185,17 @@ int main(int argc, char** argv)
 
       bool crc = false;
       if (srslte_dlsch_nr_decode(&sch_nr_rx, &pdsch_cfg.sch_cfg, &tb, llr, data_rx, &crc) < SRSLTE_SUCCESS) {
-        ERROR("Error encoding\n");
+        ERROR("Error encoding");
         goto clean_exit;
       }
 
       if (!crc) {
-        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;\n", n_prb, mcs, tb.tbs);
+        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
         goto clean_exit;
       }
 
       if (memcmp(data_tx, data_rx, tb.tbs / 8) != 0) {
-        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;\n", n_prb, mcs, tb.tbs);
+        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, tb.tbs);
         printf("Tx data: ");
         srslte_vec_fprint_byte(stdout, data_tx, tb.tbs / 8);
         printf("Rx data: ");

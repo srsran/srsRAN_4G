@@ -75,7 +75,8 @@ void sync::init(srslte::radio_interface_phy* _radio,
   }
 
   if (worker_com->args->dl_channel_args.enable) {
-    channel_emulator = srslte::channel_ptr(new srslte::channel(worker_com->args->dl_channel_args, nof_rf_channels));
+    channel_emulator =
+        srslte::channel_ptr(new srslte::channel(worker_com->args->dl_channel_args, nof_rf_channels, phy_logger));
   }
 
   // Initialize cell searcher

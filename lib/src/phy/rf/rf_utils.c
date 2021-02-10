@@ -72,7 +72,7 @@ free_and_exit:
 
 int srslte_rf_recv_wrapper_cs(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
   void* ptr[SRSLTE_MAX_CHANNELS] = {};
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ptr[i] = data[i];
@@ -104,15 +104,15 @@ int rf_mib_decoder(srslte_rf_t*       rf,
   }
 
   if (srslte_ue_mib_sync_set_cell(&ue_mib, *cell)) {
-    ERROR("Error initiating srslte_ue_mib_sync\n");
+    ERROR("Error initiating srslte_ue_mib_sync");
     goto clean_exit;
   }
 
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
-  INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float)srate / 1000000);
+  INFO("Setting sampling frequency %.2f MHz for PSS search", (float)srate / 1000000);
   srslte_rf_set_rx_srate(rf, (float)srate);
 
-  INFO("Starting receiver...\n");
+  INFO("Starting receiver...");
   srslte_rf_start_rx_stream(rf, false);
 
   // Copy CFO estimate if provided and disable CP estimation during find
@@ -126,7 +126,7 @@ int rf_mib_decoder(srslte_rf_t*       rf,
   /* Find and decode MIB */
   ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pbch, bch_payload, &cell->nof_ports, NULL);
   if (ret < 0) {
-    ERROR("Error decoding MIB\n");
+    ERROR("Error decoding MIB");
     goto clean_exit;
   }
   if (ret == 1) {
@@ -170,10 +170,10 @@ int rf_cell_search(srslte_rf_t*       rf,
     srslte_ue_cellsearch_set_nof_valid_frames(&cs, config->nof_valid_pss_frames);
   }
 
-  INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ / 1000000);
+  INFO("Setting sampling frequency %.2f MHz for PSS search", SRSLTE_CS_SAMP_FREQ / 1000000);
   srslte_rf_set_rx_srate(rf, SRSLTE_CS_SAMP_FREQ);
 
-  INFO("Starting receiver...\n");
+  INFO("Starting receiver...");
   srslte_rf_start_rx_stream(rf, false);
 
   if (config->force_tdd) {
@@ -192,10 +192,10 @@ int rf_cell_search(srslte_rf_t*       rf,
   srslte_rf_stop_rx_stream(rf);
 
   if (ret < 0) {
-    ERROR("Error searching cell\n");
+    ERROR("Error searching cell");
     return SRSLTE_ERROR;
   } else if (ret == 0) {
-    ERROR("Could not find any cell in this frequency\n");
+    ERROR("Could not find any cell in this frequency");
     return SRSLTE_SUCCESS;
   }
 
@@ -251,7 +251,7 @@ int rf_search_and_decode_mib(srslte_rf_t*       rf,
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", cell->id, cell->id % 3);
     ret = rf_mib_decoder(rf, nof_rx_channels, config, cell, cfo);
     if (ret < 0) {
-      ERROR("Could not decode PBCH from CELL ID %d\n", cell->id);
+      ERROR("Could not decode PBCH from CELL ID %d", cell->id);
       return SRSLTE_ERROR;
     }
   }
@@ -276,10 +276,10 @@ int rf_cell_search_nbiot(srslte_rf_t* rf, cell_search_cfg_t* config, srslte_nbio
     srslte_ue_sync_nbiot_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, config->init_agc);
   }
 
-  DEBUG("Setting sampling frequency %.2f MHz for NPSS search\n", SRSLTE_CS_SAMP_FREQ / 1000000);
+  DEBUG("Setting sampling frequency %.2f MHz for NPSS search", SRSLTE_CS_SAMP_FREQ / 1000000);
   srslte_rf_set_rx_srate(rf, SRSLTE_CS_SAMP_FREQ);
 
-  INFO("Starting receiver...\n");
+  INFO("Starting receiver...");
   srslte_rf_start_rx_stream(rf, false);
 
   ret = srslte_ue_cellsearch_nbiot_scan(&cs);
@@ -288,11 +288,11 @@ int rf_cell_search_nbiot(srslte_rf_t* rf, cell_search_cfg_t* config, srslte_nbio
     goto clean_exit;
   }
 
-  INFO("Stopping receiver...\n");
+  INFO("Stopping receiver...");
   srslte_rf_stop_rx_stream(rf);
 
   // Find a cell
-  INFO("Running N_id_ncell detection\n");
+  INFO("Running N_id_ncell detection");
 
   uint32_t max_peak_cell = 0;
   ret                    = srslte_ue_cellsearch_nbiot_detect(&cs, found_cells);

@@ -231,7 +231,7 @@ static int zc_sequence_lte_r_uv_arg(uint32_t M_zc, uint32_t u, uint32_t v, cf_t*
   } else if (M_zc >= 36) {
     zc_sequence_r_uv_arg_mprb(M_zc, u, v, tmp_arg);
   } else {
-    ERROR("Invalid M_zc (%d)\n", M_zc);
+    ERROR("Invalid M_zc (%d)", M_zc);
     return SRSLTE_ERROR;
   }
 
@@ -251,7 +251,7 @@ static int zc_sequence_nr_r_uv_arg(uint32_t M_zc, uint32_t u, uint32_t v, cf_t* 
   } else if (M_zc >= 36) {
     zc_sequence_r_uv_arg_mprb(M_zc, u, v, tmp_arg);
   } else {
-    ERROR("Invalid M_zc (%d)\n", M_zc);
+    ERROR("Invalid M_zc (%d)", M_zc);
     return SRSLTE_ERROR;
   }
 
@@ -274,7 +274,7 @@ int srslte_zc_sequence_generate_lte(uint32_t u, uint32_t v, float alpha, uint32_
 
   // Check U and V
   if (u >= SRSLTE_ZC_SEQUENCE_NOF_GROUPS || v >= SRSLTE_ZC_SEQUENCE_NOF_BASE) {
-    ERROR("Invalid u (%d) or v (%d)\n", u, v);
+    ERROR("Invalid u (%d) or v (%d)", u, v);
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
@@ -301,7 +301,7 @@ int srslte_zc_sequence_generate_nr(uint32_t u, uint32_t v, float alpha, uint32_t
 
   // Check U and V
   if (u >= SRSLTE_ZC_SEQUENCE_NOF_GROUPS || v >= SRSLTE_ZC_SEQUENCE_NOF_BASE) {
-    ERROR("Invalid u (%d) or v (%d)\n", u, v);
+    ERROR("Invalid u (%d) or v (%d)", u, v);
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
@@ -341,7 +341,7 @@ int srslte_zc_sequence_lut_init_nr(srslte_zc_sequence_lut_t* q,
       // Allocate sequence
       q->sequence[u][v] = srslte_vec_cf_malloc(nof_alphas * q->M_zc);
       if (q->sequence[u][v] == NULL) {
-        ERROR("Malloc\n");
+        ERROR("Malloc");
         return SRSLTE_ERROR;
       }
 
@@ -349,7 +349,7 @@ int srslte_zc_sequence_lut_init_nr(srslte_zc_sequence_lut_t* q,
       for (uint32_t alpha_idx = 0; alpha_idx < nof_alphas; alpha_idx++) {
         if (srslte_zc_sequence_generate_nr(u, v, alphas[alpha_idx], m, delta, &q->sequence[u][v][alpha_idx * q->M_zc]) <
             SRSLTE_SUCCESS) {
-          ERROR("Generating sequence\n");
+          ERROR("Generating sequence");
           return SRSLTE_ERROR;
         }
       }

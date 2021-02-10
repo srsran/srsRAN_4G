@@ -343,7 +343,7 @@ int srslte_refsignal_dl_sync_find_peak(srslte_refsignal_dl_sync_t* q, cf_t* buff
     }
   }
 
-  INFO("pci=%03d; sf_len=%d; imax=%d; peak=%.3f; rms=%.3f; peak/rms=%.3f\n",
+  INFO("pci=%03d; sf_len=%d; imax=%d; peak=%.3f; rms=%.3f; peak/rms=%.3f",
        q->refsignal.cell.id,
        sf_len,
        peak_idx,
@@ -466,7 +466,7 @@ void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, u
       }
 
       INFO("-- pci=%03d; rsrp_dB=(%+.1f|%+.1f|%+.1f); rsrp_max-min=%.1f; rsrp_false_ratio=%.1f; "
-           "cfo=(%.1f|%.1f|%.1f); cfo_max-min=%.1f; sss_ratio=%f; false_count=%d;\n",
+           "cfo=(%.1f|%.1f|%.1f); cfo_max-min=%.1f; sss_ratio=%f; false_count=%d;",
            q->refsignal.cell.id,
            rsrp_dB_min,
            rsrp_dB,
@@ -481,7 +481,6 @@ void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, u
            false_count);
 
       if (!false_alarm) {
-
         // Calculate in dBm
         q->rsrp_dBfs = rsrp_dB;
 
@@ -555,7 +554,6 @@ void srslte_refsignal_dl_sync_measure_sf(srslte_refsignal_dl_sync_t* q,
     }
 
     if (cfo) {
-
       // Distances between symbols
       float distance_1 = (cp_len1 + symbol_sz) * 4.0f; // Number of samples between first and second symbol
       float distance_2 =

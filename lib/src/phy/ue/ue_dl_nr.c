@@ -33,7 +33,7 @@ static int ue_dl_nr_alloc_prb(srslte_ue_dl_nr_t* q, uint32_t new_nof_prb)
 
       q->sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(q->max_prb));
       if (q->sf_symbols[i] == NULL) {
-        ERROR("Malloc\n");
+        ERROR("Malloc");
         return SRSLTE_ERROR;
       }
     }
@@ -49,7 +49,7 @@ int srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], co
   }
 
   if (args->nof_rx_antennas == 0) {
-    ERROR("Error invalid number of antennas (%d)\n", args->nof_rx_antennas);
+    ERROR("Error invalid number of antennas (%d)", args->nof_rx_antennas);
     return SRSLTE_ERROR;
   }
 
@@ -74,7 +74,7 @@ int srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], co
   }
 
   if (ue_dl_nr_alloc_prb(q, args->nof_max_prb)) {
-    ERROR("Error allocating\n");
+    ERROR("Error allocating");
     return SRSLTE_ERROR;
   }
 
@@ -90,13 +90,13 @@ int srslte_ue_dl_nr_init(srslte_ue_dl_nr_t* q, cf_t* input[SRSLTE_MAX_PORTS], co
   }
 
   if (srslte_dmrs_sch_init(&q->dmrs_pdsch, true) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 
   q->pdcch_ce = SRSLTE_MEM_ALLOC(srslte_dmrs_pdcch_ce_t, 1);
   if (q->pdcch_ce == NULL) {
-    ERROR("Error alloc\n");
+    ERROR("Error alloc");
     return SRSLTE_ERROR;
   }
 
@@ -140,12 +140,12 @@ int srslte_ue_dl_nr_set_carrier(srslte_ue_dl_nr_t* q, const srslte_carrier_nr_t*
   }
 
   if (srslte_dmrs_sch_set_carrier(&q->dmrs_pdsch, carrier) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 
   if (ue_dl_nr_alloc_prb(q, carrier->nof_prb)) {
-    ERROR("Error allocating\n");
+    ERROR("Error allocating");
     return SRSLTE_ERROR;
   }
 
@@ -225,19 +225,19 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
 
   // Measures the PDCCH transmission DMRS
   if (srslte_dmrs_pdcch_get_measure(&q->dmrs_pdcch[coreset_id], &dci_msg->location, &m) < SRSLTE_SUCCESS) {
-    ERROR("Error getting measure location L=%d, ncce=%d\n", dci_msg->location.L, dci_msg->location.ncce);
+    ERROR("Error getting measure location L=%d, ncce=%d", dci_msg->location.L, dci_msg->location.ncce);
     return SRSLTE_ERROR;
   }
 
   // If measured correlation is invalid, early return
   if (!isnormal(m.norm_corr)) {
-    INFO("Discarded PDCCH candidate L=%d;ncce=%d; Invalid measurement;\n", dci_msg->location.L, dci_msg->location.ncce);
+    INFO("Discarded PDCCH candidate L=%d;ncce=%d; Invalid measurement;", dci_msg->location.L, dci_msg->location.ncce);
     return SRSLTE_SUCCESS;
   }
 
   // Compare EPRE with threshold
   if (m.epre_dBfs < q->pdcch_dmrs_epre_thr) {
-    INFO("Discarded PDCCH candidate L=%d;ncce=%d; EPRE is too weak (%.1f<%.1f);\n",
+    INFO("Discarded PDCCH candidate L=%d;ncce=%d; EPRE is too weak (%.1f<%.1f);",
          dci_msg->location.L,
          dci_msg->location.ncce,
          m.epre_dBfs,
@@ -247,7 +247,7 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
 
   // Compare DMRS correlation with threshold
   if (m.norm_corr < q->pdcch_dmrs_corr_thr) {
-    INFO("Discarded PDCCH candidate L=%d;ncce=%d; Correlation is too low (%.1f<%.1f); EPRE=%+.2f; RSRP=%+.2f;\n",
+    INFO("Discarded PDCCH candidate L=%d;ncce=%d; Correlation is too low (%.1f<%.1f); EPRE=%+.2f; RSRP=%+.2f;",
          dci_msg->location.L,
          dci_msg->location.ncce,
          m.norm_corr,
@@ -259,13 +259,13 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
 
   // Extract PDCCH channel estimates
   if (srslte_dmrs_pdcch_get_ce(&q->dmrs_pdcch[coreset_id], &dci_msg->location, q->pdcch_ce) < SRSLTE_SUCCESS) {
-    ERROR("Error extracting PDCCH DMRS\n");
+    ERROR("Error extracting PDCCH DMRS");
     return SRSLTE_ERROR;
   }
 
   // Decode PDCCH
   if (srslte_pdcch_nr_decode(&q->pdcch, q->sf_symbols[0], q->pdcch_ce, dci_msg, pdcch_res) < SRSLTE_SUCCESS) {
-    ERROR("Error decoding PDCCH\n");
+    ERROR("Error decoding PDCCH");
     return SRSLTE_ERROR;
   }
 
@@ -304,7 +304,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
   // Select CORESET
   uint32_t coreset_id = search_space->coreset_id;
   if (coreset_id >= SRSLTE_UE_DL_NR_MAX_NOF_CORESET || !q->cfg.coreset_present[coreset_id]) {
-    ERROR("CORESET %d is not present in search space %d\n", search_space->coreset_id, search_space->id);
+    ERROR("CORESET %d is not present in search space %d", search_space->coreset_id, search_space->id);
     return SRSLTE_ERROR;
   }
   srslte_coreset_t* coreset = &q->cfg.coreset[search_space->coreset_id];
@@ -323,7 +323,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
   // Calculate number of DCI bits
   int dci_nof_bits = srslte_dci_nr_format_1_0_sizeof(&q->carrier, coreset, rnti_type);
   if (dci_nof_bits <= SRSLTE_SUCCESS) {
-    ERROR("Error DCI size\n");
+    ERROR("Error DCI size");
     return SRSLTE_ERROR;
   }
 
@@ -333,7 +333,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
     uint32_t candidates[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
     int nof_candidates = srslte_pdcch_nr_locations_coreset(coreset, search_space, rnti, L, slot_cfg->idx, candidates);
     if (nof_candidates < SRSLTE_SUCCESS) {
-      ERROR("Error calculating DCI candidate location\n");
+      ERROR("Error calculating DCI candidate location");
       return SRSLTE_ERROR;
     }
 
@@ -386,7 +386,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
         continue;
       }
 
-      INFO("Found DCI in L=%d,ncce=%d\n", dci_msg.location.L, dci_msg.location.ncce);
+      INFO("Found DCI in L=%d,ncce=%d", dci_msg.location.L, dci_msg.location.ncce);
       // Append DCI message into the list
       dci_msg_list[count] = dci_msg;
       count++;
@@ -498,7 +498,7 @@ int srslte_ue_dl_nr_decode_pdsch(srslte_ue_dl_nr_t*         q,
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     char str[512];
     srslte_ue_dl_nr_pdsch_info(q, cfg, res, str, sizeof(str));
-    INFO("PDSCH: %s\n", str);
+    INFO("PDSCH: %s", str);
   }
 
   return SRSLTE_SUCCESS;

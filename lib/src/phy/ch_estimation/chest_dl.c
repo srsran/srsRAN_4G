@@ -29,7 +29,6 @@
 #ifdef DEFAULT_FILTER_LEN
 static void set_default_filter(srslte_chest_dl_t* q, int filter_len)
 {
-
   float fil[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN];
 
   for (int i = 0; i < filter_len / 2; i++) {
@@ -66,13 +65,13 @@ int srslte_chest_dl_init(srslte_chest_dl_t* q, uint32_t max_prb, uint32_t nof_rx
 
     ret = srslte_refsignal_cs_init(&q->csr_refs, max_prb);
     if (ret != SRSLTE_SUCCESS) {
-      ERROR("Error initializing CSR signal (%d)\n", ret);
+      ERROR("Error initializing CSR signal (%d)", ret);
       goto clean_exit;
     }
 
     q->mbsfn_refs = calloc(SRSLTE_MAX_MBSFN_AREA_IDS, sizeof(srslte_refsignal_t*));
     if (!q->mbsfn_refs) {
-      ERROR("Calloc error initializing mbsfn_refs (%d)\n", ret);
+      ERROR("Calloc error initializing mbsfn_refs (%d)", ret);
       goto clean_exit;
     }
 
@@ -114,22 +113,22 @@ int srslte_chest_dl_init(srslte_chest_dl_t* q, uint32_t max_prb, uint32_t nof_rx
     }
 
     if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, SRSLTE_NRE * max_prb)) {
-      ERROR("Error initializing vector interpolator\n");
+      ERROR("Error initializing vector interpolator");
       goto clean_exit;
     }
 
     if (srslte_interp_linear_init(&q->srslte_interp_lin, 2 * max_prb, SRSLTE_NRE / 2)) {
-      ERROR("Error initializing interpolator\n");
+      ERROR("Error initializing interpolator");
       goto clean_exit;
     }
 
     if (srslte_interp_linear_init(&q->srslte_interp_lin_3, 4 * max_prb, SRSLTE_NRE / 4)) {
-      ERROR("Error initializing interpolator\n");
+      ERROR("Error initializing interpolator");
       goto clean_exit;
     }
 
     if (srslte_interp_linear_init(&q->srslte_interp_lin_mbsfn, 6 * max_prb, SRSLTE_NRE / 6)) {
-      ERROR("Error initializing interpolator\n");
+      ERROR("Error initializing interpolator");
       goto clean_exit;
     }
 
@@ -137,7 +136,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t* q, uint32_t max_prb, uint32_t nof_rx
     if (q->wiener_dl) {
       srslte_wiener_dl_init(q->wiener_dl, max_prb, 2, nof_rx_antennas);
     } else {
-      ERROR("Error allocating wiener filter\n");
+      ERROR("Error allocating wiener filter");
       goto clean_exit;
     }
 
@@ -277,25 +276,25 @@ int srslte_chest_dl_set_cell(srslte_chest_dl_t* q, srslte_cell_t cell)
       q->cell = cell;
       ret     = srslte_refsignal_cs_set_cell(&q->csr_refs, cell);
       if (ret != SRSLTE_SUCCESS) {
-        ERROR("Error initializing CSR signal (%d)\n", ret);
+        ERROR("Error initializing CSR signal (%d)", ret);
         return SRSLTE_ERROR;
       }
       if (srslte_pss_generate(q->pss_signal, cell.id % 3)) {
-        ERROR("Error initializing PSS signal for noise estimation\n");
+        ERROR("Error initializing PSS signal for noise estimation");
         return SRSLTE_ERROR;
       }
       if (srslte_interp_linear_vector_resize(&q->srslte_interp_linvec, SRSLTE_NRE * q->cell.nof_prb)) {
-        ERROR("Error initializing vector interpolator\n");
+        ERROR("Error initializing vector interpolator");
         return SRSLTE_ERROR;
       }
 
       if (srslte_interp_linear_resize(&q->srslte_interp_lin, 2 * q->cell.nof_prb, SRSLTE_NRE / 2)) {
-        ERROR("Error initializing interpolator\n");
+        ERROR("Error initializing interpolator");
         return SRSLTE_ERROR;
       }
 
       if (srslte_interp_linear_resize(&q->srslte_interp_lin_3, 4 * q->cell.nof_prb, SRSLTE_NRE / 4)) {
-        ERROR("Error initializing interpolator\n");
+        ERROR("Error initializing interpolator");
         return SRSLTE_ERROR;
       }
       if (srslte_interp_linear_resize(&q->srslte_interp_lin_mbsfn, 6 * q->cell.nof_prb, SRSLTE_NRE / 6)) {
@@ -622,7 +621,6 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
                                         uint32_t               port_id,
                                         uint32_t               rxant_id)
 {
-
   float       filter[SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN];
   uint32_t    filter_len = 0;
   uint32_t    sf_idx     = sf->tti % 10;
@@ -635,7 +633,7 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
   /* Estimate noise */
   if (cfg->noise_alg == SRSLTE_NOISE_ALG_REFS) {
     if (ch_mode == SRSLTE_SF_MBSFN) {
-      ERROR("Warning: REFS noise estimation algorithm not supported in MBSFN subframes\n");
+      ERROR("Warning: REFS noise estimation algorithm not supported in MBSFN subframes");
     }
 
     q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, sf, port_id);
@@ -674,11 +672,10 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
   }
 
   if (ce != NULL) {
-
     switch (cfg->filter_type) {
       case SRSLTE_CHEST_FILTER_GAUSS:
         if (ch_mode == SRSLTE_SF_MBSFN) {
-          ERROR("Warning: Gauss filter not supported in MBSFN subframes\n");
+          ERROR("Warning: Gauss filter not supported in MBSFN subframes");
         }
         if (cfg->filter_coef[0] <= 0) {
           filter_len = srslte_chest_set_smooth_filter_gauss(filter, 4, q->noise_estimate[rxant_id][port_id] * 200.0f);
@@ -694,7 +691,7 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
     }
 
     if (cfg->estimator_alg != SRSLTE_ESTIMATOR_ALG_INTERPOLATE && ch_mode == SRSLTE_SF_MBSFN) {
-      ERROR("Warning: Subframe interpolation must be enabled in MBSFN subframes\n");
+      ERROR("Warning: Subframe interpolation must be enabled in MBSFN subframes");
     }
 
     /* Smooth estimates (if applicable) and interpolate */
@@ -731,7 +728,6 @@ chest_dl_estimate_correct_sync_error(srslte_chest_dl_t* q, srslte_dl_sf_cfg_t* s
 
   // For each cell port...
   for (uint32_t cell_port_id = 0; cell_port_id < q->cell.nof_ports; cell_port_id++) {
-
     uint32_t npilots = srslte_refsignal_cs_nof_re(&q->csr_refs, sf, cell_port_id);
     uint32_t nsymb   = srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, cell_port_id);
 
@@ -823,7 +819,7 @@ static int estimate_port_mbsfn(srslte_chest_dl_t*     q,
   uint16_t mbsfn_area_id = cfg->mbsfn_area_id;
 
   if (!q->mbsfn_refs[mbsfn_area_id]) {
-    ERROR("Error in chest_dl: MBSFN area id=%d not initialized\n", cfg->mbsfn_area_id);
+    ERROR("Error in chest_dl: MBSFN area id=%d not initialized", cfg->mbsfn_area_id);
   }
 
   /* Use the known CSR signal to compute Least-squares estimates */
@@ -984,7 +980,6 @@ int srslte_chest_dl_estimate_cfg(srslte_chest_dl_t*     q,
                                  cf_t*                  input[SRSLTE_MAX_PORTS],
                                  srslte_chest_dl_res_t* res)
 {
-
   for (uint32_t rxant_id = 0; rxant_id < q->nof_rx_antennas; rxant_id++) {
     // Estimate and correct synchronization error if enabled
     if (cfg->sync_error_enable) {

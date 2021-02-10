@@ -254,18 +254,18 @@ int main(int argc, char** argv)
 
   // Initialise object DMRS for PDSCH
   if (srslte_dmrs_sch_init(&dmrs_pdsch, true) != SRSLTE_SUCCESS) {
-    ERROR("Init\n");
+    ERROR("Init");
     goto clean_exit;
   }
 
   // Set carrier configuration
   if (srslte_dmrs_sch_set_carrier(&dmrs_pdsch, &carrier) != SRSLTE_SUCCESS) {
-    ERROR("Setting carrier\n");
+    ERROR("Setting carrier");
     goto clean_exit;
   }
 
   if (srslte_chest_dl_res_init(&chest_dl_res, carrier.nof_prb) != SRSLTE_SUCCESS) {
-    ERROR("Initiating channel estimation  result\n");
+    ERROR("Initiating channel estimation  result");
     goto clean_exit;
   }
 
@@ -317,7 +317,7 @@ int main(int argc, char** argv)
                   char str[64] = {};
                   srslte_dmrs_sch_cfg_to_str(&pdsch_cfg.dmrs, str, 64);
 
-                  ERROR("Test %d failed. %s.\n", test_counter, str);
+                  ERROR("Test %d failed. %s.", test_counter, str);
                 }
 
                 test_counter++;

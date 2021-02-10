@@ -122,7 +122,7 @@ int main(int argc, char** argv)
     ofdm_cfg.freq_shift_f      = freq_shift_f;
     ofdm_cfg.normalize         = true;
     if (srslte_ofdm_tx_init_cfg(&ifft, &ofdm_cfg)) {
-      ERROR("Error initializing iFFT\n");
+      ERROR("Error initializing iFFT");
       exit(-1);
     }
 
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
     ofdm_cfg.rx_window_offset = rx_window_offset;
     ofdm_cfg.freq_shift_f     = -freq_shift_f;
     if (srslte_ofdm_rx_init_cfg(&fft, &ofdm_cfg)) {
-      ERROR("Error initializing FFT\n");
+      ERROR("Error initializing FFT");
       exit(-1);
     }
 

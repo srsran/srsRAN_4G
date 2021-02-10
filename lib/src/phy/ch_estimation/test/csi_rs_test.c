@@ -55,7 +55,7 @@ static int test(const srslte_slot_cfg_t*            slot_cfg,
   if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
     char str[128] = {};
     srslte_csi_rs_measure_info(&measure, str, sizeof(str));
-    INFO("Measure: %s\n", str);
+    INFO("Measure: %s", str);
   }
 
   TESTASSERT(fabsf(measure.rsrp_dB - rsrp_dB_gold) < 1.0f);
@@ -126,12 +126,12 @@ int main(int argc, char** argv)
 
   cf_t* grid = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(carrier.nof_prb));
   if (grid == NULL) {
-    ERROR("Alloc\n");
+    ERROR("Alloc");
     goto clean_exit;
   }
 
   if (srslte_channel_awgn_init(&awgn, 1234) < SRSLTE_SUCCESS) {
-    ERROR("AWGN Init\n");
+    ERROR("AWGN Init");
     goto clean_exit;
   }
 

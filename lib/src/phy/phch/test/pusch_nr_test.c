@@ -98,29 +98,29 @@ int main(int argc, char** argv)
   pusch_args.measure_evm            = true;
 
   if (srslte_pusch_nr_init_ue(&pusch_tx, &pusch_args) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating PUSCH for Tx\n");
+    ERROR("Error initiating PUSCH for Tx");
     goto clean_exit;
   }
 
   if (srslte_pusch_nr_init_gnb(&pusch_rx, &pusch_args) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating SCH NR for Rx\n");
+    ERROR("Error initiating SCH NR for Rx");
     goto clean_exit;
   }
 
   if (srslte_pusch_nr_set_carrier(&pusch_tx, &carrier)) {
-    ERROR("Error setting SCH NR carrier\n");
+    ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
   if (srslte_pusch_nr_set_carrier(&pusch_rx, &carrier)) {
-    ERROR("Error setting SCH NR carrier\n");
+    ERROR("Error setting SCH NR carrier");
     goto clean_exit;
   }
 
   for (uint32_t i = 0; i < carrier.max_mimo_layers; i++) {
     sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(carrier.nof_prb));
     if (sf_symbols[i] == NULL) {
-      ERROR("Error malloc\n");
+      ERROR("Error malloc");
       goto clean_exit;
     }
   }
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
     data_tx[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
     data_rx[i] = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
     if (data_tx[i] == NULL || data_rx[i] == NULL) {
-      ERROR("Error malloc\n");
+      ERROR("Error malloc");
       goto clean_exit;
     }
 
@@ -141,25 +141,25 @@ int main(int argc, char** argv)
 
   if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     goto clean_exit;
   }
 
   if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     goto clean_exit;
   }
 
   // Use grant default A time resources with m=0
   if (srslte_ra_ul_nr_pdsch_time_resource_default_A(carrier.numerology, 0, &pusch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error loading default grant\n");
+    ERROR("Error loading default grant");
     goto clean_exit;
   }
 
   // Load number of DMRS CDM groups without data
   if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(&pusch_cfg, &pusch_grant) < SRSLTE_SUCCESS) {
-    ERROR("Error loading number of DMRS CDM groups without data\n");
+    ERROR("Error loading number of DMRS CDM groups without data");
     goto clean_exit;
   }
 
@@ -182,7 +182,7 @@ int main(int argc, char** argv)
   }
 
   if (srslte_chest_dl_res_init(&chest, carrier.nof_prb) < SRSLTE_SUCCESS) {
-    ERROR("Initiating chest\n");
+    ERROR("Initiating chest");
     goto clean_exit;
   }
 
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
 
       pusch_grant.dci_format = srslte_dci_format_nr_0_0;
       if (srslte_ra_nr_fill_tb(&pusch_cfg, &pusch_grant, mcs, &pusch_grant.tb[0]) < SRSLTE_SUCCESS) {
-        ERROR("Error filing tb\n");
+        ERROR("Error filing tb");
         goto clean_exit;
       }
 
@@ -211,7 +211,7 @@ int main(int argc, char** argv)
       }
 
       if (srslte_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_grant, data_tx, sf_symbols) < SRSLTE_SUCCESS) {
-        ERROR("Error encoding\n");
+        ERROR("Error encoding");
         goto clean_exit;
       }
 
@@ -226,12 +226,12 @@ int main(int argc, char** argv)
       chest.nof_re = pusch_grant.tb->nof_re;
 
       if (srslte_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_grant, &chest, sf_symbols, pusch_res) < SRSLTE_SUCCESS) {
-        ERROR("Error encoding\n");
+        ERROR("Error encoding");
         goto clean_exit;
       }
 
       if (pusch_res->evm > 0.001f) {
-        ERROR("Error PUSCH EVM is too high %f\n", pusch_res->evm);
+        ERROR("Error PUSCH EVM is too high %f", pusch_res->evm);
         goto clean_exit;
       }
 
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
         mse = mse / (nof_re * pusch_grant.nof_layers);
       }
       if (mse > 0.001) {
-        ERROR("MSE error (%f) is too high\n", mse);
+        ERROR("MSE error (%f) is too high", mse);
         for (uint32_t i = 0; i < pusch_grant.nof_layers; i++) {
           printf("d_tx[%d]=", i);
           srslte_vec_fprint_c(stdout, pusch_tx.d[i], nof_re);
@@ -257,12 +257,12 @@ int main(int argc, char** argv)
       }
 
       if (!pusch_res[0].crc) {
-        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;\n", n_prb, mcs, pusch_grant.tb[0].tbs);
+        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_grant.tb[0].tbs);
         goto clean_exit;
       }
 
       if (memcmp(data_tx[0], data_rx[0], pusch_grant.tb[0].tbs / 8) != 0) {
-        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;\n", n_prb, mcs, pusch_grant.tb[0].tbs);
+        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_grant.tb[0].tbs);
         printf("Tx data: ");
         srslte_vec_fprint_byte(stdout, data_tx[0], pusch_grant.tb[0].tbs / 8);
         printf("Rx data: ");

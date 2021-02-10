@@ -28,12 +28,11 @@
 
 static int ofdm_init_mbsfn_(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg, srslte_dft_dir_t dir)
 {
-
   // If the symbol size is not given, calculate in function of the number of resource blocks
   if (cfg->symbol_sz == 0) {
     int symbol_sz_err = srslte_symbol_sz(cfg->nof_prb);
     if (symbol_sz_err <= SRSLTE_SUCCESS) {
-      ERROR("Invalid number of PRB %d\n", cfg->nof_prb);
+      ERROR("Invalid number of PRB %d", cfg->nof_prb);
       return SRSLTE_ERROR;
     }
     cfg->symbol_sz = (uint32_t)symbol_sz_err;
@@ -65,13 +64,13 @@ static int ofdm_init_mbsfn_(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg, srslte_dft
   if (q->fft_plan.size) {
     // Replan if it was initialised previously
     if (srslte_dft_replan(&q->fft_plan, q->cfg.symbol_sz)) {
-      ERROR("Reeplaning DFT plan\n");
+      ERROR("Reeplaning DFT plan");
       return SRSLTE_ERROR;
     }
   } else {
     // Create plan from zero otherwise
     if (srslte_dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
-      ERROR("Creating DFT plan\n");
+      ERROR("Creating DFT plan");
       return SRSLTE_ERROR;
     }
   }
@@ -156,7 +155,7 @@ static int ofdm_init_mbsfn_(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg, srslte_dft
                                  SRSLTE_CP_NSYMB(cp),
                                  symbol_sz + cp2,
                                  symbol_sz)) {
-        ERROR("Creating Guru DFT plan (%d)\n", slot);
+        ERROR("Creating Guru DFT plan (%d)", slot);
         return SRSLTE_ERROR;
       }
     } else {
@@ -170,7 +169,7 @@ static int ofdm_init_mbsfn_(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg, srslte_dft
                                  SRSLTE_CP_NSYMB(cp),
                                  symbol_sz,
                                  symbol_sz + cp2)) {
-        ERROR("Creating Guru inverse-DFT plan (%d)\n", slot);
+        ERROR("Creating Guru inverse-DFT plan (%d)", slot);
         return SRSLTE_ERROR;
       }
     }
@@ -179,7 +178,7 @@ static int ofdm_init_mbsfn_(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg, srslte_dft
 
   srslte_dft_plan_set_mirror(&q->fft_plan, true);
 
-  DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
+  DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d",
         dir == SRSLTE_DFT_FORWARD ? "FFT" : "iFFT",
         q->cfg.symbol_sz,
         q->nof_symbols,

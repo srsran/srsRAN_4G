@@ -53,7 +53,7 @@ static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
                                     uint32_t                     candidate)
 {
   if (aggregation_level >= SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR) {
-    ERROR("Invalid aggregation level %d;\n", aggregation_level);
+    ERROR("Invalid aggregation level %d;", aggregation_level);
     return SRSLTE_ERROR;
   }
 
@@ -63,7 +63,7 @@ static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
   uint32_t M    = search_space->nof_candidates[aggregation_level]; // Number of aggregation levels
 
   if (M == 0) {
-    ERROR("Invalid number of candidates %d for aggregation level %d\n", M, aggregation_level);
+    ERROR("Invalid number of candidates %d for aggregation level %d", M, aggregation_level);
     return SRSLTE_ERROR;
   }
 
@@ -72,7 +72,7 @@ static int srslte_pdcch_nr_get_ncce(const srslte_coreset_t*      coreset,
   uint32_t N_cce = srslte_coreset_get_bw(coreset) * coreset->duration / 6;
 
   if (N_cce < L) {
-    ERROR("Error number of CCE %d is lower than the aggregation level %d\n", N_cce, L);
+    ERROR("Error number of CCE %d is lower than the aggregation level %d", N_cce, L);
     return SRSLTE_ERROR;
   }
 
@@ -334,7 +334,6 @@ static uint32_t pdcch_nr_c_init(const srslte_pdcch_nr_t* q, const srslte_dci_msg
 
 int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_msg, cf_t* slot_symbols)
 {
-
   if (q == NULL || dci_msg == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR;
   }
@@ -354,7 +353,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
-  PDCCH_INFO_TX("K=%d; E=%d; M=%d; n=%d; cinit=%08x;\n", q->K, q->E, q->M, q->code.n, cinit);
+  PDCCH_INFO_TX("K=%d; E=%d; M=%d; n=%d; cinit=%08x;", q->K, q->E, q->M, q->code.n, cinit);
 
   // Set first L bits to ones, c will have an offset of 24 bits
   uint8_t* c = q->c;
@@ -366,7 +365,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   // Append CRC
   srslte_crc_attach(&q->crc24c, q->c, q->K);
 
-  PDCCH_INFO_TX("Append CRC %06x\n", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
+  PDCCH_INFO_TX("Append CRC %06x", (uint32_t)srslte_crc_checksum_get(&q->crc24c));
 
   // Unpack RNTI
   uint8_t  unpacked_rnti[16] = {};
@@ -414,7 +413,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   // Put symbols in grid
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, true);
   if (q->M != m) {
-    ERROR("Unmatch number of RE (%d != %d)\n", m, q->M);
+    ERROR("Unmatch number of RE (%d != %d)", m, q->M);
     return SRSLTE_ERROR;
   }
 
@@ -427,7 +426,7 @@ int srslte_pdcch_nr_encode(srslte_pdcch_nr_t* q, const srslte_dci_msg_nr_t* dci_
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     char str[128] = {};
     srslte_pdcch_nr_info(q, NULL, str, sizeof(str));
-    PDCCH_INFO_TX("%s\n", str);
+    PDCCH_INFO_TX("%s", str);
   }
 
   return SRSLTE_SUCCESS;
@@ -455,7 +454,7 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
 
   // Check number of estimates is correct
   if (ce->nof_re != q->M) {
-    ERROR("Invalid number of channel estimates (%d != %d)\n", q->M, ce->nof_re);
+    ERROR("Invalid number of channel estimates (%d != %d)", q->M, ce->nof_re);
     return SRSLTE_ERROR;
   }
 
@@ -463,12 +462,12 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   if (srslte_polar_code_get(&q->code, q->K, q->E, 9U) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
-  PDCCH_INFO_RX("K=%d; E=%d; M=%d; n=%d;\n", q->K, q->E, q->M, q->code.n);
+  PDCCH_INFO_RX("K=%d; E=%d; M=%d; n=%d;", q->K, q->E, q->M, q->code.n);
 
   // Get symbols from grid
   uint32_t m = pdcch_nr_cp(q, &dci_msg->location, slot_symbols, q->symbols, false);
   if (q->M != m) {
-    ERROR("Unmatch number of RE (%d != %d)\n", m, q->M);
+    ERROR("Unmatch number of RE (%d != %d)", m, q->M);
     return SRSLTE_ERROR;
   }
 
@@ -574,7 +573,7 @@ int srslte_pdcch_nr_decode(srslte_pdcch_nr_t*      q,
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
     char str[128] = {};
     srslte_pdcch_nr_info(q, res, str, sizeof(str));
-    PDCCH_INFO_RX("%s\n", str);
+    PDCCH_INFO_RX("%s", str);
   }
 
   return SRSLTE_SUCCESS;

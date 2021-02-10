@@ -287,7 +287,7 @@ void srslte_sequence_state_advance(srslte_sequence_state_t* s, uint32_t length)
 int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
 {
   if (len > q->max_len) {
-    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->max_len);
+    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d", len, q->max_len);
     return SRSLTE_ERROR;
   }
 

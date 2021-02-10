@@ -88,7 +88,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], uint
       ofdm_cfg.sf_type    = SRSLTE_SF_NORM;
 
       if (srslte_ofdm_rx_init_cfg(&q->fft[i], &ofdm_cfg)) {
-        ERROR("Error initiating FFT\n");
+        ERROR("Error initiating FFT");
         goto clean_exit;
       }
     }
@@ -97,46 +97,46 @@ int srslte_ue_dl_init(srslte_ue_dl_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], uint
     ofdm_cfg.out_buffer = q->sf_symbols[0];
     ofdm_cfg.sf_type    = SRSLTE_SF_MBSFN;
     if (srslte_ofdm_rx_init_cfg(&q->fft_mbsfn, &ofdm_cfg)) {
-      ERROR("Error initiating FFT for MBSFN subframes \n");
+      ERROR("Error initiating FFT for MBSFN subframes ");
       goto clean_exit;
     }
     srslte_ofdm_set_non_mbsfn_region(&q->fft_mbsfn, 2); // Set a default to init
 
     if (srslte_chest_dl_init(&q->chest, max_prb, nof_rx_antennas)) {
-      ERROR("Error initiating channel estimator\n");
+      ERROR("Error initiating channel estimator");
       goto clean_exit;
     }
     if (srslte_chest_dl_res_init(&q->chest_res, max_prb)) {
-      ERROR("Error initiating channel estimator\n");
+      ERROR("Error initiating channel estimator");
       goto clean_exit;
     }
     if (srslte_pcfich_init(&q->pcfich, nof_rx_antennas)) {
-      ERROR("Error creating PCFICH object\n");
+      ERROR("Error creating PCFICH object");
       goto clean_exit;
     }
     if (srslte_phich_init(&q->phich, nof_rx_antennas)) {
-      ERROR("Error creating PHICH object\n");
+      ERROR("Error creating PHICH object");
       goto clean_exit;
     }
 
     if (srslte_pdcch_init_ue(&q->pdcch, max_prb, nof_rx_antennas)) {
-      ERROR("Error creating PDCCH object\n");
+      ERROR("Error creating PDCCH object");
       goto clean_exit;
     }
 
     if (srslte_pdsch_init_ue(&q->pdsch, max_prb, nof_rx_antennas)) {
-      ERROR("Error creating PDSCH object\n");
+      ERROR("Error creating PDSCH object");
       goto clean_exit;
     }
 
     if (srslte_pmch_init(&q->pmch, max_prb, nof_rx_antennas)) {
-      ERROR("Error creating PMCH object\n");
+      ERROR("Error creating PMCH object");
       goto clean_exit;
     }
 
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters");
   }
 
 clean_exit:
@@ -188,13 +188,13 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell)
       q->cell = cell;
       for (int i = 0; i < SRSLTE_MI_NOF_REGS; i++) {
         if (srslte_regs_init_opts(&q->regs[i], q->cell, mi_reg_idx[i % 3], i > 2)) {
-          ERROR("Error resizing REGs\n");
+          ERROR("Error resizing REGs");
           return SRSLTE_ERROR;
         }
       }
       for (int port = 0; port < q->nof_rx_antennas; port++) {
         if (srslte_ofdm_rx_set_prb(&q->fft[port], q->cell.cp, q->cell.nof_prb)) {
-          ERROR("Error resizing FFT\n");
+          ERROR("Error resizing FFT");
           return SRSLTE_ERROR;
         }
       }
@@ -208,35 +208,35 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell)
       }
 
       if (srslte_ofdm_rx_set_prb(&q->fft_mbsfn, SRSLTE_CP_EXT, q->cell.nof_prb)) {
-        ERROR("Error resizing MBSFN FFT\n");
+        ERROR("Error resizing MBSFN FFT");
         return SRSLTE_ERROR;
       }
 
       if (srslte_chest_dl_set_cell(&q->chest, q->cell)) {
-        ERROR("Error resizing channel estimator\n");
+        ERROR("Error resizing channel estimator");
         return SRSLTE_ERROR;
       }
       if (srslte_pcfich_set_cell(&q->pcfich, &q->regs[0], q->cell)) {
-        ERROR("Error resizing PCFICH object\n");
+        ERROR("Error resizing PCFICH object");
         return SRSLTE_ERROR;
       }
       if (srslte_phich_set_cell(&q->phich, &q->regs[phich_init_reg], q->cell)) {
-        ERROR("Error resizing PHICH object\n");
+        ERROR("Error resizing PHICH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pdcch_set_cell(&q->pdcch, &q->regs[pdcch_init_reg], q->cell)) {
-        ERROR("Error resizing PDCCH object\n");
+        ERROR("Error resizing PDCCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
-        ERROR("Error resizing PDSCH object\n");
+        ERROR("Error resizing PDSCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pmch_set_cell(&q->pmch, q->cell)) {
-        ERROR("Error resizing PMCH object\n");
+        ERROR("Error resizing PMCH object");
         return SRSLTE_ERROR;
       }
     }
@@ -245,7 +245,7 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell)
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid cell properties ue_dl: Id=%d, Ports=%d, PRBs=%d\n", cell.id, cell.nof_ports, cell.nof_prb);
+    ERROR("Invalid cell properties ue_dl: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
 }
@@ -272,7 +272,6 @@ void srslte_ue_dl_set_mi_manual(srslte_ue_dl_t* q, uint32_t mi_idx)
  */
 void srslte_ue_dl_set_rnti(srslte_ue_dl_t* q, uint16_t rnti)
 {
-
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
 
   srslte_dl_sf_cfg_t sf_cfg;
@@ -284,7 +283,7 @@ void srslte_ue_dl_set_rnti(srslte_ue_dl_t* q, uint16_t rnti)
     for (int cfi = 1; cfi <= SRSLTE_NOF_CFI; cfi++) {
       sf_cfg.cfi = cfi;
       for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-        sf_cfg.tti                                     = sf_idx;
+        sf_cfg.tti                                                     = sf_idx;
         q->current_ss_ue[i][SRSLTE_CFI_IDX(cfi)][sf_idx].nof_locations = srslte_pdcch_ue_locations(
             &q->pdcch, &sf_cfg, q->current_ss_ue[i][SRSLTE_CFI_IDX(cfi)][sf_idx].loc, SRSLTE_MAX_CANDIDATES_UE, rnti);
       }
@@ -304,11 +303,11 @@ int srslte_ue_dl_set_mbsfn_area_id(srslte_ue_dl_t* q, uint16_t mbsfn_area_id)
   if (q != NULL) {
     ret = SRSLTE_ERROR;
     if (srslte_chest_dl_set_mbsfn_area_id(&q->chest, mbsfn_area_id)) {
-      ERROR("Error setting MBSFN area ID \n");
+      ERROR("Error setting MBSFN area ID ");
       return ret;
     }
     if (srslte_pmch_set_area_id(&q->pmch, mbsfn_area_id)) {
-      ERROR("Error setting MBSFN area ID \n");
+      ERROR("Error setting MBSFN area ID ");
       return ret;
     }
     q->current_mbsfn_area_id = mbsfn_area_id;
@@ -322,12 +321,12 @@ static void set_mi_value(srslte_ue_dl_t* q, srslte_dl_sf_cfg_t* sf, srslte_ue_dl
   uint32_t sf_idx = sf->tti % 10;
   // Set mi value in pdcch region
   if (q->mi_auto) {
-    INFO("Setting PHICH mi value auto. sf_idx=%d, mi=%d, idx=%d\n", sf_idx, MI_VALUE(sf_idx), MI_IDX(sf_idx));
+    INFO("Setting PHICH mi value auto. sf_idx=%d, mi=%d, idx=%d", sf_idx, MI_VALUE(sf_idx), MI_IDX(sf_idx));
     srslte_phich_set_regs(&q->phich, &q->regs[MI_IDX(sf_idx)]);
     srslte_pdcch_set_regs(&q->pdcch, &q->regs[MI_IDX(sf_idx)]);
   } else {
     // No subframe 1 or 6 so no need to consider it
-    INFO("Setting PHICH mi value manual. sf_idx=%d, mi=%d, idx=%d\n",
+    INFO("Setting PHICH mi value manual. sf_idx=%d, mi=%d, idx=%d",
          sf_idx,
          q->mi_manual_index,
          mi_reg_idx_inv[q->mi_manual_index]);
@@ -339,7 +338,6 @@ static void set_mi_value(srslte_ue_dl_t* q, srslte_dl_sf_cfg_t* sf, srslte_ue_dl
 static int estimate_pdcch_pcfich(srslte_ue_dl_t* q, srslte_dl_sf_cfg_t* sf, srslte_ue_dl_cfg_t* cfg)
 {
   if (q) {
-
     float cfi_corr = 0;
 
     set_mi_value(q, sf, cfg);
@@ -349,21 +347,21 @@ static int estimate_pdcch_pcfich(srslte_ue_dl_t* q, srslte_dl_sf_cfg_t* sf, srsl
 
     /* First decode PCFICH and obtain CFI */
     if (srslte_pcfich_decode(&q->pcfich, sf, &q->chest_res, q->sf_symbols, &cfi_corr) < 0) {
-      ERROR("Error decoding PCFICH\n");
+      ERROR("Error decoding PCFICH");
       return SRSLTE_ERROR;
     }
 
     if (q->cell.frame_type == SRSLTE_TDD && ((sf->tti % 10) == 1 || (sf->tti % 10) == 6) && sf->cfi == 3) {
       sf->cfi = 2;
-      INFO("Received CFI=3 in subframe 1 or 6 and TDD. Setting to 2\n");
+      INFO("Received CFI=3 in subframe 1 or 6 and TDD. Setting to 2");
     }
 
     if (srslte_pdcch_extract_llr(&q->pdcch, sf, &q->chest_res, q->sf_symbols)) {
-      ERROR("Extracting PDCCH LLR\n");
+      ERROR("Extracting PDCCH LLR");
       return false;
     }
 
-    INFO("Decoded CFI=%d with correlation %.2f, sf_idx=%d\n", sf->cfi, cfi_corr, sf->tti % 10);
+    INFO("Decoded CFI=%d with correlation %.2f, sf_idx=%d", sf->cfi, cfi_corr, sf->tti % 10);
 
     return SRSLTE_SUCCESS;
   } else {
@@ -450,15 +448,15 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
   if (rnti) {
     for (int l = 0; l < search_space->nof_locations; l++) {
       if (nof_dci >= SRSLTE_MAX_DCI_MSG) {
-        ERROR("Can't store more DCIs in buffer\n");
+        ERROR("Can't store more DCIs in buffer");
         return nof_dci;
       }
       if (dci_location_is_allocated(q, search_space->loc[l])) {
-        INFO("Skipping location L=%d, ncce=%d. Already allocated\n", search_space->loc[l].L, search_space->loc[l].ncce);
+        INFO("Skipping location L=%d, ncce=%d. Already allocated", search_space->loc[l].L, search_space->loc[l].ncce);
         continue;
       }
       for (uint32_t f = 0; f < search_space->nof_formats; f++) {
-        INFO("Searching format %s in %d,%d (%d/%d)\n",
+        INFO("Searching format %s in %d,%d (%d/%d)",
              srslte_dci_format_string(search_space->formats[f]),
              search_space->loc[l].ncce,
              search_space->loc[l].L,
@@ -470,7 +468,7 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
         dci_msg[nof_dci].format   = search_space->formats[f];
         dci_msg[nof_dci].rnti     = 0;
         if (srslte_pdcch_decode_msg(&q->pdcch, sf, dci_cfg, &dci_msg[nof_dci])) {
-          ERROR("Error decoding DCI msg\n");
+          ERROR("Error decoding DCI msg");
           return SRSLTE_ERROR;
         }
 
@@ -500,7 +498,7 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
                 dci_msg[nof_dci].format = dci_msg[nof_dci].payload[0]
                                               ? SRSLTE_DCI_FORMAT1A
                                               : SRSLTE_DCI_FORMAT0; // Format0/1A bit indicator is the MSB
-                INFO("DCI msg found in location L=%d, ncce=%d, size=%d belongs to the common SS and is format %s\n",
+                INFO("DCI msg found in location L=%d, ncce=%d, size=%d belongs to the common SS and is format %s",
                      dci_msg[nof_dci].location.L,
                      dci_msg[nof_dci].location.ncce,
                      dci_msg[nof_dci].nof_bits,
@@ -529,13 +527,13 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
             nof_dci++;
             break;
           } else {
-            INFO("Ignoring message with size %d, already decoded\n", dci_msg[nof_dci].nof_bits);
+            INFO("Ignoring message with size %d, already decoded", dci_msg[nof_dci].nof_bits);
           }
         }
       }
     }
   } else {
-    ERROR("RNTI not specified\n");
+    ERROR("RNTI not specified");
   }
   return nof_dci;
 }
@@ -557,7 +555,7 @@ static int find_dci_ss(srslte_ue_dl_t*            q,
   srslte_dci_cfg_t dci_cfg = cfg->cfg.dci;
 
   if (!SRSLTE_CFI_ISVALID(cfi)) {
-    ERROR("Invalid CFI=%d\n", cfi);
+    ERROR("Invalid CFI=%d", cfi);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -587,7 +585,7 @@ static int find_dci_ss(srslte_ue_dl_t*            q,
   current_ss->nof_formats = nof_formats;
   memcpy(current_ss->formats, formats, nof_formats * sizeof(srslte_dci_format_t));
 
-  INFO("Searching %d formats in %d locations in %s SS, csi=%d\n",
+  INFO("Searching %d formats in %d locations in %s SS, csi=%d",
        nof_formats,
        current_ss->nof_locations,
        is_ue ? "ue" : "common",
@@ -619,7 +617,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
     // Unpack DCI messages
     for (uint32_t i = 0; i < nof_msg; i++) {
       if (srslte_dci_msg_unpack_pusch(&q->cell, sf, &dl_cfg->cfg.dci, &dci_msg[i], &dci_ul[i])) {
-        ERROR("Unpacking UL DCI\n");
+        ERROR("Unpacking UL DCI");
         return SRSLTE_ERROR;
       }
     }
@@ -651,7 +649,7 @@ static int find_dl_ul_dci_type_crnti(srslte_ue_dl_t*     q,
   int ret = SRSLTE_SUCCESS;
 
   if (dl_cfg->cfg.tm > SRSLTE_TM8) {
-    ERROR("Searching DL CRNTI: Invalid TM=%d\n", dl_cfg->cfg.tm + 1);
+    ERROR("Searching DL CRNTI: Invalid TM=%d", dl_cfg->cfg.tm + 1);
     return SRSLTE_ERROR;
   }
 
@@ -670,7 +668,6 @@ static int find_dl_ul_dci_type_crnti(srslte_ue_dl_t*     q,
 
   // Search common SS
   if (dl_cfg->cfg.dci_common_ss) {
-
     // Search only for SRSLTE_DCI_FORMAT1A (1st in common_formats) when looking for C-RNTI
     ret = 0;
     if ((ret = find_dci_ss(q, sf, dl_cfg, rnti, &dci_msg[nof_dci_msg], common_formats, 1, false)) < 0) {
@@ -706,14 +703,14 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
   }
 
   if (nof_msg < 0) {
-    ERROR("Invalid number of DCI messages\n");
+    ERROR("Invalid number of DCI messages");
     return SRSLTE_ERROR;
   }
 
   // Unpack DCI messages
   for (uint32_t i = 0; i < nof_msg; i++) {
     if (srslte_dci_msg_unpack_pdsch(&q->cell, sf, &dl_cfg->cfg.dci, &dci_msg[i], &dci_dl[i])) {
-      ERROR("Unpacking DL DCI\n");
+      ERROR("Unpacking DL DCI");
       return SRSLTE_ERROR;
     }
   }
@@ -758,7 +755,7 @@ int srslte_ue_dl_decode_phich(srslte_ue_dl_t*       q,
   set_mi_value(q, sf, cfg);
 
   srslte_phich_calc(&q->phich, grant, &n_phich);
-  INFO("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, I_phich=%d, n_group=%d, n_seq=%d, Ngroups=%d, Nsf=%d\n",
+  INFO("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, I_phich=%d, n_group=%d, n_seq=%d, Ngroups=%d, Nsf=%d",
        sf_idx,
        grant->n_prb_lowest,
        grant->n_dmrs,
@@ -769,10 +766,10 @@ int srslte_ue_dl_decode_phich(srslte_ue_dl_t*       q,
        srslte_phich_nsf(&q->phich));
 
   if (!srslte_phich_decode(&q->phich, sf, &q->chest_res, n_phich, q->sf_symbols, result)) {
-    INFO("Decoded PHICH %d with distance %f\n", result->ack_value, result->distance);
+    INFO("Decoded PHICH %d with distance %f", result->ack_value, result->distance);
     return 0;
   } else {
-    ERROR("Error decoding PHICH\n");
+    ERROR("Error decoding PHICH");
     return -1;
   }
 }
@@ -894,7 +891,6 @@ void srslte_ue_dl_gen_cqi_periodic(srslte_ue_dl_t*     q,
     uci_data->cfg.cqi.ri_len = 1;
     uci_data->value.ri       = cfg->last_ri;
   } else if (srslte_cqi_periodic_send(&cfg->cfg.cqi_report, tti, q->cell.frame_type)) {
-
     if (cfg->cfg.cqi_report.format_is_subband) {
       // TODO: Implement subband periodic reports
       uci_data->cfg.cqi.type                    = SRSLTE_CQI_TYPE_SUBBAND;
@@ -1000,7 +996,7 @@ void srslte_ue_dl_gen_cqi_aperiodic(srslte_ue_dl_t*     q,
 
       break;
     default:
-      ERROR("CQI mode %d not supported\n", cfg->cfg.cqi_report.aperiodic_mode);
+      ERROR("CQI mode %d not supported", cfg->cfg.cqi_report.aperiodic_mode);
       break;
   }
 }
@@ -1040,7 +1036,6 @@ ue_dl_gen_ack_fdd_pcell_skip_drx(const srslte_pdsch_ack_t* ack_info, srslte_uci_
 static void
 ue_dl_gen_ack_fdd_all_keep_drx(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data, uint32_t nof_tb)
 {
-
   for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
     // Find ACK/NACK
     if (ack_info->cc[cc_idx].m[0].present) {
@@ -1154,7 +1149,6 @@ static void gen_ack_fdd(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* u
 
   // For each HARQ ACK/NACK feedback mode
   switch (ack_info->ack_nack_feedback_mode) {
-
     case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL:
       // Get ACK from PCell only, skipping DRX
       ue_dl_gen_ack_fdd_pcell_skip_drx(ack_info, uci_data, nof_tb);
@@ -1242,7 +1236,6 @@ static void gen_ack_tdd(bool is_tdd_mode16, const srslte_pdsch_ack_t* ack_info, 
   uint32_t min_k = 10;
 
   if (ack_value->M > 0) {
-
     ack_cfg->tdd_ack_M = ack_value->M;
 
     // ACK/NACK bundling or multiplexing and M=1
@@ -1322,7 +1315,6 @@ static void gen_ack_tdd(bool is_tdd_mode16, const srslte_pdsch_ack_t* ack_info, 
 
   // For TDD PUSCH
   if (is_tdd_mode16) {
-
     uint32_t V_dai_ul = ack_info->V_dai_ul + 1; // Table 7.3-x
 
     ack_cfg->tdd_is_multiplex = ack_info->tdd_ack_multiplex;
@@ -1467,7 +1459,6 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
   // Blind search PHICH mi value
   ret = 0;
   for (uint32_t i = 0; i < mi_set_len && !ret; i++) {
-
     if (mi_set_len == 1) {
       srslte_ue_dl_set_mi_auto(q);
     } else {
@@ -1486,7 +1477,7 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) {
       char str[512];
       srslte_dci_dl_info(&dci_dl[0], str, 512);
-      INFO("PDCCH: %s, snr=%.1f dB\n", str, q->chest_res.snr_db);
+      INFO("PDCCH: %s, snr=%.1f dB", str, q->chest_res.snr_db);
     }
 
     // Force known MBSFN grant
@@ -1501,7 +1492,7 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
 
     // Convert DCI message to DL grant
     if (srslte_ue_dl_dci_to_pdsch_grant(q, sf, cfg, &dci_dl[0], &pdsch_cfg->grant)) {
-      ERROR("Error unpacking DCI\n");
+      ERROR("Error unpacking DCI");
       return SRSLTE_ERROR;
     }
 
@@ -1529,13 +1520,13 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
     if (decode_enable) {
       if (sf->sf_type == SRSLTE_SF_NORM) {
         if (srslte_ue_dl_decode_pdsch(q, sf, pdsch_cfg, pdsch_res)) {
-          ERROR("ERROR: Decoding PDSCH\n");
+          ERROR("ERROR: Decoding PDSCH");
           ret = -1;
         }
       } else {
         pmch_cfg.pdsch_cfg = *pdsch_cfg;
         if (srslte_ue_dl_decode_pmch(q, sf, &pmch_cfg, pdsch_res)) {
-          ERROR("Decoding PMCH\n");
+          ERROR("Decoding PMCH");
           ret = -1;
         }
       }

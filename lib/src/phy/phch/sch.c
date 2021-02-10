@@ -39,7 +39,7 @@ static inline float get_beta_harq_offset(uint32_t idx)
   if (idx < 15) {
     ret = beta_harq_offset[idx];
   } else {
-    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 0, 14);
+    ERROR("Invalid input %d (min: %d, max: %d)", idx, 0, 14);
   }
 
   return ret;
@@ -55,7 +55,7 @@ static inline float get_beta_ri_offset(uint32_t idx)
   if (idx < 13) {
     ret = beta_ri_offset[idx];
   } else {
-    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 0, 12);
+    ERROR("Invalid input %d (min: %d, max: %d)", idx, 0, 12);
   }
 
   return ret;
@@ -71,7 +71,7 @@ static inline float get_beta_cqi_offset(uint32_t idx)
   if (idx > 1 && idx < 16) {
     ret = beta_cqi_offset[idx];
   } else {
-    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 2, 15);
+    ERROR("Invalid input %d (min: %d, max: %d)", idx, 2, 15);
   }
 
   return ret;
@@ -135,20 +135,20 @@ int srslte_sch_init(srslte_sch_t* q)
     bzero(q, sizeof(srslte_sch_t));
 
     if (srslte_crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
-      ERROR("Error initiating CRC\n");
+      ERROR("Error initiating CRC");
       goto clean;
     }
     if (srslte_crc_init(&q->crc_cb, SRSLTE_LTE_CRC24B, 24)) {
-      ERROR("Error initiating CRC\n");
+      ERROR("Error initiating CRC");
       goto clean;
     }
 
     if (srslte_tcod_init(&q->encoder, SRSLTE_TCOD_MAX_LEN_CB)) {
-      ERROR("Error initiating Turbo Coder\n");
+      ERROR("Error initiating Turbo Coder");
       goto clean;
     }
     if (srslte_tdec_init(&q->decoder, SRSLTE_TCOD_MAX_LEN_CB)) {
-      ERROR("Error initiating Turbo Decoder\n");
+      ERROR("Error initiating Turbo Decoder");
       goto clean;
     }
 
@@ -242,14 +242,13 @@ static int encode_tb_off(srslte_sch_t*           q,
   int      ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && e_bits != NULL && cb_segm != NULL && softbuffer != NULL) {
-
     if (cb_segm->F) {
-      ERROR("Error filler bits are not supported. Use standard TBS\n");
+      ERROR("Error filler bits are not supported. Use standard TBS");
       return SRSLTE_ERROR;
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
-      ERROR("Error number of CB to encode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      ERROR("Error number of CB to encode (%d) exceeds soft buffer size (%d CBs)", cb_segm->C, softbuffer->max_cb);
       return -1;
     }
 
@@ -266,7 +265,6 @@ static int encode_tb_off(srslte_sch_t*           q,
     wp = 0;
     rp = 0;
     for (i = 0; i < cb_segm->C; i++) {
-
       uint32_t cblen_idx;
       /* Get read lengths */
       if (i < cb_segm->C2) {
@@ -287,7 +285,7 @@ static int encode_tb_off(srslte_sch_t*           q,
         n_e = Qm * ((uint32_t)ceilf((float)Gp / cb_segm->C));
       }
 
-      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d\n", i, cb_len, rlen, wp, rp, n_e);
+      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d", i, cb_len, rlen, wp, rp, n_e);
 
       if (data) {
         bool last_cb = false;
@@ -297,7 +295,7 @@ static int encode_tb_off(srslte_sch_t*           q,
           // Copy data
           memcpy(q->cb_in, &data[rp / 8], rlen * sizeof(uint8_t) / 8);
         } else {
-          INFO("Last CB, appending parity: %d from %d and 24 to %d\n", rlen - 24, rp, rlen - 24);
+          INFO("Last CB, appending parity: %d from %d and 24 to %d", rlen - 24, rp, rlen - 24);
 
           /* Append Transport Block parity bits to the last CB */
           memcpy(q->cb_in, &data[rp / 8], (rlen - 24) * sizeof(uint8_t) / 8);
@@ -315,7 +313,7 @@ static int encode_tb_off(srslte_sch_t*           q,
                                cblen_idx,
                                last_cb);
       }
-      DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n", cblen_idx, n_e, wp, nof_e_bits);
+      DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d", cblen_idx, n_e, wp, nof_e_bits);
 
       /* Rate matching */
       if (srslte_rm_turbo_tx_lut(softbuffer->buffer_b[i],
@@ -326,7 +324,7 @@ static int encode_tb_off(srslte_sch_t*           q,
                                  n_e,
                                  (wp + w_offset) % 8,
                                  rv)) {
-        ERROR("Error in rate matching\n");
+        ERROR("Error in rate matching");
         return SRSLTE_ERROR;
       }
 
@@ -335,10 +333,10 @@ static int encode_tb_off(srslte_sch_t*           q,
       wp += n_e;
     }
 
-    INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
+    INFO("END CB#%d: wp: %d, rp: %d", i, wp, rp);
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters: e_bits=%d, cb_segm=%d, softbuffer=%d\n", e_bits != 0, cb_segm != 0, softbuffer != 0);
+    ERROR("Invalid parameters: e_bits=%d, cb_segm=%d, softbuffer=%d", e_bits != 0, cb_segm != 0, softbuffer != 0);
   }
   return ret;
 }
@@ -364,12 +362,11 @@ bool decode_tb_cb(srslte_sch_t*           q,
                   void*                   e_bits,
                   uint8_t*                data)
 {
-
   int8_t*  e_bits_b = e_bits;
   int16_t* e_bits_s = e_bits;
 
   if (cb_segm->C > SRSLTE_MAX_CODEBLOCKS) {
-    ERROR("Error SRSLTE_MAX_CODEBLOCKS=%d\n", SRSLTE_MAX_CODEBLOCKS);
+    ERROR("Error SRSLTE_MAX_CODEBLOCKS=%d", SRSLTE_MAX_CODEBLOCKS);
     return false;
   }
 
@@ -378,7 +375,6 @@ bool decode_tb_cb(srslte_sch_t*           q,
   for (int cb_idx = 0; cb_idx < cb_segm->C; cb_idx++) {
     /* Do not process blocks with CRC Ok */
     if (softbuffer->cb_crc[cb_idx] == false) {
-
       uint32_t cb_len     = cb_idx < cb_segm->C1 ? cb_segm->K1 : cb_segm->K2;
       uint32_t cb_len_idx = cb_idx < cb_segm->C1 ? cb_segm->K1_idx : cb_segm->K2_idx;
 
@@ -397,12 +393,12 @@ bool decode_tb_cb(srslte_sch_t*           q,
 
       if (q->llr_is_8bit) {
         if (srslte_rm_turbo_rx_lut_8bit(&e_bits_b[rp], (int8_t*)softbuffer->buffer_f[cb_idx], n_e2, cb_len_idx, rv)) {
-          ERROR("Error in rate matching\n");
+          ERROR("Error in rate matching");
           return SRSLTE_ERROR;
         }
       } else {
         if (srslte_rm_turbo_rx_lut(&e_bits_s[rp], softbuffer->buffer_f[cb_idx], n_e2, cb_len_idx, rv)) {
-          ERROR("Error in rate matching\n");
+          ERROR("Error in rate matching");
           return SRSLTE_ERROR;
         }
       }
@@ -434,7 +430,6 @@ bool decode_tb_cb(srslte_sch_t*           q,
 
         // CRC is OK
         if (!srslte_crc_checksum_byte(crc_ptr, &data[cb_idx * rlen / 8], len_crc)) {
-
           softbuffer->cb_crc[cb_idx] = true;
           early_stop                 = true;
 
@@ -444,7 +439,7 @@ bool decode_tb_cb(srslte_sch_t*           q,
 
       } while (cb_noi < q->max_iterations && !early_stop);
 
-      INFO("CB %d: rp=%d, n_e=%d, cb_len=%d, CRC=%s, rlen=%d, iterations=%d/%d\n",
+      INFO("CB %d: rp=%d, n_e=%d, cb_len=%d, CRC=%s, rlen=%d, iterations=%d/%d",
            cb_idx,
            rp,
            n_e2,
@@ -504,9 +499,7 @@ static int decode_tb(srslte_sch_t*           q,
                      int16_t*                e_bits,
                      uint8_t*                data)
 {
-
   if (q != NULL && data != NULL && softbuffer != NULL && e_bits != NULL && cb_segm != NULL) {
-
     if (cb_segm->tbs == 0 || cb_segm->C == 0) {
       return SRSLTE_SUCCESS;
     }
@@ -534,7 +527,6 @@ static int decode_tb(srslte_sch_t*           q,
     crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data);
 
     if (crc_ok) {
-
       uint32_t par_rx = 0, par_tx = 0;
 
       // Compute transport block CRC
@@ -545,17 +537,17 @@ static int decode_tb(srslte_sch_t*           q,
                ((uint32_t)data[cb_segm->tbs / 8 + 2]);
 
       if (par_rx == par_tx && par_rx) {
-        INFO("TB decoded OK\n");
+        INFO("TB decoded OK");
         return SRSLTE_SUCCESS;
       } else {
-        INFO("Error in TB parity: par_tx=0x%x, par_rx=0x%x\n", par_tx, par_rx);
+        INFO("Error in TB parity: par_tx=0x%x, par_rx=0x%x", par_tx, par_rx);
         return SRSLTE_ERROR;
       }
     } else {
       return SRSLTE_ERROR;
     }
   } else {
-    ERROR("Missing inputs: data=%d, softbuffer=%d, e_bits=%d, cb_segm=%d\n",
+    ERROR("Missing inputs: data=%d, softbuffer=%d, e_bits=%d, cb_segm=%d",
           data != 0,
           softbuffer != 0,
           e_bits != 0,
@@ -584,7 +576,7 @@ int srslte_dlsch_decode2(srslte_sch_t*       q,
   // Prepare cbsegm
   srslte_cbsegm_t cb_segm;
   if (srslte_cbsegm(&cb_segm, (uint32_t)cfg->grant.tb[tb_idx].tbs)) {
-    ERROR("Error computing Codeword (%d) segmentation for TBS=%d\n", tb_idx, cfg->grant.tb[tb_idx].tbs);
+    ERROR("Error computing Codeword (%d) segmentation for TBS=%d", tb_idx, cfg->grant.tb[tb_idx].tbs);
     return SRSLTE_ERROR;
   }
 
@@ -631,7 +623,7 @@ int srslte_dlsch_encode2(srslte_sch_t*       q,
   // Prepare cbsegm
   srslte_cbsegm_t cb_segm;
   if (srslte_cbsegm(&cb_segm, (uint32_t)cfg->grant.tb[tb_idx].tbs)) {
-    ERROR("Error computing Codeword (%d) segmentation for TBS=%d\n", tb_idx, cfg->grant.tb[tb_idx].tbs);
+    ERROR("Error computing Codeword (%d) segmentation for TBS=%d", tb_idx, cfg->grant.tb[tb_idx].tbs);
     return SRSLTE_ERROR;
   }
 
@@ -737,7 +729,6 @@ static void ulsch_interleave_qm4(uint8_t*       g_bits,
     /* First bits are aligned to byte */
     if (0 == (bit_read_idx & 0x3)) {
       for (; i < (cols - 3); i += 4) {
-
         uint8_t w1 = *(_g_bits++);
         uint8_t w2 = *(_g_bits++);
 
@@ -933,7 +924,7 @@ static void ulsch_interleave(uint8_t*          g_bits,
                              uint8_t*          ri_present)
 {
   if (N_pusch_symbs == 0 || Qm == 0 || H_prime_total == 0 || H_prime_total < N_pusch_symbs) {
-    ERROR("Invalid input: N_pusch_symbs=%d, Qm=%d, H_prime_total=%d, N_pusch_symbs=%d\n",
+    ERROR("Invalid input: N_pusch_symbs=%d, Qm=%d, H_prime_total=%d, N_pusch_symbs=%d",
           N_pusch_symbs,
           Qm,
           H_prime_total,
@@ -972,7 +963,7 @@ static void ulsch_interleave(uint8_t*          g_bits,
       break;
     default:
       /* This line should never be reached */
-      ERROR("Wrong Qm (%d)\n", Qm);
+      ERROR("Wrong Qm (%d)", Qm);
   }
 
   // Reset temp_buffer because will be reused next time
@@ -1110,7 +1101,7 @@ int srslte_ulsch_decode(srslte_sch_t*       q,
   // Prepare cbsegm
   srslte_cbsegm_t cb_segm;
   if (srslte_cbsegm(&cb_segm, (uint32_t)cfg->grant.tb.tbs)) {
-    ERROR("Error computing segmentation for TBS=%d\n", cfg->grant.tb.tbs);
+    ERROR("Error computing segmentation for TBS=%d", cfg->grant.tb.tbs);
     return SRSLTE_ERROR;
   }
 
@@ -1121,7 +1112,7 @@ int srslte_ulsch_decode(srslte_sch_t*       q,
 
   // Decode RI/HARQ values
   if ((ret = uci_decode_ri_ack(q, cfg, q_bits, c_seq, uci_data)) < 0) {
-    ERROR("Error decoding RI/HARQ bits\n");
+    ERROR("Error decoding RI/HARQ bits");
     return SRSLTE_ERROR;
   }
 
@@ -1192,19 +1183,19 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   uint32_t Qm   = srslte_mod_bits_x_symbol(cfg->grant.tb.mod);
 
   if (Qm == 0) {
-    ERROR("Invalid input\n");
+    ERROR("Invalid input");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (cfg->grant.nof_symb == 0) {
-    ERROR("Invalid input\n");
+    ERROR("Invalid input");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   // Prepare cbsegm
   srslte_cbsegm_t cb_segm;
   if (srslte_cbsegm(&cb_segm, (uint32_t)cfg->grant.tb.tbs)) {
-    ERROR("Error computing segmentation for TBS=%d\n", cfg->grant.tb.tbs);
+    ERROR("Error computing segmentation for TBS=%d", cfg->grant.tb.tbs);
     return SRSLTE_ERROR;
   }
 
@@ -1217,7 +1208,7 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   if (cfg->uci_cfg.cqi.data_enable) {
     uci_cqi_len = (uint32_t)srslte_cqi_value_pack(&cfg->uci_cfg.cqi, &uci_data->cqi, cqi_buff);
     if (uci_cqi_len < 0) {
-      ERROR("Error encoding CQI bits\n");
+      ERROR("Error encoding CQI bits");
       return SRSLTE_ERROR;
     }
   }
@@ -1315,11 +1306,11 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
         q_bits[p / 8] &= ~(1U << (7 - p % 8));
       }
     } else {
-      ERROR("Invalid RI/ACK bit %d/%d, position %d. Max bits=%d, Qm=%d\n", i, nof_ri_ack_bits, p, nb_q, Qm);
+      ERROR("Invalid RI/ACK bit %d/%d, position %d. Max bits=%d, Qm=%d", i, nof_ri_ack_bits, p, nb_q, Qm);
     }
   }
 
-  INFO("Q_prime_ack=%d, Q_prime_cqi=%d, Q_prime_ri=%d\n", Q_prime_ack, Q_prime_cqi, Q_prime_ri);
+  INFO("Q_prime_ack=%d, Q_prime_cqi=%d, Q_prime_ri=%d", Q_prime_ack, Q_prime_cqi, Q_prime_ri);
 
   return nof_ri_ack_bits;
 }

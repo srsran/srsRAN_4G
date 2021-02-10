@@ -43,7 +43,7 @@ int srslte_npdcch_init(srslte_npdcch_t* q)
     q->max_bits  = SRSLTE_CP_NORM_SF_NSYMB * SRSLTE_NRE * 2;
     q->ncce_bits = q->max_bits / 2;
 
-    INFO("Init NPDCCH: Max bits: %d, %d ports.\n", q->max_bits, q->cell.nof_ports);
+    INFO("Init NPDCCH: Max bits: %d, %d ports.", q->max_bits, q->cell.nof_ports);
 
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
@@ -239,7 +239,7 @@ int srslte_npdcch_decode_msg(srslte_npdcch_t*       q,
     // Get the right softbits for this aggregation level
     float* llr = (location->L == 1) ? q->llr[0] : q->llr[1];
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("LLR:\n");
+      DEBUG("LLR:");
       srslte_vec_fprint_f(stdout, llr, q->max_bits);
     }
 
@@ -263,7 +263,7 @@ int srslte_npdcch_decode_msg(srslte_npdcch_t*       q,
         fprintf(stderr, "Error calling npdcch_dci_decode\n");
       }
       if (crc_rem) {
-        DEBUG("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x\n",
+        DEBUG("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x",
               location->ncce,
               location->L,
               srslte_dci_format_string(msg->format),
@@ -272,7 +272,7 @@ int srslte_npdcch_decode_msg(srslte_npdcch_t*       q,
               *crc_rem);
       }
     } else {
-      DEBUG("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f\n", location->ncce, location->L, nof_bits, mean);
+      DEBUG("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f", location->ncce, location->L, nof_bits, mean);
     }
     ret = SRSLTE_SUCCESS;
   } else {
@@ -324,7 +324,7 @@ int srslte_npdcch_extract_llr(srslte_npdcch_t* q,
       }
       num_symbols = e_bits / 2;
 
-      DEBUG("Extracting LLRs for NPDCCH %s: E: %d, SF: %d\n", srslte_npdcch_format_text[i], e_bits, sf_idx);
+      DEBUG("Extracting LLRs for NPDCCH %s: E: %d, SF: %d", srslte_npdcch_format_text[i], e_bits, sf_idx);
 
       if (i != SRSLTE_NPDCCH_FORMAT0_UPPER_HALF) {
         // don't overwrite lower half LLRs
@@ -346,7 +346,7 @@ int srslte_npdcch_extract_llr(srslte_npdcch_t* q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_rx_mapping_output.bin: NPDCCH after extracting symbols\n");
+        DEBUG("SAVED FILE npdcch_rx_mapping_output.bin: NPDCCH after extracting symbols");
         srslte_vec_save_file("npdcch_rx_mapping_output.bin", q->symbols[0], n * sizeof(cf_t));
       }
 #endif
@@ -371,7 +371,7 @@ int srslte_npdcch_extract_llr(srslte_npdcch_t* q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_rx_predecode_output.bin: NPDCCH after predecoding symbols\n");
+        DEBUG("SAVED FILE npdcch_rx_predecode_output.bin: NPDCCH after predecoding symbols");
         srslte_vec_save_file("npdcch_rx_predecode_output.bin", q->d, q->num_decoded_symbols * sizeof(cf_t));
       }
 #endif
@@ -384,7 +384,7 @@ int srslte_npdcch_extract_llr(srslte_npdcch_t* q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_rx_descramble_output.bin: NPDCCH after de-scrambling\n");
+        DEBUG("SAVED FILE npdcch_rx_descramble_output.bin: NPDCCH after de-scrambling");
         srslte_vec_save_file("npdcch_rx_descramble_output.bin", llr, e_bits);
       }
 #endif
@@ -398,9 +398,9 @@ int srslte_npdcch_extract_llr(srslte_npdcch_t* q,
 static void crc_set_mask_rnti(uint8_t* crc, uint16_t rnti)
 {
   uint8_t  mask[16] = {};
-  uint8_t* r = mask;
+  uint8_t* r        = mask;
 
-  DEBUG("Mask CRC with RNTI 0x%x\n", rnti);
+  DEBUG("Mask CRC with RNTI 0x%x", rnti);
 
   srslte_bit_unpack(rnti, &r, 16);
   for (uint32_t i = 0; i < 16; i++) {
@@ -426,7 +426,7 @@ void srslte_npdcch_dci_encode_conv(srslte_npdcch_t* q,
 
 #if DUMP_SIGNALS
   if (SRSLTE_VERBOSE_ISDEBUG()) {
-    DEBUG("SAVED FILE npdcch_tx_convcoder_input.bin: NPDCCH before convolution coding\n");
+    DEBUG("SAVED FILE npdcch_tx_convcoder_input.bin: NPDCCH before convolution coding");
     srslte_vec_save_file("npdcch_tx_convcoder_input.bin", data, nof_bits + 16);
   }
 #endif
@@ -472,12 +472,12 @@ int srslte_npdcch_encode(srslte_npdcch_t*      q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && sf_symbols != NULL && nsubframe < 10 && srslte_nbiot_dci_location_isvalid(&location)) {
-    ret         = SRSLTE_ERROR;
+    ret                  = SRSLTE_ERROR;
     uint32_t e_bits      = q->nof_cce * q->ncce_bits;
     uint32_t nof_symbols = e_bits / 2;
 
     if (msg->nof_bits < SRSLTE_DCI_MAX_BITS - 16) {
-      DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x, sf_idx: %d\n",
+      DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x, sf_idx: %d",
             msg->nof_bits,
             e_bits,
             location.ncce,
@@ -499,7 +499,7 @@ int srslte_npdcch_encode(srslte_npdcch_t*      q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_tx_scramble_input.bin: NPDCCH before scrambling\n");
+        DEBUG("SAVED FILE npdcch_tx_scramble_input.bin: NPDCCH before scrambling");
         srslte_vec_save_file("npdcch_tx_scramble_input.bin", q->e, e_bits);
       }
 #endif
@@ -508,7 +508,7 @@ int srslte_npdcch_encode(srslte_npdcch_t*      q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_tx_mod_input.bin: NPDCCH before modulation\n");
+        DEBUG("SAVED FILE npdcch_tx_mod_input.bin: NPDCCH before modulation");
         srslte_vec_save_file("npdcch_tx_mod_input.bin", q->e, e_bits);
       }
 #endif
@@ -517,7 +517,7 @@ int srslte_npdcch_encode(srslte_npdcch_t*      q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_tx_precode_input.bin: NPDCCH before precoding symbols\n");
+        DEBUG("SAVED FILE npdcch_tx_precode_input.bin: NPDCCH before precoding symbols");
         srslte_vec_save_file("npdcch_tx_precode_input.bin", q->d, nof_symbols * sizeof(cf_t));
       }
 #endif
@@ -532,7 +532,7 @@ int srslte_npdcch_encode(srslte_npdcch_t*      q,
 
 #if DUMP_SIGNALS
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE npdcch_tx_mapping_input.bin: NPDCCH before mapping to resource elements\n");
+        DEBUG("SAVED FILE npdcch_tx_mapping_input.bin: NPDCCH before mapping to resource elements");
         srslte_vec_save_file("npdcch_tx_mapping_input.bin", q->symbols[0], nof_symbols * sizeof(cf_t));
       }
 #endif

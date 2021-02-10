@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 
   /* initialize objects */
   if (srslte_modem_table_lte(&mod, modulation)) {
-    ERROR("Error initializing modem table\n");
+    ERROR("Error initializing modem table");
     exit(-1);
   }
 
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 
   /* check that num_bits is multiple of num_bits x symbol */
   if (num_bits % mod.nbits_x_symbol) {
-    ERROR("Error num_bits must be multiple of %d\n", mod.nbits_x_symbol);
+    ERROR("Error num_bits must be multiple of %d", mod.nbits_x_symbol);
     exit(-1);
   }
 
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
   /* check errors */
   for (i = 0; i < num_bits && ret == SRSLTE_SUCCESS; i++) {
     if (input[i] != output[i]) {
-      ERROR("Error in bit %d\n", i);
+      ERROR("Error in bit %d", i);
       ret = SRSLTE_ERROR;
     }
   }

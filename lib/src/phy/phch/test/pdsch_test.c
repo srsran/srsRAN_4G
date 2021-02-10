@@ -149,7 +149,6 @@ static int check_softbits(srslte_pdsch_t*     pdsch_enb,
   int ret = SRSLTE_SUCCESS;
 
   if (!pdsch_ue->llr_is_8bit && !tb_cw_swap) {
-
     // Generate sequence
     srslte_sequence_pdsch(&pdsch_ue->tmp_seq,
                           rnti,
@@ -271,7 +270,7 @@ int main(int argc, char** argv)
 
   /* Generate dci from DCI */
   if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, tm, enable_256qam, &dci, &pdsch_cfg.grant)) {
-    ERROR("Error computing resource allocation\n");
+    ERROR("Error computing resource allocation");
     return ret;
   }
 
@@ -318,11 +317,11 @@ int main(int argc, char** argv)
   }
 
   if (srslte_pdsch_init_ue(&pdsch_rx, cell.nof_prb, nof_rx_antennas)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     goto quit;
   }
   if (srslte_pdsch_set_cell(&pdsch_rx, cell)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     goto quit;
   }
 
@@ -334,12 +333,12 @@ int main(int argc, char** argv)
   for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffers_rx[i]) {
-      ERROR("Error allocating RX soft buffer\n");
+      ERROR("Error allocating RX soft buffer");
       goto quit;
     }
 
     if (srslte_softbuffer_rx_init(softbuffers_rx[i], cell.nof_prb)) {
-      ERROR("Error initiating RX soft buffer\n");
+      ERROR("Error initiating RX soft buffer");
       goto quit;
     }
 
@@ -349,12 +348,12 @@ int main(int argc, char** argv)
   if (input_file) {
     srslte_filesource_t fsrc;
     if (srslte_filesource_init(&fsrc, input_file, SRSLTE_COMPLEX_FLOAT_BIN)) {
-      ERROR("Error opening file %s\n", input_file);
+      ERROR("Error opening file %s", input_file);
       goto quit;
     }
 
     if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
-      ERROR("Error initializing equalizer\n");
+      ERROR("Error initializing equalizer");
       exit(-1);
     }
     if (srslte_chest_dl_set_cell(&chest, cell)) {
@@ -367,13 +366,12 @@ int main(int argc, char** argv)
 
     srslte_filesource_free(&fsrc);
   } else {
-
     if (srslte_pdsch_init_enb(&pdsch_tx, cell.nof_prb)) {
-      ERROR("Error creating PDSCH object\n");
+      ERROR("Error creating PDSCH object");
       goto quit;
     }
     if (srslte_pdsch_set_cell(&pdsch_tx, cell)) {
-      ERROR("Error creating PDSCH object\n");
+      ERROR("Error creating PDSCH object");
       goto quit;
     }
 
@@ -382,11 +380,11 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
       if (!softbuffers_tx[i]) {
-        ERROR("Error allocating TX soft buffer\n");
+        ERROR("Error allocating TX soft buffer");
       }
 
       if (srslte_softbuffer_tx_init(softbuffers_tx[i], cell.nof_prb)) {
-        ERROR("Error initiating TX soft buffer\n");
+        ERROR("Error initiating TX soft buffer");
         goto quit;
       }
     }
@@ -412,7 +410,7 @@ int main(int argc, char** argv)
       }
       /* Do 1st transmission for rv_idx!=0 */
       if (srslte_pdsch_encode(&pdsch_tx, &dl_sf, &pdsch_cfg, data_tx, tx_slot_symbols)) {
-        ERROR("Error encoding PDSCH\n");
+        ERROR("Error encoding PDSCH");
         goto quit;
       }
     }
@@ -444,25 +442,25 @@ int main(int argc, char** argv)
     }
   }
 
-  INFO(" Global:\n");
-  INFO("         nof_prb=%d\n", cell.nof_prb);
-  INFO("       nof_ports=%d\n", cell.nof_ports);
-  INFO("              id=%d\n", cell.id);
-  INFO("              cp=%s\n", srslte_cp_string(cell.cp));
-  INFO("    phich_length=%d\n", (int)cell.phich_length);
-  INFO(" phich_resources=%d\n", (int)cell.phich_resources);
-  INFO("         nof_prb=%d\n", pdsch_cfg.grant.nof_prb);
-  INFO("          sf_idx=%d\n", dl_sf.tti);
-  INFO("          nof_tb=%d\n", pdsch_cfg.grant.nof_tb);
+  INFO(" Global:");
+  INFO("         nof_prb=%d", cell.nof_prb);
+  INFO("       nof_ports=%d", cell.nof_ports);
+  INFO("              id=%d", cell.id);
+  INFO("              cp=%s", srslte_cp_string(cell.cp));
+  INFO("    phich_length=%d", (int)cell.phich_length);
+  INFO(" phich_resources=%d", (int)cell.phich_resources);
+  INFO("         nof_prb=%d", pdsch_cfg.grant.nof_prb);
+  INFO("          sf_idx=%d", dl_sf.tti);
+  INFO("          nof_tb=%d", pdsch_cfg.grant.nof_tb);
   for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    INFO(" Tranport block index %d:\n", i);
-    INFO("         enabled=%d\n", pdsch_cfg.grant.tb[i].enabled);
-    INFO("         mcs.idx=%d\n", pdsch_cfg.grant.tb[i].mcs_idx);
-    INFO("         mcs.tbs=%d\n", pdsch_cfg.grant.tb[i].tbs);
-    INFO("         mcs.mod=%s\n", srslte_mod_string(pdsch_cfg.grant.tb[i].mod));
-    INFO("              rv=%d\n", pdsch_cfg.grant.tb[i].rv);
-    INFO("        nof_bits=%d\n", pdsch_cfg.grant.tb[i].nof_bits);
-    INFO("          nof_re=%d\n", pdsch_cfg.grant.nof_re);
+    INFO(" Tranport block index %d:", i);
+    INFO("         enabled=%d", pdsch_cfg.grant.tb[i].enabled);
+    INFO("         mcs.idx=%d", pdsch_cfg.grant.tb[i].mcs_idx);
+    INFO("         mcs.tbs=%d", pdsch_cfg.grant.tb[i].tbs);
+    INFO("         mcs.mod=%s", srslte_mod_string(pdsch_cfg.grant.tb[i].mod));
+    INFO("              rv=%d", pdsch_cfg.grant.tb[i].rv);
+    INFO("        nof_bits=%d", pdsch_cfg.grant.tb[i].nof_bits);
+    INFO("          nof_re=%d", pdsch_cfg.grant.nof_re);
   }
 
   int r = 0;

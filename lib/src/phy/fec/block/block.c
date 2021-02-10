@@ -69,7 +69,7 @@ __attribute__((constructor)) static void srslte_block_init()
 void srslte_block_encode(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len)
 {
   if (!input || !output) {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid inputs");
     return;
   }
 
@@ -148,7 +148,7 @@ int32_t srslte_block_decode_i8(const int8_t* llr, uint32_t nof_llr, uint8_t* dat
 
   // Return invalid inputs if data is not provided
   if (!llr || !data) {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid inputs");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -166,7 +166,7 @@ int32_t srslte_block_decode_i16(const int16_t* llr, uint32_t nof_llr, uint8_t* d
 
   // Return invalid inputs if data is not provided
   if (!llr || !data) {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid inputs");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 

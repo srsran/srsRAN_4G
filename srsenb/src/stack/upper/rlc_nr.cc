@@ -189,17 +189,17 @@ void rlc_nr::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer
 
 void rlc_nr::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void rlc_nr::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void rlc_nr::user_interface::write_pdu_pcch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
 std::string rlc_nr::user_interface::get_rb_name(uint32_t lcid)

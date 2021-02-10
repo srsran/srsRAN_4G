@@ -124,7 +124,7 @@ int base_init()
   sf_n_re      = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing sl_comm_resource_pool\n");
+    ERROR("Error initializing sl_comm_resource_pool");
     return SRSLTE_ERROR;
   }
   sl_comm_resource_pool.num_sub_channel  = num_sub_channel;
@@ -132,21 +132,21 @@ int base_init()
 
   sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_cf_zero(sf_buffer, sf_n_re);
 
   equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!equalized_sf_buffer) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_cf_zero(equalized_sf_buffer, sf_n_re);
 
   input_buffer = srslte_vec_cf_malloc(sf_n_samples);
   if (!input_buffer) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_cf_zero(input_buffer, sf_n_samples);
@@ -154,37 +154,37 @@ int base_init()
   srslte_sci_init(&sci, cell, sl_comm_resource_pool);
 
   if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH init\n");
+    ERROR("Error in PSCCH init");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pscch_set_cell(&pscch, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH set cell\n");
+    ERROR("Error in PSCCH set cell");
     return SRSLTE_ERROR;
   }
 
   if (srslte_chest_sl_init(&pscch_chest, SRSLTE_SIDELINK_PSCCH, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH DMRS init\n");
+    ERROR("Error in PSCCH DMRS init");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pssch_init(&pssch, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing PSSCH\n");
+    ERROR("Error initializing PSSCH");
     return SRSLTE_ERROR;
   }
 
   if (srslte_chest_sl_init(&pssch_chest, SRSLTE_SIDELINK_PSSCH, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error in chest PSSCH init\n");
+    ERROR("Error in chest PSSCH init");
     return SRSLTE_ERROR;
   }
 
   if (input_file_name) {
     if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-      printf("Error opening file %s\n", input_file_name);
+      printf("Error opening file %s", input_file_name);
       return SRSLTE_ERROR;
     }
   } else {
-    ERROR("Invalid input file name\n");
+    ERROR("Invalid input file name");
     return SRSLTE_ERROR;
   }
 
@@ -230,7 +230,7 @@ int main(int argc, char** argv)
   srslte_use_standard_symbol_size(use_standard_lte_rates);
 
   if (base_init()) {
-    ERROR("Error initializing\n");
+    ERROR("Error initializing");
     base_free();
     return SRSLTE_ERROR;
   }
@@ -270,15 +270,12 @@ int main(int argc, char** argv)
     srslte_ofdm_rx_sf(&fft);
 
     if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
-
       // 3GPP TS 36.213 Section 14.2.1.2 UE procedure for determining subframes
       // and resource blocks for transmitting PSCCH for sidelink transmission mode 2
       if (sl_comm_resource_pool.pscch_sf_bitmap[period_sf_idx] == 1) {
-
         for (uint32_t pscch_prb_start_idx = sl_comm_resource_pool.prb_start;
              pscch_prb_start_idx <= sl_comm_resource_pool.prb_end;
              pscch_prb_start_idx++) {
-
           // PSCCH Channel estimation
           pscch_chest_sl_cfg.prb_start_idx = pscch_prb_start_idx;
           srslte_chest_sl_set_cfg(&pscch_chest, pscch_chest_sl_cfg);
@@ -286,7 +283,6 @@ int main(int argc, char** argv)
 
           if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_start_idx) == SRSLTE_SUCCESS) {
             if (srslte_sci_format0_unpack(&sci, sci_rx) == SRSLTE_SUCCESS) {
-
               srslte_sci_info(&sci, sci_msg, sizeof(sci_msg));
               fprintf(stdout, "%s", sci_msg);
 
@@ -306,7 +302,6 @@ int main(int argc, char** argv)
 
       if ((sl_comm_resource_pool.pssch_sf_bitmap[period_sf_idx] == 1) && (sci_decoded == true)) {
         if (srslte_ra_sl_pssch_allowed_sf(current_sf_idx, sci.trp_idx, SRSLTE_SL_DUPLEX_MODE_FDD, 0)) {
-
           // Redundancy version
           uint32_t rv_idx = allowed_pssch_sf_idx % 4;
 

@@ -112,7 +112,6 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-
   parse_args(argc, argv);
   srslte_use_standard_symbol_size(use_standard_lte_rates);
 
@@ -133,7 +132,7 @@ int main(int argc, char** argv)
 
   srslte_ofdm_t ifft;
   if (srslte_ofdm_tx_init(&ifft, cp, sf_buffer, output_buffer, nof_prb)) {
-    ERROR("Error creating IFFT object\n");
+    ERROR("Error creating IFFT object");
     return SRSLTE_ERROR;
   }
   srslte_ofdm_set_normalize(&ifft, true);
@@ -192,7 +191,6 @@ int main(int argc, char** argv)
   bool sync = false;
 
   while (sync == false) {
-
     samples_to_read = sf_n_samples - offset_pos;
 
     if (offset < samples_to_read) {
@@ -230,7 +228,6 @@ int main(int argc, char** argv)
 
     // Find sync signals
     if (srslte_psss_find(&psss, input_buffer, nof_prb, cp) == SRSLTE_SUCCESS) {
-
       printf("PSSS correlation peak pos: %d value: %f N_id_2: %d\n",
              psss.corr_peak_pos,
              psss.corr_peak_value,
@@ -239,7 +236,6 @@ int main(int argc, char** argv)
       if (psss.corr_peak_pos - sf_n_samples == 0) {
         // Find SSSS
         if (srslte_ssss_find(&ssss, input_buffer, nof_prb, psss.N_id_2, cp) == SRSLTE_SUCCESS) {
-
           printf("SSSS correlation peak pos: %d value: %f N_sl_id: %d \n",
                  ssss.corr_peak_pos,
                  ssss.corr_peak_value,

@@ -39,7 +39,6 @@ static bool table_initiated = false;
 
 int srslte_tcod_init(srslte_tcod_t* h, uint32_t max_long_cb)
 {
-
   h->max_long_cb = max_long_cb;
   h->temp        = srslte_vec_malloc(max_long_cb / 8);
 
@@ -68,7 +67,6 @@ void srslte_tcod_free(srslte_tcod_t* h)
 /* Expects bits (1 byte = 1 bit) and produces bits. The systematic and parity bits are interlaced in the output */
 int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32_t long_cb)
 {
-
   uint8_t   reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
   uint32_t  i, k = 0, j;
   uint8_t   bit;
@@ -76,13 +74,13 @@ int srslte_tcod_encode(srslte_tcod_t* h, uint8_t* input, uint8_t* output, uint32
   uint16_t* per;
 
   if (long_cb > h->max_long_cb) {
-    ERROR("Turbo coder initiated for max_long_cb=%d\n", h->max_long_cb);
+    ERROR("Turbo coder initiated for max_long_cb=%d", h->max_long_cb);
     return -1;
   }
 
   int longcb_idx = srslte_cbsegm_cbindex(long_cb);
   if (longcb_idx < 0) {
-    ERROR("Invalid CB size %d\n", long_cb);
+    ERROR("Invalid CB size %d", long_cb);
     return -1;
   }
 
@@ -190,7 +188,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t* h,
     uint32_t long_cb = (uint32_t)srslte_cbsegm_cbsize(cblen_idx);
 
     if (long_cb % 8) {
-      ERROR("Turbo coder LUT implementation long_cb must be multiple of 8\n");
+      ERROR("Turbo coder LUT implementation long_cb must be multiple of 8");
       return -1;
     }
 
@@ -367,14 +365,14 @@ void srslte_tcod_gentable()
   srslte_tc_interl_t interl;
 
   if (srslte_tc_interl_init(&interl, 6144)) {
-    ERROR("Error initiating interleave\n");
+    ERROR("Error initiating interleave");
     return;
   }
 
   for (uint32_t len = 0; len < 188; len++) {
     uint32_t long_cb = srslte_cbsegm_cbsize(len);
     if (srslte_tc_interl_LTE_gen(&interl, long_cb)) {
-      ERROR("Error initiating TC interleaver for long_cb=%d\n", long_cb);
+      ERROR("Error initiating TC interleaver for long_cb=%d", long_cb);
       return;
     }
     // Save fw/bw permutation tables
@@ -389,7 +387,6 @@ void srslte_tcod_gentable()
   // Compute state transitions
   for (uint32_t state = 0; state < 8; state++) {
     for (uint32_t data = 0; data < 256; data++) {
-
       uint8_t reg_0, reg_1, reg_2;
       reg_0 = (state & 4) >> 2;
       reg_1 = (state & 2) >> 1;

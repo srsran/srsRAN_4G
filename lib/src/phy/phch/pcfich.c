@@ -150,7 +150,6 @@ int srslte_pcfich_decode(srslte_pcfich_t*       q,
                          cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
                          float*                 corr_result)
 {
-
   /* Set pointers for layermapping & precoding */
   int   i;
   cf_t* x[SRSLTE_MAX_LAYERS];
@@ -169,7 +168,7 @@ int srslte_pcfich_decode(srslte_pcfich_t*       q,
     /* extract symbols */
     for (int j = 0; j < q->nof_rx_antennas; j++) {
       if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, sf_symbols[j], q->symbols[j])) {
-        ERROR("There was an error getting the PCFICH symbols\n");
+        ERROR("There was an error getting the PCFICH symbols");
         return SRSLTE_ERROR;
       }
 
@@ -178,7 +177,7 @@ int srslte_pcfich_decode(srslte_pcfich_t*       q,
       /* extract channel estimates */
       for (i = 0; i < q->cell.nof_ports; i++) {
         if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, channel->ce[i][j], q->ce[i][j])) {
-          ERROR("There was an error getting the PCFICH symbols\n");
+          ERROR("There was an error getting the PCFICH symbols");
           return SRSLTE_ERROR;
         }
         q_ce[i][j] = q->ce[i][j];
@@ -220,7 +219,6 @@ int srslte_pcfich_encode(srslte_pcfich_t* q, srslte_dl_sf_cfg_t* sf, cf_t* slot_
   int i;
 
   if (q != NULL && slot_symbols != NULL) {
-
     uint32_t sf_idx = sf->tti % 10;
 
     /* Set pointers for layermapping & precoding */
@@ -254,7 +252,7 @@ int srslte_pcfich_encode(srslte_pcfich_t* q, srslte_dl_sf_cfg_t* sf, cf_t* slot_
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (srslte_regs_pcfich_put(q->regs, q->symbols[i], slot_symbols[i]) < 0) {
-        ERROR("Error putting PCHICH resource elements\n");
+        ERROR("Error putting PCHICH resource elements");
         return SRSLTE_ERROR;
       }
     }

@@ -76,7 +76,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (srslte_refsignal_ul_set_cell(&refs, cell)) {
-    ERROR("Error initializing UL reference signal\n");
+    ERROR("Error initializing UL reference signal");
     goto do_exit;
   }
 
@@ -93,7 +93,6 @@ int main(int argc, char** argv)
         for (int h = 0; h < 3; h++) {
           for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
             for (int cshift_dmrs = 0; cshift_dmrs < SRSLTE_NOF_CSHIFT; cshift_dmrs++) {
-
               uint32_t nof_prb         = n;
               pusch_cfg.cyclic_shift   = cshift;
               pusch_cfg.delta_ss       = delta_ss;

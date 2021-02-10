@@ -419,7 +419,7 @@ int decode_frame(srslte_pbch_t* q, uint32_t src, uint32_t dst, uint32_t n, uint3
       return SRSLTE_SUCCESS;
     }
   } else {
-    ERROR("Error in PBCH decoder: Invalid frame pointers dst=%d, src=%d, n=%d\n", src, dst, n);
+    ERROR("Error in PBCH decoder: Invalid frame pointers dst=%d, src=%d, n=%d", src, dst, n);
     return -1;
   }
 }
@@ -465,14 +465,14 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
 
     /* extract symbols */
     if (q->nof_symbols != srslte_pbch_get(slot1_symbols, q->symbols[0], q->cell)) {
-      ERROR("There was an error getting the PBCH symbols\n");
+      ERROR("There was an error getting the PBCH symbols");
       return SRSLTE_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (q->nof_symbols != srslte_pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
-        ERROR("There was an error getting the PBCH symbols\n");
+        ERROR("There was an error getting the PBCH symbols");
         return SRSLTE_ERROR;
       }
     }
@@ -491,7 +491,7 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
 
     do {
       if (nant != 3) {
-        DEBUG("Trying %d TX antennas with %d frames\n", nant, frame_idx);
+        DEBUG("Trying %d TX antennas with %d frames", nant, frame_idx);
 
         /* in control channels, only diversity is supported */
         if (nant == 1) {
@@ -523,7 +523,7 @@ int srslte_pbch_decode(srslte_pbch_t*         q,
                 if (bch_payload) {
                   memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
                 }
-                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d\n",
+                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d",
                      src,
                      dst,
                      nb + 1,

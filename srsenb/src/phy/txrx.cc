@@ -61,8 +61,8 @@ bool txrx::init(stack_interface_phy_lte*     stack_,
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {
-    ul_channel =
-        srslte::channel_ptr(new srslte::channel(worker_com->params.ul_channel_args, worker_com->get_nof_rf_channels()));
+    ul_channel = srslte::channel_ptr(
+        new srslte::channel(worker_com->params.ul_channel_args, worker_com->get_nof_rf_channels(), logger));
   }
 
   start(prio_);

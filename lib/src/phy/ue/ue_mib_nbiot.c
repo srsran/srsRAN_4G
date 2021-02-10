@@ -138,7 +138,7 @@ int srslte_ue_mib_nbiot_decode(srslte_ue_mib_nbiot_t* q,
 
   // Reset decoder if we missed a NPBCH TTI
   if (q->frame_cnt > SRSLTE_NPBCH_NUM_FRAMES) {
-    INFO("Resetting NPBCH decoder after %d frames\n", q->frame_cnt);
+    INFO("Resetting NPBCH decoder after %d frames", q->frame_cnt);
     srslte_ue_mib_nbiot_reset(q);
     return SRSLTE_UE_MIB_NBIOT_NOTFOUND;
   }
@@ -152,13 +152,13 @@ int srslte_ue_mib_nbiot_decode(srslte_ue_mib_nbiot_t* q,
                                                nof_tx_ports,
                                                sfn_offset,
                                                0)) {
-    DEBUG("BCH decoded ok with offset %d\n", *sfn_offset);
+    DEBUG("BCH decoded ok with offset %d", *sfn_offset);
     if (memcmp(bch_payload, q->last_bch_payload, SRSLTE_MIB_NB_LEN) == 0) {
-      DEBUG("BCH content equals last BCH, new counter %d\n", q->frame_cnt);
+      DEBUG("BCH content equals last BCH, new counter %d", q->frame_cnt);
     } else {
       // new BCH transmitted
       if (q->frame_cnt != 0) {
-        INFO("MIB-NB decoded: %u with offset %d\n", q->frame_cnt, *sfn_offset);
+        INFO("MIB-NB decoded: %u with offset %d", q->frame_cnt, *sfn_offset);
         if (*sfn_offset != 0) {
           INFO("New BCH was decoded at block offset %d. SFN may be corrupted.", *sfn_offset);
         }
@@ -166,7 +166,7 @@ int srslte_ue_mib_nbiot_decode(srslte_ue_mib_nbiot_t* q,
         return SRSLTE_UE_MIB_NBIOT_FOUND;
       } else {
         // store new BCH
-        DEBUG("New BCH transmitted after %d frames\n", q->frame_cnt);
+        DEBUG("New BCH transmitted after %d frames", q->frame_cnt);
         memcpy(q->last_bch_payload, bch_payload, SRSLTE_MIB_NB_LEN);
       }
     }
@@ -177,7 +177,7 @@ int srslte_ue_mib_nbiot_decode(srslte_ue_mib_nbiot_t* q,
 
 int srslte_ue_mib_sync_nbiot_init_multi(
     srslte_ue_mib_sync_nbiot_t* q,
-    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
     uint32_t nof_rx_antennas,
     void*    stream_handler)
 {
@@ -240,7 +240,7 @@ int srslte_ue_mib_sync_nbiot_decode(srslte_ue_mib_sync_nbiot_t* q,
   int      mib_ret    = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
 
   if (q == NULL) {
-      return ret;
+    return ret;
   }
 
   do {
@@ -254,7 +254,7 @@ int srslte_ue_mib_sync_nbiot_decode(srslte_ue_mib_sync_nbiot_t* q,
     if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 0) {
       mib_ret = srslte_ue_mib_nbiot_decode(&q->ue_mib, NULL, bch_payload, nof_tx_ports, sfn_offset);
       if (mib_ret < 0) {
-        DEBUG("Resetting NPBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
+        DEBUG("Resetting NPBCH decoder after %d frames", q->ue_mib.frame_cnt);
         srslte_ue_mib_nbiot_reset(&q->ue_mib);
       }
       nof_frames++;

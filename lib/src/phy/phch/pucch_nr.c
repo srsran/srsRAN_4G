@@ -35,10 +35,10 @@ int srslte_pucch_nr_group_sequence(const srslte_carrier_nr_t*          carrier,
       f_ss = n_id % SRSLTE_ZC_SEQUENCE_NOF_GROUPS;
       break;
     case SRSLTE_PUCCH_NR_GROUP_HOPPING_ENABLE:
-      ERROR("Group hopping is not implemented\n");
+      ERROR("Group hopping is not implemented");
       return SRSLTE_ERROR;
     case SRSLTE_PUCCH_NR_GROUP_HOPPING_DISABLE:
-      ERROR("Hopping is not implemented\n");
+      ERROR("Hopping is not implemented");
       return SRSLTE_ERROR;
   }
 
@@ -125,13 +125,13 @@ int srslte_pucch_nr_init(srslte_pucch_nr_t* q, const srslte_pucch_nr_args_t* arg
 
   // Initialise BPSK modulation table
   if (srslte_modem_table_lte(&q->bpsk, SRSLTE_MOD_BPSK) < SRSLTE_SUCCESS) {
-    ERROR("Initiating modem table\n");
+    ERROR("Initiating modem table");
     return SRSLTE_ERROR;
   }
 
   // Initialise QPSK modulation table
   if (srslte_modem_table_lte(&q->qpsk, SRSLTE_MOD_QPSK) < SRSLTE_SUCCESS) {
-    ERROR("Initiating modem table\n");
+    ERROR("Initiating modem table");
     return SRSLTE_ERROR;
   }
 
@@ -145,7 +145,7 @@ int srslte_pucch_nr_init(srslte_pucch_nr_t* q, const srslte_pucch_nr_args_t* arg
   }
 
   if (srslte_uci_nr_init(&q->uci, &args->uci) < SRSLTE_SUCCESS) {
-    ERROR("Initiating UCI encoder/decoder\n");
+    ERROR("Initiating UCI encoder/decoder");
     return SRSLTE_ERROR;
   }
 
@@ -153,21 +153,21 @@ int srslte_pucch_nr_init(srslte_pucch_nr_t* q, const srslte_pucch_nr_args_t* arg
   uint32_t max_encoded_bits = q->max_prb * SRSLTE_NRE * 2 * SRSLTE_NSYMB_PER_SLOT_NR; // Assumes QPSK (Qm = 2)
   q->b                      = srslte_vec_u8_malloc(max_encoded_bits);
   if (q->b == NULL) {
-    ERROR("Malloc\n");
+    ERROR("Malloc");
     return SRSLTE_ERROR;
   }
 
   // Allocate encoded symbols d
   q->d = srslte_vec_cf_malloc(max_encoded_bits / 2);
   if (q->d == NULL) {
-    ERROR("Malloc\n");
+    ERROR("Malloc");
     return SRSLTE_ERROR;
   }
 
   // Allocate temporal channel estimates
   q->ce = srslte_vec_cf_malloc(max_encoded_bits / 2);
   if (q->ce == NULL) {
-    ERROR("Malloc\n");
+    ERROR("Malloc");
     return SRSLTE_ERROR;
   }
 
@@ -213,14 +213,14 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 0 resource\n");
+    ERROR("Invalid PUCCH format 0 resource");
     return SRSLTE_SUCCESS;
   }
 
   uint32_t u = 0;
   uint32_t v = 0;
   if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
-    ERROR("Error getting group sequence\n");
+    ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
 
@@ -236,7 +236,7 @@ int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
     // get r_uv sequence from LUT object
     const cf_t* r_uv = srslte_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
     if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence\n");
+      ERROR("Getting r_uv sequence");
       return SRSLTE_ERROR;
     }
 
@@ -264,14 +264,14 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 0 resource\n");
+    ERROR("Invalid PUCCH format 0 resource");
     return SRSLTE_SUCCESS;
   }
 
   uint32_t u = 0;
   uint32_t v = 0;
   if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
-    ERROR("Error getting group sequence\n");
+    ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
 
@@ -289,7 +289,7 @@ int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
     // get r_uv sequence from LUT object
     const cf_t* r_uv = srslte_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
     if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence\n");
+      ERROR("Getting r_uv sequence");
       return SRSLTE_ERROR;
     }
 
@@ -343,15 +343,15 @@ static uint32_t pucch_nr_format1_n_pucch(const srslte_pucch_nr_resource_t* resou
 cf_t srslte_pucch_nr_format1_w(const srslte_pucch_nr_t* q, uint32_t n_pucch, uint32_t i, uint32_t m)
 {
   if (n_pucch < 1 || n_pucch > SRSLTE_PUCCH_NR_FORMAT1_N_MAX) {
-    ERROR("Invalid n_pucch\n");
+    ERROR("Invalid n_pucch");
     return NAN;
   }
   if (i >= SRSLTE_PUCCH_NR_FORMAT1_N_MAX) {
-    ERROR("Invalid i\n");
+    ERROR("Invalid i");
     return NAN;
   }
   if (m >= SRSLTE_PUCCH_NR_FORMAT1_N_MAX) {
-    ERROR("Invalid m\n");
+    ERROR("Invalid m");
     return NAN;
   }
 
@@ -375,12 +375,12 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 1 resource\n");
+    ERROR("Invalid PUCCH format 1 resource");
     return SRSLTE_SUCCESS;
   }
 
   if (nof_bits > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS) {
-    ERROR("Invalid number of bits (%d)\n", nof_bits);
+    ERROR("Invalid number of bits (%d)", nof_bits);
     return SRSLTE_ERROR;
   }
 
@@ -396,7 +396,7 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
   uint32_t u = 0;
   uint32_t v = 0;
   if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
-    ERROR("Error getting group sequence\n");
+    ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
 
@@ -418,7 +418,7 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
     // get r_uv sequence from LUT object
     const cf_t* r_uv = srslte_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
     if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence\n");
+      ERROR("Getting r_uv sequence");
       return SRSLTE_ERROR;
     }
 
@@ -453,12 +453,12 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
   uint32_t m_cs = 0;
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 1 resource\n");
+    ERROR("Invalid PUCCH format 1 resource");
     return SRSLTE_SUCCESS;
   }
 
   if (nof_bits > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS) {
-    ERROR("Invalid number of bits (%d)\n", nof_bits);
+    ERROR("Invalid number of bits (%d)", nof_bits);
     return SRSLTE_ERROR;
   }
 
@@ -469,7 +469,7 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
   uint32_t u = 0;
   uint32_t v = 0;
   if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
-    ERROR("Error getting group sequence\n");
+    ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
 
@@ -496,7 +496,7 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
     // get r_uv sequence from LUT object
     const cf_t* r_uv = srslte_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
     if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence\n");
+      ERROR("Getting r_uv sequence");
       return SRSLTE_ERROR;
     }
     // Get w_i_m
@@ -612,13 +612,13 @@ static int pucch_nr_format2_decode(srslte_pucch_nr_t*                  q,
 
   // Equalise
   if (srslte_predecoding_single(q->d, q->ce, q->d, NULL, E, 1.0f, chest_res->noise_estimate) < SRSLTE_SUCCESS) {
-    ERROR("Error Pre-decoding\n");
+    ERROR("Error Pre-decoding");
     return SRSLTE_ERROR;
   }
 
   // Soft-demodulate
   if (srslte_demod_soft_demodulate_b(SRSLTE_MOD_QPSK, q->d, llr, E) < SRSLTE_SUCCESS) {
-    ERROR("Error soft-demodulate\n");
+    ERROR("Error soft-demodulate");
     return SRSLTE_ERROR;
   }
 
@@ -646,7 +646,7 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
 
   // Encode PUCCH message
   if (srslte_uci_nr_encode_pucch(&q->uci, resource, uci_cfg, uci_value, q->b) < SRSLTE_SUCCESS) {
-    ERROR("Error encoding UCI\n");
+    ERROR("Error encoding UCI");
     return SRSLTE_ERROR;
   }
 
@@ -656,11 +656,11 @@ int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
       return pucch_nr_format2_encode(q, carrier, cfg, resource, uci_cfg, slot_symbols);
     case SRSLTE_PUCCH_NR_FORMAT_3:
     case SRSLTE_PUCCH_NR_FORMAT_4:
-      ERROR("Not implemented\n");
+      ERROR("Not implemented");
       return SRSLTE_ERROR;
     default:
     case SRSLTE_PUCCH_NR_FORMAT_ERROR:
-      ERROR("Invalid format\n");
+      ERROR("Invalid format");
   }
 
   return SRSLTE_ERROR;
@@ -687,22 +687,22 @@ int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
   switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_2:
       if (pucch_nr_format2_decode(q, carrier, cfg, resource, uci_cfg, chest_res, slot_symbols, llr) < SRSLTE_SUCCESS) {
-        ERROR("Demodulating PUCCH format 2\n");
+        ERROR("Demodulating PUCCH format 2");
         return SRSLTE_ERROR;
       }
       break;
     case SRSLTE_PUCCH_NR_FORMAT_3:
     case SRSLTE_PUCCH_NR_FORMAT_4:
-      ERROR("Not implemented\n");
+      ERROR("Not implemented");
       return SRSLTE_ERROR;
     default:
     case SRSLTE_PUCCH_NR_FORMAT_ERROR:
-      ERROR("Invalid format\n");
+      ERROR("Invalid format");
   }
 
   // Decode PUCCH message
   if (srslte_uci_nr_decode_pucch(&q->uci, resource, uci_cfg, llr, uci_value) < SRSLTE_SUCCESS) {
-    ERROR("Error encoding UCI\n");
+    ERROR("Error encoding UCI");
     return SRSLTE_ERROR;
   }
 

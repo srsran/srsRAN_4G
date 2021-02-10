@@ -81,7 +81,7 @@ static uint32_t dmrs_pucch_format1_n_pucch(const srslte_pucch_nr_resource_t* res
     }
   }
 
-  ERROR("Invalid case nof_symbols=%d and m_prime=%d\n", resource->nof_symbols, m_prime);
+  ERROR("Invalid case nof_symbols=%d and m_prime=%d", resource->nof_symbols, m_prime);
   return 0;
 }
 
@@ -97,7 +97,7 @@ int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 1 resource\n");
+    ERROR("Invalid PUCCH format 1 resource");
     return SRSLTE_ERROR;
   }
 
@@ -105,13 +105,13 @@ int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
   uint32_t u = 0;
   uint32_t v = 0;
   if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
-    ERROR("Error getting group sequence\n");
+    ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
 
   uint32_t n_pucch = dmrs_pucch_format1_n_pucch(resource, 0);
   if (n_pucch == 0) {
-    ERROR("Error getting number of symbols\n");
+    ERROR("Error getting number of symbols");
     return SRSLTE_ERROR;
   }
 
@@ -127,13 +127,13 @@ int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
     uint32_t alpha_idx = 0;
     if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
         SRSLTE_SUCCESS) {
-      ERROR("Calculating alpha\n");
+      ERROR("Calculating alpha");
     }
 
     // get r_uv sequence from LUT object
     const cf_t* r_uv = srslte_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
     if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence\n");
+      ERROR("Getting r_uv sequence");
       return SRSLTE_ERROR;
     }
 
@@ -165,7 +165,7 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 1 resource\n");
+    ERROR("Invalid PUCCH format 1 resource");
     return SRSLTE_ERROR;
   }
 
@@ -173,13 +173,13 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
   uint32_t u = 0;
   uint32_t v = 0;
   if (srslte_pucch_nr_group_sequence(carrier, cfg, &u, &v) < SRSLTE_SUCCESS) {
-    ERROR("Error getting group sequence\n");
+    ERROR("Error getting group sequence");
     return SRSLTE_ERROR;
   }
 
   uint32_t n_pucch = dmrs_pucch_format1_n_pucch(resource, 0);
   if (n_pucch == 0) {
-    ERROR("Error getting number of symbols\n");
+    ERROR("Error getting number of symbols");
     return SRSLTE_ERROR;
   }
 
@@ -197,13 +197,13 @@ int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
     uint32_t alpha_idx = 0;
     if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
         SRSLTE_SUCCESS) {
-      ERROR("Calculating alpha\n");
+      ERROR("Calculating alpha");
     }
 
     // get r_uv sequence from LUT object
     const cf_t* r_uv = srslte_zc_sequence_lut_get(&q->r_uv_1prb, u, v, alpha_idx);
     if (r_uv == NULL) {
-      ERROR("Getting r_uv sequence\n");
+      ERROR("Getting r_uv sequence");
       return SRSLTE_ERROR;
     }
 
@@ -307,7 +307,7 @@ int srslte_dmrs_pucch_format2_put(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 1 resource\n");
+    ERROR("Invalid PUCCH format 1 resource");
     return SRSLTE_ERROR;
   }
 
@@ -350,7 +350,7 @@ int srslte_dmrs_pucch_format2_estimate(const srslte_pucch_nr_t*            q,
   }
 
   if (srslte_pucch_nr_cfg_resource_valid(resource) < SRSLTE_SUCCESS) {
-    ERROR("Invalid PUCCH format 1 resource\n");
+    ERROR("Invalid PUCCH format 1 resource");
     return SRSLTE_ERROR;
   }
 
@@ -521,7 +521,7 @@ int srslte_dmrs_pucch_format_3_4_get_symbol_idx(const srslte_pucch_nr_resource_t
       }
       break;
     default:
-      ERROR("Invalid case (%d)\n", resource->nof_symbols);
+      ERROR("Invalid case (%d)", resource->nof_symbols);
       return SRSLTE_ERROR;
   }
 

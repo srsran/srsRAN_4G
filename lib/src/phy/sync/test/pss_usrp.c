@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 
   printf("Opening RF device...\n");
   if (srslte_rf_open(&rf, rf_args)) {
-    ERROR("Error opening rf\n");
+    ERROR("Error opening rf");
     exit(-1);
   }
   srslte_rf_set_rx_gain(&rf, rf_gain);
@@ -162,12 +162,12 @@ int main(int argc, char** argv)
   }
 
   if (srslte_pss_init_fft(&pss, flen, fft_size)) {
-    ERROR("Error initiating PSS\n");
+    ERROR("Error initiating PSS");
     exit(-1);
   }
 
   if (srslte_pss_set_N_id_2(&pss, N_id_2_sync)) {
-    ERROR("Error setting N_id_2=%d\n", N_id_2_sync);
+    ERROR("Error setting N_id_2=%d", N_id_2_sync);
     exit(-1);
   }
 
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
   srslte_cfo_init(&cfocorr64, flen);
 
   if (srslte_sss_init(&sss, fft_size)) {
-    ERROR("Error initializing SSS object\n");
+    ERROR("Error initializing SSS object");
     exit(-1);
   }
 
@@ -213,13 +213,13 @@ int main(int argc, char** argv)
   while (frame_cnt < nof_frames || nof_frames == -1) {
     n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
     if (n < 0) {
-      ERROR("Error receiving samples\n");
+      ERROR("Error receiving samples");
       exit(-1);
     }
 
     peak_idx = srslte_pss_find_pss(&pss, buffer, &peak_value);
     if (peak_idx < 0) {
-      ERROR("Error finding PSS peak\n");
+      ERROR("Error finding PSS peak");
       exit(-1);
     }
 
@@ -229,7 +229,6 @@ int main(int argc, char** argv)
       nof_det++;
 
       if (peak_idx >= fft_size) {
-
         // Estimate CFO
         cfo      = srslte_pss_cfo_compute(&pss, &buffer[peak_idx - fft_size]);
         mean_cfo = SRSLTE_VEC_CMA(cfo, mean_cfo, frame_cnt);
@@ -239,7 +238,7 @@ int main(int argc, char** argv)
 
         // Estimate channel
         if (srslte_pss_chest(&pss, &buffer[peak_idx - fft_size], ce)) {
-          ERROR("Error computing channel estimation\n");
+          ERROR("Error computing channel estimation");
           exit(-1);
         }
 
@@ -255,21 +254,20 @@ int main(int argc, char** argv)
                                               : SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));
         }
         if (sss_idx >= 0 && sss_idx < flen - fft_size) {
-
           // Filter SSS
           srslte_pss_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
 
-          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
+          INFO("Full N_id_1: %d", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
           if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error2++;
           }
-          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
+          INFO("Partial N_id_1: %d", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
           if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error3++;
           }
-          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
+          INFO("Diff N_id_1: %d", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
         }
         srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
         if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
@@ -285,7 +283,7 @@ int main(int argc, char** argv)
         }
 
       } else {
-        INFO("No space for CFO computation. Frame starts at \n");
+        INFO("No space for CFO computation. Frame starts at ");
       }
 
       if (srslte_sss_subframe(m0, m1) == 0) {

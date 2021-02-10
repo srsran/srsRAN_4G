@@ -36,7 +36,6 @@ static void gen_crc_table(srslte_crc_t* h)
 
 uint64_t reversecrcbit(uint32_t crc, int nbits, srslte_crc_t* h)
 {
-
   uint64_t m, rmask = 0x1;
 
   for (m = 0; m < nbits; m++) {
@@ -50,7 +49,6 @@ uint64_t reversecrcbit(uint32_t crc, int nbits, srslte_crc_t* h)
 
 int srslte_crc_set_init(srslte_crc_t* crc_par, uint64_t crc_init_value)
 {
-
   crc_par->crcinit = crc_init_value;
   if (crc_par->crcinit != (crc_par->crcinit & crc_par->crcmask)) {
     printf("ERROR(invalid crcinit in crc_set_init().\n");
@@ -61,7 +59,6 @@ int srslte_crc_set_init(srslte_crc_t* crc_par, uint64_t crc_init_value)
 
 int srslte_crc_init(srslte_crc_t* h, uint32_t crc_poly, int crc_order)
 {
-
   // Set crc working default parameters
   h->polynom = crc_poly;
   h->order   = crc_order;
@@ -72,7 +69,7 @@ int srslte_crc_init(srslte_crc_t* h, uint32_t crc_poly, int crc_order)
   h->crchighbit = (uint64_t)1 << (h->order - 1);
 
   if (srslte_crc_set_init(h, h->crcinit)) {
-    ERROR("Error setting CRC init word\n");
+    ERROR("Error setting CRC init word");
     return -1;
   }
 

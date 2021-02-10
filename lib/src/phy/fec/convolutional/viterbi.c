@@ -216,7 +216,7 @@ int decode37_neon(void* o, uint8_t* symbols, uint8_t* data, uint32_t frame_lengt
   uint32_t best_state;
 
   if (frame_length > q->framebits) {
-    ERROR("Initialized decoder for max frame length %d bits\n", q->framebits);
+    ERROR("Initialized decoder for max frame length %d bits", q->framebits);
     return -1;
   }
 
@@ -294,7 +294,7 @@ int init37(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_bitin
   }
 
   if ((q->ptr = create_viterbi37_port(poly, TB_ITER * framebits)) == NULL) {
-    ERROR("create_viterbi37 failed\n");
+    ERROR("create_viterbi37 failed");
     free37(q);
     return -1;
   } else {
@@ -338,7 +338,7 @@ int init37_sse(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_b
   }
 
   if ((q->ptr = create_viterbi37_sse(poly, TB_ITER * framebits)) == NULL) {
-    ERROR("create_viterbi37 failed\n");
+    ERROR("create_viterbi37 failed");
     free37(q);
     return -1;
   } else {
@@ -376,7 +376,7 @@ int init37_neon(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   }
 
   if ((q->ptr = create_viterbi37_neon(poly, TB_ITER * framebits)) == NULL) {
-    ERROR("create_viterbi37 failed\n");
+    ERROR("create_viterbi37 failed");
     free37(q);
     return -1;
   } else {
@@ -414,7 +414,7 @@ int init37_avx2(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   }
 
   if ((q->ptr = create_viterbi37_avx2(poly, TB_ITER * framebits)) == NULL) {
-    ERROR("create_viterbi37 failed\n");
+    ERROR("create_viterbi37 failed");
     free37(q);
     return -1;
   } else {
@@ -452,7 +452,7 @@ int init37_avx2_16bit(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool
   }
   // printf("pt0\n");
   if ((q->ptr = create_viterbi37_avx2_16bit(poly, TB_ITER * framebits)) == NULL) {
-    ERROR("create_viterbi37 failed\n");
+    ERROR("create_viterbi37 failed");
     free37(q);
     return -1;
   } else {
@@ -500,7 +500,7 @@ int srslte_viterbi_init(srslte_viterbi_t*     q,
 #endif
 #endif
     default:
-      ERROR("Decoder not implemented\n");
+      ERROR("Decoder not implemented");
       return -1;
   }
 }
@@ -540,7 +540,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t* q, float* symbols, uint8_t* data, 
 {
   uint32_t len;
   if (frame_length > q->framebits) {
-    ERROR("Initialized decoder for max frame length %d bits\n", q->framebits);
+    ERROR("Initialized decoder for max frame length %d bits", q->framebits);
     return -1;
   }
   if (q->tail_biting) {
@@ -572,7 +572,7 @@ int srslte_viterbi_decode_s(srslte_viterbi_t* q, int16_t* symbols, uint8_t* data
 {
   uint32_t len;
   if (frame_length > q->framebits) {
-    ERROR("Initialized decoder for max frame length %d bits\n", q->framebits);
+    ERROR("Initialized decoder for max frame length %d bits", q->framebits);
     return -1;
   }
   if (q->tail_biting) {

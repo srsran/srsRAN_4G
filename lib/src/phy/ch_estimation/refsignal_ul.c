@@ -129,11 +129,9 @@ static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t* q)
  */
 int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t* q, srslte_cell_t cell)
 {
-
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && srslte_cell_isvalid(&cell)) {
-
     if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
       q->cell = cell;
 
@@ -188,7 +186,7 @@ void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t* q,
                                      cf_t*                  sf_symbols)
 {
   for (uint32_t ns_idx = 0; ns_idx < 2; ns_idx++) {
-    INFO("Putting DMRS to n_prb: %d, L: %d, ns_idx: %d\n",
+    INFO("Putting DMRS to n_prb: %d, L: %d, ns_idx: %d",
          pusch_cfg->grant.n_prb_tilde[ns_idx],
          pusch_cfg->grant.L_prb,
          ns_idx);
@@ -205,7 +203,7 @@ void srslte_refsignal_dmrs_pusch_get(srslte_refsignal_ul_t* q,
                                      cf_t*                  r_pusch)
 {
   for (uint32_t ns_idx = 0; ns_idx < 2; ns_idx++) {
-    INFO("Getting DMRS from n_prb: %d, L: %d, ns_idx: %d\n",
+    INFO("Getting DMRS from n_prb: %d, L: %d, ns_idx: %d",
          pusch_cfg->grant.n_prb_tilde[ns_idx],
          pusch_cfg->grant.L_prb,
          ns_idx);
@@ -334,7 +332,6 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t*             q,
                                     uint32_t                           cyclic_shift_for_dmrs,
                                     cf_t*                              r_pusch)
 {
-
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (pusch_cfg_isvalid(q, cfg, nof_prb)) {
     ret = SRSLTE_ERROR;
@@ -373,7 +370,7 @@ uint32_t srslte_refsignal_dmrs_N_rs(srslte_pucch_format_t format, srslte_cp_t cp
     case SRSLTE_PUCCH_FORMAT_2B:
       return 2;
     default:
-      ERROR("DMRS Nof RS: Unsupported format %d\n", format);
+      ERROR("DMRS Nof RS: Unsupported format %d", format);
       return 0;
   }
   return 0;
@@ -415,7 +412,7 @@ uint32_t srslte_refsignal_dmrs_pucch_symbol(uint32_t m, srslte_pucch_format_t fo
       }
       break;
     default:
-      ERROR("DMRS Symbol indexes: Unsupported format %d\n", format);
+      ERROR("DMRS Symbol indexes: Unsupported format %d", format);
       return 0;
   }
   return 0;
@@ -485,7 +482,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t* q,
             w = w_arg_pucch_format2_cpnorm;
             break;
           default:
-            ERROR("DMRS Generator: Unsupported format %d\n", cfg->format);
+            ERROR("DMRS Generator: Unsupported format %d", cfg->format);
             return SRSLTE_ERROR;
         }
 
@@ -512,12 +509,10 @@ int srslte_refsignal_dmrs_pucch_cp(srslte_refsignal_ul_t* q,
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q && source && dest) {
-
     uint32_t nsymbols = SRSLTE_CP_ISNORM(q->cell.cp) ? SRSLTE_CP_NORM_NSYMB : SRSLTE_CP_EXT_NSYMB;
 
     uint32_t N_rs = srslte_refsignal_dmrs_N_rs(cfg->format, q->cell.cp);
     for (uint32_t ns = 0; ns < 2; ns++) {
-
       // Determine n_prb
       uint32_t n_prb = srslte_pucch_n_prb(&q->cell, cfg, ns);
 
@@ -799,7 +794,6 @@ static uint32_t srs_Fb(srslte_refsignal_srs_cfg_t* cfg, uint32_t b, uint32_t nof
 /* Returns k0: frequency-domain starting position for ue-specific SRS */
 static uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t* cfg, uint32_t nof_prb, uint32_t tti)
 {
-
   if (cfg->bw_cfg < 8 && cfg->B < 4 && cfg->k_tc < 2) {
     uint32_t k0p = srslte_refsignal_srs_rb_start_cs(cfg->bw_cfg, nof_prb) * SRSLTE_NRE + cfg->k_tc;
     uint32_t k0  = k0p;
@@ -875,7 +869,6 @@ int srslte_refsignal_srs_gen(srslte_refsignal_ul_t*             q,
 
     uint32_t M_sc = srslte_refsignal_srs_M_sc(q, cfg);
     for (uint32_t ns = 2 * sf_idx; ns < 2 * (sf_idx + 1); ns++) {
-
       float alpha = 2 * M_PI * cfg->n_srs / 8;
       compute_r(q, pusch_cfg, M_sc / SRSLTE_NRE, ns, 0, alpha, &r_srs[(ns % 2) * M_sc]);
     }

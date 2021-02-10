@@ -195,7 +195,7 @@ static void interpolate_pilots_sl_psbch(srslte_chest_sl_t* q)
 
   // make sure l_idx is at least 2 to avoid accessing array at negative index below
   if (l_idx < 2) {
-    ERROR("Couldn't interpolate PSBCH pilots. Invalid number of reference symbols.\n");
+    ERROR("Couldn't interpolate PSBCH pilots. Invalid number of reference symbols.");
     return;
   }
 
@@ -240,7 +240,6 @@ static void interpolate_pilots_sl_psbch(srslte_chest_sl_t* q)
 
 static void chest_sl_psbch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
 {
-
   uint32_t dmrs_index  = 0;
   uint32_t k           = q->cell.nof_prb * SRSLTE_NRE / 2 - 36;
   uint32_t sf_nsymbols = srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp);
@@ -387,7 +386,7 @@ static void interpolate_pilots_sl_pscch(srslte_chest_sl_t* q)
 
   // make sure l_idx is at least 2 to avoid accessing array at negative index below
   if (l_idx < 2) {
-    ERROR("Couldn't interpolate PSCCH pilots. Invalid number of reference symbols.\n");
+    ERROR("Couldn't interpolate PSCCH pilots. Invalid number of reference symbols.");
     return;
   }
 
@@ -545,7 +544,6 @@ static int chest_sl_pssch_put_dmrs(srslte_chest_sl_t* q, cf_t* sf_buffer)
   // Mapping to physical resources
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); i++) {
     if (srslte_pssch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, q->cell.tm, i, q->cell.cp)) {
-
       if (q->cell.tm == SRSLTE_SIDELINK_TM1 || q->cell.tm == SRSLTE_SIDELINK_TM2) {
         if (q->chest_sl_cfg.nof_prb <= q->sl_comm_resource_pool.prb_num) {
           memcpy(&sf_buffer[k + i * q->cell.nof_prb * SRSLTE_NRE],
@@ -588,7 +586,6 @@ static int chest_sl_pssch_get_dmrs(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t**
   // Mapping to physical resources
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); i++) {
     if (srslte_pssch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, q->cell.tm, i, q->cell.cp)) {
-
       if (q->cell.tm == SRSLTE_SIDELINK_TM1 || q->cell.tm == SRSLTE_SIDELINK_TM2) {
         if (q->chest_sl_cfg.nof_prb <= q->sl_comm_resource_pool.prb_num) {
           memcpy(dmrs_received[dmrs_idx],
@@ -643,7 +640,7 @@ static void interpolate_pilots_sl_pssch(srslte_chest_sl_t* q)
 
   // make sure l_idx is at least 2 to avoid accessing array at negative index below
   if (l_idx < 2) {
-    ERROR("Couldn't interpolate PSSCH pilots. Invalid number of reference symbols.\n");
+    ERROR("Couldn't interpolate PSSCH pilots. Invalid number of reference symbols.");
     return;
   }
 
@@ -652,9 +649,7 @@ static void interpolate_pilots_sl_pssch(srslte_chest_sl_t* q)
   }
 
   if (q->cell.tm == SRSLTE_SIDELINK_TM1 || q->cell.tm == SRSLTE_SIDELINK_TM2) {
-
     if (q->chest_sl_cfg.nof_prb <= q->sl_comm_resource_pool.prb_num) {
-
       k = q->chest_sl_cfg.prb_start_idx * SRSLTE_NRE;
 
       srslte_interp_linear_vector3(&q->lin_vec_sl,
@@ -690,7 +685,6 @@ static void interpolate_pilots_sl_pssch(srslte_chest_sl_t* q)
                                    q->chest_sl_cfg.nof_prb * SRSLTE_NRE);
 
     } else {
-
       // First band
       k = q->chest_sl_cfg.prb_start_idx * SRSLTE_NRE;
 
@@ -768,7 +762,6 @@ static void interpolate_pilots_sl_pssch(srslte_chest_sl_t* q)
     }
 
   } else if (q->cell.tm == SRSLTE_SIDELINK_TM3 || q->cell.tm == SRSLTE_SIDELINK_TM4) {
-
     k = q->chest_sl_cfg.prb_start_idx * SRSLTE_NRE;
 
     srslte_interp_linear_vector3(&q->lin_vec_sl,
@@ -813,7 +806,6 @@ static void chest_sl_pssch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
   srslte_vec_cf_zero(q->ce, q->sf_n_re);
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); i++) {
     if (srslte_pssch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, q->cell.tm, i, q->cell.cp)) {
-
       if (q->cell.tm == SRSLTE_SIDELINK_TM1 || q->cell.tm == SRSLTE_SIDELINK_TM2) {
         if (q->chest_sl_cfg.nof_prb <= q->sl_comm_resource_pool.prb_num) {
           srslte_vec_prod_conj_ccc(&sf_buffer[k + i * q->cell.nof_prb * SRSLTE_NRE],
@@ -886,7 +878,7 @@ float srslte_chest_sl_estimate_noise(srslte_chest_sl_t* q)
 {
   uint32_t sf_nsymbols = srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp);
   if (sf_nsymbols == 0) {
-    ERROR("Error estimating channel noise. Invalid number of OFDM symbols.\n");
+    ERROR("Error estimating channel noise. Invalid number of OFDM symbols.");
     return SRSLTE_ERROR;
   }
 

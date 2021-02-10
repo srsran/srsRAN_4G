@@ -53,8 +53,8 @@ void phy_common::init(phy_args_t*                  _args,
 
   // Instantiate UL channel emulator
   if (args->ul_channel_args.enable) {
-    ul_channel =
-        srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant));
+    ul_channel = srslte::channel_ptr(
+        new srslte::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant, logger));
   }
 }
 
@@ -123,7 +123,6 @@ void phy_common::set_rar_grant(uint8_t             grant_payload[SRSLTE_RAR_GRAN
                                uint16_t            rnti,
                                srslte_tdd_config_t tdd_config)
 {
-
 #if MSG3_DELAY_MS < 0
 #error "Error MSG3_DELAY_MS can't be negative"
 #endif /* MSG3_DELAY_MS < 0 */
@@ -193,7 +192,6 @@ const static uint32_t k_phich[7][10] = {{0, 0, 4, 7, 6, 0, 0, 4, 7, 6},
 
 uint32_t phy_common::ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config)
 {
-
   if (tdd_config->configured) {
     /* In TDD modes 1-5, each PID is associated with a unique subframe and the number of harq processes equals the
      * number of UL subframes Modes 0 and 6 have more processes than UL subframes and PID depends on sfn
@@ -501,7 +499,6 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
     M = das_table[sf->tdd_config.sf_config][sf->tti % 10].M;
   }
   for (uint32_t i = 0; i < M; i++) {
-
     uint32_t k =
         (cell.frame_type == SRSLTE_FDD) ? FDD_HARQ_DELAY_UL_MS : das_table[sf->tdd_config.sf_config][sf->tti % 10].K[i];
     uint32_t        pdsch_tti   = TTI_SUB(sf->tti, k + (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS));
@@ -571,7 +568,6 @@ void phy_common::worker_end(void*                   tx_sem_id,
 
   // For each radio, transmit
   if (tx_enable) {
-
     if (ul_channel) {
       ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
     }
@@ -584,7 +580,6 @@ void phy_common::worker_end(void*                   tx_sem_id,
         is_pending_tx_end = false;
       } else {
         if (!radio_h->get_is_start_of_burst()) {
-
           if (ul_channel) {
             srslte_vec_cf_zero(zeros_multi.get(0), buffer.get_nof_samples());
             ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
@@ -641,7 +636,6 @@ void phy_common::update_measurements(uint32_t                 cc_idx,
 
     // Only worker 0 reads the RSSI sensor
     if (rssi_power_buffer) {
-
       if (!rssi_read_cnt) {
         // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
         float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0

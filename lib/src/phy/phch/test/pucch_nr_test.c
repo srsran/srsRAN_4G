@@ -216,7 +216,7 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
                 // Estimate channel
                 TESTASSERT(srslte_dmrs_pucch_format2_estimate(
                                pucch, &carrier, cfg, &slot, &resource, slot_symbols, chest_res) == SRSLTE_SUCCESS);
-                INFO("RSRP=%+.2f; EPRE=%+.2f; SNR=%+.2f;\n",
+                INFO("RSRP=%+.2f; EPRE=%+.2f; SNR=%+.2f;",
                      chest_res->rsrp_dBfs,
                      chest_res->epre_dBfs,
                      chest_res->snr_db);
@@ -296,33 +296,33 @@ int main(int argc, char** argv)
 
   random_gen = srslte_random_init(0x1234);
   if (random_gen == NULL) {
-    ERROR("Random init\n");
+    ERROR("Random init");
     goto clean_exit;
   }
 
   if (slot_symb == NULL) {
-    ERROR("Alloc\n");
+    ERROR("Alloc");
     goto clean_exit;
   }
 
   srslte_pucch_nr_args_t pucch_args = {};
   if (srslte_pucch_nr_init(&pucch, &pucch_args) < SRSLTE_SUCCESS) {
-    ERROR("PUCCH init\n");
+    ERROR("PUCCH init");
     goto clean_exit;
   }
 
   if (srslte_chest_ul_res_init(&chest_res, carrier.nof_prb)) {
-    ERROR("Chest UL\n");
+    ERROR("Chest UL");
     goto clean_exit;
   }
 
   if (srslte_channel_awgn_init(&awgn, 1234) < SRSLTE_SUCCESS) {
-    ERROR("AWGN init\n");
+    ERROR("AWGN init");
     goto clean_exit;
   }
 
   if (srslte_channel_awgn_set_n0(&awgn, -snr_db) < SRSLTE_SUCCESS) {
-    ERROR("AWGN set N0\n");
+    ERROR("AWGN set N0");
     goto clean_exit;
   }
 
@@ -331,7 +331,7 @@ int main(int argc, char** argv)
   // Test Format 0
   if (format < 0 || format == 0) {
     if (test_pucch_format0(&pucch, &common_cfg, slot_symb) < SRSLTE_SUCCESS) {
-      ERROR("Failed PUCCH format 0\n");
+      ERROR("Failed PUCCH format 0");
       goto clean_exit;
     }
   }
@@ -339,7 +339,7 @@ int main(int argc, char** argv)
   // Test Format 1
   if (format < 0 || format == 1) {
     if (test_pucch_format1(&pucch, &common_cfg, &chest_res, slot_symb) < SRSLTE_SUCCESS) {
-      ERROR("Failed PUCCH format 1\n");
+      ERROR("Failed PUCCH format 1");
       goto clean_exit;
     }
   }
@@ -347,7 +347,7 @@ int main(int argc, char** argv)
   // Test Format 2
   if (format < 0 || format == 2) {
     if (test_pucch_format2(&pucch, &common_cfg, &chest_res, slot_symb) < SRSLTE_SUCCESS) {
-      ERROR("Failed PUCCH format 2\n");
+      ERROR("Failed PUCCH format 2");
       goto clean_exit;
     }
   }

@@ -71,14 +71,12 @@ static void compute_freq_hopping(srslte_ra_ul_pusch_hopping_t* q,
                                  srslte_pusch_hopping_cfg_t*   hopping_cfg,
                                  srslte_pusch_grant_t*         grant)
 {
-
   if (q->cell.frame_type == SRSLTE_TDD) {
-    ERROR("Error frequency hopping for TDD not implemented (c_init for each subframe, see end of 5.3.4 36.211)\n");
+    ERROR("Error frequency hopping for TDD not implemented (c_init for each subframe, see end of 5.3.4 36.211)");
   }
 
   for (uint32_t slot = 0; slot < 2; slot++) {
-
-    INFO("PUSCH Freq hopping: %d\n", grant->freq_hopping);
+    INFO("PUSCH Freq hopping: %d", grant->freq_hopping);
     uint32_t n_prb_tilde = grant->n_prb[slot];
 
     if (grant->freq_hopping == 1) {
@@ -108,7 +106,7 @@ static void compute_freq_hopping(srslte_ra_ul_pusch_hopping_t* q,
                      2 * (n_vrb_tilde % n_rb_sb) * f_m(q, hopping_cfg, i, hopping_cfg->current_tx_nb)) %
                     (n_rb_sb * hopping_cfg->n_sb);
 
-      INFO("n_prb_tilde: %d, n_vrb_tilde: %d, n_rb_sb: %d, n_sb: %d\n",
+      INFO("n_prb_tilde: %d, n_vrb_tilde: %d, n_rb_sb: %d, n_sb: %d",
            n_prb_tilde,
            n_vrb_tilde,
            n_rb_sb,
@@ -146,7 +144,7 @@ static int ra_ul_grant_to_grant_prb_allocation(srslte_dci_ul_t*      dci,
     } else {
       grant->freq_hopping = 2;
     }
-    INFO("prb1: %d, prb2: %d, L: %d\n", grant->n_prb[0], grant->n_prb[1], grant->L_prb);
+    INFO("prb1: %d, prb2: %d, L: %d", grant->n_prb[0], grant->n_prb[1], grant->L_prb);
   } else {
     /* Type1 frequency hopping as defined in 8.4.1 of 36.213
      * frequency offset between 1st and 2nd slot is fixed.
@@ -156,7 +154,7 @@ static int ra_ul_grant_to_grant_prb_allocation(srslte_dci_ul_t*      dci,
     // starting prb idx for slot 0 is as given by resource dci
     grant->n_prb[0] = n_prb_1;
     if (n_prb_1 < n_rb_ho / 2) {
-      INFO("Invalid Frequency Hopping parameters. Offset: %d, n_prb_1: %d\n", n_rb_ho, n_prb_1);
+      INFO("Invalid Frequency Hopping parameters. Offset: %d, n_prb_1: %d", n_rb_ho, n_prb_1);
       return SRSLTE_ERROR;
     }
     uint32_t n_prb_1_tilde = n_prb_1;
@@ -179,7 +177,7 @@ static int ra_ul_grant_to_grant_prb_allocation(srslte_dci_ul_t*      dci,
       default:
         break;
     }
-    INFO("n_rb_pusch: %d, prb1: %d, prb2: %d, L: %d\n", n_rb_pusch, grant->n_prb[0], grant->n_prb[1], grant->L_prb);
+    INFO("n_rb_pusch: %d, prb1: %d, prb2: %d, L: %d", n_rb_pusch, grant->n_prb[0], grant->n_prb[1], grant->L_prb);
     grant->freq_hopping = 1;
   }
 
@@ -205,7 +203,7 @@ static void ul_fill_ra_mcs(srslte_ra_tb_t* tb, srslte_ra_tb_t* last_tb, uint32_t
       tb->mod = SRSLTE_MOD_64QAM;
       tb->tbs = srslte_ra_tbs_from_idx(tb->mcs_idx - 2, L_prb);
     } else {
-      ERROR("Invalid MCS index %d\n", tb->mcs_idx);
+      ERROR("Invalid MCS index %d", tb->mcs_idx);
     }
   } else if (tb->mcs_idx == 29 && cqi_request && L_prb <= 4) {
     // 8.6.1 and 8.6.2 36.213 second paragraph
@@ -244,7 +242,7 @@ int srslte_ra_ul_pusch_hopping_init(srslte_ra_ul_pusch_hopping_t* q, srslte_cell
       q->initialized = true;
       /* Precompute sequence for type2 frequency hopping */
       if (srslte_sequence_LTE_pr(&q->seq_type2_fo, 210, q->cell.id)) {
-        ERROR("Error initiating type2 frequency hopping sequence\n");
+        ERROR("Error initiating type2 frequency hopping sequence");
         return SRSLTE_ERROR;
       }
       ret = SRSLTE_SUCCESS;
@@ -279,10 +277,8 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
                               srslte_dci_ul_t*            dci,
                               srslte_pusch_grant_t*       grant)
 {
-
   // Compute PRB allocation
   if (!ra_ul_grant_to_grant_prb_allocation(dci, grant, hopping_cfg->n_rb_ho, cell->nof_prb)) {
-
     // copy default values from DCI. RV can be updated by ul_fill_ra_mcs() in case of Adaptive retx (mcs>28)
     grant->tb.mcs_idx = dci->tb.mcs_idx;
     grant->tb.rv      = dci->tb.rv;
@@ -290,18 +286,18 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
     // Compute MCS
     ul_fill_ra_mcs(&grant->tb, &grant->last_tb, grant->L_prb, dci->cqi_request);
 
-
     /* Compute RE assuming shortened is false*/
     srslte_ra_ul_compute_nof_re(grant, cell->cp, 0);
 
-    // TODO: Need to compute hopping here before determining if there is collision with SRS, but only MAC knows if it's a
+    // TODO: Need to compute hopping here before determining if there is collision with SRS, but only MAC knows if it's
+    // a
     //  new tx or a retx. Need to split MAC interface in 2 calls. For now, assume hopping is the same
     for (uint32_t i = 0; i < 2; i++) {
       grant->n_prb_tilde[i] = grant->n_prb[i];
     }
 
     if (grant->nof_symb == 0 || grant->nof_re == 0) {
-      INFO("Error converting ul_dci to grant, nof_symb=%d, nof_re=%d\n", grant->nof_symb, grant->nof_re);
+      INFO("Error converting ul_dci to grant, nof_symb=%d, nof_re=%d", grant->nof_symb, grant->nof_re);
       return SRSLTE_ERROR;
     }
 

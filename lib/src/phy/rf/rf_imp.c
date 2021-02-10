@@ -117,7 +117,7 @@ int srslte_rf_open_devname(srslte_rf_t* rf, const char* devname, char* args, uin
     }
     i++;
   }
-  ERROR("No compatible RF frontend found\n");
+  ERROR("No compatible RF frontend found");
   return -1;
 }
 
@@ -300,7 +300,6 @@ int srslte_rf_send_timed3(srslte_rf_t* rf,
                           bool         is_start_of_burst,
                           bool         is_end_of_burst)
 {
-
   return ((rf_dev_t*)rf->dev)
       ->srslte_rf_send_timed(
           rf->handler, data, nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
@@ -315,7 +314,6 @@ int srslte_rf_send_timed_multi(srslte_rf_t* rf,
                                bool         is_start_of_burst,
                                bool         is_end_of_burst)
 {
-
   return ((rf_dev_t*)rf->dev)
       ->srslte_rf_send_timed_multi(
           rf->handler, data, nsamples, secs, frac_secs, true, blocking, is_start_of_burst, is_end_of_burst);
@@ -328,7 +326,6 @@ int srslte_rf_send_multi(srslte_rf_t* rf,
                          bool         is_start_of_burst,
                          bool         is_end_of_burst)
 {
-
   return ((rf_dev_t*)rf->dev)
       ->srslte_rf_send_timed_multi(
           rf->handler, data, nsamples, 0, 0, false, blocking, is_start_of_burst, is_end_of_burst);

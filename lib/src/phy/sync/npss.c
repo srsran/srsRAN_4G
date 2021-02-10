@@ -321,7 +321,7 @@ int srslte_npss_sync_find(srslte_npss_synch_t* q, cf_t* input, float* corr_peak_
       *corr_peak_value = q->conv_output_avg[corr_peak_pos] / side_lobe_value;
 
       if (*corr_peak_value < 10) {
-        DEBUG("peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f\n",
+        DEBUG("peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f",
               corr_peak_pos,
               pl_ub,
               pl_lb,

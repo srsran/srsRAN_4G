@@ -344,7 +344,7 @@ void srslte_dft_run_guru_c(srslte_dft_plan_t* plan)
   if (plan->is_guru == true) {
     fftwf_execute(plan->p);
   } else {
-    ERROR("srslte_dft_run_guru_c: the selected plan is not guru!\n");
+    ERROR("srslte_dft_run_guru_c: the selected plan is not guru!");
   }
 }
 

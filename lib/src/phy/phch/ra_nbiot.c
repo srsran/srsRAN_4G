@@ -142,7 +142,7 @@ static int nbiot_dl_dci_to_grant_mcs(srslte_ra_nbiot_dl_dci_t* dci, srslte_ra_nb
   }
 
   if (tbs <= 0) {
-    INFO("Unsupported resource allocation specified: i_tbs=%d [0,12], i_sf=%d [0,7]\n", i_tbs, i_sf);
+    INFO("Unsupported resource allocation specified: i_tbs=%d [0,12], i_sf=%d [0,7]", i_tbs, i_sf);
     return SRSLTE_ERROR;
   } else {
     grant->mcs[0].tbs = (uint32_t)tbs;
@@ -471,7 +471,7 @@ int srslte_ra_nbiot_ul_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
       } else if (grant->nof_sc == 12) {
         grant->nof_slots = 2;
       } else {
-        DEBUG("Unsupported value for N_sc_RU=%d\n", grant->nof_sc);
+        DEBUG("Unsupported value for N_sc_RU=%d", grant->nof_sc);
       }
       break;
     case SRSLTE_NPUSCH_FORMAT2:

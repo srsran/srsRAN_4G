@@ -108,16 +108,16 @@ int main(int argc, char** argv)
     printf("Testing CellID=%d...\n", cid);
 
     if (srslte_regs_init(&regs, cell)) {
-      ERROR("Error initiating regs\n");
+      ERROR("Error initiating regs");
       exit(-1);
     }
 
     if (srslte_pcfich_init(&pcfich, 1)) {
-      ERROR("Error creating PBCH object\n");
+      ERROR("Error creating PBCH object");
       exit(-1);
     }
     if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
-      ERROR("Error creating PBCH object\n");
+      ERROR("Error creating PBCH object");
       exit(-1);
     }
 
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
         if (srslte_pcfich_decode(&pcfich, &dl_sf, &chest_res, slot_symbols, &corr_res) < 0) {
           exit(-1);
         }
-        INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %f\n", cfi, dl_sf.cfi, nsf, corr_res);
+        INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %f", cfi, dl_sf.cfi, nsf, corr_res);
       }
     }
     srslte_pcfich_free(&pcfich);

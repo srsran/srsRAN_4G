@@ -32,7 +32,6 @@ const int tbs_format1c_table[32] = {40,  56,   72,   120,  136,  144,  176,  208
 /* Returns the number of RE in a PRB in a slot and subframe */
 uint32_t ra_re_x_prb(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, uint32_t slot, uint32_t prb_idx)
 {
-
   uint32_t subframe         = sf->tti % 10;
   uint32_t nof_ctrl_symbols = SRSLTE_NOF_CTRL_SYMBOLS((*cell), sf->cfi);
 
@@ -188,7 +187,7 @@ int srslte_ra_dl_grant_to_grant_prb_allocation(const srslte_dci_dl_t* dci,
     case SRSLTE_RA_ALLOC_TYPE1:
       // Make sure the rbg_subset is valid
       if (dci->type1_alloc.rbg_subset >= P) {
-        ERROR("Invalid RBG subset=%d for nof_prb=%d where P=%d\n", dci->type1_alloc.rbg_subset, nof_prb, P);
+        ERROR("Invalid RBG subset=%d for nof_prb=%d where P=%d", dci->type1_alloc.rbg_subset, nof_prb, P);
         return SRSLTE_ERROR;
       }
       n_rb_type1    = srslte_ra_type1_N_rb(nof_prb);
@@ -209,7 +208,7 @@ int srslte_ra_dl_grant_to_grant_prb_allocation(const srslte_dci_dl_t* dci,
             grant->prb_idx[0][idx] = true;
             grant->nof_prb++;
           } else {
-            ERROR("Invalid idx=%d in Type1 RA, nof_prb=%d\n", idx, nof_prb);
+            ERROR("Invalid idx=%d in Type1 RA, nof_prb=%d", idx, nof_prb);
             return SRSLTE_ERROR;
           }
         }
@@ -360,25 +359,25 @@ static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, const srslte_dci_dl_t
       i_tbs = dci->tb[0].mcs_idx;
       tbs   = srslte_ra_tbs_from_idx(i_tbs, n_prb);
       if (tbs < 0) {
-        ERROR("Invalid TBS_index=%d or n_prb=%d\n", i_tbs, n_prb);
+        ERROR("Invalid TBS_index=%d or n_prb=%d", i_tbs, n_prb);
         return SRSLTE_ERROR;
       }
     } else if (dci->format == SRSLTE_DCI_FORMAT1C) {
       if (dci->tb[0].mcs_idx < 32) {
         tbs = tbs_format1c_table[dci->tb[0].mcs_idx];
       } else {
-        ERROR("Error decoding DCI: Invalid mcs_idx=%d in Format1C\n", dci->tb[0].mcs_idx);
+        ERROR("Error decoding DCI: Invalid mcs_idx=%d in Format1C", dci->tb[0].mcs_idx);
         return SRSLTE_ERROR;
       }
     } else {
-      ERROR("Error decoding DCI: P/SI/RA-RNTI supports Format1A/1C only\n");
+      ERROR("Error decoding DCI: P/SI/RA-RNTI supports Format1A/1C only");
       return SRSLTE_ERROR;
     }
     grant->tb[0].mod = SRSLTE_MOD_QPSK;
     if (tbs >= 0) {
       grant->tb[0].tbs = (uint32_t)tbs;
     } else {
-      ERROR("Invalid TBS=%d\n", tbs);
+      ERROR("Invalid TBS=%d", tbs);
       return SRSLTE_ERROR;
     }
   } else {
@@ -393,7 +392,7 @@ static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, const srslte_dci_dl_t
         if (grant->tb[i].tbs < 0) {
           char str[128];
           srslte_dci_dl_info(dci, str, sizeof(str));
-          INFO("Error computing TBS from %s\n", str);
+          INFO("Error computing TBS from %s", str);
           return SRSLTE_ERROR;
         }
       } else {
@@ -448,7 +447,7 @@ config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_
         grant->tx_scheme = SRSLTE_TXSCHEME_PORT0;
       }
       if (nof_tb != 1) {
-        ERROR("Wrong number of transport blocks (%d) for %s.\n", nof_tb, srslte_mimotype2str(grant->tx_scheme));
+        ERROR("Wrong number of transport blocks (%d) for %s.", nof_tb, srslte_mimotype2str(grant->tx_scheme));
         valid_config = false;
       }
       break;
@@ -458,7 +457,7 @@ config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_
       } else if (nof_tb == 2) {
         grant->tx_scheme = SRSLTE_TXSCHEME_CDD;
       } else {
-        ERROR("Invalid number of transport blocks (%d) for TM3\n", nof_tb);
+        ERROR("Invalid number of transport blocks (%d) for TM3", nof_tb);
         valid_config = false;
       }
       break;
@@ -468,7 +467,7 @@ config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_
       } else if (nof_tb == 2) {
         grant->tx_scheme = SRSLTE_TXSCHEME_SPATIALMUX;
       } else {
-        ERROR("Invalid number of transport blocks (%d) for TM4\n", nof_tb);
+        ERROR("Invalid number of transport blocks (%d) for TM4", nof_tb);
         valid_config = false;
       }
       break;
@@ -478,12 +477,12 @@ config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_
     case SRSLTE_TM6:
     case SRSLTE_TM7:
     case SRSLTE_TM8:
-      ERROR("Not implemented Tx mode (%d)\n", tm + 1);
+      ERROR("Not implemented Tx mode (%d)", tm + 1);
       break;
 
       /* Error cases */
     default:
-      ERROR("Wrong Tx mode (%d)\n", tm + 1);
+      ERROR("Wrong Tx mode (%d)", tm + 1);
   }
   return valid_config ? SRSLTE_SUCCESS : SRSLTE_ERROR;
 }
@@ -526,14 +525,14 @@ static int config_mimo_layers(const srslte_cell_t* cell, const srslte_dci_dl_t* 
   switch (grant->tx_scheme) {
     case SRSLTE_TXSCHEME_PORT0:
       if (nof_tb != 1) {
-        ERROR("Wrong number of transport blocks (%d) for single antenna.\n", nof_tb);
+        ERROR("Wrong number of transport blocks (%d) for single antenna.", nof_tb);
         return SRSLTE_ERROR;
       }
       grant->nof_layers = 1;
       break;
     case SRSLTE_TXSCHEME_DIVERSITY:
       if (nof_tb != 1) {
-        ERROR("Wrong number of transport blocks (%d) for transmit diversity.\n", nof_tb);
+        ERROR("Wrong number of transport blocks (%d) for transmit diversity.", nof_tb);
         return SRSLTE_ERROR;
       }
       grant->nof_layers = cell->nof_ports;
@@ -544,17 +543,17 @@ static int config_mimo_layers(const srslte_cell_t* cell, const srslte_dci_dl_t* 
       } else if (nof_tb == 2) {
         grant->nof_layers = 2;
       } else {
-        ERROR("Wrong number of transport blocks (%d) for spatial multiplexing.\n", nof_tb);
+        ERROR("Wrong number of transport blocks (%d) for spatial multiplexing.", nof_tb);
         return SRSLTE_ERROR;
       }
-      INFO("PDSCH configured for Spatial Multiplex; nof_codewords=%d; nof_layers=%d; pmi=%d\n",
+      INFO("PDSCH configured for Spatial Multiplex; nof_codewords=%d; nof_layers=%d; pmi=%d",
            nof_tb,
            grant->nof_layers,
            grant->pmi);
       break;
     case SRSLTE_TXSCHEME_CDD:
       if (nof_tb != 2) {
-        ERROR("Wrong number of transport blocks (%d) for CDD.\n", nof_tb);
+        ERROR("Wrong number of transport blocks (%d) for CDD.", nof_tb);
         return SRSLTE_ERROR;
       }
       grant->nof_layers = 2;
@@ -566,19 +565,18 @@ static int config_mimo_layers(const srslte_cell_t* cell, const srslte_dci_dl_t* 
 static int
 config_mimo(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
-
   if (config_mimo_type(cell, tm, dci, grant)) {
-    ERROR("Configuring MIMO type\n");
+    ERROR("Configuring MIMO type");
     return -1;
   }
 
   if (config_mimo_pmi(cell, dci, grant)) {
-    ERROR("Configuring MIMO PMI\n");
+    ERROR("Configuring MIMO PMI");
     return -1;
   }
 
   if (config_mimo_layers(cell, dci, grant)) {
-    ERROR("Configuring MIMO layers\n");
+    ERROR("Configuring MIMO layers");
     return -1;
   }
 
@@ -618,11 +616,11 @@ int srslte_ra_dl_dci_to_grant(const srslte_cell_t*   cell,
         }
       }
     } else {
-      INFO("Configuring TB Info\n");
+      INFO("Configuring TB Info");
       return SRSLTE_ERROR;
     }
   } else {
-    ERROR("Configuring resource allocation\n");
+    ERROR("Configuring resource allocation");
     return SRSLTE_ERROR;
   }
 

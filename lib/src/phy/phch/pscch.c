@@ -40,12 +40,12 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
     }
     q->c = srslte_vec_u8_malloc(SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN);
     if (!q->c) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     q->sci_crc = srslte_vec_u8_malloc(SRSLTE_SCI_CRC_LEN);
     if (!q->sci_crc) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
@@ -60,50 +60,50 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
     q->d = srslte_vec_u8_malloc(E_max);
     if (!q->d) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     srslte_vec_u8_zero(q->d, E_max);
 
     q->d_16 = srslte_vec_i16_malloc(E_max);
     if (!q->d_16) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
     srslte_viterbi_init(
         &q->dec, SRSLTE_VITERBI_37, q->encoder.poly, SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN, q->encoder.tail_biting);
 
-    q->e           = srslte_vec_u8_malloc(E_max);
+    q->e = srslte_vec_u8_malloc(E_max);
     if (!q->e) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     q->e_16 = srslte_vec_i16_malloc(E_max);
     if (!q->e_16) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     q->e_bytes = srslte_vec_u8_malloc(E_max / 8);
     if (!q->e_bytes) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
     q->interleaver_lut = srslte_vec_u32_malloc(E_max);
     if (!q->interleaver_lut) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
     q->codeword = srslte_vec_u8_malloc(E_max);
     if (!q->codeword) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     q->codeword_bytes = srslte_vec_u8_malloc(E_max / 8);
     if (!q->codeword_bytes) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
@@ -118,14 +118,14 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
 
     q->mod_symbols = srslte_vec_cf_malloc(E_max / SRSLTE_PSCCH_QM);
     if (!q->mod_symbols) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     srslte_vec_cf_zero(q->mod_symbols, E_max / SRSLTE_PSCCH_QM);
 
     q->llr = srslte_vec_i16_malloc(E_max);
     if (!q->llr) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
@@ -135,7 +135,7 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
     }
     q->scfdma_symbols = srslte_vec_cf_malloc(E_max / SRSLTE_PSCCH_QM);
     if (!q->scfdma_symbols) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
     srslte_vec_cf_zero(q->scfdma_symbols, E_max / SRSLTE_PSCCH_QM);

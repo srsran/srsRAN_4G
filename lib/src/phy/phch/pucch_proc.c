@@ -50,7 +50,7 @@ srslte_pucch_format_t srslte_pucch_proc_select_format(const srslte_cell_t*      
     else if (pucch_proc_tx_sr(uci_cfg, uci_value)) {
       format = SRSLTE_PUCCH_FORMAT_1;
     } else {
-      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d\n", total_ack);
+      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d", total_ack);
     }
   }
   // CQI data
@@ -73,7 +73,7 @@ srslte_pucch_format_t srslte_pucch_proc_select_format(const srslte_cell_t*      
     }
   }
   if (format == SRSLTE_PUCCH_FORMAT_ERROR) {
-    ERROR("Returned Error while selecting PUCCH format\n");
+    ERROR("Returned Error while selecting PUCCH format");
   }
 
   return format;
@@ -216,7 +216,7 @@ int srslte_pucch_cs_get_ack(const srslte_pucch_cfg_t* cfg,
         break;
       default:
         // Unhandled case
-        ERROR("Unexpected number of ACK (%d)\n", nof_ack);
+        ERROR("Unexpected number of ACK (%d)", nof_ack);
         ret = SRSLTE_ERROR;
     }
   }
@@ -256,7 +256,7 @@ static uint32_t n_pucch_i_tdd(uint32_t ncce, uint32_t N_pucch_1, uint32_t nof_pr
       return npucch;
     }
   }
-  ERROR("Could not find Np value for ncce=%d\n", ncce);
+  ERROR("Could not find Np value for ncce=%d", ncce);
   return 0;
 }
 
@@ -282,7 +282,7 @@ int srslte_pucch_proc_get_resources(const srslte_cell_t*      cell,
                                     uint32_t*                 n_pucch_i)
 {
   if (!cfg || !cell || !uci_cfg || !n_pucch_i) {
-    ERROR("pucch_resource_selection(): Invalid parameters\n");
+    ERROR("pucch_resource_selection(): Invalid parameters");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -318,7 +318,7 @@ int srslte_pucch_proc_get_resources(const srslte_cell_t*      cell,
     }
 
     // Otherwise an error shall be prompt
-    ERROR("Unhandled PUCCH format mode %s\n", srslte_ack_nack_feedback_mode_string(cfg->ack_nack_feedback_mode));
+    ERROR("Unhandled PUCCH format mode %s", srslte_ack_nack_feedback_mode_string(cfg->ack_nack_feedback_mode));
     return SRSLTE_ERROR;
   }
 
@@ -421,7 +421,7 @@ static uint32_t get_npucch_cs(const srslte_pucch_cfg_t* cfg,
       }
       break;
     default:
-      ERROR("Too many (%d) ACK for this CS mode\n", srslte_uci_cfg_total_ack(uci_cfg));
+      ERROR("Too many (%d) ACK for this CS mode", srslte_uci_cfg_total_ack(uci_cfg));
   }
 
   return n_pucch;
@@ -447,7 +447,7 @@ static void set_b01(uint8_t* b, uint8_t x)
       b[1] = 1;
       break;
     default:
-      ERROR("Unhandled case (%d)\n", x);
+      ERROR("Unhandled case (%d)", x);
   }
 }
 

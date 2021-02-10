@@ -42,12 +42,12 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t* q,
     cell.nof_prb = SRSLTE_CS_NOF_PRB;
 
     if (srslte_ue_sync_init(&q->ue_sync, cell.nof_prb, true, recv_callback, stream_handler)) {
-      ERROR("Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync");
       goto clean_exit;
     }
 
     if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
-      ERROR("Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync");
       goto clean_exit;
     }
 
@@ -110,7 +110,7 @@ int srslte_ue_cellsearch_init_multi(
       goto clean_exit;
     }
     if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
-      ERROR("Error setting cell in ue_sync\n");
+      ERROR("Error setting cell in ue_sync");
       goto clean_exit;
     }
 
@@ -257,10 +257,10 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t*       q,
   uint32_t nof_detected_cells = 0;
 
   for (uint32_t N_id_2 = 0; N_id_2 < 3; N_id_2++) {
-    INFO("CELL SEARCH: Starting scan for N_id_2=%d\n", N_id_2);
+    INFO("CELL SEARCH: Starting scan for N_id_2=%d", N_id_2);
     ret = srslte_ue_cellsearch_scan_N_id_2(q, N_id_2, &found_cells[N_id_2]);
     if (ret < 0) {
-      ERROR("Error searching cell\n");
+      ERROR("Error searching cell");
       return ret;
     }
     nof_detected_cells += ret;
@@ -300,7 +300,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t*        q,
     do {
       ret = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer, CELL_SEARCH_BUFFER_MAX_SAMPLES);
       if (ret < 0) {
-        ERROR("Error calling srslte_ue_sync_work()\n");
+        ERROR("Error calling srslte_ue_sync_work()");
         return -1;
       } else if (ret == 1) {
         /* This means a peak was found in find state */
@@ -313,7 +313,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t*        q,
           q->candidates[nof_detected_frames].psr        = srslte_sync_get_peak_value(&q->ue_sync.sfind);
           q->candidates[nof_detected_frames].cfo        = 15000 * srslte_sync_get_cfo(&q->ue_sync.sfind);
           q->candidates[nof_detected_frames].frame_type = srslte_ue_sync_get_frame_type(&q->ue_sync);
-          INFO("CELL SEARCH: [%d/%d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s, CFO=%.1f KHz\n",
+          INFO("CELL SEARCH: [%d/%d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s, CFO=%.1f KHz",
                nof_detected_frames,
                nof_scanned_frames,
                q->nof_valid_frames,

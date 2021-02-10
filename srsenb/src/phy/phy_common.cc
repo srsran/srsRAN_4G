@@ -46,7 +46,8 @@ bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
 
   // Instantiate DL channel emulator
   if (params.dl_channel_args.enable) {
-    dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, get_nof_rf_channels()));
+    dl_channel = srslte::channel_ptr(
+        new srslte::channel(params.dl_channel_args, get_nof_rf_channels(), srslog::fetch_basic_logger("PHY")));
     dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list_lte[0].cell.nof_prb));
     dl_channel->set_signal_power_dBfs(srslte_enb_dl_get_maximum_signal_power_dBfs(cell_list_lte[0].cell.nof_prb));
   }

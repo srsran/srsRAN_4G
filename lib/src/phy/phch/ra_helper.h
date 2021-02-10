@@ -36,7 +36,7 @@ static int ra_helper_freq_type1(uint32_t N_bwp_size, uint32_t riv, srslte_sch_gr
   ra_helper_compute_s_and_l(N_bwp_size, riv, &start, &len);
 
   if (start + len > N_bwp_size) {
-    ERROR("RIV 0x%x for BWP size %d resulted in freq=%d:%d\n", riv, N_bwp_size, start, len);
+    ERROR("RIV 0x%x for BWP size %d resulted in freq=%d:%d", riv, N_bwp_size, start, len);
     return SRSLTE_ERROR;
   }
 
