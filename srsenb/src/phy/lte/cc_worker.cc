@@ -299,22 +299,20 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
     return;
   }
 
-  uint32_t ul_pid = TTI_RX(ul_sf.tti) % SRSLTE_FDD_NOF_HARQ;
-
   // Handle Format0 adaptive retx
   // Use last TBS for this TB in case of mcs>28
   if (ul_grant.dci.tb.mcs_idx > 28) {
     int rv_idx  = grant.tb.rv;
-    grant.tb    = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
+    grant.tb    = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid);
     grant.tb.rv = rv_idx;
     Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d",
          rnti,
-         ul_pid,
+         ul_grant.pid,
          grant.tb.rv,
          ul_grant.dci.tb.mcs_idx,
          grant.tb.tbs / 8);
   }
-  phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_pid, grant.tb);
+  phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb);
 
   // Run PUSCH decoder
   ul_cfg.pusch.softbuffers.rx = ul_grant.softbuffer_rx;

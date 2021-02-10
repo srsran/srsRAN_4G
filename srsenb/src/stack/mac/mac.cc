@@ -906,6 +906,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
           if (ue_db.count(rnti)) {
             // Copy grant info
             phy_ul_sched_res->pusch[n].current_tx_nb = sched_result.pusch[i].current_tx_nb;
+            phy_ul_sched_res->pusch[n].pid           = TTI_RX(tti_tx_ul) % SRSLTE_FDD_NOF_HARQ;
             phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
             phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
             phy_ul_sched_res->pusch[n].softbuffer_rx =

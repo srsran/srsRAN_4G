@@ -67,6 +67,7 @@ public:
    */
   typedef struct {
     srslte_dci_ul_t         dci;
+    uint32_t                pid;
     uint32_t                current_tx_nb;
     uint8_t*                data;
     bool                    needs_pdcch;
