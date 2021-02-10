@@ -374,6 +374,36 @@ void srslte_vec_sprint_hex(char* str, const uint32_t max_str_len, uint8_t* x, co
   str[max_str_len - 1] = 0;
 }
 
+void srslte_vec_sprint_bin(char* str, const uint32_t max_str_len, const uint8_t* x, const uint32_t len)
+{
+  // Trim maximum size
+  uint32_t N = SRSLTE_MIN(max_str_len - 1, len);
+
+  // If the number of bits does not fit in the string, leave space for "..." if possible
+  if (N < len) {
+    if (N >= 3) {
+      N -= 3;
+    } else {
+      N = 0;
+    }
+  }
+
+  // Write 1s and 0s
+  for (uint32_t i = 0; i < N; i++) {
+    str[i] = x[i] == 0 ? '0' : '1';
+  }
+
+  // Write "..." if all 1s and 0s did not fit
+  if (N < len) {
+    for (uint32_t i = N; i < max_str_len - 1; i++) {
+      str[i] = '.';
+    }
+    str[max_str_len - 1] = 0;
+  } else {
+    str[N] = 0;
+  }
+}
+
 void srslte_vec_save_file(char* filename, const void* buffer, const uint32_t len)
 {
   FILE* f;
