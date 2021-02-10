@@ -107,7 +107,7 @@ void parse_args(int argc, char** argv)
 
 int srslte_rf_recv_wrapper(void* h, void* data, uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ---- ", nsamples);
   return srslte_rf_recv_with_time((srslte_rf_t*)h, data, nsamples, 1, NULL, NULL);
 }
 
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 
   printf("Opening RF device...\n");
   if (srslte_rf_open(&rf, rf_args)) {
-    ERROR("Error opening rf\n");
+    ERROR("Error opening rf");
     exit(-1);
   }
   if (!cell_detect_config.init_agc) {
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
   } else {
     printf("Starting AGC thread...\n");
     if (srslte_rf_start_gain_thread(&rf, false)) {
-      ERROR("Error opening rf\n");
+      ERROR("Error opening rf");
       exit(-1);
     }
     srslte_rf_set_rx_gain(&rf, 50);
@@ -162,7 +162,7 @@ int main(int argc, char** argv)
 
   nof_freqs = srslte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {
-    ERROR("Error getting EARFCN list\n");
+    ERROR("Error getting EARFCN list");
     exit(-1);
   }
 
@@ -173,7 +173,7 @@ int main(int argc, char** argv)
   signal(SIGINT, sig_int_handler);
 
   if (srslte_ue_cellsearch_init(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, (void*)&rf)) {
-    ERROR("Error initiating UE cell detect\n");
+    ERROR("Error initiating UE cell detect");
     exit(-1);
   }
 
@@ -190,10 +190,9 @@ int main(int argc, char** argv)
   }
 
   for (freq = 0; freq < nof_freqs && !go_exit; freq++) {
-
     /* set rf_freq */
     srslte_rf_set_rx_freq(&rf, 0, (double)channels[freq].fd * MHZ);
-    INFO("Set rf_freq to %.3f MHz\n", (double)channels[freq].fd * MHZ / 1000000);
+    INFO("Set rf_freq to %.3f MHz", (double)channels[freq].fd * MHZ / 1000000);
 
     printf(
         "[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS.\n", freq, nof_freqs, channels[freq].id, channels[freq].fd);
@@ -205,14 +204,14 @@ int main(int argc, char** argv)
 
     bzero(found_cells, 3 * sizeof(srslte_ue_cellsearch_result_t));
 
-    INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ / 1000000);
+    INFO("Setting sampling frequency %.2f MHz for PSS search", SRSLTE_CS_SAMP_FREQ / 1000000);
     srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
-    INFO("Starting receiver...\n");
+    INFO("Starting receiver...");
     srslte_rf_start_rx_stream(&rf, false);
 
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL);
     if (n < 0) {
-      ERROR("Error searching cell\n");
+      ERROR("Error searching cell");
       exit(-1);
     } else if (n > 0) {
       for (int i = 0; i < 3; i++) {
@@ -222,7 +221,7 @@ int main(int argc, char** argv)
           cell.cp = found_cells[i].cp;
           int ret = rf_mib_decoder(&rf, 1, &cell_detect_config, &cell, NULL);
           if (ret < 0) {
-            ERROR("Error decoding MIB\n");
+            ERROR("Error decoding MIB");
             exit(-1);
           }
           if (ret == SRSLTE_UE_MIB_FOUND) {

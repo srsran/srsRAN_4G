@@ -87,12 +87,12 @@ int main(int argc, char** argv)
 
   // Initializes ZMQ
   if (init_zmq()) {
-    ERROR("Initializing ZMQ\n");
+    ERROR("Initializing ZMQ");
     exit(-1);
   }
 
   if (init_radio(&buflen)) {
-    ERROR("Initializing Radio\n");
+    ERROR("Initializing Radio");
     exit(-1);
   }
 
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
   while (keep_running) {
     n = rx_radio(buffer, buflen);
     if (n < 0) {
-      ERROR("Error receiving samples\n");
+      ERROR("Error receiving samples");
       exit(-1);
     }
     if (srslte_verbose == SRSLTE_VERBOSE_INFO) {
@@ -157,7 +157,7 @@ static int         init_radio(uint32_t* buffer_len)
   // Uses srsLTE RF API to open a device, could use other code here
   printf("Opening RF device...\n");
   if (srslte_rf_open_multi(&radio, rf_args, nof_rx_antennas)) {
-    ERROR("Error opening rf\n");
+    ERROR("Error opening rf");
     return -1;
   }
   srslte_rf_set_rx_gain(&radio, rf_gain);
@@ -167,7 +167,7 @@ static int         init_radio(uint32_t* buffer_len)
   printf("Set RX gain: %.2f dB\n", rf_gain);
   float srate = srslte_rf_set_rx_srate(&radio, rf_rate);
   if (srate != rf_rate) {
-    ERROR("Error setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
+    ERROR("Error setting samplign frequency %.2f MHz", rf_rate * 1e-6);
     return -1;
   }
 

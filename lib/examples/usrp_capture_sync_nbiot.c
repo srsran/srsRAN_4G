@@ -83,7 +83,7 @@ void parse_args(int argc, char** argv)
 
 int srslte_rf_recv_wrapper(void* h, void* data, uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
   return srslte_rf_recv(h, data, nsamples, 1);
 }
 

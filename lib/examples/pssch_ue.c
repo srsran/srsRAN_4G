@@ -201,7 +201,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
 #ifndef DISABLE_RF
 int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ptr[i] = data[i];
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 
   srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell_sl) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing sl_comm_resource_pool\n");
+    ERROR("Error initializing sl_comm_resource_pool");
     return SRSLTE_ERROR;
   }
 
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
     printf("Opening RF device...\n");
 
     if (srslte_rf_open_multi(&radio, prog_args.rf_args, prog_args.nof_rx_antennas)) {
-      ERROR("Error opening rf\n");
+      ERROR("Error opening rf");
       exit(-1);
     }
 
@@ -260,11 +260,11 @@ int main(int argc, char** argv)
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srslte_rf_set_rx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
-        ERROR("Could not set sampling rate\n");
+        ERROR("Could not set sampling rate");
         exit(-1);
       }
     } else {
-      ERROR("Invalid number of PRB %d\n", cell_sl.nof_prb);
+      ERROR("Invalid number of PRB %d", cell_sl.nof_prb);
       exit(-1);
     }
   }
@@ -307,7 +307,7 @@ int main(int argc, char** argv)
     ofdm_cfg.out_buffer = sf_buffer[0];
 
     if (srslte_ofdm_rx_init_cfg(&fft[i], &ofdm_cfg)) {
-      ERROR("Error initiating FFT\n");
+      ERROR("Error initiating FFT");
       goto clean_exit;
     }
   }
@@ -320,12 +320,12 @@ int main(int argc, char** argv)
 
   // init PSCCH object
   if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH init\n");
+    ERROR("Error in PSCCH init");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pscch_set_cell(&pscch, cell_sl) != SRSLTE_SUCCESS) {
-    ERROR("Error in PSCCH set cell\n");
+    ERROR("Error in PSCCH set cell");
     return SRSLTE_ERROR;
   }
 
@@ -333,19 +333,19 @@ int main(int argc, char** argv)
   srslte_chest_sl_cfg_t pscch_chest_sl_cfg = {};
   srslte_chest_sl_t     pscch_chest        = {};
   if (srslte_chest_sl_init(&pscch_chest, SRSLTE_SIDELINK_PSCCH, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error in chest PSCCH init\n");
+    ERROR("Error in chest PSCCH init");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pssch_init(&pssch, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing PSSCH\n");
+    ERROR("Error initializing PSSCH");
     return SRSLTE_ERROR;
   }
 
   srslte_chest_sl_cfg_t pssch_chest_sl_cfg = {};
   srslte_chest_sl_t     pssch_chest        = {};
   if (srslte_chest_sl_init(&pssch_chest, SRSLTE_SIDELINK_PSSCH, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error in chest PSSCH init\n");
+    ERROR("Error in chest PSSCH init");
     return SRSLTE_ERROR;
   }
 
@@ -373,7 +373,7 @@ int main(int argc, char** argv)
     }
 
     if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
-      ERROR("Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync");
       exit(-1);
     }
 
@@ -414,7 +414,7 @@ int main(int argc, char** argv)
       // receive subframe from radio
       int ret = srslte_ue_sync_zerocopy(&ue_sync, rx_buffer, sf_len);
       if (ret < 0) {
-        ERROR("Error calling srslte_ue_sync_work()\n");
+        ERROR("Error calling srslte_ue_sync_work()");
       }
 
       // update SF index
@@ -429,7 +429,6 @@ int main(int argc, char** argv)
       pscch_prb_start_idx = sub_channel_idx * sl_comm_resource_pool.size_sub_channel;
 
       for (uint32_t cyclic_shift = 0; cyclic_shift <= 9; cyclic_shift += 3) {
-
         // PSCCH Channel estimation
         pscch_chest_sl_cfg.cyclic_shift  = cyclic_shift;
         pscch_chest_sl_cfg.prb_start_idx = pscch_prb_start_idx;

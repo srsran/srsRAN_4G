@@ -274,7 +274,7 @@ void pcap_pack_and_write(FILE*    pcap_file,
 #ifndef DISABLE_RF
 int srslte_rf_recv_wrapper(void* h, void* data, uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
   return srslte_rf_recv_with_time(h, data, nsamples, true, &t->full_secs, &t->frac_secs);
 }
 
@@ -346,7 +346,6 @@ int main(int argc, char** argv)
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-
     printf("Opening RF device...\n");
     if (srslte_rf_open_devname(&rf, prog_args.rf_dev, prog_args.rf_args, 1)) {
       fprintf(stderr, "Error opening rf\n");
@@ -511,9 +510,8 @@ int main(int argc, char** argv)
 
   srslte_npbch_decode_reset(&ue_mib.npbch);
 
-  INFO("\nEntering main loop...\n\n");
+  INFO("\nEntering main loop...");
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
-
     ret = srslte_ue_sync_nbiot_zerocopy_multi(&ue_sync, buff_ptrs);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_nbiot_ue_sync_zerocopy_multi()\n");
@@ -542,7 +540,7 @@ int main(int argc, char** argv)
 
               // update SFN and set deployment mode
               system_frame_number = (mib.sfn + sfn_offset) % 1024;
-              cell.mode = mib.mode;
+              cell.mode           = mib.mode;
 
               // set number of ports of base cell to that of NB-IoT cell (FIXME: read eutra-NumCRS-Ports-r13)
               cell.base.nof_ports = cell.nof_ports;
@@ -704,7 +702,7 @@ int main(int argc, char** argv)
                                                    srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                    prog_args.rnti);
               if (n == SRSLTE_SUCCESS) {
-                INFO("NPDSCH decoded ok.\n");
+                INFO("NPDSCH decoded ok.");
               }
             } else {
               // decode NPDCCH
@@ -716,7 +714,7 @@ int main(int argc, char** argv)
                                                    prog_args.rnti,
                                                    &dci_msg);
               if (n == SRSLTE_NBIOT_UE_DL_FOUND_DCI) {
-                INFO("DCI found for rnti=%d\n", prog_args.rnti);
+                INFO("DCI found for rnti=%d", prog_args.rnti);
                 // convert DCI to grant
                 srslte_ra_nbiot_dl_dci_t   dci_unpacked;
                 srslte_ra_nbiot_dl_grant_t grant;
@@ -907,9 +905,9 @@ float tmp_plot2[110 * 15 * 2048];
 
 void* plot_thread_run(void* arg)
 {
-  uint32_t nof_re   = SRSLTE_SF_LEN_RE(ue_dl.cell.base.nof_prb, ue_dl.cell.base.cp);
+  uint32_t nof_re = SRSLTE_SF_LEN_RE(ue_dl.cell.base.nof_prb, ue_dl.cell.base.cp);
 #if HAVE_RSRP_PLOT
-  float    rsrp_lin = 0;
+  float rsrp_lin = 0;
 #endif
 
   sdrgui_init_title("Software Radio Systems NB-IoT Receiver");

@@ -489,7 +489,6 @@ int main(int argc, char** argv)
   signal(SIGINT, sig_int_handler);
 
   if (!output_file_name) {
-
     int srate = srslte_sampling_freq_hz(cell.base.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
@@ -555,7 +554,7 @@ int main(int argc, char** argv)
         srslte_nsss_put_subframe(&nsss_sync, nsss_signal, sf_buffer, sfn, cell.base.nof_prb, cell.nbiot_prb);
       } else {
         // NRS in all other subframes (using CSR signal intentionally)
-        // DEBUG("%d.%d: Putting %d NRS pilots\n", sfn, sf_idx, SRSLTE_REFSIGNAL_NUM_SF(1, cell.nof_ports));
+        // DEBUG("%d.%d: Putting %d NRS pilots", sfn, sf_idx, SRSLTE_REFSIGNAL_NUM_SF(1, cell.nof_ports));
         srslte_refsignal_nrs_put_sf(cell, 0, ch_est.nrs_signal.pilots[0][sf_idx], sf_buffer);
       }
 
@@ -591,14 +590,13 @@ int main(int argc, char** argv)
       }
 
       if (srslte_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, sf_idx)) {
-        INFO("%d.%d: Transmitting SIB1-NB.\n", sfn, sf_idx);
+        INFO("%d.%d: Transmitting SIB1-NB.", sfn, sf_idx);
         assert(send_data == false);
 
         // configure DL grant for SIB1-NB transmission
         if (sib1_npdsch_cfg.sf_idx == 0) {
           srslte_ra_nbiot_dl_grant_t grant;
-          srslte_ra_nbiot_dl_dci_to_grant(
-              &ra_dl_sib1, &grant, sfn, sf_idx, DUMMY_R_MAX, true, cell.mode);
+          srslte_ra_nbiot_dl_dci_to_grant(&ra_dl_sib1, &grant, sfn, sf_idx, DUMMY_R_MAX, true, cell.mode);
           if (srslte_npdsch_cfg(&sib1_npdsch_cfg, cell, &grant, sf_idx)) {
             fprintf(stderr, "Error configuring NPDSCH\n");
             exit(-1);
@@ -626,7 +624,7 @@ int main(int argc, char** argv)
         // always transmit NPDCCH on fixed positions if no transmission is going on
         if (sf_idx == NPDCCH_SF_IDX && !npdsch_active) {
           // Encode NPDCCH
-          INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+          INFO("Putting DCI to location: n=%d, L=%d", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
           srslte_dci_msg_pack_npdsch(&ra_dl, SRSLTE_DCI_FORMATN1, &dci_msg, false);
           if (srslte_npdcch_encode(&npdcch, &dci_msg, locations[sf_idx][0], UE_CRNTI, sf_re_symbols, sf_idx)) {
             fprintf(stderr, "Error encoding DCI message\n");
@@ -645,7 +643,7 @@ int main(int argc, char** argv)
         // catch start of "user" NPDSCH
         if (!npdsch_active && (sf_idx == npdsch_cfg.grant.start_sfidx && sfn == npdsch_cfg.grant.start_sfn)) {
           // generate data only in first sf
-          INFO("%d.%d: Generating %d random bits\n", sfn, sf_idx, npdsch_cfg.grant.mcs[0].tbs);
+          INFO("%d.%d: Generating %d random bits", sfn, sf_idx, npdsch_cfg.grant.mcs[0].tbs);
           for (int i = 0; i < npdsch_cfg.grant.mcs[0].tbs / 8; i++) {
             data[i] = srslte_random_uniform_int_dist(random_gen, 0, 255);
           }
@@ -657,7 +655,7 @@ int main(int argc, char** argv)
         }
 
         if (npdsch_active) {
-          DEBUG("Current sf_idx=%d, Encoding npdsch.sf_idx=%d start=%d, nof=%d\n",
+          DEBUG("Current sf_idx=%d, Encoding npdsch.sf_idx=%d start=%d, nof=%d",
                 sf_idx,
                 npdsch_cfg.sf_idx,
                 npdsch_cfg.grant.start_sfidx,
@@ -668,7 +666,7 @@ int main(int argc, char** argv)
             exit(-1);
           }
           if (npdsch_cfg.num_sf == npdsch_cfg.grant.nof_sf * npdsch_cfg.grant.nof_rep) {
-            INFO("Deactive current NPDSCH\n");
+            INFO("Deactive current NPDSCH");
             npdsch_active = false;
           }
         }

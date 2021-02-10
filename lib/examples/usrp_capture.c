@@ -113,9 +113,9 @@ int main(int argc, char** argv)
 
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
-  printf("Opening RF device...\n");
+  printf("Opening RF device...");
   if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
-    ERROR("Error opening rf\n");
+    ERROR("Error opening rf");
     exit(-1);
   }
 
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
   if (srate != rf_rate) {
     srate = srslte_rf_set_rx_srate(&rf, rf_rate);
     if (srate != rf_rate) {
-      ERROR("Error setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
+      ERROR("Error setting samplign frequency %.2f MHz", rf_rate * 1e-6);
       exit(-1);
     }
   }
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
   while ((sample_count < nof_samples || nof_samples == -1) && keep_running) {
     n = srslte_rf_recv_with_time_multi(&rf, (void**)buffer, buflen, true, NULL, NULL);
     if (n < 0) {
-      ERROR("Error receiving samples\n");
+      ERROR("Error receiving samples");
       exit(-1);
     }
 

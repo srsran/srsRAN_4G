@@ -112,7 +112,7 @@ void parse_args(int argc, char** argv)
 
 int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ptr[i] = data[i];
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
       // set rf_freq
       double rf_freq = channels[freq].fd * MHZ + raster_offset[i];
       srslte_rf_set_rx_freq(&rf, 0, rf_freq);
-      INFO("Set rf_freq to %.3f Hz\n", rf_freq);
+      INFO("Set rf_freq to %.3f Hz", rf_freq);
 
       printf("[%3d/%d]: EARFCN %d, %.2f MHz looking for NPSS.\n", freq, nof_freqs, channels[freq].id, rf_freq / 1e6);
       fflush(stdout);
@@ -207,9 +207,9 @@ int main(int argc, char** argv)
         srslte_ue_sync_nbiot_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
       }
 
-      INFO("Setting sampling frequency %.2f MHz for NPSS search\n", SRSLTE_CS_SAMP_FREQ / 1000000);
+      INFO("Setting sampling frequency %.2f MHz for NPSS search", SRSLTE_CS_SAMP_FREQ / 1000000);
       srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
-      INFO("Starting receiver...\n");
+      INFO("Starting receiver...");
       srslte_rf_start_rx_stream(&rf, false);
 
       n = srslte_ue_cellsearch_nbiot_scan(&cs);
