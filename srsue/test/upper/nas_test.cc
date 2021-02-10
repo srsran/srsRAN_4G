@@ -32,6 +32,15 @@
 using namespace srsue;
 using namespace asn1::rrc;
 
+static_assert(alignof(LIBLTE_BYTE_MSG_STRUCT) == alignof(byte_buffer_t),
+              "liblte buffer and byte buffer members misaligned");
+static_assert(offsetof(LIBLTE_BYTE_MSG_STRUCT, N_bytes) == offsetof(byte_buffer_t, N_bytes),
+              "liblte buffer and byte buffer members misaligned");
+static_assert(offsetof(LIBLTE_BYTE_MSG_STRUCT, header) == offsetof(byte_buffer_t, buffer),
+              "liblte buffer and byte buffer members misaligned");
+static_assert(sizeof(LIBLTE_BYTE_MSG_STRUCT) <= offsetof(byte_buffer_t, msg),
+              "liblte buffer and byte buffer members misaligned");
+
 #define LCID 1
 
 uint8_t auth_request_pdu[] = {0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4, 0xce, 0xd9,

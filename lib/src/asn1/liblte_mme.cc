@@ -4424,6 +4424,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_security_protected_nas_msg(LIBLTE_BYTE_MSG_STR
                                                              uint32                  count,
                                                              LIBLTE_BYTE_MSG_STRUCT* sec_msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = sec_msg->msg;
   uint32            i;
@@ -4470,6 +4471,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_accept_msg(LIBLTE_MME_ATTACH_ACCEPT_MSG
                                                     uint32                               count,
                                                     LIBLTE_BYTE_MSG_STRUCT*              msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -4597,7 +4599,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_accept_msg(LIBLTE_MME_ATTACH_ACCEPT_MSG
 LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_accept_msg(LIBLTE_BYTE_MSG_STRUCT*              msg,
                                                       LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT* attach_accept)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -4745,6 +4746,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_complete_msg(LIBLTE_MME_ATTACH_COMPLETE
                                                       uint32                                 count,
                                                       LIBLTE_BYTE_MSG_STRUCT*                msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -4784,7 +4786,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_complete_msg(LIBLTE_MME_ATTACH_COMPLETE
 LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_complete_msg(LIBLTE_BYTE_MSG_STRUCT*                msg,
                                                         LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT* attach_comp)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -4821,6 +4822,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_complete_msg(LIBLTE_BYTE_MSG_STRUCT* 
 LIBLTE_ERROR_ENUM liblte_mme_pack_attach_reject_msg(LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT* attach_rej,
                                                     LIBLTE_BYTE_MSG_STRUCT*              msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -4861,7 +4863,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_reject_msg(LIBLTE_MME_ATTACH_REJECT_MSG
 LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_reject_msg(LIBLTE_BYTE_MSG_STRUCT*              msg,
                                                       LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT* attach_rej)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -4916,6 +4917,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_reject_msg(LIBLTE_BYTE_MSG_STRUCT*   
 LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT* attach_req,
                                                      LIBLTE_BYTE_MSG_STRUCT*               msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   return liblte_mme_pack_attach_request_msg(attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, 0, msg);
 }
 
@@ -4924,6 +4926,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
                                                      uint32                                count,
                                                      LIBLTE_BYTE_MSG_STRUCT*               msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5111,7 +5114,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_M
 LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_request_msg(LIBLTE_BYTE_MSG_STRUCT*               msg,
                                                        LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT* attach_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5286,6 +5288,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_request_msg(LIBLTE_BYTE_MSG_STRUCT*  
 LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_failure_msg(LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT* auth_fail,
                                                              LIBLTE_BYTE_MSG_STRUCT*                       msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5319,7 +5322,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_failure_msg(LIBLTE_MME_AUTHENTI
 LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_failure_msg(LIBLTE_BYTE_MSG_STRUCT*                       msg,
                                                                LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT* auth_fail)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5366,6 +5368,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_failure_msg(LIBLTE_BYTE_MSG_S
 LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_reject_msg(LIBLTE_MME_AUTHENTICATION_REJECT_MSG_STRUCT* auth_reject,
                                                             LIBLTE_BYTE_MSG_STRUCT*                      msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5389,7 +5392,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_reject_msg(LIBLTE_MME_AUTHENTIC
 LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_reject_msg(LIBLTE_BYTE_MSG_STRUCT*                      msg,
                                                               LIBLTE_MME_AUTHENTICATION_REJECT_MSG_STRUCT* auth_reject)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5423,6 +5425,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_reject_msg(LIBLTE_BYTE_MSG_ST
 LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_request_msg(LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT* auth_req,
                                                              LIBLTE_BYTE_MSG_STRUCT*                       msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5457,7 +5460,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_request_msg(LIBLTE_MME_AUTHENTI
 LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_request_msg(LIBLTE_BYTE_MSG_STRUCT*                       msg,
                                                                LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT* auth_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5503,6 +5505,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_response_msg(LIBLTE_MME_AUTHENT
                                                               uint32                  count,
                                                               LIBLTE_BYTE_MSG_STRUCT* msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5543,7 +5546,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_authentication_response_msg(LIBLTE_BYTE_MSG_STRUCT*                        msg,
                                               LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT* auth_resp)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5594,6 +5596,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_detach_accept_msg(LIBLTE_MME_DETACH_ACCEPT_MSG
                                                     uint32                               count,
                                                     LIBLTE_BYTE_MSG_STRUCT*              msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5630,7 +5633,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_detach_accept_msg(LIBLTE_MME_DETACH_ACCEPT_MSG
 LIBLTE_ERROR_ENUM liblte_mme_unpack_detach_accept_msg(LIBLTE_BYTE_MSG_STRUCT*              msg,
                                                       LIBLTE_MME_DETACH_ACCEPT_MSG_STRUCT* detach_accept)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5666,6 +5668,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_detach_request_msg(LIBLTE_MME_DETACH_REQUEST_M
                                                      uint32                                count,
                                                      LIBLTE_BYTE_MSG_STRUCT*               msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5711,7 +5714,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_detach_request_msg(LIBLTE_MME_DETACH_REQUEST_M
 LIBLTE_ERROR_ENUM liblte_mme_unpack_detach_request_msg(LIBLTE_BYTE_MSG_STRUCT*               msg,
                                                        LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT* detach_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5756,6 +5758,7 @@ liblte_mme_pack_downlink_nas_transport_msg(LIBLTE_MME_DOWNLINK_NAS_TRANSPORT_MSG
                                            uint32                                        count,
                                            LIBLTE_BYTE_MSG_STRUCT*                       msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5796,7 +5799,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_downlink_nas_transport_msg(LIBLTE_BYTE_MSG_STRUCT*                       msg,
                                              LIBLTE_MME_DOWNLINK_NAS_TRANSPORT_MSG_STRUCT* dl_nas_transport)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5835,6 +5837,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_emm_information_msg(LIBLTE_MME_EMM_INFORMATION
                                                       uint32                                 count,
                                                       LIBLTE_BYTE_MSG_STRUCT*                msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -5906,7 +5909,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_emm_information_msg(LIBLTE_MME_EMM_INFORMATION
 LIBLTE_ERROR_ENUM liblte_mme_unpack_emm_information_msg(LIBLTE_BYTE_MSG_STRUCT*                msg,
                                                         LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT* emm_info)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -5987,6 +5989,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_emm_status_msg(LIBLTE_MME_EMM_STATUS_MSG_STRUC
                                                  uint32                            count,
                                                  LIBLTE_BYTE_MSG_STRUCT*           msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6026,7 +6029,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_emm_status_msg(LIBLTE_MME_EMM_STATUS_MSG_STRUC
 LIBLTE_ERROR_ENUM liblte_mme_unpack_emm_status_msg(LIBLTE_BYTE_MSG_STRUCT*           msg,
                                                    LIBLTE_MME_EMM_STATUS_MSG_STRUCT* emm_status)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6072,6 +6074,7 @@ liblte_mme_pack_extended_service_request_msg(LIBLTE_MME_EXTENDED_SERVICE_REQUEST
                                              uint32                                          count,
                                              LIBLTE_BYTE_MSG_STRUCT*                         msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6139,7 +6142,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_extended_service_request_msg(LIBLTE_BYTE_MSG_STRUCT*                         msg,
                                                LIBLTE_MME_EXTENDED_SERVICE_REQUEST_MSG_STRUCT* ext_service_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6211,6 +6213,7 @@ liblte_mme_pack_guti_reallocation_command_msg(LIBLTE_MME_GUTI_REALLOCATION_COMMA
                                               uint32                                           count,
                                               LIBLTE_BYTE_MSG_STRUCT*                          msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6258,7 +6261,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_guti_reallocation_command_msg(LIBLTE_BYTE_MSG_STRUCT*                          msg,
                                                 LIBLTE_MME_GUTI_REALLOCATION_COMMAND_MSG_STRUCT* guti_realloc_cmd)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6307,6 +6309,7 @@ liblte_mme_pack_guti_reallocation_complete_msg(LIBLTE_MME_GUTI_REALLOCATION_COMP
                                                uint32                                            count,
                                                LIBLTE_BYTE_MSG_STRUCT*                           msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6377,6 +6380,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_guti_reallocation_complete_msg(
 LIBLTE_ERROR_ENUM liblte_mme_pack_identity_request_msg(LIBLTE_MME_ID_REQUEST_MSG_STRUCT* id_req,
                                                        LIBLTE_BYTE_MSG_STRUCT*           msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6405,7 +6409,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_identity_request_msg(LIBLTE_MME_ID_REQUEST_MSG
 LIBLTE_ERROR_ENUM liblte_mme_unpack_identity_request_msg(LIBLTE_BYTE_MSG_STRUCT*           msg,
                                                          LIBLTE_MME_ID_REQUEST_MSG_STRUCT* id_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6445,6 +6448,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_identity_response_msg(LIBLTE_MME_ID_RESPONSE_M
                                                         uint32                             count,
                                                         LIBLTE_BYTE_MSG_STRUCT*            msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6485,7 +6489,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_identity_response_msg(LIBLTE_MME_ID_RESPONSE_M
 LIBLTE_ERROR_ENUM liblte_mme_unpack_identity_response_msg(LIBLTE_BYTE_MSG_STRUCT*            msg,
                                                           LIBLTE_MME_ID_RESPONSE_MSG_STRUCT* id_resp)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6524,6 +6527,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_security_mode_command_msg(LIBLTE_MME_SECURITY_
                                                             uint32                                       count,
                                                             LIBLTE_BYTE_MSG_STRUCT*                      msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6592,7 +6596,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_security_mode_command_msg(LIBLTE_MME_SECURITY_
 LIBLTE_ERROR_ENUM liblte_mme_unpack_security_mode_command_msg(LIBLTE_BYTE_MSG_STRUCT*                      msg,
                                                               LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT* sec_mode_cmd)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6666,6 +6669,7 @@ liblte_mme_pack_security_mode_complete_msg(LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG
                                            uint32                                        count,
                                            LIBLTE_BYTE_MSG_STRUCT*                       msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6710,7 +6714,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_security_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT*                       msg,
                                              LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT* sec_mode_comp)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6754,6 +6757,7 @@ liblte_mme_unpack_security_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT*            
 LIBLTE_ERROR_ENUM liblte_mme_pack_security_mode_reject_msg(LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT* sec_mode_rej,
                                                            LIBLTE_BYTE_MSG_STRUCT*                     msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6780,7 +6784,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_security_mode_reject_msg(LIBLTE_MME_SECURITY_M
 LIBLTE_ERROR_ENUM liblte_mme_unpack_security_mode_reject_msg(LIBLTE_BYTE_MSG_STRUCT*                     msg,
                                                              LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT* sec_mode_rej)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6819,6 +6822,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_service_reject_msg(LIBLTE_MME_SERVICE_REJECT_M
                                                      uint32                                count,
                                                      LIBLTE_BYTE_MSG_STRUCT*               msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6872,7 +6876,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_service_reject_msg(LIBLTE_MME_SERVICE_REJECT_M
 LIBLTE_ERROR_ENUM liblte_mme_unpack_service_reject_msg(LIBLTE_BYTE_MSG_STRUCT*               msg,
                                                        LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT* service_rej)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -6928,6 +6931,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_service_reject_msg(LIBLTE_BYTE_MSG_STRUCT*  
 LIBLTE_ERROR_ENUM liblte_mme_pack_service_request_msg(LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT* service_req,
                                                       LIBLTE_BYTE_MSG_STRUCT*                msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6953,7 +6957,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_service_request_msg(LIBLTE_MME_SERVICE_REQUEST
 LIBLTE_ERROR_ENUM liblte_mme_unpack_service_request_msg(LIBLTE_BYTE_MSG_STRUCT*                msg,
                                                         LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT* service_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -6988,6 +6991,7 @@ liblte_mme_pack_tracking_area_update_accept_msg(LIBLTE_MME_TRACKING_AREA_UPDATE_
                                                 uint32                                             count,
                                                 LIBLTE_BYTE_MSG_STRUCT*                            msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -7128,7 +7132,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_tracking_area_update_accept_msg(LIBLTE_BYTE_MSG_STRUCT*                            msg,
                                                   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT* ta_update_accept)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -7369,6 +7372,7 @@ liblte_mme_pack_tracking_area_update_reject_msg(LIBLTE_MME_TRACKING_AREA_UPDATE_
                                                 uint32                                             count,
                                                 LIBLTE_BYTE_MSG_STRUCT*                            msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -7416,7 +7420,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_tracking_area_update_reject_msg(LIBLTE_BYTE_MSG_STRUCT*                            msg,
                                                   LIBLTE_MME_TRACKING_AREA_UPDATE_REJECT_MSG_STRUCT* ta_update_rej)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -7474,6 +7477,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_uplink_nas_transport_msg(LIBLTE_MME_UPLINK_NAS
                                                            uint32                                      count,
                                                            LIBLTE_BYTE_MSG_STRUCT*                     msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -7514,7 +7518,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_uplink_nas_transport_msg(LIBLTE_BYTE_MSG_STRUCT*                     msg,
                                            LIBLTE_MME_UPLINK_NAS_TRANSPORT_MSG_STRUCT* ul_nas_transport)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -9117,6 +9120,7 @@ srslte_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INFORMATION_REQUEST_M
                                             uint32                                         count,
                                             LIBLTE_BYTE_MSG_STRUCT*                        msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9167,6 +9171,7 @@ LIBLTE_ERROR_ENUM
 liblte_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT* esm_info_req,
                                             LIBLTE_BYTE_MSG_STRUCT*                        msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9196,7 +9201,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_esm_information_request_msg(LIBLTE_BYTE_MSG_STRUCT*                        msg,
                                               LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT* esm_info_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -9242,6 +9246,7 @@ liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_INFORMATION_RESPONSE
                                              uint32                                          count,
                                              LIBLTE_BYTE_MSG_STRUCT*                         msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9298,7 +9303,6 @@ LIBLTE_ERROR_ENUM
 srslte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT*                         msg,
                                                LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT* esm_info_resp)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
   uint8             sec_hdr_type;
@@ -9350,7 +9354,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT*                         msg,
                                                LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT* esm_info_resp)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9402,6 +9405,7 @@ liblte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT*          
 LIBLTE_ERROR_ENUM liblte_mme_pack_esm_status_msg(LIBLTE_MME_ESM_STATUS_MSG_STRUCT* esm_status,
                                                  LIBLTE_BYTE_MSG_STRUCT*           msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9432,7 +9436,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_esm_status_msg(LIBLTE_MME_ESM_STATUS_MSG_STRUC
 LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_status_msg(LIBLTE_BYTE_MSG_STRUCT*           msg,
                                                    LIBLTE_MME_ESM_STATUS_MSG_STRUCT* esm_status)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9843,6 +9846,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_request_msg(
 LIBLTE_ERROR_ENUM liblte_mme_pack_notification_msg(LIBLTE_MME_NOTIFICATION_MSG_STRUCT* notification,
                                                    LIBLTE_BYTE_MSG_STRUCT*             msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9873,7 +9877,6 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_notification_msg(LIBLTE_MME_NOTIFICATION_MSG_S
 LIBLTE_ERROR_ENUM liblte_mme_unpack_notification_msg(LIBLTE_BYTE_MSG_STRUCT*             msg,
                                                      LIBLTE_MME_NOTIFICATION_MSG_STRUCT* notification)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9910,6 +9913,7 @@ LIBLTE_ERROR_ENUM
 liblte_mme_pack_pdn_connectivity_reject_msg(LIBLTE_MME_PDN_CONNECTIVITY_REJECT_MSG_STRUCT* pdn_con_rej,
                                             LIBLTE_BYTE_MSG_STRUCT*                        msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -9955,7 +9959,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_pdn_connectivity_reject_msg(LIBLTE_BYTE_MSG_STRUCT*                        msg,
                                               LIBLTE_MME_PDN_CONNECTIVITY_REJECT_MSG_STRUCT* pdn_con_rej)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10010,6 +10013,7 @@ LIBLTE_ERROR_ENUM
 liblte_mme_pack_pdn_connectivity_request_msg(LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT* pdn_con_req,
                                              LIBLTE_BYTE_MSG_STRUCT*                         msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10072,7 +10076,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_pdn_connectivity_request_msg(LIBLTE_BYTE_MSG_STRUCT*                         msg,
                                                LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT* pdn_con_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10146,6 +10149,7 @@ liblte_mme_unpack_pdn_connectivity_request_msg(LIBLTE_BYTE_MSG_STRUCT*          
 LIBLTE_ERROR_ENUM liblte_mme_pack_pdn_disconnect_reject_msg(LIBLTE_MME_PDN_DISCONNECT_REJECT_MSG_STRUCT* pdn_discon_rej,
                                                             LIBLTE_BYTE_MSG_STRUCT*                      msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10184,7 +10188,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_pdn_disconnect_reject_msg(LIBLTE_BYTE_MSG_STRUCT*                      msg,
                                             LIBLTE_MME_PDN_DISCONNECT_REJECT_MSG_STRUCT* pdn_discon_rej)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10230,6 +10233,7 @@ LIBLTE_ERROR_ENUM
 liblte_mme_pack_pdn_disconnect_request_msg(LIBLTE_MME_PDN_DISCONNECT_REQUEST_MSG_STRUCT* pdn_discon_req,
                                            LIBLTE_BYTE_MSG_STRUCT*                       msg)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10270,7 +10274,6 @@ LIBLTE_ERROR_ENUM
 liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT*                       msg,
                                              LIBLTE_MME_PDN_DISCONNECT_REQUEST_MSG_STRUCT* pdn_discon_req)
 {
-  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10308,6 +10311,7 @@ liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT*            
 LIBLTE_ERROR_ENUM
 liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
@@ -10346,6 +10350,7 @@ liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uin
 LIBLTE_ERROR_ENUM
 liblte_mme_pack_close_ue_test_loop_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count)
 {
+  bzero(msg, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
 
