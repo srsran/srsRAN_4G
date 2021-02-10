@@ -128,7 +128,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
     discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
     discard_timer.run();
     discard_timers_map.insert(std::make_pair(tx_count, std::move(discard_timer)));
-    log->debug("Discard Timer set for SN %u. Timeout: %ums\n", tx_count, static_cast<uint32_t>(cfg.discard_timer));
+    logger.debug("Discard Timer set for SN %u. Timeout: %ums", tx_count, static_cast<uint32_t>(cfg.discard_timer));
   }
 
   // Append MAC (SRBs only)
@@ -364,21 +364,17 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
  ***************************************************************************/
 bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& sdu)
 {
-  // Check capacity
-  if (undelivered_sdus_queue.size() >= tx_queue_capacity) {
-    log->warning("The undelivered PDU queue is growing large. TX_COUNT=%d, Queue size=%ld\n",
-                 tx_count,
-                 undelivered_sdus_queue.size());
-  }
+  logger.debug(
+      "Storing SDU in undelivered SDUs queue. TX_COUNT=%d, Queue size=%ld", tx_count, undelivered_sdus_queue.size());
 
   // Check wether PDU is already in the queue
   if (undelivered_sdus_queue.find(tx_count) != undelivered_sdus_queue.end()) {
-    log->error("PDU already exists in the queue. TX_COUNT=%d\n", tx_count);
+    logger.error("PDU already exists in the queue. TX_COUNT=%d", tx_count);
     return false;
   }
 
   // Copy PDU contents into queue
-  unique_byte_buffer_t sdu_copy = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t sdu_copy = make_byte_buffer();
   memcpy(sdu_copy->msg, sdu->msg, sdu->N_bytes);
   sdu_copy->N_bytes = sdu->N_bytes;
 
@@ -392,14 +388,14 @@ bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& s
 // Discard Timer Callback (discardTimer)
 void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 {
-  parent->log->debug("Discard timer expired for PDU with SN = %d\n", discard_sn);
+  parent->logger.debug("Discard timer expired for PDU with SN = %d", discard_sn);
 
   // Discard PDU if unacknowledged
   if (parent->undelivered_sdus_queue.find(discard_sn) != parent->undelivered_sdus_queue.end()) {
     parent->undelivered_sdus_queue.erase(discard_sn);
-    parent->log->debug("Removed undelivered PDU with TX_COUNT=%d\n", discard_sn);
+    parent->logger.debug("Removed undelivered PDU with TX_COUNT=%d", discard_sn);
   } else {
-    parent->log->debug("Could not find PDU to discard. TX_COUNT=%d\n", discard_sn);
+    parent->logger.debug("Could not find PDU to discard. TX_COUNT=%d", discard_sn);
   }
 
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
@@ -415,13 +411,13 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
  ***************************************************************************/
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
-  log->debug("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+  logger.debug("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
 
   for (uint32_t sn : pdcp_sns) {
     // Find undelivered PDU info
     std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus_queue.find(sn);
     if (it == undelivered_sdus_queue.end()) {
-      log->warning("Could not find PDU for delivery notification. Notified SN=%d\n", sn);
+      logger.warning("Could not find PDU for delivery notification. Notified SN=%d", sn);
       return;
     }
 
@@ -475,7 +471,7 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
   // TODO: investigate wheter the deep copy can be avoided by moving the undelivered SDU queue.
   // That can only be done just before the PDCP is disabled though.
   for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end(); it++) {
-    cpy[it->first]    = allocate_unique_buffer(*pool);
+    cpy[it->first]    = make_byte_buffer();
     (*cpy[it->first]) = *(it->second);
   }
   return cpy;

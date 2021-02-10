@@ -236,7 +236,7 @@ void s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo
       // TODO handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
       break;
     default:
-      m_logger.error("Unhandled PDU type %d", rx_pdu.type().value);
+      m_logger.warning("Unhandled PDU type %d", rx_pdu.type().value);
   }
 }
 

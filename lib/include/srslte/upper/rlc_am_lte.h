@@ -189,7 +189,6 @@ private:
     srslte::timer_handler::unique_timer status_prohibit_timer;
 
     // SDU info for PDCP notifications
-    uint32_t                            pdcp_info_queue_capacity   = 512;
     std::map<uint32_t, pdcp_sdu_info_t> undelivered_sdu_info_queue = {};
 
     // Callback function for buffer status report

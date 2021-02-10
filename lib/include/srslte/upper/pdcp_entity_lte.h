@@ -76,8 +76,6 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  byte_buffer_pool* pool = nullptr;
-
   // State variables, as defined in TS 36 323, section 7.1
   pdcp_lte_state_t st = {};
 
@@ -89,7 +87,6 @@ private:
   std::map<uint32_t, timer_handler::unique_timer> discard_timers_map;
 
   // TX Queue
-  uint32_t                                 tx_queue_capacity = 512;
   std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus_queue;
 
   void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);

@@ -17,8 +17,7 @@
  */
 int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
                        srslte::pdcp_discard_timer_t    discard_timeout,
-                       srslte::byte_buffer_pool*       pool,
-                       srslte::log_ref                 log)
+                       srslog::basic_logger&           logger)
 {
   srslte::pdcp_config_t cfg = {1,
                                srslte::PDCP_RB_IS_DRB,
@@ -28,7 +27,7 @@ int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
                                srslte::pdcp_t_reordering_t::ms500,
                                discard_timeout};
 
-  pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, log);
+  pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc   = &pdcp_hlp.rlc;
   srsue::stack_test_dummy* stack = &pdcp_hlp.stack;
@@ -36,11 +35,11 @@ int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   // Write test SDU
-  srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu));
 
-  srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
   rlc->get_last_sdu(out_pdu);
   TESTASSERT(out_pdu->N_bytes == 4);
 
@@ -63,8 +62,7 @@ int test_tx_sdu_notify(const srslte::pdcp_lte_state_t& init_state,
  */
 int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
                         srslte::pdcp_discard_timer_t    discard_timeout,
-                        srslte::byte_buffer_pool*       pool,
-                        srslte::log_ref                 log)
+                        srslog::basic_logger&           logger)
 {
   srslte::pdcp_config_t cfg = {1,
                                srslte::PDCP_RB_IS_DRB,
@@ -74,7 +72,7 @@ int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
                                srslte::pdcp_t_reordering_t::ms500,
                                discard_timeout};
 
-  pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, log);
+  pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc   = &pdcp_hlp.rlc;
   srsue::stack_test_dummy* stack = &pdcp_hlp.stack;
@@ -82,11 +80,11 @@ int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   // Write test SDU
-  srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu));
 
-  srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t out_pdu = srslte::make_byte_buffer();
   rlc->get_last_sdu(out_pdu);
   TESTASSERT(out_pdu->N_bytes == 4);
 
@@ -111,41 +109,40 @@ int test_tx_sdu_discard(const srslte::pdcp_lte_state_t& init_state,
  * TX Test: PDCP Entity with SN LEN = 12 and 18.
  * PDCP entity configured with EIA2 and EEA2
  */
-int test_tx_discard_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
+int test_tx_discard_all(srslog::basic_logger& logger)
 {
   /*
    * TX Test 1: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  TESTASSERT(test_tx_sdu_notify(normal_init_state, srslte::pdcp_discard_timer_t::ms50, pool, log) == 0);
+  TESTASSERT(test_tx_sdu_notify(normal_init_state, srslte::pdcp_discard_timer_t::ms50, logger) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, pool, log) == 0);
+  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, logger) == 0);
   return 0;
 }
 
 // Setup all tests
-int run_all_tests(srslte::byte_buffer_pool* pool)
+int run_all_tests()
 {
   // Setup log
-  srslte::log_ref log("PDCP LTE Test");
-  log->set_level(srslte::LOG_LEVEL_DEBUG);
-  log->set_hex_limit(128);
+  auto& logger = srslog::fetch_basic_logger("PDCP LTE Test", false);
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(128);
 
-  TESTASSERT(test_tx_discard_all(pool, log) == 0);
+  TESTASSERT(test_tx_discard_all(logger) == 0);
   return 0;
 }
 
 int main()
 {
-  if (run_all_tests(srslte::byte_buffer_pool::get_instance()) != SRSLTE_SUCCESS) {
+  if (run_all_tests() != SRSLTE_SUCCESS) {
     fprintf(stderr, "pdcp_lte_tests() failed\n");
     return SRSLTE_ERROR;
   }
-  srslte::byte_buffer_pool::cleanup();
 
   return SRSLTE_SUCCESS;
 }
