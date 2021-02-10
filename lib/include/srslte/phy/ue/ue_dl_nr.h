@@ -19,6 +19,7 @@
 #include "srslte/phy/phch/dci_nr.h"
 #include "srslte/phy/phch/pdcch_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
+#include <srslte/phy/phch/uci_cfg_nr.h>
 
 /**
  * Maximum number of CORESET
@@ -59,13 +60,16 @@ typedef struct SRSLTE_API {
 } srslte_ue_dl_nr_pdcch_cfg_t;
 
 typedef struct {
-  uint32_t v_dai_dl;
-  bool     dci_format_1_1;
+  uint32_t scell_idx;  ///< Serving cell index
+  uint32_t v_dai_dl;   ///< Downlink Assigment Index
+  bool dci_format_1_1; ///< Set to true if the PDSCH transmission is triggered by a PDCCH DCI format 1_1 transmission
+  uint32_t k1;         ///< HARQ feedback timing
+  uint16_t rnti;
+  uint32_t pucch_resource_id;
 } srslte_pdsch_ack_resource_nr_t;
 
 typedef struct {
   srslte_pdsch_ack_resource_nr_t resource;
-  uint32_t                       k;
   uint8_t                        value[SRSLTE_MAX_CODEWORDS]; // 0/1 or 2 for DTX
   bool present; // set to true if there is a PDSCH on serving cell c associated with PDCCH in PDCCH monitoring occasion
                 // m, or there is a PDCCH indicating SPS PDSCH release on serving cell c
@@ -89,10 +93,13 @@ typedef struct {
 } srslte_pdsch_ack_nr_t;
 
 typedef struct SRSLTE_API {
-  bool harq_ack_spatial_bundling_pucch;     ///< Param harq-ACK-SpatialBundlingPUCCH, set to true if provided
-  bool harq_ack_spatial_bundling_pusch;     ///< Param harq-ACK-SpatialBundlingPUSCH, set to true if provided
-  bool pdsch_harq_ack_codebook_semi_static; ///< set to true for pdsch-HARQ-ACK-Codebook is set to semi-static
+  bool harq_ack_spatial_bundling_pucch; ///< Param harq-ACK-SpatialBundlingPUCCH, set to true if provided
+  bool harq_ack_spatial_bundling_pusch; ///< Param harq-ACK-SpatialBundlingPUSCH, set to true if provided
+  srslte_pdsch_harq_ack_codebook_t pdsch_harq_ack_codebook; ///< pdsch-HARQ-ACK-Codebook configuration
   bool max_cw_sched_dci_is_2; ///< Param maxNrofCodeWordsScheduledByDCI, set to true if present and equal to 2
+
+  uint32_t dl_data_to_ul_ack[SRSLTE_MAX_NOF_DL_DATA_TO_UL];
+  uint32_t nof_dl_data_to_ul_ack;
 } srslte_ue_dl_nr_harq_ack_cfg_t;
 
 typedef struct SRSLTE_API {
@@ -153,8 +160,12 @@ SRSLTE_API int srslte_ue_dl_nr_pdsch_info(const srslte_ue_dl_nr_t*    q,
                                           char*                       str,
                                           uint32_t                    str_len);
 
+SRSLTE_API int srslte_ue_dl_nr_pdsch_ack_resource(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
+                                                  const srslte_dci_dl_nr_t*             dci_dl,
+                                                  srslte_pdsch_ack_resource_nr_t*       pdsch_ack_resource);
+
 SRSLTE_API int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
                                        const srslte_pdsch_ack_nr_t*          ack_info,
-                                       uint8_t*                              uci_data);
+                                       srslte_uci_data_nr_t*                 uci_data);
 
 #endif // SRSLTE_UE_DL_NR_H

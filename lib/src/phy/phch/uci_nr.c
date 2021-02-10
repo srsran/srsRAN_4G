@@ -20,8 +20,6 @@
 #define UCI_NR_INFO_TX(...) INFO("UCI-NR Tx: " __VA_ARGS__)
 #define UCI_NR_INFO_RX(...) INFO("UCI-NR Rx: " __VA_ARGS__)
 
-// TS 38.212 section 5.2.1 Polar coding: The value of A is no larger than 1706.
-#define UCI_NR_MAX_A 1706U
 #define UCI_NR_MAX_L 11U
 #define UCI_NR_POLAR_MAX 2048U
 #define UCI_NR_POLAR_RM_IBIL 0
@@ -84,14 +82,14 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
   }
 
   // Allocate bit sequence with space for the CRC
-  q->bit_sequence = srslte_vec_u8_malloc(UCI_NR_MAX_A);
+  q->bit_sequence = srslte_vec_u8_malloc(SRSLTE_UCI_NR_MAX_NOF_BITS);
   if (q->bit_sequence == NULL) {
     ERROR("Error malloc");
     return SRSLTE_ERROR;
   }
 
   // Allocate c with space for a and the CRC
-  q->c = srslte_vec_u8_malloc(UCI_NR_MAX_A + UCI_NR_MAX_L);
+  q->c = srslte_vec_u8_malloc(SRSLTE_UCI_NR_MAX_NOF_BITS + UCI_NR_MAX_L);
   if (q->c == NULL) {
     ERROR("Error malloc");
     return SRSLTE_ERROR;
@@ -656,7 +654,7 @@ static int uci_nr_encode(srslte_uci_nr_t*             q,
   }
 
   // Encoding of other sizes up to 1906
-  if (A < UCI_NR_MAX_A) {
+  if (A < SRSLTE_UCI_NR_MAX_NOF_BITS) {
     return uci_nr_encode_11_1706_bit(q, uci_cfg, A, o, E_uci);
   }
 
@@ -689,7 +687,7 @@ static int uci_nr_decode(srslte_uci_nr_t*           q,
     if (uci_nr_decode_3_11_bit(q, uci_cfg, A, llr, E_uci, &uci_value->valid) < SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
-  } else if (A < UCI_NR_MAX_A) {
+  } else if (A < SRSLTE_UCI_NR_MAX_NOF_BITS) {
     if (uci_nr_decode_11_1706_bit(q, uci_cfg, A, llr, E_uci, &uci_value->valid) < SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
@@ -784,4 +782,46 @@ int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
   }
 
   return uci_nr_decode(q, uci_cfg, llr, E_uci, value);
+}
+
+uint32_t srslte_uci_nr_total_bits(const srslte_uci_cfg_nr_t* uci_cfg)
+{
+  if (uci_cfg == NULL) {
+    return 0;
+  }
+
+  return uci_cfg->o_ack + uci_cfg->o_csi1 + uci_cfg->o_csi2 + uci_cfg->o_sr;
+}
+
+uint32_t srslte_uci_nr_info(const srslte_uci_data_nr_t* uci_data, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  len = srslte_print_check(str, str_len, len, "rnti=0x%x", uci_data->cfg.rnti);
+
+  if (uci_data->cfg.o_ack > 0) {
+    char str2[10];
+    srslte_vec_sprint_bin(str2, 10, uci_data->value.ack, uci_data->cfg.o_ack);
+    len = srslte_print_check(str, str_len, len, ", ack=%s", str2);
+  }
+
+  if (uci_data->cfg.o_csi1 > 0) {
+    char str2[10];
+    srslte_vec_sprint_bin(str2, 10, uci_data->value.csi1, uci_data->cfg.o_csi1);
+    len = srslte_print_check(str, str_len, len, ", csi1=%s", str2);
+  }
+
+  if (uci_data->cfg.o_csi2 > 0) {
+    char str2[10];
+    srslte_vec_sprint_bin(str2, 10, uci_data->value.csi2, uci_data->cfg.o_csi2);
+    len = srslte_print_check(str, str_len, len, ", csi2=%s", str2);
+  }
+
+  if (uci_data->cfg.o_sr > 0) {
+    char str2[10];
+    srslte_vec_sprint_bin(str2, 10, uci_data->value.sr, uci_data->cfg.o_sr);
+    len = srslte_print_check(str, str_len, len, ", sr=%s", str2);
+  }
+
+  return len;
 }

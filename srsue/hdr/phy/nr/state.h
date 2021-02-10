@@ -33,6 +33,7 @@ typedef struct {
 typedef struct {
   srslte_sch_hl_cfg_nr_t         pdsch;
   srslte_sch_hl_cfg_nr_t         pusch;
+  srslte_pucch_nr_hl_cfg_t       pucch;
   srslte_prach_cfg_t             prach;
   srslte_ue_dl_nr_pdcch_cfg_t    pdcch;
   srslte_ue_dl_nr_harq_ack_cfg_t harq_ack;
@@ -41,13 +42,25 @@ typedef struct {
 class state
 {
 private:
-  struct pending_grant_t {
+  struct pending_ul_grant_t {
     bool                enable;
     uint32_t            pid;
     srslte_sch_cfg_nr_t sch_cfg;
   };
-  srslte::circular_array<pending_grant_t, TTIMOD_SZ> pending_ul_grant = {};
-  mutable std::mutex                                 pending_ul_grant_mutex;
+  srslte::circular_array<pending_ul_grant_t, TTIMOD_SZ> pending_ul_grant = {};
+  mutable std::mutex                                    pending_ul_grant_mutex;
+
+  struct pending_dl_grant_t {
+    bool                           enable;
+    uint32_t                       pid;
+    srslte_sch_cfg_nr_t            sch_cfg;
+    srslte_pdsch_ack_resource_nr_t ack_resource;
+  };
+  srslte::circular_array<pending_dl_grant_t, TTIMOD_SZ> pending_dl_grant = {};
+  mutable std::mutex                                    pending_dl_grant_mutex;
+
+  srslte::circular_array<srslte_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
+  mutable std::mutex                                       pending_ack_mutex;
 
 public:
   mac_interface_phy_nr* stack     = nullptr;
@@ -87,7 +100,7 @@ public:
 
     // physicalCellGroupConfig
     //    pdsch-HARQ-ACK-Codebook: dynamic (1)
-    cfg.harq_ack.pdsch_harq_ack_codebook_semi_static = false;
+    cfg.harq_ack.pdsch_harq_ack_codebook = srslte_pdsch_harq_ack_codebook_dynamic;
 
     // commonControlResourceSet
     //    controlResourceSetId: 1
@@ -222,6 +235,377 @@ public:
     //                        betaOffsetCSI-Part2-Index1: 6
     //                        betaOffsetCSI-Part2-Index2: 6
     //                scaling: f1 (3)
+
+    // pucch-Config: setup (1)
+    //    setup
+    //        resourceSetToAddModList: 2 items
+    cfg.pucch.enabled = true;
+    //            Item 0
+    //                PUCCH-ResourceSet
+    //                    pucch-ResourceSetId: 0
+    //                    resourceList: 8 items
+    //                        Item 0
+    //                            PUCCH-ResourceId: 0
+    //                        Item 1
+    //                            PUCCH-ResourceId: 1
+    //                        Item 2
+    //                            PUCCH-ResourceId: 2
+    //                        Item 3
+    //                            PUCCH-ResourceId: 3
+    //                        Item 4
+    //                            PUCCH-ResourceId: 4
+    //                        Item 5
+    //                            PUCCH-ResourceId: 5
+    //                        Item 6
+    //                            PUCCH-ResourceId: 6
+    //                        Item 7
+    //                            PUCCH-ResourceId: 7
+    cfg.pucch.sets[0].nof_resources = 8;
+
+    //            Item 1
+    //                PUCCH-ResourceSet
+    //                    pucch-ResourceSetId: 1
+    //                    resourceList: 8 items
+    //                        Item 0
+    //                            PUCCH-ResourceId: 8
+    //                        Item 1
+    //                            PUCCH-ResourceId: 9
+    //                        Item 2
+    //                            PUCCH-ResourceId: 10
+    //                        Item 3
+    //                            PUCCH-ResourceId: 11
+    //                        Item 4
+    //                            PUCCH-ResourceId: 12
+    //                        Item 5
+    //                            PUCCH-ResourceId: 13
+    //                        Item 6
+    //                            PUCCH-ResourceId: 14
+    //                        Item 7
+    //                            PUCCH-ResourceId: 15
+    cfg.pucch.sets[1].nof_resources = 8;
+
+    //        resourceToAddModList: 18 items
+    //            Item 0
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 0
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 0
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 0
+    cfg.pucch.sets[0].resources[0].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[0].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[0].initial_cyclic_shift = 0;
+    cfg.pucch.sets[0].resources[0].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[0].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[0].time_domain_occ      = 0;
+
+    //            Item 1
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 1
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 4
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 0
+    cfg.pucch.sets[0].resources[1].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[1].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[1].initial_cyclic_shift = 4;
+    cfg.pucch.sets[0].resources[1].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[1].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[1].time_domain_occ      = 0;
+
+    //            Item 2
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 2
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 8
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 0
+    cfg.pucch.sets[0].resources[2].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[2].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[2].initial_cyclic_shift = 8;
+    cfg.pucch.sets[0].resources[2].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[2].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[2].time_domain_occ      = 0;
+
+    //            Item 3
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 3
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 0
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 1
+    cfg.pucch.sets[0].resources[3].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[3].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[3].initial_cyclic_shift = 0;
+    cfg.pucch.sets[0].resources[3].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[3].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[3].time_domain_occ      = 1;
+
+    //            Item 4
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 4
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 4
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 1
+    cfg.pucch.sets[0].resources[4].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[4].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[4].initial_cyclic_shift = 4;
+    cfg.pucch.sets[0].resources[4].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[4].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[4].time_domain_occ      = 1;
+
+    //            Item 5
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 5
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 8
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 1
+    cfg.pucch.sets[0].resources[5].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[5].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[5].initial_cyclic_shift = 8;
+    cfg.pucch.sets[0].resources[5].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[5].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[5].time_domain_occ      = 1;
+
+    //            Item 6
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 6
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 0
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 2
+    cfg.pucch.sets[0].resources[6].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[6].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[6].initial_cyclic_shift = 0;
+    cfg.pucch.sets[0].resources[6].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[6].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[6].time_domain_occ      = 2;
+
+    //            Item 7
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 7
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 4
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 2
+    cfg.pucch.sets[0].resources[7].format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    cfg.pucch.sets[0].resources[7].starting_prb         = 0;
+    cfg.pucch.sets[0].resources[7].initial_cyclic_shift = 0;
+    cfg.pucch.sets[0].resources[7].nof_symbols          = 14;
+    cfg.pucch.sets[0].resources[7].start_symbol_idx     = 0;
+    cfg.pucch.sets[0].resources[7].time_domain_occ      = 2;
+
+    //            Item 8
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 8
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 0
+    cfg.pucch.sets[1].resources[0].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[0].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[0].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[0].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[0].start_symbol_idx = 0;
+
+    //            Item 9
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 9
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 2
+    cfg.pucch.sets[1].resources[1].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[1].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[1].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[1].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[1].start_symbol_idx = 2;
+
+    //            Item 10
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 10
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 4
+    cfg.pucch.sets[1].resources[2].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[2].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[2].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[2].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[2].start_symbol_idx = 4;
+
+    //            Item 11
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 11
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 6
+    cfg.pucch.sets[1].resources[3].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[3].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[3].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[3].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[3].start_symbol_idx = 6;
+
+    //            Item 12
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 12
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 8
+    cfg.pucch.sets[1].resources[4].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[4].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[4].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[4].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[4].start_symbol_idx = 8;
+
+    //            Item 13
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 13
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 10
+    cfg.pucch.sets[1].resources[5].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[5].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[5].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[5].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[5].start_symbol_idx = 10;
+
+    //            Item 14
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 14
+    //                    startingPRB: 51
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 12
+    cfg.pucch.sets[1].resources[6].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[6].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[6].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[6].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[6].start_symbol_idx = 12;
+
+    //            Item 15
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 15
+    //                    startingPRB: 1
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 0
+    cfg.pucch.sets[1].resources[7].format           = SRSLTE_PUCCH_NR_FORMAT_2;
+    cfg.pucch.sets[1].resources[7].starting_prb     = 51;
+    cfg.pucch.sets[1].resources[7].nof_prb          = 1;
+    cfg.pucch.sets[1].resources[7].nof_symbols      = 2;
+    cfg.pucch.sets[1].resources[7].start_symbol_idx = 2;
+
+    //            Item 16
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 16
+    //                    startingPRB: 0
+    //                    format: format1 (1)
+    //                        format1
+    //                            initialCyclicShift: 8
+    //                            nrofSymbols: 14
+    //                            startingSymbolIndex: 0
+    //                            timeDomainOCC: 2
+    //            Item 17
+    //                PUCCH-Resource
+    //                    pucch-ResourceId: 17
+    //                    startingPRB: 1
+    //                    format: format2 (2)
+    //                        format2
+    //                            nrofPRBs: 1
+    //                            nrofSymbols: 2
+    //                            startingSymbolIndex: 2
+    //        format1: setup (1)
+    //            setup
+    //        format2: setup (1)
+    //            setup
+    //                maxCodeRate: zeroDot25 (2)
+    for (uint32_t i = 0; i < SRSLTE_PUCCH_NR_MAX_NOF_SETS; i++) {
+      srslte_pucch_nr_resource_set_t* set = &cfg.pucch.sets[i];
+      for (uint32_t j = 0; j < set->nof_resources; j++) {
+        if (set->resources[j].format == SRSLTE_PUCCH_NR_FORMAT_2) {
+          set->resources[j].max_code_rate = 2; // 0.25
+        }
+      }
+    }
+
+    //        schedulingRequestResourceToAddModList: 1 item
+    //            Item 0
+    //                SchedulingRequestResourceConfig
+    //                    schedulingRequestResourceId: 1
+    //                    schedulingRequestID: 0
+    //                    periodicityAndOffset: sl40 (10)
+    //                        sl40: 8
+    //                    resource: 16
+
+    //        dl-DataToUL-ACK: 7 items
+    //            Item 0
+    //                dl-DataToUL-ACK item: 8
+    //            Item 1
+    //                dl-DataToUL-ACK item: 7
+    //            Item 2
+    //                dl-DataToUL-ACK item: 6
+    //            Item 3
+    //                dl-DataToUL-ACK item: 5
+    //            Item 4
+    //                dl-DataToUL-ACK item: 4
+    //            Item 5
+    //                dl-DataToUL-ACK item: 12
+    //            Item 6
+    //                dl-DataToUL-ACK item: 11
+    cfg.harq_ack.dl_data_to_ul_ack[0]  = 8;
+    cfg.harq_ack.dl_data_to_ul_ack[1]  = 7;
+    cfg.harq_ack.dl_data_to_ul_ack[2]  = 6;
+    cfg.harq_ack.dl_data_to_ul_ack[3]  = 5;
+    cfg.harq_ack.dl_data_to_ul_ack[4]  = 4;
+    cfg.harq_ack.dl_data_to_ul_ack[5]  = 12;
+    cfg.harq_ack.dl_data_to_ul_ack[6]  = 11;
+    cfg.harq_ack.nof_dl_data_to_ul_ack = 7;
   }
 
   /**
@@ -245,10 +629,10 @@ public:
     std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
 
     // Save entry
-    pending_grant_t& pending_grant = pending_ul_grant[tti_tx];
-    pending_grant.sch_cfg          = pusch_cfg;
-    pending_grant.pid              = dci_ul.pid;
-    pending_grant.enable           = true;
+    pending_ul_grant_t& pending_grant = pending_ul_grant[tti_tx];
+    pending_grant.sch_cfg             = pusch_cfg;
+    pending_grant.pid                 = dci_ul.pid;
+    pending_grant.enable              = true;
   }
 
   /**
@@ -264,7 +648,7 @@ public:
     std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
 
     // Select entry
-    pending_grant_t& pending_grant = pending_ul_grant[tti_tx];
+    pending_ul_grant_t& pending_grant = pending_ul_grant[tti_tx];
 
     // If the entry is not active, just return
     if (!pending_grant.enable) {
@@ -276,6 +660,126 @@ public:
 
     // Reset entry
     pending_grant.enable = false;
+
+    return true;
+  }
+
+  /**
+   * @brief Stores a received DL DCI into the pending DL grant list
+   * @param tti_rx The TTI in which the grant was received
+   * @param dci_dl The DL DCI message to store
+   */
+  void set_dl_pending_grant(uint32_t tti_rx, const srslte_dci_dl_nr_t& dci_dl)
+  {
+    // Convert DL DCI to grant
+    srslte_sch_cfg_nr_t pdsch_cfg = {};
+    if (srslte_ra_dl_dci_to_grant_nr(&carrier, &cfg.pdsch, &dci_dl, &pdsch_cfg, &pdsch_cfg.grant)) {
+      ERROR("Computing UL grant");
+      return;
+    }
+
+    // Calculate DL DCI to PDSCH ACK resource
+    srslte_pdsch_ack_resource_nr_t ack_resource = {};
+    if (srslte_ue_dl_nr_pdsch_ack_resource(&cfg.harq_ack, &dci_dl, &ack_resource) < SRSLTE_SUCCESS) {
+      ERROR("Computing UL ACK resource");
+      return;
+    }
+
+    // Calculate Receive TTI
+    tti_rx = TTI_ADD(tti_rx, pdsch_cfg.grant.k);
+
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
+
+    // Save entry
+    pending_dl_grant_t& pending_grant = pending_dl_grant[tti_rx];
+    pending_grant.sch_cfg             = pdsch_cfg;
+    pending_grant.ack_resource        = ack_resource;
+    pending_grant.pid                 = dci_dl.pid;
+    pending_grant.enable              = true;
+  }
+
+  /**
+   * @brief Checks the DL pending grant list if there is any grant to receive for the given receive TTI
+   * @param tti_rx Current receive TTI
+   * @param sch_cfg Provides the Shared Channel configuration for the PDSCH transmission
+   * @param ack_resource Provides the UL ACK resource
+   * @param pid Provides the HARQ process identifier
+   * @return true if there is a pending grant for the given TX tti, false otherwise
+   */
+  bool get_dl_pending_grant(uint32_t                        tti_rx,
+                            srslte_sch_cfg_nr_t&            pdsch_cfg,
+                            srslte_pdsch_ack_resource_nr_t& ack_resource,
+                            uint32_t&                       pid)
+  {
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
+
+    // Select entry
+    pending_dl_grant_t& pending_grant = pending_dl_grant[tti_rx];
+
+    // If the entry is not active, just return
+    if (!pending_grant.enable) {
+      return false;
+    }
+
+    // Load shared channel configuration and resource
+    pdsch_cfg    = pending_grant.sch_cfg;
+    ack_resource = pending_grant.ack_resource;
+    pid          = pending_grant.pid;
+
+    // Reset entry
+    pending_grant.enable = false;
+
+    return true;
+  }
+
+  /**
+   * @brief Stores a pending PDSCH ACK into the pending ACK list
+   * @param tti_rx The TTI in which the PDSCH transmission was received
+   * @param dci_dl The DL DCI message to store
+   */
+  void set_pending_ack(const uint32_t& tti_rx, const srslte_pdsch_ack_resource_nr_t& ack_resource, const bool& crc_ok)
+  {
+    // Calculate Receive TTI
+    uint32_t tti_tx = TTI_ADD(tti_rx, ack_resource.k1);
+
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_ack_mutex);
+
+    // Select UL transmission time resource
+    srslte_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
+    ack.nof_cc                 = 1;
+
+    // Select serving cell
+    srslte_pdsch_ack_cc_nr_t& ack_cc = ack.cc[ack_resource.scell_idx];
+    srslte_pdsch_ack_m_nr_t&  ack_m  = ack_cc.m[ack_cc.M];
+    ack_cc.M++;
+
+    // Set PDSCH transmission information
+    ack_m.resource = ack_resource;
+    ack_m.value[0] = crc_ok ? 1 : 0;
+    ack_m.present  = true;
+  }
+
+  bool get_pending_ack(const uint32_t& tti_tx, srslte_pdsch_ack_nr_t& pdsch_ack)
+  {
+    // Scope mutex to protect read/write the list
+    std::lock_guard<std::mutex> lock(pending_ack_mutex);
+
+    // Select UL transmission time resource
+    srslte_pdsch_ack_nr_t& ack = pending_ack[tti_tx];
+
+    // No pending grant was set
+    if (ack.nof_cc == 0) {
+      return false;
+    }
+
+    // Copy data
+    pdsch_ack = ack;
+
+    // Reset list entry
+    ack = {};
 
     return true;
   }

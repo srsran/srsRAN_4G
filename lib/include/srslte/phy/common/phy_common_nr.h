@@ -108,6 +108,11 @@ extern "C" {
  */
 #define SRSLTE_MAX_NOF_DL_ALLOCATION 16
 
+/**
+ * @brief Maximum dl-DataToUL-ACK value. This is defined by TS 38.331 v15.10.1 in PUCCH-Config
+ */
+#define SRSLTE_MAX_NOF_DL_DATA_TO_UL 8
+
 typedef enum SRSLTE_API {
   srslte_coreset_mapping_type_non_interleaved = 0,
   srslte_coreset_mapping_type_interleaved,
@@ -211,6 +216,15 @@ typedef enum SRSLTE_API {
 } srslte_xoverhead_t;
 
 /**
+ * @brief PDSCH HARQ ACK codebook configuration
+ * @remark Described in TS 38.331 V15.10.0 PhysicalCellGroupConfig
+ */
+typedef enum SRSLTE_API {
+  srslte_pdsch_harq_ack_codebook_none = 0,
+  srslte_pdsch_harq_ack_codebook_semi_static,
+  srslte_pdsch_harq_ack_codebook_dynamic,
+} srslte_pdsch_harq_ack_codebook_t;
+/**
  * @brief NR carrier parameters. It is a combination of fixed cell and bandwidth-part (BWP)
  */
 typedef struct SRSLTE_API {
@@ -281,6 +295,8 @@ typedef struct SRSLTE_API {
   uint32_t                   id;
   uint32_t                   coreset_id;
   uint32_t                   duration; // in slots
+  uint32_t                   periodicity;
+  uint32_t                   offset;
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];
 } srslte_search_space_t;

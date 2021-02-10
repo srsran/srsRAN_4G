@@ -395,3 +395,69 @@ int srslte_ra_ul_nr_freq(const srslte_carrier_nr_t*    carrier,
   ERROR("Only DCI Format 0_0 is supported");
   return SRSLTE_ERROR;
 }
+
+// Implements TS 38.213 Table 9.2.1-1: PUCCH resource sets before dedicated PUCCH resource configuration
+static int ra_ul_nr_pucch_resource_default(uint32_t r_pucch, srslte_pucch_nr_resource_t* resource)
+{
+  ERROR("Not implemented");
+  return SRSLTE_ERROR;
+}
+
+static int ra_ul_nr_pucch_resource_hl(const srslte_pucch_nr_hl_cfg_t* cfg,
+                                      uint32_t                        O_uci,
+                                      uint32_t                        pucch_resource_id,
+                                      srslte_pucch_nr_resource_t*     resource)
+{
+  uint32_t N2 = cfg->sets[1].max_payload_size > 0 ? cfg->sets[1].max_payload_size : SRSLTE_UCI_NR_MAX_NOF_BITS;
+  uint32_t N3 = cfg->sets[2].max_payload_size > 0 ? cfg->sets[2].max_payload_size : SRSLTE_UCI_NR_MAX_NOF_BITS;
+
+  // If the UE transmits O UCI UCI information bits, that include HARQ-ACK information bits, the UE determines a PUCCH
+  // resource set to be...
+  uint32_t resource_set_id = 3;
+  if (O_uci <= 2 && cfg->sets[0].nof_resources > 0) {
+    resource_set_id = 0;
+  } else if (O_uci <= N2 && cfg->sets[1].nof_resources > 0) {
+    resource_set_id = 1;
+  } else if (O_uci <= N3 && cfg->sets[2].nof_resources > 0) {
+    resource_set_id = 2;
+  } else if (cfg->sets[3].nof_resources == 0) {
+    ERROR("Invalid PUCCH resource configuration, N3=%d, O_uci=%d", N3, O_uci);
+    return SRSLTE_ERROR;
+  } else if (O_uci > SRSLTE_UCI_NR_MAX_NOF_BITS) {
+    ERROR("The number of UCI bits (%d), exceeds the maximum (%d)", O_uci, SRSLTE_UCI_NR_MAX_NOF_BITS);
+    return SRSLTE_ERROR;
+  }
+
+  // Select resource from the set
+  if (pucch_resource_id >= SRSLTE_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET ||
+      pucch_resource_id >= cfg->sets[resource_set_id].nof_resources) {
+    ERROR("The PUCCH resource identifier (%d) exceeds the number of configured resources (%d) for set identifier %d",
+          pucch_resource_id,
+          cfg->sets[resource_set_id].nof_resources,
+          resource_set_id);
+    return SRSLTE_ERROR;
+  }
+  *resource = cfg->sets[resource_set_id].resources[pucch_resource_id];
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
+                                   const srslte_uci_cfg_nr_t*      uci_cfg,
+                                   srslte_pucch_nr_resource_t*     resource)
+{
+  if (pucch_cfg == NULL || uci_cfg == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  uint32_t O_uci = srslte_uci_nr_total_bits(uci_cfg);
+
+  // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
+  // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
+  // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
+  if (!pucch_cfg->enabled) {
+    uint32_t r_pucch = (2 * uci_cfg->n_cce_0) + 2 * uci_cfg->pucch_resource_id;
+    return ra_ul_nr_pucch_resource_default(r_pucch, resource);
+  }
+  return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch_resource_id, resource);
+}

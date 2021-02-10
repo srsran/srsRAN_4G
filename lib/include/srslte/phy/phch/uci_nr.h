@@ -114,4 +114,15 @@ SRSLTE_API int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                           int8_t*                           llr,
                                           srslte_uci_value_nr_t*            value);
 
+SRSLTE_API uint32_t srslte_uci_nr_total_bits(const srslte_uci_cfg_nr_t* uci_cfg);
+
+/**
+ * @brief Converts to string an UCI data structure
+ * @param uci_data UCO data structure
+ * @param str Destination string
+ * @param str_len String length
+ * @return Resultant string length
+ */
+SRSLTE_API uint32_t srslte_uci_nr_info(const srslte_uci_data_nr_t* uci_data, char* str, uint32_t str_len);
+
 #endif // SRSLTE_UCI_NR_H

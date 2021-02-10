@@ -708,3 +708,57 @@ int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
 
   return SRSLTE_SUCCESS;
 }
+
+static uint32_t pucch_nr_resource_info(const srslte_pucch_nr_resource_t* r, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  uint32_t nof_prb = 1;
+  if (r->format == SRSLTE_PUCCH_NR_FORMAT_2 || r->format == SRSLTE_PUCCH_NR_FORMAT_3) {
+    nof_prb = r->nof_prb;
+  }
+
+  len = srslte_print_check(str,
+                           str_len,
+                           len,
+                           "f=%d, prb=%d:%d, symb=%d:%d",
+                           (int)r->format,
+                           r->starting_prb,
+                           nof_prb,
+                           r->start_symbol_idx,
+                           r->nof_symbols);
+
+  if (r->intra_slot_hopping) {
+    len = srslte_print_check(str, str_len, len, ", hop=%d", r->second_hop_prb);
+  }
+
+  if (r->format == SRSLTE_PUCCH_NR_FORMAT_0 || r->format == SRSLTE_PUCCH_NR_FORMAT_1) {
+    len = srslte_print_check(str, str_len, len, ", cs=%d", r->initial_cyclic_shift);
+  }
+
+  if (r->format == SRSLTE_PUCCH_NR_FORMAT_1) {
+    len = srslte_print_check(str, str_len, len, ", occ=%d", r->time_domain_occ);
+  }
+
+  if (r->format == SRSLTE_PUCCH_NR_FORMAT_4) {
+    len = srslte_print_check(str, str_len, len, ", occ=%d:%d", r->occ_index, r->occ_lenth);
+  }
+
+  return len;
+}
+
+uint32_t srslte_pucch_nr_tx_info(const srslte_pucch_nr_resource_t* resource,
+                                 const srslte_uci_data_nr_t*       uci_data,
+                                 char*                             str,
+                                 uint32_t                          str_len)
+{
+  uint32_t len = 0;
+
+  len += pucch_nr_resource_info(resource, &str[len], str_len - len);
+
+  len = srslte_print_check(str, str_len, len, ", ");
+
+  len += srslte_uci_nr_info(uci_data, &str[len], str_len - len);
+
+  return len;
+}

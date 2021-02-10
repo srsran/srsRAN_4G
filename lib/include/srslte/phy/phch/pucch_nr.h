@@ -241,4 +241,9 @@ SRSLTE_API int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*           
                                                    cf_t*                               slot_symbols,
                                                    srslte_uci_value_nr_t*              uci_value);
 
+SRSLTE_API uint32_t srslte_pucch_nr_tx_info(const srslte_pucch_nr_resource_t* resource,
+                                            const srslte_uci_data_nr_t*       uci_data,
+                                            char*                             str,
+                                            uint32_t                          str_len);
+
 #endif // SRSLTE_PUCCH_NR_H

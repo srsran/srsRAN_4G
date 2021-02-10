@@ -517,11 +517,13 @@ static uint32_t ue_dl_nr_V_DL_DAI(uint32_t dai)
   return dai + 1;
 }
 
-static int
-ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_pdsch_ack_nr_t* ack_info, uint8_t* o_ack)
+static int ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
+                                  const srslte_pdsch_ack_nr_t*          ack_info,
+                                  srslte_uci_data_nr_t*                 uci_data)
 {
   bool harq_ack_spatial_bundling =
       ack_info->use_pusch ? cfg->harq_ack_spatial_bundling_pusch : cfg->harq_ack_spatial_bundling_pucch;
+  uint8_t* o_ack = uci_data->value.ack;
 
   uint32_t m = 0; // PDCCH with DCI format 1_0 or DCI format 1_1 monitoring occasion index: lower index corresponds to
                   // earlier PDCCH with DCI format 1_0 or DCI format 1_1 monitoring occasion
@@ -529,11 +531,10 @@ ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_p
   uint32_t V_temp  = 0;
   uint32_t V_temp2 = 0;
 
-  uint32_t N_DL_cells = ack_info->nof_cc;  // number of serving cells configured by higher layers for the UE
-  uint32_t M          = ack_info->cc[0].M; // Set M to the number of PDCCH monitoring occasion(s)
+  uint32_t N_DL_cells = ack_info->nof_cc; // number of serving cells configured by higher layers for the UE
 
   // The following code follows the exact pseudo-code provided in TS 38.213 9.1.3.1 Type-2 HARQ-ACK codebook ...
-  while (m < M) {
+  while (m < SRSLTE_UCI_NR_MAX_M) {
     uint32_t c = 0; // serving cell index: lower indexes correspond to lower RRC indexes of corresponding cell
     while (c < N_DL_cells) {
       // Get ACK information of serving cell c for the PDCH monitoring occasion m
@@ -563,6 +564,10 @@ ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_p
         c = c + 1;
       } else {
         if (ack->present) {
+          // Load ACK resource data into UCI info
+          uci_data->cfg.pucch_resource_id = ack_info->cc[c].m[m].resource.pucch_resource_id;
+          uci_data->cfg.rnti              = ack_info->cc[c].m[m].resource.rnti;
+
           if (V_DL_CDAI <= V_temp) {
             j = j + 1;
           }
@@ -605,20 +610,63 @@ ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_p
   // if harq-ACK-SpatialBundlingPUCCH is not provided to the UE and the UE is configured by
   // maxNrofCodeWordsScheduledByDCI with reception of two transport blocks for at least one configured DL BWP of a
   // serving cell,
-  uint32_t O_ack = 4 * j + V_temp2;
   if (!harq_ack_spatial_bundling && cfg->max_cw_sched_dci_is_2) {
-    O_ack = 2 * (4 * j + V_temp2);
+    uci_data->cfg.o_ack = 2 * (4 * j + V_temp2);
+  } else {
+    uci_data->cfg.o_ack = 4 * j + V_temp2;
   }
 
   // Implement here SPS PDSCH reception
   // ...
 
-  return (int)O_ack;
+  return SRSLTE_SUCCESS;
+}
+
+int ue_dl_nr_pdsch_k1(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_dci_dl_nr_t* dci_dl)
+{
+  // For DCI format 1_0, the PDSCH-to-HARQ_feedback timing indicator field values map to {1, 2, 3, 4, 5, 6, 7, 8}
+  if (dci_dl->format == srslte_dci_format_nr_1_0) {
+    return (int)dci_dl->harq_feedback + 1;
+  }
+
+  // For DCI format 1_1, if present, the PDSCH-to-HARQ_feedback timing indicator field values map to values for a set of
+  // number of slots provided by dl-DataToUL-ACK as defined in Table 9.2.3-1.
+  if (dci_dl->harq_feedback >= SRSLTE_MAX_NOF_DL_DATA_TO_UL || dci_dl->harq_feedback >= cfg->nof_dl_data_to_ul_ack) {
+    ERROR("Out-of-range PDSCH-to-HARQ feedback index (%d, max %d)", dci_dl->harq_feedback, cfg->nof_dl_data_to_ul_ack);
+    return SRSLTE_ERROR;
+  }
+
+  return cfg->dl_data_to_ul_ack[dci_dl->harq_feedback];
+}
+
+int srslte_ue_dl_nr_pdsch_ack_resource(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
+                                       const srslte_dci_dl_nr_t*             dci_dl,
+                                       srslte_pdsch_ack_resource_nr_t*       pdsch_ack_resource)
+{
+  if (cfg == NULL || dci_dl == NULL || pdsch_ack_resource == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Calculate Data to UL ACK timing k1
+  int k1 = ue_dl_nr_pdsch_k1(cfg, dci_dl);
+  if (k1 < SRSLTE_ERROR) {
+    ERROR("Error calculating K1");
+    return SRSLTE_ERROR;
+  }
+
+  // Fill PDSCH resource
+  pdsch_ack_resource->dci_format_1_1    = (dci_dl->format == srslte_dci_format_nr_1_1);
+  pdsch_ack_resource->k1                = k1;
+  pdsch_ack_resource->v_dai_dl          = dci_dl->dai;
+  pdsch_ack_resource->rnti              = dci_dl->rnti;
+  pdsch_ack_resource->pucch_resource_id = dci_dl->pucch_resource;
+
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
                             const srslte_pdsch_ack_nr_t*          ack_info,
-                            uint8_t*                              uci_data)
+                            srslte_uci_data_nr_t*                 uci_data)
 {
   // Check inputs
   if (cfg == NULL || ack_info == NULL || uci_data == NULL) {
@@ -626,7 +674,7 @@ int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
   }
 
   // According TS 38.213 9.1.2 Type-1 HARQ-ACK codebook determination
-  if (cfg->pdsch_harq_ack_codebook_semi_static) {
+  if (cfg->pdsch_harq_ack_codebook == srslte_pdsch_harq_ack_codebook_semi_static) {
     // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = semi-static.
     ERROR("Type-1 HARQ-ACK codebook determination is NOT implemented");
     return SRSLTE_ERROR;
@@ -634,5 +682,10 @@ int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
 
   // According TS 38.213 9.1.3 Type-2 HARQ-ACK codebook determination
   // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = dynamic.
-  return ue_dl_nr_gen_ack_type2(cfg, ack_info, uci_data);
+  if (cfg->pdsch_harq_ack_codebook == srslte_pdsch_harq_ack_codebook_dynamic) {
+    return ue_dl_nr_gen_ack_type2(cfg, ack_info, uci_data);
+  }
+
+  ERROR("No HARQ-ACK codebook determination is NOT implemented");
+  return SRSLTE_ERROR;
 }

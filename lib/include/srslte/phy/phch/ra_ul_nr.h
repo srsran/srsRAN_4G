@@ -99,4 +99,15 @@ SRSLTE_API int srslte_ra_ul_nr_freq(const srslte_carrier_nr_t*    carrier,
                                     const srslte_dci_ul_nr_t*     dci_ul,
                                     srslte_sch_grant_nr_t*        grant);
 
+/**
+ * @brief Selects a valid PUCCH resource for transmission
+ * @param pucch_cfg PUCCH configuration from upper layers
+ * @param uci_cfg Uplink Control information configuration (and PDCCH context)
+ * @param[out] resource Selected resource for transmitting PUCCH
+ * @return SRSLTE_SUCCESS if provided configuration is valid, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
+                                              const srslte_uci_cfg_nr_t*      uci_cfg,
+                                              srslte_pucch_nr_resource_t*     resource);
+
 #endif // SRSLTE_RA_UL_NR_H

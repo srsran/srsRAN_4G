@@ -54,6 +54,10 @@ private:
   srslte_softbuffer_tx_t softbuffer_tx = {};
   srslte_softbuffer_rx_t softbuffer_rx = {};
   std::vector<uint8_t>   tx_data;
+
+  // Methods for DL...
+  void decode_pdcch_ul();
+  void decode_pdcch_dl();
 };
 
 } // namespace nr
