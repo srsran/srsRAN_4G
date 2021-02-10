@@ -17,8 +17,8 @@
 
 namespace srslte {
 
-pdcp_entity_base::pdcp_entity_base(task_sched_handle task_sched_, srslte::log_ref log_) :
-  log(log_), task_sched(task_sched_)
+pdcp_entity_base::pdcp_entity_base(task_sched_handle task_sched_, srslog::basic_logger& logger) :
+  logger(logger), task_sched(task_sched_)
 {}
 
 pdcp_entity_base::~pdcp_entity_base() {}
@@ -27,14 +27,14 @@ void pdcp_entity_base::config_security(as_security_config_t sec_cfg_)
 {
   sec_cfg = sec_cfg_;
 
-  log->info("Configuring security with %s and %s\n",
-            integrity_algorithm_id_text[sec_cfg.integ_algo],
-            ciphering_algorithm_id_text[sec_cfg.cipher_algo]);
+  logger.info("Configuring security with %s and %s",
+              integrity_algorithm_id_text[sec_cfg.integ_algo],
+              ciphering_algorithm_id_text[sec_cfg.cipher_algo]);
 
-  log->debug_hex(sec_cfg.k_rrc_enc.data(), 32, "K_rrc_enc");
-  log->debug_hex(sec_cfg.k_up_enc.data(), 32, "K_up_enc");
-  log->debug_hex(sec_cfg.k_rrc_int.data(), 32, "K_rrc_int");
-  log->debug_hex(sec_cfg.k_up_int.data(), 32, "K_up_int");
+  logger.debug(sec_cfg.k_rrc_enc.data(), 32, "K_rrc_enc");
+  logger.debug(sec_cfg.k_up_enc.data(), 32, "K_up_enc");
+  logger.debug(sec_cfg.k_rrc_int.data(), 32, "K_rrc_int");
+  logger.debug(sec_cfg.k_up_int.data(), 32, "K_up_int");
 }
 
 /****************************************************************************
@@ -67,13 +67,13 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
       break;
   }
 
-  log->debug("Integrity gen input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s\n",
-             count,
-             cfg.bearer_id,
-             (cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
-  log->debug_hex(k_int, 32, "Integrity gen key:");
-  log->debug_hex(msg, msg_len, "Integrity gen input msg:");
-  log->debug_hex(mac, 4, "MAC (generated)");
+  logger.debug("Integrity gen input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
+               count,
+               cfg.bearer_id,
+               (cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+  logger.debug(k_int, 32, "Integrity gen key:");
+  logger.debug(msg, msg_len, "Integrity gen input msg:");
+  logger.debug(mac, 4, "MAC (generated)");
 }
 
 bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac)
@@ -105,24 +105,24 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
       break;
   }
 
-  log->debug("Integrity check input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s\n",
-             count,
-             cfg.bearer_id,
-             cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
-  log->debug_hex(k_int, 32, "Integrity check key:");
-  log->debug_hex(msg, msg_len, "Integrity check input msg:");
+  logger.debug("Integrity check input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s",
+               count,
+               cfg.bearer_id,
+               cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
+  logger.debug(k_int, 32, "Integrity check key:");
+  logger.debug(msg, msg_len, "Integrity check input msg:");
 
   if (sec_cfg.integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
     for (uint8_t i = 0; i < 4; i++) {
       if (mac[i] != mac_exp[i]) {
-        log->error_hex(mac_exp, 4, "MAC mismatch (expected)");
-        log->error_hex(mac, 4, "MAC mismatch (found)");
+        logger.error(mac_exp, 4, "MAC mismatch (expected)");
+        logger.error(mac, 4, "MAC mismatch (found)");
         is_valid = false;
         break;
       }
     }
     if (is_valid) {
-      log->info_hex(mac_exp, 4, "MAC match");
+      logger.info(mac_exp, 4, "MAC match");
     }
   }
 
@@ -141,12 +141,12 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
     k_enc = sec_cfg.k_up_enc.data();
   }
 
-  log->debug("Cipher encrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s\n",
-             count,
-             cfg.bearer_id,
-             cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
-  log->debug_hex(k_enc, 32, "Cipher encrypt key:");
-  log->debug_hex(msg, msg_len, "Cipher encrypt input msg");
+  logger.debug("Cipher encrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s",
+               count,
+               cfg.bearer_id,
+               cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
+  logger.debug(k_enc, 32, "Cipher encrypt key:");
+  logger.debug(msg, msg_len, "Cipher encrypt input msg");
 
   switch (sec_cfg.cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
@@ -166,7 +166,7 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
     default:
       break;
   }
-  log->debug_hex(ct, msg_len, "Cipher encrypt output msg");
+  logger.debug(ct, msg_len, "Cipher encrypt output msg");
 }
 
 void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg)
@@ -181,12 +181,12 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
     k_enc = sec_cfg.k_up_enc.data();
   }
 
-  log->debug("Cipher decrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s\n",
-             count,
-             cfg.bearer_id,
-             (cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
-  log->debug_hex(k_enc, 32, "Cipher decrypt key:");
-  log->debug_hex(ct, ct_len, "Cipher decrypt input msg");
+  logger.debug("Cipher decrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s",
+               count,
+               cfg.bearer_id,
+               (cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  logger.debug(k_enc, 32, "Cipher decrypt key:");
+  logger.debug(ct, ct_len, "Cipher decrypt input msg");
 
   switch (sec_cfg.cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
@@ -206,7 +206,7 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
     default:
       break;
   }
-  log->debug_hex(msg, ct_len, "Cipher decrypt output msg");
+  logger.debug(msg, ct_len, "Cipher decrypt output msg");
 }
 
 /****************************************************************************
@@ -223,7 +223,7 @@ uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
 {
   // Check PDU is long enough to extract header
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
-    log->error("PDU too small to extract header\n");
+    logger.error("PDU too small to extract header");
     return 0;
   }
 
@@ -246,7 +246,7 @@ uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
       rcvd_sn_32 = SN(rcvd_sn_32);
       break;
     default:
-      log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
+      logger.error("Cannot extract RCVD_SN, invalid SN length configured: %d", cfg.sn_len);
   }
 
   return rcvd_sn_32;
@@ -262,7 +262,7 @@ void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu
 {
   // Add room for header
   if (cfg.hdr_len_bytes > sdu->get_headroom()) {
-    log->error("Not enough space to add header\n");
+    logger.error("Not enough space to add header");
     return;
   }
   sdu->msg -= cfg.hdr_len_bytes;
@@ -290,7 +290,7 @@ void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu
       sdu->msg[0] |= 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
       break;
     default:
-      log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
+      logger.error("Invalid SN length configuration: %d bits", cfg.sn_len);
   }
 }
 
@@ -298,7 +298,7 @@ void pdcp_entity_base::extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac
 {
   // Check enough space for MAC
   if (pdu->N_bytes < 4) {
-    log->error("PDU too small to extract MAC-I\n");
+    logger.error("PDU too small to extract MAC-I");
     return;
   }
 
@@ -311,7 +311,7 @@ void pdcp_entity_base::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
 {
   // Check enough space for MAC
   if (sdu->N_bytes + 4 > sdu->get_tailroom()) {
-    log->error("Not enough space to add MAC-I\n");
+    logger.error("Not enough space to add MAC-I");
     return;
   }
 

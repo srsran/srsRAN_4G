@@ -41,7 +41,7 @@ public:
                   srsue::rrc_interface_pdcp* rrc_,
                   srsue::gw_interface_pdcp*  gw_,
                   srslte::task_sched_handle  task_sched_,
-                  srslte::log_ref            log_,
+                  srslog::basic_logger&      logger,
                   uint32_t                   lcid_,
                   pdcp_config_t              cfg_);
   ~pdcp_entity_lte() override;

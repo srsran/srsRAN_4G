@@ -59,8 +59,8 @@ srslte::pdcp_lte_state_t normal_init_state = {};
 class pdcp_lte_test_helper
 {
 public:
-  pdcp_lte_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg_, srslte::log_ref log) :
-    rlc(log), rrc(log), gw(log), pdcp(&rlc, &rrc, &gw, &stack.task_sched, log, 0, cfg)
+  pdcp_lte_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg_, srslog::basic_logger& logger) :
+    rlc(logger), rrc(logger), gw(logger), pdcp(&rlc, &rrc, &gw, &stack.task_sched, logger, 0, cfg)
   {
     pdcp.config_security(sec_cfg_);
     pdcp.enable_integrity(srslte::DIRECTION_TXRX);
@@ -82,7 +82,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
                                               uint8_t                             pdcp_sn_len,
                                               srslte::pdcp_rb_type_t              rb_type,
                                               srslte::as_security_config_t        sec_cfg,
-                                              srslte::log_ref                     log)
+                                              srslog::basic_logger&               logger)
 {
   srslte::pdcp_config_t cfg = {1,
                                rb_type,
@@ -92,7 +92,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
                                srslte::pdcp_t_reordering_t::ms500,
                                srslte::pdcp_discard_timer_t::infinity};
 
-  pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, log);
+  pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_lte* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc  = &pdcp_hlp.rlc;
 
@@ -116,12 +116,12 @@ std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byt
                                                         uint8_t                             pdcp_sn_len,
                                                         srslte::pdcp_rb_type_t              rb_type,
                                                         srslte::as_security_config_t        sec_cfg_,
-                                                        srslte::log_ref                     log)
+                                                        srslog::basic_logger&               logger)
 {
   std::vector<pdcp_test_event_t> pdu_vec;
   for (uint32_t tx_next : tx_nexts) {
     pdcp_test_event_t event;
-    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, rb_type, sec_cfg_, log);
+    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, rb_type, sec_cfg_, logger);
     event.ticks = 0;
     pdu_vec.push_back(std::move(event));
   }

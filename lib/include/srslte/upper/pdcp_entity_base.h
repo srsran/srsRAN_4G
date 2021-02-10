@@ -52,7 +52,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base(task_sched_handle task_sched_, srslte::log_ref log_);
+  pdcp_entity_base(task_sched_handle task_sched_, srslog::basic_logger& logger);
   pdcp_entity_base(pdcp_entity_base&&) = default;
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
@@ -73,7 +73,7 @@ public:
     } else {
       integrity_direction = direction;
     }
-    log->debug("LCID=%d, integrity=%s\n", lcid, srslte_direction_text[integrity_direction]);
+    logger.debug("LCID=%d, integrity=%s", lcid, srslte_direction_text[integrity_direction]);
   }
 
   void enable_encryption(srslte_direction_t direction = DIRECTION_TXRX)
@@ -86,7 +86,7 @@ public:
     } else {
       encryption_direction = direction;
     }
-    log->debug("LCID=%d encryption=%s\n", lcid, srslte_direction_text[integrity_direction]);
+    logger.debug("LCID=%d encryption=%s", lcid, srslte_direction_text[integrity_direction]);
   }
 
   void enable_security_timed(srslte_direction_t direction, uint32_t sn)
@@ -99,7 +99,7 @@ public:
         enable_security_rx_sn = sn;
         break;
       default:
-        log->error("Timed security activation for direction %s not supported.\n", srslte_direction_text[direction]);
+        logger.error("Timed security activation for direction %s not supported.", srslte_direction_text[direction]);
         break;
     }
   }
@@ -124,7 +124,7 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log_ref           log;
+  srslog::basic_logger&     logger;
   srslte::task_sched_handle task_sched;
 
   bool               active               = false;

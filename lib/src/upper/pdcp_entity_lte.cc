@@ -19,10 +19,10 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
                                  srsue::rrc_interface_pdcp* rrc_,
                                  srsue::gw_interface_pdcp*  gw_,
                                  srslte::task_sched_handle  task_sched_,
-                                 srslte::log_ref            log_,
+                                 srslog::basic_logger&      logger,
                                  uint32_t                   lcid_,
                                  pdcp_config_t              cfg_) :
-  pdcp_entity_base(task_sched_, log_), rlc(rlc_), rrc(rrc_), gw(gw_)
+  pdcp_entity_base(task_sched_, logger), rlc(rlc_), rrc(rrc_), gw(gw_)
 {
   lcid                 = lcid_;
   cfg                  = cfg_;
@@ -43,13 +43,13 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   maximum_pdcp_sn              = (1 << cfg.sn_len) - 1;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
 
-  log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
-  log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms\n",
-            cfg.sn_len,
-            cfg.hdr_len_bytes,
-            reordering_window,
-            maximum_pdcp_sn,
-            static_cast<uint32_t>(cfg.discard_timer));
+  logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  logger.info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms",
+              cfg.sn_len,
+              cfg.hdr_len_bytes,
+              reordering_window,
+              maximum_pdcp_sn,
+              static_cast<uint32_t>(cfg.discard_timer));
 
   // Check supported config
   if (!check_valid_config()) {
@@ -65,7 +65,7 @@ pdcp_entity_lte::~pdcp_entity_lte()
 // Reestablishment procedure: 36.323 5.2
 void pdcp_entity_lte::reestablish()
 {
-  log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  logger.info("Re-establish %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
   if (is_srb()) {
     st.next_pdcp_tx_sn = 0;
@@ -86,8 +86,8 @@ void pdcp_entity_lte::reestablish()
 // Used to stop/pause the entity (called on RRC conn release)
 void pdcp_entity_lte::reset()
 {
-  if (active and log) {
-    log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
+  if (active) {
+    logger.debug("Reset %s", rrc->get_rb_name(lcid).c_str());
   }
   active = false;
 }
@@ -96,7 +96,7 @@ void pdcp_entity_lte::reset()
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
 {
   if (rlc->sdu_queue_is_full(lcid)) {
-    log->info_hex(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid).c_str());
+    logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid).c_str());
     return;
   }
 
@@ -128,13 +128,13 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
         &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
   }
 
-  log->info_hex(sdu->msg,
-                sdu->N_bytes,
-                "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
-                rrc->get_rb_name(lcid).c_str(),
-                st.next_pdcp_tx_sn,
-                srslte_direction_text[integrity_direction],
-                srslte_direction_text[encryption_direction]);
+  logger.info(sdu->msg,
+              sdu->N_bytes,
+              "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
+              rrc->get_rb_name(lcid).c_str(),
+              st.next_pdcp_tx_sn,
+              srslte_direction_text[integrity_direction],
+              srslte_direction_text[encryption_direction]);
 
   // Set SDU metadata for RLC AM
   sdu->md.pdcp_sn = st.next_pdcp_tx_sn;
@@ -154,13 +154,13 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 {
   // drop control PDUs
   if (is_drb() && is_control_pdu(pdu)) {
-    log->info("Dropping PDCP control PDU\n");
+    logger.info("Dropping PDCP control PDU");
     return;
   }
 
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
-    log->error("PDCP PDU smaller than required header size.\n");
+    logger.error("PDCP PDU smaller than required header size.");
     return;
   }
 
@@ -174,14 +174,14 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     enable_security_rx_sn = -1;
   }
 
-  log->info_hex(pdu->msg,
-                pdu->N_bytes,
-                "%s Rx PDU SN=%d (%d B, integrity=%s, encryption=%s)",
-                rrc->get_rb_name(lcid).c_str(),
-                sn,
-                pdu->N_bytes,
-                srslte_direction_text[integrity_direction],
-                srslte_direction_text[encryption_direction]);
+  logger.info(pdu->msg,
+              pdu->N_bytes,
+              "%s Rx PDU SN=%d (%d B, integrity=%s, encryption=%s)",
+              rrc->get_rb_name(lcid).c_str(),
+              sn,
+              pdu->N_bytes,
+              srslte_direction_text[integrity_direction],
+              srslte_direction_text[encryption_direction]);
 
   if (is_srb()) {
     handle_srb_pdu(std::move(pdu));
@@ -190,7 +190,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
   } else if (is_drb() && !rlc->rb_is_um(lcid)) {
     handle_am_drb_pdu(std::move(pdu));
   } else {
-    log->error("Invalid PDCP/RLC configuration");
+    logger.error("Invalid PDCP/RLC configuration");
   }
 }
 
@@ -204,7 +204,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   // Read SN from header
   uint32_t sn = read_data_header(pdu);
 
-  log->debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", st.next_pdcp_rx_sn, sn);
+  logger.debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", st.next_pdcp_rx_sn, sn);
 
   // Estimate COUNT for integrity check and decryption
   uint32_t count;
@@ -219,7 +219,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
     cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
   }
 
-  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
 
   // Extract MAC
   uint8_t mac[4];
@@ -228,7 +228,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   // Perfrom integrity checks
   if (integrity_direction == DIRECTION_RX || integrity_direction == DIRECTION_TXRX) {
     if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
-      log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
+      logger.error(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
       return; // Discard
     }
   }
@@ -266,7 +266,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
   }
 
-  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
 
   st.next_pdcp_rx_sn = sn + 1;
   if (st.next_pdcp_rx_sn > maximum_pdcp_sn) {
@@ -288,35 +288,35 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   int32_t sn_diff_last_submit     = sn - st.last_submitted_pdcp_rx_sn;
   int32_t sn_diff_next_pdcp_rx_sn = sn - st.next_pdcp_rx_sn;
 
-  log->debug("RX HFN: %d, SN=%d, Last_Submitted_PDCP_RX_SN=%d, Next_PDCP_RX_SN=%d\n",
-             st.rx_hfn,
-             sn,
-             st.last_submitted_pdcp_rx_sn,
-             st.next_pdcp_rx_sn);
+  logger.debug("RX HFN: %d, SN=%d, Last_Submitted_PDCP_RX_SN=%d, Next_PDCP_RX_SN=%d",
+               st.rx_hfn,
+               sn,
+               st.last_submitted_pdcp_rx_sn,
+               st.next_pdcp_rx_sn);
 
   // Handle PDU
   uint32_t count = 0;
   if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
       (0 <= last_submit_diff_sn && last_submit_diff_sn < (int32_t)reordering_window)) {
     // discard
-    log->debug("Discarding SN=%d (sn_diff_last_submit=%d, last_submit_diff_sn=%d, reordering_window=%d)\n",
-               sn,
-               sn_diff_last_submit,
-               last_submit_diff_sn,
-               reordering_window);
+    logger.debug("Discarding SN=%d (sn_diff_last_submit=%d, last_submit_diff_sn=%d, reordering_window=%d)",
+                 sn,
+                 sn_diff_last_submit,
+                 last_submit_diff_sn,
+                 reordering_window);
     return; // Discard
   }
 
   if ((int32_t)(st.next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
-    log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
+    logger.debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.");
     st.rx_hfn++;
     count              = (st.rx_hfn << cfg.sn_len) | sn;
     st.next_pdcp_rx_sn = sn + 1;
   } else if (sn_diff_next_pdcp_rx_sn >= (int32_t)reordering_window) {
-    log->debug("(SN - Next_PDCP_RX_SN) is larger or equal than re-ordering window.\n");
+    logger.debug("(SN - Next_PDCP_RX_SN) is larger or equal than re-ordering window.");
     count = ((st.rx_hfn - 1) << cfg.sn_len) | sn;
   } else if (sn >= st.next_pdcp_rx_sn) {
-    log->debug("SN is larger or equal than Next_PDCP_RX_SN.\n");
+    logger.debug("SN is larger or equal than Next_PDCP_RX_SN.");
     count              = (st.rx_hfn << cfg.sn_len) | sn;
     st.next_pdcp_rx_sn = sn + 1;
     if (st.next_pdcp_rx_sn > maximum_pdcp_sn) {
@@ -324,13 +324,13 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
       st.rx_hfn++;
     }
   } else if (sn < st.next_pdcp_rx_sn) {
-    log->debug("SN is smaller than Next_PDCP_RX_SN.\n");
+    logger.debug("SN is smaller than Next_PDCP_RX_SN.");
     count = (st.rx_hfn << cfg.sn_len) | sn;
   }
 
   // Decrypt
   cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
-  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  logger.debug(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
 
   // Update info on last PDU submitted to upper layers
   st.last_submitted_pdcp_rx_sn = sn;
@@ -344,7 +344,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
  ***************************************************************************/
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
-  log->debug("Received delivery notification from RLC. Number of PDU notified=%ld\n", pdcp_sns.size());
+  logger.debug("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
 }
 
 /****************************************************************************
@@ -353,19 +353,19 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 bool pdcp_entity_lte::check_valid_config()
 {
   if (cfg.sn_len != PDCP_SN_LEN_5 && cfg.sn_len != PDCP_SN_LEN_7 && cfg.sn_len != PDCP_SN_LEN_12) {
-    log->error("Trying to configure bearer with invalid SN LEN=%d\n", cfg.sn_len);
+    logger.error("Trying to configure bearer with invalid SN LEN=%d", cfg.sn_len);
     return false;
   }
   if (cfg.sn_len == PDCP_SN_LEN_5 && is_drb()) {
-    log->error("Trying to configure DRB bearer with SN LEN of 5\n");
+    logger.error("Trying to configure DRB bearer with SN LEN of 5");
     return false;
   }
   if (cfg.sn_len == PDCP_SN_LEN_7 && (is_srb() || !rlc->rb_is_um(lcid))) {
-    log->error("Trying to configure SRB or RLC AM bearer with SN LEN of 7\n");
+    logger.error("Trying to configure SRB or RLC AM bearer with SN LEN of 7");
     return false;
   }
   if (cfg.sn_len == PDCP_SN_LEN_12 && is_srb()) {
-    log->error("Trying to configure SRB with SN LEN of 12.\n");
+    logger.error("Trying to configure SRB with SN LEN of 12.");
     return false;
   }
   return true;

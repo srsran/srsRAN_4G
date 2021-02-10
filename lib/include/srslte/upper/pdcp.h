@@ -66,7 +66,7 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
   srslte::task_sched_handle  task_sched;
-  srslte::log_ref            pdcp_log;
+  srslog::basic_logger&      logger;
 
   std::map<uint16_t, std::unique_ptr<pdcp_entity_base> > pdcp_array, pdcp_array_mrb;
 
