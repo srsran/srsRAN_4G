@@ -411,6 +411,9 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
       ERROR("Error searching RAR DCI");
       return SRSLTE_ERROR;
     }
+
+    // Count the found DCIs
+    count += ret;
   } else {
     // Iterate all possible search spaces
     for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE && count < nof_dci_msg; i++) {
