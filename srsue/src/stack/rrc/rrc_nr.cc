@@ -554,32 +554,37 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
 
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
-  // TODO Setup PHY @andre and @phy interface?
   if (sp_cell_cfg.recfg_with_sync_present) {
     const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
     mac->set_crnti(recfg_with_sync.new_ue_id);
-    if(recfg_with_sync.sp_cell_cfg_common_present){
-      if(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present){
-        if(recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present){
-          // mac->set_rach_common_config();
+    if (recfg_with_sync.sp_cell_cfg_common_present) {
+      if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
+        const bwp_ul_common_s* bwp_ul_common = &recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp;
+        if (bwp_ul_common->rach_cfg_common_present) {
+          if (bwp_ul_common->rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
+            const rach_cfg_common_s& rach_cfg_common = bwp_ul_common->rach_cfg_common.setup();
+            rach_nr_cfg_t            rach_nr_cfg     = make_mac_rach_cfg(rach_cfg_common);
+            mac->set_config(rach_nr_cfg);
+          }
         }
       }
     }
+    mac->start_ra_procedure();
   }
   return true;
 }
 
 bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
-  if (cell_group_cfg.rlc_bearer_to_add_mod_list_present == true) {
+  if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
       apply_rlc_add_mod(cell_group_cfg.rlc_bearer_to_add_mod_list[i]);
     }
   }
-  if (cell_group_cfg.mac_cell_group_cfg_present == true) {
+  if (cell_group_cfg.mac_cell_group_cfg_present) {
     apply_mac_cell_group(cell_group_cfg.mac_cell_group_cfg);
   }
-  if (cell_group_cfg.phys_cell_group_cfg_present == true) {
+  if (cell_group_cfg.phys_cell_group_cfg_present) {
     log_h->warning("Not handling physical cell group config");
   }
   if (cell_group_cfg.sp_cell_cfg_present) {

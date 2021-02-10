@@ -42,6 +42,8 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
     pcap.reset(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
     pcap->open(args.pcap.filename.c_str());
   }
+  
+  proc_ra.init(phy, this, &task_sched);
 
   started = true;
 

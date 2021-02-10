@@ -76,6 +76,10 @@ public:
   virtual void setup_lcid(const srslte::logical_channel_config_t& config) = 0;
   virtual void set_config(const srslte::bsr_cfg_t& bsr_cfg)               = 0;
   virtual void set_config(const srslte::sr_cfg_t& sr_cfg)                 = 0;
+  virtual void set_config(const srslte::rach_nr_cfg_t& rach_cfg)          = 0;
+
+  // RRC triggers MAC ra procedure
+  virtual void start_ra_procedure() = 0;
 
   // RRC informs MAC about the (randomly) selected ID used for contention-based RA
   virtual void set_contention_id(const uint64_t ue_identity) = 0;
