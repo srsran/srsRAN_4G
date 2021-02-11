@@ -435,14 +435,22 @@ bool pdcp_entity_lte::send_status_report()
 
   // Add bitmap of missing PDUs, if necessary
   if (not undelivered_sdus_queue.empty()) {
-    uint32_t byte_offset = 0;
+    // First check size of bitmap
+    uint32_t last_sn   = undelivered_sdus_queue.rbegin()->first;
+    uint32_t bitmap_sz = std::ceil((float)(last_sn - (fms - 1)) / 8);
+    memset(&pdu->msg[pdu->N_bytes], 0, bitmap_sz);
+    logger.debug(
+        "Setting status report bitmap. Last SN acked=%d, Last SN acked in sequence=%d, Bitmap size in bytes=%d",
+        last_sn,
+        fms - 1,
+        bitmap_sz);
     for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end(); it++) {
-      uint32_t offset     = it->first - fms;
-      uint32_t bit_offset = offset % 8;
-      byte_offset         = offset / 8;
+      uint32_t offset      = it->first - fms;
+      uint32_t bit_offset  = offset % 8;
+      uint32_t byte_offset = offset / 8;
       pdu->msg[pdu->N_bytes + byte_offset] |= 1 << (7 - bit_offset);
     }
-    pdu->N_bytes += (byte_offset + 1);
+    pdu->N_bytes += bitmap_sz;
   }
 
   // Write PDU to RLC
