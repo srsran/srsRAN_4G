@@ -151,7 +151,7 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   if (users.count(rnti)) {
     if (rnti != SRSLTE_MRNTI) {
       // TODO: Handle PDCP SN coming from GTPU
-      users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
+      users[rnti].pdcp->write_sdu(lcid, std::move(sdu), pdcp_sn);
     } else {
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }

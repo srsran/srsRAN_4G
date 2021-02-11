@@ -62,7 +62,7 @@ void pdcp_entity_nr::reset()
 }
 
 // SDAP/RRC interface
-void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
+void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
 {
   // Log SDU
   logger.info(sdu->msg,

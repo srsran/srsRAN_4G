@@ -83,10 +83,10 @@ public:
                             uint8_t  pdn_type,
                             uint32_t ip_addr,
                             uint8_t* ipv6_if_id,
-                            char*    err_str)                                                                         = 0;
+                            char*    err_str)                                                    = 0;
   virtual int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                           const uint8_t&                                 lcid,
-                                          const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)                      = 0;
+                                          const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft) = 0;
 
   typedef enum {
     TEST_LOOP_INACTIVE = 0,
@@ -259,7 +259,7 @@ public:
   virtual void reestablish()                                                                                        = 0;
   virtual void reestablish(uint32_t lcid)                                                                           = 0;
   virtual void reset()                                                                                              = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)                                           = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, int sn = -1)                              = 0;
   virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                                                = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
   virtual void config_security(uint32_t lcid, srslte::as_security_config_t sec_cfg)                                 = 0;

@@ -194,7 +194,7 @@ class pdcp_test : public srslte::pdcp
 {
 public:
   pdcp_test(const char* logname, srslte::task_sched_handle t) : srslte::pdcp(t, logname) {}
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, int sn = -1) override
   {
     ul_dcch_msg_s  ul_dcch_msg;
     asn1::cbit_ref bref(sdu->msg, sdu->N_bytes);

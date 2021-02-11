@@ -49,7 +49,7 @@ public:
   void reestablish() override;
 
   // GW/RRC interface
-  void write_sdu(unique_byte_buffer_t sdu) override;
+  void write_sdu(unique_byte_buffer_t sdu, int sn = -1) override;
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) override;

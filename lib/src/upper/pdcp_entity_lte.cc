@@ -93,7 +93,7 @@ void pdcp_entity_lte::reset()
 }
 
 // GW/RRC interface
-void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
+void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
 {
   if (rlc->sdu_queue_is_full(lcid)) {
     logger.info(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid).c_str());
@@ -101,7 +101,14 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
   }
 
   // Get COUNT to be used with this packet
-  uint32_t tx_count = COUNT(st.tx_hfn, st.next_pdcp_tx_sn);
+  uint32_t used_sn;
+  if (upper_sn == -1) {
+    used_sn = st.next_pdcp_tx_sn; // Normal scenario
+  } else {
+    used_sn = upper_sn; // SN provided by the upper layers, due to handover.
+  }
+
+  uint32_t tx_count = COUNT(st.tx_hfn, used_sn); // Normal scenario
 
   // If the bearer is mapped to RLC AM, save TX_COUNT and a copy of the PDU.
   // This will be used for reestablishment, where unack'ed PDUs will be re-transmitted.
@@ -109,7 +116,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
   // a succesfull transmission or when the discard timer expires.
   // Status report will also use this queue, to know the First Missing SDU (FMS).
   if (!rlc->rb_is_um(lcid)) {
-    store_sdu(st.next_pdcp_tx_sn, sdu);
+    store_sdu(used_sn, sdu);
   }
 
   // check for pending security config in transmit direction
@@ -124,11 +131,11 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
   // Start discard timer
   if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
     timer_handler::unique_timer discard_timer = task_sched.get_unique_timer();
-    discard_callback            discard_fnc(this, st.next_pdcp_tx_sn);
+    discard_callback            discard_fnc(this, used_sn);
     discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
     discard_timer.run();
     discard_timers_map.insert(std::make_pair(tx_count, std::move(discard_timer)));
-    logger.debug("Discard Timer set for SN %u. Timeout: %ums", tx_count, static_cast<uint32_t>(cfg.discard_timer));
+    logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
   }
 
   // Append MAC (SRBs only)
@@ -151,18 +158,20 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
               sdu->N_bytes,
               "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
               rrc->get_rb_name(lcid).c_str(),
-              st.next_pdcp_tx_sn,
+              used_sn,
               srslte_direction_text[integrity_direction],
               srslte_direction_text[encryption_direction]);
 
   // Set SDU metadata for RLC AM
-  sdu->md.pdcp_sn = st.next_pdcp_tx_sn;
+  sdu->md.pdcp_sn = used_sn;
 
-  // Increment NEXT_PDCP_TX_SN and TX_HFN
-  st.next_pdcp_tx_sn++;
-  if (st.next_pdcp_tx_sn > maximum_pdcp_sn) {
-    st.tx_hfn++;
-    st.next_pdcp_tx_sn = 0;
+  // Increment NEXT_PDCP_TX_SN and TX_HFN (only update variables if SN was not provided by upper layers)
+  if (upper_sn == -1) {
+    st.next_pdcp_tx_sn++;
+    if (st.next_pdcp_tx_sn > maximum_pdcp_sn) {
+      st.tx_hfn++;
+      st.next_pdcp_tx_sn = 0;
+    }
   }
 
   // Pass PDU to lower layers
