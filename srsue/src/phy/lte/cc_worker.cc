@@ -319,7 +319,12 @@ bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
     return false;
   }
 
-  decode_pdcch_ul();
+  // Look for DL and UL dci(s) if the serving cell is active and it is NOT a secondary serving cell without
+  // cross-carrier scheduling is enabled
+  if (phy->cell_state.is_active(cc_idx, sf_cfg_dl.tti) and (cc_idx != 0 or not ue_dl_cfg.cfg.dci.cif_present)) {
+    decode_pdcch_dl();
+    decode_pdcch_ul();
+  }
 
   if (mbsfn_cfg.enable) {
     srslte_configure_pmch(&pmch_cfg, &cell, &mbsfn_cfg);
