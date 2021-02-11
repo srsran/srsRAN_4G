@@ -14,6 +14,8 @@
 #define SRSLTE_ENB_STACK_BASE_H
 
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_s1ap_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include <string>
 

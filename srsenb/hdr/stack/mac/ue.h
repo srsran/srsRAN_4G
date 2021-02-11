@@ -14,8 +14,8 @@
 #define SRSENB_UE_H
 
 #include "mac_metrics.h"
-#include "srslte/common/block_queue.h"
 #include "srslte/adt/circular_array.h"
+#include "srslte/common/block_queue.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/enb_interfaces.h"
@@ -28,6 +28,8 @@
 #include <vector>
 
 namespace srsenb {
+
+class rrc_interface_mac;
 
 class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback, public mac_ta_ue_interface
 {

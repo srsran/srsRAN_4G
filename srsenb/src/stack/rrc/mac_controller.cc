@@ -13,6 +13,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_utils.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
 
 namespace srsenb {
 
@@ -423,7 +424,6 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
       conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present and
       conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present) {
     for (const auto& scell : conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10) {
-
       // Resize MAC SCell list if required
       if (scell.scell_idx_r10 >= ue_cfg.supported_cc_list.size()) {
         ue_cfg.supported_cc_list.resize(scell.scell_idx_r10 + 1);

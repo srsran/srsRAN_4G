@@ -17,6 +17,7 @@
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/common/logmap.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 #include <arpa/inet.h> //for inet_ntop()
 #include <inttypes.h>

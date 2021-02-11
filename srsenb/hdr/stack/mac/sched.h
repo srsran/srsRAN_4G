@@ -25,6 +25,8 @@
 
 namespace srsenb {
 
+class rrc_interface_mac;
+
 class sched : public sched_interface
 {
 public:

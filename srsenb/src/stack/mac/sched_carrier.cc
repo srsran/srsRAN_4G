@@ -15,6 +15,7 @@
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srslte/common/logmap.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
@@ -234,7 +235,6 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
 
   for (const auto& rar : alloc_rars) {
     for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
-
       uint16_t crnti   = msg3grant.data.temp_crnti;
       auto     user_it = ue_db->find(crnti);
       if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(&user_it->second, msg3grant)) {

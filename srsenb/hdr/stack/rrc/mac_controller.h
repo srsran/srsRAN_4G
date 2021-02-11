@@ -20,6 +20,8 @@
 
 namespace srsenb {
 
+class mac_interface_rrc;
+
 class mac_controller
 {
   using ue_cfg_t = sched_interface::ue_cfg_t;

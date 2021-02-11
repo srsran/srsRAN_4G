@@ -13,14 +13,12 @@
 #include <pthread.h>
 #include <srslte/interfaces/sched_interface.h>
 #include <string.h>
-#include <strings.h>
-#include <unistd.h>
 
 #include "srsenb/hdr/stack/mac/mac.h"
 #include "srslte/common/log.h"
-#include "srslte/common/log_helper.h"
 #include "srslte/common/rwlock_guard.h"
 #include "srslte/common/time_prof.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 //#define WRITE_SIB_PCAP
 using namespace asn1::rrc;
@@ -810,9 +808,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received  = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid     = current_lcid;
-      mch.pdu[0].nbytes   = bytes_received;
+      int bytes_received = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid    = current_lcid;
+      mch.pdu[0].nbytes  = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSLTE_MRNTI;
       if (bytes_received) {

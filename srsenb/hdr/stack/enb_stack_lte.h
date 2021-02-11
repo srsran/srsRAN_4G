@@ -28,7 +28,6 @@
 
 #include "enb_stack_base.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
 #include "srslte/srslog/srslog.h"
 
 namespace srsenb {

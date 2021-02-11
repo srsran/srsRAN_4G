@@ -11,6 +11,7 @@
  */
 
 #include "srsenb/hdr/phy/prach_worker.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/srslte.h"
 
 namespace srsenb {

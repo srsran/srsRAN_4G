@@ -22,6 +22,8 @@
 
 namespace srsenb {
 
+class rrc_interface_pdcp;
+
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:

@@ -21,6 +21,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -148,7 +149,7 @@ private:
                         uint32_t                               pdu_len,
                         uint32_t                               tti);
 
-  const static int             rar_payload_len = 128;
+  const static int                                           rar_payload_len = 128;
   std::array<srslte::rar_pdu, sched_interface::MAX_RAR_LIST> rar_pdu_msg;
   srslte::byte_buffer_t rar_payload[SRSLTE_MAX_CARRIERS][sched_interface::MAX_RAR_LIST];
 

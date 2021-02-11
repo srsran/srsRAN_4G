@@ -14,6 +14,9 @@
 #define SRSENB_DUMMY_CLASSES_H
 
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
+#include "srslte/interfaces/enb_s1ap_interfaces.h"
 
 namespace srsenb {
 

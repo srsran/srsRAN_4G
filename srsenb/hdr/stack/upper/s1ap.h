@@ -22,6 +22,7 @@
 #include "srslte/common/s1ap_pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_s1ap_interfaces.h"
 
 #include "s1ap_metrics.h"
 #include "srslte/asn1/s1ap.h"
@@ -32,6 +33,8 @@
 #include <unordered_map>
 
 namespace srsenb {
+
+class rrc_interface_s1ap;
 
 struct ue_ctxt_t {
   static const uint32_t invalid_enb_id = std::numeric_limits<uint32_t>::max();

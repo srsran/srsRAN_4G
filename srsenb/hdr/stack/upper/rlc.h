@@ -29,6 +29,10 @@ typedef struct {
 
 namespace srsenb {
 
+class rrc_interface_rlc;
+class pdcp_interface_rlc;
+class mac_interface_rlc;
+
 class rlc : public rlc_interface_mac, public rlc_interface_rrc, public rlc_interface_pdcp
 {
 public:

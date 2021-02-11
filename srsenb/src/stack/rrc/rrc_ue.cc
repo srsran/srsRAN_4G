@@ -18,6 +18,7 @@
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/interfaces/enb_s1ap_interfaces.h"
 
 using namespace asn1::rrc;
 

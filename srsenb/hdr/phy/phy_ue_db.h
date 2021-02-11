@@ -14,10 +14,11 @@
 #define SRSENB_PHY_UE_DB_H_
 
 #include "phy_interfaces.h"
+#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
 #include <map>
 #include <mutex>
 #include <srslte/adt/circular_array.h>
-#include <srslte/interfaces/enb_interfaces.h>
 #include <srslte/srslte.h>
 
 namespace srsenb {
@@ -75,14 +76,14 @@ private:
    * Cell information for the UE database
    */
   typedef struct {
-    cell_state_t                                     state      = cell_state_none; ///< Configuration state
-    uint32_t                                         enb_cc_idx = 0;  ///< Corresponding eNb cell/carrier index
-    uint8_t                                          last_ri    = 0;  ///< Last reported rank indicator
+    cell_state_t state      = cell_state_none; ///< Configuration state
+    uint32_t     enb_cc_idx = 0;               ///< Corresponding eNb cell/carrier index
+    uint8_t      last_ri    = 0;               ///< Last reported rank indicator
     srslte::circular_array<srslte_ra_tb_t, SRSLTE_MAX_HARQ_PROC> last_tb =
-        {};                                                           ///< Stores last PUSCH Resource allocation
-    bool                                             stash_use_tbs_index_alt = false;
-    srslte::phy_cfg_t                                phy_cfg;         ///< Configuration, it has a default constructor
-    srslte::circular_array<bool, TTIMOD_SZ> is_grant_available;       ///< Indicates whether there is an available grant
+        {}; ///< Stores last PUSCH Resource allocation
+    bool                                    stash_use_tbs_index_alt = false;
+    srslte::phy_cfg_t                       phy_cfg;            ///< Configuration, it has a default constructor
+    srslte::circular_array<bool, TTIMOD_SZ> is_grant_available; ///< Indicates whether there is an available grant
   } cell_info_t;
 
   /**

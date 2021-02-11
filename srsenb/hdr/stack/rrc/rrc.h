@@ -25,12 +25,15 @@
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/timeout.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <map>
 #include <queue>
 
 namespace srsenb {
+
+class s1ap_interface_rrc;
+class mac_interface_rrc;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
