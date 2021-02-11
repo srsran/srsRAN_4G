@@ -292,7 +292,7 @@ static uint32_t dmrs_pucch_format2_cinit(const srslte_carrier_nr_t*          car
   uint32_t n    = SRSLTE_SLOT_NR_MOD(slot->idx, carrier->numerology);
   uint32_t n_id = (cfg->scrambling_id_present) ? cfg->scambling_id : carrier->id;
 
-  return SRSLTE_SEQUENCE_MOD((((SRSLTE_NSYMB_PER_SLOT_NR * n + l + 1U) * (2U * n_id + 1U)) << 17U) + 2U * n_id);
+  return SRSLTE_SEQUENCE_MOD((((SRSLTE_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id + 1UL)) << 17UL) + 2UL * n_id);
 }
 
 int srslte_dmrs_pucch_format2_put(const srslte_pucch_nr_t*            q,

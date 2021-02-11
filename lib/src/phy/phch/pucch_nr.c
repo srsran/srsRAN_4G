@@ -520,10 +520,12 @@ int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
   return SRSLTE_SUCCESS;
 }
 
-static uint32_t pucch_nr_format2_cinit(const srslte_pucch_nr_common_cfg_t* pucch_cfg,
+static uint32_t pucch_nr_format2_cinit(const srslte_carrier_nr_t*          carrier,
+                                       const srslte_pucch_nr_common_cfg_t* pucch_cfg,
                                        const srslte_uci_cfg_nr_t*          uci_cfg)
 {
-  uint32_t n_id = (pucch_cfg->scrambling_id_present) ? pucch_cfg->scrambling_id_present : uci_cfg->rnti;
+  uint32_t n_id = (pucch_cfg->scrambling_id_present) ? pucch_cfg->scrambling_id_present : carrier->id;
+
   return ((uint32_t)uci_cfg->rnti << 15U) + n_id;
 }
 
@@ -544,7 +546,7 @@ static int pucch_nr_format2_encode(srslte_pucch_nr_t*                  q,
   uint32_t E = srslte_uci_nr_pucch_format_2_3_4_E(resource);
 
   // 6.3.2.5.1 Scrambling
-  uint32_t cinit = pucch_nr_format2_cinit(cfg, uci_cfg);
+  uint32_t cinit = pucch_nr_format2_cinit(carrier, cfg, uci_cfg);
   srslte_sequence_apply_bit(q->b, q->b, E, cinit);
 
   // 6.3.2.5.2 Modulation
@@ -555,12 +557,24 @@ static int pucch_nr_format2_encode(srslte_pucch_nr_t*                  q,
   uint32_t l_end   = resource->start_symbol_idx + resource->nof_symbols;
   uint32_t k_start = SRSLTE_MIN(carrier->nof_prb - 1, resource->starting_prb) * SRSLTE_NRE;
   uint32_t k_end   = SRSLTE_MIN(carrier->nof_prb, resource->starting_prb + resource->nof_prb) * SRSLTE_NRE;
-  for (uint32_t l = l_start, i = 0; l < l_end; l++) {
+  uint32_t i       = 0;
+  for (uint32_t l = l_start; l < l_end; l++) {
     cf_t* symbol_ptr = &slot_symbols[l * carrier->nof_prb * SRSLTE_NRE];
     for (uint32_t k = k_start; k < k_end; k += 3) {
       symbol_ptr[k]     = q->d[i++];
       symbol_ptr[k + 2] = q->d[i++];
     }
+  }
+
+  if (i * 2 != E) {
+    ERROR("Unmatched number of channel bits (%d!=%d); rb=(%d,%d); sym=(%d,%d)\n",
+          E,
+          2 * i,
+          k_start,
+          k_end,
+          l_start,
+          l_end);
+    return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
@@ -621,7 +635,7 @@ static int pucch_nr_format2_decode(srslte_pucch_nr_t*                  q,
   }
 
   // Undo Scrambling
-  uint32_t cinit = pucch_nr_format2_cinit(cfg, uci_cfg);
+  uint32_t cinit = pucch_nr_format2_cinit(carrier, cfg, uci_cfg);
   srslte_sequence_apply_c(llr, llr, E, cinit);
 
   return SRSLTE_SUCCESS;
