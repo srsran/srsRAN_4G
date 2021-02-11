@@ -82,7 +82,7 @@ int srslte_pucch_nr_alpha_idx(const srslte_carrier_nr_t*          carrier,
   // Create n_cs parameter
   uint32_t n_cs = 0;
   for (uint32_t m = 0; m < 8; m++) {
-    n_cs += cs[SRSLTE_NSYMB_PER_SLOT_NR * n_slot + (l + l_prime) * 8 + m] << m;
+    n_cs += cs[(SRSLTE_NSYMB_PER_SLOT_NR * n_slot + (l + l_prime)) * 8 + m] << m;
   }
 
   *alpha_idx = (m0 + m_cs + n_cs) % SRSLTE_NRE;
@@ -368,8 +368,6 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
                                    uint32_t                            nof_bits,
                                    cf_t*                               slot_symbols)
 {
-  uint32_t m_cs = 0;
-
   if (carrier == NULL || cfg == NULL || slot == NULL || resource == NULL || b == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -410,7 +408,7 @@ int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
 
     // Get Alpha index
     uint32_t alpha_idx = 0;
-    if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, m_cs, &alpha_idx) <
+    if (srslte_pucch_nr_alpha_idx(carrier, cfg, slot, l, l_prime, resource->initial_cyclic_shift, 0, &alpha_idx) <
         SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }

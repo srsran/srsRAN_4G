@@ -10,6 +10,7 @@
  *
  */
 #include "srslte/phy/ue/ue_ul_nr.h"
+#include "srslte/phy/ch_estimation/dmrs_pucch.h"
 #include "srslte/phy/utils/debug.h"
 #include <complex.h>
 
@@ -102,6 +103,9 @@ int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*         q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  // Fill with zeros the whole resource grid
+  srslte_vec_cf_zero(q->sf_symbols[0], SRSLTE_SLOT_LEN_RE_NR(q->carrier.nof_prb));
+
   // Encode PUSCH
   if (srslte_pusch_nr_encode(&q->pusch, pusch_cfg, &pusch_cfg->grant, data, q->sf_symbols) < SRSLTE_SUCCESS) {
     ERROR("Encoding PUSCH");
@@ -149,6 +153,10 @@ static int ue_ul_nr_encode_pucch_format1(srslte_ue_ul_nr_t*                  q,
   b[0]                                            = uci_data->value.ack[0];
   uint32_t nof_bits                               = 1;
 
+  if (srslte_dmrs_pucch_format1_put(&q->pucch, &q->carrier, cfg, slot, resource, q->sf_symbols[0])) {
+    return SRSLTE_ERROR;
+  }
+
   return srslte_pucch_nr_format1_encode(&q->pucch, &q->carrier, cfg, slot, resource, b, nof_bits, q->sf_symbols[0]);
 }
 
@@ -163,24 +171,35 @@ int srslte_ue_ul_nr_encode_pucch(srslte_ue_ul_nr_t*                  q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  // Fill with zeros the whole resource grid
+  srslte_vec_cf_zero(q->sf_symbols[0], SRSLTE_SLOT_LEN_RE_NR(q->carrier.nof_prb));
+
   // Actual PUCCH encoding
   switch (resource->format) {
     case SRSLTE_PUCCH_NR_FORMAT_0:
       if (ue_ul_nr_encode_pucch_format0(q, resource, uci_data) < SRSLTE_SUCCESS) {
         return SRSLTE_ERROR;
       }
+      break;
     case SRSLTE_PUCCH_NR_FORMAT_1:
       if (ue_ul_nr_encode_pucch_format1(q, slot_cfg, cfg, resource, uci_data) < SRSLTE_SUCCESS) {
         return SRSLTE_ERROR;
       }
+      break;
     case SRSLTE_PUCCH_NR_FORMAT_2:
-    case SRSLTE_PUCCH_NR_FORMAT_3:
-    case SRSLTE_PUCCH_NR_FORMAT_4:
+      if (srslte_dmrs_pucch_format2_put(&q->pucch, &q->carrier, cfg, slot_cfg, resource, q->sf_symbols[0])) {
+        return SRSLTE_ERROR;
+      }
       if (srslte_pucch_nr_format_2_3_4_encode(
               &q->pucch, &q->carrier, cfg, slot_cfg, resource, &uci_data->cfg, &uci_data->value, q->sf_symbols[0]) <
           SRSLTE_SUCCESS) {
         return SRSLTE_ERROR;
       }
+      break;
+    case SRSLTE_PUCCH_NR_FORMAT_3:
+    case SRSLTE_PUCCH_NR_FORMAT_4:
+      ERROR("PUCCH format %d NOT implemented", (int)resource->format);
+      break;
     case SRSLTE_PUCCH_NR_FORMAT_ERROR:
     default:
       ERROR("Invalid case");
