@@ -374,7 +374,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   if (dl_ccch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
     parent->m_log->error("Failed to pack DL-CCCH message. Discarding msg.\n");
   }
-  pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
+  pdu->N_bytes = bref.distance_bytes();
 
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);
