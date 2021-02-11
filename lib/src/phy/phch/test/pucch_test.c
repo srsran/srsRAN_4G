@@ -300,8 +300,8 @@ int main(int argc, char** argv)
             goto quit;
           }
 
-          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_encode=%ld us, t_decode=%ld us, EPRE=%+.1f dBfs, RSRP=%+.1f "
-               "dBfs, SNR=%+.1f dBfs",
+          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_encode=%" PRIu64 " us, t_decode=%" PRIu64
+               " us, EPRE=%+.1f dBfs, RSRP=%+.1f dBfs, SNR=%+.1f dBfs\n",
                format,
                n_pucch,
                ncs,

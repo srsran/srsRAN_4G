@@ -220,7 +220,7 @@ int main(int argc, char** argv)
   printf("+--------+--------+--------+--------+\n");
   for (uint32_t i = 0; i < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; i++) {
     if (enc_time[i].count > 0 && dec_time[i].count) {
-      printf("| %6d | %6ld | %6.1f | %6.1f |\n",
+      printf("| %6" PRIu32 "| %6" PRIu64 " | %6.1f | %6.1f |\n",
              i,
              enc_time[i].count,
              (double)enc_time[i].time_us / (double)enc_time[i].count,

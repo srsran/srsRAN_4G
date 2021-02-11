@@ -68,7 +68,7 @@ int test_pdsch_grant(const sim_enb_ctxt_t&                   enb_ctxt,
 
   // TEST: Check if CC is configured and active
   CONDERROR(cc_cfg == nullptr or not cc_cfg->active, "PDSCH allocation for disabled or unavailable cc");
-  CONDERROR(pdsch.dci.ue_cc_idx != std::distance(&ue_ctxt.ue_cfg.supported_cc_list.front(), cc_cfg),
+  CONDERROR(pdsch.dci.ue_cc_idx != (uint32_t)std::distance(&ue_ctxt.ue_cfg.supported_cc_list.front(), cc_cfg),
             "Inconsistent enb_cc_idx -> ue_cc_idx mapping");
 
   // TEST: DCI is consistent with current UE DL harq state
@@ -169,8 +169,7 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
       bool h_inactive = (not h.active) or (phich_ack or last_retx);
 
       // TEST: Already active UL HARQs have to receive PHICH
-      CONDERROR(
-          h.active and phich_ptr == nullptr, "PHICH not received for rnti=0x%x active UL HARQ pid=%d", rnti, pid);
+      CONDERROR(h.active and phich_ptr == nullptr, "PHICH not received for rnti=0x%x active UL HARQ pid=%d", rnti, pid);
       CONDERROR(not h.active and phich_ptr != nullptr,
                 "PHICH for rnti=0x%x corresponds to inactive UL HARQ pid=%d",
                 rnti,
