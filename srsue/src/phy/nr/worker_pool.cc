@@ -54,7 +54,7 @@ bool worker_pool::init(const phy_args_nr_t&    args,
 
   // Initialise PRACH
   auto& prach_log = srslog::fetch_basic_logger("NR-PRACH", log_sink);
-  prach_log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
+  prach_log.set_level(srslog::str_to_basic_level(args.log.phy_level));
   prach_buffer = std::unique_ptr<prach>(new prach(prach_log));
   prach_buffer->init(phy_state.args.dl.nof_max_prb);
 
