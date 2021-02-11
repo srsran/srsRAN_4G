@@ -6,6 +6,8 @@
 # the distribution.
 #
 
+set(CTEST_LABELS "srsue;phy")
+
 include_directories(
         ${Boost_INCLUDE_DIRS}
         ${SEC_INCLUDE_DIRS}
@@ -36,5 +38,4 @@ target_link_libraries(scell_search_test
         srslte_radio
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-add_test(scell_search_test scell_search_test --duration=5 --cell.nof_prb=6 --active_cell_list=2,3,4,5,6 --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000)
-set_tests_properties(scell_search_test PROPERTIES LABELS "long;phy;srsue")
+add_lte_test(scell_search_test scell_search_test --duration=5 --cell.nof_prb=6 --active_cell_list=2,3,4,5,6 --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000)

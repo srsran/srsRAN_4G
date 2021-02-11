@@ -541,6 +541,28 @@ message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Building for version: ${VERSION}")
 
 ########################################################################
+# Ctest function helpers
+########################################################################
+
+function(add_lte_test)
+  add_test(${ARGN})
+  set(TNAME ${ARGV0})
+  if(${TNAME} STREQUAL NAME)
+    set(TNAME ${ARGV1})
+  endif()
+  set_tests_properties(${TNAME} PROPERTIES LABELS "lte;${CTEST_LABELS}")
+endfunction()
+
+function(add_nr_test)
+  add_test(${ARGN})
+  set(TNAME ${ARGV0})
+  if(${TNAME} STREQUAL NAME)
+    set(TNAME ${ARGV1})
+  endif()
+  set_tests_properties(${TNAME} PROPERTIES LABELS "nr;${CTEST_LABELS}")
+endfunction()
+
+########################################################################
 # Add general includes and dependencies
 ########################################################################
 include_directories(${PROJECT_BINARY_DIR}/lib/include)

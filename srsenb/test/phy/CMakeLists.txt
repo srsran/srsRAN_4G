@@ -6,6 +6,8 @@
 # the distribution.
 #
 
+set(CTEST_LABELS "srsenb;phy")
+
 add_executable(enb_phy_test enb_phy_test.cc)
 target_link_libraries(enb_phy_test
         srsenb_phy
@@ -21,32 +23,28 @@ set(ENB_PHY_TEST_DURATION 128)
 #  - Transmission Mode 1
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 100 PRB
-add_test(enb_phy_test_tm1 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=1)
-set_tests_properties(enb_phy_test_tm1 PROPERTIES LABELS "long;phy;srsenb")
+add_lte_test(enb_phy_test_tm1 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=1)
 
 # Single carrier TM2 eNb PHY test:
 #  - Single carrier
 #  - Transmission Mode 2
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 100 PRB
-add_test(enb_phy_test_tm2 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=2)
-set_tests_properties(enb_phy_test_tm2 PROPERTIES LABELS "long;phy;srsenb")
+add_lte_test(enb_phy_test_tm2 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=2)
 
 # Single carrier TM3 eNb PHY test:
 #  - Single carrier
 #  - Transmission Mode 3
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 100 PRB
-add_test(enb_phy_test_tm3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=3)
-set_tests_properties(enb_phy_test_tm3 PROPERTIES LABELS "long;phy;srsenb")
+add_lte_test(enb_phy_test_tm3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=3)
 
 # Single carrier eNb PHY test:
 #  - Single carrier
 #  - Transmission Mode 4
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 100 PRB
-add_test(enb_phy_test_tm4 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=4)
-set_tests_properties(enb_phy_test_tm4 PROPERTIES LABELS "long;phy;srsenb")
+add_lte_test(enb_phy_test_tm4 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=4)
 
 # Five carrier aggregation using PUCCH3:
 #  - 6 eNb cell/carrier
@@ -54,7 +52,7 @@ set_tests_properties(enb_phy_test_tm4 PROPERTIES LABELS "long;phy;srsenb")
 #  - 5 Aggregated carriers
 #  - 6 PRB
 #  - PUCCH format 3 ACK/NACK feedback mode and more than 2 ACK/NACK bits in PUSCH
-add_test(enb_phy_test_tm1_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=3,4,0,1,2 --ack_mode=pucch3 --cell.nof_prb=6 --tm=1)
+add_lte_test(enb_phy_test_tm1_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=3,4,0,1,2 --ack_mode=pucch3 --cell.nof_prb=6 --tm=1)
 
 # Five carrier aggregation using PUCCH3:
 #  - 6 eNb cell/carrier
@@ -62,7 +60,7 @@ add_test(enb_phy_test_tm1_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURAT
 #  - 5 Aggregated carriers
 #  - 6 PRB
 #  - PUCCH format 3 ACK/NACK feedback mode and more than 2 ACK/NACK bits in PUSCH
-add_test(enb_phy_test_tm4_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=0,4,3,1,2 --ack_mode=pucch3 --cell.nof_prb=6 --tm=4)
+add_lte_test(enb_phy_test_tm4_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=0,4,3,1,2 --ack_mode=pucch3 --cell.nof_prb=6 --tm=4)
 
 # Two carrier aggregation using Channel Selection:
 #  - 6 eNb cell/carrier
@@ -70,7 +68,7 @@ add_test(enb_phy_test_tm4_ca_pucch3 enb_phy_test --duration=${ENB_PHY_TEST_DURAT
 #  - 2 Aggregated carriers
 #  - 6 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
-add_test(enb_phy_test_tm1_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=5,4 --ack_mode=cs --cell.nof_prb=6 --tm=1)
+add_lte_test(enb_phy_test_tm1_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=5,4 --ack_mode=cs --cell.nof_prb=6 --tm=1)
 
 # Two carrier aggregation using Channel Selection:
 #  - 6 eNb cell/carrier
@@ -78,7 +76,7 @@ add_test(enb_phy_test_tm1_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION}
 #  - 2 Aggregated carriers
 #  - 6 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
-add_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=1,5 --ack_mode=cs --cell.nof_prb=6 --tm=4)
+add_lte_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=1,5 --ack_mode=cs --cell.nof_prb=6 --tm=4)
 
 # Two carrier aggregation using Channel Selection and HO:
 #  - 3 eNb cell/carrier
@@ -86,5 +84,4 @@ add_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION}
 #  - 2 Aggregated carriers
 #  - 100 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
-add_test(enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)
-set_tests_properties(enb_phy_test_tm1_ca_cs_ho PROPERTIES LABELS "long;phy;srsenb")
+add_lte_test(enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)
