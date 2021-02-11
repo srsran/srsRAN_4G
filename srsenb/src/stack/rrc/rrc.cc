@@ -18,6 +18,8 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/srslte.h"
 

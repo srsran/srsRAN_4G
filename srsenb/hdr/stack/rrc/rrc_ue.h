@@ -15,6 +15,8 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
+#include "srslte/interfaces/enb_phy_interfaces.h"
+#include "srslte/interfaces/pdcp_interface_types.h"
 
 namespace srsenb {
 

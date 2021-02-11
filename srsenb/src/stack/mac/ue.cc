@@ -17,7 +17,8 @@
 
 #include "srsenb/hdr/stack/mac/ue.h"
 #include "srslte/common/log_helper.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_phy_interfaces.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {

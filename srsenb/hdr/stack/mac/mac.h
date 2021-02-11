@@ -20,7 +20,6 @@
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"

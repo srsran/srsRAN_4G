@@ -12,6 +12,7 @@
 
 #include "srslte/asn1/s1ap_utils.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
+#include "srslte/interfaces/sched_interface.h"
 
 #ifndef SRSLTE_ENB_RRC_INTERFACES_H
 #define SRSLTE_ENB_RRC_INTERFACES_H

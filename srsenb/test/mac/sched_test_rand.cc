@@ -21,7 +21,6 @@
 #include <unistd.h>
 
 #include "srslte/common/log_filter.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/phy/utils/debug.h"
 

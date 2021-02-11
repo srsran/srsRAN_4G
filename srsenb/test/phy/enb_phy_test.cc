@@ -20,7 +20,6 @@
 #include <srslte/common/string_helpers.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
-#include <srslte/interfaces/enb_interfaces.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pusch_cfg.h>
 #include <srslte/phy/utils/random.h>

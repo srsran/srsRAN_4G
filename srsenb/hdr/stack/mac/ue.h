@@ -18,7 +18,6 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/mac/pdu_queue.h"
@@ -30,6 +29,8 @@
 namespace srsenb {
 
 class rrc_interface_mac;
+class rlc_interface_mac;
+class phy_interface_stack_lte;
 
 class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback, public mac_ta_ue_interface
 {

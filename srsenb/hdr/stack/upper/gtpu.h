@@ -17,7 +17,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_gtpu_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
@@ -25,6 +25,9 @@
 #define SRSENB_GTPU_H
 
 namespace srsenb {
+
+class pdcp_interface_gtpu;
+class stack_interface_gtpu_lte;
 
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {

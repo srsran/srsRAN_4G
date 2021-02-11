@@ -13,6 +13,7 @@
 #include "srsenb/hdr/stack/upper/rlc.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {

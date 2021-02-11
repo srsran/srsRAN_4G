@@ -17,7 +17,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/srslog/srslog.h"
 
 // Setting ENABLE_PRACH_GUI to non zero enables a GUI showing signal received in the PRACH window.
@@ -28,6 +28,8 @@
 #endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
 
 namespace srsenb {
+
+class stack_interface_phy_lte;
 
 class prach_worker : srslte::thread
 {

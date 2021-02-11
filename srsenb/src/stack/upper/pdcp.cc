@@ -12,6 +12,8 @@
 
 #include "srsenb/hdr/stack/upper/pdcp.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srslte/interfaces/enb_gtpu_interfaces.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {

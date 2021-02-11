@@ -10,8 +10,8 @@
  *
  */
 
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/upper/rlc.h"

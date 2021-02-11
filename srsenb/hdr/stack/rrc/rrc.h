@@ -33,7 +33,10 @@
 namespace srsenb {
 
 class s1ap_interface_rrc;
+class pdcp_interface_rrc;
+class rlc_interface_rrc;
 class mac_interface_rrc;
+class phy_interface_rrc_lte;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",

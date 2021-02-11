@@ -10,6 +10,9 @@
  *
  */
 
+#include "srslte/interfaces/rrc_interface_types.h"
+#include "srslte/interfaces/sched_interface.h"
+
 #ifndef SRSLTE_ENB_MAC_INTERFACES_H
 #define SRSLTE_ENB_MAC_INTERFACES_H
 

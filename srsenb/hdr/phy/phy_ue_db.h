@@ -14,8 +14,8 @@
 #define SRSENB_PHY_UE_DB_H_
 
 #include "phy_interfaces.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_phy_interfaces.h"
 #include <map>
 #include <mutex>
 #include <srslte/adt/circular_array.h>

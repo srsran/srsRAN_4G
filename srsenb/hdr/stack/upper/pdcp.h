@@ -11,7 +11,7 @@
  */
 
 #include "srslte/common/timers.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/upper/pdcp.h"
@@ -23,6 +23,8 @@
 namespace srsenb {
 
 class rrc_interface_pdcp;
+class rlc_interface_pdcp;
+class gtpu_interface_pdcp;
 
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {

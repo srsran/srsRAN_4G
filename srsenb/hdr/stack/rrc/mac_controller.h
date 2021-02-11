@@ -15,6 +15,7 @@
 
 #include "rrc_bearer_cfg.h"
 #include "rrc_cell_cfg.h"
+#include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <bitset>
 

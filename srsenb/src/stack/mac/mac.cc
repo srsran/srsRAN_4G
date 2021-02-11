@@ -11,13 +11,14 @@
  */
 
 #include <pthread.h>
-#include <srslte/interfaces/sched_interface.h>
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/mac.h"
 #include "srslte/common/log.h"
 #include "srslte/common/rwlock_guard.h"
 #include "srslte/common/time_prof.h"
+#include "srslte/interfaces/enb_phy_interfaces.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 //#define WRITE_SIB_PCAP

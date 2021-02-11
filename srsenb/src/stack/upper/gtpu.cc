@@ -12,6 +12,8 @@
 #include "srslte/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srslte/common/network_utils.h"
+#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include <errno.h>
 #include <linux/ip.h>
 #include <stdio.h>
