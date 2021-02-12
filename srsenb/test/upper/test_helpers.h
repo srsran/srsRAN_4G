@@ -96,6 +96,7 @@ public:
   }
   bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                        uint16_t                                       rnti,
+                       uint32_t                                       enb_cc_idx,
                        srslte::unique_byte_buffer_t                   ho_cmd,
                        srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
   {

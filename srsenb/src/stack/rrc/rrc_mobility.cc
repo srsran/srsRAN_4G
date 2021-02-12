@@ -176,7 +176,6 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   //  }
 
   // TODO: KeNB derivations
-
   if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container)) {
     rem_user_thread(rnti);
     return SRSLTE_INVALID_RNTI;
@@ -778,7 +777,11 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   }
 
   // send S1AP HandoverRequestAcknowledge
-  if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg, rrc_ue->rnti, std::move(ho_cmd_pdu), admitted_erabs)) {
+  if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg,
+                                         rrc_ue->rnti,
+                                         rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                         std::move(ho_cmd_pdu),
+                                         admitted_erabs)) {
     trigger(srslte::failure_ev{});
     return;
   }

@@ -43,6 +43,7 @@ struct ue_ctxt_t {
   uint16_t       rnti                   = SRSLTE_INVALID_RNTI;
   uint32_t       enb_ue_s1ap_id         = invalid_enb_id;
   uint32_t       mme_ue_s1ap_id         = 0;
+  uint32_t       enb_cc_idx             = 0;
   struct timeval init_timestamp         = {};
 };
 
@@ -58,9 +59,12 @@ public:
   void get_metrics(s1ap_metrics_t& m);
 
   // RRC interface
-  void
-       initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override;
   void initial_ue(uint16_t                              rnti,
+                  uint32_t                              enb_cc_idx,
+                  asn1::s1ap::rrc_establishment_cause_e cause,
+                  srslte::unique_byte_buffer_t          pdu) override;
+  void initial_ue(uint16_t                              rnti,
+                  uint32_t                              enb_cc_idx,
                   asn1::s1ap::rrc_establishment_cause_e cause,
                   srslte::unique_byte_buffer_t          pdu,
                   uint32_t                              m_tmsi,
@@ -81,6 +85,7 @@ public:
   bool send_ho_failure(uint32_t mme_ue_s1ap_id);
   bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                        uint16_t                                       rnti,
+                       uint32_t                                       enb_cc_idx,
                        srslte::unique_byte_buffer_t                   ho_cmd,
                        srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override;
   void send_ho_notify(uint16_t rnti, uint64_t target_eci) override;

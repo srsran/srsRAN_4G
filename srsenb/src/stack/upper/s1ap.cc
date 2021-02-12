@@ -298,11 +298,15 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu)
+void s1ap::initial_ue(uint16_t                              rnti,
+                      uint32_t                              enb_cc_idx,
+                      asn1::s1ap::rrc_establishment_cause_e cause,
+                      srslte::unique_byte_buffer_t          pdu)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this}};
-  ue_ptr->ctxt.rnti = rnti;
-  ue* u             = users.add_user(std::move(ue_ptr));
+  ue_ptr->ctxt.rnti       = rnti;
+  ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
+  ue* u                   = users.add_user(std::move(ue_ptr));
   if (u == nullptr) {
     logger.error("Failed to add rnti=0x%x", rnti);
     return;
@@ -311,14 +315,16 @@ void s1ap::initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause
 }
 
 void s1ap::initial_ue(uint16_t                              rnti,
+                      uint32_t                              enb_cc_idx,
                       asn1::s1ap::rrc_establishment_cause_e cause,
                       srslte::unique_byte_buffer_t          pdu,
                       uint32_t                              m_tmsi,
                       uint8_t                               mmec)
 {
   std::unique_ptr<ue> ue_ptr{new ue{this}};
-  ue_ptr->ctxt.rnti = rnti;
-  ue* u             = users.add_user(std::move(ue_ptr));
+  ue_ptr->ctxt.rnti       = rnti;
+  ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
+  ue* u                   = users.add_user(std::move(ue_ptr));
   if (u == nullptr) {
     logger.error("Failed to add rnti=0x%x", rnti);
     return;
@@ -926,6 +932,7 @@ bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
 
 bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
                            uint16_t                                       rnti,
+                           uint32_t                                       enb_cc_idx,
                            srslte::unique_byte_buffer_t                   ho_cmd,
                            srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers)
 {
@@ -933,8 +940,9 @@ bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
   ho_request_ack_ies_container& container = tx_pdu.successful_outcome().value.ho_request_ack().protocol_ies;
 
-  ue* ue_ptr        = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
-  ue_ptr->ctxt.rnti = rnti;
+  ue* ue_ptr              = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue_ptr->ctxt.rnti       = rnti;
+  ue_ptr->ctxt.enb_cc_idx = enb_cc_idx;
 
   container.mme_ue_s1ap_id.value = msg.protocol_ies.mme_ue_s1ap_id.value.value;
   container.enb_ue_s1ap_id.value = ue_ptr->ctxt.enb_ue_s1ap_id;
@@ -1185,8 +1193,7 @@ bool s1ap::ue::send_uectxtreleasecomplete()
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
 
   // Log event.
-  //:TODO: cc_idx not available
-  event_logger::get().log_s1_ctx_delete(0, ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
+  event_logger::get().log_s1_ctx_delete(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextReleaseComplete");
 }
@@ -1220,8 +1227,7 @@ bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_s
   }
 
   // Log event.
-  //:TODO: cc_idx not available
-  event_logger::get().log_s1_ctx_create(0, ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
+  event_logger::get().log_s1_ctx_create(ctxt.enb_cc_idx, ctxt.mme_ue_s1ap_id, ctxt.enb_ue_s1ap_id, ctxt.rnti);
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupResponse");
 }

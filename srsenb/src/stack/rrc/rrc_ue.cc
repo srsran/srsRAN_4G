@@ -324,15 +324,17 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
   asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
   s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
+
+  uint32_t enb_cc_idx = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx;
   if (has_tmsi) {
-    parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu), m_tmsi, mmec);
+    parent->s1ap->initial_ue(rnti, enb_cc_idx, s1ap_cause, std::move(pdu), m_tmsi, mmec);
   } else {
-    parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu));
+    parent->s1ap->initial_ue(rnti, enb_cc_idx, s1ap_cause, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 
   // Log event.
-  event_logger::get().log_rrc_connected(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+  event_logger::get().log_rrc_connected(enb_cc_idx,
                                         asn1::octstring_to_string(last_ul_msg->msg, last_ul_msg->N_bytes),
                                         static_cast<unsigned>(conn_request_result_t::success),
                                         rnti);

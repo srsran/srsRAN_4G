@@ -146,7 +146,6 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    //:TODO: not available
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("s1_context_create");
     ctx.get<mset_s1apctx_event>().write<metric_ue_mme_id>(mme_id);
@@ -161,7 +160,6 @@ public:
 
     ctx.write<metric_type_tag>("event");
     ctx.write<metric_timestamp_tag>(get_time_stamp());
-    //:TODO: not available
     ctx.write<metric_sector_id>(enb_cc_idx);
     ctx.write<metric_event_name>("s1_context_delete");
     ctx.get<mset_s1apctx_event>().write<metric_ue_mme_id>(mme_id);
