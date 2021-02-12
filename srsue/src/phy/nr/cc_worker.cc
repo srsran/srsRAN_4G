@@ -268,7 +268,14 @@ bool cc_worker::work_ul()
 
   if (has_pusch_grant) {
     // Notify MAC about PUSCH found grant
-    // ...
+    mac_interface_phy_nr::mac_nr_grant_ul_t mac_ul_grant = {};
+    mac_ul_grant.pid                                     = pid;
+    mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
+    mac_ul_grant.tti                                     = ul_slot_cfg.idx;
+    mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
+    phy->stack->new_grant_ul(0, mac_ul_grant);
+
+    // Provisional reset and assign Tx softbuffer
     srslte_softbuffer_tx_reset(&softbuffer_tx);
     pusch_cfg.grant.tb[0].softbuffer.tx = &softbuffer_tx;
 
