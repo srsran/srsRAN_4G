@@ -110,7 +110,6 @@ void rrc::ue::activity_timer_expired()
       parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
       event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                              static_cast<unsigned>(rrc_idle_transition_cause::timeout),
-                                             0,
                                              rnti);
     } else {
       if (rnti != SRSLTE_MRNTI) {
@@ -763,7 +762,6 @@ void rrc::ue::send_connection_release()
   // Log rrc release event.
   event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
                                          static_cast<unsigned>(rrc_idle_transition_cause::release),
-                                         static_cast<unsigned>(rel_ies.release_cause),
                                          rnti);
 }
 

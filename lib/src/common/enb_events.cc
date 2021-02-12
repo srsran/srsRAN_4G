@@ -23,7 +23,7 @@ class null_event_logger : public event_logger_interface
 {
 public:
   void log_rrc_connected(uint32_t enb_cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) override {}
-  void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, unsigned rrc_cause, uint16_t rnti) override {}
+  void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, uint16_t rnti) override {}
   void log_s1_ctx_create(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
   void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) override {}
   void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) override {}
@@ -58,8 +58,8 @@ DECLARE_METRIC("asn1_message", metric_asn1_message, std::string, "");
 /// Context for sector start/stop.
 DECLARE_METRIC("pci", metric_pci, uint32_t, "");
 DECLARE_METRIC("cell_identity", metric_cell_identity, std::string, "");
-//:TODO:  sib9_home_enb_name as string
-DECLARE_METRIC_SET("event_data", mset_sector_event, metric_pci, metric_cell_identity);
+DECLARE_METRIC("sib9_home_enb_name", metric_sib9_home_enb_name, std::string, "");
+DECLARE_METRIC_SET("event_data", mset_sector_event, metric_pci, metric_cell_identity, metric_sib9_home_enb_name);
 using sector_event_t = srslog::
     build_context_type<metric_type_tag, metric_timestamp_tag, metric_sector_id, metric_event_name, mset_sector_event>;
 
@@ -79,8 +79,7 @@ using rrc_connect_event_t = srslog::build_context_type<metric_type_tag,
 
 /// Context for RRC disconnect.
 DECLARE_METRIC("reason", metric_reason, uint32_t, "");
-DECLARE_METRIC("rrc_cause", metric_rrc_cause, uint32_t, "");
-DECLARE_METRIC_SET("event_data", mset_rrc_disconnect_event, metric_reason, metric_rnti, metric_rrc_cause);
+DECLARE_METRIC_SET("event_data", mset_rrc_disconnect_event, metric_reason, metric_rnti);
 using rrc_disconnect_event_t = srslog::build_context_type<metric_type_tag,
                                                           metric_timestamp_tag,
                                                           metric_sector_id,
@@ -128,7 +127,7 @@ public:
     event_channel(ctx);
   }
 
-  void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, unsigned rrc_cause, uint16_t rnti) override
+  void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, uint16_t rnti) override
   {
     rrc_disconnect_event_t ctx("");
 
@@ -138,7 +137,6 @@ public:
     ctx.write<metric_event_name>("rrc_disconnect");
     ctx.get<mset_rrc_disconnect_event>().write<metric_reason>(reason);
     ctx.get<mset_rrc_disconnect_event>().write<metric_rnti>(rnti);
-    ctx.get<mset_rrc_disconnect_event>().write<metric_rrc_cause>(rrc_cause);
     event_channel(ctx);
   }
 
@@ -182,6 +180,7 @@ public:
     ctx.write<metric_event_name>("sector_start");
     ctx.get<mset_sector_event>().write<metric_pci>(pci);
     ctx.get<mset_sector_event>().write<metric_cell_identity>(fmt::to_string(cell_id));
+    ctx.get<mset_sector_event>().write<metric_sib9_home_enb_name>("TODO");
     event_channel(ctx);
   }
 
@@ -195,6 +194,7 @@ public:
     ctx.write<metric_event_name>("sector_stop");
     ctx.get<mset_sector_event>().write<metric_pci>(pci);
     ctx.get<mset_sector_event>().write<metric_cell_identity>(fmt::to_string(cell_id));
+    ctx.get<mset_sector_event>().write<metric_sib9_home_enb_name>("TODO");
     event_channel(ctx);
   }
 
