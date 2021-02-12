@@ -221,6 +221,13 @@ void pdcp::enable_security_timed(uint32_t lcid, srslte_direction_t direction, ui
   }
 }
 
+void pdcp::send_status_report(uint32_t lcid)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->send_status_report();
+  }
+}
+
 bool pdcp::get_bearer_state(uint32_t lcid, srslte::pdcp_lte_state_t* state)
 {
   if (not valid_lcid(lcid)) {

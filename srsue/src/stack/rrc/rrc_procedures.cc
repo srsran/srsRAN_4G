@@ -957,8 +957,8 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
     rrc_ptr->reestablishment_successful = false;
     for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
       if (rrc_ptr->rlc->has_bearer(i)) {
-        rrc_ptr->pdcp->reestablish(i);
         rrc_ptr->rlc->reestablish(i);
+        rrc_ptr->pdcp->reestablish(i);
       }
     }
   }
@@ -969,6 +969,7 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
       return proc_outcome_t::error;
     }
   }
+
   // Apply Scell RR configurations (call is non-blocking). Make a copy since can be changed inside
   // apply_scell_config() Note that apply_scell_config() calls set_scell() and set_config() which run in the
   // background.
@@ -1323,9 +1324,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
-       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
-           ? "Reconfiguration failure"
-           : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
+       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail ? "Reconfiguration failure"
+       : cause == asn1::rrc::reest_cause_opts::ho_fail        ? "Handover failure"
+                                                              : "Other failure",
        reest_rnti,
        reest_source_pci,
        reest_cellid);

@@ -1213,6 +1213,8 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
                    asn1::rrc::rlc_cfg_c::types_opts::am;
       if (is_am) {
+        bool is_status_report_required =
+            parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].pdcp_cfg.rlc_am.status_report_required;
         parent->logger.debug("Set PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
                              "LAST_SUBMITTED_PDCP_RX_SN %d",
                              old_reest_pdcp_state[lcid].tx_hfn,
@@ -1221,6 +1223,10 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
                              old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
                              old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
         parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
+        parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
+        if (is_status_report_required) {
+          parent->pdcp->send_status_report(rnti, lcid);
+        }
       }
     }
   }

@@ -135,20 +135,12 @@ void pdcp::reestablish(uint16_t rnti)
   users[rnti].pdcp->reestablish();
 }
 
-void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
-{
-  if (users.count(rnti)) {
-    users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
-  }
-}
-
 void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
   }
 }
-
 void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn)
 {
   if (users.count(rnti)) {
@@ -161,12 +153,26 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   }
 }
 
+void pdcp::send_status_report(uint16_t rnti, uint32_t lcid)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->send_status_report(lcid);
+  }
+}
+
 std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint16_t rnti, uint32_t lcid)
 {
   if (users.count(rnti)) {
     return users[rnti].pdcp->get_buffered_pdus(lcid);
   }
   return {};
+}
+
+void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
+  }
 }
 
 void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)

@@ -49,6 +49,7 @@ public:
   void enable_security_timed(uint32_t lcid, srslte_direction_t direction, uint32_t sn);
   bool get_bearer_state(uint32_t lcid, srslte::pdcp_lte_state_t* state);
   bool set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state);
+  void send_status_report(uint32_t lcid) override;
 
   // RLC interface
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu) override;

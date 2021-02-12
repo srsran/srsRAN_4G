@@ -47,6 +47,8 @@ public:
   {
     return std::move(buffered_pdus);
   }
+  void send_status_report(uint16_t rnti, uint32_t lcid) override {}
+
   void push_buffered_pdu(uint32_t sn, srslte::unique_byte_buffer_t pdu) { buffered_pdus[sn] = std::move(pdu); }
 
   void clear()

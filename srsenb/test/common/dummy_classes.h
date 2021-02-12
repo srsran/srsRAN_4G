@@ -76,6 +76,7 @@ public:
   bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override { return true; }
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override { return true; }
   void reestablish(uint16_t rnti) override {}
+  void send_status_report(uint16_t rnti, uint32_t lcid) override {}
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override
   {
     return {};

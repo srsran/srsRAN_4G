@@ -82,7 +82,8 @@ void pdcp_entity_lte::reestablish()
     st.rx_hfn          = 0;
     st.next_pdcp_rx_sn = 0;
   } else {
-    // TODO Send status report if required on reestablishment in RLC AM
+    // Send status report if required on reestablishment in RLC AM
+    send_status_report();
   }
 }
 
@@ -392,12 +393,12 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
  ***************************************************************************/
 
 // Section 5.3.1 transmit operation
-bool pdcp_entity_lte::send_status_report()
+void pdcp_entity_lte::send_status_report()
 {
   // Check wether RLC AM is being used.
   if (rlc->rb_is_um(lcid)) {
     logger.error("Trying to send PDCP Status Report and RLC is not AM");
-    return false;
+    return;
   }
 
   // Get First Missing Segment (FMS)
@@ -414,7 +415,7 @@ bool pdcp_entity_lte::send_status_report()
   unique_byte_buffer_t pdu = make_byte_buffer();
   if (pdu == nullptr) {
     logger.error("Error allocating buffer for status report");
-    return false;
+    return;
   }
 
   // Set control bit and type of PDU
@@ -435,7 +436,7 @@ bool pdcp_entity_lte::send_status_report()
       break;
     default:
       logger.error("Unsupported SN length for Status Report.");
-      return false;
+      return;
   }
 
   // Add bitmap of missing PDUs, if necessary
@@ -461,12 +462,14 @@ bool pdcp_entity_lte::send_status_report()
   // Write PDU to RLC
   rlc->write_sdu(lcid, std::move(pdu));
 
-  return true;
+  return;
 }
 
 // Section 5.3.2 receive operation
 void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
 {
+  logger.info("Handling Status Report PDU. Size=%ld", pdu->N_bytes);
+
   uint32_t              fms;
   std::vector<uint32_t> acked_sns;
   uint32_t              bitmap_offset;

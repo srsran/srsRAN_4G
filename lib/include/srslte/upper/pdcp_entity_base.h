@@ -118,6 +118,8 @@ public:
 
   virtual std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() = 0;
 
+  virtual void send_status_report() = 0;
+
   // COUNT, HFN and SN helpers
   uint32_t HFN(uint32_t count);
   uint32_t SN(uint32_t count);

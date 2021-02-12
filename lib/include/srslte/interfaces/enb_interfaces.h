@@ -20,7 +20,6 @@
 namespace srsenb {
 
 class stack_interface_phy_lte;
-
 class stack_interface_s1ap_lte
 {
 public:

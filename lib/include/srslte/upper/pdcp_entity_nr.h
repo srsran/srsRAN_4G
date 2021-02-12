@@ -60,6 +60,8 @@ public:
   void get_bearer_state(pdcp_lte_state_t* state) override;
   void set_bearer_state(const pdcp_lte_state_t& state) override;
 
+  void send_status_report() override {}
+
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() override { return {}; }
 
   // State variable getters (useful for testing)
