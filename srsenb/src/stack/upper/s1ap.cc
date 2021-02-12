@@ -1744,7 +1744,11 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
 
   // pack Transparent Container into HORequired message
   srslte::unique_byte_buffer_t buffer = srslte::make_byte_buffer();
-  asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
+  if (buffer == nullptr) {
+    logger.error("Failed to allocate buffer for HORequired message packing");
+    return false;
+  }
+  asn1::bit_ref bref(buffer->msg, buffer->get_tailroom());
   if (transparent_cntr.pack(bref) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack transparent container of HO Required message");
     return false;
