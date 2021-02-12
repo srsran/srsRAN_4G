@@ -379,25 +379,64 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
                                      const rbgmask_t&                  user_mask)
 {
   srslte_dci_format_t dci_format = get_dci_format();
-  int                 tbs        = 0;
+  int                 tbs_bytes  = 0;
 
   switch (dci_format) {
+    case SRSLTE_DCI_FORMAT1A:
+      tbs_bytes = generate_format1a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      break;
     case SRSLTE_DCI_FORMAT1:
-      tbs = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      tbs_bytes = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     case SRSLTE_DCI_FORMAT2:
-      tbs = generate_format2(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      tbs_bytes = generate_format2(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     case SRSLTE_DCI_FORMAT2A:
-      tbs = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      tbs_bytes = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     default:
       logger.error("DCI format (%d) not implemented", dci_format);
   }
-  return tbs;
+
+  // Set common DCI fields
+  if (tbs_bytes > 0) {
+    srslte_dci_dl_t* dci = &data->dci;
+    dci->rnti            = rnti;
+    dci->pid             = pid;
+    dci->ue_cc_idx       = cells[enb_cc_idx].get_ue_cc_idx();
+    data->dci.format     = dci_format;
+    dci->tpc_pucch       = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
+  }
+
+  return tbs_bytes;
 }
 
-// Generates a Format1 dci
+int sched_ue::generate_format1a(uint32_t                          pid,
+                                sched_interface::dl_sched_data_t* data,
+                                tti_point                         tti_tx_dl,
+                                uint32_t                          enb_cc_idx,
+                                uint32_t                          cfi,
+                                const rbgmask_t&                  user_mask)
+{
+  int tbs_bytes = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+
+  srslte_dci_dl_t* dci = &data->dci;
+
+  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
+  rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
+  prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
+  uint32_t     L_crb    = prb_int.length();
+  uint32_t     RB_start = prb_int.start();
+  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
+  if (L_crb != count_prb_per_tb(user_mask)) {
+    // This happens if Type0 was using distributed allocation
+    logger.warning("SCHED: Can't use distributed RA due to DCI size ambiguity");
+  }
+
+  return tbs_bytes;
+}
+
 // > return 0 if allocation is invalid
 int sched_ue::generate_format1(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
@@ -409,26 +448,8 @@ int sched_ue::generate_format1(uint32_t                          pid,
   dl_harq_proc*    h   = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci = &data->dci;
 
-  // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
-  // Common SS when spaces collide
-  if (cell.nof_prb == 15 && cells.size() > 1) {
-    dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
-    dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
-    rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
-    prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
-    uint32_t     L_crb    = prb_int.length();
-    uint32_t     RB_start = prb_int.start();
-    dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
-    dci->format           = SRSLTE_DCI_FORMAT1A;
-    if (L_crb != count_prb_per_tb(user_mask)) {
-      // This happens if Type0 was using distributed allocation
-      logger.warning("SCHED: Can't use distributed RA due to DCI size ambiguity");
-    }
-  } else {
-    dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-    dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
-    dci->format                  = SRSLTE_DCI_FORMAT1;
-  }
+  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   tbs_info tbinfo;
   if (h->is_empty(0)) {
@@ -439,16 +460,12 @@ int sched_ue::generate_format1(uint32_t                          pid,
   }
 
   if (tbinfo.tbs_bytes > 0) {
-    dci->rnti          = rnti;
-    dci->pid           = h->get_id();
-    dci->ue_cc_idx     = cells[enb_cc_idx].get_ue_cc_idx();
     dci->tb[0].mcs_idx = (uint32_t)tbinfo.mcs;
     dci->tb[0].rv      = get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
-    dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
-    data->tbs[0]   = (uint32_t)tbinfo.tbs_bytes;
-    data->tbs[1]   = 0;
+    data->tbs[0] = (uint32_t)tbinfo.tbs_bytes;
+    data->tbs[1] = 0;
   }
   return tbinfo.tbs_bytes;
 }
@@ -550,13 +567,6 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     }
   }
 
-  /* Fill common fields */
-  dci->format    = SRSLTE_DCI_FORMAT2A;
-  dci->rnti      = rnti;
-  dci->ue_cc_idx = cells[enb_cc_idx].get_ue_cc_idx();
-  dci->pid       = h->get_id();
-  dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
-
   int ret = data->tbs[0] + data->tbs[1];
   return ret;
 }
@@ -573,7 +583,6 @@ int sched_ue::generate_format2(uint32_t                          pid,
   int ret = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
-  data->dci.format = SRSLTE_DCI_FORMAT2;
   if ((SRSLTE_DCI_IS_TB_EN(data->dci.tb[0]) + SRSLTE_DCI_IS_TB_EN(data->dci.tb[1])) == 1) {
     data->dci.pinfo = (uint8_t)(cells[enb_cc_idx].dl_pmi + 1) % (uint8_t)5;
   } else {
@@ -1006,14 +1015,18 @@ void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)
 
 srslte_dci_format_t sched_ue::get_dci_format()
 {
-  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1;
+  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1A;
 
   if (phy_config_dedicated_enabled) {
     /* TODO: Assumes UE-Specific Search Space (Not common) */
     switch (cfg.dl_ant_info.tx_mode) {
       case sched_interface::ant_info_ded_t::tx_mode_t::tm1:
       case sched_interface::ant_info_ded_t::tx_mode_t::tm2:
-        ret = SRSLTE_DCI_FORMAT1;
+        // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
+        // Common SS when spaces collide
+        if (not(cell.nof_prb == 15 && cells.size() > 1)) {
+          ret = SRSLTE_DCI_FORMAT1;
+        }
         break;
       case sched_interface::ant_info_ded_t::tx_mode_t::tm3:
         ret = SRSLTE_DCI_FORMAT2A;

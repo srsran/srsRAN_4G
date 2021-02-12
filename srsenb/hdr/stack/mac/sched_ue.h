@@ -165,6 +165,12 @@ private:
                        uint32_t                          enb_cc_idx,
                        uint32_t                          cfi,
                        const rbgmask_t&                  user_mask);
+  int generate_format1a(uint32_t                          pid,
+                        sched_interface::dl_sched_data_t* data,
+                        tti_point                         tti_tx_dl,
+                        uint32_t                          enb_cc_idx,
+                        uint32_t                          cfi,
+                        const rbgmask_t&                  user_mask);
   int generate_format2a(uint32_t                          pid,
                         sched_interface::dl_sched_data_t* data,
                         tti_point                         tti_tx_dl,
