@@ -229,7 +229,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 // Handle control PDU
 void pdcp_entity_lte::handle_control_pdu(unique_byte_buffer_t pdu)
 {
-  switch ((pdu->msg[0] >> 4) & 0x03) {
+  switch (get_control_pdu_type(pdu)) {
     case PDCP_PDU_TYPE_STATUS_REPORT:
       handle_status_report_pdu(std::move(pdu));
       break;
@@ -393,7 +393,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 // Section 5.3.1 transmit operation
 bool pdcp_entity_lte::send_status_report()
 {
-  // Check wether RCL AM is being used.
+  // Check wether RLC AM is being used.
   if (rlc->rb_is_um(lcid)) {
     logger.error("Trying to send PDCP Status Report and RLC is not AM");
     return false;
@@ -407,10 +407,14 @@ bool pdcp_entity_lte::send_status_report()
     fms = undelivered_sdus_queue.begin()->first;
   }
 
-  logger.debug("PDCP Status report: FMS=%d", fms);
+  logger.debug("Status report: FMS=%d", fms);
 
   // Allocate Status Report PDU
   unique_byte_buffer_t pdu = make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Error allocating buffer for status report");
+    return false;
+  }
 
   // Set control bit and type of PDU
   pdu->msg[0] = ((uint8_t)PDCP_DC_FIELD_CONTROL_PDU << 7) | ((uint8_t)PDCP_PDU_TYPE_STATUS_REPORT << 4);

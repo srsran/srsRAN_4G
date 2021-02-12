@@ -219,6 +219,11 @@ bool pdcp_entity_base::is_control_pdu(const unique_byte_buffer_t& pdu)
   return ((*(payload) >> 7) & 0x01) == PDCP_DC_FIELD_CONTROL_PDU;
 }
 
+pdcp_pdu_type_t pdcp_entity_base::get_control_pdu_type(const unique_byte_buffer_t& pdu)
+{
+  return pdcp_pdu_type_t((pdu->msg[0] >> 4U) & 0x03U);
+}
+
 uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
 {
   // Check PDU is long enough to extract header

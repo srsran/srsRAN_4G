@@ -171,7 +171,7 @@ int test_rx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
 int run_all_tests()
 {
   // Setup log
-  srslog::basic_logger& logger = srslog::fetch_basic_logger("PDCP LTE Test Status Report", false);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("PDCP", false);
   logger.set_level(srslog::basic_levels::debug);
   logger.set_hex_dump_max_size(128);
 
