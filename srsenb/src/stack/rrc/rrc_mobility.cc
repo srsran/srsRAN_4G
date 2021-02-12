@@ -368,8 +368,14 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   }
   buffer->N_bytes = bref.distance_bytes();
 
-  bool success = rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, std::move(buffer));
-  return success;
+  // Set list of E-RABs for DL forwarding
+  std::vector<uint32_t> fwd_erabs;
+  fwd_erabs.reserve(rrc_ue->bearer_list.get_erabs().size());
+  for (auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
+    fwd_erabs.push_back(erab_pair.first);
+  }
+
+  return rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, fwd_erabs, std::move(buffer));
 }
 
 /**

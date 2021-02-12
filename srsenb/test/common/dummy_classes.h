@@ -103,6 +103,7 @@ public:
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
+                        srslte::span<uint32_t>       fwd_erabs,
                         srslte::unique_byte_buffer_t rrc_container) override
   {
     return true;

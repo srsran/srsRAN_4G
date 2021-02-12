@@ -63,12 +63,14 @@ public:
    * @param rnti user to perform S1 handover
    * @param target_eci eNB Id + Cell Id of the target eNB
    * @param target_plmn PLMN of the target eNB
+   * @param fwd_erabs E-RABs that are candidates to DL forwarding
    * @param rrc_container RRC container with SourceENBToTargetENBTransparentContainer message.
    * @return true if successful
    */
   virtual bool send_ho_required(uint16_t                     rnti,
                                 uint32_t                     target_eci,
                                 srslte::plmn_id_t            target_plmn,
+                                srslte::span<uint32_t>       fwd_erabs,
                                 srslte::unique_byte_buffer_t rrc_container) = 0;
 
   /**

@@ -75,6 +75,7 @@ public:
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
+                        srslte::span<uint32_t>       fwd_erabs,
                         srslte::unique_byte_buffer_t rrc_container) override;
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
   bool send_ho_failure(uint32_t mme_ue_s1ap_id);
@@ -148,9 +149,38 @@ private:
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
   // handover
-  bool handle_hopreparationfailure(const asn1::s1ap::ho_prep_fail_s& msg);
-  bool handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg);
-  bool handle_ho_request(const asn1::s1ap::ho_request_s& msg);
+  /**
+   * Source eNB Handler for S1AP "HANDOVER PREPARATION FAILURE" Message
+   * MME ---> Source eNB
+   * @remark TS 36.413, 8.4.1.3 - S1AP Procedures | Handover Signalling | Handover Preparation | Unsuccessful Operation
+   * @param msg HANDOVER COMMAND S1AP PDU
+   * @return true if the HANDOVER COMMAND content is valid. False otherwise
+   */
+  bool handle_handover_preparation_failure(const asn1::s1ap::ho_prep_fail_s& msg);
+  /**
+   * Source eNB Handler for S1AP "HANDOVER COMMAND" Message
+   * MME ---> Source eNB
+   * @remark TS 36.413, 8.4.1.2 - S1AP Procedures | Handover Signalling | Handover Preparation | Successful Operation
+   * @param msg HANDOVER COMMAND S1AP PDU
+   * @return true if the HANDOVER COMMAND content is valid. False otherwise
+   */
+  bool handle_handover_command(const asn1::s1ap::ho_cmd_s& msg);
+
+  /**
+   * Target eNB Handler for S1AP "HANDOVER REQUEST" Message
+   * MME ---> Target eNB
+   * @remark TS 36.413, 8.4.7.2 - S1AP Procedures | Handover Signalling | Handover Resource Allocation
+   * @param msg HANDOVER REQUEST S1AP PDU
+   * @return true if the new user resources were successfully allocated
+   */
+  bool handle_handover_request(const asn1::s1ap::ho_request_s& msg);
+  /**
+   * Target eNB Handler for S1AP "MME STATUS TRANSFER" Message
+   * MME ---> Target eNB
+   * @remark TS 36.413, 8.4.7.2 - S1AP Procedures | Handover Signalling | MME Status Transfer | Successful Operation
+   * @param msg MME STATUS TRANSFER S1AP PDU
+   * @return true if the msg content is valid. False otherwise
+   */
   bool handle_mme_status_transfer(const asn1::s1ap::mme_status_transfer_s& msg);
 
   // UE-specific data and procedures
@@ -161,8 +191,10 @@ private:
     public:
       struct ts1_reloc_prep_expired {};
       ho_prep_proc_t(s1ap::ue* ue_);
-      srslte::proc_outcome_t
-                             init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+      srslte::proc_outcome_t init(uint32_t                     target_eci_,
+                                  srslte::plmn_id_t            target_plmn_,
+                                  srslte::span<uint32_t>       fwd_erabs,
+                                  srslte::unique_byte_buffer_t rrc_container);
       srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
       srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
       srslte::proc_outcome_t react(const asn1::s1ap::ho_prep_fail_s& msg);
@@ -209,8 +241,10 @@ private:
     uint16_t  stream_id = 1;
 
   private:
-    bool
-    send_ho_required(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+    bool send_ho_required(uint32_t                     target_eci_,
+                          srslte::plmn_id_t            target_plmn_,
+                          srslte::span<uint32_t>       fwd_erabs,
+                          srslte::unique_byte_buffer_t rrc_container);
     //! TS 36.413, Section 8.4.6 - eNB Status Transfer procedure
 
     // args

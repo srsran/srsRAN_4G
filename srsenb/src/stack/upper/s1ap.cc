@@ -58,6 +58,7 @@ s1ap::ue::ho_prep_proc_t::ho_prep_proc_t(s1ap::ue* ue_) : ue_ptr(ue_), s1ap_ptr(
 
 srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                     target_eci_,
                                                       srslte::plmn_id_t            target_plmn_,
+                                                      srslte::span<uint32_t>       fwd_erabs,
                                                       srslte::unique_byte_buffer_t rrc_container_)
 {
   ho_cmd_msg  = nullptr;
@@ -65,7 +66,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                  
   target_plmn = target_plmn_;
 
   procInfo("Sending HandoverRequired to MME id=%d", ue_ptr->ctxt.mme_ue_s1ap_id);
-  if (not ue_ptr->send_ho_required(target_eci, target_plmn, std::move(rrc_container_))) {
+  if (not ue_ptr->send_ho_required(target_eci, target_plmn, fwd_erabs, std::move(rrc_container_))) {
     procError("Failed to send HORequired to cell 0x%x", target_eci);
     return srslte::proc_outcome_t::error;
   }
@@ -569,7 +570,7 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request:
-      return handle_ho_request(msg.value.ho_request());
+      return handle_handover_request(msg.value.ho_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
     default:
@@ -584,7 +585,7 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::s1_setup_resp:
       return handle_s1setupresponse(msg.value.s1_setup_resp());
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cmd:
-      return handle_s1hocommand(msg.value.ho_cmd());
+      return handle_handover_command(msg.value.ho_cmd());
     case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cancel_ack:
       return true;
     default:
@@ -599,7 +600,7 @@ bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
     case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::s1_setup_fail:
       return handle_s1setupfailure(msg.value.s1_setup_fail());
     case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_prep_fail:
-      return handle_hopreparationfailure(msg.value.ho_prep_fail());
+      return handle_handover_preparation_failure(msg.value.ho_prep_fail());
     default:
       logger.error("Unhandled unsuccessful outcome message: %s", msg.value.type().to_string().c_str());
   }
@@ -834,7 +835,7 @@ bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
   return true;
 }
 
-bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
+bool s1ap::handle_handover_preparation_failure(const ho_prep_fail_s& msg)
 {
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
@@ -844,7 +845,7 @@ bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
   return true;
 }
 
-bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
+bool s1ap::handle_handover_command(const asn1::s1ap::ho_cmd_s& msg)
 {
   ue* u = find_s1apmsg_user(msg.protocol_ies.enb_ue_s1ap_id.value.value, msg.protocol_ies.mme_ue_s1ap_id.value.value);
   if (u == nullptr) {
@@ -858,7 +859,7 @@ bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
  * TS 36.413 - Section 8.4.2 - "Handover Resource Allocation"
  *************************************************************/
 
-bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
+bool s1ap::handle_handover_request(const asn1::s1ap::ho_request_s& msg)
 {
   uint16_t rnti = SRSLTE_INVALID_RNTI;
 
@@ -1448,6 +1449,7 @@ bool s1ap::ue::send_ue_cap_info_indication(srslte::unique_byte_buffer_t ue_radio
 bool s1ap::send_ho_required(uint16_t                     rnti,
                             uint32_t                     target_eci,
                             srslte::plmn_id_t            target_plmn,
+                            srslte::span<uint32_t>       fwd_erabs,
                             srslte::unique_byte_buffer_t rrc_container)
 {
   if (!mme_connected) {
@@ -1459,7 +1461,7 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
   }
 
   // launch procedure
-  if (not u->ho_prep_proc.launch(target_eci, target_plmn, std::move(rrc_container))) {
+  if (not u->ho_prep_proc.launch(target_eci, target_plmn, fwd_erabs, std::move(rrc_container))) {
     logger.error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x", u->ctxt.rnti);
     return false;
   }
@@ -1672,6 +1674,7 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), ho_prep_proc(this), logger(
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
                                 srslte::plmn_id_t            target_plmn,
+                                srslte::span<uint32_t>       fwd_erabs,
                                 srslte::unique_byte_buffer_t rrc_container)
 {
   /*** Setup S1AP PDU as HandoverRequired ***/
@@ -1709,13 +1712,14 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   transparent_cntr.erab_info_list_present               = true;  // TODO: CHECK
   transparent_cntr.subscriber_profile_idfor_rfp_present = false; // TODO: CHECK
 
-  // FIXME: Hardcoded ERABs
-  transparent_cntr.erab_info_list.resize(1);
-  transparent_cntr.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
-  transparent_cntr.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
-  transparent_cntr.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
-  transparent_cntr.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
-      dl_forwarding_opts::dl_forwarding_proposed;
+  transparent_cntr.erab_info_list.resize(fwd_erabs.size());
+  for (uint32_t i = 0; i < fwd_erabs.size(); ++i) {
+    transparent_cntr.erab_info_list[i].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+    transparent_cntr.erab_info_list[i].value.erab_info_list_item().erab_id               = fwd_erabs[i];
+    transparent_cntr.erab_info_list[i].value.erab_info_list_item().dl_forwarding_present = true;
+    transparent_cntr.erab_info_list[i].value.erab_info_list_item().dl_forwarding.value =
+        dl_forwarding_opts::dl_forwarding_proposed;
+  }
   // - set target cell ID
   target_plmn.to_s1ap_plmn_bytes(transparent_cntr.target_cell_id.plm_nid.data());
   transparent_cntr.target_cell_id.cell_id.from_number(target_eci); // [ENBID|CELLID|0]
@@ -1738,17 +1742,18 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   transparent_cntr.rrc_container.resize(rrc_container->N_bytes);
   memcpy(transparent_cntr.rrc_container.data(), rrc_container->msg, rrc_container->N_bytes);
 
-  /*** pack Transparent Container into HORequired message ***/
-  uint8_t       buffer[4096];
-  asn1::bit_ref bref(buffer, sizeof(buffer));
+  // pack Transparent Container into HORequired message
+  srslte::unique_byte_buffer_t buffer = srslte::make_byte_buffer();
+  asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
   if (transparent_cntr.pack(bref) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack transparent container of HO Required message");
     return false;
   }
   container.source_to_target_transparent_container.value.resize(bref.distance_bytes());
-  memcpy(container.source_to_target_transparent_container.value.data(), buffer, bref.distance_bytes());
+  memcpy(container.source_to_target_transparent_container.value.data(), buffer->msg, bref.distance_bytes());
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "HORequired");
+  // Send to HandoverRequired message to MME
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "Handover Required");
 }
 
 bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& bearer_status_list)
