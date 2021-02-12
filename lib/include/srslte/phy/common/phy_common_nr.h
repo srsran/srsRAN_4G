@@ -295,8 +295,6 @@ typedef struct SRSLTE_API {
   uint32_t                   id;
   uint32_t                   coreset_id;
   uint32_t                   duration; // in slots
-  uint32_t                   periodicity;
-  uint32_t                   offset;
   srslte_search_space_type_t type;
   uint32_t                   nof_candidates[SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR];
 } srslte_search_space_t;

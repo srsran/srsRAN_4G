@@ -77,11 +77,6 @@
  */
 #define SRSLTE_PUCCH_NR_MAX_NOF_SETS 4
 
-/**
- * Maximum numer of NR-PUCCH CS indexes (TS 38.213 Table 9.2.1-1: PUCCH resource sets...)
- */
-#define SRSLTE_PUCCH_NR_MAX_NOF_CS_INDEXES 4
-
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_NR_FORMAT_0 = 0,
   SRSLTE_PUCCH_NR_FORMAT_1,

@@ -19,7 +19,7 @@
 #include "srslte/phy/phch/dci_nr.h"
 #include "srslte/phy/phch/pdcch_nr.h"
 #include "srslte/phy/phch/pdsch_nr.h"
-#include <srslte/phy/phch/uci_cfg_nr.h>
+#include "srslte/phy/phch/uci_cfg_nr.h"
 
 /**
  * Maximum number of CORESET
@@ -89,7 +89,7 @@ typedef struct {
 typedef struct {
   srslte_pdsch_ack_cc_nr_t cc[SRSLTE_MAX_CARRIERS];
   uint32_t                 nof_cc;
-  bool                     use_pusch; // Ser to true, if UCI bits are carried by PUSCH
+  bool                     use_pusch; // Set to true, if UCI bits are carried by PUSCH
 } srslte_pdsch_ack_nr_t;
 
 typedef struct SRSLTE_API {

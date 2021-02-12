@@ -333,6 +333,9 @@ bool cc_worker::work_ul()
       srslte_ue_ul_nr_pucch_info(&resource, &uci_data, str.data(), str.size());
       logger.info("PUCCH: cc=%d, %s, tti_tx=%d", cc_idx, str.data(), ul_slot_cfg.idx);
     }
+  } else {
+    // No NR signal shall be transmitted
+    srslte_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
   }
 
   return true;

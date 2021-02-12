@@ -639,7 +639,7 @@ int ue_dl_nr_pdsch_k1(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg, const srslte_dc
     return SRSLTE_ERROR;
   }
 
-  return cfg->dl_data_to_ul_ack[dci_dl->harq_feedback];
+  return (int)cfg->dl_data_to_ul_ack[dci_dl->harq_feedback];
 }
 
 int srslte_ue_dl_nr_pdsch_ack_resource(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
@@ -684,8 +684,8 @@ int srslte_ue_dl_nr_gen_ack(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
   }
 
   // According TS 38.213 9.1.3 Type-2 HARQ-ACK codebook determination
-  // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = dynamic.
   if (cfg->pdsch_harq_ack_codebook == srslte_pdsch_harq_ack_codebook_dynamic) {
+    // This clause applies if the UE is configured with pdsch-HARQ-ACK-Codebook = dynamic.
     return ue_dl_nr_gen_ack_type2(cfg, ack_info, uci_data);
   }
 

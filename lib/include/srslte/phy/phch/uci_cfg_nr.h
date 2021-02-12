@@ -49,11 +49,16 @@
  * @brief Uplink Control Information (UCI) message configuration
  */
 typedef struct SRSLTE_API {
+  /// Common Parameters
   uint32_t     o_ack;             ///< Number of HARQ-ACK bits
   uint32_t     o_sr;              ///< Number of SR bits
   uint32_t     o_csi1;            ///< Number of CSI1 report number of bits
   uint32_t     o_csi2;            ///< Number of CSI2 report number of bits
-  srslte_mod_t modulation;        ///< Modulation (PUSCH only)
+
+  /// PUSCH only parameters
+  srslte_mod_t modulation; ///< Modulation
+
+  /// PUCCH only parameters
   uint16_t     rnti;              ///< RNTI
   uint32_t     pucch_resource_id; ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
   uint32_t     n_cce_0;           ///< index of a first CCE for the PDCCH reception

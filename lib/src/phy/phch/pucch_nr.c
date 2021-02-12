@@ -557,24 +557,12 @@ static int pucch_nr_format2_encode(srslte_pucch_nr_t*                  q,
   uint32_t l_end   = resource->start_symbol_idx + resource->nof_symbols;
   uint32_t k_start = SRSLTE_MIN(carrier->nof_prb - 1, resource->starting_prb) * SRSLTE_NRE;
   uint32_t k_end   = SRSLTE_MIN(carrier->nof_prb, resource->starting_prb + resource->nof_prb) * SRSLTE_NRE;
-  uint32_t i       = 0;
-  for (uint32_t l = l_start; l < l_end; l++) {
+  for (uint32_t l = l_start, i = 0; l < l_end; l++) {
     cf_t* symbol_ptr = &slot_symbols[l * carrier->nof_prb * SRSLTE_NRE];
     for (uint32_t k = k_start; k < k_end; k += 3) {
       symbol_ptr[k]     = q->d[i++];
       symbol_ptr[k + 2] = q->d[i++];
     }
-  }
-
-  if (i * 2 != E) {
-    ERROR("Unmatched number of channel bits (%d!=%d); rb=(%d,%d); sym=(%d,%d)\n",
-          E,
-          2 * i,
-          k_start,
-          k_end,
-          l_start,
-          l_end);
-    return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
