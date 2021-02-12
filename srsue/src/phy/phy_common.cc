@@ -440,7 +440,7 @@ void phy_common::set_dl_pending_grant(uint32_t               tti,
     pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].grant_cc_idx = grant_cc_idx;
     pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].enable       = true;
   } else {
-    Warning("set_dl_pending_grant: cc=%d already exists", cc_idx);
+    Info("set_dl_pending_grant: cc=%d already exists", cc_idx);
   }
 }
 
