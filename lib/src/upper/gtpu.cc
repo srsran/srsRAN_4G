@@ -45,9 +45,11 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog
     }
     pdu->msg -= GTPU_EXTENDED_HEADER_LEN;
     pdu->N_bytes += GTPU_EXTENDED_HEADER_LEN;
+    header->length += GTPU_EXTENDED_HEADER_LEN - GTPU_BASE_HEADER_LEN;
     if (header->next_ext_hdr_type > 0) {
       pdu->msg -= header->ext_buffer.size();
       pdu->N_bytes += header->ext_buffer.size();
+      header->length += header->ext_buffer.size();
     }
   } else {
     if (pdu->get_headroom() < GTPU_BASE_HEADER_LEN) {
