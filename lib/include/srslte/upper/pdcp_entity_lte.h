@@ -65,7 +65,7 @@ public:
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() override;
 
   // Status report helper(s)
-  void send_status_report();
+  void send_status_report() override;
   void handle_status_report_pdu(srslte::unique_byte_buffer_t pdu);
 
   // Internal state getters/setters

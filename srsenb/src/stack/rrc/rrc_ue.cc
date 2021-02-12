@@ -542,9 +542,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t           pdu,
   apply_reconf_phy_config(recfg_r8, true);
 
   // setup SRB2/DRBs in PDCP and RLC
+  apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
   apply_pdcp_srb_updates(recfg_r8.rr_cfg_ded);
   apply_pdcp_drb_updates(recfg_r8.rr_cfg_ded);
-  apply_rlc_rb_updates(recfg_r8.rr_cfg_ded);
 
   // UE MAC scheduler updates
   mac_ctrl.handle_con_reconf(recfg_r8, ue_capabilities);
@@ -1213,8 +1213,6 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
       bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
                    asn1::rrc::rlc_cfg_c::types_opts::am;
       if (is_am) {
-        bool is_status_report_required =
-            parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].pdcp_cfg.rlc_am.status_report_required;
         parent->logger.debug("Set PDCP state: TX HFN %d, NEXT_PDCP_TX_SN %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, "
                              "LAST_SUBMITTED_PDCP_RX_SN %d",
                              old_reest_pdcp_state[lcid].tx_hfn,
@@ -1224,7 +1222,7 @@ void rrc::ue::apply_pdcp_drb_updates(const rr_cfg_ded_s& pending_rr_cfg)
                              old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
         parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
         parent->pdcp->set_bearer_state(rnti, lcid, old_reest_pdcp_state[lcid]);
-        if (is_status_report_required) {
+        if (parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].pdcp_cfg.rlc_am.status_report_required) {
           parent->pdcp->send_status_report(rnti, lcid);
         }
       }

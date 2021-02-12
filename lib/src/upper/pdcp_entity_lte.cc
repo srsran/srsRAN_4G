@@ -470,9 +470,9 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
 {
   logger.info("Handling Status Report PDU. Size=%ld", pdu->N_bytes);
 
-  uint32_t              fms;
-  std::vector<uint32_t> acked_sns;
-  uint32_t              bitmap_offset;
+  uint32_t              fms           = 0;
+  std::vector<uint32_t> acked_sns     = {};
+  uint32_t              bitmap_offset = 0;
 
   // Get FMS
   switch (cfg.sn_len) {
