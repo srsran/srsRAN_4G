@@ -21,7 +21,7 @@
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srsue/hdr/phy/ue_phy_nr_base.h"
+#include "srsue/hdr/phy/ue_nr_phy_base.h"
 
 namespace srsue {
 
@@ -45,6 +45,9 @@ public:
   std::string get_type() { return "vnf_nr"; };
 
   void start_plot();
+
+  // RRC interface
+  bool set_config(const srslte::phy_cfg_nr_t& cfg) override;
 
   // MAC interface
   int  tx_request(const tx_request_t& request);

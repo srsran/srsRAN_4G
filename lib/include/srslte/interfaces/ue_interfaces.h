@@ -589,14 +589,6 @@ typedef struct {
   srslte::vnf_args_t vnf_args;
 } phy_args_t;
 
-typedef struct {
-  uint32_t               nof_prb;
-  uint32_t               nof_carriers;
-  uint32_t               nof_phy_threads;
-  uint32_t               worker_cpu_mask;
-  srslte::phy_log_args_t log;
-} phy_args_nr_t;
-
 /* RAT agnostic Interface MAC -> PHY */
 class phy_interface_mac_common
 {

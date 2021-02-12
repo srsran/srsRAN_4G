@@ -60,6 +60,7 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_tti(uint32_t tti)
 {
+  tti_rx = tti;
   logger.set_context(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
@@ -80,6 +81,9 @@ void sf_worker::work_imp()
   if (prach_ptr != nullptr) {
     // PRACH is available, set buffer, transmit and return
     tx_buffer.set(0, prach_ptr);
+
+    // Notify MAC about PRACH transmission
+    phy_state->stack->prach_sent(tti_rx, 7, 1, 0, 0);
 
     // Transmit NR PRACH
     phy->worker_end(this, false, tx_buffer, dummy_ts, true);

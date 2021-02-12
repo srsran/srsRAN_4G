@@ -40,6 +40,9 @@ public:
   sf_worker* wait_worker(uint32_t tti);
   void       start_worker(sf_worker* w);
   void       stop();
+  void       send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power);
+  int        set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array);
+  bool       set_config(const srslte::phy_cfg_nr_t& cfg);
 };
 
 } // namespace nr

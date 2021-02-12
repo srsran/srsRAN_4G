@@ -614,4 +614,29 @@ void phy::set_mch_period_stop(uint32_t stop)
   common.set_mch_period_stop(stop);
 }
 
+int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array)
+{
+  return nr_workers.set_ul_grant(array);
+}
+
+void phy::send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power)
+{
+  nr_workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
+}
+
+int phy::tx_request(const phy_interface_mac_nr::tx_request_t& request)
+{
+  return 0;
+}
+
+void phy::set_earfcn(std::vector<uint32_t> earfcns)
+{
+  // Do nothing
+}
+
+bool phy::set_config(const srslte::phy_cfg_nr_t& cfg)
+{
+  return nr_workers.set_config(cfg);
+}
+
 } // namespace srsue

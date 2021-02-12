@@ -23,6 +23,7 @@ bool worker_pool::init(const phy_args_nr_t&    args,
                        int                     prio)
 {
   phy_state.stack = stack_;
+  phy_state.args  = args;
 
   // Set carrier attributes
   phy_state.carrier.id      = 500;
@@ -79,9 +80,6 @@ sf_worker* worker_pool::wait_worker(uint32_t tti)
 {
   sf_worker* worker = (sf_worker*)pool.wait_worker(tti);
 
-  // Prepare PRACH, send always sequence 0
-  prach_buffer->prepare_to_send(0);
-
   // Generate PRACH if ready
   if (prach_buffer->is_ready_to_send(tti, phy_state.carrier.id)) {
     uint32_t nof_prach_sf       = 0;
@@ -98,5 +96,36 @@ void worker_pool::stop()
   pool.stop();
 }
 
+void worker_pool::send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power)
+{
+  prach_buffer->prepare_to_send(preamble_index);
+}
+
+int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array)
+{
+  // Copy DCI bits and setup DCI context
+  srslte_dci_msg_nr_t dci_msg = {};
+  dci_msg.format              = srslte_dci_format_nr_rar;
+  dci_msg.rnti_type           = srslte_rnti_type_ra;
+  dci_msg.rnti                = phy_state.ra_rnti;
+  dci_msg.nof_bits            = SRSLTE_RAR_UL_GRANT_NBITS;
+  srslte_vec_u8_copy(dci_msg.payload, array.data(), SRSLTE_RAR_UL_GRANT_NBITS);
+
+  srslte_dci_ul_nr_t dci_ul = {};
+
+  if (srslte_dci_nr_format_0_0_unpack(&phy_state.carrier, &phy_state.cfg.pdcch.coreset[1], &dci_msg, &dci_ul) <
+      SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  phy_state.set_ul_pending_grant(phy_state.rar_grant_tti, dci_ul);
+
+  return SRSLTE_SUCCESS;
+}
+bool worker_pool::set_config(const srslte::phy_cfg_nr_t& cfg)
+{
+  phy_state.cfg = cfg;
+  return true;
+}
 } // namespace nr
 } // namespace srsue

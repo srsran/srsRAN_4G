@@ -15,6 +15,7 @@
 
 #include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/mac_interface_types.h"
+#include "srslte/interfaces/rrc_nr_interface_types.h"
 #include <array>
 #include <string>
 
@@ -83,6 +84,28 @@ public:
   virtual bool set_crnti(const uint16_t crnti) = 0;
 };
 
+struct phy_args_nr_t {
+  uint32_t               nof_carriers;
+  uint32_t               nof_prb;
+  uint32_t               nof_phy_threads;
+  uint32_t               worker_cpu_mask;
+  srslte::phy_log_args_t log;
+  srslte_ue_dl_nr_args_t dl;
+  srslte_ue_ul_nr_args_t ul;
+
+  phy_args_nr_t()
+  {
+    dl.nof_rx_antennas        = 1;
+    dl.nof_max_prb            = 100;
+    dl.pdsch.measure_evm      = true;
+    dl.pdsch.measure_time     = true;
+    dl.pdsch.sch.disable_simd = false;
+    ul.nof_max_prb            = 100;
+    ul.pusch.measure_time     = true;
+    ul.pusch.sch.disable_simd = false;
+  }
+};
+
 class phy_interface_mac_nr
 {
 public:
@@ -103,7 +126,10 @@ public:
 };
 
 class phy_interface_rrc_nr
-{};
+{
+public:
+  virtual bool set_config(const srslte::phy_cfg_nr_t& cfg) = 0;
+};
 
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_nr : public mac_interface_phy_nr,

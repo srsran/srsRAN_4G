@@ -128,37 +128,19 @@ uint32_t cc_worker::get_buffer_len()
 
 void cc_worker::decode_pdcch_dl()
 {
-  std::array<srslte_dci_dl_nr_t, 5> dci_rx        = {};
-  uint32_t                          nof_found_dci = 0;
+  std::array<srslte_dci_dl_nr_t, 5> dci_rx = {};
+  uint16_t                          rnti   = phy->stack->get_dl_sched_rnti(dl_slot_cfg.idx);
 
-  // Search for test RNTI
-  if (phy->test_rnti > 0) {
-    // Search for test DL grants
-    int n_dl = srslte_ue_dl_nr_find_dl_dci(&ue_dl,
-                                           &dl_slot_cfg,
-                                           (uint16_t)phy->test_rnti,
-                                           &dci_rx[nof_found_dci],
-                                           (uint32_t)dci_rx.size() - nof_found_dci);
-    if (n_dl < SRSLTE_SUCCESS) {
-      logger.error("Error decoding DL NR-PDCCH for test RNTI");
-      return;
-    }
-    nof_found_dci += n_dl;
+  // Search for grants
+  int n_dl = srslte_ue_dl_nr_find_dl_dci(
+      &ue_dl, &dl_slot_cfg, rnti, srslte_rnti_type_c, dci_rx.data(), (uint32_t)dci_rx.size());
+  if (n_dl < SRSLTE_SUCCESS) {
+    logger.error("Error decoding DL NR-PDCCH");
+    return;
   }
 
-  // Search for RA DCI
-  if (phy->cfg.pdcch.ra_search_space_present) {
-    int n_ra = srslte_ue_dl_nr_find_dl_dci(
-        &ue_dl, &dl_slot_cfg, phy->cfg.pdcch.ra_rnti, &dci_rx[nof_found_dci], (uint32_t)dci_rx.size() - nof_found_dci);
-    if (n_ra < SRSLTE_SUCCESS) {
-      logger.error("Error decoding DL NR-PDCCH for RA-RNTI");
-      return;
-    }
-    nof_found_dci += n_ra;
-  }
-
-  // Iterate over all DL received grants
-  for (uint32_t i = 0; i < nof_found_dci; i++) {
+  // Iterate over all received grants
+  for (int i = 0; i < n_dl; i++) {
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
@@ -173,26 +155,19 @@ void cc_worker::decode_pdcch_dl()
 
 void cc_worker::decode_pdcch_ul()
 {
-  std::array<srslte_dci_ul_nr_t, 5> dci_rx        = {};
-  uint32_t                          nof_found_dci = 0;
+  std::array<srslte_dci_ul_nr_t, 5> dci_rx = {};
+  uint16_t                          rnti   = phy->stack->get_ul_sched_rnti(ul_slot_cfg.idx);
 
-  // Search for test RNTI
-  if (phy->test_rnti > 0) {
-    // Search for test DL grants
-    int n_dl = srslte_ue_dl_nr_find_ul_dci(&ue_dl,
-                                           &dl_slot_cfg,
-                                           (uint16_t)phy->test_rnti,
-                                           &dci_rx[nof_found_dci],
-                                           (uint32_t)dci_rx.size() - nof_found_dci);
-    if (n_dl < SRSLTE_SUCCESS) {
-      logger.error("Error decoding DL NR-PDCCH for test RNTI");
-      return;
-    }
-    nof_found_dci += n_dl;
+  // Search for grants
+  int n_dl = srslte_ue_dl_nr_find_ul_dci(
+      &ue_dl, &dl_slot_cfg, rnti, srslte_rnti_type_c, dci_rx.data(), (uint32_t)dci_rx.size());
+  if (n_dl < SRSLTE_SUCCESS) {
+    logger.error("Error decoding UL NR-PDCCH");
+    return;
   }
 
-  // Iterate over all UL received grants
-  for (uint32_t i = 0; i < nof_found_dci; i++) {
+  // Iterate over all received grants
+  for (int i = 0; i < n_dl; i++) {
     // Log found DCI
     if (logger.info.enabled()) {
       std::array<char, 512> str;
@@ -247,8 +222,10 @@ bool cc_worker::work_dl()
       logger.info(pdsch_res[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
     }
 
-    // Enqueue PDSCH ACK information
-    phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res[0].crc);
+    // Enqueue PDSCH ACK information only if the RNTI is type C
+    if (pdsch_cfg.grant.rnti_type == srslte_rnti_type_c) {
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res[0].crc);
+    }
 
     // Notify MAC about PDSCH decoding result
     if (pdsch_res[0].crc) {

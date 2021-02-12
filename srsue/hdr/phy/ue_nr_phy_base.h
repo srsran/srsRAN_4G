@@ -25,22 +25,19 @@
 
 namespace srsue {
 
-class ue_phy_nr_base : public ue_phy_base, public phy_interface_stack_nr, public srslte::phy_interface_radio
+class ue_nr_phy_base : public phy_interface_stack_nr
 {
 public:
-  ue_phy_nr_base(){};
-  virtual ~ue_phy_nr_base() {}
+  ue_nr_phy_base(){};
+  virtual ~ue_nr_phy_base() {}
 
   virtual std::string get_type() = 0;
 
-  virtual int  init(const phy_args_t& args_)                                                                       = 0;
-  virtual int  init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_) = 0;
-  virtual void stop()                                                                                              = 0;
+  virtual int init(const phy_args_t& args_)                                                                         = 0;
+  virtual int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_) = 0;
+  virtual void stop()                                                                                               = 0;
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
-
-  virtual void wait_initialize() = 0;
-  virtual void start_plot()      = 0;
 
   virtual void get_metrics(phy_metrics_t* m) = 0;
 };

@@ -55,6 +55,7 @@ private:
   state*                phy_state = nullptr;
   srslog::basic_logger& logger;
 
+  uint32_t tti_rx      = 0;
   cf_t* prach_ptr   = nullptr;
   float prach_power = 0;
 };

@@ -69,5 +69,9 @@ int vnf_phy_nr::tx_request(const tx_request_t& request)
   // send Tx request over basic API
   return vnf->tx_request(request);
 }
+bool vnf_phy_nr::set_config(const srslte::phy_cfg_nr_t& cfg)
+{
+  return false;
+}
 
 } // namespace srsue

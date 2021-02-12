@@ -140,12 +140,14 @@ SRSLTE_API void srslte_ue_dl_nr_estimate_fft(srslte_ue_dl_nr_t* q, const srslte_
 SRSLTE_API int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
                                            const srslte_slot_cfg_t* slot_cfg,
                                            uint16_t                 rnti,
+                                           srslte_rnti_type_t       rnti_type,
                                            srslte_dci_dl_nr_t*      dci_dl_list,
                                            uint32_t                 nof_dci_msg);
 
 SRSLTE_API int srslte_ue_dl_nr_find_ul_dci(srslte_ue_dl_nr_t*       q,
                                            const srslte_slot_cfg_t* slot_cfg,
                                            uint16_t                 rnti,
+                                           srslte_rnti_type_t       rnti_type,
                                            srslte_dci_ul_nr_t*      dci_ul_list,
                                            uint32_t                 nof_dci_msg);
 

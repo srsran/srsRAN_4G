@@ -125,7 +125,7 @@ static int work_ue_dl(srslte_ue_dl_nr_t* ue_dl, srslte_slot_cfg_t* slot, srslte_
   srslte_ue_dl_nr_estimate_fft(ue_dl, slot);
 
   srslte_dci_dl_nr_t dci_dl_rx     = {};
-  int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(ue_dl, slot, rnti, &dci_dl_rx, 1);
+  int                nof_found_dci = srslte_ue_dl_nr_find_dl_dci(ue_dl, slot, rnti, srslte_rnti_type_c, &dci_dl_rx, 1);
   if (nof_found_dci < SRSLTE_SUCCESS) {
     ERROR("Error decoding");
     return SRSLTE_ERROR;

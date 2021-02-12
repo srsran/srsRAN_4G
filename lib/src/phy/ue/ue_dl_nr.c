@@ -388,6 +388,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
 int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
                                 const srslte_slot_cfg_t* slot_cfg,
                                 uint16_t                 rnti,
+                                srslte_rnti_type_t       rnti_type,
                                 srslte_dci_dl_nr_t*      dci_dl_list,
                                 uint32_t                 nof_dci_msg)
 {
@@ -403,10 +404,9 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
   nof_dci_msg = SRSLTE_MIN(nof_dci_msg, SRSLTE_MAX_DCI_MSG_NR);
 
   // If the UE looks for a RAR and RA search space is provided, search for it
-  if (q->cfg.ra_search_space_present && rnti == q->cfg.ra_rnti) {
+  if (q->cfg.ra_search_space_present && rnti_type == srslte_rnti_type_ra) {
     // Find DCIs in the RA search space
-    int ret = ue_dl_nr_find_dl_dci_ss(
-        q, slot_cfg, &q->cfg.ra_search_space, rnti, srslte_rnti_type_ra, &dci_msg_list[count], nof_dci_msg - count);
+    int ret = ue_dl_nr_find_dl_dci_ss(q, slot_cfg, &q->cfg.ra_search_space, rnti, rnti_type, dci_msg_list, nof_dci_msg);
     if (ret < SRSLTE_SUCCESS) {
       ERROR("Error searching RAR DCI");
       return SRSLTE_ERROR;
@@ -415,7 +415,7 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
     // Count the found DCIs
     count += ret;
   } else {
-    // Iterate all possible search spaces
+    // Iterate all possible common and UE search spaces
     for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE && count < nof_dci_msg; i++) {
       // Skip search space if not present
       if (!q->cfg.search_space_present[i]) {
@@ -424,7 +424,7 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
 
       // Find DCIs in the selected search space
       int ret = ue_dl_nr_find_dl_dci_ss(
-          q, slot_cfg, &q->cfg.search_space[i], rnti, srslte_rnti_type_c, &dci_msg_list[count], nof_dci_msg - count);
+          q, slot_cfg, &q->cfg.search_space[i], rnti, rnti_type, &dci_msg_list[count], nof_dci_msg - count);
       if (ret < SRSLTE_SUCCESS) {
         ERROR("Error searching DCI");
         return SRSLTE_ERROR;
@@ -447,6 +447,7 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
 int srslte_ue_dl_nr_find_ul_dci(srslte_ue_dl_nr_t*       q,
                                 const srslte_slot_cfg_t* slot_cfg,
                                 uint16_t                 rnti,
+                                srslte_rnti_type_t       rnti_type,
                                 srslte_dci_ul_nr_t*      dci_ul_list,
                                 uint32_t                 nof_dci_msg)
 {
@@ -459,7 +460,12 @@ int srslte_ue_dl_nr_find_ul_dci(srslte_ue_dl_nr_t*       q,
 
   // Get DCI messages from the pending list
   for (uint32_t i = 0; i < q->pending_ul_dci_count && count < nof_dci_msg; i++) {
-    srslte_dci_msg_nr_t*    dci_msg = &q->pending_ul_dci_msg[i];
+    srslte_dci_msg_nr_t* dci_msg = &q->pending_ul_dci_msg[i];
+
+    if (dci_msg->rnti_type != rnti_type || dci_msg->rnti != rnti) {
+      continue;
+    }
+
     const srslte_coreset_t* coreset = &q->cfg.coreset[dci_msg->coreset_id];
     if (srslte_dci_nr_format_0_0_unpack(&q->carrier, coreset, dci_msg, &dci_ul_list[count]) < SRSLTE_SUCCESS) {
       ERROR("Unpacking DCI 0_0");
