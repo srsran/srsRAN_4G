@@ -73,7 +73,8 @@ void rrc_nr::init_core_less()
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   srslte::PDCP_SN_LEN_18,
                                   srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t ::ms100};
+                                  srslte::pdcp_discard_timer_t::ms100,
+                                  false};
 
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
   return;
@@ -322,7 +323,6 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
                                  bool                nr_radio_bearer_cfg1_r15_present,
                                  asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
 {
-
   // sanity check only for now
   if (nr_secondary_cell_group_cfg_r15_present == false || sk_counter_r15_present == false ||
       nr_radio_bearer_cfg1_r15_present == false) {
@@ -514,7 +514,6 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
 }
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
-
   if (mac_cell_group_cfg.sched_request_cfg_present) {
     sr_cfg_t sr_cfg;
     if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
@@ -623,7 +622,6 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
 bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 {
-
   // TODO derive correct keys
   if (security_cfg.key_to_use_present) {
     if (security_cfg.key_to_use.value != security_cfg_s::key_to_use_opts::options::secondary) {

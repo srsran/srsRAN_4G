@@ -26,7 +26,8 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                srslte::PDCP_SN_LEN_12,
                                srslte::pdcp_t_reordering_t::ms500,
-                               discard_timeout};
+                               discard_timeout,
+                               false};
 
   pdcp_nr_test_helper      pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_nr*  pdcp  = &pdcp_hlp.pdcp;

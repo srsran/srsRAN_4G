@@ -141,7 +141,8 @@ protected:
                        SECURITY_DIRECTION_UPLINK,
                        PDCP_SN_LEN_12,
                        pdcp_t_reordering_t::ms500,
-                       pdcp_discard_timer_t::infinity};
+                       pdcp_discard_timer_t::infinity,
+                       false};
 
   srslte::as_security_config_t sec_cfg = {};
 

@@ -23,7 +23,8 @@ int test_tx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                srslte::PDCP_SN_LEN_12,
                                srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::ms500};
+                               srslte::pdcp_discard_timer_t::ms500,
+                               false};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;
@@ -102,7 +103,8 @@ int test_rx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                srslte::PDCP_SN_LEN_12,
                                srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::ms500};
+                               srslte::pdcp_discard_timer_t::ms500,
+                               false};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_lte* pdcp  = &pdcp_hlp.pdcp;

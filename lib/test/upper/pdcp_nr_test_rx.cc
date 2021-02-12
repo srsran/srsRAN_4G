@@ -29,7 +29,8 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   pdcp_sn_len,
                                   srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::infinity};
+                                  srslte::pdcp_discard_timer_t::infinity,
+                                  false};
 
   pdcp_nr_test_helper      pdcp_hlp_rx(cfg_rx, sec_cfg, logger);
   srslte::pdcp_entity_nr*  pdcp_rx = &pdcp_hlp_rx.pdcp;

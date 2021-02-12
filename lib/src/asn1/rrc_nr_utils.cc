@@ -69,7 +69,7 @@ logical_channel_config_t make_mac_logical_channel_cfg_t(uint8_t lcid, const lc_c
 rlc_config_t make_rlc_config_t(const rlc_cfg_c& asn1_type)
 {
   rlc_config_t rlc_cfg = rlc_config_t::default_rlc_um_nr_config();
-  rlc_cfg.rat = srslte_rat_t::nr;
+  rlc_cfg.rat          = srslte_rat_t::nr;
   switch (asn1_type.type().value) {
     case rlc_cfg_c::types_opts::am:
       break;
@@ -138,7 +138,8 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
                     sn_len,
                     t_reordering,
-                    discard_timer);
+                    discard_timer,
+                    false);
   return cfg;
 }
 

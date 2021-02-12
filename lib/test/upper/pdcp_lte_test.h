@@ -90,7 +90,8 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                pdcp_sn_len,
                                srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::infinity};
+                               srslte::pdcp_discard_timer_t::infinity,
+                               false};
 
   pdcp_lte_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_lte* pdcp = &pdcp_hlp.pdcp;

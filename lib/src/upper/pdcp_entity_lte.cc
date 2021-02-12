@@ -52,6 +52,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
               reordering_window,
               maximum_pdcp_sn,
               static_cast<uint32_t>(cfg.discard_timer));
+  logger.info("Status Report Required: %s", cfg.status_report_required ? "True" : "False");
 
   // Check supported config
   if (!check_valid_config()) {
@@ -74,14 +75,14 @@ void pdcp_entity_lte::reestablish()
     st.tx_hfn          = 0;
     st.rx_hfn          = 0;
     st.next_pdcp_rx_sn = 0;
-  } else {
+  } else if (rlc->rb_is_um(lcid)) {
     // Only reset counter in RLC-UM
-    if (rlc->rb_is_um(lcid)) {
-      st.next_pdcp_tx_sn = 0;
-      st.tx_hfn          = 0;
-      st.rx_hfn          = 0;
-      st.next_pdcp_rx_sn = 0;
-    }
+    st.next_pdcp_tx_sn = 0;
+    st.tx_hfn          = 0;
+    st.rx_hfn          = 0;
+    st.next_pdcp_rx_sn = 0;
+  } else {
+    // TODO Send status report if required on reestablishment in RLC AM
   }
 }
 

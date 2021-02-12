@@ -60,7 +60,8 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   srslte::PDCP_SN_LEN_18,
                                   srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::infinity};
+                                  srslte::pdcp_discard_timer_t::infinity,
+                                  false};
   pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
   m_log->info("Started\n");

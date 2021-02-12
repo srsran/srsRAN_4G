@@ -28,7 +28,8 @@ int test_tx(uint32_t                     n_packets,
                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                pdcp_sn_len,
                                srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::infinity};
+                               srslte::pdcp_discard_timer_t::infinity,
+                               false};
 
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, logger);
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
