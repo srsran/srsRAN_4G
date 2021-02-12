@@ -122,7 +122,6 @@ private:
 int basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
 {
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i]             = srslte::make_byte_buffer();
@@ -220,7 +219,6 @@ int concat_test()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i]             = srslte::make_byte_buffer();
@@ -296,7 +294,6 @@ int segment_test(bool in_seq_rx)
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -391,7 +388,6 @@ int retx_test()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i]             = srslte::make_byte_buffer();
@@ -527,14 +523,14 @@ int segment_retx_test()
   }
 
   // Push SDU(s) into RLC1
-  byte_buffer_pool*    pool     = byte_buffer_pool::get_instance();
   const uint32_t       nof_sdus = 1; // just one SDU to make sure the transmitter sets polling bit
   unique_byte_buffer_t sdu_bufs[nof_sdus];
 
   for (uint32_t i = 0; i < nof_sdus; i++) {
     sdu_bufs[i]          = srslte::make_byte_buffer();
-    sdu_bufs[i]->msg[0]  = i;  // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
+    std::fill(sdu_bufs[i]->msg, sdu_bufs[i]->msg + sdu_bufs[i]->N_bytes, 0);
+    sdu_bufs[i]->msg[0] = i; // Write the index into the buffer
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
@@ -651,7 +647,6 @@ int resegment_test_1()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -796,7 +791,6 @@ int resegment_test_2()
 
   rlc_am_tester tester;
   timer_handler timers(8);
-  int           len = 0;
 
   rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   rlc_am_lte rlc2(srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
@@ -810,7 +804,6 @@ int resegment_test_2()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -943,7 +936,6 @@ int resegment_test_3()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -1074,7 +1066,6 @@ int resegment_test_4()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -1161,7 +1152,7 @@ int resegment_test_4()
   }
 
   // Get status from RLC 2
-  for (int cnt = 0; cnt < 5; cnt++) {
+  for (int i = 0; i < 5; i++) {
     timers.step_all();
   }
 
@@ -1207,7 +1198,6 @@ int resegment_test_5()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -1287,7 +1277,7 @@ int resegment_test_5()
   }
 
   // Get status from RLC 2
-  for (int cnt = 0; cnt < 5; cnt++) {
+  for (int i = 0; i < 5; i++) {
     timers.step_all();
   }
 
@@ -1335,7 +1325,6 @@ int resegment_test_6()
   }
 
   // Push SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[9];
   for (int i = 0; i < 3; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -1447,7 +1436,7 @@ int resegment_test_6()
   }
 
   // Get status from RLC 2
-  for (int cnt = 0; cnt < 5; cnt++) {
+  for (int i = 0; i < 5; i++) {
     timers.step_all();
   }
 
@@ -1506,7 +1495,6 @@ int resegment_test_7()
   }
 
   // Push 2 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[N_SDU_BUFS];
   for (uint32_t i = 0; i < N_SDU_BUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -1694,7 +1682,6 @@ int resegment_test_8()
   }
 
   // Push 2 SDUs into RLC1
-  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[N_SDU_BUFS];
   for (uint32_t i = 0; i < N_SDU_BUFS; i++) {
     sdu_bufs[i] = srslte::make_byte_buffer();
@@ -1831,10 +1818,10 @@ bool reset_test()
   }
 
   // Push 1 SDU of size 10 into RLC1
-  byte_buffer_pool*    pool    = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_buf = srslte::make_byte_buffer();
-  sdu_buf->msg[0]              = 1; // Write the index into the buffer
   sdu_buf->N_bytes             = 100;
+  std::fill(sdu_buf->msg, sdu_buf->msg + sdu_buf->N_bytes, 0);
+  sdu_buf->msg[0] = 1; // Write the index into the buffer
   rlc1.write_sdu(std::move(sdu_buf));
 
   // read 1 PDU from RLC1 and force segmentation
@@ -1873,10 +1860,10 @@ bool resume_test()
   }
 
   // Push 1 SDU of size 10 into RLC1
-  byte_buffer_pool*    pool    = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_buf = srslte::make_byte_buffer();
-  sdu_buf->msg[0]              = 1; // Write the index into the buffer
   sdu_buf->N_bytes             = 100;
+  std::fill(sdu_buf->msg, sdu_buf->msg + sdu_buf->N_bytes, 0);
+  sdu_buf->msg[0] = 1; // Write the index into the buffer
   rlc1.write_sdu(std::move(sdu_buf));
 
   // read 1 PDU from RLC1 and force segmentation
@@ -1949,8 +1936,8 @@ bool status_pdu_test()
   unique_byte_buffer_t sdu_bufs[NBUFS];
   for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i]          = srslte::make_byte_buffer();
-    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
