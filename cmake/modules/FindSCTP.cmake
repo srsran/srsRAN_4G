@@ -13,7 +13,7 @@
 #  SCTP_INCLUDE_DIRS - The mbedtls include directories
 #  SCTP_LIBRARIES    - The mbedtls library
 
-INCLUDE(FindPkgConfig)
+FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(PC_SCTP sctp)
 
 #find Mbedtls
