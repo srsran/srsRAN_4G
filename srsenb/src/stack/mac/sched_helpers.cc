@@ -182,6 +182,11 @@ prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_
   return {rb_start, rb_start + l_crb};
 }
 
+bool is_contiguous(const rbgmask_t& mask)
+{
+  return rbg_interval::rbgmask_to_rbgs(mask).length() == mask.count();
+}
+
 /*******************************************************
  *                 Sched Params
  *******************************************************/

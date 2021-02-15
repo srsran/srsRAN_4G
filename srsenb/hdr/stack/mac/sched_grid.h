@@ -36,7 +36,10 @@ struct alloc_outcome_t {
     NOF_RB_INVALID,
     PUCCH_COLLISION,
     MEASGAP_COLLISION,
-    ALREADY_ALLOC
+    ALREADY_ALLOC,
+    NO_DATA,
+    INVALID_PRBMASK,
+    INVALID_CARRIER
   };
   result_enum result = ERROR;
   alloc_outcome_t()  = default;

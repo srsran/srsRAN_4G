@@ -143,6 +143,12 @@ uint32_t get_aggr_level(uint32_t nof_bits,
                         bool     use_tbs_index_alt);
 
 /*******************************************************
+ *              RB mask helper functions
+ *******************************************************/
+
+bool is_contiguous(const rbgmask_t& mask);
+
+/*******************************************************
  *          sched_interface helper functions
  *******************************************************/
 

@@ -69,20 +69,13 @@ void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     if (user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx) < 0) {
       continue;
     }
-    const dl_harq_proc* h        = get_dl_newtx_harq(user, tti_sched);
-    rbg_interval        req_rbgs = user.get_required_dl_rbgs(cc_cfg->enb_cc_idx);
+    const dl_harq_proc* h = get_dl_newtx_harq(user, tti_sched);
     // Check if there is an empty harq for the newtx
-    if (h == nullptr or req_rbgs.stop() == 0) {
+    if (h == nullptr) {
       continue;
     }
-    // Allocate resources based on pending data
-    rbgmask_t newtx_mask = find_available_dl_rbgs(req_rbgs.stop(), tti_sched->get_dl_mask());
-    if (newtx_mask.count() >= req_rbgs.start()) {
-      // empty RBGs were found
-      alloc_outcome_t code = tti_sched->alloc_dl_user(&user, newtx_mask, h->get_id());
-      if (code == alloc_outcome_t::DCI_COLLISION) {
-        logger.info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x", user.get_rnti());
-      }
+    if (try_dl_newtx_alloc_greedy(*tti_sched, user, *h) == alloc_outcome_t::DCI_COLLISION) {
+      logger.info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x", user.get_rnti());
     }
   }
 }

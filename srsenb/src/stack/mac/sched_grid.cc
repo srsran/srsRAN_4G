@@ -38,6 +38,14 @@ const char* alloc_outcome_t::to_string() const
       return "measgap_collision";
     case ALREADY_ALLOC:
       return "already allocated";
+    case NO_DATA:
+      return "no pending data to allocate";
+    case INVALID_PRBMASK:
+      return "invalid rbg mask";
+    case INVALID_CARRIER:
+      return "invalid eNB carrier";
+    default:
+      break;
   }
   return "unknown error";
 }
@@ -770,7 +778,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
 
   auto* cc = user->find_ue_carrier(cc_cfg->enb_cc_idx);
   if (cc == nullptr or cc->cc_state() != cc_st::active) {
-    return alloc_outcome_t::ERROR;
+    return alloc_outcome_t::INVALID_CARRIER;
   }
   if (not user->pdsch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx)) {
     return alloc_outcome_t::MEASGAP_COLLISION;
@@ -782,9 +790,15 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
     // It is newTx
     rbg_interval r = user->get_required_dl_rbgs(cc_cfg->enb_cc_idx);
     if (r.start() > user_mask.count()) {
-      logger.warning("The number of RBGs allocated to rnti=0x%x will force segmentation", user->get_rnti());
+      logger.warning("SCHED: The number of RBGs allocated to rnti=0x%x will force segmentation", user->get_rnti());
       return alloc_outcome_t::NOF_RB_INVALID;
     }
+  }
+
+  srslte_dci_format_t dci_format = user->get_dci_format();
+  if (dci_format == SRSLTE_DCI_FORMAT1A and not is_contiguous(user_mask)) {
+    logger.warning("SCHED: Can't use distributed RBGs for DCI format 1A");
+    return alloc_outcome_t::INVALID_PRBMASK;
   }
 
   // Check if there is space in the PUCCH for HARQ ACKs

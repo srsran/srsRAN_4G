@@ -78,20 +78,13 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
       return ue_ctxt.dl_retx_h->get_tbs(0) + ue_ctxt.dl_retx_h->get_tbs(1);
     }
   }
+
+  // There is space in PDCCH and an available DL HARQ
   if (code != alloc_outcome_t::DCI_COLLISION and ue_ctxt.dl_newtx_h != nullptr) {
-    rbg_interval req_rbgs = ue.get_required_dl_rbgs(cc_cfg->enb_cc_idx);
-    // Check if there is an empty harq for the newtx
-    if (req_rbgs.stop() == 0) {
-      return 0;
-    }
-    // Allocate resources based on pending data
-    rbgmask_t newtx_mask = find_available_dl_rbgs(req_rbgs.stop(), tti_sched->get_dl_mask());
-    if (newtx_mask.count() >= req_rbgs.start()) {
-      // empty RBGs were found
-      code = tti_sched->alloc_dl_user(&ue, newtx_mask, ue_ctxt.dl_newtx_h->get_id());
-      if (code == alloc_outcome_t::SUCCESS) {
-        return ue.get_expected_dl_bitrate(cc_cfg->enb_cc_idx, newtx_mask.count()) * tti_duration_ms / 8;
-      }
+    rbgmask_t alloc_mask;
+    code = try_dl_newtx_alloc_greedy(*tti_sched, ue, *ue_ctxt.dl_newtx_h, &alloc_mask);
+    if (code == alloc_outcome_t::SUCCESS) {
+      return ue.get_expected_dl_bitrate(cc_cfg->enb_cc_idx, alloc_mask.count()) * tti_duration_ms / 8;
     }
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
