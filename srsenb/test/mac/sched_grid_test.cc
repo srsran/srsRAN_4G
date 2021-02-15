@@ -66,12 +66,12 @@ int test_pdcch_one_ue()
     sched_ue.set_dl_cqi(to_tx_dl(tti_rx), ENB_CC_IDX, dl_cqi);
     uint32_t aggr_idx = get_aggr_level(sched_ue, PCell_IDX, cell_params);
     uint32_t max_nof_cce_locs =
-        sched_ue.get_locations(ENB_CC_IDX, pdcch_sched::MAX_CFI, to_tx_dl(tti_rx).sf_idx())->nof_loc[aggr_idx];
+        (*sched_ue.get_locations(ENB_CC_IDX, pdcch_sched::MAX_CFI, to_tx_dl(tti_rx).sf_idx()))[aggr_idx].size();
 
     // allocate DL user
-    uint32_t                       prev_cfi = pdcch.get_cfi();
-    const srsenb::sched_dci_cce_t* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
-    uint32_t                       prev_nof_cce_locs = dci_cce->nof_loc[aggr_idx];
+    uint32_t                      prev_cfi = pdcch.get_cfi();
+    const cce_cfi_position_table* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
+    uint32_t                      prev_nof_cce_locs = (*dci_cce)[aggr_idx].size();
 
     TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, aggr_idx, &sched_ue));
     TESTASSERT(pdcch.nof_allocs() == 1);
@@ -83,9 +83,8 @@ int test_pdcch_one_ue()
       TESTASSERT(pdcch.get_cfi() == prev_cfi);
     }
 
-    dci_cce                      = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), to_tx_dl(tti_rx).sf_idx());
-    uint32_t        nof_dci_locs = dci_cce->nof_loc[aggr_idx];
-    const uint32_t* dci_locs     = dci_cce->cce_start[aggr_idx];
+    dci_cce                           = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), to_tx_dl(tti_rx).sf_idx());
+    const cce_position_list& dci_locs = (*dci_cce)[aggr_idx];
 
     // TEST: Check the first alloc of the pdcch result (e.g. rnti, valid cce mask, etc.)
     pdcch_sched::alloc_result_t pdcch_result;
@@ -96,14 +95,14 @@ int test_pdcch_one_ue()
     TESTASSERT(pdcch_result[0]->total_mask.size() == cell_params[ENB_CC_IDX].nof_cce_table[pdcch.get_cfi() - 1]);
     TESTASSERT(pdcch_result[0]->current_mask == pdcch_result[0]->total_mask);
     TESTASSERT(pdcch_result[0]->current_mask.count() == 1u << aggr_idx);
-    TESTASSERT(std::count(dci_locs, dci_locs + nof_dci_locs, pdcch_result[0]->dci_pos.ncce) > 0);
+    TESTASSERT(std::count(dci_locs.begin(), dci_locs.end(), pdcch_result[0]->dci_pos.ncce) > 0);
 
     // allocate UL user
     if (max_nof_cce_locs == pdcch.nof_allocs()) {
       // no more space
       continue;
     }
-    prev_nof_cce_locs = nof_dci_locs;
+    prev_nof_cce_locs = dci_locs.size();
     prev_cfi          = pdcch.get_cfi();
     TESTASSERT(pdcch.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, &sched_ue));
     TESTASSERT(pdcch.nof_allocs() == 2);
@@ -115,9 +114,8 @@ int test_pdcch_one_ue()
       TESTASSERT(pdcch.get_cfi() == prev_cfi);
     }
 
-    dci_cce      = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), to_tx_dl(tti_rx).sf_idx());
-    nof_dci_locs = dci_cce->nof_loc[aggr_idx];
-    dci_locs     = dci_cce->cce_start[aggr_idx];
+    dci_cce                            = sched_ue.get_locations(ENB_CC_IDX, pdcch.get_cfi(), to_tx_dl(tti_rx).sf_idx());
+    const cce_position_list& dci_locs2 = (*dci_cce)[aggr_idx];
 
     pdcch.get_allocs(&pdcch_result, &pdcch_mask, 0);
     TESTASSERT(pdcch_result.size() == pdcch.nof_allocs());
@@ -126,7 +124,7 @@ int test_pdcch_one_ue()
     TESTASSERT((pdcch_result[1]->current_mask & pdcch_result[0]->current_mask).none());
     TESTASSERT(pdcch_result[1]->current_mask.count() == 1u << aggr_idx);
     TESTASSERT(pdcch_result[1]->total_mask == (pdcch_result[0]->current_mask | pdcch_result[1]->current_mask));
-    TESTASSERT(std::count(dci_locs, dci_locs + nof_dci_locs, pdcch_result[0]->dci_pos.ncce) > 0);
+    TESTASSERT(std::count(dci_locs2.begin(), dci_locs2.end(), pdcch_result[0]->dci_pos.ncce) > 0);
 
     srslog::fetch_basic_logger("TEST").info("PDCCH alloc result: %s", pdcch.result_to_string(true).c_str());
   }

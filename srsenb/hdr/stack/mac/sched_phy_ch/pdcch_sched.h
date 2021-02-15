@@ -69,16 +69,16 @@ private:
     alloc_type_t alloc_type;
   };
 
-  const alloc_tree_t&    get_alloc_tree() const { return alloc_trees[current_cfix]; }
-  const sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const;
+  const alloc_tree_t&           get_alloc_tree() const { return alloc_trees[current_cfix]; }
+  const cce_cfi_position_table* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const;
 
   // PDCCH allocation algorithm
   bool        alloc_dci_record(const alloc_record_t& record, uint32_t cfix);
-  static bool add_tree_node_leaves(alloc_tree_t&          tree,
-                                   int                    node_idx,
-                                   const alloc_record_t&  dci_record,
-                                   const sched_dci_cce_t& dci_locs,
-                                   tti_point              tti_tx_dl);
+  static bool add_tree_node_leaves(alloc_tree_t&                 tree,
+                                   int                           node_idx,
+                                   const alloc_record_t&         dci_record,
+                                   const cce_cfi_position_table& dci_locs,
+                                   tti_point                     tti_tx_dl);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;

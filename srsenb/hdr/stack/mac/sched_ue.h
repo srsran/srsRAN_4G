@@ -126,8 +126,8 @@ public:
                        int                               explicit_mcs = -1,
                        uci_pusch_t                       uci_type     = UCI_PUSCH_NONE);
 
-  srslte_dci_format_t    get_dci_format();
-  const sched_dci_cce_t* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
+  srslte_dci_format_t           get_dci_format();
+  const cce_cfi_position_table* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
 
   sched_ue_cell*                   find_ue_carrier(uint32_t enb_cc_idx);
   size_t                           nof_carriers_configured() const { return cfg.supported_cc_list.size(); }

@@ -52,7 +52,7 @@ struct sched_ue_cell {
   const sched_cell_params_t* cell_cfg = nullptr;
 
   /// Allowed DCI locations per per CFI and per subframe
-  const ue_cce_locations_table dci_locations;
+  const cce_frame_position_table dci_locations;
 
   /// Cell HARQ Entity
   harq_entity harq_ent;

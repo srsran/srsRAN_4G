@@ -107,7 +107,7 @@ inline uint32_t count_prb_per_tb_approx(uint32_t nof_rbgs, uint32_t cell_nof_prb
   return std::min(nof_rbgs * P, cell_nof_prb);
 }
 
-ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
+cce_frame_position_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
 
 /**
  * Generate possible CCE locations a user can use to allocate DCIs
@@ -117,11 +117,11 @@ ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_ce
  * @param sf_idx subframe index specific to the tx TTI (relevant only for data and RAR transmissions)
  * @param rnti identity of the user (invalid RNTI for RAR and BC transmissions)
  */
-void generate_cce_location(srslte_regs_t*   regs,
-                           sched_dci_cce_t* location,
-                           uint32_t         cfi,
-                           uint32_t         sf_idx = 0,
-                           uint16_t         rnti   = SRSLTE_INVALID_RNTI);
+void generate_cce_location(srslte_regs_t*          regs,
+                           cce_cfi_position_table& locations,
+                           uint32_t                cfi,
+                           uint32_t                sf_idx = 0,
+                           uint16_t                rnti   = SRSLTE_INVALID_RNTI);
 
 /// Obtains TB size *in bytes* for a given MCS and nof allocated prbs
 inline uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_alt, bool is_ul)

@@ -51,7 +51,6 @@ void sched::init(rrc_interface_mac* rrc_, const sched_args_t& sched_cfg_)
 int sched::reset()
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
-  configured.store(false, std::memory_order_release);
   for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
     c->reset();
   }

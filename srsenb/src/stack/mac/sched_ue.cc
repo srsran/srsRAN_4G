@@ -1047,13 +1047,13 @@ srslte_dci_format_t sched_ue::get_dci_format()
   return ret;
 }
 
-const sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx) const
+const cce_cfi_position_table* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx) const
 {
   if (cfi > 0 && cfi <= 3) {
-    return &cells[enb_cc_idx].dci_locations[cfi - 1][sf_idx];
+    return &cells[enb_cc_idx].dci_locations[sf_idx][cfi - 1];
   } else {
     logger.error("SCHED: Invalid CFI=%d", cfi);
-    return &cells[enb_cc_idx].dci_locations[0][sf_idx];
+    return &cells[enb_cc_idx].dci_locations[sf_idx][0];
   }
 }
 

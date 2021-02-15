@@ -45,7 +45,8 @@ void pdcch_sched::new_tti(tti_point tti_rx_)
   current_cfix = cc_cfg->sched_cfg->min_nof_ctrl_symbols - 1;
 }
 
-const sched_dci_cce_t* pdcch_sched::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const
+const cce_cfi_position_table*
+pdcch_sched::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const
 {
   switch (alloc_type) {
     case alloc_type_t::DL_BC:
@@ -53,7 +54,7 @@ const sched_dci_cce_t* pdcch_sched::get_cce_loc_table(alloc_type_t alloc_type, s
     case alloc_type_t::DL_PCCH:
       return &cc_cfg->common_locations[cfix];
     case alloc_type_t::DL_RAR:
-      return &cc_cfg->rar_locations[cfix][to_tx_dl(tti_rx).sf_idx()];
+      return &cc_cfg->rar_locations[to_tx_dl(tti_rx).sf_idx()][cfix];
     case alloc_type_t::DL_DATA:
       return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, to_tx_dl(tti_rx).sf_idx());
     case alloc_type_t::UL_DATA:
@@ -95,8 +96,8 @@ bool pdcch_sched::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
   auto& tree = alloc_trees[cfix];
 
   // Get DCI Location Table
-  const sched_dci_cce_t* dci_locs = get_cce_loc_table(record.alloc_type, record.user, cfix);
-  if (dci_locs == nullptr or dci_locs->nof_loc[record.aggr_idx] == 0) {
+  const cce_cfi_position_table* dci_locs = get_cce_loc_table(record.alloc_type, record.user, cfix);
+  if (dci_locs == nullptr or (*dci_locs)[record.aggr_idx].empty()) {
     return ret;
   }
 
@@ -117,11 +118,11 @@ bool pdcch_sched::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
 }
 
 //! Algorithm to compute a valid PDCCH allocation
-bool pdcch_sched::add_tree_node_leaves(alloc_tree_t&          tree,
-                                       int                    parent_node_idx,
-                                       const alloc_record_t&  dci_record,
-                                       const sched_dci_cce_t& dci_locs,
-                                       tti_point              tti_tx_dl)
+bool pdcch_sched::add_tree_node_leaves(alloc_tree_t&                 tree,
+                                       int                           parent_node_idx,
+                                       const alloc_record_t&         dci_record,
+                                       const cce_cfi_position_table& dci_locs,
+                                       tti_point                     tti_tx_dl)
 {
   bool ret = false;
 
@@ -137,9 +138,8 @@ bool pdcch_sched::add_tree_node_leaves(alloc_tree_t&          tree,
     cum_mask.resize(tree.nof_cces);
   }
 
-  uint32_t nof_locs = dci_locs.nof_loc[dci_record.aggr_idx];
-  for (uint32_t i = 0; i < nof_locs; ++i) {
-    uint32_t startpos = dci_locs.cce_start[dci_record.aggr_idx][i];
+  for (uint32_t i = 0; i < dci_locs[dci_record.aggr_idx].size(); ++i) {
+    uint32_t startpos = dci_locs[dci_record.aggr_idx][i];
 
     if (dci_record.alloc_type == alloc_type_t::DL_DATA and dci_record.user->pucch_sr_collision(tti_tx_dl, startpos)) {
       // will cause a collision in the PUCCH

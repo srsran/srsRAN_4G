@@ -23,17 +23,24 @@ namespace srsenb {
  *     Constants
  **********************/
 
-constexpr float tti_duration_ms = 1;
+constexpr float    tti_duration_ms = 1;
+constexpr uint32_t NOF_AGGR_LEVEL  = 4;
 
 /***********************
  *   Helper Types
  **********************/
 
-//! Struct used to store possible CCE locations.
-struct sched_dci_cce_t {
-  uint32_t cce_start[4][6]; ///< Stores starting CCE for each aggr level index and CCE location index
-  uint32_t nof_loc[4];      ///< Number of possible CCE locations for each aggregation level index
-};
+/// List of CCE start positions in PDCCH
+using cce_position_list = srslte::bounded_vector<uint32_t, 6>;
+
+/// Map {L} -> list of CCE positions
+using cce_cfi_position_table = std::array<cce_position_list, NOF_AGGR_LEVEL>;
+
+/// Map {cfi, L} -> list of CCE positions
+using cce_sf_position_table = std::array<std::array<cce_position_list, NOF_AGGR_LEVEL>, SRSLTE_NOF_CFI>;
+
+/// Map {sf, cfi, L} -> list of CCE positions
+using cce_frame_position_table = std::array<cce_sf_position_table, SRSLTE_NOF_SF_X_FRAME>;
 
 /// structs to bundle together all the sched arguments, and share them with all the sched sub-components
 class sched_cell_params_t
@@ -52,15 +59,15 @@ public:
   uint32_t get_dl_lb_nof_re(tti_point tti_tx_dl, uint32_t nof_prbs_alloc) const;
   uint32_t get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dci_dl_t& dci, uint32_t cfi) const;
 
-  uint32_t                                       enb_cc_idx = 0;
-  sched_interface::cell_cfg_t                    cfg        = {};
-  const sched_interface::sched_args_t*           sched_cfg  = nullptr;
-  std::unique_ptr<srslte_regs_t, regs_deleter>   regs;
-  std::array<sched_dci_cce_t, 3>                 common_locations = {};
-  std::array<std::array<sched_dci_cce_t, 10>, 3> rar_locations    = {};
-  std::array<uint32_t, 3>                        nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
-  uint32_t                                       P                = 0;
-  uint32_t                                       nof_rbgs         = 0;
+  uint32_t                                     enb_cc_idx = 0;
+  sched_interface::cell_cfg_t                  cfg        = {};
+  const sched_interface::sched_args_t*         sched_cfg  = nullptr;
+  std::unique_ptr<srslte_regs_t, regs_deleter> regs;
+  cce_sf_position_table                        common_locations = {};
+  cce_frame_position_table                     rar_locations    = {};
+  std::array<uint32_t, SRSLTE_NOF_CFI>         nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
+  uint32_t                                     P                = 0;
+  uint32_t                                     nof_rbgs         = 0;
 
   using dl_nof_re_table = srslte::bounded_vector<
       std::array<std::array<std::array<uint32_t, SRSLTE_NOF_CFI>, SRSLTE_NOF_SLOTS_PER_SF>, SRSLTE_NOF_SF_X_FRAME>,
@@ -72,8 +79,6 @@ public:
   /// Cached computation of Lower bound of nof REs
   dl_lb_nof_re_table nof_re_lb_table;
 };
-
-using ue_cce_locations_table = std::array<std::array<sched_dci_cce_t, SRSLTE_NOF_SF_X_FRAME>, SRSLTE_NOF_CFI>;
 
 //! Bitmask used for CCE allocations
 using pdcch_mask_t = srslte::bounded_bitset<sched_interface::max_cce, true>;

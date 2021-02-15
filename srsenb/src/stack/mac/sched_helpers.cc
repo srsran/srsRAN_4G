@@ -295,9 +295,9 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
 
   // Compute Common locations for DCI for each CFI
   for (uint32_t cfix = 0; cfix < SRSLTE_NOF_CFI; cfix++) {
-    generate_cce_location(regs.get(), &common_locations[cfix], cfix + 1);
+    generate_cce_location(regs.get(), common_locations[cfix], cfix + 1);
   }
-  if (common_locations[sched_cfg->max_nof_ctrl_symbols - 1].nof_loc[2] == 0) {
+  if (common_locations[sched_cfg->max_nof_ctrl_symbols - 1][2].empty()) {
     Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).",
           sched_cfg->max_nof_ctrl_symbols);
     srslte::console(
@@ -307,9 +307,9 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   }
 
   // Compute UE locations for RA-RNTI
-  for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
-      generate_cce_location(regs.get(), &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
+  for (uint32_t cfi = 0; cfi < SRSLTE_NOF_CFI; cfi++) {
+    for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
+      generate_cce_location(regs.get(), rar_locations[sf_idx][cfi], cfi + 1, sf_idx);
     }
   }
 
@@ -369,25 +369,25 @@ sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dc
   return nof_re;
 }
 
-ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)
+cce_frame_position_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)
 {
-  ue_cce_locations_table dci_locations;
+  cce_frame_position_table dci_locations = {};
   // Generate allowed CCE locations
   for (int cfi = 0; cfi < SRSLTE_NOF_CFI; cfi++) {
     for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-      generate_cce_location(cell_cfg.regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+      generate_cce_location(cell_cfg.regs.get(), dci_locations[sf_idx][cfi], cfi + 1, sf_idx, rnti);
     }
   }
   return dci_locations;
 }
 
-void generate_cce_location(srslte_regs_t*   regs_,
-                           sched_dci_cce_t* location,
-                           uint32_t         cfi,
-                           uint32_t         sf_idx,
-                           uint16_t         rnti)
+void generate_cce_location(srslte_regs_t*          regs_,
+                           cce_cfi_position_table& locations,
+                           uint32_t                cfi,
+                           uint32_t                sf_idx,
+                           uint16_t                rnti)
 {
-  *location = {};
+  locations = {};
 
   srslte_dci_location_t loc[64];
   uint32_t              nloc = 0;
@@ -399,9 +399,8 @@ void generate_cce_location(srslte_regs_t*   regs_,
 
   // Save to different format
   for (uint32_t i = 0; i < nloc; i++) {
-    uint32_t l                                   = loc[i].L;
-    location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
-    location->nof_loc[l]++;
+    uint32_t l = loc[i].L;
+    locations[l].push_back(loc[i].ncce);
   }
 }
 
