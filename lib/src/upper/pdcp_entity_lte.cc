@@ -548,6 +548,10 @@ bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& s
   memcpy(sdu_copy->msg, sdu->msg, sdu->N_bytes);
   sdu_copy->N_bytes = sdu->N_bytes;
 
+  // Metrics
+  metrics.num_tx_buffered_pdus++;
+  metrics.num_tx_buffered_pdus_bytes += sdu->N_bytes;
+
   undelivered_sdus_queue.insert(std::make_pair(tx_count, std::move(sdu_copy)));
   return true;
 }
@@ -649,6 +653,19 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
     logger.debug(it->second->msg, it->second->N_bytes, "Forwarding buffered PDU with SN=%d", it->first);
   }
   return cpy;
+}
+
+/****************************************************************************
+ * Metrics helpers
+ ***************************************************************************/
+pdcp_bearer_metrics_t pdcp_entity_lte::get_metrics()
+{
+  return metrics;
+}
+
+void pdcp_entity_lte::reset_metrics()
+{
+  metrics = {};
 }
 
 } // namespace srslte

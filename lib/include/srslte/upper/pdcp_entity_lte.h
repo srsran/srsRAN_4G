@@ -75,6 +75,10 @@ public:
   // Getter for the number of discard timers. Used for debugging.
   uint32_t nof_discard_timers() { return discard_timers_map.size(); }
 
+  // Metrics helpers
+  pdcp_bearer_metrics_t get_metrics() override;
+  void                  reset_metrics() override;
+
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;

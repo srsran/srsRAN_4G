@@ -126,6 +126,10 @@ public:
   uint32_t SN(uint32_t count);
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
+  // Metrics helpers
+  virtual pdcp_bearer_metrics_t get_metrics()   = 0;
+  virtual void                  reset_metrics() = 0;
+
 protected:
   srslog::basic_logger&     logger;
   srslte::task_sched_handle task_sched;
@@ -163,6 +167,9 @@ protected:
   void            write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count);
   void            extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac);
   void            append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
+
+  // Metrics helpers
+  pdcp_bearer_metrics_t metrics = {};
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)

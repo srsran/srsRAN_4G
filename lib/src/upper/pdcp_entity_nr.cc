@@ -286,4 +286,15 @@ void pdcp_entity_nr::set_bearer_state(const pdcp_lte_state_t& state)
   // TODO
 }
 
+pdcp_bearer_metrics_t pdcp_entity_nr::get_metrics()
+{
+  // TODO
+  return metrics;
+}
+
+void pdcp_entity_nr::reset_metrics()
+{
+  metrics = {};
+}
+
 } // namespace srslte
