@@ -155,8 +155,8 @@ void cc_worker::decode_pdcch_dl()
 
 void cc_worker::decode_pdcch_ul()
 {
-  std::array<srslte_dci_ul_nr_t, 5> dci_rx = {};
-  uint16_t                          rnti   = phy->stack->get_ul_sched_rnti(ul_slot_cfg.idx);
+  std::array<srslte_dci_ul_nr_t, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR> dci_rx = {};
+  uint16_t rnti = phy->stack->get_ul_sched_rnti(ul_slot_cfg.idx);
 
   // Search for grants
   int n_dl = srslte_ue_dl_nr_find_ul_dci(
