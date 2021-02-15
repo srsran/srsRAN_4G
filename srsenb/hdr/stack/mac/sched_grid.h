@@ -14,6 +14,7 @@
 #define SRSLTE_SCHED_GRID_H
 
 #include "lib/include/srslte/interfaces/sched_interface.h"
+#include "sched_phy_ch/pdcch_sched.h"
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/log.h"
@@ -23,10 +24,7 @@
 
 namespace srsenb {
 
-//! Type of Allocation
-enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
-
-//! Result of alloc attempt
+/// Error code of alloc attempt
 struct alloc_outcome_t {
   enum result_enum {
     SUCCESS,
@@ -90,79 +88,7 @@ private:
   std::array<sf_sched_result, TTIMOD_SZ> results;
 };
 
-//! Class responsible for managing a PDCCH CCE grid, namely cce allocs, and avoid collisions.
-class pdcch_grid_t
-{
-public:
-  const static uint32_t MAX_CFI = 3;
-  struct alloc_t {
-    uint16_t              rnti    = 0;
-    srslte_dci_location_t dci_pos = {0, 0};
-    pdcch_mask_t          current_mask; ///< this PDCCH alloc mask
-    pdcch_mask_t          total_mask;   ///< Accumulation of all PDCCH masks for the current solution (tree route)
-  };
-  using alloc_result_t = std::vector<const alloc_t*>;
-
-  pdcch_grid_t() : logger(srslog::fetch_basic_logger("MAC")) {}
-
-  void init(const sched_cell_params_t& cell_params_);
-  void new_tti(tti_point tti_rx_);
-  bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
-  bool set_cfi(uint32_t cfi);
-
-  // getters
-  uint32_t    get_cfi() const { return current_cfix + 1; }
-  void        get_allocs(alloc_result_t* vec = nullptr, pdcch_mask_t* tot_mask = nullptr, size_t idx = 0) const;
-  uint32_t    nof_cces() const { return cc_cfg->nof_cce_table[current_cfix]; }
-  size_t      nof_allocs() const { return dci_record_list.size(); }
-  size_t      nof_alloc_combinations() const { return get_alloc_tree().nof_leaves(); }
-  std::string result_to_string(bool verbose = false) const;
-
-private:
-  struct alloc_tree_t {
-    struct node_t {
-      int     parent_idx;
-      alloc_t node;
-      node_t(int i, const alloc_t& a) : parent_idx(i), node(a) {}
-    };
-    // state
-    size_t              nof_cces;
-    std::vector<node_t> dci_alloc_tree;
-    size_t              prev_start = 0, prev_end = 0;
-
-    explicit alloc_tree_t(size_t nof_cces_) : nof_cces(nof_cces_) {}
-    size_t nof_leaves() const { return prev_end - prev_start; }
-    void   reset();
-  };
-  struct alloc_record_t {
-    sched_ue*    user;
-    uint32_t     aggr_idx;
-    alloc_type_t alloc_type;
-  };
-
-  const alloc_tree_t&    get_alloc_tree() const { return alloc_trees[current_cfix]; }
-  const sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const;
-
-  // PDCCH allocation algorithm
-  bool        alloc_dci_record(const alloc_record_t& record, uint32_t cfix);
-  static bool add_tree_node_leaves(alloc_tree_t&          tree,
-                                   int                    node_idx,
-                                   const alloc_record_t&  dci_record,
-                                   const sched_dci_cce_t& dci_locs,
-                                   tti_point              tti_tx_dl);
-
-  // consts
-  const sched_cell_params_t* cc_cfg = nullptr;
-  srslog::basic_logger&      logger;
-
-  // tti vars
-  tti_point                   tti_rx;
-  uint32_t                    current_cfix = 0;
-  std::vector<alloc_tree_t>   alloc_trees;     ///< List of PDCCH alloc trees, where index is the cfi index
-  std::vector<alloc_record_t> dci_record_list; ///< Keeps a record of all the PDCCH allocations done so far
-};
-
-//! manages a subframe grid resources, namely CCE and DL/UL RB allocations
+/// manages a subframe grid resources, namely CCE and DL/UL RB allocations
 class sf_grid_t
 {
 public:
@@ -183,10 +109,10 @@ public:
   bool            find_ul_alloc(uint32_t L, prb_interval* alloc) const;
 
   // getters
-  const rbgmask_t&    get_dl_mask() const { return dl_mask; }
-  const prbmask_t&    get_ul_mask() const { return ul_mask; }
-  uint32_t            get_cfi() const { return pdcch_alloc.get_cfi(); }
-  const pdcch_grid_t& get_pdcch_grid() const { return pdcch_alloc; }
+  const rbgmask_t&   get_dl_mask() const { return dl_mask; }
+  const prbmask_t&   get_ul_mask() const { return ul_mask; }
+  uint32_t           get_cfi() const { return pdcch_alloc.get_cfi(); }
+  const pdcch_sched& get_pdcch_grid() const { return pdcch_alloc; }
 
 private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
@@ -198,7 +124,7 @@ private:
   uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
 
   // derived
-  pdcch_grid_t pdcch_alloc = {};
+  pdcch_sched pdcch_alloc = {};
 
   // internal state
   tti_point tti_rx;
@@ -302,14 +228,14 @@ public:
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
   int         generate_format1a(prb_interval prb_range, uint32_t tbs, uint32_t rv, uint16_t rnti, srslte_dci_dl_t* dci);
-  void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
-  void set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
-  void set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
-                                sched_interface::dl_sched_res_t*    dl_result,
-                                sched_ue_list&                      ue_list);
-  void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
-                           sched_interface::ul_sched_res_t*    ul_result,
-                           sched_ue_list&                      ue_list);
+  void set_bc_sched_result(const pdcch_sched::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
+  void set_rar_sched_result(const pdcch_sched::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
+  void set_dl_data_sched_result(const pdcch_sched::alloc_result_t& dci_result,
+                                sched_interface::dl_sched_res_t*   dl_result,
+                                sched_ue_list&                     ue_list);
+  void set_ul_sched_result(const pdcch_sched::alloc_result_t& dci_result,
+                           sched_interface::ul_sched_res_t*   ul_result,
+                           sched_ue_list&                     ue_list);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;

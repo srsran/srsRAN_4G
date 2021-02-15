@@ -91,12 +91,15 @@ struct rbg_interval : public srslte::interval<uint32_t> {
   static rbg_interval rbgmask_to_rbgs(const rbgmask_t& mask);
 };
 
-//! Struct to express a {min,...,max} range of PRBs
+/// Struct to express a {min,...,max} range of PRBs
 struct prb_interval : public srslte::interval<uint32_t> {
   using interval::interval;
   static prb_interval rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb);
   static prb_interval riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
 };
+
+/// Type of Allocation stored in PDSCH/PUSCH
+enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 
 } // namespace srsenb
 

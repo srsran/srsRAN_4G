@@ -45,8 +45,8 @@ int test_pdcch_one_ue()
   sched_interface::sched_args_t    sched_args{};
   TESTASSERT(cell_params[ENB_CC_IDX].set_cfg(ENB_CC_IDX, cell_cfg, sched_args));
 
-  pdcch_grid_t pdcch;
-  sched_ue     sched_ue{};
+  pdcch_sched pdcch;
+  sched_ue    sched_ue{};
   sched_ue.init(rnti, cell_params);
   sched_ue.set_cfg(ue_cfg);
 
@@ -66,7 +66,7 @@ int test_pdcch_one_ue()
     sched_ue.set_dl_cqi(to_tx_dl(tti_rx), ENB_CC_IDX, dl_cqi);
     uint32_t aggr_idx = get_aggr_level(sched_ue, PCell_IDX, cell_params);
     uint32_t max_nof_cce_locs =
-        sched_ue.get_locations(ENB_CC_IDX, pdcch_grid_t::MAX_CFI, to_tx_dl(tti_rx).sf_idx())->nof_loc[aggr_idx];
+        sched_ue.get_locations(ENB_CC_IDX, pdcch_sched::MAX_CFI, to_tx_dl(tti_rx).sf_idx())->nof_loc[aggr_idx];
 
     // allocate DL user
     uint32_t                       prev_cfi = pdcch.get_cfi();
@@ -88,8 +88,8 @@ int test_pdcch_one_ue()
     const uint32_t* dci_locs     = dci_cce->cce_start[aggr_idx];
 
     // TEST: Check the first alloc of the pdcch result (e.g. rnti, valid cce mask, etc.)
-    pdcch_grid_t::alloc_result_t pdcch_result;
-    pdcch_mask_t                 pdcch_mask;
+    pdcch_sched::alloc_result_t pdcch_result;
+    pdcch_mask_t                pdcch_mask;
     pdcch.get_allocs(&pdcch_result, &pdcch_mask, 0);
     TESTASSERT(pdcch_result.size() == 1);
     TESTASSERT(pdcch_result[0]->rnti == sched_ue.get_rnti());
