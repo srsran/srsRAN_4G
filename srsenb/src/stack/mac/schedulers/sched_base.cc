@@ -18,10 +18,12 @@ namespace srsenb {
  * Common UL/DL Helper methods
  ********************************/
 
-template <size_t N>
-srslte::interval<uint32_t> find_contiguous_interval(const srslte::bounded_bitset<N, true>& in_mask, uint32_t max_size)
+template <typename RBMask,
+          typename RBInterval =
+              typename std::conditional<std::is_same<RBMask, prbmask_t>::value, prb_interval, rbg_interval>::type>
+RBInterval find_contiguous_interval(const RBMask& in_mask, uint32_t max_size)
 {
-  srslte::interval<uint32_t> interv, max_interv;
+  RBInterval interv, max_interv;
 
   for (uint32_t n = 0; n < in_mask.size() and interv.length() < max_size; n++) {
     if (not in_mask.test(n) and interv.empty()) {

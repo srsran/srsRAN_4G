@@ -88,14 +88,12 @@ using prbmask_t = srslte::bounded_bitset<100, true>;
 struct prb_interval;
 struct rbg_interval : public srslte::interval<uint32_t> {
   using interval::interval;
-  rbg_interval(srslte::interval<uint32_t> i) : interval(i) {}
   static rbg_interval rbgmask_to_rbgs(const rbgmask_t& mask);
 };
 
 //! Struct to express a {min,...,max} range of PRBs
 struct prb_interval : public srslte::interval<uint32_t> {
   using interval::interval;
-  prb_interval(srslte::interval<uint32_t> i) : interval(i) {}
   static prb_interval rbgs_to_prbs(const rbg_interval& rbgs, uint32_t cell_nof_prb);
   static prb_interval riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
 };
