@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_encoder.c
  * \brief Definition of the LDPC encoder.
- * \author David Gregoratti
+ * \author David Gregoratti and Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited
@@ -23,6 +23,7 @@
 #include <stdint.h>
 
 #include "../utils_avx2.h"
+#include "../utils_avx512.h"
 #include "ldpc_enc_all.h"
 #include "srslte/phy/fec/ldpc/base_graph.h"
 #include "srslte/phy/fec/ldpc/ldpc_encoder.h"
@@ -310,6 +311,194 @@ static int init_avx2long(srslte_ldpc_encoder_t* q)
 
 #endif
 
+#ifdef LV_HAVE_AVX512
+
+/*! Carries out the actual destruction of the memory allocated to the encoder. */
+static void free_enc_avx512(void* o)
+{
+  srslte_ldpc_encoder_t* q = o;
+  if (q->pcm) {
+    free(q->pcm);
+  }
+  if (q->ptr) {
+    delete_ldpc_enc_avx512(q->ptr);
+  }
+}
+
+/*! Carries out the actual encoding with an optimized encoder. */
+static int encode_avx512(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
+{
+  srslte_ldpc_encoder_t* q = o;
+
+  if (input_length / q->bgK != q->ls) {
+    perror("Dimension mismatch.\n");
+    return -1;
+  }
+
+  // it must be smaller than the codeword size
+  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
+    cdwd_rm_length = q->liftN - 2 * q->ls;
+  }
+  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
+  // 2 variable nodes are systematically punctured by the encoder.
+  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
+    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
+    cdwd_rm_length = (q->bgK + 2) * q->ls;
+    // return -1;
+  }
+  if (cdwd_rm_length % q->ls) {
+    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
+    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
+    // return -1;
+  }
+
+  load_avx512(q->ptr, input, q->bgK, q->bgN, q->ls);
+
+  preprocess_systematic_bits_avx512(q);
+
+  q->encode_high_rate_avx512(q);
+
+  // When computing the number of layers, we need to recall that the standard always removes
+  // the first two variable nodes from the final codeword.
+  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
+
+  encode_ext_region_avx512(q, n_layers);
+
+  return_codeword_avx512(q->ptr, output, n_layers + q->bgK, q->ls);
+
+  return 0;
+}
+
+/*! Initializes an optimized encoder. */
+static int init_avx512(srslte_ldpc_encoder_t* q)
+{
+  int ls_index = get_ls_index(q->ls);
+
+  if (ls_index == VOID_LIFTSIZE) {
+    ERROR("Invalid lifting size %d\n", q->ls);
+    return -1;
+  }
+
+  if (q->bg == BG1 && ls_index != 6) {
+    q->encode_high_rate_avx512 = encode_high_rate_case1_avx512;
+  } else if (q->bg == BG1 && ls_index == 6) {
+    q->encode_high_rate_avx512 = encode_high_rate_case2_avx512;
+  } else if (q->bg == BG2 && ls_index != 3 && ls_index != 7) {
+    q->encode_high_rate_avx512 = encode_high_rate_case3_avx512;
+  } else if (q->bg == BG2 && (ls_index == 3 || ls_index == 7)) {
+    q->encode_high_rate_avx512 = encode_high_rate_case4_avx512;
+  } else {
+    ERROR("Invalid lifting size %d and/or Base Graph %d\n", q->ls, q->bg + 1);
+    return -1;
+  }
+
+  q->free = free_enc_avx512;
+
+  if ((q->ptr = create_ldpc_enc_avx512(q)) == NULL) {
+    perror("Create_ldpc_enc\n");
+    free_enc_avx512(q);
+    return -1;
+  }
+
+  q->encode = encode_avx512;
+
+  return 0;
+}
+
+/*! Carries out the actual destruction of the memory allocated to the encoder. */
+static void free_enc_avx512long(void* o)
+{
+  srslte_ldpc_encoder_t* q = o;
+  if (q->pcm) {
+    free(q->pcm);
+  }
+  if (q->ptr) {
+    delete_ldpc_enc_avx512long(q->ptr);
+  }
+}
+
+/*! Carries out the actual encoding with an optimized encoder. */
+static int
+encode_avx512long(void* o, const uint8_t* input, uint8_t* output, uint32_t input_length, uint32_t cdwd_rm_length)
+{
+  srslte_ldpc_encoder_t* q = o;
+
+  if (input_length / q->bgK != q->ls) {
+    perror("Dimension mismatch.\n");
+    return -1;
+  }
+
+  // it must be smaller than the codeword size
+  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
+    cdwd_rm_length = q->liftN - 2 * q->ls;
+  }
+  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
+  // 2 variable nodes are systematically punctured by the encoder.
+  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
+    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.\n");
+    cdwd_rm_length = (q->bgK + 2) * q->ls;
+    // return -1;
+  }
+  if (cdwd_rm_length % q->ls) {
+    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
+    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.\n");
+    // return -1;
+  }
+  load_avx512long(q->ptr, input, q->bgK, q->bgN, q->ls);
+
+  preprocess_systematic_bits_avx512long(q);
+
+  q->encode_high_rate_avx512(q);
+
+  // When computing the number of layers, we need to recall that the standard always removes
+  // the first two variable nodes from the final codeword.
+  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
+
+  encode_ext_region_avx512long(q, n_layers);
+
+  return_codeword_avx512long(q->ptr, output, n_layers + q->bgK, q->ls);
+
+  return 0;
+}
+
+/*! Initializes an optimized encoder. */
+static int init_avx512long(srslte_ldpc_encoder_t* q)
+{
+  int ls_index = get_ls_index(q->ls);
+
+  if (ls_index == VOID_LIFTSIZE) {
+    ERROR("Invalid lifting size %d\n", q->ls);
+    return -1;
+  }
+
+  if (q->bg == BG1 && ls_index != 6) {
+    q->encode_high_rate_avx512 = encode_high_rate_case1_avx512long;
+  } else if (q->bg == BG1 && ls_index == 6) {
+    q->encode_high_rate_avx512 = encode_high_rate_case2_avx512long;
+  } else if (q->bg == BG2 && ls_index != 3 && ls_index != 7) {
+    q->encode_high_rate_avx512 = encode_high_rate_case3_avx512long;
+  } else if (q->bg == BG2 && (ls_index == 3 || ls_index == 7)) {
+    q->encode_high_rate_avx512 = encode_high_rate_case4_avx512long;
+  } else {
+    ERROR("Invalid lifting size %d and/or Base Graph %d\n", q->ls, q->bg + 1);
+    return -1;
+  }
+
+  q->free = free_enc_avx512long;
+
+  if ((q->ptr = create_ldpc_enc_avx512long(q)) == NULL) {
+    perror("Create_ldpc_enc\n");
+    free_enc_avx512long(q);
+    return -1;
+  }
+
+  q->encode = encode_avx512long;
+
+  return 0;
+}
+
+#endif
+
 int srslte_ldpc_encoder_init(srslte_ldpc_encoder_t*     q,
                              srslte_ldpc_encoder_type_t type,
                              srslte_basegraph_t         bg,
@@ -357,6 +546,14 @@ int srslte_ldpc_encoder_init(srslte_ldpc_encoder_t*     q,
         return init_avx2long(q);
       }
 #endif // LV_HAVE_AVX2
+#ifdef LV_HAVE_AVX512
+    case SRSLTE_LDPC_ENCODER_AVX512:
+      if (ls <= SRSLTE_AVX512_B_SIZE) {
+        return init_avx512(q);
+      } else {
+        return init_avx512long(q);
+      }
+#endif // LV_HAVE_AVX512
     default:
       return -1;
   }

@@ -11,8 +11,8 @@
  */
 
 /*!
- * \file ldpc_dec_avx2_test.c
- * \brief Unit test for the LDPC decoder working with 8-bit integer-valued LLRs (AVX2 implementation).
+ * \file ldpc_dec_avx512_test.c
+ * \brief Unit test for the LDPC decoder working with 8-bit integer-valued LLRs (AVX512 implementation).
  *
  * It decodes a batch of example codewords and compares the resulting messages
  * with the expected ones. Reference messages and codewords are provided in
@@ -25,7 +25,6 @@
  *  - **-l \<number\>** Lifting Size (according to 5GNR standard. Default 2).
  */
 
-#include "srslte/phy/utils/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -151,7 +150,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   srslte_ldpc_decoder_type_t dectype =
-      (scheduling == 0) ? SRSLTE_LDPC_DECODER_C_AVX2 : SRSLTE_LDPC_DECODER_C_AVX2_FLOOD;
+      (scheduling == 0) ? SRSLTE_LDPC_DECODER_C_AVX512 : SRSLTE_LDPC_DECODER_C_AVX512_FLOOD;
 
   // create an LDPC decoder
   srslte_ldpc_decoder_t decoder;
@@ -174,10 +173,10 @@ int main(int argc, char** argv)
   finalK = decoder.liftK;
   finalN = decoder.liftN - 2 * lift_size;
 
-  messages_true = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
-  messages_sim  = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
-  codewords     = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
-  symbols       = srslte_vec_i8_malloc(finalN * NOF_MESSAGES);
+  messages_true = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
+  messages_sim  = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
+  codewords     = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
+  symbols       = malloc(finalN * NOF_MESSAGES * sizeof(int8_t));
   if (!messages_true || !messages_sim || !codewords || !symbols) {
     perror("malloc");
     exit(-1);
@@ -224,10 +223,10 @@ int main(int argc, char** argv)
     }
   }
 
-  printf("Estimated throughput:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-         NOF_MESSAGES / elapsed_time,
-         NOF_MESSAGES * finalK / elapsed_time,
-         NOF_MESSAGES * finalN / elapsed_time);
+  printf("Estimated throughput:\n  %e word/s\n  %.3f Mbit/s (information)\n  %.3f Mbit/s (encoded)\n",
+         NOF_MESSAGES / (elapsed_time / nof_reps),
+         NOF_MESSAGES * finalK / (elapsed_time / nof_reps) / 1e6,
+         NOF_MESSAGES * finalN / (elapsed_time / nof_reps) / 1e6);
 
   printf("\nTest completed successfully!\n\n");
 

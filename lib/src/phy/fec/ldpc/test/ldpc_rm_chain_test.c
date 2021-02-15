@@ -75,7 +75,6 @@ static int req_errors  = 100;   /*!< \brief Minimum number of errors for a signi
  */
 void usage(char* prog)
 {
-
   printf("Usage: %s [-bX] [-lX] [-eX] [-fX] [-rX] [-mX] [-MX] [-wX] [-sX]\n", prog);
   printf("\t-b Base Graph [(1 or 2) Default %d]\n", base_graph + 1);
   printf("\t-l Lifting Size [Default %d]\n", lift_size);
@@ -152,22 +151,23 @@ void print_decoder(char* title, int n_batches, int n_errors, double elapsed_time
  */
 int main(int argc, char** argv)
 {
-
-  uint8_t* messages_true          = NULL;
-  uint8_t* messages_sim_f         = NULL;
-  uint8_t* messages_sim_s         = NULL;
-  uint8_t* messages_sim_c         = NULL;
-  uint8_t* messages_sim_c_flood   = NULL;
-  uint8_t* messages_sim_avx       = NULL;
-  uint8_t* messages_sim_avx_flood = NULL;
-  uint8_t* codewords              = NULL;
-  uint8_t* rm_codewords           = NULL;
-  float*   rm_symbols             = NULL;
-  int16_t* rm_symbols_s           = NULL;
-  int8_t*  rm_symbols_c           = NULL;
-  float*   symbols                = NULL; // unrm_symbols
-  int16_t* symbols_s              = NULL; // unrm_symbols
-  int8_t*  symbols_c              = NULL; // unrm_symbols
+  uint8_t* messages_true             = NULL;
+  uint8_t* messages_sim_f            = NULL;
+  uint8_t* messages_sim_s            = NULL;
+  uint8_t* messages_sim_c            = NULL;
+  uint8_t* messages_sim_c_flood      = NULL;
+  uint8_t* messages_sim_avx          = NULL;
+  uint8_t* messages_sim_avx_flood    = NULL;
+  uint8_t* messages_sim_avx512       = NULL;
+  uint8_t* messages_sim_avx512_flood = NULL;
+  uint8_t* codewords                 = NULL;
+  uint8_t* rm_codewords              = NULL;
+  float*   rm_symbols                = NULL;
+  int16_t* rm_symbols_s              = NULL;
+  int8_t*  rm_symbols_c              = NULL;
+  float*   symbols                   = NULL; // unrm_symbols
+  int16_t* symbols_s                 = NULL; // unrm_symbols
+  int8_t*  symbols_c                 = NULL; // unrm_symbols
 
   int i = 0;
   int j = 0;
@@ -176,6 +176,13 @@ int main(int argc, char** argv)
 
   // create an LDPC encoder
   srslte_ldpc_encoder_t encoder;
+
+#ifdef LV_HAVE_AVX512
+  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
+    perror("encoder init");
+    exit(-1);
+  }
+#else // no AVX512
 #ifdef LV_HAVE_AVX2
   if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_AVX2, base_graph, lift_size) != 0) {
     perror("encoder init");
@@ -187,6 +194,7 @@ int main(int argc, char** argv)
     exit(-1);
   }
 #endif // LV_HAVE_AVX2
+#endif // LV_HAVE_AVX512
 
   // create a LDPC rate DeMatcher
   finalK = encoder.liftK;
@@ -267,6 +275,23 @@ int main(int argc, char** argv)
   }
 #endif // LV_HAVE_AVX2
 
+#ifdef LV_HAVE_AVX512
+  // create an LDPC decoder (8 bit, AVX2 version)
+  srslte_ldpc_decoder_t decoder_avx512;
+  if (srslte_ldpc_decoder_init(&decoder_avx512, SRSLTE_LDPC_DECODER_C_AVX512, base_graph, lift_size, MS_SF) != 0) {
+    perror("decoder init");
+    exit(-1);
+  }
+
+  // create an LDPC decoder (8 bit, flooded scheduling, AVX512 version)
+  srslte_ldpc_decoder_t decoder_avx512_flood;
+  if (srslte_ldpc_decoder_init(
+          &decoder_avx512_flood, SRSLTE_LDPC_DECODER_C_AVX512_FLOOD, base_graph, lift_size, MS_SF) != 0) {
+    perror("decoder init");
+    exit(-1);
+  }
+#endif // LV_HAVE_AVX512
+
   // create a random generator
   srslte_random_t random_gen = srslte_random_init(0);
 
@@ -292,26 +317,28 @@ int main(int argc, char** argv)
          1.0 * (encoder.liftK - F) / rm_length);
   printf("\n  Signal-to-Noise Ratio -> %.2f dB\n", snr);
 
-  messages_true          = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_f         = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_s         = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_c         = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_c_flood   = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_avx       = srslte_vec_u8_malloc(finalK * batch_size);
-  messages_sim_avx_flood = srslte_vec_u8_malloc(finalK * batch_size);
-  codewords              = srslte_vec_u8_malloc(finalN * batch_size);
-  rm_codewords           = srslte_vec_u8_malloc(rm_length * batch_size);
-  rm_symbols             = srslte_vec_f_malloc(rm_length * batch_size);
-  rm_symbols_s           = srslte_vec_i16_malloc(rm_length * batch_size);
-  rm_symbols_c           = srslte_vec_i8_malloc(rm_length * batch_size);
+  messages_true             = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_f            = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_s            = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_c            = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_c_flood      = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx          = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx_flood    = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx512       = srslte_vec_u8_malloc(finalK * batch_size);
+  messages_sim_avx512_flood = srslte_vec_u8_malloc(finalK * batch_size);
+  codewords                 = srslte_vec_u8_malloc(finalN * batch_size);
+  rm_codewords              = srslte_vec_u8_malloc(rm_length * batch_size);
+  rm_symbols                = srslte_vec_f_malloc(rm_length * batch_size);
+  rm_symbols_s              = srslte_vec_i16_malloc(rm_length * batch_size);
+  rm_symbols_c              = srslte_vec_i8_malloc(rm_length * batch_size);
 
   symbols   = srslte_vec_f_malloc(finalN * batch_size);
   symbols_s = srslte_vec_i16_malloc(finalN * batch_size);
   symbols_c = srslte_vec_i8_malloc(finalN * batch_size);
-  if (!messages_true || !messages_sim_f || !messages_sim_s || !messages_sim_c || //
-      !messages_sim_avx || !messages_sim_c_flood || !messages_sim_avx_flood ||   //
-      !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c || !symbols || !symbols_s ||
-      !symbols_c) {
+  if (!messages_true || !messages_sim_f || !messages_sim_s || !messages_sim_c ||                    //
+      !messages_sim_avx || !messages_sim_avx || !messages_sim_c_flood || !messages_sim_avx_flood || //
+      !messages_sim_avx512_flood || !codewords || !rm_codewords || !rm_symbols || !rm_symbols_s || !rm_symbols_c ||
+      !symbols || !symbols_s || !symbols_c) {
     perror("malloc");
     exit(-1);
   }
@@ -335,6 +362,13 @@ int main(int argc, char** argv)
   int    n_error_words_avx          = 0;
   int    n_error_words_avx_flood    = 0;
 #endif // LV_HAVE_AVX2
+
+#ifdef LV_HAVE_AVX512
+  double elapsed_time_dec_avx512       = 0;
+  int    n_error_words_avx512          = 0;
+  double elapsed_time_dec_avx512_flood = 0;
+  int    n_error_words_avx512_flood    = 0;
+#endif // LV_HAVE_AVX512
 
   float noise_std_dev = srslte_convert_dB_to_amplitude(-snr);
 
@@ -604,6 +638,52 @@ int main(int argc, char** argv)
       }
     }
 #endif // LV_HAVE_AVX2
+
+#ifdef LV_HAVE_AVX512
+    //////// Fixed point - 8 bit - AVX512 version
+
+    // Recover messages
+    gettimeofday(&t[1], NULL);
+    for (j = 0; j < batch_size; j++) {
+      srslte_ldpc_decoder_decode_rm_c(
+          &decoder_avx512, symbols_c + j * finalN, messages_sim_avx512 + j * finalK, finalN);
+    }
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    elapsed_time_dec_avx512 += t[0].tv_sec + 1e-6 * t[0].tv_usec;
+
+    for (i = 0; i < batch_size; i++) {
+      for (j = 0; j < finalK; j++) {
+        i_bit = i * finalK + j;
+        if (messages_sim_avx512[i_bit] != (1U & messages_true[i_bit])) {
+          n_error_words_avx512++;
+          break;
+        }
+      }
+    }
+
+    //////// Fixed point - 8 bit, flooded scheduling - AVX512 version
+
+    // Recover messages
+    gettimeofday(&t[1], NULL);
+    for (j = 0; j < batch_size; j++) {
+      srslte_ldpc_decoder_decode_rm_c(
+          &decoder_avx512_flood, symbols_c + j * finalN, messages_sim_avx512_flood + j * finalK, finalN);
+    }
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    elapsed_time_dec_avx512_flood += t[0].tv_sec + 1e-6 * t[0].tv_usec;
+
+    for (i = 0; i < batch_size; i++) {
+      for (j = 0; j < finalK; j++) {
+        i_bit = i * finalK + j;
+        if (messages_sim_avx512_flood[i_bit] != (1U & messages_true[i_bit])) {
+          n_error_words_avx512_flood++;
+          break;
+        }
+      }
+    }
+#endif // LV_HAVE_AVX512
   }
 
   printf("\nEstimated throughput encoder:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
@@ -622,6 +702,14 @@ int main(int argc, char** argv)
       "FIXED POINT (8 bits, flooded scheduling - AVX2)", i_batch, n_error_words_avx_flood, elapsed_time_dec_avx_flood);
 #endif // LV_HAVE_AVX2
 
+#ifdef LV_HAVE_AVX512
+  print_decoder("FIXED POINT (8 bits - AVX512)", i_batch, n_error_words_avx512, elapsed_time_dec_avx512);
+  print_decoder("FIXED POINT (8 bits, flooded scheduling - AVX512)",
+                i_batch,
+                n_error_words_avx512_flood,
+                elapsed_time_dec_avx512_flood);
+#endif // LV_HAVE_AVX512
+
   if (n_error_words_s > 10 * n_error_words_f) {
     perror("16-bit performance too low!");
     exit(-1);
@@ -630,6 +718,17 @@ int main(int argc, char** argv)
     perror("8-bit performance too low!");
     exit(-1);
   }
+#ifdef LV_HAVE_AVX512
+  if (n_error_words_avx512 != n_error_words_avx) {
+    perror("The number of errors AVX512 and AVX2 differs !");
+    exit(-1);
+  }
+
+  if (n_error_words_avx512_flood != n_error_words_avx_flood) {
+    perror("The number of errors of flooded AVX512 and AVX2 differs !");
+    exit(-1);
+  }
+#endif // LV_HAVE_AVX512
   printf("\nTest completed successfully!\n\n");
 
   free(symbols);
@@ -642,6 +741,8 @@ int main(int argc, char** argv)
   free(codewords);
   free(messages_sim_avx);
   free(messages_sim_avx_flood);
+  free(messages_sim_avx512);
+  free(messages_sim_avx512_flood);
   free(messages_sim_c_flood);
   free(messages_sim_c);
   free(messages_sim_s);
@@ -652,6 +753,10 @@ int main(int argc, char** argv)
   srslte_ldpc_decoder_free(&decoder_avx);
   srslte_ldpc_decoder_free(&decoder_avx_flood);
 #endif // LV_HAVE_AVX2
+#ifdef LV_HAVE_AVX512
+  srslte_ldpc_decoder_free(&decoder_avx512);
+  srslte_ldpc_decoder_free(&decoder_avx512_flood);
+#endif // LV_HAVE_AVX512
   srslte_ldpc_decoder_free(&decoder_c_flood);
   srslte_ldpc_decoder_free(&decoder_c);
   srslte_ldpc_decoder_free(&decoder_s);

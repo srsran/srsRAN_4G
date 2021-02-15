@@ -23,6 +23,7 @@
 #include <stdint.h>
 
 #include "../utils_avx2.h"
+#include "../utils_avx512.h"
 #include "ldpc_dec_all.h"
 #include "srslte/phy/fec/ldpc/base_graph.h"
 #include "srslte/phy/fec/ldpc/ldpc_decoder.h"
@@ -660,6 +661,250 @@ static int init_c_avx2long_flood(srslte_ldpc_decoder_t* q)
 }
 #endif // LV_HAVE_AVX2
 
+// AVX512 Declarations
+
+#ifdef LV_HAVE_AVX512
+
+/*! Carries out the actual destruction of the memory allocated to the decoder, 8-bit-LLR case (AVX512 implementation).
+ */
+static void free_dec_c_avx512(void* o)
+{
+  srslte_ldpc_decoder_t* q = o;
+  if (q->var_indices) {
+    free(q->var_indices);
+  }
+  if (q->pcm) {
+    free(q->pcm);
+  }
+  delete_ldpc_dec_c_avx512(q->ptr);
+}
+
+/*! Carries out the decoding with 8-bit integer-valued LLRs (AVX512 implementation). */
+static int decode_c_avx512(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
+{
+  srslte_ldpc_decoder_t* q = o;
+
+  // it must be smaller than the codeword size
+  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
+    cdwd_rm_length = q->liftN - 2 * q->ls;
+  }
+  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
+  // 2 variable nodes are systematically punctured by the encoder.
+  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
+    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
+    cdwd_rm_length = (q->bgK + 2) * q->ls;
+    // return -1;
+  }
+  if (cdwd_rm_length % q->ls) {
+    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
+    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
+    // return -1;
+  }
+  init_ldpc_dec_c_avx512(q->ptr, llrs, q->ls);
+
+  uint16_t* this_pcm                   = NULL;
+  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
+
+  // When computing the number of layers, we need to recall that the standard always removes
+  // the first two variable nodes from the final codeword.
+  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
+
+  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
+    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
+      update_ldpc_var_to_check_c_avx512(q->ptr, i_layer);
+
+      this_pcm          = q->pcm + i_layer * q->bgN;
+      these_var_indices = q->var_indices + i_layer;
+
+      update_ldpc_check_to_var_c_avx512(q->ptr, i_layer, this_pcm, these_var_indices);
+
+      update_ldpc_soft_bits_c_avx512(q->ptr, i_layer, these_var_indices);
+    }
+  }
+
+  extract_ldpc_message_c_avx512(q->ptr, message, q->liftK);
+
+  return 0;
+}
+
+/*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX512 implementation). */
+static int init_c_avx512(srslte_ldpc_decoder_t* q)
+{
+  q->free = free_dec_c_avx512;
+
+  if ((q->ptr = create_ldpc_dec_c_avx512(q->bgN, q->bgM, q->ls, q->scaling_fctr)) == NULL) {
+    ERROR("Create_ldpc_dec failed");
+    free_dec_c_avx512(q);
+    return -1;
+  }
+
+  q->decode_c = decode_c_avx512;
+
+  return 0;
+}
+
+/*! Carries out the actual destruction of the memory allocated to the decoder, 8-bit-LLR case (AVX512 implementation,
+ * large lifting size). */
+static void free_dec_c_avx512long(void* o)
+{
+  srslte_ldpc_decoder_t* q = o;
+  if (q->var_indices) {
+    free(q->var_indices);
+  }
+  if (q->pcm) {
+    free(q->pcm);
+  }
+  delete_ldpc_dec_c_avx512long(q->ptr);
+}
+
+/*! Carries out the decoding with 8-bit integer-valued LLRs (AVX512 implementation, large lifting size). */
+static int decode_c_avx512long(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
+{
+  srslte_ldpc_decoder_t* q = o;
+
+  // it must be smaller than the codeword size
+  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
+    cdwd_rm_length = q->liftN - 2 * q->ls;
+  }
+  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
+  // 2 variable nodes are systematically punctured by the encoder.
+  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
+    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
+    cdwd_rm_length = (q->bgK + 2) * q->ls;
+    // return -1;
+  }
+  if (cdwd_rm_length % q->ls) {
+    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
+    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
+    // return -1;
+  }
+
+  init_ldpc_dec_c_avx512long(q->ptr, llrs, q->ls);
+
+  uint16_t* this_pcm                   = NULL;
+  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
+
+  // When computing the number of layers, we need to recall that the standard always removes
+  // the first two variable nodes from the final codeword.
+  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
+
+  for (int i_iteration = 0; i_iteration < MAX_ITERATIONS; i_iteration++) {
+    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
+      update_ldpc_var_to_check_c_avx512long(q->ptr, i_layer);
+
+      this_pcm          = q->pcm + i_layer * q->bgN;
+      these_var_indices = q->var_indices + i_layer;
+
+      update_ldpc_check_to_var_c_avx512long(q->ptr, i_layer, this_pcm, these_var_indices);
+
+      update_ldpc_soft_bits_c_avx512long(q->ptr, i_layer, these_var_indices);
+    }
+  }
+  extract_ldpc_message_c_avx512long(q->ptr, message, q->liftK);
+
+  return 0;
+}
+
+/*! Initializes the decoder to work with 8-bit integer-valued LLRs (AVX512 implementation, large lifting size). */
+static int init_c_avx512long(srslte_ldpc_decoder_t* q)
+{
+  q->free = free_dec_c_avx512long;
+
+  if ((q->ptr = create_ldpc_dec_c_avx512long(q->bgN, q->bgM, q->ls, q->scaling_fctr)) == NULL) {
+    ERROR("Create_ldpc_dec failed\n");
+    free_dec_c_avx512long(q);
+    return -1;
+  }
+
+  q->decode_c = decode_c_avx512long;
+
+  return 0;
+}
+
+/*! Carries out the actual destruction of the memory allocated to the decoder, 8-bit-LLR case
+ * (flooded scheduling, AVX512 implementation, large lifting size). */
+static void free_dec_c_avx512long_flood(void* o)
+{
+  srslte_ldpc_decoder_t* q = o;
+  if (q->var_indices) {
+    free(q->var_indices);
+  }
+  if (q->pcm) {
+    free(q->pcm);
+  }
+  delete_ldpc_dec_c_avx512long_flood(q->ptr);
+}
+
+/*! Carries out the decoding with 8-bit integer-valued LLRs (flooded scheduling, AVX512 implementation, large lifting
+ * size). */
+static int decode_c_avx512long_flood(void* o, const int8_t* llrs, uint8_t* message, uint32_t cdwd_rm_length)
+{
+  srslte_ldpc_decoder_t* q = o;
+
+  // it must be smaller than the codeword size
+  if (cdwd_rm_length > q->liftN - 2 * q->ls) {
+    cdwd_rm_length = q->liftN - 2 * q->ls;
+  }
+  // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
+  // 2 variable nodes are systematically punctured by the encoder.
+  if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
+    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
+    cdwd_rm_length = (q->bgK + 2) * q->ls;
+    // return -1;
+  }
+  if (cdwd_rm_length % q->ls) {
+    cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
+    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
+    // return -1;
+  }
+  init_ldpc_dec_c_avx512long_flood(q->ptr, llrs, q->ls);
+
+  uint16_t* this_pcm                   = NULL;
+  int8_t(*these_var_indices)[MAX_CNCT] = NULL;
+
+  // When computing the number of layers, we need to recall that the standard always removes
+  // the first two variable nodes from the final codeword.
+  uint8_t n_layers = cdwd_rm_length / q->ls - q->bgK + 2;
+
+  for (int i_iteration = 0; i_iteration < 2 * MAX_ITERATIONS; i_iteration++) {
+    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
+      update_ldpc_var_to_check_c_avx512long_flood(q->ptr, i_layer);
+    }
+
+    for (int i_layer = 0; i_layer < n_layers; i_layer++) {
+      this_pcm          = q->pcm + i_layer * q->bgN;
+      these_var_indices = q->var_indices + i_layer;
+
+      update_ldpc_check_to_var_c_avx512long_flood(q->ptr, i_layer, this_pcm, these_var_indices);
+    }
+
+    update_ldpc_soft_bits_c_avx512long_flood(q->ptr, q->var_indices);
+  }
+
+  extract_ldpc_message_c_avx512long_flood(q->ptr, message, q->liftK);
+
+  return 0;
+}
+
+/*! Initializes the decoder to work with 8-bit integer-valued LLRs
+ * (flooded scheduling, AVX512 implementation, large lifting size). */
+static int init_c_avx512long_flood(srslte_ldpc_decoder_t* q)
+{
+  q->free = free_dec_c_avx512long_flood;
+
+  if ((q->ptr = create_ldpc_dec_c_avx512long_flood(q->bgN, q->bgM, q->ls, q->scaling_fctr)) == NULL) {
+    ERROR("Create_ldpc_dec failed");
+    free_dec_c_avx512long_flood(q);
+    return -1;
+  }
+
+  q->decode_c = decode_c_avx512long_flood;
+
+  return 0;
+}
+
+#endif // LV_HAVE_AVX512
+
 int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
                              srslte_ldpc_decoder_type_t type,
                              srslte_basegraph_t         bg,
@@ -745,6 +990,17 @@ int srslte_ldpc_decoder_init(srslte_ldpc_decoder_t*     q,
         return init_c_avx2long_flood(q);
       }
 #endif // LV_HAVE_AVX2
+#ifdef LV_HAVE_AVX512
+    case SRSLTE_LDPC_DECODER_C_AVX512:
+      if (ls <= SRSLTE_AVX512_B_SIZE) {
+        return init_c_avx512(q);
+      } else {
+        return init_c_avx512long(q);
+      }
+    case SRSLTE_LDPC_DECODER_C_AVX512_FLOOD:
+      return init_c_avx512long_flood(q);
+#endif // LV_HAVE_AVX2
+
     default:
       ERROR("Unknown decoder.");
       return -1;

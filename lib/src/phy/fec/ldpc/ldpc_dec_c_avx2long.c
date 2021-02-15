@@ -326,7 +326,9 @@ int update_ldpc_check_to_var_c_avx2long(void*           p,
   __m256i* this_rotated_v2c = NULL;
 
   __m256i this_abs_v2c_epi8;
+#ifndef IMPROVED
   __m256i mask_sign_epi8;
+#endif // IMPROVED
   __m256i mask_min_epi8;
   __m256i help_min_epi8;
   __m256i current_ix_epi8;
@@ -351,8 +353,12 @@ int update_ldpc_check_to_var_c_avx2long(void*           p,
 
     for (j = 0; j < vp->n_subnodes; j++) {
       // mask_sign is 1 if this_v2c_epi8 is strictly negative
+#ifndef IMPROVED
       mask_sign_epi8       = _mm256_cmpgt_epi8(zero_epi8, this_rotated_v2c[j]);
       vp->prod_v2c_epi8[j] = _mm256_xor_si256(vp->prod_v2c_epi8[j], mask_sign_epi8);
+#else
+      vp->prod_v2c_epi8[j] = _mm256_xor_si256(vp->prod_v2c_epi8[j], this_rotated_v2c[j]);
+#endif // IMPROVED
 
       this_abs_v2c_epi8 = _mm256_abs_epi8(this_rotated_v2c[j]);
       // mask_min is 1 if this_abs_v2c is strictly smaller tha minp_v2c
@@ -384,9 +390,12 @@ int update_ldpc_check_to_var_c_avx2long(void*           p,
     this_rotated_v2c = vp->rotated_v2c + i * vp->n_subnodes;
 
     for (j = 0; j < vp->n_subnodes; j++) {
-      // mask_sign is 1 if this_v2c_epi8 is strictly negative
+// mask_sign is 1 if this_v2c_epi8 is strictly negative
+#ifndef IMPROVED
       final_sign_epi8 = _mm256_cmpgt_epi8(zero_epi8, this_rotated_v2c[j]);
       final_sign_epi8 = _mm256_xor_si256(final_sign_epi8, vp->prod_v2c_epi8[j]);
+#endif // IMPROVED
+      final_sign_epi8 = _mm256_xor_si256(this_rotated_v2c[j], vp->prod_v2c_epi8[j]);
 
       current_ix_epi8      = _mm256_set1_epi8((int8_t)i);
       mask_is_min_epi8     = _mm256_cmpeq_epi8(current_ix_epi8, vp->min_ix_epi8[j]);

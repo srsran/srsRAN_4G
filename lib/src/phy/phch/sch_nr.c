@@ -192,11 +192,18 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
   }
 
   srslte_ldpc_encoder_type_t encoder_type = SRSLTE_LDPC_ENCODER_C;
+
+#ifdef LV_HAVE_AVX512
+  if (!args->disable_simd) {
+    encoder_type = SRSLTE_LDPC_ENCODER_AVX512;
+  }
+#else // LV_HAVE_AVX512
 #ifdef LV_HAVE_AVX2
   if (!args->disable_simd) {
     encoder_type = SRSLTE_LDPC_ENCODER_AVX2;
   }
 #endif // LV_HAVE_AVX2
+#endif // LV_HAVE_AVX612
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
@@ -246,24 +253,20 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
     return ret;
   }
 
-  srslte_ldpc_decoder_type_t decoder_type = SRSLTE_LDPC_DECODER_C;
-  if (args->decoder_use_flooded) {
-#ifdef LV_HAVE_AVX2
-    if (args->disable_simd) {
-      decoder_type = SRSLTE_LDPC_DECODER_C_FLOOD;
-    } else {
-      decoder_type = SRSLTE_LDPC_DECODER_C_AVX2_FLOOD;
-    }
-#else  // LV_HAVE_AVX2
-    decoder_type = SRSLTE_LDPC_DECODER_C_FLOOD;
-#endif // LV_HAVE_AVX2
-  } else {
-#ifdef LV_HAVE_AVX2
-    if (!args->disable_simd) {
-      decoder_type = SRSLTE_LDPC_DECODER_C_AVX2;
-    }
-#endif // LV_HAVE_AVX2
+  srslte_ldpc_decoder_type_t decoder_type =
+      args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_FLOOD : SRSLTE_LDPC_DECODER_C;
+
+#ifdef LV_HAVE_AVX512
+  if (!args->disable_simd) {
+    decoder_type = args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_AVX512_FLOOD : SRSLTE_LDPC_DECODER_C_AVX512;
   }
+#else // LV_HAVE_AVX512
+#ifdef LV_HAVE_AVX2
+  if (!args->disable_simd) {
+    decoder_type = args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_AVX2_FLOOD : SRSLTE_LDPC_DECODER_C_AVX2;
+  }
+#endif // LV_HAVE_AVX2
+#endif // LV_HAVE_AVX512
 
   // If the scaling factor is not provided use a default value that allows decoding all possible combinations of nPRB
   // and MCS indexes for all possible MCS tables

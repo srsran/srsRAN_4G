@@ -13,7 +13,7 @@
 /*!
  * \file ldpc_enc_avx2long.c
  * \brief Definition of the LDPC encoder inner functions (AVX2 version, large lifting size).
- * \author David Gregoratti
+ * \author David Gregoratti and Jesus Gómez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited
@@ -54,7 +54,8 @@ struct ldpc_enc_avx2long {
   __m256i* rotated_node;         /*!< \brief To store rotated versions of the nodes. */
   __m256i* rotated_node_to_free; /*!< \brief Auxiliary pointer to store rotated versions of the nodes with extra free
                                     memory of size SRSLTE_AVX2_B_SIZE previous to rotated_node */
-  uint8_t n_subnodes;            /*!< \brief Number of subnodes. */
+  uint8_t    n_subnodes;           /*!< \brief Number of subnodes. */
+  uint16_t   node_size;            /*!< \brief Size of a node in bytes. */
 };
 
 /*!
@@ -100,6 +101,7 @@ void* create_ldpc_enc_avx2long(srslte_ldpc_encoder_t* q)
   }
   vp->rotated_node = &vp->rotated_node_to_free[1];
 
+  vp->node_size = SRSLTE_AVX2_B_SIZE * vp->n_subnodes;
   return vp;
 }
 
@@ -123,23 +125,19 @@ int load_avx2long(void* p, const uint8_t* input, const uint8_t msg_len, const ui
     return -1;
   }
 
-  int k = 0;
-  int j = 0;
-  int i = 0;
-  for (; i < msg_len; i++) {
-    for (j = 0; j < vp->n_subnodes - 1; j++) {
-      for (k = 0; k < SRSLTE_AVX2_B_SIZE; k++) {
-        vp->codeword[i * vp->n_subnodes + j].c[k] = input[i * ls + j * SRSLTE_AVX2_B_SIZE + k];
-      }
+  int ini       = 0;
+  int node_size = vp->node_size;
+  for (int i = 0; i < msg_len * ls; i = i + ls) {
+    for (int k = 0; k < ls; k++) {
+      vp->codeword->c[ini + k] = input[i + k];
     }
-    // j is now equal to (vp->n_subnodes - 1)
-    for (k = 0; k < ls - j * SRSLTE_AVX2_B_SIZE; k++) {
-      vp->codeword[i * vp->n_subnodes + j].c[k] = input[i * ls + j * SRSLTE_AVX2_B_SIZE + k];
-    }
-    bzero(&(vp->codeword[i * vp->n_subnodes + j].c[k]), (SRSLTE_AVX2_B_SIZE - k) * sizeof(uint8_t));
+    // this zero padding can be removed
+    bzero(&(vp->codeword->c[ini + ls]), (node_size - ls) * sizeof(uint8_t));
+    ini = ini + node_size;
   }
 
-  bzero(vp->codeword + i * vp->n_subnodes, (cdwd_len - msg_len) * vp->n_subnodes * sizeof(__m256i));
+  bzero(vp->codeword + msg_len * vp->n_subnodes, (cdwd_len - msg_len) * vp->n_subnodes * sizeof(__m256i));
+
   return 0;
 }
 
@@ -151,18 +149,12 @@ int return_codeword_avx2long(void* p, uint8_t* output, const uint8_t cdwd_len, c
     return -1;
   }
 
-  int k = 0;
-  int j = 0;
-  for (int i = 0; i < cdwd_len - 2; i++) {
-    for (j = 0; j < vp->n_subnodes - 1; j++) {
-      for (k = 0; k < SRSLTE_AVX2_B_SIZE; k++) {
-        output[i * ls + j * SRSLTE_AVX2_B_SIZE + k] = vp->codeword[(i + 2) * vp->n_subnodes + j].c[k];
-      }
+  int ini = vp->node_size + vp->node_size;
+  for (int i = 0; i < (cdwd_len - 2) * ls; i = i + ls) {
+    for (int k = 0; k < ls; k++) {
+      output[i + k] = vp->codeword->c[ini + k];
     }
-    // j is now equal to vp->n_subndes-1
-    for (k = 0; k < ls - j * SRSLTE_AVX2_B_SIZE; k++) {
-      output[i * ls + j * SRSLTE_AVX2_B_SIZE + k] = vp->codeword[(i + 2) * vp->n_subnodes + j].c[k];
-    }
+    ini = ini + vp->node_size;
   }
   return 0;
 }

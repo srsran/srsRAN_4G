@@ -17,7 +17,17 @@ if (HAVE_AVX2)
             )
 endif (HAVE_AVX2)
 
-set(FEC_SOURCES ${FEC_SOURCES} ${AVX2_SOURCES}
+if (HAVE_AVX512)
+    set(AVX512_SOURCES
+           ldpc/ldpc_dec_c_avx512.c
+            ldpc/ldpc_dec_c_avx512long.c
+            ldpc/ldpc_dec_c_avx512long_flood.c
+           ldpc/ldpc_enc_avx512.c
+            ldpc/ldpc_enc_avx512long.c
+            )
+endif (HAVE_AVX512)
+
+set(FEC_SOURCES ${FEC_SOURCES} ${AVX2_SOURCES} ${AVX512_SOURCES}
         ldpc/base_graph.c
         ldpc/ldpc_dec_f.c
         ldpc/ldpc_dec_s.c

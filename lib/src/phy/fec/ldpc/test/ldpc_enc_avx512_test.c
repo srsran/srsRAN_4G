@@ -11,35 +11,34 @@
  */
 
 /*!
- * \file ldpc_dec_avx2_test.c
- * \brief Unit test for the LDPC decoder working with 8-bit integer-valued LLRs (AVX2 implementation).
+ * \file ldpc_enc_avx512_test.c
+ * \brief Unit test for the LDPC encoder (SIMD-optimized version).
  *
- * It decodes a batch of example codewords and compares the resulting messages
+ * It encodes a batch of example messages and compares the resulting codewords
  * with the expected ones. Reference messages and codewords are provided in
  * files **examplesBG1.dat** and **examplesBG2.dat**.
  *
- * Synopsis: **ldpc_dec_c_test [options]**
+ * Synopsis: **ldpc_enc_test [options]**
  *
  * Options:
  *  - **-b \<number\>** Base Graph (1 or 2. Default 1).
  *  - **-l \<number\>** Lifting Size (according to 5GNR standard. Default 2).
+ *  - **-R \<number\>** Number of times tests are repeated (for computing throughput).
  */
 
-#include "srslte/phy/utils/vector.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "srslte/phy/fec/ldpc/ldpc_common.h"
-#include "srslte/phy/fec/ldpc/ldpc_decoder.h"
+#include "srslte/phy/fec/ldpc/ldpc_encoder.h"
 #include "srslte/phy/utils/debug.h"
 
 srslte_basegraph_t base_graph = BG1; /*!< \brief Base Graph (BG1 or BG2). */
 int                lift_size  = 2;   /*!< \brief Lifting Size. */
 int                finalK;           /*!< \brief Number of uncoded bits (message length). */
 int                finalN;           /*!< \brief Number of coded bits (codeword length). */
-int                scheduling = 0;   /*!< \brief Message scheduling (0 for layered, 1 for flooded). */
 
 #define NOF_MESSAGES 10  /*!< \brief Number of codewords in the test. */
 static int nof_reps = 1; /*!< \brief Number of times tests are repeated (for computing throughput). */
@@ -52,7 +51,6 @@ void usage(char* prog)
   printf("Usage: %s [-bX] [-lX]\n", prog);
   printf("\t-b Base Graph [(1 or 2) Default %d]\n", base_graph + 1);
   printf("\t-l Lifting Size [Default %d]\n", lift_size);
-  printf("\t-x Scheduling [Default %c]\n", scheduling);
   printf("\t-R Number of times tests are repeated (for computing throughput). [Default %d]\n", nof_reps);
 }
 
@@ -62,16 +60,13 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt = 0;
-  while ((opt = getopt(argc, argv, "b:l:x:R:")) != -1) {
+  while ((opt = getopt(argc, argv, "b:l:R:")) != -1) {
     switch (opt) {
       case 'b':
         base_graph = (int)strtol(optarg, NULL, 10) - 1;
         break;
       case 'l':
         lift_size = (int)strtol(optarg, NULL, 10);
-        break;
-      case 'x':
-        scheduling = (int)strtol(optarg, NULL, 10);
         break;
       case 'R':
         nof_reps = (int)strtol(optarg, NULL, 10);
@@ -137,48 +132,43 @@ void get_examples(uint8_t* messages, //
  */
 int main(int argc, char** argv)
 {
-  uint8_t* messages_true = NULL;
-  uint8_t* messages_sim  = NULL;
-  uint8_t* codewords     = NULL;
-  int8_t*  symbols       = NULL;
-  int      i             = 0;
-  int      j             = 0;
-  int      l             = 0;
+  uint8_t* messages       = NULL;
+  uint8_t* codewords_true = NULL;
+  uint8_t* codewords_sim  = NULL;
+
+  int i = 0;
+  int j = 0;
+  int l = 0;
 
   FILE* ex_file = NULL;
   char  file_name[1000];
 
   parse_args(argc, argv);
 
-  srslte_ldpc_decoder_type_t dectype =
-      (scheduling == 0) ? SRSLTE_LDPC_DECODER_C_AVX2 : SRSLTE_LDPC_DECODER_C_AVX2_FLOOD;
-
-  // create an LDPC decoder
-  srslte_ldpc_decoder_t decoder;
-  if (srslte_ldpc_decoder_init(&decoder, dectype, base_graph, lift_size, 1) != 0) {
-    perror("decoder init");
+  // create an LDPC encoder
+  srslte_ldpc_encoder_t encoder;
+  if (srslte_ldpc_encoder_init(&encoder, SRSLTE_LDPC_ENCODER_AVX512, base_graph, lift_size) != 0) {
+    perror("encoder init");
     exit(-1);
   }
 
-  printf("Test LDPC decoder:\n");
-  printf("  Base Graph      -> BG%d\n", decoder.bg + 1);
-  printf("  Lifting Size    -> %d\n", decoder.ls);
-  printf("  Protograph      -> M = %d, N = %d, K = %d\n", decoder.bgM, decoder.bgN, decoder.bgK);
-  printf("  Lifted graph    -> M = %d, N = %d, K = %d\n", decoder.liftM, decoder.liftN, decoder.liftK);
+  printf("Test LDPC encoder:\n");
+  printf("  Base Graph      -> BG%d\n", encoder.bg + 1);
+  printf("  Lifting Size    -> %d\n", encoder.ls);
+  printf("  Protograph      -> M = %d, N = %d, K = %d\n", encoder.bgM, encoder.bgN, encoder.bgK);
+  printf("  Lifted graph    -> M = %d, N = %d, K = %d\n", encoder.liftM, encoder.liftN, encoder.liftK);
   printf("  Final code rate -> K/(N-2) = %d/%d = 1/%d\n",
-         decoder.liftK,
-         decoder.liftN - 2 * lift_size,
-         decoder.bg == BG1 ? 3 : 5);
-  printf("  Scheduling: %s\n", scheduling ? "flooded" : "layered");
+         encoder.liftK,
+         encoder.liftN - 2 * lift_size,
+         encoder.bg == BG1 ? 3 : 5);
 
-  finalK = decoder.liftK;
-  finalN = decoder.liftN - 2 * lift_size;
+  finalK = encoder.liftK;
+  finalN = encoder.liftN - 2 * lift_size;
 
-  messages_true = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
-  messages_sim  = srslte_vec_u8_malloc(finalK * NOF_MESSAGES);
-  codewords     = srslte_vec_u8_malloc(finalN * NOF_MESSAGES);
-  symbols       = srslte_vec_i8_malloc(finalN * NOF_MESSAGES);
-  if (!messages_true || !messages_sim || !codewords || !symbols) {
+  messages       = malloc(finalK * NOF_MESSAGES * sizeof(uint8_t));
+  codewords_true = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
+  codewords_sim  = malloc(finalN * NOF_MESSAGES * sizeof(uint8_t));
+  if (!messages || !codewords_true || !codewords_sim) {
     perror("malloc");
     exit(-1);
   }
@@ -191,49 +181,41 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  get_examples(messages_true, codewords, ex_file);
+  get_examples(messages, codewords_true, ex_file);
 
   fclose(ex_file);
 
-  for (i = 0; i < NOF_MESSAGES * finalN; i++) {
-    symbols[i] = codewords[i] == 1 ? -2 : 2;
-  }
-
-  printf("\nDecoding test messages...\n");
+  printf("\nEncoding test messages...\n");
   struct timeval t[3];
   double         elapsed_time = 0;
-
   for (j = 0; j < NOF_MESSAGES; j++) {
     printf("  codeword %d\n", j);
     gettimeofday(&t[1], NULL);
     for (l = 0; l < nof_reps; l++) {
-      srslte_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
+      srslte_ldpc_encoder_encode_rm(&encoder, messages + j * finalK, codewords_sim + j * finalN, finalK, finalN);
     }
-
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     elapsed_time += t[0].tv_sec + 1e-6 * t[0].tv_usec;
   }
-  printf("Elapsed time: %e s\n", elapsed_time);
+  printf("Elapsed time: %e s\n", elapsed_time / nof_reps);
+
+  printf("Estimated throughput:\n  %e word/s\n  %.3f Mbit/s (information)\n  %.3f Mbit/s (encoded)\n",
+         NOF_MESSAGES / (elapsed_time / nof_reps),
+         NOF_MESSAGES * finalK / (elapsed_time / nof_reps) / 1e6,
+         NOF_MESSAGES * finalN / (elapsed_time / nof_reps) / 1e6);
 
   printf("\nVerifing results...\n");
-  for (i = 0; i < NOF_MESSAGES * finalK; i++) {
-    if ((1U & messages_sim[i]) != (1U & messages_true[i])) {
+  for (i = 0; i < NOF_MESSAGES * finalN; i++) {
+    if (codewords_sim[i] != codewords_true[i]) {
       perror("wrong!!");
       exit(-1);
     }
   }
-
-  printf("Estimated throughput:\n  %e word/s\n  %e bit/s (information)\n  %e bit/s (encoded)\n",
-         NOF_MESSAGES / elapsed_time,
-         NOF_MESSAGES * finalK / elapsed_time,
-         NOF_MESSAGES * finalN / elapsed_time);
-
   printf("\nTest completed successfully!\n\n");
 
-  free(symbols);
-  free(codewords);
-  free(messages_sim);
-  free(messages_true);
-  srslte_ldpc_decoder_free(&decoder);
+  free(codewords_sim);
+  free(codewords_true);
+  free(messages);
+  srslte_ldpc_encoder_free(&encoder);
 }
