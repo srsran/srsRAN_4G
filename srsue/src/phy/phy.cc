@@ -106,15 +106,6 @@ int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::
   return SRSLTE_SUCCESS;
 }
 
-int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_)
-{
-  if (!nr_workers.init(args_, &common, stack_, log_sink, WORKERS_THREAD_PRIO)) {
-    return SRSLTE_ERROR;
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 int phy::init(const phy_args_t& args_)
 {
   std::unique_lock<std::mutex> lock(config_mutex);
@@ -614,12 +605,25 @@ void phy::set_mch_period_stop(uint32_t stop)
   common.set_mch_period_stop(stop);
 }
 
+#ifdef HAVE_5GNR
+int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_)
+{
+  if (!nr_workers.init(args_, &common, stack_, log_sink, WORKERS_THREAD_PRIO)) {
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant)
 {
   return nr_workers.set_ul_grant(packed_ul_grant);
 }
 
-void phy::send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power)
+void phy::send_prach(const uint32_t prach_occasion,
+                     const int      preamble_index,
+                     const float    preamble_received_target_power,
+                     const float    ta_base_sec)
 {
   nr_workers.send_prach(prach_occasion, preamble_index, preamble_received_target_power);
 }
@@ -638,5 +642,6 @@ bool phy::set_config(const srslte::phy_cfg_nr_t& cfg)
 {
   return nr_workers.set_config(cfg);
 }
+#endif // HAVE_5GNR
 
 } // namespace srsue

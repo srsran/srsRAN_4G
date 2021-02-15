@@ -66,7 +66,11 @@ private:
   srslte::block_queue<std::function<void(void)> > cmd_queue;
 };
 
-class phy final : public ue_lte_phy_base, public ue_nr_phy_base, public srslte::thread
+class phy final : public ue_lte_phy_base,
+#if HAVE_5GNR
+                  public ue_nr_phy_base,
+#endif // HAVE_5GNR
+                  public srslte::thread
 {
 public:
   explicit phy(srslog::sink& log_sink) :
@@ -80,7 +84,6 @@ public:
     prach_buffer(logger_phy),
     thread("PHY")
   {}
-  bool set_config(const srslte::phy_cfg_nr_t& cfg) final;
 
   ~phy() final { stop(); }
 
@@ -89,8 +92,6 @@ public:
 
   // Init for LTE PHYs
   int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_) final;
-
-  int init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_) final;
 
   void stop() final;
 
@@ -173,10 +174,18 @@ public:
   const static int DEFAULT_WORKERS = 4;
 
   std::string get_type() final { return "lte_soft"; }
-  int         set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant) final;
-  void        send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power) final;
-  int         tx_request(const tx_request_t& request) final;
-  void        set_earfcn(std::vector<uint32_t> earfcns) final;
+
+#ifdef HAVE_5GNR
+  int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_) final;
+  bool set_config(const srslte::phy_cfg_nr_t& cfg) final;
+  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant) final;
+  void send_prach(const uint32_t prach_occasion,
+                  const int      preamble_index,
+                  const float    preamble_received_target_power,
+                  const float    ta_base_sec = 0.0f) final;
+  int  tx_request(const tx_request_t& request) final;
+  void set_earfcn(std::vector<uint32_t> earfcns) final;
+#endif // HAVE_5GNR
 
 private:
   void run_thread() final;
