@@ -362,7 +362,7 @@ public:
 private:
   void run_thread()
   {
-    uint16_t          pdcp_sn = 0;
+    uint32_t          pdcp_sn = 0;
     byte_buffer_pool* pool    = byte_buffer_pool::get_instance();
     while (run_enable) {
       unique_byte_buffer_t pdu = srslte::make_byte_buffer();
@@ -372,7 +372,7 @@ private:
         usleep(1000);
         continue;
       }
-      pdu->md.pdcp_sn = pdcp_sn & 0x0FFF; // 12-bit SN
+      pdu->md.pdcp_sn = pdcp_sn;
       for (uint32_t i = 0; i < args.sdu_size; i++) {
         pdu->msg[i] = pdcp_sn & 0xFF;
       }
