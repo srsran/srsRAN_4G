@@ -13,6 +13,7 @@
 #ifndef SRSLTE_PDCP_ENTITY_BASE_H
 #define SRSLTE_PDCP_ENTITY_BASE_H
 
+#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
@@ -169,7 +170,8 @@ protected:
   void            append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
 
   // Metrics helpers
-  pdcp_bearer_metrics_t metrics = {};
+  pdcp_bearer_metrics_t           metrics = {};
+  srslte::rolling_average<double> tx_pdu_ack_latency_ms;
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)

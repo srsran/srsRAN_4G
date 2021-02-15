@@ -549,6 +549,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& s
   sdu_copy->N_bytes = sdu->N_bytes;
 
   // Metrics
+  sdu_copy->set_timestamp();
   metrics.num_tx_buffered_pdus++;
   metrics.num_tx_buffered_pdus_bytes += sdu->N_bytes;
 
@@ -596,10 +597,20 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
       return;
     }
 
+    // Metrics
+    tx_pdu_ack_latency_ms.push(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                   std::chrono::high_resolution_clock::now() - it->second->get_timestamp())
+                                   .count());
+    metrics.num_tx_acked_bytes += it->second->N_bytes;
+    metrics.num_tx_buffered_pdus_bytes -= it->second->N_bytes;
+    metrics.num_tx_buffered_pdus--;
+
     // If ACK'ed bytes are equal to (or exceed) PDU size, remove PDU and disarm timer.
     undelivered_sdus_queue.erase(sn);
     discard_timers_map.erase(sn);
   }
+
+  metrics.num_tx_buffered_pdus = undelivered_sdus_queue.size();
 }
 
 /****************************************************************************
