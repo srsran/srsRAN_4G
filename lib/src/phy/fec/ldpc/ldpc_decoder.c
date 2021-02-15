@@ -811,7 +811,7 @@ static int init_c_avx512long(srslte_ldpc_decoder_t* q)
   q->free = free_dec_c_avx512long;
 
   if ((q->ptr = create_ldpc_dec_c_avx512long(q->bgN, q->bgM, q->ls, q->scaling_fctr)) == NULL) {
-    ERROR("Create_ldpc_dec failed\n");
+    ERROR("Create_ldpc_dec failed");
     free_dec_c_avx512long(q);
     return -1;
   }

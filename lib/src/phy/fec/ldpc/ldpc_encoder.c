@@ -48,7 +48,7 @@ static int encode_c(void* o, const uint8_t* input, uint8_t* output, uint32_t inp
   srslte_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
-    perror("Dimension mismatch.\n");
+    ERROR("Dimension mismatch.");
     return -1;
   }
   // it must be smaller than the codeword size
@@ -143,7 +143,7 @@ static int encode_avx2(void* o, const uint8_t* input, uint8_t* output, uint32_t 
   srslte_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
-    perror("Dimension mismatch.\n");
+    ERROR("Dimension mismatch.");
     return -1;
   }
 
@@ -207,7 +207,7 @@ static int init_avx2(srslte_ldpc_encoder_t* q)
   q->free = free_enc_avx2;
 
   if ((q->ptr = create_ldpc_enc_avx2(q)) == NULL) {
-    perror("Create_ldpc_enc\n");
+    ERROR("Create_ldpc_enc");
     free_enc_avx2(q);
     return -1;
   }
@@ -236,7 +236,7 @@ encode_avx2long(void* o, const uint8_t* input, uint8_t* output, uint32_t input_l
   srslte_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
-    perror("Dimension mismatch.\n");
+    ERROR("Dimension mismatch.");
     return -1;
   }
 
@@ -299,7 +299,7 @@ static int init_avx2long(srslte_ldpc_encoder_t* q)
   q->free = free_enc_avx2long;
 
   if ((q->ptr = create_ldpc_enc_avx2long(q)) == NULL) {
-    perror("Create_ldpc_enc\n");
+    ERROR("Create_ldpc_enc");
     free_enc_avx2long(q);
     return -1;
   }
@@ -331,7 +331,7 @@ static int encode_avx512(void* o, const uint8_t* input, uint8_t* output, uint32_
   srslte_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
-    perror("Dimension mismatch.\n");
+    ERROR("Dimension mismatch.");
     return -1;
   }
 
@@ -375,7 +375,7 @@ static int init_avx512(srslte_ldpc_encoder_t* q)
   int ls_index = get_ls_index(q->ls);
 
   if (ls_index == VOID_LIFTSIZE) {
-    ERROR("Invalid lifting size %d\n", q->ls);
+    ERROR("Invalid lifting size %d", q->ls);
     return -1;
   }
 
@@ -388,14 +388,14 @@ static int init_avx512(srslte_ldpc_encoder_t* q)
   } else if (q->bg == BG2 && (ls_index == 3 || ls_index == 7)) {
     q->encode_high_rate_avx512 = encode_high_rate_case4_avx512;
   } else {
-    ERROR("Invalid lifting size %d and/or Base Graph %d\n", q->ls, q->bg + 1);
+    ERROR("Invalid lifting size %d and/or Base Graph %d", q->ls, q->bg + 1);
     return -1;
   }
 
   q->free = free_enc_avx512;
 
   if ((q->ptr = create_ldpc_enc_avx512(q)) == NULL) {
-    perror("Create_ldpc_enc\n");
+    ERROR("Create_ldpc_enc");
     free_enc_avx512(q);
     return -1;
   }
@@ -424,7 +424,7 @@ encode_avx512long(void* o, const uint8_t* input, uint8_t* output, uint32_t input
   srslte_ldpc_encoder_t* q = o;
 
   if (input_length / q->bgK != q->ls) {
-    perror("Dimension mismatch.\n");
+    ERROR("Dimension mismatch.");
     return -1;
   }
 
@@ -435,13 +435,13 @@ encode_avx512long(void* o, const uint8_t* input, uint8_t* output, uint32_t input
   // We need at least q->bgK + 4 variable nodes to cover the high-rate region. However,
   // 2 variable nodes are systematically punctured by the encoder.
   if (cdwd_rm_length < (q->bgK + 2) * q->ls) {
-    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.\n");
+    // ERROR("The rate-matched codeword should have a length at least equal to the high-rate region.");
     cdwd_rm_length = (q->bgK + 2) * q->ls;
     // return -1;
   }
   if (cdwd_rm_length % q->ls) {
     cdwd_rm_length = (cdwd_rm_length / q->ls + 1) * q->ls;
-    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.\n");
+    // ERROR("The rate-matched codeword length should be a multiple of the lifting size.");
     // return -1;
   }
   load_avx512long(q->ptr, input, q->bgK, q->bgN, q->ls);
@@ -467,7 +467,7 @@ static int init_avx512long(srslte_ldpc_encoder_t* q)
   int ls_index = get_ls_index(q->ls);
 
   if (ls_index == VOID_LIFTSIZE) {
-    ERROR("Invalid lifting size %d\n", q->ls);
+    ERROR("Invalid lifting size %d", q->ls);
     return -1;
   }
 
@@ -480,14 +480,14 @@ static int init_avx512long(srslte_ldpc_encoder_t* q)
   } else if (q->bg == BG2 && (ls_index == 3 || ls_index == 7)) {
     q->encode_high_rate_avx512 = encode_high_rate_case4_avx512long;
   } else {
-    ERROR("Invalid lifting size %d and/or Base Graph %d\n", q->ls, q->bg + 1);
+    ERROR("Invalid lifting size %d and/or Base Graph %d", q->ls, q->bg + 1);
     return -1;
   }
 
   q->free = free_enc_avx512long;
 
   if ((q->ptr = create_ldpc_enc_avx512long(q)) == NULL) {
-    perror("Create_ldpc_enc\n");
+    ERROR("Create_ldpc_enc");
     free_enc_avx512long(q);
     return -1;
   }
