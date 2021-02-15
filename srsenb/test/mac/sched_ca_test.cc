@@ -115,7 +115,6 @@ int test_scell_activation(test_scell_activation_params params)
   sched_sim_event_generator generator;
   // Setup scheduler
   common_sched_tester tester;
-  tester.init(nullptr);
   tester.sim_cfg(sim_args);
 
   /* Simulation */

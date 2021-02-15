@@ -37,9 +37,10 @@ sched::sched() {}
 
 sched::~sched() {}
 
-void sched::init(rrc_interface_mac* rrc_)
+void sched::init(rrc_interface_mac* rrc_, const sched_args_t& sched_cfg_)
 {
-  rrc = rrc_;
+  rrc       = rrc_;
+  sched_cfg = sched_cfg_;
 
   // Initialize first carrier scheduler
   carrier_schedulers.emplace_back(new carrier_sched{rrc, &ue_db, 0, &sched_results});
@@ -50,7 +51,7 @@ void sched::init(rrc_interface_mac* rrc_)
 int sched::reset()
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
-  configured = false;
+  configured.store(false, std::memory_order_release);
   for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
     c->reset();
   }
@@ -58,14 +59,7 @@ int sched::reset()
   return 0;
 }
 
-void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
-{
-  std::lock_guard<std::mutex> lock(sched_mutex);
-  if (sched_cfg_ != nullptr) {
-    sched_cfg = *sched_cfg_;
-  }
-}
-
+/// Called by rrc::init
 int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
@@ -89,8 +83,7 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
     carrier_schedulers[i]->carrier_cfg(sched_cell_params[i]);
   }
 
-  configured = true;
-
+  configured.store(true, std::memory_order_release);
   return 0;
 }
 
@@ -292,7 +285,7 @@ std::array<bool, SRSLTE_MAX_CARRIERS> sched::get_scell_activation_mask(uint16_t 
 // Downlink Scheduler API
 int sched::dl_sched(uint32_t tti_tx_dl, uint32_t enb_cc_idx, sched_interface::dl_sched_res_t& sched_result)
 {
-  if (!configured) {
+  if (not configured.load(std::memory_order_acquire)) {
     return 0;
   }
 
@@ -313,7 +306,7 @@ int sched::dl_sched(uint32_t tti_tx_dl, uint32_t enb_cc_idx, sched_interface::dl
 // Uplink Scheduler API
 int sched::ul_sched(uint32_t tti, uint32_t enb_cc_idx, srsenb::sched_interface::ul_sched_res_t& sched_result)
 {
-  if (!configured) {
+  if (not configured.load(std::memory_order_acquire)) {
     return 0;
   }
 

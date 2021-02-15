@@ -242,7 +242,6 @@ void test_scheduler_rand(sched_sim_events sim)
   sched_tester  tester;
   srsenb::sched my_sched;
 
-  tester.init(nullptr);
   tester.sim_cfg(std::move(sim.sim_args));
 
   tester.test_next_ttis(sim.tti_events);

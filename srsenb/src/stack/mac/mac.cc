@@ -58,10 +58,7 @@ bool mac::init(const mac_args_t&        args_,
 
     stack_task_queue = task_sched.make_task_queue();
 
-    scheduler.init(rrc);
-
-    // Set default scheduler configuration
-    scheduler.set_sched_cfg(&args.sched);
+    scheduler.init(rrc, args.sched);
 
     // Init softbuffer for SI messages
     common_buffers.resize(cells.size());

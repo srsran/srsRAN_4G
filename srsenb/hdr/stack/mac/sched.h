@@ -17,9 +17,9 @@
 #include "sched_ue.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/sched_interface.h"
+#include <atomic>
 #include <map>
 #include <mutex>
-#include <pthread.h>
 #include <queue>
 
 namespace srsenb {
@@ -38,9 +38,8 @@ public:
   sched();
   ~sched() override;
 
-  void init(rrc_interface_mac* rrc);
+  void init(rrc_interface_mac* rrc, const sched_args_t& sched_cfg);
   int  cell_cfg(const std::vector<cell_cfg_t>& cell_cfg) override;
-  void set_sched_cfg(sched_args_t* sched_cfg);
   int  reset() final;
 
   int  ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg) final;
@@ -103,7 +102,7 @@ protected:
 
   srslte::tti_point last_tti;
   std::mutex        sched_mutex;
-  bool              configured = false;
+  std::atomic<bool> configured;
 };
 
 } // namespace srsenb
