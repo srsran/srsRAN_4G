@@ -62,6 +62,10 @@ public:
   // eNB-only methods
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint32_t lcid);
 
+  // Metrics
+  void get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti);
+  void reset_metrics();
+
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
@@ -69,7 +73,8 @@ private:
   srslte::task_sched_handle  task_sched;
   srslog::basic_logger&      logger;
 
-  std::map<uint16_t, std::unique_ptr<pdcp_entity_base> > pdcp_array, pdcp_array_mrb;
+  using pdcp_map_t = std::map<uint16_t, std::unique_ptr<pdcp_entity_base> >;
+  pdcp_map_t pdcp_array, pdcp_array_mrb;
 
   // cache valid lcids to be checked from separate thread
   std::mutex         cache_mutex;
@@ -77,6 +82,9 @@ private:
 
   bool valid_lcid(uint32_t lcid);
   bool valid_mch_lcid(uint32_t lcid);
+
+  // Timer needed for metrics calculation
+  std::chrono::high_resolution_clock::time_point metrics_tp;
 };
 
 } // namespace srslte

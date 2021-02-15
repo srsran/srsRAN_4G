@@ -319,4 +319,40 @@ bool pdcp::valid_mch_lcid(uint32_t lcid)
   return pdcp_array_mrb.find(lcid) != pdcp_array_mrb.end();
 }
 
+void pdcp::get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti)
+{
+  std::chrono::duration<double> secs = std::chrono::high_resolution_clock::now() - metrics_tp;
+
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    pdcp_bearer_metrics_t metrics = it->second->get_metrics();
+
+    // Rx/Tx rate based on real time
+    double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs.count();
+    double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs.count();
+
+    // Rx/Tx rate based on number of TTIs
+    double rx_rate_mbps = (nof_tti > 0) ? ((metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+    double tx_rate_mbps = (nof_tti > 0) ? ((metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+
+    logger.info("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
+                it->first,
+                rx_rate_mbps,
+                rx_rate_mbps_real_time,
+                tx_rate_mbps,
+                tx_rate_mbps_real_time);
+    m.bearer[it->first] = metrics;
+  }
+
+  reset_metrics();
+}
+
+void pdcp::reset_metrics()
+{
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->reset_metrics();
+  }
+
+  metrics_tp = std::chrono::high_resolution_clock::now();
+}
+
 } // namespace srslte
