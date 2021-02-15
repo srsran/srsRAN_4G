@@ -173,7 +173,7 @@ public:
   const static int DEFAULT_WORKERS = 4;
 
   std::string get_type() final { return "lte_soft"; }
-  int         set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array) final;
+  int         set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant) final;
   void        send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power) final;
   int         tx_request(const tx_request_t& request) final;
   void        set_earfcn(std::vector<uint32_t> earfcns) final;

@@ -614,9 +614,9 @@ void phy::set_mch_period_stop(uint32_t stop)
   common.set_mch_period_stop(stop);
 }
 
-int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array)
+int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant)
 {
-  return nr_workers.set_ul_grant(array);
+  return nr_workers.set_ul_grant(packed_ul_grant);
 }
 
 void phy::send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power)

@@ -97,7 +97,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     }
 
 #ifdef HAVE_5GNR
-    srsue::phy_args_nr_t phy_args_nr;
+    srsue::phy_args_nr_t phy_args_nr = {};
     phy_args_nr.nof_prb              = args.phy.nr_nof_prb;
     phy_args_nr.nof_carriers         = args.phy.nof_nr_carriers;
     phy_args_nr.nof_phy_threads      = args.phy.nof_phy_threads;

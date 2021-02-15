@@ -101,7 +101,7 @@ void worker_pool::send_prach(uint32_t prach_occasion, uint32_t preamble_index, i
   prach_buffer->prepare_to_send(preamble_index);
 }
 
-int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array)
+int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant)
 {
   // Copy DCI bits and setup DCI context
   srslte_dci_msg_nr_t dci_msg = {};
@@ -109,7 +109,7 @@ int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> arr
   dci_msg.rnti_type           = srslte_rnti_type_ra;
   dci_msg.rnti                = phy_state.ra_rnti;
   dci_msg.nof_bits            = SRSLTE_RAR_UL_GRANT_NBITS;
-  srslte_vec_u8_copy(dci_msg.payload, array.data(), SRSLTE_RAR_UL_GRANT_NBITS);
+  srslte_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSLTE_RAR_UL_GRANT_NBITS);
 
   srslte_dci_ul_nr_t dci_ul = {};
 
