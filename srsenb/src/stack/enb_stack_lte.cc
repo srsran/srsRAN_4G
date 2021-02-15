@@ -199,6 +199,7 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
     mac.get_metrics(metrics.mac);
     if (not metrics.mac.ues.empty()) {
       rlc.get_metrics(metrics.rlc, metrics.mac.ues[0].nof_tti);
+      pdcp.get_metrics(metrics.pdcp, metrics.mac.ues[0].nof_tti);
     }
     rrc.get_metrics(metrics.rrc);
     s1ap.get_metrics(metrics.s1ap);

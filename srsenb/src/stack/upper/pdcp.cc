@@ -225,4 +225,14 @@ std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)
   return to_string((rb_id_t)lcid);
 }
 
+void pdcp::get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti)
+{
+  m.ues.resize(users.size());
+  size_t count = 0;
+  for (auto& user : users) {
+    user.second.pdcp->get_metrics(m.ues[count], nof_tti);
+    count++;
+  }
+}
+
 } // namespace srsenb

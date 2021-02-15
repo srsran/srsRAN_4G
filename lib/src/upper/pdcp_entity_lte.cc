@@ -603,7 +603,6 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
                                    .count());
     metrics.num_tx_acked_bytes += it->second->N_bytes;
     metrics.num_tx_buffered_pdus_bytes -= it->second->N_bytes;
-    metrics.num_tx_buffered_pdus--;
 
     // If ACK'ed bytes are equal to (or exceed) PDU size, remove PDU and disarm timer.
     undelivered_sdus_queue.erase(sn);

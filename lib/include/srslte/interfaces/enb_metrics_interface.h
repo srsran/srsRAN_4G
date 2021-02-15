@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/upper/s1ap_metrics.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/radio/radio_metrics.h"
+#include "srslte/upper/pdcp_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "srsue/hdr/stack/upper/gw_metrics.h"
 
@@ -31,10 +32,15 @@ struct rlc_metrics_t {
   std::vector<srslte::rlc_metrics_t> ues;
 };
 
+struct pdcp_metrics_t {
+  std::vector<srslte::pdcp_metrics_t> ues;
+};
+
 struct stack_metrics_t {
   mac_metrics_t  mac;
   rrc_metrics_t  rrc;
   rlc_metrics_t  rlc;
+  pdcp_metrics_t pdcp;
   s1ap_metrics_t s1ap;
 };
 

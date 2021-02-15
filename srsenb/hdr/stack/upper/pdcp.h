@@ -11,6 +11,7 @@
  */
 
 #include "srslte/common/timers.h"
+#include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
@@ -56,6 +57,9 @@ public:
 
   // pdcp_interface_gtpu
   std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
+
+  // Metrics
+  void get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti);
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp
