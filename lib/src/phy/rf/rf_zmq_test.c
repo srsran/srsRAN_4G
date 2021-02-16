@@ -229,7 +229,8 @@ int main()
   }
 
   // two trx radios with continous tx (no timed tx) using TCP transport for both directions
-  if (run_test("tx_port=tcp://*:5554,rx_port=tcp://localhost:5555,id=ue,base_srate=1.92e6",
+  if (run_test("tx_port=tcp://*:5554,rx_port=tcp://"
+               "localhost:5555,id=ue,base_srate=1.92e6,log_trx_timeout=true,trx_timeout_ms=1000",
                "rx_port=tcp://localhost:5554,tx_port=tcp://*:5555,id=enb,base_srate=1.92e6",
                false) != SRSLTE_SUCCESS) {
     fprintf(stderr, "Two TRx radio test failed!\n");

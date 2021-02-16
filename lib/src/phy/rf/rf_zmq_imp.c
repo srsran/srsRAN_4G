@@ -317,6 +317,16 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
         rx_opts.fail_on_disconnect = true;
       }
 
+      // trx_timeout_ms
+      rx_opts.trx_timeout_ms = ZMQ_TIMEOUT_MS;
+      parse_uint32(args, "trx_timeout_ms", i, &rx_opts.trx_timeout_ms);
+
+      // log_trx_timeout
+      parse_string(args, "log_trx_timeout", i, tmp);
+      if (strncmp(tmp, "true", RF_PARAM_LEN) == 0 || strncmp(tmp, "yes", RF_PARAM_LEN) == 0) {
+        rx_opts.log_trx_timeout = true;
+      }
+
       // initialize transmitter
       if (strlen(tx_port) != 0) {
         if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, tx_port) != SRSLTE_SUCCESS) {
@@ -707,6 +717,9 @@ int rf_zmq_recv_with_time_multi(void*    h,
             // No error
             count[i] += n;
           } else if (n == SRSLTE_ERROR_TIMEOUT) {
+            if (handler->receiver[i].log_trx_timeout) {
+              fprintf(stderr, "Error: timeout receiving samples after %dms\n", handler->receiver[i].trx_timeout_ms);
+            }
             // Other end disconnected, either keep going, or fail
             if (handler->receiver[i].fail_on_disconnect) {
               goto clean_exit;

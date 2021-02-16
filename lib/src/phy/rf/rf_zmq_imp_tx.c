@@ -49,24 +49,24 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       goto clean_exit;
     }
 
-#if ZMQ_TIMEOUT_MS
-    int timeout = ZMQ_TIMEOUT_MS;
-    if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting receive timeout on tx socket\n");
-      goto clean_exit;
-    }
+    if (opts.trx_timeout_ms) {
+      int timeout = opts.trx_timeout_ms;
+      if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting receive timeout on tx socket\n");
+        goto clean_exit;
+      }
 
-    if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting receive timeout on tx socket\n");
-      goto clean_exit;
-    }
+      if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting receive timeout on tx socket\n");
+        goto clean_exit;
+      }
 
-    timeout = 0;
-    if (zmq_setsockopt(q->sock, ZMQ_LINGER, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting linger timeout on tx socket\n");
-      goto clean_exit;
+      timeout = 0;
+      if (zmq_setsockopt(q->sock, ZMQ_LINGER, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting linger timeout on tx socket\n");
+        goto clean_exit;
+      }
     }
-#endif
 
     if (pthread_mutex_init(&q->mutex, NULL)) {
       fprintf(stderr, "Error: creating mutex\n");

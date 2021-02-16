@@ -69,7 +69,10 @@ static void* rf_zmq_async_rx_thread(void* h)
 
       // Try to write in ring buffer
       while (n < 0 && q->running) {
-        n = srslte_ringbuffer_write_timed(&q->ringbuffer, q->temp_buffer, nbytes, ZMQ_TIMEOUT_MS);
+        n = srslte_ringbuffer_write_timed(&q->ringbuffer, q->temp_buffer, nbytes, q->trx_timeout_ms);
+        if (n == SRSLTE_ERROR_TIMEOUT && q->log_trx_timeout) {
+          fprintf(stderr, "Error: timeout writing samples to ringbuffer after %dms\n", q->trx_timeout_ms);
+        }
       }
 
       // Check write
@@ -109,6 +112,8 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     q->frequency_mhz      = opts.frequency_mhz;
     q->fail_on_disconnect = opts.fail_on_disconnect;
     q->sample_offset      = opts.sample_offset;
+    q->trx_timeout_ms     = opts.trx_timeout_ms;
+    q->log_trx_timeout    = opts.log_trx_timeout;
 
     if (opts.socket_type == ZMQ_SUB) {
       zmq_setsockopt(q->sock, ZMQ_SUBSCRIBE, "", 0);
@@ -139,24 +144,24 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       goto clean_exit;
     }
 
-#if ZMQ_TIMEOUT_MS
-    int timeout = ZMQ_TIMEOUT_MS;
-    if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting receive timeout on rx socket\n");
-      goto clean_exit;
-    }
+    if (opts.trx_timeout_ms) {
+      int timeout = opts.trx_timeout_ms;
+      if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting receive timeout on rx socket\n");
+        goto clean_exit;
+      }
 
-    if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting receive timeout on rx socket\n");
-      goto clean_exit;
-    }
+      if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting receive timeout on rx socket\n");
+        goto clean_exit;
+      }
 
-    timeout = 0;
-    if (zmq_setsockopt(q->sock, ZMQ_LINGER, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting linger timeout on rx socket\n");
-      goto clean_exit;
+      timeout = 0;
+      if (zmq_setsockopt(q->sock, ZMQ_LINGER, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting linger timeout on rx socket\n");
+        goto clean_exit;
+      }
     }
-#endif
 
     if (srslte_ringbuffer_init(&q->ringbuffer, ZMQ_MAX_BUFFER_SIZE)) {
       fprintf(stderr, "Error: initiating ringbuffer\n");
@@ -216,14 +221,15 @@ int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples)
   // If the read needs to be advanced
   while (q->sample_offset < 0) {
     uint32_t n_offset = SRSLTE_MIN(-q->sample_offset, NBYTES2NSAMPLES(ZMQ_MAX_BUFFER_SIZE));
-    int n = srslte_ringbuffer_read_timed(&q->ringbuffer, q->temp_buffer, (int)(n_offset * sample_sz), ZMQ_TIMEOUT_MS);
+    int      n =
+        srslte_ringbuffer_read_timed(&q->ringbuffer, q->temp_buffer, (int)(n_offset * sample_sz), q->trx_timeout_ms);
     if (n < SRSLTE_SUCCESS) {
       return n;
     }
     q->sample_offset += n_offset;
   }
 
-  int n = srslte_ringbuffer_read_timed(&q->ringbuffer, dst_buffer, sample_sz * nsamples, ZMQ_TIMEOUT_MS);
+  int n = srslte_ringbuffer_read_timed(&q->ringbuffer, dst_buffer, sample_sz * nsamples, q->trx_timeout_ms);
   if (n < 0) {
     return n;
   }
