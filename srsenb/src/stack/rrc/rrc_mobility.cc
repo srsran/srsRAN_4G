@@ -540,7 +540,7 @@ bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn
     b.dl_hfn     = pdcp_state.tx_hfn;
     b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
     b.ul_hfn     = pdcp_state.rx_hfn;
-    b.pdcp_ul_sn = pdcp_state.next_pdcp_rx_sn;
+    b.pdcp_ul_sn = pdcp_state.last_submitted_pdcp_rx_sn;
     s1ap_bearers.push_back(b);
   }
 
