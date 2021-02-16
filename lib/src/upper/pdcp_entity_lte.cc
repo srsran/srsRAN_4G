@@ -38,12 +38,16 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
     reordering_window = 2048;
   }
 
+  // Initial state
   st.next_pdcp_tx_sn           = 0;
   st.tx_hfn                    = 0;
   st.rx_hfn                    = 0;
   st.next_pdcp_rx_sn           = 0;
   maximum_pdcp_sn              = (1 << cfg.sn_len) - 1;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
+
+  // Queue Helpers
+  maximum_allocated_sns_window = (1 << cfg.sn_len) / 2;
 
   logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   logger.info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms",
@@ -134,7 +138,10 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // a succesfull transmission or when the discard timer expires.
   // Status report will also use this queue, to know the First Missing SDU (FMS).
   if (!rlc->rb_is_um(lcid)) {
-    store_sdu(used_sn, sdu);
+    if (not store_sdu(used_sn, sdu)) {
+      // Could not store the SDU, discarding
+      return;
+    }
   }
 
   // check for pending security config in transmit direction
@@ -547,15 +554,31 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
 /****************************************************************************
  * TX PDUs Queue Helper
  ***************************************************************************/
-bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& sdu)
+bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
 {
-  logger.debug(
-      "Storing SDU in undelivered SDUs queue. TX_COUNT=%d, Queue size=%ld", tx_count, undelivered_sdus_queue.size());
+  logger.debug("Storing SDU in undelivered SDUs queue. SN=%d, Queue size=%ld", sn, undelivered_sdus_queue.size());
 
   // Check wether PDU is already in the queue
-  if (undelivered_sdus_queue.find(tx_count) != undelivered_sdus_queue.end()) {
-    logger.error("PDU already exists in the queue. TX_COUNT=%d", tx_count);
+  if (undelivered_sdus_queue.find(sn) != undelivered_sdus_queue.end()) {
+    logger.error("PDU already exists in the queue. TX_COUNT=%d", sn);
     return false;
+  }
+
+  // Make sure we don't associate more than half of the PDCP SN space of contiguous PDCP SDUs
+  if (not undelivered_sdus_queue.empty()) {
+    auto     fms_it = undelivered_sdus_queue.begin();
+    uint32_t fms_sn = fms_it->first;
+    int32_t  diff   = sn - fms_sn;
+    if (diff > 0 && (uint32_t)diff > maximum_allocated_sns_window) {
+      // This SN is too large to assign, it may cause HFN de-synchronization.
+      logger.debug("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d", sn, fms_sn, diff);
+      return false;
+    }
+    if (diff < 0 && diff < ((-1) * (int32_t)maximum_allocated_sns_window)) {
+      // This SN is too large to assign, it may cause HFN de-synchronization.
+      logger.debug("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d", sn, fms_sn, diff);
+      return false;
+    }
   }
 
   // Copy PDU contents into queue
@@ -566,7 +589,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& s
   // Metrics
   sdu_copy->set_timestamp();
 
-  undelivered_sdus_queue.insert(std::make_pair(tx_count, std::move(sdu_copy)));
+  undelivered_sdus_queue.insert(std::make_pair(sn, std::move(sdu_copy)));
   return true;
 }
 

@@ -95,6 +95,7 @@ private:
   std::map<uint32_t, timer_handler::unique_timer> discard_timers_map;
 
   // TX Queue
+  uint32_t                                 maximum_allocated_sns_window = 2048;
   std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus_queue;
 
   void handle_control_pdu(srslte::unique_byte_buffer_t pdu);
