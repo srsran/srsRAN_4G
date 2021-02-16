@@ -367,9 +367,13 @@ int srslte_prach_gen_seqs(srslte_prach_t* p)
     } else {
       C_v = v * p->N_cs;
     }
-    for (int j = 0; j < p->N_zc; j++) {
-      p->seqs[i][j] = root[(j + C_v) % p->N_zc];
-    }
+
+    // Copy shifted sequence, equivalent to:
+    // for (int j = 0; j < p->N_zc; j++) {
+    //      p->seqs[i][j] = root[(j + C_v) % p->N_zc];
+    // }
+    srslte_vec_cf_copy(p->seqs[i], &root[C_v], p->N_zc - C_v);
+    srslte_vec_cf_copy(&p->seqs[i][p->N_zc - C_v], root, C_v);
 
     v++;
   }
