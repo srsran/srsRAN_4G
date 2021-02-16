@@ -12,7 +12,6 @@
 
 #include "srsenb/hdr/stack/mac/sched_grid.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
 
 using srslte::tti_point;
@@ -784,7 +783,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_sched::alloc_result_t& dci_r
     if (ue_it == ue_list.end()) {
       continue;
     }
-    sched_ue*           user        = &ue_it->second;
+    sched_ue*           user        = ue_it->second.get();
     uint32_t            data_before = user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop();
     const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cc_cfg->enb_cc_idx);
     bool                is_newtx    = dl_harq.is_empty();
@@ -919,7 +918,7 @@ void sf_sched::set_ul_sched_result(const pdcch_sched::alloc_result_t& dci_result
     if (ue_it == ue_list.end()) {
       continue;
     }
-    sched_ue* user = &ue_it->second;
+    sched_ue* user = ue_it->second.get();
 
     srslte_dci_location_t cce_range = {0, 0};
     if (ul_alloc.needs_pdcch()) {
@@ -1001,7 +1000,7 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   for (uint32_t i = 0; i < cc_result->ul_sched_result.nof_phich_elems; ++i) {
     auto& phich = phich_list[i];
     if (phich.phich == phich_t::NACK) {
-      auto&         ue = ue_db[phich.rnti];
+      auto&         ue = *ue_db[phich.rnti];
       ul_harq_proc* h  = ue.get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
       if (not is_ul_alloc(ue.get_rnti()) and h != nullptr and not h->is_empty()) {
         // There was a missed UL harq retx. Halt+Resume the HARQ

@@ -46,9 +46,7 @@ int test_pdcch_one_ue()
   TESTASSERT(cell_params[ENB_CC_IDX].set_cfg(ENB_CC_IDX, cell_cfg, sched_args));
 
   pdcch_sched pdcch;
-  sched_ue    sched_ue{};
-  sched_ue.init(rnti, cell_params);
-  sched_ue.set_cfg(ue_cfg);
+  sched_ue    sched_ue{rnti, cell_params, ue_cfg};
 
   pdcch.init(cell_params[PCell_IDX]);
   TESTASSERT(pdcch.nof_alloc_combinations() == 0);

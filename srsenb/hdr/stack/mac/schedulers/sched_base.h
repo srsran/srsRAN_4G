@@ -25,8 +25,8 @@ class sched_base
 public:
   virtual ~sched_base() = default;
 
-  virtual void sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) = 0;
-  virtual void sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) = 0;
+  virtual void sched_dl_users(sched_ue_list& ue_db, sf_sched* tti_sched) = 0;
+  virtual void sched_ul_users(sched_ue_list& ue_db, sf_sched* tti_sched) = 0;
 
 protected:
   srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC");

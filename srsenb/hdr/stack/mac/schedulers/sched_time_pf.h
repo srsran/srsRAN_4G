@@ -20,15 +20,15 @@ namespace srsenb {
 
 class sched_time_pf final : public sched_base
 {
-  using ue_cit_t = std::map<uint16_t, sched_ue>::const_iterator;
+  using ue_cit_t = sched_ue_list::const_iterator;
 
 public:
   sched_time_pf(const sched_cell_params_t& cell_params_, const sched_interface::sched_args_t& sched_args);
-  void sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) override;
-  void sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched) override;
+  void sched_dl_users(sched_ue_list& ue_db, sf_sched* tti_sched) override;
+  void sched_ul_users(sched_ue_list& ue_db, sf_sched* tti_sched) override;
 
 private:
-  void new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched);
+  void new_tti(sched_ue_list& ue_db, sf_sched* tti_sched);
 
   const sched_cell_params_t* cc_cfg         = nullptr;
   float                      fairness_coeff = 1;

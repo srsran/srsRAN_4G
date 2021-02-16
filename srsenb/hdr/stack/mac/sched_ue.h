@@ -38,8 +38,7 @@ class sched_ue
   using bearer_cfg_t = sched_interface::ue_bearer_cfg_t;
 
 public:
-  sched_ue();
-  void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
+  sched_ue(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg);
   void new_subframe(tti_point tti_rx, uint32_t enb_cc_idx);
 
   /*************************************************************
@@ -204,7 +203,7 @@ private:
   std::vector<sched_ue_cell> cells; ///< List of eNB cells that may be configured/activated/deactivated for the UE
 };
 
-using sched_ue_list = std::map<uint16_t, sched_ue>;
+using sched_ue_list = std::map<uint16_t, std::unique_ptr<sched_ue> >;
 
 } // namespace srsenb
 

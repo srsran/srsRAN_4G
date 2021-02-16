@@ -94,16 +94,20 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 
 int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
 {
-  std::lock_guard<std::mutex> lock(sched_mutex);
-  // Add or config user
-  auto it = ue_db.find(rnti);
-  if (it == ue_db.end()) {
-    // create new user
-    ue_db[rnti].init(rnti, sched_cell_params);
-    it = ue_db.find(rnti);
+  {
+    // config existing user
+    std::lock_guard<std::mutex> lock(sched_mutex);
+    auto                        it = ue_db.find(rnti);
+    if (it != ue_db.end()) {
+      it->second->set_cfg(ue_cfg);
+      return SRSLTE_SUCCESS;
+    }
   }
-  it->second.set_cfg(ue_cfg);
 
+  // Add new user case
+  std::unique_ptr<sched_ue>   ue{new sched_ue(rnti, sched_cell_params, ue_cfg)};
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  ue_db.insert(std::make_pair(rnti, std::move(ue)));
   return SRSLTE_SUCCESS;
 }
 
@@ -121,30 +125,30 @@ int sched::ue_rem(uint16_t rnti)
 
 bool sched::ue_exists(uint16_t rnti)
 {
-  return ue_db_access(rnti, [](sched_ue& ue) {}) >= 0;
+  return ue_db_access_locked(rnti, [](sched_ue& ue) {}) >= 0;
 }
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // TODO: Check if correct use of last_tti
-  ue_db_access(
+  ue_db_access_locked(
       rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); }, __PRETTY_FUNCTION__);
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg_)
 {
-  return ue_db_access(rnti, [lc_id, cfg_](sched_ue& ue) { ue.set_bearer_cfg(lc_id, cfg_); });
+  return ue_db_access_locked(rnti, [lc_id, cfg_](sched_ue& ue) { ue.set_bearer_cfg(lc_id, cfg_); });
 }
 
 int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
-  return ue_db_access(rnti, [lc_id](sched_ue& ue) { ue.rem_bearer(lc_id); });
+  return ue_db_access_locked(rnti, [lc_id](sched_ue& ue) { ue.rem_bearer(lc_id); });
 }
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(
+  ue_db_access_locked(
       rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_rlc_data(); }, __PRETTY_FUNCTION__);
   return ret;
 }
@@ -153,7 +157,7 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
   uint32_t ret = SRSLTE_ERROR;
-  ue_db_access(
+  ue_db_access_locked(
       rnti,
       [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(to_tx_ul(last_tti), -1); },
       __PRETTY_FUNCTION__);
@@ -162,18 +166,18 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 
 int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  return ue_db_access(rnti, [&](sched_ue& ue) { ue.dl_buffer_state(lc_id, tx_queue, retx_queue); });
+  return ue_db_access_locked(rnti, [&](sched_ue& ue) { ue.dl_buffer_state(lc_id, tx_queue, retx_queue); });
 }
 
 int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds)
 {
-  return ue_db_access(rnti, [ce_code, nof_cmds](sched_ue& ue) { ue.mac_buffer_state(ce_code, nof_cmds); });
+  return ue_db_access_locked(rnti, [ce_code, nof_cmds](sched_ue& ue) { ue.mac_buffer_state(ce_code, nof_cmds); });
 }
 
 int sched::dl_ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
-  ue_db_access(
+  ue_db_access_locked(
       rnti,
       [&](sched_ue& ue) { ret = ue.set_ack_info(tti_point{tti_rx}, enb_cc_idx, tb_idx, ack); },
       __PRETTY_FUNCTION__);
@@ -182,25 +186,25 @@ int sched::dl_ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint
 
 int sched::ul_crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, bool crc)
 {
-  return ue_db_access(rnti,
-                      [tti_rx, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(tti_point{tti_rx}, enb_cc_idx, crc); });
+  return ue_db_access_locked(
+      rnti, [tti_rx, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(tti_point{tti_rx}, enb_cc_idx, crc); });
 }
 
 int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)
 {
-  return ue_db_access(
+  return ue_db_access_locked(
       rnti, [tti, enb_cc_idx, ri_value](sched_ue& ue) { ue.set_dl_ri(tti_point{tti}, enb_cc_idx, ri_value); });
 }
 
 int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value)
 {
-  return ue_db_access(
+  return ue_db_access_locked(
       rnti, [tti, enb_cc_idx, pmi_value](sched_ue& ue) { ue.set_dl_pmi(tti_point{tti}, enb_cc_idx, pmi_value); });
 }
 
 int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)
 {
-  return ue_db_access(
+  return ue_db_access_locked(
       rnti, [tti, enb_cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti_point{tti}, enb_cc_idx, cqi_value); });
 }
 
@@ -212,28 +216,29 @@ int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
 
 int sched::ul_snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr, uint32_t ul_ch_code)
 {
-  return ue_db_access(rnti, [&](sched_ue& ue) { ue.set_ul_snr(tti_point{tti_rx}, enb_cc_idx, snr, ul_ch_code); });
+  return ue_db_access_locked(rnti,
+                             [&](sched_ue& ue) { ue.set_ul_snr(tti_point{tti_rx}, enb_cc_idx, snr, ul_ch_code); });
 }
 
 int sched::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
 {
-  return ue_db_access(rnti, [lcg_id, bsr](sched_ue& ue) { ue.ul_buffer_state(lcg_id, bsr); });
+  return ue_db_access_locked(rnti, [lcg_id, bsr](sched_ue& ue) { ue.ul_buffer_state(lcg_id, bsr); });
 }
 
 int sched::ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes)
 {
-  return ue_db_access(rnti, [lcid, bytes](sched_ue& ue) { ue.ul_buffer_add(lcid, bytes); });
+  return ue_db_access_locked(rnti, [lcid, bytes](sched_ue& ue) { ue.ul_buffer_add(lcid, bytes); });
 }
 
 int sched::ul_phr(uint16_t rnti, int phr)
 {
-  return ue_db_access(
+  return ue_db_access_locked(
       rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
-  return ue_db_access(
+  return ue_db_access_locked(
       rnti, [](sched_ue& ue) { ue.set_sr(); }, __PRETTY_FUNCTION__);
 }
 
@@ -247,7 +252,7 @@ std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 {
   std::array<int, SRSLTE_MAX_CARRIERS> ret{};
   ret.fill(-1); // -1 for inactive & non-existent carriers
-  ue_db_access(
+  ue_db_access_locked(
       rnti,
       [this, &ret](sched_ue& ue) {
         for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
@@ -350,12 +355,12 @@ bool sched::is_generated(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
 
 // Common way to access ue_db elements in a read locking way
 template <typename Func>
-int sched::ue_db_access(uint16_t rnti, Func f, const char* func_name)
+int sched::ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
   auto                        it = ue_db.find(rnti);
   if (it != ue_db.end()) {
-    f(it->second);
+    f(*it->second);
   } else {
     if (func_name != nullptr) {
       Error("User rnti=0x%x not found. Failed to call %s.", rnti, func_name);

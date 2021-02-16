@@ -227,7 +227,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.conres_rx) {
         // If Msg4 has already been tx and there DL data to transmit
         uint32_t lcid                = RB_ID_DRB1;
-        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
+        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti]->get_pending_dl_rlc_data();
         // DRB is set. Update DL buffer
         uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
         dl_rlc_buffer_state(ue_ev.rnti, lcid, tot_dl_data, 0);                 // TODO: Check retx_queue
@@ -235,7 +235,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
       if (ue_ev.buffer_ev->sr_data > 0 and ue_sim_ctxt.conres_rx) {
         uint32_t tot_ul_data =
-            ue_db[ue_ev.rnti].get_pending_ul_new_data(to_tx_ul(tti_rx), -1) + ue_ev.buffer_ev->sr_data;
+            ue_db[ue_ev.rnti]->get_pending_ul_new_data(to_tx_ul(tti_rx), -1) + ue_ev.buffer_ev->sr_data;
         uint32_t lcg = 1;
         ul_bsr(ue_ev.rnti, lcg, tot_ul_data);
       }

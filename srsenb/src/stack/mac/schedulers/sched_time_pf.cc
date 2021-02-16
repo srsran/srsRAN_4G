@@ -24,7 +24,7 @@ sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_, const sche
   }
 }
 
-void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   current_tti_rx = tti_point{tti_sched->get_tti_rx()};
   // remove deleted users from history
@@ -41,7 +41,7 @@ void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_s
     if (it == ue_history_db.end()) {
       it = ue_history_db.insert(std::make_pair(u.first, ue_ctxt{u.first, fairness_coeff})).first;
     }
-    it->second.new_tti(*cc_cfg, u.second, tti_sched);
+    it->second.new_tti(*cc_cfg, *u.second, tti_sched);
     if (it->second.dl_newtx_h != nullptr or it->second.dl_retx_h != nullptr) {
       dl_queue.push(&it->second);
     }
@@ -55,7 +55,7 @@ void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_s
  *                         Dowlink
  *****************************************************************/
 
-void sched_time_pf::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_pf::sched_dl_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   srslte::tti_point tti_rx{tti_sched->get_tti_rx()};
   if (current_tti_rx != tti_rx) {
@@ -64,7 +64,7 @@ void sched_time_pf::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
 
   while (not dl_queue.empty()) {
     ue_ctxt& ue = *dl_queue.top();
-    ue.save_dl_alloc(try_dl_alloc(ue, ue_db[ue.rnti], tti_sched), 0.01);
+    ue.save_dl_alloc(try_dl_alloc(ue, *ue_db[ue.rnti], tti_sched), 0.01);
     dl_queue.pop();
   }
 }
@@ -97,7 +97,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
  *                         Uplink
  *****************************************************************/
 
-void sched_time_pf::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_pf::sched_ul_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   srslte::tti_point tti_rx{tti_sched->get_tti_rx()};
   if (current_tti_rx != tti_rx) {
@@ -106,7 +106,7 @@ void sched_time_pf::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
 
   while (not ul_queue.empty()) {
     ue_ctxt& ue = *ul_queue.top();
-    ue.save_ul_alloc(try_ul_alloc(ue, ue_db[ue.rnti], tti_sched), 0.01);
+    ue.save_ul_alloc(try_ul_alloc(ue, *ue_db[ue.rnti], tti_sched), 0.01);
     ul_queue.pop();
   }
 }

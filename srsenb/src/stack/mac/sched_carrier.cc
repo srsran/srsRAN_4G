@@ -130,7 +130,7 @@ void bc_sched::reset()
  *                 RAR scheduling
  *******************************************************/
 
-ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_) :
+ra_sched::ra_sched(const sched_cell_params_t& cfg_, sched_ue_list& ue_db_) :
   cc_cfg(&cfg_), logger(srslog::fetch_basic_logger("MAC")), ue_db(&ue_db_)
 {}
 
@@ -237,7 +237,7 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
     for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
       uint16_t crnti   = msg3grant.data.temp_crnti;
       auto     user_it = ue_db->find(crnti);
-      if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(&user_it->second, msg3grant)) {
+      if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(user_it->second.get(), msg3grant)) {
         logger.debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d", crnti, sf_msg3_sched->get_tti_tx_ul().to_uint());
       } else {
         logger.error(
@@ -256,10 +256,10 @@ void ra_sched::reset()
  *                 Carrier scheduling
  *******************************************************/
 
-sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
-                                    std::map<uint16_t, sched_ue>* ue_db_,
-                                    uint32_t                      enb_cc_idx_,
-                                    sched_result_list*            sched_results_) :
+sched::carrier_sched::carrier_sched(rrc_interface_mac* rrc_,
+                                    sched_ue_list*     ue_db_,
+                                    uint32_t           enb_cc_idx_,
+                                    sched_result_list* sched_results_) :
   rrc(rrc_),
   ue_db(ue_db_),
   logger(srslog::fetch_basic_logger("MAC")),
@@ -316,7 +316,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Refresh UE internal buffers and subframe vars */
   for (auto& user : *ue_db) {
-    user.second.new_subframe(tti_rx, enb_cc_idx);
+    user.second->new_subframe(tti_rx, enb_cc_idx);
   }
 
   /* Schedule PHICH */
@@ -324,7 +324,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
     if (cc_result->ul_sched_result.nof_phich_elems >= MAX_PHICH_LIST) {
       break;
     }
-    tti_sched->alloc_phich(&ue_pair.second, &cc_result->ul_sched_result);
+    tti_sched->alloc_phich(ue_pair.second.get(), &cc_result->ul_sched_result);
   }
 
   /* Schedule DL control data */
@@ -357,7 +357,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Reset ue harq pending ack state, clean-up blocked pids */
   for (auto& user : *ue_db) {
-    user.second.finish_tti(tti_rx, enb_cc_idx);
+    user.second->finish_tti(tti_rx, enb_cc_idx);
   }
 
   log_dl_cc_results(logger, enb_cc_idx, cc_result->dl_sched_result);

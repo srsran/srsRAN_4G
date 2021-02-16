@@ -85,14 +85,14 @@ protected:
   bool is_generated(srslte::tti_point, uint32_t enb_cc_idx) const;
   // Helper methods
   template <typename Func>
-  int ue_db_access(uint16_t rnti, Func, const char* func_name = nullptr);
+  int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr);
 
   // args
   rrc_interface_mac*               rrc       = nullptr;
   sched_args_t                     sched_cfg = {};
   std::vector<sched_cell_params_t> sched_cell_params;
 
-  std::map<uint16_t, sched_ue> ue_db;
+  std::map<uint16_t, std::unique_ptr<sched_ue> > ue_db;
 
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;

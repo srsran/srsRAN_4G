@@ -35,9 +35,8 @@ namespace srsenb {
  *
  *******************************************************/
 
-sched_ue::sched_ue() : logger(srslog::fetch_basic_logger("MAC")) {}
-
-void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_)
+sched_ue::sched_ue(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg_) :
+  logger(srslog::fetch_basic_logger("MAC"))
 {
   rnti = rnti_;
   cells.reserve(cell_list_params_.size());
@@ -45,6 +44,8 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
     cells.emplace_back(rnti_, c, current_tti);
   }
   logger.info("SCHED: Added user rnti=0x%x", rnti);
+
+  set_cfg(cfg_);
 }
 
 void sched_ue::set_cfg(const ue_cfg_t& cfg_)

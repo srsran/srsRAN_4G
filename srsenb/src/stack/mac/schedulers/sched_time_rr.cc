@@ -24,7 +24,7 @@ sched_time_rr::sched_time_rr(const sched_cell_params_t& cell_params_, const sche
  *                         Dowlink
  *****************************************************************/
 
-void sched_time_rr::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_rr::sched_dl_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   if (ue_db.empty()) {
     return;
@@ -36,7 +36,7 @@ void sched_time_rr::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
   sched_dl_newtxs(ue_db, tti_sched, priority_idx);
 }
 
-void sched_time_rr::sched_dl_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched, size_t prio_idx)
+void sched_time_rr::sched_dl_retxs(sched_ue_list& ue_db, sf_sched* tti_sched, size_t prio_idx)
 {
   auto iter = ue_db.begin();
   std::advance(iter, prio_idx);
@@ -44,7 +44,7 @@ void sched_time_rr::sched_dl_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched
     if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue&           user = iter->second;
+    sched_ue&           user = *iter->second;
     const dl_harq_proc* h    = get_dl_retx_harq(user, tti_sched);
     // Check if there is a pending retx
     if (h == nullptr) {
@@ -57,7 +57,7 @@ void sched_time_rr::sched_dl_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched
   }
 }
 
-void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched, size_t prio_idx)
+void sched_time_rr::sched_dl_newtxs(sched_ue_list& ue_db, sf_sched* tti_sched, size_t prio_idx)
 {
   auto iter = ue_db.begin();
   std::advance(iter, prio_idx);
@@ -65,7 +65,7 @@ void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue& user = iter->second;
+    sched_ue& user = *iter->second;
     if (user.enb_to_ue_cc_idx(cc_cfg->enb_cc_idx) < 0) {
       continue;
     }
@@ -84,7 +84,7 @@ void sched_time_rr::sched_dl_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
  *                         Uplink
  *****************************************************************/
 
-void sched_time_rr::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_rr::sched_ul_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   if (ue_db.empty()) {
     return;
@@ -95,7 +95,7 @@ void sched_time_rr::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
   sched_ul_newtxs(ue_db, tti_sched, priority_idx);
 }
 
-void sched_time_rr::sched_ul_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched, size_t prio_idx)
+void sched_time_rr::sched_ul_retxs(sched_ue_list& ue_db, sf_sched* tti_sched, size_t prio_idx)
 {
   auto iter = ue_db.begin();
   std::advance(iter, prio_idx);
@@ -103,7 +103,7 @@ void sched_time_rr::sched_ul_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched
     if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue&           user = iter->second;
+    sched_ue&           user = *iter->second;
     const ul_harq_proc* h    = get_ul_retx_harq(user, tti_sched);
     // Check if there is a pending retx
     if (h == nullptr) {
@@ -116,7 +116,7 @@ void sched_time_rr::sched_ul_retxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched
   }
 }
 
-void sched_time_rr::sched_ul_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched, size_t prio_idx)
+void sched_time_rr::sched_ul_newtxs(sched_ue_list& ue_db, sf_sched* tti_sched, size_t prio_idx)
 {
   auto iter = ue_db.begin();
   std::advance(iter, prio_idx);
@@ -124,7 +124,7 @@ void sched_time_rr::sched_ul_newtxs(std::map<uint16_t, sched_ue>& ue_db, sf_sche
     if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue&           user = iter->second;
+    sched_ue&           user = *iter->second;
     const ul_harq_proc* h    = get_ul_newtx_harq(user, tti_sched);
     // Check if there is a empty harq
     if (h == nullptr) {

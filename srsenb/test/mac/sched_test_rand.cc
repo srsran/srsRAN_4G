@@ -128,7 +128,7 @@ void sched_tester::before_sched()
   // check pending data buffers
   for (auto& it : ue_db) {
     uint16_t            rnti = it.first;
-    srsenb::sched_ue*   user = &it.second;
+    srsenb::sched_ue*   user = it.second.get();
     tester_user_results d;
     tti_data.ue_data.insert(std::make_pair(rnti, d));
 
@@ -165,7 +165,7 @@ int sched_tester::test_harqs()
     const auto&                 data = tti_info.dl_sched_result[CARRIER_IDX].data[i];
     uint32_t                    h_id = data.dci.pid;
     uint16_t                    rnti = data.dci.rnti;
-    const srsenb::dl_harq_proc& h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
+    const srsenb::dl_harq_proc& h    = ue_db[rnti]->get_dl_harq(h_id, CARRIER_IDX);
     CONDERROR(h.get_tti() != srsenb::to_tx_dl(tti_rx),
               "The scheduled DL harq pid=%d does not a valid tti=%u",
               h_id,
@@ -177,7 +177,7 @@ int sched_tester::test_harqs()
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_phich_elems; ++i) {
     const auto& phich = tti_info.ul_sched_result[CARRIER_IDX].phich[i];
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
-    const auto* h     = ue_db[phich.rnti].get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
+    const auto* h     = ue_db[phich.rnti]->get_ul_harq(srsenb::to_tx_ul(tti_rx), CARRIER_IDX);
     CONDERROR(not hprev.has_pending_phich(), "Alloc PHICH did not have any pending ack");
     bool maxretx_flag = hprev.nof_retx(0) + 1 >= hprev.max_nof_retx();
     if (phich.phich == sched_interface::ul_sched_phich_t::ACK) {
