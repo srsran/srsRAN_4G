@@ -821,9 +821,6 @@ public:
         ERROR("Setting UE DL cell");
       }
 
-      // Set RNTI
-      srslte_ue_dl_set_rnti(ue_dl, rnti);
-
       // Allocate UE UL
       auto* ue_ul = (srslte_ue_ul_t*)srslte_vec_malloc(sizeof(srslte_ue_ul_t));
       if (not ue_ul) {
@@ -840,9 +837,6 @@ public:
       if (srslte_ue_ul_set_cell(ue_ul, cell)) {
         ERROR("Setting UE DL cell");
       }
-
-      // Set RNTI
-      srslte_ue_ul_set_rnti(ue_ul, rnti);
     }
 
     // Initialise softbuffer

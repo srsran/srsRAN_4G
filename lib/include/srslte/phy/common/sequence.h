@@ -62,9 +62,9 @@ SRSLTE_API void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_
 
 SRSLTE_API void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed);
 
-SRSLTE_API void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed);
+SRSLTE_API void srslte_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed);
 
-SRSLTE_API void srslte_sequence_apply_bit_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed);
+SRSLTE_API void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed);
 
 SRSLTE_API int srslte_sequence_pbch(srslte_sequence_t* seq, srslte_cp_t cp, uint32_t cell_id);
 
@@ -77,8 +77,64 @@ SRSLTE_API int srslte_sequence_pdcch(srslte_sequence_t* seq, uint32_t nslot, uin
 SRSLTE_API int
 srslte_sequence_pdsch(srslte_sequence_t* seq, uint16_t rnti, int q, uint32_t nslot, uint32_t cell_id, uint32_t len);
 
+SRSLTE_API void srslte_sequence_pdsch_apply_pack(const uint8_t* in,
+                                                 uint8_t*       out,
+                                                 uint16_t       rnti,
+                                                 int            q,
+                                                 uint32_t       nslot,
+                                                 uint32_t       cell_id,
+                                                 uint32_t       len);
+
+SRSLTE_API void srslte_sequence_pdsch_apply_f(const float* in,
+                                              float*       out,
+                                              uint16_t     rnti,
+                                              int          q,
+                                              uint32_t     nslot,
+                                              uint32_t     cell_id,
+                                              uint32_t     len);
+
+SRSLTE_API void srslte_sequence_pdsch_apply_s(const int16_t* in,
+                                              int16_t*       out,
+                                              uint16_t       rnti,
+                                              int            q,
+                                              uint32_t       nslot,
+                                              uint32_t       cell_id,
+                                              uint32_t       len);
+
+SRSLTE_API void srslte_sequence_pdsch_apply_c(const int8_t* in,
+                                              int8_t*       out,
+                                              uint16_t      rnti,
+                                              int           q,
+                                              uint32_t      nslot,
+                                              uint32_t      cell_id,
+                                              uint32_t      len);
+
 SRSLTE_API int
 srslte_sequence_pusch(srslte_sequence_t* seq, uint16_t rnti, uint32_t nslot, uint32_t cell_id, uint32_t len);
+
+SRSLTE_API void srslte_sequence_pusch_apply_pack(const uint8_t* in,
+                                                 uint8_t*       out,
+                                                 uint16_t       rnti,
+                                                 uint32_t       nslot,
+                                                 uint32_t       cell_id,
+                                                 uint32_t       len);
+
+SRSLTE_API void srslte_sequence_pusch_apply_c(const int8_t* in,
+                                              int8_t*       out,
+                                              uint16_t      rnti,
+                                              uint32_t      nslot,
+                                              uint32_t      cell_id,
+                                              uint32_t      len);
+
+SRSLTE_API void srslte_sequence_pusch_apply_s(const int16_t* in,
+                                              int16_t*       out,
+                                              uint16_t       rnti,
+                                              uint32_t       nslot,
+                                              uint32_t       cell_id,
+                                              uint32_t       len);
+
+SRSLTE_API void
+srslte_sequence_pusch_gen_unpack(uint8_t* out, uint16_t rnti, uint32_t nslot, uint32_t cell_id, uint32_t len);
 
 SRSLTE_API int srslte_sequence_pucch(srslte_sequence_t* seq, uint16_t rnti, uint32_t nslot, uint32_t cell_id);
 

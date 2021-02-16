@@ -103,9 +103,6 @@ struct phy_args_t {
 class phy_interface_mac_common
 {
 public:
-  /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-  virtual void set_crnti(uint16_t rnti) = 0;
-
   /* Time advance commands */
   virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
   virtual void set_timeadv(uint32_t ta_cmd)     = 0;

@@ -249,21 +249,23 @@ check_softbits(srslte_enb_dl_t* enb_dl, srslte_ue_dl_t* ue_dl, srslte_ue_dl_cfg_
 {
   int ret = SRSLTE_SUCCESS;
 
-  // Generate sequence
-  srslte_sequence_pdsch(&ue_dl->pdsch.tmp_seq,
-                        rnti,
-                        ue_dl_cfg->cfg.pdsch.grant.tb[tb].cw_idx,
-                        2 * (sf_idx % 10),
-                        cell.id,
-                        ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
-
   // Scramble
   if (ue_dl->pdsch.llr_is_8bit) {
-    srslte_scrambling_sb_offset(
-        &ue_dl->pdsch.tmp_seq, ue_dl->pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+    srslte_sequence_pdsch_apply_c(ue_dl->pdsch.e[tb],
+                                  ue_dl->pdsch.e[tb],
+                                  rnti,
+                                  ue_dl_cfg->cfg.pdsch.grant.tb[tb].cw_idx,
+                                  2 * (sf_idx % 10),
+                                  cell.id,
+                                  ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
   } else {
-    srslte_scrambling_s_offset(
-        &ue_dl->pdsch.tmp_seq, ue_dl->pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+    srslte_sequence_pdsch_apply_s(ue_dl->pdsch.e[tb],
+                                  ue_dl->pdsch.e[tb],
+                                  rnti,
+                                  ue_dl_cfg->cfg.pdsch.grant.tb[tb].cw_idx,
+                                  2 * (sf_idx % 10),
+                                  cell.id,
+                                  ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
   }
   int16_t* rx       = ue_dl->pdsch.e[tb];
   uint8_t* rx_bytes = ue_dl->pdsch.e[tb];
@@ -377,11 +379,6 @@ int main(int argc, char** argv)
     goto quit;
   }
 
-  if (srslte_enb_dl_add_rnti(enb_dl, rnti)) {
-    ERROR("Error adding RNTI");
-    goto quit;
-  }
-
   /*
    * Initialise UE
    */
@@ -394,8 +391,6 @@ int main(int argc, char** argv)
     ERROR("Error setting UE downlink cell");
     goto quit;
   }
-
-  srslte_ue_dl_set_rnti(ue_dl, rnti);
 
   /*
    * Create PDCCH Allocations

@@ -136,8 +136,6 @@ int base_init()
     return -1;
   }
 
-  srslte_ue_dl_set_rnti(&ue_dl, rnti);
-
   DEBUG("Memory init OK");
   return 0;
 }

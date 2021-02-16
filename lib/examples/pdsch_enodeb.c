@@ -362,8 +362,6 @@ static void base_init()
     exit(-1);
   }
 
-  srslte_pdsch_set_rnti(&pdsch, UE_CRNTI);
-
   if (mbsfn_area_id > -1) {
     if (srslte_pmch_init(&pmch, cell.nof_prb, 1)) {
       ERROR("Error creating PMCH object");

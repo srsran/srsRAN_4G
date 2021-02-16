@@ -92,8 +92,7 @@ public:
   void metrics_dl_cqi(uint32_t dl_cqi);
   void metrics_cnt();
 
-  bool is_phy_added = false;
-  int  read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
+  int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
   uint32_t allocate_cc_buffers(const uint32_t num_cc = 1); ///< Add and initialize softbuffers for CC

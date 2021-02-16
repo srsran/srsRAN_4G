@@ -99,7 +99,6 @@ public:
     nof_rar_grants    = 0;
     rar_temp_rnti     = 0;
     rar_time_adv      = 0;
-    last_crnti        = 0;
     prach_transmitted = false;
     prach_info_tx     = false;
   }
@@ -145,7 +144,6 @@ public:
   void set_mch_period_stop(uint32_t stop) override{};
 
   // phy_interface_mac_common
-  void set_crnti(uint16_t rnti) override { last_crnti = rnti; }
   void set_timeadv_rar(uint32_t ta_cmd) override { rar_time_adv = ta_cmd; }
   void set_timeadv(uint32_t ta_cmd) override{};
   void set_activation_deactivation_scell(uint32_t cmd, uint32_t tti) override { scell_cmd = cmd; };
@@ -287,8 +285,6 @@ public:
 
   uint32_t get_rar_rnti() { return (prach_tti % 10) + 1; }
 
-  uint16_t get_crnti() { return last_crnti; }
-
   const static uint32_t prach_delay = 5;
 
 private:
@@ -300,8 +296,6 @@ private:
   bool     prach_transmitted = false;
   float    last_target_power = 0;
   int      last_preamble_idx = -1;
-
-  uint16_t last_crnti = 0;
 
   srslog::basic_logger& logger = srslog::fetch_basic_logger("PHY");
 
@@ -2078,7 +2072,6 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
             if (phy->dl_grant(mac, true, test.crnti, 2, tv_msg4_nocontres)) {
               return -1;
             }
-            TESTASSERT(phy->get_crnti() != test.crnti);
 
             // UL grant is checked later
             if (test.send_valid_ul_grant) {
@@ -2114,7 +2107,6 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
   if (test.check_ra_successful) {
     stack->run_tti(tti);
     stack->run_tti(tti);
-    TESTASSERT(phy->get_crnti() == (test.crnti ? test.crnti : test.temp_rnti));
     TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
     tti++;
   }
@@ -2255,7 +2247,6 @@ int mac_random_access_test()
   //         To trigger a new RA we have to either generate more data for high-prio LCID (e.g. SRB1)
   //         or wait until BSR-reTX is triggered
   rlc.write_sdu(1, 100);
-  phy.set_crnti(0);
   srslog::fetch_basic_logger("MAC").info("\n=========== Test %d =============", test_id++);
   my_test.crnti = my_test.temp_rnti;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -2270,7 +2261,6 @@ int mac_random_access_test()
   srslog::fetch_basic_logger("MAC").info("\n=========== Test %d =============", test_id++);
   rrc.ho_finish_successful = false;
   phy.set_prach_tti(tti + phy.prach_delay);
-  phy.set_crnti(0);
   rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   stack.run_tti(tti++);
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
@@ -2317,7 +2307,6 @@ int mac_random_access_test()
   rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
-  phy.set_crnti(0);
   my_test.nof_prachs            = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -2336,7 +2325,6 @@ int mac_random_access_test()
   rlc.write_sdu(0, 6); // Add new UL-CCCH with Msg3 (DRB SDU still buffered)
   phy.set_prach_tti(tti + phy.prach_delay);
   stack.run_tti(tti++);
-  phy.set_crnti(0);
   my_test.nof_prachs            = 1;
   my_test.rar_nof_invalid_rapid = 0;
   my_test.check_ra_successful   = true;

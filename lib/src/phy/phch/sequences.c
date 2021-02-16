@@ -12,6 +12,7 @@
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/common/sequence.h"
+#include "srslte/phy/utils/vector.h"
 #include <strings.h>
 
 /**
@@ -49,17 +50,108 @@ int srslte_sequence_pdcch(srslte_sequence_t* seq, uint32_t nslot, uint32_t cell_
 /**
  * 36.211 6.3.1
  */
+static inline uint32_t sequence_pdsch_seed(uint16_t rnti, int q, uint32_t nslot, uint32_t cell_id)
+{
+  return (rnti << 14) + (q << 13) + ((nslot / 2) << 9) + cell_id;
+}
+
 int srslte_sequence_pdsch(srslte_sequence_t* seq, uint16_t rnti, int q, uint32_t nslot, uint32_t cell_id, uint32_t len)
 {
-  return srslte_sequence_LTE_pr(seq, len, (rnti << 14) + (q << 13) + ((nslot / 2) << 9) + cell_id);
+  return srslte_sequence_LTE_pr(seq, len, sequence_pdsch_seed(rnti, q, nslot, cell_id));
+}
+
+void srslte_sequence_pdsch_apply_pack(const uint8_t* in,
+                                      uint8_t*       out,
+                                      uint16_t       rnti,
+                                      int            q,
+                                      uint32_t       nslot,
+                                      uint32_t       cell_id,
+                                      uint32_t       len)
+{
+  srslte_sequence_apply_packed(in, out, len, sequence_pdsch_seed(rnti, q, nslot, cell_id));
+}
+
+void srslte_sequence_pdsch_apply_f(const float* in,
+                                   float*       out,
+                                   uint16_t     rnti,
+                                   int          q,
+                                   uint32_t     nslot,
+                                   uint32_t     cell_id,
+                                   uint32_t     len)
+{
+  srslte_sequence_apply_f(in, out, len, sequence_pdsch_seed(rnti, q, nslot, cell_id));
+}
+
+void srslte_sequence_pdsch_apply_s(const int16_t* in,
+                                   int16_t*       out,
+                                   uint16_t       rnti,
+                                   int            q,
+                                   uint32_t       nslot,
+                                   uint32_t       cell_id,
+                                   uint32_t       len)
+{
+  srslte_sequence_apply_s(in, out, len, sequence_pdsch_seed(rnti, q, nslot, cell_id));
+}
+
+void srslte_sequence_pdsch_apply_c(const int8_t* in,
+                                   int8_t*       out,
+                                   uint16_t      rnti,
+                                   int           q,
+                                   uint32_t      nslot,
+                                   uint32_t      cell_id,
+                                   uint32_t      len)
+{
+  srslte_sequence_apply_c(in, out, len, sequence_pdsch_seed(rnti, q, nslot, cell_id));
 }
 
 /**
  * 36.211 5.3.1
  */
+static inline uint32_t sequence_pusch_seed(uint16_t rnti, uint32_t nslot, uint32_t cell_id)
+{
+  return (rnti << 14) + ((nslot / 2) << 9) + cell_id;
+}
+
 int srslte_sequence_pusch(srslte_sequence_t* seq, uint16_t rnti, uint32_t nslot, uint32_t cell_id, uint32_t len)
 {
-  return srslte_sequence_LTE_pr(seq, len, (rnti << 14) + ((nslot / 2) << 9) + cell_id);
+  return srslte_sequence_LTE_pr(seq, len, sequence_pusch_seed(rnti, nslot, cell_id));
+}
+
+void srslte_sequence_pusch_apply_pack(const uint8_t* in,
+                                      uint8_t*       out,
+                                      uint16_t       rnti,
+                                      uint32_t       nslot,
+                                      uint32_t       cell_id,
+                                      uint32_t       len)
+{
+  srslte_sequence_apply_packed(in, out, len, sequence_pusch_seed(rnti, nslot, cell_id));
+}
+
+void srslte_sequence_pusch_apply_s(const int16_t* in,
+                                   int16_t*       out,
+                                   uint16_t       rnti,
+                                   uint32_t       nslot,
+                                   uint32_t       cell_id,
+                                   uint32_t       len)
+{
+  srslte_sequence_apply_s(in, out, len, sequence_pusch_seed(rnti, nslot, cell_id));
+}
+
+void srslte_sequence_pusch_gen_unpack(uint8_t* out, uint16_t rnti, uint32_t nslot, uint32_t cell_id, uint32_t len)
+{
+  srslte_vec_u8_zero(out, len);
+
+  srslte_sequence_apply_bit(out, out, len, sequence_pusch_seed(rnti, nslot, cell_id));
+}
+
+void srslte_sequence_pusch_apply_c(const int8_t* in,
+                                   int8_t*       out,
+                                   uint16_t      rnti,
+                                   uint32_t      nslot,
+                                   uint32_t      cell_id,
+                                   uint32_t      len)
+{
+  srslte_sequence_apply_c(in, out, len, sequence_pusch_seed(rnti, nslot, cell_id));
 }
 
 /**

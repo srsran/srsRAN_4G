@@ -63,8 +63,6 @@ public:
 
   void start_pcap(srslte::mac_pcap* pcap);
 
-  void notify_ra_completed(uint32_t task_id);
-
   bool is_idle() const { return state == IDLE; }
 
 private:
@@ -72,7 +70,6 @@ private:
   void state_response_reception(uint32_t tti);
   void state_backoff_wait(uint32_t tti);
   void state_contention_resolution();
-  void state_completition();
 
   void process_timeadv_cmd(uint32_t ta_cmd);
   void initialization();
@@ -122,8 +119,6 @@ private:
     RESPONSE_RECEPTION,
     BACKOFF_WAIT,
     CONTENTION_RESOLUTION,
-    START_WAIT_COMPLETION,
-    WAITING_COMPLETION
   };
   std::atomic<ra_state_t> state = {IDLE};
 

@@ -236,8 +236,6 @@ int main(int argc, char** argv)
   uint16_t rnti = 62;
   dci.rnti      = rnti;
   cfg.rnti      = rnti;
-  srslte_pusch_set_rnti(&pusch_tx, rnti);
-  srslte_pusch_set_rnti(&pusch_rx, rnti);
 
   uint32_t nof_re = SRSLTE_NRE * cell.nof_prb * 2 * SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols      = srslte_vec_cf_malloc(nof_re);

@@ -129,13 +129,6 @@ void sf_worker::set_cfo_unlocked(const uint32_t& cc_idx, float cfo)
   cc_workers[cc_idx]->set_cfo_unlocked(cfo);
 }
 
-void sf_worker::set_crnti_unlocked(uint16_t rnti)
-{
-  for (auto& cc_worker : cc_workers) {
-    cc_worker->set_crnti_unlocked(rnti);
-  }
-}
-
 void sf_worker::set_tdd_config_unlocked(srslte_tdd_config_t config)
 {
   for (auto& cc_worker : cc_workers) {

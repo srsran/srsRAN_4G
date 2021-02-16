@@ -223,16 +223,6 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell)
   return ret;
 }
 
-int srslte_enb_dl_add_rnti(srslte_enb_dl_t* q, uint16_t rnti)
-{
-  return srslte_pdsch_set_rnti(&q->pdsch, rnti);
-}
-
-void srslte_enb_dl_rem_rnti(srslte_enb_dl_t* q, uint16_t rnti)
-{
-  srslte_pdsch_free_rnti(&q->pdsch, rnti);
-}
-
 #ifdef resolve
 void srslte_enb_dl_apply_power_allocation(srslte_enb_dl_t* q)
 {

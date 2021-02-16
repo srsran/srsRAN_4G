@@ -29,14 +29,6 @@ public:
   virtual void rem_rnti(uint16_t rnti) = 0;
 
   /**
-   * Pregenerates the scrambling sequences for a given RNTI.
-   * WARNING: This function make take several ms to complete.
-   *
-   * @param rnti identifier of the user
-   */
-  virtual int pregen_sequences(uint16_t rnti) = 0;
-
-  /**
    *
    * @param stop
    */

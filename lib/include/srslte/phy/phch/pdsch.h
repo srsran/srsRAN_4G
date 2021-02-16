@@ -35,12 +35,6 @@
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/scrambling/scrambling.h"
 
-typedef struct {
-  srslte_sequence_t seq[SRSLTE_MAX_CODEWORDS][SRSLTE_NOF_SF_X_FRAME];
-  uint32_t          cell_id;
-  bool              sequence_generated;
-} srslte_pdsch_user_t;
-
 /* PDSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
@@ -48,8 +42,7 @@ typedef struct SRSLTE_API {
   uint32_t nof_rx_antennas;
   uint32_t max_re;
 
-  uint16_t ue_rnti;
-  bool     is_ue;
+  bool is_ue;
 
   bool llr_is_8bit;
 
@@ -69,11 +62,6 @@ typedef struct SRSLTE_API {
   // EVM buffers, one for each codeword (avoid concurrency issue with coworker)
   srslte_evm_buffer_t* evm_buffer[SRSLTE_MAX_CODEWORDS];
   float                avg_evm;
-
-  // This is to generate the scrambling seq for multiple CRNTIs
-  srslte_pdsch_user_t** users;
-
-  srslte_sequence_t tmp_seq;
 
   srslte_sch_t dl_sch;
 
@@ -98,10 +86,6 @@ SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t* q);
 SRSLTE_API int srslte_pdsch_enable_coworker(srslte_pdsch_t* q);
 
 SRSLTE_API int srslte_pdsch_set_cell(srslte_pdsch_t* q, srslte_cell_t cell);
-
-SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t* q, uint16_t rnti);
-
-SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti);
 
 /* These functions do not modify the state and run in real-time */
 SRSLTE_API int srslte_pdsch_encode(srslte_pdsch_t*     q,

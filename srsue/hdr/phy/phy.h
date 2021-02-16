@@ -132,9 +132,6 @@ public:
   bool cell_is_camping() final;
 
   /********** MAC INTERFACE ********************/
-  // Precomputes sequences for the given RNTI. The computation is done in the background.
-  void set_crnti(uint16_t rnti) final;
-
   /* Transmits PRACH in the next opportunity */
   void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) final;
   prach_info_t prach_get_info() final;

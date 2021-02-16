@@ -413,9 +413,6 @@ public:
 
   void configure_dedicated(uint16_t rnti, srslte::phy_cfg_t& phy_cfg)
   {
-    // set RNTI
-    phy->set_crnti(rnti);
-
     // Set PHY configuration
     phy->set_config(phy_cfg, 0);
   }

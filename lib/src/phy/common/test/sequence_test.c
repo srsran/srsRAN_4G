@@ -143,7 +143,7 @@ static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t le
   // Test in-place packed XOR
   gettimeofday(&t[1], NULL);
   for (uint32_t r = 0; r < repetitions; r++) {
-    srslte_sequence_apply_bit_packed(ones_packed, c_packed, length, seed);
+    srslte_sequence_apply_packed(ones_packed, c_packed, length, seed);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);

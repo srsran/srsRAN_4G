@@ -175,16 +175,6 @@ void phy::rem_rnti(uint16_t rnti)
   }
 }
 
-int phy::pregen_sequences(uint16_t rnti)
-{
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    if (lte_workers[i]->pregen_sequences(rnti) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
-    }
-  }
-  return SRSLTE_SUCCESS;
-}
-
 void phy::set_mch_period_stop(uint32_t stop)
 {
   workers_common.set_mch_period_stop(stop);

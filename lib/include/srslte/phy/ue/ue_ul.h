@@ -70,7 +70,6 @@ typedef enum {
 } srslte_ue_ul_normalize_mode_t;
 
 typedef struct SRSLTE_API {
-
   srslte_ul_cfg_t ul_cfg;
   bool            grant_available;
   uint32_t        cc_idx;
@@ -86,8 +85,7 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
-  uint16_t current_rnti;
-  bool     signals_pregenerated;
+  bool signals_pregenerated;
 
   srslte_ofdm_t fft;
   srslte_cfo_t  cfo;
@@ -113,8 +111,6 @@ SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t m
 SRSLTE_API void srslte_ue_ul_free(srslte_ue_ul_t* q);
 
 SRSLTE_API int srslte_ue_ul_set_cell(srslte_ue_ul_t* q, srslte_cell_t cell);
-
-SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t* q, uint16_t rnti);
 
 SRSLTE_API int srslte_ue_ul_pregen_signals(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg);
 

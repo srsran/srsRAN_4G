@@ -67,7 +67,6 @@ int srslte_ue_dl_init(srslte_ue_dl_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], uint
     q->nof_rx_antennas      = nof_rx_antennas;
     q->mi_auto              = true;
     q->mi_manual_index      = 0;
-    q->pregen_rnti          = 0;
 
     for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
       q->sf_symbols[j] = srslte_vec_cf_malloc(MAX_SFLEN_RE);
@@ -240,9 +239,6 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell)
         return SRSLTE_ERROR;
       }
     }
-    if (q->pregen_rnti) {
-      srslte_ue_dl_set_rnti(q, q->pregen_rnti);
-    }
     ret = SRSLTE_SUCCESS;
   } else {
     ERROR("Invalid cell properties ue_dl: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
@@ -264,34 +260,6 @@ void srslte_ue_dl_set_mi_manual(srslte_ue_dl_t* q, uint32_t mi_idx)
 {
   q->mi_auto         = false;
   q->mi_manual_index = mi_idx;
-}
-
-/* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while
- * to execute, so shall be called once the final C-RNTI has been allocated for the session.
- * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions
- */
-void srslte_ue_dl_set_rnti(srslte_ue_dl_t* q, uint16_t rnti)
-{
-  srslte_pdsch_set_rnti(&q->pdsch, rnti);
-
-  srslte_dl_sf_cfg_t sf_cfg;
-  ZERO_OBJECT(sf_cfg);
-
-  // Compute UE-specific and Common search space for this RNTI
-  for (int i = 0; i < SRSLTE_MI_NOF_REGS; i++) {
-    srslte_pdcch_set_regs(&q->pdcch, &q->regs[i]);
-    for (int cfi = 1; cfi <= SRSLTE_NOF_CFI; cfi++) {
-      sf_cfg.cfi = cfi;
-      for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-        sf_cfg.tti                                                     = sf_idx;
-        q->current_ss_ue[i][SRSLTE_CFI_IDX(cfi)][sf_idx].nof_locations = srslte_pdcch_ue_locations(
-            &q->pdcch, &sf_cfg, q->current_ss_ue[i][SRSLTE_CFI_IDX(cfi)][sf_idx].loc, SRSLTE_MAX_CANDIDATES_UE, rnti);
-      }
-      q->current_ss_common[i][SRSLTE_CFI_IDX(cfi)].nof_locations = srslte_pdcch_common_locations(
-          &q->pdcch, q->current_ss_common[i][SRSLTE_CFI_IDX(cfi)].loc, SRSLTE_MAX_CANDIDATES_COM, cfi);
-    }
-  }
-  q->pregen_rnti = rnti;
 }
 
 /* Set the area ID on pmch and chest_dl to generate scrambling sequence and reference
@@ -477,9 +445,6 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
 
           // Look for the messages found and apply the new format if the location is common
           if (search_in_common && (dci_cfg->multiple_csi_request_enabled || dci_cfg->srs_request_enabled)) {
-            uint32_t sf_idx = sf->tti % 10;
-            uint32_t cfi    = sf->cfi;
-
             /*
              * A UE configured to monitor PDCCH candidates whose CRCs are scrambled with C-RNTI or SPS C-RNTI,
              * with a common payload size and with the same first CCE index ncce, but with different sets of DCI
@@ -487,9 +452,8 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
              * that only the PDCCH in the common search space is transmitted by the primary cell.
              */
             // Find a matching ncce in the common SS
-            if (srslte_location_find_ncce(q->current_ss_common[MI_IDX(sf_idx)][cfi - 1].loc,
-                                          q->current_ss_common[MI_IDX(sf_idx)][cfi - 1].nof_locations,
-                                          dci_msg[nof_dci].location.ncce)) {
+            if (srslte_location_find_ncce(
+                    q->current_ss_common.loc, q->current_ss_common.nof_locations, dci_msg[nof_dci].location.ncce)) {
               srslte_dci_cfg_t cfg = *dci_cfg;
               srslte_dci_cfg_set_common_ss(&cfg);
               // if the payload size is the same that it would have in the common SS (only Format0/1A is allowed there)
@@ -547,10 +511,8 @@ static int find_dci_ss(srslte_ue_dl_t*            q,
                        uint32_t                   nof_formats,
                        bool                       is_ue)
 {
-  dci_blind_search_t  search_space = {};
-  dci_blind_search_t* current_ss   = &search_space;
+  dci_blind_search_t search_space = {};
 
-  uint32_t         sf_idx  = sf->tti % SRSLTE_NOF_SF_X_FRAME;
   uint32_t         cfi     = sf->cfi;
   srslte_dci_cfg_t dci_cfg = cfg->cfg.dci;
 
@@ -559,39 +521,31 @@ static int find_dci_ss(srslte_ue_dl_t*            q,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  // Generate Common Search space
+  q->current_ss_common.nof_locations =
+      srslte_pdcch_common_locations(&q->pdcch, q->current_ss_common.loc, SRSLTE_MAX_CANDIDATES_COM, cfi);
+
   // Generate Search Space
   if (is_ue) {
-    if (q->pregen_rnti == rnti) {
-      current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][SRSLTE_CFI_IDX(cfi)][sf_idx];
-    } else {
-      // If locations are not pre-generated, generate them now
-      current_ss->nof_locations =
-          srslte_pdcch_ue_locations(&q->pdcch, sf, current_ss->loc, SRSLTE_MAX_CANDIDATES_UE, rnti);
-    }
+    search_space.nof_locations =
+        srslte_pdcch_ue_locations(&q->pdcch, sf, search_space.loc, SRSLTE_MAX_CANDIDATES_UE, rnti);
   } else {
     // Disable extended CSI request and SRS request in common SS
     srslte_dci_cfg_set_common_ss(&dci_cfg);
-
-    if (q->pregen_rnti == rnti) {
-      current_ss = &q->current_ss_common[MI_IDX(sf_idx)][SRSLTE_CFI_IDX(cfi)];
-    } else {
-      // If locations are not pre-generated, generate them now
-      current_ss->nof_locations =
-          srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, SRSLTE_MAX_CANDIDATES_COM, cfi);
-    }
+    search_space = q->current_ss_common;
   }
 
   // Search for DCI in the SS
-  current_ss->nof_formats = nof_formats;
-  memcpy(current_ss->formats, formats, nof_formats * sizeof(srslte_dci_format_t));
+  search_space.nof_formats = nof_formats;
+  memcpy(search_space.formats, formats, nof_formats * sizeof(srslte_dci_format_t));
 
   INFO("Searching %d formats in %d locations in %s SS, csi=%d",
        nof_formats,
-       current_ss->nof_locations,
+       search_space.nof_locations,
        is_ue ? "ue" : "common",
        dci_cfg.multiple_csi_request_enabled);
 
-  return dci_blind_search(q, sf, rnti, current_ss, &dci_cfg, dci_msg, cfg->cfg.dci_common_ss);
+  return dci_blind_search(q, sf, rnti, &search_space, &dci_cfg, dci_msg, cfg->cfg.dci_common_ss);
 }
 
 /*

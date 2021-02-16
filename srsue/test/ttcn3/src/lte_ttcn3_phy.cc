@@ -215,12 +215,6 @@ int lte_ttcn3_phy::sr_last_tx_tti()
 
 // The RAT-agnostic interface for MAC
 
-/* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-void lte_ttcn3_phy::set_crnti(uint16_t rnti)
-{
-  logger.debug("Set Temp-RNTI=%d, pregen not used", rnti);
-}
-
 /* Time advance commands */
 void lte_ttcn3_phy::set_timeadv_rar(uint32_t ta_cmd)
 {

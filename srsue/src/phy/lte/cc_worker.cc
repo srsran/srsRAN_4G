@@ -180,12 +180,6 @@ float cc_worker::get_ref_cfo() const
   return ue_dl.chest_res.cfo;
 }
 
-void cc_worker::set_crnti_unlocked(uint16_t rnti)
-{
-  srslte_ue_dl_set_rnti(&ue_dl, rnti);
-  srslte_ue_ul_set_rnti(&ue_ul, rnti);
-}
-
 void cc_worker::set_tdd_config_unlocked(srslte_tdd_config_t config)
 {
   sf_cfg_dl.tdd_config = config;
@@ -233,7 +227,6 @@ bool cc_worker::work_dl_regular()
 
   // Blind search PHICH mi value
   for (uint32_t i = 0; i < mi_set_len && !found_dl_grant; i++) {
-
     if (mi_set_len == 1) {
       srslte_ue_dl_set_mi_auto(&ue_dl);
     } else {
@@ -260,7 +253,6 @@ bool cc_worker::work_dl_regular()
 
   // If found a dci for this carrier, generate a grant, pass it to MAC and decode the associated PDSCH
   if (has_dl_grant) {
-
     // Read last TB from last retx for this pid
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       ue_dl_cfg.cfg.pdsch.grant.last_tbs[i] = phy->last_dl_tbs[dci_dl.pid][cc_idx][i];
@@ -417,7 +409,6 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
                             mac_interface_phy_lte::tb_action_dl_t* action,
                             bool                                   mac_acks[SRSLTE_MAX_CODEWORDS])
 {
-
   srslte_pdsch_res_t pdsch_dec[SRSLTE_MAX_CODEWORDS] = {};
 
   // See if at least 1 codeword needs to be decoded. If not need to be decode, resend ACK
@@ -499,7 +490,6 @@ int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte
   pmch_dec.payload                     = action->tb[0].payload;
 
   if (action->tb[0].enabled) {
-
     srslte_softbuffer_rx_reset_tbs(pmch_cfg.pdsch_cfg.softbuffers.rx[0], pmch_cfg.pdsch_cfg.grant.tb[0].tbs);
 
     if (srslte_ue_dl_decode_pmch(&ue_dl, &sf_cfg_dl, &pmch_cfg, &pmch_dec)) {
@@ -601,7 +591,6 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 
   /* Send UL dci or HARQ information (from PHICH) to MAC and receive actions*/
   if (ul_grant_available || ul_mac_grant.phich_available) {
-
     // Read last TB info from last retx for this PID
     ue_ul_cfg.ul_cfg.pusch.grant.last_tb = phy->last_ul_tb[pid][cc_idx];
 
@@ -709,7 +698,6 @@ int cc_worker::decode_pdcch_ul()
 
     /* Convert every DCI message to UL dci */
     for (int k = 0; k < nof_grants; k++) {
-
       // If the DCI does not have Carrier Indicator Field then indicate in which carrier the dci was found
       uint32_t cc_idx_grant = dci[k].cif_present ? dci[k].cif : cc_idx;
 
@@ -833,7 +821,6 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
                             uint32_t           V_dai_ul,
                             bool               is_pusch_available)
 {
-
   srslte_pdsch_ack_t ack_info                = {};
   uint32_t           nof_configured_carriers = 0;
 

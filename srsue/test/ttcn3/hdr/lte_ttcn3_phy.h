@@ -83,7 +83,6 @@ public:
   int          sr_last_tx_tti() override;
 
   // phy_interface_mac_common
-  void     set_crnti(uint16_t rnti) override;
   void     set_timeadv_rar(uint32_t ta_cmd) override;
   void     set_timeadv(uint32_t ta_cmd) override;
   void     set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) override;

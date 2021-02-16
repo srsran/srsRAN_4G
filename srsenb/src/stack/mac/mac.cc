@@ -193,17 +193,6 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
   // Start TA FSM in UE entity
   ue_ptr->start_ta();
 
-  // Add RNTI to the PHY (pregenerate signals) now instead of after PRACH
-  if (not ue_ptr->is_phy_added) {
-    logger.info("Registering RNTI=0x%X to PHY...", rnti);
-    // Register new user in PHY with first CC index
-    if (phy_h->pregen_sequences(rnti) == SRSLTE_ERROR) {
-      logger.error("Generating sequences for UE RNTI=0x%X", rnti);
-    }
-    logger.info("Done registering RNTI=0x%X to PHY...", rnti);
-    ue_ptr->is_phy_added = true;
-  }
-
   // Update Scheduler configuration
   if (cfg != nullptr and scheduler.ue_cfg(rnti, *cfg) == SRSLTE_ERROR) {
     logger.error("Registering new UE rnti=0x%x to SCHED", rnti);

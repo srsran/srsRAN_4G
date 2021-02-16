@@ -1118,10 +1118,6 @@ int srslte_ulsch_decode(srslte_sch_t*       q,
 
   uint32_t Q_prime_ri = (uint32_t)ret;
 
-  /*
-  if (cfg->uci_cfg.cqi.data_enable) {
-    printf("deinter_input: Qm=%d, nb_q=%d, nof_symb=%d, Q_prime_ri=%d\n", Qm, nb_q, cfg->grant.nof_symb, Q_prime_ri);
-  }*/
   // Deinterleave data and CQI in ULSCH
   ulsch_deinterleave(q_bits,
                      Qm,
@@ -1248,13 +1244,8 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
     }
     Q_prime_cqi = (uint32_t)ret;
 
-    /*
-    if (Q_prime_cqi) {
-      printf("Encoding cqi Q=%d: ", Q_prime_cqi*Qm);
-      srslte_vec_fprint_b(stdout, q->temp_g_bits, Q_prime_cqi*Qm);
-    }*/
-
     srslte_bit_pack_vector(q->temp_g_bits, g_bits, Q_prime_cqi * Qm);
+
     // Reset the buffer because will be reused in ulsch_interleave
     srslte_vec_u8_zero(q->temp_g_bits, Q_prime_cqi * Qm);
   }

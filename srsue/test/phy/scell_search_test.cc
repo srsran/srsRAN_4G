@@ -121,10 +121,6 @@ public:
     if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
       ERROR("Error setting eNb DL cell");
     }
-
-    if (srslte_enb_dl_add_rnti(&enb_dl, serving_cell_pdsch_rnti)) {
-      ERROR("Error adding RNTI");
-    }
   }
 
   int work(srslte_dl_sf_cfg_t*           dl_sf,

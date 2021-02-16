@@ -165,17 +165,6 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t* q, srslte_cell_t cell)
   return ret;
 }
 
-/* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while
- * to execute, so shall be called once the final C-RNTI has been allocated for the session.
- * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions
- */
-void srslte_ue_ul_set_rnti(srslte_ue_ul_t* q, uint16_t rnti)
-{
-  srslte_pusch_set_rnti(&q->pusch, rnti);
-  srslte_pucch_set_rnti(&q->pucch, rnti);
-  q->current_rnti = rnti;
-}
-
 int srslte_ue_ul_pregen_signals(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg)
 {
   if (q->signals_pregenerated) {
@@ -625,7 +614,8 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
   } else if ((uci_pending(cfg->ul_cfg.pucch.uci_cfg) || data->uci.scheduling_request) &&
              cfg->cc_idx == 0) { // Send PUCCH over PCell only
     if (!cfg->ul_cfg.pucch.rnti) {
-      cfg->ul_cfg.pucch.rnti = q->current_rnti;
+      ERROR("Encoding PUCCH: rnti not set in ul_cfg\n");
+      return SRSLTE_ERROR;
     }
     ret = pucch_encode(q, sf, cfg, &data->uci) ? -1 : 1;
   } else if (srs_tx_enabled(&cfg->ul_cfg.srs, sf->tti)) {

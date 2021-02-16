@@ -171,17 +171,6 @@ void cc_worker::set_tti(uint32_t tti_)
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 }
 
-int cc_worker::pregen_sequences(uint16_t rnti)
-{
-  if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
-    return -1;
-  }
-  if (srslte_enb_ul_add_rnti(&enb_ul, rnti)) {
-    return -1;
-  }
-  return SRSLTE_SUCCESS;
-}
-
 int cc_worker::add_rnti(uint16_t rnti)
 {
   std::unique_lock<std::mutex> lock(mutex);
@@ -199,11 +188,9 @@ void cc_worker::rem_rnti(uint16_t rnti)
   if (ue_db.count(rnti)) {
     delete ue_db[rnti];
     ue_db.erase(rnti);
+  } else {
+    Error("Removing user: rnti=0x%x does not exist\n", rnti);
   }
-
-  // Always try to remove from PHY-lib
-  srslte_enb_dl_rem_rnti(&enb_dl, rnti);
-  srslte_enb_ul_rem_rnti(&enb_ul, rnti);
 }
 
 uint32_t cc_worker::get_nof_rnti()
@@ -533,7 +520,6 @@ int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srs
 
 int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
-
   /* Scales the Resources Elements affected by the power allocation (p_b) */
   // srslte_enb_dl_prepare_power_allocation(&enb_dl);
   for (uint32_t i = 0; i < nof_grants; i++) {
