@@ -42,17 +42,19 @@
 
 // Define read-only complex exponential tables for two possibles size of sequences, common for all possible PRACH
 // objects
-static cf_t cexp_table_long[SRSLTE_PRACH_N_ZC_LONG]   = {};
-static cf_t cexp_table_short[SRSLTE_PRACH_N_ZC_SHORT] = {};
+#define PRACH_N_ZC_LONG_LUT_SIZE (2 * SRSLTE_PRACH_N_ZC_LONG)
+static cf_t cexp_table_long[PRACH_N_ZC_LONG_LUT_SIZE] = {};
+#define PRACH_N_ZC_SHORT_LUT_SIZE (2 * SRSLTE_PRACH_N_ZC_SHORT)
+static cf_t cexp_table_short[PRACH_N_ZC_SHORT_LUT_SIZE] = {};
 
 // Use constructor attribute for writing complex exponential tables
 __attribute__((constructor)) static void prach_cexp_init()
 {
-  for (uint32_t i = 0; i < SRSLTE_PRACH_N_ZC_LONG; i++) {
-    cexp_table_long[i] = cexpf(-I * 2.0f * M_PI * (float)i / (float)SRSLTE_PRACH_N_ZC_LONG);
+  for (uint32_t i = 0; i < PRACH_N_ZC_LONG_LUT_SIZE; i++) {
+    cexp_table_long[i] = cexpf(-I * 2.0f * M_PI * (float)i / (float)PRACH_N_ZC_LONG_LUT_SIZE);
   }
-  for (uint32_t i = 0; i < SRSLTE_PRACH_N_ZC_SHORT; i++) {
-    cexp_table_short[i] = cexpf(-I * 2.0f * M_PI * (float)i / (float)SRSLTE_PRACH_N_ZC_SHORT);
+  for (uint32_t i = 0; i < PRACH_N_ZC_SHORT_LUT_SIZE; i++) {
+    cexp_table_short[i] = cexpf(-I * 2.0f * M_PI * (float)i / (float)PRACH_N_ZC_SHORT_LUT_SIZE);
   }
 }
 
@@ -66,7 +68,7 @@ static void prach_cexp(uint32_t N_zc, uint32_t u, cf_t* root)
   if (N_zc == SRSLTE_PRACH_N_ZC_LONG) {
     for (int j = 0; j < SRSLTE_PRACH_N_ZC_LONG; j++) {
       uint32_t phase_idx = u * j * (j + 1);
-      root[j]            = cexp_table_long[phase_idx % SRSLTE_PRACH_N_ZC_LONG];
+      root[j]            = cexp_table_long[phase_idx % PRACH_N_ZC_LONG_LUT_SIZE];
     }
     return;
   }
@@ -75,7 +77,7 @@ static void prach_cexp(uint32_t N_zc, uint32_t u, cf_t* root)
   if (N_zc == SRSLTE_PRACH_N_ZC_SHORT) {
     for (int j = 0; j < SRSLTE_PRACH_N_ZC_SHORT; j++) {
       uint32_t phase_idx = u * j * (j + 1);
-      root[j]            = cexp_table_short[phase_idx % SRSLTE_PRACH_N_ZC_SHORT];
+      root[j]            = cexp_table_short[phase_idx % PRACH_N_ZC_SHORT_LUT_SIZE];
     }
     return;
   }
