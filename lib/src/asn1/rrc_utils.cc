@@ -224,6 +224,17 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
+uint8_t get_pdcp_drb_sn_len(const pdcp_cfg_s& pdcp_cfg)
+{
+  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  if (pdcp_cfg.rlc_um_present) {
+    if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
+      sn_len = srslte::PDCP_SN_LEN_7;
+    }
+  }
+  return sn_len;
+}
+
 srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
 {
   // TODO: complete config processing
@@ -250,12 +261,7 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
     }
   }
 
-  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
-  if (pdcp_cfg.rlc_um_present) {
-    if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
-      sn_len = srslte::PDCP_SN_LEN_7;
-    }
-  }
+  uint8_t sn_len = get_pdcp_drb_sn_len(pdcp_cfg);
 
   bool status_report_required = false;
   if (pdcp_cfg.rlc_am_present) {

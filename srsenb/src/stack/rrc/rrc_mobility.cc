@@ -887,7 +887,9 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     drb_state.next_pdcp_tx_sn           = erab_item.dl_coun_tvalue.pdcp_sn;
     drb_state.rx_hfn                    = erab_item.ul_coun_tvalue.hfn;
     drb_state.next_pdcp_rx_sn           = erab_item.ul_coun_tvalue.pdcp_sn;
-    drb_state.last_submitted_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
+    uint8_t  sn_len                     = srslte::get_pdcp_drb_sn_len(drb_it->pdcp_cfg);
+    uint32_t maximum_pdcp_sn            = (1u << sn_len) - 1u;
+    drb_state.last_submitted_pdcp_rx_sn = std::max(erab_item.ul_coun_tvalue.pdcp_sn - 1u, maximum_pdcp_sn);
     logger.info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}",
                 drb_it->lc_ch_id,
                 drb_state.next_pdcp_tx_sn,

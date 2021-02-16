@@ -75,7 +75,6 @@ struct ue_eutra_cap_s;
  *  Conversion Helpers
  ***********************/
 namespace srslte {
-
 plmn_id_t make_plmn_id_t(const asn1::rrc::plmn_id_s& asn1_type);
 void      to_asn1(asn1::rrc::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 plmn_id_t make_plmn_id_t(const asn1::fixed_octstring<3, true>& asn1_type);
@@ -96,6 +95,7 @@ void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
  **************************/
 srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
+uint8_t               get_pdcp_drb_sn_len(const asn1::rrc::pdcp_cfg_s& pdcp_cfg);
 srslte::pdcp_config_t
 make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg);
 
