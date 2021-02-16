@@ -30,6 +30,7 @@ namespace srslte {
 // LTE and NR common config
 const uint8_t PDCP_SN_LEN_5  = 5;
 const uint8_t PDCP_SN_LEN_7  = 7;
+const uint8_t PDCP_SN_LEN_15 = 15;
 const uint8_t PDCP_SN_LEN_12 = 12;
 const uint8_t PDCP_SN_LEN_18 = 18;
 

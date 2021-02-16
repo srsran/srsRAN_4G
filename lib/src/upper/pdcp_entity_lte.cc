@@ -84,7 +84,7 @@ void pdcp_entity_lte::reestablish()
   } else {
     // Send status report if required on reestablishment in RLC AM
     send_status_report();
-    // Re-transmit unacknwoledged SDUs
+    // Re-transmit unacknowledged SDUs
     std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus = std::move(undelivered_sdus_queue);
     undelivered_sdus_queue.clear();
     for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus.begin(); it != undelivered_sdus.end();
@@ -126,7 +126,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // PDUs will be removed from the queue, either when the lower layers will report
   // a succesfull transmission or when the discard timer expires.
   // Status report will also use this queue, to know the First Missing SDU (FMS).
-  if (is_drb() && !rlc->rb_is_um(lcid)) {
+  if (!rlc->rb_is_um(lcid)) {
     store_sdu(used_sn, sdu);
   }
 

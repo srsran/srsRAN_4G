@@ -232,6 +232,14 @@ uint8_t get_pdcp_drb_sn_len(const pdcp_cfg_s& pdcp_cfg)
       sn_len = srslte::PDCP_SN_LEN_7;
     }
   }
+  if (pdcp_cfg.ext) {
+    if (pdcp_cfg.pdcp_sn_size_v1130_present) {
+      sn_len = srslte::PDCP_SN_LEN_15;
+    }
+    if (pdcp_cfg.pdcp_sn_size_v1310_present) {
+      sn_len = srslte::PDCP_SN_LEN_18;
+    }
+  }
   return sn_len;
 }
 
