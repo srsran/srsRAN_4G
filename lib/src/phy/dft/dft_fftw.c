@@ -138,6 +138,11 @@ int srslte_dft_replan_c(srslte_dft_plan_t* plan, const int new_dft_points)
 {
   int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
 
+  // No change in size, skip re-planning
+  if (plan->size == new_dft_points) {
+    return 0;
+  }
+
   pthread_mutex_lock(&fft_mutex);
   if (plan->p) {
     fftwf_destroy_plan(plan->p);
