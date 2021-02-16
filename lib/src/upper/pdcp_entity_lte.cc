@@ -581,9 +581,10 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
  ***************************************************************************/
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
-  logger.debug("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+  logger.info("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
 
   for (uint32_t sn : pdcp_sns) {
+    logger.debug("Received delivery notification for SN=%d", sn);
     // Find undelivered PDU info
     std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus_queue.find(sn);
     if (it == undelivered_sdus_queue.end()) {
@@ -636,6 +637,8 @@ void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state)
 
 std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()
 {
+  logger.info("Buffered PDUs requested, buffer_size=%d", undelivered_sdus_queue.size());
+
   std::map<uint32_t, srslte::unique_byte_buffer_t> cpy{};
   // Deep copy undelivered SDUs
   // TODO: investigate wheter the deep copy can be avoided by moving the undelivered SDU queue.
@@ -643,6 +646,7 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
   for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end(); it++) {
     cpy[it->first]    = make_byte_buffer();
     (*cpy[it->first]) = *(it->second);
+    logger.debug(it->second->msg, it->second->N_bytes, "Forwarding buffered PDU with SN=%d", it->first);
   }
   return cpy;
 }
