@@ -322,8 +322,9 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       parse_uint32(args, "trx_timeout_ms", i, &rx_opts.trx_timeout_ms);
 
       // log_trx_timeout
+      char tmp2[RF_PARAM_LEN] = {};
       parse_string(args, "log_trx_timeout", i, tmp);
-      if (strncmp(tmp, "true", RF_PARAM_LEN) == 0 || strncmp(tmp, "yes", RF_PARAM_LEN) == 0) {
+      if (strncmp(tmp2, "true", RF_PARAM_LEN) == 0 || strncmp(tmp2, "yes", RF_PARAM_LEN) == 0) {
         rx_opts.log_trx_timeout = true;
       }
 
