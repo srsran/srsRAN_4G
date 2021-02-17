@@ -340,6 +340,12 @@ bool sync::cell_select_start(phy_cell_t new_cell)
   // Reconfigure first intra-frequency measurement
   intra_freq_meas[0]->set_primary_cell(current_earfcn, cell);
 
+  // Reconfigure secondary serving cell synchronization assuming the same BW than the primary
+  // The secondary serving cell synchronization will not resize again when the SCell gets configured
+  for (auto& e : scell_sync) {
+    e.second->set_bw(cell.nof_prb);
+  }
+
   // Change sampling rate if necessary
   if (srate_mode != SRATE_CAMP) {
     phy_logger.info("Cell Select: Setting CAMPING sampling rate");

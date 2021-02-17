@@ -50,6 +50,7 @@ private:
   uint32_t                                channel  = 0;
   srslte_sync_t                           find_pss = {};
   int32_t                                 sf_len   = 0;
+  int32_t                                 cell_id  = -1;
   std::array<cf_t, 2 * SRSLTE_SF_LEN_MAX> temp     = {};
   std::mutex                              mutex; ///< Used for avoiding reconfiguring (set_cell) while it is searching
 
@@ -71,7 +72,6 @@ private:
 
     // Run PSS search
     switch (srslte_sync_find(&find_pss, temp.data(), 0, &peak_pos)) {
-
       case SRSLTE_SYNC_FOUND:
         if (callback != nullptr) {
           // Calculate Sample Offset from TTI difference
@@ -123,6 +123,32 @@ public:
 
   ~sync() { srslte_sync_free(&find_pss); };
 
+  void set_bw(const uint32_t nof_prb)
+  {
+    // Protect DSP objects and buffers; As it is called by asynchronous thread, it can wait to finish current processing
+    std::unique_lock<std::mutex> lock(mutex);
+
+    uint32_t symbol_sz  = srslte_symbol_sz(nof_prb);
+    int32_t  new_sf_len = SRSLTE_SF_LEN_PRB(nof_prb);
+
+    // Skip if no BW is changed
+    if (new_sf_len == sf_len) {
+      return;
+    }
+
+    // Resize
+    if (srslte_sync_resize(&find_pss, 2 * new_sf_len, 2 * new_sf_len, symbol_sz) != SRSLTE_SUCCESS) {
+      ERROR("Error setting cell sync find");
+    }
+
+    // Update values
+    sf_len  = new_sf_len;
+    cell_id = -1; // Force next set_cell to set the ID
+
+    // Reset state to idle
+    state = STATE_IDLE;
+  }
+
   /**
    * Sets the cell for the synchronizer
    */
@@ -131,24 +157,36 @@ public:
     // Protect DSP objects and buffers; As it is called by asynchronous thread, it can wait to finish current processing
     std::unique_lock<std::mutex> lock(mutex);
 
-    uint32_t symbol_sz = srslte_symbol_sz(cell.nof_prb);
-    sf_len             = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+    uint32_t symbol_sz   = srslte_symbol_sz(cell.nof_prb);
+    int32_t  new_sf_len  = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+    int32_t  new_cell_id = cell.id;
 
     // Resize Sync object
-    if (srslte_sync_resize(&find_pss, 2 * sf_len, 2 * sf_len, symbol_sz) != SRSLTE_SUCCESS) {
-      ERROR("Error setting cell sync find");
+    if (new_sf_len != sf_len) {
+      if (srslte_sync_resize(&find_pss, 2 * new_sf_len, 2 * new_sf_len, symbol_sz) != SRSLTE_SUCCESS) {
+        ERROR("Error setting cell sync find");
+      }
+
+      // Force cell_id set
+      cell_id = -1;
     }
 
     // Configure
-    srslte_sync_set_frame_type(&find_pss, cell.frame_type);
-    srslte_sync_set_N_id_2(&find_pss, cell.id % SRSLTE_NOF_NID_2);
-    srslte_sync_set_N_id_1(&find_pss, cell.id / SRSLTE_NOF_NID_2);
-    srslte_sync_set_cfo_ema_alpha(&find_pss, 0.1);
-    srslte_sync_set_em_alpha(&find_pss, 1);
-    srslte_sync_set_threshold(&find_pss, 3.0);
+    if (cell_id != new_cell_id) {
+      srslte_sync_set_frame_type(&find_pss, cell.frame_type);
+      srslte_sync_set_N_id_2(&find_pss, new_cell_id % SRSLTE_NOF_NID_2);
+      srslte_sync_set_N_id_1(&find_pss, new_cell_id / SRSLTE_NOF_NID_2);
+      srslte_sync_set_cfo_ema_alpha(&find_pss, 0.1);
+      srslte_sync_set_em_alpha(&find_pss, 1);
+      srslte_sync_set_threshold(&find_pss, 3.0);
+    }
 
     // Reset Temporal buffer
     srslte_vec_cf_zero(temp.data(), 2 * sf_len);
+
+    // Update new values
+    sf_len  = new_sf_len;
+    cell_id = new_cell_id;
 
     // Go to search PSS
     state = STATE_SEARCH_PSS;
