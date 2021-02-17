@@ -83,14 +83,8 @@ int ttcn3_syssim::init(const all_args_t& args_)
   srslte::logmap::set_default_logger(old_logger);
 
   // init and configure logging
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS  ", old_logger, true}});
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-RLC", old_logger}});
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-PDCP", old_logger}});
 
   log->set_level(args.log.all_level);
-  ss_mac_log->set_level(args.log.all_level);
-  ss_rlc_log->set_level(args.log.all_level);
-  ss_pdcp_log->set_level(args.log.all_level);
 
   auto logger_lvl = srslog::str_to_basic_level(args.log.all_level);
   logger.set_level(logger_lvl);
@@ -105,9 +99,6 @@ int ttcn3_syssim::init(const all_args_t& args_)
   ss_pdcp_logger.set_level(logger_lvl);
 
   log->set_hex_limit(args.log.all_hex_limit);
-  ss_mac_log->set_hex_limit(args.log.all_hex_limit);
-  ss_rlc_log->set_hex_limit(args.log.all_hex_limit);
-  ss_pdcp_log->set_hex_limit(args.log.all_hex_limit);
 
   logger.set_hex_dump_max_size(args.log.all_hex_limit);
   ut_logger.set_hex_dump_max_size(args.log.all_hex_limit);
