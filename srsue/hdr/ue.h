@@ -84,7 +84,7 @@ typedef struct {
 class ue : public ue_metrics_interface
 {
 public:
-  ue(srslog::sink& log_sink);
+  ue();
   ~ue();
 
   int  init(const all_args_t& args_, srslte::logger* logger_);
@@ -107,7 +107,6 @@ private:
 
   // Generic logger members
   srslte::logger*       old_logger = nullptr;
-  srslog::sink&         log_sink;
   srslog::basic_logger& logger;
 
   all_args_t args;

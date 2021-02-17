@@ -147,7 +147,7 @@ void phy::run_thread()
   common.init(&args, radio, stack, &sfsync);
 
   // Initialise workers
-  lte_workers.init(&common, log_sink, WORKERS_THREAD_PRIO);
+  lte_workers.init(&common, WORKERS_THREAD_PRIO);
 
   // Warning this must be initialized after all workers have been added to the pool
   sfsync.init(

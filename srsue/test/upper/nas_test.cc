@@ -207,14 +207,7 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 
 int security_command_test()
 {
-  int                ret = SRSLTE_ERROR;
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
-
+  int              ret = SRSLTE_ERROR;
   stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
@@ -267,18 +260,7 @@ int security_command_test()
 
 int mme_attach_request_test()
 {
-  int                ret = SRSLTE_ERROR;
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-  srslte::log_filter gw_log("GW");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
-  usim_log.set_hex_limit(100000);
-  gw_log.set_hex_limit(100000);
+  int ret = SRSLTE_ERROR;
 
   rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
@@ -344,13 +326,7 @@ int mme_attach_request_test()
 
 int esm_info_request_test()
 {
-  int                ret = SRSLTE_ERROR;
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
+  int ret = SRSLTE_ERROR;
 
   srsue::stack_test_dummy stack{};
 
@@ -394,13 +370,6 @@ int esm_info_request_test()
 
 int dedicated_eps_bearer_test()
 {
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
-
   srsue::stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;

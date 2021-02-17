@@ -413,8 +413,7 @@ int main(int argc, char** argv)
   srslte_softbuffer_tx_t*                 softbuffer_tx[SRSLTE_MAX_TB] = {};
 
   // Over-the-air only
-  std::unique_ptr<srslte::radio>      radio     = nullptr;
-  std::unique_ptr<srslte::log_filter> radio_log = nullptr;
+  std::unique_ptr<srslte::radio> radio = nullptr;
 
   // Set Receiver args
   common.args                           = &phy_args;

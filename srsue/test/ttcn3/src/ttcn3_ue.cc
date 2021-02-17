@@ -55,7 +55,7 @@ int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::st
 
   // Instantiate layers and stack together our UE
   if (args.stack.type == "lte") {
-    stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte(srslog::get_default_sink()));
+    stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte);
     if (!stack) {
       srslte::console("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;

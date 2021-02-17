@@ -52,7 +52,7 @@ class ue_stack_lte final : public ue_stack_base,
                            public srslte::thread
 {
 public:
-  explicit ue_stack_lte(srslog::sink& log_sink);
+  explicit ue_stack_lte();
   ~ue_stack_lte();
 
   std::string get_type() final;

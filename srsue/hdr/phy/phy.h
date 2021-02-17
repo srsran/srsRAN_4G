@@ -69,10 +69,9 @@ private:
 class phy final : public ue_lte_phy_base, public ue_nr_phy_base, public srslte::thread
 {
 public:
-  explicit phy(srslog::sink& log_sink) :
-    log_sink(log_sink),
-    logger_phy(srslog::fetch_basic_logger("PHY", log_sink)),
-    logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB", log_sink)),
+  explicit phy() :
+    logger_phy(srslog::fetch_basic_logger("PHY")),
+    logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
     lte_workers(MAX_WORKERS),
     nr_workers(MAX_WORKERS, log_sink),
     common(logger_phy),
@@ -197,7 +196,6 @@ private:
   const static int WORKERS_THREAD_PRIO = 2;
 
   srslte::radio_interface_phy* radio = nullptr;
-  srslog::sink&                log_sink;
 
   srslog::basic_logger&           logger_phy;
   srslog::basic_logger&           logger_phy_lib;

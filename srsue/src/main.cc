@@ -470,7 +470,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
   // if no config file given, check users home path
   if (!vm.count("config_file")) {
-
     if (!config_exists(config_file, "ue.conf")) {
       cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
       return SRSLTE_ERROR;
@@ -652,7 +651,7 @@ int main(int argc, char* argv[])
   srslte::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance
-  srsue::ue ue(*log_sink);
+  srsue::ue ue;
   if (ue.init(args, &log_wrapper)) {
     ue.stop();
     return SRSLTE_SUCCESS;

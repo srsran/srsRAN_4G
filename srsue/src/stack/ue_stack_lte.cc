@@ -22,16 +22,16 @@ using namespace srslte;
 
 namespace srsue {
 
-ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
+ue_stack_lte::ue_stack_lte() :
   running(false),
   args(),
-  stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
-  mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
-  rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
-  pdcp_logger(srslog::fetch_basic_logger("PDCP", log_sink, false)),
-  rrc_logger(srslog::fetch_basic_logger("RRC", log_sink, false)),
-  usim_logger(srslog::fetch_basic_logger("USIM", log_sink, false)),
-  nas_logger(srslog::fetch_basic_logger("NAS", log_sink, false)),
+  stack_logger(srslog::fetch_basic_logger("STCK", false)),
+  mac_logger(srslog::fetch_basic_logger("MAC")),
+  rlc_logger(srslog::fetch_basic_logger("RLC", false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP", false)),
+  rrc_logger(srslog::fetch_basic_logger("RRC", false)),
+  usim_logger(srslog::fetch_basic_logger("USIM", false)),
+  nas_logger(srslog::fetch_basic_logger("NAS", false)),
   usim(nullptr),
   phy(nullptr),
   rlc("RLC"),

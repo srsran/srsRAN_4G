@@ -2375,13 +2375,6 @@ int main(int argc, char** argv)
   phy_logger.set_hex_dump_max_size(100000);
   srslog::init();
 
-  srslte::log_filter rlc_log("RLC");
-  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rlc_log.set_hex_limit(100000);
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   TESTASSERT(mac_unpack_test() == SRSLTE_SUCCESS);
   TESTASSERT(mac_ul_sch_pdu_test1() == SRSLTE_SUCCESS);
   TESTASSERT(mac_ul_logical_channel_prioritization_test1() == SRSLTE_SUCCESS);

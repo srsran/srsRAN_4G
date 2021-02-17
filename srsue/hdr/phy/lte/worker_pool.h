@@ -28,7 +28,7 @@ public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
   worker_pool(uint32_t max_workers);
-  bool       init(phy_common* common, srslog::sink& log_sink, int prio);
+  bool       init(phy_common* common, int prio);
   sf_worker* wait_worker(uint32_t tti);
   sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);

@@ -16,16 +16,15 @@ namespace lte {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
-bool worker_pool::init(phy_common* common, srslog::sink& log_sink, int prio)
+bool worker_pool::init(phy_common* common, int prio)
 {
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    srslog::basic_logger &log = srslog::fetch_basic_logger(fmt::format("PHY{}", i), log_sink);
+    srslog::basic_logger& log = srslog::fetch_basic_logger(fmt::format("PHY{}", i));
     log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
     log.set_hex_dump_max_size(common->args->log.phy_hex_limit);
 
-    auto w =
-        std::unique_ptr<lte::sf_worker>(new lte::sf_worker(SRSLTE_MAX_PRB, common, log));
+    auto w = std::unique_ptr<lte::sf_worker>(new lte::sf_worker(SRSLTE_MAX_PRB, common, log));
     pool.init_worker(i, w.get(), prio, common->args->worker_cpu_mask);
     workers.push_back(std::move(w));
   }
