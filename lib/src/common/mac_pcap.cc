@@ -127,6 +127,7 @@ void mac_pcap::set_ue_id(uint16_t ue_id_)
 // Function called from PHY worker context, locking not needed as PDU queue is thread-safe
 void mac_pcap::pack_and_queue(uint8_t* payload,
                               uint32_t payload_len,
+                              uint16_t ue_id,
                               uint32_t reTX,
                               bool     crc_ok,
                               uint8_t  cc_idx,
@@ -142,7 +143,7 @@ void mac_pcap::pack_and_queue(uint8_t* payload,
     pdu.context.direction      = direction;
     pdu.context.rntiType       = rnti_type;
     pdu.context.rnti           = crnti;
-    pdu.context.ueid           = (uint16_t)ue_id;
+    pdu.context.ueid           = ue_id;
     pdu.context.isRetx         = (uint8_t)reTX;
     pdu.context.crcStatusOK    = crc_ok;
     pdu.context.cc_idx         = cc_idx;
@@ -167,6 +168,7 @@ void mac_pcap::pack_and_queue_nr(uint8_t* payload,
                                  uint32_t payload_len,
                                  uint32_t tti,
                                  uint16_t crnti,
+                                 uint16_t ue_id,
                                  uint8_t  harqid,
                                  uint8_t  direction,
                                  uint8_t  rnti_type)
@@ -203,7 +205,7 @@ void mac_pcap::write_dl_crnti(uint8_t* pdu,
                               uint32_t tti,
                               uint8_t  cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
 }
 void mac_pcap::write_dl_ranti(uint8_t* pdu,
                               uint32_t pdu_len_bytes,
@@ -212,7 +214,7 @@ void mac_pcap::write_dl_ranti(uint8_t* pdu,
                               uint32_t tti,
                               uint8_t  cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, RA_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, RA_RNTI);
 }
 void mac_pcap::write_ul_crnti(uint8_t* pdu,
                               uint32_t pdu_len_bytes,
@@ -221,7 +223,29 @@ void mac_pcap::write_ul_crnti(uint8_t* pdu,
                               uint32_t tti,
                               uint8_t  cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, C_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, C_RNTI);
+}
+
+void mac_pcap::write_ul_crnti(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint16_t rnti,
+                              uint16_t ue_id,
+                              uint32_t reTX,
+                              uint32_t tti,
+                              uint8_t  cc_idx)
+{
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, C_RNTI);
+}
+
+void mac_pcap::write_dl_crnti(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint16_t rnti,
+                              uint16_t ue_id,
+                              bool     crc_ok,
+                              uint32_t tti,
+                              uint8_t  cc_idx)
+{
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
 }
 
 void mac_pcap::write_sl_crnti(uint8_t* pdu,
@@ -231,54 +255,74 @@ void mac_pcap::write_sl_crnti(uint8_t* pdu,
                               uint32_t tti,
                               uint8_t  cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, SL_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, SL_RNTI);
 }
 
 void mac_pcap::write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
 }
 void mac_pcap::write_dl_pch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
 }
 void mac_pcap::write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
 }
 void mac_pcap::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, ue_id, 0, crc_ok, cc_idx, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
 }
 
 void mac_pcap::write_dl_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
 {
-  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, C_RNTI);
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_DOWNLINK, C_RNTI);
+}
+
+void mac_pcap::write_dl_crnti_nr(uint8_t* pdu,
+                                 uint32_t pdu_len_bytes,
+                                 uint16_t crnti,
+                                 uint16_t ue_id,
+                                 uint8_t  harqid,
+                                 uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, crnti, ue_id, harqid, DIRECTION_DOWNLINK, C_RNTI);
 }
 
 void mac_pcap::write_ul_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
 {
-  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_UPLINK, C_RNTI);
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_UPLINK, C_RNTI);
+}
+
+void mac_pcap::write_ul_crnti_nr(uint8_t* pdu,
+                                 uint32_t pdu_len_bytes,
+                                 uint16_t rnti,
+                                 uint16_t ue_id,
+                                 uint8_t  harqid,
+                                 uint32_t tti)
+{
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_UPLINK, C_RNTI);
 }
 
 void mac_pcap::write_dl_ra_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
 {
-  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, RA_RNTI);
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_DOWNLINK, RA_RNTI);
 }
 
 void mac_pcap::write_dl_bch_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
 {
-  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, NO_RNTI);
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_DOWNLINK, NO_RNTI);
 }
 
 void mac_pcap::write_dl_pch_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
 {
-  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, P_RNTI);
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_DOWNLINK, P_RNTI);
 }
 
 void mac_pcap::write_dl_si_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti)
 {
-  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, harqid, DIRECTION_DOWNLINK, SI_RNTI);
+  pack_and_queue_nr(pdu, pdu_len_bytes, tti, rnti, ue_id, harqid, DIRECTION_DOWNLINK, SI_RNTI);
 }
 
 void mac_pcap::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len)
