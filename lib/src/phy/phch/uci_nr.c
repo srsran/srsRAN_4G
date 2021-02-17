@@ -16,6 +16,7 @@
 #include "srslte/phy/phch/uci_cfg.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/vector.h"
+#include <inttypes.h>
 
 #define UCI_NR_INFO_TX(...) INFO("UCI-NR Tx: " __VA_ARGS__)
 #define UCI_NR_INFO_RX(...) INFO("UCI-NR Rx: " __VA_ARGS__)
@@ -496,7 +497,7 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
 
     // Attach CRC
     srslte_crc_attach(crc, q->c, A_prime / C);
-    UCI_NR_INFO_TX("Attaching %d/%d CRC%d=%02lx", r, C, L, srslte_crc_checksum_get(crc));
+    UCI_NR_INFO_TX("Attaching %d/%d CRC%d=%" PRIx64, r, C, L, srslte_crc_checksum_get(crc));
 
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
       UCI_NR_INFO_TX("Polar cb %d/%d c=", r, C);
