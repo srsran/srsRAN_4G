@@ -57,7 +57,7 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
 {
-  if (ue->init(all_args_t{}, old_logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
+  if (ue->init(all_args_t{}, this, "INIT_TEST") != SRSLTE_SUCCESS) {
     ue->stop();
     fprintf(stderr, "Couldn't initialize UE.\n");
   }
@@ -445,7 +445,7 @@ void ttcn3_syssim::tc_start(const char* name)
   local_args.stack.pcap.nas_filename = get_filename_with_tc_name(args.stack.pcap.nas_filename, run_id, tc_name);
 
   // bring up UE
-  if (ue->init(local_args, old_logger, this, tc_name)) {
+  if (ue->init(local_args, this, tc_name)) {
     ue->stop();
     std::string err("Couldn't initialize UE.");
     logger.error("%s", err.c_str());

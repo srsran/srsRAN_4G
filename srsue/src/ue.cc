@@ -18,8 +18,8 @@
 #include "srslte/radio/radio_null.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
-#include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srsue/hdr/phy/vnf_phy_nr.h"
+#include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include <algorithm>
 #include <iostream>
@@ -105,12 +105,12 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       ret = SRSLTE_ERROR;
     }
 
-    if (lte_stack->init(args.stack, old_logger, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
+    if (lte_stack->init(args.stack, lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
 
-    if (gw_ptr->init(args.gw, old_logger, lte_stack.get())) {
+    if (gw_ptr->init(args.gw, lte_stack.get())) {
       srslte::console("Error initializing GW.\n");
       ret = SRSLTE_ERROR;
     }
@@ -143,7 +143,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    if (gw_ptr->init(args.gw, old_logger, nr_stack.get())) {
+    if (gw_ptr->init(args.gw, nr_stack.get())) {
       srslte::console("Error initializing GW.\n");
       return SRSLTE_ERROR;
     }

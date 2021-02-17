@@ -83,7 +83,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
 
-  m_gw->init(args.coreless.gw_args, logger, this);
+  m_gw->init(args.coreless.gw_args, this);
   char* err_str = nullptr;
   if (m_gw->setup_if_addr(5,
                           args.coreless.drb_lcid,

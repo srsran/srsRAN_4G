@@ -41,7 +41,7 @@ class gw : public gw_interface_stack, public srslte::thread
 {
 public:
   gw();
-  int  init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack);
+  int  init(const gw_args_t& args_, stack_interface_gw* stack);
   void stop();
 
   void get_metrics(gw_metrics_t& m, const uint32_t nof_tti);
@@ -69,8 +69,7 @@ public:
 private:
   static const int GW_THREAD_PRIO = -1;
 
-  stack_interface_gw* stack      = nullptr;
-  srslte::logger*     old_logger = nullptr;
+  stack_interface_gw* stack = nullptr;
 
   gw_args_t args = {};
 

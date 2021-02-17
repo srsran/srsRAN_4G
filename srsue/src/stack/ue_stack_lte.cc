@@ -25,7 +25,6 @@ namespace srsue {
 ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
   running(false),
   args(),
-  logger(nullptr),
   stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
   mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
   rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
@@ -65,37 +64,32 @@ std::string ue_stack_lte::get_type()
 }
 
 int ue_stack_lte::init(const stack_args_t&      args_,
-                       srslte::logger*          logger_,
                        phy_interface_stack_lte* phy_,
                        phy_interface_stack_nr*  phy_nr_,
                        gw_interface_stack*      gw_)
 {
   phy_nr = phy_nr_;
-  if (init(args_, logger_, phy_, gw_)) {
+  if (init(args_, phy_, gw_)) {
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
 }
 
-int ue_stack_lte::init(const stack_args_t&      args_,
-                       srslte::logger*          logger_,
-                       phy_interface_stack_lte* phy_,
-                       gw_interface_stack*      gw_)
+int ue_stack_lte::init(const stack_args_t& args_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_)
 {
   phy = phy_;
   gw  = gw_;
 
-  if (init(args_, logger_)) {
+  if (init(args_)) {
     return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
+int ue_stack_lte::init(const stack_args_t& args_)
 {
-  args   = args_;
-  logger = logger_;
+  args = args_;
 
   // init own log
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
@@ -103,29 +97,16 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   byte_buffer_pool::get_instance()->enable_logger(true);
 
   // init layer logs
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
-  mac_log->set_level(args.log.mac_level);
-  mac_log->set_hex_limit(args.log.mac_hex_limit);
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
   mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
-  rlc_log->set_level(args.log.rlc_level);
-  rlc_log->set_hex_limit(args.log.rlc_hex_limit);
   rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
-  pdcp_log->set_level(args.log.pdcp_level);
-  pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
   pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
   pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
-  rrc_log->set_level(args.log.rrc_level);
-  rrc_log->set_hex_limit(args.log.rrc_hex_limit);
   rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
-  usim_log->set_level(args.log.usim_level);
-  usim_log->set_hex_limit(args.log.usim_hex_limit);
   usim_logger.set_level(srslog::str_to_basic_level(args.log.usim_level));
   usim_logger.set_hex_dump_max_size(args.log.usim_hex_limit);
-  nas_log->set_level(args.log.nas_level);
-  nas_log->set_hex_limit(args.log.nas_hex_limit);
   nas_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
   nas_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
 

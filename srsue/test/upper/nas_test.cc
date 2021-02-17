@@ -67,8 +67,6 @@ uint8_t deactivate_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62,
 uint16 mcc = 61441;
 uint16 mnc = 65281;
 
-static srslte::logger* g_logger = nullptr;
-
 using namespace srslte;
 
 namespace srslte {
@@ -312,7 +310,7 @@ int mme_attach_request_test()
     gw_args.log.gw_level     = "debug";
     gw_args.log.gw_hex_limit = 100000;
 
-    gw.init(gw_args, g_logger, &stack);
+    gw.init(gw_args, &stack);
     stack.init(&nas);
     // trigger test
     stack.switch_on();
@@ -475,11 +473,6 @@ int dedicated_eps_bearer_test()
 int main(int argc, char** argv)
 {
   // Setup logging.
-  srslog::sink&          log_sink = srslog::fetch_stdout_sink();
-  srslog::log_channel*   chan     = srslog::create_log_channel("mme_attach_request_test", log_sink);
-  srslte::srslog_wrapper log_wrapper(*chan);
-  g_logger = &log_wrapper;
-
   auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
   rrc_logger.set_level(srslog::basic_levels::debug);
   rrc_logger.set_hex_dump_max_size(100000);
@@ -495,9 +488,6 @@ int main(int argc, char** argv)
 
   // Start the log backend.
   srslog::init();
-
-  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
-  srslte::logmap::set_default_hex_limit(100000);
 
   if (security_command_test()) {
     printf("Security command test failed.\n");

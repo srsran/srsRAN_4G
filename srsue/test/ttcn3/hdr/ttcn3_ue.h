@@ -24,7 +24,7 @@ public:
 
   virtual ~ttcn3_ue();
 
-  int init(all_args_t args, srslte::logger* logger_, syssim_interface_phy* syssim_, const std::string tc_name_);
+  int init(all_args_t args, syssim_interface_phy* syssim_, const std::string tc_name_);
 
   void stop();
 
@@ -76,7 +76,6 @@ private:
   std::unique_ptr<ue_stack_lte>  stack;
 
   // Generic logger members
-  srslte::logger*       old_logger = nullptr;
   srslog::basic_logger& logger;
 
   test_loop_mode_state_t                                         test_loop_mode = TEST_LOOP_INACTIVE;

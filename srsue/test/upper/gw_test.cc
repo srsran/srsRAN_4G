@@ -30,34 +30,13 @@ public:
 
 int gw_change_lcid_test()
 {
-
-  // Setup logging.
-  srslog::sink* log_sink = srslog::create_stdout_sink();
-  if (!log_sink) {
-    return SRSLTE_ERROR;
-  }
-
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
-  if (!chan) {
-    return SRSLTE_ERROR;
-  }
-
-  srslte::srslog_wrapper log_wrapper(*chan);
-
-  srslte::log_filter log;
-  log.init("TEST ", &log_wrapper);
-  log.set_level("debug");
-  log.set_hex_limit(10000);
-
-  srslog::init();
-
   srsue::gw_args_t gw_args;
   gw_args.tun_dev_name     = "tun1";
   gw_args.log.gw_level     = "debug";
   gw_args.log.gw_hex_limit = 100000;
   test_stack_dummy stack;
   srsue::gw        gw;
-  gw.init(gw_args, &log_wrapper, &stack);
+  gw.init(gw_args, &stack);
 
   uint32_t eps_bearer_id              = 5;
   uint32_t non_existing_eps_bearer_id = 23;
@@ -70,7 +49,8 @@ int gw_change_lcid_test()
       eps_bearer_id, old_lcid, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.56.32")), nullptr, err_str);
 
   if (rtn != SRSLTE_SUCCESS) {
-    log.error("Failed to setup GW interface. Not possible to test function. Try to execute with sudo rights.");
+    srslog::fetch_basic_logger("TEST", false)
+        .error("Failed to setup GW interface. Not possible to test function. Try to execute with sudo rights.");
     gw.stop();
     return SRSLTE_SUCCESS;
   }
@@ -83,6 +63,9 @@ int gw_change_lcid_test()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   TESTASSERT(gw_change_lcid_test() == SRSLTE_SUCCESS);
+
   return SRSLTE_SUCCESS;
 }

@@ -57,13 +57,12 @@ public:
 
   std::string get_type() final;
 
-  int init(const stack_args_t& args_, srslte::logger* logger_);
-  int init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
-  int init(const stack_args_t&      args_,
-           srslte::logger*          logger_,
-           phy_interface_stack_lte* phy_,
-           phy_interface_stack_nr*  phy_nr_,
-           gw_interface_stack*      gw_);
+  int  init(const stack_args_t& args_);
+  int  init(const stack_args_t& args_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+  int  init(const stack_args_t&      args_,
+            phy_interface_stack_lte* phy_,
+            phy_interface_stack_nr*  phy_nr_,
+            gw_interface_stack*      gw_);
   bool switch_on() final;
   bool switch_off() final;
   bool is_registered() final;
@@ -168,13 +167,6 @@ private:
   srslte::tti_point current_tti;
 
   // UE stack logging
-  srslte::logger*       logger = nullptr;
-  srslte::log_ref       mac_log{"MAC"};
-  srslte::log_ref       rlc_log{"RLC"};
-  srslte::log_ref       pdcp_log{"PDCP"};
-  srslte::log_ref       rrc_log{"RRC"};
-  srslte::log_ref       usim_log{"USIM"};
-  srslte::log_ref       nas_log{"NAS"};
   srslog::basic_logger& stack_logger;
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;
@@ -184,8 +176,8 @@ private:
   srslog::basic_logger& nas_logger;
 
   // RAT-specific interfaces
-  phy_interface_stack_lte* phy = nullptr;
-  gw_interface_stack*      gw  = nullptr;
+  phy_interface_stack_lte* phy    = nullptr;
+  gw_interface_stack*      gw     = nullptr;
   phy_interface_stack_nr*  phy_nr = nullptr;
 
   // Thread
@@ -198,14 +190,14 @@ private:
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
 
   // stack components
-  srsue::mac       mac;
-  srslte::mac_pcap mac_pcap;
-  srslte::nas_pcap nas_pcap;
-  srslte::rlc      rlc;
-  srslte::pdcp     pdcp;
-  srsue::rrc       rrc;
-  srsue::mac_nr mac_nr;
-  srsue::rrc_nr rrc_nr;
+  srsue::mac                 mac;
+  srslte::mac_pcap           mac_pcap;
+  srslte::nas_pcap           nas_pcap;
+  srslte::rlc                rlc;
+  srslte::pdcp               pdcp;
+  srsue::rrc                 rrc;
+  srsue::mac_nr              mac_nr;
+  srsue::rrc_nr              rrc_nr;
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
 
