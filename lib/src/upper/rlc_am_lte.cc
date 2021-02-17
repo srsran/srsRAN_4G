@@ -242,6 +242,10 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 
   // Drop all messages in RETX queue
   retx_queue.clear();
+
+  // Drop all SDU info in queue
+  undelivered_sdu_info_queue.clear();
+
   pthread_mutex_unlock(&mutex);
 }
 

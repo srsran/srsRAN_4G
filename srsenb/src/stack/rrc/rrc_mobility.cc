@@ -970,8 +970,8 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
 
   if (is_first_crnti_ce) {
     // Need to reset SNs of bearers.
-    rrc_enb->pdcp->reestablish(rrc_ue->rnti);
     rrc_enb->rlc->reestablish(rrc_ue->rnti);
+    rrc_enb->pdcp->reestablish(rrc_ue->rnti);
 
     // Change PCell in MAC/Scheduler
     rrc_ue->mac_ctrl.handle_crnti_ce(ev.temp_crnti);
