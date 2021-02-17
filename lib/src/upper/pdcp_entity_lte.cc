@@ -465,6 +465,7 @@ void pdcp_entity_lte::send_status_report()
     }
     pdu->N_bytes += bitmap_sz;
   }
+  pdu->md.pdcp_sn = -1;
 
   // Write PDU to RLC
   rlc->write_sdu(lcid, std::move(pdu));
