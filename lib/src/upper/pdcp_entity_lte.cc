@@ -195,6 +195,10 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   }
 
   // Pass PDU to lower layers
+  metrics_mutex.lock();
+  metrics.num_tx_pdus++;
+  metrics.num_tx_pdu_bytes += sdu->N_bytes;
+  metrics_mutex.unlock();
   rlc->write_sdu(lcid, std::move(sdu));
 }
 
