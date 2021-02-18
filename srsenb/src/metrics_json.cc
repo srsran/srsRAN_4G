@@ -158,6 +158,9 @@ static bool has_valid_metric_ranges(const enb_metrics_t& m, unsigned index)
   if (index >= m.stack.rlc.ues.size()) {
     return false;
   }
+  if (index >= m.stack.pdcp.ues.size()) {
+    return false;
+  }
 
   return true;
 }
@@ -175,7 +178,6 @@ void metrics_json::set_metrics(const enb_metrics_t& m, const uint32_t period_use
 
   // Fill root object.
   ctx.write<metric_type_tag>("metrics");
-  ctx.write<metric_timestamp_tag>(get_time_stamp());
   auto& sector_list = ctx.get<mlist_sector>();
   sector_list.resize(m.stack.mac.cc_rach_counter.size());
 
@@ -201,5 +203,6 @@ void metrics_json::set_metrics(const enb_metrics_t& m, const uint32_t period_use
   }
 
   // Log the context.
+  ctx.write<metric_timestamp_tag>(get_time_stamp());
   log_c(ctx);
 }
