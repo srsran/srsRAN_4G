@@ -84,14 +84,15 @@ void pdcp_entity_lte::reestablish()
     st.next_pdcp_rx_sn = 0;
   } else {
     // Send status report if required on reestablishment in RLC AM
-    send_status_report();
+    // send_status_report();
     // Re-transmit unacknowledged SDUs
+    /*
     std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus = std::move(undelivered_sdus_queue);
     undelivered_sdus_queue.clear();
     for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus.begin(); it != undelivered_sdus.end();
          ++it) {
       write_sdu(std::move(it->second), it->first);
-    }
+    }*/
   }
 }
 
