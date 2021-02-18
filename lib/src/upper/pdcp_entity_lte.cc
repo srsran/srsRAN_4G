@@ -91,10 +91,8 @@ void pdcp_entity_lte::reestablish()
     send_status_report();
 
     // Re-transmit unacknowledged SDUs
-    metrics_mutex.lock();
     std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus = std::move(undelivered_sdus_queue);
     undelivered_sdus_queue.clear();
-    metrics_mutex.unlock();
 
     for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus.begin(); it != undelivered_sdus.end();
          ++it) {
@@ -195,10 +193,8 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   }
 
   // Pass PDU to lower layers
-  metrics_mutex.lock();
   metrics.num_tx_pdus++;
   metrics.num_tx_pdu_bytes += sdu->N_bytes;
-  metrics_mutex.unlock();
   rlc->write_sdu(lcid, std::move(sdu));
 }
 
@@ -238,11 +234,8 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
               srslte_direction_text[encryption_direction]);
 
   // Update metrics
-  {
-    std::lock_guard<std::mutex> lk(metrics_mutex);
-    metrics.num_rx_pdus++;
-    metrics.num_rx_pdu_bytes += pdu->N_bytes;
-  }
+  metrics.num_rx_pdus++;
+  metrics.num_rx_pdu_bytes += pdu->N_bytes;
 
   if (is_srb()) {
     handle_srb_pdu(std::move(pdu));
@@ -524,7 +517,6 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   }
 
   // Remove all SDUs with SN smaller than FMS
-  metrics_mutex.lock();
   for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end();) {
     if (it->first < fms) {
       discard_timers_map.erase(it->first);
@@ -533,7 +525,6 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
       ++it;
     }
   }
-  metrics_mutex.unlock();
 
   // Get acked SNs from bitmap
   for (uint32_t i = 0; (i + bitmap_offset) < pdu->N_bytes; i++) {
@@ -547,13 +538,11 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   }
 
   // Discard ACK'ed SDUs
-  metrics_mutex.lock();
   for (uint32_t sn : acked_sns) {
     logger.debug("Status report ACKed SN=%d.", sn);
     undelivered_sdus_queue.erase(sn);
     discard_timers_map.erase(sn);
   }
-  metrics_mutex.unlock();
 }
 /****************************************************************************
  * TX PDUs Queue Helper
@@ -577,9 +566,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& s
   // Metrics
   sdu_copy->set_timestamp();
 
-  metrics_mutex.lock();
   undelivered_sdus_queue.insert(std::make_pair(tx_count, std::move(sdu_copy)));
-  metrics_mutex.unlock();
   return true;
 }
 
@@ -591,16 +578,14 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 {
   parent->logger.debug("Discard timer expired for PDU with SN = %d", discard_sn);
 
-  {
-    std::lock_guard<std::mutex> lk(parent->metrics_mutex);
-    // Discard PDU if unacknowledged
-    if (parent->undelivered_sdus_queue.find(discard_sn) != parent->undelivered_sdus_queue.end()) {
-      parent->undelivered_sdus_queue.erase(discard_sn);
-      parent->logger.debug("Removed undelivered PDU with TX_COUNT=%d", discard_sn);
-    } else {
-      parent->logger.debug("Could not find PDU to discard. TX_COUNT=%d", discard_sn);
-    }
+  // Discard PDU if unacknowledged
+  if (parent->undelivered_sdus_queue.find(discard_sn) != parent->undelivered_sdus_queue.end()) {
+    parent->undelivered_sdus_queue.erase(discard_sn);
+    parent->logger.debug("Removed undelivered PDU with TX_COUNT=%d", discard_sn);
+  } else {
+    parent->logger.debug("Could not find PDU to discard. TX_COUNT=%d", discard_sn);
   }
+
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
 
@@ -615,8 +600,6 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
   logger.info("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
-
-  std::lock_guard<std::mutex> lk(metrics_mutex);
 
   for (uint32_t sn : pdcp_sns) {
     logger.debug("Received delivery notification for SN=%d", sn);
@@ -698,7 +681,6 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
  ***************************************************************************/
 pdcp_bearer_metrics_t pdcp_entity_lte::get_metrics()
 {
-  std::lock_guard<std::mutex> lk(metrics_mutex);
   metrics.num_tx_buffered_pdus       = undelivered_sdus_queue.size();
   metrics.num_tx_buffered_pdus_bytes = 0;
   for (auto sdu_it = undelivered_sdus_queue.begin(); sdu_it != undelivered_sdus_queue.end(); ++sdu_it) {
@@ -711,7 +693,6 @@ pdcp_bearer_metrics_t pdcp_entity_lte::get_metrics()
 
 void pdcp_entity_lte::reset_metrics()
 {
-  std::lock_guard<std::mutex> lk(metrics_mutex);
   metrics = {};
 }
 
