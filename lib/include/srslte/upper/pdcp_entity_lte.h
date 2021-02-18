@@ -76,6 +76,10 @@ public:
   uint32_t nof_discard_timers() { return discard_timers_map.size(); }
 
   // Metrics helpers
+  // The get_metrics and reset_metrics functions are called from the metrics_hub thread.
+  // These will read the metrics, undelivered_sdus_queue and tx_ack_latency_ms variables.
+  // Any changes to these variables needs to be mutexed.
+  std::mutex            metrics_mutex;
   pdcp_bearer_metrics_t get_metrics() override;
   void                  reset_metrics() override;
 
