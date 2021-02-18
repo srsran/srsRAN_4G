@@ -571,12 +571,22 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
     int32_t  diff   = sn - fms_sn;
     if (diff > (int32_t)maximum_allocated_sns_window) {
       // This SN is too large to assign, it may cause HFN de-synchronization.
-      logger.debug("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d", sn, fms_sn, diff);
+      logger.info("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d, window=%d, queue_size=%d",
+                  sn,
+                  fms_sn,
+                  diff,
+                  maximum_allocated_sns_window,
+                  undelivered_sdus_queue.size());
       return false;
     }
     if (diff < 0 && diff > -((int32_t)maximum_allocated_sns_window)) {
       // This SN is too large to assign, it may cause HFN de-synchronization.
-      logger.debug("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d", sn, fms_sn, diff);
+      logger.info("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d, window=%d, queue_size=%d",
+                  sn,
+                  fms_sn,
+                  diff,
+                  maximum_allocated_sns_window,
+                  undelivered_sdus_queue.size());
       return false;
     }
   }
