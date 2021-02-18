@@ -430,7 +430,7 @@ void pdcp_entity_lte::send_status_report()
   }
 
   if (not cfg.status_report_required) {
-    logger.info("Trying to send PDCP Status Report and RLC is not AM");
+    logger.info("Not sending PDCP Status Report as status report required is not set");
     return;
   }
 
