@@ -226,6 +226,10 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
               srslte_direction_text[integrity_direction],
               srslte_direction_text[encryption_direction]);
 
+  // Update metrics
+  metrics.num_rx_pdus++;
+  metrics.num_rx_pdu_bytes += pdu->N_bytes;
+
   if (is_srb()) {
     handle_srb_pdu(std::move(pdu));
   } else if (is_drb() && rlc->rb_is_um(lcid)) {
@@ -234,6 +238,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     handle_am_drb_pdu(std::move(pdu));
   } else {
     logger.error("Invalid PDCP/RLC configuration");
+    return;
   }
 }
 
@@ -553,8 +558,6 @@ bool pdcp_entity_lte::store_sdu(uint32_t tx_count, const unique_byte_buffer_t& s
 
   // Metrics
   sdu_copy->set_timestamp();
-  metrics.num_tx_buffered_pdus++;
-  metrics.num_tx_buffered_pdus_bytes += sdu->N_bytes;
 
   undelivered_sdus_queue.insert(std::make_pair(tx_count, std::move(sdu_copy)));
   return true;
@@ -611,8 +614,6 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
     undelivered_sdus_queue.erase(sn);
     discard_timers_map.erase(sn);
   }
-
-  metrics.num_tx_buffered_pdus = undelivered_sdus_queue.size();
 }
 
 /****************************************************************************
@@ -673,6 +674,13 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
  ***************************************************************************/
 pdcp_bearer_metrics_t pdcp_entity_lte::get_metrics()
 {
+  metrics.num_tx_buffered_pdus       = undelivered_sdus_queue.size();
+  metrics.num_tx_buffered_pdus_bytes = 0;
+  for (auto sdu_it = undelivered_sdus_queue.begin(); sdu_it != undelivered_sdus_queue.end(); ++sdu_it) {
+    metrics.num_tx_buffered_pdus_bytes += sdu_it->second->N_bytes; //< Number of bytes of PDUs waiting for ACK
+  }
+  metrics.tx_notification_latency_ms =
+      tx_pdu_ack_latency_ms.value(); //< Average time in ms from PDU delivery to RLC to ACK notification from RLC
   return metrics;
 }
 
