@@ -65,6 +65,21 @@ std::string ue_stack_lte::get_type()
   return "lte";
 }
 
+#ifdef HAVE_5GNR
+int ue_stack_lte::init(const stack_args_t&      args_,
+                       srslte::logger*          logger_,
+                       phy_interface_stack_lte* phy_,
+                       phy_interface_stack_nr*  phy_nr_,
+                       gw_interface_stack*      gw_)
+{
+  phy_nr = phy_nr_;
+  if (init(args_, logger_, phy_, gw_)) {
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
+}
+#endif
+
 int ue_stack_lte::init(const stack_args_t&      args_,
                        srslte::logger*          logger_,
                        phy_interface_stack_lte* phy_,
@@ -142,10 +157,15 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
+
 #ifdef HAVE_5GNR
+  if (phy_nr == nullptr) {
+    srslte::console("Failed to init as phy_nr is missing.\n");
+    return SRSLTE_ERROR;
+  }
   mac_nr_args_t mac_nr_args = {};
-  mac_nr.init(mac_nr_args, (phy_interface_mac_nr*)phy, &rlc);
-  rrc_nr.init((phy_interface_rrc_nr*)phy,
+  mac_nr.init(mac_nr_args, phy_nr, &rlc);
+  rrc_nr.init(phy_nr,
               &mac_nr,
               &rlc,
               &pdcp,

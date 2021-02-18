@@ -107,12 +107,17 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       srslte::console("Error initializing NR PHY.\n");
       ret = SRSLTE_ERROR;
     }
-#endif // HAVE_5GNR
+    if (lte_stack->init(args.stack, old_logger, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
+      srslte::console("Error initializing stack.\n");
+      ret = SRSLTE_ERROR;
+    }
+#else // HAVE_5GNR
 
     if (lte_stack->init(args.stack, old_logger, lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
+#endif
 
     if (gw_ptr->init(args.gw, old_logger, lte_stack.get())) {
       srslte::console("Error initializing GW.\n");

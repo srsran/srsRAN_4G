@@ -59,8 +59,15 @@ public:
 
   std::string get_type() final;
 
-  int  init(const stack_args_t& args_, srslte::logger* logger_);
-  int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+  int init(const stack_args_t& args_, srslte::logger* logger_);
+  int init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+#ifdef HAVE_5GNR
+  int init(const stack_args_t&      args_,
+           srslte::logger*          logger_,
+           phy_interface_stack_lte* phy_,
+           phy_interface_stack_nr*  phy_nr_,
+           gw_interface_stack*      gw_);
+#endif
   bool switch_on() final;
   bool switch_off() final;
   bool is_registered() final;
@@ -177,6 +184,9 @@ private:
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
   gw_interface_stack*      gw  = nullptr;
+#ifdef HAVE_5GNR
+  phy_interface_stack_nr* phy_nr = nullptr;
+#endif
 
   // Thread
   static const int                      STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
