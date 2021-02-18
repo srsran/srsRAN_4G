@@ -128,12 +128,14 @@ static void fill_ue_metrics(mset_ue_container& ue, const enb_metrics_t& m, unsig
     if (drb.first >= SRSLTE_N_RADIO_BEARERS) {
       continue;
     }
-    const auto& rlc_bearer = m.stack.rlc.ues[i].bearer;
-    bearer_container.write<metric_dl_total_bytes>(rlc_bearer[drb.first].num_tx_sdu_bytes);
-    bearer_container.write<metric_ul_total_bytes>(rlc_bearer[drb.first].num_rx_sdu_bytes);
+    const auto& rlc_bearer  = m.stack.rlc.ues[i].bearer;
+    const auto& pdcp_bearer = m.stack.pdcp.ues[i].bearer;
+    bearer_container.write<metric_dl_total_bytes>(pdcp_bearer[drb.first].num_tx_acked_bytes);
+    bearer_container.write<metric_ul_total_bytes>(pdcp_bearer[drb.first].num_rx_pdu_bytes);
+    bearer_container.write<metric_dl_latency>(pdcp_bearer[drb.first].tx_notification_latency_ms / 1e3);
     bearer_container.write<metric_ul_latency>(rlc_bearer[drb.first].rx_latency_ms / 1e3);
+    bearer_container.write<metric_dl_buffered_bytes>(pdcp_bearer[drb.first].num_tx_buffered_pdus_bytes);
     bearer_container.write<metric_ul_buffered_bytes>(rlc_bearer[drb.first].rx_buffered_bytes);
-    //:TODO: fill in dl_buffered_bytes and dl_latency
   }
 }
 

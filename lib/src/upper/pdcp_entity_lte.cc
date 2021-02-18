@@ -693,7 +693,8 @@ pdcp_bearer_metrics_t pdcp_entity_lte::get_metrics()
 
 void pdcp_entity_lte::reset_metrics()
 {
-  metrics = {};
+  // Only reset metrics that have are snapshots, leave the incremental ones untouched.
+  metrics.tx_notification_latency_ms = 0;
 }
 
 } // namespace srslte
