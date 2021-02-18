@@ -75,6 +75,7 @@ void pdcp_entity_lte::reestablish()
     st.tx_hfn          = 0;
     st.rx_hfn          = 0;
     st.next_pdcp_rx_sn = 0;
+    undelivered_sdus_queue.clear();
   } else if (rlc->rb_is_um(lcid)) {
     // Only reset counter in RLC-UM
     st.next_pdcp_tx_sn = 0;
