@@ -49,8 +49,12 @@ public:
   virtual int sf_indication(const uint32_t tti) = 0; ///< FIXME: rename to slot indication
 
   // Query the MAC for the current RNTI to look for
-  virtual uint16_t get_dl_sched_rnti(const uint32_t tti) = 0;
-  virtual uint16_t get_ul_sched_rnti(const uint32_t tti) = 0;
+  struct sched_rnti_t {
+    uint16_t           id;
+    srslte_rnti_type_t type;
+  };
+  virtual sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) = 0;
+  virtual sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) = 0;
 
   /// Indicate succussfully received TB to MAC. The TB buffer is allocated in the PHY and handed as unique_ptr to MAC
   virtual void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) = 0;
@@ -126,7 +130,10 @@ public:
   virtual int tx_request(const tx_request_t& request) = 0;
 
   /// Instruct PHY to send PRACH in the next occasion.
-  virtual void send_prach(const uint32_t prach_occasion, const int preamble_index, const float preamble_received_target_power, const float ta_base_sec = 0.0f) = 0;
+  virtual void send_prach(const uint32_t prach_occasion,
+                          const int      preamble_index,
+                          const float    preamble_received_target_power,
+                          const float    ta_base_sec = 0.0f) = 0;
 };
 
 class phy_interface_rrc_nr

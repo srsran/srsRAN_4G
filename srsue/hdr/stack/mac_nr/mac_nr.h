@@ -47,8 +47,8 @@ public:
   void bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload);
 
   /// Interface for PHY
-  uint16_t get_dl_sched_rnti(const uint32_t tti);
-  uint16_t get_ul_sched_rnti(const uint32_t tti);
+  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti);
+  sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti);
 
   int  sf_indication(const uint32_t tti);
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant);

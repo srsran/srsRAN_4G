@@ -74,9 +74,9 @@ public:
   void run_tti(uint32_t tti) final;
 
   // MAC interface for PHY
-  uint16_t get_dl_sched_rnti(const uint32_t tti) { return mac->get_dl_sched_rnti(tti); }
-  uint16_t get_ul_sched_rnti(const uint32_t tti) { return mac->get_ul_sched_rnti(tti); }
-  int      sf_indication(const uint32_t tti)
+  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) final { return mac->get_dl_sched_rnti_nr(tti); }
+  sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) final { return mac->get_ul_sched_rnti_nr(tti); }
+  int          sf_indication(const uint32_t tti)
   {
     run_tti(tti);
     return SRSLTE_SUCCESS;

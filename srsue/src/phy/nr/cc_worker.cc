@@ -129,11 +129,16 @@ uint32_t cc_worker::get_buffer_len()
 void cc_worker::decode_pdcch_dl()
 {
   std::array<srslte_dci_dl_nr_t, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR> dci_rx = {};
-  uint16_t rnti = phy->stack->get_dl_sched_rnti(dl_slot_cfg.idx);
+  srsue::mac_interface_phy_nr::sched_rnti_t rnti = phy->stack->get_dl_sched_rnti_nr(dl_slot_cfg.idx);
+
+  // Skip search if no valid RNTI is given
+  if (rnti.id == SRSLTE_INVALID_RNTI) {
+    return;
+  }
 
   // Search for grants
-  int n_dl = srslte_ue_dl_nr_find_dl_dci(
-      &ue_dl, &dl_slot_cfg, rnti, srslte_rnti_type_c, dci_rx.data(), (uint32_t)dci_rx.size());
+  int n_dl =
+      srslte_ue_dl_nr_find_dl_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
   if (n_dl < SRSLTE_SUCCESS) {
     logger.error("Error decoding DL NR-PDCCH");
     return;
@@ -156,11 +161,16 @@ void cc_worker::decode_pdcch_dl()
 void cc_worker::decode_pdcch_ul()
 {
   std::array<srslte_dci_ul_nr_t, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR> dci_rx = {};
-  uint16_t rnti = phy->stack->get_ul_sched_rnti(ul_slot_cfg.idx);
+  srsue::mac_interface_phy_nr::sched_rnti_t rnti = phy->stack->get_ul_sched_rnti_nr(ul_slot_cfg.idx);
+
+  // Skip search if no valid RNTI is given
+  if (rnti.id == SRSLTE_INVALID_RNTI) {
+    return;
+  }
 
   // Search for grants
-  int n_dl = srslte_ue_dl_nr_find_ul_dci(
-      &ue_dl, &dl_slot_cfg, rnti, srslte_rnti_type_c, dci_rx.data(), (uint32_t)dci_rx.size());
+  int n_dl =
+      srslte_ue_dl_nr_find_ul_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
   if (n_dl < SRSLTE_SUCCESS) {
     logger.error("Error decoding UL NR-PDCCH");
     return;
@@ -206,7 +216,7 @@ bool cc_worker::work_dl()
 
     // Initialise PDSCH Result
     std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res = {};
-    pdsch_res[0].payload                                              = data->buffer;
+    pdsch_res[0].payload                                              = data->msg;
     pdsch_cfg.grant.tb[0].softbuffer.rx                               = &softbuffer_rx;
 
     // Decode actual PDSCH transmission
@@ -235,6 +245,10 @@ bool cc_worker::work_dl()
       mac_nr_grant.pid                                     = pid;
       mac_nr_grant.rnti                                    = pdsch_cfg.grant.rnti;
       mac_nr_grant.tti                                     = dl_slot_cfg.idx;
+
+      if (pdsch_cfg.grant.rnti_type == srslte_rnti_type_ra) {
+        phy->rar_grant_tti = dl_slot_cfg.idx;
+      }
 
       // Send data to MAC
       phy->stack->tb_decoded(cc_idx, mac_nr_grant);
@@ -273,14 +287,17 @@ bool cc_worker::work_ul()
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
     mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
-    phy->stack->new_grant_ul(0, mac_ul_grant);
-
+    srslte::unique_byte_buffer_t tx_pdu                  = srslte::make_byte_buffer();
+    phy->stack->new_grant_ul(0, mac_ul_grant, tx_pdu.get());
     // Provisional reset and assign Tx softbuffer
     srslte_softbuffer_tx_reset(&softbuffer_tx);
     pusch_cfg.grant.tb[0].softbuffer.tx = &softbuffer_tx;
 
+    // TODO: Use here PDU, after that, remove tx_data attribute
+    uint8_t* tx_data_ptr = tx_pdu.get()->msg;
+
     // Encode PUSCH transmission
-    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, tx_data.data()) < SRSLTE_SUCCESS) {
+    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, tx_data_ptr) < SRSLTE_SUCCESS) {
       ERROR("Encoding PUSCH");
       return false;
     }
@@ -289,9 +306,9 @@ bool cc_worker::work_ul()
     if (logger.info.enabled()) {
       std::array<char, 512> str;
       srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, str.data(), str.size());
-      logger.info(tx_data.data(),
+      logger.info(tx_data_ptr,
                   pusch_cfg.grant.tb[0].tbs / 8,
-                  "PUSCH: cc=%d, %s, tti_tx=%d",
+                  "PUSCH (NR): cc=%d, %s, tti_tx=%d",
                   cc_idx,
                   str.data(),
                   ul_slot_cfg.idx);

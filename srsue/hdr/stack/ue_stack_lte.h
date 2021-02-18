@@ -88,6 +88,9 @@ public:
   uint16_t get_dl_sched_rnti(uint32_t tti) final { return mac.get_dl_sched_rnti(tti); }
   uint16_t get_ul_sched_rnti(uint32_t tti) final { return mac.get_ul_sched_rnti(tti); }
 
+  sched_rnti_t get_dl_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_dl_sched_rnti_nr(tti); }
+  sched_rnti_t get_ul_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_ul_sched_rnti_nr(tti); }
+
   void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) final
   {
     mac.new_grant_ul(cc_idx, grant, action);

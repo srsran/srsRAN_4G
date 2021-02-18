@@ -73,9 +73,9 @@ void mac_nr::run_tti(const uint32_t tti)
   logger.debug("Running MAC tti=%d", tti);
 }
 
-uint16_t mac_nr::get_ul_sched_rnti(const uint32_t tti)
+mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t tti)
 {
-  return c_rnti;
+  return {c_rnti, srslte_rnti_type_c};
 }
 
 bool mac_nr::is_si_opportunity()
@@ -89,34 +89,33 @@ bool mac_nr::is_paging_opportunity()
   return false;
 }
 
-uint16_t mac_nr::get_dl_sched_rnti(const uint32_t tti)
+mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t tti)
 {
   // Priority: SI-RNTI, P-RNTI, RA-RNTI, Temp-RNTI, CRNTI
   if (is_si_opportunity()) {
-    return SRSLTE_SIRNTI;
+    return {SRSLTE_SIRNTI, srslte_rnti_type_si};
   }
 
   if (is_paging_opportunity()) {
-    return SRSLTE_PRNTI;
+    return {SRSLTE_PRNTI, srslte_rnti_type_si};
   }
 
-  // TODO: add new RA proc shortly
+  if (proc_ra.is_rar_opportunity(tti)) {
+    return {proc_ra.get_rar_rnti(), srslte_rnti_type_ra};
+  }
+
 #if 0
-  if (proc_ra->is_rar_opportunity()) {
-    return proc_ra->get_rar_rnti();
-  }
-
-  if (proc_ra->has_temp_rnti() && has_crnti() == false) {
+  if (proc_ra.has_temp_rnti() && has_crnti() == false) {
     return proc_ra->get_temp_rnti();
   }
 #endif
 
   if (has_crnti()) {
-    return get_crnti();
+    return {get_crnti(), srslte_rnti_type_c};
   }
 
   // turn off DCI search for this TTI
-  return SRSLTE_INVALID_RNTI;
+  return {SRSLTE_INVALID_RNTI, srslte_rnti_type_c};
 }
 
 bool mac_nr::has_crnti()
@@ -151,7 +150,7 @@ void mac_nr::prach_sent(const uint32_t tti,
                         const uint32_t f_id,
                         const uint32_t ul_carrier_id)
 {
-  // TODO: indicate to RA proc
+  proc_ra.prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
 }
 
 // This function handles all PCAP writing for a decoded DL TB
