@@ -267,6 +267,7 @@ public:
   virtual void enable_integrity(uint32_t lcid, srslte::srslte_direction_t direction)                                = 0;
   virtual void enable_encryption(uint32_t                   lcid,
                                  srslte::srslte_direction_t direction = srslte::srslte_direction_t::DIRECTION_TXRX) = 0;
+  virtual void send_status_report()                                                                                 = 0;
   virtual void send_status_report(uint32_t lcid)                                                                    = 0;
 };
 // RRC NR interface for RRC (LTE)

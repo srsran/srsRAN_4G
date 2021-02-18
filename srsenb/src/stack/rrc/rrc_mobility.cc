@@ -991,6 +991,9 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_ue_cfg.rr_cfg);
     rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_ue_cfg.rr_cfg);
+
+    // Send PDCP status report if necessary
+    rrc_enb->pdcp->send_status_report(rrc_ue->rnti);
   } else {
     logger.info("Received duplicate C-RNTI CE during rnti=0x%x handover.", rrc_ue->rnti);
   }

@@ -40,6 +40,7 @@ public:
   virtual void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg)         = 0;
   virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                              = 0;
   virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                             = 0;
+  virtual void send_status_report(uint16_t rnti)                                                           = 0;
   virtual void send_status_report(uint16_t rnti, uint32_t lcid)                                            = 0;
   virtual bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state)             = 0;
   virtual bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state)       = 0;

@@ -52,6 +52,7 @@ public:
   void enable_encryption(uint16_t rnti, uint32_t lcid) override;
   bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override;
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override;
+  void send_status_report(uint16_t rnti) override;
   void send_status_report(uint16_t rnti, uint32_t lcid) override;
   void reestablish(uint16_t rnti) override;
 

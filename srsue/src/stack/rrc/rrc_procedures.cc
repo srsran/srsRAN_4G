@@ -959,6 +959,7 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
       if (rrc_ptr->rlc->has_bearer(i)) {
         rrc_ptr->rlc->reestablish(i);
         rrc_ptr->pdcp->reestablish(i);
+        rrc_ptr->pdcp->send_status_report(i);
       }
     }
   }
@@ -1685,6 +1686,9 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
 
   // SCell addition/removal can take some time to compute. Enqueue in a background task and do it in the end.
   rrc_ptr->apply_scell_config(&recfg_r8, false);
+
+  // Send PDCP status report if configured
+  rrc_ptr->pdcp->send_status_report();
 
   Info("Finished HO configuration. Waiting PHY to synchronize with target cell");
 

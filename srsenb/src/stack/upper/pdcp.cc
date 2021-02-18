@@ -135,6 +135,14 @@ void pdcp::reestablish(uint16_t rnti)
   users[rnti].pdcp->reestablish();
 }
 
+void pdcp::send_status_report(uint16_t rnti)
+{
+  if (users.count(rnti) == 0) {
+    return;
+  }
+  users[rnti].pdcp->send_status_report();
+}
+
 void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
 {
   if (users.count(rnti)) {

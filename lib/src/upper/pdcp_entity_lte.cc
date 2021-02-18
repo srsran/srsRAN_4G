@@ -425,7 +425,12 @@ void pdcp_entity_lte::send_status_report()
 {
   // Check wether RLC AM is being used.
   if (rlc->rb_is_um(lcid)) {
-    logger.error("Trying to send PDCP Status Report and RLC is not AM");
+    logger.info("Trying to send PDCP Status Report and RLC is not AM");
+    return;
+  }
+
+  if (not cfg.status_report_required) {
+    logger.info("Trying to send PDCP Status Report and RLC is not AM");
     return;
   }
 
