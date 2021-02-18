@@ -83,7 +83,7 @@ void sf_worker::work_imp()
     tx_buffer.set(0, prach_ptr);
 
     // Notify MAC about PRACH transmission
-    phy_state->stack->prach_sent(tti_rx, 7, 1, 0, 0);
+    phy_state->stack->prach_sent(TTI_TX(tti_rx), 7, 1, 0, 0);
 
     // Transmit NR PRACH
     phy->worker_end(this, false, tx_buffer, dummy_ts, true);

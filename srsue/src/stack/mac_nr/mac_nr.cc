@@ -182,11 +182,9 @@ void mac_nr::write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 {
   write_pcap(cc_idx, grant);
-
   // handle PDU
-  if (SRSLTE_RNTI_ISRAR(grant.rnti)) { // TODO: replace with proc_ra->get_rar_rnti()
-    // TODO: pass to RA proc
-    // handle_rar_pdu(grant);
+  if (grant.rnti == proc_ra.get_rar_rnti()) {
+    proc_ra.handle_rar_pdu(grant);
   } else {
     // Push DL PDUs to queue for back-ground processing
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {

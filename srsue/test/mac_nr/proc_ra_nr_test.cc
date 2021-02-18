@@ -96,7 +96,7 @@ int main()
   TESTASSERT(preamble_received_target_power == -114);
   // Simulate PHY and call prach_sent (random values)
   uint32_t tti_start = 0;
-  proc_ra_nr.prach_sent(tti_start, 6, 0, 4, 1);
+  proc_ra_nr.prach_sent(tti_start, 7, 1, 0, 0);
 
   for (uint32_t i = tti_start; i < rach_cfg.ra_responseWindow; i++) {
     // update clock and run internal tasks
@@ -107,14 +107,14 @@ int main()
       TESTASSERT(rar_opportunity == false);
     } else if (3 + tti_start > i && i < 3 + rach_cfg.ra_responseWindow) {
       TESTASSERT(rar_opportunity == true);
-      TESTASSERT(proc_ra_nr.get_rar_rnti() == 0x3487);
+      TESTASSERT(proc_ra_nr.get_rar_rnti() == 0x16);
     }
   }
   mac_interface_phy_nr::mac_nr_grant_dl_t grant;  
-  grant.rnti               = 0x3487;
+  grant.rnti               = 0x16;
   grant.tti                = rach_cfg.ra_responseWindow + tti_start + 3;
   grant.pid                = 0x0123;
-  uint8_t mac_dl_rar_pdu[] = {0x40, 0x05, 0xa0, 0x00, 0x11, 0x46, 0x46, 0x16, 0x00, 0x00, 0x00};
+  uint8_t mac_dl_rar_pdu[] = {0x40, 0x06, 0x68, 0x03, 0x21, 0x46, 0x46, 0x02, 0x00, 0x00, 0x00};
   grant.tb[0]  = srslte::make_byte_buffer();
   grant.tb[0].get()->append_bytes(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu));
   proc_ra_nr.handle_rar_pdu(grant);

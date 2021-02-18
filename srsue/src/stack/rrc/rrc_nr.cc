@@ -755,7 +755,7 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& resu
 {
   if (result.is_success()) {
     Info("Finished %s successfully", name());
-    srslte::console("RRC NR reconfiguration successful.");
+    srslte::console("RRC NR reconfiguration successful.\n");
     return;
   }
 

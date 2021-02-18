@@ -87,7 +87,7 @@ bool proc_ra_nr::is_rar_opportunity(uint32_t tti)
 uint16_t proc_ra_nr::get_rar_rnti()
 {
   if (rar_rnti == SRSLTE_INVALID_RNTI || state != WAITING_FOR_RESPONSE_RECEPTION) {
-    logger.error("Requested ra rnti is invalid. Anyway we return an invalid ra rnti\n");
+    logger.error("Requested ra rnti is invalid. Anyway we return an invalid ra rnti");
     return SRSLTE_INVALID_RNTI;
   }
   return rar_rnti;
@@ -160,7 +160,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
     if (grant.tb[i] != nullptr) {
       srslte::mac_rar_pdu_nr pdu;
       if (!pdu.unpack(grant.tb[i]->msg, grant.tb[i]->N_bytes)) {
-        logger.warning("Error unpacking RAR PDU");
+        logger.warning("Error unpacking RAR PDU (%d)", i);
         return;
       }
       logger.info(pdu.to_string());
@@ -234,7 +234,7 @@ void proc_ra_nr::ra_completion()
 
 void proc_ra_nr::ra_error()
 {
-  logger.error("NR random access procedure error recovery not implemented yet\n");
+  logger.error("NR random access procedure error recovery not implemented yet");
 }
 
 // Is called by PHY once it has transmitted the prach transmitted, than configure RA-RNTI and wait for RAR reception
@@ -265,8 +265,8 @@ void proc_ra_nr::prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t
                     rar_rnti,
                     tti);
     uint32_t rar_window_st = TTI_ADD(tti, 3);
-    // TODO check ra_response window (delayed start)?
-    rar_timeout_timer.set(rach_cfg.ra_responseWindow + 3, [this](uint32_t tid) { timer_expired(tid); });
+    // TODO check ra_response window (delayed start)? // last 3 check if needed when we have a delayed start
+    rar_timeout_timer.set(rach_cfg.ra_responseWindow + 3 + 3, [this](uint32_t tid) { timer_expired(tid); });
     rar_timeout_timer.run();
     // Wait for RAR reception
     ra_window_length = rach_cfg.ra_responseWindow;
