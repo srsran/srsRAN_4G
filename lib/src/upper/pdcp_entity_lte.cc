@@ -569,12 +569,12 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
     auto     fms_it = undelivered_sdus_queue.begin();
     uint32_t fms_sn = fms_it->first;
     int32_t  diff   = sn - fms_sn;
-    if (diff > 0 && (uint32_t)diff > maximum_allocated_sns_window) {
+    if (diff > (int32_t)maximum_allocated_sns_window) {
       // This SN is too large to assign, it may cause HFN de-synchronization.
       logger.debug("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d", sn, fms_sn, diff);
       return false;
     }
-    if (diff < 0 && diff < ((-1) * (int32_t)maximum_allocated_sns_window)) {
+    if (diff < 0 && diff > -((int32_t)maximum_allocated_sns_window)) {
       // This SN is too large to assign, it may cause HFN de-synchronization.
       logger.debug("This SN is too large to assign. Discarding. SN=%d, FMS=%d, diff=%d", sn, fms_sn, diff);
       return false;
