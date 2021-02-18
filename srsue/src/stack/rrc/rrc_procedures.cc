@@ -1610,8 +1610,8 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   rrc_ptr->mac->reset();
 
   // Reestablish PDCP/RLC
-  rrc_ptr->pdcp->reestablish();
   rrc_ptr->rlc->reestablish();
+  rrc_ptr->pdcp->reestablish();
 
   // configure lower layers to consider the SCell(s), if configured, to be in deactivated state;
   if (nof_scells_active > 0) {
