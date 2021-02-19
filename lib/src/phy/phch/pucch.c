@@ -953,7 +953,7 @@ bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t* cfg, uint32_t nof_prb)
   }
 }
 
-uint32_t srslte_pucch_n_prb(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32_t ns)
+uint32_t srslte_pucch_n_prb(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg, uint32_t ns)
 {
   uint32_t m = srslte_pucch_m(cfg, cell->cp);
   // Determine n_prb

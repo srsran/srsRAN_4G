@@ -127,7 +127,7 @@ SRSLTE_API int srslte_pucch_format2ab_mod_bits(srslte_pucch_format_t format, uin
 
 SRSLTE_API uint32_t srslte_pucch_m(const srslte_pucch_cfg_t* cfg, srslte_cp_t cp);
 
-SRSLTE_API uint32_t srslte_pucch_n_prb(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32_t ns);
+SRSLTE_API uint32_t srslte_pucch_n_prb(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg, uint32_t ns);
 
 SRSLTE_API int srslte_pucch_n_cs_cell(srslte_cell_t cell,
                                       uint32_t      n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]);

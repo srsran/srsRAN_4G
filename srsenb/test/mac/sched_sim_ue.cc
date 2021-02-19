@@ -351,7 +351,7 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
     }
 
     if (cc_feedback.ul_pid >= 0) {
-      auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.dl_pid];
+      auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.ul_pid];
 
       if (cc_feedback.ul_ack) {
         logger.info("UL ACK rnti=0x%x tti_ul_tx=%u pid=%d",
