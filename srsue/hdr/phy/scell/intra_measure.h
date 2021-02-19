@@ -77,7 +77,7 @@ public:
   void stop();
 
   /**
-   * Sets the primmary cell, configures the cell bandwidth and sampling rate
+   * Sets the primary cell, configures the cell bandwidth and sampling rate
    * @param earfcn Frequency the component is receiving base-band from. Used only for reporting the EARFCN to the RRC
    * @param cell Actual cell configuration
    */

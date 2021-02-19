@@ -156,7 +156,7 @@ int srsran_dci_nr_format_0_0_pack(const srsran_carrier_nr_t* carrier,
     *(y++) = 0;
   }
 
-  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, othwerwise 0
+  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, otherwise 0
   if (supplementary_uplink) {
     *(y++) = 0;
   }
@@ -250,7 +250,7 @@ int srsran_dci_nr_format_0_0_unpack(const srsran_carrier_nr_t* carrier,
     y++;
   }
 
-  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, othwerwise 0
+  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, otherwise 0
   if (supplementary_uplink) {
     y++;
   }
@@ -306,7 +306,7 @@ int srsran_dci_nr_format_0_0_sizeof(const srsran_carrier_nr_t* carrier,
   // Padding goes here
   count += padding;
 
-  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, othwerwise 0
+  // UL/SUL indicator – 1 bit for UEs configured with supplementaryUplink in ServingCellConfig, otherwise 0
   if (supplementary_uplink) {
     count++;
   }
