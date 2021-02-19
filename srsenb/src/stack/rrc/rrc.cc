@@ -711,6 +711,10 @@ void rrc::config_mac()
     item.initial_dl_cqi      = cfg.cell_list[ccidx].initial_dl_cqi;
     item.target_ul_sinr      = cfg.cell_list[ccidx].target_ul_sinr_db;
     item.enable_phr_handling = cfg.cell_list[ccidx].enable_phr_handling;
+    item.delta_pucch_shift   = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+    item.ncs_an              = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.ncs_an;
+    item.n1pucch_an          = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+    item.nrb_cqi             = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi;
 
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
