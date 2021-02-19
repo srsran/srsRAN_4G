@@ -73,7 +73,7 @@ public:
   void set_bearer_state(const pdcp_lte_state_t& state) override;
 
   // Getter for the number of discard timers. Used for debugging.
-  uint32_t nof_discard_timers() { return discard_timers_map.size(); }
+  uint32_t nof_discard_timers() const;
 
   // Metrics helpers
   pdcp_bearer_metrics_t get_metrics() override;
@@ -92,7 +92,7 @@ private:
 
   // Discard callback (discardTimer)
   class discard_callback;
-  std::map<uint32_t, timer_handler::unique_timer> discard_timers_map;
+  std::vector<unique_timer> discard_timers;
 
   // TX Queue
   uint32_t                                 maximum_allocated_sns_window = 2048;

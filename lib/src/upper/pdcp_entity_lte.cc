@@ -46,6 +46,16 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   maximum_pdcp_sn              = (1 << cfg.sn_len) - 1;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
 
+  uint32_t discard_time_value = static_cast<uint32_t>(cfg.discard_timer);
+  if (discard_time_value > 0) {
+    discard_timers.reserve(maximum_pdcp_sn + 2); // the last SN is for status report
+    for (uint32_t sn = 0; sn < discard_timers.size(); ++sn) {
+      discard_timers.emplace_back(task_sched.get_unique_timer());
+      discard_callback discard_fnc(this, sn);
+      discard_timers[sn].set(discard_time_value, discard_fnc);
+    }
+  }
+
   // Queue Helpers
   maximum_allocated_sns_window = (1 << cfg.sn_len) / 2;
 
@@ -144,12 +154,9 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
     }
 
     // Start discard timer
-    if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
-      timer_handler::unique_timer discard_timer = task_sched.get_unique_timer();
-      discard_callback            discard_fnc(this, used_sn);
-      discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
-      discard_timer.run();
-      discard_timers_map.insert(std::make_pair(used_sn, std::move(discard_timer)));
+    if (cfg.discard_timer != pdcp_discard_timer_t::infinity and not discard_timers.empty()) {
+      uint32_t sn_idx = std::min(used_sn, (uint32_t)(discard_timers.size() - 1));
+      discard_timers[sn_idx].run();
       logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
     }
   }
@@ -531,7 +538,10 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   // Remove all SDUs with SN smaller than FMS
   for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end();) {
     if (it->first < fms) {
-      discard_timers_map.erase(it->first);
+      if (not discard_timers.empty()) {
+        uint32_t sn = std::min(it->first, (uint32_t)(discard_timers.size() - 1));
+        discard_timers[sn].stop();
+      }
       it = undelivered_sdus_queue.erase(it);
     } else {
       ++it;
@@ -553,7 +563,10 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   for (uint32_t sn : acked_sns) {
     logger.debug("Status report ACKed SN=%d.", sn);
     undelivered_sdus_queue.erase(sn);
-    discard_timers_map.erase(sn);
+    if (not discard_timers.empty()) {
+      uint32_t sn_idx = std::min(sn, (uint32_t)(discard_timers.size() - 1));
+      discard_timers[sn_idx].stop();
+    }
   }
 }
 /****************************************************************************
@@ -629,7 +642,8 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 
   // Remove timer from map
   // NOTE: this will delete the callback. It *must* be the last instruction.
-  parent->discard_timers_map.erase(discard_sn);
+  uint32_t sn_idx = std::min(discard_sn, (uint32_t)(parent->discard_timers.size() - 1));
+  parent->discard_timers[sn_idx].stop();
 }
 
 /****************************************************************************
@@ -657,7 +671,10 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 
     // If ACK'ed bytes are equal to (or exceed) PDU size, remove PDU and disarm timer.
     undelivered_sdus_queue.erase(sn);
-    discard_timers_map.erase(sn);
+    if (not discard_timers.empty()) {
+      uint32_t sn_idx = std::min(sn, (uint32_t)(discard_timers.size() - 1));
+      discard_timers[sn].stop();
+    }
   }
 }
 
@@ -712,6 +729,12 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
     logger.debug(it->second->msg, it->second->N_bytes, "Forwarding buffered PDU with SN=%d", it->first);
   }
   return cpy;
+}
+
+uint32_t pdcp_entity_lte::nof_discard_timers() const
+{
+  return std::count_if(
+      discard_timers.begin(), discard_timers.end(), [](const unique_timer& t) { return t.is_running(); });
 }
 
 /****************************************************************************
