@@ -20,7 +20,7 @@ namespace srsenb {
 class sched_ue;
 
 /// Class responsible for managing a PDCCH CCE grid, namely CCE allocs, and avoid collisions.
-class pdcch_sched
+class sf_cch_allocator
 {
 public:
   const static uint32_t MAX_CFI = 3;
@@ -32,7 +32,7 @@ public:
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
-  pdcch_sched() : logger(srslog::fetch_basic_logger("MAC")) {}
+  sf_cch_allocator() : logger(srslog::fetch_basic_logger("MAC")) {}
 
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(tti_point tti_rx_);

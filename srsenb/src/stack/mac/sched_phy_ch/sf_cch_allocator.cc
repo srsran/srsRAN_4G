@@ -10,19 +10,19 @@
  *
  */
 
-#include "srsenb/hdr/stack/mac/sched_phy_ch/pdcch_sched.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sf_cch_allocator.h"
 #include "srsenb/hdr/stack/mac/sched_grid.h"
 
 namespace srsenb {
 
-void pdcch_sched::alloc_tree_t::reset()
+void sf_cch_allocator::alloc_tree_t::reset()
 {
   prev_start = 0;
   prev_end   = 0;
   dci_alloc_tree.clear();
 }
 
-void pdcch_sched::init(const sched_cell_params_t& cell_params_)
+void sf_cch_allocator::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg = &cell_params_;
 
@@ -33,7 +33,7 @@ void pdcch_sched::init(const sched_cell_params_t& cell_params_)
   }
 }
 
-void pdcch_sched::new_tti(tti_point tti_rx_)
+void sf_cch_allocator::new_tti(tti_point tti_rx_)
 {
   tti_rx = tti_rx_;
 
@@ -46,7 +46,7 @@ void pdcch_sched::new_tti(tti_point tti_rx_)
 }
 
 const cce_cfi_position_table*
-pdcch_sched::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const
+sf_cch_allocator::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const
 {
   switch (alloc_type) {
     case alloc_type_t::DL_BC:
@@ -65,7 +65,7 @@ pdcch_sched::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t
   return nullptr;
 }
 
-bool pdcch_sched::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user)
+bool sf_cch_allocator::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user)
 {
   // TODO: Make the alloc tree update lazy
   alloc_record_t record{.user = user, .aggr_idx = aggr_idx, .alloc_type = alloc_type};
@@ -90,7 +90,7 @@ bool pdcch_sched::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue
   return true;
 }
 
-bool pdcch_sched::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
+bool sf_cch_allocator::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
 {
   bool  ret  = false;
   auto& tree = alloc_trees[cfix];
@@ -118,11 +118,11 @@ bool pdcch_sched::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
 }
 
 //! Algorithm to compute a valid PDCCH allocation
-bool pdcch_sched::add_tree_node_leaves(alloc_tree_t&                 tree,
-                                       int                           parent_node_idx,
-                                       const alloc_record_t&         dci_record,
-                                       const cce_cfi_position_table& dci_locs,
-                                       tti_point                     tti_tx_dl)
+bool sf_cch_allocator::add_tree_node_leaves(alloc_tree_t&                 tree,
+                                            int                           parent_node_idx,
+                                            const alloc_record_t&         dci_record,
+                                            const cce_cfi_position_table& dci_locs,
+                                            tti_point                     tti_tx_dl)
 {
   bool ret = false;
 
@@ -177,7 +177,7 @@ bool pdcch_sched::add_tree_node_leaves(alloc_tree_t&                 tree,
   return ret;
 }
 
-bool pdcch_sched::set_cfi(uint32_t cfi)
+bool sf_cch_allocator::set_cfi(uint32_t cfi)
 {
   if (cfi < cc_cfg->sched_cfg->min_nof_ctrl_symbols or cfi > cc_cfg->sched_cfg->max_nof_ctrl_symbols) {
     logger.error("Invalid CFI value. Defaulting to current CFI.");
@@ -213,7 +213,7 @@ bool pdcch_sched::set_cfi(uint32_t cfi)
   return true;
 }
 
-void pdcch_sched::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_t idx) const
+void sf_cch_allocator::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_t idx) const
 {
   auto& tree = alloc_trees[current_cfix];
   // if alloc tree is empty
@@ -246,7 +246,7 @@ void pdcch_sched::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_t
   }
 }
 
-std::string pdcch_sched::result_to_string(bool verbose) const
+std::string sf_cch_allocator::result_to_string(bool verbose) const
 {
   auto&             tree = alloc_trees[current_cfix];
   std::stringstream ss;

@@ -657,8 +657,8 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
   return false;
 }
 
-void sf_sched::set_bc_sched_result(const pdcch_sched::alloc_result_t& dci_result,
-                                   sched_interface::dl_sched_res_t*   dl_result)
+void sf_sched::set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                   sched_interface::dl_sched_res_t*        dl_result)
 {
   for (const auto& bc_alloc : bc_allocs) {
     sched_interface::dl_sched_bc_t* bc = &dl_result->bc[dl_result->nof_bc_elems];
@@ -724,8 +724,8 @@ void sf_sched::set_bc_sched_result(const pdcch_sched::alloc_result_t& dci_result
   }
 }
 
-void sf_sched::set_rar_sched_result(const pdcch_sched::alloc_result_t& dci_result,
-                                    sched_interface::dl_sched_res_t*   dl_result)
+void sf_sched::set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                    sched_interface::dl_sched_res_t*        dl_result)
 {
   for (const auto& rar_alloc : rar_allocs) {
     sched_interface::dl_sched_rar_t* rar = &dl_result->rar[dl_result->nof_rar_elems];
@@ -768,9 +768,9 @@ void sf_sched::set_rar_sched_result(const pdcch_sched::alloc_result_t& dci_resul
   }
 }
 
-void sf_sched::set_dl_data_sched_result(const pdcch_sched::alloc_result_t& dci_result,
-                                        sched_interface::dl_sched_res_t*   dl_result,
-                                        sched_ue_list&                     ue_list)
+void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                        sched_interface::dl_sched_res_t*        dl_result,
+                                        sched_ue_list&                          ue_list)
 {
   for (const auto& data_alloc : data_allocs) {
     sched_interface::dl_sched_data_t* data = &dl_result->data[dl_result->nof_data_elems];
@@ -906,9 +906,9 @@ uci_pusch_t is_uci_included(const sf_sched*        sf_sched,
   }
 }
 
-void sf_sched::set_ul_sched_result(const pdcch_sched::alloc_result_t& dci_result,
-                                   sched_interface::ul_sched_res_t*   ul_result,
-                                   sched_ue_list&                     ue_list)
+void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                   sched_interface::ul_sched_res_t*        ul_result,
+                                   sched_ue_list&                          ue_list)
 {
   /* Set UL data DCI locs and format */
   for (const auto& ul_alloc : ul_data_allocs) {
@@ -1011,7 +1011,7 @@ void sf_sched::generate_sched_results(sched_ue_list& ue_db)
   }
 
   /* Pick one of the possible DCI masks */
-  pdcch_sched::alloc_result_t dci_result;
+  sf_cch_allocator::alloc_result_t dci_result;
   //  tti_alloc.get_pdcch_grid().result_to_string();
   tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &cc_result->pdcch_mask);
 

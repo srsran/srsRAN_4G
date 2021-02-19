@@ -14,7 +14,7 @@
 #define SRSLTE_SCHED_GRID_H
 
 #include "lib/include/srslte/interfaces/sched_interface.h"
-#include "sched_phy_ch/pdcch_sched.h"
+#include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
 #include "srslte/common/log.h"
@@ -109,10 +109,10 @@ public:
   bool            find_ul_alloc(uint32_t L, prb_interval* alloc) const;
 
   // getters
-  const rbgmask_t&   get_dl_mask() const { return dl_mask; }
-  const prbmask_t&   get_ul_mask() const { return ul_mask; }
-  uint32_t           get_cfi() const { return pdcch_alloc.get_cfi(); }
-  const pdcch_sched& get_pdcch_grid() const { return pdcch_alloc; }
+  const rbgmask_t&        get_dl_mask() const { return dl_mask; }
+  const prbmask_t&        get_ul_mask() const { return ul_mask; }
+  uint32_t                get_cfi() const { return pdcch_alloc.get_cfi(); }
+  const sf_cch_allocator& get_pdcch_grid() const { return pdcch_alloc; }
 
 private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
@@ -124,7 +124,7 @@ private:
   uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
 
   // derived
-  pdcch_sched pdcch_alloc = {};
+  sf_cch_allocator pdcch_alloc = {};
 
   // internal state
   tti_point tti_rx;
@@ -228,14 +228,16 @@ public:
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
   int         generate_format1a(prb_interval prb_range, uint32_t tbs, uint32_t rv, uint16_t rnti, srslte_dci_dl_t* dci);
-  void set_bc_sched_result(const pdcch_sched::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
-  void set_rar_sched_result(const pdcch_sched::alloc_result_t& dci_result, sched_interface::dl_sched_res_t* dl_result);
-  void set_dl_data_sched_result(const pdcch_sched::alloc_result_t& dci_result,
-                                sched_interface::dl_sched_res_t*   dl_result,
-                                sched_ue_list&                     ue_list);
-  void set_ul_sched_result(const pdcch_sched::alloc_result_t& dci_result,
-                           sched_interface::ul_sched_res_t*   ul_result,
-                           sched_ue_list&                     ue_list);
+  void        set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                  sched_interface::dl_sched_res_t*        dl_result);
+  void        set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                   sched_interface::dl_sched_res_t*        dl_result);
+  void        set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                       sched_interface::dl_sched_res_t*        dl_result,
+                                       sched_ue_list&                          ue_list);
+  void        set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
+                                  sched_interface::ul_sched_res_t*        ul_result,
+                                  sched_ue_list&                          ue_list);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
