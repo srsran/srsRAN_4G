@@ -93,6 +93,16 @@ uint16_t proc_ra_nr::get_rar_rnti()
   return rar_rnti;
 }
 
+bool proc_ra_nr::has_temp_rnti()
+{
+  return temp_rnti != SRSLTE_INVALID_RNTI;
+}
+
+uint16_t proc_ra_nr::get_temp_rnti()
+{
+  return temp_rnti;
+}
+
 void proc_ra_nr::timer_expired(uint32_t timer_id)
 {
   if (prach_send_timer.id() == timer_id) {
@@ -228,7 +238,7 @@ void proc_ra_nr::ra_completion()
   mac->set_c_rnti(temp_rnti);
   srslte::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac->get_c_rnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac->get_c_rnti(), current_ta);
-  temp_rnti = 0;
+  temp_rnti = SRSLTE_INVALID_RNTI;
   reset();
 }
 

@@ -37,7 +37,9 @@ public:
 
   bool is_rar_opportunity(uint32_t tti);
   uint16_t get_rar_rnti();
-
+  bool has_temp_rnti();
+  uint16_t get_temp_rnti();
+  
   // PHY interfaces
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id);
   void handle_rar_pdu(mac_interface_phy_nr::mac_nr_grant_dl_t& grant);

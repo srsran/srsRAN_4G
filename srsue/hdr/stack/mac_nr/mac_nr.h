@@ -21,7 +21,7 @@
 #include "srslte/interfaces/ue_nr_interfaces.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
 #include "srslte/srslog/srslog.h"
-#include "srsue/hdr/stack/mac/mux.h"
+#include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
 namespace srsue {
@@ -77,10 +77,11 @@ public:
   uint16_t get_c_rnti();
   void set_c_rnti(uint64_t c_rnti_);
 
-  bool msg3_is_transmitted() { return true; }
-  void msg3_flush() {}
-  void msg3_prepare() {}
-  bool msg3_is_empty() { return true; }
+  void msg3_flush() { mux.msg3_flush(); }
+  bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
+  void msg3_prepare() { mux.msg3_prepare(); }
+  bool msg3_is_pending() { return mux.msg3_is_pending(); }
+  bool msg3_is_empty() { return mux.msg3_is_empty(); }
 
   /// stack interface
   void process_pdus();
@@ -140,6 +141,7 @@ private:
 
   // MAC Uplink-related procedures
   proc_ra_nr proc_ra;
+  mux_nr     mux;
 };
 
 } // namespace srsue
