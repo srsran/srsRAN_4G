@@ -142,6 +142,16 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
       // Could not store the SDU, discarding
       return;
     }
+
+    // Start discard timer
+    if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
+      timer_handler::unique_timer discard_timer = task_sched.get_unique_timer();
+      discard_callback            discard_fnc(this, used_sn);
+      discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
+      discard_timer.run();
+      discard_timers_map.insert(std::make_pair(tx_count, std::move(discard_timer)));
+      logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
+    }
   }
 
   // check for pending security config in transmit direction
@@ -152,16 +162,6 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   }
 
   write_data_header(sdu, tx_count);
-
-  // Start discard timer
-  if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
-    timer_handler::unique_timer discard_timer = task_sched.get_unique_timer();
-    discard_callback            discard_fnc(this, used_sn);
-    discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
-    discard_timer.run();
-    discard_timers_map.insert(std::make_pair(tx_count, std::move(discard_timer)));
-    logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
-  }
 
   // Append MAC (SRBs only)
   uint8_t mac[4]       = {};
