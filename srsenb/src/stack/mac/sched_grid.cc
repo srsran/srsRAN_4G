@@ -565,22 +565,33 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   std::bitset<SRSLTE_MAX_CARRIERS> scells    = user->scell_activation_mask();
   uint32_t                         ue_cc_idx = cc->get_ue_cc_idx();
   if (user->nof_carriers_configured() > 1 and (ue_cc_idx == 0 or scells[ue_cc_idx]) and
-      is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
-    if (not has_pusch_grant) {
-      // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
-      prb_interval alloc = {};
-      uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
-      tti_alloc.find_ul_alloc(L, &alloc);
-      bool ul_alloc_success = alloc.length() > 0 and alloc_ul_user(user, alloc);
-      if (ue_cc_idx != 0 and not ul_alloc_success) {
-        // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
-        return alloc_outcome_t::PUCCH_COLLISION;
-      }
+      is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul()) and not has_pusch_grant and
+      user->get_ul_harq(get_tti_tx_ul(), get_enb_cc_idx())->is_empty()) {
+    // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
+    prb_interval alloc = {};
+    uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+    tti_alloc.find_ul_alloc(L, &alloc);
+    has_pusch_grant = alloc.length() > 0 and alloc_ul_user(user, alloc);
+    if (ue_cc_idx != 0 and not has_pusch_grant) {
+      // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
+      return alloc_outcome_t::PUCCH_COLLISION;
     }
   }
 
-  // Try to allocate RBGs and DCI
+  // Try to allocate RBGs, PDCCH, and PUCCH
   alloc_outcome_t ret = tti_alloc.alloc_dl_data(user, user_mask, has_pusch_grant);
+
+  if (ret == alloc_outcome_t::DCI_COLLISION and not has_pusch_grant and not data_allocs.empty() and
+      user->get_ul_harq(get_tti_tx_ul(), get_enb_cc_idx())->is_empty()) {
+    // PUCCH may be too full. Attempt small UL grant allocation for UCI-PUSCH
+    uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+    prb_interval alloc = {};
+    tti_alloc.find_ul_alloc(L, &alloc);
+    has_pusch_grant = alloc.length() > 0 and alloc_ul_user(user, alloc);
+    if (has_pusch_grant) {
+      ret = tti_alloc.alloc_dl_data(user, user_mask, has_pusch_grant);
+    }
+  }
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
