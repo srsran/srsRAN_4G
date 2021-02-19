@@ -126,7 +126,7 @@ public:
   int  sf_indication(const uint32_t tti) final { return SRSLTE_SUCCESS; }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
 
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final { mac_nr.new_grant_ul(cc_idx, grant); }
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t tx_pdu) final { mac_nr.new_grant_ul(cc_idx, grant, std::move(tx_pdu)); }
 
   void run_tti(const uint32_t tti) final
   {

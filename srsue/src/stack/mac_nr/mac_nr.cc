@@ -198,23 +198,15 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
   stack_task_dispatch_queue.push([this]() { process_pdus(); });
 }
 
-void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant)
+void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t phy_tx_pdu)
 {
-  phy_interface_stack_nr::tx_request_t tx_request = {};
-
-  get_ul_data(grant, &tx_request);
-
-  // send TX.request
-  phy->tx_request(tx_request);
+  get_ul_data(grant, std::move(phy_tx_pdu));
 
   metrics[cc_idx].tx_pkts++;
 }
 
-void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr::tx_request_t* tx_request)
+void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t phy_tx_pdu)
 {
-  // Todo: delegate to mux class
-  tx_request->tb_len = grant.tbs;
-
   // initialize MAC PDU
   tx_buffer->clear();
   tx_pdu.init_tx(tx_buffer.get(), grant.tbs, true);
@@ -256,11 +248,11 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
 
   logger.info(tx_buffer->msg, tx_buffer->N_bytes, "Generated MAC PDU (%d B)", tx_buffer->N_bytes);
 
-  tx_request->data   = tx_buffer->msg;
-  tx_request->tb_len = tx_buffer->N_bytes;
+  memcpy(phy_tx_pdu.get()->msg, tx_buffer->msg, tx_buffer->N_bytes);
+  phy_tx_pdu.get()->N_bytes = tx_buffer->N_bytes;
 
   if (pcap) {
-    pcap->write_ul_crnti_nr(tx_request->data, tx_request->tb_len, grant.rnti, grant.pid, grant.tti);
+    pcap->write_ul_crnti_nr(tx_buffer->msg, tx_buffer->N_bytes, grant.rnti, grant.pid, grant.tti);
   }
 }
 

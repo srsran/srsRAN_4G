@@ -177,6 +177,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
 
       for (auto& subpdu : pdu.get_subpdus()) {
         if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
+          logger.info("PROC RA NR: Setting ul grant and prepare msg3");
           phy->set_ul_grant(subpdu.get_ul_grant());
           // reset all parameters that are used before rar
           rar_rnti = SRSLTE_INVALID_RNTI;
