@@ -81,7 +81,6 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift;
-    bool     pucch_mux_enabled = false;
 
     // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
     int nrb_pucch;

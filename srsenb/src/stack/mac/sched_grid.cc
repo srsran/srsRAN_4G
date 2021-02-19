@@ -113,10 +113,6 @@ cc_sched_result* sched_result_list::get_cc(srslte::tti_point tti_rx, uint32_t en
 }
 
 /*******************************************************
- *             PDCCH Allocation Methods
- *******************************************************/
-
-/*******************************************************
  *          TTI resource Scheduling Methods
  *******************************************************/
 
@@ -159,7 +155,7 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
   if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
-    reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
+    reserve_ul_prbs(prach_mask, false); // TODO: set to true once test sib.conf files are updated
     logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
                  to_tx_ul(tti_rx).to_uint(),
                  prach_mask.to_hex().c_str());

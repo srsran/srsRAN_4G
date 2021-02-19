@@ -217,7 +217,7 @@ bool sf_cch_allocator::alloc_tree_t::add_tree_node_leaves(int                   
       }
 
       pucch_prbidx = srslte_pucch_n_prb(&cc_cfg->cfg.cell, pucch_cfg, 0);
-      if (not cc_cfg->cfg.pucch_mux_enabled and parent_pucch_mask.test(pucch_prbidx)) {
+      if (not cc_cfg->sched_cfg->pucch_mux_enabled and parent_pucch_mask.test(pucch_prbidx)) {
         // PUCCH allocation would collide with other PUCCH/PUSCH grants. Try another CCE position
         continue;
       }
