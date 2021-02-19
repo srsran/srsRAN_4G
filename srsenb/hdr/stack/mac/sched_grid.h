@@ -105,7 +105,8 @@ public:
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
   alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch);
-  bool            reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
+  alloc_outcome_t reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
+  alloc_outcome_t reserve_ul_prbs(prb_interval alloc, bool strict);
   bool            find_ul_alloc(uint32_t L, prb_interval* alloc) const;
 
   // getters
@@ -113,6 +114,7 @@ public:
   const prbmask_t&        get_ul_mask() const { return ul_mask; }
   uint32_t                get_cfi() const { return pdcch_alloc.get_cfi(); }
   const sf_cch_allocator& get_pdcch_grid() const { return pdcch_alloc; }
+  uint32_t                get_pucch_width() const { return pucch_nrb; }
 
 private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
@@ -122,6 +124,8 @@ private:
   srslog::basic_logger&      logger;
   uint32_t                   nof_rbgs = 0;
   uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
+  uint32_t                   pucch_nrb = 0;
+  prbmask_t                  pucch_mask;
 
   // derived
   sf_cch_allocator pdcch_alloc = {};
@@ -166,7 +170,7 @@ public:
     uint32_t  pid;
   };
   struct ul_alloc_t {
-    enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX, MSG3 };
+    enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX, MSG3, MSG3_RETX };
     size_t       dci_idx;
     type_t       type;
     uint16_t     rnti;
@@ -243,7 +247,6 @@ private:
   const sched_cell_params_t* cc_cfg = nullptr;
   srslog::basic_logger&      logger;
   sf_sched_result*           cc_results; ///< Results of other CCs for the same Subframe
-  prbmask_t                  pucch_mask;
 
   // internal state
   sf_grid_t                tti_alloc;

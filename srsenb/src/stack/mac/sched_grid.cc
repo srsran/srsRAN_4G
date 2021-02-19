@@ -131,6 +131,14 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
   ul_mask.resize(cc_cfg->nof_prb());
 
   pdcch_alloc.init(*cc_cfg);
+
+  // Compute reserved PRBs for CQI, SR and HARQ-ACK, and store it in a bitmask
+  pucch_mask.resize(cc_cfg->nof_prb());
+  pucch_nrb = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
+  if (pucch_nrb > 0) {
+    pucch_mask.fill(0, pucch_nrb);
+    pucch_mask.fill(cc_cfg->nof_prb() - pucch_nrb, cc_cfg->nof_prb());
+  }
 }
 
 void sf_grid_t::new_tti(tti_point tti_rx_)
@@ -140,6 +148,19 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
   dl_mask.reset();
   ul_mask.reset();
   avail_rbg = nof_rbgs;
+
+  // Reserve PRBs for PUCCH
+  ul_mask |= pucch_mask;
+
+  // Reserve PRBs for PRACH
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
+    prbmask_t prach_mask{cc_cfg->nof_prb()};
+    prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
+    reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
+    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
+                 to_tx_ul(tti_rx).to_uint(),
+                 prach_mask.to_hex().c_str());
+  }
 
   // internal state
   pdcch_alloc.new_tti(tti_rx);
@@ -242,14 +263,25 @@ bool sf_grid_t::reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg)
   return true;
 }
 
-bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
+alloc_outcome_t sf_grid_t::reserve_ul_prbs(prb_interval alloc, bool strict)
 {
-  bool ret = true;
+  if (alloc.stop() > ul_mask.size()) {
+    return alloc_outcome_t::ERROR;
+  }
+
+  prbmask_t newmask(ul_mask.size());
+  newmask.fill(alloc.start(), alloc.stop());
+  return reserve_ul_prbs(newmask, strict);
+}
+
+alloc_outcome_t sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
+{
+  alloc_outcome_t ret = alloc_outcome_t::SUCCESS;
   if (strict and (ul_mask & prbmask).any()) {
     logger.error("There was a collision in UL channel. current mask=0x%s, new alloc mask=0x%s",
                  ul_mask.to_hex().c_str(),
                  prbmask.to_hex().c_str());
-    ret = false;
+    ret = alloc_outcome_t::ERROR;
   }
   ul_mask |= prbmask;
   return ret;
@@ -300,13 +332,7 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg = &cell_params_;
   tti_alloc.init(*cc_cfg);
-  max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
-
-  pucch_mask.resize(cc_cfg->nof_prb());
-  if (cc_cfg->cfg.nrb_pucch > 0) {
-    pucch_mask.fill(0, (uint32_t)cc_cfg->cfg.nrb_pucch);
-    pucch_mask.fill(cc_cfg->nof_prb() - cc_cfg->cfg.nrb_pucch, cc_cfg->nof_prb());
-  }
+  max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - tti_alloc.get_pucch_width());
 }
 
 void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
@@ -321,21 +347,8 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
   tti_alloc.new_tti(tti_rx_);
   cc_results = cc_results_;
 
-  // Reserve PRBs for PUCCH
-  reserve_ul_prbs(pucch_mask, true);
-
-  // Reserve PRBs for PRACH
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
-    prbmask_t prach_mask{cc_cfg->nof_prb()};
-    prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
-    reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
-    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
-                 to_tx_ul(tti_rx).to_uint(),
-                 prach_mask.to_hex().c_str());
-  }
-
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
-  last_msg3_prb            = cc_cfg->cfg.nrb_pucch;
+  last_msg3_prb            = tti_alloc.get_pucch_width();
   tti_point tti_msg3_alloc = to_tx_ul(tti_rx) + MSG3_DELAY_MS;
   if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
     last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
@@ -595,7 +608,13 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
   }
 
   // Allocate RBGs and DCI space
-  alloc_outcome_t ret = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
+  alloc_outcome_t ret;
+  if (alloc_type != ul_alloc_t::MSG3 and alloc_type != ul_alloc_t::MSG3_RETX) {
+    ret = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
+  } else {
+    // allow collisions between Msg3 and PUCCH for 6 PRBs
+    ret = tti_alloc.reserve_ul_prbs(alloc, cc_cfg->nof_prb() != 6);
+  }
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
@@ -617,14 +636,14 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   ul_alloc_t::type_t alloc_type;
   ul_harq_proc*      h        = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
   bool               has_retx = h->has_pending_retx();
-  if (has_retx) {
-    if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
-      alloc_type = ul_alloc_t::ADAPT_RETX;
-    } else {
-      alloc_type = ul_alloc_t::NOADAPT_RETX;
-    }
-  } else {
+  if (not has_retx) {
     alloc_type = ul_alloc_t::NEWTX;
+  } else if (h->is_msg3()) {
+    alloc_type = ul_alloc_t::MSG3_RETX;
+  } else if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
+    alloc_type = ul_alloc_t::ADAPT_RETX;
+  } else {
+    alloc_type = ul_alloc_t::NOADAPT_RETX;
   }
 
   return alloc_ul(user, alloc, alloc_type);

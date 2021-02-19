@@ -221,11 +221,14 @@ sched_cell_params_t::dl_lb_nof_re_table get_lb_nof_re_x_prb(const sched_cell_par
     srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec(table.size());
     for (uint32_t p = 0; p < table.size(); ++p) {
       for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; ++s) {
+        // assume max CFI to compute lower bound
         re_prb_vec[p] += table[p][sf_idx][s][SRSLTE_NOF_CFI - 1];
       }
     }
+
     srslte::bounded_vector<uint32_t, SRSLTE_MAX_PRB> re_prb_vec2(re_prb_vec.size());
     std::copy(re_prb_vec.begin(), re_prb_vec.end(), re_prb_vec2.begin());
+    // pick intervals of PRBs with the lowest sum of REs
     ret[sf_idx][0] = *std::min_element(re_prb_vec2.begin(), re_prb_vec2.end());
     for (uint32_t p = 1; p < table.size(); ++p) {
       std::transform(re_prb_vec2.begin(),
@@ -322,6 +325,13 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
     }
     nof_cce_table[cfix] = (uint32_t)ret;
   }
+
+  // PUCCH config struct for PUCCH position derivation
+  pucch_cfg_common.format            = SRSLTE_PUCCH_FORMAT_1;
+  pucch_cfg_common.delta_pucch_shift = cfg.delta_pucch_shift;
+  pucch_cfg_common.n_rb_2            = cfg.nrb_cqi;
+  pucch_cfg_common.N_cs              = cfg.ncs_an;
+  pucch_cfg_common.N_pucch_1         = cfg.n1pucch_an;
 
   P        = srslte_ra_type0_P(cfg.cell.nof_prb);
   nof_rbgs = srslte::ceil_div(cfg.cell.nof_prb, P);

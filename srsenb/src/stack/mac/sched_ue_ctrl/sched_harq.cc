@@ -235,12 +235,13 @@ bool ul_harq_proc::has_pending_retx() const
   return has_pending_retx_common(0);
 }
 
-void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_)
+void ul_harq_proc::new_tx(tti_point tti_, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_, bool is_msg3)
 {
   allocation = alloc;
   new_tx_common(0, tti_point{tti_}, mcs, tbs, max_retx_);
   pending_data  = tbs;
   pending_phich = true;
+  is_msg3_      = is_msg3;
 }
 
 void ul_harq_proc::new_retx(tti_point tti_, int* mcs, int* tbs, prb_interval alloc)

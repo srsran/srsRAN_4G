@@ -85,13 +85,14 @@ private:
 class ul_harq_proc : public harq_proc
 {
 public:
-  void new_tx(srslte::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_);
+  void new_tx(srslte::tti_point tti, int mcs, int tbs, prb_interval alloc, uint32_t max_retx_, bool is_msg3);
   void new_retx(srslte::tti_point tti_, int* mcs, int* tbs, prb_interval alloc);
   bool set_ack(uint32_t tb_idx, bool ack);
   bool retx_requires_pdcch(srslte::tti_point tti_, prb_interval alloc) const;
 
   prb_interval get_alloc() const;
   bool         has_pending_retx() const;
+  bool         is_msg3() const { return is_msg3_; }
 
   void     reset_pending_data();
   uint32_t get_pending_data() const;
@@ -102,6 +103,7 @@ private:
   prb_interval allocation;
   int          pending_data;
   bool         pending_phich = false;
+  bool         is_msg3_      = false;
 };
 
 class harq_entity

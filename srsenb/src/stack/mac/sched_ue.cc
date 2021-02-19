@@ -616,11 +616,6 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
 
   bool is_newtx = h->is_empty(0);
   if (is_newtx) {
-    uint32_t nof_retx;
-
-    // If Msg3 set different nof retx
-    nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
-
     if (tbinfo.mcs >= 0) {
       tbinfo.tbs_bytes = get_tbs_bytes(tbinfo.mcs, alloc.length(), false, true);
     } else {
@@ -653,7 +648,9 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
     }
-    h->new_tx(tti_tx_ul, tbinfo.mcs, tbinfo.tbs_bytes, alloc, nof_retx);
+    // If Msg3 set different nof retx
+    uint32_t nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
+    h->new_tx(tti_tx_ul, tbinfo.mcs, tbinfo.tbs_bytes, alloc, nof_retx, not data->needs_pdcch);
     // Un-trigger the SR if data is allocated
     if (tbinfo.tbs_bytes > 0) {
       unset_sr();
