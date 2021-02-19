@@ -248,7 +248,7 @@ void phy::set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list)
 void phy::complete_config(uint16_t rnti)
 {
   // Forwards call to the UE Database
-  if (workers_common.ue_db.complete_config(rnti) < SRSLTE_SUCCESS) {
+  if (workers_common.ue_db.complete_config(rnti) < SRSRAN_SUCCESS) {
     Error("Error completing configuration for RNTI %x. It does not exist.", rnti);
   }
 }

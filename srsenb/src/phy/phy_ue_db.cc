@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -29,7 +29,7 @@ inline int phy_ue_db::_add_rnti(uint16_t rnti)
 
   // Assert RNTI does NOT exist
   if (ue_db.count(rnti)) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Create new UE by accesing it
@@ -52,7 +52,7 @@ inline int phy_ue_db::_add_rnti(uint16_t rnti)
     _clear_tti_pending_rnti(tti, rnti);
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 inline void phy_ue_db::_clear_tti_pending_rnti(uint32_t tti, uint16_t rnti)
@@ -131,7 +131,6 @@ uint32_t phy_ue_db::_get_uci_enb_cc_idx(uint32_t tti, uint16_t rnti) const
 inline int phy_ue_db::_assert_rnti(uint16_t rnti) const
 {
   if (not ue_db.count(rnti)) {
-    ERROR("Trying to access RNTI 0x%X, it does not exist.", rnti);
     return SRSRAN_ERROR;
   }
 
@@ -220,7 +219,7 @@ inline int phy_ue_db::_assert_cell_list_cfg() const
   return SRSRAN_SUCCESS;
 }
 
-inline srsran::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx) const
+inline int phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx, srsran::phy_cfg_t& phy_cfg) const
 {
   srsran::phy_cfg_t default_cfg = {};
   default_cfg.set_defaults();
@@ -230,19 +229,19 @@ inline srsran::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb
 
   // Use default configuration for non-user C-RNTI
   if (not SRSRAN_RNTI_ISUSER(rnti)) {
-    return default_cfg;
+    phy_cfg = default_cfg;
+    return SRSRAN_SUCCESS;
   }
 
   // Make sure the C-RNTI exists and the cell/carrier is configured
   if (_assert_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
-    ERROR("Trying to access cell/carrier %d in RNTI 0x%X. It is not active.", enb_cc_idx, rnti);
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Write the current configuration
   uint32_t ue_cc_idx = _get_ue_cc_idx(rnti, enb_cc_idx);
   phy_cfg            = ue_db.at(rnti).cell_info.at(ue_cc_idx).phy_cfg;
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 void phy_ue_db::clear_tti_pending_ack(uint32_t tti)
@@ -336,12 +335,12 @@ int phy_ue_db::rem_rnti(uint16_t rnti)
   std::lock_guard<std::mutex> lock(mutex);
 
   if (ue_db.count(rnti) == 0) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   ue_db.erase(rnti);
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 uint32_t phy_ue_db::_count_nof_configured_scell(uint16_t rnti)
@@ -362,7 +361,7 @@ int phy_ue_db::complete_config(uint16_t rnti)
 
   // Makes sure the RNTI exists
   if (_assert_rnti(rnti) != SRSRAN_SUCCESS) {
-    return;
+    return SRSRAN_ERROR;
   }
 
   // Once the reconfiguration is complete, the temporary parameters become the new ones
@@ -375,7 +374,7 @@ int phy_ue_db::complete_config(uint16_t rnti)
         ue_db[rnti].cell_info[ue_cc_idx].phy_cfg.dl_cfg.pdsch.use_tbs_index_alt;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate)
@@ -384,22 +383,20 @@ int phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool
 
   // Assert RNTI and SCell are valid
   if (_assert_ue_cc(rnti, ue_cc_idx) != SRSRAN_SUCCESS) {
-    return;
+    return SRSRAN_SUCCESS;
   }
 
   cell_info_t& cell_info = ue_db[rnti].cell_info[ue_cc_idx];
 
   // If scell is default only complain
   if (activate and cell_info.state == cell_state_none) {
-    return SRSLTE_ERROR;
+    return SRSRAN_ERROR;
   }
 
   // Set scell state
   cell_info.state = (activate) ? cell_state_secondary_active : cell_state_secondary_inactive;
 
-bool phy_ue_db::ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const
-{
-  return _assert_enb_cc(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
@@ -408,10 +405,15 @@ bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
   return _assert_enb_pcell(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
 }
 
-srsran_dl_cfg_t phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
+int phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dl_cfg_t& dl_cfg) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  srsran_dl_cfg_t             ret = _get_rnti_config(rnti, enb_cc_idx).dl_cfg;
+  srsran::phy_cfg_t           phy_cfg = {};
+
+  if (_get_rnti_config(rnti, enb_cc_idx, phy_cfg) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+  dl_cfg = phy_cfg.dl_cfg;
 
   // The DL configuration must overwrite the use_tbs_index_alt value (for 256QAM) with the temporary value
   // in case we are in the middle of a reconfiguration
@@ -421,49 +423,54 @@ srsran_dl_cfg_t phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) con
       dl_cfg.pdsch.use_tbs_index_alt = ue_db.at(rnti).cell_info[ue_cc_idx].stash_use_tbs_index_alt;
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-srsran_dci_cfg_t phy_ue_db::get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
+int phy_ue_db::get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dci_cfg_t& dci_cfg) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  srsran_dci_cfg_t            ret = _get_rnti_config(rnti, enb_cc_idx).dl_cfg.dci;
+  srsran::phy_cfg_t           phy_cfg = {};
 
-  // The DCI configuration used for DL grants must overwrite the multiple_csi_request_enabled value with the temporary
-  // value in case we are in the middle of a reconfiguration
+  if (_get_rnti_config(rnti, enb_cc_idx, phy_cfg) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+  dci_cfg = phy_cfg.dl_cfg.dci;
+
+  // The DCI configuration used for DL grants must overwrite the multiple_csi_request_enabled value with the
+  // temporary value in case we are in the middle of a reconfiguration
   if (ue_db.count(rnti) && SRSRAN_RNTI_ISUSER(rnti)) {
     uint32_t ue_cc_idx = _get_ue_cc_idx(rnti, enb_cc_idx);
     if (ue_cc_idx == 0) {
       dci_cfg.multiple_csi_request_enabled = ue_db.at(rnti).stashed_multiple_csi_request_enabled;
     }
   }
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-srsran_ul_cfg_t phy_ue_db::get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const
+int phy_ue_db::get_ul_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_ul_cfg_t& ul_cfg) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  srslte::phy_cfg_t           phy_cfg = {};
+  srsran::phy_cfg_t           phy_cfg = {};
 
-  if (_get_rnti_config(rnti, enb_cc_idx, phy_cfg) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (_get_rnti_config(rnti, enb_cc_idx, phy_cfg) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
   ul_cfg = phy_cfg.ul_cfg;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-srsran_dci_cfg_t phy_ue_db::get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const
+int phy_ue_db::get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dci_cfg_t& dci_cfg) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  srslte::phy_cfg_t           phy_cfg = {};
+  srsran::phy_cfg_t           phy_cfg = {};
 
-  if (_get_rnti_config(rnti, enb_cc_idx, phy_cfg) < SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+  if (_get_rnti_config(rnti, enb_cc_idx, phy_cfg) < SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
   }
   dci_cfg = phy_cfg.dl_cfg.dci;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 bool phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srsran_dci_dl_t& dci)
@@ -516,12 +523,12 @@ int phy_ue_db::fill_uci_cfg(uint32_t          tti,
 
   // Assert Cell List configuration
   if (_assert_cell_list_cfg() != SRSRAN_SUCCESS) {
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   // Assert eNb Cell/Carrier for the given RNTI
   if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
-    return -1;
+    return SRSRAN_ERROR;
   }
 
   // Get the eNb cell/carrier index with lowest serving cell index (ue_cc_idx) that has an available grant.
@@ -530,17 +537,17 @@ int phy_ue_db::fill_uci_cfg(uint32_t          tti,
 
   // There is a PUSCH grant available for the provided RNTI in at least one serving cell and this call is for PUCCH
   if (pusch_grant_available and not is_pusch_available) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // There is a PUSCH grant and enb_cc_idx with lowest ue_cc_idx with a grant
   if (pusch_grant_available and uci_enb_cc_id != enb_cc_idx) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   // No PUSCH grant for this TTI and cell and no enb_cc_idx is not the PCell
   if (not pusch_grant_available and _get_ue_cc_idx(rnti, enb_cc_idx) != 0) {
-    return SRSLTE_SUCCESS;
+    return SRSRAN_SUCCESS;
   }
 
   common_ue&               ue           = ue_db.at(rnti);
@@ -591,25 +598,25 @@ int phy_ue_db::fill_uci_cfg(uint32_t          tti,
   uci_required |= (srsran_uci_cfg_total_ack(&uci_cfg) > 0);
 
   // Return whether UCI needs to be decoded
-  return uci_required ? 1 : SRSLTE_SUCCESS;
+  return uci_required ? 1 : SRSRAN_SUCCESS;
 }
 
-void phy_ue_db::send_uci_data(uint32_t                  tti,
-                              uint16_t                  rnti,
-                              uint32_t                  enb_cc_idx,
-                              const srsran_uci_cfg_t&   uci_cfg,
-                              const srsran_uci_value_t& uci_value)
+int phy_ue_db::send_uci_data(uint32_t                  tti,
+                             uint16_t                  rnti,
+                             uint32_t                  enb_cc_idx,
+                             const srsran_uci_cfg_t&   uci_cfg,
+                             const srsran_uci_value_t& uci_value)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
   // Assert UE RNTI database entry and eNb cell/carrier must be active
   if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
-    return;
+    return SRSRAN_ERROR;
   }
 
   // Assert Stack
   if (_assert_stack() != SRSRAN_SUCCESS) {
-    return;
+    return SRSRAN_ERROR;
   }
 
   // Notify SR
@@ -640,7 +647,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
 
   // Assert the SCell exists and it is active
   if (_assert_ue_cc(rnti, uci_cfg.cqi.scell_index) != SRSRAN_SUCCESS) {
-    return;
+    return SRSRAN_ERROR;
   }
 
   // Get CQI carrier index
@@ -693,37 +700,37 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
     cqi_scell_info.last_ri = uci_value.ri;
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-void phy_ue_db::set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t tb)
+int phy_ue_db::set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t tb)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
   // Assert UE DB entry
   if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
-    return;
+    return SRSRAN_ERROR;
   }
 
   // Save resource allocation
   ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid] = tb;
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
-srsran_ra_tb_t phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid) const
+int phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t& ra_tb) const
 {
   std::lock_guard<std::mutex> lock(mutex);
 
   // Assert UE DB entry
   if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
-    return {};
+    return SRSRAN_ERROR;
   }
 
   // writes the latest stored UL transmission grant
   ra_tb = ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid];
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }
 
 int phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list)
@@ -744,14 +751,13 @@ int phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lt
       const stack_interface_phy_lte::ul_sched_grant_t& ul_sched_grant = ul_sched.pusch[i];
       uint16_t                                         rnti           = ul_sched_grant.dci.rnti;
       // Check that eNb Cell/Carrier is active for the given RNTI
-      if (_assert_active_enb_cc(rnti, enb_cc_idx) == SRSRAN_SUCCESS) {
-        // Rise Grant available flag
-        ue_db[rnti].cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].is_grant_available[tti] = true;
+      if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
       }
       // Rise Grant available flag
       ue_db[rnti].cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].is_grant_available[tti] = true;
     }
   }
 
-  return SRSLTE_SUCCESS;
+  return SRSRAN_SUCCESS;
 }

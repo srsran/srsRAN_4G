@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -262,7 +262,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   uint16_t rnti = ul_grant.dci.rnti;
 
   // Invalid RNTI
-  if (rnti == SRSLTE_INVALID_RNTI) {
+  if (rnti == SRSRAN_INVALID_RNTI) {
     return;
   }
 
@@ -272,7 +272,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   }
 
   // Get UE configuration
-  if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSLTE_SUCCESS) {
+  if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSRAN_SUCCESS) {
     Error("Error retrieving UL configuration for RNTI %x and CC %d", rnti, cc_idx);
     return;
   }
@@ -292,7 +292,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Use last TBS for this TB in case of mcs>28
   if (ul_grant.dci.tb.mcs_idx > 28) {
     int rv_idx = grant.tb.rv;
-    if (phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSLTE_SUCCESS) {
+    if (phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSRAN_SUCCESS) {
       Error("Error retrieving last UL TB for RNTI %x, CC %d, PID %d", rnti, cc_idx, ul_grant.pid);
       return;
     }
@@ -305,7 +305,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
          grant.tb.tbs / 8);
   }
 
-  if (phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSLTE_SUCCESS) {
+  if (phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSRAN_SUCCESS) {
     Error("Error setting last UL TB for RNTI %x, CC %d, PID %d", rnti, cc_idx, ul_grant.pid);
   }
 
@@ -386,25 +386,30 @@ int cc_worker::decode_pucch()
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
     if (SRSRAN_RNTI_ISUSER(rnti) and phy->ue_db.is_pcell(rnti, cc_idx)) {
-      srsran_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
+      srsran_ul_cfg_t ul_cfg = {};
+
+      if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSRAN_SUCCESS) {
+        Error("Error retrieving last UL configuration for RNTI %x, CC %d", rnti, cc_idx);
+        continue;
+      }
 
       // Check if user needs to receive PUCCH
       int ret = phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg);
-      if (ret < SRSLTE_SUCCESS) {
+      if (ret < SRSRAN_SUCCESS) {
         Error("Error retrieving UCI configuration for RNTI %x, CC %d", rnti, cc_idx);
         continue;
       }
 
       // If ret is more than success, UCI is present
-      if (ret > SRSLTE_SUCCESS) {
+      if (ret > SRSRAN_SUCCESS) {
         // Decode PUCCH
         if (srsran_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
-          ERROR("Error getting PUCCH");
-          return SRSRAN_ERROR;
+          Error("Error getting PUCCH");
+          continue;
         }
 
         // Send UCI data to MAC
-        if (phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data) < SRSLTE_SUCCESS) {
+        if (phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data) < SRSRAN_SUCCESS) {
           Error("Error sending UCI data for RNTI %x, CC %d", rnti, cc_idx);
           continue;
         }
@@ -450,7 +455,12 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     if (grants[i].needs_pdcch) {
-      srsran_dci_cfg_t dci_cfg = phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx);
+      srsran_dci_cfg_t dci_cfg = {};
+
+      if (phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
+        Error("Error retrieving DCI UL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        continue;
+      }
 
       if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti)) {
         if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
@@ -461,7 +471,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       }
 
       if (srsran_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
-        ERROR("Error putting PUSCH %d", i);
+        Error("Error putting PUSCH %d", i);
         return SRSRAN_ERROR;
       }
 
@@ -481,7 +491,12 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
     if (rnti) {
-      srsran_dci_cfg_t dci_cfg = phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx);
+      srsran_dci_cfg_t dci_cfg = {};
+
+      if (phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
+        Error("Error retrieving DCI DL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        continue;
+      }
 
       if (SRSRAN_RNTI_ISUSER(grants[i].dci.rnti) && grants[i].dci.format == SRSRAN_DCI_FORMAT1A) {
         if (srsran_enb_dl_location_is_common_ncce(&enb_dl, grants[i].dci.location.ncce) &&
@@ -544,7 +559,12 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
     uint16_t rnti = grants[i].dci.rnti;
 
     if (rnti && ue_db.count(rnti)) {
-      srsran_dl_cfg_t dl_cfg = phy->ue_db.get_dl_config(rnti, cc_idx);
+      srsran_dl_cfg_t dl_cfg = {};
+
+      if (phy->ue_db.get_dl_config(rnti, cc_idx, dl_cfg) < SRSRAN_SUCCESS) {
+        Error("Error retrieving DCI DL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        continue;
+      }
 
       // Compute DL grant
       if (srsran_ra_dl_dci_to_grant(

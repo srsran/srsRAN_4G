@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2021 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * By using this file, you agree to the terms and conditions set
  * forth in the LICENSE file which can be found at the top level of
@@ -83,7 +83,7 @@ private:
     bool                                    stash_use_tbs_index_alt = false;
     srsran::phy_cfg_t                       phy_cfg;            ///< Configuration, it has a default constructor
     srsran::circular_array<bool, TTIMOD_SZ> is_grant_available; ///< Indicates whether there is an available grant
-  } cell_info_t;
+  };
 
   /**
    * UE object stored in the PHY common database
@@ -123,7 +123,7 @@ private:
    * Internal RNTI addition, it is not thread safe protected
    *
    * @param rnti identifier of the UE
-   * @return SRSLTE_SUCCESS if the RNTI is not duplicated and is added successfully, SRSLTE_ERROR code if it exists
+   * @return SRSRAN_SUCCESS if the RNTI is not duplicated and is added successfully, SRSRAN_ERROR code if it exists
    */
   inline int _add_rnti(uint16_t rnti);
 
@@ -223,9 +223,9 @@ private:
    * @param rnti provides UE identifier
    * @param enb_cc_idx eNb cell index
    * @param[out] phy_cfg The PHY configuration of the indicated UE for the indicated eNb carrier/call index.
-   * @return SRSLTE_SUCCESS if provided context is correct, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided context is correct, SRSRAN_ERROR code otherwise
    */
-  inline srsran::phy_cfg_t _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+  inline int _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx, srsran::phy_cfg_t& phy_cfg) const;
 
   /**
    * Count number of configured secondary serving cells
@@ -257,7 +257,7 @@ public:
    * Removes a whole UE entry from the UE database
    *
    * @param rnti identifier of the UE
-   * @return SRSLTE_SUCCESS if provided RNTI exists, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists, SRSRAN_ERROR code otherwise
    */
   int rem_rnti(uint16_t rnti);
 
@@ -266,7 +266,7 @@ public:
    * the primary cell.
    *
    * @param rnti identifier of the user
-   * @return SRSLTE_SUCCESS if provided RNTI exists, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists, SRSRAN_ERROR code otherwise
    */
   int complete_config(uint16_t rnti);
 
@@ -276,7 +276,7 @@ public:
    * @param rnti identifier of the UE
    * @param scell_idx
    * @param activate
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
   int activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate);
 
@@ -294,9 +294,9 @@ public:
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
    * @param[out] dl_cfg Current DL PHY configuration
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
-  srsran_dl_cfg_t get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+  int get_dl_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dl_cfg_t& dl_cfg) const;
 
   /**
    * Get the current DCI configuration for PDSCH physical layer configuration for an RNTI and an eNb cell/carrier
@@ -304,9 +304,9 @@ public:
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
    * @param[out] dci_cfg Current DL-DCI configuration
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
-  srsran_dci_cfg_t get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+  int get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dci_cfg_t& dci_cfg) const;
 
   /**
    * Get the current PUCCH physical layer configuration for an RNTI and an eNb cell/carrier.
@@ -314,9 +314,9 @@ public:
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
    * @param[out] ul_cfg Current UL PHY configuration
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
-  srsran_ul_cfg_t get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+  int get_ul_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_ul_cfg_t& ul_cfg) const;
 
   /**
    * Get the current DCI configuration for PUSCH physical layer configuration for an RNTI and an eNb cell/carrier
@@ -324,9 +324,9 @@ public:
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
    * @param[out] dci_cfg Current UL-DCI configuration
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
-  srsran_dci_cfg_t get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+  int get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dci_cfg_t& dci_cfg) const;
 
   /**
    * Removes all the pending ACKs of all the RNTIs for a given TTI
@@ -367,13 +367,13 @@ public:
    * @param rnti is the UE identifier
    * @param uci_cfg is the UCI configuration
    * @param uci_value is the UCI received value
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
-  void send_uci_data(uint32_t                  tti,
-                     uint16_t                  rnti,
-                     uint32_t                  enb_cc_idx,
-                     const srsran_uci_cfg_t&   uci_cfg,
-                     const srsran_uci_value_t& uci_value);
+  int send_uci_data(uint32_t                  tti,
+                    uint16_t                  rnti,
+                    uint32_t                  enb_cc_idx,
+                    const srsran_uci_cfg_t&   uci_cfg,
+                    const srsran_uci_value_t& uci_value);
 
   /**
    * Set the latest UL Transport Block resource allocation for a given RNTI, eNb cell/carrier and UL HARQ process
@@ -383,9 +383,9 @@ public:
    * @param enb_cc_idx the cell/carrier origin of the transmission
    * @param pid HARQ process identifier
    * @param tb the Resource Allocation for the PUSCH transport block
-   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
+   * @return SRSRAN_SUCCESS if provided RNTI exists in the given cell, SRSRAN_ERROR code otherwise
    */
-  void set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t tb);
+  int set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t tb);
 
   /**
    * Get the latest UL Transport Block resource allocation for a given RNTI, eNb cell/carrier and UL HARQ process
@@ -396,9 +396,9 @@ public:
    * @param cc_idx the cell/carrier origin of the transmission
    * @param pid HARQ process identifier
    * @param[out] ra_tb the Resource Allocation for the PUSCH transport block
-   * @return SRSLTE_SUCCESS if the provided context is valid
+   * @return SRSRAN_SUCCESS if the provided context is valid
    */
-  srsran_ra_tb_t get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid) const;
+  int get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t& ra_tb) const;
 
   /**
    * Flags to true the UL grant available for a given TTI, RNTI and eNb cell/carrier index
