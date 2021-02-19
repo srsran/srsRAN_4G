@@ -149,7 +149,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
       discard_callback            discard_fnc(this, used_sn);
       discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
       discard_timer.run();
-      discard_timers_map.insert(std::make_pair(tx_count, std::move(discard_timer)));
+      discard_timers_map.insert(std::make_pair(used_sn, std::move(discard_timer)));
       logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
     }
   }
