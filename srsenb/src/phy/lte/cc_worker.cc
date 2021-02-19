@@ -262,7 +262,7 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   uint16_t rnti = ul_grant.dci.rnti;
 
   // Invalid RNTI
-  if (rnti == 0) {
+  if (rnti == SRSLTE_INVALID_RNTI) {
     return;
   }
 
@@ -272,7 +272,10 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   }
 
   // Get UE configuration
-  ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
+  if (phy->ue_db.get_ul_config(rnti, cc_idx, ul_cfg) < SRSLTE_SUCCESS) {
+    Error("Error retrieving UL configuration for RNTI %x and CC %d", rnti, cc_idx);
+    return;
+  }
 
   // Fill UCI configuration
   bool uci_required =
@@ -288,8 +291,11 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Handle Format0 adaptive retx
   // Use last TBS for this TB in case of mcs>28
   if (ul_grant.dci.tb.mcs_idx > 28) {
-    int rv_idx  = grant.tb.rv;
-    grant.tb    = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid);
+    int rv_idx = grant.tb.rv;
+    if (phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSLTE_SUCCESS) {
+      Error("Error retrieving last UL TB for RNTI %x, CC %d, PID %d", rnti, cc_idx, ul_grant.pid);
+      return;
+    }
     grant.tb.rv = rv_idx;
     Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d",
          rnti,
@@ -298,7 +304,10 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
          ul_grant.dci.tb.mcs_idx,
          grant.tb.tbs / 8);
   }
-  phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb);
+
+  if (phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb) < SRSLTE_SUCCESS) {
+    Error("Error setting last UL TB for RNTI %x, CC %d, PID %d", rnti, cc_idx, ul_grant.pid);
+  }
 
   // Run PUSCH decoder
   ul_cfg.pusch.softbuffers.rx = ul_grant.softbuffer_rx;
@@ -380,7 +389,14 @@ int cc_worker::decode_pucch()
       srsran_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
       // Check if user needs to receive PUCCH
-      if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg)) {
+      int ret = phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg);
+      if (ret < SRSLTE_SUCCESS) {
+        Error("Error retrieving UCI configuration for RNTI %x, CC %d", rnti, cc_idx);
+        continue;
+      }
+
+      // If ret is more than success, UCI is present
+      if (ret > SRSLTE_SUCCESS) {
         // Decode PUCCH
         if (srsran_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
           ERROR("Error getting PUCCH");
@@ -388,7 +404,10 @@ int cc_worker::decode_pucch()
         }
 
         // Send UCI data to MAC
-        phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data);
+        if (phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data) < SRSLTE_SUCCESS) {
+          Error("Error sending UCI data for RNTI %x, CC %d", rnti, cc_idx);
+          continue;
+        }
 
         if (pucch_res.detected and pucch_res.ta_valid) {
           phy->stack->ta_info(tti_rx, rnti, pucch_res.ta_us);
@@ -531,6 +550,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       if (srsran_ra_dl_dci_to_grant(
               &enb_dl.cell, &dl_sf, dl_cfg.tm, dl_cfg.pdsch.use_tbs_index_alt, &grants[i].dci, &dl_cfg.pdsch.grant)) {
         Error("Computing DL grant");
+        continue;
       }
 
       // Set soft buffer

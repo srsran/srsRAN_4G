@@ -184,7 +184,9 @@ void sf_worker::work_imp()
   ul_sf.tti = tti_rx;
 
   // Set UL grant availability prior to any UL processing
-  phy->ue_db.set_ul_grant_available(tti_rx, ul_grants);
+  if (phy->ue_db.set_ul_grant_available(tti_rx, ul_grants)) {
+    Error("Error setting UL grants. Some grant's RNTI does not exist.");
+  }
 
   // Process UL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {

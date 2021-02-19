@@ -74,7 +74,7 @@ private:
   /**
    * Cell information for the UE database
    */
-  typedef struct {
+  struct cell_info_t {
     cell_state_t state      = cell_state_none; ///< Configuration state
     uint32_t     enb_cc_idx = 0;               ///< Corresponding eNb cell/carrier index
     uint8_t      last_ri    = 0;               ///< Last reported rank indicator
@@ -123,8 +123,9 @@ private:
    * Internal RNTI addition, it is not thread safe protected
    *
    * @param rnti identifier of the UE
+   * @return SRSLTE_SUCCESS if the RNTI is not duplicated and is added successfully, SRSLTE_ERROR code if it exists
    */
-  inline void _add_rnti(uint16_t rnti);
+  inline int _add_rnti(uint16_t rnti);
 
   /**
    * Internal pending ACK clear for a given RNTI and TTI, it is not thread safe protected
@@ -221,7 +222,8 @@ private:
    *
    * @param rnti provides UE identifier
    * @param enb_cc_idx eNb cell index
-   * @return The PHY configuration of the indicated UE for the indicated eNb carrier/call index.
+   * @param[out] phy_cfg The PHY configuration of the indicated UE for the indicated eNb carrier/call index.
+   * @return SRSLTE_SUCCESS if provided context is correct, SRSLTE_ERROR code otherwise
    */
   inline srsran::phy_cfg_t _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
@@ -255,16 +257,18 @@ public:
    * Removes a whole UE entry from the UE database
    *
    * @param rnti identifier of the UE
+   * @return SRSLTE_SUCCESS if provided RNTI exists, SRSLTE_ERROR code otherwise
    */
-  void rem_rnti(uint16_t rnti);
+  int rem_rnti(uint16_t rnti);
 
   /**
    * Stack callback for indicating the completion of the configuration process and apply the stashed configuration in
    * the primary cell.
    *
    * @param rnti identifier of the user
+   * @return SRSLTE_SUCCESS if provided RNTI exists, SRSLTE_ERROR code otherwise
    */
-  void complete_config(uint16_t rnti);
+  int complete_config(uint16_t rnti);
 
   /**
    * Activates or deactivates configured secondary cells for a given RNTI and SCell index (UE SCell index), index 0 is
@@ -272,30 +276,25 @@ public:
    * @param rnti identifier of the UE
    * @param scell_idx
    * @param activate
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
-  void activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate);
+  int activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate);
 
   /**
    * Asserts a given eNb cell is PCell of the given RNTI
    * @param rnti identifier of the UE
    * @param enb_cc_idx eNb cell/carrier index
-   * @return It returns true if it is the primmary cell, othwerwise it returns false
+   * @return It returns true if it is the primary cell, otherwise it returns false
    */
   bool is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
-
-  /**
-   * Asserts a given eNb cell is part of the given RNTI
-   * @param rnti identifier of the UE
-   * @param enb_cc_idx eNb cell/carrier index
-   * @return It returns true if the cell is part of the UE, othwerwise it returns false
-   */
-  bool ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
    * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier
    *
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
+   * @param[out] dl_cfg Current DL PHY configuration
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
   srsran_dl_cfg_t get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
@@ -304,6 +303,8 @@ public:
    *
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
+   * @param[out] dci_cfg Current DL-DCI configuration
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
   srsran_dci_cfg_t get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
@@ -312,6 +313,8 @@ public:
    *
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
+   * @param[out] ul_cfg Current UL PHY configuration
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
   srsran_ul_cfg_t get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
@@ -320,6 +323,8 @@ public:
    *
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
+   * @param[out] dci_cfg Current UL-DCI configuration
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
   srsran_dci_cfg_t get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
@@ -362,6 +367,7 @@ public:
    * @param rnti is the UE identifier
    * @param uci_cfg is the UCI configuration
    * @param uci_value is the UCI received value
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
   void send_uci_data(uint32_t                  tti,
                      uint16_t                  rnti,
@@ -377,6 +383,7 @@ public:
    * @param enb_cc_idx the cell/carrier origin of the transmission
    * @param pid HARQ process identifier
    * @param tb the Resource Allocation for the PUSCH transport block
+   * @return SRSLTE_SUCCESS if provided RNTI exists in the given cell, SRSLTE_ERROR code otherwise
    */
   void set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srsran_ra_tb_t tb);
 
@@ -388,7 +395,8 @@ public:
    * @param rnti the UE temporal ID
    * @param cc_idx the cell/carrier origin of the transmission
    * @param pid HARQ process identifier
-   * @return the Resource Allocation for the PUSCH transport block
+   * @param[out] ra_tb the Resource Allocation for the PUSCH transport block
+   * @return SRSLTE_SUCCESS if the provided context is valid
    */
   srsran_ra_tb_t get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid) const;
 
@@ -398,7 +406,7 @@ public:
    * @param rnti
    * @param enb_cc_idx
    */
-  void set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list);
+  int set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list);
 };
 
 } // namespace srsenb
