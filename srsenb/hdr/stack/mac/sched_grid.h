@@ -102,7 +102,7 @@ public:
   void            init(const sched_cell_params_t& cell_params_);
   void            new_tti(tti_point tti_rx);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
-  alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
+  alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
   alloc_outcome_t alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch);
   alloc_outcome_t reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
@@ -117,7 +117,11 @@ public:
   uint32_t                get_pucch_width() const { return pucch_nrb; }
 
 private:
-  alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
+  alloc_outcome_t alloc_dl(uint32_t     aggr_lvl,
+                           alloc_type_t alloc_type,
+                           rbgmask_t    alloc_mask,
+                           sched_ue*    user            = nullptr,
+                           bool         has_pusch_grant = false);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;

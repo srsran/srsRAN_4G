@@ -167,7 +167,11 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
-alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
+alloc_outcome_t sf_grid_t::alloc_dl(uint32_t     aggr_idx,
+                                    alloc_type_t alloc_type,
+                                    rbgmask_t    alloc_mask,
+                                    sched_ue*    user,
+                                    bool         has_pusch_grant)
 {
   // Check RBG collision
   if ((dl_mask & alloc_mask).any()) {
@@ -175,7 +179,7 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, 
   }
 
   // Allocate DCI in PDCCH
-  if (not pdcch_alloc.alloc_dci(alloc_type, aggr_idx, user)) {
+  if (not pdcch_alloc.alloc_dci(alloc_type, aggr_idx, user, has_pusch_grant)) {
     if (user != nullptr) {
       if (logger.debug.enabled()) {
         logger.debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s",
@@ -216,12 +220,12 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_typ
 }
 
 //! Allocates CCEs and RBs for a user DL data alloc.
-alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
+alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
   uint32_t            aggr_idx   = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
-  alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user);
+  alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user, has_pusch_grant);
 
   return ret;
 }
@@ -551,13 +555,14 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
     return alloc_outcome_t::INVALID_PRBMASK;
   }
 
+  bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
+
   // Check if there is space in the PUCCH for HARQ ACKs
   const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
   std::bitset<SRSLTE_MAX_CARRIERS> scells    = user->scell_activation_mask();
   uint32_t                         ue_cc_idx = cc->get_ue_cc_idx();
   if (user->nof_carriers_configured() > 1 and (ue_cc_idx == 0 or scells[ue_cc_idx]) and
       is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
-    bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
     if (not has_pusch_grant) {
       // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
       prb_interval alloc = {};
@@ -572,7 +577,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   }
 
   // Try to allocate RBGs and DCI
-  alloc_outcome_t ret = tti_alloc.alloc_dl_data(user, user_mask);
+  alloc_outcome_t ret = tti_alloc.alloc_dl_data(user, user_mask, has_pusch_grant);
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }

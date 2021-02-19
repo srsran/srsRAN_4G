@@ -1103,16 +1103,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
       phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset                             = 0;
     }
-    if (nrb_pucch > 1) {
-      fprintf(stderr,
-              "ERROR: Invalid PUCCH configuration - \"cqi_report_cnfg=%d\" and \"sched_request_cnfg.nof_prb=%d\""
-              " in rr.conf for 6 PRBs.\n      Consider decreasing these values to 1 to leave enough space for the "
-              "transmission of Msg3.\n",
-              rrc_cfg_->cqi_cfg.nof_prb,
-              rrc_cfg_->sr_cfg.nof_prb);
-      rrc_cfg_->cqi_cfg.nof_prb = 1;
-      rrc_cfg_->sr_cfg.nof_prb  = 1;
-    }
   }
 
   // Patch certain args that are not exposed yet

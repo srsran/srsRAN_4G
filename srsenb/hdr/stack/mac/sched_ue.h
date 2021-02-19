@@ -135,7 +135,6 @@ public:
 
   uint32_t get_max_retx();
 
-  bool pucch_sr_collision(tti_point tti_tx_dl, uint32_t n_cce);
   bool pdsch_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const;
   bool pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
 

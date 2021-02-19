@@ -176,17 +176,6 @@ void sched_ue::unset_sr()
   sr = false;
 }
 
-bool sched_ue::pucch_sr_collision(tti_point tti_tx_dl, uint32_t n_cce)
-{
-  if (!phy_config_dedicated_enabled) {
-    return false;
-  }
-  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, tti_tx_dl.to_uint())) {
-    return (n_cce + cfg.pucch_cfg.N_pucch_1) == cfg.pucch_cfg.n_pucch_sr;
-  }
-  return false;
-}
-
 tti_point prev_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
 {
   return tti_point{static_cast<uint32_t>(floor(static_cast<float>((tti - offset).to_uint()) / period)) * period +
