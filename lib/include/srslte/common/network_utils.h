@@ -147,7 +147,8 @@ private:
     cmd_id_t cmd    = cmd_id_t::EXIT;
     int      new_fd = -1;
   };
-  bool remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
+  std::map<int, rx_multisocket_handler::task_callback_t>::iterator
+  remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
   // args
   std::string           name;

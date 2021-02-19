@@ -594,18 +594,20 @@ bool rx_multisocket_handler::remove_socket(int fd)
   return true;
 }
 
-bool rx_multisocket_handler::remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd)
+std::map<int, rx_multisocket_handler::task_callback_t>::iterator
+rx_multisocket_handler::remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd)
 {
   if (fd < 0) {
     rxSockError("fd to be removed is not valid");
-    return false;
+    return active_sockets.end();
   }
-  active_sockets.erase(fd);
+  auto it = active_sockets.find(fd);
+  it      = active_sockets.erase(it);
   FD_CLR(fd, total_fd_set);
   // assumes ordering
   *max_fd = (active_sockets.empty()) ? pipefd[0] : std::max(pipefd[0], active_sockets.rbegin()->first);
   rxSockDebug("Socket fd=%d has been successfully removed", fd);
-  return true;
+  return it;
 }
 
 void rx_multisocket_handler::run_thread()
@@ -636,16 +638,19 @@ void rx_multisocket_handler::run_thread()
     std::lock_guard<std::mutex> lock(socket_mutex);
 
     // call read callback for all SCTP/TCP/UDP connections
-    for (auto& handler_pair : active_sockets) {
-      int        fd       = handler_pair.first;
-      recv_task* callback = handler_pair.second.get();
+    for (auto handler_it = active_sockets.begin(); handler_it != active_sockets.end();) {
+      int        fd       = handler_it->first;
+      recv_task* callback = handler_it->second.get();
       if (not FD_ISSET(fd, &read_fd_set)) {
+        ++handler_it;
         continue;
       }
       bool socket_valid = callback->operator()(fd);
       if (not socket_valid) {
         rxSockInfo("The socket fd=%d has been closed by peer", fd);
-        remove_socket_unprotected(fd, &total_fd_set, &max_fd);
+        handler_it = remove_socket_unprotected(fd, &total_fd_set, &max_fd);
+      } else {
+        ++handler_it;
       }
     }
 
