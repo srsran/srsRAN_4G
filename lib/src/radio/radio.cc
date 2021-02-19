@@ -191,13 +191,14 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
     }
   }
 
-  // Set resampler buffers to 5 ms
+  // It is not expected that any application tries to receive more than max_resamp_buf_sz_ms
   if (std::isnormal(fix_srate_hz)) {
+    size_t resamp_buf_sz = (max_resamp_buf_sz_ms * fix_srate_hz) / 1000;
     for (auto& buf : rx_buffer) {
-      buf.resize(size_t(fix_srate_hz / 200));
+      buf.resize(resamp_buf_sz);
     }
     for (auto& buf : tx_buffer) {
-      buf.resize(size_t(fix_srate_hz / 200));
+      buf.resize(resamp_buf_sz);
     }
   }
 
@@ -280,14 +281,30 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   rf_buffer_t                  buffer_rx;
   uint32_t                     ratio = SRSLTE_MAX(1, decimators[0].ratio);
 
+  // Calculate number of samples, considering the decimation ratio
+  uint32_t nof_samples = buffer.get_nof_samples() * ratio;
+
+  // Check decimation buffer protection
+  if (ratio > 1 && nof_samples > rx_buffer[0].size()) {
+    // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
+    // impact, log it as info.
+    logger.info(fmt::format("Rx number of samples ({}/{}) exceeds buffer size ({})\n",
+                            buffer.get_nof_samples(),
+                            buffer.get_nof_samples() * ratio,
+                            rx_buffer[0].size()));
+
+    // Limit number of samples to receive
+    nof_samples = rx_buffer[0].size();
+  }
+
+  // Set new buffer size
+  buffer_rx.set_nof_samples(nof_samples);
+
   // If the interpolator have been set, interpolate
   for (uint32_t ch = 0; ch < nof_channels; ch++) {
     // Use rx buffer if decimator is required
     buffer_rx.set(ch, ratio > 1 ? rx_buffer[ch].data() : buffer.get(ch));
   }
-
-  // Set new buffer size
-  buffer_rx.set_nof_samples(buffer.get_nof_samples() * ratio);
 
   if (not radio_is_streaming) {
     for (srslte_rf_t& rf_device : rf_devices) {
@@ -380,19 +397,36 @@ bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_tim
 {
   bool                         ret = true;
   std::unique_lock<std::mutex> lock(tx_mutex);
+  uint32_t                     ratio = interpolators[0].ratio;
+
+  // Get number of samples at the low rate
+  uint32_t nof_samples = buffer.get_nof_samples();
+
+  // Check that number of the interpolated samples does not exceed the buffer size
+  if (ratio > 1 && nof_samples * ratio > tx_buffer[0].size()) {
+    // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
+    // impact, log it as info.
+    logger.info(fmt::format("Tx number of samples ({}/{}) exceeds buffer size ({})\n",
+                            buffer.get_nof_samples(),
+                            buffer.get_nof_samples() * ratio,
+                            tx_buffer[0].size()));
+
+    // Limit number of samples to transmit
+    nof_samples = tx_buffer[0].size() / ratio;
+  }
 
   // If the interpolator have been set, interpolate
   if (interpolators[0].ratio > 1) {
     for (uint32_t ch = 0; ch < nof_channels; ch++) {
       // Perform actual interpolation
-      srslte_resampler_fft_run(&interpolators[ch], buffer.get(ch), tx_buffer[ch].data(), buffer.get_nof_samples());
+      srslte_resampler_fft_run(&interpolators[ch], buffer.get(ch), tx_buffer[ch].data(), nof_samples);
 
       // Set the buffer pointer
       buffer.set(ch, tx_buffer[ch].data());
     }
 
-    // Set new buffer size
-    buffer.set_nof_samples(buffer.get_nof_samples() * interpolators[0].ratio);
+    // Set buffer size after applying the interpolation
+    buffer.set_nof_samples(nof_samples * ratio);
   }
 
   for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_devices.size(); device_idx++) {

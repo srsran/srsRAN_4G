@@ -121,6 +121,8 @@ private:
   std::vector<double> cur_tx_freqs = {};
   std::vector<double> cur_rx_freqs = {};
 
+  constexpr static const uint32_t max_resamp_buf_sz_ms = 5; ///< Maximum buffer size in ms for intermediate resampling
+                                                            ///< buffers
   constexpr static double tx_max_gap_zeros = 4e-3; ///< Maximum transmission gap to fill with zeros, otherwise the burst
                                                    ///< shall be stopped
 
