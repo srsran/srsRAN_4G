@@ -54,10 +54,10 @@ public:
     uint32_t    min_nof_ctrl_symbols = 1;
     uint32_t    max_nof_ctrl_symbols = 3;
     int         max_aggr_level       = 3;
+    bool        pucch_mux_enabled    = false;
   };
 
   struct cell_cfg_t {
-
     // Main cell configuration (used to calculate DCI locations in scheduler)
     srslte_cell_t cell;
 
@@ -81,6 +81,7 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift;
+    bool     pucch_mux_enabled = false;
 
     // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
     int nrb_pucch;

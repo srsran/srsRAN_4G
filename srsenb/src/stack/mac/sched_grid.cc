@@ -134,7 +134,10 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
 
   // Compute reserved PRBs for CQI, SR and HARQ-ACK, and store it in a bitmask
   pucch_mask.resize(cc_cfg->nof_prb());
-  pucch_nrb = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
+  pucch_nrb                    = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
+  srslte_pucch_cfg_t pucch_cfg = cell_params_.pucch_cfg_common;
+  pucch_cfg.n_pucch            = cc_cfg->nof_cce_table[SRSLTE_NOF_CFI - 1] - 1 + cc_cfg->cfg.n1pucch_an;
+  pucch_nrb                    = std::max(pucch_nrb, srslte_pucch_m(&pucch_cfg, cc_cfg->cfg.cell.cp) / 2 + 1);
   if (pucch_nrb > 0) {
     pucch_mask.fill(0, pucch_nrb);
     pucch_mask.fill(cc_cfg->nof_prb() - pucch_nrb, cc_cfg->nof_prb());

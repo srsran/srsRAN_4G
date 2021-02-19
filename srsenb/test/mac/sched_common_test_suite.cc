@@ -46,11 +46,13 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   }
 
   /* TEST: check collisions in PUCCH */
-  bool strict = nof_prb != 6 or (not is_prach_tti_tx_ul); // and not tti_data.ul_pending_msg3_present);
-  try_ul_fill({0, (uint32_t)cell_params.cfg.nrb_pucch}, "PUCCH", strict);
-  try_ul_fill({cell_params.cfg.cell.nof_prb - cell_params.cfg.nrb_pucch, (uint32_t)cell_params.cfg.cell.nof_prb},
-              "PUCCH",
-              strict);
+  bool               strict    = nof_prb != 6 or (not is_prach_tti_tx_ul); // and not tti_data.ul_pending_msg3_present);
+  uint32_t           pucch_nrb = (cell_params.cfg.nrb_pucch > 0) ? (uint32_t)cell_params.cfg.nrb_pucch : 0;
+  srslte_pucch_cfg_t pucch_cfg = cell_params.pucch_cfg_common;
+  pucch_cfg.n_pucch            = cell_params.nof_cce_table[SRSLTE_NOF_CFI - 1] - 1 + cell_params.cfg.n1pucch_an;
+  pucch_nrb                    = std::max(pucch_nrb, srslte_pucch_m(&pucch_cfg, cell_params.cfg.cell.cp) / 2 + 1);
+  try_ul_fill({0, pucch_nrb}, "PUCCH", strict);
+  try_ul_fill({cell_params.cfg.cell.nof_prb - pucch_nrb, (uint32_t)cell_params.cfg.cell.nof_prb}, "PUCCH", strict);
 
   /* TEST: check collisions in the UL PUSCH */
   for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
