@@ -245,6 +245,7 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 
   // Drop all SDU info in queue
   undelivered_sdu_info_queue.clear();
+  rlc_sn_to_pdcp_sn_map.clear();
 
   pthread_mutex_unlock(&mutex);
 }
@@ -874,6 +875,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       return 0;
     }
     undelivered_sdu_info_queue.at(tx_sdu->md.pdcp_sn).rlc_sn_info_list.push_back({header.sn, false});
+    rlc_sn_to_pdcp_sn_map[header.sn].push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx.", RB_NAME);
       undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
@@ -920,9 +922,10 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       return 0;
     }
     info_it->second.rlc_sn_info_list.push_back({header.sn, false});
+    rlc_sn_to_pdcp_sn_map[header.sn].push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx. PDCP SN=%d", RB_NAME, tx_sdu->md.pdcp_sn);
-      undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
+      info_it->second.fully_txed = true;
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {
@@ -1015,9 +1018,9 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   // Handle ACKs and NACKs
   std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
-  bool                                           update_vt_a     = true;
-  uint32_t                                       i               = vt_a;
-  std::vector<uint32_t>                          notify_info_vec = {};
+  bool                                           update_vt_a = true;
+  uint32_t                                       i           = vt_a;
+  notify_info_vec.clear();
 
   while (TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) && TX_MOD_BASE(i) < TX_MOD_BASE(vt_s)) {
     bool nack = false;
@@ -1075,7 +1078,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       if (tx_window.count(i) > 0) {
         it = tx_window.find(i);
         if (it != tx_window.end()) {
-          update_notification_ack_info(it->second, notify_info_vec);
+          update_notification_ack_info(it->second);
           if (update_vt_a) {
             tx_window.erase(it);
             vt_a  = (vt_a + 1) % MOD;
@@ -1110,18 +1113,21 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
  * @tx_pdu: RLC PDU that was ack'ed.
  * @notify_info_vec: Vector which will keep track of the PDCP PDU SNs that have been fully ack'ed.
  */
-void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu,
-                                                             std::vector<uint32_t>&  notify_info_vec)
+void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu)
 {
   logger.debug("Updating ACK info: RLC SN=%d, number of notified SDU=%ld, number of undelivered SDUs=%ld",
                tx_pdu.header.sn,
                notify_info_vec.size(),
                undelivered_sdu_info_queue.size());
   // Iterate over all undelivered SDUs
-  for (auto& info_it : undelivered_sdu_info_queue) {
+  auto it = rlc_sn_to_pdcp_sn_map.find(tx_pdu.header.sn);
+  if (it == rlc_sn_to_pdcp_sn_map.end()) {
+    return;
+  }
+  std::vector<uint32_t>& pdcp_sns = it->second;
+  for (uint32_t pdcp_sn : pdcp_sns) {
     // Iterate over all SNs that were TX'ed
-    uint32_t pdcp_sn = info_it.first;
-    auto&    info    = info_it.second;
+    auto& info = undelivered_sdu_info_queue[pdcp_sn];
     for (auto& rlc_sn_info : info.rlc_sn_info_list) {
       // Mark this SN as acked, if necessary
       if (rlc_sn_info.is_acked == false && rlc_sn_info.sn == tx_pdu.header.sn) {
@@ -1139,6 +1145,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
       }
     }
   }
+  rlc_sn_to_pdcp_sn_map.erase(it);
 }
 
 void rlc_am_lte::rlc_am_lte_tx::debug_state()
