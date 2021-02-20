@@ -134,7 +134,7 @@ private:
     int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
     int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
     int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu);
+    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu, std::vector<uint32_t>& notify_info_vec);
 
     void debug_state();
 
@@ -191,7 +191,6 @@ private:
     // SDU info for PDCP notifications
     std::unordered_map<uint32_t, pdcp_sdu_info_t>        undelivered_sdu_info_queue;
     std::unordered_map<uint32_t, std::vector<uint32_t> > rlc_sn_to_pdcp_sn_map;
-    std::vector<uint32_t>                                notify_info_vec;
 
     // Callback function for buffer status report
     bsr_callback_t bsr_callback;
