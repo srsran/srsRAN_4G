@@ -93,6 +93,8 @@ private:
   // Discard callback (discardTimer)
   class discard_callback;
   std::vector<unique_timer> discard_timers;
+  unique_timer*             get_discard_timer(uint32_t sn);
+  void                      stop_discard_timer(uint32_t sn);
 
   // TX Queue
   uint32_t                                 maximum_allocated_sns_window = 2048;

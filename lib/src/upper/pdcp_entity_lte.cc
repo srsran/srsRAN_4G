@@ -48,7 +48,8 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
 
   uint32_t discard_time_value = static_cast<uint32_t>(cfg.discard_timer);
   if (discard_time_value > 0) {
-    discard_timers.reserve(maximum_pdcp_sn + 2); // the last SN is for status report
+    // Note: One extra position is reserved at the end for the status report
+    discard_timers.reserve(maximum_pdcp_sn + 2);
     for (uint32_t sn = 0; sn < maximum_pdcp_sn + 2; ++sn) {
       discard_timers.emplace_back(task_sched.get_unique_timer());
       discard_callback discard_fnc(this, sn);
@@ -154,10 +155,12 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
     }
 
     // Start discard timer
-    if (cfg.discard_timer != pdcp_discard_timer_t::infinity and not discard_timers.empty()) {
-      uint32_t sn_idx = std::min(used_sn, (uint32_t)(discard_timers.size() - 1));
-      discard_timers[sn_idx].run();
-      logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
+    if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
+      unique_timer* timer = get_discard_timer(used_sn);
+      if (timer != nullptr) {
+        timer->run();
+        logger.debug("Discard Timer set for SN %u. Timeout: %ums", used_sn, static_cast<uint32_t>(cfg.discard_timer));
+      }
     }
   }
 
@@ -538,10 +541,7 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   // Remove all SDUs with SN smaller than FMS
   for (auto it = undelivered_sdus_queue.begin(); it != undelivered_sdus_queue.end();) {
     if (it->first < fms) {
-      if (not discard_timers.empty()) {
-        uint32_t sn = std::min(it->first, (uint32_t)(discard_timers.size() - 1));
-        discard_timers[sn].stop();
-      }
+      stop_discard_timer(it->first);
       it = undelivered_sdus_queue.erase(it);
     } else {
       ++it;
@@ -563,10 +563,7 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   for (uint32_t sn : acked_sns) {
     logger.debug("Status report ACKed SN=%d.", sn);
     undelivered_sdus_queue.erase(sn);
-    if (not discard_timers.empty()) {
-      uint32_t sn_idx = std::min(sn, (uint32_t)(discard_timers.size() - 1));
-      discard_timers[sn_idx].stop();
-    }
+    stop_discard_timer(sn);
   }
 }
 /****************************************************************************
@@ -641,9 +638,7 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
 
   // Remove timer from map
-  // NOTE: this will delete the callback. It *must* be the last instruction.
-  uint32_t sn_idx = std::min(discard_sn, (uint32_t)(parent->discard_timers.size() - 1));
-  parent->discard_timers[sn_idx].stop();
+  parent->stop_discard_timer(discard_sn);
 }
 
 /****************************************************************************
@@ -671,10 +666,7 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 
     // If ACK'ed bytes are equal to (or exceed) PDU size, remove PDU and disarm timer.
     undelivered_sdus_queue.erase(sn);
-    if (not discard_timers.empty()) {
-      uint32_t sn_idx = std::min(sn, (uint32_t)(discard_timers.size() - 1));
-      discard_timers[sn].stop();
-    }
+    stop_discard_timer(sn);
   }
 }
 
@@ -735,6 +727,24 @@ uint32_t pdcp_entity_lte::nof_discard_timers() const
 {
   return std::count_if(
       discard_timers.begin(), discard_timers.end(), [](const unique_timer& t) { return t.is_running(); });
+}
+
+unique_timer* pdcp_entity_lte::get_discard_timer(uint32_t sn)
+{
+  // Note: When SN=-1 (Status report case), the position will be the last in the vector of discard timers
+  if (not discard_timers.empty()) {
+    uint32_t sn_idx = std::min((uint32_t)sn, (uint32_t)(discard_timers.size() - 1));
+    return &discard_timers[sn_idx];
+  }
+  return nullptr;
+}
+
+void pdcp_entity_lte::stop_discard_timer(uint32_t sn)
+{
+  unique_timer* timer = get_discard_timer(sn);
+  if (timer != nullptr) {
+    timer->stop();
+  }
 }
 
 /****************************************************************************
