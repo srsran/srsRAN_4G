@@ -49,7 +49,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   uint32_t discard_time_value = static_cast<uint32_t>(cfg.discard_timer);
   if (discard_time_value > 0) {
     discard_timers.reserve(maximum_pdcp_sn + 2); // the last SN is for status report
-    for (uint32_t sn = 0; sn < discard_timers.size(); ++sn) {
+    for (uint32_t sn = 0; sn < maximum_pdcp_sn + 2; ++sn) {
       discard_timers.emplace_back(task_sched.get_unique_timer());
       discard_callback discard_fnc(this, sn);
       discard_timers[sn].set(discard_time_value, discard_fnc);
