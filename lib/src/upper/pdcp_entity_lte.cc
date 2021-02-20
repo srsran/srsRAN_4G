@@ -731,7 +731,7 @@ uint32_t pdcp_entity_lte::nof_discard_timers() const
 
 unique_timer* pdcp_entity_lte::get_discard_timer(uint32_t sn)
 {
-  // Note: When SN=-1 (Status report case), the position will be the last in the vector of discard timers
+  // Note: When SN>max PDCP SN (Status report case), the position will be the last in the vector of discard timers
   if (not discard_timers.empty()) {
     uint32_t sn_idx = std::min((uint32_t)sn, (uint32_t)(discard_timers.size() - 1));
     return &discard_timers[sn_idx];
