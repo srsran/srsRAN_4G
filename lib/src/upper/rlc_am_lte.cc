@@ -13,7 +13,6 @@
 #include "srslte/upper/rlc_am_lte.h"
 
 #include <iostream>
-#include <sstream>
 
 #define MOD 1024
 #define RX_MOD_BASE(x) (((x)-vr_r) % 1024)
@@ -245,7 +244,6 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 
   // Drop all SDU info in queue
   undelivered_sdu_info_queue.clear();
-  rlc_sn_to_pdcp_sn_map.clear();
 
   pthread_mutex_unlock(&mutex);
 }
@@ -875,7 +873,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       return 0;
     }
     undelivered_sdu_info_queue.at(tx_sdu->md.pdcp_sn).rlc_sn_info_list.push_back({header.sn, false});
-    rlc_sn_to_pdcp_sn_map[header.sn].push_back(tx_sdu->md.pdcp_sn);
+    tx_window[header.sn].pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx.", RB_NAME);
       undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
@@ -922,7 +920,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       return 0;
     }
     info_it->second.rlc_sn_info_list.push_back({header.sn, false});
-    rlc_sn_to_pdcp_sn_map[header.sn].push_back(tx_sdu->md.pdcp_sn);
+    tx_window[header.sn].pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx. PDCP SN=%d", RB_NAME, tx_sdu->md.pdcp_sn);
       info_it->second.fully_txed = true;
@@ -1121,11 +1119,10 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
                notify_info_vec.size(),
                undelivered_sdu_info_queue.size());
   // Iterate over all undelivered SDUs
-  auto it = rlc_sn_to_pdcp_sn_map.find(tx_pdu.header.sn);
-  if (it == rlc_sn_to_pdcp_sn_map.end()) {
+  if (not tx_window.has_sn(tx_pdu.header.sn)) {
     return;
   }
-  std::vector<uint32_t>& pdcp_sns = it->second;
+  std::vector<uint32_t>& pdcp_sns = tx_window[tx_pdu.header.sn].pdcp_sns;
   for (uint32_t pdcp_sn : pdcp_sns) {
     // Iterate over all SNs that were TX'ed
     auto& info = undelivered_sdu_info_queue[pdcp_sn];
@@ -1146,7 +1143,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
       }
     }
   }
-  rlc_sn_to_pdcp_sn_map.erase(it);
+  pdcp_sns.clear();
 }
 
 void rlc_am_lte::rlc_am_lte_tx::debug_state()

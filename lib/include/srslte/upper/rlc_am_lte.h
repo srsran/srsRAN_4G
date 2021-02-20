@@ -41,11 +41,12 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t header;
-  unique_byte_buffer_t buf;
-  uint32_t             retx_count;
-  uint32_t             rlc_sn;
-  bool                 is_acked;
+  rlc_amd_pdu_header_t  header;
+  unique_byte_buffer_t  buf;
+  std::vector<uint32_t> pdcp_sns;
+  uint32_t              retx_count;
+  uint32_t              rlc_sn;
+  bool                  is_acked;
 };
 
 struct rlc_amd_retx_t {
@@ -69,7 +70,13 @@ struct pdcp_sdu_info_t {
 };
 
 struct tx_window_t {
-  tx_window_t() { std::fill(active_flag.begin(), active_flag.end(), false); }
+  tx_window_t()
+  {
+    std::fill(active_flag.begin(), active_flag.end(), false);
+    for (size_t i = 0; i < window.size(); ++i) {
+      window[i].pdcp_sns.reserve(5);
+    }
+  }
   void add_pdu(size_t sn)
   {
     assert(not active_flag[sn]);
@@ -241,8 +248,7 @@ private:
     srslte::timer_handler::unique_timer status_prohibit_timer;
 
     // SDU info for PDCP notifications
-    std::unordered_map<uint32_t, pdcp_sdu_info_t>        undelivered_sdu_info_queue;
-    std::unordered_map<uint32_t, std::vector<uint32_t> > rlc_sn_to_pdcp_sn_map;
+    std::unordered_map<uint32_t, pdcp_sdu_info_t> undelivered_sdu_info_queue;
 
     // Callback function for buffer status report
     bsr_callback_t bsr_callback;
