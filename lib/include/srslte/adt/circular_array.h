@@ -35,6 +35,9 @@ class circular_array
   std::array<T, N> data{};
 
 public:
+  using iterator       = T*;
+  using const_iterator = const T*;
+
   T&       operator[](std::size_t pos) { return data[pos % N]; }
   const T& operator[](std::size_t pos) const { return data[pos % N]; }
 
@@ -43,6 +46,8 @@ public:
 
   T*       end() { return data.end(); }
   const T* end() const { return data.end(); }
+
+  size_t size() const { return N; }
 };
 
 } // namespace srslte

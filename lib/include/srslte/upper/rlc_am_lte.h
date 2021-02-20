@@ -14,6 +14,7 @@
 #define SRSLTE_RLC_AM_LTE_H
 
 #include "srslte/adt/accumulators.h"
+#include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -43,6 +44,7 @@ struct rlc_amd_tx_pdu_t {
   rlc_amd_pdu_header_t header;
   unique_byte_buffer_t buf;
   uint32_t             retx_count;
+  uint32_t             rlc_sn;
   bool                 is_acked;
 };
 
@@ -64,6 +66,56 @@ struct pdcp_sdu_info_t {
   bool     fully_acked; // Boolean indicating if the SDU is fully acked. This is only necessary temporarely to avoid
                         // duplicate removal from the queue while processing the status report
   std::vector<rlc_sn_info_t> rlc_sn_info_list; // List of RLC PDUs in transit and whether they have been acked or not.
+};
+
+struct tx_window_t {
+  tx_window_t() { std::fill(active_flag.begin(), active_flag.end(), false); }
+  void add_pdu(size_t sn)
+  {
+    assert(not active_flag[sn]);
+    window[sn].rlc_sn = sn;
+    active_flag[sn]   = true;
+    count++;
+  }
+  void remove_pdu(size_t sn)
+  {
+    assert(active_flag[sn]);
+    window[sn]      = {};
+    active_flag[sn] = false;
+    count--;
+  }
+  rlc_amd_tx_pdu_t& operator[](size_t sn)
+  {
+    assert(has_sn(sn));
+    return window[sn];
+  }
+  size_t size() const { return count; }
+  bool   empty() const { return count == 0; }
+  void   clear()
+  {
+    window = {};
+    std::fill(active_flag.begin(), active_flag.end(), false);
+    count = 0;
+  }
+  bool              has_sn(uint32_t sn) const { return active_flag[sn] and window[sn].rlc_sn == sn; }
+  rlc_amd_tx_pdu_t& front()
+  {
+    assert(not empty());
+    uint32_t min_rlc_sn = std::numeric_limits<uint32_t>::max(), min_idx = std::numeric_limits<uint32_t>::max();
+    for (uint32_t i = 0; i < window.size(); ++i) {
+      if (active_flag[i] and window[i].rlc_sn < min_rlc_sn) {
+        min_idx    = i;
+        min_rlc_sn = window[i].rlc_sn;
+      }
+    }
+    assert(has_sn(min_rlc_sn));
+    return window[min_idx];
+  }
+
+private:
+  size_t                                        count       = 0;
+  srslte::circular_array<bool, 512>             active_flag = {};
+  srslte::circular_array<rlc_amd_tx_pdu_t, 512> window;
 };
 
 class rlc_am_lte : public rlc_common
@@ -196,8 +248,8 @@ private:
     bsr_callback_t bsr_callback;
 
     // Tx windows
-    std::map<uint32_t, rlc_amd_tx_pdu_t> tx_window;
-    std::deque<rlc_amd_retx_t>           retx_queue;
+    tx_window_t                tx_window;
+    std::deque<rlc_amd_retx_t> retx_queue;
 
     // Mutexes
     pthread_mutex_t mutex;

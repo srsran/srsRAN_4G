@@ -313,7 +313,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
                  retx.is_segment ? "true" : "false",
                  retx.so_start,
                  retx.so_end);
-    if (tx_window.end() != tx_window.find(retx.sn)) {
+    if (tx_window.has_sn(retx.sn)) {
       int req_bytes = required_buffer_size(retx);
       if (req_bytes < 0) {
         logger.error("In get_buffer_state(): Removing retx.sn=%d from queue", retx.sn);
@@ -484,13 +484,13 @@ void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu()
 {
   if (not tx_window.empty()) {
     // select PDU in tx window for retransmission
-    std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
-    logger.info("%s Schedule SN=%d for reTx.", RB_NAME, it->first);
+    rlc_amd_tx_pdu_t& pdu = tx_window.front();
+    logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
     rlc_amd_retx_t retx = {};
     retx.is_segment     = false;
     retx.so_start       = 0;
-    retx.so_end         = it->second.buf->N_bytes;
-    retx.sn             = it->first;
+    retx.so_end         = pdu.buf->N_bytes;
+    retx.sn             = pdu.rlc_sn;
     retx_queue.push_back(retx);
   }
 }
@@ -576,7 +576,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   rlc_amd_retx_t retx = retx_queue.front();
 
   // Sanity check - drop any retx SNs not present in tx_window
-  while (tx_window.end() == tx_window.find(retx.sn)) {
+  while (not tx_window.has_sn(retx.sn)) {
     retx_queue.pop_front();
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
@@ -972,10 +972,12 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   vt_s      = (vt_s + 1) % MOD;
 
   // Place PDU in tx_window, write header and TX
+  tx_window.add_pdu(header.sn);
   tx_window[header.sn].buf        = std::move(pdu);
   tx_window[header.sn].header     = header;
   tx_window[header.sn].is_acked   = false;
   tx_window[header.sn].retx_count = 0;
+  tx_window[header.sn].rlc_sn     = header.sn;
   const byte_buffer_t* buffer_ptr = tx_window[header.sn].buf.get();
 
   uint8_t* ptr = payload;
@@ -1017,7 +1019,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   }
 
   // Handle ACKs and NACKs
-  std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
   bool                                           update_vt_a = true;
   uint32_t                                       i           = vt_a;
   std::vector<uint32_t>                          notify_info_vec;
@@ -1028,34 +1029,32 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       if (status.nacks[j].nack_sn == i) {
         nack        = true;
         update_vt_a = false;
-        it          = tx_window.find(i);
-        if (tx_window.end() != it) {
+        if (tx_window.has_sn(i)) {
+          auto& pdu = tx_window[i];
           if (!retx_queue_has_sn(i)) {
             rlc_amd_retx_t retx = {};
             retx.sn             = i;
             retx.is_segment     = false;
             retx.so_start       = 0;
-            retx.so_end         = it->second.buf->N_bytes;
+            retx.so_end         = pdu.buf->N_bytes;
 
             if (status.nacks[j].has_so) {
               // sanity check
-              if (status.nacks[j].so_start >= it->second.buf->N_bytes) {
+              if (status.nacks[j].so_start >= pdu.buf->N_bytes) {
                 // print error but try to send original PDU again
-                logger.info("SO_start is larger than original PDU (%d >= %d)",
-                            status.nacks[j].so_start,
-                            it->second.buf->N_bytes);
+                logger.info(
+                    "SO_start is larger than original PDU (%d >= %d)", status.nacks[j].so_start, pdu.buf->N_bytes);
                 status.nacks[j].so_start = 0;
               }
 
               // check for special SO_end value
               if (status.nacks[j].so_end == 0x7FFF) {
-                status.nacks[j].so_end = it->second.buf->N_bytes;
+                status.nacks[j].so_end = pdu.buf->N_bytes;
               } else {
                 retx.so_end = status.nacks[j].so_end + 1;
               }
 
-              if (status.nacks[j].so_start < it->second.buf->N_bytes &&
-                  status.nacks[j].so_end <= it->second.buf->N_bytes) {
+              if (status.nacks[j].so_start < pdu.buf->N_bytes && status.nacks[j].so_end <= pdu.buf->N_bytes) {
                 retx.is_segment = true;
                 retx.so_start   = status.nacks[j].so_start;
               } else {
@@ -1064,7 +1063,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
                                i,
                                status.nacks[j].so_start,
                                status.nacks[j].so_end,
-                               it->second.buf->N_bytes);
+                               pdu.buf->N_bytes);
               }
             }
             retx_queue.push_back(retx);
@@ -1075,15 +1074,13 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
     if (!nack) {
       // ACKed SNs get marked and removed from tx_window if possible
-      if (tx_window.count(i) > 0) {
-        it = tx_window.find(i);
-        if (it != tx_window.end()) {
-          update_notification_ack_info(it->second, notify_info_vec);
-          if (update_vt_a) {
-            tx_window.erase(it);
-            vt_a  = (vt_a + 1) % MOD;
-            vt_ms = (vt_ms + 1) % MOD;
-          }
+      if (tx_window.has_sn(i)) {
+        auto& pdu = tx_window[i];
+        update_notification_ack_info(pdu, notify_info_vec);
+        if (update_vt_a) {
+          tx_window.remove_pdu(i);
+          vt_a  = (vt_a + 1) % MOD;
+          vt_ms = (vt_ms + 1) % MOD;
         }
       }
     }
@@ -1160,7 +1157,7 @@ void rlc_am_lte::rlc_am_lte_tx::debug_state()
 int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(rlc_amd_retx_t retx)
 {
   if (!retx.is_segment) {
-    if (tx_window.count(retx.sn) == 1) {
+    if (tx_window.has_sn(retx.sn)) {
       if (tx_window[retx.sn].buf) {
         return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
       } else {
