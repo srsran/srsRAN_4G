@@ -131,7 +131,6 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     return -1;
   }
   for (uint32_t i = 0; i < data->carrier_freqs_info_list.size(); i++) {
-
     int cell_resel_prio;
     if (root[i].lookupValue("cell_resel_prio", cell_resel_prio)) {
       data->carrier_freqs_info_list[i].common_info.cell_resel_prio_present = true;
@@ -396,20 +395,22 @@ int field_qci::parse(libconfig::Setting& root)
       return -1;
     }
 
+    rrc_cfg_qci_t qcicfg;
+
     field_asn1_enum_number<pdcp_cfg_s::discard_timer_e_> discard_timer(
-        "discard_timer", &cfg[qci].pdcp_cfg.discard_timer, &cfg[qci].pdcp_cfg.discard_timer_present);
+        "discard_timer", &qcicfg.pdcp_cfg.discard_timer, &qcicfg.pdcp_cfg.discard_timer_present);
     discard_timer.parse(q["pdcp_config"]);
 
     field_asn1_enum_number<pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_> pdcp_sn_size(
-        "pdcp_sn_size", &cfg[qci].pdcp_cfg.rlc_um.pdcp_sn_size, &cfg[qci].pdcp_cfg.rlc_um_present);
+        "pdcp_sn_size", &qcicfg.pdcp_cfg.rlc_um.pdcp_sn_size, &qcicfg.pdcp_cfg.rlc_um_present);
     pdcp_sn_size.parse(q["pdcp_config"]);
 
-    cfg[qci].pdcp_cfg.rlc_am_present =
-        q["pdcp_config"].lookupValue("status_report_required", cfg[qci].pdcp_cfg.rlc_am.status_report_required);
-    cfg[qci].pdcp_cfg.hdr_compress.set(pdcp_cfg_s::hdr_compress_c_::types::not_used);
+    qcicfg.pdcp_cfg.rlc_am_present =
+        q["pdcp_config"].lookupValue("status_report_required", qcicfg.pdcp_cfg.rlc_am.status_report_required);
+    qcicfg.pdcp_cfg.hdr_compress.set(pdcp_cfg_s::hdr_compress_c_::types::not_used);
 
     // Parse RLC section
-    rlc_cfg_c* rlc_cfg = &cfg[qci].rlc_cfg;
+    rlc_cfg_c* rlc_cfg = &qcicfg.rlc_cfg;
     if (q["rlc_config"].exists("ul_am")) {
       rlc_cfg->set_am();
     } else if (q["rlc_config"].exists("ul_um") && q["rlc_config"].exists("dl_um")) {
@@ -425,7 +426,6 @@ int field_qci::parse(libconfig::Setting& root)
 
     // Parse RLC-UM section
     if (q["rlc_config"].exists("ul_um")) {
-
       ul_um_rlc_s* um_rlc;
       if (rlc_cfg->type() == rlc_cfg_c::types::um_uni_dir_ul) {
         um_rlc = &rlc_cfg->um_uni_dir_ul().ul_um_rlc;
@@ -440,7 +440,6 @@ int field_qci::parse(libconfig::Setting& root)
     }
 
     if (q["rlc_config"].exists("dl_um")) {
-
       dl_um_rlc_s* um_rlc;
       if (rlc_cfg->type() == rlc_cfg_c::types::um_uni_dir_dl) {
         um_rlc = &rlc_cfg->um_uni_dir_dl().dl_um_rlc;
@@ -505,7 +504,7 @@ int field_qci::parse(libconfig::Setting& root)
       return -1;
     }
 
-    lc_ch_cfg_s::ul_specific_params_s_* lc_cfg = &cfg[qci].lc_cfg;
+    lc_ch_cfg_s::ul_specific_params_s_* lc_cfg = &qcicfg.lc_cfg;
 
     parser::field<uint8> priority("priority", &lc_cfg->prio);
     if (priority.parse(q["logical_channel_config"])) {
@@ -526,7 +525,8 @@ int field_qci::parse(libconfig::Setting& root)
 
     parser::field<uint8> log_chan_group("log_chan_group", &lc_cfg->lc_ch_group);
     lc_cfg->lc_ch_group_present = not log_chan_group.parse(q["logical_channel_config"]);
-    cfg[qci].configured         = true;
+    qcicfg.configured           = true;
+    cfg.insert(std::make_pair(qci, qcicfg));
   }
 
   return 0;

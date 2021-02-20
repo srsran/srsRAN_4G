@@ -30,14 +30,12 @@ struct rrc_cfg_sr_t {
   uint32_t                                                   nof_subframes;
 };
 
-typedef struct {
+struct rrc_cfg_qci_t {
   bool                                          configured = false;
   asn1::rrc::lc_ch_cfg_s::ul_specific_params_s_ lc_cfg;
   asn1::rrc::pdcp_cfg_s                         pdcp_cfg;
   asn1::rrc::rlc_cfg_c                          rlc_cfg;
-} rrc_cfg_qci_t;
-
-#define MAX_NOF_QCI 10
+};
 
 struct rrc_cfg_t {
   uint32_t enb_id; ///< Required to pack SIB1
@@ -51,7 +49,7 @@ struct rrc_cfg_t {
   asn1::rrc::pdsch_cfg_ded_s::p_a_e_                                                      pdsch_cfg;
   rrc_cfg_sr_t                                                                            sr_cfg;
   rrc_cfg_cqi_t                                                                           cqi_cfg;
-  rrc_cfg_qci_t                                                                           qci_cfg[MAX_NOF_QCI];
+  std::map<uint32_t, rrc_cfg_qci_t>                                                       qci_cfg;
   bool                                                                                    enable_mbsfn;
   uint16_t                                                                                mbms_mcs;
   uint32_t                                                                                inactivity_timeout_ms;

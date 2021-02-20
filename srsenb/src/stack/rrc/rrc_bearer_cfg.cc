@@ -217,11 +217,8 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
   uint8_t drbid = erab_id - 4;
 
-  if (qos.qci >= MAX_NOF_QCI) {
-    logger.error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d", qos.qci, erab_id, drbid);
-    return SRSLTE_ERROR;
-  }
-  if (not cfg->qci_cfg[qos.qci].configured) {
+  auto qci_it = cfg->qci_cfg.find(qos.qci);
+  if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
     logger.error("QCI=%d not configured", qos.qci);
     return SRSLTE_ERROR;
   }
@@ -229,6 +226,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
     logger.error("DRB logical channel ids must be within 3 and 10");
     return SRSLTE_ERROR;
   }
+  const rrc_cfg_qci_t& qci_cfg = qci_it->second;
 
   erabs[erab_id].id         = erab_id;
   erabs[erab_id].qos_params = qos;
@@ -255,11 +253,11 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   drb_it->lc_ch_cfg_present                                = true;
   drb_it->lc_ch_cfg.ul_specific_params_present             = true;
   drb_it->lc_ch_cfg.ul_specific_params.lc_ch_group_present = true;
-  drb_it->lc_ch_cfg.ul_specific_params                     = cfg->qci_cfg[qos.qci].lc_cfg;
+  drb_it->lc_ch_cfg.ul_specific_params                     = qci_cfg.lc_cfg;
   drb_it->pdcp_cfg_present                                 = true;
-  drb_it->pdcp_cfg                                         = cfg->qci_cfg[qos.qci].pdcp_cfg;
+  drb_it->pdcp_cfg                                         = qci_cfg.pdcp_cfg;
   drb_it->rlc_cfg_present                                  = true;
-  drb_it->rlc_cfg                                          = cfg->qci_cfg[qos.qci].rlc_cfg;
+  drb_it->rlc_cfg                                          = qci_cfg.rlc_cfg;
 
   return SRSLTE_SUCCESS;
 }
@@ -339,7 +337,7 @@ uint32_t bearer_cfg_handler::add_gtpu_bearer(uint32_t                           
   return bearer.teid_in;
 }
 
-void bearer_cfg_handler::rem_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
+void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it != erabs.end()) {
