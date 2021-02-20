@@ -72,7 +72,7 @@ struct pdcp_sdu_info_t {
 struct tx_window_t {
   tx_window_t()
   {
-    std::fill(active_flag.begin(), active_flag.end(), false);
+    clear();
     for (size_t i = 0; i < window.size(); ++i) {
       window[i].pdcp_sns.reserve(5);
     }
@@ -100,8 +100,10 @@ struct tx_window_t {
   bool   empty() const { return count == 0; }
   void   clear()
   {
-    window = {};
     std::fill(active_flag.begin(), active_flag.end(), false);
+    for (size_t i = 0; i < window.size(); ++i) {
+      window[i].pdcp_sns.clear();
+    }
     count = 0;
   }
   bool              has_sn(uint32_t sn) const { return active_flag[sn] and window[sn].rlc_sn == sn; }
@@ -120,9 +122,9 @@ struct tx_window_t {
   }
 
 private:
-  size_t                                        count       = 0;
-  srslte::circular_array<bool, 512>             active_flag = {};
-  srslte::circular_array<rlc_amd_tx_pdu_t, 512> window;
+  size_t                                                       count       = 0;
+  srslte::circular_array<bool, RLC_AM_WINDOW_SIZE>             active_flag = {};
+  srslte::circular_array<rlc_amd_tx_pdu_t, RLC_AM_WINDOW_SIZE> window;
 };
 
 class rlc_am_lte : public rlc_common
