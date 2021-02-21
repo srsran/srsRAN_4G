@@ -859,6 +859,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   logger.debug("%s Building PDU - pdu_space: %d, head_len: %d ", RB_NAME, pdu_space, head_len);
 
   // Check for SDU segment
+  std::vector<uint32_t> pdcp_sns;
   if (tx_sdu != NULL) {
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
@@ -873,7 +874,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       return 0;
     }
     undelivered_sdu_info_queue.at(tx_sdu->md.pdcp_sn).rlc_sn_info_list.push_back({header.sn, false});
-    tx_window[header.sn].pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
+    pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx.", RB_NAME);
       undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
@@ -920,7 +921,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       return 0;
     }
     info_it->second.rlc_sn_info_list.push_back({header.sn, false});
-    tx_window[header.sn].pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
+    pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx. PDCP SN=%d", RB_NAME, tx_sdu->md.pdcp_sn);
       info_it->second.fully_txed = true;
@@ -976,6 +977,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   tx_window[header.sn].is_acked   = false;
   tx_window[header.sn].retx_count = 0;
   tx_window[header.sn].rlc_sn     = header.sn;
+  tx_window[header.sn].pdcp_sns   = std::move(pdcp_sns);
   const byte_buffer_t* buffer_ptr = tx_window[header.sn].buf.get();
 
   uint8_t* ptr = payload;
@@ -1017,9 +1019,9 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   }
 
   // Handle ACKs and NACKs
-  bool                                           update_vt_a = true;
-  uint32_t                                       i           = vt_a;
-  std::vector<uint32_t>                          notify_info_vec;
+  bool                  update_vt_a = true;
+  uint32_t              i           = vt_a;
+  std::vector<uint32_t> notify_info_vec;
 
   while (TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) && TX_MOD_BASE(i) < TX_MOD_BASE(vt_s)) {
     bool nack = false;

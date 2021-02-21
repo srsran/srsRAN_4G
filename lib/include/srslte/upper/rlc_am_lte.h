@@ -70,13 +70,7 @@ struct pdcp_sdu_info_t {
 };
 
 struct tx_window_t {
-  tx_window_t()
-  {
-    clear();
-    for (size_t i = 0; i < window.size(); ++i) {
-      window[i].pdcp_sns.reserve(5);
-    }
-  }
+  tx_window_t() { clear(); }
   void add_pdu(size_t sn)
   {
     assert(not active_flag[sn]);
