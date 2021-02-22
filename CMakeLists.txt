@@ -80,6 +80,8 @@ option(ENABLE_TIMEPROF "Enable time profiling"                    ON)
 
 option(FORCE_32BIT     "Add flags to force 32 bit compilation"    OFF)
 
+option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"  OFF)
+
 # Users that want to try this feature need to make sure the lto plugin is
 # loaded by bintools (ar, nm, ...). Older versions of bintools will not do
 # it automatically so it is necessary to use the gcc wrappers of the compiler
@@ -93,6 +95,10 @@ else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 
+
+if (ENABLE_SRSLOG_TRACING)
+  add_definitions(-DENABLE_SRSLOG_EVENT_TRACE)
+endif (ENABLE_SRSLOG_TRACING)
 
 ########################################################################
 # Find dependencies

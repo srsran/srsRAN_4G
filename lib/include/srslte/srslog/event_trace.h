@@ -46,7 +46,7 @@ void trace_duration_end(const std::string& category, const std::string& name);
 
 /// Generates a complete event.
 #define trace_complete_event(C, N)                                             \
-  auto scoped_complete_event_variable = detail::scoped_complete_event(C, N)
+  auto scoped_complete_event_variable = srslog::detail::scoped_complete_event(C, N)
 
 #else
 

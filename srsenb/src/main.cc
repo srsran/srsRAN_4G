@@ -22,6 +22,7 @@
 #include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/srslog.h"
 
 #include <boost/program_options.hpp>
@@ -500,6 +501,10 @@ int main(int argc, char* argv[])
   srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
   srslog::log_channel& alarms_channel = srslog::fetch_log_channel("alarms", alarm_sink, {"ALRM", '\0', false});
   alarms_channel.set_enabled(args.general.alarms_log_enable);
+
+#ifdef ENABLE_SRSLOG_EVENT_TRACE
+  srslog::event_trace_init();
+#endif
 
   // Start the log backend.
   srslog::init();
