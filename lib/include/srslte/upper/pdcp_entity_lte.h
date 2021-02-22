@@ -99,6 +99,12 @@ private:
   uint32_t reordering_window = 0;
   uint32_t maximum_pdcp_sn   = 0;
 
+  // PDU handlers
+  void handle_control_pdu(srslte::unique_byte_buffer_t pdu);
+  void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);
+  void handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu);
+  void handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu);
+
   // Discard callback (discardTimer)
   class discard_callback;
   std::vector<unique_timer> discard_timers;
@@ -106,13 +112,150 @@ private:
   void                      stop_discard_timer(uint32_t sn);
 
   // TX Queue
-  uint32_t                                 maximum_allocated_sns_window = 2048;
-  std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus_queue;
+  uint32_t maximum_allocated_sns_window = 2048;
+  class undelivered_sdus_queue_t
+  {
+  public:
+    undelivered_sdus_queue_t() : sdus(capacity) {}
 
-  void handle_control_pdu(srslte::unique_byte_buffer_t pdu);
-  void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);
-  void handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu);
-  void handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu);
+    bool empty() { return count == 0; }
+
+    bool is_full() { return count >= capacity; }
+
+    uint32_t size() { return count; }
+
+    uint32_t get_capacity() { return capacity; }
+
+    bool has_sdu(uint32_t sn)
+    {
+      if (sn >= capacity) {
+        return false;
+      }
+      return sdus[sn] != nullptr;
+    }
+
+    bool add_sdu(uint32_t sn, const srslte::unique_byte_buffer_t& sdu)
+    {
+      assert(not has_sdu(sn));
+
+      if (is_full()) {
+        return false;
+      }
+
+      // Make sure we don't associate more than half of the PDCP SN space of contiguous PDCP SDUs
+      if (not empty()) {
+        int32_t diff = sn - fms;
+        if (diff > (int32_t)(capacity / 2)) {
+          return false;
+        }
+        if (diff <= 0 && diff > -((int32_t)(capacity / 2))) {
+          return false;
+        }
+      }
+
+      // Allocate buffer and exit on error
+      srslte::unique_byte_buffer_t tmp = make_byte_buffer();
+      if (tmp == nullptr) {
+        return false;
+      }
+
+      // Update FMS and LMS if necessary
+      if (empty()) {
+        fms = sn;
+        lms = sn;
+      } else {
+        update_lms(sn);
+      }
+      // Add SDU
+      count++;
+      sdus[sn] = std::move(tmp);
+      memcpy(sdus[sn]->msg, sdu->msg, sdu->N_bytes);
+      sdus[sn]->N_bytes = sdu->N_bytes;
+      bytes += sdu->N_bytes;
+      sdus[sn]->set_timestamp(); // Metrics
+      return true;
+    }
+
+    unique_byte_buffer_t& operator[](uint32_t sn)
+    {
+      assert(has_sdu(sn));
+      return sdus[sn];
+    }
+
+    void clear_sdu(uint32_t sn)
+    {
+      assert(has_sdu(sn));
+      if (has_sdu(sn)) {
+        count--;
+        bytes -= sdus[sn]->N_bytes;
+        sdus[sn] = nullptr;
+      }
+      // Find next FMS,
+      update_fms();
+    }
+
+    void clear()
+    {
+      count = 0;
+      bytes = 0;
+      fms   = 0;
+      for (uint32_t sn = 0; sn < capacity; sn++) {
+        sdus[sn] = nullptr;
+      }
+    }
+
+    uint32_t get_bytes() { return bytes; }
+
+    uint32_t get_fms() { return fms; }
+
+    void set_fms(uint32_t fms_) { fms = fms_; }
+
+    void update_fms()
+    {
+      if (empty()) {
+        fms = increment_sn(fms);
+        return;
+      }
+
+      for (uint32_t i = 0; i < capacity; ++i) {
+        uint32_t sn = increment_sn(fms + i);
+        if (has_sdu(sn)) {
+          fms = sn;
+          return;
+        }
+      }
+
+      fms = increment_sn(fms);
+    }
+
+    void update_lms(uint32_t sn)
+    {
+      if (empty()) {
+        lms = fms;
+        return;
+      }
+
+      int32_t diff = sn - lms;
+      if (diff > 0 && sn > lms) {
+        lms = sn;
+      } else if (diff < 0 && sn < lms) {
+        lms = sn;
+      }
+    }
+
+    uint32_t get_lms() { return lms; }
+
+  private:
+    uint32_t increment_sn(uint32_t sn) { return (sn + 1) % capacity; }
+    uint32_t decrement_sn(uint32_t sn) { return (sn - 1) % capacity; }
+
+    const static uint32_t                     capacity = 4096;
+    uint32_t                                  count    = 0;
+    uint32_t                                  bytes    = 0;
+    uint32_t                                  fms      = 0;
+    uint32_t                                  lms      = 0;
+    std::vector<srslte::unique_byte_buffer_t> sdus;
+  } undelivered_sdus_queue;
 };
 
 // Discard callback (discardTimer)
