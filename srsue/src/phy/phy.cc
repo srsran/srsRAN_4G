@@ -605,7 +605,6 @@ void phy::set_mch_period_stop(uint32_t stop)
   common.set_mch_period_stop(stop);
 }
 
-#ifdef HAVE_5GNR
 int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_)
 {
   if (!nr_workers.init(args_, &common, stack_, log_sink, WORKERS_THREAD_PRIO)) {
@@ -642,6 +641,5 @@ bool phy::set_config(const srslte::phy_cfg_nr_t& cfg)
 {
   return nr_workers.set_config(cfg);
 }
-#endif // HAVE_5GNR
 
 } // namespace srsue

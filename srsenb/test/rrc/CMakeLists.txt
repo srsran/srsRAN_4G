@@ -6,8 +6,7 @@
 # the distribution.
 #
 
-if (ENABLE_5GNR)
-    add_executable(rrc_nr_test rrc_nr_test.cc)
-    target_link_libraries(rrc_nr_test srsgnb_rrc srslte_common rrc_nr_asn1)
-    add_test(rrc_nr_test rrc_nr_test)
-endif ()
+add_executable(rrc_nr_test rrc_nr_test.cc)
+target_link_libraries(rrc_nr_test srsgnb_rrc srslte_common rrc_nr_asn1)
+add_test(rrc_nr_test rrc_nr_test)
+

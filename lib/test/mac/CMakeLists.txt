@@ -14,8 +14,7 @@ add_executable(mac_pcap_test mac_pcap_test.cc)
 target_link_libraries(mac_pcap_test srslte_common srslte_mac ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_test(mac_pcap_test mac_pcap_test)
 
-if (ENABLE_5GNR)
-    add_executable(mac_pdu_nr_test mac_pdu_nr_test.cc)
-    target_link_libraries(mac_pdu_nr_test srslte_mac srslte_common ${CMAKE_THREAD_LIBS_INIT})
-    add_test(mac_pdu_nr_test mac_pdu_nr_test)
-endif (ENABLE_5GNR)
+add_executable(mac_pdu_nr_test mac_pdu_nr_test.cc)
+target_link_libraries(mac_pdu_nr_test srslte_mac srslte_common ${CMAKE_THREAD_LIBS_INIT})
+add_test(mac_pdu_nr_test mac_pdu_nr_test)
+

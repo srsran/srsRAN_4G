@@ -46,9 +46,7 @@ namespace srsue {
 
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
-#ifdef HAVE_5GNR
                            public stack_interface_phy_nr,
-#endif
                            public stack_interface_gw,
                            public stack_interface_rrc,
                            public srslte::thread
@@ -61,13 +59,11 @@ public:
 
   int init(const stack_args_t& args_, srslte::logger* logger_);
   int init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
-#ifdef HAVE_5GNR
   int init(const stack_args_t&      args_,
            srslte::logger*          logger_,
            phy_interface_stack_lte* phy_,
            phy_interface_stack_nr*  phy_nr_,
            gw_interface_stack*      gw_);
-#endif
   bool switch_on() final;
   bool switch_off() final;
   bool is_registered() final;
@@ -123,7 +119,6 @@ public:
 
   void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
-#ifdef HAVE_5GNR
   // MAC Interface for NR PHY
   int  sf_indication(const uint32_t tti) final { return SRSLTE_SUCCESS; }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
@@ -139,7 +134,6 @@ public:
   {
     mac_nr.prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
   }
-#endif
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
@@ -184,9 +178,7 @@ private:
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
   gw_interface_stack*      gw  = nullptr;
-#ifdef HAVE_5GNR
-  phy_interface_stack_nr* phy_nr = nullptr;
-#endif
+  phy_interface_stack_nr*  phy_nr = nullptr;
 
   // Thread
   static const int                      STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
@@ -204,10 +196,8 @@ private:
   srslte::rlc      rlc;
   srslte::pdcp     pdcp;
   srsue::rrc       rrc;
-#ifdef HAVE_5GNR
   srsue::mac_nr mac_nr;
   srsue::rrc_nr rrc_nr;
-#endif
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
 

@@ -73,9 +73,7 @@ void rrc::rrc_meas::update_phy()
 {
   std::list<meas_obj_to_add_mod_s> objects = meas_cfg.get_active_objects();
   rrc_ptr->phy->meas_stop();
-#ifdef HAVE_5GNR
   rrc_ptr->rrc_nr->phy_meas_stop();
-#endif
   for (const auto& obj : objects) {
     switch (obj.meas_obj.type().value) {
       case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra: {
@@ -87,12 +85,10 @@ void rrc::rrc_meas::update_phy()
         rrc_ptr->phy->set_cells_to_meas(obj.meas_obj.meas_obj_eutra().carrier_freq, neighbour_pcis);
         break;
       }
-#ifdef HAVE_5GNR
       case meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15: {
         rrc_ptr->rrc_nr->phy_set_cells_to_meas(obj.meas_obj.meas_obj_nr_r15().carrier_freq_r15);
         break;
       }
-#endif
       default:
         logger.error("Not supported");
         break;
@@ -348,7 +344,6 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* 
     }
   }
 }
-#ifdef HAVE_5GNR
 void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_s* report, const uint32_t measId)
 {
 
@@ -432,7 +427,6 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_
     }
   }
 }
-#endif
 /* Generate report procedure 5.5.5 */
 void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
 {
@@ -467,13 +461,11 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
       generate_report_eutra(report, measId);
       break;
     }
-#ifdef HAVE_5GNR
     case inter_rat: {
       logger.debug("MEAS: Generate INTER RAT NR report");
       generate_report_interrat(report, measId);
       break;
     }
-#endif
     default:
       logger.debug("MEAS: Not supported");
       break;
@@ -666,7 +658,6 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra(uint32_t            meas
   }
 }
 
-#ifdef HAVE_5GNR
 void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_check_new(int32_t                 meas_id,
                                                                      report_cfg_inter_rat_s& report_cfg,
                                                                      meas_obj_nr_r15_s&      meas_obj)
@@ -757,7 +748,6 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers_interrat_nr(uint32_t          
     report_triggers_interrat_removing_trigger(meas_id);
   }
 }
-#endif
 void rrc::rrc_meas::var_meas_cfg::report_triggers()
 {
   // for each measId included in the measIdList within VarMeasConfig
@@ -782,14 +772,12 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       report_triggers_eutra(m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra());
     }
-#ifdef HAVE_5GNR
     else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
              report_cfg.report_cfg.type().value ==
                  report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat) {
       report_triggers_interrat_nr(
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
     }
-#endif
     else {
       logger.error("Unsupported combination of measurement object type %s and report config type %s ",
                    meas_obj.meas_obj.type().to_string().c_str(),
@@ -936,7 +924,6 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
   }
 }
 
-#ifdef HAVE_5GNR
 void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t                meas_id,
                                                             report_cfg_inter_rat_s& report_cfg,
                                                             meas_obj_nr_r15_s&      meas_obj)
@@ -983,7 +970,6 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_interrat_nr(uint32_t            
                  exit_condition);
   }
 }
-#endif
 /* Evaluate event trigger conditions for each cell 5.5.4 */
 void rrc::rrc_meas::var_meas_cfg::eval_triggers()
 {
@@ -1032,12 +1018,10 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
       eval_triggers_eutra(
           m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra(), serv_cell, Ofs, Ocs);
     }
-#ifdef HAVE_5GNR
     else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
              report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
       eval_triggers_interrat_nr(
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
-#endif
     else {
       logger.error("Unsupported combination of measurement object type %s and report config type %s ",
                    meas_obj.meas_obj.type().to_string().c_str(),

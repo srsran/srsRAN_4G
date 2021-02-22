@@ -61,9 +61,7 @@ rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
   connection_reest(this),
   ho_handler(this),
   conn_recfg_proc(this),
-#ifdef HAVE_5GNR
   meas_cells_nr(task_sched_),
-#endif
   meas_cells(task_sched_)
 {}
 
@@ -99,9 +97,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-#ifdef HAVE_5GNR
                rrc_nr_interface_rrc* rrc_nr_,
-#endif
                const rrc_args_t& args_)
 {
   phy  = phy_;
@@ -111,9 +107,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   nas  = nas_;
   usim = usim_;
   gw   = gw_;
-#ifdef HAVE_5GNR
   rrc_nr = rrc_nr_;
-#endif
   args = args_;
 
   auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
@@ -215,9 +209,7 @@ void rrc::run_tti()
   // Process pending PHY measurements in IDLE/CONNECTED
   process_cell_meas();
 
-#ifdef HAVE_5GNR
   process_cell_meas_nr();
-#endif
 
   // Process on-going callbacks, and clear finished callbacks
   callback_list.run();
@@ -374,7 +366,6 @@ void rrc::set_config_complete(bool status)
 
 void rrc::set_scell_complete(bool status) {}
 
-#ifdef HAVE_5GNR
 /* This function is called from a NR PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
  */
@@ -426,7 +417,6 @@ void rrc::nr_rrc_con_reconfig_complete(bool status)
     conn_recfg_proc.trigger(status);
   }
 }
-#endif
 
 /* This function is called from a PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
@@ -579,12 +569,10 @@ bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
   return meas_cells.has_neighbour_cell(earfcn, pci);
 }
 
-#ifdef HAVE_5GNR
 bool rrc::has_neighbour_cell_nr(uint32_t earfcn, uint32_t pci) const
 {
   return meas_cells_nr.has_neighbour_cell(earfcn, pci);
 }
-#endif
 
 bool rrc::is_serving_cell(uint32_t earfcn, uint32_t pci) const
 {
@@ -757,7 +745,6 @@ void rrc::timer_expired(uint32_t timeout_id)
   }
 }
 
-#ifdef HAVE_5GNR
 bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
 {
   if (!(rx_recfg.non_crit_ext_present && rx_recfg.non_crit_ext.non_crit_ext_present &&
@@ -812,7 +799,6 @@ bool rrc::nr_reconfiguration_proc(const rrc_conn_recfg_r8_ies_s& rx_recfg)
                                      nr_radio_bearer_cfg1_r15_present,
                                      nr_radio_bearer_cfg1_r15);
 }
-#endif
 /*******************************************************************************
  *
  *
@@ -1215,7 +1201,6 @@ meas_cell_eutra* rrc::get_serving_cell()
   return &meas_cells.serving_cell();
 }
 
-#ifdef HAVE_5GNR
 std::set<uint32_t> rrc::get_cells_nr(const uint32_t arfcn_nr)
 {
   return meas_cells_nr.get_neighbour_pcis(arfcn_nr);
@@ -1232,7 +1217,6 @@ float rrc::get_cell_rsrq_nr(const uint32_t arfcn_nr, const uint32_t pci_nr)
   meas_cell_nr* c = meas_cells_nr.get_neighbour_cell_handle(arfcn_nr, pci_nr);
   return (c != nullptr) ? c->get_rsrq() : NAN;
 }
-#endif
 
 /*******************************************************************************
  *
@@ -2074,7 +2058,6 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       rat_idx++;
 
     }
-#ifdef HAVE_5GNR
     else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra_nr && has_nr_dc()) {
       info->ue_cap_rat_container_list[rat_idx] = get_eutra_nr_capabilities();
       logger.info("Including EUTRA-NR capabilities in UE Capability Info (%d B)",
@@ -2086,7 +2069,6 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
                   info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
       rat_idx++;
     }
-#endif
     else {
       logger.error("RAT Type of UE Cap request not supported or not configured");
     }
@@ -2094,7 +2076,6 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
   // resize container back to the actually filled items
   info->ue_cap_rat_container_list.resize(rat_idx);
 
-#ifdef HAVE_5GNR
   if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext_present) {
     if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext_present) {
       if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().non_crit_ext.non_crit_ext.non_crit_ext_present) {
@@ -2113,7 +2094,6 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       }
     }
   }
-#endif
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
@@ -2693,10 +2673,8 @@ uint32_t rrc::get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id)
 bool rrc::has_nr_dc()
 {
   bool has_nr_dc = false;
-#ifdef HAVE_5GNR
   if (args.release >= 15)
     has_nr_dc = true;
-#endif
   return has_nr_dc;
 }
 
@@ -2745,11 +2723,7 @@ asn1::rrc::ue_cap_rat_container_s rrc::get_eutra_nr_capabilities()
 {
   srslte::byte_buffer_t             caps_buf;
   asn1::rrc::ue_cap_rat_container_s cap;
-#ifdef HAVE_5GNR
   rrc_nr->get_eutra_nr_capabilities(&caps_buf);
-#else
-  logger.error("Not able to access get_eutra_nr_capabilities function");
-#endif
   cap.rat_type = asn1::rrc::rat_type_e::eutra_nr;
   cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
   memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);
@@ -2760,11 +2734,7 @@ asn1::rrc::ue_cap_rat_container_s rrc::get_nr_capabilities()
 {
   srslte::byte_buffer_t             caps_buf;
   asn1::rrc::ue_cap_rat_container_s cap;
-#ifdef HAVE_5GNR
   rrc_nr->get_nr_capabilities(&caps_buf);
-#else
-  logger.error("Not able to access get_nr_capabilities function");
-#endif
   cap.rat_type = asn1::rrc::rat_type_e::nr;
   cap.ue_cap_rat_container.resize(caps_buf.N_bytes);
   memcpy(cap.ue_cap_rat_container.data(), caps_buf.msg, caps_buf.N_bytes);

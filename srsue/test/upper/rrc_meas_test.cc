@@ -255,14 +255,10 @@ public:
     pdcptest  = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
     rrcnrtest = std::unique_ptr<rrc_nr_test>(new rrc_nr_test());
   }
-#ifdef HAVE_5GNR
   void init()
   {
     rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, rrcnrtest.get(), {});
   }
-#else
-  void init() { rrc::init(&phytest, &mactest, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
-#endif
 
   void run_tti(uint32_t tti_)
   {
@@ -346,7 +342,6 @@ public:
     run_tti(1);
   }
 
-#ifdef HAVE_5GNR
   void add_neighbour_cell_nr(uint32_t pci, uint32_t earfcn, float rsrp = 0)
   {
     std::vector<phy_meas_nr_t> phy_meas = {};
@@ -358,7 +353,6 @@ public:
     new_cell_meas_nr(phy_meas);
     run_tti(1);
   }
-#endif
 
   using rrc::has_neighbour_cell;
   using rrc::is_serving_cell;
@@ -1248,7 +1242,6 @@ int meas_obj_inter_rat_nr_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
 
-#ifdef HAVE_5GNR
 
   rrctest.add_neighbour_cell(2, 300, 2.0);
   rrctest.set_serving_cell(2, 300);
@@ -1260,7 +1253,6 @@ int meas_obj_inter_rat_nr_test()
     rrctest.add_neighbour_cell_nr(500, 631680, -60.0);
   }
 
-#endif
   return SRSLTE_SUCCESS;
 }
 

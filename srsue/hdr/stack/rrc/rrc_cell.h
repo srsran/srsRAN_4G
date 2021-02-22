@@ -15,10 +15,8 @@
 
 #include "srslte/asn1/rrc.h"
 #include "srslte/asn1/rrc_utils.h"
-#if HAVE_5GNR
 #include "srslte/asn1/rrc_nr.h"
 #include "srslte/asn1/rrc_nr_utils.h"
-#endif
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
 
@@ -106,7 +104,6 @@ protected:
   std::map<uint32_t, uint32_t> sib_info_map; ///< map of sib_index to index of schedInfoList in SIB1
 };
 
-#ifdef HAVE_5GNR
 class meas_cell_nr : public meas_cell
 {
 public:
@@ -138,7 +135,6 @@ public:
   asn1::rrc_nr::sib3_s  sib3     = {};
   asn1::rrc::mcch_msg_s mcch     = {};
 };
-#endif
 
 class meas_cell_eutra : public meas_cell
 {
@@ -193,13 +189,11 @@ inline uint32_t get_pci(const meas_cell_eutra& t)
 {
   return t.get_pci();
 }
-#ifdef HAVE_5GNR
 template <>
 inline uint32_t get_pci(const meas_cell_nr& t)
 {
   return t.get_pci();
 }
-#endif
 template <typename T>
 uint32_t get_earfcn(const T& t)
 {
@@ -210,13 +204,11 @@ inline uint32_t get_earfcn(const meas_cell_eutra& t)
 {
   return t.get_earfcn();
 }
-#ifdef HAVE_5GNR
 template <>
 inline uint32_t get_earfcn(const meas_cell_nr& t)
 {
   return t.get_earfcn();
 }
-#endif
 template <typename T, typename U>
 bool is_same_cell(const T& lhs, const U& rhs)
 {

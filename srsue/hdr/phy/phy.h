@@ -67,9 +67,7 @@ private:
 };
 
 class phy final : public ue_lte_phy_base,
-#if HAVE_5GNR
                   public ue_nr_phy_base,
-#endif // HAVE_5GNR
                   public srslte::thread
 {
 public:
@@ -175,7 +173,6 @@ public:
 
   std::string get_type() final { return "lte_soft"; }
 
-#ifdef HAVE_5GNR
   int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_) final;
   bool set_config(const srslte::phy_cfg_nr_t& cfg) final;
   int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant) final;
@@ -185,7 +182,6 @@ public:
                   const float    ta_base_sec = 0.0f) final;
   int  tx_request(const tx_request_t& request) final;
   void set_earfcn(std::vector<uint32_t> earfcns) final;
-#endif // HAVE_5GNR
 
 private:
   void run_thread() final;

@@ -982,14 +982,12 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::init(const asn1::rrc::
   }
 
   // Apply NR config
-#ifdef HAVE_5GNR
   bool rtn = rrc_ptr->nr_reconfiguration_proc(rx_recfg);
   if (rtn == false) {
     rrc_ptr->logger.error("Can not launch NR RRC Reconfiguration procedure");
     return proc_outcome_t::error;
   }
   has_5g_nr_reconfig = true;
-#endif
 
   // No phy config was scheduled, run config completion immediately
   if (rrc_ptr->phy_ctrl->is_config_pending()) {
@@ -1010,12 +1008,10 @@ srslte::proc_outcome_t rrc::connection_reconf_no_ho_proc::react(const bool& conf
     return proc_outcome_t::yield;
   }
 
-#ifdef HAVE_5GNR
   // in case there is rrc_nr to configure, wait for rrc nr configuration
   if (has_5g_nr_reconfig == true && rrc_ptr->rrc_nr->is_config_pending()) {
     return proc_outcome_t::yield;
   }
-#endif
 
   if (has_5g_nr_reconfig == true) {
     rrc_ptr->send_rrc_con_reconfig_complete(true);

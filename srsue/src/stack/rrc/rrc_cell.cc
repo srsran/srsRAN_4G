@@ -94,7 +94,6 @@ bool meas_cell::has_sib(uint32_t index) const
   return false;
 }
 
-#ifdef HAVE_5GNR
 std::string meas_cell_nr::to_string() const
 {
   char buf[256];
@@ -108,7 +107,6 @@ std::string meas_cell_nr::to_string() const
            get_cfo_hz());
   return std::string{buf};
 }
-#endif
 
 std::string meas_cell_eutra::to_string() const
 {
@@ -426,8 +424,6 @@ bool meas_cell_list<T>::process_new_cell_meas(const std::vector<phy_meas_t>&    
 }
 
 template class meas_cell_list<meas_cell_eutra>;
-#ifdef HAVE_5GNR
 template class meas_cell_list<meas_cell_nr>;
-#endif
 
 } // namespace srsue

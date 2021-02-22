@@ -11,9 +11,7 @@
  */
 
 #include "srslte/upper/pdcp.h"
-#ifdef HAVE_5GNR
 #include "srslte/upper/pdcp_entity_nr.h"
-#endif
 
 namespace srslte {
 
@@ -99,12 +97,7 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
     if (cfg.sn_len == srslte::PDCP_SN_LEN_18) {
       // create NR entity for 18bit SN length
 
-#ifdef HAVE_5GNR
       entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_sched, logger, lcid, cfg});
-#else
-      logger.error("Invalid PDCP configuration.");
-      return;
-#endif
     } else {
       entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid, cfg});
     }

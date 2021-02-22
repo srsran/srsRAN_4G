@@ -6,11 +6,7 @@
 # the distribution.
 #
 
-SET(SOURCES pdu.cc pdu_queue.cc)
-
-if (ENABLE_5GNR)
-    set(SOURCES ${SOURCES} mac_sch_pdu_nr.cc mac_rar_pdu_nr.cc)
-endif(ENABLE_5GNR)
+SET(SOURCES pdu.cc pdu_queue.cc mac_sch_pdu_nr.cc mac_rar_pdu_nr.cc)
 
 add_library(srslte_mac STATIC ${SOURCES})
 target_link_libraries(srslte_mac srslte_common)
