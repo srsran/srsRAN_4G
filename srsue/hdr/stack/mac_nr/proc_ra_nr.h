@@ -36,6 +36,7 @@ public:
   bool is_contention_resolution();
 
   bool is_rar_opportunity(uint32_t tti);
+  bool has_rar_rnti();
   uint16_t get_rar_rnti();
   bool has_temp_rnti();
   uint16_t get_temp_rnti();

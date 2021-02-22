@@ -28,8 +28,6 @@ namespace srsue {
 
 struct mac_nr_args_t {
   srsue::pcap_args_t pcap;
-  // TODO: remove temp variable
-  uint32_t drb_lcid;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_proc_ra_nr

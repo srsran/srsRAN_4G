@@ -31,6 +31,7 @@ public:
 
   void msg3_flush();
   void msg3_prepare();
+  void msg3_transmitted();
   bool msg3_is_transmitted();
   bool msg3_is_pending();
   bool msg3_is_empty();

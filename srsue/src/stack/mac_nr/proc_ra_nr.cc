@@ -93,6 +93,14 @@ uint16_t proc_ra_nr::get_rar_rnti()
   return rar_rnti;
 }
 
+bool proc_ra_nr::has_rar_rnti()
+{
+  if (rar_rnti != SRSLTE_INVALID_RNTI) {
+    return true;
+  }
+  return false;
+}
+
 bool proc_ra_nr::has_temp_rnti()
 {
   return temp_rnti != SRSLTE_INVALID_RNTI;
@@ -239,7 +247,6 @@ void proc_ra_nr::ra_completion()
                    srslte::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
     return;
   }
-  mac->set_c_rnti(temp_rnti);
   srslte::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac->get_c_rnti(), current_ta);
   logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac->get_c_rnti(), current_ta);
   temp_rnti = SRSLTE_INVALID_RNTI;

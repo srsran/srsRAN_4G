@@ -229,9 +229,7 @@ int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
 
-    if (subpdu.get_lcid() == args.drb_lcid) {
-      rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-    }
+    // rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
   }
   return SRSLTE_SUCCESS;
 }

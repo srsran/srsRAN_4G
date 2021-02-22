@@ -33,6 +33,11 @@ void mux_nr::msg3_prepare()
   msg3_state = msg3_state_t::pending;
 }
 
+void mux_nr::msg3_transmitted()
+{
+  msg3_state = msg3_state_t::transmitted;
+}
+
 bool mux_nr::msg3_is_transmitted()
 {
   return msg3_state == msg3_state_t::transmitted;

@@ -68,7 +68,6 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   mac_args.sched         = args.mac.sched;
   mac_args.tb_size       = args.mac.nr_tb_size;
   mac_args.rnti          = args.coreless.rnti;
-  mac_args.drb_lcid      = args.coreless.drb_lcid;
   m_mac->init(mac_args, phy, this, m_rlc.get(), m_rrc.get());
 
   srslte::logmap::get("RLC")->set_level(args.log.rlc_level);

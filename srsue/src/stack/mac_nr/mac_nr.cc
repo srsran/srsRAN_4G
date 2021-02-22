@@ -107,10 +107,12 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_dl_sched_rnti_nr(const uint32_t t
   }
 
   if (proc_ra.has_temp_rnti() && has_crnti() == false) {
+    logger.debug("SCHED: Searching temp C-RNTI=0x%x (proc_ra)", proc_ra.get_temp_rnti());
     return {proc_ra.get_temp_rnti(), srslte_rnti_type_c};
   }
 
   if (has_crnti()) {
+    logger.debug("SCHED: Searching C-RNTI=0x%x", get_crnti());
     return {get_crnti(), srslte_rnti_type_c};
   }
 
@@ -159,7 +161,7 @@ void mac_nr::write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
   if (pcap) {
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; ++i) {
       if (grant.tb[i] != nullptr) {
-        if (grant.rnti == proc_ra.get_rar_rnti()) {
+        if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
           pcap->write_dl_ra_rnti_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
         } else if (grant.rnti == SRSLTE_PRNTI) {
           pcap->write_dl_pch_nr(grant.tb[i]->msg, grant.tb[i]->N_bytes, grant.rnti, true, grant.tti);
@@ -183,7 +185,7 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 {
   write_pcap(cc_idx, grant);
   // handle PDU
-  if (grant.rnti == proc_ra.get_rar_rnti()) {
+  if (proc_ra.has_rar_rnti() && grant.rnti == proc_ra.get_rar_rnti()) {
     proc_ra.handle_rar_pdu(grant);
   } else {
     // Push DL PDUs to queue for back-ground processing
@@ -200,6 +202,10 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu)
 {
+  // if proc ra is in contention resolution and c_rnti == grant.c_rnti resolve contention resolution
+  if (proc_ra.is_contention_resolution() && grant.rnti == c_rnti) {
+    proc_ra.pdcch_to_crnti();
+  }
   get_ul_data(grant, phy_tx_pdu);
 
   metrics[cc_idx].tx_pkts++;
@@ -209,34 +215,36 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* 
 {
   // initialize MAC PDU
   tx_buffer->clear();
-  tx_pdu.init_tx(tx_buffer.get(), grant.tbs, true);
+  tx_pdu.init_tx(tx_buffer.get(), grant.tbs / 8U, true);
 
   if (mux.msg3_is_pending()) {
     // If message 3 is pending pack message 3 for uplink transmission
-    tx_pdu.add_crnti_ce(proc_ra.get_temp_rnti());
-
+    // Use the CRNTI which is provided in the RRC reconfiguration (only for DC mode maybe other)
+    tx_pdu.add_crnti_ce(c_rnti);
     srslte::mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
     sbsr.lcg_id                               = 0;
     sbsr.buffer_size                          = 1;
     tx_pdu.add_sbsr_ce(sbsr);
-
+    logger.info("Generated msg3 with RNTI 0x%x", c_rnti);
+    mux.msg3_transmitted();
   } else {
     // Pack normal UL data PDU
     while (tx_pdu.get_remaing_len() >= MIN_RLC_PDU_LEN) {
       // read RLC PDU
       rlc_buffer->clear();
       uint8_t* rd      = rlc_buffer->msg;
-      int      pdu_len = rlc->read_pdu(args.drb_lcid, rd, tx_pdu.get_remaing_len() - 2);
+      int      pdu_len = 0;
+      // pdu_len = rlc->read_pdu(args.drb_lcid, rd, tx_pdu.get_remaing_len() - 2);
 
       // Add SDU if RLC has something to tx
       if (pdu_len > 0) {
-        rlc_buffer->N_bytes = pdu_len;
-        logger.info(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
+        //   rlc_buffer->N_bytes = pdu_len;
+        //   logger.info(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
 
-        // add to MAC PDU and pack
-        if (tx_pdu.add_sdu(args.drb_lcid, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
-          logger.error("Error packing MAC PDU");
-        }
+        //   // add to MAC PDU and pack
+        //   if (tx_pdu.add_sdu(args.drb_lcid, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
+        //     logger.error("Error packing MAC PDU");
+        //   }
       } else {
         break;
       }
@@ -341,16 +349,15 @@ void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
 
   for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
     srslte::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);
-    logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
+    logger.info("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
                 i,
                 rx_pdu.get_num_subpdus(),
+                subpdu.get_c_rnti(),
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
 
-    if (subpdu.get_lcid() == args.drb_lcid) {
-      rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-    }
-  }
+    // rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+   }
 }
 
 uint64_t mac_nr::get_contention_id()
