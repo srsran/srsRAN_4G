@@ -189,6 +189,9 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
   // TODO: add config checks
   cfg = cfg_.am;
 
+  // TODO: Set size based on PDCP config
+  undelivered_sdu_info_queue.resize(262144);
+
   // check timers
   if (not poll_retx_timer.is_valid() or not status_prohibit_timer.is_valid()) {
     logger.error("Configuring RLC AM TX: timers not configured");
@@ -387,16 +390,15 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
 
   // Store SDU info
   logger.debug(
-      "Storing PDCP SDU info in queue. PDCP_SN=%d, Queue Size=%ld", info.sn, undelivered_sdu_info_queue.size());
+      "Storing PDCP SDU info in queue. PDCP_SN=%d, Queue Size=%ld", info.sn, undelivered_sdu_info_queue.nof_sdus());
 
-  uint32_t info_count = undelivered_sdu_info_queue.count(info.sn);
-  if (info_count != 0) {
+  if (undelivered_sdu_info_queue.has_pdcp_sn(info.sn)) {
     logger.error("PDCP SDU info already exists. SN=%d", info.sn);
     pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
-  undelivered_sdu_info_queue[info.sn] = info;
+  undelivered_sdu_info_queue.add_pdcp_sdu(info);
   pthread_mutex_unlock(&mutex);
   return SRSLTE_SUCCESS;
 }
@@ -869,16 +871,16 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
-    auto info_it = undelivered_sdu_info_queue.find(tx_sdu->md.pdcp_sn);
-    if (info_it == undelivered_sdu_info_queue.end()) {
+    if (not undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
       logger.error("Could not find PDCP SN in SDU info queue (segment). PDCP_SN=%d", tx_sdu->md.pdcp_sn);
       return 0;
     }
-    info_it->second.rlc_sn_info_list.push_back({header.sn, false});
+    pdcp_sdu_info_t& pdcp_sdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
+    pdcp_sdu.rlc_sn_info_list.push_back({header.sn, false});
     pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx.", RB_NAME);
-      info_it->second.fully_txed = true;
+      pdcp_sdu.fully_txed = true;
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {
@@ -916,16 +918,16 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     pdu->N_bytes += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg += to_move;
-    auto info_it = undelivered_sdu_info_queue.find(tx_sdu->md.pdcp_sn);
-    if (info_it == undelivered_sdu_info_queue.end()) {
+    if (not undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
       logger.error("Could not find PDCP SN in SDU info queue. PDCP_SN=%d", tx_sdu->md.pdcp_sn);
       return 0;
     }
-    info_it->second.rlc_sn_info_list.push_back({header.sn, false});
+    pdcp_sdu_info_t& pdcp_sdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
+    pdcp_sdu.rlc_sn_info_list.push_back({header.sn, false});
     pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx. PDCP SN=%d", RB_NAME, tx_sdu->md.pdcp_sn);
-      info_it->second.fully_txed = true;
+      pdcp_sdu.fully_txed = true;
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {
@@ -1092,8 +1094,9 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
     // Remove all SDUs that were fully acked
     for (uint32_t acked_pdcp_sn : notify_info_vec) {
       logger.debug("Erasing SDU info: PDCP_SN=%d", acked_pdcp_sn);
-      size_t erased = undelivered_sdu_info_queue.erase(acked_pdcp_sn);
-      if (erased == 0) {
+      if (undelivered_sdu_info_queue.has_pdcp_sn(acked_pdcp_sn)) {
+        undelivered_sdu_info_queue.clear_pdcp_sdu(acked_pdcp_sn);
+      } else {
         logger.error("Could not find info to erase: SN=%d", acked_pdcp_sn);
       }
     }
@@ -1120,7 +1123,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
   logger.debug("Updating ACK info: RLC SN=%d, number of notified SDU=%ld, number of undelivered SDUs=%ld",
                tx_pdu.header.sn,
                notify_info_vec.size(),
-               undelivered_sdu_info_queue.size());
+               undelivered_sdu_info_queue.nof_sdus());
   // Iterate over all undelivered SDUs
   if (not tx_window.has_sn(tx_pdu.header.sn)) {
     return;
@@ -2013,6 +2016,13 @@ bool rlc_am_lte::rlc_am_lte_rx::inside_rx_window(const int16_t sn)
 void rlc_am_lte::rlc_am_lte_rx::debug_state()
 {
   logger.debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d", RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);
+}
+
+void buffered_pdcp_pdu_list::clear()
+{
+  for (auto& b : buffered_pdus) {
+    b = {};
+  }
 }
 
 /****************************************************************************

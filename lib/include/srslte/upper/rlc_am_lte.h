@@ -121,6 +121,42 @@ private:
   srslte::circular_array<rlc_amd_tx_pdu_t, RLC_AM_WINDOW_SIZE> window;
 };
 
+struct buffered_pdcp_pdu_list {
+public:
+  void resize(size_t size)
+  {
+    buffered_pdus.resize(size);
+    active_flag.resize(size, false);
+  }
+  void clear();
+
+  void add_pdcp_sdu(pdcp_sdu_info_t sdu)
+  {
+    assert(not has_pdcp_sn(sdu.sn));
+    buffered_pdus[sdu.sn] = sdu;
+    active_flag[sdu.sn]   = true;
+    count++;
+  }
+  void clear_pdcp_sdu(uint32_t sn)
+  {
+    active_flag[sn] = false;
+    count--;
+  }
+
+  pdcp_sdu_info_t& operator[](size_t sn)
+  {
+    assert(has_pdcp_sn(sn));
+    return buffered_pdus[sn];
+  }
+  bool     has_pdcp_sn(uint32_t pdcp_sn) const { return active_flag[pdcp_sn]; }
+  uint32_t nof_sdus() const { return count; }
+
+private:
+  std::vector<pdcp_sdu_info_t> buffered_pdus;
+  std::vector<bool>            active_flag;
+  uint32_t                     count = 0;
+};
+
 class rlc_am_lte : public rlc_common
 {
 public:
@@ -244,7 +280,7 @@ private:
     srslte::timer_handler::unique_timer status_prohibit_timer;
 
     // SDU info for PDCP notifications
-    std::unordered_map<uint32_t, pdcp_sdu_info_t> undelivered_sdu_info_queue;
+    buffered_pdcp_pdu_list undelivered_sdu_info_queue;
 
     // Callback function for buffer status report
     bsr_callback_t bsr_callback;
