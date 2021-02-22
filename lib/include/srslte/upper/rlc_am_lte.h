@@ -134,9 +134,11 @@ public:
   }
   void clear_pdcp_sdu(uint32_t sn)
   {
-    uint32_t sn_idx = get_idx(sn);
+    uint32_t sn_idx                   = get_idx(sn);
+    buffered_pdus[sn_idx].sn          = invalid_sn;
+    buffered_pdus[sn_idx].fully_acked = false;
+    buffered_pdus[sn_idx].fully_txed  = false;
     buffered_pdus[sn_idx].rlc_sn_info_list.clear();
-    buffered_pdus[sn_idx].sn = invalid_sn;
     count--;
   }
 

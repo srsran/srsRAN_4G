@@ -2018,15 +2018,17 @@ const size_t buffered_pdcp_pdu_list::max_buffer_idx;
 buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_buffer_idx + 1)
 {
   for (size_t i = 0; i < buffered_pdus.size(); ++i) {
-    buffered_pdus[i].sn = invalid_sn;
     buffered_pdus[i].rlc_sn_info_list.reserve(5);
   }
+  clear();
 }
 
 void buffered_pdcp_pdu_list::clear()
 {
   for (auto& b : buffered_pdus) {
-    b.sn = invalid_sn;
+    b.sn          = invalid_sn;
+    b.fully_acked = false;
+    b.fully_txed  = false;
     b.rlc_sn_info_list.clear();
   }
 }
