@@ -123,23 +123,21 @@ private:
 
 struct buffered_pdcp_pdu_list {
 public:
-  void resize(size_t size)
-  {
-    buffered_pdus.resize(size);
-    active_flag.resize(size, false);
-  }
+  const static size_t max_pdcp_sn = 262144;
+
+  void resize(size_t size);
   void clear();
 
-  void add_pdcp_sdu(pdcp_sdu_info_t sdu)
+  void add_pdcp_sdu(uint32_t sn)
   {
-    assert(not has_pdcp_sn(sdu.sn));
-    buffered_pdus[sdu.sn] = sdu;
-    active_flag[sdu.sn]   = true;
+    assert(not has_pdcp_sn(sn));
+    buffered_pdus[sn].sn = sn;
     count++;
   }
   void clear_pdcp_sdu(uint32_t sn)
   {
-    active_flag[sn] = false;
+    buffered_pdus[sn].rlc_sn_info_list.clear();
+    buffered_pdus[sn].sn = -1;
     count--;
   }
 
@@ -148,12 +146,11 @@ public:
     assert(has_pdcp_sn(sn));
     return buffered_pdus[sn];
   }
-  bool     has_pdcp_sn(uint32_t pdcp_sn) const { return active_flag[pdcp_sn]; }
+  bool     has_pdcp_sn(uint32_t pdcp_sn) const { return buffered_pdus[pdcp_sn].sn < max_pdcp_sn; }
   uint32_t nof_sdus() const { return count; }
 
 private:
   std::vector<pdcp_sdu_info_t> buffered_pdus;
-  std::vector<bool>            active_flag;
   uint32_t                     count = 0;
 };
 

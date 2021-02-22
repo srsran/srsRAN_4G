@@ -190,7 +190,7 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
   cfg = cfg_.am;
 
   // TODO: Set size based on PDCP config
-  undelivered_sdu_info_queue.resize(262144);
+  undelivered_sdu_info_queue.resize(buffered_pdcp_pdu_list::max_pdcp_sn);
 
   // check timers
   if (not poll_retx_timer.is_valid() or not status_prohibit_timer.is_valid()) {
@@ -367,8 +367,7 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
   }
 
   // Get SDU info
-  pdcp_sdu_info_t info = {};
-  info.sn              = sdu->md.pdcp_sn;
+  uint32_t sdu_pdcp_sn = sdu->md.pdcp_sn;
 
   // Store SDU
   uint8_t*                                 msg_ptr   = sdu->msg;
@@ -390,15 +389,15 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
 
   // Store SDU info
   logger.debug(
-      "Storing PDCP SDU info in queue. PDCP_SN=%d, Queue Size=%ld", info.sn, undelivered_sdu_info_queue.nof_sdus());
+      "Storing PDCP SDU info in queue. PDCP_SN=%d, Queue Size=%ld", sdu_pdcp_sn, undelivered_sdu_info_queue.nof_sdus());
 
-  if (undelivered_sdu_info_queue.has_pdcp_sn(info.sn)) {
-    logger.error("PDCP SDU info already exists. SN=%d", info.sn);
+  if (undelivered_sdu_info_queue.has_pdcp_sn(sdu_pdcp_sn)) {
+    logger.error("PDCP SDU info already exists. SN=%d", sdu_pdcp_sn);
     pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
-  undelivered_sdu_info_queue.add_pdcp_sdu(info);
+  undelivered_sdu_info_queue.add_pdcp_sdu(sdu_pdcp_sn);
   pthread_mutex_unlock(&mutex);
   return SRSLTE_SUCCESS;
 }
@@ -2018,10 +2017,21 @@ void rlc_am_lte::rlc_am_lte_rx::debug_state()
   logger.debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d", RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);
 }
 
+void buffered_pdcp_pdu_list::resize(size_t size)
+{
+  size_t old_size = buffered_pdus.size();
+  buffered_pdus.resize(size);
+  for (size_t i = old_size; i < buffered_pdus.size(); ++i) {
+    buffered_pdus[i].sn = -1;
+    buffered_pdus[i].rlc_sn_info_list.reserve(5);
+  }
+}
+
 void buffered_pdcp_pdu_list::clear()
 {
   for (auto& b : buffered_pdus) {
-    b = {};
+    b.sn = -1;
+    b.rlc_sn_info_list.clear();
   }
 }
 
