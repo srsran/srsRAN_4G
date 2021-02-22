@@ -108,6 +108,15 @@ void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<ui
   }
 }
 
+void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->notify_failure(lcid, pdcp_sns);
+  } else {
+    m_log->error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+  }
+}
+
 void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {

@@ -38,7 +38,7 @@ class rlc : public rlc_interface_mac, public rlc_interface_rrc, public rlc_inter
 public:
   explicit rlc(srslog::basic_logger& logger) : logger(logger) {}
   void
-       init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc* mac_, srslte::timer_handler* timers_);
+  init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc* mac_, srslte::timer_handler* timers_);
   void stop();
   void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
 
@@ -72,6 +72,7 @@ private:
   public:
     void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
     void        notify_delivery(uint32_t lcid, const std::vector<uint32_t>& tx_count);
+    void        notify_failure(uint32_t lcid, const std::vector<uint32_t>& tx_count);
     void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_pcch(srslte::unique_byte_buffer_t sdu);

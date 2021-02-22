@@ -212,4 +212,9 @@ void rlc_nr::user_interface::notify_delivery(uint32_t lcid, const std::vector<ui
   m_pdcp->notify_delivery(rnti, lcid, pdcp_sns);
 }
 
+void rlc_nr::user_interface::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  m_pdcp->notify_failure(rnti, lcid, pdcp_sns);
+}
+
 } // namespace srsenb

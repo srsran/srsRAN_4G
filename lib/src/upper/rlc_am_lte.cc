@@ -626,6 +626,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   if (tx_window[retx.sn].retx_count >= cfg.max_retx_thresh) {
     logger.warning("%s Signaling max number of reTx=%d for for SN=%d", RB_NAME, tx_window[retx.sn].retx_count, retx.sn);
     parent->rrc->max_retx_attempted();
+    parent->pdcp->notify_failure(parent->lcid, tx_window[retx.sn].pdcp_sns);
   }
 
   logger.info(payload,
@@ -873,11 +874,11 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
       logger.error("Could not find PDCP SN in SDU info queue (segment). PDCP_SN=%d", tx_sdu->md.pdcp_sn);
       return 0;
     }
-    undelivered_sdu_info_queue.at(tx_sdu->md.pdcp_sn).rlc_sn_info_list.push_back({header.sn, false});
+    info_it->second.rlc_sn_info_list.push_back({header.sn, false});
     pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
     if (tx_sdu->N_bytes == 0) {
       logger.debug("%s Complete SDU scheduled for tx.", RB_NAME);
-      undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn].fully_txed = true;
+      info_it->second.fully_txed = true;
       tx_sdu.reset();
     }
     if (pdu_space > to_move) {

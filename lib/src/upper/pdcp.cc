@@ -306,6 +306,15 @@ void pdcp::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
   }
 }
 
+void pdcp::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->notify_failure(pdcp_sns);
+  } else {
+    logger.warning("Could not notify failure: lcid=%d, nof_sn=%ld.", lcid, pdcp_sns.size());
+  }
+}
+
 bool pdcp::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {

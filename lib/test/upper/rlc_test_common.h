@@ -50,6 +50,7 @@ public:
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { sdus.push_back(std::move(sdu)); }
   void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
+  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
 
   // RRC interface
   void        max_retx_attempted() {}

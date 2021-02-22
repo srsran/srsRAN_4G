@@ -64,6 +64,7 @@ private:
   public:
     void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
     void        notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns);
+    void        notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns);
     void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_pcch(srslte::unique_byte_buffer_t sdu);

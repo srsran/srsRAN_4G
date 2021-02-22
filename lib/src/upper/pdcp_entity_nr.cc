@@ -202,10 +202,15 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 }
 
-// Notification of delivery
+// Notification of delivery/failure
 void pdcp_entity_nr::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
   logger.debug("Received delivery notification from RLC. Nof SNs=%ld", pdcp_sns.size());
+}
+
+void pdcp_entity_nr::notify_failure(const std::vector<uint32_t>& pdcp_sns)
+{
+  logger.debug("Received failure notification from RLC. Nof SNs=%ld", pdcp_sns.size());
 }
 
 /*

@@ -41,6 +41,7 @@ public:
   // pdcp_interface_rlc_nr
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
   void notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& tx_count);
+  void notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& tx_count);
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 
   // pdcp_interface_rrc_nr

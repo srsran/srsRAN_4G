@@ -64,6 +64,11 @@ public:
       notified_counts[pdcp_sn] += 1;
     }
   }
+  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
+  {
+    assert(lcid == 1);
+    // TODO
+  }
 
   // RRC interface
   void        max_retx_attempted() {}

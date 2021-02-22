@@ -60,6 +60,13 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   // Queue Helpers
   maximum_allocated_sns_window = (1 << cfg.sn_len) / 2;
 
+  if (is_drb() && not rlc->rb_is_um(lcid) && cfg.discard_timer == pdcp_discard_timer_t::infinity) {
+    logger.warning(
+        "Setting discard timer to 1500ms, to avoid issues with lingering SDUs in the Unacknowledged SDUs map. LCID=%d",
+        lcid);
+    cfg.discard_timer = pdcp_discard_timer_t::ms1500;
+  }
+
   logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   logger.info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms",
               cfg.sn_len,
@@ -642,31 +649,48 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 }
 
 /****************************************************************************
- * Handle delivery notifications from RLC
+ * Handle delivery/failure notifications from RLC
  ***************************************************************************/
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
   logger.info("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
 
   for (uint32_t sn : pdcp_sns) {
-    logger.debug("Received delivery notification for SN=%d", sn);
+    logger.debug("Delivery notification received for PDU with SN=%d", sn);
     // Find undelivered PDU info
     std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus_queue.find(sn);
     if (it == undelivered_sdus_queue.end()) {
       logger.warning("Could not find PDU for delivery notification. Notified SN=%d", sn);
-      return;
+    } else {
+      // Metrics
+      tx_pdu_ack_latency_ms.push(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                     std::chrono::high_resolution_clock::now() - it->second->get_timestamp())
+                                     .count());
+      metrics.num_tx_acked_bytes += it->second->N_bytes;
+      metrics.num_tx_buffered_pdus_bytes -= it->second->N_bytes;
+
+      // Remove PDU and disarm timer.
+      undelivered_sdus_queue.erase(sn);
+      stop_discard_timer(sn);
     }
+  }
+}
 
-    // Metrics
-    tx_pdu_ack_latency_ms.push(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                   std::chrono::high_resolution_clock::now() - it->second->get_timestamp())
-                                   .count());
-    metrics.num_tx_acked_bytes += it->second->N_bytes;
-    metrics.num_tx_buffered_pdus_bytes -= it->second->N_bytes;
+void pdcp_entity_lte::notify_failure(const std::vector<uint32_t>& pdcp_sns)
+{
+  logger.info("Received failure notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
 
-    // If ACK'ed bytes are equal to (or exceed) PDU size, remove PDU and disarm timer.
-    undelivered_sdus_queue.erase(sn);
-    stop_discard_timer(sn);
+  for (uint32_t sn : pdcp_sns) {
+    logger.info("Failure notification received for PDU with SN=%d", sn);
+    // Find undelivered PDU info
+    std::map<uint32_t, unique_byte_buffer_t>::iterator it = undelivered_sdus_queue.find(sn);
+    if (it == undelivered_sdus_queue.end()) {
+      logger.info("Could not find PDU for failure notification. Notified SN=%d", sn);
+    } else {
+      // Remove PDU and disarm timer.
+      undelivered_sdus_queue.erase(sn);
+      stop_discard_timer(sn);
+    }
   }
 }
 
