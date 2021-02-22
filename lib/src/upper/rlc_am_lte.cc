@@ -2013,10 +2013,12 @@ void rlc_am_lte::rlc_am_lte_rx::debug_state()
   logger.debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d", RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);
 }
 
-buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_pdcp_sn + 2)
+const size_t buffered_pdcp_pdu_list::max_buffer_idx;
+
+buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_buffer_idx + 1)
 {
   for (size_t i = 0; i < buffered_pdus.size(); ++i) {
-    buffered_pdus[i].sn = -1;
+    buffered_pdus[i].sn = invalid_sn;
     buffered_pdus[i].rlc_sn_info_list.reserve(5);
   }
 }
@@ -2024,7 +2026,7 @@ buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_pdcp_sn + 2
 void buffered_pdcp_pdu_list::clear()
 {
   for (auto& b : buffered_pdus) {
-    b.sn = -1;
+    b.sn = invalid_sn;
     b.rlc_sn_info_list.clear();
   }
 }
