@@ -52,7 +52,7 @@ public:
 
   int  sf_indication(const uint32_t tti);
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant);
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t tx_pdu);
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu);
   void prach_sent(const uint32_t tti,
                   const uint32_t s_id,
                   const uint32_t t_id,
@@ -95,7 +95,7 @@ public:
 private:
   void write_pcap(const uint32_t cc_idx, mac_nr_grant_dl_t& grant); // If PCAPs are enabled for this MAC
   void handle_pdu(srslte::unique_byte_buffer_t pdu);
-  void get_ul_data(const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t tx_pdu);
+  void get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu);
 
   // temporary helper
   void handle_rar_pdu(mac_nr_grant_dl_t& grant);

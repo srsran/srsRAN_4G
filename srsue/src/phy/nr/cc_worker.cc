@@ -288,7 +288,7 @@ bool cc_worker::work_ul()
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
     mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
     srslte::unique_byte_buffer_t tx_pdu                  = srslte::make_byte_buffer();
-    phy->stack->new_grant_ul(0, mac_ul_grant, std::move(tx_pdu));
+    phy->stack->new_grant_ul(0, mac_ul_grant, tx_pdu.get());
     // Provisional reset and assign Tx softbuffer
     srslte_softbuffer_tx_reset(&softbuffer_tx);
     pusch_cfg.grant.tb[0].softbuffer.tx = &softbuffer_tx;

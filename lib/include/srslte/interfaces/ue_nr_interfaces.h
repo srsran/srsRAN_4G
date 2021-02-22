@@ -62,7 +62,7 @@ public:
   /// Indicate reception of UL grant (only TBS is provided). Buffer for resulting MAC PDU is provided by MAC and is
   /// passed as pointer to PHY during tx_reuqest
   virtual void
-  new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t phy_tx_pdu) = 0;
+  new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu) = 0;
 
   /**
    * @brief Indicate the successful transmission of a PRACH.
