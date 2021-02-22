@@ -294,8 +294,8 @@ int NR_PCAP_MAC_WritePDU(FILE* fd, mac_nr_context_info_t* context, const unsigne
   memcpy(context_header + offset, &tmp16, 2);
   offset += 2;
   // dummy CRC
-  context_header[offset++] = 0xde;
-  context_header[offset++] = 0xad;
+  context_header[offset++] = 0x00;
+  context_header[offset++] = 0x00;
 
   // Start magic string
   memcpy(&context_header[offset], MAC_NR_START_STRING, strlen(MAC_NR_START_STRING));
