@@ -123,33 +123,39 @@ private:
 
 struct buffered_pdcp_pdu_list {
 public:
-  const static size_t max_pdcp_sn = 262144;
-
-  void resize(size_t size);
+  explicit buffered_pdcp_pdu_list();
   void clear();
 
   void add_pdcp_sdu(uint32_t sn)
   {
     assert(not has_pdcp_sn(sn));
-    buffered_pdus[sn].sn = sn;
+    uint32_t sn_idx          = get_idx(sn);
+    buffered_pdus[sn_idx].sn = sn_idx;
     count++;
   }
   void clear_pdcp_sdu(uint32_t sn)
   {
-    buffered_pdus[sn].rlc_sn_info_list.clear();
-    buffered_pdus[sn].sn = -1;
+    uint32_t sn_idx = get_idx(sn);
+    buffered_pdus[sn_idx].rlc_sn_info_list.clear();
+    buffered_pdus[sn_idx].sn = -1;
     count--;
   }
 
-  pdcp_sdu_info_t& operator[](size_t sn)
+  pdcp_sdu_info_t& operator[](uint32_t sn)
   {
     assert(has_pdcp_sn(sn));
-    return buffered_pdus[sn];
+    uint32_t sn_idx = get_idx(sn);
+    return buffered_pdus[sn_idx];
   }
-  bool     has_pdcp_sn(uint32_t pdcp_sn) const { return buffered_pdus[pdcp_sn].sn < max_pdcp_sn; }
+  bool     has_pdcp_sn(uint32_t pdcp_sn) const { return buffered_pdus[get_idx(pdcp_sn)].sn < max_pdcp_sn; }
   uint32_t nof_sdus() const { return count; }
 
 private:
+  // TODO: Set size based on PDCP config
+  const static size_t max_pdcp_sn = 262143;
+
+  uint32_t get_idx(uint32_t sn) const { return std::min(sn, static_cast<uint32_t>(buffered_pdus.size() - 1)); }
+
   std::vector<pdcp_sdu_info_t> buffered_pdus;
   uint32_t                     count = 0;
 };

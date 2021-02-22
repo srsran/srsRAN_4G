@@ -189,9 +189,6 @@ bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
   // TODO: add config checks
   cfg = cfg_.am;
 
-  // TODO: Set size based on PDCP config
-  undelivered_sdu_info_queue.resize(buffered_pdcp_pdu_list::max_pdcp_sn);
-
   // check timers
   if (not poll_retx_timer.is_valid() or not status_prohibit_timer.is_valid()) {
     logger.error("Configuring RLC AM TX: timers not configured");
@@ -1093,11 +1090,10 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
     // Remove all SDUs that were fully acked
     for (uint32_t acked_pdcp_sn : notify_info_vec) {
       logger.debug("Erasing SDU info: PDCP_SN=%d", acked_pdcp_sn);
-      if (undelivered_sdu_info_queue.has_pdcp_sn(acked_pdcp_sn)) {
-        undelivered_sdu_info_queue.clear_pdcp_sdu(acked_pdcp_sn);
-      } else {
+      if (not undelivered_sdu_info_queue.has_pdcp_sn(acked_pdcp_sn)) {
         logger.error("Could not find info to erase: SN=%d", acked_pdcp_sn);
       }
+      undelivered_sdu_info_queue.clear_pdcp_sdu(acked_pdcp_sn);
     }
   }
 
@@ -2017,11 +2013,9 @@ void rlc_am_lte::rlc_am_lte_rx::debug_state()
   logger.debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d", RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);
 }
 
-void buffered_pdcp_pdu_list::resize(size_t size)
+buffered_pdcp_pdu_list::buffered_pdcp_pdu_list() : buffered_pdus(max_pdcp_sn + 2)
 {
-  size_t old_size = buffered_pdus.size();
-  buffered_pdus.resize(size);
-  for (size_t i = old_size; i < buffered_pdus.size(); ++i) {
+  for (size_t i = 0; i < buffered_pdus.size(); ++i) {
     buffered_pdus[i].sn = -1;
     buffered_pdus[i].rlc_sn_info_list.reserve(5);
   }
