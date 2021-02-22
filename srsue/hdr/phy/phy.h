@@ -76,7 +76,7 @@ public:
     logger_phy(srslog::fetch_basic_logger("PHY", log_sink)),
     logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB", log_sink)),
     lte_workers(MAX_WORKERS),
-    nr_workers(MAX_WORKERS),
+    nr_workers(MAX_WORKERS, log_sink),
     common(logger_phy),
     sfsync(logger_phy, logger_phy_lib),
     prach_buffer(logger_phy),
@@ -175,7 +175,9 @@ public:
 
   int  init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_) final;
   bool set_config(const srslte::phy_cfg_nr_t& cfg) final;
-  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant) final;
+  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                    uint16_t                                       rnti,
+                    srslte_rnti_type_t                             rnti_type) final;
   void send_prach(const uint32_t prach_occasion,
                   const int      preamble_index,
                   const float    preamble_received_target_power,

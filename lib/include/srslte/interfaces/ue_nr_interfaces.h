@@ -61,7 +61,8 @@ public:
 
   /// Indicate reception of UL grant (only TBS is provided). Buffer for resulting MAC PDU is provided by MAC and is
   /// passed as pointer to PHY during tx_reuqest
-  virtual void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t phy_tx_pdu) = 0;
+  virtual void
+  new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::unique_byte_buffer_t phy_tx_pdu) = 0;
 
   /**
    * @brief Indicate the successful transmission of a PRACH.
@@ -124,7 +125,9 @@ public:
   } tx_request_t;
 
   // MAC informs PHY about UL grant included in RAR PDU
-  virtual int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant) = 0;
+  virtual int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                           uint16_t                                       rnti,
+                           srslte_rnti_type_t                             rnti_type) = 0;
 
   // MAC instructs PHY to transmit MAC TB at the given TTI
   virtual int tx_request(const tx_request_t& request) = 0;

@@ -137,12 +137,16 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
   }
 
   // Determine which PUSCH Time domain RA configuration to apply (TS 38.214 Table 6.1.2.1.1-1:)
-  if (rnti_type == srslte_rnti_type_ra) {
+  if (ss_type == srslte_search_space_type_rar) {
     // Row 1
     if (cfg->nof_common_time_ra == 0) {
       srslte_ra_ul_nr_pdsch_time_resource_default_A(cfg->scs_cfg, m, grant);
-    } else if (m < SRSLTE_MAX_NOF_DL_ALLOCATION) {
+    } else if (m < SRSLTE_MAX_NOF_DL_ALLOCATION && m < cfg->nof_common_time_ra) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
+    } else {
+      ERROR("Time domain resource selection (m=%d) exceeds the maximum value (%d)",
+            m,
+            SRSLTE_MIN(cfg->nof_common_time_ra, SRSLTE_MAX_NOF_DL_ALLOCATION));
     }
   } else if ((rnti_type == srslte_rnti_type_c || rnti_type == srslte_rnti_type_mcs_c ||
               rnti_type == srslte_rnti_type_tc || rnti_type == srslte_rnti_type_cs) &&
@@ -172,7 +176,7 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
   // Table 6.1.2.1.1-5 defines the additional subcarrier spacing specific slot delay value for the first transmission of
   // PUSCH scheduled by the RAR. When the UE transmits a PUSCH scheduled by RAR, the Δ value specific to the PUSCH
   // subcarrier spacing μ PUSCH is applied in addition to the K 2 value.
-  if (rnti_type == srslte_rnti_type_ra) {
+  if (ss_type == srslte_search_space_type_rar) {
     uint32_t delta[4] = {2, 3, 4, 6};
     if (cfg->scs_cfg >= 4) {
       ERROR("Invalid numerology");

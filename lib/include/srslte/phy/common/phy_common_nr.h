@@ -147,7 +147,9 @@ typedef enum SRSLTE_API {
   srslte_search_space_type_common_1,     ///< configured by ra-SearchSpace in PDCCH-ConfigCommon
   srslte_search_space_type_common_2,     ///< configured by pagingSearchSpace in PDCCH-ConfigCommon
   srslte_search_space_type_common_3,     ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = common
-  srslte_search_space_type_ue ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = ue-Specific
+  srslte_search_space_type_ue,  ///< configured by SearchSpace in PDCCH-Config with searchSpaceType = ue-Specific
+  srslte_search_space_type_rar, ///< Indicates that a grant was given by MAC RAR as described in TS 38.213 clause 8.2
+  srslte_search_space_type_cg   ///< Indicates that a grant was given by Configured Grant from the upper layers
 } srslte_search_space_type_t;
 
 /**
@@ -172,16 +174,17 @@ typedef enum SRSLTE_API {
 
 /**
  * @brief RNTI types
+ * @remark Usage described in TS 38.321 Table 7.1-2: RNTI usage.
  */
 typedef enum SRSLTE_API {
   srslte_rnti_type_c = 0,
-  srslte_rnti_type_p,
-  srslte_rnti_type_si,
-  srslte_rnti_type_ra,
-  srslte_rnti_type_tc,
-  srslte_rnti_type_cs,
-  srslte_rnti_type_sp_csi,
-  srslte_rnti_type_mcs_c,
+  srslte_rnti_type_p,      ///< @brief Paging and System Information change notification (PCH)
+  srslte_rnti_type_si,     ///< @brief Broadcast of System Information (DL-SCH)
+  srslte_rnti_type_ra,     ///< @brief Random Access Response (DL-SCH)
+  srslte_rnti_type_tc,     ///< @brief Contention Resolution (when no valid C-RNTI is available) (DL-SCH)
+  srslte_rnti_type_cs,     ///< @brief Configured scheduled unicast transmission (DL-SCH, UL-SCH)
+  srslte_rnti_type_sp_csi, ///< @brief Activation of Semi-persistent CSI reporting on PUSCH
+  srslte_rnti_type_mcs_c,  ///< @brief Dynamically scheduled unicast transmission (DL-SCH)
 } srslte_rnti_type_t;
 
 /**

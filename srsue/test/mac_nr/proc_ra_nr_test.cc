@@ -20,14 +20,20 @@ class dummy_phy : public phy_interface_mac_nr
 {
 public:
   dummy_phy() {}
-  void send_prach(const uint32_t prach_occasion_, const int preamble_index_, const float preamble_received_target_power_, const float ta_base_sec_ = 0.0f)
+  void send_prach(const uint32_t prach_occasion_,
+                  const int      preamble_index_,
+                  const float    preamble_received_target_power_,
+                  const float    ta_base_sec_ = 0.0f)
   {
     prach_occasion                 = prach_occasion_;
     preamble_index                 = preamble_index_;
     preamble_received_target_power = preamble_received_target_power_;
   }
-  int tx_request(const tx_request_t& request) {return 0;}
-  int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>) { return 0; }
+  int tx_request(const tx_request_t& request) { return 0; }
+  int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>, uint16_t rnti, srslte_rnti_type_t rnti_type)
+  {
+    return 0;
+  }
 
   void get_last_send_prach(uint32_t* prach_occasion_, uint32_t* preamble_index_, int* preamble_received_target_power_)
   {
@@ -110,12 +116,12 @@ int main()
       TESTASSERT(proc_ra_nr.get_rar_rnti() == 0x16);
     }
   }
-  mac_interface_phy_nr::mac_nr_grant_dl_t grant;  
+  mac_interface_phy_nr::mac_nr_grant_dl_t grant;
   grant.rnti               = 0x16;
   grant.tti                = rach_cfg.ra_responseWindow + tti_start + 3;
   grant.pid                = 0x0123;
   uint8_t mac_dl_rar_pdu[] = {0x40, 0x06, 0x68, 0x03, 0x21, 0x46, 0x46, 0x02, 0x00, 0x00, 0x00};
-  grant.tb[0]  = srslte::make_byte_buffer();
+  grant.tb[0]              = srslte::make_byte_buffer();
   grant.tb[0].get()->append_bytes(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu));
   proc_ra_nr.handle_rar_pdu(grant);
 

@@ -50,8 +50,11 @@ public:
   bool set_config(const srslte::phy_cfg_nr_t& cfg) override;
 
   // MAC interface
-  int  tx_request(const tx_request_t& request) override;
-  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>) override { return SRSLTE_SUCCESS; };
+  int tx_request(const tx_request_t& request) override;
+  int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>, uint16_t rnti, srslte_rnti_type_t rnti_type) override
+  {
+    return SRSLTE_SUCCESS;
+  };
   void send_prach(const uint32_t preamble_idx,
                   const int      prach_occasion,
                   const float    target_power_dbm,

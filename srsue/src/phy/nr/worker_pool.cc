@@ -14,13 +14,11 @@
 namespace srsue {
 namespace nr {
 
-worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
+worker_pool::worker_pool(uint32_t max_workers, srslog::sink& log_sink_) :
+  pool(max_workers), log_sink(log_sink_), logger(srslog::fetch_basic_logger("NR-PHY", log_sink))
+{}
 
-bool worker_pool::init(const phy_args_nr_t&    args,
-                       phy_common*             common,
-                       stack_interface_phy_nr* stack_,
-                       srslog::sink&           log_sink,
-                       int                     prio)
+bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_interface_phy_nr* stack_, int prio)
 {
   phy_state.stack = stack_;
   phy_state.args  = args;
@@ -101,21 +99,30 @@ void worker_pool::send_prach(uint32_t prach_occasion, uint32_t preamble_index, i
   prach_buffer->prepare_to_send(preamble_index);
 }
 
-int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant)
+int worker_pool::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                              uint16_t                                       rnti,
+                              srslte_rnti_type_t                             rnti_type)
 {
   // Copy DCI bits and setup DCI context
   srslte_dci_msg_nr_t dci_msg = {};
-  dci_msg.format              = srslte_dci_format_nr_rar;
-  dci_msg.rnti_type           = srslte_rnti_type_ra;
-  dci_msg.rnti                = phy_state.ra_rnti;
+  dci_msg.format              = srslte_dci_format_nr_0_0; // MAC RAR grant shall be unpacked as DCI 0_0 format
+  dci_msg.rnti_type           = rnti_type;
+  dci_msg.search_space        = srslte_search_space_type_rar; // This indicates it is a MAC RAR
+  dci_msg.rnti                = rnti;
   dci_msg.nof_bits            = SRSLTE_RAR_UL_GRANT_NBITS;
   srslte_vec_u8_copy(dci_msg.payload, packed_ul_grant.data(), SRSLTE_RAR_UL_GRANT_NBITS);
 
   srslte_dci_ul_nr_t dci_ul = {};
 
-  if (srslte_dci_nr_format_0_0_unpack(&phy_state.carrier, &phy_state.cfg.pdcch.coreset[1], &dci_msg, &dci_ul) <
-      SRSLTE_SUCCESS) {
+  if (srslte_dci_nr_rar_unpack(&dci_msg, &dci_ul) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
+  }
+
+  if (logger.info.enabled()) {
+    std::array<char, 512> str;
+    srslte_dci_ul_nr_to_str(&dci_ul, str.data(), str.size());
+    logger.set_context(phy_state.rar_grant_tti);
+    logger.info("Setting RAR Grant %s", str.data());
   }
 
   phy_state.set_ul_pending_grant(phy_state.rar_grant_tti, dci_ul);

@@ -89,6 +89,8 @@ typedef struct SRSLTE_API {
   // Frequency hopping
   uint32_t frequency_offset; ///< frequency offset
 
+  // Random Access Response Grant
+  uint32_t csi_request;
 } srslte_dci_ul_nr_t;
 
 /**
@@ -117,6 +119,15 @@ SRSLTE_API int srslte_dci_nr_format_0_0_unpack(const srslte_carrier_nr_t* carrie
                                                const srslte_coreset_t*    coreset,
                                                srslte_dci_msg_nr_t*       msg,
                                                srslte_dci_ul_nr_t*        dci);
+
+/**
+ * @brief Unpacks DCI from Random Access Response Grant
+ * @remark Described in TS 38.213 Table 8.2-1: Random Access Response Grant Content field size
+ * @param msg
+ * @param dci
+ * @return SRSLTE_SUCCESS if unpacked correctly, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_dci_nr_rar_unpack(srslte_dci_msg_nr_t* msg, srslte_dci_ul_nr_t* dci);
 
 SRSLTE_API int srslte_dci_nr_format_1_0_sizeof(const srslte_carrier_nr_t* carrier,
                                                const srslte_coreset_t*    coreset,

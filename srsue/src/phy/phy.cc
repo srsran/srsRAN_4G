@@ -607,16 +607,18 @@ void phy::set_mch_period_stop(uint32_t stop)
 
 int phy::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srslte::radio_interface_phy* radio_)
 {
-  if (!nr_workers.init(args_, &common, stack_, log_sink, WORKERS_THREAD_PRIO)) {
+  if (!nr_workers.init(args_, &common, stack_, WORKERS_THREAD_PRIO)) {
     return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant)
+int phy::set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> packed_ul_grant,
+                      uint16_t                                       rnti,
+                      srslte_rnti_type_t                             rnti_type)
 {
-  return nr_workers.set_ul_grant(packed_ul_grant);
+  return nr_workers.set_ul_grant(packed_ul_grant, rnti, rnti_type);
 }
 
 void phy::send_prach(const uint32_t prach_occasion,

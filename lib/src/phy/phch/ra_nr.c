@@ -601,7 +601,7 @@ int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
                                  srslte_sch_grant_nr_t*        pusch_grant)
 {
   // 5.2.1.1 Resource allocation in time domain
-  if (srslte_ra_dl_nr_time(pusch_hl_cfg,
+  if (srslte_ra_ul_nr_time(pusch_hl_cfg,
                            dci_ul->rnti_type,
                            dci_ul->search_space,
                            dci_ul->coreset_id,

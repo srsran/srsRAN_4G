@@ -349,6 +349,71 @@ static int dci_nr_format_0_0_to_str(const srslte_dci_ul_nr_t* dci, char* str, ui
   return len;
 }
 
+int srslte_dci_nr_rar_unpack(srslte_dci_msg_nr_t* msg, srslte_dci_ul_nr_t* dci)
+{
+  if (msg == NULL || dci == NULL) {
+    return SRSLTE_ERROR;
+  }
+
+  uint8_t* y = msg->payload;
+
+  // Copy DCI MSG fields
+  dci->location     = msg->location;
+  dci->search_space = msg->search_space;
+  dci->coreset_id   = msg->coreset_id;
+  dci->rnti_type    = msg->rnti_type;
+  dci->rnti         = msg->rnti;
+  dci->format       = msg->format;
+
+  // Frequency hopping flag - 1 bit
+  dci->freq_hopping_flag = srslte_bit_pack(&y, 1);
+
+  // PUSCH frequency resource allocation - 14 bits
+  dci->freq_domain_assigment = srslte_bit_pack(&y, 14);
+
+  // PUSCH time resource allocation - 4 bits
+  dci->time_domain_assigment = srslte_bit_pack(&y, 4);
+
+  // MCS -4 bits
+  dci->mcs = srslte_bit_pack(&y, 4);
+
+  // TPC command for PUSCH - 3 bits
+  dci->tpc = srslte_bit_pack(&y, 3);
+
+  // CSI request - 1 bits
+  dci->csi_request = srslte_bit_pack(&y, 3);
+
+  return SRSLTE_SUCCESS;
+}
+
+static int dci_nr_rar_to_str(const srslte_dci_ul_nr_t* dci, char* str, uint32_t str_len)
+{
+  uint32_t len = 0;
+
+  // Print format
+  len = srslte_print_check(str, str_len, len, "rnti=%04x dci=rar ", dci->rnti);
+
+  // Frequency hopping flag
+  len = srslte_print_check(str, str_len, len, "hop=%d ", dci->freq_hopping_flag);
+
+  // PUSCH frequency resource allocation
+  len = srslte_print_check(str, str_len, len, "f_alloc=0x%x ", dci->freq_domain_assigment);
+
+  // PUSCH time resource allocation
+  len = srslte_print_check(str, str_len, len, "t_alloc=0x%x ", dci->time_domain_assigment);
+
+  // Modulation and coding scheme
+  len = srslte_print_check(str, str_len, len, "mcs=%d ", dci->mcs);
+
+  // TPC command for scheduled PUSCH
+  len = srslte_print_check(str, str_len, len, "tpc=%d ", dci->tpc);
+
+  // CSI request
+  len = srslte_print_check(str, str_len, len, "csi=%d ", dci->csi_request);
+
+  return len;
+}
+
 int srslte_dci_nr_format_1_0_pack(const srslte_carrier_nr_t* carrier,
                                   const srslte_coreset_t*    coreset,
                                   const srslte_dci_dl_nr_t*  dci,
@@ -758,6 +823,8 @@ int srslte_dci_ul_nr_to_str(const srslte_dci_ul_nr_t* dci, char* str, uint32_t s
   switch (dci->format) {
     case srslte_dci_format_nr_0_0:
       return dci_nr_format_0_0_to_str(dci, str, str_len);
+    case srslte_dci_format_nr_rar:
+      return dci_nr_rar_to_str(dci, str, str_len);
     default:; // Do nothing
   }
 
