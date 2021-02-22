@@ -24,12 +24,12 @@ namespace srslte {
  **************************/
 
 struct phy_cfg_nr_t {
-  srslte_sch_hl_cfg_nr_t         pdsch;
-  srslte_sch_hl_cfg_nr_t         pusch;
-  srslte_pucch_nr_hl_cfg_t       pucch;
-  srslte_prach_cfg_t             prach;
-  srslte_ue_dl_nr_pdcch_cfg_t    pdcch;
-  srslte_ue_dl_nr_harq_ack_cfg_t harq_ack;
+  srslte_sch_hl_cfg_nr_t         pdsch    = {};
+  srslte_sch_hl_cfg_nr_t         pusch    = {};
+  srslte_pucch_nr_hl_cfg_t       pucch    = {};
+  srslte_prach_cfg_t             prach    = {};
+  srslte_ue_dl_nr_pdcch_cfg_t    pdcch    = {};
+  srslte_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
 
   phy_cfg_nr_t()
   {
