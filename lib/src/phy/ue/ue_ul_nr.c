@@ -118,17 +118,6 @@ int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*         q,
     return SRSLTE_ERROR;
   }
 
-  // Temporary symbol phase shift
-  uint32_t nof_re = SRSLTE_NRE * q->carrier.nof_prb;
-  for (uint32_t i = 0; i < 2; i++) {
-    for (uint32_t j = 0; j < 7; j++) {
-      srslte_vec_sc_prod_ccc(&q->sf_symbols[0][(i * 7 + j) * nof_re],
-                             cexpf(I * (11.0f * j - 2.0f) * M_PI / 16),
-                             &q->sf_symbols[0][(i * 7 + j) * nof_re],
-                             nof_re);
-    }
-  }
-
   // Generate signal
   srslte_ofdm_tx_sf(&q->ifft);
 

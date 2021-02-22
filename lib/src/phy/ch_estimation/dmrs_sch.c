@@ -466,7 +466,7 @@ static uint32_t srslte_dmrs_sch_seed(const srslte_carrier_nr_t*   carrier,
   }
 
   return SRSLTE_SEQUENCE_MOD((((SRSLTE_NSYMB_PER_SLOT_NR * slot_idx + symbol_idx + 1UL) * (2UL * n_id + 1UL)) << 17UL) +
-                             (2UL * carrier->id + n_scid));
+                             (2UL * n_id + n_scid));
 }
 
 int srslte_dmrs_sch_init(srslte_dmrs_sch_t* q, bool is_rx)
