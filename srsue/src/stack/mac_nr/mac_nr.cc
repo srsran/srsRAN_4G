@@ -47,6 +47,12 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
 
   mux.init();
 
+  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSLTE_SUCCESS) {
+    ERROR("Error init soft-buffer");
+    return SRSLTE_ERROR;
+  }
+
   started = true;
 
   return SRSLTE_SUCCESS;
@@ -200,13 +206,22 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
   stack_task_dispatch_queue.push([this]() { process_pdus(); });
 }
 
-void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu)
+void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
 {
   // if proc ra is in contention resolution and c_rnti == grant.c_rnti resolve contention resolution
   if (proc_ra.is_contention_resolution() && grant.rnti == c_rnti) {
     proc_ra.pdcch_to_crnti();
   }
-  get_ul_data(grant, phy_tx_pdu);
+
+  // fill TB action (goes into UL harq eventually)
+  action->tb.payload    = tx_buffer.get();
+  action->tb.enabled    = true;
+  action->tb.rv         = 0;
+  action->tb.softbuffer = &softbuffer_tx;
+  srslte_softbuffer_tx_reset(&softbuffer_tx);
+
+  // Pack MAC PDU
+  get_ul_data(grant, action->tb.payload);
 
   metrics[cc_idx].tx_pkts++;
 }
@@ -214,8 +229,8 @@ void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant,
 void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu)
 {
   // initialize MAC PDU
-  tx_buffer->clear();
-  tx_pdu.init_tx(tx_buffer.get(), grant.tbs / 8U, true);
+  phy_tx_pdu->clear();
+  tx_pdu.init_tx(phy_tx_pdu, grant.tbs / 8U, true);
 
   if (mux.msg3_is_pending()) {
     // If message 3 is pending pack message 3 for uplink transmission
@@ -254,13 +269,10 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* 
   // Pack PDU
   tx_pdu.pack();
 
-  logger.info(tx_buffer->msg, tx_buffer->N_bytes, "Generated MAC PDU (%d B)", tx_buffer->N_bytes);
-
-  memcpy(phy_tx_pdu->msg, tx_buffer->msg, tx_buffer->N_bytes);
-  phy_tx_pdu->N_bytes = tx_buffer->N_bytes;
+  logger.info(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, "Generated MAC PDU (%d B)", phy_tx_pdu->N_bytes);
 
   if (pcap) {
-    pcap->write_ul_crnti_nr(tx_buffer->msg, tx_buffer->N_bytes, grant.rnti, grant.pid, grant.tti);
+    pcap->write_ul_crnti_nr(phy_tx_pdu->msg, phy_tx_pdu->N_bytes, grant.rnti, grant.pid, grant.tti);
   }
 }
 

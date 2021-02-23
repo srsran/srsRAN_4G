@@ -50,7 +50,7 @@ public:
 
   int  sf_indication(const uint32_t tti);
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant);
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu);
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action);
   void prach_sent(const uint32_t tti,
                   const uint32_t s_id,
                   const uint32_t t_id,
@@ -134,6 +134,7 @@ private:
   srslte::mac_sch_pdu_nr       tx_pdu;
   srslte::unique_byte_buffer_t tx_buffer  = nullptr;
   srslte::unique_byte_buffer_t rlc_buffer = nullptr;
+  srslte_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
 
   srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;
 

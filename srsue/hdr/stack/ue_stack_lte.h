@@ -91,7 +91,7 @@ public:
   sched_rnti_t get_dl_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_dl_sched_rnti_nr(tti); }
   sched_rnti_t get_ul_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_ul_sched_rnti_nr(tti); }
 
-  void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) final
+  void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, mac_interface_phy_lte::tb_action_ul_t* action) final
   {
     mac.new_grant_ul(cc_idx, grant, action);
   }
@@ -126,7 +126,12 @@ public:
   int  sf_indication(const uint32_t tti) final { return SRSLTE_SUCCESS; }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
 
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu) final { mac_nr.new_grant_ul(cc_idx, grant, tx_pdu); }
+  void new_grant_ul(const uint32_t                        cc_idx,
+                    const mac_nr_grant_ul_t&              grant,
+                    mac_interface_phy_nr::tb_action_ul_t* action) final
+  {
+    mac_nr.new_grant_ul(cc_idx, grant, action);
+  }
 
   void run_tti(const uint32_t tti) final
   {

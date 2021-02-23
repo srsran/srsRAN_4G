@@ -82,7 +82,10 @@ public:
     return SRSLTE_SUCCESS;
   }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac->tb_decoded(cc_idx, grant); }
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu) final { mac->new_grant_ul(cc_idx, grant, phy_tx_pdu); }
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action) final
+  {
+    mac->new_grant_ul(cc_idx, grant, action);
+  }
   void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id)
   {
     mac->prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);

@@ -46,6 +46,19 @@ public:
     uint32_t tbs;
   } mac_nr_grant_ul_t;
 
+  /// For UL, payload buffer remains in MAC
+  typedef struct {
+    bool                    enabled;
+    uint32_t                rv;
+    srslte::byte_buffer_t*  payload;
+    srslte_softbuffer_tx_t* softbuffer;
+  } tb_ul_t;
+
+  /// Struct provided by MAC with all necessary information for PHY
+  typedef struct {
+    tb_ul_t tb; // only single TB in UL
+  } tb_action_ul_t;
+
   virtual int sf_indication(const uint32_t tti) = 0; ///< FIXME: rename to slot indication
 
   // Query the MAC for the current RNTI to look for
@@ -59,10 +72,16 @@ public:
   /// Indicate succussfully received TB to MAC. The TB buffer is allocated in the PHY and handed as unique_ptr to MAC
   virtual void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) = 0;
 
-  /// Indicate reception of UL grant (only TBS is provided). Buffer for resulting MAC PDU is provided by MAC and is
-  /// passed as pointer to PHY during tx_reuqest
-  virtual void
-  new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu) = 0;
+  /**
+   * @brief Indicate reception of UL grant to MAC
+   *
+   * Buffer for resulting MAC PDU is provided and managed (owned) by MAC and is passed as pointer in ul_action
+   *
+   * @param cc_idx The carrier index on which the grant has been received
+   * @param grant  Reference to the grant
+   * @param action Pointer to the TB action to be filled by MAC
+   */
+  virtual void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action) = 0;
 
   /**
    * @brief Indicate the successful transmission of a PRACH.

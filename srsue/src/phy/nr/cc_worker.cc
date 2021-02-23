@@ -38,22 +38,10 @@ cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_sta
     return;
   }
 
-  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
-      SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer");
-    return;
-  }
-
   if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
     ERROR("Error init soft-buffer");
     return;
-  }
-
-  // Initialise data with numbers
-  tx_data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
-  for (uint32_t i = 0; i < SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8; i++) {
-    tx_data[i] = i % 255U;
   }
 }
 
@@ -282,22 +270,20 @@ bool cc_worker::work_ul()
 
   if (has_pusch_grant) {
     // Notify MAC about PUSCH found grant
+    mac_interface_phy_nr::tb_action_ul_t    ul_action    = {};
     mac_interface_phy_nr::mac_nr_grant_ul_t mac_ul_grant = {};
     mac_ul_grant.pid                                     = pid;
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
     mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
-    srslte::unique_byte_buffer_t tx_pdu                  = srslte::make_byte_buffer();
-    phy->stack->new_grant_ul(0, mac_ul_grant, tx_pdu.get());
-    // Provisional reset and assign Tx softbuffer
-    srslte_softbuffer_tx_reset(&softbuffer_tx);
-    pusch_cfg.grant.tb[0].softbuffer.tx = &softbuffer_tx;
 
-    // TODO: Use here PDU, after that, remove tx_data attribute
-    uint8_t* tx_data_ptr = tx_pdu.get()->msg;
+    phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
+
+    // Assignning MAC provided values to PUSCH config structs
+    pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
 
     // Encode PUSCH transmission
-    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, tx_data_ptr) < SRSLTE_SUCCESS) {
+    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, ul_action.tb.payload->msg) < SRSLTE_SUCCESS) {
       ERROR("Encoding PUSCH");
       return false;
     }
@@ -306,7 +292,7 @@ bool cc_worker::work_ul()
     if (logger.info.enabled()) {
       std::array<char, 512> str;
       srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, str.data(), str.size());
-      logger.info(tx_data_ptr,
+      logger.info(ul_action.tb.payload->msg,
                   pusch_cfg.grant.tb[0].tbs / 8,
                   "PUSCH (NR): cc=%d, %s, tti_tx=%d",
                   cc_idx,
