@@ -238,7 +238,7 @@ private:
     int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
     int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
     int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
-    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu, std::vector<uint32_t>& notify_info_vec);
+    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu);
 
     void debug_state();
 
@@ -301,6 +301,7 @@ private:
     // Tx windows
     tx_window_t                tx_window;
     std::deque<rlc_amd_retx_t> retx_queue;
+    std::vector<uint32_t>      notify_info_vec;
 
     // Mutexes
     pthread_mutex_t mutex;

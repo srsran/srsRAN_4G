@@ -172,6 +172,7 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   status_prohibit_timer(parent_->timers->get_unique_timer())
 {
   pthread_mutex_init(&mutex, NULL);
+  notify_info_vec.reserve(300);
 }
 
 rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
@@ -1018,9 +1019,8 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   }
 
   // Handle ACKs and NACKs
-  bool                  update_vt_a = true;
-  uint32_t              i           = vt_a;
-  std::vector<uint32_t> notify_info_vec;
+  bool     update_vt_a = true;
+  uint32_t i           = vt_a;
 
   while (TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) && TX_MOD_BASE(i) < TX_MOD_BASE(vt_s)) {
     bool nack = false;
@@ -1075,7 +1075,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
       // ACKed SNs get marked and removed from tx_window if possible
       if (tx_window.has_sn(i)) {
         auto& pdu = tx_window[i];
-        update_notification_ack_info(pdu, notify_info_vec);
+        update_notification_ack_info(pdu);
         if (update_vt_a) {
           tx_window.remove_pdu(i);
           vt_a  = (vt_a + 1) % MOD;
@@ -1105,6 +1105,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   if (not notify_info_vec.empty()) {
     parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
   }
+  notify_info_vec.clear();
 }
 
 /*
@@ -1112,8 +1113,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
  * @tx_pdu: RLC PDU that was ack'ed.
  * @notify_info_vec: Vector which will keep track of the PDCP PDU SNs that have been fully ack'ed.
  */
-void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu,
-                                                             std::vector<uint32_t>&  notify_info_vec)
+void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu)
 {
   logger.debug("Updating ACK info: RLC SN=%d, number of notified SDU=%ld, number of undelivered SDUs=%ld",
                tx_pdu.header.sn,
