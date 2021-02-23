@@ -38,7 +38,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public srslte::pdu_queue::process_callback
 {
 public:
-  ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
+  explicit ttcn3_syssim(ttcn3_ue* ue_);
 
   ~ttcn3_syssim();
 
@@ -219,12 +219,6 @@ private:
   std::map<uint32_t, epoll_handler*> event_handler;  ///< Lookup table for handler
   epoll_timer_handler                timer_handler;
   epoll_signal_handler               signal_handler;
-
-  // Logging stuff (to be removed)
-  srslte::logger& logger_stdout;
-  srslte::logger& logger_file;
-  srslte::logger* old_logger = nullptr;
-  srslte::log_ref log;
 
   all_args_t args = {};
 

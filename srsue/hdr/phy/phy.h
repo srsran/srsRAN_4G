@@ -73,7 +73,7 @@ public:
     logger_phy(srslog::fetch_basic_logger("PHY")),
     logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
     lte_workers(MAX_WORKERS),
-    nr_workers(MAX_WORKERS, log_sink),
+    nr_workers(MAX_WORKERS),
     common(logger_phy),
     sfsync(logger_phy, logger_phy_lib),
     prach_buffer(logger_phy),

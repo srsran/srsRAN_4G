@@ -99,7 +99,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     radio = std::move(lte_radio);
 
   } else if (args.stack.type == "nr") {
-    std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr(logger));
+    std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr);
     std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null);
     std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr);
 

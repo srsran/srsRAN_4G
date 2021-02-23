@@ -45,7 +45,7 @@ class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public srslte::thread
 {
 public:
-  explicit gnb_stack_nr(srslte::logger* logger_);
+  explicit gnb_stack_nr();
   ~gnb_stack_nr() final;
 
   int init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rrc_cfg_, phy_interface_stack_nr* phy_);
@@ -78,9 +78,8 @@ private:
   void run_tti_impl(uint32_t tti);
 
   // args
-  srsenb::stack_args_t    args   = {};
-  srslte::logger*         logger = nullptr;
-  phy_interface_stack_nr* phy    = nullptr;
+  srsenb::stack_args_t    args = {};
+  phy_interface_stack_nr* phy  = nullptr;
 
   // task scheduling
   static const int                      STACK_MAIN_THREAD_PRIO = 4;

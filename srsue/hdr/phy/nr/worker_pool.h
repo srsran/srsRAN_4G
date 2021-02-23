@@ -23,7 +23,6 @@ namespace nr {
 class worker_pool
 {
 private:
-  srslog::sink&                            log_sink;
   srslog::basic_logger&                    logger;
   srslte::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
@@ -33,7 +32,7 @@ private:
 public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
-  worker_pool(uint32_t max_workers, srslog::sink& log_sink_);
+  worker_pool(uint32_t max_workers);
   bool       init(const phy_args_nr_t& args_, phy_common* common, stack_interface_phy_nr* stack_, int prio);
   sf_worker* wait_worker(uint32_t tti);
   void       start_worker(sf_worker* w);

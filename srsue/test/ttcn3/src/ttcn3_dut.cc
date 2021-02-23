@@ -126,20 +126,14 @@ int main(int argc, char** argv)
   }
   srslog::set_default_sink(*default_sink);
 
-  srslte::srslog_wrapper file_wrapper(srslog::fetch_log_channel("file_channel"));
-  srslte::srslog_wrapper stdout_wrapper(srslog::fetch_log_channel("stdout_channel", srslog::fetch_stdout_sink(), {}));
-
   // Start the log backend.
   srslog::init();
-
-  // Instantiate file logger
-  srslte::logmap::set_default_logger(&file_wrapper);
 
   // Create UE object
   unique_ptr<ttcn3_ue> ue = std::unique_ptr<ttcn3_ue>(new ttcn3_ue());
 
   // create and init SYSSIM
-  ttcn3_syssim syssim(file_wrapper, stdout_wrapper, ue.get());
+  ttcn3_syssim syssim(ue.get());
   if (syssim.init(ue_args) != SRSLTE_SUCCESS) {
     fprintf(stderr, "Error: Couldn't initialize system simulator\n");
     return SRSLTE_ERROR;

@@ -16,7 +16,7 @@
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), task_sched{512, 128}, thread("gNB")
+gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB")
 {
   m_mac.reset(new mac_nr());
   m_rlc.reset(new rlc_nr("RLC"));

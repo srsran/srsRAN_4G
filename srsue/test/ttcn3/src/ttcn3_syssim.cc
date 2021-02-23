@@ -29,7 +29,7 @@
 #include "ttcn3_ut_interface.h"
 #include <functional>
 
-ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_) :
+ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   logger(srslog::fetch_basic_logger("SS")),
   ut_logger(srslog::fetch_basic_logger("UT", false)),
   sys_logger(srslog::fetch_basic_logger("SYS", false)),
@@ -46,13 +46,9 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_
   ip_ctrl(ip_ctrl_logger),
   srb(srb_logger),
   drb(drb_logger),
-  log{"SS  "},
   mac_msg_ul(20, ss_mac_logger),
   mac_msg_dl(20, ss_mac_logger),
   pdus(logger, 128),
-  logger_stdout(logger_stdout_),
-  logger_file(logger_file_),
-  old_logger(&logger_file),
   ue(ue_),
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
@@ -71,7 +67,6 @@ int ttcn3_syssim::init(const all_args_t& args_)
 
   // Make sure to get SS logging as well
   if (args.log.filename == "stdout") {
-    old_logger     = &logger_stdout;
     auto* swp_sink = srslog::find_sink(swappable_sink::name());
     if (!swp_sink) {
       logger.error("Unable to find the swappable sink");
@@ -80,12 +75,8 @@ int ttcn3_syssim::init(const all_args_t& args_)
     }
     static_cast<swappable_sink*>(swp_sink)->swap_to_stdout();
   }
-  srslte::logmap::set_default_logger(old_logger);
 
   // init and configure logging
-
-  log->set_level(args.log.all_level);
-
   auto logger_lvl = srslog::str_to_basic_level(args.log.all_level);
   logger.set_level(logger_lvl);
   ut_logger.set_level(logger_lvl);
@@ -97,8 +88,6 @@ int ttcn3_syssim::init(const all_args_t& args_)
   ss_mac_logger.set_level(logger_lvl);
   ss_rlc_logger.set_level(logger_lvl);
   ss_pdcp_logger.set_level(logger_lvl);
-
-  log->set_hex_limit(args.log.all_hex_limit);
 
   logger.set_hex_dump_max_size(args.log.all_hex_limit);
   ut_logger.set_hex_dump_max_size(args.log.all_hex_limit);
@@ -207,7 +196,6 @@ void ttcn3_syssim::new_tti_indication(uint64_t res)
 {
   tti = (tti + 1) % 10240;
 
-  log->step(tti);
   logger.set_context(tti);
   logger.debug("Start TTI");
 
@@ -420,12 +408,10 @@ void ttcn3_syssim::tc_start(const char* name)
 
   // set up logging
   if (args.log.filename == "stdout") {
-    old_logger = &logger_stdout;
     static_cast<swappable_sink*>(swp_sink)->swap_to_stdout();
   } else {
     const std::string& file_tc_name = get_filename_with_tc_name(local_args.log.filename, run_id, tc_name);
     static_cast<swappable_sink*>(swp_sink)->swap_sink(file_tc_name);
-    old_logger = &logger_file;
   }
 
   logger.info("Initializing UE ID=%d for TC=%s", run_id, tc_name.c_str());
