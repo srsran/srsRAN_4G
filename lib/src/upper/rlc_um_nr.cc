@@ -587,6 +587,11 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
     header->si = (rlc_nr_si_field_t)((*ptr >> 6) & 0x03); // 2 bits SI
     header->sn = (*ptr & 0x0F) << 4;                      // 4 bits SN
 
+    if (header->si == rlc_nr_si_field_t::full_sdu and header->sn != 0) {
+      fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+      return 0;
+    }
+
     // sanity check
     if (header->si == rlc_nr_si_field_t::first_segment) {
       // make sure two reserved bits are not set
@@ -596,9 +601,12 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
       }
     }
 
-    // continue unpacking remaining SN
-    ptr++;
-    header->sn |= (*ptr & 0xFF); // 8 bits SN
+    if (header->si != rlc_nr_si_field_t::full_sdu) {
+      // continue unpacking remaining SN
+      ptr++;
+      header->sn |= (*ptr & 0xFF); // 8 bits SN
+    }
+
     ptr++;
   } else {
     fprintf(stderr, "Unsupported SN length\n");
