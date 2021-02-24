@@ -208,6 +208,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.report_json_filename", bpo::value<string>(&args->general.report_json_filename)->default_value("/tmp/enb_report.json"), "Report JSON filename")
     ("expert.alarms_log_enable",  bpo::value<bool>(&args->general.alarms_log_enable)->default_value(false), "Log alarms")
     ("expert.alarms_filename", bpo::value<string>(&args->general.alarms_filename)->default_value("/tmp/enb_alarms.log"), "Alarms filename")
+    ("expert.tracing_enable",  bpo::value<bool>(&args->general.tracing_enable)->default_value(false), "Events tracing")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(30000), "Inactivity timer in ms.")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
@@ -503,7 +504,9 @@ int main(int argc, char* argv[])
   alarms_channel.set_enabled(args.general.alarms_log_enable);
 
 #ifdef ENABLE_SRSLOG_EVENT_TRACE
-  srslog::event_trace_init();
+  if (args.general.tracing_enable) {
+    srslog::event_trace_init();
+  }
 #endif
 
   // Start the log backend.
