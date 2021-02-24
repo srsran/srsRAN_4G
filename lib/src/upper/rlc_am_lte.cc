@@ -172,7 +172,7 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   status_prohibit_timer(parent_->timers->get_unique_timer())
 {
   pthread_mutex_init(&mutex, NULL);
-  notify_info_vec.reserve(300);
+  notify_info_vec.reserve(RLC_AM_WINDOW_SIZE);
 }
 
 rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
@@ -305,7 +305,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 
   // Bytes needed for retx
   if (not retx_queue.empty()) {
-    rlc_amd_retx_t retx = retx_queue.front();
+    rlc_amd_retx_t& retx = retx_queue.front();
     logger.debug("%s Buffer state - retx - SN=%d, Segment: %s, %d:%d",
                  RB_NAME,
                  retx.sn,
@@ -316,7 +316,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
       int req_bytes = required_buffer_size(retx);
       if (req_bytes < 0) {
         logger.error("In get_buffer_state(): Removing retx.sn=%d from queue", retx.sn);
-        retx_queue.pop_front();
+        retx_queue.pop();
       } else {
         n_bytes += req_bytes;
         logger.debug("Buffer state - retx: %d bytes", n_bytes);
@@ -483,12 +483,11 @@ void rlc_am_lte::rlc_am_lte_tx::retransmit_pdu()
     // select PDU in tx window for retransmission
     rlc_amd_tx_pdu_t& pdu = tx_window.front();
     logger.info("%s Schedule SN=%d for reTx.", RB_NAME, pdu.rlc_sn);
-    rlc_amd_retx_t retx = {};
-    retx.is_segment     = false;
-    retx.so_start       = 0;
-    retx.so_end         = pdu.buf->N_bytes;
-    retx.sn             = pdu.rlc_sn;
-    retx_queue.push_back(retx);
+    rlc_amd_retx_t& retx = retx_queue.push();
+    retx.is_segment      = false;
+    retx.so_start        = 0;
+    retx.so_end          = pdu.buf->N_bytes;
+    retx.sn              = pdu.rlc_sn;
   }
 }
 
@@ -574,7 +573,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
 
   // Sanity check - drop any retx SNs not present in tx_window
   while (not tx_window.has_sn(retx.sn)) {
-    retx_queue.pop_front();
+    retx_queue.pop();
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
     } else {
@@ -587,7 +586,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   int req_size = required_buffer_size(retx);
   if (req_size < 0) {
     logger.error("In build_retx_pdu(): Removing retx.sn=%d from queue", retx.sn);
-    retx_queue.pop_front();
+    retx_queue.pop();
     return -1;
   }
 
@@ -620,7 +619,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
   rlc_am_write_data_pdu_header(&new_header, &ptr);
   memcpy(ptr, tx_window[retx.sn].buf->msg, tx_window[retx.sn].buf->N_bytes);
 
-  retx_queue.pop_front();
+  retx_queue.pop();
   tx_window[retx.sn].retx_count++;
   if (tx_window[retx.sn].retx_count >= cfg.max_retx_thresh) {
     logger.warning("%s Signaling max number of reTx=%d for for SN=%d", RB_NAME, tx_window[retx.sn].retx_count, retx.sn);
@@ -760,13 +759,13 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
 
   // Update retx_queue
   if (tx_window[retx.sn].buf->N_bytes == retx.so_end) {
-    retx_queue.pop_front();
+    retx_queue.pop();
     new_header.lsf = 1;
     if (rlc_am_end_aligned(old_header.fi)) {
       new_header.fi &= RLC_FI_FIELD_NOT_START_ALIGNED; // segment is end aligned
     }
   } else if (retx_queue.front().so_end == retx.so_end) {
-    retx_queue.pop_front();
+    retx_queue.pop();
   } else {
     retx_queue.front().is_segment = true;
     retx_queue.front().so_start   = retx.so_end;
@@ -1030,12 +1029,12 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
         update_vt_a = false;
         if (tx_window.has_sn(i)) {
           auto& pdu = tx_window[i];
-          if (!retx_queue_has_sn(i)) {
-            rlc_amd_retx_t retx = {};
-            retx.sn             = i;
-            retx.is_segment     = false;
-            retx.so_start       = 0;
-            retx.so_end         = pdu.buf->N_bytes;
+          if (!retx_queue.has_sn(i)) {
+            rlc_amd_retx_t& retx = retx_queue.push();
+            retx.sn              = i;
+            retx.is_segment      = false;
+            retx.so_start        = 0;
+            retx.so_end          = pdu.buf->N_bytes;
 
             if (status.nacks[j].has_so) {
               // sanity check
@@ -1065,7 +1064,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
                                pdu.buf->N_bytes);
               }
             }
-            retx_queue.push_back(retx);
           }
         }
       }
@@ -1223,17 +1221,6 @@ int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(rlc_amd_retx_t retx)
   //  }
 
   return rlc_am_packed_length(&new_header) + (retx.so_end - retx.so_start);
-}
-
-bool rlc_am_lte::rlc_am_lte_tx::retx_queue_has_sn(uint32_t sn)
-{
-  std::deque<rlc_amd_retx_t>::iterator q_it;
-  for (q_it = retx_queue.begin(); q_it != retx_queue.end(); ++q_it) {
-    if (q_it->sn == sn) {
-      return true;
-    }
-  }
-  return false;
 }
 
 /****************************************************************************

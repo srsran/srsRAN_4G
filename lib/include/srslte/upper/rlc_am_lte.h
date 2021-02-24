@@ -170,6 +170,51 @@ private:
   uint32_t                     count = 0;
 };
 
+class pdu_retx_queue
+{
+public:
+  rlc_amd_retx_t& push()
+  {
+    assert(not full());
+    rlc_amd_retx_t& p = buffer[wpos];
+    wpos              = (wpos + 1) % RLC_AM_WINDOW_SIZE;
+    return p;
+  }
+
+  void pop() { rpos = (rpos + 1) % RLC_AM_WINDOW_SIZE; }
+
+  rlc_amd_retx_t& front()
+  {
+    assert(not empty());
+    return buffer[rpos];
+  }
+
+  void clear()
+  {
+    wpos = 0;
+    rpos = 0;
+  }
+
+  bool has_sn(uint32_t sn) const
+  {
+    for (size_t i = rpos; i != wpos; i = (i + 1) % RLC_AM_WINDOW_SIZE) {
+      if (buffer[i].sn == sn) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  size_t size() const { return (wpos >= rpos) ? wpos - rpos : RLC_AM_WINDOW_SIZE + wpos - rpos; }
+  bool   empty() const { return wpos == rpos; }
+  bool   full() const { return size() == RLC_AM_WINDOW_SIZE - 1; }
+
+private:
+  std::array<rlc_amd_retx_t, RLC_AM_WINDOW_SIZE> buffer;
+  size_t                                         wpos = 0;
+  size_t                                         rpos = 0;
+};
+
 class rlc_am_lte : public rlc_common
 {
 public:
@@ -242,7 +287,6 @@ private:
 
     void debug_state();
 
-    bool retx_queue_has_sn(uint32_t sn);
     int  required_buffer_size(rlc_amd_retx_t retx);
     void retransmit_pdu();
 
@@ -299,9 +343,9 @@ private:
     bsr_callback_t bsr_callback;
 
     // Tx windows
-    tx_window_t                tx_window;
-    std::deque<rlc_amd_retx_t> retx_queue;
-    std::vector<uint32_t>      notify_info_vec;
+    tx_window_t           tx_window;
+    pdu_retx_queue        retx_queue;
+    std::vector<uint32_t> notify_info_vec;
 
     // Mutexes
     pthread_mutex_t mutex;
