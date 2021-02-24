@@ -90,6 +90,7 @@ struct general_args_t {
   std::string alarms_filename;
   bool        print_buffer_state;
   bool        tracing_enable;
+  std::string tracing_filename;
   std::string eia_pref_list;
   std::string eea_pref_list;
 };

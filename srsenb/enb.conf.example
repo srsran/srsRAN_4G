@@ -314,6 +314,7 @@ enable = false
 #alarms_log_enable    = true
 #alarms_filename      = /tmp/enb_alarms.log
 #tracing_enable       = true
+#tracing_filename     = /tmp/enb_tracing.log
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #rrc_inactivity_timer = 30000
