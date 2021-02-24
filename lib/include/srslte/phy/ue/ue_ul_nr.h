@@ -82,7 +82,7 @@ SRSLTE_API int srslte_ue_ul_nr_pucch_info(const srslte_pucch_nr_resource_t* reso
  *
  * @param sr_resources Provides the SR configuration from the upper layers
  * @param slot_idx Slot index in the radio frame
- * @param sr_id Scheduling Request logic channel identifier
+ * @param sr_id Scheduling Request identifier
  * @param[out] sr_resource_id Optional SR resource index (or identifier)
  *
  * @return 1 if the provided slot index is a SR transmission opportunity, SRSLTE_SUCCESS if it is not an SR transmission
