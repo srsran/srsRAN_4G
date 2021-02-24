@@ -630,7 +630,9 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
 uint32_t rlc_um_nr_packed_length(const rlc_um_nr_pdu_header_t& header)
 {
   uint32_t len = 0;
-  if (header.si == rlc_nr_si_field_t::full_sdu || header.si == rlc_nr_si_field_t::first_segment) {
+  if (header.si == rlc_nr_si_field_t::full_sdu) {
+    len = 1;
+  } else if (header.si == rlc_nr_si_field_t::first_segment) {
     len = 1;
     if (header.sn_size == rlc_um_nr_sn_size_t::size12bits) {
       len++;

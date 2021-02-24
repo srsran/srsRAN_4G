@@ -214,6 +214,8 @@ int rlc_um_nr_pdu_unpack_test6()
   TESTASSERT(header.so == 0);
   TESTASSERT(header.sn == 0);
 
+  TESTASSERT(rlc_um_nr_packed_length(header) == 1);
+
   return SRSLTE_SUCCESS;
 }
 
