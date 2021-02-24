@@ -249,17 +249,17 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* 
       rlc_buffer->clear();
       uint8_t* rd      = rlc_buffer->msg;
       int      pdu_len = 0;
-      // pdu_len = rlc->read_pdu(args.drb_lcid, rd, tx_pdu.get_remaing_len() - 2);
+      pdu_len          = rlc->read_pdu(4, rd, tx_pdu.get_remaing_len() - 2);
 
       // Add SDU if RLC has something to tx
       if (pdu_len > 0) {
-        //   rlc_buffer->N_bytes = pdu_len;
-        //   logger.info(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
+        rlc_buffer->N_bytes = pdu_len;
+        logger.info(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC", rlc_buffer->N_bytes);
 
-        //   // add to MAC PDU and pack
-        //   if (tx_pdu.add_sdu(args.drb_lcid, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
-        //     logger.error("Error packing MAC PDU");
-        //   }
+        // add to MAC PDU and pack
+        if (tx_pdu.add_sdu(4, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
+          logger.error("Error packing MAC PDU");
+        }
       } else {
         break;
       }
@@ -362,14 +362,15 @@ void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
   for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
     srslte::mac_sch_subpdu_nr subpdu = rx_pdu.get_subpdu(i);
     logger.info("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
-                i,
+                i + 1,
                 rx_pdu.get_num_subpdus(),
                 subpdu.get_c_rnti(),
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
-
-    // rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-   }
+    if (subpdu.get_lcid() == 4) {
+      rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+    }
+  }
 }
 
 uint64_t mac_nr::get_contention_id()
