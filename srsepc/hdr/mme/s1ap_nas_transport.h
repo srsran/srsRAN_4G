@@ -49,8 +49,7 @@ private:
   s1ap_nas_transport();
   virtual ~s1ap_nas_transport();
 
-  srslte::log*              m_s1ap_log;
-  srslte::byte_buffer_pool* m_pool;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
   s1ap* m_s1ap;
 

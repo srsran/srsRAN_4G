@@ -210,7 +210,6 @@ int main(int argc, char** argv)
     errors_f   = 0;
     errors_sse = 0;
     while (frame_cnt < nof_frames) {
-
       /* generate data_tx */
       srslte_random_t random_gen = srslte_random_init(0);
       for (int j = 0; j < frame_length; j++) {
@@ -292,7 +291,7 @@ int main(int argc, char** argv)
   if (snr_points == 1) {
     int expected_e = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
     if (expected_e == -1) {
-      ERROR("Test parameters not defined in test_results.h\n");
+      ERROR("Test parameters not defined in test_results.h");
       exit(-1);
     } else {
       printf(

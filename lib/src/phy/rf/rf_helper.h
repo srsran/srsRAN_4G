@@ -127,4 +127,17 @@ static inline int parse_uint32(char* args, const char* config_arg_base, int chan
   return ret;
 }
 
+static inline int parse_int32(char* args, const char* config_arg_base, int channel_index, int32_t* value)
+{
+  char tmp_value[RF_PARAM_LEN] = {0};
+  int  ret                     = parse_string(args, config_arg_base, channel_index, tmp_value);
+
+  // Copy parsed value only if was found, otherwise it keeps the default
+  if (ret == SRSLTE_SUCCESS) {
+    *value = (int32_t)strtof(tmp_value, NULL);
+  }
+
+  return ret;
+}
+
 #endif /* SRSLTE_RF_HELPER_H_ */

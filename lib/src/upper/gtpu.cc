@@ -26,35 +26,43 @@
 
 namespace srslte {
 
+const static size_t HEADER_PDCP_PDU_NUMBER_SIZE = 4;
+
 /****************************************************************************
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 29.281 v10.1.0 Section 5
  ***************************************************************************/
-bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log_ref gtpu_log)
+bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger)
 {
   // flags
-  if (!gtpu_supported_flags_check(header, gtpu_log)) {
-    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Flags. Flags: 0x%x\n", header->flags);
+  if (!gtpu_supported_flags_check(header, logger)) {
+    logger.error("gtpu_write_header - Unhandled GTP-U Flags. Flags: 0x%x", header->flags);
     return false;
   }
 
   // msg type
-  if (!gtpu_supported_msg_type_check(header, gtpu_log)) {
-    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Message Type. Message Type: 0x%x\n", header->message_type);
+  if (!gtpu_supported_msg_type_check(header, logger)) {
+    logger.error("gtpu_write_header - Unhandled GTP-U Message Type. Message Type: 0x%x", header->message_type);
     return false;
   }
 
   // If E, S or PN are set, the header is longer
   if (header->flags & (GTPU_FLAGS_EXTENDED_HDR | GTPU_FLAGS_SEQUENCE | GTPU_FLAGS_PACKET_NUM)) {
     if (pdu->get_headroom() < GTPU_EXTENDED_HEADER_LEN) {
-      gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
+      logger.error("gtpu_write_header - No room in PDU for header");
       return false;
     }
     pdu->msg -= GTPU_EXTENDED_HEADER_LEN;
     pdu->N_bytes += GTPU_EXTENDED_HEADER_LEN;
+    header->length += GTPU_EXTENDED_HEADER_LEN - GTPU_BASE_HEADER_LEN;
+    if (header->next_ext_hdr_type > 0) {
+      pdu->msg -= header->ext_buffer.size();
+      pdu->N_bytes += header->ext_buffer.size();
+      header->length += header->ext_buffer.size();
+    }
   } else {
     if (pdu->get_headroom() < GTPU_BASE_HEADER_LEN) {
-      gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
+      logger.error("gtpu_write_header - No room in PDU for header");
       return false;
     }
     pdu->msg -= GTPU_BASE_HEADER_LEN;
@@ -85,20 +93,50 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
       *ptr = header->n_pdu;
     } else {
       header->n_pdu = 0;
+      *ptr          = 0;
     }
     ptr++;
     // E
     if (header->flags & GTPU_FLAGS_EXTENDED_HDR) {
       *ptr = header->next_ext_hdr_type;
+      ptr++;
+      for (size_t i = 0; i < header->ext_buffer.size(); ++i) {
+        *ptr = header->ext_buffer[i];
+        ptr++;
+      }
     } else {
       *ptr = 0;
+      ptr++;
     }
-    ptr++;
   }
   return true;
 }
 
-bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log_ref gtpu_log)
+bool gtpu_read_ext_header(srslte::byte_buffer_t* pdu,
+                          uint8_t**              ptr,
+                          gtpu_header_t*         header,
+                          srslog::basic_logger&  logger)
+{
+  if ((header->flags & GTPU_FLAGS_EXTENDED_HDR) == 0 or header->next_ext_hdr_type == 0) {
+    return true;
+  }
+
+  if (header->next_ext_hdr_type == GTPU_EXT_HEADER_PDCP_PDU_NUMBER) {
+    pdu->msg += HEADER_PDCP_PDU_NUMBER_SIZE;
+    pdu->N_bytes -= HEADER_PDCP_PDU_NUMBER_SIZE;
+    header->ext_buffer.resize(HEADER_PDCP_PDU_NUMBER_SIZE);
+    for (size_t i = 0; i < HEADER_PDCP_PDU_NUMBER_SIZE; ++i) {
+      header->ext_buffer[i] = **ptr;
+      (*ptr)++;
+    }
+  } else {
+    logger.error("gtpu_read_header - Unhandled GTP-U Extension Header Type: 0x%x", header->next_ext_hdr_type);
+    return false;
+  }
+  return true;
+}
+
+bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger)
 {
   uint8_t* ptr = pdu->msg;
 
@@ -109,16 +147,17 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte:
   uint8_to_uint16(ptr, &header->length);
   ptr += 2;
   uint8_to_uint32(ptr, &header->teid);
+  ptr += 4;
 
   // flags
-  if (!gtpu_supported_flags_check(header, gtpu_log)) {
-    gtpu_log->error("gtpu_read_header - Unhandled GTP-U Flags. Flags: 0x%x\n", header->flags);
+  if (!gtpu_supported_flags_check(header, logger)) {
+    logger.error("gtpu_read_header - Unhandled GTP-U Flags. Flags: 0x%x", header->flags);
     return false;
   }
 
   // message_type
-  if (!gtpu_supported_msg_type_check(header, gtpu_log)) {
-    gtpu_log->error("gtpu_read_header - Unhandled GTP-U Message Type. Flags: 0x%x\n", header->message_type);
+  if (!gtpu_supported_msg_type_check(header, logger)) {
+    logger.error("gtpu_read_header - Unhandled GTP-U Message Type. Flags: 0x%x", header->message_type);
     return false;
   }
 
@@ -135,6 +174,10 @@ bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte:
 
     header->next_ext_hdr_type = *ptr;
     ptr++;
+
+    if (not gtpu_read_ext_header(pdu, &ptr, header, logger)) {
+      return false;
+    }
   } else {
     pdu->msg += GTPU_BASE_HEADER_LEN;
     pdu->N_bytes -= GTPU_BASE_HEADER_LEN;

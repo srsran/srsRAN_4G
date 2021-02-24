@@ -95,11 +95,8 @@ add_executable(task_scheduler_test task_scheduler_test.cc)
 target_link_libraries(task_scheduler_test srslte_common)
 add_test(task_scheduler_test task_scheduler_test)
 
-if(ENABLE_5GNR)
-  add_executable(pnf_dummy pnf_dummy.cc)
-  target_link_libraries(pnf_dummy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+add_executable(pnf_dummy pnf_dummy.cc)
+target_link_libraries(pnf_dummy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 
-  add_executable(pnf_bridge pnf_bridge.cc)
-  target_link_libraries(pnf_bridge srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-endif()
-
+add_executable(pnf_bridge pnf_bridge.cc)
+target_link_libraries(pnf_bridge srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})

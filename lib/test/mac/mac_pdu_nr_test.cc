@@ -20,22 +20,16 @@
  */
 
 #include "srslte/common/log_filter.h"
-#include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/mac_pcap.h"
+#include "srslte/common/test_common.h"
 #include "srslte/config.h"
-#include "srslte/mac/mac_nr_pdu.h"
+#include "srslte/mac/mac_rar_pdu_nr.h"
+#include "srslte/mac/mac_sch_pdu_nr.h"
 
 #include <array>
 #include <iostream>
 #include <memory>
 #include <vector>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 #define PCAP 0
 #define PCAP_CRNTI (0x1001)
@@ -43,7 +37,7 @@
 
 using namespace srslte;
 
-static std::unique_ptr<srslte::mac_nr_pcap> pcap_handle = nullptr;
+static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
 
 int mac_dl_sch_pdu_unpack_and_pack_test1()
 {
@@ -57,14 +51,14 @@ int mac_dl_sch_pdu_unpack_and_pack_test1()
   uint8_t mac_dl_sch_pdu_1[] = {0x00, 0x08, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(mac_dl_sch_pdu_1, sizeof(mac_dl_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(mac_dl_sch_pdu_1, sizeof(mac_dl_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu;
+  srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_1, sizeof(mac_dl_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 10);
   TESTASSERT(subpdu.get_sdu_length() == 8);
   TESTASSERT(subpdu.get_lcid() == 0);
@@ -72,7 +66,7 @@ int mac_dl_sch_pdu_unpack_and_pack_test1()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(mac_dl_sch_pdu_1));
 
   // Add SDU part of TV from above
@@ -83,13 +77,11 @@ int mac_dl_sch_pdu_unpack_and_pack_test1()
   TESTASSERT(memcmp(tx_buffer.msg, mac_dl_sch_pdu_1, tx_buffer.N_bytes) == 0);
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -109,13 +101,13 @@ int mac_dl_sch_pdu_unpack_test2()
   uint8_t mac_dl_sch_pdu_2[] = {0x42, 0x00, 0x08, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu;
+  srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2));
   TESTASSERT(pdu.get_num_subpdus() == 1);
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 11);
   TESTASSERT(subpdu.get_sdu_length() == 8);
   TESTASSERT(subpdu.get_lcid() == 2);
@@ -142,7 +134,7 @@ int mac_dl_sch_pdu_pack_test3()
   // pack buffer
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, 1024);
 
   // Add SDU
@@ -152,13 +144,11 @@ int mac_dl_sch_pdu_pack_test3()
   TESTASSERT(tx_buffer.N_bytes == 515);
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -180,7 +170,7 @@ int mac_dl_sch_pdu_pack_test4()
   // modify buffer (to be nulled during PDU packing
   tx_buffer.msg[4] = 0xaa;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, pdu_size);
 
   TESTASSERT(tx_pdu.get_remaing_len() == pdu_size);
@@ -191,13 +181,11 @@ int mac_dl_sch_pdu_pack_test4()
   TESTASSERT(memcmp(tx_buffer.msg, tv, tx_buffer.N_bytes) == 0);
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -220,7 +208,7 @@ int mac_dl_sch_pdu_pack_test5()
   byte_buffer_t  tx_buffer;
   tx_buffer.clear();
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, pdu_size);
 
   // Add SDU part of TV from above
@@ -236,13 +224,11 @@ int mac_dl_sch_pdu_pack_test5()
   TESTASSERT(memcmp(tx_buffer.msg, tv, tx_buffer.N_bytes) == 0);
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -259,11 +245,92 @@ int mac_dl_sch_pdu_unpack_test6()
   uint8_t mac_dl_sch_pdu_2[] = {0x2e, 0x04, 0x11, 0x22, 0x33, 0x44};
 
   if (pcap_handle) {
-    pcap_handle->write_dl_crnti(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_dl_crnti_nr(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu;
+  srslte::mac_sch_pdu_nr pdu;
   pdu.unpack(mac_dl_sch_pdu_2, sizeof(mac_dl_sch_pdu_2));
+  TESTASSERT(pdu.get_num_subpdus() == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
+int mac_rar_pdu_unpack_test7()
+{
+  // MAC PDU with RAR PDU with single RAPID=0
+  // rapid=0
+  // ta=180
+  // ul_grant:
+  //   hopping_flag=0
+  //   riv=0x1
+  //   time_domain_rsc=1
+  //   mcs=4
+  //   tpc_command=3
+  //   csi_request=0
+  // tc-rnti=0x4616
+
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | R |T=1|        RAPID=0        |  Octet 1
+  // |              RAR              |  Octet 2-8
+  const uint32_t tv_rapid                                         = 0;
+  const uint32_t tv_ta                                            = 180;
+  const uint16_t tv_tcrnti                                        = 0x4616;
+  const uint8_t  tv_msg3_grant[mac_rar_subpdu_nr::UL_GRANT_NBITS] = {
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00}; // unpacked UL grant
+
+  uint8_t mac_dl_rar_pdu[] = {0x40, 0x05, 0xa0, 0x00, 0x11, 0x46, 0x46, 0x16, 0x00, 0x00, 0x00};
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_ra_rnti_nr(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu), 0x0016, true, PCAP_TTI);
+  }
+
+  srslte::mac_rar_pdu_nr pdu;
+  TESTASSERT(pdu.unpack(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu)) == true);
+
+  std::cout << pdu.to_string() << std::endl;
+
+  TESTASSERT(pdu.get_num_subpdus() == 1);
+
+  mac_rar_subpdu_nr subpdu = pdu.get_subpdu(0);
+  TESTASSERT(subpdu.has_rapid() == true);
+  TESTASSERT(subpdu.has_backoff() == false);
+  TESTASSERT(subpdu.get_temp_crnti() == tv_tcrnti);
+  TESTASSERT(subpdu.get_ta() == tv_ta);
+  TESTASSERT(subpdu.get_rapid() == tv_rapid);
+
+  std::array<uint8_t, mac_rar_subpdu_nr::UL_GRANT_NBITS> msg3_grant = subpdu.get_ul_grant();
+  TESTASSERT(memcmp(msg3_grant.data(), tv_msg3_grant, msg3_grant.size()) == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
+int mac_rar_pdu_unpack_test8()
+{
+  // Malformed MAC PDU, says it has RAR PDU but is too short to include MAC RAR
+
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | E |T=1|        RAPID=0        |  Octet 1
+  // |            RAR_fragment       |  Octet 2
+  uint8_t mac_dl_rar_pdu[] = {0x40, 0x05};
+
+  if (pcap_handle) {
+    pcap_handle->write_dl_ra_rnti_nr(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu), 0x0016, true, PCAP_TTI);
+  }
+
+  // unpacking should fail
+  srslte::mac_rar_pdu_nr pdu;
+  TESTASSERT(pdu.unpack(mac_dl_rar_pdu, sizeof(mac_dl_rar_pdu)) == false);
+  TESTASSERT(pdu.get_num_subpdus() == 0);
+
+  // Malformed PDU with reserved bits set
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | E |T=0| R | R |      BI       |  Octet 1
+  uint8_t mac_dl_rar_pdu2[] = {0x10};
+  TESTASSERT(pdu.unpack(mac_dl_rar_pdu2, sizeof(mac_dl_rar_pdu2)) == false);
   TESTASSERT(pdu.get_num_subpdus() == 0);
 
   return SRSLTE_SUCCESS;
@@ -288,22 +355,22 @@ int mac_ul_sch_pdu_unpack_test1()
   uint8_t       mac_ul_sch_pdu_1[] = {0x3a, 0x11, 0x22, 0x43, 0x00, 0x04, 0x11, 0x22, 0x33, 0x44};
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 2);
 
   // First subpdu is C-RNTI CE
-  mac_nr_sch_subpdu subpdu0 = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu0 = pdu.get_subpdu(0);
   TESTASSERT(subpdu0.get_total_length() == 3);
   TESTASSERT(subpdu0.get_sdu_length() == 2);
-  TESTASSERT(subpdu0.get_lcid() == mac_nr_sch_subpdu::CRNTI);
+  TESTASSERT(subpdu0.get_lcid() == mac_sch_subpdu_nr::CRNTI);
   TESTASSERT(memcmp(subpdu0.get_sdu(), (uint8_t*)&ul_sch_crnti, sizeof(ul_sch_crnti)) == 0);
 
   // Second subpdu is UL-SCH
-  mac_nr_sch_subpdu subpdu1 = pdu.get_subpdu(1);
+  mac_sch_subpdu_nr subpdu1 = pdu.get_subpdu(1);
   TESTASSERT(subpdu1.get_total_length() == 7);
   TESTASSERT(subpdu1.get_sdu_length() == 4);
   TESTASSERT(subpdu1.get_lcid() == 3);
@@ -322,14 +389,14 @@ int mac_ul_sch_pdu_unpack_and_pack_test2()
   uint8_t mac_ul_sch_pdu_1[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 9);
   TESTASSERT(subpdu.get_sdu_length() == 8);
   TESTASSERT(subpdu.get_lcid() == 0);
@@ -337,7 +404,7 @@ int mac_ul_sch_pdu_unpack_and_pack_test2()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(mac_ul_sch_pdu_1), true);
 
   // Add SDU part of TV from above
@@ -348,13 +415,11 @@ int mac_ul_sch_pdu_unpack_and_pack_test2()
   TESTASSERT(memcmp(tx_buffer.msg, mac_ul_sch_pdu_1, tx_buffer.N_bytes) == 0);
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -371,14 +436,14 @@ int mac_ul_sch_pdu_unpack_and_pack_test3()
   uint8_t mac_ul_sch_pdu_1[] = {0x02, 0x0a, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa};
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 1);
 
-  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  mac_sch_subpdu_nr subpdu = pdu.get_subpdu(0);
   TESTASSERT(subpdu.get_total_length() == 12);
   TESTASSERT(subpdu.get_sdu_length() == 10);
   TESTASSERT(subpdu.get_lcid() == 2);
@@ -386,7 +451,7 @@ int mac_ul_sch_pdu_unpack_and_pack_test3()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(mac_ul_sch_pdu_1), true);
 
   // Add SDU part of TV from above
@@ -397,13 +462,11 @@ int mac_ul_sch_pdu_unpack_and_pack_test3()
   TESTASSERT(memcmp(tx_buffer.msg, mac_ul_sch_pdu_1, tx_buffer.N_bytes) == 0);
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -427,7 +490,7 @@ int mac_ul_sch_pdu_pack_test4()
   // pack PDU again
   byte_buffer_t tx_buffer;
 
-  srslte::mac_nr_sch_pdu tx_pdu;
+  srslte::mac_sch_pdu_nr tx_pdu;
   tx_pdu.init_tx(&tx_buffer, sizeof(sdu) + 3, true);
 
   // Add SDU part of TV from above
@@ -437,13 +500,11 @@ int mac_ul_sch_pdu_pack_test4()
   TESTASSERT(tx_buffer.N_bytes == sizeof(sdu) + 3);
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::log_filter log("MAC");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(100000);
-  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+  auto& mac_logger = srslog::fetch_basic_logger("MAC");
+  mac_logger.info(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)", tx_buffer.N_bytes);
 
   return SRSLTE_SUCCESS;
 }
@@ -460,12 +521,95 @@ int mac_ul_sch_pdu_unpack_test5()
   uint8_t mac_ul_sch_pdu_1[] = {0x21, 0x0a, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa};
 
   if (pcap_handle) {
-    pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+    pcap_handle->write_ul_crnti_nr(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
   }
 
-  srslte::mac_nr_sch_pdu pdu(true);
+  srslte::mac_sch_pdu_nr pdu(true);
   pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
   TESTASSERT(pdu.get_num_subpdus() == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
+int mac_dl_sch_pdu_unpack_and_pack_test6()
+{
+  // MAC PDU with UL-SCH: CRNTI, SE PHR, SBDR and padding
+
+  // CRNTI:0x4601 SE PHR:ph=63 pc=52 SBSR: lcg=6 bs=0 PAD: len=0
+  uint8_t tv[] = {0x3a, 0x46, 0x01, 0x39, 0x3f, 0x34, 0x3d, 0xc0, 0x3f};
+
+  const uint16_t TV_CRNTI     = 0x4601;
+  const uint8_t  TV_PHR       = 63;
+  const uint8_t  TV_PC        = 52;
+  const uint8_t  TV_LCG       = 6;
+  const uint8_t  TV_BUFF_SIZE = 0;
+
+  if (pcap_handle) {
+    pcap_handle->write_ul_crnti_nr(tv, sizeof(tv), PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  // Unpack TV
+  {
+    srslte::mac_sch_pdu_nr pdu_rx(true);
+    pdu_rx.unpack(tv, sizeof(tv));
+    TESTASSERT(pdu_rx.get_num_subpdus() == 4);
+
+    // 1st C-RNTI
+    mac_sch_subpdu_nr subpdu = pdu_rx.get_subpdu(0);
+    TESTASSERT(subpdu.get_total_length() == 3);
+    TESTASSERT(subpdu.get_sdu_length() == 2);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::CRNTI);
+    TESTASSERT(subpdu.get_c_rnti() == TV_CRNTI);
+
+    // 2nd subPDU is SE PHR
+    subpdu = pdu_rx.get_subpdu(1);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SE_PHR);
+    TESTASSERT(subpdu.get_phr() == TV_PHR);
+    TESTASSERT(subpdu.get_pcmax() == TV_PC);
+
+    // 3rd subPDU is SBSR
+    subpdu = pdu_rx.get_subpdu(2);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::SHORT_BSR);
+    mac_sch_subpdu_nr::lcg_bsr_t sbsr = subpdu.get_sbsr();
+    TESTASSERT(sbsr.lcg_id == TV_LCG);
+    TESTASSERT(sbsr.buffer_size == TV_BUFF_SIZE);
+
+    // 4th is padding
+    subpdu = pdu_rx.get_subpdu(3);
+    TESTASSERT(subpdu.get_lcid() == mac_sch_subpdu_nr::PADDING);
+  }
+
+  // Let's pack the entire PDU again
+  {
+    byte_buffer_t          tx_buffer;
+    srslte::mac_sch_pdu_nr pdu_tx(true);
+
+    pdu_tx.init_tx(&tx_buffer, sizeof(tv), true); // same size as TV
+
+    TESTASSERT(pdu_tx.get_remaing_len() == 9);
+    TESTASSERT(pdu_tx.add_crnti_ce(TV_CRNTI) == SRSLTE_SUCCESS);
+
+    TESTASSERT(pdu_tx.get_remaing_len() == 6);
+    TESTASSERT(pdu_tx.add_se_phr_ce(TV_PHR, TV_PC) == SRSLTE_SUCCESS);
+
+    TESTASSERT(pdu_tx.get_remaing_len() == 3);
+    mac_sch_subpdu_nr::lcg_bsr_t sbsr = {};
+    sbsr.lcg_id                       = TV_LCG;
+    sbsr.buffer_size                  = TV_BUFF_SIZE;
+    TESTASSERT(pdu_tx.add_sbsr_ce(sbsr) == SRSLTE_SUCCESS);
+    TESTASSERT(pdu_tx.get_remaing_len() == 1);
+
+    // finish PDU packing
+    pdu_tx.pack();
+
+    // compare PDUs
+    TESTASSERT(tx_buffer.N_bytes == sizeof(tv));
+    TESTASSERT(memcmp(tx_buffer.msg, tv, tx_buffer.N_bytes) == 0);
+
+    if (pcap_handle) {
+      pcap_handle->write_ul_crnti_nr(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    }
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -473,9 +617,15 @@ int mac_ul_sch_pdu_unpack_test5()
 int main(int argc, char** argv)
 {
 #if PCAP
-  pcap_handle = std::unique_ptr<srslte::mac_nr_pcap>(new srslte::mac_nr_pcap());
+  pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
   pcap_handle->open("mac_nr_pdu_test.pcap");
 #endif
+
+  auto& mac_logger = srslog::fetch_basic_logger("MAC", false);
+  mac_logger.set_level(srslog::basic_levels::debug);
+  mac_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
 
   if (mac_dl_sch_pdu_unpack_and_pack_test1()) {
     fprintf(stderr, "mac_dl_sch_pdu_unpack_and_pack_test1() failed.\n");
@@ -507,6 +657,16 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
+  if (mac_rar_pdu_unpack_test7()) {
+    fprintf(stderr, "mac_rar_pdu_unpack_test7() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_rar_pdu_unpack_test8()) {
+    fprintf(stderr, "mac_rar_pdu_unpack_test8() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
   if (mac_ul_sch_pdu_unpack_test1()) {
     fprintf(stderr, "mac_ul_sch_pdu_unpack_test1() failed.\n");
     return SRSLTE_ERROR;
@@ -530,6 +690,15 @@ int main(int argc, char** argv)
   if (mac_ul_sch_pdu_unpack_test5()) {
     fprintf(stderr, "mac_ul_sch_pdu_unpack_test5() failed.\n");
     return SRSLTE_ERROR;
+  }
+
+  if (mac_dl_sch_pdu_unpack_and_pack_test6()) {
+    fprintf(stderr, "mac_dl_sch_pdu_unpack_and_pack_test6() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (pcap_handle) {
+    pcap_handle->close();
   }
 
   return SRSLTE_SUCCESS;

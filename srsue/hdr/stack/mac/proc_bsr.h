@@ -29,6 +29,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 
 /* Buffer status report procedure */
 
@@ -58,9 +59,8 @@ public:
 class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
-  bsr_proc();
-  void
-       init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::ext_task_sched_handle* task_sched_);
+  explicit bsr_proc(srslog::basic_logger& logger) : logger(logger) {}
+  void init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::ext_task_sched_handle* task_sched_);
   void step(uint32_t tti);
   void reset();
   void set_config(srslte::bsr_cfg_t& bsr_cfg);
@@ -78,7 +78,7 @@ private:
   std::mutex mutex;
 
   srslte::ext_task_sched_handle* task_sched = nullptr;
-  srslte::log_ref                log_h;
+  srslog::basic_logger&          logger;
   rlc_interface_mac*             rlc = nullptr;
   sr_proc*                       sr  = nullptr;
 

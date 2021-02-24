@@ -92,7 +92,7 @@ int main(int argc, char** argv)
   output_buffer = srslte_vec_cf_malloc(nof_samples);
 
   if (!input_buffer || !output_buffer) {
-    ERROR("Error: Allocating memory\n");
+    ERROR("Error: Allocating memory");
     ret = SRSLTE_ERROR;
   }
 
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 #ifdef ENABLE_GUI
   sdrgui_init();
   sdrgui_init_title("SRS AWGN Channel");
-  plot_real_t plot_fft = NULL;
+  plot_real_t    plot_fft     = NULL;
   plot_scatter_t plot_scatter = NULL;
 
   plot_real_init(&plot_fft);
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
   cf_t*             fft_out = srslte_vec_cf_malloc(nof_samples);
   srslte_dft_plan_t fft     = {};
   if (srslte_dft_plan_c(&fft, nof_samples, SRSLTE_DFT_FORWARD)) {
-    ERROR("Error: init DFT\n");
+    ERROR("Error: init DFT");
     ret = SRSLTE_ERROR;
   }
 #endif /* ENABLE_GUI */

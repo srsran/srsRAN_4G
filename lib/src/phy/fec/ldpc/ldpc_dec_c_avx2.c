@@ -277,14 +277,16 @@ int update_ldpc_check_to_var_c_avx2(void*           p,
   __m256i* this_rotated_v2c = NULL;
 
   __m256i this_abs_v2c_epi8;
-  __m256i minp_v2c_epi8 = _mm256_set1_epi8(INT8_MAX);
-  __m256i mins_v2c_epi8 = _mm256_set1_epi8(INT8_MAX);
-  __m256i prod_v2c_epi8 = _mm256_setzero_si256();
+
   __m256i mask_sign_epi8;
   __m256i mask_min_epi8;
   __m256i help_min_epi8;
   __m256i min_ix_epi8 = _mm256_setzero_si256();
   __m256i current_ix_epi8;
+
+  __m256i minp_v2c_epi8 = _mm256_set1_epi8(INT8_MAX);
+  __m256i mins_v2c_epi8 = _mm256_set1_epi8(INT8_MAX);
+  __m256i prod_v2c_epi8 = _mm256_setzero_si256();
 
   int8_t current_var_index = (*these_var_indices)[0];
 

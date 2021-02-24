@@ -77,7 +77,6 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   mac_args.sched         = args.mac.sched;
   mac_args.tb_size       = args.mac.nr_tb_size;
   mac_args.rnti          = args.coreless.rnti;
-  mac_args.drb_lcid      = args.coreless.drb_lcid;
   m_mac->init(mac_args, phy, this, m_rlc.get(), m_rrc.get());
 
   srslte::logmap::get("RLC")->set_level(args.log.rlc_level);
@@ -95,7 +94,8 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   m_gw->init(args.coreless.gw_args, logger, this);
   char* err_str = nullptr;
-  if (m_gw->setup_if_addr(args.coreless.drb_lcid,
+  if (m_gw->setup_if_addr(5,
+                          args.coreless.drb_lcid,
                           LIBLTE_MME_PDN_TYPE_IPV4,
                           htonl(inet_addr(args.coreless.ip_addr.c_str())),
                           nullptr,

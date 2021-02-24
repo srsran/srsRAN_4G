@@ -36,6 +36,7 @@
 namespace srsue {
 
 typedef struct {
+  uint32_t              ul_dropped_sdus;
   mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
   nas_metrics_t         nas;

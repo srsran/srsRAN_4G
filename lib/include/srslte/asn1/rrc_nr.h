@@ -2467,6 +2467,15 @@ private:
   elem_type_paramT_ c;
 };
 
+
+template <class elem_type_paramT_>
+std::string setup_release_c<elem_type_paramT_>::types_opts::to_string() const
+{
+  static const char* options[] = {"release", "setup"};
+  return convert_enum_idx(options, 2, value, "setup_release_c::types");
+}
+
+
 // UAC-BarringPerCat ::= SEQUENCE
 struct uac_barr_per_cat_s {
   uint8_t access_category       = 1;

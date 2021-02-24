@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -25,6 +16,7 @@
 #include "cc_worker.h"
 #include "srsenb/hdr/phy/phy_common.h"
 #include "srslte/common/thread_pool.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 namespace nr {
@@ -40,7 +32,7 @@ namespace nr {
 class sf_worker final : public srslte::thread_pool::worker
 {
 public:
-  sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log);
+  sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslog::basic_logger& logger);
   ~sf_worker();
 
   bool set_carrier_unlocked(uint32_t cc_idx, const srslte_carrier_nr_t* carrier_);
@@ -57,9 +49,9 @@ private:
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  phy_common*   phy       = nullptr;
-  phy_nr_state* phy_state = nullptr;
-  srslte::log*  log_h     = nullptr;
+  phy_common*           phy       = nullptr;
+  phy_nr_state*         phy_state = nullptr;
+  srslog::basic_logger& logger;
 
   // Temporal attributes
   srslte_softbuffer_tx_t softbuffer_tx = {};

@@ -43,7 +43,7 @@
  */
 SRSLTE_API int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
                                      const srslte_coreset_t*      coreset,
-                                     const srslte_dl_slot_cfg_t*  slot_cfg,
+                                     const srslte_slot_cfg_t*     slot_cfg,
                                      const srslte_dci_location_t* dci_location,
                                      cf_t*                        sf_symbols);
 
@@ -119,9 +119,8 @@ SRSLTE_API void srslte_dmrs_pdcch_estimator_free(srslte_dmrs_pdcch_estimator_t* 
  * @param[in] sf_symbols Received resource grid.
  * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
  */
-SRSLTE_API int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
-                                          const srslte_dl_slot_cfg_t*    slot_cfg,
-                                          const cf_t*                    sf_symbols);
+SRSLTE_API int
+srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q, const srslte_slot_cfg_t* slot_cfg, const cf_t* sf_symbols);
 
 /**
  * @brief PDSCH DMRS measurement results

@@ -147,6 +147,11 @@ int srslte_dft_replan_c(srslte_dft_plan_t* plan, const int new_dft_points)
 {
   int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
 
+  // No change in size, skip re-planning
+  if (plan->size == new_dft_points) {
+    return 0;
+  }
+
   pthread_mutex_lock(&fft_mutex);
   if (plan->p) {
     fftwf_destroy_plan(plan->p);
@@ -353,7 +358,7 @@ void srslte_dft_run_guru_c(srslte_dft_plan_t* plan)
   if (plan->is_guru == true) {
     fftwf_execute(plan->p);
   } else {
-    ERROR("srslte_dft_run_guru_c: the selected plan is not guru!\n");
+    ERROR("srslte_dft_run_guru_c: the selected plan is not guru!");
   }
 }
 

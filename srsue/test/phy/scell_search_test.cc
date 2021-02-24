@@ -19,6 +19,7 @@
  *
  */
 
+#include "srslte/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
@@ -101,39 +102,38 @@ uint32_t prbset_to_bitmask()
 class test_enb
 {
 private:
-  srslte_enb_dl_t     enb_dl;
-  srslte::channel_ptr channel;
-  cf_t*               signal_buffer[SRSLTE_MAX_PORTS] = {};
-  srslte::log_filter  channel_log;
+  srslte_enb_dl_t       enb_dl;
+  srslte::channel_ptr   channel;
+  cf_t*                 signal_buffer[SRSLTE_MAX_PORTS] = {};
+  srslog::basic_logger& logger;
 
 public:
   test_enb(const srslte_cell_t& cell, const srslte::channel::args_t& channel_args) :
-    enb_dl(), channel_log("Channel pci=" + std::to_string(cell.id))
+    enb_dl(), logger(srslog::fetch_basic_logger("Channel pci=" + std::to_string(cell.id)))
   {
-    channel_log.set_level(channel_log_level);
+    logger.set_level(srslog::str_to_basic_level(channel_log_level));
 
-    channel = srslte::channel_ptr(new srslte::channel(channel_args, cell_base.nof_ports));
+    channel = srslte::channel_ptr(new srslte::channel(channel_args, cell_base.nof_ports, logger));
     channel->set_srate(srslte_sampling_freq_hz(cell.nof_prb));
-    channel->set_logger(&channel_log);
 
     // Allocate buffer for eNb
     for (uint32_t i = 0; i < cell_base.nof_ports; i++) {
       signal_buffer[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
       if (!signal_buffer[i]) {
-        ERROR("Error allocating buffer\n");
+        ERROR("Error allocating buffer");
       }
     }
 
     if (srslte_enb_dl_init(&enb_dl, signal_buffer, cell.nof_prb)) {
-      ERROR("Error initiating eNb downlink\n");
+      ERROR("Error initiating eNb downlink");
     }
 
     if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
-      ERROR("Error setting eNb DL cell\n");
+      ERROR("Error setting eNb DL cell");
     }
 
     if (srslte_enb_dl_add_rnti(&enb_dl, serving_cell_pdsch_rnti)) {
-      ERROR("Error adding RNTI\n");
+      ERROR("Error adding RNTI");
     }
   }
 
@@ -145,7 +145,6 @@ public:
            cf_t*                         baseband_buffer,
            const srslte::rf_timestamp_t& ts)
   {
-
     int      ret    = SRSLTE_SUCCESS;
     uint32_t sf_len = SRSLTE_SF_LEN_PRB(enb_dl.cell.nof_prb);
 
@@ -154,19 +153,19 @@ public:
     // Put PDSCH only if it is required
     if (dci && dci_cfg && softbuffer_tx && data_tx) {
       if (srslte_enb_dl_put_pdcch_dl(&enb_dl, dci_cfg, dci)) {
-        ERROR("Error putting PDCCH sf_idx=%d\n", dl_sf->tti);
+        ERROR("Error putting PDCCH sf_idx=%d", dl_sf->tti);
         ret = SRSLTE_ERROR;
       }
 
       // Create pdsch config
       srslte_pdsch_cfg_t pdsch_cfg;
       if (srslte_ra_dl_dci_to_grant(&enb_dl.cell, dl_sf, serving_cell_pdsch_tm, false, dci, &pdsch_cfg.grant)) {
-        ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
+        ERROR("Computing DL grant sf_idx=%d", dl_sf->tti);
         ret = SRSLTE_ERROR;
       }
       char str[512];
       srslte_dci_dl_info(dci, str, 512);
-      INFO("eNb PDCCH: rnti=0x%x, %s\n", serving_cell_pdsch_rnti, str);
+      INFO("eNb PDCCH: rnti=0x%x, %s", serving_cell_pdsch_rnti, str);
 
       for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
         pdsch_cfg.softbuffers.tx[i] = softbuffer_tx[i];
@@ -180,11 +179,11 @@ public:
       pdsch_cfg.meas_time_en = false;
 
       if (srslte_enb_dl_put_pdsch(&enb_dl, &pdsch_cfg, data_tx) < 0) {
-        ERROR("Error putting PDSCH sf_idx=%d\n", dl_sf->tti);
+        ERROR("Error putting PDSCH sf_idx=%d", dl_sf->tti);
         ret = SRSLTE_ERROR;
       }
       srslte_pdsch_tx_info(&pdsch_cfg, str, 512);
-      INFO("eNb PDSCH: rnti=0x%x, %s\n", serving_cell_pdsch_rnti, str);
+      INFO("eNb PDSCH: rnti=0x%x, %s", serving_cell_pdsch_rnti, str);
     }
 
     srslte_enb_dl_gen_signal(&enb_dl);
@@ -390,7 +389,6 @@ static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& lis
   } else if (list_str == "none") {
     // Do nothing
   } else if (not list_str.empty()) {
-
     // Remove spaces from neightbour cell list
     list_str = srslte::string_remove_char(list_str, ' ');
 
@@ -409,12 +407,14 @@ int main(int argc, char** argv)
   }
 
   // Common for simulation and over-the-air
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("intra_measure");
+  srslog::init();
+
   cf_t*                       baseband_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
   srslte::rf_timestamp_t      ts              = {};
-  srsue::scell::intra_measure intra_measure;
-  srslte::log_filter          logger("intra_measure");
+  srsue::scell::intra_measure intra_measure(logger);
   meas_itf_listener           rrc;
-  srsue::phy_common           common;
+  srsue::phy_common           common(logger);
 
   // Simulation only
   std::vector<std::unique_ptr<test_enb> > test_enb_v;
@@ -456,16 +456,16 @@ int main(int argc, char** argv)
     const size_t nof_bytes = (6144 * 16 * 3 / 8);
     softbuffer_tx[i]       = (srslte_softbuffer_tx_t*)calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
-      ERROR("Error allocating softbuffer_tx\n");
+      ERROR("Error allocating softbuffer_tx");
     }
 
     if (srslte_softbuffer_tx_init(softbuffer_tx[i], cell_base.nof_prb)) {
-      ERROR("Error initiating softbuffer_tx\n");
+      ERROR("Error initiating softbuffer_tx");
     }
 
     data_tx[i] = srslte_vec_u8_malloc(nof_bytes);
     if (!data_tx[i]) {
-      ERROR("Error allocating data tx\n");
+      ERROR("Error allocating data tx");
     } else {
       for (uint32_t j = 0; j < nof_bytes; j++) {
         data_tx[i][j] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 255);
@@ -482,18 +482,18 @@ int main(int argc, char** argv)
   uint32_t serving_cell_id = *pcis_to_simulate.begin();
   cell_base.id             = serving_cell_id;
 
-  logger.set_level(intra_meas_log_level);
+  logger.set_level(srslog::str_to_basic_level(intra_meas_log_level));
 
-  intra_measure.init(0, &common, &rrc, &logger);
+  intra_measure.init(0, &common, &rrc);
   intra_measure.set_primary_cell(SRSLTE_MAX(earfcn_dl, 0), cell_base);
 
   if (earfcn_dl >= 0) {
     // Create radio log
-    radio_log = std::unique_ptr<srslte::log_filter>(new srslte::log_filter("Radio"));
-    radio_log->set_level(radio_log_level);
+    auto& radio_logger = srslog::fetch_basic_logger("RF", false);
+    radio_logger.set_level(srslog::str_to_basic_level(radio_log_level));
 
     // Create radio
-    radio = std::unique_ptr<srslte::radio>(new srslte::radio(radio_log.get()));
+    radio = std::unique_ptr<srslte::radio>(new srslte::radio);
 
     // Init radio
     srslte::rf_args_t radio_args = {};
@@ -522,7 +522,7 @@ int main(int argc, char** argv)
       srslte::channel::args_t channel_args;
       channel_args.enable                 = (channel_period_s != 0);
       channel_args.hst_enable             = std::isnormal(channel_hst_fd_hz);
-      channel_args.hst_init_time_s   = channel_init_time_s;
+      channel_args.hst_init_time_s        = channel_init_time_s;
       channel_args.hst_period_s           = (float)channel_period_s;
       channel_args.hst_fd_hz              = channel_hst_fd_hz;
       channel_args.delay_enable           = std::isnormal(channel_delay_max_us);
@@ -634,7 +634,7 @@ int main(int argc, char** argv)
               dci.tb[i].cw_idx  = i;
             }
           } else {
-            ERROR("Wrong transmission mode (%d)\n", serving_cell_pdsch_tm);
+            ERROR("Wrong transmission mode (%d)", serving_cell_pdsch_tm);
           }
           enb->work(&sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx, baseband_buffer, ts);
         } else {
@@ -684,6 +684,8 @@ int main(int argc, char** argv)
       free(sb);
     }
   }
+
+  srslog::flush();
 
   if (ret && radio == nullptr) {
     printf("Error\n");

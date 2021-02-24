@@ -103,7 +103,6 @@ bool meas_cell::has_sib(uint32_t index) const
   return false;
 }
 
-#ifdef HAVE_5GNR
 std::string meas_cell_nr::to_string() const
 {
   char buf[256];
@@ -117,7 +116,6 @@ std::string meas_cell_nr::to_string() const
            get_cfo_hz());
   return std::string{buf};
 }
-#endif
 
 std::string meas_cell_eutra::to_string() const
 {
@@ -178,8 +176,7 @@ uint16_t meas_cell_eutra::get_mnc() const
  ********************************************/
 template <class T>
 meas_cell_list<T>::meas_cell_list(srslte::task_sched_handle task_sched_) :
-  serv_cell(new T(task_sched_.get_unique_timer())),
-  task_sched(task_sched_)
+  serv_cell(new T(task_sched_.get_unique_timer())), task_sched(task_sched_)
 {}
 
 template <class T>
@@ -226,12 +223,12 @@ bool meas_cell_list<T>::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
 {
   // Make sure cell is valid
   if (!new_cell->is_valid()) {
-    log_h->error("Trying to add cell %s but is not valid", new_cell->to_string().c_str());
+    logger.error("Trying to add cell %s but is not valid", new_cell->to_string().c_str());
     return false;
   }
 
   if (is_same_cell(serving_cell(), *new_cell)) {
-    log_h->info("Added neighbour cell %s is serving cell\n", new_cell->to_string().c_str());
+    logger.info("Added neighbour cell %s is serving cell", new_cell->to_string().c_str());
     serv_cell = std::move(new_cell);
     return true;
   }
@@ -242,22 +239,22 @@ bool meas_cell_list<T>::add_neighbour_cell_unsorted(unique_meas_cell new_cell)
     if (std::isnormal(new_cell.get()->get_rsrp())) {
       existing_cell->set_rsrp(new_cell.get()->get_rsrp());
     }
-    log_h->info("Updated neighbour cell %s rsrp=%f\n", new_cell->to_string().c_str(), new_cell.get()->get_rsrp());
+    logger.info("Updated neighbour cell %s rsrp=%f", new_cell->to_string().c_str(), new_cell.get()->get_rsrp());
     return true;
   }
 
   if (neighbour_cells.size() >= MAX_NEIGHBOUR_CELLS) {
     // If there isn't space, keep the strongest only
     if (not new_cell->greater(neighbour_cells.back().get())) {
-      log_h->warning("Could not add cell %s: no space in neighbours\n", new_cell->to_string().c_str());
+      logger.warning("Could not add cell %s: no space in neighbours", new_cell->to_string().c_str());
       return false;
     }
 
     rem_last_neighbour();
   }
 
-  log_h->info(
-      "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->to_string().c_str(), neighbour_cells.size() + 1);
+  logger.info(
+      "Adding neighbour cell %s, nof_neighbours=%zd", new_cell->to_string().c_str(), neighbour_cells.size() + 1);
   neighbour_cells.push_back(std::move(new_cell));
   return true;
 }
@@ -266,7 +263,7 @@ void meas_cell_list<T>::rem_last_neighbour()
 {
   if (not neighbour_cells.empty()) {
     unique_meas_cell& c = neighbour_cells.back();
-    log_h->debug("Delete cell %s from neighbor list.\n", c->to_string().c_str());
+    logger.debug("Delete cell %s from neighbor list.", c->to_string().c_str());
     neighbour_cells.pop_back();
   }
 }
@@ -310,9 +307,9 @@ void meas_cell_list<T>::log_neighbour_cells() const
         }
       }
     }
-    log_h->debug("Neighbours: %s]\n", ordered);
+    logger.debug("Neighbours: %s]", ordered);
   } else {
-    log_h->debug("Neighbours: Empty\n");
+    logger.debug("Neighbours: Empty");
   }
 }
 
@@ -322,7 +319,7 @@ void meas_cell_list<T>::clean_neighbours()
 {
   for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
     if (it->get()->timer.is_expired()) {
-      log_h->info("Neighbour PCI=%d timed out. Deleting.\n", (*it)->get_pci());
+      logger.info("Neighbour PCI=%d timed out. Deleting.", (*it)->get_pci());
       it = neighbour_cells.erase(it);
     } else {
       ++it;
@@ -378,19 +375,19 @@ int meas_cell_list<T>::set_serving_cell(phy_cell_t phy_cell, bool discard_servin
   // Remove future serving cell from neighbours to make space for current serving cell
   unique_meas_cell new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
   if (new_serving_cell == nullptr) {
-    log_h->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
+    logger.error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d", phy_cell.earfcn, phy_cell.pci);
     return SRSLTE_ERROR;
   }
 
   // Set new serving cell
   std::swap(serv_cell, new_serving_cell);
   auto& old_serv_cell = new_serving_cell;
-  log_h->info("Setting serving cell %s, nof_neighbours=%zd\n", serv_cell->to_string().c_str(), nof_neighbours());
+  logger.info("Setting serving cell %s, nof_neighbours=%zd", serv_cell->to_string().c_str(), nof_neighbours());
 
   // Re-add old serving cell to list of neighbours
   if (old_serv_cell->is_valid() and not is_same_cell(phy_cell, *old_serv_cell) and not discard_serving) {
     if (not add_meas_cell(std::move(old_serv_cell))) {
-      log_h->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
+      logger.info("Serving cell not added to list of neighbours. Worse than current neighbours");
     }
   }
   return SRSLTE_SUCCESS;
@@ -409,7 +406,7 @@ bool meas_cell_list<T>::process_new_cell_meas(const std::vector<phy_meas_t>&    
     if (is_serving_cell) {
       c = serv_cell.get();
       if (not serving_cell().is_valid()) {
-        log_h->error("MEAS:  Received serving cell measurement but undefined or invalid\n");
+        logger.error("MEAS:  Received serving cell measurement but undefined or invalid");
         continue;
       }
     } else {
@@ -425,7 +422,7 @@ bool meas_cell_list<T>::process_new_cell_meas(const std::vector<phy_meas_t>&    
       neighbour_added |= add_meas_cell(m);
     }
 
-    log_h->info("MEAS:  New measurement %s cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz\n",
+    logger.info("MEAS:  New measurement %s cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz",
                 is_serving_cell ? "serving" : "neighbour",
                 m.earfcn,
                 m.pci,
@@ -436,8 +433,6 @@ bool meas_cell_list<T>::process_new_cell_meas(const std::vector<phy_meas_t>&    
 }
 
 template class meas_cell_list<meas_cell_eutra>;
-#ifdef HAVE_5GNR
 template class meas_cell_list<meas_cell_nr>;
-#endif
 
 } // namespace srsue

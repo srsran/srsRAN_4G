@@ -21,22 +21,21 @@
 
 #include "srsenb/hdr/stack/upper/rlc.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
 void rlc::init(pdcp_interface_rlc*    pdcp_,
                rrc_interface_rlc*     rrc_,
                mac_interface_rlc*     mac_,
-               srslte::timer_handler* timers_,
-               srslte::log_ref        log_h_)
+               srslte::timer_handler* timers_)
 {
   pdcp   = pdcp_;
   rrc    = rrc_;
-  log_h  = log_h_;
   mac    = mac_;
   timers = timers_;
-
-  pool = srslte::byte_buffer_pool::get_instance();
 
   pthread_rwlock_init(&rwlock, nullptr);
 }
@@ -66,7 +65,7 @@ void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    std::unique_ptr<srslte::rlc> obj(new srslte::rlc(log_h->get_service_name().c_str()));
+    std::unique_ptr<srslte::rlc> obj(new srslte::rlc(logger.id().c_str()));
     obj->init(&users[rnti],
               &users[rnti],
               timers,
@@ -90,7 +89,7 @@ void rlc::rem_user(uint16_t rnti)
     users[rnti].rlc->stop();
     users.erase(rnti);
   } else {
-    log_h->error("Removing rnti=0x%x. Already removed\n", rnti);
+    logger.error("Removing rnti=0x%x. Already removed", rnti);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -105,7 +104,7 @@ void rlc::clear_buffer(uint16_t rnti)
         mac->rlc_buffer_state(rnti, i, 0, 0);
       }
     }
-    log_h->info("Cleared buffer rnti=0x%x\n", rnti);
+    logger.info("Cleared buffer rnti=0x%x", rnti);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -185,7 +184,7 @@ void rlc::reestablish(uint16_t rnti)
 // This function is called by UE RLC instance every time the tx/retx buffers are updated
 void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue)
 {
-  log_h->debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+  logger.debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d", rnti, lcid, tx_queue);
   mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
 }
 
@@ -279,19 +278,29 @@ void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t 
   }
 }
 
+void rlc::user_interface::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  pdcp->notify_delivery(rnti, lcid, pdcp_sns);
+}
+
+void rlc::user_interface::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  pdcp->notify_failure(rnti, lcid, pdcp_sns);
+}
+
 void rlc::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void rlc::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void rlc::user_interface::write_pdu_pcch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
 std::string rlc::user_interface::get_rb_name(uint32_t lcid)

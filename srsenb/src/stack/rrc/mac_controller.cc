@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_utils.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
 
 namespace srsenb {
 
@@ -91,7 +92,7 @@ mac_controller::mac_controller(uint16_t                    rnti_,
                                mac_interface_rrc*          mac_,
                                const enb_cell_common_list& cell_common_list_,
                                const ue_cfg_t&             sched_ue_cfg) :
-  log_h("RRC"),
+  logger(srslog::fetch_basic_logger("RRC")),
   rnti(rnti_),
   ue_cell_list(ue_cell_list_),
   bearer_list(bearer_list_),
@@ -101,7 +102,7 @@ mac_controller::mac_controller(uint16_t                    rnti_,
   current_sched_ue_cfg(sched_ue_cfg)
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
-    log_h->warning("No PCell set. Picking enb_cc_idx=0 as PCell\n");
+    logger.warning("No PCell set. Picking enb_cc_idx=0 as PCell");
     current_sched_ue_cfg.supported_cc_list.resize(1);
     current_sched_ue_cfg.supported_cc_list[0].active     = true;
     current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
@@ -360,7 +361,7 @@ void ue_cfg_apply_phy_cfg_ded(ue_cfg_t& ue_cfg, const asn1::rrc::phys_cfg_ded_s&
     if (phy_cfg.ant_info.type().value == phys_cfg_ded_s::ant_info_c_::types_opts::explicit_value) {
       ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg.ant_info.explicit_value());
     } else {
-      srslte::logmap::get("RRC")->warning("No antenna configuration provided\n");
+      srslog::fetch_basic_logger("RRC").warning("No antenna configuration provided");
       pcell_cfg.dl_cfg.tm        = SRSLTE_TM1;
       ue_cfg.dl_ant_info.tx_mode = sched_interface::ant_info_ded_t::tx_mode_t::tm1;
     }
@@ -379,7 +380,7 @@ void ue_cfg_apply_srb_updates(ue_cfg_t& ue_cfg, const srb_to_add_mod_list_l& srb
         bcfg = get_bearer_default_srb2_config();
         break;
       default:
-        srslte::logmap::get("RRC")->warning("Invalid SRB ID %d\n", (int)srb.srb_id);
+        srslog::fetch_basic_logger("RRC").warning("Invalid SRB ID %d", (int)srb.srb_id);
         bcfg = {};
     }
     bcfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
@@ -432,7 +433,6 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
       conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present and
       conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present) {
     for (const auto& scell : conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10) {
-
       // Resize MAC SCell list if required
       if (scell.scell_idx_r10 >= ue_cfg.supported_cc_list.size()) {
         ue_cfg.supported_cc_list.resize(scell.scell_idx_r10 + 1);
@@ -459,7 +459,7 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
                 ul_cfg.cqi_report_cfg_scell_r10.cqi_report_mode_aperiodic_r10_present;
             mac_scell.aperiodic_cqi_period = ul_cfg.cqi_report_cfg_scell_r10.cqi_report_mode_aperiodic_r10.to_number();
           } else {
-            srslte::logmap::get("RRC")->warning("Invalid Scell index %d CQI configuration\n", scell.scell_idx_r10);
+            srslog::fetch_basic_logger("RRC").warning("Invalid Scell index %d CQI configuration", scell.scell_idx_r10);
           }
         }
       }
@@ -485,7 +485,7 @@ void ue_cfg_apply_meas_cfg(ue_cfg_t& ue_cfg, const meas_cfg_s& meas_cfg, const r
           ue_cfg.measgap_offset = setup.gap_offset.gp1();
           break;
         default:
-          srslte::logmap::get("RRC")->warning("Invalid measGap configuration\n");
+          srslog::fetch_basic_logger("RRC").warning("Invalid measGap configuration");
           ue_cfg.measgap_period = 0;
           ue_cfg.measgap_offset = 0;
       }

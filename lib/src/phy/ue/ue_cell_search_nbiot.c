@@ -32,7 +32,7 @@
 
 int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
                                     uint32_t                      max_frames_total,
-                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                                    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
                                     void* stream_handler)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -123,13 +123,13 @@ int srslte_ue_cellsearch_nbiot_scan(srslte_ue_cellsearch_nbiot_t* q)
         break;
       } else if (ret == 1) {
         // we are in sync, wait until we have received two full frames, store subframe 9 for both
-        DEBUG("In tracking state sf_idx=%d\n", srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync));
+        DEBUG("In tracking state sf_idx=%d", srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync));
         if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 9) {
           // accumulate NSSS subframes for cell id detection
           srslte_vec_cf_copy(&q->nsss_buffer[q->nsss_sf_counter * q->sf_len], q->rx_buffer[0], q->sf_len);
           q->nsss_sf_counter++;
           if (q->nsss_sf_counter == SRSLTE_NSSS_NUM_SF_DETECT) {
-            DEBUG("Captured %d subframes for NSSS detection.\n", q->nsss_sf_counter);
+            DEBUG("Captured %d subframes for NSSS detection.", q->nsss_sf_counter);
             return SRSLTE_SUCCESS;
           }
         }
@@ -154,7 +154,7 @@ int srslte_ue_cellsearch_nbiot_detect(srslte_ue_cellsearch_nbiot_t* q, srslte_nb
       found_cells[0].peak       = q->ue_sync.strack.npss.peak_value;
       found_cells[0].psr        = srslte_sync_nbiot_get_peak_value(&q->ue_sync.strack);
       found_cells[0].cfo        = srslte_ue_sync_nbiot_get_cfo(&q->ue_sync);
-      INFO("CELL SEARCH: Found peak PSR=%.3f, Cell_id: %d\n", found_cells[0].psr, found_cells[0].n_id_ncell);
+      INFO("CELL SEARCH: Found peak PSR=%.3f, Cell_id: %d", found_cells[0].psr, found_cells[0].n_id_ncell);
     }
   }
   return ret;

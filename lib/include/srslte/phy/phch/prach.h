@@ -40,6 +40,12 @@
 
 #define SRSLTE_PRACH_MAX_LEN (2 * 24576 + 21024) // Maximum Tcp + Tseq
 
+// Long PRACH ZC sequence sequence length
+#define SRSLTE_PRACH_N_ZC_LONG 839
+
+// Short PRACH ZC sequence sequence length
+#define SRSLTE_PRACH_N_ZC_SHORT 139
+
 /** Generation and detection of RACH signals for uplink.
  *  Currently only supports preamble formats 0-3.
  *  Does not currently support high speed flag.
@@ -49,7 +55,7 @@
 typedef struct {
   int   idx;
   float factor;
-  cf_t  phase_array[2 * 839];
+  cf_t  phase_array[2 * SRSLTE_PRACH_N_ZC_LONG];
 } srslte_prach_cancellation_t;
 
 typedef struct SRSLTE_API {
@@ -74,8 +80,8 @@ typedef struct SRSLTE_API {
   uint32_t N_cp;  // Cyclic prefix length
 
   // Generated tables
-  cf_t     seqs[64][839];     // Our set of 64 preamble sequences
-  cf_t     dft_seqs[64][839]; // DFT-precoded seqs
+  cf_t     seqs[64][SRSLTE_PRACH_N_ZC_LONG];     // Our set of 64 preamble sequences
+  cf_t     dft_seqs[64][SRSLTE_PRACH_N_ZC_LONG]; // DFT-precoded seqs
   uint64_t dft_gen_bitmap;    // Bitmap where each bit Indicates if the dft has been generated for sequence i.
   uint32_t root_seqs_idx[64]; // Indices of root seqs in seqs table
   uint32_t N_roots;           // Number of root sequences used in this configuration

@@ -69,7 +69,7 @@ void parse_args(int argc, char** argv)
       case 'o':
         dci_format = srslte_dci_format_from_string(argv[optind]);
         if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-          ERROR("Error unsupported format %s\n", argv[optind]);
+          ERROR("Error unsupported format %s", argv[optind]);
           exit(-1);
         }
         break;

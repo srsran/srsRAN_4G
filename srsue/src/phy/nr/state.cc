@@ -19,11 +19,8 @@
  *
  */
 
-#include "srslte/radio/radio_null.h"
-#include <mutex>
+#include "srsue/hdr/phy/nr/state.h"
 
-namespace srslte {
-
-radio_null::radio_null(srslte::logger* logger_) : log("RF"), radio_base(logger_) {}
-
-} // namespace srslte
+namespace srsue {
+namespace nr {}
+} // namespace srsue

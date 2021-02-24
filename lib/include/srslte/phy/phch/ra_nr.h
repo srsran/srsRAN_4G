@@ -104,9 +104,30 @@ SRSLTE_API int srslte_ra_nr_fill_tb(const srslte_sch_cfg_nr_t*   pdsch_cfg,
  * @param pdsch_grant Generated PDSCH grant
  * @return 0 on success, -1 on error
  */
-SRSLTE_API int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t* carrier,
-                                            const srslte_sch_cfg_nr_t* pdsch_cfg,
-                                            const srslte_dci_dl_nr_t*  dci_dl,
-                                            srslte_sch_grant_nr_t*     pdsch_grant);
+SRSLTE_API int srslte_ra_dl_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
+                                            const srslte_sch_hl_cfg_nr_t* pdsch_cfg,
+                                            const srslte_dci_dl_nr_t*     dci_dl,
+                                            srslte_sch_cfg_nr_t*          cfg,
+                                            srslte_sch_grant_nr_t*        pdsch_grant);
+
+/**
+ * @brief Converts an unpacked UL DCI message to a PUSCH grant structure.
+ * Implements the procedures defined in Section 6 of 38.214 to compute the resource allocation (6.1.2)
+ * and modulation order, target rate, redundancy version and TBS (6.1.4)
+ *
+ * Note: Only TypeA PUSCH mapping type is supported
+ *
+ * @param carrier Carrier information struct
+ * @param pusch_hl_cfg PUSCH configuration provided by higher layers
+ * @param dci_ul DCI uplink (format 0_0 or 0_1)
+ * @param pusch_cfg PUSCH configuration after applying the procedure
+ * @param pusch_grant Generated PUSCH grant
+ * @return 0 on success, -1 on error
+ */
+SRSLTE_API int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
+                                            const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg,
+                                            const srslte_dci_ul_nr_t*     dci_ul,
+                                            srslte_sch_cfg_nr_t*          pusch_cfg,
+                                            srslte_sch_grant_nr_t*        pusch_grant);
 
 #endif // SRSLTE_RA_NR_H

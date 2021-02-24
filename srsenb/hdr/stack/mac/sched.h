@@ -25,14 +25,15 @@
 #include "sched_grid.h"
 #include "sched_ue.h"
 #include "srslte/common/log.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
+#include <atomic>
 #include <map>
 #include <mutex>
-#include <pthread.h>
 #include <queue>
 
 namespace srsenb {
+
+class rrc_interface_mac;
 
 class sched : public sched_interface
 {
@@ -46,9 +47,8 @@ public:
   sched();
   ~sched() override;
 
-  void init(rrc_interface_mac* rrc);
+  void init(rrc_interface_mac* rrc, const sched_args_t& sched_cfg);
   int  cell_cfg(const std::vector<cell_cfg_t>& cell_cfg) override;
-  void set_sched_cfg(sched_args_t* sched_cfg);
   int  reset() final;
 
   int  ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg) final;
@@ -94,15 +94,14 @@ protected:
   bool is_generated(srslte::tti_point, uint32_t enb_cc_idx) const;
   // Helper methods
   template <typename Func>
-  int ue_db_access(uint16_t rnti, Func, const char* func_name = nullptr);
+  int ue_db_access_locked(uint16_t rnti, Func&& f, const char* func_name = nullptr);
 
   // args
-  srslte::log_ref                  log_h;
   rrc_interface_mac*               rrc       = nullptr;
   sched_args_t                     sched_cfg = {};
   std::vector<sched_cell_params_t> sched_cell_params;
 
-  std::map<uint16_t, sched_ue> ue_db;
+  std::map<uint16_t, std::unique_ptr<sched_ue> > ue_db;
 
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;
@@ -112,7 +111,7 @@ protected:
 
   srslte::tti_point last_tti;
   std::mutex        sched_mutex;
-  bool              configured = false;
+  std::atomic<bool> configured;
 };
 
 } // namespace srsenb

@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,29 +15,32 @@
 
 #include "sf_worker.h"
 #include "srslte/common/thread_pool.h"
+#include "srsue/hdr/phy/prach.h"
 
 namespace srsue {
 namespace nr {
 
 class worker_pool
 {
-
 private:
-  std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
-
+  srslog::sink&                            log_sink;
+  srslog::basic_logger&                    logger;
   srslte::thread_pool                      pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
-  phy_nr_state                             phy_state;
+  state                                    phy_state;
+  std::unique_ptr<prach>                   prach_buffer = nullptr;
 
 public:
   sf_worker* operator[](std::size_t pos) { return workers.at(pos).get(); }
 
-  worker_pool(uint32_t max_workers);
-  bool       init(phy_common* common, srslte::logger* logger, int prio);
+  worker_pool(uint32_t max_workers, srslog::sink& log_sink_);
+  bool       init(const phy_args_nr_t& args_, phy_common* common, stack_interface_phy_nr* stack_, int prio);
   sf_worker* wait_worker(uint32_t tti);
-  sf_worker* wait_worker_id(uint32_t id);
   void       start_worker(sf_worker* w);
   void       stop();
+  void       send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power);
+  int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array, uint16_t rnti, srslte_rnti_type_t rnti_type);
+  bool set_config(const srslte::phy_cfg_nr_t& cfg);
 };
 
 } // namespace nr

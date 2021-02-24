@@ -24,11 +24,10 @@
 
 #include "srslte/asn1/rrc.h"
 #include "srslte/asn1/rrc_utils.h"
-#if HAVE_5GNR
 #include "srslte/asn1/rrc_nr.h"
 #include "srslte/asn1/rrc_nr_utils.h"
-#endif
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsue {
 
@@ -114,7 +113,6 @@ protected:
   std::map<uint32_t, uint32_t> sib_info_map; ///< map of sib_index to index of schedInfoList in SIB1
 };
 
-#ifdef HAVE_5GNR
 class meas_cell_nr : public meas_cell
 {
 public:
@@ -146,7 +144,6 @@ public:
   asn1::rrc_nr::sib3_s  sib3     = {};
   asn1::rrc::mcch_msg_s mcch     = {};
 };
-#endif
 
 class meas_cell_eutra : public meas_cell
 {
@@ -187,7 +184,7 @@ public:
   asn1::rrc::mcch_msg_s      mcch     = {};
 
 private:
-  bool                         has_valid_sib13 = false;
+  bool has_valid_sib13 = false;
 };
 
 //! Universal methods to extract pci/earfcn and compare the two values
@@ -201,13 +198,11 @@ inline uint32_t get_pci(const meas_cell_eutra& t)
 {
   return t.get_pci();
 }
-#ifdef HAVE_5GNR
 template <>
 inline uint32_t get_pci(const meas_cell_nr& t)
 {
   return t.get_pci();
 }
-#endif
 template <typename T>
 uint32_t get_earfcn(const T& t)
 {
@@ -218,13 +213,11 @@ inline uint32_t get_earfcn(const meas_cell_eutra& t)
 {
   return t.get_earfcn();
 }
-#ifdef HAVE_5GNR
 template <>
 inline uint32_t get_earfcn(const meas_cell_nr& t)
 {
   return t.get_earfcn();
 }
-#endif
 template <typename T, typename U>
 bool is_same_cell(const T& lhs, const U& rhs)
 {
@@ -251,17 +244,17 @@ public:
   bool process_new_cell_meas(const std::vector<phy_meas_t>&                    meas,
                              const std::function<void(T&, const phy_meas_t&)>& filter_meas);
 
-  T*                     get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
-  const T*               get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const;
-  void                   log_neighbour_cells() const;
-  std::string            print_neighbour_cells() const;
-  std::set<uint32_t>     get_neighbour_pcis(uint32_t earfcn) const;
-  bool                   has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
-  size_t                 nof_neighbours() const { return neighbour_cells.size(); }
-  T&                     operator[](size_t idx) { return *neighbour_cells[idx]; }
-  const T&               operator[](size_t idx) const { return *neighbour_cells[idx]; }
-  T&                     at(size_t idx) { return *neighbour_cells.at(idx); }
-  T*                     find_cell(uint32_t earfcn, uint32_t pci);
+  T*                 get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
+  const T*           get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const;
+  void               log_neighbour_cells() const;
+  std::string        print_neighbour_cells() const;
+  std::set<uint32_t> get_neighbour_pcis(uint32_t earfcn) const;
+  bool               has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
+  size_t             nof_neighbours() const { return neighbour_cells.size(); }
+  T&                 operator[](size_t idx) { return *neighbour_cells[idx]; }
+  const T&           operator[](size_t idx) const { return *neighbour_cells[idx]; }
+  T&                 at(size_t idx) { return *neighbour_cells.at(idx); }
+  T*                 find_cell(uint32_t earfcn, uint32_t pci);
 
   // serving cell handling
   int set_serving_cell(phy_cell_t phy_cell, bool discard_serving);
@@ -277,7 +270,7 @@ private:
   bool add_neighbour_cell_unsorted(unique_meas_cell cell);
 
   // args
-  srslte::log_ref           log_h{"RRC"};
+  srslog::basic_logger&     logger = srslog::fetch_basic_logger("RRC");
   srslte::task_sched_handle task_sched;
 
   unique_meas_cell              serv_cell;

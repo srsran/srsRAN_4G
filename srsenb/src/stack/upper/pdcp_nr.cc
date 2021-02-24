@@ -24,10 +24,7 @@
 
 namespace srsenb {
 
-pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) :
-  task_sched(task_sched_),
-  m_log(logname),
-  pool(srslte::byte_buffer_pool::get_instance())
+pdcp_nr::pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname) : task_sched(task_sched_), m_log(logname)
 {}
 
 void pdcp_nr::init(const pdcp_nr_args_t&   args_,
@@ -111,6 +108,24 @@ void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   }
 }
 
+void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
+  } else {
+    m_log->error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+  }
+}
+
+void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->notify_failure(lcid, pdcp_sns);
+  } else {
+    m_log->error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+  }
+}
+
 void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {
@@ -152,17 +167,17 @@ void pdcp_nr::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_b
 
 void pdcp_nr::user_interface_rrc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void pdcp_nr::user_interface_rrc::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void pdcp_nr::user_interface_rrc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
 {
-  ERROR("Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
 std::string pdcp_nr::user_interface_rrc::get_rb_name(uint32_t lcid)

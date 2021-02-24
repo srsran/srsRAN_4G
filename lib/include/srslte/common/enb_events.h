@@ -39,22 +39,28 @@ public:
   virtual ~event_logger_interface() = default;
 
   /// Logs into the underlying log channel the RRC connected event.
-  virtual void log_rrc_connected(unsigned cause) = 0;
+  virtual void log_rrc_connected(uint32_t enb_cc_idx, const std::string& asn1, unsigned error_code, uint16_t rnti) = 0;
 
   /// Logs into the underlying log channel the RRC disconnected event.
-  virtual void log_rrc_disconnect(unsigned reason) = 0;
+  virtual void log_rrc_disconnect(uint32_t enb_cc_idx, unsigned reason, uint16_t rnti) = 0;
 
   /// Logs into the underlying log channel the S1 context create event.
-  virtual void log_s1_ctx_create(uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;
+  virtual void log_s1_ctx_create(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;
 
   /// Logs into the underlying log channel the S1 context delete event.
-  virtual void log_s1_ctx_delete(uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;
+  virtual void log_s1_ctx_delete(uint32_t enb_cc_idx, uint32_t mme_id, uint32_t enb_id, uint16_t rnti) = 0;
 
-  /// Logs into the underlying log channel the when a sector has been started.
+  /// Logs into the underlying log channel when a sector has been started.
   virtual void log_sector_start(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
 
-  /// Logs into the underlying log channel the when a sector has been stopped.
+  /// Logs into the underlying log channel when a sector has been stopped.
   virtual void log_sector_stop(uint32_t cc_idx, uint32_t pci, uint32_t cell_id) = 0;
+
+  /// Logs into the underlying log channel a measurement report event..
+  virtual void log_measurement_report(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) = 0;
+
+  /// Logs into the underlying log channel a RLF event.
+  virtual void log_rlf(uint32_t enb_cc_idx, const std::string& asn1, uint16_t rnti) = 0;
 };
 
 /// Singleton class to provide global access to the event_logger_interface interface.

@@ -27,18 +27,17 @@ set(LINK_LIBRARIES srsue_stack
                     srslte_upper
                     srslte_common
                     srslte_mac
+                    srslte_mac
                     srslte_phy
                     srslte_radio
                     srslte_upper
                     srsue_phy
                     srsue_mac
+                    srsue_mac_nr
                     rrc_asn1
+                    rrc_nr_asn1
                     sctp
 ${Boost_LIBRARIES})
-
-if (ENABLE_5GNR)
-    set(LINK_LIBRARIES ${LINK_LIBRARIES} rrc_nr_asn1 srsue_mac_nr srslte_mac)
-endif (ENABLE_5GNR)
 
 target_link_libraries(ttcn3_dut ${LINK_LIBRARIES})
 

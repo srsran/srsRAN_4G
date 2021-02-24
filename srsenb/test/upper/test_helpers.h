@@ -84,14 +84,15 @@ public:
   } last_enb_status = {};
   std::vector<uint8_t> added_erab_ids;
   struct ho_req_ack {
-    uint16_t                                     rnti;
-    srslte::unique_byte_buffer_t                 ho_cmd_pdu;
-    std::vector<asn1::fixed_octstring<4, true> > admitted_bearers;
+    uint16_t                                      rnti;
+    srslte::unique_byte_buffer_t                  ho_cmd_pdu;
+    std::vector<asn1::s1ap::erab_admitted_item_s> admitted_bearers;
   } last_ho_req_ack;
 
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
+                        srslte::span<uint32_t>       fwd_erabs,
                         srslte::unique_byte_buffer_t rrc_container) final
   {
     last_ho_required = ho_req_data{rnti, target_eci, target_plmn, std::move(rrc_container)};
@@ -102,10 +103,11 @@ public:
     last_enb_status = {true, rnti, bearer_status_list};
     return true;
   }
-  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&               msg,
-                       uint16_t                                      rnti,
-                       srslte::unique_byte_buffer_t                  ho_cmd,
-                       srslte::span<asn1::fixed_octstring<4, true> > admitted_bearers) override
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s&                msg,
+                       uint16_t                                       rnti,
+                       uint32_t                                       enb_cc_idx,
+                       srslte::unique_byte_buffer_t                   ho_cmd,
+                       srslte::span<asn1::s1ap::erab_admitted_item_s> admitted_bearers) override
   {
     last_ho_req_ack.rnti       = rnti;
     last_ho_req_ack.ho_cmd_pdu = std::move(ho_cmd);
@@ -139,7 +141,7 @@ public:
   };
   std::map<uint16_t, std::map<uint32_t, lcid_cfg_t> > bearers;
 
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn) override
   {
     last_sdu.rnti = rnti;
     last_sdu.lcid = lcid;
@@ -225,7 +227,7 @@ bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
 {
   asn1::cbit_ref bref{pdu.data(), (uint32_t)pdu.size()};
   if (asn1obj.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    srslte::logmap::get("TEST")->error("Failed to unpack ASN1 type\n");
+    srslog::fetch_basic_logger("TEST").error("Failed to unpack ASN1 type");
     return false;
   }
   return true;
@@ -233,8 +235,7 @@ bool unpack_asn1(ASN1Type& asn1obj, srslte::const_byte_span pdu)
 
 inline void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, srslte::const_byte_span msg)
 {
-  srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
-  pdu                            = srslte::allocate_unique_buffer(*pool, true);
+  pdu = srslte::make_byte_buffer();
   memcpy(pdu->msg, msg.data(), msg.size());
   pdu->N_bytes = msg.size();
 }

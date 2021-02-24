@@ -27,22 +27,22 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 
 static srslte::rf_buffer_t zeros_multi(1);
 
-phy_common::phy_common()
+phy_common::phy_common(srslog::basic_logger& logger) : logger(logger), ta(logger)
 {
   reset();
 }
@@ -50,24 +50,20 @@ phy_common::phy_common()
 phy_common::~phy_common() = default;
 
 void phy_common::init(phy_args_t*                  _args,
-                      srslte::log*                 _log,
                       srslte::radio_interface_phy* _radio,
                       stack_interface_phy_lte*     _stack,
                       rsrp_insync_itf*             _chest_loop)
 {
-  log_h          = _log;
   radio_h        = _radio;
   stack          = _stack;
   args           = _args;
   insync_itf     = _chest_loop;
   sr_last_tx_tti = -1;
 
-  ta.set_logger(_log);
-
   // Instantiate UL channel emulator
   if (args->ul_channel_args.enable) {
-    ul_channel =
-        srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant));
+    ul_channel = srslte::channel_ptr(
+        new srslte::channel(args->ul_channel_args, args->nof_lte_carriers * args->nof_rx_ant, logger));
   }
 }
 
@@ -136,13 +132,12 @@ void phy_common::set_rar_grant(uint8_t             grant_payload[SRSLTE_RAR_GRAN
                                uint16_t            rnti,
                                srslte_tdd_config_t tdd_config)
 {
-
 #if MSG3_DELAY_MS < 0
 #error "Error MSG3_DELAY_MS can't be negative"
 #endif /* MSG3_DELAY_MS < 0 */
 
   if (rar_grant_tti < 0) {
-    Error("Must call set_rar_grant_tti before set_rar_grant\n");
+    Error("Must call set_rar_grant_tti before set_rar_grant");
   }
 
   srslte_dci_ul_t        dci_ul;
@@ -150,7 +145,7 @@ void phy_common::set_rar_grant(uint8_t             grant_payload[SRSLTE_RAR_GRAN
   srslte_dci_rar_unpack(grant_payload, &rar_grant);
 
   if (srslte_dci_rar_to_ul_dci(&cell, &rar_grant, &dci_ul)) {
-    Error("Converting RAR message to UL dci\n");
+    Error("Converting RAR message to UL dci");
     return;
   }
 
@@ -174,12 +169,12 @@ void phy_common::set_rar_grant(uint8_t             grant_payload[SRSLTE_RAR_GRAN
   std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
   pending_ul_grant_t&         pending_grant = pending_ul_grant[0][msg3_tx_tti];
   if (!pending_grant.enable) {
-    Debug("RAR grant rar_grant=%d, msg3_tti=%d, stored in index=%d\n", rar_grant_tti, msg3_tx_tti, TTIMOD(msg3_tx_tti));
+    Debug("RAR grant rar_grant=%d, msg3_tti=%d, stored in index=%d", rar_grant_tti, msg3_tx_tti, TTIMOD(msg3_tx_tti));
     pending_grant.pid    = ul_pidof(msg3_tx_tti, &tdd_config);
     pending_grant.dci    = dci_ul;
     pending_grant.enable = true;
   } else {
-    Warning("set_rar_grant: sf->tti=%d, cc=%d already in use\n", msg3_tx_tti, 0);
+    Warning("set_rar_grant: sf->tti=%d, cc=%d already in use", msg3_tx_tti, 0);
   }
 
   rar_grant_tti = -1;
@@ -206,7 +201,6 @@ const static uint32_t k_phich[7][10] = {{0, 0, 4, 7, 6, 0, 0, 4, 7, 6},
 
 uint32_t phy_common::ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config)
 {
-
   if (tdd_config->configured) {
     /* In TDD modes 1-5, each PID is associated with a unique subframe and the number of harq processes equals the
      * number of UL subframes Modes 0 and 6 have more processes than UL subframes and PID depends on sfn
@@ -246,7 +240,7 @@ uint32_t phy_common::ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config)
           return (cycle_idx + sf_idx - 4) % 6;
         }
       default:
-        Error("Invalid SF configuration %d\n", tdd_config->sf_config);
+        Error("Invalid SF configuration %d", tdd_config->sf_config);
     }
   } else {
     return tti % SRSLTE_FDD_NOF_HARQ;
@@ -273,13 +267,13 @@ void phy_common::set_ul_pending_ack(srslte_ul_sf_cfg_t*  sf,
     pending_ack.dci_ul      = *dci_ul;
     pending_ack.phich_grant = phich_grant;
     pending_ack.enable      = true;
-    Debug("Set pending ACK for sf->tti=%d n_dmrs=%d, I_phich=%d, cc_idx=%d\n",
+    Debug("Set pending ACK for sf->tti=%d n_dmrs=%d, I_phich=%d, cc_idx=%d",
           sf->tti,
           phich_grant.n_dmrs,
           phich_grant.I_phich,
           cc_idx);
   } else {
-    Warning("set_ul_pending_ack: sf->tti=%d, cc=%d already in use\n", sf->tti, cc_idx);
+    Warning("set_ul_pending_ack: sf->tti=%d, cc=%d already in use", sf->tti, cc_idx);
   }
 }
 
@@ -297,7 +291,7 @@ bool phy_common::get_ul_pending_ack(srslte_dl_sf_cfg_t*   sf,
     *dci_ul            = pending_ack.dci_ul;
     ret                = true;
     pending_ack.enable = false;
-    Debug("Get pending ACK for sf->tti=%d n_dmrs=%d, I_phich=%d\n", sf->tti, phich_grant->n_dmrs, phich_grant->I_phich);
+    Debug("Get pending ACK for sf->tti=%d n_dmrs=%d, I_phich=%d", sf->tti, phich_grant->n_dmrs, phich_grant->I_phich);
   }
   return ret;
 }
@@ -342,9 +336,9 @@ void phy_common::set_ul_pending_grant(srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, s
     pending_grant.pid    = pid;
     pending_grant.dci    = *dci;
     pending_grant.enable = true;
-    Debug("Set ul pending grant for sf->tti=%d current_tti=%d, pid=%d\n", tti_pusch_gr(sf), sf->tti, pid);
+    Debug("Set ul pending grant for sf->tti=%d current_tti=%d, pid=%d", tti_pusch_gr(sf), sf->tti, pid);
   } else {
-    Warning("set_ul_pending_grant: sf->tti=%d, cc=%d already in use\n", sf->tti, cc_idx);
+    Warning("set_ul_pending_grant: sf->tti=%d, cc=%d already in use", sf->tti, cc_idx);
   }
 }
 
@@ -356,7 +350,7 @@ bool phy_common::get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, u
   pending_ul_grant_t&         pending_grant = pending_ul_grant[cc_idx][sf->tti];
 
   if (pending_grant.enable) {
-    Debug("Reading grant sf->tti=%d idx=%d\n", sf->tti, TTIMOD(sf->tti));
+    Debug("Reading grant sf->tti=%d idx=%d", sf->tti, TTIMOD(sf->tti));
     if (pid) {
       *pid = pending_grant.pid;
     }
@@ -395,7 +389,7 @@ void phy_common::set_ul_received_ack(srslte_dl_sf_cfg_t* sf,
   received_ack.hi_present = true;
   received_ack.hi_value   = ack_value;
   received_ack.dci_ul     = *dci_ul;
-  Debug("Set ul received ack for sf->tti=%d, current_tti=%d\n", tti_pusch_hi(sf), sf->tti);
+  Debug("Set ul received ack for sf->tti=%d, current_tti=%d", tti_pusch_hi(sf), sf->tti);
 }
 
 // SF->TTI at which PUSCH will be transmitted
@@ -412,7 +406,7 @@ bool phy_common::get_ul_received_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, bo
     if (dci_ul) {
       *dci_ul = received_ack.dci_ul;
     }
-    Debug("Get ul received ack for current_tti=%d\n", sf->tti);
+    Debug("Get ul received ack for current_tti=%d", sf->tti);
     received_ack.hi_present = false;
     ret                     = true;
   }
@@ -433,9 +427,9 @@ void phy_common::set_dl_pending_ack(srslte_dl_sf_cfg_t*         sf,
     pending_ack.enable   = true;
     pending_ack.resource = resource;
     memcpy(pending_ack.value, value, SRSLTE_MAX_CODEWORDS * sizeof(uint8_t));
-    Debug("Set dl pending ack for sf->tti=%d, value=%d, ncce=%d\n", sf->tti, value[0], resource.n_cce);
+    Debug("Set dl pending ack for sf->tti=%d, value=%d, ncce=%d", sf->tti, value[0], resource.n_cce);
   } else {
-    Warning("pending_dl_ack: sf->tti=%d, cc=%d already in use\n", sf->tti, cc_idx);
+    Warning("pending_dl_ack: sf->tti=%d, cc=%d already in use", sf->tti, cc_idx);
   }
 }
 
@@ -455,7 +449,7 @@ void phy_common::set_dl_pending_grant(uint32_t               tti,
     pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].grant_cc_idx = grant_cc_idx;
     pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].enable       = true;
   } else {
-    Warning("set_dl_pending_grant: cc=%d already exists\n", cc_idx);
+    Info("set_dl_pending_grant: cc=%d already exists", cc_idx);
   }
 }
 
@@ -514,7 +508,6 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
     M = das_table[sf->tdd_config.sf_config][sf->tti % 10].M;
   }
   for (uint32_t i = 0; i < M; i++) {
-
     uint32_t k =
         (cell.frame_type == SRSLTE_FDD) ? FDD_HARQ_DELAY_UL_MS : das_table[sf->tdd_config.sf_config][sf->tti % 10].K[i];
     uint32_t        pdsch_tti   = TTI_SUB(sf->tti, k + (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS));
@@ -524,7 +517,7 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
       ack->m[i].k        = k;
       ack->m[i].resource = pending_ack.resource;
       memcpy(ack->m[i].value, pending_ack.value, SRSLTE_MAX_CODEWORDS * sizeof(uint8_t));
-      Debug("Get dl pending ack for sf->tti=%d, i=%d, k=%d, pdsch_tti=%d, value=%d, ncce=%d, v_dai=%d\n",
+      Debug("Get dl pending ack for sf->tti=%d, i=%d, k=%d, pdsch_tti=%d, value=%d, ncce=%d, v_dai=%d",
             sf->tti,
             i,
             k,
@@ -550,17 +543,40 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
 void phy_common::worker_end(void*                   tx_sem_id,
                             bool                    tx_enable,
                             srslte::rf_buffer_t&    buffer,
-                            srslte::rf_timestamp_t& tx_time)
+                            srslte::rf_timestamp_t& tx_time,
+                            bool                    is_nr)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
+
+  // If this is for NR, save Tx buffers...
+  if (is_nr) {
+    nr_tx_buffer       = buffer;
+    nr_tx_buffer_ready = true;
+    semaphore.release();
+    return;
+  }
+
+  // ... otherwise, append NR base-band from saved buffer if available
+  if (nr_tx_buffer_ready) {
+    // Load NR carrier base-band
+    for (uint32_t i = 0; i < args->nof_nr_carriers * args->nof_rx_ant; i++) {
+      uint32 channel_idx = args->nof_lte_carriers * args->nof_rx_ant + i;
+      buffer.set(channel_idx, nr_tx_buffer.get(i));
+    }
+
+    // Remove NR buffer flag
+    nr_tx_buffer_ready = false;
+
+    // Make sure it transmits in this TTI
+    tx_enable = true;
+  }
 
   // Add Time Alignment
   tx_time.sub((double)ta.get_sec());
 
   // For each radio, transmit
   if (tx_enable) {
-
     if (ul_channel) {
       ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
     }
@@ -573,7 +589,6 @@ void phy_common::worker_end(void*                   tx_sem_id,
         is_pending_tx_end = false;
       } else {
         if (!radio_h->get_is_start_of_burst()) {
-
           if (ul_channel) {
             srslte_vec_cf_zero(zeros_multi.get(0), buffer.get_nof_samples());
             ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
@@ -630,7 +645,6 @@ void phy_common::update_measurements(uint32_t                 cc_idx,
 
     // Only worker 0 reads the RSSI sensor
     if (rssi_power_buffer) {
-
       if (!rssi_read_cnt) {
         // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
         float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0
@@ -741,9 +755,9 @@ void phy_common::update_measurements(uint32_t                 cc_idx,
     bool active = cell_state.is_configured(cc_idx);
     if (active && ((sf_cfg_dl.tti % pcell_report_period) == pcell_report_period - 1)) {
       phy_meas_t meas = {};
-      meas.rsrp                              = avg_rsrp_dbm[cc_idx];
-      meas.rsrq                              = avg_rsrq_db[cc_idx];
-      meas.cfo_hz                            = avg_cfo_hz[cc_idx];
+      meas.rsrp       = avg_rsrp_dbm[cc_idx];
+      meas.rsrq       = avg_rsrq_db[cc_idx];
+      meas.cfo_hz     = avg_cfo_hz[cc_idx];
 
       // Save PCI and EARFCN (if available)
       if (cc_idx == 0) {
@@ -758,11 +772,10 @@ void phy_common::update_measurements(uint32_t                 cc_idx,
     // Check in-sync / out-sync conditions. Use SNR instead of SINR for RLF threshold
     if (cc_idx == 0) {
       if (avg_rsrp_dbm[0] > args->in_sync_rsrp_dbm_th && avg_snr_db[0] > args->in_sync_snr_db_th) {
-        log_h->debug(
-            "SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n", avg_snr_db[0], avg_rsrp_dbm[0]);
+        logger.debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator", avg_snr_db[0], avg_rsrp_dbm[0]);
       } else {
-        log_h->warning(
-            "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n", avg_snr_db[0], avg_rsrp_dbm[0]);
+        logger.warning(
+            "SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator", avg_snr_db[0], avg_rsrp_dbm[0]);
         insync = false;
       }
     }
@@ -951,7 +964,7 @@ void phy_common::build_mch_table()
   } else if (mbsfn_config.mbsfn_subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn_config.mbsfn_subfr_cnfg.sf_alloc, 4u);
   } else {
-    log_h->error("The subframe config has not been set for MBSFN\n");
+    logger.error("The subframe config has not been set for MBSFN");
   }
   // Debug
 
@@ -960,7 +973,7 @@ void phy_common::build_mch_table()
   for (uint32_t j = 0; j < 40; j++) {
     ss << (int)mch_table[j] << "|";
   }
-  Info("MCH table: %s\n", ss.str().c_str());
+  Info("MCH table: %s", ss.str().c_str());
 }
 
 void phy_common::build_mcch_table()
@@ -974,7 +987,7 @@ void phy_common::build_mcch_table()
   for (uint32_t j = 0; j < 10; j++) {
     ss << (int)mcch_table[j] << "|";
   }
-  Info("MCCH table: %s\n", ss.str().c_str());
+  Info("MCCH table: %s", ss.str().c_str());
   sib13_configured = true;
 }
 
@@ -1065,7 +1078,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
               // have_mtch_stop = false;
             }
           }
-          Debug("MCH subframe TTI:%d\n", phy_tti);
+          Debug("MCH subframe TTI:%d", phy_tti);
         }
         return true;
       }
@@ -1080,7 +1093,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
         }
       }
     } else {
-      log_h->error("The subframe allocation type is not yet configured\n");
+      logger.error("The subframe allocation type is not yet configured");
     }
   }
 
@@ -1109,7 +1122,7 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
       cfg->mbsfn_mcs               = enum_to_number(area_info.mcch_cfg.sig_mcs);
       cfg->enable                  = true;
       have_mtch_stop               = false;
-      Debug("MCCH subframe TTI:%d\n", phy_tti);
+      Debug("MCCH subframe TTI:%d", phy_tti);
       return true;
     }
   }

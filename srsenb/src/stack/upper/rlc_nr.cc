@@ -24,7 +24,7 @@
 
 namespace srsenb {
 
-rlc_nr::rlc_nr(const char* logname) : m_log(logname), pool(srslte::byte_buffer_pool::get_instance()) {}
+rlc_nr::rlc_nr(const char* logname) : m_log(logname) {}
 
 void rlc_nr::init(pdcp_interface_rlc_nr* pdcp_,
                   rrc_interface_rlc_nr*  rrc_,
@@ -198,22 +198,32 @@ void rlc_nr::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer
 
 void rlc_nr::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void rlc_nr::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d", rnti);
 }
 
 void rlc_nr::user_interface::write_pdu_pcch(srslte::unique_byte_buffer_t sdu)
 {
-  ERROR("Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received PCCH from ue=%d", rnti);
 }
 
 std::string rlc_nr::user_interface::get_rb_name(uint32_t lcid)
 {
   return srslte::to_string(static_cast<srslte::rb_id_nr_t>(lcid));
+}
+
+void rlc_nr::user_interface::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  m_pdcp->notify_delivery(rnti, lcid, pdcp_sns);
+}
+
+void rlc_nr::user_interface::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  m_pdcp->notify_failure(rnti, lcid, pdcp_sns);
 }
 
 } // namespace srsenb

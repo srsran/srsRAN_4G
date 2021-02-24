@@ -19,7 +19,7 @@
  *
  */
 #include "srslte/asn1/gtpc.h"
-#include "srslte/common/common.h"
+#include "srslte/common/byte_buffer.h"
 #include <stdint.h>
 
 namespace srslte {

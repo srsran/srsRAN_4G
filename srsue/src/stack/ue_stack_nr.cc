@@ -27,12 +27,7 @@ using namespace srslte;
 namespace srsue {
 
 ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
-  logger(logger_),
-  thread("STACK"),
-  task_sched(64, 2, 64),
-  rlc_log("RLC"),
-  pdcp_log("PDCP"),
-  pool_log("POOL")
+  logger(logger_), thread("STACK"), task_sched(64, 2, 64), rlc_log("RLC"), pdcp_log("PDCP")
 {
   mac.reset(new mac_nr(&task_sched));
   pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
@@ -40,8 +35,7 @@ ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   rrc.reset(new rrc_nr(&task_sched));
 
   // setup logging for pool, RLC and PDCP
-  pool_log->set_level(srslte::LOG_LEVEL_ERROR);
-  byte_buffer_pool::get_instance()->set_log(pool_log.get());
+  byte_buffer_pool::get_instance()->enable_logger(true);
 
   ue_task_queue   = task_sched.make_task_queue();
   sync_task_queue = task_sched.make_task_queue();
@@ -81,7 +75,6 @@ int ue_stack_nr::init(const stack_args_t& args_)
 
   mac_nr_args_t mac_args = {};
   mac_args.pcap          = args.pcap;
-  mac_args.drb_lcid      = 4;
   mac->init(mac_args, phy, rlc.get());
   rlc->init(pdcp.get(), rrc.get(), task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp->init(rlc.get(), rrc.get(), gw);
@@ -118,17 +111,13 @@ void ue_stack_nr::stop_impl()
   rlc->stop();
   pdcp->stop();
   mac->stop();
-
-  if (mac_pcap != nullptr) {
-    mac_pcap.reset();
-  }
 }
 
 bool ue_stack_nr::switch_on()
 {
   // statically setup TUN (will be done through RRC later)
   char* err_str = nullptr;
-  if (gw->setup_if_addr(4, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.1.3")), nullptr, err_str)) {
+  if (gw->setup_if_addr(5, 4, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.1.3")), nullptr, err_str)) {
     printf("Error configuring TUN interface\n");
   }
   return true;
@@ -174,7 +163,7 @@ void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
     std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
         [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
     if (not ret.first) {
-      pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
+      pdcp_log->warning("GW SDU with lcid=%d was discarded.", lcid);
     }
   }
 }

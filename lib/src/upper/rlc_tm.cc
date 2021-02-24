@@ -23,8 +23,11 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(srslte::log_ref log_, uint32_t lcid_, srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_) :
-  log(log_), pdcp(pdcp_), rrc(rrc_), lcid(lcid_)
+rlc_tm::rlc_tm(srslog::basic_logger&      logger,
+               uint32_t                   lcid_,
+               srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_) :
+  logger(logger), pdcp(pdcp_), rrc(rrc_), lcid(lcid_)
 {
   pool = byte_buffer_pool::get_instance();
 }
@@ -37,7 +40,7 @@ rlc_tm::~rlc_tm()
 
 bool rlc_tm::configure(const rlc_config_t& cnfg)
 {
-  log->error("Attempted to configure TM RLC entity\n");
+  logger.error("Attempted to configure TM RLC entity");
   return true;
 }
 
@@ -83,23 +86,23 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu)
     uint32_t                                 nof_bytes = sdu->N_bytes;
     srslte::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
     if (ret) {
-      log->info_hex(msg_ptr,
-                    nof_bytes,
-                    "%s Tx SDU, queue size=%d, bytes=%d",
-                    rrc->get_rb_name(lcid).c_str(),
-                    ul_queue.size(),
-                    ul_queue.size_bytes());
+      logger.info(msg_ptr,
+                  nof_bytes,
+                  "%s Tx SDU, queue size=%d, bytes=%d",
+                  rrc->get_rb_name(lcid).c_str(),
+                  ul_queue.size(),
+                  ul_queue.size_bytes());
     } else {
-      log->warning_hex(ret.error()->msg,
-                       ret.error()->N_bytes,
-                       "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-                       rrc->get_rb_name(lcid).c_str(),
-                       ul_queue.size(),
-                       ul_queue.size_bytes());
+      logger.warning(ret.error()->msg,
+                     ret.error()->N_bytes,
+                     "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+                     rrc->get_rb_name(lcid).c_str(),
+                     ul_queue.size(),
+                     ul_queue.size_bytes());
     }
 
   } else {
-    log->warning("NULL SDU pointer in write_sdu()\n");
+    logger.warning("NULL SDU pointer in write_sdu()");
   }
 }
 
@@ -108,7 +111,7 @@ void rlc_tm::discard_sdu(uint32_t discard_sn)
   if (!tx_enabled) {
     return;
   }
-  log->warning("SDU discard not implemented on RLC TM\n");
+  logger.warning("SDU discard not implemented on RLC TM");
 }
 
 bool rlc_tm::sdu_queue_is_full()
@@ -141,31 +144,31 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
-    log->info(
-        "%s Tx PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
+    logger.info(
+        "%s Tx PDU size larger than MAC opportunity (%d > %d)", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
   unique_byte_buffer_t buf;
   if (ul_queue.try_read(&buf)) {
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
-    log->debug("%s Complete SDU scheduled for tx. Stack latency: %" PRIu64 " us\n",
-               rrc->get_rb_name(lcid).c_str(),
-               (uint64_t)buf->get_latency_us().count());
-    log->info_hex(payload,
-                  pdu_size,
-                  "%s Tx %s PDU, queue size=%d, bytes=%d",
-                  rrc->get_rb_name(lcid).c_str(),
-                  srslte::to_string(rlc_mode_t::tm).c_str(),
-                  ul_queue.size(),
-                  ul_queue.size_bytes());
+    logger.debug("%s Complete SDU scheduled for tx. Stack latency: %" PRIu64 " us",
+                 rrc->get_rb_name(lcid).c_str(),
+                 (uint64_t)buf->get_latency_us().count());
+    logger.info(payload,
+                pdu_size,
+                "%s Tx %s PDU, queue size=%d, bytes=%d",
+                rrc->get_rb_name(lcid).c_str(),
+                srslte::to_string(rlc_mode_t::tm).c_str(),
+                ul_queue.size(),
+                ul_queue.size_bytes());
 
     metrics.num_tx_pdu_bytes += pdu_size;
     return pdu_size;
   } else {
-    log->warning("Queue empty while trying to read\n");
+    logger.warning("Queue empty while trying to read");
     if (ul_queue.size_bytes() > 0) {
-      log->warning("Corrupted queue: empty but size_bytes > 0. Resetting queue\n");
+      logger.warning("Corrupted queue: empty but size_bytes > 0. Resetting queue");
       ul_queue.reset();
     }
     return 0;
@@ -174,7 +177,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 
 void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = make_byte_buffer();
   if (buf) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
@@ -187,7 +190,7 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
       pdcp->write_pdu(lcid, std::move(buf));
     }
   } else {
-    log->error("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu().\n");
+    logger.error("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu().");
   }
 }
 

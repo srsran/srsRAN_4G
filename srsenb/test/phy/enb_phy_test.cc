@@ -18,6 +18,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -28,7 +29,6 @@
 #include <srslte/common/string_helpers.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
-#include <srslte/interfaces/enb_interfaces.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pusch_cfg.h>
 #include <srslte/phy/utils/random.h>
@@ -58,7 +58,7 @@ public:                                                                         
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);                                       \
     }                                                                                                                  \
     if (expired) {                                                                                                     \
-      log_h.warning("Expired " #NAME " waiting\n");                                                                    \
+      logger.warning("Expired " #NAME " waiting");                                                                     \
     }                                                                                                                  \
     return received_##NAME;                                                                                            \
   }                                                                                                                    \
@@ -71,7 +71,7 @@ private:                                                                        
   {                                                                                                                    \
     std::unique_lock<std::mutex> lock(mutex);                                                                          \
     cvar.notify_all();                                                                                                 \
-    log_h.debug(#NAME " received\n");                                                                                  \
+    logger.debug(#NAME " received");                                                                                   \
     received_##NAME = true;                                                                                            \
   }
 
@@ -80,7 +80,7 @@ class dummy_radio final : public srslte::radio_interface_phy
 private:
   std::mutex                        mutex;
   std::condition_variable           cvar;
-  srslte::log_filter                log_h;
+  srslog::basic_logger&             logger;
   std::vector<srslte_ringbuffer_t*> ringbuffers_tx;
   std::vector<srslte_ringbuffer_t*> ringbuffers_rx;
   srslte::rf_timestamp_t            ts_rx    = {};
@@ -111,19 +111,20 @@ private:
   CALLBACK(get_info);
 
 public:
-  explicit dummy_radio(uint32_t nof_channels, uint32_t nof_prb, const std::string& log_level) : log_h("RADIO")
+  explicit dummy_radio(uint32_t nof_channels, uint32_t nof_prb, const std::string& log_level) :
+    logger(srslog::fetch_basic_logger("RADIO", false))
   {
-    log_h.set_level(log_level);
+    logger.set_level(srslog::str_to_basic_level(log_level));
 
     // Allocate receive ring buffer
     for (uint32_t i = 0; i < nof_channels; i++) {
       auto* rb = (srslte_ringbuffer_t*)srslte_vec_malloc(sizeof(srslte_ringbuffer_t));
       if (not rb) {
-        ERROR("Allocating ring buffer\n");
+        ERROR("Allocating ring buffer");
       }
 
       if (srslte_ringbuffer_init(rb, SRSLTE_SF_LEN_PRB(nof_prb) * SRSLTE_NOF_SF_X_FRAME * (uint32_t)sizeof(cf_t))) {
-        ERROR("Initiating ring buffer\n");
+        ERROR("Initiating ring buffer");
       }
 
       ringbuffers_tx.push_back(rb);
@@ -133,11 +134,11 @@ public:
     for (uint32_t i = 0; i < nof_channels; i++) {
       auto* rb = (srslte_ringbuffer_t*)srslte_vec_malloc(sizeof(srslte_ringbuffer_t));
       if (not rb) {
-        ERROR("Allocating ring buffer\n");
+        ERROR("Allocating ring buffer");
       }
 
       if (srslte_ringbuffer_init(rb, SRSLTE_SF_LEN_PRB(nof_prb) * SRSLTE_NOF_SF_X_FRAME * (uint32_t)sizeof(cf_t))) {
-        ERROR("Initiating ring buffer\n");
+        ERROR("Initiating ring buffer");
       }
 
       ringbuffers_rx.push_back(rb);
@@ -167,7 +168,7 @@ public:
     int      err    = SRSLTE_SUCCESS;
     uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * nof_samples;
 
-    log_h.debug("read_tx %d\n", nof_samples);
+    logger.debug("read_tx %d", nof_samples);
 
     for (uint32_t i = 0; i < ringbuffers_tx.size() and i < buffers.size(); i++) {
       do {
@@ -182,7 +183,7 @@ public:
   {
     uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * nof_samples;
 
-    log_h.debug("write_rx %d\n", nof_samples);
+    logger.debug("write_rx %d", nof_samples);
 
     for (uint32_t i = 0; i < ringbuffers_rx.size() and i < buffers.size(); i++) {
       srslte_ringbuffer_write(ringbuffers_rx[i], buffers[i], nbytes);
@@ -200,7 +201,7 @@ public:
     // Get number of bytes to write
     uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * buffer.get_nof_samples();
 
-    log_h.debug("tx %d\n", buffer.get_nof_samples());
+    logger.debug("tx %d", buffer.get_nof_samples());
 
     // Write ring buffer
     for (uint32_t i = 0; i < ringbuffers_tx.size() and err >= SRSLTE_SUCCESS; i++) {
@@ -225,7 +226,7 @@ public:
       return true;
     }
 
-    log_h.info("rx_now %d\n", buffer.get_nof_samples());
+    logger.info("rx_now %d", buffer.get_nof_samples());
 
     // Get number of bytes to read
     uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * buffer.get_nof_samples();
@@ -274,15 +275,15 @@ typedef std::unique_ptr<dummy_radio> unique_dummy_radio_t;
 class dummy_stack final : public srsenb::stack_interface_phy_lte
 {
 private:
-  static constexpr float prob_dl_grant = 0.50f;
-  static constexpr float prob_ul_grant = 0.10f;
-  static constexpr uint32_t cfi        = 2;
+  static constexpr float    prob_dl_grant = 0.50f;
+  static constexpr float    prob_ul_grant = 0.10f;
+  static constexpr uint32_t cfi           = 2;
 
   srsenb::phy_cell_cfg_list_t                       phy_cell_cfg;
   srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc;
   std::mutex                                        mutex;
   std::condition_variable                           cvar;
-  srslte::log_filter                                log_h;
+  srslog::basic_logger&                             logger;
   srslte_softbuffer_tx_t                            softbuffer_tx                                           = {};
   srslte_softbuffer_rx_t                            softbuffer_rx[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ] = {};
   uint8_t*                                          data                                                    = nullptr;
@@ -336,22 +337,22 @@ private:
   std::queue<tti_cqi_info_t> tti_cqi_info_queue;
   std::vector<uint32_t>      active_cell_list;
 
-  uint32_t              nof_locations[SRSLTE_NOF_SF_X_FRAME]                    = {};
+  uint32_t              nof_locations[SRSLTE_NOF_SF_X_FRAME]                           = {};
   srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][SRSLTE_MAX_CANDIDATES_UE] = {};
-  uint32_t              ul_riv                                                  = 0;
+  uint32_t              ul_riv                                                         = 0;
 
 public:
   explicit dummy_stack(const srsenb::phy_cfg_t&                                 phy_cfg_,
                        const srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t& phy_rrc_,
                        const std::string&                                       log_level,
                        uint16_t                                                 rnti_) :
-    log_h("STACK"),
+    logger(srslog::fetch_basic_logger("STACK", false)),
     ue_rnti(rnti_),
     random_gen(srslte_random_init(rnti_)),
     phy_cell_cfg(phy_cfg_.phy_cell_cfg),
     phy_rrc(phy_rrc_)
   {
-    log_h.set_level(log_level);
+    logger.set_level(srslog::str_to_basic_level(log_level));
     srslte_softbuffer_tx_init(&softbuffer_tx, SRSLTE_MAX_PRB);
     for (uint32_t i = 0; i < phy_rrc.size(); i++) {
       for (auto& sb : softbuffer_rx[i]) {
@@ -371,7 +372,7 @@ public:
       sf_cfg_dl.cfi     = cfi;
       sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
-      uint32_t              _nof_locations                    = {};
+      uint32_t              _nof_locations                           = {};
       srslte_dci_location_t _dci_locations[SRSLTE_MAX_CANDIDATES_UE] = {};
       _nof_locations = srslte_pdcch_ue_locations(&pdcch, &sf_cfg_dl, _dci_locations, SRSLTE_MAX_CANDIDATES_UE, ue_rnti);
 
@@ -425,7 +426,7 @@ public:
 
     notify_sr_detected();
 
-    log_h.info("Received SR tti=%d; rnti=0x%x\n", tti, rnti);
+    logger.info("Received SR tti=%d; rnti=0x%x", tti, rnti);
 
     return SRSLTE_SUCCESS;
   }
@@ -437,7 +438,7 @@ public:
   {
     notify_ri_info();
 
-    log_h.info("Received RI tti=%d; rnti=0x%x; cc_idx=%d; ri=%d;\n", tti, rnti, cc_idx, ri_value);
+    logger.info("Received RI tti=%d; rnti=0x%x; cc_idx=%d; ri=%d;", tti, rnti, cc_idx, ri_value);
 
     return 0;
   }
@@ -445,7 +446,7 @@ public:
   {
     notify_pmi_info();
 
-    log_h.info("Received PMI tti=%d; rnti=0x%x; cc_idx=%d; pmi=%d;\n", tti, rnti, cc_idx, pmi_value);
+    logger.info("Received PMI tti=%d; rnti=0x%x; cc_idx=%d; pmi=%d;", tti, rnti, cc_idx, pmi_value);
 
     return 0;
   }
@@ -459,7 +460,7 @@ public:
 
     notify_cqi_info();
 
-    log_h.info("Received CQI tti=%d; rnti=0x%x; cc_idx=%d; cqi=%d;\n", tti, rnti, cc_idx, cqi_value);
+    logger.info("Received CQI tti=%d; rnti=0x%x; cc_idx=%d; cqi=%d;", tti, rnti, cc_idx, cqi_value);
 
     return SRSLTE_SUCCESS;
   }
@@ -470,7 +471,7 @@ public:
   }
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override
   {
-    log_h.info("Received TA INFO tti=%d; rnti=0x%x; ta=%.1f us\n", tti, rnti, ta_us);
+    logger.info("Received TA INFO tti=%d; rnti=0x%x; ta=%.1f us", tti, rnti, ta_us);
     notify_ta_info();
     return 0;
   }
@@ -484,7 +485,7 @@ public:
     tti_dl_info.ack           = ack;
     tti_dl_info_ack_queue.push(tti_dl_info);
 
-    log_h.info("Received DL ACK tti=%d; rnti=0x%x; cc=%d; tb=%d; ack=%d;\n", tti, rnti, cc_idx, tb_idx, ack);
+    logger.info("Received DL ACK tti=%d; rnti=0x%x; cc=%d; tb=%d; ack=%d;", tti, rnti, cc_idx, tb_idx, ack);
     notify_ack_info();
     return 0;
   }
@@ -497,14 +498,14 @@ public:
     tti_ul_info.crc           = crc_res;
     tti_ul_info_ack_queue.push(tti_ul_info);
 
-    log_h.info("Received UL ACK tti=%d; rnti=0x%x; cc=%d; ack=%d;\n", tti, rnti, cc_idx, crc_res);
+    logger.info("Received UL ACK tti=%d; rnti=0x%x; cc=%d; ack=%d;", tti, rnti, cc_idx, crc_res);
     notify_crc_info();
 
     return 0;
   }
   int push_pdu(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override
   {
-    log_h.info("Received push_pdu tti=%d; rnti=0x%x; ack=%d;\n", tti, rnti, crc_res);
+    logger.info("Received push_pdu tti=%d; rnti=0x%x; ack=%d;", tti, rnti, crc_res);
     notify_push_pdu();
 
     return 0;
@@ -586,7 +587,7 @@ public:
         uint32_t cw_count = 0;
         for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           if (sched_tb[tb]) {
-            log_h.debug("Transmitted DL grant tti=%d; rnti=0x%x; cc=%d; tb=%d;\n", tti, ue_rnti, cc_idx, tb);
+            logger.debug("Transmitted DL grant tti=%d; rnti=0x%x; cc=%d; tb=%d;", tti, ue_rnti, cc_idx, tb);
 
             // Create Grant with maximum safe MCS
             dl_sched.pdsch[0].dci.tb[tb].cw_idx  = cw_count++;
@@ -751,7 +752,7 @@ public:
         uint32_t elapsed_tti = TTI_SUB(tti_sr_info2.tti, tti_sr_info1.tti);
 
         // Log SR info
-        log_h.info("SR: tti1=%d; tti2=%d; elapsed %d;\n", tti_sr_info1.tti, tti_sr_info2.tti, elapsed_tti);
+        logger.info("SR: tti1=%d; tti2=%d; elapsed %d;", tti_sr_info1.tti, tti_sr_info2.tti, elapsed_tti);
 
         // Check first TTI
         TESTASSERT(tti_sr_info1.tti % 20 == 0);
@@ -782,27 +783,26 @@ private:
   srslte_softbuffer_tx_t                            softbuffer_tx = {};
   uint8_t*                                          tx_data       = nullptr;
   srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_cfg   = {};
-  srslte::log_filter                                log_h;
+  srslog::basic_logger&                             logger;
   std::map<uint32_t, uint32_t>                      last_ri = {};
 
 public:
   dummy_ue(dummy_radio* _radio, const srsenb::phy_cell_cfg_list_t& cell_list, std::string log_level, uint16_t rnti_) :
-    radio(_radio),
-    log_h("UPHY", nullptr, true)
+    radio(_radio), logger(srslog::fetch_basic_logger("UPHY"))
   {
     // Calculate subframe length
     nof_ports = cell_list[0].cell.nof_ports;
     sf_len    = static_cast<uint32_t>(SRSLTE_SF_LEN_PRB(cell_list[0].cell.nof_prb));
     rnti      = rnti_;
 
-    log_h.set_level(std::move(log_level));
+    logger.set_level(srslog::str_to_basic_level(log_level));
 
     // Initialise one buffer per eNb
     for (uint32_t i = 0; i < cell_list.size() * nof_ports; i++) {
       // Allocate buffers
       cf_t* buffer = srslte_vec_cf_malloc(sf_len);
       if (not buffer) {
-        ERROR("Allocating UE DL buffer\n");
+        ERROR("Allocating UE DL buffer");
       }
       buffers.push_back(buffer);
 
@@ -817,18 +817,18 @@ public:
       // Allocate UE DL
       auto* ue_dl = (srslte_ue_dl_t*)srslte_vec_malloc(sizeof(srslte_ue_dl_t));
       if (not ue_dl) {
-        ERROR("Allocatin UE DL\n");
+        ERROR("Allocatin UE DL");
       }
       ue_dl_v.push_back(ue_dl);
 
       // Initialise UE DL
       if (srslte_ue_dl_init(ue_dl, &buffers[cc_idx * nof_ports], cell.nof_prb, cell.nof_ports)) {
-        ERROR("Initiating UE DL\n");
+        ERROR("Initiating UE DL");
       }
 
       // Set Cell
       if (srslte_ue_dl_set_cell(ue_dl, cell)) {
-        ERROR("Setting UE DL cell\n");
+        ERROR("Setting UE DL cell");
       }
 
       // Set RNTI
@@ -837,18 +837,18 @@ public:
       // Allocate UE UL
       auto* ue_ul = (srslte_ue_ul_t*)srslte_vec_malloc(sizeof(srslte_ue_ul_t));
       if (not ue_ul) {
-        ERROR("Allocatin UE UL\n");
+        ERROR("Allocatin UE UL");
       }
       ue_ul_v.push_back(ue_ul);
 
       // Initialise UE UL
       if (srslte_ue_ul_init(ue_ul, buffers[cc_idx * nof_ports], cell.nof_prb)) {
-        ERROR("Setting UE UL cell\n");
+        ERROR("Setting UE UL cell");
       }
 
       // Set cell
       if (srslte_ue_ul_set_cell(ue_ul, cell)) {
-        ERROR("Setting UE DL cell\n");
+        ERROR("Setting UE DL cell");
       }
 
       // Set RNTI
@@ -857,13 +857,13 @@ public:
 
     // Initialise softbuffer
     if (srslte_softbuffer_tx_init(&softbuffer_tx, cell_list[0].cell.nof_prb)) {
-      ERROR("Initialising Tx softbuffer\n");
+      ERROR("Initialising Tx softbuffer");
     }
 
     // Initialise dummy tx data
     tx_data = srslte_vec_u8_malloc(SRSENB_MAX_BUFFER_SIZE_BYTES);
     if (not tx_data) {
-      ERROR("Allocating Tx data\n");
+      ERROR("Allocating Tx data");
     }
 
     for (uint32_t i = 0; i < SRSENB_MAX_BUFFER_SIZE_BYTES; i++) {
@@ -957,17 +957,17 @@ public:
       if (nof_dl_grants) {
         char str[256] = {};
         srslte_dci_dl_info(dci_dl, str, sizeof(str));
-        log_h.info("[DL DCI] %s\n", str);
+        logger.info("[DL DCI] %s", str);
 
         if (srslte_ue_dl_dci_to_pdsch_grant(
                 ue_dl_v[cc_idx], &sf_dl_cfg, &ue_dl_cfg, dci_dl, &ue_dl_cfg.cfg.pdsch.grant)) {
-          log_h.error("Converting DCI message to DL dci\n");
+          logger.error("Converting DCI message to DL dci");
           return SRSLTE_ERROR;
         }
 
         srslte_pdsch_tx_info(&ue_dl_cfg.cfg.pdsch, str, 512);
 
-        log_h.info("[DL PDSCH %d] cc=%d, %s\n", sf_dl_cfg.tti, cc_idx, str);
+        logger.info("[DL PDSCH %d] cc=%d, %s", sf_dl_cfg.tti, cc_idx, str);
 
         pdsch_ack.cc[ue_cc_idx].M                           = 1;
         pdsch_ack.cc[ue_cc_idx].m[0].present                = true;
@@ -1080,7 +1080,7 @@ public:
       char str[256] = {};
       srslte_ue_ul_info(&ue_ul_cfg, &sf_ul_cfg, &pusch_data.uci, str, sizeof(str));
       if (str[0]) {
-        log_h.info("[UL INFO %d] %s\n", i, str);
+        logger.info("[UL INFO %d] %s", i, str);
       }
     }
 
@@ -1105,7 +1105,7 @@ public:
       char str[256] = {};
       srslte_ue_ul_info(&ue_ul_cfg, &sf_ul_cfg, &pusch_data.uci, str, sizeof(str));
       if (str[0]) {
-        log_h.info("[UL INFO %d] %s\n", 0, str);
+        logger.info("[UL INFO %d] %s", 0, str);
       }
     }
 
@@ -1121,7 +1121,7 @@ public:
     srslte_pdsch_ack_t pdsch_ack = {};
 
     // Set logging TTI
-    log_h.step(sf_dl_cfg.tti);
+    logger.set_context(sf_dl_cfg.tti);
 
     // Work DL
     TESTASSERT(work_dl(pdsch_ack, uci_data) == SRSLTE_SUCCESS);
@@ -1196,7 +1196,7 @@ private:
   unique_dummy_stack_t  stack;
   unique_srsenb_phy_t   enb_phy;
   unique_dummy_ue_phy_t ue_phy;
-  srslte::log_filter    log_h;
+  srslog::basic_logger& logger;
 
   args_t                                            args = {};   ///< Test arguments
   srsenb::phy_args_t                                phy_args;    ///< PHY arguments
@@ -1212,13 +1212,14 @@ private:
   change_state_t change_state = change_state_assert;
 
 public:
-  phy_test_bench(args_t& args_, srslte::logger& logger_) : log_h("TEST BENCH")
+  phy_test_bench(args_t& args_, srslog::sink& log_sink) :
+    logger(srslog::fetch_basic_logger("TEST BENCH", log_sink, false))
   {
     // Copy test arguments
     args = args_;
 
     // Configure logger
-    log_h.set_level(args.log_level);
+    logger.set_level(srslog::str_to_basic_level(args.log_level));
 
     // PHY arguments
     phy_args.log.phy_level   = args.log_level;
@@ -1310,7 +1311,7 @@ public:
     stack->set_active_cell_list(args.ue_cell_list);
 
     /// eNb PHY initialisation instance
-    enb_phy = unique_srsenb_phy_t(new srsenb::phy(&logger_));
+    enb_phy = unique_srsenb_phy_t(new srsenb::phy(log_sink));
 
     /// Initiate eNb PHY with the given RNTI
     enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get());
@@ -1344,7 +1345,7 @@ public:
     switch (change_state) {
       case change_state_assert:
         if (args.period_pcell_rotate > 0 and tti_counter >= args.period_pcell_rotate) {
-          log_h.warning("******* Cell rotation: Disable scheduling *******\n");
+          logger.warning("******* Cell rotation: Disable scheduling *******");
           // Disable all cells
           std::vector<uint32_t> active_cells;
           stack->set_active_cell_list(active_cells);
@@ -1355,7 +1356,7 @@ public:
         break;
       case change_state_flush:
         if (tti_counter >= 2 * FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS) {
-          log_h.warning("******* Cell rotation: Reconfigure *******\n");
+          logger.warning("******* Cell rotation: Reconfigure *******");
 
           std::array<bool, SRSLTE_MAX_CARRIERS> activation = {}; ///< Activation/Deactivation vector
 
@@ -1382,7 +1383,7 @@ public:
         break;
       case change_state_wait_steady:
         if (tti_counter >= FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS) {
-          log_h.warning("******* Cell rotation: Enable scheduling *******\n");
+          logger.warning("******* Cell rotation: Enable scheduling *******");
 
           std::vector<uint32_t> active_cell_list;
 
@@ -1469,21 +1470,10 @@ int main(int argc, char** argv)
   test_args.init();
 
   // Setup logging.
-  srslog::sink* log_sink = srslog::create_stdout_sink();
-  if (!log_sink) {
-    return SRSLTE_ERROR;
-  }
-
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
-  if (!chan) {
-    return SRSLTE_ERROR;
-  }
-  srslte::srslog_wrapper log_wrapper(*chan);
-
   srslog::init();
 
   // Create Test Bench
-  unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args, log_wrapper));
+  unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args, srslog::get_default_sink()));
 
   // Run Simulation
   for (uint32_t i = 0; i < test_args.duration; i++) {
@@ -1491,6 +1481,8 @@ int main(int argc, char** argv)
   }
 
   test_bench->stop();
+
+  srslog::flush();
 
   std::cout << "Passed" << std::endl;
 

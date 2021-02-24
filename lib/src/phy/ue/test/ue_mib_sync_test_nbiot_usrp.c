@@ -110,7 +110,7 @@ void sig_int_handler(int signo)
 
 int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ---- ", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ptr[i] = data[i];

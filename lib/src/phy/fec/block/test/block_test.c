@@ -118,7 +118,7 @@ int test(uint32_t block_size)
 
   double total_bits = (double)(block_size * nof_repetitions);
   INFO("Block size %d PASSED! Encoder: %.1f us / %.1f Mbps; 16 bit Decoder: %.1f us / %.2f Mbps; 8 bit decoder: %.1f / "
-       "%.2f Mbps\n",
+       "%.2f Mbps",
        block_size,
        t_encode_us / (double)nof_repetitions,
        total_bits / (double)t_encode_us,

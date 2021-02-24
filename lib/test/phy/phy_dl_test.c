@@ -75,7 +75,7 @@ void parse_extensive_param(char* param, char* arg)
   }
 
   if (ext_code) {
-    ERROR("Error parsing parameter '%s' and argument '%s'\n", param, arg);
+    ERROR("Error parsing parameter '%s' and argument '%s'", param, arg);
     exit(ext_code);
   }
 }
@@ -151,19 +151,19 @@ int work_enb(srslte_enb_dl_t*         enb_dl,
 
   srslte_enb_dl_put_base(enb_dl, dl_sf);
   if (srslte_enb_dl_put_pdcch_dl(enb_dl, dci_cfg, dci)) {
-    ERROR("Error putting PDCCH sf_idx=%d\n", dl_sf->tti);
+    ERROR("Error putting PDCCH sf_idx=%d", dl_sf->tti);
     goto quit;
   }
 
   // Create pdsch config
   srslte_pdsch_cfg_t pdsch_cfg;
   if (srslte_ra_dl_dci_to_grant(&cell, dl_sf, transmission_mode, enable_256qam, dci, &pdsch_cfg.grant)) {
-    ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
+    ERROR("Computing DL grant sf_idx=%d", dl_sf->tti);
     goto quit;
   }
   char str[512];
   srslte_dci_dl_info(dci, str, 512);
-  INFO("eNb PDCCH: rnti=0x%x, %s\n", rnti, str);
+  INFO("eNb PDCCH: rnti=0x%x, %s", rnti, str);
 
   for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     pdsch_cfg.softbuffers.tx[i] = softbuffer_tx[i];
@@ -177,11 +177,11 @@ int work_enb(srslte_enb_dl_t*         enb_dl,
   pdsch_cfg.meas_time_en = false;
 
   if (srslte_enb_dl_put_pdsch(enb_dl, &pdsch_cfg, data_tx) < 0) {
-    ERROR("Error putting PDSCH sf_idx=%d\n", dl_sf->tti);
+    ERROR("Error putting PDSCH sf_idx=%d", dl_sf->tti);
     goto quit;
   }
   srslte_pdsch_tx_info(&pdsch_cfg, str, 512);
-  INFO("eNb PDSCH: rnti=0x%x, %s\n", rnti, str);
+  INFO("eNb PDSCH: rnti=0x%x, %s", rnti, str);
 
   srslte_enb_dl_gen_signal(enb_dl);
 
@@ -199,16 +199,16 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
             srslte_pdsch_res_t  pdsch_res[SRSLTE_MAX_CODEWORDS])
 {
   if (srslte_ue_dl_decode_fft_estimate(ue_dl, sf_cfg_dl, ue_dl_cfg) < 0) {
-    ERROR("Getting PDCCH FFT estimate sf_idx=%d\n", sf_idx);
+    ERROR("Getting PDCCH FFT estimate sf_idx=%d", sf_idx);
     return SRSLTE_ERROR;
   }
 
   int nof_grants = srslte_ue_dl_find_dl_dci(ue_dl, sf_cfg_dl, ue_dl_cfg, rnti, dci_dl);
   if (nof_grants < 0) {
-    ERROR("Looking for DL grants sf_idx=%d\n", sf_idx);
+    ERROR("Looking for DL grants sf_idx=%d", sf_idx);
     return SRSLTE_ERROR;
   } else if (nof_grants == 0) {
-    ERROR("Failed to find DCI in sf_idx=%d\n", sf_idx);
+    ERROR("Failed to find DCI in sf_idx=%d", sf_idx);
     return SRSLTE_ERROR;
   }
 
@@ -223,12 +223,12 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
     char str[512];
     srslte_dci_dl_info(&dci_dl[0], str, 512);
-    INFO("UE PDCCH: rnti=0x%x, %s\n", rnti, str);
+    INFO("UE PDCCH: rnti=0x%x, %s", rnti, str);
   }
 
   if (srslte_ra_dl_dci_to_grant(
           &cell, sf_cfg_dl, transmission_mode, enable_256qam, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
-    ERROR("Computing DL grant sf_idx=%d\n", sf_idx);
+    ERROR("Computing DL grant sf_idx=%d", sf_idx);
     return SRSLTE_ERROR;
   }
 
@@ -240,14 +240,14 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   }
 
   if (srslte_ue_dl_decode_pdsch(ue_dl, sf_cfg_dl, &ue_dl_cfg->cfg.pdsch, pdsch_res)) {
-    ERROR("ERROR: Decoding PDSCH sf_idx=%d\n", sf_idx);
+    ERROR("ERROR: Decoding PDSCH sf_idx=%d", sf_idx);
     return SRSLTE_ERROR;
   }
 
   if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
     char str[512];
     srslte_pdsch_rx_info(&ue_dl_cfg->cfg.pdsch, pdsch_res, str, 512);
-    INFO("eNb PDSCH: rnti=0x%x, %s\n", rnti, str);
+    INFO("eNb PDSCH: rnti=0x%x, %s", rnti, str);
   }
 
   return SRSLTE_SUCCESS;
@@ -332,7 +332,7 @@ int main(int argc, char** argv)
   for (int i = 0; i < cell.nof_ports; i++) {
     signal_buffer[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (!signal_buffer[i]) {
-      ERROR("Error allocating buffer\n");
+      ERROR("Error allocating buffer");
       goto quit;
     }
   }
@@ -340,35 +340,35 @@ int main(int argc, char** argv)
   for (int i = 0; i < SRSLTE_MAX_TB; i++) {
     softbuffer_tx[i] = (srslte_softbuffer_tx_t*)calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
-      ERROR("Error allocating softbuffer_tx\n");
+      ERROR("Error allocating softbuffer_tx");
       goto quit;
     }
 
     if (srslte_softbuffer_tx_init(softbuffer_tx[i], cell.nof_prb)) {
-      ERROR("Error initiating softbuffer_tx\n");
+      ERROR("Error initiating softbuffer_tx");
       goto quit;
     }
 
     softbuffer_rx[i] = (srslte_softbuffer_rx_t*)calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffer_rx[i]) {
-      ERROR("Error allocating softbuffer_rx\n");
+      ERROR("Error allocating softbuffer_rx");
       goto quit;
     }
 
     if (srslte_softbuffer_rx_init(softbuffer_rx[i], cell.nof_prb)) {
-      ERROR("Error initiating softbuffer_rx\n");
+      ERROR("Error initiating softbuffer_rx");
       goto quit;
     }
 
     data_tx[i] = srslte_vec_u8_malloc(MAX_DATABUFFER_SIZE);
     if (!data_tx[i]) {
-      ERROR("Error allocating data tx\n");
+      ERROR("Error allocating data tx");
       goto quit;
     }
 
     data_rx[i] = srslte_vec_u8_malloc(MAX_DATABUFFER_SIZE);
     if (!data_rx[i]) {
-      ERROR("Error allocating data tx\n");
+      ERROR("Error allocating data tx");
       goto quit;
     }
   }
@@ -377,17 +377,17 @@ int main(int argc, char** argv)
    * Initialise eNb
    */
   if (srslte_enb_dl_init(enb_dl, signal_buffer, cell.nof_prb)) {
-    ERROR("Error initiating eNb downlink\n");
+    ERROR("Error initiating eNb downlink");
     goto quit;
   }
 
   if (srslte_enb_dl_set_cell(enb_dl, cell)) {
-    ERROR("Error setting eNb DL cell\n");
+    ERROR("Error setting eNb DL cell");
     goto quit;
   }
 
   if (srslte_enb_dl_add_rnti(enb_dl, rnti)) {
-    ERROR("Error adding RNTI\n");
+    ERROR("Error adding RNTI");
     goto quit;
   }
 
@@ -395,12 +395,12 @@ int main(int argc, char** argv)
    * Initialise UE
    */
   if (srslte_ue_dl_init(ue_dl, signal_buffer, cell.nof_prb, nof_rx_ant)) {
-    ERROR("Error initiating UE downlink\n");
+    ERROR("Error initiating UE downlink");
     goto quit;
   }
 
   if (srslte_ue_dl_set_cell(ue_dl, cell)) {
-    ERROR("Error setting UE downlink cell\n");
+    ERROR("Error setting UE downlink cell");
     goto quit;
   }
 
@@ -501,13 +501,13 @@ int main(int argc, char** argv)
       dci.tb[i].cw_idx  = i;
     }
   } else {
-    ERROR("Wrong transmission mode (%d)\n", transmission_mode);
+    ERROR("Wrong transmission mode (%d)", transmission_mode);
   }
 
   /*
    * Loop
    */
-  INFO("--- Starting test ---\n");
+  INFO("--- Starting test ---");
   for (uint32_t sf_idx = 0; sf_idx < nof_subframes; sf_idx++) {
     /* Generate random data */
     for (int j = 0; j < SRSLTE_MAX_TB; j++) {
@@ -520,9 +520,9 @@ int main(int argc, char** argv)
      * Run eNodeB
      */
     srslte_dl_sf_cfg_t sf_cfg_dl = {};
-    sf_cfg_dl.tti     = sf_idx % 10;
-    sf_cfg_dl.cfi     = cfi;
-    sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
+    sf_cfg_dl.tti                = sf_idx % 10;
+    sf_cfg_dl.cfi                = cfi;
+    sf_cfg_dl.sf_type            = SRSLTE_SF_NORM;
 
     // Set DCI Location
     dci.location = dci_locations[sf_idx % 10][(sf_idx / 10) % nof_locations[sf_idx % 10]];
@@ -535,7 +535,7 @@ int main(int argc, char** argv)
         dci.tb[i].mcs_idx = (sf_idx % 5 == 0) ? SRSLTE_MIN(mcs, 27) : mcs;
       }
     }
-    INFO("--- Process eNb ---\n");
+    INFO("--- Process eNb ---");
 
     gettimeofday(&t[1], NULL);
     if (work_enb(enb_dl, &sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx)) {
@@ -562,7 +562,7 @@ int main(int argc, char** argv)
     /*
      * Run UE
      */
-    INFO("--- Process  UE ---\n");
+    INFO("--- Process  UE ---");
     gettimeofday(&t[1], NULL);
 
     srslte_ue_dl_cfg_t ue_dl_cfg                  = {};

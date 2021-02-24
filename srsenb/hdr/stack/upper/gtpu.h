@@ -26,7 +26,8 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_gtpu_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
 #ifndef SRSENB_GTPU_H
@@ -34,10 +35,13 @@
 
 namespace srsenb {
 
+class pdcp_interface_gtpu;
+class stack_interface_gtpu_lte;
+
 class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
 public:
-  gtpu();
+  explicit gtpu(srslog::basic_logger& logger);
 
   int  init(std::string               gtp_bind_addr_,
             std::string               mme_addr_,
@@ -49,7 +53,12 @@ public:
   void stop();
 
   // gtpu_interface_rrc
-  uint32_t add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out) override;
+  uint32_t add_bearer(uint16_t            rnti,
+                      uint32_t            lcid,
+                      uint32_t            addr,
+                      uint32_t            teid_out,
+                      const bearer_props* props = nullptr) override;
+  void     set_tunnel_status(uint32_t teidin, bool dl_active) override;
   void     rem_bearer(uint16_t rnti, uint32_t lcid) override;
   void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
   void     rem_user(uint16_t rnti) override;
@@ -64,20 +73,21 @@ public:
 private:
   static const int GTPU_PORT = 2152;
 
-  srslte::byte_buffer_pool* pool  = nullptr;
+  void rem_tunnel(uint32_t teidin);
+
   stack_interface_gtpu_lte* stack = nullptr;
 
   bool                         enable_mbsfn = false;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu* pdcp = nullptr;
-  srslte::log_ref              gtpu_log;
+  srslog::basic_logger&        logger;
 
   // Class to create
   class m1u_handler
   {
   public:
-    explicit m1u_handler(gtpu* gtpu_) : parent(gtpu_) {}
+    explicit m1u_handler(gtpu* gtpu_) : parent(gtpu_), logger(parent->logger) {}
     ~m1u_handler();
     m1u_handler(const m1u_handler&) = delete;
     m1u_handler(m1u_handler&&)      = delete;
@@ -87,11 +97,11 @@ private:
     void         handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
 
   private:
-    gtpu*                parent = nullptr;
-    pdcp_interface_gtpu* pdcp   = nullptr;
-    srslte::log_ref      gtpu_log;
-    std::string          m1u_multiaddr;
-    std::string          m1u_if_addr;
+    gtpu*                 parent = nullptr;
+    pdcp_interface_gtpu*  pdcp   = nullptr;
+    srslog::basic_logger& logger;
+    std::string           m1u_multiaddr;
+    std::string           m1u_if_addr;
 
     bool initiated    = false;
     int  m1u_sd       = -1;
@@ -99,18 +109,22 @@ private:
   };
   m1u_handler m1u;
 
-  typedef struct {
-    uint32_t teids_in[SRSENB_N_RADIO_BEARERS];
-    uint32_t teids_out[SRSENB_N_RADIO_BEARERS];
-    uint32_t spgw_addrs[SRSENB_N_RADIO_BEARERS];
-  } bearer_map;
-  std::map<uint16_t, bearer_map> rnti_bearers;
-
-  typedef struct {
-    uint16_t rnti;
-    uint16_t lcid;
-  } rnti_lcid_t;
-  std::map<uint32_t, rnti_lcid_t> teidin_to_rntilcid_map;
+  const uint32_t undefined_pdcp_sn = std::numeric_limits<uint32_t>::max();
+  struct tunnel {
+    bool     dl_enabled            = true;
+    bool     fwd_teid_in_present   = false;
+    bool     prior_teid_in_present = false;
+    uint16_t rnti                  = SRSLTE_INVALID_RNTI;
+    uint32_t lcid                  = SRSENB_N_RADIO_BEARERS;
+    uint32_t teid_in               = 0;
+    uint32_t teid_out              = 0;
+    uint32_t spgw_addr             = 0;
+    uint32_t fwd_teid_in           = 0; ///< forward Rx SDUs to this TEID
+    uint32_t prior_teid_in         = 0; ///< buffer bearer SDUs until this TEID receives an End Marker
+    std::multimap<uint32_t, srslte::unique_byte_buffer_t> buffer;
+  };
+  std::unordered_map<uint32_t, tunnel>                                           tunnels;
+  std::map<uint16_t, std::array<std::vector<uint32_t>, SRSENB_N_RADIO_BEARERS> > ue_teidin_db;
 
   // Tx sequence number for signaling messages
   uint32_t tx_seq = 0;
@@ -118,18 +132,23 @@ private:
   // Socket file descriptor
   int fd = -1;
 
+  void send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, int pdcp_sn = -1);
+
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
   void error_indication(in_addr_t addr, in_port_t port, uint32_t err_teid);
+  void end_marker(uint32_t teidin);
+
+  int create_dl_fwd_tunnel(uint32_t rx_teid_in, uint32_t tx_teid_in);
 
   /****************************************************************************
    * TEID to RNIT/LCID helper functions
    ***************************************************************************/
-  uint32_t    next_teid_in = 0;
-  uint32_t    allocate_teidin(uint16_t rnti, uint16_t lcid);
-  void        free_teidin(uint16_t rnti, uint16_t lcid);
-  void        free_teidin(uint16_t rnti);
-  rnti_lcid_t teidin_to_rntilcid(uint32_t teidin);
-  uint32_t    rntilcid_to_teidin(uint16_t rnti, uint16_t lcid);
+  uint32_t next_teid_in = 0;
+
+  tunnel*                get_tunnel(uint32_t teidin);
+  srslte::span<uint32_t> get_lcid_teids(uint16_t rnti, uint32_t lcid);
+
+  void log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int pdcp_sn = -1);
 };
 
 } // namespace srsenb

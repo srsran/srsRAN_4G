@@ -102,7 +102,7 @@ SRSLTE_API int srslte_pucch_nr_group_sequence(const srslte_carrier_nr_t*        
  */
 SRSLTE_API int srslte_pucch_nr_alpha_idx(const srslte_carrier_nr_t*          carrier,
                                          const srslte_pucch_nr_common_cfg_t* cfg,
-                                         const srslte_dl_slot_cfg_t*         slot,
+                                         const srslte_slot_cfg_t*            slot,
                                          uint32_t                            l,
                                          uint32_t                            l_prime,
                                          uint32_t                            m0,
@@ -124,7 +124,7 @@ SRSLTE_API int srslte_pucch_nr_alpha_idx(const srslte_carrier_nr_t*          car
 SRSLTE_API int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*            q,
                                               const srslte_carrier_nr_t*          carrier,
                                               const srslte_pucch_nr_common_cfg_t* cfg,
-                                              const srslte_dl_slot_cfg_t*         slot,
+                                              const srslte_slot_cfg_t*            slot,
                                               srslte_pucch_nr_resource_t*         resource,
                                               uint32_t                            m_cs,
                                               cf_t*                               slot_symbols);
@@ -144,7 +144,7 @@ SRSLTE_API int srslte_pucch_nr_format0_encode(const srslte_pucch_nr_t*          
 SRSLTE_API int srslte_pucch_nr_format0_measure(const srslte_pucch_nr_t*            q,
                                                const srslte_carrier_nr_t*          carrier,
                                                const srslte_pucch_nr_common_cfg_t* cfg,
-                                               const srslte_dl_slot_cfg_t*         slot,
+                                               const srslte_slot_cfg_t*            slot,
                                                srslte_pucch_nr_resource_t*         resource,
                                                uint32_t                            m_cs,
                                                const cf_t*                         slot_symbols,
@@ -177,7 +177,7 @@ SRSLTE_API cf_t srslte_pucch_nr_format1_w(const srslte_pucch_nr_t* q, uint32_t n
 SRSLTE_API int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*            q,
                                               const srslte_carrier_nr_t*          carrier,
                                               const srslte_pucch_nr_common_cfg_t* cfg,
-                                              const srslte_dl_slot_cfg_t*         slot,
+                                              const srslte_slot_cfg_t*            slot,
                                               const srslte_pucch_nr_resource_t*   resource,
                                               uint8_t*                            b,
                                               uint32_t                            nof_bits,
@@ -199,7 +199,7 @@ SRSLTE_API int srslte_pucch_nr_format1_encode(const srslte_pucch_nr_t*          
 SRSLTE_API int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                  q,
                                               const srslte_carrier_nr_t*          carrier,
                                               const srslte_pucch_nr_common_cfg_t* cfg,
-                                              const srslte_dl_slot_cfg_t*         slot,
+                                              const srslte_slot_cfg_t*            slot,
                                               const srslte_pucch_nr_resource_t*   resource,
                                               srslte_chest_ul_res_t*              chest_res,
                                               cf_t*                               slot_symbols,
@@ -221,7 +221,7 @@ SRSLTE_API int srslte_pucch_nr_format1_decode(srslte_pucch_nr_t*                
 SRSLTE_API int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*                  q,
                                                    const srslte_carrier_nr_t*          carrier,
                                                    const srslte_pucch_nr_common_cfg_t* cfg,
-                                                   const srslte_dl_slot_cfg_t*         slot,
+                                                   const srslte_slot_cfg_t*            slot,
                                                    const srslte_pucch_nr_resource_t*   resource,
                                                    const srslte_uci_cfg_nr_t*          uci_cfg,
                                                    const srslte_uci_value_nr_t*        uci_value,
@@ -243,11 +243,16 @@ SRSLTE_API int srslte_pucch_nr_format_2_3_4_encode(srslte_pucch_nr_t*           
 SRSLTE_API int srslte_pucch_nr_format_2_3_4_decode(srslte_pucch_nr_t*                  q,
                                                    const srslte_carrier_nr_t*          carrier,
                                                    const srslte_pucch_nr_common_cfg_t* cfg,
-                                                   const srslte_dl_slot_cfg_t*         slot,
+                                                   const srslte_slot_cfg_t*            slot,
                                                    const srslte_pucch_nr_resource_t*   resource,
                                                    const srslte_uci_cfg_nr_t*          uci_cfg,
                                                    srslte_chest_ul_res_t*              chest_res,
                                                    cf_t*                               slot_symbols,
                                                    srslte_uci_value_nr_t*              uci_value);
+
+SRSLTE_API uint32_t srslte_pucch_nr_tx_info(const srslte_pucch_nr_resource_t* resource,
+                                            const srslte_uci_data_nr_t*       uci_data,
+                                            char*                             str,
+                                            uint32_t                          str_len);
 
 #endif // SRSLTE_PUCCH_NR_H

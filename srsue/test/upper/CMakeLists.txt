@@ -32,16 +32,16 @@ target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy rrc_
 add_test(rrc_reconfig_test rrc_reconfig_test)
 
 add_executable(rrc_meas_test rrc_meas_test.cc)
-if (ENABLE_5GNR)
-  target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
-else (ENABLE_5GNR)
-  target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1)
-endif(ENABLE_5GNR)
+target_link_libraries(rrc_meas_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
 add_test(rrc_meas_test rrc_meas_test)
 
 add_executable(nas_test nas_test.cc)
 target_link_libraries(nas_test srsue_upper srslte_upper srslte_phy rrc_asn1)
 add_test(nas_test nas_test)
+
+add_executable(gw_test gw_test.cc)
+target_link_libraries(gw_test srsue_upper srslte_upper srslte_phy)
+add_test(gw_test gw_test)
 
 add_executable(tft_test tft_test.cc)
 target_link_libraries(tft_test srsue_upper srslte_upper srslte_phy)
@@ -52,17 +52,11 @@ target_link_libraries(rrc_phy_ctrl_test srslte_common srsue_rrc)
 add_test(rrc_phy_ctrl_test rrc_phy_ctrl_test)
 
 add_executable(rrc_cell_test rrc_cell_test.cc)
-if (ENABLE_5GNR)
-  target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
-else (ENABLE_5GNR)
-  target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1)
-endif(ENABLE_5GNR)
+target_link_libraries(rrc_cell_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
 add_test(rrc_cell_test rrc_cell_test)
 
-if (ENABLE_5GNR)
-  add_executable(ue_rrc_nr_test ue_rrc_nr_test.cc)
-  target_link_libraries(ue_rrc_nr_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
-endif(ENABLE_5GNR)
+add_executable(ue_rrc_nr_test ue_rrc_nr_test.cc)
+target_link_libraries(ue_rrc_nr_test srsue_rrc srsue_upper srslte_upper srslte_phy rrc_asn1 rrc_nr_asn1)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

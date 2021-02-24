@@ -151,7 +151,7 @@ static int init_ssc_f(srslte_polar_decoder_t* q)
   q->free     = free_ssc_f;
 
   if ((q->ptr = create_polar_decoder_ssc_f(q->nMax)) == NULL) {
-    ERROR("create_polar_decoder_ssc_f failed\n");
+    ERROR("create_polar_decoder_ssc_f failed");
     free_ssc_f(q);
     return -1;
   }
@@ -165,7 +165,7 @@ static int init_ssc_s(srslte_polar_decoder_t* q)
   q->free     = free_ssc_s;
 
   if ((q->ptr = create_polar_decoder_ssc_s(q->nMax)) == NULL) {
-    ERROR("create_polar_decoder_ssc_s failed\n");
+    ERROR("create_polar_decoder_ssc_s failed");
     free_ssc_s(q);
     return -1;
   }
@@ -179,7 +179,7 @@ static int init_ssc_c(srslte_polar_decoder_t* q)
   q->free     = free_ssc_c;
 
   if ((q->ptr = create_polar_decoder_ssc_c(q->nMax)) == NULL) {
-    ERROR("create_polar_decoder_ssc_c failed\n");
+    ERROR("create_polar_decoder_ssc_c failed");
     free_ssc_c(q);
     return -1;
   }
@@ -195,7 +195,7 @@ static int init_ssc_c_avx2(srslte_polar_decoder_t* q)
   q->free     = free_ssc_c_avx2;
 
   if ((q->ptr = create_polar_decoder_ssc_c_avx2(q->nMax)) == NULL) {
-    ERROR("create_polar_decoder_ssc_c failed\n");
+    ERROR("create_polar_decoder_ssc_c failed");
     free_ssc_c_avx2(q);
     return -1;
   }
@@ -218,7 +218,7 @@ int srslte_polar_decoder_init(srslte_polar_decoder_t* q, srslte_polar_decoder_ty
       return init_ssc_c_avx2(q);
 #endif
     default:
-      ERROR("Decoder not implemented\n");
+      ERROR("Decoder not implemented");
       return -1;
   }
   return 0;

@@ -65,7 +65,6 @@ configure_file(
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
-option(ENABLE_5GNR     "Build with 5G-NR components"              OFF)
 option(DISABLE_SIMD    "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA "Autodetect supported ISA extensions"      ON)
 
@@ -106,9 +105,6 @@ else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 
-if (ENABLE_5GNR)
-  add_definitions(-DHAVE_5GNR)
-endif (ENABLE_5GNR)
 
 ########################################################################
 # Find dependencies
@@ -280,6 +276,17 @@ if (ENABLE_TTCN3)
   link_directories(${RAPIDJSON_LIBRARY_DIRS})
   message(STATUS "Building with TTCN3 binaries")
 endif (ENABLE_TTCN3)
+
+# Backward-cpp
+find_package(Backward)
+if(Backward_FOUND)
+  if(BACKWARD_HAS_EXTERNAL_LIBRARIES)
+    add_definitions(-DHAVE_BACKWARD)
+    message(STATUS "Building with backward-cpp support")
+  else (BACKWARD_HAS_EXTERNAL_LIBRARIES)
+    message(STATUS "Backward-cpp found, but external libraries are missing.")
+  endif()
+endif()
 
 ########################################################################
 # Install Dirs
@@ -540,6 +547,28 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ########################################################################
 message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Building for version: ${VERSION}")
+
+########################################################################
+# Ctest function helpers
+########################################################################
+
+function(add_lte_test)
+  add_test(${ARGN})
+  set(TNAME ${ARGV0})
+  if(${TNAME} STREQUAL NAME)
+    set(TNAME ${ARGV1})
+  endif()
+  set_tests_properties(${TNAME} PROPERTIES LABELS "lte;${CTEST_LABELS}")
+endfunction()
+
+function(add_nr_test)
+  add_test(${ARGN})
+  set(TNAME ${ARGV0})
+  if(${TNAME} STREQUAL NAME)
+    set(TNAME ${ARGV1})
+  endif()
+  set_tests_properties(${TNAME} PROPERTIES LABELS "nr;${CTEST_LABELS}")
+endfunction()
 
 ########################################################################
 # Add general includes and dependencies

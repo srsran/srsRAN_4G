@@ -25,7 +25,7 @@
 #include "srslte/srslog/sink.h"
 
 /// A custom sink implementation that allows hot swapping file sinks so that loggers can write to different files
-/// dynamically.
+/// dynamically or other stream-like sinks like stdout.
 class swappable_sink : public srslog::sink
 {
 public:
@@ -45,6 +45,13 @@ public:
   {
     srslog::flush();
     s = &srslog::fetch_file_sink(filename);
+  }
+
+  /// Swaps the current sink to use the stdout sink.
+  void swap_to_stdout()
+  {
+    srslog::flush();
+    s = &srslog::fetch_stdout_sink();
   }
 
 private:

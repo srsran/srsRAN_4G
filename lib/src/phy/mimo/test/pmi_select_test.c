@@ -90,7 +90,7 @@ int main(int argc, char** argv)
       }
 
       if (err > 0.1f) {
-        ERROR("Test case %d failed computing 1 layer SINR for codebook %d (test=%.2f; gold=%.2f)\n",
+        ERROR("Test case %d failed computing 1 layer SINR for codebook %d (test=%.2f; gold=%.2f)",
               c + 1,
               i,
               sinr_1l[i],
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
 
     /* Check PMI select for 1 layer*/
     if (pmi[0] != gold->pmi[0]) {
-      ERROR("Test case %d failed computing 1 layer PMI (test=%d; gold=%d)\n", c + 1, pmi[0], gold->pmi[0]);
+      ERROR("Test case %d failed computing 1 layer PMI (test=%d; gold=%d)", c + 1, pmi[0], gold->pmi[0]);
       goto clean;
     }
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
       }
 
       if (err > 0.1f) {
-        ERROR("Test case %d failed computing 2 layer SINR for codebook %d (test=%.2f; gold=%.2f)\n",
+        ERROR("Test case %d failed computing 2 layer SINR for codebook %d (test=%.2f; gold=%.2f)",
               c + 1,
               i,
               sinr_2l[i],
@@ -133,19 +133,19 @@ int main(int argc, char** argv)
 
     /* Check PMI select for 2 layer*/
     if (pmi[1] != gold->pmi[1]) {
-      ERROR("Test case %d failed computing 2 layer PMI (test=%d; gold=%d)\n", c + 1, pmi[1], gold->pmi[1]);
+      ERROR("Test case %d failed computing 2 layer PMI (test=%d; gold=%d)", c + 1, pmi[1], gold->pmi[1]);
       goto clean;
     }
 
     /* Condition number */
     if (srslte_precoding_cn(h, 2, 2, nof_symbols, &cn)) {
-      ERROR("Test case %d condition number returned error\n", c + 1);
+      ERROR("Test case %d condition number returned error", c + 1);
       goto clean;
     }
 
     /* Check condition number */
     if (fabsf(gold->k - cn) > 0.1) {
-      ERROR("Test case %d failed computing condition number (test=%.2f; gold=%.2f)\n", c + 1, cn, gold->k);
+      ERROR("Test case %d failed computing condition number (test=%.2f; gold=%.2f)", c + 1, cn, gold->k);
       goto clean;
     }
   }

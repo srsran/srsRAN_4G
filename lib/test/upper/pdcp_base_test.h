@@ -43,32 +43,31 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
 public:
-  rlc_dummy(srslte::log_ref log_) : log(log_) {}
+  explicit rlc_dummy(srslog::basic_logger& logger) : logger(logger) {}
 
   void get_last_sdu(const srslte::unique_byte_buffer_t& pdu)
   {
     memcpy(pdu->msg, last_pdcp_pdu->msg, last_pdcp_pdu->N_bytes);
     pdu->N_bytes = last_pdcp_pdu->N_bytes;
-    return;
   }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   {
-    log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
+    logger.info(sdu->msg, sdu->N_bytes, "RLC SDU");
     last_pdcp_pdu.swap(sdu);
     rx_count++;
   }
   void discard_sdu(uint32_t lcid, uint32_t discard_sn)
   {
-    log->info("Notifing RLC to discard SDU (SN=%u)\n", discard_sn);
+    logger.info("Notifing RLC to discard SDU (SN=%u)", discard_sn);
     discard_count++;
-    log->info("Discard_count=%" PRIu64 "\n", discard_count);
+    logger.info("Discard_count=%" PRIu64 "", discard_count);
   }
 
   uint64_t rx_count      = 0;
   uint64_t discard_count = 0;
 
 private:
-  srslte::log_ref              log;
+  srslog::basic_logger&        logger;
   srslte::unique_byte_buffer_t last_pdcp_pdu;
 
   bool rb_is_um(uint32_t lcid) { return false; }
@@ -78,7 +77,7 @@ private:
 class rrc_dummy : public srsue::rrc_interface_pdcp
 {
 public:
-  rrc_dummy(srslte::log_ref log_) { log = log_; }
+  explicit rrc_dummy(srslog::basic_logger& logger) : logger(logger) {}
 
   void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
@@ -87,7 +86,7 @@ public:
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
 
-  srslte::log_ref log;
+  srslog::basic_logger& logger;
 
   // Members for testing
   uint32_t                     rx_count = 0;
@@ -98,12 +97,11 @@ public:
   {
     memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
     pdu->N_bytes = last_pdu->N_bytes;
-    return;
   }
 
   void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   {
-    log->info_hex(pdu->msg, pdu->N_bytes, "RRC PDU");
+    logger.info(pdu->msg, pdu->N_bytes, "RRC PDU");
     rx_count++;
     last_pdu.swap(pdu);
   }
@@ -112,7 +110,7 @@ public:
 class gw_dummy : public srsue::gw_interface_pdcp
 {
 public:
-  gw_dummy(srslte::log_ref log_) : log(log_) {}
+  explicit gw_dummy(srslog::basic_logger& logger) : logger(logger) {}
 
   void     write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   uint32_t rx_count = 0;
@@ -121,17 +119,16 @@ public:
   {
     memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
     pdu->N_bytes = last_pdu->N_bytes;
-    return;
   }
   void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   {
-    log->info_hex(pdu->msg, pdu->N_bytes, "GW PDU");
+    logger.info(pdu->msg, pdu->N_bytes, "GW PDU");
     rx_count++;
     last_pdu.swap(pdu);
   }
 
 private:
-  srslte::log_ref              log;
+  srslog::basic_logger&        logger;
   srslte::unique_byte_buffer_t last_pdu;
 };
 

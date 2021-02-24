@@ -25,6 +25,7 @@
 #include "srslte/asn1/s1ap.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsepc {
 
@@ -50,8 +51,8 @@ private:
   s1ap_mngmt_proc();
   virtual ~s1ap_mngmt_proc();
 
-  s1ap*               m_s1ap;
-  srslte::log_filter* m_s1ap_log;
+  s1ap*                 m_s1ap;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
   int         m_s1mme;
   s1ap_args_t m_s1ap_args;

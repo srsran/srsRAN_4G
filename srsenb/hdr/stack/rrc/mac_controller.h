@@ -24,10 +24,13 @@
 
 #include "rrc_bearer_cfg.h"
 #include "rrc_cell_cfg.h"
+#include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <bitset>
 
 namespace srsenb {
+
+class mac_interface_rrc;
 
 class mac_controller
 {
@@ -73,7 +76,7 @@ private:
   int  apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg);
   void apply_current_bearers_cfg();
 
-  srslte::log_ref             log_h;
+  srslog::basic_logger&       logger;
   uint16_t                    rnti;
   const ue_cell_ded_list&     ue_cell_list;
   const bearer_cfg_handler&   bearer_list;

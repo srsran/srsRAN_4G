@@ -18,6 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+set(CTEST_LABELS "lib;phy;fec;polar")
+
 add_library(polar_test_utils polar_sets.c subchannel_allocation.c)
 
 add_executable(polar_chain_test polar_chain_test.c)
@@ -38,7 +40,7 @@ function(polar_tests_lite)
         list(GET listE ${num} eval)
         list(GET listK ${num} kval)
         list(GET listI ${num} ival)
-        add_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
+        add_nr_test(NAME ${test_name}-s${S}-n${nval}-e${eval}-k${kval}-i${ival}
                 COMMAND ${test_command} -s${S} -n${nval} -e${eval} -k${kval} -i${ival}
                 )
     endforeach()
@@ -52,7 +54,7 @@ function(polar_tests)
     foreach(Kval RANGE 36 164 32)
         math(EXPR Emin "${Kval} + 1")
         foreach(Eval RANGE ${Emin} 8192 128)
-            add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
+            add_nr_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i0
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i0
                     )
         endforeach()
@@ -64,7 +66,7 @@ function(polar_tests)
     foreach(Kval RANGE 18 25)
         math(EXPR Emin "${Kval} + 3 + 1")
         foreach(Eval RANGE ${Emin} 8192 128)
-            add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
+            add_nr_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
                     )
         endforeach()
@@ -73,7 +75,7 @@ function(polar_tests)
     foreach(Kval RANGE 32 1023 32)
         math(EXPR Emin "${Kval} + 1")
         foreach(Eval RANGE ${Emin} 8192 128)
-            add_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
+            add_nr_test(NAME ${test_name}-s${S}-k${Kval}-e${Eval}-n${nval}-i1
                     COMMAND ${test_command} -s${S} -k${Kval} -e${Eval} -n${nval} -i1
                     )
         endforeach()
@@ -102,4 +104,4 @@ polar_tests(101)
 # Polar inter-leaver test
 add_executable(polar_interleaver_test polar_interleaver_test.c)
 target_link_libraries(polar_interleaver_test srslte_phy)
-add_test(polar_interleaver_test polar_interleaver_test)
+add_nr_test(polar_interleaver_test polar_interleaver_test)

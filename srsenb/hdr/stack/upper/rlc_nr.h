@@ -72,6 +72,8 @@ private:
   {
   public:
     void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
+    void        notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns);
+    void        notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns);
     void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_pcch(srslte::unique_byte_buffer_t sdu);
@@ -87,12 +89,11 @@ private:
   };
 
   // args
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           m_log;
-  srslte::timer_handler*    timers = nullptr;
-  mac_interface_rlc_nr*     m_mac  = nullptr;
-  pdcp_interface_rlc_nr*    m_pdcp = nullptr;
-  rrc_interface_rlc_nr*     m_rrc  = nullptr;
+  srslte::log_ref        m_log;
+  srslte::timer_handler* timers = nullptr;
+  mac_interface_rlc_nr*  m_mac  = nullptr;
+  pdcp_interface_rlc_nr* m_pdcp = nullptr;
+  rrc_interface_rlc_nr*  m_rrc  = nullptr;
 
   // state
   std::map<uint32_t, user_interface> users;

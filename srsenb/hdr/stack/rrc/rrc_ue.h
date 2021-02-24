@@ -24,6 +24,8 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
+#include "srslte/interfaces/enb_phy_interfaces.h"
+#include "srslte/interfaces/pdcp_interface_types.h"
 
 namespace srsenb {
 
@@ -51,17 +53,28 @@ public:
   rrc_state_t get_state();
   void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
 
+  ///< Helper to access a cell cfg based on ue_cc_idx
+  enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
+
   void send_connection_setup();
   void send_connection_reest(uint8_t ncc);
   void send_connection_reject();
   void send_connection_release();
   void send_connection_reest_rej();
-  void send_connection_reconf(srslte::unique_byte_buffer_t sdu = {}, bool phy_cfg_updated = true);
+  void send_connection_reconf(srslte::unique_byte_buffer_t           sdu             = {},
+                              bool                                   phy_cfg_updated = true,
+                              const asn1::unbounded_octstring<true>* nas_pdu         = nullptr);
   void send_security_mode_command();
   void send_ue_cap_enquiry();
   void send_ue_info_req();
 
   void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+
+  /// List of results for a connection request.
+  enum class conn_request_result_t { success, error_mme_not_connected, error_unknown_rnti };
+
+  /// Possible causes for the RRC to transition to the idle state.
+  enum class rrc_idle_transition_cause { release, timeout };
 
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
   void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu);
@@ -73,7 +86,7 @@ public:
   bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
   void handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg);
   bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
-  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg);
+  void handle_ue_info_resp(const asn1::rrc::ue_info_resp_r9_s& msg, srslte::unique_byte_buffer_t pdu);
 
   void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
 
@@ -84,9 +97,6 @@ public:
   bool modify_erab(uint16_t                                   erab_id,
                    const asn1::s1ap::erab_level_qos_params_s& qos_params,
                    const asn1::unbounded_octstring<true>*     nas_pdu);
-
-  // handover
-  void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
 
   void notify_s1ap_ue_ctxt_setup_complete();
   void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
@@ -99,6 +109,8 @@ public:
   void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
   bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,
                     srslte::unique_byte_buffer_t    pdu = srslte::unique_byte_buffer_t());
+
+  void save_ul_message(srslte::unique_byte_buffer_t pdu) { last_ul_msg = std::move(pdu); }
 
   uint16_t rnti   = 0;
   rrc*     parent = nullptr;
@@ -115,7 +127,6 @@ public:
 
 private:
   // args
-  srslte::byte_buffer_pool*           pool = nullptr;
   srslte::timer_handler::unique_timer activity_timer;
 
   /// cached ASN1 fields for RRC config update checking, and ease of context transfer during HO
@@ -147,11 +158,11 @@ private:
   bearer_cfg_handler   bearer_list;
   security_cfg_handler ue_security_cfg;
 
+  /// Cached message of the last uplinl message.
+  srslte::unique_byte_buffer_t last_ul_msg;
+
   // controllers
   mac_controller mac_ctrl;
-
-  ///< Helper to access a cell cfg based on ue_cc_idx
-  enb_cell_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
   /// Helper to fill cell_ded_list with SCells provided in the eNB config
   void update_scells();

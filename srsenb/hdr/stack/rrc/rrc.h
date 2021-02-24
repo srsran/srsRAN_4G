@@ -34,11 +34,18 @@
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/timeout.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <map>
 #include <queue>
 
 namespace srsenb {
+
+class s1ap_interface_rrc;
+class pdcp_interface_rrc;
+class rlc_interface_rrc;
+class mac_interface_rrc;
+class phy_interface_rrc_lte;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
@@ -54,7 +61,7 @@ class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_s1ap
 {
 public:
-  rrc(srslte::task_sched_handle task_sched_);
+  explicit rrc(srslte::task_sched_handle task_sched_);
   ~rrc();
 
   void init(const rrc_cfg_t&       cfg_,
@@ -100,7 +107,10 @@ public:
                      std::vector<uint16_t>*                erabs_released,
                      std::vector<uint16_t>*                erabs_failed_to_release) override;
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
-  void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
+  void ho_preparation_complete(uint16_t                     rnti,
+                               bool                         is_success,
+                               const asn1::s1ap::ho_cmd_s&  msg,
+                               srslte::unique_byte_buffer_t rrc_container) override;
   uint16_t
        start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
                                   const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container) override;
@@ -130,14 +140,14 @@ public:
                        const std::string&      msg_type)
   {
     static const char* dir_str[] = {"Rx", "Tx", "S1AP Tx", "S1AP Rx"};
-    if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-      rrc_log->info("%s - %s %s (%zd B)\n", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
-    } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
+    if (logger.debug.enabled()) {
       asn1::json_writer json_writer;
       msg.to_json(json_writer);
-      rrc_log->debug_hex(
-          pdu.data(), pdu.size(), "%s - %s %s (%zd B)\n", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
-      rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
+      logger.debug(
+          pdu.data(), pdu.size(), "%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
+      logger.debug("Content:\n%s", json_writer.to_string().c_str());
+    } else if (logger.info.enabled()) {
+      logger.info("%s - %s %s (%zd B)", source.c_str(), dir_str[dir], msg_type.c_str(), pdu.size());
     }
   }
 
@@ -145,14 +155,13 @@ private:
   class ue;
   // args
   srslte::task_sched_handle task_sched;
-  srslte::byte_buffer_pool* pool = nullptr;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;
   rlc_interface_rrc*        rlc  = nullptr;
   pdcp_interface_rrc*       pdcp = nullptr;
   gtpu_interface_rrc*       gtpu = nullptr;
   s1ap_interface_rrc*       s1ap = nullptr;
-  srslte::log_ref           rrc_log;
+  srslog::basic_logger&     logger;
 
   // derived params
   std::unique_ptr<enb_cell_common_list> cell_common_list;

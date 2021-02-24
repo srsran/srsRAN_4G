@@ -106,13 +106,13 @@ static inline void agc_enter_state_hold(srslte_agc_t* q)
   float gain_db = q->gain_db + q->gain_offset_db;
   if (gain_db < q->min_gain_db) {
     gain_db = q->min_gain_db;
-    INFO("Warning: Rx signal strength is too high. Forcing minimum Rx gain %.2fdB\n", gain_db);
+    INFO("Warning: Rx signal strength is too high. Forcing minimum Rx gain %.2fdB", gain_db);
   } else if (gain_db > q->max_gain_db) {
     gain_db = q->max_gain_db;
-    INFO("Warning: Rx signal strength is too weak. Forcing maximum Rx gain %.2fdB\n", gain_db);
+    INFO("Warning: Rx signal strength is too weak. Forcing maximum Rx gain %.2fdB", gain_db);
   } else if (isinf(gain_db) || isnan(gain_db)) {
     gain_db = q->default_gain_db;
-    INFO("Warning: AGC went to an unknown state. Setting Rx gain to %.2fdB\n", gain_db);
+    INFO("Warning: AGC went to an unknown state. Setting Rx gain to %.2fdB", gain_db);
   }
 
   // Set gain
@@ -141,7 +141,6 @@ static inline void agc_run_state_init(srslte_agc_t* q)
 
 static inline void agc_run_state_measure(srslte_agc_t* q, cf_t* signal, uint32_t len)
 {
-
   // Perform measurement of the frame
   float  y = 0;
   float* t;
@@ -154,7 +153,7 @@ static inline void agc_run_state_measure(srslte_agc_t* q, cf_t* signal, uint32_t
       y = t[srslte_vec_max_fi(t, 2 * len)]; // take only positive max to avoid abs() (should be similar)
       break;
     default:
-      ERROR("Unsupported AGC mode\n");
+      ERROR("Unsupported AGC mode");
       return;
   }
 
@@ -171,7 +170,7 @@ static inline void agc_run_state_measure(srslte_agc_t* q, cf_t* signal, uint32_t
           y = q->y_tmp[srslte_vec_max_fi(q->y_tmp, q->nof_frames)];
           break;
         default:
-          ERROR("Unsupported AGC mode\n");
+          ERROR("Unsupported AGC mode");
           return;
       }
     }
@@ -186,7 +185,7 @@ static inline void agc_run_state_measure(srslte_agc_t* q, cf_t* signal, uint32_t
     if (q->frame_cnt == 0) {
       q->y_out          = SRSLTE_VEC_EMA(y, q->y_out, q->bandwidth);
       q->gain_offset_db = srslte_convert_amplitude_to_dB(q->target) - srslte_convert_amplitude_to_dB(q->y_out);
-      INFO("AGC gain offset: %.2f y_out=%.3f, y=%.3f target=%.1f\n", q->gain_offset_db, q->y_out, y, q->target);
+      INFO("AGC gain offset: %.2f y_out=%.3f, y=%.3f target=%.1f", q->gain_offset_db, q->y_out, y, q->target);
     }
   }
 

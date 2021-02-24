@@ -19,7 +19,6 @@
  *
  */
 
-#include "srslte/srslte.h"
 #include <assert.h>
 #include <math.h>
 #include <string.h>
@@ -30,8 +29,6 @@
 #include "srslte/phy/utils/vector.h"
 
 #include "prach_tables.h"
-
-float save_corr[4096];
 
 // PRACH detection threshold is PRACH_DETECT_FACTOR*average
 #define PRACH_DETECT_FACTOR 18
@@ -46,6 +43,61 @@ float save_corr[4096];
 #define MAX_ROOTS 838     // Max number of root sequences
 //#define PRACH_CANCELLATION_HARD
 #define PRACH_AMP 1.0
+
+// Comment following line for disabling complex exponential look-up table
+#define PRACH_USE_CEXP_LUT
+
+#ifdef PRACH_USE_CEXP_LUT
+
+// Define read-only complex exponential tables for two possibles size of sequences, common for all possible PRACH
+// objects
+#define PRACH_N_ZC_LONG_LUT_SIZE (2 * SRSLTE_PRACH_N_ZC_LONG)
+static cf_t cexp_table_long[PRACH_N_ZC_LONG_LUT_SIZE] = {};
+#define PRACH_N_ZC_SHORT_LUT_SIZE (2 * SRSLTE_PRACH_N_ZC_SHORT)
+static cf_t cexp_table_short[PRACH_N_ZC_SHORT_LUT_SIZE] = {};
+
+// Use constructor attribute for writing complex exponential tables
+__attribute__((constructor)) static void prach_cexp_init()
+{
+  for (uint32_t i = 0; i < PRACH_N_ZC_LONG_LUT_SIZE; i++) {
+    cexp_table_long[i] = cexpf(-I * 2.0f * M_PI * (float)i / (float)PRACH_N_ZC_LONG_LUT_SIZE);
+  }
+  for (uint32_t i = 0; i < PRACH_N_ZC_SHORT_LUT_SIZE; i++) {
+    cexp_table_short[i] = cexpf(-I * 2.0f * M_PI * (float)i / (float)PRACH_N_ZC_SHORT_LUT_SIZE);
+  }
+}
+
+#endif // PRACH_USE_CEXP_LUT
+
+// Generate ZC sequence using either look-up tables or conventional cexp function
+static void prach_cexp(uint32_t N_zc, uint32_t u, cf_t* root)
+{
+#ifdef PRACH_USE_CEXP_LUT
+  // Use long N_zc table (839 length)
+  if (N_zc == SRSLTE_PRACH_N_ZC_LONG) {
+    for (int j = 0; j < SRSLTE_PRACH_N_ZC_LONG; j++) {
+      uint32_t phase_idx = u * j * (j + 1);
+      root[j]            = cexp_table_long[phase_idx % PRACH_N_ZC_LONG_LUT_SIZE];
+    }
+    return;
+  }
+
+  // Use short N_zc table (139 length)
+  if (N_zc == SRSLTE_PRACH_N_ZC_SHORT) {
+    for (int j = 0; j < SRSLTE_PRACH_N_ZC_SHORT; j++) {
+      uint32_t phase_idx = u * j * (j + 1);
+      root[j]            = cexp_table_short[phase_idx % PRACH_N_ZC_SHORT_LUT_SIZE];
+    }
+    return;
+  }
+#endif // PRACH_USE_CEXP_LUT
+
+  // If the N_zc does not match any of the tables, use conventional exponential function
+  for (int j = 0; j < N_zc; j++) {
+    double phase = -M_PI * u * j * (j + 1) / N_zc;
+    root[j]      = cexp(phase * I);
+  }
+}
 
 int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             N_ifft_ul,
@@ -108,7 +160,7 @@ uint32_t srslte_prach_nof_f_idx_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_conf
   if (config_idx < 64 && tdd_ul_dl_config < 7) {
     return prach_tdd_loc_table[config_idx][tdd_ul_dl_config].nof_elems;
   } else {
-    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
 }
@@ -118,7 +170,7 @@ uint32_t srslte_prach_f_id_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_config, u
   if (config_idx < 64 && tdd_ul_dl_config < 7) {
     return prach_tdd_loc_table[config_idx][tdd_ul_dl_config].elems[prach_idx].f;
   } else {
-    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
 }
@@ -130,9 +182,8 @@ uint32_t srslte_prach_f_ra_tdd(uint32_t config_idx,
                                uint32_t prach_offset,
                                uint32_t n_rb_ul)
 {
-
   if (config_idx >= 64 || tdd_ul_dl_config >= 7) {
-    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
   uint32_t f_ra = prach_tdd_loc_table[config_idx][tdd_ul_dl_config].elems[prach_idx].f;
@@ -169,7 +220,7 @@ bool srslte_prach_tti_opportunity_config_tdd(uint32_t  config_idx,
                                              uint32_t* prach_idx)
 {
   if (config_idx >= 64 || tdd_ul_dl_config >= 7) {
-    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d", config_idx, tdd_ul_dl_config);
     return 0;
   }
 
@@ -253,7 +304,6 @@ int srslte_prach_gen_seqs(srslte_prach_t* p)
 
   // Generate our 64 preamble sequences
   for (int i = 0; i < N_SEQS; i++) {
-
     if (v > v_max) {
       // Get a new root sequence
       if (4 == p->f) {
@@ -262,10 +312,9 @@ int srslte_prach_gen_seqs(srslte_prach_t* p)
         u = prach_zc_roots[(p->rsi + p->N_roots) % 838];
       }
 
-      for (int j = 0; j < p->N_zc; j++) {
-        double phase = -M_PI * u * j * (j + 1) / p->N_zc;
-        root[j]      = cexp(phase * I);
-      }
+      // Generate actual sequence
+      prach_cexp(p->N_zc, u, root);
+
       p->root_seqs_idx[p->N_roots++] = i;
 
       // Determine v_max
@@ -329,9 +378,13 @@ int srslte_prach_gen_seqs(srslte_prach_t* p)
     } else {
       C_v = v * p->N_cs;
     }
-    for (int j = 0; j < p->N_zc; j++) {
-      p->seqs[i][j] = root[(j + C_v) % p->N_zc];
-    }
+
+    // Copy shifted sequence, equivalent to:
+    // for (int j = 0; j < p->N_zc; j++) {
+    //      p->seqs[i][j] = root[(j + C_v) % p->N_zc];
+    // }
+    srslte_vec_cf_copy(p->seqs[i], &root[C_v], p->N_zc - C_v);
+    srslte_vec_cf_copy(&p->seqs[i][p->N_zc - C_v], root, C_v);
 
     v++;
   }
@@ -352,20 +405,20 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
     p->max_N_ifft_ul = max_N_ifft_ul;
 
     // Set up containers
-    p->prach_bins = srslte_vec_cf_malloc(MAX_N_zc);
-    p->corr_spec  = srslte_vec_cf_malloc(MAX_N_zc);
-    p->corr       = srslte_vec_f_malloc(MAX_N_zc);
-    p->cross      = srslte_vec_cf_malloc(MAX_N_zc);
-    p->corr_freq  = srslte_vec_cf_malloc(MAX_N_zc);
+    p->prach_bins = srslte_vec_cf_malloc(SRSLTE_PRACH_N_ZC_LONG);
+    p->corr_spec  = srslte_vec_cf_malloc(SRSLTE_PRACH_N_ZC_LONG);
+    p->corr       = srslte_vec_f_malloc(SRSLTE_PRACH_N_ZC_LONG);
+    p->cross      = srslte_vec_cf_malloc(SRSLTE_PRACH_N_ZC_LONG);
+    p->corr_freq  = srslte_vec_cf_malloc(SRSLTE_PRACH_N_ZC_LONG);
 
     // Set up ZC FFTS
-    if (srslte_dft_plan(&p->zc_fft, MAX_N_zc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
+    if (srslte_dft_plan(&p->zc_fft, SRSLTE_PRACH_N_ZC_LONG, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(&p->zc_fft, false);
     srslte_dft_plan_set_norm(&p->zc_fft, true);
 
-    if (srslte_dft_plan(&p->zc_ifft, MAX_N_zc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
+    if (srslte_dft_plan(&p->zc_ifft, SRSLTE_PRACH_N_ZC_LONG, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(&p->zc_ifft, false);
@@ -376,20 +429,20 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
     p->ifft_in  = srslte_vec_cf_malloc(fft_size_alloc);
     p->ifft_out = srslte_vec_cf_malloc(fft_size_alloc);
     if (srslte_dft_plan(&p->ifft, fft_size_alloc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
     srslte_dft_plan_set_mirror(&p->ifft, true);
     srslte_dft_plan_set_norm(&p->ifft, true);
 
     if (srslte_dft_plan(&p->fft, fft_size_alloc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
 
     p->signal_fft = srslte_vec_cf_malloc(fft_size_alloc);
     if (!p->signal_fft) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return -1;
     }
 
@@ -398,7 +451,7 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
 
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters");
   }
 
   return ret;
@@ -412,7 +465,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
   int ret = SRSLTE_ERROR;
   if (p != NULL && N_ifft_ul < 2049 && cfg->config_idx < 64 && cfg->root_seq_idx < MAX_ROOTS) {
     if (N_ifft_ul > p->max_N_ifft_ul) {
-      ERROR("PRACH: Error in set_cell(): N_ifft_ul must be lower or equal max_N_ifft_ul in init()\n");
+      ERROR("PRACH: Error in set_cell(): N_ifft_ul must be lower or equal max_N_ifft_ul in init()");
       return -1;
     }
 
@@ -439,33 +492,33 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     // Determine N_zc and N_cs
     if (4 == preamble_format) {
       if (p->zczc < 7) {
-        p->N_zc = 139;
+        p->N_zc = SRSLTE_PRACH_N_ZC_SHORT;
         p->N_cs = prach_Ncs_format4[p->zczc];
       } else {
-        ERROR("Invalid zeroCorrelationZoneConfig=%d for format4\n", p->zczc);
+        ERROR("Invalid zeroCorrelationZoneConfig=%d for format4", p->zczc);
         return SRSLTE_ERROR;
       }
     } else {
-      p->N_zc = MAX_N_zc;
+      p->N_zc = SRSLTE_PRACH_N_ZC_LONG;
       if (p->hs) {
         if (p->zczc < 15) {
           p->N_cs = prach_Ncs_restricted[p->zczc];
         } else {
-          ERROR("Invalid zeroCorrelationZoneConfig=%d for restricted set\n", p->zczc);
+          ERROR("Invalid zeroCorrelationZoneConfig=%d for restricted set", p->zczc);
           return SRSLTE_ERROR;
         }
       } else {
         if (p->zczc < 16) {
           p->N_cs = prach_Ncs_unrestricted[p->zczc];
         } else {
-          ERROR("Invalid zeroCorrelationZoneConfig=%d\n", p->zczc);
+          ERROR("Invalid zeroCorrelationZoneConfig=%d", p->zczc);
           return SRSLTE_ERROR;
         }
       }
     }
 
     // Set up ZC FFTS
-    if (p->N_zc != MAX_N_zc) {
+    if (p->N_zc != SRSLTE_PRACH_N_ZC_LONG) {
       if (srslte_dft_replan(&p->zc_fft, p->N_zc)) {
         return SRSLTE_ERROR;
       }
@@ -501,11 +554,11 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     }*/
 
     if (srslte_dft_replan(&p->ifft, p->N_ifft_prach)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
     if (srslte_dft_replan(&p->fft, p->N_ifft_prach)) {
-      ERROR("Error creating DFT plan\n");
+      ERROR("Error creating DFT plan");
       return -1;
     }
 
@@ -523,7 +576,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters N_ifft_ul=%d; config_idx=%d; root_seq_idx=%d;\n",
+    ERROR("Invalid parameters N_ifft_ul=%d; config_idx=%d; root_seq_idx=%d;",
           N_ifft_ul,
           cfg->config_idx,
           cfg->root_seq_idx);
@@ -543,16 +596,12 @@ int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset
     uint32_t begin   = PHI + (K * k_0) + (p->is_nr ? 1 : (K / 2));
 
     if (6 + freq_offset > N_rb_ul) {
-      ERROR("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", freq_offset, N_rb_ul);
+      ERROR("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d", freq_offset, N_rb_ul);
       return ret;
     }
 
-    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n",
-          p->N_zc,
-          p->N_cp,
-          p->N_seq,
-          p->N_ifft_prach,
-          begin);
+    DEBUG(
+        "N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
 
     // Map dft-precoded sequence to ifft bins
     memset(p->ifft_in, 0, begin * sizeof(cf_t));
@@ -634,7 +683,7 @@ float srslte_prach_calculate_time_offset_secs(srslte_prach_t* p, cf_t* cross)
 {
   // calculate the phase of the cross correlation
   float freq_domain_phase = cargf(srslte_vec_acc_cc(cross, p->N_zc));
-  float ratio             = (float)(p->N_ifft_ul * DELTA_F) / (float)(MAX_N_zc * DELTA_F_RA);
+  float ratio             = (float)(p->N_ifft_ul * DELTA_F) / (float)(SRSLTE_PRACH_N_ZC_LONG * DELTA_F_RA);
   // converting from phase to number of samples
   float num_samples = roundf((ratio * freq_domain_phase * p->N_zc) / (2 * M_PI));
 
@@ -762,9 +811,8 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
 {
   int ret = SRSLTE_ERROR;
   if (p != NULL && signal != NULL && sig_len > 0 && indices != NULL) {
-
     if (sig_len < p->N_ifft_prach) {
-      ERROR("srslte_prach_detect: Signal length is %d and should be %d\n", sig_len, p->N_ifft_prach);
+      ERROR("srslte_prach_detect: Signal length is %d and should be %d", sig_len, p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
     int cancellation_idx = -2;

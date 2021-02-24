@@ -24,6 +24,7 @@
 
 #include "rrc_config.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -178,7 +179,7 @@ private:
   bool alloc_pucch_cs_resources();
   bool dealloc_pucch_cs_resources();
 
-  srslte::log_ref             log_h{"RRC"};
+  srslog::basic_logger&       logger;
   const rrc_cfg_t&            cfg;
   const enb_cell_common_list& common_list;
   freq_res_common_list&       cell_res_list;

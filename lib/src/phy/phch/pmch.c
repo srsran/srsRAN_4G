@@ -128,7 +128,6 @@ int srslte_pmch_init(srslte_pmch_t* q, uint32_t max_prb, uint32_t nof_rx_antenna
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && nof_rx_antennas <= SRSLTE_MAX_PORTS) {
-
     bzero(q, sizeof(srslte_pmch_t));
     ret = SRSLTE_ERROR;
 
@@ -137,7 +136,7 @@ int srslte_pmch_init(srslte_pmch_t* q, uint32_t max_prb, uint32_t nof_rx_antenna
     q->max_re          = max_prb * MAX_PMCH_RE;
     q->nof_rx_antennas = nof_rx_antennas;
 
-    INFO("Init PMCH: %d PRBs, max_symbols: %d\n", max_prb, q->max_re);
+    INFO("Init PMCH: %d PRBs, max_symbols: %d", max_prb, q->max_re);
 
     for (int i = 0; i < 4; i++) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
@@ -241,7 +240,7 @@ int srslte_pmch_set_cell(srslte_pmch_t* q, srslte_cell_t cell)
     q->cell   = cell;
     q->max_re = q->cell.nof_prb * MAX_PMCH_RE;
 
-    INFO("PMCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n",
+    INFO("PMCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d",
          q->cell.nof_ports,
          q->cell.id,
          q->cell.nof_prb,
@@ -292,14 +291,13 @@ int srslte_pmch_decode(srslte_pmch_t*         q,
                        cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
                        srslte_pdsch_res_t*    out)
 {
-
   /* Set pointers for layermapping & precoding */
   uint32_t i, n;
   cf_t*    x[SRSLTE_MAX_LAYERS];
 
   if (q != NULL && sf_symbols != NULL && out != NULL && cfg != NULL) {
     INFO("Decoding PMCH SF: %d, MBSFN area ID: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, "
-         "C_prb=%d, cfi=%d\n",
+         "C_prb=%d, cfi=%d",
          sf->tti % 10,
          cfg->area_id,
          srslte_mod_string(cfg->pdsch_cfg.grant.tb[0].mod),
@@ -321,8 +319,7 @@ int srslte_pmch_decode(srslte_pmch_t*         q,
       /* extract symbols */
       n = pmch_get(q, sf_symbols[j], q->symbols[j], lstart);
       if (n != cfg->pdsch_cfg.grant.nof_re) {
-
-        ERROR("PMCH 1 extract symbols error expecting %d symbols but got %d, lstart %d\n",
+        ERROR("PMCH 1 extract symbols error expecting %d symbols but got %d, lstart %d",
               cfg->pdsch_cfg.grant.nof_re,
               n,
               lstart);
@@ -333,7 +330,7 @@ int srslte_pmch_decode(srslte_pmch_t*         q,
       for (i = 0; i < q->cell.nof_ports; i++) {
         n = pmch_get(q, channel->ce[i][j], q->ce[i][j], lstart);
         if (n != cfg->pdsch_cfg.grant.nof_re) {
-          ERROR("PMCH 2 extract chest error expecting %d symbols but got %d\n", cfg->pdsch_cfg.grant.nof_re, n);
+          ERROR("PMCH 2 extract chest error expecting %d symbols but got %d", cfg->pdsch_cfg.grant.nof_re, n);
           return SRSLTE_ERROR;
         }
       }
@@ -350,16 +347,16 @@ int srslte_pmch_decode(srslte_pmch_t*         q,
                                     channel->noise_estimate);
 
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE subframe.dat: received subframe symbols\n");
+      DEBUG("SAVED FILE subframe.dat: received subframe symbols");
       srslte_vec_save_file("subframe2.dat", q->symbols[0], cfg->pdsch_cfg.grant.nof_re * sizeof(cf_t));
-      DEBUG("SAVED FILE hest0.dat: channel estimates for port 4\n");
+      DEBUG("SAVED FILE hest0.dat: channel estimates for port 4");
       printf("nof_prb=%d, cp=%d, nof_re=%d, grant_re=%d\n",
              q->cell.nof_prb,
              q->cell.cp,
              SRSLTE_NOF_RE(q->cell),
              cfg->pdsch_cfg.grant.nof_re);
       srslte_vec_save_file("hest2.dat", channel->ce[0][0], SRSLTE_NOF_RE(q->cell) * sizeof(cf_t));
-      DEBUG("SAVED FILE pmch_symbols.dat: symbols after equalization\n");
+      DEBUG("SAVED FILE pmch_symbols.dat: symbols after equalization");
       srslte_vec_save_file("pmch_symbols.bin", q->d, cfg->pdsch_cfg.grant.nof_re * sizeof(cf_t));
     }
 
@@ -373,7 +370,7 @@ int srslte_pmch_decode(srslte_pmch_t*         q,
     srslte_scrambling_s_offset(&q->seqs[cfg->area_id]->seq[sf->tti % 10], q->e, 0, cfg->pdsch_cfg.grant.tb[0].nof_bits);
 
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n");
+      DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling");
       srslte_vec_save_file("llr.dat", q->e, cfg->pdsch_cfg.grant.tb[0].nof_bits * sizeof(int16_t));
     }
     out[0].crc                  = (srslte_dlsch_decode(&q->dl_sch, &cfg->pdsch_cfg, q->e, out[0].payload) == 0);
@@ -412,7 +409,6 @@ int srslte_pmch_encode(srslte_pmch_t*      q,
                        uint8_t*            data,
                        cf_t*               sf_symbols[SRSLTE_MAX_PORTS])
 {
-
   int i;
   /* Set pointers for layermapping & precoding */
   cf_t* x[SRSLTE_MAX_LAYERS];
@@ -429,14 +425,14 @@ int srslte_pmch_encode(srslte_pmch_t*      q,
     }
 
     if (cfg->pdsch_cfg.grant.nof_re > q->max_re) {
-      ERROR("Error too many RE per subframe (%d). PMCH configured for %d RE (%d PRB)\n",
+      ERROR("Error too many RE per subframe (%d). PMCH configured for %d RE (%d PRB)",
             cfg->pdsch_cfg.grant.nof_re,
             q->max_re,
             q->cell.nof_prb);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    INFO("Encoding PMCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+    INFO("Encoding PMCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d",
          sf->tti % 10,
          srslte_mod_string(cfg->pdsch_cfg.grant.tb[0].mod),
          cfg->pdsch_cfg.grant.tb[0].tbs,
@@ -452,7 +448,7 @@ int srslte_pmch_encode(srslte_pmch_t*      q,
 
     // TODO: use tb_encode directly
     if (srslte_dlsch_encode(&q->dl_sch, &cfg->pdsch_cfg, data, q->e)) {
-      ERROR("Error encoding TB\n");
+      ERROR("Error encoding TB");
       return SRSLTE_ERROR;
     }
 

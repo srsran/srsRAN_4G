@@ -134,7 +134,6 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
     int32_t  max_corr = INT32_MIN;
     uint32_t nwords   = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
     for (uint32_t w = 0; w < nwords; w += 1 << (SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len)) {
-
       // Calculate correlation with pregenerated word and select maximum
       int32_t corr = srslte_vec_dot_prod_sss(q->cqi_table_s[w], b_bits, SRSLTE_UCI_CQI_CODED_PUCCH_B);
       if (corr > max_corr) {
@@ -146,7 +145,7 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
     uint8_t* ptr = cqi_data;
     srslte_bit_unpack(max_w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
 
-    INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
+    INFO("Decoded CQI: w=%d, corr=%d", max_w, max_corr);
     return max_corr;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -173,7 +172,6 @@ void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t* q)
 
 static uint32_t Q_prime_cqi(srslte_pusch_cfg_t* cfg, uint32_t O, float beta, uint32_t Q_prime_ri)
 {
-
   uint32_t K = cfg->K_segm;
 
   uint32_t Q_prime = 0;
@@ -215,7 +213,7 @@ int decode_cqi_short(srslte_uci_cqi_pusch_t* q, int16_t* q_bits, uint32_t Q, uin
 {
   if (nof_bits <= SRSLTE_FEC_BLOCK_MAX_NOF_BITS && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
     int32_t max_corr = srslte_block_decode_i16(q_bits, Q, data, nof_bits);
-    INFO("Decoded CQI: corr=%d\n", max_corr);
+    INFO("Decoded CQI: corr=%d", max_corr);
     return SRSLTE_SUCCESS;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -262,7 +260,6 @@ int decode_cqi_long(srslte_uci_cqi_pusch_t* q, int16_t* q_bits, uint32_t Q, uint
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (nof_bits + 8 < SRSLTE_UCI_MAX_CQI_LEN_PUSCH && q != NULL && data != NULL && q_bits != NULL) {
-
     srslte_rm_conv_rx_s(q_bits, Q, q->encoded_cqi_s, 3 * (nof_bits + 8));
 
     DEBUG("cconv_rx=");
@@ -300,7 +297,7 @@ int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
                                 bool*                   cqi_ack)
 {
   if (beta < 0) {
-    ERROR("Error beta is reserved\n");
+    ERROR("Error beta is reserved");
     return -1;
   }
   uint32_t Q_prime = Q_prime_cqi(cfg, cqi_len, beta, Q_prime_ri);
@@ -343,7 +340,7 @@ int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
                                 uint8_t*                q_bits)
 {
   if (beta < 0) {
-    ERROR("Error beta is reserved\n");
+    ERROR("Error beta is reserved");
     return -1;
   }
 
@@ -370,7 +367,6 @@ static int uci_ulsch_interleave_ack_gen(uint32_t          ack_q_bit_idx,
                                         uint32_t          N_pusch_symbs,
                                         srslte_uci_bit_t* ack_bits)
 {
-
   const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
   const uint32_t ack_column_set_ext[4]  = {1, 2, 6, 7};
 
@@ -383,7 +379,7 @@ static int uci_ulsch_interleave_ack_gen(uint32_t          ack_q_bit_idx,
     }
     return SRSLTE_SUCCESS;
   } else {
-    ERROR("Error interleaving UCI-ACK bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
+    ERROR("Error interleaving UCI-ACK bit idx %d for H_prime_total=%d and N_pusch_symbs=%d",
           ack_q_bit_idx,
           H_prime_total,
           N_pusch_symbs);
@@ -398,7 +394,6 @@ static int uci_ulsch_interleave_ri_gen(uint32_t          ri_q_bit_idx,
                                        uint32_t          N_pusch_symbs,
                                        srslte_uci_bit_t* ri_bits)
 {
-
   static uint32_t ri_column_set_norm[4] = {1, 4, 7, 10};
   static uint32_t ri_column_set_ext[4]  = {0, 3, 5, 8};
 
@@ -412,7 +407,7 @@ static int uci_ulsch_interleave_ri_gen(uint32_t          ri_q_bit_idx,
     }
     return SRSLTE_SUCCESS;
   } else {
-    ERROR("Error interleaving UCI-RI bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
+    ERROR("Error interleaving UCI-RI bit idx %d for H_prime_total=%d and N_pusch_symbs=%d",
           ri_q_bit_idx,
           H_prime_total,
           N_pusch_symbs);
@@ -422,9 +417,8 @@ static int uci_ulsch_interleave_ri_gen(uint32_t          ri_q_bit_idx,
 
 static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t* cfg, uint32_t O, uint32_t O_cqi, float beta)
 {
-
   if (beta < 0) {
-    ERROR("Error beta is reserved\n");
+    ERROR("Error beta is reserved");
     return -1;
   }
 
@@ -492,7 +486,7 @@ encode_ack_long(const uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_pri
   uint32_t Q_ack = Q_m * Q_prime;
 
   if (O_ack > SRSLTE_UCI_MAX_ACK_BITS) {
-    ERROR("Error encoding long ACK bits: O_ack can't be higher than %d\n", SRSLTE_UCI_MAX_ACK_BITS);
+    ERROR("Error encoding long ACK bits: O_ack can't be higher than %d", SRSLTE_UCI_MAX_ACK_BITS);
     return 0;
   }
 
@@ -593,7 +587,7 @@ int srslte_uci_encode_ack_ri(srslte_pusch_cfg_t* cfg,
                              srslte_uci_bit_t*   bits)
 {
   if (beta < 0) {
-    ERROR("Error beta is reserved\n");
+    ERROR("Error beta is reserved");
     return -1;
   }
   uint32_t Q_prime = Q_prime_ri_ack(cfg, O_ack, O_cqi, beta);
@@ -648,7 +642,7 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                              bool                is_ri)
 {
   if (beta < 0) {
-    ERROR("Error beta (%f) is reserved\n", beta);
+    ERROR("Error beta (%f) is reserved", beta);
     return SRSLTE_ERROR;
   }
 
@@ -742,7 +736,6 @@ int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_data
   if (nof_acks) {
     n = srslte_print_check(str, str_len, n, ", ack=");
     if (uci_data->ack.valid) {
-
       for (uint32_t i = 0; i < nof_acks; i++) {
         n = srslte_print_check(str, str_len, n, "%d", uci_data->ack.ack_value[i]);
       }

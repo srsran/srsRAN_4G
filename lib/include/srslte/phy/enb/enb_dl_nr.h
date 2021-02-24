@@ -62,17 +62,15 @@ SRSLTE_API int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q);
 
 SRSLTE_API void srslte_enb_dl_nr_gen_signal(srslte_enb_dl_nr_t* q);
 
-SRSLTE_API int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*         q,
-                                          const srslte_dl_slot_cfg_t* slot_cfg,
-                                          const srslte_dci_dl_nr_t*   dci_dl);
+SRSLTE_API int
+srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t* q, const srslte_slot_cfg_t* slot_cfg, const srslte_dci_dl_nr_t* dci_dl);
 
-SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*         q,
-                                          const srslte_dl_slot_cfg_t* slot,
-                                          const srslte_sch_cfg_nr_t*  cfg,
-                                          uint8_t*                    data[SRSLTE_MAX_TB]);
+SRSLTE_API int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*        q,
+                                          const srslte_slot_cfg_t*   slot,
+                                          const srslte_sch_cfg_nr_t* cfg,
+                                          uint8_t*                   data[SRSLTE_MAX_TB]);
 
 SRSLTE_API int
 srslte_enb_dl_nr_pdsch_info(const srslte_enb_dl_nr_t* q, const srslte_sch_cfg_nr_t* cfg, char* str, uint32_t str_len);
-
 
 #endif // SRSLTE_ENB_DL_NR_H

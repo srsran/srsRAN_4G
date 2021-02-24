@@ -45,6 +45,9 @@ typedef enum {
   SRSLTE_LDPC_DECODER_C_AVX2,       /*!< \brief %Decoder working with 8-bit integer-valued LLRs (AVX2 version). */
   SRSLTE_LDPC_DECODER_C_AVX2_FLOOD, /*!< \brief %Decoder working with 8-bit integer-valued LLRs, flooded scheduling
                                    (AVX2 version). */
+  SRSLTE_LDPC_DECODER_C_AVX512,     /*!< \brief %Decoder working with 8-bit integer-valued LLRs (AVX512 version). */
+  SRSLTE_LDPC_DECODER_C_AVX512_FLOOD, /*!< \brief %Decoder working with 8-bit integer-valued LLRs, flooded scheduling
+                                   (AVX512 version). */
 } srslte_ldpc_decoder_type_t;
 
 /*!

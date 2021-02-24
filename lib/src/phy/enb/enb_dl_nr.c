@@ -20,6 +20,7 @@
  */
 
 #include "srslte/phy/enb/enb_dl_nr.h"
+#include <complex.h>
 
 static int enb_dl_alloc_prb(srslte_enb_dl_nr_t* q, uint32_t new_nof_prb)
 {
@@ -33,7 +34,7 @@ static int enb_dl_alloc_prb(srslte_enb_dl_nr_t* q, uint32_t new_nof_prb)
 
       q->sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(q->max_prb));
       if (q->sf_symbols[i] == NULL) {
-        ERROR("Malloc\n");
+        ERROR("Malloc");
         return SRSLTE_ERROR;
       }
     }
@@ -49,7 +50,7 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
   }
 
   if (args->nof_tx_antennas == 0) {
-    ERROR("Error invalid number of antennas (%d)\n", args->nof_tx_antennas);
+    ERROR("Error invalid number of antennas (%d)", args->nof_tx_antennas);
     return SRSLTE_ERROR;
   }
 
@@ -60,13 +61,13 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
   }
 
   if (enb_dl_alloc_prb(q, args->nof_max_prb) < SRSLTE_SUCCESS) {
-    ERROR("Error allocating\n");
+    ERROR("Error allocating");
     return SRSLTE_ERROR;
   }
 
   srslte_ofdm_cfg_t fft_cfg = {};
   fft_cfg.nof_prb           = args->nof_max_prb;
-  fft_cfg.symbol_sz         = srslte_symbol_sz(args->nof_max_prb);
+  fft_cfg.symbol_sz         = srslte_min_symbol_sz_rb(args->nof_max_prb);
   fft_cfg.keep_dc           = true;
 
   for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
@@ -76,12 +77,12 @@ int srslte_enb_dl_nr_init(srslte_enb_dl_nr_t* q, cf_t* output[SRSLTE_MAX_PORTS],
   }
 
   if (srslte_dmrs_sch_init(&q->dmrs, false) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 
   if (srslte_pdcch_nr_init_tx(&q->pdcch, &args->pdcch) < SRSLTE_SUCCESS) {
-    ERROR("Error PDCCH\n");
+    ERROR("Error PDCCH");
     return SRSLTE_ERROR;
   }
 
@@ -117,18 +118,24 @@ int srslte_enb_dl_nr_set_carrier(srslte_enb_dl_nr_t* q, const srslte_carrier_nr_
   }
 
   if (srslte_dmrs_sch_set_carrier(&q->dmrs, carrier) < SRSLTE_SUCCESS) {
-    ERROR("Error DMRS\n");
+    ERROR("Error DMRS");
     return SRSLTE_ERROR;
   }
 
   if (enb_dl_alloc_prb(q, carrier->nof_prb) < SRSLTE_SUCCESS) {
-    ERROR("Error allocating\n");
+    ERROR("Error allocating");
     return SRSLTE_ERROR;
   }
 
   if (carrier->nof_prb != q->carrier.nof_prb) {
+    srslte_ofdm_cfg_t fft_cfg = {};
+    fft_cfg.nof_prb           = carrier->nof_prb;
+    fft_cfg.symbol_sz         = srslte_min_symbol_sz_rb(carrier->nof_prb);
+    fft_cfg.keep_dc           = true;
+
     for (uint32_t i = 0; i < q->nof_tx_antennas; i++) {
-      srslte_ofdm_tx_set_prb(&q->fft[i], SRSLTE_CP_NORM, carrier->nof_prb);
+      fft_cfg.in_buffer = q->sf_symbols[i];
+      srslte_ofdm_tx_init_cfg(&q->fft[i], &fft_cfg);
     }
   }
 
@@ -176,9 +183,9 @@ int srslte_enb_dl_nr_base_zero(srslte_enb_dl_nr_t* q)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*         q,
-                               const srslte_dl_slot_cfg_t* slot_cfg,
-                               const srslte_dci_dl_nr_t*   dci_dl)
+int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*       q,
+                               const srslte_slot_cfg_t*  slot_cfg,
+                               const srslte_dci_dl_nr_t* dci_dl)
 {
   if (q == NULL || slot_cfg == NULL || dci_dl == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -186,34 +193,33 @@ int srslte_enb_dl_nr_pdcch_put(srslte_enb_dl_nr_t*         q,
 
   // Put DMRS
   if (srslte_dmrs_pdcch_put(&q->carrier, &q->coreset, slot_cfg, &dci_dl->location, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error putting PDCCH DMRS\n");
+    ERROR("Error putting PDCCH DMRS");
     return SRSLTE_ERROR;
   }
 
   // Pack DCI
   srslte_dci_msg_nr_t dci_msg = {};
   if (srslte_dci_nr_pack(&q->carrier, &q->coreset, dci_dl, &dci_msg) < SRSLTE_SUCCESS) {
-    ERROR("Error packing DL DCI\n");
+    ERROR("Error packing DL DCI");
     return SRSLTE_ERROR;
   }
 
   // PDCCH Encode
   if (srslte_pdcch_nr_encode(&q->pdcch, &dci_msg, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
-    ERROR("Error encoding PDCCH\n");
+    ERROR("Error encoding PDCCH");
     return SRSLTE_ERROR;
   }
 
-  INFO("DCI DL NR: L=%d; ncce=%d;\n", dci_dl->location.L, dci_dl->location.ncce);
+  INFO("DCI DL NR: L=%d; ncce=%d;", dci_dl->location.L, dci_dl->location.ncce);
 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*         q,
-                               const srslte_dl_slot_cfg_t* slot,
-                               const srslte_sch_cfg_nr_t*  cfg,
-                               uint8_t*                    data[SRSLTE_MAX_TB])
+int srslte_enb_dl_nr_pdsch_put(srslte_enb_dl_nr_t*        q,
+                               const srslte_slot_cfg_t*   slot,
+                               const srslte_sch_cfg_nr_t* cfg,
+                               uint8_t*                   data[SRSLTE_MAX_TB])
 {
-
   if (srslte_dmrs_sch_put_sf(&q->dmrs, slot, cfg, &cfg->grant, q->sf_symbols[0]) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }

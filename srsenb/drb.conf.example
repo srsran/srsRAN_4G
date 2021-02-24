@@ -6,7 +6,7 @@ qci_config = (
 {
   qci=7;
   pdcp_config = {
-    discard_timer = 100;                
+    discard_timer = -1;                
     pdcp_sn_size = 12;                  
   }
   rlc_config = {
@@ -28,7 +28,7 @@ qci_config = (
 {
   qci=9;
   pdcp_config = {
-    discard_timer = -1;
+    discard_timer = 150;
     status_report_required = true;
   }
   rlc_config = {

@@ -40,8 +40,9 @@ public:
   /// NOTE: Calling this function more than once has no side effects.
   virtual void start() = 0;
 
-  /// Pushes a log entry into the backend.
-  virtual void push(log_entry&& entry) = 0;
+  /// Pushes a log entry into the backend. Returns true on success, otherwise
+  /// false.
+  virtual bool push(log_entry&& entry) = 0;
 
   /// Returns true when the backend has been started, otherwise false.
   virtual bool is_running() const = 0;

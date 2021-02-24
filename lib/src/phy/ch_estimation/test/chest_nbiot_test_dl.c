@@ -137,7 +137,7 @@ int main(int argc, char** argv)
   }
 
   if (SRSLTE_VERBOSE_ISDEBUG()) {
-    DEBUG("SAVED FILE chest_start.bin: channel estimates start\n");
+    DEBUG("SAVED FILE chest_start.bin: channel estimates start");
     srslte_vec_save_file("chest_start.bin", ce, num_re * sizeof(cf_t));
   }
 
@@ -198,10 +198,10 @@ int main(int argc, char** argv)
       float rsrp  = srslte_chest_dl_nbiot_get_rsrp(&est);
       float noise = srslte_chest_dl_nbiot_get_noise_estimate(&est);
       float snr   = srslte_chest_dl_nbiot_get_snr(&est);
-      DEBUG("rsrq=%4.2f, rsrp=%4.2f, noise=%4.2f, snr=%4.2f\n", rsrq, rsrp, noise, snr);
+      DEBUG("rsrq=%4.2f, rsrp=%4.2f, noise=%4.2f, snr=%4.2f", rsrq, rsrp, noise, snr);
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("SAVED FILE chest_final.bin: channel after estimation\n");
+        DEBUG("SAVED FILE chest_final.bin: channel after estimation");
         srslte_vec_save_file("chest_final.bin", ce, num_re * sizeof(cf_t));
       }
 

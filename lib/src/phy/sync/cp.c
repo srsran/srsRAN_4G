@@ -49,7 +49,7 @@ void srslte_cp_synch_free(srslte_cp_synch_t* q)
 int srslte_cp_synch_resize(srslte_cp_synch_t* q, uint32_t symbol_sz)
 {
   if (symbol_sz > q->max_symbol_sz) {
-    ERROR("Error in cp_synch_resize(): symbol_sz must be lower than initialized\n");
+    ERROR("Error in cp_synch_resize(): symbol_sz must be lower than initialized");
     return SRSLTE_ERROR;
   }
   q->symbol_sz = symbol_sz;

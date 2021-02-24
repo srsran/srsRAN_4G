@@ -46,6 +46,10 @@ Files:  lib/include/srslte/srslog/bundled/fmt/chrono.h
 Copyright: 2012-2020, Victor Zverovich
 License: MIT
 
+Files:  lib/include/srslte/common/backward.hpp
+        cmake/modules/FindBackward.cmake
+Copyright: 2013, Google Inc.
+License: MIT
 
 License: AGPL-3+
   This program is free software: you can redistribute it and/or modify

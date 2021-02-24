@@ -44,15 +44,15 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_
     return SRSLTE_ERROR;
   }
   if (srslte_dft_plan(&q->input_plan, q->output_len, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-    ERROR("Error initiating input plan\n");
+    ERROR("Error initiating input plan");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_plan(&q->filter_plan, q->output_len, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-    ERROR("Error initiating filter plan\n");
+    ERROR("Error initiating filter plan");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_plan(&q->output_plan, q->output_len, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
-    ERROR("Error initiating output plan\n");
+    ERROR("Error initiating output plan");
     return SRSLTE_ERROR;
   }
   srslte_dft_plan_set_norm(&q->input_plan, true);
@@ -65,7 +65,7 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_
 int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_t filter_len)
 {
   if (input_len > q->max_input_len || filter_len > q->max_filter_len) {
-    ERROR("Error in conv_fft_cc_replan(): input_len and filter_len must be lower than initialized\n");
+    ERROR("Error in conv_fft_cc_replan(): input_len and filter_len must be lower than initialized");
     return -1;
   }
 
@@ -77,15 +77,15 @@ int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t* q, uint32_t input_len, uint3
     return SRSLTE_ERROR;
   }
   if (srslte_dft_replan(&q->input_plan, q->output_len)) {
-    ERROR("Error initiating input plan\n");
+    ERROR("Error initiating input plan");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_replan(&q->filter_plan, q->output_len)) {
-    ERROR("Error initiating filter plan\n");
+    ERROR("Error initiating filter plan");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_replan(&q->output_plan, q->output_len)) {
-    ERROR("Error initiating output plan\n");
+    ERROR("Error initiating output plan");
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
@@ -121,7 +121,6 @@ uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t* q, const cf_t* input, 
 
 uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t* q, const cf_t* input, const cf_t* filter, cf_t* output)
 {
-
   srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
 
   return srslte_conv_fft_cc_run_opt(q, input, q->filter_fft, output);

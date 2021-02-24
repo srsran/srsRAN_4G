@@ -347,6 +347,12 @@ int test_session_res_setup_request()
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
 
   TESTASSERT(test_amf_upd() == 0);
   TESTASSERT(test_ngsetup_request() == 0);
@@ -357,6 +363,8 @@ int main()
   TESTASSERT(test_ue_context_release() == 0);
   TESTASSERT(test_ue_context_release_complete() == 0);
   TESTASSERT(test_session_res_setup_request() == 0);
+
+  srslog::flush();
 
   printf("Success\n");
   return 0;

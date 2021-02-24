@@ -40,7 +40,7 @@ static uint32_t start_rb             = UINT32_MAX;
 static uint32_t nof_rb               = UINT32_MAX;
 static uint32_t first_symbol         = UINT32_MAX;
 
-static int test(const srslte_dl_slot_cfg_t*         slot_cfg,
+static int test(const srslte_slot_cfg_t*            slot_cfg,
                 const srslte_csi_rs_nzp_resource_t* resource,
                 srslte_channel_awgn_t*              awgn,
                 cf_t*                               grid)
@@ -64,7 +64,7 @@ static int test(const srslte_dl_slot_cfg_t*         slot_cfg,
   if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
     char str[128] = {};
     srslte_csi_rs_measure_info(&measure, str, sizeof(str));
-    INFO("Measure: %s\n", str);
+    INFO("Measure: %s", str);
   }
 
   TESTASSERT(fabsf(measure.rsrp_dB - rsrp_dB_gold) < 1.0f);
@@ -127,7 +127,7 @@ static void parse_args(int argc, char** argv)
 int main(int argc, char** argv)
 {
   int                          ret      = SRSLTE_ERROR;
-  srslte_dl_slot_cfg_t         slot_cfg = {};
+  srslte_slot_cfg_t            slot_cfg = {};
   srslte_csi_rs_nzp_resource_t resource = {};
   srslte_channel_awgn_t        awgn     = {};
 
@@ -135,12 +135,12 @@ int main(int argc, char** argv)
 
   cf_t* grid = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN_RE_NR(carrier.nof_prb));
   if (grid == NULL) {
-    ERROR("Alloc\n");
+    ERROR("Alloc");
     goto clean_exit;
   }
 
   if (srslte_channel_awgn_init(&awgn, 1234) < SRSLTE_SUCCESS) {
-    ERROR("AWGN Init\n");
+    ERROR("AWGN Init");
     goto clean_exit;
   }
 
@@ -158,21 +158,18 @@ int main(int argc, char** argv)
   for (resource.resource_mapping.first_symbol_idx = first_symbol_begin;
        resource.resource_mapping.first_symbol_idx <= first_symbol_end;
        resource.resource_mapping.first_symbol_idx++) {
-
     // Iterate over possible power control offset
     float power_control_offset_begin = isnormal(power_control_offset) ? power_control_offset : -8.0f;
     float power_control_offset_end   = isnormal(power_control_offset) ? power_control_offset : 15.0f;
     for (resource.power_control_offset = power_control_offset_begin;
          resource.power_control_offset <= power_control_offset_end;
          resource.power_control_offset += 1.0f) {
-
       // Iterate over all possible starting number of PRB
       uint32_t start_rb_begin = (start_rb != UINT32_MAX) ? start_rb : 0;
       uint32_t start_rb_end   = (start_rb != UINT32_MAX) ? start_rb : carrier.nof_prb - 24;
       for (resource.resource_mapping.freq_band.start_rb = start_rb_begin;
            resource.resource_mapping.freq_band.start_rb <= start_rb_end;
            resource.resource_mapping.freq_band.start_rb += 4) {
-
         // Iterate over all possible number of PRB
         uint32_t nof_rb_begin = (nof_rb != UINT32_MAX) ? nof_rb : 24;
         uint32_t nof_rb_end =
@@ -180,7 +177,6 @@ int main(int argc, char** argv)
         for (resource.resource_mapping.freq_band.nof_rb = nof_rb_begin;
              resource.resource_mapping.freq_band.nof_rb <= nof_rb_end;
              resource.resource_mapping.freq_band.nof_rb += 4) {
-
           // Iterate for all slot numbers
           for (slot_cfg.idx = 0; slot_cfg.idx < SRSLTE_NSLOTS_PER_FRAME_NR(carrier.numerology); slot_cfg.idx++) {
             // Steer Frequency allocation

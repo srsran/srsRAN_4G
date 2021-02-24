@@ -33,6 +33,7 @@
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/mac/pdu.h"
+#include "srslte/srslog/srslog.h"
 #include <mutex>
 
 namespace srsue {
@@ -40,7 +41,7 @@ namespace srsue {
 class mux
 {
 public:
-  mux(srslte::log_ref log_);
+  explicit mux(srslog::basic_logger& logger);
   ~mux(){};
   void reset();
   void init(rlc_interface_mac* rlc, bsr_interface_mux* bsr_procedure, phr_proc* phr_procedure_);
@@ -66,8 +67,8 @@ public:
   void print_logical_channel_state(const std::string& info);
 
 private:
-  bool has_logical_channel(const uint32_t& lcid);
-  bool pdu_move_to_msg3(uint32_t pdu_sz);
+  bool     has_logical_channel(const uint32_t& lcid);
+  bool     pdu_move_to_msg3(uint32_t pdu_sz);
   uint32_t allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu, int max_sdu_sz);
   bool     sched_sdu(srslte::logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
 
@@ -78,11 +79,11 @@ private:
   // Mutex for exclusive access
   std::mutex mutex;
 
-  srslte::log_ref    log_h;
-  rlc_interface_mac* rlc              = nullptr;
-  bsr_interface_mux* bsr_procedure    = nullptr;
-  phr_proc*          phr_procedure    = nullptr;
-  uint16_t           pending_crnti_ce = 0;
+  srslog::basic_logger& logger;
+  rlc_interface_mac*    rlc              = nullptr;
+  bsr_interface_mux*    bsr_procedure    = nullptr;
+  phr_proc*             phr_procedure    = nullptr;
+  uint16_t              pending_crnti_ce = 0;
 
   /* Msg3 Buffer */
   srslte::byte_buffer_t msg_buff;

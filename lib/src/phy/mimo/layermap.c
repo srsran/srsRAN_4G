@@ -64,13 +64,12 @@ int srslte_layermap_multiplex(cf_t* d[SRSLTE_MAX_CODEWORDS],
     n[0] = nof_layers / nof_cw;
     n[1] = nof_layers - n[0];
     if (nof_symbols[0] / n[0] == nof_symbols[1] / n[1]) {
-
       srslte_layermap_diversity(d[0], x, n[0], nof_symbols[0]);
       srslte_layermap_diversity(d[1], &x[n[0]], n[1], nof_symbols[1]);
       return nof_symbols[0] / n[0];
 
     } else {
-      ERROR("Number of symbols in codewords 0 and 1 is not consistent (%d, %d)\n", nof_symbols[0], nof_symbols[1]);
+      ERROR("Number of symbols in codewords 0 and 1 is not consistent (%d, %d)", nof_symbols[0], nof_symbols[1]);
       return -1;
     }
   }
@@ -88,17 +87,16 @@ int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
                          int                nof_symbols[SRSLTE_MAX_CODEWORDS],
                          srslte_tx_scheme_t type)
 {
-
   if (nof_cw > SRSLTE_MAX_CODEWORDS) {
-    ERROR("Maximum number of codewords is %d (nof_cw=%d)\n", SRSLTE_MAX_CODEWORDS, nof_cw);
+    ERROR("Maximum number of codewords is %d (nof_cw=%d)", SRSLTE_MAX_CODEWORDS, nof_cw);
     return -1;
   }
   if (nof_layers > SRSLTE_MAX_LAYERS) {
-    ERROR("Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
+    ERROR("Maximum number of layers is %d (nof_layers=%d)", SRSLTE_MAX_LAYERS, nof_layers);
     return -1;
   }
   if (nof_layers < nof_cw) {
-    ERROR("Number of codewords must be lower or equal than number of layers\n");
+    ERROR("Number of codewords must be lower or equal than number of layers");
     return -1;
   }
 
@@ -107,7 +105,7 @@ int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
       if (nof_cw == 1 && nof_layers == 1) {
         return srslte_layermap_single(d[0], x[0], nof_symbols[0]);
       } else {
-        ERROR("Number of codewords and layers must be 1 for transmission on single antenna ports\n");
+        ERROR("Number of codewords and layers must be 1 for transmission on single antenna ports");
         return -1;
       }
       break;
@@ -116,11 +114,11 @@ int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
         if (nof_layers == 2 || nof_layers == 4) {
           return srslte_layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
         } else {
-          ERROR("Number of layers must be 2 or 4 for transmit diversity\n");
+          ERROR("Number of layers must be 2 or 4 for transmit diversity");
           return -1;
         }
       } else {
-        ERROR("Number of codewords must be 1 for transmit diversity\n");
+        ERROR("Number of codewords must be 1 for transmit diversity");
         return -1;
       }
       break;
@@ -183,17 +181,16 @@ int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
                            int                nof_symbols[SRSLTE_MAX_CODEWORDS],
                            srslte_tx_scheme_t type)
 {
-
   if (nof_cw > SRSLTE_MAX_CODEWORDS) {
-    ERROR("Maximum number of codewords is %d (nof_cw=%d)\n", SRSLTE_MAX_CODEWORDS, nof_cw);
+    ERROR("Maximum number of codewords is %d (nof_cw=%d)", SRSLTE_MAX_CODEWORDS, nof_cw);
     return -1;
   }
   if (nof_layers > SRSLTE_MAX_LAYERS) {
-    ERROR("Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
+    ERROR("Maximum number of layers is %d (nof_layers=%d)", SRSLTE_MAX_LAYERS, nof_layers);
     return -1;
   }
   if (nof_layers < nof_cw) {
-    ERROR("Number of codewords must be lower or equal than number of layers\n");
+    ERROR("Number of codewords must be lower or equal than number of layers");
     return -1;
   }
 
@@ -203,7 +200,7 @@ int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
         nof_symbols[0] = srslte_layerdemap_single(x[0], d[0], nof_layer_symbols);
         nof_symbols[1] = 0;
       } else {
-        ERROR("Number of codewords and layers must be 1 for transmission on single antenna ports\n");
+        ERROR("Number of codewords and layers must be 1 for transmission on single antenna ports");
         return -1;
       }
       break;
@@ -213,11 +210,11 @@ int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
           nof_symbols[0] = srslte_layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
           nof_symbols[1] = 0;
         } else {
-          ERROR("Number of layers must be 2 or 4 for transmit diversity\n");
+          ERROR("Number of layers must be 2 or 4 for transmit diversity");
           return -1;
         }
       } else {
-        ERROR("Number of codewords must be 1 for transmit diversity\n");
+        ERROR("Number of codewords must be 1 for transmit diversity");
         return -1;
       }
       break;
@@ -258,7 +255,7 @@ int srslte_layermap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_t 
     return SRSLTE_SUCCESS;
   }
 
-  ERROR("Error. Incompatible number of layers (%d) and codewords (%d)\n", nof_layers, nof_cw);
+  ERROR("Error. Incompatible number of layers (%d) and codewords (%d)", nof_layers, nof_cw);
   return SRSLTE_ERROR;
 }
 
@@ -291,6 +288,6 @@ int srslte_layerdemap_nr(cf_t** d, int nof_cw, cf_t** x, int nof_layers, uint32_
     return SRSLTE_SUCCESS;
   }
 
-  ERROR("Error. Incompatible number of layers (%d) and codewords (%d)\n", nof_layers, nof_cw);
+  ERROR("Error. Incompatible number of layers (%d) and codewords (%d)", nof_layers, nof_cw);
   return SRSLTE_ERROR;
 }

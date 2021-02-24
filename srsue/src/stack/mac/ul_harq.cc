@@ -19,10 +19,10 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/ul_harq.h"
 #include "srslte/common/interfaces_common.h"
@@ -33,14 +33,12 @@
 
 namespace srsue {
 
-ul_harq_entity::ul_harq_entity(const uint8_t cc_idx_) : proc(SRSLTE_MAX_HARQ_PROC), cc_idx(cc_idx_) {}
+ul_harq_entity::ul_harq_entity(const uint8_t cc_idx_) :
+  proc(SRSLTE_MAX_HARQ_PROC), logger(srslog::fetch_basic_logger("MAC")), cc_idx(cc_idx_)
+{}
 
-bool ul_harq_entity::init(srslte::log_ref                      log_h_,
-                          mac_interface_rrc_common::ue_rnti_t* rntis_,
-                          ra_proc*                             ra_procedure_,
-                          mux*                                 mux_unit_)
+bool ul_harq_entity::init(mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_procedure_, mux* mux_unit_)
 {
-  log_h        = log_h_;
   mux_unit     = mux_unit_;
   ra_procedure = ra_procedure_;
   rntis        = rntis_;
@@ -85,7 +83,7 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
   bzero(action, sizeof(mac_interface_phy_lte::tb_action_ul_t));
 
   if (grant.pid >= SRSLTE_MAX_HARQ_PROC) {
-    Error("Invalid PID: %d\n", grant.pid);
+    Error("Invalid PID: %d", grant.pid);
     return;
   }
   if (grant.rnti == rntis->crnti || grant.rnti == rntis->temp_rnti || SRSLTE_RNTI_ISRAR(grant.rnti)) {
@@ -98,17 +96,17 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
       grant.tb.ndi = proc[grant.pid].get_ndi();
       proc[grant.pid].new_grant_ul(grant, action);
     } else {
-      Info("Not implemented\n");
+      Info("Not implemented");
     }
   } else {
-    Info("Received grant for unknown rnti=0x%x\n", grant.rnti);
+    Info("Received grant for unknown rnti=0x%x", grant.rnti);
   }
 }
 
 int ul_harq_entity::get_current_tbs(uint32_t pid)
 {
   if (pid >= SRSLTE_MAX_HARQ_PROC) {
-    Error("Invalid PID: %d\n", pid);
+    Error("Invalid PID: %d", pid);
     return 0;
   }
   return proc[pid].get_current_tbs();
@@ -119,7 +117,7 @@ float ul_harq_entity::get_average_retx()
   return average_retx;
 }
 
-ul_harq_entity::ul_harq_process::ul_harq_process()
+ul_harq_entity::ul_harq_process::ul_harq_process() : logger(srslog::fetch_basic_logger("MAC"))
 {
   pdu_ptr        = NULL;
   payload_buffer = NULL;
@@ -145,18 +143,17 @@ ul_harq_entity::ul_harq_process::~ul_harq_process()
 bool ul_harq_entity::ul_harq_process::init(uint32_t pid_, ul_harq_entity* parent)
 {
   if (srslte_softbuffer_tx_init(&softbuffer, 110)) {
-    ERROR("Error initiating soft buffer\n");
+    ERROR("Error initiating soft buffer");
     return false;
   }
 
   harq_entity  = parent;
-  log_h        = harq_entity->log_h;
   is_initiated = true;
   pid          = pid_;
 
   payload_buffer = std::unique_ptr<byte_buffer_t>(new byte_buffer_t);
   if (!payload_buffer) {
-    Error("Allocating memory\n");
+    Error("Allocating memory");
     return false;
   }
   pdu_ptr = payload_buffer->msg;
@@ -196,7 +193,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
     // Check maximum retransmissions, do not consider last retx ACK
     if (current_tx_nb >= max_retx && !grant.hi_value) {
-      Info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.\n", pid, max_retx);
+      Info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.", pid, max_retx);
       if (grant.rnti == harq_entity->rntis->temp_rnti) {
         harq_entity->ra_procedure->harq_max_retx();
       }
@@ -209,8 +206,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
   // Reset HARQ process if TB has changed
   if (harq_feedback && has_grant() && grant.tb.ndi_present) {
     if (grant.tb.tbs != cur_grant.tb.tbs && cur_grant.tb.tbs > 0 && grant.tb.tbs > 0) {
-      Debug(
-          "UL %d: Reset due to change of dci size last_grant=%d, new_grant=%d\n", pid, cur_grant.tb.tbs, grant.tb.tbs);
+      Debug("UL %d: Reset due to change of dci size last_grant=%d, new_grant=%d", pid, cur_grant.tb.tbs, grant.tb.tbs);
       reset();
     }
   }
@@ -232,22 +228,22 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
       // Check buffer size
       if (grant.tb.tbs > payload_buffer_len) {
-        Error("Grant size exceeds payload buffer size (%d > %d)\n", grant.tb.tbs, payload_buffer_len);
+        Error("Grant size exceeds payload buffer size (%d > %d)", grant.tb.tbs, int(payload_buffer_len));
         return;
       }
 
       // Uplink dci in a RAR and there is a PDU in the Msg3 buffer
       if (grant.is_rar) {
         if (harq_entity->mux_unit->msg3_is_pending()) {
-          Debug("Getting Msg3 buffer payload, grant size=%d bytes\n", grant.tb.tbs);
+          Debug("Getting Msg3 buffer payload, grant size=%d bytes", grant.tb.tbs);
           pdu_ptr = harq_entity->mux_unit->msg3_get(payload_buffer.get(), grant.tb.tbs);
           if (pdu_ptr) {
             generate_new_tx(grant, action);
           } else {
-            Warning("UL RAR dci available but no Msg3 on buffer\n");
+            Warning("UL RAR dci available but no Msg3 on buffer");
           }
         } else {
-          Warning("UL RAR available but no Msg3 pending on buffer\n");
+          Warning("UL RAR available but no Msg3 pending on buffer");
         }
         // Normal UL dci
       } else {
@@ -256,7 +252,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         if (pdu_ptr) {
           generate_new_tx(grant, action);
         } else {
-          Warning("Uplink dci but no MAC PDU in Multiplex Unit buffer\n");
+          Warning("Uplink dci but no MAC PDU in Multiplex Unit buffer");
         }
       }
 
@@ -267,7 +263,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       // Adaptive Re-TX
       generate_retx(grant, action);
     } else {
-      Warning("UL %d: Received retransmission but no previous dci available for this PID.\n", pid);
+      Warning("UL %d: Received retransmission but no previous dci available for this PID.", pid);
     }
     if (harq_entity->pcap) {
       uint16_t rnti;
@@ -327,7 +323,7 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
       current_irv = irv_of_rv[grant.tb.rv % 4];
     }
 
-    Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d, HI=%s, ndi=%d, prev_ndi=%d\n",
+    Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d, HI=%s, ndi=%d, prev_ndi=%d",
          pid,
          current_tx_nb,
          get_rv(),
@@ -347,7 +343,7 @@ void ul_harq_entity::ul_harq_process::generate_retx(mac_interface_phy_lte::mac_g
     // HARQ entity requests a non-adaptive transmission
   } else if (!harq_feedback) {
     // Non-adaptive retx are only sent if HI=NACK. If HI=ACK but no dci was received do not reset PID
-    Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d, HI=%s\n",
+    Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d, HI=%s",
          pid,
          current_tx_nb,
          get_rv(),
@@ -372,7 +368,7 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
 
   action->is_rar = grant.is_rar || (grant.rnti == harq_entity->rntis->temp_rnti);
 
-  Info("UL %d:  New TX%s, RV=%d, TBS=%d\n",
+  Info("UL %d:  New TX%s, RV=%d, TBS=%d",
        pid,
        grant.rnti == harq_entity->rntis->temp_rnti ? " for Msg3" : "",
        get_rv(),

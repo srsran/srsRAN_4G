@@ -131,7 +131,7 @@ void parse_extensive_param(char* param, char* arg)
   }
 
   if (ext_code) {
-    ERROR("Error parsing parameter '%s' and argument '%s'\n", param, arg);
+    ERROR("Error parsing parameter '%s' and argument '%s'", param, arg);
     exit(ext_code);
   }
 }
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
   srslte_pusch_hopping_cfg_t ul_hopping = {.n_sb = 1, .hopping_offset = 0, .hop_mode = 1};
 
   if (srslte_ra_ul_dci_to_grant(&cell, &ul_sf, &ul_hopping, &dci, &cfg.grant)) {
-    ERROR("Error computing resource allocation\n");
+    ERROR("Error computing resource allocation");
     return ret;
   }
 
@@ -226,19 +226,19 @@ int main(int argc, char** argv)
   cfg.grant.n_prb_tilde[1] = cfg.grant.n_prb[1];
 
   if (srslte_pusch_init_ue(&pusch_tx, cell.nof_prb)) {
-    ERROR("Error creating PUSCH object\n");
+    ERROR("Error creating PUSCH object");
     goto quit;
   }
   if (srslte_pusch_set_cell(&pusch_tx, cell)) {
-    ERROR("Error creating PUSCH object\n");
+    ERROR("Error creating PUSCH object");
     goto quit;
   }
   if (srslte_pusch_init_enb(&pusch_rx, cell.nof_prb)) {
-    ERROR("Error creating PUSCH object\n");
+    ERROR("Error creating PUSCH object");
     goto quit;
   }
   if (srslte_pusch_set_cell(&pusch_rx, cell)) {
-    ERROR("Error creating PUSCH object\n");
+    ERROR("Error creating PUSCH object");
     goto quit;
   }
 
@@ -268,12 +268,12 @@ int main(int argc, char** argv)
   }
 
   if (srslte_softbuffer_tx_init(&softbuffer_tx, 100)) {
-    ERROR("Error initiating soft buffer\n");
+    ERROR("Error initiating soft buffer");
     goto quit;
   }
 
   if (srslte_softbuffer_rx_init(&softbuffer_rx, 100)) {
-    ERROR("Error initiating soft buffer\n");
+    ERROR("Error initiating soft buffer");
     goto quit;
   }
 
@@ -309,14 +309,13 @@ int main(int argc, char** argv)
     cfg.softbuffers.tx = &softbuffer_tx;
 
     if (srslte_pusch_encode(&pusch_tx, &ul_sf, &cfg, &pdata, sf_symbols)) {
-      ERROR("Error encoding TB\n");
+      ERROR("Error encoding TB");
       exit(-1);
     }
     if (rv_idx > 0) {
-
       cfg.grant.tb.rv = rv_idx;
       if (srslte_pusch_encode(&pusch_tx, &ul_sf, &cfg, &pdata, sf_symbols)) {
-        ERROR("Error encoding TB\n");
+        ERROR("Error encoding TB");
         exit(-1);
       }
     }
@@ -338,7 +337,7 @@ int main(int argc, char** argv)
       printf("Unmatched data detected\n");
       ret = SRSLTE_ERROR;
     } else {
-      INFO("Rx Data is Ok\n");
+      INFO("Rx Data is Ok");
     }
 
     if (uci_data_tx.cfg.ack[0].nof_acks) {
@@ -367,7 +366,7 @@ int main(int argc, char** argv)
         printf("UCI RI bit error: %d != %d\n", uci_data_tx.value.ri, pusch_res.uci.ri);
         ret = SRSLTE_ERROR;
       } else {
-        INFO("Rx RI is Ok\n");
+        INFO("Rx RI is Ok");
       }
     }
 
@@ -377,7 +376,7 @@ int main(int argc, char** argv)
         printf("CQI Decode failed at subframe %d\n", n);
         ret = SRSLTE_ERROR;
       } else {
-        INFO("Rx CQI is Ok (crc=%d, wb_cqi=%d)\n", pusch_res.uci.cqi.data_crc, pusch_res.uci.cqi.wideband.wideband_cqi);
+        INFO("Rx CQI is Ok (crc=%d, wb_cqi=%d)", pusch_res.uci.cqi.data_crc, pusch_res.uci.cqi.wideband.wideband_cqi);
       }
     }
 

@@ -181,13 +181,11 @@ int srslte_nbiot_ue_dl_set_cell(srslte_nbiot_ue_dl_t* q, srslte_nbiot_cell_t cel
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && srslte_nbiot_cell_isvalid(&cell)) {
-
     q->pkt_errors    = 0;
     q->pkts_total    = 0;
     q->sample_offset = 0;
 
     if (q->cell.n_id_ncell != cell.n_id_ncell || q->cell.base.nof_prb == 0) {
-
       q->cell = cell;
 
       if (srslte_chest_dl_nbiot_set_cell(&q->chest, q->cell)) {
@@ -258,7 +256,6 @@ void srslte_nbiot_ue_dl_set_si_params(srslte_nbiot_ue_dl_t*    q,
                                       srslte_nbiot_si_params_t params)
 {
   if (type < SRSLTE_NBIOT_SI_TYPE_NITEMS) {
-
     if (params.n != 0) {
       // calculate TTIs for this SI
       int x = (params.n - 1) * params.si_window_length;
@@ -270,7 +267,7 @@ void srslte_nbiot_ue_dl_set_si_params(srslte_nbiot_ue_dl_t*    q,
 
           // SI is always transmitted in subframe 1
           int si_start_tti = 10 * sfn + 1;
-          INFO("Start SI tx in TTI=%d\n", si_start_tti);
+          INFO("Start SI tx in TTI=%d", si_start_tti);
 
           do {
             // TBS 56 and 120 are sent over 2 sub-frames, all other over 8
@@ -347,13 +344,8 @@ void srslte_nbiot_ue_dl_get_sib1_grant(srslte_nbiot_ue_dl_t* q, uint32_t sfn, sr
   bzero(&ra_dl_sib1, sizeof(srslte_ra_nbiot_dl_dci_t));
   ra_dl_sib1.alloc.has_sib1        = true;
   ra_dl_sib1.alloc.sched_info_sib1 = q->mib.sched_info_sib1;
-  srslte_ra_nbiot_dl_dci_to_grant(&ra_dl_sib1,
-                                  grant,
-                                  srslte_nbiot_ue_dl_get_next_sib1_start(q, sfn),
-                                  4,
-                                  DUMMY_R_MAX,
-                                  true,
-                                  q->cell.mode);
+  srslte_ra_nbiot_dl_dci_to_grant(
+      &ra_dl_sib1, grant, srslte_nbiot_ue_dl_get_next_sib1_start(q, sfn), 4, DUMMY_R_MAX, true, q->cell.mode);
   grant->has_sib1 = true;
 }
 
@@ -420,7 +412,7 @@ void srslte_nbiot_ue_dl_decode_sib(srslte_nbiot_ue_dl_t*    q,
                                    srslte_nbiot_si_params_t params)
 {
   if (q->has_dl_grant) {
-    INFO("Already processing grant, skipping this.\n");
+    INFO("Already processing grant, skipping this.");
     return;
   }
 
@@ -430,12 +422,12 @@ void srslte_nbiot_ue_dl_decode_sib(srslte_nbiot_ue_dl_t*    q,
     srslte_ra_nbiot_dl_grant_t grant;
     srslte_nbiot_ue_dl_get_sib_grant(q, hfn, sfn, params, &grant);
     srslte_nbiot_ue_dl_set_grant(q, &grant);
-    INFO("%d.x: Activated SIB2 reception in hfn=%d, sfn=%d\n",
+    INFO("%d.x: Activated SIB2 reception in hfn=%d, sfn=%d",
          sfn,
          q->npdsch_cfg.grant.start_hfn,
          q->npdsch_cfg.grant.start_sfn);
   } else {
-    INFO("Not handling this SI type.\n");
+    INFO("Not handling this SI type.");
   }
 }
 
@@ -502,7 +494,6 @@ int srslte_nbiot_ue_dl_decode_fft_estimate(srslte_nbiot_ue_dl_t* q, uint32_t sf_
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && sf_idx < SRSLTE_NOF_SF_X_FRAME) {
-
     ret = SRSLTE_ERROR;
 
     // Run FFT for all subframe data
@@ -608,7 +599,7 @@ dci_blind_search(srslte_nbiot_ue_dl_t* q, dci_blind_search_t* search_space, uint
     ret   = 0;
     int i = 0;
     while (!ret && i < search_space->nof_locations) {
-      DEBUG("Searching format %s in %d,%d\n",
+      DEBUG("Searching format %s in %d,%d",
             srslte_dci_format_string(search_space->format),
             search_space->loc[i].ncce,
             search_space->loc[i].L);
@@ -647,8 +638,7 @@ int srslte_nbiot_ue_dl_find_dl_dci_type_siprarnti(srslte_nbiot_ue_dl_t* q, uint1
   dci_blind_search_t search_space;
 
   search_space.nof_locations = srslte_npdcch_common_locations(search_space.loc, SRSLTE_MAX_CANDIDATES_COM);
-  DEBUG(
-      "Searching SI/P/RA-RNTI in %d common locations, %d formats\n", search_space.nof_locations, nb_nof_common_formats);
+  DEBUG("Searching SI/P/RA-RNTI in %d common locations, %d formats", search_space.nof_locations, nb_nof_common_formats);
   // Search for RNTI only if there is room for the common search space
   if (search_space.nof_locations > 0) {
     for (int f = 0; f < nb_nof_common_formats; f++) {
@@ -672,7 +662,7 @@ int srslte_nbiot_ue_dl_find_dl_dci_type_crnti(srslte_nbiot_ue_dl_t* q,
   // Search UE-specific search space
   dci_blind_search_t search_space;
   search_space.nof_locations = srslte_npdcch_ue_locations(search_space.loc, SRSLTE_MAX_CANDIDATES_UE);
-  DEBUG("x.%d: Searching DL C-RNTI=0x%x in %d locations, %d formats\n",
+  DEBUG("x.%d: Searching DL C-RNTI=0x%x in %d locations, %d formats",
         sf_idx,
         rnti,
         search_space.nof_locations,
@@ -700,12 +690,12 @@ int srslte_nbiot_ue_dl_decode_npdsch(srslte_nbiot_ue_dl_t* q,
 
   // skip subframe without grant and if it's not a valid downlink subframe
   if (q->has_dl_grant == false || srslte_ra_nbiot_is_valid_dl_sf(sfn * 10 + sf_idx) == false) {
-    DEBUG("%d.%d: Skipping NPDSCH processing.\n", sfn, sf_idx);
+    DEBUG("%d.%d: Skipping NPDSCH processing.", sfn, sf_idx);
     return SRSLTE_NBIOT_UE_DL_SKIP_SF;
   }
 
   // run FFT and estimate channel
-  DEBUG("%d.%d: Estimating channel.\n", sfn, sf_idx);
+  DEBUG("%d.%d: Estimating channel.", sfn, sf_idx);
   if ((srslte_nbiot_ue_dl_decode_fft_estimate(q, sf_idx, true)) < 0) {
     return ret;
   }
@@ -714,7 +704,7 @@ int srslte_nbiot_ue_dl_decode_npdsch(srslte_nbiot_ue_dl_t* q,
   if (srslte_nbiot_ue_dl_is_sib1_sf(q, sfn, sf_idx) && q->has_dl_grant) {
     if (q->npdsch_cfg.grant.has_sib1 == false) {
       // skip SIB1 decoding if grant is being processed
-      DEBUG("%d.%d: Skipping SIB1 due to ongoing DL reception.\n", sfn, sf_idx);
+      DEBUG("%d.%d: Skipping SIB1 due to ongoing DL reception.", sfn, sf_idx);
       return SRSLTE_NBIOT_EXPECT_MORE_SF;
     }
   }
@@ -733,7 +723,7 @@ int srslte_nbiot_ue_dl_decode_npdsch(srslte_nbiot_ue_dl_t* q,
       ret = srslte_nbiot_ue_dl_decode_npdsch_no_bcch(q, data, sfn * 10 + sf_idx, rnti);
     }
   } else {
-    DEBUG("%d.%d: WARNING: DL grant still active. Possibly needs to be deactivated.\n", sfn, sf_idx);
+    DEBUG("%d.%d: WARNING: DL grant still active. Possibly needs to be deactivated.", sfn, sf_idx);
     ret = SRSLTE_NBIOT_UE_DL_SKIP_SF;
   }
 
@@ -748,11 +738,11 @@ int srslte_nbiot_ue_dl_decode_npdsch_no_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* d
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q->npdsch_cfg.sf_idx >= SRSLTE_NPDSCH_MAX_NOF_SF) {
-    ERROR("Invalid npdsch_cfg.sf_idx=%d\n", q->npdsch_cfg.sf_idx);
+    ERROR("Invalid npdsch_cfg.sf_idx=%d", q->npdsch_cfg.sf_idx);
     return ret;
   }
 
-  INFO("%d.%d: NPDSCH processing sf_idx=%d/%d rep=%d/%d tot=%d/%d\n",
+  INFO("%d.%d: NPDSCH processing sf_idx=%d/%d rep=%d/%d tot=%d/%d",
        tti / 10,
        tti % 10,
        q->npdsch_cfg.sf_idx + 1,
@@ -809,7 +799,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_no_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* d
 
   if (q->npdsch_cfg.num_sf == q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.grant.nof_rep) {
     // try to decode NPDSCH
-    INFO("%d.%d: Trying to decode NPDSCH with %d subframe(s).\n", tti / 10, tti % 10, q->npdsch_cfg.grant.nof_sf);
+    INFO("%d.%d: Trying to decode NPDSCH with %d subframe(s).", tti / 10, tti % 10, q->npdsch_cfg.grant.nof_sf);
     if (srslte_nbiot_ue_dl_decode_rnti_packet(q,
                                               &q->npdsch_cfg.grant,
                                               data,
@@ -820,7 +810,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_no_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* d
                                               q->ce_buffer,
                                               q->npdsch_cfg.rep_idx) != SRSLTE_SUCCESS) {
       // decoding failed
-      INFO("%d.%d: Error decoding NPDSCH with %d repetitions.\n", tti / 10, tti % 10, q->npdsch_cfg.rep_idx);
+      INFO("%d.%d: Error decoding NPDSCH with %d repetitions.", tti / 10, tti % 10, q->npdsch_cfg.rep_idx);
       q->pkt_errors++;
       q->has_dl_grant = false;
       ret             = SRSLTE_ERROR;
@@ -829,7 +819,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_no_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* d
       ret = SRSLTE_SUCCESS;
     }
   } else {
-    DEBUG("%d.%d: Waiting for %d more subframes.\n",
+    DEBUG("%d.%d: Waiting for %d more subframes.",
           tti / 10,
           tti % 10,
           q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.grant.nof_rep - q->npdsch_cfg.num_sf);
@@ -851,7 +841,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data
   // make sure we also look on odd SFNs (if n_rep=16 and n_id_ncell%2=1)
   uint32_t valid_si_sfn = tti / 10 + srslte_ra_nbiot_sib1_start(q->cell.n_id_ncell, &q->mib);
   if (valid_si_sfn % 2 == 0 && tti % 10 == 4) {
-    INFO("%d.%d: NPDSCH processing sf_idx=%d/%d rep=%d/%d tot=%d/%d\n",
+    INFO("%d.%d: NPDSCH processing sf_idx=%d/%d rep=%d/%d tot=%d/%d",
          tti / 10,
          tti % 10,
          q->npdsch_cfg.sf_idx + 1,
@@ -872,7 +862,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data
     // check if we already have received the entire transmission
     if (q->npdsch_cfg.num_sf % q->npdsch_cfg.grant.nof_sf == 0) {
       // try to decode NPDSCH
-      INFO("%d.%d: Trying to decode NPDSCH with %d subframe(s).\n", tti / 10, tti % 10, q->npdsch_cfg.grant.nof_sf);
+      INFO("%d.%d: Trying to decode NPDSCH with %d subframe(s).", tti / 10, tti % 10, q->npdsch_cfg.grant.nof_sf);
       if (srslte_nbiot_ue_dl_decode_rnti_packet(q,
                                                 &q->npdsch_cfg.grant,
                                                 data,
@@ -887,11 +877,11 @@ int srslte_nbiot_ue_dl_decode_npdsch_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data
           // store soft-bits of first repetition
           srslte_vec_f_copy(q->llr, q->npdsch.llr, q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.nbits.nof_bits);
         } else {
-          INFO("Soft-combining NPDSCH repetition %d\n", q->npdsch_cfg.rep_idx);
+          INFO("Soft-combining NPDSCH repetition %d", q->npdsch_cfg.rep_idx);
           srslte_vec_sum_fff(q->llr, q->npdsch.llr, q->llr, q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.nbits.nof_bits);
 
           // try to decode combined soft-bits
-          INFO("%d.%d: Trying to decode NPDSCH with %d subframe(s) after %d repetitions.\n",
+          INFO("%d.%d: Trying to decode NPDSCH with %d subframe(s) after %d repetitions.",
                tti / 10,
                tti % 10,
                q->npdsch_cfg.grant.nof_sf,
@@ -912,11 +902,10 @@ int srslte_nbiot_ue_dl_decode_npdsch_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data
         q->npdsch_cfg.rep_idx++;
 
         if (q->npdsch_cfg.rep_idx < q->npdsch_cfg.grant.nof_rep) {
-          DEBUG("%d.%d: Couldn't decode NPDSCH, waiting for next repetition\n", tti / 10, tti % 10);
+          DEBUG("%d.%d: Couldn't decode NPDSCH, waiting for next repetition", tti / 10, tti % 10);
           ret = SRSLTE_NBIOT_EXPECT_MORE_SF;
         } else {
-
-          INFO("%d.%d: Error decoding NPDSCH with %d repetitions.\n", tti / 10, tti % 10, q->npdsch_cfg.rep_idx);
+          INFO("%d.%d: Error decoding NPDSCH with %d repetitions.", tti / 10, tti % 10, q->npdsch_cfg.rep_idx);
           ret = SRSLTE_ERROR;
           q->pkt_errors++; // count as error after all repetitons failed
           q->has_dl_grant = false;
@@ -927,7 +916,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data
         return SRSLTE_SUCCESS;
       }
     } else {
-      DEBUG("%d.%d: Waiting for more subframes.\n", tti / 10, tti % 10);
+      DEBUG("%d.%d: Waiting for more subframes.", tti / 10, tti % 10);
       ret = SRSLTE_NBIOT_EXPECT_MORE_SF;
     }
   }
@@ -950,12 +939,12 @@ int srslte_nbiot_ue_dl_decode_npdcch(srslte_nbiot_ue_dl_t* q,
 
   // skip subframe with grant and if it's not a valid downlink subframe
   if (q->has_dl_grant || srslte_ra_nbiot_is_valid_dl_sf(sfn * 10 + sf_idx) == false) {
-    DEBUG("%d.%d: Skipping NPDCCH processing.\n", sfn, sf_idx);
+    DEBUG("%d.%d: Skipping NPDCCH processing.", sfn, sf_idx);
     return ret;
   }
 
   // run FFT and estimate channel
-  DEBUG("%d.%d: Estimating channel.\n", sfn, sf_idx);
+  DEBUG("%d.%d: Estimating channel.", sfn, sf_idx);
   if ((srslte_nbiot_ue_dl_decode_fft_estimate(q, sf_idx, true)) < 0) {
     return ret;
   }
@@ -964,7 +953,7 @@ int srslte_nbiot_ue_dl_decode_npdcch(srslte_nbiot_ue_dl_t* q,
   if (srslte_nbiot_ue_dl_is_si_tti(q, sfn, sf_idx) && q->has_dl_grant) {
     if (q->npdsch_cfg.grant.has_sib1 == false) {
       // skip SI decoding if grant is being processed
-      DEBUG("%d.%d: Skipping SI SF due to ongoing DL reception.\n", sfn, sf_idx);
+      DEBUG("%d.%d: Skipping SI SF due to ongoing DL reception.", sfn, sf_idx);
       return SRSLTE_NBIOT_EXPECT_MORE_SF;
     }
   }
@@ -976,10 +965,10 @@ int srslte_nbiot_ue_dl_decode_npdcch(srslte_nbiot_ue_dl_t* q,
     return SRSLTE_ERROR;
   }
 
-  DEBUG("%d.%d: Looking for DCI for RNTI=0x%x.\n", sfn, sf_idx, rnti);
+  DEBUG("%d.%d: Looking for DCI for RNTI=0x%x.", sfn, sf_idx, rnti);
   if (srslte_nbiot_ue_dl_find_dl_dci(q, sf_idx, rnti, dci_msg) == 1) {
     // a DCI was found
-    INFO("%d.%d: Found DCI for RNTI=0x%x.\n", sfn, sf_idx, rnti);
+    INFO("%d.%d: Found DCI for RNTI=0x%x.", sfn, sf_idx, rnti);
     q->nof_detected++;
     ret = SRSLTE_NBIOT_UE_DL_FOUND_DCI;
   }
@@ -995,12 +984,12 @@ int srslte_nbiot_ue_dl_decode_npdcch(srslte_nbiot_ue_dl_t* q,
 // i.e. srslte_nbiot_ue_dl_decode_npdcch() needs to be called before
 int srslte_nbiot_ue_dl_find_ul_dci(srslte_nbiot_ue_dl_t* q, uint32_t tti, uint32_t rnti, srslte_dci_msg_t* dci_msg)
 {
-  DEBUG("%d.%d: Looking for UL DCI for RNTI=0x%x.\n", tti / 10, tti % 10, rnti);
+  DEBUG("%d.%d: Looking for UL DCI for RNTI=0x%x.", tti / 10, tti % 10, rnti);
 
   // Search UE-specific search space
   dci_blind_search_t search_space;
   search_space.nof_locations = srslte_npdcch_ue_locations(search_space.loc, SRSLTE_MAX_CANDIDATES_UE);
-  DEBUG("x.%d: Searching UL C-RNTI=0x%x in %d locations, %d formats\n",
+  DEBUG("x.%d: Searching UL C-RNTI=0x%x in %d locations, %d formats",
         tti % 10,
         rnti,
         search_space.nof_locations,
@@ -1023,37 +1012,37 @@ void srslte_nbiot_ue_dl_save_signal(srslte_nbiot_ue_dl_t* q, cf_t* input, uint32
 
   // RAW samples
   snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_raw_samples.bin", sfn, sf_idx);
-  DEBUG("SAVED FILE %s: rx'ed samples\n", fname);
+  DEBUG("SAVED FILE %s: rx'ed samples", fname);
   srslte_vec_save_file(fname, input, num_symbols * sizeof(cf_t));
 
   // NPDCCH
   num_symbols = q->npdcch.num_decoded_symbols;
   snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_npdcch_symbols.bin", sfn, sf_idx);
-  DEBUG("SAVED FILE %s: rx'ed downlink symbols\n", fname);
+  DEBUG("SAVED FILE %s: rx'ed downlink symbols", fname);
   srslte_vec_save_file(fname, q->npdcch.symbols[0], num_symbols * sizeof(cf_t));
 
   snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_npdcch_symbols_eq.bin", sfn, sf_idx);
-  DEBUG("SAVED FILE %s: eq rx'ed downlink symbols\n", fname);
+  DEBUG("SAVED FILE %s: eq rx'ed downlink symbols", fname);
   srslte_vec_save_file(fname, q->npdcch.d, num_symbols * sizeof(cf_t));
 
   // NPDSCH
   num_symbols = q->npdsch_cfg.nbits.nof_re * q->npdsch_cfg.grant.nof_sf;
   snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_npdsch_symbols.bin", sfn, sf_idx);
-  DEBUG("SAVED FILE %s: rx'ed downlink symbols\n", fname);
+  DEBUG("SAVED FILE %s: rx'ed downlink symbols", fname);
   srslte_vec_save_file(fname, q->npdsch.symbols[0], num_symbols * sizeof(cf_t));
 
   snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_npdsch_symbols_eq.bin", sfn, sf_idx);
-  DEBUG("SAVED FILE %s: eq rx'ed downlink symbols\n", fname);
+  DEBUG("SAVED FILE %s: eq rx'ed downlink symbols", fname);
   srslte_vec_save_file(fname, q->npdsch.d, num_symbols * sizeof(cf_t));
 
   // CE
   snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_ce0.bin", sfn, sf_idx);
-  DEBUG("SAVED FILE %s: downlink channel estimates port 0\n", fname);
+  DEBUG("SAVED FILE %s: downlink channel estimates port 0", fname);
   srslte_vec_save_file(fname, q->ce_buffer[0], num_symbols * sizeof(cf_t));
 
   if (q->cell.nof_ports > 1) {
     snprintf(fname, MAX_FNAME_LEN, "nb_ue_dl_sfn%d_sf%d_ce1.bin", sfn, sf_idx);
-    DEBUG("SAVED FILE %s: downlink channel estimates port 1\n", fname);
+    DEBUG("SAVED FILE %s: downlink channel estimates port 1", fname);
     srslte_vec_save_file(fname, q->ce_buffer[1], num_symbols * sizeof(cf_t));
   }
 }

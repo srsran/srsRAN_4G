@@ -109,13 +109,13 @@ int main(int argc, char** argv)
   // generate CRC word
   crc_word = srslte_crc_checksum(&crc_p, data, num_bits);
 
-  INFO("checksum=%x\n", crc_word);
+  INFO("checksum=%x", crc_word);
 
   free(data);
 
   // check if generated word is as expected
   if (get_expected_word(num_bits, crc_length, crc_poly, seed, &expected_word)) {
-    ERROR("Test parameters not defined in test_results.h\n");
+    ERROR("Test parameters not defined in test_results.h");
     exit(-1);
   }
   exit(expected_word != crc_word);

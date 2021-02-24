@@ -19,10 +19,10 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/mux.h"
 #include "srsue/hdr/stack/mac/mac.h"
@@ -32,10 +32,7 @@
 
 namespace srsue {
 
-mux::mux(srslte::log_ref log_) : pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_)
-{
-  msg3_flush();
-}
+mux::mux(srslog::basic_logger& logger) : logger(logger), pdu_msg(MAX_NOF_SUBHEADERS, logger) {}
 
 void mux::init(rlc_interface_mac* rlc_, bsr_interface_mux* bsr_procedure_, phr_proc* phr_procedure_)
 {
@@ -67,7 +64,7 @@ void mux::step()
       channel.Bj += channel.PBR; // PBR is in kByte/s, conversion in Byte and ms not needed
     }
     channel.Bj = SRSLTE_MIN((uint32_t)channel.Bj, channel.bucket_size);
-    Debug("Update Bj: lcid=%d, Bj=%d\n", channel.lcid, channel.Bj);
+    Debug("Update Bj: lcid=%d, Bj=%d", channel.lcid, channel.Bj);
   }
 }
 
@@ -112,7 +109,7 @@ void mux::setup_lcid(const logical_channel_config_t& config)
     // warn user if there is another LCID with same prio
     for (auto& channel : logical_channels) {
       if (channel.priority == config.priority && channel.lcid != config.lcid) {
-        log_h->warning("LCID %d and %d have same priority.\n", channel.lcid, config.lcid);
+        logger.warning("LCID %d and %d have same priority.", channel.lcid, config.lcid);
       }
     }
   } else {
@@ -148,7 +145,7 @@ void mux::print_logical_channel_state(const std::string& info)
     logline += ", sched_len=";
     logline += std::to_string(channel.sched_len);
   }
-  log_h->debug("%s\n", logline.c_str());
+  logger.debug("%s", logline.c_str());
 }
 
 srslte::ul_sch_lcid bsr_format_convert(bsr_proc::bsr_format_t format)
@@ -178,13 +175,13 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     if (pending_crnti_ce) {
       if (pdu_msg.new_subh()) {
         if (!pdu_msg.get()->set_c_rnti(pending_crnti_ce)) {
-          Warning("Pending C-RNTI CE could not be inserted in MAC PDU\n");
+          Warning("Pending C-RNTI CE could not be inserted in MAC PDU");
         }
       }
     }
   } else {
     if (pending_crnti_ce) {
-      Warning("Pending C-RNTI CE was not inserted because message was for CCCH\n");
+      Warning("Pending C-RNTI CE was not inserted because message was for CCCH");
     }
   }
   pending_crnti_ce = 0;
@@ -297,9 +294,9 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   bsr_procedure->update_bsr_tti_end(&bsr);
 
   // Generate MAC PDU and save to buffer
-  uint8_t* ret = pdu_msg.write_packet(log_h);
-  Info("%s\n", pdu_msg.to_string().c_str());
-  Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
+  uint8_t* ret = pdu_msg.write_packet(logger);
+  Info("%s", pdu_msg.to_string().c_str());
+  Debug("Assembled MAC PDU msg size %d/%d bytes", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
 
   return ret;
 }
@@ -324,7 +321,7 @@ bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz
 
       *sdu_space -= sched_len; // UL-SCH subheader size is accounted for in the calling function
 
-      Debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d\n", ch->lcid, ch->buffer_len, sched_len);
+      Debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d", ch->lcid, ch->buffer_len, sched_len);
 
       ch->buffer_len -= sched_len;
       ch->sched_len += sched_len;
@@ -347,7 +344,7 @@ uint32_t mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_
       int sdu_len = pdu_msg->get()->set_sdu(lcid, requested_sdu_len, rlc);
       if (sdu_len > 0) { // new SDU could be added
         Debug("SDU:   allocated lcid=%d, buffer_state=%d, request_sdu_len=%d, allocated=%d/%d, max_sdu_sz=%d, "
-              "remaining=%d\n",
+              "remaining=%d",
               lcid,
               buffer_state,
               requested_sdu_len,
@@ -361,7 +358,7 @@ uint32_t mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_
         buffer_state = rlc->get_buffer_state(lcid);
       } else {
         Debug("Couldn't allocate new SDU (buffer_state=%d, requested_sdu_len=%d, sdu_len=%d, sdu_space=%d, "
-              "remaining=%d, get_sdu_space=%d)\n",
+              "remaining=%d, get_sdu_space=%d)",
               buffer_state,
               requested_sdu_len,
               sdu_len,
@@ -373,7 +370,7 @@ uint32_t mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_
         break;
       }
     } else {
-      Debug("Couldn't add new MAC subheader (buffer_state=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)\n",
+      Debug("Couldn't add new MAC subheader (buffer_state=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)",
             buffer_state,
             requested_sdu_len,
             sdu_space,
@@ -387,9 +384,7 @@ uint32_t mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_
 
 void mux::msg3_flush()
 {
-  if (log_h) {
-    Debug("Msg3 buffer flushed\n");
-  }
+  Debug("Msg3 buffer flushed");
   msg3_buff.clear();
   msg3_has_been_transmitted = false;
   msg3_pending              = false;
@@ -422,7 +417,7 @@ uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   if (pdu_sz < msg3_buff.get_tailroom()) {
     if (msg3_is_empty()) {
       if (!pdu_get(&msg3_buff, pdu_sz)) {
-        Error("Moving PDU from Mux unit to Msg3 buffer\n");
+        Error("Moving PDU from Mux unit to Msg3 buffer");
         return NULL;
       }
       msg3_pending = false;
@@ -431,7 +426,7 @@ uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     msg3_has_been_transmitted = true;
     return payload->msg;
   } else {
-    Error("Msg3 size exceeds buffer\n");
+    Error("Msg3 size exceeds buffer");
     return nullptr;
   }
 }

@@ -28,11 +28,7 @@ using namespace asn1::rrc_nr;
 
 namespace srsenb {
 
-rrc_nr::rrc_nr(srslte::timer_handler* timers_) :
-  m_log("RRC"),
-  pool(srslte::byte_buffer_pool::get_instance()),
-  timers(timers_)
-{}
+rrc_nr::rrc_nr(srslte::timer_handler* timers_) : m_log("RRC"), timers(timers_) {}
 
 void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                   phy_interface_stack_nr* phy_,
@@ -73,7 +69,8 @@ void rrc_nr::init(const rrc_nr_cfg_t&     cfg_,
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   srslte::PDCP_SN_LEN_18,
                                   srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::infinity};
+                                  srslte::pdcp_discard_timer_t::infinity,
+                                  false};
   pdcp->add_bearer(cfg.coreless.rnti, cfg.coreless.drb_lcid, pdcp_cnfg);
 
   m_log->info("Started\n");
@@ -217,7 +214,7 @@ uint32_t rrc_nr::generate_sibs()
   mib_s&         mib = mib_msg.msg.set_mib();
   mib                = cfg.mib;
   {
-    srslte::unique_byte_buffer_t mib_buf = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t mib_buf = srslte::make_byte_buffer();
     asn1::bit_ref                bref(mib_buf->msg, mib_buf->get_tailroom());
     mib_msg.pack(bref);
     mib_buf->N_bytes = bref.distance_bytes();
@@ -251,7 +248,7 @@ uint32_t rrc_nr::generate_sibs()
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages + 1; msg_index++) {
-    srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t sib = srslte::make_byte_buffer();
     asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
     msg[msg_index].pack(bref);
     sib->N_bytes = bref.distance_bytes();
@@ -344,8 +341,6 @@ void rrc_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_
 *******************************************************************************/
 rrc_nr::ue::ue(rrc_nr* parent_, uint16_t rnti_) : parent(parent_), rnti(rnti_)
 {
-  pool = srslte::byte_buffer_pool::get_instance();
-
   // setup periodic RRCSetup send
   rrc_setup_periodic_timer = parent->timers->get_unique_timer();
   rrc_setup_periodic_timer.set(5000, [this](uint32_t tid) {
@@ -381,7 +376,7 @@ void rrc_nr::ue::send_connection_setup()
 void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu == nullptr) {
     parent->m_log->error("Allocating pdu\n");
   }
@@ -389,7 +384,7 @@ void rrc_nr::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   if (dl_ccch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
     parent->m_log->error("Failed to pack DL-CCCH message. Discarding msg.\n");
   }
-  pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
+  pdu->N_bytes = bref.distance_bytes();
 
   char buf[32] = {};
   sprintf(buf, "SRB0 - rnti=0x%x", rnti);

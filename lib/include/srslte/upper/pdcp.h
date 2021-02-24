@@ -45,7 +45,7 @@ public:
   void reestablish() override;
   void reestablish(uint32_t lcid) override;
   void reset() override;
-  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu) override;
+  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn = -1) override;
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   void add_bearer(uint32_t lcid, pdcp_config_t cnfg) override;
   void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
@@ -58,6 +58,8 @@ public:
   void enable_security_timed(uint32_t lcid, srslte_direction_t direction, uint32_t sn);
   bool get_bearer_state(uint32_t lcid, srslte::pdcp_lte_state_t* state);
   bool set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state);
+  void send_status_report() override;
+  void send_status_report(uint32_t lcid) override;
 
   // RLC interface
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu) override;
@@ -65,15 +67,25 @@ public:
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) override;
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) override;
   void write_pdu_pcch(unique_byte_buffer_t sdu) override;
+  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) override;
+  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) override;
+
+  // eNB-only methods
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint32_t lcid);
+
+  // Metrics
+  void get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti);
+  void reset_metrics();
 
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
   srslte::task_sched_handle  task_sched;
-  srslte::log_ref            pdcp_log;
+  srslog::basic_logger&      logger;
 
-  std::map<uint16_t, std::unique_ptr<pdcp_entity_base> > pdcp_array, pdcp_array_mrb;
+  using pdcp_map_t = std::map<uint16_t, std::unique_ptr<pdcp_entity_base> >;
+  pdcp_map_t pdcp_array, pdcp_array_mrb;
 
   // cache valid lcids to be checked from separate thread
   std::mutex         cache_mutex;
@@ -81,6 +93,9 @@ private:
 
   bool valid_lcid(uint32_t lcid);
   bool valid_mch_lcid(uint32_t lcid);
+
+  // Timer needed for metrics calculation
+  std::chrono::high_resolution_clock::time_point metrics_tp;
 };
 
 } // namespace srslte

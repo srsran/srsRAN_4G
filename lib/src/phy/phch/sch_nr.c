@@ -79,7 +79,6 @@ int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
                            const srslte_sch_tb_t*      tb,
                            srslte_sch_nr_common_cfg_t* cfg)
 {
-
   if (!sch_cfg || !tb || !cfg) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -91,18 +90,18 @@ int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
   srslte_cbsegm_t cbsegm = {};
   if (bg == BG1) {
     if (srslte_cbsegm_ldpc_bg1(&cbsegm, tb->tbs) != SRSLTE_SUCCESS) {
-      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d\n", tb->tbs);
+      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tb->tbs);
       return SRSLTE_ERROR;
     }
   } else {
     if (srslte_cbsegm_ldpc_bg2(&cbsegm, tb->tbs) != SRSLTE_SUCCESS) {
-      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d\n", tb->tbs);
+      ERROR("Error: calculating LDPC BG1 code block segmentation for tbs=%d", tb->tbs);
       return SRSLTE_ERROR;
     }
   }
 
   if (cbsegm.Z > MAX_LIFTSIZE) {
-    ERROR("Error: lifting size Z=%d is out-of-range maximum is %d\n", cbsegm.Z, MAX_LIFTSIZE);
+    ERROR("Error: lifting size Z=%d is out-of-range maximum is %d", cbsegm.Z, MAX_LIFTSIZE);
     return SRSLTE_ERROR;
   }
 
@@ -156,7 +155,7 @@ int srslte_sch_nr_fill_cfg(srslte_sch_nr_t*            q,
 static inline uint32_t sch_nr_get_E(const srslte_sch_nr_common_cfg_t* cfg, uint32_t j)
 {
   if (cfg->Nl == 0 || cfg->Qm == 0 || cfg->Cp == 0) {
-    ERROR("Invalid Nl (%d), Qm (%d) or Cp (%d)\n", cfg->Nl, cfg->Qm, cfg->Cp);
+    ERROR("Invalid Nl (%d), Qm (%d) or Cp (%d)", cfg->Nl, cfg->Qm, cfg->Cp);
     return 0;
   }
 
@@ -202,11 +201,18 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
   }
 
   srslte_ldpc_encoder_type_t encoder_type = SRSLTE_LDPC_ENCODER_C;
+
+#ifdef LV_HAVE_AVX512
+  if (!args->disable_simd) {
+    encoder_type = SRSLTE_LDPC_ENCODER_AVX512;
+  }
+#else // LV_HAVE_AVX512
 #ifdef LV_HAVE_AVX2
   if (!args->disable_simd) {
     encoder_type = SRSLTE_LDPC_ENCODER_AVX2;
   }
 #endif // LV_HAVE_AVX2
+#endif // LV_HAVE_AVX612
 
   // Iterate over all possible lifting sizes
   for (uint16_t ls = 0; ls <= MAX_LIFTSIZE; ls++) {
@@ -221,12 +227,12 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
 
     q->encoder_bg1[ls] = calloc(1, sizeof(srslte_ldpc_encoder_t));
     if (!q->encoder_bg1[ls]) {
-      ERROR("Error: calloc\n");
+      ERROR("Error: calloc");
       return SRSLTE_ERROR;
     }
 
     if (srslte_ldpc_encoder_init(q->encoder_bg1[ls], encoder_type, BG1, ls) < SRSLTE_SUCCESS) {
-      ERROR("Error: initialising BG1 LDPC encoder for ls=%d\n", ls);
+      ERROR("Error: initialising BG1 LDPC encoder for ls=%d", ls);
       return SRSLTE_ERROR;
     }
 
@@ -236,13 +242,13 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
     }
 
     if (srslte_ldpc_encoder_init(q->encoder_bg2[ls], encoder_type, BG2, ls) < SRSLTE_SUCCESS) {
-      ERROR("Error: initialising BG2 LDPC encoder for ls=%d\n", ls);
+      ERROR("Error: initialising BG2 LDPC encoder for ls=%d", ls);
       return SRSLTE_ERROR;
     }
   }
 
   if (srslte_ldpc_rm_tx_init(&q->tx_rm) < SRSLTE_SUCCESS) {
-    ERROR("Error: initialising Tx LDPC Rate matching\n");
+    ERROR("Error: initialising Tx LDPC Rate matching");
     return SRSLTE_ERROR;
   }
 
@@ -256,24 +262,20 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
     return ret;
   }
 
-  srslte_ldpc_decoder_type_t decoder_type = SRSLTE_LDPC_DECODER_C;
-  if (args->decoder_use_flooded) {
-#ifdef LV_HAVE_AVX2
-    if (args->disable_simd) {
-      decoder_type = SRSLTE_LDPC_DECODER_C_FLOOD;
-    } else {
-      decoder_type = SRSLTE_LDPC_DECODER_C_AVX2_FLOOD;
-    }
-#else  // LV_HAVE_AVX2
-    decoder_type = SRSLTE_LDPC_DECODER_C_FLOOD;
-#endif // LV_HAVE_AVX2
-  } else {
-#ifdef LV_HAVE_AVX2
-    if (!args->disable_simd) {
-      decoder_type = SRSLTE_LDPC_DECODER_C_AVX2;
-    }
-#endif // LV_HAVE_AVX2
+  srslte_ldpc_decoder_type_t decoder_type =
+      args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_FLOOD : SRSLTE_LDPC_DECODER_C;
+
+#ifdef LV_HAVE_AVX512
+  if (!args->disable_simd) {
+    decoder_type = args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_AVX512_FLOOD : SRSLTE_LDPC_DECODER_C_AVX512;
   }
+#else // LV_HAVE_AVX512
+#ifdef LV_HAVE_AVX2
+  if (!args->disable_simd) {
+    decoder_type = args->decoder_use_flooded ? SRSLTE_LDPC_DECODER_C_AVX2_FLOOD : SRSLTE_LDPC_DECODER_C_AVX2;
+  }
+#endif // LV_HAVE_AVX2
+#endif // LV_HAVE_AVX512
 
   // If the scaling factor is not provided use a default value that allows decoding all possible combinations of nPRB
   // and MCS indexes for all possible MCS tables
@@ -292,29 +294,29 @@ int srslte_sch_nr_init_rx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
 
     q->decoder_bg1[ls] = calloc(1, sizeof(srslte_ldpc_decoder_t));
     if (!q->decoder_bg1[ls]) {
-      ERROR("Error: calloc\n");
+      ERROR("Error: calloc");
       return SRSLTE_ERROR;
     }
 
     if (srslte_ldpc_decoder_init(q->decoder_bg1[ls], decoder_type, BG1, ls, scaling_factor) < SRSLTE_SUCCESS) {
-      ERROR("Error: initialising BG1 LDPC decoder for ls=%d\n", ls);
+      ERROR("Error: initialising BG1 LDPC decoder for ls=%d", ls);
       return SRSLTE_ERROR;
     }
 
     q->decoder_bg2[ls] = calloc(1, sizeof(srslte_ldpc_decoder_t));
     if (!q->decoder_bg2[ls]) {
-      ERROR("Error: calloc\n");
+      ERROR("Error: calloc");
       return SRSLTE_ERROR;
     }
 
     if (srslte_ldpc_decoder_init(q->decoder_bg2[ls], decoder_type, BG2, ls, scaling_factor) < SRSLTE_SUCCESS) {
-      ERROR("Error: initialising BG2 LDPC decoder for ls=%d\n", ls);
+      ERROR("Error: initialising BG2 LDPC decoder for ls=%d", ls);
       return SRSLTE_ERROR;
     }
   }
 
   if (srslte_ldpc_rm_rx_init_c(&q->rx_rm) < SRSLTE_SUCCESS) {
-    ERROR("Error: initialising Rx LDPC Rate matching\n");
+    ERROR("Error: initialising Rx LDPC Rate matching");
     return SRSLTE_ERROR;
   }
 
@@ -378,7 +380,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
   }
 
   if (!tb->softbuffer.tx) {
-    ERROR("Error: Missing Tx softbuffer\n");
+    ERROR("Error: Missing Tx softbuffer");
     return SRSLTE_ERROR;
   }
 
@@ -392,19 +394,19 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
 
   // Check encoder
   if (cfg.encoder == NULL) {
-    ERROR("Error: encoder for lifting size Z=%d not found\n", cfg.Z);
+    ERROR("Error: encoder for lifting size Z=%d not found (tbs=%d)", cfg.Z, tb->tbs);
     return SRSLTE_ERROR;
   }
 
   // Check CRC for TB
   if (cfg.crc_tb == NULL) {
-    ERROR("Error: CRC for TB not found\n");
+    ERROR("Error: CRC for TB not found");
     return SRSLTE_ERROR;
   }
 
   // Soft-buffer number of code-block protection
   if (tb->softbuffer.tx->max_cb < cfg.C) {
-    ERROR("Soft-buffer does not have enough code-blocks (max_cb=%d) for a TBS=%d, C=%d.\n",
+    ERROR("Soft-buffer does not have enough code-blocks (max_cb=%d) for a TBS=%d, C=%d.",
           tb->softbuffer.tx->max_cb,
           tb->tbs,
           cfg.C);
@@ -412,7 +414,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
   }
 
   if (tb->softbuffer.tx->max_cb_size < (cfg.encoder->liftN - 2 * cfg.Z)) {
-    ERROR("Soft-buffer code-block maximum size insufficient (max_cb_size=%d) for a TBS=%d, requires %d.\n",
+    ERROR("Soft-buffer code-block maximum size insufficient (max_cb_size=%d) for a TBS=%d, requires %d.",
           tb->softbuffer.tx->max_cb_size,
           tb->tbs,
           (cfg.encoder->liftN - 2 * cfg.Z));
@@ -432,7 +434,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
     // Select rate matching circular buffer
     uint8_t* rm_buffer = tb->softbuffer.tx->buffer_b[r];
     if (rm_buffer == NULL) {
-      ERROR("Error: soft-buffer provided NULL buffer for cb_idx=%d\n", r);
+      ERROR("Error: soft-buffer provided NULL buffer for cb_idx=%d", r);
       return SRSLTE_ERROR;
     }
 
@@ -450,7 +452,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
         // Append TB CRC
         uint8_t* ptr = &q->temp_cb[cb_len];
         srslte_bit_unpack(checksum_tb, &ptr, cfg.L_tb);
-        SCH_INFO_TX("CB %d: appending TB CRC=%06x\n", r, checksum_tb);
+        SCH_INFO_TX("CB %d: appending TB CRC=%06x", r, checksum_tb);
       } else {
         // Copy payload
         srslte_bit_unpack_vector(input_ptr, q->temp_cb, (int)cb_len);
@@ -466,7 +468,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
       // Attach code block CRC if required
       if (cfg.L_cb) {
         srslte_crc_attach(&q->crc_cb, q->temp_cb, (int)(cfg.Kp - cfg.L_cb));
-        SCH_INFO_TX("CB %d: CRC=%06x\n", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
+        SCH_INFO_TX("CB %d: CRC=%06x", r, (uint32_t)srslte_crc_checksum_get(&q->crc_cb));
       }
 
       // Insert filler bits
@@ -493,7 +495,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
     j++;
 
     // LDPC Rate matching
-    SCH_INFO_TX("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
+    SCH_INFO_TX("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;",
                 r,
                 E,
                 cfg.F,
@@ -530,13 +532,13 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
 
   // Check decoder
   if (cfg.decoder == NULL) {
-    ERROR("Error: decoder for lifting size Z=%d not found\n", cfg.Z);
+    ERROR("Error: decoder for lifting size Z=%d not found", cfg.Z);
     return SRSLTE_ERROR;
   }
 
   // Check CRC for TB
   if (cfg.crc_tb == NULL) {
-    ERROR("Error: CRC for TB not found\n");
+    ERROR("Error: CRC for TB not found");
     return SRSLTE_ERROR;
   }
 
@@ -554,7 +556,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
     bool    decoded   = tb->softbuffer.rx->cb_crc[r];
     int8_t* rm_buffer = (int8_t*)tb->softbuffer.tx->buffer_b[r];
     if (!rm_buffer) {
-      ERROR("Error: soft-buffer provided NULL buffer for cb_idx=%d\n", r);
+      ERROR("Error: soft-buffer provided NULL buffer for cb_idx=%d", r);
       return SRSLTE_ERROR;
     }
 
@@ -563,7 +565,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
       if (decoded) {
         cb_ok++;
       }
-      SCH_INFO_RX("RM CB %d: Disabled, CRC %s ... Skipping\n", r, decoded ? "OK" : "KO");
+      SCH_INFO_RX("RM CB %d: Disabled, CRC %s ... Skipping", r, decoded ? "OK" : "KO");
       continue;
     }
 
@@ -573,13 +575,13 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
 
     // Skip CB if it has a matched CRC
     if (decoded) {
-      SCH_INFO_RX("RM CB %d: CRC OK ... Skipping\n", r);
+      SCH_INFO_RX("RM CB %d: CRC OK ... Skipping", r);
       cb_ok++;
       continue;
     }
 
     // LDPC Rate matching
-    SCH_INFO_RX("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;\n",
+    SCH_INFO_RX("RM CB %d: E=%d; F=%d; BG=%d; Z=%d; RV=%d; Qm=%d; Nref=%d;",
                 r,
                 E,
                 cfg.F,
@@ -601,7 +603,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
       uint32_t checksum2           = srslte_bit_pack(&ptr, cfg.L_cb);
       tb->softbuffer.rx->cb_crc[r] = (checksum1 == checksum2);
 
-      SCH_INFO_RX("CB %d/%d: CRC={%06x, %06x} ... %s\n",
+      SCH_INFO_RX("CB %d/%d: CRC={%06x, %06x} ... %s",
                   r,
                   cfg.C,
                   checksum1,
@@ -648,11 +650,17 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
       }
     }
 
+    // Check if TB is all zeros
+    bool all_zeros = true;
+    for (uint32_t i = 0; i < tb->tbs && all_zeros; i++) {
+      all_zeros = (data[i] == 0);
+    }
+
     // Calculate TB CRC from packed data
     uint32_t checksum1 = srslte_crc_checksum_byte(cfg.crc_tb, data, tb->tbs);
-    *crc_ok            = (checksum1 == checksum2);
+    *crc_ok            = (checksum1 == checksum2 && !all_zeros);
 
-    SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}\n", tb->tbs, checksum1, checksum2);
+    SCH_INFO_RX("TB: TBS=%d; CRC={%06x, %06x}", tb->tbs, checksum1, checksum2);
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {
       DEBUG("Decode: ");
       srslte_vec_fprint_byte(stdout, data, tb->tbs / 8);
@@ -710,10 +718,10 @@ int srslte_sch_nr_tb_info(const srslte_sch_tb_t* tb, char* str, uint32_t str_len
     len += srslte_print_check(str,
                               str_len,
                               len,
-                              "tb={mod=%s,Nl=%d,TBS=%d,R=%.3f,rv=%d,Nre=%d,Nbit=%d,cw=%d}",
+                              "tb={mod=%s,Nl=%d,tbs=%d,R=%.3f,rv=%d,Nre=%d,Nbit=%d,cw=%d}",
                               srslte_mod_string(tb->mod),
                               tb->N_L,
-                              tb->tbs,
+                              tb->tbs / 8,
                               tb->R,
                               tb->rv,
                               tb->nof_re,

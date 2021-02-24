@@ -93,7 +93,7 @@ int              deinter_table_idx_from_sb_len(uint32_t nof_subblocks)
     }
   }
   if (nof_subblocks != 0) {
-    ERROR("Error number of sub-blocks %d not supported in RM\n", nof_subblocks);
+    ERROR("Error number of sub-blocks %d not supported in RM", nof_subblocks);
   }
   return -1;
 }
@@ -104,7 +104,6 @@ static uint16_t temp_table1[3 * 6176], temp_table2[3 * 6176];
 
 static void srslte_rm_turbo_gentable_systematic(uint16_t* table_bits, int k0_vec_[4][2], uint32_t nrows, int ndummy)
 {
-
   bool last_is_null = true;
   int  k_b = 0, buff_idx = 0;
   for (int j = 0; j < NCOLS; j++) {
@@ -131,7 +130,6 @@ static void srslte_rm_turbo_gentable_systematic(uint16_t* table_bits, int k0_vec
 static void
 srslte_rm_turbo_gentable_parity(uint16_t* table_parity, int k0_vec_[4][2], int offset, uint16_t nrows, int ndummy)
 {
-
   bool last_is_null = true;
   int  k_b = 0, buff_idx0 = 0;
   int  K_p       = nrows * NCOLS;
@@ -176,7 +174,6 @@ srslte_rm_turbo_gentable_parity(uint16_t* table_parity, int k0_vec_[4][2], int o
 
 static void srslte_rm_turbo_gentable_receive(uint16_t* table, uint32_t cb_len, uint32_t rv_idx)
 {
-
   int nrows  = (uint32_t)(cb_len / 3 - 1) / NCOLS + 1;
   int ndummy = nrows * NCOLS - cb_len / 3;
   if (ndummy < 0) {
@@ -267,7 +264,6 @@ static void interleave_table_sb(uint16_t* in, uint16_t* out, uint32_t cb_idx, ui
   for (int i = 0; i < out_len; i++) {
     // Do not change tail bit order
     if (in[i] < 3 * long_cb) {
-
       // align to 32 bytes (warning: must be same alignment as in rm_turbo.c)
       out[i] = (in[i] % 3) * (long_cb + 32) + inter(in[i] / 3, nof_sb);
     } else {
@@ -355,14 +351,11 @@ int srslte_rm_turbo_tx_lut(uint8_t* w_buff,
                            uint32_t w_offset,
                            uint32_t rv_idx)
 {
-
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-
     int in_len = 3 * srslte_cbsegm_cbsize(cb_idx) + 12;
 
     /* Sub-block interleaver (5.1.4.1.1) and bit collection */
     if (rv_idx == 0) {
-
       // Systematic bits
       // srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
       srslte_bit_interleaver_run(&bit_interleavers_systematic_bits[cb_idx], systematic, w_buff, 0);
@@ -414,9 +407,7 @@ int srslte_rm_turbo_rx_lut_(int16_t* input,
                             uint32_t rv_idx,
                             bool     enable_input_tdec)
 {
-
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-
 #if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
     int       cb_len  = srslte_cbsegm_cbsize(cb_idx);
     int       idx     = deinter_table_idx_from_sb_len(srslte_tdec_autoimp_get_subblocks(cb_len));
@@ -426,7 +417,7 @@ int srslte_rm_turbo_rx_lut_(int16_t* input,
     } else if (idx < NOF_DEINTER_TABLE_SB_IDX) {
       deinter = deinterleaver_sb[idx][cb_idx][rv_idx];
     } else {
-      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()\n", idx);
+      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()", idx);
       return -1;
     }
 #else
@@ -456,7 +447,6 @@ int srslte_rm_turbo_rx_lut_(int16_t* input,
 int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
 {
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-
 #if SRSLTE_TDEC_EXPECT_INPUT_SB == 1
     int       cb_len  = srslte_cbsegm_cbsize(cb_idx);
     int       idx     = deinter_table_idx_from_sb_len(srslte_tdec_autoimp_get_subblocks_8bit(cb_len));
@@ -466,7 +456,7 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, 
     } else if (idx < NOF_DEINTER_TABLE_SB_IDX) {
       deinter = deinterleaver_sb[idx][cb_idx][rv_idx];
     } else {
-      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()\n", idx);
+      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()", idx);
       return -1;
     }
 #else
@@ -996,7 +986,6 @@ int srslte_rm_turbo_tx(uint8_t* w_buff,
                        uint32_t out_len,
                        uint32_t rv_idx)
 {
-
   int ndummy, kidx;
   int nrows, K_p;
 
@@ -1087,7 +1076,6 @@ int srslte_rm_turbo_rx(float*   w_buff,
                        uint32_t rv_idx,
                        uint32_t nof_filler_bits)
 {
-
   int  nrows, ndummy, K_p, k0, N_cb, jp, kidx;
   int  i, j, k;
   int  d_i, d_j;
@@ -1096,7 +1084,7 @@ int srslte_rm_turbo_rx(float*   w_buff,
   nrows = (uint16_t)(out_len / 3 - 1) / NCOLS + 1;
   K_p   = nrows * NCOLS;
   if (3 * K_p > w_buff_len) {
-    ERROR("Output too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
+    ERROR("Output too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)",
           w_buff_len,
           nrows,
           out_len);
@@ -1104,7 +1092,7 @@ int srslte_rm_turbo_rx(float*   w_buff,
   }
 
   if (out_len < 3) {
-    ERROR("Error minimum input length for rate matching is 3\n");
+    ERROR("Error minimum input length for rate matching is 3");
     return -1;
   }
 

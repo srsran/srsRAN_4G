@@ -125,6 +125,7 @@ void srslog_error(srslog_logger* log, const char* fmt, ...);
 const char* srslog_get_logger_id(srslog_logger* log);
 
 typedef enum {
+  srslog_lvl_none,    /**< disable logger */
   srslog_lvl_error,   /**< error logging level */
   srslog_lvl_warning, /**< warning logging level */
   srslog_lvl_info,    /**< info logging level */

@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "../phy_common.h"
+#include "srslte/srslog/srslog.h"
 
 #define LOG_EXECTIME
 
@@ -34,9 +35,9 @@ namespace lte {
 class cc_worker
 {
 public:
-  cc_worker();
+  cc_worker(srslog::basic_logger& logger);
   ~cc_worker();
-  void init(phy_common* phy, srslte::log* log_h, uint32_t cc_idx);
+  void init(phy_common* phy, uint32_t cc_idx);
   void reset();
 
   cf_t* get_buffer_rx(uint32_t antenna_idx);
@@ -79,9 +80,9 @@ private:
   int  decode_pucch();
 
   /* Common objects */
-  srslte::log* log_h     = nullptr;
-  phy_common*  phy       = nullptr;
-  bool         initiated = false;
+  srslog::basic_logger& logger;
+  phy_common*           phy       = nullptr;
+  bool                  initiated = false;
 
   cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS] = {};
   cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS] = {};

@@ -39,6 +39,7 @@ namespace srslte {
 // LTE and NR common config
 const uint8_t PDCP_SN_LEN_5  = 5;
 const uint8_t PDCP_SN_LEN_7  = 7;
+const uint8_t PDCP_SN_LEN_15 = 15;
 const uint8_t PDCP_SN_LEN_12 = 12;
 const uint8_t PDCP_SN_LEN_18 = 18;
 
@@ -50,6 +51,18 @@ enum pdcp_dc_field_t {
   PDCP_DC_FIELD_N_ITEMS,
 };
 static const char* pdcp_dc_field_text[PDCP_DC_FIELD_N_ITEMS] = {"Control PDU", "Data PDU"};
+
+enum pdcp_pdu_type_t {
+  PDCP_PDU_TYPE_STATUS_REPORT = 0,
+  PDCP_PDU_TYPE_INTERSPERSED_ROHC_FEEDBACK_PACKET,
+  PDCP_PDU_TYPE_LWA_STATUS_REPORT,
+  PDCP_PDU_TYPE_LWA_END_MARKER_PACKET,
+  PDCP_PDU_TYPE_N_ITEMS,
+};
+static const char* pdcp_pdu_type_text[PDCP_PDU_TYPE_N_ITEMS] = {"PDCP Report PDU",
+                                                                "Interspersed ROCH Feedback Packet",
+                                                                "LWA Status Report",
+                                                                "LWA End-marker Packet"};
 
 // Taken from PDCP-Config (TS 38.331 version 15.2.1)
 enum class pdcp_t_reordering_t {
@@ -120,14 +133,16 @@ public:
                 security_direction_t rx_direction_,
                 uint8_t              sn_len_,
                 pdcp_t_reordering_t  t_reordering_,
-                pdcp_discard_timer_t discard_timer_) :
+                pdcp_discard_timer_t discard_timer_,
+                bool                 status_report_required_) :
     bearer_id(bearer_id_),
     rb_type(rb_type_),
     tx_direction(tx_direction_),
     rx_direction(rx_direction_),
     sn_len(sn_len_),
     t_reordering(t_reordering_),
-    discard_timer(discard_timer_)
+    discard_timer(discard_timer_),
+    status_report_required(status_report_required_)
   {
     hdr_len_bytes = ceilf((float)sn_len / 8);
   }
@@ -141,6 +156,8 @@ public:
 
   pdcp_t_reordering_t  t_reordering  = pdcp_t_reordering_t::ms500;
   pdcp_discard_timer_t discard_timer = pdcp_discard_timer_t::infinity;
+
+  bool status_report_required = false;
 
   // TODO: Support the following configurations
   // bool do_rohc;

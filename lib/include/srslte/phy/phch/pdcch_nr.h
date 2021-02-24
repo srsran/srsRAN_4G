@@ -113,6 +113,14 @@ SRSLTE_API int srslte_pdcch_nr_init_rx(srslte_pdcch_nr_t* q, const srslte_pdcch_
 
 SRSLTE_API void srslte_pdcch_nr_free(srslte_pdcch_nr_t* q);
 
+/**
+ * @brief Sets carrier and CORESET configuration for a given PDCCH object
+ * @note This function shall not allocate, free memory or perform any heavy computations
+ * @param[in,out] q PDCCH encoder/decoder object
+ * @param[in] carrier New carrier configuration
+ * @param[in] coreset New CORESET configuration
+ * @return SRSLTE_SUCCESS if the configurations are valid, otherwise it returns an SRSLTE_ERROR code
+ */
 SRSLTE_API int
 srslte_pdcch_nr_set_carrier(srslte_pdcch_nr_t* q, const srslte_carrier_nr_t* carrier, const srslte_coreset_t* coreset);
 

@@ -128,8 +128,8 @@ int test_eutra_nr_capabilities()
 
   TESTASSERT(test_pack_unpack_consistency(mrdc_cap) == SRSASN_SUCCESS);
 
-  srslte::logmap::get("RRC")->info_hex(
-      buffer, bref.distance_bytes(), "Packed cap struct (%d bytes):\n", bref.distance_bytes());
+  srslog::fetch_basic_logger("RRC").info(
+      buffer, bref.distance_bytes(), "Packed cap struct (%d bytes):", bref.distance_bytes());
 
   return SRSLTE_SUCCESS;
 }
@@ -186,7 +186,7 @@ int test_ue_rrc_reconfiguration()
   TESTASSERT(rrc_recfg.rrc_transaction_id == 0);
   json_writer jw;
   rrc_recfg.to_json(jw);
-  srslte::logmap::get("RRC")->info_long("RRC Reconfig: \n %s \n", jw.to_string().c_str());
+  srslog::fetch_basic_logger("RRC").info("RRC Reconfig: \n %s", jw.to_string().c_str());
 
   TESTASSERT(rrc_recfg.crit_exts.type() == asn1::rrc_nr::rrc_recfg_s::crit_exts_c_::types::rrc_recfg);
   TESTASSERT(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group_present == true);
@@ -195,9 +195,9 @@ int test_ue_rrc_reconfiguration()
   cbit_ref         bref0(rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.data(),
                  rrc_recfg.crit_exts.rrc_recfg().secondary_cell_group.size());
   TESTASSERT(cell_group_cfg.unpack(bref0) == SRSASN_SUCCESS);
-  json_writer jw1;
-  cell_group_cfg.to_json(jw1);
-  srslte::logmap::get("RRC")->info_long("RRC Secondary Cell Group: \n %s \n", jw1.to_string().c_str());
+  // json_writer jw1;
+  // cell_group_cfg.to_json(jw1);
+  // srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: \n %s", jw1.to_string().c_str());
   TESTASSERT(cell_group_cfg.cell_group_id == 1);
   TESTASSERT(cell_group_cfg.rlc_bearer_to_add_mod_list_present == true);
   TESTASSERT(cell_group_cfg.rlc_bearer_to_add_mod_list.size() == 1);
@@ -214,9 +214,9 @@ int test_radio_bearer_config()
   cbit_ref           bref(&rrc_msg[0], sizeof(rrc_msg));
   radio_bearer_cfg_s radio_bearer_cfg;
   TESTASSERT(radio_bearer_cfg.unpack(bref) == SRSASN_SUCCESS);
-  json_writer jw;
-  radio_bearer_cfg.to_json(jw);
-  srslte::logmap::get("RRC")->info_long("RRC Bearer CFG Message: \n %s \n", jw.to_string().c_str());
+  // json_writer jw;
+  // radio_bearer_cfg.to_json(jw);
+  // srslog::fetch_basic_logger("RRC").info("RRC Bearer CFG Message: \n %s", jw.to_string().c_str());
   TESTASSERT(radio_bearer_cfg.drb_to_add_mod_list_present == true);
   TESTASSERT(radio_bearer_cfg.drb_to_add_mod_list.size() == 1);
   TESTASSERT(radio_bearer_cfg.security_cfg_present == true);
@@ -225,15 +225,105 @@ int test_radio_bearer_config()
   return SRSLTE_SUCCESS;
 }
 
+int test_cell_group_config()
+{
+  uint8_t cell_group_config_raw[] = "\x5c\x40\xb1\xc0\x33\xc8\x53\xe0\x12\x0f\x05\x38\x0f\x80\x41\x15"
+                                    "\x07\xad\x40\x00\xba\x14\xe6\x37\xd1\xa4\xd3\xa0\x01\x34\x9a\x5f"
+                                    "\xc0\x00\x00\x33\x63\x6c\x91\x28\x80\x7f\xc0\x00\x00\x00\x00\x46"
+                                    "\xe0\x88\x40\x00\x01\x01\x00\x34\x45\x03\x9c\x00\x00\x00\x33\x71"
+                                    "\xb6\x48\x90\x04\x00\x08\x2e\x25\x18\xf0\x02\x4a\x31\x06\xe2\x8d"
+                                    "\xb8\x44\x70\x0c\x02\x10\x38\x1d\x80\x48\xf1\x18\x5e\xea\x00\x08"
+                                    "\x0e\x01\x25\xc0\xca\x80\x01\x7f\x80\x00\x00\x00\x00\x83\x70\x88"
+                                    "\x20\x00\x08\x81\x65\x00\x20\xc8\x20\x00\x02\x06\x98\x10\x14\x50"
+                                    "\xa0\x00\xe4\x81\x80\x00\x13\x35\x56\x48\x41\xc0\x01\x04\x0c\x20"
+                                    "\x50\xc1\xc9\xc4\x09\x14\x2c\x60\xd1\xc3\xc8\xe0\x00\x03\x32\x14"
+                                    "\x03\x02\x00\x19\x94\xa0\x18\x20\x00\xcc\xc5\x00\xc1\x80\x06\x64"
+                                    "\x28\x0e\x10\x00\x33\x29\x40\x70\xa0\x01\x99\x8a\x03\x86\x00\x0c"
+                                    "\xc8\x50\x2c\x38\x00\x66\x52\x81\x62\x06\x60\x04\x16\xc4\x80\x46"
+                                    "\x48\x21\x8a\x00\x8c\x90\x4b\x16\x01\x19\x20\xa6\x30\x02\x32\x41"
+                                    "\x6c\x68\x04\x64\x83\x18\xe0\x08\xc9\x06\xb1\xe0\x11\x92\x0e\x64"
+                                    "\x00\x03\x33\x14\x0b\x22\x32\x00\xa0\x84\x09\x08\x60\x51\x04\x34"
+                                    "\x3b\x2a\x65\xcd\x01\xa4\x92\x1e\x2e\xe0\x0c\x10\xe0\x00\x00\x01"
+                                    "\x8f\xfd\x29\x49\x8c\x63\x72\x81\x60\x00\x02\x19\x70\x00\x00\x00"
+                                    "\x00\x00\x00\x62\xf0\x0f\xa0\x84\x8a\xd5\x45\x00\x47\x00\x18\x00"
+                                    "\x08\x20\x00\xe2\x10\x02\x40\x80\x70\x10\x10\x84\x00\x0e\x21\x00"
+                                    "\x1c\xb0\x0e\x04\x02\x20\x80\x01\xc4\x20\x03\x96\x01\xc0\xc0\x42"
+                                    "\x10\x00\x38\x84\x00\x73\x00\x38\x20\x08\x82\x00\x07\x10\x80\x0e"
+                                    "\x60\x00\x40\x00\x00\x04\x10\xc0\x40\x80\xc1\x00\xe0\xd0\x00\x0e"
+                                    "\x48\x10\x00\x00\x02\x00\x40\x00\x80\x60\x00\x80\x90\x02\x20\x0a"
+                                    "\x40\x00\x02\x38\x90\x11\x31\xc8";
+
+  asn1::SRSASN_CODE err;
+
+  cbit_ref         bref(&cell_group_config_raw[0], sizeof(cell_group_config_raw));
+  cell_group_cfg_s cell_group_cfg;
+
+  TESTASSERT(cell_group_cfg.unpack(bref) == SRSASN_SUCCESS);
+
+  TESTASSERT(test_pack_unpack_consistency(cell_group_cfg) == SRSASN_SUCCESS);
+
+  TESTASSERT(cell_group_cfg.sp_cell_cfg_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.serv_cell_idx_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.init_dl_bwp_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.first_active_dl_bwp_id_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.ul_cfg_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.pdcch_serving_cell_cfg_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.pdsch_serving_cell_cfg_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.sp_cell_cfg_ded.csi_meas_cfg_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync_present = true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.pci == 500);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.dl_cfg_common_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present == true);
+  TESTASSERT(cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp_present == true);
+  TESTASSERT(
+      cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common_present ==
+      true);
+
+  TESTASSERT(
+      cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.type() ==
+      asn1::rrc_nr::setup_release_c<rach_cfg_common_s>::types_opts::setup);
+
+  asn1::rrc_nr::rach_cfg_common_s& rach_cfg_common =
+      cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup();
+  
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.prach_cfg_idx == 16);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.msg1_fdm == asn1::rrc_nr::rach_cfg_generic_s::msg1_fdm_opts::one);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.zero_correlation_zone_cfg == 0);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.preamb_rx_target_pwr == -110);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.preamb_trans_max == asn1::rrc_nr::rach_cfg_generic_s::preamb_trans_max_opts::n7);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.pwr_ramp_step == asn1::rrc_nr::rach_cfg_generic_s::pwr_ramp_step_opts::db4);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.ra_resp_win == asn1::rrc_nr::rach_cfg_generic_s::ra_resp_win_opts::sl10);
+  TESTASSERT(rach_cfg_common.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present == true);
+
+  // asn1::json_writer json_writer;
+  // cell_group_cfg.to_json(json_writer);
+  // srslog::fetch_basic_logger("RRC").info("RRC Secondary Cell Group: Content: %s\n", json_writer.to_string().c_str());
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
 
-  TESTASSERT(test_eutra_nr_capabilities() == 0);
-  TESTASSERT(test_ue_mrdc_capabilities() == 0);
-  TESTASSERT(test_ue_rrc_reconfiguration() == 0);
-  TESTASSERT(test_radio_bearer_config() == 0);
+  // Start the log backend.
+  srslog::init();
 
+  TESTASSERT(test_eutra_nr_capabilities() == SRSLTE_SUCCESS);
+  TESTASSERT(test_ue_mrdc_capabilities() == SRSLTE_SUCCESS);
+  TESTASSERT(test_ue_rrc_reconfiguration() == SRSLTE_SUCCESS);
+  TESTASSERT(test_radio_bearer_config() == SRSLTE_SUCCESS);
+  TESTASSERT(test_cell_group_config() == SRSLTE_SUCCESS);
+  
+  srslog::flush();
   printf("Success\n");
   return 0;
 }

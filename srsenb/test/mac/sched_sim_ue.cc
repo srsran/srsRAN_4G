@@ -49,7 +49,8 @@ bool sim_ue_ctxt_t::is_last_dl_retx(uint32_t ue_cc_idx, uint32_t pid) const
 ue_sim::ue_sim(uint16_t                         rnti_,
                const sched_interface::ue_cfg_t& ue_cfg_,
                srslte::tti_point                prach_tti_rx_,
-               uint32_t                         preamble_idx)
+               uint32_t                         preamble_idx) :
+  logger(srslog::fetch_basic_logger("MAC"))
 {
   ctxt.rnti         = rnti_;
   ctxt.prach_tti_rx = prach_tti_rx_;
@@ -223,14 +224,14 @@ int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_
 {
   CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
                 (*cell_params)[ue_cfg_.supported_cc_list[0].enb_cc_idx].prach_config, current_tti_rx.to_uint(), -1),
-            "New user added in a non-PRACH TTI\n");
+            "New user added in a non-PRACH TTI");
   TESTASSERT(ue_db.count(rnti) == 0);
 
   final_ue_cfg[rnti] = ue_cfg_;
   auto rach_cfg      = generate_rach_ue_cfg(ue_cfg_);
   ue_db.insert(std::make_pair(rnti, ue_sim(rnti, rach_cfg, current_tti_rx, preamble_idx)));
 
-  CONDERROR(sched_ptr->ue_cfg(rnti, rach_cfg) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
+  CONDERROR(sched_ptr->ue_cfg(rnti, rach_cfg) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched", rnti);
 
   sched_interface::dl_sched_rar_info_t rar_info = {};
   rar_info.prach_tti                            = current_tti_rx.to_uint();
@@ -245,9 +246,9 @@ int sched_sim_base::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_
 
 int sched_sim_base::ue_recfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
 {
-  CONDERROR(ue_db.count(rnti) == 0, "User must already exist to be configured\n");
+  CONDERROR(ue_db.count(rnti) == 0, "User must already exist to be configured");
   ue_db.at(rnti).set_cfg(ue_cfg_);
-  CONDERROR(sched_ptr->ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
+  CONDERROR(sched_ptr->ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched", rnti);
 
   return SRSLTE_SUCCESS;
 }
@@ -339,7 +340,7 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
       auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].dl_harqs[cc_feedback.dl_pid];
 
       if (cc_feedback.dl_ack) {
-        log_h->info("DL ACK rnti=0x%x tti_dl_tx=%u pid=%d\n",
+        logger.info("DL ACK rnti=0x%x tti_dl_tx=%u pid=%d",
                     ue_ctxt.rnti,
                     to_tx_dl(h.last_tti_rx).to_uint(),
                     cc_feedback.dl_pid);
@@ -348,7 +349,7 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
       // update scheduler
       if (sched_ptr->dl_ack_info(
               events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.tb, cc_feedback.dl_ack) < 0) {
-        log_h->error("The ACKed DL Harq pid=%d does not exist.\n", cc_feedback.dl_pid);
+        logger.error("The ACKed DL Harq pid=%d does not exist.", cc_feedback.dl_pid);
         error_counter++;
       }
 
@@ -362,7 +363,7 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
       auto& h = ue_ctxt.cc_list[cc_feedback.ue_cc_idx].ul_harqs[cc_feedback.dl_pid];
 
       if (cc_feedback.ul_ack) {
-        log_h->info("UL ACK rnti=0x%x tti_ul_tx=%u pid=%d\n",
+        logger.info("UL ACK rnti=0x%x tti_ul_tx=%u pid=%d",
                     ue_ctxt.rnti,
                     to_tx_ul(h.last_tti_rx).to_uint(),
                     cc_feedback.ul_pid);
@@ -370,7 +371,7 @@ int sched_sim_base::apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events
 
       // update scheduler
       if (sched_ptr->ul_crc_info(events.tti_rx.to_uint(), ue_ctxt.rnti, enb_cc_idx, cc_feedback.ul_ack) < 0) {
-        log_h->error("The ACKed UL Harq pid=%d does not exist.\n", cc_feedback.ul_pid);
+        logger.error("The ACKed UL Harq pid=%d does not exist.", cc_feedback.ul_pid);
         error_counter++;
       }
     }

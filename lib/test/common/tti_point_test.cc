@@ -77,6 +77,7 @@ int test_tti_type()
 
 int main()
 {
+  srslog::init();
   TESTASSERT(test_tti_type() == SRSLTE_SUCCESS);
   return 0;
 }

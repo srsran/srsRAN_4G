@@ -24,6 +24,7 @@
 
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <sstream>
 #include <stdint.h>
 #include <stdio.h>
@@ -127,10 +128,10 @@ template <class SubH>
 class pdu
 {
 public:
-  pdu(uint32_t max_subheaders_, log_ref log_h_) :
+  pdu(uint32_t max_subheaders_, srslog::basic_logger& logger) :
     max_subheaders(max_subheaders_),
     subheaders(max_subheaders_),
-    log_h(log_h_),
+    logger(logger),
     nof_subheaders(0),
     cur_idx(-1),
     pdu_len(0),
@@ -242,12 +243,7 @@ public:
       if (ret && ((ptr - init_ptr) >= (int32_t)pdu_len)) {
         // stop processing last subheader indicates another one but all bytes are consumed
         nof_subheaders = 0;
-        if (log_h) {
-          log_h->warning_hex(
-              init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
-        } else {
-          srslte::console("Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
-        }
+        logger.warning(init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)", pdu_len);
         return SRSLTE_ERROR;
       }
     } while (ret && (nof_subheaders + 1) < (int)max_subheaders && ((int32_t)pdu_len > (ptr - init_ptr)));
@@ -258,13 +254,7 @@ public:
       // stop processing if we read payload beyond the PDU length
       if ((ptr - init_ptr) > (int32_t)pdu_len) {
         nof_subheaders = 0;
-
-        if (log_h) {
-          log_h->warning_hex(
-              init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
-        } else {
-          srslte::console("Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
-        }
+        logger.warning(init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)", pdu_len);
         return SRSLTE_ERROR;
       }
     }
@@ -272,16 +262,16 @@ public:
   }
 
 protected:
-  std::vector<SubH> subheaders;
-  uint32_t          pdu_len;
-  uint32_t          rem_len;
-  int               cur_idx;
-  int               nof_subheaders;
-  uint32_t          max_subheaders;
-  bool              pdu_is_ul;
-  byte_buffer_t*    buffer_tx = nullptr;
-  int               last_sdu_idx;
-  srslte::log_ref   log_h;
+  std::vector<SubH>     subheaders;
+  uint32_t              pdu_len;
+  uint32_t              rem_len;
+  int                   cur_idx;
+  int                   nof_subheaders;
+  uint32_t              max_subheaders;
+  bool                  pdu_is_ul;
+  byte_buffer_t*        buffer_tx = nullptr;
+  int                   last_sdu_idx;
+  srslog::basic_logger& logger;
 
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
   virtual void init_(byte_buffer_t* buffer_tx_, uint32_t pdu_len_bytes, bool is_ulsch)
@@ -401,11 +391,11 @@ private:
 class sch_pdu : public pdu<sch_subh>
 {
 public:
-  sch_pdu(uint32_t max_subh, const log_ref& log_h_) : pdu(max_subh, log_h_) {}
+  sch_pdu(uint32_t max_subh, srslog::basic_logger& logger) : pdu(max_subh, logger) {}
 
   void     parse_packet(uint8_t* ptr);
   uint8_t* write_packet();
-  uint8_t* write_packet(srslte::log_ref log);
+  uint8_t* write_packet(srslog::basic_logger& log);
   bool     has_space_ce(uint32_t nbytes, bool var_len = false);
   bool     has_space_sdu(uint32_t nbytes);
   int      get_pdu_len();
@@ -466,7 +456,7 @@ private:
 class rar_pdu : public pdu<rar_subh>
 {
 public:
-  rar_pdu(uint32_t max_rars = 16, srslte::log_ref log_ = srslte::logmap::get("MAC"));
+  rar_pdu(uint32_t max_rars = 16, srslog::basic_logger& logger = srslog::fetch_basic_logger("MAC"));
 
   void    set_backoff(uint8_t bi);
   bool    has_backoff();
@@ -483,7 +473,7 @@ private:
 class mch_pdu : public sch_pdu
 {
 public:
-  mch_pdu(uint32_t max_subh, const log_ref& log_h_) : sch_pdu(max_subh, log_h_) {}
+  mch_pdu(uint32_t max_subh, srslog::basic_logger& logger) : sch_pdu(max_subh, logger) {}
 
 private:
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */

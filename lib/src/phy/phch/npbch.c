@@ -291,7 +291,7 @@ int srslte_npbch_encode(srslte_npbch_t* q,
 
     // generate new BCH message every 64 frames
     if ((frame_idx % SRSLTE_NPBCH_NUM_FRAMES) == 0) {
-      INFO("Encoding new NPBCH signal in frame %d.\n", frame_idx);
+      INFO("Encoding new NPBCH signal in frame %d.", frame_idx);
 
       memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSLTE_MIB_NB_LEN);
 
@@ -306,7 +306,7 @@ int srslte_npbch_encode(srslte_npbch_t* q,
 
     // Scramble and modulate a new block every 8 frames
     if (frame_idx % SRSLTE_NPBCH_NUM_REP == 0) {
-      INFO("Modulating MIB-NB block %d in frame %d.\n", block_idx, frame_idx);
+      INFO("Modulating MIB-NB block %d in frame %d.", block_idx, frame_idx);
       srslte_scrambling_b_offset(&q->seq, &q->rm_b[block_idx * nof_bits], block_idx * nof_bits, nof_bits);
       srslte_mod_modulate(&q->mod, &q->rm_b[block_idx * nof_bits], q->d, nof_bits);
 
@@ -322,12 +322,12 @@ int srslte_npbch_encode(srslte_npbch_t* q,
     // Write exactly SRSLTE_NPBCH_NUM_RE (assumes symbols have been modulated before)
     for (int i = 0; i < q->cell.nof_ports; i++) {
       if (q->cell.is_r14) {
-        DEBUG("Applying phase rotation on port %d in frame %d.\n", i, frame_idx);
+        DEBUG("Applying phase rotation on port %d in frame %d.", i, frame_idx);
         srslte_npbch_rotate(q, frame_idx, q->symbols[i], q->symbols[i], q->nof_symbols, false);
       }
-      DEBUG("Putting MIB-NB block %d on port %d in frame %d.\n", block_idx, i, frame_idx);
+      DEBUG("Putting MIB-NB block %d on port %d in frame %d.", block_idx, i, frame_idx);
       if (srslte_npbch_cp(q->symbols[i], sf[i], q->cell, true) != SRSLTE_NPBCH_NUM_RE) {
-        INFO("Error while mapping NPBCH symbols.\n");
+        INFO("Error while mapping NPBCH symbols.");
         return SRSLTE_ERROR;
       }
     }
@@ -346,7 +346,7 @@ int srslte_npbch_rotate(srslte_npbch_t* q,
                         bool            back)
 {
   // Generate frame specific scrambling sequence for symbol rotation
-  DEBUG("%sotating NPBCH in SFN=%d\n", back ? "De-R" : "R", nf);
+  DEBUG("%sotating NPBCH in SFN=%d", back ? "De-R" : "R", nf);
 
   for (int i = 0; i < num_samples; i++) {
     int c_2i   = q->seq_r14[nf % 8].c[2 * i];
@@ -452,7 +452,7 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
     }
     do {
       if (nant != 3) {
-        DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
+        DEBUG("Trying %d TX antennas with %d frames", nant, q->frame_idx);
 
         // in control channels, only diversity is supported
         if (nant == 1) {
@@ -467,7 +467,7 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
         srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
 
         // only one subframe
-        DEBUG("Trying to decode NPBCH ..\n");
+        DEBUG("Trying to decode NPBCH ..");
 
         // TODO: simplified decoding only using first MIB block
         ret = srslte_npbch_decode_frame(q, 0, nf, 1, nof_bits, nant);
@@ -481,7 +481,7 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
           if (bch_payload) {
             memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSLTE_MIB_NB_LEN);
           }
-          INFO("Successfully decoded NPBCH sfn_offset=%d\n", q->frame_idx - 1);
+          INFO("Successfully decoded NPBCH sfn_offset=%d", q->frame_idx - 1);
           q->frame_idx = 0;
           return ret;
         }

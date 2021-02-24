@@ -20,8 +20,10 @@
  */
 
 #include "srslte/common/timers.h"
-#include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/upper/pdcp.h"
 #include <map>
 
@@ -30,23 +32,29 @@
 
 namespace srsenb {
 
+class rrc_interface_pdcp;
+class rlc_interface_pdcp;
+class gtpu_interface_pdcp;
+
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::task_sched_handle task_sched_, const char* logname);
+  pdcp(srslte::task_sched_handle task_sched_, srslog::basic_logger& logger);
   virtual ~pdcp() {}
   void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
   void stop();
 
   // pdcp_interface_rlc
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override;
+  void notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) override;
+  void notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) override;
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 
   // pdcp_interface_rrc
   void reset(uint16_t rnti) override;
   void add_user(uint16_t rnti) override;
   void rem_user(uint16_t rnti) override;
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override;
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu, int pdcp_sn = -1) override;
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override;
   void del_bearer(uint16_t rnti, uint32_t lcid) override;
   void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t cfg_sec) override;
@@ -54,7 +62,15 @@ public:
   void enable_encryption(uint16_t rnti, uint32_t lcid) override;
   bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override;
   bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override;
+  void send_status_report(uint16_t rnti) override;
+  void send_status_report(uint16_t rnti, uint32_t lcid) override;
   void reestablish(uint16_t rnti) override;
+
+  // pdcp_interface_gtpu
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus(uint16_t rnti, uint32_t lcid) override;
+
+  // Metrics
+  void get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti);
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp
@@ -110,8 +126,7 @@ private:
   rrc_interface_pdcp*       rrc;
   gtpu_interface_pdcp*      gtpu;
   srslte::task_sched_handle task_sched;
-  srslte::log_ref           log_h;
-  srslte::byte_buffer_pool* pool;
+  srslog::basic_logger&     logger;
 };
 
 } // namespace srsenb

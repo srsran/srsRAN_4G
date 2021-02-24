@@ -76,26 +76,27 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("ue.phy", bpo::value<string>(&args->phy.type)->default_value("lte"), "Type of the PHY [lte]")
     ("ue.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte, nr]")
 
-    ("rf.dl_earfcn",    bpo::value<string>(&args->phy.dl_earfcn)->default_value("3400"), "Downlink EARFCN list")
-    ("rf.ul_earfcn",    bpo::value<string>(&args->phy.ul_earfcn),                        "Uplink EARFCN list. Optional.")
-    ("rf.srate",        bpo::value<double>(&args->rf.srate_hz)->default_value(0.0),      "Force Tx and Rx sampling rate in Hz")
-    ("rf.freq_offset",  bpo::value<float>(&args->rf.freq_offset)->default_value(0),      "(optional) Frequency offset")
-    ("rf.dl_freq",      bpo::value<float>(&args->phy.dl_freq)->default_value(-1),        "Downlink Frequency (if positive overrides EARFCN)")
-    ("rf.ul_freq",      bpo::value<float>(&args->phy.ul_freq)->default_value(-1),        "Uplink Frequency (if positive overrides EARFCN)")
-    ("rf.rx_gain",      bpo::value<float>(&args->rf.rx_gain)->default_value(-1),         "Front-end receiver gain")
-    ("rf.tx_gain",      bpo::value<float>(&args->rf.tx_gain)->default_value(-1),         "Front-end transmitter gain (all channels)")
-    ("rf.tx_gain[0]",   bpo::value<float>(&args->rf.tx_gain_ch[0])->default_value(-1),   "Front-end transmitter gain CH0")
-    ("rf.tx_gain[1]",   bpo::value<float>(&args->rf.tx_gain_ch[1])->default_value(-1),   "Front-end transmitter gain CH1")
-    ("rf.tx_gain[2]",   bpo::value<float>(&args->rf.tx_gain_ch[2])->default_value(-1),   "Front-end transmitter gain CH2")
-    ("rf.tx_gain[3]",   bpo::value<float>(&args->rf.tx_gain_ch[3])->default_value(-1),   "Front-end transmitter gain CH3")
-    ("rf.tx_gain[4]",   bpo::value<float>(&args->rf.tx_gain_ch[4])->default_value(-1),   "Front-end transmitter gain CH4")
-    ("rf.rx_gain[0]",   bpo::value<float>(&args->rf.rx_gain_ch[0])->default_value(-1),   "Front-end receiver gain CH0")
-    ("rf.rx_gain[1]",   bpo::value<float>(&args->rf.rx_gain_ch[1])->default_value(-1),   "Front-end receiver gain CH1")
-    ("rf.rx_gain[2]",   bpo::value<float>(&args->rf.rx_gain_ch[2])->default_value(-1),   "Front-end receiver gain CH2")
-    ("rf.rx_gain[3]",   bpo::value<float>(&args->rf.rx_gain_ch[3])->default_value(-1),   "Front-end receiver gain CH3")
-    ("rf.rx_gain[4]",   bpo::value<float>(&args->rf.rx_gain_ch[4])->default_value(-1),   "Front-end receiver gain CH4")
-    ("rf.nof_carriers", bpo::value<uint32_t>(&args->rf.nof_carriers)->default_value(1),  "Number of carriers")
-    ("rf.nof_antennas", bpo::value<uint32_t>(&args->rf.nof_antennas)->default_value(1),  "Number of antennas per carrier")
+    ("rf.dl_earfcn",    bpo::value<string>(&args->phy.dl_earfcn)->default_value("3400"),     "Downlink EARFCN list")
+    ("rf.ul_earfcn",    bpo::value<string>(&args->phy.ul_earfcn),                            "Uplink EARFCN list. Optional.")
+    ("rf.dl_nr_arfcn",  bpo::value<string>(&args->phy.dl_nr_arfcn)->default_value("632628"), "Downlink NR-ARFCN list")
+    ("rf.srate",        bpo::value<double>(&args->rf.srate_hz)->default_value(0.0),          "Force Tx and Rx sampling rate in Hz")
+    ("rf.freq_offset",  bpo::value<float>(&args->rf.freq_offset)->default_value(0),          "(optional) Frequency offset")
+    ("rf.dl_freq",      bpo::value<float>(&args->phy.dl_freq)->default_value(-1),            "Downlink Frequency (if positive overrides EARFCN)")
+    ("rf.ul_freq",      bpo::value<float>(&args->phy.ul_freq)->default_value(-1),            "Uplink Frequency (if positive overrides EARFCN)")
+    ("rf.rx_gain",      bpo::value<float>(&args->rf.rx_gain)->default_value(-1),             "Front-end receiver gain")
+    ("rf.tx_gain",      bpo::value<float>(&args->rf.tx_gain)->default_value(-1),             "Front-end transmitter gain (all channels)")
+    ("rf.tx_gain[0]",   bpo::value<float>(&args->rf.tx_gain_ch[0])->default_value(-1),       "Front-end transmitter gain CH0")
+    ("rf.tx_gain[1]",   bpo::value<float>(&args->rf.tx_gain_ch[1])->default_value(-1),       "Front-end transmitter gain CH1")
+    ("rf.tx_gain[2]",   bpo::value<float>(&args->rf.tx_gain_ch[2])->default_value(-1),       "Front-end transmitter gain CH2")
+    ("rf.tx_gain[3]",   bpo::value<float>(&args->rf.tx_gain_ch[3])->default_value(-1),       "Front-end transmitter gain CH3")
+    ("rf.tx_gain[4]",   bpo::value<float>(&args->rf.tx_gain_ch[4])->default_value(-1),       "Front-end transmitter gain CH4")
+    ("rf.rx_gain[0]",   bpo::value<float>(&args->rf.rx_gain_ch[0])->default_value(-1),       "Front-end receiver gain CH0")
+    ("rf.rx_gain[1]",   bpo::value<float>(&args->rf.rx_gain_ch[1])->default_value(-1),       "Front-end receiver gain CH1")
+    ("rf.rx_gain[2]",   bpo::value<float>(&args->rf.rx_gain_ch[2])->default_value(-1),       "Front-end receiver gain CH2")
+    ("rf.rx_gain[3]",   bpo::value<float>(&args->rf.rx_gain_ch[3])->default_value(-1),       "Front-end receiver gain CH3")
+    ("rf.rx_gain[4]",   bpo::value<float>(&args->rf.rx_gain_ch[4])->default_value(-1),       "Front-end receiver gain CH4")
+    ("rf.nof_carriers", bpo::value<uint32_t>(&args->rf.nof_carriers)->default_value(1),      "Number of carriers")
+    ("rf.nof_antennas", bpo::value<uint32_t>(&args->rf.nof_antennas)->default_value(1),      "Number of antennas per carrier")
 
     ("rf.device_name", bpo::value<string>(&args->rf.device_name)->default_value("auto"), "Front-end device name")
     ("rf.device_args", bpo::value<string>(&args->rf.device_args)->default_value("auto"), "Front-end device arguments")
@@ -649,6 +650,7 @@ int main(int argc, char* argv[])
     return SRSLTE_ERROR;
   }
   srslte::srslog_wrapper log_wrapper(*chan);
+  srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
   srslog::init();
@@ -659,7 +661,7 @@ int main(int argc, char* argv[])
   srslte::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance
-  srsue::ue ue;
+  srsue::ue ue(*log_sink);
   if (ue.init(args, &log_wrapper)) {
     ue.stop();
     return SRSLTE_SUCCESS;

@@ -35,16 +35,6 @@ int test_generic()
   // make suce a choice is always started in null mode
   TESTASSERT(choice_type1.type() == pusch_enhance_cfg_r14_c::types::nulltype);
 
-  // test logger handler
-  {
-    srslte::scoped_log<srslte::nullsink_log> null_log("ASN1");
-    null_log->set_level(srslte::LOG_LEVEL_INFO);
-    asn1::log_info("This is a console test to see if the RRC logger is working fine\n");
-    TESTASSERT(null_log->last_log_msg == "This is a console test to see if the RRC logger is working fine\n");
-    TESTASSERT(null_log->last_log_level == srslte::LOG_LEVEL_INFO);
-    // go back to original logger
-  }
-
   // Test deep copy of choice types
   sib_type14_r11_s::eab_param_r11_c_ choice2;
   choice2.set_eab_per_plmn_list_r11();
@@ -713,6 +703,12 @@ int test_rrc_conn_reconf_r15_3()
 int main()
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
 
   TESTASSERT(test_generic() == 0);
   TESTASSERT(test_json_printer() == 0);
@@ -729,6 +725,9 @@ int main()
   TESTASSERT(test_rrc_conn_reconf_r15_2() == 0);
   TESTASSERT(test_rrc_conn_reconf_v2() == 0);
   TESTASSERT(test_rrc_conn_reconf_r15_3() == 0);
+
+  srslog::flush();
+
   printf("Success\n");
   return 0;
 }

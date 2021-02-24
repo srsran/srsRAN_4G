@@ -126,7 +126,7 @@ int regs_pdcch_init(srslte_regs_t* h)
       }
     }
     h->pdcch[cfi].nof_regs = (h->pdcch[cfi].nof_regs / 9) * 9;
-    INFO("Init PDCCH REG space CFI %d. %d useful REGs (%d CCEs)\n",
+    INFO("Init PDCCH REG space CFI %d. %d useful REGs (%d CCEs)",
          cfi + 1,
          h->pdcch[cfi].nof_regs,
          h->pdcch[cfi].nof_regs / 9);
@@ -148,7 +148,7 @@ clean_and_exit:
 int srslte_regs_pdcch_nregs(srslte_regs_t* h, uint32_t cfi)
 {
   if (cfi < 1 || cfi > 3) {
-    ERROR("Invalid CFI=%d\n", cfi);
+    ERROR("Invalid CFI=%d", cfi);
     return SRSLTE_ERROR;
   } else {
     return (int)h->pdcch[cfi - 1].nof_regs;
@@ -177,7 +177,7 @@ int srslte_regs_pdcch_put_offset(srslte_regs_t* h,
                                  uint32_t       nof_regs)
 {
   if (cfi < 1 || cfi > 3) {
-    ERROR("Invalid CFI=%d\n", cfi);
+    ERROR("Invalid CFI=%d", cfi);
     return SRSLTE_ERROR;
   }
   if (start_reg + nof_regs <= h->pdcch[cfi - 1].nof_regs) {
@@ -189,7 +189,7 @@ int srslte_regs_pdcch_put_offset(srslte_regs_t* h,
     }
     return k;
   } else {
-    ERROR("Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[cfi - 1].nof_regs);
+    ERROR("Out of range: start_reg + nof_reg must be lower than %d", h->pdcch[cfi - 1].nof_regs);
     return SRSLTE_ERROR;
   }
 }
@@ -197,7 +197,7 @@ int srslte_regs_pdcch_put_offset(srslte_regs_t* h,
 int srslte_regs_pdcch_put(srslte_regs_t* h, uint32_t cfi, cf_t* d, cf_t* slot_symbols)
 {
   if (cfi < 1 || cfi > 3) {
-    ERROR("Invalid CFI=%d\n", cfi);
+    ERROR("Invalid CFI=%d", cfi);
     return SRSLTE_ERROR;
   }
   return srslte_regs_pdcch_put_offset(h, cfi, d, slot_symbols, 0, h->pdcch[cfi - 1].nof_regs);
@@ -211,7 +211,7 @@ int srslte_regs_pdcch_get_offset(srslte_regs_t* h,
                                  uint32_t       nof_regs)
 {
   if (cfi < 1 || cfi > 3) {
-    ERROR("Invalid CFI=%d\n", cfi);
+    ERROR("Invalid CFI=%d", cfi);
     return SRSLTE_ERROR;
   }
   if (start_reg + nof_regs <= h->pdcch[cfi - 1].nof_regs) {
@@ -223,7 +223,7 @@ int srslte_regs_pdcch_get_offset(srslte_regs_t* h,
     }
     return k;
   } else {
-    ERROR("Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[cfi - 1].nof_regs);
+    ERROR("Out of range: start_reg + nof_reg must be lower than %d", h->pdcch[cfi - 1].nof_regs);
     return SRSLTE_ERROR;
   }
 }
@@ -231,7 +231,7 @@ int srslte_regs_pdcch_get_offset(srslte_regs_t* h,
 int srslte_regs_pdcch_get(srslte_regs_t* h, uint32_t cfi, cf_t* slot_symbols, cf_t* d)
 {
   if (cfi < 1 || cfi > 3) {
-    ERROR("Invalid CFI=%d\n", cfi);
+    ERROR("Invalid CFI=%d", cfi);
     return SRSLTE_ERROR;
   }
   return srslte_regs_pdcch_get_offset(h, cfi, slot_symbols, d, 0, h->pdcch[cfi - 1].nof_regs);
@@ -281,7 +281,7 @@ int regs_phich_init(srslte_regs_t* h, uint32_t phich_mi, bool mbsfn_or_sf1_6_tdd
     perror("malloc");
     return -1;
   }
-  INFO("Creating %d PHICH mapping units. %s length, Ng=%.2f\n",
+  INFO("Creating %d PHICH mapping units. %s length, Ng=%.2f",
        h->ngroups_phich,
        h->phich_len == SRSLTE_PHICH_EXT ? "Extended" : "Normal",
        ng);
@@ -341,7 +341,7 @@ int regs_phich_init(srslte_regs_t* h, uint32_t phich_mi, bool mbsfn_or_sf1_6_tdd
       }
       h->phich[mi].regs[i]           = regs_phich[li][ni];
       h->phich[mi].regs[i]->assigned = true;
-      DEBUG("Assigned PHICH REG#%d (%d,%d)\n", nreg, h->phich[mi].regs[i]->k0, li);
+      DEBUG("Assigned PHICH REG#%d (%d,%d)", nreg, h->phich[mi].regs[i]->k0, li);
       nreg++;
     }
   }
@@ -422,7 +422,7 @@ int srslte_regs_phich_add(srslte_regs_t* h, cf_t symbols[REGS_PHICH_NSYM], uint3
 {
   uint32_t i;
   if (ngroup >= h->ngroups_phich) {
-    ERROR("Error invalid ngroup %d\n", ngroup);
+    ERROR("Error invalid ngroup %d", ngroup);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
   if (SRSLTE_CP_ISEXT(h->cell.cp)) {
@@ -467,7 +467,7 @@ int srslte_regs_phich_get(srslte_regs_t* h, cf_t* slot_symbols, cf_t symbols[REG
 {
   uint32_t i;
   if (ngroup >= h->ngroups_phich) {
-    ERROR("Error invalid ngroup %d\n", ngroup);
+    ERROR("Error invalid ngroup %d", ngroup);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
   if (SRSLTE_CP_ISEXT(h->cell.cp)) {
@@ -502,22 +502,21 @@ int regs_pcfich_init(srslte_regs_t* h)
   }
   ch->nof_regs = REGS_PCFICH_NREGS;
 
-  INFO("PCFICH allocating %d regs. CellID: %d, PRB: %d\n", ch->nof_regs, h->cell.id, h->cell.nof_prb);
+  INFO("PCFICH allocating %d regs. CellID: %d, PRB: %d", ch->nof_regs, h->cell.id, h->cell.nof_prb);
 
   k_hat = (SRSLTE_NRE / 2) * (h->cell.id % (2 * h->cell.nof_prb));
   for (i = 0; i < REGS_PCFICH_NREGS; i++) {
-
     k           = (k_hat + (i * h->cell.nof_prb / 2) * (SRSLTE_NRE / 2)) % (h->cell.nof_prb * SRSLTE_NRE);
     ch->regs[i] = regs_find_reg(h, k, 0);
     if (!ch->regs[i]) {
-      ERROR("Error allocating PCFICH: REG (%d,0) not found\n", k);
+      ERROR("Error allocating PCFICH: REG (%d,0) not found", k);
       return SRSLTE_ERROR;
     } else if (ch->regs[i]->assigned) {
-      ERROR("Error allocating PCFICH: REG (%d,0) already allocated\n", k);
+      ERROR("Error allocating PCFICH: REG (%d,0) already allocated", k);
       return SRSLTE_ERROR;
     } else {
       ch->regs[i]->assigned = true;
-      DEBUG("Assigned PCFICH REG#%d (%d,0)\n", i, k);
+      DEBUG("Assigned PCFICH REG#%d (%d,0)", i, k);
     }
   }
   return SRSLTE_SUCCESS;
@@ -590,7 +589,6 @@ srslte_regs_reg_t* regs_find_reg(srslte_regs_t* h, uint32_t k, uint32_t l)
  */
 int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, srslte_cp_t cp)
 {
-
   switch (symbol) {
     case 0:
       return 2;
@@ -602,7 +600,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, srslte_cp_t cp)
         case 4:
           return 2;
         default:
-          ERROR("Invalid number of ports %d\n", nof_port);
+          ERROR("Invalid number of ports %d", nof_port);
           return SRSLTE_ERROR;
       }
       break;
@@ -615,7 +613,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, srslte_cp_t cp)
         return 2;
       }
     default:
-      ERROR("Invalid symbol %d\n", symbol);
+      ERROR("Invalid symbol %d", symbol);
       return SRSLTE_ERROR;
   }
 }
@@ -650,7 +648,7 @@ int regs_reg_init(srslte_regs_reg_t* reg, uint32_t symbol, uint32_t nreg, uint32
         j++;
       }
       if (j != 4) {
-        ERROR("Something went wrong: expected 2 references\n");
+        ERROR("Something went wrong: expected 2 references");
         return SRSLTE_ERROR;
       }
       break;
@@ -663,7 +661,7 @@ int regs_reg_init(srslte_regs_reg_t* reg, uint32_t symbol, uint32_t nreg, uint32
       }
       break;
     default:
-      ERROR("Invalid number of REGs per PRB: %d\n", maxreg);
+      ERROR("Invalid number of REGs per PRB: %d", maxreg);
       return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
@@ -718,7 +716,7 @@ int srslte_regs_init_opts(srslte_regs_t* h, srslte_cell_t cell, uint32_t phich_m
       }
       h->nof_regs += h->cell.nof_prb * n[i];
     }
-    INFO("Indexing %d REGs. CellId: %d, %d PRB, CP: %s\n",
+    INFO("Indexing %d REGs. CellId: %d, %d PRB, CP: %s",
          h->nof_regs,
          h->cell.id,
          h->cell.nof_prb,
@@ -735,10 +733,10 @@ int srslte_regs_init_opts(srslte_regs_t* h, srslte_cell_t cell, uint32_t phich_m
     while (k < h->nof_regs) {
       if (n[i] == 3 || (n[i] == 2 && jmax != 1)) {
         if (regs_reg_init(&h->regs[k], i, j[i], prb * SRSLTE_NRE, n[i], vo)) {
-          ERROR("Error initializing REGs\n");
+          ERROR("Error initializing REGs");
           goto clean_and_exit;
         }
-        /*DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)\n", k, i, prb, j[i],
+        /*DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)", k, i, prb, j[i],
             h->regs[k].k0);
         */
         j[i]++;
@@ -756,18 +754,18 @@ int srslte_regs_init_opts(srslte_regs_t* h, srslte_cell_t cell, uint32_t phich_m
       }
     }
     if (regs_pcfich_init(h)) {
-      ERROR("Error initializing PCFICH REGs\n");
+      ERROR("Error initializing PCFICH REGs");
       goto clean_and_exit;
     }
     h->phich_mi = phich_mi;
     if (phich_mi > 0) {
       if (regs_phich_init(h, phich_mi, mbsfn_or_sf1_6_tdd)) {
-        ERROR("Error initializing PHICH REGs\n");
+        ERROR("Error initializing PHICH REGs");
         goto clean_and_exit;
       }
     }
     if (regs_pdcch_init(h)) {
-      ERROR("Error initializing PDCCH REGs\n");
+      ERROR("Error initializing PDCCH REGs");
       goto clean_and_exit;
     }
 

@@ -26,6 +26,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/srslog/srslog.h"
 #include <mutex>
 
 namespace srsue {
@@ -71,36 +72,36 @@ public:
   tft_packet_filter_t(uint8_t                                eps_bearer_id_,
                       uint8_t                                lcid_,
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
-                      srslte::log*                           log_);
+                      srslog::basic_logger&                  logger);
   bool match(const srslte::unique_byte_buffer_t& pdu);
   bool filter_contains(uint16_t filtertype);
 
-  uint8_t  eps_bearer_id {};
-  uint8_t  lcid = {};
-  uint8_t  id = {};
-  uint8_t  eval_precedence = {};
-  uint32_t active_filters = {};
-  uint32_t ipv4_remote_addr = {};
-  uint32_t ipv4_remote_addr_mask = {};
-  uint32_t ipv4_local_addr = {};
-  uint32_t ipv4_local_addr_mask = {};
-  uint8_t  ipv6_remote_addr[16] = {};
+  uint8_t  eps_bearer_id{};
+  uint8_t  lcid                      = {};
+  uint8_t  id                        = {};
+  uint8_t  eval_precedence           = {};
+  uint32_t active_filters            = {};
+  uint32_t ipv4_remote_addr          = {};
+  uint32_t ipv4_remote_addr_mask     = {};
+  uint32_t ipv4_local_addr           = {};
+  uint32_t ipv4_local_addr_mask      = {};
+  uint8_t  ipv6_remote_addr[16]      = {};
   uint8_t  ipv6_remote_addr_mask[16] = {};
-  uint8_t  ipv6_remote_addr_length = {};
-  uint8_t  ipv6_local_addr[16] = {};
-  uint8_t  ipv6_local_addr_mask[16] = {};
-  uint8_t  ipv6_local_addr_length = {};
-  uint8_t  protocol_id = {};
-  uint16_t single_local_port = {};
-  uint16_t local_port_range[2] = {};
-  uint16_t single_remote_port = {};
-  uint16_t remote_port_range[2] = {};
-  uint32_t security_parameter_index = {};
-  uint8_t  type_of_service = {};
-  uint8_t  type_of_service_mask = {};
-  uint8_t  flow_label[3] = {};
+  uint8_t  ipv6_remote_addr_length   = {};
+  uint8_t  ipv6_local_addr[16]       = {};
+  uint8_t  ipv6_local_addr_mask[16]  = {};
+  uint8_t  ipv6_local_addr_length    = {};
+  uint8_t  protocol_id               = {};
+  uint16_t single_local_port         = {};
+  uint16_t local_port_range[2]       = {};
+  uint16_t single_remote_port        = {};
+  uint16_t remote_port_range[2]      = {};
+  uint32_t security_parameter_index  = {};
+  uint8_t  type_of_service           = {};
+  uint8_t  type_of_service_mask      = {};
+  uint8_t  flow_label[3]             = {};
 
-  srslte::log* log;
+  srslog::basic_logger& logger;
 
   bool match_ip(const srslte::unique_byte_buffer_t& pdu);
   bool match_protocol(const srslte::unique_byte_buffer_t& pdu);
@@ -115,7 +116,7 @@ public:
 class tft_pdu_matcher
 {
 public:
-  tft_pdu_matcher(srslte::log_filter* log_) : log(log_){};
+  explicit tft_pdu_matcher(srslog::basic_logger& logger) : logger(logger) {}
   ~tft_pdu_matcher(){};
 
   void    set_default_lcid(const uint8_t lcid);
@@ -125,7 +126,7 @@ public:
                                       const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
 
 private:
-  srslte::log_filter*                             log          = nullptr;
+  srslog::basic_logger&                           logger;
   uint8_t                                         default_lcid = 0;
   std::mutex                                      tft_mutex;
   typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;

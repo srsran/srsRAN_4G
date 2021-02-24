@@ -117,7 +117,7 @@ static int csi_rs_location_get_l_list(const srslte_csi_rs_resource_mapping_t* re
 }
 
 uint32_t csi_rs_cinit(const srslte_carrier_nr_t*          carrier,
-                      const srslte_dl_slot_cfg_t*         slot_cfg,
+                      const srslte_slot_cfg_t*            slot_cfg,
                       const srslte_csi_rs_nzp_resource_t* resource,
                       uint32_t                            l)
 {
@@ -127,7 +127,7 @@ uint32_t csi_rs_cinit(const srslte_carrier_nr_t*          carrier,
   return ((SRSLTE_NSYMB_PER_SLOT_NR * n + l + 1UL) * (2UL * n_id) << 10UL) + n_id;
 }
 
-bool srslte_csi_send(const srslte_csi_rs_period_and_offset_t* periodicity, const srslte_dl_slot_cfg_t* slot_cfg)
+bool srslte_csi_send(const srslte_csi_rs_period_and_offset_t* periodicity, const srslte_slot_cfg_t* slot_cfg)
 {
   if (periodicity == NULL || slot_cfg == NULL) {
     return false;
@@ -145,7 +145,6 @@ bool srslte_csi_send(const srslte_csi_rs_period_and_offset_t* periodicity, const
 uint32_t csi_rs_count(srslte_csi_rs_density_t density, uint32_t nprb)
 {
   switch (density) {
-
     case srslte_csi_rs_resource_mapping_density_three:
       return nprb * 3;
     case srslte_csi_rs_resource_mapping_density_dot5_even:
@@ -192,7 +191,7 @@ uint32_t csi_rs_rb_stride(const srslte_csi_rs_resource_mapping_t* m)
 }
 
 int srslte_csi_rs_nzp_put(const srslte_carrier_nr_t*          carrier,
-                          const srslte_dl_slot_cfg_t*         slot_cfg,
+                          const srslte_slot_cfg_t*            slot_cfg,
                           const srslte_csi_rs_nzp_resource_t* resource,
                           cf_t*                               grid)
 {
@@ -262,7 +261,7 @@ int srslte_csi_rs_nzp_put(const srslte_carrier_nr_t*          carrier,
 }
 
 int srslte_csi_rs_nzp_measure(const srslte_carrier_nr_t*          carrier,
-                              const srslte_dl_slot_cfg_t*         slot_cfg,
+                              const srslte_slot_cfg_t*            slot_cfg,
                               const srslte_csi_rs_nzp_resource_t* resource,
                               const cf_t*                         grid,
                               srslte_csi_rs_measure_t*            measure)

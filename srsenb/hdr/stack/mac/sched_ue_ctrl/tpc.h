@@ -25,6 +25,7 @@
 #include "srslte/adt/accumulators.h"
 #include "srslte/common/common.h"
 #include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -133,7 +134,7 @@ private:
       case 3:
         return 3;
       default:
-        srslte::logmap::get("MAC")->warning("Invalid TPC delta value=%d\n", delta);
+        srslog::fetch_basic_logger("MAC").warning("Invalid TPC delta value=%d", delta);
         return 1;
     }
   }

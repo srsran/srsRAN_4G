@@ -25,6 +25,7 @@
 #include "srsenb/hdr/stack/mac/sched_common.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -115,7 +116,7 @@ inline uint32_t count_prb_per_tb_approx(uint32_t nof_rbgs, uint32_t cell_nof_prb
   return std::min(nof_rbgs * P, cell_nof_prb);
 }
 
-ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
+cce_frame_position_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg);
 
 /**
  * Generate possible CCE locations a user can use to allocate DCIs
@@ -125,11 +126,11 @@ ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_ce
  * @param sf_idx subframe index specific to the tx TTI (relevant only for data and RAR transmissions)
  * @param rnti identity of the user (invalid RNTI for RAR and BC transmissions)
  */
-void generate_cce_location(srslte_regs_t*   regs,
-                           sched_dci_cce_t* location,
-                           uint32_t         cfi,
-                           uint32_t         sf_idx = 0,
-                           uint16_t         rnti   = SRSLTE_INVALID_RNTI);
+void generate_cce_location(srslte_regs_t*          regs,
+                           cce_cfi_position_table& locations,
+                           uint32_t                cfi,
+                           uint32_t                sf_idx = 0,
+                           uint16_t                rnti   = SRSLTE_INVALID_RNTI);
 
 /// Obtains TB size *in bytes* for a given MCS and nof allocated prbs
 inline uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_alt, bool is_ul)
@@ -151,6 +152,12 @@ uint32_t get_aggr_level(uint32_t nof_bits,
                         bool     use_tbs_index_alt);
 
 /*******************************************************
+ *              RB mask helper functions
+ *******************************************************/
+
+bool is_contiguous(const rbgmask_t& mask);
+
+/*******************************************************
  *          sched_interface helper functions
  *******************************************************/
 
@@ -163,10 +170,14 @@ inline bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sch
 int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg);
 
 /// Logs DL MAC PDU contents
-void log_dl_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::dl_sched_res_t& result);
+void log_dl_cc_results(srslog::basic_logger&                  logger,
+                       uint32_t                               enb_cc_idx,
+                       const sched_interface::dl_sched_res_t& result);
 
 /// Logs PHICH contents
-void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::ul_sched_res_t& result);
+void log_phich_cc_results(srslog::basic_logger&                  logger,
+                          uint32_t                               enb_cc_idx,
+                          const sched_interface::ul_sched_res_t& result);
 
 const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
 

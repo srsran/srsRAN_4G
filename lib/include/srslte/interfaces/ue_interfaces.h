@@ -87,10 +87,15 @@ public:
 class gw_interface_nas
 {
 public:
-  virtual int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) = 0;
+  virtual int setup_if_addr(uint32_t eps_bearer_id,
+                            uint32_t lcid,
+                            uint8_t  pdn_type,
+                            uint32_t ip_addr,
+                            uint8_t* ipv6_if_id,
+                            char*    err_str)                                                    = 0;
   virtual int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                           const uint8_t&                                 lcid,
-                                          const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)                      = 0;
+                                          const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft) = 0;
 
   typedef enum {
     TEST_LOOP_INACTIVE = 0,
@@ -111,7 +116,8 @@ public:
 class gw_interface_rrc
 {
 public:
-  virtual void add_mch_port(uint32_t lcid, uint32_t port) = 0;
+  virtual void add_mch_port(uint32_t lcid, uint32_t port)             = 0;
+  virtual int  update_lcid(uint32_t eps_bearer_id, uint32_t new_lcid) = 0;
 };
 
 // GW interface for PDCP
@@ -212,7 +218,7 @@ public:
   virtual void        paging_completed(bool outcome)                                    = 0;
   virtual std::string get_rb_name(uint32_t lcid)                                        = 0;
   virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;
-  virtual bool        has_nr_dc()                                                        = 0;
+  virtual bool        has_nr_dc()                                                       = 0;
 };
 
 // RRC interface for PDCP
@@ -250,8 +256,8 @@ public:
   virtual uint32_t get_ipv4_addr()                                            = 0;
   virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
   virtual void
-               plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                                     int                                   nof_plmns)       = 0;
+  plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                        int                                   nof_plmns)                    = 0;
   virtual bool connection_request_completed(bool outcome) = 0;
 };
 
@@ -262,7 +268,7 @@ public:
   virtual void reestablish()                                                                                        = 0;
   virtual void reestablish(uint32_t lcid)                                                                           = 0;
   virtual void reset()                                                                                              = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)                                           = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, int sn = -1)                              = 0;
   virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                                                = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
   virtual void config_security(uint32_t lcid, srslte::as_security_config_t sec_cfg)                                 = 0;
@@ -270,6 +276,8 @@ public:
   virtual void enable_integrity(uint32_t lcid, srslte::srslte_direction_t direction)                                = 0;
   virtual void enable_encryption(uint32_t                   lcid,
                                  srslte::srslte_direction_t direction = srslte::srslte_direction_t::DIRECTION_TXRX) = 0;
+  virtual void send_status_report()                                                                                 = 0;
+  virtual void send_status_report(uint32_t lcid)                                                                    = 0;
 };
 // RRC NR interface for RRC (LTE)
 class rrc_nr_interface_rrc
@@ -301,11 +309,13 @@ class pdcp_interface_rlc
 {
 public:
   /* RLC calls PDCP to push a PDCP PDU. */
-  virtual void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)     = 0;
-  virtual void write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)           = 0;
-  virtual void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)         = 0;
-  virtual void write_pdu_pcch(srslte::unique_byte_buffer_t sdu)               = 0;
-  virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+  virtual void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)           = 0;
+  virtual void write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)                 = 0;
+  virtual void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)               = 0;
+  virtual void write_pdu_pcch(srslte::unique_byte_buffer_t sdu)                     = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu)       = 0;
+  virtual void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) = 0;
+  virtual void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn)  = 0;
 };
 
 class pdcp_interface_gw
@@ -526,6 +536,10 @@ typedef struct {
   std::vector<uint32_t> dl_earfcn_list = {3400}; // vectorized version of dl_earfcn that gets populated during init
   std::map<uint32_t, uint32_t> ul_earfcn_map;    // Map linking DL EARFCN and UL EARFCN
 
+  std::string           dl_nr_arfcn      = "632628"; // comma-separated list of DL NR ARFCNs
+  std::vector<uint32_t> dl_nr_arfcn_list = {
+      632628}; // vectorized version of dl_nr_arfcn that gets populated during init
+
   float dl_freq = -1.0f;
   float ul_freq = -1.0f;
 
@@ -621,8 +635,8 @@ public:
   } prach_info_t;
 
   virtual void
-                       prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
-  virtual prach_info_t prach_get_info() = 0;
+  prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
+  virtual prach_info_t prach_get_info()                                                                     = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send()        = 0;

@@ -85,7 +85,7 @@ int srslte_chest_ul_init(srslte_chest_ul_t* q, uint32_t max_prb)
     }
 
     if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, MAX_REFS_SYM)) {
-      ERROR("Error initializing vector interpolator\n");
+      ERROR("Error initializing vector interpolator");
       goto clean_exit;
     }
 
@@ -95,7 +95,7 @@ int srslte_chest_ul_init(srslte_chest_ul_t* q, uint32_t max_prb)
     q->dmrs_signal_configured = false;
 
     if (srslte_refsignal_dmrs_pusch_pregen_init(&q->dmrs_pregen, max_prb)) {
-      ERROR("Error allocating memory for pregenerated signals\n");
+      ERROR("Error allocating memory for pregenerated signals");
       goto clean_exit;
     }
   }
@@ -169,12 +169,12 @@ int srslte_chest_ul_set_cell(srslte_chest_ul_t* q, srslte_cell_t cell)
       q->cell = cell;
       ret     = srslte_refsignal_ul_set_cell(&q->dmrs_signal, cell);
       if (ret != SRSLTE_SUCCESS) {
-        ERROR("Error initializing CSR signal (%d)\n", ret);
+        ERROR("Error initializing CSR signal (%d)", ret);
         return SRSLTE_ERROR;
       }
 
       if (srslte_interp_linear_vector_resize(&q->srslte_interp_linvec, NOF_REFS_SYM)) {
-        ERROR("Error initializing vector interpolator\n");
+        ERROR("Error initializing vector interpolator");
         return SRSLTE_ERROR;
       }
     }
@@ -199,7 +199,6 @@ void srslte_chest_ul_pregen(srslte_chest_ul_t*                 q,
 /* Uses the difference between the averaged and non-averaged pilot estimates */
 static float estimate_noise_pilots(srslte_chest_ul_t* q, cf_t* ce, uint32_t nslots, uint32_t nrefs, uint32_t n_prb[2])
 {
-
   float power = 0;
   for (int i = 0; i < nslots; i++) {
     power += srslte_chest_estimate_noise_pilots(
@@ -319,7 +318,7 @@ static void chest_ul_estimate(srslte_chest_ul_t*     q,
 
   // Check if intra-subframe frequency hopping is enabled
   if (n_prb[0] != n_prb[1]) {
-    ERROR("ERROR: intra-subframe frequency hopping not supported in the estimator!!\n");
+    ERROR("ERROR: intra-subframe frequency hopping not supported in the estimator!!");
   }
 
   if (res->ce != NULL) {
@@ -366,14 +365,14 @@ int srslte_chest_ul_estimate_pusch(srslte_chest_ul_t*     q,
                                    srslte_chest_ul_res_t* res)
 {
   if (!q->dmrs_signal_configured) {
-    ERROR("Error must call srslte_chest_ul_set_cfg() before using the UL estimator\n");
+    ERROR("Error must call srslte_chest_ul_set_cfg() before using the UL estimator");
     return SRSLTE_ERROR;
   }
 
   uint32_t nof_prb = cfg->grant.L_prb;
 
   if (!srslte_dft_precoding_valid_prb(nof_prb)) {
-    ERROR("Error invalid nof_prb=%d\n", nof_prb);
+    ERROR("Error invalid nof_prb=%d", nof_prb);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -398,7 +397,6 @@ int srslte_chest_ul_estimate_pusch(srslte_chest_ul_t*     q,
 static float
 estimate_noise_pilots_pucch(srslte_chest_ul_t* q, cf_t* ce, uint32_t n_rs, uint32_t n_prb[SRSLTE_NOF_SLOTS_PER_SF])
 {
-
   float power = 0;
   for (int ns = 0; ns < SRSLTE_NOF_SLOTS_PER_SF; ns++) {
     for (int i = 0; i < n_rs; i++) {
@@ -431,7 +429,7 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
 {
   int n_rs = srslte_refsignal_dmrs_N_rs(cfg->format, q->cell.cp);
   if (!n_rs) {
-    ERROR("Error computing N_rs\n");
+    ERROR("Error computing N_rs");
     return SRSLTE_ERROR;
   }
   int nrefs_sf = SRSLTE_NRE * n_rs * SRSLTE_NOF_SLOTS_PER_SF;

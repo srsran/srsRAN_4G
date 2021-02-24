@@ -27,23 +27,21 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace srsue;
 
-void prach::init(uint32_t max_prb, srslte::log* log_h_)
+void prach::init(uint32_t max_prb)
 {
-  log_h = log_h_;
-
   for (auto& i : buffer) {
     for (auto& j : i) {
       j = srslte_vec_cf_malloc(SRSLTE_PRACH_MAX_LEN);
@@ -55,7 +53,7 @@ void prach::init(uint32_t max_prb, srslte::log* log_h_)
   }
 
   if (srslte_cfo_init(&cfo_h, SRSLTE_PRACH_MAX_LEN)) {
-    ERROR("PRACH: Error initiating CFO\n");
+    ERROR("PRACH: Error initiating CFO");
     return;
   }
 
@@ -68,7 +66,7 @@ void prach::init(uint32_t max_prb, srslte::log* log_h_)
   }
 
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(max_prb))) {
-    Error("Initiating PRACH library\n");
+    Error("Initiating PRACH library");
     return;
   }
 
@@ -96,7 +94,7 @@ void prach::stop()
 bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 {
   if (!mem_initiated) {
-    ERROR("PRACH: Error must call init() first\n");
+    ERROR("PRACH: Error must call init() first");
     return false;
   }
 
@@ -110,11 +108,11 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 
   if (6 + prach_cfg.freq_offset > cell.nof_prb) {
     srslte::console("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
-    log_h->error("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", prach_cfg.freq_offset, cell.nof_prb);
+    logger.error("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d", prach_cfg.freq_offset, cell.nof_prb);
     return false;
   }
 
-  Info("PRACH: cell.id=%d, configIdx=%d, rootSequence=%d, zeroCorrelationConfig=%d, freqOffset=%d\n",
+  Info("PRACH: cell.id=%d, configIdx=%d, rootSequence=%d, zeroCorrelationConfig=%d, freqOffset=%d",
        cell.id,
        prach_cfg.config_idx,
        prach_cfg.root_seq_idx,
@@ -122,7 +120,7 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
        prach_cfg.freq_offset);
 
   if (srslte_prach_set_cfg(&prach_obj, &prach_cfg, cell.nof_prb)) {
-    Error("Initiating PRACH library\n");
+    Error("Initiating PRACH library");
     return false;
   }
 
@@ -131,7 +129,7 @@ bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
   transmitted_tti = -1;
   cell_initiated  = true;
 
-  log_h->info("Finished setting new PRACH configuration.\n");
+  logger.info("Finished setting new PRACH configuration.");
 
   return true;
 }
@@ -148,7 +146,7 @@ bool prach::generate_buffer(uint32_t f_idx)
         cfg.config_idx, cfg.tdd_config.sf_config, (f_idx / 6) * 10, f_idx % 6, cfg.freq_offset, cell.nof_prb);
   }
   if (srslte_prach_gen(&prach_obj, preamble_idx, freq_offset, buffer[f_idx][preamble_idx])) {
-    Error("Generating PRACH preamble %d\n", preamble_idx);
+    Error("Generating PRACH preamble %d", preamble_idx);
     return false;
   }
 
@@ -160,7 +158,7 @@ bool prach::generate_buffer(uint32_t f_idx)
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
 {
   if (preamble_idx_ >= max_preambles) {
-    Error("PRACH: Invalid preamble %d\n", preamble_idx_);
+    Error("PRACH: Invalid preamble %d", preamble_idx_);
     return false;
   }
 
@@ -168,7 +166,7 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
   target_power_dbm = target_power_dbm_;
   allowed_subframe = allowed_subframe_;
   transmitted_tti  = -1;
-  Debug("PRACH: prepare to send preamble %d\n", preamble_idx);
+  Debug("PRACH: prepare to send preamble %d", preamble_idx);
   return true;
 }
 
@@ -184,7 +182,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_, uint32_t current_pci)
     // consider the number of subframes the transmission must be anticipated
     uint32_t tti_tx = TTI_TX(current_tti_);
     if (srslte_prach_tti_opportunity(&prach_obj, tti_tx, allowed_subframe)) {
-      Debug("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", tti_tx, current_tti_);
+      Debug("PRACH Buffer: Ready to send at tti: %d (now is %d)", tti_tx, current_tti_);
       transmitted_tti = tti_tx;
       return true;
     }
@@ -214,7 +212,7 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
 {
   if (!cell_initiated || preamble_idx < 0 || !nof_sf || unsigned(preamble_idx) >= max_preambles ||
       !srslte_cell_isvalid(&cell) || len >= MAX_LEN_SF * 30720 || len == 0) {
-    Error("PRACH: Invalid parameters: cell_initiated=%d, preamble_idx=%d, cell.nof_prb=%d, len=%d\n",
+    Error("PRACH: Invalid parameters: cell_initiated=%d, preamble_idx=%d, cell.nof_prb=%d, len=%d",
           cell_initiated,
           preamble_idx,
           cell.nof_prb,
@@ -230,7 +228,7 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
       f_idx += 6;
     }
     if (f_idx >= max_fs) {
-      Error("PRACH Buffer: Invalid f_idx=%d\n", f_idx);
+      Error("PRACH Buffer: Invalid f_idx=%d", f_idx);
       f_idx = 0;
     }
   }
@@ -240,7 +238,7 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
   }
 
   if (!is_buffer_generated(f_idx, preamble_idx)) {
-    Error("PRACH Buffer not generated: f_idx=%d preamble_idx=%d\n", f_idx, preamble_idx);
+    Error("PRACH Buffer not generated: f_idx=%d preamble_idx=%d", f_idx, preamble_idx);
     return nullptr;
   }
 
@@ -257,7 +255,7 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
     *target_power = target_power_dbm;
   }
 
-  Info("PRACH: Transmitted preamble=%d, tti_tx=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm\n",
+  Info("PRACH: Transmitted preamble=%d, tti_tx=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm",
        preamble_idx,
        transmitted_tti,
        cfo * 15,

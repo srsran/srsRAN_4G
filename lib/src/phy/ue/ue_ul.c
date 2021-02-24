@@ -61,21 +61,21 @@ int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
     ofdm_cfg.freq_shift_f      = 0.5f;
     ofdm_cfg.normalize         = true;
     if (srslte_ofdm_tx_init_cfg(&q->fft, &ofdm_cfg)) {
-      ERROR("Error initiating FFT\n");
+      ERROR("Error initiating FFT");
       goto clean_exit;
     }
 
     if (srslte_cfo_init(&q->cfo, MAX_SFLEN)) {
-      ERROR("Error creating CFO object\n");
+      ERROR("Error creating CFO object");
       goto clean_exit;
     }
 
     if (srslte_pusch_init_ue(&q->pusch, max_prb)) {
-      ERROR("Error creating PUSCH object\n");
+      ERROR("Error creating PUSCH object");
       goto clean_exit;
     }
     if (srslte_pucch_init_ue(&q->pucch)) {
-      ERROR("Error creating PUSCH object\n");
+      ERROR("Error creating PUSCH object");
       goto clean_exit;
     }
     q->refsignal = srslte_vec_cf_malloc(2 * SRSLTE_NRE * max_prb);
@@ -93,7 +93,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
     q->signals_pregenerated = false;
     ret                     = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters");
   }
 
 clean_exit:
@@ -140,36 +140,36 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t* q, srslte_cell_t cell)
       q->cell = cell;
 
       if (srslte_ofdm_tx_set_prb(&q->fft, q->cell.cp, q->cell.nof_prb)) {
-        ERROR("Error resizing FFT\n");
+        ERROR("Error resizing FFT");
         return SRSLTE_ERROR;
       }
       if (srslte_cfo_resize(&q->cfo, SRSLTE_SF_LEN_PRB(q->cell.nof_prb))) {
-        ERROR("Error resizing CFO object\n");
+        ERROR("Error resizing CFO object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pusch_set_cell(&q->pusch, q->cell)) {
-        ERROR("Error resizing PUSCH object\n");
+        ERROR("Error resizing PUSCH object");
         return SRSLTE_ERROR;
       }
       if (srslte_pucch_set_cell(&q->pucch, q->cell)) {
-        ERROR("Error resizing PUSCH object\n");
+        ERROR("Error resizing PUSCH object");
         return SRSLTE_ERROR;
       }
       if (srslte_refsignal_ul_set_cell(&q->signals, q->cell)) {
-        ERROR("Error resizing srslte_refsignal_ul\n");
+        ERROR("Error resizing srslte_refsignal_ul");
         return SRSLTE_ERROR;
       }
 
       if (srslte_ra_ul_pusch_hopping_init(&q->hopping, q->cell)) {
-        ERROR("Error setting hopping procedure cell\n");
+        ERROR("Error setting hopping procedure cell");
         return SRSLTE_ERROR;
       }
       q->signals_pregenerated = false;
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid cell properties ue_ul: Id=%d, Ports=%d, PRBs=%d\n", cell.id, cell.nof_ports, cell.nof_prb);
+    ERROR("Invalid cell properties ue_ul: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
 }
@@ -230,7 +230,7 @@ void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,
                                 srslte_pusch_grant_t* grant)
 {
   if (cfg->ul_cfg.srs.configured && cfg->ul_cfg.hopping.hopping_enabled) {
-    ERROR("UL SRS and frequency hopping not currently supported\n");
+    ERROR("UL SRS and frequency hopping not currently supported");
   }
   return srslte_ra_ul_pusch_hopping(&q->hopping, sf, &cfg->ul_cfg.hopping, grant);
 }
@@ -304,15 +304,13 @@ static void add_srs(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, uint32_t tti)
 
 static int pusch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg, srslte_pusch_data_t* data)
 {
-
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-
     srslte_vec_cf_zero(q->sf_symbols, SRSLTE_NOF_RE(q->cell));
 
     if (srslte_pusch_encode(&q->pusch, sf, &cfg->ul_cfg.pusch, data, q->sf_symbols)) {
-      ERROR("Error encoding PUSCH\n");
+      ERROR("Error encoding PUSCH");
       return SRSLTE_ERROR;
     }
 
@@ -325,7 +323,7 @@ static int pusch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
                                           sf->tti % 10,
                                           cfg->ul_cfg.pusch.grant.n_dmrs,
                                           q->refsignal)) {
-        ERROR("Error generating PUSCH DMRS signals\n");
+        ERROR("Error generating PUSCH DMRS signals");
         return ret;
       }
       srslte_refsignal_dmrs_pusch_put(&q->signals, &cfg->ul_cfg.pusch, q->refsignal, q->sf_symbols);
@@ -374,7 +372,7 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float
   float f = 0;
 
   float pusch_power = 10 * log10f(cfg->ul_cfg.pusch.grant.L_prb) + p0_pusch + alpha * PL + delta + f;
-  DEBUG("PUSCH: P=%f -- 10M=%f, p0=%f,alpha=%f,PL=%f,\n",
+  DEBUG("PUSCH: P=%f -- 10M=%f, p0=%f,alpha=%f,PL=%f,",
         pusch_power,
         10 * log10f(cfg->ul_cfg.pusch.grant.L_prb),
         p0_pusch,
@@ -421,7 +419,7 @@ float srslte_ue_ul_pucch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, srslt
 
   float pucch_power = p0_pucch + PL + h + delta_f + g;
 
-  DEBUG("PUCCH: P=%f -- p0=%f, PL=%f, delta_f=%f, h=%f, g=%f\n", pucch_power, p0_pucch, PL, delta_f, h, g);
+  DEBUG("PUCCH: P=%f -- p0=%f, PL=%f, delta_f=%f, h=%f, g=%f", pucch_power, p0_pucch, PL, delta_f, h, g);
 
   return 0;
 }
@@ -430,7 +428,6 @@ static int srs_encode(srslte_ue_ul_t* q, uint32_t tti, srslte_ue_ul_cfg_t* cfg)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q && cfg) {
-
     srslte_vec_cf_zero(q->sf_symbols, SRSLTE_NOF_RE(q->cell));
 
     add_srs(q, cfg, tti);
@@ -476,7 +473,7 @@ float srs_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float PL)
 
   float p_srs = p_srs_offset + 10 * log10f(M_sc) + p0_pusch + alpha * PL + f;
 
-  DEBUG("SRS: P=%f -- p_offset=%f, 10M=%f, p0_pusch=%f, alpha=%f, PL=%f, f=%f\n",
+  DEBUG("SRS: P=%f -- p_offset=%f, 10M=%f, p0_pusch=%f, alpha=%f, PL=%f, f=%f",
         p_srs,
         p_srs_offset,
         10 * log10f(M_sc),
@@ -512,7 +509,7 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
     ret                           = SRSLTE_ERROR;
 
     if (!srslte_pucch_cfg_isvalid(&cfg->ul_cfg.pucch, q->cell.nof_prb)) {
-      ERROR("Invalid PUCCH configuration\n");
+      ERROR("Invalid PUCCH configuration");
       return ret;
     }
 
@@ -525,12 +522,12 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
     srslte_refsignal_srs_pucch_shortened(&q->signals, sf, &cfg->ul_cfg.srs, &cfg->ul_cfg.pucch);
 
     if (srslte_pucch_encode(&q->pucch, sf, &cfg->ul_cfg.pucch, &uci_value2, q->sf_symbols)) {
-      ERROR("Error encoding TB\n");
+      ERROR("Error encoding TB");
       return ret;
     }
 
     if (srslte_refsignal_dmrs_pucch_gen(&q->signals, sf, &cfg->ul_cfg.pucch, q->refsignal)) {
-      ERROR("Error generating PUSCH DMRS signals\n");
+      ERROR("Error generating PUSCH DMRS signals");
       return ret;
     }
     srslte_refsignal_dmrs_pucch_put(&q->signals, &cfg->ul_cfg.pucch, q->refsignal, q->sf_symbols);
@@ -544,7 +541,7 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
 
     char txt[256];
     srslte_pucch_tx_info(&cfg->ul_cfg.pucch, uci_data, txt, sizeof(txt));
-    INFO("[PUCCH] Encoded %s\n", txt);
+    INFO("[PUCCH] Encoded %s", txt);
 
     ret = SRSLTE_SUCCESS;
   }

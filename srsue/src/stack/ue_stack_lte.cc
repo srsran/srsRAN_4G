@@ -31,24 +31,30 @@ using namespace srslte;
 
 namespace srsue {
 
-ue_stack_lte::ue_stack_lte() :
+ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
   running(false),
   args(),
   logger(nullptr),
+  stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
+  mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
+  rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP", log_sink, false)),
+  rrc_logger(srslog::fetch_basic_logger("RRC", log_sink, false)),
+  usim_logger(srslog::fetch_basic_logger("USIM", log_sink, false)),
+  nas_logger(srslog::fetch_basic_logger("NAS", log_sink, false)),
   usim(nullptr),
   phy(nullptr),
   rlc("RLC"),
   mac("MAC", &task_sched),
   rrc(this, &task_sched),
-#ifdef HAVE_5GNR
   mac_nr(&task_sched),
   rrc_nr(&task_sched),
-#endif
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
   thread("STACK"),
   task_sched(512, 2, 64),
-  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
+  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD),
+  mac_pcap(srslte_rat_t::lte)
 {
   ue_task_queue  = task_sched.make_task_queue();
   gw_queue_id    = task_sched.make_task_queue();
@@ -64,6 +70,19 @@ ue_stack_lte::~ue_stack_lte()
 std::string ue_stack_lte::get_type()
 {
   return "lte";
+}
+
+int ue_stack_lte::init(const stack_args_t&      args_,
+                       srslte::logger*          logger_,
+                       phy_interface_stack_lte* phy_,
+                       phy_interface_stack_nr*  phy_nr_,
+                       gw_interface_stack*      gw_)
+{
+  phy_nr = phy_nr_;
+  if (init(args_, logger_, phy_, gw_)) {
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
 }
 
 int ue_stack_lte::init(const stack_args_t&      args_,
@@ -87,30 +106,42 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   logger = logger_;
 
   // init own log
-  stack_log->set_level(args.log.stack_level);
-  stack_log->set_hex_limit(args.log.stack_hex_limit);
-  pool_log->set_level(srslte::LOG_LEVEL_WARNING);
-  byte_buffer_pool::get_instance()->set_log(pool_log.get());
+  stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
+  stack_logger.set_hex_dump_max_size(args.log.stack_hex_limit);
+  byte_buffer_pool::get_instance()->enable_logger(true);
 
   // init layer logs
   srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
   mac_log->set_level(args.log.mac_level);
   mac_log->set_hex_limit(args.log.mac_hex_limit);
+  mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
+  mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
   rlc_log->set_level(args.log.rlc_level);
   rlc_log->set_hex_limit(args.log.rlc_hex_limit);
+  rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
+  rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
   pdcp_log->set_level(args.log.pdcp_level);
   pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
+  pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
+  pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
   rrc_log->set_level(args.log.rrc_level);
   rrc_log->set_hex_limit(args.log.rrc_hex_limit);
+  rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
+  rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
   usim_log->set_level(args.log.usim_level);
   usim_log->set_hex_limit(args.log.usim_hex_limit);
+  usim_logger.set_level(srslog::str_to_basic_level(args.log.usim_level));
+  usim_logger.set_hex_dump_max_size(args.log.usim_hex_limit);
   nas_log->set_level(args.log.nas_level);
   nas_log->set_hex_limit(args.log.nas_hex_limit);
+  nas_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
+  nas_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
 
   // Set up pcap
   if (args.pcap.enable) {
-    mac_pcap.open(args.pcap.filename.c_str());
-    mac.start_pcap(&mac_pcap);
+    if (mac_pcap.open(args.pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+      mac.start_pcap(&mac_pcap);
+    }
   }
   if (args.pcap.nas_enable) {
     nas_pcap.open(args.pcap.nas_filename.c_str());
@@ -118,7 +149,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   }
 
   // Init USIM first to allow early exit in case reader couldn't be found
-  usim = usim_base::get_instance(&args.usim, usim_log.get());
+  usim = usim_base::get_instance(&args.usim, usim_logger);
   if (usim->init(&args.usim)) {
     srslte::console("Failed to initialize USIM.\n");
     return SRSLTE_ERROR;
@@ -131,15 +162,20 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
-#ifdef HAVE_5GNR
-  mac_nr_args_t mac_nr_args;
-  mac_nr.init(mac_nr_args, nullptr, &rlc);
-  rrc_nr.init(
-      nullptr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
+
+  mac_nr_args_t mac_nr_args = {};
+  mac_nr.init(mac_nr_args, phy_nr, &rlc);
+  rrc_nr.init(phy_nr,
+              &mac_nr,
+              &rlc,
+              &pdcp,
+              gw,
+              &rrc,
+              usim.get(),
+              task_sched.get_timer_handler(),
+              nullptr,
+              args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
-#else
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, args.rrc);
-#endif
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -195,7 +231,7 @@ bool ue_stack_lte::switch_off()
   }
   bool detach_sent = true;
   if (not rrc.srbs_flushed()) {
-    logmap::get("NAS ")->warning("Detach couldn't be sent after %dms.\n", timeout_ms);
+    srslog::fetch_basic_logger("NAS").warning("Detach couldn't be sent after %dms.", timeout_ms);
     detach_sent = false;
   }
 
@@ -229,6 +265,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
   // use stack thread to query metrics
   ue_task_queue.try_push([this]() {
     stack_metrics_t metrics{};
+    metrics.ul_dropped_sdus = ul_dropped_sdus;
     mac.get_metrics(metrics.mac);
     rlc.get_metrics(metrics.rlc, metrics.mac[0].nof_tti);
     nas.get_metrics(&metrics.nas);
@@ -266,7 +303,8 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   auto task = [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
   bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).first;
   if (not ret) {
-    pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
+    pdcp_logger.info("GW SDU with lcid=%d was discarded.", lcid);
+    ul_dropped_sdus++;
   }
 }
 
@@ -346,15 +384,15 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();
     if (dur > TTI_WARN_THRESHOLD_MS) {
-      mac_log->warning("%s: detected long duration=%" PRId64 "ms\n",
-                       "proc_time",
-                       std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+      mac_logger.warning("%s: detected long duration=%" PRId64 "ms",
+                         "proc_time",
+                         std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
     }
   }
 
   // print warning if PHY pushes new TTI messages faster than we process them
   if (sync_task_queue.size() > SYNC_QUEUE_WARN_THRESHOLD) {
-    stack_log->warning("Detected slow task processing (sync_queue_len=%zd).\n", sync_task_queue.size());
+    stack_logger.warning("Detected slow task processing (sync_queue_len=%zd).", sync_task_queue.size());
   }
 }
 

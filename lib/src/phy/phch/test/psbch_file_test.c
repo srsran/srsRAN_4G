@@ -135,7 +135,7 @@ int main(int argc, char** argv)
   // TX
   srslte_ofdm_t ifft;
   if (srslte_ofdm_tx_init(&ifft, cell.cp, sf_buffer, output_buffer, cell.nof_prb)) {
-    ERROR("Error creating IFFT object\n");
+    ERROR("Error creating IFFT object");
     return SRSLTE_ERROR;
   }
   srslte_ofdm_set_normalize(&ifft, true);
@@ -153,20 +153,20 @@ int main(int argc, char** argv)
   // PSBCH
   srslte_psbch_t psbch;
   if (srslte_psbch_init(&psbch, cell.nof_prb, cell.N_sl_id, cell.tm, cell.cp) != SRSLTE_SUCCESS) {
-    ERROR("Error in psbch init\n");
+    ERROR("Error in psbch init");
     return SRSLTE_ERROR;
   }
 
   // PSCBH DMRS
   srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing sl_comm_resource_pool\n");
+    ERROR("Error initializing sl_comm_resource_pool");
     return SRSLTE_ERROR;
   }
 
-  srslte_chest_sl_t              psbch_chest;
+  srslte_chest_sl_t psbch_chest;
   if (srslte_chest_sl_init(&psbch_chest, SRSLTE_SIDELINK_PSBCH, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error in chest PSBCH init\n");
+    ERROR("Error in chest PSBCH init");
     return SRSLTE_ERROR;
   }
 

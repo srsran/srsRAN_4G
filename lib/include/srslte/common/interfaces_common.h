@@ -22,6 +22,7 @@
 #ifndef SRSLTE_INTERFACES_COMMON_H
 #define SRSLTE_INTERFACES_COMMON_H
 
+#include "srslte/common/byte_buffer.h"
 #include "srslte/common/security.h"
 #include "srslte/phy/common/phy_common.h"
 #include <string>

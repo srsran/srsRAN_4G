@@ -61,16 +61,19 @@ struct mobility_test_params {
 };
 
 struct mobility_tester {
-  explicit mobility_tester(const mobility_test_params& args_) : args(args_), rrc(&task_sched)
+  explicit mobility_tester(const mobility_test_params& args_) :
+    args(args_), logger(srslog::fetch_basic_logger("RRC")), rrc(&task_sched)
   {
-    rrc_log->set_level(srslte::LOG_LEVEL_INFO);
-    rrc_log->set_hex_limit(1024);
+    logger.set_level(srslog::basic_levels::info);
+    logger.set_hex_dump_max_size(1024);
   }
   virtual int generate_rrc_cfg() = 0;
   virtual int setup_rrc() { return setup_rrc_common(); }
   int         run_preamble()
   {
-    rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+    // mute all the startup log
+    logger.set_level(srslog::basic_levels::none);
+
     // add user
     sched_interface::ue_cfg_t ue_cfg{};
     ue_cfg.supported_cc_list.resize(1);
@@ -80,14 +83,14 @@ struct mobility_tester {
 
     // Do all the handshaking until the first RRC Connection Reconf
     test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
-    rrc_log->set_level(srslte::LOG_LEVEL_INFO);
+    logger.set_level(srslog::basic_levels::info);
     return SRSLTE_SUCCESS;
   }
 
-  mobility_test_params                        args;
-  srslte::scoped_log<srslte::test_log_filter> rrc_log{"RRC"};
-  srslte::task_scheduler                      task_sched;
-  rrc_cfg_t                                   cfg;
+  mobility_test_params   args;
+  srslog::basic_logger&  logger;
+  srslte::task_scheduler task_sched;
+  rrc_cfg_t              cfg;
 
   srsenb::rrc                       rrc;
   test_dummies::mac_mobility_dummy  mac;
@@ -161,10 +164,11 @@ struct intraenb_mobility_tester : public mobility_tester {
   }
 };
 
-int test_s1ap_mobility(mobility_test_params test_params)
+int test_s1ap_mobility(srslte::log_sink_spy& spy, mobility_test_params test_params)
 {
   printf("\n===== TEST: test_s1ap_mobility() for event %s =====\n", test_params.to_string());
-  s1ap_mobility_tester         tester{test_params};
+  s1ap_mobility_tester tester{test_params};
+  spy.reset_counters();
   srslte::unique_byte_buffer_t pdu;
 
   TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
@@ -195,7 +199,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   /* Test Case: the MeasReport is not valid */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    TESTASSERT(tester.rrc_log->warn_counter == 1);
+    TESTASSERT(spy.get_warning_counter() == 1);
     return SRSLTE_SUCCESS;
   }
   TESTASSERT(s1ap.last_ho_required.rrc_container != nullptr);
@@ -231,8 +235,8 @@ int test_s1ap_mobility(mobility_test_params test_params)
 
   /* Test Case: HandoverPreparation has failed */
   if (test_params.fail_at == mobility_test_params::test_event::ho_prep_failure) {
-    tester.rrc.ho_preparation_complete(tester.rnti, false, nullptr);
-    //    TESTASSERT(rrc_log->error_counter == 1);
+    tester.rrc.ho_preparation_complete(tester.rnti, false, {}, nullptr);
+    //    TESTASSERT(spy.get_error_counter() == 1);
     TESTASSERT(not s1ap.last_enb_status.status_present);
     return SRSLTE_SUCCESS;
   }
@@ -244,9 +248,9 @@ int test_s1ap_mobility(mobility_test_params test_params)
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
   test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container);
   TESTASSERT(s1ap.last_enb_status.rnti != tester.rnti);
-  tester.rrc.ho_preparation_complete(tester.rnti, true, std::move(pdu));
+  tester.rrc.ho_preparation_complete(tester.rnti, true, asn1::s1ap::ho_cmd_s{}, std::move(pdu));
   TESTASSERT(s1ap.last_enb_status.status_present);
-  TESTASSERT(tester.rrc_log->error_counter == 0);
+  TESTASSERT(spy.get_error_counter() == 0);
   asn1::rrc::dl_dcch_msg_s ho_cmd;
   TESTASSERT(test_helpers::unpack_asn1(ho_cmd, srslte::make_span(tester.pdcp.last_sdu.sdu)));
   recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
@@ -287,6 +291,13 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
       0x5c, 0xe1, 0x86, 0x35, 0x39, 0x80, 0x0e, 0x06, 0xa4, 0x40, 0x0f, 0x22, 0x78};
   // 0a100b818000018000f3020800001580001406a402f00404f00014804a000000021231b6f83ea06f05e465141d39d0544c00025400200460000000100100c000000000020500041400670dfbc46606500f00080020800c14ca2d5ce1863539800e06a4400f2278
   container.rrc_container.resize(sizeof(ho_prep_container));
+  container.erab_info_list_present = true;
+  container.erab_info_list.resize(1);
+  container.erab_info_list[0].load_info_obj(ASN1_S1AP_ID_ERAB_INFO_LIST_ITEM);
+  container.erab_info_list[0].value.erab_info_list_item().erab_id               = 5;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding_present = true;
+  container.erab_info_list[0].value.erab_info_list_item().dl_forwarding.value =
+      asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed;
   memcpy(container.rrc_container.data(), ho_prep_container, sizeof(ho_prep_container));
   tester.rrc.start_ho_ue_resource_alloc(ho_req, container);
   tester.tic();
@@ -366,10 +377,11 @@ int test_s1ap_tenb_mobility(mobility_test_params test_params)
   return SRSLTE_SUCCESS;
 }
 
-int test_intraenb_mobility(mobility_test_params test_params)
+int test_intraenb_mobility(srslte::log_sink_spy& spy, mobility_test_params test_params)
 {
   printf("\n===== TEST: test_intraenb_mobility() for event %s =====\n", test_params.to_string());
-  intraenb_mobility_tester     tester{test_params};
+  intraenb_mobility_tester tester{test_params};
+  spy.reset_counters();
   srslte::unique_byte_buffer_t pdu;
 
   TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
@@ -403,7 +415,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
 
   /* Test Case: the MeasReport is not valid */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
-    TESTASSERT(tester.rrc_log->warn_counter == 1);
+    TESTASSERT(spy.get_warning_counter() == 1);
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
     return SRSLTE_SUCCESS;
   }
@@ -423,7 +435,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   }
 
   /* Test Case: the HandoverCommand was sent to the lower layers */
-  TESTASSERT(tester.rrc_log->error_counter == 0);
+  TESTASSERT(spy.get_error_counter() == 0);
   TESTASSERT(tester.pdcp.last_sdu.rnti == tester.rnti);
   TESTASSERT(tester.pdcp.last_sdu.lcid == 1); // SRB1
   asn1::rrc::dl_dcch_msg_s ho_cmd;
@@ -496,7 +508,25 @@ int test_intraenb_mobility(mobility_test_params test_params)
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srslte::log_sink_spy::name(),
+          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSLTE_ERROR;
+  }
+
+  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  if (!spy) {
+    return SRSLTE_ERROR;
+  }
+  srslog::set_default_sink(*spy);
+
+  auto& logger = srslog::fetch_basic_logger("RRC", false);
+  logger.set_level(srslog::basic_levels::info);
+  logger.set_hex_dump_max_size(1024);
+
+  srslog::init();
+
   using event = mobility_test_params::test_event;
 
   if (argc < 3) {
@@ -506,18 +536,20 @@ int main(int argc, char** argv)
   argparse::parse_args(argc, argv);
 
   // S1AP Handover
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::wrong_measreport}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::concurrent_ho}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::ho_prep_failure}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::success}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::wrong_measreport}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::concurrent_ho}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::ho_prep_failure}) == 0);
+  TESTASSERT(test_s1ap_mobility(*spy, mobility_test_params{event::success}) == 0);
 
   TESTASSERT(test_s1ap_tenb_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::wrong_measreport}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::concurrent_ho}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::duplicate_crnti_ce}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::success}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::wrong_measreport}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::concurrent_ho}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::duplicate_crnti_ce}) == 0);
+  TESTASSERT(test_intraenb_mobility(*spy, mobility_test_params{event::success}) == 0);
+
+  srslog::flush();
 
   printf("\nSuccess\n");
 

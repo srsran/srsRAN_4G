@@ -29,11 +29,12 @@ struct ev1 {};
 struct ev2 {};
 
 std::vector<std::string> calls;
+
 template <typename State>
-void call_log_helper(State* state, srslte::log_ref log_h, const char* type)
+void call_log_helper(State* state, srslog::basic_logger& logger, const char* type)
 {
   std::string callname = srslte::get_type_name<State>() + "::" + type;
-  log_h->info("%s custom called\n", callname.c_str());
+  logger.info("%s custom called", callname.c_str());
   calls.push_back(callname);
 }
 
@@ -54,7 +55,7 @@ public:
     void exit(fsm1* f);
   };
 
-  explicit fsm1(srslte::log_ref log_) : srslte::fsm_t<fsm1>(log_) {}
+  explicit fsm1(srslog::basic_logger& logger) : srslte::fsm_t<fsm1>(logger) {}
 
   // this state is another FSM
   class fsm2 : public subfsm_t<fsm2>
@@ -64,22 +65,22 @@ public:
     struct state_inner {
       void enter(fsm2* f)
       {
-        call_log_helper(this, f->get_log(), "enter");
+        call_log_helper(this, f->get_logger(), "enter");
         f->parent_fsm()->inner_enter_counter++;
       }
     };
     struct state_inner2 {
-      void enter(fsm2* f) { call_log_helper(this, f->get_log(), "enter"); }
-      void exit(fsm2* f) { call_log_helper(this, f->get_log(), "exit"); }
+      void enter(fsm2* f) { call_log_helper(this, f->get_logger(), "enter"); }
+      void exit(fsm2* f) { call_log_helper(this, f->get_logger(), "exit"); }
     };
 
     explicit fsm2(fsm1* f_) : composite_fsm_t(f_) {}
     fsm2(fsm2&&)  = default;
     fsm2& operator=(fsm2&&) = default;
-    ~fsm2() { get_log()->info("%s being destroyed!", get_type_name(*this).c_str()); }
+    ~fsm2() { get_logger().info("%s being destroyed!", get_type_name(*this).c_str()); }
 
-    void enter(fsm1* f) { call_log_helper(this, get_log(), "enter"); }
-    void exit(fsm1* f) { call_log_helper(this, get_log(), "exit"); }
+    void enter(fsm1* f) { call_log_helper(this, get_logger(), "enter"); }
+    void exit(fsm1* f) { call_log_helper(this, get_logger(), "exit"); }
 
   private:
     void inner_action1(state_inner& s, const ev1& e);
@@ -126,54 +127,54 @@ protected:
 
 void fsm1::idle_st::enter(fsm1* f)
 {
-  call_log_helper(this, f->log_h, "enter");
+  call_log_helper(this, f->logger, "enter");
   f->idle_enter_counter++;
 }
 void fsm1::state1::enter(fsm1* f, const ev1& ev)
 {
-  call_log_helper(this, f->log_h, "enter");
+  call_log_helper(this, f->logger, "enter");
   f->state1_enter_counter++;
 }
 void fsm1::state1::enter(fsm1* f, const ev2& ev)
 {
-  call_log_helper(this, f->log_h, "enter2");
+  call_log_helper(this, f->logger, "enter2");
   f->state1_enter_counter++;
 }
 void fsm1::state1::exit(fsm1* f)
 {
-  call_log_helper(this, f->log_h, "exit");
+  call_log_helper(this, f->logger, "exit");
 }
 
 // FSM event handlers
 void fsm1::fsm2::inner_action1(state_inner& s, const ev1& e)
 {
-  call_log_helper(this, get_log(), "inner_action1");
+  call_log_helper(this, get_logger(), "inner_action1");
 }
 
 void fsm1::fsm2::inner_action2(state_inner& s, const ev2& e)
 {
-  call_log_helper(this, get_log(), "inner_action2");
+  call_log_helper(this, get_logger(), "inner_action2");
 }
 
 void fsm1::fsm2::inner_action3(state_inner2& s, const ev2& e)
 {
-  get_log()->info("fsm2::state_inner2::react called\n");
+  get_logger().info("fsm2::state_inner2::react called");
 }
 
 void fsm1::action1(idle_st& s, const ev1& e)
 {
-  call_log_helper(this, log_h, "action1");
+  call_log_helper(this, logger, "action1");
   foo(e);
 }
 
 void fsm1::action2(state1& s, const ev1& ev)
 {
-  call_log_helper(this, log_h, "action2");
+  call_log_helper(this, logger, "action2");
 }
 
 void fsm1::action3(state1& s, const ev2& ev)
 {
-  call_log_helper(this, log_h, "action3");
+  call_log_helper(this, logger, "action3");
 }
 
 // Static Checks
@@ -181,17 +182,16 @@ void fsm1::action3(state1& s, const ev2& ev)
 namespace srslte {
 namespace fsm_details {
 
-static_assert(is_fsm<fsm1>::value, "invalid metafunction\n");
-static_assert(is_composite_fsm<fsm1::fsm2>::value, "invalid metafunction\n");
+static_assert(is_fsm<fsm1>::value, "invalid metafunction");
+static_assert(is_composite_fsm<fsm1::fsm2>::value, "invalid metafunction");
 static_assert(type_list_size(typename filter_transition_type<ev1, fsm1::idle_st, fsm_transitions<fsm1> >::type{}) > 0,
-              "invalid filter metafunction\n");
+              "invalid filter metafunction");
 static_assert(
     std::is_same<fsm_state_list_type<fsm1>, fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
-    "get state list failed\n");
-static_assert(fsm1::can_hold_state<fsm1::state1>(), "failed can_hold_state check\n");
-static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value, "get state list failed\n");
-static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
-              "get state list failed\n");
+    "get state list failed");
+static_assert(fsm1::can_hold_state<fsm1::state1>(), "failed can_hold_state check");
+static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value, "get state list failed");
+static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value, "get state list failed");
 
 } // namespace fsm_details
 } // namespace srslte
@@ -200,10 +200,10 @@ static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, 
 
 int test_hsm()
 {
-  srslte::log_ref log_h{"HSM"};
-  log_h->set_level(srslte::LOG_LEVEL_INFO);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("HSM", false);
+  logger.set_level(srslog::basic_levels::info);
 
-  fsm1 f{log_h};
+  fsm1 f{logger};
   TESTASSERT(f.idle_enter_counter == 1);
   TESTASSERT(get_type_name(f) == "fsm1");
   TESTASSERT(f.current_state_name() == "idle_st");
@@ -289,7 +289,7 @@ public:
     void enter(proc1* f, const srslte::proc_launch_ev<int>& ev);
   };
 
-  explicit proc1(srslte::log_ref log_) : base_t(log_) {}
+  explicit proc1(srslog::basic_logger& logger) : base_t(logger) {}
 
 protected:
   // Transitions
@@ -316,18 +316,18 @@ protected:
 
 void proc1::procstate1::enter(proc1* f, const launch_ev<int>& ev)
 {
-  f->log_h->info("started!\n");
+  f->logger.info("started!");
 }
 
 void proc1::handle_success(procstate1& s, const procevent1& ev)
 {
-  log_h->info("success!\n");
+  logger.info("success!");
   trigger(complete_ev{5});
 }
 
 void proc1::handle_failure(procstate1& s, const procevent1& ev)
 {
-  log_h->info("failure!\n");
+  logger.info("failure!");
   trigger(complete_ev{3});
 }
 
@@ -337,9 +337,8 @@ public:
   struct st2 {};
   using proc1_st = srslte::proc_wait_st<proc1>;
 
-  explicit proc_listener_fsm(srslte::log_ref log_, proc1* proc_ptr_) :
-    base_t(log_),
-    states(this, st1{}, st2{}, proc1_st{proc_ptr_})
+  proc_listener_fsm(srslog::basic_logger& logger, proc1* proc_ptr_) :
+    base_t(logger), states(this, st1{}, st2{}, proc1_st{proc_ptr_})
   {}
 
 protected:
@@ -361,9 +360,9 @@ protected:
 
 int test_fsm_proc()
 {
-  proc1 proc{srslte::logmap::get("PROC")};
-  proc.get_log()->set_level(srslte::LOG_LEVEL_INFO);
-  proc.set_fsm_event_log_level(srslte::LOG_LEVEL_INFO);
+  proc1 proc{srslog::fetch_basic_logger("PROC", false)};
+  proc.get_logger().set_level(srslog::basic_levels::info);
+  proc.set_fsm_event_log_level(srslog::basic_levels::info);
 
   int v = 2;
   TESTASSERT(proc.current_state_name() == "idle_st");
@@ -383,7 +382,7 @@ int test_fsm_proc()
   TESTASSERT(proc.get_result() == 3);
 
   {
-    proc_listener_fsm outer_fsm{srslte::logmap::get("TEST"), &proc};
+    proc_listener_fsm outer_fsm{srslog::fetch_basic_logger("TEST"), &proc};
     TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
     outer_fsm.trigger(6);
     TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::proc1_st>());
@@ -394,7 +393,7 @@ int test_fsm_proc()
   }
 
   {
-    proc_listener_fsm outer_fsm{srslte::logmap::get("TEST"), &proc};
+    proc_listener_fsm outer_fsm{srslog::fetch_basic_logger("TEST"), &proc};
     TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
     proc.trigger(srslte::proc_launch_ev<int>{v});
     TESTASSERT(proc.is_running());
@@ -435,7 +434,7 @@ public:
   struct detach_request_ev {};
   struct detach_accept_ev {};
 
-  nas_fsm(srslte::log_ref log_) : fsm_t<nas_fsm>(log_) {}
+  explicit nas_fsm(srslog::basic_logger& logger) : fsm_t<nas_fsm>(logger) {}
 
 protected:
   state_list<emm_null_st,
@@ -470,9 +469,11 @@ protected:
 
 int test_nas_fsm()
 {
-  srslte::log_ref log_h{"NAS"};
-  log_h->set_level(srslte::LOG_LEVEL_INFO);
-  nas_fsm fsm{log_h};
+  auto& logger = srslog::fetch_basic_logger("NAS", false);
+  logger.set_level(srslog::basic_levels::info);
+
+  nas_fsm fsm{logger};
+
   TESTASSERT(fsm.is_in_state<nas_fsm::emm_null_st>());
 
   // NULL -> EMM-DEREGISTERED
@@ -548,7 +549,7 @@ struct fsm3 : public srslte::fsm_t<fsm3> {
     }
   };
 
-  fsm3() : base_t(srslte::log_ref{"TEST"}) {}
+  fsm3() : base_t(srslog::fetch_basic_logger("TEST")) {}
 
   std::vector<std::string> events;
 
@@ -600,16 +601,18 @@ int test_fsm_self_trigger()
 
 int main()
 {
-  srslte::log_ref testlog{"TEST"};
-  testlog->set_level(srslte::LOG_LEVEL_INFO);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("TEST", false);
+  logger.set_level(srslog::basic_levels::info);
+  srslog::init();
+
   TESTASSERT(test_hsm() == SRSLTE_SUCCESS);
-  testlog->info("TEST \"hsm\" finished successfully\n\n");
+  logger.info("TEST \"hsm\" finished successfully\n");
   TESTASSERT(test_fsm_proc() == SRSLTE_SUCCESS);
-  testlog->info("TEST \"proc\" finished successfully\n\n");
+  logger.info("TEST \"proc\" finished successfully\n");
   TESTASSERT(test_nas_fsm() == SRSLTE_SUCCESS);
-  testlog->info("TEST \"nas fsm\" finished successfully\n\n");
+  logger.info("TEST \"nas fsm\" finished successfully\n");
   TESTASSERT(test_fsm_self_trigger() == SRSLTE_SUCCESS);
-  testlog->info("TEST \"fsm self trigger\" finished successfully\n\n");
+  logger.info("TEST \"fsm self trigger\" finished successfully\n");
 
   return SRSLTE_SUCCESS;
 }

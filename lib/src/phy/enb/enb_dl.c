@@ -60,7 +60,7 @@ int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], u
       ofdm_cfg.out_buffer = out_buffer[i];
       ofdm_cfg.sf_type    = SRSLTE_SF_NORM;
       if (srslte_ofdm_tx_init_cfg(&q->ifft[i], &ofdm_cfg)) {
-        ERROR("Error initiating FFT (%d)\n", i);
+        ERROR("Error initiating FFT (%d)", i);
         goto clean_exit;
       }
     }
@@ -69,52 +69,52 @@ int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], u
     ofdm_cfg.out_buffer = out_buffer[0];
     ofdm_cfg.sf_type    = SRSLTE_SF_MBSFN;
     if (srslte_ofdm_tx_init_cfg(&q->ifft_mbsfn, &ofdm_cfg)) {
-      ERROR("Error initiating FFT \n");
+      ERROR("Error initiating FFT");
       goto clean_exit;
     }
 
     if (srslte_pbch_init(&q->pbch)) {
-      ERROR("Error creating PBCH object\n");
+      ERROR("Error creating PBCH object");
       goto clean_exit;
     }
     if (srslte_pcfich_init(&q->pcfich, 0)) {
-      ERROR("Error creating PCFICH object\n");
+      ERROR("Error creating PCFICH object");
       goto clean_exit;
     }
     if (srslte_phich_init(&q->phich, 0)) {
-      ERROR("Error creating PHICH object\n");
+      ERROR("Error creating PHICH object");
       goto clean_exit;
     }
     int mbsfn_area_id = 1;
 
     if (srslte_pmch_init(&q->pmch, max_prb, 1)) {
-      ERROR("Error creating PMCH object\n");
+      ERROR("Error creating PMCH object");
     }
     srslte_pmch_set_area_id(&q->pmch, mbsfn_area_id);
 
     if (srslte_pdcch_init_enb(&q->pdcch, max_prb)) {
-      ERROR("Error creating PDCCH object\n");
+      ERROR("Error creating PDCCH object");
       goto clean_exit;
     }
 
     if (srslte_pdsch_init_enb(&q->pdsch, max_prb)) {
-      ERROR("Error creating PDSCH object\n");
+      ERROR("Error creating PDSCH object");
       goto clean_exit;
     }
 
     if (srslte_refsignal_cs_init(&q->csr_signal, max_prb)) {
-      ERROR("Error initializing CSR signal (%d)\n", ret);
+      ERROR("Error initializing CSR signal (%d)", ret);
       goto clean_exit;
     }
 
     if (srslte_refsignal_mbsfn_init(&q->mbsfnr_signal, max_prb)) {
-      ERROR("Error initializing CSR signal (%d)\n", ret);
+      ERROR("Error initializing CSR signal (%d)", ret);
       goto clean_exit;
     }
     ret = SRSLTE_SUCCESS;
 
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters");
   }
 
 clean_exit:
@@ -160,58 +160,58 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell)
       }
       q->cell = cell;
       if (srslte_regs_init(&q->regs, q->cell)) {
-        ERROR("Error resizing REGs\n");
+        ERROR("Error resizing REGs");
         return SRSLTE_ERROR;
       }
       for (int i = 0; i < q->cell.nof_ports; i++) {
         if (srslte_ofdm_tx_set_prb(&q->ifft[i], q->cell.cp, q->cell.nof_prb)) {
-          ERROR("Error re-planning iFFT (%d)\n", i);
+          ERROR("Error re-planning iFFT (%d)", i);
           return SRSLTE_ERROR;
         }
       }
 
       if (srslte_ofdm_tx_set_prb(&q->ifft_mbsfn, SRSLTE_CP_EXT, q->cell.nof_prb)) {
-        ERROR("Error re-planning ifft_mbsfn\n");
+        ERROR("Error re-planning ifft_mbsfn");
         return SRSLTE_ERROR;
       }
 
       srslte_ofdm_set_non_mbsfn_region(&q->ifft_mbsfn, 2);
 
       if (srslte_pbch_set_cell(&q->pbch, q->cell)) {
-        ERROR("Error creating PBCH object\n");
+        ERROR("Error creating PBCH object");
         return SRSLTE_ERROR;
       }
       if (srslte_pcfich_set_cell(&q->pcfich, &q->regs, q->cell)) {
-        ERROR("Error creating PCFICH object\n");
+        ERROR("Error creating PCFICH object");
         return SRSLTE_ERROR;
       }
       if (srslte_phich_set_cell(&q->phich, &q->regs, q->cell)) {
-        ERROR("Error creating PHICH object\n");
+        ERROR("Error creating PHICH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pdcch_set_cell(&q->pdcch, &q->regs, q->cell)) {
-        ERROR("Error creating PDCCH object\n");
+        ERROR("Error creating PDCCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
-        ERROR("Error creating PDSCH object\n");
+        ERROR("Error creating PDSCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pmch_set_cell(&q->pmch, q->cell)) {
-        ERROR("Error creating PMCH object\n");
+        ERROR("Error creating PMCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_refsignal_cs_set_cell(&q->csr_signal, q->cell)) {
-        ERROR("Error initializing CSR signal (%d)\n", ret);
+        ERROR("Error initializing CSR signal (%d)", ret);
         return SRSLTE_ERROR;
       }
       int mbsfn_area_id = 1;
       if (srslte_refsignal_mbsfn_set_cell(&q->mbsfnr_signal, q->cell, mbsfn_area_id)) {
-        ERROR("Error initializing MBSFNR signal (%d)\n", ret);
+        ERROR("Error initializing MBSFNR signal (%d)", ret);
         return SRSLTE_ERROR;
       }
       /* Generate PSS/SSS signals */
@@ -227,7 +227,7 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell)
     ret = SRSLTE_SUCCESS;
 
   } else {
-    ERROR("Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n", cell.id, cell.nof_ports, cell.nof_prb);
+    ERROR("Invalid cell properties: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
 }
@@ -385,10 +385,10 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t* q, srslte_dci_cfg_t* dci_cfg, sr
   ZERO_OBJECT(dci_msg);
 
   if (srslte_dci_msg_pack_pdsch(&q->cell, &q->dl_sf, dci_cfg, dci_dl, &dci_msg)) {
-    ERROR("Error packing DL DCI\n");
+    ERROR("Error packing DL DCI");
   }
   if (srslte_pdcch_encode(&q->pdcch, &q->dl_sf, &dci_msg, q->sf_symbols)) {
-    ERROR("Error encoding DL DCI message\n");
+    ERROR("Error encoding DL DCI message");
     return SRSLTE_ERROR;
   }
 
@@ -401,10 +401,10 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t* q, srslte_dci_cfg_t* dci_cfg, sr
   ZERO_OBJECT(dci_msg);
 
   if (srslte_dci_msg_pack_pusch(&q->cell, &q->dl_sf, dci_cfg, dci_ul, &dci_msg)) {
-    ERROR("Error packing UL DCI\n");
+    ERROR("Error packing UL DCI");
   }
   if (srslte_pdcch_encode(&q->pdcch, &q->dl_sf, &dci_msg, q->sf_symbols)) {
-    ERROR("Error encoding UL DCI message\n");
+    ERROR("Error encoding UL DCI message");
     return SRSLTE_ERROR;
   }
 
@@ -605,7 +605,6 @@ get_ack_fdd(const srslte_uci_cfg_t* uci_cfg, const srslte_uci_value_t* uci_value
   bool csi_report = uci_cfg->cqi.data_enable || uci_cfg->cqi.ri_len;
 
   switch (pdsch_ack->ack_nack_feedback_mode) {
-
     case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL:
       // Get ACK from PCell only, skipping DRX
       enb_dl_get_ack_fdd_pcell_skip_drx(uci_value, pdsch_ack, nof_tb);
@@ -655,7 +654,7 @@ void srslte_enb_dl_get_ack(const srslte_cell_t*      cell,
   if (cell->frame_type == SRSLTE_FDD) {
     get_ack_fdd(uci_cfg, uci_value, pdsch_ack);
   } else {
-    ERROR("Not implemented for TDD\n");
+    ERROR("Not implemented for TDD");
   }
 }
 

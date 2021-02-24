@@ -76,6 +76,16 @@
  */
 #define SRSLTE_PUCCH_NR_MAX_CODE_RATE 7
 
+/**
+ * Maximum number of NR-PUCCH resources per set (TS 38.331 maxNrofPUCCH-ResourcesPerSet)
+ */
+#define SRSLTE_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET 32
+
+/**
+ * Maximum number NR-PUCCH resource sets (TS 38.331 maxNrofPUCCH-ResourceSets)
+ */
+#define SRSLTE_PUCCH_NR_MAX_NOF_SETS 4
+
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_NR_FORMAT_0 = 0,
   SRSLTE_PUCCH_NR_FORMAT_1,
@@ -134,6 +144,18 @@ typedef struct SRSLTE_API {
   uint32_t max_code_rate;   ///< Maximum code rate r (0..7)
   bool     additional_dmrs; ///< UE enables 2 DMRS symbols per hop of a PUCCH Format 3 or 4
 } srslte_pucch_nr_resource_t;
+
+typedef struct SRSLTE_API {
+  srslte_pucch_nr_resource_t resources[SRSLTE_PUCCH_NR_MAX_NOF_RESOURCES_PER_SET];
+  uint32_t                   nof_resources;    ///< Set to 0 if it is NOT provided by higher layers
+  uint32_t                   max_payload_size; ///< Maximum payload size, set to 0 if not present
+} srslte_pucch_nr_resource_set_t;
+
+typedef struct SRSLTE_API {
+  srslte_pucch_nr_common_cfg_t   common; ///< NR-PUCCH configuration common for all formats and resources
+  srslte_pucch_nr_resource_set_t sets[SRSLTE_PUCCH_NR_MAX_NOF_SETS]; ///< Resource sets, indexed by pucch-ResourceSetId
+  bool                           enabled;                            ///< Set to true if any set is enabled
+} srslte_pucch_nr_hl_cfg_t;
 
 /**
  * @brief Validates an NR-PUCCH resource configuration provided by upper layers

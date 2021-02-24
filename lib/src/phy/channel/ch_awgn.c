@@ -78,7 +78,7 @@ int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
   q->table_cos = srslte_vec_f_malloc(AWGN_TABLE_ALLOC_SIZE);
   q->table_log = srslte_vec_f_malloc(AWGN_TABLE_ALLOC_SIZE);
   if (!q->table_cos || !q->table_log) {
-    ERROR("Malloc\n");
+    ERROR("Malloc");
   }
 
   // Fill tables

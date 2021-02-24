@@ -27,7 +27,7 @@
 #include <stdarg.h>
 #include <string>
 
-#include "mac/mac_nr.h"
+#include "mac_nr/mac_nr.h"
 #include "rrc/rrc_nr.h"
 #include "srslte/radio/radio.h"
 #include "srslte/upper/pdcp.h"
@@ -37,7 +37,7 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/mac_pcap.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
@@ -71,9 +71,9 @@ public:
   void stop();
 
   // GW srsue stack_interface_gw dummy interface
-  bool is_registered(){return true;};
-  bool start_service_request(){return true;};
-  
+  bool is_registered() { return true; };
+  bool start_service_request() { return true; };
+
   bool get_metrics(stack_metrics_t* metrics);
   bool is_rrc_connected();
 
@@ -83,13 +83,19 @@ public:
   void run_tti(uint32_t tti) final;
 
   // MAC interface for PHY
-  int sf_indication(const uint32_t tti)
+  sched_rnti_t get_dl_sched_rnti_nr(const uint32_t tti) final { return mac->get_dl_sched_rnti_nr(tti); }
+  sched_rnti_t get_ul_sched_rnti_nr(const uint32_t tti) final { return mac->get_ul_sched_rnti_nr(tti); }
+  int          sf_indication(const uint32_t tti)
   {
     run_tti(tti);
     return SRSLTE_SUCCESS;
   }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac->tb_decoded(cc_idx, grant); }
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final { mac->new_grant_ul(cc_idx, grant); }
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* phy_tx_pdu) final { mac->new_grant_ul(cc_idx, grant, phy_tx_pdu); }
+  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id)
+  {
+    mac->prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
+  }
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
@@ -114,15 +120,12 @@ private:
   srslte::logger* logger = nullptr;
   srslte::log_ref rlc_log;
   srslte::log_ref pdcp_log;
-  srslte::log_ref pool_log;
 
   // stack components
   std::unique_ptr<mac_nr>       mac;
   std::unique_ptr<rrc_nr>       rrc;
   std::unique_ptr<srslte::rlc>  rlc;
   std::unique_ptr<srslte::pdcp> pdcp;
-
-  std::unique_ptr<srslte::mac_nr_pcap> mac_pcap;
 
   // RAT-specific interfaces
   phy_interface_stack_nr* phy = nullptr;

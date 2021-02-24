@@ -202,6 +202,18 @@ public:
   ttcn3_helpers::pdcp_count_map_t get_pdcp_count(const std::string cell_name);
 
 private:
+  // Logging stuff.
+  srslog::basic_logger& logger;
+  srslog::basic_logger& ut_logger;
+  srslog::basic_logger& sys_logger;
+  srslog::basic_logger& ip_sock_logger;
+  srslog::basic_logger& ip_ctrl_logger;
+  srslog::basic_logger& srb_logger;
+  srslog::basic_logger& drb_logger;
+  srslog::basic_logger& ss_mac_logger;
+  srslog::basic_logger& ss_rlc_logger;
+  srslog::basic_logger& ss_pdcp_logger;
+
   // SYS interface
   ttcn3_ut_interface      ut;
   ttcn3_sys_interface     sys;
@@ -217,24 +229,16 @@ private:
   epoll_timer_handler                timer_handler;
   epoll_signal_handler               signal_handler;
 
-  // Logging stuff
-  srslte::logger&    logger_stdout;
-  srslte::logger&    logger_file;
-  srslte::logger*    logger = nullptr;
-  srslte::log_ref    log;
-  srslte::log_filter ut_log;
-  srslte::log_filter sys_log;
-  srslte::log_filter ip_sock_log;
-  srslte::log_filter ip_ctrl_log;
-  srslte::log_filter srb_log;
-  srslte::log_filter drb_log;
-  srslte::log_ref    ss_mac_log{"SS-MAC"};
-  srslte::log_ref    ss_rlc_log{"SS-RLC"};
-  srslte::log_ref    ss_pdcp_log{"SS-PDCP"};
+  // Logging stuff (to be removed)
+  srslte::logger& logger_stdout;
+  srslte::logger& logger_file;
+  srslte::logger* old_logger = nullptr;
+  srslte::log_ref log;
+  srslte::log_ref ss_mac_log{"SS-MAC"};
+  srslte::log_ref ss_rlc_log{"SS-RLC"};
+  srslte::log_ref ss_pdcp_log{"SS-PDCP"};
 
   all_args_t args = {};
-
-  srslte::byte_buffer_pool* pool = nullptr;
 
   // Simulator vars
   ttcn3_ue* ue      = nullptr;

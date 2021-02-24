@@ -54,13 +54,19 @@ private:
    */
   typedef enum { STATE_IDLE = 0, STATE_SEARCH_PSS, STATE_IN_SYNCH } state_t;
 
-  state_t                                 state    = STATE_IDLE;
-  sync_callback*                          callback = nullptr;
-  uint32_t                                channel  = 0;
-  srslte_sync_t                           find_pss = {};
-  int32_t                                 sf_len   = 0;
-  std::array<cf_t, 2 * SRSLTE_SF_LEN_MAX> temp     = {};
-  std::mutex                              mutex; ///< Used for avoiding reconfiguring (set_cell) while it is searching
+  /**
+   * Buffer length in subframes, only 2 subframes are allowed
+   */
+  static const uint32_t BUFFER_LEN = 2;
+
+  state_t                                         state    = STATE_IDLE;
+  sync_callback*                                  callback = nullptr;
+  uint32_t                                        channel  = 0;
+  srslte_sync_t                                   find_pss = {};
+  int32_t                                         sf_len   = 0;
+  int32_t                                         cell_id  = -1;
+  std::array<cf_t, BUFFER_LEN* SRSLTE_SF_LEN_MAX> temp     = {};
+  std::mutex mutex; ///< Used for avoiding reconfiguring (set_cell) while it is searching
 
   /**
    * Executes the PSS search state
@@ -80,7 +86,6 @@ private:
 
     // Run PSS search
     switch (srslte_sync_find(&find_pss, temp.data(), 0, &peak_pos)) {
-
       case SRSLTE_SYNC_FOUND:
         if (callback != nullptr) {
           // Calculate Sample Offset from TTI difference
@@ -96,13 +101,13 @@ private:
         state = STATE_IN_SYNCH;
         break;
       case SRSLTE_SYNC_FOUND_NOSPACE:
-        ERROR("No space error\n");
+        ERROR("No space error");
         break;
       case SRSLTE_SYNC_NOFOUND:
         // Ignore
         break;
       case SRSLTE_SYNC_ERROR:
-        ERROR("Error finding PSS\n");
+        ERROR("Error finding PSS");
         break;
     }
 
@@ -110,6 +115,35 @@ private:
     if (state == STATE_SEARCH_PSS) {
       srslte_vec_cf_copy(&temp[0], buffer, sf_len);
     }
+  }
+
+  /**
+   * Unprotected internal resize method for a given bandwidth
+   */
+  void resize(uint32_t new_nof_prb)
+  {
+    uint32_t symbol_sz  = srslte_symbol_sz(new_nof_prb);
+    int32_t  new_sf_len = SRSLTE_SF_LEN_PRB(new_nof_prb);
+
+    // Reset Temporal buffer
+    srslte_vec_cf_zero(temp.data(), BUFFER_LEN * new_sf_len);
+
+    // Skip if no BW is changed
+    if (new_sf_len == sf_len) {
+      return;
+    }
+
+    // Resizes synchronization object. As the secondary serving cell base-band might be unaligned respect the primary
+    // serving cell, the PSS may be located away from the primary serving cell PSS time. The secondary serving cell PSS
+    // could be in the boundary between subframes, so more than a subframe is required to ensure PSS is captured. Two
+    // subframes is a simple and conservative buffer size.
+    if (srslte_sync_resize(&find_pss, BUFFER_LEN * new_sf_len, BUFFER_LEN * new_sf_len, symbol_sz) != SRSLTE_SUCCESS) {
+      ERROR("Error setting cell sync find");
+    }
+
+    // Update values
+    sf_len  = new_sf_len;
+    cell_id = -1; // Force next set_cell to set the ID
   }
 
 public:
@@ -126,11 +160,23 @@ public:
     // Initialise Find PSS object
     if (srslte_sync_init(&find_pss, 2 * SRSLTE_SF_LEN_MAX, 2 * SRSLTE_SF_LEN_MAX, SRSLTE_SYMBOL_SZ_MAX) !=
         SRSLTE_SUCCESS) {
-      ERROR("Initiating Synchronizer\n");
+      ERROR("Initiating Synchronizer");
     }
   }
 
   ~sync() { srslte_sync_free(&find_pss); };
+
+  void set_bw(const uint32_t nof_prb)
+  {
+    // Protect DSP objects and buffers; As it is called by asynchronous thread, it can wait to finish current processing
+    std::unique_lock<std::mutex> lock(mutex);
+
+    // Resizes the DSP objects for the given bandwidth
+    resize(nof_prb);
+
+    // Reset state to idle
+    state = STATE_IDLE;
+  }
 
   /**
    * Sets the cell for the synchronizer
@@ -140,24 +186,20 @@ public:
     // Protect DSP objects and buffers; As it is called by asynchronous thread, it can wait to finish current processing
     std::unique_lock<std::mutex> lock(mutex);
 
-    uint32_t symbol_sz = srslte_symbol_sz(cell.nof_prb);
-    sf_len             = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+    // Resize DSP for the new cell bandwidth
+    resize(cell.nof_prb);
 
-    // Resize Sync object
-    if (srslte_sync_resize(&find_pss, 2 * sf_len, 2 * sf_len, symbol_sz) != SRSLTE_SUCCESS) {
-      ERROR("Error setting cell sync find\n");
+    // Configure only if the cell identifier has changed
+    int32_t new_cell_id = cell.id;
+    if (cell_id != new_cell_id) {
+      srslte_sync_set_frame_type(&find_pss, cell.frame_type);
+      srslte_sync_set_N_id_2(&find_pss, new_cell_id % SRSLTE_NOF_NID_2);
+      srslte_sync_set_N_id_1(&find_pss, new_cell_id / SRSLTE_NOF_NID_2);
+      srslte_sync_set_cfo_ema_alpha(&find_pss, 0.1);
+      srslte_sync_set_em_alpha(&find_pss, 1);
+      srslte_sync_set_threshold(&find_pss, 3.0);
+      cell_id = new_cell_id;
     }
-
-    // Configure
-    srslte_sync_set_frame_type(&find_pss, cell.frame_type);
-    srslte_sync_set_N_id_2(&find_pss, cell.id % SRSLTE_NOF_NID_2);
-    srslte_sync_set_N_id_1(&find_pss, cell.id / SRSLTE_NOF_NID_2);
-    srslte_sync_set_cfo_ema_alpha(&find_pss, 0.1);
-    srslte_sync_set_em_alpha(&find_pss, 1);
-    srslte_sync_set_threshold(&find_pss, 3.0);
-
-    // Reset Temporal buffer
-    srslte_vec_cf_zero(temp.data(), 2 * sf_len);
 
     // Go to search PSS
     state = STATE_SEARCH_PSS;
@@ -169,7 +211,7 @@ public:
   void stop() { state = STATE_IDLE; }
 
   /**
-   * Runs internal FSM, performing Synchronization operations on the provided buffer. It expects data per sub-frame
+   * Runs internal FSM, performing Synchronization operations on the provided buffer. It expects data per subframe
    * basis (1 ms).
    * @param tti Current primary serving cell time
    * @param buffer Base-band buffer of the given secondary serving cell
@@ -177,7 +219,7 @@ public:
   void run(uint32_t tti, cf_t* buffer)
   {
     // Try to get lock. The lock is unsuccessful if the DSP objects are getting configured. In this case, ignore
-    // the sub-frame.
+    // the subframe.
     if (not mutex.try_lock()) {
       return;
     }

@@ -183,7 +183,7 @@ static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t new
                                                                                                                        \
     /* Return NAN if EVM buffers, modem table, LLR, symbols or bits missing*/                                          \
     if (!q || !modem_table || !modem_table->nbits_x_symbol || !llr || !symbols || !nof_bits) {                         \
-      ERROR("Invalid inputs %p %p %p %p %d\n", q, modem_table, llr, symbols, nof_bits);                                \
+      ERROR("Invalid inputs %p %p %p %p %d", q, modem_table, llr, symbols, nof_bits);                                \
       return evm_rms;                                                                                                  \
     }                                                                                                                  \
                                                                                                                        \

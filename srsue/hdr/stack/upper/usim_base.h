@@ -26,6 +26,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <string>
 
 namespace srsue {
@@ -66,9 +67,9 @@ public:
 class usim_base : public usim_interface_nas, public usim_interface_rrc, public usim_interface_rrc_nr
 {
 public:
-  usim_base(srslte::log* log_);
+  explicit usim_base(srslog::basic_logger& logger);
   virtual ~usim_base();
-  static std::unique_ptr<usim_base> get_instance(usim_args_t* args, srslte::log* log_);
+  static std::unique_ptr<usim_base> get_instance(usim_args_t* args, srslog::basic_logger& logger);
 
   virtual int  init(usim_args_t* args) = 0;
   virtual void stop()                  = 0;
@@ -113,7 +114,7 @@ protected:
   bool initiated = false;
 
   // Logging
-  srslte::log* log = nullptr;
+  srslog::basic_logger& logger;
 
   // User data
   // 3GPP 33.102 v10.0.0 Annex H

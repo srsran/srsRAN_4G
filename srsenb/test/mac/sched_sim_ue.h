@@ -24,7 +24,9 @@
 
 #include "sched_common_test_suite.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/srslog/srslog.h"
 #include <bitset>
+#include <map>
 
 namespace srsenb {
 
@@ -99,15 +101,15 @@ private:
   void update_dl_harqs(const sf_output_res_t& sf_out);
   void update_ul_harqs(const sf_output_res_t& sf_out);
 
-  srslte::log_ref log_h{"MAC"};
-  sim_ue_ctxt_t   ctxt;
+  srslog::basic_logger& logger;
+  sim_ue_ctxt_t         ctxt;
 };
 
 class sched_sim_base
 {
 public:
   sched_sim_base(sched_interface* sched_ptr_, const std::vector<sched_interface::cell_cfg_t>& cell_params_) :
-    sched_ptr(sched_ptr_), cell_params(&cell_params_)
+    logger(srslog::fetch_basic_logger("MAC")), sched_ptr(sched_ptr_), cell_params(&cell_params_)
   {
     sched_ptr->cell_cfg(cell_params_); // call parent cfg
   }
@@ -151,7 +153,7 @@ private:
   int set_default_tti_events(const sim_ue_ctxt_t& ue_ctxt, ue_tti_events& pending_events);
   int apply_tti_events(sim_ue_ctxt_t& ue_ctxt, const ue_tti_events& events);
 
-  srslte::log_ref                                 log_h{"MAC"};
+  srslog::basic_logger&                           logger;
   sched_interface*                                sched_ptr;
   const std::vector<sched_interface::cell_cfg_t>* cell_params;
 

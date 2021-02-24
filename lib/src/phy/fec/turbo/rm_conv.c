@@ -42,7 +42,6 @@ uint8_t RM_PERM_CC_INV[NCOLS] = {16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22,
  */
 int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t out_len)
 {
-
   uint8_t tmp[3 * NCOLS * NROWS_MAX];
   int     nrows, ndummy, K_p;
 
@@ -50,7 +49,7 @@ int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t
 
   nrows = (uint32_t)(in_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
-    ERROR("Input too large. Max input length is %d\n", 3 * NCOLS * NROWS_MAX);
+    ERROR("Input too large. Max input length is %d", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
   K_p    = nrows * NCOLS;
@@ -93,7 +92,6 @@ int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t
  */
 int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out_len)
 {
-
   int nrows, ndummy, K_p;
   int i, j, k;
   int d_i, d_j;
@@ -102,7 +100,7 @@ int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out
 
   nrows = (uint32_t)(out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
-    ERROR("Output too large. Max output length is %d\n", 3 * NCOLS * NROWS_MAX);
+    ERROR("Output too large. Max output length is %d", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
   K_p = nrows * NCOLS;
@@ -160,7 +158,6 @@ int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out
  */
 int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32_t out_len)
 {
-
   int nrows, ndummy, K_p;
   int i, j, k;
   int d_i, d_j;
@@ -169,7 +166,7 @@ int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32
 
   nrows = (uint32_t)(out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
-    ERROR("Output too large. Max output length is %d\n", 3 * NCOLS * NROWS_MAX);
+    ERROR("Output too large. Max output length is %d", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
   K_p = nrows * NCOLS;

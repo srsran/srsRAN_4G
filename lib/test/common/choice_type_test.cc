@@ -180,7 +180,7 @@ int test_choice()
 }
 
 struct E {
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
 };
 
 struct EVisitor {
@@ -207,7 +207,7 @@ int test_visit()
 
   // TEST: visitor hits type E and steals pdu
   E e;
-  e.pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  e.pdu = srslte::make_byte_buffer();
   c     = std::move(e);
   TESTASSERT(c.is<E>() and srslte::get<E>(c).pdu != nullptr);
   srslte::visit(v, c);
@@ -216,7 +216,7 @@ int test_visit()
 
   // TEST: visitor hits type E and steals pdu. Second type called there is no pdu to steal.
   v.pdu = nullptr;
-  e.pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
+  e.pdu = srslte::make_byte_buffer();
   c     = std::move(e);
   srslte::visit(v, c);
   TESTASSERT(v.pdu != nullptr);

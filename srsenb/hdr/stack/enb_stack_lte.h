@@ -37,7 +37,7 @@
 
 #include "enb_stack_base.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/enb_rrc_interface_types.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -48,7 +48,7 @@ class enb_stack_lte final : public enb_stack_base,
                             public srslte::thread
 {
 public:
-  enb_stack_lte(srslte::logger* logger_);
+  enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink);
   ~enb_stack_lte() final;
 
   // eNB stack base interface
@@ -126,6 +126,14 @@ private:
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
+  srslog::basic_logger& mac_logger;
+  srslog::basic_logger& rlc_logger;
+  srslog::basic_logger& pdcp_logger;
+  srslog::basic_logger& rrc_logger;
+  srslog::basic_logger& s1ap_logger;
+  srslog::basic_logger& gtpu_logger;
+  srslog::basic_logger& stack_logger;
+
   // task handling
   srslte::task_scheduler    task_sched;
   srslte::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
@@ -142,8 +150,7 @@ private:
   srsenb::s1ap      s1ap;
   srslte::s1ap_pcap s1ap_pcap;
 
-  srslte::logger*           logger = nullptr;
-  srslte::byte_buffer_pool* pool   = nullptr;
+  srslte::logger* logger = nullptr;
 
   // Radio and PHY log are in enb.cc
   srslte::log_ref mac_log{"MAC"};

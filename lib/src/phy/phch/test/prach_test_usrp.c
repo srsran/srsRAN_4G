@@ -53,7 +53,7 @@ static const uint32_t tx_delay_ms      = 4;
 
 // RF parameters
 static float uhd_rx_gain = 40, uhd_tx_gain = 60, uhd_freq = 2.4e9;
-static char* uhd_args = "";
+static char* uhd_args    = "";
 static char* device_name = "";
 
 // SRSLTE Verbose
@@ -128,7 +128,7 @@ void parse_args(int argc, char** argv)
       case 'p':
         nof_prb = (int)strtol(argv[optind], NULL, 10);
         if (!srslte_nofprb_isvalid(nof_prb)) {
-          ERROR("Invalid number of UL RB %d\n", nof_prb);
+          ERROR("Invalid number of UL RB %d", nof_prb);
           exit(-1);
         }
         break;
@@ -160,7 +160,6 @@ void parse_args(int argc, char** argv)
 void rf_msg_callback(void* arg, srslte_rf_error_t error)
 {
   switch (error.type) {
-
     case SRSLTE_RF_ERROR_LATE:
       printf("L");
       break;
@@ -213,7 +212,7 @@ int main(int argc, char** argv)
   }
 
   if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
-    ERROR("Error initiating PRACH object\n");
+    ERROR("Error initiating PRACH object");
     return SRSLTE_ERROR;
   }
 
@@ -224,7 +223,7 @@ int main(int argc, char** argv)
   srslte_rf_t rf;
   printf("Opening RF device...\n");
   if (srslte_rf_open_devname(&rf, device_name, uhd_args, 1)) {
-    ERROR("Error opening &uhd\n");
+    ERROR("Error opening &uhd");
     exit(-1);
   }
   printf("Test summary:\n");
@@ -245,7 +244,7 @@ int main(int argc, char** argv)
   printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
   int srate_rf = (int)srslte_rf_set_rx_srate(&rf, (double)srate);
   if (srate_rf != srate) {
-    ERROR("Could not set sampling rate\n");
+    ERROR("Could not set sampling rate");
     exit(-1);
   }
   srslte_rf_set_tx_srate(&rf, (double)srate);
@@ -280,16 +279,16 @@ int main(int argc, char** argv)
 
     // For a the number of frames
     for (uint32_t nframe = 0; nframe < nof_frames; nframe++) {
-      INFO("Rep %d. Receiving frame %d\n", rep, nframe);
+      INFO("Rep %d. Receiving frame %d", rep, nframe);
       srslte_rf_recv_with_time(&rf, &buffer[flen * nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
 
       srslte_timestamp_add(&tstamp, 0, tx_delay_ms * 1e-3 - timeadv * 1e-6);
       if (nframe == 10 - tx_delay_ms) {
         srslte_rf_send_timed2(&rf, preamble, flen, tstamp.full_secs, tstamp.frac_secs, false, !continous_tx);
-        INFO("Rep %d. Transmitting PRACH\n", rep);
+        INFO("Rep %d. Transmitting PRACH", rep);
       } else if (nframe == 10 - tx_delay_ms - 1 || continous_tx) {
         srslte_rf_send_timed2(&rf, zeros, flen, tstamp.full_secs, tstamp.frac_secs, is_start_of_burst, false);
-        INFO("Rep %d. Transmitting Zeros\n", rep);
+        INFO("Rep %d. Transmitting Zeros", rep);
         is_start_of_burst = false;
       }
     }
@@ -311,9 +310,9 @@ int main(int argc, char** argv)
     }
 
     // Prompt detected PRACH
-    INFO("Rep %d. Nof detected PRACHs: %d\n", rep, nof_detected);
+    INFO("Rep %d. Nof detected PRACHs: %d", rep, nof_detected);
     for (int i = 0; i < nof_detected; i++) {
-      INFO("%d/%d index=%d, offset=%.2f us (%d samples)\n",
+      INFO("%d/%d index=%d, offset=%.2f us (%d samples)",
            i,
            nof_detected,
            indices[i],

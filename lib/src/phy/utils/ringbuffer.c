@@ -119,7 +119,7 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
   struct timeval  now;
 
   if (q == NULL || q->buffer == NULL) {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid inputs");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -139,7 +139,7 @@ int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof
       pthread_cond_wait(&q->read_cvar, &q->mutex);
     } else {
       w_bytes = q->capacity - q->count;
-      ERROR("Buffer overrun: lost %d bytes\n", nof_bytes - w_bytes);
+      ERROR("Buffer overrun: lost %d bytes", nof_bytes - w_bytes);
     }
   }
   if (ret == ETIMEDOUT) {

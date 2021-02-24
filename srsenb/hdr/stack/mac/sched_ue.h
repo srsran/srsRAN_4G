@@ -24,6 +24,7 @@
 
 #include "sched_common.h"
 #include "srslte/common/log.h"
+#include "srslte/srslog/srslog.h"
 #include <map>
 #include <vector>
 
@@ -46,8 +47,7 @@ class sched_ue
   using bearer_cfg_t = sched_interface::ue_bearer_cfg_t;
 
 public:
-  sched_ue();
-  void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
+  sched_ue(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg);
   void new_subframe(tti_point tti_rx, uint32_t enb_cc_idx);
 
   /*************************************************************
@@ -134,8 +134,8 @@ public:
                        int                               explicit_mcs = -1,
                        uci_pusch_t                       uci_type     = UCI_PUSCH_NONE);
 
-  srslte_dci_format_t    get_dci_format();
-  const sched_dci_cce_t* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
+  srslte_dci_format_t           get_dci_format();
+  const cce_cfi_position_table* get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx) const;
 
   sched_ue_cell*                   find_ue_carrier(uint32_t enb_cc_idx);
   size_t                           nof_carriers_configured() const { return cfg.supported_cc_list.size(); }
@@ -173,6 +173,12 @@ private:
                        uint32_t                          enb_cc_idx,
                        uint32_t                          cfi,
                        const rbgmask_t&                  user_mask);
+  int generate_format1a(uint32_t                          pid,
+                        sched_interface::dl_sched_data_t* data,
+                        tti_point                         tti_tx_dl,
+                        uint32_t                          enb_cc_idx,
+                        uint32_t                          cfi,
+                        const rbgmask_t&                  user_mask);
   int generate_format2a(uint32_t                          pid,
                         sched_interface::dl_sched_data_t* data,
                         tti_point                         tti_tx_dl,
@@ -189,7 +195,7 @@ private:
   /* Args */
   ue_cfg_t                   cfg  = {};
   srslte_cell_t              cell = {};
-  mutable srslte::log_ref    log_h;
+  srslog::basic_logger&      logger;
   const sched_cell_params_t* main_cc_params = nullptr;
 
   /* Buffer states */
@@ -206,7 +212,7 @@ private:
   std::vector<sched_ue_cell> cells; ///< List of eNB cells that may be configured/activated/deactivated for the UE
 };
 
-using sched_ue_list = std::map<uint16_t, sched_ue>;
+using sched_ue_list = std::map<uint16_t, std::unique_ptr<sched_ue> >;
 
 } // namespace srsenb
 

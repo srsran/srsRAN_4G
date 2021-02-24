@@ -24,6 +24,7 @@
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <set>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -35,11 +36,7 @@ class spgw::gtpc : public gtpc_interface_gtpu
 public:
   gtpc();
   virtual ~gtpc();
-  int  init(spgw_args_t*                           args,
-            spgw*                                  spgw,
-            gtpu_interface_gtpc*                   gtpu,
-            srslte::log_filter*                    gtpc_log,
-            const std::map<std::string, uint64_t>& ip_to_imsi);
+  int init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, const std::map<std::string, uint64_t>& ip_to_imsi);
   void stop();
 
   int init_s11(spgw_args_t* args);
@@ -67,8 +64,8 @@ public:
       const srslte::gtpc_header&                                        header,
       const srslte::gtpc_downlink_data_notification_failure_indication& not_fail);
 
-  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t* msg);
-  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid);
+  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::unique_byte_buffer_t msg) override;
+  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid) override;
 
   spgw_tunnel_ctx_t* create_gtpc_ctx(const srslte::gtpc_create_session_request& cs_req);
   bool               delete_gtpc_ctx(uint32_t ctrl_teid);
@@ -94,8 +91,7 @@ public:
   std::set<uint32_t>                 m_ue_ip_addr_pool;
   std::map<uint64_t, struct in_addr> m_imsi_to_ip;
 
-  srslte::log_filter*       m_gtpc_log;
-  srslte::byte_buffer_pool* m_pool;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("SPGW GTPC");
 };
 
 inline int spgw::gtpc::get_s11()

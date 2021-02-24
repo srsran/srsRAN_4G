@@ -31,7 +31,7 @@
 
 // Caution these values must match SRSLTE_ ones in common.h
 #define LIBLTE_MAX_MSG_SIZE_BITS 102048
-#define LIBLTE_MAX_MSG_SIZE_BYTES 12756
+#define LIBLTE_MAX_MSG_SIZE_BYTES 12237
 #define LIBLTE_MSG_HEADER_OFFSET 1020
 
 // Macro to make it easier to convert defines into strings
@@ -86,11 +86,12 @@ typedef struct {
   uint8  msg[LIBLTE_MAX_MSG_SIZE_BITS];
 } LIBLTE_BIT_MSG_STRUCT __attribute__((aligned(8)));
 
-typedef struct {
+struct alignas(8) LIBLTE_BYTE_MSG_STRUCT
+{
   uint32 N_bytes;
   uint8  header[LIBLTE_MSG_HEADER_OFFSET];
   uint8  msg[LIBLTE_MAX_MSG_SIZE_BYTES];
-} LIBLTE_BYTE_MSG_STRUCT;
+};
 
 /*******************************************************************************
                               DECLARATIONS

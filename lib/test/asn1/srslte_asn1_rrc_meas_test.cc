@@ -40,10 +40,6 @@ using namespace asn1::rrc;
 
 int meas_obj_test()
 {
-  srslte::log_filter log1("RRC");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
-
   uint8_t rrc_msg[] = {
       0x08, 0x10, 0x49, 0x3C, 0x0D, 0x97, 0x89, 0x83, 0xC0, 0x84, 0x20, 0x82, 0x08, 0x21, 0x00, 0x01, 0xBC, 0x48};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
@@ -100,6 +96,13 @@ int meas_obj_test()
 
 int main(int argc, char** argv)
 {
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
+
   TESTASSERT(meas_obj_test() == 0);
+
   return 0;
 }

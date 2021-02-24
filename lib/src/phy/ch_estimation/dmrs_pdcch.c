@@ -125,7 +125,7 @@ static void dmrs_pdcch_put_symbol_noninterleaved(const srslte_carrier_nr_t*   ca
 
 int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
                           const srslte_coreset_t*      coreset,
-                          const srslte_dl_slot_cfg_t*  slot_cfg,
+                          const srslte_slot_cfg_t*     slot_cfg,
                           const srslte_dci_location_t* dci_location,
                           cf_t*                        sf_symbols)
 {
@@ -134,12 +134,12 @@ int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
   }
 
   if (coreset->mapping_type == srslte_coreset_mapping_type_interleaved) {
-    ERROR("Error interleaved CORESET mapping is not currently implemented\n");
+    ERROR("Error interleaved CORESET mapping is not currently implemented");
     return SRSLTE_ERROR;
   }
 
   if (coreset->duration < SRSLTE_CORESET_DURATION_MIN || coreset->duration > SRSLTE_CORESET_DURATION_MAX) {
-    ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)\n",
+    ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)",
           coreset->duration,
           SRSLTE_CORESET_DURATION_MIN,
           SRSLTE_CORESET_DURATION_MAX);
@@ -159,7 +159,7 @@ int srslte_dmrs_pdcch_put(const srslte_carrier_nr_t*   carrier,
     // Get Cin
     uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
 
-    DMRS_PDCCH_INFO_TX("n=%d; l=%d; cinit=%08x\n", slot_idx, l, cinit);
+    DMRS_PDCCH_INFO_TX("n=%d; l=%d; cinit=%08x", slot_idx, l, cinit);
 
     // Put data
     dmrs_pdcch_put_symbol_noninterleaved(
@@ -178,7 +178,7 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
   }
 
   if (coreset->duration < SRSLTE_CORESET_DURATION_MIN || coreset->duration > SRSLTE_CORESET_DURATION_MAX) {
-    ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)\n",
+    ERROR("Error CORESET duration %d is out-of-bounds (%d,%d)",
           coreset->duration,
           SRSLTE_CORESET_DURATION_MIN,
           SRSLTE_CORESET_DURATION_MAX);
@@ -210,7 +210,7 @@ int srslte_dmrs_pdcch_estimator_init(srslte_dmrs_pdcch_estimator_t* q,
 #else
   if (srslte_interp_linear_init(&q->interpolator, coreset_bw * 3, 4)) {
 #endif
-    ERROR("Initiating interpolator\n");
+    ERROR("Initiating interpolator");
     return SRSLTE_ERROR;
   }
 
@@ -335,7 +335,7 @@ srslte_dmrs_pdcch_extract(srslte_dmrs_pdcch_estimator_t* q, uint32_t cinit, cons
 }
 
 int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
-                               const srslte_dl_slot_cfg_t*    slot_cfg,
+                               const srslte_slot_cfg_t*       slot_cfg,
                                const cf_t*                    sf_symbols)
 {
   if (q == NULL || sf_symbols == NULL) {
@@ -356,7 +356,7 @@ int srslte_dmrs_pdcch_estimate(srslte_dmrs_pdcch_estimator_t* q,
     // Calculate PRN sequence initial state
     uint32_t cinit = dmrs_pdcch_get_cinit(slot_idx, l, n_id);
 
-    DMRS_PDCCH_INFO_RX("n=%d; l=%d; cinit=%08x\n", slot_idx, l, cinit);
+    DMRS_PDCCH_INFO_RX("n=%d; l=%d; cinit=%08x", slot_idx, l, cinit);
 
     // Extract pilots least square estimates
     srslte_dmrs_pdcch_extract(q, cinit, &sf_symbols[l * q->carrier.nof_prb * SRSLTE_NRE], q->lse[l]);
@@ -399,13 +399,13 @@ int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
 
   uint32_t L = 1U << dci_location->L;
   if (q->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
-    ERROR("Error interleaved mapping not implemented\n");
+    ERROR("Error interleaved mapping not implemented");
     return SRSLTE_ERROR;
   }
 
   // Check that CORESET duration is not less than minimum
   if (q->coreset.duration < SRSLTE_CORESET_DURATION_MIN) {
-    ERROR("Invalid CORESET duration\n");
+    ERROR("Invalid CORESET duration");
     return SRSLTE_ERROR;
   }
 
@@ -453,7 +453,7 @@ int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
   measure->epre   = epre / (float)q->coreset.duration;
   measure->cfo_hz = cfo / (2.0f * (float)M_PI * Ts);
   measure->sync_error_us =
-      (float)SRSLTE_SUBC_SPACING_NR(q->carrier.numerology) * sync_err / (4.0e-6f * (float)q->coreset.duration);
+      sync_err / (4.0e-6f * (float)q->coreset.duration * SRSLTE_SUBC_SPACING_NR(q->carrier.numerology));
 
   measure->rsrp_dBfs = srslte_convert_power_to_dB(measure->rsrp);
   measure->epre_dBfs = srslte_convert_power_to_dB(measure->epre);
@@ -464,7 +464,7 @@ int srslte_dmrs_pdcch_get_measure(const srslte_dmrs_pdcch_estimator_t* q,
     measure->norm_corr = 0.0f;
   }
 
-  DMRS_PDCCH_INFO_RX("Measure L=%d; ncce=%d; RSRP=%+.1f dBfs; EPRE=%+.1f dBfs; Corr=%.3f\n",
+  DMRS_PDCCH_INFO_RX("Measure L=%d; ncce=%d; RSRP=%+.1f dBfs; EPRE=%+.1f dBfs; Corr=%.3f",
                      dci_location->L,
                      dci_location->ncce,
                      measure->rsrp_dBfs,
@@ -484,13 +484,13 @@ int srslte_dmrs_pdcch_get_ce(const srslte_dmrs_pdcch_estimator_t* q,
 
   uint32_t L = 1U << dci_location->L;
   if (q->coreset.mapping_type == srslte_coreset_mapping_type_interleaved) {
-    ERROR("Error interleaved mapping not implemented\n");
+    ERROR("Error interleaved mapping not implemented");
     return SRSLTE_ERROR;
   }
 
   // Check that CORESET duration is not less than minimum
   if (q->coreset.duration < SRSLTE_CORESET_DURATION_MIN) {
-    ERROR("Invalid CORESET duration\n");
+    ERROR("Invalid CORESET duration");
     return SRSLTE_ERROR;
   }
 
@@ -511,7 +511,7 @@ int srslte_dmrs_pdcch_get_ce(const srslte_dmrs_pdcch_estimator_t* q,
   // Double check extracted RE match ideal count
   ce->nof_re = (SRSLTE_NRE - 3) * 6 * L;
   if (count != ce->nof_re) {
-    ERROR("Incorrect number of extracted resources (%d != %d)\n", count, ce->nof_re);
+    ERROR("Incorrect number of extracted resources (%d != %d)", count, ce->nof_re);
   }
 
   // At the moment Noise is not calculated

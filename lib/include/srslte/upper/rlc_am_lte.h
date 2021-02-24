@@ -23,6 +23,7 @@
 #define SRSLTE_RLC_AM_LTE_H
 
 #include "srslte/adt/accumulators.h"
+#include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
@@ -49,10 +50,12 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t header;
-  unique_byte_buffer_t buf;
-  uint32_t             retx_count;
-  bool                 is_acked;
+  rlc_amd_pdu_header_t  header;
+  unique_byte_buffer_t  buf;
+  std::vector<uint32_t> pdcp_sns;
+  uint32_t              retx_count;
+  uint32_t              rlc_sn;
+  bool                  is_acked;
 };
 
 struct rlc_amd_retx_t {
@@ -62,10 +65,124 @@ struct rlc_amd_retx_t {
   uint32_t so_end;
 };
 
+struct rlc_sn_info_t {
+  uint32_t sn;
+  bool     is_acked;
+};
+
+struct pdcp_sdu_info_t {
+  uint32_t sn;
+  bool     fully_txed;  // Boolean indicating if the SDU is fully transmitted.
+  bool     fully_acked; // Boolean indicating if the SDU is fully acked. This is only necessary temporarely to avoid
+                        // duplicate removal from the queue while processing the status report
+  std::vector<rlc_sn_info_t> rlc_sn_info_list; // List of RLC PDUs in transit and whether they have been acked or not.
+};
+
+struct tx_window_t {
+  tx_window_t() { clear(); }
+  void add_pdu(size_t sn)
+  {
+    assert(not active_flag[sn]);
+    window[sn].rlc_sn = sn;
+    active_flag[sn]   = true;
+    count++;
+  }
+  void remove_pdu(size_t sn)
+  {
+    assert(active_flag[sn]);
+    window[sn]      = {};
+    active_flag[sn] = false;
+    count--;
+  }
+  rlc_amd_tx_pdu_t& operator[](size_t sn)
+  {
+    assert(has_sn(sn));
+    return window[sn];
+  }
+  size_t size() const { return count; }
+  bool   empty() const { return count == 0; }
+  void   clear()
+  {
+    std::fill(active_flag.begin(), active_flag.end(), false);
+    for (size_t i = 0; i < window.size(); ++i) {
+      window[i].pdcp_sns.clear();
+    }
+    count = 0;
+  }
+  bool              has_sn(uint32_t sn) const { return active_flag[sn] and window[sn].rlc_sn == sn; }
+  rlc_amd_tx_pdu_t& front()
+  {
+    assert(not empty());
+    uint32_t min_rlc_sn = std::numeric_limits<uint32_t>::max(), min_idx = std::numeric_limits<uint32_t>::max();
+    for (uint32_t i = 0; i < window.size(); ++i) {
+      if (active_flag[i] and window[i].rlc_sn < min_rlc_sn) {
+        min_idx    = i;
+        min_rlc_sn = window[i].rlc_sn;
+      }
+    }
+    assert(has_sn(min_rlc_sn));
+    return window[min_idx];
+  }
+
+private:
+  size_t                                                       count       = 0;
+  srslte::circular_array<bool, RLC_AM_WINDOW_SIZE>             active_flag = {};
+  srslte::circular_array<rlc_amd_tx_pdu_t, RLC_AM_WINDOW_SIZE> window;
+};
+
+struct buffered_pdcp_pdu_list {
+public:
+  explicit buffered_pdcp_pdu_list();
+  void clear();
+
+  void add_pdcp_sdu(uint32_t sn)
+  {
+    assert(not has_pdcp_sn(sn));
+    buffered_pdus[get_idx(sn)].sn = sn;
+    count++;
+  }
+  void clear_pdcp_sdu(uint32_t sn)
+  {
+    uint32_t sn_idx                   = get_idx(sn);
+    buffered_pdus[sn_idx].sn          = invalid_sn;
+    buffered_pdus[sn_idx].fully_acked = false;
+    buffered_pdus[sn_idx].fully_txed  = false;
+    buffered_pdus[sn_idx].rlc_sn_info_list.clear();
+    count--;
+  }
+
+  pdcp_sdu_info_t& operator[](uint32_t sn)
+  {
+    assert(has_pdcp_sn(sn));
+    return buffered_pdus[get_idx(sn)];
+  }
+  bool has_pdcp_sn(uint32_t pdcp_sn) const
+  {
+    assert(pdcp_sn <= max_pdcp_sn or pdcp_sn == status_report_sn);
+    return buffered_pdus[get_idx(pdcp_sn)].sn == pdcp_sn;
+  }
+  uint32_t nof_sdus() const { return count; }
+
+private:
+  const static size_t   max_pdcp_sn      = 262143u;
+  const static size_t   max_buffer_idx   = 4096u;
+  const static uint32_t status_report_sn = std::numeric_limits<uint32_t>::max();
+  const static uint32_t invalid_sn       = std::numeric_limits<uint32_t>::max() - 1;
+
+  size_t get_idx(uint32_t sn) const
+  {
+    return (sn != status_report_sn) ? static_cast<size_t>(sn % max_buffer_idx) : max_buffer_idx;
+  }
+
+  // size equal to buffer_size + 1 (last element for Status Report)
+  std::vector<pdcp_sdu_info_t> buffered_pdus;
+  uint32_t                     count = 0;
+};
+
 class rlc_am_lte : public rlc_common
 {
 public:
-  rlc_am_lte(srslte::log_ref            log_,
+  rlc_am_lte(srslog::basic_logger&      logger,
              uint32_t                   lcid_,
              srsue::pdcp_interface_rlc* pdcp_,
              srsue::rrc_interface_rlc*  rrc_,
@@ -126,10 +243,11 @@ private:
     void set_bsr_callback(bsr_callback_t callback);
 
   private:
-    int build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
-    int build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
-    int build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
-    int build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int  build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int  build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int  build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
+    int  build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
+    void update_notification_ack_info(const rlc_amd_tx_pdu_t& tx_pdu, std::vector<uint32_t>& notify_info_vec);
 
     void debug_state();
 
@@ -141,9 +259,9 @@ private:
     bool poll_required();
     bool do_status();
 
-    rlc_am_lte*       parent = nullptr;
-    byte_buffer_pool* pool   = nullptr;
-    srslte::log_ref   log;
+    rlc_am_lte*           parent = nullptr;
+    byte_buffer_pool*     pool   = nullptr;
+    srslog::basic_logger& logger;
 
     /****************************************************************************
      * Configurable parameters
@@ -183,12 +301,15 @@ private:
     srslte::timer_handler::unique_timer poll_retx_timer;
     srslte::timer_handler::unique_timer status_prohibit_timer;
 
+    // SDU info for PDCP notifications
+    buffered_pdcp_pdu_list undelivered_sdu_info_queue;
+
     // Callback function for buffer status report
     bsr_callback_t bsr_callback;
 
     // Tx windows
-    std::map<uint32_t, rlc_amd_tx_pdu_t> tx_window;
-    std::deque<rlc_amd_retx_t>           retx_queue;
+    tx_window_t                tx_window;
+    std::deque<rlc_amd_retx_t> retx_queue;
 
     // Mutexes
     pthread_mutex_t mutex;
@@ -228,9 +349,9 @@ private:
     void print_rx_segments();
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu_t* segment);
 
-    rlc_am_lte*       parent = nullptr;
-    byte_buffer_pool* pool   = nullptr;
-    srslte::log_ref   log;
+    rlc_am_lte*           parent = nullptr;
+    byte_buffer_pool*     pool   = nullptr;
+    srslog::basic_logger& logger;
 
     /****************************************************************************
      * Configurable parameters
@@ -275,7 +396,7 @@ private:
 
   // Common variables needed/provided by parent class
   srsue::rrc_interface_rlc*  rrc = nullptr;
-  srslte::log_ref            log;
+  srslog::basic_logger&      logger;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srslte::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
@@ -309,6 +430,7 @@ uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
 bool        rlc_am_is_pdu_segment(uint8_t* payload);
+std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue);
 std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
 std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
 bool        rlc_am_start_aligned(const uint8_t fi);

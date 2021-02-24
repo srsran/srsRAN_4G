@@ -25,16 +25,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 #define CURRENT_TTI (sf_cfg_dl.tti)
 #define CURRENT_SFIDX (sf_cfg_dl.tti % 10)
@@ -49,34 +49,34 @@ namespace lte {
  *
  */
 
-cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_, srslte::log* log_h_)
+cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_, srslog::basic_logger& logger) :
+  logger(logger)
 {
   cc_idx = cc_idx_;
   phy    = phy_;
-  log_h  = log_h_;
 
   signal_buffer_max_samples = 3 * SRSLTE_SF_LEN_PRB(max_prb);
 
   for (uint32_t i = 0; i < phy->args->nof_rx_ant; i++) {
     signal_buffer_rx[i] = srslte_vec_cf_malloc(signal_buffer_max_samples);
     if (!signal_buffer_rx[i]) {
-      Error("Allocating memory\n");
+      Error("Allocating memory");
       return;
     }
     signal_buffer_tx[i] = srslte_vec_cf_malloc(signal_buffer_max_samples);
     if (!signal_buffer_tx[i]) {
-      Error("Allocating memory\n");
+      Error("Allocating memory");
       return;
     }
   }
 
   if (srslte_ue_dl_init(&ue_dl, signal_buffer_rx, max_prb, phy->args->nof_rx_ant)) {
-    Error("Initiating UE DL\n");
+    Error("Initiating UE DL");
     return;
   }
 
   if (srslte_ue_ul_init(&ue_ul, signal_buffer_tx[0], max_prb)) {
-    Error("Initiating UE UL\n");
+    Error("Initiating UE UL");
     return;
   }
 
@@ -134,16 +134,16 @@ bool cc_worker::set_cell_unlocked(srslte_cell_t cell_)
     cell = cell_;
 
     if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-      Error("Setting ue_dl cell\n");
+      Error("Setting ue_dl cell");
       return false;
     }
 
     if (srslte_ue_dl_set_mbsfn_area_id(&ue_dl, 1)) {
-      Error("Setting mbsfn id\n");
+      Error("Setting mbsfn id");
     }
 
     if (srslte_ue_ul_set_cell(&ue_ul, cell)) {
-      Error("Initiating UE UL\n");
+      Error("Initiating UE UL");
       return false;
     }
 
@@ -221,7 +221,7 @@ bool cc_worker::work_dl_regular()
   bool found_dl_grant = false;
 
   if (!cell_initiated) {
-    log_h->warning("Trying to access cc_worker=%d while cell not initialized (DL)\n", cc_idx);
+    logger.warning("Trying to access cc_worker=%d while cell not initialized (DL)", cc_idx);
     return false;
   }
 
@@ -251,7 +251,7 @@ bool cc_worker::work_dl_regular()
 
     /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
     if (srslte_ue_dl_decode_fft_estimate(&ue_dl, &sf_cfg_dl, &ue_dl_cfg) < 0) {
-      Error("Getting PDCCH FFT estimate\n");
+      Error("Getting PDCCH FFT estimate");
       return false;
     }
 
@@ -276,7 +276,7 @@ bool cc_worker::work_dl_regular()
     }
     // Generate PHY grant
     if (srslte_ue_dl_dci_to_pdsch_grant(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, &dci_dl, &ue_dl_cfg.cfg.pdsch.grant)) {
-      Info("Converting DCI message to DL dci\n");
+      Info("Converting DCI message to DL dci");
       return false;
     }
 
@@ -316,7 +316,7 @@ bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
   mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   if (!cell_initiated) {
-    log_h->warning("Trying to access cc_worker=%d while cell not initialized (MBSFN)\n", cc_idx);
+    logger.warning("Trying to access cc_worker=%d while cell not initialized (MBSFN)", cc_idx);
     return false;
   }
 
@@ -332,7 +332,7 @@ bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
 
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   if (srslte_ue_dl_decode_fft_estimate(&ue_dl, &sf_cfg_dl, &ue_dl_cfg) < 0) {
-    Error("Getting PDCCH FFT estimate\n");
+    Error("Getting PDCCH FFT estimate");
     return false;
   }
 
@@ -392,12 +392,12 @@ int cc_worker::decode_pdcch_dl()
 
     /* Blind search first without cross scheduling then with it if enabled */
     for (int i = 0; i < (ue_dl_cfg.cfg.dci.cif_present ? 2 : 1) && !nof_grants; i++) {
-      Debug("PDCCH looking for rnti=0x%x\n", dl_rnti);
+      Debug("PDCCH looking for rnti=0x%x", dl_rnti);
       ue_dl_cfg.cfg.dci.cif_enabled = i > 0;
       ue_dl_cfg.cfg.dci_common_ss   = (cc_idx == 0);
       nof_grants                    = srslte_ue_dl_find_dl_dci(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, dl_rnti, dci);
       if (nof_grants < 0) {
-        Error("Looking for DL grants\n");
+        Error("Looking for DL grants");
         return -1;
       }
     }
@@ -412,10 +412,10 @@ int cc_worker::decode_pdcch_dl()
       phy->set_dl_pending_grant(CURRENT_TTI, dci[k].cif_present ? dci[k].cif : cc_idx, cc_idx, &dci[k]);
 
       // Logging
-      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (logger.info.enabled()) {
         char str[512];
         srslte_dci_dl_info(&dci[k], str, 512);
-        log_h->info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
+        logger.info("PDCCH: cc=%d, %s, snr=%.1f dB", cc_idx, str, ue_dl.chest_res.snr_db);
       }
     }
   }
@@ -453,7 +453,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
   // Run PDSCH decoder
   if (decode_enable) {
     if (srslte_ue_dl_decode_pdsch(&ue_dl, &sf_cfg_dl, &ue_dl_cfg.cfg.pdsch, pdsch_dec)) {
-      Error("ERROR: Decoding PDSCH\n");
+      Error("ERROR: Decoding PDSCH");
     }
   }
 
@@ -489,10 +489,10 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
     phy->set_dl_metrics(cc_idx, dl_metrics);
 
     // Logging
-    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    if (logger.info.enabled()) {
       char str[512];
       srslte_pdsch_rx_info(&ue_dl_cfg.cfg.pdsch, pdsch_dec, str, 512);
-      log_h->info("PDSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
+      logger.info("PDSCH: cc=%d, %s, snr=%.1f dB", cc_idx, str, ue_dl.chest_res.snr_db);
     }
   }
 
@@ -512,7 +512,7 @@ int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte
     srslte_softbuffer_rx_reset_tbs(pmch_cfg.pdsch_cfg.softbuffers.rx[0], pmch_cfg.pdsch_cfg.grant.tb[0].tbs);
 
     if (srslte_ue_dl_decode_pmch(&ue_dl, &sf_cfg_dl, &pmch_cfg, &pmch_dec)) {
-      Error("Decoding PMCH\n");
+      Error("Decoding PMCH");
       return -1;
     }
 
@@ -523,7 +523,7 @@ int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte
     dl_metrics.turbo_iters  = pmch_dec.avg_iterations_block / 2;
     phy->set_dl_metrics(cc_idx, dl_metrics);
 
-    Info("PMCH: l_crb=%2d, tbs=%d, mcs=%d, crc=%s, snr=%.1f dB, n_iter=%.1f\n",
+    Info("PMCH: l_crb=%2d, tbs=%d, mcs=%d, crc=%s, snr=%.1f dB, n_iter=%.1f",
          pmch_cfg.pdsch_cfg.grant.nof_prb,
          pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8,
          pmch_cfg.pdsch_cfg.grant.tb[0].mcs_idx,
@@ -536,7 +536,7 @@ int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte
     }
 
   } else {
-    Warning("Received dci for TBS=0\n");
+    Warning("Received dci for TBS=0");
   }
   return 0;
 }
@@ -552,10 +552,10 @@ void cc_worker::decode_phich()
     phich_grant.I_phich = I_phich;
     if (phy->get_ul_pending_ack(&sf_cfg_dl, cc_idx, &phich_grant, &dci_ul)) {
       if (srslte_ue_dl_decode_phich(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, &phich_grant, &phich_res)) {
-        Error("Decoding PHICH\n");
+        Error("Decoding PHICH");
       }
       phy->set_ul_received_ack(&sf_cfg_dl, cc_idx, phich_res.ack_value, I_phich, &dci_ul);
-      Info("PHICH: hi=%d, corr=%.1f, I_lowest=%d, n_dmrs=%d, I_phich=%d\n",
+      Info("PHICH: hi=%d, corr=%.1f, I_lowest=%d, n_dmrs=%d, I_phich=%d",
            phich_res.ack_value,
            phich_res.distance,
            phich_grant.n_prb_lowest,
@@ -587,7 +587,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   uint32_t                              pid          = 0;
 
   if (!cell_initiated) {
-    log_h->warning("Trying to access cc_worker=%d while cell not initialized (UL)\n", cc_idx);
+    logger.warning("Trying to access cc_worker=%d while cell not initialized (UL)", cc_idx);
     return false;
   }
 
@@ -616,14 +616,14 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 
     // Generate PHY grant
     if (srslte_ue_ul_dci_to_pusch_grant(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &dci_ul, &ue_ul_cfg.ul_cfg.pusch.grant)) {
-      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (logger.info.enabled()) {
         char str[128];
         srslte_dci_ul_info(&dci_ul, str, sizeof(str));
-        Info("Converting DCI message to UL grant %s\n", str);
+        Info("Converting DCI message to UL grant %s", str);
       }
       ul_grant_available = false;
     } else if (ue_ul_cfg.ul_cfg.pusch.grant.tb.mod == SRSLTE_MOD_BPSK) {
-      Error("UL retransmission without valid stored grant.\n");
+      Error("UL retransmission without valid stored grant.");
       ul_grant_available = false;
     } else {
       // Save TBS info for next retx
@@ -711,7 +711,7 @@ int cc_worker::decode_pdcch_ul()
       ue_dl_cfg.cfg.dci_common_ss   = (cc_idx == 0);
       nof_grants                    = srslte_ue_dl_find_ul_dci(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, ul_rnti, dci);
       if (nof_grants < 0) {
-        Error("Looking for UL grants\n");
+        Error("Looking for UL grants");
         return -1;
       }
     }
@@ -726,10 +726,10 @@ int cc_worker::decode_pdcch_ul()
       phy->set_ul_pending_grant(&sf_cfg_dl, cc_idx_grant, &dci[k]);
 
       // Logging
-      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (logger.info.enabled()) {
         char str[512];
         srslte_dci_ul_info(&dci[k], str, 512);
-        log_h->info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx_grant, str, ue_dl.chest_res.snr_db);
+        logger.info("PDCCH: cc=%d, %s, snr=%.1f dB", cc_idx_grant, str, ue_dl.chest_res.snr_db);
       }
     }
   }
@@ -770,7 +770,7 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   // Encode signal
   int ret = srslte_ue_ul_encode(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &data);
   if (ret < 0) {
-    Error("Encoding UL cc=%d\n", cc_idx);
+    Error("Encoding UL cc=%d", cc_idx);
   }
 
   // Store metrics
@@ -782,10 +782,10 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   }
 
   // Logging
-  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+  if (logger.info.enabled()) {
     char str[512];
     if (srslte_ue_ul_info(&ue_ul_cfg, &sf_cfg_ul, &data.uci, str, 512)) {
-      log_h->info("%s\n", str);
+      logger.info("%s", str);
     }
   }
 
@@ -794,12 +794,12 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
 
 void cc_worker::set_uci_sr(srslte_uci_data_t* uci_data)
 {
-  Debug("set_uci_sr() query: sr_enabled=%d, last_tx_tti=%d\n", phy->sr_enabled, phy->sr_last_tx_tti);
+  Debug("set_uci_sr() query: sr_enabled=%d, last_tx_tti=%d", phy->sr_enabled, phy->sr_last_tx_tti);
   if (srslte_ue_ul_gen_sr(&ue_ul_cfg, &sf_cfg_ul, uci_data, phy->sr_enabled)) {
     if (phy->sr_enabled) {
       phy->sr_last_tx_tti = CURRENT_TTI_TX;
       phy->sr_enabled     = false;
-      Debug("set_uci_sr() sending SR: sr_enabled=%d, last_tx_tti=%d\n", phy->sr_enabled, phy->sr_last_tx_tti);
+      Debug("set_uci_sr() sending SR: sr_enabled=%d, last_tx_tti=%d", phy->sr_enabled, phy->sr_last_tx_tti);
     }
   }
 }
@@ -833,7 +833,7 @@ void cc_worker::set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data)
   if (ue_dl_cfg.cfg.cqi_report.aperiodic_configured) {
     srslte_ue_dl_gen_cqi_aperiodic(&ue_dl, &ue_dl_cfg, get_wideband_cqi(), uci_data);
   } else {
-    Warning("Received CQI request but aperiodic mode is not configured\n");
+    Warning("Received CQI request but aperiodic mode is not configured");
   }
 }
 
@@ -886,9 +886,9 @@ void cc_worker::set_config_unlocked(srslte::phy_cfg_t& phy_cfg)
 
   // Update signals
   if (pregen_enabled) {
-    Info("Pre-generating UL signals...\n");
+    Info("Pre-generating UL signals...");
     srslte_ue_ul_pregen_signals(&ue_ul, &ue_ul_cfg);
-    Info("Done pre-generating signals worker...\n");
+    Info("Done pre-generating signals worker...");
   }
 }
 

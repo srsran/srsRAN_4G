@@ -20,13 +20,13 @@
  */
 
 #include "srslte/upper/pdcp.h"
-#ifdef HAVE_5GNR
 #include "srslte/upper/pdcp_entity_nr.h"
-#endif
 
 namespace srslte {
 
-pdcp::pdcp(srslte::task_sched_handle task_sched_, const char* logname) : task_sched(task_sched_), pdcp_log(logname) {}
+pdcp::pdcp(srslte::task_sched_handle task_sched_, const char* logname) :
+  task_sched(task_sched_), logger(srslog::fetch_basic_logger(logname))
+{}
 
 pdcp::~pdcp()
 {
@@ -83,12 +83,12 @@ bool pdcp::is_lcid_enabled(uint32_t lcid)
   return valid_lcids_cached.count(lcid) > 0;
 }
 
-void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)
+void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, int sn)
 {
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->write_sdu(std::move(sdu));
+    pdcp_array.at(lcid)->write_sdu(std::move(sdu), sn);
   } else {
-    pdcp_log->warning("Writing sdu: lcid=%d. Deallocating sdu\n", lcid);
+    logger.warning("Writing sdu: lcid=%d. Deallocating sdu", lcid);
   }
 }
 
@@ -106,30 +106,25 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
     if (cfg.sn_len == srslte::PDCP_SN_LEN_18) {
       // create NR entity for 18bit SN length
 
-#ifdef HAVE_5GNR
-      entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_sched, pdcp_log, lcid, cfg});
-#else
-      pdcp_log->error("Invalid PDCP configuration.\n");
-      return;
-#endif
+      entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_sched, logger, lcid, cfg});
     } else {
-      entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, pdcp_log, lcid, cfg});
+      entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, logger, lcid, cfg});
     }
     if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
-      pdcp_log->error("Error inserting PDCP entity in to array.\n");
+      logger.error("Error inserting PDCP entity in to array.");
       return;
     }
-    pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
-                   rrc->get_rb_name(lcid).c_str(),
-                   lcid,
-                   cfg.bearer_id,
-                   cfg.sn_len);
+    logger.info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)",
+                rrc->get_rb_name(lcid).c_str(),
+                lcid,
+                cfg.bearer_id,
+                cfg.sn_len);
     {
       std::lock_guard<std::mutex> lock(cache_mutex);
       valid_lcids_cached.insert(lcid);
     }
   } else {
-    pdcp_log->info("Bearer %s already configured.\n", rrc->get_rb_name(lcid).c_str());
+    logger.info("Bearer %s already configured.", rrc->get_rb_name(lcid).c_str());
   }
 }
 
@@ -137,20 +132,20 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_mch_lcid(lcid)) {
     if (not pdcp_array_mrb
-                .insert(std::make_pair(lcid,
-                                       std::unique_ptr<pdcp_entity_lte>(
-                                           new pdcp_entity_lte(rlc, rrc, gw, task_sched, pdcp_log, lcid, cfg))))
+                .insert(std::make_pair(
+                    lcid,
+                    std::unique_ptr<pdcp_entity_lte>(new pdcp_entity_lte(rlc, rrc, gw, task_sched, logger, lcid, cfg))))
                 .second) {
-      pdcp_log->error("Error inserting PDCP entity in to array\n.");
+      logger.error("Error inserting PDCP entity in to array.");
       return;
     }
-    pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
-                   rrc->get_rb_name(lcid).c_str(),
-                   lcid,
-                   cfg.bearer_id,
-                   cfg.sn_len);
+    logger.info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)",
+                rrc->get_rb_name(lcid).c_str(),
+                lcid,
+                cfg.bearer_id,
+                cfg.sn_len);
   } else {
-    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Bearer %s already configured. Reconfiguration not supported", rrc->get_rb_name(lcid).c_str());
   }
 }
 
@@ -162,9 +157,9 @@ void pdcp::del_bearer(uint32_t lcid)
   }
   if (valid_lcid(lcid)) {
     pdcp_array.erase(lcid);
-    pdcp_log->warning("Deleted PDCP bearer %s\n", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Deleted PDCP bearer %s", rrc->get_rb_name(lcid).c_str());
   } else {
-    pdcp_log->warning("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
+    logger.warning("Can't delete bearer %s. Bearer doesn't exist.", rrc->get_rb_name(lcid).c_str());
   }
 }
 
@@ -177,20 +172,19 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     auto                              it          = pdcp_array.find(old_lcid);
     std::unique_ptr<pdcp_entity_base> pdcp_entity = std::move(it->second);
     if (not pdcp_array.insert(std::make_pair(new_lcid, std::move(pdcp_entity))).second) {
-      pdcp_log->error("Error inserting PDCP entity into array\n.");
+      logger.error("Error inserting PDCP entity into array.");
       return;
     }
     // erase from old position
     pdcp_array.erase(it);
     valid_lcids_cached.erase(old_lcid);
     valid_lcids_cached.insert(new_lcid);
-    pdcp_log->warning("Changed LCID of PDCP bearer from %d to %d\n", old_lcid, new_lcid);
+    logger.warning("Changed LCID of PDCP bearer from %d to %d", old_lcid, new_lcid);
   } else {
-    pdcp_log->error(
-        "Can't change PDCP of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.\n",
-        rrc->get_rb_name(old_lcid).c_str(),
-        old_lcid,
-        new_lcid);
+    logger.error("Can't change PDCP of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.",
+                 rrc->get_rb_name(old_lcid).c_str(),
+                 old_lcid,
+                 new_lcid);
   }
 }
 
@@ -229,6 +223,20 @@ void pdcp::enable_security_timed(uint32_t lcid, srslte_direction_t direction, ui
   }
 }
 
+void pdcp::send_status_report()
+{
+  for (auto& lcid_it : pdcp_array) {
+    lcid_it.second->send_status_report();
+  }
+}
+
+void pdcp::send_status_report(uint32_t lcid)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->send_status_report();
+  }
+}
+
 bool pdcp::get_bearer_state(uint32_t lcid, srslte::pdcp_lte_state_t* state)
 {
   if (not valid_lcid(lcid)) {
@@ -247,6 +255,14 @@ bool pdcp::set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state
   return true;
 }
 
+std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp::get_buffered_pdus(uint32_t lcid)
+{
+  if (not valid_lcid(lcid)) {
+    return {};
+  }
+  return pdcp_array[lcid]->get_buffered_pdus();
+}
+
 /*******************************************************************************
   RLC interface
 *******************************************************************************/
@@ -255,7 +271,7 @@ void pdcp::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->write_pdu(std::move(pdu));
   } else {
-    pdcp_log->warning("Writing pdu: lcid=%d. Deallocating pdu\n", lcid);
+    logger.warning("Writing pdu: lcid=%d. Deallocating pdu", lcid);
   }
 }
 
@@ -283,10 +299,28 @@ void pdcp::write_pdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   }
 }
 
+void pdcp::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->notify_delivery(pdcp_sns);
+  } else {
+    logger.warning("Could not notify delivery: lcid=%d, nof_sn=%ld.", lcid, pdcp_sns.size());
+  }
+}
+
+void pdcp::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->notify_failure(pdcp_sns);
+  } else {
+    logger.warning("Could not notify failure: lcid=%d, nof_sn=%ld.", lcid, pdcp_sns.size());
+  }
+}
+
 bool pdcp::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {
-    pdcp_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    logger.error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
 
@@ -296,11 +330,47 @@ bool pdcp::valid_lcid(uint32_t lcid)
 bool pdcp::valid_mch_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_MCH_LCIDS) {
-    pdcp_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    logger.error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
 
   return pdcp_array_mrb.find(lcid) != pdcp_array_mrb.end();
+}
+
+void pdcp::get_metrics(pdcp_metrics_t& m, const uint32_t nof_tti)
+{
+  std::chrono::duration<double> secs = std::chrono::high_resolution_clock::now() - metrics_tp;
+
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    pdcp_bearer_metrics_t metrics = it->second->get_metrics();
+
+    // Rx/Tx rate based on real time
+    double rx_rate_mbps_real_time = (metrics.num_rx_pdu_bytes * 8 / (double)1e6) / secs.count();
+    double tx_rate_mbps_real_time = (metrics.num_tx_pdu_bytes * 8 / (double)1e6) / secs.count();
+
+    // Rx/Tx rate based on number of TTIs
+    double rx_rate_mbps = (nof_tti > 0) ? ((metrics.num_rx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+    double tx_rate_mbps = (nof_tti > 0) ? ((metrics.num_tx_pdu_bytes * 8 / (double)1e6) / (nof_tti / 1000.0)) : 0.0;
+
+    logger.info("lcid=%d, rx_rate_mbps=%4.2f (real=%4.2f), tx_rate_mbps=%4.2f (real=%4.2f)",
+                it->first,
+                rx_rate_mbps,
+                rx_rate_mbps_real_time,
+                tx_rate_mbps,
+                tx_rate_mbps_real_time);
+    m.bearer[it->first] = metrics;
+  }
+
+  reset_metrics();
+}
+
+void pdcp::reset_metrics()
+{
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->reset_metrics();
+  }
+
+  metrics_tp = std::chrono::high_resolution_clock::now();
 }
 
 } // namespace srslte

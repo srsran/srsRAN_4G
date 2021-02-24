@@ -75,7 +75,7 @@ static int         mbsfn_area_id        = -1;
 static char*       rf_args              = "";
 static char*       rf_dev               = "";
 static float       rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
-static bool        enable_256qam   = false;
+static bool        enable_256qam         = false;
 static float       output_file_snr       = +INFINITY;
 static bool        use_standard_lte_rate = false;
 
@@ -151,7 +151,6 @@ static void parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "IadglfmoncpqvutxbwMsBQ")) != -1) {
-
     switch (opt) {
       case 'I':
         rf_dev = argv[optind];
@@ -241,7 +240,7 @@ static void base_init()
       cell.nof_ports = 2;
       break;
     default:
-      ERROR("Transmission mode %d not implemented or invalid\n", transmission_mode);
+      ERROR("Transmission mode %d not implemented or invalid", transmission_mode);
       exit(-1);
   }
 
@@ -278,7 +277,7 @@ static void base_init()
   if (output_file_name) {
     if (strcmp(output_file_name, "NULL")) {
       if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-        ERROR("Error opening file %s\n", output_file_name);
+        ERROR("Error opening file %s", output_file_name);
         exit(-1);
       }
       null_file_sink = false;
@@ -300,12 +299,12 @@ static void base_init()
 
   if (net_port > 0) {
     if (srslte_netsource_init(&net_source, "127.0.0.1", net_port, SRSLTE_NETSOURCE_UDP)) {
-      ERROR("Error creating input UDP socket at port %d\n", net_port);
+      ERROR("Error creating input UDP socket at port %d", net_port);
       exit(-1);
     }
     if (null_file_sink) {
       if (srslte_netsink_init(&net_sink, "127.0.0.1", net_port + 1, SRSLTE_NETSINK_TCP)) {
-        ERROR("Error sink\n");
+        ERROR("Error sink");
         exit(-1);
       }
     }
@@ -318,7 +317,7 @@ static void base_init()
   /* create ifft object */
   for (i = 0; i < cell.nof_ports; i++) {
     if (srslte_ofdm_tx_init(&ifft[i], SRSLTE_CP_NORM, sf_buffer[i], output_buffer[i], cell.nof_prb)) {
-      ERROR("Error creating iFFT object\n");
+      ERROR("Error creating iFFT object");
       exit(-1);
     }
 
@@ -326,49 +325,49 @@ static void base_init()
   }
 
   if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSLTE_CP_EXT, sf_buffer[0], output_buffer[0], cell.nof_prb)) {
-    ERROR("Error creating iFFT object\n");
+    ERROR("Error creating iFFT object");
     exit(-1);
   }
   srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn, 2);
   srslte_ofdm_set_normalize(&ifft_mbsfn, true);
 
   if (srslte_pbch_init(&pbch)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     exit(-1);
   }
   if (srslte_pbch_set_cell(&pbch, cell)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     exit(-1);
   }
 
   if (srslte_regs_init(&regs, cell)) {
-    ERROR("Error initiating regs\n");
+    ERROR("Error initiating regs");
     exit(-1);
   }
   if (srslte_pcfich_init(&pcfich, 1)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     exit(-1);
   }
   if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     exit(-1);
   }
 
   if (srslte_pdcch_init_enb(&pdcch, cell.nof_prb)) {
-    ERROR("Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object");
     exit(-1);
   }
   if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
-    ERROR("Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object");
     exit(-1);
   }
 
   if (srslte_pdsch_init_enb(&pdsch, cell.nof_prb)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
   if (srslte_pdsch_set_cell(&pdsch, cell)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
 
@@ -376,7 +375,7 @@ static void base_init()
 
   if (mbsfn_area_id > -1) {
     if (srslte_pmch_init(&pmch, cell.nof_prb, 1)) {
-      ERROR("Error creating PMCH object\n");
+      ERROR("Error creating PMCH object");
     }
     srslte_pmch_set_area_id(&pmch, mbsfn_area_id);
   }
@@ -384,12 +383,12 @@ static void base_init()
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffers[i]) {
-      ERROR("Error allocating soft buffer\n");
+      ERROR("Error allocating soft buffer");
       exit(-1);
     }
 
     if (srslte_softbuffer_tx_init(softbuffers[i], cell.nof_prb)) {
-      ERROR("Error initiating soft buffer\n");
+      ERROR("Error initiating soft buffer");
       exit(-1);
     }
   }
@@ -481,7 +480,6 @@ static uint32_t prbset_to_bitmask()
 
 static int update_radl()
 {
-
   ZERO_OBJECT(dci_dl);
 
   /* Configure cell and PDSCH in function of the transmission mode */
@@ -675,7 +673,7 @@ static void* net_thread_fnc(void* arg)
                         1) /
                            8;
       rpm += n;
-      INFO("received %d bytes. rpm=%d/%d\n", n, rpm, nbytes);
+      INFO("received %d bytes. rpm=%d/%d", n, rpm, nbytes);
       wpm = 0;
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
@@ -686,19 +684,19 @@ static void* net_thread_fnc(void* arg)
           memcpy(data[0], &data2[wpm], nbytes / (size_t)2);
           memcpy(data[1], &data2[wpm], nbytes / (size_t)2);
         }
-        INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
+        INFO("Sent %d/%d bytes ready", nbytes, rpm);
         rpm -= nbytes;
         wpm += nbytes;
         net_packet_ready = true;
       }
       if (wpm > 0) {
-        INFO("%d bytes left in buffer for next packet\n", rpm);
+        INFO("%d bytes left in buffer for next packet", rpm);
         memcpy(data2, &data2[wpm], rpm * sizeof(uint8_t));
       }
     } else if (n == 0) {
       rpm = 0;
     } else {
-      ERROR("Error receiving from network\n");
+      ERROR("Error receiving from network");
       exit(-1);
     }
   } while (true);
@@ -757,22 +755,22 @@ int main(int argc, char** argv)
 
   /* Generate reference signals */
   if (srslte_refsignal_cs_init(&csr_refs, cell.nof_prb)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     exit(-1);
   }
   if (mbsfn_area_id > -1) {
     if (srslte_refsignal_mbsfn_init(&mbsfn_refs, cell.nof_prb)) {
-      ERROR("Error initializing equalizer\n");
+      ERROR("Error initializing equalizer");
       exit(-1);
     }
     if (srslte_refsignal_mbsfn_set_cell(&mbsfn_refs, cell, mbsfn_area_id)) {
-      ERROR("Error initializing MBSFNR signal\n");
+      ERROR("Error initializing MBSFNR signal");
       exit(-1);
     }
   }
 
   if (srslte_refsignal_cs_set_cell(&csr_refs, cell)) {
-    ERROR("Error setting cell\n");
+    ERROR("Error setting cell");
     exit(-1);
   }
 
@@ -789,17 +787,16 @@ int main(int argc, char** argv)
   signal(SIGINT, sig_int_handler);
 
   if (!output_file_name) {
-
     int srate = srslte_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srslte_rf_set_tx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
-        ERROR("Could not set sampling rate\n");
+        ERROR("Could not set sampling rate");
         exit(-1);
       }
     } else {
-      ERROR("Invalid number of PRB %d\n", cell.nof_prb);
+      ERROR("Invalid number of PRB %d", cell.nof_prb);
       exit(-1);
     }
     srslte_rf_set_tx_gain(&radio, rf_gain);
@@ -885,17 +882,17 @@ int main(int argc, char** argv)
 
       /* Update DL resource allocation from control port */
       if (update_control()) {
-        ERROR("Error updating parameters from control port\n");
+        ERROR("Error updating parameters from control port");
       }
 
       /* Transmit PDCCH + PDSCH only when there is data to send */
       if ((net_port > 0) && (mch_table[sf_idx] == 1 && mbsfn_area_id > -1)) {
         send_data = net_packet_ready;
         if (net_packet_ready) {
-          INFO("Transmitting packet from port\n");
+          INFO("Transmitting packet from port");
         }
       } else {
-        INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.tb[0].tbs + pdsch_cfg.grant.tb[1].tbs);
+        INFO("SF: %d, Generating %d random bits", sf_idx, pdsch_cfg.grant.tb[0].tbs + pdsch_cfg.grant.tb[1].tbs);
         for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
           if (pdsch_cfg.grant.tb[tb].enabled) {
             for (i = 0; i < pdsch_cfg.grant.tb[tb].tbs / 8; i++) {
@@ -915,24 +912,24 @@ int main(int argc, char** argv)
           dl_sf.sf_type = SRSLTE_SF_NORM;
 
           /* Encode PDCCH */
-          INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+          INFO("Putting DCI to location: n=%d, L=%d", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
 
           srslte_dci_msg_pack_pdsch(&cell, &dl_sf, NULL, &dci_dl, &dci_msg);
           dci_msg.location = locations[sf_idx][0];
           if (srslte_pdcch_encode(&pdcch, &dl_sf, &dci_msg, sf_symbols)) {
-            ERROR("Error encoding DCI message\n");
+            ERROR("Error encoding DCI message");
             exit(-1);
           }
 
           /* Configure pdsch_cfg parameters */
           if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, transmission_mode, enable_256qam, &dci_dl, &pdsch_cfg.grant)) {
-            ERROR("Error configuring PDSCH\n");
+            ERROR("Error configuring PDSCH");
             exit(-1);
           }
 
           /* Encode PDSCH */
           if (srslte_pdsch_encode(&pdsch, &dl_sf, &pdsch_cfg, data, sf_symbols)) {
-            ERROR("Error encoding PDSCH\n");
+            ERROR("Error encoding PDSCH");
             exit(-1);
           }
           if (net_port > 0 && net_packet_ready) {
@@ -940,7 +937,7 @@ int main(int argc, char** argv)
               for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
                 srslte_bit_pack_vector(data[tb], data_tmp, pdsch_cfg.grant.tb[tb].tbs);
                 if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.tb[tb].tbs - 1) / 8) < 0) {
-                  ERROR("Error sending data through UDP socket\n");
+                  ERROR("Error sending data through UDP socket");
                 }
               }
             }
@@ -961,7 +958,7 @@ int main(int argc, char** argv)
 
           /* Configure pdsch_cfg parameters */
           if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, enable_256qam, &dci_dl, &pmch_cfg.pdsch_cfg.grant)) {
-            ERROR("Error configuring PDSCH\n");
+            ERROR("Error configuring PDSCH");
             exit(-1);
           }
 
@@ -973,14 +970,14 @@ int main(int argc, char** argv)
 
           /* Encode PMCH */
           if (srslte_pmch_encode(&pmch, &dl_sf, &pmch_cfg, data_mbms, sf_symbols)) {
-            ERROR("Error encoding PDSCH\n");
+            ERROR("Error encoding PDSCH");
             exit(-1);
           }
           if (net_port > 0 && net_packet_ready) {
             if (null_file_sink) {
               srslte_bit_pack_vector(data[0], data_tmp, pmch_cfg.pdsch_cfg.grant.tb[0].tbs);
               if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pmch_cfg.pdsch_cfg.grant.tb[0].tbs - 1) / 8) < 0) {
-                ERROR("Error sending data through UDP socket\n");
+                ERROR("Error sending data through UDP socket");
               }
             }
             net_packet_ready = false;

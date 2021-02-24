@@ -35,7 +35,11 @@ class backend_spy : public detail::log_backend
 public:
   void start() override {}
 
-  void push(detail::log_entry&& entry) override { ++count; }
+  bool push(detail::log_entry&& entry) override
+  {
+    ++count;
+    return true;
+  }
 
   bool is_running() const override { return true; }
 

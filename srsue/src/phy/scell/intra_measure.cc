@@ -21,22 +21,23 @@
 #include "srsue/hdr/phy/scell/intra_measure.h"
 
 #define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
-  log_h->error(fmt, ##__VA_ARGS__)
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
-  log_h->info(fmt, ##__VA_ARGS__)
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED and log_h != nullptr)                                                                       \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  logger.debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 namespace scell {
 
-intra_measure::intra_measure() : scell(), thread("SYNC_INTRA_MEASURE") {}
+intra_measure::intra_measure(srslog::basic_logger& logger) : scell(logger), logger(logger), thread("SYNC_INTRA_MEASURE")
+{}
 
 intra_measure::~intra_measure()
 {
@@ -45,11 +46,10 @@ intra_measure::~intra_measure()
   free(search_buffer);
 }
 
-void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cell_itf_, srslte::log* log_h_)
+void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cell_itf_)
 {
   cc_idx       = cc_idx_;
   new_cell_itf = new_cell_itf_;
-  log_h        = log_h_;
 
   if (common) {
     intra_freq_meas_len_ms    = common->args->intra_freq_meas_len_ms;
@@ -61,7 +61,7 @@ void intra_measure::init(uint32_t cc_idx_, phy_common* common, meas_itf* new_cel
   srslte_refsignal_dl_sync_init(&refsignal_dl_sync);
 
   // Start scell
-  scell.init(log_h, intra_freq_meas_len_ms);
+  scell.init(intra_freq_meas_len_ms);
 
   search_buffer = srslte_vec_cf_malloc(intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB));
 
@@ -105,7 +105,7 @@ void intra_measure::meas_stop()
   // Transition state to idle
   // Ring-buffer shall not be reset, it will automatically be reset as soon as the FSM transitions to receive
   state.set_state(internal_state::idle);
-  Info("INTRA: Disabled neighbour cell search for EARFCN %d\n", get_earfcn());
+  Info("INTRA: Disabled neighbour cell search for EARFCN %d", get_earfcn());
 }
 
 void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
@@ -114,7 +114,7 @@ void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
   active_pci = pci;
   active_pci_mutex.unlock();
   state.set_state(internal_state::receive);
-  log_h->info("INTRA: Received list of %zd neighbour cells to measure in EARFCN %d.\n", pci.size(), current_earfcn);
+  logger.info("INTRA: Received list of %zd neighbour cells to measure in EARFCN %d.", pci.size(), current_earfcn);
 }
 
 void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
@@ -143,7 +143,7 @@ void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 
       // Try writing in the buffer
       if (srslte_ringbuffer_write(&ring_buffer, data, nbytes) < nbytes) {
-        Warning("INTRA: Error writing to ringbuffer (EARFCN=%d)\n", current_earfcn);
+        Warning("INTRA: Error writing to ringbuffer (EARFCN=%d)", current_earfcn);
 
         // Transition to wait, so it can keep receiving without stopping the component operation
         state.set_state(internal_state::wait);
@@ -210,7 +210,7 @@ void intra_measure::measure_proc()
       neighbour_cells.push_back(m);
 
       Info("INTRA: Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "
-           "CFO=%+.1fHz\n",
+           "CFO=%+.1fHz",
            m.earfcn,
            m.pci,
            m.rsrp,

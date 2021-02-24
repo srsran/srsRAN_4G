@@ -136,10 +136,10 @@ static void* async_thread(void* h)
       // this is a timeout of the readStreamStatus call, ignoring it ..
     } else if (ret == SOAPY_SDR_NOT_SUPPORTED) {
       // stopping async thread
-      ERROR("Receiving async metadata not supported by device. Exiting thread.\n");
+      ERROR("Receiving async metadata not supported by device. Exiting thread.");
       handler->async_thread_running = false;
     } else {
-      ERROR("Error while receiving aync metadata: %s (%d), flags=%d, channel=%zu, timeNs=%lld\n",
+      ERROR("Error while receiving aync metadata: %s (%d), flags=%d, channel=%zu, timeNs=%lld",
             SoapySDR_errToStr(ret),
             ret,
             flags,
@@ -285,7 +285,7 @@ float rf_soapy_get_rssi(void* h)
 
 int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
 {
-  size_t          length;
+  size_t length;
 
   // Let Soapy pick the device if no arguments are passed
   SoapySDRKwargs* soapy_args =
@@ -326,7 +326,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
       copy_subdev_string(dev_str, dev_ptr + strnlen(dev_arg, 64));
       dev_id = strtol(dev_str, NULL, 0);
       if (dev_id < 0 || dev_id > 10) {
-        ERROR("Failed to set device. Using 0 as default.\n");
+        ERROR("Failed to set device. Using 0 as default.");
         dev_id = 0;
       }
       remove_substring(args, dev_arg);
@@ -469,7 +469,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
       for (int i = 0; i < handler->num_rx_channels; i++) {
         printf("Setting Rx channel %d antenna to %s\n", i, rx_ant_str);
         if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, i, rx_ant_str) != 0) {
-          ERROR("Failed to set Rx antenna for channel %d.\n", i);
+          ERROR("Failed to set Rx antenna for channel %d.", i);
         }
       }
       remove_substring(args, rx_ant_arg);
@@ -485,7 +485,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
       for (int i = 0; i < handler->num_rx_channels; i++) {
         printf("Setting Tx channel %d antenna to %s\n", i, tx_ant_str);
         if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, i, tx_ant_str) != 0) {
-          ERROR("Failed to set Tx antenna for channel %d.\n", i);
+          ERROR("Failed to set Tx antenna for channel %d.", i);
         }
       }
       remove_substring(args, tx_ant_arg);
@@ -983,7 +983,7 @@ int rf_soapy_send_timed_multi(void*  h,
           printf("U");
           break;
         default:
-          ERROR("Error during writeStream\n");
+          ERROR("Error during writeStream");
           exit(-1);
           return SRSLTE_ERROR;
       }
@@ -992,7 +992,7 @@ int rf_soapy_send_timed_multi(void*  h,
   } while (n < nsamples && trials < 100);
 
   if (n != nsamples) {
-    ERROR("Couldn't write all samples after %d trials.\n", trials);
+    ERROR("Couldn't write all samples after %d trials.", trials);
   }
 
   return n;

@@ -37,8 +37,6 @@ using namespace std;
 
 namespace srsue {
 
-vnf_phy_nr::vnf_phy_nr(srslte::logger* logger_) : logger(logger_) {}
-
 vnf_phy_nr::~vnf_phy_nr()
 {
   stop();
@@ -53,7 +51,7 @@ int vnf_phy_nr::init(const srsue::phy_args_t& args_, srsue::stack_interface_phy_
 int vnf_phy_nr::init(const srsue::phy_args_t& args_)
 {
   // create VNF
-  vnf         = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args_.vnf_args, logger, stack));
+  vnf         = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args_.vnf_args, stack));
   initialized = true;
   return SRSLTE_SUCCESS;
 }
@@ -79,6 +77,10 @@ int vnf_phy_nr::tx_request(const tx_request_t& request)
 {
   // send Tx request over basic API
   return vnf->tx_request(request);
+}
+bool vnf_phy_nr::set_config(const srslte::phy_cfg_nr_t& cfg)
+{
+  return false;
 }
 
 } // namespace srsue

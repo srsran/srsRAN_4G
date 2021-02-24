@@ -28,7 +28,7 @@ void emm_state_t::set_null()
   state                 = state_t::null;
   deregistered_substate = deregistered_substate_t::null;
   registered_substate   = registered_substate_t::null;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 void emm_state_t::set_deregistered(deregistered_substate_t substate)
@@ -36,7 +36,7 @@ void emm_state_t::set_deregistered(deregistered_substate_t substate)
   state                 = state_t::deregistered;
   deregistered_substate = substate;
   registered_substate   = registered_substate_t::null;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 void emm_state_t::set_deregistered_initiated()
@@ -44,7 +44,7 @@ void emm_state_t::set_deregistered_initiated()
   state                 = state_t::deregistered_initiated;
   deregistered_substate = deregistered_substate_t::null;
   registered_substate   = registered_substate_t::null;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 void emm_state_t::set_registered(registered_substate_t substate)
@@ -52,7 +52,7 @@ void emm_state_t::set_registered(registered_substate_t substate)
   state                 = state_t::registered;
   deregistered_substate = deregistered_substate_t::null;
   registered_substate   = substate;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 void emm_state_t::set_registered_initiated()
@@ -60,7 +60,7 @@ void emm_state_t::set_registered_initiated()
   state                 = state_t::registered_initiated;
   deregistered_substate = deregistered_substate_t::null;
   registered_substate   = registered_substate_t::null;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 void emm_state_t::set_tau_initiated()
@@ -68,7 +68,7 @@ void emm_state_t::set_tau_initiated()
   state                 = state_t::tau_initiated;
   deregistered_substate = deregistered_substate_t::null;
   registered_substate   = registered_substate_t::null;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 void emm_state_t::set_service_request_initiated()
@@ -76,7 +76,7 @@ void emm_state_t::set_service_request_initiated()
   state                 = state_t::service_request_initiated;
   deregistered_substate = deregistered_substate_t::null;
   registered_substate   = registered_substate_t::null;
-  nas_log->debug("Changed to EMM state: %s\n", get_full_state_text().c_str());
+  logger.debug("Changed to EMM state: %s", get_full_state_text().c_str());
 }
 
 const std::string emm_state_t::get_full_state_text()

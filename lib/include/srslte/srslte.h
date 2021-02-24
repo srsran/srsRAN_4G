@@ -107,9 +107,11 @@ extern "C" {
 #include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/phch/ra_nr.h"
 #include "srslte/phy/phch/ra_ul.h"
+#include "srslte/phy/phch/ra_ul_nr.h"
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/phch/uci.h"
+#include "srslte/phy/phch/uci_nr.h"
 
 #include "srslte/phy/ue/ue_cell_search.h"
 #include "srslte/phy/ue/ue_dl.h"
@@ -117,6 +119,7 @@ extern "C" {
 #include "srslte/phy/ue/ue_mib.h"
 #include "srslte/phy/ue/ue_sync.h"
 #include "srslte/phy/ue/ue_ul.h"
+#include "srslte/phy/ue/ue_ul_nr.h"
 
 #include "srslte/phy/enb/enb_dl.h"
 #include "srslte/phy/enb/enb_dl_nr.h"

@@ -37,14 +37,12 @@ void s1ap_paging::init()
 {
   m_s1ap      = s1ap::get_instance();
   m_mme       = mme::get_instance();
-  m_s1ap_log  = m_s1ap->m_s1ap_log;
   m_s1ap_args = m_s1ap->m_s1ap_args;
-  m_pool      = srslte::byte_buffer_pool::get_instance();
 }
 
 bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
 {
-  m_s1ap_log->info("Preparing to Page UE -- IMSI %015" PRIu64 "\n", imsi);
+  m_logger.info("Preparing to Page UE -- IMSI %015" PRIu64 "", imsi);
 
   // Prepare reply PDU
   s1ap_pdu_t tx_pdu;
@@ -54,7 +52,7 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
   // Getting UE NAS Context
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
   if (nas_ctx == nullptr) {
-    m_s1ap_log->error("Could not find UE to page NAS context\n");
+    m_logger.error("Could not find UE to page NAS context");
     return false;
   }
 
@@ -82,7 +80,7 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
 
   // Start T3413
   if (!nas_ctx->start_timer(T_3413)) {
-    m_s1ap_log->error("Could not start T3413 -- Aborting paging\n");
+    m_logger.error("Could not start T3413 -- Aborting paging");
     // TODO Send data notification failure to SPGW
     return false;
   }
@@ -91,7 +89,7 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
        it++) {
     enb_ctx_t* enb_ctx = it->second;
     if (!m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_ctx->sri)) {
-      m_s1ap_log->error("Error paging to eNB. eNB Id: 0x%x.\n", enb_ctx->enb_id);
+      m_logger.error("Error paging to eNB. eNB Id: 0x%x.", enb_ctx->enb_id);
       return false;
     }
   }

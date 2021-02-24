@@ -107,7 +107,7 @@ int main(int argc, char** argv)
   // PSBCH
   srslte_psbch_t psbch;
   if (srslte_psbch_init(&psbch, cell.nof_prb, cell.N_sl_id, cell.tm, cell.cp) != SRSLTE_SUCCESS) {
-    ERROR("Error in psbch init\n");
+    ERROR("Error in psbch init");
     return SRSLTE_ERROR;
   }
 

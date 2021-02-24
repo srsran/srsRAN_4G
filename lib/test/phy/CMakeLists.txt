@@ -21,6 +21,8 @@
 #######################################################################
 # PHY TESTS
 #######################################################################
+set(CTEST_LABELS "lib;phy")
+
 add_executable(phy_dl_test phy_dl_test.c)
 target_link_libraries(phy_dl_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
@@ -50,8 +52,7 @@ foreach (cell_n_prb 6 15 25 50 75 100)
                 endif (${allow_256})
                 set(phy_dl_test_args ${phy_dl_test_args} -m ${ue_dl_mcs})
                 string(REGEX REPLACE "\ " "" test_name_args ${phy_dl_test_args})
-                add_test(phy_dl_test${test_name_args} phy_dl_test ${phy_dl_test_args})
-                set_tests_properties(phy_dl_test${test_name_args} PROPERTIES LABELS "long;phy")
+                add_lte_test(phy_dl_test${test_name_args} phy_dl_test ${phy_dl_test_args})
             endforeach (ue_dl_mcs)
         endforeach (ue_dl_tm)
     endforeach (allow_256 0 1)
@@ -59,9 +60,8 @@ endforeach (cell_n_prb)
 
 add_executable(pucch_ca_test pucch_ca_test.c)
 target_link_libraries(pucch_ca_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-add_test(pucch_ca_test pucch_ca_test)
-set_tests_properties(pucch_ca_test PROPERTIES LABELS "long;phy")
+add_lte_test(pucch_ca_test pucch_ca_test)
 
 add_executable(phy_dl_nr_test phy_dl_nr_test.c)
 target_link_libraries(phy_dl_nr_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-add_test(phy_dl_nr_test phy_dl_nr_test -p 100 -m 28)
+add_nr_test(phy_dl_nr_test phy_dl_nr_test -p 100 -m 28)

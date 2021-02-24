@@ -76,7 +76,6 @@ string config_file;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
-
   string mbms_gw_name;
   string mbms_gw_sgi_mb_if_name;
   string mbms_gw_sgi_mb_if_addr;
@@ -205,12 +204,14 @@ int main(int argc, char* argv[])
     return SRSLTE_ERROR;
   }
   srslte::srslog_wrapper log_wrapper(*chan);
+  srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
   srslog::init();
 
   if (args.log_args.filename != "stdout") {
-    log_wrapper.log_char("\n---  Software Radio Systems MBMS log ---\n\n");
+    auto& mbms_gw_logger = srslog::fetch_basic_logger("MBMS GW", false);
+    mbms_gw_logger.info("\n---  Software Radio Systems MBMS log ---\n\n");
   }
 
   srslte::logmap::set_default_logger(&log_wrapper);
@@ -218,9 +219,12 @@ int main(int argc, char* argv[])
   srslte::log_ref mbms_gw_log{"MBMS"};
   mbms_gw_log->set_level(level(args.log_args.mbms_gw_level));
   mbms_gw_log->set_hex_limit(args.log_args.mbms_gw_hex_limit);
+  auto& mbms_gw_logger = srslog::fetch_basic_logger("MBMS", false);
+  mbms_gw_logger.set_level(srslog::str_to_basic_level(args.log_args.mbms_gw_level));
+  mbms_gw_logger.set_hex_dump_max_size(args.log_args.mbms_gw_hex_limit);
 
   mbms_gw* mbms_gw = mbms_gw::get_instance();
-  if (mbms_gw->init(&args.mbms_gw_args, mbms_gw_log)) {
+  if (mbms_gw->init(&args.mbms_gw_args)) {
     cout << "Error initializing MBMS-GW" << endl;
     exit(1);
   }

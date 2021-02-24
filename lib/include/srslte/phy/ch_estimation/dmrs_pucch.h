@@ -51,7 +51,7 @@ SRSLTE_API int srslte_dmrs_pucch_format_3_4_get_symbol_idx(const srslte_pucch_nr
 SRSLTE_API int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*            q,
                                              const srslte_carrier_nr_t*          carrier,
                                              const srslte_pucch_nr_common_cfg_t* cfg,
-                                             const srslte_dl_slot_cfg_t*         slot,
+                                             const srslte_slot_cfg_t*            slot,
                                              const srslte_pucch_nr_resource_t*   resource,
                                              cf_t*                               slot_symbols);
 
@@ -69,7 +69,7 @@ SRSLTE_API int srslte_dmrs_pucch_format1_put(const srslte_pucch_nr_t*           
 SRSLTE_API int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*            q,
                                                   const srslte_carrier_nr_t*          carrier,
                                                   const srslte_pucch_nr_common_cfg_t* cfg,
-                                                  const srslte_dl_slot_cfg_t*         slot,
+                                                  const srslte_slot_cfg_t*            slot,
                                                   const srslte_pucch_nr_resource_t*   resource,
                                                   const cf_t*                         slot_symbols,
                                                   srslte_chest_ul_res_t*              res);
@@ -87,7 +87,7 @@ SRSLTE_API int srslte_dmrs_pucch_format1_estimate(const srslte_pucch_nr_t*      
 int srslte_dmrs_pucch_format2_put(const srslte_pucch_nr_t*            q,
                                   const srslte_carrier_nr_t*          carrier,
                                   const srslte_pucch_nr_common_cfg_t* cfg,
-                                  const srslte_dl_slot_cfg_t*         slot,
+                                  const srslte_slot_cfg_t*            slot,
                                   const srslte_pucch_nr_resource_t*   resource,
                                   cf_t*                               slot_symbols);
 
@@ -105,7 +105,7 @@ int srslte_dmrs_pucch_format2_put(const srslte_pucch_nr_t*            q,
 int srslte_dmrs_pucch_format2_estimate(const srslte_pucch_nr_t*            q,
                                        const srslte_carrier_nr_t*          carrier,
                                        const srslte_pucch_nr_common_cfg_t* cfg,
-                                       const srslte_dl_slot_cfg_t*         slot,
+                                       const srslte_slot_cfg_t*            slot,
                                        const srslte_pucch_nr_resource_t*   resource,
                                        const cf_t*                         slot_symbols,
                                        srslte_chest_ul_res_t*              res);

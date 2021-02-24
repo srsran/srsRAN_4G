@@ -168,7 +168,7 @@ int base_init()
   srslte_nbiot_ue_dl_set_rnti(&ue_dl, rnti);
   // srslte_mib_nb_printf(stdout, 0, &mib);
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
   do {
     nread = srslte_filesource_read(&fsrc, buff_ptrs[0], flen);
     if (nread > 0) {
-      DEBUG("%d.%d: Reading %d samples.\n", sfn, sf_idx, nread);
+      DEBUG("%d.%d: Reading %d samples.", sfn, sf_idx, nread);
 
       // add some noise to the signal
       if (snr != -1.0) {
@@ -233,7 +233,7 @@ int main(int argc, char** argv)
           // attempt to decode NPDSCH
           n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl, buff_ptrs[0], data, sfn, sf_idx, rnti);
           if (n == SRSLTE_SUCCESS) {
-            INFO("NPDSCH decoded ok.\n");
+            INFO("NPDSCH decoded ok.");
 
             if (decode_sib1) {
               srslte_nbiot_ue_dl_decode_sib1(&ue_dl, sfn);
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
           srslte_dci_msg_t dci_msg;
           n = srslte_nbiot_ue_dl_decode_npdcch(&ue_dl, buff_ptrs[0], sfn, sf_idx, rnti, &dci_msg);
           if (n == SRSLTE_NBIOT_UE_DL_FOUND_DCI) {
-            INFO("Found %s DCI for RNTI=0x%x\n", srslte_dci_format_string(dci_msg.format), rnti);
+            INFO("Found %s DCI for RNTI=0x%x", srslte_dci_format_string(dci_msg.format), rnti);
             last_dci_format = dci_msg.format;
 
             if (dci_msg.format == SRSLTE_DCI_FORMATN0) {

@@ -44,16 +44,17 @@ namespace srsenb {
  *
  *******************************************************/
 
-sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC")) {}
-
-void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_)
+sched_ue::sched_ue(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_, const ue_cfg_t& cfg_) :
+  logger(srslog::fetch_basic_logger("MAC"))
 {
   rnti = rnti_;
   cells.reserve(cell_list_params_.size());
   for (auto& c : cell_list_params_) {
     cells.emplace_back(rnti_, c, current_tti);
   }
-  Info("SCHED: Added user rnti=0x%x\n", rnti);
+  logger.info("SCHED: Added user rnti=0x%x", rnti);
+
+  set_cfg(cfg_);
 }
 
 void sched_ue::set_cfg(const ue_cfg_t& cfg_)
@@ -64,7 +65,7 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
     if (not cfg_.supported_cc_list.empty()) {
       primary_cc_idx = cfg_.supported_cc_list[0].enb_cc_idx;
     } else {
-      Warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0\n");
+      logger.warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0");
     }
     // setup primary cc
     main_cc_params = cells[primary_cc_idx].cell_cfg;
@@ -87,11 +88,11 @@ void sched_ue::set_cfg(const ue_cfg_t& cfg_)
         c.is_scell() and (c.cc_state() == cc_st::activating or c.cc_state() == cc_st::deactivating);
   }
   if (prev_supported_cc_list.empty() or prev_supported_cc_list[0].enb_cc_idx != cfg.supported_cc_list[0].enb_cc_idx) {
-    log_h->info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d.\n", rnti, cfg.supported_cc_list[0].enb_cc_idx);
+    logger.info("SCHED: rnti=0x%x PCell is now enb_cc_idx=%d", rnti, cfg.supported_cc_list[0].enb_cc_idx);
   }
   if (scell_activation_state_changed) {
     lch_handler.pending_ces.emplace_back(srslte::dl_sch_lcid::SCELL_ACTIVATION);
-    log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
+    logger.info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x", rnti);
   }
 
   check_ue_cfg_correctness(cfg);
@@ -172,7 +173,7 @@ void sched_ue::mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds)
       lch_handler.pending_ces.push_back(cmd);
     }
   }
-  Info("SCHED: %s for rnti=0x%x needs to be scheduled\n", to_string(cmd), rnti);
+  logger.info("SCHED: %s for rnti=0x%x needs to be scheduled", to_string(cmd), rnti);
 }
 
 void sched_ue::set_sr()
@@ -264,13 +265,13 @@ int sched_ue::set_ack_info(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t tb_id
     std::pair<uint32_t, int> p2 = cells[enb_cc_idx].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
     tbs_acked                   = p2.second;
     if (tbs_acked > 0) {
-      Debug(
-          "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
+      logger.debug(
+          "SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d", ack, rnti, p2.first, tb_idx, tti_rx.to_uint());
     } else {
-      Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx.to_uint());
+      logger.warning("SCHED: Received ACK info for unknown TTI=%d", tti_rx.to_uint());
     }
   } else {
-    log_h->warning("Received DL ACK for invalid cell index %d\n", enb_cc_idx);
+    logger.warning("Received DL ACK for invalid cell index %d", enb_cc_idx);
   }
   return tbs_acked;
 }
@@ -280,10 +281,10 @@ void sched_ue::set_ul_crc(tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
   if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     int ret = cells[enb_cc_idx].harq_ent.set_ul_crc(tti_rx, 0, crc_res);
     if (ret < 0) {
-      log_h->warning("Received UL CRC for invalid tti_rx=%d\n", (int)tti_rx.to_uint());
+      logger.warning("Received UL CRC for invalid tti_rx=%d", (int)tti_rx.to_uint());
     }
   } else {
-    log_h->warning("Received UL CRC for invalid cell index %d\n", enb_cc_idx);
+    logger.warning("Received UL CRC for invalid cell index %d", enb_cc_idx);
   }
 }
 
@@ -293,7 +294,7 @@ void sched_ue::set_dl_ri(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t ri)
     cells[enb_cc_idx].dl_ri        = ri;
     cells[enb_cc_idx].dl_ri_tti_rx = tti_rx;
   } else {
-    log_h->warning("Received DL RI for invalid cell index %d\n", enb_cc_idx);
+    logger.warning("Received DL RI for invalid cell index %d", enb_cc_idx);
   }
 }
 
@@ -303,7 +304,7 @@ void sched_ue::set_dl_pmi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t pmi)
     cells[enb_cc_idx].dl_pmi        = pmi;
     cells[enb_cc_idx].dl_pmi_tti_rx = tti_rx;
   } else {
-    log_h->warning("Received DL PMI for invalid cell index %d\n", enb_cc_idx);
+    logger.warning("Received DL PMI for invalid cell index %d", enb_cc_idx);
   }
 }
 
@@ -312,7 +313,7 @@ void sched_ue::set_dl_cqi(tti_point tti_rx, uint32_t enb_cc_idx, uint32_t cqi)
   if (cells[enb_cc_idx].cc_state() != cc_st::idle) {
     cells[enb_cc_idx].set_dl_cqi(tti_rx, cqi);
   } else {
-    log_h->warning("Received DL CQI for invalid enb cell index %d\n", enb_cc_idx);
+    logger.warning("Received DL CQI for invalid enb cell index %d", enb_cc_idx);
   }
 }
 
@@ -323,7 +324,7 @@ void sched_ue::set_ul_snr(tti_point tti_rx, uint32_t enb_cc_idx, float snr, uint
     cells[enb_cc_idx].ul_cqi        = srslte_cqi_from_snr(snr);
     cells[enb_cc_idx].ul_cqi_tti_rx = tti_rx;
   } else {
-    log_h->warning("Received SNR info for invalid cell index %d\n", enb_cc_idx);
+    logger.warning("Received SNR info for invalid cell index %d", enb_cc_idx);
   }
 }
 
@@ -365,13 +366,13 @@ tbs_info sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
     //       emptied by another allocated tb_idx.
     uint32_t pending_bytes = lch_handler.get_dl_tx_total();
     if (pending_bytes > 0) {
-      Warning("SCHED: Failed to allocate DL TB with tb_idx=%d, tbs=%d, pid=%d. Pending DL buffer data=%d\n",
-              tb,
-              rem_tbs,
-              h->get_id(),
-              pending_bytes);
+      logger.warning("SCHED: Failed to allocate DL TB with tb_idx=%d, tbs=%d, pid=%d. Pending DL buffer data=%d",
+                     tb,
+                     rem_tbs,
+                     h->get_id(),
+                     pending_bytes);
     } else {
-      Info("SCHED: DL TB tb_idx=%d, tbs=%d, pid=%d did not get allocated.\n", tb, rem_tbs, h->get_id());
+      logger.info("SCHED: DL TB tb_idx=%d, tbs=%d, pid=%d did not get allocated.", tb, rem_tbs, h->get_id());
     }
     tb_info.tbs_bytes = 0;
     tb_info.mcs       = 0;
@@ -388,25 +389,64 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
                                      const rbgmask_t&                  user_mask)
 {
   srslte_dci_format_t dci_format = get_dci_format();
-  int                 tbs        = 0;
+  int                 tbs_bytes  = 0;
 
   switch (dci_format) {
+    case SRSLTE_DCI_FORMAT1A:
+      tbs_bytes = generate_format1a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      break;
     case SRSLTE_DCI_FORMAT1:
-      tbs = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      tbs_bytes = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     case SRSLTE_DCI_FORMAT2:
-      tbs = generate_format2(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      tbs_bytes = generate_format2(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     case SRSLTE_DCI_FORMAT2A:
-      tbs = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+      tbs_bytes = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
       break;
     default:
-      Error("DCI format (%d) not implemented\n", dci_format);
+      logger.error("DCI format (%d) not implemented", dci_format);
   }
-  return tbs;
+
+  // Set common DCI fields
+  if (tbs_bytes > 0) {
+    srslte_dci_dl_t* dci = &data->dci;
+    dci->rnti            = rnti;
+    dci->pid             = pid;
+    dci->ue_cc_idx       = cells[enb_cc_idx].get_ue_cc_idx();
+    data->dci.format     = dci_format;
+    dci->tpc_pucch       = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
+  }
+
+  return tbs_bytes;
 }
 
-// Generates a Format1 dci
+int sched_ue::generate_format1a(uint32_t                          pid,
+                                sched_interface::dl_sched_data_t* data,
+                                tti_point                         tti_tx_dl,
+                                uint32_t                          enb_cc_idx,
+                                uint32_t                          cfi,
+                                const rbgmask_t&                  user_mask)
+{
+  int tbs_bytes = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
+
+  srslte_dci_dl_t* dci = &data->dci;
+
+  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
+  rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
+  prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
+  uint32_t     L_crb    = prb_int.length();
+  uint32_t     RB_start = prb_int.start();
+  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
+  if (L_crb != count_prb_per_tb(user_mask)) {
+    // This happens if Type0 was using distributed allocation
+    logger.warning("SCHED: Can't use distributed RA due to DCI size ambiguity");
+  }
+
+  return tbs_bytes;
+}
+
 // > return 0 if allocation is invalid
 int sched_ue::generate_format1(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
@@ -418,46 +458,24 @@ int sched_ue::generate_format1(uint32_t                          pid,
   dl_harq_proc*    h   = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci = &data->dci;
 
-  // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
-  // Common SS when spaces collide
-  if (cell.nof_prb == 15 && cells.size() > 1) {
-    dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
-    dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
-    rbg_interval rbg_int  = rbg_interval::rbgmask_to_rbgs(user_mask);
-    prb_interval prb_int  = prb_interval::rbgs_to_prbs(rbg_int, cell.nof_prb);
-    uint32_t     L_crb    = prb_int.length();
-    uint32_t     RB_start = prb_int.start();
-    dci->type2_alloc.riv  = srslte_ra_type2_to_riv(L_crb, RB_start, cell.nof_prb);
-    dci->format           = SRSLTE_DCI_FORMAT1A;
-    if (L_crb != count_prb_per_tb(user_mask)) {
-      // This happens if Type0 was using distributed allocation
-      Warning("SCHED: Can't use distributed RA due to DCI size ambiguity\n");
-    }
-  } else {
-    dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-    dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
-    dci->format                  = SRSLTE_DCI_FORMAT1;
-  }
+  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   tbs_info tbinfo;
   if (h->is_empty(0)) {
     tbinfo = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, enb_cc_idx, cfi, 0);
   } else {
     h->new_retx(user_mask, 0, tti_tx_dl, &tbinfo.mcs, &tbinfo.tbs_bytes, data->dci.location.ncce);
-    Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", tbinfo.mcs, tbinfo.tbs_bytes);
+    logger.debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d", tbinfo.mcs, tbinfo.tbs_bytes);
   }
 
   if (tbinfo.tbs_bytes > 0) {
-    dci->rnti          = rnti;
-    dci->pid           = h->get_id();
-    dci->ue_cc_idx     = cells[enb_cc_idx].get_ue_cc_idx();
     dci->tb[0].mcs_idx = (uint32_t)tbinfo.mcs;
     dci->tb[0].rv      = get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
-    dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
-    data->tbs[0]   = (uint32_t)tbinfo.tbs_bytes;
-    data->tbs[1]   = 0;
+    data->tbs[0] = (uint32_t)tbinfo.tbs_bytes;
+    data->tbs[1] = 0;
   }
   return tbinfo.tbs_bytes;
 }
@@ -487,7 +505,7 @@ tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               enb_cc_idx,
   tbs_info tb = alloc_tbs_dl(cells[enb_cc_idx], nof_alloc_prbs, nof_re, req_bytes.stop());
 
   if (tb.tbs_bytes > 0 and tb.tbs_bytes < (int)req_bytes.start()) {
-    log_h->info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation\n");
+    logger.info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation");
     // Note: This is not a warning, because the srb0 buffer can be updated after the ue sched decision
   }
 
@@ -559,13 +577,6 @@ int sched_ue::generate_format2a(uint32_t                          pid,
     }
   }
 
-  /* Fill common fields */
-  dci->format    = SRSLTE_DCI_FORMAT2A;
-  dci->rnti      = rnti;
-  dci->ue_cc_idx = cells[enb_cc_idx].get_ue_cc_idx();
-  dci->pid       = h->get_id();
-  dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
-
   int ret = data->tbs[0] + data->tbs[1];
   return ret;
 }
@@ -582,7 +593,6 @@ int sched_ue::generate_format2(uint32_t                          pid,
   int ret = generate_format2a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
-  data->dci.format = SRSLTE_DCI_FORMAT2;
   if ((SRSLTE_DCI_IS_TB_EN(data->dci.tb[0]) + SRSLTE_DCI_IS_TB_EN(data->dci.tb[1])) == 1) {
     data->dci.pinfo = (uint8_t)(cells[enb_cc_idx].dl_pmi + 1) % (uint8_t)5;
   } else {
@@ -698,9 +708,9 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         dci->tb.mcs_idx = tbinfo.mcs;
       }
     } else if (tbinfo.tbs_bytes == 0) {
-      log_h->warning("SCHED: No space for ULSCH while allocating format0. Discarding grant.\n");
+      logger.warning("SCHED: No space for ULSCH while allocating format0. Discarding grant.");
     } else {
-      log_h->error("SCHED: Unkown error while allocating format0\n");
+      logger.error("SCHED: Unkown error while allocating format0");
     }
   }
 
@@ -731,7 +741,7 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send)
         if (will_send) {
           cqi_request_tti = tti;
         }
-        Debug("SCHED: Needs_cqi, last_sent=%d, will_be_sent=%d\n", cqi_request_tti, will_send);
+        logger.debug("SCHED: Needs_cqi, last_sent=%d, will_be_sent=%d", cqi_request_tti, will_send);
         ret = true;
       }
     }
@@ -755,8 +765,8 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
-    log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
-                 "Consider increasing initial CQI value.\n",
+    logger.error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
+                 "Consider increasing initial CQI value.",
                  cells[enb_cc_idx].dl_cqi,
                  req_bytes.start());
     return {cellparams->nof_prb(), cellparams->nof_prb()};
@@ -791,7 +801,7 @@ srslte::interval<uint32_t> sched_ue::get_requested_dl_bytes(uint32_t enb_cc_idx)
   // Ensure there is space for ConRes and RRC Setup
   // SRB0 is a special case due to being RLC TM (no segmentation possible)
   if (not lch_handler.is_bearer_dl(0)) {
-    log_h->error("SRB0 must always be activated for DL\n");
+    logger.error("SRB0 must always be activated for DL");
     return {};
   }
   if (cells[enb_cc_idx].cc_state() != cc_st::active) {
@@ -945,10 +955,10 @@ uint32_t sched_ue::get_pending_ul_new_data(tti_point tti_tx_ul, int this_enb_cc_
   pending_data             = (pending_data > pending_ul_data) ? pending_data - pending_ul_data : 0;
 
   if (pending_data > 0) {
-    Debug("SCHED: pending_data=%d, in_harq_data=%d, bsr=%s\n",
-          pending_data,
-          pending_ul_data,
-          lch_handler.get_bsr_text().c_str());
+    logger.debug("SCHED: pending_data=%d, in_harq_data=%d, bsr=%s",
+                 pending_data,
+                 pending_ul_data,
+                 lch_handler.get_bsr_text().c_str());
   }
   return pending_data;
 }
@@ -1015,14 +1025,18 @@ void sched_ue::finish_tti(tti_point tti_rx, uint32_t enb_cc_idx)
 
 srslte_dci_format_t sched_ue::get_dci_format()
 {
-  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1;
+  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1A;
 
   if (phy_config_dedicated_enabled) {
     /* TODO: Assumes UE-Specific Search Space (Not common) */
     switch (cfg.dl_ant_info.tx_mode) {
       case sched_interface::ant_info_ded_t::tx_mode_t::tm1:
       case sched_interface::ant_info_ded_t::tx_mode_t::tm2:
-        ret = SRSLTE_DCI_FORMAT1;
+        // If the size of Format1 and Format1A is ambiguous in the common SS, use Format1A since the UE assumes
+        // Common SS when spaces collide
+        if (not(cell.nof_prb == 15 && cells.size() > 1)) {
+          ret = SRSLTE_DCI_FORMAT1;
+        }
         break;
       case sched_interface::ant_info_ded_t::tx_mode_t::tm3:
         ret = SRSLTE_DCI_FORMAT2A;
@@ -1035,20 +1049,21 @@ srslte_dci_format_t sched_ue::get_dci_format()
       case sched_interface::ant_info_ded_t::tx_mode_t::tm7:
       case sched_interface::ant_info_ded_t::tx_mode_t::tm8_v920:
       default:
-        Warning("Incorrect transmission mode (rnti=%04x; tm=%d)\n", rnti, static_cast<int>(cfg.dl_ant_info.tx_mode));
+        logger.warning(
+            "Incorrect transmission mode (rnti=%04x; tm=%d)", rnti, static_cast<int>(cfg.dl_ant_info.tx_mode));
     }
   }
 
   return ret;
 }
 
-const sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx) const
+const cce_cfi_position_table* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx) const
 {
   if (cfi > 0 && cfi <= 3) {
-    return &cells[enb_cc_idx].dci_locations[cfi - 1][sf_idx];
+    return &cells[enb_cc_idx].dci_locations[sf_idx][cfi - 1];
   } else {
-    Error("SCHED: Invalid CFI=%d\n", cfi);
-    return &cells[enb_cc_idx].dci_locations[0][sf_idx];
+    logger.error("SCHED: Invalid CFI=%d", cfi);
+    return &cells[enb_cc_idx].dci_locations[sf_idx][0];
   }
 }
 

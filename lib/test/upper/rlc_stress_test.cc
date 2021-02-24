@@ -94,7 +94,6 @@ typedef struct {
 
 void parse_args(stress_test_args_t* args, int argc, char* argv[])
 {
-
   // Command line only options
   bpo::options_description general("General options");
 
@@ -163,14 +162,14 @@ public:
     pcap(pcap_),
     lcid(lcid_),
     timers(timers_),
-    log("MAC  "),
+    logger(srslog::fetch_basic_logger("MAC", false)),
     thread("MAC_DUMMY"),
     real_dist(0.0, 1.0),
     mt19937(1234),
     pool(byte_buffer_pool::get_instance())
   {
-    log.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
-    log.set_hex_limit(LOG_HEX_LIMIT);
+    logger.set_level(static_cast<srslog::basic_levels>(args.log_level));
+    logger.set_hex_dump_max_size(LOG_HEX_LIMIT);
   }
 
   void stop()
@@ -187,7 +186,7 @@ private:
     // Generate A number of MAC PDUs
     for (uint32_t i = 0; i < args.nof_pdu_tti; i++) {
       // Create PDU unique buffer
-      unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
+      unique_byte_buffer_t pdu = srslte::make_byte_buffer();
       if (!pdu) {
         printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
         exit(-1);
@@ -237,7 +236,7 @@ private:
         // Cut
         if ((real_dist(mt19937) < args.pdu_cut_rate)) {
           int cut_pdu_len = static_cast<int>(pdu_len * real_dist(mt19937));
-          log.info("Cutting MAC PDU len (%d B -> %d B)\n", pdu_len, cut_pdu_len);
+          logger.info("Cutting MAC PDU len (%d B -> %d B)", pdu_len, cut_pdu_len);
           pdu_len = cut_pdu_len;
         }
 
@@ -252,7 +251,7 @@ private:
           pcap->write_ul_ccch(pdu->msg, pdu_len);
         }
       } else {
-        log.warning_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
+        logger.warning(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)", pdu->N_bytes);
         skip_action = true; // Avoid drop duplicating this PDU
       }
 
@@ -261,7 +260,7 @@ private:
         it++;
         skip_action = false; // Allow action on the next PDU
       } else {
-        log.warning_hex(pdu->msg, pdu->N_bytes, "Duplicating RLC PDU (%d B)\n", pdu->N_bytes);
+        logger.warning(pdu->msg, pdu->N_bytes, "Duplicating RLC PDU (%d B)", pdu->N_bytes);
         skip_action = true; // Avoid drop of this PDU
       }
     }
@@ -310,14 +309,14 @@ private:
   stress_test_args_t     args;
   rlc_pcap*              pcap;
   uint32_t               lcid;
-  srslte::log_filter     log;
+  srslog::basic_logger&  logger;
   srslte::timer_handler* timers = nullptr;
 
   srslte::block_queue<srslte::move_task_t> pending_tasks;
 
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
-  byte_buffer_pool* pool = nullptr;
+  byte_buffer_pool*                     pool = nullptr;
 };
 
 class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public thread
@@ -325,6 +324,7 @@ class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public t
 public:
   rlc_tester(rlc_interface_pdcp* rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_) :
     log("TEST"),
+    logger(srslog::fetch_basic_logger("TEST", false)),
     rlc(rlc_),
     run_enable(true),
     rx_pdus(),
@@ -333,8 +333,8 @@ public:
     lcid(lcid_),
     thread("RLC_TESTER")
   {
-    log.set_level(srslte::LOG_LEVEL_ERROR);
-    log.set_hex_limit(LOG_HEX_LIMIT);
+    logger.set_level(srslog::basic_levels::error);
+    logger.set_hex_dump_max_size(LOG_HEX_LIMIT);
   }
 
   void stop()
@@ -348,7 +348,7 @@ public:
   {
     assert(rx_lcid == lcid);
     if (sdu->N_bytes != args.sdu_size) {
-      log.error_hex(sdu->msg, sdu->N_bytes, "Received SDU with size %d, expected %d.\n", sdu->N_bytes, args.sdu_size);
+      logger.error(sdu->msg, sdu->N_bytes, "Received SDU with size %d, expected %d.", sdu->N_bytes, args.sdu_size);
       if (args.pedantic_sdu_check) {
         exit(-1);
       }
@@ -360,6 +360,8 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
+  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) {}
 
   // RRC interface
   void        max_retx_attempted() {}
@@ -370,20 +372,21 @@ public:
 private:
   void run_thread()
   {
-    uint8_t           sn   = 0;
-    byte_buffer_pool* pool = byte_buffer_pool::get_instance();
+    uint32_t          pdcp_sn = 0;
+    byte_buffer_pool* pool    = byte_buffer_pool::get_instance();
     while (run_enable) {
-      unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
+      unique_byte_buffer_t pdu = srslte::make_byte_buffer();
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit
         usleep(1000);
         continue;
       }
+      pdu->md.pdcp_sn = pdcp_sn;
       for (uint32_t i = 0; i < args.sdu_size; i++) {
-        pdu->msg[i] = sn;
+        pdu->msg[i] = pdcp_sn & 0xFF;
       }
-      sn++;
+      pdcp_sn++;
       pdu->N_bytes = args.sdu_size;
       rlc->write_sdu(lcid, std::move(pdu));
       if (args.sdu_gen_delay_usec > 0) {
@@ -392,10 +395,11 @@ private:
     }
   }
 
-  bool               run_enable;
-  uint64_t           rx_pdus;
-  uint32_t           lcid;
-  srslte::log_filter log;
+  bool                  run_enable;
+  uint64_t              rx_pdus;
+  uint32_t              lcid;
+  srslte::log_filter    log;
+  srslog::basic_logger& logger;
 
   std::string name;
 
@@ -406,12 +410,13 @@ private:
 
 void stress_test(stress_test_args_t args)
 {
-  srslte::log_ref log1("RLC_1");
-  srslte::log_ref log2("RLC_2");
-  log1->set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
-  log2->set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
-  log1->set_hex_limit(LOG_HEX_LIMIT);
-  log2->set_hex_limit(LOG_HEX_LIMIT);
+  auto& log1 = srslog::fetch_basic_logger("RLC_1", false);
+  log1.set_level(static_cast<srslog::basic_levels>(args.log_level));
+  log1.set_hex_dump_max_size(LOG_HEX_LIMIT);
+  auto& log2 = srslog::fetch_basic_logger("RLC_2", false);
+  log2.set_level(static_cast<srslog::basic_levels>(args.log_level));
+  log2.set_hex_dump_max_size(LOG_HEX_LIMIT);
+
   rlc_pcap pcap;
   uint32_t lcid = 1;
 
@@ -470,8 +475,8 @@ void stress_test(stress_test_args_t args)
 
   srslte::timer_handler timers(8);
 
-  rlc rlc1(log1->get_service_name().c_str());
-  rlc rlc2(log2->get_service_name().c_str());
+  rlc rlc1(log1.id().c_str());
+  rlc rlc2(log2.id().c_str());
 
   rlc_tester tester1(&rlc1, "tester1", args, lcid);
   rlc_tester tester2(&rlc2, "tester2", args, lcid);
@@ -553,6 +558,8 @@ int main(int argc, char** argv)
 
   stress_test_args_t args = {};
   parse_args(&args, argc, argv);
+
+  srslog::init();
 
   if (args.zero_seed) {
     srand(0);

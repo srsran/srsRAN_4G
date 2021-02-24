@@ -29,7 +29,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/channel/channel.h"
@@ -240,19 +239,19 @@ private:
   phy_cell_cfg_list_t    cell_list_lte;
   phy_cell_cfg_list_nr_t cell_list_nr;
 
-  bool                                     have_mtch_stop   = false;
-  pthread_mutex_t                          mtch_mutex       = {};
-  pthread_cond_t                           mtch_cvar        = {};
-  srslte::phy_cfg_mbsfn_t                  mbsfn            = {};
-  bool                                     sib13_configured = false;
-  bool                                     mcch_configured  = false;
-  uint8_t                                  mch_table[40]    = {};
-  uint8_t                                  mcch_table[10]   = {};
-  uint32_t                                 mch_period_stop  = 0;
-  bool                                     is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
-  bool                                     is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
-  srslte::rf_buffer_t                      nr_tx_buffer;
-  bool                                     nr_tx_buffer_ready = false;
+  bool                    have_mtch_stop   = false;
+  pthread_mutex_t         mtch_mutex       = {};
+  pthread_cond_t          mtch_cvar        = {};
+  srslte::phy_cfg_mbsfn_t mbsfn            = {};
+  bool                    sib13_configured = false;
+  bool                    mcch_configured  = false;
+  uint8_t                 mch_table[40]    = {};
+  uint8_t                 mcch_table[10]   = {};
+  uint32_t                mch_period_stop  = 0;
+  bool                    is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool                    is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  srslte::rf_buffer_t     nr_tx_buffer;
+  bool                    nr_tx_buffer_ready = false;
 };
 
 } // namespace srsenb

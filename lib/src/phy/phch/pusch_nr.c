@@ -29,7 +29,7 @@ int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* arg
 {
   for (srslte_mod_t mod = SRSLTE_MOD_BPSK; mod < SRSLTE_MOD_NITEMS; mod++) {
     if (srslte_modem_table_lte(&q->modem_tables[mod], mod) < SRSLTE_SUCCESS) {
-      ERROR("Error initialising modem table for %s\n", srslte_mod_string(mod));
+      ERROR("Error initialising modem table for %s", srslte_mod_string(mod));
       return SRSLTE_ERROR;
     }
     if (args->measure_evm) {
@@ -40,7 +40,7 @@ int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* arg
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
+int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   if (q == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -51,14 +51,14 @@ int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t*
   }
 
   if (srslte_sch_nr_init_tx(&q->sch, &args->sch)) {
-    ERROR("Initialising SCH\n");
+    ERROR("Initialising SCH");
     return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
+int srslte_pusch_nr_init_gnb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
   if (q == NULL || args == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -69,14 +69,14 @@ int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* 
   }
 
   if (srslte_sch_nr_init_rx(&q->sch, &args->sch)) {
-    ERROR("Initialising SCH\n");
+    ERROR("Initialising SCH");
     return SRSLTE_ERROR;
   }
 
   if (args->measure_evm) {
     q->evm_buffer = srslte_evm_buffer_alloc(8);
     if (q->evm_buffer == NULL) {
-      ERROR("Initialising EVM\n");
+      ERROR("Initialising EVM");
       return SRSLTE_ERROR;
     }
   }
@@ -290,8 +290,7 @@ static uint32_t srslte_pusch_nr_cp_dmrs(const srslte_pusch_nr_t*     q,
 {
   uint32_t count = 0;
 
-  const srslte_dmrs_sch_cfg_t* dmrs_cfg =
-      grant->mapping == srslte_sch_mapping_type_A ? &cfg->dmrs_typeA : &cfg->dmrs_typeB;
+  const srslte_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
 
   switch (dmrs_cfg->type) {
     case srslte_dmrs_sch_type_1:
@@ -363,7 +362,7 @@ static int srslte_pusch_nr_cp(const srslte_pusch_nr_t*     q,
   uint32_t dmrs_l_count                            = 0;
 
   // Get symbol indexes carrying DMRS
-  int32_t nof_dmrs_symbols = srslte_dmrs_sch_get_symbols_idx(cfg, grant, dmrs_l_idx);
+  int32_t nof_dmrs_symbols = srslte_dmrs_sch_get_symbols_idx(&cfg->dmrs, grant, dmrs_l_idx);
   if (nof_dmrs_symbols < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
@@ -420,7 +419,7 @@ pusch_nr_cinit(const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_nr_t* cf
   }
   uint32_t cinit = (((uint32_t)rnti) << 15U) + (cw_idx << 14U) + n_id;
 
-  INFO("PUSCH: RNTI=%d (0x%x); nid=%d; cinit=%d (0x%x);\n", rnti, rnti, n_id, cinit, cinit);
+  INFO("PUSCH: RNTI=%d (0x%x); nid=%d; cinit=%d (0x%x);", rnti, rnti, n_id, cinit, cinit);
 
   return cinit;
 }
@@ -438,19 +437,19 @@ static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*         q,
 
   // Check codeword index
   if (tb->cw_idx >= q->max_cw) {
-    ERROR("Unsupported codeword index %d\n", tb->cw_idx);
+    ERROR("Unsupported codeword index %d", tb->cw_idx);
     return SRSLTE_ERROR;
   }
 
   // Check modulation
   if (tb->mod >= SRSLTE_MOD_NITEMS) {
-    ERROR("Invalid modulation %s\n", srslte_mod_string(tb->mod));
+    ERROR("Invalid modulation %s", srslte_mod_string(tb->mod));
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
   // Encode SCH
   if (srslte_ulsch_nr_encode(&q->sch, &cfg->sch_cfg, tb, data, q->b[tb->cw_idx]) < SRSLTE_SUCCESS) {
-    ERROR("Error in DL-SCH encoding\n");
+    ERROR("Error in DL-SCH encoding");
     return SRSLTE_ERROR;
   }
 
@@ -480,7 +479,6 @@ int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
                            uint8_t*                     data[SRSLTE_MAX_TB],
                            cf_t*                        sf_symbols[SRSLTE_MAX_PORTS])
 {
-
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -493,7 +491,7 @@ int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
 
   // Check number of layers
   if (q->max_layers < grant->nof_layers) {
-    ERROR("Error number of layers (%d) exceeds configured maximum (%d)\n", grant->nof_layers, q->max_layers);
+    ERROR("Error number of layers (%d) exceeds configured maximum (%d)", grant->nof_layers, q->max_layers);
     return SRSLTE_ERROR;
   }
 
@@ -503,7 +501,7 @@ int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
     if (pusch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb], grant->rnti) < SRSLTE_SUCCESS) {
-      ERROR("Error encoding TB %d\n", tb);
+      ERROR("Error encoding TB %d", tb);
       return SRSLTE_ERROR;
     }
   }
@@ -524,12 +522,12 @@ int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
   // 7.3.1.6 Mapping from virtual to physical resource blocks
   int n = srslte_pusch_nr_put(q, cfg, grant, x[0], sf_symbols[0]);
   if (n < SRSLTE_SUCCESS) {
-    ERROR("Putting NR PUSCH resources\n");
+    ERROR("Putting NR PUSCH resources");
     return SRSLTE_ERROR;
   }
 
   if (n != grant->tb[0].nof_re) {
-    ERROR("Unmatched number of RE (%d != %d)\n", n, grant->tb[0].nof_re);
+    ERROR("Unmatched number of RE (%d != %d)", n, grant->tb[0].nof_re);
     return SRSLTE_ERROR;
   }
 
@@ -555,13 +553,13 @@ static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
 
   // Check codeword index
   if (tb->cw_idx >= q->max_cw) {
-    ERROR("Unsupported codeword index %d\n", tb->cw_idx);
+    ERROR("Unsupported codeword index %d", tb->cw_idx);
     return SRSLTE_ERROR;
   }
 
   // Check modulation
   if (tb->mod >= SRSLTE_MOD_NITEMS) {
-    ERROR("Invalid modulation %s\n", srslte_mod_string(tb->mod));
+    ERROR("Invalid modulation %s", srslte_mod_string(tb->mod));
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
@@ -596,7 +594,7 @@ static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
 
   // Decode SCH
   if (srslte_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
-    ERROR("Error in DL-SCH encoding\n");
+    ERROR("Error in DL-SCH encoding");
     return SRSLTE_ERROR;
   }
 
@@ -628,14 +626,14 @@ int srslte_pusch_nr_decode(srslte_pusch_nr_t*           q,
   uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(cfg, grant);
 
   if (channel->nof_re != nof_re) {
-    ERROR("Inconsistent number of RE (%d!=%d)\n", channel->nof_re, nof_re);
+    ERROR("Inconsistent number of RE (%d!=%d)", channel->nof_re, nof_re);
     return SRSLTE_ERROR;
   }
 
   // Demapping from virtual to physical resource blocks
   uint32_t nof_re_get = srslte_pusch_nr_get(q, cfg, grant, q->x[0], sf_symbols[0]);
   if (nof_re_get != nof_re) {
-    ERROR("Inconsistent number of RE (%d!=%d)\n", nof_re_get, nof_re);
+    ERROR("Inconsistent number of RE (%d!=%d)", nof_re_get, nof_re);
     return SRSLTE_ERROR;
   }
 
@@ -664,7 +662,7 @@ int srslte_pusch_nr_decode(srslte_pusch_nr_t*           q,
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
     if (pusch_nr_decode_codeword(q, cfg, &grant->tb[tb], &data[tb], grant->rnti) < SRSLTE_SUCCESS) {
-      ERROR("Error encoding TB %d\n", tb);
+      ERROR("Error encoding TB %d", tb);
       return SRSLTE_ERROR;
     }
   }
@@ -686,12 +684,23 @@ static uint32_t srslte_pusch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
   uint32_t len = 0;
   len          = srslte_print_check(str, str_len, len, "rnti=0x%x", grant->rnti);
 
+  char freq_str[SRSLTE_MAX_PRB_NR + 1] = {};
+  for (uint32_t i = 0, nof_prb = 0; i < SRSLTE_MAX_PRB_NR && nof_prb < grant->nof_prb; i++) {
+    if (grant->prb_idx[i]) {
+      freq_str[i] = '1';
+      nof_prb++;
+    } else {
+      freq_str[i] = '0';
+    }
+  }
+
   // Append time-domain resource mapping
   len = srslte_print_check(str,
                            str_len,
                            len,
-                           ",k0=%d,S=%d,L=%d,mapping=%s",
-                           grant->k0,
+                           ",k2=%d,freq=%s,S=%d,L=%d,mapping=%s",
+                           grant->k,
+                           freq_str,
                            grant->S,
                            grant->L,
                            srslte_sch_mapping_type_to_str(grant->mapping));
@@ -720,7 +729,6 @@ uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-
   uint32_t len = 0;
 
   len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
@@ -756,7 +764,7 @@ uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
   }
 
   if (q->meas_time_en) {
-    len = srslte_print_check(str, str_len, len, ", t=%d us\n", q->meas_time_us);
+    len = srslte_print_check(str, str_len, len, ", t=%d us", q->meas_time_us);
   }
 
   return len;
@@ -768,13 +776,12 @@ uint32_t srslte_pusch_nr_tx_info(const srslte_pusch_nr_t*     q,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
-
   uint32_t len = 0;
 
   len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
 
   if (q->meas_time_en) {
-    len = srslte_print_check(str, str_len, len, ", t=%d us\n", q->meas_time_us);
+    len = srslte_print_check(str, str_len, len, ", t=%d us", q->meas_time_us);
   }
 
   return len;

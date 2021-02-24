@@ -32,7 +32,7 @@
 #include <string>
 
 #include "mac/mac.h"
-#include "mac/mac_nr.h"
+#include "mac_nr/mac_nr.h"
 #include "rrc/rrc.h"
 #include "srslte/radio/radio.h"
 #include "srslte/upper/pdcp.h"
@@ -55,18 +55,24 @@ namespace srsue {
 
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
+                           public stack_interface_phy_nr,
                            public stack_interface_gw,
                            public stack_interface_rrc,
                            public srslte::thread
 {
 public:
-  ue_stack_lte();
+  explicit ue_stack_lte(srslog::sink& log_sink);
   ~ue_stack_lte();
 
   std::string get_type() final;
 
-  int  init(const stack_args_t& args_, srslte::logger* logger_);
-  int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+  int init(const stack_args_t& args_, srslte::logger* logger_);
+  int init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+  int init(const stack_args_t&      args_,
+           srslte::logger*          logger_,
+           phy_interface_stack_lte* phy_,
+           phy_interface_stack_nr*  phy_nr_,
+           gw_interface_stack*      gw_);
   bool switch_on() final;
   bool switch_off() final;
   bool is_registered() final;
@@ -87,9 +93,12 @@ public:
   void set_config_complete(bool status) final;
   void set_scell_complete(bool status) final;
 
-  // MAC Interface for PHY
+  // MAC Interface for EUTRA PHY
   uint16_t get_dl_sched_rnti(uint32_t tti) final { return mac.get_dl_sched_rnti(tti); }
   uint16_t get_ul_sched_rnti(uint32_t tti) final { return mac.get_ul_sched_rnti(tti); }
+
+  sched_rnti_t get_dl_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_dl_sched_rnti_nr(tti); }
+  sched_rnti_t get_ul_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_ul_sched_rnti_nr(tti); }
 
   void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) final
   {
@@ -122,6 +131,22 @@ public:
 
   void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
+  // MAC Interface for NR PHY
+  int  sf_indication(const uint32_t tti) final { return SRSLTE_SUCCESS; }
+  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
+
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu) final { mac_nr.new_grant_ul(cc_idx, grant, tx_pdu); }
+
+  void run_tti(const uint32_t tti) final
+  {
+    // ignored, timing will be handled by EUTRA
+  }
+
+  void prach_sent(uint32_t tti, uint32_t s_id, uint32_t t_id, uint32_t f_id, uint32_t ul_carrier_id) final
+  {
+    mac_nr.prach_sent(tti, s_id, t_id, f_id, ul_carrier_id);
+  }
+
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
 
@@ -147,19 +172,25 @@ private:
   srslte::tti_point current_tti;
 
   // UE stack logging
-  srslte::logger* logger = nullptr;
-  srslte::log_ref stack_log{"STCK"}; ///< our own log filter
-  srslte::log_ref mac_log{"MAC"};
-  srslte::log_ref rlc_log{"RLC"};
-  srslte::log_ref pdcp_log{"PDCP"};
-  srslte::log_ref rrc_log{"RRC"};
-  srslte::log_ref usim_log{"USIM"};
-  srslte::log_ref nas_log{"NAS"};
-  srslte::log_ref pool_log{"POOL"};
+  srslte::logger*       logger = nullptr;
+  srslte::log_ref       mac_log{"MAC"};
+  srslte::log_ref       rlc_log{"RLC"};
+  srslte::log_ref       pdcp_log{"PDCP"};
+  srslte::log_ref       rrc_log{"RRC"};
+  srslte::log_ref       usim_log{"USIM"};
+  srslte::log_ref       nas_log{"NAS"};
+  srslog::basic_logger& stack_logger;
+  srslog::basic_logger& mac_logger;
+  srslog::basic_logger& rlc_logger;
+  srslog::basic_logger& pdcp_logger;
+  srslog::basic_logger& rrc_logger;
+  srslog::basic_logger& usim_logger;
+  srslog::basic_logger& nas_logger;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
   gw_interface_stack*      gw  = nullptr;
+  phy_interface_stack_nr*  phy_nr = nullptr;
 
   // Thread
   static const int                      STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
@@ -171,18 +202,19 @@ private:
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
 
   // stack components
-  srsue::mac                 mac;
-  srslte::mac_pcap           mac_pcap;
-  srslte::nas_pcap           nas_pcap;
-  srslte::rlc                rlc;
-  srslte::pdcp               pdcp;
-  srsue::rrc                 rrc;
-#ifdef HAVE_5GNR
+  srsue::mac       mac;
+  srslte::mac_pcap mac_pcap;
+  srslte::nas_pcap nas_pcap;
+  srslte::rlc      rlc;
+  srslte::pdcp     pdcp;
+  srsue::rrc       rrc;
   srsue::mac_nr mac_nr;
   srsue::rrc_nr rrc_nr;
-#endif
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
+
+  // Metrics helper
+  uint32_t ul_dropped_sdus = 0;
 };
 
 } // namespace srsue

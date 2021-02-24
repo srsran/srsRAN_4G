@@ -128,13 +128,13 @@ int main(int argc, char** argv)
     max_cid = cell.id;
   }
   if (srslte_chest_dl_init(&est, cell.nof_prb, 1)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     goto do_exit;
   }
   while (cid <= max_cid) {
     cell.id = cid;
     if (srslte_chest_dl_set_cell(&est, cell)) {
-      ERROR("Error initializing equalizer\n");
+      ERROR("Error initializing equalizer");
       goto do_exit;
     }
 
@@ -144,7 +144,6 @@ int main(int argc, char** argv)
       sf_cfg.tti = sf_idx;
 
       for (uint32_t n_port = 0; n_port < cell.nof_ports; n_port++) {
-
         srslte_vec_cf_zero(input, num_re);
         for (i = 0; i < num_re; i++) {
           input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - rand() / RAND_MAX);
@@ -227,7 +226,7 @@ int main(int argc, char** argv)
       }
     }
     cid += 10;
-    INFO("cid=%d\n", cid);
+    INFO("cid=%d", cid);
   }
   srslte_chest_dl_free(&est);
   ret = 0;

@@ -25,18 +25,17 @@
 #include "srslte/build_info.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/radio/radio_null.h"
-#ifdef HAVE_5GNR
 #include "srsenb/hdr/phy/vnf_phy_nr.h"
 #include "srsenb/hdr/stack/gnb_stack_nr.h"
-#endif
 #include <iostream>
 
 namespace srsenb {
 
-enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE))
+enb::enb(srslog::sink& log_sink) :
+  started(false), log_sink(log_sink), enb_log(srslog::fetch_basic_logger("ENB", log_sink, false))
 {
   // print build info
-  std::cout << std::endl << get_build_string() << std::endl;
+  std::cout << std::endl << get_build_string() << std::endl << std::endl;
 }
 
 enb::~enb()
@@ -51,9 +50,8 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Init eNB log
   srslte::logmap::set_default_logger(logger);
-  log = srslte::logmap::get("ENB");
-  log->set_level(srslte::LOG_LEVEL_INFO);
-  log->info("%s", get_build_string().c_str());
+  enb_log.set_level(srslog::basic_levels::info);
+  enb_log.info("%s", get_build_string().c_str());
 
   // Validate arguments
   if (parse_args(args_, rrc_cfg)) {
@@ -61,25 +59,23 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  pool_log.init("POOL", logger);
-  pool_log.set_level(srslte::LOG_LEVEL_ERROR);
-  pool->set_log(&pool_log);
+  srslte::byte_buffer_pool::get_instance()->enable_logger(true);
 
   // Create layers
   if (args.stack.type == "lte") {
-    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger));
+    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger, log_sink));
     if (!lte_stack) {
       srslte::console("Error creating eNB stack.\n");
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio);
     if (!lte_radio) {
       srslte::console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(logger));
+    std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(log_sink));
     if (!lte_phy) {
       srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
@@ -101,7 +97,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
     // Only init Stack if both radio and PHY could be initialized
     if (ret == SRSLTE_SUCCESS) {
-      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
+      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get()) != SRSLTE_SUCCESS) {
         srslte::console("Error initializing stack.\n");
         ret = SRSLTE_ERROR;
       }
@@ -112,10 +108,9 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     radio = std::move(lte_radio);
 
   } else if (args.stack.type == "nr") {
-#ifdef HAVE_5GNR
     std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr(logger));
-    std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null(logger));
-    std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr(logger));
+    std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null);
+    std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr);
 
     // Init layers
     if (nr_radio->init(args.rf, nullptr)) {
@@ -146,10 +141,6 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     stack = std::move(nr_stack);
     phy   = std::move(nr_phy);
     radio = std::move(nr_radio);
-#else
-    srslte::console("ERROR: 5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
-    log->error("5G NR stack not compiled. Please, activate CMAKE HAVE_5GNR flag.\n");
-#endif
   }
 
   started = true; // set to true in any case to allow stopping the eNB if an error happened
@@ -260,7 +251,7 @@ std::string enb::get_build_info()
 std::string enb::get_build_string()
 {
   std::stringstream ss;
-  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << ".";
   return ss.str();
 }
 

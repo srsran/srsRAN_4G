@@ -34,7 +34,7 @@ namespace srsue {
 class usim : public usim_base
 {
 public:
-  usim(srslte::log* log_);
+  explicit usim(srslog::basic_logger& logger);
   int  init(usim_args_t* args);
   void stop();
 

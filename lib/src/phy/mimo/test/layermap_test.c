@@ -86,7 +86,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (srslte_str2mimotype(mimo_type_name, &type)) {
-    ERROR("Invalid MIMO type %s\n", mimo_type_name);
+    ERROR("Invalid MIMO type %s", mimo_type_name);
     exit(-1);
   }
 
@@ -129,13 +129,13 @@ int main(int argc, char** argv)
 
   /* layer mapping */
   if ((symbols_layer = srslte_layermap_type(d, x, nof_cw, nof_layers, nof_symb_cw, type)) < 0) {
-    ERROR("Error layer mapper encoder\n");
+    ERROR("Error layer mapper encoder");
     exit(-1);
   }
 
   /* layer de-mapping */
   if (srslte_layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols / nof_layers, nof_symb_cw, type) < 0) {
-    ERROR("Error layer mapper encoder\n");
+    ERROR("Error layer mapper encoder");
     exit(-1);
   }
 

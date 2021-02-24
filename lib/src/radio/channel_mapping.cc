@@ -36,7 +36,7 @@ bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& fre
   std::lock_guard<std::mutex> lock(mutex);
 
   if (allocated_channels.count(logical_ch)) {
-    ERROR("allocate_freq: Carrier logical_ch=%d already allocated to channel=%d\n",
+    ERROR("allocate_freq: Carrier logical_ch=%d already allocated to channel=%d",
           logical_ch,
           allocated_channels[logical_ch].carrier_idx);
     return false;
@@ -50,7 +50,7 @@ bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& fre
       return true;
     }
   }
-  ERROR("allocate_freq: No channels available for frequency=%.1f %s\n", freq, to_string().c_str());
+  ERROR("allocate_freq: No channels available for frequency=%.1f %s", freq, to_string().c_str());
   return false;
 }
 

@@ -87,22 +87,22 @@ int main(int argc, char** argv)
 
   srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing sl_comm_resource_pool\n");
+    ERROR("Error initializing sl_comm_resource_pool");
     return SRSLTE_ERROR;
   }
 
   srslte_pssch_t pssch = {};
   if (srslte_pssch_init(&pssch, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
-    ERROR("Error initializing PSSCH\n");
+    ERROR("Error initializing PSSCH");
     return SRSLTE_ERROR;
   }
 
   uint32_t nof_prb_pssch = srslte_dft_precoding_get_valid_prb(cell.nof_prb);
-  uint32_t N_x_id    = 255;
-  uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
-  cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  uint32_t N_x_id        = 255;
+  uint32_t sf_n_re       = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
+  cf_t*    sf_buffer     = srslte_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   srslte_vec_cf_zero(sf_buffer, sf_n_re);
@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 
   srslte_pssch_cfg_t pssch_cfg = {prb_start_idx, nof_prb_pssch, N_x_id, mcs_idx, 0, 0};
   if (srslte_pssch_set_cfg(&pssch, pssch_cfg) != SRSLTE_SUCCESS) {
-    ERROR("Error configuring PSSCH\n");
+    ERROR("Error configuring PSSCH");
     goto clean_exit;
   }
 
@@ -129,13 +129,13 @@ int main(int argc, char** argv)
 
   // PSSCH encoding
   if (srslte_pssch_encode(&pssch, tb, pssch.sl_sch_tb_len, sf_buffer) != SRSLTE_SUCCESS) {
-    ERROR("Error encoding PSSCH\n");
+    ERROR("Error encoding PSSCH");
     goto clean_exit;
   }
 
   // PSSCH decoding
   if (srslte_pssch_decode(&pssch, sf_buffer, tb_rx, pssch.sl_sch_tb_len) != SRSLTE_SUCCESS) {
-    ERROR("Error decoding PSSCH\n");
+    ERROR("Error decoding PSSCH");
     goto clean_exit;
   }
 

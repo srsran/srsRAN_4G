@@ -19,9 +19,10 @@
  *
  */
 
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/upper/rlc.h"
 #include <map>
 
@@ -37,14 +38,16 @@ typedef struct {
 
 namespace srsenb {
 
+class rrc_interface_rlc;
+class pdcp_interface_rlc;
+class mac_interface_rlc;
+
 class rlc : public rlc_interface_mac, public rlc_interface_rrc, public rlc_interface_pdcp
 {
 public:
-  void init(pdcp_interface_rlc*    pdcp_,
-            rrc_interface_rlc*     rrc_,
-            mac_interface_rlc*     mac_,
-            srslte::timer_handler* timers_,
-            srslte::log_ref        log_h);
+  explicit rlc(srslog::basic_logger& logger) : logger(logger) {}
+  void
+  init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc* mac_, srslte::timer_handler* timers_);
   void stop();
   void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
 
@@ -77,6 +80,8 @@ private:
   {
   public:
     void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
+    void        notify_delivery(uint32_t lcid, const std::vector<uint32_t>& tx_count);
+    void        notify_failure(uint32_t lcid, const std::vector<uint32_t>& tx_count);
     void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_pcch(srslte::unique_byte_buffer_t sdu);
@@ -98,12 +103,11 @@ private:
   std::map<uint32_t, user_interface> users;
   std::vector<mch_service_t>         mch_services;
 
-  mac_interface_rlc*        mac;
-  pdcp_interface_rlc*       pdcp;
-  rrc_interface_rlc*        rrc;
-  srslte::log_ref           log_h;
-  srslte::byte_buffer_pool* pool;
-  srslte::timer_handler*    timers;
+  mac_interface_rlc*     mac;
+  pdcp_interface_rlc*    pdcp;
+  rrc_interface_rlc*     rrc;
+  srslog::basic_logger&  logger;
+  srslte::timer_handler* timers;
 };
 
 } // namespace srsenb

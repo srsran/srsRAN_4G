@@ -24,8 +24,8 @@
 
 #include "srslte/common/block_queue.h"
 #include "srslte/common/logmap.h"
-#include "srslte/common/mac_nr_pcap.h"
-#include "srslte/mac/mac_nr_pdu.h"
+#include "srslte/common/mac_pcap.h"
+#include "srslte/mac/mac_sch_pdu_nr.h"
 
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -90,10 +90,9 @@ private:
   rlc_interface_mac_nr*   rlc_h   = nullptr;
   rrc_interface_mac_nr*   rrc_h   = nullptr;
 
-  std::unique_ptr<srslte::mac_nr_pcap> pcap = nullptr;
-  srslte::log_ref                      log_h;
-  srslte::byte_buffer_pool*            pool = nullptr;
-  mac_nr_args_t                        args = {};
+  std::unique_ptr<srslte::mac_pcap> pcap = nullptr;
+  srslte::log_ref                   log_h;
+  mac_nr_args_t                     args = {};
 
   bool started = false;
 
@@ -109,14 +108,14 @@ private:
   srslte::unique_byte_buffer_t bcch_bch_payload = nullptr;
 
   // UE-specific buffer
-  srslte::mac_nr_sch_pdu                    ue_tx_pdu;
+  srslte::mac_sch_pdu_nr                    ue_tx_pdu;
   std::vector<srslte::unique_byte_buffer_t> ue_tx_buffer;
   srslte::block_queue<srslte::unique_byte_buffer_t>
       ue_rx_pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
   srslte::unique_byte_buffer_t ue_rlc_buffer;
 
-  srslte::mac_nr_sch_pdu ue_rx_pdu;
+  srslte::mac_sch_pdu_nr ue_rx_pdu;
 };
 
 } // namespace srsenb

@@ -41,6 +41,15 @@
 using namespace srsue;
 using namespace asn1::rrc;
 
+static_assert(alignof(LIBLTE_BYTE_MSG_STRUCT) == alignof(byte_buffer_t),
+              "liblte buffer and byte buffer members misaligned");
+static_assert(offsetof(LIBLTE_BYTE_MSG_STRUCT, N_bytes) == offsetof(byte_buffer_t, N_bytes),
+              "liblte buffer and byte buffer members misaligned");
+static_assert(offsetof(LIBLTE_BYTE_MSG_STRUCT, header) == offsetof(byte_buffer_t, buffer),
+              "liblte buffer and byte buffer members misaligned");
+static_assert(sizeof(LIBLTE_BYTE_MSG_STRUCT) <= offsetof(byte_buffer_t, msg),
+              "liblte buffer and byte buffer members misaligned");
+
 #define LCID 1
 
 uint8_t auth_request_pdu[] = {0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4, 0xce, 0xd9,
@@ -176,7 +185,6 @@ public:
     running = false;
     wait_thread_finish();
   }
-  srslte::log_ref         stack_log{"STCK"};
   pdcp_interface_gw*      pdcp    = nullptr;
   srsue::nas*             nas     = nullptr;
   bool                    running = false;
@@ -186,7 +194,12 @@ public:
 
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
-  int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str)
+  int setup_if_addr(uint32_t eps_bearer_id,
+                    uint32_t lcid,
+                    uint8_t  pdn_type,
+                    uint32_t ip_addr,
+                    uint8_t* ipv6_if_id,
+                    char*    err_str)
   {
     return SRSLTE_SUCCESS;
   }
@@ -227,7 +240,7 @@ int security_command_test()
   args.using_op = true;
 
   // init USIM
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
 
   {
@@ -240,7 +253,7 @@ int security_command_test()
 
     // push auth request PDU to NAS to generate security context
     byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp  = srslte::make_byte_buffer();
     memcpy(tmp->msg, auth_request_pdu, sizeof(auth_request_pdu));
     tmp->N_bytes = sizeof(auth_request_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -249,7 +262,7 @@ int security_command_test()
     rrc_dummy.reset();
 
     // reuse buffer for security mode command
-    tmp = srslte::allocate_unique_buffer(*pool, true);
+    tmp = srslte::make_byte_buffer();
     memcpy(tmp->msg, sec_mode_command_pdu, sizeof(sec_mode_command_pdu));
     tmp->N_bytes = sizeof(sec_mode_command_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -259,8 +272,6 @@ int security_command_test()
       ret = SRSLTE_SUCCESS;
     }
   }
-
-  byte_buffer_pool::get_instance()->cleanup();
 
   return ret;
 }
@@ -283,7 +294,7 @@ int mme_attach_request_test()
   rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
 
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim_args_t args;
   args.mode = "soft";
   args.algo = "xor";
@@ -323,7 +334,7 @@ int mme_attach_request_test()
 
     // finally push attach accept
     byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp  = srslte::make_byte_buffer();
     memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
     tmp->N_bytes = sizeof(attach_accept_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -338,8 +349,6 @@ int mme_attach_request_test()
     // ensure buffers are deleted before pool cleanup
     gw.stop();
   }
-
-  byte_buffer_pool::get_instance()->cleanup();
 
   return ret;
 }
@@ -367,11 +376,8 @@ int esm_info_request_test()
   args.op   = "63BFA50EE6523365FF14C1F45F88737D";
 
   // init USIM
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
-
-  srslte::byte_buffer_pool* pool;
-  pool = byte_buffer_pool::get_instance();
 
   {
     srsue::nas nas(&stack.task_sched);
@@ -383,7 +389,7 @@ int esm_info_request_test()
     nas.init(&usim, &rrc_dummy, &gw, cfg);
 
     // push ESM info request PDU to NAS to generate response
-    unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp = srslte::make_byte_buffer();
     memcpy(tmp->msg, esm_info_req_pdu, sizeof(esm_info_req_pdu));
     tmp->N_bytes = sizeof(esm_info_req_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -419,10 +425,8 @@ int dedicated_eps_bearer_test()
   args.op   = "63BFA50EE6523365FF14C1F45F88737D";
 
   // init USIM
-  srsue::usim usim(&usim_log);
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
   usim.init(&args);
-
-  srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
   srsue::nas nas(&stack.task_sched);
   nas_args_t cfg        = {};
@@ -430,7 +434,7 @@ int dedicated_eps_bearer_test()
   nas.init(&usim, &rrc_dummy, &gw, cfg);
 
   // push dedicated EPS bearer PDU to NAS
-  unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
   tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -441,7 +445,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 0);
 
   // add default EPS beaerer
-  unique_byte_buffer_t attach_with_default_bearer = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t attach_with_default_bearer = srslte::make_byte_buffer();
   memcpy(attach_with_default_bearer->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
   attach_with_default_bearer->N_bytes = sizeof(attach_accept_pdu);
   nas.write_pdu(LCID, std::move(attach_with_default_bearer));
@@ -451,7 +455,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
   // push dedicated bearer activation and check that it was added
-  tmp = srslte::allocate_unique_buffer(*pool, true);
+  tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
   tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -459,7 +463,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 2);
 
   // tear-down dedicated bearer
-  tmp = srslte::allocate_unique_buffer(*pool, true);
+  tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
   tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -467,7 +471,7 @@ int dedicated_eps_bearer_test()
   TESTASSERT(metrics.nof_active_eps_bearer == 1);
 
   // try to tear-down dedicated bearer again
-  tmp = srslte::allocate_unique_buffer(*pool, true);
+  tmp = srslte::make_byte_buffer();
   memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
   tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
   nas.write_pdu(LCID, std::move(tmp));
@@ -484,6 +488,19 @@ int main(int argc, char** argv)
   srslog::log_channel*   chan     = srslog::create_log_channel("mme_attach_request_test", log_sink);
   srslte::srslog_wrapper log_wrapper(*chan);
   g_logger = &log_wrapper;
+
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(100000);
+  auto& nas_logger = srslog::fetch_basic_logger("NAS", false);
+  nas_logger.set_level(srslog::basic_levels::debug);
+  nas_logger.set_hex_dump_max_size(100000);
+  auto& usim_logger = srslog::fetch_basic_logger("USIM", false);
+  usim_logger.set_level(srslog::basic_levels::debug);
+  usim_logger.set_hex_dump_max_size(100000);
+  auto& gw_logger = srslog::fetch_basic_logger("GW", false);
+  gw_logger.set_level(srslog::basic_levels::debug);
+  gw_logger.set_hex_dump_max_size(100000);
 
   // Start the log backend.
   srslog::init();

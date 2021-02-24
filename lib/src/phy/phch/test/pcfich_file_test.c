@@ -107,7 +107,7 @@ int base_init()
   srslte_use_standard_symbol_size(use_standard_lte_rates);
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
@@ -136,44 +136,43 @@ int base_init()
   }
 
   if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
   if (srslte_chest_dl_res_init(&chest_res, cell.nof_prb)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
   if (srslte_chest_dl_set_cell(&chest, cell)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
 
   if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, fft_buffer[0], cell.nof_prb)) {
-    ERROR("Error initializing FFT\n");
+    ERROR("Error initializing FFT");
     return -1;
   }
 
   if (srslte_regs_init(&regs, cell)) {
-    ERROR("Error initiating REGs\n");
+    ERROR("Error initiating REGs");
     return -1;
   }
 
   if (srslte_pcfich_init(&pcfich, 1)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     return -1;
   }
   if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
-    ERROR("Error creating PBCH object\n");
+    ERROR("Error creating PBCH object");
     return -1;
   }
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
 void base_free()
 {
-
   srslte_filesource_free(&fsrc);
   if (fmatlab) {
     fclose(fmatlab);
@@ -205,7 +204,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (base_init()) {
-    ERROR("Error initializing receiver\n");
+    ERROR("Error initializing receiver");
     exit(-1);
   }
 
@@ -231,7 +230,7 @@ int main(int argc, char** argv)
   /* Get channel estimates for each port */
   srslte_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
 
-  INFO("Decoding PCFICH\n");
+  INFO("Decoding PCFICH");
 
   n = srslte_pcfich_decode(&pcfich, &dl_sf, &chest_res, fft_buffer, &cfi_corr);
   printf("cfi: %d, distance: %f\n", dl_sf.cfi, cfi_corr);
@@ -244,7 +243,7 @@ int main(int argc, char** argv)
   base_free();
 
   if (n < 0) {
-    ERROR("Error decoding PCFICH\n");
+    ERROR("Error decoding PCFICH");
     exit(-1);
   } else if (n == 0) {
     printf("Could not decode PCFICH\n");

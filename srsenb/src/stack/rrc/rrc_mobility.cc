@@ -27,7 +27,12 @@
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
+#include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/interfaces/enb_mac_interfaces.h"
+#include "srslte/interfaces/enb_pdcp_interfaces.h"
+#include "srslte/interfaces/enb_rlc_interfaces.h"
+#include "srslte/interfaces/enb_s1ap_interfaces.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
 #include <algorithm>
 #include <cstdio>
@@ -35,14 +40,14 @@
 
 namespace srsenb {
 
-#define Info(fmt, ...) rrc_log->info("Mobility: " fmt, ##__VA_ARGS__)
-#define Error(fmt, ...) rrc_log->error("Mobility: " fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) rrc_log->warning("Mobility: " fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) rrc_log->debug("Mobility: " fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) logger.info("Mobility: " fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) logger.error("Mobility: " fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) logger.warning("Mobility: " fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) logger.debug("Mobility: " fmt, ##__VA_ARGS__)
 
-#define procInfo(fmt, ...) parent->rrc_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define procWarning(fmt, ...) parent->rrc_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define procError(fmt, ...) parent->rrc_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procInfo(fmt, ...) parent->logger.info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procWarning(fmt, ...) parent->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procError(fmt, ...) parent->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 using namespace asn1::rrc;
 
@@ -80,11 +85,12 @@ uint16_t compute_mac_i(uint16_t                            crnti,
 
   asn1::bit_ref bref(varShortMAC_packed, sizeof(varShortMAC_packed));
   if (var_short_mac.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) { // already zeroed, so no need to align
-    printf("Error packing varShortMAC\n");
+    printf("Error packing varShortMAC");
   }
   uint32_t N_bytes = bref.distance_bytes();
 
-  printf("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)\n", cellid, pci, crnti, N_bytes);
+  srslte::logmap::get("RRC")->info(
+      "Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)", cellid, pci, crnti, N_bytes);
 
   // Compute MAC-I
   switch (integ_algo) {
@@ -107,7 +113,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                                 mac_key);
       break;
     default:
-      printf("Unsupported integrity algorithm %d.\n", integ_algo);
+      printf("Unsupported integrity algorithm %d.", integ_algo);
   }
 
   uint16_t short_mac_i = (((uint16_t)mac_key[2] << 8u) | (uint16_t)mac_key[3]);
@@ -144,10 +150,10 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   // TODO: Decision Making on whether the same QoS of the source eNB can be provided by target eNB
 
   /* Evaluate if cell exists */
-  uint32_t                target_eci  = container.target_cell_id.cell_id.to_number();
+  uint32_t               target_eci  = container.target_cell_id.cell_id.to_number();
   const enb_cell_common* target_cell = cell_common_list->get_cell_id(rrc_details::eci_to_cellid(target_eci));
   if (target_cell == nullptr) {
-    rrc_log->error("The S1-handover target cell_id=0x%x does not exist\n", rrc_details::eci_to_cellid(target_eci));
+    logger.error("The S1-handover target cell_id=0x%x does not exist", rrc_details::eci_to_cellid(target_eci));
     return SRSLTE_INVALID_RNTI;
   }
 
@@ -162,7 +168,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
   ue_cfg.supported_cc_list[0].dl_cfg.tm  = SRSLTE_TM1;
   uint16_t rnti                          = mac->reserve_new_crnti(ue_cfg);
   if (rnti == SRSLTE_INVALID_RNTI) {
-    rrc_log->error("Failed to allocate C-RNTI resources\n");
+    logger.error("Failed to allocate C-RNTI resources");
     return SRSLTE_INVALID_RNTI;
   }
 
@@ -175,11 +181,10 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
 
   //  /* Setup e-RABs & DRBs / establish an UL/DL S1 bearer to the S-GW */
   //  if (not setup_ue_erabs(rnti, msg)) {
-  //    rrc_ptr->rrc_log->error("Failed to setup e-RABs for rnti=0x%x\n", );
+  //    rrc_ptr->logger.error("Failed to setup e-RABs for rnti=0x%x", );
   //  }
 
   // TODO: KeNB derivations
-
   if (not ue_ptr->mobility_handler->start_s1_tenb_ho(msg, container)) {
     rem_user_thread(rnti);
     return SRSLTE_INVALID_RNTI;
@@ -192,11 +197,7 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
  ************************************************************************************************/
 
 rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
-  base_t(outer_ue->parent->rrc_log),
-  rrc_ue(outer_ue),
-  rrc_enb(outer_ue->parent),
-  pool(outer_ue->pool),
-  rrc_log(outer_ue->parent->rrc_log)
+  base_t(outer_ue->parent->logger), rrc_ue(outer_ue), rrc_enb(outer_ue->parent), logger(outer_ue->parent->logger)
 {}
 
 //! Method to add Mobility Info to a RRC Connection Reconfiguration Message
@@ -215,28 +216,28 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_
 }
 
 //! Method called whenever the eNB receives a MeasReport from the UE. In normal situations, an HO procedure is started
-void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
+void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg, srslte::unique_byte_buffer_t pdu)
 {
   if (not is_in_state<idle_st>()) {
-    Info("Received a MeasReport while UE is performing Handover. Ignoring...\n");
+    Info("Received a MeasReport while UE is performing Handover. Ignoring...");
     return;
   }
   // Check if meas_id is valid
   const meas_results_s& meas_res = msg.crit_exts.c1().meas_report_r8().meas_results;
   if (not meas_res.meas_result_neigh_cells_present) {
-    Info("Received a MeasReport, but the UE did not detect any cell.\n");
+    Info("Received a MeasReport, but the UE did not detect any cell.");
     return;
   }
   if (meas_res.meas_result_neigh_cells.type().value !=
       meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
-    Error("MeasReports regarding non-EUTRA are not supported!\n");
+    Error("MeasReports regarding non-EUTRA are not supported!");
     return;
   }
   const meas_id_list&  measid_list  = rrc_ue->current_ue_cfg.meas_cfg.meas_id_to_add_mod_list;
   const meas_obj_list& measobj_list = rrc_ue->current_ue_cfg.meas_cfg.meas_obj_to_add_mod_list;
   auto                 measid_it    = srslte::find_rrc_obj_id(measid_list, meas_res.meas_id);
   if (measid_it == measid_list.end()) {
-    Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
+    Warning("The measurement ID %d provided by the UE does not exist.", meas_res.meas_id);
     return;
   }
   const meas_result_list_eutra_l& eutra_report_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
@@ -248,17 +249,17 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
 
   // iterate from strongest to weakest cell
   const ue_cell_ded* pcell         = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const auto&                meas_list_cfg = pcell->cell_common->cell_cfg.meas_cfg.meas_cells;
+  const auto&        meas_list_cfg = pcell->cell_common->cell_cfg.meas_cfg.meas_cells;
   for (const meas_result_eutra_s& e : eutra_report_list) {
-    auto                    same_pci = [&e](const meas_cell_cfg_t& c) { return c.pci == e.pci; };
-    auto                    meas_it  = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), same_pci);
+    auto                   same_pci = [&e](const meas_cell_cfg_t& c) { return c.pci == e.pci; };
+    auto                   meas_it  = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), same_pci);
     const enb_cell_common* c        = rrc_enb->cell_common_list->get_pci(e.pci);
     if (meas_it != meas_list_cfg.end()) {
       meas_ev.target_eci = meas_it->eci;
     } else if (c != nullptr) {
       meas_ev.target_eci = (rrc_enb->cfg.enb_id << 8u) + c->cell_cfg.cell_id;
     } else {
-      rrc_log->warning("The PCI=%d inside the MeasReport is not recognized.\n", e.pci);
+      logger.warning("The PCI=%d inside the MeasReport is not recognized.", e.pci);
       continue;
     }
 
@@ -268,6 +269,11 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
       break;
     }
   }
+
+  event_logger::get().log_measurement_report(
+      rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+      asn1::octstring_to_string(pdu->msg, pdu->N_bytes),
+      rrc_ue->rnti);
 }
 
 /**
@@ -281,14 +287,14 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
                                                  bool     fwd_direct_path_available)
 {
   if (fwd_direct_path_available) {
-    Error("Direct tunnels not supported supported\n");
+    Error("Direct tunnels not supported supported");
     return false;
   }
 
   srslte::plmn_id_t target_plmn =
       srslte::make_plmn_id_t(rrc_enb->cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id);
-  const ue_cell_ded* src_cell_ded = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const enb_cell_common*    src_cell_cfg = src_cell_ded->cell_common;
+  const ue_cell_ded*     src_cell_ded = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
+  const enb_cell_common* src_cell_cfg = src_cell_ded->cell_common;
 
   /*** Fill HO Preparation Info ***/
   asn1::rrc::ho_prep_info_s         hoprep;
@@ -319,20 +325,20 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
       uint8_t       buffer[128];
       asn1::bit_ref bref(&buffer[0], sizeof(buffer));
       if (capitem.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-        rrc_log->error("Failed to pack UE EUTRA Capability\n");
+        logger.error("Failed to pack UE EUTRA Capability");
       }
       hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize((uint32_t)bref.distance_bytes());
       memcpy(&hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container[0], &buffer[0], bref.distance_bytes());
     }
-    Debug("UE RA Category: %d\n", capitem.ue_category);
+    Debug("UE RA Category: %d", capitem.ue_category);
   } else {
     hoprep_r8.ue_radio_access_cap_info.resize(1);
     hoprep_r8.ue_radio_access_cap_info[0].rat_type = asn1::rrc::rat_type_e::eutra;
 
-    srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t buffer = srslte::make_byte_buffer();
     asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
     if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      rrc_log->error("Failed to pack UE EUTRA Capability\n");
+      logger.error("Failed to pack UE EUTRA Capability");
       return false;
     }
     hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize(bref.distance_bytes());
@@ -368,17 +374,22 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
                                  rrc_ue->ue_security_cfg.get_as_sec_cfg().k_rrc_int.data()));
 
   /*** pack HO Preparation Info into an RRC container buffer ***/
-  srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t buffer = srslte::make_byte_buffer();
   asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
   if (hoprep.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-    Error("Failed to pack HO preparation msg\n");
+    Error("Failed to pack HO preparation msg");
     return false;
   }
   buffer->N_bytes = bref.distance_bytes();
 
-  bool success = rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, std::move(buffer));
-  Info("sent s1ap msg with HO Required\n");
-  return success;
+  // Set list of E-RABs for DL forwarding
+  std::vector<uint32_t> fwd_erabs;
+  fwd_erabs.reserve(rrc_ue->bearer_list.get_erabs().size());
+  for (auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
+    fwd_erabs.push_back(erab_pair.first);
+  }
+
+  return rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, fwd_erabs, std::move(buffer));
 }
 
 /**
@@ -389,10 +400,12 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
  * @param is_success flag to whether an HandoverCommand or HandoverReject was received
  * @param container RRC container with HandoverCommand to send to UE
  */
-void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
+void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool                         is_success,
+                                                           const asn1::s1ap::ho_cmd_s&  msg,
+                                                           srslte::unique_byte_buffer_t container)
 {
   if (not is_success) {
-    log_h->info("Received S1AP HandoverFailure. Aborting Handover...\n");
+    logger.info("Received S1AP HandoverFailure. Aborting Handover...");
     trigger(srslte::failure_ev{});
     return;
   }
@@ -401,20 +414,20 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
   {
     asn1::cbit_ref bref(container->msg, container->N_bytes);
     if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      get_log()->warning("Unpacking of RRC HOCommand was unsuccessful\n");
-      get_log()->warning_hex(container->msg, container->N_bytes, "Received container:\n");
+      get_logger().warning("Unpacking of RRC HOCommand was unsuccessful");
+      get_logger().warning(container->msg, container->N_bytes, "Received container:");
       trigger(ho_cancel_ev{});
       return;
     }
   }
   if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
-    get_log()->warning("Only handling r8 Handover Commands\n");
+    get_logger().warning("Only handling r8 Handover Commands");
     trigger(ho_cancel_ev{});
     return;
   }
 
-  trigger(rrchocmd.crit_exts.c1().ho_cmd_r8());
+  trigger(s1_source_ho_st::ho_cmd_msg{&msg, &rrchocmd.crit_exts.c1().ho_cmd_r8()});
 }
 
 bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
@@ -438,7 +451,7 @@ bool rrc::ue::rrc_mobility::start_s1_tenb_ho(
  * @param target_cell
  */
 void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg,
-                                                        const enb_cell_common&   target_cell,
+                                                        const enb_cell_common&    target_cell,
                                                         uint32_t                  src_dl_earfcn,
                                                         uint32_t                  src_pci)
 {
@@ -485,36 +498,6 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
                        true);
 }
 
-/**
- * TS 36.413, Section 8.4.6 - eNB Status Transfer
- * Description: Send "eNBStatusTransfer" message from source eNB to MME
- *              - Pass bearers' DL/UL HFN and PDCP SN to be put inside a transparent container
- */
-bool rrc::ue::rrc_mobility::start_enb_status_transfer()
-{
-  std::vector<s1ap_interface_rrc::bearer_status_info> s1ap_bearers;
-  s1ap_bearers.reserve(rrc_ue->bearer_list.get_erabs().size());
-
-  for (const auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
-    s1ap_interface_rrc::bearer_status_info b    = {};
-    uint8_t                                lcid = erab_pair.second.id - 2u;
-    b.erab_id                                   = erab_pair.second.id;
-    srslte::pdcp_lte_state_t pdcp_state         = {};
-    if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
-      Error("PDCP bearer lcid=%d for rnti=0x%x was not found\n", lcid, rrc_ue->rnti);
-      return false;
-    }
-    b.dl_hfn     = pdcp_state.tx_hfn;
-    b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
-    b.ul_hfn     = pdcp_state.rx_hfn;
-    b.pdcp_ul_sn = pdcp_state.next_pdcp_rx_sn;
-    s1ap_bearers.push_back(b);
-  }
-
-  Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer\n");
-  return rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers);
-}
-
 /*************************************
  *     rrc_mobility FSM methods
  *************************************/
@@ -543,78 +526,149 @@ bool rrc::ue::rrc_mobility::needs_intraenb_ho(idle_st& s, const ho_meas_report_e
  *   s1_source_ho subFSM methods
  *************************************/
 
-void rrc::ue::rrc_mobility::s1_source_ho_st::wait_ho_req_ack_st::enter(s1_source_ho_st* f, const ho_meas_report_ev& ev)
-{
-  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
-  f->get_log()->info(
-      "Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", f->parent_fsm()->rrc_ue->rnti, ev.target_eci);
-  f->report = ev;
+rrc::ue::rrc_mobility::s1_source_ho_st::s1_source_ho_st(rrc_mobility* parent_) :
+  base_t(parent_), rrc_enb(parent_->rrc_enb), rrc_ue(parent_->rrc_ue), logger(parent_->logger)
+{}
 
-  bool success = f->parent_fsm()->start_ho_preparation(f->report.target_eci, f->report.meas_obj->meas_obj_id, false);
-  if (not success) {
-    f->trigger(srslte::failure_ev{});
+/**
+ * TS 36.413, Section 8.4.6 - eNB Status Transfer
+ * @brief: Send "eNBStatusTransfer" message from source eNB to MME, and setup Forwarding GTPU tunnel
+ *         - PDCP provides the bearers' DL/UL HFN and COUNT to be put inside a transparent container
+ *         - The eNB sends eNBStatusTransfer to MME
+ *         - A GTPU forwarding tunnel is opened to forward buffered PDCP PDUs and incoming GTPU PDUs
+ */
+bool rrc::ue::rrc_mobility::s1_source_ho_st::start_enb_status_transfer(const asn1::s1ap::ho_cmd_s& s1ap_ho_cmd)
+{
+  std::vector<s1ap_interface_rrc::bearer_status_info> s1ap_bearers;
+  s1ap_bearers.reserve(rrc_ue->bearer_list.get_erabs().size());
+
+  for (const auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
+    s1ap_interface_rrc::bearer_status_info b    = {};
+    uint8_t                                lcid = erab_pair.second.id - 2u;
+    b.erab_id                                   = erab_pair.second.id;
+    srslte::pdcp_lte_state_t pdcp_state         = {};
+    if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
+      Error("PDCP bearer lcid=%d for rnti=0x%x was not found", lcid, rrc_ue->rnti);
+      return false;
+    }
+    b.dl_hfn     = pdcp_state.tx_hfn;
+    b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
+    b.ul_hfn     = pdcp_state.rx_hfn;
+    b.pdcp_ul_sn = pdcp_state.next_pdcp_rx_sn;
+    s1ap_bearers.push_back(b);
+  }
+
+  Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer");
+  if (not rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers)) {
+    return false;
+  }
+
+  // Setup GTPU forwarding tunnel
+  if (s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list_present) {
+    const auto& fwd_erab_list = s1ap_ho_cmd.protocol_ies.erab_subjectto_data_forwarding_list.value;
+    const auto& erab_list     = rrc_ue->bearer_list.get_erabs();
+    for (const auto& e : fwd_erab_list) {
+      const auto& fwd_erab = e.value.erab_data_forwarding_item();
+      auto        it       = erab_list.find(fwd_erab.erab_id);
+      if (it == erab_list.end()) {
+        Warning("E-RAB id=%d subject to forwarding not found\n", fwd_erab.erab_id);
+        continue;
+      }
+      const bearer_cfg_handler::erab_t& erab = it->second;
+      if (fwd_erab.dl_g_tp_teid_present and fwd_erab.dl_transport_layer_address_present) {
+        gtpu_interface_rrc::bearer_props props;
+        props.forward_from_teidin_present = true;
+        props.forward_from_teidin         = erab.teid_in;
+        rrc_ue->bearer_list.add_gtpu_bearer(fwd_erab.erab_id,
+                                            fwd_erab.dl_g_tp_teid.to_number(),
+                                            fwd_erab.dl_transport_layer_address.to_number(),
+                                            &props);
+      }
+    }
+  }
+
+  return true;
+}
+
+void rrc::ue::rrc_mobility::s1_source_ho_st::enter(rrc_mobility* f, const ho_meas_report_ev& ev)
+{
+  srslte::console("Starting S1 Handover of rnti=0x%x to cellid=0x%x.\n", rrc_ue->rnti, ev.target_eci);
+  logger.info("Starting S1 Handover of rnti=0x%x to cellid=0x%x.", rrc_ue->rnti, ev.target_eci);
+  report = ev;
+
+  if (not parent_fsm()->start_ho_preparation(report.target_eci, report.meas_obj->meas_obj_id, false)) {
+    trigger(srslte::failure_ev{});
   }
 }
 
-void rrc::ue::rrc_mobility::s1_source_ho_st::send_ho_cmd(wait_ho_req_ack_st& s, const ho_cmd_r8_ies_s& ho_cmd)
+/**
+ * TS 36.413, Section 8.4.2 - Handover Resource Allocation
+ * @brief: Send "eNBStatusTransfer" message from source eNB to MME, and setup Forwarding GTPU tunnel
+ *         - PDCP provides the bearers' DL/UL HFN and COUNT to be put inside a transparent container
+ *         - The eNB sends eNBStatusTransfer to MME
+ *         - A GTPU forwarding tunnel is opened to forward buffered PDCP PDUs and incoming GTPU PDUs
+ */
+void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cmd(wait_ho_cmd& s, const ho_cmd_msg& ho_cmd)
 {
   /* unpack DL-DCCH message containing the RRCRonnectionReconf (with MobilityInfo) to be sent to the UE */
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   {
-    asn1::cbit_ref bref(&ho_cmd.ho_cmd_msg[0], ho_cmd.ho_cmd_msg.size());
+    asn1::cbit_ref bref(&ho_cmd.ho_cmd->ho_cmd_msg[0], ho_cmd.ho_cmd->ho_cmd_msg.size());
     if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      get_log()->warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.\n");
+      Warning("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.");
       trigger(ho_cancel_ev{});
       return;
     }
   }
   if (dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1 or
       dl_dcch_msg.msg.c1().type().value != dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg) {
-    get_log()->warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside\n");
+    Warning("HandoverCommand is expected to contain an RRC Connection Reconf message inside");
     trigger(ho_cancel_ev{});
     return;
   }
   asn1::rrc::rrc_conn_recfg_s& reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
   if (not reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info_present) {
-    get_log()->warning("HandoverCommand is expected to have mobility control subfield\n");
+    Warning("HandoverCommand is expected to have mobility control subfield");
     trigger(ho_cancel_ev{});
     return;
   }
 
-  // Disable DRBs
-  parent_fsm()->rrc_ue->mac_ctrl.set_drb_activation(false);
-  parent_fsm()->rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
+  /* Enter Handover Execution */
+  // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
 
-  /* Send HO Command to UE */
-  if (not parent_fsm()->rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
+  // Disable DRBs in the MAC, while Reconfiguration is taking place.
+  rrc_ue->mac_ctrl.set_drb_activation(false);
+  rrc_ue->mac_ctrl.update_mac(mac_controller::proc_stage_t::other);
+
+  // Send HO Command to UE
+  if (not rrc_ue->send_dl_dcch(&dl_dcch_msg)) {
     trigger(ho_cancel_ev{});
     return;
+  }
+
+  /* Start S1AP eNBStatusTransfer Procedure */
+  if (not start_enb_status_transfer(*ho_cmd.s1ap_ho_cmd)) {
+    trigger(ho_cancel_ev{});
   }
 }
 
 //! Called in Source ENB during S1-Handover when there was a Reestablishment Request
 void rrc::ue::rrc_mobility::s1_source_ho_st::handle_ho_cancel(const ho_cancel_ev& ev)
 {
-  parent_fsm()->rrc_enb->s1ap->send_ho_cancel(parent_fsm()->rrc_ue->rnti);
-}
-
-void rrc::ue::rrc_mobility::s1_source_ho_st::status_transfer_st::enter(s1_source_ho_st* f)
-{
-  f->get_log()->info("HandoverCommand of rnti=0x%x handled successfully.\n", f->parent_fsm()->rrc_ue->rnti);
-
-  // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
-
-  /* Start S1AP eNBStatusTransfer Procedure */
-  if (not f->parent_fsm()->start_enb_status_transfer()) {
-    f->trigger(srslte::failure_ev{});
-  }
+  rrc_enb->s1ap->send_ho_cancel(rrc_ue->rnti);
 }
 
 /*************************************
  *   s1_target_ho state methods
  *************************************/
 
-void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req)
+/**
+ * @brief handle S1AP "HO Requested" message from the MME
+ *        - MME --> TeNB
+ * @param s initial state
+ * @param ho_req event with received message
+ */
+void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& ho_req)
 {
   const auto& rrc_container = ho_req.transparent_container->rrc_container;
 
@@ -622,13 +676,13 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   asn1::cbit_ref            bref{rrc_container.data(), rrc_container.size()};
   asn1::rrc::ho_prep_info_s hoprep;
   if (hoprep.unpack(bref) != asn1::SRSASN_SUCCESS) {
-    rrc_enb->rrc_log->error("Failed to decode HandoverPreparationinformation in S1AP SourceENBToTargetENBContainer\n");
+    rrc_enb->logger.error("Failed to decode HandoverPreparationinformation in S1AP SourceENBToTargetENBContainer");
     trigger(srslte::failure_ev{});
     return;
   }
   if (hoprep.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
       hoprep.crit_exts.c1().type().value != ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::ho_prep_info_r8) {
-    rrc_enb->rrc_log->error("Only release 8 supported\n");
+    rrc_enb->logger.error("Only release 8 supported");
     trigger(srslte::failure_ev{});
     return;
   }
@@ -641,7 +695,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   }
 
   /* Prepare Handover Request Acknowledgment - Handover Command */
-  dl_dcch_msg_s              dl_dcch_msg;
+  dl_dcch_msg_s      dl_dcch_msg;
   const ue_cell_ded* target_cell = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   // Fill fields common to all types of handover (e.g. new CQI/SR configuration, mobControlInfo)
@@ -663,10 +717,10 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
       ho_req.ho_req_msg->protocol_ies.security_context.value.next_hop_chaining_count;
 
   /* Prepare Handover Command to be sent via S1AP */
-  srslte::unique_byte_buffer_t ho_cmd_pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t ho_cmd_pdu = srslte::make_byte_buffer();
   asn1::bit_ref                bref2{ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (dl_dcch_msg.pack(bref2) != asn1::SRSASN_SUCCESS) {
-    rrc_log->error("Failed to pack HandoverCommand\n");
+    logger.error("Failed to pack HandoverCommand");
     trigger(srslte::failure_ev{});
     return;
   }
@@ -679,7 +733,7 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   memcpy(ho_cmd_r8.ho_cmd_msg.data(), ho_cmd_pdu->msg, bref2.distance_bytes());
   bref2 = {ho_cmd_pdu->msg, ho_cmd_pdu->get_tailroom()};
   if (ho_cmd.pack(bref2) != asn1::SRSASN_SUCCESS) {
-    rrc_log->error("Failed to pack HandoverCommand\n");
+    logger.error("Failed to pack HandoverCommand");
     trigger(srslte::failure_ev{});
     return;
   }
@@ -694,13 +748,49 @@ void rrc::ue::rrc_mobility::handle_ho_req(idle_st& s, const ho_req_rx_ev& ho_req
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
 
-  /* send S1AP HandoverRequestAcknowledge */
-  std::vector<asn1::fixed_octstring<4, true> > admitted_erabs;
+  // Set admitted E-RABs
+  std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
+  auto&                                         fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
   for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
     admitted_erabs.emplace_back();
-    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erabs.back().data());
+    asn1::s1ap::erab_admitted_item_s& admitted_erab = admitted_erabs.back();
+    admitted_erab.erab_id                           = erab.second.id;
+    srslte::uint32_to_uint8(erab.second.teid_in, admitted_erab.gtp_teid.data());
+
+    // Establish GTPU Forwarding Paths
+    if (ho_req.transparent_container->erab_info_list_present) {
+      auto& lst = ho_req.transparent_container->erab_info_list;
+      auto  it  = std::find_if(
+          lst.begin(),
+          lst.end(),
+          [&erab](const asn1::s1ap::protocol_ie_single_container_s<asn1::s1ap::erab_info_list_ies_o>& fwd_erab) {
+            return fwd_erab.value.erab_info_list_item().erab_id == erab.second.id;
+          });
+      if (it == lst.end()) {
+        continue;
+      }
+      auto& fwd_erab = it->value.erab_info_list_item();
+
+      if (fwd_erab.dl_forwarding_present and
+          fwd_erab.dl_forwarding.value == asn1::s1ap::dl_forwarding_opts::dl_forwarding_proposed) {
+        admitted_erab.dl_g_tp_teid_present = true;
+        gtpu_interface_rrc::bearer_props props;
+        props.flush_before_teidin_present = true;
+        props.flush_before_teidin         = erab.second.teid_in;
+        uint32_t dl_teid_in               = rrc_ue->bearer_list.add_gtpu_bearer(
+            erab.second.id, erab.second.teid_out, erab.second.address.to_number(), &props);
+        fwd_tunnels.push_back(dl_teid_in);
+        srslte::uint32_to_uint8(dl_teid_in, admitted_erabs.back().dl_g_tp_teid.data());
+      }
+    }
   }
-  if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg, rrc_ue->rnti, std::move(ho_cmd_pdu), admitted_erabs)) {
+
+  // send S1AP HandoverRequestAcknowledge
+  if (not rrc_enb->s1ap->send_ho_req_ack(*ho_req.ho_req_msg,
+                                         rrc_ue->rnti,
+                                         rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                         std::move(ho_cmd_pdu),
+                                         admitted_erabs)) {
     trigger(srslte::failure_ev{});
     return;
   }
@@ -710,16 +800,16 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
                                               const asn1::s1ap::ho_request_s& ho_req_msg)
 {
   const ue_cell_ded* target_cell     = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  const cell_cfg_t&          target_cell_cfg = target_cell->cell_common->cell_cfg;
+  const cell_cfg_t&  target_cell_cfg = target_cell->cell_common->cell_cfg;
 
   // Establish ERABs/DRBs
   for (const auto& erab_item : ho_req_msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
     auto& erab = erab_item.value.erab_to_be_setup_item_ho_req();
     if (erab.ext) {
-      get_log()->warning("Not handling E-RABToBeSetupList extensions\n");
+      get_logger().warning("Not handling E-RABToBeSetupList extensions");
     }
     if (erab.transport_layer_address.length() > 32) {
-      get_log()->error("IPv6 addresses not currently supported\n");
+      get_logger().error("IPv6 addresses not currently supported");
       trigger(srslte::failure_ev{});
       return false;
     }
@@ -727,14 +817,15 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
     if (not erab.ie_exts_present or not erab.ie_exts.data_forwarding_not_possible_present or
         erab.ie_exts.data_forwarding_not_possible.ext.value !=
             asn1::s1ap::data_forwarding_not_possible_opts::data_forwarding_not_possible) {
-      get_log()->warning("Data Forwarding of E-RABs not supported\n");
+      get_logger().warning("Data Forwarding of E-RABs not supported");
     }
 
+    // Create E-RAB and associated main GTPU tunnel
     uint32_t teid_out;
     srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     rrc_ue->bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nullptr);
-    rrc_ue->bearer_list.add_gtpu_bearer(rrc_enb->gtpu, erab.erab_id);
+    rrc_ue->bearer_list.add_gtpu_bearer(erab.erab_id);
   }
 
   // Regenerate AS Keys
@@ -749,13 +840,13 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
     if (cap.rat_type.value == rat_type_opts::eutra) {
       asn1::cbit_ref bref(cap.ue_cap_rat_container.data(), cap.ue_cap_rat_container.size());
       if (rrc_ue->eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
-        rrc_log->warning("Failed to unpack UE EUTRA Capability\n");
+        logger.warning("Failed to unpack UE EUTRA Capability");
         continue;
       }
-      if (rrc_log->get_level() == srslte::LOG_LEVEL_DEBUG) {
+      if (logger.debug.enabled()) {
         asn1::json_writer js{};
         rrc_ue->eutra_capabilities.to_json(js);
-        rrc_log->debug_long("New rnti=0x%x EUTRA capabilities: %s\n", rrc_ue->rnti, js.to_string().c_str());
+        logger.debug("New rnti=0x%x EUTRA capabilities: %s", rrc_ue->rnti, js.to_string().c_str());
       }
       rrc_ue->ue_capabilities             = srslte::make_rrc_ue_capabilities(rrc_ue->eutra_capabilities);
       rrc_ue->eutra_capabilities_unpacked = true;
@@ -780,9 +871,9 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&    ho
 void rrc::ue::rrc_mobility::handle_recfg_complete(wait_recfg_comp& s, const recfg_complete_ev& ev)
 {
   ue_cell_ded* target_cell = rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
-  rrc_log->info("User rnti=0x%x successfully handovered to cell_id=0x%x\n",
-                rrc_ue->rnti,
-                target_cell->cell_common->cell_cfg.cell_id);
+  logger.info("User rnti=0x%x successfully handovered to cell_id=0x%x",
+              rrc_ue->rnti,
+              target_cell->cell_common->cell_cfg.cell_id);
   uint64_t target_eci = (rrc_enb->cfg.enb_id << 8u) + target_cell->cell_common->cell_cfg.cell_id;
 
   rrc_enb->s1ap->send_ho_notify(rrc_ue->rnti, target_eci);
@@ -798,7 +889,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     const auto& erab_item = erab.value.bearers_subject_to_status_transfer_item();
     auto        erab_it   = rrc_ue->bearer_list.get_erabs().find(erab_item.erab_id);
     if (erab_it == rrc_ue->bearer_list.get_erabs().end()) {
-      rrc_log->warning("The E-RAB Id=%d is not recognized\n", erab_item.erab_id);
+      logger.warning("The E-RAB Id=%d is not recognized", erab_item.erab_id);
       continue;
     }
     const auto& drbs  = rrc_ue->bearer_list.get_established_drbs();
@@ -806,7 +897,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     auto        drb_it =
         std::find_if(drbs.begin(), drbs.end(), [drbid](const drb_to_add_mod_s& drb) { return drb.drb_id == drbid; });
     if (drb_it == drbs.end()) {
-      rrc_log->warning("The DRB id=%d does not exist\n", erab_item.erab_id - 4);
+      logger.warning("The DRB id=%d does not exist", erab_item.erab_id - 4);
     }
 
     srslte::pdcp_lte_state_t drb_state{};
@@ -814,12 +905,19 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     drb_state.next_pdcp_tx_sn           = erab_item.dl_coun_tvalue.pdcp_sn;
     drb_state.rx_hfn                    = erab_item.ul_coun_tvalue.hfn;
     drb_state.next_pdcp_rx_sn           = erab_item.ul_coun_tvalue.pdcp_sn;
-    drb_state.last_submitted_pdcp_rx_sn = erab_item.ul_coun_tvalue.pdcp_sn;
-    rrc_log->info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}\n",
-                  drb_it->lc_ch_id,
-                  drb_state.next_pdcp_tx_sn,
-                  drb_state.next_pdcp_rx_sn);
+    uint8_t  sn_len                     = srslte::get_pdcp_drb_sn_len(drb_it->pdcp_cfg);
+    uint32_t maximum_pdcp_sn            = (1u << sn_len) - 1u;
+    drb_state.last_submitted_pdcp_rx_sn = std::max(erab_item.ul_coun_tvalue.pdcp_sn - 1u, maximum_pdcp_sn);
+    logger.info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}",
+                drb_it->lc_ch_id,
+                drb_state.next_pdcp_tx_sn,
+                drb_state.next_pdcp_rx_sn);
     rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
+  }
+
+  // Enable forwarding of GTPU SDUs to PDCP
+  for (uint32_t teid : s.pending_tunnels) {
+    rrc_enb->gtpu->set_tunnel_status(teid, true);
   }
 
   // Check if there is any pending Reconfiguration Complete. If there is, self-trigger
@@ -844,12 +942,12 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
   target_cell      = f->rrc_enb->cell_common_list->get_cell_id(cell_id);
   source_cell      = f->rrc_ue->ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common;
   if (target_cell == nullptr) {
-    f->log_h->error("The target cell_id=0x%x was not found in the list of eNB cells\n", cell_id);
+    f->logger.error("The target cell_id=0x%x was not found in the list of eNB cells", cell_id);
     f->trigger(srslte::failure_ev{});
     return;
   }
 
-  f->log_h->info("Starting intraeNB Handover of rnti=0x%x to 0x%x.\n", f->rrc_ue->rnti, meas_report.target_eci);
+  f->logger.info("Starting intraeNB Handover of rnti=0x%x to 0x%x.", f->rrc_ue->rnti, meas_report.target_eci);
 
   if (target_cell == nullptr) {
     f->trigger(srslte::failure_ev{});
@@ -884,14 +982,14 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f, const ho_meas
 
 void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev)
 {
-  rrc_log->info("UE performing handover updated its temp-crnti=0x%x to rnti=0x%x\n", ev.temp_crnti, ev.crnti);
+  logger.info("UE performing handover updated its temp-crnti=0x%x to rnti=0x%x", ev.temp_crnti, ev.crnti);
   bool is_first_crnti_ce = s.last_temp_crnti == SRSLTE_INVALID_RNTI;
   s.last_temp_crnti      = ev.temp_crnti;
 
   if (is_first_crnti_ce) {
     // Need to reset SNs of bearers.
-    rrc_enb->pdcp->reestablish(rrc_ue->rnti);
     rrc_enb->rlc->reestablish(rrc_ue->rnti);
+    rrc_enb->pdcp->reestablish(rrc_ue->rnti);
 
     // Change PCell in MAC/Scheduler
     rrc_ue->mac_ctrl.handle_crnti_ce(ev.temp_crnti);
@@ -902,15 +1000,17 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->apply_pdcp_srb_updates(rrc_ue->current_ue_cfg.rr_cfg);
     rrc_ue->apply_pdcp_drb_updates(rrc_ue->current_ue_cfg.rr_cfg);
+
+    // Send PDCP status report if necessary
+    rrc_enb->pdcp->send_status_report(rrc_ue->rnti);
   } else {
-    rrc_log->info("Received duplicate C-RNTI CE during rnti=0x%x handover.\n", rrc_ue->rnti);
+    logger.info("Received duplicate C-RNTI CE during rnti=0x%x handover.", rrc_ue->rnti);
   }
 }
 
 void rrc::ue::rrc_mobility::handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev)
 {
-  rrc_log->info(
-      "User rnti=0x%x successfully handovered to cell_id=0x%x\n", rrc_ue->rnti, s.target_cell->cell_cfg.cell_id);
+  logger.info("User rnti=0x%x successfully handovered to cell_id=0x%x", rrc_ue->rnti, s.target_cell->cell_cfg.cell_id);
 }
 
 } // namespace srsenb

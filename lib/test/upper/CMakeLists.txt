@@ -18,36 +18,31 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+set(CTEST_LABELS "lib;upper")
+
 add_executable(rlc_am_data_test rlc_am_data_test.cc)
 target_link_libraries(rlc_am_data_test srslte_upper srslte_phy srslte_common)
-add_test(rlc_am_data_test rlc_am_data_test)
+add_lte_test(rlc_am_data_test rlc_am_data_test)
 
 add_executable(rlc_am_control_test rlc_am_control_test.cc)
 target_link_libraries(rlc_am_control_test srslte_upper srslte_phy)
-add_test(rlc_am_control_test rlc_am_control_test)
+add_lte_test(rlc_am_control_test rlc_am_control_test)
 
 add_executable(rlc_am_test rlc_am_test.cc)
 target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common)
-add_test(rlc_am_test rlc_am_test)
+add_lte_test(rlc_am_test rlc_am_test)
 
-if (ENABLE_5GNR)
-  add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
-  target_link_libraries(rlc_am_nr_pdu_test srslte_upper srslte_phy)
-  add_test(rlc_am_nr_pdu_test rlc_am_nr_pdu_test)
-endif(ENABLE_5GNR)
+add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
+target_link_libraries(rlc_am_nr_pdu_test srslte_upper srslte_phy)
+add_nr_test(rlc_am_nr_pdu_test rlc_am_nr_pdu_test)
 
 add_executable(rlc_stress_test rlc_stress_test.cc)
 target_link_libraries(rlc_stress_test srslte_upper srslte_mac srslte_phy srslte_common ${Boost_LIBRARIES})
-add_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
-add_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
-add_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
-if (ENABLE_5GNR)
-  add_test(rlc_um_nr_stress_test rlc_stress_test --rat NR --mode=UM --loglevel 1)
-  set_tests_properties(rlc_um_nr_stress_test PROPERTIES LABELS "long;upper;lib;nr")
-endif(ENABLE_5GNR)
-set_tests_properties(rlc_am_stress_test PROPERTIES TIMEOUT 3000)
-set_tests_properties(rlc_um_stress_test PROPERTIES TIMEOUT 3000)
-set_tests_properties(rlc_tm_stress_test PROPERTIES TIMEOUT 3000)
+add_lte_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
+add_lte_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
+add_lte_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
+
+add_nr_test(rlc_um_nr_stress_test rlc_stress_test --rat NR --mode=UM --loglevel 1)
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
@@ -61,32 +56,37 @@ add_executable(rlc_common_test rlc_common_test.cc)
 target_link_libraries(rlc_common_test srslte_upper srslte_phy)
 add_test(rlc_common_test rlc_common_test)
 
-if (ENABLE_5GNR)
-  add_executable(rlc_um_nr_pdu_test rlc_um_nr_pdu_test.cc)
-  target_link_libraries(rlc_um_nr_pdu_test srslte_upper srslte_phy)
-  add_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
+add_executable(rlc_um_nr_pdu_test rlc_um_nr_pdu_test.cc)
+target_link_libraries(rlc_um_nr_pdu_test srslte_upper srslte_phy)
+add_nr_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
 
-  add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
-  target_link_libraries(rlc_um_nr_test srslte_upper srslte_phy)
-  add_test(rlc_um_nr_test rlc_um_nr_test)
+add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
+target_link_libraries(rlc_um_nr_test srslte_upper srslte_phy)
+add_nr_test(rlc_um_nr_test rlc_um_nr_test)
 
-  add_executable(pdcp_nr_test_tx pdcp_nr_test_tx.cc)
-  target_link_libraries(pdcp_nr_test_tx srslte_upper srslte_common)
-  add_test(pdcp_nr_test_tx pdcp_nr_test_tx)
-  set_tests_properties(pdcp_nr_test_tx PROPERTIES LABELS "long;upper")
+add_executable(pdcp_nr_test_tx pdcp_nr_test_tx.cc)
+target_link_libraries(pdcp_nr_test_tx srslte_upper srslte_common)
+add_nr_test(pdcp_nr_test_tx pdcp_nr_test_tx)
 
-  add_executable(pdcp_nr_test_rx pdcp_nr_test_rx.cc)
-  target_link_libraries(pdcp_nr_test_rx srslte_upper srslte_common)
-  add_test(pdcp_nr_test_rx pdcp_nr_test_rx)
+add_executable(pdcp_nr_test_rx pdcp_nr_test_rx.cc)
+target_link_libraries(pdcp_nr_test_rx srslte_upper srslte_common)
+add_nr_test(pdcp_nr_test_rx pdcp_nr_test_rx)
 
-  add_executable(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu.cc)
-  target_link_libraries(pdcp_nr_test_discard_sdu srslte_upper srslte_common)
-  add_test(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu)
-endif(ENABLE_5GNR)
+add_executable(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu.cc)
+target_link_libraries(pdcp_nr_test_discard_sdu srslte_upper srslte_common)
+add_nr_test(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu)
 
 add_executable(pdcp_lte_test_rx pdcp_lte_test_rx.cc)
 target_link_libraries(pdcp_lte_test_rx srslte_upper srslte_common)
 add_test(pdcp_lte_test_rx pdcp_lte_test_rx)
+
+add_executable(pdcp_lte_test_discard_sdu pdcp_lte_test_discard_sdu.cc)
+target_link_libraries(pdcp_lte_test_discard_sdu srslte_upper srslte_common)
+add_test(pdcp_lte_test_discard_sdu pdcp_lte_test_discard_sdu)
+
+add_executable(pdcp_lte_test_status_report pdcp_lte_test_status_report.cc)
+target_link_libraries(pdcp_lte_test_status_report srslte_upper srslte_common)
+add_test(pdcp_lte_test_status_report pdcp_lte_test_status_report)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

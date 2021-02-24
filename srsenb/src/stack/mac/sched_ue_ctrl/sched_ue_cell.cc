@@ -30,6 +30,7 @@ namespace srsenb {
  *******************************************************/
 
 sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg_, tti_point current_tti_) :
+  logger(srslog::fetch_basic_logger("MAC")),
   rnti(rnti_),
   cell_cfg(&cell_cfg_),
   dci_locations(generate_cce_location_table(rnti_, cell_cfg_)),
@@ -86,7 +87,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
       case cc_st::active:
         if (ue_cc_idx < 0 or not ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::deactivating;
-          log_h->info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
+          logger.info("SCHED: Deactivating rnti=0x%x, SCellIndex=%d...", rnti, ue_cc_idx);
         }
         break;
       case cc_st::deactivating:
@@ -94,7 +95,7 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
         if (ue_cc_idx > 0 and ue_cfg->supported_cc_list[ue_cc_idx].active) {
           cc_state_ = cc_st::activating;
           dl_cqi    = 0;
-          log_h->info("SCHED: Activating rnti=0x%x, SCellIndex=%d...\n", rnti, ue_cc_idx);
+          logger.info("SCHED: Activating rnti=0x%x, SCellIndex=%d...", rnti, ue_cc_idx);
         }
         break;
       default:
@@ -145,7 +146,7 @@ void sched_ue_cell::set_dl_cqi(tti_point tti_rx, uint32_t dl_cqi_)
   if (ue_cc_idx > 0 and cc_state_ == cc_st::activating and dl_cqi_rx) {
     // Wait for SCell to receive a positive CQI before activating it
     cc_state_ = cc_st::active;
-    log_h->info("SCHED: SCell index=%d is now active\n", ue_cc_idx);
+    logger.info("SCHED: SCell index=%d is now active", ue_cc_idx);
   }
 }
 
@@ -174,7 +175,7 @@ std::tuple<int, YType, int, YType>
 false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDetect& is_error)
 {
   static_assert(std::is_same<YType, decltype(f(x1))>::value,
-                "The type of the final result and callable return do not match\n");
+                "The type of the final result and callable return do not match");
   YType y1 = f(x1);
   if (is_error(y1) or y1 >= y0) {
     return std::make_tuple(x1, y1, x1, y1);

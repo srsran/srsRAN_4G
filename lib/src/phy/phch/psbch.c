@@ -62,19 +62,19 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
 
   q->c = srslte_vec_u8_malloc(q->sl_bch_tb_crc_len);
   if (!q->c) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   q->d = srslte_vec_u8_malloc(q->sl_bch_encoded_len);
   if (!q->d) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   q->d_16 = srslte_vec_i16_malloc(q->sl_bch_encoded_len);
   if (!q->d_16) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
@@ -86,7 +86,7 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
 
   q->crc_temp = srslte_vec_u8_malloc(SRSLTE_SL_BCH_CRC_LEN);
   if (!q->crc_temp) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
@@ -108,84 +108,84 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
 
   q->e = srslte_vec_u8_malloc(q->E);
   if (!q->e) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   q->e_16 = srslte_vec_i16_malloc(q->E);
   if (!q->e_16) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   q->e_bytes = srslte_vec_u8_malloc(q->E / 8);
   if (!q->e_bytes) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Scrambling
   bzero(&q->seq, sizeof(srslte_sequence_t));
   if (srslte_sequence_LTE_pr(&q->seq, q->E, N_sl_id) != SRSLTE_SUCCESS) {
-    ERROR("Error srslte_sequence_LTE_pr\n");
+    ERROR("Error srslte_sequence_LTE_pr");
     return SRSLTE_ERROR;
   }
 
   q->codeword = srslte_vec_u8_malloc(q->E);
   if (!q->codeword) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   q->codeword_bytes = srslte_vec_u8_malloc(q->E / 8);
   if (!q->codeword_bytes) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Interleaving
   q->interleaver_lut = srslte_vec_u32_malloc(q->E);
   if (!q->interleaver_lut) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Modulation QPSK
   if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK) != SRSLTE_SUCCESS) {
-    ERROR("Error srslte_modem_table_lte\n");
+    ERROR("Error srslte_modem_table_lte");
     return SRSLTE_ERROR;
   }
 
   q->mod_symbols = srslte_vec_cf_malloc(q->nof_data_re);
   if (!q->mod_symbols) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Soft-demod
   q->llr = srslte_vec_i16_malloc(q->E);
   if (!q->llr) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
   // Transform precoding
   q->precoding_scaling = 1.0f;
   if (srslte_dft_precoding_init_tx(&q->dft_precoder, SRSLTE_PSBCH_NOF_PRB) != SRSLTE_SUCCESS) {
-    ERROR("Error srslte_dft_precoding_init\n");
+    ERROR("Error srslte_dft_precoding_init");
     return SRSLTE_ERROR;
   }
 
   q->scfdma_symbols = srslte_vec_cf_malloc(q->nof_data_re);
   if (!q->scfdma_symbols) {
-    ERROR("Error allocating memory\n");
+    ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
   ///< Make sure last bits are zero as they are not considered during unpack
   srslte_vec_cf_zero(q->scfdma_symbols, q->nof_data_re);
 
   if (srslte_dft_precoding_init_rx(&q->idft_precoder, SRSLTE_PSBCH_NOF_PRB) != SRSLTE_SUCCESS) {
-    ERROR("Error srslte_idft_precoding_init\n");
+    ERROR("Error srslte_idft_precoding_init");
     return SRSLTE_ERROR;
   }
 
@@ -195,7 +195,7 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
 int srslte_psbch_encode(srslte_psbch_t* q, uint8_t* input, uint32_t input_len, cf_t* sf_buffer)
 {
   if (input == NULL || input_len > q->sl_bch_tb_len) {
-    ERROR("Can't encode PSBCH, input too long (%d > %d)\n", input_len, q->sl_bch_tb_len);
+    ERROR("Can't encode PSBCH, input too long (%d > %d)", input_len, q->sl_bch_tb_len);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -247,13 +247,13 @@ int srslte_psbch_encode(srslte_psbch_t* q, uint8_t* input, uint32_t input_len, c
 int srslte_psbch_decode(srslte_psbch_t* q, cf_t* equalized_sf_syms, uint8_t* output, uint32_t max_output_len)
 {
   if (max_output_len < q->sl_bch_tb_len) {
-    ERROR("Can't decode PSBCH, provided buffer too small (%d < %d)\n", max_output_len, q->sl_bch_tb_len);
+    ERROR("Can't decode PSBCH, provided buffer too small (%d < %d)", max_output_len, q->sl_bch_tb_len);
     return SRSLTE_ERROR;
   }
 
   // RE extraction
   if (q->nof_tx_re != srslte_psbch_get(q, equalized_sf_syms, q->scfdma_symbols)) {
-    ERROR("There was an error getting the PSBCH symbols\n");
+    ERROR("There was an error getting the PSBCH symbols");
     return SRSLTE_ERROR;
   }
 
@@ -309,7 +309,7 @@ int srslte_psbch_reset(srslte_psbch_t* q, uint32_t N_sl_id)
 
       // Regen scrambling sequence
       if (srslte_sequence_LTE_pr(&q->seq, q->E, N_sl_id) != SRSLTE_SUCCESS) {
-        ERROR("Error srslte_sequence_LTE_pr\n");
+        ERROR("Error srslte_sequence_LTE_pr");
         return SRSLTE_ERROR;
       }
     }

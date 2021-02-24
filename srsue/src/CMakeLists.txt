@@ -35,10 +35,8 @@ add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc)
 set(SRSUE_SOURCES srsue_phy srsue_stack srsue_upper srsue_mac srsue_rrc srslog)
 set(SRSLTE_SOURCES srslte_common srslte_mac srslte_phy srslte_radio srslte_upper rrc_asn1 srslog)
 
-if(ENABLE_5GNR)
-  set(SRSUE_SOURCES ${SRSUE_SOURCES} srsue_nr_stack srsue_rrc_nr srsue_mac_nr)
-  set(SRSLTE_SOURCES ${SRSLTE_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
-endif()
+set(SRSUE_SOURCES ${SRSUE_SOURCES} srsue_nr_stack srsue_rrc_nr srsue_mac_nr)
+set(SRSLTE_SOURCES ${SRSLTE_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
 
 target_link_libraries(srsue   ${SRSUE_SOURCES}
                               ${SRSLTE_SOURCES}

@@ -4292,13 +4292,6 @@ SRSASN_CODE setup_release_c<elem_type_paramT_>::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-template <class elem_type_paramT_>
-std::string setup_release_c<elem_type_paramT_>::types_opts::to_string() const
-{
-  static const char* options[] = {"release", "setup"};
-  return convert_enum_idx(options, 2, value, "setup_release_c::types");
-}
-
 // UAC-BarringPerCat ::= SEQUENCE
 SRSASN_CODE uac_barr_per_cat_s::pack(bit_ref& bref) const
 {

@@ -130,13 +130,13 @@ static int init_rm(srslte_ldpc_rm_t*  p,
 
   // check E smaller than MAXE
   if ((E > MAXE) != 0) { //
-    ERROR("Wrong RM codeword length (E) = %d. It must be smaller than %d for base graph %d\n", E, MAXE, bg + 1);
+    ERROR("Wrong RM codeword length (E) = %d. It must be smaller than %d for base graph %d", E, MAXE, bg + 1);
     return -1;
   }
 
   // check out_len is multiple of mod_order
   if ((E % mod_order) != 0) { // N can only be a multiple of either BASEN[0] or BASEN[1], but not both
-    ERROR("Wrong RM codeword length (E) = %d. It must be a multiple of modulation order = %d\n", E, mod_order);
+    ERROR("Wrong RM codeword length (E) = %d. It must be a multiple of modulation order = %d", E, mod_order);
     return -1;
   }
 
@@ -429,7 +429,6 @@ int srslte_ldpc_rm_tx_init(srslte_ldpc_rm_t* p)
 
 int srslte_ldpc_rm_rx_init_f(srslte_ldpc_rm_t* p)
 {
-
   if (p == NULL) {
     return -1;
   }
@@ -615,7 +614,6 @@ int srslte_ldpc_rm_rx_f(srslte_ldpc_rm_t*        q,
                         const srslte_mod_t       mod_type,
                         const uint32_t           Nref)
 {
-
   if (init_rm(q, E, F, bg, ls, rv, mod_type, Nref) != 0) {
     perror("rate matcher init");
     exit(-1);
@@ -647,7 +645,6 @@ int srslte_ldpc_rm_rx_s(srslte_ldpc_rm_t*        q,
                         const srslte_mod_t       mod_type,
                         const uint32_t           Nref)
 {
-
   if (init_rm(q, E, F, bg, ls, rv, mod_type, Nref) != 0) {
     perror("rate matcher init");
     exit(-1);
@@ -680,7 +677,6 @@ int srslte_ldpc_rm_rx_c(srslte_ldpc_rm_t*        q,
                         const srslte_mod_t       mod_type,
                         const uint32_t           Nref)
 {
-
   if (init_rm(q, E, F, bg, ls, rv, mod_type, Nref) != 0) {
     perror("rate matcher init");
     exit(-1);

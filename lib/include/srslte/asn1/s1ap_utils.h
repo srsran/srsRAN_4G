@@ -45,6 +45,8 @@ struct rrc_establishment_cause_opts;
 struct cause_radio_network_opts;
 struct bearers_subject_to_status_transfer_item_ies_o;
 struct erab_level_qos_params_s;
+struct ho_cmd_s;
+struct erab_admitted_item_s;
 
 template <class ies_set_paramT_>
 struct protocol_ie_single_container_s;

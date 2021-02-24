@@ -46,7 +46,7 @@ public:                                                                         
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);                                       \
     }                                                                                                                  \
     if (expired) {                                                                                                     \
-      log_h.debug("Expired " #NAME " waiting\n");                                                                      \
+      logger.debug("Expired " #NAME " waiting");                                                                       \
     }                                                                                                                  \
     return received_##NAME;                                                                                            \
   }                                                                                                                    \
@@ -58,7 +58,7 @@ private:                                                                        
   {                                                                                                                    \
     std::unique_lock<std::mutex> lock(mutex);                                                                          \
     cvar.notify_all();                                                                                                 \
-    log_h.debug(#NAME " received\n");                                                                                  \
+    logger.debug(#NAME " received");                                                                                   \
     received_##NAME = true;                                                                                            \
   }
 
@@ -69,7 +69,7 @@ private:
   class dummy_stack final : public srsue::stack_interface_phy_lte
   {
   private:
-    srslte::log_filter      log_h;
+    srslog::basic_logger&   logger;
     uint16_t                rnti = 0x3c;
     std::mutex              mutex;
     std::condition_variable cvar;
@@ -87,9 +87,9 @@ private:
 
   public:
     // Local test access methods
-    explicit dummy_stack(srslte::logger& logger) : log_h("stack", &logger) {}
+    dummy_stack() : logger(srslog::fetch_basic_logger("stack", false)) {}
     void set_rnti(uint16_t rnti_) { rnti = rnti_; }
-    void set_loglevel(std::string& str) { log_h.set_level(str); }
+    void set_loglevel(std::string& str) { logger.set_level(srslog::str_to_basic_level(str)); }
 
     void in_sync() override { notify_in_sync(); }
     void out_of_sync() override { notify_out_of_sync(); }
@@ -97,8 +97,7 @@ private:
     {
       for (auto& m : meas) {
         notify_new_phy_meas();
-        log_h.info(
-            "New measurement earfcn=%d; pci=%d; rsrp=%+.1fdBm; rsrq=%+.1fdB;\n", m.earfcn, m.pci, m.rsrp, m.rsrq);
+        logger.info("New measurement earfcn=%d; pci=%d; rsrp=%+.1fdBm; rsrq=%+.1fdB;", m.earfcn, m.pci, m.rsrp, m.rsrq);
       }
     }
     uint16_t get_dl_sched_rnti(uint32_t tti) override { return rnti; }
@@ -119,7 +118,7 @@ private:
     void run_tti(const uint32_t tti, const uint32_t tti_jump) override
     {
       notify_run_tti();
-      log_h.debug("Run TTI %d\n", tti);
+      logger.debug("Run TTI %d", tti);
     }
 
     void cell_search_complete(cell_search_ret_t ret, srsue::phy_cell_t found_cell) override
@@ -152,7 +151,7 @@ private:
   class dummy_radio : public srslte::radio_interface_phy
   {
   private:
-    srslte::log_filter               log_h;
+    srslog::basic_logger&            logger;
     std::vector<srslte_ringbuffer_t> ring_buffers;
     float                            base_srate   = 0.0f;
     float                            tx_srate     = 0.0f;
@@ -173,10 +172,8 @@ private:
     CALLBACK(late)
 
   public:
-    dummy_radio(srslte::logger& logger, uint32_t nof_channels, float base_srate_) :
-      log_h("radio", &logger),
-      ring_buffers(nof_channels),
-      base_srate(base_srate_)
+    dummy_radio(uint32_t nof_channels, float base_srate_) :
+      logger(srslog::fetch_basic_logger("radio", false)), ring_buffers(nof_channels), base_srate(base_srate_)
     {
       // Create Ring buffers
       for (auto& rb : ring_buffers) {
@@ -208,7 +205,7 @@ private:
       }
     }
 
-    void set_loglevel(std::string& str) { log_h.set_level(str); }
+    void set_loglevel(std::string& str) { logger.set_level(srslog::str_to_basic_level(str)); }
 
     void write_ring_buffers(cf_t** buffer, uint32_t nsamples)
     {
@@ -216,7 +213,7 @@ private:
         int ret = SRSLTE_SUCCESS;
         do {
           if (ret != SRSLTE_SUCCESS) {
-            log_h.error("Ring buffer write failed (full). Trying again.\n");
+            logger.error("Ring buffer write failed (full). Trying again.");
           }
           ret = srslte_ringbuffer_write_timed(&ring_buffers[i], buffer[i], (uint32_t)sizeof(cf_t) * nsamples, 1000);
         } while (ret == SRSLTE_ERROR_TIMEOUT);
@@ -260,9 +257,9 @@ private:
         // Read base srate samples
         int ret = srslte_ringbuffer_read(&ring_buffers[i], buf_ptr, (uint32_t)sizeof(cf_t) * base_nsamples);
         if (ret < 0) {
-          log_h.error("Reading ring buffer\n");
+          logger.error("Reading ring buffer");
         } else {
-          log_h.debug("-- %d samples read from ring buffer\n", base_nsamples);
+          logger.debug("-- %d samples read from ring buffer", base_nsamples);
         }
 
         // Only if baseband buffer is provided
@@ -301,43 +298,43 @@ private:
     {
       std::unique_lock<std::mutex> lock(mutex);
       tx_freq = (float)freq;
-      log_h.info("Set Tx freq to %+.0f MHz.\n", freq * 1.0e-6);
+      logger.info("Set Tx freq to %+.0f MHz.", freq * 1.0e-6);
     }
     void set_rx_freq(const uint32_t& channel_idx, const double& freq) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_freq = (float)freq;
-      log_h.info("Set Rx freq to %+.0f MHz.\n", freq * 1.0e-6);
+      logger.info("Set Rx freq to %+.0f MHz.", freq * 1.0e-6);
     }
     void set_rx_gain_th(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_gain = srslte_convert_dB_to_amplitude(gain);
-      log_h.info("Set Rx gain-th to %+.1f dB (%.6f).\n", gain, rx_gain);
+      logger.info("Set Rx gain-th to %+.1f dB (%.6f).", gain, rx_gain);
     }
     void set_tx_gain(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_gain = srslte_convert_dB_to_amplitude(gain);
-      log_h.info("Set Tx gain to %+.1f dB (%.6f).\n", gain, rx_gain);
+      logger.info("Set Tx gain to %+.1f dB (%.6f).", gain, rx_gain);
     }
     void set_rx_gain(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_gain = srslte_convert_dB_to_amplitude(gain);
-      log_h.info("Set Rx gain to %+.1f dB (%.6f).\n", gain, rx_gain);
+      logger.info("Set Rx gain to %+.1f dB (%.6f).", gain, rx_gain);
     }
     void set_tx_srate(const double& srate) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       tx_srate = (float)srate;
-      log_h.info("Set Tx sampling rate to %+.3f MHz.\n", srate * 1.0e-6);
+      logger.info("Set Tx sampling rate to %+.3f MHz.", srate * 1.0e-6);
     }
     void set_rx_srate(const double& srate) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_srate = (float)srate;
-      log_h.info("Set Rx sampling rate to %+.3f MHz.\n", srate * 1.0e-6);
+      logger.info("Set Rx sampling rate to %+.3f MHz.", srate * 1.0e-6);
     }
     void  set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override{};
     float get_rx_gain() override
@@ -354,7 +351,7 @@ private:
   };
 
   // Common instances
-  srslte::log_filter log_h;
+  srslog::basic_logger& logger;
 
   // Dummy instances
   dummy_stack stack;
@@ -377,16 +374,15 @@ private:
 
 public:
   phy_test_bench(const srsue::phy_args_t& phy_args, const srslte_cell_t& cell, srslte::logger& logger_) :
-    stack(logger_),
-    radio(logger_, cell.nof_ports, srslte_sampling_freq_hz(cell.nof_prb)),
+    radio(cell.nof_ports, srslte_sampling_freq_hz(cell.nof_prb)),
     thread("phy_test_bench"),
-    log_h("test bench")
+    logger(srslog::fetch_basic_logger("test bench", false))
   {
     // Deduce physical attributes
     sf_len = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
     // Initialise UE
-    phy = std::unique_ptr<srsue::phy>(new srsue::phy(&logger_));
+    phy = std::unique_ptr<srsue::phy>(new srsue::phy(srslog::get_default_sink()));
     phy->init(phy_args, &stack, &radio);
 
     // Initialise DL baseband buffers
@@ -439,7 +435,7 @@ public:
 
     // Free run DL
     do {
-      log_h.debug("-- generating DL baseband SFN=%" PRId64 " TTI=%d;\n", sfn, dl_sf_cfg.tti);
+      logger.debug("-- generating DL baseband SFN=%" PRId64 " TTI=%d;", sfn, dl_sf_cfg.tti);
 
       // Create empty resource grid with basic signals
       srslte_enb_dl_put_base(&enb_dl, &dl_sf_cfg);
@@ -489,7 +485,7 @@ public:
 
   void set_loglevel(std::string str)
   {
-    log_h.set_level(str);
+    logger.set_level(srslog::str_to_basic_level(str));
     radio.set_loglevel(str);
     stack.set_loglevel(str);
   }
@@ -515,15 +511,7 @@ int main(int argc, char** argv)
   phy_args.log.phy_level = "info";
 
   // Setup logging.
-  srslog::sink* log_sink = srslog::create_stdout_sink();
-  if (!log_sink) {
-    return SRSLTE_ERROR;
-  }
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
-  if (!chan) {
-    return SRSLTE_ERROR;
-  }
-  srslte::srslog_wrapper log_wrapper(*chan);
+  srslte::srslog_wrapper log_wrapper(srslog::fetch_log_channel("main_channel"));
 
   // Start the log backend.
   srslog::init();

@@ -170,7 +170,7 @@ int srslte_sync_nbiot_resize(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32
     // Update CFO tolerance
     srslte_sync_nbiot_set_cfo_tol(q, q->current_cfo_tol);
 
-    DEBUG("NBIOT SYNC init with frame_size=%d, max_offset=%d and fft_size=%d\n", frame_size, max_offset, fft_size);
+    DEBUG("NBIOT SYNC init with frame_size=%d, max_offset=%d and fft_size=%d", frame_size, max_offset, fft_size);
 
     ret = SRSLTE_SUCCESS;
   } else {
@@ -235,13 +235,13 @@ srslte_sync_nbiot_find(srslte_sync_nbiot_t* q, cf_t* input, uint32_t find_offset
 
       // compute exponential moving average CFO
       q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
-      DEBUG("CFO=%.4f, mean=%.4f (%.2f Hz), ema=%.2f\n", cfo, q->mean_cfo, q->mean_cfo * 15000, q->cfo_ema_alpha);
+      DEBUG("CFO=%.4f, mean=%.4f (%.2f Hz), ema=%.2f", cfo, q->mean_cfo, q->mean_cfo * 15000, q->cfo_ema_alpha);
     } else {
-      DEBUG("Not enough samples for CFO estimation. Skipping.\n");
+      DEBUG("Not enough samples for CFO estimation. Skipping.");
     }
   }
 
-  DEBUG("sync_nbiot ret=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f, CFO=%.3f kHz\n",
+  DEBUG("sync_nbiot ret=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f, CFO=%.3f kHz",
         ret,
         find_offset,
         q->frame_size,

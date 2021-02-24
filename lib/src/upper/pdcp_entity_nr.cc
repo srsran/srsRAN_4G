@@ -28,10 +28,10 @@ pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
                                srsue::rrc_interface_pdcp* rrc_,
                                srsue::gw_interface_pdcp*  gw_,
                                srslte::task_sched_handle  task_sched_,
-                               srslte::log_ref            log_,
+                               srslog::basic_logger&      logger,
                                uint32_t                   lcid_,
                                pdcp_config_t              cfg_) :
-  pdcp_entity_base(task_sched_, log_),
+  pdcp_entity_base(task_sched_, logger),
   rlc(rlc_),
   rrc(rrc_),
   gw(gw_),
@@ -59,7 +59,7 @@ pdcp_entity_nr::~pdcp_entity_nr() {}
 // Reestablishment procedure: 38.323 5.2
 void pdcp_entity_nr::reestablish()
 {
-  log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  logger.info("Re-establish %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // TODO
 }
 
@@ -67,23 +67,23 @@ void pdcp_entity_nr::reestablish()
 void pdcp_entity_nr::reset()
 {
   active = false;
-  log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
+  logger.debug("Reset %s", rrc->get_rb_name(lcid).c_str());
 }
 
 // SDAP/RRC interface
-void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
+void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, int sn)
 {
   // Log SDU
-  log->info_hex(sdu->msg,
-                sdu->N_bytes,
-                "TX %s SDU, integrity=%s, encryption=%s",
-                rrc->get_rb_name(lcid).c_str(),
-                srslte_direction_text[integrity_direction],
-                srslte_direction_text[encryption_direction]);
+  logger.info(sdu->msg,
+              sdu->N_bytes,
+              "TX %s SDU, integrity=%s, encryption=%s",
+              rrc->get_rb_name(lcid).c_str(),
+              srslte_direction_text[integrity_direction],
+              srslte_direction_text[encryption_direction]);
 
   // Check for COUNT overflow
   if (tx_overflow) {
-    log->warning("TX_NEXT has overflowed. Dropping packet\n");
+    logger.warning("TX_NEXT has overflowed. Dropping packet");
     return;
   }
   if (tx_next + 1 == 0) {
@@ -97,7 +97,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
     discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
     discard_timer.run();
     discard_timers_map.insert(std::make_pair(tx_next, std::move(discard_timer)));
-    log->debug("Discard Timer set for SN %u. Timeout: %ums\n", tx_next, static_cast<uint32_t>(cfg.discard_timer));
+    logger.debug("Discard Timer set for SN %u. Timeout: %ums", tx_next, static_cast<uint32_t>(cfg.discard_timer));
   }
 
   // Perform header compression TODO
@@ -115,25 +115,28 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
   // Append MAC-I
   append_mac(sdu, mac);
 
-  // Increment TX_NEXT
-  tx_next++;
+  // Set meta-data for RLC AM
+  sdu->md.pdcp_sn = tx_next;
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers
   rlc->write_sdu(lcid, std::move(sdu));
+
+  // Increment TX_NEXT
+  tx_next++;
 }
 
 // RLC interface
 void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 {
   // Log PDU
-  log->info_hex(pdu->msg,
-                pdu->N_bytes,
-                "RX %s PDU (%d B), integrity=%s, encryption=%s",
-                rrc->get_rb_name(lcid).c_str(),
-                pdu->N_bytes,
-                srslte_direction_text[integrity_direction],
-                srslte_direction_text[encryption_direction]);
+  logger.info(pdu->msg,
+              pdu->N_bytes,
+              "RX %s PDU (%d B), integrity=%s, encryption=%s",
+              rrc->get_rb_name(lcid).c_str(),
+              pdu->N_bytes,
+              srslte_direction_text[integrity_direction],
+              srslte_direction_text[encryption_direction]);
 
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
@@ -159,7 +162,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
-  log->debug("RCVD_HFN %u RCVD_SN %u, RCVD_COUNT %u\n", rcvd_hfn, rcvd_sn, rcvd_count);
+  logger.debug("RCVD_HFN %u RCVD_SN %u, RCVD_COUNT %u", rcvd_hfn, rcvd_sn, rcvd_count);
 
   // Decripting
   cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
@@ -172,8 +175,8 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv) {
-    log->debug("Out-of-order after time-out, duplicate or COUNT wrap-around\n");
-    log->debug("RCVD_COUNT %u, RCVD_COUNT %u\n", rcvd_count, rx_deliv);
+    logger.debug("Out-of-order after time-out, duplicate or COUNT wrap-around");
+    logger.debug("RCVD_COUNT %u, RCVD_COUNT %u", rcvd_count, rx_deliv);
     return; // Invalid count, drop.
   }
 
@@ -208,6 +211,17 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 }
 
+// Notification of delivery/failure
+void pdcp_entity_nr::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
+{
+  logger.debug("Received delivery notification from RLC. Nof SNs=%ld", pdcp_sns.size());
+}
+
+void pdcp_entity_nr::notify_failure(const std::vector<uint32_t>& pdcp_sns)
+{
+  logger.debug("Received failure notification from RLC. Nof SNs=%ld", pdcp_sns.size());
+}
+
 /*
  * Packing / Unpacking Helpers
  */
@@ -219,11 +233,11 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = reorder_queue.begin();
        it != reorder_queue.end() && it->first == rx_deliv;
        reorder_queue.erase(it++)) {
-    log->debug("Delivering SDU with RCVD_COUNT %u\n", it->first);
+    logger.debug("Delivering SDU with RCVD_COUNT %u", it->first);
 
     // Check RX_DELIV overflow
     if (rx_overflow) {
-      log->warning("RX_DELIV has overflowed. Droping packet\n");
+      logger.warning("RX_DELIV has overflowed. Droping packet");
       return;
     }
     if (rx_deliv + 1 == 0) {
@@ -244,7 +258,7 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
 // Reordering Timer Callback (t-reordering)
 void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
-  parent->log->debug("Reordering timer expired\n");
+  parent->logger.debug("Reordering timer expired");
 
   // Deliver all PDCP SDU(s) with associeted COUNT value(s) < RX_REORD
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = parent->reorder_queue.begin();
@@ -266,7 +280,7 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 // Discard Timer Callback (discardTimer)
 void pdcp_entity_nr::discard_callback::operator()(uint32_t timer_id)
 {
-  parent->log->debug("Discard timer expired for PDU with SN = %d\n", discard_sn);
+  parent->logger.debug("Discard timer expired for PDU with SN = %d", discard_sn);
 
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
@@ -284,6 +298,17 @@ void pdcp_entity_nr::get_bearer_state(pdcp_lte_state_t* state)
 void pdcp_entity_nr::set_bearer_state(const pdcp_lte_state_t& state)
 {
   // TODO
+}
+
+pdcp_bearer_metrics_t pdcp_entity_nr::get_metrics()
+{
+  // TODO
+  return metrics;
+}
+
+void pdcp_entity_nr::reset_metrics()
+{
+  metrics = {};
 }
 
 } // namespace srslte

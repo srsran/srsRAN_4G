@@ -25,24 +25,26 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/pcap.h"
 #include "srslte/common/threads.h"
+#include "srslte/srslog/srslog.h"
 #include <mutex>
 #include <stdint.h>
 #include <thread>
+
 namespace srslte {
 class mac_pcap : srslte::thread
 {
 public:
-  mac_pcap();
+  mac_pcap(srslte_rat_t rat);
   ~mac_pcap();
-  void enable(bool en);
-  uint32_t open(const char* filename, uint32_t ue_id = 0);
+  void     enable(bool enable);
+  uint32_t open(std::string filename, uint32_t ue_id = 0);
   uint32_t close();
 
   void set_ue_id(uint16_t ue_id);
 
+  // EUTRA
   void
        write_ul_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t crnti, uint32_t reTX, uint32_t tti, uint8_t cc_idx);
   void write_dl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t crnti, bool crc_ok, uint32_t tti, uint8_t cc_idx);
@@ -59,25 +61,44 @@ public:
   // Sidelink
   void write_sl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint32_t reTX, uint32_t tti, uint8_t cc_idx);
 
+  // NR
+  void write_dl_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t crnti, uint8_t harqid, uint32_t tti);
+  void write_ul_crnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+  void write_dl_ra_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+  void write_dl_bch_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+  void write_dl_pch_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+  void write_dl_si_rnti_nr(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint8_t harqid, uint32_t tti);
+
 private:
-  srslte::byte_buffer_pool* pool = nullptr;
-  srslte::log_ref           log;
-  bool                      running   = false;
-  FILE*                     pcap_file = nullptr;
-  uint32_t                  ue_id     = 0;
-  void                      pack_and_queue(uint8_t* pdu,
-                                           uint32_t pdu_len_bytes,
-                                           uint32_t reTX,
-                                           bool     crc_ok,
-                                           uint8_t  cc_idx,
-                                           uint32_t tti,
-                                           uint16_t crnti_,
-                                           uint8_t  direction,
-                                           uint8_t  rnti_type);
+  srslog::basic_logger& logger;
+  bool                  running = false;
+  srslte_rat_t          rat     = srslte_rat_t::nulltype;
+  uint32_t              dlt     = 0; // The DLT used for the PCAP file
+  std::string           filename;
+  FILE*                 pcap_file = nullptr;
+  uint32_t              ue_id     = 0;
+  void                  pack_and_queue(uint8_t* payload,
+                                       uint32_t payload_len,
+                                       uint32_t reTX,
+                                       bool     crc_ok,
+                                       uint8_t  cc_idx,
+                                       uint32_t tti,
+                                       uint16_t crnti_,
+                                       uint8_t  direction,
+                                       uint8_t  rnti_type);
+  void                  pack_and_queue_nr(uint8_t* payload,
+                                          uint32_t payload_len,
+                                          uint32_t tti,
+                                          uint16_t crnti,
+                                          uint8_t  harqid,
+                                          uint8_t  direction,
+                                          uint8_t  rnti_type);
 
   typedef struct {
-    MAC_Context_Info_t   context;
-    unique_byte_buffer_t pdu;
+    // Different PCAP context for both RATs
+    MAC_Context_Info_t    context;
+    mac_nr_context_info_t context_nr;
+    unique_byte_buffer_t  pdu;
   } pcap_pdu_t;
   block_queue<pcap_pdu_t> queue;
   std::mutex              mutex;

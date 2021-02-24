@@ -34,7 +34,7 @@
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
 
-#define SRSLTE_SEQUENCE_MOD(X) ((X) & (uint32_t)INT32_MAX)
+#define SRSLTE_SEQUENCE_MOD(X) ((uint32_t)((X) & (uint64_t)INT32_MAX))
 
 typedef struct SRSLTE_API {
   uint32_t x1;

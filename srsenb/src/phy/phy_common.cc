@@ -26,19 +26,6 @@
 
 #include <assert.h>
 
-#define Error(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...)                                                                                              \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)                                                                                                 \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)                                                                                                \
-  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
-
 using namespace std;
 using namespace asn1::rrc;
 
@@ -68,7 +55,8 @@ bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
 
   // Instantiate DL channel emulator
   if (params.dl_channel_args.enable) {
-    dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, get_nof_rf_channels()));
+    dl_channel = srslte::channel_ptr(
+        new srslte::channel(params.dl_channel_args, get_nof_rf_channels(), srslog::fetch_basic_logger("PHY")));
     dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list_lte[0].cell.nof_prb));
     dl_channel->set_signal_power_dBfs(srslte_enb_dl_get_maximum_signal_power_dBfs(cell_list_lte[0].cell.nof_prb));
   }

@@ -29,6 +29,7 @@
 
 #include "srslte/common/epoll_helper.h"
 #include "srslte/common/log.h"
+#include "srslte/srslog/srslog.h"
 #include "ttcn3_common.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -37,7 +38,9 @@
 class ttcn3_port_handler : public epoll_handler
 {
 public:
-  ttcn3_port_handler() : rx_buf(unique_byte_array_t(new byte_array_t)) {}
+  explicit ttcn3_port_handler(srslog::basic_logger& logger) :
+    logger(logger), rx_buf(unique_byte_array_t(new byte_array_t))
+  {}
   virtual ~ttcn3_port_handler() {}
 
   virtual int handle_message(const unique_byte_array_t& rx_buf, const uint32_t n) = 0;
@@ -51,9 +54,9 @@ public:
       int                    rd_sz =
           sctp_recvmsg(fd, rx_buf->begin(), RX_BUF_SIZE, (struct sockaddr*)&client_addr, &fromlen, &sri, &msg_flags);
       if (rd_sz == -1 && errno != EAGAIN) {
-        log->error("Error reading from SCTP socket: %s", strerror(errno));
+        logger.error("Error reading from SCTP socket: %s", strerror(errno));
       } else if (rd_sz == -1 && errno == EAGAIN) {
-        log->debug("Socket timeout reached");
+        logger.debug("Socket timeout reached");
       } else {
         if (msg_flags & MSG_NOTIFICATION) {
           // Received notification
@@ -105,8 +108,8 @@ public:
             break;
         }
 
-        log->debug(
-            "SCTP_ASSOC_CHANGE notif: state: %s, error code: %d, out streams: %d, in streams: %d, assoc id: %d\n",
+        logger.debug(
+            "SCTP_ASSOC_CHANGE notif: state: %s, error code: %d, out streams: %d, in streams: %d, assoc id: %d",
             state,
             n->sac_error,
             n->sac_outbound_streams,
@@ -121,12 +124,12 @@ public:
           return SRSLTE_ERROR;
         }
         struct sctp_shutdown_event* n = &notif->sn_shutdown_event;
-        log->debug("SCTP_SHUTDOWN_EVENT notif: assoc id: %d\n", n->sse_assoc_id);
+        logger.debug("SCTP_SHUTDOWN_EVENT notif: assoc id: %d", n->sse_assoc_id);
         break;
       }
 
       default:
-        log->warning("Unhandled notification type %d\n", notif->sn_header.sn_type);
+        logger.warning("Unhandled notification type %d", notif->sn_header.sn_type);
         break;
     }
 
@@ -137,7 +140,7 @@ public:
   void send(const uint8_t* buffer, const uint32_t len)
   {
     if (sendto(sock_fd, buffer, len, 0, (struct sockaddr*)&client_addr, sizeof(client_addr)) == -1) {
-      log->error("Error sending message to tester.\n");
+      logger.error("Error sending message to tester.");
     }
   }
 
@@ -194,7 +197,7 @@ public:
     ret = bind(sock_fd, (struct sockaddr*)&bind_addr, sizeof(bind_addr));
     if (ret != 0) {
       close(sock_fd);
-      log->error("Error binding SCTP socket\n");
+      logger.error("Error binding SCTP socket");
       srslte::console("Error binding SCTP socket\n");
       return SRSLTE_ERROR;
     }
@@ -203,7 +206,7 @@ public:
     ret = listen(sock_fd, SOMAXCONN);
     if (ret != SRSLTE_SUCCESS) {
       close(sock_fd);
-      log->error("Error in SCTP socket listen\n");
+      logger.error("Error in SCTP socket listen");
       srslte::console("Error in SCTP socket listen\n");
       return SRSLTE_ERROR;
     }
@@ -212,13 +215,13 @@ public:
     return sock_fd;
   }
 
-  bool                initialized = false;
-  std::string         net_ip      = "0.0.0.0";
-  uint32_t            net_port    = 0;
-  int                 sock_fd     = -1;
-  struct sockaddr     client_addr = {};
-  srslte::log*        log         = nullptr;
-  unique_byte_array_t rx_buf; ///< Receive buffer for this port
+  bool                  initialized = false;
+  std::string           net_ip      = "0.0.0.0";
+  uint32_t              net_port    = 0;
+  int                   sock_fd     = -1;
+  struct sockaddr       client_addr = {};
+  srslog::basic_logger& logger;
+  unique_byte_array_t   rx_buf; ///< Receive buffer for this port
 };
 
 #endif // SRSUE_TTCN3_PORT_HANDLER_H

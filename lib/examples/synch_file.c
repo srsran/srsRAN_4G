@@ -127,11 +127,11 @@ int main(int argc, char** argv)
   fflush(stdout);
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
   if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", output_file_name);
+    ERROR("Error opening file %s", output_file_name);
     exit(-1);
   }
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv)
   }
 
   if (srslte_cfo_init(&cfocorr, frame_length)) {
-    ERROR("Error initiating CFO\n");
+    ERROR("Error initiating CFO");
     return -1;
   }
 
@@ -163,19 +163,19 @@ int main(int argc, char** argv)
    */
   for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
     if (srslte_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
-      ERROR("Error initializing PSS object\n");
+      ERROR("Error initializing PSS object");
       exit(-1);
     }
     if (srslte_pss_set_N_id_2(&pss[N_id_2], N_id_2)) {
-      ERROR("Error initializing N_id_2\n");
+      ERROR("Error initializing N_id_2");
       exit(-1);
     }
     if (srslte_sss_init(&sss[N_id_2], symbol_sz)) {
-      ERROR("Error initializing SSS object\n");
+      ERROR("Error initializing SSS object");
       exit(-1);
     }
     if (srslte_sss_set_N_id_2(&sss[N_id_2], N_id_2)) {
-      ERROR("Error initializing N_id_2\n");
+      ERROR("Error initializing N_id_2");
       exit(-1);
     }
   }
@@ -189,7 +189,6 @@ int main(int argc, char** argv)
   /* read all file or nof_frames */
   frame_cnt = 0;
   while (frame_length == srslte_filesource_read(&fsrc, input, frame_length) && frame_cnt < nof_frames) {
-
     gettimeofday(&tdata[1], NULL);
     if (force_cfo != CFO_AUTO) {
       srslte_cfo_correct(&cfocorr, input, input, force_cfo / 128);
@@ -215,7 +214,6 @@ int main(int argc, char** argv)
 
     /* If peak detected */
     if (peak_value[N_id_2] > corr_peak_threshold) {
-
       sss_idx = peak_pos[N_id_2] - 2 * (symbol_sz + SRSLTE_CP_LEN(symbol_sz, SRSLTE_CP_NORM_LEN));
       if (sss_idx >= 0) {
         srslte_sss_m0m1_diff(&sss[N_id_2], &input[sss_idx], &m0, &m0_value, &m1, &m1_value);

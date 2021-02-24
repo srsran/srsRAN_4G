@@ -44,7 +44,6 @@ using namespace srslte;
 static std::array<std::string, SRSLTE_MAX_RADIOS> radios_args = {};
 static char                                       radio_device[64];
 
-static log_filter  log_h;
 static std::string file_pattern = "radio%d.dat";
 static double      freq         = 2630e6;
 static uint32_t    nof_radios   = 1;
@@ -216,7 +215,6 @@ static void* plot_thread_run(void* arg)
 
 static int init_plots(uint32_t frame_size)
 {
-
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
     exit(-1);
@@ -227,7 +225,7 @@ static int init_plots(uint32_t frame_size)
       uint32_t plot_idx         = r * nof_ports + p;
       fft_plot_buffer[plot_idx] = srslte_vec_cf_malloc(frame_size);
       if (!fft_plot_buffer[plot_idx]) {
-        ERROR("Error: Allocating buffer\n");
+        ERROR("Error: Allocating buffer");
         return SRSLTE_ERROR;
       }
     }
@@ -235,12 +233,12 @@ static int init_plots(uint32_t frame_size)
 
   fft_plot_temp = srslte_vec_f_malloc(frame_size);
   if (!fft_plot_temp) {
-    ERROR("Error: Allocating buffer\n");
+    ERROR("Error: Allocating buffer");
     return SRSLTE_ERROR;
   }
 
   if (srslte_dft_plan_c(&dft_spectrum, frame_size, SRSLTE_DFT_FORWARD)) {
-    ERROR("Creating DFT spectrum plan\n");
+    ERROR("Creating DFT spectrum plan");
     return SRSLTE_ERROR;
   }
 
@@ -302,7 +300,7 @@ static void* radio_thread_run(void* arg)
   /* Instanciate and allocate memory */
   printf("Instantiating objects and allocating memory...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
-    radio_h[r] = new radio(&log_h);
+    radio_h[r] = new radio;
     if (!radio_h[r]) {
       fprintf(stderr, "Error: Calling radio constructor\n");
       goto clean_exit;
@@ -317,7 +315,7 @@ static void* radio_thread_run(void* arg)
     for (uint32_t p = 0; p < nof_ports; p++) {
       buffers[r][p] = srslte_vec_cf_malloc(frame_size);
       if (!buffers[r][p]) {
-        ERROR("Error: Allocating buffer (%d,%d)\n", r, p);
+        ERROR("Error: Allocating buffer (%d,%d)", r, p);
         goto clean_exit;
       }
     }
@@ -371,9 +369,9 @@ static void* radio_thread_run(void* arg)
   if (capture) {
     for (uint32_t r = 0; r < nof_radios; r++) {
       snprintf(filename, 256, file_pattern.c_str(), r);
-      INFO("Opening filesink %s for radio %d\n", filename, r);
+      INFO("Opening filesink %s for radio %d", filename, r);
       if (srslte_filesink_init(&filesink[r], filename, SRSLTE_COMPLEX_FLOAT_BIN)) {
-        ERROR("Initiating filesink for radio %d\n", r);
+        ERROR("Initiating filesink for radio %d", r);
         goto clean_exit;
       }
     }
@@ -383,11 +381,11 @@ static void* radio_thread_run(void* arg)
   if (measure_delay) {
     if (nof_radios > 1) {
       if (srslte_dft_plan_c(&dft_plan, frame_size, SRSLTE_DFT_FORWARD)) {
-        ERROR("Creating DFT plan\n");
+        ERROR("Creating DFT plan");
         goto clean_exit;
       }
       if (srslte_dft_plan_c(&idft_plan, frame_size, SRSLTE_DFT_BACKWARD)) {
-        ERROR("Creating IDFT plan\n");
+        ERROR("Creating IDFT plan");
         goto clean_exit;
       }
     } else {
@@ -499,7 +497,7 @@ static void* radio_thread_run(void* arg)
         }
 
         delay_idx[r] += relative_delay;
-        INFO("Radio %d relative delay is %d sample in frame %d/%d (average %.1f)\n",
+        INFO("Radio %d relative delay is %d sample in frame %d/%d (average %.1f)",
              r,
              relative_delay,
              i + 1,
@@ -519,7 +517,7 @@ static void* radio_thread_run(void* arg)
         gap = (int32_t)round(srslte_timestamp_real(&ts_diff) * current_rate) - (int32_t)frame_size;
 
         if (gap != 0) {
-          INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f\n",
+          INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f",
                gap,
                i + 1,
                nof_frames,
@@ -611,6 +609,8 @@ int main(int argc, char** argv)
 {
   // Parse args
   parse_args(argc, argv);
+
+  srslog::init();
 
   if (pthread_create(&radio_thread, NULL, radio_thread_run, NULL)) {
     perror("pthread_create");

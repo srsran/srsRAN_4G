@@ -83,7 +83,6 @@ int cmpfunc(const void* a, const void* b)
     return -1;
   }
   if (ai > bi) {
-
     return 1;
   }
 
@@ -96,17 +95,16 @@ int cmpfunc(const void* a, const void* b)
  */
 int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, const uint8_t nMax)
 {
-
   // include here also npc and nwmPC computatoins
   if (E > EMAX) {
-    ERROR("Rate-matched codeword size (E) not supported. Chose E<=8192\n");
+    ERROR("Rate-matched codeword size (E) not supported. Chose E<=8192");
     return -1;
   }
   switch (nMax) {
     case 9: // downlink
       // iil = true
       if (K < 36 || K > 164) {
-        ERROR("Codeblock length (K=%d) not supported for downlink transmission, choose 165 > K > 35\n", K);
+        ERROR("Codeblock length (K=%d) not supported for downlink transmission, choose 165 > K > 35", K);
         return -1;
       }
       break;
@@ -114,13 +112,13 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
       // iil = false
       if (K < 18 || (K > 25 && K < 31) || K > 1023) {
         ERROR("Codeblock length (K=%d) not supported for uplink transmission, choose K > 17 and K < 1024, "
-              "excluding 31 > K > 25\n",
+              "excluding 31 > K > 25",
               K);
         return -1;
       }
       break;
     default:
-      ERROR("nMax not supported choose 9 for downlink  and 10 for uplink transmissions\n");
+      ERROR("nMax not supported choose 9 for downlink  and 10 for uplink transmissions");
       return -1;
   }
   // number of parity check bits (nPC) and parity check bits of minimum bandwidth nWmPC
@@ -134,7 +132,7 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
   }
 
   if (K + nPC >= E) {
-    ERROR(" Rate-matched codeword length (E) not supported, choose E > %d\n", K + nPC);
+    ERROR(" Rate-matched codeword length (E) not supported, choose E > %d", K + nPC);
     return -1;
   }
 
@@ -182,7 +180,7 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
   uint16_t N = (1U << n);
 
   if (K >= N) {
-    ERROR("Codeblock length (K) not supported, choose K < N\n");
+    ERROR("Codeblock length (K) not supported, choose K < N");
     return -1;
   }
 
@@ -222,7 +220,6 @@ int srslte_polar_code_init(srslte_polar_code_t* c)
 
 int srslte_polar_code_get(srslte_polar_code_t* c, uint16_t K, uint16_t E, uint8_t nMax)
 {
-
   if (c == NULL) {
     return -1;
   }

@@ -34,8 +34,6 @@ uint32_t prach_Tseq[5] = {24576, 24576, 2 * 24576, 2 * 24576, 4096};
 // Table 5.7.2-2 - N_cs values for unrestricted sets
 uint32_t prach_Ncs_unrestricted[16] = {0, 13, 15, 18, 22, 26, 32, 38, 46, 59, 76, 93, 119, 167, 279, 419};
 
-#define MAX_N_zc 839
-
 // Table 5.7.2-2 - N_cs values for restricted sets
 uint32_t prach_Ncs_restricted[15] = {15, 18, 22, 26, 32, 38, 46, 55, 68, 82, 100, 128, 158, 202, 237};
 

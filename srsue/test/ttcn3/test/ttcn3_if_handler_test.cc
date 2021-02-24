@@ -27,11 +27,12 @@
 
 int if_handler_test()
 {
-  ttcn3_ut_interface      ut;
-  ttcn3_sys_interface     sys;
-  ttcn3_ip_sock_interface ip_sock;
-  ttcn3_ip_ctrl_interface ip_ctrl;
-  ttcn3_srb_interface     srb;
+  auto&                   logger = srslog::fetch_basic_logger("TEST", false);
+  ttcn3_ut_interface      ut(logger);
+  ttcn3_sys_interface     sys(logger);
+  ttcn3_ip_sock_interface ip_sock(logger);
+  ttcn3_ip_ctrl_interface ip_ctrl(logger);
+  ttcn3_srb_interface     srb(logger);
 
   return SRSLTE_SUCCESS;
 }

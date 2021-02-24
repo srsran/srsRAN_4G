@@ -38,14 +38,12 @@ class logger_impl : public T
   static_assert(std::is_enum<Enum>::value, "Expected enum type");
 
   using enum_base_type = typename std::underlying_type<Enum>::type;
-  static constexpr unsigned size = static_cast<enum_base_type>(Enum::LAST);
+  static constexpr unsigned size = static_cast<enum_base_type>(Enum::LAST) - 1;
 
 public:
   template <typename... Args>
   explicit logger_impl(std::string id, Args&&... args) :
-    T{std::forward<Args>(args)...},
-    logger_id(std::move(id)),
-    channels{&args...}
+    T{std::forward<Args>(args)...}, logger_id(std::move(id)), channels{&args...}
   {
     static_assert(
         sizeof...(args) == size,
@@ -62,8 +60,18 @@ public:
   void set_level(Enum lvl)
   {
     detail::scoped_lock lock(m);
+
+    // Disable all channels ...
+    if (lvl == Enum::none) {
+      for (unsigned i = 0, e = channels.size(); i != e; ++i) {
+        channels[i]->set_enabled(false);
+      }
+      return;
+    }
+
+    // ... otherwise do it selectively.
     for (unsigned i = 0, e = channels.size(); i != e; ++i) {
-      channels[i]->set_enabled(static_cast<Enum>(i) <= lvl);
+      channels[i]->set_enabled(static_cast<Enum>(i + 1) <= lvl);
     }
   }
 
@@ -112,8 +120,9 @@ struct is_logger<logger_impl<T, Enum>> : std::true_type {};
 ///
 /// To create a new logger type simply follow these steps:
 ///   1) Define an enum class where each element will represent a logging level.
-///     Order the elements from highest to lowest logging level. The last
-///     element should be called LAST as it is a sentinel value.
+///     Order the elements from highest to lowest logging level. First element
+///     should be "none", which represents a disabled logger.
+///     The last element should be called LAST as it is a sentinel value.
 ///   2) Define a struct composed by only log_channel references. Declare the
 ///     members in the same order as done in the enum.
 ///   3) Define the new logger type by using the build_logger_type alias. Pass
@@ -122,7 +131,8 @@ struct is_logger<logger_impl<T, Enum>> : std::true_type {};
 /// Example to declare a logger with three logging levels: error, warning and
 /// info, being error the highest logging level and info the lowest:
 ///   1) Define the logging level enum:
-///     enum class three_level_logger_levels { error, warning, info, LAST };
+///     enum class three_level_logger_levels { none, error, warning, info, LAST
+///     };
 ///   2) Define the struct of three channels (same order as in the enum):
 ///     struct three_level_logger {
 ///       log_channel &error;
@@ -140,7 +150,7 @@ using build_logger_type = detail::logger_impl<T, Enum>;
 ///
 
 /// Basic logger with four levels.
-enum class basic_levels { error, warning, info, debug, LAST };
+enum class basic_levels { none, error, warning, info, debug, LAST };
 struct basic_logger_channels {
   log_channel& error;
   log_channel& warning;
@@ -148,6 +158,29 @@ struct basic_logger_channels {
   log_channel& debug;
 };
 using basic_logger = build_logger_type<basic_logger_channels, basic_levels>;
+
+/// Translates a string to the corresponding logger basic level.
+inline basic_levels str_to_basic_level(std::string s)
+{
+  std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+
+  if ("NONE" == s) {
+    return basic_levels::none;
+  }
+  if ("ERROR" == s) {
+    return basic_levels::error;
+  }
+  if ("WARNING" == s) {
+    return basic_levels::warning;
+  }
+  if ("INFO" == s) {
+    return basic_levels::info;
+  }
+  if ("DEBUG" == s) {
+    return basic_levels::debug;
+  }
+  return basic_levels::none;
+}
 
 } // namespace srslog
 

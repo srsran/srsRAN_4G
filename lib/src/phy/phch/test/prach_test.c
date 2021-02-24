@@ -32,12 +32,13 @@
 
 #define MAX_LEN 70176
 
-uint32_t nof_prb          = 50;
-uint32_t config_idx       = 3;
-uint32_t root_seq_idx     = 0;
-uint32_t zero_corr_zone   = 15;
-uint32_t num_ra_preambles = 0; // use default
-void usage(char* prog)
+static uint32_t nof_prb          = 50;
+static uint32_t config_idx       = 3;
+static uint32_t root_seq_idx     = 0;
+static uint32_t zero_corr_zone   = 15;
+static uint32_t num_ra_preambles = 0; // use default
+
+static void usage(char* prog)
 {
   printf("Usage: %s\n", prog);
   printf("\t-n Uplink number of PRB [Default %d]\n", nof_prb);
@@ -46,7 +47,7 @@ void usage(char* prog)
   printf("\t-z Zero correlation zone config [Default 1]\n");
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "nfrz")) != -1) {
@@ -92,10 +93,16 @@ int main(int argc, char** argv)
   if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
     return -1;
   }
+
+  struct timeval t[3] = {};
+  gettimeofday(&t[1], NULL);
   if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
-    ERROR("Error initiating PRACH object\n");
+    ERROR("Error initiating PRACH object");
     return -1;
   }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("It took %ld microseconds to configure\n", t[0].tv_usec + t[0].tv_sec * 1000000UL);
 
   uint32_t seq_index = 0;
   uint32_t indices[64];
@@ -108,7 +115,6 @@ int main(int argc, char** argv)
 
     uint32_t prach_len = prach.N_seq;
 
-    struct timeval t[3];
     gettimeofday(&t[1], NULL);
     srslte_prach_detect(&prach, 0, &preamble[prach.N_cp], prach_len, indices, &n_indices);
     gettimeofday(&t[2], NULL);

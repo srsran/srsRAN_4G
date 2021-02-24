@@ -120,7 +120,7 @@ int srslte_interp_linear_vector_resize(srslte_interp_linsrslte_vec_t* q, uint32_
     q->vector_len = vector_len;
     return SRSLTE_SUCCESS;
   } else {
-    ERROR("Error resizing interp_linear: vector_len must be lower or equal than initialized\n");
+    ERROR("Error resizing interp_linear: vector_len must be lower or equal than initialized");
     return SRSLTE_ERROR;
   }
 }
@@ -242,7 +242,6 @@ void srslte_interp_linear_free(srslte_interp_lin_t* q)
 int srslte_interp_linear_resize(srslte_interp_lin_t* q, uint32_t vector_len, uint32_t M)
 {
   if (vector_len <= q->max_vector_len && M <= q->max_M) {
-
     for (int i = 0; i < M; i++) {
       q->ramp[i] = (float)i;
     }
@@ -251,7 +250,7 @@ int srslte_interp_linear_resize(srslte_interp_lin_t* q, uint32_t vector_len, uin
     q->M          = M;
     return SRSLTE_SUCCESS;
   } else {
-    ERROR("Error resizing interp_linear: vector_len and M must be lower or equal than initialized\n");
+    ERROR("Error resizing interp_linear: vector_len and M must be lower or equal than initialized");
     return SRSLTE_ERROR;
   }
 }

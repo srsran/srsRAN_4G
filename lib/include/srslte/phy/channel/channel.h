@@ -69,14 +69,14 @@ public:
     uint32_t rlf_t_off_ms = 2000;
   } args_t;
 
-  channel(const args_t& channel_args, uint32_t _nof_channels);
+  channel(const args_t& channel_args, uint32_t _nof_channels, srslog::basic_logger& logger);
   ~channel();
-  void set_logger(log_filter* _log_h);
   void set_srate(uint32_t srate);
   void set_signal_power_dBfs(float power_dBfs);
   void run(cf_t* in[SRSLTE_MAX_CHANNELS], cf_t* out[SRSLTE_MAX_CHANNELS], uint32_t len, const srslte_timestamp_t& t);
 
 private:
+  srslog::basic_logger&    logger;
   float                    hst_init_phase              = 0.0f;
   srslte_channel_fading_t* fading[SRSLTE_MAX_CHANNELS] = {};
   srslte_channel_delay_t*  delay[SRSLTE_MAX_CHANNELS]  = {};
@@ -85,7 +85,6 @@ private:
   srslte_channel_rlf_t*    rlf                         = nullptr;
   cf_t*                    buffer_in                   = nullptr;
   cf_t*                    buffer_out                  = nullptr;
-  log_filter*              log_h                       = nullptr;
   uint32_t                 nof_channels                = 0;
   uint32_t                 current_srate               = 0;
   args_t                   args                        = {};

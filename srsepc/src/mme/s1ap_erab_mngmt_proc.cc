@@ -65,9 +65,7 @@ void s1ap_erab_mngmt_proc::cleanup()
 void s1ap_erab_mngmt_proc::init()
 {
   m_s1ap      = s1ap::get_instance();
-  m_s1ap_log  = m_s1ap->m_s1ap_log;
   m_s1ap_args = m_s1ap->m_s1ap_args;
-  m_pool      = srslte::byte_buffer_pool::get_instance();
 }
 
 bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_ue_s1ap_id,
@@ -75,7 +73,7 @@ bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_
                                                      std::vector<uint16_t>  erabs_to_release,
                                                      struct sctp_sndrcvinfo enb_sri)
 {
-  m_s1ap_log->info("Preparing to send E-RAB Release Command\n");
+  m_logger.info("Preparing to send E-RAB Release Command");
 
   // Prepare reply PDU
   s1ap_pdu_t tx_pdu;
@@ -95,11 +93,11 @@ bool s1ap_erab_mngmt_proc::send_erab_release_command(uint32_t               enb_
     erab_rel_cmd.erab_to_be_released_list.value[i].value.erab_item().cause.set(asn1::s1ap::cause_c::types::misc);
     erab_rel_cmd.erab_to_be_released_list.value[i].value.erab_item().cause.misc() =
         asn1::s1ap::cause_misc_opts::unspecified;
-    m_s1ap_log->info("Sending release comman to %d\n", erabs_to_release[i]);
+    m_logger.info("Sending release comman to %d", erabs_to_release[i]);
   }
 
   if (!m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_sri)) {
-    m_s1ap_log->error("Error sending Initial Context Setup Request.\n");
+    m_logger.error("Error sending Initial Context Setup Request.");
     return false;
   }
   return true;
@@ -111,7 +109,7 @@ bool s1ap_erab_mngmt_proc::send_erab_modify_request(uint32_t                    
                                                     srslte::byte_buffer_t*       nas_msg,
                                                     struct sctp_sndrcvinfo       enb_sri)
 {
-  m_s1ap_log->info("Preparing to send E-RAB Modify Command\n");
+  m_logger.info("Preparing to send E-RAB Modify Command");
 
   // Prepare reply PDU
   s1ap_pdu_t tx_pdu;
@@ -141,12 +139,12 @@ bool s1ap_erab_mngmt_proc::send_erab_modify_request(uint32_t                    
         asn1::s1ap::pre_emption_vulnerability_opts::not_pre_emptable;
     erab_to_mod.nas_pdu.resize(nas_msg->N_bytes);
     memcpy(erab_to_mod.nas_pdu.data(), nas_msg->msg, nas_msg->N_bytes);
-    m_s1ap_log->info("Sending release comman to E-RAB Id %d\n", erab_it->first);
+    m_logger.info("Sending release comman to E-RAB Id %d", erab_it->first);
     i++;
   }
 
   if (!m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_sri)) {
-    m_s1ap_log->error("Error sending Initial Context Setup Request.\n");
+    m_logger.error("Error sending Initial Context Setup Request.");
     return false;
   }
   return true;

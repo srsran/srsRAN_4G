@@ -46,7 +46,7 @@ public:
                  srsue::rrc_interface_pdcp* rrc_,
                  srsue::gw_interface_pdcp*  gw_,
                  srslte::task_sched_handle  task_sched_,
-                 srslte::log_ref            log_,
+                 srslog::basic_logger&      logger,
                  uint32_t                   lcid,
                  pdcp_config_t              cfg_);
   ~pdcp_entity_nr() final;
@@ -54,10 +54,12 @@ public:
   void reestablish() final;
 
   // RRC interface
-  void write_sdu(unique_byte_buffer_t sdu) final;
+  void write_sdu(unique_byte_buffer_t sdu, int sn = -1) final;
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) final;
+  void notify_delivery(const std::vector<uint32_t>& tx_count) final;
+  void notify_failure(const std::vector<uint32_t>& tx_count) final;
 
   // State variable setters (should be used only for testing)
   void set_tx_next(uint32_t tx_next_) { tx_next = tx_next_; }
@@ -67,6 +69,12 @@ public:
 
   void get_bearer_state(pdcp_lte_state_t* state) override;
   void set_bearer_state(const pdcp_lte_state_t& state) override;
+
+  void                  send_status_report() override {}
+  pdcp_bearer_metrics_t get_metrics() override;
+  void                  reset_metrics() override;
+
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() override { return {}; }
 
   // State variable getters (useful for testing)
   uint32_t nof_discard_timers() { return discard_timers_map.size(); }

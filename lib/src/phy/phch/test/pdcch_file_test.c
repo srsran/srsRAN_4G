@@ -97,7 +97,7 @@ void parse_args(int argc, char** argv)
       case 'o':
         dci_format = srslte_dci_format_from_string(argv[optind]);
         if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-          ERROR("Error unsupported format %s\n", argv[optind]);
+          ERROR("Error unsupported format %s", argv[optind]);
           exit(-1);
         }
         break;
@@ -120,9 +120,8 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    ERROR("Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s", input_file_name);
     exit(-1);
   }
 
@@ -141,44 +140,43 @@ int base_init()
   }
 
   if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
   if (srslte_chest_dl_res_init(&chest_res, cell.nof_prb)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
   if (srslte_chest_dl_set_cell(&chest, cell)) {
-    ERROR("Error initializing equalizer\n");
+    ERROR("Error initializing equalizer");
     return -1;
   }
 
   if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, fft_buffer[0], cell.nof_prb)) {
-    ERROR("Error initializing FFT\n");
+    ERROR("Error initializing FFT");
     return -1;
   }
 
   if (srslte_regs_init(&regs, cell)) {
-    ERROR("Error initiating regs\n");
+    ERROR("Error initiating regs");
     return -1;
   }
 
   if (srslte_pdcch_init_ue(&pdcch, cell.nof_prb, 1)) {
-    ERROR("Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object");
     exit(-1);
   }
   if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
-    ERROR("Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object");
     exit(-1);
   }
 
-  DEBUG("Memory init OK\n");
+  DEBUG("Memory init OK");
   return 0;
 }
 
 void base_free()
 {
-
   srslte_filesource_free(&fsrc);
 
   free(input_buffer);
@@ -211,7 +209,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (base_init()) {
-    ERROR("Error initializing memory\n");
+    ERROR("Error initializing memory");
     exit(-1);
   }
 
@@ -220,7 +218,7 @@ int main(int argc, char** argv)
   do {
     srslte_filesource_read(&fsrc, input_buffer, flen);
 
-    INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
+    INFO("Reading %d samples sub-frame %d", flen, frame_cnt);
 
     srslte_ofdm_rx_sf(&fft);
 
@@ -233,14 +231,14 @@ int main(int argc, char** argv)
     srslte_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
 
     if (srslte_pdcch_extract_llr(&pdcch, &dl_sf, &chest_res, fft_buffer)) {
-      ERROR("Error extracting LLRs\n");
+      ERROR("Error extracting LLRs");
       return -1;
     }
     if (rnti == SRSLTE_SIRNTI) {
-      INFO("Initializing common search space for SI-RNTI\n");
+      INFO("Initializing common search space for SI-RNTI");
       nof_locations = srslte_pdcch_common_locations(&pdcch, locations, SRSLTE_MAX_CANDIDATES, cfi);
     } else {
-      INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
+      INFO("Initializing user-specific search space for RNTI: 0x%x", rnti);
       nof_locations = srslte_pdcch_ue_locations(&pdcch, &dl_sf, locations, SRSLTE_MAX_CANDIDATES, rnti);
     }
 
@@ -253,17 +251,16 @@ int main(int argc, char** argv)
       dci_msg.location = locations[i];
       dci_msg.format   = dci_format;
       if (srslte_pdcch_decode_msg(&pdcch, &dl_sf, &dci_cfg, &dci_msg)) {
-        ERROR("Error decoding DCI msg\n");
+        ERROR("Error decoding DCI msg");
         return -1;
       }
     }
 
     if (dci_msg.rnti == rnti) {
-
       srslte_dci_dl_t dci;
       bzero(&dci, sizeof(srslte_dci_dl_t));
       if (srslte_dci_msg_unpack_pdsch(&cell, &dl_sf, &dci_cfg, &dci_msg, &dci)) {
-        ERROR("Can't unpack DCI message\n");
+        ERROR("Can't unpack DCI message");
       } else {
         if (dci.alloc_type == SRSLTE_RA_ALLOC_TYPE2 && dci.type2_alloc.mode == SRSLTE_RA_TYPE2_LOC &&
             dci.type2_alloc.riv == 11 && dci.tb[0].rv == 0 && dci.pid == 0 && dci.tb[0].mcs_idx == 2) {

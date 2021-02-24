@@ -22,8 +22,10 @@
 set(SOURCES arch_select.cc
             enb_events.cc
             backtrace.c
+            byte_buffer.cc
+            band_helper.cc
             buffer_pool.cc
-            crash_handler.c
+            crash_handler.cc
             gen_mch_tables.c
             liblte_security.cc
             log_filter.cc
@@ -43,11 +45,8 @@ set(SOURCES arch_select.cc
             time_prof.cc
             version.c
             zuc.cc
-            s3g.cc)
-
-if (ENABLE_5GNR)
-  set(SOURCES ${SOURCES} mac_nr_pcap.cc basic_vnf.cc)
-endif(ENABLE_5GNR)
+            s3g.cc
+            basic_vnf.cc)
 
 # Avoid warnings caused by libmbedtls about deprecated functions
 set_source_files_properties(security.cc PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
@@ -58,8 +57,9 @@ add_dependencies(srslte_common gen_build_info)
 
 add_executable(arch_select arch_select.cc)
 
-target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS})
-target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES})
+target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${BACKWARD_INCLUDE_DIRS})
+target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES})
+target_compile_definitions(srslte_common PRIVATE ${BACKWARD_DEFINITIONS})
 
 INSTALL(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
 

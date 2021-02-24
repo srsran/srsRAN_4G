@@ -50,7 +50,8 @@ int                finalK;           /*!< \brief Number of uncoded bits (message
 int                finalN;           /*!< \brief Number of coded bits (codeword length). */
 int                scheduling = 0;   /*!< \brief Message scheduling (0 for layered, 1 for flooded). */
 
-#define NOF_MESSAGES 10 /*!< \brief Number of codewords in the test. */
+#define NOF_MESSAGES 10  /*!< \brief Number of codewords in the test. */
+static int nof_reps = 1; /*!< \brief Number of times tests are repeated (for computing throughput). */
 
 /*!
  * \brief Prints test help when a wrong parameter is passed as input.
@@ -61,6 +62,7 @@ void usage(char* prog)
   printf("\t-b Base Graph [(1 or 2) Default %d]\n", base_graph + 1);
   printf("\t-l Lifting Size [Default %d]\n", lift_size);
   printf("\t-x Scheduling [Default %c]\n", scheduling);
+  printf("\t-R Number of times tests are repeated (for computing throughput). [Default %d]\n", nof_reps);
 }
 
 /*!
@@ -69,7 +71,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt = 0;
-  while ((opt = getopt(argc, argv, "b:l:x:")) != -1) {
+  while ((opt = getopt(argc, argv, "b:l:x:R:")) != -1) {
     switch (opt) {
       case 'b':
         base_graph = (int)strtol(optarg, NULL, 10) - 1;
@@ -79,6 +81,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'x':
         scheduling = (int)strtol(optarg, NULL, 10);
+        break;
+      case 'R':
+        nof_reps = (int)strtol(optarg, NULL, 10);
         break;
       default:
         usage(argv[0]);
@@ -147,6 +152,7 @@ int main(int argc, char** argv)
   int8_t*  symbols       = NULL;
   int      i             = 0;
   int      j             = 0;
+  int      l             = 0;
 
   FILE* ex_file = NULL;
   char  file_name[1000];
@@ -204,14 +210,19 @@ int main(int argc, char** argv)
 
   printf("\nDecoding test messages...\n");
   struct timeval t[3];
-  gettimeofday(&t[1], NULL);
+  double         elapsed_time = 0;
+
   for (j = 0; j < NOF_MESSAGES; j++) {
     printf("  codeword %d\n", j);
-    srslte_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
+    gettimeofday(&t[1], NULL);
+    for (l = 0; l < nof_reps; l++) {
+      srslte_ldpc_decoder_decode_rm_c(&decoder, symbols + j * finalN, messages_sim + j * finalK, finalN);
+    }
+
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    elapsed_time += t[0].tv_sec + 1e-6 * t[0].tv_usec;
   }
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  double elapsed_time = t[0].tv_sec + 1e-6 * t[0].tv_usec;
   printf("Elapsed time: %e s\n", elapsed_time);
 
   printf("\nVerifing results...\n");

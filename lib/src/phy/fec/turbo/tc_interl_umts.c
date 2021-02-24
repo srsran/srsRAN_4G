@@ -97,7 +97,7 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t* h, uint32_t long_cb)
   M_long = long_cb;
 
   if (long_cb > h->max_long_cb) {
-    ERROR("Interleaver initiated for max_long_cb=%d\n", h->max_long_cb);
+    ERROR("Interleaver initiated for max_long_cb=%d", h->max_long_cb);
     return -1;
   }
 

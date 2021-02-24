@@ -346,7 +346,7 @@ cf_t* sf_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
 int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
-  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  DEBUG(" ----  Receive %d samples  ----", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ptr[i] = data_[i];
@@ -424,7 +424,6 @@ int main(int argc, char** argv)
     generate_mcch_table(mch_table, prog_args.mbsfn_sf_mask);
   }
   if (prog_args.cpu_affinity > -1) {
-
     cpu_set_t cpuset;
     pthread_t thread;
 
@@ -435,7 +434,7 @@ int main(int argc, char** argv)
         CPU_SET((size_t)i, &cpuset);
       }
       if (pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset)) {
-        ERROR("Error setting main thread affinity to %d \n", prog_args.cpu_affinity);
+        ERROR("Error setting main thread affinity to %d", prog_args.cpu_affinity);
         exit(-1);
       }
     }
@@ -443,7 +442,7 @@ int main(int argc, char** argv)
 
   if (prog_args.net_port > 0) {
     if (srslte_netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, SRSLTE_NETSINK_UDP)) {
-      ERROR("Error initiating UDP socket to %s:%d\n", prog_args.net_address, prog_args.net_port);
+      ERROR("Error initiating UDP socket to %s:%d", prog_args.net_address, prog_args.net_port);
       exit(-1);
     }
     srslte_netsink_set_nonblocking(&net_sink);
@@ -451,7 +450,7 @@ int main(int argc, char** argv)
   if (prog_args.net_port_signal > 0) {
     if (srslte_netsink_init(
             &net_sink_signal, prog_args.net_address_signal, prog_args.net_port_signal, SRSLTE_NETSINK_UDP)) {
-      ERROR("Error initiating UDP socket to %s:%d\n", prog_args.net_address_signal, prog_args.net_port_signal);
+      ERROR("Error initiating UDP socket to %s:%d", prog_args.net_address_signal, prog_args.net_port_signal);
       exit(-1);
     }
     srslte_netsink_set_nonblocking(&net_sink_signal);
@@ -461,7 +460,6 @@ int main(int argc, char** argv)
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-
     printf("Opening RF device with %d RX antennas...\n", prog_args.rf_nof_rx_ant);
     if (srslte_rf_open_devname(&rf, prog_args.rf_dev, prog_args.rf_args, prog_args.rf_nof_rx_ant)) {
       fprintf(stderr, "Error opening rf\n");
@@ -473,7 +471,7 @@ int main(int argc, char** argv)
     } else {
       printf("Starting AGC thread...\n");
       if (srslte_rf_start_gain_thread(&rf, false)) {
-        ERROR("Error opening rf\n");
+        ERROR("Error opening rf");
         exit(-1);
       }
       srslte_rf_set_rx_gain(&rf, srslte_rf_get_rx_gain(&rf));
@@ -495,7 +493,7 @@ int main(int argc, char** argv)
       ret = rf_search_and_decode_mib(
           &rf, prog_args.rf_nof_rx_ant, &cell_detect_config, prog_args.force_N_id_2, &cell, &search_cell_cfo);
       if (ret < 0) {
-        ERROR("Error searching for cell\n");
+        ERROR("Error searching for cell");
         exit(-1);
       } else if (ret == 0 && !go_exit) {
         printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
@@ -513,11 +511,11 @@ int main(int argc, char** argv)
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
       if (srate_rf != srate) {
-        ERROR("Could not set sampling rate\n");
+        ERROR("Could not set sampling rate");
         exit(-1);
       }
     } else {
-      ERROR("Invalid number of PRB %d\n", cell.nof_prb);
+      ERROR("Invalid number of PRB %d", cell.nof_prb);
       exit(-1);
     }
 
@@ -541,7 +539,7 @@ int main(int argc, char** argv)
                                        prog_args.file_offset_time,
                                        prog_args.file_offset_freq,
                                        prog_args.rf_nof_rx_ant)) {
-      ERROR("Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync");
       exit(-1);
     }
 
@@ -562,11 +560,11 @@ int main(int argc, char** argv)
                                         prog_args.rf_nof_rx_ant,
                                         (void*)&rf,
                                         decimate)) {
-      ERROR("Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync");
       exit(-1);
     }
     if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
-      ERROR("Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync");
       exit(-1);
     }
 #endif
@@ -578,20 +576,20 @@ int main(int argc, char** argv)
   }
   srslte_ue_mib_t ue_mib;
   if (srslte_ue_mib_init(&ue_mib, sf_buffer[0], cell.nof_prb)) {
-    ERROR("Error initaiting UE MIB decoder\n");
+    ERROR("Error initaiting UE MIB decoder");
     exit(-1);
   }
   if (srslte_ue_mib_set_cell(&ue_mib, cell)) {
-    ERROR("Error initaiting UE MIB decoder\n");
+    ERROR("Error initaiting UE MIB decoder");
     exit(-1);
   }
 
   if (srslte_ue_dl_init(&ue_dl, sf_buffer, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
-    ERROR("Error initiating UE downlink processing module\n");
+    ERROR("Error initiating UE downlink processing module");
     exit(-1);
   }
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-    ERROR("Error initiating UE downlink processing module\n");
+    ERROR("Error initiating UE downlink processing module");
     exit(-1);
   }
 
@@ -676,7 +674,7 @@ int main(int argc, char** argv)
 
   srslte_pbch_decode_reset(&ue_mib.pbch);
 
-  INFO("\nEntering main loop...\n\n");
+  INFO("\nEntering main loop...");
 
   // Variables for measurements
   uint32_t nframes = 0;
@@ -724,7 +722,7 @@ int main(int argc, char** argv)
     }
     ret = srslte_ue_sync_zerocopy(&ue_sync, buffers, max_num_samples);
     if (ret < 0) {
-      ERROR("Error calling srslte_ue_sync_work()\n");
+      ERROR("Error calling srslte_ue_sync_work()");
     }
 
 #ifdef CORRECT_SAMPLE_OFFSET
@@ -735,7 +733,6 @@ int main(int argc, char** argv)
 
     /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
-
       bool           acks[SRSLTE_MAX_CODEWORDS] = {false};
       struct timeval t[3];
 
@@ -748,7 +745,7 @@ int main(int argc, char** argv)
             int     sfn_offset;
             n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
-              ERROR("Error decoding UE MIB\n");
+              ERROR("Error decoding UE MIB");
               exit(-1);
             } else if (n == SRSLTE_UE_MIB_FOUND) {
               srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
@@ -833,7 +830,6 @@ int main(int argc, char** argv)
             get_time_interval(t);
 
             if (n > 0) {
-
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 if (sf_idx == 1) {
@@ -1143,7 +1139,6 @@ void* plot_thread_run(void* arg)
 
 void init_plots()
 {
-
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
     exit(-1);

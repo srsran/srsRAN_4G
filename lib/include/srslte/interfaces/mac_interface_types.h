@@ -125,6 +125,26 @@ struct rach_cfg_t {
   }
 };
 
+// 38.321 5.1.1 Not complete yet
+struct rach_nr_cfg_t {
+  uint32_t prach_ConfigurationIndex;
+  int      PreambleReceivedTargetPower;
+  uint32_t preambleTransMax;
+  uint32_t powerRampingStep;
+  uint32_t ra_responseWindow;
+  uint32_t ra_ContentionResolutionTimer;
+
+  rach_nr_cfg_t() { reset(); }
+  void reset()
+  {
+    prach_ConfigurationIndex    = 0;
+    PreambleReceivedTargetPower = 0;
+    powerRampingStep            = 0;
+    preambleTransMax            = 0;
+    ra_responseWindow           = 0;
+  }
+};
+
 struct mac_cfg_t {
   // Default constructor with default values as in 36.331 9.2.2
   mac_cfg_t() { set_defaults(); }

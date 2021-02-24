@@ -56,29 +56,29 @@ int srslte_enb_ul_init(srslte_enb_ul_t* q, cf_t* in_buffer, uint32_t max_prb)
     ofdm_cfg.normalize         = false;
     ofdm_cfg.rx_window_offset  = 0.5f;
     if (srslte_ofdm_rx_init_cfg(&q->fft, &ofdm_cfg)) {
-      ERROR("Error initiating FFT\n");
+      ERROR("Error initiating FFT");
       goto clean_exit;
     }
 
     if (srslte_pucch_init_enb(&q->pucch)) {
-      ERROR("Error creating PUCCH object\n");
+      ERROR("Error creating PUCCH object");
       goto clean_exit;
     }
 
     if (srslte_pusch_init_enb(&q->pusch, max_prb)) {
-      ERROR("Error creating PUSCH object\n");
+      ERROR("Error creating PUSCH object");
       goto clean_exit;
     }
 
     if (srslte_chest_ul_init(&q->chest, max_prb)) {
-      ERROR("Error initiating channel estimator\n");
+      ERROR("Error initiating channel estimator");
       goto clean_exit;
     }
 
     ret = SRSLTE_SUCCESS;
 
   } else {
-    ERROR("Invalid parameters\n");
+    ERROR("Invalid parameters");
   }
 
 clean_exit:
@@ -91,7 +91,6 @@ clean_exit:
 void srslte_enb_ul_free(srslte_enb_ul_t* q)
 {
   if (q) {
-
     srslte_ofdm_rx_free(&q->fft);
     srslte_pucch_free(&q->pucch);
     srslte_pusch_free(&q->pusch);
@@ -119,22 +118,22 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t*                   q,
       q->cell = cell;
 
       if (srslte_ofdm_rx_set_prb(&q->fft, q->cell.cp, q->cell.nof_prb)) {
-        ERROR("Error initiating FFT\n");
+        ERROR("Error initiating FFT");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pucch_set_cell(&q->pucch, q->cell)) {
-        ERROR("Error creating PUCCH object\n");
+        ERROR("Error creating PUCCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_pusch_set_cell(&q->pusch, q->cell)) {
-        ERROR("Error creating PUSCH object\n");
+        ERROR("Error creating PUSCH object");
         return SRSLTE_ERROR;
       }
 
       if (srslte_chest_ul_set_cell(&q->chest, cell)) {
-        ERROR("Error initiating channel estimator\n");
+        ERROR("Error initiating channel estimator");
         return SRSLTE_ERROR;
       }
 
@@ -144,7 +143,7 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t*                   q,
       ret = SRSLTE_SUCCESS;
     }
   } else {
-    ERROR("Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n", cell.id, cell.nof_ports, cell.nof_prb);
+    ERROR("Invalid cell properties: Id=%d, Ports=%d, PRBs=%d", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
 }
@@ -152,11 +151,11 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t*                   q,
 int srslte_enb_ul_add_rnti(srslte_enb_ul_t* q, uint16_t rnti)
 {
   if (srslte_pucch_set_rnti(&q->pucch, rnti)) {
-    ERROR("Error setting PUCCH rnti\n");
+    ERROR("Error setting PUCCH rnti");
     return -1;
   }
   if (srslte_pusch_set_rnti(&q->pusch, rnti)) {
-    ERROR("Error setting PUSCH rnti\n");
+    ERROR("Error setting PUSCH rnti");
     return -1;
   }
   return 0;
@@ -187,14 +186,14 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
   // Select format
   cfg->format = srslte_pucch_proc_select_format(&q->cell, cfg, &cfg->uci_cfg, NULL);
   if (cfg->format == SRSLTE_PUCCH_FORMAT_ERROR) {
-    ERROR("Returned Error while selecting PUCCH format\n");
+    ERROR("Returned Error while selecting PUCCH format");
     return SRSLTE_ERROR;
   }
 
   // Get possible resources
   int nof_resources = srslte_pucch_proc_get_resources(&q->cell, cfg, &cfg->uci_cfg, NULL, n_pucch_i);
   if (nof_resources < 1 || nof_resources > SRSLTE_PUCCH_CS_MAX_ACK) {
-    ERROR("No PUCCH resource could be calculated (%d)\n", nof_resources);
+    ERROR("No PUCCH resource could be calculated (%d)", nof_resources);
     return SRSLTE_ERROR;
   }
 
@@ -210,16 +209,15 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
 
     // Prepare configuration
     if (srslte_chest_ul_estimate_pucch(&q->chest, ul_sf, cfg, q->sf_symbols, &q->chest_res)) {
-      ERROR("Error estimating PUCCH DMRS\n");
+      ERROR("Error estimating PUCCH DMRS");
       return SRSLTE_ERROR;
     }
     pucch_res.snr_db = q->chest_res.snr_db;
 
     ret = srslte_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);
     if (ret < SRSLTE_SUCCESS) {
-      ERROR("Error decoding PUCCH\n");
+      ERROR("Error decoding PUCCH");
     } else {
-
       // Get PUCCH Format 1b with channel selection if:
       // - At least one ACK bit needs to be received; and
       // - PUCCH Format 1b was used; and
@@ -254,9 +252,8 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,
                             srslte_pucch_cfg_t* cfg,
                             srslte_pucch_res_t* res)
 {
-
   if (!srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
-    ERROR("Invalid PUCCH configuration\n");
+    ERROR("Invalid PUCCH configuration");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 

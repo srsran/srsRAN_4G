@@ -23,7 +23,7 @@
 
 namespace srsenb {
 
-sdap::sdap() : m_log("SDAP") {}
+sdap::sdap() {}
 
 bool sdap::init(pdcp_interface_sdap_nr* pdcp_, gtpu_interface_sdap_nr* gtpu_, srsue::gw_interface_pdcp* gw_)
 {

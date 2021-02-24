@@ -32,20 +32,24 @@ uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count(
  *     Logging     *
  *******************/
 
-class sched_test_log final : public srslte::test_log_filter
+/// RAII style class that prints the test diagnostic info on destruction.
+class sched_diagnostic_printer
 {
 public:
-  sched_test_log() : srslte::test_log_filter("TEST") { exit_on_error = true; }
-  ~sched_test_log() override { log_diagnostics(); }
+  explicit sched_diagnostic_printer(srslte::log_sink_spy& s) : s(s) {}
 
-  void log_diagnostics() override
+  ~sched_diagnostic_printer()
   {
-    info("[TESTER] Number of assertion warnings: %u\n", warn_counter);
-    info("[TESTER] Number of assertion errors: %u\n", error_counter);
-    info("[TESTER] This was the seed: %u\n", seed);
+    auto& logger = srslog::fetch_basic_logger("TEST");
+    logger.info("[TESTER] Number of assertion warnings: %u", s.get_warning_counter());
+    logger.info("[TESTER] Number of assertion errors: %u", s.get_error_counter());
+    logger.info("[TESTER] This was the seed: %u", seed);
+    srslog::flush();
   }
+
+private:
+  srslte::log_sink_spy& s;
 };
-srslte::scoped_log<sched_test_log> log_global{};
 
 /******************************
  *      Scheduler Tests
@@ -109,7 +113,6 @@ int test_scell_activation(test_scell_activation_params params)
 
   /* Setup simulation arguments struct */
   sim_sched_args sim_args = generate_default_sim_args(nof_prb, nof_ccs);
-  sim_args.sim_log        = log_global.get();
   sim_args.start_tti      = start_tti;
   sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list.resize(1);
   sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].active                                = true;
@@ -121,7 +124,6 @@ int test_scell_activation(test_scell_activation_params params)
   sched_sim_event_generator generator;
   // Setup scheduler
   common_sched_tester tester;
-  tester.init(nullptr);
   tester.sim_cfg(sim_args);
 
   /* Simulation */
@@ -235,7 +237,7 @@ int test_scell_activation(test_scell_activation_params params)
   TESTASSERT(tot_dl_sched_data > 0);
   TESTASSERT(tot_ul_sched_data > 0);
 
-  log_global->info("[TESTER] Sim1 finished successfully\n");
+  srslog::fetch_basic_logger("TEST").info("[TESTER] Sim1 finished successfully");
   return SRSLTE_SUCCESS;
 }
 
@@ -243,6 +245,28 @@ int main()
 {
   // Setup rand seed
   set_randseed(seed);
+
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srslte::log_sink_spy::name(),
+          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSLTE_ERROR;
+  }
+
+  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  if (!spy) {
+    return SRSLTE_ERROR;
+  }
+
+  auto& mac_log = srslog::fetch_basic_logger("MAC");
+  mac_log.set_level(srslog::basic_levels::info);
+  auto& test_log = srslog::fetch_basic_logger("TEST", *spy, false);
+  test_log.set_level(srslog::basic_levels::info);
+
+  // Start the log backend.
+  srslog::init();
+
+  sched_diagnostic_printer printer(*spy);
 
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
   printf("[TESTER] This is the chosen seed: %u\n", seed);
@@ -258,6 +282,8 @@ int main()
     p.pcell_idx = 1;
     TESTASSERT(test_scell_activation(p) == SRSLTE_SUCCESS);
   }
+
+  srslog::flush();
 
   return 0;
 }

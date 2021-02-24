@@ -179,7 +179,7 @@ static cf_t zero_mem[64 * 1024] = {};
 
 #define print_usrp_error(h)                                                                                            \
   do {                                                                                                                 \
-    ERROR("USRP reported the following error: %s\n", h->uhd->last_error.c_str());                                      \
+    ERROR("USRP reported the following error: %s", h->uhd->last_error.c_str());                                      \
   } while (false)
 
 static void log_overflow(rf_uhd_handler_t* h)
@@ -230,7 +230,7 @@ static void log_underflow(rf_uhd_handler_t* h)
 static void log_rx_error(rf_uhd_handler_t* h)
 {
   if (h->uhd_error_handler) {
-    ERROR("USRP reported the following error: %s\n", h->uhd->last_error.c_str());
+    ERROR("USRP reported the following error: %s", h->uhd->last_error.c_str());
 
     srslte_rf_error_t error;
     bzero(&error, sizeof(srslte_rf_error_t));
@@ -274,7 +274,7 @@ static void* async_thread(void* h)
             handler->tx_state = RF_UHD_IMP_TX_STATE_START_BURST;
           }
         } else {
-          ERROR("UHD unhandled event code %d\n", event_code);
+          ERROR("UHD unhandled event code %d", event_code);
         }
       } else {
         std::this_thread::sleep_for(RF_UHD_IMP_ASYNCH_MSG_SLEEP_MS);
@@ -366,7 +366,7 @@ static int set_time_to_gps_time(rf_uhd_handler_t* handler)
 
   // No sensor found
   if (not found) {
-    ERROR("Sensor '%s` not found.\n", sensor_name.c_str());
+    ERROR("Sensor '%s` not found.", sensor_name.c_str());
     return UHD_ERROR_NONE;
   }
 
@@ -427,7 +427,7 @@ static int wait_sensor_locked(rf_uhd_handler_t*  handler,
 
   // No sensor found
   if (not found) {
-    ERROR("Sensor '%s` not found.\n", sensor_name.c_str());
+    ERROR("Sensor '%s` not found.", sensor_name.c_str());
     return UHD_ERROR_NONE;
   }
 
@@ -471,7 +471,7 @@ bool rf_uhd_rx_wait_lo_locked(void* h)
   int error = wait_sensor_locked(handler, sensor_name, false, 300, is_locked);
 
   if (not is_locked and error == SRSLTE_SUCCESS) {
-    ERROR("Could not lock reference clock source. Sensor: %s=%s\n", sensor_name.c_str(), is_locked ? "true" : "false");
+    ERROR("Could not lock reference clock source. Sensor: %s=%s", sensor_name.c_str(), is_locked ? "true" : "false");
   }
 
   return is_locked;
@@ -577,7 +577,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   }
 
   if (nof_channels > SRSLTE_MAX_CHANNELS) {
-    ERROR("Error opening UHD: maximum number of channels exceeded (%d>%d)\n", nof_channels, SRSLTE_MAX_CHANNELS);
+    ERROR("Error opening UHD: maximum number of channels exceeded (%d>%d)", nof_channels, SRSLTE_MAX_CHANNELS);
     return SRSLTE_ERROR;
   }
 
@@ -1221,7 +1221,7 @@ int rf_uhd_recv_with_time_multi(void*    h,
     } else if (error_code == uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND) {
       log_late(handler, true);
     } else if (error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
-      ERROR("Error timed out while receiving samples from UHD.\n");
+      ERROR("Error timed out while receiving samples from UHD.");
 
       if (RF_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
         // Stop Rx stream
@@ -1230,8 +1230,8 @@ int rf_uhd_recv_with_time_multi(void*    h,
 
       return -1;
     } else if (error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
-      ERROR("Error %s was returned during streaming. Aborting.\n", md.to_pp_string(true).c_str());
-      INFO("Error %s was returned during streaming. Aborting.\n", md.to_pp_string(true).c_str());
+      ERROR("Error %s was returned during streaming. Aborting.", md.to_pp_string(true).c_str());
+      INFO("Error %s was returned during streaming. Aborting.", md.to_pp_string(true).c_str());
     }
   }
 

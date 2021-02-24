@@ -64,7 +64,7 @@ static int pusch_cp(srslte_pusch_t*       q,
     if (is_shortened && slot == 1) {
       N_srs = 1;
     }
-    INFO("%s PUSCH %d PRB to index %d at slot %d\n",
+    INFO("%s PUSCH %d PRB to index %d at slot %d",
          advance_input ? "Allocating" : "Getting",
          grant->L_prb,
          grant->n_prb_tilde[slot],
@@ -110,12 +110,11 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-
     bzero(q, sizeof(srslte_pusch_t));
     ret       = SRSLTE_ERROR;
     q->max_re = max_prb * MAX_PUSCH_RE(SRSLTE_CP_NORM);
 
-    INFO("Init PUSCH: %d PRBs\n", max_prb);
+    INFO("Init PUSCH: %d PRBs", max_prb);
 
     for (srslte_mod_t i = 0; i < SRSLTE_MOD_NITEMS; i++) {
       if (srslte_modem_table_lte(&q->mod[i], i)) {
@@ -139,7 +138,7 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
     srslte_sch_init(&q->ul_sch);
 
     if (srslte_dft_precoding_init(&q->dft_precoding, max_prb, is_ue)) {
-      ERROR("Error initiating DFT transform precoding\n");
+      ERROR("Error initiating DFT transform precoding");
       goto clean;
     }
 
@@ -168,7 +167,7 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
 
       q->evm_buffer = srslte_evm_buffer_alloc(srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, 6));
       if (!q->evm_buffer) {
-        ERROR("Allocating EVM buffer\n");
+        ERROR("Allocating EVM buffer");
         goto clean;
       }
     }
@@ -246,7 +245,6 @@ int srslte_pusch_set_cell(srslte_pusch_t* q, srslte_cell_t cell)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && srslte_cell_isvalid(&cell)) {
-
     // Resize EVM buffer, only for eNb
     if (!q->is_ue && q->evm_buffer) {
       srslte_evm_buffer_resize(q->evm_buffer, srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, cell.nof_prb));
@@ -271,7 +269,7 @@ int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti)
     // If the sequence is not allocated generate
     q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
     if (!q->users[rnti_idx]) {
-      ERROR("Alocating PDSCH user\n");
+      ERROR("Alocating PDSCH user");
       return SRSLTE_ERROR;
     }
   } else if (q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id && !q->is_ue) {
@@ -289,7 +287,7 @@ int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti)
                               SRSLTE_NOF_SLOTS_PER_SF * sf_idx,
                               q->cell.id,
                               q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
-      ERROR("Error initializing PUSCH scrambling sequence\n");
+      ERROR("Error initializing PUSCH scrambling sequence");
       srslte_pusch_free_rnti(q, rnti);
       return SRSLTE_ERROR;
     }
@@ -305,7 +303,6 @@ int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti)
 
 void srslte_pusch_free_rnti(srslte_pusch_t* q, uint16_t rnti)
 {
-
   uint32_t rnti_idx = q->is_ue ? 0 : rnti;
 
   if (q->users[rnti_idx]) {
@@ -329,13 +326,13 @@ static srslte_sequence_t* get_user_sequence(srslte_pusch_t* q, uint16_t rnti, ui
       return &q->users[rnti_idx]->seq[sf_idx];
     } else {
       if (srslte_sequence_pusch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id, len)) {
-        ERROR("Error generating temporal scrambling sequence\n");
+        ERROR("Error generating temporal scrambling sequence");
         return NULL;
       }
       return &q->tmp_seq;
     }
   } else {
-    ERROR("Invalid RNTI=0x%x\n", rnti);
+    ERROR("Invalid RNTI=0x%x", rnti);
     return NULL;
   }
 }
@@ -371,7 +368,6 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && cfg != NULL) {
-
     /* Limit UL modulation if not supported by the UE or disabled by higher layers */
     if (!cfg->enable_64qam) {
       if (cfg->grant.tb.mod >= SRSLTE_MOD_64QAM) {
@@ -381,7 +377,7 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
     }
 
     if (cfg->grant.nof_re > q->max_re) {
-      ERROR("Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
+      ERROR("Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)",
             cfg->grant.nof_re,
             q->max_re,
             q->cell.nof_prb);
@@ -393,7 +389,7 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
       return err;
     }
 
-    INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
+    INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d",
          sf->tti % 10,
          srslte_mod_string(cfg->grant.tb.mod),
          cfg->rnti,
@@ -405,7 +401,7 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
 
     bzero(q->q, cfg->grant.tb.nof_bits);
     if ((ret = srslte_ulsch_encode(&q->ul_sch, cfg, data->ptr, &data->uci, q->g, q->q)) < 0) {
-      ERROR("Error encoding TB\n");
+      ERROR("Error encoding TB");
       return SRSLTE_ERROR;
     }
 
@@ -414,7 +410,7 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
     // Generate scrambling sequence if not pre-generated
     srslte_sequence_t* seq = get_user_sequence(q, cfg->rnti, sf->tti % 10, cfg->grant.tb.nof_bits);
     if (!seq) {
-      ERROR("Error getting user sequence for rnti=0x%x\n", cfg->rnti);
+      ERROR("Error getting user sequence for rnti=0x%x", cfg->rnti);
       return -1;
     }
 
@@ -448,7 +444,7 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
     // Mapping to resource elements
     uint32_t n = pusch_put(q, &cfg->grant, q->z, sf_symbols, sf->shortened);
     if (n != cfg->grant.nof_re) {
-      ERROR("Error trying to allocate %d symbols but %d were allocated (tti=%d, short=%d, L=%d)\n",
+      ERROR("Error trying to allocate %d symbols but %d were allocated (tti=%d, short=%d, L=%d)",
             cfg->grant.nof_re,
             n,
             sf->tti,
@@ -475,7 +471,6 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
   uint32_t n;
 
   if (q != NULL && sf_symbols != NULL && out != NULL && cfg != NULL) {
-
     struct timeval t[3];
     if (cfg->meas_time_en) {
       gettimeofday(&t[1], NULL);
@@ -489,7 +484,7 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
       }
     }
 
-    INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
+    INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d",
          sf->tti % 10,
          srslte_mod_string(cfg->grant.tb.mod),
          cfg->grant.tb.tbs,
@@ -501,7 +496,7 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
     /* extract symbols */
     n = pusch_get(q, &cfg->grant, sf_symbols, q->d, sf->shortened);
     if (n != cfg->grant.nof_re) {
-      ERROR("Error expecting %d symbols but got %d\n", cfg->grant.nof_re, n);
+      ERROR("Error expecting %d symbols but got %d", cfg->grant.nof_re, n);
       return SRSLTE_ERROR;
     }
 
@@ -515,7 +510,7 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
     /* extract channel estimates */
     n = pusch_get(q, &cfg->grant, channel->ce, q->ce, sf->shortened);
     if (n != cfg->grant.nof_re) {
-      ERROR("Error expecting %d symbols but got %d\n", cfg->grant.nof_re, n);
+      ERROR("Error expecting %d symbols but got %d", cfg->grant.nof_re, n);
       return SRSLTE_ERROR;
     }
 
@@ -545,7 +540,7 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
     // Generate scrambling sequence if not pre-generated
     srslte_sequence_t* seq = get_user_sequence(q, cfg->rnti, sf->tti % 10, cfg->grant.tb.nof_bits);
     if (!seq) {
-      ERROR("Error getting user sequence for rnti=0x%x\n", cfg->rnti);
+      ERROR("Error getting user sequence for rnti=0x%x", cfg->rnti);
       return -1;
     }
 
@@ -586,7 +581,6 @@ uint32_t srslte_pusch_grant_tx_info(srslte_pusch_grant_t* grant,
                                     char*                 str,
                                     uint32_t              str_len)
 {
-
   uint32_t len = srslte_ra_ul_info(grant, str, str_len);
 
   if (uci_data) {
@@ -598,7 +592,6 @@ uint32_t srslte_pusch_grant_tx_info(srslte_pusch_grant_t* grant,
 
 uint32_t srslte_pusch_tx_info(srslte_pusch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len)
 {
-
   uint32_t len = srslte_print_check(str, str_len, 0, "rnti=0x%x", cfg->rnti);
 
   len += srslte_pusch_grant_tx_info(&cfg->grant, &cfg->uci_cfg, uci_data, &str[len], str_len - len);
@@ -615,7 +608,6 @@ uint32_t srslte_pusch_rx_info(srslte_pusch_cfg_t*    cfg,
                               char*                  str,
                               uint32_t               str_len)
 {
-
   uint32_t len = srslte_print_check(str, str_len, 0, "rnti=0x%x", cfg->rnti);
 
   len += srslte_ra_ul_info(&cfg->grant, &str[len], str_len);

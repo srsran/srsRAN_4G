@@ -126,7 +126,7 @@ int srs_test_context_run(srs_test_context_t* q)
 {
   srslte_ul_sf_cfg_t ul_sf_cfg = {};
 
-  INFO("   TEST: bw_cfg=%d; sf_cfg=%d; B=%d; b_hops=%d; n_srs=%d; I_srs=%d;\n",
+  INFO("   TEST: bw_cfg=%d; sf_cfg=%d; B=%d; b_hops=%d; n_srs=%d; I_srs=%d;",
        srs_cfg.bw_cfg,
        srs_cfg.subframe_config,
        srs_cfg.B,
@@ -156,7 +156,7 @@ int srs_test_context_run(srs_test_context_t* q)
                  &q->chest_ul, &ul_sf_cfg, &srs_cfg, &dmrs_pusch_cfg, q->sf_symbols, &q->chest_ul_res) ==
              SRSLTE_SUCCESS);
 
-  INFO("RESULTS: tti=%d; snr_db=%+.1f; noise_estimate_dbm=%+.1f; ta_us=%+.1f;\n",
+  INFO("RESULTS: tti=%d; snr_db=%+.1f; noise_estimate_dbm=%+.1f; ta_us=%+.1f;",
        ul_sf_cfg.tti,
        q->chest_ul_res.snr_db,
        q->chest_ul_res.noise_estimate_dbm,
@@ -196,7 +196,6 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-
   srs_test_context_t context = {};
   int                ret     = SRSLTE_SUCCESS;
 

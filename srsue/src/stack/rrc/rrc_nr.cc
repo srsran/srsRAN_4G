@@ -72,7 +72,7 @@ void rrc_nr::stop()
 
 void rrc_nr::init_core_less()
 {
-  log_h->info("Creating dummy DRB on LCID=%d\n", args.coreless.drb_lcid);
+  log_h->info("Creating dummy DRB on LCID=%d", args.coreless.drb_lcid);
   srslte::rlc_config_t rlc_cnfg = srslte::rlc_config_t::default_rlc_um_nr_config(6);
   rlc->add_bearer(args.coreless.drb_lcid, rlc_cnfg);
 
@@ -82,7 +82,8 @@ void rrc_nr::init_core_less()
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   srslte::PDCP_SN_LEN_18,
                                   srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t ::ms100};
+                                  srslte::pdcp_discard_timer_t::ms100,
+                                  false};
 
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
   return;
@@ -92,9 +93,9 @@ void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 // Timeout callback interface
 void rrc_nr::timer_expired(uint32_t timeout_id)
 {
-  log_h->debug("[NR] Handling Timer Expired\n");
+  log_h->debug("[NR] Handling Timer Expired");
   if (timeout_id == fake_measurement_timer.id()) {
-    log_h->debug("[NR] Triggered Fake Measurement\n");
+    log_h->debug("[NR] Triggered Fake Measurement");
 
     phy_meas_nr_t              fake_meas = {};
     std::vector<phy_meas_nr_t> phy_meas_nr;
@@ -122,18 +123,18 @@ void rrc_nr::log_rrc_message(const std::string&           source,
                              const std::string&           msg_type)
 {
   if (log_h->get_level() == srslte::LOG_LEVEL_INFO) {
-    log_h->info("%s - %s %s (%d B)\n", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu->N_bytes);
+    log_h->info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu->N_bytes);
   } else if (log_h->get_level() >= srslte::LOG_LEVEL_DEBUG) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
     log_h->debug_hex(pdu->msg,
                      pdu->N_bytes,
-                     "%s - %s %s (%d B)\n",
+                     "%s - %s %s (%d B)",
                      source.c_str(),
                      (dir == Rx) ? "Rx" : "Tx",
                      msg_type.c_str(),
                      pdu->N_bytes);
-    log_h->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
+    log_h->debug_long("Content:\n%s", json_writer.to_string().c_str());
   }
 }
 
@@ -145,28 +146,28 @@ void rrc_nr::log_rrc_message(const std::string& source,
                              const std::string& msg_type)
 {
   if (log_h->get_level() == srslte::LOG_LEVEL_INFO) {
-    log_h->info("%s - %s %s (%d B)\n", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), oct.size());
+    log_h->info("%s - %s %s (%d B)", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), oct.size());
   } else if (log_h->get_level() >= srslte::LOG_LEVEL_DEBUG) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
     log_h->debug_hex(oct.data(),
                      oct.size(),
-                     "%s - %s %s (%d B)\n",
+                     "%s - %s %s (%d B)",
                      source.c_str(),
                      (dir == Rx) ? "Rx" : "Tx",
                      msg_type.c_str(),
                      oct.size());
-    log_h->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
+    log_h->debug_long("Content:\n%s", json_writer.to_string().c_str());
   }
 }
 
 bool rrc_nr::add_lcid_rb(uint32_t lcid, rb_type_t rb_type, uint32_t rbid)
 {
   if (lcid_rb.find(lcid) != lcid_rb.end()) {
-    log_h->error("Couldn't add RB to LCID. RB %d does exist.\n", rbid);
+    log_h->error("Couldn't add RB to LCID. RB %d does exist.", rbid);
     return false;
   } else {
-    log_h->info("Adding lcid %d and radio bearer ID %d with type %s \n", lcid, rbid, (rb_type == Srb) ? "SRB" : "DRB");
+    log_h->info("Adding lcid %d and radio bearer ID %d with type %s ", lcid, rbid, (rb_type == Srb) ? "SRB" : "DRB");
     lcid_rb[lcid].rb_id   = rbid;
     lcid_rb[lcid].rb_type = rb_type;
   }
@@ -180,7 +181,7 @@ uint32_t rrc_nr::get_lcid_for_rbid(uint32_t rb_id)
       return rb.first;
     }
   }
-  log_h->error("Couldn't find LCID for rb LCID. RB %d does exist.\n", rb_id);
+  log_h->error("Couldn't find LCID for rb LCID. RB %d does exist.", rb_id);
   return 0;
 }
 
@@ -208,19 +209,22 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   band_param_eutra.set_eutra();
   band_param_eutra.eutra().ca_bw_class_dl_eutra_present = true;
   band_param_eutra.eutra().ca_bw_class_ul_eutra_present = true;
-  band_param_eutra.eutra().band_eutra                   = 1;
+  band_param_eutra.eutra().band_eutra                   = 1; // TODO: this also needs to be set here?
   band_param_eutra.eutra().ca_bw_class_dl_eutra         = asn1::rrc_nr::ca_bw_class_eutra_opts::options::a;
   band_param_eutra.eutra().ca_bw_class_ul_eutra         = asn1::rrc_nr::ca_bw_class_eutra_opts::options::a;
   band_combination.band_list.push_back(band_param_eutra);
 
-  struct band_params_c band_param_nr;
-  band_param_nr.set_nr();
-  band_param_nr.nr().ca_bw_class_dl_nr_present = true;
-  band_param_nr.nr().ca_bw_class_ul_nr_present = true;
-  band_param_nr.nr().band_nr                   = 78;
-  band_param_nr.nr().ca_bw_class_dl_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
-  band_param_nr.nr().ca_bw_class_ul_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
-  band_combination.band_list.push_back(band_param_nr);
+  // TODO check if band is requested
+  for (const auto& band : args.supported_bands) {
+    struct band_params_c band_param_nr;
+    band_param_nr.set_nr();
+    band_param_nr.nr().ca_bw_class_dl_nr_present = true;
+    band_param_nr.nr().ca_bw_class_ul_nr_present = true;
+    band_param_nr.nr().band_nr                   = band;
+    band_param_nr.nr().ca_bw_class_dl_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
+    band_param_nr.nr().ca_bw_class_ul_nr         = asn1::rrc_nr::ca_bw_class_nr_opts::options::a;
+    band_combination.band_list.push_back(band_param_nr);
+  }
 
   mrdc_cap.rf_params_mrdc.supported_band_combination_list.push_back(band_combination);
   mrdc_cap.rf_params_mrdc.supported_band_combination_list_present = true;
@@ -235,10 +239,12 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   band_info_eutra.band_info_eutra().band_eutra                   = 1;
   mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_eutra);
 
-  freq_band_info_c band_info_nr;
-  band_info_nr.set_band_info_nr();
-  band_info_nr.band_info_nr().band_nr = 78;
-  mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_nr);
+  for (const auto& band : args.supported_bands) {
+    freq_band_info_c band_info_nr;
+    band_info_nr.set_band_info_nr();
+    band_info_nr.band_info_nr().band_nr = band;
+    mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt.push_back(band_info_nr);
+  }
 
   mrdc_cap.rf_params_mrdc.applied_freq_band_list_filt_present = true;
 
@@ -281,16 +287,17 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
   feature_set_eutra.eutra().dl_set_eutra = 1;
   feature_set_eutra.eutra().ul_set_eutra = 1;
   feature_sets_per_band.push_back(feature_set_eutra);
-
   feature_set_combination.push_back(feature_sets_per_band);
 
-  feature_set_c feature_set_nr;
-  feature_set_nr.set_nr();
-  feature_set_nr.nr().dl_set_nr = 1;
-  feature_set_nr.nr().ul_set_nr = 1;
-  feature_sets_per_band.push_back(feature_set_nr);
-
-  feature_set_combination.push_back(feature_sets_per_band);
+  for (const auto& band : args.supported_bands) {
+    feature_sets_per_band.resize(0);
+    feature_set_c feature_set_nr;
+    feature_set_nr.set_nr();
+    feature_set_nr.nr().dl_set_nr = 1;
+    feature_set_nr.nr().ul_set_nr = 1;
+    feature_sets_per_band.push_back(feature_set_nr);
+    feature_set_combination.push_back(feature_sets_per_band);
+  }
 
   mrdc_cap.feature_set_combinations.push_back(feature_set_combination);
 
@@ -312,7 +319,7 @@ void rrc_nr::get_eutra_nr_capabilities(srslte::byte_buffer_t* eutra_nr_caps_pdu)
 #endif
 
   log_h->debug_hex(
-      eutra_nr_caps_pdu->msg, eutra_nr_caps_pdu->N_bytes, "EUTRA-NR capabilities (%u B)\n", eutra_nr_caps_pdu->N_bytes);
+      eutra_nr_caps_pdu->msg, eutra_nr_caps_pdu->N_bytes, "EUTRA-NR capabilities (%u B)", eutra_nr_caps_pdu->N_bytes);
 
   return;
 }
@@ -325,11 +332,10 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
                                  bool                nr_radio_bearer_cfg1_r15_present,
                                  asn1::dyn_octstring nr_radio_bearer_cfg1_r15)
 {
-
   // sanity check only for now
   if (nr_secondary_cell_group_cfg_r15_present == false || sk_counter_r15_present == false ||
       nr_radio_bearer_cfg1_r15_present == false) {
-    log_h->error("RRC NR Reconfiguration failed sanity check failed\n");
+    log_h->error("RRC NR Reconfiguration failed sanity check failed");
     return false;
   }
 
@@ -342,7 +348,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
 
   err = rrc_recfg.unpack(bref);
   if (err != asn1::SRSASN_SUCCESS) {
-    log_h->error("Could not unpack NR reconfiguration message.\n");
+    log_h->error("Could not unpack NR reconfiguration message.");
     return false;
   }
 
@@ -356,7 +362,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
 
       err = cell_group_cfg.unpack(bref0);
       if (err != asn1::SRSASN_SUCCESS) {
-        log_h->error("Could not unpack cell group message message.\n");
+        log_h->error("Could not unpack cell group message message.");
         return false;
       }
 
@@ -366,7 +372,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
                       cell_group_cfg,
                       "Secondary Cell Group Config");
     } else {
-      log_h->error("Reconfiguration does not contain Secondary Cell Group Config\n");
+      log_h->error("Reconfiguration does not contain Secondary Cell Group Config");
       return false;
     }
   }
@@ -375,7 +381,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
 
   err = radio_bearer_cfg.unpack(bref1);
   if (err != asn1::SRSASN_SUCCESS) {
-    log_h->error("Could not unpack radio bearer config.\n");
+    log_h->error("Could not unpack radio bearer config.");
     return false;
   }
 
@@ -386,7 +392,7 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
                                  sk_counter_r15_present,
                                  sk_counter_r15,
                                  radio_bearer_cfg)) {
-    log_h->error("Unable to launch NR RRC configuration procedure\n");
+    log_h->error("Unable to launch NR RRC configuration procedure");
     return false;
   } else {
     callback_list.add_proc(conn_recfg_proc);
@@ -396,18 +402,19 @@ bool rrc_nr::rrc_reconfiguration(bool                endc_release_and_add_r15,
 
 void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
 {
-
   struct ue_nr_cap_s nr_cap;
 
   nr_cap.access_stratum_release = access_stratum_release_opts::rel15;
   // PDCP
   nr_cap.pdcp_params.max_num_rohc_context_sessions = pdcp_params_s::max_num_rohc_context_sessions_opts::cs2;
 
-  band_nr_s band_nr;
-  band_nr.band_nr              = 78;
-  band_nr.ue_pwr_class_present = true;
-  band_nr.ue_pwr_class         = band_nr_s::ue_pwr_class_opts::pc3;
-  nr_cap.rf_params.supported_band_list_nr.push_back(band_nr);
+  for (const auto& band : args.supported_bands) {
+    band_nr_s band_nr;
+    band_nr.band_nr              = band;
+    band_nr.ue_pwr_class_present = true;
+    band_nr.ue_pwr_class         = band_nr_s::ue_pwr_class_opts::pc3;
+    nr_cap.rf_params.supported_band_list_nr.push_back(band_nr);
+  }
 
   nr_cap.rlc_params_present                  = true;
   nr_cap.rlc_params.um_with_short_sn_present = true;
@@ -431,7 +438,7 @@ void rrc_nr::get_nr_capabilities(srslte::byte_buffer_t* nr_caps_pdu)
   }
 #endif
 
-  log_h->debug_hex(nr_caps_pdu->msg, nr_caps_pdu->N_bytes, "NR capabilities (%u B)\n", nr_caps_pdu->N_bytes);
+  log_h->debug_hex(nr_caps_pdu->msg, nr_caps_pdu->N_bytes, "NR capabilities (%u B)", nr_caps_pdu->N_bytes);
   return;
 };
 
@@ -439,15 +446,15 @@ void rrc_nr::phy_meas_stop()
 {
   // possbile race condition for fake_measurement timer, which might be set at the same moment as stopped => fix with
   // phy integration
-  log_h->debug("[NR] Stopping fake measurements\n");
+  log_h->debug("[NR] Stopping fake measurements");
   fake_measurement_timer.stop();
 }
 
 void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 {
-  log_h->debug("[NR] Measuring phy cell %d \n", carrier_freq_r15);
+  log_h->debug("[NR] Measuring phy cell %d ", carrier_freq_r15);
   // Start timer for fake measurements
-  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  auto timer_expire_func            = [this](uint32_t tid) { timer_expired(tid); };
   fake_measurement_carrier_freq_r15 = carrier_freq_r15;
   fake_measurement_timer.set(10, timer_expire_func);
   fake_measurement_timer.run();
@@ -455,7 +462,7 @@ void rrc_nr::phy_set_cells_to_meas(uint32_t carrier_freq_r15)
 
 void rrc_nr::configure_sk_counter(uint16_t sk_counter)
 {
-  log_h->info("[NR] Configure new SK counter %d. Update Key for secondary gnb\n", sk_counter);
+  log_h->info("[NR] Configure new SK counter %d. Update Key for secondary gnb", sk_counter);
   usim->generate_nr_context(sk_counter, &sec_cfg);
 }
 bool rrc_nr::is_config_pending()
@@ -483,7 +490,7 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
       add_lcid_rb(lc_ch_id, Srb, srb_id);
     }
   } else {
-    log_h->warning("In RLC bearer cfg does not contain served radio bearer\n");
+    log_h->warning("In RLC bearer cfg does not contain served radio bearer");
     return false;
   }
 
@@ -494,13 +501,13 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
           rlc_bearer_cfg.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len_present &&
           rlc_bearer_cfg.rlc_cfg.um_bi_dir().dl_um_rlc.sn_field_len !=
               rlc_bearer_cfg.rlc_cfg.um_bi_dir().ul_um_rlc.sn_field_len) {
-        log_h->warning("NR RLC sequence number length is not the same in uplink and downlink\n");
+        log_h->warning("NR RLC sequence number length is not the same in uplink and downlink");
       }
     } else {
-      log_h->warning("NR RLC type is not unacknowledged mode bidirectional\n");
+      log_h->warning("NR RLC type is not unacknowledged mode bidirectional");
     }
   } else {
-    log_h->warning("In RLC bearer cfg does not contain rlc cfg\n");
+    log_h->warning("In RLC bearer cfg does not contain rlc cfg");
     return false;
   }
 
@@ -516,25 +523,24 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
 }
 bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg)
 {
-
   if (mac_cell_group_cfg.sched_request_cfg_present) {
     sr_cfg_t sr_cfg;
     if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list_present) {
       if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list.size() > 1) {
-        log_h->warning("Only handling 1 scheduling request index to add\n");
+        log_h->warning("Only handling 1 scheduling request index to add");
         sr_cfg.dsr_transmax = mac_cell_group_cfg.sched_request_cfg.sched_request_to_add_mod_list[1].sr_trans_max;
         mac->set_config(sr_cfg);
       }
     }
 
     if (mac_cell_group_cfg.sched_request_cfg.sched_request_to_release_list_present) {
-      log_h->warning("Not handling sched request to release list\n");
+      log_h->warning("Not handling sched request to release list");
     }
   }
   if (mac_cell_group_cfg.sched_request_cfg_present)
 
     if (mac_cell_group_cfg.bsr_cfg_present) {
-      log_h->debug("Handling MAC BSR config\n");
+      log_h->debug("Handling MAC BSR config");
       srslte::bsr_cfg_t bsr_cfg;
       bsr_cfg.periodic_timer = mac_cell_group_cfg.bsr_cfg.periodic_bsr_timer.to_number();
       bsr_cfg.retx_timer     = mac_cell_group_cfg.bsr_cfg.retx_bsr_timer.to_number();
@@ -542,41 +548,56 @@ bool rrc_nr::apply_mac_cell_group(const mac_cell_group_cfg_s& mac_cell_group_cfg
     }
 
   if (mac_cell_group_cfg.tag_cfg_present) {
-    log_h->warning("Not handling tag cfg in MAC cell group config\n");
+    log_h->warning("Not handling tag cfg in MAC cell group config");
   }
 
   if (mac_cell_group_cfg.phr_cfg_present) {
-    log_h->warning("Not handling phr cfg in MAC cell group config\n");
+    log_h->warning("Not handling phr cfg in MAC cell group config");
   }
 
   if (mac_cell_group_cfg.skip_ul_tx_dynamic) {
-    log_h->warning("Not handling phr cfg in skip_ul_tx_dynamic cell group config\n");
+    log_h->warning("Not handling phr cfg in skip_ul_tx_dynamic cell group config");
   }
   return true;
 }
 
 bool rrc_nr::apply_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
 {
-  // TODO Setup PHY @andre and @phy interface?
-  log_h->warning("Not handling SP Cell config\n");
+  if (sp_cell_cfg.recfg_with_sync_present) {
+    const recfg_with_sync_s& recfg_with_sync = sp_cell_cfg.recfg_with_sync;
+    mac->set_crnti(recfg_with_sync.new_ue_id);
+    if (recfg_with_sync.sp_cell_cfg_common_present) {
+      if (recfg_with_sync.sp_cell_cfg_common.ul_cfg_common_present) {
+        const bwp_ul_common_s* bwp_ul_common = &recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp;
+        if (bwp_ul_common->rach_cfg_common_present) {
+          if (bwp_ul_common->rach_cfg_common.type() == setup_release_c<rach_cfg_common_s>::types_opts::setup) {
+            const rach_cfg_common_s& rach_cfg_common = bwp_ul_common->rach_cfg_common.setup();
+            rach_nr_cfg_t            rach_nr_cfg     = make_mac_rach_cfg(rach_cfg_common);
+            mac->set_config(rach_nr_cfg);
+          }
+        }
+      }
+    }
+    mac->start_ra_procedure();
+  }
   return true;
 }
 
 bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 {
-  if (cell_group_cfg.rlc_bearer_to_add_mod_list_present == true) {
+  if (cell_group_cfg.rlc_bearer_to_add_mod_list_present) {
     for (uint32_t i = 0; i < cell_group_cfg.rlc_bearer_to_add_mod_list.size(); i++) {
       apply_rlc_add_mod(cell_group_cfg.rlc_bearer_to_add_mod_list[i]);
     }
   }
-  if (cell_group_cfg.mac_cell_group_cfg_present == true) {
+  if (cell_group_cfg.mac_cell_group_cfg_present) {
     apply_mac_cell_group(cell_group_cfg.mac_cell_group_cfg);
   }
-  if (cell_group_cfg.phys_cell_group_cfg_present == true) {
-    log_h->warning("Not handling physical cell group config\n");
+  if (cell_group_cfg.phys_cell_group_cfg_present) {
+    log_h->warning("Not handling physical cell group config");
   }
   if (cell_group_cfg.sp_cell_cfg_present) {
-    // apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg);
+    apply_sp_cell_cfg(cell_group_cfg.sp_cell_cfg);
   }
   return true;
 }
@@ -584,7 +605,7 @@ bool rrc_nr::apply_cell_group_cfg(const cell_group_cfg_s& cell_group_cfg)
 bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 {
   if (!drb_cfg.pdcp_cfg_present) {
-    log_h->error("Cannot add DRB - incomplete configuration\n");
+    log_h->error("Cannot add DRB - incomplete configuration");
     return false;
   }
 
@@ -592,41 +613,40 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
 
   // Setup PDCP
   if (!(drb_cfg.pdcp_cfg.drb_present == true)) {
-    log_h->error("PDCP config does not contain DRB config\n");
+    log_h->error("PDCP config does not contain DRB config");
     return false;
   }
 
   if (!(drb_cfg.cn_assoc_present == true)) {
-    log_h->error("DRB config does not contain an associated cn\n");
+    log_h->error("DRB config does not contain an associated cn");
     return false;
   }
 
   if (!(drb_cfg.cn_assoc.type() == drb_to_add_mod_s::cn_assoc_c_::types_opts::eps_bearer_id)) {
-    log_h->error("CN associtaion type not supported %s \n", drb_cfg.cn_assoc.type().to_string().c_str());
+    log_h->error("CN associtaion type not supported %s ", drb_cfg.cn_assoc.type().to_string().c_str());
     return false;
   }
-
-  drb_eps_bearer_id[drb_cfg.drb_id] = drb_cfg.cn_assoc.eps_bearer_id();
+  uint32_t eps_bearer_id            = drb_cfg.cn_assoc.eps_bearer_id();
+  drb_eps_bearer_id[drb_cfg.drb_id] = eps_bearer_id;
 
   if (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl_present && drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul_present &&
       (drb_cfg.pdcp_cfg.drb.pdcp_sn_size_ul.to_number() != drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number())) {
-    log_h->warning("PDCP SN size in UL and DL are not the same. make_drb_pdcp_config_t will use the DL SN size %d \n",
+    log_h->warning("PDCP SN size in UL and DL are not the same. make_drb_pdcp_config_t will use the DL SN size %d ",
                    drb_cfg.pdcp_cfg.drb.pdcp_sn_size_dl.to_number());
   }
 
   srslte::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
-
+  gw->update_lcid(eps_bearer_id, lcid);
   return true;
 }
 
 bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
 {
-
   // TODO derive correct keys
   if (security_cfg.key_to_use_present) {
     if (security_cfg.key_to_use.value != security_cfg_s::key_to_use_opts::options::secondary) {
-      log_h->warning("Only secondary key supported yet\n");
+      log_h->warning("Only secondary key supported yet");
     }
   }
 
@@ -645,7 +665,7 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
         sec_cfg.cipher_algo = CIPHERING_ALGORITHM_ID_128_EEA3;
         break;
       default:
-        log_h->warning("Unsupported algorithm\n");
+        log_h->warning("Unsupported algorithm");
         break;
     }
 
@@ -664,7 +684,7 @@ bool rrc_nr::apply_security_cfg(const security_cfg_s& security_cfg)
           sec_cfg.integ_algo = INTEGRITY_ALGORITHM_ID_128_EIA3;
           break;
         default:
-          log_h->warning("Unsupported algorithm\n");
+          log_h->warning("Unsupported algorithm");
           break;
       }
     }
@@ -708,19 +728,19 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool            
                                                           const uint32_t                        sk_counter_r15,
                                                           const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg)
 {
-  Info("Starting...\n");
+  Info("Starting...");
 
-  Info("Applying Cell Group Cfg\n");
+  Info("Applying Cell Group Cfg");
   if (!rrc_ptr->apply_cell_group_cfg(cell_group_cfg)) {
     return proc_outcome_t::error;
   }
 
   if (sk_counter_r15_present) {
-    Info("Applying Cell Group Cfg\n");
+    Info("Applying Cell Group Cfg");
     rrc_ptr->configure_sk_counter((uint16_t)sk_counter_r15);
   }
 
-  Info("Applying Radio Bearer Cfg\n");
+  Info("Applying Radio Bearer Cfg");
   if (!rrc_ptr->apply_radio_bearer_cfg(radio_bearer_cfg)) {
     return proc_outcome_t::error;
   }
@@ -730,20 +750,20 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const bool            
 proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::react(const bool& config_complete)
 {
   if (not config_complete) {
-    Error("Failed to config PHY\n");
+    Error("Failed to config PHY");
     return proc_outcome_t::error;
   }
 
   rrc_ptr->rrc_eutra->nr_rrc_con_reconfig_complete(true);
 
-  Info("Reconfig NR return successful\n");
+  Info("Reconfig NR return successful");
   return proc_outcome_t::success;
 }
 
 void rrc_nr::connection_reconf_no_ho_proc::then(const srslte::proc_state_t& result)
 {
   if (result.is_success()) {
-    Info("Finished %s successfully\n", name());
+    Info("Finished %s successfully", name());
     srslte::console("RRC NR reconfiguration successful.\n");
     return;
   }

@@ -141,16 +141,18 @@ int load_avx2(void* p, const uint8_t* input, const uint8_t msg_len, const uint8_
     return -1;
   }
 
-  int i = 0;
-  int k = 0;
-  for (; i < msg_len; i++) {
-    for (k = 0; k < ls; k++) {
-      vp->codeword[i].c[k] = input[i * ls + k];
+  int ini       = 0;
+  int node_size = SRSLTE_AVX2_B_SIZE;
+  for (int i = 0; i < msg_len * ls; i = i + ls) {
+    for (int k = 0; k < ls; k++) {
+      vp->codeword->c[ini + k] = input[i + k];
     }
-    bzero(&(vp->codeword[i].c[k]), (SRSLTE_AVX2_B_SIZE - k) * sizeof(uint8_t));
+    // this zero padding can be removed
+    bzero(&(vp->codeword->c[ini + ls]), (node_size - ls) * sizeof(uint8_t));
+    ini = ini + node_size;
   }
 
-  bzero(vp->codeword + i, (cdwd_len - msg_len) * sizeof(__m256i));
+  bzero(vp->codeword + msg_len, (cdwd_len - msg_len) * sizeof(__m256i));
 
   return 0;
 }
@@ -163,11 +165,12 @@ int return_codeword_avx2(void* p, uint8_t* output, const uint8_t cdwd_len, const
     return -1;
   }
 
-  int k = 0;
-  for (int i = 0; i < cdwd_len - 2; i++) {
-    for (k = 0; k < ls; k++) {
-      output[i * ls + k] = vp->codeword[i + 2].c[k];
+  int ini = SRSLTE_AVX2_B_SIZE + SRSLTE_AVX2_B_SIZE;
+  for (int i = 0; i < (cdwd_len - 2) * ls; i = i + ls) {
+    for (int k = 0; k < ls; k++) {
+      output[i + k] = vp->codeword->c[ini + k];
     }
+    ini = ini + SRSLTE_AVX2_B_SIZE;
   }
   return 0;
 }

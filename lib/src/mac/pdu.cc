@@ -227,11 +227,7 @@ void sch_pdu::parse_packet(uint8_t* ptr)
     if (n_sub >= 0) {
       subheaders[nof_subheaders - 1].set_payload_size(n_sub);
     } else {
-      if (log_h) {
-        log_h->warning_hex(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
-      } else {
-        srslte::console("Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
-      }
+      logger.warning(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)", read_len, pdu_len);
 
       // reset PDU
       init_(buffer_tx, pdu_len, pdu_is_ul);
@@ -241,11 +237,11 @@ void sch_pdu::parse_packet(uint8_t* ptr)
 
 uint8_t* sch_pdu::write_packet()
 {
-  return write_packet(srslte::log_ref{"MAC "});
+  return write_packet(srslog::fetch_basic_logger("MAC"));
 }
 
 /* Writes the MAC PDU in the packet, including the MAC headers and CE payload. Section 6.1.2 */
-uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
+uint8_t* sch_pdu::write_packet(srslog::basic_logger& log)
 {
   // set padding to remaining length in PDU
   uint32_t num_padding = rem_len;
@@ -288,7 +284,7 @@ uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
 
   // make sure there is enough room for header
   if (buffer_tx->get_headroom() < total_header_size) {
-    log_h->error("Not enough headroom for MAC header (%d < %d).\n", buffer_tx->get_headroom(), total_header_size);
+    log.error("Not enough headroom for MAC header (%d < %d).", buffer_tx->get_headroom(), total_header_size);
     return nullptr;
   }
 
@@ -336,7 +332,7 @@ uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
   }
 
   if (buffer_tx->get_tailroom() < num_padding) {
-    log_h->error("Not enough tailroom for MAC padding (%d < %d).\n", buffer_tx->get_tailroom(), num_padding);
+    log.error("Not enough tailroom for MAC padding (%d < %d).", buffer_tx->get_tailroom(), num_padding);
     return nullptr;
   }
 
@@ -348,69 +344,53 @@ uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
 
   // Print warning if we have padding only
   if (nof_subheaders <= 0 && nof_subheaders < (int)max_subheaders) {
-    log_h->debug("Writing MAC PDU with padding only (%d B)\n", pdu_len);
+    log.debug("Writing MAC PDU with padding only (%d B)", pdu_len);
   }
 
-  // Sanity check and print if error
-  if (log_h) {
-    log_h->debug("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, multi=%d\n",
-                 pdu_len,
-                 header_sz + ce_payload_sz,
-                 header_sz,
-                 ce_payload_sz,
-                 nof_subheaders,
-                 last_sdu_idx,
-                 onetwo_padding,
-                 num_padding);
-  } else {
-    printf("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
-           "multi=%d\n",
-           pdu_len,
-           header_sz + ce_payload_sz,
-           header_sz,
-           ce_payload_sz,
-           nof_subheaders,
-           last_sdu_idx,
-           onetwo_padding,
-           num_padding);
-  }
+  log.debug("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, multi=%d",
+            pdu_len,
+            header_sz + ce_payload_sz,
+            header_sz,
+            ce_payload_sz,
+            nof_subheaders,
+            last_sdu_idx,
+            onetwo_padding,
+            num_padding);
 
   if (buffer_tx->N_bytes != pdu_len) {
-    if (log_h) {
-      srslte::console("------------------------------\n");
-      srslte::console("Wrote PDU: pdu_len=%d, expected_pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, "
-                      "onepad=%d, multi=%d\n",
-                      buffer_tx->N_bytes,
-                      pdu_len,
-                      header_sz + ce_payload_sz,
-                      header_sz,
-                      ce_payload_sz,
-                      nof_subheaders,
-                      last_sdu_idx,
-                      onetwo_padding,
-                      num_padding);
-      srslte::console("------------------------------\n");
+    srslte::console("------------------------------\n");
+    srslte::console("Wrote PDU: pdu_len=%d, expected_pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, "
+                    "onepad=%d, multi=%d\n",
+                    buffer_tx->N_bytes,
+                    pdu_len,
+                    header_sz + ce_payload_sz,
+                    header_sz,
+                    ce_payload_sz,
+                    nof_subheaders,
+                    last_sdu_idx,
+                    onetwo_padding,
+                    num_padding);
+    srslte::console("------------------------------\n");
 
-      log_h->error(
-          "Wrote PDU: pdu_len=%d, expected_pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
-          "multi=%d\n",
-          buffer_tx->N_bytes,
-          pdu_len,
-          header_sz + ce_payload_sz,
-          header_sz,
-          ce_payload_sz,
-          nof_subheaders,
-          last_sdu_idx,
-          onetwo_padding,
-          num_padding);
+    log.error(
+        "Wrote PDU: pdu_len=%d, expected_pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
+        "multi=%d",
+        buffer_tx->N_bytes,
+        pdu_len,
+        header_sz + ce_payload_sz,
+        header_sz,
+        ce_payload_sz,
+        nof_subheaders,
+        last_sdu_idx,
+        onetwo_padding,
+        num_padding);
 
-      for (int i = 0; i < nof_subheaders; i++) {
-        log_h->error("SUBH %d is_sdu=%d, head_size=%d, payload=%d\n",
-                     i,
-                     subheaders[i].is_sdu(),
-                     subheaders[i].get_header_size(i == (nof_subheaders - 1)),
-                     subheaders[i].get_payload_size());
-      }
+    for (int i = 0; i < nof_subheaders; i++) {
+      log.error("SUBH %d is_sdu=%d, head_size=%d, payload=%d",
+                i,
+                subheaders[i].is_sdu(),
+                subheaders[i].get_header_size(i == (nof_subheaders - 1)),
+                subheaders[i].get_payload_size());
     }
 
     return nullptr;
@@ -1032,7 +1012,7 @@ std::string rar_pdu::to_string()
   return msg;
 }
 
-rar_pdu::rar_pdu(uint32_t max_rars_, srslte::log_ref log_) : pdu(max_rars_, log_)
+rar_pdu::rar_pdu(uint32_t max_rars_, srslog::basic_logger& logger) : pdu(max_rars_, logger)
 {
   backoff_indicator     = 0;
   has_backoff_indicator = false;
@@ -1081,11 +1061,7 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   int32_t payload_len = ptr - init_ptr;
   int32_t pad_len     = rem_len - payload_len;
   if (pad_len < 0) {
-    if (log_h) {
-      log_h->warning("Error packing RAR PDU (payload_len=%d, rem_len=%d)\n", payload_len, rem_len);
-    } else {
-      srslte::console("Error packing RAR PDU (payload_len=%d, rem_len=%d)\n", payload_len, rem_len);
-    }
+    logger.warning("Error packing RAR PDU (payload_len=%d, rem_len=%d)", payload_len, rem_len);
     return false;
   } else {
     bzero(ptr, pad_len * sizeof(uint8_t));

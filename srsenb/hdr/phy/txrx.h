@@ -36,23 +36,22 @@ namespace srsenb {
 class txrx final : public srslte::thread
 {
 public:
-  txrx();
+  txrx(srslog::basic_logger& logger);
   bool init(stack_interface_phy_lte*     stack_,
             srslte::radio_interface_phy* radio_handler,
             lte::worker_pool*            lte_workers_,
             nr::worker_pool*             nr_workers_,
             phy_common*                  worker_com,
             prach_worker_pool*           prach_,
-            srslte::log*                 log_h,
             uint32_t                     prio);
   void stop();
 
 private:
   void run_thread() override;
 
-  stack_interface_phy_lte*     stack       = nullptr;
-  srslte::radio_interface_phy* radio_h     = nullptr;
-  srslte::log*                 log_h       = nullptr;
+  stack_interface_phy_lte*     stack   = nullptr;
+  srslte::radio_interface_phy* radio_h = nullptr;
+  srslog::basic_logger&        logger;
   lte::worker_pool*            lte_workers = nullptr;
   nr::worker_pool*             nr_workers  = nullptr;
   prach_worker_pool*           prach       = nullptr;

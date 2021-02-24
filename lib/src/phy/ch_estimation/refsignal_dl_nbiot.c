@@ -122,7 +122,7 @@ free_and_exit:
 int srslte_refsignal_dl_nbiot_set_cell(srslte_refsignal_dl_nbiot_t* q, srslte_nbiot_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  INFO("Generating NRS for n_id_ncell=%d\n", cell.n_id_ncell);
+  INFO("Generating NRS for n_id_ncell=%d", cell.n_id_ncell);
 
   if (q != NULL && srslte_nbiot_cell_isvalid(&cell)) {
     ret = SRSLTE_ERROR;
@@ -153,7 +153,7 @@ int srslte_refsignal_dl_nbiot_set_cell(srslte_refsignal_dl_nbiot_t* q, srslte_nb
             /* save signal */
             int idx =
                 SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(i, (ns % 2) * nsymbols + l, SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL);
-            DEBUG("Ref port=%d, lp=%d, ns=%d, ns/2=%d, idx=%d, i=%d, nsymbols=%d, l=%d\n",
+            DEBUG("Ref port=%d, lp=%d, ns=%d, ns/2=%d, idx=%d, i=%d, nsymbols=%d, l=%d",
                   p,
                   lp,
                   ns,
@@ -216,7 +216,7 @@ int srslte_refsignal_nrs_put_sf(srslte_nbiot_cell_t cell, uint32_t port_id, cf_t
         uint32_t fidx = srslte_refsignal_dl_nbiot_fidx(cell, l, port_id, m) + cell.nbiot_prb * SRSLTE_NRE;
         sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)] = pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)];
 #if EXTRA_DEBUG
-        DEBUG("port: %d, re_idx: %d, pilot_idx: %d, %+2.2f%+2.2fi\n",
+        DEBUG("port: %d, re_idx: %d, pilot_idx: %d, %+2.2f%+2.2fi",
               port_id,
               SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx),
               SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(i, l, 1),
@@ -228,7 +228,7 @@ int srslte_refsignal_nrs_put_sf(srslte_nbiot_cell_t cell, uint32_t port_id, cf_t
 
 #if EXTRA_DEBUG
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE chest_nbiot_tx_after_mapping.bin: NRS after mapping\n", 0);
+      DEBUG("SAVED FILE chest_nbiot_tx_after_mapping.bin: NRS after mapping", 0);
       srslte_vec_save_file(
           "chest_nbiot_tx_after_mapping.bin", pilots, SRSLTE_REFSIGNAL_NUM_SF(1, port_id) * sizeof(cf_t));
     }
@@ -250,7 +250,7 @@ int srslte_refsignal_nrs_get_sf(srslte_nbiot_cell_t cell, uint32_t port_id, cf_t
         uint32_t fidx = srslte_refsignal_dl_nbiot_fidx(cell, l, port_id, m) + cell.nbiot_prb * SRSLTE_NRE;
         pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)] = sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)];
 #if EXTRA_DEBUG
-        DEBUG("port: %d, pilot_idx: %d, re_idx: %d, %+2.2f%+2.2fi\n",
+        DEBUG("port: %d, pilot_idx: %d, re_idx: %d, %+2.2f%+2.2fi",
               port_id,
               SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1),
               SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx),
@@ -262,7 +262,7 @@ int srslte_refsignal_nrs_get_sf(srslte_nbiot_cell_t cell, uint32_t port_id, cf_t
 
 #if EXTRA_DEBUG
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE chest_nbiot_rx_after_demapping.bin: NRS after demapping\n", 0);
+      DEBUG("SAVED FILE chest_nbiot_rx_after_demapping.bin: NRS after demapping", 0);
       srslte_vec_save_file(
           "chest_nbiot_rx_after_demapping.bin", pilots, SRSLTE_REFSIGNAL_NUM_SF(1, port_id) * sizeof(cf_t));
     }

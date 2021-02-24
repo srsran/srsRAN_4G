@@ -52,8 +52,7 @@ namespace srslte {
 class radio : public radio_interface_phy, public srslte::radio_base
 {
 public:
-  radio(srslte::log_filter* log_h);
-  radio(srslte::logger* logger_h);
+  radio();
   ~radio();
 
   int         init(const rf_args_t& args_, phy_interface_radio* phy_) final;
@@ -99,9 +98,7 @@ private:
   std::vector<srslte_rf_info_t>                           rf_info     = {};
   std::vector<int32_t>                                    rx_offset_n = {};
   rf_metrics_t                                            rf_metrics  = {};
-  log_filter                                              log_local   = {};
-  log_filter*                                             log_h       = nullptr;
-  srslte::logger*                                         logger      = nullptr;
+  srslog::basic_logger&                                   logger      = srslog::fetch_basic_logger("RF", false);
   phy_interface_radio*                                    phy         = nullptr;
   cf_t*                                                   zeros       = nullptr;
   std::array<cf_t*, SRSLTE_MAX_CHANNELS>                  dummy_buffers;
@@ -133,6 +130,8 @@ private:
   std::vector<double> cur_tx_freqs = {};
   std::vector<double> cur_rx_freqs = {};
 
+  constexpr static const uint32_t max_resamp_buf_sz_ms = 5; ///< Maximum buffer size in ms for intermediate resampling
+                                                            ///< buffers
   constexpr static double tx_max_gap_zeros = 4e-3; ///< Maximum transmission gap to fill with zeros, otherwise the burst
                                                    ///< shall be stopped
 

@@ -18,6 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+set(CTEST_LABELS "lib;phy;fec;ldpc")
+
 add_executable(ldpc_enc_test ldpc_enc_test.c)
 target_link_libraries(ldpc_enc_test srslte_phy)
 
@@ -47,10 +49,18 @@ if(HAVE_AVX2)
   target_link_libraries(ldpc_dec_avx2_test srslte_phy)
 endif(HAVE_AVX2)
 
+if(HAVE_AVX512)
+  add_executable(ldpc_enc_avx512_test ldpc_enc_avx512_test.c)
+  target_link_libraries(ldpc_enc_avx512_test srslte_phy)
+
+  add_executable(ldpc_dec_avx512_test ldpc_dec_avx512_test.c)
+  target_link_libraries(ldpc_dec_avx512_test srslte_phy)
+endif(HAVE_AVX512)
+
 ### Test LDPC libs
 function(ldpc_unit_tests)
   foreach(i IN LISTS ARGN)
-    add_test(NAME ${test_name}-LS${i} COMMAND ${test_command} -l${i}
+    add_nr_test(NAME ${test_name}-LS${i} COMMAND ${test_command} -l${i}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
             )
   endforeach()
@@ -82,6 +92,55 @@ ldpc_unit_tests(${lifting_sizes})
 set(test_name LDPC-DEC-BG2)
 set(test_command ldpc_dec_test -b2)
 ldpc_unit_tests(${lifting_sizes})
+
+
+if (HAVE_AVX2)
+
+set(test_name LDPC-ENC-AVX2-BG1)
+set(test_command ldpc_enc_avx2_test -b1)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-ENC-AVX2-BG2)
+set(test_command ldpc_enc_avx2_test -b2)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-DEC-AVX2-BG1)
+set(test_command ldpc_dec_avx2_test -b1)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-DEC-AVX2-BG2)
+set(test_command ldpc_enc_avx2_test -b2)
+ldpc_unit_tests(${lifting_sizes})
+
+endif (HAVE_AVX2)
+
+if (HAVE_AVX512)
+
+set(test_name LDPC-ENC-AVX512-BG1)
+set(test_command ldpc_enc_avx512_test -b1)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-ENC-AVX512-BG2)
+set(test_command ldpc_enc_avx512_test -b2)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-DEC-AVX512-BG1)
+set(test_command ldpc_dec_avx512_test -b1)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-DEC-AVX512-BG2)
+set(test_command ldpc_dec_avx512_test -b2)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-DEC-AVX512-FLOOD-BG1)
+set(test_command ldpc_dec_avx512_test -x1 -b1)
+ldpc_unit_tests(${lifting_sizes})
+
+set(test_name LDPC-DEC-AVX512-FLOOD-BG2)
+set(test_command ldpc_dec_avx512_test -x1 -b2)
+ldpc_unit_tests(${lifting_sizes})
+endif (HAVE_AVX512)
+
 
 add_test(NAME LDPC-chain COMMAND ldpc_chain_test)
 
@@ -120,36 +179,36 @@ function(ldpc_rm_unit_tests)
           math(EXPR tmpN "${N} - (${N} % ${Div})")
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
 
-          add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
+          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N} / 2")
           # Half size buffer
-          add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
+          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR Div "2*${Ordval}")
           math(EXPR tmpN "${N} - (${N} % ${Div})")
           math(EXPR E "${Ordval}*(${tmpN})/${Div}") #twice the rate
-          add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
+          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N}/ 2")
           # Half size buffer
-          add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
+          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
 
           math(EXPR Div "${Ordval}")
           math(EXPR tmpN "2*${N} - (2*${N} % ${Div})") #Half the rate
           math(EXPR E "${Ordval}*(${tmpN})/${Div}")
-          add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
+          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${N} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${N}
 
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
           math(EXPR M "${N}/ 2")
           # Half size buffer
-          add_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
+          add_nr_test(NAME ${test_name}-b${bgval}-l${i}-e${E}-f10-m${Modval}-r${rvval}-M${M} COMMAND ${test_command} -b${bgval} -l${i} -e${E} -f10 -m${Modval} -r${rvval} -M${M}
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
                   )
         endforeach()
@@ -162,4 +221,4 @@ set(test_name LDPC-RM)
 set(test_command ldpc_rm_test)
 ldpc_rm_unit_tests(${lifting_sizes})
 
-add_test(NAME LDPC-RM-chain COMMAND ldpc_rm_chain_test -E 1 -B 1)
+add_nr_test(NAME LDPC-RM-chain COMMAND ldpc_rm_chain_test -E 1 -B 1)

@@ -24,6 +24,7 @@
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srslte/common/logmap.h"
+#include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
 
@@ -138,8 +139,8 @@ void bc_sched::reset()
  *                 RAR scheduling
  *******************************************************/
 
-ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_) :
-  cc_cfg(&cfg_), log_h(srslte::logmap::get("MAC")), ue_db(&ue_db_)
+ra_sched::ra_sched(const sched_cell_params_t& cfg_, sched_ue_list& ue_db_) :
+  cc_cfg(&cfg_), logger(srslog::fetch_basic_logger("MAC")), ue_db(&ue_db_)
 {}
 
 // Schedules RAR
@@ -161,13 +162,13 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
         char error_msg[128];
         int  len       = snprintf(error_msg,
                            sizeof(error_msg),
-                           "SCHED: Could not transmit RAR within the window (RA=%d, Window=%s, RAR=%d)\n",
+                           "SCHED: Could not transmit RAR within the window (RA=%d, Window=%s, RAR=%d)",
                            rar.prach_tti.to_uint(),
                            rar_window.to_string().c_str(),
                            tti_tx_dl.to_uint());
         error_msg[len] = '\0';
-        srslte::console("%s", error_msg);
-        log_h->error("%s", error_msg);
+        srslte::console("%s\n", error_msg);
+        logger.error("%s", error_msg);
         // Remove from pending queue and get next one if window has passed already
         pending_rars.pop_front();
         continue;
@@ -201,7 +202,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
 
 int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
-  log_h->info("SCHED: New PRACH tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d\n",
+  logger.info("SCHED: New PRACH tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d",
               rar_info.prach_tti,
               rar_info.preamble_idx,
               rar_info.temp_crnti,
@@ -216,7 +217,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   for (sf_sched::pending_rar_t& r : pending_rars) {
     if (r.prach_tti.to_uint() == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
       if (r.nof_grants >= sched_interface::MAX_RAR_LIST) {
-        log_h->warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached\n");
+        logger.warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached");
         return SRSLTE_ERROR;
       }
       r.msg3_grant[r.nof_grants] = rar_info;
@@ -243,15 +244,13 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
 
   for (const auto& rar : alloc_rars) {
     for (const auto& msg3grant : rar.rar_grant.msg3_grant) {
-
       uint16_t crnti   = msg3grant.data.temp_crnti;
       auto     user_it = ue_db->find(crnti);
-      if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(&user_it->second, msg3grant)) {
-        log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul().to_uint());
+      if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(user_it->second.get(), msg3grant)) {
+        logger.debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d", crnti, sf_msg3_sched->get_tti_tx_ul().to_uint());
       } else {
-        log_h->error("SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n",
-                     crnti,
-                     sf_msg3_sched->get_tti_tx_ul().to_uint());
+        logger.error(
+            "SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d", crnti, sf_msg3_sched->get_tti_tx_ul().to_uint());
       }
     }
   }
@@ -266,13 +265,13 @@ void ra_sched::reset()
  *                 Carrier scheduling
  *******************************************************/
 
-sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
-                                    std::map<uint16_t, sched_ue>* ue_db_,
-                                    uint32_t                      enb_cc_idx_,
-                                    sched_result_list*            sched_results_) :
+sched::carrier_sched::carrier_sched(rrc_interface_mac* rrc_,
+                                    sched_ue_list*     ue_db_,
+                                    uint32_t           enb_cc_idx_,
+                                    sched_result_list* sched_results_) :
   rrc(rrc_),
   ue_db(ue_db_),
-  log_h(srslte::logmap::get("MAC ")),
+  logger(srslog::fetch_basic_logger("MAC")),
   enb_cc_idx(enb_cc_idx_),
   prev_sched_results(sched_results_)
 {
@@ -299,10 +298,10 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
   // Setup data scheduling algorithms
   if (cell_params_.sched_cfg->sched_policy == "time_rr") {
     sched_algo.reset(new sched_time_rr{*cc_cfg, *cell_params_.sched_cfg});
-    log_h->info("Using time-domain RR scheduling policy for cc=%d\n", cc_cfg->enb_cc_idx);
+    logger.info("Using time-domain RR scheduling policy for cc=%d", cc_cfg->enb_cc_idx);
   } else {
     sched_algo.reset(new sched_time_pf{*cc_cfg, *cell_params_.sched_cfg});
-    log_h->info("Using time-domain PF scheduling policy for cc=%d\n", cc_cfg->enb_cc_idx);
+    logger.info("Using time-domain PF scheduling policy for cc=%d", cc_cfg->enb_cc_idx);
   }
 
   // Initiate the tti_scheduler for each TTI
@@ -326,7 +325,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Refresh UE internal buffers and subframe vars */
   for (auto& user : *ue_db) {
-    user.second.new_subframe(tti_rx, enb_cc_idx);
+    user.second->new_subframe(tti_rx, enb_cc_idx);
   }
 
   /* Schedule PHICH */
@@ -334,7 +333,7 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
     if (cc_result->ul_sched_result.nof_phich_elems >= MAX_PHICH_LIST) {
       break;
     }
-    tti_sched->alloc_phich(&ue_pair.second, &cc_result->ul_sched_result);
+    tti_sched->alloc_phich(ue_pair.second.get(), &cc_result->ul_sched_result);
   }
 
   /* Schedule DL control data */
@@ -367,11 +366,11 @@ const cc_sched_result& sched::carrier_sched::generate_tti_result(tti_point tti_r
 
   /* Reset ue harq pending ack state, clean-up blocked pids */
   for (auto& user : *ue_db) {
-    user.second.finish_tti(tti_rx, enb_cc_idx);
+    user.second->finish_tti(tti_rx, enb_cc_idx);
   }
 
-  log_dl_cc_results(log_h, enb_cc_idx, cc_result->dl_sched_result);
-  log_phich_cc_results(log_h, enb_cc_idx, cc_result->ul_sched_result);
+  log_dl_cc_results(logger, enb_cc_idx, cc_result->dl_sched_result);
+  log_phich_cc_results(logger, enb_cc_idx, cc_result->ul_sched_result);
 
   return *cc_result;
 }

@@ -24,6 +24,7 @@
 
 #include "sched.h"
 #include "schedulers/sched_base.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsenb {
 
@@ -33,10 +34,10 @@ class ra_sched;
 class sched::carrier_sched
 {
 public:
-  explicit carrier_sched(rrc_interface_mac*            rrc_,
-                         std::map<uint16_t, sched_ue>* ue_db_,
-                         uint32_t                      enb_cc_idx_,
-                         sched_result_list*            sched_results_);
+  explicit carrier_sched(rrc_interface_mac*                              rrc_,
+                         std::map<uint16_t, std::unique_ptr<sched_ue> >* ue_db_,
+                         uint32_t                                        enb_cc_idx_,
+                         sched_result_list*                              sched_results_);
   ~carrier_sched();
   void                   reset();
   void                   carrier_cfg(const sched_cell_params_t& sched_params_);
@@ -58,11 +59,11 @@ private:
   sf_sched* get_sf_sched(srslte::tti_point tti_rx);
 
   // args
-  const sched_cell_params_t*    cc_cfg = nullptr;
-  srslte::log_ref               log_h;
-  rrc_interface_mac*            rrc   = nullptr;
-  std::map<uint16_t, sched_ue>* ue_db = nullptr;
-  const uint32_t                enb_cc_idx;
+  const sched_cell_params_t*                      cc_cfg = nullptr;
+  srslog::basic_logger&                           logger;
+  rrc_interface_mac*                              rrc   = nullptr;
+  std::map<uint16_t, std::unique_ptr<sched_ue> >* ue_db = nullptr;
+  const uint32_t                                  enb_cc_idx;
 
   // Subframe scheduling logic
   std::array<sf_sched, TTIMOD_SZ> sf_scheds;
@@ -115,7 +116,7 @@ public:
   using dl_sched_rar_t       = sched_interface::dl_sched_rar_t;
   using dl_sched_rar_grant_t = sched_interface::dl_sched_rar_grant_t;
 
-  explicit ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_);
+  explicit ra_sched(const sched_cell_params_t& cfg_, sched_ue_list& ue_db_);
   void dl_sched(sf_sched* tti_sched);
   void ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched);
   int  dl_rach_info(dl_sched_rar_info_t rar_info);
@@ -123,9 +124,9 @@ public:
 
 private:
   // args
-  srslte::log_ref               log_h;
-  const sched_cell_params_t*    cc_cfg = nullptr;
-  std::map<uint16_t, sched_ue>* ue_db  = nullptr;
+  srslog::basic_logger&      logger;
+  const sched_cell_params_t* cc_cfg = nullptr;
+  sched_ue_list*             ue_db  = nullptr;
 
   std::deque<sf_sched::pending_rar_t> pending_rars;
   uint32_t                            rar_aggr_level   = 2;

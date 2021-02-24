@@ -37,8 +37,6 @@ using namespace std;
 
 namespace srsenb {
 
-vnf_phy_nr::vnf_phy_nr(srslte::logger* logger_) : logger(logger_) {}
-
 vnf_phy_nr::~vnf_phy_nr()
 {
   stop();
@@ -51,7 +49,7 @@ int vnf_phy_nr::init(const srsenb::phy_args_t& args, const nr_phy_cfg_t& cfg, sr
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
   // create VNF
-  vnf = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args.vnf_args, logger, stack_));
+  vnf = std::unique_ptr<srslte::srslte_basic_vnf>(new srslte::srslte_basic_vnf(args.vnf_args, stack_));
 
   initialized = true;
 

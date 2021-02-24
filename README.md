@@ -119,7 +119,7 @@ Build Instructions
 
 For example, on Ubuntu, one can install the mandatory build dependencies with:
 ```
-sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
+sudo apt-get install build-essential cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 ```
 or on Fedora:
 ```
@@ -132,6 +132,7 @@ Note that depending on your flavor and version of Linux, the actual package name
 * Optional requirements: 
   * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
   * libpcsclite-dev:     https://pcsclite.apdu.fr/ - for accessing smart card readers
+  * libdw-dev            libdw - for truly informative backtraces using backward-cpp
 
 * RF front-end driver:
   * UHD:                 https://github.com/EttusResearch/uhd

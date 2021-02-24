@@ -22,6 +22,7 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/asn1/rrc/dl_dcch_msg.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/srslog/srslog.h"
 #include <iostream>
 #include <srslte/srslte.h>
 
@@ -155,6 +156,14 @@ int meas_obj_test()
 
 int main(int argc, char** argv)
 {
+  auto& nas_logger = srslog::fetch_basic_logger("NAS", false);
+  nas_logger.set_level(srslog::basic_levels::debug);
+  nas_logger.set_hex_dump_max_size(-1);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(-1);
+  srslog::init();
+
   TESTASSERT(meas_obj_test() == 0);
   TESTASSERT(nas_test() == 0);
 }

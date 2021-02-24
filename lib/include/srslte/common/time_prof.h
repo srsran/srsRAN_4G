@@ -22,8 +22,9 @@
 #ifndef SRSLTE_TIME_PROF_H
 #define SRSLTE_TIME_PROF_H
 
-#include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <chrono>
+#include <mutex>
 
 #ifdef ENABLE_TIMEPROF
 #define TPROF_ENABLE_DEFAULT true
@@ -57,8 +58,7 @@ class tprof
 public:
   template <typename... Args>
   explicit tprof(Args&&... args) : prof(std::forward<Args>(args)...)
-  {
-  }
+  {}
 
   void start() { meas.start(); }
 
@@ -80,8 +80,7 @@ class tprof<Prof, false>
 public:
   template <typename... Args>
   explicit tprof(Args&&... args)
-  {
-  }
+  {}
 
   void start() {}
 
@@ -115,8 +114,7 @@ struct mutexed_tprof {
 
   template <typename... Args>
   explicit mutexed_tprof(Args&&... args) : prof(std::forward<Args>(args)...)
-  {
-  }
+  {}
   measure start() { return measure{this}; }
 
   Prof prof;
@@ -135,8 +133,7 @@ struct mutexed_tprof<Prof, false> {
 
   template <typename... Args>
   explicit mutexed_tprof(Args&&... args)
-  {
-  }
+  {}
   measure start() { return measure{}; }
 };
 
@@ -144,11 +141,11 @@ struct avg_time_stats {
   avg_time_stats(const char* name_, const char* logname, size_t print_period_);
   void operator()(std::chrono::nanoseconds duration);
 
-  srslte::log_ref log_ptr;
-  std::string     name;
-  double          avg_val = 1;
-  long            count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
-  long            print_period = 0;
+  srslog::basic_logger& logger;
+  std::string           name;
+  double                avg_val = 1;
+  long                  count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
+  long                  print_period = 0;
 };
 
 template <typename TUnit>
@@ -158,7 +155,7 @@ public:
   sliding_window_stats(const char* name_, const char* logname, size_t print_period_ = 10);
   void operator()(std::chrono::nanoseconds duration);
 
-  srslte::log_ref                       log_ptr;
+  srslog::basic_logger&                 logger;
   std::string                           name;
   std::vector<std::chrono::nanoseconds> sliding_window;
   size_t                                window_idx = 0;

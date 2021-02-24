@@ -23,7 +23,6 @@
 #define SRSLTE_RX_SOCKET_HANDLER_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 
 #include <arpa/inet.h>
@@ -134,7 +133,7 @@ public:
   using sctp_recv_callback_t =
       std::function<void(srslte::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
 
-  rx_multisocket_handler(std::string name_, srslte::log_ref log_, int thread_prio = 65);
+  rx_multisocket_handler(std::string name_, srslog::basic_logger& logger, int thread_prio = 65);
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
@@ -157,12 +156,12 @@ private:
     cmd_id_t cmd    = cmd_id_t::EXIT;
     int      new_fd = -1;
   };
-  bool remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
+  std::map<int, rx_multisocket_handler::task_callback_t>::iterator
+  remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
   // args
-  std::string               name;
-  srslte::log_ref           log_h;
-  srslte::byte_buffer_pool* pool = nullptr;
+  std::string           name;
+  srslog::basic_logger& logger;
 
   // state
   std::mutex                     socket_mutex;

@@ -25,7 +25,8 @@
 
 using namespace srslte;
 
-channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels)
+channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels, srslog::basic_logger& logger) :
+  logger(logger)
 {
   int      ret         = SRSLTE_SUCCESS;
   uint32_t srate_max   = (uint32_t)srslte_symbol_sz(SRSLTE_MAX_PRB) * 15000;
@@ -146,11 +147,6 @@ static inline cf_t local_cexpf(float phase)
 }
 }
 
-void channel::set_logger(log_filter* _log_h)
-{
-  log_h = _log_h;
-}
-
 void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
                   cf_t*                     out[SRSLTE_MAX_CHANNELS],
                   uint32_t                  len,
@@ -223,22 +219,16 @@ void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
     }
   }
 
-  if (log_h) {
-    // Logging
-    std::stringstream str;
-
-    str << "t=" << t.full_secs + t.frac_secs << "s; ";
-
-    if (delay[0]) {
-      str << "delay=" << delay[0]->delay_us << "us; ";
-    }
-
-    if (hst) {
-      str << "hst=" << hst->fs_hz << "Hz; ";
-    }
-
-    log_h->debug("%s\n", str.str().c_str());
+  // Logging
+  std::stringstream str;
+  str << "t=" << t.full_secs + t.frac_secs << "s; ";
+  if (delay[0]) {
+    str << "delay=" << delay[0]->delay_us << "us; ";
   }
+  if (hst) {
+    str << "hst=" << hst->fs_hz << "Hz; ";
+  }
+  logger.debug("%s", str.str().c_str());
 }
 
 void channel::set_srate(uint32_t srate)

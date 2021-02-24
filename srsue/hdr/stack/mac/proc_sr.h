@@ -24,6 +24,7 @@
 
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include <stdint.h>
 
 /* Scheduling Request procedure as defined in 5.4.4 of 36.321 */
@@ -36,8 +37,8 @@ class ra_proc;
 class sr_proc
 {
 public:
-  sr_proc();
-  void init(ra_proc* ra, phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log_ref log_h);
+  explicit sr_proc(srslog::basic_logger& logger);
+  void init(ra_proc* ra, phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc);
   void step(uint32_t tti);
   void set_config(srslte::sr_cfg_t& cfg);
   void reset();
@@ -54,7 +55,7 @@ private:
   ra_proc*               ra;
   rrc_interface_mac*     rrc;
   phy_interface_mac_lte* phy_h;
-  srslte::log_ref        log_h;
+  srslog::basic_logger&  logger;
 
   bool initiated;
 };

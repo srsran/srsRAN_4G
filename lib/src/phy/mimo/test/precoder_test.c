@@ -182,13 +182,13 @@ int main(int argc, char** argv)
 
   /* Check input ranges */
   if (nof_tx_ports > SRSLTE_MAX_PORTS || nof_rx_ports > SRSLTE_MAX_PORTS || nof_layers > SRSLTE_MAX_LAYERS) {
-    ERROR("Invalid number of layers or ports\n");
+    ERROR("Invalid number of layers or ports");
     exit(-1);
   }
 
   /* Parse MIMO Type */
   if (srslte_str2mimotype(mimo_type_name, &type)) {
-    ERROR("Invalid MIMO type %s\n", mimo_type_name);
+    ERROR("Invalid MIMO type %s", mimo_type_name);
     exit(-1);
   }
 
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     case SRSLTE_TXSCHEME_CDD:
       nof_re = nof_symbols * nof_tx_ports / nof_layers;
       if (nof_rx_ports != 2 || nof_tx_ports != 2) {
-        ERROR("CDD nof_tx_ports=%d nof_rx_ports=%d is not currently supported\n", nof_tx_ports, nof_rx_ports);
+        ERROR("CDD nof_tx_ports=%d nof_rx_ports=%d is not currently supported", nof_tx_ports, nof_rx_ports);
         exit(-1);
       }
       break;
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
 
   /* Execute Precoding (Tx) */
   if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, codebook_idx, nof_symbols, scaling, type) < 0) {
-    ERROR("Error layer mapper encoder\n");
+    ERROR("Error layer mapper encoder");
     exit(-1);
   }
 

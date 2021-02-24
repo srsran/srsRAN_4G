@@ -29,16 +29,16 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr() : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
+mac_nr::mac_nr() : log_h("MAC")
 {
-  bcch_bch_payload = srslte::allocate_unique_buffer(*pool);
+  bcch_bch_payload = srslte::make_byte_buffer();
 
   // allocate 8 tx buffers for UE (TODO: as we don't handle softbuffers why do we need so many buffers)
   for (int i = 0; i < SRSLTE_FDD_NOF_HARQ; i++) {
-    ue_tx_buffer.emplace_back(srslte::allocate_unique_buffer(*pool));
+    ue_tx_buffer.emplace_back(srslte::make_byte_buffer());
   }
 
-  ue_rlc_buffer = srslte::allocate_unique_buffer(*pool);
+  ue_rlc_buffer = srslte::make_byte_buffer();
 }
 
 mac_nr::~mac_nr()
@@ -63,7 +63,7 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   log_h->set_hex_limit(args.log_hex_limit);
 
   if (args.pcap.enable) {
-    pcap = std::unique_ptr<srslte::mac_nr_pcap>(new srslte::mac_nr_pcap());
+    pcap = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
     pcap->open(args.pcap.filename);
   }
 
@@ -122,7 +122,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
         tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
 
         if (pcap) {
-          pcap->write_dl_si_rnti(sib.payload->msg, sib.payload->N_bytes, 0xffff, 0, tti);
+          pcap->write_dl_si_rnti_nr(sib.payload->msg, sib.payload->N_bytes, 0xffff, 0, tti);
         }
 
         tx_request.nof_pdus++;
@@ -161,11 +161,11 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
       tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
 
       if (pcap) {
-        pcap->write_dl_crnti(tx_request.pdus[tx_request.nof_pdus].data[0],
-                             tx_request.pdus[tx_request.nof_pdus].length,
-                             args.rnti,
-                             buffer_index,
-                             tti);
+        pcap->write_dl_crnti_nr(tx_request.pdus[tx_request.nof_pdus].data[0],
+                                tx_request.pdus[tx_request.nof_pdus].length,
+                                args.rnti,
+                                buffer_index,
+                                tti);
       }
 
       tx_request.nof_pdus++;
@@ -200,7 +200,7 @@ int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
   // push received PDU on queue
   if (rx_data.tb != nullptr) {
     if (pcap) {
-      pcap->write_ul_crnti(rx_data.tb->msg, rx_data.tb->N_bytes, rx_data.rnti, true, rx_data.tti);
+      pcap->write_ul_crnti_nr(rx_data.tb->msg, rx_data.tb->N_bytes, rx_data.rnti, true, rx_data.tti);
     }
     ue_rx_pdu_queue.push(std::move(rx_data.tb));
   }
@@ -231,16 +231,14 @@ int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
   ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
-    srslte::mac_nr_sch_subpdu subpdu = ue_rx_pdu.get_subpdu(i);
+    srslte::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
     log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
                 i,
                 ue_rx_pdu.get_num_subpdus(),
                 subpdu.get_lcid(),
                 subpdu.get_sdu_length());
 
-    if (subpdu.get_lcid() == args.drb_lcid) {
-      rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
-    }
+    // rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
   }
   return SRSLTE_SUCCESS;
 }
@@ -255,7 +253,7 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
       sib_info_t sib  = {};
       sib.index       = i;
       sib.periodicity = cell_cfg->sibs->period_rf;
-      sib.payload     = srslte::allocate_unique_buffer(*pool);
+      sib.payload     = srslte::make_byte_buffer();
       if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSLTE_SUCCESS) {
         log_h->error("Couldn't read SIB %d from RRC\n", sib.index);
       }

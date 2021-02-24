@@ -125,7 +125,7 @@ bool is_same_type(U& u)
   return std::is_same<T, U>::value;
 }
 
-int test_proc_id_consistency()
+int test_proc_id_consistency(srslte::log_sink_spy& spy)
 {
   s1ap_pdu_c pdu;
 
@@ -150,11 +150,9 @@ int test_proc_id_consistency()
   TESTASSERT(unsuc.value.type().value == s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_fail);
   TESTASSERT(is_same_type<ho_fail_s>(unsuc.value.ho_fail()));
   // e-RABSetup (No Unsuccessful Outcome)
-  {
-    srslte::scoped_log<srslte::nullsink_log> sink("ASN1");
-    TESTASSERT(not unsuc.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP));
-    TESTASSERT(sink->error_counter == 1);
-  }
+  spy.reset_counters();
+  TESTASSERT(not unsuc.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP));
+  TESTASSERT(spy.get_error_counter() == 1);
   // initialContextSetup
   TESTASSERT(unsuc.load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP));
   TESTASSERT(unsuc.proc_code == ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
@@ -225,7 +223,7 @@ int test_enb_status_transfer()
   asn1::bit_ref bref{buffer, sizeof(buffer)};
   TESTASSERT(pdu.pack(bref) == SRSASN_SUCCESS);
 
-  srslte::logmap::get("ASN1")->info_hex(
+  srslog::fetch_basic_logger("ASN1").info(
       buffer, bref.distance_bytes(), "eNB Status Transfer (%d bytes)", (int)bref.distance_bytes());
 
   asn1::cbit_ref bref2{buffer, sizeof(buffer)};
@@ -300,8 +298,8 @@ int test_initial_ctxt_setup_response()
   asn1::bit_ref bref(buffer, sizeof(buffer));
   TESTASSERT(tx_pdu.pack(bref) == SRSLTE_SUCCESS);
 
-  srslte::logmap::get("TEST")->info_hex(
-      buffer, bref.distance_bytes(), "message (nof bytes = %d):\n", bref.distance_bytes());
+  srslog::fetch_basic_logger("TEST").info(
+      buffer, bref.distance_bytes(), "message (nof bytes = %d):", bref.distance_bytes());
 
   return SRSLTE_SUCCESS;
 }
@@ -343,7 +341,7 @@ int test_eci_pack()
   TESTASSERT(buffer[1] == 0x19);
   TESTASSERT(buffer[2] == 0xC0);
 
-  srslte::logmap::get("TEST")->info_hex(buffer, bref.distance_bytes(), "Packed cell id:\n");
+  srslog::fetch_basic_logger("TEST").info(buffer, bref.distance_bytes(), "Packed cell id:");
 
   return SRSLTE_SUCCESS;
 }
@@ -370,10 +368,32 @@ int main()
   srslte::logmap::set_default_hex_limit(4096);
   TESTASSERT(srslte::logmap::get("ASN1")->get_level() == srslte::LOG_LEVEL_DEBUG);
 
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srslte::log_sink_spy::name(),
+          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSLTE_ERROR;
+  }
+
+  auto* spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  if (!spy) {
+    return SRSLTE_ERROR;
+  }
+
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", *spy, false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+  auto& test_logger = srslog::fetch_basic_logger("TEST", false);
+  test_logger.set_level(srslog::basic_levels::debug);
+  test_logger.set_hex_dump_max_size(-1);
+
+  // Start the log backend.
+  srslog::init();
+
   TESTASSERT(test_s1setup_request() == 0);
   TESTASSERT(test_init_ctxt_setup_req() == 0);
   TESTASSERT(test_ue_ctxt_release_req() == 0);
-  TESTASSERT(test_proc_id_consistency() == 0);
+  TESTASSERT(test_proc_id_consistency(*spy) == 0);
   TESTASSERT(test_ho_request() == 0);
   TESTASSERT(test_enb_status_transfer() == 0);
   TESTASSERT(unpack_test_served_gummeis_with_multiple_plmns() == 0);
@@ -381,6 +401,8 @@ int main()
   TESTASSERT(test_initial_ctxt_setup_response() == 0);
   TESTASSERT(test_eci_pack() == 0);
   TESTASSERT(test_paging() == 0);
+
+  srslog::flush();
 
   printf("Success\n");
   return 0;

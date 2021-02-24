@@ -23,16 +23,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 
@@ -54,20 +54,19 @@ search::~search()
   srslte_ue_cellsearch_free(&cs);
 }
 
-void search::init(srslte::rf_buffer_t& buffer_, srslte::log* log_h_, uint32_t nof_rx_channels, search_callback* parent)
+void search::init(srslte::rf_buffer_t& buffer_, uint32_t nof_rx_channels, search_callback* parent)
 {
-  log_h = log_h_;
-  p     = parent;
+  p = parent;
 
   buffer = buffer_;
 
   if (srslte_ue_cellsearch_init_multi(&cs, 8, radio_recv_callback, nof_rx_channels, parent)) {
-    Error("SYNC:  Initiating UE cell search\n");
+    Error("SYNC:  Initiating UE cell search");
   }
   srslte_ue_cellsearch_set_nof_valid_frames(&cs, 4);
 
   if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, radio_recv_callback, nof_rx_channels, parent)) {
-    Error("SYNC:  Initiating UE MIB synchronization\n");
+    Error("SYNC:  Initiating UE MIB synchronization");
   }
 
   // Set options defined in expert section
@@ -96,7 +95,7 @@ void search::set_agc_enable(bool enable)
                              rf_info->max_rx_gain,
                              p->get_radio()->get_rx_gain());
   } else {
-    ERROR("Error stop AGC not implemented\n");
+    ERROR("Error stop AGC not implemented");
   }
 }
 
@@ -112,7 +111,7 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
   uint32_t max_peak_cell = 0;
   int      ret           = SRSLTE_ERROR;
 
-  Info("SYNC:  Searching for cell...\n");
+  Info("SYNC:  Searching for cell...");
   srslte::console(".");
 
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
@@ -123,10 +122,10 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
   }
 
   if (ret < 0) {
-    Error("SYNC:  Error decoding MIB: Error searching PSS\n");
+    Error("SYNC:  Error decoding MIB: Error searching PSS");
     return ERROR;
   } else if (ret == 0) {
-    Info("SYNC:  Could not find any cell in this frequency\n");
+    Info("SYNC:  Could not find any cell in this frequency");
     return CELL_NOT_FOUND;
   }
   // Save result
@@ -136,14 +135,14 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
   float cfo           = found_cells[max_peak_cell].cfo;
 
   srslte::console("\n");
-  Info("SYNC:  PSS/SSS detected: Mode=%s, PCI=%d, CFO=%.1f KHz, CP=%s\n",
+  Info("SYNC:  PSS/SSS detected: Mode=%s, PCI=%d, CFO=%.1f KHz, CP=%s",
        new_cell.frame_type ? "TDD" : "FDD",
        new_cell.id,
        cfo / 1000,
        srslte_cp_string(new_cell.cp));
 
   if (srslte_ue_mib_sync_set_cell(&ue_mib_sync, new_cell)) {
-    Error("SYNC:  Setting UE MIB cell\n");
+    Error("SYNC:  Setting UE MIB cell");
     return ERROR;
   }
 
@@ -170,7 +169,7 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
             new_cell.nof_ports,
             cfo / 1000);
 
-    Info("SYNC:  MIB Decoded: Mode=%s, PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz\n",
+    Info("SYNC:  MIB Decoded: Mode=%s, PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz",
          new_cell.frame_type ? "TDD" : "FDD",
          new_cell.id,
          new_cell.nof_prb,
@@ -178,7 +177,7 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
          cfo / 1000);
 
     if (!srslte_cell_isvalid(&new_cell)) {
-      Error("SYNC:  Detected invalid cell.\n");
+      Error("SYNC:  Detected invalid cell.");
       return CELL_NOT_FOUND;
     }
 
@@ -189,10 +188,10 @@ search::ret_code search::run(srslte_cell_t* cell_, std::array<uint8_t, SRSLTE_BC
 
     return CELL_FOUND;
   } else if (ret == 0) {
-    Warning("SYNC:  Found PSS but could not decode PBCH\n");
+    Warning("SYNC:  Found PSS but could not decode PBCH");
     return CELL_NOT_FOUND;
   } else {
-    Error("SYNC:  Receiving MIB\n");
+    Error("SYNC:  Receiving MIB");
     return ERROR;
   }
 }

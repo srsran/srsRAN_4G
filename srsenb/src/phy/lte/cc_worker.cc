@@ -27,16 +27,16 @@
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->error(fmt, ##__VA_ARGS__)
+  logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...)                                                                                              \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->warning(fmt, ##__VA_ARGS__)
+  logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)                                                                                                 \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->info(fmt, ##__VA_ARGS__)
+  logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
-  log_h->debug(fmt, ##__VA_ARGS__)
+  logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 
@@ -55,7 +55,7 @@ using namespace asn1::rrc;
 namespace srsenb {
 namespace lte {
 
-cc_worker::cc_worker()
+cc_worker::cc_worker(srslog::basic_logger& logger) : logger(logger)
 {
   reset();
 }
@@ -85,10 +85,9 @@ cc_worker::~cc_worker()
 FILE* f;
 #endif
 
-void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
+void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
 {
   phy                   = phy_;
-  log_h                 = log_h_;
   cc_idx                = cc_idx_;
   srslte_cell_t cell    = phy_->get_cell(cc_idx);
   uint32_t      nof_prb = phy_->get_nof_prb(cc_idx);
@@ -98,32 +97,32 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   for (uint32_t p = 0; p < phy->get_nof_ports(cc_idx); p++) {
     signal_buffer_rx[p] = srslte_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_rx[p]) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return;
     }
     srslte_vec_cf_zero(signal_buffer_rx[p], 2 * sf_len);
     signal_buffer_tx[p] = srslte_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_tx[p]) {
-      ERROR("Error allocating memory\n");
+      ERROR("Error allocating memory");
       return;
     }
     srslte_vec_cf_zero(signal_buffer_tx[p], 2 * sf_len);
   }
   if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, nof_prb)) {
-    ERROR("Error initiating ENB DL (cc=%d)\n", cc_idx);
+    ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
     return;
   }
   if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
-    ERROR("Error initiating ENB DL (cc=%d)\n", cc_idx);
+    ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
     return;
   }
   if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
-    ERROR("Error initiating ENB UL\n");
+    ERROR("Error initiating ENB UL");
     return;
   }
 
   if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->dmrs_pusch_cfg, nullptr)) {
-    ERROR("Error initiating ENB UL\n");
+    ERROR("Error initiating ENB UL");
     return;
   }
 
@@ -139,13 +138,13 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   }
 
   if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
-    ERROR("Error initiating soft buffer\n");
+    ERROR("Error initiating soft buffer");
     exit(-1);
   }
 
   srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
-  Info("Component Carrier Worker %d configured cell %d PRB\n", cc_idx, nof_prb);
+  Info("Component Carrier Worker %d configured cell %d PRB", cc_idx, nof_prb);
 
   if (phy->params.pusch_8bit_decoder) {
     enb_ul.pusch.llr_is_8bit        = true;
@@ -226,7 +225,7 @@ void cc_worker::work_ul(const srslte_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy
 {
   std::lock_guard<std::mutex> lock(mutex);
   ul_sf = ul_sf_cfg;
-  log_h->step(ul_sf.tti);
+  logger.set_context(ul_sf.tti);
 
   // Process UL signal
   srslte_enb_ul_fft(&enb_ul);
@@ -305,33 +304,31 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Compute UL grant
   srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
   if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
-    Error("Computing PUSCH dci for RNTI %x\n", rnti);
+    Error("Computing PUSCH dci for RNTI %x", rnti);
     return;
   }
-
-  uint32_t ul_pid = TTI_RX(ul_sf.tti) % SRSLTE_FDD_NOF_HARQ;
 
   // Handle Format0 adaptive retx
   // Use last TBS for this TB in case of mcs>28
   if (ul_grant.dci.tb.mcs_idx > 28) {
     int rv_idx  = grant.tb.rv;
-    grant.tb    = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
+    grant.tb    = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_grant.pid);
     grant.tb.rv = rv_idx;
-    Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d\n",
+    Info("Adaptive retx: rnti=0x%x, pid=%d, rv_idx=%d, mcs=%d, old_tbs=%d",
          rnti,
-         ul_pid,
+         ul_grant.pid,
          grant.tb.rv,
          ul_grant.dci.tb.mcs_idx,
          grant.tb.tbs / 8);
   }
-  phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_pid, grant.tb);
+  phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_grant.pid, grant.tb);
 
   // Run PUSCH decoder
   ul_cfg.pusch.softbuffers.rx = ul_grant.softbuffer_rx;
   pusch_res.data              = ul_grant.data;
   if (pusch_res.data) {
     if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
-      Error("Decoding PUSCH for RNTI %x\n", rnti);
+      Error("Decoding PUSCH for RNTI %x", rnti);
       return;
     }
   }
@@ -385,10 +382,10 @@ void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, 
       // Push PDU buffer
       phy->stack->push_pdu(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
       // Logging
-      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (logger.info.enabled()) {
         char str[512];
         srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, sizeof(str));
-        log_h->info("PUSCH: cc=%d, %s\n", cc_idx, str);
+        logger.info("PUSCH: cc=%d, %s", cc_idx, str);
       }
     }
   }
@@ -409,7 +406,7 @@ int cc_worker::decode_pucch()
       if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg)) {
         // Decode PUCCH
         if (srslte_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
-          ERROR("Error getting PUCCH\n");
+          ERROR("Error getting PUCCH");
           return SRSLTE_ERROR;
         }
 
@@ -422,10 +419,10 @@ int cc_worker::decode_pucch()
         }
 
         // Logging
-        if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+        if (logger.info.enabled()) {
           char str[512];
           srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, sizeof(str));
-          log_h->info("PUCCH: cc=%d; %s\n", cc_idx, str);
+          logger.info("PUCCH: cc=%d; %s", cc_idx, str);
         }
 
         // Save metrics
@@ -442,7 +439,7 @@ int cc_worker::encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint3
     if (acks[i].rnti && ue_db.count(acks[i].rnti)) {
       srslte_enb_dl_put_phich(&enb_dl, &ue_db[acks[i].rnti]->phich_grant, acks[i].ack);
 
-      Info("PHICH: rnti=0x%x, hi=%d, I_lowest=%d, n_dmrs=%d, tti_tx_dl=%d\n",
+      Info("PHICH: rnti=0x%x, hi=%d, I_lowest=%d, n_dmrs=%d, tti_tx_dl=%d",
            acks[i].rnti,
            acks[i].ack,
            ue_db[acks[i].rnti]->phich_grant.n_prb_lowest,
@@ -468,15 +465,15 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       }
 
       if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
-        ERROR("Error putting PUSCH %d\n", i);
+        ERROR("Error putting PUSCH %d", i);
         return SRSLTE_ERROR;
       }
 
       // Logging
-      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (logger.info.enabled()) {
         char str[512];
         srslte_dci_ul_info(&grants[i].dci, str, 512);
-        log_h->info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+        logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
       }
     }
   }
@@ -498,15 +495,15 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
       }
 
       if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &dci_cfg, &grants[i].dci)) {
-        ERROR("Error putting PDCCH %d\n", i);
+        ERROR("Error putting PDCCH %d", i);
         return SRSLTE_ERROR;
       }
 
-      if (LOG_THIS(rnti) and log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (LOG_THIS(rnti) and logger.info.enabled()) {
         // Logging
         char str[512];
         srslte_dci_dl_info(&grants[i].dci, str, 512);
-        log_h->info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+        logger.info("PDCCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
       }
     }
   }
@@ -525,15 +522,15 @@ int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srs
 
   // Encode PMCH
   if (srslte_enb_dl_put_pmch(&enb_dl, &pmch_cfg, grant->data[0])) {
-    Error("Error putting PMCH\n");
+    Error("Error putting PMCH");
     return SRSLTE_ERROR;
   }
 
   // Logging
-  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+  if (logger.info.enabled()) {
     char str[512];
     srslte_pdsch_tx_info(&pmch_cfg.pdsch_cfg, str, 512);
-    log_h->info("PMCH: %s\n", str);
+    logger.info("PMCH: %s", str);
   }
 
   // Save metrics stats
@@ -557,7 +554,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       // Compute DL grant
       if (srslte_ra_dl_dci_to_grant(
               &enb_dl.cell, &dl_sf, dl_cfg.tm, dl_cfg.pdsch.use_tbs_index_alt, &grants[i].dci, &dl_cfg.pdsch.grant)) {
-        Error("Computing DL grant\n");
+        Error("Computing DL grant");
       }
 
       // Set soft buffer
@@ -567,7 +564,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 
       // Encode PDSCH
       if (srslte_enb_dl_put_pdsch(&enb_dl, &dl_cfg.pdsch, grants[i].data)) {
-        Error("Error putting PDSCH %d\n", i);
+        Error("Error putting PDSCH %d", i);
         return SRSLTE_ERROR;
       }
 
@@ -577,17 +574,17 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
         phy->ue_db.set_ack_pending(tti_tx_ul, cc_idx, grants[i].dci);
       }
 
-      if (LOG_THIS(rnti) and log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (LOG_THIS(rnti) and logger.info.enabled()) {
         // Logging
         char str[512];
         srslte_pdsch_tx_info(&dl_cfg.pdsch, str, 512);
-        log_h->info("PDSCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+        logger.info("PDSCH: cc=%d, %s, tti_tx_dl=%d", cc_idx, str, tti_tx_dl);
       }
 
       // Save metrics stats
       ue_db[rnti]->metrics_dl(grants[i].dci.tb[0].mcs_idx);
     } else {
-      Error("User rnti=0x%x not found in cc_worker=%d\n", rnti, cc_idx);
+      Error("User rnti=0x%x not found in cc_worker=%d", rnti, cc_idx);
     }
   }
 

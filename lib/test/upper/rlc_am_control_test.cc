@@ -73,6 +73,8 @@ int status_pdu_with_nacks_test1()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   TESTASSERT(simple_status_pdu_test1() == SRSLTE_SUCCESS);
   TESTASSERT(status_pdu_with_nacks_test1() == SRSLTE_SUCCESS);
 

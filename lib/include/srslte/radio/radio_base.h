@@ -38,7 +38,6 @@ class phy_interface_radio;
 class radio_base
 {
 public:
-  radio_base(srslte::logger* logger_ = nullptr) {}
   virtual ~radio_base() = default;
 
   virtual std::string get_type() = 0;

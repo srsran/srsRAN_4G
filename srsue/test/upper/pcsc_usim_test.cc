@@ -19,11 +19,9 @@
  *
  */
 
+#include "srsue/hdr/stack/upper/pcsc_usim.h"
 #include <assert.h>
 #include <iostream>
-
-#include "srslte/common/log_filter.h"
-#include "srsue/hdr/stack/upper/pcsc_usim.h"
 
 using namespace srsue;
 using namespace std;
@@ -33,9 +31,11 @@ uint8_t autn_enb[] = {0x5a, 0x17, 0x77, 0x3c, 0x62, 0x57, 0x90, 0x01, 0xcf, 0x47
 
 int main(int argc, char** argv)
 {
-  srslte::log_filter usim_log("USIM");
-  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  usim_log.set_hex_limit(100000);
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("USIM", false);
+  logger.set_level(srslog::basic_levels::debug);
+  logger.set_hex_dump_max_size(100000);
+  srslog::init();
+
   uint8_t res[16];
   int     res_len;
   uint8_t k_asme[32];
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
   args.pin  = "6129";
   args.imei = "353490069873319";
 
-  srsue::pcsc_usim usim(&usim_log);
+  srsue::pcsc_usim usim(logger);
   if (usim.init(&args)) {
     printf("Error initializing PC/SC USIM.\n");
     return SRSLTE_ERROR;

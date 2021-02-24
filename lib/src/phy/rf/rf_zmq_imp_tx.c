@@ -48,6 +48,7 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     q->socket_type   = opts.socket_type;
     q->sample_format = opts.sample_format;
     q->frequency_mhz = opts.frequency_mhz;
+    q->sample_offset = opts.sample_offset;
 
     rf_zmq_info(q->id, "Binding transmitter: %s\n", sock_args);
 
@@ -57,24 +58,24 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       goto clean_exit;
     }
 
-#if ZMQ_TIMEOUT_MS
-    int timeout = ZMQ_TIMEOUT_MS;
-    if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting receive timeout on tx socket\n");
-      goto clean_exit;
-    }
+    if (opts.trx_timeout_ms) {
+      int timeout = opts.trx_timeout_ms;
+      if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting receive timeout on tx socket\n");
+        goto clean_exit;
+      }
 
-    if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting receive timeout on tx socket\n");
-      goto clean_exit;
-    }
+      if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting receive timeout on tx socket\n");
+        goto clean_exit;
+      }
 
-    timeout = 0;
-    if (zmq_setsockopt(q->sock, ZMQ_LINGER, &timeout, sizeof(timeout)) == -1) {
-      fprintf(stderr, "Error: setting linger timeout on tx socket\n");
-      goto clean_exit;
+      timeout = 0;
+      if (zmq_setsockopt(q->sock, ZMQ_LINGER, &timeout, sizeof(timeout)) == -1) {
+        fprintf(stderr, "Error: setting linger timeout on tx socket\n");
+        goto clean_exit;
+      }
     }
-#endif
 
     if (pthread_mutex_init(&q->mutex, NULL)) {
       fprintf(stderr, "Error: creating mutex\n");
@@ -187,6 +188,19 @@ int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
   int n;
 
   pthread_mutex_lock(&q->mutex);
+
+  if (q->sample_offset > 0) {
+    _rf_zmq_tx_baseband(q, q->zeros, (uint32_t)q->sample_offset);
+    q->sample_offset = 0;
+  } else if (q->sample_offset < 0) {
+    n = SRSLTE_MIN(-q->sample_offset, nsamples);
+    buffer += n;
+    nsamples -= n;
+    q->sample_offset += n;
+    if (nsamples == 0) {
+      return n;
+    }
+  }
 
   n = _rf_zmq_tx_baseband(q, buffer, nsamples);
 

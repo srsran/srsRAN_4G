@@ -112,7 +112,7 @@ int srslte_ue_sync_nbiot_init_file_multi(srslte_nbiot_ue_sync_t* q,
     srslte_sync_nbiot_free(&q->sfind);
 #endif
 
-    INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq / 1000);
+    INFO("Offseting input file by %d samples and %.1f kHz", offset_time, offset_freq / 1000);
 
     srslte_filesource_read(&q->file_source, dummy_buffer_nbiot0, offset_time);
     srslte_ue_sync_nbiot_reset(q);
@@ -162,7 +162,7 @@ int srslte_ue_sync_nbiot_init(srslte_nbiot_ue_sync_t* q,
 
 int srslte_ue_sync_nbiot_init_multi(srslte_nbiot_ue_sync_t* q,
                                     uint32_t                max_prb,
-                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                                    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
                                     uint32_t nof_rx_antennas,
                                     void*    stream_handler)
 {
@@ -349,7 +349,7 @@ static int find_peak_ok(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX
   // set subframe idx to NPSS position
   q->sf_idx = 5;
   q->frame_find_cnt++;
-  DEBUG("Found peak %d at %d, value %.3f, n_id_ncell: %d\n",
+  DEBUG("Found peak %d at %d, value %.3f, n_id_ncell: %d",
         q->frame_find_cnt,
         q->peak_idx,
         srslte_sync_nbiot_get_peak_value(&q->sfind),
@@ -357,7 +357,7 @@ static int find_peak_ok(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX
 
   if (q->frame_find_cnt >= q->nof_avg_find_frames || q->peak_idx < 2 * q->fft_size) {
     int num_drop = (q->peak_idx - SRSLTE_NPSS_CORR_OFFSET + q->frame_len / 2) % q->frame_len;
-    INFO("Realigning frame, reading %d samples\n", num_drop);
+    INFO("Realigning frame, reading %d samples", num_drop);
     /* Receive the rest of the subframe so that we are subframe aligned */
     if (q->recv_callback(q->stream, input_buffer, num_drop, &q->last_timestamp) < 0) {
       return SRSLTE_ERROR;
@@ -417,7 +417,7 @@ static int track_peak_ok(srslte_nbiot_ue_sync_t* q, uint32_t track_idx)
     q->mean_sfo = SRSLTE_VEC_EMA(q->mean_sample_offset, q->mean_sfo, q->sfo_ema);
 
     if (q->next_rf_sample_offset) {
-      INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/10-sf, ema=%f, length=%d\n",
+      INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/10-sf, ema=%f, length=%d",
            q->next_rf_sample_offset,
            q->mean_sample_offset,
            srslte_ue_sync_nbiot_get_sfo(q),
@@ -430,7 +430,7 @@ static int track_peak_ok(srslte_nbiot_ue_sync_t* q, uint32_t track_idx)
 
   ///< If the NPSS peak is beyond the frame we sample too slow, discard the offseted samples to align next frame
   if (q->next_rf_sample_offset > 0 && q->next_rf_sample_offset < MAX_TIME_OFFSET) {
-    DEBUG("Positive time offset %d samples.\n", q->next_rf_sample_offset);
+    DEBUG("Positive time offset %d samples.", q->next_rf_sample_offset);
     if (q->recv_callback(
             q->stream, &dummy_offset_buffer_nbiot[0], (uint32_t)q->next_rf_sample_offset, &q->last_timestamp) < 0) {
       fprintf(stderr, "Error receiving from USRP\n");
@@ -450,13 +450,13 @@ static int track_peak_no(srslte_nbiot_ue_sync_t* q)
   ///< if we missed too many NPSS, we go back to FIND and consider this frame unsynchronized
   q->frame_no_cnt++;
   if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-    INFO("%d frames lost. Going back to FIND\n", (int)q->frame_no_cnt);
+    INFO("%d frames lost. Going back to FIND", (int)q->frame_no_cnt);
     q->nof_recv_sf = 10;
     q->frame_len   = q->nof_recv_sf * q->sf_len;
     q->state       = SF_FIND;
     return 0;
   } else {
-    INFO("Tracking peak not found. Peak %.3f, %d lost\n",
+    INFO("Tracking peak not found. Peak %.3f, %d lost",
          srslte_sync_nbiot_get_peak_value(&q->strack),
          (int)q->frame_no_cnt);
     /*
@@ -527,7 +527,7 @@ int srslte_ue_sync_nbiot_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t** input_
       if (q->sf_idx == 10) {
         q->sf_idx = 0;
       }
-      DEBUG("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
+      DEBUG("Reading %d samples. sf_idx = %d", q->sf_len, q->sf_idx);
       ret = 1;
     } else {
       if (receive_samples(q, input_buffer)) {

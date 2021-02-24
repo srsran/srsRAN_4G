@@ -39,9 +39,9 @@ using namespace asn1::rrc;
 
 int rrc_ue_cap_info_test(srslte::mac_pcap* pcap)
 {
-  srslte::log_filter log1("RRC");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(128);
 
   rrc_args_t args          = {};
   args.feature_group       = 0xe6041c00;
@@ -89,7 +89,7 @@ int rrc_ue_cap_info_test(srslte::mac_pcap* pcap)
 
   info->ue_cap_rat_container_list[0].ue_cap_rat_container.resize(cap_len);
   memcpy(info->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), buf, cap_len);
-  log1.debug_hex(buf, cap_len, "UE-Cap (%d/%zd B)\n", cap_len, sizeof(buf));
+  rrc_logger.debug(buf, cap_len, "UE-Cap (%d/%zd B)", cap_len, sizeof(buf));
 
   // pack the message
   uint8_t byte_buf[32];
@@ -99,7 +99,7 @@ int rrc_ue_cap_info_test(srslte::mac_pcap* pcap)
   bref3.align_bytes_zero();
 
   uint32_t len = (uint32_t)bref3.distance_bytes(byte_buf);
-  log1.debug_hex(byte_buf, len, "UL-DCCH (%d/%zd B)\n", len, sizeof(byte_buf));
+  rrc_logger.debug(byte_buf, len, "UL-DCCH (%d/%zd B)", len, sizeof(byte_buf));
 
   if (pcap != NULL) {
     pcap->write_ul_rrc_pdu(byte_buf, len);
@@ -110,10 +110,6 @@ int rrc_ue_cap_info_test(srslte::mac_pcap* pcap)
 
 int pack_fail_test()
 {
-  srslte::log_filter log1("RRC");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(128);
-
   rrc_args_t args          = {};
   args.feature_group       = 0xe6041c00;
   args.nof_supported_bands = 1;
@@ -163,6 +159,12 @@ int pack_fail_test()
 
 int main(int argc, char** argv)
 {
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  asn1_logger.set_level(srslog::basic_levels::debug);
+  asn1_logger.set_hex_dump_max_size(-1);
+
+  srslog::init();
+
 #if PCAP
   srslte::mac_pcap pcap;
   pcap.open("ul_dcch.pcap");

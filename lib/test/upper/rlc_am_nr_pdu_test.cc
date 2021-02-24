@@ -301,6 +301,8 @@ int main(int argc, char** argv)
   pcap_handle->open("rlc_am_nr_pdu_test.pcap");
 #endif
 
+  srslog::init();
+
   if (rlc_am_nr_pdu_test1()) {
     fprintf(stderr, "rlc_am_nr_pdu_test1() failed.\n");
     return SRSLTE_ERROR;

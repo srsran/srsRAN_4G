@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -24,35 +15,52 @@
 
 namespace srsue {
 namespace nr {
-cc_worker::cc_worker(uint32_t cc_idx_, srslte::log* log, phy_nr_state* phy_state_) :
-  cc_idx(cc_idx_), phy_state(phy_state_), log_h(log)
+cc_worker::cc_worker(uint32_t cc_idx_, srslog::basic_logger& log, state* phy_state_) :
+  cc_idx(cc_idx_), phy(phy_state_), logger(log)
 {
-  cf_t* buffer_c[SRSLTE_MAX_PORTS] = {};
+  cf_t* rx_buffer_c[SRSLTE_MAX_PORTS] = {};
 
   // Allocate buffers
-  buffer_sz = SRSLTE_SF_LEN_PRB(phy_state->args.dl.nof_max_prb) * 5;
+  buffer_sz = SRSLTE_SF_LEN_PRB(phy->args.dl.nof_max_prb) * 5;
   for (uint32_t i = 0; i < phy_state_->args.dl.nof_rx_antennas; i++) {
-    rx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
-    tx_buffer[i] = srslte_vec_cf_malloc(buffer_sz);
-    buffer_c[i]  = rx_buffer[i];
+    rx_buffer[i]   = srslte_vec_cf_malloc(buffer_sz);
+    rx_buffer_c[i] = rx_buffer[i];
+    tx_buffer[i]   = srslte_vec_cf_malloc(buffer_sz);
   }
 
-  if (srslte_ue_dl_nr_init(&ue_dl, buffer_c, &phy_state_->args.dl) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating UE DL NR\n");
+  if (srslte_ue_dl_nr_init(&ue_dl, rx_buffer.data(), &phy_state_->args.dl) < SRSLTE_SUCCESS) {
+    ERROR("Error initiating UE DL NR");
+    return;
+  }
+
+  if (srslte_ue_ul_nr_init(&ue_ul, tx_buffer[0], &phy_state_->args.ul) < SRSLTE_SUCCESS) {
+    ERROR("Error initiating UE DL NR");
+    return;
+  }
+
+  if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
+      SRSLTE_SUCCESS) {
+    ERROR("Error init soft-buffer");
     return;
   }
 
   if (srslte_softbuffer_rx_init_guru(&softbuffer_rx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     return;
   }
-  data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
+
+  // Initialise data with numbers
+  tx_data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
+  for (uint32_t i = 0; i < SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8; i++) {
+    tx_data[i] = i % 255U;
+  }
 }
 
 cc_worker::~cc_worker()
 {
   srslte_ue_dl_nr_free(&ue_dl);
+  srslte_ue_ul_nr_free(&ue_ul);
   srslte_softbuffer_rx_free(&softbuffer_rx);
   for (cf_t* p : rx_buffer) {
     if (p != nullptr) {
@@ -69,21 +77,22 @@ cc_worker::~cc_worker()
 bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
 {
   if (srslte_ue_dl_nr_set_carrier(&ue_dl, carrier) < SRSLTE_SUCCESS) {
-    ERROR("Error setting carrier\n");
+    ERROR("Error setting carrier");
     return false;
   }
 
-  coreset.freq_resources[0] = true; // Enable the bottom 6 PRB for PDCCH
-  coreset.duration          = 2;
+  if (srslte_ue_dl_nr_set_pdcch_config(&ue_dl, &phy->cfg.pdcch) < SRSLTE_SUCCESS) {
+    ERROR("Error setting carrier");
+    return false;
+  }
 
-  if (srslte_ue_dl_nr_set_coreset(&ue_dl, &coreset) < SRSLTE_SUCCESS) {
-    ERROR("Error setting carrier\n");
+  if (srslte_ue_ul_nr_set_carrier(&ue_ul, carrier) < SRSLTE_SUCCESS) {
+    ERROR("Error setting carrier");
     return false;
   }
 
   // Set default PDSCH config
-  phy_state->cfg.pdsch.rbg_size_cfg_1        = false;
-  phy_state->cfg.pdsch.pdsch_time_is_default = true;
+  phy->cfg.pdsch.rbg_size_cfg_1 = false;
 
   return true;
 }
@@ -91,15 +100,25 @@ bool cc_worker::set_carrier(const srslte_carrier_nr_t* carrier)
 void cc_worker::set_tti(uint32_t tti)
 {
   dl_slot_cfg.idx = tti;
+  ul_slot_cfg.idx = TTI_TX(tti);
 }
 
 cf_t* cc_worker::get_rx_buffer(uint32_t antenna_idx)
 {
-  if (antenna_idx >= phy_state->args.dl.nof_rx_antennas) {
+  if (antenna_idx >= phy->args.dl.nof_rx_antennas) {
     return nullptr;
   }
 
   return rx_buffer.at(antenna_idx);
+}
+
+cf_t* cc_worker::get_tx_buffer(uint32_t antenna_idx)
+{
+  if (antenna_idx >= phy->args.dl.nof_rx_antennas) {
+    return nullptr;
+  }
+
+  return tx_buffer.at(antenna_idx);
 }
 
 uint32_t cc_worker::get_buffer_len()
@@ -107,61 +126,217 @@ uint32_t cc_worker::get_buffer_len()
   return buffer_sz;
 }
 
+void cc_worker::decode_pdcch_dl()
+{
+  std::array<srslte_dci_dl_nr_t, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR> dci_rx = {};
+  srsue::mac_interface_phy_nr::sched_rnti_t rnti = phy->stack->get_dl_sched_rnti_nr(dl_slot_cfg.idx);
+
+  // Skip search if no valid RNTI is given
+  if (rnti.id == SRSLTE_INVALID_RNTI) {
+    return;
+  }
+
+  // Search for grants
+  int n_dl =
+      srslte_ue_dl_nr_find_dl_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
+  if (n_dl < SRSLTE_SUCCESS) {
+    logger.error("Error decoding DL NR-PDCCH");
+    return;
+  }
+
+  // Iterate over all received grants
+  for (int i = 0; i < n_dl; i++) {
+    // Log found DCI
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srslte_dci_dl_nr_to_str(&dci_rx[i], str.data(), str.size());
+      logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
+    }
+
+    // Enqueue UL grants
+    phy->set_dl_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
+  }
+}
+
+void cc_worker::decode_pdcch_ul()
+{
+  std::array<srslte_dci_ul_nr_t, SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR> dci_rx = {};
+  srsue::mac_interface_phy_nr::sched_rnti_t rnti = phy->stack->get_ul_sched_rnti_nr(ul_slot_cfg.idx);
+
+  // Skip search if no valid RNTI is given
+  if (rnti.id == SRSLTE_INVALID_RNTI) {
+    return;
+  }
+
+  // Search for grants
+  int n_dl =
+      srslte_ue_dl_nr_find_ul_dci(&ue_dl, &dl_slot_cfg, rnti.id, rnti.type, dci_rx.data(), (uint32_t)dci_rx.size());
+  if (n_dl < SRSLTE_SUCCESS) {
+    logger.error("Error decoding UL NR-PDCCH");
+    return;
+  }
+
+  // Iterate over all received grants
+  for (int i = 0; i < n_dl; i++) {
+    // Log found DCI
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srslte_dci_ul_nr_to_str(&dci_rx[i], str.data(), str.size());
+      logger.info("PDCCH: cc=%d, %s", cc_idx, str.data());
+    }
+
+    // Enqueue UL grants
+    phy->set_ul_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
+  }
+}
+
 bool cc_worker::work_dl()
 {
-  srslte_dci_dl_nr_t                                      dci_dl      = {};
-  srslte_sch_cfg_nr_t                                     pdsch_cfg   = phy_state->cfg.pdsch;
-  std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res   = {};
-
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
-  // Set rnti
-  rnti = 0x1234;
+  // Decode PDCCH DL first
+  decode_pdcch_dl();
 
-  // Configure Search space
-  search_space.type = srslte_search_space_type_ue;
-  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    search_space.nof_candidates[L] = srslte_pdcch_nr_max_candidates_coreset(&coreset, L);
+  // Decode PDCCH UL after
+  decode_pdcch_ul();
+
+  // Get DL grant for this TTI, if available
+  uint32_t                       pid          = 0;
+  srslte_sch_cfg_nr_t            pdsch_cfg    = {};
+  srslte_pdsch_ack_resource_nr_t ack_resource = {};
+  if (phy->get_dl_pending_grant(dl_slot_cfg.idx, pdsch_cfg, ack_resource, pid)) {
+    // Get data buffer
+    srslte::unique_byte_buffer_t data = srslte::make_byte_buffer();
+    data->N_bytes                     = pdsch_cfg.grant.tb[0].tbs / 8U;
+
+    // Get soft-buffer from MAC
+    // ...
+    srslte_softbuffer_rx_reset(&softbuffer_rx);
+
+    // Initialise PDSCH Result
+    std::array<srslte_pdsch_res_nr_t, SRSLTE_MAX_CODEWORDS> pdsch_res = {};
+    pdsch_res[0].payload                                              = data->msg;
+    pdsch_cfg.grant.tb[0].softbuffer.rx                               = &softbuffer_rx;
+
+    // Decode actual PDSCH transmission
+    if (srslte_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSLTE_SUCCESS) {
+      ERROR("Error decoding PDSCH");
+      return false;
+    }
+
+    // Logging
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str.data(), str.size());
+      logger.info(pdsch_res[0].payload, pdsch_cfg.grant.tb[0].tbs / 8, "PDSCH: cc=%d, %s", cc_idx, str.data());
+    }
+
+    // Enqueue PDSCH ACK information only if the RNTI is type C
+    if (pdsch_cfg.grant.rnti_type == srslte_rnti_type_c) {
+      phy->set_pending_ack(dl_slot_cfg.idx, ack_resource, pdsch_res[0].crc);
+    }
+
+    // Notify MAC about PDSCH decoding result
+    if (pdsch_res[0].crc) {
+      // Prepare grant
+      mac_interface_phy_nr::mac_nr_grant_dl_t mac_nr_grant = {};
+      mac_nr_grant.tb[0]                                   = std::move(data);
+      mac_nr_grant.pid                                     = pid;
+      mac_nr_grant.rnti                                    = pdsch_cfg.grant.rnti;
+      mac_nr_grant.tti                                     = dl_slot_cfg.idx;
+
+      if (pdsch_cfg.grant.rnti_type == srslte_rnti_type_ra) {
+        phy->rar_grant_tti = dl_slot_cfg.idx;
+      }
+
+      // Send data to MAC
+      phy->stack->tb_decoded(cc_idx, mac_nr_grant);
+    }
   }
 
-  srslte_dci_dl_nr_t dci_dl_rx = {};
-  int nof_found_dci            = srslte_ue_dl_nr_find_dl_dci(&ue_dl, &search_space, &dl_slot_cfg, rnti, &dci_dl_rx, 1);
-  if (nof_found_dci < SRSLTE_SUCCESS) {
-    ERROR("Error decoding\n");
-    return SRSLTE_ERROR;
+  return true;
+}
+
+bool cc_worker::work_ul()
+{
+  srslte_uci_data_nr_t uci_data = {};
+  uint32_t             pid      = 0;
+
+  // Gather PDSCH ACK information
+  srslte_pdsch_ack_nr_t pdsch_ack  = {};
+  bool                  has_ul_ack = phy->get_pending_ack(ul_slot_cfg.idx, pdsch_ack);
+
+  // Request grant to PHY state for this transmit TTI
+  srslte_sch_cfg_nr_t pusch_cfg       = {};
+  bool                has_pusch_grant = phy->get_ul_pending_grant(ul_slot_cfg.idx, pusch_cfg, pid);
+
+  // If PDSCH UL AKC is available, load into UCI
+  if (has_ul_ack) {
+    pdsch_ack.use_pusch = has_pusch_grant;
+    if (srslte_ue_dl_nr_gen_ack(&phy->cfg.harq_ack, &pdsch_ack, &uci_data) < SRSLTE_SUCCESS) {
+      ERROR("Filling UCI ACK bits");
+      return false;
+    }
   }
 
-  if (nof_found_dci < 1) {
-    ERROR("Error DCI not found\n");
-  }
+  if (has_pusch_grant) {
+    // Notify MAC about PUSCH found grant
+    mac_interface_phy_nr::mac_nr_grant_ul_t mac_ul_grant = {};
+    mac_ul_grant.pid                                     = pid;
+    mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
+    mac_ul_grant.tti                                     = ul_slot_cfg.idx;
+    mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
+    srslte::unique_byte_buffer_t tx_pdu                  = srslte::make_byte_buffer();
+    phy->stack->new_grant_ul(0, mac_ul_grant, tx_pdu.get());
+    // Provisional reset and assign Tx softbuffer
+    srslte_softbuffer_tx_reset(&softbuffer_tx);
+    pusch_cfg.grant.tb[0].softbuffer.tx = &softbuffer_tx;
 
-  dci_dl.rnti   = 0x1234;
-  dci_dl.format = srslte_dci_format_nr_1_0;
+    // TODO: Use here PDU, after that, remove tx_data attribute
+    uint8_t* tx_data_ptr = tx_pdu.get()->msg;
 
-  dci_dl.freq_domain_assigment = 0x1FFF;
-  dci_dl.time_domain_assigment = 0;
-  dci_dl.mcs                   = 27;
+    // Encode PUSCH transmission
+    if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, tx_data_ptr) < SRSLTE_SUCCESS) {
+      ERROR("Encoding PUSCH");
+      return false;
+    }
 
-  // Compute DL grant
-  if (srslte_ra_dl_dci_to_grant_nr(&ue_dl.carrier, &pdsch_cfg, &dci_dl, &pdsch_cfg.grant)) {
-    ERROR("Computing DL grant\n");
-  }
+    // PUSCH Logging
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, str.data(), str.size());
+      logger.info(tx_data_ptr,
+                  pusch_cfg.grant.tb[0].tbs / 8,
+                  "PUSCH (NR): cc=%d, %s, tti_tx=%d",
+                  cc_idx,
+                  str.data(),
+                  ul_slot_cfg.idx);
+    }
+  } else if (srslte_uci_nr_total_bits(&uci_data.cfg) > 0) {
+    // Get PUCCH resource
+    srslte_pucch_nr_resource_t resource = {};
+    if (srslte_ra_ul_nr_pucch_resource(&phy->cfg.pucch, &uci_data.cfg, &resource) < SRSLTE_SUCCESS) {
+      ERROR("Selecting PUCCH resource");
+      return false;
+    }
 
-  pdsch_res[0].payload                = data.data();
-  pdsch_cfg.grant.tb[0].softbuffer.rx = &softbuffer_rx;
-  srslte_softbuffer_rx_reset(pdsch_cfg.grant.tb[0].softbuffer.rx);
+    // Encode PUCCH message
+    if (srslte_ue_ul_nr_encode_pucch(&ue_ul, &ul_slot_cfg, &phy->cfg.pucch.common, &resource, &uci_data) <
+        SRSLTE_SUCCESS) {
+      ERROR("Encoding PUCCH");
+      return false;
+    }
 
-  if (srslte_ue_dl_nr_decode_pdsch(&ue_dl, &dl_slot_cfg, &pdsch_cfg, pdsch_res.data()) < SRSLTE_SUCCESS) {
-    ERROR("Error decoding PDSCH\n");
-    return false;
-  }
-
-  // Logging
-  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-    char str[512];
-    srslte_ue_dl_nr_pdsch_info(&ue_dl, &pdsch_cfg, pdsch_res.data(), str, sizeof(str));
-    log_h->info("PDSCH: cc=%d, %s\n", cc_idx, str);
+    // PUCCH Logging
+    if (logger.info.enabled()) {
+      std::array<char, 512> str;
+      srslte_ue_ul_nr_pucch_info(&resource, &uci_data, str.data(), str.size());
+      logger.info("PUCCH: cc=%d, %s, tti_tx=%d", cc_idx, str.data(), ul_slot_cfg.idx);
+    }
+  } else {
+    // No NR signal shall be transmitted
+    srslte_vec_cf_zero(tx_buffer[0], ue_ul.ifft.sf_sz);
   }
 
   return true;

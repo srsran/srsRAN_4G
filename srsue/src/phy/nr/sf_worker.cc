@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -35,7 +26,8 @@ static int       plot_worker_id = -1;
 
 namespace srsue {
 namespace nr {
-sf_worker::sf_worker(phy_nr_state* phy_state_, srslte::log* log) : phy_state(phy_state_), log_h(log)
+sf_worker::sf_worker(phy_common* phy_, state* phy_state_, srslog::basic_logger& log) :
+  phy_state(phy_state_), phy(phy_), logger(log)
 {
   for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
     cc_worker* w = new cc_worker(i, log, phy_state);
@@ -68,7 +60,8 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_tti(uint32_t tti)
 {
-  log_h->step(tti);
+  tti_rx = tti;
+  logger.set_context(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
   }
@@ -76,11 +69,45 @@ void sf_worker::set_tti(uint32_t tti)
 
 void sf_worker::work_imp()
 {
+  srslte::rf_buffer_t    tx_buffer = {};
+  srslte::rf_timestamp_t dummy_ts  = {};
+
+  // Perform DL processing
   for (auto& w : cc_workers) {
     w->work_dl();
   }
 
-  /* Tell the plotting thread to draw the plots */
+  // Check if PRACH is available
+  if (prach_ptr != nullptr) {
+    // PRACH is available, set buffer, transmit and return
+    tx_buffer.set(0, prach_ptr);
+
+    // Notify MAC about PRACH transmission
+    phy_state->stack->prach_sent(TTI_TX(tti_rx), 7, 1, 0, 0);
+
+    // Transmit NR PRACH
+    phy->worker_end(this, false, tx_buffer, dummy_ts, true);
+
+    // Reset PRACH pointer
+    prach_ptr = nullptr;
+
+    return;
+  }
+
+  // Perform UL processing
+  for (auto& w : cc_workers) {
+    w->work_ul();
+  }
+
+  // Set Tx buffers
+  for (uint32_t i = 0; i < (uint32_t)cc_workers.size(); i++) {
+    tx_buffer.set(i, cc_workers[i]->get_tx_buffer(0));
+  }
+
+  // Always call worker_end before returning
+  phy->worker_end(this, false, tx_buffer, dummy_ts, true);
+
+  // Tell the plotting thread to draw the plots
 #ifdef ENABLE_GUI
   if ((int)get_id() == plot_worker_id) {
     sem_post(&plot_sem);
@@ -108,6 +135,12 @@ void sf_worker::start_plot()
 #endif
 }
 
+void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
+{
+  prach_ptr   = prach_ptr_;
+  prach_power = prach_power_;
+}
+
 } // namespace nr
 } // namespace srsue
 
@@ -120,7 +153,7 @@ extern bool plot_quit;
 
 static void* plot_thread_run(void* arg)
 {
-  auto worker = (srsue::nr::sf_worker*)arg;
+  auto worker         = (srsue::nr::sf_worker*)arg;
   int  pdsch_re_count = 0;
   while (!plot_quit) {
     sem_wait(&plot_sem);

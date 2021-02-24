@@ -215,7 +215,8 @@ srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
                     PDCP_SN_LEN_5,
                     pdcp_t_reordering_t::ms500,
-                    pdcp_discard_timer_t::infinity);
+                    pdcp_discard_timer_t::infinity,
+                    false);
   return cfg;
 }
 
@@ -227,8 +228,28 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
                     PDCP_SN_LEN_12,
                     pdcp_t_reordering_t::ms500,
-                    pdcp_discard_timer_t::infinity);
+                    pdcp_discard_timer_t::infinity,
+                    false);
   return cfg;
+}
+
+uint8_t get_pdcp_drb_sn_len(const pdcp_cfg_s& pdcp_cfg)
+{
+  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  if (pdcp_cfg.rlc_um_present) {
+    if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
+      sn_len = srslte::PDCP_SN_LEN_7;
+    }
+  }
+  if (pdcp_cfg.ext) {
+    if (pdcp_cfg.pdcp_sn_size_v1130_present) {
+      sn_len = srslte::PDCP_SN_LEN_15;
+    }
+    if (pdcp_cfg.pdcp_sn_size_v1310_present) {
+      sn_len = srslte::PDCP_SN_LEN_18;
+    }
+  }
+  return sn_len;
 }
 
 srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
@@ -239,6 +260,48 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
     switch (pdcp_cfg.discard_timer.to_number()) {
       case 10:
         discard_timer = pdcp_discard_timer_t::ms10;
+        break;
+      case 20:
+        discard_timer = pdcp_discard_timer_t::ms20;
+        break;
+      case 30:
+        discard_timer = pdcp_discard_timer_t::ms30;
+        break;
+      case 40:
+        discard_timer = pdcp_discard_timer_t::ms40;
+        break;
+      case 50:
+        discard_timer = pdcp_discard_timer_t::ms50;
+        break;
+      case 60:
+        discard_timer = pdcp_discard_timer_t::ms60;
+        break;
+      case 75:
+        discard_timer = pdcp_discard_timer_t::ms75;
+        break;
+      case 100:
+        discard_timer = pdcp_discard_timer_t::ms100;
+        break;
+      case 150:
+        discard_timer = pdcp_discard_timer_t::ms150;
+        break;
+      case 200:
+        discard_timer = pdcp_discard_timer_t::ms200;
+        break;
+      case 250:
+        discard_timer = pdcp_discard_timer_t::ms250;
+        break;
+      case 300:
+        discard_timer = pdcp_discard_timer_t::ms300;
+        break;
+      case 500:
+        discard_timer = pdcp_discard_timer_t::ms500;
+        break;
+      case 750:
+        discard_timer = pdcp_discard_timer_t::ms750;
+        break;
+      case 1500:
+        discard_timer = pdcp_discard_timer_t::ms1500;
         break;
       default:
         discard_timer = pdcp_discard_timer_t::infinity;
@@ -257,15 +320,11 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
     }
   }
 
-  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
-  if (pdcp_cfg.rlc_um_present) {
-    if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
-      sn_len = srslte::PDCP_SN_LEN_7;
-    }
-  }
+  uint8_t sn_len = get_pdcp_drb_sn_len(pdcp_cfg);
 
+  bool status_report_required = false;
   if (pdcp_cfg.rlc_am_present) {
-    // TODO: handle RLC AM config for PDCP
+    status_report_required = pdcp_cfg.rlc_am.status_report_required;
   }
 
   pdcp_config_t cfg(bearer_id,
@@ -274,7 +333,8 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
                     is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
                     sn_len,
                     t_reordering,
-                    discard_timer);
+                    discard_timer,
+                    status_report_required);
   return cfg;
 }
 
@@ -319,7 +379,6 @@ void set_mac_cfg_t_main_cfg(mac_cfg_t* cfg, const asn1::rrc::mac_main_cfg_s& asn
 // RACH-Common section is always present
 void set_mac_cfg_t_rach_cfg_common(mac_cfg_t* cfg, const asn1::rrc::rach_cfg_common_s& asn1_type)
 {
-
   // Preamble info
   cfg->rach_cfg.nof_preambles = asn1_type.preamb_info.nof_ra_preambs.to_number();
   if (asn1_type.preamb_info.preambs_group_a_cfg_present) {
@@ -401,7 +460,6 @@ srsenb::sched_interface::ant_info_ded_t make_ant_info_ded(const asn1::rrc::ant_i
 void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s& asn1_type)
 {
   if (asn1_type.pucch_cfg_ded_present) {
-
     if (asn1_type.pucch_cfg_ded.tdd_ack_nack_feedback_mode_present) {
       cfg->ul_cfg.pucch.tdd_ack_multiplex = asn1_type.pucch_cfg_ded.tdd_ack_nack_feedback_mode ==
                                             asn1::rrc::pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_e_::mux;
@@ -414,7 +472,6 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     auto* pucch_cfg_ded = asn1_type.pucch_cfg_ded_v1020.get();
 
     if (pucch_cfg_ded->pucch_format_r10_present) {
-
       typedef asn1::rrc::pucch_cfg_ded_v1020_s::pucch_format_r10_c_ pucch_format_r10_t;
       auto*                                                         pucch_format_r10 = &pucch_cfg_ded->pucch_format_r10;
 
@@ -434,7 +491,6 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
           }
         }
       } else if (pucch_format_r10->type() == asn1::rrc::pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types::ch_sel_r10) {
-
         typedef pucch_format_r10_t::ch_sel_r10_s_ ch_sel_r10_t;
         auto*                                     ch_sel_r10 = &pucch_format_r10->ch_sel_r10();
 
@@ -493,9 +549,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
   }
 
   if (asn1_type.cqi_report_cfg_present) {
-
     if (asn1_type.cqi_report_cfg.cqi_report_periodic_present) {
-
       cfg->dl_cfg.cqi_report.periodic_configured =
           asn1_type.cqi_report_cfg.cqi_report_periodic.type() == asn1::rrc::setup_e::setup;
       if (cfg->dl_cfg.cqi_report.periodic_configured) {
@@ -523,7 +577,6 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     }
 
     if (asn1_type.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-
       cfg->dl_cfg.cqi_report.aperiodic_configured = true;
       cfg->dl_cfg.cqi_report.aperiodic_mode = make_aperiodic_mode(asn1_type.cqi_report_cfg.cqi_report_mode_aperiodic);
     }
@@ -677,7 +730,6 @@ void set_phy_cfg_t_common_pwr_ctrl(phy_cfg_t* cfg, const asn1::rrc::ul_pwr_ctrl_
 void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mod_r10_s& asn1_type)
 {
   if (asn1_type.rr_cfg_common_scell_r10_present) {
-
     // Enable always CSI request extra bit
     cfg->dl_cfg.dci.multiple_csi_request_enabled = true;
 
@@ -722,7 +774,6 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
       // Parse nonUL Configuration
       if (phys_cfg_ded_scell_r10->non_ul_cfg_r10_present) {
-
         auto* non_ul_cfg = &phys_cfg_ded_scell_r10->non_ul_cfg_r10;
 
         // Parse Transmission mode

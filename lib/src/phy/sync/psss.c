@@ -37,11 +37,10 @@ int srslte_psss_init(srslte_psss_t* q, uint32_t nof_prb, srslte_cp_t cp)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-
     // Generate the 2 PSSS sequences
     for (uint32_t i = 0; i < 2; i++) {
       if (srslte_psss_generate(q->psss_signal[i], i) != SRSLTE_SUCCESS) {
-        ERROR("Error srslte_psss_generate\n");
+        ERROR("Error srslte_psss_generate");
         return SRSLTE_ERROR;
       }
     }
@@ -151,7 +150,7 @@ int srslte_psss_generate(cf_t* psss_signal, uint32_t N_id_2)
   const float root_value[] = {26.0, 37.0};
 
   if (N_id_2 > 1) {
-    ERROR("Invalid N_id_2 %d\n", N_id_2);
+    ERROR("Invalid N_id_2 %d", N_id_2);
     return SRSLTE_ERROR;
   }
 
@@ -225,7 +224,7 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
 
     // Experimental Validation
     uint32_t symbol_sz = (uint32_t)srslte_symbol_sz(nof_prb);
-    int cp_len    = SRSLTE_CP_SZ(symbol_sz, cp);
+    int      cp_len    = SRSLTE_CP_SZ(symbol_sz, cp);
 
     // Correlation output peaks:
     //

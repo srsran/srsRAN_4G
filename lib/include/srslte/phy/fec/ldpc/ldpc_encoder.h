@@ -22,7 +22,7 @@
 /*!
  * \file ldpc_encoder.h
  * \brief Declaration of the LDPC encoder.
- * \author David Gregoratti
+ * \author David Gregoratti and Jesus Gomez
  * \date 2020
  *
  * \copyright Software Radio Systems Limited
@@ -42,6 +42,9 @@ typedef enum SRSLTE_API {
 #if LV_HAVE_AVX2
   SRSLTE_LDPC_ENCODER_AVX2, /*!< \brief SIMD-optimized encoder. */
 #endif                      // LV_HAVE_AVX2
+#if LV_HAVE_AVX512
+  SRSLTE_LDPC_ENCODER_AVX512, /*!< \brief SIMD-optimized encoder. */
+#endif                        // LV_HAVE_AVX512
 } srslte_ldpc_encoder_type_t;
 
 /*!
@@ -65,6 +68,8 @@ typedef struct SRSLTE_API {
   void (*encode_high_rate)(void*, uint8_t*);
   /*!  \brief Pointer to the encoder for the high-rate region (SIMD-optimized version). */
   void (*encode_high_rate_avx2)(void*);
+  /*!  \brief Pointer to the encoder for the high-rate region (SIMD-AVX512-optimized version). */
+  void (*encode_high_rate_avx512)(void*);
 
 } srslte_ldpc_encoder_t;
 

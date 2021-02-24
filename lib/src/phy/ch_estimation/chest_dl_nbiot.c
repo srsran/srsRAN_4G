@@ -178,13 +178,13 @@ static void interpolate_pilots(srslte_chest_dl_nbiot_t* q, cf_t* pilot_estimates
   cf_t     ce_avg[2][num_ces];
 
   // interpolate the symbols with references in the freq domain
-  DEBUG("Interpolating %d pilots in %d symbols at port %d.\n", nsymbols * 2, nsymbols, port_id);
+  DEBUG("Interpolating %d pilots in %d symbols at port %d.", nsymbols * 2, nsymbols, port_id);
   for (int l = 0; l < nsymbols; l++) {
     uint32_t fidx_offset = srslte_refsignal_dl_nbiot_fidx(q->cell, l, port_id, 0);
     // points to the RE of the beginning of the l'th symbol containing a ref
     uint32_t ce_idx = srslte_refsignal_nrs_nsymbol(l) * q->cell.base.nof_prb * SRSLTE_NRE;
     ce_idx += q->cell.nbiot_prb * SRSLTE_NRE;
-    DEBUG("  - freq.-dmn interp. in sym %d at RE %d\n", srslte_refsignal_nrs_nsymbol(l), ce_idx + fidx_offset);
+    DEBUG("  - freq.-dmn interp. in sym %d at RE %d", srslte_refsignal_nrs_nsymbol(l), ce_idx + fidx_offset);
     srslte_interp_linear_offset(
         &q->srslte_interp_lin, &pilot_estimates[2 * l], &ce[ce_idx], fidx_offset, SRSLTE_NRE / 2 - fidx_offset);
   }
@@ -265,7 +265,7 @@ int srslte_chest_dl_nbiot_estimate_port(srslte_chest_dl_nbiot_t* q,
                                         uint32_t                 sf_idx,
                                         uint32_t                 port_id)
 {
-  DEBUG("x.%d: Estimating DL channel on port %d.\n", sf_idx, port_id);
+  DEBUG("x.%d: Estimating DL channel on port %d.", sf_idx, port_id);
   int nref = srslte_refsignal_nbiot_cs_nof_re(&q->cell, port_id);
 
   // Get references from the input signal

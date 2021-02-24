@@ -30,21 +30,21 @@ class dummy_radio
 private:
   static const int radio_delay_us = 200;
 
-  srslte::log_filter* log_h = nullptr;
-  std::mutex          mutex;
+  srslog::basic_logger& logger;
+  std::mutex            mutex;
 
   uint32_t last_tti = 0;
   bool     first    = true;
   bool     late     = false;
 
 public:
-  dummy_radio(srslte::log_filter& log_h_) : log_h(&log_h_) { log_h->info("Dummy radio created\n"); }
+  explicit dummy_radio(srslog::basic_logger& logger) : logger(logger) { logger.info("Dummy radio created"); }
 
   void tx(uint32_t tti)
   {
     std::lock_guard<std::mutex> lock(mutex);
 
-    log_h->info("Transmitting TTI %d\n", tti);
+    logger.info("Transmitting TTI %d", tti);
 
     // Exit if TTI was advanced
     if (!first && tti <= last_tti) {
@@ -68,8 +68,8 @@ private:
   static const int sleep_time_min_us = 50;
   static const int sleep_time_max_us = 2000;
 
+  srslog::basic_logger&            logger;
   srslte::tti_semaphore<uint32_t>* tti_semaphore = nullptr;
-  srslte::log_filter*              log_h         = nullptr;
   dummy_radio*                     radio         = nullptr;
   srslte_random_t                  random_gen    = nullptr;
   uint32_t                         tti           = 0;
@@ -77,14 +77,14 @@ private:
 public:
   dummy_worker(uint32_t                         id,
                srslte::tti_semaphore<uint32_t>* tti_semaphore_,
-               srslte::log_filter*              log_h_,
-               dummy_radio*                     radio_)
+               srslog::basic_logger&            logger,
+               dummy_radio*                     radio_) :
+    logger(logger)
   {
     tti_semaphore = tti_semaphore_;
-    log_h         = log_h_;
     radio         = radio_;
     random_gen    = srslte_random_init(id);
-    log_h->info("Dummy worker created\n");
+    logger.info("Dummy worker created");
   }
 
   ~dummy_worker() { srslte_random_free(random_gen); }
@@ -100,9 +100,9 @@ protected:
     // Inform
 
     // Actual work ;)
-    log_h->info("Start working for %d us.\n", sleep_time_us);
+    logger.info("Start working for %d us.", sleep_time_us);
     usleep(sleep_time_us);
-    log_h->info("Stopped working\n");
+    logger.info("Stopped working");
 
     // Wait for green light
     tti_semaphore->wait(tti);
@@ -130,28 +130,15 @@ int main(int argc, char** argv)
   std::vector<std::unique_ptr<dummy_worker> > workers;
   srslte::tti_semaphore<uint32_t>             tti_semaphore;
 
-  // Setup logging.
-  srslog::sink* s = srslog::create_stdout_sink();
-  if (!s) {
-    return SRSLTE_ERROR;
-  }
-  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *s);
-  if (!chan) {
-    return SRSLTE_ERROR;
-  }
-  srslte::srslog_wrapper logger(*chan);
+  // Loggers.
+  auto& radio_logger = srslog::fetch_basic_logger("radio", false);
+  radio_logger.set_level(srslog::basic_levels::none);
 
   // Start the log backend.
   srslog::init();
 
-  // Loggers
-  srslte::log_filter                                radio_log("radio", &logger);
-  std::vector<std::unique_ptr<srslte::log_filter> > worker_logs;
-
-  radio_log.set_level("none");
-
   // Radio
-  dummy_radio radio(radio_log);
+  dummy_radio radio(radio_logger);
 
   // Create workers
   for (uint32_t i = 0; i < nof_workers; i++) {
@@ -159,15 +146,13 @@ int main(int argc, char** argv)
     char log_name[32] = {};
     snprintf(log_name, sizeof(log_name), "PHY%d", i);
 
-    // Create log filter
-    srslte::log_filter* log_filter = new srslte::log_filter(log_name, &logger);
-    log_filter->set_level("none");
+    auto& logger = srslog::fetch_basic_logger(log_name, false);
+    logger.set_level(srslog::basic_levels::none);
 
     // Create worker
-    auto* worker = new dummy_worker(i, &tti_semaphore, log_filter, &radio);
+    auto* worker = new dummy_worker(i, &tti_semaphore, logger, &radio);
 
     // Push back objects
-    worker_logs.push_back(std::unique_ptr<srslte::log_filter>(log_filter));
     workers.push_back(std::unique_ptr<dummy_worker>(worker));
 
     // Init worker in pool

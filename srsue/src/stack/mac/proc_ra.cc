@@ -38,9 +38,10 @@ const char* state_str[] = {"RA:    INIT:   ",
                            "RA:    WaitComplt: ",
                            "RA:    Complt: "};
 
-#define rError(fmt, ...) Error("%s" fmt, state_str[state], ##__VA_ARGS__)
-#define rInfo(fmt, ...) Info("%s" fmt, state_str[state], ##__VA_ARGS__)
-#define rDebug(fmt, ...) Debug("%s" fmt, state_str[state], ##__VA_ARGS__)
+#define rError(fmt, ...) logger.error("%s" fmt, state_str[state], ##__VA_ARGS__)
+#define rInfo(fmt, ...) logger.info("%s" fmt, state_str[state], ##__VA_ARGS__)
+#define rDebug(fmt, ...) logger.debug("%s" fmt, state_str[state], ##__VA_ARGS__)
+#define rWarning(fmt, ...) logger.warning("%s" fmt, state_str[state], ##__VA_ARGS__)
 
 // Table 7.2-1. Backoff Parameter values
 uint32_t backoff_table[16] = {0, 10, 20, 30, 40, 60, 80, 120, 160, 240, 320, 480, 960, 960, 960, 960};
@@ -51,14 +52,12 @@ int delta_preamble_db_table[5] = {0, 0, -3, -3, 8};
 // Initializes memory and pointers to other objects
 void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    rrc_interface_mac*                   rrc_,
-                   srslte::log_ref                      log_h_,
                    mac_interface_rrc::ue_rnti_t*        rntis_,
                    srslte::timer_handler::unique_timer* time_alignment_timer_,
                    mux*                                 mux_unit_,
                    srslte::ext_task_sched_handle*       task_sched_)
 {
   phy_h      = phy_h_;
-  log_h      = log_h_;
   rntis      = rntis_;
   mux_unit   = mux_unit_;
   rrc        = rrc_;
@@ -167,14 +166,14 @@ void ra_proc::state_pdcch_setup()
   if (info.is_transmitted) {
     ra_tti  = info.tti_ra;
     ra_rnti = 1 + (ra_tti % 10) + (10 * info.f_id);
-    rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d\n", sel_preamble.load(), ra_rnti, info.tti_ra, info.f_id);
+    rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d, f_id=%d", sel_preamble.load(), ra_rnti, info.tti_ra, info.f_id);
     srslte::console(
         "Random Access Transmission: seq=%d, tti=%d, ra-rnti=0x%x\n", sel_preamble.load(), info.tti_ra, ra_rnti);
     rar_window_st   = ra_tti + 3;
     rntis->rar_rnti = ra_rnti;
     state           = RESPONSE_RECEPTION;
   } else {
-    rDebug("preamble not yet transmitted\n");
+    rDebug("preamble not yet transmitted");
   }
 }
 
@@ -187,7 +186,7 @@ void ra_proc::state_response_reception(uint32_t tti)
   if (!rar_received) {
     uint32_t interval = srslte_tti_interval(tti, ra_tti + 3 + rach_cfg.responseWindowSize - 1);
     if (interval > 0 && interval < 100) {
-      Error("RA response not received within the response window\n");
+      logger.error("RA response not received within the response window");
       response_error();
     }
   }
@@ -224,7 +223,7 @@ void ra_proc::state_contention_resolution()
   // Once Msg3 is transmitted, start contention resolution timer
   if (mux_unit->msg3_is_transmitted() && !contention_resolution_timer.is_running()) {
     // Start contention resolution timer
-    rInfo("Starting ContentionResolutionTimer=%d ms\n", contention_resolution_timer.duration());
+    rInfo("Starting ContentionResolutionTimer=%d ms", contention_resolution_timer.duration());
     contention_resolution_timer.run();
   }
 }
@@ -248,15 +247,14 @@ void ra_proc::notify_ra_completed(uint32_t task_id)
 {
   if (current_task_id == task_id) {
     if (state != WAITING_COMPLETION) {
-      rError("Received unexpected notification of RA completion\n");
+      rError("Received unexpected notification of RA completion");
     } else {
-      rInfo("RA waiting procedure completed\n");
+      rInfo("RA waiting procedure completed");
     }
     state = IDLE;
   } else {
-    rError("Received old notification of RA completition (old task_id=%d, current_task_id=%d)\n",
-           task_id,
-           current_task_id);
+    rError(
+        "Received old notification of RA completition (old task_id=%d, current_task_id=%d)", task_id, current_task_id);
   }
 }
 
@@ -304,7 +302,7 @@ void ra_proc::resource_selection()
         // randomly choose preamble from [0 nof_groupA_preambles)
         sel_preamble = rand() % rach_cfg.nof_groupA_preambles;
       } else {
-        rError("Selected group preamble A but nof_groupA_preambles=0\n");
+        rError("Selected group preamble A but nof_groupA_preambles=0");
         state = IDLE;
         return;
       }
@@ -313,7 +311,7 @@ void ra_proc::resource_selection()
         // randomly choose preamble from [nof_groupA_preambles nof_groupB_preambles)
         sel_preamble = rach_cfg.nof_groupA_preambles + rand() % nof_groupB_preambles;
       } else {
-        rError("Selected group preamble B but nof_groupA_preambles=0\n");
+        rError("Selected group preamble B but nof_groupA_preambles=0");
         state = IDLE;
         return;
       }
@@ -321,7 +319,7 @@ void ra_proc::resource_selection()
     sel_maskIndex = 0;
   }
 
-  rDebug("Selected preambleIndex=%d maskIndex=%d GroupA=%d, GroupB=%d\n",
+  rDebug("Selected preambleIndex=%d maskIndex=%d GroupA=%d, GroupB=%d",
          sel_preamble.load(),
          sel_maskIndex,
          rach_cfg.nof_groupA_preambles,
@@ -356,16 +354,16 @@ void ra_proc::process_timeadv_cmd(uint32_t ta)
     if (time_alignment_timer->is_running()) {
       time_alignment_timer->run();
     }
-    Debug("Applying RAR TA CMD %d\n", ta);
+    logger.debug("Applying RAR TA CMD %d", ta);
   } else {
     // Preamble selected by UE MAC
     if (!time_alignment_timer->is_running()) {
       phy_h->set_timeadv_rar(ta);
       time_alignment_timer->run();
-      Debug("Applying RAR TA CMD %d\n", ta);
+      logger.debug("Applying RAR TA CMD %d", ta);
     } else {
       // Ignore TA CMD
-      Warning("Ignoring RAR TA CMD because timeAlignmentTimer still running\n");
+      logger.warning("Ignoring RAR TA CMD because timeAlignmentTimer still running");
     }
   }
 }
@@ -378,7 +376,7 @@ void ra_proc::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_inte
   bzero(action, sizeof(mac_interface_phy_lte::tb_action_dl_t));
 
   if (grant.tb[0].tbs < MAX_RAR_PDU_LEN) {
-    rDebug("DL dci found RA-RNTI=%d\n", ra_rnti);
+    rDebug("DL dci found RA-RNTI=%d", ra_rnti);
     action->tb[0].enabled       = true;
     action->tb[0].payload       = rar_pdu_buffer;
     action->tb[0].rv            = grant.tb[0].rv;
@@ -388,7 +386,7 @@ void ra_proc::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_inte
       srslte_softbuffer_rx_reset(&softbuffer_rar);
     }
   } else {
-    rError("Received RAR dci exceeds buffer length (%d>%d)\n", grant.tb[0].tbs, MAX_RAR_PDU_LEN);
+    rError("Received RAR dci exceeds buffer length (%d>%d)", grant.tb[0].tbs, int(MAX_RAR_PDU_LEN));
   }
 }
 
@@ -405,10 +403,10 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
   rar_pdu_msg.init_rx(rar_grant_nbytes);
   if (rar_pdu_msg.parse_packet(rar_pdu_buffer) != SRSLTE_SUCCESS) {
-    rError("Error decoding RAR PDU\n");
+    rError("Error decoding RAR PDU");
   }
 
-  rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
+  rDebug("RAR decoded successfully TBS=%d", rar_grant_nbytes);
 
   // Set Backoff parameter
   if (rar_pdu_msg.has_backoff()) {
@@ -436,7 +434,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
       current_ta = rar_pdu_msg.get()->get_ta_cmd();
 
-      rInfo("RAPID=%d, TA=%d, T-CRNTI=0x%x\n",
+      rInfo("RAPID=%d, TA=%d, T-CRNTI=0x%x",
             sel_preamble.load(),
             rar_pdu_msg.get()->get_ta_cmd(),
             rar_pdu_msg.get()->get_temp_crnti());
@@ -454,7 +452,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
           // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
           if (transmitted_crnti) {
-            rInfo("Appending C-RNTI MAC CE 0x%x in next transmission\n", transmitted_crnti.load());
+            rInfo("Appending C-RNTI MAC CE 0x%x in next transmission", transmitted_crnti.load());
             mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
           }
         }
@@ -463,7 +461,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
         transmitted_contention_id = rntis->contention_id;
 
         task_queue.push([this]() {
-          rDebug("Waiting for Contention Resolution\n");
+          rDebug("Waiting for Contention Resolution");
           state = CONTENTION_RESOLUTION;
         });
       } else {
@@ -472,7 +470,7 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
       }
     } else {
       if (rar_pdu_msg.get()->has_rapid()) {
-        rInfo("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
+        rInfo("Found RAR for preamble %d", rar_pdu_msg.get()->get_rapid());
       }
     }
   }
@@ -487,7 +485,7 @@ void ra_proc::response_error()
   preambleTransmissionCounter++;
   contention_resolution_timer.stop();
   if (preambleTransmissionCounter >= rach_cfg.preambleTransMax + 1) {
-    rError("Maximum number of transmissions reached (%d)\n", rach_cfg.preambleTransMax);
+    rError("Maximum number of transmissions reached (%d)", rach_cfg.preambleTransMax);
     rrc->ra_problem();
     state = IDLE;
   } else {
@@ -498,10 +496,10 @@ void ra_proc::response_error()
       backoff_interval = 0;
     }
     if (backoff_interval) {
-      rDebug("Backoff wait interval %d\n", backoff_interval);
+      rDebug("Backoff wait interval %d", backoff_interval);
       state = BACKOFF_WAIT;
     } else {
-      rInfo("Transmitting new preamble immediately (%d/%d)\n", preambleTransmissionCounter, rach_cfg.preambleTransMax);
+      rInfo("Transmitting new preamble immediately (%d/%d)", preambleTransmissionCounter, rach_cfg.preambleTransMax);
       resource_selection();
     }
   }
@@ -526,7 +524,7 @@ void ra_proc::complete()
   rrc->ra_completed();
 
   srslte::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
-  rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
+  rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d", rntis->crnti, current_ta);
 
   state = START_WAIT_COMPLETION;
 }
@@ -536,10 +534,10 @@ void ra_proc::start_mac_order(uint32_t msg_len_bits)
   if (state == IDLE) {
     started_by_pdcch = false;
     new_ra_msg_len   = msg_len_bits;
-    rInfo("Starting PRACH by MAC order\n");
+    rInfo("Starting PRACH by MAC order");
     initialization();
   } else {
-    Warning("Trying to start PRACH by MAC order in invalid state (%s)\n", state_str[state]);
+    logger.warning("Trying to start PRACH by MAC order in invalid state (%s)", state_str[state]);
   }
 }
 
@@ -547,17 +545,17 @@ void ra_proc::start_pdcch_order()
 {
   if (state == IDLE) {
     started_by_pdcch = true;
-    rInfo("Starting PRACH by PDCCH order\n");
+    rInfo("Starting PRACH by PDCCH order");
     initialization();
   } else {
-    Warning("Trying to start PRACH by MAC order in invalid state (%s)\n", state_str[state]);
+    logger.warning("Trying to start PRACH by MAC order in invalid state (%s)", state_str[state]);
   }
 }
 
 // Contention Resolution Timer is expired (Section 5.1.5)
 void ra_proc::timer_expired(uint32_t timer_id)
 {
-  rInfo("Contention Resolution Timer expired. Stopping PDCCH Search and going to Response Error\n");
+  rInfo("Contention Resolution Timer expired. Stopping PDCCH Search and going to Response Error");
   response_error();
 }
 
@@ -581,10 +579,10 @@ bool ra_proc::contention_resolution_id_received_unsafe(uint64_t rx_contention_id
 {
   bool uecri_successful = false;
 
-  rDebug("MAC PDU Contains Contention Resolution ID CE\n");
+  rDebug("MAC PDU Contains Contention Resolution ID CE");
 
   if (state != CONTENTION_RESOLUTION) {
-    rError("Received contention resolution in wrong state. Aborting.\n");
+    rError("Received contention resolution in wrong state. Aborting.");
     response_error();
   }
 
@@ -596,7 +594,7 @@ bool ra_proc::contention_resolution_id_received_unsafe(uint64_t rx_contention_id
     uecri_successful = true;
     complete();
   } else {
-    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%" PRIx64 " != 0x%" PRIx64 ")\n",
+    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%" PRIx64 " != 0x%" PRIx64 ")",
           transmitted_contention_id.load(),
           rx_contention_id);
 
@@ -615,9 +613,9 @@ void ra_proc::pdcch_to_crnti(bool is_new_uplink_transmission)
 {
   task_queue.push([this, is_new_uplink_transmission]() {
     // TS 36.321 Section 5.1.5
-    rDebug("PDCCH to C-RNTI received %s new UL transmission\n", is_new_uplink_transmission ? "with" : "without");
+    rDebug("PDCCH to C-RNTI received %s new UL transmission", is_new_uplink_transmission ? "with" : "without");
     if ((!started_by_pdcch && is_new_uplink_transmission) || started_by_pdcch) {
-      rDebug("PDCCH for C-RNTI received\n");
+      rDebug("PDCCH for C-RNTI received");
       contention_resolution_timer.stop();
       complete();
     }
@@ -635,14 +633,14 @@ void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
     rar_window_length = rach_cfg.responseWindowSize;
     rar_window_start  = rar_window_st;
   }
-  rDebug("rar_window_start=%d, rar_window_length=%d\n", rar_window_start, rar_window_length);
+  rDebug("rar_window_start=%d, rar_window_length=%d", rar_window_start, rar_window_length);
 }
 
 // Restart timer at each Msg3 HARQ retransmission (5.1.5)
 void ra_proc::harq_retx()
 {
   task_queue.push([this]() {
-    rInfo("Restarting ContentionResolutionTimer=%d ms\n", contention_resolution_timer.duration());
+    rInfo("Restarting ContentionResolutionTimer=%d ms", contention_resolution_timer.duration());
     contention_resolution_timer.run();
   });
 }
@@ -651,7 +649,7 @@ void ra_proc::harq_retx()
 void ra_proc::harq_max_retx()
 {
   task_queue.push([this]() {
-    Warning("Contention Resolution is considered not successful. Stopping PDCCH Search and going to Response Error\n");
+    rWarning("Contention Resolution is considered not successful. Stopping PDCCH Search and going to Response Error");
     response_error();
   });
 }

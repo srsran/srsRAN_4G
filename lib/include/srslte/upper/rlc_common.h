@@ -265,9 +265,9 @@ public:
   virtual void                 reset_metrics() = 0;
 
   // PDCP interface
-  virtual void write_sdu(unique_byte_buffer_t sdu)                = 0;
-  virtual void discard_sdu(uint32_t discard_sn)                   = 0;
-  virtual bool sdu_queue_is_full()                                = 0;
+  virtual void write_sdu(unique_byte_buffer_t sdu) = 0;
+  virtual void discard_sdu(uint32_t discard_sn)    = 0;
+  virtual bool sdu_queue_is_full()                 = 0;
 
   // MAC interface
   virtual bool     has_data() = 0;
@@ -291,7 +291,7 @@ private:
 
     // Do not block ever
     if (!rx_pdu_resume_queue.try_push(p)) {
-      srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
+      srslog::fetch_basic_logger("RLC").warning("Dropping SDUs while bearer suspended.");
       return;
     }
   }
@@ -301,7 +301,7 @@ private:
   {
     // Do not block ever
     if (not tx_sdu_resume_queue.try_push(std::move(sdu))) {
-      srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
+      srslog::fetch_basic_logger("RLC").warning("Dropping SDUs while bearer suspended.");
       return;
     }
   }

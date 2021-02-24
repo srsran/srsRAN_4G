@@ -67,7 +67,7 @@ typedef struct {
   float    evm;
 } srslte_pusch_res_nr_t;
 
-SRSLTE_API int srslte_pusch_nr_init_enb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args);
+SRSLTE_API int srslte_pusch_nr_init_gnb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args);
 
 SRSLTE_API int srslte_pusch_nr_init_ue(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args);
 

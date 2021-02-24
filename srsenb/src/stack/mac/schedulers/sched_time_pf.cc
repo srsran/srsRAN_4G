@@ -33,7 +33,7 @@ sched_time_pf::sched_time_pf(const sched_cell_params_t& cell_params_, const sche
   }
 }
 
-void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   current_tti_rx = tti_point{tti_sched->get_tti_rx()};
   // remove deleted users from history
@@ -50,7 +50,7 @@ void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_s
     if (it == ue_history_db.end()) {
       it = ue_history_db.insert(std::make_pair(u.first, ue_ctxt{u.first, fairness_coeff})).first;
     }
-    it->second.new_tti(*cc_cfg, u.second, tti_sched);
+    it->second.new_tti(*cc_cfg, *u.second, tti_sched);
     if (it->second.dl_newtx_h != nullptr or it->second.dl_retx_h != nullptr) {
       dl_queue.push(&it->second);
     }
@@ -64,7 +64,7 @@ void sched_time_pf::new_tti(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_s
  *                         Dowlink
  *****************************************************************/
 
-void sched_time_pf::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_pf::sched_dl_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   srslte::tti_point tti_rx{tti_sched->get_tti_rx()};
   if (current_tti_rx != tti_rx) {
@@ -73,7 +73,7 @@ void sched_time_pf::sched_dl_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
 
   while (not dl_queue.empty()) {
     ue_ctxt& ue = *dl_queue.top();
-    ue.save_dl_alloc(try_dl_alloc(ue, ue_db[ue.rnti], tti_sched), 0.01);
+    ue.save_dl_alloc(try_dl_alloc(ue, *ue_db[ue.rnti], tti_sched), 0.01);
     dl_queue.pop();
   }
 }
@@ -87,24 +87,17 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
       return ue_ctxt.dl_retx_h->get_tbs(0) + ue_ctxt.dl_retx_h->get_tbs(1);
     }
   }
+
+  // There is space in PDCCH and an available DL HARQ
   if (code != alloc_outcome_t::DCI_COLLISION and ue_ctxt.dl_newtx_h != nullptr) {
-    rbg_interval req_rbgs = ue.get_required_dl_rbgs(cc_cfg->enb_cc_idx);
-    // Check if there is an empty harq for the newtx
-    if (req_rbgs.stop() == 0) {
-      return 0;
-    }
-    // Allocate resources based on pending data
-    rbgmask_t newtx_mask = find_available_dl_rbgs(req_rbgs.stop(), tti_sched->get_dl_mask());
-    if (newtx_mask.count() >= req_rbgs.start()) {
-      // empty RBGs were found
-      code = tti_sched->alloc_dl_user(&ue, newtx_mask, ue_ctxt.dl_newtx_h->get_id());
-      if (code == alloc_outcome_t::SUCCESS) {
-        return ue.get_expected_dl_bitrate(cc_cfg->enb_cc_idx, newtx_mask.count()) * tti_duration_ms / 8;
-      }
+    rbgmask_t alloc_mask;
+    code = try_dl_newtx_alloc_greedy(*tti_sched, ue, *ue_ctxt.dl_newtx_h, &alloc_mask);
+    if (code == alloc_outcome_t::SUCCESS) {
+      return ue.get_expected_dl_bitrate(cc_cfg->enb_cc_idx, alloc_mask.count()) * tti_duration_ms / 8;
     }
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
-    log_h->info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x\n", ue.get_rnti());
+    logger.info("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x", ue.get_rnti());
   }
   return 0;
 }
@@ -113,7 +106,7 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
  *                         Uplink
  *****************************************************************/
 
-void sched_time_pf::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched* tti_sched)
+void sched_time_pf::sched_ul_users(sched_ue_list& ue_db, sf_sched* tti_sched)
 {
   srslte::tti_point tti_rx{tti_sched->get_tti_rx()};
   if (current_tti_rx != tti_rx) {
@@ -122,7 +115,7 @@ void sched_time_pf::sched_ul_users(std::map<uint16_t, sched_ue>& ue_db, sf_sched
 
   while (not ul_queue.empty()) {
     ue_ctxt& ue = *ul_queue.top();
-    ue.save_ul_alloc(try_ul_alloc(ue, ue_db[ue.rnti], tti_sched), 0.01);
+    ue.save_ul_alloc(try_ul_alloc(ue, *ue_db[ue.rnti], tti_sched), 0.01);
     ul_queue.pop();
   }
 }
@@ -161,7 +154,7 @@ uint32_t sched_time_pf::try_ul_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
                           : 0;
   }
   if (code == alloc_outcome_t::DCI_COLLISION) {
-    log_h->info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x\n", ue.get_rnti());
+    logger.info("SCHED: Couldn't find space in PDCCH for UL retx of rnti=0x%x", ue.get_rnti());
   }
   return estim_tbs_bytes;
 }

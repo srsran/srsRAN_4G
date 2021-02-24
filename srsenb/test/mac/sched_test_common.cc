@@ -134,19 +134,17 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
 {
   sim_args0 = std::move(args);
 
-  sched::set_sched_cfg(&sim_args0.sched_args);
+  sched::init(nullptr, sim_args0.sched_args);
 
   sched_sim.reset(new sched_sim_random{this, sim_args0.cell_cfg});
   sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});
-
-  tester_log = sim_args0.sim_log;
 
   return SRSLTE_SUCCESS;
 }
 
 int common_sched_tester::add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_)
 {
-  tester_log->info("Adding user rnti=0x%x\n", rnti);
+  logger.info("Adding user rnti=0x%x", rnti);
   sched_sim->ue_sim_cfg_map[rnti] = ue_cfg_;
   return sched_sim->add_user(rnti, ue_cfg_.ue_cfg, tti_info.nof_prachs++);
 }
@@ -158,7 +156,7 @@ int common_sched_tester::reconf_user(uint16_t rnti, const sched_interface::ue_cf
 
 int common_sched_tester::rem_user(uint16_t rnti)
 {
-  tester_log->info("Removing user rnti=0x%x\n", rnti);
+  logger.info("Removing user rnti=0x%x", rnti);
   sched_sim->ue_sim_cfg_map.erase(rnti);
   return sched_sim->rem_user(rnti);
 }
@@ -177,7 +175,7 @@ void common_sched_tester::new_test_tti()
   tti_info.dl_sched_result.resize(sched_cell_params.size());
   tti_info.ul_sched_result.resize(sched_cell_params.size());
 
-  tester_log->step(tti_rx.to_uint());
+  logger.set_context(tti_rx.to_uint());
 }
 
 int common_sched_tester::run_ue_ded_tests_and_update_ctxt(const sf_output_res_t& sf_out)
@@ -224,7 +222,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
     // configure bearers
     if (ue_ev.bearer_cfg != nullptr) {
-      CONDERROR(not sched_sim->user_exists(ue_ev.rnti), "User rnti=0x%x does not exist\n", ue_ev.rnti);
+      CONDERROR(not sched_sim->user_exists(ue_ev.rnti), "User rnti=0x%x does not exist", ue_ev.rnti);
       // TODO: Instantiate more bearers
       TESTASSERT(sched_sim->bearer_cfg(ue_ev.rnti, 0, *ue_ev.bearer_cfg) == SRSLTE_SUCCESS);
     }
@@ -233,12 +231,12 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
     // push UL SRs and DL packets
     if (ue_ev.buffer_ev != nullptr) {
-      CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
+      CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist");
       const auto& ue_sim_ctxt = user->get_ctxt();
       if (ue_ev.buffer_ev->dl_data > 0 and ue_sim_ctxt.conres_rx) {
         // If Msg4 has already been tx and there DL data to transmit
         uint32_t lcid                = RB_ID_DRB1;
-        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_rlc_data();
+        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti]->get_pending_dl_rlc_data();
         // DRB is set. Update DL buffer
         uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
         dl_rlc_buffer_state(ue_ev.rnti, lcid, tot_dl_data, 0);                 // TODO: Check retx_queue
@@ -246,7 +244,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
       if (ue_ev.buffer_ev->sr_data > 0 and ue_sim_ctxt.conres_rx) {
         uint32_t tot_ul_data =
-            ue_db[ue_ev.rnti].get_pending_ul_new_data(to_tx_ul(tti_rx), -1) + ue_ev.buffer_ev->sr_data;
+            ue_db[ue_ev.rnti]->get_pending_ul_new_data(to_tx_ul(tti_rx), -1) + ue_ev.buffer_ev->sr_data;
         uint32_t lcg = 1;
         ul_bsr(ue_ev.rnti, lcg, tot_ul_data);
       }
@@ -258,7 +256,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 int common_sched_tester::run_tti(const tti_ev& tti_events)
 {
   new_test_tti();
-  tester_log->info("---- tti=%u | nof_ues=%zd ----\n", tti_rx.to_uint(), ue_db.size());
+  logger.info("---- tti=%u | nof_ues=%zd ----", tti_rx.to_uint(), ue_db.size());
 
   sched_sim->new_tti(tti_rx);
   process_tti_events(tti_events);

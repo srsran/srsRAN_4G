@@ -85,8 +85,28 @@ typedef struct SRSLTE_API {
   cf_t*             window_offset_buffer;
 } srslte_ofdm_t;
 
+/**
+ * @brief Initialises or reconfigures OFDM receiver
+ *
+ * @note The reconfiguration of the OFDM object considers only CP, number of PRB and optionally the FFT size
+ * @attention The OFDM object must be zeroed externally prior calling the initialization for first time
+ *
+ * @param q OFDM object
+ * @param cfg OFDM configuration
+ * @return SRSLTE_SUCCESS if the initialization/reconfiguration is successful, SRSLTE_ERROR code otherwise
+ */
 SRSLTE_API int srslte_ofdm_rx_init_cfg(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg);
 
+/**
+ * @brief Initialises or reconfigures OFDM transmitter
+ *
+ * @note The reconfiguration of the OFDM object considers only CP, number of PRB and optionally the FFT size
+ * @attention The OFDM object must be zeroed externally prior calling the initialization for first time
+ *
+ * @param q OFDM object
+ * @param cfg OFDM configuration
+ * @return SRSLTE_SUCCESS if the initialization/reconfiguration is successful, SRSLTE_ERROR code otherwise
+ */
 SRSLTE_API int srslte_ofdm_tx_init_cfg(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg);
 
 SRSLTE_API int

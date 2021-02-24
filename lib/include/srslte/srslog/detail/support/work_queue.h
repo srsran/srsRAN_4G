@@ -49,32 +49,38 @@ public:
   work_queue(const work_queue&) = delete;
   work_queue& operator=(const work_queue&) = delete;
 
-  /// Inserts a new element into the back of the queue.
-  void push(const T& value)
+  /// Inserts a new element into the back of the queue. Returns false when the
+  /// queue is full, otherwise true.
+  bool push(const T& value)
   {
     cond_var.lock();
     // Discard the new element if we reach the maximum capacity.
     if (queue.size() > capacity) {
       cond_var.unlock();
-      return;
+      return false;
     }
     queue.push(value);
     cond_var.signal();
     cond_var.unlock();
+
+    return true;
   }
 
-  /// Inserts a new element into the back of the queue.
-  void push(T&& value)
+  /// Inserts a new element into the back of the queue. Returns false when the
+  /// queue is full, otherwise true.
+  bool push(T&& value)
   {
     cond_var.lock();
     // Discard the new element if we reach the maximum capacity.
     if (queue.size() > capacity) {
       cond_var.unlock();
-      return;
+      return false;
     }
     queue.push(std::move(value));
     cond_var.signal();
     cond_var.unlock();
+
+    return true;
   }
 
   /// Extracts the top most element from the queue.

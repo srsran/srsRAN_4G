@@ -36,10 +36,10 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   prbmask_t ul_allocs(nof_prb);
 
   auto try_ul_fill = [&](prb_interval alloc, const char* ch_str, bool strict = true) {
-    CONDERROR(alloc.stop() > nof_prb, "Allocated RBs %s out-of-bounds\n", alloc.to_string().c_str());
-    CONDERROR(alloc.empty(), "Allocations must have at least one PRB\n");
+    CONDERROR(alloc.stop() > nof_prb, "Allocated RBs %s out-of-bounds", alloc.to_string().c_str());
+    CONDERROR(alloc.empty(), "Allocations must have at least one PRB");
     if (strict and ul_allocs.any(alloc.start(), alloc.stop())) {
-      TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s\n",
+      TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s",
                 ch_str,
                 alloc.to_string().c_str(),
                 ul_allocs.to_hex().c_str());
@@ -71,7 +71,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   }
 
   CONDERROR(expected_ul_mask != nullptr and *expected_ul_mask != ul_allocs,
-            "The derived UL PRB mask %s does not match the expected one %s\n",
+            "The derived UL PRB mask %s does not match the expected one %s",
             ul_allocs.to_string().c_str(),
             expected_ul_mask->to_string().c_str());
 
@@ -89,7 +89,7 @@ int extract_dl_prbmask(const srslte_cell_t&               cell,
   alloc_mask.reset();
 
   CONDERROR(srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, false, &dci, &grant) == SRSLTE_ERROR,
-            "Failed to decode PDSCH grant\n");
+            "Failed to decode PDSCH grant");
   for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
     if (grant.prb_idx[0][j]) {
       alloc_mask.set(j);
@@ -109,9 +109,9 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
     if (extract_dl_prbmask(cell_params.cfg.cell, dci, alloc_mask) != SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
-    CONDERROR(alloc_mask.none(), "DL allocation must occupy at least one RBG.\n");
+    CONDERROR(alloc_mask.none(), "DL allocation must occupy at least one RBG.");
     if ((dl_allocs & alloc_mask).any()) {
-      TESTERROR("Detected collision in the DL %s allocation (%s intersects %s)\n",
+      TESTERROR("Detected collision in the DL %s allocation (%s intersects %s)",
                 channel,
                 dl_allocs.to_string().c_str(),
                 alloc_mask.to_string().c_str());
@@ -150,14 +150,14 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   for (uint32_t i = 0; i < cell_params.nof_rbgs; ++i) {
     uint32_t lim = SRSLTE_MIN((i + 1) * cell_params.P, dl_allocs.size());
     bool     val = dl_allocs.any(i * cell_params.P, lim);
-    CONDERROR(rev_alloc.any(i * cell_params.P, lim) and val, "No holes can be left in an RBG\n");
+    CONDERROR(rev_alloc.any(i * cell_params.P, lim) and val, "No holes can be left in an RBG");
     if (val) {
       rbgmask.set(i);
     }
   }
 
   CONDERROR(expected_rbgmask != nullptr and *expected_rbgmask != rbgmask,
-            "The derived DL RBG mask %s does not match the expected one %s\n",
+            "The derived DL RBG mask %s does not match the expected one %s",
             rbgmask.to_string().c_str(),
             expected_rbgmask->to_string().c_str());
 
@@ -183,17 +183,17 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
 
   /* Test if SIB1 was correctly scheduled */
   auto it = std::find_if(bc_begin, bc_end, [](bc_elem& elem) { return elem.index == 0; });
-  CONDERROR(sib1_expected and it == bc_end, "Failed to allocate SIB1 in even sfn, sf_idx==5\n");
-  CONDERROR(not sib1_expected and it != bc_end, "SIB1 allocated in wrong TTI.\n");
+  CONDERROR(sib1_expected and it == bc_end, "Failed to allocate SIB1 in even sfn, sf_idx==5");
+  CONDERROR(not sib1_expected and it != bc_end, "SIB1 allocated in wrong TTI.");
 
   /* Test if any SIB was scheduled with wrong index, tbs, or outside of its window */
   for (bc_elem* bc = bc_begin; bc != bc_end; ++bc) {
     if (bc->index == 0) {
       continue;
     }
-    CONDERROR(bc->index >= sched_interface::MAX_SIBS, "Invalid SIB idx=%d\n", bc->index + 1);
+    CONDERROR(bc->index >= sched_interface::MAX_SIBS, "Invalid SIB idx=%d", bc->index + 1);
     CONDERROR(bc->tbs < cell_params.cfg.sibs[bc->index].len,
-              "Allocated BC process with TBS=%d < sib_len=%d\n",
+              "Allocated BC process with TBS=%d < sib_len=%d",
               bc->tbs,
               cell_params.cfg.sibs[bc->index].len);
     uint32_t x         = (bc->index - 1) * cell_params.cfg.si_window_ms;
@@ -204,7 +204,7 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     }
     srslte::tti_point    win_start{sfn_start * 10 + sf};
     srslte::tti_interval window{win_start, win_start + cell_params.cfg.si_window_ms};
-    CONDERROR(not window.contains(to_tx_dl(sf_out.tti_rx)), "Scheduled SIB is outside of its SIB window\n");
+    CONDERROR(not window.contains(to_tx_dl(sf_out.tti_rx)), "Scheduled SIB is outside of its SIB window");
   }
   return SRSLTE_SUCCESS;
 }
@@ -224,14 +224,11 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
   // Helper Function: checks if there is any collision. If not, fills the PDCCH mask
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
     uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
-    CONDERROR(dci_loc.L == 0, "The aggregation level %d is not valid\n", dci_loc.L);
+    CONDERROR(dci_loc.L == 0, "The aggregation level %d is not valid", dci_loc.L);
     CONDERROR(
-        cce_start >= ncce or cce_stop > ncce, "The CCE positions (%u, %u) do not fit in PDCCH\n", cce_start, cce_stop);
-    CONDERROR(used_cce.any(cce_start, cce_stop),
-              "%s DCI collision between CCE positions (%u, %u)\n",
-              ch,
-              cce_start,
-              cce_stop);
+        cce_start >= ncce or cce_stop > ncce, "The CCE positions (%u, %u) do not fit in PDCCH", cce_start, cce_stop);
+    CONDERROR(
+        used_cce.any(cce_start, cce_stop), "%s DCI collision between CCE positions (%u, %u)", ch, cce_start, cce_stop);
     used_cce.fill(cce_start, cce_stop);
     return SRSLTE_SUCCESS;
   };
@@ -256,7 +253,7 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
   }
 
   CONDERROR(expected_cce_mask != nullptr and *expected_cce_mask != used_cce,
-            "The derived PDCCH mask %s does not match the expected one %s\n",
+            "The derived PDCCH mask %s does not match the expected one %s",
             used_cce.to_string().c_str(),
             expected_cce_mask->to_string().c_str());
 
@@ -273,18 +270,18 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
     const auto& pusch = ul_result.pusch[i];
     uint16_t    rnti  = pusch.dci.rnti;
-    CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d\n", pusch.tbs);
-    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in UL\n", rnti);
+    CONDERROR(pusch.tbs == 0, "Allocated PUSCH with invalid TBS=%d", pusch.tbs);
+    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in UL", rnti);
     alloc_rntis.insert(pusch.dci.rnti);
-    CONDERROR(not((pusch.current_tx_nb == 0) xor (pusch.dci.tb.rv != 0)), "Number of txs incorrectly set\n");
+    CONDERROR(not((pusch.current_tx_nb == 0) xor (pusch.dci.tb.rv != 0)), "Number of txs incorrectly set");
     if (not pusch.needs_pdcch) {
       // In case of non-adaptive retx or Msg3
       continue;
     }
     if (pusch.dci.tb.rv == 0) {
       // newTx
-      CONDERROR(pusch.dci.format != SRSLTE_DCI_FORMAT0, "Incorrect UL DCI format\n");
-      CONDERROR(pusch.dci.tb.mcs_idx > 28, "Incorrect UL MCS index\n");
+      CONDERROR(pusch.dci.format != SRSLTE_DCI_FORMAT0, "Incorrect UL DCI format");
+      CONDERROR(pusch.dci.tb.mcs_idx > 28, "Incorrect UL MCS index");
     }
   }
 
@@ -292,8 +289,8 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
     auto&    data = dl_result.data[i];
     uint16_t rnti = data.dci.rnti;
-    CONDERROR(data.tbs[0] == 0 and data.tbs[1] == 0, "Allocated DL data has empty TBS\n");
-    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in DL\n", rnti);
+    CONDERROR(data.tbs[0] == 0 and data.tbs[1] == 0, "Allocated DL data has empty TBS");
+    CONDERROR(alloc_rntis.count(rnti) > 0, "The user rnti=0x%x got allocated multiple times in DL", rnti);
     alloc_rntis.insert(data.dci.rnti);
     for (uint32_t tb = 0; tb < 2; ++tb) {
       if (data.tbs[tb] == 0) {
@@ -301,15 +298,15 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
       }
       if (data.dci.tb[tb].rv == 0) {
         // newTx
-        CONDERROR(data.nof_pdu_elems[tb] == 0, "Allocated DL grant does not have MAC SDUs\n");
+        CONDERROR(data.nof_pdu_elems[tb] == 0, "Allocated DL grant does not have MAC SDUs");
         CONDERROR(data.nof_pdu_elems[tb] > sched_interface::MAX_RLC_PDU_LIST,
-                  "Number of SDUs in DL grant exceeds limit\n");
+                  "Number of SDUs in DL grant exceeds limit");
         uint32_t alloc_bytes = 0;
         for (uint32_t pdu = 0; pdu < data.nof_pdu_elems[tb]; ++pdu) {
           alloc_bytes += data.pdu[tb][pdu].nbytes;
         }
-        CONDERROR(alloc_bytes > data.tbs[tb], "The bytes allocated to individual MAC SDUs is larger than total TBS\n");
-        CONDERROR(data.dci.tb[tb].mcs_idx > 28, "Incorrect DL MCS index\n");
+        CONDERROR(alloc_bytes > data.tbs[tb], "The bytes allocated to individual MAC SDUs is larger than total TBS");
+        CONDERROR(data.dci.tb[tb].mcs_idx > 28, "Incorrect DL MCS index");
       }
     }
   }
@@ -317,18 +314,18 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     auto& bc = dl_result.bc[i];
     if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
       CONDERROR(bc.tbs < cell_params.cfg.sibs[bc.index].len,
-                "Allocated BC process with TBS=%d < sib_len=%d\n",
+                "Allocated BC process with TBS=%d < sib_len=%d",
                 bc.tbs,
                 cell_params.cfg.sibs[bc.index].len);
     } else if (bc.type == sched_interface::dl_sched_bc_t::PCCH) {
-      CONDERROR(bc.tbs == 0, "Allocated paging process with invalid TBS=%d\n", bc.tbs);
+      CONDERROR(bc.tbs == 0, "Allocated paging process with invalid TBS=%d", bc.tbs);
     } else {
-      TESTERROR("Invalid broadcast process id=%d\n", (int)bc.type);
+      TESTERROR("Invalid broadcast process id=%d", (int)bc.type);
     }
   }
   for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
     const auto& rar = dl_result.rar[i];
-    CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
+    CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d", rar.tbs);
   }
 
   return SRSLTE_SUCCESS;

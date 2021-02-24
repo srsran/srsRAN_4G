@@ -27,11 +27,10 @@ set(SOURCES gtpu.cc
             rlc_um_base.cc
             rlc_um_lte.cc
             rlc_am_base.cc
-            rlc_am_lte.cc)
-
-if (ENABLE_5GNR)
-  set(SOURCES ${SOURCES} pdcp_entity_nr.cc rlc_um_nr.cc rlc_am_nr.cc)
-endif(ENABLE_5GNR)
+            rlc_am_lte.cc
+            pdcp_entity_nr.cc
+            rlc_um_nr.cc
+            rlc_am_nr.cc)
 
 add_library(srslte_upper STATIC ${SOURCES})
 target_link_libraries(srslte_upper srslte_common srslte_asn1)

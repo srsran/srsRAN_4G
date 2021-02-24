@@ -147,7 +147,7 @@ public:
     std::unique_lock<std::mutex> lock(mutex);
 
     if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
-      ERROR("CC IDX %d out-of-range\n", cc_idx);
+      ERROR("CC IDX %d out-of-range", cc_idx);
       return;
     }
 
@@ -212,7 +212,7 @@ public:
     std::unique_lock<std::mutex> lock(mutex);
 
     if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
-      ERROR("CC IDX %d out-of-range\n", cc_idx);
+      ERROR("CC IDX %d out-of-range", cc_idx);
       return 0;
     }
 
@@ -224,7 +224,7 @@ public:
     std::unique_lock<std::mutex> lock(mutex);
 
     if (cc_idx == 0 or cc_idx >= SRSLTE_MAX_CARRIERS) {
-      ERROR("CC IDX %d out-of-range\n", cc_idx);
+      ERROR("CC IDX %d out-of-range", cc_idx);
       return 0;
     }
 

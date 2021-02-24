@@ -140,10 +140,10 @@ int test_uci_cqi_pucch(void)
 
 int main(int argc, char** argv)
 {
-  srslte_pucch_t        pucch_ue  = {};
-  srslte_pucch_t        pucch_enb = {};
-  srslte_pucch_cfg_t    pucch_cfg = {};
-  srslte_refsignal_ul_t dmrs;
+  srslte_pucch_t        pucch_ue   = {};
+  srslte_pucch_t        pucch_enb  = {};
+  srslte_pucch_cfg_t    pucch_cfg  = {};
+  srslte_refsignal_ul_t dmrs       = {};
   cf_t*                 sf_symbols = NULL;
   cf_t                  pucch_dmrs[2 * SRSLTE_NRE * 3];
   int                   ret       = -1;
@@ -158,55 +158,55 @@ int main(int argc, char** argv)
   }
 
   if (srslte_pucch_init_ue(&pucch_ue)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
   if (srslte_pucch_set_cell(&pucch_ue, cell)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
   if (srslte_pucch_set_rnti(&pucch_ue, 11)) {
-    ERROR("Error setting C-RNTI\n");
+    ERROR("Error setting C-RNTI");
     goto quit;
   }
   if (srslte_pucch_init_enb(&pucch_enb)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
   if (srslte_pucch_set_cell(&pucch_enb, cell)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
   if (srslte_pucch_set_rnti(&pucch_enb, 11)) {
-    ERROR("Error setting C-RNTI\n");
+    ERROR("Error setting C-RNTI");
     goto quit;
   }
   if (srslte_refsignal_ul_set_cell(&dmrs, cell)) {
-    ERROR("Error creating PDSCH object\n");
+    ERROR("Error creating PDSCH object");
     exit(-1);
   }
 
   if (srslte_chest_ul_init(&chest, cell.nof_prb) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating channel estimator\n");
+    ERROR("Error initiating channel estimator");
     goto quit;
   }
 
   if (srslte_chest_ul_res_init(&chest_res, cell.nof_prb) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating channel estimator result\n");
+    ERROR("Error initiating channel estimator result");
     goto quit;
   }
 
   if (srslte_chest_ul_set_cell(&chest, cell) < SRSLTE_SUCCESS) {
-    ERROR("Error setting channel estimator cell\n");
+    ERROR("Error setting channel estimator cell");
     goto quit;
   }
 
   if (srslte_channel_awgn_init(&awgn, 0x1234) < SRSLTE_SUCCESS) {
-    ERROR("Error initiating AWGN\n");
+    ERROR("Error initiating AWGN");
     goto quit;
   }
   if (srslte_channel_awgn_set_n0(&awgn, -snr_db) < SRSLTE_SUCCESS) {
-    ERROR("Error setting AWGN\n");
+    ERROR("Error setting AWGN");
     goto quit;
   }
 
@@ -223,7 +223,6 @@ int main(int argc, char** argv)
     for (uint32_t d = 1; d <= 3; d++) {
       for (uint32_t ncs = 0; ncs < 8; ncs += d) {
         for (uint32_t n_pucch = 1; n_pucch < 130; n_pucch += 50) {
-
           struct timeval t[3];
 
           pucch_cfg.delta_pucch_shift = d;
@@ -265,16 +264,16 @@ int main(int argc, char** argv)
           // Encode PUCCH signals
           gettimeofday(&t[1], NULL);
           if (srslte_pucch_encode(&pucch_ue, &ul_sf, &pucch_cfg, &uci_data.value, sf_symbols)) {
-            ERROR("Error encoding PUCCH\n");
+            ERROR("Error encoding PUCCH");
             goto quit;
           }
 
           if (srslte_refsignal_dmrs_pucch_gen(&dmrs, &ul_sf, &pucch_cfg, pucch_dmrs)) {
-            ERROR("Error encoding PUCCH\n");
+            ERROR("Error encoding PUCCH");
             goto quit;
           }
           if (srslte_refsignal_dmrs_pucch_put(&dmrs, &pucch_cfg, pucch_dmrs, sf_symbols)) {
-            ERROR("Error encoding PUCCH\n");
+            ERROR("Error encoding PUCCH");
             goto quit;
           }
           gettimeofday(&t[2], NULL);
@@ -287,13 +286,13 @@ int main(int argc, char** argv)
           // Decode PUCCH signals
           gettimeofday(&t[1], NULL);
           if (srslte_chest_ul_estimate_pucch(&chest, &ul_sf, &pucch_cfg, sf_symbols, &chest_res) < SRSLTE_SUCCESS) {
-            ERROR("Error estimating PUCCH channel\n");
+            ERROR("Error estimating PUCCH channel");
             goto quit;
           }
 
           srslte_pucch_res_t res = {};
           if (srslte_pucch_decode(&pucch_enb, &ul_sf, &pucch_cfg, &chest_res, sf_symbols, &res) < SRSLTE_SUCCESS) {
-            ERROR("Error decoding PUCCH\n");
+            ERROR("Error decoding PUCCH");
             goto quit;
           }
           gettimeofday(&t[2], NULL);
@@ -303,15 +302,15 @@ int main(int argc, char** argv)
           // Check EPRE and RSRP are +/- 1 dB and SNR measurements are +/- 3dB
           if (fabsf(chest_res.epre_dBfs) > 1.0 || fabsf(chest_res.rsrp_dBfs) > 1.0 ||
               fabsf(chest_res.snr_db - snr_db) > 3.0) {
-            ERROR("Invalid EPRE (%+.2f), RSRP (%+.2f) or SNR (%+.2f)\n",
+            ERROR("Invalid EPRE (%+.2f), RSRP (%+.2f) or SNR (%+.2f)",
                   chest_res.epre_dBfs,
                   chest_res.rsrp_dBfs,
                   chest_res.snr_db);
             goto quit;
           }
 
-          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_encode=%ld us, t_decode=%ld us, EPRE=%+.1f dBfs, RSRP=%+.1f "
-               "dBfs, SNR=%+.1f dBfs\n",
+          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_encode=%" PRIu64 " us, t_decode=%" PRIu64
+               " us, EPRE=%+.1f dBfs, RSRP=%+.1f dBfs, SNR=%+.1f dBfs\n",
                format,
                n_pucch,
                ncs,

@@ -85,7 +85,7 @@ void parse_args(int argc, char** argv)
       case 'p':
         nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         if (!srslte_nofprb_isvalid(nof_prb)) {
-          ERROR("Invalid number of UL RB %d\n", nof_prb);
+          ERROR("Invalid number of UL RB %d", nof_prb);
           exit(-1);
         }
         break;
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
   srslte_rf_t rf;
   printf("Opening RF device...\n");
   if (srslte_rf_open(&rf, rf_args)) {
-    ERROR("Error opening rf\n");
+    ERROR("Error opening rf");
     exit(-1);
   }
 

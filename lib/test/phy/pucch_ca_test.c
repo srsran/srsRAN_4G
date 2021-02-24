@@ -96,7 +96,6 @@ static int test_pucch_ca(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode,
 
   // The test itself starts here
   for (ul_sf.tti = 0; ul_sf.tti < (1U << (nof_carriers * 2U)); ul_sf.tti++) {
-
     // Generate new data
     pusch_data.uci.ack.valid = true;
     for (uint32_t i = 0, k = 0; i < nof_carriers; i++) {
@@ -122,7 +121,7 @@ static int test_pucch_ca(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode,
     // Check results
     for (int i = 0, k = 0; i < nof_carriers; i++) {
       for (int j = 0; j < nof_tb[i]; j++, k++) {
-        INFO("cc=%d; tb=%d; tx_ack=%d; rx_ack=%d;\n",
+        INFO("cc=%d; tb=%d; tx_ack=%d; rx_ack=%d;",
              i,
              j,
              pusch_data.uci.ack.ack_value[k],

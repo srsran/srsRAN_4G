@@ -61,7 +61,7 @@ static int pdcch_init(srslte_pdcch_t* q, uint32_t max_prb, uint32_t nof_rx_anten
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
     q->max_bits = max_prb * 3 * 12 * 2;
 
-    INFO("Init PDCCH: Max bits: %d\n", q->max_bits);
+    INFO("Init PDCCH: Max bits: %d", q->max_bits);
 
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
@@ -132,7 +132,6 @@ int srslte_pdcch_init_ue(srslte_pdcch_t* q, uint32_t max_prb, uint32_t nof_rx_an
 
 void srslte_pdcch_free(srslte_pdcch_t* q)
 {
-
   if (q->e) {
     free(q->e);
   }
@@ -185,10 +184,9 @@ int srslte_pdcch_set_cell(srslte_pdcch_t* q, srslte_regs_t* regs, srslte_cell_t 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && regs != NULL && srslte_cell_isvalid(&cell)) {
-
     srslte_pdcch_set_regs(q, regs);
 
-    INFO("PDCCH: Cell config PCI=%d, %d ports.\n", q->cell.id, q->cell.nof_ports);
+    INFO("PDCCH: Cell config PCI=%d, %d ports.", q->cell.id, q->cell.nof_ports);
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       q->cell = cell;
@@ -236,7 +234,6 @@ uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t               nof_cce,
                                           uint16_t               rnti,
                                           int                    Ls)
 {
-
   int       l; // this must be int because of the for(;;--) loop
   uint32_t  i, k, L, m;
   uint32_t  Yk, ncce;
@@ -274,7 +271,7 @@ uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t               nof_cce,
             c[k].L    = l;
             c[k].ncce = ncce;
 
-            DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n", k, c[k].ncce, c[k].L);
+            DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d", k, c[k].ncce, c[k].L);
 
             k++;
           }
@@ -283,7 +280,7 @@ uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t               nof_cce,
     }
   }
 
-  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x, sf_idx=%d, nof_cce=%d\n",
+  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x, sf_idx=%d, nof_cce=%d",
         k,
         rnti,
         sf_idx,
@@ -318,13 +315,13 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
       if (k < max_candidates && ncce + L <= nof_cce) {
         c[k].L    = l;
         c[k].ncce = ncce;
-        DEBUG("Common SS Candidate %d: nCCE: %d/%d, L: %d\n", k, c[k].ncce, nof_cce, c[k].L);
+        DEBUG("Common SS Candidate %d: nCCE: %d/%d, L: %d", k, c[k].ncce, nof_cce, c[k].L);
         k++;
       }
     }
   }
 
-  INFO("Initiated %d candidate(s) in the Common search space\n", k);
+  INFO("Initiated %d candidate(s) in the Common search space", k);
 
   return k;
 }
@@ -337,7 +334,6 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
  */
 int srslte_pdcch_dci_decode(srslte_pdcch_t* q, float* e, uint8_t* data, uint32_t E, uint32_t nof_bits, uint16_t* crc)
 {
-
   uint16_t p_bits, crc_res;
   uint8_t* x;
 
@@ -363,7 +359,7 @@ int srslte_pdcch_dci_decode(srslte_pdcch_t* q, float* e, uint8_t* data, uint32_t
 
       return SRSLTE_SUCCESS;
     } else {
-      ERROR("Invalid parameters: E: %d, max_bits: %d, nof_bits: %d\n", E, q->max_bits, nof_bits);
+      ERROR("Invalid parameters: E: %d, max_bits: %d, nof_bits: %d", E, q->max_bits, nof_bits);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
   } else {
@@ -382,7 +378,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t* q, srslte_dl_sf_cfg_t* sf, srslte_dc
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL && msg != NULL && srslte_dci_location_isvalid(&msg->location)) {
     if (msg->location.ncce * 72 + PDCCH_FORMAT_NOF_BITS(msg->location.L) > NOF_CCE(sf->cfi) * 72) {
-      ERROR("Invalid location: nCCE: %d, L: %d, NofCCE: %d\n", msg->location.ncce, msg->location.L, NOF_CCE(sf->cfi));
+      ERROR("Invalid location: nCCE: %d, L: %d, NofCCE: %d", msg->location.ncce, msg->location.L, NOF_CCE(sf->cfi));
     } else {
       ret = SRSLTE_SUCCESS;
 
@@ -403,9 +399,9 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t* q, srslte_dl_sf_cfg_t* sf, srslte_dc
             msg->format = (msg->payload[dci_cfg->cif_enabled ? 3 : 0] == 0) ? SRSLTE_DCI_FORMAT0 : SRSLTE_DCI_FORMAT1A;
           }
         } else {
-          ERROR("Error calling pdcch_dci_decode\n");
+          ERROR("Error calling pdcch_dci_decode");
         }
-        INFO("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x\n",
+        INFO("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x",
              msg->location.ncce,
              msg->location.L,
              srslte_dci_format_string(msg->format),
@@ -413,12 +409,11 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t* q, srslte_dl_sf_cfg_t* sf, srslte_dc
              mean,
              msg->rnti);
       } else {
-        INFO(
-            "Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f\n", msg->location.ncce, msg->location.L, nof_bits, mean);
+        INFO("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f", msg->location.ncce, msg->location.L, nof_bits, mean);
       }
     }
   } else {
-    ERROR("Invalid parameters, location=%d,%d\n", msg->location.ncce, msg->location.L);
+    ERROR("Invalid parameters, location=%d,%d", msg->location.ncce, msg->location.L);
   }
   return ret;
 }
@@ -431,7 +426,6 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t*        q,
                              srslte_chest_dl_res_t* channel,
                              cf_t*                  sf_symbols[SRSLTE_MAX_PORTS])
 {
-
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   /* Set pointers for layermapping & precoding */
@@ -439,13 +433,12 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t*        q,
   cf_t*    x[SRSLTE_MAX_LAYERS];
 
   if (q != NULL && sf->cfi > 0 && sf->cfi < 4) {
-
     uint32_t e_bits = 72 * NOF_CCE(sf->cfi);
     nof_symbols     = e_bits / 2;
     ret             = SRSLTE_ERROR;
     srslte_vec_f_zero(q->llr, q->max_bits);
 
-    DEBUG("Extracting LLRs: E: %d, SF: %d, CFI: %d\n", e_bits, sf->tti % 10, sf->cfi);
+    DEBUG("Extracting LLRs: E: %d, SF: %d, CFI: %d", e_bits, sf->tti % 10, sf->cfi);
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
@@ -457,7 +450,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t*        q,
     for (int j = 0; j < q->nof_rx_antennas; j++) {
       int n = srslte_regs_pdcch_get(q->regs, sf->cfi, sf_symbols[j], q->symbols[j]);
       if (nof_symbols != n) {
-        ERROR("Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
+        ERROR("Expected %d PDCCH symbols but got %d symbols", nof_symbols, n);
         return ret;
       }
 
@@ -465,7 +458,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t*        q,
       for (i = 0; i < q->cell.nof_ports; i++) {
         n = srslte_regs_pdcch_get(q->regs, sf->cfi, channel->ce[i][j], q->ce[i][j]);
         if (nof_symbols != n) {
-          ERROR("Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
+          ERROR("Expected %d PDCCH symbols but got %d symbols", nof_symbols, n);
           return ret;
         }
       }
@@ -499,7 +492,7 @@ static void crc_set_mask_rnti(uint8_t* crc, uint16_t rnti)
   uint8_t  mask[16];
   uint8_t* r = mask;
 
-  DEBUG("Mask CRC with RNTI 0x%x\n", rnti);
+  DEBUG("Mask CRC with RNTI 0x%x", rnti);
 
   srslte_bit_unpack(rnti, &r, 16);
   for (i = 0; i < 16; i++) {
@@ -534,7 +527,6 @@ int srslte_pdcch_dci_encode(srslte_pdcch_t* q, uint8_t* data, uint8_t* e, uint32
   uint8_t tmp[3 * (SRSLTE_DCI_MAX_BITS + 16)];
 
   if (q != NULL && data != NULL && e != NULL && nof_bits < SRSLTE_DCI_MAX_BITS && E < q->max_bits) {
-
     srslte_pdcch_dci_encode_conv(q, data, nof_bits, tmp, rnti);
 
     DEBUG("CConv output: ");
@@ -563,21 +555,19 @@ int srslte_pdcch_encode(srslte_pdcch_t*     q,
                         srslte_dci_msg_t*   msg,
                         cf_t*               sf_symbols[SRSLTE_MAX_PORTS])
 {
-
   int      ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;
   cf_t*    x[SRSLTE_MAX_LAYERS];
   uint32_t nof_symbols;
 
   if (q != NULL && sf_symbols != NULL && sf->cfi > 0 && sf->cfi < 4 && srslte_dci_location_isvalid(&msg->location)) {
-
     uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(msg->location.L);
     nof_symbols     = e_bits / 2;
     ret             = SRSLTE_ERROR;
 
     if (msg->location.ncce + PDCCH_FORMAT_NOF_CCE(msg->location.L) <= NOF_CCE(sf->cfi) &&
         msg->nof_bits < SRSLTE_DCI_MAX_BITS - 16) {
-      DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+      DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x",
             msg->nof_bits,
             e_bits,
             msg->location.ncce,
@@ -622,14 +612,14 @@ int srslte_pdcch_encode(srslte_pdcch_t*     q,
       ret = SRSLTE_SUCCESS;
 
     } else {
-      ERROR("Illegal DCI message nCCE: %d, L: %d, nof_cce: %d, nof_bits=%d\n",
+      ERROR("Illegal DCI message nCCE: %d, L: %d, nof_cce: %d, nof_bits=%d",
             msg->location.ncce,
             msg->location.L,
             NOF_CCE(sf->cfi),
             msg->nof_bits);
     }
   } else {
-    ERROR("Invalid parameters: cfi=%d, L=%d, nCCE=%d\n", sf->cfi, msg->location.L, msg->location.ncce);
+    ERROR("Invalid parameters: cfi=%d, L=%d, nCCE=%d", sf->cfi, msg->location.L, msg->location.ncce);
   }
   return ret;
 }

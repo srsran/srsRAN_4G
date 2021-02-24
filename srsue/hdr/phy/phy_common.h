@@ -30,6 +30,7 @@
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/scell/scell_state.h"
 #include "ta_control.h"
@@ -74,12 +75,11 @@ public:
   // Time Aligment Controller, internal thread safe
   ta_control ta;
 
-  phy_common();
+  phy_common(srslog::basic_logger& logger);
 
   ~phy_common();
 
   void init(phy_args_t*                  args,
-            srslte::log*                 _log,
             srslte::radio_interface_phy* _radio,
             stack_interface_phy_lte*     _stack,
             rsrp_insync_itf*             rsrp_insync);
@@ -132,7 +132,7 @@ public:
                           srslte_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack);
 
-  void worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time);
+  void worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time, bool is_nr);
 
   void set_cell(const srslte_cell_t& c);
 
@@ -256,8 +256,8 @@ private:
 
   bool is_pending_tx_end = false;
 
-  srslte::radio_interface_phy* radio_h    = nullptr;
-  srslte::log*                 log_h      = nullptr;
+  srslte::radio_interface_phy* radio_h = nullptr;
+  srslog::basic_logger&        logger;
   srslte::channel_ptr          ul_channel = nullptr;
 
   int rar_grant_tti = -1;
@@ -327,6 +327,10 @@ private:
   bool is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
 
   bool is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+
+  // NR carriers buffering synchronization, LTE workers are in charge of transmitting
+  srslte::rf_buffer_t nr_tx_buffer;
+  bool                nr_tx_buffer_ready = false;
 };
 } // namespace srsue
 

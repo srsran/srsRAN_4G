@@ -33,6 +33,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include <cstddef>
 
@@ -63,7 +64,7 @@ class mbms_gw : public srslte::thread
 public:
   static mbms_gw* get_instance(void);
   static void     cleanup(void);
-  int             init(mbms_gw_args_t* args, srslte::log_ref mbms_gw_log);
+  int             init(mbms_gw_args_t* args);
   void            stop();
   void            run_thread();
 
@@ -79,9 +80,8 @@ private:
   uint16_t in_cksum(uint16_t* iphdr, int count);
 
   /* Members */
-  bool                      m_running;
-  srslte::byte_buffer_pool* m_pool;
-  srslte::log_ref           m_mbms_gw_log;
+  bool                  m_running;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("MBMS");
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

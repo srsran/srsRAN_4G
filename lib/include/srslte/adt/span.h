@@ -241,6 +241,9 @@ inline bool operator!=(span<T> lhs, span<T> rhs)
   return not lhs.equals(rhs);
 }
 
+template <typename T>
+using const_span = span<const T>;
+
 } // namespace srslte
 
 #endif // SRSLTE_SPAN_H

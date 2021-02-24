@@ -67,7 +67,7 @@ public:
   /**
    * Constructor
    */
-  intra_measure();
+  intra_measure(srslog::basic_logger& logger);
 
   /**
    * Destructor
@@ -78,9 +78,8 @@ public:
    * Initiation function, necessary to configure main parameters
    * @param common SRSUE phy_common instance pointer for providing intra_freq_meas_len_ms and intra_freq_meas_period_ms
    * @param rrc SRSUE PHY->RRC interface for supplying the RRC with the measurements
-   * @param log_h Physical layer Logging filter pointer
    */
-  void init(uint32_t cc_idx, phy_common* common, meas_itf* new_cell_itf, srslte::log* log_h);
+  void init(uint32_t cc_idx, phy_common* common, meas_itf* new_cell_itf);
 
   /**
    * Stops the operation of this component
@@ -202,19 +201,19 @@ private:
   ///< Internal Thread priority, low by default
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
-  scell_recv         scell                     = {};
-  meas_itf*          new_cell_itf              = nullptr;
-  srslte::log*       log_h                     = nullptr;
-  uint32_t           cc_idx                    = 0;
-  uint32_t           current_earfcn            = 0;
-  uint32_t           current_sflen             = 0;
-  srslte_cell_t      serving_cell              = {};
-  std::set<uint32_t> active_pci                = {};
-  std::mutex         active_pci_mutex          = {};
-  uint32_t           last_measure_tti          = 0;
-  uint32_t           intra_freq_meas_len_ms    = 20;
-  uint32_t           intra_freq_meas_period_ms = 200;
-  uint32_t           rx_gain_offset_db         = 0;
+  scell_recv            scell;
+  meas_itf*             new_cell_itf = nullptr;
+  srslog::basic_logger& logger;
+  uint32_t              cc_idx                    = 0;
+  uint32_t              current_earfcn            = 0;
+  uint32_t              current_sflen             = 0;
+  srslte_cell_t         serving_cell              = {};
+  std::set<uint32_t>    active_pci                = {};
+  std::mutex            active_pci_mutex          = {};
+  uint32_t              last_measure_tti          = 0;
+  uint32_t              intra_freq_meas_len_ms    = 20;
+  uint32_t              intra_freq_meas_period_ms = 200;
+  uint32_t              rx_gain_offset_db         = 0;
 
   cf_t* search_buffer = nullptr;
 

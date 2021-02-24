@@ -25,6 +25,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srsepc {
 
@@ -45,12 +46,11 @@ public:
   bool send_paging(uint64_t imsi, uint16_t erab_to_setup);
 
 private:
-  mme*                m_mme;
-  s1ap*               m_s1ap;
-  srslte::log_filter* m_s1ap_log;
+  mme*                  m_mme;
+  s1ap*                 m_s1ap;
+  srslog::basic_logger& m_logger = srslog::fetch_basic_logger("S1AP");
 
-  s1ap_args_t               m_s1ap_args;
-  srslte::byte_buffer_pool* m_pool;
+  s1ap_args_t m_s1ap_args;
 };
 
 } // namespace srsepc

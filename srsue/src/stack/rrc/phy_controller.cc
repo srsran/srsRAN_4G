@@ -33,7 +33,7 @@ std::string to_string(const phy_cell_t& cell)
 phy_controller::phy_controller(srsue::phy_interface_rrc_lte*                 phy_,
                                srslte::task_sched_handle                     task_sched_,
                                std::function<void(uint32_t, uint32_t, bool)> on_cell_selection) :
-  base_t(srslte::log_ref{"RRC"}),
+  base_t(srslog::fetch_basic_logger("RRC")),
   phy(phy_),
   task_sched(task_sched_),
   cell_selection_always_observer(std::move(on_cell_selection))
@@ -46,13 +46,13 @@ void phy_controller::in_sync()
 
 bool phy_controller::set_cell_config(const srslte::phy_cfg_t& config, uint32_t cc_idx)
 {
-  log_h->info("Setting PHY config for cc_idx=%d\n", cc_idx);
+  logger.info("Setting PHY config for cc_idx=%d", cc_idx);
   return set_cell_config(config, cc_idx, true);
 }
 
 void phy_controller::set_phy_to_default()
 {
-  log_h->info("Setting default PHY config (common and dedicated)\n");
+  logger.info("Setting default PHY config (common and dedicated)");
 
   srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults();
@@ -64,7 +64,7 @@ void phy_controller::set_phy_to_default()
 /// Apply default PHY config for all SCells as specified in TS 36.331 9.2.4
 void phy_controller::set_phy_to_default_dedicated()
 {
-  log_h->info("Setting default dedicated PHY config\n");
+  logger.info("Setting default dedicated PHY config");
 
   srslte::phy_cfg_t& default_cfg = current_cells_cfg[0];
   default_cfg.set_defaults_dedicated();
@@ -75,7 +75,7 @@ void phy_controller::set_phy_to_default_dedicated()
 
 void phy_controller::set_phy_to_default_pucch_srs()
 {
-  log_h->info("Setting default PHY config dedicated\n");
+  logger.info("Setting default PHY config dedicated");
 
   srslte::phy_cfg_t& default_cfg_ded = current_cells_cfg[0];
   default_cfg_ded.set_defaults_pucch_sr();
@@ -100,7 +100,7 @@ bool phy_controller::set_cell_config(const srslte::phy_cfg_t& cfg, uint32_t cc_i
 void phy_controller::set_config_complete()
 {
   if (nof_pending_configs == 0) {
-    log_h->warning("Received more phy config complete signals than the ones scheduled\n");
+    logger.warning("Received more phy config complete signals than the ones scheduled");
     return;
   }
   nof_pending_configs--;
@@ -113,12 +113,12 @@ void phy_controller::set_config_complete()
 bool phy_controller::start_cell_select(const phy_cell_t& phy_cell, srslte::event_observer<bool> observer)
 {
   if (is_in_state<selecting_cell>()) {
-    log_h->warning("Failed to launch cell selection as it is already running\n");
+    logger.warning("Failed to launch cell selection as it is already running");
     return false;
   }
   trigger(cell_sel_cmd{phy_cell});
   if (not is_in_state<selecting_cell>()) {
-    log_h->warning("Failed to launch cell selection. Current state: %s\n", current_state_name().c_str());
+    logger.warning("Failed to launch cell selection. Current state: %s", current_state_name().c_str());
     return false;
   }
   cell_selection_notifier = std::move(observer);
@@ -140,7 +140,7 @@ void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd
   target_cell     = ev.phy_cell;
   csel_res.result = false;
 
-  fsmInfo("Starting for pci=%d, earfcn=%d\n", target_cell.pci, target_cell.earfcn);
+  fsmInfo("Starting for pci=%d, earfcn=%d", target_cell.pci, target_cell.earfcn);
   if (not f->phy->cell_select(target_cell)) {
     trigger(srslte::failure_ev{});
   }
@@ -151,9 +151,9 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
   wait_in_sync_timer.stop();
 
   if (csel_res.result) {
-    fsmInfo("Cell %s successfully selected\n", to_string(target_cell).c_str());
+    fsmInfo("Cell %s successfully selected", to_string(target_cell).c_str());
   } else {
-    fsmWarning("Failed to select cell %s\n", to_string(target_cell).c_str());
+    fsmWarning("Failed to select cell %s", to_string(target_cell).c_str());
   }
 
   // Signal result back to FSM that called cell selection
@@ -178,12 +178,12 @@ void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f)
 bool phy_controller::start_cell_search(srslte::event_observer<cell_srch_res> observer)
 {
   if (is_in_state<searching_cell>()) {
-    fsmInfo("Cell search already launched.\n");
+    fsmInfo("Cell search already launched.");
     return true;
   }
   trigger(cell_search_cmd{});
   if (not is_in_state<searching_cell>()) {
-    fsmWarning("Failed to launch cell search\n");
+    fsmWarning("Failed to launch cell search");
     return false;
   }
   cell_search_observers.subscribe(observer);
@@ -197,7 +197,7 @@ void phy_controller::cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t 
 
 void phy_controller::searching_cell::enter(phy_controller* f)
 {
-  otherfsmInfo(f, "Initiating Cell search\n");
+  otherfsmInfo(f, "Initiating Cell search");
   f->phy->cell_search();
 }
 
@@ -205,13 +205,13 @@ void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_r
 {
   switch (result.cs_ret.found) {
     case cell_search_ret_t::CELL_FOUND:
-      fsmInfo("PHY cell search completed. Found cell %s\n", to_string(result.found_cell).c_str());
+      fsmInfo("PHY cell search completed. Found cell %s", to_string(result.found_cell).c_str());
       break;
     case cell_search_ret_t::CELL_NOT_FOUND:
-      fsmWarning("PHY cell search completed. No cells found.\n");
+      fsmWarning("PHY cell search completed. No cells found.");
       break;
     default:
-      fsmError("Invalid cell search result\n");
+      fsmError("Invalid cell search result");
       // TODO: check what errors can happen (currently not handled in our code)
   }
 

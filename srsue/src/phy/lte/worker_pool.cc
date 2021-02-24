@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 #include "srsue/hdr/phy/lte/worker_pool.h"
@@ -25,24 +16,16 @@ namespace lte {
 
 worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers) {}
 
-bool worker_pool::init(phy_common* common, srslte::logger* logger, int prio)
+bool worker_pool::init(phy_common* common, srslog::sink& log_sink, int prio)
 {
-  // Create logs
-  // Create array of pointers to phy_logs
-  for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
-    auto* mylog = new srslte::log_filter;
-    char  tmp[16];
-    sprintf(tmp, "PHY%d", i);
-    mylog->init(tmp, logger, true);
-    mylog->set_level(common->args->log.phy_level);
-    mylog->set_hex_limit(common->args->log.phy_hex_limit);
-    log_vec.push_back(std::unique_ptr<srslte::log_filter>(mylog));
-  }
-
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < common->args->nof_phy_threads; i++) {
+    srslog::basic_logger &log = srslog::fetch_basic_logger(fmt::format("PHY{}", i), log_sink);
+    log.set_level(srslog::str_to_basic_level(common->args->log.phy_level));
+    log.set_hex_dump_max_size(common->args->log.phy_hex_limit);
+
     auto w =
-        std::unique_ptr<lte::sf_worker>(new lte::sf_worker(SRSLTE_MAX_PRB, common, (srslte::log*)log_vec[i].get()));
+        std::unique_ptr<lte::sf_worker>(new lte::sf_worker(SRSLTE_MAX_PRB, common, log));
     pool.init_worker(i, w.get(), prio, common->args->worker_cpu_mask);
     workers.push_back(std::move(w));
   }

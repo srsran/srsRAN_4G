@@ -295,10 +295,8 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     }
 
     for (int i = 0; i < handler->nof_channels; i++) {
-      char rx_port[RF_PARAM_LEN] = {};
-      char tx_port[RF_PARAM_LEN] = {};
-
       // rx_port
+      char rx_port[RF_PARAM_LEN] = {};
       parse_string(args, "rx_port", i, rx_port);
 
       // rx_freq
@@ -306,7 +304,11 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       parse_double(args, "rx_freq", i, &rx_freq);
       rx_opts.frequency_mhz = (uint32_t)(rx_freq / 1e6);
 
+      // rx_offset
+      parse_int32(args, "rx_offset", i, &rx_opts.sample_offset);
+
       // tx_port
+      char tx_port[RF_PARAM_LEN] = {};
       parse_string(args, "tx_port", i, tx_port);
 
       // tx_freq
@@ -314,11 +316,25 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       parse_double(args, "tx_freq", i, &tx_freq);
       tx_opts.frequency_mhz = (uint32_t)(tx_freq / 1e6);
 
+      // tx_offset
+      parse_int32(args, "tx_offset", i, &tx_opts.sample_offset);
+
       // fail_on_disconnect
       char tmp[RF_PARAM_LEN] = {};
       parse_string(args, "fail_on_disconnect", i, tmp);
       if (strncmp(tmp, "true", RF_PARAM_LEN) == 0 || strncmp(tmp, "yes", RF_PARAM_LEN) == 0) {
         rx_opts.fail_on_disconnect = true;
+      }
+
+      // trx_timeout_ms
+      rx_opts.trx_timeout_ms = ZMQ_TIMEOUT_MS;
+      parse_uint32(args, "trx_timeout_ms", i, &rx_opts.trx_timeout_ms);
+
+      // log_trx_timeout
+      char tmp2[RF_PARAM_LEN] = {};
+      parse_string(args, "log_trx_timeout", i, tmp);
+      if (strncmp(tmp2, "true", RF_PARAM_LEN) == 0 || strncmp(tmp2, "yes", RF_PARAM_LEN) == 0) {
+        rx_opts.log_trx_timeout = true;
       }
 
       // initialize transmitter
@@ -667,7 +683,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
     rf_zmq_info(handler->id, " - next tx time: %d + %.3f\n", ts_tx.full_secs, ts_tx.frac_secs);
 
     // Leave time for the Tx to transmit
-    usleep((1000000 * nsamples) / handler->base_srate);
+    usleep((1000000 * nsamples_baserate) / handler->base_srate);
 
     // check for tx gap if we're also transmitting on this radio
     for (int i = 0; i < handler->nof_channels; i++) {
@@ -711,6 +727,9 @@ int rf_zmq_recv_with_time_multi(void*    h,
             // No error
             count[i] += n;
           } else if (n == SRSLTE_ERROR_TIMEOUT) {
+            if (handler->receiver[i].log_trx_timeout) {
+              fprintf(stderr, "Error: timeout receiving samples after %dms\n", handler->receiver[i].trx_timeout_ms);
+            }
             // Other end disconnected, either keep going, or fail
             if (handler->receiver[i].fail_on_disconnect) {
               goto clean_exit;

@@ -24,10 +24,10 @@
 #include "srslte/srslog/bundled/fmt/format.h"
 #include <array>
 
-#define Debug(fmt, ...) srslte::logmap::get("MAC")->debug(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) srslte::logmap::get("MAC")->info(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) srslte::logmap::get("MAC")->warning(fmt, ##__VA_ARGS__)
-#define Error(fmt, ...) srslte::logmap::get("MAC")->error(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) srslog::fetch_basic_logger("MAC").debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) srslog::fetch_basic_logger("MAC").info(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) srslog::fetch_basic_logger("MAC").warning(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) srslog::fetch_basic_logger("MAC").error(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
 
@@ -107,36 +107,39 @@ void fill_dl_cc_result_debug(custom_mem_buffer& strbuf, const dl_sched_data_t& d
       }
     }
   }
-  fmt::format_to(strbuf, "]\n");
+  fmt::format_to(strbuf, "]");
 }
 
-void log_dl_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::dl_sched_res_t& result)
+void log_dl_cc_results(srslog::basic_logger& logger, uint32_t enb_cc_idx, const sched_interface::dl_sched_res_t& result)
 {
-  if (log_h->get_level() < srslte::LOG_LEVEL_INFO) {
+  if (!logger.info.enabled() && !logger.debug.enabled()) {
     return;
   }
+
   custom_mem_buffer strbuf;
   for (uint32_t i = 0; i < result.nof_data_elems; ++i) {
     const dl_sched_data_t& data = result.data[i];
-    if (log_h->get_level() == srslte::LOG_LEVEL_INFO) {
-      fill_dl_cc_result_info(strbuf, data);
-    } else if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
+    if (logger.debug.enabled()) {
       fill_dl_cc_result_debug(strbuf, data);
+    } else {
+      fill_dl_cc_result_info(strbuf, data);
     }
   }
   if (strbuf.size() != 0) {
-    if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
-      log_h->debug("SCHED: DL MAC PDU payload cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+    if (logger.debug.enabled()) {
+      logger.debug("SCHED: DL MAC PDU payload cc=%d:\n%s", enb_cc_idx, fmt::to_string(strbuf).c_str());
     } else {
-      log_h->info("SCHED: DL MAC CEs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
+      logger.info("SCHED: DL MAC CEs cc=%d: %s", enb_cc_idx, fmt::to_string(strbuf).c_str());
     }
   }
 }
 
-void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sched_interface::ul_sched_res_t& result)
+void log_phich_cc_results(srslog::basic_logger&                  logger,
+                          uint32_t                               enb_cc_idx,
+                          const sched_interface::ul_sched_res_t& result)
 {
   using phich_t = sched_interface::ul_sched_phich_t;
-  if (log_h->get_level() < srslte::LOG_LEVEL_INFO) {
+  if (!logger.info.enabled()) {
     return;
   }
   custom_mem_buffer strbuf;
@@ -147,7 +150,7 @@ void log_phich_cc_results(srslte::log_ref log_h, uint32_t enb_cc_idx, const sche
     fmt::format_to(strbuf, "{}rnti=0x{:0x}, val={}", prefix, phich.rnti, val);
   }
   if (strbuf.size() != 0) {
-    log_h->debug("SCHED: Allocated PHICHs, cc=%d: [%s]", enb_cc_idx, fmt::to_string(strbuf).c_str());
+    logger.debug("SCHED: Allocated PHICHs, cc=%d: [%s]", enb_cc_idx, fmt::to_string(strbuf).c_str());
   }
 }
 
@@ -186,6 +189,11 @@ prb_interval prb_interval::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_
   uint32_t rb_start, l_crb;
   srslte_ra_type2_from_riv(riv, &l_crb, &rb_start, nof_prbs, (uint32_t)nof_vrbs);
   return {rb_start, rb_start + l_crb};
+}
+
+bool is_contiguous(const rbgmask_t& mask)
+{
+  return rbg_interval::rbgmask_to_rbgs(mask).length() == mask.count();
 }
 
 /*******************************************************
@@ -259,7 +267,7 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
 
   // Basic cell config checks
   if (cfg.si_window_ms == 0) {
-    Error("SCHED: Invalid si-window length 0 ms\n");
+    Error("SCHED: Invalid si-window length 0 ms");
     return false;
   }
 
@@ -279,7 +287,7 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
                     ((int)cfg.prach_freq_offset < cfg.nrb_pucch);
   }
   if (invalid_prach) {
-    Error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
+    Error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits", cfg.prach_freq_offset);
     srslte::console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
                     cfg.prach_freq_offset);
     return false;
@@ -290,16 +298,16 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   // init regs
   regs.reset(new srslte_regs_t{});
   if (srslte_regs_init(regs.get(), cfg.cell) != SRSLTE_SUCCESS) {
-    Error("Getting DCI locations\n");
+    Error("Getting DCI locations");
     return false;
   }
 
   // Compute Common locations for DCI for each CFI
   for (uint32_t cfix = 0; cfix < SRSLTE_NOF_CFI; cfix++) {
-    generate_cce_location(regs.get(), &common_locations[cfix], cfix + 1);
+    generate_cce_location(regs.get(), common_locations[cfix], cfix + 1);
   }
-  if (common_locations[sched_cfg->max_nof_ctrl_symbols - 1].nof_loc[2] == 0) {
-    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).\n",
+  if (common_locations[sched_cfg->max_nof_ctrl_symbols - 1][2].empty()) {
+    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).",
           sched_cfg->max_nof_ctrl_symbols);
     srslte::console(
         "SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).\n",
@@ -308,9 +316,9 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   }
 
   // Compute UE locations for RA-RNTI
-  for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
-      generate_cce_location(regs.get(), &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
+  for (uint32_t cfi = 0; cfi < SRSLTE_NOF_CFI; cfi++) {
+    for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
+      generate_cce_location(regs.get(), rar_locations[sf_idx][cfi], cfi + 1, sf_idx);
     }
   }
 
@@ -318,7 +326,7 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   for (uint32_t cfix = 0; cfix < nof_cce_table.size(); ++cfix) {
     int ret = srslte_regs_pdcch_ncce(regs.get(), cfix + 1);
     if (ret < 0) {
-      Error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
+      Error("SCHED: Failed to calculate the number of CCEs in the PDCCH");
       return false;
     }
     nof_cce_table[cfix] = (uint32_t)ret;
@@ -370,25 +378,25 @@ sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dc
   return nof_re;
 }
 
-ue_cce_locations_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)
+cce_frame_position_table generate_cce_location_table(uint16_t rnti, const sched_cell_params_t& cell_cfg)
 {
-  ue_cce_locations_table dci_locations;
+  cce_frame_position_table dci_locations = {};
   // Generate allowed CCE locations
   for (int cfi = 0; cfi < SRSLTE_NOF_CFI; cfi++) {
     for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-      generate_cce_location(cell_cfg.regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+      generate_cce_location(cell_cfg.regs.get(), dci_locations[sf_idx][cfi], cfi + 1, sf_idx, rnti);
     }
   }
   return dci_locations;
 }
 
-void generate_cce_location(srslte_regs_t*   regs_,
-                           sched_dci_cce_t* location,
-                           uint32_t         cfi,
-                           uint32_t         sf_idx,
-                           uint16_t         rnti)
+void generate_cce_location(srslte_regs_t*          regs_,
+                           cce_cfi_position_table& locations,
+                           uint32_t                cfi,
+                           uint32_t                sf_idx,
+                           uint16_t                rnti)
 {
-  *location = {};
+  locations = {};
 
   srslte_dci_location_t loc[64];
   uint32_t              nloc = 0;
@@ -400,9 +408,8 @@ void generate_cce_location(srslte_regs_t*   regs_,
 
   // Save to different format
   for (uint32_t i = 0; i < nloc; i++) {
-    uint32_t l                                   = loc[i].L;
-    location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
-    location->nof_loc[l]++;
+    uint32_t l = loc[i].L;
+    locations[l].push_back(loc[i].ncce);
   }
 }
 
@@ -413,8 +420,6 @@ void generate_cce_location(srslte_regs_t*   regs_,
 uint32_t
 get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32_t cell_nof_prb, bool use_tbs_index_alt)
 {
-  static srslte::log_ref cached_log = srslte::logmap::get("MAC");
-
   uint32_t l            = 0;
   float    max_coderate = srslte_cqi_to_coderate(dl_cqi, use_tbs_index_alt);
   float    coderate;
@@ -431,12 +436,12 @@ get_aggr_level(uint32_t nof_bits, uint32_t dl_cqi, uint32_t max_aggr_lvl, uint32
     l++;
   } while (l < l_max && factor * coderate > max_coderate);
 
-  cached_log->debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
-                    dl_cqi,
-                    l,
-                    nof_bits,
-                    coderate,
-                    max_coderate);
+  Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f",
+        dl_cqi,
+        l,
+        nof_bits,
+        coderate,
+        max_coderate);
   return l;
 }
 
@@ -460,14 +465,13 @@ int check_ue_cfg_correctness(const sched_interface::ue_cfg_t& ue_cfg)
         continue;
       }
       if (not cc1.dl_cfg.cqi_report.periodic_configured and not cc1.dl_cfg.cqi_report.aperiodic_configured) {
-        Warning("SCHED: No CQI configuration was provided for UE scell index=%d \n", i);
+        Warning("SCHED: No CQI configuration was provided for UE scell index=%d", i);
         ret = SRSLTE_ERROR;
       } else if (cc1.dl_cfg.cqi_report.periodic_configured) {
         for (uint32_t j = i + 1; j < cc_list.size(); ++j) {
           if (cc_list[j].active and cc_list[j].dl_cfg.cqi_report.periodic_configured and
               cc_list[j].dl_cfg.cqi_report.pmi_idx == cc1.dl_cfg.cqi_report.pmi_idx) {
-            Warning(
-                "SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.\n", i, j);
+            Warning("SCHED: The provided CQI configurations for UE scells %d and %d collide in time resources.", i, j);
             ret = SRSLTE_ERROR;
           }
         }

@@ -27,7 +27,7 @@
 #ifndef SRSLTE_COMMON_HELPER_H
 #define SRSLTE_COMMON_HELPER_H
 
-#include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -41,10 +41,9 @@ inline void log_args(int argc, char* argv[], const std::string& service)
   for (int32_t i = 1; i < argc; i++) {
     s1 << argv[i] << " ";
   }
-  s1 << std::endl;
 
-  srslte::logmap::get(service)->set_level(srslte::LOG_LEVEL_INFO);
-  srslte::logmap::get(service)->info("%s", s1.str().c_str());
+  srslog::fetch_basic_logger(service, false).set_level(srslog::basic_levels::info);
+  srslog::fetch_basic_logger(service).info("%s", s1.str().c_str());
 }
 
 inline void check_scaling_governor(const std::string& device_name)

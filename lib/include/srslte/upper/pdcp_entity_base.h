@@ -22,6 +22,7 @@
 #ifndef SRSLTE_PDCP_ENTITY_BASE_H
 #define SRSLTE_PDCP_ENTITY_BASE_H
 
+#include "srslte/adt/accumulators.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
@@ -32,6 +33,7 @@
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
 #include "srslte/upper/byte_buffer_queue.h"
+#include "srslte/upper/pdcp_metrics.h"
 
 namespace srslte {
 
@@ -61,7 +63,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base(task_sched_handle task_sched_, srslte::log_ref log_);
+  pdcp_entity_base(task_sched_handle task_sched_, srslog::basic_logger& logger);
   pdcp_entity_base(pdcp_entity_base&&) = default;
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
@@ -82,7 +84,7 @@ public:
     } else {
       integrity_direction = direction;
     }
-    log->debug("LCID=%d, integrity=%s\n", lcid, srslte_direction_text[integrity_direction]);
+    logger.debug("LCID=%d, integrity=%s", lcid, srslte_direction_text[integrity_direction]);
   }
 
   void enable_encryption(srslte_direction_t direction = DIRECTION_TXRX)
@@ -95,7 +97,7 @@ public:
     } else {
       encryption_direction = direction;
     }
-    log->debug("LCID=%d encryption=%s\n", lcid, srslte_direction_text[integrity_direction]);
+    logger.debug("LCID=%d encryption=%s", lcid, srslte_direction_text[integrity_direction]);
   }
 
   void enable_security_timed(srslte_direction_t direction, uint32_t sn)
@@ -108,7 +110,7 @@ public:
         enable_security_rx_sn = sn;
         break;
       default:
-        log->error("Timed security activation for direction %s not supported.\n", srslte_direction_text[direction]);
+        logger.error("Timed security activation for direction %s not supported.", srslte_direction_text[direction]);
         break;
     }
   }
@@ -116,21 +118,31 @@ public:
   void config_security(as_security_config_t sec_cfg_);
 
   // GW/SDAP/RRC interface
-  virtual void write_sdu(unique_byte_buffer_t sdu) = 0;
+  virtual void write_sdu(unique_byte_buffer_t sdu, int sn = -1) = 0;
 
   // RLC interface
-  virtual void write_pdu(unique_byte_buffer_t pdu) = 0;
+  virtual void write_pdu(unique_byte_buffer_t pdu)                    = 0;
+  virtual void notify_delivery(const std::vector<uint32_t>& pdcp_sns) = 0;
+  virtual void notify_failure(const std::vector<uint32_t>& pdcp_sns)  = 0;
 
   virtual void get_bearer_state(pdcp_lte_state_t* state)       = 0;
   virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;
+
+  virtual std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() = 0;
+
+  virtual void send_status_report() = 0;
 
   // COUNT, HFN and SN helpers
   uint32_t HFN(uint32_t count);
   uint32_t SN(uint32_t count);
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
+  // Metrics helpers
+  virtual pdcp_bearer_metrics_t get_metrics()   = 0;
+  virtual void                  reset_metrics() = 0;
+
 protected:
-  srslte::log_ref           log;
+  srslog::basic_logger&     logger;
   srslte::task_sched_handle task_sched;
 
   bool               active               = false;
@@ -147,7 +159,8 @@ protected:
                        SECURITY_DIRECTION_UPLINK,
                        PDCP_SN_LEN_12,
                        pdcp_t_reordering_t::ms500,
-                       pdcp_discard_timer_t::infinity};
+                       pdcp_discard_timer_t::infinity,
+                       false};
 
   srslte::as_security_config_t sec_cfg = {};
 
@@ -158,12 +171,17 @@ protected:
   void cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg);
 
   // Common packing functions
-  bool     is_control_pdu(const unique_byte_buffer_t& pdu);
-  uint32_t read_data_header(const unique_byte_buffer_t& pdu);
-  void     discard_data_header(const unique_byte_buffer_t& pdu);
-  void     write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count);
-  void     extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac);
-  void     append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
+  bool            is_control_pdu(const unique_byte_buffer_t& pdu);
+  pdcp_pdu_type_t get_control_pdu_type(const unique_byte_buffer_t& pdu);
+  uint32_t        read_data_header(const unique_byte_buffer_t& pdu);
+  void            discard_data_header(const unique_byte_buffer_t& pdu);
+  void            write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count);
+  void            extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac);
+  void            append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
+
+  // Metrics helpers
+  pdcp_bearer_metrics_t           metrics = {};
+  srslte::rolling_average<double> tx_pdu_ack_latency_ms;
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)

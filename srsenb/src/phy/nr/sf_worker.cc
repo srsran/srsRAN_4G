@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -23,17 +14,17 @@
 
 namespace srsenb {
 namespace nr {
-sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslte::log* log) :
-  phy(phy_), phy_state(phy_state_), log_h(log)
+sf_worker::sf_worker(phy_common* phy_, phy_nr_state* phy_state_, srslog::basic_logger& logger) :
+  phy(phy_), phy_state(phy_state_), logger(logger)
 {
   for (uint32_t i = 0; i < phy_state->args.nof_carriers; i++) {
-    cc_worker* w = new cc_worker(i, log, phy_state);
+    cc_worker* w = new cc_worker(i, logger, phy_state);
     cc_workers.push_back(std::unique_ptr<cc_worker>(w));
   }
 
   if (srslte_softbuffer_tx_init_guru(&softbuffer_tx, SRSLTE_SCH_NR_MAX_NOF_CB_LDPC, SRSLTE_LDPC_MAX_LEN_ENCODED_CB) <
       SRSLTE_SUCCESS) {
-    ERROR("Error init soft-buffer\n");
+    ERROR("Error init soft-buffer");
     return;
   }
   data.resize(SRSLTE_SCH_NR_MAX_NOF_CB_LDPC * SRSLTE_LDPC_MAX_LEN_ENCODED_CB / 8);
@@ -80,7 +71,7 @@ uint32_t sf_worker::get_buffer_len()
 
 void sf_worker::set_tti(uint32_t tti)
 {
-  log_h->step(tti);
+  logger.set_context(tti);
   for (auto& w : cc_workers) {
     w->set_tti(tti);
   }
@@ -98,11 +89,10 @@ void sf_worker::work_imp()
   }
 
   // Configure user
-  phy_state->cfg.pdsch.rbg_size_cfg_1        = false;
-  phy_state->cfg.pdsch.pdsch_time_is_default = true;
+  phy_state->cfg.pdsch.rbg_size_cfg_1 = false;
 
   // Fill grant (this comes from the scheduler)
-  srslte_dl_slot_cfg_t               dl_cfg = {};
+  srslte_slot_cfg_t                  dl_cfg = {};
   stack_interface_phy_nr::dl_sched_t grants = {};
 
   grants.nof_grants                = 1;
@@ -117,10 +107,8 @@ void sf_worker::work_imp()
   grants.pdsch[0].dci.time_domain_assigment = 0;
   grants.pdsch[0].dci.mcs                   = 27;
 
-  grants.pdsch[0].dci.search_space.type = srslte_search_space_type_ue;
-  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR; L++) {
-    grants.pdsch[0].dci.search_space.nof_candidates[L] = 1;
-  }
+  grants.pdsch[0].dci.search_space  = srslte_search_space_type_ue;
+  grants.pdsch[0].dci.coreset_id    = 1;
   grants.pdsch[0].dci.location.L    = 0;
   grants.pdsch[0].dci.location.ncce = 0;
 

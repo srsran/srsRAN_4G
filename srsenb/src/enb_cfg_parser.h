@@ -158,13 +158,13 @@ private:
 class field_qci final : public parser::field_itf
 {
 public:
-  explicit field_qci(rrc_cfg_qci_t* cfg_) { cfg = cfg_; }
+  explicit field_qci(std::map<uint32_t, rrc_cfg_qci_t>& cfg_) : cfg(cfg_) {}
   const char* get_name() override { return "field_cqi"; }
 
   int parse(Setting& root) override;
 
 private:
-  rrc_cfg_qci_t* cfg;
+  std::map<uint32_t, rrc_cfg_qci_t>& cfg;
 };
 
 // ASN1 parsers
@@ -183,7 +183,6 @@ public:
   int parse(Setting& root) override
   {
     if (root.exists(name)) {
-
       if (enabled_value) {
         *enabled_value = true;
       }
@@ -212,10 +211,8 @@ class field_asn1_seqof_size : public field_asn1
 
 public:
   field_asn1_seqof_size(const char* name_, ListType* store_ptr_, bool* enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -242,10 +239,8 @@ class field_asn1_choice_type_number : public field_asn1
 
 public:
   field_asn1_choice_type_number(const char* name_, ChoiceType* store_ptr_, bool* enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -347,10 +342,8 @@ class field_asn1_enum_number : public field_asn1
 
 public:
   field_asn1_enum_number(const char* name_, EnumType* store_ptr_, bool* enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -373,10 +366,8 @@ class field_asn1_enum_str : public field_asn1
 
 public:
   field_asn1_enum_str(const char* name_, EnumType* store_ptr_, bool* enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -398,10 +389,8 @@ class field_asn1_enum_number_str : public field_asn1
 
 public:
   field_asn1_enum_number_str(const char* name_, EnumType* store_ptr_, bool* enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -427,12 +416,8 @@ public:
                         func_ptr    f_,
                         ChoiceType* store_ptr_,
                         bool*       enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_),
-    choicetypename(choicetypename_),
-    f(f_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_), choicetypename(choicetypename_), f(f_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -474,12 +459,8 @@ public:
                            func_ptr    f_,
                            ChoiceType* store_ptr_,
                            bool*       enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_),
-    choicetypename(choicetypename_),
-    f(f_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_), choicetypename(choicetypename_), f(f_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -508,10 +489,8 @@ class field_asn1_bitstring_number : public field_asn1
 
 public:
   field_asn1_bitstring_number(const char* name_, BitString* store_ptr_, bool* enabled_value_ = nullptr) :
-    field_asn1(name_, enabled_value_),
-    store_ptr(store_ptr_)
-  {
-  }
+    field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
+  {}
 
   int parse_value(Setting& root) override
   {
@@ -552,10 +531,8 @@ class mbsfn_sf_cfg_list_parser : public parser::field_itf
 {
 public:
   mbsfn_sf_cfg_list_parser(asn1::rrc::mbsfn_sf_cfg_list_l* mbsfn_list_, bool* enabled_) :
-    mbsfn_list(mbsfn_list_),
-    enabled(enabled_)
-  {
-  }
+    mbsfn_list(mbsfn_list_), enabled(enabled_)
+  {}
   int         parse(Setting& root) override;
   const char* get_name() override { return "mbsfnSubframeConfigList"; }
 
@@ -568,10 +545,8 @@ class mbsfn_area_info_list_parser final : public parser::field_itf
 {
 public:
   mbsfn_area_info_list_parser(asn1::rrc::mbsfn_area_info_list_r9_l* mbsfn_list_, bool* enabled_) :
-    mbsfn_list(mbsfn_list_),
-    enabled(enabled_)
-  {
-  }
+    mbsfn_list(mbsfn_list_), enabled(enabled_)
+  {}
   int         parse(Setting& root) override;
   const char* get_name() override { return "mbsfn_area_info_list"; }
 

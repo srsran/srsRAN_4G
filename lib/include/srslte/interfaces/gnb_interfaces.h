@@ -91,8 +91,11 @@ class pdcp_interface_rlc_nr
 {
 public:
   /* RLC calls PDCP to push a PDCP PDU. */
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)            = 0;
+  virtual void notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& tx_count) = 0;
+  virtual void notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& tx_count)  = 0;
 };
+
 class pdcp_interface_rrc_nr
 {
 public:
@@ -105,6 +108,7 @@ public:
   virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                      = 0;
   virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                     = 0;
 };
+
 class pdcp_interface_sdap_nr
 {
 public:

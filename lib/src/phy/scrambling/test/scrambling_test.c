@@ -88,7 +88,7 @@ int init_sequence(srslte_sequence_t* seq, char* name)
     bzero(seq, sizeof(srslte_sequence_t));
     return srslte_sequence_pdsch(seq, 1234, 0, 0, cell_id, nof_bits);
   } else {
-    ERROR("Unsupported sequence name %s\n", name);
+    ERROR("Unsupported sequence name %s", name);
     return -1;
   }
 }
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   if (init_sequence(&seq, srslte_sequence_name) == -1) {
-    ERROR("Error initiating sequence %s\n", srslte_sequence_name);
+    ERROR("Error initiating sequence %s", srslte_sequence_name);
     exit(-1);
   }
 
