@@ -121,6 +121,26 @@ void rrc::ue::activity_timer_expired()
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
+void rrc::ue::max_retx_reached()
+{
+  if (parent) {
+    parent->logger.info("Max retx reached for rnti=0x%x", rnti);
+
+    if (parent->s1ap->user_exists(rnti)) {
+      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
+      event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
+                                             static_cast<unsigned>(rrc_idle_transition_cause::release),
+                                             rnti);
+    } else {
+      if (rnti != SRSLTE_MRNTI) {
+        parent->rem_user_thread(rnti);
+      }
+    }
+  }
+
+  state = RRC_STATE_RELEASE_REQUEST;
+}
+
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
 {
   uint32_t deadline_s  = 0;

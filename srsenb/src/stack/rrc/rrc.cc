@@ -142,7 +142,11 @@ uint32_t rrc::get_nof_users()
   return users.size();
 }
 
-void rrc::max_retx_attempted(uint16_t rnti) {}
+void rrc::max_retx_attempted(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_RTX_USER, nullptr};
+  rx_pdu_queue.push(std::move(p));
+}
 
 // This function is called from PRACH worker (can wait)
 int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
@@ -959,6 +963,9 @@ void rrc::tti_clock()
         break;
       case LCID_ACT_USER:
         user_it->second->set_activity();
+        break;
+      case LCID_RTX_USER:
+        user_it->second->max_retx_reached();
         break;
       case LCID_EXIT:
         logger.info("Exiting thread");

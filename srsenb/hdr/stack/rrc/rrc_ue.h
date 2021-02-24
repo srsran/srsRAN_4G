@@ -40,6 +40,7 @@ public:
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_activity();
   void        activity_timer_expired();
+  void        max_retx_reached();
 
   rrc_state_t get_state();
   void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;

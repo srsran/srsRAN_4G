@@ -187,6 +187,7 @@ private:
   const static uint32_t LCID_REM_USER = 0xffff0001;
   const static uint32_t LCID_REL_USER = 0xffff0002;
   const static uint32_t LCID_ACT_USER = 0xffff0004;
+  const static uint32_t LCID_RTX_USER = 0xffff0005;
 
   bool                         running = false;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
