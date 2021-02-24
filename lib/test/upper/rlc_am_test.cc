@@ -509,6 +509,80 @@ int retx_test()
   return 0;
 }
 
+// Test correct RLC AM handling when maxRetx (default 4) have been reached
+int max_retx_test()
+{
+  rlc_am_tester tester;
+  timer_handler timers(8);
+  int           len = 0;
+
+  rlc_am_lte rlc1(srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+
+  const rlc_config_t rlc_cfg = rlc_config_t::default_rlc_am_config();
+  if (not rlc1.configure(rlc_cfg)) {
+    return -1;
+  }
+
+  // Push 2 SDUs into RLC1
+  const uint32_t       n_sdus = 2;
+  unique_byte_buffer_t sdu_bufs[n_sdus];
+  for (uint32_t i = 0; i < n_sdus; i++) {
+    sdu_bufs[i]             = srslte::make_byte_buffer();
+    sdu_bufs[i]->msg[0]     = i; // Write the index into the buffer
+    sdu_bufs[i]->N_bytes    = 1; // Give each buffer a size of 1 byte
+    sdu_bufs[i]->md.pdcp_sn = i; // PDCP SN for notifications
+    rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read 2 PDUs from RLC1 (1 byte each)
+  const uint32_t n_pdus = 2;
+  byte_buffer_t  pdu_bufs[n_pdus];
+  for (uint32_t i = 0; i < n_pdus; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
+    pdu_bufs[i].N_bytes = len;
+  }
+
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  // Fake status PDU that ack SN=1
+  rlc_status_pdu_t fake_status = {};
+  fake_status.ack_sn           = 2; // delivered up to SN=1
+  fake_status.N_nack           = 1; // one SN was lost
+  fake_status.nacks[0].nack_sn = 0; // it was SN=0 that was lost
+
+  // pack into PDU
+  byte_buffer_t status_pdu;
+  rlc_am_write_status_pdu(&fake_status, &status_pdu);
+
+  // We've Tx'ed once already, loop until the max is reached
+  for (uint32_t retx_count = 0; retx_count < rlc_cfg.am.max_retx_thresh; ++retx_count) {
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+
+    byte_buffer_t pdu_buf;
+    len = rlc1.read_pdu(pdu_buf.msg, 3);
+  }
+
+  // Write last status PDU to RLC1
+  rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+
+  // RLC should be done, no further transmissions are allowed
+  TESTASSERT(0 == rlc1.get_buffer_state());
+
+  // Check also that trying to read a PDU will return nothing
+  byte_buffer_t pdu_buf;
+  TESTASSERT(0 == rlc1.read_pdu(pdu_buf.msg, 3));
+
+  // Sanity check, we now ACK all SNs
+  fake_status.N_nack = 0; // all received
+  rlc_am_write_status_pdu(&fake_status, &status_pdu);
+  rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+
+  TESTASSERT(0 == rlc1.read_pdu(pdu_buf.msg, 3));
+
+  return 0;
+}
+
 // Purpose: test correct retx of lost segment and pollRetx timer expiration
 int segment_retx_test()
 {
@@ -2069,6 +2143,11 @@ int main(int argc, char** argv)
 
   if (retx_test()) {
     printf("retx_test failed\n");
+    exit(-1);
+  };
+
+  if (max_retx_test()) {
+    printf("max_retx_test failed\n");
     exit(-1);
   };
 
