@@ -625,6 +625,12 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
     logger.warning("%s Signaling max number of reTx=%d for for SN=%d", RB_NAME, tx_window[retx.sn].retx_count, retx.sn);
     parent->rrc->max_retx_attempted();
     parent->pdcp->notify_failure(parent->lcid, tx_window[retx.sn].pdcp_sns);
+
+    // remove SN from Tx window, advance window
+    tx_window.remove_pdu(retx.sn);
+    vt_a  = (vt_a + 1) % MOD;
+    vt_ms = (vt_ms + 1) % MOD;
+    return 0;
   }
 
   logger.info(payload,
