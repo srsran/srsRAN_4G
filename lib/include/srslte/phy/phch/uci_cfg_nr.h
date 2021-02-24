@@ -50,19 +50,20 @@
  */
 typedef struct SRSLTE_API {
   /// Common Parameters
-  uint32_t     o_ack;             ///< Number of HARQ-ACK bits
-  uint32_t     o_sr;              ///< Number of SR bits
-  uint32_t     o_csi1;            ///< Number of CSI1 report number of bits
-  uint32_t     o_csi2;            ///< Number of CSI2 report number of bits
+  uint32_t o_ack;  ///< Number of HARQ-ACK bits
+  uint32_t o_sr;   ///< Number of SR bits
+  uint32_t o_csi1; ///< Number of CSI1 report number of bits
+  uint32_t o_csi2; ///< Number of CSI2 report number of bits
 
   /// PUSCH only parameters
   srslte_mod_t modulation; ///< Modulation
 
   /// PUCCH only parameters
-  uint16_t     rnti;              ///< RNTI
-  uint32_t     pucch_resource_id; ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
-  uint32_t     n_cce_0;           ///< index of a first CCE for the PDCCH reception
-  uint32_t     N_cce; ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or DCI format 1_1
+  uint16_t rnti;              ///< RNTI
+  uint32_t pucch_resource_id; ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
+  uint32_t n_cce_0;           ///< index of a first CCE for the PDCCH reception
+  uint32_t N_cce;             ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
+  uint32_t sr_resource_id;    ///< Scheduling request resource identifier, only valid if o_sr > 0
 } srslte_uci_cfg_nr_t;
 
 /**

@@ -134,5 +134,10 @@ bool worker_pool::set_config(const srslte::phy_cfg_nr_t& cfg)
   phy_state.cfg = cfg;
   return true;
 }
+
+void worker_pool::sr_send(uint32_t sr_id)
+{
+  phy_state.set_pending_sr(sr_id);
+}
 } // namespace nr
 } // namespace srsue

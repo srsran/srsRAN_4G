@@ -17,6 +17,7 @@
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/rrc_nr_interface_types.h"
 #include <array>
+#include <set>
 #include <string>
 
 namespace srsue {
@@ -120,6 +121,7 @@ struct phy_args_nr_t {
   srslte::phy_log_args_t log;
   srslte_ue_dl_nr_args_t dl;
   srslte_ue_ul_nr_args_t ul;
+  std::set<uint32_t>     fixed_sr;
 
   phy_args_nr_t()
   {
@@ -131,6 +133,8 @@ struct phy_args_nr_t {
     ul.nof_max_prb            = 100;
     ul.pusch.measure_time     = true;
     ul.pusch.sch.disable_simd = false;
+
+    // fixed_sr.insert(0); // Enable SR_id = 0 by default for testing purposes
   }
 };
 
@@ -156,6 +160,9 @@ public:
                           const int      preamble_index,
                           const float    preamble_received_target_power,
                           const float    ta_base_sec = 0.0f) = 0;
+
+  /// Instruct PHY to transmit SR for a given identifier
+  virtual void sr_send(uint32_t sr_id) = 0;
 };
 
 class phy_interface_rrc_nr

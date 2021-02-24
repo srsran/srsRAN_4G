@@ -73,5 +73,6 @@ bool vnf_phy_nr::set_config(const srslte::phy_cfg_nr_t& cfg)
 {
   return false;
 }
+void vnf_phy_nr::sr_send(uint32_t sr_id) {}
 
 } // namespace srsue

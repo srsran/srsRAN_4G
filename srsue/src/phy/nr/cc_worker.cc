@@ -259,7 +259,7 @@ bool cc_worker::work_ul()
   srslte_sch_cfg_nr_t pusch_cfg       = {};
   bool                has_pusch_grant = phy->get_ul_pending_grant(ul_slot_cfg.idx, pusch_cfg, pid);
 
-  // If PDSCH UL AKC is available, load into UCI
+  // If PDSCH UL ACK is available, load into UCI
   if (has_ul_ack) {
     pdsch_ack.use_pusch = has_pusch_grant;
     if (srslte_ue_dl_nr_gen_ack(&phy->cfg.harq_ack, &pdsch_ack, &uci_data) < SRSLTE_SUCCESS) {
@@ -267,6 +267,9 @@ bool cc_worker::work_ul()
       return false;
     }
   }
+
+  // Add SR to UCI data if available
+  phy->get_pending_sr(ul_slot_cfg.idx, uci_data);
 
   if (has_pusch_grant) {
     // Notify MAC about PUSCH found grant

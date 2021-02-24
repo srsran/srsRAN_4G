@@ -47,6 +47,9 @@ private:
   srslte::circular_array<srslte_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
+  /// Pending scheduling request identifiers
+  std::set<uint32_t> pending_sr_id;
+
 public:
   mac_interface_phy_nr* stack   = nullptr;
   srslte_carrier_nr_t   carrier = {};
@@ -239,6 +242,35 @@ public:
     ack = {};
 
     return true;
+  }
+
+  void reset() { pending_sr_id.clear(); }
+
+  void set_pending_sr(uint32_t value) { pending_sr_id.insert(value); }
+
+  void get_pending_sr(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
+  {
+    // Append fixed SR
+    pending_sr_id.insert(args.fixed_sr.begin(), args.fixed_sr.end());
+
+    // Iterate all SR IDs
+    for (const uint32_t& sr_id : pending_sr_id) {
+      uint32_t sr_resource_id = 0;
+
+      // Check if there is an SR transmission opportunity for the given SR identifier in any SR logic channel
+      if (srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_id, &sr_resource_id) > SRSLTE_SUCCESS) {
+        // Set UCI data
+        uci_data.cfg.o_sr           = 1;
+        uci_data.cfg.sr_resource_id = sr_resource_id;
+        uci_data.value.sr[0]        = 1;
+
+        // Remove pending SR
+        pending_sr_id.erase(sr_id);
+
+        // Only one SR is supported
+        return;
+      }
+    }
   }
 };
 } // namespace nr

@@ -498,6 +498,13 @@ struct phy_cfg_nr_t {
     //                            nrofSymbols: 14
     //                            startingSymbolIndex: 0
     //                            timeDomainOCC: 2
+    pucch.sr_resources[1].resource.format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    pucch.sr_resources[1].resource.starting_prb         = 0;
+    pucch.sr_resources[1].resource.initial_cyclic_shift = 8;
+    pucch.sr_resources[1].resource.nof_symbols          = 14;
+    pucch.sr_resources[1].resource.start_symbol_idx     = 0;
+    pucch.sr_resources[1].resource.time_domain_occ      = 2;
+
     //            Item 17
     //                PUCCH-Resource
     //                    pucch-ResourceId: 17
@@ -529,6 +536,10 @@ struct phy_cfg_nr_t {
     //                    periodicityAndOffset: sl40 (10)
     //                        sl40: 8
     //                    resource: 16
+    pucch.sr_resources[1].sr_id      = 0;
+    pucch.sr_resources[1].period     = 40;
+    pucch.sr_resources[1].offset     = 8;
+    pucch.sr_resources[1].configured = true;
 
     //        dl-DataToUL-ACK: 7 items
     //            Item 0

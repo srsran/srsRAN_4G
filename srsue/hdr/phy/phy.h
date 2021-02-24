@@ -66,9 +66,7 @@ private:
   srslte::block_queue<std::function<void(void)> > cmd_queue;
 };
 
-class phy final : public ue_lte_phy_base,
-                  public ue_nr_phy_base,
-                  public srslte::thread
+class phy final : public ue_lte_phy_base, public ue_nr_phy_base, public srslte::thread
 {
 public:
   explicit phy(srslog::sink& log_sink) :
@@ -184,6 +182,7 @@ public:
                   const float    ta_base_sec = 0.0f) final;
   int  tx_request(const tx_request_t& request) final;
   void set_earfcn(std::vector<uint32_t> earfcns) final;
+  void sr_send(uint32_t sr_id) final;
 
 private:
   void run_thread() final;

@@ -644,4 +644,8 @@ bool phy::set_config(const srslte::phy_cfg_nr_t& cfg)
   return nr_workers.set_config(cfg);
 }
 
+void phy::sr_send(uint32_t sr_id)
+{
+  nr_workers.sr_send(sr_id);
+}
 } // namespace srsue

@@ -77,6 +77,11 @@
  */
 #define SRSLTE_PUCCH_NR_MAX_NOF_SETS 4
 
+/**
+ * Maximum number of SR resources (TS 38.331 maxNrofSR-Resources)
+ */
+#define SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES 8
+
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_NR_FORMAT_0 = 0,
   SRSLTE_PUCCH_NR_FORMAT_1,
@@ -142,10 +147,24 @@ typedef struct SRSLTE_API {
   uint32_t                   max_payload_size; ///< Maximum payload size, set to 0 if not present
 } srslte_pucch_nr_resource_set_t;
 
+/**
+ * @brief Scheduling Request resource described in TS 38.331 SchedulingRequestResourceConfig
+ * @note Every SR configuration corresponds to one or more logical channels (resources)
+ */
+typedef struct SRSLTE_API {
+  uint32_t                   sr_id;      ///< Scheduling Request identifier
+  uint32_t                   period;     ///< Period in slots
+  uint32_t                   offset;     ///< Offset from beginning of the period in slots
+  srslte_pucch_nr_resource_t resource;   ///< PUCCH resource
+  bool                       configured; ///< Set to true if higher layers added this value, otherwise set to false
+} srslte_pucch_nr_sr_resource_t;
+
 typedef struct SRSLTE_API {
   srslte_pucch_nr_common_cfg_t   common; ///< NR-PUCCH configuration common for all formats and resources
   srslte_pucch_nr_resource_set_t sets[SRSLTE_PUCCH_NR_MAX_NOF_SETS]; ///< Resource sets, indexed by pucch-ResourceSetId
   bool                           enabled;                            ///< Set to true if any set is enabled
+  srslte_pucch_nr_sr_resource_t
+      sr_resources[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES]; ///< SR resources, indexed by identifier
 } srslte_pucch_nr_hl_cfg_t;
 
 /**

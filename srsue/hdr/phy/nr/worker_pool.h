@@ -41,6 +41,7 @@ public:
   void       send_prach(uint32_t prach_occasion, uint32_t preamble_index, int preamble_received_target_power);
   int  set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS> array, uint16_t rnti, srslte_rnti_type_t rnti_type);
   bool set_config(const srslte::phy_cfg_nr_t& cfg);
+  void       sr_send(uint32_t sr_id);
 };
 
 } // namespace nr

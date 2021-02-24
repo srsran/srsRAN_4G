@@ -450,11 +450,31 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
                                    const srslte_uci_cfg_nr_t*      uci_cfg,
                                    srslte_pucch_nr_resource_t*     resource)
 {
-  if (pucch_cfg == NULL || uci_cfg == NULL) {
+  if (pucch_cfg == NULL || uci_cfg == NULL || resource == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   uint32_t O_uci = srslte_uci_nr_total_bits(uci_cfg);
+
+  // Scheduling request has preference see 9.2.5.1 UE procedure for multiplexing HARQ-ACK or CSI and SR in a PUCCH
+  if (uci_cfg->o_sr > 0) {
+    uint32_t sr_resource_id = uci_cfg->sr_resource_id;
+    if (sr_resource_id >= SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES) {
+      ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES);
+      return SRSLTE_ERROR;
+    }
+
+    if (!pucch_cfg->sr_resources[sr_resource_id].configured) {
+      ERROR("SR resource ID (%d) is not configured", sr_resource_id);
+      return SRSLTE_ERROR;
+    }
+
+    // Set PUCCH resource
+    *resource = pucch_cfg->sr_resources[sr_resource_id].resource;
+
+    // No more logic is required in this case
+    return SRSLTE_SUCCESS;
+  }
 
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size

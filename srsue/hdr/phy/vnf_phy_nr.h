@@ -59,6 +59,7 @@ public:
                   const int      prach_occasion,
                   const float    target_power_dbm,
                   const float    ta_base_sec = 0.0f) override{};
+  void sr_send(uint32_t sr_id) override;
 
 private:
   std::unique_ptr<srslte::srslte_basic_vnf> vnf;
