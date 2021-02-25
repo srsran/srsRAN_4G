@@ -35,7 +35,7 @@ rrc::rrc(srslte::task_sched_handle task_sched_) :
   logger(srslog::fetch_basic_logger("RRC")), task_sched(task_sched_), rx_pdu_queue(64)
 {
   pending_paging.clear();
-  ue_pool.reserve(16);
+  rrc::ue::get_ue_pool()->allocate_batch_in_background();
 }
 
 rrc::~rrc() {}
@@ -1018,8 +1018,5 @@ void rrc::tti_clock()
     }
   }
 }
-
-// definition of rrc static member
-srslte::big_obj_pool<rrc::ue, false> rrc::ue_pool;
 
 } // namespace srsenb

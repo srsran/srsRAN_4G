@@ -119,6 +119,8 @@ public:
   void  operator delete(void* ptr)noexcept;
   void  operator delete[](void* ptr) = delete;
 
+  static srslte::background_allocator_obj_pool<ue, 16, 4>* get_ue_pool();
+
 private:
   // args
   srslte::timer_handler::unique_timer activity_timer;

@@ -63,18 +63,21 @@ int rrc::ue::init()
   return SRSLTE_SUCCESS;
 }
 
+srslte::background_allocator_obj_pool<rrc::ue, 16, 4>* rrc::ue::get_ue_pool()
+{
+  // Note: batch allocation is going to be explicitly called in enb class construction. The pool object, therefore,
+  //       will only be initialized if we instantiate an eNB
+  static srslte::background_allocator_obj_pool<rrc::ue, 16, 4> ue_pool(true);
+  return &ue_pool;
+}
+
 void* rrc::ue::operator new(size_t sz)
 {
-  assert(sz == sizeof(ue));
-  void* memchunk = rrc::ue_pool.allocate_node(sz);
-  if (ue_pool.capacity() <= 4) {
-    srslte::get_background_workers().push_task([]() { rrc::ue_pool.reserve(4); });
-  }
-  return memchunk;
+  return rrc::ue::get_ue_pool()->allocate_node(sz);
 }
 void rrc::ue::operator delete(void* ptr)noexcept
 {
-  rrc::ue_pool.deallocate_node(ptr);
+  rrc::ue::get_ue_pool()->deallocate_node(ptr);
 }
 
 rrc_state_t rrc::ue::get_state()

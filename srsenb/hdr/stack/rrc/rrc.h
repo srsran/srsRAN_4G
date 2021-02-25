@@ -200,8 +200,6 @@ private:
   void rem_user_thread(uint16_t rnti);
 
   std::mutex paging_mutex;
-
-  static srslte::big_obj_pool<ue, false> ue_pool;
 };
 
 } // namespace srsenb
