@@ -32,8 +32,9 @@ public:
   bool is_idle();
 
   typedef enum {
-    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout
+    MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+    UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout (usually bigger than reestablishment timeout)
+    UE_REESTABLISH_TIMEOUT, ///< Maximum timeout in which UE reestablishment is expected
     nulltype
   } activity_timeout_type_t;
   std::string to_string(const activity_timeout_type_t& type);

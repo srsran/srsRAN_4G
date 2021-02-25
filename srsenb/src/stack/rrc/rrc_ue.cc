@@ -130,19 +130,9 @@ void rrc::ue::max_retx_reached()
   if (parent) {
     parent->logger.info("Max retx reached for rnti=0x%x", rnti);
 
-    if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost);
-      event_logger::get().log_rrc_disconnect(ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->enb_cc_idx,
-                                             static_cast<unsigned>(rrc_idle_transition_cause::release),
-                                             rnti);
-    } else {
-      if (rnti != SRSLTE_MRNTI) {
-        parent->rem_user_thread(rnti);
-      }
-    }
+    // Give UE time to start re-establishment
+    set_activity_timeout(UE_REESTABLISH_TIMEOUT);
   }
-
-  state = RRC_STATE_RELEASE_REQUEST;
 }
 
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
@@ -159,6 +149,13 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
     case UE_INACTIVITY_TIMEOUT:
       deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
       deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
+      break;
+    case UE_REESTABLISH_TIMEOUT:
+      deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
+                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
+                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
+      deadline_s  = deadline_ms / 1000;
+      deadline_ms = deadline_ms % 1000;
       break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
@@ -267,7 +264,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE response reception", "UE inactivity"};
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
   return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
