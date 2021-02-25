@@ -6,11 +6,10 @@
 # the distribution.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(radio)
-add_subdirectory(srslog)
-add_subdirectory(system)
-add_subdirectory(upper)
+set(SOURCES
+    sys_metrics_processor.cpp)
+
+find_package(Threads REQUIRED)
+
+add_library(system STATIC ${SOURCES})
+target_link_libraries(system "${CMAKE_THREAD_LIBS_INIT}")

@@ -18,6 +18,7 @@
 #include "phy/phy_metrics.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/radio/radio_metrics.h"
+#include "srslte/system/sys_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "stack/mac/mac_metrics.h"
 #include "stack/rrc/rrc_metrics.h"
@@ -35,10 +36,11 @@ typedef struct {
 } stack_metrics_t;
 
 typedef struct {
-  srslte::rf_metrics_t rf;
-  phy_metrics_t        phy;
-  gw_metrics_t         gw;
-  stack_metrics_t      stack;
+  srslte::rf_metrics_t  rf;
+  phy_metrics_t         phy;
+  gw_metrics_t          gw;
+  stack_metrics_t       stack;
+  srslte::sys_metrics_t sys;
 } ue_metrics_t;
 
 // UE interface

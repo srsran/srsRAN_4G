@@ -328,6 +328,7 @@ bool ue::get_metrics(ue_metrics_t* m)
   radio->get_metrics(&m->rf);
   stack->get_metrics(&m->stack);
   gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);
+  m->sys = sys_proc.get_metrics();
   return true;
 }
 

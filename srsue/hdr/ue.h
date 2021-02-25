@@ -28,6 +28,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
+#include "srslte/system/sys_metrics_processor.h"
 #include "stack/ue_stack_base.h"
 
 #include "ue_metrics_interface.h"
@@ -107,6 +108,9 @@ private:
   // Generic logger members
   srslte::logger*       old_logger = nullptr;
   srslog::basic_logger& logger;
+
+  // System metrics processor.
+  srslte::sys_metrics_processor sys_proc;
 
   all_args_t args;
 
