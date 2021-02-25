@@ -62,6 +62,8 @@ typedef struct {
   bool        metrics_csv_append;
   int         metrics_csv_flush_period_sec;
   std::string metrics_csv_filename;
+  bool        tracing_enable;
+  std::string tracing_filename;
 } general_args_t;
 
 typedef struct {

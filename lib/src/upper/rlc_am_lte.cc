@@ -1075,8 +1075,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   std::unique_lock<std::mutex> lock(mutex);
 
-  trace_complete_event("rlc_am::handle_control_pdu", "total time");
-
   logger.info(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
 
   rlc_status_pdu_t status;
@@ -1169,7 +1167,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   if (not notify_info_vec.empty()) {
     // Remove all SDUs that were fully acked
-    trace_complete_event("rlc_am::handle_control_pdu", "remove acked sdus");
     for (uint32_t acked_pdcp_sn : notify_info_vec) {
       logger.debug("Erasing SDU info: PDCP_SN=%d", acked_pdcp_sn);
       if (not undelivered_sdu_info_queue.has_pdcp_sn(acked_pdcp_sn)) {
@@ -1185,7 +1182,6 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   // Notify PDCP without holding Tx mutex
   if (not notify_info_vec.empty()) {
-    trace_complete_event("rlc_am::handle_control_pdu", "notify_delivery");
     parent->pdcp->notify_delivery(parent->lcid, notify_info_vec);
   }
   notify_info_vec.clear();

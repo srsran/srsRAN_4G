@@ -13,7 +13,7 @@
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
-
+#include "srslte/srslog/event_trace.h"
 #include <algorithm>
 #include <chrono>
 #include <numeric>
@@ -401,6 +401,9 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (args.have_tti_time_stats) {
     tti_tprof.start();
   }
+
+  trace_complete_event("ue_stack_lte::run_tti_impl", "total time");
+
   current_tti = tti_point{tti};
 
   // perform tasks for the received TTI range

@@ -20,6 +20,7 @@
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
+#include "srslte/srslog/event_trace.h"
 
 // #define WRITE_SIB_PCAP
 using namespace asn1::rrc;
@@ -575,6 +576,7 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
     return 0;
   }
 
+  trace_complete_event("mac::get_dl_sched", "total_time");
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
   log_h->step(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
 

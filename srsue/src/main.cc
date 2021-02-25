@@ -17,6 +17,7 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include "srslte/version.h"
@@ -419,6 +420,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
            bpo::value<int>(&args->general.metrics_csv_flush_period_sec)->default_value(-1),
            "Periodicity in s to flush CSV file to disk (-1 for auto)")
 
+    ("general.tracing_enable",
+           bpo::value<bool>(&args->general.tracing_enable)->default_value(false),
+           "Events tracing")
+
+    ("general.tracing_filename",
+           bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/ue_tracing.log"),
+           "Tracing events filename")
+
     ("stack.have_tti_time_stats",
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
         "Calculate TTI execution statistics")
@@ -641,6 +650,14 @@ int main(int argc, char* argv[])
   }
   srslte::srslog_wrapper log_wrapper(*chan);
   srslog::set_default_sink(*log_sink);
+
+#ifdef ENABLE_SRSLOG_EVENT_TRACE
+  if (args.general.tracing_enable) {
+    srslog::sink&        tracing_sink = srslog::fetch_file_sink(args.general.tracing_filename);
+    srslog::log_channel& c            = srslog::fetch_log_channel("tracing", tracing_sink, {"TRACE", '\0', false});
+    srslog::event_trace_init(c);
+  }
+#endif
 
   // Start the log backend.
   srslog::init();

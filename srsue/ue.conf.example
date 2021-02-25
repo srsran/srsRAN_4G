@@ -381,7 +381,9 @@ enable = false
 #
 #####################################################################
 [general]
-#metrics_csv_enable  = false
-#metrics_period_secs = 1
+#metrics_csv_enable   = false
+#metrics_period_secs  = 1
 #metrics_csv_filename = /tmp/ue_metrics.csv
-#have_tti_time_stats = true
+#have_tti_time_stats  = true
+#tracing_enable       = true
+#tracing_filename     = /tmp/ue_tracing.log
