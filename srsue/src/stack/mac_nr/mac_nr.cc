@@ -17,7 +17,11 @@
 namespace srsue {
 
 mac_nr::mac_nr(srslte::ext_task_sched_handle task_sched_) :
-  task_sched(task_sched_), logger(srslog::fetch_basic_logger("MAC")), proc_ra(logger), mux(logger)
+  task_sched(task_sched_),
+  logger(srslog::fetch_basic_logger("MAC")),
+  proc_ra(logger),
+  mux(logger),
+  pcap(nullptr)
 {
   tx_buffer  = srslte::make_byte_buffer();
   rlc_buffer = srslte::make_byte_buffer();
@@ -37,12 +41,6 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
   // Create Stack task dispatch queue
   stack_task_dispatch_queue = task_sched.make_task_queue();
 
-  // Set up pcap
-  if (args.pcap.enable) {
-    pcap.reset(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
-    pcap->open(args.pcap.filename.c_str());
-  }
-  
   proc_ra.init(phy, this, &task_sched);
 
   mux.init();
@@ -58,13 +56,14 @@ int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_int
   return SRSLTE_SUCCESS;
 }
 
+void mac_nr::start_pcap(srslte::mac_pcap* pcap_)
+{
+  pcap = pcap_;
+}
+
 void mac_nr::stop()
 {
   if (started) {
-    if (pcap != nullptr) {
-      pcap->close();
-    }
-
     started = false;
   }
 }

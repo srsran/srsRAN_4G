@@ -66,7 +66,6 @@ int ue_stack_nr::init(const stack_args_t& args_)
   pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
 
   mac_nr_args_t mac_args = {};
-  mac_args.pcap          = args.pcap;
   mac->init(mac_args, phy, rlc.get());
   rlc->init(pdcp.get(), rrc.get(), task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp->init(rlc.get(), rrc.get(), gw);

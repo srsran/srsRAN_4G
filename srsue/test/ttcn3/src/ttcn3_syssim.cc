@@ -418,8 +418,10 @@ void ttcn3_syssim::tc_start(const char* name)
   srslte::console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
 
   // Patch UE config
-  local_args.stack.pcap.filename     = get_filename_with_tc_name(args.stack.pcap.filename, run_id, tc_name);
-  local_args.stack.pcap.nas_filename = get_filename_with_tc_name(args.stack.pcap.nas_filename, run_id, tc_name);
+  local_args.stack.pkt_trace.mac_pcap.filename =
+      get_filename_with_tc_name(args.stack.pkt_trace.mac_pcap.filename, run_id, tc_name);
+  local_args.stack.pkt_trace.nas_pcap.filename =
+      get_filename_with_tc_name(args.stack.pkt_trace.nas_pcap.filename, run_id, tc_name);
 
   // bring up UE
   if (ue->init(local_args, this, tc_name)) {

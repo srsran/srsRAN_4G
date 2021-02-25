@@ -34,11 +34,11 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/multiqueue.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/thread_pool.h"
-#include "srslte/interfaces/ue_interfaces.h"
-
 #include "srslte/common/time_prof.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
 
@@ -177,6 +177,11 @@ private:
   srslog::basic_logger& usim_logger;
   srslog::basic_logger& nas_logger;
 
+  // tracing
+  srslte::mac_pcap mac_pcap;
+  srslte::mac_pcap mac_nr_pcap;
+  srslte::nas_pcap nas_pcap;
+
   // RAT-specific interfaces
   phy_interface_stack_lte* phy    = nullptr;
   gw_interface_stack*      gw     = nullptr;
@@ -193,8 +198,6 @@ private:
 
   // stack components
   srsue::mac                 mac;
-  srslte::mac_pcap           mac_pcap;
-  srslte::nas_pcap           nas_pcap;
   srslte::rlc                rlc;
   srslte::pdcp               pdcp;
   srsue::rrc                 rrc;
