@@ -43,7 +43,7 @@ uint32_t mac_pcap::open(std::string filename_, uint32_t ue_id_)
   // set DLT for selected RAT
   switch (rat) {
     case srslte_rat_t::lte:
-      dlt = MAC_LTE_DLT;
+      dlt = UDP_DLT;
       break;
     case srslte_rat_t::nr:
       dlt = UDP_DLT;
@@ -101,10 +101,10 @@ void mac_pcap::write_pdu(pcap_pdu_t& pdu)
   if (pdu.pdu != nullptr) {
     switch (rat) {
       case srslte_rat_t::lte:
-        LTE_PCAP_MAC_WritePDU(pcap_file, &pdu.context, pdu.pdu->msg, pdu.pdu->N_bytes);
+        LTE_PCAP_MAC_UDP_WritePDU(pcap_file, &pdu.context, pdu.pdu->msg, pdu.pdu->N_bytes);
         break;
       case srslte_rat_t::nr:
-        NR_PCAP_MAC_WritePDU(pcap_file, &pdu.context_nr, pdu.pdu->msg, pdu.pdu->N_bytes);
+        NR_PCAP_MAC_UDP_WritePDU(pcap_file, &pdu.context_nr, pdu.pdu->msg, pdu.pdu->N_bytes);
         break;
       default:
         logger.error("Error writing PDU to PCAP. Unsupported RAT selected.");

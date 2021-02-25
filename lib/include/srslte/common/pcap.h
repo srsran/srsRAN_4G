@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define PCAP_CONTEXT_HEADER_MAX 256
+
 #define MAC_LTE_DLT 147
 #define NAS_LTE_DLT 148
 #define UDP_DLT 149 // UDP needs to be selected as protocol
@@ -189,6 +191,8 @@ void LTE_PCAP_Close(FILE* fd);
 
 /* Write an individual MAC PDU (PCAP packet header + mac-context + mac-pdu) */
 int LTE_PCAP_MAC_WritePDU(FILE* fd, MAC_Context_Info_t* context, const unsigned char* PDU, unsigned int length);
+int LTE_PCAP_MAC_UDP_WritePDU(FILE* fd, MAC_Context_Info_t* context, const unsigned char* PDU, unsigned int length);
+int LTE_PCAP_PACK_MAC_CONTEXT_TO_BUFFER(MAC_Context_Info_t* context, uint8_t* PDU, unsigned int length);
 
 /* Write an individual NAS PDU (PCAP packet header + nas-context + nas-pdu) */
 int LTE_PCAP_NAS_WritePDU(FILE* fd, NAS_Context_Info_t* context, const unsigned char* PDU, unsigned int length);
@@ -200,7 +204,8 @@ int LTE_PCAP_RLC_WritePDU(FILE* fd, RLC_Context_Info_t* context, const unsigned 
 int LTE_PCAP_S1AP_WritePDU(FILE* fd, S1AP_Context_Info_t* context, const unsigned char* PDU, unsigned int length);
 
 /* Write an individual NR MAC PDU (PCAP packet header + UDP header + nr-mac-context + mac-pdu) */
-int NR_PCAP_MAC_WritePDU(FILE* fd, mac_nr_context_info_t* context, const unsigned char* PDU, unsigned int length);
+int NR_PCAP_MAC_UDP_WritePDU(FILE* fd, mac_nr_context_info_t* context, const unsigned char* PDU, unsigned int length);
+int NR_PCAP_PACK_MAC_CONTEXT_TO_BUFFER(mac_nr_context_info_t* context, uint8_t* buffer, unsigned int length);
 
 #ifdef __cplusplus
 }
