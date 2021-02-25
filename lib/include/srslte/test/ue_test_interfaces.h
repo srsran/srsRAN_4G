@@ -40,7 +40,7 @@ public:
   // run pending tasks without updating timers
   void run_pending_tasks() { task_sched.run_pending_tasks(); }
 
-  srslte::task_scheduler task_sched{512, 0, 100};
+  srslte::task_scheduler task_sched{512, 100};
 };
 
 class rlc_dummy_interface : public rlc_interface_mac

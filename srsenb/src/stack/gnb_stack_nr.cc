@@ -16,7 +16,7 @@
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), task_sched{512, 1, 128}, thread("gNB")
+gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), task_sched{512, 128}, thread("gNB")
 {
   m_mac.reset(new mac_nr());
   m_rlc.reset(new rlc_nr("RLC"));
@@ -115,6 +115,7 @@ void gnb_stack_nr::stop()
     m_pdcp->stop();
     m_mac->stop();
 
+    srslte::get_background_workers().stop();
     running = false;
   }
 }

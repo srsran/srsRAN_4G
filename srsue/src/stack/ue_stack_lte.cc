@@ -43,10 +43,11 @@ ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
   thread("STACK"),
-  task_sched(512, 2, 64),
+  task_sched(512, 64),
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD),
   mac_pcap(srslte_rat_t::lte)
 {
+  get_background_workers().set_nof_workers(2);
   ue_task_queue  = task_sched.make_task_queue();
   gw_queue_id    = task_sched.make_task_queue();
   cfg_task_queue = task_sched.make_task_queue();
@@ -156,16 +157,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 
   mac_nr_args_t mac_nr_args = {};
   mac_nr.init(mac_nr_args, phy_nr, &rlc);
-  rrc_nr.init(phy_nr,
-              &mac_nr,
-              &rlc,
-              &pdcp,
-              gw,
-              &rrc,
-              usim.get(),
-              task_sched.get_timer_handler(),
-              nullptr,
-              args.rrc_nr);
+  rrc_nr.init(phy_nr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
   running = true;
@@ -200,6 +192,9 @@ void ue_stack_lte::stop_impl()
   if (args.pcap.nas_enable) {
     nas_pcap.close();
   }
+
+  task_sched.stop();
+  get_background_workers().stop();
 }
 
 bool ue_stack_lte::switch_on()

@@ -18,8 +18,9 @@ using namespace srslte;
 namespace srsue {
 
 ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
-  logger(logger_), thread("STACK"), task_sched(64, 2, 64), rlc_log("RLC"), pdcp_log("PDCP")
+  logger(logger_), thread("STACK"), task_sched(64, 64), rlc_log("RLC"), pdcp_log("PDCP")
 {
+  get_background_workers().set_nof_workers(2);
   mac.reset(new mac_nr(&task_sched));
   pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
   rlc.reset(new srslte::rlc("RLC"));
@@ -102,6 +103,8 @@ void ue_stack_nr::stop_impl()
   rlc->stop();
   pdcp->stop();
   mac->stop();
+
+  get_background_workers().stop();
 }
 
 bool ue_stack_nr::switch_on()

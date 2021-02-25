@@ -29,7 +29,7 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   s1ap_logger(srslog::fetch_basic_logger("S1AP", log_sink, false)),
   gtpu_logger(srslog::fetch_basic_logger("GTPU", log_sink, false)),
   stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
-  task_sched(512, 0, 128),
+  task_sched(512, 128),
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
@@ -39,6 +39,7 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   logger(logger_),
   mac_pcap(srslte_rat_t::lte)
 {
+  get_background_workers().set_nof_workers(2);
   enb_task_queue  = task_sched.make_task_queue();
   mme_task_queue  = task_sched.make_task_queue();
   gtpu_task_queue = task_sched.make_task_queue();
@@ -187,6 +188,7 @@ void enb_stack_lte::stop_impl()
   }
 
   task_sched.stop();
+  get_background_workers().stop();
 
   started = false;
 }

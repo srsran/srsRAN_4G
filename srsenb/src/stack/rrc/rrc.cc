@@ -160,9 +160,6 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
         logger.error("Adding user rnti=0x%x - Failed to allocate user resources", rnti);
         return SRSLTE_ERROR;
       }
-      if (ue_pool.capacity() <= 4) {
-        task_sched.defer_task([]() { rrc::ue_pool.reserve(16); });
-      }
       users.insert(std::make_pair(rnti, std::move(u)));
     }
     rlc->add_user(rnti);

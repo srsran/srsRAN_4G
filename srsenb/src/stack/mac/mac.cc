@@ -476,6 +476,8 @@ uint16_t mac::allocate_ue()
     ue_db[rnti] = std::move(ue_ptr);
   }
 
+  // Allocate one new UE object in advance
+  srslte::get_background_workers().push_task([this]() { prealloc_ue(1); });
   return rnti;
 }
 
@@ -485,11 +487,6 @@ uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
   if (rnti == SRSLTE_INVALID_RNTI) {
     return rnti;
   }
-
-  task_sched.enqueue_background_task([this](uint32_t wid) {
-    // Allocate one new UE object in advance
-    prealloc_ue(1);
-  });
 
   // Add new user to the scheduler so that it can RX/TX SRB0
   if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
@@ -556,9 +553,6 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
                     time_adv,
                     rnti);
   });
-
-  // Allocate one new UE object in advance
-  prealloc_ue(1);
 }
 
 void mac::prealloc_ue(uint32_t nof_ue)

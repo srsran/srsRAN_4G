@@ -65,7 +65,11 @@ int rrc::ue::init()
 void* rrc::ue::operator new(size_t sz)
 {
   assert(sz == sizeof(ue));
-  return rrc::ue_pool.allocate_node(sz);
+  void* memchunk = rrc::ue_pool.allocate_node(sz);
+  if (ue_pool.capacity() <= 4) {
+    srslte::get_background_workers().push_task([]() { rrc::ue_pool.reserve(4); });
+  }
+  return memchunk;
 }
 void rrc::ue::operator delete(void* ptr)noexcept
 {
