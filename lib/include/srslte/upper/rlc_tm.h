@@ -20,6 +20,12 @@
 #include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_common.h"
 
+namespace srsue {
+
+class pdcp_interface_rlc;
+
+}
+
 namespace srslte {
 
 class rlc_tm final : public rlc_common

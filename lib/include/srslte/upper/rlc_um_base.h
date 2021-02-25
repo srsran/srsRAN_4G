@@ -25,6 +25,12 @@
 #include <pthread.h>
 #include <queue>
 
+namespace srsue {
+
+class pdcp_interface_rlc;
+
+}
+
 namespace srslte {
 
 class rlc_um_base : public rlc_common

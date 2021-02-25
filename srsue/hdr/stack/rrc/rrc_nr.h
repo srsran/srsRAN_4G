@@ -25,6 +25,7 @@
 namespace srsue {
 
 class usim_interface_rrc_nr;
+class pdcp_interface_rrc;
 
 // Expert arguments to create GW without proper RRC
 struct core_less_args_t {

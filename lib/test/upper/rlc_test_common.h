@@ -14,6 +14,7 @@
 #define SRSLTE_RLC_TEST_COMMON_H
 
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include <vector>
 
 namespace srslte {

@@ -14,6 +14,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/standard_streams.h"
 #include "srslte/common/tti_point.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include <inttypes.h> // for printing uint64_t

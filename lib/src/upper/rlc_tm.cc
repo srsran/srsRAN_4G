@@ -11,6 +11,7 @@
  */
 
 #include "srslte/upper/rlc_tm.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 
 namespace srslte {
 

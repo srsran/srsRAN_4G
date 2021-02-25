@@ -21,12 +21,14 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "tft_packet_filter.h"
 #include <net/if.h>
+#include <netinet/in.h>
 
 namespace srsue {
+
+class stack_interface_gw;
 
 struct gw_args_t {
   struct log_args_t {

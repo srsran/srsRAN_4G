@@ -11,6 +11,7 @@
  */
 
 #include "srslte/upper/rlc_am_lte.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 
 #include <iostream>
 

@@ -21,6 +21,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/logmap.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/gnb_interfaces.h"

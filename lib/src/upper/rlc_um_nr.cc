@@ -11,6 +11,7 @@
  */
 
 #include "srslte/upper/rlc_um_nr.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include <sstream>
 
 #define RX_MOD_NR_BASE(x) (((x)-RX_Next_Highest - cfg.um_nr.UM_Window_Size) % cfg.um_nr.mod)

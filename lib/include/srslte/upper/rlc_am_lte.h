@@ -27,6 +27,12 @@
 #include <list>
 #include <map>
 
+namespace srsue {
+
+class pdcp_interface_rlc;
+
+}
+
 namespace srslte {
 
 #undef RLC_AM_BUFFER_DEBUG

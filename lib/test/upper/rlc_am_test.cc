@@ -14,8 +14,8 @@
 #include "srslte/common/rlc_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/rlc_am_lte.h"
-#include <iostream>
 #define NBUFS 5
 #define HAVE_PCAP 0
 #define SDU_SIZE 500
