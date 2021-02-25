@@ -14,15 +14,17 @@
 #define SRSLTE_RRC_CELL_H
 
 #include "srslte/asn1/rrc.h"
-#include "srslte/asn1/rrc_utils.h"
 #include "srslte/asn1/rrc_nr.h"
 #include "srslte/asn1/rrc_nr_utils.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/asn1/rrc_utils.h"
+#include "srslte/common/task_scheduler.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/srslog/srslog.h"
+#include <set>
 
 namespace srsue {
 
-inline std::string to_string(const srsue::phy_cell_t& c)
+inline std::string to_string(const phy_cell_t& c)
 {
   char buffer[64];
   snprintf(buffer, 64, "{earfcn=%d, pci=%d}\n", c.earfcn, c.pci);
@@ -217,7 +219,6 @@ bool is_same_cell(const T& lhs, const U& rhs)
 template <class T>
 class meas_cell_list
 {
-
 public:
   const static int           NEIGHBOUR_TIMEOUT   = 5;
   const static int           MAX_NEIGHBOUR_CELLS = 8;

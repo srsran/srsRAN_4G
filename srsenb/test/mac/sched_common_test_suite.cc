@@ -11,7 +11,6 @@
  */
 
 #include "sched_common_test_suite.h"
-#include "lib/include/srslte/phy/phch/prach.h"
 #include "srslte/common/test_common.h"
 #include <set>
 

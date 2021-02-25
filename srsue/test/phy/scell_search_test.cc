@@ -10,6 +10,7 @@
  *
  */
 
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>

@@ -13,8 +13,8 @@
 #ifndef SRSLTE_RRC_INTERFACE_TYPES_H
 #define SRSLTE_RRC_INTERFACE_TYPES_H
 
-#include "srslte/common/common.h"
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/common.h"
 #include "srslte/config.h"
 #include "srslte/srslte.h"
 #include <string>

@@ -40,4 +40,31 @@ inline bool operator!=(const srslte_prach_cfg_t& a, const srslte_prach_cfg_t& b)
   return !(a == b);
 }
 
+namespace srsue {
+
+struct phy_meas_nr_t {
+  float    rsrp;
+  float    rsrq;
+  float    sinr;
+  float    cfo_hz;
+  uint32_t arfcn_nr;
+  uint32_t pci_nr;
+};
+
+struct phy_meas_t {
+  float    rsrp;
+  float    rsrq;
+  float    cfo_hz;
+  uint32_t earfcn;
+  uint32_t pci;
+};
+
+struct phy_cell_t {
+  uint32_t pci;
+  uint32_t earfcn;
+  float    cfo_hz;
+};
+
+} // namespace srsue
+
 #endif // SRSLTE_PHY_INTERFACE_TYPES_H

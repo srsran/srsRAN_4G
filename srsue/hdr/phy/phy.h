@@ -15,7 +15,6 @@
 
 #include "phy_common.h"
 #include "phy_metrics.h"
-#include "prach.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/trace.h"
