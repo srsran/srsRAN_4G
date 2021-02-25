@@ -36,6 +36,7 @@
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/upper/pdcp_entity_base.h"
+#include "ue_mac_interfaces.h"
 
 namespace srsue {
 
@@ -108,13 +109,6 @@ public:
 class rrc_interface_nas
 {
 public:
-  typedef struct {
-    srslte::plmn_id_t plmn_id;
-    uint16_t          tac;
-  } found_plmn_t;
-
-  const static int MAX_FOUND_PLMNS = 16;
-
   virtual ~rrc_interface_nas()                                                          = default;
   virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
   virtual uint16_t    get_mcc()                                                         = 0;
@@ -153,25 +147,6 @@ public:
   virtual void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
 };
 
-// NAS interface for RRC
-class nas_interface_rrc
-{
-public:
-  virtual void     left_rrc_connected()                                       = 0;
-  virtual void     set_barring(srslte::barring_t barring)                     = 0;
-  virtual bool     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
-  virtual bool     is_registered()                                            = 0;
-  virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
-  virtual uint32_t get_k_enb_count()                                          = 0;
-  virtual bool     get_k_asme(uint8_t* k_asme_, uint32_t n)                   = 0;
-  virtual uint32_t get_ipv4_addr()                                            = 0;
-  virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
-  virtual void
-               plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                                     int                                   nof_plmns)       = 0;
-  virtual bool connection_request_completed(bool outcome) = 0;
-};
-
 // RRC NR interface for RRC (LTE)
 class rrc_nr_interface_rrc
 {
@@ -188,141 +163,6 @@ public:
                                    bool                nr_radio_bearer_cfg1_r15_present,
                                    asn1::dyn_octstring nr_radio_bearer_cfg1_r15) = 0;
   virtual bool is_config_pending()                                               = 0;
-};
-
-/** MAC interface
- *
- */
-/* Interface PHY -> MAC */
-class mac_interface_phy_lte
-{
-public:
-  typedef struct {
-    uint32_t nof_mbsfn_services;
-  } mac_phy_cfg_mbsfn_t;
-
-  typedef struct {
-    uint32_t tbs;
-    bool     ndi;
-    bool     ndi_present;
-    int      rv;
-  } mac_tb_t;
-
-  typedef struct {
-    mac_tb_t tb[SRSLTE_MAX_TB];
-    uint32_t pid;
-    uint16_t rnti;
-    bool     is_sps_release;
-    uint32_t tti;
-  } mac_grant_dl_t;
-
-  typedef struct {
-    mac_tb_t tb;
-    uint32_t pid;
-    uint16_t rnti;
-    bool     phich_available;
-    bool     hi_value;
-    bool     is_rar;
-    uint32_t tti_tx;
-  } mac_grant_ul_t;
-
-  typedef struct {
-    bool     enabled;
-    uint32_t rv;
-    uint8_t* payload;
-    union {
-      srslte_softbuffer_rx_t* rx;
-      srslte_softbuffer_tx_t* tx;
-    } softbuffer;
-  } tb_action_t;
-
-  typedef struct {
-    tb_action_t tb[SRSLTE_MAX_TB];
-
-    bool generate_ack;
-  } tb_action_dl_t;
-
-  typedef struct {
-    tb_action_t tb;
-    uint32_t    current_tx_nb;
-    bool        expect_ack;
-    bool        is_rar;
-  } tb_action_ul_t;
-
-  /* Query the MAC for the current RNTI to look for
-   */
-  virtual uint16_t get_dl_sched_rnti(uint32_t tti) = 0;
-  virtual uint16_t get_ul_sched_rnti(uint32_t tti) = 0;
-
-  /* Indicate reception of UL dci.
-   * payload_ptr points to memory where MAC PDU must be written by MAC layer */
-  virtual void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) = 0;
-
-  /* Indicate reception of DL dci. */
-  virtual void new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action) = 0;
-
-  /* Indicate successful decoding of PDSCH AND PCH TB. */
-  virtual void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]) = 0;
-
-  /* Indicate successful decoding of BCH TB through PBCH */
-  virtual void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) = 0;
-
-  /* Indicate successful decoding of MCH TB through PMCH */
-  virtual void mch_decoded(uint32_t len, bool crc) = 0;
-
-  /* Obtain action for a new MCH subframe. */
-  virtual void new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action) = 0;
-
-  /* Communicate the number of mbsfn services available  */
-  virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;
-};
-
-/* Interface RRC -> MAC shared between different RATs */
-class mac_interface_rrc_common
-{
-public:
-  // Class to handle UE specific RNTIs between RRC and MAC
-  typedef struct {
-    uint16_t crnti;
-    uint16_t rar_rnti;
-    uint16_t temp_rnti;
-    uint16_t tpc_rnti;
-    uint16_t sps_rnti;
-    uint64_t contention_id;
-  } ue_rnti_t;
-};
-
-/* Interface RRC -> MAC */
-class mac_interface_rrc : public mac_interface_rrc_common
-{
-public:
-  /* Instructs the MAC to start receiving BCCH */
-  virtual void bcch_start_rx(int si_window_start, int si_window_length) = 0;
-  virtual void bcch_stop_rx()                                           = 0;
-
-  /* Instructs the MAC to start receiving PCCH */
-  virtual void pcch_start_rx() = 0;
-
-  /* RRC configures a logical channel */
-  virtual void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
-
-  /* Instructs the MAC to start receiving an MCH */
-  virtual void mch_start_rx(uint32_t lcid) = 0;
-
-  /* Set entire MAC config */
-  virtual void set_config(srslte::mac_cfg_t& mac_cfg) = 0;
-
-  /* Update SR config only for PUCCH release */
-  virtual void set_config(srslte::sr_cfg_t& sr_cfg) = 0;
-
-  virtual void set_rach_ded_cfg(uint32_t preamble_index, uint32_t prach_mask) = 0;
-
-  virtual void get_rntis(ue_rnti_t* rntis)                      = 0;
-  virtual void set_contention_id(uint64_t uecri)                = 0;
-  virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
-
-  virtual void reconfiguration(const uint32_t& cc_idx, const bool& enable) = 0;
-  virtual void reset()                                                     = 0;
 };
 
 /** PHY interface

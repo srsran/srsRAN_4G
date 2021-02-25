@@ -21,7 +21,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_nas_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/stack/upper/nas_emm_state.h"
@@ -33,6 +33,7 @@ namespace srsue {
 
 class usim_interface_nas;
 class gw_interface_nas;
+class rrc_interface_nas;
 
 class nas : public nas_interface_rrc, public srslte::timer_callback
 {
@@ -56,8 +57,7 @@ public:
   bool     get_k_asme(uint8_t* k_asme_, uint32_t n) override;
   uint32_t get_ipv4_addr() override;
   bool     get_ipv6_addr(uint8_t* ipv6_addr) override;
-  void     plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                                 int                                   nof_plmns) final;
+  void     plmn_search_completed(const found_plmn_t found_plmns[MAX_FOUND_PLMNS], int nof_plmns) final;
 
   // Stack interface
   bool switch_on();

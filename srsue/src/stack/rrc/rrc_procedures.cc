@@ -730,7 +730,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
     if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
       // Save PLMN and TAC to NAS
       for (uint32_t i = 0; i < rrc_ptr->meas_cells.serving_cell().nof_plmns(); i++) {
-        if (nof_plmns < MAX_FOUND_PLMNS) {
+        if (nof_plmns < nas_interface_rrc::MAX_FOUND_PLMNS) {
           found_plmns[nof_plmns].plmn_id = rrc_ptr->meas_cells.serving_cell().get_plmn(i);
           found_plmns[nof_plmns].tac     = rrc_ptr->meas_cells.serving_cell().get_tac();
           nof_plmns++;

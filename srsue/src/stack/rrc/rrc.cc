@@ -15,6 +15,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
+#include "srslte/interfaces/ue_nas_interfaces.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"

@@ -130,10 +130,10 @@ public:
   bool     has_nr_dc() { return false; }
 
 private:
-  nas*         nas_ptr;
-  uint32_t     last_sdu_len;
-  found_plmn_t plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
-  bool         is_connected_flag = false;
+  nas*                            nas_ptr;
+  uint32_t                        last_sdu_len;
+  nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
+  bool                            is_connected_flag = false;
 };
 
 class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread

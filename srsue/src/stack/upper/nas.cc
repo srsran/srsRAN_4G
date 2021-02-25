@@ -21,6 +21,7 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/nas_idle_procedures.h"
@@ -420,8 +421,7 @@ bool nas::connection_request_completed(bool outcome)
   return true;
 }
 
-void nas::plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                                int                                   nof_plmns)
+void nas::plmn_search_completed(const found_plmn_t found_plmns[MAX_FOUND_PLMNS], int nof_plmns)
 {
   plmn_searcher.trigger(plmn_search_proc::plmn_search_complete_t(found_plmns, nof_plmns));
 }

@@ -12,6 +12,7 @@
 
 #include "phy_controller.h"
 #include "srslte/common/log.h"
+#include "srslte/interfaces/ue_nas_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include <map>
@@ -164,7 +165,7 @@ private:
   srslog::basic_logger& logger;
 
   // state variables
-  found_plmn_t                                                    found_plmns[MAX_FOUND_PLMNS];
+  nas_interface_rrc::found_plmn_t                                 found_plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
   int                                                             nof_plmns = 0;
   srslte::proc_future_t<rrc_interface_phy_lte::cell_search_ret_t> cell_search_fut;
 };
