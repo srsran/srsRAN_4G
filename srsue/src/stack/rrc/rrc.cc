@@ -14,6 +14,7 @@
 #include "srslte/asn1/rrc.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
@@ -97,18 +98,18 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               rrc_nr_interface_rrc* rrc_nr_,
-               const rrc_args_t& args_)
+               rrc_nr_interface_rrc*  rrc_nr_,
+               const rrc_args_t&      args_)
 {
-  phy  = phy_;
-  mac  = mac_;
-  rlc  = rlc_;
-  pdcp = pdcp_;
-  nas  = nas_;
-  usim = usim_;
-  gw   = gw_;
+  phy    = phy_;
+  mac    = mac_;
+  rlc    = rlc_;
+  pdcp   = pdcp_;
+  nas    = nas_;
+  usim   = usim_;
+  gw     = gw_;
   rrc_nr = rrc_nr_;
-  args = args_;
+  args   = args_;
 
   auto on_every_cell_selection = [this](uint32_t earfcn, uint32_t pci, bool csel_result) {
     if (not csel_result) {
@@ -2057,8 +2058,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       memcpy(info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.data(), buf, cap_len);
       rat_idx++;
 
-    }
-    else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra_nr && has_nr_dc()) {
+    } else if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra_nr && has_nr_dc()) {
       info->ue_cap_rat_container_list[rat_idx] = get_eutra_nr_capabilities();
       logger.info("Including EUTRA-NR capabilities in UE Capability Info (%d B)",
                   info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
@@ -2068,8 +2068,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       logger.info("Including NR capabilities in UE Capability Info (%d B)",
                   info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.size());
       rat_idx++;
-    }
-    else {
+    } else {
       logger.error("RAT Type of UE Cap request not supported or not configured");
     }
   }

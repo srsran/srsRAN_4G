@@ -58,6 +58,7 @@ using srslte::byte_buffer_t;
 namespace srsue {
 
 class phy_controller;
+class usim_interface_rrc;
 
 class rrc : public rrc_interface_nas,
             public rrc_interface_phy_lte,
@@ -78,8 +79,8 @@ public:
             nas_interface_rrc*     nas_,
             usim_interface_rrc*    usim_,
             gw_interface_rrc*      gw_,
-            rrc_nr_interface_rrc* rrc_nr_,
-            const rrc_args_t& args_);
+            rrc_nr_interface_rrc*  rrc_nr_,
+            const rrc_args_t&      args_);
 
   void stop();
 
@@ -165,17 +166,17 @@ private:
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
 
-  stack_interface_rrc*      stack = nullptr;
-  srslte::task_sched_handle task_sched;
-  srslog::basic_logger&     logger;
-  phy_interface_rrc_lte*    phy  = nullptr;
-  mac_interface_rrc*        mac  = nullptr;
-  rlc_interface_rrc*        rlc  = nullptr;
-  pdcp_interface_rrc*       pdcp = nullptr;
-  nas_interface_rrc*        nas  = nullptr;
-  usim_interface_rrc*       usim = nullptr;
-  gw_interface_rrc*         gw   = nullptr;
-  rrc_nr_interface_rrc* rrc_nr = nullptr;
+  stack_interface_rrc*         stack = nullptr;
+  srslte::task_sched_handle    task_sched;
+  srslog::basic_logger&        logger;
+  phy_interface_rrc_lte*       phy    = nullptr;
+  mac_interface_rrc*           mac    = nullptr;
+  rlc_interface_rrc*           rlc    = nullptr;
+  pdcp_interface_rrc*          pdcp   = nullptr;
+  nas_interface_rrc*           nas    = nullptr;
+  usim_interface_rrc*          usim   = nullptr;
+  gw_interface_rrc*            gw     = nullptr;
+  rrc_nr_interface_rrc*        rrc_nr = nullptr;
   srslte::unique_byte_buffer_t dedicated_info_nas;
 
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);

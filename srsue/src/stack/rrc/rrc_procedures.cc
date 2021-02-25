@@ -14,6 +14,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/standard_streams.h"
 #include "srslte/common/tti_point.h"
+#include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include <inttypes.h> // for printing uint64_t
 
@@ -1321,9 +1322,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
-       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail ? "Reconfiguration failure"
-       : cause == asn1::rrc::reest_cause_opts::ho_fail        ? "Handover failure"
-                                                              : "Other failure",
+       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
+           ? "Reconfiguration failure"
+           : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
        reest_rnti,
        reest_source_pci,
        reest_cellid);

@@ -31,6 +31,8 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
+class usim_interface_nas;
+
 class nas : public nas_interface_rrc, public srslte::timer_callback
 {
 public:

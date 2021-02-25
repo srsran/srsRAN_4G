@@ -24,6 +24,8 @@
 
 namespace srsue {
 
+class usim_interface_rrc_nr;
+
 // Expert arguments to create GW without proper RRC
 struct core_less_args_t {
   std::string      ip_addr;

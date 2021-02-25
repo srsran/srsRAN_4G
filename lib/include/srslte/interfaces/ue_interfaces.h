@@ -39,41 +39,6 @@
 
 namespace srsue {
 
-typedef enum { AUTH_OK, AUTH_FAILED, AUTH_SYNCH_FAILURE } auth_result_t;
-
-// USIM interface for NAS
-class usim_interface_nas
-{
-public:
-  virtual std::string   get_imsi_str()                                                    = 0;
-  virtual std::string   get_imei_str()                                                    = 0;
-  virtual bool          get_imsi_vec(uint8_t* imsi_, uint32_t n)                          = 0;
-  virtual bool          get_imei_vec(uint8_t* imei_, uint32_t n)                          = 0;
-  virtual bool          get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)                 = 0;
-  virtual auth_result_t generate_authentication_response(uint8_t* rand,
-                                                         uint8_t* autn_enb,
-                                                         uint16_t mcc,
-                                                         uint16_t mnc,
-                                                         uint8_t* res,
-                                                         int*     res_len,
-                                                         uint8_t* k_asme)                 = 0;
-  virtual void          generate_nas_keys(uint8_t*                            k_asme,
-                                          uint8_t*                            k_nas_enc,
-                                          uint8_t*                            k_nas_int,
-                                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
-};
-
-// USIM interface for RRC
-class usim_interface_rrc
-{
-public:
-  virtual void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)        = 0;
-  virtual void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg) = 0;
-  virtual void store_keys_before_ho(const srslte::as_security_config_t& as_cfg)                                   = 0;
-  virtual void restore_keys_from_failed_ho(srslte::as_security_config_t* as_cfg)                                  = 0;
-};
-
 // GW interface for NAS
 class gw_interface_nas
 {
@@ -247,8 +212,8 @@ public:
   virtual uint32_t get_ipv4_addr()                                            = 0;
   virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
   virtual void
-  plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                        int                                   nof_plmns)                    = 0;
+               plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                                     int                                   nof_plmns)       = 0;
   virtual bool connection_request_completed(bool outcome) = 0;
 };
 
@@ -286,13 +251,6 @@ public:
                                    bool                nr_radio_bearer_cfg1_r15_present,
                                    asn1::dyn_octstring nr_radio_bearer_cfg1_r15) = 0;
   virtual bool is_config_pending()                                               = 0;
-};
-
-class usim_interface_rrc_nr
-{
-public:
-  virtual void generate_nr_context(uint16_t sk_counter, srslte::as_security_config_t* sec_cfg) = 0;
-  virtual void update_nr_context(srslte::as_security_config_t* sec_cfg)                        = 0;
 };
 
 // PDCP interface for RLC
@@ -626,8 +584,8 @@ public:
   } prach_info_t;
 
   virtual void
-  prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
-  virtual prach_info_t prach_get_info()                                                                     = 0;
+                       prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
+  virtual prach_info_t prach_get_info() = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send()        = 0;

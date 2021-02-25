@@ -16,14 +16,11 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <srslte/asn1/liblte_mme.h>
-#include <sstream>
 #include <unistd.h>
 
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/bcd_helpers.h"
 #include "srslte/common/logmap.h"
-#include "srslte/common/security.h"
+#include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/nas_idle_procedures.h"
 
