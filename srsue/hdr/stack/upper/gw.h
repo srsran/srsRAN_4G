@@ -20,6 +20,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
+#include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "tft_packet_filter.h"

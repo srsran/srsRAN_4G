@@ -21,6 +21,12 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
+namespace srsue {
+
+class gw_interface_pdcp;
+
+}
+
 namespace srslte {
 
 /****************************************************************************
@@ -34,6 +40,7 @@ namespace srslte {
  * LTE PDCP Entity
  * Class for LTE PDCP entities
  ***************************************************************************/
+
 class pdcp_entity_lte final : public pdcp_entity_base
 {
 public:

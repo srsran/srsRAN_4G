@@ -14,6 +14,7 @@
 #include "srslte/asn1/rrc.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
@@ -24,9 +25,7 @@
 #include <iostream>
 #include <math.h>
 #include <numeric>
-#include <sstream>
 #include <string.h>
-#include <unistd.h>
 
 bool simulate_rlf = false;
 

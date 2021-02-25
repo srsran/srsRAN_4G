@@ -21,6 +21,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
+#include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include <map>
 

@@ -18,6 +18,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
+#include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include <iostream>
 
