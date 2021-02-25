@@ -84,8 +84,8 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
-    cout << "------DL-------------------------------UL---------------------------------------------|----SYS----" << endl;
-    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  pusch pucch phr mcs brate   ok  nok  (%)   bsr   cpu   mem" << endl;
+    cout << "------DL-------------------------------UL--------------------------------------------" << endl;
+    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  pusch pucch phr mcs brate   ok  nok  (%)   bsr" << endl;
   }
 
   for (size_t i = 0; i < metrics.stack.rrc.ues.size(); i++) {
@@ -161,10 +161,6 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 1, 4) << "%";
     }
     cout << float_to_eng_string(metrics.stack.mac.ues[i].ul_buffer, 2);
-
-    // Write the system metrics.
-    cout << float_to_string(metrics.sys.process_cpu_usage, 2);
-    cout << float_to_string(metrics.sys.process_realmem, 2);
 
     cout << endl;
   }

@@ -77,7 +77,8 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
               "ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
               "bler;"
               "rf_o;rf_"
-              "u;rf_l;is_attached\n";
+              "u;rf_l;is_attached;"
+              "proc_rmem;proc_rmem_kB;proc_vmem;proc_vmem_kB;sys_mem;proc_cpu;thread_count\n";
     }
 
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
@@ -150,7 +151,18 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << float_to_string(metrics.rf.rf_o, 2);
       file << float_to_string(metrics.rf.rf_u, 2);
       file << float_to_string(metrics.rf.rf_l, 2);
-      file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0");
+      file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0") << ";";
+
+      // Write system metrics.
+      const srslte::sys_metrics_t &m = metrics.sys;
+      file << float_to_string(m.process_realmem, 2);
+      file << std::to_string(m.process_realmem_kB) << ";";
+      file << float_to_string(m.process_virtualmem, 2);
+      file << std::to_string(m.process_virtualmem_kB) << ";" ;
+      file << float_to_string(m.system_mem, 2);
+      file << float_to_string(m.process_cpu_usage, 2);
+      file << std::to_string(m.thread_count);
+
       file << "\n";
     }
 

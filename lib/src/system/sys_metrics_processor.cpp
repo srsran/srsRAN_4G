@@ -119,7 +119,7 @@ static void calculate_percentage_memory(sys_metrics_t& metrics)
 
   // Calculate the metrics.
   metrics.process_realmem    = 100.f * (float(metrics.process_realmem_kB) / total_mem_kB);
-  metrics.process_virtualmem = 100.f * (float(metrics.process_virtualmem) / total_mem_kB);
+  metrics.process_virtualmem = 100.f * (float(metrics.process_virtualmem_kB) / total_mem_kB);
   metrics.system_mem         = (1.f - float(available_mem_kB) / float(total_mem_kB)) * 100.f;
 }
 
