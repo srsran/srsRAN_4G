@@ -413,9 +413,13 @@ public:
 
   bool operator()(int fd) override
   {
-    srslte::unique_byte_buffer_t pdu(new byte_buffer_t());
-    sockaddr_in                  from    = {};
-    socklen_t                    fromlen = sizeof(from);
+    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Unable to allocate byte buffer");
+      return true;
+    }
+    sockaddr_in from    = {};
+    socklen_t   fromlen = sizeof(from);
 
     ssize_t n_recv = recvfrom(fd, pdu->msg, pdu->get_tailroom(), 0, (struct sockaddr*)&from, &fromlen);
     if (n_recv == -1 and errno != EAGAIN) {
@@ -449,11 +453,15 @@ public:
   bool operator()(int fd) override
   {
     // inside rx_sockets thread. Read socket
-    srslte::unique_byte_buffer_t pdu     = srslte::make_byte_buffer();
-    sockaddr_in                  from    = {};
-    socklen_t                    fromlen = sizeof(from);
-    sctp_sndrcvinfo              sri     = {};
-    int                          flags   = 0;
+    srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    if (pdu == nullptr) {
+      logger.error("Unable to allocate byte buffer");
+      return true;
+    }
+    sockaddr_in     from    = {};
+    socklen_t       fromlen = sizeof(from);
+    sctp_sndrcvinfo sri     = {};
+    int             flags   = 0;
     ssize_t n_recv = sctp_recvmsg(fd, pdu->msg, pdu->get_tailroom(), (struct sockaddr*)&from, &fromlen, &sri, &flags);
     if (n_recv == -1 and errno != EAGAIN) {
       logger.error("Error reading from SCTP socket: %s", strerror(errno));
