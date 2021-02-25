@@ -48,8 +48,8 @@ static uint8_t rand_enb[] =
 static uint8_t autn_enb[] =
     {0xd7, 0x44, 0x51, 0x9b, 0x25, 0xaa, 0x80, 0x00, 0x84, 0xba, 0x37, 0xb0, 0xf6, 0x73, 0x4d, 0xd1};
 
-static constexpr uint16 mcc = 208;
-static constexpr uint16 mnc = 93;
+static constexpr uint16_t mcc = 208;
+static constexpr uint16_t mnc = 93;
 
 int main(int argc, char** argv)
 {

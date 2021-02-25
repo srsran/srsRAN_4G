@@ -20,6 +20,7 @@
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/logger_srslog_wrapper.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/signal_handler.h"
 #include "srslte/srslog/srslog.h"
 

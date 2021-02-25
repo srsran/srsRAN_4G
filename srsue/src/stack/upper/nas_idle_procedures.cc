@@ -11,7 +11,7 @@
  */
 
 #include "srsue/hdr/stack/upper/nas_idle_procedures.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 
 using namespace srslte;
 

@@ -14,7 +14,10 @@
 #define SRSLTE_UE_RRC_INTERFACES_H
 
 #include "phy_interface_types.h"
+#include "rrc_interface_types.h"
+#include "srslte/asn1/asn1_utils.h"
 #include "srslte/common/byte_buffer.h"
+#include "srslte/common/tti_point.h"
 
 namespace srsue {
 

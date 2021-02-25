@@ -44,6 +44,8 @@
 
 namespace srsue {
 
+class phy_interface_stack_lte;
+
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
                            public stack_interface_phy_nr,

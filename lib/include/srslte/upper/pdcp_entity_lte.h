@@ -18,7 +18,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
 namespace srsue {

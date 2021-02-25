@@ -11,7 +11,8 @@
  */
 
 #include "srsue/hdr/stack/mac/proc_ra.h"
-#include "srslte/common/log_helper.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include <inttypes.h> // for printing uint64_t
 #include <stdint.h>
@@ -410,7 +411,6 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
   while (rar_pdu_msg.next()) {
     if (rar_pdu_msg.get()->has_rapid() && rar_pdu_msg.get()->get_rapid() == sel_preamble) {
-
       rar_received = true;
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
 
@@ -437,7 +437,6 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
         // If this is the first successfully received RAR within this procedure, Msg3 is empty
         if (mux_unit->msg3_is_empty()) {
-
           // Save transmitted C-RNTI (if any)
           transmitted_crnti = rntis->crnti;
 

@@ -12,10 +12,8 @@
 
 #include "srslte/asn1/rrc/rr_common.h"
 #include "srslte/asn1/rrc_utils.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/test_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/mac/mux.h"
@@ -168,7 +166,6 @@ public:
   // Testing methods
   int dl_grant(mac* mac_h, bool ack, uint16_t rnti, uint32_t len, const uint8_t* payload)
   {
-
     bool ack_v[SRSLTE_MAX_CODEWORDS] = {ack, 0};
 
     mac_interface_phy_lte::tb_action_dl_t dl_action    = {};
@@ -205,7 +202,6 @@ public:
 
   int rar_and_check(mac* mac_h, bool preamble_matches, uint32_t temp_rnti)
   {
-
     // Generate RAR to MAC
     uint8_t grant[SRSLTE_RAR_GRANT_LEN] = {1};
 
@@ -243,7 +239,6 @@ public:
                             bool           is_rar        = false,
                             bool           adaptive_retx = false)
   {
-
     mac_interface_phy_lte::tb_action_ul_t ul_action    = {};
     mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant = {};
 
@@ -923,7 +918,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   rlc.write_sdu(1, 10);
 
   // generate TTI
-  uint32 tti = 0;
+  uint32_t tti = 0;
   stack.run_tti(tti++);
   usleep(100);
 
@@ -980,7 +975,7 @@ int mac_ul_sch_pdu_with_short_bsr_zero_test()
   rlc.write_sdu(2, 2);
 
   // generate TTI
-  uint32 tti = 0;
+  uint32_t tti = 0;
   stack.run_tti(tti++);
   usleep(100);
 
@@ -1267,7 +1262,7 @@ int mac_ul_sch_regular_bsr_retx_test()
   rlc.write_sdu(3, 1000);
 
   // generate TTI
-  uint32 tti = 0;
+  uint32_t tti = 0;
   stack.run_tti(tti++);
   usleep(100);
 
@@ -1432,7 +1427,7 @@ int mac_ul_sch_periodic_bsr_test()
   rlc.write_sdu(3, 100);
 
   // generate TTI
-  uint32 tti = 0;
+  uint32_t tti = 0;
   stack.run_tti(tti++);
   usleep(100);
 
@@ -1705,7 +1700,7 @@ int mac_ul_sch_trunc_bsr_test2()
   rlc.write_sdu(3, 100);
 
   // generate TTI
-  uint32 tti = 0;
+  uint32_t tti = 0;
   stack.run_tti(tti++);
   usleep(100);
 
@@ -1997,7 +1992,6 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
   bool new_prach = false;
 
   for (uint32_t j = 0; j < test.nof_prachs; j++) {
-
     // In the next TTI, a BSR shall be triggered which triggers SR which triggers PRACH
     if (test.assume_prach_transmitted != (int)j) {
       phy->set_prach_tti(tti + phy->prach_delay);
@@ -2048,7 +2042,6 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       // Request Msg3 (re)-transmission
 
       for (uint32_t i = 0; i < test.nof_msg3_retx + 1; i++) {
-
         // Step to contention resolution. Make sure timer does not start until Msg3 is transmitted
         // and restarts on every retx
         for (int k = 0; k < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 2; k++) {
@@ -2165,7 +2158,7 @@ int mac_random_access_test()
   set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);
 
-  uint32 tti = 0;
+  uint32_t tti = 0;
   stack.run_tti(tti++); // make sure MAC/PRACH config is applied
 
   // generate config for LCIDs in different LCGs than CCCH

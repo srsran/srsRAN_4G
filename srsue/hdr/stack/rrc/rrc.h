@@ -63,6 +63,7 @@ class gw_interface_rrc;
 class pdcp_interface_rrc;
 class rlc_interface_rrc;
 class nas_interface_rrc;
+class phy_interface_rrc_lte;
 
 class rrc : public rrc_interface_nas,
             public rrc_interface_phy_lte,

@@ -19,8 +19,6 @@
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 
-#include "srslte/interfaces/ue_interfaces.h"
-
 /* Downlink HARQ entity as defined in 5.3.2 of 36.321 */
 
 namespace srsue {

@@ -18,6 +18,7 @@
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"
+#include <set>
 
 namespace srslte {
 

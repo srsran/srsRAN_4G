@@ -18,8 +18,10 @@
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
 #include "srslte/common/tti_sempahore.h"
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/rrc_interface_types.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
@@ -31,6 +33,8 @@
 #include <vector>
 
 namespace srsue {
+
+class stack_interface_phy_lte;
 
 class rsrp_insync_itf
 {

@@ -26,7 +26,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
 #include "srslte/common/tti_sync_cv.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "ul_harq.h"
 #include <condition_variable>

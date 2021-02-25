@@ -14,7 +14,9 @@
 #define SRSUE_DUMMY_CLASSES_H
 
 #include "srslte/common/task_scheduler.h"
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/interfaces/ue_rlc_interfaces.h"
 
 namespace srsue {

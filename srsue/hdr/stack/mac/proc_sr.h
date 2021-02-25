@@ -14,7 +14,7 @@
 #define SRSUE_PROC_SR_H
 
 #include "srslte/common/logmap.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_mac_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <stdint.h>
 
@@ -22,8 +22,9 @@
 
 namespace srsue {
 
-// Forward-declare ra_proc
 class ra_proc;
+class phy_interface_mac_lte;
+class rrc_interface_mac;
 
 class sr_proc
 {

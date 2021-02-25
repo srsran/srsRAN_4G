@@ -13,6 +13,8 @@
 #ifndef SRSLTE_UE_MAC_INTERFACES_H
 #define SRSLTE_UE_MAC_INTERFACES_H
 
+#include "mac_interface_types.h"
+
 namespace srsue {
 
 class mac_interface_phy_lte

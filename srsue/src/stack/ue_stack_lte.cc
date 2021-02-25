@@ -12,7 +12,9 @@
 
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srslte/common/logmap.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/srslte.h"
+
 #include <algorithm>
 #include <chrono>
 #include <numeric>

@@ -16,9 +16,7 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_phr.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/stack/mac/mac.h"
-#include "srsue/hdr/stack/mac/mux.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 
 namespace srsue {
 
@@ -131,7 +129,6 @@ void phr_proc::step()
 
 bool phr_proc::generate_phr_on_ul_grant(float* phr)
 {
-
   if (phr_is_triggered) {
     if (phr) {
       *phr = phy_h->get_phr();

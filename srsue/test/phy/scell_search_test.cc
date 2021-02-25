@@ -519,7 +519,7 @@ int main(int argc, char** argv)
       channel_args.delay_enable           = std::isnormal(channel_delay_max_us);
       channel_args.delay_min_us           = channel_delay_us;
       channel_args.delay_max_us           = channel_delay_us;
-      channel_args.delay_period_s         = (uint32)channel_period_s;
+      channel_args.delay_period_s         = (uint32_t)channel_period_s;
       channel_args.delay_init_time_s      = channel_init_time_s;
       channel_args.awgn_enable            = std::isnormal(channel_snr_db) and (pci == *pcis_to_simulate.begin());
       channel_args.awgn_signal_power_dBfs = srslte_enb_dl_get_maximum_signal_power_dBfs(cell.nof_prb);

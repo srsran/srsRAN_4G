@@ -15,12 +15,12 @@
 
 #include "phy_common.h"
 #include "phy_metrics.h"
+#include "srslte/common/block_queue.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"

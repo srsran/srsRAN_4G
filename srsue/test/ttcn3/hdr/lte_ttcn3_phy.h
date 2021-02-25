@@ -13,10 +13,11 @@
 #ifndef SRSUE_TTCN3_LTE_PHY_H
 #define SRSUE_TTCN3_LTE_PHY_H
 
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/phy/ue_lte_phy_base.h"
 #include "srsue/hdr/ue.h"
 #include "ttcn3_interfaces.h"
-#include <srslte/interfaces/ue_interfaces.h>
 #include <srslte/phy/phch/dci.h>
 
 using namespace srsue;

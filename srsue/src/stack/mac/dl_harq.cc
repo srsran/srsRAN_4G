@@ -19,7 +19,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
-#include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
 
@@ -229,7 +228,6 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::reset_ndi()
 void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
                                                                   mac_interface_phy_lte::tb_action_dl_t* action)
 {
-
   mutex.lock();
 
   // Compute RV for BCCH when not specified in PDCCH format
@@ -263,7 +261,6 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
 
   // If data has not yet been successfully decoded
   if (!ack) {
-
     // Save dci
     cur_grant = grant;
 

@@ -26,7 +26,6 @@
 #include "phy/ue_phy_base.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "stack/ue_stack_base.h"

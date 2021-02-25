@@ -79,7 +79,7 @@ bool usim_base::get_imei_vec(uint8_t* imei_, uint32_t n)
     return false;
   }
 
-  uint64 temp = imei;
+  uint64_t temp = imei;
   for (int i = 14; i >= 0; i--) {
     imei_[i] = temp % 10;
     temp /= 10;

@@ -14,7 +14,7 @@
 #define SRSUE_RRC_METRICS_H
 
 #include "rrc_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/phy_interface_types.h"
 
 namespace srsue {
 

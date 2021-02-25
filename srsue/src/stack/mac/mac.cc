@@ -15,13 +15,12 @@
 #define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
-#include <pthread.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
 
 #include "srslte/common/log.h"
 #include "srslte/common/pcap.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 
 namespace srsue {

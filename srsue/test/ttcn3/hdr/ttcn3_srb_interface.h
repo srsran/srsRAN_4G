@@ -67,7 +67,7 @@ private:
 
     Document document;
     if (document.Parse((char*)&rx_buf->at(2)).HasParseError() || document.IsObject() == false) {
-      logger.error((uint8*)&rx_buf->at(2), json_len, "Error parsing incoming data.");
+      logger.error((uint8_t*)&rx_buf->at(2), json_len, "Error parsing incoming data.");
       return SRSLTE_ERROR;
     }
 

@@ -552,7 +552,7 @@ void phy_common::worker_end(void*                   tx_sem_id,
   if (nr_tx_buffer_ready) {
     // Load NR carrier base-band
     for (uint32_t i = 0; i < args->nof_nr_carriers * args->nof_rx_ant; i++) {
-      uint32 channel_idx = args->nof_lte_carriers * args->nof_rx_ant + i;
+      uint32_t channel_idx = args->nof_lte_carriers * args->nof_rx_ant + i;
       buffer.set(channel_idx, nr_tx_buffer.get(i));
     }
 

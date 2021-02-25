@@ -13,7 +13,6 @@
 #include "srsue/hdr/phy/prach.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/phy_interface_types.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
 
 #define Error(fmt, ...)                                                                                                \

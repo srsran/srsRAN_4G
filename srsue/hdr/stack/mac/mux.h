@@ -22,7 +22,6 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/mac_interface_types.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/srslog/srslog.h"
 #include <mutex>

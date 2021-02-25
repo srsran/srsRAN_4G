@@ -11,26 +11,18 @@
  */
 
 #include "srslte/common/bcd_helpers.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/test_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp.h"
-#include "srslte/upper/pdcp_entity_lte.h"
-#include "srslte/upper/rlc.h"
-#include "srsue/hdr/stack/mac/mac.h"
-#include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
-#include <iostream>
 
 using namespace srsue;
-using namespace asn1::rrc;
 
 static_assert(alignof(LIBLTE_BYTE_MSG_STRUCT) == alignof(byte_buffer_t),
               "liblte buffer and byte buffer members misaligned");
