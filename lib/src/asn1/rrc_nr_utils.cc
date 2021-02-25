@@ -111,8 +111,47 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
       case 10:
         discard_timer = pdcp_discard_timer_t::ms10;
         break;
+      case 20:
+        discard_timer = pdcp_discard_timer_t::ms20;
+        break;
+      case 30:
+        discard_timer = pdcp_discard_timer_t::ms30;
+        break;
+      case 40:
+        discard_timer = pdcp_discard_timer_t::ms40;
+        break;
+      case 50:
+        discard_timer = pdcp_discard_timer_t::ms50;
+        break;
+      case 60:
+        discard_timer = pdcp_discard_timer_t::ms60;
+        break;
+      case 75:
+        discard_timer = pdcp_discard_timer_t::ms75;
+        break;
       case 100:
         discard_timer = pdcp_discard_timer_t::ms100;
+        break;
+      case 150:
+        discard_timer = pdcp_discard_timer_t::ms150;
+        break;
+      case 200:
+        discard_timer = pdcp_discard_timer_t::ms200;
+        break;
+      case 250:
+        discard_timer = pdcp_discard_timer_t::ms250;
+        break;
+      case 300:
+        discard_timer = pdcp_discard_timer_t::ms300;
+        break;
+      case 500:
+        discard_timer = pdcp_discard_timer_t::ms500;
+        break;
+      case 750:
+        discard_timer = pdcp_discard_timer_t::ms750;
+        break;
+      case 1500:
+        discard_timer = pdcp_discard_timer_t::ms1500;
         break;
       default:
         discard_timer = pdcp_discard_timer_t::infinity;
