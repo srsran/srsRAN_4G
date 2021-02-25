@@ -149,7 +149,7 @@ static int ue_ul_nr_encode_pucch_format1(srslte_ue_ul_nr_t*                  q,
   // Set SR bits
   // For a positive SR transmission using PUCCH format 1, the UE transmits the PUCCH as described in [4, TS
   // 38.211] by setting b ( 0 ) = 0 .
-  if (nof_bits == 0 && uci_data->cfg.o_sr > 0 && uci_data->value.sr[0] != 0) {
+  if (nof_bits == 0 && uci_data->cfg.o_sr > 0 && uci_data->value.sr > 0) {
     b[0]     = 0;
     nof_bits = 1;
   }
@@ -253,9 +253,10 @@ int srslte_ue_ul_nr_pucch_info(const srslte_pucch_nr_resource_t* resource,
 
 int srslte_ue_ul_nr_sr_send_slot(const srslte_pucch_nr_sr_resource_t sr_resources[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES],
                                  uint32_t                            slot_idx,
-                                 uint32_t                            sr_id,
-                                 uint32_t*                           sr_resource_id)
+                                 uint32_t                            sr_resource_id[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES])
 {
+  int count = 0;
+
   // Check inputs
   if (sr_resources == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -270,20 +271,15 @@ int srslte_ue_ul_nr_sr_send_slot(const srslte_pucch_nr_sr_resource_t sr_resource
       continue;
     }
 
-    // Skip if SR identifier does not match
-    if (sr_id != res->sr_id) {
-      continue;
-    }
-
     // Check periodicity and offset condition
     if ((slot_idx + res->period - res->offset) % res->period == 0) {
       if (sr_resource_id != NULL) {
-        *sr_resource_id = i;
+        sr_resource_id[count] = i;
       }
-      return 1;
+      count++;
     }
   }
 
   // If the program reached this point is because there is no SR transmission opportunity
-  return SRSLTE_SUCCESS;
+  return count;
 }

@@ -271,6 +271,9 @@ bool cc_worker::work_ul()
   // Add SR to UCI data if available
   phy->get_pending_sr(ul_slot_cfg.idx, uci_data);
 
+  // Add CSI reports to UCI data if available
+  phy->get_periodic_csi(ul_slot_cfg.idx, uci_data);
+
   if (has_pusch_grant) {
     // Notify MAC about PUSCH found grant
     mac_interface_phy_nr::tb_action_ul_t    ul_action    = {};

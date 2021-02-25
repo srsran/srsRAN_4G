@@ -110,4 +110,11 @@ SRSLTE_API int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pu
                                               const srslte_uci_cfg_nr_t*      uci_cfg,
                                               srslte_pucch_nr_resource_t*     resource);
 
+/**
+ * @brief Computes the number of SR bits
+ * @param K Number of SR transmission opportunities, including negative
+ * @return The number of bits according to the number of SRs
+ */
+SRSLTE_API uint32_t srslte_ra_ul_nr_nof_sr_bits(uint32_t K);
+
 #endif // SRSLTE_RA_UL_NR_H

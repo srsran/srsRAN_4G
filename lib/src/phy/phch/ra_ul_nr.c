@@ -14,6 +14,7 @@
 #include "ra_helper.h"
 #include "srslte/phy/ch_estimation/dmrs_pucch.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/csi.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
@@ -372,7 +373,7 @@ int srslte_ra_ul_nr_pucch_format_2_3_min_prb(const srslte_pucch_nr_resource_t* r
   }
 
   // Compute total number of UCI bits
-  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + uci_cfg->o_csi1 + uci_cfg->o_csi2;
+  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + srslte_csi_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 
   // Add CRC bits if any
   O_total += srslte_uci_nr_crc_len(O_total);
@@ -456,8 +457,12 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
 
   uint32_t O_uci = srslte_uci_nr_total_bits(uci_cfg);
 
-  // Scheduling request has preference see 9.2.5.1 UE procedure for multiplexing HARQ-ACK or CSI and SR in a PUCCH
-  if (uci_cfg->o_sr > 0) {
+  // Use SR PUCCH resource
+  // - At least one positive SR
+  // - up to 2 HARQ-ACK
+  // - No CSI report
+  if (uci_cfg->sr_positive_present > 0 && uci_cfg->o_ack <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+      uci_cfg->nof_csi == 0) {
     uint32_t sr_resource_id = uci_cfg->sr_resource_id;
     if (sr_resource_id >= SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES) {
       ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES);
@@ -476,6 +481,14 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
     return SRSLTE_SUCCESS;
   }
 
+  // Use format 2, 3 or 4 resource from higher layers
+  // - K SR opportunities
+  // - More than 2 HARQ-ACK
+  // - No CSI report
+  if (uci_cfg->o_sr > 0 && uci_cfg->o_ack > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
+    return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch_resource_id, resource);
+  }
+
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
@@ -484,4 +497,12 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
     return ra_ul_nr_pucch_resource_default(r_pucch, resource);
   }
   return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch_resource_id, resource);
+}
+
+uint32_t srslte_ra_ul_nr_nof_sr_bits(uint32_t K)
+{
+  if (K > 0) {
+    return (uint32_t)ceilf(log2f((float)K + 1.0f));
+  }
+  return 0;
 }

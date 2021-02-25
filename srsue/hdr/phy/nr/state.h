@@ -50,6 +50,9 @@ private:
   /// Pending scheduling request identifiers
   std::set<uint32_t> pending_sr_id;
 
+  /// CSI-RS measurements
+  std::array<srslte_csi_measurements_t, SRSLTE_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
+
 public:
   mac_interface_phy_nr* stack   = nullptr;
   srslte_carrier_nr_t   carrier = {};
@@ -64,6 +67,10 @@ public:
     carrier.id              = 500;
     carrier.nof_prb         = 100;
     carrier.max_mimo_layers = 1;
+
+    // Hard-coded values, this should be set when the measurements take place
+    csi_measurements[0].K_csi_rs = 1;
+    csi_measurements[1].K_csi_rs = 4;
   }
 
   /**
@@ -253,23 +260,38 @@ public:
     // Append fixed SR
     pending_sr_id.insert(args.fixed_sr.begin(), args.fixed_sr.end());
 
-    // Iterate all SR IDs
-    for (const uint32_t& sr_id : pending_sr_id) {
-      uint32_t sr_resource_id = 0;
+    // Calculate all SR opportunities in the given TTI
+    uint32_t sr_resource_id[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES] = {};
+    int      sr_count_all      = srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
+    uint32_t sr_count_positive = 0;
 
-      // Check if there is an SR transmission opportunity for the given SR identifier in any SR logic channel
-      if (srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_id, &sr_resource_id) > SRSLTE_SUCCESS) {
-        // Set UCI data
-        uci_data.cfg.o_sr           = 1;
-        uci_data.cfg.sr_resource_id = sr_resource_id;
-        uci_data.value.sr[0]        = 1;
+    // Iterate all opportunities
+    for (uint32_t i = 0; i < sr_count_all; i++) {
+      // Extract SR identifier
+      uint32_t sr_id = cfg.pucch.sr_resources[sr_resource_id[i]].sr_id;
 
-        // Remove pending SR
+      // Check if the SR resource ID is pending
+      if (pending_sr_id.count(sr_id) > 0) {
+        // Count it as present
+        sr_count_positive++;
+
+        // Erase pending SR
         pending_sr_id.erase(sr_id);
-
-        // Only one SR is supported
-        return;
       }
+    }
+
+    // Configure SR fields in UCI data
+    uci_data.cfg.sr_resource_id      = sr_resource_id[0];
+    uci_data.cfg.o_sr                = srslte_ra_ul_nr_nof_sr_bits(sr_count_all);
+    uci_data.cfg.sr_positive_present = sr_count_positive > 0;
+    uci_data.value.sr                = sr_count_positive;
+  }
+
+  void get_periodic_csi(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
+  {
+    int n = srslte_csi_generate_reports(&cfg.csi, tti, csi_measurements.data(), uci_data.cfg.csi, uci_data.value.csi);
+    if (n > SRSLTE_SUCCESS) {
+      uci_data.cfg.nof_csi = n;
     }
   }
 };

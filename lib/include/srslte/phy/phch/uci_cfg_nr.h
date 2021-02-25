@@ -13,6 +13,7 @@
 #ifndef SRSLTE_UCI_CFG_NR_H
 #define SRSLTE_UCI_CFG_NR_H
 
+#include "csi_cfg.h"
 #include "srslte/phy/common/phy_common.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -50,31 +51,31 @@
  */
 typedef struct SRSLTE_API {
   /// Common Parameters
-  uint32_t o_ack;  ///< Number of HARQ-ACK bits
-  uint32_t o_sr;   ///< Number of SR bits
-  uint32_t o_csi1; ///< Number of CSI1 report number of bits
-  uint32_t o_csi2; ///< Number of CSI2 report number of bits
+  uint32_t                o_ack;                          ///< Number of HARQ-ACK bits
+  uint32_t                o_sr;                           ///< Number of SR bits
+  srslte_csi_report_cfg_t csi[SRSLTE_CSI_MAX_NOF_REPORT]; ///< CSI report configuration
+  uint32_t                nof_csi;                        ///< Number of CSI reports
 
   /// PUSCH only parameters
   srslte_mod_t modulation; ///< Modulation
 
   /// PUCCH only parameters
-  uint16_t rnti;              ///< RNTI
-  uint32_t pucch_resource_id; ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
-  uint32_t n_cce_0;           ///< index of a first CCE for the PDCCH reception
-  uint32_t N_cce;             ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
-  uint32_t sr_resource_id;    ///< Scheduling request resource identifier, only valid if o_sr > 0
+  uint16_t rnti;                ///< RNTI
+  uint32_t pucch_resource_id;   ///< PUCCH resource indicator field in the DCI format 1_0 or DCI format 1_1
+  uint32_t n_cce_0;             ///< index of a first CCE for the PDCCH reception
+  uint32_t N_cce;               ///< number of CCEs in a CORESET of a PDCCH reception with DCI format 1_0 or 1_1
+  uint32_t sr_resource_id;      ///< Scheduling request resource identifier, only valid if positive SR
+  bool     sr_positive_present; ///< Set to true if there is at least one positive SR
 } srslte_uci_cfg_nr_t;
 
 /**
  * @brief Uplink Control Information (UCI) message packed information
  */
 typedef struct SRSLTE_API {
-  uint8_t ack[SRSLTE_UCI_NR_MAX_ACK_BITS];   ///< HARQ ACK feedback bits
-  uint8_t sr[SRSLTE_UCI_NR_MAX_SR_BITS];     ///< Scheduling Request bits
-  uint8_t csi1[SRSLTE_UCI_NR_MAX_CSI1_BITS]; ///< Channel State Information part 1
-  uint8_t csi2[SRSLTE_UCI_NR_MAX_CSI2_BITS]; ///< Channel State Information part 2
-  bool    valid; ///< Indicates whether the message has been decoded successfully, ignored in the transmitter
+  uint8_t                   ack[SRSLTE_UCI_NR_MAX_ACK_BITS]; ///< HARQ ACK feedback bits
+  uint32_t                  sr;                              ///< Number of positive SR
+  srslte_csi_report_value_t csi[SRSLTE_CSI_MAX_NOF_REPORT];  ///< Packed CSI report values
+  bool valid; ///< Indicates whether the message has been decoded successfully, ignored in the transmitter
 } srslte_uci_value_nr_t;
 
 /**

@@ -121,7 +121,8 @@ struct phy_args_nr_t {
   srslte::phy_log_args_t log;
   srslte_ue_dl_nr_args_t dl;
   srslte_ue_ul_nr_args_t ul;
-  std::set<uint32_t>     fixed_sr;
+  std::set<uint32_t>     fixed_sr         = {1};
+  uint32_t               fix_wideband_cqi = 15; // Set to a non-zero value for fixing the wide-band CQI report
 
   phy_args_nr_t()
   {

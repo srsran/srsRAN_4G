@@ -30,6 +30,7 @@ struct phy_cfg_nr_t {
   srslte_prach_cfg_t             prach    = {};
   srslte_ue_dl_nr_pdcch_cfg_t    pdcch    = {};
   srslte_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
+  srslte_csi_hl_cfg_t            csi      = {};
 
   phy_cfg_nr_t()
   {
@@ -514,6 +515,13 @@ struct phy_cfg_nr_t {
     //                            nrofPRBs: 1
     //                            nrofSymbols: 2
     //                            startingSymbolIndex: 2
+    srslte_pucch_nr_resource_t pucch_res_17 = {};
+    pucch_res_17.starting_prb               = 1;
+    pucch_res_17.format                     = SRSLTE_PUCCH_NR_FORMAT_2;
+    pucch_res_17.nof_prb                    = 1;
+    pucch_res_17.nof_symbols                = 2;
+    pucch_res_17.start_symbol_idx           = 2;
+
     //        format1: setup (1)
     //            setup
     //        format2: setup (1)
@@ -527,6 +535,7 @@ struct phy_cfg_nr_t {
         }
       }
     }
+    pucch_res_17.max_code_rate = 2;
 
     //        schedulingRequestResourceToAddModList: 1 item
     //            Item 0
@@ -564,6 +573,34 @@ struct phy_cfg_nr_t {
     harq_ack.dl_data_to_ul_ack[5]  = 12;
     harq_ack.dl_data_to_ul_ack[6]  = 11;
     harq_ack.nof_dl_data_to_ul_ack = 7;
+
+    // csi-ReportConfigToAddModList: 1 item
+    //    Item 0
+    //        CSI-ReportConfig
+    //            reportConfigId: 0
+    //            resourcesForChannelMeasurement: 0
+    //            csi-IM-ResourcesForInterference: 1
+    //            reportConfigType: periodic (0)
+    //                periodic
+    //                    reportSlotConfig: slots80 (7)
+    //                        slots80: 9
+    //                    pucch-CSI-ResourceList: 1 item
+    //                        Item 0
+    //                            PUCCH-CSI-Resource
+    //                                uplinkBandwidthPartId: 0
+    //                                pucch-Resource: 17
+    //            reportQuantity: cri-RI-PMI-CQI (1)
+    //                cri-RI-PMI-CQI: NULL
+    //            reportFreqConfiguration
+    //                cqi-FormatIndicator: widebandCQI (0)
+    //            timeRestrictionForChannelMeasurements: notConfigured (1)
+    //            timeRestrictionForInterferenceMeasurements: notConfigured (1)
+    //            groupBasedBeamReporting: disabled (1)
+    //                disabled
+    //            cqi-Table: table2 (1)
+    //            subbandSize: value1 (0)
+    csi.reports[0].type              = SRSLTE_CSI_REPORT_TYPE_PERIODIC;
+    csi.reports[0].periodic.resource = pucch_res_17;
   }
 };
 } // namespace srslte

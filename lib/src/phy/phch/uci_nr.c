@@ -13,6 +13,7 @@
 #include "srslte/phy/phch/uci_nr.h"
 #include "srslte/phy/fec/block/block.h"
 #include "srslte/phy/fec/polar/polar_chanalloc.h"
+#include "srslte/phy/phch/csi.h"
 #include "srslte/phy/phch/uci_cfg.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/vector.h"
@@ -154,7 +155,8 @@ static int uci_nr_pack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_v
   A += cfg->o_ack;
 
   // Append SR bits
-  srslte_vec_u8_copy(&sequence[A], value->sr, cfg->o_sr);
+  uint8_t* bits = &sequence[A];
+  srslte_bit_unpack(value->sr, &bits, cfg->o_sr);
   A += cfg->o_sr;
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
@@ -165,7 +167,7 @@ static int uci_nr_pack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_v
   return A;
 }
 
-static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const uint8_t* sequence, srslte_uci_value_nr_t* value)
+static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequence, srslte_uci_value_nr_t* value)
 {
   int A = 0;
 
@@ -174,7 +176,8 @@ static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const uint8_t* s
   A += cfg->o_ack;
 
   // Append SR bits
-  srslte_vec_u8_copy(value->sr, &sequence[A], cfg->o_sr);
+  uint8_t* bits = &sequence[A];
+  value->sr     = srslte_bit_pack(&bits, cfg->o_sr);
   A += cfg->o_sr;
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
@@ -187,15 +190,16 @@ static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, const uint8_t* s
 
 static int uci_nr_A(const srslte_uci_cfg_nr_t* cfg)
 {
+  int o_csi = srslte_csi_nof_bits(cfg->csi, cfg->nof_csi);
+
   // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
-  if (cfg->o_csi1 == 0 && cfg->o_csi2 == 0) {
+  if (o_csi == 0) {
     return cfg->o_ack + cfg->o_sr;
   }
 
   // 6.3.1.1.2 CSI only
   if (cfg->o_ack == 0 && cfg->o_sr == 0) {
-    ERROR("CSI only are not implemented");
-    return SRSLTE_ERROR;
+    return o_csi;
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
@@ -205,15 +209,16 @@ static int uci_nr_A(const srslte_uci_cfg_nr_t* cfg)
 
 static int uci_nr_packing(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value_nr_t* value, uint8_t* sequence)
 {
+  int o_csi = srslte_csi_nof_bits(cfg->csi, cfg->nof_csi);
+
   // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
-  if (cfg->o_csi1 == 0 && cfg->o_csi2 == 0) {
+  if (o_csi == 0) {
     return uci_nr_pack_ack_sr(cfg, value, sequence);
   }
 
   // 6.3.1.1.2 CSI only
   if (cfg->o_ack == 0 && cfg->o_sr == 0) {
-    ERROR("CSI only are not implemented");
-    return SRSLTE_ERROR;
+    return srslte_csi_part1_pack(cfg->csi, value->csi, cfg->nof_csi, sequence, SRSLTE_UCI_NR_MAX_NOF_BITS);
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
@@ -221,10 +226,12 @@ static int uci_nr_packing(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value
   return SRSLTE_ERROR;
 }
 
-static int uci_nr_unpacking(const srslte_uci_cfg_nr_t* cfg, const uint8_t* sequence, srslte_uci_value_nr_t* value)
+static int uci_nr_unpacking(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequence, srslte_uci_value_nr_t* value)
 {
+  int o_csi = srslte_csi_nof_bits(cfg->csi, cfg->nof_csi);
+
   // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
-  if (cfg->o_csi1 == 0 && cfg->o_csi2 == 0) {
+  if (o_csi) {
     return uci_nr_unpack_ack_sr(cfg, sequence, value);
   }
 
@@ -737,10 +744,10 @@ int srslte_uci_nr_pucch_format_2_3_4_E(const srslte_pucch_nr_resource_t* resourc
 static int
 uci_nr_pucch_E_uci(const srslte_pucch_nr_resource_t* pucch_cfg, const srslte_uci_cfg_nr_t* uci_cfg, uint32_t E_tot)
 {
-  if (uci_cfg->o_csi1 != 0 && uci_cfg->o_csi2) {
-    ERROR("Simultaneous CSI part 1 and CSI part 2 is not implemented");
-    return SRSLTE_ERROR;
-  }
+  //  if (uci_cfg->o_csi1 != 0 && uci_cfg->o_csi2) {
+  //    ERROR("Simultaneous CSI part 1 and CSI part 2 is not implemented");
+  //    return SRSLTE_ERROR;
+  //  }
 
   return E_tot;
 }
@@ -791,7 +798,7 @@ uint32_t srslte_uci_nr_total_bits(const srslte_uci_cfg_nr_t* uci_cfg)
     return 0;
   }
 
-  return uci_cfg->o_ack + uci_cfg->o_csi1 + uci_cfg->o_csi2 + uci_cfg->o_sr;
+  return uci_cfg->o_ack + srslte_csi_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 }
 
 uint32_t srslte_uci_nr_info(const srslte_uci_data_nr_t* uci_data, char* str, uint32_t str_len)
@@ -806,22 +813,12 @@ uint32_t srslte_uci_nr_info(const srslte_uci_data_nr_t* uci_data, char* str, uin
     len = srslte_print_check(str, str_len, len, ", ack=%s", str2);
   }
 
-  if (uci_data->cfg.o_csi1 > 0) {
-    char str2[10];
-    srslte_vec_sprint_bin(str2, 10, uci_data->value.csi1, uci_data->cfg.o_csi1);
-    len = srslte_print_check(str, str_len, len, ", csi1=%s", str2);
-  }
-
-  if (uci_data->cfg.o_csi2 > 0) {
-    char str2[10];
-    srslte_vec_sprint_bin(str2, 10, uci_data->value.csi2, uci_data->cfg.o_csi2);
-    len = srslte_print_check(str, str_len, len, ", csi2=%s", str2);
+  if (uci_data->cfg.nof_csi > 0) {
+    len += srslte_csi_str(uci_data->cfg.csi, uci_data->value.csi, uci_data->cfg.nof_csi, &str[len], str_len - len);
   }
 
   if (uci_data->cfg.o_sr > 0) {
-    char str2[10];
-    srslte_vec_sprint_bin(str2, 10, uci_data->value.sr, uci_data->cfg.o_sr);
-    len = srslte_print_check(str, str_len, len, ", sr=%s", str2);
+    len = srslte_print_check(str, str_len, len, ", sr=%d", uci_data->value.sr);
   }
 
   return len;
