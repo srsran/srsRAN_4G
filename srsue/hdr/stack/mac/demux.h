@@ -16,6 +16,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/mac/pdu_queue.h"
 #include "srslte/srslog/srslog.h"
@@ -23,6 +24,8 @@
 /* Logical Channel Demultiplexing and MAC CE dissassemble */
 
 namespace srsue {
+
+class rlc_interface_mac;
 
 class mac_interface_demux
 {

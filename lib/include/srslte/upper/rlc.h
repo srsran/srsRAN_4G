@@ -18,6 +18,7 @@
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/upper/rlc_common.h"
 #include "srslte/upper/rlc_metrics.h"
 

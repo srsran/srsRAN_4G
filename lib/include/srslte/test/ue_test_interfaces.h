@@ -15,6 +15,7 @@
 
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 
 namespace srsue {
 

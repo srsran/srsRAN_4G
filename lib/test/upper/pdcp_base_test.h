@@ -20,6 +20,7 @@
 #include "srslte/interfaces/pdcp_interface_types.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include <iostream>
 
 int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::unique_byte_buffer_t& msg2)

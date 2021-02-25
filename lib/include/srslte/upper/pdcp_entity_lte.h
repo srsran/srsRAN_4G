@@ -24,8 +24,9 @@
 namespace srsue {
 
 class gw_interface_pdcp;
+class rlc_interface_pdcp;
 
-}
+} // namespace srsue
 
 namespace srslte {
 

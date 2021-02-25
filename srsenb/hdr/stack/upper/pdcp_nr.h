@@ -15,6 +15,7 @@
 #include "srslte/common/logger.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include <map>
 

@@ -16,6 +16,7 @@
 #include "srslte/common/security.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"

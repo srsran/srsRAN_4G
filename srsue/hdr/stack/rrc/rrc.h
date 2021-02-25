@@ -61,6 +61,7 @@ class phy_controller;
 class usim_interface_rrc;
 class gw_interface_rrc;
 class pdcp_interface_rrc;
+class rlc_interface_rrc;
 
 class rrc : public rrc_interface_nas,
             public rrc_interface_phy_lte,

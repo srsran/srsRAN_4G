@@ -19,12 +19,15 @@
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
 namespace srsue {
+
+class rlc_interface_mac;
 
 struct mac_nr_args_t {
   srsue::pcap_args_t pcap;
@@ -73,7 +76,7 @@ public:
   /// procedure ra nr interface
   uint64_t get_contention_id();
   uint16_t get_c_rnti();
-  void set_c_rnti(uint64_t c_rnti_);
+  void     set_c_rnti(uint64_t c_rnti_);
 
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
@@ -132,8 +135,8 @@ private:
 
   /// Tx buffer
   srslte::mac_sch_pdu_nr       tx_pdu;
-  srslte::unique_byte_buffer_t tx_buffer  = nullptr;
-  srslte::unique_byte_buffer_t rlc_buffer = nullptr;
+  srslte::unique_byte_buffer_t tx_buffer     = nullptr;
+  srslte::unique_byte_buffer_t rlc_buffer    = nullptr;
   srslte_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
 
   srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;

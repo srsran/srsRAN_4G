@@ -26,6 +26,8 @@
 
 namespace srsue {
 
+class rlc_interface_mac;
+
 // BSR interface for MUX
 class bsr_interface_mux
 {

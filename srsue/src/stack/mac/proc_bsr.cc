@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/mac/proc_bsr.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"
 
 namespace srsue {

@@ -23,6 +23,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include <map>
 
 namespace srslte {

@@ -14,6 +14,7 @@
 #include "srslte/common/int_helpers.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include <bitset>
 
 namespace srslte {
