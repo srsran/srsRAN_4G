@@ -31,6 +31,7 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 
+#include "srslte/system/sys_metrics_processor.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/interfaces_common.h"
@@ -149,6 +150,9 @@ private:
   std::unique_ptr<enb_stack_base>     stack = nullptr;
   std::unique_ptr<srslte::radio_base> radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
+
+  // System metrics processor.
+  srslte::sys_metrics_processor sys_proc;
 
   srslte::LOG_LEVEL_ENUM level(std::string l);
 

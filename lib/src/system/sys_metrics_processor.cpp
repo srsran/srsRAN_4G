@@ -87,7 +87,6 @@ float sys_metrics_processor::cpu_usage(const proc_stats_info& current_query, flo
   static const unsigned cpu_count        = ::sysconf(_SC_NPROCESSORS_CONF);
   static const float    ticks_per_second = ::sysconf(_SC_CLK_TCK);
 
-  printf("delta time is: %f\n", delta_time_in_seconds);
   return ((current_query.stime + current_query.utime) - (last_query.stime + last_query.utime)) * 100.f /
          (cpu_count * ticks_per_second * delta_time_in_seconds);
 }

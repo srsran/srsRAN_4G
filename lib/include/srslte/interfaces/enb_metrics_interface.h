@@ -20,6 +20,7 @@
 #include "srsenb/hdr/stack/rrc/rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srsenb/hdr/stack/upper/s1ap_metrics.h"
+#include "srslte/system/sys_metrics.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/radio/radio_metrics.h"
 #include "srslte/upper/pdcp_metrics.h"
@@ -48,6 +49,7 @@ struct enb_metrics_t {
   srslte::rf_metrics_t       rf;
   std::vector<phy_metrics_t> phy;
   stack_metrics_t            stack;
+  srslte::sys_metrics_t      sys;
   bool                       running;
 };
 

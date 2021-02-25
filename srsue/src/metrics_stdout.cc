@@ -67,14 +67,14 @@ void metrics_stdout::print_table(const bool display_neighbours)
     cout << "--------Signal-------------Neighbour--DL-------------------------------------UL-----------------------|---"
             "--SYS-----"
          << endl;
-    cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler   "
+    cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler  "
             "cpu  mem"
          << endl;
   } else {
     cout << "--------Signal--------------DL-------------------------------------UL----------------------|-----SYS----"
             "--"
          << endl;
-    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler   cpu   mem"
+    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler  cpu   mem"
          << endl;
   }
   table_has_neighbours = display_neighbours;
@@ -169,8 +169,8 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     }
 
     // Write the system metrics.
-    cout << float_to_string(metrics.sys.process_cpu_usage, 2);
-    cout << float_to_string(metrics.sys.system_mem, 2);
+    cout << float_to_string(metrics.sys.process_cpu_usage, 3);
+    cout << float_to_string(metrics.sys.process_realmem, 3);
     cout << endl;
   }
 

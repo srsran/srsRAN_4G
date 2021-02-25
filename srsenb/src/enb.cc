@@ -200,6 +200,7 @@ bool enb::get_metrics(enb_metrics_t* m)
   phy->get_metrics(m->phy);
   stack->get_metrics(&m->stack);
   m->running = started;
+  m->sys = sys_proc.get_metrics();
   return true;
 }
 
