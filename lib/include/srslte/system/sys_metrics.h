@@ -24,7 +24,7 @@
 
 namespace srslte {
 
-/// Metrics that will be returned in the system.
+/// Metrics of cpu usage, memory consumption and number of thread used by the process.
 struct sys_metrics_t {
   unsigned process_realmem_kB    = 0;
   unsigned process_virtualmem_kB = 0;

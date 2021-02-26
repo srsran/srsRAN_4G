@@ -35,12 +35,18 @@ class sys_metrics_processor
   struct proc_stats_info {
     proc_stats_info();
 
+    // Initialize the variables that will be used.
+    int long      num_threads = 0;
+    unsigned long utime       = 0;
+    unsigned long stime       = 0;
+
+    // Rest of the information of the stats file.
     int           pid, ppid, pgrp, session, tty_nr, tpgid, exit_signal, processor, exit_code;
     unsigned      flags, rt_priority, policy;
-    unsigned long minflt, cminflt, majflt, cmajflt, utime, stime, vsize, rsslim, startcode, endcode, startstack,
-        kstkesp, kstkeip, signal, blocked, sigignore, sigcatch, wchan, nswap, cnswap, guest_time, start_data, end_data,
-        start_brk, arg_start, arg_end, env_start, env_end;
-    int long           cutime, cstime, priority, nice, num_threads, itrealvalue, rss, cguest_time;
+    unsigned long minflt, cminflt, majflt, cmajflt, vsize, rsslim, startcode, endcode, startstack, kstkesp, kstkeip,
+        signal, blocked, sigignore, sigcatch, wchan, nswap, cnswap, guest_time, start_data, end_data, start_brk,
+        arg_start, arg_end, env_start, env_end;
+    int long           cutime, cstime, priority, nice, itrealvalue, rss, cguest_time;
     unsigned long long starttime, delaycct_blkio_ticks;
     char               state;
     std::string        comm;

@@ -32,6 +32,10 @@ sys_metrics_processor::proc_stats_info::proc_stats_info()
   std::string line;
   {
     std::ifstream file("/proc/self/stat");
+    if (!file) {
+      return;
+    }
+
     std::getline(file, line);
   }
 
