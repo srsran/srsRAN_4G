@@ -28,14 +28,13 @@
 
 namespace srslte {
 
-/// Process the data from the proc_stats_info.
+/// Process information from the system to create sys_metrics_t. The information is processed from the /proc/ system.
 class sys_metrics_processor
 {
-  /// Contains the information of a process.
+  /// Helper class used to parse the information from the /proc/[pid]/stats.
   struct proc_stats_info {
     proc_stats_info();
 
-    /// Parsed every field in /proc/[pid]/stats file.
     int           pid, ppid, pgrp, session, tty_nr, tpgid, exit_signal, processor, exit_code;
     unsigned      flags, rt_priority, policy;
     unsigned long minflt, cminflt, majflt, cmajflt, utime, stime, vsize, rsslim, startcode, endcode, startstack,
@@ -48,17 +47,18 @@ class sys_metrics_processor
   };
 
 public:
-  /// Performs a new measure and returns the values.
+  /// Measures and returns the system metrics.
   sys_metrics_t get_metrics();
 
 private:
-  /// Returns the cpu usage in %. current_query is the most recent proc_stats_info, and delta_time_in_seconds is the
-  /// elapsed time between the last measure and current in seconds.
-  /// NOTE: Returns -1.0f on error.
-  float cpu_usage(const proc_stats_info& current_query, float delta_time_in_seconds) const;
+  /// Calculates and returns the cpu usage in %. current_query is the most recent proc_stats_info, and
+  /// delta_time_in_seconds is the elapsed time between the last measure and current in seconds. NOTE: Returns -1.0f on
+  /// error.
+  float calculate_cpu_usage(const proc_stats_info& current_query, float delta_time_in_seconds) const;
 
-  /// Returns the memory usage in kB. First element is the real mem whereas the second is the virtual mem.
-  void mem_usage(sys_metrics_t& metrics) const;
+  /// Calculate the memory parameters and writes them in metrics.
+  /// NOTE: on error, metrics memory parameters are set to 0.
+  void calculate_mem_usage(sys_metrics_t& metrics) const;
 
 private:
   proc_stats_info                                    last_query;

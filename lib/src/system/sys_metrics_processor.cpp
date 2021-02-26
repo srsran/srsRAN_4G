@@ -58,12 +58,12 @@ sys_metrics_t sys_metrics_processor::get_metrics()
   sys_metrics_t metrics;
 
   // Get the memory metrics.
-  mem_usage(metrics);
+  calculate_mem_usage(metrics);
 
   // Get the stats from the proc.
   proc_stats_info current_query;
   metrics.thread_count      = current_query.num_threads;
-  metrics.process_cpu_usage = cpu_usage(current_query, measure_interval_ms / 1000.f);
+  metrics.process_cpu_usage = calculate_cpu_usage(current_query, measure_interval_ms / 1000.f);
 
   // Update the last values.
   last_query_time = current_time;
@@ -72,7 +72,8 @@ sys_metrics_t sys_metrics_processor::get_metrics()
   return metrics;
 }
 
-float sys_metrics_processor::cpu_usage(const proc_stats_info& current_query, float delta_time_in_seconds) const
+float sys_metrics_processor::calculate_cpu_usage(const proc_stats_info& current_query,
+                                                 float                  delta_time_in_seconds) const
 {
   // Error current value has to be greater than last value.
   if (current_query.stime < last_query.stime || current_query.utime < last_query.utime) {
@@ -103,10 +104,25 @@ static unsigned read_memory_value_from_line(const std::string& line)
   return value;
 }
 
+/// Sets the memory parameters of the given metrics to zero.
+static void set_mem_to_zero(sys_metrics_t& metrics)
+{
+  metrics.process_realmem_kB    = 0;
+  metrics.process_virtualmem_kB = 0;
+  metrics.process_virtualmem    = 0;
+  metrics.process_realmem       = 0;
+  metrics.system_mem            = 0;
+}
+
 static void calculate_percentage_memory(sys_metrics_t& metrics)
 {
   std::ifstream file("/proc/meminfo");
   std::string   line;
+
+  if (!file) {
+    set_mem_to_zero(metrics);
+    return;
+  }
 
   // Total system's memory is in the first line.
   std::getline(file, line);
@@ -123,10 +139,15 @@ static void calculate_percentage_memory(sys_metrics_t& metrics)
   metrics.system_mem         = (1.f - float(available_mem_kB) / float(total_mem_kB)) * 100.f;
 }
 
-void sys_metrics_processor::mem_usage(sys_metrics_t& metrics) const
+void sys_metrics_processor::calculate_mem_usage(sys_metrics_t& metrics) const
 {
   std::ifstream file("/proc/self/status");
   std::string   line;
+
+  if (!file) {
+    set_mem_to_zero(metrics);
+    return;
+  }
 
   while (std::getline(file, line)) {
     // Looks for Virtual memory.
