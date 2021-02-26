@@ -222,7 +222,7 @@ int rlc_um_nr_pdu_unpack_test6()
 int main(int argc, char** argv)
 {
 #if PCAP
-  pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
+  pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
   pcap_handle->open("rlc_um_nr_pdu_test.pcap");
 #endif
 

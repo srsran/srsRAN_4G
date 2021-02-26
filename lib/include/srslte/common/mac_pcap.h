@@ -27,7 +27,7 @@ namespace srslte {
 class mac_pcap : srslte::thread
 {
 public:
-  mac_pcap(srslte_rat_t rat);
+  mac_pcap();
   ~mac_pcap();
   void     enable(bool enable);
   uint32_t open(std::string filename, uint32_t ue_id = 0);
@@ -63,7 +63,6 @@ public:
 private:
   srslog::basic_logger& logger;
   bool                  running = false;
-  srslte_rat_t          rat     = srslte_rat_t::nulltype;
   uint32_t              dlt     = 0; // The DLT used for the PCAP file
   std::string           filename;
   FILE*                 pcap_file = nullptr;
@@ -87,6 +86,7 @@ private:
 
   typedef struct {
     // Different PCAP context for both RATs
+    srslte::srslte_rat_t  rat;
     MAC_Context_Info_t    context;
     mac_nr_context_info_t context_nr;
     unique_byte_buffer_t  pdu;

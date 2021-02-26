@@ -17,9 +17,7 @@
 
 namespace srslte {
 
-mac_pcap::mac_pcap(srslte_rat_t rat_) :
-  logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_" + to_string(rat_)), rat(rat_)
-{}
+mac_pcap::mac_pcap() : logger(srslog::fetch_basic_logger("MAC")), thread("PCAP_WRITER_MAC") {}
 
 mac_pcap::~mac_pcap()
 {
@@ -41,18 +39,7 @@ uint32_t mac_pcap::open(std::string filename_, uint32_t ue_id_)
   }
 
   // set DLT for selected RAT
-  switch (rat) {
-    case srslte_rat_t::lte:
-      dlt = UDP_DLT;
-      break;
-    case srslte_rat_t::nr:
-      dlt = UDP_DLT;
-      break;
-    default:
-      logger.error("Error opening PCAP. Unsupported RAT selected.");
-      return SRSLTE_ERROR;
-  }
-
+  dlt       = UDP_DLT;
   pcap_file = LTE_PCAP_Open(dlt, filename_.c_str());
   if (pcap_file == nullptr) {
     logger.error("Couldn't open %s to write PCAP", filename_.c_str());
@@ -88,7 +75,7 @@ uint32_t mac_pcap::close()
   // close file handle
   {
     std::lock_guard<std::mutex> lock(mutex);
-    srslte::console("Saving %s MAC PCAP (DLT=%d) to %s\n", to_string(rat).c_str(), dlt, filename.c_str());
+    srslte::console("Saving MAC PCAP (DLT=%d) to %s\n", dlt, filename.c_str());
     LTE_PCAP_Close(pcap_file);
     pcap_file = nullptr;
   }
@@ -99,7 +86,7 @@ uint32_t mac_pcap::close()
 void mac_pcap::write_pdu(pcap_pdu_t& pdu)
 {
   if (pdu.pdu != nullptr) {
-    switch (rat) {
+    switch (pdu.rat) {
       case srslte_rat_t::lte:
         LTE_PCAP_MAC_UDP_WritePDU(pcap_file, &pdu.context, pdu.pdu->msg, pdu.pdu->N_bytes);
         break;
@@ -150,6 +137,7 @@ void mac_pcap::pack_and_queue(uint8_t* payload,
 {
   if (running && payload != nullptr) {
     pcap_pdu_t pdu             = {};
+    pdu.rat                    = srslte::srslte_rat_t::lte;
     pdu.context.radioType      = FDD_RADIO;
     pdu.context.direction      = direction;
     pdu.context.rntiType       = rnti_type;
@@ -185,6 +173,7 @@ void mac_pcap::pack_and_queue_nr(uint8_t* payload,
 {
   if (running && payload != nullptr) {
     pcap_pdu_t pdu                     = {};
+    pdu.rat                            = srslte_rat_t::nr;
     pdu.context_nr.radioType           = FDD_RADIO;
     pdu.context_nr.direction           = direction;
     pdu.context_nr.rntiType            = rnti_type;

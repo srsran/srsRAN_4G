@@ -36,7 +36,7 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   s1ap(&task_sched, s1ap_logger),
   rrc(&task_sched),
   logger(logger_),
-  mac_pcap(srslte_rat_t::lte)
+  mac_pcap()
 {
   get_background_workers().set_nof_workers(2);
   enb_task_queue  = task_sched.make_task_queue();
