@@ -56,8 +56,12 @@ private:
 public:
   mac_interface_phy_nr* stack   = nullptr;
   srslte_carrier_nr_t   carrier = {};
-  srslte::phy_cfg_nr_t  cfg;
-  phy_args_nr_t         args;
+
+  /// Physical layer user configuration
+  phy_args_nr_t args = {};
+
+  /// Physical layer higher layer configuration, provided by higher layers through configuration messages
+  srslte::phy_cfg_nr_t cfg = {};
 
   uint16_t ra_rnti       = 0;
   uint32_t rar_grant_tti = 0;
@@ -70,7 +74,9 @@ public:
 
     // Hard-coded values, this should be set when the measurements take place
     csi_measurements[0].K_csi_rs = 1;
+    csi_measurements[0].nof_ports = 1;
     csi_measurements[1].K_csi_rs = 4;
+    csi_measurements[0].nof_ports = 1;
   }
 
   /**
@@ -262,10 +268,17 @@ public:
 
     // Calculate all SR opportunities in the given TTI
     uint32_t sr_resource_id[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES] = {};
-    int      sr_count_all      = srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
+    int      n = srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
+    if (n < SRSLTE_SUCCESS) {
+      ERROR("Calculating SR opportunities");
+      return;
+    }
+
+    // Initialise counters
+    uint32_t sr_count_all      = (uint32_t)n;
     uint32_t sr_count_positive = 0;
 
-    // Iterate all opportunities
+    // Iterate all opportunities and check if there is a pending SR
     for (uint32_t i = 0; i < sr_count_all; i++) {
       // Extract SR identifier
       uint32_t sr_id = cfg.pucch.sr_resources[sr_resource_id[i]].sr_id;
@@ -293,6 +306,8 @@ public:
     if (n > SRSLTE_SUCCESS) {
       uci_data.cfg.nof_csi = n;
     }
+
+    uci_data.cfg.rnti = stack->get_ul_sched_rnti_nr(tti).id;
   }
 };
 } // namespace nr

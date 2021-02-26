@@ -482,11 +482,20 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
   }
 
   // Use format 2, 3 or 4 resource from higher layers
-  // - K SR opportunities
+  // - Irrelevant SR opportunities
   // - More than 2 HARQ-ACK
   // - No CSI report
   if (uci_cfg->o_sr > 0 && uci_cfg->o_ack > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
     return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch_resource_id, resource);
+  }
+
+  // Use format 2, 3 or 4 CSI report resource from higher layers
+  // - Irrelevant SR opportunities
+  // - No HARQ-ACK
+  // - Single periodic CSI report
+  if (uci_cfg->o_ack == 0 && uci_cfg->nof_csi == 1 && uci_cfg->csi[0].type == SRSLTE_CSI_REPORT_TYPE_PERIODIC) {
+    *resource = uci_cfg->csi[0].pucch_resource;
+    return SRSLTE_SUCCESS;
   }
 
   // If a UE does not have dedicated PUCCH resource configuration, provided by PUCCH-ResourceSet in PUCCH-Config,

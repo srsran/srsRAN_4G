@@ -19,7 +19,7 @@
 /// Implements SNRI to CQI conversion
 uint32_t csi_snri_db_to_cqi(srslte_csi_cqi_table_t table, float snri_db)
 {
-  return 15;
+  return 6;
 }
 
 // Implements CSI report triggers
@@ -67,18 +67,15 @@ static void csi_wideband_cri_ri_pmi_cqi_quantify(const srslte_csi_hl_report_cfg_
 
 static uint32_t csi_wideband_cri_ri_pmi_cqi_nof_bits(const srslte_csi_report_cfg_t* cfg)
 {
-  // Avoid K_csi_rs invalid value
-  if (cfg->K_csi_rs == 0) {
-    ERROR("Invalid K_csi_rs=%d", cfg->K_csi_rs);
-    return 0;
-  }
-
   // Compute number of bits for CRI
-  uint32_t nof_bits_cri = (uint32_t)ceilf(log2f((float)cfg->K_csi_rs));
+  uint32_t nof_bits_cri = 0;
+  if (cfg->K_csi_rs > 0) {
+    nof_bits_cri = (uint32_t)ceilf(log2f((float)cfg->K_csi_rs));
+  }
 
   switch (cfg->nof_ports) {
     case 1:
-      return SRSLTE_CSI_REPORT_FREQ_WIDEBAND + nof_bits_cri;
+      return CSI_WIDEBAND_CSI_NOF_BITS + nof_bits_cri;
     default:
       ERROR("Invalid or not implemented number of ports (%d)", cfg->nof_ports);
   }
@@ -89,17 +86,16 @@ static int csi_wideband_cri_ri_pmi_cqi_pack(const srslte_csi_report_cfg_t*   cfg
                                             const srslte_csi_report_value_t* value,
                                             uint8_t*                         o_csi1)
 {
-  // Avoid K_csi_rs invalid value
-  if (cfg->K_csi_rs == 0) {
-    ERROR("Invalid K_csi_rs=%d", cfg->K_csi_rs);
-    return SRSLTE_ERROR;
+  // Compute number of bits for CRI
+  uint32_t nof_bits_cri = 0;
+  if (cfg->K_csi_rs > 0) {
+    nof_bits_cri = (uint32_t)ceilf(log2f((float)cfg->K_csi_rs));
   }
 
   // Write wideband CQI
   srslte_bit_unpack(value->wideband_cri_ri_pmi_cqi.cqi, &o_csi1, CSI_WIDEBAND_CSI_NOF_BITS);
 
   // Compute number of bits for CRI and write
-  uint32_t nof_bits_cri = (uint32_t)ceilf(log2f((float)cfg->K_csi_rs));
   srslte_bit_unpack(value->cri, &o_csi1, nof_bits_cri);
 
   return nof_bits_cri + CSI_WIDEBAND_CSI_NOF_BITS;
@@ -214,5 +210,12 @@ uint32_t srslte_csi_str(const srslte_csi_report_cfg_t*   report_cfg,
                         char*                            str,
                         uint32_t                         str_len)
 {
-  return srslte_print_check(str, str_len, 0, "cqi=%s", report_value->wideband_cri_ri_pmi_cqi.cqi);
+  uint32_t len = 0;
+  for (uint32_t i = 0; i < nof_reports; i++) {
+    if (report_cfg[i].freq_cfg == SRSLTE_CSI_REPORT_FREQ_WIDEBAND &&
+        report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
+      len = srslte_print_check(str, str_len, len, ", cqi=%d", report_value[i].wideband_cri_ri_pmi_cqi.cqi);
+    }
+  }
+  return len;
 }

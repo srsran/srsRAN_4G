@@ -798,7 +798,7 @@ uint32_t srslte_uci_nr_total_bits(const srslte_uci_cfg_nr_t* uci_cfg)
     return 0;
   }
 
-  return uci_cfg->o_ack + srslte_csi_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  return uci_cfg->o_ack + uci_cfg->o_sr + srslte_csi_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 }
 
 uint32_t srslte_uci_nr_info(const srslte_uci_data_nr_t* uci_data, char* str, uint32_t str_len)

@@ -599,8 +599,16 @@ struct phy_cfg_nr_t {
     //                disabled
     //            cqi-Table: table2 (1)
     //            subbandSize: value1 (0)
-    csi.reports[0].type              = SRSLTE_CSI_REPORT_TYPE_PERIODIC;
-    csi.reports[0].periodic.resource = pucch_res_17;
+    csi.reports[0].type                = SRSLTE_CSI_REPORT_TYPE_PERIODIC;
+    csi.reports[0].channel_meas_id     = 0;
+    csi.reports[0].interf_meas_present = true;
+    csi.reports[0].interf_meas_id      = 1;
+    csi.reports[0].periodic.period     = 80;
+    csi.reports[0].periodic.offset     = 9;
+    csi.reports[0].periodic.resource   = pucch_res_17;
+    csi.reports[0].quantity            = SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI;
+    csi.reports[0].freq_cfg            = SRSLTE_CSI_REPORT_FREQ_WIDEBAND;
+    csi.reports[0].cqi_table           = SRSLTE_CSI_CQI_TABLE_2;
   }
 };
 } // namespace srslte
