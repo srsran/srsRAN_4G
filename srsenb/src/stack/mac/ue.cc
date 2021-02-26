@@ -56,7 +56,6 @@ ue::ue(uint16_t                 rnti_,
   pdus(logger, 128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
-  rx_used_buffers(nof_cells_),
   ta_fsm(this)
 {
   cc_buffers.resize(nof_cells_);
@@ -80,11 +79,11 @@ ue::~ue()
   }
   {
     std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-    for (auto& rx_buffers_cc : rx_used_buffers) {
-      for (auto& q : rx_buffers_cc) {
+    for (auto& cc : cc_buffers) {
+      for (auto& q : cc.get_rx_used_buffers()) {
         pdus.deallocate(q.second);
       }
-      rx_buffers_cc.clear();
+      cc.get_rx_softbuffer().clear();
     }
   }
 }
@@ -163,10 +162,10 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
   uint8_t*                     pdu = nullptr;
   if (len > 0) {
     // Deallocate oldest buffer if we didn't deallocate it
-    if (!rx_used_buffers.at(ue_cc_idx).count(tti)) {
+    if (!cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
       pdu = pdus.request(len);
       if (pdu) {
-        rx_used_buffers.at(ue_cc_idx).emplace(tti, pdu);
+        cc_buffers.at(ue_cc_idx).get_rx_used_buffers().emplace(tti, pdu);
       } else {
         logger.error("UE buffers: Requesting buffer from pool");
       }
@@ -184,7 +183,8 @@ void ue::clear_old_buffers(uint32_t tti)
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
 
   // remove old buffers
-  for (auto& rx_buffer_cc : rx_used_buffers) {
+  for (auto& cc : cc_buffers) {
+    auto& rx_buffer_cc = cc.get_rx_used_buffers();
     for (auto it = rx_buffer_cc.begin(); it != rx_buffer_cc.end();) {
       if (srslte_tti_interval(tti, it->first) > 20 && srslte_tti_interval(tti, it->first) < 500) {
         logger.warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d",
@@ -325,9 +325,9 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
 
-  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
-    pdus.deallocate(rx_used_buffers.at(ue_cc_idx).at(tti));
-    rx_used_buffers.at(ue_cc_idx).erase(tti);
+  if (cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
+    pdus.deallocate(cc_buffers.at(ue_cc_idx).get_rx_used_buffers().at(tti));
+    cc_buffers.at(ue_cc_idx).get_rx_used_buffers().erase(tti);
   } else {
     logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d",
                    rnti,
@@ -339,13 +339,13 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
+  if (cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
     if (len > 0) {
-      pdus.push(rx_used_buffers.at(ue_cc_idx).at(tti), len);
+      pdus.push(cc_buffers.at(ue_cc_idx).get_rx_used_buffers().at(tti), len);
     } else {
       logger.error("Error pushing PDU: null length");
     }
-    rx_used_buffers.at(ue_cc_idx).erase(tti);
+    cc_buffers.at(ue_cc_idx).get_rx_used_buffers().erase(tti);
   } else {
     logger.warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d",
                    rnti,

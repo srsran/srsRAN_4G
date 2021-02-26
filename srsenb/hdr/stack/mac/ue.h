@@ -46,15 +46,17 @@ public:
 
   cc_softbuffer_tx_list_t& get_tx_softbuffer() { return softbuffer_tx; }
   cc_softbuffer_rx_list_t& get_rx_softbuffer() { return softbuffer_rx; }
-
-  srslte::byte_buffer_t* get_tx_payload_buffer(size_t harq_pid, size_t tb)
+  srslte::byte_buffer_t*   get_tx_payload_buffer(size_t harq_pid, size_t tb)
   {
     return tx_payload_buffer[harq_pid][tb].get();
   }
+  std::map<uint32_t, uint8_t*>& get_rx_used_buffers() { return rx_used_buffers; }
 
 private:
   cc_softbuffer_tx_list_t softbuffer_tx; ///< List of softbuffer lists for Tx
   cc_softbuffer_rx_list_t softbuffer_rx; ///< List of softbuffer lists for Rx
+
+  std::map<uint32_t, uint8_t*> rx_used_buffers;
 
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
   std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> tx_payload_buffer;
@@ -146,8 +148,7 @@ private:
 
   std::vector<cc_buffer_handler> cc_buffers;
 
-  std::mutex                                 rx_buffers_mutex;
-  std::vector<std::map<uint32_t, uint8_t*> > rx_used_buffers;
+  std::mutex rx_buffers_mutex;
 
   srslte::block_queue<uint32_t> pending_ta_commands;
   ta                            ta_fsm;
