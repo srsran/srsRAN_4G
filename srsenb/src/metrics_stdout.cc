@@ -161,7 +161,6 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 1, 4) << "%";
     }
     cout << float_to_eng_string(metrics.stack.mac.ues[i].ul_buffer, 2);
-
     cout << endl;
   }
 

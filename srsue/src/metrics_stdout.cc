@@ -69,11 +69,8 @@ void metrics_stdout::print_table(const bool display_neighbours)
     cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler"
          << endl;
   } else {
-    cout << "--------Signal--------------DL-------------------------------------UL----------------------"
-            "--"
-         << endl;
-    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler"
-         << endl;
+    cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
+    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
   }
   table_has_neighbours = display_neighbours;
   n_reports            = 0;
@@ -165,7 +162,6 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     } else {
       cout << float_to_string(0, 1) << "%";
     }
-    
     cout << endl;
   }
 
