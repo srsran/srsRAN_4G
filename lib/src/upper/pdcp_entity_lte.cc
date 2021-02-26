@@ -46,6 +46,13 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   maximum_pdcp_sn              = (1 << cfg.sn_len) - 1;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
 
+  if (is_drb() && not rlc->rb_is_um(lcid) && cfg.discard_timer == pdcp_discard_timer_t::infinity) {
+    logger.warning(
+        "Setting discard timer to 1500ms, to avoid issues with lingering SDUs in the Unacknowledged SDUs map. LCID=%d",
+        lcid);
+    cfg.discard_timer = pdcp_discard_timer_t::ms1500;
+  }
+
   uint32_t discard_time_value = static_cast<uint32_t>(cfg.discard_timer);
   if (discard_time_value > 0) {
     // Note: One extra position is reserved at the end for the status report
@@ -59,13 +66,6 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
 
   // Queue Helpers
   maximum_allocated_sns_window = (1 << cfg.sn_len) / 2;
-
-  if (is_drb() && not rlc->rb_is_um(lcid) && cfg.discard_timer == pdcp_discard_timer_t::infinity) {
-    logger.warning(
-        "Setting discard timer to 1500ms, to avoid issues with lingering SDUs in the Unacknowledged SDUs map. LCID=%d",
-        lcid);
-    cfg.discard_timer = pdcp_discard_timer_t::ms1500;
-  }
 
   logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   logger.info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms",
