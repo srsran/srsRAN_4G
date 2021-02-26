@@ -17,7 +17,6 @@
 #include "srsenb/hdr/stack/mac/sched_ue.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
-#include "srslte/srslte.h"
 
 using srslte::tti_interval;
 

@@ -11,12 +11,10 @@
  */
 
 #include "enb_cfg_parser.h"
-#include "srsenb/hdr/cfg_parser.h"
 #include "srsenb/hdr/enb.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/srslte.h"
 #include <boost/algorithm/string.hpp>
 
 #define HANDLEPARSERCODE(cond)                                                                                         \

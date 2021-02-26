@@ -17,7 +17,6 @@
 #include <chrono>
 #include <random>
 #include <set>
-#include <srslte/srslte.h>
 #include <unistd.h>
 
 #include "srslte/common/log_filter.h"

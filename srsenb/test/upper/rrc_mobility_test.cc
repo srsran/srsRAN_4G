@@ -17,7 +17,6 @@
 #include "srslte/common/test_common.h"
 #include "test_helpers.h"
 #include <iostream>
-#include <srslte/common/log_filter.h>
 
 using namespace asn1::rrc;
 

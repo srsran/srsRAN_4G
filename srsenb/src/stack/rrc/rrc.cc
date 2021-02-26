@@ -21,7 +21,6 @@
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
-#include "srslte/srslte.h"
 
 using srslte::byte_buffer_t;
 using srslte::uint32_to_uint8;

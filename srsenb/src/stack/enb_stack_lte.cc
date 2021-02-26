@@ -13,8 +13,7 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/enb.h"
 #include "srslte/common/network_utils.h"
-#include "srslte/srslte.h"
-#include <srslte/interfaces/enb_metrics_interface.h>
+#include "srslte/interfaces/enb_metrics_interface.h"
 
 using namespace srslte;
 

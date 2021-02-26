@@ -18,7 +18,6 @@
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
 
 #define Console(fmt, ...) srslte::console(fmt, ##__VA_ARGS__)
 #define Error(fmt, ...) srslog::fetch_basic_logger("MAC").error(fmt, ##__VA_ARGS__)

@@ -10,13 +10,13 @@
  *
  */
 
-#include "srslte/common/log.h"
 #include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
 #include "srsue/hdr/stack/upper/gw.h"
+
+#include <arpa/inet.h>
 
 class test_stack_dummy : public srsue::stack_interface_gw
 {
