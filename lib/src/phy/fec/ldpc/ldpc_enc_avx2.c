@@ -39,16 +39,16 @@
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_t {
-  uint8_t c[SRSLTE_AVX2_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX2_B_SIZE lifted nodes. */
-  __m256i v;                     /*!< All the lifted nodes of the current base node as a 256-bit line. */
+  uint8_t* c; /*!< Each base node may contain up to \ref SRSLTE_AVX2_B_SIZE lifted nodes. */
+  __m256i* v; /*!< All the lifted nodes of the current base node as a 256-bit line. */
 } bg_node_t;
 
 /*!
  * \brief Inner registers for the optimized LDPC encoder.
  */
 struct ldpc_enc_avx2 {
-  bg_node_t* codeword; /*!< \brief Contains the entire codeword, before puncturing. */
-  __m256i*   aux;      /*!< \brief Auxiliary register. */
+  bg_node_t codeword; /*!< \brief Contains the entire codeword, before puncturing. */
+  __m256i*  aux;      /*!< \brief Auxiliary register. */
 };
 
 /*!
@@ -95,18 +95,17 @@ void* create_ldpc_enc_avx2(srslte_ldpc_encoder_t* q)
 {
   struct ldpc_enc_avx2* vp = NULL;
 
-  if ((vp = malloc(sizeof(struct ldpc_enc_avx2))) == NULL) {
+  if ((vp = SRSLTE_MEM_ALLOC(struct ldpc_enc_avx2, 1)) == NULL) {
     return NULL;
   }
 
-  if ((vp->codeword = srslte_vec_malloc(q->bgN * sizeof(bg_node_t))) == NULL) {
-    free(vp);
+  if ((vp->codeword.v = SRSLTE_MEM_ALLOC(__m256i, q->bgN)) == NULL) {
+    delete_ldpc_enc_avx2(vp);
     return NULL;
   }
 
-  if ((vp->aux = srslte_vec_malloc(q->bgM * sizeof(__m256i))) == NULL) {
-    free(vp->codeword);
-    free(vp);
+  if ((vp->aux = SRSLTE_MEM_ALLOC(__m256i, q->bgM)) == NULL) {
+    delete_ldpc_enc_avx2(vp);
     return NULL;
   }
 
@@ -117,11 +116,16 @@ void delete_ldpc_enc_avx2(void* p)
 {
   struct ldpc_enc_avx2* vp = p;
 
-  if (vp != NULL) {
-    free(vp->aux);
-    free(vp->codeword);
-    free(vp);
+  if (vp == NULL) {
+    return;
   }
+  if (vp->aux) {
+    free(vp->aux);
+  }
+  if (vp->codeword.v) {
+    free(vp->codeword.v);
+  }
+  free(vp);
 }
 
 int load_avx2(void* p, const uint8_t* input, const uint8_t msg_len, const uint8_t cdwd_len, const uint16_t ls)
@@ -136,14 +140,14 @@ int load_avx2(void* p, const uint8_t* input, const uint8_t msg_len, const uint8_
   int node_size = SRSLTE_AVX2_B_SIZE;
   for (int i = 0; i < msg_len * ls; i = i + ls) {
     for (int k = 0; k < ls; k++) {
-      vp->codeword->c[ini + k] = input[i + k];
+      vp->codeword.c[ini + k] = input[i + k];
     }
     // this zero padding can be removed
-    bzero(&(vp->codeword->c[ini + ls]), (node_size - ls) * sizeof(uint8_t));
+    srslte_vec_u8_zero(&vp->codeword.c[ini + ls], node_size - ls);
     ini = ini + node_size;
   }
 
-  bzero(vp->codeword + msg_len, (cdwd_len - msg_len) * sizeof(__m256i));
+  SRSLTE_MEM_ZERO(vp->codeword.v + msg_len, __m256i, cdwd_len - msg_len);
 
   return 0;
 }
@@ -159,7 +163,7 @@ int return_codeword_avx2(void* p, uint8_t* output, const uint8_t cdwd_len, const
   int ini = SRSLTE_AVX2_B_SIZE + SRSLTE_AVX2_B_SIZE;
   for (int i = 0; i < (cdwd_len - 2) * ls; i = i + ls) {
     for (int k = 0; k < ls; k++) {
-      output[i + k] = vp->codeword->c[ini + k];
+      output[i + k] = vp->codeword.c[ini + k];
     }
     ini = ini + SRSLTE_AVX2_B_SIZE;
   }
@@ -184,14 +188,14 @@ void encode_ext_region_avx2(srslte_ldpc_encoder_t* q, uint8_t n_layers)
     skip = q->bgK + m;
 
     // the systematic part has already been computed
-    vp->codeword[skip].v = vp->aux[m];
+    vp->codeword.v[skip] = vp->aux[m];
 
     // sum the contribution due to the high-rate region, with the proper circular shifts
     for (k = 0; k < 4; k++) {
       this_shift = q->pcm + q->bgK + k + m * q->bgN;
       if (*this_shift != NO_CNCT) {
-        tmp_epi8             = rotate_node_right(vp->codeword[q->bgK + k].v, *this_shift, q->ls);
-        vp->codeword[skip].v = _mm256_xor_si256(vp->codeword[skip].v, tmp_epi8);
+        tmp_epi8             = rotate_node_right(vp->codeword.v[q->bgK + k], *this_shift, q->ls);
+        vp->codeword.v[skip] = _mm256_xor_si256(vp->codeword.v[skip], tmp_epi8);
       }
     }
   }
@@ -228,7 +232,7 @@ void preprocess_systematic_bits_avx2(srslte_ldpc_encoder_t* q)
       // xor array aux[m] with a circularly shifted version of the current input chunk, unless
       // the current check node and variable node are not connected.
       if (*this_shift != NO_CNCT) {
-        tmp_epi8   = rotate_node_right(vp->codeword[k].v, *this_shift, ls);
+        tmp_epi8   = rotate_node_right(vp->codeword.v[k], *this_shift, ls);
         tmp_epi8   = _mm256_and_si256(tmp_epi8, one_epi8);
         vp->aux[m] = _mm256_xor_si256(vp->aux[m], tmp_epi8);
       }
@@ -249,17 +253,17 @@ void encode_high_rate_case1_avx2(void* o)
   int skip3 = q->bgK + 3;
 
   // first chunk of parity bits
-  vp->codeword[skip0].v = _mm256_xor_si256(vp->aux[0], vp->aux[1]);
-  vp->codeword[skip0].v = _mm256_xor_si256(vp->codeword[skip0].v, vp->aux[2]);
-  vp->codeword[skip0].v = _mm256_xor_si256(vp->codeword[skip0].v, vp->aux[3]);
+  vp->codeword.v[skip0] = _mm256_xor_si256(vp->aux[0], vp->aux[1]);
+  vp->codeword.v[skip0] = _mm256_xor_si256(vp->codeword.v[skip0], vp->aux[2]);
+  vp->codeword.v[skip0] = _mm256_xor_si256(vp->codeword.v[skip0], vp->aux[3]);
 
-  __m256i tmp_epi8 = rotate_node_right(vp->codeword[skip0].v, 1, ls);
+  __m256i tmp_epi8 = rotate_node_right(vp->codeword.v[skip0], 1, ls);
   // second chunk of parity bits
-  vp->codeword[skip1].v = _mm256_xor_si256(vp->aux[0], tmp_epi8);
+  vp->codeword.v[skip1] = _mm256_xor_si256(vp->aux[0], tmp_epi8);
   // fourth chunk of parity bits
-  vp->codeword[skip3].v = _mm256_xor_si256(vp->aux[3], tmp_epi8);
+  vp->codeword.v[skip3] = _mm256_xor_si256(vp->aux[3], tmp_epi8);
   // third chunk of parity bits
-  vp->codeword[skip2].v = _mm256_xor_si256(vp->aux[2], vp->codeword[skip3].v);
+  vp->codeword.v[skip2] = _mm256_xor_si256(vp->aux[2], vp->codeword.v[skip3]);
 }
 
 void encode_high_rate_case2_avx2(void* o)
@@ -278,14 +282,14 @@ void encode_high_rate_case2_avx2(void* o)
   __m256i tmp_epi8      = _mm256_xor_si256(vp->aux[0], vp->aux[1]);
   tmp_epi8              = _mm256_xor_si256(tmp_epi8, vp->aux[2]);
   tmp_epi8              = _mm256_xor_si256(tmp_epi8, vp->aux[3]);
-  vp->codeword[skip0].v = rotate_node_left(tmp_epi8, 105 % ls, ls);
+  vp->codeword.v[skip0] = rotate_node_left(tmp_epi8, 105 % ls, ls);
 
   // second chunk of parity bits
-  vp->codeword[skip1].v = _mm256_xor_si256(vp->aux[0], vp->codeword[skip0].v);
+  vp->codeword.v[skip1] = _mm256_xor_si256(vp->aux[0], vp->codeword.v[skip0]);
   // fourth chunk of parity bits
-  vp->codeword[skip3].v = _mm256_xor_si256(vp->aux[3], vp->codeword[skip0].v);
+  vp->codeword.v[skip3] = _mm256_xor_si256(vp->aux[3], vp->codeword.v[skip0]);
   // third chunk of parity bits
-  vp->codeword[skip2].v = _mm256_xor_si256(vp->aux[2], vp->codeword[skip3].v);
+  vp->codeword.v[skip2] = _mm256_xor_si256(vp->aux[2], vp->codeword.v[skip3]);
 }
 
 void encode_high_rate_case3_avx2(void* o)
@@ -304,14 +308,14 @@ void encode_high_rate_case3_avx2(void* o)
   __m256i tmp_epi8      = _mm256_xor_si256(vp->aux[0], vp->aux[1]);
   tmp_epi8              = _mm256_xor_si256(tmp_epi8, vp->aux[2]);
   tmp_epi8              = _mm256_xor_si256(tmp_epi8, vp->aux[3]);
-  vp->codeword[skip0].v = rotate_node_left(tmp_epi8, 1, ls);
+  vp->codeword.v[skip0] = rotate_node_left(tmp_epi8, 1, ls);
 
   // second chunk of parity bits
-  vp->codeword[skip1].v = _mm256_xor_si256(vp->aux[0], vp->codeword[skip0].v);
+  vp->codeword.v[skip1] = _mm256_xor_si256(vp->aux[0], vp->codeword.v[skip0]);
   // third chunk of parity bits
-  vp->codeword[skip2].v = _mm256_xor_si256(vp->aux[1], vp->codeword[skip1].v);
+  vp->codeword.v[skip2] = _mm256_xor_si256(vp->aux[1], vp->codeword.v[skip1]);
   // fourth chunk of parity bits
-  vp->codeword[skip3].v = _mm256_xor_si256(vp->aux[3], vp->codeword[skip0].v);
+  vp->codeword.v[skip3] = _mm256_xor_si256(vp->aux[3], vp->codeword.v[skip0]);
 }
 
 void encode_high_rate_case4_avx2(void* o)
@@ -327,17 +331,17 @@ void encode_high_rate_case4_avx2(void* o)
   int skip3 = q->bgK + 3;
 
   // first chunk of parity bits
-  vp->codeword[skip0].v = _mm256_xor_si256(vp->aux[0], vp->aux[1]);
-  vp->codeword[skip0].v = _mm256_xor_si256(vp->codeword[skip0].v, vp->aux[2]);
-  vp->codeword[skip0].v = _mm256_xor_si256(vp->codeword[skip0].v, vp->aux[3]);
+  vp->codeword.v[skip0] = _mm256_xor_si256(vp->aux[0], vp->aux[1]);
+  vp->codeword.v[skip0] = _mm256_xor_si256(vp->codeword.v[skip0], vp->aux[2]);
+  vp->codeword.v[skip0] = _mm256_xor_si256(vp->codeword.v[skip0], vp->aux[3]);
 
-  __m256i tmp_epi8 = rotate_node_right(vp->codeword[skip0].v, 1, ls);
+  __m256i tmp_epi8 = rotate_node_right(vp->codeword.v[skip0], 1, ls);
   // second chunk of parity bits
-  vp->codeword[skip1].v = _mm256_xor_si256(vp->aux[0], tmp_epi8);
+  vp->codeword.v[skip1] = _mm256_xor_si256(vp->aux[0], tmp_epi8);
   // third chunk of parity bits
-  vp->codeword[skip2].v = _mm256_xor_si256(vp->aux[1], vp->codeword[skip1].v);
+  vp->codeword.v[skip2] = _mm256_xor_si256(vp->aux[1], vp->codeword.v[skip1]);
   // fourth chunk of parity bits
-  vp->codeword[skip3].v = _mm256_xor_si256(vp->aux[3], tmp_epi8);
+  vp->codeword.v[skip3] = _mm256_xor_si256(vp->aux[3], tmp_epi8);
 }
 
 static __m256i _mm256_rotatelli_si256(__m256i a, int imm)
