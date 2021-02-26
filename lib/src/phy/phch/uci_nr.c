@@ -231,7 +231,7 @@ static int uci_nr_unpacking(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequence, s
   int o_csi = srslte_csi_nof_bits(cfg->csi, cfg->nof_csi);
 
   // 6.3.1.1.1 HARQ-ACK/SR only UCI bit sequence generation
-  if (o_csi) {
+  if (o_csi == 0) {
     return uci_nr_unpack_ack_sr(cfg, sequence, value);
   }
 
