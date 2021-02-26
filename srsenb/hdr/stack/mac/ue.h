@@ -41,11 +41,15 @@ public:
   using cc_softbuffer_rx_list_t = std::vector<srslte_softbuffer_rx_t>;
 
   cc_buffer_handler();
+  ~cc_buffer_handler();
 
-  bool empty() const { return softbuffer_tx.empty(); }
+  void reset();
+  void allocate_cc(uint32_t nof_prb, uint32_t nof_rx_harq_proc, uint32_t nof_tx_harq_proc);
+  void deallocate_cc();
 
-  cc_softbuffer_tx_list_t& get_tx_softbuffer() { return softbuffer_tx; }
-  cc_softbuffer_rx_list_t& get_rx_softbuffer() { return softbuffer_rx; }
+  bool                     empty() const { return softbuffer_tx_list.empty(); }
+  cc_softbuffer_tx_list_t& get_tx_softbuffer() { return softbuffer_tx_list; }
+  srslte_softbuffer_rx_t&  get_rx_softbuffer(uint32_t tti) { return softbuffer_rx_list[tti % nof_rx_harq_proc]; }
   srslte::byte_buffer_t*   get_tx_payload_buffer(size_t harq_pid, size_t tb)
   {
     return tx_payload_buffer[harq_pid][tb].get();
@@ -53,9 +57,14 @@ public:
   std::map<uint32_t, uint8_t*>& get_rx_used_buffers() { return rx_used_buffers; }
 
 private:
-  cc_softbuffer_tx_list_t softbuffer_tx; ///< List of softbuffer lists for Tx
-  cc_softbuffer_rx_list_t softbuffer_rx; ///< List of softbuffer lists for Rx
+  // args
+  uint32_t nof_prb;
+  uint32_t nof_rx_harq_proc;
+  uint32_t nof_tx_harq_proc;
 
+  // buffers
+  cc_softbuffer_tx_list_t      softbuffer_tx_list; ///< List of softbuffer lists for Tx
+  cc_softbuffer_rx_list_t      softbuffer_rx_list; ///< List of softbuffer lists for Rx
   std::map<uint32_t, uint8_t*> rx_used_buffers;
 
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
@@ -125,8 +134,6 @@ public:
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
-  void allocate_cc_buffers(const uint32_t num_cc = 1); ///< Add and initialize softbuffers for CC
-
   void allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
   bool process_ce(srslte::sch_subh* subh);
   void allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid);

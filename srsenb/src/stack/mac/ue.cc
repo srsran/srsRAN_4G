@@ -31,6 +31,61 @@ cc_buffer_handler::cc_buffer_handler()
   }
 }
 
+cc_buffer_handler::~cc_buffer_handler()
+{
+  deallocate_cc();
+}
+
+/**
+ * Allocate and initialize softbuffers for Tx and Rx. It uses the configured
+ * number of HARQ processes and cell width.
+ *
+ * @param num_cc Number of carriers to add buffers for (default 1)
+ * @return number of carriers
+ */
+void cc_buffer_handler::allocate_cc(uint32_t nof_prb_, uint32_t nof_rx_harq_proc_, uint32_t nof_tx_harq_proc_)
+{
+  assert(empty());
+  nof_prb          = nof_prb_;
+  nof_rx_harq_proc = nof_rx_harq_proc_;
+  nof_tx_harq_proc = nof_tx_harq_proc_;
+
+  // Create and init Rx buffers
+  softbuffer_rx_list.resize(nof_rx_harq_proc);
+  for (srslte_softbuffer_rx_t& buffer : softbuffer_rx_list) {
+    srslte_softbuffer_rx_init(&buffer, nof_prb);
+  }
+
+  // Create and init Tx buffers
+  softbuffer_tx_list.resize(nof_tx_harq_proc);
+  for (auto& buffer : softbuffer_tx_list) {
+    srslte_softbuffer_tx_init(&buffer, nof_prb);
+  }
+}
+
+void cc_buffer_handler::deallocate_cc()
+{
+  for (auto& buffer : softbuffer_rx_list) {
+    srslte_softbuffer_rx_free(&buffer);
+  }
+  softbuffer_rx_list.clear();
+
+  for (auto& buffer : softbuffer_tx_list) {
+    srslte_softbuffer_tx_free(&buffer);
+  }
+  softbuffer_tx_list.clear();
+}
+
+void cc_buffer_handler::reset()
+{
+  for (auto& buffer : softbuffer_rx_list) {
+    srslte_softbuffer_rx_reset(&buffer);
+  }
+  for (auto& buffer : softbuffer_tx_list) {
+    srslte_softbuffer_tx_reset(&buffer);
+  }
+}
+
 ue::ue(uint16_t                 rnti_,
        uint32_t                 nof_prb_,
        sched_interface*         sched_,
@@ -56,34 +111,24 @@ ue::ue(uint16_t                 rnti_,
   pdus(logger, 128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
-  ta_fsm(this)
+  ta_fsm(this),
+  cc_buffers(nof_cells_)
 {
-  cc_buffers.resize(nof_cells_);
-
   pdus.init(this);
 
   // Allocate buffer for PCell
-  allocate_cc_buffers();
+  cc_buffers[0].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
 }
 
 ue::~ue()
 {
-  // Free up all softbuffers for all CCs
-  for (auto& cc : cc_buffers) {
-    for (auto& buffer : cc.get_rx_softbuffer()) {
-      srslte_softbuffer_rx_free(&buffer);
-    }
-    for (auto& buffer : cc.get_tx_softbuffer()) {
-      srslte_softbuffer_tx_free(&buffer);
-    }
-  }
   {
     std::unique_lock<std::mutex> lock(rx_buffers_mutex);
     for (auto& cc : cc_buffers) {
       for (auto& q : cc.get_rx_used_buffers()) {
         pdus.deallocate(q.second);
       }
-      cc.get_rx_softbuffer().clear();
+      cc.get_rx_used_buffers().clear();
     }
   }
 }
@@ -92,41 +137,9 @@ void ue::reset()
 {
   ue_metrics   = {};
   nof_failures = 0;
+
   for (auto& cc : cc_buffers) {
-    for (auto& buffer : cc.get_rx_softbuffer()) {
-      srslte_softbuffer_rx_reset(&buffer);
-    }
-    for (auto& buffer : cc.get_tx_softbuffer()) {
-      srslte_softbuffer_tx_reset(&buffer);
-    }
-  }
-}
-
-/**
- * Allocate and initialize softbuffers for Tx and Rx and
- * append to current list of CC buffers. It uses the configured
- * number of HARQ processes and cell width.
- *
- * @param num_cc Number of carriers to add buffers for (default 1)
- * @return number of carriers
- */
-void ue::allocate_cc_buffers(const uint32_t num_cc)
-{
-  for (uint32_t i = 0; i < num_cc; ++i) {
-    if (cc_buffers[i].empty()) {
-      // Create and init Rx buffers for Pcell
-      cc_buffers[i].get_rx_softbuffer().resize(nof_rx_harq_proc);
-      for (auto& buffer : cc_buffers[i].get_rx_softbuffer()) {
-        srslte_softbuffer_rx_init(&buffer, nof_prb);
-      }
-
-      // Create and init Tx buffers for Pcell
-      cc_buffers[i].get_tx_softbuffer().resize(nof_tx_harq_proc);
-      auto& harq_buffers = cc_buffers[i].get_tx_softbuffer();
-      for (auto& buffer : harq_buffers) {
-        srslte_softbuffer_tx_init(&buffer, nof_prb);
-      }
-    }
+    cc.reset();
   }
 }
 
@@ -142,7 +155,7 @@ srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const ui
     return nullptr;
   }
 
-  return &cc_buffers.at(ue_cc_idx).get_rx_softbuffer().at(tti % nof_rx_harq_proc);
+  return &cc_buffers.at(ue_cc_idx).get_rx_softbuffer(tti % nof_rx_harq_proc);
 }
 
 srslte_softbuffer_tx_t*
@@ -463,7 +476,11 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
         if (pdu->get()->set_scell_activation_cmd(active_scell_list)) {
           phy->set_activation_deactivation_scell(rnti, active_scell_list);
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
-          allocate_cc_buffers(active_scell_list.size() - 1);
+          for (size_t i = 0; i < std::min(active_scell_list.size(), cc_buffers.size()); ++i) {
+            if (active_scell_list[i]) {
+              cc_buffers[i].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
+            }
+          }
         } else {
           logger.error("CE:    Setting SCell Activation CE");
         }
