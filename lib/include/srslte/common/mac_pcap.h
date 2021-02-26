@@ -27,11 +27,12 @@ public:
   uint32_t close();
 
 private:
-  void        write_pdu(srslte::mac_pcap_base::pcap_pdu_t& pdu);
+  void write_pdu(srslte::mac_pcap_base::pcap_pdu_t& pdu);
+  void run_thread() final;
+
   FILE*       pcap_file = nullptr;
   uint32_t    dlt       = 0; // The DLT used for the PCAP file
   std::string filename;
-  void        run_thread() final;
 };
 } // namespace srslte
 

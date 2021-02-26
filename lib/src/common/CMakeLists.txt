@@ -23,6 +23,7 @@ set(SOURCES arch_select.cc
             mac_pcap_base.cc
             nas_pcap.cc
             network_utils.cc
+            mac_pcap_net.cc
             pcap.c
             rlc_pcap.cc
             s1ap_pcap.cc
@@ -47,7 +48,7 @@ add_dependencies(srslte_common gen_build_info)
 add_executable(arch_select arch_select.cc)
 
 target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${BACKWARD_INCLUDE_DIRS})
-target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES})
+target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES} ${BACKWARD_LIBRARIES} ${SCTP_LIBRARIES})
 target_compile_definitions(srslte_common PRIVATE ${BACKWARD_DEFINITIONS})
 
 INSTALL(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
