@@ -196,6 +196,11 @@ void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples)
   SRSLTE_MEM_ZERO(ptr, uint8_t, nsamples);
 }
 
+void srslte_vec_i8_zero(int8_t* ptr, uint32_t nsamples)
+{
+  SRSLTE_MEM_ZERO(ptr, int8_t, nsamples);
+}
+
 void srslte_vec_i16_zero(int16_t* ptr, uint32_t nsamples)
 {
   SRSLTE_MEM_ZERO(ptr, int16_t, nsamples);

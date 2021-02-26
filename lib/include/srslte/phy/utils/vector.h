@@ -27,6 +27,7 @@ extern "C" {
 
 #include "srslte/config.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -99,6 +100,7 @@ SRSLTE_API void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_s
 SRSLTE_API void srslte_vec_zero(void* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_f_zero(float* ptr, uint32_t nsamples);
+SRSLTE_API void srslte_vec_i8_zero(int8_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_i16_zero(int16_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_u32_zero(uint32_t* ptr, uint32_t nsamples);
