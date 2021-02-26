@@ -35,7 +35,17 @@ class phy_interface_stack_lte;
 class cc_buffer_handler
 {
 public:
+  // List of Tx softbuffers for all HARQ processes of one carrier
+  using cc_softbuffer_tx_list_t = std::vector<srslte_softbuffer_tx_t>;
+  // List of Rx softbuffers for all HARQ processes of one carrier
+  using cc_softbuffer_rx_list_t = std::vector<srslte_softbuffer_rx_t>;
+
   cc_buffer_handler();
+
+  bool empty() const { return softbuffer_tx.empty(); }
+
+  cc_softbuffer_tx_list_t& get_tx_softbuffer() { return softbuffer_tx; }
+  cc_softbuffer_rx_list_t& get_rx_softbuffer() { return softbuffer_rx; }
 
   srslte::byte_buffer_t* get_tx_payload_buffer(size_t harq_pid, size_t tb)
   {
@@ -43,6 +53,9 @@ public:
   }
 
 private:
+  cc_softbuffer_tx_list_t softbuffer_tx; ///< List of softbuffer lists for Tx
+  cc_softbuffer_rx_list_t softbuffer_rx; ///< List of softbuffer lists for Rx
+
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
   std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> tx_payload_buffer;
 };
@@ -110,7 +123,7 @@ public:
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
-  uint32_t allocate_cc_buffers(const uint32_t num_cc = 1); ///< Add and initialize softbuffers for CC
+  void allocate_cc_buffers(const uint32_t num_cc = 1); ///< Add and initialize softbuffers for CC
 
   void allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
   bool process_ce(srslte::sch_subh* subh);
@@ -130,14 +143,6 @@ private:
   uint32_t          nof_failures     = 0;
   int               nof_rx_harq_proc = 0;
   int               nof_tx_harq_proc = 0;
-
-  typedef std::vector<srslte_softbuffer_tx_t>
-                                       cc_softbuffer_tx_list_t; ///< List of Tx softbuffers for all HARQ processes of one carrier
-  std::vector<cc_softbuffer_tx_list_t> softbuffer_tx;           ///< List of softbuffer lists for Tx
-
-  typedef std::vector<srslte_softbuffer_rx_t>
-                                       cc_softbuffer_rx_list_t; ///< List of Rx softbuffers for all HARQ processes of one carrier
-  std::vector<cc_softbuffer_rx_list_t> softbuffer_rx;           ///< List of softbuffer lists for Rx
 
   std::vector<cc_buffer_handler> cc_buffers;
 

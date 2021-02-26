@@ -16,7 +16,6 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/ue.h"
-#include "srslte/common/log_helper.h"
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
@@ -71,14 +70,11 @@ ue::ue(uint16_t                 rnti_,
 ue::~ue()
 {
   // Free up all softbuffers for all CCs
-  for (auto cc : softbuffer_rx) {
-    for (auto buffer : cc) {
+  for (auto& cc : cc_buffers) {
+    for (auto& buffer : cc.get_rx_softbuffer()) {
       srslte_softbuffer_rx_free(&buffer);
     }
-  }
-
-  for (auto cc : softbuffer_tx) {
-    for (auto buffer : cc) {
+    for (auto& buffer : cc.get_tx_softbuffer()) {
       srslte_softbuffer_tx_free(&buffer);
     }
   }
@@ -97,15 +93,11 @@ void ue::reset()
 {
   ue_metrics   = {};
   nof_failures = 0;
-
-  for (auto cc : softbuffer_rx) {
-    for (auto buffer : cc) {
+  for (auto& cc : cc_buffers) {
+    for (auto& buffer : cc.get_rx_softbuffer()) {
       srslte_softbuffer_rx_reset(&buffer);
     }
-  }
-
-  for (auto cc : softbuffer_tx) {
-    for (auto buffer : cc) {
+    for (auto& buffer : cc.get_tx_softbuffer()) {
       srslte_softbuffer_tx_reset(&buffer);
     }
   }
@@ -119,25 +111,24 @@ void ue::reset()
  * @param num_cc Number of carriers to add buffers for (default 1)
  * @return number of carriers
  */
-uint32_t ue::allocate_cc_buffers(const uint32_t num_cc)
+void ue::allocate_cc_buffers(const uint32_t num_cc)
 {
   for (uint32_t i = 0; i < num_cc; ++i) {
-    // create and init Rx buffers for Pcell
-    softbuffer_rx.emplace_back();
-    softbuffer_rx.back().resize(nof_rx_harq_proc);
-    for (auto& buffer : softbuffer_rx.back()) {
-      srslte_softbuffer_rx_init(&buffer, nof_prb);
-    }
+    if (cc_buffers[i].empty()) {
+      // Create and init Rx buffers for Pcell
+      cc_buffers[i].get_rx_softbuffer().resize(nof_rx_harq_proc);
+      for (auto& buffer : cc_buffers[i].get_rx_softbuffer()) {
+        srslte_softbuffer_rx_init(&buffer, nof_prb);
+      }
 
-    // Create and init Tx buffers for Pcell
-    softbuffer_tx.emplace_back();
-    softbuffer_tx.back().resize(nof_tx_harq_proc);
-    for (auto& buffer : softbuffer_tx.back()) {
-      srslte_softbuffer_tx_init(&buffer, nof_prb);
+      // Create and init Tx buffers for Pcell
+      cc_buffers[i].get_tx_softbuffer().resize(nof_tx_harq_proc);
+      auto& harq_buffers = cc_buffers[i].get_tx_softbuffer();
+      for (auto& buffer : harq_buffers) {
+        srslte_softbuffer_tx_init(&buffer, nof_prb);
+      }
     }
-    // don't need to reset because just initiated the buffers
   }
-  return softbuffer_tx.size();
 }
 
 void ue::start_pcap(srslte::mac_pcap* pcap_)
@@ -147,33 +138,23 @@ void ue::start_pcap(srslte::mac_pcap* pcap_)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti)
 {
-  if ((size_t)ue_cc_idx >= softbuffer_rx.size()) {
-    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, softbuffer_rx.size());
+  if ((size_t)ue_cc_idx >= cc_buffers.size()) {
+    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, cc_buffers.size());
     return nullptr;
   }
 
-  if ((size_t)nof_rx_harq_proc > softbuffer_rx.at(ue_cc_idx).size()) {
-    ERROR("HARQ process index (%d/%zd) out-of-range", nof_rx_harq_proc, softbuffer_rx.at(ue_cc_idx).size());
-    return nullptr;
-  }
-
-  return &softbuffer_rx.at(ue_cc_idx).at(tti % nof_rx_harq_proc);
+  return &cc_buffers.at(ue_cc_idx).get_rx_softbuffer().at(tti % nof_rx_harq_proc);
 }
 
 srslte_softbuffer_tx_t*
 ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
 {
-  if ((size_t)ue_cc_idx >= softbuffer_tx.size()) {
-    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, softbuffer_tx.size());
+  if ((size_t)ue_cc_idx >= cc_buffers.size()) {
+    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, cc_buffers.size());
     return nullptr;
   }
 
-  if ((size_t)nof_tx_harq_proc > softbuffer_tx.at(ue_cc_idx).size()) {
-    ERROR("HARQ process index (%d/%zd) out-of-range", harq_process, softbuffer_tx.at(ue_cc_idx).size());
-    return nullptr;
-  }
-
-  return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
+  return &cc_buffers[ue_cc_idx].get_tx_softbuffer().at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
@@ -245,8 +226,6 @@ uint32_t ue::set_ta(int ta_)
   } while (ta_value <= -31 || ta_value >= 32);
   return nof_cmd;
 }
-
-#include <assert.h>
 
 void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel)
 {
