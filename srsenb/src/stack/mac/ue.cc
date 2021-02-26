@@ -23,6 +23,15 @@
 
 namespace srsenb {
 
+cc_buffer_handler::cc_buffer_handler()
+{
+  for (auto& harq_buffers : tx_payload_buffer) {
+    for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
+      tb_buffer = srslte::make_byte_buffer();
+    }
+  }
+}
+
 ue::ue(uint16_t                 rnti_,
        uint32_t                 nof_prb_,
        sched_interface*         sched_,
@@ -51,14 +60,7 @@ ue::ue(uint16_t                 rnti_,
   rx_used_buffers(nof_cells_),
   ta_fsm(this)
 {
-  tx_payload_buffer.resize(nof_cells_);
-  for (auto& carrier_buffers : tx_payload_buffer) {
-    for (auto& harq_buffers : carrier_buffers) {
-      for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
-        tb_buffer = srslte::make_byte_buffer();
-      }
-    }
-  }
+  cc_buffers.resize(nof_cells_);
 
   pdus.init(this);
 
@@ -507,8 +509,9 @@ uint8_t* ue::generate_pdu(uint32_t                              ue_cc_idx,
   uint8_t*                    ret = nullptr;
   if (rlc) {
     if (ue_cc_idx < SRSLTE_MAX_CARRIERS && harq_pid < SRSLTE_FDD_NOF_HARQ && tb_idx < SRSLTE_MAX_TB) {
-      tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx]->clear();
-      mac_msg_dl.init_tx(tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx].get(), grant_size, false);
+      srslte::byte_buffer_t* buffer = cc_buffers[ue_cc_idx].get_tx_payload_buffer(harq_pid, tb_idx);
+      buffer->clear();
+      mac_msg_dl.init_tx(buffer, grant_size, false);
       for (uint32_t i = 0; i < nof_pdu_elems; i++) {
         if (pdu[i].lcid <= (uint32_t)srslte::ul_sch_lcid::PHR_REPORT) {
           allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -534,9 +537,10 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
                               uint32_t                      grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint8_t*                    ret = nullptr;
-  tx_payload_buffer[0][harq_pid][0]->clear();
-  mch_mac_msg_dl.init_tx(tx_payload_buffer[0][harq_pid][0].get(), grant_size);
+  uint8_t*                    ret    = nullptr;
+  srslte::byte_buffer_t*      buffer = cc_buffers[0].get_tx_payload_buffer(harq_pid, 0);
+  buffer->clear();
+  mch_mac_msg_dl.init_tx(buffer, grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
     if (sched_.pdu[i].lcid == (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO) {

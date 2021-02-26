@@ -32,6 +32,21 @@ class rrc_interface_mac;
 class rlc_interface_mac;
 class phy_interface_stack_lte;
 
+class cc_buffer_handler
+{
+public:
+  cc_buffer_handler();
+
+  srslte::byte_buffer_t* get_tx_payload_buffer(size_t harq_pid, size_t tb)
+  {
+    return tx_payload_buffer[harq_pid][tb].get();
+  }
+
+private:
+  // One buffer per TB per HARQ process and per carrier is needed for each UE.
+  std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> tx_payload_buffer;
+};
+
 class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback, public mac_ta_ue_interface
 {
 public:
@@ -124,9 +139,7 @@ private:
                                        cc_softbuffer_rx_list_t; ///< List of Rx softbuffers for all HARQ processes of one carrier
   std::vector<cc_softbuffer_rx_list_t> softbuffer_rx;           ///< List of softbuffer lists for Rx
 
-  // One buffer per TB per HARQ process and per carrier is needed for each UE.
-  std::vector<std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> >
-      tx_payload_buffer;
+  std::vector<cc_buffer_handler> cc_buffers;
 
   std::mutex                                 rx_buffers_mutex;
   std::vector<std::map<uint32_t, uint8_t*> > rx_used_buffers;
