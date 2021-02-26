@@ -19,7 +19,7 @@
 
 namespace srsue {
 
-class phy_args_t;
+struct phy_args_t;
 
 // Class to synchronize system frame number
 class sfn_sync

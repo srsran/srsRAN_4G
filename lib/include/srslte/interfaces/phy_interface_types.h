@@ -13,7 +13,7 @@
 #ifndef SRSLTE_PHY_INTERFACE_TYPES_H
 #define SRSLTE_PHY_INTERFACE_TYPES_H
 
-#include "srslte/phy/phch/prach.h"
+#include "srslte/srslte.h"
 
 /// Common types defined by the PHY layer.
 

@@ -32,4 +32,11 @@ bool rlc_am_is_control_pdu(byte_buffer_t* pdu);
 
 } // namespace srslte
 
+namespace srsue {
+
+class pdcp_interface_rlc;
+class rrc_interface_rlc;
+
+} // namespace srsue
+
 #endif // SRSLTE_RLC_AM_BASE_H

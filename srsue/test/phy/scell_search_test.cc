@@ -12,16 +12,14 @@
 
 #include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/srslog/srslog.h"
+#include "srsue/hdr/phy/scell/intra_measure.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <srslte/common/string_helpers.h>
-#include <srslte/phy/channel/channel.h>
 #include <srslte/phy/utils/random.h>
-#include <srslte/srslte.h>
-#include <srsue/hdr/phy/scell/intra_measure.h>
 #include <vector>
 
 // Common execution parameters
