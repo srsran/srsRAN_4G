@@ -361,11 +361,17 @@ public:
   int get_nof_rx_pdus() { return rx_pdus; }
 
 private:
-  void run_thread()
+  const static size_t max_pdcp_sn = 262143u; // 18bit SN
+  void                run_thread()
   {
     uint32_t          pdcp_sn = 0;
     byte_buffer_pool* pool    = byte_buffer_pool::get_instance();
     while (run_enable) {
+      // SDU queue is full, don't assign PDCP SN
+      if (rlc->sdu_queue_is_full(lcid)) {
+        continue;
+      }
+
       unique_byte_buffer_t pdu = srslte::make_byte_buffer();
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
@@ -377,9 +383,9 @@ private:
       for (uint32_t i = 0; i < args.sdu_size; i++) {
         pdu->msg[i] = pdcp_sn & 0xFF;
       }
-      pdcp_sn++;
       pdu->N_bytes = args.sdu_size;
       rlc->write_sdu(lcid, std::move(pdu));
+      pdcp_sn = (pdcp_sn + 1) % max_pdcp_sn;
       if (args.sdu_gen_delay_usec > 0) {
         usleep(args.sdu_gen_delay_usec);
       }
