@@ -496,12 +496,12 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
-                          uint32_t                        harq_pid,
-                          uint32_t                        tb_idx,
-                          sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
-                          uint32_t                        nof_pdu_elems,
-                          uint32_t                        grant_size)
+uint8_t* ue::generate_pdu(uint32_t                              ue_cc_idx,
+                          uint32_t                              harq_pid,
+                          uint32_t                              tb_idx,
+                          const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
+                          uint32_t                              nof_pdu_elems,
+                          uint32_t                              grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint8_t*                    ret = nullptr;
@@ -529,7 +529,7 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
 }
 
 uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
-                              sched_interface::dl_pdu_mch_t sched,
+                              sched_interface::dl_pdu_mch_t sched_,
                               uint32_t                      nof_pdu_elems,
                               uint32_t                      grant_size)
 {
@@ -539,15 +539,15 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
   mch_mac_msg_dl.init_tx(tx_payload_buffer[0][harq_pid][0].get(), grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
-    if (sched.pdu[i].lcid == (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO) {
+    if (sched_.pdu[i].lcid == (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO) {
       mch_mac_msg_dl.new_subh();
-      mch_mac_msg_dl.get()->set_next_mch_sched_info(sched.mtch_sched[i].lcid, sched.mtch_sched[i].stop);
-    } else if (sched.pdu[i].lcid == 0) {
+      mch_mac_msg_dl.get()->set_next_mch_sched_info(sched_.mtch_sched[i].lcid, sched_.mtch_sched[i].stop);
+    } else if (sched_.pdu[i].lcid == 0) {
       mch_mac_msg_dl.new_subh();
-      mch_mac_msg_dl.get()->set_sdu(0, sched.pdu[i].nbytes, sched.mcch_payload);
-    } else if (sched.pdu[i].lcid <= (uint32_t)srslte::mch_lcid::MTCH_MAX_LCID) {
+      mch_mac_msg_dl.get()->set_sdu(0, sched_.pdu[i].nbytes, sched_.mcch_payload);
+    } else if (sched_.pdu[i].lcid <= (uint32_t)srslte::mch_lcid::MTCH_MAX_LCID) {
       mch_mac_msg_dl.new_subh();
-      mch_mac_msg_dl.get()->set_sdu(sched.pdu[i].lcid, sched.pdu[i].nbytes, sched.mtch_sched[i].mtch_payload);
+      mch_mac_msg_dl.get()->set_sdu(sched_.pdu[i].lcid, sched_.pdu[i].nbytes, sched_.mtch_sched[i].mtch_payload);
     }
   }
 

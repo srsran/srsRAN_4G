@@ -63,12 +63,12 @@ public:
 
   void tic();
 
-  uint8_t* generate_pdu(uint32_t                        ue_cc_idx,
-                        uint32_t                        harq_pid,
-                        uint32_t                        tb_idx,
-                        sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
-                        uint32_t                        nof_pdu_elems,
-                        uint32_t                        grant_size);
+  uint8_t* generate_pdu(uint32_t                              ue_cc_idx,
+                        uint32_t                              harq_pid,
+                        uint32_t                              tb_idx,
+                        const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
+                        uint32_t                              nof_pdu_elems,
+                        uint32_t                              grant_size);
   uint8_t*
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
