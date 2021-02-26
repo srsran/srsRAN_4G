@@ -1,21 +1,12 @@
 /**
- * Copyright 2013-2021 Software Radio Systems Limited
  *
- * This file is part of srsLTE.
+ * \section COPYRIGHT
  *
- * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
- * srsLTE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
  *
  */
 
@@ -36,20 +27,19 @@ class sys_metrics_processor
     proc_stats_info();
 
     // Initialize the variables that will be used.
-    int long      num_threads = 0;
-    unsigned long utime       = 0;
-    unsigned long stime       = 0;
+    int32_t  num_threads = 0;
+    uint32_t utime       = 0;
+    uint32_t stime       = 0;
 
     // Rest of the information of the stats file.
-    int           pid, ppid, pgrp, session, tty_nr, tpgid, exit_signal, processor, exit_code;
-    unsigned      flags, rt_priority, policy;
-    unsigned long minflt, cminflt, majflt, cmajflt, vsize, rsslim, startcode, endcode, startstack, kstkesp, kstkeip,
-        signal, blocked, sigignore, sigcatch, wchan, nswap, cnswap, guest_time, start_data, end_data, start_brk,
-        arg_start, arg_end, env_start, env_end;
-    int long           cutime, cstime, priority, nice, itrealvalue, rss, cguest_time;
-    unsigned long long starttime, delaycct_blkio_ticks;
-    char               state;
-    std::string        comm;
+    int32_t pid, ppid, pgrp, session, tty_nr, tpgid, exit_signal, processor, exit_code, cutime, cstime, priority, nice,
+        itrealvalue, rss, cguest_time;
+    uint32_t minflt, cminflt, majflt, cmajflt, vsize, rsslim, startcode, endcode, startstack, kstkesp, kstkeip, signal,
+        blocked, sigignore, sigcatch, wchan, nswap, cnswap, guest_time, start_data, end_data, start_brk, arg_start,
+        arg_end, env_start, env_end, flags, rt_priority, policy;
+    uint64_t    starttime, delaycct_blkio_ticks;
+    uint8_t     state;
+    std::string comm;
   };
 
 public:
@@ -67,7 +57,7 @@ private:
   void calculate_mem_usage(sys_metrics_t& metrics) const;
 
 private:
-  proc_stats_info                                    last_query;
+  proc_stats_info                                    last_query      = {};
   std::chrono::time_point<std::chrono::steady_clock> last_query_time = std::chrono::steady_clock::now();
 };
 
