@@ -47,10 +47,13 @@ public:
   void allocate_cc(uint32_t nof_prb, uint32_t nof_rx_harq_proc, uint32_t nof_tx_harq_proc);
   void deallocate_cc();
 
-  bool                     empty() const { return softbuffer_tx_list.empty(); }
-  cc_softbuffer_tx_list_t& get_tx_softbuffer() { return softbuffer_tx_list; }
-  srslte_softbuffer_rx_t&  get_rx_softbuffer(uint32_t tti) { return softbuffer_rx_list[tti % nof_rx_harq_proc]; }
-  srslte::byte_buffer_t*   get_tx_payload_buffer(size_t harq_pid, size_t tb)
+  bool                    empty() const { return softbuffer_tx_list.empty(); }
+  srslte_softbuffer_tx_t& get_tx_softbuffer(uint32_t pid, uint32_t tb_idx)
+  {
+    return softbuffer_tx_list.at(pid * SRSLTE_MAX_TB + tb_idx);
+  }
+  srslte_softbuffer_rx_t& get_rx_softbuffer(uint32_t tti) { return softbuffer_rx_list.at(tti % nof_rx_harq_proc); }
+  srslte::byte_buffer_t*  get_tx_payload_buffer(size_t harq_pid, size_t tb)
   {
     return tx_payload_buffer[harq_pid][tb].get();
   }
@@ -84,7 +87,7 @@ public:
      srslog::basic_logger&    logger,
      uint32_t                 nof_cells_,
      uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
-     uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
+     uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ);
   virtual ~ue();
 
   void reset();

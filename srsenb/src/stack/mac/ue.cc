@@ -57,7 +57,7 @@ void cc_buffer_handler::allocate_cc(uint32_t nof_prb_, uint32_t nof_rx_harq_proc
   }
 
   // Create and init Tx buffers
-  softbuffer_tx_list.resize(nof_tx_harq_proc);
+  softbuffer_tx_list.resize(nof_tx_harq_proc * SRSLTE_MAX_TB);
   for (auto& buffer : softbuffer_tx_list) {
     srslte_softbuffer_tx_init(&buffer, nof_prb);
   }
@@ -166,7 +166,7 @@ ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, con
     return nullptr;
   }
 
-  return &cc_buffers[ue_cc_idx].get_tx_softbuffer().at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
+  return &cc_buffers[ue_cc_idx].get_tx_softbuffer(harq_process, tb_idx);
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
