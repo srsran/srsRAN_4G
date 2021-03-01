@@ -143,6 +143,51 @@ private:
   std::atomic<unsigned> warning_counter;
 };
 
+/// This custom sink intercepts log messages allowing users to check if a certain log entry has been generated.
+/// Calling spy.has_message("something") will return true if any log entries generated so far contain the string
+/// "something".
+/// The log entries history can be cleared with reset so old entries can be discarded.
+class log_sink_message_spy : public srslog::sink
+{
+public:
+  explicit log_sink_message_spy(std::unique_ptr<srslog::log_formatter> f) :
+    srslog::sink(std::move(f)), s(srslog::get_default_sink())
+  {}
+
+  /// Identifier of this custom sink.
+  static const char* name() { return "log_sink_message_spy"; }
+
+  /// Discards all registered log entries.
+  void reset()
+  {
+    // Flush to make sure all entries have been processed by the backend.
+    srslog::flush();
+    entries.clear();
+  }
+
+  /// Returns true if the string in msg is found in the registered log entries.
+  bool has_message(const std::string& msg) const
+  {
+    srslog::flush();
+    return std::find_if(entries.cbegin(), entries.cend(), [&](const std::string& entry) {
+             return entry.find(msg) != std::string::npos;
+           }) != entries.cend();
+  }
+
+  srslog::detail::error_string write(srslog::detail::memory_buffer buffer) override
+  {
+    entries.emplace_back(buffer.data(), buffer.size());
+
+    return s.write(buffer);
+  }
+
+  srslog::detail::error_string flush() override { return s.flush(); }
+
+private:
+  srslog::sink&            s;
+  std::vector<std::string> entries;
+};
+
 // specialization of test_log_filter to store last logged message
 class nullsink_log : public test_log_filter
 {
