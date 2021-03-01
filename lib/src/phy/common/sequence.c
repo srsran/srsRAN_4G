@@ -39,7 +39,7 @@
  * Parallel bit generation for x1/x2 sequences parameters. Exploits the fact that the sequence generation is 31 chips
  * ahead and the maximum register shift is 3 (for x2). The maximum number of parallel bits is 28, 16 is optimal for SSE.
  */
-#define SEQUENCE_PAR_BITS (28U)
+#define SEQUENCE_PAR_BITS (24U)
 #define SEQUENCE_MASK ((1U << SEQUENCE_PAR_BITS) - 1U)
 
 /**
@@ -518,7 +518,7 @@ void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, u
 
         _mm_storeu_si128((__m128i*)(out + i + j), v);
       }
-#endif /* LV_HAVE_SSE */
+#endif // LV_HAVE_SSE
       for (; j < SEQUENCE_PAR_BITS; j++) {
         out[i + j] = in[i + j] * s[(c >> j) & 1U];
       }
@@ -694,11 +694,12 @@ void srslte_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t leng
       0b00111111, 0b10111111, 0b01111111, 0b11111111,
   };
 
+  uint32_t i = 0;
 #if SEQUENCE_PAR_BITS % 8 != 0
   uint64_t buffer = 0;
   uint32_t count  = 0;
 
-  for (uint32_t i = 0; i < length / 8; i++) {
+  for (; i < length / 8; i++) {
     // Generate sequence bits
     while (count < 8) {
       uint32_t c = (uint32_t)(x1 ^ x2);
@@ -717,8 +718,26 @@ void srslte_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t leng
     buffer = buffer >> 8UL;
     count -= 8;
   }
-#else  /* SEQUENCE_PAR_BITS % 8 == 0 */
-  uint32_t i = 0;
+
+  // Process spare bits
+  uint32_t rem8 = length % 8;
+  if (rem8 != 0) {
+    // Generate sequence bits
+    while (count < rem8) {
+      uint32_t c = (uint32_t)(x1 ^ x2);
+      buffer     = buffer | ((SEQUENCE_MASK & c) << count);
+
+      // Step sequences
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+
+      // Increase count
+      count += SEQUENCE_PAR_BITS;
+    }
+
+    out[i] = in[i] ^ reverse_lut[buffer & ((1U << rem8) - 1U) & 255U];
+  }
+#else  // SEQUENCE_PAR_BITS % 8 == 0
   while (i < (length / 8 - (SEQUENCE_PAR_BITS - 1) / 8)) {
     uint32_t c = (uint32_t)(x1 ^ x2);
 
@@ -733,11 +752,18 @@ void srslte_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t leng
     x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
   }
 
+  // Process spare bytes
   uint32_t c = (uint32_t)(x1 ^ x2);
   while (i < length / 8) {
     out[i] = in[i] ^ reverse_lut[c & 255U];
     c      = c >> 8U;
     i++;
   }
-#endif /* SEQUENCE_PAR_BITS % 8 == 0 */
+
+  // Process spare bits
+  uint32_t rem8 = length % 8;
+  if (rem8 != 0) {
+    out[i] = in[i] ^ reverse_lut[c & ((1U << rem8) - 1U) & 255U];
+  }
+#endif // SEQUENCE_PAR_BITS % 8 == 0
 }
