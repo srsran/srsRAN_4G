@@ -34,12 +34,7 @@ namespace srslte {
 class undelivered_sdus_queue
 {
 public:
-  explicit undelivered_sdus_queue(srslte::task_sched_handle task_sched)
-  {
-    for (auto& e : sdus) {
-      e.discard_timer = task_sched.get_unique_timer();
-    }
-  }
+  explicit undelivered_sdus_queue(srslte::task_sched_handle task_sched);
 
   bool            empty() const { return count == 0; }
   bool            is_full() const { return count >= capacity; }
@@ -51,135 +46,30 @@ public:
     return sdus[sn].sdu != nullptr and sdus[sn].sdu->md.pdcp_sn == sn;
   }
   // Getter for the number of discard timers. Used for debugging.
-  size_t nof_discard_timers() const
-  {
-    return std::count_if(sdus.begin(), sdus.end(), [](const sdu_data& s) {
-      return s.sdu != nullptr and s.discard_timer.is_valid() and s.discard_timer.is_running();
-    });
-  }
+  size_t nof_discard_timers() const;
 
   bool add_sdu(uint32_t                             sn,
                const srslte::unique_byte_buffer_t&  sdu,
                uint32_t                             discard_timeout,
-               const std::function<void(uint32_t)>& callback)
-  {
-    assert(discard_timeout < capacity and "Invalid discard timeout value");
-    assert(not has_sdu(sn) && "Cannot add repeated SNs");
-
-    if (is_full()) {
-      return false;
-    }
-
-    // Make sure we don't associate more than half of the PDCP SN space of contiguous PDCP SDUs
-    if (not empty()) {
-      int32_t diff = sn - fms;
-      if (diff > (int32_t)(capacity / 2)) {
-        return false;
-      }
-      if (diff <= 0 && diff > -((int32_t)(capacity / 2))) {
-        return false;
-      }
-    }
-
-    // Allocate buffer and exit on error
-    srslte::unique_byte_buffer_t tmp = make_byte_buffer();
-    if (tmp == nullptr) {
-      return false;
-    }
-
-    // Update FMS and LMS if necessary
-    if (empty()) {
-      fms = sn;
-      lms = sn;
-    } else {
-      update_lms(sn);
-    }
-    // Add SDU
-    count++;
-    sdus[sn].sdu             = std::move(tmp);
-    sdus[sn].sdu->md.pdcp_sn = sn;
-    sdus[sn].sdu->N_bytes    = sdu->N_bytes;
-    memcpy(sdus[sn].sdu->msg, sdu->msg, sdu->N_bytes);
-    if (discard_timeout > 0) {
-      sdus[sn].discard_timer.set(discard_timeout, callback);
-      sdus[sn].discard_timer.run();
-    }
-    sdus[sn].sdu->set_timestamp(); // Metrics
-    bytes += sdu->N_bytes;
-    return true;
-  }
+               const std::function<void(uint32_t)>& callback);
 
   unique_byte_buffer_t& operator[](uint32_t sn)
   {
     assert(has_sdu(sn));
     return sdus[sn].sdu;
   }
-
-  bool clear_sdu(uint32_t sn)
-  {
-    if (not has_sdu(sn)) {
-      return false;
-    }
-    count--;
-    bytes -= sdus[sn].sdu->N_bytes;
-    sdus[sn].discard_timer.clear();
-    sdus[sn].sdu.reset();
-    // Find next FMS,
-    update_fms();
-    return true;
-  }
-
-  void clear()
-  {
-    count = 0;
-    bytes = 0;
-    fms   = 0;
-    for (uint32_t sn = 0; sn < capacity; sn++) {
-      sdus[sn].discard_timer.clear();
-      sdus[sn].sdu.reset();
-    }
-  }
+  bool clear_sdu(uint32_t sn);
+  void clear();
 
   uint32_t get_bytes() const { return bytes; }
-
   uint32_t get_fms() const { return fms; }
-
-  void set_fms(uint32_t fms_) { fms = fms_; }
-
-  void update_fms()
-  {
-    if (empty()) {
-      fms = increment_sn(fms);
-      return;
-    }
-
-    for (uint32_t i = 0; i < capacity; ++i) {
-      uint32_t sn = increment_sn(fms + i);
-      if (has_sdu(sn)) {
-        fms = sn;
-        return;
-      }
-    }
-
-    fms = increment_sn(fms);
-  }
-
-  void update_lms(uint32_t sn)
-  {
-    if (empty()) {
-      lms = fms;
-      return;
-    }
-
-    int32_t diff = sn - lms;
-    if (diff > 0 && sn > lms) {
-      lms = sn;
-    } else if (diff < 0 && sn < lms) {
-      lms = sn;
-    }
-  }
+  void     set_fms(uint32_t fms_) { fms = fms_; }
+  void     update_fms();
+  void     update_lms(uint32_t sn);
 
   uint32_t get_lms() const { return lms; }
+
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_sdus();
 
 private:
   const static uint32_t capacity   = 4096;
