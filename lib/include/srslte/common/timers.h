@@ -180,8 +180,6 @@ public:
 
     void stop() { impl()->stop(); }
 
-    void clear() { impl()->clear(); }
-
     void release()
     {
       impl()->clear();

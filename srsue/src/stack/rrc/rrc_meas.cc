@@ -335,7 +335,7 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* 
     }
   } else {
     if (var_meas.periodic_timer.is_valid()) {
-      var_meas.periodic_timer.clear();
+      var_meas.periodic_timer.stop();
     }
     // else if the triggerType is set to ‘periodical’:
     if (var_meas.report_cfg_eutra.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types::periodical) {
@@ -415,7 +415,7 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_
     }
   } else {
     if (var_meas.periodic_timer.is_valid()) {
-      var_meas.periodic_timer.clear();
+      var_meas.periodic_timer.stop();
     }
     // else if the triggerType is set to ‘periodical’:
     if (var_meas.report_cfg_inter.trigger_type.type().value ==

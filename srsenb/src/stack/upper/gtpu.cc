@@ -191,6 +191,10 @@ void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
   }
   tun_it->second.dl_enabled = dl_active;
   if (dl_active) {
+    logger.info("Activing GTPU tunnel rnti=0x%x,TEID=%d. %d SDUs currently buffered",
+                tun_it->second.rnti,
+                teidin,
+                tun_it->second.buffer.size());
     for (auto& sdu_it : tun_it->second.buffer) {
       pdcp->write_sdu(tun_it->second.rnti,
                       tun_it->second.lcid,

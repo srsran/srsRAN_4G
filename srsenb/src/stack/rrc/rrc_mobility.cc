@@ -742,6 +742,7 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   // Set admitted E-RABs
   std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
   auto&                                         fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
+  fwd_tunnels.clear();
   for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
     admitted_erabs.emplace_back();
     asn1::s1ap::erab_admitted_item_s& admitted_erab = admitted_erabs.back();
@@ -907,8 +908,8 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
   }
 
   // Enable forwarding of GTPU SDUs to PDCP
-  for (uint32_t teid : s.pending_tunnels) {
-    rrc_enb->gtpu->set_tunnel_status(teid, true);
+  for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
+    rrc_enb->gtpu->set_tunnel_status(erab.second.teid_in, true);
   }
 
   // Check if there is any pending Reconfiguration Complete. If there is, self-trigger
