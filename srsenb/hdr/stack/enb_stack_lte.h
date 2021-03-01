@@ -27,6 +27,7 @@
 #include "upper/s1ap.h"
 
 #include "enb_stack_base.h"
+#include "srslte/common/mac_pcap_net.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/srslog/srslog.h"
 
@@ -125,6 +126,11 @@ private:
   srslog::basic_logger& gtpu_logger;
   srslog::basic_logger& stack_logger;
 
+  // PCAP and trace option
+  srslte::mac_pcap     mac_pcap;
+  srslte::mac_pcap_net mac_pcap_net;
+  srslte::s1ap_pcap    s1ap_pcap;
+
   // task handling
   srslte::task_scheduler    task_sched;
   srslte::task_queue_handle enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
@@ -132,14 +138,12 @@ private:
   // components that layers depend on (need to be destroyed after layers)
   std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
 
-  srsenb::mac       mac;
-  srslte::mac_pcap  mac_pcap;
-  srsenb::rlc       rlc;
-  srsenb::pdcp      pdcp;
-  srsenb::rrc       rrc;
-  srsenb::gtpu      gtpu;
-  srsenb::s1ap      s1ap;
-  srslte::s1ap_pcap s1ap_pcap;
+  srsenb::mac  mac;
+  srsenb::rlc  rlc;
+  srsenb::pdcp pdcp;
+  srsenb::rrc  rrc;
+  srsenb::gtpu gtpu;
+  srsenb::s1ap s1ap;
 
   srslte::logger* logger = nullptr;
 

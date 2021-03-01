@@ -21,7 +21,7 @@
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
-//#define WRITE_SIB_PCAP
+#define WRITE_SIB_PCAP
 using namespace asn1::rrc;
 
 namespace srsenb {
@@ -119,6 +119,15 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
   // Set pcap in all UEs for UL messages
   for (auto& u : ue_db) {
     u.second->start_pcap(pcap);
+  }
+}
+
+void mac::start_pcap_net(srslte::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+  // Set pcap in all UEs for UL messages
+  for (auto& u : ue_db) {
+    u.second->start_pcap_net(pcap_net);
   }
 }
 
@@ -460,6 +469,10 @@ uint16_t mac::allocate_ue()
     ue_ptr->start_pcap(pcap);
   }
 
+  if (pcap_net != nullptr) {
+    ue_ptr->start_pcap_net(pcap_net);
+  }
+
   {
     srslte::rwlock_write_guard lock(rwlock);
     ue_db[rnti] = std::move(ue_ptr);
@@ -613,6 +626,10 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
                 pcap->write_dl_crnti(
                     dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
               }
+              if (pcap_net) {
+                pcap_net->write_dl_crnti(
+                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
+              }
             } else {
               /* TB not enabled OR no data to send: set pointers to NULL  */
               dl_sched_res->pdsch[n].data[tb] = nullptr;
@@ -657,7 +674,14 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
                              tti_tx_dl,
                              enb_cc_idx);
       }
-
+      if (pcap_net) {
+        pcap_net->write_dl_ranti(dl_sched_res->pdsch[n].data[0],
+                                 sched_result.rar[i].tbs,
+                                 dl_sched_res->pdsch[n].dci.rnti,
+                                 true,
+                                 tti_tx_dl,
+                                 enb_cc_idx);
+      }
       n++;
     }
 
@@ -675,6 +699,10 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
         if (pcap) {
           pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
         }
+        if (pcap_net) {
+          pcap_net->write_dl_sirnti(
+              dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
 #endif
       } else {
         dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].pcch_softbuffer_tx;
@@ -683,6 +711,9 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
         if (pcap) {
           pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
+        if (pcap_net) {
+          pcap_net->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
         }
       }
 

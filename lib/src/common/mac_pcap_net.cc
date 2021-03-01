@@ -44,6 +44,11 @@ uint32_t mac_pcap_net::open(std::string client_ip_addr_,
     return SRSLTE_ERROR;
   }
 
+  logger.info("Sending MAC PCAP frames to %s:%d (from %s:%d)",
+              client_ip_addr_.c_str(),
+              client_udp_port_,
+              bind_addr_str.c_str(),
+              bind_udp_port_);
   client_addr.sin_family      = AF_INET;
   client_addr.sin_addr.s_addr = inet_addr(client_ip_addr_.c_str());
   client_addr.sin_port        = htons(client_udp_port_);
@@ -112,11 +117,6 @@ void mac_pcap_net::write_mac_lte_pdu_to_net(pcap_pdu_t& pdu)
     return;
   }
 
-  if (pdu.pdu.get()->get_headroom() < offset) {
-    logger.error("PDU headroom is to small for adding context buffer");
-    return;
-  }
-
   pdu.pdu.get()->msg -= offset;
   memcpy(pdu.pdu.get()->msg, buffer, offset);
   pdu.pdu.get()->N_bytes += offset;
@@ -128,8 +128,9 @@ void mac_pcap_net::write_mac_lte_pdu_to_net(pcap_pdu_t& pdu)
                       (const struct sockaddr*)&client_addr,
                       sizeof(client_addr));
 
-  if ((int)pdu.pdu.get()->N_bytes != bytes_sent) {
-    logger.error("Sending UDP packet mismatches %d != %d", pdu.pdu.get()->N_bytes, bytes_sent);
+  if ((int)pdu.pdu.get()->N_bytes != bytes_sent || bytes_sent < 0) {
+    logger.error(
+        "Sending UDP packet mismatches %d != %d (err %s)", pdu.pdu.get()->N_bytes, bytes_sent, strerror(errno));
   }
 }
 
@@ -161,8 +162,9 @@ void mac_pcap_net::write_mac_nr_pdu_to_net(pcap_pdu_t& pdu)
                       (const struct sockaddr*)&client_addr,
                       sizeof(client_addr));
 
-  if ((int)pdu.pdu.get()->N_bytes != bytes_sent) {
-    logger.error("Sending UDP packet mismatches %d != %d", pdu.pdu.get()->N_bytes, bytes_sent);
+  if ((int)pdu.pdu.get()->N_bytes != bytes_sent || bytes_sent < 0) {
+    logger.error(
+        "Sending UDP packet mismatches %d != %d (err %s)", pdu.pdu.get()->N_bytes, bytes_sent, strerror(errno));
   }
 }
 } // namespace srslte

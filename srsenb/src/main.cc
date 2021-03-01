@@ -131,6 +131,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("pcap.filename",  bpo::value<string>(&args->stack.mac_pcap.filename)->default_value("enb_mac.pcap"), "MAC layer capture filename")
     ("pcap.s1ap_enable",   bpo::value<bool>(&args->stack.s1ap_pcap.enable)->default_value(false),         "Enable S1AP packet captures for wireshark")
     ("pcap.s1ap_filename", bpo::value<string>(&args->stack.s1ap_pcap.filename)->default_value("enb_s1ap.pcap"), "S1AP layer capture filename")
+    ("pcap.mac_net_enable", bpo::value<bool>(&args->stack.mac_pcap_net.enable)->default_value(false),         "Enable MAC network captures")
+    ("pcap.bind_ip", bpo::value<string>(&args->stack.mac_pcap_net.bind_ip)->default_value("0.0.0.0"),         "Bind IP address for MAC network trace")
+    ("pcap.bind_port", bpo::value<uint16_t>(&args->stack.mac_pcap_net.bind_port)->default_value(5687),        "Bind port for MAC network trace")
+    ("pcap.client_ip", bpo::value<string>(&args->stack.mac_pcap_net.client_ip)->default_value("127.0.0.1"),     "Client IP address for MAC network trace")
+    ("pcap.client_port", bpo::value<uint16_t>(&args->stack.mac_pcap_net.client_port)->default_value(5847),    "Enable MAC network captures")
 
     /* Scheduling section */
     ("scheduler.policy", bpo::value<string>(&args->stack.mac.sched.sched_policy)->default_value("time_pf"), "DL and UL data scheduling policy (E.g. time_rr, time_pf)")

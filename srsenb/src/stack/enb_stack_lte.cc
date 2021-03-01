@@ -109,6 +109,15 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     mac_pcap.open(args.mac_pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
+
+  if (args.mac_pcap_net.enable) {
+    mac_pcap_net.open(args.mac_pcap_net.client_ip,
+                      args.mac_pcap_net.bind_ip,
+                      args.mac_pcap_net.client_port,
+                      args.mac_pcap_net.bind_port);
+    mac.start_pcap_net(&mac_pcap_net);
+  }
+
   if (args.s1ap_pcap.enable) {
     s1ap_pcap.open(args.s1ap_pcap.filename.c_str());
     s1ap.start_pcap(&s1ap_pcap);
@@ -182,6 +191,11 @@ void enb_stack_lte::stop_impl()
   if (args.mac_pcap.enable) {
     mac_pcap.close();
   }
+
+  if (args.mac_pcap_net.enable) {
+    mac_pcap_net.close();
+  }
+
   if (args.s1ap_pcap.enable) {
     s1ap_pcap.close();
   }

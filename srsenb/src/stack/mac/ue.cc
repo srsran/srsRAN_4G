@@ -147,6 +147,11 @@ void ue::reset()
   }
 }
 
+void ue::start_pcap_net(srslte::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+}
+
 void ue::start_pcap(srslte::mac_pcap* pcap_)
 {
   pcap = pcap_;
@@ -254,6 +259,10 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
+  }
+
+  if (pcap_net) {
+    pcap_net->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
   }
 
   pdus.deallocate(pdu);

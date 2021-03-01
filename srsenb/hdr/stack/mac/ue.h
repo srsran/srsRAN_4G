@@ -18,6 +18,7 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/mac_pcap_net.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/mac/pdu_queue.h"
@@ -90,9 +91,9 @@ public:
      uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ);
 
   virtual ~ue();
-
   void     reset();
   void     start_pcap(srslte::mac_pcap* pcap_);
+  void     start_pcap_net(srslte::mac_pcap_net* pcap_net_);
   void     set_tti(uint32_t tti);
   uint16_t get_rnti() { return rnti; }
   uint32_t set_ta(int ta) override;
@@ -142,14 +143,15 @@ private:
   uint32_t         dl_pmi_counter = 0;
   mac_ue_metrics_t ue_metrics     = {};
 
-  srslte::mac_pcap* pcap             = nullptr;
-  uint64_t          conres_id        = 0;
-  uint16_t          rnti             = 0;
-  uint32_t          nof_prb          = 0;
-  uint32_t          last_tti         = 0;
-  uint32_t          nof_failures     = 0;
-  int               nof_rx_harq_proc = 0;
-  int               nof_tx_harq_proc = 0;
+  srslte::mac_pcap*     pcap             = nullptr;
+  srslte::mac_pcap_net* pcap_net         = nullptr;
+  uint64_t              conres_id        = 0;
+  uint16_t              rnti             = 0;
+  uint32_t              nof_prb          = 0;
+  uint32_t              last_tti         = 0;
+  uint32_t              nof_failures     = 0;
+  int                   nof_rx_harq_proc = 0;
+  int                   nof_tx_harq_proc = 0;
 
   std::vector<cc_buffer_handler> cc_buffers;
 
