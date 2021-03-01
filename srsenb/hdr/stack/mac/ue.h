@@ -47,7 +47,7 @@ public:
   void allocate_cc(uint32_t nof_prb, uint32_t nof_rx_harq_proc, uint32_t nof_tx_harq_proc);
   void deallocate_cc();
 
-  bool                    empty() const { return softbuffer_tx_list.empty(); }
+  bool                    empty() const { return softbuffer_tx_list.empty() and softbuffer_rx_list.empty(); }
   srslte_softbuffer_tx_t& get_tx_softbuffer(uint32_t pid, uint32_t tb_idx)
   {
     return softbuffer_tx_list.at(pid * SRSLTE_MAX_TB + tb_idx);
@@ -88,22 +88,17 @@ public:
      uint32_t                 nof_cells_,
      uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
      uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ);
+
   virtual ~ue();
 
-  void reset();
-
-  void start_pcap(srslte::mac_pcap* pcap_);
-
-  void set_tti(uint32_t tti);
-
+  void     reset();
+  void     start_pcap(srslte::mac_pcap* pcap_);
+  void     set_tti(uint32_t tti);
   uint16_t get_rnti() { return rnti; }
-
   uint32_t set_ta(int ta) override;
-
   void     start_ta() { ta_fsm.start(); };
   uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
-
-  void tic();
+  void     tic();
 
   uint8_t* generate_pdu(uint32_t                              ue_cc_idx,
                         uint32_t                              harq_pid,

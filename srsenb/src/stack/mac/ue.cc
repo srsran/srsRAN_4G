@@ -27,6 +27,10 @@ cc_buffer_handler::cc_buffer_handler()
   for (auto& harq_buffers : tx_payload_buffer) {
     for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
       tb_buffer = srslte::make_byte_buffer();
+      if (tb_buffer == nullptr) {
+        srslog::fetch_basic_logger("MAC").error("Failed to allocate HARQ buffers for UE");
+        return;
+      }
     }
   }
 }
