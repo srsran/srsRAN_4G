@@ -30,7 +30,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
                                  srslog::basic_logger&      logger,
                                  uint32_t                   lcid_,
                                  pdcp_config_t              cfg_) :
-  pdcp_entity_base(task_sched_, logger), rlc(rlc_), rrc(rrc_), gw(gw_), undelivered_sdus(task_sched_)
+  pdcp_entity_base(task_sched_, logger), rlc(rlc_), rrc(rrc_), gw(gw_)
 {
   lcid                 = lcid_;
   cfg                  = cfg_;
@@ -49,7 +49,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   st.tx_hfn                    = 0;
   st.rx_hfn                    = 0;
   st.next_pdcp_rx_sn           = 0;
-  maximum_pdcp_sn              = (1 << cfg.sn_len) - 1;
+  maximum_pdcp_sn              = (1u << cfg.sn_len) - 1u;
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
 
   if (is_drb() && not rlc->rb_is_um(lcid) && cfg.discard_timer == pdcp_discard_timer_t::infinity) {
@@ -60,7 +60,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   }
 
   // Queue Helpers
-  maximum_allocated_sns_window = (1 << cfg.sn_len) / 2;
+  maximum_allocated_sns_window = (1u << cfg.sn_len) / 2u;
 
   logger.info("Init %s with bearer ID: %d", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   logger.info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms",
@@ -70,6 +70,10 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
               maximum_pdcp_sn,
               static_cast<uint32_t>(cfg.discard_timer));
   logger.info("Status Report Required: %s", cfg.status_report_required ? "True" : "False");
+
+  if (is_drb() and not rlc->rb_is_um(lcid)) {
+    undelivered_sdus = std::unique_ptr<undelivered_sdus_queue>(new undelivered_sdus_queue(task_sched));
+  }
 
   // Check supported config
   if (!check_valid_config()) {
@@ -92,7 +96,6 @@ void pdcp_entity_lte::reestablish()
     st.tx_hfn          = 0;
     st.rx_hfn          = 0;
     st.next_pdcp_rx_sn = 0;
-    undelivered_sdus.clear();
   } else if (rlc->rb_is_um(lcid)) {
     // Only reset counter in RLC-UM
     st.next_pdcp_tx_sn = 0;
@@ -139,7 +142,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   if (!rlc->rb_is_um(lcid) and is_drb()) {
     if (not store_sdu(used_sn, sdu)) {
       // Could not store the SDU, discarding
-      logger.error("Could not store SDU. Discarding %d\n", used_sn);
+      logger.info("Could not store SDU. Discarding %d\n", used_sn);
       return;
     }
   }
@@ -425,14 +428,14 @@ void pdcp_entity_lte::send_status_report()
 
   // Get First Missing Segment (FMS)
   uint32_t fms = 0;
-  if (undelivered_sdus.empty()) {
+  if (undelivered_sdus->empty()) {
     fms = st.next_pdcp_tx_sn;
   } else {
-    fms = undelivered_sdus.get_fms();
+    fms = undelivered_sdus->get_fms();
   }
 
   // Get Last Missing Segment
-  uint32_t lms = undelivered_sdus.get_lms();
+  uint32_t lms = undelivered_sdus->get_lms();
 
   // Allocate Status Report PDU
   unique_byte_buffer_t pdu = make_byte_buffer();
@@ -464,7 +467,7 @@ void pdcp_entity_lte::send_status_report()
   }
 
   // Add bitmap of missing PDUs, if necessary
-  if (not undelivered_sdus.empty()) {
+  if (not undelivered_sdus->empty()) {
     // First check size of bitmap
     uint32_t bitmap_sz = std::ceil((float)(lms - (fms - 1)) / 8);
     memset(&pdu->msg[pdu->N_bytes], 0, bitmap_sz);
@@ -474,7 +477,7 @@ void pdcp_entity_lte::send_status_report()
         fms - 1,
         bitmap_sz);
     for (uint32_t sn = fms; sn <= lms; sn++) {
-      if (undelivered_sdus.has_sdu(sn)) {
+      if (undelivered_sdus->has_sdu(sn)) {
         uint32_t offset      = sn - fms;
         uint32_t bit_offset  = offset % 8;
         uint32_t byte_offset = offset / 8;
@@ -520,8 +523,8 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
 
   // Remove all SDUs with SN smaller than FMS
   for (uint32_t sn = 0; sn < fms; sn++) {
-    if (sn < fms && undelivered_sdus.has_sdu(sn)) {
-      undelivered_sdus.clear_sdu(sn);
+    if (sn < fms && undelivered_sdus->has_sdu(sn)) {
+      undelivered_sdus->clear_sdu(sn);
     }
   }
 
@@ -539,7 +542,7 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
   // Discard ACK'ed SDUs
   for (uint32_t sn : acked_sns) {
     logger.debug("Status report ACKed SN=%d.", sn);
-    undelivered_sdus.clear_sdu(sn);
+    undelivered_sdus->clear_sdu(sn);
   }
 }
 /****************************************************************************
@@ -548,22 +551,22 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
 
 bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
 {
-  logger.debug("Storing SDU in undelivered SDUs queue. SN=%d, Queue size=%ld", sn, undelivered_sdus.size());
+  logger.debug("Storing SDU in undelivered SDUs queue. SN=%d, Queue size=%ld", sn, undelivered_sdus->size());
 
   // Check wether PDU is already in the queue
-  if (undelivered_sdus.has_sdu(sn)) {
+  if (undelivered_sdus->has_sdu(sn)) {
     logger.error("PDU already exists in the queue. TX_COUNT=%d", sn);
     return false;
   }
 
-  if (undelivered_sdus.is_full()) {
+  if (undelivered_sdus->is_full()) {
     logger.error("Undelivered SDUs queue is full. TX_COUNT=%d", sn);
     return false;
   }
 
   // Make sure we don't associate more than half of the PDCP SN space of contiguous PDCP SDUs
-  if (not undelivered_sdus.empty()) {
-    uint32_t fms_sn = undelivered_sdus.get_fms();
+  if (not undelivered_sdus->empty()) {
+    uint32_t fms_sn = undelivered_sdus->get_fms();
     int32_t  diff   = sn - fms_sn;
     if (diff > (int32_t)maximum_allocated_sns_window) {
       // This SN is too large to assign, it may cause HFN de-synchronization.
@@ -572,7 +575,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
                   fms_sn,
                   diff,
                   maximum_allocated_sns_window,
-                  undelivered_sdus.size());
+                  undelivered_sdus->size());
       return false;
     }
     if (diff < 0 && diff > -((int32_t)maximum_allocated_sns_window)) {
@@ -582,7 +585,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
                   fms_sn,
                   diff,
                   maximum_allocated_sns_window,
-                  undelivered_sdus.size());
+                  undelivered_sdus->size());
       return false;
     }
   }
@@ -590,7 +593,7 @@ bool pdcp_entity_lte::store_sdu(uint32_t sn, const unique_byte_buffer_t& sdu)
   // Copy PDU contents into queue and start discard timer
   uint32_t         discard_timeout = static_cast<uint32_t>(cfg.discard_timer);
   discard_callback discard_fnc(this, sn);
-  bool             ret = undelivered_sdus.add_sdu(sn, sdu, discard_timeout, discard_fnc);
+  bool             ret = undelivered_sdus->add_sdu(sn, sdu, discard_timeout, discard_fnc);
   if (ret and discard_timeout > 0) {
     logger.debug("Discard Timer set for SN %u. Timeout: %ums", sn, discard_timeout);
   }
@@ -609,9 +612,9 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
 
   // Discard PDU if unacknowledged
-  if (parent->undelivered_sdus.has_sdu(discard_sn)) {
+  if (parent->undelivered_sdus->has_sdu(discard_sn)) {
     parent->logger.debug("Removed undelivered PDU with TX_COUNT=%d", discard_sn);
-    parent->undelivered_sdus.clear_sdu(discard_sn);
+    parent->undelivered_sdus->clear_sdu(discard_sn);
   } else {
     parent->logger.debug("Could not find PDU to discard. TX_COUNT=%d", discard_sn);
   }
@@ -633,18 +636,19 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
       continue;
     }
     // Find undelivered PDU info
-    if (not undelivered_sdus.has_sdu(sn)) {
+    if (not undelivered_sdus->has_sdu(sn)) {
       logger.warning("Could not find PDU for delivery notification. Notified SN=%d", sn);
     } else {
       // Metrics
+      auto& sdu = (*undelivered_sdus)[sn];
       tx_pdu_ack_latency_ms.push(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                     std::chrono::high_resolution_clock::now() - undelivered_sdus[sn]->get_timestamp())
+                                     std::chrono::high_resolution_clock::now() - sdu->get_timestamp())
                                      .count());
-      metrics.num_tx_acked_bytes += undelivered_sdus[sn]->N_bytes;
-      metrics.num_tx_buffered_pdus_bytes -= undelivered_sdus[sn]->N_bytes;
+      metrics.num_tx_acked_bytes += sdu->N_bytes;
+      metrics.num_tx_buffered_pdus_bytes -= sdu->N_bytes;
 
       // Remove PDU and disarm timer.
-      undelivered_sdus.clear_sdu(sn);
+      undelivered_sdus->clear_sdu(sn);
     }
   }
 }
@@ -663,11 +667,11 @@ void pdcp_entity_lte::notify_failure(const std::vector<uint32_t>& pdcp_sns)
       continue;
     }
     // Find undelivered PDU info
-    if (not undelivered_sdus.has_sdu(sn)) {
+    if (not undelivered_sdus->has_sdu(sn)) {
       logger.info("Could not find PDU for failure notification. Notified SN=%d", sn);
     } else {
       // Remove PDU and disarm timer.
-      undelivered_sdus.clear_sdu(sn);
+      undelivered_sdus->clear_sdu(sn);
     }
   }
 }
@@ -711,8 +715,12 @@ void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state)
 
 std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()
 {
-  logger.info("Buffered PDUs requested, buffer_size=%d", undelivered_sdus.size());
-  return undelivered_sdus.get_buffered_sdus();
+  if (undelivered_sdus == nullptr) {
+    logger.error("Buffered PDUs being requested for non-AM DRB");
+    return std::map<uint32_t, srslte::unique_byte_buffer_t>{};
+  }
+  logger.info("Buffered PDUs requested, buffer_size=%d", undelivered_sdus->size());
+  return undelivered_sdus->get_buffered_sdus();
 }
 
 /****************************************************************************
@@ -720,8 +728,10 @@ std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_p
  ***************************************************************************/
 pdcp_bearer_metrics_t pdcp_entity_lte::get_metrics()
 {
-  metrics.num_tx_buffered_pdus       = undelivered_sdus.size();
-  metrics.num_tx_buffered_pdus_bytes = undelivered_sdus.get_bytes(); //< Number of bytes of PDUs waiting for ACK
+  if (undelivered_sdus != nullptr) {
+    metrics.num_tx_buffered_pdus       = undelivered_sdus->size();
+    metrics.num_tx_buffered_pdus_bytes = undelivered_sdus->get_bytes(); //< Number of bytes of PDUs waiting for ACK
+  }
   metrics.tx_notification_latency_ms =
       tx_pdu_ack_latency_ms.value(); //< Average time in ms from PDU delivery to RLC to ACK notification from RLC
   return metrics;
@@ -748,7 +758,6 @@ bool undelivered_sdus_queue::add_sdu(uint32_t                             sn,
                                      uint32_t                             discard_timeout,
                                      const std::function<void(uint32_t)>& callback)
 {
-  assert(discard_timeout < capacity and "Invalid discard timeout value");
   assert(not has_sdu(sn) && "Cannot add repeated SNs");
 
   if (is_full()) {

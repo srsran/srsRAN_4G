@@ -144,7 +144,7 @@ public:
   pdcp_bearer_metrics_t get_metrics() override;
   void                  reset_metrics() override;
 
-  size_t nof_discard_timers() const { return undelivered_sdus.nof_discard_timers(); }
+  size_t nof_discard_timers() const { return undelivered_sdus != nullptr ? undelivered_sdus->nof_discard_timers() : 0; }
 
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
@@ -167,8 +167,8 @@ private:
   class discard_callback;
 
   // TX Queue
-  uint32_t               maximum_allocated_sns_window = 2048;
-  undelivered_sdus_queue undelivered_sdus;
+  uint32_t                                maximum_allocated_sns_window = 2048;
+  std::unique_ptr<undelivered_sdus_queue> undelivered_sdus;
 };
 
 // Discard callback (discardTimer)
