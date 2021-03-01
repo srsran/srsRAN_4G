@@ -104,7 +104,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       ret = SRSLTE_ERROR;
     }
 
-    if (lte_stack->init(args.stack, lte_phy.get(), gw_ptr.get())) {
+    if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
