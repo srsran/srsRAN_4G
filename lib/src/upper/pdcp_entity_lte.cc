@@ -810,7 +810,7 @@ bool undelivered_sdus_queue::clear_sdu(uint32_t sn)
   }
   count--;
   bytes -= sdus[sn].sdu->N_bytes;
-  sdus[sn].discard_timer.clear();
+  sdus[sn].discard_timer.stop();
   sdus[sn].sdu.reset();
   // Find next FMS,
   update_fms();
@@ -823,7 +823,7 @@ void undelivered_sdus_queue::clear()
   bytes = 0;
   fms   = 0;
   for (uint32_t sn = 0; sn < capacity; sn++) {
-    sdus[sn].discard_timer.clear();
+    sdus[sn].discard_timer.stop();
     sdus[sn].sdu.reset();
   }
 }
