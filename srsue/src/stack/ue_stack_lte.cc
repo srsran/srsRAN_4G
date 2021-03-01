@@ -112,6 +112,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   nas_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
   nas_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
 
+  // Set up pcap
   // parse pcap trace list
   std::vector<std::string> pcap_list;
   srslte::string_parse_list(args.pkt_trace.enable, ',', pcap_list);
@@ -140,22 +141,35 @@ int ue_stack_lte::init(const stack_args_t& args_)
     }
   }
 
-  // Set up pcap
-  if (args.pkt_trace.mac_pcap.enable) {
+  // If mac and mac_nr pcap option is enabled and if the filenames are the same,
+  // mac and mac_nr should write in the same PCAP file.
+  if (args.pkt_trace.mac_pcap.enable && args.pkt_trace.mac_nr_pcap.enable &&
+      args.pkt_trace.mac_pcap.filename == args.pkt_trace.mac_nr_pcap.filename) {
+    stack_logger.info("Using same MAC PCAP file %s for LTE and NR", args.pkt_trace.mac_pcap.filename.c_str());
     if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
       mac.start_pcap(&mac_pcap);
+      mac_nr.start_pcap(&mac_pcap);
       stack_logger.info("Open mac pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
     } else {
       stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
     }
-  }
+  } else {
+    if (args.pkt_trace.mac_pcap.enable) {
+      if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+        mac.start_pcap(&mac_pcap);
+        stack_logger.info("Open mac pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
+      } else {
+        stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
+      }
+    }
 
-  if (args.pkt_trace.mac_nr_pcap.enable) {
-    if (mac_nr_pcap.open(args.pkt_trace.mac_nr_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
-      mac_nr.start_pcap(&mac_nr_pcap);
-      stack_logger.info("Open mac nr pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
-    } else {
-      stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
+    if (args.pkt_trace.mac_nr_pcap.enable) {
+      if (mac_nr_pcap.open(args.pkt_trace.mac_nr_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+        mac_nr.start_pcap(&mac_nr_pcap);
+        stack_logger.info("Open mac nr pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
+      } else {
+        stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
+      }
     }
   }
 
