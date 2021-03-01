@@ -136,7 +136,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
       args.pkt_trace.mac_nr_pcap.enable = false;
       args.pkt_trace.mac_nr_pcap.enable = false;
     } else {
-      stack_logger.error("Unkown PCAP option %s", pcap.c_str());
+      stack_logger.error("Unknown PCAP option %s", pcap.c_str());
     }
   }
 
