@@ -421,6 +421,12 @@ void pdcp_entity_lte::send_status_report()
     return;
   }
 
+  // Don't send status report on SRBs
+  if (not is_drb()) {
+    logger.debug("Trying to send PDCP Status Report on SRB");
+    return;
+  }
+
   if (not cfg.status_report_required) {
     logger.info("Not sending PDCP Status Report as status report required is not set");
     return;
@@ -495,6 +501,18 @@ void pdcp_entity_lte::send_status_report()
 // Section 5.3.2 receive operation
 void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
 {
+  // Don't handle status report on SRBs
+  if (not is_drb()) {
+    logger.debug("Not handling PDCP Status Report on SRB");
+    return;
+  }
+
+  // Check wether RLC AM is being used.
+  if (rlc->rb_is_um(lcid)) {
+    logger.info("Not handling PDCP Status Report if RLC is not AM");
+    return;
+  }
+
   logger.info("Handling Status Report PDU. Size=%ld", pdu->N_bytes);
 
   uint32_t              fms           = 0;
