@@ -19,143 +19,6 @@
 
 namespace srslte {
 
-undelivered_sdus_queue::undelivered_sdus_queue(srslte::task_sched_handle task_sched)
-{
-  for (auto& e : sdus) {
-    e.discard_timer = task_sched.get_unique_timer();
-  }
-}
-
-bool undelivered_sdus_queue::add_sdu(uint32_t                             sn,
-                                     const srslte::unique_byte_buffer_t&  sdu,
-                                     uint32_t                             discard_timeout,
-                                     const std::function<void(uint32_t)>& callback)
-{
-  assert(discard_timeout < capacity and "Invalid discard timeout value");
-  assert(not has_sdu(sn) && "Cannot add repeated SNs");
-
-  if (is_full()) {
-    return false;
-  }
-
-  // Make sure we don't associate more than half of the PDCP SN space of contiguous PDCP SDUs
-  if (not empty()) {
-    int32_t diff = sn - fms;
-    if (diff > (int32_t)(capacity / 2)) {
-      return false;
-    }
-    if (diff <= 0 && diff > -((int32_t)(capacity / 2))) {
-      return false;
-    }
-  }
-
-  // Allocate buffer and exit on error
-  srslte::unique_byte_buffer_t tmp = make_byte_buffer();
-  if (tmp == nullptr) {
-    return false;
-  }
-
-  // Update FMS and LMS if necessary
-  if (empty()) {
-    fms = sn;
-    lms = sn;
-  } else {
-    update_lms(sn);
-  }
-  // Add SDU
-  count++;
-  sdus[sn].sdu             = std::move(tmp);
-  sdus[sn].sdu->md.pdcp_sn = sn;
-  sdus[sn].sdu->N_bytes    = sdu->N_bytes;
-  memcpy(sdus[sn].sdu->msg, sdu->msg, sdu->N_bytes);
-  if (discard_timeout > 0) {
-    sdus[sn].discard_timer.set(discard_timeout, callback);
-    sdus[sn].discard_timer.run();
-  }
-  sdus[sn].sdu->set_timestamp(); // Metrics
-  bytes += sdu->N_bytes;
-  return true;
-}
-
-bool undelivered_sdus_queue::clear_sdu(uint32_t sn)
-{
-  if (not has_sdu(sn)) {
-    return false;
-  }
-  count--;
-  bytes -= sdus[sn].sdu->N_bytes;
-  sdus[sn].discard_timer.clear();
-  sdus[sn].sdu.reset();
-  // Find next FMS,
-  update_fms();
-  return true;
-}
-
-void undelivered_sdus_queue::clear()
-{
-  count = 0;
-  bytes = 0;
-  fms   = 0;
-  for (uint32_t sn = 0; sn < capacity; sn++) {
-    sdus[sn].discard_timer.clear();
-    sdus[sn].sdu.reset();
-  }
-}
-
-size_t undelivered_sdus_queue::nof_discard_timers() const
-{
-  return std::count_if(sdus.begin(), sdus.end(), [](const sdu_data& s) {
-    return s.sdu != nullptr and s.discard_timer.is_valid() and s.discard_timer.is_running();
-  });
-}
-
-void undelivered_sdus_queue::update_fms()
-{
-  if (empty()) {
-    fms = increment_sn(fms);
-    return;
-  }
-
-  for (uint32_t i = 0; i < capacity; ++i) {
-    uint32_t sn = increment_sn(fms + i);
-    if (has_sdu(sn)) {
-      fms = sn;
-      return;
-    }
-  }
-
-  fms = increment_sn(fms);
-}
-
-void undelivered_sdus_queue::update_lms(uint32_t sn)
-{
-  if (empty()) {
-    lms = fms;
-    return;
-  }
-
-  int32_t diff = sn - lms;
-  if (diff > 0 && sn > lms) {
-    lms = sn;
-  } else if (diff < 0 && sn < lms) {
-    lms = sn;
-  }
-}
-
-std::map<uint32_t, srslte::unique_byte_buffer_t> undelivered_sdus_queue::get_buffered_sdus()
-{
-  std::map<uint32_t, srslte::unique_byte_buffer_t> fwd_sdus;
-  for (auto& sdu : sdus) {
-    if (sdu.sdu != nullptr) {
-      // TODO: Find ways to avoid deep copy
-      srslte::unique_byte_buffer_t fwd_sdu = make_byte_buffer();
-      *fwd_sdu                             = *sdu.sdu;
-      fwd_sdus.emplace(sdu.sdu->md.pdcp_sn, std::move(fwd_sdu));
-    }
-  }
-  return fwd_sdus;
-}
-
 /****************************************************************************
  * PDCP Entity LTE class
  ***************************************************************************/
@@ -273,7 +136,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
   // PDUs will be removed from the queue, either when the lower layers will report
   // a succesfull transmission or when the discard timer expires.
   // Status report will also use this queue, to know the First Missing SDU (FMS).
-  if (!rlc->rb_is_um(lcid)) {
+  if (!rlc->rb_is_um(lcid) and is_drb()) {
     if (not store_sdu(used_sn, sdu)) {
       // Could not store the SDU, discarding
       logger.error("Could not store SDU. Discarding %d\n", used_sn);
@@ -759,8 +622,11 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
  ***************************************************************************/
 void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 {
-  logger.info("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
+  if (not is_drb()) {
+    return;
+  }
 
+  logger.info("Received delivery notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
   for (uint32_t sn : pdcp_sns) {
     logger.debug("Delivery notification received for PDU with SN=%d", sn);
     if (sn == UINT32_MAX) {
@@ -785,6 +651,10 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
 
 void pdcp_entity_lte::notify_failure(const std::vector<uint32_t>& pdcp_sns)
 {
+  if (not is_drb()) {
+    return;
+  }
+
   logger.info("Received failure notification from RLC. Number of PDU notified=%ld", pdcp_sns.size());
 
   for (uint32_t sn : pdcp_sns) {
@@ -861,6 +731,146 @@ void pdcp_entity_lte::reset_metrics()
 {
   // Only reset metrics that have are snapshots, leave the incremental ones untouched.
   metrics.tx_notification_latency_ms = 0;
+}
+
+/****************************************************************************
+ * Undelivered SDUs queue helpers
+ ***************************************************************************/
+undelivered_sdus_queue::undelivered_sdus_queue(srslte::task_sched_handle task_sched)
+{
+  for (auto& e : sdus) {
+    e.discard_timer = task_sched.get_unique_timer();
+  }
+}
+
+bool undelivered_sdus_queue::add_sdu(uint32_t                             sn,
+                                     const srslte::unique_byte_buffer_t&  sdu,
+                                     uint32_t                             discard_timeout,
+                                     const std::function<void(uint32_t)>& callback)
+{
+  assert(discard_timeout < capacity and "Invalid discard timeout value");
+  assert(not has_sdu(sn) && "Cannot add repeated SNs");
+
+  if (is_full()) {
+    return false;
+  }
+
+  // Make sure we don't associate more than half of the PDCP SN space of contiguous PDCP SDUs
+  if (not empty()) {
+    int32_t diff = sn - fms;
+    if (diff > (int32_t)(capacity / 2)) {
+      return false;
+    }
+    if (diff <= 0 && diff > -((int32_t)(capacity / 2))) {
+      return false;
+    }
+  }
+
+  // Allocate buffer and exit on error
+  srslte::unique_byte_buffer_t tmp = make_byte_buffer();
+  if (tmp == nullptr) {
+    return false;
+  }
+
+  // Update FMS and LMS if necessary
+  if (empty()) {
+    fms = sn;
+    lms = sn;
+  } else {
+    update_lms(sn);
+  }
+  // Add SDU
+  count++;
+  sdus[sn].sdu             = std::move(tmp);
+  sdus[sn].sdu->md.pdcp_sn = sn;
+  sdus[sn].sdu->N_bytes    = sdu->N_bytes;
+  memcpy(sdus[sn].sdu->msg, sdu->msg, sdu->N_bytes);
+  if (discard_timeout > 0) {
+    sdus[sn].discard_timer.set(discard_timeout, callback);
+    sdus[sn].discard_timer.run();
+  }
+  sdus[sn].sdu->set_timestamp(); // Metrics
+  bytes += sdu->N_bytes;
+  return true;
+}
+
+bool undelivered_sdus_queue::clear_sdu(uint32_t sn)
+{
+  if (not has_sdu(sn)) {
+    return false;
+  }
+  count--;
+  bytes -= sdus[sn].sdu->N_bytes;
+  sdus[sn].discard_timer.clear();
+  sdus[sn].sdu.reset();
+  // Find next FMS,
+  update_fms();
+  return true;
+}
+
+void undelivered_sdus_queue::clear()
+{
+  count = 0;
+  bytes = 0;
+  fms   = 0;
+  for (uint32_t sn = 0; sn < capacity; sn++) {
+    sdus[sn].discard_timer.clear();
+    sdus[sn].sdu.reset();
+  }
+}
+
+size_t undelivered_sdus_queue::nof_discard_timers() const
+{
+  return std::count_if(sdus.begin(), sdus.end(), [](const sdu_data& s) {
+    return s.sdu != nullptr and s.discard_timer.is_valid() and s.discard_timer.is_running();
+  });
+}
+
+void undelivered_sdus_queue::update_fms()
+{
+  if (empty()) {
+    fms = increment_sn(fms);
+    return;
+  }
+
+  for (uint32_t i = 0; i < capacity; ++i) {
+    uint32_t sn = increment_sn(fms + i);
+    if (has_sdu(sn)) {
+      fms = sn;
+      return;
+    }
+  }
+
+  fms = increment_sn(fms);
+}
+
+void undelivered_sdus_queue::update_lms(uint32_t sn)
+{
+  if (empty()) {
+    lms = fms;
+    return;
+  }
+
+  int32_t diff = sn - lms;
+  if (diff > 0 && sn > lms) {
+    lms = sn;
+  } else if (diff < 0 && sn < lms) {
+    lms = sn;
+  }
+}
+
+std::map<uint32_t, srslte::unique_byte_buffer_t> undelivered_sdus_queue::get_buffered_sdus()
+{
+  std::map<uint32_t, srslte::unique_byte_buffer_t> fwd_sdus;
+  for (auto& sdu : sdus) {
+    if (sdu.sdu != nullptr) {
+      // TODO: Find ways to avoid deep copy
+      srslte::unique_byte_buffer_t fwd_sdu = make_byte_buffer();
+      *fwd_sdu                             = *sdu.sdu;
+      fwd_sdus.emplace(sdu.sdu->md.pdcp_sn, std::move(fwd_sdu));
+    }
+  }
+  return fwd_sdus;
 }
 
 } // namespace srslte
