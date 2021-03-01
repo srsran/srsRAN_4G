@@ -79,25 +79,6 @@ uint32_t mac_pcap_net::close()
   return SRSLTE_SUCCESS;
 }
 
-void mac_pcap_net::run_thread()
-{
-  // blocking write until stopped
-  while (running) {
-    pcap_pdu_t pdu = queue.wait_pop();
-    {
-      std::lock_guard<std::mutex> lock(mutex);
-      write_pdu(pdu);
-    }
-  }
-
-  // write remainder of queue
-  std::lock_guard<std::mutex> lock(mutex);
-  pcap_pdu_t                  pdu = {};
-  while (queue.try_pop(&pdu)) {
-    write_pdu(pdu);
-  }
-}
-
 void mac_pcap_net::write_pdu(pcap_pdu_t& pdu)
 {
   if (pdu.pdu != nullptr && socket.is_init()) {

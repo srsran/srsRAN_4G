@@ -35,7 +35,6 @@ private:
   void write_pdu(srslte::mac_pcap_base::pcap_pdu_t& pdu);
   void write_mac_lte_pdu_to_net(srslte::mac_pcap_base::pcap_pdu_t& pdu);
   void write_mac_nr_pdu_to_net(srslte::mac_pcap_base::pcap_pdu_t& pdu);
-  void run_thread() final;
 
   srslte::socket_handler_t socket;
   struct sockaddr_in       client_addr;

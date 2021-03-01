@@ -91,7 +91,7 @@ protected:
   } pcap_pdu_t;
 
   virtual void write_pdu(pcap_pdu_t& pdu) = 0;
-  virtual void run_thread()               = 0;
+  void         run_thread() final;
 
   std::mutex              mutex;
   srslog::basic_logger&   logger;

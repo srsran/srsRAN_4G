@@ -33,6 +33,25 @@ void mac_pcap_base::set_ue_id(uint16_t ue_id_)
   ue_id = ue_id_;
 }
 
+void mac_pcap_base::run_thread()
+{
+  // blocking write until stopped
+  while (running) {
+    pcap_pdu_t pdu = queue.wait_pop();
+    {
+      std::lock_guard<std::mutex> lock(mutex);
+      write_pdu(pdu);
+    }
+  }
+
+  // write remainder of queue
+  std::lock_guard<std::mutex> lock(mutex);
+  pcap_pdu_t                  pdu = {};
+  while (queue.try_pop(&pdu)) {
+    write_pdu(pdu);
+  }
+}
+
 // Function called from PHY worker context, locking not needed as PDU queue is thread-safe
 void mac_pcap_base::pack_and_queue(uint8_t* payload,
                                    uint32_t payload_len,

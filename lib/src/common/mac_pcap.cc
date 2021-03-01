@@ -47,25 +47,6 @@ uint32_t mac_pcap::open(std::string filename_, uint32_t ue_id_)
   return SRSLTE_SUCCESS;
 }
 
-void mac_pcap::run_thread()
-{
-  // blocking write until stopped
-  while (running) {
-    pcap_pdu_t pdu = queue.wait_pop();
-    {
-      std::lock_guard<std::mutex> lock(mutex);
-      write_pdu(pdu);
-    }
-  }
-
-  // write remainder of queue
-  std::lock_guard<std::mutex> lock(mutex);
-  pcap_pdu_t                  pdu = {};
-  while (queue.try_pop(&pdu)) {
-    write_pdu(pdu);
-  }
-}
-
 uint32_t mac_pcap::close()
 {
   {
