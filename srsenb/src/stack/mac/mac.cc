@@ -279,7 +279,7 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
     return SRSLTE_ERROR;
   }
 
-  uint32_t nof_bytes = scheduler.dl_ack_info(tti_rx, rnti, enb_cc_idx, tb_idx, ack);
+  int nof_bytes = scheduler.dl_ack_info(tti_rx, rnti, enb_cc_idx, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
 
   if (ack) {
