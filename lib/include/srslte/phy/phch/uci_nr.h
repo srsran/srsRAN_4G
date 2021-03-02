@@ -13,13 +13,14 @@
 #ifndef SRSLTE_UCI_NR_H
 #define SRSLTE_UCI_NR_H
 
+#include "srslte/phy/common/phy_common_nr.h"
 #include "srslte/phy/fec/crc.h"
 #include "srslte/phy/fec/polar/polar_code.h"
 #include "srslte/phy/fec/polar/polar_decoder.h"
 #include "srslte/phy/fec/polar/polar_encoder.h"
 #include "srslte/phy/fec/polar/polar_rm.h"
+#include "srslte/phy/phch/phch_cfg_nr.h"
 #include "srslte/phy/phch/pucch_cfg_nr.h"
-#include "uci_cfg.h"
 #include "uci_cfg_nr.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -33,6 +34,7 @@ typedef struct {
 } srslte_uci_nr_args_t;
 
 typedef struct {
+  srslte_carrier_nr_t    carrier;
   srslte_polar_rm_t      rm_tx;
   srslte_polar_rm_t      rm_rx;
   srslte_polar_encoder_t encoder;
@@ -69,6 +71,14 @@ SRSLTE_API uint32_t srslte_uci_nr_crc_len(uint32_t A);
  * @return SRSLTE_SUCCESS if initialization is successful, SRSLTE_ERROR code otherwise
  */
 SRSLTE_API int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args);
+
+/**
+ * @brief Sets NR carrier
+ * @param[in,out] q NR-UCI object
+ * @param carrier Provides carrier configuration
+ * @return SRSLTE_SUCCESS if successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_uci_nr_set_carrier(srslte_uci_nr_t* q, const srslte_carrier_nr_t* carrier);
 
 /**
  * @brief Deallocates NR-UCI encoder/decoder object
@@ -113,6 +123,27 @@ SRSLTE_API int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                           const srslte_uci_cfg_nr_t*        uci_cfg,
                                           int8_t*                           llr,
                                           srslte_uci_value_nr_t*            value);
+
+/**
+ * @brief Calculates the total number of encoded bits for HARQ-ACK
+ * @param[in,out] q NR-UCI object
+ * @param[in] cfg PUSCH transmission configuration
+ * @return The number of encoded bits if successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_uci_nr_pusch_E_uci_ack(srslte_uci_nr_t* q, const srslte_sch_cfg_nr_t* cfg);
+
+/**
+ * @brief Encodes HARQ-ACK bits for PUSCH transmission
+ * @param[in,out] q NR-UCI object
+ * @param[in] cfg PUSCH transmission configuration
+ * @param[in] value UCI value
+ * @param[out] o_ack Encoded ack bits
+ * @return The number of encoded bits if successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_uci_nr_encode_pusch_ack(srslte_uci_nr_t*             q,
+                                              const srslte_sch_cfg_nr_t*   cfg,
+                                              const srslte_uci_value_nr_t* value,
+                                              uint8_t*                     o_ack);
 
 /**
  * @brief Calculates the total number of UCI bits

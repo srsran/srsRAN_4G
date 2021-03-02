@@ -30,21 +30,10 @@
 #define SRSLTE_UCI_NR_MAX_ACK_BITS 360
 
 /**
- * @brief Maximum number of Scheduling Request (SR) bits that can be carried in Uplink Control Information (UCI) message
- */
-#define SRSLTE_UCI_NR_MAX_SR_BITS 10
-
-/**
  * @brief Maximum number of Channel State Information part 1 (CSI1) bits that can be carried in Uplink Control
  * Information (UCI) message
  */
 #define SRSLTE_UCI_NR_MAX_CSI1_BITS 10
-
-/**
- * @brief Maximum number of Channel State Information part 2 (CSI2) bits that can be carried in Uplink Control
- * Information (UCI) message
- */
-#define SRSLTE_UCI_NR_MAX_CSI2_BITS 10
 
 /**
  * @brief Uplink Control Information (UCI) message configuration
@@ -57,7 +46,8 @@ typedef struct SRSLTE_API {
   uint32_t                nof_csi;                        ///< Number of CSI reports
 
   /// PUSCH only parameters
-  srslte_mod_t modulation; ///< Modulation
+  bool without_ul_sch; ///< Set to true if no UL-SCH data is scheduled
+  bool has_csi_part2;  ///< Set to true if the CSI reports have part 2
 
   /// PUCCH only parameters
   uint16_t rnti;                ///< RNTI

@@ -28,6 +28,11 @@ int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* arg
     }
   }
 
+  if (srslte_uci_nr_init(&q->uci, &args->uci) < SRSLTE_SUCCESS) {
+    ERROR("Initialising UCI");
+    return SRSLTE_ERROR;
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -59,7 +64,7 @@ int srslte_pusch_nr_init_gnb(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t*
     return SRSLTE_ERROR;
   }
 
-  if (srslte_sch_nr_init_rx(&q->sch, &args->sch)) {
+  if (srslte_sch_nr_init_rx(&q->sch, &args->sch) < SRSLTE_SUCCESS) {
     ERROR("Initialising SCH");
     return SRSLTE_ERROR;
   }
@@ -415,11 +420,20 @@ pusch_nr_cinit(const srslte_carrier_nr_t* carrier, const srslte_sch_cfg_nr_t* cf
   return cinit;
 }
 
-static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*         q,
-                                           const srslte_sch_cfg_nr_t* cfg,
-                                           const srslte_sch_tb_t*     tb,
-                                           const uint8_t*             data,
-                                           uint16_t                   rnti)
+// int pusch_nr_mux_uci(srslte_pusch_nr_t*            q) {
+//  uint8_t  *g_ul_sch; // coded bits for UL-SCH
+//  uint8_t  *g_ack; // coded bits for HARQ-ACK
+//  uint8_t  *g_csi_p1; // coded bits for CSI part 1
+//  uint8_t  *g_csi_p2; // coded bits for CSI part 2
+//
+//}
+
+static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*           q,
+                                           const srslte_sch_cfg_nr_t*   cfg,
+                                           const srslte_sch_tb_t*       tb,
+                                           const uint8_t*               data,
+                                           const srslte_uci_value_nr_t* uci,
+                                           uint16_t                     rnti)
 {
   // Early return if TB is not enabled
   if (!tb->enabled) {
@@ -464,11 +478,11 @@ static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*         q,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
-                           const srslte_sch_cfg_nr_t*   cfg,
-                           const srslte_sch_grant_nr_t* grant,
-                           uint8_t*                     data[SRSLTE_MAX_TB],
-                           cf_t*                        sf_symbols[SRSLTE_MAX_PORTS])
+int srslte_pusch_nr_encode(srslte_pusch_nr_t*            q,
+                           const srslte_sch_cfg_nr_t*    cfg,
+                           const srslte_sch_grant_nr_t*  grant,
+                           const srslte_pusch_data_nr_t* data,
+                           cf_t*                         sf_symbols[SRSLTE_MAX_PORTS])
 {
   // Check input pointers
   if (!q || !cfg || !grant || !data || !sf_symbols) {
@@ -486,12 +500,20 @@ int srslte_pusch_nr_encode(srslte_pusch_nr_t*           q,
     return SRSLTE_ERROR;
   }
 
+  // Encode HARQ-ACK bits
+  int E_uci_ack = srslte_uci_nr_encode_pusch_ack(&q->uci, cfg, &data[0].uci, q->uci_ack);
+  if (E_uci_ack < SRSLTE_SUCCESS) {
+    ERROR("Error encoding HARQ-ACK bits");
+    return SRSLTE_ERROR;
+  }
+
   // 7.3.1.1 and 7.3.1.2
   uint32_t nof_cw = 0;
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     nof_cw += grant->tb[tb].enabled ? 1 : 0;
 
-    if (pusch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb], grant->rnti) < SRSLTE_SUCCESS) {
+    if (pusch_nr_encode_codeword(q, cfg, &grant->tb[tb], data[tb].payload, &data[0].uci, grant->rnti) <
+        SRSLTE_SUCCESS) {
       ERROR("Error encoding TB %d", tb);
       return SRSLTE_ERROR;
     }

@@ -54,10 +54,10 @@ SRSLTE_API int srslte_ue_ul_nr_init(srslte_ue_ul_nr_t* q, cf_t* output, const sr
 
 SRSLTE_API int srslte_ue_ul_nr_set_carrier(srslte_ue_ul_nr_t* q, const srslte_carrier_nr_t* carrier);
 
-SRSLTE_API int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*         q,
-                                            const srslte_slot_cfg_t*   slot_cfg,
-                                            const srslte_sch_cfg_nr_t* pusch_cfg,
-                                            uint8_t*                   data_);
+SRSLTE_API int srslte_ue_ul_nr_encode_pusch(srslte_ue_ul_nr_t*            q,
+                                            const srslte_slot_cfg_t*      slot_cfg,
+                                            const srslte_sch_cfg_nr_t*    pusch_cfg,
+                                            const srslte_pusch_data_nr_t* data);
 
 SRSLTE_API int srslte_ue_ul_nr_encode_pucch(srslte_ue_ul_nr_t*                  q,
                                             const srslte_slot_cfg_t*            slot_cfg,

@@ -53,15 +53,14 @@ static int test_pucch_format0(srslte_pucch_nr_t* pucch, const srslte_pucch_nr_co
           for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= 11;
                resource.initial_cyclic_shift++) {
             for (uint32_t m_cs = 0; m_cs <= 6; m_cs += 2) {
-              TESTASSERT(srslte_pucch_nr_format0_encode(pucch, &carrier, cfg, &slot, &resource, m_cs, slot_symbols) ==
+              TESTASSERT(srslte_pucch_nr_format0_encode(pucch, cfg, &slot, &resource, m_cs, slot_symbols) ==
                          SRSLTE_SUCCESS);
 
               // Measure PUCCH format 0 for all possible values of m_cs
               for (uint32_t m_cs_test = 0; m_cs_test <= 6; m_cs_test += 2) {
                 srslte_pucch_nr_measure_t measure = {};
                 TESTASSERT(srslte_pucch_nr_format0_measure(
-                               pucch, &carrier, cfg, &slot, &resource, m_cs_test, slot_symbols, &measure) ==
-                           SRSLTE_SUCCESS);
+                               pucch, cfg, &slot, &resource, m_cs_test, slot_symbols, &measure) == SRSLTE_SUCCESS);
 
                 if (m_cs == m_cs_test) {
                   TESTASSERT(fabsf(measure.epre - 1) < 0.001);
@@ -115,8 +114,8 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
                   }
 
                   // Encode PUCCH
-                  TESTASSERT(srslte_pucch_nr_format1_encode(
-                                 pucch, &carrier, cfg, &slot, &resource, b, nof_bits, slot_symbols) == SRSLTE_SUCCESS);
+                  TESTASSERT(srslte_pucch_nr_format1_encode(pucch, cfg, &slot, &resource, b, nof_bits, slot_symbols) ==
+                             SRSLTE_SUCCESS);
 
                   // Put DMRS
                   TESTASSERT(srslte_dmrs_pucch_format1_put(pucch, &carrier, cfg, &slot, &resource, slot_symbols) ==
@@ -137,7 +136,7 @@ static int test_pucch_format1(srslte_pucch_nr_t*                  pucch,
                   // Decode PUCCH
                   uint8_t b_rx[SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS];
                   TESTASSERT(srslte_pucch_nr_format1_decode(
-                                 pucch, &carrier, cfg, &slot, &resource, chest_res, slot_symbols, b_rx, nof_bits) ==
+                                 pucch, cfg, &slot, &resource, chest_res, slot_symbols, b_rx, nof_bits) ==
                              SRSLTE_SUCCESS);
 
                   // Check received bits
@@ -202,8 +201,7 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
 
                 // Encode PUCCH
                 TESTASSERT(srslte_pucch_nr_format_2_3_4_encode(
-                               pucch, &carrier, cfg, &slot, &resource, &uci_cfg, &uci_value, slot_symbols) ==
-                           SRSLTE_SUCCESS);
+                               pucch, cfg, &slot, &resource, &uci_cfg, &uci_value, slot_symbols) == SRSLTE_SUCCESS);
 
                 // Put DMRS
                 TESTASSERT(srslte_dmrs_pucch_format2_put(pucch, &carrier, cfg, &slot, &resource, slot_symbols) ==
@@ -226,10 +224,9 @@ static int test_pucch_format2(srslte_pucch_nr_t*                  pucch,
 
                 // Decode PUCCH
                 srslte_uci_value_nr_t uci_value_rx = {};
-                TESTASSERT(
-                    srslte_pucch_nr_format_2_3_4_decode(
-                        pucch, &carrier, cfg, &slot, &resource, &uci_cfg, chest_res, slot_symbols, &uci_value_rx) ==
-                    SRSLTE_SUCCESS);
+                TESTASSERT(srslte_pucch_nr_format_2_3_4_decode(
+                               pucch, cfg, &slot, &resource, &uci_cfg, chest_res, slot_symbols, &uci_value_rx) ==
+                           SRSLTE_SUCCESS);
 
                 TESTASSERT(uci_value_rx.valid == true);
 
@@ -308,6 +305,11 @@ int main(int argc, char** argv)
   srslte_pucch_nr_args_t pucch_args = {};
   if (srslte_pucch_nr_init(&pucch, &pucch_args) < SRSLTE_SUCCESS) {
     ERROR("PUCCH init");
+    goto clean_exit;
+  }
+
+  if (srslte_pucch_nr_set_carrier(&pucch, &carrier) < SRSLTE_SUCCESS) {
+    ERROR("PUCCH set carrier");
     goto clean_exit;
   }
 
