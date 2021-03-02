@@ -440,7 +440,7 @@ static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*         q,
 
   // Encode SCH
   if (srslte_ulsch_nr_encode(&q->sch, &cfg->sch_cfg, tb, data, q->b[tb->cw_idx]) < SRSLTE_SUCCESS) {
-    ERROR("Error in DL-SCH encoding");
+    ERROR("Error in SCH encoding");
     return SRSLTE_ERROR;
   }
 
@@ -585,7 +585,7 @@ static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
 
   // Decode SCH
   if (srslte_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
-    ERROR("Error in DL-SCH encoding");
+    ERROR("Error in SCH decoding");
     return SRSLTE_ERROR;
   }
 

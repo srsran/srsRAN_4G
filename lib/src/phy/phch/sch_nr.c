@@ -216,21 +216,23 @@ int srslte_sch_nr_init_tx(srslte_sch_nr_t* q, const srslte_sch_nr_args_t* args)
       continue;
     }
 
-    q->encoder_bg1[ls] = calloc(1, sizeof(srslte_ldpc_encoder_t));
+    q->encoder_bg1[ls] = SRSLTE_MEM_ALLOC(srslte_ldpc_encoder_t, 1);
     if (!q->encoder_bg1[ls]) {
       ERROR("Error: calloc");
       return SRSLTE_ERROR;
     }
+    SRSLTE_MEM_ZERO(q->encoder_bg1[ls], srslte_ldpc_encoder_t, 1);
 
     if (srslte_ldpc_encoder_init(q->encoder_bg1[ls], encoder_type, BG1, ls) < SRSLTE_SUCCESS) {
       ERROR("Error: initialising BG1 LDPC encoder for ls=%d", ls);
       return SRSLTE_ERROR;
     }
 
-    q->encoder_bg2[ls] = calloc(1, sizeof(srslte_ldpc_encoder_t));
+    q->encoder_bg2[ls] = SRSLTE_MEM_ALLOC(srslte_ldpc_encoder_t, 1);
     if (!q->encoder_bg2[ls]) {
       return SRSLTE_ERROR;
     }
+    SRSLTE_MEM_ZERO(q->encoder_bg2[ls], srslte_ldpc_encoder_t, 1);
 
     if (srslte_ldpc_encoder_init(q->encoder_bg2[ls], encoder_type, BG2, ls) < SRSLTE_SUCCESS) {
       ERROR("Error: initialising BG2 LDPC encoder for ls=%d", ls);
