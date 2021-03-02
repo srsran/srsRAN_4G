@@ -132,7 +132,7 @@ public:
   }
   uint32_t get_headroom() { return msg - buffer; }
   // Returns the remaining space from what is reported to be the length of msg
-  uint32_t                  get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
+  uint32_t                  get_tailroom() const { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
   std::chrono::microseconds get_latency_us() const { return md.tp.get_latency_us(); }
 
   std::chrono::high_resolution_clock::time_point get_timestamp() const { return md.tp.get_timestamp(); }
@@ -147,6 +147,9 @@ public:
     N_bytes += size;
   }
 
+  // vector-like interface
+  void           resize(size_t size) { N_bytes = size; }
+  size_t         capacity() const { return get_tailroom(); }
   uint8_t*       data() { return msg; }
   const uint8_t* data() const { return msg; }
   uint32_t       size() const { return N_bytes; }

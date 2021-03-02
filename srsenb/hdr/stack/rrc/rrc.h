@@ -171,6 +171,7 @@ private:
   void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
+  void send_rrc_connection_reject(uint16_t rnti);
 
   uint32_t              paging_tti = INVALID_TTI;
   srslte::byte_buffer_t byte_buf_paging;

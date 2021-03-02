@@ -193,16 +193,46 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   auto old_it = users.find(old_rnti);
-  if (old_it != users.end()) {
-    auto ue_ptr = old_it->second.get();
-    if (ue_ptr->mobility_handler->is_ho_running()) {
-      ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
-    } else if (ue_ptr->is_connected()) {
+  if (old_it == users.end()) {
+    send_rrc_connection_reject(old_rnti);
+    return;
+  }
+  ue* ue_ptr = old_it->second.get();
+
+  if (ue_ptr->mobility_handler->is_ho_running()) {
+    ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
+  } else {
+    logger.info("Resuming rnti=0x%x RRC connection due to received C-RNTI CE from rnti=0x%x.", old_rnti, new_rnti);
+    if (ue_ptr->is_connected()) {
+      // Send a new RRC Reconfiguration to overlay previous
       old_it->second->send_connection_reconf();
-    } else {
-      old_it->second->send_connection_reject();
     }
   }
+}
+
+// Note: this method is not part of UE methods, because the UE context may not exist anymore when reject is sent
+void rrc::send_rrc_connection_reject(uint16_t rnti)
+{
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
+
+  // Allocate a new PDU buffer, pack the message and send to PDCP
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Allocating pdu");
+    return;
+  }
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  if (dl_ccch_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+    logger.error(pdu->msg, bref.distance_bytes(), "Failed to pack DL-CCCH-Msg:");
+    return;
+  }
+  pdu->N_bytes = bref.distance_bytes();
+
+  char buf[32] = {};
+  sprintf(buf, "SRB0 - rnti=0x%x", rnti);
+  log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+  rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
 }
 
 /*******************************************************************************

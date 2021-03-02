@@ -98,6 +98,7 @@ public:
   int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
   int  get_ri(uint32_t m_ri, uint16_t* ri_idx);
   bool is_allocated() const;
+  bool is_crnti_set() const { return mac_ctrl.is_crnti_set(); }
 
   void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
   bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,
