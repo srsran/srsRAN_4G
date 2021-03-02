@@ -201,7 +201,7 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
  ****************************/
 
 bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
-  rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(srslog::fetch_basic_logger("RRC"))
+  rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(&srslog::fetch_basic_logger("RRC"))
 {}
 
 int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
@@ -211,7 +211,7 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
                                  const asn1::unbounded_octstring<true>*             nas_pdu)
 {
   if (erab_id < 5) {
-    logger.error("ERAB id=%d is invalid", erab_id);
+    logger->error("ERAB id=%d is invalid", erab_id);
     return SRSLTE_ERROR;
   }
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
@@ -219,11 +219,11 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
 
   auto qci_it = cfg->qci_cfg.find(qos.qci);
   if (qci_it == cfg->qci_cfg.end() or not qci_it->second.configured) {
-    logger.error("QCI=%d not configured", qos.qci);
+    logger->error("QCI=%d not configured", qos.qci);
     return SRSLTE_ERROR;
   }
   if (lcid < 3 or lcid > 10) {
-    logger.error("DRB logical channel ids must be within 3 and 10");
+    logger->error("DRB logical channel ids must be within 3 and 10");
     return SRSLTE_ERROR;
   }
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
@@ -234,13 +234,13 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   erabs[erab_id].teid_out   = teid_out;
 
   if (addr.length() > 32) {
-    logger.error("Only addresses with length <= 32 are supported");
+    logger->error("Only addresses with length <= 32 are supported");
     return SRSLTE_ERROR;
   }
 
   if (nas_pdu != nullptr and nas_pdu->size() > 0) {
     erab_info_list[erab_id].assign(nas_pdu->data(), nas_pdu->data() + nas_pdu->size());
-    logger.info(
+    logger->info(
         &erab_info_list[erab_id][0], erab_info_list[erab_id].size(), "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   }
 
@@ -266,7 +266,7 @@ bool bearer_cfg_handler::release_erab(uint8_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
-    logger.warning("The user rnti=0x%x does not contain ERAB-ID=%d", rnti, erab_id);
+    logger->warning("The user rnti=0x%x does not contain ERAB-ID=%d", rnti, erab_id);
     return false;
   }
 
@@ -293,10 +293,10 @@ bool bearer_cfg_handler::modify_erab(uint8_t                                    
                                      const asn1::s1ap::erab_level_qos_params_s& qos,
                                      const asn1::unbounded_octstring<true>*     nas_pdu)
 {
-  logger.info("Modifying E-RAB %d", erab_id);
+  logger->info("Modifying E-RAB %d", erab_id);
   std::map<uint8_t, erab_t>::iterator erab_it = erabs.find(erab_id);
   if (erab_it == erabs.end()) {
-    logger.error("Could not find E-RAB to modify");
+    logger->error("Could not find E-RAB to modify");
     return false;
   }
   auto     address  = erab_it->second.address;
@@ -310,7 +310,7 @@ void bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
-    logger.error("Adding erab_id=%d to GTPU", erab_id);
+    logger->error("Adding erab_id=%d to GTPU", erab_id);
     return;
   }
   it->second.teid_in = add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
@@ -323,7 +323,7 @@ uint32_t bearer_cfg_handler::add_gtpu_bearer(uint32_t                           
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
-    logger.error("Adding erab_id=%d to GTPU", erab_id);
+    logger->error("Adding erab_id=%d to GTPU", erab_id);
     return 0;
   }
 
@@ -344,7 +344,7 @@ void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
     // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
     gtpu->rem_bearer(rnti, erab_id - 2);
   } else {
-    logger.error("Removing erab_id=%d to GTPU\n", erab_id);
+    logger->error("Removing erab_id=%d to GTPU\n", erab_id);
   }
 }
 
@@ -366,12 +366,12 @@ void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_
       auto    it      = erab_info_list.find(erab_id);
       if (it != erab_info_list.end()) {
         const std::vector<uint8_t>& erab_info = it->second;
-        logger.info(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x", rnti);
+        logger->info(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x", rnti);
         msg->ded_info_nas_list[idx].resize(erab_info.size());
         memcpy(msg->ded_info_nas_list[idx].data(), &erab_info[0], erab_info.size());
         erab_info_list.erase(it);
       } else {
-        logger.debug("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
+        logger->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
       }
       idx++;
     }

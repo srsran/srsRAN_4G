@@ -516,10 +516,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
 
   // Reestablish current DRBs during ConnectionReconfiguration
-  for (const auto& erab_pair : parent->users.at(old_reest_rnti)->bearer_list.get_erabs()) {
-    const bearer_cfg_handler::erab_t& erab = erab_pair.second;
-    bearer_list.add_erab(erab.id, erab.qos_params, erab.address, erab.teid_out, nullptr);
-  }
+  bearer_list = std::move(parent->users.at(old_reest_rnti)->bearer_list);
 
   // remove old RNTI
   parent->rem_user_thread(old_reest_rnti);
