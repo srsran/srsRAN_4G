@@ -37,7 +37,7 @@ phy_cnfg =
     dsr_trans_max = 64;
     period = 20;          // in ms
     //subframe = [1, 11]; // Optional vector of subframe indices allowed for SR transmissions (default uses all)
-    nof_prb = 2;          // number of PRBs on each extreme used for SR (total prb is twice this number)
+    nof_prb = 1;          // number of PRBs on each extreme used for SR (total prb is twice this number)
   };
   cqi_report_cnfg =
   { 
@@ -45,7 +45,7 @@ phy_cnfg =
     simultaneousAckCQI = true;
     period = 40;                   // in ms
     //subframe = [0, 10, 20, 30];  // Optional vector of subframe indices every period where CQI resources will be allocated (default uses all)
-    nof_prb = 2; 
+    nof_prb = 1;
     m_ri = 8; // RI period in CQI period
   };
 };

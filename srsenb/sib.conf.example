@@ -74,8 +74,8 @@ sib2 =
         };
         pucch_cnfg =
         {
-            delta_pucch_shift = 2;
-            n_rb_cqi = 2;
+            delta_pucch_shift = 1;
+            n_rb_cqi = 1;
             n_cs_an = 0;
             n1_pucch_an = 12;
         };
