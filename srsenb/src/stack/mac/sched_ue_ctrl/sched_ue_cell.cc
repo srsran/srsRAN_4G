@@ -12,6 +12,7 @@
 
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_ue_cell.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
 #include <numeric>
 
 namespace srsenb {
@@ -272,6 +273,15 @@ tbs_info cqi_to_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re
   tbs_info ret2;
   ret2.mcs       = std::get<0>(ret);
   ret2.tbs_bytes = get_tbs_bytes(ret2.mcs, nof_prb, cell.get_ue_cfg()->use_tbs_index_alt, is_ul);
+
+  tbs_info ret3 = compute_mcs_and_tbs(nof_prb,
+                                      nof_re,
+                                      (is_ul) ? cell.ul_cqi : cell.dl_cqi,
+                                      max_mcs,
+                                      is_ul,
+                                      is_ul and cell.get_ue_cfg()->support_ul64qam == ul64qam_cap::enabled,
+                                      not is_ul and cell.get_ue_cfg()->use_tbs_index_alt);
+  assert((ret3.mcs == ret2.mcs and ret3.tbs_bytes == ret2.tbs_bytes) or (std::get<0>(ret) == std::get<2>(ret)));
 
   // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
   // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
