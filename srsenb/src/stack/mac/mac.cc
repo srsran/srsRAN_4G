@@ -21,7 +21,7 @@
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
-#define WRITE_SIB_PCAP
+// #define WRITE_SIB_PCAP
 using namespace asn1::rrc;
 
 namespace srsenb {
