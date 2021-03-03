@@ -87,8 +87,8 @@ int test_tx_status_report(const srslte::pdcp_lte_state_t& init_state, srslog::ba
   TESTASSERT(out_pdu->N_bytes == 4);
   TESTASSERT(out_pdu->msg[0] == 0b00000001);
   TESTASSERT(out_pdu->msg[1] == 0b00000001);
-  TESTASSERT(out_pdu->msg[2] == 0b11000000);
-  TESTASSERT(out_pdu->msg[3] == 0b00000011);
+  TESTASSERT(out_pdu->msg[2] == 0b10000000);
+  TESTASSERT(out_pdu->msg[3] == 0b00000110);
   return 0;
 }
 
@@ -140,7 +140,7 @@ int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state,
   TESTASSERT(out_pdu->N_bytes == 2);
 
   // Write another 32 SDUs but don't notify SN=4080, SN=4081, SN=14 and SN=15
-  for (uint32_t i = 4080; i < 4113; i++) {
+  for (uint32_t i = 4080; i < 4112; i++) {
     srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp->write_sdu(std::move(sdu));
@@ -167,8 +167,10 @@ int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state,
   TESTASSERT(out_pdu->N_bytes == 6);
   TESTASSERT(out_pdu->msg[0] == 0b00001111);
   TESTASSERT(out_pdu->msg[1] == 0b11110000);
-  // TESTASSERT(out_pdu->msg[2] == 0b11000000);
-  // TESTASSERT(out_pdu->msg[3] == 0b00000011);
+  TESTASSERT(out_pdu->msg[2] == 0b10000000);
+  TESTASSERT(out_pdu->msg[3] == 0b00000000);
+  TESTASSERT(out_pdu->msg[4] == 0b00000000);
+  TESTASSERT(out_pdu->msg[5] == 0b00000110);
   return 0;
 }
 /*
@@ -259,9 +261,9 @@ int run_all_tests()
   // This is the normal initial state. All state variables are set to zero
   srslte::pdcp_lte_state_t normal_init_state = {};
 
-  // TESTASSERT(test_tx_status_report(normal_init_state, logger) == 0);
+  TESTASSERT(test_tx_status_report(normal_init_state, logger) == 0);
   TESTASSERT(test_tx_wraparound_status_report(normal_init_state, logger) == 0);
-  // TESTASSERT(test_rx_status_report(normal_init_state, logger) == 0);
+  TESTASSERT(test_rx_status_report(normal_init_state, logger) == 0);
   return 0;
 }
 

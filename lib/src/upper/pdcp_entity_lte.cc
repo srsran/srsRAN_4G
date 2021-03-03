@@ -485,7 +485,7 @@ void pdcp_entity_lte::send_status_report()
         bitmap_sz);
     for (uint32_t sn = fms + 1; sn <= fms + sn_diff; sn++) {
       if (undelivered_sdus->has_sdu(sn % (1u << cfg.sn_len))) {
-        uint32_t offset      = sn - fms;
+        uint32_t offset      = sn - (fms + 1);
         uint32_t bit_offset  = offset % 8;
         uint32_t byte_offset = offset / 8;
         pdu->msg[pdu->N_bytes + byte_offset] |= 1 << (7 - bit_offset);
