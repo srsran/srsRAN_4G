@@ -475,15 +475,16 @@ void pdcp_entity_lte::send_status_report()
   // Add bitmap of missing PDUs, if necessary
   if (not undelivered_sdus->empty()) {
     // First check size of bitmap
-    uint32_t bitmap_sz = std::ceil((float)(lms - (fms - 1)) / 8);
+    uint32_t sn_diff   = (lms - (fms - 1)) % (1u << cfg.sn_len);
+    uint32_t bitmap_sz = std::ceil((float)(sn_diff) / 8);
     memset(&pdu->msg[pdu->N_bytes], 0, bitmap_sz);
     logger.debug(
         "Setting status report bitmap. Last missing SN=%d, Last SN acked in sequence=%d, Bitmap size in bytes=%d",
         lms,
         fms - 1,
         bitmap_sz);
-    for (uint32_t sn = fms; sn <= lms; sn++) {
-      if (undelivered_sdus->has_sdu(sn)) {
+    for (uint32_t sn = fms + 1; sn <= fms + sn_diff; sn++) {
+      if (undelivered_sdus->has_sdu(sn % (1u << cfg.sn_len))) {
         uint32_t offset      = sn - fms;
         uint32_t bit_offset  = offset % 8;
         uint32_t byte_offset = offset / 8;
@@ -830,8 +831,10 @@ bool undelivered_sdus_queue::clear_sdu(uint32_t sn)
   bytes -= sdus[sn].sdu->N_bytes;
   sdus[sn].discard_timer.stop();
   sdus[sn].sdu.reset();
-  // Find next FMS,
-  update_fms();
+  // Find next FMS, if necessary
+  if (sn == fms) {
+    update_fms();
+  }
   return true;
 }
 
@@ -860,7 +863,7 @@ void undelivered_sdus_queue::update_fms()
     return;
   }
 
-  for (uint32_t i = 0; i < capacity; ++i) {
+  for (uint32_t i = 0; i < capacity / 2; ++i) {
     uint32_t sn = increment_sn(fms + i);
     if (has_sdu(sn)) {
       fms = sn;
