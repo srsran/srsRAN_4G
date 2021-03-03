@@ -490,7 +490,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
           phy->set_activation_deactivation_scell(rnti, active_scell_list);
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           for (size_t i = 0; i < std::min(active_scell_list.size(), cc_buffers.size()); ++i) {
-            if (active_scell_list[i]) {
+            if (active_scell_list[i] and cc_buffers[i].empty()) {
               cc_buffers[i].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
             }
           }
