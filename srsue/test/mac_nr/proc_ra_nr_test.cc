@@ -44,9 +44,9 @@ public:
   void sr_send(uint32_t sr_id) override {}
 
 private:
-  uint32_t prach_occasion;
-  uint32_t preamble_index;
-  int      preamble_received_target_power;
+  uint32_t prach_occasion                 = 0;
+  uint32_t preamble_index                 = 0;
+  int      preamble_received_target_power = 0;
 };
 
 class dummy_mac : public mac_interface_proc_ra_nr
@@ -64,7 +64,7 @@ public:
   void msga_flush(){};
 
 private:
-  uint16_t crnti;
+  uint16_t crnti = SRSLTE_INVALID_RNTI;
 };
 
 int main()
