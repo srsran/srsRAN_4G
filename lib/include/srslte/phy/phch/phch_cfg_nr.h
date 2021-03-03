@@ -208,6 +208,7 @@ typedef struct SRSLTE_API {
   float               beta_harq_ack_offset;
   float               beta_csi_part1_offset;
   float               scaling;
+  bool                freq_hopping_enabled;
 } srslte_sch_cfg_nr_t;
 
 #endif // SRSLTE_PHCH_CFG_NR_H

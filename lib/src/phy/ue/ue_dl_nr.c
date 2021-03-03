@@ -574,8 +574,8 @@ static int ue_dl_nr_gen_ack_type2(const srslte_ue_dl_nr_harq_ack_cfg_t* cfg,
       } else {
         if (ack->present) {
           // Load ACK resource data into UCI info
-          uci_data->cfg.pucch_resource_id = ack_info->cc[c].m[m].resource.pucch_resource_id;
-          uci_data->cfg.rnti              = ack_info->cc[c].m[m].resource.rnti;
+          uci_data->cfg.pucch.resource_id = ack_info->cc[c].m[m].resource.pucch_resource_id;
+          uci_data->cfg.pucch.rnti        = ack_info->cc[c].m[m].resource.rnti;
 
           if (V_DL_CDAI <= V_temp) {
             j = j + 1;

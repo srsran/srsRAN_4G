@@ -130,6 +130,7 @@ typedef struct SRSLTE_API {
   // Resource set context
   uint32_t nof_ports; ///< Number of antenna ports
   uint32_t K_csi_rs;  ///< Number of CSI-RS in the corresponding resource set
+  bool     has_part2; ///< Set to true if the report has part 2
 } srslte_csi_report_cfg_t;
 
 /**

@@ -27,13 +27,12 @@ static srslte_carrier_nr_t carrier = {
     1                  // max_mimo_layers
 };
 
-static uint32_t              n_prb        = 0;  // Set to 0 for steering
-static uint32_t              mcs          = 30; // Set to 30 for steering
-static srslte_sch_cfg_nr_t   pusch_cfg    = {};
-static srslte_sch_grant_nr_t pusch_grant  = {};
-static uint16_t              rnti         = 0x1234;
-static uint32_t              nof_ack_bits = 0;
-static uint32_t              nof_csi_bits = 0;
+static uint32_t            n_prb        = 0;  // Set to 0 for steering
+static uint32_t            mcs          = 30; // Set to 30 for steering
+static srslte_sch_cfg_nr_t pusch_cfg    = {};
+static uint16_t            rnti         = 0x1234;
+static uint32_t            nof_ack_bits = 0;
+static uint32_t            nof_csi_bits = 0;
 
 void usage(char* prog)
 {
@@ -159,20 +158,20 @@ int main(int argc, char** argv)
   }
 
   // Use grant default A time resources with m=0
-  if (srslte_ra_ul_nr_pdsch_time_resource_default_A(carrier.numerology, 0, &pusch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_ul_nr_pusch_time_resource_default_A(carrier.numerology, 0, &pusch_cfg.grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading default grant");
     goto clean_exit;
   }
 
   // Load number of DMRS CDM groups without data
-  if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(&pusch_cfg, &pusch_grant) < SRSLTE_SUCCESS) {
+  if (srslte_ra_ul_nr_nof_dmrs_cdm_groups_without_data_format_0_0(&pusch_cfg, &pusch_cfg.grant) < SRSLTE_SUCCESS) {
     ERROR("Error loading number of DMRS CDM groups without data");
     goto clean_exit;
   }
 
-  pusch_grant.nof_layers = carrier.max_mimo_layers;
-  pusch_grant.dci_format = srslte_dci_format_nr_1_0;
-  pusch_grant.rnti       = rnti;
+  pusch_cfg.grant.nof_layers = carrier.max_mimo_layers;
+  pusch_cfg.grant.dci_format = srslte_dci_format_nr_1_0;
+  pusch_cfg.grant.rnti       = rnti;
 
   uint32_t n_prb_start = 1;
   uint32_t n_prb_end   = carrier.nof_prb + 1;
@@ -188,6 +187,10 @@ int main(int argc, char** argv)
     mcs_end   = SRSLTE_MIN(mcs + 1, mcs_end);
   }
 
+  pusch_cfg.scaling               = 0.650f;
+  pusch_cfg.beta_harq_ack_offset  = 5.000f;
+  pusch_cfg.beta_csi_part1_offset = 5.000f;
+
   if (srslte_chest_dl_res_init(&chest, carrier.nof_prb) < SRSLTE_SUCCESS) {
     ERROR("Initiating chest");
     goto clean_exit;
@@ -196,11 +199,11 @@ int main(int argc, char** argv)
   for (n_prb = n_prb_start; n_prb < n_prb_end; n_prb++) {
     for (mcs = mcs_start; mcs < mcs_end; mcs++) {
       for (uint32_t n = 0; n < SRSLTE_MAX_PRB_NR; n++) {
-        pusch_grant.prb_idx[n] = (n < n_prb);
+        pusch_cfg.grant.prb_idx[n] = (n < n_prb);
       }
 
-      pusch_grant.dci_format = srslte_dci_format_nr_0_0;
-      if (srslte_ra_nr_fill_tb(&pusch_cfg, &pusch_grant, mcs, &pusch_grant.tb[0]) < SRSLTE_SUCCESS) {
+      pusch_cfg.grant.dci_format = srslte_dci_format_nr_0_0;
+      if (srslte_ra_nr_fill_tb(&pusch_cfg, &pusch_cfg.grant, mcs, &pusch_cfg.grant.tb[0]) < SRSLTE_SUCCESS) {
         ERROR("Error filing tb");
         goto clean_exit;
       }
@@ -212,10 +215,10 @@ int main(int argc, char** argv)
           continue;
         }
 
-        for (uint32_t i = 0; i < pusch_grant.tb[tb].tbs; i++) {
+        for (uint32_t i = 0; i < pusch_cfg.grant.tb[tb].tbs; i++) {
           data_tx[tb].payload[i] = (uint8_t)srslte_random_uniform_int_dist(rand_gen, 0, UINT8_MAX);
         }
-        pusch_grant.tb[tb].softbuffer.tx = &softbuffer_tx;
+        pusch_cfg.grant.tb[tb].softbuffer.tx = &softbuffer_tx;
       }
 
       // Generate HARQ ACK bits
@@ -238,22 +241,23 @@ int main(int argc, char** argv)
         }
       }
 
-      if (srslte_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_grant, data_tx, sf_symbols) < SRSLTE_SUCCESS) {
+      if (srslte_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_cfg.grant, data_tx, sf_symbols) < SRSLTE_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;
       }
 
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        pusch_grant.tb[tb].softbuffer.rx = &softbuffer_rx;
-        srslte_softbuffer_rx_reset(pusch_grant.tb[tb].softbuffer.rx);
+        pusch_cfg.grant.tb[tb].softbuffer.rx = &softbuffer_rx;
+        srslte_softbuffer_rx_reset(pusch_cfg.grant.tb[tb].softbuffer.rx);
       }
 
-      for (uint32_t i = 0; i < pusch_grant.tb->nof_re; i++) {
+      for (uint32_t i = 0; i < pusch_cfg.grant.tb->nof_re; i++) {
         chest.ce[0][0][i] = 1.0f;
       }
-      chest.nof_re = pusch_grant.tb->nof_re;
+      chest.nof_re = pusch_cfg.grant.tb->nof_re;
 
-      if (srslte_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_grant, &chest, sf_symbols, data_rx) < SRSLTE_SUCCESS) {
+      if (srslte_pusch_nr_decode(&pusch_rx, &pusch_cfg, &pusch_cfg.grant, &chest, sf_symbols, data_rx) <
+          SRSLTE_SUCCESS) {
         ERROR("Error encoding");
         goto clean_exit;
       }
@@ -264,18 +268,18 @@ int main(int argc, char** argv)
       }
 
       float    mse    = 0.0f;
-      uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(&pusch_cfg, &pusch_grant);
-      for (uint32_t i = 0; i < pusch_grant.nof_layers; i++) {
+      uint32_t nof_re = srslte_ra_dl_nr_slot_nof_re(&pusch_cfg, &pusch_cfg.grant);
+      for (uint32_t i = 0; i < pusch_cfg.grant.nof_layers; i++) {
         for (uint32_t j = 0; j < nof_re; j++) {
           mse += cabsf(pusch_tx.d[i][j] - pusch_rx.d[i][j]);
         }
       }
-      if (nof_re * pusch_grant.nof_layers > 0) {
-        mse = mse / (nof_re * pusch_grant.nof_layers);
+      if (nof_re * pusch_cfg.grant.nof_layers > 0) {
+        mse = mse / (nof_re * pusch_cfg.grant.nof_layers);
       }
       if (mse > 0.001) {
         ERROR("MSE error (%f) is too high", mse);
-        for (uint32_t i = 0; i < pusch_grant.nof_layers; i++) {
+        for (uint32_t i = 0; i < pusch_cfg.grant.nof_layers; i++) {
           printf("d_tx[%d]=", i);
           srslte_vec_fprint_c(stdout, pusch_tx.d[i], nof_re);
           printf("d_rx[%d]=", i);
@@ -285,20 +289,20 @@ int main(int argc, char** argv)
       }
 
       if (!data_rx[0].crc) {
-        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_grant.tb[0].tbs);
+        ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_cfg.grant.tb[0].tbs);
         goto clean_exit;
       }
 
-      if (memcmp(data_tx[0].payload, data_rx[0].payload, pusch_grant.tb[0].tbs / 8) != 0) {
-        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_grant.tb[0].tbs);
+      if (memcmp(data_tx[0].payload, data_rx[0].payload, pusch_cfg.grant.tb[0].tbs / 8) != 0) {
+        ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_cfg.grant.tb[0].tbs);
         printf("Tx data: ");
-        srslte_vec_fprint_byte(stdout, data_tx[0].payload, pusch_grant.tb[0].tbs / 8);
+        srslte_vec_fprint_byte(stdout, data_tx[0].payload, pusch_cfg.grant.tb[0].tbs / 8);
         printf("Rx data: ");
-        srslte_vec_fprint_byte(stdout, data_tx[0].payload, pusch_grant.tb[0].tbs / 8);
+        srslte_vec_fprint_byte(stdout, data_tx[0].payload, pusch_cfg.grant.tb[0].tbs / 8);
         goto clean_exit;
       }
 
-      printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_grant.tb[0].tbs, data_rx[0].evm);
+      printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_cfg.grant.tb[0].tbs, data_rx[0].evm);
     }
   }
 

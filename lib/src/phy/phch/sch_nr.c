@@ -65,10 +65,10 @@ uint32_t sch_nr_n_prb_lbrm(uint32_t nof_prb)
   return 273;
 }
 
-int srslte_sch_nr_fill_cfg(const srslte_carrier_nr_t* carrier,
-                           const srslte_sch_cfg_t*    sch_cfg,
-                           const srslte_sch_tb_t*     tb,
-                           srslte_sch_nr_tb_info_t*   cfg)
+int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
+                               const srslte_sch_cfg_t*    sch_cfg,
+                               const srslte_sch_tb_t*     tb,
+                               srslte_sch_nr_tb_info_t*   cfg)
 {
   if (!sch_cfg || !tb || !cfg) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -372,7 +372,7 @@ static inline int sch_nr_encode(srslte_sch_nr_t*        q,
   uint8_t*       output_ptr = e_bits;
 
   srslte_sch_nr_tb_info_t cfg = {};
-  if (srslte_sch_nr_fill_cfg(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
@@ -514,7 +514,7 @@ int sch_nr_decode(srslte_sch_nr_t*        q,
   int8_t* input_ptr = e_bits;
 
   srslte_sch_nr_tb_info_t cfg = {};
-  if (srslte_sch_nr_fill_cfg(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
+  if (srslte_sch_nr_fill_tb_info(&q->carrier, sch_cfg, tb, &cfg) < SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 

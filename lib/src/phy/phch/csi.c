@@ -172,6 +172,20 @@ int srslte_csi_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof
   return (int)count;
 }
 
+bool srslte_csi_has_part2(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports)
+{
+  if (report_list == NULL || nof_reports == 0) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < nof_reports; i++) {
+    if (report_list[i].has_part2) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int srslte_csi_part1_pack(const srslte_csi_report_cfg_t*   report_cfg,
                           const srslte_csi_report_value_t* report_value,
                           uint32_t                         nof_reports,

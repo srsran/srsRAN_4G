@@ -38,6 +38,14 @@ SRSLTE_API int srslte_csi_generate_reports(const srslte_csi_hl_cfg_t*      cfg,
 SRSLTE_API int srslte_csi_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports);
 
 /**
+ * @brief Checks if the report list contains part 2 CSI report
+ * @param report_list Report list
+ * @param nof_reports Number of reports in the list
+ * @return True if at least one report contains part 2, false otherwise
+ */
+SRSLTE_API bool srslte_csi_has_part2(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports);
+
+/**
  * @brief Pack CSI part 1 bits for a PUCCH transmission
  * @param report_list Provides the CSI report list
  * @param nof_reports Number of CSI reports in the list

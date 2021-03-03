@@ -107,10 +107,10 @@ SRSLTE_API srslte_basegraph_t srslte_sch_nr_select_basegraph(uint32_t tbs, doubl
  * @param cfg SCH object
  * @return
  */
-SRSLTE_API int srslte_sch_nr_fill_cfg(const srslte_carrier_nr_t* carrier,
-                                      const srslte_sch_cfg_t*    sch_cfg,
-                                      const srslte_sch_tb_t*     tb,
-                                      srslte_sch_nr_tb_info_t*   cfg);
+SRSLTE_API int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
+                                          const srslte_sch_cfg_t*    sch_cfg,
+                                          const srslte_sch_tb_t*     tb,
+                                          srslte_sch_nr_tb_info_t*   cfg);
 
 /**
  * @brief Initialises an SCH object as transmitter

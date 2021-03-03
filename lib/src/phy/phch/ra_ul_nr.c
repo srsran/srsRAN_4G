@@ -42,7 +42,7 @@ static const ue_ra_time_resource_t ue_ul_default_A_lut[16] = {{srslte_sch_mappin
                                                               {srslte_sch_mapping_type_A, 3, 0, 14},
                                                               {srslte_sch_mapping_type_A, 3, 0, 10}};
 
-int srslte_ra_ul_nr_pdsch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srslte_sch_grant_nr_t* grant)
+int srslte_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srslte_sch_grant_nr_t* grant)
 {
   uint32_t j[4] = {1, 1, 2, 3};
 
@@ -141,7 +141,7 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
   if (ss_type == srslte_search_space_type_rar) {
     // Row 1
     if (cfg->nof_common_time_ra == 0) {
-      srslte_ra_ul_nr_pdsch_time_resource_default_A(cfg->scs_cfg, m, grant);
+      srslte_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
     } else if (m < SRSLTE_MAX_NOF_DL_ALLOCATION && m < cfg->nof_common_time_ra) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
@@ -154,7 +154,7 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
              SRSLTE_SEARCH_SPACE_IS_COMMON(ss_type) && coreset_id == 0) {
     // Row 2
     if (cfg->nof_common_time_ra == 0) {
-      srslte_ra_ul_nr_pdsch_time_resource_default_A(cfg->scs_cfg, m, grant);
+      srslte_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
     } else if (m < SRSLTE_MAX_NOF_DL_ALLOCATION) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     }
@@ -168,7 +168,7 @@ int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
     } else if (cfg->nof_common_time_ra > 0) {
       ra_ul_nr_time_hl(&cfg->common_time_ra[m], grant);
     } else {
-      srslte_ra_ul_nr_pdsch_time_resource_default_A(cfg->scs_cfg, m, grant);
+      srslte_ra_ul_nr_pusch_time_resource_default_A(cfg->scs_cfg, m, grant);
     }
   } else {
     ERROR("Unhandled case");
@@ -461,9 +461,9 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
   // - At least one positive SR
   // - up to 2 HARQ-ACK
   // - No CSI report
-  if (uci_cfg->sr_positive_present > 0 && uci_cfg->o_ack <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
+  if (uci_cfg->pucch.sr_positive_present > 0 && uci_cfg->o_ack <= SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS &&
       uci_cfg->nof_csi == 0) {
-    uint32_t sr_resource_id = uci_cfg->sr_resource_id;
+    uint32_t sr_resource_id = uci_cfg->pucch.sr_resource_id;
     if (sr_resource_id >= SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES) {
       ERROR("SR resource ID (%d) exceeds the maximum ID (%d)", sr_resource_id, SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES);
       return SRSLTE_ERROR;
@@ -486,7 +486,7 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
   // - More than 2 HARQ-ACK
   // - No CSI report
   if (uci_cfg->o_sr > 0 && uci_cfg->o_ack > SRSLTE_PUCCH_NR_FORMAT1_MAX_NOF_BITS && uci_cfg->nof_csi == 0) {
-    return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch_resource_id, resource);
+    return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
   }
 
   // Use format 2, 3 or 4 CSI report resource from higher layers
@@ -502,10 +502,10 @@ int srslte_ra_ul_nr_pucch_resource(const srslte_pucch_nr_hl_cfg_t* pucch_cfg,
   // a PUCCH resource set is provided by pucch-ResourceCommon through an index to a row of Table 9.2.1-1 for size
   // transmission of HARQ-ACK information on PUCCH in an initial UL BWP of N BWP PRBs.
   if (!pucch_cfg->enabled) {
-    uint32_t r_pucch = (2 * uci_cfg->n_cce_0) + 2 * uci_cfg->pucch_resource_id;
+    uint32_t r_pucch = (2 * uci_cfg->pucch.n_cce_0) + 2 * uci_cfg->pucch.resource_id;
     return ra_ul_nr_pucch_resource_default(r_pucch, resource);
   }
-  return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch_resource_id, resource);
+  return ra_ul_nr_pucch_resource_hl(pucch_cfg, O_uci, uci_cfg->pucch.resource_id, resource);
 }
 
 uint32_t srslte_ra_ul_nr_nof_sr_bits(uint32_t K)

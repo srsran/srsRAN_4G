@@ -125,23 +125,33 @@ SRSLTE_API int srslte_uci_nr_decode_pucch(srslte_uci_nr_t*                  q,
                                           srslte_uci_value_nr_t*            value);
 
 /**
- * @brief Calculates the total number of encoded bits for HARQ-ACK
+ * @brief Calculates total number of resource elements for HARQ-ACK multiplexing in PUSCH
+ * @remark Implementation according to TS 38.312 clause 6.3.2.4.1.1 for UCI encoded by polar code
+ * @remark Implementation according to TS 38.312 clause 6.3.2.4.2.1 for UCI encoded by channel codig of small lengths
+ * @param cfg UCI NR PUSCH configuration
+ * @param O_ack Number of ACK
+ * @return The number of resource elements for HARQ-ACK in a PUSCH transmission
+ */
+SRSLTE_API int srslte_uci_nr_pusch_ack_nof_re(const srslte_uci_nr_pusch_cfg_t* cfg, uint32_t O_ack);
+
+/**
+ * @brief Calculates total number of ebncoded bits for HARQ-ACK multiplexing in PUSCH
  * @param[in,out] q NR-UCI object
  * @param[in] cfg PUSCH transmission configuration
  * @return The number of encoded bits if successful, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_uci_nr_pusch_E_uci_ack(srslte_uci_nr_t* q, const srslte_sch_cfg_nr_t* cfg);
+SRSLTE_API int srslte_uci_nr_pusch_ack_nof_bits(const srslte_uci_nr_pusch_cfg_t* cfg, uint32_t O_ack);
 
 /**
  * @brief Encodes HARQ-ACK bits for PUSCH transmission
  * @param[in,out] q NR-UCI object
- * @param[in] cfg PUSCH transmission configuration
+ * @param[in] cfg UCI configuration
  * @param[in] value UCI value
  * @param[out] o_ack Encoded ack bits
  * @return The number of encoded bits if successful, SRSLTE_ERROR code otherwise
  */
 SRSLTE_API int srslte_uci_nr_encode_pusch_ack(srslte_uci_nr_t*             q,
-                                              const srslte_sch_cfg_nr_t*   cfg,
+                                              const srslte_uci_cfg_nr_t*   cfg,
                                               const srslte_uci_value_nr_t* value,
                                               uint8_t*                     o_ack);
 

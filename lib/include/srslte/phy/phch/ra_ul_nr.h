@@ -52,7 +52,7 @@ SRSLTE_API int srslte_ra_ul_nr_time(const srslte_sch_hl_cfg_nr_t*    cfg,
  * @return Returns SRSLTE_SUCCESS if the provided allocation is valid, otherwise it returns SRSLTE_ERROR code
  */
 SRSLTE_API int
-srslte_ra_ul_nr_pdsch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srslte_sch_grant_nr_t* grant);
+srslte_ra_ul_nr_pusch_time_resource_default_A(uint32_t scs_cfg, uint32_t m, srslte_sch_grant_nr_t* grant);
 
 /**
  * @brief Calculates the number of PUSCH-DMRS CDM groups without data for DCI format 0_0

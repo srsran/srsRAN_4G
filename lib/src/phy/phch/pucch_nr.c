@@ -538,7 +538,7 @@ static uint32_t pucch_nr_format2_cinit(const srslte_carrier_nr_t*          carri
 {
   uint32_t n_id = (pucch_cfg->scrambling_id_present) ? pucch_cfg->scrambling_id_present : carrier->id;
 
-  return ((uint32_t)uci_cfg->rnti << 15U) + n_id;
+  return ((uint32_t)uci_cfg->pucch.rnti << 15U) + n_id;
 }
 
 // Implements TS 38.211 section 6.3.2.5 PUCCH format 2

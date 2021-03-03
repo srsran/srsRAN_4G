@@ -50,8 +50,17 @@ typedef struct SRSLTE_API {
   srslte_evm_buffer_t* evm_buffer;
   bool                 meas_time_en;
   uint32_t             meas_time_us;
-  uint8_t*             uci_ack;
-  uint8_t*             uci_csi;
+  uint8_t*             g_ulsch;   ///< Temporal Encoded UL-SCH data
+  uint8_t*             g_ack;     ///< Temporal Encoded HARQ-ACK bits
+  uint8_t*             g_csi1;    ///< Temporal Encoded CSI part 1 bits
+  uint8_t*             g_csi2;    ///< Temporal Encoded CSI part 2 bits
+  uint32_t*            pos_ulsch; ///< Reserved resource elements for HARQ-ACK multiplexing position
+  uint32_t*            pos_ack;   ///< Reserved resource elements for HARQ-ACK multiplexing position
+  uint32_t*            pos_csi1;  ///< Reserved resource elements for CSI part 1 multiplexing position
+  uint32_t*            pos_csi2;  ///< Reserved resource elements for CSI part 1 multiplexing position
+  uint32_t             G_ack;     ///< Number of encoded HARQ-ACK bits
+  uint32_t             G_csi1;    ///< Number of encoded CSI part 1 bits
+  uint32_t             G_csi2;    ///< Number of encoded CSI part 2 bits
 } srslte_pusch_nr_t;
 
 /**
