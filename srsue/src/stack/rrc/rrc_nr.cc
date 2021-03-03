@@ -629,8 +629,6 @@ bool rrc_nr::apply_drb_add_mod(const drb_to_add_mod_s& drb_cfg)
   }
 
   srslte::pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cfg.drb_id, true, drb_cfg.pdcp_cfg);
-  // TODO: work-around: this is only a work around for pdcp lte entity init
-  pdcp_cfg.discard_timer = pdcp_discard_timer_t::infinity;
   pdcp->add_bearer(lcid, pdcp_cfg);
   gw->update_lcid(eps_bearer_id, lcid);
   return true;
