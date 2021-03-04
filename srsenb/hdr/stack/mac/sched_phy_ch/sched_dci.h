@@ -22,6 +22,11 @@ struct tbs_info {
   int mcs       = 0;
 };
 
+/**
+ * Compute MCS, TBS based on CQI, N_prb
+ * \remark See TS 36.213 - Table 7.1.7.1-1/1A
+ * @return resulting TBS (in bytes) and mcs. TBS=-1 if no valid solution was found.
+ */
 tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
                              uint32_t nof_re,
                              uint32_t cqi,
@@ -29,6 +34,20 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
                              bool     is_ul,
                              bool     ulqam64_enabled,
                              bool     use_tbs_index_alt);
+
+/**
+ * Compute lowest MCS, TBS based on CQI, N_prb that satisfies TBS >= req_bytes
+ * \remark See TS 36.213 - Table 7.1.7.1-1/1A
+ * @return resulting TBS (in bytes) and mcs. TBS=-1 if no valid solution was found.
+ */
+tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
+                                                     uint32_t nof_re,
+                                                     uint32_t cqi,
+                                                     uint32_t max_mcs,
+                                                     uint32_t req_bytes,
+                                                     bool     is_ul,
+                                                     bool     ulqam64_enabled,
+                                                     bool     use_tbs_index_alt);
 
 } // namespace srsenb
 

@@ -221,122 +221,45 @@ std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y
   return false_position_method(x1, x2, y0, f, [](int x) { return false; });
 }
 
-float diff_coderate_maxcoderate(int      mcs,
-                                uint32_t nof_prb,
-                                uint32_t nof_re,
-                                uint32_t max_Qm,
-                                float    max_coderate,
-                                bool     use_tbs_index_alt,
-                                bool     is_ul)
+/**
+ * In this scheduler we tend to use all the available bandwidth and select the MCS
+ * that approximates the minimum between the capacity and the requested rate
+ */
+tbs_info cqi_to_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes, bool is_ul)
 {
-  uint32_t     tbs_idx  = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
-  int          tbs      = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
-  float        coderate = srslte_coderate(tbs, nof_re);
-  srslte_mod_t mod      = (is_ul) ? srslte_ra_ul_mod_from_mcs(mcs) : srslte_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
-  uint32_t     Qm       = std::min(max_Qm, srslte_mod_bits_x_symbol(mod));
-  return coderate - std::min(max_coderate, 0.930f * Qm);
-}
+  // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
+  using ul64qam_cap          = sched_interface::ue_cfg_t::ul64qam_cap;
+  uint32_t cqi               = (is_ul) ? cell.ul_cqi : cell.dl_cqi;
+  uint32_t max_mcs           = (is_ul) ? cell.max_mcs_ul : cell.max_mcs_dl;
+  bool     ulqam64_enabled   = is_ul and cell.get_ue_cfg()->support_ul64qam == ul64qam_cap::enabled;
+  bool     use_tbs_index_alt = not is_ul and cell.get_ue_cfg()->use_tbs_index_alt;
 
-tbs_info cqi_to_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, bool is_ul)
-{
-  using ul64qam_cap = sched_interface::ue_cfg_t::ul64qam_cap;
-  uint32_t max_Qm;
-  int      max_mcs;
-  float    max_coderate;
-  if (is_ul) {
-    max_mcs      = cell.max_mcs_ul;
-    max_Qm       = cell.get_ue_cfg()->support_ul64qam == ul64qam_cap::enabled ? 6 : 4;
-    max_coderate = srslte_cqi_to_coderate(std::min(cell.ul_cqi + 1u, 15u), false);
+  tbs_info tb;
+  if (req_bytes <= 0) {
+    tb = compute_mcs_and_tbs(nof_prb, nof_re, cqi, max_mcs, is_ul, ulqam64_enabled, use_tbs_index_alt);
   } else {
-    max_mcs      = cell.max_mcs_dl;
-    max_Qm       = cell.get_ue_cfg()->use_tbs_index_alt ? 8 : 6;
-    max_coderate = srslte_cqi_to_coderate(std::min(cell.dl_cqi + 1u, 15u), cell.get_ue_cfg()->use_tbs_index_alt);
+    tb = compute_min_mcs_and_tbs_from_required_bytes(
+        nof_prb, nof_re, cqi, max_mcs, req_bytes, is_ul, ulqam64_enabled, use_tbs_index_alt);
   }
-
-  // function with sign-flip at solution
-  auto test_mcs = [&](int sel_mcs) -> float {
-    return diff_coderate_maxcoderate(
-        sel_mcs, nof_prb, nof_re, max_Qm, max_coderate, cell.get_ue_cfg()->use_tbs_index_alt, is_ul);
-  };
-
-  std::tuple<int, float, int, float> ret;
-  if (nof_prb > 1) {
-    // for non-voip case
-    ret = false_position_method(0, max_mcs, 0.0f, test_mcs);
-  } else {
-    // avoid 6 prbs (voip case), where function is not monotonic
-    ret = false_position_method(7, max_mcs, 0.0f, test_mcs);
-    if (std::get<1>(ret) > 0) {
-      ret = false_position_method(0, 5, 0.0f, test_mcs);
-    }
-  }
-  tbs_info ret2;
-  ret2.mcs       = std::get<0>(ret);
-  ret2.tbs_bytes = get_tbs_bytes(ret2.mcs, nof_prb, cell.get_ue_cfg()->use_tbs_index_alt, is_ul);
-
-  tbs_info ret3 = compute_mcs_and_tbs(nof_prb,
-                                      nof_re,
-                                      (is_ul) ? cell.ul_cqi : cell.dl_cqi,
-                                      max_mcs,
-                                      is_ul,
-                                      is_ul and cell.get_ue_cfg()->support_ul64qam == ul64qam_cap::enabled,
-                                      not is_ul and cell.get_ue_cfg()->use_tbs_index_alt);
-  assert((ret3.mcs == ret2.mcs and ret3.tbs_bytes == ret2.tbs_bytes) or (std::get<0>(ret) == std::get<2>(ret)));
 
   // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
   // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
-
-  return ret2;
-}
-
-/* In this scheduler we tend to use all the available bandwidth and select the MCS
- * that approximates the minimum between the capacity and the requested rate
- */
-tbs_info alloc_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul)
-{
-  // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  tbs_info ret = cqi_to_tbs(cell, nof_prb, nof_re, is_ul);
-
-  /* If less bytes are requested, lower the MCS */
-  if (ret.tbs_bytes > (int)req_bytes && req_bytes > 0) {
-    int req_tbs_idx = srslte_ra_tbs_to_table_idx(req_bytes * 8, nof_prb);
-    int req_mcs     = srslte_ra_mcs_from_tbs_idx(req_tbs_idx, cell.get_ue_cfg()->use_tbs_index_alt, is_ul);
-    while (cell.get_ue_cfg()->use_tbs_index_alt and req_mcs < 0 and req_tbs_idx < 33) {
-      // some tbs_idx are invalid for 256QAM. See TS 36.213 - Table 7.1.7.1-1A
-      req_mcs = srslte_ra_mcs_from_tbs_idx(++req_tbs_idx, cell.get_ue_cfg()->use_tbs_index_alt, is_ul);
-    }
-
-    if (req_mcs >= 0 and req_mcs < (int)ret.mcs) {
-      uint32_t max_Qm =
-          (is_ul) ? (cell.get_ue_cfg()->support_ul64qam == sched_interface::ue_cfg_t::ul64qam_cap::enabled ? 6 : 4)
-                  : (cell.get_ue_cfg()->use_tbs_index_alt ? 8 : 6);
-      float max_coderate =
-          (is_ul) ? srslte_cqi_to_coderate(std::min(cell.ul_cqi + 1u, 15u), false)
-                  : srslte_cqi_to_coderate(std::min(cell.dl_cqi + 1u, 15u), cell.get_ue_cfg()->use_tbs_index_alt);
-      if (diff_coderate_maxcoderate(
-              req_mcs, nof_prb, nof_re, max_Qm, max_coderate, cell.get_ue_cfg()->use_tbs_index_alt, is_ul) < 0) {
-        ret.mcs       = req_mcs;
-        ret.tbs_bytes = srslte_ra_tbs_from_idx(req_tbs_idx, nof_prb) / 8;
-      }
-    }
-  }
-  // Avoid the unusual case n_prb=1, mcs=6 tbs=328 (used in voip)
-  if (nof_prb == 1 && ret.mcs == 6) {
-    ret.mcs--;
-    ret.tbs_bytes = get_tbs_bytes(ret.mcs, nof_prb, cell.get_ue_cfg()->use_tbs_index_alt, is_ul);
+  if (tb.tbs_bytes < 0) {
+    tb.mcs       = 0;
+    tb.tbs_bytes = get_tbs_bytes((uint32_t)tb.mcs, nof_prb, use_tbs_index_alt, is_ul);
   }
 
-  return ret;
+  return tb;
 }
 
-tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes)
+tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes)
 {
   tbs_info ret;
 
   // Use a higher MCS for the Msg4 to fit in the 6 PRB case
   if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi_rx) {
     // Dynamic MCS
-    ret = alloc_tbs(cell, nof_prb, nof_re, req_bytes, false);
+    ret = cqi_to_tbs(cell, nof_prb, nof_re, req_bytes, false);
   } else {
     // Fixed MCS
     ret.mcs       = cell.fixed_mcs_dl;
@@ -345,15 +268,14 @@ tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_
   return ret;
 }
 
-tbs_info
-alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs)
+tbs_info alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes, int explicit_mcs)
 {
   tbs_info ret;
   int      mcs = explicit_mcs >= 0 ? explicit_mcs : cell.fixed_mcs_ul;
 
   if (mcs < 0) {
     // Dynamic MCS
-    ret = alloc_tbs(cell, nof_prb, nof_re, req_bytes, true);
+    ret = cqi_to_tbs(cell, nof_prb, nof_re, req_bytes, true);
   } else {
     // Fixed MCS
     ret.mcs       = mcs;
@@ -367,7 +289,7 @@ int get_required_prb_dl(const sched_ue_cell& cell, tti_point tti_tx_dl, uint32_t
 {
   auto compute_tbs_approx = [tti_tx_dl, &cell](uint32_t nof_prb) {
     uint32_t nof_re = cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
-    tbs_info tb     = alloc_tbs_dl(cell, nof_prb, nof_re, 0);
+    tbs_info tb     = alloc_tbs_dl(cell, nof_prb, nof_re, -1);
     return tb.tbs_bytes;
   };
 
@@ -386,7 +308,7 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   auto compute_tbs_approx = [&cell](uint32_t nof_prb) {
     const uint32_t N_srs  = 0;
     uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell.cell_cfg->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
-    return alloc_tbs_ul(cell, nof_prb, nof_re, 0).tbs_bytes;
+    return alloc_tbs_ul(cell, nof_prb, nof_re, -1).tbs_bytes;
   };
 
   // find nof prbs that lead to a tbs just above req_bytes

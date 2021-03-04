@@ -263,7 +263,7 @@ int common_sched_tester::run_tti(const tti_ev& tti_events)
     ul_sched(to_tx_ul(tti_rx).to_uint(), i, tti_info.ul_sched_result[i]);
   }
 
-  process_results();
+  TESTASSERT(process_results() == SRSLTE_SUCCESS);
   tti_count++;
   return SRSLTE_SUCCESS;
 }
