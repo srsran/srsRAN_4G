@@ -131,18 +131,24 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
 {
   assert(req_bytes > 0);
 
-  // get max MCS/TBS
+  // get max MCS/TBS that meets max coderate requirements
   tbs_info tb_max = compute_mcs_and_tbs(nof_prb, nof_re, cqi, max_mcs, is_ul, ulqam64_enabled, use_tbs_index_alt);
   if (tb_max.tbs_bytes + 8 <= (int)req_bytes or tb_max.mcs == 0) {
     // if mcs cannot be lowered or a decrease in TBS index won't meet req_bytes requirement
     return tb_max;
   }
 
-  // get minimum MCS that leads to tbs < req_bytes (used as max_tbs)
+  // get maximum MCS that leads to tbs < req_bytes (used as max_tbs argument)
   int mcs_min = 0, tbs_idx_min = 0;
-  if (compute_mcs_from_max_tbs(nof_prb, req_bytes * 8u, max_mcs, is_ul, use_tbs_index_alt, mcs_min, tbs_idx_min) !=
+  // Note: we subtract -1 to required data to get an exclusive lower bound for maximum MCS. This works ok because
+  //       req_bytes * 8 is always even
+  if (compute_mcs_from_max_tbs(nof_prb, req_bytes * 8u - 1, max_mcs, is_ul, use_tbs_index_alt, mcs_min, tbs_idx_min) !=
       SRSLTE_SUCCESS) {
-    // Failed to compute minimum MCS
+    // Failed to compute maximum MCS that leads to TBS < req bytes. MCS=0 is likely a valid solution
+    tbs_info tb2 = compute_mcs_and_tbs(nof_prb, nof_re, cqi, 0, is_ul, ulqam64_enabled, use_tbs_index_alt);
+    if (tb2.tbs_bytes >= (int)req_bytes) {
+      return tb2;
+    }
     return tb_max;
   }
 

@@ -20,7 +20,17 @@ namespace srsenb {
 struct tbs_info {
   int tbs_bytes = -1;
   int mcs       = 0;
+  tbs_info()    = default;
+  tbs_info(int tbs_bytes_, int mcs_) : tbs_bytes(tbs_bytes_), mcs(mcs_) {}
 };
+inline bool operator==(const tbs_info& lhs, const tbs_info& rhs)
+{
+  return lhs.mcs == rhs.mcs and lhs.tbs_bytes == rhs.tbs_bytes;
+}
+inline bool operator!=(const tbs_info& lhs, const tbs_info& rhs)
+{
+  return not(lhs == rhs);
+}
 
 /**
  * Compute MCS, TBS based on CQI, N_prb
