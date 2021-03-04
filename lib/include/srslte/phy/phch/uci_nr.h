@@ -35,7 +35,6 @@ typedef struct {
 } srslte_uci_nr_args_t;
 
 typedef struct {
-  srslte_carrier_nr_t    carrier;
   srslte_polar_rm_t      rm_tx;
   srslte_polar_rm_t      rm_rx;
   srslte_polar_encoder_t encoder;
@@ -73,14 +72,6 @@ SRSLTE_API uint32_t srslte_uci_nr_crc_len(uint32_t A);
  * @return SRSLTE_SUCCESS if initialization is successful, SRSLTE_ERROR code otherwise
  */
 SRSLTE_API int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args);
-
-/**
- * @brief Sets NR carrier
- * @param[in,out] q NR-UCI object
- * @param carrier Provides carrier configuration
- * @return SRSLTE_SUCCESS if successful, SRSLTE_ERROR code otherwise
- */
-SRSLTE_API int srslte_uci_nr_set_carrier(srslte_uci_nr_t* q, const srslte_carrier_nr_t* carrier);
 
 /**
  * @brief Deallocates NR-UCI encoder/decoder object

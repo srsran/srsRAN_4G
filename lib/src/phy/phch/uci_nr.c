@@ -123,17 +123,6 @@ int srslte_uci_nr_init(srslte_uci_nr_t* q, const srslte_uci_nr_args_t* args)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_uci_nr_set_carrier(srslte_uci_nr_t* q, const srslte_carrier_nr_t* carrier)
-{
-  if (q == NULL || carrier == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  q->carrier = *carrier;
-
-  return SRSLTE_SUCCESS;
-}
-
 void srslte_uci_nr_free(srslte_uci_nr_t* q)
 {
   if (q == NULL) {
