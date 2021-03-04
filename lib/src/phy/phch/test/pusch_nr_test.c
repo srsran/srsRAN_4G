@@ -188,8 +188,8 @@ int main(int argc, char** argv)
   }
 
   pusch_cfg.scaling               = 0.5f;
-  pusch_cfg.beta_harq_ack_offset  = 1.500f;
-  pusch_cfg.beta_csi_part1_offset = 1.500f;
+  pusch_cfg.beta_harq_ack_offset  = 2.0f;
+  pusch_cfg.beta_csi_part1_offset = 2.0f;
 
   if (srslte_chest_dl_res_init(&chest, carrier.nof_prb) < SRSLTE_SUCCESS) {
     ERROR("Initiating chest");
@@ -231,15 +231,18 @@ int main(int argc, char** argv)
       }
 
       // Generate CSI report bits
-      uint8_t csi_report[SRSLTE_UCI_NR_MAX_CSI1_BITS];
+      uint8_t csi_report_tx[SRSLTE_UCI_NR_MAX_CSI1_BITS] = {};
+      uint8_t csi_report_rx[SRSLTE_UCI_NR_MAX_CSI1_BITS] = {};
       if (nof_csi_bits > 0) {
         pusch_cfg.uci.csi[0].quantity = SRSLTE_CSI_REPORT_QUANTITY_NONE;
         pusch_cfg.uci.csi[0].K_csi_rs = nof_csi_bits;
         pusch_cfg.uci.nof_csi         = 1;
-        data_tx->uci.csi[0].none      = csi_report;
+        data_tx->uci.csi[0].none      = csi_report_tx;
         for (uint32_t i = 0; i < nof_csi_bits; i++) {
-          csi_report[i] = (uint8_t)srslte_random_uniform_int_dist(rand_gen, 0, 1);
+          csi_report_tx[i] = (uint8_t)srslte_random_uniform_int_dist(rand_gen, 0, 1);
         }
+
+        data_rx->uci.csi[0].none = csi_report_rx;
       }
 
       if (srslte_pusch_nr_encode(&pusch_tx, &pusch_cfg, &pusch_cfg.grant, data_tx, sf_symbols) < SRSLTE_SUCCESS) {
@@ -321,6 +324,18 @@ int main(int argc, char** argv)
           srslte_vec_fprint_byte(stdout, data_tx[0].uci.ack, nof_ack_bits);
           printf("Rx data: ");
           srslte_vec_fprint_byte(stdout, data_rx[0].uci.ack, nof_ack_bits);
+          goto clean_exit;
+        }
+      }
+
+      // Validate CSI is decoded successfully
+      if (nof_csi_bits > 0) {
+        if (memcmp(data_tx[0].uci.csi[0].none, data_rx[0].uci.csi[0].none, nof_csi_bits) != 0) {
+          ERROR("UCI CSI bits are unmatched");
+          printf("Tx data: ");
+          srslte_vec_fprint_byte(stdout, data_tx[0].uci.csi[0].none, nof_csi_bits);
+          printf("Rx data: ");
+          srslte_vec_fprint_byte(stdout, data_rx[0].uci.csi[0].none, nof_csi_bits);
           goto clean_exit;
         }
       }

@@ -14,7 +14,9 @@
 #include "srslte/phy/mimo/layermap.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/phch/csi.h"
 #include "srslte/phy/phch/ra_nr.h"
+#include "srslte/phy/phch/uci_cfg.h"
 
 int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* args)
 {
@@ -33,19 +35,19 @@ int pusch_nr_init_common(srslte_pusch_nr_t* q, const srslte_pusch_nr_args_t* arg
     return SRSLTE_ERROR;
   }
 
-  q->g_ulsch = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
-  q->g_ack   = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
-  q->g_csi1  = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
-  q->g_csi2  = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
+  q->g_ulsch = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+  q->g_ack   = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+  q->g_csi1  = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+  q->g_csi2  = srslte_vec_u8_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
   if (q->g_ack == NULL || q->g_csi1 == NULL || q->g_csi2 == NULL || q->g_ulsch == NULL) {
     ERROR("Malloc");
     return SRSLTE_ERROR;
   }
 
-  q->pos_ulsch = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
-  q->pos_ack   = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
-  q->pos_csi1  = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
-  q->pos_csi2  = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_LEN_RE_NR);
+  q->pos_ulsch = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+  q->pos_ack   = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+  q->pos_csi1  = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
+  q->pos_csi2  = srslte_vec_u32_malloc(SRSLTE_SLOT_MAX_NOF_BITS_NR);
   if (q->pos_ack == NULL || q->pos_csi1 == NULL || q->pos_csi2 == NULL || q->pos_ulsch == NULL) {
     ERROR("Malloc");
     return SRSLTE_ERROR;
@@ -566,13 +568,13 @@ static inline int pusch_nr_fill_uci_cfg(srslte_pusch_nr_t* q, const srslte_sch_c
   }
 
   // Set other PUSCH parameters
-  q->uci_cfg.pusch.modulation            = cfg->grant.tb[0].mod;
-  q->uci_cfg.pusch.nof_layers            = cfg->grant.nof_layers;
-  q->uci_cfg.pusch.R                     = (float)cfg->grant.tb[0].R;
-  q->uci_cfg.pusch.alpha                 = cfg->scaling;
-  q->uci_cfg.pusch.beta_harq_ack_offset  = cfg->beta_harq_ack_offset;
-  q->uci_cfg.pusch.beta_csi_part1_offset = cfg->beta_csi_part1_offset;
-  q->uci_cfg.pusch.nof_re                = cfg->grant.tb[0].nof_re;
+  q->uci_cfg.pusch.modulation           = cfg->grant.tb[0].mod;
+  q->uci_cfg.pusch.nof_layers           = cfg->grant.nof_layers;
+  q->uci_cfg.pusch.R                    = (float)cfg->grant.tb[0].R;
+  q->uci_cfg.pusch.alpha                = cfg->scaling;
+  q->uci_cfg.pusch.beta_harq_ack_offset = cfg->beta_harq_ack_offset;
+  q->uci_cfg.pusch.beta_csi1_offset     = cfg->beta_csi_part1_offset;
+  q->uci_cfg.pusch.nof_re               = cfg->grant.tb[0].nof_re;
 
   return SRSLTE_SUCCESS;
 }
@@ -685,27 +687,33 @@ static int pusch_nr_gen_mux_uci(srslte_pusch_nr_t* q, const srslte_uci_cfg_nr_t*
     uint32_t ulsch_m_re_count = M_uci_sc;
 
     for (uint32_t i = 0, csi1_i = 0, csi2_i = 0; i < cfg->pusch.M_pusch_sc[l]; i++) {
+      // Check if RE is reserved for ACK
+      bool reserved = false;
+      if (ack_m_re_count != 0 && i % ack_d == 0 && m_ack_count < G_ack_rvd) {
+        reserved = true;
+      }
+
       if (ack_m_re_count != 0 && i % ack_d == 0 && m_ack_count < G_ack) {
         for (uint32_t j = 0; j < Nl * Qm; j++) {
-          pos_ack[m_ack_count++] = m_all_count++;
+          pos_ack[m_ack_count++] = m_all_count + j;
         }
         ack_m_re_count--;
-      } else if (csi1_m_re_count != 0 && csi1_i % csi1_d == 0 && m_csi1_count < G_csi1) {
+      } else if (!reserved && csi1_m_re_count != 0 && csi1_i % csi1_d == 0 && m_csi1_count < G_csi1) {
         for (uint32_t j = 0; j < Nl * Qm; j++) {
-          pos_csi1[m_csi1_count++] = m_all_count++;
+          pos_csi1[m_csi1_count++] = m_all_count + j;
         }
         csi1_m_re_count--;
         csi1_i++;
       } else if (csi2_m_re_count != 0 && csi2_i % csi2_d == 0 && m_csi2_count < G_csi2) {
         for (uint32_t j = 0; j < Nl * Qm; j++) {
-          pos_csi2[m_csi2_count++] = m_all_count++;
+          pos_csi2[m_csi2_count++] = m_all_count + j;
         }
         csi2_m_re_count--;
         csi1_i++;
         csi2_i++;
       } else {
         for (uint32_t j = 0; j < Nl * Qm; j++) {
-          pos_ulsch[m_ulsch_count++] = m_all_count++;
+          pos_ulsch[m_ulsch_count++] = m_all_count + j;
         }
         ulsch_m_re_count--;
         csi1_i++;
@@ -713,12 +721,15 @@ static int pusch_nr_gen_mux_uci(srslte_pusch_nr_t* q, const srslte_uci_cfg_nr_t*
       }
 
       // Set reserved bits
-      if (ack_m_re_count != 0 && i % ack_d == 0 && m_ack_count < G_ack_rvd) {
+      if (reserved) {
         for (uint32_t j = 0; j < Nl * Qm; j++) {
-          pos_ack[m_ack_count++] = m_all_count++;
+          pos_ack[m_ack_count++] = m_all_count + j;
         }
         ack_m_re_count--;
       }
+
+      // Increment all bit counter
+      m_all_count += Nl * Qm;
     }
 
     // Assert that all RE have been allocated
@@ -806,8 +817,18 @@ static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*           q,
     ERROR("Error encoding HARQ-ACK bits");
     return SRSLTE_ERROR;
   }
-  q->G_ack  = E_uci_ack;
-  q->G_csi1 = 0;
+  q->G_ack = (uint32_t)E_uci_ack;
+
+  // Encode CSI part 1
+  int E_uci_csi1 = srslte_uci_nr_encode_pusch_csi1(&q->uci, &q->uci_cfg, uci, q->g_csi1);
+  if (E_uci_csi1 < SRSLTE_SUCCESS) {
+    ERROR("Error encoding HARQ-ACK bits");
+    return SRSLTE_ERROR;
+  }
+  q->G_csi1 = (uint32_t)E_uci_csi1;
+
+  // Encode CSI part 2
+  // ... Not implemented
   q->G_csi2 = 0;
 
   // Generate PUSCH UCI/UL-SCH multiplexing
@@ -850,6 +871,20 @@ static inline int pusch_nr_encode_codeword(srslte_pusch_nr_t*           q,
   // 7.3.1.1 Scrambling
   uint32_t cinit = pusch_nr_cinit(&q->carrier, cfg, rnti, tb->cw_idx);
   srslte_sequence_apply_bit(q->b[tb->cw_idx], q->b[tb->cw_idx], tb->nof_bits, cinit);
+
+  // Special Scrambling condition
+  if (q->uci_cfg.o_ack <= 2) {
+    for (uint32_t i = 0; i < q->G_ack; i++) {
+      uint32_t idx = q->pos_ack[i];
+      if (q->g_ack[i] == (uint8_t)UCI_BIT_REPETITION) {
+        if (idx != 0) {
+          q->b[tb->cw_idx][idx] = q->b[tb->cw_idx][idx - 1];
+        }
+      } else if (q->g_ack[i] == (uint8_t)UCI_BIT_PLACEHOLDER) {
+        q->b[tb->cw_idx][idx] = 1;
+      }
+    }
+  }
 
   // 7.3.1.2 Modulation
   srslte_mod_modulate(&q->modem_tables[tb->mod], q->b[tb->cw_idx], q->d[tb->cw_idx], tb->nof_bits);
@@ -964,14 +999,24 @@ static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
     srslte_vec_fprint_c(stdout, q->d[tb->cw_idx], tb->nof_re);
   }
 
-  // Calculate UCI bits
+  // Calculate HARQ-ACK bits
   int n = srslte_uci_nr_pusch_ack_nof_bits(&q->uci_cfg.pusch, q->uci_cfg.o_ack);
   if (n < SRSLTE_SUCCESS) {
     ERROR("Calculating G_ack");
     return SRSLTE_ERROR;
   }
-  q->G_ack  = (uint32_t)n;
-  q->G_csi1 = 0;
+  q->G_ack = (uint32_t)n;
+
+  // Calculate CSI part 1 bits
+  n = srslte_uci_nr_pusch_csi1_nof_bits(&q->uci_cfg);
+  if (n < SRSLTE_SUCCESS) {
+    ERROR("Calculating G_csi1");
+    return SRSLTE_ERROR;
+  }
+  q->G_csi1 = (uint32_t)n;
+
+  // Calculate CSI part 2 bits
+  // ... Not implemented
   q->G_csi2 = 0;
 
   // Generate PUSCH UCI/UL-SCH multiplexing
@@ -1041,6 +1086,17 @@ static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
       return SRSLTE_ERROR;
     }
   }
+
+  // Decode CSI part 1
+  if (q->G_csi1) {
+    if (srslte_uci_nr_decode_pusch_csi1(&q->uci, &q->uci_cfg, g_csi1, &res->uci)) {
+      ERROR("Error in UCI decoding");
+      return SRSLTE_ERROR;
+    }
+  }
+
+  // Decode CSI part 2
+  // ... Not implemented
 
   return SRSLTE_SUCCESS;
 }

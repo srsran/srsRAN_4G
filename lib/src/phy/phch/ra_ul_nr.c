@@ -373,7 +373,7 @@ int srslte_ra_ul_nr_pucch_format_2_3_min_prb(const srslte_pucch_nr_resource_t* r
   }
 
   // Compute total number of UCI bits
-  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + srslte_csi_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+  uint32_t O_total = uci_cfg->o_ack + uci_cfg->o_sr + srslte_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
 
   // Add CRC bits if any
   O_total += srslte_uci_nr_crc_len(O_total);

@@ -123,7 +123,7 @@ int get_code_params(srslte_polar_code_t* c, const uint16_t K, const uint16_t E, 
   }
 
   if (K + nPC >= E) {
-    ERROR(" Rate-matched codeword length (E) not supported, choose E > %d", K + nPC);
+    ERROR(" Rate-matched codeword length (E=%d) not supported, choose E > %d", E, K + nPC);
     return -1;
   }
 

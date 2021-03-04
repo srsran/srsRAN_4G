@@ -33,7 +33,7 @@
  * @brief Maximum number of Channel State Information part 1 (CSI1) bits that can be carried in Uplink Control
  * Information (UCI) message
  */
-#define SRSLTE_UCI_NR_MAX_CSI1_BITS 10
+#define SRSLTE_UCI_NR_MAX_CSI1_BITS 360
 
 /**
  * @brief Uplink Control Information bits configuration for PUCCH transmission
@@ -61,8 +61,9 @@ typedef struct {
   float        R;                                    ///< Code rate of the PUSCH
   float        alpha;                                ///< Higher layer parameter scaling
   float        beta_harq_ack_offset;
-  float        beta_csi_part1_offset;
+  float        beta_csi1_offset;
   uint32_t     nof_re;
+  bool         csi_part2_present;
 } srslte_uci_nr_pusch_cfg_t;
 
 /**

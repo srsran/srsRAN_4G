@@ -12,6 +12,7 @@
 #include "srslte/phy/phch/csi.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 #include <math.h>
 
 #define CSI_WIDEBAND_CSI_NOF_BITS 4
@@ -82,9 +83,9 @@ static uint32_t csi_wideband_cri_ri_pmi_cqi_nof_bits(const srslte_csi_report_cfg
   return 0;
 }
 
-static int csi_wideband_cri_ri_pmi_cqi_pack(const srslte_csi_report_cfg_t*   cfg,
-                                            const srslte_csi_report_value_t* value,
-                                            uint8_t*                         o_csi1)
+static uint32_t csi_wideband_cri_ri_pmi_cqi_pack(const srslte_csi_report_cfg_t*   cfg,
+                                                 const srslte_csi_report_value_t* value,
+                                                 uint8_t*                         o_csi1)
 {
   // Compute number of bits for CRI
   uint32_t nof_bits_cri = 0;
@@ -99,6 +100,46 @@ static int csi_wideband_cri_ri_pmi_cqi_pack(const srslte_csi_report_cfg_t*   cfg
   srslte_bit_unpack(value->cri, &o_csi1, nof_bits_cri);
 
   return nof_bits_cri + CSI_WIDEBAND_CSI_NOF_BITS;
+}
+
+static uint32_t csi_wideband_cri_ri_pmi_cqi_unpack(const srslte_csi_report_cfg_t* cfg,
+                                                   uint8_t*                       o_csi1,
+                                                   srslte_csi_report_value_t*     value)
+{
+  // Compute number of bits for CRI
+  uint32_t nof_bits_cri = 0;
+  if (cfg->K_csi_rs > 0) {
+    nof_bits_cri = (uint32_t)ceilf(log2f((float)cfg->K_csi_rs));
+  }
+
+  // Write wideband CQI
+  value->wideband_cri_ri_pmi_cqi.cqi = srslte_bit_pack(&o_csi1, CSI_WIDEBAND_CSI_NOF_BITS);
+
+  // Compute number of bits for CRI and write
+  value->cri = srslte_bit_pack(&o_csi1, nof_bits_cri);
+
+  return nof_bits_cri + CSI_WIDEBAND_CSI_NOF_BITS;
+}
+
+static uint32_t csi_none_nof_bits(const srslte_csi_report_cfg_t* cfg)
+{
+  return cfg->K_csi_rs;
+}
+
+static uint32_t
+csi_none_pack(const srslte_csi_report_cfg_t* cfg, const srslte_csi_report_value_t* value, uint8_t* o_csi1)
+{
+  srslte_vec_u8_copy(o_csi1, (uint8_t*)value->none, cfg->K_csi_rs);
+
+  return cfg->K_csi_rs;
+}
+
+static uint32_t
+csi_none_unpack(const srslte_csi_report_cfg_t* cfg, const uint8_t* o_csi1, srslte_csi_report_value_t* value)
+{
+  srslte_vec_u8_copy((uint8_t*)value->none, o_csi1, cfg->K_csi_rs);
+
+  return cfg->K_csi_rs;
 }
 
 int srslte_csi_generate_reports(const srslte_csi_hl_cfg_t*      cfg,
@@ -152,7 +193,7 @@ int srslte_csi_generate_reports(const srslte_csi_hl_cfg_t*      cfg,
   return (int)count;
 }
 
-int srslte_csi_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports)
+int srslte_csi_part1_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports)
 {
   uint32_t count = 0;
 
@@ -166,6 +207,8 @@ int srslte_csi_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof
     const srslte_csi_report_cfg_t* report = &report_list[i];
     if (report->quantity && report->quantity == SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
       count += csi_wideband_cri_ri_pmi_cqi_nof_bits(report);
+    } else if (report->quantity == SRSLTE_CSI_REPORT_QUANTITY_NONE) {
+      count += csi_none_nof_bits(report);
     }
   }
 
@@ -198,7 +241,7 @@ int srslte_csi_part1_pack(const srslte_csi_report_cfg_t*   report_cfg,
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  int n = srslte_csi_nof_bits(report_cfg, nof_reports);
+  int n = srslte_csi_part1_nof_bits(report_cfg, nof_reports);
   if (n > (int)max_o_csi1) {
     ERROR("The maximum number of CSI bits (%d) is not enough to accommodate %d bits", max_o_csi1, n);
     return SRSLTE_ERROR;
@@ -208,6 +251,42 @@ int srslte_csi_part1_pack(const srslte_csi_report_cfg_t*   report_cfg,
     if (report_cfg[i].freq_cfg == SRSLTE_CSI_REPORT_FREQ_WIDEBAND &&
         report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
       count += csi_wideband_cri_ri_pmi_cqi_pack(&report_cfg[i], &report_value[i], &o_csi1[count]);
+    } else if (report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_NONE) {
+      count += csi_none_pack(&report_cfg[i], &report_value[i], &o_csi1[count]);
+    } else {
+      ERROR("CSI frequency (%d) and quantity (%d) combination is not implemented",
+            report_cfg[i].freq_cfg,
+            report_cfg[i].quantity);
+    }
+  }
+
+  return (int)count;
+}
+
+int srslte_csi_part1_unpack(const srslte_csi_report_cfg_t* report_cfg,
+                            uint32_t                       nof_reports,
+                            uint8_t*                       o_csi1,
+                            uint32_t                       max_o_csi1,
+                            srslte_csi_report_value_t*     report_value)
+{
+  uint32_t count = 0;
+
+  if (report_cfg == NULL || report_value == NULL || o_csi1 == NULL) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  int n = srslte_csi_part1_nof_bits(report_cfg, nof_reports);
+  if (n > (int)max_o_csi1) {
+    ERROR("The maximum number of CSI bits (%d) is not enough to accommodate %d bits", max_o_csi1, n);
+    return SRSLTE_ERROR;
+  }
+
+  for (uint32_t i = 0; i < nof_reports && count < max_o_csi1; i++) {
+    if (report_cfg[i].freq_cfg == SRSLTE_CSI_REPORT_FREQ_WIDEBAND &&
+        report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
+      count += csi_wideband_cri_ri_pmi_cqi_unpack(&report_cfg[i], &o_csi1[count], &report_value[i]);
+    } else if (report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_NONE) {
+      count += csi_none_unpack(&report_cfg[i], &o_csi1[count], &report_value[i]);
     } else {
       ERROR("CSI frequency (%d) and quantity (%d) combination is not implemented",
             report_cfg[i].freq_cfg,
@@ -229,6 +308,10 @@ uint32_t srslte_csi_str(const srslte_csi_report_cfg_t*   report_cfg,
     if (report_cfg[i].freq_cfg == SRSLTE_CSI_REPORT_FREQ_WIDEBAND &&
         report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
       len = srslte_print_check(str, str_len, len, ", cqi=%d", report_value[i].wideband_cri_ri_pmi_cqi.cqi);
+    } else if (report_cfg[i].quantity == SRSLTE_CSI_REPORT_QUANTITY_NONE) {
+      char tmp[20] = {};
+      srslte_vec_sprint_bin(tmp, sizeof(tmp), report_value[i].none, report_cfg->K_csi_rs);
+      len = srslte_print_check(str, str_len, len, ", csi=%s", tmp);
     }
   }
   return len;

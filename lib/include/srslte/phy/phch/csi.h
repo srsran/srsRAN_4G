@@ -35,7 +35,7 @@ SRSLTE_API int srslte_csi_generate_reports(const srslte_csi_hl_cfg_t*      cfg,
  * @param nof_reports Number of CSI reports in the list
  * @return The number of bits if the provided list is valid, SRSLTE_ERROR code otherwise
  */
-SRSLTE_API int srslte_csi_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports);
+SRSLTE_API int srslte_csi_part1_nof_bits(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports);
 
 /**
  * @brief Checks if the report list contains part 2 CSI report
@@ -46,7 +46,7 @@ SRSLTE_API int srslte_csi_nof_bits(const srslte_csi_report_cfg_t* report_list, u
 SRSLTE_API bool srslte_csi_has_part2(const srslte_csi_report_cfg_t* report_list, uint32_t nof_reports);
 
 /**
- * @brief Pack CSI part 1 bits for a PUCCH transmission
+ * @brief Pack CSI part 1 bits for a PUCCH or PUSCH transmission
  * @param report_list Provides the CSI report list
  * @param nof_reports Number of CSI reports in the list
  * @param o_csi1 CSI bits
@@ -58,6 +58,21 @@ SRSLTE_API int srslte_csi_part1_pack(const srslte_csi_report_cfg_t*   report_cfg
                                      uint32_t                         nof_reports,
                                      uint8_t*                         o_csi1,
                                      uint32_t                         max_o_csi1);
+
+/**
+ *@brief Unpacks CSI part 1 bits for PUCCH or PUSCH transmission
+ * @param report_list Provides the CSI report list
+ * @param nof_reports Number of CSI reports in the list
+ * @param o_csi1 CSI bits
+ * @param max_o_csi1 Maximum number of CSI bits
+ * @param report_value
+ * @return SRSLTE_SUCCESS if provided data is valid, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_csi_part1_unpack(const srslte_csi_report_cfg_t* report_cfg,
+                                       uint32_t                       nof_reports,
+                                       uint8_t*                       o_csi1,
+                                       uint32_t                       max_o_csi1,
+                                       srslte_csi_report_value_t*     report_value);
 
 /**
  * @brief Converts to string a given list of CSI reports
