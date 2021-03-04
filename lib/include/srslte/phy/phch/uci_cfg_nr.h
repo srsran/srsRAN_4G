@@ -53,14 +53,13 @@ typedef struct {
 typedef struct {
   uint32_t     l0; ///< First OFDM symbol that does not carry DMRS of the PUSCH, after the first DMRS symbol(s)
   uint32_t     l1; ///< OFDM symbol index of the first OFDM symbol that does not carry DMRS
-  uint32_t     M_pusch_sc[SRSLTE_NSYMB_PER_SLOT_NR];     ///< Number of potential RE for PUSCH transmission
-  uint32_t     M_pusch_sc_acc[SRSLTE_NSYMB_PER_SLOT_NR]; ///< Number of potential RE for PUSCH before the symbol
-  uint32_t     M_uci_sc[SRSLTE_NSYMB_PER_SLOT_NR];       ///< Number of potential RE for UCI transmission
-  uint32_t     K_sum;                                    ///< Sum of UL-SCH code block sizes, set to zero if no UL-SCH
-  srslte_mod_t modulation;                               ///< Modulation for the PUSCH
-  uint32_t     nof_layers;                               ///< Number of layers for PUSCH
-  float        R;                                        ///< Code rate of the PUSCH
-  float        alpha;                                    ///< Higher layer parameter scaling
+  uint32_t     M_pusch_sc[SRSLTE_NSYMB_PER_SLOT_NR]; ///< Number of potential RE for PUSCH transmission
+  uint32_t     M_uci_sc[SRSLTE_NSYMB_PER_SLOT_NR];   ///< Number of potential RE for UCI transmission
+  uint32_t     K_sum;                                ///< Sum of UL-SCH code block sizes, set to zero if no UL-SCH
+  srslte_mod_t modulation;                           ///< Modulation for the PUSCH
+  uint32_t     nof_layers;                           ///< Number of layers for PUSCH
+  float        R;                                    ///< Code rate of the PUSCH
+  float        alpha;                                ///< Higher layer parameter scaling
   float        beta_harq_ack_offset;
   float        beta_csi_part1_offset;
   uint32_t     nof_re;

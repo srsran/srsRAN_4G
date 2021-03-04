@@ -187,9 +187,9 @@ int main(int argc, char** argv)
     mcs_end   = SRSLTE_MIN(mcs + 1, mcs_end);
   }
 
-  pusch_cfg.scaling               = 0.650f;
-  pusch_cfg.beta_harq_ack_offset  = 5.000f;
-  pusch_cfg.beta_csi_part1_offset = 5.000f;
+  pusch_cfg.scaling               = 0.5f;
+  pusch_cfg.beta_harq_ack_offset  = 1.500f;
+  pusch_cfg.beta_csi_part1_offset = 1.500f;
 
   if (srslte_chest_dl_res_init(&chest, carrier.nof_prb) < SRSLTE_SUCCESS) {
     ERROR("Initiating chest");
@@ -201,6 +201,7 @@ int main(int argc, char** argv)
       for (uint32_t n = 0; n < SRSLTE_MAX_PRB_NR; n++) {
         pusch_cfg.grant.prb_idx[n] = (n < n_prb);
       }
+      pusch_cfg.grant.nof_prb = n_prb;
 
       pusch_cfg.grant.dci_format = srslte_dci_format_nr_0_0;
       if (srslte_ra_nr_fill_tb(&pusch_cfg, &pusch_cfg.grant, mcs, &pusch_cfg.grant.tb[0]) < SRSLTE_SUCCESS) {
@@ -288,11 +289,13 @@ int main(int argc, char** argv)
         goto clean_exit;
       }
 
+      // Validate UL-SCH CRC check
       if (!data_rx[0].crc) {
         ERROR("Failed to match CRC; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_cfg.grant.tb[0].tbs);
         goto clean_exit;
       }
 
+      // Validate UL-SCH payload
       if (memcmp(data_tx[0].payload, data_rx[0].payload, pusch_cfg.grant.tb[0].tbs / 8) != 0) {
         ERROR("Failed to match Tx/Rx data; n_prb=%d; mcs=%d; TBS=%d;", n_prb, mcs, pusch_cfg.grant.tb[0].tbs);
         printf("Tx data: ");
@@ -300,6 +303,26 @@ int main(int argc, char** argv)
         printf("Rx data: ");
         srslte_vec_fprint_byte(stdout, data_tx[0].payload, pusch_cfg.grant.tb[0].tbs / 8);
         goto clean_exit;
+      }
+
+      // Validate UCI is decoded successfully
+      if (nof_ack_bits > 0 || nof_csi_bits > 0) {
+        if (!data_rx[0].uci.valid) {
+          ERROR("UCI data was not decoded ok");
+          goto clean_exit;
+        }
+      }
+
+      // Validate HARQ-ACK is decoded successfully
+      if (nof_ack_bits > 0) {
+        if (memcmp(data_tx[0].uci.ack, data_rx[0].uci.ack, nof_ack_bits) != 0) {
+          ERROR("UCI HARQ-ACK bits are unmatched");
+          printf("Tx data: ");
+          srslte_vec_fprint_byte(stdout, data_tx[0].uci.ack, nof_ack_bits);
+          printf("Rx data: ");
+          srslte_vec_fprint_byte(stdout, data_rx[0].uci.ack, nof_ack_bits);
+          goto clean_exit;
+        }
       }
 
       printf("n_prb=%d; mcs=%d; TBS=%d; EVM=%f; PASSED!\n", n_prb, mcs, pusch_cfg.grant.tb[0].tbs, data_rx[0].evm);

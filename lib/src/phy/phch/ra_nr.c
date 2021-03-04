@@ -310,16 +310,13 @@ int srslte_ra_dl_nr_slot_nof_re(const srslte_sch_cfg_nr_t* pdsch_cfg, const srsl
   return SRSLTE_MIN(SRSLTE_MAX_NRE_NR, n_re_prime) * n_prb;
 }
 
-#define CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
-#define FLOOR(NUM, DEN) ((NUM) / (DEN))
-#define ROUND(NUM, DEN) ((uint32_t)round((NUM) / (DEN)))
 #define POW2(N) (1U << (N))
 
 static uint32_t ra_nr_tbs_from_n_info3(uint32_t n_info)
 {
   // quantized intermediate number of information bits
   uint32_t n            = (uint32_t)SRSLTE_MAX(3.0, floor(log2(n_info)) - 6.0);
-  uint32_t n_info_prime = SRSLTE_MAX(ra_nr_tbs_table[0], POW2(n) * FLOOR(n_info, POW2(n)));
+  uint32_t n_info_prime = SRSLTE_MAX(ra_nr_tbs_table[0], POW2(n) * SRSLTE_FLOOR(n_info, POW2(n)));
 
   // use Table 5.1.3.2-1 find the closest TBS that is not less than n_info_prime
   for (uint32_t i = 0; i < RA_NR_TBS_SIZE_TABLE; i++) {
@@ -335,19 +332,19 @@ static uint32_t ra_nr_tbs_from_n_info4(uint32_t n_info, double R)
 {
   // quantized intermediate number of information bits
   uint32_t n            = (uint32_t)(floor(log2(n_info - 24.0)) - 5.0);
-  uint32_t n_info_prime = SRSLTE_MAX(3840, POW2(n) * ROUND(n_info - 24.0, POW2(n)));
+  uint32_t n_info_prime = SRSLTE_MAX(3840, POW2(n) * SRSLTE_ROUND(n_info - 24.0, POW2(n)));
 
   if (R <= 0.25) {
-    uint32_t C = CEIL(n_info_prime + 24U, 3816U);
-    return 8U * C * CEIL(n_info_prime + 24U, 8U * C) - 24U;
+    uint32_t C = SRSLTE_CEIL(n_info_prime + 24U, 3816U);
+    return 8U * C * SRSLTE_CEIL(n_info_prime + 24U, 8U * C) - 24U;
   }
 
   if (n_info_prime > 8424) {
-    uint32_t C = CEIL(n_info_prime + 24U, 8424U);
-    return 8U * C * CEIL(n_info_prime + 24U, 8U * C) - 24U;
+    uint32_t C = SRSLTE_CEIL(n_info_prime + 24U, 8424U);
+    return 8U * C * SRSLTE_CEIL(n_info_prime + 24U, 8U * C) - 24U;
   }
 
-  return 8U * CEIL(n_info_prime + 24U, 8U) - 24U;
+  return 8U * SRSLTE_CEIL(n_info_prime + 24U, 8U) - 24U;
 }
 
 /**

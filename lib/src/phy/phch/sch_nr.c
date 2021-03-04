@@ -131,7 +131,6 @@ int srslte_sch_nr_fill_tb_info(const srslte_carrier_nr_t* carrier,
   return SRSLTE_SUCCESS;
 }
 
-#define CEIL(NUM, DEN) (((NUM) + ((DEN)-1)) / (DEN))
 #define MOD(NUM, DEN) ((NUM) % (DEN))
 
 static inline uint32_t sch_nr_get_E(const srslte_sch_nr_tb_info_t* cfg, uint32_t j)
@@ -144,7 +143,7 @@ static inline uint32_t sch_nr_get_E(const srslte_sch_nr_tb_info_t* cfg, uint32_t
   if (j <= (cfg->Cp - MOD(cfg->G / (cfg->Nl * cfg->Qm), cfg->Cp) - 1)) {
     return cfg->Nl * cfg->Qm * (cfg->G / (cfg->Nl * cfg->Qm * cfg->Cp));
   }
-  return cfg->Nl * cfg->Qm * CEIL(cfg->G, cfg->Nl * cfg->Qm * cfg->Cp);
+  return cfg->Nl * cfg->Qm * SRSLTE_CEIL(cfg->G, cfg->Nl * cfg->Qm * cfg->Cp);
 }
 
 static inline int sch_nr_init_common(srslte_sch_nr_t* q)

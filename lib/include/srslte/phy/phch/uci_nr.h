@@ -156,6 +156,19 @@ SRSLTE_API int srslte_uci_nr_encode_pusch_ack(srslte_uci_nr_t*             q,
                                               uint8_t*                     o_ack);
 
 /**
+ * @brief Decodes HARQ-ACK bits for PUSCH transmission
+ * @param[in,out] q NR-UCI object
+ * @param[in] cfg UCI configuration
+ * @param[in] llr Provides softbits LLR
+ * @param[out] value UCI value
+ * @return SRSLTE_SUCCESS if the decoding process was successful, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_uci_nr_decode_pusch_ack(srslte_uci_nr_t*           q,
+                                              const srslte_uci_cfg_nr_t* cfg,
+                                              int8_t*                    llr,
+                                              srslte_uci_value_nr_t*     value);
+
+/**
  * @brief Calculates the total number of UCI bits
  * @param uci_cfg UCI configuration
  * @return The number of total bits carrying HARQ ACK, CSI reports and SR bits

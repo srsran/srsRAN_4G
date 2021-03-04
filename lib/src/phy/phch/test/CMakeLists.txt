@@ -631,6 +631,8 @@ add_nr_test(pdsch_nr_test pdsch_nr_test -p 6 -m 20)
 add_executable(pusch_nr_test pusch_nr_test.c)
 target_link_libraries(pusch_nr_test srslte_phy)
 add_nr_test(pusch_nr_test pusch_nr_test -p 6 -m 20)
+add_nr_test(pusch_nr_ack_4_test pusch_nr_test -p 50 -m 20 -A 4)
+add_nr_test(pusch_nr_ack_20_test pusch_nr_test -p 50 -m 20 -A 20)
 
 add_executable(pdcch_nr_test pdcch_nr_test.c)
 target_link_libraries(pdcch_nr_test srslte_phy)

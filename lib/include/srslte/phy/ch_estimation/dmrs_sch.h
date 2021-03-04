@@ -21,6 +21,12 @@
 #define SRSLTE_DMRS_SCH_MAX_SYMBOLS 4
 
 /**
+ * @brief Helper macro for counting the number of subcarriers taken by DMRS in a PRB.
+ */
+#define SRSLTE_DMRS_SCH_SC(CDM_GROUPS, DMRS_TYPE)                                                                      \
+  (SRSLTE_MIN(SRSLTE_NRE, (CDM_GROUPS) * ((DMRS_TYPE) == srslte_dmrs_sch_type_1 ? 6 : 4)))
+
+/**
  * @brief PDSCH DMRS estimator object
  *
  * @note The DMRS PDSCH object has to be initialised and the carrier parameters needs to be set.
