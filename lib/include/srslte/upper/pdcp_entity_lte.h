@@ -21,6 +21,8 @@
 #include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
+#include <set>
+
 namespace srsue {
 
 class gw_interface_pdcp;
@@ -165,9 +167,30 @@ private:
   // Discard callback (discardTimer)
   class discard_callback;
 
-  // TX Queue
+  // Tx info queue
   uint32_t                                maximum_allocated_sns_window = 2048;
   std::unique_ptr<undelivered_sdus_queue> undelivered_sdus;
+
+  // Rx info queue
+  uint32_t           fmc = 0;
+  std::set<uint32_t> rx_counts_info; // Keeps the RX_COUNT for generation of the stauts report
+  void               update_rx_counts_queue(uint32_t rx_count);
+
+  /*
+   * Helper function to see if an SN is larger
+   */
+  bool is_sn_larger(uint32_t sn1, uint32_t sn2)
+  {
+    int32_t  diff    = sn2 - sn1;
+    uint32_t nof_sns = 1u << cfg.sn_len;
+    if (diff > (int32_t)(nof_sns / 2)) {
+      return false;
+    }
+    if (diff <= 0 && diff > -((int32_t)(nof_sns / 2))) {
+      return false;
+    }
+    return true;
+  }
 };
 
 // Discard callback (discardTimer)

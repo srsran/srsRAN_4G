@@ -404,10 +404,27 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   // Update info on last PDU submitted to upper layers
   st.last_submitted_pdcp_rx_sn = sn;
 
+  // Store Rx SN/COUNT
+  update_rx_counts_queue(count);
+
   // Pass to upper layers
   gw->write_pdu(lcid, std::move(pdu));
 }
 
+void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
+{
+  // The received COUNT is the first missing COUNT
+  if (rx_count == fmc) {
+    fmc++;
+    // Update the queue for the Status report bitmap, if NEXT_PDCP_RX_SN changed
+    while (not rx_counts_info.empty() && *rx_counts_info.begin() == fmc) {
+      rx_counts_info.erase(fmc);
+      fmc++;
+    }
+  } else {
+    rx_counts_info.insert(rx_count);
+  }
+}
 /****************************************************************************
  * Control handler functions (Status Report)
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.3
@@ -434,15 +451,10 @@ void pdcp_entity_lte::send_status_report()
   }
 
   // Get First Missing Segment (FMS)
-  uint32_t fms = 0;
-  if (undelivered_sdus->empty()) {
-    fms = st.next_pdcp_tx_sn;
-  } else {
-    fms = undelivered_sdus->get_fms();
-  }
+  uint32_t fms = SN(fmc);
 
   // Get Last Missing Segment
-  uint32_t lms = undelivered_sdus->get_lms();
+  uint32_t nof_sns_in_bitmap = rx_counts_info.size();
 
   // Allocate Status Report PDU
   unique_byte_buffer_t pdu = make_byte_buffer();
@@ -451,7 +463,7 @@ void pdcp_entity_lte::send_status_report()
     return;
   }
 
-  logger.debug("Status report: FMS=%d, LMS=%d", fms, lms);
+  logger.debug("Status report: FMS=%d, Nof SNs in bitmap=%d", fms, nof_sns_in_bitmap);
   // Set control bit and type of PDU
   pdu->msg[0] = ((uint8_t)PDCP_DC_FIELD_CONTROL_PDU << 7) | ((uint8_t)PDCP_PDU_TYPE_STATUS_REPORT << 4);
 
@@ -474,8 +486,9 @@ void pdcp_entity_lte::send_status_report()
   }
 
   // Add bitmap of missing PDUs, if necessary
-  if (not undelivered_sdus->empty()) {
+  if (not rx_counts_info.empty()) {
     // First check size of bitmap
+    uint32_t lms     = *rx_counts_info.rbegin();
     int32_t  diff    = lms - (fms - 1);
     uint32_t nof_sns = 1u << cfg.sn_len;
     if (diff > (int32_t)(nof_sns / 2)) {
@@ -494,13 +507,12 @@ void pdcp_entity_lte::send_status_report()
         lms,
         fms - 1,
         bitmap_sz);
-    for (uint32_t offset = 0; offset < sn_diff; ++offset) {
-      uint32_t sn = (fms + 1 + offset) % (1u << cfg.sn_len);
-      if (undelivered_sdus->has_sdu(sn)) {
-        uint32_t bit_offset  = offset % 8;
-        uint32_t byte_offset = offset / 8;
-        pdu->msg[pdu->N_bytes + byte_offset] |= 1 << (7 - bit_offset);
-      }
+    for (uint32_t rx_count : rx_counts_info) {
+      logger.debug("Setting bitmap for RX_COUNT=%d", rx_count);
+      uint32_t offset      = rx_count - (fmc + 1);
+      uint32_t bit_offset  = offset % 8;
+      uint32_t byte_offset = offset / 8;
+      pdu->msg[pdu->N_bytes + byte_offset] |= 1 << (7 - bit_offset);
     }
     pdu->N_bytes += bitmap_sz;
   }
@@ -575,6 +587,7 @@ void pdcp_entity_lte::handle_status_report_pdu(unique_byte_buffer_t pdu)
     undelivered_sdus->clear_sdu(sn);
   }
 }
+
 /****************************************************************************
  * TX PDUs Queue Helper
  ***************************************************************************/
