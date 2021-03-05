@@ -481,7 +481,7 @@ tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               enb_cc_idx,
   uint32_t nof_re = cells[enb_cc_idx].cell_cfg->get_dl_nof_res(tti_tx_dl, dci, cfi);
 
   // Compute MCS+TBS
-  tbs_info tb = alloc_tbs_dl(cells[enb_cc_idx], nof_alloc_prbs, nof_re, req_bytes.stop());
+  tbs_info tb = cqi_to_tbs_dl(cells[enb_cc_idx], nof_alloc_prbs, nof_re, dci.format, req_bytes.stop());
 
   if (tb.tbs_bytes > 0 and tb.tbs_bytes < (int)req_bytes.start()) {
     logger.info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation");
@@ -613,7 +613,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       uint32_t N_srs     = 0;
       uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
       uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
-      tbinfo             = alloc_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re, req_bytes);
+      tbinfo             = cqi_to_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re, req_bytes);
 
       // Reduce MCS to fit UCI if transmitted in this grant
       if (uci_type != UCI_PUSCH_NONE) {
@@ -632,7 +632,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         }
         // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
         if (nof_re >= nof_uci_re) {
-          tbinfo = alloc_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re - nof_uci_re, req_bytes);
+          tbinfo = cqi_to_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re - nof_uci_re, req_bytes);
         }
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
@@ -738,7 +738,7 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   if (req_bytes == srslte::interval<uint32_t>{0, 0}) {
     return {0, 0};
   }
-  int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), req_bytes.start());
+  int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
     logger.error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
@@ -748,8 +748,8 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
   uint32_t min_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
-  pending_prbs             = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), req_bytes.stop());
-  pending_prbs             = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
+  pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.stop());
+  pending_prbs = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
   uint32_t max_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
 }

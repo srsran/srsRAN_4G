@@ -89,11 +89,18 @@ private:
  *                    TBS/MCS derivation
  ************************************************************/
 
-tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes = -1);
+tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
+                       uint32_t             nof_prb,
+                       uint32_t             nof_re,
+                       srslte_dci_format_t  dci_format,
+                       int                  req_bytes = -1);
 tbs_info
-alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes = -1, int explicit_mcs = -1);
+cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes = -1, int explicit_mcs = -1);
 
-int      get_required_prb_dl(const sched_ue_cell& cell, tti_point tti_tx_dl, uint32_t req_bytes);
+int      get_required_prb_dl(const sched_ue_cell& cell,
+                             tti_point            tti_tx_dl,
+                             srslte_dci_format_t  dci_format,
+                             uint32_t             req_bytes);
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes);
 
 } // namespace srsenb

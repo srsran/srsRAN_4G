@@ -221,61 +221,52 @@ std::tuple<int, YType, int, YType> false_position_method(int x1, int x2, YType y
   return false_position_method(x1, x2, y0, f, [](int x) { return false; });
 }
 
-/**
- * In this scheduler we tend to use all the available bandwidth and select the MCS
- * that approximates the minimum between the capacity and the requested rate
- */
-tbs_info cqi_to_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes, bool is_ul)
+tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
+                       uint32_t             nof_prb,
+                       uint32_t             nof_re,
+                       srslte_dci_format_t  dci_format,
+                       int                  req_bytes)
 {
-  // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  using ul64qam_cap          = sched_interface::ue_cfg_t::ul64qam_cap;
-  uint32_t cqi               = (is_ul) ? cell.ul_cqi : cell.dl_cqi;
-  uint32_t max_mcs           = (is_ul) ? cell.max_mcs_ul : cell.max_mcs_dl;
-  bool     ulqam64_enabled   = is_ul and cell.get_ue_cfg()->support_ul64qam == ul64qam_cap::enabled;
-  bool     use_tbs_index_alt = not is_ul and cell.get_ue_cfg()->use_tbs_index_alt;
+  bool use_tbs_index_alt = cell.get_ue_cfg()->use_tbs_index_alt and dci_format != SRSLTE_DCI_FORMAT1A;
 
-  tbs_info tb;
-  if (req_bytes <= 0) {
-    tb = compute_mcs_and_tbs(nof_prb, nof_re, cqi, max_mcs, is_ul, ulqam64_enabled, use_tbs_index_alt);
-  } else {
-    tb = compute_min_mcs_and_tbs_from_required_bytes(
-        nof_prb, nof_re, cqi, max_mcs, req_bytes, is_ul, ulqam64_enabled, use_tbs_index_alt);
-  }
-
-  // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
-  // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
-  if (tb.tbs_bytes < 0) {
-    tb.mcs       = 0;
-    tb.tbs_bytes = get_tbs_bytes((uint32_t)tb.mcs, nof_prb, use_tbs_index_alt, is_ul);
-  }
-
-  return tb;
-}
-
-tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes)
-{
   tbs_info ret;
-
-  // Use a higher MCS for the Msg4 to fit in the 6 PRB case
   if (cell.fixed_mcs_dl < 0 or not cell.dl_cqi_rx) {
     // Dynamic MCS
-    ret = cqi_to_tbs(cell, nof_prb, nof_re, req_bytes, false);
+    ret = compute_min_mcs_and_tbs_from_required_bytes(
+        nof_prb, nof_re, cell.dl_cqi, cell.max_mcs_dl, req_bytes, false, false, use_tbs_index_alt);
+
+    // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
+    // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
+    if (ret.tbs_bytes < 0) {
+      ret.mcs       = 0;
+      ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prb, use_tbs_index_alt, false);
+    }
   } else {
     // Fixed MCS
     ret.mcs       = cell.fixed_mcs_dl;
-    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prb, cell.get_ue_cfg()->use_tbs_index_alt, false);
+    ret.tbs_bytes = get_tbs_bytes((uint32_t)cell.fixed_mcs_dl, nof_prb, use_tbs_index_alt, false);
   }
   return ret;
 }
 
-tbs_info alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes, int explicit_mcs)
+tbs_info cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes, int explicit_mcs)
 {
-  tbs_info ret;
-  int      mcs = explicit_mcs >= 0 ? explicit_mcs : cell.fixed_mcs_ul;
+  using ul64qam_cap    = sched_interface::ue_cfg_t::ul64qam_cap;
+  int  mcs             = explicit_mcs >= 0 ? explicit_mcs : cell.fixed_mcs_ul;
+  bool ulqam64_enabled = cell.get_ue_cfg()->support_ul64qam == ul64qam_cap::enabled;
 
+  tbs_info ret;
   if (mcs < 0) {
     // Dynamic MCS
-    ret = cqi_to_tbs(cell, nof_prb, nof_re, req_bytes, true);
+    ret = compute_min_mcs_and_tbs_from_required_bytes(
+        nof_prb, nof_re, cell.ul_cqi, cell.max_mcs_ul, req_bytes, true, ulqam64_enabled, false);
+
+    // If coderate > SRSLTE_MIN(max_coderate, 0.930 * Qm) we should set TBS=0. We don't because it's not correctly
+    // handled by the scheduler, but we might be scheduling undecodable codewords at very low SNR
+    if (ret.tbs_bytes < 0) {
+      ret.mcs       = 0;
+      ret.tbs_bytes = get_tbs_bytes((uint32_t)ret.mcs, nof_prb, false, true);
+    }
   } else {
     // Fixed MCS
     ret.mcs       = mcs;
@@ -285,11 +276,14 @@ tbs_info alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_
   return ret;
 }
 
-int get_required_prb_dl(const sched_ue_cell& cell, tti_point tti_tx_dl, uint32_t req_bytes)
+int get_required_prb_dl(const sched_ue_cell& cell,
+                        tti_point            tti_tx_dl,
+                        srslte_dci_format_t  dci_format,
+                        uint32_t             req_bytes)
 {
-  auto compute_tbs_approx = [tti_tx_dl, &cell](uint32_t nof_prb) {
+  auto compute_tbs_approx = [tti_tx_dl, &cell, dci_format](uint32_t nof_prb) {
     uint32_t nof_re = cell.cell_cfg->get_dl_lb_nof_re(tti_tx_dl, nof_prb);
-    tbs_info tb     = alloc_tbs_dl(cell, nof_prb, nof_re, -1);
+    tbs_info tb     = cqi_to_tbs_dl(cell, nof_prb, nof_re, dci_format, -1);
     return tb.tbs_bytes;
   };
 
@@ -308,7 +302,7 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   auto compute_tbs_approx = [&cell](uint32_t nof_prb) {
     const uint32_t N_srs  = 0;
     uint32_t       nof_re = (2 * (SRSLTE_CP_NSYMB(cell.cell_cfg->cfg.cell.cp) - 1) - N_srs) * nof_prb * SRSLTE_NRE;
-    return alloc_tbs_ul(cell, nof_prb, nof_re, -1).tbs_bytes;
+    return cqi_to_tbs_ul(cell, nof_prb, nof_re, -1).tbs_bytes;
   };
 
   // find nof prbs that lead to a tbs just above req_bytes
