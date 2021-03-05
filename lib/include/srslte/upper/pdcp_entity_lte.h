@@ -21,8 +21,6 @@
 #include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
-#include <set>
-
 namespace srsue {
 
 class gw_interface_pdcp;
@@ -172,9 +170,10 @@ private:
   std::unique_ptr<undelivered_sdus_queue> undelivered_sdus;
 
   // Rx info queue
-  uint32_t           fmc = 0;
-  std::set<uint32_t> rx_counts_info; // Keeps the RX_COUNT for generation of the stauts report
-  void               update_rx_counts_queue(uint32_t rx_count);
+  uint32_t              fmc              = 0;
+  uint32_t              largest_rx_count = 0;
+  std::vector<uint32_t> rx_counts_info; // Keeps the RX_COUNT for generation of the stauts report
+  void                  update_rx_counts_queue(uint32_t rx_count);
 
   /*
    * Helper function to see if an SN is larger

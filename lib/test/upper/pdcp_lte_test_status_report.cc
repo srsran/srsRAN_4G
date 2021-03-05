@@ -159,6 +159,10 @@ int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state,
   for (uint32_t i = 0; i < 4080; i++) {
     srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
     srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    if (sdu == nullptr or pdu == nullptr) {
+      logger.error("Could not allocate byte buffer");
+      return SRSLTE_ERROR;
+    }
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp_tx->write_sdu(std::move(sdu));
     pdcp_tx->notify_delivery({i});
@@ -187,6 +191,10 @@ int test_tx_wraparound_status_report(const srslte::pdcp_lte_state_t& init_state,
   for (uint32_t i = 4080; i < 4112; i++) {
     srslte::unique_byte_buffer_t sdu = srslte::make_byte_buffer();
     srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+    if (sdu == nullptr or pdu == nullptr) {
+      logger.error("Could not allocate byte buffer");
+      return SRSLTE_ERROR;
+    }
     sdu->append_bytes(sdu1, sizeof(sdu1));
     pdcp_tx->write_sdu(std::move(sdu));
     if (i != 4080 && i != 4081 && i != 4110 && i != 4111) {
@@ -292,8 +300,8 @@ int run_all_tests()
   logger.set_hex_dump_max_size(128);
 
   // This is the normal initial state. All state variables are set to zero
-  srslte::pdcp_lte_state_t normal_init_state = {
-      .next_pdcp_tx_sn = 0, .tx_hfn = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 0, .last_submitted_pdcp_rx_sn = 4095};
+  srslte::pdcp_lte_state_t normal_init_state  = {};
+  normal_init_state.last_submitted_pdcp_rx_sn = 4095;
 
   TESTASSERT(test_tx_status_report(normal_init_state, logger) == 0);
   TESTASSERT(test_tx_wraparound_status_report(normal_init_state, logger) == 0);

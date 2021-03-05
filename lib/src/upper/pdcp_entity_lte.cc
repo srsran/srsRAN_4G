@@ -74,6 +74,7 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
 
   if (is_drb() and not rlc->rb_is_um(lcid)) {
     undelivered_sdus = std::unique_ptr<undelivered_sdus_queue>(new undelivered_sdus_queue(task_sched));
+    rx_counts_info.reserve(reordering_window);
   }
 
   // Check supported config
@@ -413,16 +414,33 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 
 void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
 {
+  std::sort(rx_counts_info.begin(), rx_counts_info.end(), std::greater<uint32_t>());
+
+  // Update largest RX_COUNT
+  if (rx_count > largest_rx_count) {
+    largest_rx_count = rx_count;
+  }
+
   // The received COUNT is the first missing COUNT
   if (rx_count == fmc) {
     fmc++;
-    // Update the queue for the Status report bitmap, if NEXT_PDCP_RX_SN changed
-    while (not rx_counts_info.empty() && *rx_counts_info.begin() == fmc) {
-      rx_counts_info.erase(fmc);
+    // Update the queue for the Status report bitmap, if first missing count changed
+    while (not rx_counts_info.empty() && rx_counts_info.back() == fmc) {
+      rx_counts_info.pop_back();
       fmc++;
     }
   } else {
-    rx_counts_info.insert(rx_count);
+    rx_counts_info.push_back(rx_count);
+  }
+
+  // If the size of the rx_vector_info is getting very large
+  // Consider the FMC as lost and update the vector.
+  if (rx_counts_info.size() > reordering_window) {
+    fmc++;
+    while (not rx_counts_info.empty() && rx_counts_info.back() == fmc) {
+      rx_counts_info.pop_back();
+      fmc++;
+    }
   }
 }
 /****************************************************************************
@@ -488,23 +506,19 @@ void pdcp_entity_lte::send_status_report()
   // Add bitmap of missing PDUs, if necessary
   if (not rx_counts_info.empty()) {
     // First check size of bitmap
-    uint32_t lms     = *rx_counts_info.rbegin();
-    int32_t  diff    = lms - (fms - 1);
+    int32_t  diff    = largest_rx_count - (fmc - 1);
     uint32_t nof_sns = 1u << cfg.sn_len;
-    if (diff > (int32_t)(nof_sns / 2)) {
-      logger.info("FMS and LMS are very far apart. Not generating status report. LMS=%d FMS=%d", lms, fms);
+    if (diff < 0) {
+      logger.info("FMS and LMS are very far apart. Not generating status report. Largest RX COUNT=%d FMS=%d",
+                  largest_rx_count,
+                  fms);
       return;
     }
-    if (diff <= 0 && diff > -((int32_t)(nof_sns / 2))) {
-      logger.info("FMS and LMS are very far apart. Not generating status report. LMS=%d FMS=%d", lms, fms);
-      return;
-    }
-    uint32_t sn_diff   = (diff > 0) ? diff : nof_sns + diff;
-    uint32_t bitmap_sz = std::ceil((float)(sn_diff) / 8);
+    uint32_t bitmap_sz = std::ceil((float)(diff) / 8);
     memset(&pdu->msg[pdu->N_bytes], 0, bitmap_sz);
     logger.debug(
         "Setting status report bitmap. Last missing SN=%d, Last SN acked in sequence=%d, Bitmap size in bytes=%d",
-        lms,
+        largest_rx_count,
         fms - 1,
         bitmap_sz);
     for (uint32_t rx_count : rx_counts_info) {
