@@ -157,6 +157,12 @@ private:
 
   bool needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send = false);
 
+  int generate_format1_common(uint32_t                          pid,
+                              sched_interface::dl_sched_data_t* data,
+                              tti_point                         tti_tx_dl,
+                              uint32_t                          enb_cc_idx,
+                              uint32_t                          cfi,
+                              const rbgmask_t&                  user_mask);
   int generate_format1(uint32_t                          pid,
                        sched_interface::dl_sched_data_t* data,
                        tti_point                         tti_tx_dl,
