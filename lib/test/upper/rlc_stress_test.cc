@@ -318,8 +318,7 @@ public:
              stress_test_args_t  args_,
              uint32_t            lcid_,
              uint32_t            seed_) :
-    log("TEST"),
-    logger(srslog::fetch_basic_logger("TEST", false)),
+    logger(srslog::fetch_basic_logger(name_.c_str(), false)),
     rlc_pdcp(rlc_pdcp_),
     name(name_),
     args(args_),
@@ -389,6 +388,7 @@ private:
   {
     uint32_t pdcp_sn  = 0;
     uint32_t sdu_size = 0;
+    uint8_t  payload  = 0x0; // increment for each SDU
     while (run_enable) {
       // SDU queue is full, don't assign PDCP SN
       if (rlc_pdcp->sdu_queue_is_full(lcid)) {
@@ -412,11 +412,10 @@ private:
       }
 
       for (uint32_t i = 0; i < sdu_size; i++) {
-        pdu->msg[i] = pdcp_sn & 0xFF;
+        pdu->msg[i] = payload;
       }
       pdu->N_bytes = sdu_size;
-
-      logger.info(pdu->msg, pdu->N_bytes, "Generated SDU with %d B", pdu->N_bytes);
+      payload++;
 
       rlc_pdcp->write_sdu(lcid, std::move(pdu));
       pdcp_sn = (pdcp_sn + 1) % max_pdcp_sn;
@@ -517,6 +516,8 @@ void stress_test(stress_test_args_t args)
     rlc1.add_bearer(lcid, cnfg_);
     rlc2.add_bearer(lcid, cnfg_);
   }
+
+  printf("Starting test ..\n");
 
   tester1.start(7);
   if (!args.single_tx) {
