@@ -41,3 +41,7 @@ add_test(bounded_vector_test bounded_vector_test)
 add_executable(mem_pool_test mem_pool_test.cc)
 target_link_libraries(mem_pool_test srslte_common)
 add_test(mem_pool_test mem_pool_test)
+
+add_executable(circular_buffer_test circular_buffer_test.cc)
+target_link_libraries(circular_buffer_test srslte_common)
+add_test(circular_buffer_test circular_buffer_test)

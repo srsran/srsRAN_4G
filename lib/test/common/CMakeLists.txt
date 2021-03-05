@@ -51,7 +51,7 @@ target_link_libraries(bcd_helpers_test srslte_common)
 add_executable(stack_procedure_test stack_procedure_test.cc)
 add_test(stack_procedure_test stack_procedure_test)
 
-add_executable(queue_test queue_test.cc)
+add_executable(queue_test multiqueue_test.cc)
 target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(queue_test queue_test)
 
