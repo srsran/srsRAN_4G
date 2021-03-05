@@ -1850,6 +1850,7 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
                        rlc_am_packed_length(status),
                        max_pdu_size,
                        status->N_nack);
+        return 0;
       }
       break;
     }
@@ -2319,6 +2320,11 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload)
 bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status)
 {
   for (uint32_t i = 0; i < status.N_nack; ++i) {
+    // NACK can't be larger than ACK
+    if ((MOD + status.ack_sn - status.nacks[i].nack_sn) % MOD > RLC_AM_WINDOW_SIZE) {
+      return false;
+    }
+    // Don't NACK the ACK SN
     if (status.nacks[i].nack_sn == status.ack_sn) {
       return false;
     }
