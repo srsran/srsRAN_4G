@@ -72,8 +72,6 @@ struct sched_ue_cell {
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
 private:
-  void enter_idle_st();
-
   srslog::basic_logger& logger;
 
   const sched_interface::ue_cfg_t* ue_cfg = nullptr;

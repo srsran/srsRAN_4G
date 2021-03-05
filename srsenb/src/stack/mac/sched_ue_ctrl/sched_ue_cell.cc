@@ -30,14 +30,16 @@ sched_ue_cell::sched_ue_cell(uint16_t rnti_, const sched_cell_params_t& cell_cfg
   tpc_fsm(cell_cfg->nof_prb(), cell_cfg->cfg.target_ul_sinr, cell_cfg->cfg.enable_phr_handling),
   fixed_mcs_dl(cell_cfg_.sched_cfg->pdsch_mcs),
   fixed_mcs_ul(cell_cfg_.sched_cfg->pusch_mcs),
-  current_tti(current_tti_)
+  current_tti(current_tti_),
+  max_aggr_level(cell_cfg_.sched_cfg->max_aggr_level >= 0 ? cell_cfg_.sched_cfg->max_aggr_level : 3)
 {
-  max_aggr_level = cell_cfg->sched_cfg->max_aggr_level >= 0 ? cell_cfg->sched_cfg->max_aggr_level : 3;
   clear_feedback();
 }
 
 void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
 {
+  static const std::array<uint32_t, 3> max_64qam_mcs{20, 24, 28};
+
   cfg_tti            = current_tti;
   ue_cfg             = &ue_cfg_;
   int prev_ue_cc_idx = ue_cc_idx;
@@ -52,14 +54,13 @@ void sched_ue_cell::set_ue_cfg(const sched_interface::ue_cfg_t& ue_cfg_)
   }
 
   // set max mcs
-  max_mcs_ul = cell_cfg->sched_cfg->pusch_max_mcs >= 0 ? cell_cfg->sched_cfg->pusch_max_mcs : 28u;
+  max_mcs_ul = cell_cfg->sched_cfg->pusch_max_mcs >= 0 ? cell_cfg->sched_cfg->pusch_max_mcs : 28U;
   if (cell_cfg->cfg.enable_64qam) {
-    const uint32_t max_64qam_mcs[] = {20, 24, 28};
-    max_mcs_ul                     = std::min(max_mcs_ul, max_64qam_mcs[(size_t)ue_cfg->support_ul64qam]);
+    max_mcs_ul = std::min(max_mcs_ul, max_64qam_mcs[(size_t)ue_cfg->support_ul64qam]);
   }
-  max_mcs_dl = cell_cfg->sched_cfg->pdsch_max_mcs >= 0 ? std::min(cell_cfg->sched_cfg->pdsch_max_mcs, 28) : 28u;
+  max_mcs_dl = cell_cfg->sched_cfg->pdsch_max_mcs >= 0 ? std::min(cell_cfg->sched_cfg->pdsch_max_mcs, 28) : 28U;
   if (ue_cfg->use_tbs_index_alt) {
-    max_mcs_dl = std::min(max_mcs_dl, 27u);
+    max_mcs_dl = std::min(max_mcs_dl, 27U);
   }
 
   // If new cell configuration, clear Cell HARQs
@@ -185,20 +186,18 @@ false_position_method(int x1, int x2, YType y0, const Callable& f, const ErrorDe
       YType y3_1 = f(x3 - 1);
       if (not is_error(y3_1) and y3_1 < y0) {
         return std::make_tuple(x3 - 1, y3_1, x3, y3);
-      } else {
-        x3--;
-        y3 = y3_1;
       }
+      x3--;
+      y3 = y3_1;
     } else if (x3 == x1) {
       y3 = y1;
       // check if in frontier
       YType y3_1 = f(x3 + 1);
       if (not is_error(y3_1) and y3_1 >= y0) {
         return std::make_tuple(x3, y3, x3 + 1, y3_1);
-      } else {
-        x3++;
-        y3 = y3_1;
       }
+      x3++;
+      y3 = y3_1;
     } else {
       y3 = f(x3);
       if (is_error(y3) or y3 == y0) {
@@ -288,10 +287,10 @@ int get_required_prb_dl(const sched_ue_cell& cell,
   };
 
   std::tuple<uint32_t, int, uint32_t, int> ret = false_position_method(
-      1u, cell.cell_cfg->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+      1U, cell.cell_cfg->nof_prb(), (int)req_bytes, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
   int      upper_tbs  = std::get<3>(ret);
   uint32_t upper_nprb = std::get<2>(ret);
-  return (upper_tbs < 0) ? 0 : ((upper_tbs < (int)req_bytes) ? -1 : upper_nprb);
+  return (upper_tbs < 0) ? 0 : ((upper_tbs < (int)req_bytes) ? -1 : static_cast<int>(upper_nprb));
 }
 
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
@@ -306,10 +305,10 @@ uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes)
   };
 
   // find nof prbs that lead to a tbs just above req_bytes
-  int                                      target_tbs = req_bytes + 4;
+  int                                      target_tbs = static_cast<int>(req_bytes) + 4;
   uint32_t                                 max_prbs   = std::min(cell.tpc_fsm.max_ul_prbs(), cell.cell_cfg->nof_prb());
   std::tuple<uint32_t, int, uint32_t, int> ret =
-      false_position_method(1u, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
+      false_position_method(1U, max_prbs, target_tbs, compute_tbs_approx, [](int y) { return y == SRSLTE_ERROR; });
   uint32_t req_prbs = std::get<2>(ret);
   while (!srslte_dft_precoding_valid_prb(req_prbs) && req_prbs < cell.cell_cfg->nof_prb()) {
     req_prbs++;

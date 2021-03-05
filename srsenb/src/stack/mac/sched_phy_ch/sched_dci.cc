@@ -20,7 +20,7 @@ namespace srsenb {
 /// Compute max TBS based on max coderate
 int coderate_to_tbs(float max_coderate, uint32_t nof_re)
 {
-  return floorf(nof_re * max_coderate - 24);
+  return static_cast<int>(floorf(nof_re * max_coderate - 24));
 }
 
 /// Compute {mcs, tbs_idx} based on {max_tbs, nof_prb}
@@ -72,9 +72,9 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
   assert((not is_ul or not use_tbs_index_alt) && "UL cannot use Alt CQI Table");
   assert((is_ul or not ulqam64_enabled) && "DL cannot use UL-QAM64 enable flag");
 
-  float    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1u, 15u), use_tbs_index_alt);
+  float    max_coderate = srslte_cqi_to_coderate(std::min(cqi + 1U, 15U), use_tbs_index_alt);
   uint32_t max_Qm       = (is_ul) ? (ulqam64_enabled ? 6 : 4) : (use_tbs_index_alt ? 8 : 6);
-  max_coderate          = std::min(max_coderate, 0.930f * max_Qm);
+  max_coderate          = std::min(max_coderate, 0.93F * max_Qm);
 
   int   mcs               = 0;
   float prev_max_coderate = 0;
@@ -104,12 +104,12 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
     // update max coderate based on mcs
     srslte_mod_t mod = (is_ul) ? srslte_ra_ul_mod_from_mcs(mcs) : srslte_ra_dl_mod_from_mcs(mcs, use_tbs_index_alt);
     uint32_t     Qm  = srslte_mod_bits_x_symbol(mod);
-    max_coderate     = std::min(0.930f * Qm, max_coderate);
+    max_coderate     = std::min(0.93F * Qm, max_coderate);
 
     if (coderate <= max_coderate) {
       // solution was found
       tbs_info tb;
-      tb.tbs_bytes = tbs / 8u;
+      tb.tbs_bytes = tbs / 8;
       tb.mcs       = mcs;
       return tb;
     }
@@ -138,10 +138,11 @@ tbs_info compute_min_mcs_and_tbs_from_required_bytes(uint32_t nof_prb,
   }
 
   // get maximum MCS that leads to tbs < req_bytes (used as max_tbs argument)
-  int mcs_min = 0, tbs_idx_min = 0;
+  int mcs_min     = 0;
+  int tbs_idx_min = 0;
   // Note: we subtract -1 to required data to get an exclusive lower bound for maximum MCS. This works ok because
   //       req_bytes * 8 is always even
-  if (compute_mcs_from_max_tbs(nof_prb, req_bytes * 8u - 1, max_mcs, is_ul, use_tbs_index_alt, mcs_min, tbs_idx_min) !=
+  if (compute_mcs_from_max_tbs(nof_prb, req_bytes * 8U - 1, max_mcs, is_ul, use_tbs_index_alt, mcs_min, tbs_idx_min) !=
       SRSLTE_SUCCESS) {
     // Failed to compute maximum MCS that leads to TBS < req bytes. MCS=0 is likely a valid solution
     tbs_info tb2 = compute_mcs_and_tbs(nof_prb, nof_re, cqi, 0, is_ul, ulqam64_enabled, use_tbs_index_alt);
