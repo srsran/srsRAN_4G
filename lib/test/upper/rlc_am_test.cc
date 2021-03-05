@@ -3215,28 +3215,28 @@ bool status_pdu_test()
   }
 
   // Push 5 SDUs into RLC1
-  unique_byte_buffer_t sdu_bufs[NBUFS];
-  for (int i = 0; i < NBUFS; i++) {
+  const uint32_t       n_sdus = 10;
+  unique_byte_buffer_t sdu_bufs[n_sdus];
+  for (uint32_t i = 0; i < n_sdus; i++) {
     sdu_bufs[i]          = srslte::make_byte_buffer();
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
     sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  TESTASSERT(13 == rlc1.get_buffer_state());
-
   // Read 5 PDUs from RLC1 (1 byte each)
-  byte_buffer_t pdu_bufs[NBUFS];
-  for (int i = 0; i < NBUFS; i++) {
-    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 4); // 2 byte header + 1 byte payload
+  const uint32_t n_pdus = n_sdus;
+  byte_buffer_t  pdu_bufs[n_pdus];
+  for (uint32_t i = 0; i < n_pdus; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
     pdu_bufs[i].N_bytes = len;
   }
 
   TESTASSERT(0 == rlc1.get_buffer_state());
 
-  // Only pass last PDUs to RLC2
-  for (int i = 0; i < NBUFS; i++) {
-    if (i == 4) {
+  // Only pass 2nd and last PDUs to RLC2
+  for (uint32_t i = 0; i < n_pdus; ++i) {
+    if (i == 0 || i == 2 || i == n_pdus - 1) {
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
     }
   }
@@ -3248,26 +3248,19 @@ bool status_pdu_test()
   }
 
   uint32_t buffer_state = rlc2.get_buffer_state();
-  TESTASSERT(8 == buffer_state);
 
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
   len                = rlc2.read_pdu(status_buf.msg, 5); // provide only small grant
   status_buf.N_bytes = len;
 
-  TESTASSERT(status_buf.N_bytes != 0);
-
   // check status PDU doesn't contain ACK_SN in NACK list
   rlc_status_pdu_t status_pdu = {};
   rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_pdu);
-  if (rlc_am_is_valid_status_pdu(status_pdu) == false) {
-    return -1;
-  }
+  TESTASSERT(rlc_am_is_valid_status_pdu(status_pdu));
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
-
-  TESTASSERT(3 == rlc1.get_buffer_state()); // 2 byte header + 1 byte payload
 
   // Read the retx PDU from RLC1
   byte_buffer_t retx;
@@ -3285,7 +3278,7 @@ bool status_pdu_test()
 
   // get buffer state and status PDU again
   status_buf.clear();
-  len                = rlc2.read_pdu(status_buf.msg, 10); // big enough grant to fit full status PDU
+  len                = rlc2.read_pdu(status_buf.msg, 20); // big enough grant to fit full status PDU
   status_buf.N_bytes = len;
   TESTASSERT(status_buf.N_bytes != 0);
 
@@ -3293,7 +3286,7 @@ bool status_pdu_test()
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   // retransmission of remaining PDUs
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 10; i++) {
     retx.clear();
     len          = rlc1.read_pdu(retx.msg, 3);
     retx.N_bytes = len;
@@ -3302,15 +3295,12 @@ bool status_pdu_test()
     rlc2.write_pdu(retx.msg, retx.N_bytes);
   }
 
-  TESTASSERT(tester.sdus.size() == NBUFS);
+  TESTASSERT(tester.sdus.size() == n_sdus);
   for (uint32_t i = 0; i < tester.sdus.size(); i++) {
-    if (tester.sdus[i]->N_bytes != 1)
-      return -1;
-    if (*(tester.sdus[i]->msg) != i)
-      return -1;
+    TESTASSERT(tester.sdus[i]->N_bytes == 1);
   }
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 // This test checks the correct functioning of RLC reestablishment
