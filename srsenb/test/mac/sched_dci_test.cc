@@ -66,8 +66,7 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
   rbgmask.fill(0, cell_params.nof_prbs_to_rbgs(args.prb_grant_size));
   dci.type0_alloc.rbg_bitmask = (uint32_t)rbgmask.to_uint64();
   uint32_t nof_re             = cell_params.get_dl_nof_res(args.tti_tx_dl, dci, 1);
-  //  uint32_t nof_re       = cell_params.get_dl_lb_nof_re(args.tti_tx_dl, args.prb_grant_size);
-  float max_coderate = args.get_max_coderate();
+  float    max_coderate       = args.get_max_coderate();
 
   if (srslte_coderate(16, nof_re) > max_coderate) {
     // no solution is possible
