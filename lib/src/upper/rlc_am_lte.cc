@@ -290,41 +290,19 @@ bool rlc_am_lte::rlc_am_lte_tx::has_data()
  * Helper to check if a SN has reached the max reTx threshold
  *
  * Caller _must_ hold the mutex when calling the function.
- * If the retx has been reached for a SN. The SN is removed from the Tx window
- * and the RLC am state variables are advanced.
+ * If the retx has been reached for a SN the upper layers (i.e. RRC/PDCP) will be informed.
+ * The SN is _not_ removed from the Tx window, so retransmissions of that SN can still occur.
  *
  * @param  sn The SN of the PDU to check
- * @return    True if the max_retx counter has been reached and the SN has been removed, false otherwise
  */
-bool rlc_am_lte::rlc_am_lte_tx::sn_reached_max_retx(uint32_t sn)
+void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 {
-  if (tx_window[sn].retx_count >= cfg.max_retx_thresh) {
+  if (tx_window[sn].retx_count == cfg.max_retx_thresh) {
     logger.warning("%s Signaling max number of reTx=%d for for SN=%d", RB_NAME, tx_window[sn].retx_count, sn);
     parent->rrc->max_retx_attempted();
     parent->pdcp->notify_failure(parent->lcid, tx_window[sn].pdcp_sns);
     parent->metrics.num_lost_pdus++;
-
-    // remove SN from Tx window
-    tx_window.remove_pdu(sn);
-
-    // advance window if this is was the lowest SN we've been waiting for
-    if (sn == vt_a) {
-      vt_a  = (vt_a + 1) % MOD;
-      vt_ms = (vt_ms + 1) % MOD;
-
-      // Advance vt_a to the smallest SN for which ACK has not been received yet (Sec 5.1.3.1.1)
-      while (TX_MOD_BASE(vt_a) < TX_MOD_BASE(vt_s) && !tx_window.has_sn(vt_a)) {
-        logger.warning("SN=%d has already been removed, advance window vt_s=%d", vt_a, vt_s);
-        vt_a  = (vt_a + 1) % MOD;
-        vt_ms = (vt_ms + 1) % MOD;
-      }
-    } else {
-      logger.warning("Don't advance window sn=%d not vt_a=%d", sn, vt_a);
-    }
-
-    return true;
   }
-  return false;
 }
 
 uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
@@ -664,9 +642,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
 
   retx_queue.pop();
   tx_window[retx.sn].retx_count++;
-  if (sn_reached_max_retx(retx.sn)) {
-    return 0;
-  }
+  check_sn_reached_max_retx(retx.sn);
 
   logger.info(payload,
               tx_window[retx.sn].buf->N_bytes,
@@ -830,10 +806,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
     tx_window[retx.sn].retx_count++;
   }
 
-  // Check max reTx counter and abort building segment if it passed the threshold
-  if (sn_reached_max_retx(retx.sn)) {
-    return 0;
-  }
+  check_sn_reached_max_retx(retx.sn);
 
   // Write header and pdu
   uint8_t* ptr = payload;

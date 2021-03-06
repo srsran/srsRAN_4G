@@ -293,7 +293,7 @@ private:
     // Helpers
     bool poll_required();
     bool do_status();
-    bool sn_reached_max_retx(uint32_t sn);
+    void check_sn_reached_max_retx(uint32_t sn);
 
     rlc_am_lte*           parent = nullptr;
     byte_buffer_pool*     pool   = nullptr;
