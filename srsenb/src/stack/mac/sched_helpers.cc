@@ -359,6 +359,7 @@ uint32_t sched_cell_params_t::get_dl_lb_nof_re(tti_point tti_tx_dl, uint32_t nof
 uint32_t
 sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dci_dl_t& dci, uint32_t cfi) const
 {
+  assert(cfi > 0 && "CFI has to be within (1..3)");
   srslte_pdsch_grant_t grant = {};
   srslte_dl_sf_cfg_t   dl_sf = {};
   dl_sf.cfi                  = cfi;

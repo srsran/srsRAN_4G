@@ -35,7 +35,8 @@ int compute_mcs_from_max_tbs(uint32_t nof_prb,
   constexpr static std::array<int, 6> forbidden_tbs_idx_alt{1, 3, 5, 7, 9, 26};
 
   // Compute I_TBS based on max TBS
-  tbs_idx = srslte_ra_tbs_to_table_idx(max_tbs, nof_prb);
+  uint32_t max_tbs_idx = (use_tbs_index_alt) ? 33 : 26;
+  tbs_idx              = srslte_ra_tbs_to_table_idx(max_tbs, nof_prb, max_tbs_idx);
   if (tbs_idx <= 0) {
     return SRSLTE_ERROR;
   }

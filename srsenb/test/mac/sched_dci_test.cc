@@ -59,8 +59,15 @@ bool lower_coderate(tbs_info tb, uint32_t nof_re, const tbs_test_args& args)
 
 int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_test_args& args, tbs_info* result)
 {
-  uint32_t nof_re       = cell_params.get_dl_lb_nof_re(args.tti_tx_dl, args.prb_grant_size);
-  float    max_coderate = args.get_max_coderate();
+  srslte_dci_dl_t dci;
+  dci.format     = SRSLTE_DCI_FORMAT1;
+  dci.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+  rbgmask_t rbgmask(cell_params.nof_rbgs);
+  rbgmask.fill(0, cell_params.nof_prbs_to_rbgs(args.prb_grant_size));
+  dci.type0_alloc.rbg_bitmask = (uint32_t)rbgmask.to_uint64();
+  uint32_t nof_re             = cell_params.get_dl_nof_res(args.tti_tx_dl, dci, 1);
+  //  uint32_t nof_re       = cell_params.get_dl_lb_nof_re(args.tti_tx_dl, args.prb_grant_size);
+  float max_coderate = args.get_max_coderate();
 
   if (srslte_coderate(16, nof_re) > max_coderate) {
     // no solution is possible
@@ -98,7 +105,7 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
   for (tb2.mcs = ret.mcs + 1; tb2.mcs <= (int)args.max_mcs; ++tb2.mcs) {
     int tbs_idx2  = srslte_ra_tbs_idx_from_mcs(tb2.mcs, args.use_tbs_index_alt, args.is_ul);
     tb2.tbs_bytes = srslte_ra_tbs_from_idx(tbs_idx2, args.prb_grant_size) / 8u;
-    TESTASSERT(not lower_coderate(tb2, nof_re, args));
+    TESTASSERT(not lower_coderate(tb2, nof_re, args) or (args.prb_grant_size == 1 and tb2.mcs == 6));
   }
 
   // log results
@@ -127,38 +134,49 @@ int test_mcs_lookup_specific()
   tbs_info expected_result;
 
   /* TEST CASE: DL, no 256-QAM */
-  // mcs=1 -> {tbs_idx=1, Nprb=1} -> tbs=24
+  // cqi=5,Nprb=1 -> {mcs=3, tbs_idx=3, tbs=40}
   TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(24 / 8, 1),
-            "TBS computation failure. {%d, %d}!={24, 1}",
+  CONDERROR(expected_result != tbs_info(40 / 8, 3),
+            "TBS computation failure. {%d, %d}!={40, 3}",
             expected_result.tbs_bytes * 8,
             expected_result.mcs);
 
-  // mcs=10 -> {tbs_idx=9, Nprb=1} -> tbs=136
+  // cqi=15,Nprb=1 -> {mcs=19, tbs_idx=17, tbs=336}
   args.cqi = 15;
   TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(136 / 8, 10),
-            "TBS computation failure. {%d, %d}!={136, 10}",
+  CONDERROR(expected_result != tbs_info(336 / 8, 19),
+            "TBS computation failure. {%d, %d}!={336, 19}",
             expected_result.tbs_bytes * 8,
             expected_result.mcs);
 
-  // mcs=5 -> {tbs_idx=5, Nprb=1} -> tbs=72
+  // cqi=9,Nprb=1,cell_nprb=100 -> {mcs=28, tbs_idx=17, tbs=712}
   cell_params = {};
   cell_cfg    = generate_default_cell_cfg(100);
   cell_params.set_cfg(0, cell_cfg, sched_args);
   args.cqi = 9;
   TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(72 / 8, 5),
-            "TBS computation failure. {%d, %d}!={72, 5}",
+  CONDERROR(expected_result != tbs_info(712 / 8, 28),
+            "TBS computation failure. {%d, %d}!={712, 28}",
             expected_result.tbs_bytes * 8,
             expected_result.mcs);
 
-  // mcs=14 -> {tbs_idx=13, Nprb=10} -> tbs=317
+  // cqi=10,Nprb=10,cell_nprb=100 -> {mcs=28, tbs=5736}
   args.prb_grant_size = 10;
   args.cqi            = 10;
   TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(2536 / 8, 14),
-            "TBS computation failure. {%d, %d}!={317, 14}",
+  CONDERROR(expected_result != tbs_info(5736 / 8, 25),
+            "TBS computation failure. {%d, %d}!={5736, 25}",
+            expected_result.tbs_bytes * 8,
+            expected_result.mcs);
+
+  // cqi=15,Nprb=1,256-QAM -> {mcs=26,tbs_idx=32,tbs=968}
+  args.prb_grant_size    = 1;
+  args.use_tbs_index_alt = true;
+  args.max_mcs           = 27; // limited to 27 for 256-QAM
+  args.cqi               = 15;
+  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
+  CONDERROR(expected_result != tbs_info(968 / 8, 27),
+            "TBS computation failure. {%d, %d}!={968, 27}",
             expected_result.tbs_bytes * 8,
             expected_result.mcs);
 

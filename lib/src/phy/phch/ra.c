@@ -230,7 +230,7 @@ int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb)
  * \remark taken from table 7.1.7.2 on 36.213
  * @return upper bound of TBS index (0..27), -2 if bad arguments
  */
-int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb)
+int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb, uint32_t max_tbs_idx)
 {
   if (n_prb == 0 || n_prb > SRSLTE_MAX_PRB) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -238,9 +238,9 @@ int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb)
   if (tbs < tbs_table[0][n_prb - 1]) {
     return 0;
   }
-  for (int mcs = 26; mcs >= 0; mcs--) {
-    if (tbs_table[mcs][n_prb - 1] <= tbs) {
-      return mcs + 1;
+  for (int tbs_idx = max_tbs_idx; tbs_idx >= 0; tbs_idx--) {
+    if (tbs_table[tbs_idx][n_prb - 1] <= tbs) {
+      return tbs_idx + 1;
     }
   }
   return SRSLTE_ERROR;
