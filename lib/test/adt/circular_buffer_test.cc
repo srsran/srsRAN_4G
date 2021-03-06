@@ -71,7 +71,7 @@ int test_queue_block_api()
   std::thread t([&queue]() {
     int count = 0;
     while (true) {
-      int val = queue.pop();
+      int val = queue.pop_blocking();
       if (queue.is_stopped()) {
         break;
       }
@@ -81,7 +81,7 @@ int test_queue_block_api()
   });
 
   for (int i = 0; i < 10000; ++i) {
-    queue.push(i);
+    queue.push_blocking(i);
   }
 
   queue.stop();
@@ -98,12 +98,12 @@ int test_queue_block_api_2()
 
     t = std::thread([&queue]() {
       int count = 0;
-      while (queue.push(count++)) {
+      while (queue.push_blocking(count++)) {
       }
     });
 
     for (int i = 0; i < 10000; ++i) {
-      TESTASSERT(queue.pop() == i);
+      TESTASSERT(queue.pop_blocking() == i);
     }
 
     // queue dtor called

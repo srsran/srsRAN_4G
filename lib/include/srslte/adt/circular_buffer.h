@@ -128,20 +128,35 @@ public:
   iterator begin() { return iterator(*this, rpos); }
   iterator end() { return iterator(*this, (rpos + count) % max_size()); }
 
+  template <typename = std::enable_if<std::is_same<Container, std::vector<T> >::value> >
+  void set_size(size_t size)
+  {
+    buffer.resize(size);
+  }
+
 private:
   Container buffer;
   size_t    rpos  = 0;
   size_t    count = 0;
 };
 
-template <typename CircBuffer>
+struct noop_operator {
+  template <typename T>
+  void operator()(const T&)
+  {
+    // noop
+  }
+};
+
+template <typename CircBuffer, typename PushingFunc, typename PoppingFunc>
 class base_block_queue
 {
   using T = typename CircBuffer::value_type;
 
 public:
   template <typename... Args>
-  base_block_queue(Args&&... args) : circ_buffer(std::forward<Args>(args)...)
+  base_block_queue(PushingFunc push_func_, PoppingFunc pop_func_, Args&&... args) :
+    circ_buffer(std::forward<Args>(args)...), push_func(push_func_), pop_func(pop_func_)
   {}
   ~base_block_queue() { stop(); }
 
@@ -165,10 +180,10 @@ public:
 
   bool                  try_push(const T& t) { return push_(t, false); }
   srslte::error_type<T> try_push(T&& t) { return push_(std::move(t), false); }
-  bool                  push(const T& t) { return push_(t, true); }
-  srslte::error_type<T> push(T&& t) { return push_(std::move(t), true); }
+  bool                  push_blocking(const T& t) { return push_(t, true); }
+  srslte::error_type<T> push_blocking(T&& t) { return push_(std::move(t), true); }
   bool                  try_pop(T& obj) { return pop_(obj, false); }
-  T                     pop()
+  T                     pop_blocking()
   {
     T obj{};
     pop_(obj, true);
@@ -187,10 +202,15 @@ public:
     std::lock_guard<std::mutex> lock(mutex);
     return circ_buffer.size();
   }
-  size_t empty() const
+  bool empty() const
   {
     std::lock_guard<std::mutex> lock(mutex);
     return circ_buffer.empty();
+  }
+  bool full() const
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    return circ_buffer.full();
   }
   size_t max_size() const
   {
@@ -202,12 +222,24 @@ public:
     std::lock_guard<std::mutex> lock(mutex);
     return not active;
   }
+  template <typename F>
+  bool try_call_on_front(F&& f)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (not circ_buffer.empty()) {
+      f(circ_buffer.top());
+      return true;
+    }
+    return false;
+  }
 
-private:
+protected:
   bool                    active      = true;
   uint8_t                 nof_waiting = 0;
   mutable std::mutex      mutex;
   std::condition_variable cvar_empty, cvar_full;
+  PushingFunc             push_func;
+  PoppingFunc             pop_func;
   CircBuffer              circ_buffer;
 
   bool push_(const T& t, bool block_mode)
@@ -229,6 +261,7 @@ private:
         return false;
       }
     }
+    push_func(t);
     circ_buffer.push(t);
     lock.unlock();
     cvar_empty.notify_one();
@@ -253,7 +286,8 @@ private:
         return std::move(t);
       }
     }
-    circ_buffer.push(t);
+    push_func(t);
+    circ_buffer.push(std::move(t));
     lock.unlock();
     cvar_empty.notify_one();
     return {};
@@ -279,6 +313,7 @@ private:
       }
     }
     obj = std::move(circ_buffer.top());
+    pop_func(obj);
     circ_buffer.pop();
     lock.unlock();
     cvar_full.notify_one();
@@ -305,22 +340,37 @@ public:
   {
     // Note: dynamic resizes not supported.
     assert(base_t::empty());
-    base_t::buffer.resize(size);
+    base_t::set_size(size);
   }
 };
 
-template <typename T, size_t N>
-class static_block_queue : public detail::base_block_queue<static_circular_buffer<T, N> >
-{};
-
-template <typename T>
-class dyn_block_queue : public detail::base_block_queue<dyn_circular_buffer<T> >
+template <typename T,
+          size_t N,
+          typename PushingCallback = detail::noop_operator,
+          typename PoppingCallback = detail::noop_operator>
+class static_block_queue
+  : public detail::base_block_queue<static_circular_buffer<T, N>, PushingCallback, PoppingCallback>
 {
-  using base_t = detail::base_block_queue<dyn_circular_buffer<T> >;
+  using base_t = detail::base_block_queue<static_circular_buffer<T, N>, PushingCallback, PoppingCallback>;
+
+public:
+  explicit static_block_queue(PushingCallback push_callback = {}, PoppingCallback pop_callback = {}) :
+    base_t(push_callback, pop_callback)
+  {}
+};
+
+template <typename T,
+          typename PushingCallback = detail::noop_operator,
+          typename PoppingCallback = detail::noop_operator>
+class dyn_block_queue : public detail::base_block_queue<dyn_circular_buffer<T>, PushingCallback, PoppingCallback>
+{
+  using base_t = detail::base_block_queue<dyn_circular_buffer<T>, PushingCallback, PoppingCallback>;
 
 public:
   dyn_block_queue() = default;
-  explicit dyn_block_queue(size_t size) : base_t(size) {}
+  explicit dyn_block_queue(size_t size, PushingCallback push_callback = {}, PoppingCallback pop_callback = {}) :
+    base_t(push_callback, pop_callback, size)
+  {}
   void set_size(size_t size) { base_t::circ_buffer.set_size(size); }
 };
 
