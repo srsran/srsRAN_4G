@@ -66,6 +66,8 @@ void mac_nr::stop()
   if (started) {
     started = false;
   }
+
+  srslte_softbuffer_tx_free(&softbuffer_tx);
 }
 
 // Implement Section 5.9
