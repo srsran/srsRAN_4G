@@ -46,7 +46,7 @@ class base_circular_buffer
 
 public:
   using value_type      = T;
-  using difference_type = ptrdiff_t;
+  using difference_type = typename Container::difference_type;
 
   struct iterator {
     iterator(base_circular_buffer<Container>& parent_, size_t i) : parent(&parent_), idx(i) {}
