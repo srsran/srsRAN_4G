@@ -510,7 +510,7 @@ int retx_test()
   return 0;
 }
 
-// Test correct RLC AM handling when maxRetx (default 4) have been reached
+// Test correct upper layer signaling when maxRetx (default 4) have been reached
 int max_retx_test()
 {
   rlc_am_tester tester;
@@ -557,6 +557,9 @@ int max_retx_test()
 
   // We've Tx'ed once already, loop until the max is reached
   for (uint32_t retx_count = 0; retx_count < rlc_cfg.am.max_retx_thresh; ++retx_count) {
+    // we've not yet reached max attempts
+    TESTASSERT(tester.max_retx_triggered == false);
+
     // Write status PDU to RLC1
     rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
 
@@ -564,24 +567,10 @@ int max_retx_test()
     len = rlc1.read_pdu(pdu_buf.msg, 3);
   }
 
-  // Write last status PDU to RLC1
-  rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
+  // Now maxRetx should have been triggered
+  TESTASSERT(tester.max_retx_triggered == true);
 
-  // RLC should be done, no further transmissions are allowed
-  TESTASSERT(0 == rlc1.get_buffer_state());
-
-  // Check also that trying to read a PDU will return nothing
-  byte_buffer_t pdu_buf;
-  TESTASSERT(0 == rlc1.read_pdu(pdu_buf.msg, 3));
-
-  // Sanity check, we now ACK all SNs
-  fake_status.N_nack = 0; // all received
-  rlc_am_write_status_pdu(&fake_status, &status_pdu);
-  rlc1.write_pdu(status_pdu.msg, status_pdu.N_bytes);
-
-  TESTASSERT(0 == rlc1.read_pdu(pdu_buf.msg, 3));
-
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 // Purpose: test correct retx of lost segment and pollRetx timer expiration
