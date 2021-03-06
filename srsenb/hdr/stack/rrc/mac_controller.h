@@ -55,6 +55,8 @@ public:
                               const srslte::rrc_ue_capabilities_t&      uecaps);
   void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
+  void handle_max_retx();
+
   const ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
   bool            is_crnti_set() const { return crnti_set; }
 
