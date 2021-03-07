@@ -56,11 +56,21 @@ private:
   srslte::circular_array<srslte_pdsch_ack_nr_t, TTIMOD_SZ> pending_ack = {};
   mutable std::mutex                                       pending_ack_mutex;
 
+  /// Pending scheduling request identifiers
+  std::set<uint32_t> pending_sr_id;
+
+  /// CSI-RS measurements
+  std::array<srslte_csi_measurements_t, SRSLTE_CSI_MAX_NOF_RESOURCES> csi_measurements = {};
+
 public:
   mac_interface_phy_nr* stack   = nullptr;
   srslte_carrier_nr_t   carrier = {};
-  srslte::phy_cfg_nr_t  cfg;
-  phy_args_nr_t         args;
+
+  /// Physical layer user configuration
+  phy_args_nr_t args = {};
+
+  /// Physical layer higher layer configuration, provided by higher layers through configuration messages
+  srslte::phy_cfg_nr_t cfg = {};
 
   uint16_t ra_rnti       = 0;
   uint32_t rar_grant_tti = 0;
@@ -70,6 +80,12 @@ public:
     carrier.id              = 500;
     carrier.nof_prb         = 100;
     carrier.max_mimo_layers = 1;
+
+    // Hard-coded values, this should be set when the measurements take place
+    csi_measurements[0].K_csi_rs = 1;
+    csi_measurements[0].nof_ports = 1;
+    csi_measurements[1].K_csi_rs = 4;
+    csi_measurements[0].nof_ports = 1;
   }
 
   /**
@@ -248,6 +264,59 @@ public:
     ack = {};
 
     return true;
+  }
+
+  void reset() { pending_sr_id.clear(); }
+
+  void set_pending_sr(uint32_t value) { pending_sr_id.insert(value); }
+
+  void get_pending_sr(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
+  {
+    // Append fixed SR
+    pending_sr_id.insert(args.fixed_sr.begin(), args.fixed_sr.end());
+
+    // Calculate all SR opportunities in the given TTI
+    uint32_t sr_resource_id[SRSLTE_PUCCH_MAX_NOF_SR_RESOURCES] = {};
+    int      n = srslte_ue_ul_nr_sr_send_slot(cfg.pucch.sr_resources, tti, sr_resource_id);
+    if (n < SRSLTE_SUCCESS) {
+      ERROR("Calculating SR opportunities");
+      return;
+    }
+
+    // Initialise counters
+    uint32_t sr_count_all      = (uint32_t)n;
+    uint32_t sr_count_positive = 0;
+
+    // Iterate all opportunities and check if there is a pending SR
+    for (uint32_t i = 0; i < sr_count_all; i++) {
+      // Extract SR identifier
+      uint32_t sr_id = cfg.pucch.sr_resources[sr_resource_id[i]].sr_id;
+
+      // Check if the SR resource ID is pending
+      if (pending_sr_id.count(sr_id) > 0) {
+        // Count it as present
+        sr_count_positive++;
+
+        // Erase pending SR
+        pending_sr_id.erase(sr_id);
+      }
+    }
+
+    // Configure SR fields in UCI data
+    uci_data.cfg.sr_resource_id      = sr_resource_id[0];
+    uci_data.cfg.o_sr                = srslte_ra_ul_nr_nof_sr_bits(sr_count_all);
+    uci_data.cfg.sr_positive_present = sr_count_positive > 0;
+    uci_data.value.sr                = sr_count_positive;
+  }
+
+  void get_periodic_csi(const uint32_t& tti, srslte_uci_data_nr_t& uci_data)
+  {
+    int n = srslte_csi_generate_reports(&cfg.csi, tti, csi_measurements.data(), uci_data.cfg.csi, uci_data.value.csi);
+    if (n > SRSLTE_SUCCESS) {
+      uci_data.cfg.nof_csi = n;
+    }
+
+    uci_data.cfg.rnti = stack->get_ul_sched_rnti_nr(tti).id;
   }
 };
 } // namespace nr

@@ -142,11 +142,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("nas.eia",               bpo::value<string>(&args->stack.nas.eia)->default_value("1,2,3"),  "List of integrity algorithms included in UE capabilities")
     ("nas.eea",               bpo::value<string>(&args->stack.nas.eea)->default_value("0,1,2,3"),  "List of ciphering algorithms included in UE capabilities")
 
-    ("pcap.enable", bpo::value<bool>(&args->stack.pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
-    ("pcap.filename", bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
-    ("pcap.nas_enable",   bpo::value<bool>(&args->stack.pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
-    ("pcap.nas_filename", bpo::value<string>(&args->stack.pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
-
+    ("pcap.enable", bpo::value<string>(&args->stack.pkt_trace.enable)->default_value("none"), "Enable (MAC, MAC_NR, NAS) packet captures for wireshark")
+    ("pcap.mac_filename", bpo::value<string>(&args->stack.pkt_trace.mac_pcap.filename)->default_value("/tmp/ue_mac.pcap"), "MAC layer capture filename")
+    ("pcap.mac_nr_filename", bpo::value<string>(&args->stack.pkt_trace.mac_nr_pcap.filename)->default_value("/tmp/ue_mac_nr.pcap"), "MAC_NR layer capture filename")
+    ("pcap.nas_filename", bpo::value<string>(&args->stack.pkt_trace.nas_pcap.filename)->default_value("/tmp/ue_nas.pcap"), "NAS layer capture filename")
+    
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
     ("log.rf_level", bpo::value<string>(&args->rf.log_level), "RF log level")
@@ -479,7 +479,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
   // if no config file given, check users home path
   if (!vm.count("config_file")) {
-
     if (!config_exists(config_file, "ue.conf")) {
       cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
       return SRSLTE_ERROR;
@@ -661,7 +660,7 @@ int main(int argc, char* argv[])
   srslte::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance
-  srsue::ue ue(*log_sink);
+  srsue::ue ue;
   if (ue.init(args, &log_wrapper)) {
     ue.stop();
     return SRSLTE_SUCCESS;

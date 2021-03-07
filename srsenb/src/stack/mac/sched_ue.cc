@@ -26,7 +26,6 @@
 #include "srsenb/hdr/stack/mac/sched_ue.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
-#include "srslte/srslte.h"
 
 using srslte::tti_interval;
 
@@ -184,17 +183,6 @@ void sched_ue::set_sr()
 void sched_ue::unset_sr()
 {
   sr = false;
-}
-
-bool sched_ue::pucch_sr_collision(tti_point tti_tx_dl, uint32_t n_cce)
-{
-  if (!phy_config_dedicated_enabled) {
-    return false;
-  }
-  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, tti_tx_dl.to_uint())) {
-    return (n_cce + cfg.pucch_cfg.N_pucch_1) == cfg.pucch_cfg.n_pucch_sr;
-  }
-  return false;
 }
 
 tti_point prev_meas_gap_start(tti_point tti, uint32_t period, uint32_t offset)
@@ -391,6 +379,13 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
   srslte_dci_format_t dci_format = get_dci_format();
   int                 tbs_bytes  = 0;
 
+  // Set common DCI fields
+  srslte_dci_dl_t* dci = &data->dci;
+  dci->rnti            = rnti;
+  dci->pid             = pid;
+  dci->ue_cc_idx       = cells[enb_cc_idx].get_ue_cc_idx();
+  dci->format          = dci_format;
+
   switch (dci_format) {
     case SRSLTE_DCI_FORMAT1A:
       tbs_bytes = generate_format1a(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
@@ -408,14 +403,9 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
       logger.error("DCI format (%d) not implemented", dci_format);
   }
 
-  // Set common DCI fields
+  // If allocation successful, encode TPC
   if (tbs_bytes > 0) {
-    srslte_dci_dl_t* dci = &data->dci;
-    dci->rnti            = rnti;
-    dci->pid             = pid;
-    dci->ue_cc_idx       = cells[enb_cc_idx].get_ue_cc_idx();
-    data->dci.format     = dci_format;
-    dci->tpc_pucch       = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
+    dci->tpc_pucch = cells[enb_cc_idx].tpc_fsm.encode_pucch_tpc();
   }
 
   return tbs_bytes;
@@ -428,8 +418,6 @@ int sched_ue::generate_format1a(uint32_t                          pid,
                                 uint32_t                          cfi,
                                 const rbgmask_t&                  user_mask)
 {
-  int tbs_bytes = generate_format1(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
-
   srslte_dci_dl_t* dci = &data->dci;
 
   dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
@@ -444,28 +432,24 @@ int sched_ue::generate_format1a(uint32_t                          pid,
     logger.warning("SCHED: Can't use distributed RA due to DCI size ambiguity");
   }
 
-  return tbs_bytes;
+  return generate_format1_common(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
 }
 
-// > return 0 if allocation is invalid
-int sched_ue::generate_format1(uint32_t                          pid,
-                               sched_interface::dl_sched_data_t* data,
-                               tti_point                         tti_tx_dl,
-                               uint32_t                          enb_cc_idx,
-                               uint32_t                          cfi,
-                               const rbgmask_t&                  user_mask)
+int sched_ue::generate_format1_common(uint32_t                          pid,
+                                      sched_interface::dl_sched_data_t* data,
+                                      tti_point                         tti_tx_dl,
+                                      uint32_t                          enb_cc_idx,
+                                      uint32_t                          cfi,
+                                      const rbgmask_t&                  user_mask)
 {
   dl_harq_proc*    h   = &cells[enb_cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci = &data->dci;
-
-  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   tbs_info tbinfo;
   if (h->is_empty(0)) {
     tbinfo = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, enb_cc_idx, cfi, 0);
   } else {
-    h->new_retx(user_mask, 0, tti_tx_dl, &tbinfo.mcs, &tbinfo.tbs_bytes, data->dci.location.ncce);
+    h->new_retx(user_mask, 0, tti_tx_dl, &tbinfo.mcs, &tbinfo.tbs_bytes, dci->location.ncce);
     logger.debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d", tbinfo.mcs, tbinfo.tbs_bytes);
   }
 
@@ -478,6 +462,21 @@ int sched_ue::generate_format1(uint32_t                          pid,
     data->tbs[1] = 0;
   }
   return tbinfo.tbs_bytes;
+}
+
+int sched_ue::generate_format1(uint32_t                          pid,
+                               sched_interface::dl_sched_data_t* data,
+                               tti_point                         tti_tx_dl,
+                               uint32_t                          enb_cc_idx,
+                               uint32_t                          cfi,
+                               const rbgmask_t&                  user_mask)
+{
+  srslte_dci_dl_t* dci = &data->dci;
+
+  dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
+
+  return generate_format1_common(pid, data, tti_tx_dl, enb_cc_idx, cfi, user_mask);
 }
 
 /**
@@ -502,7 +501,7 @@ tbs_info sched_ue::compute_mcs_and_tbs(uint32_t               enb_cc_idx,
   uint32_t nof_re = cells[enb_cc_idx].cell_cfg->get_dl_nof_res(tti_tx_dl, dci, cfi);
 
   // Compute MCS+TBS
-  tbs_info tb = alloc_tbs_dl(cells[enb_cc_idx], nof_alloc_prbs, nof_re, req_bytes.stop());
+  tbs_info tb = cqi_to_tbs_dl(cells[enb_cc_idx], nof_alloc_prbs, nof_re, dci.format, req_bytes.stop());
 
   if (tb.tbs_bytes > 0 and tb.tbs_bytes < (int)req_bytes.start()) {
     logger.info("SCHED: Could not get PRB allocation that avoids MAC CE or RLC SRB0 PDU segmentation");
@@ -626,11 +625,6 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
 
   bool is_newtx = h->is_empty(0);
   if (is_newtx) {
-    uint32_t nof_retx;
-
-    // If Msg3 set different nof retx
-    nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
-
     if (tbinfo.mcs >= 0) {
       tbinfo.tbs_bytes = get_tbs_bytes(tbinfo.mcs, alloc.length(), false, true);
     } else {
@@ -639,7 +633,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       uint32_t N_srs     = 0;
       uint32_t nof_symb  = 2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs;
       uint32_t nof_re    = nof_symb * alloc.length() * SRSLTE_NRE;
-      tbinfo             = alloc_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re, req_bytes);
+      tbinfo             = cqi_to_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re, req_bytes);
 
       // Reduce MCS to fit UCI if transmitted in this grant
       if (uci_type != UCI_PUSCH_NONE) {
@@ -658,12 +652,14 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
         }
         // Recompute again the MCS and TBS with the new spectral efficiency (based on the available RE for data)
         if (nof_re >= nof_uci_re) {
-          tbinfo = alloc_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re - nof_uci_re, req_bytes);
+          tbinfo = cqi_to_tbs_ul(cells[enb_cc_idx], alloc.length(), nof_re - nof_uci_re, req_bytes);
         }
         // NOTE: if (nof_re < nof_uci_re) we should set TBS=0
       }
     }
-    h->new_tx(tti_tx_ul, tbinfo.mcs, tbinfo.tbs_bytes, alloc, nof_retx);
+    // If Msg3 set different nof retx
+    uint32_t nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
+    h->new_tx(tti_tx_ul, tbinfo.mcs, tbinfo.tbs_bytes, alloc, nof_retx, not data->needs_pdcch);
     // Un-trigger the SR if data is allocated
     if (tbinfo.tbs_bytes > 0) {
       unset_sr();
@@ -762,7 +758,7 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
   if (req_bytes == srslte::interval<uint32_t>{0, 0}) {
     return {0, 0};
   }
-  int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), req_bytes.start());
+  int pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.start());
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
     logger.error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
@@ -772,8 +768,8 @@ rbg_interval sched_ue::get_required_dl_rbgs(uint32_t enb_cc_idx)
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
   uint32_t min_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
-  pending_prbs             = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), req_bytes.stop());
-  pending_prbs             = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
+  pending_prbs = get_required_prb_dl(cells[enb_cc_idx], to_tx_dl(current_tti), get_dci_format(), req_bytes.stop());
+  pending_prbs = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
   uint32_t max_pending_rbg = cellparams->nof_prbs_to_rbgs(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
 }

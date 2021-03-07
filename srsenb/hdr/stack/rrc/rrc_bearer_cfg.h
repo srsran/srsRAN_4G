@@ -116,7 +116,7 @@ public:
   std::map<uint8_t, erab_t>                erabs;
 
 private:
-  srslog::basic_logger& logger;
+  srslog::basic_logger* logger;
   uint16_t              rnti = 0;
   const rrc_cfg_t*      cfg  = nullptr;
   gtpu_interface_rrc*   gtpu = nullptr;

@@ -321,16 +321,6 @@ static int pdsch_init(srslte_pdsch_t* q, uint32_t max_prb, bool is_ue, uint32_t 
       }
     }
 
-    q->users = calloc(sizeof(srslte_pdsch_user_t*), q->is_ue ? 1 : (1 + SRSLTE_SIRNTI));
-    if (!q->users) {
-      ERROR("malloc");
-      goto clean;
-    }
-
-    if (srslte_sequence_init(&q->tmp_seq, q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM))) {
-      goto clean;
-    }
-
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       if (!q->csi[i]) {
         q->csi[i] = srslte_vec_f_malloc(q->max_re * 2);
@@ -459,20 +449,6 @@ void srslte_pdsch_free(srslte_pdsch_t* q)
       }
     }
   }
-  if (q->users) {
-    if (q->is_ue) {
-      srslte_pdsch_free_rnti(q, 0);
-    } else {
-      for (int u = 0; u <= SRSLTE_SIRNTI; u++) {
-        if (q->users[u]) {
-          srslte_pdsch_free_rnti(q, u);
-        }
-      }
-    }
-    free(q->users);
-  }
-
-  srslte_sequence_free(&q->tmp_seq);
 
   for (int i = 0; i < SRSLTE_MOD_NITEMS; i++) {
     srslte_modem_table_free(&q->mod[i]);
@@ -507,68 +483,6 @@ int srslte_pdsch_set_cell(srslte_pdsch_t* q, srslte_cell_t cell)
   return ret;
 }
 
-/* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while
- * to execute, so shall be called once the final C-RNTI has been allocated for the session.
- */
-int srslte_pdsch_set_rnti(srslte_pdsch_t* q, uint16_t rnti)
-{
-  uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-
-  // Decide whether re-generating the sequence
-  if (!q->users[rnti_idx]) {
-    // If the sequence is not allocated generate
-    q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
-    if (!q->users[rnti_idx]) {
-      ERROR("Alocating PDSCH user");
-      return SRSLTE_ERROR;
-    }
-  } else if (q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id && !q->is_ue) {
-    // The sequence was generated, cell has not changed and it is eNb, save any efforts
-    return SRSLTE_SUCCESS;
-  }
-
-  // Set sequence as not generated
-  q->users[rnti_idx]->sequence_generated = false;
-
-  // For each subframe
-  for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-    // For each codeword
-    for (int j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
-      if (srslte_sequence_pdsch(&q->users[rnti_idx]->seq[j][sf_idx],
-                                rnti,
-                                j,
-                                SRSLTE_NOF_SLOTS_PER_SF * sf_idx,
-                                q->cell.id,
-                                q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM))) {
-        ERROR("Error initializing PDSCH scrambling sequence");
-        srslte_pdsch_free_rnti(q, rnti);
-        return SRSLTE_ERROR;
-      }
-    }
-  }
-
-  // Save generation states
-  q->ue_rnti                             = rnti;
-  q->users[rnti_idx]->cell_id            = q->cell.id;
-  q->users[rnti_idx]->sequence_generated = true;
-
-  return SRSLTE_SUCCESS;
-}
-
-void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti)
-{
-  uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-  if (q->users[rnti_idx]) {
-    for (int i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
-      for (int j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
-        srslte_sequence_free(&q->users[rnti_idx]->seq[j][i]);
-      }
-    }
-    free(q->users[rnti_idx]);
-    q->users[rnti_idx] = NULL;
-    q->ue_rnti         = 0;
-  }
-}
 static float apply_power_allocation(srslte_pdsch_t* q, srslte_pdsch_cfg_t* cfg, cf_t* sf_symbols_m[SRSLTE_MAX_PORTS])
 {
   uint32_t nof_symbols_slot = cfg->grant.nof_symb_slot[0];
@@ -604,21 +518,6 @@ static float apply_power_allocation(srslte_pdsch_t* q, srslte_pdsch_cfg_t* cfg, 
     }
   }
   return rho_a;
-}
-
-static srslte_sequence_t*
-get_user_sequence(srslte_pdsch_t* q, uint16_t rnti, uint32_t codeword_idx, uint32_t sf_idx, uint32_t len)
-{
-  uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-
-  // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
-  if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id &&
-      (!q->is_ue || q->ue_rnti == rnti)) {
-    return &q->users[rnti_idx]->seq[codeword_idx][sf_idx];
-  } else {
-    srslte_sequence_pdsch(&q->tmp_seq, rnti, codeword_idx, 2 * sf_idx, q->cell.id, len);
-    return &q->tmp_seq;
-  }
 }
 
 static void csi_correction(srslte_pdsch_t* q, srslte_pdsch_cfg_t* cfg, uint32_t codeword_idx, uint32_t tb_idx, void* e)
@@ -830,19 +729,23 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t*     q,
       data[tb_idx].evm = NAN;
     }
 
-    /* Select scrambling sequence */
-    srslte_sequence_t* seq =
-        get_user_sequence(q, cfg->rnti, codeword_idx, sf->tti % 10, cfg->grant.tb[tb_idx].nof_bits);
-    if (!seq) {
-      ERROR("Error getting user sequence for rnti=0x%x", cfg->rnti);
-      return -1;
-    }
-
     /* Bit scrambling */
     if (q->llr_is_8bit) {
-      srslte_scrambling_sb_offset(seq, q->e[codeword_idx], 0, cfg->grant.tb[tb_idx].nof_bits);
+      srslte_sequence_pdsch_apply_c(q->e[codeword_idx],
+                                    q->e[codeword_idx],
+                                    cfg->rnti,
+                                    codeword_idx,
+                                    2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME),
+                                    q->cell.id,
+                                    cfg->grant.tb[tb_idx].nof_bits);
     } else {
-      srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, cfg->grant.tb[tb_idx].nof_bits);
+      srslte_sequence_pdsch_apply_s(q->e[codeword_idx],
+                                    q->e[codeword_idx],
+                                    cfg->rnti,
+                                    codeword_idx,
+                                    2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME),
+                                    q->cell.id,
+                                    cfg->grant.tb[tb_idx].nof_bits);
     }
 
     if (cfg->csi_enable) {
@@ -1107,16 +1010,14 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t*         q,
       return SRSLTE_ERROR;
     }
 
-    /* Select scrambling sequence */
-    srslte_sequence_t* seq =
-        get_user_sequence(q, cfg->rnti, codeword_idx, sf->tti % 10, cfg->grant.tb[tb_idx].nof_bits);
-    if (!seq) {
-      ERROR("Error getting user sequence for rnti=0x%x", cfg->rnti);
-      return -1;
-    }
-
     /* Bit scrambling */
-    srslte_scrambling_bytes(seq, (uint8_t*)q->e[codeword_idx], cfg->grant.tb[tb_idx].nof_bits);
+    srslte_sequence_pdsch_apply_pack((uint8_t*)q->e[codeword_idx],
+                                     (uint8_t*)q->e[codeword_idx],
+                                     cfg->rnti,
+                                     codeword_idx,
+                                     2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME),
+                                     q->cell.id,
+                                     cfg->grant.tb[tb_idx].nof_bits);
 
     /* Bit mapping */
     srslte_mod_modulate_bytes(

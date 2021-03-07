@@ -751,7 +751,8 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   // Set admitted E-RABs
   std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
   auto&                                         fwd_tunnels = get_state<s1_target_ho_st>()->pending_tunnels;
-  for (auto& erab : rrc_ue->bearer_list.get_erabs()) {
+  fwd_tunnels.clear();
+  for (const auto& erab : rrc_ue->bearer_list.get_erabs()) {
     admitted_erabs.emplace_back();
     asn1::s1ap::erab_admitted_item_s& admitted_erab = admitted_erabs.back();
     admitted_erab.erab_id                           = erab.second.id;
@@ -907,7 +908,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     drb_state.next_pdcp_rx_sn           = erab_item.ul_coun_tvalue.pdcp_sn;
     uint8_t  sn_len                     = srslte::get_pdcp_drb_sn_len(drb_it->pdcp_cfg);
     uint32_t maximum_pdcp_sn            = (1u << sn_len) - 1u;
-    drb_state.last_submitted_pdcp_rx_sn = std::max(erab_item.ul_coun_tvalue.pdcp_sn - 1u, maximum_pdcp_sn);
+    drb_state.last_submitted_pdcp_rx_sn = std::min(erab_item.ul_coun_tvalue.pdcp_sn - 1u, maximum_pdcp_sn);
     logger.info("Setting lcid=%d PDCP state to {Tx SN: %d, Rx SN: %d}",
                 drb_it->lc_ch_id,
                 drb_state.next_pdcp_tx_sn,
@@ -915,7 +916,7 @@ void rrc::ue::rrc_mobility::handle_status_transfer(s1_target_ho_st& s, const sta
     rrc_enb->pdcp->set_bearer_state(rrc_ue->rnti, drb_it->lc_ch_id, drb_state);
   }
 
-  // Enable forwarding of GTPU SDUs to PDCP
+  // Enable forwarding of GTPU SDUs coming from Source eNB Tunnel to PDCP
   for (uint32_t teid : s.pending_tunnels) {
     rrc_enb->gtpu->set_tunnel_status(teid, true);
   }

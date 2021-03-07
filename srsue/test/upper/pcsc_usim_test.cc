@@ -20,7 +20,6 @@
  */
 
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
-#include <assert.h>
 #include <iostream>
 
 using namespace srsue;
@@ -36,11 +35,11 @@ int main(int argc, char** argv)
   logger.set_hex_dump_max_size(100000);
   srslog::init();
 
-  uint8_t res[16];
-  int     res_len;
-  uint8_t k_asme[32];
-  uint16  mcc = 0;
-  uint16  mnc = 0;
+  uint8_t  res[16];
+  int      res_len;
+  uint8_t  k_asme[32];
+  uint16_t mcc = 0;
+  uint16_t mnc = 0;
 
   usim_args_t args;
   args.pin  = "6129";

@@ -257,11 +257,11 @@ class rrc_test : public rrc
   stack_test_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) :
+  rrc_test(const std::string& log_name, stack_test_dummy* stack_) :
     rrc(stack_, &stack_->task_sched), stack(stack_), mactest(this, &stack_->task_sched)
   {
     nastest   = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
-    pdcptest  = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
+    pdcptest  = std::unique_ptr<pdcp_test>(new pdcp_test(log_name.c_str(), &stack->task_sched));
     rrcnrtest = std::unique_ptr<rrc_nr_test>(new rrc_nr_test());
   }
   void init()
@@ -382,12 +382,6 @@ private:
 // Test Cell select
 int cell_select_test()
 {
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
-
   printf("==========================================================\n");
   printf("======            Cell Select Testing      ===============\n");
   printf("==========================================================\n");
@@ -396,7 +390,7 @@ int cell_select_test()
     // CHECK: The starting serving cell pci=2 is the weakest, and cell selection procedure chooses pci=1
     // CHECK: phy cell selection is successful, and rrc remains in pci=1
     stack_test_dummy stack;
-    rrc_test         rrctest(log1, &stack);
+    rrc_test         rrctest(srslog::fetch_basic_logger("RRC_MEAS").id(), &stack);
     rrctest.init();
     rrctest.connect();
 
@@ -427,7 +421,7 @@ int cell_select_test()
     // for pci=1.
     // CHECK: Cell selection fails in the phy, and rrc moves to pci=2
     stack_test_dummy stack;
-    rrc_test         rrctest(log1, &stack);
+    rrc_test         rrctest(srslog::fetch_basic_logger("RRC_MEAS").id(), &stack);
     rrctest.init();
     rrctest.connect();
 
@@ -487,9 +481,6 @@ int cell_select_test()
 // Tests the measObject configuration and the successful activation of PHY cells to search for
 int meas_obj_test()
 {
-  srslte::log_ref log1("RRC_MEAS");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
   auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
@@ -497,7 +488,7 @@ int meas_obj_test()
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(rrc_meas_logger.id(), &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -912,11 +903,6 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
                         report_cfg_eutra_s::report_amount_e_ report_amount,
                         report_interv_e                      report_interv)
 {
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
   auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
@@ -924,7 +910,7 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(rrc_meas_logger.id(), &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -1048,11 +1034,6 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 // Test A3-event reporting and management of report amount and interval
 int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 {
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
   auto& rrc_meas_logger = srslog::fetch_basic_logger("RRC_MEAS");
 
   printf("==========================================================\n");
@@ -1060,7 +1041,7 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(rrc_meas_logger.id(), &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -1166,18 +1147,12 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 // Minimal testcase for testing inter rat reporting with nr
 int meas_obj_inter_rat_nr_test()
 {
-  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
-  log1->set_level(srslte::LOG_LEVEL_DEBUG);
-  log1->set_hex_limit(-1);
-  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log->set_hex_limit(-1);
-
   printf("==========================================================\n");
   printf("======    NR Inter Rat Configuration Testing    ==========\n");
   printf("==========================================================\n");
 
   stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
+  rrc_test         rrctest(srslog::fetch_basic_logger("RRC_MEAS").id(), &stack);
   rrctest.init();
   rrctest.connect();
 

@@ -30,7 +30,7 @@
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
-//#define WRITE_SIB_PCAP
+// #define WRITE_SIB_PCAP
 using namespace asn1::rrc;
 
 namespace srsenb {
@@ -131,6 +131,15 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
   }
 }
 
+void mac::start_pcap_net(srslte::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+  // Set pcap in all UEs for UL messages
+  for (auto& u : ue_db) {
+    u.second->start_pcap_net(pcap_net);
+  }
+}
+
 /********************************************************
  *
  * RLC interface
@@ -201,17 +210,6 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 
   // Start TA FSM in UE entity
   ue_ptr->start_ta();
-
-  // Add RNTI to the PHY (pregenerate signals) now instead of after PRACH
-  if (not ue_ptr->is_phy_added) {
-    logger.info("Registering RNTI=0x%X to PHY...", rnti);
-    // Register new user in PHY with first CC index
-    if (phy_h->pregen_sequences(rnti) == SRSLTE_ERROR) {
-      logger.error("Generating sequences for UE RNTI=0x%X", rnti);
-    }
-    logger.info("Done registering RNTI=0x%X to PHY...", rnti);
-    ue_ptr->is_phy_added = true;
-  }
 
   // Update Scheduler configuration
   if (cfg != nullptr and scheduler.ue_cfg(rnti, *cfg) == SRSLTE_ERROR) {
@@ -299,7 +297,7 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
     return SRSLTE_ERROR;
   }
 
-  uint32_t nof_bytes = scheduler.dl_ack_info(tti_rx, rnti, enb_cc_idx, tb_idx, ack);
+  int nof_bytes = scheduler.dl_ack_info(tti_rx, rnti, enb_cc_idx, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
 
   if (ack) {
@@ -480,11 +478,17 @@ uint16_t mac::allocate_ue()
     ue_ptr->start_pcap(pcap);
   }
 
+  if (pcap_net != nullptr) {
+    ue_ptr->start_pcap_net(pcap_net);
+  }
+
   {
     srslte::rwlock_write_guard lock(rwlock);
     ue_db[rnti] = std::move(ue_ptr);
   }
 
+  // Allocate one new UE object in advance
+  srslte::get_background_workers().push_task([this]() { prealloc_ue(1); });
   return rnti;
 }
 
@@ -494,11 +498,6 @@ uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
   if (rnti == SRSLTE_INVALID_RNTI) {
     return rnti;
   }
-
-  task_sched.enqueue_background_task([this](uint32_t wid) {
-    // Allocate one new UE object in advance
-    prealloc_ue(1);
-  });
 
   // Add new user to the scheduler so that it can RX/TX SRB0
   if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
@@ -565,9 +564,6 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
                     time_adv,
                     rnti);
   });
-
-  // Allocate one new UE object in advance
-  prealloc_ue(1);
 }
 
 void mac::prealloc_ue(uint32_t nof_ue)
@@ -639,6 +635,10 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
                 pcap->write_dl_crnti(
                     dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
               }
+              if (pcap_net) {
+                pcap_net->write_dl_crnti(
+                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
+              }
             } else {
               /* TB not enabled OR no data to send: set pointers to NULL  */
               dl_sched_res->pdsch[n].data[tb] = nullptr;
@@ -683,7 +683,14 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
                              tti_tx_dl,
                              enb_cc_idx);
       }
-
+      if (pcap_net) {
+        pcap_net->write_dl_ranti(dl_sched_res->pdsch[n].data[0],
+                                 sched_result.rar[i].tbs,
+                                 dl_sched_res->pdsch[n].dci.rnti,
+                                 true,
+                                 tti_tx_dl,
+                                 enb_cc_idx);
+      }
       n++;
     }
 
@@ -701,6 +708,10 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
         if (pcap) {
           pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
         }
+        if (pcap_net) {
+          pcap_net->write_dl_sirnti(
+              dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
 #endif
       } else {
         dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].pcch_softbuffer_tx;
@@ -709,6 +720,9 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
         if (pcap) {
           pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
+        }
+        if (pcap_net) {
+          pcap_net->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
         }
       }
 

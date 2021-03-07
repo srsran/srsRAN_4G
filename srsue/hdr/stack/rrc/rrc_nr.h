@@ -26,12 +26,20 @@
 #include "srslte/asn1/rrc_nr_utils.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/logmap.h"
+#include "srslte/common/stack_procedure.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/nr_common_interface_types.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
 
 namespace srsue {
+
+class usim_interface_rrc_nr;
+class pdcp_interface_rrc;
+class rlc_interface_rrc;
+class stack_interface_rrc;
 
 // Expert arguments to create GW without proper RRC
 struct core_less_args_t {

@@ -64,7 +64,8 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
 {
   if (file.is_open() && enb != NULL) {
     if (n_reports == 0) {
-      file << "time;nof_ue;dl_brate;ul_brate\n";
+      file << "time;nof_ue;dl_brate;ul_brate;"
+              "proc_rmem;proc_rmem_kB;proc_vmem;proc_vmem_kB;sys_mem;proc_cpu;thread_count\n";
     }
 
     // Time
@@ -89,10 +90,20 @@ void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t perio
 
     // UL rate
     if (ul_rate_sum > 0) {
-      file << float_to_string(SRSLTE_MAX(0.1, (float)ul_rate_sum), 2, false);
+      file << float_to_string(SRSLTE_MAX(0.1, (float)ul_rate_sum), 2);
     } else {
-      file << float_to_string(0, 2, false);
+      file << float_to_string(0, 2);
     }
+
+    // Write system metrics.
+    const srslte::sys_metrics_t& m = metrics.sys;
+    file << float_to_string(m.process_realmem, 2);
+    file << std::to_string(m.process_realmem_kB) << ";";
+    file << float_to_string(m.process_virtualmem, 2);
+    file << std::to_string(m.process_virtualmem_kB) << ";";
+    file << float_to_string(m.system_mem, 2);
+    file << float_to_string(m.process_cpu_usage, 2);
+    file << std::to_string(m.thread_count);
 
     file << "\n";
 

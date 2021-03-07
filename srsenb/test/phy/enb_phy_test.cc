@@ -19,6 +19,10 @@
  *
  */
 
+#include "srslte/common/threads.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/random.h"
+#include "srslte/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -28,12 +32,7 @@
 #include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/string_helpers.h>
 #include <srslte/common/test_common.h>
-#include <srslte/common/threads.h>
-#include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pusch_cfg.h>
-#include <srslte/phy/utils/random.h>
-#include <srslte/srslog/srslog.h>
-#include <srslte/srslte.h>
 
 static inline bool dl_ack_value(uint32_t ue_cc_idx, uint32_t tti)
 {
@@ -831,9 +830,6 @@ public:
         ERROR("Setting UE DL cell");
       }
 
-      // Set RNTI
-      srslte_ue_dl_set_rnti(ue_dl, rnti);
-
       // Allocate UE UL
       auto* ue_ul = (srslte_ue_ul_t*)srslte_vec_malloc(sizeof(srslte_ue_ul_t));
       if (not ue_ul) {
@@ -850,9 +846,6 @@ public:
       if (srslte_ue_ul_set_cell(ue_ul, cell)) {
         ERROR("Setting UE DL cell");
       }
-
-      // Set RNTI
-      srslte_ue_ul_set_rnti(ue_ul, rnti);
     }
 
     // Initialise softbuffer

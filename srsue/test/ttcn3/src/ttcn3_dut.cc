@@ -37,7 +37,8 @@ using namespace rapidjson;
 namespace bpo = boost::program_options;
 
 typedef struct {
-  pcap_args_t pcap;
+  pcap_args_t mac_pcap;
+  pcap_args_t nas_pcap;
   std::string log_filename;
   std::string log_level;
   int32_t     log_hex_level;
@@ -54,10 +55,10 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   // clang-format off
   common.add_options()
-      ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(true), "Enable MAC packet captures for wireshark")
-      ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("/tmp/ttcn3_ue.pcap"), "MAC layer capture filename")
-      ("pcap.nas_enable",   bpo::value<bool>(&args->pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
-      ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("/tmp/ttcn3_ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
+      ("pcap.enable", bpo::value<bool>(&args->mac_pcap.enable)->default_value(true), "Enable MAC packet captures for wireshark")
+      ("pcap.filename", bpo::value<string>(&args->mac_pcap.filename)->default_value("/tmp/ttcn3_ue.pcap"), "MAC layer capture filename")
+      ("pcap.nas_enable",   bpo::value<bool>(&args->nas_pcap.enable)->default_value(false), "Enable NAS packet captures for wireshark")
+      ("pcap.nas_filename", bpo::value<string>(&args->nas_pcap.filename)->default_value("/tmp/ttcn3_ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
       ("logfilename",   bpo::value<std::string>(&args->log_filename)->default_value("/tmp/ttcn3_ue.log"), "Filename of log file")
       ("loglevel",      bpo::value<std::string>(&args->log_level)->default_value("warning"), "Log level (Error,Warning,Info,Debug)")
       ("loghexlevel",   bpo::value<int32_t>(&args->log_hex_level)->default_value(64), "Log hex level (-1 unbounded)");
@@ -81,11 +82,11 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
 
   all_args_t all_args = {};
 
-  all_args.stack.pcap.enable     = args->pcap.enable;
-  all_args.stack.pcap.nas_enable = args->pcap.nas_enable;
+  all_args.stack.pkt_trace.mac_pcap.enable   = args->mac_pcap.enable;
+  all_args.stack.pkt_trace.mac_pcap.filename = args->mac_pcap.filename;
 
-  all_args.stack.pcap.filename     = args->pcap.filename;
-  all_args.stack.pcap.nas_filename = args->pcap.nas_filename;
+  all_args.stack.pkt_trace.nas_pcap.enable   = args->nas_pcap.enable;
+  all_args.stack.pkt_trace.nas_pcap.filename = args->nas_pcap.filename;
 
   all_args.log.filename      = args->log_filename;
   all_args.log.all_level     = args->log_level;
@@ -135,20 +136,14 @@ int main(int argc, char** argv)
   }
   srslog::set_default_sink(*default_sink);
 
-  srslte::srslog_wrapper file_wrapper(srslog::fetch_log_channel("file_channel"));
-  srslte::srslog_wrapper stdout_wrapper(srslog::fetch_log_channel("stdout_channel", srslog::fetch_stdout_sink(), {}));
-
   // Start the log backend.
   srslog::init();
-
-  // Instantiate file logger
-  srslte::logmap::set_default_logger(&file_wrapper);
 
   // Create UE object
   unique_ptr<ttcn3_ue> ue = std::unique_ptr<ttcn3_ue>(new ttcn3_ue());
 
   // create and init SYSSIM
-  ttcn3_syssim syssim(file_wrapper, stdout_wrapper, ue.get());
+  ttcn3_syssim syssim(ue.get());
   if (syssim.init(ue_args) != SRSLTE_SUCCESS) {
     fprintf(stderr, "Error: Couldn't initialize system simulator\n");
     return SRSLTE_ERROR;

@@ -25,7 +25,11 @@
 #include <strings.h>
 
 #include "srslte/mac/pdu.h"
-#include "srslte/srslte.h"
+
+extern "C" {
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+}
 
 // Table 6.1.3.1-1 Buffer size levels for BSR
 static uint32_t btable[64] = {
@@ -475,7 +479,7 @@ int sch_pdu::get_sdu_space()
   } else {
     ret = rem_len - (size_header_sdu(subheaders[last_sdu_idx].get_payload_size()) - 1) - 1;
   }
-  ret = SRSLTE_MIN(ret >= 0 ? ret : 0, buffer_tx->get_tailroom());
+  ret = std::min(ret >= 0 ? ret : 0u, buffer_tx->get_tailroom());
   return ret;
 }
 

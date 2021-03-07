@@ -27,8 +27,8 @@
 #include "srslte/radio/radio_null.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
-#include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srsue/hdr/phy/vnf_phy_nr.h"
+#include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srsue/hdr/stack/ue_stack_nr.h"
 #include <algorithm>
 #include <iostream>
@@ -38,8 +38,7 @@ using namespace srslte;
 
 namespace srsue {
 
-ue::ue(srslog::sink& log_sink) :
-  old_logger(nullptr), log_sink(log_sink), logger(srslog::fetch_basic_logger("UE", log_sink, false))
+ue::ue() : old_logger(nullptr), logger(srslog::fetch_basic_logger("UE", false))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl << std::endl;
@@ -67,7 +66,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Instantiate layers and stack together our UE
   if (args.stack.type == "lte") {
-    std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte(log_sink));
+    std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte);
     if (!lte_stack) {
       srslte::console("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;
@@ -79,7 +78,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy(log_sink));
+    std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy);
     if (!lte_phy) {
       srslte::console("Error creating LTE PHY instance.\n");
       return SRSLTE_ERROR;
@@ -114,12 +113,12 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       ret = SRSLTE_ERROR;
     }
 
-    if (lte_stack->init(args.stack, old_logger, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
+    if (lte_stack->init(args.stack, lte_phy.get(), lte_phy.get(), gw_ptr.get())) {
       srslte::console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
 
-    if (gw_ptr->init(args.gw, old_logger, lte_stack.get())) {
+    if (gw_ptr->init(args.gw, lte_stack.get())) {
       srslte::console("Error initializing GW.\n");
       ret = SRSLTE_ERROR;
     }
@@ -152,7 +151,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    if (gw_ptr->init(args.gw, old_logger, nr_stack.get())) {
+    if (gw_ptr->init(args.gw, nr_stack.get())) {
       srslte::console("Error initializing GW.\n");
       return SRSLTE_ERROR;
     }
@@ -338,6 +337,7 @@ bool ue::get_metrics(ue_metrics_t* m)
   radio->get_metrics(&m->rf);
   stack->get_metrics(&m->stack);
   gw_inst->get_metrics(m->gw, m->stack.mac[0].nof_tti);
+  m->sys = sys_proc.get_metrics();
   return true;
 }
 

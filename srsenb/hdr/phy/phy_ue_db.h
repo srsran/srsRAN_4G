@@ -28,7 +28,6 @@
 #include <map>
 #include <mutex>
 #include <srslte/adt/circular_array.h>
-#include <srslte/srslte.h>
 
 namespace srsenb {
 

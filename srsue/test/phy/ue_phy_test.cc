@@ -373,7 +373,7 @@ private:
   std::condition_variable cvar;
 
 public:
-  phy_test_bench(const srsue::phy_args_t& phy_args, const srslte_cell_t& cell, srslte::logger& logger_) :
+  phy_test_bench(const srsue::phy_args_t& phy_args, const srslte_cell_t& cell) :
     radio(cell.nof_ports, srslte_sampling_freq_hz(cell.nof_prb)),
     thread("phy_test_bench"),
     logger(srslog::fetch_basic_logger("test bench", false))
@@ -382,7 +382,7 @@ public:
     sf_len = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
     // Initialise UE
-    phy = std::unique_ptr<srsue::phy>(new srsue::phy(srslog::get_default_sink()));
+    phy = std::unique_ptr<srsue::phy>(new srsue::phy);
     phy->init(phy_args, &stack, &radio);
 
     // Initialise DL baseband buffers
@@ -422,9 +422,6 @@ public:
 
   void configure_dedicated(uint16_t rnti, srslte::phy_cfg_t& phy_cfg)
   {
-    // set RNTI
-    phy->set_crnti(rnti);
-
     // Set PHY configuration
     phy->set_config(phy_cfg, 0);
   }
@@ -510,15 +507,11 @@ int main(int argc, char** argv)
   // Set custom test cell and arguments here
   phy_args.log.phy_level = "info";
 
-  // Setup logging.
-  srslte::srslog_wrapper log_wrapper(srslog::fetch_log_channel("main_channel"));
-
   // Start the log backend.
   srslog::init();
 
   // Create test bench
-  std::unique_ptr<phy_test_bench> phy_test =
-      std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, cell, log_wrapper));
+  std::unique_ptr<phy_test_bench> phy_test = std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, cell));
   phy_test->set_loglevel("info");
 
   // Start test bench

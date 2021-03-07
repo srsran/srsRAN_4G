@@ -58,12 +58,6 @@
 #define SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT3 (0.5f)
 #define SRSLTE_PUCCH_DEFAULT_THRESHOLD_DMRS (0.4f)
 
-typedef struct {
-  srslte_sequence_t seq_f2[SRSLTE_NOF_SF_X_FRAME];
-  uint32_t          cell_id;
-  bool              sequence_generated;
-} srslte_pucch_user_t;
-
 /* PUCCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t        cell;
@@ -71,10 +65,8 @@ typedef struct SRSLTE_API {
 
   srslte_uci_cqi_pucch_t cqi;
 
-  srslte_pucch_user_t** users;
-  srslte_sequence_t     tmp_seq;
-  uint16_t              ue_rnti;
-  bool                  is_ue;
+  srslte_sequence_t seq_f2;
+  bool              is_ue;
 
   int16_t  llr[SRSLTE_PUCCH3_NOF_BITS];
   uint8_t  bits_scram[SRSLTE_PUCCH_MAX_BITS];
@@ -108,10 +100,6 @@ SRSLTE_API void srslte_pucch_free(srslte_pucch_t* q);
 
 /* These functions modify the state of the object and may take some time */
 SRSLTE_API int srslte_pucch_set_cell(srslte_pucch_t* q, srslte_cell_t cell);
-
-SRSLTE_API int srslte_pucch_set_rnti(srslte_pucch_t* q, uint16_t rnti);
-
-SRSLTE_API void srslte_pucch_free_rnti(srslte_pucch_t* q, uint16_t rnti);
 
 /* These functions do not modify the state and run in real-time */
 SRSLTE_API void srslte_pucch_uci_gen_cfg(srslte_pucch_t* q, srslte_pucch_cfg_t* cfg, srslte_uci_data_t* uci_data);
@@ -148,7 +136,7 @@ SRSLTE_API int srslte_pucch_format2ab_mod_bits(srslte_pucch_format_t format, uin
 
 SRSLTE_API uint32_t srslte_pucch_m(const srslte_pucch_cfg_t* cfg, srslte_cp_t cp);
 
-SRSLTE_API uint32_t srslte_pucch_n_prb(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32_t ns);
+SRSLTE_API uint32_t srslte_pucch_n_prb(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg, uint32_t ns);
 
 SRSLTE_API int srslte_pucch_n_cs_cell(srslte_cell_t cell,
                                       uint32_t      n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]);

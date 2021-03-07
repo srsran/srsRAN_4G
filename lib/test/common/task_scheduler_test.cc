@@ -48,11 +48,9 @@ int test_task_scheduler_no_pool()
 
   // TEST: background task is run, despite there are no pool workers
   state = task_result::null;
-  task_sched.enqueue_background_task([&task_sched, &state](uint32_t worker_id) {
+  srslte::get_background_workers().push_task([&task_sched, &state]() {
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
-  TESTASSERT(state == task_result::null);
-  task_sched.run_next_task(); // runs background task
   TESTASSERT(state == task_result::null);
   task_sched.run_next_task(); // runs notification
   TESTASSERT(state == task_result::external);
@@ -65,7 +63,7 @@ int test_task_scheduler_with_pool()
   srslte::task_scheduler task_sched{5, 2};
   task_result            state = task_result::null;
 
-  task_sched.enqueue_background_task([&task_sched, &state](uint32_t worker_id) {
+  srslte::get_background_workers().push_task([&task_sched, &state]() {
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
   TESTASSERT(state == task_result::null);

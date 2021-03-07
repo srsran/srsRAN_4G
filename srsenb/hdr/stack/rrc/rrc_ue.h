@@ -41,14 +41,16 @@ public:
   bool is_idle();
 
   typedef enum {
-    MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
-    UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout
+    MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+    UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout (usually bigger than reestablishment timeout)
+    UE_REESTABLISH_TIMEOUT, ///< Maximum timeout in which UE reestablishment is expected
     nulltype
   } activity_timeout_type_t;
   std::string to_string(const activity_timeout_type_t& type);
   void        set_activity_timeout(const activity_timeout_type_t type);
   void        set_activity();
   void        activity_timer_expired();
+  void        max_retx_reached();
 
   rrc_state_t get_state();
   void        get_metrics(rrc_ue_metrics_t& ue_metrics) const;
@@ -105,6 +107,7 @@ public:
   int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
   int  get_ri(uint32_t m_ri, uint16_t* ri_idx);
   bool is_allocated() const;
+  bool is_crnti_set() const { return mac_ctrl.is_crnti_set(); }
 
   void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
   bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,

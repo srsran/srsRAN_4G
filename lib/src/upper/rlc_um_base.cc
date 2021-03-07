@@ -20,6 +20,7 @@
  */
 
 #include "srslte/upper/rlc_um_base.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include <sstream>
 
 namespace srslte {

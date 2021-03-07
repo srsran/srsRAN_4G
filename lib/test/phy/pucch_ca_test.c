@@ -87,12 +87,10 @@ static int test_pucch_ca(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode,
   // Init UE
   TESTASSERT(!srslte_ue_ul_init(&ue_ul, buffer, cell.nof_prb));
   TESTASSERT(!srslte_ue_ul_set_cell(&ue_ul, cell));
-  srslte_ue_ul_set_rnti(&ue_ul, rnti);
 
   // Init eNb
   TESTASSERT(!srslte_enb_ul_init(&enb_ul, buffer, cell.nof_prb));
   TESTASSERT(!srslte_enb_ul_set_cell(&enb_ul, cell, &dmrs_pusch_cfg, NULL));
-  TESTASSERT(!srslte_enb_ul_add_rnti(&enb_ul, rnti));
 
   // The test itself starts here
   for (ul_sf.tti = 0; ul_sf.tti < (1U << (nof_carriers * 2U)); ul_sf.tti++) {

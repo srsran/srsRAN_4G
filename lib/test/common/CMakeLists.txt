@@ -100,3 +100,6 @@ target_link_libraries(pnf_dummy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_
 
 add_executable(pnf_bridge pnf_bridge.cc)
 target_link_libraries(pnf_bridge srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+
+add_executable(mac_pcap_net_test mac_pcap_net_test.cc)
+target_link_libraries(mac_pcap_net_test srslte_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})

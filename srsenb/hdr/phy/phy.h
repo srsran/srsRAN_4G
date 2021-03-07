@@ -52,7 +52,6 @@ public:
 
   /* MAC->PHY interface */
   void rem_rnti(uint16_t rnti) final;
-  int  pregen_sequences(uint16_t rnti) override;
   void set_mch_period_stop(uint32_t stop) final;
   void set_activation_deactivation_scell(uint16_t                                     rnti,
                                          const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) override;

@@ -47,7 +47,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public srslte::pdu_queue::process_callback
 {
 public:
-  ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
+  explicit ttcn3_syssim(ttcn3_ue* ue_);
 
   ~ttcn3_syssim();
 
@@ -229,15 +229,6 @@ private:
   epoll_timer_handler                timer_handler;
   epoll_signal_handler               signal_handler;
 
-  // Logging stuff (to be removed)
-  srslte::logger& logger_stdout;
-  srslte::logger& logger_file;
-  srslte::logger* old_logger = nullptr;
-  srslte::log_ref log;
-  srslte::log_ref ss_mac_log{"SS-MAC"};
-  srslte::log_ref ss_rlc_log{"SS-RLC"};
-  srslte::log_ref ss_pdcp_log{"SS-PDCP"};
-
   all_args_t args = {};
 
   // Simulator vars
@@ -271,8 +262,7 @@ private:
   {
   public:
     syssim_cell_t(ttcn3_syssim* ss) :
-      rlc(ss->ss_rlc_log->get_service_name().c_str()),
-      pdcp(&ss->stack.task_sched, ss->ss_pdcp_log->get_service_name().c_str())
+      rlc(ss->ss_rlc_logger.id().c_str()), pdcp(&ss->stack.task_sched, ss->ss_pdcp_logger.id().c_str())
     {}
 
     cell_config_t                     config;

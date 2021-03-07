@@ -28,7 +28,7 @@
 #define SRSUE_UE_PHY_BASE_H
 
 #include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/phy/phy_metrics.h"
 
 namespace srsue {

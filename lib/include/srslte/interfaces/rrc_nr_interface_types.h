@@ -39,6 +39,7 @@ struct phy_cfg_nr_t {
   srslte_prach_cfg_t             prach    = {};
   srslte_ue_dl_nr_pdcch_cfg_t    pdcch    = {};
   srslte_ue_dl_nr_harq_ack_cfg_t harq_ack = {};
+  srslte_csi_hl_cfg_t            csi      = {};
 
   phy_cfg_nr_t()
   {
@@ -507,6 +508,13 @@ struct phy_cfg_nr_t {
     //                            nrofSymbols: 14
     //                            startingSymbolIndex: 0
     //                            timeDomainOCC: 2
+    pucch.sr_resources[1].resource.format               = SRSLTE_PUCCH_NR_FORMAT_1;
+    pucch.sr_resources[1].resource.starting_prb         = 0;
+    pucch.sr_resources[1].resource.initial_cyclic_shift = 8;
+    pucch.sr_resources[1].resource.nof_symbols          = 14;
+    pucch.sr_resources[1].resource.start_symbol_idx     = 0;
+    pucch.sr_resources[1].resource.time_domain_occ      = 2;
+
     //            Item 17
     //                PUCCH-Resource
     //                    pucch-ResourceId: 17
@@ -516,6 +524,13 @@ struct phy_cfg_nr_t {
     //                            nrofPRBs: 1
     //                            nrofSymbols: 2
     //                            startingSymbolIndex: 2
+    srslte_pucch_nr_resource_t pucch_res_17 = {};
+    pucch_res_17.starting_prb               = 1;
+    pucch_res_17.format                     = SRSLTE_PUCCH_NR_FORMAT_2;
+    pucch_res_17.nof_prb                    = 1;
+    pucch_res_17.nof_symbols                = 2;
+    pucch_res_17.start_symbol_idx           = 2;
+
     //        format1: setup (1)
     //            setup
     //        format2: setup (1)
@@ -529,6 +544,7 @@ struct phy_cfg_nr_t {
         }
       }
     }
+    pucch_res_17.max_code_rate = 2;
 
     //        schedulingRequestResourceToAddModList: 1 item
     //            Item 0
@@ -538,6 +554,10 @@ struct phy_cfg_nr_t {
     //                    periodicityAndOffset: sl40 (10)
     //                        sl40: 8
     //                    resource: 16
+    pucch.sr_resources[1].sr_id      = 0;
+    pucch.sr_resources[1].period     = 40;
+    pucch.sr_resources[1].offset     = 8;
+    pucch.sr_resources[1].configured = true;
 
     //        dl-DataToUL-ACK: 7 items
     //            Item 0
@@ -562,6 +582,42 @@ struct phy_cfg_nr_t {
     harq_ack.dl_data_to_ul_ack[5]  = 12;
     harq_ack.dl_data_to_ul_ack[6]  = 11;
     harq_ack.nof_dl_data_to_ul_ack = 7;
+
+    // csi-ReportConfigToAddModList: 1 item
+    //    Item 0
+    //        CSI-ReportConfig
+    //            reportConfigId: 0
+    //            resourcesForChannelMeasurement: 0
+    //            csi-IM-ResourcesForInterference: 1
+    //            reportConfigType: periodic (0)
+    //                periodic
+    //                    reportSlotConfig: slots80 (7)
+    //                        slots80: 9
+    //                    pucch-CSI-ResourceList: 1 item
+    //                        Item 0
+    //                            PUCCH-CSI-Resource
+    //                                uplinkBandwidthPartId: 0
+    //                                pucch-Resource: 17
+    //            reportQuantity: cri-RI-PMI-CQI (1)
+    //                cri-RI-PMI-CQI: NULL
+    //            reportFreqConfiguration
+    //                cqi-FormatIndicator: widebandCQI (0)
+    //            timeRestrictionForChannelMeasurements: notConfigured (1)
+    //            timeRestrictionForInterferenceMeasurements: notConfigured (1)
+    //            groupBasedBeamReporting: disabled (1)
+    //                disabled
+    //            cqi-Table: table2 (1)
+    //            subbandSize: value1 (0)
+    csi.reports[0].type                = SRSLTE_CSI_REPORT_TYPE_PERIODIC;
+    csi.reports[0].channel_meas_id     = 0;
+    csi.reports[0].interf_meas_present = true;
+    csi.reports[0].interf_meas_id      = 1;
+    csi.reports[0].periodic.period     = 80;
+    csi.reports[0].periodic.offset     = 9;
+    csi.reports[0].periodic.resource   = pucch_res_17;
+    csi.reports[0].quantity            = SRSLTE_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI;
+    csi.reports[0].freq_cfg            = SRSLTE_CSI_REPORT_FREQ_WIDEBAND;
+    csi.reports[0].cqi_table           = SRSLTE_CSI_CQI_TABLE_2;
   }
 };
 } // namespace srslte

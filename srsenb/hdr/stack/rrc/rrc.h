@@ -180,6 +180,7 @@ private:
   void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
+  void send_rrc_connection_reject(uint16_t rnti);
 
   uint32_t              paging_tti = INVALID_TTI;
   srslte::byte_buffer_t byte_buf_paging;
@@ -196,6 +197,7 @@ private:
   const static uint32_t LCID_REM_USER = 0xffff0001;
   const static uint32_t LCID_REL_USER = 0xffff0002;
   const static uint32_t LCID_ACT_USER = 0xffff0004;
+  const static uint32_t LCID_RTX_USER = 0xffff0005;
 
   bool                         running = false;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;

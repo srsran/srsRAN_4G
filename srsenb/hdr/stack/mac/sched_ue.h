@@ -144,7 +144,6 @@ public:
 
   uint32_t get_max_retx();
 
-  bool pucch_sr_collision(tti_point tti_tx_dl, uint32_t n_cce);
   bool pdsch_enabled(tti_point tti_rx, uint32_t enb_cc_idx) const;
   bool pusch_enabled(tti_point tti_rx, uint32_t enb_cc_idx, bool needs_pdcch) const;
 
@@ -167,6 +166,12 @@ private:
 
   bool needs_cqi(uint32_t tti, uint32_t enb_cc_idx, bool will_send = false);
 
+  int generate_format1_common(uint32_t                          pid,
+                              sched_interface::dl_sched_data_t* data,
+                              tti_point                         tti_tx_dl,
+                              uint32_t                          enb_cc_idx,
+                              uint32_t                          cfi,
+                              const rbgmask_t&                  user_mask);
   int generate_format1(uint32_t                          pid,
                        sched_interface::dl_sched_data_t* data,
                        tti_point                         tti_tx_dl,

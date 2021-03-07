@@ -25,6 +25,8 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_sr.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/mac/proc_ra.h"
 
 namespace srsue {

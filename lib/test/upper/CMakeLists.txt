@@ -57,7 +57,7 @@ target_link_libraries(rlc_common_test srslte_upper srslte_phy)
 add_test(rlc_common_test rlc_common_test)
 
 add_executable(rlc_um_nr_pdu_test rlc_um_nr_pdu_test.cc)
-target_link_libraries(rlc_um_nr_pdu_test srslte_upper srslte_phy)
+target_link_libraries(rlc_um_nr_pdu_test srslte_upper srslte_mac srslte_phy)
 add_nr_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
 
 add_executable(rlc_um_nr_test rlc_um_nr_test.cc)

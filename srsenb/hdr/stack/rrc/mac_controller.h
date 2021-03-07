@@ -65,6 +65,7 @@ public:
   void handle_ho_prep(const asn1::rrc::ho_prep_info_r8_ies_s& ho_prep);
 
   const ue_cfg_t& get_ue_sched_cfg() const { return current_sched_ue_cfg; }
+  bool            is_crnti_set() const { return crnti_set; }
 
   void set_scell_activation(const std::bitset<SRSLTE_MAX_CARRIERS>& scell_mask);
   void set_drb_activation(bool active);

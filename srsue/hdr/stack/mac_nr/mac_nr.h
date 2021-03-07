@@ -28,6 +28,7 @@
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/mac_interface_types.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/mac/mac_sch_pdu_nr.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
@@ -35,8 +36,9 @@
 
 namespace srsue {
 
+class rlc_interface_mac;
+
 struct mac_nr_args_t {
-  srsue::pcap_args_t pcap;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_proc_ra_nr
@@ -51,6 +53,8 @@ public:
   void reset();
   void run_tti(const uint32_t tti);
 
+  void start_pcap(srslte::mac_pcap* pcap_);
+
   void bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload);
 
   /// Interface for PHY
@@ -59,7 +63,7 @@ public:
 
   int  sf_indication(const uint32_t tti);
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant);
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu);
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action);
   void prach_sent(const uint32_t tti,
                   const uint32_t s_id,
                   const uint32_t t_id,
@@ -82,7 +86,7 @@ public:
   /// procedure ra nr interface
   uint64_t get_contention_id();
   uint16_t get_c_rnti();
-  void set_c_rnti(uint64_t c_rnti_);
+  void     set_c_rnti(uint64_t c_rnti_);
 
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }
@@ -119,9 +123,9 @@ private:
   rlc_interface_mac*            rlc = nullptr;
   srslte::ext_task_sched_handle task_sched;
 
-  std::unique_ptr<srslte::mac_pcap> pcap = nullptr;
-  srslog::basic_logger&             logger;
-  mac_nr_args_t                     args = {};
+  srslte::mac_pcap*     pcap = nullptr;
+  srslog::basic_logger& logger;
+  mac_nr_args_t         args = {};
 
   bool started = false;
 
@@ -141,8 +145,9 @@ private:
 
   /// Tx buffer
   srslte::mac_sch_pdu_nr       tx_pdu;
-  srslte::unique_byte_buffer_t tx_buffer  = nullptr;
-  srslte::unique_byte_buffer_t rlc_buffer = nullptr;
+  srslte::unique_byte_buffer_t tx_buffer     = nullptr;
+  srslte::unique_byte_buffer_t rlc_buffer    = nullptr;
+  srslte_softbuffer_tx_t       softbuffer_tx = {}; /// UL HARQ (temporal)
 
   srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;
 

@@ -29,6 +29,8 @@
 #ifndef SRSLTE_THREAD_POOL_H
 #define SRSLTE_THREAD_POOL_H
 
+#include "srslte/adt/move_callback.h"
+#include "srslte/srslog/srslog.h"
 #include <condition_variable>
 #include <functional>
 #include <memory>
@@ -95,17 +97,22 @@ private:
 
 class task_thread_pool
 {
-  using task_t = std::function<void(uint32_t worker_id)>;
+  using task_t = srslte::move_callback<void()>;
 
 public:
-  explicit task_thread_pool(uint32_t nof_workers);
+  task_thread_pool(uint32_t nof_workers = 1, bool start_deferred = false, int32_t prio_ = -1, uint32_t mask_ = 255);
+  task_thread_pool(const task_thread_pool&) = delete;
+  task_thread_pool(task_thread_pool&&)      = delete;
+  task_thread_pool& operator=(const task_thread_pool&) = delete;
+  task_thread_pool& operator=(task_thread_pool&&) = delete;
   ~task_thread_pool();
-  void start(int32_t prio = -1, uint32_t mask = 255);
-  void stop();
 
-  void     push_task(const task_t& task);
+  void stop();
+  void start(int32_t prio_ = -1, uint32_t mask_ = 255);
+  void set_nof_workers(uint32_t nof_workers);
+
   void     push_task(task_t&& task);
-  uint32_t nof_pending_tasks();
+  uint32_t nof_pending_tasks() const;
   size_t   nof_workers() const { return workers.size(); }
 
 private:
@@ -114,7 +121,6 @@ private:
   public:
     explicit worker_t(task_thread_pool* parent_, uint32_t id);
     void     stop();
-    void     setup(int32_t prio, uint32_t mask);
     bool     is_running() const { return running; }
     uint32_t id() const { return id_; }
 
@@ -128,12 +134,18 @@ private:
     bool              running = false;
   };
 
-  std::queue<task_t>      pending_tasks;
-  std::vector<worker_t>   workers;
-  std::mutex              queue_mutex;
-  std::condition_variable cv_empty;
-  bool                    running;
+  int32_t               prio = -1;
+  uint32_t              mask = 255;
+  srslog::basic_logger& logger;
+
+  std::queue<task_t>                      pending_tasks;
+  std::vector<std::unique_ptr<worker_t> > workers;
+  mutable std::mutex                      queue_mutex;
+  std::condition_variable                 cv_empty;
+  bool                                    running = false;
 };
+
+srslte::task_thread_pool& get_background_workers();
 
 } // namespace srslte
 

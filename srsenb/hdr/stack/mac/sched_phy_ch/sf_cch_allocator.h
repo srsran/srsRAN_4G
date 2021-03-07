@@ -34,10 +34,12 @@ class sf_cch_allocator
 public:
   const static uint32_t MAX_CFI = 3;
   struct alloc_t {
+    int8_t                pucch_n_prb; ///< this PUCCH resource identifier
     uint16_t              rnti    = 0;
     srslte_dci_location_t dci_pos = {0, 0};
-    pdcch_mask_t          current_mask; ///< this PDCCH alloc mask
-    pdcch_mask_t          total_mask;   ///< Accumulation of all PDCCH masks for the current solution (tree route)
+    pdcch_mask_t          current_mask;     ///< this allocation PDCCH mask
+    pdcch_mask_t          total_mask;       ///< Accumulation of all PDCCH masks for the current solution (tree route)
+    prbmask_t             total_pucch_mask; ///< Accumulation of all PUCCH masks for the current solution/tree route
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
@@ -45,8 +47,15 @@ public:
 
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(tti_point tti_rx_);
-  bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
-  bool set_cfi(uint32_t cfi);
+  /**
+   * Allocates DCI space in PDCCH and PUCCH, avoiding in the process collisions with other users
+   * @param alloc_type allocation type (e.g. DL data, UL data, ctrl)
+   * @param aggr_idx Aggregation level index (0..3)
+   * @param user UE object or null in case of broadcast/RAR/paging allocation
+   * @param has_pusch_grant If the UE has already an PUSCH grant for UCI allocated
+   * @return if the allocation was successful
+   */
+  bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr, bool has_pusch_grant = false);
 
   // getters
   uint32_t    get_cfi() const { return current_cfix + 1; }
@@ -57,41 +66,52 @@ public:
   std::string result_to_string(bool verbose = false) const;
 
 private:
+  /// DCI allocation parameters
+  struct alloc_record_t {
+    sched_ue*    user;
+    uint32_t     aggr_idx;
+    alloc_type_t alloc_type;
+    bool         pusch_uci;
+  };
+  /// Tree-based data structure to store possible DCI allocation decisions
   struct alloc_tree_t {
     struct node_t {
       int     parent_idx;
       alloc_t node;
       node_t(int i, const alloc_t& a) : parent_idx(i), node(a) {}
     };
+
+    // args
+    size_t                     nof_cces;
+    const sched_cell_params_t* cc_cfg    = nullptr;
+    srslte_pucch_cfg_t*        pucch_cfg = nullptr;
+    uint32_t                   cfi;
     // state
-    size_t              nof_cces;
     std::vector<node_t> dci_alloc_tree;
     size_t              prev_start = 0, prev_end = 0;
 
-    explicit alloc_tree_t(size_t nof_cces_) : nof_cces(nof_cces_) {}
-    size_t nof_leaves() const { return prev_end - prev_start; }
-    void   reset();
-  };
-  struct alloc_record_t {
-    sched_ue*    user;
-    uint32_t     aggr_idx;
-    alloc_type_t alloc_type;
+    explicit alloc_tree_t(uint32_t this_cfi, const sched_cell_params_t& cc_params, srslte_pucch_cfg_t& pucch_cfg);
+    size_t      nof_leaves() const { return prev_end - prev_start; }
+    void        reset();
+    void        get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_t idx) const;
+    bool        add_tree_node_leaves(int                           node_idx,
+                                     const alloc_record_t&         dci_record,
+                                     const cce_cfi_position_table& dci_locs,
+                                     tti_point                     tti_rx);
+    std::string result_to_string(bool verbose) const;
   };
 
   const alloc_tree_t&           get_alloc_tree() const { return alloc_trees[current_cfix]; }
   const cce_cfi_position_table* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const;
 
   // PDCCH allocation algorithm
-  bool        alloc_dci_record(const alloc_record_t& record, uint32_t cfix);
-  static bool add_tree_node_leaves(alloc_tree_t&                 tree,
-                                   int                           node_idx,
-                                   const alloc_record_t&         dci_record,
-                                   const cce_cfi_position_table& dci_locs,
-                                   tti_point                     tti_tx_dl);
+  bool set_cfi(uint32_t cfi);
+  bool alloc_dci_record(const alloc_record_t& record, uint32_t cfix);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
   srslog::basic_logger&      logger;
+  srslte_pucch_cfg_t         pucch_cfg_common = {};
 
   // tti vars
   tti_point                   tti_rx;

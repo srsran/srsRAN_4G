@@ -45,12 +45,6 @@
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/scrambling/scrambling.h"
 
-typedef struct {
-  srslte_sequence_t seq[SRSLTE_NOF_SF_X_FRAME];
-  uint32_t          cell_id;
-  bool              sequence_generated;
-} srslte_pusch_user_t;
-
 /* PUSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
@@ -75,10 +69,6 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   srslte_modem_table_t mod[SRSLTE_MOD_NITEMS];
   srslte_sch_t         ul_sch;
-
-  // This is to generate the scrambling seq for multiple CRNTIs
-  srslte_pusch_user_t** users;
-  srslte_sequence_t     tmp_seq;
 
   // EVM buffer
   srslte_evm_buffer_t* evm_buffer;
@@ -107,10 +97,6 @@ SRSLTE_API void srslte_pusch_free(srslte_pusch_t* q);
 
 /* These functions modify the state of the object and may take some time */
 SRSLTE_API int srslte_pusch_set_cell(srslte_pusch_t* q, srslte_cell_t cell);
-
-SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti);
-
-SRSLTE_API void srslte_pusch_free_rnti(srslte_pusch_t* q, uint16_t rnti);
 
 /**
  * Asserts PUSCH grant attributes are in range

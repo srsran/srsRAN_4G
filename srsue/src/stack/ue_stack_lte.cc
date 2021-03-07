@@ -21,7 +21,8 @@
 
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srslte/common/logmap.h"
-#include "srslte/srslte.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+
 #include <algorithm>
 #include <chrono>
 #include <numeric>
@@ -31,17 +32,18 @@ using namespace srslte;
 
 namespace srsue {
 
-ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
+ue_stack_lte::ue_stack_lte() :
   running(false),
   args(),
-  logger(nullptr),
-  stack_logger(srslog::fetch_basic_logger("STCK", log_sink, false)),
-  mac_logger(srslog::fetch_basic_logger("MAC", log_sink)),
-  rlc_logger(srslog::fetch_basic_logger("RLC", log_sink, false)),
-  pdcp_logger(srslog::fetch_basic_logger("PDCP", log_sink, false)),
-  rrc_logger(srslog::fetch_basic_logger("RRC", log_sink, false)),
-  usim_logger(srslog::fetch_basic_logger("USIM", log_sink, false)),
-  nas_logger(srslog::fetch_basic_logger("NAS", log_sink, false)),
+  stack_logger(srslog::fetch_basic_logger("STCK", false)),
+  mac_logger(srslog::fetch_basic_logger("MAC")),
+  rlc_logger(srslog::fetch_basic_logger("RLC", false)),
+  pdcp_logger(srslog::fetch_basic_logger("PDCP", false)),
+  rrc_logger(srslog::fetch_basic_logger("RRC", false)),
+  usim_logger(srslog::fetch_basic_logger("USIM", false)),
+  nas_logger(srslog::fetch_basic_logger("NAS", false)),
+  mac_pcap(),
+  mac_nr_pcap(),
   usim(nullptr),
   phy(nullptr),
   rlc("RLC"),
@@ -52,10 +54,10 @@ ue_stack_lte::ue_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
   thread("STACK"),
-  task_sched(512, 2, 64),
-  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD),
-  mac_pcap(srslte_rat_t::lte)
+  task_sched(512, 64),
+  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
 {
+  get_background_workers().set_nof_workers(2);
   ue_task_queue  = task_sched.make_task_queue();
   gw_queue_id    = task_sched.make_task_queue();
   cfg_task_queue = task_sched.make_task_queue();
@@ -73,37 +75,32 @@ std::string ue_stack_lte::get_type()
 }
 
 int ue_stack_lte::init(const stack_args_t&      args_,
-                       srslte::logger*          logger_,
                        phy_interface_stack_lte* phy_,
                        phy_interface_stack_nr*  phy_nr_,
                        gw_interface_stack*      gw_)
 {
   phy_nr = phy_nr_;
-  if (init(args_, logger_, phy_, gw_)) {
+  if (init(args_, phy_, gw_)) {
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
 }
 
-int ue_stack_lte::init(const stack_args_t&      args_,
-                       srslte::logger*          logger_,
-                       phy_interface_stack_lte* phy_,
-                       gw_interface_stack*      gw_)
+int ue_stack_lte::init(const stack_args_t& args_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_)
 {
   phy = phy_;
   gw  = gw_;
 
-  if (init(args_, logger_)) {
+  if (init(args_)) {
     return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
 }
 
-int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
+int ue_stack_lte::init(const stack_args_t& args_)
 {
-  args   = args_;
-  logger = logger_;
+  args = args_;
 
   // init own log
   stack_logger.set_level(srslog::str_to_basic_level(args.log.stack_level));
@@ -111,41 +108,87 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   byte_buffer_pool::get_instance()->enable_logger(true);
 
   // init layer logs
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
-  mac_log->set_level(args.log.mac_level);
-  mac_log->set_hex_limit(args.log.mac_hex_limit);
   mac_logger.set_level(srslog::str_to_basic_level(args.log.mac_level));
   mac_logger.set_hex_dump_max_size(args.log.mac_hex_limit);
-  rlc_log->set_level(args.log.rlc_level);
-  rlc_log->set_hex_limit(args.log.rlc_hex_limit);
   rlc_logger.set_level(srslog::str_to_basic_level(args.log.rlc_level));
   rlc_logger.set_hex_dump_max_size(args.log.rlc_hex_limit);
-  pdcp_log->set_level(args.log.pdcp_level);
-  pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
   pdcp_logger.set_level(srslog::str_to_basic_level(args.log.pdcp_level));
   pdcp_logger.set_hex_dump_max_size(args.log.pdcp_hex_limit);
-  rrc_log->set_level(args.log.rrc_level);
-  rrc_log->set_hex_limit(args.log.rrc_hex_limit);
   rrc_logger.set_level(srslog::str_to_basic_level(args.log.rrc_level));
   rrc_logger.set_hex_dump_max_size(args.log.rrc_hex_limit);
-  usim_log->set_level(args.log.usim_level);
-  usim_log->set_hex_limit(args.log.usim_hex_limit);
   usim_logger.set_level(srslog::str_to_basic_level(args.log.usim_level));
   usim_logger.set_hex_dump_max_size(args.log.usim_hex_limit);
-  nas_log->set_level(args.log.nas_level);
-  nas_log->set_hex_limit(args.log.nas_hex_limit);
   nas_logger.set_level(srslog::str_to_basic_level(args.log.nas_level));
   nas_logger.set_hex_dump_max_size(args.log.nas_hex_limit);
 
   // Set up pcap
-  if (args.pcap.enable) {
-    if (mac_pcap.open(args.pcap.filename.c_str()) == SRSLTE_SUCCESS) {
-      mac.start_pcap(&mac_pcap);
+  // parse pcap trace list
+  std::vector<std::string> pcap_list;
+  srslte::string_parse_list(args.pkt_trace.enable, ',', pcap_list);
+  if (pcap_list.empty()) {
+    stack_logger.error("PCAP enable list empty defaulting to disable all PCAPs");
+    args.pkt_trace.mac_pcap.enable    = false;
+    args.pkt_trace.mac_nr_pcap.enable = false;
+    args.pkt_trace.mac_nr_pcap.enable = false;
+  }
+
+  for (auto& pcap : pcap_list) {
+    // Remove white spaces
+    pcap.erase(std::remove_if(pcap.begin(), pcap.end(), isspace), pcap.end());
+    if (pcap == "mac" || pcap == "MAC") {
+      args.pkt_trace.mac_pcap.enable = true;
+    } else if (pcap == "mac_nr" || pcap == "MAC_NR") {
+      args.pkt_trace.mac_nr_pcap.enable = true;
+    } else if (pcap == "nas" || pcap == "NAS") {
+      args.pkt_trace.nas_pcap.enable = true;
+    } else if (pcap == "none" || pcap == "NONE") {
+      args.pkt_trace.mac_pcap.enable    = false;
+      args.pkt_trace.mac_nr_pcap.enable = false;
+      args.pkt_trace.mac_nr_pcap.enable = false;
+    } else {
+      stack_logger.error("Unknown PCAP option %s", pcap.c_str());
     }
   }
-  if (args.pcap.nas_enable) {
-    nas_pcap.open(args.pcap.nas_filename.c_str());
-    nas.start_pcap(&nas_pcap);
+
+  // If mac and mac_nr pcap option is enabled and if the filenames are the same,
+  // mac and mac_nr should write in the same PCAP file.
+  if (args.pkt_trace.mac_pcap.enable && args.pkt_trace.mac_nr_pcap.enable &&
+      args.pkt_trace.mac_pcap.filename == args.pkt_trace.mac_nr_pcap.filename) {
+    stack_logger.info("Using same MAC PCAP file %s for LTE and NR", args.pkt_trace.mac_pcap.filename.c_str());
+    if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+      mac.start_pcap(&mac_pcap);
+      mac_nr.start_pcap(&mac_pcap);
+      stack_logger.info("Open mac pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
+    } else {
+      stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
+    }
+  } else {
+    if (args.pkt_trace.mac_pcap.enable) {
+      if (mac_pcap.open(args.pkt_trace.mac_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+        mac.start_pcap(&mac_pcap);
+        stack_logger.info("Open mac pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
+      } else {
+        stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_pcap.filename.c_str());
+      }
+    }
+
+    if (args.pkt_trace.mac_nr_pcap.enable) {
+      if (mac_nr_pcap.open(args.pkt_trace.mac_nr_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+        mac_nr.start_pcap(&mac_nr_pcap);
+        stack_logger.info("Open mac nr pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
+      } else {
+        stack_logger.error("Can not open pcap file %s", args.pkt_trace.mac_nr_pcap.filename.c_str());
+      }
+    }
+  }
+
+  if (args.pkt_trace.nas_pcap.enable) {
+    if (nas_pcap.open(args.pkt_trace.nas_pcap.filename.c_str()) == SRSLTE_SUCCESS) {
+      nas.start_pcap(&nas_pcap);
+      stack_logger.info("Open nas pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
+    } else {
+      stack_logger.error("Can not open pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
+    }
   }
 
   // Init USIM first to allow early exit in case reader couldn't be found
@@ -165,16 +208,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 
   mac_nr_args_t mac_nr_args = {};
   mac_nr.init(mac_nr_args, phy_nr, &rlc);
-  rrc_nr.init(phy_nr,
-              &mac_nr,
-              &rlc,
-              &pdcp,
-              gw,
-              &rrc,
-              usim.get(),
-              task_sched.get_timer_handler(),
-              nullptr,
-              args.rrc_nr);
+  rrc_nr.init(phy_nr, &mac_nr, &rlc, &pdcp, gw, &rrc, usim.get(), task_sched.get_timer_handler(), nullptr, args.rrc_nr);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &rrc_nr, args.rrc);
 
   running = true;
@@ -203,12 +237,18 @@ void ue_stack_lte::stop_impl()
   pdcp.stop();
   mac.stop();
 
-  if (args.pcap.enable) {
+  if (args.pkt_trace.mac_pcap.enable) {
     mac_pcap.close();
   }
-  if (args.pcap.nas_enable) {
+  if (args.pkt_trace.mac_nr_pcap.enable) {
+    mac_nr_pcap.close();
+  }
+  if (args.pkt_trace.nas_pcap.enable) {
     nas_pcap.close();
   }
+
+  task_sched.stop();
+  get_background_workers().stop();
 }
 
 bool ue_stack_lte::switch_on()

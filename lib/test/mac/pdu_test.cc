@@ -24,8 +24,12 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/test_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/mac/pdu.h"
+
+extern "C" {
+#include "srslte/phy/phch/dci.h"
+}
+
 #include <bitset>
 #include <iostream>
 #include <map>
@@ -171,7 +175,7 @@ class rlc_dummy : public srslte::read_pdu_interface
 public:
   int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   {
-    uint32_t len = SRSLTE_MIN(ul_queues[lcid], nof_bytes);
+    uint32_t len = std::min(ul_queues[lcid], nof_bytes);
 
     // set payload bytes to LCID so we can check later if the scheduling was correct
     memset(payload, lcid, len);

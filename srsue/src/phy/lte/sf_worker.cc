@@ -19,12 +19,10 @@
  *
  */
 
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
 
 #include "srsue/hdr/phy/lte/sf_worker.h"
 #include <string.h>
-#include <unistd.h>
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -140,13 +138,6 @@ void sf_worker::set_cfo_unlocked(const uint32_t& cc_idx, float cfo)
   cc_workers[cc_idx]->set_cfo_unlocked(cfo);
 }
 
-void sf_worker::set_crnti_unlocked(uint16_t rnti)
-{
-  for (auto& cc_worker : cc_workers) {
-    cc_worker->set_crnti_unlocked(rnti);
-  }
-}
-
 void sf_worker::set_tdd_config_unlocked(srslte_tdd_config_t config)
 {
   for (auto& cc_worker : cc_workers) {
@@ -177,7 +168,6 @@ void sf_worker::set_config_unlocked(uint32_t cc_idx, srslte::phy_cfg_t phy_cfg)
 
 void sf_worker::work_imp()
 {
-
   srslte::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
     phy->worker_end(this, false, tx_signal_ptr, tx_time, false);
@@ -192,7 +182,6 @@ void sf_worker::work_imp()
 
   // Loop through all carriers. carrier_idx=0 is PCell
   for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
-
     // Process all DL and special subframes
     if (srslte_sfidx_tdd_type(tdd_config, tti % 10) != SRSLTE_TDD_SF_U || cell.frame_type == SRSLTE_FDD) {
       srslte_mbsfn_cfg_t mbsfn_cfg;
@@ -214,7 +203,6 @@ void sf_worker::work_imp()
   if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
     // Generate Uplink signal if no PRACH pending
     if (!prach_ptr) {
-
       // Common UCI data object for all carriers
       srslte_uci_data_t uci_data;
       reset_uci(&uci_data);

@@ -37,6 +37,14 @@ typedef struct {
 
 typedef struct {
   bool        enable;
+  std::string client_ip;
+  std::string bind_ip;
+  uint16_t    client_port;
+  uint16_t    bind_port;
+} pcap_net_args_t;
+
+typedef struct {
+  bool        enable;
   std::string m1u_multiaddr;
   std::string m1u_if_addr;
   uint16_t    mcs;
@@ -74,6 +82,7 @@ typedef struct {
   mac_args_t       mac;
   s1ap_args_t      s1ap;
   pcap_args_t      mac_pcap;
+  pcap_net_args_t  mac_pcap_net;
   pcap_args_t      s1ap_pcap;
   stack_log_args_t log;
   embms_args_t     embms;

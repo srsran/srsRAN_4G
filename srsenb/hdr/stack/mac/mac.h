@@ -26,6 +26,7 @@
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/mac_pcap_net.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
@@ -54,6 +55,7 @@ public:
   void stop();
 
   void start_pcap(srslte::mac_pcap* pcap_);
+  void start_pcap_net(srslte::mac_pcap_net* pcap_net_);
 
   /******** Interface from PHY (PHY -> MAC) ****************/
   int  sr_detected(uint32_t tti, uint16_t rnti) final;
@@ -183,7 +185,8 @@ private:
   uint8_t             mtch_payload_buffer[mtch_payload_len] = {};
 
   // pointer to MAC PCAP object
-  srslte::mac_pcap* pcap = nullptr;
+  srslte::mac_pcap*     pcap     = nullptr;
+  srslte::mac_pcap_net* pcap_net = nullptr;
 
   // Number of rach preambles detected for a cc.
   std::vector<uint32_t> detected_rachs;

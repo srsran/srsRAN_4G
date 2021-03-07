@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/phy/sfn_sync.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -117,7 +118,6 @@ sfn_sync::ret_code sfn_sync::decode_mib(srslte_cell_t*                          
   }
 
   if (srslte_ue_sync_get_sfidx(ue_sync) == 0) {
-
     // Skip MIB decoding if we are only interested in subframe 0
     if (sfidx_only) {
       if (tti_cnt) {

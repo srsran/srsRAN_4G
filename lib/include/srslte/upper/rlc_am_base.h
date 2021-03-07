@@ -25,7 +25,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_common.h"
 #include <map>
@@ -41,5 +40,12 @@ bool rlc_am_is_control_pdu(uint8_t* payload);
 bool rlc_am_is_control_pdu(byte_buffer_t* pdu);
 
 } // namespace srslte
+
+namespace srsue {
+
+class pdcp_interface_rlc;
+class rrc_interface_rlc;
+
+} // namespace srsue
 
 #endif // SRSLTE_RLC_AM_BASE_H

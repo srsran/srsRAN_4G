@@ -74,7 +74,11 @@ int rrc::ue::init()
 void* rrc::ue::operator new(size_t sz)
 {
   assert(sz == sizeof(ue));
-  return rrc::ue_pool.allocate_node(sz);
+  void* memchunk = rrc::ue_pool.allocate_node(sz);
+  if (ue_pool.capacity() <= 4) {
+    srslte::get_background_workers().push_task([]() { rrc::ue_pool.reserve(4); });
+  }
+  return memchunk;
 }
 void rrc::ue::operator delete(void* ptr)noexcept
 {
@@ -130,6 +134,16 @@ void rrc::ue::activity_timer_expired()
   state = RRC_STATE_RELEASE_REQUEST;
 }
 
+void rrc::ue::max_retx_reached()
+{
+  if (parent) {
+    parent->logger.info("Max retx reached for rnti=0x%x", rnti);
+
+    // Give UE time to start re-establishment
+    set_activity_timeout(UE_REESTABLISH_TIMEOUT);
+  }
+}
+
 void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
 {
   uint32_t deadline_s  = 0;
@@ -144,6 +158,13 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
     case UE_INACTIVITY_TIMEOUT:
       deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
       deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
+      break;
+    case UE_REESTABLISH_TIMEOUT:
+      deadline_ms = static_cast<uint32_t>((get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t310.to_number()) +
+                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t311.to_number()) +
+                                          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.n310.to_number()));
+      deadline_s  = deadline_ms / 1000;
+      deadline_ms = deadline_ms % 1000;
       break;
     default:
       parent->logger.error("Unknown timeout type %d", type);
@@ -252,7 +273,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE response reception", "UE inactivity"};
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
   return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
@@ -504,10 +525,7 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
 
   // Reestablish current DRBs during ConnectionReconfiguration
-  for (const auto& erab_pair : parent->users.at(old_reest_rnti)->bearer_list.get_erabs()) {
-    const bearer_cfg_handler::erab_t& erab = erab_pair.second;
-    bearer_list.add_erab(erab.id, erab.qos_params, erab.address, erab.teid_out, nullptr);
-  }
+  bearer_list = std::move(parent->users.at(old_reest_rnti)->bearer_list);
 
   // remove old RNTI
   parent->rem_user_thread(old_reest_rnti);

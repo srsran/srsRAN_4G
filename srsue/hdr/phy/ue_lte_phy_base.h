@@ -33,6 +33,8 @@
 
 namespace srsue {
 
+class stack_interface_phy_lte;
+
 class ue_lte_phy_base : public ue_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
 {
 public:

@@ -24,6 +24,7 @@
 
 #include "srslte/common/block_queue.h"
 #include "srslte/common/logmap.h"
+#include "srslte/interfaces/rlc_interface_types.h"
 #include "srslte/upper/rlc_metrics.h"
 #include <stdlib.h>
 

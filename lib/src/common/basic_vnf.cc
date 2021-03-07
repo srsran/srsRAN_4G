@@ -226,8 +226,9 @@ int srslte_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
   ul_grant.tti                                              = msg->tti;
   ul_grant.tbs                                              = msg->pdus.length;
   ul_grant.rnti                                             = msg->rnti;
-  srslte::unique_byte_buffer_t tx_pdu                       = srslte::make_byte_buffer();
-  m_ue_stack->new_grant_ul(cc_idx, ul_grant, tx_pdu.get());
+
+  srsue::stack_interface_phy_nr::tb_action_ul_t ul_action = {};
+  m_ue_stack->new_grant_ul(cc_idx, ul_grant, &ul_action);
 
   return SRSLTE_SUCCESS;
 }

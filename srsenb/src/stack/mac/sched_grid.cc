@@ -122,10 +122,6 @@ cc_sched_result* sched_result_list::get_cc(srslte::tti_point tti_rx, uint32_t en
 }
 
 /*******************************************************
- *             PDCCH Allocation Methods
- *******************************************************/
-
-/*******************************************************
  *          TTI resource Scheduling Methods
  *******************************************************/
 
@@ -140,6 +136,17 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
   ul_mask.resize(cc_cfg->nof_prb());
 
   pdcch_alloc.init(*cc_cfg);
+
+  // Compute reserved PRBs for CQI, SR and HARQ-ACK, and store it in a bitmask
+  pucch_mask.resize(cc_cfg->nof_prb());
+  pucch_nrb                    = (cc_cfg->cfg.nrb_pucch > 0) ? (uint32_t)cc_cfg->cfg.nrb_pucch : 0;
+  srslte_pucch_cfg_t pucch_cfg = cell_params_.pucch_cfg_common;
+  pucch_cfg.n_pucch            = cc_cfg->nof_cce_table[SRSLTE_NOF_CFI - 1] - 1 + cc_cfg->cfg.n1pucch_an;
+  pucch_nrb                    = std::max(pucch_nrb, srslte_pucch_m(&pucch_cfg, cc_cfg->cfg.cell.cp) / 2 + 1);
+  if (pucch_nrb > 0) {
+    pucch_mask.fill(0, pucch_nrb);
+    pucch_mask.fill(cc_cfg->nof_prb() - pucch_nrb, cc_cfg->nof_prb());
+  }
 }
 
 void sf_grid_t::new_tti(tti_point tti_rx_)
@@ -150,12 +157,29 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
   ul_mask.reset();
   avail_rbg = nof_rbgs;
 
+  // Reserve PRBs for PUCCH
+  ul_mask |= pucch_mask;
+
+  // Reserve PRBs for PRACH
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
+    prbmask_t prach_mask{cc_cfg->nof_prb()};
+    prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
+    reserve_ul_prbs(prach_mask, false); // TODO: set to true once test sib.conf files are updated
+    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
+                 to_tx_ul(tti_rx).to_uint(),
+                 prach_mask.to_hex().c_str());
+  }
+
   // internal state
   pdcch_alloc.new_tti(tti_rx);
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
-alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
+alloc_outcome_t sf_grid_t::alloc_dl(uint32_t     aggr_idx,
+                                    alloc_type_t alloc_type,
+                                    rbgmask_t    alloc_mask,
+                                    sched_ue*    user,
+                                    bool         has_pusch_grant)
 {
   // Check RBG collision
   if ((dl_mask & alloc_mask).any()) {
@@ -163,7 +187,7 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, 
   }
 
   // Allocate DCI in PDCCH
-  if (not pdcch_alloc.alloc_dci(alloc_type, aggr_idx, user)) {
+  if (not pdcch_alloc.alloc_dci(alloc_type, aggr_idx, user, has_pusch_grant)) {
     if (user != nullptr) {
       if (logger.debug.enabled()) {
         logger.debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s",
@@ -204,12 +228,12 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_typ
 }
 
 //! Allocates CCEs and RBs for a user DL data alloc.
-alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
+alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask, bool has_pusch_grant)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
   uint32_t            aggr_idx   = user->get_aggr_level(cc_cfg->enb_cc_idx, nof_bits);
-  alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user);
+  alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user, has_pusch_grant);
 
   return ret;
 }
@@ -251,14 +275,25 @@ bool sf_grid_t::reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg)
   return true;
 }
 
-bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
+alloc_outcome_t sf_grid_t::reserve_ul_prbs(prb_interval alloc, bool strict)
 {
-  bool ret = true;
+  if (alloc.stop() > ul_mask.size()) {
+    return alloc_outcome_t::ERROR;
+  }
+
+  prbmask_t newmask(ul_mask.size());
+  newmask.fill(alloc.start(), alloc.stop());
+  return reserve_ul_prbs(newmask, strict);
+}
+
+alloc_outcome_t sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
+{
+  alloc_outcome_t ret = alloc_outcome_t::SUCCESS;
   if (strict and (ul_mask & prbmask).any()) {
     logger.error("There was a collision in UL channel. current mask=0x%s, new alloc mask=0x%s",
                  ul_mask.to_hex().c_str(),
                  prbmask.to_hex().c_str());
-    ret = false;
+    ret = alloc_outcome_t::ERROR;
   }
   ul_mask |= prbmask;
   return ret;
@@ -309,13 +344,7 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg = &cell_params_;
   tti_alloc.init(*cc_cfg);
-  max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
-
-  pucch_mask.resize(cc_cfg->nof_prb());
-  if (cc_cfg->cfg.nrb_pucch > 0) {
-    pucch_mask.fill(0, (uint32_t)cc_cfg->cfg.nrb_pucch);
-    pucch_mask.fill(cc_cfg->nof_prb() - cc_cfg->cfg.nrb_pucch, cc_cfg->nof_prb());
-  }
+  max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - tti_alloc.get_pucch_width());
 }
 
 void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
@@ -330,21 +359,8 @@ void sf_sched::new_tti(tti_point tti_rx_, sf_sched_result* cc_results_)
   tti_alloc.new_tti(tti_rx_);
   cc_results = cc_results_;
 
-  // Reserve PRBs for PUCCH
-  reserve_ul_prbs(pucch_mask, true);
-
-  // Reserve PRBs for PRACH
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, to_tx_ul(tti_rx).to_uint(), -1)) {
-    prbmask_t prach_mask{cc_cfg->nof_prb()};
-    prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
-    reserve_ul_prbs(prach_mask, cc_cfg->nof_prb() != 6);
-    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
-                 to_tx_ul(tti_rx).to_uint(),
-                 prach_mask.to_hex().c_str());
-  }
-
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
-  last_msg3_prb            = cc_cfg->cfg.nrb_pucch;
+  last_msg3_prb            = tti_alloc.get_pucch_width();
   tti_point tti_msg3_alloc = to_tx_ul(tti_rx) + MSG3_DELAY_MS;
   if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc.to_uint(), -1)) {
     last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
@@ -547,28 +563,40 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
     return alloc_outcome_t::INVALID_PRBMASK;
   }
 
+  bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
+
   // Check if there is space in the PUCCH for HARQ ACKs
   const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
   std::bitset<SRSLTE_MAX_CARRIERS> scells    = user->scell_activation_mask();
   uint32_t                         ue_cc_idx = cc->get_ue_cc_idx();
   if (user->nof_carriers_configured() > 1 and (ue_cc_idx == 0 or scells[ue_cc_idx]) and
-      is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
-    bool has_pusch_grant = is_ul_alloc(user->get_rnti()) or cc_results->is_ul_alloc(user->get_rnti());
-    if (not has_pusch_grant) {
-      // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
-      prb_interval alloc = {};
-      uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
-      tti_alloc.find_ul_alloc(L, &alloc);
-      bool ul_alloc_success = alloc.length() > 0 and alloc_ul_user(user, alloc);
-      if (ue_cc_idx != 0 and not ul_alloc_success) {
-        // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
-        return alloc_outcome_t::PUCCH_COLLISION;
-      }
+      is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul()) and not has_pusch_grant and
+      user->get_ul_harq(get_tti_tx_ul(), get_enb_cc_idx())->is_empty()) {
+    // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
+    prb_interval alloc = {};
+    uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+    tti_alloc.find_ul_alloc(L, &alloc);
+    has_pusch_grant = alloc.length() > 0 and alloc_ul_user(user, alloc);
+    if (ue_cc_idx != 0 and not has_pusch_grant) {
+      // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
+      return alloc_outcome_t::PUCCH_COLLISION;
     }
   }
 
-  // Try to allocate RBGs and DCI
-  alloc_outcome_t ret = tti_alloc.alloc_dl_data(user, user_mask);
+  // Try to allocate RBGs, PDCCH, and PUCCH
+  alloc_outcome_t ret = tti_alloc.alloc_dl_data(user, user_mask, has_pusch_grant);
+
+  if (ret == alloc_outcome_t::DCI_COLLISION and not has_pusch_grant and not data_allocs.empty() and
+      user->get_ul_harq(get_tti_tx_ul(), get_enb_cc_idx())->is_empty()) {
+    // PUCCH may be too full. Attempt small UL grant allocation for UCI-PUSCH
+    uint32_t L = user->get_required_prb_ul(cc_cfg->enb_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+    prb_interval alloc = {};
+    tti_alloc.find_ul_alloc(L, &alloc);
+    has_pusch_grant = alloc.length() > 0 and alloc_ul_user(user, alloc);
+    if (has_pusch_grant) {
+      ret = tti_alloc.alloc_dl_data(user, user_mask, has_pusch_grant);
+    }
+  }
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
@@ -604,7 +632,13 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
   }
 
   // Allocate RBGs and DCI space
-  alloc_outcome_t ret = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
+  alloc_outcome_t ret;
+  if (alloc_type != ul_alloc_t::MSG3 and alloc_type != ul_alloc_t::MSG3_RETX) {
+    ret = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
+  } else {
+    // allow collisions between Msg3 and PUCCH for 6 PRBs
+    ret = tti_alloc.reserve_ul_prbs(alloc, cc_cfg->nof_prb() != 6);
+  }
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
@@ -626,14 +660,14 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   ul_alloc_t::type_t alloc_type;
   ul_harq_proc*      h        = user->get_ul_harq(get_tti_tx_ul(), cc_cfg->enb_cc_idx);
   bool               has_retx = h->has_pending_retx();
-  if (has_retx) {
-    if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
-      alloc_type = ul_alloc_t::ADAPT_RETX;
-    } else {
-      alloc_type = ul_alloc_t::NOADAPT_RETX;
-    }
-  } else {
+  if (not has_retx) {
     alloc_type = ul_alloc_t::NEWTX;
+  } else if (h->is_msg3()) {
+    alloc_type = ul_alloc_t::MSG3_RETX;
+  } else if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
+    alloc_type = ul_alloc_t::ADAPT_RETX;
+  } else {
+    alloc_type = ul_alloc_t::NOADAPT_RETX;
   }
 
   return alloc_ul(user, alloc, alloc_type);

@@ -22,12 +22,12 @@
 #include "rlc_test_common.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/config.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/rlc.h"
 #include "srslte/upper/rlc_um_nr.h"
 
 #include <array>
 #include <iostream>
-#include <memory>
 #include <vector>
 
 #define TESTASSERT(cond)                                                                                               \
@@ -188,7 +188,7 @@ int rlc_um_nr_test2(bool reverse_rx = false)
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
   const uint32_t       max_num_pdus = 10;
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
@@ -257,7 +257,7 @@ int rlc_um_nr_test4()
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
   const uint32_t       max_num_pdus = 20;
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
@@ -332,7 +332,7 @@ int rlc_um_nr_test5(const uint32_t last_sn)
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
   const uint32_t       max_num_pdus = 10;
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
@@ -399,7 +399,7 @@ int rlc_um_nr_test6()
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
   const uint32_t       max_num_pdus = num_sdus * 2; // we need 2 PDUs for each SDU
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
@@ -459,7 +459,7 @@ int rlc_um_nr_test7()
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
   const uint32_t       max_num_pdus = num_sdus * 2; // we need 2 PDUs for each SDU
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {
@@ -523,7 +523,7 @@ int rlc_um_nr_test8()
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
   const uint32_t       max_num_pdus = 20 * 2; // we need 2 PDUs for each SDU
-  uint32               num_pdus     = 0;
+  uint32_t             num_pdus     = 0;
   unique_byte_buffer_t pdu_bufs[max_num_pdus];
 
   while (ctxt.rlc1.get_buffer_state() != 0 && num_pdus < max_num_pdus) {

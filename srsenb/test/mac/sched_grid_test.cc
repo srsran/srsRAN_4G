@@ -80,7 +80,7 @@ int test_pdcch_one_ue()
     const cce_cfi_position_table* dci_cce  = sched_ue.get_locations(ENB_CC_IDX, prev_cfi, to_tx_dl(tti_rx).sf_idx());
     uint32_t                      prev_nof_cce_locs = (*dci_cce)[aggr_idx].size();
 
-    TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, aggr_idx, &sched_ue));
+    TESTASSERT(pdcch.alloc_dci(alloc_type_t::DL_DATA, aggr_idx, &sched_ue, true));
     TESTASSERT(pdcch.nof_allocs() == 1);
     if (prev_nof_cce_locs == pdcch.nof_allocs() - 1) {
       // CFI must be increased
@@ -111,7 +111,7 @@ int test_pdcch_one_ue()
     }
     prev_nof_cce_locs = dci_locs.size();
     prev_cfi          = pdcch.get_cfi();
-    TESTASSERT(pdcch.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, &sched_ue));
+    TESTASSERT(pdcch.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, &sched_ue, true));
     TESTASSERT(pdcch.nof_allocs() == 2);
     if (prev_nof_cce_locs == pdcch.nof_allocs() - 1) {
       // CFI must be increased

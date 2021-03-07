@@ -20,12 +20,10 @@
  */
 
 #include "enb_cfg_parser.h"
-#include "srsenb/hdr/cfg_parser.h"
 #include "srsenb/hdr/enb.h"
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/srslte.h"
 #include <boost/algorithm/string.hpp>
 
 #define HANDLEPARSERCODE(cond)                                                                                         \
@@ -1113,16 +1111,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       // patch PRACH config for PHY and in RRC for SIB2
       rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
       phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset                             = 0;
-    }
-    if (nrb_pucch > 1) {
-      fprintf(stderr,
-              "ERROR: Invalid PUCCH configuration - \"cqi_report_cnfg=%d\" and \"sched_request_cnfg.nof_prb=%d\""
-              " in rr.conf for 6 PRBs.\n      Consider decreasing these values to 1 to leave enough space for the "
-              "transmission of Msg3.\n",
-              rrc_cfg_->cqi_cfg.nof_prb,
-              rrc_cfg_->sr_cfg.nof_prb);
-      rrc_cfg_->cqi_cfg.nof_prb = 1;
-      rrc_cfg_->sr_cfg.nof_prb  = 1;
     }
   }
 

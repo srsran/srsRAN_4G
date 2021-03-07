@@ -23,7 +23,10 @@
 #define SRSUE_DUMMY_CLASSES_H
 
 #include "srslte/common/task_scheduler.h"
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 
 namespace srsue {
 
@@ -49,7 +52,7 @@ public:
   // run pending tasks without updating timers
   void run_pending_tasks() { task_sched.run_pending_tasks(); }
 
-  srslte::task_scheduler task_sched{512, 0, 100};
+  srslte::task_scheduler task_sched{512, 100};
 };
 
 class rlc_dummy_interface : public rlc_interface_mac

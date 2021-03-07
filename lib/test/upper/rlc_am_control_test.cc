@@ -42,6 +42,7 @@ int simple_status_pdu_test1()
   for (uint32_t i = 0; i < b2.N_bytes; i++) {
     TESTASSERT(b2.msg[i] == b1.msg[i]);
   }
+  TESTASSERT(rlc_am_is_valid_status_pdu(s1));
   return SRSLTE_SUCCESS;
 }
 
@@ -68,6 +69,22 @@ int status_pdu_with_nacks_test1()
   for (uint32_t i = 0; i < b2.N_bytes; i++) {
     TESTASSERT(b2.msg[i] == b1.msg[i]);
   }
+
+  TESTASSERT(rlc_am_is_valid_status_pdu(s2));
+  return SRSLTE_SUCCESS;
+}
+
+int malformed_status_pdu_test()
+{
+  uint8_t pdu[] = {0x0b, 0x77, 0x6d, 0xd6, 0xe5, 0x6f, 0x56, 0xf8};
+
+  srslte::rlc_status_pdu_t s1;
+  srslte::byte_buffer_t    b1, b2;
+
+  memcpy(b1.msg, pdu, sizeof(pdu));
+  b1.N_bytes = sizeof(pdu);
+  rlc_am_read_status_pdu(&b1, &s1);
+  TESTASSERT(rlc_am_is_valid_status_pdu(s1) == false);
   return SRSLTE_SUCCESS;
 }
 
@@ -77,6 +94,7 @@ int main(int argc, char** argv)
 
   TESTASSERT(simple_status_pdu_test1() == SRSLTE_SUCCESS);
   TESTASSERT(status_pdu_with_nacks_test1() == SRSLTE_SUCCESS);
+  TESTASSERT(malformed_status_pdu_test() == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }

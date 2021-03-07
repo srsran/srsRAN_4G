@@ -22,10 +22,11 @@
 #ifndef SRSUE_TTCN3_LTE_PHY_H
 #define SRSUE_TTCN3_LTE_PHY_H
 
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srsue/hdr/phy/ue_lte_phy_base.h"
 #include "srsue/hdr/ue.h"
 #include "ttcn3_interfaces.h"
-#include <srslte/interfaces/ue_interfaces.h>
 #include <srslte/phy/phch/dci.h>
 
 using namespace srsue;
@@ -91,7 +92,6 @@ public:
   int          sr_last_tx_tti() override;
 
   // phy_interface_mac_common
-  void     set_crnti(uint16_t rnti) override;
   void     set_timeadv_rar(uint32_t ta_cmd) override;
   void     set_timeadv(uint32_t ta_cmd) override;
   void     set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) override;

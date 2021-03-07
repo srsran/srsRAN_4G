@@ -24,6 +24,7 @@
 
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "ttcn3_helpers.h"
 
 // Interfaces used by system interface to communicate with main component
@@ -85,8 +86,8 @@ public:
   virtual void release_as_security(const ttcn3_helpers::timing_info_t timing, const std::string cell_name) = 0;
 
   virtual ttcn3_helpers::pdcp_count_map_t get_pdcp_count(const std::string cell_name) = 0;
-  virtual uint32_t                        get_tti()                 = 0;
-  virtual void                            set_forced_lcid(int lcid) = 0;
+  virtual uint32_t                        get_tti()                                   = 0;
+  virtual void                            set_forced_lcid(int lcid)                   = 0;
 };
 
 class ss_srb_interface

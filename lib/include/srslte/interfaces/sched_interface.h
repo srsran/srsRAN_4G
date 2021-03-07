@@ -63,10 +63,10 @@ public:
     uint32_t    min_nof_ctrl_symbols = 1;
     uint32_t    max_nof_ctrl_symbols = 3;
     int         max_aggr_level       = 3;
+    bool        pucch_mux_enabled    = false;
   };
 
   struct cell_cfg_t {
-
     // Main cell configuration (used to calculate DCI locations in scheduler)
     srslte_cell_t cell;
 

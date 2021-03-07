@@ -22,7 +22,6 @@
 #ifndef SRSUE_SEARCH_H
 #define SRSUE_SEARCH_H
 
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"

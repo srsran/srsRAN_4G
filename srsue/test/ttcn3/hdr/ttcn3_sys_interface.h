@@ -68,7 +68,7 @@ private:
 
     Document document;
     if (document.Parse(json).HasParseError() || document.IsObject() == false) {
-      logger.error((uint8*)json, json_len, "Error parsing incoming data.");
+      logger.error((uint8_t*)json, json_len, "Error parsing incoming data.");
       return SRSLTE_ERROR;
     }
 

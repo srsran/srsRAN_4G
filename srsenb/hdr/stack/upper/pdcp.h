@@ -22,7 +22,8 @@
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_gw_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/upper/pdcp.h"
 #include <map>

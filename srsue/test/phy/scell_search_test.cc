@@ -19,17 +19,16 @@
  *
  */
 
+#include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/srslog/srslog.h"
+#include "srsue/hdr/phy/scell/intra_measure.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <srslte/common/string_helpers.h>
-#include <srslte/phy/channel/channel.h>
 #include <srslte/phy/utils/random.h>
-#include <srslte/srslte.h>
-#include <srsue/hdr/phy/scell/intra_measure.h>
 #include <vector>
 
 // Common execution parameters
@@ -130,10 +129,6 @@ public:
 
     if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
       ERROR("Error setting eNb DL cell");
-    }
-
-    if (srslte_enb_dl_add_rnti(&enb_dl, serving_cell_pdsch_rnti)) {
-      ERROR("Error adding RNTI");
     }
   }
 
@@ -422,8 +417,7 @@ int main(int argc, char** argv)
   srslte_softbuffer_tx_t*                 softbuffer_tx[SRSLTE_MAX_TB] = {};
 
   // Over-the-air only
-  std::unique_ptr<srslte::radio>      radio     = nullptr;
-  std::unique_ptr<srslte::log_filter> radio_log = nullptr;
+  std::unique_ptr<srslte::radio> radio = nullptr;
 
   // Set Receiver args
   common.args                           = &phy_args;
@@ -528,7 +522,7 @@ int main(int argc, char** argv)
       channel_args.delay_enable           = std::isnormal(channel_delay_max_us);
       channel_args.delay_min_us           = channel_delay_us;
       channel_args.delay_max_us           = channel_delay_us;
-      channel_args.delay_period_s         = (uint32)channel_period_s;
+      channel_args.delay_period_s         = (uint32_t)channel_period_s;
       channel_args.delay_init_time_s      = channel_init_time_s;
       channel_args.awgn_enable            = std::isnormal(channel_snr_db) and (pci == *pcis_to_simulate.begin());
       channel_args.awgn_signal_power_dBfs = srslte_enb_dl_get_maximum_signal_power_dBfs(cell.nof_prb);

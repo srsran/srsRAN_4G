@@ -26,11 +26,10 @@ using namespace srsue;
 
 int rrc_nr_cap_request_test()
 {
-
   srslte::log_ref rrc_log("RRC");
   rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log->set_hex_limit(-1);
-  srslte::task_scheduler    task_sched{512, 0, 100};
+  srslte::task_scheduler    task_sched{512, 100};
   srslte::task_sched_handle task_sched_handle(&task_sched);
   rrc_nr                    rrc_nr(task_sched_handle);
   srslte::byte_buffer_t     caps;

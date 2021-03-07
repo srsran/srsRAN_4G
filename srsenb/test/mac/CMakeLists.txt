@@ -19,7 +19,7 @@
 #
 
 add_library(sched_test_common STATIC sched_test_common.cc sched_common_test_suite.cc sched_ue_ded_test_suite.cc
-            sched_sim_ue.cc sched_sim_ue.cc)
+        sched_sim_ue.cc sched_sim_ue.cc)
 target_link_libraries(sched_test_common srslte_common srslte_mac srsenb_mac)
 
 # Scheduler subcomponent testing
@@ -66,3 +66,7 @@ add_test(sched_lc_ch_test sched_lc_ch_test)
 add_executable(sched_tpc_test sched_tpc_test.cc)
 target_link_libraries(sched_tpc_test srslte_common srslte_mac sched_test_common)
 add_test(sched_tpc_test sched_tpc_test)
+
+add_executable(sched_dci_test sched_dci_test.cc)
+target_link_libraries(sched_dci_test srslte_common srsenb_mac srslte_mac sched_test_common)
+add_test(sched_dci_test sched_dci_test)

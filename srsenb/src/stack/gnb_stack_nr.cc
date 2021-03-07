@@ -25,7 +25,7 @@
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), task_sched{512, 1, 128}, thread("gNB")
+gnb_stack_nr::gnb_stack_nr() : task_sched{512, 128}, thread("gNB")
 {
   m_mac.reset(new mac_nr());
   m_rlc.reset(new rlc_nr("RLC"));
@@ -92,7 +92,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   m_sdap->init(m_pdcp.get(), nullptr, m_gw.get());
 
-  m_gw->init(args.coreless.gw_args, logger, this);
+  m_gw->init(args.coreless.gw_args, this);
   char* err_str = nullptr;
   if (m_gw->setup_if_addr(5,
                           args.coreless.drb_lcid,
@@ -124,6 +124,7 @@ void gnb_stack_nr::stop()
     m_pdcp->stop();
     m_mac->stop();
 
+    srslte::get_background_workers().stop();
     running = false;
   }
 }

@@ -102,6 +102,6 @@ SRSLTE_API int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx, bool use_tbs_index_a
 
 SRSLTE_API int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb);
 
-SRSLTE_API int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb);
+SRSLTE_API int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb, uint32_t max_tbs_idx);
 
 #endif // SRSLTE_RA_H

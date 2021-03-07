@@ -32,14 +32,14 @@ public:
   void send_prach(const uint32_t prach_occasion_,
                   const int      preamble_index_,
                   const float    preamble_received_target_power_,
-                  const float    ta_base_sec_ = 0.0f)
+                  const float    ta_base_sec_ = 0.0f) override
   {
     prach_occasion                 = prach_occasion_;
     preamble_index                 = preamble_index_;
     preamble_received_target_power = preamble_received_target_power_;
   }
-  int tx_request(const tx_request_t& request) { return 0; }
-  int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>, uint16_t rnti, srslte_rnti_type_t rnti_type)
+  int tx_request(const tx_request_t& request) override { return 0; }
+  int set_ul_grant(std::array<uint8_t, SRSLTE_RAR_UL_GRANT_NBITS>, uint16_t rnti, srslte_rnti_type_t rnti_type) override
   {
     return 0;
   }
@@ -50,11 +50,12 @@ public:
     *preamble_index_                 = preamble_index;
     *preamble_received_target_power_ = preamble_received_target_power;
   }
+  void sr_send(uint32_t sr_id) override {}
 
 private:
-  uint32_t prach_occasion;
-  uint32_t preamble_index;
-  int      preamble_received_target_power;
+  uint32_t prach_occasion                 = 0;
+  uint32_t preamble_index                 = 0;
+  int      preamble_received_target_power = 0;
 };
 
 class dummy_mac : public mac_interface_proc_ra_nr
@@ -72,7 +73,7 @@ public:
   void msga_flush(){};
 
 private:
-  uint16_t crnti;
+  uint16_t crnti = SRSLTE_INVALID_RNTI;
 };
 
 int main()

@@ -35,9 +35,9 @@ class nas::plmn_search_proc
 {
 public:
   struct plmn_search_complete_t {
-    rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
+    nas_interface_rrc::found_plmn_t found_plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
     int                             nof_plmns;
-    plmn_search_complete_t(const rrc_interface_nas::found_plmn_t* plmns_, int nof_plmns_) : nof_plmns(nof_plmns_)
+    plmn_search_complete_t(const nas_interface_rrc::found_plmn_t* plmns_, int nof_plmns_) : nof_plmns(nof_plmns_)
     {
       if (nof_plmns > 0) {
         std::copy(&plmns_[0], &plmns_[nof_plmns], found_plmns);

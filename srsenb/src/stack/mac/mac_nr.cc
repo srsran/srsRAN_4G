@@ -63,7 +63,7 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   log_h->set_hex_limit(args.log_hex_limit);
 
   if (args.pcap.enable) {
-    pcap = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
+    pcap = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
     pcap->open(args.pcap.filename);
   }
 

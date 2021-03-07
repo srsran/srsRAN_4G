@@ -20,7 +20,8 @@
  */
 
 #include "srsue/hdr/stack/mac/proc_ra.h"
-#include "srslte/common/log_helper.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include <inttypes.h> // for printing uint64_t
 #include <stdint.h>
@@ -149,12 +150,6 @@ void ra_proc::step(uint32_t tti_)
     case CONTENTION_RESOLUTION:
       state_contention_resolution();
       break;
-    case START_WAIT_COMPLETION:
-      state_completition();
-      break;
-    case WAITING_COMPLETION:
-      // do nothing, bc we are waiting for the phy to finish
-      break;
   }
 }
 
@@ -225,36 +220,6 @@ void ra_proc::state_contention_resolution()
     // Start contention resolution timer
     rInfo("Starting ContentionResolutionTimer=%d ms", contention_resolution_timer.duration());
     contention_resolution_timer.run();
-  }
-}
-
-/* This step just configures the PHY to generate the C-RNTI. It is called from a state because it takes a long time to
- * compute
- */
-void ra_proc::state_completition()
-{
-  state            = WAITING_COMPLETION;
-  uint16_t rnti    = rntis->crnti;
-  uint32_t task_id = current_task_id;
-
-  phy_h->set_crnti(rnti);
-
-  // signal MAC RA proc to go back to idle
-  notify_ra_completed(task_id);
-}
-
-void ra_proc::notify_ra_completed(uint32_t task_id)
-{
-  if (current_task_id == task_id) {
-    if (state != WAITING_COMPLETION) {
-      rError("Received unexpected notification of RA completion");
-    } else {
-      rInfo("RA waiting procedure completed");
-    }
-    state = IDLE;
-  } else {
-    rError(
-        "Received old notification of RA completition (old task_id=%d, current_task_id=%d)", task_id, current_task_id);
   }
 }
 
@@ -419,7 +384,6 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
   while (rar_pdu_msg.next()) {
     if (rar_pdu_msg.get()->has_rapid() && rar_pdu_msg.get()->get_rapid() == sel_preamble) {
-
       rar_received = true;
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
 
@@ -446,7 +410,6 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 
         // If this is the first successfully received RAR within this procedure, Msg3 is empty
         if (mux_unit->msg3_is_empty()) {
-
           // Save transmitted C-RNTI (if any)
           transmitted_crnti = rntis->crnti;
 
@@ -526,7 +489,7 @@ void ra_proc::complete()
   srslte::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d", rntis->crnti, current_ta);
 
-  state = START_WAIT_COMPLETION;
+  state = IDLE;
 }
 
 void ra_proc::start_mac_order(uint32_t msg_len_bits)

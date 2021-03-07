@@ -27,13 +27,14 @@
 
 #include "proc_sr.h"
 #include "srslte/common/logmap.h"
-#include "srslte/common/timers.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/srslog/srslog.h"
 
 /* Buffer status report procedure */
 
 namespace srsue {
+
+class rlc_interface_mac;
 
 // BSR interface for MUX
 class bsr_interface_mux

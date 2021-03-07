@@ -27,8 +27,10 @@
 #include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_gtpu_interfaces.h"
+#include "srslte/phy/common/phy_common.h"
 #include "srslte/srslog/srslog.h"
-#include "srslte/srslte.h"
+
+#include <netinet/in.h>
 
 #ifndef SRSENB_GTPU_H
 #define SRSENB_GTPU_H

@@ -158,16 +158,14 @@ static int check_softbits(srslte_pdsch_t*     pdsch_enb,
   int ret = SRSLTE_SUCCESS;
 
   if (!pdsch_ue->llr_is_8bit && !tb_cw_swap) {
-    // Generate sequence
-    srslte_sequence_pdsch(&pdsch_ue->tmp_seq,
-                          rnti,
-                          pdsch_cfg->grant.tb[tb].cw_idx,
-                          2 * (sf_idx % 10),
-                          cell.id,
-                          pdsch_cfg->grant.tb[tb].nof_bits);
-
     // Scramble
-    srslte_scrambling_s_offset(&pdsch_ue->tmp_seq, pdsch_ue->e[tb], 0, pdsch_cfg->grant.tb[tb].nof_bits);
+    srslte_sequence_pdsch_apply_c(pdsch_ue->e[tb],
+                                  pdsch_ue->e[tb],
+                                  rnti,
+                                  pdsch_cfg->grant.tb[tb].cw_idx,
+                                  2 * (sf_idx % 10),
+                                  cell.id,
+                                  pdsch_cfg->grant.tb[tb].nof_bits);
 
     int16_t* rx       = pdsch_ue->e[tb];
     uint8_t* rx_bytes = pdsch_ue->e[tb];
@@ -337,8 +335,6 @@ int main(int argc, char** argv)
   pdsch_rx.llr_is_8bit        = use_8_bit;
   pdsch_rx.dl_sch.llr_is_8bit = use_8_bit;
 
-  srslte_pdsch_set_rnti(&pdsch_rx, rnti);
-
   for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffers_rx[i]) {
@@ -383,8 +379,6 @@ int main(int argc, char** argv)
       ERROR("Error creating PDSCH object");
       goto quit;
     }
-
-    srslte_pdsch_set_rnti(&pdsch_tx, rnti);
 
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);

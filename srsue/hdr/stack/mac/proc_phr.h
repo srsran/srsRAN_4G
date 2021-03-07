@@ -23,14 +23,16 @@
 #define SRSUE_PROC_PHR_H
 
 #include "srslte/common/logmap.h"
-#include "srslte/common/timers.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/task_scheduler.h"
+#include "srslte/interfaces/ue_mac_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <stdint.h>
 
 /* Power headroom report procedure */
 
 namespace srsue {
+
+class phy_interface_mac_lte;
 
 class phr_proc : public srslte::timer_callback
 {

@@ -129,16 +129,6 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::r
   }
 }
 
-int sf_worker::pregen_sequences(uint16_t rnti)
-{
-  for (auto& w : cc_workers) {
-    if (w->pregen_sequences(rnti)) {
-      return SRSLTE_ERROR;
-    }
-  }
-  return SRSLTE_SUCCESS;
-}
-
 int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx)
 {
   int ret = SRSLTE_ERROR;
@@ -440,7 +430,6 @@ void* plot_thread_run(void* arg)
 
 void init_plots(srsenb::lte::sf_worker* worker)
 {
-
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
     exit(-1);

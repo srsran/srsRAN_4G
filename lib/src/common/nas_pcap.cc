@@ -30,15 +30,22 @@ void nas_pcap::enable()
 {
   enable_write = true;
 }
-void nas_pcap::open(const char* filename, uint32_t ue_id_)
+
+uint32_t nas_pcap::open(std::string filename_, uint32_t ue_id_)
 {
-  pcap_file    = LTE_PCAP_Open(NAS_LTE_DLT, filename);
+  filename  = filename_;
+  pcap_file = LTE_PCAP_Open(NAS_LTE_DLT, filename.c_str());
+  if (pcap_file == nullptr) {
+    return SRSLTE_ERROR;
+  }
   ue_id        = ue_id_;
   enable_write = true;
+  return SRSLTE_SUCCESS;
 }
+
 void nas_pcap::close()
 {
-  fprintf(stdout, "Saving NAS PCAP file (DLT=%d)\n", NAS_LTE_DLT);
+  fprintf(stdout, "Saving NAS PCAP file (DLT=%d) to %s \n", NAS_LTE_DLT, filename.c_str());
   LTE_PCAP_Close(pcap_file);
 }
 

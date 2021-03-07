@@ -20,6 +20,7 @@
  */
 
 #include "srslte/upper/rlc_um_lte.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include <sstream>
 
 #define RX_MOD_BASE(x) (((x)-vr_uh - cfg.um.rx_window_size) % cfg.um.rx_mod)

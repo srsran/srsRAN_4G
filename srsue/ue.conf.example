@@ -55,25 +55,26 @@ tx_gain = 80
 #####################################################################
 # Packet capture configuration
 #
-# Packet capture is supported at both MAC and NAS layers.
-# MAC-layer packets are captured to file in the compact format
-# decoded by the Wireshark mac-lte-framed dissector.
-# To use this dissector, edit the preferences for DLT_USER to
-# add an entry with DLT=147, Payload Protocol=mac-lte-framed.
+# Packet capture is supported at the MAC, MAC_NR, and NAS layer. 
+# MAC-layer packets are captured to file a the compact format decoded 
+# by the Wireshark. For decoding, use the UDP dissector and the UDP 
+# heuristic dissection. Edit the preferences (Edit > Preferences > 
+# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with 
+# Protocol=udp. Further, enable the heuristic dissection in UDP under:
+# Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
-# NAS-layer packets are dissected with DLT=148, and
-# Payload Protocol = nas-eps.
+# NAS-layer packets are dissected with DLT=148, and Protocol = nas-eps.
 #
-# enable:       Enable MAC layer packet captures (true/false)
-# filename:     File path to use for MAC packet captures
-# nas_enable:   Enable NAS layer packet captures (true/false)
-# nas_filename: File path to use for NAS packet captures
+# enable:            Enable packet captures of layers (mac/mac_nr/nas/none) multiple option list 
+# mac_filename:      File path to use for MAC packet capture
+# mac_nr_filename:   File path to use for MAC NR packet capture
+# nas_filename:      File path to use for NAS packet capture
 #####################################################################
 [pcap]
-enable = false
-filename = /tmp/ue.pcap
-nas_enable = false
-nas_filename = /tmp/nas.pcap
+enable = none
+mac_filename = /tmp/ue_mac.pcap
+mac_nr_filename = /tmp/ue_mac_nr.pcap
+nas_filename = /tmp/ue_nas.pcap
 
 #####################################################################
 # Log configuration

@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srslte/asn1/rrc/dl_dcch_msg.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 
@@ -343,7 +344,7 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* 
     }
   } else {
     if (var_meas.periodic_timer.is_valid()) {
-      var_meas.periodic_timer.clear();
+      var_meas.periodic_timer.release();
     }
     // else if the triggerType is set to ‘periodical’:
     if (var_meas.report_cfg_eutra.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types::periodical) {
@@ -355,7 +356,6 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_eutra(meas_results_s* 
 }
 void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_s* report, const uint32_t measId)
 {
-
   meas_result_cell_list_nr_r15_l& neigh_list = report->meas_result_neigh_cells.set_meas_result_neigh_cell_list_nr_r15();
 
   var_meas_report& var_meas = varMeasReportList.at(measId);
@@ -370,7 +370,6 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_
   // the following
 
   for (auto& cell : var_meas.cell_triggered_list) {
-
     if (neigh_list.size() <= var_meas.report_cfg_inter.max_report_cells) {
       meas_result_cell_nr_r15_s rc = {};
 
@@ -425,7 +424,7 @@ void rrc::rrc_meas::var_meas_report_list::generate_report_interrat(meas_results_
     }
   } else {
     if (var_meas.periodic_timer.is_valid()) {
-      var_meas.periodic_timer.clear();
+      var_meas.periodic_timer.release();
     }
     // else if the triggerType is set to ‘periodical’:
     if (var_meas.report_cfg_inter.trigger_type.type().value ==
@@ -588,7 +587,6 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers_eutra_check_new(int32_t       
   }
 
   if (new_cell_trigger) {
-
     // include a measurement reporting entry within the VarMeasReportList for this measId (nof_reports reset
     // inside) include the concerned cell(s) in the cellsTriggeredList defined within the VarMeasReportList
     meas_report->set_measId(meas_id, meas_obj.carrier_freq, report_cfg, cells_triggered_list);
@@ -761,7 +759,6 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
 {
   // for each measId included in the measIdList within VarMeasConfig
   for (auto& m : measIdList) {
-
     if (!reportConfigList.count(m.second.report_cfg_id) || !measObjectsList.count(m.second.meas_obj_id)) {
       logger.error("MEAS:  Computing report triggers. MeasId=%d has invalid report or object settings", m.first);
       continue;
@@ -780,14 +777,12 @@ void rrc::rrc_meas::var_meas_cfg::report_triggers()
     if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_eutra &&
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       report_triggers_eutra(m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra());
-    }
-    else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
-             report_cfg.report_cfg.type().value ==
-                 report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat) {
+    } else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+               report_cfg.report_cfg.type().value ==
+                   report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat) {
       report_triggers_interrat_nr(
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
-    }
-    else {
+    } else {
       logger.error("Unsupported combination of measurement object type %s and report config type %s ",
                    meas_obj.meas_obj.type().to_string().c_str(),
                    report_cfg.report_cfg.type().to_string().c_str());
@@ -825,7 +820,6 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers_eutra(uint32_t            meas_i
   if (report_cfg.trigger_type.type() == report_cfg_eutra_s::trigger_type_c_::types::event) {
     // A1 & A2 are for serving cell only
     if (event_id.type().value < eutra_event_s::event_id_c_::types::event_a3) {
-
       float thresh          = 0.0;
       bool  enter_condition = false;
       bool  exit_condition  = false;
@@ -1026,9 +1020,9 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
         report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
       eval_triggers_eutra(
           m.first, report_cfg.report_cfg.report_cfg_eutra(), meas_obj.meas_obj.meas_obj_eutra(), serv_cell, Ofs, Ocs);
-    }
-    else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
-             report_cfg.report_cfg.type().value == report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
+    } else if (meas_obj.meas_obj.type().value == meas_obj_to_add_mod_s::meas_obj_c_::types_opts::meas_obj_nr_r15 &&
+               report_cfg.report_cfg.type().value ==
+                   report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_inter_rat)
       eval_triggers_interrat_nr(
           m.first, report_cfg.report_cfg.report_cfg_inter_rat(), meas_obj.meas_obj.meas_obj_nr_r15());
     else {

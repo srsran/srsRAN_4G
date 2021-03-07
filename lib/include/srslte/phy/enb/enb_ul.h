@@ -72,10 +72,6 @@ SRSLTE_API int srslte_enb_ul_set_cell(srslte_enb_ul_t*                   q,
                                       srslte_refsignal_dmrs_pusch_cfg_t* pusch_cfg,
                                       srslte_refsignal_srs_cfg_t*        srs_cfg);
 
-SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t* q, uint16_t rnti);
-
-SRSLTE_API void srslte_enb_ul_rem_rnti(srslte_enb_ul_t* q, uint16_t rnti);
-
 SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t* q);
 
 SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,

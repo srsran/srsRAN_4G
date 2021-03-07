@@ -32,26 +32,17 @@ namespace srslte {
 class task_scheduler
 {
 public:
-  explicit task_scheduler(uint32_t default_extern_tasks_size = 512,
-                          uint32_t nof_background_threads    = 0,
-                          uint32_t nof_timers_prealloc       = 100) :
-    external_tasks{default_extern_tasks_size},
-    timers{nof_timers_prealloc},
-    background_tasks{nof_background_threads}
+  explicit task_scheduler(uint32_t default_extern_tasks_size = 512, uint32_t nof_timers_prealloc = 100) :
+    external_tasks{default_extern_tasks_size}, timers{nof_timers_prealloc}
   {
     background_queue_id = external_tasks.add_queue();
-
-    // Start background thread
-    if (background_tasks.nof_workers() > 0) {
-      background_tasks.start();
-    }
   }
+  task_scheduler(const task_scheduler&) = delete;
+  task_scheduler(task_scheduler&&)      = delete;
+  task_scheduler& operator=(const task_scheduler&) = delete;
+  task_scheduler& operator=(task_scheduler&&) = delete;
 
-  void stop()
-  {
-    background_tasks.stop();
-    external_tasks.reset();
-  }
+  void stop() { external_tasks.reset(); }
 
   srslte::unique_timer get_unique_timer() { return timers.get_unique_timer(); }
 
@@ -64,17 +55,6 @@ public:
 
   //! Enqueues internal task to be run in next tic
   void defer_task(srslte::move_task_t func) { internal_tasks.push_back(std::move(func)); }
-
-  //! Delegates a task to a thread pool that runs in the background
-  void enqueue_background_task(std::function<void(uint32_t)> f)
-  {
-    if (background_tasks.nof_workers() > 0) {
-      background_tasks.push_task(std::move(f));
-    } else {
-      external_tasks.push(background_queue_id,
-                          std::bind([](const std::function<void(uint32_t)>& task) { task(0); }, std::move(f)));
-    }
-  }
 
   //! Defer the handling of the result of a background task to next tic
   void notify_background_task_result(srslte::move_task_t task)
@@ -126,10 +106,9 @@ private:
     }
   }
 
-  srslte::task_thread_pool background_tasks;         ///< Thread pool used for long, low-priority tasks
-  int                      background_queue_id = -1; ///< Queue for handling the outcomes of tasks run in the background
-  srslte::task_multiqueue  external_tasks;
-  srslte::timer_handler    timers;
+  int                     background_queue_id = -1; ///< Queue for handling the outcomes of tasks run in the background
+  srslte::task_multiqueue external_tasks;
+  srslte::timer_handler   timers;
   std::deque<srslte::move_task_t> internal_tasks; ///< enqueues stack tasks from within main thread. Avoids locking
 };
 
@@ -140,8 +119,7 @@ public:
   task_sched_handle(task_scheduler* sched_) : sched(sched_) {}
 
   srslte::unique_timer get_unique_timer() { return sched->get_unique_timer(); }
-  void enqueue_background_task(std::function<void(uint32_t)> f) { sched->enqueue_background_task(std::move(f)); }
-  void notify_background_task_result(srslte::move_task_t task)
+  void                 notify_background_task_result(srslte::move_task_t task)
   {
     sched->notify_background_task_result(std::move(task));
   }
@@ -162,8 +140,7 @@ public:
   ext_task_sched_handle(task_scheduler* sched_) : sched(sched_) {}
 
   srslte::unique_timer get_unique_timer() { return sched->get_unique_timer(); }
-  void enqueue_background_task(std::function<void(uint32_t)> f) { sched->enqueue_background_task(std::move(f)); }
-  void notify_background_task_result(srslte::move_task_t task)
+  void                 notify_background_task_result(srslte::move_task_t task)
   {
     sched->notify_background_task_result(std::move(task));
   }

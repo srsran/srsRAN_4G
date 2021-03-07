@@ -30,7 +30,6 @@
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
-#include "srslte/srslte.h"
 
 using srslte::byte_buffer_t;
 using srslte::uint32_to_uint8;
@@ -151,7 +150,11 @@ uint32_t rrc::get_nof_users()
   return users.size();
 }
 
-void rrc::max_retx_attempted(uint16_t rnti) {}
+void rrc::max_retx_attempted(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_RTX_USER, nullptr};
+  rx_pdu_queue.push(std::move(p));
+}
 
 // This function is called from PRACH worker (can wait)
 int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
@@ -164,9 +167,6 @@ int rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       if (u->init() != SRSLTE_SUCCESS) {
         logger.error("Adding user rnti=0x%x - Failed to allocate user resources", rnti);
         return SRSLTE_ERROR;
-      }
-      if (ue_pool.capacity() <= 4) {
-        task_sched.defer_task([]() { rrc::ue_pool.reserve(16); });
       }
       users.insert(std::make_pair(rnti, std::move(u)));
     }
@@ -202,16 +202,46 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   auto old_it = users.find(old_rnti);
-  if (old_it != users.end()) {
-    auto ue_ptr = old_it->second.get();
-    if (ue_ptr->mobility_handler->is_ho_running()) {
-      ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
-    } else if (ue_ptr->is_connected()) {
+  if (old_it == users.end()) {
+    send_rrc_connection_reject(old_rnti);
+    return;
+  }
+  ue* ue_ptr = old_it->second.get();
+
+  if (ue_ptr->mobility_handler->is_ho_running()) {
+    ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
+  } else {
+    logger.info("Resuming rnti=0x%x RRC connection due to received C-RNTI CE from rnti=0x%x.", old_rnti, new_rnti);
+    if (ue_ptr->is_connected()) {
+      // Send a new RRC Reconfiguration to overlay previous
       old_it->second->send_connection_reconf();
-    } else {
-      old_it->second->send_connection_reject();
     }
   }
+}
+
+// Note: this method is not part of UE methods, because the UE context may not exist anymore when reject is sent
+void rrc::send_rrc_connection_reject(uint16_t rnti)
+{
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
+
+  // Allocate a new PDU buffer, pack the message and send to PDCP
+  srslte::unique_byte_buffer_t pdu = srslte::make_byte_buffer();
+  if (pdu == nullptr) {
+    logger.error("Allocating pdu");
+    return;
+  }
+  asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
+  if (dl_ccch_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+    logger.error(pdu->msg, bref.distance_bytes(), "Failed to pack DL-CCCH-Msg:");
+    return;
+  }
+  pdu->N_bytes = bref.distance_bytes();
+
+  char buf[32] = {};
+  sprintf(buf, "SRB0 - rnti=0x%x", rnti);
+  log_rrc_message(buf, Tx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
+  rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
 }
 
 /*******************************************************************************
@@ -690,6 +720,10 @@ void rrc::config_mac()
     item.initial_dl_cqi      = cfg.cell_list[ccidx].initial_dl_cqi;
     item.target_ul_sinr      = cfg.cell_list[ccidx].target_ul_sinr_db;
     item.enable_phr_handling = cfg.cell_list[ccidx].enable_phr_handling;
+    item.delta_pucch_shift   = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+    item.ncs_an              = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.ncs_an;
+    item.n1pucch_an          = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+    item.nrb_cqi             = cfg.sibs[1].sib2().rr_cfg_common.pucch_cfg_common.nrb_cqi;
 
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     logger.info("Allocating %d PRBs for PUCCH", item.nrb_pucch);
@@ -968,6 +1002,9 @@ void rrc::tti_clock()
         break;
       case LCID_ACT_USER:
         user_it->second->set_activity();
+        break;
+      case LCID_RTX_USER:
+        user_it->second->max_retx_reached();
         break;
       case LCID_EXIT:
         logger.info("Exiting thread");

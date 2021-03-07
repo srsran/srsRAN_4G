@@ -20,6 +20,7 @@
  */
 
 #include "srslte/upper/rlc_um_nr.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include <sstream>
 
 #define RX_MOD_NR_BASE(x) (((x)-RX_Next_Highest - cfg.um_nr.UM_Window_Size) % cfg.um_nr.mod)
@@ -596,6 +597,11 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
     header->si = (rlc_nr_si_field_t)((*ptr >> 6) & 0x03); // 2 bits SI
     header->sn = (*ptr & 0x0F) << 4;                      // 4 bits SN
 
+    if (header->si == rlc_nr_si_field_t::full_sdu and header->sn != 0) {
+      fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+      return 0;
+    }
+
     // sanity check
     if (header->si == rlc_nr_si_field_t::first_segment) {
       // make sure two reserved bits are not set
@@ -605,9 +611,12 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
       }
     }
 
-    // continue unpacking remaining SN
-    ptr++;
-    header->sn |= (*ptr & 0xFF); // 8 bits SN
+    if (header->si != rlc_nr_si_field_t::full_sdu) {
+      // continue unpacking remaining SN
+      ptr++;
+      header->sn |= (*ptr & 0xFF); // 8 bits SN
+    }
+
     ptr++;
   } else {
     fprintf(stderr, "Unsupported SN length\n");
@@ -631,7 +640,9 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
 uint32_t rlc_um_nr_packed_length(const rlc_um_nr_pdu_header_t& header)
 {
   uint32_t len = 0;
-  if (header.si == rlc_nr_si_field_t::full_sdu || header.si == rlc_nr_si_field_t::first_segment) {
+  if (header.si == rlc_nr_si_field_t::full_sdu) {
+    len = 1;
+  } else if (header.si == rlc_nr_si_field_t::first_segment) {
     len = 1;
     if (header.sn_size == rlc_um_nr_sn_size_t::size12bits) {
       len++;

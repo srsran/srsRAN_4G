@@ -23,6 +23,9 @@
 #include "srslte/common/security.h"
 #include "srslte/common/standard_streams.h"
 #include "srslte/common/tti_point.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
+#include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include <inttypes.h> // for printing uint64_t
 
@@ -736,7 +739,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
     if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
       // Save PLMN and TAC to NAS
       for (uint32_t i = 0; i < rrc_ptr->meas_cells.serving_cell().nof_plmns(); i++) {
-        if (nof_plmns < MAX_FOUND_PLMNS) {
+        if (nof_plmns < nas_interface_rrc::MAX_FOUND_PLMNS) {
           found_plmns[nof_plmns].plmn_id = rrc_ptr->meas_cells.serving_cell().get_plmn(i);
           found_plmns[nof_plmns].tac     = rrc_ptr->meas_cells.serving_cell().get_tac();
           nof_plmns++;
@@ -1330,9 +1333,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   reest_cellid = rrc_ptr->meas_cells.find_cell(reest_source_freq, reest_source_pci)->get_cell_id();
 
   Info("Starting... cause: \"%s\", UE context: {C-RNTI=0x%x, PCI=%d, CELL ID=%d}",
-       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail ? "Reconfiguration failure"
-       : cause == asn1::rrc::reest_cause_opts::ho_fail        ? "Handover failure"
-                                                              : "Other failure",
+       reest_cause == asn1::rrc::reest_cause_opts::recfg_fail
+           ? "Reconfiguration failure"
+           : cause == asn1::rrc::reest_cause_opts::ho_fail ? "Handover failure" : "Other failure",
        reest_rnti,
        reest_source_pci,
        reest_cellid);

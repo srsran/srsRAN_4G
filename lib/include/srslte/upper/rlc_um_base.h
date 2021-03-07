@@ -26,13 +26,20 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_common.h"
 #include <map>
 #include <mutex>
 #include <pthread.h>
 #include <queue>
+
+namespace srsue {
+
+class pdcp_interface_rlc;
+class rrc_interface_rlc;
+
+} // namespace srsue
 
 namespace srslte {
 

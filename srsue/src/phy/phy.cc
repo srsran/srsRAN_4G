@@ -156,7 +156,7 @@ void phy::run_thread()
   common.init(&args, radio, stack, &sfsync);
 
   // Initialise workers
-  lte_workers.init(&common, log_sink, WORKERS_THREAD_PRIO);
+  lte_workers.init(&common, WORKERS_THREAD_PRIO);
 
   // Warning this must be initialized after all workers have been added to the pool
   sfsync.init(
@@ -411,23 +411,6 @@ void phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rn
   common.set_rar_grant(grant_payload, rnti, tdd_config);
 }
 
-void phy::set_crnti(uint16_t rnti)
-{
-  // set_crnti() is an operation that takes time, run in background worker
-  cmd_worker.add_cmd([this, rnti]() {
-    logger_phy.info("Configuring sequences for C-RNTI=0x%x...", rnti);
-    for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-      // set_crnti is not protected so run when worker is finished
-      lte::sf_worker* w = lte_workers.wait_worker_id(i);
-      if (w) {
-        w->set_crnti_unlocked(rnti);
-        w->release();
-      }
-    }
-    logger_phy.info("Finished configuring sequences for C-RNTI=0x%x.", rnti);
-  });
-}
-
 // Start GUI
 void phy::start_plot()
 {
@@ -653,4 +636,8 @@ bool phy::set_config(const srslte::phy_cfg_nr_t& cfg)
   return nr_workers.set_config(cfg);
 }
 
+void phy::sr_send(uint32_t sr_id)
+{
+  nr_workers.sr_send(sr_id);
+}
 } // namespace srsue

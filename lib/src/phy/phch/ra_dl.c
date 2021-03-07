@@ -362,6 +362,15 @@ static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, const srslte_dci_dl_t
     }
   }
 
+  // 256QAM table is allowed if:
+  // - if the higher layer parameter altCQI-Table-r12 is configured, and
+  // - if the PDSCH is assigned by a PDCCH/EPDCCH with DCI format 1/1B/1D/2/2A/2B/2C/2D with
+  // - CRC scrambled by C-RNTI,
+  // Otherwise, use 64QAM table (default table for R8).
+  if (dci->format == SRSLTE_DCI_FORMAT1A || !SRSLTE_RNTI_ISUSER(dci->rnti)) {
+    pdsch_use_tbs_index_alt = false;
+  }
+
   if (!SRSLTE_RNTI_ISUSER(dci->rnti) && !SRSLTE_RNTI_ISMBSFN(dci->rnti)) {
     if (dci->format == SRSLTE_DCI_FORMAT1A) {
       n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;

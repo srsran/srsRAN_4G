@@ -36,4 +36,4 @@ add_library(srsgnb_phy STATIC vnf_phy_nr.cc)
 
 if(ENABLE_GUI AND SRSGUI_FOUND)
     target_link_libraries(srsenb_phy ${SRSGUI_LIBRARIES})
-endif(ENABLE_GUI AND SRSGUI_FOUND)
+endif()

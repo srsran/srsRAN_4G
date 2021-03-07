@@ -25,12 +25,79 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/ue.h"
-#include "srslte/common/log_helper.h"
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 namespace srsenb {
+
+cc_buffer_handler::cc_buffer_handler()
+{
+  for (auto& harq_buffers : tx_payload_buffer) {
+    for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
+      tb_buffer = srslte::make_byte_buffer();
+      if (tb_buffer == nullptr) {
+        srslog::fetch_basic_logger("MAC").error("Failed to allocate HARQ buffers for UE");
+        return;
+      }
+    }
+  }
+}
+
+cc_buffer_handler::~cc_buffer_handler()
+{
+  deallocate_cc();
+}
+
+/**
+ * Allocate and initialize softbuffers for Tx and Rx. It uses the configured
+ * number of HARQ processes and cell width.
+ *
+ * @param num_cc Number of carriers to add buffers for (default 1)
+ * @return number of carriers
+ */
+void cc_buffer_handler::allocate_cc(uint32_t nof_prb_, uint32_t nof_rx_harq_proc_, uint32_t nof_tx_harq_proc_)
+{
+  assert(empty());
+  nof_prb          = nof_prb_;
+  nof_rx_harq_proc = nof_rx_harq_proc_;
+  nof_tx_harq_proc = nof_tx_harq_proc_;
+
+  // Create and init Rx buffers
+  softbuffer_rx_list.resize(nof_rx_harq_proc);
+  for (srslte_softbuffer_rx_t& buffer : softbuffer_rx_list) {
+    srslte_softbuffer_rx_init(&buffer, nof_prb);
+  }
+
+  // Create and init Tx buffers
+  softbuffer_tx_list.resize(nof_tx_harq_proc * SRSLTE_MAX_TB);
+  for (auto& buffer : softbuffer_tx_list) {
+    srslte_softbuffer_tx_init(&buffer, nof_prb);
+  }
+}
+
+void cc_buffer_handler::deallocate_cc()
+{
+  for (auto& buffer : softbuffer_rx_list) {
+    srslte_softbuffer_rx_free(&buffer);
+  }
+  softbuffer_rx_list.clear();
+
+  for (auto& buffer : softbuffer_tx_list) {
+    srslte_softbuffer_tx_free(&buffer);
+  }
+  softbuffer_tx_list.clear();
+}
+
+void cc_buffer_handler::reset()
+{
+  for (auto& buffer : softbuffer_rx_list) {
+    srslte_softbuffer_rx_reset(&buffer);
+  }
+  for (auto& buffer : softbuffer_tx_list) {
+    srslte_softbuffer_tx_reset(&buffer);
+  }
+}
 
 ue::ue(uint16_t                 rnti_,
        uint32_t                 nof_prb_,
@@ -57,45 +124,24 @@ ue::ue(uint16_t                 rnti_,
   pdus(logger, 128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_),
-  rx_used_buffers(nof_cells_),
-  ta_fsm(this)
+  ta_fsm(this),
+  cc_buffers(nof_cells_)
 {
-  tx_payload_buffer.resize(nof_cells_);
-  for (auto& carrier_buffers : tx_payload_buffer) {
-    for (auto& harq_buffers : carrier_buffers) {
-      for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
-        tb_buffer = srslte::make_byte_buffer();
-      }
-    }
-  }
-
   pdus.init(this);
 
   // Allocate buffer for PCell
-  allocate_cc_buffers();
+  cc_buffers[0].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
 }
 
 ue::~ue()
 {
-  // Free up all softbuffers for all CCs
-  for (auto cc : softbuffer_rx) {
-    for (auto buffer : cc) {
-      srslte_softbuffer_rx_free(&buffer);
-    }
-  }
-
-  for (auto cc : softbuffer_tx) {
-    for (auto buffer : cc) {
-      srslte_softbuffer_tx_free(&buffer);
-    }
-  }
   {
     std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-    for (auto& rx_buffers_cc : rx_used_buffers) {
-      for (auto& q : rx_buffers_cc) {
+    for (auto& cc : cc_buffers) {
+      for (auto& q : cc.get_rx_used_buffers()) {
         pdus.deallocate(q.second);
       }
-      rx_buffers_cc.clear();
+      cc.get_rx_used_buffers().clear();
     }
   }
 }
@@ -105,46 +151,14 @@ void ue::reset()
   ue_metrics   = {};
   nof_failures = 0;
 
-  for (auto cc : softbuffer_rx) {
-    for (auto buffer : cc) {
-      srslte_softbuffer_rx_reset(&buffer);
-    }
-  }
-
-  for (auto cc : softbuffer_tx) {
-    for (auto buffer : cc) {
-      srslte_softbuffer_tx_reset(&buffer);
-    }
+  for (auto& cc : cc_buffers) {
+    cc.reset();
   }
 }
 
-/**
- * Allocate and initialize softbuffers for Tx and Rx and
- * append to current list of CC buffers. It uses the configured
- * number of HARQ processes and cell width.
- *
- * @param num_cc Number of carriers to add buffers for (default 1)
- * @return number of carriers
- */
-uint32_t ue::allocate_cc_buffers(const uint32_t num_cc)
+void ue::start_pcap_net(srslte::mac_pcap_net* pcap_net_)
 {
-  for (uint32_t i = 0; i < num_cc; ++i) {
-    // create and init Rx buffers for Pcell
-    softbuffer_rx.emplace_back();
-    softbuffer_rx.back().resize(nof_rx_harq_proc);
-    for (auto& buffer : softbuffer_rx.back()) {
-      srslte_softbuffer_rx_init(&buffer, nof_prb);
-    }
-
-    // Create and init Tx buffers for Pcell
-    softbuffer_tx.emplace_back();
-    softbuffer_tx.back().resize(nof_tx_harq_proc);
-    for (auto& buffer : softbuffer_tx.back()) {
-      srslte_softbuffer_tx_init(&buffer, nof_prb);
-    }
-    // don't need to reset because just initiated the buffers
-  }
-  return softbuffer_tx.size();
+  pcap_net = pcap_net_;
 }
 
 void ue::start_pcap(srslte::mac_pcap* pcap_)
@@ -154,33 +168,23 @@ void ue::start_pcap(srslte::mac_pcap* pcap_)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti)
 {
-  if ((size_t)ue_cc_idx >= softbuffer_rx.size()) {
-    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, softbuffer_rx.size());
+  if ((size_t)ue_cc_idx >= cc_buffers.size()) {
+    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, cc_buffers.size());
     return nullptr;
   }
 
-  if ((size_t)nof_rx_harq_proc > softbuffer_rx.at(ue_cc_idx).size()) {
-    ERROR("HARQ process index (%d/%zd) out-of-range", nof_rx_harq_proc, softbuffer_rx.at(ue_cc_idx).size());
-    return nullptr;
-  }
-
-  return &softbuffer_rx.at(ue_cc_idx).at(tti % nof_rx_harq_proc);
+  return &cc_buffers.at(ue_cc_idx).get_rx_softbuffer(tti % nof_rx_harq_proc);
 }
 
 srslte_softbuffer_tx_t*
 ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
 {
-  if ((size_t)ue_cc_idx >= softbuffer_tx.size()) {
-    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, softbuffer_tx.size());
+  if ((size_t)ue_cc_idx >= cc_buffers.size()) {
+    ERROR("UE CC Index (%d/%zd) out-of-range", ue_cc_idx, cc_buffers.size());
     return nullptr;
   }
 
-  if ((size_t)nof_tx_harq_proc > softbuffer_tx.at(ue_cc_idx).size()) {
-    ERROR("HARQ process index (%d/%zd) out-of-range", harq_process, softbuffer_tx.at(ue_cc_idx).size());
-    return nullptr;
-  }
-
-  return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
+  return &cc_buffers[ue_cc_idx].get_tx_softbuffer(harq_process, tb_idx);
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len)
@@ -189,10 +193,10 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
   uint8_t*                     pdu = nullptr;
   if (len > 0) {
     // Deallocate oldest buffer if we didn't deallocate it
-    if (!rx_used_buffers.at(ue_cc_idx).count(tti)) {
+    if (!cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
       pdu = pdus.request(len);
       if (pdu) {
-        rx_used_buffers.at(ue_cc_idx).emplace(tti, pdu);
+        cc_buffers.at(ue_cc_idx).get_rx_used_buffers().emplace(tti, pdu);
       } else {
         logger.error("UE buffers: Requesting buffer from pool");
       }
@@ -210,7 +214,8 @@ void ue::clear_old_buffers(uint32_t tti)
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
 
   // remove old buffers
-  for (auto& rx_buffer_cc : rx_used_buffers) {
+  for (auto& cc : cc_buffers) {
+    auto& rx_buffer_cc = cc.get_rx_used_buffers();
     for (auto it = rx_buffer_cc.begin(); it != rx_buffer_cc.end();) {
       if (srslte_tti_interval(tti, it->first) > 20 && srslte_tti_interval(tti, it->first) < 500) {
         logger.warning("UE buffers: Removing old buffer tti=%d, rnti=%d, now is %d, interval=%d",
@@ -253,8 +258,6 @@ uint32_t ue::set_ta(int ta_)
   return nof_cmd;
 }
 
-#include <assert.h>
-
 void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel)
 {
   // Unpack ULSCH MAC PDU
@@ -265,6 +268,10 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
+  }
+
+  if (pcap_net) {
+    pcap_net->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
   }
 
   pdus.deallocate(pdu);
@@ -353,9 +360,9 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
 
-  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
-    pdus.deallocate(rx_used_buffers.at(ue_cc_idx).at(tti));
-    rx_used_buffers.at(ue_cc_idx).erase(tti);
+  if (cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
+    pdus.deallocate(cc_buffers.at(ue_cc_idx).get_rx_used_buffers().at(tti));
+    cc_buffers.at(ue_cc_idx).get_rx_used_buffers().erase(tti);
   } else {
     logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d",
                    rnti,
@@ -367,13 +374,13 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  if (rx_used_buffers.at(ue_cc_idx).count(tti)) {
+  if (cc_buffers.at(ue_cc_idx).get_rx_used_buffers().count(tti)) {
     if (len > 0) {
-      pdus.push(rx_used_buffers.at(ue_cc_idx).at(tti), len);
+      pdus.push(cc_buffers.at(ue_cc_idx).get_rx_used_buffers().at(tti), len);
     } else {
       logger.error("Error pushing PDU: null length");
     }
-    rx_used_buffers.at(ue_cc_idx).erase(tti);
+    cc_buffers.at(ue_cc_idx).get_rx_used_buffers().erase(tti);
   } else {
     logger.warning("UE buffers: Null RX PDU pointer in push_pdu for rnti=0x%x pid=%d cc_idx=%d",
                    rnti,
@@ -491,7 +498,11 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
         if (pdu->get()->set_scell_activation_cmd(active_scell_list)) {
           phy->set_activation_deactivation_scell(rnti, active_scell_list);
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
-          allocate_cc_buffers(active_scell_list.size() - 1);
+          for (size_t i = 0; i < std::min(active_scell_list.size(), cc_buffers.size()); ++i) {
+            if (active_scell_list[i] and cc_buffers[i].empty()) {
+              cc_buffers[i].allocate_cc(nof_prb, nof_rx_harq_proc, nof_tx_harq_proc);
+            }
+          }
         } else {
           logger.error("CE:    Setting SCell Activation CE");
         }
@@ -505,19 +516,20 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
-                          uint32_t                        harq_pid,
-                          uint32_t                        tb_idx,
-                          sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
-                          uint32_t                        nof_pdu_elems,
-                          uint32_t                        grant_size)
+uint8_t* ue::generate_pdu(uint32_t                              ue_cc_idx,
+                          uint32_t                              harq_pid,
+                          uint32_t                              tb_idx,
+                          const sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
+                          uint32_t                              nof_pdu_elems,
+                          uint32_t                              grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint8_t*                    ret = nullptr;
   if (rlc) {
     if (ue_cc_idx < SRSLTE_MAX_CARRIERS && harq_pid < SRSLTE_FDD_NOF_HARQ && tb_idx < SRSLTE_MAX_TB) {
-      tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx]->clear();
-      mac_msg_dl.init_tx(tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx].get(), grant_size, false);
+      srslte::byte_buffer_t* buffer = cc_buffers[ue_cc_idx].get_tx_payload_buffer(harq_pid, tb_idx);
+      buffer->clear();
+      mac_msg_dl.init_tx(buffer, grant_size, false);
       for (uint32_t i = 0; i < nof_pdu_elems; i++) {
         if (pdu[i].lcid <= (uint32_t)srslte::ul_sch_lcid::PHR_REPORT) {
           allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -538,25 +550,26 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
 }
 
 uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
-                              sched_interface::dl_pdu_mch_t sched,
+                              sched_interface::dl_pdu_mch_t sched_,
                               uint32_t                      nof_pdu_elems,
                               uint32_t                      grant_size)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint8_t*                    ret = nullptr;
-  tx_payload_buffer[0][harq_pid][0]->clear();
-  mch_mac_msg_dl.init_tx(tx_payload_buffer[0][harq_pid][0].get(), grant_size);
+  uint8_t*                    ret    = nullptr;
+  srslte::byte_buffer_t*      buffer = cc_buffers[0].get_tx_payload_buffer(harq_pid, 0);
+  buffer->clear();
+  mch_mac_msg_dl.init_tx(buffer, grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
-    if (sched.pdu[i].lcid == (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO) {
+    if (sched_.pdu[i].lcid == (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO) {
       mch_mac_msg_dl.new_subh();
-      mch_mac_msg_dl.get()->set_next_mch_sched_info(sched.mtch_sched[i].lcid, sched.mtch_sched[i].stop);
-    } else if (sched.pdu[i].lcid == 0) {
+      mch_mac_msg_dl.get()->set_next_mch_sched_info(sched_.mtch_sched[i].lcid, sched_.mtch_sched[i].stop);
+    } else if (sched_.pdu[i].lcid == 0) {
       mch_mac_msg_dl.new_subh();
-      mch_mac_msg_dl.get()->set_sdu(0, sched.pdu[i].nbytes, sched.mcch_payload);
-    } else if (sched.pdu[i].lcid <= (uint32_t)srslte::mch_lcid::MTCH_MAX_LCID) {
+      mch_mac_msg_dl.get()->set_sdu(0, sched_.pdu[i].nbytes, sched_.mcch_payload);
+    } else if (sched_.pdu[i].lcid <= (uint32_t)srslte::mch_lcid::MTCH_MAX_LCID) {
       mch_mac_msg_dl.new_subh();
-      mch_mac_msg_dl.get()->set_sdu(sched.pdu[i].lcid, sched.pdu[i].nbytes, sched.mtch_sched[i].mtch_payload);
+      mch_mac_msg_dl.get()->set_sdu(sched_.pdu[i].lcid, sched_.pdu[i].nbytes, sched_.mtch_sched[i].mtch_payload);
     }
   }
 

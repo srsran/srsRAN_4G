@@ -102,10 +102,6 @@ SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t* q);
 
 SRSLTE_API int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell);
 
-SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t* q, uint16_t rnti);
-
-SRSLTE_API void srslte_enb_dl_rem_rnti(srslte_enb_dl_t* q, uint16_t rnti);
-
 SRSLTE_API bool srslte_enb_dl_location_is_common_ncce(srslte_enb_dl_t* q, uint32_t ncce);
 
 SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t* q, srslte_dl_sf_cfg_t* dl_sf);

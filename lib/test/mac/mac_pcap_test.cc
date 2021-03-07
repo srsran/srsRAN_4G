@@ -62,8 +62,7 @@ int mac_pcap_eutra_test()
   uint32_t num_threads         = 10;
   uint32_t num_pdus_per_thread = 100;
 
-  std::unique_ptr<srslte::mac_pcap> pcap_handle =
-      std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::lte));
+  std::unique_ptr<srslte::mac_pcap> pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
   TESTASSERT(pcap_handle->open("mac_pcap_test.pcap") == SRSLTE_SUCCESS);
   TESTASSERT(pcap_handle->open("mac_pcap_test.pcap") != SRSLTE_SUCCESS); // open again will fail
 
@@ -91,8 +90,7 @@ int mac_pcap_nr_test()
   uint32_t num_threads         = 10;
   uint32_t num_pdus_per_thread = 100;
 
-  std::unique_ptr<srslte::mac_pcap> pcap_handle =
-      std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap(srslte::srslte_rat_t::nr));
+  std::unique_ptr<srslte::mac_pcap> pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
   TESTASSERT(pcap_handle->open("mac_pcap_nr_test.pcap") == SRSLTE_SUCCESS);
   TESTASSERT(pcap_handle->open("mac_pcap_nr_test.pcap") != SRSLTE_SUCCESS); // open again will fail
 

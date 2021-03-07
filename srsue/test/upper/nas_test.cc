@@ -20,26 +20,18 @@
  */
 
 #include "srslte/common/bcd_helpers.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/test_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"
-#include "srslte/upper/pdcp.h"
-#include "srslte/upper/pdcp_entity_lte.h"
-#include "srslte/upper/rlc.h"
-#include "srsue/hdr/stack/mac/mac.h"
-#include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/upper/gw.h"
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
-#include <iostream>
 
 using namespace srsue;
-using namespace asn1::rrc;
 
 static_assert(alignof(LIBLTE_BYTE_MSG_STRUCT) == alignof(byte_buffer_t),
               "liblte buffer and byte buffer members misaligned");
@@ -75,8 +67,6 @@ uint8_t deactivate_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62,
 
 uint16 mcc = 61441;
 uint16 mnc = 65281;
-
-static srslte::logger* g_logger = nullptr;
 
 using namespace srslte;
 
@@ -141,10 +131,10 @@ public:
   bool     has_nr_dc() { return false; }
 
 private:
-  nas*         nas_ptr;
-  uint32_t     last_sdu_len;
-  found_plmn_t plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
-  bool         is_connected_flag = false;
+  nas*                            nas_ptr;
+  uint32_t                        last_sdu_len;
+  nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
+  bool                            is_connected_flag = false;
 };
 
 class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread
@@ -218,14 +208,7 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 
 int security_command_test()
 {
-  int                ret = SRSLTE_ERROR;
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
-
+  int              ret = SRSLTE_ERROR;
   stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
@@ -278,18 +261,7 @@ int security_command_test()
 
 int mme_attach_request_test()
 {
-  int                ret = SRSLTE_ERROR;
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-  srslte::log_filter gw_log("GW");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
-  usim_log.set_hex_limit(100000);
-  gw_log.set_hex_limit(100000);
+  int ret = SRSLTE_ERROR;
 
   rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
@@ -321,7 +293,7 @@ int mme_attach_request_test()
     gw_args.log.gw_level     = "debug";
     gw_args.log.gw_hex_limit = 100000;
 
-    gw.init(gw_args, g_logger, &stack);
+    gw.init(gw_args, &stack);
     stack.init(&nas);
     // trigger test
     stack.switch_on();
@@ -355,13 +327,7 @@ int mme_attach_request_test()
 
 int esm_info_request_test()
 {
-  int                ret = SRSLTE_ERROR;
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
+  int ret = SRSLTE_ERROR;
 
   srsue::stack_test_dummy stack{};
 
@@ -405,13 +371,6 @@ int esm_info_request_test()
 
 int dedicated_eps_bearer_test()
 {
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(100000);
-
   srsue::stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
@@ -484,11 +443,6 @@ int dedicated_eps_bearer_test()
 int main(int argc, char** argv)
 {
   // Setup logging.
-  srslog::sink&          log_sink = srslog::fetch_stdout_sink();
-  srslog::log_channel*   chan     = srslog::create_log_channel("mme_attach_request_test", log_sink);
-  srslte::srslog_wrapper log_wrapper(*chan);
-  g_logger = &log_wrapper;
-
   auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
   rrc_logger.set_level(srslog::basic_levels::debug);
   rrc_logger.set_hex_dump_max_size(100000);
@@ -504,9 +458,6 @@ int main(int argc, char** argv)
 
   // Start the log backend.
   srslog::init();
-
-  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
-  srslte::logmap::set_default_hex_limit(100000);
 
   if (security_command_test()) {
     printf("Security command test failed.\n");

@@ -21,6 +21,8 @@
 
 #include "srsue/hdr/stack/rrc/rrc_nr.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
+#include "srslte/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/upper/usim.h"
 
 #define Error(fmt, ...) rrc_ptr->log_h->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)

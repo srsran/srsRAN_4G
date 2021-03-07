@@ -40,7 +40,7 @@ static uint8_t c_unpacked[MAX_SEQ_LEN];
 static float   ones_float[Nc + MAX_SEQ_LEN + 31];
 static int16_t ones_short[Nc + MAX_SEQ_LEN + 31];
 static int8_t  ones_char[Nc + MAX_SEQ_LEN + 31];
-static uint8_t ones_packed[MAX_SEQ_LEN / 8];
+static uint8_t ones_packed[(MAX_SEQ_LEN * 7) / 8];
 static uint8_t ones_unpacked[MAX_SEQ_LEN];
 
 static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t length, uint32_t repetitions)
@@ -152,7 +152,7 @@ static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t le
   // Test in-place packed XOR
   gettimeofday(&t[1], NULL);
   for (uint32_t r = 0; r < repetitions; r++) {
-    srslte_sequence_apply_bit_packed(ones_packed, c_packed, length, seed);
+    srslte_sequence_apply_packed(ones_packed, c_packed, length, seed);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -163,12 +163,12 @@ static int test_sequence(srslte_sequence_t* sequence, uint32_t seed, uint32_t le
     ret = SRSLTE_ERROR;
   }
 
-  if (memcmp(c_packed_gold, sequence->c_bytes, length / 8) != 0) {
+  if (memcmp(c_packed_gold, sequence->c_bytes, (length + 7) / 8) != 0) {
     ERROR("Unmatched c_packed");
     ret = SRSLTE_ERROR;
   }
 
-  if (memcmp(c_packed_gold, c_packed, length / 8) != 0) {
+  if (memcmp(c_packed_gold, c_packed, (length + 7) / 8) != 0) {
     ERROR("Unmatched c_packed");
     ret = SRSLTE_ERROR;
   }
@@ -207,7 +207,7 @@ int main(int argc, char** argv)
     ones_short[i]    = 1;
     ones_char[i]     = 1;
     ones_unpacked[i] = 0;
-    if (i < MAX_SEQ_LEN / 8) {
+    if (i < (MAX_SEQ_LEN * 7) / 8) {
       ones_packed[i] = 0;
     }
   }

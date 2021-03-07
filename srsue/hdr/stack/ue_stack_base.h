@@ -23,7 +23,6 @@
 #define SRSUE_UE_STACK_BASE_H
 
 #include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 
@@ -37,9 +36,14 @@ namespace srsue {
 typedef struct {
   bool        enable;
   std::string filename;
-  bool        nas_enable;
-  std::string nas_filename;
 } pcap_args_t;
+
+typedef struct {
+  std::string enable;
+  pcap_args_t mac_pcap;
+  pcap_args_t mac_nr_pcap;
+  pcap_args_t nas_pcap;
+} pkt_trace_args_t;
 
 typedef struct {
   std::string mac_level;
@@ -63,7 +67,7 @@ typedef struct {
 
 typedef struct {
   std::string      type;
-  pcap_args_t      pcap;
+  pkt_trace_args_t pkt_trace;
   stack_log_args_t log;
   usim_args_t      usim;
   rrc_args_t       rrc;

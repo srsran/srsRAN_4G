@@ -151,22 +151,23 @@ void gtpu::send_pdu_to_tunnel(tunnel& tx_tun, srslte::unique_byte_buffer_t pdu, 
 uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, const bearer_props* props)
 {
   // Allocate a TEID for the incoming tunnel
-  uint32_t teid_in  = ++next_teid_in;
-  tunnel&  new_tun  = tunnels[teid_in];
-  new_tun.teid_in   = teid_in;
-  new_tun.rnti      = rnti;
-  new_tun.lcid      = lcid;
-  new_tun.spgw_addr = addr;
-  new_tun.teid_out  = teid_out;
+  uint32_t teid_in    = ++next_teid_in;
+  auto     insert_ret = tunnels.emplace(teid_in, tunnel{});
+  tunnel&  new_tun    = insert_ret.first->second;
+  new_tun.teid_in     = teid_in;
+  new_tun.rnti        = rnti;
+  new_tun.lcid        = lcid;
+  new_tun.spgw_addr   = addr;
+  new_tun.teid_out    = teid_out;
 
   ue_teidin_db[rnti][lcid].push_back(teid_in);
 
-  logger.info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x",
+  logger.info("New tunnel teid_in=0x%x, teid_out=0x%x, rnti=0x%x, lcid=%d, addr=%s",
+              teid_in,
+              teid_out,
               rnti,
               lcid,
-              addr,
-              teid_out,
-              teid_in);
+              srslte::gtpu_ntoa(htonl(addr)).c_str());
 
   if (props != nullptr) {
     if (props->flush_before_teidin_present) {
@@ -200,6 +201,10 @@ void gtpu::set_tunnel_status(uint32_t teidin, bool dl_active)
   }
   tun_it->second.dl_enabled = dl_active;
   if (dl_active) {
+    logger.info("Activating GTPU tunnel rnti=0x%x,TEID=%d. %d SDUs currently buffered",
+                tun_it->second.rnti,
+                teidin,
+                tun_it->second.buffer.size());
     for (auto& sdu_it : tun_it->second.buffer) {
       pdcp->write_sdu(tun_it->second.rnti,
                       tun_it->second.lcid,

@@ -39,6 +39,8 @@ int if_handler_test()
 
 int main(int argc, char** argv)
 {
+  srslog::init();
+
   if_handler_test();
 
   return SRSLTE_SUCCESS;

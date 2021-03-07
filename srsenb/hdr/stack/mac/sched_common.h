@@ -68,9 +68,10 @@ public:
   uint32_t get_dl_lb_nof_re(tti_point tti_tx_dl, uint32_t nof_prbs_alloc) const;
   uint32_t get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dci_dl_t& dci, uint32_t cfi) const;
 
-  uint32_t                                     enb_cc_idx = 0;
-  sched_interface::cell_cfg_t                  cfg        = {};
-  const sched_interface::sched_args_t*         sched_cfg  = nullptr;
+  uint32_t                                     enb_cc_idx       = 0;
+  sched_interface::cell_cfg_t                  cfg              = {};
+  srslte_pucch_cfg_t                           pucch_cfg_common = {};
+  const sched_interface::sched_args_t*         sched_cfg        = nullptr;
   std::unique_ptr<srslte_regs_t, regs_deleter> regs;
   cce_sf_position_table                        common_locations = {};
   cce_frame_position_table                     rar_locations    = {};

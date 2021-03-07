@@ -38,7 +38,6 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/lte/worker_pool.h"

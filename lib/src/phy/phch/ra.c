@@ -190,15 +190,15 @@ srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs)
 static int srslte_ra_dl_mcs_from_tbs_idx(uint32_t tbs_idx, bool use_tbs_index_alt)
 {
   if (use_tbs_index_alt) {
-    for (int i = 0; i < 28; i++) {
-      if (tbs_idx == dl_mcs_tbs_idx_table2[i]) {
-        return i;
+    for (int mcs = 27; mcs >= 0; mcs--) {
+      if (tbs_idx == dl_mcs_tbs_idx_table2[mcs]) {
+        return mcs;
       }
     }
   } else {
-    for (int i = 0; i < 29; i++) {
-      if (tbs_idx == dl_mcs_tbs_idx_table[i]) {
-        return i;
+    for (int mcs = 28; mcs >= 0; mcs--) {
+      if (tbs_idx == dl_mcs_tbs_idx_table[mcs]) {
+        return mcs;
       }
     }
   }
@@ -207,9 +207,10 @@ static int srslte_ra_dl_mcs_from_tbs_idx(uint32_t tbs_idx, bool use_tbs_index_al
 
 static int srslte_ra_ul_mcs_from_tbs_idx(uint32_t tbs_idx)
 {
-  for (int i = 0; i < 29; i++) {
-    if (tbs_idx == ul_mcs_tbs_idx_table[i]) {
-      return i;
+  // Note: go in descent order to find max mcs possible
+  for (int mcs = 28; mcs >= 0; mcs--) {
+    if (tbs_idx == ul_mcs_tbs_idx_table[mcs]) {
+      return mcs;
     }
   }
   return SRSLTE_ERROR;
@@ -233,21 +234,22 @@ int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb)
 /* Returns lowest nearest index of TBS value in table 7.1.7.2 on 36.213
  * or -1 if the TBS value is not within the valid TBS values
  */
-int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb)
+/*
+ * Returns upper bound (exclusive) of TBS index interval whose TBS value encompasses the provided TBS
+ * \remark taken from table 7.1.7.2 on 36.213
+ * @return upper bound of TBS index (0..27), -2 if bad arguments
+ */
+int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb, uint32_t max_tbs_idx)
 {
-  uint32_t idx;
-  if (n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
-
-    if (tbs <= tbs_table[0][n_prb - 1]) {
-      return 0;
-    }
-    if (tbs >= tbs_table[26][n_prb - 1]) {
-      return 27;
-    }
-    for (idx = 0; idx < 26; idx++) {
-      if (tbs_table[idx][n_prb - 1] <= tbs && tbs_table[idx + 1][n_prb - 1] >= tbs) {
-        return idx + 1;
-      }
+  if (n_prb == 0 || n_prb > SRSLTE_MAX_PRB) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+  if (tbs < tbs_table[0][n_prb - 1]) {
+    return 0;
+  }
+  for (int tbs_idx = max_tbs_idx; tbs_idx >= 0; tbs_idx--) {
+    if (tbs_table[tbs_idx][n_prb - 1] <= tbs) {
+      return tbs_idx + 1;
     }
   }
   return SRSLTE_ERROR;

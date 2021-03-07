@@ -165,10 +165,6 @@ int main(int argc, char** argv)
     ERROR("Error creating PDSCH object");
     exit(-1);
   }
-  if (srslte_pucch_set_rnti(&pucch_ue, 11)) {
-    ERROR("Error setting C-RNTI");
-    goto quit;
-  }
   if (srslte_pucch_init_enb(&pucch_enb)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
@@ -176,10 +172,6 @@ int main(int argc, char** argv)
   if (srslte_pucch_set_cell(&pucch_enb, cell)) {
     ERROR("Error creating PDSCH object");
     exit(-1);
-  }
-  if (srslte_pucch_set_rnti(&pucch_enb, 11)) {
-    ERROR("Error setting C-RNTI");
-    goto quit;
   }
   if (srslte_refsignal_ul_set_cell(&dmrs, cell)) {
     ERROR("Error creating PDSCH object");

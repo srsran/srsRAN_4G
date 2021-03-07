@@ -43,15 +43,17 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/multiqueue.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/thread_pool.h"
-#include "srslte/interfaces/ue_interfaces.h"
-
 #include "srslte/common/time_prof.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
 
 namespace srsue {
+
+class phy_interface_stack_lte;
 
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
@@ -61,18 +63,17 @@ class ue_stack_lte final : public ue_stack_base,
                            public srslte::thread
 {
 public:
-  explicit ue_stack_lte(srslog::sink& log_sink);
+  explicit ue_stack_lte();
   ~ue_stack_lte();
 
   std::string get_type() final;
 
-  int init(const stack_args_t& args_, srslte::logger* logger_);
-  int init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
-  int init(const stack_args_t&      args_,
-           srslte::logger*          logger_,
-           phy_interface_stack_lte* phy_,
-           phy_interface_stack_nr*  phy_nr_,
-           gw_interface_stack*      gw_);
+  int  init(const stack_args_t& args_);
+  int  init(const stack_args_t& args_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+  int  init(const stack_args_t&      args_,
+            phy_interface_stack_lte* phy_,
+            phy_interface_stack_nr*  phy_nr_,
+            gw_interface_stack*      gw_);
   bool switch_on() final;
   bool switch_off() final;
   bool is_registered() final;
@@ -100,7 +101,7 @@ public:
   sched_rnti_t get_dl_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_dl_sched_rnti_nr(tti); }
   sched_rnti_t get_ul_sched_rnti_nr(uint32_t tti) final { return mac_nr.get_ul_sched_rnti_nr(tti); }
 
-  void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) final
+  void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, mac_interface_phy_lte::tb_action_ul_t* action) final
   {
     mac.new_grant_ul(cc_idx, grant, action);
   }
@@ -135,7 +136,12 @@ public:
   int  sf_indication(const uint32_t tti) final { return SRSLTE_SUCCESS; }
   void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac_nr.tb_decoded(cc_idx, grant); }
 
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, srslte::byte_buffer_t* tx_pdu) final { mac_nr.new_grant_ul(cc_idx, grant, tx_pdu); }
+  void new_grant_ul(const uint32_t                        cc_idx,
+                    const mac_nr_grant_ul_t&              grant,
+                    mac_interface_phy_nr::tb_action_ul_t* action) final
+  {
+    mac_nr.new_grant_ul(cc_idx, grant, action);
+  }
 
   void run_tti(const uint32_t tti) final
   {
@@ -172,13 +178,6 @@ private:
   srslte::tti_point current_tti;
 
   // UE stack logging
-  srslte::logger*       logger = nullptr;
-  srslte::log_ref       mac_log{"MAC"};
-  srslte::log_ref       rlc_log{"RLC"};
-  srslte::log_ref       pdcp_log{"PDCP"};
-  srslte::log_ref       rrc_log{"RRC"};
-  srslte::log_ref       usim_log{"USIM"};
-  srslte::log_ref       nas_log{"NAS"};
   srslog::basic_logger& stack_logger;
   srslog::basic_logger& mac_logger;
   srslog::basic_logger& rlc_logger;
@@ -187,9 +186,14 @@ private:
   srslog::basic_logger& usim_logger;
   srslog::basic_logger& nas_logger;
 
+  // tracing
+  srslte::mac_pcap mac_pcap;
+  srslte::mac_pcap mac_nr_pcap;
+  srslte::nas_pcap nas_pcap;
+
   // RAT-specific interfaces
-  phy_interface_stack_lte* phy = nullptr;
-  gw_interface_stack*      gw  = nullptr;
+  phy_interface_stack_lte* phy    = nullptr;
+  gw_interface_stack*      gw     = nullptr;
   phy_interface_stack_nr*  phy_nr = nullptr;
 
   // Thread
@@ -202,14 +206,12 @@ private:
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
 
   // stack components
-  srsue::mac       mac;
-  srslte::mac_pcap mac_pcap;
-  srslte::nas_pcap nas_pcap;
-  srslte::rlc      rlc;
-  srslte::pdcp     pdcp;
-  srsue::rrc       rrc;
-  srsue::mac_nr mac_nr;
-  srsue::rrc_nr rrc_nr;
+  srsue::mac                 mac;
+  srslte::rlc                rlc;
+  srslte::pdcp               pdcp;
+  srsue::rrc                 rrc;
+  srsue::mac_nr              mac_nr;
+  srsue::rrc_nr              rrc_nr;
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
 

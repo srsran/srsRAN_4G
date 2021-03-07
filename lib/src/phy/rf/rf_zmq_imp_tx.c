@@ -54,7 +54,7 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
 
     ret = zmq_bind(q->sock, sock_args);
     if (ret) {
-      fprintf(stderr, "Error: connecting transmitter socket: %s\n", zmq_strerror(zmq_errno()));
+      fprintf(stderr, "Error: binding transmitter socket (%s): %s\n", sock_args, zmq_strerror(zmq_errno()));
       goto clean_exit;
     }
 

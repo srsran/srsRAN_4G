@@ -125,16 +125,6 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
 
     q->is_ue = is_ue;
 
-    q->users = calloc(sizeof(srslte_pusch_user_t*), q->is_ue ? 1 : (1 + SRSLTE_SIRNTI));
-    if (!q->users) {
-      perror("malloc");
-      goto clean;
-    }
-
-    if (srslte_sequence_init(&q->tmp_seq, q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
-      goto clean;
-    }
-
     srslte_sch_init(&q->ul_sch);
 
     if (srslte_dft_precoding_init(&q->dft_precoding, max_prb, is_ue)) {
@@ -219,19 +209,6 @@ void srslte_pusch_free(srslte_pusch_t* q)
   }
   srslte_dft_precoding_free(&q->dft_precoding);
 
-  if (q->users) {
-    if (q->is_ue) {
-      srslte_pusch_free_rnti(q, 0);
-    } else {
-      for (int rnti = 0; rnti <= SRSLTE_SIRNTI; rnti++) {
-        srslte_pusch_free_rnti(q, rnti);
-      }
-    }
-    free(q->users);
-  }
-
-  srslte_sequence_free(&q->tmp_seq);
-
   for (i = 0; i < SRSLTE_MOD_NITEMS; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
@@ -255,86 +232,6 @@ int srslte_pusch_set_cell(srslte_pusch_t* q, srslte_cell_t cell)
     ret       = SRSLTE_SUCCESS;
   }
   return ret;
-}
-
-/* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while
- * to execute, so shall be called once the final C-RNTI has been allocated for the session.
- * For the connection procedure, use srslte_pusch_encode() functions */
-int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti)
-{
-  uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-
-  // Decide whether re-generating the sequence
-  if (!q->users[rnti_idx]) {
-    // If the sequence is not allocated generate
-    q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
-    if (!q->users[rnti_idx]) {
-      ERROR("Alocating PDSCH user");
-      return SRSLTE_ERROR;
-    }
-  } else if (q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id && !q->is_ue) {
-    // The sequence was generated, cell has not changed and it is eNb, save any efforts
-    return SRSLTE_SUCCESS;
-  }
-
-  // Set sequence as not generated
-  q->users[rnti_idx]->sequence_generated = false;
-
-  // For each subframe
-  for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-    if (srslte_sequence_pusch(&q->users[rnti_idx]->seq[sf_idx],
-                              rnti,
-                              SRSLTE_NOF_SLOTS_PER_SF * sf_idx,
-                              q->cell.id,
-                              q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
-      ERROR("Error initializing PUSCH scrambling sequence");
-      srslte_pusch_free_rnti(q, rnti);
-      return SRSLTE_ERROR;
-    }
-  }
-
-  // Save generation states
-  q->ue_rnti                             = rnti;
-  q->users[rnti_idx]->cell_id            = q->cell.id;
-  q->users[rnti_idx]->sequence_generated = true;
-
-  return SRSLTE_SUCCESS;
-}
-
-void srslte_pusch_free_rnti(srslte_pusch_t* q, uint16_t rnti)
-{
-  uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-
-  if (q->users[rnti_idx]) {
-    for (int i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
-      srslte_sequence_free(&q->users[rnti_idx]->seq[i]);
-    }
-    free(q->users[rnti_idx]);
-    q->users[rnti_idx] = NULL;
-    q->ue_rnti         = 0;
-  }
-}
-
-static srslte_sequence_t* get_user_sequence(srslte_pusch_t* q, uint16_t rnti, uint32_t sf_idx, uint32_t len)
-{
-  uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-
-  if (SRSLTE_RNTI_ISUSER(rnti)) {
-    // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
-    if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id &&
-        (!q->is_ue || q->ue_rnti == rnti)) {
-      return &q->users[rnti_idx]->seq[sf_idx];
-    } else {
-      if (srslte_sequence_pusch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id, len)) {
-        ERROR("Error generating temporal scrambling sequence");
-        return NULL;
-      }
-      return &q->tmp_seq;
-    }
-  } else {
-    ERROR("Invalid RNTI=0x%x", rnti);
-    return NULL;
-  }
 }
 
 int srslte_pusch_assert_grant(const srslte_pusch_grant_t* grant)
@@ -407,15 +304,13 @@ int srslte_pusch_encode(srslte_pusch_t*      q,
 
     uint32_t nof_ri_ack_bits = (uint32_t)ret;
 
-    // Generate scrambling sequence if not pre-generated
-    srslte_sequence_t* seq = get_user_sequence(q, cfg->rnti, sf->tti % 10, cfg->grant.tb.nof_bits);
-    if (!seq) {
-      ERROR("Error getting user sequence for rnti=0x%x", cfg->rnti);
-      return -1;
-    }
-
     // Run scrambling
-    srslte_scrambling_bytes(seq, (uint8_t*)q->q, cfg->grant.tb.nof_bits);
+    srslte_sequence_pusch_apply_pack((uint8_t*)q->q,
+                                     (uint8_t*)q->q,
+                                     cfg->rnti,
+                                     2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME),
+                                     q->cell.id,
+                                     cfg->grant.tb.nof_bits);
 
     // Correct UCI placeholder/repetition bits
     uint8_t* d = q->q;
@@ -537,25 +432,25 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
       out->evm = NAN;
     }
 
-    // Generate scrambling sequence if not pre-generated
-    srslte_sequence_t* seq = get_user_sequence(q, cfg->rnti, sf->tti % 10, cfg->grant.tb.nof_bits);
-    if (!seq) {
-      ERROR("Error getting user sequence for rnti=0x%x", cfg->rnti);
-      return -1;
-    }
-
     // Descrambling
     if (q->llr_is_8bit) {
-      srslte_scrambling_sb_offset(seq, q->q, 0, cfg->grant.tb.nof_bits);
+      srslte_sequence_pusch_apply_c(
+          q->q, q->q, cfg->rnti, 2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME), q->cell.id, cfg->grant.tb.nof_bits);
     } else {
-      srslte_scrambling_s_offset(seq, q->q, 0, cfg->grant.tb.nof_bits);
+      srslte_sequence_pusch_apply_s(
+          q->q, q->q, cfg->rnti, 2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME), q->cell.id, cfg->grant.tb.nof_bits);
     }
+
+    // Generate packed sequence for UCI decoder
+    uint8_t* c = (uint8_t*)q->z; // Reuse Z
+    srslte_sequence_pusch_gen_unpack(
+        c, cfg->rnti, 2 * (sf->tti % SRSLTE_NOF_SF_X_FRAME), q->cell.id, cfg->grant.tb.nof_bits);
 
     // Set max number of iterations
     srslte_sch_set_max_noi(&q->ul_sch, cfg->max_nof_iterations);
 
     // Decode
-    ret      = srslte_ulsch_decode(&q->ul_sch, cfg, q->q, q->g, seq->c, out->data, &out->uci);
+    ret      = srslte_ulsch_decode(&q->ul_sch, cfg, q->q, q->g, c, out->data, &out->uci);
     out->crc = (ret == 0);
 
     // Save number of iterations

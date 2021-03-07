@@ -90,6 +90,7 @@ extern "C" {
 
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/phch/cqi.h"
+#include "srslte/phy/phch/csi.h"
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/phch/dci_nr.h"
 #include "srslte/phy/phch/pbch.h"

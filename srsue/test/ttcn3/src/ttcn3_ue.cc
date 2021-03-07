@@ -31,10 +31,8 @@ SRSLTE_API char* srslte_get_build_mode();
 
 ttcn3_ue::ttcn3_ue() : logger(srslog::fetch_basic_logger("UE", false)), tft_matcher(logger) {}
 
-int ttcn3_ue::init(all_args_t args, srslte::logger* logger_, syssim_interface_phy* syssim_, const std::string tc_name_)
+int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::string tc_name_)
 {
-  old_logger = logger_;
-
   // Init UE log
   logger.set_level(srslog::basic_levels::info);
   logger.set_hex_dump_max_size(128);
@@ -66,7 +64,7 @@ int ttcn3_ue::init(all_args_t args, srslte::logger* logger_, syssim_interface_ph
 
   // Instantiate layers and stack together our UE
   if (args.stack.type == "lte") {
-    stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte(srslog::get_default_sink()));
+    stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte);
     if (!stack) {
       srslte::console("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;
@@ -88,7 +86,7 @@ int ttcn3_ue::init(all_args_t args, srslte::logger* logger_, syssim_interface_ph
     return SRSLTE_ERROR;
   }
 
-  if (stack->init(args.stack, old_logger, phy.get(), this)) {
+  if (stack->init(args.stack, phy.get(), this)) {
     srslte::console("Error initializing stack.\n");
     return SRSLTE_ERROR;
   }

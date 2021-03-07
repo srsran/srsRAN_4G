@@ -23,9 +23,7 @@
 namespace srsue {
 namespace nr {
 
-worker_pool::worker_pool(uint32_t max_workers, srslog::sink& log_sink_) :
-  pool(max_workers), log_sink(log_sink_), logger(srslog::fetch_basic_logger("NR-PHY", log_sink))
-{}
+worker_pool::worker_pool(uint32_t max_workers) : pool(max_workers), logger(srslog::fetch_basic_logger("NR-PHY")) {}
 
 bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_interface_phy_nr* stack_, int prio)
 {
@@ -47,7 +45,7 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < args.nof_phy_threads; i++) {
-    auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}", i), log_sink);
+    auto& log = srslog::fetch_basic_logger(fmt::format("PHY{}", i));
     log.set_level(srslog::str_to_basic_level(args.log.phy_level));
     log.set_hex_dump_max_size(args.log.phy_hex_limit);
 
@@ -61,7 +59,7 @@ bool worker_pool::init(const phy_args_nr_t& args, phy_common* common, stack_inte
   }
 
   // Initialise PRACH
-  auto& prach_log = srslog::fetch_basic_logger("NR-PRACH", log_sink);
+  auto& prach_log = srslog::fetch_basic_logger("NR-PRACH");
   prach_log.set_level(srslog::str_to_basic_level(args.log.phy_level));
   prach_buffer = std::unique_ptr<prach>(new prach(prach_log));
   prach_buffer->init(phy_state.args.dl.nof_max_prb);
@@ -142,6 +140,11 @@ bool worker_pool::set_config(const srslte::phy_cfg_nr_t& cfg)
 {
   phy_state.cfg = cfg;
   return true;
+}
+
+void worker_pool::sr_send(uint32_t sr_id)
+{
+  phy_state.set_pending_sr(sr_id);
 }
 } // namespace nr
 } // namespace srsue

@@ -29,12 +29,15 @@
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "tft_packet_filter.h"
 #include <net/if.h>
+#include <netinet/in.h>
 
 namespace srsue {
+
+class stack_interface_gw;
 
 struct gw_args_t {
   struct log_args_t {
@@ -50,7 +53,7 @@ class gw : public gw_interface_stack, public srslte::thread
 {
 public:
   gw();
-  int  init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack);
+  int  init(const gw_args_t& args_, stack_interface_gw* stack);
   void stop();
 
   void get_metrics(gw_metrics_t& m, const uint32_t nof_tti);
@@ -78,8 +81,7 @@ public:
 private:
   static const int GW_THREAD_PRIO = -1;
 
-  stack_interface_gw* stack      = nullptr;
-  srslte::logger*     old_logger = nullptr;
+  stack_interface_gw* stack = nullptr;
 
   gw_args_t args = {};
 

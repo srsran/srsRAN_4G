@@ -20,14 +20,17 @@
  */
 
 #include "srsue/hdr/stack/upper/gw.h"
+#include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/ipv6.h"
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/if_tun.h>
 #include <linux/ip.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -36,10 +39,9 @@ namespace srsue {
 
 gw::gw() : thread("GW"), logger(srslog::fetch_basic_logger("GW", false)), tft_matcher(logger) {}
 
-int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack_)
+int gw::init(const gw_args_t& args_, stack_interface_gw* stack_)
 {
   stack      = stack_;
-  old_logger = logger_;
   args       = args_;
   run_enable = true;
 

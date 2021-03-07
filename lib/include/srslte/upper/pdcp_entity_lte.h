@@ -22,15 +22,81 @@
 #ifndef SRSLTE_PDCP_ENTITY_LTE_H
 #define SRSLTE_PDCP_ENTITY_LTE_H
 
+#include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
+namespace srsue {
+
+class gw_interface_pdcp;
+class rlc_interface_pdcp;
+
+} // namespace srsue
+
 namespace srslte {
+
+class undelivered_sdus_queue
+{
+public:
+  explicit undelivered_sdus_queue(srslte::task_sched_handle task_sched);
+
+  bool            empty() const { return count == 0; }
+  bool            is_full() const { return count >= capacity; }
+  uint32_t        size() const { return count; }
+  static uint32_t get_capacity() { return capacity; }
+  bool            has_sdu(uint32_t sn) const
+  {
+    assert(sn != invalid_sn && "provided PDCP SN is invalid");
+    return sdus[sn].sdu != nullptr and sdus[sn].sdu->md.pdcp_sn == sn;
+  }
+  // Getter for the number of discard timers. Used for debugging.
+  size_t nof_discard_timers() const;
+
+  bool add_sdu(uint32_t                             sn,
+               const srslte::unique_byte_buffer_t&  sdu,
+               uint32_t                             discard_timeout,
+               const std::function<void(uint32_t)>& callback);
+
+  unique_byte_buffer_t& operator[](uint32_t sn)
+  {
+    assert(has_sdu(sn));
+    return sdus[sn].sdu;
+  }
+  bool clear_sdu(uint32_t sn);
+  void clear();
+
+  uint32_t get_bytes() const { return bytes; }
+  uint32_t get_fms() const { return fms; }
+  void     set_fms(uint32_t fms_) { fms = fms_; }
+  void     update_fms();
+  void     update_lms(uint32_t sn);
+
+  uint32_t get_lms() const { return lms; }
+
+  std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_sdus();
+
+private:
+  const static uint32_t capacity   = 4096;
+  const static uint32_t invalid_sn = -1;
+
+  static uint32_t increment_sn(uint32_t sn) { return (sn + 1) % capacity; }
+
+  struct sdu_data {
+    srslte::unique_byte_buffer_t sdu;
+    srslte::unique_timer         discard_timer;
+  };
+
+  uint32_t                                   count = 0;
+  uint32_t                                   bytes = 0;
+  uint32_t                                   fms   = 0;
+  uint32_t                                   lms   = 0;
+  srslte::circular_array<sdu_data, capacity> sdus;
+};
 
 /****************************************************************************
  * Structs and Defines
@@ -43,6 +109,7 @@ namespace srslte {
  * LTE PDCP Entity
  * Class for LTE PDCP entities
  ***************************************************************************/
+
 class pdcp_entity_lte final : public pdcp_entity_base
 {
 public:
@@ -82,12 +149,11 @@ public:
   void get_bearer_state(pdcp_lte_state_t* state) override;
   void set_bearer_state(const pdcp_lte_state_t& state) override;
 
-  // Getter for the number of discard timers. Used for debugging.
-  uint32_t nof_discard_timers() const;
-
   // Metrics helpers
   pdcp_bearer_metrics_t get_metrics() override;
   void                  reset_metrics() override;
+
+  size_t nof_discard_timers() const { return undelivered_sdus != nullptr ? undelivered_sdus->nof_discard_timers() : 0; }
 
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
@@ -100,20 +166,18 @@ private:
   uint32_t reordering_window = 0;
   uint32_t maximum_pdcp_sn   = 0;
 
-  // Discard callback (discardTimer)
-  class discard_callback;
-  std::vector<unique_timer> discard_timers;
-  unique_timer*             get_discard_timer(uint32_t sn);
-  void                      stop_discard_timer(uint32_t sn);
-
-  // TX Queue
-  uint32_t                                 maximum_allocated_sns_window = 2048;
-  std::map<uint32_t, unique_byte_buffer_t> undelivered_sdus_queue;
-
+  // PDU handlers
   void handle_control_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu);
+
+  // Discard callback (discardTimer)
+  class discard_callback;
+
+  // TX Queue
+  uint32_t                                maximum_allocated_sns_window = 2048;
+  std::unique_ptr<undelivered_sdus_queue> undelivered_sdus;
 };
 
 // Discard callback (discardTimer)

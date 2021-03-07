@@ -79,7 +79,6 @@ typedef struct SRSLTE_API {
   srslte_cell_t cell;
   uint32_t      nof_rx_antennas;
   uint16_t      current_mbsfn_area_id;
-  uint16_t      pregen_rnti;
 
   // Objects for all DL Physical Channels
   srslte_pcfich_t pcfich;
@@ -100,13 +99,11 @@ typedef struct SRSLTE_API {
   srslte_ofdm_t         fft_mbsfn;
 
   // Buffers to store channel symbols after demodulation
-  cf_t* sf_symbols[SRSLTE_MAX_PORTS];
+  cf_t*              sf_symbols[SRSLTE_MAX_PORTS];
+  dci_blind_search_t current_ss_common;
 
-  // Variables for blind DCI search
-  dci_blind_search_t current_ss_ue[SRSLTE_MI_MAX_REGS][SRSLTE_NOF_CFI][SRSLTE_NOF_SF_X_FRAME];
-  dci_blind_search_t current_ss_common[SRSLTE_MI_MAX_REGS][SRSLTE_NOF_CFI];
-  srslte_dci_msg_t   pending_ul_dci_msg[SRSLTE_MAX_DCI_MSG];
-  uint32_t           pending_ul_dci_count;
+  srslte_dci_msg_t pending_ul_dci_msg[SRSLTE_MAX_DCI_MSG];
+  uint32_t         pending_ul_dci_count;
 
   srslte_dci_location_t allocated_locations[SRSLTE_MAX_DCI_MSG];
   uint32_t              nof_allocated_locations;
@@ -166,8 +163,6 @@ srslte_ue_dl_init(srslte_ue_dl_t* q, cf_t* input[SRSLTE_MAX_PORTS], uint32_t max
 SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t* q);
 
 SRSLTE_API int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell);
-
-SRSLTE_API void srslte_ue_dl_set_rnti(srslte_ue_dl_t* q, uint16_t rnti);
 
 SRSLTE_API int srslte_ue_dl_set_mbsfn_area_id(srslte_ue_dl_t* q, uint16_t mbsfn_area_id);
 

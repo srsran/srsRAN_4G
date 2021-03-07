@@ -46,9 +46,9 @@
 
 /**
  * Parallel bit generation for x1/x2 sequences parameters. Exploits the fact that the sequence generation is 31 chips
- * ahead and the maximum register shift is 3 (for x2).
+ * ahead and the maximum register shift is 3 (for x2). The maximum number of parallel bits is 28, 16 is optimal for SSE.
  */
-#define SEQUENCE_PAR_BITS (28U)
+#define SEQUENCE_PAR_BITS (24U)
 #define SEQUENCE_MASK ((1U << SEQUENCE_PAR_BITS) - 1U)
 
 /**
@@ -151,7 +151,6 @@ static uint32_t sequence_x2_init[SEQUENCE_SEED_LEN] = {};
  */
 __attribute__((constructor)) __attribute__((unused)) static void srslte_lte_pr_pregen()
 {
-
   // Compute transition step
   sequence_x1_init = 1;
   for (uint32_t n = 0; n < SEQUENCE_NC; n++) {
@@ -308,7 +307,6 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed
 static inline void
 sequence_generate_signed(const uint8_t* c_unpacked, int8_t* c_char, int16_t* c_short, float* c_float, uint32_t len)
 {
-
   int i = 0;
 
 #ifdef LV_HAVE_SSE
@@ -485,7 +483,6 @@ void srslte_sequence_apply_f(const float* in, float* out, uint32_t length, uint3
   }
 
   for (; i < length; i++) {
-
     ((uint32_t*)out)[i] = ((uint32_t*)in)[i] ^ (((x1 ^ x2) & 1U) << 31U);
 
     // Step sequences
@@ -496,8 +493,9 @@ void srslte_sequence_apply_f(const float* in, float* out, uint32_t length, uint3
 
 void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, uint32_t seed)
 {
-  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
-  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
+  const int16_t s[2] = {+1, -1};
+  uint32_t      x1   = sequence_x1_init;           // X1 initial state is fix
+  uint32_t      x2   = sequence_get_x2_init(seed); // loads x2 initial state
 
   uint32_t i = 0;
 
@@ -529,9 +527,9 @@ void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, u
 
         _mm_storeu_si128((__m128i*)(out + i + j), v);
       }
-#endif
+#endif // LV_HAVE_SSE
       for (; j < SEQUENCE_PAR_BITS; j++) {
-        out[i + j] = in[i + j] * (((c >> j) & 1U) ? -1 : +1);
+        out[i + j] = in[i + j] * s[(c >> j) & 1U];
       }
 
       // Step sequences
@@ -541,7 +539,7 @@ void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, u
   }
 
   for (; i < length; i++) {
-    out[i] = in[i] * (((x1 ^ x2) & 1U) ? -1 : +1);
+    out[i] = in[i] * s[(x1 ^ x2) & 1U];
 
     // Step sequences
     x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
@@ -668,13 +666,10 @@ void srslte_sequence_apply_bit(const uint8_t* in, uint8_t* out, uint32_t length,
   }
 }
 
-void srslte_sequence_apply_bit_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
+void srslte_sequence_apply_packed(const uint8_t* in, uint8_t* out, uint32_t length, uint32_t seed)
 {
   uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
   uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
-
-  uint64_t buffer = 0;
-  uint32_t count  = 0;
 
   const uint8_t reverse_lut[256] = {
       0b00000000, 0b10000000, 0b01000000, 0b11000000, 0b00100000, 0b10100000, 0b01100000, 0b11100000, 0b00010000,
@@ -708,7 +703,12 @@ void srslte_sequence_apply_bit_packed(const uint8_t* in, uint8_t* out, uint32_t 
       0b00111111, 0b10111111, 0b01111111, 0b11111111,
   };
 
-  for (uint32_t i = 0; i < length / 8; i++) {
+  uint32_t i = 0;
+#if SEQUENCE_PAR_BITS % 8 != 0
+  uint64_t buffer = 0;
+  uint32_t count  = 0;
+
+  for (; i < length / 8; i++) {
     // Generate sequence bits
     while (count < 8) {
       uint32_t c = (uint32_t)(x1 ^ x2);
@@ -727,4 +727,52 @@ void srslte_sequence_apply_bit_packed(const uint8_t* in, uint8_t* out, uint32_t 
     buffer = buffer >> 8UL;
     count -= 8;
   }
+
+  // Process spare bits
+  uint32_t rem8 = length % 8;
+  if (rem8 != 0) {
+    // Generate sequence bits
+    while (count < rem8) {
+      uint32_t c = (uint32_t)(x1 ^ x2);
+      buffer     = buffer | ((SEQUENCE_MASK & c) << count);
+
+      // Step sequences
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+
+      // Increase count
+      count += SEQUENCE_PAR_BITS;
+    }
+
+    out[i] = in[i] ^ reverse_lut[buffer & ((1U << rem8) - 1U) & 255U];
+  }
+#else  // SEQUENCE_PAR_BITS % 8 == 0
+  while (i < (length / 8 - (SEQUENCE_PAR_BITS - 1) / 8)) {
+    uint32_t c = (uint32_t)(x1 ^ x2);
+
+    for (uint32_t j = 0; j < SEQUENCE_PAR_BITS / 8; j++) {
+      out[i] = in[i] ^ reverse_lut[c & 255U];
+      c      = c >> 8U;
+      i++;
+    }
+
+    // Step sequences
+    x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+    x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+  }
+
+  // Process spare bytes
+  uint32_t c = (uint32_t)(x1 ^ x2);
+  while (i < length / 8) {
+    out[i] = in[i] ^ reverse_lut[c & 255U];
+    c      = c >> 8U;
+    i++;
+  }
+
+  // Process spare bits
+  uint32_t rem8 = length % 8;
+  if (rem8 != 0) {
+    out[i] = in[i] ^ reverse_lut[c & ((1U << rem8) - 1U) & 255U];
+  }
+#endif // SEQUENCE_PAR_BITS % 8 == 0
 }

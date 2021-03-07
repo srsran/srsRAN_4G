@@ -22,12 +22,13 @@
 #ifndef SRSUE_SFN_SYNC_H
 #define SRSUE_SFN_SYNC_H
 
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 
 namespace srsue {
+
+struct phy_args_t;
 
 // Class to synchronize system frame number
 class sfn_sync

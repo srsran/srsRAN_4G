@@ -148,25 +148,6 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t*                   q,
   return ret;
 }
 
-int srslte_enb_ul_add_rnti(srslte_enb_ul_t* q, uint16_t rnti)
-{
-  if (srslte_pucch_set_rnti(&q->pucch, rnti)) {
-    ERROR("Error setting PUCCH rnti");
-    return -1;
-  }
-  if (srslte_pusch_set_rnti(&q->pusch, rnti)) {
-    ERROR("Error setting PUSCH rnti");
-    return -1;
-  }
-  return 0;
-}
-
-void srslte_enb_ul_rem_rnti(srslte_enb_ul_t* q, uint16_t rnti)
-{
-  srslte_pucch_free_rnti(&q->pucch, rnti);
-  srslte_pusch_free_rnti(&q->pusch, rnti);
-}
-
 void srslte_enb_ul_fft(srslte_enb_ul_t* q)
 {
   srslte_ofdm_rx_sf(&q->fft);

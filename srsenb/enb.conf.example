@@ -83,11 +83,15 @@ rx_gain = 40
 #####################################################################
 # Packet capture configuration
 #
-# MAC Packets are captured to file in the compact format decoded by 
-# the Wireshark mac-lte-framed dissector and with DLT 147. 
-# To use the dissector, edit the preferences for DLT_USER to 
-# add an entry with DLT=147, Payload Protocol=mac-lte-framed.
+# MAC-layer packets are captured to file a the compact format decoded 
+# by the Wireshark. For decoding, use the UDP dissector and the UDP 
+# heuristic dissection. Edit the preferences (Edit > Preferences > 
+# Protocols > DLT_USER) for DLT_USER to add an entry for DLT=149 with 
+# Protocol=udp. Further, enable the heuristic dissection in UDP under:
+# Analyze > Enabled Protocols > MAC-LTE > mac_lte_udp and MAC-NR > mac_nr_udp
 # For more information see: https://wiki.wireshark.org/MAC-LTE
+# Configuring this Wireshark preferences is needed for decoding the MAC PCAP 
+# files as well as for the live network capture option.  
 #
 # Please note that this setting will by default only capture MAC
 # frames on dedicated channels, and not SIB.  You have to build with
@@ -104,12 +108,23 @@ rx_gain = 40
 # s1ap_enable:   Enable or disable the PCAP.
 # s1ap_filename: File name where to save the PCAP.
 #
+# mac_net_enable: Enable MAC layer packet captures sent over the network (true/false default: false)
+# bind_ip: Bind IP address for MAC network trace (default: "0.0.0.0")
+# bind_port: Bind port for MAC network trace (default: 5687)
+# client_ip: Client IP address for MAC network trace (default "127.0.0.1")
+# client_port Client IP address for MAC network trace (default: 5847)
 #####################################################################
 [pcap]
 enable = false
 filename = /tmp/enb.pcap
 s1ap_enable = false
 s1ap_filename = /tmp/enb_s1ap.pcap
+
+mac_net_enable = false
+bind_ip = 0.0.0.0
+bind_port = 5687
+client_ip = 127.0.0.1
+client_port = 5847
 
 #####################################################################
 # Log configuration

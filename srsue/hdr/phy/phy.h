@@ -24,13 +24,12 @@
 
 #include "phy_common.h"
 #include "phy_metrics.h"
-#include "prach.h"
+#include "srslte/common/block_queue.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/phy_interface_types.h"
 #include "srslte/interfaces/radio_interfaces.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
@@ -75,17 +74,14 @@ private:
   srslte::block_queue<std::function<void(void)> > cmd_queue;
 };
 
-class phy final : public ue_lte_phy_base,
-                  public ue_nr_phy_base,
-                  public srslte::thread
+class phy final : public ue_lte_phy_base, public ue_nr_phy_base, public srslte::thread
 {
 public:
-  explicit phy(srslog::sink& log_sink) :
-    log_sink(log_sink),
-    logger_phy(srslog::fetch_basic_logger("PHY", log_sink)),
-    logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB", log_sink)),
+  explicit phy() :
+    logger_phy(srslog::fetch_basic_logger("PHY")),
+    logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
     lte_workers(MAX_WORKERS),
-    nr_workers(MAX_WORKERS, log_sink),
+    nr_workers(MAX_WORKERS),
     common(logger_phy),
     sfsync(logger_phy, logger_phy_lib),
     prach_buffer(logger_phy),
@@ -145,9 +141,6 @@ public:
   bool cell_is_camping() final;
 
   /********** MAC INTERFACE ********************/
-  // Precomputes sequences for the given RNTI. The computation is done in the background.
-  void set_crnti(uint16_t rnti) final;
-
   /* Transmits PRACH in the next opportunity */
   void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) final;
   prach_info_t prach_get_info() final;
@@ -193,6 +186,7 @@ public:
                   const float    ta_base_sec = 0.0f) final;
   int  tx_request(const tx_request_t& request) final;
   void set_earfcn(std::vector<uint32_t> earfcns) final;
+  void sr_send(uint32_t sr_id) final;
 
 private:
   void run_thread() final;
@@ -207,7 +201,6 @@ private:
   const static int WORKERS_THREAD_PRIO = 2;
 
   srslte::radio_interface_phy* radio = nullptr;
-  srslog::sink&                log_sink;
 
   srslog::basic_logger&           logger_phy;
   srslog::basic_logger&           logger_phy_lib;

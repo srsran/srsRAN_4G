@@ -23,6 +23,7 @@
 #define SRSLTE_CIRCULAR_ARRAY_H
 
 #include <array>
+#include <cstddef>
 
 /**
  *

@@ -51,7 +51,6 @@ public:
   void set_tdd_config_unlocked(srslte_tdd_config_t config);
   void set_config_unlocked(srslte::phy_cfg_t& phy_cfg);
   void upd_config_dci_unlocked(srslte_dci_cfg_t& dci_cfg);
-  void set_crnti_unlocked(uint16_t rnti);
   void enable_pregen_signals_unlocked(bool enabled);
 
   void set_uci_periodic_cqi(srslte_uci_data_t* uci_data);

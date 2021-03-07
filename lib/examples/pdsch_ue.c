@@ -633,9 +633,6 @@ int main(int argc, char** argv)
 
   pdsch_cfg.rnti = prog_args.rnti;
 
-  /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
-  srslte_ue_dl_set_rnti(&ue_dl, prog_args.rnti);
-
   /* Configure MBSFN area id and non-MBSFN Region */
   if (prog_args.mbsfn_area_id > -1) {
     srslte_ue_dl_set_mbsfn_area_id(&ue_dl, prog_args.mbsfn_area_id);

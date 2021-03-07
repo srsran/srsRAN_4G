@@ -24,16 +24,12 @@
 
 #include "../sched_common.h"
 #include "sched_harq.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sched_dci.h"
 #include "tpc.h"
 
 namespace srsenb {
 
 enum class cc_st { active, idle, activating, deactivating };
-
-struct tbs_info {
-  int tbs_bytes = -1;
-  int mcs       = 0;
-};
 
 struct sched_ue_cell {
   using ue_cc_cfg                      = sched_interface::ue_cfg_t::cc_cfg_t;
@@ -102,14 +98,18 @@ private:
  *                    TBS/MCS derivation
  ************************************************************/
 
-/// Compute TBS and MCS based on cell state and grant
-tbs_info cqi_to_tbs(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, bool is_ul);
-
-tbs_info alloc_tbs_dl(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes);
+tbs_info cqi_to_tbs_dl(const sched_ue_cell& cell,
+                       uint32_t             nof_prb,
+                       uint32_t             nof_re,
+                       srslte_dci_format_t  dci_format,
+                       int                  req_bytes = -1);
 tbs_info
-alloc_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int explicit_mcs = -1);
+cqi_to_tbs_ul(const sched_ue_cell& cell, uint32_t nof_prb, uint32_t nof_re, int req_bytes = -1, int explicit_mcs = -1);
 
-int      get_required_prb_dl(const sched_ue_cell& cell, tti_point tti_tx_dl, uint32_t req_bytes);
+int      get_required_prb_dl(const sched_ue_cell& cell,
+                             tti_point            tti_tx_dl,
+                             srslte_dci_format_t  dci_format,
+                             uint32_t             req_bytes);
 uint32_t get_required_prb_ul(const sched_ue_cell& cell, uint32_t req_bytes);
 
 } // namespace srsenb

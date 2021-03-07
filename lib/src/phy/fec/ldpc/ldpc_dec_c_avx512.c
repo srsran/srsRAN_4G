@@ -63,8 +63,8 @@ static const int8_t infinity7 = (1U << 6U) - 1;
  * \brief Represents a node of the base factor graph.
  */
 typedef union bg_node_avx512_t {
-  int8_t  c[SRSLTE_AVX512_B_SIZE]; /*!< Each base node may contain up to \ref SRSLTE_AVX512_B_SIZE lifted nodes. */
-  __m512i v;                       /*!< All the lifted nodes of the current base node as a 512-bit line. */
+  int8_t*  c; /*!< Each base node may contain up to \ref SRSLTE_AVX512_B_SIZE lifted nodes. */
+  __m512i* v; /*!< All the lifted nodes of the current base node as a 512-bit line. */
 } bg_node_avx512_t;
 
 /*!
@@ -73,11 +73,11 @@ typedef union bg_node_avx512_t {
 struct ldpc_regs_c_avx512 {
   __m512i scaling_fctr; /*!< \brief Scaling factor for the normalized min-sum decoding algorithm. */
 
-  bg_node_avx512_t* soft_bits;    /*!< \brief A-posteriori log-likelihood ratios. */
-  __m512i*          check_to_var; /*!< \brief Check-to-variable messages. */
-  __m512i*          var_to_check; /*!< \brief Variable-to-check messages. */
-  __m512i* var_to_check_to_free;  /*!< \brief the Variable-to-check messages with one extra _mm512 allocated space. */
-  __m512i* rotated_v2c;           /*!< \brief To store a rotated version of the variable-to-check messages. */
+  bg_node_avx512_t soft_bits;    /*!< \brief A-posteriori log-likelihood ratios. */
+  __m512i*         check_to_var; /*!< \brief Check-to-variable messages. */
+  __m512i*         var_to_check; /*!< \brief Variable-to-check messages. */
+  __m512i* var_to_check_to_free; /*!< \brief the Variable-to-check messages with one extra _mm512 allocated space. */
+  __m512i* rotated_v2c;          /*!< \brief To store a rotated version of the variable-to-check messages. */
 
   __m512i* this_c2v_epi8;         /*!< \brief Helper register for the current c2v node. */
   __m512i* this_c2v_epi8_to_free; /*!< \brief Helper register for the current c2v node with one extra __m512 allocated
@@ -132,43 +132,34 @@ void* create_ldpc_dec_c_avx512(uint8_t bgN, uint8_t bgM, uint16_t ls, float scal
   uint8_t  bgK = bgN - bgM;
   uint16_t hrr = bgK + 4;
 
-  if ((vp = srslte_vec_malloc(sizeof(struct ldpc_regs_c_avx512))) == NULL) {
+  if ((vp = SRSLTE_MEM_ALLOC(struct ldpc_regs_c_avx512, 1)) == NULL) {
+    return NULL;
+  }
+  SRSLTE_MEM_ZERO(vp, struct ldpc_regs_c_avx512, 1);
+
+  if ((vp->soft_bits.v = SRSLTE_MEM_ALLOC(__m512i, bgN)) == NULL) {
+    delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
 
-  if ((vp->soft_bits = srslte_vec_malloc(bgN * sizeof(bg_node_avx512_t))) == NULL) {
-    free(vp);
+  if ((vp->check_to_var = SRSLTE_MEM_ALLOC(__m512i, (hrr + 1) * bgM)) == NULL) {
+    delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
 
-  if ((vp->check_to_var = srslte_vec_malloc((hrr + 1) * bgM * sizeof(__m512i))) == NULL) {
-    free(vp->soft_bits);
-    free(vp);
-    return NULL;
-  }
-
-  if ((vp->var_to_check_to_free = srslte_vec_malloc(((hrr + 1) + 2) * sizeof(__m512i))) == NULL) {
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp);
+  if ((vp->var_to_check_to_free = SRSLTE_MEM_ALLOC(__m512i, (hrr + 1) + 2)) == NULL) {
+    delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
   vp->var_to_check = &vp->var_to_check_to_free[1];
 
-  if ((vp->rotated_v2c = srslte_vec_malloc((hrr + 1) * sizeof(__m512i))) == NULL) {
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp);
+  if ((vp->rotated_v2c = SRSLTE_MEM_ALLOC(__m512i, hrr + 1)) == NULL) {
+    delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
 
-  if ((vp->this_c2v_epi8_to_free = srslte_vec_malloc((1 + 2) * sizeof(__m512i))) == NULL) {
-    free(vp->rotated_v2c);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp);
+  if ((vp->this_c2v_epi8_to_free = SRSLTE_MEM_ALLOC(__m512i, 1 + 2)) == NULL) {
+    delete_ldpc_dec_c_avx512(vp);
     return NULL;
   }
   vp->this_c2v_epi8 =
@@ -190,14 +181,25 @@ void delete_ldpc_dec_c_avx512(void* p)
 {
   struct ldpc_regs_c_avx512* vp = p;
 
-  if (vp != NULL) {
-    free(vp->this_c2v_epi8_to_free);
-    free(vp->rotated_v2c);
-    free(vp->var_to_check_to_free);
-    free(vp->check_to_var);
-    free(vp->soft_bits);
-    free(vp);
+  if (vp == NULL) {
+    return;
   }
+  if (vp->this_c2v_epi8_to_free) {
+    free(vp->this_c2v_epi8_to_free);
+  }
+  if (vp->rotated_v2c) {
+    free(vp->rotated_v2c);
+  }
+  if (vp->var_to_check_to_free) {
+    free(vp->var_to_check_to_free);
+  }
+  if (vp->check_to_var) {
+    free(vp->check_to_var);
+  }
+  if (vp->soft_bits.v) {
+    free(vp->soft_bits.v);
+  }
+  free(vp);
 }
 
 int init_ldpc_dec_c_avx512(void* p, const int8_t* llrs, uint16_t ls)
@@ -213,19 +215,19 @@ int init_ldpc_dec_c_avx512(void* p, const int8_t* llrs, uint16_t ls)
 
   // First 2 punctured bits
   int ini = SRSLTE_AVX512_B_SIZE + SRSLTE_AVX512_B_SIZE;
-  bzero(vp->soft_bits->c, ini);
+  srslte_vec_i8_zero(vp->soft_bits.c, ini);
 
   for (i = 0; i < vp->finalN; i = i + ls) {
     for (k = 0; k < ls; k++) {
-      vp->soft_bits->c[ini + k] = llrs[i + k];
+      vp->soft_bits.c[ini + k] = llrs[i + k];
     }
     // this might be removed
-    bzero(&vp->soft_bits->c[ini + ls], (SRSLTE_AVX512_B_SIZE - ls) * sizeof(int8_t));
+    srslte_vec_i8_zero(&vp->soft_bits.c[ini + ls], SRSLTE_AVX512_B_SIZE - ls);
     ini = ini + SRSLTE_AVX512_B_SIZE;
   }
 
-  bzero(vp->check_to_var, (vp->hrr + 1) * vp->bgM * sizeof(__m512i));
-  bzero(vp->var_to_check, (vp->hrr + 1) * sizeof(__m512i));
+  SRSLTE_MEM_ZERO(vp->check_to_var, __m512i, (vp->hrr + 1) * vp->bgM);
+  SRSLTE_MEM_ZERO(vp->var_to_check, __m512i, vp->hrr + 1);
 
   return 0;
 }
@@ -240,7 +242,7 @@ int extract_ldpc_message_c_avx512(void* p, uint8_t* message, uint16_t liftK)
   int ini = 0;
   for (int i = 0; i < liftK; i = i + vp->ls) {
     for (int k = 0; k < vp->ls; k++) {
-      message[i + k] = (vp->soft_bits->c[ini + k] < 0);
+      message[i + k] = (vp->soft_bits.c[ini + k] < 0);
     }
     ini = ini + SRSLTE_AVX512_B_SIZE;
   }
@@ -259,15 +261,12 @@ int update_ldpc_var_to_check_c_avx512(void* p, int i_layer)
   __m512i* this_check_to_var = vp->check_to_var + i_layer * (vp->hrr + 1);
 
   // Update the high-rate region.
-  inner_var_to_check_c_avx512(&(vp->soft_bits[0].v), this_check_to_var, vp->var_to_check, infinity7, vp->hrr);
+  inner_var_to_check_c_avx512(vp->soft_bits.v, this_check_to_var, vp->var_to_check, infinity7, vp->hrr);
 
   if (i_layer >= 4) {
     // Update the extension region.
-    inner_var_to_check_c_avx512(&(vp->soft_bits[0].v) + vp->hrr + i_layer - 4,
-                                this_check_to_var + vp->hrr,
-                                vp->var_to_check + vp->hrr,
-                                infinity7,
-                                1);
+    inner_var_to_check_c_avx512(
+        vp->soft_bits.v + vp->hrr + i_layer - 4, this_check_to_var + vp->hrr, vp->var_to_check + vp->hrr, infinity7, 1);
   }
 
   return 0;
@@ -391,7 +390,7 @@ int update_ldpc_soft_bits_c_avx512(void* p, int i_layer, const int8_t (*these_va
 
     mask_epi8 = _mm512_cmpgt_epi8_mask(_mm512_neg_infty7_epi8, tmp_epi8);
 
-    vp->soft_bits[current_var_index].v = _mm512_mask_blend_epi8(mask_epi8, tmp_epi8, _mm512_neg_infty8_epi8);
+    vp->soft_bits.v[current_var_index] = _mm512_mask_blend_epi8(mask_epi8, tmp_epi8, _mm512_neg_infty8_epi8);
 
     current_var_index = (*these_var_indices)[i + 1];
   }
