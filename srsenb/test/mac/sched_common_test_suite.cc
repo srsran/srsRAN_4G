@@ -32,7 +32,7 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
       TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s",
                 ch_str,
                 alloc.to_string().c_str(),
-                ul_allocs.to_hex().c_str());
+                fmt::format("{:x}", ul_allocs).c_str());
     }
     ul_allocs.fill(alloc.start(), alloc.stop(), true);
     return SRSLTE_SUCCESS;
@@ -64,8 +64,8 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   CONDERROR(expected_ul_mask != nullptr and *expected_ul_mask != ul_allocs,
             "The derived UL PRB mask %s does not match the expected one %s",
-            ul_allocs.to_string().c_str(),
-            expected_ul_mask->to_string().c_str());
+            fmt::format("{}", ul_allocs).c_str(),
+            fmt::format("{}", *expected_ul_mask).c_str());
 
   return SRSLTE_SUCCESS;
 }
@@ -105,8 +105,8 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
     if ((dl_allocs & alloc_mask).any()) {
       TESTERROR("Detected collision in the DL %s allocation (%s intersects %s)",
                 channel,
-                dl_allocs.to_string().c_str(),
-                alloc_mask.to_string().c_str());
+                fmt::format("{}", dl_allocs).c_str(),
+                fmt::format("{}", alloc_mask).c_str());
     }
     dl_allocs |= alloc_mask;
     return SRSLTE_SUCCESS;
@@ -150,8 +150,8 @@ int test_pdsch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
 
   CONDERROR(expected_rbgmask != nullptr and *expected_rbgmask != rbgmask,
             "The derived DL RBG mask %s does not match the expected one %s",
-            rbgmask.to_string().c_str(),
-            expected_rbgmask->to_string().c_str());
+            fmt::format("{}", rbgmask).c_str(),
+            fmt::format("{}", *expected_rbgmask).c_str());
 
   return SRSLTE_SUCCESS;
 }
@@ -246,8 +246,8 @@ int test_pdcch_collisions(const sf_output_res_t&                   sf_out,
 
   CONDERROR(expected_cce_mask != nullptr and *expected_cce_mask != used_cce,
             "The derived PDCCH mask %s does not match the expected one %s",
-            used_cce.to_string().c_str(),
-            expected_cce_mask->to_string().c_str());
+            fmt::format("{}", used_cce).c_str(),
+            fmt::format("{}", *expected_cce_mask).c_str());
 
   return SRSLTE_SUCCESS;
 }

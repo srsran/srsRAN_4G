@@ -156,9 +156,9 @@ void sf_grid_t::new_tti(tti_point tti_rx_)
     prbmask_t prach_mask{cc_cfg->nof_prb()};
     prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
     reserve_ul_prbs(prach_mask, false); // TODO: set to true once test sib.conf files are updated
-    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s",
-                 to_tx_ul(tti_rx).to_uint(),
-                 prach_mask.to_hex().c_str());
+    fmt::memory_buffer buffer;
+    prach_mask.to_hex(buffer);
+    logger.debug("SCHED: Allocated PRACH RBs for tti_tx_ul=%d. Mask: 0x%s", to_tx_ul(tti_rx).to_uint(), buffer.data());
   }
 
   // internal state
@@ -281,9 +281,12 @@ alloc_outcome_t sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict
 {
   alloc_outcome_t ret = alloc_outcome_t::SUCCESS;
   if (strict and (ul_mask & prbmask).any()) {
+    fmt::memory_buffer ulmask_buffer, prbmask_buffer;
+    ul_mask.to_hex(ulmask_buffer);
+    prbmask.to_hex(prbmask_buffer);
     logger.error("There was a collision in UL channel. current mask=0x%s, new alloc mask=0x%s",
-                 ul_mask.to_hex().c_str(),
-                 prbmask.to_hex().c_str());
+                 ulmask_buffer.data(),
+                 prbmask_buffer.data());
     ret = alloc_outcome_t::ERROR;
   }
   ul_mask |= prbmask;
@@ -826,23 +829,27 @@ void sf_sched::set_dl_data_sched_result(const sf_cch_allocator::alloc_result_t& 
         data_alloc.pid, data, get_tti_tx_dl(), cc_cfg->enb_cc_idx, tti_alloc.get_cfi(), data_alloc.user_mask);
 
     if (tbs <= 0) {
+      fmt::memory_buffer buffer;
+      data_alloc.user_mask.to_hex(buffer);
       logger.warning("SCHED: DL %s failed rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d",
                      is_newtx ? "tx" : "retx",
                      user->get_rnti(),
                      data_alloc.pid,
-                     data_alloc.user_mask.to_hex().c_str(),
+                     buffer.data(),
                      tbs,
                      user->get_requested_dl_bytes(cc_cfg->enb_cc_idx).stop());
       continue;
     }
 
     // Print Resulting DL Allocation
-    logger.info("SCHED: DL %s rnti=0x%x, cc=%d, pid=%d, mask=0x%s, dci=(%d,%d), n_rtx=%d, tbs=%d, buffer=%d/%d",
+    fmt::memory_buffer buffer;
+    data_alloc.user_mask.to_hex(buffer);
+    logger.info("SCHED: DL %s rnti=0x%x, cc=%d, pid=%d, mask=%s, dci=(%d,%d), n_rtx=%d, tbs=%d, buffer=%d/%d",
                 !is_newtx ? "retx" : "tx",
                 user->get_rnti(),
                 cc_cfg->enb_cc_idx,
                 data_alloc.pid,
-                data_alloc.user_mask.to_hex().c_str(),
+                buffer.data(),
                 data->dci.location.L,
                 data->dci.location.ncce,
                 dl_harq.nof_retx(0) + dl_harq.nof_retx(1),

@@ -307,15 +307,15 @@ std::string sf_cch_allocator::alloc_tree_t::result_to_string(bool verbose) const
     pdcch_mask_t   tot_mask;
     get_allocs(&vec, &tot_mask, i - prev_start);
 
-    fmt::format_to(strbuf, "[{}]: total mask=0x{}", count, tot_mask.to_hex().c_str());
+    fmt::format_to(strbuf, "[{}]: total mask=0x{:x}", count, tot_mask);
     if (verbose) {
       fmt::format_to(strbuf, ", allocations:\n");
       for (const auto& dci_alloc : vec) {
         fmt::format_to(strbuf,
-                       "  > rnti=0x{:0x}: 0x{} / 0x{}\n",
+                       "  > rnti=0x{:0x}: 0x{:x} / 0x{:x}\n",
                        dci_alloc->rnti,
-                       dci_alloc->current_mask.to_hex().c_str(),
-                       dci_alloc->total_mask.to_hex().c_str());
+                       dci_alloc->current_mask,
+                       dci_alloc->total_mask);
       }
     } else {
       fmt::format_to(strbuf, "\n");

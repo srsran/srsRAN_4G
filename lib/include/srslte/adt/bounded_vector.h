@@ -27,6 +27,7 @@ public:
   using iterator       = T*;
   using const_iterator = const T*;
   using size_type      = std::size_t;
+  using value_type     = T;
 
   bounded_vector() = default;
   template <typename std::enable_if<std::is_default_constructible<T>::value, int>::type = 0>

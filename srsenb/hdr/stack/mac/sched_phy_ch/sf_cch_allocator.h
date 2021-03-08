@@ -32,7 +32,7 @@ public:
     pdcch_mask_t          total_mask;       ///< Accumulation of all PDCCH masks for the current solution (tree route)
     prbmask_t             total_pucch_mask; ///< Accumulation of all PUCCH masks for the current solution/tree route
   };
-  using alloc_result_t = std::vector<const alloc_t*>;
+  using alloc_result_t = srslte::bounded_vector<const alloc_t*, 16>;
 
   sf_cch_allocator() : logger(srslog::fetch_basic_logger("MAC")) {}
 
