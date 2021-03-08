@@ -59,6 +59,7 @@ typedef struct SRSLTE_API {
   uint32_t*            pos_ack;   ///< Reserved resource elements for HARQ-ACK multiplexing position
   uint32_t*            pos_csi1;  ///< Reserved resource elements for CSI part 1 multiplexing position
   uint32_t*            pos_csi2;  ///< Reserved resource elements for CSI part 1 multiplexing position
+  bool                 uci_mux;   ///< Set to true if PUSCH needs to multiplex UCI
   uint32_t             G_ack;     ///< Number of encoded HARQ-ACK bits
   uint32_t             G_csi1;    ///< Number of encoded CSI part 1 bits
   uint32_t             G_csi2;    ///< Number of encoded CSI part 2 bits

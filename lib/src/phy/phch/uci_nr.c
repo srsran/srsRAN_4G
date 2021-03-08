@@ -451,7 +451,7 @@ static int uci_nr_encode_2bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg
   }
 
   if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-    UCI_NR_INFO_TX("Two bit encoded NR-UCI; o=");
+    UCI_NR_INFO_TX("Two bit encoded NR-UCI; E=%d; o=", E);
     srslte_vec_fprint_b(stdout, o, E);
   }
 
@@ -982,6 +982,11 @@ int srslte_uci_nr_pusch_ack_nof_bits(const srslte_uci_nr_pusch_cfg_t* cfg, uint3
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
+  if (cfg->nof_layers == 0) {
+    ERROR("Invalid number of layers (%d)", cfg->nof_layers);
+    return SRSLTE_ERROR;
+  }
+
   int Q_ack_prime = uci_nr_pusch_Q_prime_ack(cfg, O_ack);
   if (Q_ack_prime < SRSLTE_SUCCESS) {
     ERROR("Error calculating number of RE");
@@ -1006,10 +1011,13 @@ int srslte_uci_nr_encode_pusch_ack(srslte_uci_nr_t*             q,
   // 6.3.2.1 UCI bit sequence generation
   // 6.3.2.1.1 HARQ-ACK
   bool has_csi_part2 = srslte_csi_has_part2(cfg->csi, cfg->nof_csi);
-  if (cfg->pusch.K_sum == 0 && cfg->nof_csi > 1 && !has_csi_part2 && cfg->o_ack < 2) {
-    A                  = 2;
-    q->bit_sequence[0] = (cfg->o_ack == 0) ? 0 : value->ack[0];
+  if (cfg->pusch.K_sum == 0 && cfg->nof_csi > 1 && !has_csi_part2 && A < 2) {
+    q->bit_sequence[0] = (A == 0) ? 0 : value->ack[0];
     q->bit_sequence[1] = 0;
+    A                  = 2;
+  } else if (A == 0) {
+    UCI_NR_INFO_TX("No HARQ-ACK to mux");
+    return SRSLTE_SUCCESS;
   } else {
     srslte_vec_u8_copy(q->bit_sequence, value->ack, cfg->o_ack);
   }
@@ -1140,6 +1148,11 @@ int srslte_uci_nr_encode_pusch_csi1(srslte_uci_nr_t*             q,
   if (A < SRSLTE_SUCCESS) {
     ERROR("Error packing CSI part 1 report");
     return SRSLTE_ERROR;
+  }
+
+  if (A == 0) {
+    UCI_NR_INFO_TX("No CSI part 1 to mux");
+    return SRSLTE_SUCCESS;
   }
 
   // Compute total of encoded bits according to 6.3.2.4 Rate matching
