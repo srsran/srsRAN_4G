@@ -23,7 +23,7 @@
 
 #define UCI_NR_MAX_L 11U
 #define UCI_NR_POLAR_MAX 2048U
-#define UCI_NR_POLAR_RM_IBIL 0
+#define UCI_NR_POLAR_RM_IBIL 1
 #define UCI_NR_PUCCH_POLAR_N_MAX 10
 #define UCI_NR_BLOCK_DEFAULT_CORR_THRESHOLD 0.5f
 #define UCI_NR_ONE_BIT_CORR_THRESHOLD 0.5f
@@ -640,12 +640,17 @@ uci_nr_encode_11_1706_bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, ui
       return SRSLTE_ERROR;
     }
 
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+      UCI_NR_INFO_TX("Polar encoded %d/%d ", r, C);
+      srslte_vec_fprint_byte(stdout, q->d, q->code.N);
+    }
+
     // Rate matching
     srslte_polar_rm_tx(&q->rm_tx, q->d, &o[E_r * r], q->code.n, E_r, K_r, UCI_NR_POLAR_RM_IBIL);
 
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
-      UCI_NR_INFO_TX("Polar cw %d/%d ", r, C);
-      srslte_vec_fprint_byte(stdout, &o[E_r * r], q->code.N);
+      UCI_NR_INFO_TX("Polar RM cw %d/%d ", r, C);
+      srslte_vec_fprint_byte(stdout, &o[E_r * r], E_r);
     }
   }
 
@@ -1079,20 +1084,15 @@ static int uci_nr_pusch_Q_prime_csi1(const srslte_uci_nr_pusch_cfg_t* cfg, uint3
   uint32_t L_ack = srslte_uci_nr_crc_len(O_csi1);             // Number of CRC bits
   uint32_t Qm    = srslte_mod_bits_x_symbol(cfg->modulation); // modulation order of the PUSCH
 
-  uint32_t Q_prime_ack = 0;
-  int      n           = uci_nr_pusch_Q_prime_ack(cfg, SRSLTE_MAX(2, O_ack));
-  if (n < SRSLTE_ERROR) {
+  int Q_prime_ack = uci_nr_pusch_Q_prime_ack(cfg, SRSLTE_MAX(2, O_ack));
+  if (Q_prime_ack < SRSLTE_ERROR) {
     ERROR("Calculating Q_prime_ack");
     return SRSLTE_ERROR;
   }
 
   uint32_t M_uci_sum    = 0;
-  uint32_t M_uci_l0_sum = 0;
   for (uint32_t l = 0; l < SRSLTE_NSYMB_PER_SLOT_NR; l++) {
     M_uci_sum += cfg->M_uci_sc[l];
-    if (l >= cfg->l0) {
-      M_uci_l0_sum += cfg->M_uci_sc[l];
-    }
   }
 
   if (!isnormal(cfg->R)) {
@@ -1103,12 +1103,12 @@ static int uci_nr_pusch_Q_prime_csi1(const srslte_uci_nr_pusch_cfg_t* cfg, uint3
   if (cfg->K_sum == 0) {
     if (cfg->csi_part2_present) {
       return (int)SRSLTE_MIN(ceilf(((O_csi1 + L_ack) * cfg->beta_csi1_offset) / (Qm * cfg->R)),
-                             cfg->alpha * M_uci_l0_sum - Q_prime_ack);
+                             cfg->alpha * M_uci_sum - Q_prime_ack);
     }
     return (int)(M_uci_sum - Q_prime_ack);
   }
   return (int)SRSLTE_MIN(ceilf(((O_csi1 + L_ack) * cfg->beta_csi1_offset * M_uci_sum) / cfg->K_sum),
-                         ceilf(cfg->alpha * M_uci_l0_sum) - Q_prime_ack);
+                         ceilf(cfg->alpha * M_uci_sum) - Q_prime_ack);
 }
 
 int srslte_uci_nr_pusch_csi1_nof_bits(const srslte_uci_cfg_nr_t* cfg)
