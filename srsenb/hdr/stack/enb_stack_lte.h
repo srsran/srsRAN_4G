@@ -162,7 +162,7 @@ private:
   // state
   bool started = false;
 
-  srslte::dyn_block_queue<stack_metrics_t> pending_stack_metrics;
+  srslte::dyn_blocking_queue<stack_metrics_t> pending_stack_metrics;
 };
 
 } // namespace srsenb

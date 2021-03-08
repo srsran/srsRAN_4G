@@ -66,7 +66,7 @@ int test_static_circular_buffer()
 
 int test_queue_block_api()
 {
-  dyn_block_queue<int> queue(100);
+  dyn_blocking_queue<int> queue(100);
 
   std::thread t([&queue]() {
     int count = 0;
@@ -94,7 +94,7 @@ int test_queue_block_api_2()
   std::thread t;
 
   {
-    dyn_block_queue<int> queue(100);
+    dyn_blocking_queue<int> queue(100);
 
     t = std::thread([&queue]() {
       int count = 0;

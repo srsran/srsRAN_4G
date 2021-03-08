@@ -93,11 +93,11 @@ protected:
   virtual void write_pdu(pcap_pdu_t& pdu) = 0;
   void         run_thread() final;
 
-  std::mutex                          mutex;
-  srslog::basic_logger&               logger;
-  bool                                running = false;
-  static_block_queue<pcap_pdu_t, 256> queue;
-  uint16_t                            ue_id = 0;
+  std::mutex                             mutex;
+  srslog::basic_logger&                  logger;
+  bool                                   running = false;
+  static_blocking_queue<pcap_pdu_t, 256> queue;
+  uint16_t                               ue_id = 0;
 
 private:
   void pack_and_queue(uint8_t* payload,

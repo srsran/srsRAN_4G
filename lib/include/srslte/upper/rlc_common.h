@@ -303,8 +303,8 @@ private:
     uint32_t nof_bytes;
   } pdu_t;
 
-  static_block_queue<pdu_t, 256>                rx_pdu_resume_queue;
-  static_block_queue<unique_byte_buffer_t, 256> tx_sdu_resume_queue;
+  static_blocking_queue<pdu_t, 256>                rx_pdu_resume_queue;
+  static_blocking_queue<unique_byte_buffer_t, 256> tx_sdu_resume_queue;
 };
 
 } // namespace srslte

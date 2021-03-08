@@ -61,8 +61,8 @@ private:
 
   } pdu_t;
 
-  dyn_block_queue<pdu_t*> pdu_q;
-  buffer_pool<pdu_t>      pool;
+  dyn_blocking_queue<pdu_t*> pdu_q;
+  buffer_pool<pdu_t>         pool;
 
   process_callback*     callback;
   srslog::basic_logger& logger;

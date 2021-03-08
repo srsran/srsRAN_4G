@@ -79,8 +79,8 @@ private:
     uint32_t* unread_bytes;
   };
 
-  dyn_block_queue<unique_byte_buffer_t, push_callback, pop_callback> queue;
-  uint32_t                                                           unread_bytes = 0;
+  dyn_blocking_queue<unique_byte_buffer_t, push_callback, pop_callback> queue;
+  uint32_t                                                              unread_bytes = 0;
 };
 
 } // namespace srslte

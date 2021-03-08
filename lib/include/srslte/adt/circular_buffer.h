@@ -39,6 +39,14 @@ size_t get_max_size(const std::vector<T>& a)
   return a.capacity();
 }
 
+/**
+ * Base common class for definition of circular buffer data structures with the following features:
+ * - no allocations while pushing/popping new elements. Just an internal index update
+ * - it provides helper methods to add/remove objects
+ * - it provides an iterator interface to iterate over added elements in the buffer
+ * - not thread-safe
+ * @tparam Container underlying container type used as buffer (e.g. std::array<T, N> or std::vector<T>)
+ */
 template <typename Container>
 class base_circular_buffer
 {
@@ -85,15 +93,29 @@ public:
   };
 
   template <typename... Args>
-  base_circular_buffer(Args&&... args) : buffer(std::forward<Args>(args)...)
+  explicit base_circular_buffer(Args&&... args) : buffer(std::forward<Args>(args)...)
   {}
 
+  bool try_push(T&& t)
+  {
+    if (full()) {
+      return false;
+    }
+    push(std::move(t));
+  }
   void push(T&& t)
   {
     assert(not full());
     size_t wpos  = (rpos + count) % max_size();
     buffer[wpos] = std::move(t);
     count++;
+  }
+  bool try_push(const T& t)
+  {
+    if (full()) {
+      return false;
+    }
+    push(t);
   }
   void push(const T& t)
   {
@@ -148,17 +170,26 @@ struct noop_operator {
   }
 };
 
+/**
+ * Base common class for definition of blocking queue data structures with the following features:
+ * - it stores pushed/popped samples in an internal circular buffer
+ * - provides blocking and non-blocking push/pop APIs
+ * - thread-safe
+ * @tparam CircBuffer underlying circular buffer data type (e.g. static_circular_buffer<T, N> or dyn_circular_buffer<T>)
+ * @tparam PushingFunc function void(const T&) called while pushing an element to the queue
+ * @tparam PoppingFunc function void(const T&) called while popping an element from the queue
+ */
 template <typename CircBuffer, typename PushingFunc, typename PoppingFunc>
-class base_block_queue
+class base_blocking_queue
 {
   using T = typename CircBuffer::value_type;
 
 public:
   template <typename... Args>
-  base_block_queue(PushingFunc push_func_, PoppingFunc pop_func_, Args&&... args) :
+  base_blocking_queue(PushingFunc push_func_, PoppingFunc pop_func_, Args&&... args) :
     circ_buffer(std::forward<Args>(args)...), push_func(push_func_), pop_func(pop_func_)
   {}
-  ~base_block_queue() { stop(); }
+  ~base_blocking_queue() { stop(); }
 
   void stop()
   {
@@ -323,10 +354,24 @@ protected:
 
 } // namespace detail
 
+/**
+ * Circular buffer with fixed, embedded buffer storage via a std::array<T, N>.
+ * - Single allocation at object creation for std::array. Given that the buffer size is known at compile-time, the
+ *   circular iteration over the buffer may be more optimized (e.g. when N is a power of 2, % operator can be avoided)
+ * - not thread-safe
+ * @tparam T value type stored by buffer
+ * @tparam N size of the queue
+ */
 template <typename T, size_t N>
 class static_circular_buffer : public detail::base_circular_buffer<std::array<T, N> >
 {};
 
+/**
+ * Circular buffer with buffer storage via a std::vector<T>.
+ * - size can be defined at run-time.
+ * - not thread-safe
+ * @tparam T value type stored by buffer
+ */
 template <typename T>
 class dyn_circular_buffer : public detail::base_circular_buffer<std::vector<T> >
 {
@@ -344,31 +389,52 @@ public:
   }
 };
 
+/**
+ * Blocking queue with fixed, embedded buffer storage via a std::array<T, N>.
+ * - Blocking push/pop API via push_blocking(...) and pop_blocking(...) methods
+ * - Non-blocking push/pop API via try_push(...) and try_pop(...) methods
+ * - Only one initial allocation for the std::array<T, N>
+ * - thread-safe
+ * @tparam T value type stored by buffer
+ * @tparam N size of queue
+ * @tparam PushingCallback function void(const T&) called while pushing an element to the queue
+ * @tparam PoppingCallback function void(const T&) called while popping an element from the queue
+ */
 template <typename T,
           size_t N,
           typename PushingCallback = detail::noop_operator,
           typename PoppingCallback = detail::noop_operator>
-class static_block_queue
-  : public detail::base_block_queue<static_circular_buffer<T, N>, PushingCallback, PoppingCallback>
+class static_blocking_queue
+  : public detail::base_blocking_queue<static_circular_buffer<T, N>, PushingCallback, PoppingCallback>
 {
-  using base_t = detail::base_block_queue<static_circular_buffer<T, N>, PushingCallback, PoppingCallback>;
+  using base_t = detail::base_blocking_queue<static_circular_buffer<T, N>, PushingCallback, PoppingCallback>;
 
 public:
-  explicit static_block_queue(PushingCallback push_callback = {}, PoppingCallback pop_callback = {}) :
+  explicit static_blocking_queue(PushingCallback push_callback = {}, PoppingCallback pop_callback = {}) :
     base_t(push_callback, pop_callback)
   {}
 };
 
+/**
+ * Blocking queue with buffer storage represented via a std::vector<T>. Features:
+ * - Blocking push/pop API via push_blocking(...) and pop_blocking(...) methods
+ * - Non-blocking push/pop API via try_push(...) and try_pop(...) methods
+ * - Size can be defined at runtime.
+ * - thread-safe
+ * @tparam T value type stored by buffer
+ * @tparam PushingCallback function void(const T&) called while pushing an element to the queue
+ * @tparam PoppingCallback function void(const T&) called while popping an element from the queue
+ */
 template <typename T,
           typename PushingCallback = detail::noop_operator,
           typename PoppingCallback = detail::noop_operator>
-class dyn_block_queue : public detail::base_block_queue<dyn_circular_buffer<T>, PushingCallback, PoppingCallback>
+class dyn_blocking_queue : public detail::base_blocking_queue<dyn_circular_buffer<T>, PushingCallback, PoppingCallback>
 {
-  using base_t = detail::base_block_queue<dyn_circular_buffer<T>, PushingCallback, PoppingCallback>;
+  using base_t = detail::base_blocking_queue<dyn_circular_buffer<T>, PushingCallback, PoppingCallback>;
 
 public:
-  dyn_block_queue() = default;
-  explicit dyn_block_queue(size_t size, PushingCallback push_callback = {}, PoppingCallback pop_callback = {}) :
+  dyn_blocking_queue() = default;
+  explicit dyn_blocking_queue(size_t size, PushingCallback push_callback = {}, PoppingCallback pop_callback = {}) :
     base_t(push_callback, pop_callback, size)
   {}
   void set_size(size_t size) { base_t::circ_buffer.set_size(size); }
