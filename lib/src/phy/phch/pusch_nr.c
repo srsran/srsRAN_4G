@@ -592,7 +592,6 @@ static int pusch_nr_gen_mux_uci(srslte_pusch_nr_t* q, const srslte_uci_cfg_nr_t*
 
   // Check if UCI multiplexing is NOT required
   if (!q->uci_mux) {
-    q->G_ulsch = 0;
     return SRSLTE_SUCCESS;
   }
 
@@ -1133,7 +1132,7 @@ static inline int pusch_nr_decode_codeword(srslte_pusch_nr_t*         q,
   }
 
   // Decode Ul-SCH
-  if (q->G_ulsch != 0) {
+  if (tb->nof_bits != 0) {
     if (srslte_ulsch_nr_decode(&q->sch, &cfg->sch_cfg, tb, llr, res->payload, &res->crc) < SRSLTE_SUCCESS) {
       ERROR("Error in SCH decoding");
       return SRSLTE_ERROR;
