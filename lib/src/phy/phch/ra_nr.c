@@ -11,6 +11,7 @@
  */
 
 #include "srslte/phy/phch/ra_nr.h"
+#include "srslte/phy/phch/csi.h"
 #include "srslte/phy/phch/pdsch_nr.h"
 #include "srslte/phy/phch/ra_dl_nr.h"
 #include "srslte/phy/phch/ra_ul_nr.h"
@@ -26,6 +27,8 @@ typedef struct {
 #define RA_NR_MCS_SIZE_TABLE2 28
 #define RA_NR_MCS_SIZE_TABLE3 29
 #define RA_NR_TBS_SIZE_TABLE 93
+#define RA_NR_BETA_OFFSET_HARQACK_SIZE 32
+#define RA_NR_BETA_OFFSET_CSI_SIZE 32
 
 #define RA_NR_READ_TABLE(N)                                                                                            \
   static double srslte_ra_nr_R_from_mcs_table##N(uint32_t mcs_idx)                                                     \
@@ -107,6 +110,23 @@ static const uint32_t ra_nr_tbs_table[RA_NR_TBS_SIZE_TABLE] = {
     504,  528,  552,  576,  608,  640,  672,  704,  736,  768,  808,  848,  888,  928,  984,  1032, 1064, 1128, 1160,
     1192, 1224, 1256, 1288, 1320, 1352, 1416, 1480, 1544, 1608, 1672, 1736, 1800, 1864, 1928, 2024, 2088, 2152, 2216,
     2280, 2408, 2472, 2536, 2600, 2664, 2728, 2792, 2856, 2976, 3104, 3240, 3368, 3496, 3624, 3752, 3824};
+
+/**
+ * TS 38.213 V15.10.0 Table 9.3-1: Mapping of beta_offset values for HARQ-ACK information and the index signalled by
+ * higher layers
+ */
+static const float ra_nr_beta_offset_ack_table[RA_NR_BETA_OFFSET_HARQACK_SIZE] = {
+    1.000f,  2.000f,  2.500f,  3.125f,  4.000f,   5.000f, 6.250f, 8.000f, 10.000f, 12.625f, 15.875f,
+    20.000f, 31.000f, 50.000f, 80.000f, 126.000f, NAN,    NAN,    NAN,    NAN,     NAN,     NAN,
+    NAN,     NAN,     NAN,     NAN,     NAN,      NAN,    NAN,    NAN,    NAN,     NAN};
+
+/**
+ * TS 38.213 V15.10.0 Table 9.3-2: Mapping of beta_offset values for CSI and the index signalled by higher layers
+ */
+static const float ra_nr_beta_offset_csi_table[RA_NR_BETA_OFFSET_HARQACK_SIZE] = {
+    1.125f, 1.250f, 1.375f, 1.625f, 1.750f,  2.000f,  2.250f,  2.500f,  2.875f, 3.125f, 3.500f,
+    4.000f, 5.000f, 6.250f, 8.000f, 10.000f, 12.625f, 15.875f, 20.000f, NAN,    NAN,    NAN,
+    NAN,    NAN,    NAN,    NAN,    NAN,     NAN,     NAN,     NAN,     NAN,    NAN};
 
 typedef enum { ra_nr_table_1 = 0, ra_nr_table_2, ra_nr_table_3 } ra_nr_table_t;
 
@@ -633,6 +653,97 @@ int srslte_ra_ul_dci_to_grant_nr(const srslte_carrier_nr_t*    carrier,
     ERROR("Error filing tb");
     return SRSLTE_ERROR;
   }
+
+  return SRSLTE_SUCCESS;
+}
+
+/*
+ * Implements clauses related to HARQ-ACK beta offset selection from the section `9.3 UCI reporting in physical uplink
+ * shared channel`
+ */
+static float ra_ul_beta_offset_ack_semistatic(const srslte_beta_offsets_t* beta_offsets,
+                                              const srslte_uci_cfg_nr_t*   uci_cfg)
+{
+  // Select Beta Offset index from the number of HARQ-ACK bits
+  uint32_t beta_offset_index = beta_offsets->ack_index1;
+  if (uci_cfg->o_ack > 11) {
+    beta_offset_index = beta_offsets->ack_index3;
+  } else if (uci_cfg->o_ack > 2) {
+    beta_offset_index = beta_offsets->ack_index1;
+  }
+
+  // Protect table boundary
+  if (beta_offset_index > RA_NR_BETA_OFFSET_HARQACK_SIZE) {
+    ERROR("Beta offset index for HARQ-ACK (%d) for O_ack=%d exceeds table size (%d)",
+          beta_offset_index,
+          uci_cfg->o_ack,
+          RA_NR_BETA_OFFSET_HARQACK_SIZE);
+    return NAN;
+  }
+
+  // Select beta offset from Table 9.3-1
+  return ra_nr_beta_offset_ack_table[beta_offset_index];
+}
+
+/*
+ * Implements clauses related to HARQ-ACK beta offset selection from the section `9.3 UCI reporting in physical uplink
+ * shared channel`
+ */
+static float ra_ul_beta_offset_csi_semistatic(const srslte_beta_offsets_t* beta_offsets,
+                                              const srslte_uci_cfg_nr_t*   uci_cfg,
+                                              bool                         part2)
+{
+  // Calculate number of CSI bits; CSI part 2 is not supported.
+  uint32_t O_csi = part2 ? 0 : srslte_csi_part1_nof_bits(uci_cfg->csi, uci_cfg->nof_csi);
+
+  // Select Beta Offset index from the number of HARQ-ACK bits
+  uint32_t beta_offset_index = part2 ? beta_offsets->csi2_index1 : beta_offsets->csi1_index1;
+  if (O_csi > 11) {
+    beta_offset_index = part2 ? beta_offsets->csi2_index2 : beta_offsets->csi1_index2;
+  }
+
+  // Protect table boundary
+  if (beta_offset_index > RA_NR_BETA_OFFSET_CSI_SIZE) {
+    ERROR("Beta offset index for CSI (%d) for O_csi=%d exceeds table size (%d)",
+          beta_offset_index,
+          O_csi,
+          RA_NR_BETA_OFFSET_CSI_SIZE);
+    return NAN;
+  }
+
+  // Select beta offset from Table 9.3-1
+  return ra_nr_beta_offset_csi_table[beta_offset_index];
+}
+
+int srslte_ra_ul_set_grant_uci_nr(const srslte_sch_hl_cfg_nr_t* pusch_hl_cfg,
+                                  const srslte_uci_cfg_nr_t*    uci_cfg,
+                                  srslte_sch_cfg_nr_t*          pusch_cfg)
+{
+  // Select beta offsets
+  pusch_cfg->beta_harq_ack_offset = ra_ul_beta_offset_ack_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg);
+  if (!isnormal(pusch_cfg->beta_harq_ack_offset)) {
+    return SRSLTE_ERROR;
+  }
+
+  pusch_cfg->beta_csi_part1_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, false);
+  if (!isnormal(pusch_cfg->beta_csi_part1_offset)) {
+    return SRSLTE_ERROR;
+  }
+
+  pusch_cfg->beta_csi_part2_offset = ra_ul_beta_offset_csi_semistatic(&pusch_hl_cfg->beta_offsets, uci_cfg, true);
+  if (!isnormal(pusch_cfg->beta_csi_part2_offset)) {
+    return SRSLTE_ERROR;
+  }
+
+  //  pusch_cfg->beta_csi_part2_offset = pusch_hl_cfg->beta_offset_csi2;
+  pusch_cfg->scaling = pusch_hl_cfg->scaling;
+  if (!isnormal(pusch_cfg->scaling)) {
+    ERROR("Invalid Scaling (%f)", pusch_cfg->scaling);
+    return SRSLTE_ERROR;
+  }
+
+  // Copy UCI configuration
+  pusch_cfg->uci = *uci_cfg;
 
   return SRSLTE_SUCCESS;
 }

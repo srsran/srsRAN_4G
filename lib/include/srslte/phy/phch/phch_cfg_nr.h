@@ -145,6 +145,20 @@ typedef struct SRSLTE_API {
 } srslte_sch_grant_nr_t;
 
 /**
+ * @brief Beta offset configuration provided from upper layers
+ * @remark Configure according to TS 38.331 BetaOffsets
+ */
+typedef struct {
+  uint32_t ack_index1;  ///< Use for up to 2 HARQ-ACK bits. Set to 11 if absent.
+  uint32_t ack_index2;  ///< Use for up to 11 HARQ-ACK bits. Set to 11 if absent.
+  uint32_t ack_index3;  ///< Use for more than 11 HARQ-ACK bits. Set to 11 if absent.
+  uint32_t csi1_index1; ///< Use for up to 11 CSI bits. Set to 13 if absent.
+  uint32_t csi1_index2; ///< Use for more than 11 CSI bits. Set to 13 if absent.
+  uint32_t csi2_index1; ///< Use for up to 11 CSI bits. Set to 13 if absent.
+  uint32_t csi2_index2; ///< Use for more than 11 CSI bits. Set to 13 if absent.
+} srslte_beta_offsets_t;
+
+/**
  * @brief flatten SCH configuration parameters provided by higher layers
  * @remark Described in TS 38.331 V15.10.0 Section PDSCH-Config
  * @remark Described in TS 38.331 V15.10.0 Section PUSCH-Config
@@ -188,6 +202,10 @@ typedef struct SRSLTE_API {
   bool rbg_size_cfg_1; ///< RBG size configuration (1 or 2)
 
   srslte_sch_cfg_t sch_cfg; ///< Common shared channel parameters
+
+  /// PUSCH only
+  srslte_beta_offsets_t beta_offsets; /// Semi-static only.
+  float scaling; /// Indicates a scaling factor to limit the number of resource elements assigned to UCI on PUSCH.
 } srslte_sch_hl_cfg_nr_t;
 
 /**
@@ -207,6 +225,7 @@ typedef struct SRSLTE_API {
   bool                enable_transform_precoder;
   float               beta_harq_ack_offset;
   float               beta_csi_part1_offset;
+  float               beta_csi_part2_offset;
   float               scaling;
   bool                freq_hopping_enabled;
 } srslte_sch_cfg_nr_t;

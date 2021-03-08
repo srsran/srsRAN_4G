@@ -1284,6 +1284,10 @@ uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
 {
   uint32_t len = 0;
 
+  if (q == NULL || cfg == NULL || grant == NULL || str == NULL || str_len == 0) {
+    return 0;
+  }
+
   len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
 
   if (q->evm_buffer != NULL) {
@@ -1302,6 +1306,11 @@ uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
   }
 
   if (res != NULL) {
+    srslte_uci_data_nr_t uci_data = {};
+    uci_data.cfg                  = cfg->uci;
+    uci_data.value                = res[0].uci;
+    len += srslte_uci_nr_info(&uci_data, &str[len], str_len - len);
+
     len = srslte_print_check(str, str_len, len, ",crc={", 0);
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       if (grant->tb[i].enabled) {
@@ -1326,12 +1335,24 @@ uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
 uint32_t srslte_pusch_nr_tx_info(const srslte_pusch_nr_t*     q,
                                  const srslte_sch_cfg_nr_t*   cfg,
                                  const srslte_sch_grant_nr_t* grant,
+                                 const srslte_uci_value_nr_t* uci_value,
                                  char*                        str,
                                  uint32_t                     str_len)
 {
   uint32_t len = 0;
 
+  if (q == NULL || cfg == NULL || grant == NULL || str == NULL || str_len == 0) {
+    return 0;
+  }
+
   len += srslte_pusch_nr_grant_info(cfg, grant, &str[len], str_len - len);
+
+  if (uci_value != NULL) {
+    srslte_uci_data_nr_t uci_data = {};
+    uci_data.cfg                  = cfg->uci;
+    uci_data.value                = *uci_value;
+    len += srslte_uci_nr_info(&uci_data, &str[len], str_len - len);
+  }
 
   if (q->meas_time_en) {
     len = srslte_print_check(str, str_len, len, ", t=%d us", q->meas_time_us);

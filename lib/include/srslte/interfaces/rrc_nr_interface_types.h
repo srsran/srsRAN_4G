@@ -178,11 +178,22 @@ struct phy_cfg_nr_t {
     //                        betaOffsetACK-Index1: 9
     //                        betaOffsetACK-Index2: 9
     //                        betaOffsetACK-Index3: 9
+    pusch.beta_offsets.ack_index1 = 9;
+    pusch.beta_offsets.ack_index2 = 9;
+    pusch.beta_offsets.ack_index3 = 9;
+
     //                        betaOffsetCSI-Part1-Index1: 6
     //                        betaOffsetCSI-Part1-Index2: 6
+    pusch.beta_offsets.csi1_index1 = 6;
+    pusch.beta_offsets.csi1_index2 = 6;
+
     //                        betaOffsetCSI-Part2-Index1: 6
     //                        betaOffsetCSI-Part2-Index2: 6
+    pusch.beta_offsets.csi2_index1 = 6;
+    pusch.beta_offsets.csi2_index2 = 6;
+
     //                scaling: f1 (3)
+    pusch.scaling = 1;
 
     // pucch-Config: setup (1)
     //    setup

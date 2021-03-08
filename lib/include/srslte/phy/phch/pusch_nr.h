@@ -115,6 +115,7 @@ SRSLTE_API uint32_t srslte_pusch_nr_rx_info(const srslte_pusch_nr_t*     q,
 SRSLTE_API uint32_t srslte_pusch_nr_tx_info(const srslte_pusch_nr_t*     q,
                                             const srslte_sch_cfg_nr_t*   cfg,
                                             const srslte_sch_grant_nr_t* grant,
+                                            const srslte_uci_value_nr_t* uci_value,
                                             char*                        str,
                                             uint32_t                     str_len);
 

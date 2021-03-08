@@ -283,14 +283,18 @@ bool cc_worker::work_ul()
     mac_ul_grant.rnti                                    = pusch_cfg.grant.rnti;
     mac_ul_grant.tti                                     = ul_slot_cfg.idx;
     mac_ul_grant.tbs                                     = pusch_cfg.grant.tb[0].tbs;
-
     phy->stack->new_grant_ul(0, mac_ul_grant, &ul_action);
 
-    // Assignning MAC provided values to PUSCH config structs
+    // Set UCI configuration following procedures
+    srslte_ra_ul_set_grant_uci_nr(&phy->cfg.pusch, &uci_data.cfg, &pusch_cfg);
+
+    // Assigning MAC provided values to PUSCH config structs
     pusch_cfg.grant.tb[0].softbuffer.tx = ul_action.tb.softbuffer;
 
+    // Setup data for encoding
     srslte_pusch_data_nr_t data = {};
     data.payload                = ul_action.tb.payload->msg;
+    data.uci                    = uci_data.value;
 
     // Encode PUSCH transmission
     if (srslte_ue_ul_nr_encode_pusch(&ue_ul, &ul_slot_cfg, &pusch_cfg, &data) < SRSLTE_SUCCESS) {
@@ -301,7 +305,7 @@ bool cc_worker::work_ul()
     // PUSCH Logging
     if (logger.info.enabled()) {
       std::array<char, 512> str;
-      srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, str.data(), str.size());
+      srslte_ue_ul_nr_pusch_info(&ue_ul, &pusch_cfg, &data.uci, str.data(), str.size());
       logger.info(ul_action.tb.payload->msg,
                   pusch_cfg.grant.tb[0].tbs / 8,
                   "PUSCH (NR): cc=%d, %s, tti_tx=%d",
