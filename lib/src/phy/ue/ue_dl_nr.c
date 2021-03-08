@@ -320,7 +320,8 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
   for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR && count < nof_dci_msg; L++) {
     // Calculate possible PDCCH DCI candidates
     uint32_t candidates[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
-    int nof_candidates = srslte_pdcch_nr_locations_coreset(coreset, search_space, rnti, L, slot_cfg->idx, candidates);
+    int      nof_candidates                                        = srslte_pdcch_nr_locations_coreset(
+        coreset, search_space, rnti, L, SRSLTE_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx), candidates);
     if (nof_candidates < SRSLTE_SUCCESS) {
       ERROR("Error calculating DCI candidate location");
       return SRSLTE_ERROR;
