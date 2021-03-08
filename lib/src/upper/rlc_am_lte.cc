@@ -1823,6 +1823,7 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
                        rlc_am_packed_length(status),
                        max_pdu_size,
                        status->N_nack);
+        pthread_mutex_unlock(&mutex);
         return 0;
       }
       break;
