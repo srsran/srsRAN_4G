@@ -10,6 +10,7 @@
  *
  */
 
+#include "srslte/common/block_queue.h"
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/rlc_pcap.h"
@@ -459,7 +460,7 @@ void stress_test(stress_test_args_t args)
   if (args.rat == "LTE") {
     if (args.mode == "AM") {
       // config RLC AM bearer
-      cnfg_ = rlc_config_t::default_rlc_am_config();
+      cnfg_                    = rlc_config_t::default_rlc_am_config();
       cnfg_.am.max_retx_thresh = args.max_retx;
     } else if (args.mode == "UM") {
       // config UM bearer

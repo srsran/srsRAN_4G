@@ -461,7 +461,7 @@ uint16_t mac::allocate_ue()
     logger.error("Ignoring RACH attempt. UE pool empty.");
     return SRSLTE_INVALID_RNTI;
   }
-  std::unique_ptr<ue> ue_ptr = ue_pool.wait_pop();
+  std::unique_ptr<ue> ue_ptr = ue_pool.pop_blocking();
   uint16_t            rnti   = ue_ptr->get_rnti();
 
   // Set PCAP if available
@@ -562,7 +562,10 @@ void mac::prealloc_ue(uint32_t nof_ue)
   for (uint32_t i = 0; i < nof_ue; i++) {
     std::unique_ptr<ue> ptr = std::unique_ptr<ue>(
         new ue(allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, logger, cells.size()));
-    ue_pool.push(std::move(ptr));
+    if (not ue_pool.try_push(std::move(ptr))) {
+      logger.info("Cannot preallocate more UEs as pool is full");
+      return;
+    }
   }
 }
 

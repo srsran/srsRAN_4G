@@ -140,8 +140,8 @@ private:
   std::map<uint16_t, std::unique_ptr<ue> > ue_db, ues_to_rem;
   uint16_t                                 last_rnti = 70;
 
-  srslte::block_queue<std::unique_ptr<ue> > ue_pool; ///< Pool of pre-allocated UE objects
-  void                                      prealloc_ue(uint32_t nof_ue);
+  srslte::static_block_queue<std::unique_ptr<ue>, 32> ue_pool; ///< Pool of pre-allocated UE objects
+  void                                                prealloc_ue(uint32_t nof_ue);
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               enb_cc_idx,

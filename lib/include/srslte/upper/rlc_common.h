@@ -13,7 +13,7 @@
 #ifndef SRSLTE_RLC_COMMON_H
 #define SRSLTE_RLC_COMMON_H
 
-#include "srslte/common/block_queue.h"
+#include "srslte/adt/circular_buffer.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/rlc_interface_types.h"
 #include "srslte/upper/rlc_metrics.h"
@@ -219,13 +219,13 @@ public:
     }
     pdu_t p;
     // Do not block
-    while (rx_pdu_resume_queue.try_pop(&p)) {
+    while (rx_pdu_resume_queue.try_pop(p)) {
       write_pdu(p.payload, p.nof_bytes);
       free(p.payload);
     }
 
     unique_byte_buffer_t s;
-    while (tx_sdu_resume_queue.try_pop(&s)) {
+    while (tx_sdu_resume_queue.try_pop(s)) {
       write_sdu(std::move(s));
     }
     suspended = false;
@@ -303,8 +303,8 @@ private:
     uint32_t nof_bytes;
   } pdu_t;
 
-  block_queue<pdu_t>                rx_pdu_resume_queue;
-  block_queue<unique_byte_buffer_t> tx_sdu_resume_queue{256};
+  static_block_queue<pdu_t, 256>                rx_pdu_resume_queue;
+  static_block_queue<unique_byte_buffer_t, 256> tx_sdu_resume_queue;
 };
 
 } // namespace srslte

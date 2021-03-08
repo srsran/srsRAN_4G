@@ -36,7 +36,8 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink) :
   s1ap(&task_sched, s1ap_logger),
   rrc(&task_sched),
   logger(logger_),
-  mac_pcap()
+  mac_pcap(),
+  pending_stack_metrics(64)
 {
   get_background_workers().set_nof_workers(2);
   enb_task_queue  = task_sched.make_task_queue();
@@ -218,12 +219,14 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
     }
     rrc.get_metrics(metrics.rrc);
     s1ap.get_metrics(metrics.s1ap);
-    pending_stack_metrics.push(metrics);
+    if (not pending_stack_metrics.try_push(metrics)) {
+      stack_logger.error("Unable to push metrics to queue");
+    }
   });
 
   if (ret.first) {
     // wait for result
-    *metrics = pending_stack_metrics.wait_pop();
+    *metrics = pending_stack_metrics.pop_blocking();
     return true;
   }
   return false;

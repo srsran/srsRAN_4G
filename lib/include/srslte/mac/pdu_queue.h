@@ -13,6 +13,7 @@
 #ifndef SRSLTE_PDU_QUEUE_H
 #define SRSLTE_PDU_QUEUE_H
 
+#include "srslte/adt/circular_buffer.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -34,7 +35,7 @@ public:
   };
 
   pdu_queue(srslog::basic_logger& logger, uint32_t pool_size = DEFAULT_POOL_SIZE) :
-    pool(pool_size), callback(NULL), logger(logger)
+    pool(pool_size), callback(NULL), logger(logger), pdu_q(pool_size)
   {}
   void init(process_callback* callback);
 
@@ -60,8 +61,8 @@ private:
 
   } pdu_t;
 
-  block_queue<pdu_t*> pdu_q;
-  buffer_pool<pdu_t>  pool;
+  dyn_block_queue<pdu_t*> pdu_q;
+  buffer_pool<pdu_t>      pool;
 
   process_callback*     callback;
   srslog::basic_logger& logger;

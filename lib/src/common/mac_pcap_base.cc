@@ -37,7 +37,7 @@ void mac_pcap_base::run_thread()
 {
   // blocking write until stopped
   while (running) {
-    pcap_pdu_t pdu = queue.wait_pop();
+    pcap_pdu_t pdu = queue.pop_blocking();
     {
       std::lock_guard<std::mutex> lock(mutex);
       write_pdu(pdu);
@@ -47,7 +47,7 @@ void mac_pcap_base::run_thread()
   // write remainder of queue
   std::lock_guard<std::mutex> lock(mutex);
   pcap_pdu_t                  pdu = {};
-  while (queue.try_pop(&pdu)) {
+  while (queue.try_pop(pdu)) {
     write_pdu(pdu);
   }
 }
@@ -84,7 +84,7 @@ void mac_pcap_base::pack_and_queue(uint8_t* payload,
       // copy payload into PDU buffer
       memcpy(pdu.pdu->msg, payload, payload_len);
       pdu.pdu->N_bytes = payload_len;
-      queue.push(std::move(pdu));
+      queue.push_blocking(std::move(pdu));
     } else {
       logger.info("Dropping PDU in PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }
@@ -119,7 +119,7 @@ void mac_pcap_base::pack_and_queue_nr(uint8_t* payload,
       // copy payload into PDU buffer
       memcpy(pdu.pdu->msg, payload, payload_len);
       pdu.pdu->N_bytes = payload_len;
-      queue.push(std::move(pdu));
+      queue.push_blocking(std::move(pdu));
     } else {
       logger.info("Dropping PDU in NR PCAP. No buffer available or not enough space (pdu_len=%d).", payload_len);
     }

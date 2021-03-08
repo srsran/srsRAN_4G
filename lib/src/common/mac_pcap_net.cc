@@ -71,7 +71,7 @@ uint32_t mac_pcap_net::close()
     // tell writer thread to stop
     running        = false;
     pcap_pdu_t pdu = {};
-    queue.push(std::move(pdu));
+    queue.push_blocking(std::move(pdu));
   }
 
   wait_thread_finish();

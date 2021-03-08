@@ -58,7 +58,7 @@ void pdu_queue::push(const uint8_t* ptr, uint32_t len, channel_t channel)
     pdu_t* pdu   = (pdu_t*)ptr;
     pdu->len     = len;
     pdu->channel = channel;
-    pdu_q.push(pdu);
+    pdu_q.push_blocking(pdu);
   } else {
     logger.warning("Error pushing pdu: ptr is empty");
   }
@@ -69,7 +69,7 @@ bool pdu_queue::process_pdus()
   bool     have_data = false;
   uint32_t cnt       = 0;
   pdu_t*   pdu;
-  while (pdu_q.try_pop(&pdu)) {
+  while (pdu_q.try_pop(pdu)) {
     if (callback) {
       callback->process_pdu(pdu->ptr, pdu->len, pdu->channel);
     }
@@ -86,7 +86,7 @@ bool pdu_queue::process_pdus()
 void pdu_queue::reset()
 {
   pdu_t* pdu;
-  while (pdu_q.try_pop(&pdu)) {
+  while (pdu_q.try_pop(pdu)) {
     // nop
   }
 }

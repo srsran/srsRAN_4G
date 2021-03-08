@@ -17,8 +17,8 @@
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srslte/adt/circular_buffer.h"
 #include "srslte/adt/mem_pool.h"
-#include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/logmap.h"
@@ -28,7 +28,6 @@
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include <map>
-#include <queue>
 
 namespace srsenb {
 
@@ -190,8 +189,8 @@ private:
   const static uint32_t LCID_ACT_USER = 0xffff0004;
   const static uint32_t LCID_RTX_USER = 0xffff0005;
 
-  bool                         running = false;
-  srslte::block_queue<rrc_pdu> rx_pdu_queue;
+  bool                             running = false;
+  srslte::dyn_block_queue<rrc_pdu> rx_pdu_queue;
 
   asn1::rrc::mcch_msg_s  mcch;
   bool                   enable_mbms     = false;
