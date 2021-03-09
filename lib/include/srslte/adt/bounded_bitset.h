@@ -352,9 +352,10 @@ inline bounded_bitset<N, reversed> fliplr(const bounded_bitset<N, reversed>& oth
 
 } // namespace srslte
 
+namespace fmt {
 /// Custom formatter for bounded_bitset<N, reversed>
 template <size_t N, bool reversed>
-struct fmt::formatter<srslte::bounded_bitset<N, reversed> > {
+struct formatter<srslte::bounded_bitset<N, reversed> > {
   enum { hexadecimal, binary } mode = binary;
 
   template <typename ParseContext>
@@ -381,5 +382,6 @@ struct fmt::formatter<srslte::bounded_bitset<N, reversed> > {
     return s.template to_string(ctx.out());
   }
 };
+} // namespace fmt
 
 #endif // SRSLTE_DYN_BITSET_H
