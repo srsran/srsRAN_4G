@@ -211,7 +211,6 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   status_prohibit_timer(parent_->timers->get_unique_timer())
 {
   pthread_mutex_init(&mutex, NULL);
-  notify_info_vec.reserve(RLC_AM_WINDOW_SIZE);
 }
 
 rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
@@ -226,7 +225,14 @@ void rlc_am_lte::rlc_am_lte_tx::set_bsr_callback(bsr_callback_t callback)
 
 bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
 {
-  // TODO: add config checks
+  if (cfg_.tx_queue_length > MAX_SDUS_PER_RLC_PDU) {
+    logger.error("Configuring Tx queue length of %d PDUs too big. Maximum value is %d.",
+                 cfg_.tx_queue_length,
+                 MAX_SDUS_PER_RLC_PDU);
+    return false;
+  }
+
+  // TODO: add more config checks
   cfg = cfg_.am;
 
   // check timers
@@ -890,6 +896,14 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     return 0;
   }
 
+  if (nof_bytes < RLC_AM_MIN_DATA_PDU_SIZE) {
+    logger.info("%s Cannot build data PDU - %d bytes available but at least %d bytes are required ",
+                RB_NAME,
+                nof_bytes,
+                RLC_AM_MIN_DATA_PDU_SIZE);
+    return 0;
+  }
+
   unique_byte_buffer_t pdu = srslte::make_byte_buffer();
   if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
@@ -912,22 +926,20 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   header.fi                   = RLC_FI_FIELD_START_AND_END_ALIGNED;
   header.sn                   = vt_s;
 
+  // insert newly assigned SN into window and use reference for in-place operations
+  // NOTE: from now on, we can't return from this function anymore before increasing vt_s
+  rlc_amd_tx_pdu_t& tx_pdu = tx_window.add_pdu(header.sn);
+  tx_pdu.pdcp_sns.clear();
+
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;
   uint32_t last_li   = 0;
   uint32_t pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
   uint8_t* pdu_ptr   = pdu->msg;
 
-  if (pdu_space <= head_len) {
-    logger.info(
-        "%s Cannot build a PDU - %d bytes available, %d bytes required for header", RB_NAME, nof_bytes, head_len);
-    return 0;
-  }
-
   logger.debug("%s Building PDU - pdu_space: %d, head_len: %d ", RB_NAME, pdu_space, head_len);
 
   // Check for SDU segment
-  std::vector<uint32_t> pdcp_sns;
   if (tx_sdu != nullptr) {
     to_move = ((pdu_space - head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space - head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
@@ -939,7 +951,11 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
       pdcp_sdu_info_t& pdcp_sdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
       pdcp_sdu.rlc_sn_info_list.push_back({header.sn, false});
-      pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
+      if (not tx_pdu.pdcp_sns.full()) {
+        tx_pdu.pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
+      } else {
+        logger.warning("Cant't store PDCP_SN=%d for delivery notification.", tx_sdu->md.pdcp_sn);
+      }
       if (tx_sdu->N_bytes == 0) {
         pdcp_sdu.fully_txed = true;
       }
@@ -992,7 +1008,11 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     if (undelivered_sdu_info_queue.has_pdcp_sn(tx_sdu->md.pdcp_sn)) {
       pdcp_sdu_info_t& pdcp_sdu = undelivered_sdu_info_queue[tx_sdu->md.pdcp_sn];
       pdcp_sdu.rlc_sn_info_list.push_back({header.sn, false});
-      pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
+      if (not tx_pdu.pdcp_sns.full()) {
+        tx_pdu.pdcp_sns.push_back(tx_sdu->md.pdcp_sn);
+      } else {
+        logger.warning("Cant't store PDCP_SN=%d for delivery notification.", tx_sdu->md.pdcp_sn);
+      }
       if (tx_sdu->N_bytes == 0) {
         pdcp_sdu.fully_txed = true;
       }
@@ -1021,7 +1041,6 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   // Make sure, at least one SDU (segment) has been added until this point
   if (pdu->N_bytes == 0) {
     logger.error("Generated empty RLC PDU.");
-    return 0;
   }
 
   if (tx_sdu != NULL) {
@@ -1044,19 +1063,16 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     }
   }
 
-  // Set SN
-  header.sn = vt_s;
+  // Update Tx window
   vt_s      = (vt_s + 1) % MOD;
 
-  // Place PDU in tx_window, write header and TX
-  tx_window.add_pdu(header.sn);
-  tx_window[header.sn].buf        = std::move(pdu);
-  tx_window[header.sn].header     = header;
-  tx_window[header.sn].is_acked   = false;
-  tx_window[header.sn].retx_count = 0;
-  tx_window[header.sn].rlc_sn     = header.sn;
-  tx_window[header.sn].pdcp_sns   = std::move(pdcp_sns);
-  const byte_buffer_t* buffer_ptr = tx_window[header.sn].buf.get();
+  // Write final header and TX
+  tx_pdu.buf                      = std::move(pdu);
+  tx_pdu.header                   = header;
+  tx_pdu.is_acked                 = false;
+  tx_pdu.retx_count               = 0;
+  tx_pdu.rlc_sn                   = header.sn;
+  const byte_buffer_t* buffer_ptr = tx_pdu.buf.get();
 
   uint8_t* ptr = payload;
   rlc_am_write_data_pdu_header(&header, &ptr);
@@ -1204,7 +1220,7 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
   if (not tx_window.has_sn(tx_pdu.header.sn)) {
     return;
   }
-  std::vector<uint32_t>& pdcp_sns = tx_window[tx_pdu.header.sn].pdcp_sns;
+  pdcp_sn_vector_t& pdcp_sns = tx_window[tx_pdu.header.sn].pdcp_sns;
   for (uint32_t pdcp_sn : pdcp_sns) {
     // Iterate over all SNs that were TX'ed
     auto& info = undelivered_sdu_info_queue[pdcp_sn];
@@ -1221,7 +1237,11 @@ void rlc_am_lte::rlc_am_lte_tx::update_notification_ack_info(const rlc_amd_tx_pd
                                      info.rlc_sn_info_list.end(),
                                      [](rlc_sn_info_t rlc_sn_info) { return rlc_sn_info.is_acked; });
       if (info.fully_acked) {
-        notify_info_vec.push_back(pdcp_sn);
+        if (not notify_info_vec.full()) {
+          notify_info_vec.push_back(pdcp_sn);
+        } else {
+          logger.warning("Can't notify delivery of PDCP_SN=%d.", pdcp_sn);
+        }
       }
     }
   }

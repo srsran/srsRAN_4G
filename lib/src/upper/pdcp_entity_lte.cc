@@ -652,7 +652,7 @@ void pdcp_entity_lte::discard_callback::operator()(uint32_t timer_id)
 /****************************************************************************
  * Handle delivery/failure notifications from RLC
  ***************************************************************************/
-void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
+void pdcp_entity_lte::notify_delivery(const pdcp_sn_vector_t& pdcp_sns)
 {
   if (not is_drb()) {
     return;
@@ -682,7 +682,7 @@ void pdcp_entity_lte::notify_delivery(const std::vector<uint32_t>& pdcp_sns)
   }
 }
 
-void pdcp_entity_lte::notify_failure(const std::vector<uint32_t>& pdcp_sns)
+void pdcp_entity_lte::notify_failure(const pdcp_sn_vector_t& pdcp_sns)
 {
   if (not is_drb()) {
     return;

@@ -269,12 +269,12 @@ void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t 
   }
 }
 
-void rlc::user_interface::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void rlc::user_interface::notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   pdcp->notify_delivery(rnti, lcid, pdcp_sns);
 }
 
-void rlc::user_interface::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void rlc::user_interface::notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   pdcp->notify_failure(rnti, lcid, pdcp_sns);
 }

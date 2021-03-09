@@ -127,6 +127,7 @@ public:
   bool        empty() const { return size_ == 0; }
   std::size_t size() const { return size_; }
   std::size_t capacity() const { return MAX_N; }
+  bool        full() const { return size_ == MAX_N; }
 
   // modifiers
   void clear()

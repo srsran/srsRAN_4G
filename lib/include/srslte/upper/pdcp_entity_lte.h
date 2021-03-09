@@ -120,8 +120,8 @@ public:
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) override;
-  void notify_failure(const std::vector<uint32_t>& pdcp_sns) override;
-  void notify_delivery(const std::vector<uint32_t>& pdcp_sns) override;
+  void notify_failure(const pdcp_sn_vector_t& pdcp_sns) override;
+  void notify_delivery(const pdcp_sn_vector_t& pdcp_sns) override;
 
   // Config helpers
   bool check_valid_config();

@@ -52,7 +52,7 @@ public:
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
   void write_pdu_pcch(unique_byte_buffer_t sdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-  void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
+  void notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn_vec)
   {
     assert(lcid == 1);
     for (uint32_t pdcp_sn : pdcp_sn_vec) {
@@ -62,7 +62,7 @@ public:
       notified_counts[pdcp_sn] += 1;
     }
   }
-  void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn_vec)
+  void notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn_vec)
   {
     assert(lcid == 1);
     // TODO

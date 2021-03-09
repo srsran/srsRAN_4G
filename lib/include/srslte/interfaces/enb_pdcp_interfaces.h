@@ -53,8 +53,8 @@ class pdcp_interface_rlc
 public:
   /* RLC calls PDCP to push a PDCP PDU. */
   virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)            = 0;
-  virtual void notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns) = 0;
-  virtual void notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)  = 0;
+  virtual void notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns) = 0;
+  virtual void notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)  = 0;
 };
 
 } // namespace srsenb

@@ -143,14 +143,14 @@ void pdcp::send_status_report(uint16_t rnti)
   users[rnti].pdcp->send_status_report();
 }
 
-void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void pdcp::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
   }
 }
 
-void pdcp::notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void pdcp::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_failure(lcid, pdcp_sns);

@@ -51,8 +51,8 @@ public:
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) final;
-  void notify_delivery(const std::vector<uint32_t>& tx_count) final;
-  void notify_failure(const std::vector<uint32_t>& tx_count) final;
+  void notify_delivery(const pdcp_sn_vector_t& pdcp_sns) final;
+  void notify_failure(const pdcp_sn_vector_t& pdcp_sns) final;
 
   // State variable setters (should be used only for testing)
   void set_tx_next(uint32_t tx_next_) { tx_next = tx_next_; }

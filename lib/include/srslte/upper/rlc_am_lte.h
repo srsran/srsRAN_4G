@@ -20,6 +20,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/timeout.h"
+#include "srslte/interfaces/pdcp_interface_types.h"
 #include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_am_base.h"
 #include "srslte/upper/rlc_common.h"
@@ -42,12 +43,12 @@ struct rlc_amd_rx_pdu_segments_t {
 };
 
 struct rlc_amd_tx_pdu_t {
-  rlc_amd_pdu_header_t  header;
-  unique_byte_buffer_t  buf;
-  std::vector<uint32_t> pdcp_sns;
-  uint32_t              retx_count;
-  uint32_t              rlc_sn;
-  bool                  is_acked;
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
+  pdcp_sn_vector_t     pdcp_sns;
+  uint32_t             retx_count;
+  uint32_t             rlc_sn;
+  bool                 is_acked;
 };
 
 struct rlc_amd_retx_t {
@@ -346,7 +347,7 @@ private:
     // Tx windows
     rlc_ringbuffer_t<rlc_amd_tx_pdu_t> tx_window;
     pdu_retx_queue                     retx_queue;
-    std::vector<uint32_t>              notify_info_vec;
+    pdcp_sn_vector_t                   notify_info_vec;
 
     // Mutexes
     pthread_mutex_t mutex;

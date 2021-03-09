@@ -44,8 +44,8 @@ public:
   virtual void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)               = 0;
   virtual void write_pdu_pcch(srslte::unique_byte_buffer_t sdu)                     = 0;
   virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu)       = 0;
-  virtual void notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn) = 0;
-  virtual void notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sn)  = 0;
+  virtual void notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn) = 0;
+  virtual void notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sn)  = 0;
 };
 
 class pdcp_interface_gw

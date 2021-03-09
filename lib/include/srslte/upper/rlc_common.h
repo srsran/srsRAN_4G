@@ -28,6 +28,7 @@ namespace srslte {
 
 #define RLC_AM_WINDOW_SIZE 512
 #define RLC_MAX_SDU_SIZE ((1 << 11) - 1) // Length of LI field is 11bits
+#define RLC_AM_MIN_DATA_PDU_SIZE (3)     // AMD PDU with 10 bit SN (length of LI field is 11 bits) (No LI)
 
 typedef enum {
   RLC_FI_FIELD_START_AND_END_ALIGNED = 0,

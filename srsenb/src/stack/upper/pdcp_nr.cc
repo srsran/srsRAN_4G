@@ -99,7 +99,7 @@ void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   }
 }
 
-void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
@@ -108,7 +108,7 @@ void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const std::vector<ui
   }
 }
 
-void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_failure(lcid, pdcp_sns);

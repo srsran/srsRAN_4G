@@ -207,12 +207,12 @@ std::string rlc_nr::user_interface::get_rb_name(uint32_t lcid)
   return srslte::to_string(static_cast<srslte::rb_id_nr_t>(lcid));
 }
 
-void rlc_nr::user_interface::notify_delivery(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void rlc_nr::user_interface::notify_delivery(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   m_pdcp->notify_delivery(rnti, lcid, pdcp_sns);
 }
 
-void rlc_nr::user_interface::notify_failure(uint32_t lcid, const std::vector<uint32_t>& pdcp_sns)
+void rlc_nr::user_interface::notify_failure(uint32_t lcid, const srslte::pdcp_sn_vector_t& pdcp_sns)
 {
   m_pdcp->notify_failure(rnti, lcid, pdcp_sns);
 }
