@@ -252,7 +252,7 @@ int mbsfn_sf_cfg_list_parser::parse(Setting& root)
 
   field_asn1_choice_number<mbsfn_sf_cfg_s::sf_alloc_c_> c(
       "subframeAllocation", "subframeAllocationNumFrames", &extract_sf_alloc, &(*mbsfn_list)[0].sf_alloc);
-  c.parse(root["mbsfnSubframeConfigList"]);
+  HANDLEPARSERCODE(c.parse(root["mbsfnSubframeConfigList"]));
 
   parser::field<uint8_t> f("radioframeAllocationOffset", &(*mbsfn_list)[0].radioframe_alloc_offset);
   f.parse(root["mbsfnSubframeConfigList"]);
@@ -260,7 +260,7 @@ int mbsfn_sf_cfg_list_parser::parse(Setting& root)
   (*mbsfn_list)[0].radioframe_alloc_period.value = mbsfn_sf_cfg_s::radioframe_alloc_period_opts::n1;
   field_asn1_enum_number<mbsfn_sf_cfg_s::radioframe_alloc_period_e_> e("radioframeAllocationPeriod",
                                                                        &(*mbsfn_list)[0].radioframe_alloc_period);
-  e.parse(root["mbsfnSubframeConfigList"]);
+  HANDLEPARSERCODE(e.parse(root["mbsfnSubframeConfigList"]));
 
   // TODO: Did you forget subframeAllocationNumFrames?
 
@@ -397,11 +397,11 @@ int field_qci::parse(libconfig::Setting& root)
 
     field_asn1_enum_number<pdcp_cfg_s::discard_timer_e_> discard_timer(
         "discard_timer", &qcicfg.pdcp_cfg.discard_timer, &qcicfg.pdcp_cfg.discard_timer_present);
-    discard_timer.parse(q["pdcp_config"]);
+    HANDLEPARSERCODE(discard_timer.parse(q["pdcp_config"]));
 
     field_asn1_enum_number<pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_> pdcp_sn_size(
         "pdcp_sn_size", &qcicfg.pdcp_cfg.rlc_um.pdcp_sn_size, &qcicfg.pdcp_cfg.rlc_um_present);
-    pdcp_sn_size.parse(q["pdcp_config"]);
+    HANDLEPARSERCODE(pdcp_sn_size.parse(q["pdcp_config"]));
 
     qcicfg.pdcp_cfg.rlc_am_present =
         q["pdcp_config"].lookupValue("status_report_required", qcicfg.pdcp_cfg.rlc_am.status_report_required);
@@ -434,6 +434,7 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["ul_um"])) {
         ERROR("Error can't find sn_field_length in section ul_um");
+        return -1;
       }
     }
 
@@ -448,11 +449,13 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["dl_um"])) {
         ERROR("Error can't find sn_field_length in section dl_um");
+        return -1;
       }
 
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &um_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_um"])) {
         ERROR("Error can't find t_reordering in section dl_um");
+        return -1;
       }
     }
 
@@ -463,22 +466,26 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
       if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find t_poll_retx in section ul_am");
+        return -1;
       }
 
       field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
       if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find poll_pdu in section ul_am");
+        return -1;
       }
 
       field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
       if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find poll_byte in section ul_am");
+        return -1;
       }
 
       field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh",
                                                                              &am_rlc->max_retx_thres);
       if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
         ERROR("Error can't find max_retx_thresh in section ul_am");
+        return -1;
       }
     }
 
@@ -488,11 +495,13 @@ int field_qci::parse(libconfig::Setting& root)
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
         ERROR("Error can't find t_reordering in section dl_am");
+        return -1;
       }
 
       field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
       if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
         ERROR("Error can't find t_status_prohibit in section dl_am");
+        return -1;
       }
     }
 
@@ -507,18 +516,21 @@ int field_qci::parse(libconfig::Setting& root)
     parser::field<uint8> priority("priority", &lc_cfg->prio);
     if (priority.parse(q["logical_channel_config"])) {
       ERROR("Error can't find logical_channel_config in section priority");
+      return -1;
     }
 
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_> prioritised_bit_rate(
         "prioritized_bit_rate", &lc_cfg->prioritised_bit_rate);
     if (prioritised_bit_rate.parse(q["logical_channel_config"])) {
       fprintf(stderr, "Error can't find prioritized_bit_rate in section logical_channel_config\n");
+      return -1;
     }
 
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_> bucket_size_duration(
         "bucket_size_duration", &lc_cfg->bucket_size_dur);
     if (bucket_size_duration.parse(q["logical_channel_config"])) {
       ERROR("Error can't find bucket_size_duration in section logical_channel_config");
+      return -1;
     }
 
     parser::field<uint8> log_chan_group("log_chan_group", &lc_cfg->lc_ch_group);
@@ -538,12 +550,14 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   if (args_->enb.transmission_mode < 1 || args_->enb.transmission_mode > 4) {
     ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.", args_->enb.transmission_mode);
     return SRSLTE_ERROR;
-  } else if (args_->enb.transmission_mode == 1 && args_->enb.nof_ports > 1) {
+  }
+  if (args_->enb.transmission_mode == 1 && args_->enb.nof_ports > 1) {
     ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.",
           args_->enb.nof_ports,
           args_->enb.transmission_mode);
     return SRSLTE_ERROR;
-  } else if (args_->enb.transmission_mode > 1 && args_->enb.nof_ports != 2) {
+  }
+  if (args_->enb.transmission_mode > 1 && args_->enb.nof_ports != 2) {
     ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).",
           args_->enb.nof_ports,
           args_->enb.transmission_mode);
@@ -737,7 +751,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     }
 
     if (cellroot.exists("scell_list")) {
-      parse_scell_list(cell_cfg, cellroot);
+      HANDLEPARSERCODE(parse_scell_list(cell_cfg, cellroot));
     }
 
     std::string type = "lte";
@@ -757,11 +771,13 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
       // Check RF port is not repeated
       if (it->rf_port == it2->rf_port) {
         ERROR("Repeated RF port for multiple cells");
+        return -1;
       }
 
       // Check cell ID is not repeated
       if (it->cell_id == it2->cell_id) {
         ERROR("Repeated Cell identifier");
+        return -1;
       }
     }
   }
