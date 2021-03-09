@@ -219,7 +219,7 @@ public:
     pop_(obj, true);
     return obj;
   }
-  bool pop_wait_for(T& obj, const std::chrono::microseconds& duration) { return pop_(obj, true, &duration); }
+  bool pop_wait_until(T& obj, const std::chrono::system_clock::time_point& until) { return pop_(obj, true, &until); }
   void clear()
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -326,7 +326,7 @@ protected:
     return {};
   }
 
-  bool pop_(T& obj, bool block, const std::chrono::microseconds* duration = nullptr)
+  bool pop_(T& obj, bool block, const std::chrono::system_clock::time_point* until = nullptr)
   {
     std::unique_lock<std::mutex> lock(mutex);
     if (not active) {
@@ -337,10 +337,10 @@ protected:
         return false;
       }
       nof_waiting++;
-      if (duration == nullptr) {
+      if (until == nullptr) {
         cvar_empty.wait(lock, [this]() { return not circ_buffer.empty() or not active; });
       } else {
-        cvar_empty.wait_for(lock, *duration, [this]() { return not circ_buffer.empty() or not active; });
+        cvar_empty.wait_until(lock, *until, [this]() { return not circ_buffer.empty() or not active; });
       }
       nof_waiting--;
       if (circ_buffer.empty()) {
