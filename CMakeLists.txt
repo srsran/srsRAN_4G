@@ -95,6 +95,13 @@ else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 
+# On RAM constrained (embedded) systems it may be useful to limit parallel compilation with, e.g. -DPARALLEL_COMPILE_JOBS=1
+if (PARALLEL_COMPILE_JOBS)
+  set(CMAKE_JOB_POOL_COMPILE compile_job_pool${CMAKE_CURRENT_SOURCE_DIR})
+  string (REGEX REPLACE "[^a-zA-Z0-9]+" "_" CMAKE_JOB_POOL_COMPILE ${CMAKE_JOB_POOL_COMPILE})
+  set_property(GLOBAL APPEND PROPERTY JOB_POOLS ${CMAKE_JOB_POOL_COMPILE}=${PARALLEL_COMPILE_JOBS})
+  message(STATUS "${CMAKE_CURRENT_SOURCE_DIR}: Limiting compiler jobs to ${PARALLEL_COMPILE_JOBS}")
+endif ()
 
 if (ENABLE_SRSLOG_TRACING)
   add_definitions(-DENABLE_SRSLOG_EVENT_TRACE)
