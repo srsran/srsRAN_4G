@@ -26,12 +26,12 @@ int test_pusch_collisions(const sf_output_res_t& sf_out, uint32_t enb_cc_idx, co
   prbmask_t ul_allocs(nof_prb);
 
   auto try_ul_fill = [&](prb_interval alloc, const char* ch_str, bool strict = true) {
-    CONDERROR(alloc.stop() > nof_prb, "Allocated RBs %s out-of-bounds", alloc.to_string().c_str());
+    CONDERROR(alloc.stop() > nof_prb, "Allocated RBs %s out-of-bounds", fmt::format("{}", alloc).c_str());
     CONDERROR(alloc.empty(), "Allocations must have at least one PRB");
     if (strict and ul_allocs.any(alloc.start(), alloc.stop())) {
       TESTERROR("Collision Detected of %s alloc=%s and cumulative_mask=0x%s",
                 ch_str,
-                alloc.to_string().c_str(),
+                fmt::format("{}", alloc).c_str(),
                 fmt::format("{:x}", ul_allocs).c_str());
     }
     ul_allocs.fill(alloc.start(), alloc.stop(), true);

@@ -13,6 +13,7 @@
 #ifndef SRSLTE_STRING_HELPERS_H
 #define SRSLTE_STRING_HELPERS_H
 
+#include "srslte/srslog/bundled/fmt/format.h"
 #include <algorithm>
 #include <sstream>
 #include <string>

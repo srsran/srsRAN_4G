@@ -508,7 +508,7 @@ int mac_sch_pdu_pack_test6()
   }
   fmt::memory_buffer str_buffer;
   pdu.to_string(str_buffer);
-  mac_logger.info("%s", str_buffer.data());
+  mac_logger.info("%s", fmt::to_string(str_buffer));
 
   // log
   mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
@@ -539,7 +539,7 @@ int mac_sch_pdu_pack_test6()
   pdu.write_packet(mac_logger);
   str_buffer.clear();
   pdu.to_string(str_buffer);
-  mac_logger.info("%s", str_buffer.data());
+  mac_logger.info("%s", fmt::to_string(str_buffer));
 
   TESTASSERT(memcmp(buffer.msg, tv2, buffer.N_bytes) == 0);
 
@@ -594,7 +594,7 @@ int mac_sch_pdu_pack_test6()
   pdu.write_packet(mac_logger);
   str_buffer.clear();
   pdu.to_string(str_buffer);
-  mac_logger.info("%s", str_buffer.data());
+  mac_logger.info("%s", fmt::to_string(str_buffer));
 
   TESTASSERT(memcmp(buffer.msg, tv3, buffer.N_bytes) == 0);
 

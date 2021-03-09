@@ -16,6 +16,7 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/demux.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
 
 namespace srsue {
@@ -156,7 +157,7 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
       {
         fmt::memory_buffer buffer;
         mac_msg.to_string(buffer);
-        Info("%s", buffer.data());
+        Info("%s", srslte::to_c_str(buffer));
       }
       process_sch_pdu(&mac_msg);
       pdus.deallocate(mac_pdu);

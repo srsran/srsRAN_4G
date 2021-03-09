@@ -77,8 +77,6 @@ public:
 
   bool contains(T point) const { return start_ <= point and point < stop_; }
 
-  std::string to_string() const { return fmt::format("[{},{})", start_, stop_); }
-
 private:
   T start_;
   T stop_;
@@ -134,13 +132,19 @@ interval<T> make_intersection(const interval<T>& lhs, const interval<T>& rhs)
   return lhs & rhs;
 }
 
-template <typename T>
-std::ostream& operator<<(std::ostream& out, const interval<T>& interv)
-{
-  out << interv.to_string();
-  return out;
-}
-
 } // namespace srslte
+
+namespace fmt {
+
+template <typename T>
+struct formatter<srslte::interval<T> > : public formatter<T> {
+  template <typename FormatContext>
+  auto format(const srslte::interval<T>& interv, FormatContext& ctx) -> decltype(std::declval<FormatContext>().out())
+  {
+    return format_to(ctx.out(), "[{}, {})", interv.start(), interv.stop());
+  }
+};
+
+} // namespace fmt
 
 #endif // SRSLTE_INTERVAL_H

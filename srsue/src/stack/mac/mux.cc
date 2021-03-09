@@ -16,6 +16,7 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/mux.h"
+#include "srslte/common/string_helpers.h"
 #include "srsue/hdr/stack/mac/mac.h"
 
 #include <algorithm>
@@ -288,7 +289,7 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   uint8_t*           ret = pdu_msg.write_packet(logger);
   fmt::memory_buffer buffer;
   pdu_msg.to_string(buffer);
-  Info("%s", buffer.data());
+  Info("%s", srslte::to_c_str(buffer));
   Debug("Assembled MAC PDU msg size %d/%d bytes", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
 
   return ret;
