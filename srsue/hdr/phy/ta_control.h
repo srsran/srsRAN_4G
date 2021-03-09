@@ -192,7 +192,7 @@ public:
     std::lock_guard<std::mutex> lock(mutex);
 
     // Returns the current base, one direction distance
-    return next_base_sec * (3e8f / 2.0f);
+    return next_base_sec * (3e8f / 2e3f);
   }
 
   /**
@@ -207,6 +207,11 @@ public:
     // Advance read pointer for old TTI
     while (read_idx != write_idx and TTI_SUB(tti, speed_data[read_idx].tti) > MAX_AGE_SPEED_VALUES) {
       read_idx = (read_idx + 1) % MAX_NOF_SPEED_VALUES;
+
+      // If there us no data, make last_tti invalid to prevent invalid TTI difference
+      if (read_idx == write_idx) {
+        last_tti = -1;
+      }
     }
 
     // Early return if there is not enough data to calculate speed
@@ -216,16 +221,16 @@ public:
     }
 
     // Compute speed from gathered data
-    float sum        = 0.0f;
-    float square_sum = 0.0f;
+    float sum_t = 0.0f;
+    float sum_d = 0.0f;
     for (uint32_t i = read_idx; i != write_idx; i = (i + 1) % MAX_NOF_SPEED_VALUES) {
-      square_sum += speed_data[i].delta_t * speed_data[i].delta_t;
-      sum += speed_data[i].delta_t * speed_data[i].delta_d;
+      sum_t += speed_data[i].delta_t;
+      sum_d += speed_data[i].delta_d;
     }
-    if (!std::isnormal(square_sum)) {
+    if (!std::isnormal(sum_t)) {
       return 0.0f; // Avoid zero division
     }
-    float speed_mps = sum / square_sum; // Speed in m/s
+    float speed_mps = sum_d / sum_t; // Speed in m/s
 
     // Returns the speed in km/h
     return speed_mps * 3.6f;
