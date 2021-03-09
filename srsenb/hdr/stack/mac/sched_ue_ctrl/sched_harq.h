@@ -24,6 +24,7 @@ namespace srsenb {
 class harq_proc
 {
 public:
+  harq_proc();
   void     init(uint32_t id);
   void     reset(uint32_t tb_idx);
   uint32_t get_id() const;
@@ -45,6 +46,7 @@ protected:
 
   enum ack_t { NACK, ACK };
 
+  srslog::basic_logger*           logger;
   bool                            ack_state[SRSLTE_MAX_TB];
   bool                            active[SRSLTE_MAX_TB];
   std::array<bool, SRSLTE_MAX_TB> ndi = {};

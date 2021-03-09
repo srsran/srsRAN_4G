@@ -206,8 +206,12 @@ void spgw::gtpu::handle_sgi_pdu(srslte::unique_byte_buffer_t msg)
 
   // Logging PDU info
   m_logger.debug("SGi PDU -- IP version %d, Total length %d", int(iph->version), ntohs(iph->tot_len));
-  m_logger.debug("SGi PDU -- IP src addr %s", srslte::gtpu_ntoa(iph->saddr).c_str());
-  m_logger.debug("SGi PDU -- IP dst addr %s", srslte::gtpu_ntoa(iph->daddr).c_str());
+  fmt::memory_buffer buffer;
+  srslte::gtpu_ntoa(buffer, iph->saddr);
+  m_logger.debug("SGi PDU -- IP src addr %s", buffer.data());
+  buffer.clear();
+  srslte::gtpu_ntoa(buffer, iph->daddr);
+  m_logger.debug("SGi PDU -- IP dst addr %s", buffer.data());
 
   // Find user and control tunnel
   gtpu_fteid_it = m_ip_to_usr_teid.find(iph->daddr);
@@ -309,8 +313,12 @@ void spgw::gtpu::send_all_queued_packets(srslte::gtp_fteid_t                    
 bool spgw::gtpu::modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw_user_fteid, uint32_t up_ctrl_teid)
 {
   m_logger.info("Modifying GTP-U Tunnel.");
-  m_logger.info("UE IP %s", srslte::gtpu_ntoa(ue_ipv4).c_str());
-  m_logger.info("Downlink eNB addr %s, U-TEID 0x%x", srslte::gtpu_ntoa(dw_user_fteid.ipv4).c_str(), dw_user_fteid.teid);
+  fmt::memory_buffer buffer;
+  srslte::gtpu_ntoa(buffer, ue_ipv4);
+  m_logger.info("UE IP %s", buffer.data());
+  buffer.clear();
+  srslte::gtpu_ntoa(buffer, dw_user_fteid.ipv4);
+  m_logger.info("Downlink eNB addr %s, U-TEID 0x%x", buffer.data(), dw_user_fteid.teid);
   m_logger.info("Uplink C-TEID: 0x%x", up_ctrl_teid);
   m_ip_to_usr_teid[ue_ipv4] = dw_user_fteid;
   m_ip_to_ctr_teid[ue_ipv4] = up_ctrl_teid;

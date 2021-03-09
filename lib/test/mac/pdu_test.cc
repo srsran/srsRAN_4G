@@ -54,7 +54,9 @@ int mac_rar_pdu_unpack_test1()
   srslte::rar_pdu rar_pdu_msg;
   rar_pdu_msg.init_rx(sizeof(rar_pdu_tv1));
   rar_pdu_msg.parse_packet(rar_pdu_tv1);
-  std::cout << rar_pdu_msg.to_string() << std::endl;
+  fmt::memory_buffer buffer;
+  rar_pdu_msg.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
 
   TESTASSERT(not rar_pdu_msg.has_backoff());
   TESTASSERT(rar_pdu_msg.nof_subh() == 1);
@@ -72,7 +74,9 @@ int mac_rar_pdu_unpack_test2()
   srslte::rar_pdu rar_pdu_msg;
   rar_pdu_msg.init_rx(sizeof(rar_pdu_tv2));
   rar_pdu_msg.parse_packet(rar_pdu_tv2);
-  std::cout << rar_pdu_msg.to_string() << std::endl;
+  fmt::memory_buffer buffer;
+  rar_pdu_msg.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
 
   TESTASSERT(rar_pdu_msg.nof_subh() == 2);
   TESTASSERT(rar_pdu_msg.has_backoff());
@@ -101,7 +105,9 @@ int mac_rar_pdu_unpack_test3()
   TESTASSERT(rar_pdu_msg.parse_packet(rar_pdu) != SRSLTE_SUCCESS);
   TESTASSERT(rar_pdu_msg.nof_subh() == 0);
 
-  std::cout << rar_pdu_msg.to_string() << std::endl;
+  fmt::memory_buffer buffer;
+  rar_pdu_msg.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
 
   return SRSLTE_SUCCESS;
 }
@@ -500,8 +506,9 @@ int mac_sch_pdu_pack_test6()
   for (uint32_t i = 0; i < 4; i++) {
     TESTASSERT(buff_size_rx[i] == buff_size_tx[i]);
   }
-
-  mac_logger.info("%s", pdu.to_string().c_str());
+  fmt::memory_buffer str_buffer;
+  pdu.to_string(str_buffer);
+  mac_logger.info("%s", str_buffer.data());
 
   // log
   mac_logger.info(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):", buffer.N_bytes);
@@ -530,7 +537,9 @@ int mac_sch_pdu_pack_test6()
 
   // write PDU
   pdu.write_packet(mac_logger);
-  mac_logger.info("%s", pdu.to_string().c_str());
+  str_buffer.clear();
+  pdu.to_string(str_buffer);
+  mac_logger.info("%s", str_buffer.data());
 
   TESTASSERT(memcmp(buffer.msg, tv2, buffer.N_bytes) == 0);
 
@@ -583,7 +592,9 @@ int mac_sch_pdu_pack_test6()
 
   // write PDU
   pdu.write_packet(mac_logger);
-  mac_logger.info("%s", pdu.to_string().c_str());
+  str_buffer.clear();
+  pdu.to_string(str_buffer);
+  mac_logger.info("%s", str_buffer.data());
 
   TESTASSERT(memcmp(buffer.msg, tv3, buffer.N_bytes) == 0);
 
@@ -999,7 +1010,9 @@ int mac_sch_pdu_unpack_test3()
     }
   }
 
-  std::cout << pdu.to_string() << std::endl;
+  fmt::memory_buffer buffer;
+  pdu.to_string(buffer);
+  std::cout << fmt::to_string(buffer) << std::endl;
 
 #if HAVE_PCAP
   pcap_handle->write_dl_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);

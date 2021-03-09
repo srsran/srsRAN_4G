@@ -70,9 +70,9 @@ struct gtpu_header_t {
   std::vector<uint8_t> ext_buffer;
 };
 
-bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger);
-bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger);
-std::string gtpu_ntoa(uint32_t addr);
+bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger);
+bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslog::basic_logger& logger);
+void gtpu_ntoa(fmt::memory_buffer& buffer, uint32_t addr);
 
 inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslog::basic_logger& logger)
 {

@@ -133,13 +133,12 @@ public:
   {}
   virtual ~pdu() = default;
 
-  std::string to_string()
+  void to_string(fmt::memory_buffer& buffer)
   {
-    std::stringstream ss;
     for (int i = 0; i < nof_subheaders; i++) {
-      ss << subheaders[i].to_string() << " ";
+      subheaders[i].to_string(buffer);
+      fmt::format_to(buffer, " ");
     }
-    return ss.str();
   }
 
   /* Resets the Read/Write position and remaining PDU length */
@@ -289,11 +288,11 @@ class subh
 public:
   virtual ~subh() {}
 
-  virtual bool        read_subheader(uint8_t** ptr)                = 0;
-  virtual void        read_payload(uint8_t** ptr)                  = 0;
-  virtual void        write_subheader(uint8_t** ptr, bool is_last) = 0;
-  virtual void        write_payload(uint8_t** ptr)                 = 0;
-  virtual std::string to_string()                                  = 0;
+  virtual bool read_subheader(uint8_t** ptr)                = 0;
+  virtual void read_payload(uint8_t** ptr)                  = 0;
+  virtual void write_subheader(uint8_t** ptr, bool is_last) = 0;
+  virtual void write_payload(uint8_t** ptr)                 = 0;
+  virtual void to_string(fmt::memory_buffer& buffer)        = 0;
 
   pdu<SubH>* parent = nullptr;
 
@@ -357,8 +356,8 @@ public:
   void set_padding(uint32_t padding_len);
   void set_type(subh_type type_);
 
-  void        init();
-  std::string to_string();
+  void init();
+  void to_string(fmt::memory_buffer& buffer);
 
   bool set_next_mch_sched_info(uint8_t lcid, uint16_t mtch_stop);
 
@@ -396,7 +395,7 @@ public:
   static uint32_t size_header_sdu(uint32_t nbytes);
   bool            update_space_ce(uint32_t nbytes, bool var_len = false);
   bool            update_space_sdu(uint32_t nbytes);
-  std::string     to_string();
+  void            to_string(fmt::memory_buffer& buffer);
 };
 
 class rar_subh : public subh<rar_subh>
@@ -433,8 +432,8 @@ public:
   void set_temp_crnti(uint16_t temp_rnti);
   void set_sched_grant(uint8_t grant[RAR_GRANT_LEN]);
 
-  void        init();
-  std::string to_string();
+  void init();
+  void to_string(fmt::memory_buffer& buffer);
 
 private:
   uint8_t         grant[RAR_GRANT_LEN];
@@ -453,8 +452,8 @@ public:
   bool    has_backoff();
   uint8_t get_backoff();
 
-  bool        write_packet(uint8_t* ptr);
-  std::string to_string();
+  bool write_packet(uint8_t* ptr);
+  void to_string(fmt::memory_buffer& buffer);
 
 private:
   bool    has_backoff_indicator;

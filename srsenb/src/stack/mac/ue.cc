@@ -255,7 +255,9 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   mac_msg_ul.init_rx(nof_bytes, true);
   mac_msg_ul.parse_packet(pdu);
 
-  logger.info("0x%x %s", rnti, mac_msg_ul.to_string().c_str());
+  fmt::memory_buffer buffer;
+  mac_msg_ul.to_string(buffer);
+  logger.info("0x%x %s", rnti, buffer.data());
 
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
@@ -529,7 +531,9 @@ uint8_t* ue::generate_pdu(uint32_t                              ue_cc_idx,
         }
       }
       ret = mac_msg_dl.write_packet(logger);
-      logger.info("0x%x %s", rnti, mac_msg_dl.to_string().c_str());
+      fmt::memory_buffer str_buffer;
+      mac_msg_dl.to_string(str_buffer);
+      logger.info("0x%x %s", rnti, str_buffer.data());
     } else {
       logger.error(
           "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d", ue_cc_idx, harq_pid, tb_idx);

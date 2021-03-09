@@ -285,8 +285,10 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   bsr_procedure->update_bsr_tti_end(&bsr);
 
   // Generate MAC PDU and save to buffer
-  uint8_t* ret = pdu_msg.write_packet(logger);
-  Info("%s", pdu_msg.to_string().c_str());
+  uint8_t*           ret = pdu_msg.write_packet(logger);
+  fmt::memory_buffer buffer;
+  pdu_msg.to_string(buffer);
+  Info("%s", buffer.data());
   Debug("Assembled MAC PDU msg size %d/%d bytes", pdu_msg.get_pdu_len() - pdu_msg.rem_size(), pdu_sz);
 
   return ret;

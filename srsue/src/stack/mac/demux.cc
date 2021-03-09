@@ -153,7 +153,11 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
       // Unpack DLSCH MAC PDU
       mac_msg.init_rx(nof_bytes);
       mac_msg.parse_packet(mac_pdu);
-      Info("%s", mac_msg.to_string().c_str());
+      {
+        fmt::memory_buffer buffer;
+        mac_msg.to_string(buffer);
+        Info("%s", buffer.data());
+      }
       process_sch_pdu(&mac_msg);
       pdus.deallocate(mac_pdu);
       break;
