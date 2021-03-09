@@ -48,10 +48,10 @@ public:
   // Getter for the number of discard timers. Used for debugging.
   size_t nof_discard_timers() const;
 
-  bool add_sdu(uint32_t                             sn,
-               const srslte::unique_byte_buffer_t&  sdu,
-               uint32_t                             discard_timeout,
-               const std::function<void(uint32_t)>& callback);
+  bool add_sdu(uint32_t                              sn,
+               const srslte::unique_byte_buffer_t&   sdu,
+               uint32_t                              discard_timeout,
+               srslte::move_callback<void(uint32_t)> callback);
 
   unique_byte_buffer_t& operator[](uint32_t sn)
   {

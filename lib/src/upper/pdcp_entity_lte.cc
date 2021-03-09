@@ -782,10 +782,10 @@ undelivered_sdus_queue::undelivered_sdus_queue(srslte::task_sched_handle task_sc
   }
 }
 
-bool undelivered_sdus_queue::add_sdu(uint32_t                             sn,
-                                     const srslte::unique_byte_buffer_t&  sdu,
-                                     uint32_t                             discard_timeout,
-                                     const std::function<void(uint32_t)>& callback)
+bool undelivered_sdus_queue::add_sdu(uint32_t                              sn,
+                                     const srslte::unique_byte_buffer_t&   sdu,
+                                     uint32_t                              discard_timeout,
+                                     srslte::move_callback<void(uint32_t)> callback)
 {
   assert(not has_sdu(sn) && "Cannot add repeated SNs");
 
@@ -824,7 +824,7 @@ bool undelivered_sdus_queue::add_sdu(uint32_t                             sn,
   sdus[sn].sdu->N_bytes    = sdu->N_bytes;
   memcpy(sdus[sn].sdu->msg, sdu->msg, sdu->N_bytes);
   if (discard_timeout > 0) {
-    sdus[sn].discard_timer.set(discard_timeout, callback);
+    sdus[sn].discard_timer.set(discard_timeout, std::move(callback));
     sdus[sn].discard_timer.run();
   }
   sdus[sn].sdu->set_timestamp(); // Metrics
