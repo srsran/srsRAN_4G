@@ -462,18 +462,22 @@ void rlc_am_read_status_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_status_pdu
 void rlc_am_write_status_pdu(rlc_status_pdu_t* status, byte_buffer_t* pdu);
 int  rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload);
 
-uint32_t           rlc_am_packed_length(rlc_amd_pdu_header_t* header);
-uint32_t           rlc_am_packed_length(rlc_status_pdu_t* status);
-uint32_t           rlc_am_packed_length(rlc_amd_retx_t retx);
-bool               rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
-bool               rlc_am_is_pdu_segment(uint8_t* payload);
-std::string        rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue);
-fmt::memory_buffer rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
-fmt::memory_buffer rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
-bool               rlc_am_start_aligned(const uint8_t fi);
-bool               rlc_am_end_aligned(const uint8_t fi);
-bool               rlc_am_is_unaligned(const uint8_t fi);
-bool               rlc_am_not_start_aligned(const uint8_t fi);
+uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t* header);
+uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
+uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
+bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
+bool        rlc_am_is_pdu_segment(uint8_t* payload);
+std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue);
+template <typename... Args>
+void log_rlc_am_status_pdu_to_string(srslog::log_channel& log_ch,
+                                     rlc_status_pdu_t*    status,
+                                     const char*          fmt = "%s",
+                                     Args&&... args);
+void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header);
+bool rlc_am_start_aligned(const uint8_t fi);
+bool rlc_am_end_aligned(const uint8_t fi);
+bool rlc_am_is_unaligned(const uint8_t fi);
+bool rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srslte
 

@@ -136,8 +136,8 @@ public:
   void to_string(fmt::memory_buffer& buffer)
   {
     for (int i = 0; i < nof_subheaders; i++) {
-      subheaders[i].to_string(buffer);
       fmt::format_to(buffer, " ");
+      subheaders[i].to_string(buffer);
     }
   }
 

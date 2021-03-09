@@ -11,6 +11,7 @@
  */
 
 #include "srslte/upper/rlc_am_lte.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/interfaces/ue_rrc_interfaces.h"
 
@@ -562,9 +563,9 @@ bool rlc_am_lte::rlc_am_lte_tx::poll_required()
 int rlc_am_lte::rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   int pdu_len = parent->rx.get_status_pdu(&tx_status, nof_bytes);
-  logger.debug("%s", rlc_am_status_pdu_to_string(&tx_status).data());
+  log_rlc_am_status_pdu_to_string(logger.debug, &tx_status);
   if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
-    logger.info("%s Tx status PDU - %s", RB_NAME, rlc_am_status_pdu_to_string(&tx_status).data());
+    log_rlc_am_status_pdu_to_string(logger.info, &tx_status, "%s Tx status PDU - %s", RB_NAME);
 
     parent->rx.reset_status();
 
@@ -652,7 +653,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
               tx_window[retx.sn].buf->N_bytes,
               tx_window[retx.sn].retx_count + 1,
               cfg.max_retx_thresh);
-  logger.debug("%s", rlc_amd_pdu_header_to_string(new_header).data());
+  log_rlc_amd_pdu_header_to_string(logger.debug, new_header);
 
   debug_state();
   return (ptr - payload) + tx_window[retx.sn].buf->N_bytes;
@@ -1026,7 +1027,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
   memcpy(ptr, buffer_ptr->msg, buffer_ptr->N_bytes);
   int total_len = (ptr - payload) + buffer_ptr->N_bytes;
   logger.info(payload, total_len, "%s Tx PDU SN=%d (%d B)", RB_NAME, header.sn, total_len);
-  logger.debug("%s", rlc_amd_pdu_header_to_string(header).data());
+  log_rlc_amd_pdu_header_to_string(logger.debug, header);
   debug_state();
 
   return total_len;
@@ -1045,7 +1046,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   rlc_status_pdu_t status;
   rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
-  logger.info("%s Rx Status PDU: %s", RB_NAME, rlc_am_status_pdu_to_string(&status).data());
+  log_rlc_am_status_pdu_to_string(logger.info, &status, "%s Rx Status PDU: %s", RB_NAME);
 
   // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
   // for the RLC data PDU with sequence number poll_sn
@@ -1350,7 +1351,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
 
   logger.info(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)", RB_NAME, header.sn, nof_bytes);
-  logger.debug("%s", rlc_amd_pdu_header_to_string(header).data());
+  log_rlc_amd_pdu_header_to_string(logger.debug, header);
 
   // sanity check for segments not exceeding PDU length
   if (header.N_li > 0) {
@@ -1476,7 +1477,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
               nof_bytes,
               header.so,
               header.N_li);
-  logger.debug("%s", rlc_amd_pdu_header_to_string(header).data());
+  log_rlc_amd_pdu_header_to_string(logger.debug, header);
 
   // Check inside rx window
   if (!inside_rx_window(header.sn)) {
@@ -2338,8 +2339,15 @@ bool rlc_am_is_pdu_segment(uint8_t* payload)
   return ((*(payload) >> 6) & 0x01) == 1;
 }
 
-fmt::memory_buffer rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
+template <typename... Args>
+void log_rlc_am_status_pdu_to_string(srslog::log_channel& log_ch,
+                                     rlc_status_pdu_t*    status,
+                                     const char*          fmt,
+                                     Args&&... args)
 {
+  if (not log_ch.enabled()) {
+    return;
+  }
   fmt::memory_buffer buffer;
   fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
   if (status->N_nack > 0) {
@@ -2353,7 +2361,7 @@ fmt::memory_buffer rlc_am_status_pdu_to_string(rlc_status_pdu_t* status)
       }
     }
   }
-  return buffer;
+  log_ch(fmt, std::forward<Args>(args)..., to_c_str(buffer));
 }
 
 std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue)
@@ -2378,8 +2386,11 @@ std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_
   return str;
 }
 
-fmt::memory_buffer rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header)
+void log_rlc_amd_pdu_header_to_string(srslog::log_channel& log_ch, const rlc_amd_pdu_header_t& header)
 {
+  if (not log_ch.enabled()) {
+    return;
+  }
   fmt::memory_buffer buffer;
   fmt::format_to(buffer,
                  "[{}, RF={}, P={}, FI={}, SN={}, LSF={}, SO={}, N_li={}",
@@ -2399,7 +2410,8 @@ fmt::memory_buffer rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& head
     fmt::format_to(buffer, ")");
   }
   fmt::format_to(buffer, "]");
-  return buffer;
+
+  log_ch("%s", to_c_str(buffer));
 }
 
 bool rlc_am_start_aligned(const uint8_t fi)
