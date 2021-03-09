@@ -31,7 +31,6 @@
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 
-#include "srslte/system/sys_metrics_processor.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/interfaces_common.h"
@@ -43,6 +42,7 @@
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslog/srslog.h"
+#include "srslte/system/sys_metrics_processor.h"
 
 namespace srsenb {
 
@@ -90,6 +90,7 @@ struct general_args_t {
   std::string alarms_filename;
   bool        print_buffer_state;
   bool        tracing_enable;
+  std::size_t tracing_buffcapacity;
   std::string tracing_filename;
   std::string eia_pref_list;
   std::string eea_pref_list;

@@ -288,10 +288,13 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   if (ratio > 1 && nof_samples > rx_buffer[0].size()) {
     // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
     // impact, log it as info.
-    logger.info(fmt::format("Rx number of samples ({}/{}) exceeds buffer size ({})\n",
-                            buffer.get_nof_samples(),
-                            buffer.get_nof_samples() * ratio,
-                            rx_buffer[0].size()));
+    fmt::memory_buffer buff;
+    fmt::format_to(buff,
+                   "Rx number of samples ({}/{}) exceeds buffer size ({})",
+                   buffer.get_nof_samples(),
+                   buffer.get_nof_samples() * ratio,
+                   rx_buffer[0].size());
+    logger.info("%s", to_c_str(buff));
 
     // Limit number of samples to receive
     nof_samples = rx_buffer[0].size();
@@ -406,10 +409,13 @@ bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_tim
   if (ratio > 1 && nof_samples * ratio > tx_buffer[0].size()) {
     // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
     // impact, log it as info.
-    logger.info(fmt::format("Tx number of samples ({}/{}) exceeds buffer size ({})\n",
-                            buffer.get_nof_samples(),
-                            buffer.get_nof_samples() * ratio,
-                            tx_buffer[0].size()));
+    fmt::memory_buffer buff;
+    fmt::format_to(buff,
+                   "Tx number of samples ({}/{}) exceeds buffer size ({})\n",
+                   buffer.get_nof_samples(),
+                   buffer.get_nof_samples() * ratio,
+                   tx_buffer[0].size());
+    logger.info("%s", to_c_str(buff));
 
     // Limit number of samples to transmit
     nof_samples = tx_buffer[0].size() / ratio;

@@ -64,6 +64,7 @@ typedef struct {
   std::string metrics_csv_filename;
   bool        tracing_enable;
   std::string tracing_filename;
+  std::size_t tracing_buffcapacity;
 } general_args_t;
 
 typedef struct {

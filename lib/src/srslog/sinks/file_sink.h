@@ -28,8 +28,8 @@ public:
             size_t max_size,
             std::unique_ptr<log_formatter> f) :
     sink(std::move(f)),
-    base_filename(std::move(name)),
-    max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024))
+    max_size((max_size == 0) ? 0 : std::max<size_t>(max_size, 4 * 1024)),
+    base_filename(std::move(name))
   {}
 
   file_sink(const file_sink& other) = delete;

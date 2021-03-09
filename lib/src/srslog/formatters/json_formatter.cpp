@@ -49,7 +49,7 @@ void json_formatter::format_context_begin(const detail::log_entry_metadata& md,
   fmt::format_to(buffer, "{{\n");
   push_scope(size);
 
-  if (!md.fmtstring.empty()) {
+  if (md.fmtstring) {
     fmt::format_to(buffer,
                    "  \"log_entry\": \"{}\",\n",
                    fmt::vsprintf(md.fmtstring, std::move(md.store)));

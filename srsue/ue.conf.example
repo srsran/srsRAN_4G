@@ -381,6 +381,8 @@ enable = false
 #
 # tracing_filename:     File path to use for tracing information.
 #
+# tracing_buffcapacity: Maximum capacity in bytes the tracing framework can store.
+#
 # have_tti_time_stats:  Calculate TTI execution statistics using system clock
 #
 #####################################################################
@@ -391,3 +393,4 @@ enable = false
 #have_tti_time_stats  = true
 #tracing_enable       = true
 #tracing_filename     = /tmp/ue_tracing.log
+#tracing_buffcapacity = 1000000

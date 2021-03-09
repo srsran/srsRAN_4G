@@ -89,8 +89,7 @@ when_logging_in_log_channel_then_log_entry_is_pushed_into_the_backend()
   test_dummies::sink_dummy s;
   log_channel log("id", s, backend);
 
-  std::string fmtstring = "test";
-  log(fmtstring, 42, "Hello");
+  log("test", 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
@@ -104,8 +103,7 @@ static bool when_logging_in_disabled_log_channel_then_log_entry_is_ignored()
   log_channel log("id", s, backend);
 
   log.set_enabled(false);
-  std::string fmtstring = "test";
-  log(fmtstring, 42, "Hello");
+  log("test", 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 0);
 
@@ -122,11 +120,10 @@ static bool when_logging_then_filled_in_log_entry_is_pushed_into_the_backend()
 
   log_channel log("id", s, backend, {name, tag, true});
 
-  std::string fmtstring = "test";
   uint32_t ctx = 10;
 
   log.set_context(ctx);
-  log(fmtstring, 42, "Hello");
+  log("test", 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
@@ -136,7 +133,7 @@ static bool when_logging_then_filled_in_log_entry_is_pushed_into_the_backend()
   ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
   ASSERT_EQ(entry.metadata.context.value, ctx);
   ASSERT_EQ(entry.metadata.context.enabled, true);
-  ASSERT_EQ(entry.metadata.fmtstring, fmtstring);
+  ASSERT_EQ(entry.metadata.fmtstring, std::string("test"));
   ASSERT_EQ(entry.metadata.log_name, name);
   ASSERT_EQ(entry.metadata.log_tag, tag);
   ASSERT_EQ(entry.metadata.hex_dump.empty(), true);
@@ -155,13 +152,12 @@ when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend()
 
   log_channel log("id", s, backend, {name, tag, true});
 
-  std::string fmtstring = "test";
   uint32_t ctx = 4;
 
   log.set_context(ctx);
   log.set_hex_dump_max_size(4);
   uint8_t hex[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
-  log(hex, sizeof(hex), fmtstring, 42, "Hello");
+  log(hex, sizeof(hex), "test", 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
@@ -171,7 +167,7 @@ when_logging_with_hex_dump_then_filled_in_log_entry_is_pushed_into_the_backend()
   ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
   ASSERT_EQ(entry.metadata.context.value, ctx);
   ASSERT_EQ(entry.metadata.context.enabled, true);
-  ASSERT_EQ(entry.metadata.fmtstring, fmtstring);
+  ASSERT_EQ(entry.metadata.fmtstring, std::string("test"));
   ASSERT_EQ(entry.metadata.log_name, name);
   ASSERT_EQ(entry.metadata.log_tag, tag);
   ASSERT_EQ(entry.metadata.hex_dump.size(), 4);
@@ -193,11 +189,9 @@ when_hex_array_length_is_less_than_hex_log_max_size_then_array_length_is_used()
 
   log_channel log("id", s, backend);
 
-  std::string fmtstring = "test";
-
   log.set_hex_dump_max_size(10);
   uint8_t hex[] = {0, 1, 2};
-  log(hex, sizeof(hex), fmtstring, 42, "Hello");
+  log(hex, sizeof(hex), "test", 42, "Hello");
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
@@ -264,10 +258,9 @@ when_logging_with_context_and_message_then_filled_in_log_entry_is_pushed_into_th
 
   uint32_t ctx_value = 4;
   log.set_context(ctx_value);
-  std::string fmtstring = "test";
 
   my_ctx ctx("myctx");
-  log(ctx, fmtstring, 10, 3.3);
+  log(ctx, "test", 10, 3.3);
 
   ASSERT_EQ(backend.push_invocation_count(), 1);
 
@@ -277,7 +270,7 @@ when_logging_with_context_and_message_then_filled_in_log_entry_is_pushed_into_th
   ASSERT_NE(entry.metadata.tp.time_since_epoch().count(), 0);
   ASSERT_EQ(entry.metadata.context.value, ctx_value);
   ASSERT_EQ(entry.metadata.context.enabled, true);
-  ASSERT_EQ(entry.metadata.fmtstring, fmtstring);
+  ASSERT_EQ(entry.metadata.fmtstring, std::string("test"));
   ASSERT_EQ(entry.metadata.log_name, name);
   ASSERT_EQ(entry.metadata.log_tag, tag);
   ASSERT_EQ(entry.metadata.hex_dump.empty(), true);

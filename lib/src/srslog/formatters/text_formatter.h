@@ -18,11 +18,11 @@
 namespace srslog {
 
 /// Plain text formatter implementation class.
-//:TODO: this class needs refactoring to be compatible with multiple nesting of
-// metrics.
 class text_formatter : public log_formatter
 {
 public:
+  text_formatter() { scope_stack.reserve(16); }
+
   std::unique_ptr<log_formatter> clone() const override;
 
   void format(detail::log_entry_metadata&& metadata,
@@ -50,17 +50,12 @@ private:
   void format_list_begin(const std::string& list_name,
                          unsigned size,
                          unsigned level,
-                         fmt::memory_buffer& buffer) override
-  {
-    //:TODO: implement me
-  }
+                         fmt::memory_buffer& buffer) override;
 
   void format_list_end(const std::string& list_name,
                        unsigned level,
                        fmt::memory_buffer& buffer) override
-  {
-    //:TODO: implement me
-  }
+  {}
 
   void format_metric(const std::string& metric_name,
                      const std::string& metric_value,
@@ -69,9 +64,47 @@ private:
                      unsigned level,
                      fmt::memory_buffer& buffer) override;
 
+  /// Returns the set name of current scope.
+  const std::string& get_current_set_name() const
+  {
+    assert(!scope_stack.empty() && "Empty scope stack");
+    return scope_stack.back().set_name;
+  }
+
+  /// Consumes an element in the current scope.
+  void consume_element()
+  {
+    assert(!scope_stack.empty() && "Consuming element in void scope");
+    assert(scope_stack.back().size && "No more elements to consume");
+    --scope_stack.back().size;
+  }
+
+  /// Returns true if the current element needs a comma.
+  bool needs_comma() const
+  {
+    assert(!scope_stack.empty() && "No scope exists");
+    return scope_stack.back().size;
+  }
+
+  /// Returns the number of indentations required for the input nesting level.
+  unsigned get_indents(unsigned level) const { return level * 2; }
+
+private:
+  /// Keeps track of some state required for formatting.
+  struct scope {
+    scope(unsigned size, std::string set_name) :
+      size(size), set_name(std::move(set_name))
+    {}
+    /// Number of elements this scope holds.
+    unsigned size;
+    /// Set name in this scope.
+    std::string set_name;
+  };
+
 private:
   /// Flags that the formatting should take place into a single line.
   bool do_one_line_ctx_format = false;
+  std::vector<scope> scope_stack;
 };
 
 } // namespace srslog

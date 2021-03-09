@@ -36,6 +36,13 @@ void event_trace_init();
 /// all trace events.
 void event_trace_init(log_channel& c);
 
+/// Initializes the event trace framework.
+/// The event trace data will be written into the specified filename after
+/// capacity bytes of data have been generated or at program exit.
+/// Returns true on success, otherwise false.
+bool event_trace_init(const std::string& filename,
+                      std::size_t capacity = 1024 * 1024);
+
 #ifdef ENABLE_SRSLOG_EVENT_TRACE
 
 /// Generates the begin phase of a duration event.
@@ -45,8 +52,11 @@ void trace_duration_begin(const std::string& category, const std::string& name);
 void trace_duration_end(const std::string& category, const std::string& name);
 
 /// Generates a complete event.
+#define SRSLOG_TRACE_COMBINE1(X, Y) X##Y
+#define SRSLOG_TRACE_COMBINE(X, Y) SRSLOG_TRACE_COMBINE1(X, Y)
 #define trace_complete_event(C, N)                                             \
-  auto scoped_complete_event_variable = srslog::detail::scoped_complete_event(C, N)
+  auto SRSLOG_TRACE_COMBINE(scoped_complete_event, __LINE__) =                 \
+      srslog::detail::scoped_complete_event(C, N)
 
 #else
 
@@ -63,17 +73,15 @@ namespace detail {
 class scoped_complete_event
 {
 public:
-  scoped_complete_event(std::string cat, std::string n) :
-    category(std::move(cat)),
-    name(std::move(n)),
-    start(std::chrono::steady_clock::now())
+  scoped_complete_event(const char* cat, const char* n) :
+    category(cat), name(n), start(std::chrono::steady_clock::now())
   {}
 
   ~scoped_complete_event();
 
 private:
-  const std::string category;
-  const std::string name;
+  const char* const category;
+  const char* const name;
   std::chrono::time_point<std::chrono::steady_clock> start;
 };
 

@@ -428,6 +428,10 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
            bpo::value<string>(&args->general.tracing_filename)->default_value("/tmp/ue_tracing.log"),
            "Tracing events filename")
 
+    ("general.tracing_buffcapacity",
+           bpo::value<std::size_t>(&args->general.tracing_buffcapacity)->default_value(1000000),
+           "Tracing buffer capcity")
+
     ("stack.have_tti_time_stats",
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
         "Calculate TTI execution statistics")
@@ -653,9 +657,9 @@ int main(int argc, char* argv[])
 
 #ifdef ENABLE_SRSLOG_EVENT_TRACE
   if (args.general.tracing_enable) {
-    srslog::sink&        tracing_sink = srslog::fetch_file_sink(args.general.tracing_filename);
-    srslog::log_channel& c            = srslog::fetch_log_channel("tracing", tracing_sink, {"TRACE", '\0', false});
-    srslog::event_trace_init(c);
+    if (!srslog::event_trace_init(args.general.tracing_filename, args.general.tracing_buffcapacity)) {
+      return SRSLTE_ERROR;
+    }
   }
 #endif
 

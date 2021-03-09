@@ -11,6 +11,7 @@
  */
 
 #include "srslte/srslog/event_trace.h"
+#include "sinks/single_write_file_sink.h"
 #include "srslte/srslog/srslog.h"
 #include <ctime>
 
@@ -22,6 +23,9 @@ using namespace srslog;
 
 /// Log channel where event traces will get sent.
 static log_channel* tracer = nullptr;
+
+/// Tracer sink name.
+static constexpr char sink_name[] = "srslog_trace_sink";
 
 void srslog::event_trace_init()
 {
@@ -48,6 +52,30 @@ void srslog::event_trace_init(log_channel& c)
   if (!tracer) {
     tracer = &c;
   }
+}
+
+bool srslog::event_trace_init(const std::string& filename, std::size_t capacity)
+{
+  // Nothing to do if the user previously set a custom channel or this is not
+  // the first time this function is called.
+  if (tracer) {
+    return false;
+  }
+
+  auto tracer_sink = std::unique_ptr<sink>(new single_write_file_sink(
+      filename, capacity, get_default_log_formatter()));
+  if (!install_custom_sink(sink_name, std::move(tracer_sink))) {
+    return false;
+  }
+
+  if (sink* s = find_sink(sink_name)) {
+    log_channel& c =
+        fetch_log_channel("event_trace_channel", *s, {"TRACE", '\0', false});
+    tracer = &c;
+    return true;
+  }
+
+  return false;
 }
 
 /// Fills in the input buffer with the current time.
@@ -104,10 +132,7 @@ srslog::detail::scoped_complete_event::~scoped_complete_event()
       std::chrono::duration_cast<std::chrono::microseconds>(end - start)
           .count();
 
-  char fmt_time[24];
-  format_time(fmt_time, sizeof(fmt_time));
-  (*tracer)("[%s] [TID:%0u] Complete event \"%s\" (duration %lld us): %s",
-            fmt_time,
+  (*tracer)("[TID:%0u] Complete event \"%s\" (duration %lld us): %s",
             (unsigned)::pthread_self(),
             category,
             diff,

@@ -28,17 +28,21 @@ class memory_buffer
 
 public:
   memory_buffer(const char* buffer, size_t length) :
-    buffer(buffer),
-    length(length)
+    buffer(buffer), length(length)
   {}
 
   explicit memory_buffer(const std::string& s) :
-    buffer(s.data()),
-    length(s.size())
+    buffer(s.data()), length(s.size())
   {}
 
   /// Returns a pointer to the start of the memory block.
   const char* data() const { return buffer; }
+
+  /// Returns an iterator to the beginning of the buffer.
+  const char* begin() const { return buffer; }
+
+  /// Returns an iterator to the end of the buffer.
+  const char* end() const { return buffer + length; }
 
   /// Returns the size of the memory block.
   size_t size() const { return length; }

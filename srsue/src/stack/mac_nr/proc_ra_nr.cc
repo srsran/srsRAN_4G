@@ -181,7 +181,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::mac_nr_grant_
         logger.warning("Error unpacking RAR PDU (%d)", i);
         return;
       }
-      logger.info(pdu.to_string());
+      logger.info("%s", pdu.to_string());
 
       for (auto& subpdu : pdu.get_subpdus()) {
         if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
