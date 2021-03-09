@@ -210,12 +210,10 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   poll_retx_timer(parent_->timers->get_unique_timer()),
   status_prohibit_timer(parent_->timers->get_unique_timer())
 {
-  pthread_mutex_init(&mutex, NULL);
 }
 
 rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
 {
-  pthread_mutex_destroy(&mutex);
 }
 
 void rlc_am_lte::rlc_am_lte_tx::set_bsr_callback(bsr_callback_t callback)
@@ -262,7 +260,7 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 {
   empty_queue();
 
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   tx_enabled = false;
 
@@ -290,13 +288,11 @@ void rlc_am_lte::rlc_am_lte_tx::stop()
 
   // Drop all SDU info in queue
   undelivered_sdu_info_queue.clear();
-
-  pthread_mutex_unlock(&mutex);
 }
 
 void rlc_am_lte::rlc_am_lte_tx::empty_queue()
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   // deallocate all SDUs in transmit queue
   while (tx_sdu_queue.size() > 0) {
@@ -305,8 +301,6 @@ void rlc_am_lte::rlc_am_lte_tx::empty_queue()
 
   // deallocate SDU that is currently processed
   tx_sdu.reset();
-
-  pthread_mutex_unlock(&mutex);
 }
 
 void rlc_am_lte::rlc_am_lte_tx::reestablish()
@@ -350,7 +344,7 @@ void rlc_am_lte::rlc_am_lte_tx::check_sn_reached_max_retx(uint32_t sn)
 
 uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   uint32_t n_bytes = 0;
   uint32_t n_sdus  = 0;
 
@@ -409,22 +403,19 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
     logger.debug("%s Total buffer state - %d SDUs (%d B)", RB_NAME, n_sdus, n_bytes);
   }
 
-  pthread_mutex_unlock(&mutex);
   return n_bytes;
 }
 
 int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   if (!tx_enabled) {
-    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
   if (sdu.get() == nullptr) {
     logger.warning("NULL SDU pointer in write_sdu()");
-    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
@@ -445,7 +436,6 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
                    RB_NAME,
                    ret.error()->N_bytes,
                    tx_sdu_queue.size());
-    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
@@ -455,12 +445,10 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
 
   if (undelivered_sdu_info_queue.has_pdcp_sn(sdu_pdcp_sn)) {
     logger.error("PDCP SDU info already exists. SN=%d", sdu_pdcp_sn);
-    pthread_mutex_unlock(&mutex);
     return SRSLTE_ERROR;
   }
 
   undelivered_sdu_info_queue.add_pdcp_sdu(sdu_pdcp_sn);
-  pthread_mutex_unlock(&mutex);
   return SRSLTE_SUCCESS;
 }
 
@@ -479,12 +467,10 @@ bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
 
 int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  pthread_mutex_lock(&mutex);
-
-  int pdu_size = 0;
+  std::lock_guard<std::mutex> lock(mutex);
 
   if (not tx_enabled) {
-    goto unlock_and_exit;
+    return 0;
   }
 
   logger.debug("MAC opportunity - %d bytes", nof_bytes);
@@ -492,13 +478,12 @@ int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   if (not tx_enabled) {
     logger.debug("RLC entity not active. Not generating PDU.");
-    goto unlock_and_exit;
+    return 0;
   }
 
   // Tx STATUS if requested
   if (do_status() && not status_prohibit_timer.is_running()) {
-    pdu_size = build_status_pdu(payload, nof_bytes);
-    goto unlock_and_exit;
+    return build_status_pdu(payload, nof_bytes);
   }
 
   // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
@@ -508,23 +493,19 @@ int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   // RETX if required
   if (not retx_queue.empty()) {
-    pdu_size = build_retx_pdu(payload, nof_bytes);
+    int32_t pdu_size = build_retx_pdu(payload, nof_bytes);
     if (pdu_size > 0) {
-      goto unlock_and_exit;
+      return pdu_size;
     }
   }
 
   // Build a PDU from SDUs
-  pdu_size = build_data_pdu(payload, nof_bytes);
-
-unlock_and_exit:
-  pthread_mutex_unlock(&mutex);
-  return pdu_size;
+  return build_data_pdu(payload, nof_bytes);
 }
 
 void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
 {
-  pthread_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
   if (poll_retx_timer.is_valid() && poll_retx_timer.id() == timeout_id) {
     logger.debug("%s Poll reTx timer expired after %dms", RB_NAME, poll_retx_timer.duration());
     // Section 5.2.2.3 in TS 36.311, schedule PDU for retransmission if
@@ -534,7 +515,8 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
       retransmit_pdu();
     }
   }
-  pthread_mutex_unlock(&mutex);
+
+  lock.unlock();
 
   if (bsr_callback) {
     bsr_callback(parent->lcid, get_buffer_state(), 0);
@@ -1091,7 +1073,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
     return;
   }
 
-  pthread_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
 
   logger.info(payload, nof_bytes, "%s Rx control PDU", RB_NAME);
 
@@ -1196,7 +1178,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
 
   debug_state();
 
-  pthread_mutex_unlock(&mutex);
+  lock.unlock();
 
   // Notify PDCP without holding Tx mutex
   if (not notify_info_vec.empty()) {
@@ -1335,13 +1317,10 @@ rlc_am_lte::rlc_am_lte_rx::rlc_am_lte_rx(rlc_am_lte* parent_) :
   pool(byte_buffer_pool::get_instance()),
   logger(parent_->logger),
   reordering_timer(parent_->timers->get_unique_timer())
-{
-  pthread_mutex_init(&mutex, NULL);
-}
+{}
 
 rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx()
 {
-  pthread_mutex_destroy(&mutex);
 }
 
 bool rlc_am_lte::rlc_am_lte_rx::configure(rlc_am_config_t cfg_)
@@ -1370,7 +1349,7 @@ void rlc_am_lte::rlc_am_lte_rx::reestablish()
 
 void rlc_am_lte::rlc_am_lte_rx::stop()
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   if (parent->timers != nullptr && reordering_timer.is_valid()) {
     reordering_timer.stop();
@@ -1392,8 +1371,6 @@ void rlc_am_lte::rlc_am_lte_rx::stop()
 
   // Drop all messages in RX window
   rx_window.clear();
-
-  pthread_mutex_unlock(&mutex);
 }
 
 /** Called from stack thread when MAC has received a new RLC PDU
@@ -1756,10 +1733,9 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 
 void rlc_am_lte::rlc_am_lte_rx::reset_status()
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   do_status     = false;
   poll_received = false;
-  pthread_mutex_unlock(&mutex);
 }
 
 bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
@@ -1772,19 +1748,16 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
   if (nof_bytes < 1) {
     return;
   }
-  pthread_mutex_lock(&mutex);
 
   if (rlc_am_is_control_pdu(payload)) {
-    // unlock mutex and pass to Tx subclass
-    pthread_mutex_unlock(&mutex);
     parent->tx.handle_control_pdu(payload, nof_bytes);
   } else {
+    std::lock_guard<std::mutex> lock(mutex);
     rlc_amd_pdu_header_t header      = {};
     uint32_t             payload_len = nof_bytes;
     rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
     if (payload_len > nof_bytes) {
       logger.info("Dropping corrupted PDU (%d B). Remaining length after header %d B.", nof_bytes, payload_len);
-      pthread_mutex_unlock(&mutex);
       return;
     }
     if (header.rf) {
@@ -1792,26 +1765,19 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
     } else {
       handle_data_pdu(payload, payload_len, header);
     }
-    pthread_mutex_unlock(&mutex);
   }
 }
 
 uint32_t rlc_am_lte::rlc_am_lte_rx::get_rx_buffered_bytes()
 {
-  uint32_t buff_size = 0;
-  pthread_mutex_lock(&mutex);
-  buff_size = rx_window.get_buffered_bytes();
-  pthread_mutex_unlock(&mutex);
-  return buff_size;
+  std::lock_guard<std::mutex> lock(mutex);
+  return rx_window.get_buffered_bytes();
 }
 
 uint32_t rlc_am_lte::rlc_am_lte_rx::get_sdu_rx_latency_ms()
 {
-  uint32_t latency = 0;
-  pthread_mutex_lock(&mutex);
-  latency = sdu_rx_latency_ms.value();
-  pthread_mutex_unlock(&mutex);
-  return latency;
+  std::lock_guard<std::mutex> lock(mutex);
+  return sdu_rx_latency_ms.value();
 }
 
 /**
@@ -1821,7 +1787,7 @@ uint32_t rlc_am_lte::rlc_am_lte_rx::get_sdu_rx_latency_ms()
  */
 void rlc_am_lte::rlc_am_lte_rx::timer_expired(uint32_t timeout_id)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   if (reordering_timer.is_valid() and reordering_timer.id() == timeout_id) {
     logger.debug("%s reordering timeout expiry - updating vr_ms (was %d)", RB_NAME, vr_ms);
 
@@ -1842,13 +1808,12 @@ void rlc_am_lte::rlc_am_lte_rx::timer_expired(uint32_t timeout_id)
 
     debug_state();
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 // Called from Tx object to pack status PDU that doesn't exceed a given size
 int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t max_pdu_size)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   status->N_nack = 0;
   status->ack_sn = vr_r; // start with lower edge of the rx window
 
@@ -1880,7 +1845,6 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
                        rlc_am_packed_length(status),
                        max_pdu_size,
                        status->N_nack);
-        pthread_mutex_unlock(&mutex);
         return 0;
       }
       break;
@@ -1888,14 +1852,13 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
     i = (i + 1) % MOD;
   }
 
-  pthread_mutex_unlock(&mutex);
   return rlc_am_packed_length(status);
 }
 
 // Called from Tx object to obtain length of the full status PDU
 int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   rlc_status_pdu_t status = {};
   status.ack_sn           = vr_ms;
   uint32_t i              = vr_r;
@@ -1905,7 +1868,6 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
     }
     i = (i + 1) % MOD;
   }
-  pthread_mutex_unlock(&mutex);
   return rlc_am_packed_length(&status);
 }
 

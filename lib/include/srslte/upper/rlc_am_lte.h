@@ -350,7 +350,7 @@ private:
     pdcp_sn_vector_t                   notify_info_vec;
 
     // Mutexes
-    pthread_mutex_t mutex;
+    std::mutex mutex;
   };
 
   // Receiver sub-class
@@ -412,8 +412,8 @@ private:
     uint32_t vr_ms = 0;                  // Max status tx state. Highest possible value of SN for ACK_SN in status PDU.
     uint32_t vr_h  = 0;                  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
 
-    // Mutexes
-    pthread_mutex_t mutex;
+    // Mutex to protect members
+    std::mutex mutex;
 
     // Rx windows
     rlc_ringbuffer_t<rlc_amd_rx_pdu_t>            rx_window;
