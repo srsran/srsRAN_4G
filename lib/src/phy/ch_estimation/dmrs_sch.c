@@ -451,8 +451,6 @@ static uint32_t srslte_dmrs_sch_seed(const srslte_carrier_nr_t*   carrier,
 {
   const srslte_dmrs_sch_cfg_t* dmrs_cfg = &cfg->dmrs;
 
-  slot_idx = slot_idx % SRSLTE_NSLOTS_PER_FRAME_NR(carrier->numerology);
-
   // Calculate scrambling IDs
   uint32_t n_id   = carrier->id;
   uint32_t n_scid = (grant->n_scid) ? 1 : 0;
@@ -575,8 +573,8 @@ int srslte_dmrs_sch_put_sf(srslte_dmrs_sch_t*           q,
 
   // Iterate symbols
   for (uint32_t i = 0; i < nof_symbols; i++) {
-    uint32_t l        = symbols[i];    // Symbol index inside the slot
-    uint32_t slot_idx = slot_cfg->idx; // Slot index in the frame
+    uint32_t l        = symbols[i];                                               // Symbol index inside the slot
+    uint32_t slot_idx = SRSLTE_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx); // Slot index in the frame
     uint32_t cinit    = srslte_dmrs_sch_seed(&q->carrier, pdsch_cfg, grant, slot_idx, l);
 
     srslte_dmrs_sch_put_symbol(q, pdsch_cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l]);
@@ -699,7 +697,8 @@ int srslte_dmrs_sch_estimate(srslte_dmrs_sch_t*           q,
   for (uint32_t i = 0; i < nof_symbols; i++) {
     uint32_t l = symbols[i]; // Symbol index inside the slot
 
-    uint32_t cinit = srslte_dmrs_sch_seed(&q->carrier, pdsch_cfg, grant, slot_cfg->idx, l);
+    uint32_t cinit = srslte_dmrs_sch_seed(
+        &q->carrier, pdsch_cfg, grant, SRSLTE_SLOT_NR_MOD(q->carrier.numerology, slot_cfg->idx), l);
 
     nof_pilots_x_symbol = srslte_dmrs_sch_get_symbol(
         q, pdsch_cfg, grant, cinit, delta, &sf_symbols[symbol_sz * l], &q->pilot_estimates[nof_pilots_x_symbol * i]);
