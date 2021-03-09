@@ -865,6 +865,8 @@ void phy_common::set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& 
   sync_metrics[cc_idx].cfo = sync_metrics[cc_idx].cfo + (m.cfo - sync_metrics[cc_idx].cfo) / sync_metrics_count[cc_idx];
   sync_metrics[cc_idx].sfo = sync_metrics[cc_idx].sfo + (m.sfo - sync_metrics[cc_idx].sfo) / sync_metrics_count[cc_idx];
   sync_metrics[cc_idx].ta_us = m.ta_us;
+  sync_metrics[cc_idx].distance_km = m.distance_km;
+  sync_metrics[cc_idx].speed_kmph  = m.speed_kmph;
 }
 
 void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])

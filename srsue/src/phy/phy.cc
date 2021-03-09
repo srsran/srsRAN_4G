@@ -204,14 +204,14 @@ void phy::get_metrics(phy_metrics_t* m)
   m->nof_active_cc = args.nof_lte_carriers;
 }
 
-void phy::set_timeadv_rar(uint32_t ta_cmd)
+void phy::set_timeadv_rar(uint32_t tti, uint32_t ta_cmd)
 {
-  common.ta.add_ta_cmd_rar(ta_cmd);
+  common.ta.add_ta_cmd_rar(tti, ta_cmd);
 }
 
-void phy::set_timeadv(uint32_t ta_cmd)
+void phy::set_timeadv(uint32_t tti, uint32_t ta_cmd)
 {
-  common.ta.add_ta_cmd_new(ta_cmd);
+  common.ta.add_ta_cmd_new(tti, ta_cmd);
 }
 
 void phy::deactivate_scells()

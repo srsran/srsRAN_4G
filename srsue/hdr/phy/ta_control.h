@@ -22,10 +22,33 @@ namespace srsue {
 class ta_control
 {
 private:
+  static const size_t MAX_NOF_SPEED_VALUES = 50;    ///< Maximum number of data to store for speed calculation
+  static const size_t MIN_NOF_SPEED_VALUES = 1;     ///< Minimum number of data for calculating the speed
+  static const size_t MAX_AGE_SPEED_VALUES = 10000; ///< Maximum age of speed data in milliseconds. Discards older data.
+
   srslog::basic_logger& logger;
   mutable std::mutex    mutex;
   uint32_t              next_base_nta = 0;
   float                 next_base_sec = 0.0f;
+
+  // Vector containing data for calculating speed. The first value is the time increment from TTI and the second value
+  // is the distance increment from the TA command
+  struct speed_data_t {
+    uint32_t tti;
+    float    delta_t;
+    float    delta_d;
+  };
+  std::array<speed_data_t, MAX_NOF_SPEED_VALUES> speed_data = {};
+  int32_t                                        last_tti   = -1; // Last TTI writen, -1 if none
+  uint32_t                                       write_idx  = 0;
+  uint32_t                                       read_idx   = 0;
+
+  void reset_speed_data()
+  {
+    write_idx = 0;
+    read_idx  = 0;
+    last_tti  = -1;
+  }
 
 public:
   ta_control(srslog::basic_logger& logger) : logger(logger) {}
@@ -44,6 +67,9 @@ public:
 
     // Update base in nta
     next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSLTE_LTE_TS));
+
+    // Reset speed data
+    reset_speed_data();
 
     logger.info("PHY:   Set TA base: n_ta: %d, ta_usec: %.1f", next_base_nta, next_base_sec * 1e6f);
   }
@@ -74,7 +100,7 @@ public:
    *
    * @param ta_cmd Time Alignment command
    */
-  void add_ta_cmd_rar(uint32_t ta_cmd)
+  void add_ta_cmd_rar(uint32_t tti, uint32_t ta_cmd)
   {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -84,6 +110,10 @@ public:
     // Update base in seconds
     next_base_sec = static_cast<float>(next_base_nta) * SRSLTE_LTE_TS;
 
+    // Reset speed data
+    reset_speed_data();
+    last_tti = tti;
+
     logger.info("PHY:   Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f", ta_cmd, next_base_nta, next_base_sec * 1e6f);
   }
 
@@ -92,9 +122,10 @@ public:
    *
    * @param ta_cmd Time Alignment command
    */
-  void add_ta_cmd_new(uint32_t ta_cmd)
+  void add_ta_cmd_new(uint32_t tti, uint32_t ta_cmd)
   {
     std::lock_guard<std::mutex> lock(mutex);
+    float                       prev_base_sec = next_base_sec;
 
     // Update base nta
     next_base_nta = srslte_N_ta_new(next_base_nta, ta_cmd);
@@ -103,6 +134,26 @@ public:
     next_base_sec = static_cast<float>(next_base_nta) * SRSLTE_LTE_TS;
 
     logger.info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f", ta_cmd, next_base_nta, next_base_sec * 1e6f);
+
+    // Calculate speed data
+    if (last_tti > 0) {
+      float delta_t = TTI_SUB(tti, last_tti) * 1e-3f; // Calculate the elapsed time since last time command
+      float delta_d = (next_base_sec - prev_base_sec) * 3e8f / 2.0f; // Calculate distance difference in metres
+
+      // Write new data
+      speed_data[write_idx].tti     = tti;
+      speed_data[write_idx].delta_t = delta_t;
+      speed_data[write_idx].delta_d = delta_d;
+
+      // Advance write index
+      write_idx = (write_idx + 1) % MAX_NOF_SPEED_VALUES;
+
+      // Advance read index if overlaps with write
+      if (write_idx == read_idx) {
+        read_idx = (read_idx + 1) % MAX_NOF_SPEED_VALUES;
+      }
+    }
+    last_tti = tti; // Update last TTI
   }
 
   /**
@@ -141,7 +192,43 @@ public:
     std::lock_guard<std::mutex> lock(mutex);
 
     // Returns the current base, one direction distance
-    return next_base_sec * (3.6f * 3e8f / 2.0f);
+    return next_base_sec * (3e8f / 2.0f);
+  }
+
+  /**
+   * Calculates approximated speed in km/h from the TA commands
+   *
+   * @return Distance based on the current time base if enough data has been gathered
+   */
+  float get_speed_kmph(uint32_t tti)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+
+    // Advance read pointer for old TTI
+    while (read_idx != write_idx and TTI_SUB(tti, speed_data[read_idx].tti) > MAX_AGE_SPEED_VALUES) {
+      read_idx = (read_idx + 1) % MAX_NOF_SPEED_VALUES;
+    }
+
+    // Early return if there is not enough data to calculate speed
+    uint32_t nof_values = ((write_idx + MAX_NOF_SPEED_VALUES) - read_idx) % MAX_NOF_SPEED_VALUES;
+    if (nof_values < MIN_NOF_SPEED_VALUES) {
+      return 0.0f;
+    }
+
+    // Compute speed from gathered data
+    float sum        = 0.0f;
+    float square_sum = 0.0f;
+    for (uint32_t i = read_idx; i != write_idx; i = (i + 1) % MAX_NOF_SPEED_VALUES) {
+      square_sum += speed_data[i].delta_t * speed_data[i].delta_t;
+      sum += speed_data[i].delta_t * speed_data[i].delta_d;
+    }
+    if (!std::isnormal(square_sum)) {
+      return 0.0f; // Avoid zero division
+    }
+    float speed_mps = sum / square_sum; // Speed in m/s
+
+    // Returns the speed in km/h
+    return speed_mps * 3.6f;
   }
 };
 

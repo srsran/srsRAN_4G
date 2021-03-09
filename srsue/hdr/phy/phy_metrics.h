@@ -24,6 +24,8 @@ struct info_metrics_t {
 
 struct sync_metrics_t {
   float ta_us;
+  float distance_km;
+  float speed_kmph;
   float cfo;
   float sfo;
 };

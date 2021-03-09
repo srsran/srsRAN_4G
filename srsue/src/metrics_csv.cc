@@ -74,7 +74,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
   if (file.is_open() && ue != NULL) {
     if (n_reports == 0 && !file_exists) {
       file << "time;cc;earfcn;pci;rsrp;pl;cfo;pci_neigh;rsrp_neigh;cfo_neigh;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;"
-              "ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
+              "ul_ta;distance_km;speed_kmph;ul_mcs;ul_buff;ul_brate;ul_"
               "bler;"
               "rf_o;rf_"
               "u;rf_l;is_attached;"
@@ -130,6 +130,8 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       }
 
       file << float_to_string(metrics.phy.sync[r].ta_us, 2);
+      file << float_to_string(metrics.phy.sync[r].distance_km, 2);
+      file << float_to_string(metrics.phy.sync[r].speed_kmph, 2);
       file << float_to_string(metrics.phy.ul[r].mcs, 2);
       file << float_to_string((float)metrics.stack.mac[r].ul_buffer, 2);
 
@@ -154,11 +156,11 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0") << ";";
 
       // Write system metrics.
-      const srslte::sys_metrics_t &m = metrics.sys;
+      const srslte::sys_metrics_t& m = metrics.sys;
       file << float_to_string(m.process_realmem, 2);
       file << std::to_string(m.process_realmem_kB) << ";";
       file << float_to_string(m.process_virtualmem, 2);
-      file << std::to_string(m.process_virtualmem_kB) << ";" ;
+      file << std::to_string(m.process_virtualmem_kB) << ";";
       file << float_to_string(m.system_mem, 2);
       file << float_to_string(m.process_cpu_usage, 2);
       file << std::to_string(m.thread_count);
