@@ -377,6 +377,10 @@ enable = false
 #
 # metrics_csv_filename: File path to use for CSV metrics.
 #
+# tracing_enable:       Write source code tracing information to a file.
+#
+# tracing_filename:     File path to use for tracing information.
+#
 # have_tti_time_stats:  Calculate TTI execution statistics using system clock
 #
 #####################################################################

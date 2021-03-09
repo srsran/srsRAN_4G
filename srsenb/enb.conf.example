@@ -294,6 +294,8 @@ enable = false
 # metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
 # metrics_csv_enable:   Write eNB metrics to CSV file.
 # metrics_csv_filename: File path to use for CSV metrics.
+# tracing_enable:       Write source code tracing information to a file.
+# tracing_filename:     File path to use for tracing information.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # rrc_inactivity_timer  Inactivity timeout used to remove UE context from RRC (in milliseconds).

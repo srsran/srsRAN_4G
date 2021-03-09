@@ -667,7 +667,7 @@ int main(int argc, char* argv[])
 
   srslte::check_scaling_governor(args.rf.device_name);
 
-  // Create UE instance
+  // Create UE instance.
   srsue::ue ue;
   if (ue.init(args, &log_wrapper)) {
     ue.stop();
