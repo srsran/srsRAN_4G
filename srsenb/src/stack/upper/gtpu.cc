@@ -12,6 +12,7 @@
 #include "srslte/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srslte/common/network_utils.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include <errno.h>
@@ -153,14 +154,14 @@ uint32_t gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t 
 
   ue_teidin_db[rnti][lcid].push_back(teid_in);
 
-  fmt::memory_buffer buffer;
-  srslte::gtpu_ntoa(buffer, htonl(addr));
+  fmt::memory_buffer str_buffer;
+  srslte::gtpu_ntoa(str_buffer, htonl(addr));
   logger.info("New tunnel teid_in=0x%x, teid_out=0x%x, rnti=0x%x, lcid=%d, addr=%s",
               teid_in,
               teid_out,
               rnti,
               lcid,
-              buffer.data());
+              srslte::to_c_str(str_buffer));
 
   if (props != nullptr) {
     if (props->flush_before_teidin_present) {
@@ -534,14 +535,14 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
   srslte::gtpu_ntoa(addrbuf, htonl(tun.spgw_addr));
   if (is_rx) {
     dir = "Rx";
-    fmt::format_to(strbuf2, "{}:0x{:0x} > ", addrbuf.data(), tun.teid_in);
+    fmt::format_to(strbuf2, "{}:0x{:0x} > ", srslte::to_c_str(addrbuf), tun.teid_in);
     if (not tun.dl_enabled) {
       fmt::format_to(strbuf2, "DL (buffered), ");
     } else if (tun.fwd_teid_in_present) {
       tunnel& tx_tun = tunnels.at(tun.fwd_teid_in);
       addrbuf.clear();
       srslte::gtpu_ntoa(addrbuf, htonl(tx_tun.spgw_addr));
-      fmt::format_to(strbuf2, "{}:0x{:0x} (forwarded), ", addrbuf.data(), tx_tun.teid_in);
+      fmt::format_to(strbuf2, "{}:0x{:0x} (forwarded), ", srslte::to_c_str(addrbuf), tx_tun.teid_in);
     } else {
       fmt::format_to(strbuf2, "DL, ");
     }
@@ -551,7 +552,7 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
     } else {
       fmt::format_to(strbuf2, "UL ");
     }
-    fmt::format_to(strbuf2, "> {}:0x{:0x}, ", addrbuf.data(), tun.teid_in);
+    fmt::format_to(strbuf2, "> {}:0x{:0x}, ", srslte::to_c_str(addrbuf), tun.teid_in);
   }
   fmt::format_to(strbuf,
                  "{} S1-U SDU, {}rnti=0x{:0x}, lcid={}, n_bytes={}, IPv{}",
@@ -566,12 +567,12 @@ void gtpu::log_message(tunnel& tun, bool is_rx, srslte::span<uint8_t> pdu, int p
     strbuf2.clear();
     srslte::gtpu_ntoa(addrbuf, ip_pkt->saddr);
     srslte::gtpu_ntoa(strbuf2, ip_pkt->daddr);
-    fmt::format_to(strbuf, " {} > {}", addrbuf.data(), strbuf2.data());
+    fmt::format_to(strbuf, " {} > {}", srslte::to_c_str(addrbuf), srslte::to_c_str(strbuf2));
     if (ntohs(ip_pkt->tot_len) != pdu.size()) {
       logger.error("IP Len and PDU N_bytes mismatch");
     }
   }
-  logger.info(pdu.data(), pdu.size(), "%s", strbuf.data());
+  logger.info(pdu.data(), pdu.size(), "%s", srslte::to_c_str(strbuf));
 }
 
 /****************************************************************************
