@@ -96,11 +96,11 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     return;
   }
 
-  bool display_neighbours = false;
+  bool display_neighbours = FORCE_NEIGHBOUR_CELL;
   if (metrics.phy.nof_active_cc > 1) {
-    display_neighbours = metrics.stack.rrc.neighbour_cells.size() > metrics.phy.nof_active_cc - 1;
+    display_neighbours |= metrics.stack.rrc.neighbour_cells.size() > metrics.phy.nof_active_cc - 1;
   } else {
-    display_neighbours = metrics.stack.rrc.neighbour_cells.size() > 0;
+    display_neighbours |= metrics.stack.rrc.neighbour_cells.size() > 0;
   }
 
   // print table header every 10 reports
