@@ -115,7 +115,7 @@ static inline void string_parse_list(const std::string& input, char delimiter, I
 template <size_t N>
 const char* to_c_str(fmt::basic_memory_buffer<char, N>& mem_buffer)
 {
-  fmt::format_to(mem_buffer, "{}", '\0');
+  mem_buffer.push_back('\0');
   return mem_buffer.data();
 }
 

@@ -25,6 +25,42 @@
 
 namespace srslte {
 
+/*******************************
+ *       Helper methods
+ ******************************/
+
+/**
+ * Logs Status PDU into provided log channel, using fmt_str as format string
+ */
+template <typename... Args>
+void log_rlc_am_status_pdu_to_string(srslog::log_channel& log_ch,
+                                     const char*          fmt_str,
+                                     rlc_status_pdu_t*    status,
+                                     Args&&... args)
+{
+  if (not log_ch.enabled()) {
+    return;
+  }
+  fmt::memory_buffer buffer;
+  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
+  if (status->N_nack > 0) {
+    fmt::format_to(buffer, ", NACK_SN = ");
+    for (uint32_t i = 0; i < status->N_nack; ++i) {
+      if (status->nacks[i].has_so) {
+        fmt::format_to(
+            buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
+      } else {
+        fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
+      }
+    }
+  }
+  log_ch(fmt_str, std::forward<Args>(args)..., to_c_str(buffer));
+}
+
+/*******************************
+ *     rlc_am_lte class
+ ******************************/
+
 rlc_am_lte::rlc_am_lte(srslog::basic_logger&      logger,
                        uint32_t                   lcid_,
                        srsue::pdcp_interface_rlc* pdcp_,
@@ -563,9 +599,9 @@ bool rlc_am_lte::rlc_am_lte_tx::poll_required()
 int rlc_am_lte::rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   int pdu_len = parent->rx.get_status_pdu(&tx_status, nof_bytes);
-  log_rlc_am_status_pdu_to_string(logger.debug, &tx_status);
+  log_rlc_am_status_pdu_to_string(logger.debug, "%s", &tx_status);
   if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
-    log_rlc_am_status_pdu_to_string(logger.info, &tx_status, "%s Tx status PDU - %s", RB_NAME);
+    log_rlc_am_status_pdu_to_string(logger.info, "%s Tx status PDU - %s", &tx_status, RB_NAME);
 
     parent->rx.reset_status();
 
@@ -1046,7 +1082,7 @@ void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t no
   rlc_status_pdu_t status;
   rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
-  log_rlc_am_status_pdu_to_string(logger.info, &status, "%s Rx Status PDU: %s", RB_NAME);
+  log_rlc_am_status_pdu_to_string(logger.info, "%s Rx Status PDU: %s", &status, RB_NAME);
 
   // Sec 5.2.2.2, stop poll reTx timer if status PDU comprises a positive _or_ negative acknowledgement
   // for the RLC data PDU with sequence number poll_sn
@@ -2337,31 +2373,6 @@ uint32_t rlc_am_packed_length(rlc_status_pdu_t* status)
 bool rlc_am_is_pdu_segment(uint8_t* payload)
 {
   return ((*(payload) >> 6) & 0x01) == 1;
-}
-
-template <typename... Args>
-void log_rlc_am_status_pdu_to_string(srslog::log_channel& log_ch,
-                                     rlc_status_pdu_t*    status,
-                                     const char*          fmt,
-                                     Args&&... args)
-{
-  if (not log_ch.enabled()) {
-    return;
-  }
-  fmt::memory_buffer buffer;
-  fmt::format_to(buffer, "ACK_SN = {}, N_nack = {}", status->ack_sn, status->N_nack);
-  if (status->N_nack > 0) {
-    fmt::format_to(buffer, ", NACK_SN = ");
-    for (uint32_t i = 0; i < status->N_nack; ++i) {
-      if (status->nacks[i].has_so) {
-        fmt::format_to(
-            buffer, "[{} {}:{}]", status->nacks[i].nack_sn, status->nacks[i].so_start, status->nacks[i].so_end);
-      } else {
-        fmt::format_to(buffer, "[{}]", status->nacks[i].nack_sn);
-      }
-    }
-  }
-  log_ch(fmt, std::forward<Args>(args)..., to_c_str(buffer));
 }
 
 std::string rlc_am_undelivered_sdu_info_to_string(const std::map<uint32_t, pdcp_sdu_info_t>& info_queue)
