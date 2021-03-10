@@ -169,7 +169,8 @@ enable = false
 #
 #####################################################################
 [scheduler]
-#sched_policy     = time_pf
+#policy     = time_pf
+#policy_args = 2
 #max_aggr_level   = -1
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
@@ -177,6 +178,7 @@ enable = false
 #pusch_max_mcs    = 16
 #min_nof_ctrl_symbols = 1
 #max_nof_ctrl_symbols = 3
+#pucch_multiplex_enable = false
 
 #####################################################################
 # eMBMS configuration options
