@@ -232,7 +232,7 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
   return ret;
 }
 
-alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch)
+alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, bool needs_pdcch, bool strict)
 {
   if (alloc.stop() > ul_mask.size()) {
     return alloc_outcome_t::ERROR;
@@ -240,7 +240,7 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, boo
 
   prbmask_t newmask(ul_mask.size());
   newmask.fill(alloc.start(), alloc.stop());
-  if ((ul_mask & newmask).any()) {
+  if (strict and (ul_mask & newmask).any()) {
     return alloc_outcome_t::RB_COLLISION;
   }
 
@@ -503,7 +503,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
     break;
   }
   if (ret.first != alloc_outcome_t::SUCCESS) {
-    logger.info("SCHED: Failed to allocate RAR due to lack of RBs");
+    logger.info("SCHED: RAR allocation postponed due to lack of RBs");
   }
   return ret;
 }
@@ -606,7 +606,8 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   return alloc_outcome_t::SUCCESS;
 }
 
-alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, int msg3_mcs)
+alloc_outcome_t
+sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_t::type_t alloc_type, bool is_msg3, int msg3_mcs)
 {
   if (ul_data_allocs.size() >= sched_interface::MAX_DATA_LIST) {
     logger.warning("SCHED: Maximum number of UL allocations reached");
@@ -620,25 +621,21 @@ alloc_outcome_t sf_sched::alloc_ul(sched_ue* user, prb_interval alloc, ul_alloc_
   }
 
   // Check if there is no collision with measGap
-  bool needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or alloc_type == ul_alloc_t::NEWTX;
+  bool needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or (alloc_type == ul_alloc_t::NEWTX and not is_msg3);
   if (not user->pusch_enabled(srslte::tti_point{get_tti_rx()}, cc_cfg->enb_cc_idx, needs_pdcch)) {
     return alloc_outcome_t::MEASGAP_COLLISION;
   }
 
   // Allocate RBGs and DCI space
-  alloc_outcome_t ret;
-  if (alloc_type != ul_alloc_t::MSG3 and alloc_type != ul_alloc_t::MSG3_RETX) {
-    ret = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
-  } else {
-    // allow collisions between Msg3 and PUCCH for 6 PRBs
-    ret = tti_alloc.reserve_ul_prbs(alloc, cc_cfg->nof_prb() != 6);
-  }
+  bool            allow_pucch_collision = cc_cfg->nof_prb() == 6 and is_msg3;
+  alloc_outcome_t ret                   = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch, not allow_pucch_collision);
   if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
 
   ul_alloc_t ul_alloc = {};
   ul_alloc.type       = alloc_type;
+  ul_alloc.is_msg3    = is_msg3;
   ul_alloc.dci_idx    = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
   ul_alloc.rnti       = user->get_rnti();
   ul_alloc.alloc      = alloc;
@@ -656,15 +653,13 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, prb_interval alloc)
   bool               has_retx = h->has_pending_retx();
   if (not has_retx) {
     alloc_type = ul_alloc_t::NEWTX;
-  } else if (h->is_msg3()) {
-    alloc_type = ul_alloc_t::MSG3_RETX;
   } else if (h->retx_requires_pdcch(tti_point{get_tti_tx_ul()}, alloc)) {
     alloc_type = ul_alloc_t::ADAPT_RETX;
   } else {
     alloc_type = ul_alloc_t::NOADAPT_RETX;
   }
 
-  return alloc_ul(user, alloc, alloc_type);
+  return alloc_ul(user, alloc, alloc_type, h->is_msg3());
 }
 
 bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result)
@@ -997,7 +992,7 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
       fmt::memory_buffer str_buffer;
       fmt::format_to(str_buffer,
                      "SCHED: Error {} {} rnti=0x{:x}, pid={}, dci=({},{}), prb={}, bsr={}",
-                     ul_alloc.type == ul_alloc_t::MSG3 ? "Msg3" : "UL",
+                     ul_alloc.is_msg3 ? "Msg3" : "UL",
                      ul_alloc.is_retx() ? "retx" : "tx",
                      user->get_rnti(),
                      h->get_id(),
@@ -1015,7 +1010,7 @@ void sf_sched::set_ul_sched_result(const sf_cch_allocator::alloc_result_t& dci_r
       fmt::memory_buffer str_buffer;
       fmt::format_to(str_buffer,
                      "SCHED: {} {} rnti=0x{:x}, cc={}, pid={}, dci=({},{}), prb={}, n_rtx={}, tbs={}, bsr={} ({}-{})",
-                     ul_alloc.is_msg3() ? "Msg3" : "UL",
+                     ul_alloc.is_msg3 ? "Msg3" : "UL",
                      ul_alloc.is_retx() ? "retx" : "newtx",
                      user->get_rnti(),
                      cc_cfg->enb_cc_idx,
@@ -1042,7 +1037,7 @@ alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_s
   // Derive PRBs from allocated RAR grants
   prb_interval msg3_alloc = prb_interval::riv_to_prbs(rargrant.grant.rba, cc_cfg->nof_prb());
 
-  alloc_outcome_t ret = alloc_ul(user, msg3_alloc, sf_sched::ul_alloc_t::MSG3, rargrant.grant.trunc_mcs);
+  alloc_outcome_t ret = alloc_ul(user, msg3_alloc, sf_sched::ul_alloc_t::NEWTX, true, rargrant.grant.trunc_mcs);
   if (not ret) {
     fmt::memory_buffer str_buffer;
     fmt::format_to(str_buffer, "{}", msg3_alloc);

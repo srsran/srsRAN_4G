@@ -194,8 +194,9 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
         } else {
           CONDERROR(pusch_ptr->current_tx_nb == 0, "UL retx has to have nof tx > 0");
           if (not h.active) {
-            // the HARQ is being resumed
-            CONDERROR(not pusch_ptr->needs_pdcch, "Resumed UL HARQs need to be signalled in PDCCH");
+            // the HARQ is being resumed. PDCCH must be active with the exception of Msg3
+            CONDERROR(ue.msg4_tti_rx.is_valid() and not pusch_ptr->needs_pdcch,
+                      "Resumed UL HARQs need to be signalled in PDCCH");
           } else {
             if (pusch_ptr->needs_pdcch) {
               CONDERROR(pusch_ptr->dci.type2_alloc.riv == h.riv, "Adaptive retx must change riv");

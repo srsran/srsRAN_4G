@@ -362,7 +362,7 @@ struct formatter<srslte::bounded_bitset<N, reversed> > {
   auto parse(ParseContext& ctx) -> decltype(ctx.begin())
   {
     auto it = ctx.begin();
-    while (*it != '\0' and *it != '}') {
+    while (it != ctx.end() and *it != '}') {
       if (*it == 'x') {
         mode = hexadecimal;
       }
