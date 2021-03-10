@@ -91,6 +91,10 @@ inline int LTE_PCAP_PACK_MAC_CONTEXT_TO_BUFFER(MAC_Context_Info_t* context, uint
   buffer[offset++] = MAC_LTE_CRC_STATUS_TAG;
   buffer[offset++] = context->crcStatusOK;
 
+  /* CARRIER ID */
+  buffer[offset++] = MAC_LTE_CARRIER_ID_TAG;
+  buffer[offset++] = context->cc_idx;
+
   /* NB-IoT mode tag */
   buffer[offset++] = MAC_LTE_NB_MODE_TAG;
   buffer[offset++] = context->nbiotMode;
