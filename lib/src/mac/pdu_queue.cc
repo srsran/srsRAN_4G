@@ -58,7 +58,9 @@ void pdu_queue::push(const uint8_t* ptr, uint32_t len, channel_t channel)
     pdu_t* pdu   = (pdu_t*)ptr;
     pdu->len     = len;
     pdu->channel = channel;
-    pdu_q.push_blocking(pdu);
+    if (!pdu_q.try_push(pdu)) {
+      logger.warning("Error pushing pdu: queue is full");
+    }
   } else {
     logger.warning("Error pushing pdu: ptr is empty");
   }

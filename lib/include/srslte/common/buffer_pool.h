@@ -50,6 +50,7 @@ public:
     if (capacity_ > 0) {
       nof_buffers = (uint32_t)capacity_;
     }
+    used.reserve(nof_buffers);
     pthread_mutex_init(&mutex, nullptr);
     pthread_cond_init(&cv_not_empty, nullptr);
     for (uint32_t i = 0; i < nof_buffers; i++) {
