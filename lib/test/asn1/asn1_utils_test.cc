@@ -22,6 +22,8 @@ using namespace asn1;
 std::random_device rd;
 std::mt19937       g(rd());
 
+srslte::log_sink_spy* test_spy = nullptr;
+
 int test_arrays()
 {
   /* Test Ext Array */
@@ -586,13 +588,14 @@ int test_enum()
   TESTASSERT(e == e2);
 
   // Test fail path
-  srslte::scoped_log<srslte::nullsink_log> null_log("ASN1");
+  TESTASSERT(test_spy->get_error_counter() == 0 and test_spy->get_warning_counter() == 0);
   bref  = bit_ref(&buffer[0], sizeof(buffer));
   bref2 = cbit_ref(&buffer[0], sizeof(buffer));
   e     = EnumTest::nulltype;
   TESTASSERT(pack_enum(bref, e) == SRSASN_ERROR_ENCODE_FAIL);
   buffer[0] = 255;
   TESTASSERT(unpack_enum(e, bref2) == SRSASN_ERROR_DECODE_FAIL);
+  TESTASSERT(test_spy->get_error_counter() == 2 and test_spy->get_warning_counter() == 0);
 
   return 0;
 }
@@ -643,8 +646,18 @@ int test_big_integers()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
-  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
+  // Setup the log spy to intercept error and warning log entries.
+  if (!srslog::install_custom_sink(
+          srslte::log_sink_spy::name(),
+          std::unique_ptr<srslte::log_sink_spy>(new srslte::log_sink_spy(srslog::get_default_log_formatter())))) {
+    return SRSLTE_ERROR;
+  }
+  test_spy = static_cast<srslte::log_sink_spy*>(srslog::find_sink(srslte::log_sink_spy::name()));
+  if (!test_spy) {
+    return SRSLTE_ERROR;
+  }
+
+  auto& asn1_logger = srslog::fetch_basic_logger("ASN1", *test_spy, false);
   asn1_logger.set_level(srslog::basic_levels::debug);
   asn1_logger.set_hex_dump_max_size(-1);
 

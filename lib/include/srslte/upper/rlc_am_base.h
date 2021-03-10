@@ -15,7 +15,6 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_common.h"
 #include <map>

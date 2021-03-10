@@ -16,8 +16,6 @@
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/phy/phy_common.h"
 #include "srslte/common/basic_vnf.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/radio_interfaces.h"

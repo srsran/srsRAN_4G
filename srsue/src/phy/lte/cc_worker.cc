@@ -12,6 +12,7 @@
 
 #include "srslte/srslte.h"
 
+#include "srslte/common/standard_streams.h"
 #include "srsue/hdr/phy/lte/cc_worker.h"
 
 #define Error(fmt, ...)                                                                                                \

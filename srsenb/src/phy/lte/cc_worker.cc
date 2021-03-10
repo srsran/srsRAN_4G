@@ -10,7 +10,6 @@
  *
  */
 
-#include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 

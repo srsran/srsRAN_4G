@@ -11,6 +11,7 @@
  */
 
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/upper/gtpu.h"
 #include <algorithm>
 #include <fcntl.h>

@@ -12,7 +12,6 @@
 
 #include "srsenb/hdr/stack/mac/sched_grid.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/string_helpers.h"
 
 using srslte::tti_point;

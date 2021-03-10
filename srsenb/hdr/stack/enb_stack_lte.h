@@ -40,7 +40,7 @@ class enb_stack_lte final : public enb_stack_base,
                             public srslte::thread
 {
 public:
-  enb_stack_lte(srslte::logger* logger_, srslog::sink& log_sink);
+  enb_stack_lte(srslog::sink& log_sink);
   ~enb_stack_lte() final;
 
   // eNB stack base interface
@@ -144,17 +144,6 @@ private:
   srsenb::rrc  rrc;
   srsenb::gtpu gtpu;
   srsenb::s1ap s1ap;
-
-  srslte::logger* logger = nullptr;
-
-  // Radio and PHY log are in enb.cc
-  srslte::log_ref mac_log{"MAC"};
-  srslte::log_ref rlc_log{"RLC"};
-  srslte::log_ref pdcp_log{"PDCP"};
-  srslte::log_ref rrc_log{"RRC"};
-  srslte::log_ref s1ap_log{"S1AP"};
-  srslte::log_ref gtpu_log{"GTPU"};
-  srslte::log_ref stack_log{"STCK"};
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

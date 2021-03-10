@@ -17,7 +17,6 @@
 #include "srslte/asn1/rrc_nr_utils.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/nr_common_interface_types.h"
@@ -133,6 +132,7 @@ private:
     uint16_t                     lcid;
   };
 
+  srslog::basic_logger&          logger;
   bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
 
@@ -144,8 +144,6 @@ private:
   rrc_eutra_interface_rrc_nr* rrc_eutra = nullptr;
   usim_interface_rrc_nr*      usim      = nullptr;
   stack_interface_rrc*        stack     = nullptr;
-
-  srslte::log_ref log_h;
 
   uint32_t                            fake_measurement_carrier_freq_r15;
   srslte::timer_handler::unique_timer fake_measurement_timer;

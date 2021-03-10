@@ -13,8 +13,9 @@
 #ifndef SRSLTE_GTPU_H
 #define SRSLTE_GTPU_H
 
+#include "srslte/common/byte_buffer.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
+#include "srslte/srslog/srslog.h"
 #include <stdint.h>
 
 namespace srslte {

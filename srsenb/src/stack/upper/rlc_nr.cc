@@ -15,7 +15,7 @@
 
 namespace srsenb {
 
-rlc_nr::rlc_nr(const char* logname) : m_log(logname) {}
+rlc_nr::rlc_nr(const char* logname) : logger(srslog::fetch_basic_logger(logname)) {}
 
 void rlc_nr::init(pdcp_interface_rlc_nr* pdcp_,
                   rrc_interface_rlc_nr*  rrc_,
@@ -44,7 +44,7 @@ void rlc_nr::add_user(uint16_t rnti)
     user_itf.m_pdcp = m_pdcp;
     user_itf.m_rrc  = m_rrc;
     user_itf.parent = this;
-    user_itf.m_rlc.reset(new srslte::rlc(m_log->get_service_name().c_str()));
+    user_itf.m_rlc.reset(new srslte::rlc(logger.id().c_str()));
     users[rnti] = std::move(user_itf);
     users[rnti].m_rlc->init(&users[rnti], &users[rnti], timers, (int)srslte::rb_id_nr_t::NR_SRB0);
   }
@@ -56,7 +56,7 @@ void rlc_nr::rem_user(uint16_t rnti)
     users[rnti].m_rlc->stop();
     users.erase(rnti);
   } else {
-    m_log->error("Removing rnti=0x%x. Already removed\n", rnti);
+    logger.error("Removing rnti=0x%x. Already removed\n", rnti);
   }
 }
 
@@ -67,7 +67,7 @@ void rlc_nr::clear_buffer(uint16_t rnti)
     for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
       m_mac->rlc_buffer_state(rnti, i, 0, 0);
     }
-    m_log->info("Cleared buffer rnti=0x%x\n", rnti);
+    logger.info("Cleared buffer rnti=0x%x\n", rnti);
   }
 }
 
@@ -107,7 +107,7 @@ int rlc_nr::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t no
     // communicate buffer state every time a PDU is read
 
     uint32_t retx_queue = 0;
-    m_log->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    logger.debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     m_mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
   } else {
     ret = SRSLTE_ERROR;
@@ -124,7 +124,7 @@ void rlc_nr::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t 
     // communicate buffer state every time a new PDU is written
     uint32_t tx_queue   = users[rnti].m_rlc->get_buffer_state(lcid);
     uint32_t retx_queue = 0;
-    m_log->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    logger.debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     m_mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
   }
 }
@@ -152,7 +152,7 @@ void rlc_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_
 
     uint32_t retx_queue = 0;
     m_mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
-    m_log->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    logger.info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
   }
 }
 

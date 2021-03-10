@@ -19,8 +19,6 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
-#include "srslte/common/logger_srslog_wrapper.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/signal_handler.h"
 #include "srslte/srslog/event_trace.h"
 #include "srslte/srslog/srslog.h"
@@ -498,8 +496,6 @@ int main(int argc, char* argv[])
           ? srslog::fetch_stdout_sink()
           : srslog::fetch_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size)));
 
-  srslte::srslog_wrapper log_wrapper(srslog::fetch_log_channel("main_channel"));
-
   // Alarms log channel creation.
   srslog::sink&        alarm_sink     = srslog::fetch_file_sink(args.general.alarms_filename);
   srslog::log_channel& alarms_channel = srslog::fetch_log_channel("alarms", alarm_sink, {"ALRM", '\0', false});
@@ -516,8 +512,7 @@ int main(int argc, char* argv[])
   // Start the log backend.
   srslog::init();
 
-  srslte::logmap::set_default_logger(&log_wrapper);
-  srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
+  srslog::fetch_basic_logger("COMMON").set_level(srslog::basic_levels::info);
   srslte::log_args(argc, argv, "ENB");
 
   srslte::check_scaling_governor(args.rf.device_name);
@@ -535,7 +530,7 @@ int main(int argc, char* argv[])
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb(srslog::get_default_sink())};
-  if (enb->init(args, &log_wrapper) != SRSLTE_SUCCESS) {
+  if (enb->init(args) != SRSLTE_SUCCESS) {
     enb->stop();
     return SRSLTE_ERROR;
   }

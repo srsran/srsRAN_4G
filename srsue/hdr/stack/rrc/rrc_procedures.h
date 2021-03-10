@@ -11,7 +11,6 @@
  */
 
 #include "phy_controller.h"
-#include "srslte/common/log.h"
 #include "srslte/interfaces/ue_nas_interfaces.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/stack/rrc/rrc.h"

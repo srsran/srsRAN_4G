@@ -10,7 +10,6 @@
  *
  */
 
-#include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 
@@ -273,8 +272,8 @@ uint32_t sf_worker::get_metrics(std::vector<phy_metrics_t>& metrics)
       phy_metrics_t* m_ = &metrics_[r];
       m->dl.mcs         = SRSLTE_VEC_PMA(m->dl.mcs, m->dl.n_samples, m_->dl.mcs, m_->dl.n_samples);
       m->dl.n_samples += m_->dl.n_samples;
-      m->ul.n           = SRSLTE_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
-      m->ul.pusch_sinr  = SRSLTE_VEC_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
+      m->ul.n          = SRSLTE_VEC_PMA(m->ul.n, m->ul.n_samples, m_->ul.n, m_->ul.n_samples);
+      m->ul.pusch_sinr = SRSLTE_VEC_PMA(m->ul.pusch_sinr, m->ul.n_samples, m_->ul.pusch_sinr, m_->ul.n_samples);
       m->ul.pucch_sinr =
           SRSLTE_VEC_PMA(m->ul.pucch_sinr, m->ul.n_samples_pucch, m_->ul.pucch_sinr, m_->ul.n_samples_pucch);
       m->ul.mcs         = SRSLTE_VEC_PMA(m->ul.mcs, m->ul.n_samples, m_->ul.mcs, m_->ul.n_samples);

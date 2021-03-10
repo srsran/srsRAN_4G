@@ -10,7 +10,6 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc.h"
 #include <iostream>
 

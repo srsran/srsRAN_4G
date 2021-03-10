@@ -13,7 +13,6 @@
 #ifndef SRSUE_UE_STACK_BASE_H
 #define SRSUE_UE_STACK_BASE_H
 
-#include "srslte/common/logger.h"
 #include "srsue/hdr/stack/upper/nas_config.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 

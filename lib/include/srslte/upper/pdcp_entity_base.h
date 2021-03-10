@@ -17,7 +17,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/security.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
@@ -112,9 +111,9 @@ public:
   virtual void write_sdu(unique_byte_buffer_t sdu, int sn = -1) = 0;
 
   // RLC interface
-  virtual void write_pdu(unique_byte_buffer_t pdu)                    = 0;
-  virtual void notify_delivery(const pdcp_sn_vector_t& pdcp_sns)      = 0;
-  virtual void notify_failure(const pdcp_sn_vector_t& pdcp_sns)       = 0;
+  virtual void write_pdu(unique_byte_buffer_t pdu)               = 0;
+  virtual void notify_delivery(const pdcp_sn_vector_t& pdcp_sns) = 0;
+  virtual void notify_failure(const pdcp_sn_vector_t& pdcp_sns)  = 0;
 
   virtual void get_bearer_state(pdcp_lte_state_t* state)       = 0;
   virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;

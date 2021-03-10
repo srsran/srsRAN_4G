@@ -16,7 +16,6 @@
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/dl_harq.h"
-#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 

@@ -16,7 +16,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/common/int_helpers.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 
 #include <arpa/inet.h> //for inet_ntop()
@@ -1524,17 +1524,18 @@ s1ap::ue* s1ap::user_list::find_ue_mmeid(uint32_t mmeid)
  */
 s1ap::ue* s1ap::user_list::add_user(std::unique_ptr<s1ap::ue> user)
 {
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("S1AP");
   // Check for ID repetitions
   if (find_ue_rnti(user->ctxt.rnti) != nullptr) {
-    srslte::logmap::get("S1AP")->error("The user to be added with rnti=0x%x already exists", user->ctxt.rnti);
+    logger.error("The user to be added with rnti=0x%x already exists", user->ctxt.rnti);
     return nullptr;
   }
   if (find_ue_enbid(user->ctxt.enb_ue_s1ap_id) != nullptr) {
-    srslte::logmap::get("S1AP")->error("The user to be added with enb id=%d already exists", user->ctxt.enb_ue_s1ap_id);
+    logger.error("The user to be added with enb id=%d already exists", user->ctxt.enb_ue_s1ap_id);
     return nullptr;
   }
   if (find_ue_mmeid(user->ctxt.mme_ue_s1ap_id) != nullptr) {
-    srslte::logmap::get("S1AP")->error("The user to be added with mme id=%d already exists", user->ctxt.mme_ue_s1ap_id);
+    logger.error("The user to be added with mme id=%d already exists", user->ctxt.mme_ue_s1ap_id);
     return nullptr;
   }
   auto p = users.insert(std::make_pair(user->ctxt.enb_ue_s1ap_id, std::move(user)));
@@ -1543,9 +1544,10 @@ s1ap::ue* s1ap::user_list::add_user(std::unique_ptr<s1ap::ue> user)
 
 void s1ap::user_list::erase(ue* ue_ptr)
 {
-  auto it = users.find(ue_ptr->ctxt.enb_ue_s1ap_id);
+  static srslog::basic_logger& logger = srslog::fetch_basic_logger("S1AP");
+  auto                         it     = users.find(ue_ptr->ctxt.enb_ue_s1ap_id);
   if (it == users.end()) {
-    srslte::logmap::get("S1AP")->error("User to be erased does not exist");
+    logger.error("User to be erased does not exist");
     return;
   }
   users.erase(it);

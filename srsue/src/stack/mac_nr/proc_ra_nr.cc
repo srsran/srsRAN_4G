@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/mac/mac_rar_pdu_nr.h"
 #include "srsue/hdr/stack/mac_nr/mac_nr.h"
 

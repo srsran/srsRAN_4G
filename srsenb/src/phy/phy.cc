@@ -19,7 +19,6 @@
 #include <unistd.h>
 
 #include "srsenb/hdr/phy/phy.h"
-#include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 
 #define Error(fmt, ...)                                                                                                \

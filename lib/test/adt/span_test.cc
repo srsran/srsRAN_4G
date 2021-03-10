@@ -11,6 +11,7 @@
  */
 
 #include "srslte/adt/span.h"
+#include "srslte/common/byte_buffer.h"
 #include "srslte/common/test_common.h"
 
 int test_span_access()

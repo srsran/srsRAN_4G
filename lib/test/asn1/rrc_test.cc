@@ -693,7 +693,6 @@ int test_rrc_conn_reconf_r15_3()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
   asn1_logger.set_level(srslog::basic_levels::debug);
   asn1_logger.set_hex_dump_max_size(-1);

@@ -11,13 +11,13 @@
  */
 
 #include "srsenb/hdr/enb.h"
+#include "srsenb/hdr/phy/vnf_phy_nr.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
+#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
 #include "srslte/common/enb_events.h"
 #include "srslte/radio/radio_null.h"
-#include "srsenb/hdr/phy/vnf_phy_nr.h"
-#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include <iostream>
 
 namespace srsenb {
@@ -34,13 +34,11 @@ enb::~enb()
   stack.reset();
 }
 
-int enb::init(const all_args_t& args_, srslte::logger* logger_)
+int enb::init(const all_args_t& args_)
 {
   int ret = SRSLTE_SUCCESS;
-  logger  = logger_;
 
   // Init eNB log
-  srslte::logmap::set_default_logger(logger);
   enb_log.set_level(srslog::basic_levels::info);
   enb_log.info("%s", get_build_string().c_str());
 
@@ -54,7 +52,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Create layers
   if (args.stack.type == "lte") {
-    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger, log_sink));
+    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(log_sink));
     if (!lte_stack) {
       srslte::console("Error creating eNB stack.\n");
       return SRSLTE_ERROR;
@@ -200,31 +198,13 @@ bool enb::get_metrics(enb_metrics_t* m)
   phy->get_metrics(m->phy);
   stack->get_metrics(&m->stack);
   m->running = started;
-  m->sys = sys_proc.get_metrics();
+  m->sys     = sys_proc.get_metrics();
   return true;
 }
 
 void enb::cmd_cell_gain(uint32_t cell_id, float gain)
 {
   phy->cmd_cell_gain(cell_id, gain);
-}
-
-srslte::LOG_LEVEL_ENUM enb::level(std::string l)
-{
-  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
-  if ("NONE" == l) {
-    return srslte::LOG_LEVEL_NONE;
-  } else if ("ERROR" == l) {
-    return srslte::LOG_LEVEL_ERROR;
-  } else if ("WARNING" == l) {
-    return srslte::LOG_LEVEL_WARNING;
-  } else if ("INFO" == l) {
-    return srslte::LOG_LEVEL_INFO;
-  } else if ("DEBUG" == l) {
-    return srslte::LOG_LEVEL_DEBUG;
-  } else {
-    return srslte::LOG_LEVEL_NONE;
-  }
 }
 
 std::string enb::get_build_mode()

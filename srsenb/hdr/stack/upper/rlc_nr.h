@@ -13,9 +13,6 @@
 #ifndef SRSENB_RLC_NR_H
 #define SRSENB_RLC_NR_H
 
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/logger.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/upper/rlc.h"
 #include <map>
@@ -80,11 +77,11 @@ private:
   };
 
   // args
-  srslte::log_ref        m_log;
   srslte::timer_handler* timers = nullptr;
   mac_interface_rlc_nr*  m_mac  = nullptr;
   pdcp_interface_rlc_nr* m_pdcp = nullptr;
   rrc_interface_rlc_nr*  m_rrc  = nullptr;
+  srslog::basic_logger&  logger;
 
   // state
   std::map<uint32_t, user_interface> users;

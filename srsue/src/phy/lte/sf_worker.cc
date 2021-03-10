@@ -12,6 +12,7 @@
 
 #include "srslte/srslte.h"
 
+#include "srslte/common/standard_streams.h"
 #include "srsue/hdr/phy/lte/sf_worker.h"
 #include <string.h>
 

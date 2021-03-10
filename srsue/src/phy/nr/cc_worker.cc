@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/phy/nr/cc_worker.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/srslte.h"
 
 namespace srsue {

@@ -17,7 +17,6 @@
 #include "sched_phy_ch/sf_cch_allocator.h"
 #include "sched_ue.h"
 #include "srslte/adt/bounded_bitset.h"
-#include "srslte/common/log.h"
 #include "srslte/srslog/srslog.h"
 #include <deque>
 #include <vector>

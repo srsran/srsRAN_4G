@@ -19,7 +19,6 @@
 #include <set>
 #include <unistd.h>
 
-#include "srslte/common/log_filter.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/phy/utils/debug.h"
 
@@ -30,7 +29,7 @@
 
 using srslte::tti_point;
 
-uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
+uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 struct ue_stats_t {
   uint32_t nof_dl_rbs   = 0;
@@ -151,8 +150,8 @@ int sched_tester::process_results()
 
   // UE dedicated tests
   TESTASSERT(run_ue_ded_tests_and_update_ctxt(sf_out) == SRSLTE_SUCCESS);
-  test_harqs();
-  update_ue_stats();
+  TESTASSERT(test_harqs() == SRSLTE_SUCCESS);
+  TESTASSERT(update_ue_stats() == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }
@@ -235,7 +234,7 @@ int sched_tester::update_ue_stats()
   return SRSLTE_SUCCESS;
 }
 
-void test_scheduler_rand(sched_sim_events sim)
+int test_scheduler_rand(sched_sim_events sim)
 {
   // Create classes
   sched_tester  tester;
@@ -243,7 +242,8 @@ void test_scheduler_rand(sched_sim_events sim)
 
   tester.sim_cfg(std::move(sim.sim_args));
 
-  tester.test_next_ttis(sim.tti_events);
+  TESTASSERT(tester.test_next_ttis(sim.tti_events) == SRSLTE_SUCCESS);
+  return SRSLTE_SUCCESS;
 }
 
 template <typename T>
@@ -352,7 +352,7 @@ int main()
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
     sched_sim_events sim = rand_sim_params(nof_ttis);
-    test_scheduler_rand(std::move(sim));
+    TESTASSERT(test_scheduler_rand(std::move(sim)) == SRSLTE_SUCCESS);
   }
 
   return 0;

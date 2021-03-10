@@ -12,7 +12,6 @@
 
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/mac/pdu.h"

@@ -16,7 +16,6 @@
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_rrc_interfaces.h"

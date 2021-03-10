@@ -10,7 +10,6 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/config.h"

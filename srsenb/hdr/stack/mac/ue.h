@@ -16,7 +16,6 @@
 #include "mac_metrics.h"
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/block_queue.h"
-#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/mac_pcap_net.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -84,7 +83,6 @@ public:
      rrc_interface_mac*       rrc_,
      rlc_interface_mac*       rlc,
      phy_interface_stack_lte* phy_,
-     srslte::log_ref          log_,
      srslog::basic_logger&    logger,
      uint32_t                 nof_cells_,
      uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
@@ -168,7 +166,6 @@ private:
   rlc_interface_mac*       rlc = nullptr;
   rrc_interface_mac*       rrc = nullptr;
   phy_interface_stack_lte* phy = nullptr;
-  srslte::log_ref          log_h;
   srslog::basic_logger&    logger;
   sched_interface*         sched = nullptr;
 

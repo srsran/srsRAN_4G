@@ -14,7 +14,7 @@
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/enb_rrc_interfaces.h"
 

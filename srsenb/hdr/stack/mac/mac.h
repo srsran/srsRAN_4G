@@ -15,7 +15,6 @@
 
 #include "sched.h"
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_rr.h"
-#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/mac_pcap_net.h"
 #include "srslte/common/task_scheduler.h"
@@ -41,8 +40,7 @@ public:
             const cell_list_t&       cells_,
             phy_interface_stack_lte* phy,
             rlc_interface_mac*       rlc,
-            rrc_interface_mac*       rrc,
-            srslte::log_ref          log_h);
+            rrc_interface_mac*       rrc);
   void stop();
 
   void start_pcap(srslte::mac_pcap* pcap_);
@@ -120,7 +118,6 @@ private:
   rlc_interface_mac*            rlc_h = nullptr;
   rrc_interface_mac*            rrc_h = nullptr;
   srslte::ext_task_sched_handle task_sched;
-  srslte::log_ref               log_h;
 
   cell_list_t cells = {};
   mac_args_t  args  = {};

@@ -12,9 +12,11 @@
 #include "srslte/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include "srslte/common/network_utils.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/string_helpers.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
+
 #include <errno.h>
 #include <linux/ip.h>
 #include <stdio.h>

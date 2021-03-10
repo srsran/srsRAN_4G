@@ -13,7 +13,6 @@
 #ifndef SRSUE_NAS_EMM_STATE_H
 #define SRSUE_NAS_EMM_STATE_H
 
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include <atomic>
 #include <string>

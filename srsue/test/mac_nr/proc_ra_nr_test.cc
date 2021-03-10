@@ -9,8 +9,8 @@
  * the distribution.
  *
  */
+#include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/test_common.h"
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
 

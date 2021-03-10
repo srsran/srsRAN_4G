@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/upper/gw.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/ipv6.h"
 

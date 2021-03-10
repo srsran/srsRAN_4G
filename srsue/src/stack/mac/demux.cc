@@ -10,14 +10,15 @@
  *
  */
 
+#include "srsue/hdr/stack/mac/demux.h"
+#include "srslte/common/standard_streams.h"
+#include "srslte/common/string_helpers.h"
+#include "srslte/interfaces/ue_phy_interfaces.h"
+
 #define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...) logger.info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...) logger.debug(fmt, ##__VA_ARGS__)
-
-#include "srsue/hdr/stack/mac/demux.h"
-#include "srslte/common/string_helpers.h"
-#include "srslte/interfaces/ue_phy_interfaces.h"
 
 namespace srsue {
 

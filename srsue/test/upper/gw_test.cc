@@ -10,7 +10,6 @@
  *
  */
 
-#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/srslog/srslog.h"

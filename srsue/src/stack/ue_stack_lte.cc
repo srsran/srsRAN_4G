@@ -11,9 +11,10 @@
  */
 
 #include "srsue/hdr/stack/ue_stack_lte.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/srslog/event_trace.h"
+
 #include <algorithm>
 #include <chrono>
 #include <numeric>

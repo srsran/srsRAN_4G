@@ -14,7 +14,6 @@
 #define SRSUE_USIM_H
 
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "usim_base.h"
 #include <string>

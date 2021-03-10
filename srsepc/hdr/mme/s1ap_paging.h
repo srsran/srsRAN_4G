@@ -15,7 +15,6 @@
 #include "s1ap_common.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/srslog/srslog.h"
 
 namespace srsepc {

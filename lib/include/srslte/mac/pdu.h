@@ -14,7 +14,6 @@
 #define SRSLTE_PDU_H
 
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include <sstream>
 #include <stdint.h>

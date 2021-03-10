@@ -15,7 +15,6 @@
 #include "srsenb/hdr/stack/mac/sched.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
 #include "srsenb/hdr/stack/mac/sched_ue.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/string_helpers.h"
 #include "srslte/srslog/bundled/fmt/ranges.h"
 

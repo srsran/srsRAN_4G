@@ -17,7 +17,6 @@
 #include <stdint.h>
 
 #include "proc_sr.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/srslog/srslog.h"
 

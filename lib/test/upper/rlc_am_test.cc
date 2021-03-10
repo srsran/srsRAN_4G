@@ -10,7 +10,7 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/common/rlc_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"
@@ -3415,10 +3415,6 @@ bool reestablish_test()
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
-  srslte::logmap::set_default_hex_limit(4096);
-  TESTASSERT(srslte::logmap::get("RLC_AM_1")->get_level() == srslte::LOG_LEVEL_DEBUG);
-
   // Setup the log message spy to intercept error and warning log entries from RLC
   if (!srslog::install_custom_sink(srslte::log_sink_message_spy::name(),
                                    std::unique_ptr<srslte::log_sink_message_spy>(
@@ -3436,6 +3432,8 @@ int main(int argc, char** argv)
   auto& logger_rrc2 = srslog::fetch_basic_logger("RLC_AM_2", *spy, false);
   logger_rrc1.set_hex_dump_max_size(100);
   logger_rrc2.set_hex_dump_max_size(100);
+  logger_rrc1.set_level(srslog::basic_levels::debug);
+  logger_rrc2.set_level(srslog::basic_levels::debug);
 
   // start log backend
   srslog::init();

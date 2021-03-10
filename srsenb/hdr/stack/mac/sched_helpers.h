@@ -14,7 +14,6 @@
 #define SRSLTE_SCHED_HELPERS_H
 
 #include "srsenb/hdr/stack/mac/sched_common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/srslog/srslog.h"
 
@@ -56,7 +55,7 @@ inline uint32_t cell_nof_prb_to_rbg(uint32_t nof_prbs)
     case 100:
       return 25;
     default:
-      srslte::logmap::get("MAC")->error("Provided nof PRBs not valid");
+      srslog::fetch_basic_logger("MAC").error("Provided nof PRBs not valid");
       return 0;
   }
 }
@@ -78,7 +77,7 @@ inline uint32_t cell_nof_rbg_to_prb(uint32_t nof_rbgs)
     case 25:
       return 100;
     default:
-      srslte::logmap::get("MAC")->error("Provided nof PRBs not valid");
+      srslog::fetch_basic_logger("MAC").error("Provided nof PRBs not valid");
       return 0;
   }
 }

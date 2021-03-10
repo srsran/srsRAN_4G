@@ -15,7 +15,6 @@
 
 #include "srslte/adt/observer.h"
 #include "srslte/common/fsm.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_phy_interfaces.h"
 #include "srslte/interfaces/ue_rrc_interfaces.h"

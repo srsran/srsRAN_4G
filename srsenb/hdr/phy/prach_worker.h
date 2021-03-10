@@ -15,7 +15,6 @@
 
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/srslog/srslog.h"

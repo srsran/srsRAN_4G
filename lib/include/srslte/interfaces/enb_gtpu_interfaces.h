@@ -13,6 +13,8 @@
 #ifndef SRSLTE_ENB_GTPU_INTERFACES_H
 #define SRSLTE_ENB_GTPU_INTERFACES_H
 
+#include "srslte/common/byte_buffer.h"
+
 namespace srsenb {
 
 // GTPU interface for PDCP

@@ -13,8 +13,8 @@
 #ifndef SRSLTE_MAC_SCH_PDU_NR_H
 #define SRSLTE_MAC_SCH_PDU_NR_H
 
+#include "srslte/common/byte_buffer.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/config.h"
 #include "srslte/srslog/srslog.h"
 #include <memory>
@@ -101,7 +101,7 @@ private:
   static const uint8_t mac_ce_payload_len = 8 + 1;         // Long BSR has max. 9 octets (see sizeof_ce() too)
   std::array<uint8_t, mac_ce_payload_len> ce_write_buffer; // Buffer for CE payload
 
-  mac_sch_pdu_nr*       parent = nullptr;
+  mac_sch_pdu_nr* parent = nullptr;
 };
 
 class mac_sch_pdu_nr
@@ -135,9 +135,9 @@ private:
   bool                           ulsch = false;
   std::vector<mac_sch_subpdu_nr> subpdus;
 
-  byte_buffer_t* buffer        = nullptr;
-  uint32_t       pdu_len       = 0;
-  uint32_t       remaining_len = 0;
+  byte_buffer_t*        buffer        = nullptr;
+  uint32_t              pdu_len       = 0;
+  uint32_t              remaining_len = 0;
   srslog::basic_logger& logger;
 };
 

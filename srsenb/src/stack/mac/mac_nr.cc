@@ -20,7 +20,7 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr() : log_h("MAC")
+mac_nr::mac_nr() : logger(srslog::fetch_basic_logger("MAC"))
 {
   bcch_bch_payload = srslte::make_byte_buffer();
 
@@ -50,15 +50,15 @@ int mac_nr::init(const mac_nr_args_t&    args_,
   rlc_h   = rlc_;
   rrc_h   = rrc_;
 
-  log_h->set_level(args.log_level);
-  log_h->set_hex_limit(args.log_hex_limit);
+  logger.set_level(srslog::str_to_basic_level(args.log_level));
+  logger.set_hex_dump_max_size(args.log_hex_limit);
 
   if (args.pcap.enable) {
     pcap = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
     pcap->open(args.pcap.filename);
   }
 
-  log_h->info("Started\n");
+  logger.info("Started\n");
 
   started = true;
 
@@ -87,7 +87,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
   if (tti % 80 == 0) {
     // try to read BCH PDU from RRC
     if (rrc_h->read_pdu_bcch_bch(tti, bcch_bch_payload) == SRSLTE_SUCCESS) {
-      log_h->info("Adding BCH in TTI=%d\n", tti);
+      logger.info("Adding BCH in TTI=%d\n", tti);
       tx_request.pdus[tx_request.nof_pdus].pbch.mib_present = true;
       tx_request.pdus[tx_request.nof_pdus].data[0]          = bcch_bch_payload->msg;
       tx_request.pdus[tx_request.nof_pdus].length           = bcch_bch_payload->N_bytes;
@@ -98,7 +98,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
         pcap->write_dl_bch(bcch_bch_payload->msg, bcch_bch_payload->N_bytes, 0xffff, 0, tti);
       }
     } else {
-      log_h->error("Couldn't read BCH payload from RRC\n");
+      logger.error("Couldn't read BCH payload from RRC\n");
     }
   }
 
@@ -106,7 +106,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
   for (auto& sib : bcch_dlsch_payload) {
     if (sib.payload->N_bytes > 0) {
       if (tti % (sib.periodicity * 10) == 0) {
-        log_h->info("Adding SIB %d in TTI=%d\n", sib.index, tti);
+        logger.info("Adding SIB %d in TTI=%d\n", sib.index, tti);
 
         tx_request.pdus[tx_request.nof_pdus].data[0] = sib.payload->msg;
         tx_request.pdus[tx_request.nof_pdus].length  = sib.payload->N_bytes;
@@ -134,18 +134,18 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
 
     // Only create PDU if RLC has something to tx
     if (pdu_len > 0) {
-      log_h->info("Adding MAC PDU for RNTI=%d\n", args.rnti);
+      logger.info("Adding MAC PDU for RNTI=%d\n", args.rnti);
       ue_rlc_buffer->N_bytes = pdu_len;
-      log_h->info_hex(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC\n", ue_rlc_buffer->N_bytes);
+      logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC\n", ue_rlc_buffer->N_bytes);
 
       // add to MAC PDU and pack
       ue_tx_pdu.add_sdu(4, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
       ue_tx_pdu.pack();
 
-      log_h->debug_hex(ue_tx_buffer.at(buffer_index)->msg,
-                       ue_tx_buffer.at(buffer_index)->N_bytes,
-                       "Generated MAC PDU (%d B)\n",
-                       ue_tx_buffer.at(buffer_index)->N_bytes);
+      logger.debug(ue_tx_buffer.at(buffer_index)->msg,
+                   ue_tx_buffer.at(buffer_index)->N_bytes,
+                   "Generated MAC PDU (%d B)\n",
+                   ue_tx_buffer.at(buffer_index)->N_bytes);
 
       tx_request.pdus[tx_request.nof_pdus].data[0] = ue_tx_buffer.at(buffer_index)->msg;
       tx_request.pdus[tx_request.nof_pdus].length  = ue_tx_buffer.at(buffer_index)->N_bytes;
@@ -173,7 +173,7 @@ int mac_nr::sf_indication(const uint32_t tti)
   phy_interface_stack_nr::tx_request_t        tx_request     = {};
 
   // step MAC TTI
-  log_h->step(tti);
+  logger.set_context(tti);
 
   get_dl_config(tti, config_request, tx_request);
 
@@ -216,14 +216,14 @@ void mac_nr::process_pdus()
 
 int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
 {
-  log_h->info_hex(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)\n", pdu->N_bytes);
+  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)\n", pdu->N_bytes);
 
   ue_rx_pdu.init_rx(true);
   ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
     srslte::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
-    log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
+    logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
                 i,
                 ue_rx_pdu.get_num_subpdus(),
                 subpdu.get_lcid(),
@@ -246,10 +246,10 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
       sib.periodicity = cell_cfg->sibs->period_rf;
       sib.payload     = srslte::make_byte_buffer();
       if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSLTE_SUCCESS) {
-        log_h->error("Couldn't read SIB %d from RRC\n", sib.index);
+        logger.error("Couldn't read SIB %d from RRC\n", sib.index);
       }
 
-      log_h->info("Including SIB %d into SI scheduling\n", sib.index);
+      logger.info("Including SIB %d into SI scheduling\n", sib.index);
       bcch_dlsch_payload.push_back(std::move(sib));
     }
   }

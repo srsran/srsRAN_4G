@@ -16,7 +16,6 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/nas_pcap.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"

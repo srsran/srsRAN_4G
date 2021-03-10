@@ -14,8 +14,8 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/mac.h"
-#include "srslte/common/log.h"
 #include "srslte/common/rwlock_guard.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/time_prof.h"
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"
@@ -43,16 +43,14 @@ bool mac::init(const mac_args_t&        args_,
                const cell_list_t&       cells_,
                phy_interface_stack_lte* phy,
                rlc_interface_mac*       rlc,
-               rrc_interface_mac*       rrc,
-               srslte::log_ref          log_h_)
+               rrc_interface_mac*       rrc)
 {
   started = false;
 
-  if (phy && rlc && log_h_) {
+  if (phy && rlc) {
     phy_h = phy;
     rlc_h = rlc;
     rrc_h = rrc;
-    log_h = log_h_;
 
     args  = args_;
     cells = cells_;
@@ -282,7 +280,6 @@ void mac::get_metrics(mac_metrics_t& metrics)
 int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   logger.set_context(tti_rx);
-  log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -304,7 +301,6 @@ int mac::ack_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
 int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc)
 {
   logger.set_context(tti_rx);
-  log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -348,7 +344,6 @@ int mac::push_pdu(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
 int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)
 {
   logger.set_context(tti);
-  log_h->step(tti);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -364,7 +359,6 @@ int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_v
 int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value)
 {
   logger.set_context(tti);
-  log_h->step(tti);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -380,7 +374,6 @@ int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi
 int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)
 {
   logger.set_context(tti);
-  log_h->step(tti);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -396,7 +389,6 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi
 int mac::snr_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, float snr, ul_channel_t ch)
 {
   logger.set_context(tti_rx);
-  log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -424,7 +416,6 @@ int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
 int mac::sr_detected(uint32_t tti, uint16_t rnti)
 {
   logger.set_context(tti);
-  log_h->step(tti);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (not check_ue_exists(rnti)) {
@@ -504,7 +495,6 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 {
   static srslte::mutexed_tprof<srslte::avg_time_stats> rach_tprof("rach_tprof", "MAC", 1);
   logger.set_context(tti);
-  log_h->step(tti);
   auto rach_tprof_meas = rach_tprof.start();
 
   uint16_t rnti = allocate_ue();
@@ -562,7 +552,7 @@ void mac::prealloc_ue(uint32_t nof_ue)
 {
   for (uint32_t i = 0; i < nof_ue; i++) {
     std::unique_ptr<ue> ptr = std::unique_ptr<ue>(
-        new ue(allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, logger, cells.size()));
+        new ue(allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size()));
     if (not ue_pool.try_push(std::move(ptr))) {
       logger.info("Cannot preallocate more UEs as pool is full");
       return;
@@ -578,7 +568,6 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 
   trace_complete_event("mac::get_dl_sched", "total_time");
   logger.set_context(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
-  log_h->step(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < cell_config.size(); enb_cc_idx++) {
     // Run scheduler with current info
@@ -779,7 +768,6 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
 {
   dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
   logger.set_context(tti);
-  log_h->step(tti);
   srslte_ra_tb_t mcs      = {};
   srslte_ra_tb_t mcs_data = {};
   mcs.mcs_idx             = enum_to_number(this->sib13.mbsfn_area_info_list[0].mcch_cfg.sig_mcs);
@@ -890,7 +878,6 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
   }
 
   logger.set_context(TTI_SUB(tti_tx_ul, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
-  log_h->step(TTI_SUB(tti_tx_ul, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
 
   // Execute UE FSMs (e.g. TA)
   for (auto& ue : ue_db) {
@@ -994,8 +981,8 @@ void mac::write_mcch(const srslte::sib2_mbms_t* sib2_,
   sib13 = *sib13_;
   memcpy(mcch_payload_buffer, mcch_payload, mcch_payload_length * sizeof(uint8_t));
   current_mcch_length = mcch_payload_length;
-  ue_db[SRSLTE_MRNTI] = std::unique_ptr<ue>{
-      new ue(SRSLTE_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, logger, cells.size())};
+  ue_db[SRSLTE_MRNTI] =
+      std::unique_ptr<ue>{new ue(SRSLTE_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, logger, cells.size())};
 
   rrc_h->add_user(SRSLTE_MRNTI, {});
 }

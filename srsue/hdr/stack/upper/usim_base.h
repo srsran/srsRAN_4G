@@ -14,7 +14,6 @@
 #define SRSUE_USIM_BASE_H
 
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"
 #include "srslte/srslog/srslog.h"

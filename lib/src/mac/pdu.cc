@@ -15,6 +15,7 @@
 #include <string.h>
 #include <strings.h>
 
+#include "srslte/common/standard_streams.h"
 #include "srslte/mac/pdu.h"
 
 extern "C" {

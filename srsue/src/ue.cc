@@ -29,7 +29,7 @@ using namespace srslte;
 
 namespace srsue {
 
-ue::ue() : old_logger(nullptr), logger(srslog::fetch_basic_logger("UE", false))
+ue::ue() : logger(srslog::fetch_basic_logger("UE", false))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl << std::endl;
@@ -40,10 +40,9 @@ ue::~ue()
   stack.reset();
 }
 
-int ue::init(const all_args_t& args_, srslte::logger* logger_)
+int ue::init(const all_args_t& args_)
 {
-  int ret    = SRSLTE_SUCCESS;
-  old_logger = logger_;
+  int ret = SRSLTE_SUCCESS;
 
   // Init UE log
   logger.set_level(srslog::basic_levels::info);
@@ -121,7 +120,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     radio   = std::move(lte_radio);
   } else if (args.stack.type == "nr") {
     logger.info("Initializing NR stack");
-    std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(old_logger));
+    std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr());
     std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null);
     std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr);
     std::unique_ptr<gw>                 gw_ptr(new gw());

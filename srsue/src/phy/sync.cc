@@ -11,10 +11,11 @@
  */
 
 #include "srsue/hdr/phy/sync.h"
-#include "srslte/common/log.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/lte/sf_worker.h"
+
 #include <algorithm>
 #include <unistd.h>
 

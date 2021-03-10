@@ -9,12 +9,11 @@
  * the distribution.
  *
  */
-#include <srslte/common/log_filter.h>
-#include <srslte/common/logger_srslog_wrapper.h>
-#include <srslte/common/thread_pool.h>
-#include <srslte/common/tti_sempahore.h>
-#include <srslte/phy/utils/random.h>
-#include <srslte/srslog/srslog.h>
+#include "srslte/common/common.h"
+#include "srslte/common/thread_pool.h"
+#include "srslte/common/tti_sempahore.h"
+#include "srslte/phy/utils/random.h"
+#include "srslte/srslog/srslog.h"
 
 class dummy_radio
 {

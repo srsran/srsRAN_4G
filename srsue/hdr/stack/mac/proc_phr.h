@@ -13,7 +13,6 @@
 #ifndef SRSUE_PROC_PHR_H
 #define SRSUE_PROC_PHR_H
 
-#include "srslte/common/logmap.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_mac_interfaces.h"
 #include "srslte/srslog/srslog.h"

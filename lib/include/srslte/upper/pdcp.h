@@ -14,7 +14,6 @@
 #define SRSLTE_PDCP_H
 
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"

@@ -12,10 +12,10 @@
 
 #include <map>
 #include <string.h>
+#include <unordered_map>
 
 #include "common_enb.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_gtpu_interfaces.h"
 #include "srslte/phy/common/phy_common.h"

@@ -13,7 +13,6 @@
 #ifndef SRSLTE_NR_CC_WORKER_H
 #define SRSLTE_NR_CC_WORKER_H
 
-#include "srslte/common/log.h"
 #include "srsue/hdr/phy/phy_common.h"
 #include "state.h"
 

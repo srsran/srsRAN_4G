@@ -10,9 +10,6 @@
  *
  */
 
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/logger.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_rlc_interfaces.h"
@@ -104,7 +101,6 @@ private:
 
   // args
   pdcp_nr_args_t          m_args = {};
-  srslte::log_ref         m_log;
   rlc_interface_pdcp_nr*  m_rlc  = nullptr;
   rrc_interface_pdcp_nr*  m_rrc  = nullptr;
   sdap_interface_pdcp_nr* m_sdap = nullptr;
@@ -112,6 +108,7 @@ private:
   std::map<uint32_t, user_interface> users;
 
   srslte::task_sched_handle task_sched;
+  srslog::basic_logger&     logger;
 };
 
 } // namespace srsenb

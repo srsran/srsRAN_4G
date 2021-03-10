@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
+#include "srslte/srslte.h"
 #include "srslte/upper/ipv6.h"
 #include <linux/ip.h>
 #include <linux/tcp.h>

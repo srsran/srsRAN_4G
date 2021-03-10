@@ -11,7 +11,6 @@
  */
 
 #include "srslte/build_info.h"
-#include "srslte/common/logmap.h"
 #include "srslte/srslog/srslog.h"
 #include "srsue/hdr/ue.h"
 #include "swappable_sink.h"

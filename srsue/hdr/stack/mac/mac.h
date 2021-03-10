@@ -21,7 +21,6 @@
 #include "proc_phr.h"
 #include "proc_ra.h"
 #include "proc_sr.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"

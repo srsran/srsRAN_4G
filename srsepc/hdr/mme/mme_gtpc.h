@@ -15,8 +15,6 @@
 #include "nas.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 

@@ -11,6 +11,7 @@
  */
 
 #include "srslte/adt/choice_type.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/common/test_common.h"
 
 struct C {

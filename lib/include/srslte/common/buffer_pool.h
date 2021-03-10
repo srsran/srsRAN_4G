@@ -26,7 +26,6 @@
 *******************************************************************************/
 
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/srslog/srslog.h"
 
 namespace srslte {

@@ -11,6 +11,7 @@
  */
 
 #include "srsue/hdr/phy/search.h"
+#include "srslte/common/standard_streams.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \

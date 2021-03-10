@@ -16,15 +16,14 @@
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srsenb/test/common/dummy_classes.h"
 #include "srslte/adt/span.h"
-#include "srslte/common/log_filter.h"
 
 using namespace srsenb;
 using namespace asn1::rrc;
 
 namespace argparse {
 
-extern std::string            repository_dir;
-extern srslte::LOG_LEVEL_ENUM log_level;
+extern std::string          repository_dir;
+extern srslog::basic_levels log_level;
 
 inline void usage(char* prog)
 {
@@ -42,7 +41,7 @@ inline void parse_args(int argc, char** argv)
         repository_dir = argv[optind];
         break;
       case 'v':
-        log_level = srslte::LOG_LEVEL_DEBUG;
+        log_level = srslog::basic_levels::debug;
         break;
       default:
         usage(argv[0]);

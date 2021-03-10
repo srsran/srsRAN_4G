@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/logmap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_rrc_interfaces.h"
 #include "srslte/interfaces/ue_usim_interfaces.h"

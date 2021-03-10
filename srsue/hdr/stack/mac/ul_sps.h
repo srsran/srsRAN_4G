@@ -13,7 +13,6 @@
 #ifndef SRSUE_UL_SPS_H
 #define SRSUE_UL_SPS_H
 
-#include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 
 /* Uplink Semi-Persistent schedulign (Section 5.10.2) */

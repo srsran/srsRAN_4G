@@ -17,7 +17,6 @@
 #include "srslte/adt/circular_array.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/pdcp_interface_types.h"

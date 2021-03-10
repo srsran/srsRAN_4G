@@ -11,7 +11,6 @@
  */
 
 #include "rlc_test_common.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc_um_lte.h"
 #include <iostream>
 

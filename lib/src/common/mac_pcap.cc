@@ -11,6 +11,7 @@
  */
 
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/common/threads.h"
 
 namespace srslte {

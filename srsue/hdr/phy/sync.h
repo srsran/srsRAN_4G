@@ -24,7 +24,6 @@
 #include "scell/scell_sync.h"
 #include "search.h"
 #include "sfn_sync.h"
-#include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"

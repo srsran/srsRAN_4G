@@ -12,7 +12,6 @@
 
 #include "srslte/asn1/rrc/meascfg.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/test_common.h"
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
@@ -1216,7 +1215,6 @@ int meas_obj_inter_rat_nr_test()
   // Just test it doesn't crash
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 0);
-
 
   rrctest.add_neighbour_cell(2, 300, 2.0);
   rrctest.set_serving_cell(2, 300);

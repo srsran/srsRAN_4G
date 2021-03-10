@@ -14,7 +14,6 @@
 #define SRSENB_SCHEDULER_UE_H
 
 #include "sched_common.h"
-#include "srslte/common/log.h"
 #include "srslte/srslog/srslog.h"
 #include <map>
 #include <vector>

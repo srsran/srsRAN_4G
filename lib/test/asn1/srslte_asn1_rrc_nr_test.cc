@@ -279,13 +279,15 @@ int test_cell_group_config()
 
   asn1::rrc_nr::rach_cfg_common_s& rach_cfg_common =
       cell_group_cfg.sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common.ul_cfg_common.init_ul_bwp.rach_cfg_common.setup();
-  
+
   TESTASSERT(rach_cfg_common.rach_cfg_generic.prach_cfg_idx == 16);
   TESTASSERT(rach_cfg_common.rach_cfg_generic.msg1_fdm == asn1::rrc_nr::rach_cfg_generic_s::msg1_fdm_opts::one);
   TESTASSERT(rach_cfg_common.rach_cfg_generic.zero_correlation_zone_cfg == 0);
   TESTASSERT(rach_cfg_common.rach_cfg_generic.preamb_rx_target_pwr == -110);
-  TESTASSERT(rach_cfg_common.rach_cfg_generic.preamb_trans_max == asn1::rrc_nr::rach_cfg_generic_s::preamb_trans_max_opts::n7);
-  TESTASSERT(rach_cfg_common.rach_cfg_generic.pwr_ramp_step == asn1::rrc_nr::rach_cfg_generic_s::pwr_ramp_step_opts::db4);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.preamb_trans_max ==
+             asn1::rrc_nr::rach_cfg_generic_s::preamb_trans_max_opts::n7);
+  TESTASSERT(rach_cfg_common.rach_cfg_generic.pwr_ramp_step ==
+             asn1::rrc_nr::rach_cfg_generic_s::pwr_ramp_step_opts::db4);
   TESTASSERT(rach_cfg_common.rach_cfg_generic.ra_resp_win == asn1::rrc_nr::rach_cfg_generic_s::ra_resp_win_opts::sl10);
   TESTASSERT(rach_cfg_common.ssb_per_rach_occasion_and_cb_preambs_per_ssb_present == true);
 
@@ -297,7 +299,6 @@ int test_cell_group_config()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
   asn1_logger.set_level(srslog::basic_levels::debug);
   asn1_logger.set_hex_dump_max_size(-1);
@@ -313,7 +314,7 @@ int main()
   TESTASSERT(test_ue_rrc_reconfiguration() == SRSLTE_SUCCESS);
   TESTASSERT(test_radio_bearer_config() == SRSLTE_SUCCESS);
   TESTASSERT(test_cell_group_config() == SRSLTE_SUCCESS);
-  
+
   srslog::flush();
   printf("Success\n");
   return 0;

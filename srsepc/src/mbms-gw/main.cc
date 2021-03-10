@@ -12,7 +12,6 @@
 
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
 #include "srslte/common/config_file.h"
-#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -41,24 +40,6 @@ typedef struct {
   mbms_gw_args_t mbms_gw_args;
   log_args_t     log_args;
 } all_args_t;
-
-srslte::LOG_LEVEL_ENUM level(std::string l)
-{
-  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
-  if ("NONE" == l) {
-    return srslte::LOG_LEVEL_NONE;
-  } else if ("ERROR" == l) {
-    return srslte::LOG_LEVEL_ERROR;
-  } else if ("WARNING" == l) {
-    return srslte::LOG_LEVEL_WARNING;
-  } else if ("INFO" == l) {
-    return srslte::LOG_LEVEL_INFO;
-  } else if ("DEBUG" == l) {
-    return srslte::LOG_LEVEL_DEBUG;
-  } else {
-    return srslte::LOG_LEVEL_NONE;
-  }
-}
 
 /**********************************************************************
  *  Program arguments processing
@@ -194,7 +175,6 @@ int main(int argc, char* argv[])
   if (!chan) {
     return SRSLTE_ERROR;
   }
-  srslte::srslog_wrapper log_wrapper(*chan);
   srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
@@ -205,11 +185,6 @@ int main(int argc, char* argv[])
     mbms_gw_logger.info("\n---  Software Radio Systems MBMS log ---\n\n");
   }
 
-  srslte::logmap::set_default_logger(&log_wrapper);
-
-  srslte::log_ref mbms_gw_log{"MBMS"};
-  mbms_gw_log->set_level(level(args.log_args.mbms_gw_level));
-  mbms_gw_log->set_hex_limit(args.log_args.mbms_gw_hex_limit);
   auto& mbms_gw_logger = srslog::fetch_basic_logger("MBMS", false);
   mbms_gw_logger.set_level(srslog::str_to_basic_level(args.log_args.mbms_gw_level));
   mbms_gw_logger.set_hex_dump_max_size(args.log_args.mbms_gw_hex_limit);

@@ -10,7 +10,6 @@
  *
  */
 
-#include "srslte/common/log_filter.h"
 #include "srslte/common/network_utils.h"
 #include <iostream>
 

@@ -14,6 +14,7 @@
 #include "srslte/asn1/rrc.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_nas_interfaces.h"
 #include "srslte/interfaces/ue_pdcp_interfaces.h"
@@ -22,6 +23,7 @@
 #include "srsue/hdr/stack/rrc/phy_controller.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
+
 #include <cstdlib>
 #include <ctime>
 #include <inttypes.h> // for printing uint64_t

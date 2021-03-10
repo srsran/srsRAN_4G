@@ -17,8 +17,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/srslog/srslog.h"

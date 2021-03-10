@@ -17,7 +17,6 @@
 
 #include "srsue/hdr/stack/mac/ul_harq.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 

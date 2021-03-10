@@ -1133,7 +1133,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 
   // Set sync queue capacity to 1 for ZMQ
   if (args_->rf.device_name == "zmq") {
-    srslte::logmap::get("ENB")->info("Using sync queue size of one for ZMQ based radio.");
+    srslog::fetch_basic_logger("ENB").info("Using sync queue size of one for ZMQ based radio.");
     args_->stack.sync_queue_size = 1;
   } else {
     // use default size

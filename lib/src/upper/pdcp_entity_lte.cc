@@ -13,6 +13,7 @@
 #include "srslte/upper/pdcp_entity_lte.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/common/security.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/ue_gw_interfaces.h"
 #include "srslte/interfaces/ue_rlc_interfaces.h"
 #include <bitset>

@@ -11,8 +11,10 @@
  */
 
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/srslog/bundled/fmt/format.h"
+
 #include <array>
 
 #define Debug(fmt, ...) get_mac_logger().debug(fmt, ##__VA_ARGS__)

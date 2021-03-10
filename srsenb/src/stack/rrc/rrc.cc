@@ -17,6 +17,7 @@
 #include "srslte/asn1/rrc_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/common/standard_streams.h"
 #include "srslte/interfaces/enb_mac_interfaces.h"
 #include "srslte/interfaces/enb_pdcp_interfaces.h"
 #include "srslte/interfaces/enb_rlc_interfaces.h"

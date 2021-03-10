@@ -14,7 +14,6 @@
 #define SRSENB_SCHEDULER_HARQ_H
 
 #include "srslte/adt/bounded_bitset.h"
-#include "srslte/common/log.h"
 #include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/srslog/srslog.h"

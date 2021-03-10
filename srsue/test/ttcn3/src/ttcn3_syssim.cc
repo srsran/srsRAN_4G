@@ -12,7 +12,6 @@
 
 #include "srsue/test/ttcn3/hdr/ttcn3_syssim.h"
 #include "dut_utils.h"
-#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/mac/pdu_queue.h"
 #include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"

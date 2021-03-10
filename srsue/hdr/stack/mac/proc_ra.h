@@ -19,7 +19,6 @@
 
 #include "demux.h"
 #include "mux.h"
-#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 #include "srslte/mac/pdu.h"

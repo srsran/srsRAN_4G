@@ -13,8 +13,6 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
-#include "srslte/common/logger_srslog_wrapper.h"
-#include "srslte/common/logmap.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/common/signal_handler.h"
 #include "srslte/srslog/event_trace.h"
@@ -652,7 +650,6 @@ int main(int argc, char* argv[])
   if (!chan) {
     return SRSLTE_ERROR;
   }
-  srslte::srslog_wrapper log_wrapper(*chan);
   srslog::set_default_sink(*log_sink);
 
 #ifdef ENABLE_SRSLOG_EVENT_TRACE
@@ -666,14 +663,13 @@ int main(int argc, char* argv[])
   // Start the log backend.
   srslog::init();
 
-  srslte::logmap::set_default_logger(&log_wrapper);
   srslte::log_args(argc, argv, "UE");
 
   srslte::check_scaling_governor(args.rf.device_name);
 
   // Create UE instance.
   srsue::ue ue;
-  if (ue.init(args, &log_wrapper)) {
+  if (ue.init(args)) {
     ue.stop();
     return SRSLTE_SUCCESS;
   }
