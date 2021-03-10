@@ -191,6 +191,8 @@ int test_ul_sched_result(const sim_enb_ctxt_t& enb_ctxt, const sf_output_res_t& 
           CONDERROR(nof_retx != 0, "Invalid rv index for new tx");
           CONDERROR(pusch_ptr->current_tx_nb != 0, "UL HARQ retxs need to have been previously transmitted");
           CONDERROR(not h_inactive, "New tx for already active UL HARQ");
+          CONDERROR(not pusch_ptr->needs_pdcch and ue.msg3_tti_rx.is_valid() and sf_out.tti_rx > ue.msg3_tti_rx,
+                    "In case of newtx, PDCCH allocation is required, unless it is Msg3");
         } else {
           CONDERROR(pusch_ptr->current_tx_nb == 0, "UL retx has to have nof tx > 0");
           if (not h.active) {

@@ -175,7 +175,7 @@ public:
   };
   struct ul_alloc_t {
     enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX };
-    bool         is_msg3;
+    bool         is_msg3 = false;
     size_t       dci_idx;
     type_t       type;
     uint16_t     rnti;

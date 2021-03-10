@@ -283,6 +283,7 @@ void ul_harq_proc::reset_pending_data()
   reset_pending_data_common();
   if (is_empty(0)) {
     pending_data = 0;
+    is_msg3_     = false;
   }
 }
 
