@@ -370,6 +370,7 @@ int main(int argc, char* argv[])
   if (!chan) {
     return SRSLTE_ERROR;
   }
+  srslog::set_default_sink(*log_sink);
 
   // Start the log backend.
   srslog::init();
