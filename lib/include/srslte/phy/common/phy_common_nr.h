@@ -91,6 +91,12 @@ extern "C" {
 #define SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR 8
 
 /**
+ * @brief defines the maximum number of monitored PDCCH candidates per slot and per serving cell according to TS 38.213
+ * Table 10.1-2
+ */
+#define SRSLTE_MAX_NOF_CANDIDATES_NR 44
+
+/**
  * @brief defines the maximum number of resource elements per PRB
  * @remark Defined in TS 38.214 V15.10.0 5.1.3.2 Transport block size determination, point 1, second bullet
  */

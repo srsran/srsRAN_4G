@@ -210,39 +210,52 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
                                   srslte_pdcch_nr_res_t* pdcch_res,
                                   uint32_t               coreset_id)
 {
-  srslte_dmrs_pdcch_measure_t m = {};
+  // Select debug information
+  srslte_ue_dl_nr_pdcch_info_t* pdcch_info = NULL;
+  if (q->pdcch_info_count < SRSLTE_MAX_NOF_CANDIDATES_NR) {
+    pdcch_info = &q->pdcch_info[q->pdcch_info_count];
+    q->pdcch_info_count++;
+  } else {
+    ERROR("The UE does not expect more than %d candidates in this serving cell", SRSLTE_MAX_NOF_CANDIDATES_NR);
+    return SRSLTE_ERROR;
+  }
+  SRSLTE_MEM_ZERO(pdcch_info, srslte_ue_dl_nr_pdcch_info_t, 1);
+  pdcch_info->coreset_id         = dci_msg->coreset_id;
+  pdcch_info->ss_id              = dci_msg->search_space;
+  pdcch_info->location           = dci_msg->location;
+  srslte_dmrs_pdcch_measure_t* m = &pdcch_info->measure;
 
   // Measures the PDCCH transmission DMRS
-  if (srslte_dmrs_pdcch_get_measure(&q->dmrs_pdcch[coreset_id], &dci_msg->location, &m) < SRSLTE_SUCCESS) {
+  if (srslte_dmrs_pdcch_get_measure(&q->dmrs_pdcch[coreset_id], &dci_msg->location, m) < SRSLTE_SUCCESS) {
     ERROR("Error getting measure location L=%d, ncce=%d", dci_msg->location.L, dci_msg->location.ncce);
     return SRSLTE_ERROR;
   }
 
   // If measured correlation is invalid, early return
-  if (!isnormal(m.norm_corr)) {
+  if (!isnormal(m->norm_corr)) {
     INFO("Discarded PDCCH candidate L=%d;ncce=%d; Invalid measurement;", dci_msg->location.L, dci_msg->location.ncce);
     return SRSLTE_SUCCESS;
   }
 
   // Compare EPRE with threshold
-  if (m.epre_dBfs < q->pdcch_dmrs_epre_thr) {
+  if (m->epre_dBfs < q->pdcch_dmrs_epre_thr) {
     INFO("Discarded PDCCH candidate L=%d;ncce=%d; EPRE is too weak (%.1f<%.1f);",
          dci_msg->location.L,
          dci_msg->location.ncce,
-         m.epre_dBfs,
+         m->epre_dBfs,
          q->pdcch_dmrs_epre_thr);
     return SRSLTE_SUCCESS;
   }
 
   // Compare DMRS correlation with threshold
-  if (m.norm_corr < q->pdcch_dmrs_corr_thr) {
+  if (m->norm_corr < q->pdcch_dmrs_corr_thr) {
     INFO("Discarded PDCCH candidate L=%d;ncce=%d; Correlation is too low (%.1f<%.1f); EPRE=%+.2f; RSRP=%+.2f;",
          dci_msg->location.L,
          dci_msg->location.ncce,
-         m.norm_corr,
+         m->norm_corr,
          q->pdcch_dmrs_corr_thr,
-         m.epre_dBfs,
-         m.rsrp_dBfs);
+         m->epre_dBfs,
+         m->rsrp_dBfs);
     return SRSLTE_SUCCESS;
   }
 
@@ -257,6 +270,9 @@ static int ue_dl_nr_find_dci_ncce(srslte_ue_dl_nr_t*     q,
     ERROR("Error decoding PDCCH");
     return SRSLTE_ERROR;
   }
+
+  // Save information
+  pdcch_info->result = *pdcch_res;
 
   return SRSLTE_SUCCESS;
 }
@@ -403,6 +419,9 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
 
   // Limit maximum number of DCI messages to find
   nof_dci_msg = SRSLTE_MIN(nof_dci_msg, SRSLTE_MAX_DCI_MSG_NR);
+
+  // Reset debug information counter
+  q->pdcch_info_count = 0;
 
   // If the UE looks for a RAR and RA search space is provided, search for it
   if (q->cfg.ra_search_space_present && rnti_type == srslte_rnti_type_ra) {

@@ -145,6 +145,21 @@ void cc_worker::decode_pdcch_dl()
     // Enqueue UL grants
     phy->set_dl_pending_grant(dl_slot_cfg.idx, dci_rx[i]);
   }
+
+  if (logger.debug.enabled()) {
+    for (uint32_t i = 0; i < ue_dl.pdcch_info_count; i++) {
+      const srslte_ue_dl_nr_pdcch_info_t* info = &ue_dl.pdcch_info[i];
+      logger.debug("PDCCH: crst_id=%d, ss_id=%d, ncce=%d, al=%d, EPRE=%+.2f, RSRP=%+.2f, corr=%.3f; crc=%s",
+                   info->coreset_id,
+                   info->ss_id,
+                   info->location.ncce,
+                   info->location.L,
+                   info->measure.epre_dBfs,
+                   info->measure.rsrp_dBfs,
+                   info->measure.norm_corr,
+                   info->result.crc ? "OK" : "KO");
+    }
+  }
 }
 
 void cc_worker::decode_pdcch_ul()
