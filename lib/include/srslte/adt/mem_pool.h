@@ -254,6 +254,7 @@ public:
   void deallocate_node(void* p)
   {
     std::lock_guard<std::mutex> lock(mutex);
+    assert(p != nullptr);
     if (p != nullptr) {
       obj_cache.push(static_cast<uint8_t*>(p));
     }

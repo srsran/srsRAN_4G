@@ -15,6 +15,7 @@
 
 #include "mac_controller.h"
 #include "rrc.h"
+#include "srslte/adt/mem_pool.h"
 #include "srslte/interfaces/enb_phy_interfaces.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
 
@@ -119,7 +120,8 @@ public:
   void  operator delete(void* ptr)noexcept;
   void  operator delete[](void* ptr) = delete;
 
-  static srslte::background_allocator_obj_pool<ue, 16, 4>* get_ue_pool();
+  using ue_pool_t = srslte::background_allocator_obj_pool<ue, 16, 4>;
+  static ue_pool_t* get_ue_pool();
 
 private:
   // args

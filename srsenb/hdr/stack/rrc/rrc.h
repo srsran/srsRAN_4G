@@ -18,7 +18,6 @@
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/adt/circular_buffer.h"
-#include "srslte/adt/mem_pool.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/stack_procedure.h"
