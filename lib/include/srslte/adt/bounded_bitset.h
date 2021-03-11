@@ -164,10 +164,12 @@ public:
     size_t result = 0;
     for (size_t i = 0; i < nof_words_(); i++) {
       //      result += __builtin_popcountl(buffer[i]);
-      word_t w = buffer[i];
-      for (; w; w >>= 1u) {
-        result += (w & 1u);
+      // Note: use an "int" for count triggers popcount optimization if SSE instructions are enabled.
+      int c = 0;
+      for (word_t w = buffer[i]; w > 0; c++) {
+        w &= w - 1;
       }
+      result += c;
     }
     return result;
   }
