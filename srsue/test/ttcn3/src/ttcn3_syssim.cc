@@ -47,7 +47,7 @@ ttcn3_syssim::ttcn3_syssim(ttcn3_ue* ue_) :
   drb(drb_logger),
   mac_msg_ul(20, ss_mac_logger),
   mac_msg_dl(20, ss_mac_logger),
-  pdus(logger, 128),
+  pdus(logger),
   ue(ue_),
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); })
