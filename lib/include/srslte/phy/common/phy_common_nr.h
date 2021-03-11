@@ -302,6 +302,25 @@ typedef struct SRSLTE_API {
 } srslte_search_space_t;
 
 /**
+ * @brief TDD pattern configuration
+ */
+typedef struct SRSLTE_API {
+  uint32_t period_ms;      ///< Period in milliseconds, set to 0 if not present
+  uint32_t nof_dl_slots;   ///< Number of consecutive full DL slots at the beginning of each DL-UL pattern
+  uint32_t nof_dl_symbols; ///< Number of consecutive DL symbols in the beginning of the slot following the last DL slot
+  uint32_t nof_ul_slots;   ///< Number of consecutive full UL slots at the end of each DL-UL pattern
+  uint32_t nof_ul_symbols; ///< Number of consecutive UL symbols in the end of the slot preceding the first full UL slot
+} srslte_tdd_pattern_t;
+
+/**
+ * @brief TDD configuration as described in TS 38.331 v15.10.0 TDD-UL-DL-ConfigCommon
+ */
+typedef struct SRSLTE_API {
+  srslte_tdd_pattern_t pattern1;
+  srslte_tdd_pattern_t pattern2;
+} srslte_tdd_config_nr_t;
+
+/**
  * @brief Get the RNTI type name for NR
  * @param rnti_type RNTI type name
  * @return Constant string with the RNTI type name
@@ -371,6 +390,24 @@ SRSLTE_API uint32_t srslte_min_symbol_sz_rb(uint32_t nof_prb);
  * @return Returns the time in seconds between the two symbols if the condition above is satisfied, 0 seconds otherwise
  */
 SRSLTE_API float srslte_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology);
+
+/**
+ * @brief Decides whether a given slot is configured as Downlink
+ * @param cfg Provides TDD configuration
+ * @param numerology Provides BWP numerology
+ * @param slot_idx Slot index in the frame for the given numerology
+ * @return true if the provided slot index is configured for Downlink
+ */
+SRSLTE_API bool srslte_tdd_nr_is_dl(const srslte_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
+
+/**
+ * @brief Decides whether a given slot is configured as Uplink
+ * @param cfg Provides TDD configuration
+ * @param numerology Provides BWP numerology
+ * @param slot_idx Slot index in the frame for the given numerology
+ * @return true if the provided slot index is configured for Uplink
+ */
+SRSLTE_API bool srslte_tdd_nr_is_ul(const srslte_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx);
 
 #ifdef __cplusplus
 }

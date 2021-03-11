@@ -146,3 +146,49 @@ float srslte_symbol_distance_s(uint32_t l0, uint32_t l1, uint32_t numerology)
   // Return symbol distance in microseconds
   return (N << numerology) * SRSLTE_LTE_TS;
 }
+
+bool srslte_tdd_nr_is_dl(const srslte_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
+{
+  if (cfg == NULL) {
+    return false;
+  }
+
+  // Calculate slot index within the TDD overall period
+  uint32_t slot_x_ms       = 1U << numerology; // Number of slots per millisecond
+  uint32_t period_sum      = (cfg->pattern1.period_ms + cfg->pattern2.period_ms) * slot_x_ms; // Total perdiod sum
+  uint32_t slot_idx_period = slot_idx % period_sum; // Slot index within the period
+
+  // Select pattern
+  const srslte_tdd_pattern_t* pattern = &cfg->pattern1;
+  if ((slot_idx_period >= cfg->pattern1.period_ms * slot_x_ms)) {
+    pattern = &cfg->pattern2;
+    slot_idx_period -= cfg->pattern1.period_ms * slot_x_ms; // Remove pattern 1 offset
+  }
+
+  return (slot_idx_period < pattern->nof_dl_slots ||
+          (slot_idx_period == pattern->nof_dl_slots && pattern->nof_dl_symbols != 0));
+}
+
+bool srslte_tdd_nr_is_ul(const srslte_tdd_config_nr_t* cfg, uint32_t numerology, uint32_t slot_idx)
+{
+  if (cfg == NULL) {
+    return false;
+  }
+
+  // Calculate slot index within the TDD overall period
+  uint32_t slot_x_ms       = 1U << numerology; // Number of slots per millisecond
+  uint32_t period_sum      = (cfg->pattern1.period_ms + cfg->pattern2.period_ms) * slot_x_ms; // Total perdiod sum
+  uint32_t slot_idx_period = slot_idx % period_sum; // Slot index within the period
+
+  // Select pattern
+  const srslte_tdd_pattern_t* pattern = &cfg->pattern1;
+  if ((slot_idx_period >= cfg->pattern1.period_ms * slot_x_ms)) {
+    pattern = &cfg->pattern2;
+    slot_idx_period -= cfg->pattern1.period_ms * slot_x_ms; // Remove pattern 1 offset
+  }
+
+  // Calculate slot in which UL starts
+  uint32_t start_ul = (pattern->period_ms * slot_x_ms - pattern->nof_ul_slots) - 1;
+
+  return (slot_idx_period > start_ul || (slot_idx_period == start_ul && pattern->nof_ul_symbols != 0));
+}

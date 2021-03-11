@@ -181,6 +181,11 @@ void cc_worker::decode_pdcch_ul()
 
 bool cc_worker::work_dl()
 {
+  // Check if it is a DL slot, if not skip
+  if (!srslte_tdd_nr_is_dl(&phy->cfg.tdd, 0, dl_slot_cfg.idx)) {
+    return true;
+  }
+
   // Run FFT
   srslte_ue_dl_nr_estimate_fft(&ue_dl, &dl_slot_cfg);
 
@@ -249,6 +254,11 @@ bool cc_worker::work_dl()
 
 bool cc_worker::work_ul()
 {
+  // Check if it is a DL slot, if not skip
+  if (!srslte_tdd_nr_is_ul(&phy->cfg.tdd, 0, ul_slot_cfg.idx)) {
+    return true;
+  }
+
   srslte_uci_data_nr_t uci_data = {};
   uint32_t             pid      = 0;
 

@@ -24,6 +24,7 @@ namespace srslte {
  **************************/
 
 struct phy_cfg_nr_t {
+  srslte_tdd_config_nr_t         tdd      = {};
   srslte_sch_hl_cfg_nr_t         pdsch    = {};
   srslte_sch_hl_cfg_nr_t         pusch    = {};
   srslte_pucch_nr_hl_cfg_t       pucch    = {};
@@ -34,9 +35,6 @@ struct phy_cfg_nr_t {
 
   phy_cfg_nr_t()
   {
-    // Default PDSCH configuration
-    pdsch.sch_cfg.mcs_table = srslte_mcs_table_256qam;
-
     // Default PRACH configuration
     prach.is_nr            = true;
     prach.config_idx       = 16;
@@ -45,6 +43,21 @@ struct phy_cfg_nr_t {
     prach.zero_corr_zone   = 0;
     prach.num_ra_preambles = 64;
     prach.hs_flag          = false;
+
+    // tdd-UL-DL-ConfigurationCommon
+    //    referenceSubcarrierSpacing: kHz15 (0)
+    //    pattern1
+    //        dl-UL-TransmissionPeriodicity: ms10 (7)
+    //        nrofDownlinkSlots: 7
+    //        nrofDownlinkSymbols: 6
+    //        nrofUplinkSlots: 2
+    //        nrofUplinkSymbols: 4
+    tdd.pattern1.period_ms      = 10;
+    tdd.pattern1.nof_dl_slots   = 7;
+    tdd.pattern1.nof_dl_symbols = 6;
+    tdd.pattern1.nof_ul_slots   = 2;
+    tdd.pattern1.nof_ul_symbols = 4;
+    tdd.pattern2.period_ms      = 0;
 
     // physicalCellGroupConfig
     //    pdsch-HARQ-ACK-Codebook: dynamic (1)
