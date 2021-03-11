@@ -56,7 +56,7 @@ void rlc_nr::rem_user(uint16_t rnti)
     users[rnti].m_rlc->stop();
     users.erase(rnti);
   } else {
-    logger.error("Removing rnti=0x%x. Already removed\n", rnti);
+    logger.error("Removing rnti=0x%x. Already removed", rnti);
   }
 }
 
@@ -67,7 +67,7 @@ void rlc_nr::clear_buffer(uint16_t rnti)
     for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
       m_mac->rlc_buffer_state(rnti, i, 0, 0);
     }
-    logger.info("Cleared buffer rnti=0x%x\n", rnti);
+    logger.info("Cleared buffer rnti=0x%x", rnti);
   }
 }
 
@@ -107,7 +107,7 @@ int rlc_nr::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t no
     // communicate buffer state every time a PDU is read
 
     uint32_t retx_queue = 0;
-    logger.debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    logger.debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d", rnti, lcid, tx_queue);
     m_mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
   } else {
     ret = SRSLTE_ERROR;
@@ -124,7 +124,7 @@ void rlc_nr::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t 
     // communicate buffer state every time a new PDU is written
     uint32_t tx_queue   = users[rnti].m_rlc->get_buffer_state(lcid);
     uint32_t retx_queue = 0;
-    logger.debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    logger.debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d", rnti, lcid, tx_queue);
     m_mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
   }
 }
@@ -152,7 +152,7 @@ void rlc_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_
 
     uint32_t retx_queue = 0;
     m_mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
-    logger.info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    logger.info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d", rnti, lcid, tx_queue);
   }
 }
 

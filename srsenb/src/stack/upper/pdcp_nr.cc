@@ -96,7 +96,7 @@ void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   if (users.count(rnti)) {
     users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
   } else {
-    logger.error("Can't write PDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't write PDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 
@@ -105,7 +105,7 @@ void pdcp_nr::notify_delivery(uint16_t rnti, uint32_t lcid, const srslte::pdcp_s
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_delivery(lcid, pdcp_sns);
   } else {
-    logger.error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 
@@ -114,7 +114,7 @@ void pdcp_nr::notify_failure(uint16_t rnti, uint32_t lcid, const srslte::pdcp_sn
   if (users.count(rnti)) {
     users[rnti].pdcp->notify_failure(lcid, pdcp_sns);
   } else {
-    logger.error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't notify Ack of PDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 
@@ -123,7 +123,7 @@ void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   if (users.count(rnti)) {
     users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
   } else {
-    logger.error("Can't write SDU. RNTI=0x%X doesn't exist.\n", rnti);
+    logger.error("Can't write SDU. RNTI=0x%X doesn't exist.", rnti);
   }
 }
 

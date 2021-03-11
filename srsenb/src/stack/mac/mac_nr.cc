@@ -58,7 +58,7 @@ int mac_nr::init(const mac_nr_args_t&    args_,
     pcap->open(args.pcap.filename);
   }
 
-  logger.info("Started\n");
+  logger.info("Started");
 
   started = true;
 
@@ -87,7 +87,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
   if (tti % 80 == 0) {
     // try to read BCH PDU from RRC
     if (rrc_h->read_pdu_bcch_bch(tti, bcch_bch_payload) == SRSLTE_SUCCESS) {
-      logger.info("Adding BCH in TTI=%d\n", tti);
+      logger.info("Adding BCH in TTI=%d", tti);
       tx_request.pdus[tx_request.nof_pdus].pbch.mib_present = true;
       tx_request.pdus[tx_request.nof_pdus].data[0]          = bcch_bch_payload->msg;
       tx_request.pdus[tx_request.nof_pdus].length           = bcch_bch_payload->N_bytes;
@@ -98,7 +98,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
         pcap->write_dl_bch(bcch_bch_payload->msg, bcch_bch_payload->N_bytes, 0xffff, 0, tti);
       }
     } else {
-      logger.error("Couldn't read BCH payload from RRC\n");
+      logger.error("Couldn't read BCH payload from RRC");
     }
   }
 
@@ -106,7 +106,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
   for (auto& sib : bcch_dlsch_payload) {
     if (sib.payload->N_bytes > 0) {
       if (tti % (sib.periodicity * 10) == 0) {
-        logger.info("Adding SIB %d in TTI=%d\n", sib.index, tti);
+        logger.info("Adding SIB %d in TTI=%d", sib.index, tti);
 
         tx_request.pdus[tx_request.nof_pdus].data[0] = sib.payload->msg;
         tx_request.pdus[tx_request.nof_pdus].length  = sib.payload->N_bytes;
@@ -134,9 +134,9 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
 
     // Only create PDU if RLC has something to tx
     if (pdu_len > 0) {
-      logger.info("Adding MAC PDU for RNTI=%d\n", args.rnti);
+      logger.info("Adding MAC PDU for RNTI=%d", args.rnti);
       ue_rlc_buffer->N_bytes = pdu_len;
-      logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC\n", ue_rlc_buffer->N_bytes);
+      logger.info(ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes, "Read %d B from RLC", ue_rlc_buffer->N_bytes);
 
       // add to MAC PDU and pack
       ue_tx_pdu.add_sdu(4, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
@@ -144,7 +144,7 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
 
       logger.debug(ue_tx_buffer.at(buffer_index)->msg,
                    ue_tx_buffer.at(buffer_index)->N_bytes,
-                   "Generated MAC PDU (%d B)\n",
+                   "Generated MAC PDU (%d B)",
                    ue_tx_buffer.at(buffer_index)->N_bytes);
 
       tx_request.pdus[tx_request.nof_pdus].data[0] = ue_tx_buffer.at(buffer_index)->msg;
@@ -216,14 +216,14 @@ void mac_nr::process_pdus()
 
 int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
 {
-  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)\n", pdu->N_bytes);
+  logger.info(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)", pdu->N_bytes);
 
   ue_rx_pdu.init_rx(true);
   ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
 
   for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
     srslte::mac_sch_subpdu_nr subpdu = ue_rx_pdu.get_subpdu(i);
-    logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
+    logger.info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d",
                 i,
                 ue_rx_pdu.get_num_subpdus(),
                 subpdu.get_lcid(),
@@ -246,10 +246,10 @@ int mac_nr::cell_cfg(srsenb::sched_interface::cell_cfg_t* cell_cfg)
       sib.periodicity = cell_cfg->sibs->period_rf;
       sib.payload     = srslte::make_byte_buffer();
       if (rrc_h->read_pdu_bcch_dlsch(sib.index, sib.payload) != SRSLTE_SUCCESS) {
-        logger.error("Couldn't read SIB %d from RRC\n", sib.index);
+        logger.error("Couldn't read SIB %d from RRC", sib.index);
       }
 
-      logger.info("Including SIB %d into SI scheduling\n", sib.index);
+      logger.info("Including SIB %d into SI scheduling", sib.index);
       bcch_dlsch_payload.push_back(std::move(sib));
     }
   }
