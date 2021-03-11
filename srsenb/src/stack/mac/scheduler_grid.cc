@@ -482,7 +482,8 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, prb_interval alloc, boo
     return alloc_outcome_t::ERROR;
   }
 
-  prbmask_t newmask(ul_mask.size());
+  prbmask_t newmask;
+  newmask.resize(ul_mask.size());
   newmask.fill(alloc.start(), alloc.stop());
   if ((ul_mask & newmask).any()) {
     return alloc_outcome_t::RB_COLLISION;
