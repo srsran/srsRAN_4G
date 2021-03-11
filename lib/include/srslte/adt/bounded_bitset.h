@@ -33,9 +33,9 @@ class bounded_bitset
   static const size_t bits_per_word = 8 * sizeof(word_t);
 
 public:
-  constexpr bounded_bitset() : buffer(), cur_size(0) {}
+  constexpr bounded_bitset() = default;
 
-  constexpr explicit bounded_bitset(size_t cur_size_) : buffer(), cur_size(cur_size_) {}
+  constexpr explicit bounded_bitset(size_t cur_size_) : cur_size(cur_size_) {}
 
   constexpr size_t max_size() const noexcept { return N; }
 
@@ -54,7 +54,7 @@ public:
     cur_size = new_size;
     sanitize_();
     for (size_t i = nof_words_(); i < max_nof_words_(); ++i) {
-      get_word_(i) = static_cast<word_t>(0);
+      buffer[i] = static_cast<word_t>(0);
     }
   }
 
@@ -268,8 +268,8 @@ public:
   }
 
 private:
-  word_t buffer[(N - 1) / bits_per_word + 1];
-  size_t cur_size;
+  word_t buffer[(N - 1) / bits_per_word + 1] = {0};
+  size_t cur_size                            = 0;
 
   void sanitize_()
   {
