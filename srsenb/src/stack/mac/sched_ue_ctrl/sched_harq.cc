@@ -273,8 +273,14 @@ bool ul_harq_proc::has_pending_phich() const
 
 bool ul_harq_proc::pop_pending_phich()
 {
+  assert(pending_phich);
   bool ret      = ack_state[0];
   pending_phich = false;
+  if (is_empty(0)) {
+    // fully reset UL HARQ once PHICH is dispatched
+    is_msg3_     = false;
+    pending_data = 0;
+  }
   return ret;
 }
 
