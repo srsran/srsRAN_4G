@@ -12,7 +12,8 @@
 
 #include "srsenb/hdr/stack/mac/sched_ue_ctrl/sched_lch.h"
 #include "srsenb/hdr/stack/mac/sched_helpers.h"
-#include "srslte/common/log_helper.h"
+#include "srslte/common/string_helpers.h"
+#include "srslte/srslog/bundled/fmt/ranges.h"
 
 namespace srsenb {
 
@@ -110,7 +111,11 @@ void lch_ue_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
     return;
   }
   lcg_bsr[lcg_id] = bsr;
-  logger.debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s", bsr, lcg_id, get_bsr_text().c_str());
+  if (logger.debug.enabled()) {
+    fmt::memory_buffer str_buffer;
+    fmt::format_to(str_buffer, "{}", get_bsr_state());
+    logger.debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s", bsr, lcg_id, srslte::to_c_str(str_buffer));
+  }
 }
 
 void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
@@ -120,7 +125,12 @@ void lch_ue_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
     return;
   }
   lcg_bsr[lch[lcid].cfg.group] += bytes;
-  logger.debug("SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, lch[lcid].cfg.group, get_bsr_text().c_str());
+  if (logger.debug.enabled()) {
+    fmt::memory_buffer str_buffer;
+    fmt::format_to(str_buffer, "{}", get_bsr_state());
+    logger.debug(
+        "SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s", bytes, lch[lcid].cfg.group, srslte::to_c_str(str_buffer));
+  }
 }
 
 void lch_ue_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
@@ -321,11 +331,9 @@ int lch_ue_manager::get_bsr_with_overhead(uint32_t lcg) const
   return get_ul_mac_sdu_size_with_overhead(get_bsr(lcg));
 }
 
-std::string lch_ue_manager::get_bsr_text() const
+const std::array<int, 4>& lch_ue_manager::get_bsr_state() const
 {
-  std::stringstream ss;
-  ss << "{" << lcg_bsr[0] << ", " << lcg_bsr[1] << ", " << lcg_bsr[2] << ", " << lcg_bsr[3] << "}";
-  return ss.str();
+  return lcg_bsr;
 }
 
 uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data,

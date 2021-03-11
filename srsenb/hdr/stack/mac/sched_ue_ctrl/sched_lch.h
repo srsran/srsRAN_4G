@@ -55,7 +55,7 @@ public:
   int  get_bsr_with_overhead(uint32_t lcid) const;
   int  get_max_prio_lcid() const;
 
-  std::string get_bsr_text() const;
+  const std::array<int, 4>& get_bsr_state() const;
 
   // Control Element Command queue
   using ce_cmd = srslte::dl_sch_lcid;
