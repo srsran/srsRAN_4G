@@ -280,7 +280,13 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   std::unique_lock<std::mutex> lock(rx_mutex);
   bool                         ret = true;
   rf_buffer_t                  buffer_rx;
-  uint32_t                     ratio = SRSLTE_MAX(1, decimators[0].ratio);
+
+  // Extract decimation ratio. As the decimator may take some time to set a new ratio, deactivate the decimation and
+  // keep receiving samples to avoid stalling the RX stream
+  uint32_t ratio = (decimator_busy) ? 0 : SRSLTE_MAX(1, decimators[0].ratio);
+  if (decimator_busy) {
+    rx_mutex.unlock();
+  }
 
   // Calculate number of samples, considering the decimation ratio
   uint32_t nof_samples = buffer.get_nof_samples() * ratio;
@@ -410,13 +416,10 @@ bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_tim
   if (ratio > 1 && nof_samples * ratio > tx_buffer[0].size()) {
     // This is a corner case that could happen during sample rate change transitions, as it does not have a negative
     // impact, log it as info.
-    fmt::memory_buffer buff;
-    fmt::format_to(buff,
-                   "Tx number of samples ({}/{}) exceeds buffer size ({})\n",
-                   buffer.get_nof_samples(),
-                   buffer.get_nof_samples() * ratio,
-                   tx_buffer[0].size());
-    logger.info("%s", to_c_str(buff));
+    logger.info(fmt::format("Tx number of samples ({}/{}) exceeds buffer size ({})\n",
+                            buffer.get_nof_samples(),
+                            buffer.get_nof_samples() * ratio,
+                            tx_buffer[0].size()));
 
     // Limit number of samples to transmit
     nof_samples = tx_buffer[0].size() / ratio;
@@ -674,6 +677,7 @@ void radio::set_rx_srate(const double& srate)
   }
   // If fix sampling rate...
   if (std::isnormal(fix_srate_hz)) {
+    decimator_busy = true;
     std::unique_lock<std::mutex> lock(rx_mutex);
 
     // If the sampling rate was not set, set it
@@ -689,6 +693,7 @@ void radio::set_rx_srate(const double& srate)
       srslte_resampler_fft_init(&decimators[ch], SRSLTE_RESAMPLER_MODE_DECIMATE, ratio);
     }
 
+    decimator_busy = false;
   } else {
     for (srslte_rf_t& rf_device : rf_devices) {
       cur_rx_srate = srslte_rf_set_rx_srate(&rf_device, srate);

@@ -100,6 +100,7 @@ private:
   std::array<std::vector<cf_t>, SRSLTE_MAX_CHANNELS>      rx_buffer;
   std::array<srslte_resampler_fft_t, SRSLTE_MAX_CHANNELS> interpolators = {};
   std::array<srslte_resampler_fft_t, SRSLTE_MAX_CHANNELS> decimators    = {};
+  bool decimator_busy = false; ///< Indicates the decimator is changing the rate
 
   rf_timestamp_t end_of_burst_time  = {};
   bool           is_start_of_burst  = false;
