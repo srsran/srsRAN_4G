@@ -60,7 +60,7 @@ public:
   void set_rx_reord(uint32_t rx_reord_) { rx_reord = rx_reord_; }
 
   void get_bearer_state(pdcp_lte_state_t* state) override;
-  void set_bearer_state(const pdcp_lte_state_t& state) override;
+  void set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc) override;
 
   void                  send_status_report() override {}
   pdcp_bearer_metrics_t get_metrics() override;

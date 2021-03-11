@@ -286,7 +286,7 @@ void pdcp_entity_nr::get_bearer_state(pdcp_lte_state_t* state)
   // TODO
 }
 
-void pdcp_entity_nr::set_bearer_state(const pdcp_lte_state_t& state)
+void pdcp_entity_nr::set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc)
 {
   // TODO
 }

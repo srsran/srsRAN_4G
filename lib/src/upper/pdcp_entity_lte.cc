@@ -414,7 +414,9 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 
 void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
 {
-  std::sort(rx_counts_info.begin(), rx_counts_info.end(), std::greater<uint32_t>());
+  if (rx_count < fmc) {
+    return;
+  }
 
   // Update largest RX_COUNT
   if (rx_count > largest_rx_count) {
@@ -431,16 +433,35 @@ void pdcp_entity_lte::update_rx_counts_queue(uint32_t rx_count)
     }
   } else {
     rx_counts_info.push_back(rx_count);
+    std::sort(rx_counts_info.begin(), rx_counts_info.end(), std::greater<uint32_t>());
   }
 
   // If the size of the rx_vector_info is getting very large
   // Consider the FMC as lost and update the vector.
   if (rx_counts_info.size() > reordering_window) {
-    fmc++;
+    logger.debug("Queue too large. Updating. Old FMC=%d, Old back=%d, old queue_size=%d",
+                 fmc,
+                 rx_counts_info.back(),
+                 rx_counts_info.size());
+    fmc = rx_counts_info.back();
     while (not rx_counts_info.empty() && rx_counts_info.back() == fmc) {
       rx_counts_info.pop_back();
       fmc++;
     }
+    logger.debug("Queue too large. Updating. New FMC=%d, new back=%d, new queue_size=%d",
+                 fmc,
+                 rx_counts_info.back(),
+                 rx_counts_info.size());
+  }
+
+  if (rx_counts_info.empty()) {
+    logger.info("Updated RX_COUNT info with SDU COUNT=%d, queue_size=%d, FMC=%d", rx_count, rx_counts_info.size(), fmc);
+  } else {
+    logger.info("Updated RX_COUNT info with SDU COUNT=%d, queue_size=%d, FMC=%d, back=%d",
+                rx_count,
+                rx_counts_info.size(),
+                fmc,
+                rx_counts_info.back());
   }
 }
 /****************************************************************************
@@ -765,9 +786,12 @@ void pdcp_entity_lte::get_bearer_state(pdcp_lte_state_t* state)
   *state = st;
 }
 
-void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state)
+void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc)
 {
   st = state;
+  if (set_fmc) {
+    fmc = COUNT(st.rx_hfn, st.last_submitted_pdcp_rx_sn);
+  }
 }
 
 std::map<uint32_t, srslte::unique_byte_buffer_t> pdcp_entity_lte::get_buffered_pdus()

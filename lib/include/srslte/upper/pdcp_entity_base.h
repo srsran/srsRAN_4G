@@ -115,8 +115,8 @@ public:
   virtual void notify_delivery(const pdcp_sn_vector_t& pdcp_sns) = 0;
   virtual void notify_failure(const pdcp_sn_vector_t& pdcp_sns)  = 0;
 
-  virtual void get_bearer_state(pdcp_lte_state_t* state)       = 0;
-  virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;
+  virtual void get_bearer_state(pdcp_lte_state_t* state)                     = 0;
+  virtual void set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc) = 0;
 
   virtual std::map<uint32_t, srslte::unique_byte_buffer_t> get_buffered_pdus() = 0;
 

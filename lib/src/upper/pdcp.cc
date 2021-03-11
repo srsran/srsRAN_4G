@@ -237,7 +237,7 @@ bool pdcp::set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state
   if (not valid_lcid(lcid)) {
     return false;
   }
-  pdcp_array[lcid]->set_bearer_state(state);
+  pdcp_array[lcid]->set_bearer_state(state, true);
   return true;
 }
 

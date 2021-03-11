@@ -137,7 +137,7 @@ public:
 
   // Internal state getters/setters
   void get_bearer_state(pdcp_lte_state_t* state) override;
-  void set_bearer_state(const pdcp_lte_state_t& state) override;
+  void set_bearer_state(const pdcp_lte_state_t& state, bool set_fmc) override;
 
   // Metrics helpers
   pdcp_bearer_metrics_t get_metrics() override;
