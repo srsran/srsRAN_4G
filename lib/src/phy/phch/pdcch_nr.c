@@ -28,16 +28,17 @@
 /**
  * @brief Recursive Y_p_n function
  */
-static uint32_t srslte_pdcch_calculate_Y_p_n(uint32_t coreset_id, uint16_t rnti, int n)
+static uint32_t srslte_pdcch_calculate_Y_p_n(uint32_t coreset_id, uint16_t rnti, uint32_t n)
 {
   static const uint32_t A_p[3] = {39827, 39829, 39839};
   const uint32_t        D      = 65537;
 
-  if (n < 0) {
-    return rnti;
+  uint32_t Y_p_n = (uint32_t)rnti;
+  for (uint32_t i = 0; i <= n; i++) {
+    Y_p_n = (A_p[coreset_id % 3] * Y_p_n) % D;
   }
 
-  return (A_p[coreset_id % 3] * srslte_pdcch_calculate_Y_p_n(coreset_id, rnti, n - 1)) % D;
+  return Y_p_n;
 }
 
 /**
