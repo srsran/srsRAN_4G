@@ -97,8 +97,8 @@ struct phy_cfg_nr_t {
     srslte_search_space_t search_space1 = {};
     search_space1.id                    = 1;
     search_space1.coreset_id            = 1;
-    search_space1.nof_candidates[0]     = 0;
-    search_space1.nof_candidates[1]     = 0;
+    search_space1.nof_candidates[0]     = 1;
+    search_space1.nof_candidates[1]     = 1;
     search_space1.nof_candidates[2]     = 1;
     search_space1.nof_candidates[3]     = 0;
     search_space1.nof_candidates[4]     = 0;
@@ -111,6 +111,56 @@ struct phy_cfg_nr_t {
     pdcch.ra_search_space         = search_space1;
     pdcch.ra_search_space.type    = srslte_search_space_type_common_1;
     pdcch.ra_search_space_present = true;
+
+    // spCellConfigDedicated
+    //     initialDownlinkBWP
+    //         pdcch-Config: setup (1)
+    //             setup
+    //                 controlResourceSetToAddModList: 1 item
+    //                     Item 0
+    //                         ControlResourceSet
+    //                             controlResourceSetId: 2
+    //                             frequencyDomainResources: ff0000000000 [bit length 45, 3 LSB pad bits, 1111 1111 0000
+    //                             0000  0000 0000  0000 0000  0000 0000  0000 0... decimal value 35046933135360]
+    //                             duration: 1
+    //                             cce-REG-MappingType: nonInterleaved (1)
+    //                                 nonInterleaved: NULL
+    //                             precoderGranularity: sameAsREG-bundle (0)
+    pdcch.coreset[2].id                   = 2;
+    pdcch.coreset[2].precoder_granularity = srslte_coreset_precoder_granularity_reg_bundle;
+    pdcch.coreset[2].duration             = 1;
+    pdcch.coreset[2].mapping_type         = srslte_coreset_mapping_type_non_interleaved;
+    for (uint32_t i = 0; i < SRSLTE_CORESET_FREQ_DOMAIN_RES_SIZE; i++) {
+      pdcch.coreset[2].freq_resources[i] = (i < 8);
+    }
+    pdcch.coreset_present[2] = true;
+
+    //                 searchSpacesToAddModList: 1 item
+    //                     Item 0
+    //                         SearchSpace
+    //                             searchSpaceId: 2
+    //                             controlResourceSetId: 2
+    //                             monitoringSlotPeriodicityAndOffset: sl1 (0)
+    //                                 sl1: NULL
+    //                             monitoringSymbolsWithinSlot: 8000 [bit length 14, 2 LSB pad bits, 1000 0000  0000
+    //                             00.. decimal value 8192] nrofCandidates
+    //                                 aggregationLevel1: n0 (0)
+    //                                 aggregationLevel2: n2 (2)
+    //                                 aggregationLevel4: n1 (1)
+    //                                 aggregationLevel8: n0 (0)
+    //                                 aggregationLevel16: n0 (0)
+    //                             searchSpaceType: ue-Specific (1)
+    //                                 ue-Specific
+    //                                     dci-Formats: formats0-0-And-1-0 (0)
+    pdcch.search_space[2].id                = 2;
+    pdcch.search_space[2].coreset_id        = 2;
+    pdcch.search_space[2].nof_candidates[0] = 0;
+    pdcch.search_space[2].nof_candidates[1] = 2;
+    pdcch.search_space[2].nof_candidates[2] = 1;
+    pdcch.search_space[2].nof_candidates[3] = 0;
+    pdcch.search_space[2].nof_candidates[4] = 0;
+    pdcch.search_space[2].type              = srslte_search_space_type_ue;
+    pdcch.search_space_present[2]           = true;
 
     // pdsch-ConfigCommon: setup (1)
     //    setup
