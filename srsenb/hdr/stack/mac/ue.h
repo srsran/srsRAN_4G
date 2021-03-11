@@ -18,10 +18,12 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/mac_pcap_net.h"
+#include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/mac/pdu.h"
 #include "srslte/mac/pdu_queue.h"
 #include "srslte/srslog/srslog.h"
+
 #include "ta.h"
 #include <pthread.h>
 #include <vector>
@@ -32,6 +34,34 @@ class rrc_interface_mac;
 class rlc_interface_mac;
 class phy_interface_stack_lte;
 
+class cc_used_buffers_map
+{
+public:
+  explicit cc_used_buffers_map(srslte::pdu_queue& shared_pdu_queue_);
+
+  uint8_t* request_pdu(tti_point tti, uint32_t len);
+
+  bool push_pdu(tti_point tti, uint32_t len);
+
+  void clear_old_pdus(tti_point current_tti);
+
+  void remove_pdu(tti_point tti);
+
+  bool try_deallocate_pdu(tti_point tti);
+
+  void clear();
+
+  uint8_t*& operator[](tti_point tti);
+
+  bool has_tti(tti_point tti) const;
+
+private:
+  srslog::basic_logger* logger;
+  srslte::pdu_queue*    shared_pdu_queue;
+
+  srslte::circular_array<std::pair<tti_point, uint8_t*>, SRSLTE_FDD_NOF_HARQ * 2> pdu_map;
+};
+
 class cc_buffer_handler
 {
 public:
@@ -40,7 +70,9 @@ public:
   // List of Rx softbuffers for all HARQ processes of one carrier
   using cc_softbuffer_rx_list_t = std::vector<srslte_softbuffer_rx_t>;
 
-  cc_buffer_handler();
+  explicit cc_buffer_handler(srslte::pdu_queue& shared_pdu_queue_);
+  cc_buffer_handler(cc_buffer_handler&&) noexcept = default;
+  cc_buffer_handler& operator=(cc_buffer_handler&&) noexcept = default;
   ~cc_buffer_handler();
 
   void reset();
@@ -57,7 +89,7 @@ public:
   {
     return tx_payload_buffer[harq_pid][tb].get();
   }
-  std::map<uint32_t, uint8_t*>& get_rx_used_buffers() { return rx_used_buffers; }
+  cc_used_buffers_map& get_rx_used_buffers() { return rx_used_buffers; }
 
 private:
   // args
@@ -66,9 +98,9 @@ private:
   uint32_t nof_tx_harq_proc;
 
   // buffers
-  cc_softbuffer_tx_list_t      softbuffer_tx_list; ///< List of softbuffer lists for Tx
-  cc_softbuffer_rx_list_t      softbuffer_rx_list; ///< List of softbuffer lists for Rx
-  std::map<uint32_t, uint8_t*> rx_used_buffers;
+  cc_softbuffer_tx_list_t softbuffer_tx_list; ///< List of softbuffer lists for Tx
+  cc_softbuffer_rx_list_t softbuffer_rx_list; ///< List of softbuffer lists for Rx
+  cc_used_buffers_map     rx_used_buffers;
 
   // One buffer per TB per HARQ process and per carrier is needed for each UE.
   std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> tx_payload_buffer;

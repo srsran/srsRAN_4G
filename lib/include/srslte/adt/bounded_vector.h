@@ -31,11 +31,11 @@ public:
 
   bounded_vector() = default;
   template <typename std::enable_if<std::is_default_constructible<T>::value, int>::type = 0>
-  bounded_vector(size_type N)
+  explicit bounded_vector(size_type N)
   {
     append(N);
   }
-  template <typename U, typename std::enable_if<std::is_constructible<T, U>::value, int>::type = 0>
+  template <typename U, typename std::enable_if<std::is_constructible<T, const U&>::value, int>::type = 0>
   bounded_vector(size_type N, const U& init_val)
   {
     append(N, T(init_val));
