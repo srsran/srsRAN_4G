@@ -74,8 +74,8 @@ private:
 
     // args
     size_t                     nof_cces;
-    const sched_cell_params_t* cc_cfg    = nullptr;
-    srslte_pucch_cfg_t*        pucch_cfg = nullptr;
+    const sched_cell_params_t* cc_cfg         = nullptr;
+    srslte_pucch_cfg_t*        pucch_cfg_temp = nullptr;
     uint32_t                   cfi;
     // state
     std::vector<node_t> dci_alloc_tree;
@@ -110,6 +110,9 @@ private:
   std::vector<alloc_tree_t>   alloc_trees;     ///< List of PDCCH alloc trees, where index is the cfi index
   std::vector<alloc_record_t> dci_record_list; ///< Keeps a record of all the PDCCH allocations done so far
 };
+
+// Helper methods
+bool is_pucch_sr_collision(const srslte_pucch_cfg_t& ue_pucch_cfg, tti_point tti_tx_dl_ack, uint32_t n1_pucch);
 
 } // namespace srsenb
 

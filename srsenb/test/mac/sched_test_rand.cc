@@ -285,6 +285,9 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period   = pick_random_uniform({0, 40, 80});
   sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_offset   = std::uniform_int_distribution<uint32_t>{
       0, sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.measgap_period}(srsenb::get_rand_gen());
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.pucch_cfg.n_pucch_sr =
+      std::uniform_int_distribution<uint32_t>{0, 2047}(srsenb::get_rand_gen());
+
   sim_gen.sim_args.start_tti = 0;
   sim_gen.sim_args.sched_args.pdsch_mcs =
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
