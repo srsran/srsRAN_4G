@@ -71,8 +71,6 @@ public:
   using cc_softbuffer_rx_list_t = std::vector<srslte_softbuffer_rx_t>;
 
   explicit cc_buffer_handler(srslte::pdu_queue& shared_pdu_queue_);
-  cc_buffer_handler(cc_buffer_handler&&) noexcept = default;
-  cc_buffer_handler& operator=(cc_buffer_handler&&) noexcept = default;
   ~cc_buffer_handler();
 
   void reset();
