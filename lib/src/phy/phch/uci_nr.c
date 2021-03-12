@@ -193,6 +193,63 @@ static int uci_nr_unpack_ack_sr(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequenc
   return A;
 }
 
+static int uci_nr_pack_ack_sr_csi(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_value_nr_t* value, uint8_t* sequence)
+{
+  int A = 0;
+
+  // Append ACK bits
+  srslte_vec_u8_copy(&sequence[A], value->ack, cfg->o_ack);
+  A += cfg->o_ack;
+
+  // Append SR bits
+  uint8_t* bits = &sequence[A];
+  srslte_bit_unpack(value->sr, &bits, cfg->o_sr);
+  A += cfg->o_sr;
+
+  // Append CSI bits
+  int n = srslte_csi_part1_pack(cfg->csi, value->csi, cfg->nof_csi, bits, SRSLTE_UCI_NR_MAX_NOF_BITS - A);
+  if (n < SRSLTE_SUCCESS) {
+    ERROR("Packing CSI part 1");
+    return SRSLTE_ERROR;
+  }
+  A += n;
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_TX("Packed UCI bits: ");
+    srslte_vec_fprint_byte(stdout, sequence, A);
+  }
+
+  return A;
+}
+
+static int uci_nr_unpack_ack_sr_csi(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequence, srslte_uci_value_nr_t* value)
+{
+  int A = 0;
+
+  // Append ACK bits
+  srslte_vec_u8_copy(value->ack, &sequence[A], cfg->o_ack);
+  A += cfg->o_ack;
+
+  // Append SR bits
+  uint8_t* bits = &sequence[A];
+  value->sr     = srslte_bit_pack(&bits, cfg->o_sr);
+  A += cfg->o_sr;
+
+  if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {
+    UCI_NR_INFO_RX("Unpacked UCI bits: ");
+    srslte_vec_fprint_byte(stdout, sequence, A);
+  }
+
+  // Append CSI bits
+  int n = srslte_csi_part1_unpack(cfg->csi, cfg->nof_csi, bits, SRSLTE_UCI_NR_MAX_NOF_BITS - A, value->csi);
+  if (n < SRSLTE_SUCCESS) {
+    ERROR("Packing CSI part 1");
+    return SRSLTE_ERROR;
+  }
+
+  return A;
+}
+
 static int uci_nr_A(const srslte_uci_cfg_nr_t* cfg)
 {
   int o_csi = srslte_csi_part1_nof_bits(cfg->csi, cfg->nof_csi);
@@ -227,8 +284,7 @@ static int uci_nr_pack_pucch(const srslte_uci_cfg_nr_t* cfg, const srslte_uci_va
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
-  ERROR("HARQ-ACK/SR and CSI encoding are not implemented");
-  return SRSLTE_ERROR;
+  return uci_nr_pack_ack_sr_csi(cfg, value, sequence);
 }
 
 static int uci_nr_unpack_pucch(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequence, srslte_uci_value_nr_t* value)
@@ -247,8 +303,7 @@ static int uci_nr_unpack_pucch(const srslte_uci_cfg_nr_t* cfg, uint8_t* sequence
   }
 
   // 6.3.1.1.3 HARQ-ACK/SR and CSI
-  ERROR("HARQ-ACK/SR and CSI encoding are not implemented");
-  return SRSLTE_ERROR;
+  return uci_nr_unpack_ack_sr_csi(cfg, sequence, value);
 }
 
 static int uci_nr_encode_1bit(srslte_uci_nr_t* q, const srslte_uci_cfg_nr_t* cfg, uint8_t* o, uint32_t E)
@@ -1090,7 +1145,7 @@ static int uci_nr_pusch_Q_prime_csi1(const srslte_uci_nr_pusch_cfg_t* cfg, uint3
     return SRSLTE_ERROR;
   }
 
-  uint32_t M_uci_sum    = 0;
+  uint32_t M_uci_sum = 0;
   for (uint32_t l = 0; l < SRSLTE_NSYMB_PER_SLOT_NR; l++) {
     M_uci_sum += cfg->M_uci_sc[l];
   }
