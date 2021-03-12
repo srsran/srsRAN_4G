@@ -210,7 +210,6 @@ ue::ue(uint16_t                 rnti_,
   nof_tx_harq_proc(nof_tx_harq_proc_),
   ta_fsm(this)
 {
-  cc_buffers.reserve(nof_cells_);
   for (size_t i = 0; i < nof_cells_; ++i) {
     cc_buffers.emplace_back(pdus);
   }
@@ -255,7 +254,7 @@ srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const ui
     return nullptr;
   }
 
-  return &cc_buffers.at(ue_cc_idx).get_rx_softbuffer(tti % nof_rx_harq_proc);
+  return &cc_buffers[ue_cc_idx].get_rx_softbuffer(tti % nof_rx_harq_proc);
 }
 
 srslte_softbuffer_tx_t*
@@ -274,7 +273,7 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t ue_cc_idx, const uint32_t len
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
   uint8_t*                     pdu = nullptr;
   if (len > 0) {
-    pdu = cc_buffers.at(ue_cc_idx).get_rx_used_buffers().request_pdu(tti_point(tti), len);
+    pdu = cc_buffers[ue_cc_idx].get_rx_used_buffers().request_pdu(tti_point(tti), len);
   } else {
     logger.error("UE buffers: Requesting buffer for zero bytes");
   }
@@ -422,7 +421,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  if (not cc_buffers.at(ue_cc_idx).get_rx_used_buffers().try_deallocate_pdu(tti_point(tti))) {
+  if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().try_deallocate_pdu(tti_point(tti))) {
     logger.warning("UE buffers: Null RX PDU pointer in deallocate_pdu for rnti=0x%x pid=%d cc_idx=%d",
                    rnti,
                    tti % nof_rx_harq_proc,
@@ -433,7 +432,7 @@ void ue::deallocate_pdu(uint32_t tti, uint32_t ue_cc_idx)
 void ue::push_pdu(uint32_t tti, uint32_t ue_cc_idx, uint32_t len)
 {
   std::unique_lock<std::mutex> lock(rx_buffers_mutex);
-  if (not cc_buffers.at(ue_cc_idx).get_rx_used_buffers().push_pdu(tti_point(tti), len)) {
+  if (not cc_buffers[ue_cc_idx].get_rx_used_buffers().push_pdu(tti_point(tti), len)) {
     logger.warning(
         "UE buffers: Failed to push RX PDU for rnti=0x%x pid=%d cc_idx=%d", rnti, tti % nof_rx_harq_proc, ue_cc_idx);
   }

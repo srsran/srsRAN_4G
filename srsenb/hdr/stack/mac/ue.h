@@ -45,8 +45,6 @@ public:
 
   void clear_old_pdus(tti_point current_tti);
 
-  void remove_pdu(tti_point tti);
-
   bool try_deallocate_pdu(tti_point tti);
 
   void clear();
@@ -56,6 +54,8 @@ public:
   bool has_tti(tti_point tti) const;
 
 private:
+  void remove_pdu(tti_point tti);
+
   srslog::basic_logger* logger;
   srslte::pdu_queue*    shared_pdu_queue;
 
@@ -183,7 +183,7 @@ private:
   int                   nof_rx_harq_proc = 0;
   int                   nof_tx_harq_proc = 0;
 
-  std::vector<cc_buffer_handler> cc_buffers;
+  srslte::bounded_vector<cc_buffer_handler, SRSLTE_MAX_CARRIERS> cc_buffers;
 
   std::mutex rx_buffers_mutex;
 
