@@ -297,15 +297,8 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
                                    const srslte_slot_cfg_t*     slot_cfg,
                                    const srslte_search_space_t* search_space,
                                    uint16_t                     rnti,
-                                   srslte_rnti_type_t           rnti_type,
-                                   srslte_dci_msg_nr_t*         dci_msg_list,
-                                   uint32_t                     nof_dci_msg)
+                                   srslte_rnti_type_t           rnti_type)
 {
-  // Check inputs
-  if (q == NULL || slot_cfg == NULL || dci_msg_list == NULL) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
   // Select CORESET
   uint32_t coreset_id = search_space->coreset_id;
   if (coreset_id >= SRSLTE_UE_DL_NR_MAX_NOF_CORESET || !q->cfg.coreset_present[coreset_id]) {
@@ -320,8 +313,6 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
     return SRSLTE_ERROR;
   }
 
-  uint32_t count = 0;
-
   // Hard-coded values
   srslte_dci_format_nr_t dci_format = srslte_dci_format_nr_1_0;
 
@@ -333,7 +324,8 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
   }
 
   // Iterate all possible aggregation levels
-  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR && count < nof_dci_msg; L++) {
+  for (uint32_t L = 0; L < SRSLTE_SEARCH_SPACE_NOF_AGGREGATION_LEVELS_NR && q->dci_msg_count < SRSLTE_MAX_DCI_MSG_NR;
+       L++) {
     // Calculate possible PDCCH DCI candidates
     uint32_t candidates[SRSLTE_SEARCH_SPACE_MAX_NOF_CANDIDATES_NR] = {};
     int      nof_candidates                                        = srslte_pdcch_nr_locations_coreset(
@@ -344,7 +336,7 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
     }
 
     // Iterate over the candidates
-    for (int ncce_idx = 0; ncce_idx < nof_candidates && count < nof_dci_msg; ncce_idx++) {
+    for (int ncce_idx = 0; ncce_idx < nof_candidates && q->dci_msg_count < SRSLTE_MAX_DCI_MSG_NR; ncce_idx++) {
       // Set DCI context
       srslte_dci_msg_nr_t dci_msg = {};
       dci_msg.location.L          = L;
@@ -387,19 +379,19 @@ static int ue_dl_nr_find_dl_dci_ss(srslte_ue_dl_nr_t*           q,
       }
 
       // Check if the grant exists already in the message list
-      if (find_dci_msg(dci_msg_list, count, &dci_msg)) {
+      if (find_dci_msg(q->dci_msg, q->dci_msg_count, &dci_msg)) {
         // The same DCI is in the list, keep moving
         continue;
       }
 
       INFO("Found DCI in L=%d,ncce=%d", dci_msg.location.L, dci_msg.location.ncce);
       // Append DCI message into the list
-      dci_msg_list[count] = dci_msg;
-      count++;
+      q->dci_msg[q->dci_msg_count] = dci_msg;
+      q->dci_msg_count++;
     }
   }
 
-  return (int)count;
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
@@ -409,9 +401,6 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
                                 srslte_dci_dl_nr_t*      dci_dl_list,
                                 uint32_t                 nof_dci_msg)
 {
-  int                 count                               = 0;
-  srslte_dci_msg_nr_t dci_msg_list[SRSLTE_MAX_DCI_MSG_NR] = {};
-
   // Check inputs
   if (q == NULL || slot_cfg == NULL || dci_dl_list == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -420,48 +409,43 @@ int srslte_ue_dl_nr_find_dl_dci(srslte_ue_dl_nr_t*       q,
   // Limit maximum number of DCI messages to find
   nof_dci_msg = SRSLTE_MIN(nof_dci_msg, SRSLTE_MAX_DCI_MSG_NR);
 
-  // Reset debug information counter
+  // Reset grant and blind search information counters
+  q->dci_msg_count    = 0;
   q->pdcch_info_count = 0;
 
   // If the UE looks for a RAR and RA search space is provided, search for it
   if (q->cfg.ra_search_space_present && rnti_type == srslte_rnti_type_ra) {
     // Find DCIs in the RA search space
-    int ret = ue_dl_nr_find_dl_dci_ss(q, slot_cfg, &q->cfg.ra_search_space, rnti, rnti_type, dci_msg_list, nof_dci_msg);
+    int ret = ue_dl_nr_find_dl_dci_ss(q, slot_cfg, &q->cfg.ra_search_space, rnti, rnti_type);
     if (ret < SRSLTE_SUCCESS) {
       ERROR("Error searching RAR DCI");
       return SRSLTE_ERROR;
     }
-
-    // Count the found DCIs
-    count += ret;
   } else {
     // Iterate all possible common and UE search spaces
-    for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE && count < nof_dci_msg; i++) {
+    for (uint32_t i = 0; i < SRSLTE_UE_DL_NR_MAX_NOF_SEARCH_SPACE && q->dci_msg_count < nof_dci_msg; i++) {
       // Skip search space if not present
       if (!q->cfg.search_space_present[i]) {
         continue;
       }
 
       // Find DCIs in the selected search space
-      int ret = ue_dl_nr_find_dl_dci_ss(
-          q, slot_cfg, &q->cfg.search_space[i], rnti, rnti_type, &dci_msg_list[count], nof_dci_msg - count);
+      int ret = ue_dl_nr_find_dl_dci_ss(q, slot_cfg, &q->cfg.search_space[i], rnti, rnti_type);
       if (ret < SRSLTE_SUCCESS) {
         ERROR("Error searching DCI");
         return SRSLTE_ERROR;
       }
-
-      // Count the found DCIs
-      count += ret;
     }
   }
 
   // Convert found DCI messages into DL grants
-  for (uint32_t i = 0; i < count; i++) {
-    const srslte_coreset_t* coreset = &q->cfg.coreset[dci_msg_list[i].coreset_id];
-    srslte_dci_nr_format_1_0_unpack(&q->carrier, coreset, &dci_msg_list[i], &dci_dl_list[i]);
+  uint32_t dci_msg_count = SRSLTE_MIN(nof_dci_msg, q->dci_msg_count);
+  for (uint32_t i = 0; i < dci_msg_count; i++) {
+    const srslte_coreset_t* coreset = &q->cfg.coreset[q->dci_msg[i].coreset_id];
+    srslte_dci_nr_format_1_0_unpack(&q->carrier, coreset, &q->dci_msg[i], &dci_dl_list[i]);
   }
 
-  return count;
+  return (int)dci_msg_count;
 }
 
 int srslte_ue_dl_nr_find_ul_dci(srslte_ue_dl_nr_t*       q,

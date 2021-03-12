@@ -1237,13 +1237,10 @@ static uint32_t srslte_pusch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
   uint32_t len = 0;
   len          = srslte_print_check(str, str_len, len, "rnti=0x%x", grant->rnti);
 
-  char freq_str[SRSLTE_MAX_PRB_NR + 1] = {};
-  for (uint32_t i = 0, nof_prb = 0; i < SRSLTE_MAX_PRB_NR && nof_prb < grant->nof_prb; i++) {
+  uint32_t first_prb = SRSLTE_MAX_PRB_NR;
+  for (uint32_t i = 0; i < SRSLTE_MAX_PRB_NR && first_prb == SRSLTE_MAX_PRB_NR; i++) {
     if (grant->prb_idx[i]) {
-      freq_str[i] = '1';
-      nof_prb++;
-    } else {
-      freq_str[i] = '0';
+      first_prb = i;
     }
   }
 
@@ -1251,9 +1248,10 @@ static uint32_t srslte_pusch_nr_grant_info(const srslte_sch_cfg_nr_t*   cfg,
   len = srslte_print_check(str,
                            str_len,
                            len,
-                           ",k2=%d,freq=%s,S=%d,L=%d,mapping=%s",
+                           ",k2=%d,prb=%d:%d,S=%d,L=%d,mapping=%s",
                            grant->k,
-                           freq_str,
+                           first_prb,
+                           grant->nof_prb,
                            grant->S,
                            grant->L,
                            srslte_sch_mapping_type_to_str(grant->mapping));

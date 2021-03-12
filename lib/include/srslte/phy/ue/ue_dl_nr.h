@@ -130,8 +130,13 @@ typedef struct SRSLTE_API {
   srslte_pdcch_nr_t             pdcch;
   srslte_dmrs_pdcch_ce_t*       pdcch_ce;
 
-  srslte_ue_dl_nr_pdcch_info_t pdcch_info[SRSLTE_MAX_NOF_CANDIDATES_NR]; ///< Stores PDCCH blind search info
+  /// Store Blind-search information from all possible candidate locations for debug purposes
+  srslte_ue_dl_nr_pdcch_info_t pdcch_info[SRSLTE_MAX_NOF_CANDIDATES_NR];
   uint32_t                     pdcch_info_count;
+
+  /// Temporally stores Found DCI messages from all SS
+  srslte_dci_msg_nr_t dci_msg[SRSLTE_MAX_DCI_MSG_NR];
+  uint32_t            dci_msg_count;
 
   srslte_dci_msg_nr_t pending_ul_dci_msg[SRSLTE_MAX_DCI_MSG_NR];
   uint32_t            pending_ul_dci_count;
