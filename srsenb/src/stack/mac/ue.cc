@@ -36,6 +36,7 @@ bool cc_used_buffers_map::push_pdu(tti_point tti, uint32_t len)
   if (len > 0) {
     shared_pdu_queue->push(pdu_pair.second, len);
   } else {
+    shared_pdu_queue->deallocate(pdu_pair.second);
     logger->error("Error pushing PDU: null length");
   }
   // clear entry in map
@@ -90,7 +91,7 @@ void cc_used_buffers_map::remove_pdu(tti_point tti)
 
 bool cc_used_buffers_map::try_deallocate_pdu(tti_point tti)
 {
-  if (pdu_map[tti.to_uint()].second == nullptr) {
+  if (pdu_map[tti.to_uint()].second != nullptr) {
     remove_pdu(tti);
     return true;
   }
@@ -100,7 +101,7 @@ bool cc_used_buffers_map::try_deallocate_pdu(tti_point tti)
 void cc_used_buffers_map::clear()
 {
   for (auto& pdu : pdu_map) {
-    remove_pdu(pdu.first);
+    try_deallocate_pdu(pdu.first);
   }
 }
 
