@@ -1089,9 +1089,11 @@ bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte
     }
     pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
-    // send on SRB2 if user is fully registered (after RRC reconfig complete)
-    uint32_t lcid =
-        parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+    uint32_t lcid = RB_ID_SRB1;
+    if (dl_dcch_msg->msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types_opts::dl_info_transfer) {
+      // send messages with NAS on SRB2 if user is fully registered (after RRC reconfig complete)
+      lcid = parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+    }
 
     char buf[32] = {};
     sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
