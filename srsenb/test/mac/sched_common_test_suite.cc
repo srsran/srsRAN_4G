@@ -188,6 +188,9 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
               "Allocated BC process with TBS=%d < sib_len=%d",
               bc->tbs,
               cell_params.cfg.sibs[bc->index].len);
+    CONDERROR(bc->dci.rnti != 0xffff, "Invalid rnti=0x%x for SIB%d", bc->dci.rnti, bc->index);
+    CONDERROR(bc->dci.format != SRSLTE_DCI_FORMAT1A, "Invalid DCI format for SIB%d", bc->index);
+
     uint32_t x         = (bc->index - 1) * cell_params.cfg.si_window_ms;
     uint32_t sf        = x % 10;
     uint32_t sfn_start = sfn;
@@ -302,6 +305,21 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
       }
     }
   }
+
+  // TEST: max coderate is not exceeded for RA and Broadcast
+  srslte_dl_sf_cfg_t dl_sf = {};
+  dl_sf.cfi                = sf_out.dl_cc_result[enb_cc_idx].cfi;
+  dl_sf.tti                = to_tx_dl(sf_out.tti_rx).to_uint();
+  auto test_ra_bc_coderate = [&dl_sf, &cell_params](uint32_t tbs, const srslte_dci_dl_t& dci) {
+    srslte_pdsch_grant_t grant = {};
+    srslte_ra_dl_grant_to_grant_prb_allocation(&dci, &grant, cell_params.cfg.cell.nof_prb);
+    uint32_t       nof_re   = srslte_ra_dl_grant_nof_re(&cell_params.cfg.cell, &dl_sf, &grant);
+    float          coderate = srslte_coderate(tbs * 8, nof_re);
+    const uint32_t Qm       = 2;
+    CONDERROR(coderate > 0.930f * Qm, "Max coderate was exceeded from broadcast DCI");
+    return SRSLTE_SUCCESS;
+  };
+
   for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
     auto& bc = dl_result.bc[i];
     if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
@@ -314,10 +332,16 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
     } else {
       TESTERROR("Invalid broadcast process id=%d", (int)bc.type);
     }
+
+    TESTASSERT(test_ra_bc_coderate(bc.tbs, bc.dci) == SRSLTE_SUCCESS);
   }
+
   for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
     const auto& rar = dl_result.rar[i];
     CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d", rar.tbs);
+
+    // TEST: max coderate is not exceeded
+    TESTASSERT(test_ra_bc_coderate(rar.tbs, rar.dci) == SRSLTE_SUCCESS);
   }
 
   return SRSLTE_SUCCESS;

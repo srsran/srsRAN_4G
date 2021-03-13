@@ -122,6 +122,38 @@ int test_mcs_tbs_dl_helper(const sched_cell_params_t& cell_params, const tbs_tes
   return SRSLTE_SUCCESS;
 }
 
+int assert_mcs_tbs_result(uint32_t cell_nof_prb,
+                          uint32_t cqi,
+                          uint32_t prb_grant_size,
+                          uint32_t tbs,
+                          uint32_t mcs,
+                          bool     alt_cqi_table = false)
+{
+  sched_cell_params_t           cell_params = {};
+  sched_interface::cell_cfg_t   cell_cfg    = generate_default_cell_cfg(cell_nof_prb);
+  sched_interface::sched_args_t sched_args  = {};
+  cell_params.set_cfg(0, cell_cfg, sched_args);
+  tbs_test_args args;
+  args.verbose           = true;
+  args.cqi               = cqi;
+  args.prb_grant_size    = prb_grant_size;
+  args.use_tbs_index_alt = alt_cqi_table;
+  if (alt_cqi_table) {
+    args.max_mcs = std::min(args.max_mcs, 27u); // limited to 27 for 256-QAM
+  }
+
+  tbs_info expected_result;
+  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
+  CONDERROR(expected_result != tbs_info(tbs / 8, mcs),
+            "TBS computation failure. {%d, %d}!={%d, %d}",
+            expected_result.tbs_bytes * 8,
+            expected_result.mcs,
+            tbs,
+            mcs);
+
+  return SRSLTE_SUCCESS;
+}
+
 int test_mcs_lookup_specific()
 {
   sched_cell_params_t           cell_params = {};
@@ -134,50 +166,14 @@ int test_mcs_lookup_specific()
 
   /* TEST CASE: DL, no 256-QAM */
   // cqi=5,Nprb=1 -> {mcs=3, tbs_idx=3, tbs=40}
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(40 / 8, 3),
-            "TBS computation failure. {%d, %d}!={40, 3}",
-            expected_result.tbs_bytes * 8,
-            expected_result.mcs);
+  TESTASSERT(assert_mcs_tbs_result(6, 5, 1, 40, 3) == SRSLTE_SUCCESS);
 
-  // cqi=15,Nprb=1 -> {mcs=19, tbs_idx=17, tbs=336}
-  args.cqi = 15;
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(336 / 8, 19),
-            "TBS computation failure. {%d, %d}!={336, 19}",
-            expected_result.tbs_bytes * 8,
-            expected_result.mcs);
+  TESTASSERT(assert_mcs_tbs_result(6, 15, 1, 336, 19) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(6, 5, 4, 256, 4) == SRSLTE_SUCCESS);
 
-  // cqi=9,Nprb=1,cell_nprb=100 -> {mcs=28, tbs_idx=17, tbs=712}
-  cell_params = {};
-  cell_cfg    = generate_default_cell_cfg(100);
-  cell_params.set_cfg(0, cell_cfg, sched_args);
-  args.cqi = 9;
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(712 / 8, 28),
-            "TBS computation failure. {%d, %d}!={712, 28}",
-            expected_result.tbs_bytes * 8,
-            expected_result.mcs);
-
-  // cqi=10,Nprb=10,cell_nprb=100 -> {mcs=28, tbs=5736}
-  args.prb_grant_size = 10;
-  args.cqi            = 10;
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(5736 / 8, 25),
-            "TBS computation failure. {%d, %d}!={5736, 25}",
-            expected_result.tbs_bytes * 8,
-            expected_result.mcs);
-
-  // cqi=15,Nprb=1,256-QAM -> {mcs=26,tbs_idx=32,tbs=968}
-  args.prb_grant_size    = 1;
-  args.use_tbs_index_alt = true;
-  args.max_mcs           = 27; // limited to 27 for 256-QAM
-  args.cqi               = 15;
-  TESTASSERT(test_mcs_tbs_dl_helper(cell_params, args, &expected_result) == SRSLTE_SUCCESS);
-  CONDERROR(expected_result != tbs_info(968 / 8, 27),
-            "TBS computation failure. {%d, %d}!={968, 27}",
-            expected_result.tbs_bytes * 8,
-            expected_result.mcs);
+  TESTASSERT(assert_mcs_tbs_result(100, 9, 1, 712, 28) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(100, 10, 10, 5736, 25) == SRSLTE_SUCCESS);
+  TESTASSERT(assert_mcs_tbs_result(100, 15, 1, 968, 27, true) == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }
@@ -279,6 +275,14 @@ int test_min_mcs_tbs_specific()
 
 int main()
 {
+  auto& mac_log = srslog::fetch_basic_logger("MAC");
+  mac_log.set_level(srslog::basic_levels::info);
+  auto& test_log = srslog::fetch_basic_logger("TEST");
+  test_log.set_level(srslog::basic_levels::info);
+
+  // Start the log backend.
+  srslog::init();
+
   TESTASSERT(srsenb::test_mcs_lookup_specific() == SRSLTE_SUCCESS);
   TESTASSERT(srsenb::test_mcs_tbs_consistency_all() == SRSLTE_SUCCESS);
   TESTASSERT(srsenb::test_min_mcs_tbs_specific() == SRSLTE_SUCCESS);

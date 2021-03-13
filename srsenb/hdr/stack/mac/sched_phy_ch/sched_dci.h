@@ -46,7 +46,7 @@ tbs_info compute_mcs_and_tbs(uint32_t nof_prb,
                              bool     use_tbs_index_alt);
 
 /**
- * Compute lowest MCS, TBS based on CQI, N_prb that satisfies TBS >= req_bytes
+ * Compute lowest MCS, TBS based on CQI, N_prb that satisfies TBS >= req_bytes (best effort)
  * \remark See TS 36.213 - Table 7.1.7.1-1/1A
  * @return resulting TBS (in bytes) and mcs. TBS=-1 if no valid solution was found.
  */
