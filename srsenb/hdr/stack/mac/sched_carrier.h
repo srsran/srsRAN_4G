@@ -119,9 +119,9 @@ private:
   const sched_cell_params_t* cc_cfg = nullptr;
   sched_ue_list*             ue_db  = nullptr;
 
-  std::deque<sf_sched::pending_rar_t> pending_rars;
-  uint32_t                            rar_aggr_level   = 2;
-  static const uint32_t               PRACH_RAR_OFFSET = 3; // TS 36.321 Sec. 5.1.4
+  std::deque<pending_rar_t> pending_rars;
+  uint32_t                  rar_aggr_level   = 2;
+  static const uint32_t     PRACH_RAR_OFFSET = 3; // TS 36.321 Sec. 5.1.4
 };
 
 } // namespace srsenb

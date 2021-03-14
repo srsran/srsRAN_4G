@@ -383,8 +383,6 @@ sched_cell_params_t::get_dl_nof_res(srslte::tti_point tti_tx_dl, const srslte_dc
     }
   }
 
-  // sanity check
-  assert(nof_re == srslte_ra_dl_grant_nof_re(&cfg.cell, &dl_sf, &grant));
   return nof_re;
 }
 

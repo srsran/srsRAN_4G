@@ -150,9 +150,7 @@ public:
   struct ctrl_alloc_t {
     size_t       dci_idx;
     rbg_interval rbg_range;
-    uint16_t     rnti;
     uint32_t     req_bytes;
-    alloc_type_t alloc_type;
   };
   struct rar_alloc_t {
     sf_sched::ctrl_alloc_t          alloc_data;
@@ -161,9 +159,8 @@ public:
     {}
   };
   struct bc_alloc_t : public ctrl_alloc_t {
-    uint32_t rv      = 0;
-    uint32_t sib_idx = 0;
-    bc_alloc_t()     = default;
+    sched_interface::dl_sched_bc_t bc_grant;
+    bc_alloc_t() = default;
     explicit bc_alloc_t(const ctrl_alloc_t& c) : ctrl_alloc_t(c) {}
   };
   struct dl_alloc_t {
@@ -188,12 +185,6 @@ public:
     uint32_t L     = 0;
     uint32_t n_prb = 0;
     uint32_t mcs   = 0;
-  };
-  struct pending_rar_t {
-    uint16_t                             ra_rnti = 0;
-    tti_point                            prach_tti{};
-    uint32_t                             nof_grants                                = 0;
-    sched_interface::dl_sched_rar_info_t msg3_grant[sched_interface::MAX_RAR_LIST] = {};
   };
   typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
 
@@ -236,7 +227,6 @@ public:
 
 private:
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
-  int         generate_format1a(prb_interval prb_range, uint32_t tbs, uint32_t rv, uint16_t rnti, srslte_dci_dl_t* dci);
   void        set_bc_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,
                                   sched_interface::dl_sched_res_t*        dl_result);
   void        set_rar_sched_result(const sf_cch_allocator::alloc_result_t& dci_result,

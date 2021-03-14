@@ -321,7 +321,7 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   };
 
   for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
-    auto& bc = dl_result.bc[i];
+    const sched_interface::dl_sched_bc_t& bc = dl_result.bc[i];
     if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
       CONDERROR(bc.tbs < cell_params.cfg.sibs[bc.index].len,
                 "Allocated BC process with TBS=%d < sib_len=%d",

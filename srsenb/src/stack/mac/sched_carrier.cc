@@ -144,7 +144,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
   rar_aggr_level      = 2;
 
   while (not pending_rars.empty()) {
-    sf_sched::pending_rar_t& rar = pending_rars.front();
+    pending_rar_t& rar = pending_rars.front();
 
     // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
     srslte::tti_interval rar_window{rar.prach_tti + PRACH_RAR_OFFSET,
@@ -179,13 +179,13 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
     }
 
     uint32_t nof_rar_allocs = ret.second;
-    if (nof_rar_allocs == rar.nof_grants) {
+    if (nof_rar_allocs == rar.msg3_grant.size()) {
       // all RAR grants were allocated. Remove pending RAR
       pending_rars.pop_front();
     } else {
       // keep the RAR grants that were not scheduled, so we can schedule in next TTI
-      std::copy(&rar.msg3_grant[nof_rar_allocs], &rar.msg3_grant[rar.nof_grants], &rar.msg3_grant[0]);
-      rar.nof_grants -= nof_rar_allocs;
+      std::copy(rar.msg3_grant.begin() + nof_rar_allocs, rar.msg3_grant.end(), rar.msg3_grant.begin());
+      rar.msg3_grant.resize(rar.msg3_grant.size() - nof_rar_allocs);
     }
   }
 }
@@ -204,24 +204,22 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   uint16_t ra_rnti = 1 + (uint16_t)(rar_info.prach_tti % 10u);
 
   // find pending rar with same RA-RNTI
-  for (sf_sched::pending_rar_t& r : pending_rars) {
+  for (pending_rar_t& r : pending_rars) {
     if (r.prach_tti.to_uint() == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
-      if (r.nof_grants >= sched_interface::MAX_RAR_LIST) {
+      if (r.msg3_grant.size() >= sched_interface::MAX_RAR_LIST) {
         logger.warning("PRACH ignored, as the the maximum number of RAR grants per tti has been reached");
         return SRSLTE_ERROR;
       }
-      r.msg3_grant[r.nof_grants] = rar_info;
-      r.nof_grants++;
+      r.msg3_grant.push_back(rar_info);
       return SRSLTE_SUCCESS;
     }
   }
 
   // create new RAR
-  sf_sched::pending_rar_t p;
-  p.ra_rnti       = ra_rnti;
-  p.prach_tti     = tti_point{rar_info.prach_tti};
-  p.nof_grants    = 1;
-  p.msg3_grant[0] = rar_info;
+  pending_rar_t p;
+  p.ra_rnti   = ra_rnti;
+  p.prach_tti = tti_point{rar_info.prach_tti};
+  p.msg3_grant.push_back(rar_info);
   pending_rars.push_back(p);
 
   return SRSLTE_SUCCESS;
